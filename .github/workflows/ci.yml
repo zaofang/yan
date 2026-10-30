@@ -14,7 +14,7 @@ permissions:
 jobs:
   guard:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,7 +30,7 @@ jobs:
             | python3 tools/guard.py --branch "$BRANCH" --author-type "$AUTHOR_TYPE"
 
   canary:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - name: Guard must reject a synthetic agent patch to tests/
@@ -41,7 +41,7 @@ jobs:
           fi
 
   check:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -52,7 +52,7 @@ jobs:
       - run: uv run pytest -q tools/selftest
 
   conformance:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6

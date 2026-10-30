@@ -37,5 +37,8 @@ spec 16.1 diagnostic records) and `CMD run FILE`.
 
 ## Required repository settings
 
+CI runs on a self-hosted runner (no hosted Actions minutes): register one under Settings → Actions → Runners.
+
+
 Branch protection on `main`: require a pull request, require review from Code Owners, and require
 the `guard`, `canary`, `check` and `conformance` status checks.
