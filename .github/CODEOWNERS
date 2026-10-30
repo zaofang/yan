@@ -1,0 +1,7 @@
+# Human-owned paths: Antonio's review is required (enable "Require review from Code Owners").
+/tests/                @atbraz
+/conformance/          @atbraz
+/spec/                 @atbraz
+/.github/              @atbraz
+/tools/guard.py        @atbraz
+/SPEC_QUESTIONS.md     @atbraz
