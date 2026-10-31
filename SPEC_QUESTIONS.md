@@ -52,3 +52,14 @@ Assumed in `yong-check` until resolved:
   and never produces E201. An integer literal fits any numeric type, a float literal any
   non-integer numeric type.
 - `yong run` checks the module first and exits 1 with the diagnostics on stderr when it has errors.
+
+## Jian elaboration readings
+
+Assumed in `yong-elab` until resolved:
+
+- E210 exempts the arguments of a `become` call. `become count(n - 1, acc + 1)` with two `int`
+  parameters is a run case (`jian/run/tail/become_constant_stack`) and appears in
+  `jian/pass/syntax/every_production`, though 14.1's exemptions (literals, names equal to the
+  parameter, positional-only parameters, the receiver) do not cover it.
+- E210 is reported once per call, at the first argument that needs a keyword (the note in
+  `jian/fail/types/e210_record_keyword_required`).

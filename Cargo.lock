@@ -250,6 +250,7 @@ dependencies = [
  "yong-check",
  "yong-core",
  "yong-diag",
+ "yong-elab",
  "yong-interp",
  "yong-jian",
 ]
@@ -267,6 +268,17 @@ version = "0.0.0"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "yong-elab"
+version = "0.0.0"
+dependencies = [
+ "yong-check",
+ "yong-core",
+ "yong-diag",
+ "yong-interp",
+ "yong-jian",
 ]
 
 [[package]]

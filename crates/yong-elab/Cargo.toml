@@ -1,0 +1,20 @@
+[package]
+name = "yong-elab"
+description = "Jian to Yong elaboration: inference, capability passing, lowering (14.1)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+yong-core.workspace = true
+yong-diag.workspace = true
+yong-jian.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+yong-check.workspace = true
+yong-interp.workspace = true

@@ -33,6 +33,12 @@ enum Command {
         #[arg(required = true)]
         files: Vec<PathBuf>,
     },
+    /// Print a module in another surface; only Jian to Yong for now.
+    View {
+        #[arg(long = "as")]
+        as_: String,
+        file: PathBuf,
+    },
     /// Run a program.
     Run {
         #[arg(long)]
@@ -58,32 +64,100 @@ fn main() -> ExitCode {
             files,
             ..
         } => check(&files, format, max_errors, strict),
-        Command::Run { file, .. } => run(&file),
+        Command::Run { file, strict, .. } => run(&file, strict),
+        Command::View { as_, file } => view(&as_, &file),
     }
 }
 
-fn run(file: &Path) -> ExitCode {
-    if file.extension().is_none_or(|e| e != "yong") {
-        return tool_failure(&front_end_missing(file));
+/// A module ready to check or run: parsed and, for Jian, elaborated to Yong.
+enum Loaded {
+    Ready(yong_core::ast::Module, Vec<Diagnostic>),
+    /// Front-end diagnostics that stop before the Yong checker.
+    Stopped(Vec<Diagnostic>),
+    /// Jian the elaborator does not lower yet; its front-end diagnostics.
+    Unsupported(String, Vec<Diagnostic>),
+}
+
+fn load(file: &Path, src: &str, strict: bool) -> Result<Loaded, String> {
+    let name = file.display().to_string();
+    match file.extension().and_then(|e| e.to_str()) {
+        Some("yong") => Ok(match yong_core::parse(&name, src) {
+            (Some(m), d) if d.is_empty() => Loaded::Ready(m, Vec::new()),
+            (_, d) => Loaded::Stopped(d),
+        }),
+        Some("jian") => {
+            let (m, diags) = yong_jian::parse(&name, src, strict);
+            let Some(m) = m.filter(|_| !diags.iter().any(|d| d.severity == Severity::Error)) else {
+                return Ok(Loaded::Stopped(diags));
+            };
+            Ok(match yong_elab::elaborate(&name, src, &m, strict) {
+                Err(yong_elab::Unsupported(what)) => Loaded::Unsupported(what, diags),
+                Ok((y, mut errs)) if !errs.iter().any(|d| d.severity == Severity::Error) => {
+                    errs.extend(diags);
+                    Loaded::Ready(y, errs)
+                }
+                Ok((_, mut errs)) => {
+                    errs.extend(diags);
+                    Loaded::Stopped(errs)
+                }
+            })
+        }
+        _ => Err(front_end_missing(file)),
+    }
+}
+
+fn view(as_: &str, file: &Path) -> ExitCode {
+    if as_ != "yong" {
+        return tool_failure(&format!("no printer for `{as_}` yet"));
     }
     let src = match std::fs::read_to_string(file) {
         Ok(s) => s,
         Err(e) => return tool_failure(&format!("{}: {e}", file.display())),
     };
-    let name = file.display().to_string();
-    let (Some(module), mut diags) = yong_core::parse(&name, &src) else {
-        return tool_failure(&format!("{name} does not parse"));
+    match load(file, &src, false) {
+        Ok(Loaded::Ready(m, _)) => {
+            print!("{}", yong_core::print(&m));
+            ExitCode::SUCCESS
+        }
+        Ok(Loaded::Stopped(d)) => {
+            d.iter().for_each(|d| eprintln!("{}", d.render_line(None)));
+            ExitCode::FAILURE
+        }
+        Ok(Loaded::Unsupported(what, _)) => tool_failure(&format!("not supported yet: {what}")),
+        Err(msg) => tool_failure(&msg),
+    }
+}
+
+fn run(file: &Path, strict: bool) -> ExitCode {
+    let src = match std::fs::read_to_string(file) {
+        Ok(s) => s,
+        Err(e) => return tool_failure(&format!("{}: {e}", file.display())),
     };
-    if diags.is_empty() {
-        diags = yong_check::check(&name, &src, &module);
-    }
-    let diags = finish(diags, DEFAULT_MAX_ERRORS);
-    if diags.iter().any(|d| d.severity == Severity::Error) {
-        diags
-            .iter()
-            .for_each(|d| eprintln!("{}", d.render_line(None)));
-        return ExitCode::FAILURE;
-    }
+    let name = file.display().to_string();
+    let module = match load(file, &src, strict) {
+        Ok(Loaded::Ready(m, mut diags)) => {
+            diags.extend(yong_check::check(&name, &src, &m));
+            let diags = finish(diags, DEFAULT_MAX_ERRORS);
+            if diags.iter().any(|d| d.severity == Severity::Error) {
+                diags
+                    .iter()
+                    .for_each(|d| eprintln!("{}", d.render_line(None)));
+                return ExitCode::FAILURE;
+            }
+            m
+        }
+        Ok(Loaded::Stopped(d)) if d.iter().any(|d| d.severity == Severity::Error) => {
+            finish(d, DEFAULT_MAX_ERRORS)
+                .iter()
+                .for_each(|d| eprintln!("{}", d.render_line(None)));
+            return ExitCode::FAILURE;
+        }
+        Ok(Loaded::Stopped(_)) => return tool_failure(&format!("{name} does not parse")),
+        Ok(Loaded::Unsupported(what, _)) => {
+            return tool_failure(&format!("not supported yet: {what}"));
+        }
+        Err(msg) => return tool_failure(&msg),
+    };
     let mut out = std::io::stdout().lock();
     match yong_interp::run(&module, &mut out) {
         Ok(status) => ExitCode::from(status as u8),
@@ -121,18 +195,14 @@ fn check(files: &[PathBuf], format: Format, max_errors: usize, strict: bool) -> 
 }
 
 fn check_file(file: &Path, strict: bool) -> Result<Vec<Diagnostic>, String> {
-    let ext = file.extension().and_then(|e| e.to_str()).unwrap_or("");
-    if ext != "yong" && ext != "jian" {
-        return Err(front_end_missing(file));
-    }
     let src = std::fs::read_to_string(file).map_err(|e| format!("{}: {e}", file.display()))?;
     let name = file.display().to_string();
-    if ext == "jian" {
-        return Ok(yong_jian::parse(&name, &src, strict).1);
-    }
-    Ok(match yong_core::parse(&name, &src) {
-        (Some(m), d) if d.is_empty() => yong_check::check(&name, &src, &m),
-        (_, d) => d,
+    Ok(match load(file, &src, strict)? {
+        Loaded::Ready(m, mut d) => {
+            d.extend(yong_check::check(&name, &src, &m));
+            d
+        }
+        Loaded::Stopped(d) | Loaded::Unsupported(_, d) => d,
     })
 }
 

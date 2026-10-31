@@ -18,6 +18,7 @@ yong-diag = { path = "crates/yong-diag" }
 yong-interp = { path = "crates/yong-interp" }
 yong-check = { path = "crates/yong-check" }
 yong-jian = { path = "crates/yong-jian" }
+yong-elab = { path = "crates/yong-elab" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

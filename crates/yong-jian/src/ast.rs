@@ -386,7 +386,8 @@ pub enum ExprKind {
         iter: Box<Expr>,
         cond: Option<Box<Expr>>,
     },
-    Attr(Box<Expr>, Name),
+    /// The span is the attribute name's.
+    Attr(Box<Expr>, Name, Span),
     Call(Box<Expr>, Vec<Arg>),
     Index(Box<Expr>, Box<Expr>),
     Slice(Box<Expr>, [Option<Box<Expr>>; 3], bool),
