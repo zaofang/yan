@@ -1,0 +1,10 @@
+-- spec: 10.4
+-- note: the span is the compile_error call; the instantiation site goes in the notes
+-- expect: E270 at 7:5
+
+small[n: Nat]() -> int =
+  #if n > 4
+    #compile_error("n must be at most 4")
+  n
+
+f() -> int = small[8]()

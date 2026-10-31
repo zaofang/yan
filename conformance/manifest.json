@@ -3305,6 +3305,41 @@
    "expect": []
   },
   {
+   "path": "wen/pass/stage0/for_unrolls.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/pass/stage0/limit_raises_depth.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/pass/stage0/taken_branch_only.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [
+    "R346"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "wen/pass/subscripts/index_read_and_write.wen",
    "kind": "pass",
    "milestone": "M3",
@@ -4062,6 +4097,127 @@
    ]
   },
   {
+   "path": "wen/fail/stage0/e260_panic.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E260",
+     "line": 9,
+     "col": 16
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/stage0/e261_depth.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E261",
+     "line": 7,
+     "col": 16
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/stage0/e262_function_value.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E262",
+     "line": 9,
+     "col": 23
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/stage0/e267_embed_outside_root.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E267",
+     "line": 5,
+     "col": 24
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/stage0/e270_compile_error.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E270",
+     "line": 7,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/stage0/e272_instantiation_error.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [
+    "R346"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E272",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/stage0/w816_compile_warn.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W816",
+     "line": 6,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "wen/fail/strings/e504_len_str.wen",
    "kind": "fail",
    "milestone": "M3",
@@ -4603,6 +4759,19 @@
    "flags": [],
    "expect": [],
    "stdout": "3 -4 1 2 3.5\n",
+   "exit": 0
+  },
+  {
+   "path": "wen/run/stage0/folded_constant.wen",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "3628800\n",
    "exit": 0
   },
   {

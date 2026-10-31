@@ -1,0 +1,5 @@
+-- spec: 10.4
+-- note: the span is the path argument
+-- expect: E267 at 5:24
+
+let text: str = #embed("../../outside.txt")
