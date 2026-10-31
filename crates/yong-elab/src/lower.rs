@@ -400,6 +400,11 @@ fn let_arg(a: Atom) -> Arg {
     Arg::Value(Conv::Let, a, s)
 }
 
+fn sink_arg(a: Atom) -> Arg {
+    let s = a.span();
+    Arg::Value(Conv::Sink, a, s)
+}
+
 fn int_op(op: &str) -> Option<(&'static str, Ty)> {
     Some(match op {
         "+" => ("add_checked_i64", Ty::Int),
@@ -408,6 +413,17 @@ fn int_op(op: &str) -> Option<(&'static str, Ty)> {
         "//" => ("floordiv_i64", Ty::Int),
         "%" => ("mod_i64", Ty::Int),
         "/" => ("div_i64", Ty::Float),
+        _ => return None,
+    })
+}
+
+fn bigint_op(op: &str) -> Option<&'static str> {
+    Some(match op {
+        "+" => "add_bigint",
+        "-" => "sub_bigint",
+        "*" => "mul_bigint",
+        "//" => "floordiv_bigint",
+        "%" => "mod_bigint",
         _ => return None,
     })
 }
@@ -1827,6 +1843,10 @@ impl Lower<'_, '_, '_> {
                 Some(p) => (p.to_owned(), Ty::Float, vec![]),
                 None => return unsupported(format!("`{op}` on `float`")),
             },
+            (Ty::BigInt, Ty::BigInt) => match bigint_op(op) {
+                Some(p) => (p.to_owned(), Ty::BigInt, vec![]),
+                None => return unsupported(format!("`{op}` on `bigint`")),
+            },
             (Ty::Str, Ty::Str) if op == "+" => ("std.text.concat".to_owned(), Ty::Str, vec![]),
             (Ty::List(e), Ty::List(_)) if op == "+" => {
                 ("std.list.concat".to_owned(), tx.clone(), vec![e.targ()])
@@ -2172,7 +2192,7 @@ impl Lower<'_, '_, '_> {
     fn builtin(&mut self, n: &str, args: &[j::Arg], at: Span, want: Option<&Ty>) -> R<(Rhs, Ty)> {
         let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err);
         match n {
-            "len" | "sorted" | "int" | "float" | "round" | "abs" | "str" => {
+            "len" | "sorted" | "int" | "float" | "round" | "abs" | "str" | "bigint" | "list" => {
                 let Some(xs) = self.positional(args, 1, n, at)? else {
                     return Ok(err);
                 };
@@ -2201,6 +2221,12 @@ impl Lower<'_, '_, '_> {
                         ("std.text.char_count", vec![], Ty::Int)
                     }
                     ("sorted", Ty::List(e)) => ("std.prelude.sorted", vec![e.targ()], t.clone()),
+                    ("list", Ty::List(e)) => {
+                        let c = call("std.prelude.list", vec![e.targ()], vec![sink_arg(a)], at);
+                        return Ok((Rhs::Call(c), t.clone()));
+                    }
+                    ("bigint", Ty::Int) => ("std.prelude.bigint", vec![], Ty::BigInt),
+                    ("bigint", Ty::BigInt) => return Ok((Rhs::Atom(a), t)),
                     ("int", Ty::Int) | ("float", Ty::Float) => return Ok((Rhs::Atom(a), t)),
                     ("int", Ty::Float) => ("std.prelude.int", vec![], Ty::Int),
                     ("float", Ty::Int) => ("std.prelude.float", vec![], Ty::Float),
@@ -2309,9 +2335,31 @@ impl Lower<'_, '_, '_> {
                     want.cloned().expect("matched above"),
                 ))
             }
-            "bigint" | "range" | "list" | "dict" | "set" | "enumerate" | "zip" | "sum" | "any"
-            | "all" | "reversed" | "isinstance" | "hash" | "repr" | "divmod" | "pow" | "chr"
-            | "ord" | "atan2" | "hypot" => unsupported(format!("`{n}`")),
+            "range" => {
+                let n = args.len();
+                if !(1..=2).contains(&n) {
+                    self.err(
+                        "E202",
+                        at,
+                        format!("`range` takes 1 or 2 arguments, {n} given"),
+                    );
+                    return Ok(err);
+                }
+                let Some(xs) = self.positional(args, n, "range", at)? else {
+                    return Ok(err);
+                };
+                let mut out = Vec::new();
+                for x in xs {
+                    let (a, t) = self.atom(x, Some(&Ty::Int))?;
+                    self.expect(&t, &Ty::Int, x.span);
+                    out.push(let_arg(a));
+                }
+                let c = call("std.prelude.range", vec![], out, at);
+                Ok((Rhs::Call(c), Ty::List(Box::new(Ty::Int))))
+            }
+            "dict" | "set" | "enumerate" | "zip" | "sum" | "any" | "all" | "reversed"
+            | "isinstance" | "hash" | "repr" | "divmod" | "pow" | "chr" | "ord" | "atan2"
+            | "hypot" => unsupported(format!("`{n}`")),
             _ => {
                 self.err("E200", at, format!("cannot find function `{n}`"));
                 for a in args {
@@ -2369,6 +2417,35 @@ impl Lower<'_, '_, '_> {
             }
             (Ty::Str, "upper" | "lower" | "strip") => (m.into(), false, vec![], Ty::Str),
             (Ty::Str, "startswith" | "endswith") => (m.into(), false, vec![Ty::Str], Ty::Bool),
+            (Ty::Str, "splitlines") => (m.into(), false, vec![], Ty::List(Box::new(Ty::Str))),
+            (Ty::Str, "partition") => (
+                m.into(),
+                false,
+                vec![Ty::Str],
+                Ty::Tuple(vec![Ty::Str, Ty::Str, Ty::Str]),
+            ),
+            (Ty::Str, "parse_int") => (m.into(), false, vec![], Ty::Option(Box::new(Ty::Int))),
+            (Ty::Str, "parse_float") => (m.into(), false, vec![], Ty::Option(Box::new(Ty::Float))),
+            (Ty::List(x), "index") => (
+                m.into(),
+                false,
+                vec![(**x).clone()],
+                Ty::Option(Box::new(Ty::Int)),
+            ),
+            (Ty::List(x), "get") => (m.into(), false, vec![Ty::Int], Ty::Option(x.clone())),
+            (Ty::Set(x), "add" | "discard") => (m.into(), true, vec![(**x).clone()], Ty::Unit),
+            (Ty::Set(a), "union" | "intersection") => {
+                (m.into(), false, vec![t.clone()], Ty::Set(a.clone()))
+            }
+            (Ty::Dict(_, v), "remove") => {
+                (m.into(), true, vec![dict_key(&t)], Ty::Option(v.clone()))
+            }
+            (Ty::Dict(_, v), "setdefault") => (
+                m.into(),
+                true,
+                vec![dict_key(&t), (**v).clone()],
+                (**v).clone(),
+            ),
             (Ty::Str, "split") => (m.into(), false, vec![Ty::Str], Ty::List(Box::new(Ty::Str))),
             (Ty::Str, "join") => (m.into(), false, vec![Ty::List(Box::new(Ty::Str))], Ty::Str),
             (Ty::Str, "replace") => (m.into(), false, vec![Ty::Str, Ty::Str], Ty::Str),
@@ -2415,7 +2492,11 @@ impl Lower<'_, '_, '_> {
         for (x, pt) in xs.into_iter().zip(&params) {
             let (a, xt) = self.atom(x, Some(pt))?;
             self.expect(&xt, pt, x.span);
-            let conv = if inout { Conv::Sink } else { Conv::Let };
+            let conv = if inout && !matches!(m, "discard" | "remove") {
+                Conv::Sink
+            } else {
+                Conv::Let
+            };
             out.push(Arg::Value(conv, a, x.span));
         }
         let path = format!("std.{module}.{path}");
