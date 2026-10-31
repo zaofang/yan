@@ -6,6 +6,8 @@ use yong_core::ast::{self as y, Named, TArg};
 pub enum Ty {
     Int,
     Float,
+    /// Arbitrary precision; not `Copy`.
+    BigInt,
     Bool,
     Str,
     Char,
@@ -37,6 +39,7 @@ impl Ty {
         match self {
             Ty::Int => named("i64", vec![]),
             Ty::Float => named("f64", vec![]),
+            Ty::BigInt => named("bigint", vec![]),
             Ty::Bool => named("bool", vec![]),
             Ty::Str => named("Str", vec![]),
             Ty::Char => named("char", vec![]),
@@ -95,6 +98,7 @@ impl Ty {
         match self {
             Ty::Int => Some("i64"),
             Ty::Float => Some("f64"),
+            Ty::BigInt => Some("bigint"),
             Ty::Bool => Some("bool"),
             Ty::Fixed(n) => Some(n),
             _ => None,
@@ -108,7 +112,7 @@ impl Ty {
             Ty::List(_) => Some("list"),
             Ty::Dict(..) => Some("dict"),
             Ty::Set(_) => Some("set"),
-            Ty::Int | Ty::Float | Ty::Bool | Ty::Fixed(_) => Some("num"),
+            Ty::Int | Ty::Float | Ty::BigInt | Ty::Bool | Ty::Fixed(_) => Some("num"),
             Ty::Option(_) | Ty::Result(..) => Some("result"),
             _ => None,
         }
@@ -127,6 +131,7 @@ impl std::fmt::Display for Ty {
         match self {
             Ty::Int => write!(f, "int"),
             Ty::Float => write!(f, "float"),
+            Ty::BigInt => write!(f, "bigint"),
             Ty::Bool => write!(f, "bool"),
             Ty::Str => write!(f, "str"),
             Ty::Char => write!(f, "char"),

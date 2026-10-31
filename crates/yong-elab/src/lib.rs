@@ -140,6 +140,7 @@ impl Globals {
                 match (name.as_str(), a.as_slice()) {
                     ("int", []) => Ty::Int,
                     ("float", []) => Ty::Float,
+                    ("bigint", []) => Ty::BigInt,
                     ("bool", []) => Ty::Bool,
                     ("str", []) => Ty::Str,
                     ("char", []) => Ty::Char,
