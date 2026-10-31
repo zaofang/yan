@@ -1,0 +1,94 @@
+"""Names in scope in every module without an import (17.2)."""
+
+@intrinsic
+@since("1.0")
+pub def sorted[T: Ord](xs: list[T]) -> list[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def int(x: float) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def float(x: int) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def round(x: float) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def abs[T: Num](x: T) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def min[T: Ord](a: T, b: T, /) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def max[T: Ord](a: T, b: T, /) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def list[T](take xs: list[T]) -> list[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def range(start: int, stop: int | None = None, /) -> list[int]: ...
+
+@intrinsic
+@since("1.0")
+pub def bigint(x: int) -> bigint: ...
+
+@since("1.0")
+pub def sum(xs: list[int]) -> int:
+    ex sum([1, 2, 3]) == 6
+    total = 0
+    for x in xs:
+        total += x
+    return total
+
+@since("1.0")
+pub def any(xs: list[bool]) -> bool:
+    ex any([False, True]) == True
+    for x in xs:
+        if x:
+            return True
+    return False
+
+@since("1.0")
+pub def all(xs: list[bool]) -> bool:
+    ex all([True, False]) == False
+    for x in xs:
+        if not x:
+            return False
+    return True
+
+@since("1.0")
+pub def enumerate[T](xs: list[T]) -> list[tuple[int, T]]:
+    ex enumerate(["a", "b"]) == [(0, "a"), (1, "b")]
+    out: list[tuple[int, T]] = []
+    i = 0
+    for x in xs:
+        out.append((i, x.copy()))
+        i += 1
+    return out
+
+@since("1.0")
+pub def zip[A, B](xs: list[A], ys: list[B]) -> list[tuple[A, B]]:
+    ex zip([1, 2, 3], ["a", "b"]) == [(1, "a"), (2, "b")]
+    out: list[tuple[A, B]] = []
+    n = min(len(xs), len(ys))
+    for i in range(n):
+        out.append((xs[i].copy(), ys[i].copy()))
+    return out
+
+@since("1.0")
+pub def reversed[T](xs: list[T]) -> list[T]:
+    ex reversed([1, 2, 3]) == [3, 2, 1]
+    out: list[T] = []
+    i = len(xs) - 1
+    while i >= 0:
+        out.append(xs[i].copy())
+        i -= 1
+    return out

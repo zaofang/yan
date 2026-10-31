@@ -1,0 +1,25 @@
+"""Comparisons the elaborator emits for non-scalar operands."""
+
+@intrinsic
+@since("1.0")
+pub def eq[T: Eq](a: T, b: T, /) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def ne[T: Eq](a: T, b: T, /) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def lt[T: Ord](a: T, b: T, /) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def le[T: Ord](a: T, b: T, /) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def gt[T: Ord](a: T, b: T, /) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def ge[T: Ord](a: T, b: T, /) -> bool: ...

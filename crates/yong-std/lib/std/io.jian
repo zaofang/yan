@@ -1,0 +1,6 @@
+"""The io capability (17.3)."""
+
+@capability
+@since("1.0")
+pub trait Io:
+    def print(self: Self, s: str) -> None: ...

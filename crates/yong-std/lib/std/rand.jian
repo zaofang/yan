@@ -1,0 +1,7 @@
+"""The rand capability: versioned seeded streams (17.3)."""
+
+@capability
+@since("1.0")
+pub trait Rand:
+    def next_u64(self: Self) -> u64: ...
+    def next_f64(self: Self) -> float: ...

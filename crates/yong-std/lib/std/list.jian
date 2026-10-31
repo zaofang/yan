@@ -1,0 +1,64 @@
+"""Methods on list (17.3, R475)."""
+
+@intrinsic
+@since("1.0")
+pub def new[T]() -> list[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def len[T](self: list[T]) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def push[T](var self: list[T], take x: T) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def append[T](var self: list[T], take x: T) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def pop[T](var self: list[T]) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def get[T](self: list[T], i: int) -> T | None: ...
+
+@intrinsic
+@since("1.0")
+pub def index[T: Eq](self: list[T], x: T) -> int | None: ...
+
+@intrinsic
+@since("1.0")
+pub def concat[T](self: list[T], other: list[T]) -> list[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def contains[T: Eq](self: list[T], x: T) -> bool: ...
+
+@since("1.0")
+pub def extend[T](var self: list[T], other: list[T]) -> None:
+    for x in other:
+        self.append(x.copy())
+
+@since("1.0")
+pub def map[T, U](self: list[T], f: Callable[[T], U]) -> list[U]:
+    out: list[U] = []
+    for x in self:
+        out.append(f(x))
+    return out
+
+@since("1.0")
+pub def filter[T](self: list[T], keep: Callable[[T], bool]) -> list[T]:
+    out: list[T] = []
+    for x in self:
+        if keep(x):
+            out.append(x.copy())
+    return out
+
+@since("1.0")
+pub def fold[T, A](self: list[T], init: A, f: Callable[[A, T], A]) -> A:
+    acc = init
+    for x in self:
+        acc = f(acc, x)
+    return acc
