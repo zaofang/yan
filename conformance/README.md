@@ -82,10 +82,10 @@ attribute (spec rev 479).
 
 | Id | Question |
 |---|---|
-| Q1 | Decided 2026-10-31: a capability captured by an escaping closure is E306 only, not E406. |
-| Q2 | Decided 2026-10-31: 24.1 gains `yong/run/` for M0 Yong text run cases. |
-| Q3 | Decided 2026-10-31: E250 is reported at the second definition of the name. |
-| Q4 | Decided 2026-10-31: a list literal's length is an 8.6 fact, so `xs = [1, 2, 3]; xs[3]` is E501. |
-| Q5 | Decided 2026-10-31: a `par` branch reading another branch's write is E705 only, not E402. |
-| Q6 | Decided 2026-10-31: `with deadline(t)` always requires `Timeout` in the fail type. |
-| Q7 | Decided 2026-10-31: E422 goes on the subscript name and E423 on the yielded place. |
+| Q1 | Decided 2026-10-31 (R467): a capability captured by an escaping closure is E306 only, not E406. |
+| Q2 | Decided 2026-10-31 (R468): 24.1 gains `yong/run/` for M0 Yong text run cases. |
+| Q3 | Decided 2026-10-31 (R469): E250 is reported at the second definition of the name. |
+| Q4 | Decided 2026-10-31 (R470): a list literal's length is an 8.6 fact, so `xs = [1, 2, 3]; xs[3]` is E501. |
+| Q5 | Decided 2026-10-31 (R471): a `par` branch reading another branch's write is E705 only, not E402. |
+| Q6 | Decided 2026-10-31 (R472): `with deadline(t)` always requires `Timeout` in the fail type. |
+| Q7 | Decided 2026-10-31 (R473): E422 goes on the subscript name and E423 on the yielded place. |
