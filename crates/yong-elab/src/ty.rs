@@ -23,6 +23,8 @@ pub enum Ty {
     Result(Box<Ty>, Box<Ty>),
     /// A record, sum or newtype of this module.
     Data(String),
+    /// A type parameter of the enclosing function, or `Self` in a trait.
+    Param(String),
     /// Produced after an error was reported; compatible with every type.
     Err,
 }
@@ -52,7 +54,7 @@ impl Ty {
             Ty::Tuple(ts) => y::Type::Tuple(ts.iter().map(Ty::core).collect()),
             Ty::Option(t) => named("Option", vec![t.core()]),
             Ty::Result(t, e) => named("Result", vec![t.core(), e.core()]),
-            Ty::Data(n) => named(n, vec![]),
+            Ty::Data(n) | Ty::Param(n) => named(n, vec![]),
         }
     }
 
@@ -79,6 +81,8 @@ impl Ty {
     pub fn fits(&self, want: &Ty) -> bool {
         match (self, want) {
             (Ty::Err | Ty::Never, _) | (_, Ty::Err) => true,
+            // Checked when the call's type arguments are inferred.
+            (_, Ty::Param(_)) => true,
             (Ty::List(a), Ty::List(b))
             | (Ty::Set(a), Ty::Set(b))
             | (Ty::Option(a), Ty::Option(b)) => a.fits(b),
@@ -115,6 +119,55 @@ impl Ty {
             Ty::Int | Ty::Float | Ty::BigInt | Ty::Bool | Ty::Fixed(_) => Some("num"),
             Ty::Option(_) | Ty::Result(..) => Some("result"),
             _ => None,
+        }
+    }
+
+    /// Binds the type parameters in `self` to the matching parts of `got`.
+    pub fn unify(&self, got: &Ty, map: &mut Vec<(String, Ty)>) {
+        match (self, got) {
+            (_, Ty::Err | Ty::Never) => {}
+            (Ty::Param(n), t) => {
+                if !map.iter().any(|(m, _)| m == n) {
+                    map.push((n.clone(), t.clone()));
+                }
+            }
+            (Ty::List(a), Ty::List(b))
+            | (Ty::Set(a), Ty::Set(b))
+            | (Ty::Option(a), Ty::Option(b)) => a.unify(b, map),
+            (Ty::Dict(a, b), Ty::Dict(c, d)) | (Ty::Result(a, b), Ty::Result(c, d)) => {
+                a.unify(c, map);
+                b.unify(d, map);
+            }
+            (Ty::Tuple(a), Ty::Tuple(b)) => a.iter().zip(b).for_each(|(x, y)| x.unify(y, map)),
+            (Ty::Option(a), b) => a.unify(b, map),
+            _ => {}
+        }
+    }
+
+    pub fn mentions(&self, p: &str) -> bool {
+        match self {
+            Ty::Param(n) => n == p,
+            Ty::List(t) | Ty::Set(t) | Ty::Option(t) => t.mentions(p),
+            Ty::Dict(a, b) | Ty::Result(a, b) => a.mentions(p) || b.mentions(p),
+            Ty::Tuple(ts) => ts.iter().any(|t| t.mentions(p)),
+            _ => false,
+        }
+    }
+
+    pub fn subst(&self, map: &[(String, Ty)]) -> Ty {
+        let s = |t: &Ty| Box::new(t.subst(map));
+        match self {
+            Ty::Param(n) => map
+                .iter()
+                .find(|(m, _)| m == n)
+                .map_or_else(|| self.clone(), |(_, t)| t.clone()),
+            Ty::List(t) => Ty::List(s(t)),
+            Ty::Set(t) => Ty::Set(s(t)),
+            Ty::Option(t) => Ty::Option(s(t)),
+            Ty::Dict(k, v) => Ty::Dict(s(k), s(v)),
+            Ty::Result(t, e) => Ty::Result(s(t), s(e)),
+            Ty::Tuple(ts) => Ty::Tuple(ts.iter().map(|t| t.subst(map)).collect()),
+            t => t.clone(),
         }
     }
 
@@ -162,7 +215,7 @@ impl std::fmt::Display for Ty {
             }
             Ty::Option(t) => write!(f, "{t} | None"),
             Ty::Result(t, e) => write!(f, "Result[{t}, {e}]"),
-            Ty::Data(n) => write!(f, "{n}"),
+            Ty::Data(n) | Ty::Param(n) => write!(f, "{n}"),
         }
     }
 }

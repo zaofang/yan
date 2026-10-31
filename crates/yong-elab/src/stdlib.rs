@@ -357,7 +357,7 @@ pub(crate) fn lower(g: &Globals, ds: &[&'static Decl]) -> R<Vec<y::Item>> {
     ds.iter()
         .map(|d| {
             let mut cx = std_cx(d.module);
-            let f = crate::lower::function(g, &d.def, false, &mut cx)?;
+            let f = crate::lower::function(g, &d.def, &g.fns[&d.def.name], false, &mut cx)?;
             debug_assert!(cx.diags.is_empty(), "std.{}: {:?}", d.module, cx.diags);
             Ok(y::Item {
                 attrs: Vec::new(),

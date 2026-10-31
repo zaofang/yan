@@ -9,7 +9,8 @@ mod lower;
 mod stdlib;
 mod ty;
 
-use std::collections::HashMap;
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
 
 use yong_core::ast as y;
 use yong_diag::{Diagnostic, Span};
@@ -42,6 +43,7 @@ pub(crate) struct Field {
     pub default: Option<j::Expr>,
 }
 
+#[derive(Clone)]
 pub(crate) struct P {
     pub name: String,
     pub conv: y::Conv,
@@ -51,7 +53,10 @@ pub(crate) struct P {
     pub span: Span,
 }
 
+#[derive(Clone)]
 pub(crate) struct Sig {
+    /// Type parameters and the traits that bound each.
+    pub tparams: Vec<(String, Vec<String>)>,
     pub params: Vec<P>,
     pub ret: Ty,
     pub fail: Option<Ty>,
@@ -69,7 +74,17 @@ pub(crate) struct Globals {
     /// The records that come from std rather than the module.
     pub std_records: std::collections::HashSet<String>,
     /// Functions called from a `test_` function (E601).
-    pub tested: std::collections::HashSet<String>,
+    pub tested: HashSet<String>,
+    /// Each trait's methods, with `Self` as a type parameter.
+    pub traits: HashMap<String, Vec<(String, Sig)>>,
+    /// `(trait, type)` for each `impl`, the type as written in Jian.
+    pub impls: HashSet<(String, String)>,
+    /// `(type, method)` to the method's signature, from every `impl`.
+    pub methods: HashMap<(String, String), Sig>,
+    /// The type parameters in scope while a signature or body is resolved.
+    pub scope: RefCell<Vec<String>>,
+    /// What `Self` names inside an `impl`.
+    pub self_ty: RefCell<Option<Ty>>,
 }
 
 pub(crate) struct Cx<'s> {
@@ -158,6 +173,12 @@ impl Globals {
                     ("Result", [t, e]) => Ty::Result(Box::new(t.clone()), Box::new(e.clone())),
                     (n, []) if self.records.contains_key(n) || self.sums.contains_key(n) => {
                         Ty::Data(n.to_owned())
+                    }
+                    ("Self", []) if self.self_ty.borrow().is_some() => {
+                        self.self_ty.borrow().clone().expect("checked")
+                    }
+                    (n, []) if self.scope.borrow().iter().any(|p| p == n) => {
+                        Ty::Param(n.to_owned())
                     }
                     (n, []) if self.aliases.contains_key(n) => {
                         let t = self.aliases[n].clone();
@@ -262,7 +283,6 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             j::ItemKind::Class(c) => {
                 g.records.insert(c.name.clone(), Vec::new());
             }
-            j::ItemKind::Trait(_) | j::ItemKind::Impl(_) => return unsupported("traits"),
             _ => {}
         }
     }
@@ -320,16 +340,88 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 let t = g.ty(ty, cx, it.span)?;
                 g.consts.insert(name.clone(), t);
             }
+            j::ItemKind::Trait(t) => {
+                if !t.tparams.is_empty() || !t.assoc.is_empty() {
+                    return unsupported("generic traits and associated types");
+                }
+                *g.scope.borrow_mut() = vec!["Self".into()];
+                let mut ms = Vec::new();
+                for (_, f) in &t.sigs {
+                    ms.push((f.name.clone(), sig(g, f, cx)?));
+                }
+                g.scope.borrow_mut().clear();
+                g.traits.insert(t.name.clone(), ms);
+            }
             _ => {}
+        }
+    }
+    for it in &m.items {
+        if let j::ItemKind::Impl(i) = &it.kind {
+            let (Some(tr), true, true) = (impl_trait(i), i.args.is_empty(), i.assoc.is_empty())
+            else {
+                return unsupported("generic impls and associated types");
+            };
+            let for_ty = g.ty(&i.for_ty, cx, it.span)?;
+            let key = for_ty.to_string();
+            *g.self_ty.borrow_mut() = Some(for_ty);
+            for f in &i.fns {
+                let s = sig(g, f, cx)?;
+                g.methods.insert((key.clone(), f.name.clone()), s);
+            }
+            *g.self_ty.borrow_mut() = None;
+            g.impls.insert((tr, key));
         }
     }
     Ok(())
 }
 
-fn sig(g: &Globals, f: &j::FuncDef, cx: &mut Cx) -> R<Sig> {
-    if !f.tparams.is_empty() {
-        return unsupported("generic functions");
+fn f_span(t: &j::Trait, n: &str) -> Span {
+    t.sigs
+        .iter()
+        .find(|(_, f)| f.name == n)
+        .map(|(_, f)| f.name_span)
+        .expect("a method of the trait")
+}
+
+fn impl_trait(i: &j::Impl) -> Option<String> {
+    match i.trait_.as_slice() {
+        [t] => Some(t.clone()),
+        _ => None,
     }
+}
+
+fn sig(g: &Globals, f: &j::FuncDef, cx: &mut Cx) -> R<Sig> {
+    let mut tparams = Vec::new();
+    for t in &f.tparams {
+        let j::TParam::Type { name, bounds } = t else {
+            return unsupported("value type parameters");
+        };
+        let mut bs = Vec::new();
+        for b in bounds {
+            match b {
+                j::Bound::Path { path, args } if path.len() == 1 && args.is_empty() => {
+                    bs.push(path[0].clone())
+                }
+                _ => return unsupported("generic or `Nat` bounds"),
+            }
+        }
+        tparams.push((name.clone(), bs));
+    }
+    let outer = g.scope.borrow().len();
+    g.scope
+        .borrow_mut()
+        .extend(tparams.iter().map(|(n, _)| n.clone()));
+    let r = sig_body(g, f, tparams, cx);
+    g.scope.borrow_mut().truncate(outer);
+    r
+}
+
+fn sig_body(
+    g: &Globals,
+    f: &j::FuncDef,
+    tparams: Vec<(String, Vec<String>)>,
+    cx: &mut Cx,
+) -> R<Sig> {
     let mut params = Vec::new();
     let mut positional = f.params.iter().any(|p| matches!(p, j::Param::Slash));
     for p in &f.params {
@@ -396,6 +488,7 @@ fn sig(g: &Globals, f: &j::FuncDef, cx: &mut Cx) -> R<Sig> {
         }
     };
     Ok(Sig {
+        tparams,
         params,
         ret,
         fail,
@@ -493,9 +586,41 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                     );
                 }
             }
-            y::ItemKind::Fn(lower::function(g, f, it.is_pub, cx)?)
+            y::ItemKind::Fn(lower::function(g, f, &g.fns[&f.name], it.is_pub, cx)?)
         }
-        j::ItemKind::Trait(_) | j::ItemKind::Impl(_) => return unsupported("traits"),
+        j::ItemKind::Trait(t) => y::ItemKind::Trait(y::Trait {
+            is_pub: it.is_pub,
+            path: vec![t.name.clone()],
+            tparams: Vec::new(),
+            assoc: Vec::new(),
+            sigs: g.traits[&t.name]
+                .iter()
+                .map(|(n, s)| lower::signature(n, s, false, f_span(t, n)))
+                .collect(),
+            derived: None,
+        }),
+        j::ItemKind::Impl(i) => {
+            let tr = impl_trait(i).expect("checked in collect");
+            let for_ty = g.ty(&i.for_ty, cx, it.span)?;
+            let key = for_ty.to_string();
+            *g.self_ty.borrow_mut() = Some(for_ty.clone());
+            let mut fns = Vec::new();
+            for f in &i.fns {
+                let s = &g.methods[&(key.clone(), f.name.clone())];
+                fns.push(lower::function(g, f, s, false, cx));
+            }
+            *g.self_ty.borrow_mut() = None;
+            y::ItemKind::Impl(y::Impl {
+                is_unsafe: false,
+                trait_: y::Named {
+                    path: vec![tr],
+                    args: Vec::new(),
+                },
+                for_ty: for_ty.core(),
+                assoc: Vec::new(),
+                fns: fns.into_iter().collect::<R<_>>()?,
+            })
+        }
     }))
 }
 
