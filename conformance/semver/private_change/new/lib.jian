@@ -1,0 +1,5 @@
+def helper(n: int = 1) -> int:
+    return n
+
+pub def f() -> int:
+    return helper()

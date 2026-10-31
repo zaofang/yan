@@ -1,0 +1,10 @@
+{
+  "module": "m",
+  "edits": [
+    {
+      "item": "total",
+      "search": "t",
+      "replace": "u"
+    }
+  ]
+}

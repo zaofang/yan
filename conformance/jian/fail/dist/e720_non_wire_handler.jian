@@ -1,0 +1,13 @@
+# spec: 9.6.1
+# rows: R401
+# note: a Callable parameter is not Wire; the span is the share expression
+# expect: E720 at 13:12
+
+class Cache:
+    hits: int
+
+def apply(var self: Cache, f: Callable[[int], int]) -> int:
+    return f(self.hits)
+
+def publish(a: Actor[Cache]) -> Remote[Actor[Cache]] uses nondet:
+    return a.share()

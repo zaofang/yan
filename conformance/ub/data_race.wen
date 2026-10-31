@@ -1,0 +1,12 @@
+-- spec: 6.7, 6.9
+-- note: two unsynchronized writes through a raw pointer (assumption A11)
+-- ub: 1
+
+main() =
+  var x = 0
+  let p = Ptr.of(&x)
+  par
+    unsafe
+      p.write(1)
+    unsafe
+      p.write(2)

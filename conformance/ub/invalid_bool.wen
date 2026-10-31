@@ -1,0 +1,9 @@
+-- spec: 6.7, 6.9
+-- note: 2 is not a valid bool (assumption A11)
+-- ub: 6
+
+main() =
+  var b: u8 = 2
+  let p = Ptr.of(&b).cast[bool]()
+  unsafe
+    assert p.read()

@@ -1,0 +1,7 @@
+# spec: 17.5
+# rows: R335
+# expect: E555 at 7:18
+
+@messages(source="en")
+class Banner:
+    title: str = "{#b}Welcome"

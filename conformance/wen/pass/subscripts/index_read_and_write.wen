@@ -13,6 +13,6 @@ impl Index[bool] for Counter
 
 f() -> int =
   var c = Counter(hits: 0, misses: 0)
-  c[true] = 2
-  c[false] += 1
-  c[true] + c[false]
+  c[True] = 2
+  c[False] += 1
+  c[True] + c[False]

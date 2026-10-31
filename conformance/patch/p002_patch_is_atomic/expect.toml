@@ -1,0 +1,3 @@
+spec = "18.3"
+code = "P002"
+note = "the first edit would apply alone; the module must stay unchanged"

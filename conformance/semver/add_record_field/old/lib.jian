@@ -1,0 +1,2 @@
+pub class Point:
+    x: int

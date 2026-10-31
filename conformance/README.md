@@ -12,10 +12,26 @@ read-only to agents (22.6).
 | `jian/run/`, `wen/run/`, `yong/run/` | run | `run` prints exactly the `stdout` block and exits with `exit` (default 0) |
 | `golden/` | run | as run; G1, G2 and G4 of 24.3 |
 | `solver/` | fail | as fail; no `expect` line means no diagnostics at all (8.6 boundaries) |
-| `ub/`, `semver/`, `patch/`, `roundtrip/`, `sim/` | | not populated yet |
+| `ub/` | ub | `run --ub` reports `ub(N)` for the case's `ub: N` header (the 6.7 item number), or runs clean for `ub: none` |
+| `patch/<case>/` | patch | `patch` applied to `m.jian` gives `result.jian`, or is refused with the `code` of `expect.toml` and leaves `m.jian` unchanged |
+| `semver/<case>/` | semver | `semver` on `old/` and `new/` computes the `bump` of `expect.toml` (one pair per row of the 20.6 table) |
+| `roundtrip/`, `sim/` | | not populated yet |
 
 `yong/run/` is not in the 24.1 tree; M0 needs it because its interpreter runs Yong text before any
 surface exists (question Q2).
+
+## Directory cases
+
+A `patch/` case holds `m.jian`, the patch as `patch.json` (the 18.3 JSON form) or `patch.jian` (the
+plain-file form), and `expect.toml` with `spec`, optional `flags` (such as `["--check"]`) and either
+`result = "result.jian"` or `code = "P00N"`. A `semver/` case holds `old/lib.jian`, `new/lib.jian`
+and `expect.toml` with `spec` and `bump`. The runner adds these commands to the executor contract:
+
+```
+CMD run --ub [FLAGS] FILE                exit status; a UB report names ub(N) on stderr
+CMD patch --format json [FLAGS] PATCH    run in the case's copied directory; JSON records on refusal
+CMD semver --format json --base OLD NEW  a JSON object with "bump"
+```
 
 ## Headers
 
@@ -63,6 +79,10 @@ naming one of these. Each is a proposed answer; change the cases if the spec dec
 | A7 | `fake_fs(files)` takes a `dict[str, str]`; `fs.read(path)` returns `str fail FsError`. |
 | A8 | `Max(v)` builds a `Max[T]` lattice value and `.value` unwraps it. |
 | A9 | A case file inside a directory named `ffi` is checked as an ffi module (12). |
+| A10 | A patch's `"module": "m"` names `m.jian` in the directory it runs in, and `base` may be omitted. |
+| A11 | Raw pointers: `xs.as_ptr()`, `Ptr.of(&x)`, `p.offset(n)`, `p.cast[T]()` are safe to build; `p.read()` and `p.write(v)` need `unsafe`. |
+| A12 | `@yong/i18n` is reached as `i18n` (`i18n.Locale("en")`), and `@messages` records give each message as a field default. |
+| A13 | The `semver` and `patch` command lines above, and a UB report line `ub(N): message` on stderr with a nonzero exit. |
 | Y1 | Yong text: the entry point is `fn main` of the file's module; a capability operation is a call such as `std.io.print(cap io, let s)`. |
 | Y2 | Yong text: `ret` of a `sink` parameter or local consumes it. |
 | Y3 | Yong text: std functions are called by full path (`std.list.len[i64](let xs)`, `std.list.new`, `std.list.push`, `std.result.is_ok`). |

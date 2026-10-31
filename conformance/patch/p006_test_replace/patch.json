@@ -1,0 +1,6 @@
+{
+  "module": "m",
+  "replace": [
+    "def test_price():\n    assert True"
+  ]
+}

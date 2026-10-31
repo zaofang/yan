@@ -1,0 +1,2 @@
+pub def first() -> int:
+    return 1
