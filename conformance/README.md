@@ -82,7 +82,7 @@ attribute (spec rev 479).
 
 | Id | Question |
 |---|---|
-| Q1 | E306 and E406 both cover a capability captured by an escaping closure. `jian/fail/caps/e306_capability_captured` assumes E306. |
+| Q1 | Decided 2026-10-31: a capability captured by an escaping closure is E306 only, not E406. |
 | Q2 | 24.1 has no `yong/run/`; this suite adds it for M0. |
 | Q3 | E250 ("two functions of one name at one method-resolution step"): is a second item of the same name in one module an error at the definition or at a call? No case yet. |
 | Q4 | List literal lengths are not 8.6 facts, so `xs = [1, 2, 3]; xs[3]` is unknown (W820), not refuted (E501). The E501 cases get the length from a guard. Confirm that this is intended. |

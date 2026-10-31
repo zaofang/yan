@@ -3308,6 +3308,21 @@
    "exit": 0
   },
   {
+   "path": "jian/run/std/text_and_list_additions.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R218"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "k = v\nx = y\n3 2 -1\n",
+   "exit": 0
+  },
+  {
    "path": "jian/run/strings/concat.jian",
    "kind": "run",
    "milestone": "M1",
@@ -3349,6 +3364,22 @@
    "flags": [],
    "expect": [],
    "stdout": "10000000\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/tuples/assign_return_swap.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "13.2",
+    "14.1"
+   ],
+   "rows": [
+    "R216"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 1 1 4 6\n",
    "exit": 0
   },
   {

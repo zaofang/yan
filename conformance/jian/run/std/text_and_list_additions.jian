@@ -1,0 +1,17 @@
+# spec: 17.3
+# rows: R218
+# note: partition returns tuple[str, str, str]; index returns int | None; list(...) builds an owned list
+# stdout:
+# k = v
+# x = y
+# 3 2 -1
+
+pub def main() uses io:
+    text = "k=v\nx=y"
+    for line in text.splitlines():
+        key, sep, val = line.partition("=")
+        io.print(f"{key} {sep} {val}")
+    xs = list(range(0, 3))
+    i = xs.index(2) else -1
+    j = xs.index(9) else -1
+    io.print(f"{len(xs)} {i} {j}")
