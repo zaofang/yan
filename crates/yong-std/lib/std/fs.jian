@@ -1,0 +1,12 @@
+"""The fs capability: rooted file access (17.3)."""
+
+@since("1.0")
+pub class FsError:
+    """Why a file operation failed."""
+    path: str
+    reason: str
+
+@capability
+@since("1.0")
+pub trait Fs:
+    def read(self: Self, path: str) -> str fail FsError: ...

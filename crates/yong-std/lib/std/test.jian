@@ -1,0 +1,5 @@
+"""Test doubles for capabilities (17.3)."""
+
+@intrinsic
+@since("1.0")
+pub def fake_fs(take files: dict[str, str]) -> std.fs.Fs: ...

@@ -1,0 +1,15 @@
+"""Failure glue: the Error type and context chains (8.1, R432)."""
+
+@since("1.0")
+pub class Error:
+    """Any failure with `Show`, as its shown text, and its context chain, outermost first."""
+    message: str
+    context: list[str]
+
+@intrinsic
+@since("1.0")
+pub def context[T, E: Show](take r: Result[T, E], msg: str) -> T fail Error: ...
+
+@intrinsic
+@since("1.0")
+pub def wrap[E: Show](take e: E) -> Error: ...

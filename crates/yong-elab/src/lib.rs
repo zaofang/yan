@@ -6,6 +6,7 @@
 
 mod bounds;
 mod lower;
+mod stdlib;
 mod ty;
 
 use std::collections::HashMap;
@@ -67,6 +68,8 @@ pub(crate) struct Globals {
     pub aliases: HashMap<String, j::Type>,
     pub fns: HashMap<String, Sig>,
     pub consts: HashMap<String, Ty>,
+    /// The records that come from std rather than the module.
+    pub std_records: std::collections::HashSet<String>,
     /// Functions called from a `test_` function (E601).
     pub tested: std::collections::HashSet<String>,
 }
@@ -195,8 +198,27 @@ pub fn elaborate(
         diags: Vec::new(),
     };
     let mut g = Globals::default();
+    let std_classes = stdlib::classes(&mut g, m, src)?;
     collect(&mut g, m, &mut cx)?;
+    let std_fns = stdlib::collect(&mut g, m)?;
     let mut items = Vec::new();
+    for name in std_classes {
+        items.push(y::Item {
+            attrs: Vec::new(),
+            kind: y::ItemKind::Record(y::Record {
+                is_pub: true,
+                path: vec![name.clone()],
+                tparams: Vec::new(),
+                fields: core_fields(&g.records[&name])?,
+            }),
+            span: Span {
+                line: 1,
+                col: 1,
+                end_line: 1,
+                end_col: 1,
+            },
+        });
+    }
     for it in &m.items {
         if let Some(k) = item(&g, it, &mut cx)? {
             items.push(y::Item {
@@ -206,6 +228,7 @@ pub fn elaborate(
             });
         }
     }
+    items.extend(stdlib::lower(&g, &std_fns)?);
     let stem = std::path::Path::new(file)
         .file_stem()
         .and_then(|s| s.to_str())
@@ -499,3 +522,5 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
 
 #[cfg(test)]
 mod selftest;
+#[cfg(test)]
+mod stdlib_selftest;

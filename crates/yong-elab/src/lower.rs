@@ -59,6 +59,8 @@ struct Lower<'a, 'c, 's> {
     sites: HashMap<Span, Site>,
     /// `&` of a field or element passes a copy; it is stored back after the statement.
     writeback: Vec<(String, Place, Span)>,
+    /// Capabilities bound by an enclosing `with name = handler`.
+    handlers: Vec<String>,
 }
 
 pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
@@ -319,6 +321,7 @@ pub(crate) fn function(g: &Globals, f: &j::FuncDef, is_pub: bool, cx: &mut Cx) -
         bound: Vec::new(),
         sites: HashMap::new(),
         writeback: Vec::new(),
+        handlers: Vec::new(),
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -839,7 +842,25 @@ impl Lower<'_, '_, '_> {
                 );
             }
             K::Par { .. } => return unsupported("`par for` and `par(limit=...)`"),
-            K::With { .. } => return unsupported("`with`"),
+            K::With {
+                kind: j::WithKind::Bind(name, h),
+                body,
+            } => {
+                let (a, _) = self.atom(h, None)?;
+                self.handlers.push(name.clone());
+                let b = self.block(&body.stmts);
+                self.handlers.pop();
+                self.emit(
+                    StmtKind::With {
+                        name: name.clone(),
+                        dyn_: false,
+                        handler: a,
+                        body: b?,
+                    },
+                    at,
+                );
+            }
+            K::With { .. } => return unsupported("`with deadline` and `with timeout`"),
         }
         Ok(())
     }
@@ -1800,7 +1821,15 @@ impl Lower<'_, '_, '_> {
                 };
                 let (r, t, fail) = self.call_expr(f, args, x.span, None)?;
                 match (fail, r) {
-                    (Some(_), Rhs::Call(c)) => (Rhs::Propagate { call: c, via: None }, t),
+                    (Some(e), Rhs::Call(c)) => {
+                        // `?` injects any failure into `Error` with no `From` (R432).
+                        let into_error = e != Ty::Data("Error".into())
+                            && self.sig.fail == Some(Ty::Data("Error".into()))
+                            && self.g.std_records.contains("Error");
+                        let via =
+                            into_error.then(|| vec!["std".into(), "error".into(), "wrap".into()]);
+                        (Rhs::Propagate { call: c, via }, t)
+                    }
                     _ => return unsupported("`?` on an optional or on a call that cannot fail"),
                 }
             }
@@ -2259,15 +2288,17 @@ impl Lower<'_, '_, '_> {
                 let (r, t) = self.builtin(n, args, at, want)?;
                 Ok((r, t, None))
             }
-            j::ExprKind::Attr(b, m, _) => {
+            j::ExprKind::Attr(b, m, name_at) => {
                 if let j::ExprKind::Name(c) = &b.kind
                     && !self.locals.contains_key(c)
-                    && (self.sig.caps.contains(c) || c == "io")
+                    && (self.sig.caps.contains(c) || self.handlers.contains(c) || c == "io")
                 {
-                    let (r, t) = self.cap_call(c, m, args, at)?;
-                    return Ok((r, t, None));
+                    return self.cap_call(c, m, args, at);
                 }
-                self.method(b, m, args, at)
+                if let (j::ExprKind::Call(f, fargs), "context") = (&b.kind, m.as_str()) {
+                    return self.context(f, fargs, b.span, args, at);
+                }
+                self.method(b, m, *name_at, args, at)
             }
             _ => unsupported("calling a value"),
         }
@@ -2572,7 +2603,10 @@ impl Lower<'_, '_, '_> {
                     t,
                 ))
             }
-            "print" => self.cap_call("io", "print", args, at),
+            "print" => {
+                let (r, t, _) = self.cap_call("io", "print", args, at)?;
+                Ok((r, t))
+            }
             "evolve" => {
                 let Some(first) = args.first().filter(|a| a.name.is_none()) else {
                     self.err("E202", at, "`evolve` takes a record first".into());
@@ -2674,6 +2708,19 @@ impl Lower<'_, '_, '_> {
             "dict" | "set" | "enumerate" | "zip" | "sum" | "any" | "all" | "reversed"
             | "isinstance" | "hash" | "repr" | "divmod" | "pow" | "chr" | "ord" | "atan2"
             | "hypot" => unsupported(format!("`{n}`")),
+            // std.test is in scope without an import (assumption A7).
+            _ if let Some((path, p)) = ["prelude", "test"].iter().find_map(|m| {
+                let path = format!("std.{m}.{n}");
+                let p = crate::stdlib::decl(&path)?.plain()?;
+                Some((path, p))
+            }) =>
+            {
+                if p.fail.is_some() {
+                    return unsupported(format!("`{path}`, a std function that can fail"));
+                }
+                let (r, t, _) = self.std_call(&path, p, Vec::new(), args, n, at)?;
+                Ok((r, t))
+            }
             _ => {
                 self.err("E200", at, format!("cannot find function `{n}`"));
                 for a in args {
@@ -2686,29 +2733,86 @@ impl Lower<'_, '_, '_> {
         }
     }
 
-    /// `io.print(s)`; other capability operations come with std.
-    fn cap_call(&mut self, cap: &str, op: &str, args: &[j::Arg], at: Span) -> R<(Rhs, Ty)> {
-        if (cap, op) != ("io", "print") {
-            return unsupported(format!("capability operation `{cap}.{op}`"));
-        }
-        let Some(xs) = self.positional(args, 1, "print", at)? else {
-            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err));
+    /// `f(...).context(msg)`: the call's failure as an `Error` with `msg` added (R432).
+    fn context(
+        &mut self,
+        f: &j::Expr,
+        fargs: &[j::Arg],
+        fat: Span,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let (r, t, fail) = self.call_expr(f, fargs, fat, None)?;
+        let (Some(e), Rhs::Call(c)) = (fail, r) else {
+            return unsupported("`.context` on a call that cannot fail");
         };
-        let (a, t) = self.atom(xs[0], Some(&Ty::Str))?;
-        self.expect(&t, &Ty::Str, xs[0].span);
+        if !self.g.std_records.contains("Error") {
+            return unsupported("`.context` where the module defines its own `Error`");
+        }
+        let Some(xs) = self.positional(args, 1, "context", at)? else {
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        };
+        let (msg, mt) = self.atom(xs[0], Some(&Ty::Str))?;
+        self.expect(&mt, &Ty::Str, xs[0].span);
+        let rt = Ty::Result(Box::new(t.clone()), Box::new(e.clone()));
+        let tried = self.tmp(&rt, Rhs::Try(c), fat);
         let c = call(
-            "std.io.print",
-            vec![],
-            vec![Arg::Cap(cap.to_owned(), at), let_arg(a)],
+            "std.error.context",
+            vec![t.targ(), e.targ()],
+            vec![sink_arg(tried), let_arg(msg)],
             at,
         );
-        Ok((Rhs::Call(c), Ty::Unit))
+        Ok((Rhs::Call(c), t, Some(Ty::Data("Error".into()))))
+    }
+
+    /// An operation of a std capability (`io.print(s)`, `fs.read(p)`), declared in its module.
+    fn cap_call(
+        &mut self,
+        cap: &str,
+        op: &str,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let path = format!("std.{cap}.{op}");
+        let Some(p) = crate::stdlib::decl(&path)
+            .filter(|d| d.cap)
+            .and_then(|d| d.plain())
+        else {
+            return unsupported(format!("capability operation `{cap}.{op}`"));
+        };
+        self.std_call(&path, p, vec![Arg::Cap(cap.to_owned(), at)], args, op, at)
+    }
+
+    /// A call of a non-generic std function; `lead` are the arguments before the written ones.
+    fn std_call(
+        &mut self,
+        path: &str,
+        p: crate::stdlib::Plain,
+        mut lead: Vec<Arg>,
+        args: &[j::Arg],
+        what: &str,
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let Some(xs) = self.positional(args, p.params.len(), what, at)? else {
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        };
+        for (x, (take, pt)) in xs.into_iter().zip(&p.params) {
+            let (a, t) = self.atom(x, Some(pt))?;
+            self.expect(&t, pt, x.span);
+            lead.push(Arg::Value(
+                if *take { Conv::Sink } else { Conv::Let },
+                a,
+                x.span,
+            ));
+        }
+        Ok((Rhs::Call(call(path, vec![], lead, at)), p.ret, p.fail))
     }
 
     fn method(
         &mut self,
         b: &j::Expr,
         m: &str,
+        name_at: Span,
         args: &[j::Arg],
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
@@ -2721,71 +2825,31 @@ impl Lower<'_, '_, '_> {
         }
         let (p, t) = self.place(b)?;
         let e = || Ty::Err;
-        // (path, receiver is var, argument types, result)
-        let (path, inout, params, ret): (String, bool, Vec<Ty>, Ty) = match (&t, m) {
-            (Ty::Err, _) => return Ok((Rhs::Proj(p), e(), None)),
-            (Ty::List(x), "append") => ("append".into(), true, vec![(**x).clone()], Ty::Unit),
-            (Ty::List(x), "pop") => ("pop".into(), true, vec![], (**x).clone()),
-            (Ty::Str, "byte_len" | "char_count" | "grapheme_count") => {
-                (m.into(), false, vec![], Ty::Int)
-            }
-            (Ty::Str, "upper" | "lower" | "strip") => (m.into(), false, vec![], Ty::Str),
-            (Ty::Str, "startswith" | "endswith") => (m.into(), false, vec![Ty::Str], Ty::Bool),
-            (Ty::Str, "splitlines") => (m.into(), false, vec![], Ty::List(Box::new(Ty::Str))),
-            (Ty::Str, "partition") => (
-                m.into(),
-                false,
-                vec![Ty::Str],
-                Ty::Tuple(vec![Ty::Str, Ty::Str, Ty::Str]),
-            ),
-            (Ty::Str, "parse_int") => (m.into(), false, vec![], Ty::Option(Box::new(Ty::Int))),
-            (Ty::Str, "parse_float") => (m.into(), false, vec![], Ty::Option(Box::new(Ty::Float))),
-            (Ty::List(x), "index") => (
-                m.into(),
-                false,
-                vec![(**x).clone()],
-                Ty::Option(Box::new(Ty::Int)),
-            ),
-            (Ty::List(x), "get") => (m.into(), false, vec![Ty::Int], Ty::Option(x.clone())),
-            (Ty::Set(x), "add" | "discard") => (m.into(), true, vec![(**x).clone()], Ty::Unit),
-            (Ty::Set(a), "union" | "intersection") => {
-                (m.into(), false, vec![t.clone()], Ty::Set(a.clone()))
-            }
-            (Ty::Dict(_, v), "remove") => {
-                (m.into(), true, vec![dict_key(&t)], Ty::Option(v.clone()))
-            }
-            (Ty::Dict(_, v), "setdefault") => (
-                m.into(),
-                true,
-                vec![dict_key(&t), (**v).clone()],
-                (**v).clone(),
-            ),
-            (Ty::Str, "split") => (m.into(), false, vec![Ty::Str], Ty::List(Box::new(Ty::Str))),
-            (Ty::Str, "join") => (m.into(), false, vec![Ty::List(Box::new(Ty::Str))], Ty::Str),
-            (Ty::Str, "replace") => (m.into(), false, vec![Ty::Str, Ty::Str], Ty::Str),
-            (Ty::Dict(_, v), "get") => (m.into(), false, vec![dict_key(&t)], Ty::Option(v.clone())),
-            (Ty::Dict(k, v), "items") => (
-                m.into(),
-                false,
-                vec![],
-                Ty::List(Box::new(Ty::Tuple(vec![(**k).clone(), (**v).clone()]))),
-            ),
-            (Ty::Dict(k, _), "keys") => (m.into(), false, vec![], Ty::List(k.clone())),
-            (Ty::Dict(_, v), "values") => (m.into(), false, vec![], Ty::List(v.clone())),
-            _ => {
-                if t.module().is_some() {
-                    return unsupported(format!("method `{m}` on `{t}`"));
-                }
-                self.err("E200", at, format!("no function `{m}` takes a `{t}` first"));
-                return Ok((Rhs::Proj(p), e(), None));
-            }
+        if t == Ty::Err {
+            return Ok((Rhs::Proj(p), e(), None));
+        }
+        let Some(module) = t.module() else {
+            self.err("E200", at, format!("no function `{m}` takes a `{t}` first"));
+            return Ok((Rhs::Proj(p), e(), None));
         };
-        let module = t.module().expect("std types have a module");
-        let targs = match &t {
-            Ty::List(x) | Ty::Set(x) => vec![x.targ()],
-            Ty::Dict(k, v) => vec![k.targ(), v.targ()],
-            _ => vec![],
+        let path = format!("std.{module}.{m}");
+        let Some(d) = crate::stdlib::decl(&path) else {
+            self.err("E203", name_at, format!("`{t}` has no method `{m}`"));
+            return Ok((Rhs::Proj(p), e(), None));
         };
+        if !d.intrinsic {
+            return unsupported(format!("`{path}`, a generic std function"));
+        }
+        let Some(crate::stdlib::Method {
+            inout,
+            params,
+            ret,
+            targs,
+        }) = d.method(&t)
+        else {
+            return unsupported(format!("`{path}` on `{t}`"));
+        };
+        let targs: Vec<_> = targs.iter().map(Ty::targ).collect();
         let recv = if inout {
             if !p.projs.is_empty() {
                 return unsupported("a `var` method on a field or element");
@@ -2803,17 +2867,12 @@ impl Lower<'_, '_, '_> {
             return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), e(), None));
         };
         let mut out = vec![recv];
-        for (x, pt) in xs.into_iter().zip(&params) {
+        for (x, (take, pt)) in xs.into_iter().zip(&params) {
             let (a, xt) = self.atom(x, Some(pt))?;
             self.expect(&xt, pt, x.span);
-            let conv = if inout && !matches!(m, "discard" | "remove") {
-                Conv::Sink
-            } else {
-                Conv::Let
-            };
+            let conv = if *take { Conv::Sink } else { Conv::Let };
             out.push(Arg::Value(conv, a, x.span));
         }
-        let path = format!("std.{module}.{path}");
         Ok((Rhs::Call(call(&path, targs, out, at)), ret, None))
     }
 
@@ -2870,13 +2929,6 @@ impl Lower<'_, '_, '_> {
             },
             _ => None,
         }
-    }
-}
-
-fn dict_key(t: &Ty) -> Ty {
-    match t {
-        Ty::Dict(k, _) => (**k).clone(),
-        _ => Ty::Err,
     }
 }
 
