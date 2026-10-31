@@ -524,7 +524,22 @@ impl Interp<'_> {
                 Flow::Normal
             }
             StmtKind::Yield(_) => return unsupported("generators"),
-            StmtKind::With { .. } => return unsupported("handler installation (`with`)"),
+            StmtKind::With {
+                name,
+                dyn_: false,
+                handler,
+                body,
+            } => {
+                let h = self.atom(handler, frame)?;
+                let outer = frame.insert(name.clone(), h);
+                let flow = self.block(body, frame)?;
+                match outer {
+                    Some(v) => frame.insert(name.clone(), v),
+                    None => frame.remove(name),
+                };
+                flow
+            }
+            StmtKind::With { .. } => return unsupported("`with ... = dyn`"),
             StmtKind::ComptimeFor { .. } | StmtKind::ComptimeIf { .. } => {
                 return unsupported("stage 0");
             }
@@ -697,11 +712,15 @@ impl Interp<'_> {
         let (outcome, finals) = match f {
             Some(f) => self.call(f, args)?,
             None => {
-                let v = match intrinsic(&name, &args) {
-                    Some(v) => v?,
-                    None => self.std(&name, &mut args)?,
-                };
-                (Ok(v), args)
+                if let Some(r) = native::fallible(&name, &args) {
+                    (r, args)
+                } else {
+                    let v = match intrinsic(&name, &args) {
+                        Some(v) => v?,
+                        None => self.std(&name, &mut args)?,
+                    };
+                    (Ok(v), args)
+                }
             }
         };
         for (a, v) in c.args.iter().zip(finals) {

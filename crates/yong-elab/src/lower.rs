@@ -58,6 +58,8 @@ struct Lower<'a, 'c, 's> {
     sites: HashMap<Span, Site>,
     /// `&` of a field or element passes a copy; it is stored back after the statement.
     writeback: Vec<(String, Place, Span)>,
+    /// Capabilities bound by an enclosing `with name = handler`.
+    handlers: Vec<String>,
 }
 
 pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
@@ -304,6 +306,7 @@ pub(crate) fn function(g: &Globals, f: &j::FuncDef, is_pub: bool, cx: &mut Cx) -
         bound: Vec::new(),
         sites: HashMap::new(),
         writeback: Vec::new(),
+        handlers: Vec::new(),
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -783,7 +786,25 @@ impl Lower<'_, '_, '_> {
                 );
             }
             K::Par { .. } => return unsupported("`par for` and `par(limit=...)`"),
-            K::With { .. } => return unsupported("`with`"),
+            K::With {
+                kind: j::WithKind::Bind(name, h),
+                body,
+            } => {
+                let (a, _) = self.atom(h, None)?;
+                self.handlers.push(name.clone());
+                let b = self.block(&body.stmts);
+                self.handlers.pop();
+                self.emit(
+                    StmtKind::With {
+                        name: name.clone(),
+                        dyn_: false,
+                        handler: a,
+                        body: b?,
+                    },
+                    at,
+                );
+            }
+            K::With { .. } => return unsupported("`with deadline` and `with timeout`"),
         }
         Ok(())
     }
@@ -2162,10 +2183,9 @@ impl Lower<'_, '_, '_> {
             j::ExprKind::Attr(b, m, name_at) => {
                 if let j::ExprKind::Name(c) = &b.kind
                     && !self.locals.contains_key(c)
-                    && (self.sig.caps.contains(c) || c == "io")
+                    && (self.sig.caps.contains(c) || self.handlers.contains(c) || c == "io")
                 {
-                    let (r, t) = self.cap_call(c, m, args, at)?;
-                    return Ok((r, t, None));
+                    return self.cap_call(c, m, args, at);
                 }
                 self.method(b, m, *name_at, args, at)
             }
@@ -2472,7 +2492,10 @@ impl Lower<'_, '_, '_> {
                     t,
                 ))
             }
-            "print" => self.cap_call("io", "print", args, at),
+            "print" => {
+                let (r, t, _) = self.cap_call("io", "print", args, at)?;
+                Ok((r, t))
+            }
             "evolve" => {
                 let Some(first) = args.first().filter(|a| a.name.is_none()) else {
                     self.err("E202", at, "`evolve` takes a record first".into());
@@ -2574,6 +2597,19 @@ impl Lower<'_, '_, '_> {
             "dict" | "set" | "enumerate" | "zip" | "sum" | "any" | "all" | "reversed"
             | "isinstance" | "hash" | "repr" | "divmod" | "pow" | "chr" | "ord" | "atan2"
             | "hypot" => unsupported(format!("`{n}`")),
+            // std.test is in scope without an import (assumption A7).
+            _ if let Some((path, p)) = ["prelude", "test"].iter().find_map(|m| {
+                let path = format!("std.{m}.{n}");
+                let p = crate::stdlib::decl(&path)?.plain()?;
+                Some((path, p))
+            }) =>
+            {
+                if p.fail.is_some() {
+                    return unsupported(format!("`{path}`, a std function that can fail"));
+                }
+                let (r, t, _) = self.std_call(&path, p, Vec::new(), args, n, at)?;
+                Ok((r, t))
+            }
             _ => {
                 self.err("E200", at, format!("cannot find function `{n}`"));
                 for a in args {
@@ -2586,23 +2622,47 @@ impl Lower<'_, '_, '_> {
         }
     }
 
-    /// `io.print(s)`; other capability operations come with std.
-    fn cap_call(&mut self, cap: &str, op: &str, args: &[j::Arg], at: Span) -> R<(Rhs, Ty)> {
-        if (cap, op) != ("io", "print") {
+    /// An operation of a std capability (`io.print(s)`, `fs.read(p)`), declared in its module.
+    fn cap_call(
+        &mut self,
+        cap: &str,
+        op: &str,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let path = format!("std.{cap}.{op}");
+        let Some(p) = crate::stdlib::decl(&path)
+            .filter(|d| d.cap)
+            .and_then(|d| d.plain())
+        else {
             return unsupported(format!("capability operation `{cap}.{op}`"));
-        }
-        let Some(xs) = self.positional(args, 1, "print", at)? else {
-            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err));
         };
-        let (a, t) = self.atom(xs[0], Some(&Ty::Str))?;
-        self.expect(&t, &Ty::Str, xs[0].span);
-        let c = call(
-            "std.io.print",
-            vec![],
-            vec![Arg::Cap(cap.to_owned(), at), let_arg(a)],
-            at,
-        );
-        Ok((Rhs::Call(c), Ty::Unit))
+        self.std_call(&path, p, vec![Arg::Cap(cap.to_owned(), at)], args, op, at)
+    }
+
+    /// A call of a non-generic std function; `lead` are the arguments before the written ones.
+    fn std_call(
+        &mut self,
+        path: &str,
+        p: crate::stdlib::Plain,
+        mut lead: Vec<Arg>,
+        args: &[j::Arg],
+        what: &str,
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let Some(xs) = self.positional(args, p.params.len(), what, at)? else {
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        };
+        for (x, (take, pt)) in xs.into_iter().zip(&p.params) {
+            let (a, t) = self.atom(x, Some(pt))?;
+            self.expect(&t, pt, x.span);
+            lead.push(Arg::Value(
+                if *take { Conv::Sink } else { Conv::Let },
+                a,
+                x.span,
+            ));
+        }
+        Ok((Rhs::Call(call(path, vec![], lead, at)), p.ret, p.fail))
     }
 
     fn method(

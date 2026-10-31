@@ -31,6 +31,29 @@ fn str_list<'a>(xs: impl Iterator<Item = &'a str>) -> Value {
     Value::List(xs.map(|s| Value::Str(s.into())).collect())
 }
 
+/// The native std functions that can fail: `Err` is the failure value.
+pub(super) fn fallible(name: &str, args: &[Value]) -> Option<Result<Value, Value>> {
+    use Value::*;
+    Some(match (name, args) {
+        // A `fake_fs` handler is its file map.
+        ("std.fs.read", [Dict(files), Str(path)]) => files
+            .get(&Key(Str(path.clone())))
+            .cloned()
+            .ok_or_else(|| fs_error(path, "not found")),
+        _ => return None,
+    })
+}
+
+fn fs_error(path: &str, reason: &str) -> Value {
+    Value::Data {
+        name: "FsError".into(),
+        fields: vec![
+            ("path".into(), Value::Str(path.into())),
+            ("reason".into(), Value::Str(reason.into())),
+        ],
+    }
+}
+
 pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
     use Value::*;
     Some(Ok(match (name, &mut *args) {
@@ -91,6 +114,7 @@ pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
         ("std.prelude.range", [Int(a), Int(b)]) => List((*a..*b).map(Int).collect()),
         ("std.prelude.bigint", [Int(i)]) => BigInt((*i).into()),
         ("std.math.sqrt", [Float(x)]) => Float(x.sqrt()),
+        ("std.test.fake_fs", [Dict(files)]) => Dict(mem::take(files)),
         _ => return None,
     }))
 }

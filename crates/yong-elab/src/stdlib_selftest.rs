@@ -57,3 +57,12 @@ fn every_intrinsic_method_instantiates() {
         }
     }
 }
+
+#[test]
+fn fake_fs_reads_and_fails_with_fs_error() {
+    let src = "pub def main() uses io:\n    with fs = fake_fs({\"a\": \"x\"}):\n\
+               \x20       a = fs.read(\"a\") else \"?\"\n\
+               \x20       b = fs.read(\"b\") else err -> err.reason.copy()\n\
+               \x20       io.print(f\"{a} {b}\")\n";
+    assert_eq!(run(src), "x not found\n");
+}

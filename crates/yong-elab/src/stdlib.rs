@@ -5,37 +5,74 @@ use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
 use yong_core::ast as y;
+use yong_diag::Span;
 use yong_hir as j;
 
 use crate::{Cx, Globals, R, Ty};
 
 pub(crate) struct Decl {
     pub module: &'static str,
-    file: String,
-    pub src: &'static str,
     pub intrinsic: bool,
+    /// An operation of a capability trait.
+    pub cap: bool,
     pub def: j::FuncDef,
 }
 
-/// Every std function by its path, `std.<module>.<name>`.
-static DECLS: LazyLock<HashMap<String, Decl>> = LazyLock::new(|| {
-    let mut out = HashMap::new();
+pub(crate) struct Class {
+    module: &'static str,
+    class: j::Class,
+    span: Span,
+}
+
+#[derive(Default)]
+struct Std {
+    /// By path, `std.<module>.<name>`; capability operations by `std.<module>.<op>`.
+    fns: HashMap<String, Decl>,
+    /// By bare name; std class names do not repeat across modules.
+    classes: HashMap<String, Class>,
+    caps: HashSet<String>,
+    /// Each module's file name and source, for diagnostics in std bodies.
+    files: HashMap<&'static str, (String, &'static str)>,
+}
+
+static STD: LazyLock<Std> = LazyLock::new(|| {
+    let mut out = Std::default();
     for &(module, src) in yong_std::SOURCES {
         let (m, diags) = yong_jian::parse(&file(module), src, true);
         assert!(diags.is_empty(), "std.{module}: {diags:?}");
+        out.files.insert(module, (file(module), src));
         for it in m.expect("std parses").items {
-            if let j::ItemKind::Func(def) = it.kind {
-                let intrinsic = it.decorators.iter().any(|d| d.path == ["intrinsic"]);
-                out.insert(
-                    format!("std.{module}.{}", def.name),
-                    Decl {
-                        module,
-                        file: file(module),
-                        src,
-                        intrinsic,
-                        def,
-                    },
-                );
+            let has = |d: &str| it.decorators.iter().any(|x| x.path == [d]);
+            let decl = |def: j::FuncDef, intrinsic, cap| Decl {
+                module,
+                intrinsic,
+                cap,
+                def,
+            };
+            match it.kind {
+                j::ItemKind::Func(def) => {
+                    let path = format!("std.{module}.{}", def.name);
+                    out.fns.insert(path, decl(def, has("intrinsic"), false));
+                }
+                j::ItemKind::Trait(t) if has("capability") => {
+                    out.caps.insert(t.name);
+                    for (_, def) in t.sigs {
+                        let path = format!("std.{module}.{}", def.name);
+                        out.fns.insert(path, decl(def, false, true));
+                    }
+                }
+                j::ItemKind::Class(class) => {
+                    let span = it.span;
+                    out.classes.insert(
+                        class.name.clone(),
+                        Class {
+                            module,
+                            class,
+                            span,
+                        },
+                    );
+                }
+                _ => {}
             }
         }
     }
@@ -47,7 +84,7 @@ fn file(module: &str) -> String {
 }
 
 pub(crate) fn decl(path: &str) -> Option<&'static Decl> {
-    DECLS.get(path)
+    STD.fns.get(path)
 }
 
 /// A method instantiated at its receiver's type.
@@ -103,6 +140,85 @@ impl Decl {
             targs,
         })
     }
+}
+
+/// A non-generic std function or capability operation at its only instance.
+pub(crate) struct Plain {
+    /// `take` and the type of each parameter, without an operation's `self`.
+    pub params: Vec<(bool, Ty)>,
+    pub ret: Ty,
+    pub fail: Option<Ty>,
+}
+
+impl Decl {
+    /// `None` for a generic function or a type beyond [`Ty`].
+    pub fn plain(&self) -> Option<Plain> {
+        if !self.def.tparams.is_empty() {
+            return None;
+        }
+        let b = HashMap::new();
+        let params = self
+            .def
+            .params
+            .iter()
+            .skip(usize::from(self.cap))
+            .map(|p| match p {
+                j::Param::Value { conv, ty, .. } => {
+                    Some((*conv == Some(j::Conv::Take), subst(ty, &b)?))
+                }
+                _ => None,
+            })
+            .collect::<Option<_>>()?;
+        let r = self.def.ret.as_ref();
+        let ret = match r.and_then(|r| r.ty.as_ref()) {
+            Some(t) => subst(t, &b)?,
+            None => Ty::Unit,
+        };
+        let fail = match r.map(|r| r.fail.as_slice()).unwrap_or_default() {
+            [] => None,
+            [p] => Some(subst(
+                &j::Type::Named {
+                    path: p.clone(),
+                    args: Vec::new(),
+                },
+                &b,
+            )?),
+            _ => return None,
+        };
+        Some(Plain { params, ret, fail })
+    }
+}
+
+/// The std classes `m` may meet, registered in `g`: those whose name or module (a capability
+/// such as `fs`) `src` names, unless `m` defines the name itself.
+pub(crate) fn classes(g: &mut Globals, m: &j::Module, src: &str) -> R<Vec<String>> {
+    let own: HashSet<&str> = m.items.iter().map(|it| it.kind.name()).collect();
+    let words: HashSet<&str> = src
+        .split(|c: char| !c.is_alphanumeric() && c != '_')
+        .collect();
+    let mut out = Vec::new();
+    for (name, c) in &STD.classes {
+        if (words.contains(name.as_str()) || words.contains(c.module))
+            && !own.contains(name.as_str())
+        {
+            g.records.insert(name.clone(), Vec::new());
+            out.push((name, c));
+        }
+    }
+    out.sort_by_key(|(n, _)| *n);
+    for (name, c) in &out {
+        let mut cx = std_cx(c.module);
+        let mut fs = Vec::new();
+        for f in &c.class.fields {
+            fs.push(crate::Field {
+                name: f.name.clone(),
+                ty: g.ty(&f.ty, &mut cx, c.span)?,
+                default: f.default.clone(),
+            });
+        }
+        g.records.insert((*name).clone(), fs);
+    }
+    Ok(out.into_iter().map(|(n, _)| n.clone()).collect())
 }
 
 fn unify(pat: &j::Type, t: &Ty, tps: &[&str], b: &mut HashMap<String, Ty>) -> bool {
@@ -167,8 +283,15 @@ fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
                     _ => None,
                 })
                 .collect::<Option<Vec<_>>>()?;
-            let [n] = path.as_slice() else { return None };
+            let n = match path.as_slice() {
+                [n] => n,
+                [std, _, n] if std == "std" => n,
+                _ => return None,
+            };
             match (n.as_str(), a.as_slice()) {
+                (n, []) if STD.classes.contains_key(n) || STD.caps.contains(n) => {
+                    Ty::Data(n.to_owned())
+                }
                 (n, []) if b.contains_key(n) => b[n].clone(),
                 ("int", []) => Ty::Int,
                 ("float", []) => Ty::Float,
@@ -222,7 +345,7 @@ fn prelude_bodies(m: &j::Module) -> Vec<&'static Decl> {
 pub(crate) fn collect(g: &mut Globals, m: &j::Module) -> R<Vec<&'static Decl>> {
     let ds = prelude_bodies(m);
     for d in &ds {
-        let mut cx = std_cx(d);
+        let mut cx = std_cx(d.module);
         let s = crate::sig(g, &d.def, &mut cx)?;
         g.fns.insert(d.def.name.clone(), s);
     }
@@ -232,7 +355,7 @@ pub(crate) fn collect(g: &mut Globals, m: &j::Module) -> R<Vec<&'static Decl>> {
 pub(crate) fn lower(g: &Globals, ds: &[&'static Decl]) -> R<Vec<y::Item>> {
     ds.iter()
         .map(|d| {
-            let mut cx = std_cx(d);
+            let mut cx = std_cx(d.module);
             let f = crate::lower::function(g, &d.def, false, &mut cx)?;
             debug_assert!(cx.diags.is_empty(), "std.{}: {:?}", d.module, cx.diags);
             Ok(y::Item {
@@ -244,10 +367,11 @@ pub(crate) fn lower(g: &Globals, ds: &[&'static Decl]) -> R<Vec<y::Item>> {
         .collect()
 }
 
-fn std_cx(d: &'static Decl) -> Cx<'static> {
+fn std_cx(module: &str) -> Cx<'static> {
+    let (file, src) = &STD.files[module];
     Cx {
-        file: &d.file,
-        src: d.src,
+        file,
+        src,
         strict: true,
         release: false,
         diags: Vec::new(),

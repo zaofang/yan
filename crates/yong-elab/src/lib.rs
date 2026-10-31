@@ -192,9 +192,27 @@ pub fn elaborate(
         diags: Vec::new(),
     };
     let mut g = Globals::default();
+    let std_classes = stdlib::classes(&mut g, m, src)?;
     collect(&mut g, m, &mut cx)?;
     let std_fns = stdlib::collect(&mut g, m)?;
     let mut items = Vec::new();
+    for name in std_classes {
+        items.push(y::Item {
+            attrs: Vec::new(),
+            kind: y::ItemKind::Record(y::Record {
+                is_pub: true,
+                path: vec![name.clone()],
+                tparams: Vec::new(),
+                fields: core_fields(&g.records[&name])?,
+            }),
+            span: Span {
+                line: 1,
+                col: 1,
+                end_line: 1,
+                end_col: 1,
+            },
+        });
+    }
     for it in &m.items {
         if let Some(k) = item(&g, it, &mut cx)? {
             items.push(y::Item {
