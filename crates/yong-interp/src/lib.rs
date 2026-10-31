@@ -11,6 +11,8 @@ use std::rc::Rc;
 
 use yong_core::ast::*;
 
+mod prelude;
+
 pub const EXIT_FAILURE: i32 = 1;
 pub const EXIT_PANIC: i32 = 101;
 
@@ -666,6 +668,9 @@ impl Interp<'_> {
 
     /// The std functions used by M0 programs (assumption Y3).
     fn std(&mut self, name: &str, args: &mut [Value]) -> R<Value> {
+        if let Some(r) = prelude::call(name, args) {
+            return r;
+        }
         Ok(match (name, &mut *args) {
             ("std.io.print", [Value::Cap(_), Value::Str(s)]) => {
                 writeln!(self.out, "{s}").map_err(|e| Stop::Unsupported(format!("stdout: {e}")))?;

@@ -17,7 +17,9 @@ yong-core = { path = "crates/yong-core" }
 yong-diag = { path = "crates/yong-diag" }
 yong-interp = { path = "crates/yong-interp" }
 yong-check = { path = "crates/yong-check" }
+yong-hir = { path = "crates/yong-hir" }
 yong-jian = { path = "crates/yong-jian" }
+yong-elab = { path = "crates/yong-elab" }
 yong-wen = { path = "crates/yong-wen" }
 
 [workspace.lints.rust]
