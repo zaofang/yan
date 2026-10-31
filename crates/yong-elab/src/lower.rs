@@ -2004,7 +2004,7 @@ impl Lower<'_, '_, '_> {
                 let (r, t) = self.builtin(n, args, at, want)?;
                 Ok((r, t, None))
             }
-            j::ExprKind::Attr(b, m, _) => {
+            j::ExprKind::Attr(b, m, name_at) => {
                 if let j::ExprKind::Name(c) = &b.kind
                     && !self.locals.contains_key(c)
                     && (self.sig.caps.contains(c) || c == "io")
@@ -2012,7 +2012,7 @@ impl Lower<'_, '_, '_> {
                     let (r, t) = self.cap_call(c, m, args, at)?;
                     return Ok((r, t, None));
                 }
-                self.method(b, m, args, at)
+                self.method(b, m, *name_at, args, at)
             }
             _ => unsupported("calling a value"),
         }
@@ -2434,6 +2434,7 @@ impl Lower<'_, '_, '_> {
         &mut self,
         b: &j::Expr,
         m: &str,
+        name_at: Span,
         args: &[j::Arg],
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
@@ -2446,71 +2447,31 @@ impl Lower<'_, '_, '_> {
         }
         let (p, t) = self.place(b)?;
         let e = || Ty::Err;
-        // (path, receiver is var, argument types, result)
-        let (path, inout, params, ret): (String, bool, Vec<Ty>, Ty) = match (&t, m) {
-            (Ty::Err, _) => return Ok((Rhs::Proj(p), e(), None)),
-            (Ty::List(x), "append") => ("append".into(), true, vec![(**x).clone()], Ty::Unit),
-            (Ty::List(x), "pop") => ("pop".into(), true, vec![], (**x).clone()),
-            (Ty::Str, "byte_len" | "char_count" | "grapheme_count") => {
-                (m.into(), false, vec![], Ty::Int)
-            }
-            (Ty::Str, "upper" | "lower" | "strip") => (m.into(), false, vec![], Ty::Str),
-            (Ty::Str, "startswith" | "endswith") => (m.into(), false, vec![Ty::Str], Ty::Bool),
-            (Ty::Str, "splitlines") => (m.into(), false, vec![], Ty::List(Box::new(Ty::Str))),
-            (Ty::Str, "partition") => (
-                m.into(),
-                false,
-                vec![Ty::Str],
-                Ty::Tuple(vec![Ty::Str, Ty::Str, Ty::Str]),
-            ),
-            (Ty::Str, "parse_int") => (m.into(), false, vec![], Ty::Option(Box::new(Ty::Int))),
-            (Ty::Str, "parse_float") => (m.into(), false, vec![], Ty::Option(Box::new(Ty::Float))),
-            (Ty::List(x), "index") => (
-                m.into(),
-                false,
-                vec![(**x).clone()],
-                Ty::Option(Box::new(Ty::Int)),
-            ),
-            (Ty::List(x), "get") => (m.into(), false, vec![Ty::Int], Ty::Option(x.clone())),
-            (Ty::Set(x), "add" | "discard") => (m.into(), true, vec![(**x).clone()], Ty::Unit),
-            (Ty::Set(a), "union" | "intersection") => {
-                (m.into(), false, vec![t.clone()], Ty::Set(a.clone()))
-            }
-            (Ty::Dict(_, v), "remove") => {
-                (m.into(), true, vec![dict_key(&t)], Ty::Option(v.clone()))
-            }
-            (Ty::Dict(_, v), "setdefault") => (
-                m.into(),
-                true,
-                vec![dict_key(&t), (**v).clone()],
-                (**v).clone(),
-            ),
-            (Ty::Str, "split") => (m.into(), false, vec![Ty::Str], Ty::List(Box::new(Ty::Str))),
-            (Ty::Str, "join") => (m.into(), false, vec![Ty::List(Box::new(Ty::Str))], Ty::Str),
-            (Ty::Str, "replace") => (m.into(), false, vec![Ty::Str, Ty::Str], Ty::Str),
-            (Ty::Dict(_, v), "get") => (m.into(), false, vec![dict_key(&t)], Ty::Option(v.clone())),
-            (Ty::Dict(k, v), "items") => (
-                m.into(),
-                false,
-                vec![],
-                Ty::List(Box::new(Ty::Tuple(vec![(**k).clone(), (**v).clone()]))),
-            ),
-            (Ty::Dict(k, _), "keys") => (m.into(), false, vec![], Ty::List(k.clone())),
-            (Ty::Dict(_, v), "values") => (m.into(), false, vec![], Ty::List(v.clone())),
-            _ => {
-                if t.module().is_some() {
-                    return unsupported(format!("method `{m}` on `{t}`"));
-                }
-                self.err("E200", at, format!("no function `{m}` takes a `{t}` first"));
-                return Ok((Rhs::Proj(p), e(), None));
-            }
+        if t == Ty::Err {
+            return Ok((Rhs::Proj(p), e(), None));
+        }
+        let Some(module) = t.module() else {
+            self.err("E200", at, format!("no function `{m}` takes a `{t}` first"));
+            return Ok((Rhs::Proj(p), e(), None));
         };
-        let module = t.module().expect("std types have a module");
-        let targs = match &t {
-            Ty::List(x) | Ty::Set(x) => vec![x.targ()],
-            Ty::Dict(k, v) => vec![k.targ(), v.targ()],
-            _ => vec![],
+        let path = format!("std.{module}.{m}");
+        let Some(d) = crate::stdlib::decl(&path) else {
+            self.err("E203", name_at, format!("`{t}` has no method `{m}`"));
+            return Ok((Rhs::Proj(p), e(), None));
         };
+        if !d.intrinsic {
+            return unsupported(format!("`{path}`, a generic std function"));
+        }
+        let Some(crate::stdlib::Method {
+            inout,
+            params,
+            ret,
+            targs,
+        }) = d.method(&t)
+        else {
+            return unsupported(format!("`{path}` on `{t}`"));
+        };
+        let targs: Vec<_> = targs.iter().map(Ty::targ).collect();
         let recv = if inout {
             if !p.projs.is_empty() {
                 return unsupported("a `var` method on a field or element");
@@ -2528,17 +2489,12 @@ impl Lower<'_, '_, '_> {
             return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), e(), None));
         };
         let mut out = vec![recv];
-        for (x, pt) in xs.into_iter().zip(&params) {
+        for (x, (take, pt)) in xs.into_iter().zip(&params) {
             let (a, xt) = self.atom(x, Some(pt))?;
             self.expect(&xt, pt, x.span);
-            let conv = if inout && !matches!(m, "discard" | "remove") {
-                Conv::Sink
-            } else {
-                Conv::Let
-            };
+            let conv = if *take { Conv::Sink } else { Conv::Let };
             out.push(Arg::Value(conv, a, x.span));
         }
-        let path = format!("std.{module}.{path}");
         Ok((Rhs::Call(call(&path, targs, out, at)), ret, None))
     }
 
@@ -2595,13 +2551,6 @@ impl Lower<'_, '_, '_> {
             },
             _ => None,
         }
-    }
-}
-
-fn dict_key(t: &Ty) -> Ty {
-    match t {
-        Ty::Dict(k, _) => (**k).clone(),
-        _ => Ty::Err,
     }
 }
 

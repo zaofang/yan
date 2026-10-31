@@ -345,6 +345,7 @@ dependencies = [
  "yong-hir",
  "yong-interp",
  "yong-jian",
+ "yong-std",
 ]
 
 [[package]]

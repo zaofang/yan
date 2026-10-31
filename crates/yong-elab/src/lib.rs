@@ -6,6 +6,7 @@
 
 mod bounds;
 mod lower;
+mod stdlib;
 mod ty;
 
 use std::collections::HashMap;
@@ -192,6 +193,7 @@ pub fn elaborate(
     };
     let mut g = Globals::default();
     collect(&mut g, m, &mut cx)?;
+    let std_fns = stdlib::collect(&mut g, m)?;
     let mut items = Vec::new();
     for it in &m.items {
         if let Some(k) = item(&g, it, &mut cx)? {
@@ -202,6 +204,7 @@ pub fn elaborate(
             });
         }
     }
+    items.extend(stdlib::lower(&g, &std_fns)?);
     let stem = std::path::Path::new(file)
         .file_stem()
         .and_then(|s| s.to_str())
@@ -478,3 +481,5 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
 
 #[cfg(test)]
 mod selftest;
+#[cfg(test)]
+mod stdlib_selftest;
