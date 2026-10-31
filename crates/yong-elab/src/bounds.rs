@@ -387,6 +387,13 @@ impl Solver<'_> {
             S::Assign { target, value, .. } => self.assign(target, value, &mut f),
             S::AugAssign { target, value, .. } => {
                 self.expr(value, &mut f);
+                // R438: a missing key gets the default first.
+                if let K::Index(b, k) = &target.kind
+                    && let (K::Name(d), Some(key)) = (&b.kind, key_of(k))
+                    && self.sites.get(&target.span) == Some(&Site::Dict)
+                {
+                    f.keys.push((d.clone(), key));
+                }
                 self.target(target, &mut f);
             }
             S::If { arms, els } => {

@@ -594,6 +594,11 @@ impl Lower<'_, '_, '_> {
     }
 
     fn block_with(&mut self, f: impl FnOnce(&mut Self) -> R<()>) -> R<y::Block> {
+        self.block_scoped(f, false)
+    }
+
+    /// `keep`: the block's own bindings stay visible after it, as a `par` branch's do (9.2).
+    fn block_scoped(&mut self, f: impl FnOnce(&mut Self) -> R<()>, keep: bool) -> R<y::Block> {
         let saved = mem::take(&mut self.out);
         self.joins.push(Vec::new());
         self.scopes.push(Vec::new());
@@ -612,7 +617,15 @@ impl Lower<'_, '_, '_> {
             before.push(branch);
             body = before;
         }
-        for (name, prev) in self.scopes.pop().expect("pushed").into_iter().rev() {
+        let scope = self.scopes.pop().expect("pushed");
+        if keep {
+            if let Some(s) = self.scopes.last_mut() {
+                s.extend(scope);
+            }
+            r?;
+            return Ok(y::Block { stmts: body });
+        }
+        for (name, prev) in scope.into_iter().rev() {
             match prev {
                 Some(p) => {
                     self.locals.insert(name, p);
@@ -771,6 +784,11 @@ impl Lower<'_, '_, '_> {
                     span: value.span,
                     paren: false,
                 };
+                if let j::ExprKind::Index(d, k) = &target.kind
+                    && let Some(Ty::Dict(kt, vt)) = self.ty_of_local(d)
+                {
+                    self.insert_default(d, k, &kt, &vt, at)?;
+                }
                 self.assign(target, None, &bin, at)?;
             }
             K::Return(e) => {
@@ -887,7 +905,7 @@ impl Lower<'_, '_, '_> {
             } => {
                 let mut blocks = Vec::new();
                 for s in b {
-                    blocks.push(self.block(std::slice::from_ref(s))?);
+                    blocks.push(self.block_scoped(|l| l.stmts(std::slice::from_ref(s)), true)?);
                 }
                 self.emit(
                     StmtKind::Par {
@@ -1556,6 +1574,37 @@ impl Lower<'_, '_, '_> {
             j::ExprKind::Wild => self.emit(StmtKind::Rhs(r), target.span),
             _ => return unsupported("this assignment target"),
         }
+        Ok(())
+    }
+
+    /// `d[k] op= v` inserts the value type's default first when `k` is missing (R438).
+    fn insert_default(&mut self, d: &j::Expr, k: &j::Expr, kt: &Ty, vt: &Ty, at: Span) -> R<()> {
+        if !matches!(k.kind, j::ExprKind::Name(_) | j::ExprKind::Lit(_)) {
+            return unsupported("`d[k] op= v` with a computed key");
+        }
+        let j::ExprKind::Name(dn) = &d.kind else {
+            unreachable!("a local")
+        };
+        let lit = |l| Atom::Lit(l, at);
+        let zero = match vt {
+            Ty::Int => lit(Literal::Int("0".into())),
+            Ty::Float => lit(Literal::Float("0.0".into())),
+            Ty::Str => lit(Literal::Str(String::new())),
+            _ => return unsupported(format!("`d[k] op= v` on a `{vt}` value")),
+        };
+        let (ka, kty) = self.atom(k, Some(kt))?;
+        self.expect(&kty, kt, k.span);
+        let c = call(
+            "std.dict.setdefault",
+            vec![kt.targ(), vt.targ()],
+            vec![
+                Arg::Value(Conv::Inout, Atom::Name(dn.clone(), d.span), d.span),
+                Arg::Value(Conv::Let, ka, k.span),
+                Arg::Value(Conv::Sink, zero, at),
+            ],
+            at,
+        );
+        self.tmp(vt, Rhs::Call(c), at);
         Ok(())
     }
 
