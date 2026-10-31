@@ -251,6 +251,7 @@ dependencies = [
  "yong-core",
  "yong-diag",
  "yong-elab",
+ "yong-hir",
  "yong-interp",
  "yong-jian",
  "yong-wen",
@@ -310,6 +311,7 @@ name = "yong-wen"
 version = "0.0.0"
 dependencies = [
  "yong-diag",
+ "yong-hir",
 ]
 
 [[package]]
