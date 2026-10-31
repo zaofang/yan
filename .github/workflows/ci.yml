@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Guard must reject a synthetic agent patch to tests/
         run: |
-          if printf 'tests/canary.fan\n' | python3 tools/guard.py --branch agent/canary; then
+          if printf 'tests/canary.jian\n' | python3 tools/guard.py --branch agent/canary; then
             echo "guard accepted an agent patch to tests/" >&2
             exit 1
           fi

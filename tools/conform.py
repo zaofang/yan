@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Literal, Protocol
 
 KINDS = ("pass", "fail", "run", "patch")
-SUFFIXES = (".fan", ".wen", ".ben")
+SUFFIXES = (".jian", ".wen", ".ming")
 
 type Status = Literal["pass", "fail", "skip"]
 
@@ -72,7 +72,7 @@ class CommandExecutor:
         return out.stdout, out.returncode
 
 
-# SPEC-Q: spec 20.1 does not fix the header layout, and .ben has no comment syntax yet
+# SPEC-Q: spec 20.1 does not fix the header layout, and .ming has no comment syntax yet
 # (proposed SQ2). Assumed: headers are leading "#" lines; a "# stdout:" block is the
 # following "# "-prefixed lines ("#" alone is an empty line) up to the next header or
 # non-comment line; several blocks concatenate.
