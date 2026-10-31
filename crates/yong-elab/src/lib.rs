@@ -1,5 +1,6 @@
-//! Jian to Yong elaboration (14.1, 22.3): resolve names, check signatures, infer bodies
-//! bidirectionally, pass capabilities and lower to Yong IR in A-normal form.
+//! HIR to Yong elaboration (14.1, 22.3), for Jian and later Wen: resolve names, check
+//! signatures, infer bodies bidirectionally, pass capabilities and lower to Yong IR in
+//! A-normal form.
 //!
 //! The Yong tree keeps Jian spans, so the Yong checker reports at Jian positions.
 
@@ -10,7 +11,7 @@ use std::collections::HashMap;
 
 use yong_core::ast as y;
 use yong_diag::{Diagnostic, Span};
-use yong_jian::ast as j;
+use yong_hir as j;
 
 pub use ty::Ty;
 

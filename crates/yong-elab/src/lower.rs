@@ -10,7 +10,7 @@ use std::mem;
 
 use yong_core::ast::{self as y, Arg, Atom, Conv, Literal, Place, Proj, Rhs, StmtKind};
 use yong_diag::Span;
-use yong_jian::ast as j;
+use yong_hir as j;
 
 use crate::{Cx, Globals, R, Sig, Ty, cap_type, unsupported};
 

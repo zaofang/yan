@@ -1,4 +1,6 @@
-//! Jian syntax tree (13.2). Spans are the first token of each node.
+//! High-level IR (22.2): the tree both surfaces parse to and yong-elab lowers. It follows
+//! Jian's grammar (13.2); Wen-only forms are added here as Wen needs them. Spans are the first
+//! token of each node.
 
 use yong_diag::Span;
 
