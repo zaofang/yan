@@ -545,24 +545,26 @@ impl Interp<'_> {
     }
 
     fn read(&self, p: &Place, frame: &Frame) -> R<Value> {
-        let mut v = self.lookup(&p.root, frame)?;
+        let Some(mut v) = frame.get(&p.root) else {
+            return self.lookup(&p.root, frame);
+        };
         for proj in &p.projs {
             v = match (proj, v) {
                 (Proj::Field(f, _), Value::Data { fields, .. }) => {
-                    match fields.into_iter().find(|(n, _)| n == f) {
+                    match fields.iter().find(|(n, _)| n == f) {
                         Some((_, v)) => v,
                         None => return unsupported(format!("no field `{f}`")),
                     }
                 }
                 (Proj::Field(f, _), Value::Tuple(xs)) => {
                     match f.strip_prefix('_').and_then(|i| i.parse::<usize>().ok()) {
-                        Some(i) if i < xs.len() => xs[i].clone(),
+                        Some(i) if i < xs.len() => &xs[i],
                         _ => return unsupported(format!("tuple field `{f}`")),
                     }
                 }
                 (Proj::Index(i), Value::List(xs)) => match self.atom(i, frame)? {
                     Value::Int(i) => match usize::try_from(i).ok().and_then(|i| xs.get(i)) {
-                        Some(v) => v.clone(),
+                        Some(v) => v,
                         None => return panic("bounds"),
                     },
                     _ => return unsupported("non-integer index"),
@@ -570,7 +572,7 @@ impl Interp<'_> {
                 (proj, v) => return unsupported(format!("projection {proj:?} on {v:?}")),
             };
         }
-        Ok(v)
+        Ok(v.clone())
     }
 
     fn assign(&self, p: &Place, v: Value, frame: &mut Frame) -> R<()> {
@@ -617,11 +619,15 @@ impl Interp<'_> {
         Ok(())
     }
 
-    fn resolve_call(&mut self, c: &Call, frame: &Frame) -> R<(Option<FnRef>, Vec<Value>)> {
+    /// `inout` arguments are moved out of the frame; the caller writes them back.
+    fn resolve_call(&mut self, c: &Call, frame: &mut Frame) -> R<(Option<FnRef>, Vec<Value>)> {
         let args = c
             .args
             .iter()
             .map(|a| match a {
+                Arg::Value(Conv::Inout, Atom::Name(n, _), _) if frame.contains_key(n) => {
+                    Ok(frame.insert(n.clone(), Value::Unit).expect("present"))
+                }
                 Arg::Value(_, a, _) => self.atom(a, frame),
                 Arg::Cap(n, _) => self.lookup(n, frame),
             })
