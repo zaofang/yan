@@ -1,0 +1,69 @@
+"""Methods on str and char (17.3, R475)."""
+
+@intrinsic
+@since("1.0")
+pub def concat(self: str, other: str) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def byte_len(self: str) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def char_count(self: str) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def grapheme_count(self: str) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def upper(self: str) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def lower(self: str) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def strip(self: str) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def startswith(self: str, prefix: str) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def endswith(self: str, suffix: str) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def contains(self: str, part: str) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def replace(self: str, old: str, new: str) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def split(self: str, sep: str) -> list[str]: ...
+
+@intrinsic
+@since("1.0")
+pub def join(self: str, parts: list[str]) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def splitlines(self: str) -> list[str]: ...
+
+@intrinsic
+@since("1.0")
+pub def partition(self: str, sep: str) -> tuple[str, str, str]: ...
+
+@intrinsic
+@since("1.0")
+pub def parse_int(self: str) -> int | None: ...
+
+@intrinsic
+@since("1.0")
+pub def parse_float(self: str) -> float | None: ...

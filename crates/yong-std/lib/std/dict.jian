@@ -1,0 +1,45 @@
+"""Methods on dict: insertion-ordered, removal keeps order (17.3, R475)."""
+
+@intrinsic
+@since("1.0")
+pub def new[K: Hash, V]() -> dict[K, V]: ...
+
+@intrinsic
+@since("1.0")
+pub def insert[K: Hash, V](var self: dict[K, V], take key: K, take value: V) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def index[K: Hash, V](self: dict[K, V], key: K) -> V: ...
+
+@intrinsic
+@since("1.0")
+pub def get[K: Hash, V](self: dict[K, V], key: K) -> V | None: ...
+
+@intrinsic
+@since("1.0")
+pub def contains_key[K: Hash, V](self: dict[K, V], key: K) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def len[K: Hash, V](self: dict[K, V]) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def remove[K: Hash, V](var self: dict[K, V], key: K) -> V | None: ...
+
+@intrinsic
+@since("1.0")
+pub def setdefault[K: Hash, V](var self: dict[K, V], take key: K, take value: V) -> V: ...
+
+@intrinsic
+@since("1.0")
+pub def items[K: Hash, V](self: dict[K, V]) -> list[tuple[K, V]]: ...
+
+@intrinsic
+@since("1.0")
+pub def keys[K: Hash, V](self: dict[K, V]) -> list[K]: ...
+
+@intrinsic
+@since("1.0")
+pub def values[K: Hash, V](self: dict[K, V]) -> list[V]: ...

@@ -16,6 +16,8 @@ use yong_core::ast::*;
 mod native;
 mod prelude;
 #[cfg(test)]
+mod std_parity;
+#[cfg(test)]
 mod std_selftest;
 
 pub const EXIT_FAILURE: i32 = 1;
