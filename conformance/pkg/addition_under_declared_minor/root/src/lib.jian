@@ -1,0 +1,8 @@
+pub def f() -> int:
+    return 1
+
+pub def g() -> int:
+    return 2
+
+pub def h() -> int:
+    return 3

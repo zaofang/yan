@@ -1,0 +1,4 @@
+spec = "18.4"
+rows = ["R300"]
+note = "an unapproved failing test is reported but does not fail the gate"
+command = ["test", "--gate"]

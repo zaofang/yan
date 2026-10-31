@@ -25,6 +25,8 @@ class Fake:
     patched: str | None = None
     patch_records: list[dict[str, object]] = field(default_factory=list)
     bump: str = "patch"
+    tool_result: tuple[list[dict[str, object]], int] = ([], 0)
+    seen_args: list[list[str]] = field(default_factory=list)
 
     def check(self, path: Path, flags: list[str]) -> list[dict[str, object]]:
         self.seen_flags.append(flags)
@@ -46,6 +48,11 @@ class Fake:
 
     def semver(self, old: Path, new: Path) -> str:
         return self.bump
+
+    def tool(self, workdir: Path, args: list[str]) -> tuple[list[dict[str, object]], int]:
+        assert (workdir / "package.jian").is_file()
+        self.seen_args.append(args)
+        return self.tool_result
 
 
 def diag(code: str, line: int, col: int, severity: str = "error") -> dict[str, object]:
@@ -245,3 +252,31 @@ def test_semver_bump(tmp_path: Path) -> None:
     assert case.milestone == "M2a"
     assert judge(case, Fake(bump="major")).status == "pass"
     assert judge(case, Fake(bump="minor")).status == "fail"
+
+
+def _pkg(tmp_path: Path, expect: str) -> Path:
+    case = tmp_path / "pkg" / "p1"
+    (case / "root").mkdir(parents=True)
+    (case / "root" / "package.jian").write_text("")
+    (case / "expect.toml").write_text(expect)
+    return case
+
+
+def test_pkg_code(tmp_path: Path) -> None:
+    _pkg(tmp_path, 'spec = "20.6"\ncommand = ["check"]\ncode = "E001"\nat = "src/a.jian:2:18"\n')
+    [case] = discover(tmp_path)
+    assert case.milestone == "M1"
+    hit = {**diag("E001", 2, 18), "file": "src/a.jian"}
+    fake = Fake(tool_result=([hit], 1))
+    assert judge(case, fake).status == "pass"
+    assert fake.seen_args == [["check"]]
+    moved = {**diag("E001", 3, 18), "file": "src/a.jian"}
+    assert judge(case, Fake(tool_result=([moved], 1))).status == "fail"
+    assert judge(case, Fake(tool_result=([hit], 0))).status == "fail"
+
+
+def test_pkg_ok(tmp_path: Path) -> None:
+    _pkg(tmp_path, 'spec = "18.4"\ncommand = ["test", "--gate"]\n')
+    [case] = discover(tmp_path)
+    assert judge(case, Fake(tool_result=([diag("W815", 1, 1, "warning")], 0))).status == "pass"
+    assert judge(case, Fake(tool_result=([diag("E014", 1, 1)], 1))).status == "fail"

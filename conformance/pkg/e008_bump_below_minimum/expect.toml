@@ -1,0 +1,5 @@
+spec = "20.6"
+milestone = "M2a"
+note = "removing g needs a major; 1.2.1 is a patch"
+command = ["publish", "--dry-run", "--base", "../base"]
+code = "E008"

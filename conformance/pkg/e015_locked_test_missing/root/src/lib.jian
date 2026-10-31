@@ -1,0 +1,5 @@
+pub def price(n: int) -> int:
+    return n * 2
+
+def test_price():
+    assert price(2) == 4

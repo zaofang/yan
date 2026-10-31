@@ -1,0 +1,4 @@
+spec = "20.6"
+milestone = "M2a"
+command = ["publish", "--dry-run"]
+code = "E002"
