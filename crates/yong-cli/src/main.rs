@@ -49,6 +49,17 @@ fn main() -> ExitCode {
 }
 
 fn run(file: &Path) -> ExitCode {
+    if file.extension().is_some_and(|e| e == "wen") {
+        return match check_wen(file) {
+            Ok(diags) => {
+                diags
+                    .iter()
+                    .for_each(|d| eprintln!("{}", d.render_line(None)));
+                ExitCode::FAILURE
+            }
+            Err(msg) => tool_failure(&msg),
+        };
+    }
     if file.extension().is_none_or(|e| e != "yong") {
         return tool_failure(&front_end_missing(file));
     }
@@ -107,6 +118,9 @@ fn check(files: &[PathBuf], format: Format, max_errors: usize) -> ExitCode {
 }
 
 fn check_file(file: &Path) -> Result<Vec<Diagnostic>, String> {
+    if file.extension().is_some_and(|e| e == "wen") {
+        return check_wen(file);
+    }
     if file.extension().is_none_or(|e| e != "yong") {
         return Err(front_end_missing(file));
     }
@@ -116,6 +130,18 @@ fn check_file(file: &Path) -> Result<Vec<Diagnostic>, String> {
         (Some(m), d) if d.is_empty() => yong_check::check(&name, &src, &m),
         (_, d) => d,
     })
+}
+
+/// Lexical and syntax diagnostics of a `.wen` file; a file without them is a tool failure
+/// until Wen lowers to Yong.
+fn check_wen(file: &Path) -> Result<Vec<Diagnostic>, String> {
+    let src = std::fs::read_to_string(file).map_err(|e| format!("{}: {e}", file.display()))?;
+    let name = file.display().to_string();
+    let (_, diags) = yong_wen::parse(&name, &src);
+    if diags.is_empty() {
+        return Err(format!("Wen lowering is not implemented yet: {name}"));
+    }
+    Ok(diags)
 }
 
 fn front_end_missing(file: &Path) -> String {

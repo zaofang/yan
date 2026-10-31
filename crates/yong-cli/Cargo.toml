@@ -18,6 +18,7 @@ yong-check.workspace = true
 yong-core.workspace = true
 yong-diag.workspace = true
 yong-interp.workspace = true
+yong-wen.workspace = true
 
 [lints]
 workspace = true
