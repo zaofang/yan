@@ -352,7 +352,34 @@ impl Solver<'_> {
                     self.expr(e, &mut f);
                 }
             }
-            S::Ghost { .. } | S::Break | S::Continue | S::Pass | S::Unreachable | S::Reveal(_) => {}
+            S::Ghost { .. }
+            | S::Break
+            | S::Continue
+            | S::BreakTo(_)
+            | S::ContinueTo(_)
+            | S::Pass
+            | S::Unreachable
+            | S::Reveal(_) => {}
+            S::Bind {
+                target,
+                target_span,
+                value,
+                ..
+            } => {
+                let t = j::Expr {
+                    kind: K::Name(target.clone()),
+                    span: *target_span,
+                    paren: false,
+                };
+                self.assign(&t, value, &mut f);
+            }
+            S::LetElse { pat, value, els } => {
+                self.expr(value, &mut f);
+                self.stmts(&els.stmts, f.clone());
+                for n in pat_names(pat) {
+                    f.kill(&n);
+                }
+            }
             S::Assert(e) => {
                 self.expr(e, &mut f);
                 self.assume(e, true, &mut f);
@@ -382,6 +409,7 @@ impl Solver<'_> {
                 cond,
                 contracts,
                 body,
+                ..
             } => {
                 for n in assigned(body) {
                     f.kill(&n);
@@ -639,6 +667,7 @@ impl Solver<'_> {
                 self.expr(b, f);
                 parts.iter().flatten().for_each(|x| self.expr(x, f));
             }
+            K::Is { value: b, .. } | K::Reify(b) | K::Cast(b, _) => self.expr(b, f),
             K::Fallback(x, fb) => {
                 self.expr(x, f);
                 if let j::Fallback::Value(v) | j::Fallback::Bind(_, v) | j::Fallback::Fail(v) =
@@ -745,7 +774,14 @@ fn pat_names(p: &j::Pat) -> Vec<String> {
             }
             j::Pat::Path { path, args: None } if path.len() == 1 => out.push(path[0].clone()),
             j::Pat::Path { args: Some(xs), .. } => xs.iter().for_each(|(_, p)| go(p, out)),
-            j::Pat::Path { .. } | j::Pat::Wild | j::Pat::Lit(_) => {}
+            j::Pat::Or(ps) => ps.iter().take(1).for_each(|p| go(p, out)),
+            j::Pat::Slice(ps, rest) => {
+                ps.iter().for_each(|p| go(p, out));
+                if let Some((_, Some(n))) = rest {
+                    out.push(n.clone());
+                }
+            }
+            j::Pat::Path { .. } | j::Pat::Wild | j::Pat::Lit(_) | j::Pat::Range { .. } => {}
         }
     }
     go(p, &mut out);
@@ -755,7 +791,7 @@ fn pat_names(p: &j::Pat) -> Vec<String> {
 fn breaks(stmts: &[j::Stmt]) -> bool {
     use j::StmtKind as S;
     stmts.iter().any(|s| match &s.kind {
-        S::Break => true,
+        S::Break | S::BreakTo(_) => true,
         S::If { arms, els } => {
             arms.iter().any(|(_, b)| breaks(&b.stmts))
                 || els.as_ref().is_some_and(|b| breaks(&b.stmts))
@@ -813,6 +849,15 @@ fn assigned(stmts: &[j::Stmt]) -> HashSet<String> {
                 }
                 S::Ghost { name, .. } => {
                     out.insert(name.clone());
+                }
+                S::Bind { target, value, .. } => {
+                    out.insert(target.clone());
+                    expr(value, out);
+                }
+                S::LetElse { pat, value, els } => {
+                    out.extend(pat_names(pat));
+                    expr(value, out);
+                    go(&els.stmts, out);
                 }
                 S::Expr(e) | S::Become(e) | S::Fail(e) | S::Assert(e) => expr(e, out),
                 S::Return(e) => e.iter().for_each(|e| expr(e, out)),

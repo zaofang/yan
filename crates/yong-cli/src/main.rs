@@ -100,7 +100,12 @@ fn load(file: &Path, src: &str, strict: bool, release: bool) -> Result<Loaded, S
             let Some(m) = m.filter(|_| !has_error(&diags)) else {
                 return Ok(Loaded::Stopped(diags));
             };
-            Ok(elaborate(&name, src, &m, diags, strict, release))
+            let opts = yong_elab::Options {
+                strict,
+                release,
+                wen: false,
+            };
+            Ok(elaborate(&name, src, &m, diags, opts))
         }
         Some("wen") => {
             let (m, diags) = yong_wen::parse(&name, src);
@@ -115,7 +120,12 @@ fn load(file: &Path, src: &str, strict: bool, release: bool) -> Result<Loaded, S
                 }
                 Ok((h, mut errs)) => {
                     errs.extend(diags);
-                    Ok(elaborate(&name, src, &h, errs, strict, release))
+                    let opts = yong_elab::Options {
+                        strict,
+                        release,
+                        wen: true,
+                    };
+                    Ok(elaborate(&name, src, &h, errs, opts))
                 }
             }
         }
@@ -133,10 +143,8 @@ fn elaborate(
     src: &str,
     m: &yong_hir::Module,
     diags: Vec<Diagnostic>,
-    strict: bool,
-    release: bool,
+    opts: yong_elab::Options,
 ) -> Loaded {
-    let opts = yong_elab::Options { strict, release };
     match yong_elab::elaborate(name, src, m, opts) {
         Err(yong_elab::Unsupported(what)) => Loaded::Unsupported(what, diags),
         Ok((y, mut errs)) => {

@@ -23,6 +23,8 @@ pub struct Options {
     pub strict: bool,
     /// `--level release` (8.5).
     pub release: bool,
+    /// The module came from Wen, whose lints differ from Jian's (15.3).
+    pub wen: bool,
 }
 
 /// A construct the elaborator does not lower yet; the caller skips the semantic checks.
@@ -74,6 +76,7 @@ pub(crate) struct Cx<'s> {
     pub src: &'s str,
     pub strict: bool,
     pub release: bool,
+    pub wen: bool,
     pub diags: Vec<Diagnostic>,
 }
 
@@ -188,6 +191,7 @@ pub fn elaborate(
         src,
         strict: opts.strict,
         release: opts.release,
+        wen: opts.wen,
         diags: Vec::new(),
     };
     let mut g = Globals::default();
@@ -444,7 +448,17 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             ty: g.consts[name].core(),
             value: const_val(value)?,
         }),
-        j::ItemKind::Lemma(_) => return Ok(None),
+        j::ItemKind::Lemma(f) => {
+            if matches!(&f.uses, Some(j::Uses::Caps(cs)) if !cs.is_empty()) {
+                cx.err(
+                    "E605",
+                    f.name_span,
+                    &f.name,
+                    "a lemma uses no capabilities; drop the `uses` clause".into(),
+                );
+            }
+            return Ok(None);
+        }
         j::ItemKind::Func(f) => {
             if it.is_pub && f.name != "main" {
                 let body = f.body.as_ref();
@@ -467,6 +481,13 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                         f.name_span,
                         &f.name,
                         format!("`{}` is pub and has no `ex` line or test", f.name),
+                    );
+                } else if cx.wen && !has_ex {
+                    cx.warn(
+                        "W813",
+                        f.name_span,
+                        &f.name,
+                        format!("`{}` is pub and has no `ex` line", f.name),
                     );
                 }
             }

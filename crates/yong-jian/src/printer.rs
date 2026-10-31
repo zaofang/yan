@@ -406,6 +406,7 @@ pub fn expr(e: &Expr, min: u8) -> String {
                 Fallback::Fail(v) => format!("fail {}", wrap(v, 2, false)),
                 Fallback::Break => "break".into(),
                 Fallback::Continue => "continue".into(),
+                Fallback::Block(..) => unreachable!("Wen only: Jian has no fallback block"),
             };
             format!("{left} else {right}")
         }
@@ -415,6 +416,9 @@ pub fn expr(e: &Expr, min: u8) -> String {
             } else {
                 format!("lambda {}: {}", ps.join(", "), expr(b, 0))
             }
+        }
+        ExprKind::Is { .. } | ExprKind::Reify(_) | ExprKind::Cast(..) => {
+            unreachable!("Wen only: Jian has no `is`, `try` or `as`")
         }
     };
     if level(e) < min { format!("({s})") } else { s }
@@ -449,6 +453,9 @@ fn pat(p: &Pat) -> String {
         ),
         Pat::Tuple(ps) => format!("({})", comma(ps, pat)),
         Pat::As(q, n) => format!("{} as {n}", pat(q)),
+        Pat::Or(..) | Pat::Range { .. } | Pat::Slice(..) => {
+            unreachable!("Wen only: Jian has no or, range or slice patterns")
+        }
     }
 }
 
@@ -643,12 +650,14 @@ impl Printer {
                 cond,
                 contracts,
                 body,
+                ..
             } => self.loop_body(format!("while {}:", expr(cond, 0)), contracts, body, d),
             StmtKind::For {
                 target,
                 iter,
                 contracts,
                 body,
+                ..
             } => self.loop_body(
                 format!("for {} in {}:", target.join(", "), expr(iter, 0)),
                 contracts,

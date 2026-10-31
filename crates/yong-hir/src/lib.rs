@@ -243,11 +243,27 @@ pub enum StmtKind {
         ty: Option<Type>,
         value: Expr,
     },
+    /// Wen's `let` and `var` (15.3): declared mutability instead of R421's inference.
+    Bind {
+        mutable: bool,
+        target: Name,
+        target_span: Span,
+        ty: Option<Type>,
+        value: Expr,
+    },
+    /// `let p = e else` with a block that must exit.
+    LetElse {
+        pat: Pat,
+        value: Expr,
+        els: Block,
+    },
     Return(Option<Expr>),
     Become(Expr),
     Fail(Expr),
     Break,
     Continue,
+    BreakTo(Name),
+    ContinueTo(Name),
     Pass,
     Assert(Expr),
     Unreachable,
@@ -257,11 +273,13 @@ pub enum StmtKind {
         els: Option<Block>,
     },
     While {
+        label: Option<Name>,
         cond: Expr,
         contracts: Vec<LoopContract>,
         body: Vec<Stmt>,
     },
     For {
+        label: Option<Name>,
         target: Vec<Name>,
         iter: Expr,
         contracts: Vec<LoopContract>,
@@ -333,6 +351,14 @@ pub enum Pat {
     },
     Tuple(Vec<Pat>),
     As(Box<Pat>, Name),
+    Or(Vec<Pat>),
+    Range {
+        lo: Expr,
+        hi: Expr,
+        inclusive: bool,
+    },
+    /// The elements, and where a `..rest` sits with its optional name.
+    Slice(Vec<Pat>, Option<(usize, Option<Name>)>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -407,6 +433,16 @@ pub enum ExprKind {
     },
     Fallback(Box<Expr>, Box<Fallback>),
     Lambda(Vec<Name>, Box<Expr>),
+    /// `e is p`, negated for `is not`.
+    Is {
+        value: Box<Expr>,
+        negated: bool,
+        pat: Box<Pat>,
+    },
+    /// Wen's `try e`: the failure as a `Result` value.
+    Reify(Box<Expr>),
+    /// `e as T`.
+    Cast(Box<Expr>, Type),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -417,6 +453,8 @@ pub enum Fallback {
     Fail(Expr),
     Break,
     Continue,
+    /// A block that ends by exiting, with the failure's name when it binds one.
+    Block(Option<Name>, Vec<Stmt>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
