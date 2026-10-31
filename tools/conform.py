@@ -1,10 +1,13 @@
-"""Run the conformance suite (spec 20.1) against one or more executors.
+"""Run the conformance suite (spec 24) against one or more executors.
 
 An executor is any command that implements:
-    CMD check --format json FILE  -> JSON array of diagnostic records (spec 16.1)
-    CMD run FILE                  -> the program's stdout and exit status
+    CMD check --format json [FLAGS] FILE  -> JSON array of diagnostic records (spec 18.2)
+    CMD run [FLAGS] FILE                  -> the program's stdout and exit status
 Exit status 2 or above from either command is a failure of the tool, never a verdict.
 The same suite drives the interpreter and every code generator (spec 22.1, 24.1).
+
+The runner also writes the suite's manifest (--manifest) and coverage report (--coverage)
+from the case headers and conformance/catalogue.toml.
 """
 
 import argparse
@@ -12,15 +15,30 @@ import json
 import shlex
 import subprocess
 import sys
-from collections import Counter
+import tomllib
+from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Literal, Protocol
 
-SURFACES = {"jian": ".jian", "wen": ".wen", "yong": ".yong"}
-KINDS = ("pass", "fail", "run")
+SURFACES = ("jian", "wen", "yong")
+SURFACE_KINDS = ("pass", "fail", "run")
+# Top-level directories of 24.1 and the kind each one is judged as. Kinds without a defined
+# case format yet are discovered and skipped.
+TOP_KINDS = {
+    "golden": "run",
+    "solver": "fail",
+    "ub": "ub",
+    "semver": "semver",
+    "patch": "patch",
+    "roundtrip": "roundtrip",
+    "sim": "sim",
+}
 COMMENT = {".jian": "#", ".wen": "--", ".yong": "--"}
+DEFAULT_MILESTONE = {".yong": "M0", ".jian": "M1", ".wen": "M3"}
+MILESTONES = ("P0", "M0", "M1", "M1b", "M2a", "M2b", "M3", "RC", "M4")
 TOOL_FAILURE = 2
+HEADERS = frozenset({"expect", "exit", "stdout", "spec", "rows", "flags", "milestone", "note"})
 
 type Status = Literal["pass", "fail", "skip"]
 
@@ -39,6 +57,10 @@ class Case:
     expect: list[Diag] = field(default_factory=list)
     stdout: str | None = None
     exit: int = 0
+    spec: list[str] = field(default_factory=list)
+    rows: list[str] = field(default_factory=list)
+    flags: list[str] = field(default_factory=list)
+    milestone: str = "M0"
 
 
 @dataclass(frozen=True)
@@ -57,9 +79,9 @@ class Executor(Protocol):
     @property
     def name(self) -> str: ...
 
-    def check(self, path: Path) -> list[dict[str, object]]: ...
+    def check(self, path: Path, flags: list[str]) -> list[dict[str, object]]: ...
 
-    def run(self, path: Path) -> tuple[str, int]: ...
+    def run(self, path: Path, flags: list[str]) -> tuple[str, int]: ...
 
 
 @dataclass(frozen=True)
@@ -67,62 +89,89 @@ class CommandExecutor:
     name: str
     argv: list[str]
 
-    def check(self, path: Path) -> list[dict[str, object]]:
+    def check(self, path: Path, flags: list[str]) -> list[dict[str, object]]:
         out = subprocess.run(
-            [*self.argv, "check", "--format", "json", str(path)], capture_output=True, text=True
+            [*self.argv, "check", "--format", "json", *flags, str(path)],
+            capture_output=True,
+            text=True,
         )
         if out.returncode >= TOOL_FAILURE:
             raise ToolFailure(out.stderr.strip())
         records: list[dict[str, object]] = json.loads(out.stdout or "[]")
         return records
 
-    def run(self, path: Path) -> tuple[str, int]:
-        out = subprocess.run([*self.argv, "run", str(path)], capture_output=True, text=True)
+    def run(self, path: Path, flags: list[str]) -> tuple[str, int]:
+        out = subprocess.run([*self.argv, "run", *flags, str(path)], capture_output=True, text=True)
         if out.returncode == TOOL_FAILURE and out.stderr.startswith("yong:"):
             raise ToolFailure(out.stderr.strip())
         return out.stdout, out.returncode
 
 
-# SPEC-Q: spec 24.1 does not fix the stdout block layout. Assumed: headers are the leading
-# comment lines ("#" in Jian, "--" in Wen and Yong); a "stdout:" block is the following
-# comment lines with one space stripped (a bare marker is an empty line) up to the next
-# header or non-comment line; several blocks concatenate.
-def parse_headers(text: str, mark: str = "#") -> tuple[list[Diag], str | None, int]:
-    expect: list[Diag] = []
+def _items(value: str) -> list[str]:
+    return [v.strip() for v in value.split(",") if v.strip()]
+
+
+# SPEC-Q: 24.1 shows "# expect: E501 at 14:9" (Jian; Wen and Yong use "--"), "# stdout:"
+# blocks and "# exit: 101", but not the block layout or the metadata headers. Assumed (see
+# conformance/README.md): headers are the file's leading comment lines; a "stdout:" block is
+# the following prefixed lines (the prefix alone is an empty line) up to the next header or
+# the first non-comment line; several blocks concatenate; unknown headers are ignored.
+def parse_case(kind: str, path: Path, text: str) -> Case:
+    prefix = COMMENT[path.suffix]
+    case = Case(kind, path, milestone=DEFAULT_MILESTONE[path.suffix])
     stdout: list[str] | None = None
-    exit_code = 0
     in_stdout = False
     for line in text.splitlines():
-        if not line.startswith(mark):
+        if not line.startswith(prefix):
             break
-        body = line[len(mark) :].removeprefix(" ")
-        if body.startswith("expect:"):
-            in_stdout = False
-            code, _, pos = body.removeprefix("expect:").strip().partition(" at ")
-            ln, _, col = pos.partition(":")
-            expect.append(Diag(code, int(ln), int(col)))
-        elif body.startswith("exit:"):
-            in_stdout = False
-            exit_code = int(body.removeprefix("exit:"))
-        elif body.rstrip() == "stdout:":
-            in_stdout = True
-            stdout = stdout if stdout is not None else []
-        elif in_stdout and stdout is not None:
+        body = line.removeprefix(prefix).removeprefix(" ")
+        key, sep, value = body.partition(":")
+        if in_stdout and not (sep and key in HEADERS):
+            assert stdout is not None
             stdout.append(body)
-    return expect, None if stdout is None else "".join(s + "\n" for s in stdout), exit_code
+            continue
+        in_stdout = False
+        match key if sep else "":
+            case "expect":
+                code, _, pos = value.strip().partition(" at ")
+                ln, _, col = pos.partition(":")
+                case.expect.append(Diag(code, int(ln), int(col)))
+            case "exit":
+                case.exit = int(value)
+            case "stdout":
+                in_stdout = True
+                stdout = stdout if stdout is not None else []
+            case "spec":
+                case.spec = _items(value)
+            case "rows":
+                case.rows = _items(value)
+            case "flags":
+                case.flags = value.split()
+            case "milestone":
+                case.milestone = value.strip()
+    case.stdout = None if stdout is None else "".join(s + "\n" for s in stdout)
+    return case
+
+
+def _files(base: Path) -> list[Path]:
+    return [p for p in sorted(base.rglob("*")) if p.suffix in COMMENT]
 
 
 def discover(root: Path) -> list[Case]:
     cases: list[Case] = []
-    for surface, suffix in SURFACES.items():
-        for kind in KINDS:
-            for p in sorted((root / surface / kind).rglob(f"*{suffix}")):
-                text = p.read_text(encoding="utf-8")
-                expect, stdout, exit_code = parse_headers(text, COMMENT[suffix])
-                cases.append(Case(kind, p, expect, stdout, exit_code))
-    patch = root / "patch"
-    if patch.is_dir():
-        cases += [Case("patch", p) for p in sorted(patch.iterdir()) if p.is_dir()]
+    for surface in SURFACES:
+        for kind in SURFACE_KINDS:
+            for p in _files(root / surface / kind):
+                cases.append(parse_case(kind, p, p.read_text(encoding="utf-8")))
+    for top, kind in TOP_KINDS.items():
+        base = root / top
+        if not base.is_dir():
+            continue
+        if kind in ("patch", "semver"):
+            cases += [Case(kind, p) for p in sorted(base.iterdir()) if p.is_dir()]
+            continue
+        for p in _files(base):
+            cases.append(parse_case(kind, p, p.read_text(encoding="utf-8")))
     return cases
 
 
@@ -148,27 +197,119 @@ def _judge(case: Case, ex: Executor) -> Result:
     name = str(case.path)
     match case.kind:
         case "pass":
-            got = _diags(ex.check(case.path), errors_only=True)
+            got = _diags(ex.check(case.path, case.flags), errors_only=True)
             if got:
                 return Result(name, ex.name, "fail", f"unexpected errors: {got}")
         case "fail":
-            got = _diags(ex.check(case.path), errors_only=False)
+            got = _diags(ex.check(case.path, case.flags), errors_only=False)
             if Counter(got) != Counter(case.expect):
                 return Result(name, ex.name, "fail", f"expected {sorted(case.expect)}, got {got}")
         case "run":
-            stdout, code = ex.run(case.path)
+            stdout, code = ex.run(case.path, case.flags)
             if stdout != (case.stdout or "") or code != case.exit:
                 return Result(name, ex.name, "fail", f"exit {code}, stdout {stdout!r}")
         case _:
-            return Result(name, ex.name, "skip", "patch case format not defined yet")
+            return Result(name, ex.name, "skip", f"{case.kind} case format not defined yet")
     return Result(name, ex.name, "pass")
+
+
+def selected(cases: list[Case], milestone: str | None) -> list[Case]:
+    if milestone is None:
+        return cases
+    limit = MILESTONES.index(milestone)
+    return [c for c in cases if MILESTONES.index(c.milestone) <= limit]
+
+
+def manifest(cases: list[Case], root: Path) -> dict[str, object]:
+    return {
+        "schema": 1,
+        "cases": [
+            {
+                "path": c.path.relative_to(root).as_posix(),
+                "kind": c.kind,
+                "milestone": c.milestone,
+                "spec": c.spec,
+                "rows": c.rows,
+                "flags": c.flags,
+                "expect": [asdict(d) for d in c.expect],
+                **({"stdout": c.stdout, "exit": c.exit} if c.kind == "run" else {}),
+            }
+            for c in cases
+        ],
+    }
+
+
+def _surface(case: Case) -> str:
+    return {".jian": "Jian", ".wen": "Wen", ".yong": "Yong"}[case.path.suffix]
+
+
+def coverage(cases: list[Case], catalogue: dict[str, dict[str, dict[str, str]]]) -> str:
+    by_code: dict[str, set[str]] = defaultdict(set)
+    by_section: dict[str, set[str]] = defaultdict(set)
+    rows: Counter[str] = Counter()
+    for c in cases:
+        for d in c.expect:
+            by_code[d.code].add(_surface(c))
+        for s in c.spec:
+            by_section[s].add(_surface(c))
+        rows.update(c.rows)
+
+    codes = catalogue["codes"]
+    active = {k: v for k, v in codes.items() if v["status"] == "active"}
+    covered = [k for k in active if k in by_code]
+    unknown = sorted(set(by_code) - set(codes) - {k for k in by_code if k[0] == "N"})
+    sections = catalogue["sections"]
+    out = [
+        "# Conformance coverage",
+        "",
+        "Generated by `tools/conform.py --coverage`; do not edit.",
+        "",
+        f"- Cases: {len(cases)} ({_counts(cases)})",
+        f"- Diagnostic codes with a test: {len(covered)} of {len(active)} active codes",
+        f"- Spec sections with a test: {sum(1 for s in sections if s in by_section)}"
+        f" of {len(sections)}",
+        f"- Change rows and SPEC_QUESTIONS cited: {len(rows)}",
+        "",
+    ]
+    if unknown:
+        out += [
+            "Codes expected by a test but missing from the catalogue: " + ", ".join(unknown),
+            "",
+        ]
+    out += [
+        "## Diagnostic codes",
+        "",
+        "| Code | Section | Meaning | Tested in |",
+        "|---|---|---|---|",
+    ]
+    for code, info in codes.items():
+        if info["status"] != "active":
+            continue
+        where = ", ".join(sorted(by_code.get(code, set()))) or "**none**"
+        out.append(f"| {code} | {info['section']} | {info['meaning']} | {where} |")
+    notes = sorted(k for k in by_code if k[0] == "N")
+    out += ["", "## Lenient-reader notes", "", ", ".join(notes) or "none", ""]
+    out += ["## Spec sections", "", "| Section | Title | Tested in |", "|---|---|---|"]
+    for sec, title in sections.items():
+        where = ", ".join(sorted(by_section.get(sec, set()))) or "**none**"
+        out.append(f"| {sec} | {title} | {where} |")
+    out += ["", "## Rows cited", "", ", ".join(f"{r} ({n})" for r, n in sorted(rows.items())), ""]
+    return "\n".join(out)
+
+
+def _counts(cases: list[Case]) -> str:
+    c = Counter(f"{p.path.suffix[1:]} {p.kind}" for p in cases)
+    return ", ".join(f"{k} {n}" for k, n in sorted(c.items()))
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--root", type=Path, default=Path("conformance"))
     ap.add_argument("--executor", action="append", default=[], metavar="NAME=CMD")
+    ap.add_argument("--milestone", choices=MILESTONES, help="run only cases due by this milestone")
     ap.add_argument("--json", type=Path, help="write a JSON summary here")
+    ap.add_argument("--manifest", type=Path, help="write the case manifest (JSON) here")
+    ap.add_argument("--coverage", type=Path, help="write the coverage report (Markdown) here")
     args = ap.parse_args(argv)
 
     executors = []
@@ -177,6 +318,13 @@ def main(argv: list[str] | None = None) -> int:
         executors.append(CommandExecutor(name, shlex.split(cmd)))
 
     cases = discover(args.root)
+    if args.manifest:
+        args.manifest.write_text(json.dumps(manifest(cases, args.root), indent=1) + "\n")
+    if args.coverage:
+        catalogue = tomllib.loads((args.root / "catalogue.toml").read_text(encoding="utf-8"))
+        args.coverage.write_text(coverage(cases, catalogue))
+
+    cases = selected(cases, args.milestone)
     results = [judge(c, ex) for c in cases for ex in executors]
     counts = Counter(r.status for r in results)
     for r in results:
