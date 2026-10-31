@@ -72,7 +72,11 @@ fn check(files: &[PathBuf], format: Format, max_errors: usize) -> ExitCode {
 }
 
 fn check_file(file: &Path) -> Result<Vec<Diagnostic>, String> {
-    Err(front_end_missing(file))
+    if file.extension().is_none_or(|e| e != "yong") {
+        return Err(front_end_missing(file));
+    }
+    let src = std::fs::read_to_string(file).map_err(|e| format!("{}: {e}", file.display()))?;
+    Ok(yong_core::parse(&file.display().to_string(), &src).1)
 }
 
 fn front_end_missing(file: &Path) -> String {
