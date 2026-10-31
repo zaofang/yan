@@ -1,0 +1,15 @@
+[package]
+name = "yong-check"
+description = "Validator and type checker for Yong IR (M0)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+yong-core.workspace = true
+yong-diag.workspace = true
+
+[lints]
+workspace = true

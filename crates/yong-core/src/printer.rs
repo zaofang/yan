@@ -78,8 +78,8 @@ fn literal(l: &Literal) -> String {
 
 fn atom(a: &Atom) -> String {
     match a {
-        Atom::Name(n) => n.clone(),
-        Atom::Lit(l) => literal(l),
+        Atom::Name(n, _) => n.clone(),
+        Atom::Lit(l, _) => literal(l),
     }
 }
 
@@ -122,7 +122,8 @@ fn fn_type(f: &FnType) -> String {
     s
 }
 
-fn ty(t: &Type) -> String {
+/// Canonical text of a type, as it is printed in a module.
+pub fn ty(t: &Type) -> String {
     match t {
         Type::Named(n) => named(n),
         Type::Tuple(ts) => format!("Tuple({})", comma(ts, ty)),
@@ -135,8 +136,8 @@ fn ty(t: &Type) -> String {
 
 fn call(c: &Call) -> String {
     let args = comma(&c.args, |a| match a {
-        Arg::Value(cv, a) => format!("{} {}", conv(*cv), atom(a)),
-        Arg::Cap(n) => format!("cap {n}"),
+        Arg::Value(cv, a, _) => format!("{} {}", conv(*cv), atom(a)),
+        Arg::Cap(n, _) => format!("cap {n}"),
     });
     format!("{}{}({args})", path(&c.path), targs(&c.targs))
 }
@@ -152,7 +153,7 @@ fn place(p: &Place) -> String {
     let mut s = p.root.clone();
     for proj in &p.projs {
         match proj {
-            Proj::Field(f) => write!(s, ".{f}").unwrap(),
+            Proj::Field(f, _) => write!(s, ".{f}").unwrap(),
             Proj::Index(i) => write!(s, "[{}]", atom(i)).unwrap(),
         }
     }
@@ -575,7 +576,7 @@ impl Printer {
                 let caps = c
                     .captures
                     .iter()
-                    .map(|(cv, n)| format!("{} {n}", conv(*cv)))
+                    .map(|(cv, n, _)| format!("{} {n}", conv(*cv)))
                     .collect::<Vec<_>>()
                     .join(" ");
                 let mut s = format!(
@@ -622,6 +623,7 @@ impl Printer {
                 pat: p,
                 ty: t,
                 rhs,
+                ..
             } => self.rhs_line(
                 &format!(
                     "{} {}: {} = ",
@@ -631,7 +633,9 @@ impl Printer {
                 ),
                 rhs,
             ),
-            StmtKind::Assign { place: p, rhs } => self.rhs_line(&format!("{} = ", place(p)), rhs),
+            StmtKind::Assign { place: p, rhs, .. } => {
+                self.rhs_line(&format!("{} = ", place(p)), rhs)
+            }
             StmtKind::If { cond, then, els } => {
                 self.if_else(&format!("if {} ", atom(cond)), then, els)
             }

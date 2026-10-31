@@ -436,6 +436,7 @@ impl Parser<'_> {
         item: bool,
         is_gen: bool,
     ) -> PResult<FnDef> {
+        let name_span = self.span();
         let path = if item {
             self.path()?
         } else {
@@ -474,6 +475,7 @@ impl Parser<'_> {
             is_pub,
             is_unsafe,
             path,
+            name_span,
             tparams,
             params,
             ret,
@@ -892,15 +894,19 @@ impl Parser<'_> {
         Ok(match kw.as_str() {
             "let" | "var" => {
                 self.bump();
+                let pat_span = self.span();
                 let pat = self.pat()?;
                 self.expect_punct(":")?;
                 let ty = self.ty()?;
                 self.expect_punct("=")?;
+                let rhs_span = self.span();
                 StmtKind::Let {
                     mutable: kw == "var",
                     pat,
+                    pat_span,
                     ty,
                     rhs: self.rhs()?,
+                    rhs_span,
                 }
             }
             "if" => {
@@ -1096,17 +1102,22 @@ impl Parser<'_> {
                 let rhs = self.rhs()?;
                 let place = match &rhs {
                     Rhs::Proj(p) => Some(p.clone()),
-                    Rhs::Atom(Atom::Name(n)) => Some(Place {
+                    Rhs::Atom(Atom::Name(n, sp)) => Some(Place {
                         root: n.clone(),
+                        root_span: *sp,
                         projs: Vec::new(),
                     }),
                     _ => None,
                 };
                 match place {
-                    Some(place) if self.eat_punct("=") => StmtKind::Assign {
-                        place,
-                        rhs: self.rhs()?,
-                    },
+                    Some(place) if self.eat_punct("=") => {
+                        let rhs_span = self.span();
+                        StmtKind::Assign {
+                            place,
+                            rhs: self.rhs()?,
+                            rhs_span,
+                        }
+                    }
                     _ => StmtKind::Rhs(rhs),
                 }
             }
@@ -1163,8 +1174,9 @@ impl Parser<'_> {
             return Ok(Rhs::Closure(Box::new(self.closure_rest()?)));
         }
         if self.is_punct("(") {
+            let at = self.span();
             return Ok(match self.ctor_or_unit()? {
-                None => Rhs::Atom(Atom::Lit(Literal::Unit)),
+                None => Rhs::Atom(Atom::Lit(Literal::Unit, at)),
                 Some(c) => Rhs::Ctor(c),
             });
         }
@@ -1172,11 +1184,17 @@ impl Parser<'_> {
             return Ok(Rhs::Atom(self.atom()?));
         }
         let start = self.pos;
+        let span = self.span();
         let path = self.path()?;
         let targs = self.try_targs();
         if self.is_punct("(") {
             let args = self.list("(", ")", Self::arg)?;
-            let call = Call { path, targs, args };
+            let call = Call {
+                path,
+                span,
+                targs,
+                args,
+            };
             if self.eat_punct("?") {
                 let via = if self.eat_kw("via") {
                     Some(self.path()?)
@@ -1202,7 +1220,7 @@ impl Parser<'_> {
         self.pos = start;
         let place = self.place()?;
         Ok(if place.projs.is_empty() {
-            Rhs::Atom(Atom::Name(place.root))
+            Rhs::Atom(Atom::Name(place.root, span))
         } else {
             Rhs::Proj(place)
         })
@@ -1224,6 +1242,7 @@ impl Parser<'_> {
     }
 
     fn call(&mut self) -> PResult<Call> {
+        let span = self.span();
         let path = self.path()?;
         let targs = if self.is_punct("[") {
             self.targs()?
@@ -1232,16 +1251,18 @@ impl Parser<'_> {
         };
         Ok(Call {
             path,
+            span,
             targs,
             args: self.list("(", ")", Self::arg)?,
         })
     }
 
     fn arg(&mut self) -> PResult<Arg> {
+        let span = self.span();
         if self.eat_kw("cap") {
-            return Ok(Arg::Cap(self.name()?));
+            return Ok(Arg::Cap(self.name()?, span));
         }
-        Ok(Arg::Value(self.conv()?, self.atom()?))
+        Ok(Arg::Value(self.conv()?, self.atom()?, span))
     }
 
     fn ctor(&mut self) -> PResult<Ctor> {
@@ -1279,19 +1300,25 @@ impl Parser<'_> {
     }
 
     fn place(&mut self) -> PResult<Place> {
+        let root_span = self.span();
         let root = self.name()?;
         let mut projs = Vec::new();
         loop {
             if self.is_punct(".") && matches!(self.peek_at(1), Tok::Name(_)) {
                 self.bump();
-                projs.push(Proj::Field(self.name()?));
+                let span = self.span();
+                projs.push(Proj::Field(self.name()?, span));
             } else if self.is_punct("[") && self.same_line() {
                 let open = self.pos;
                 self.bump();
                 projs.push(Proj::Index(self.atom()?));
                 self.close("]", open)?;
             } else {
-                return Ok(Place { root, projs });
+                return Ok(Place {
+                    root,
+                    root_span,
+                    projs,
+                });
             }
         }
     }
@@ -1302,7 +1329,8 @@ impl Parser<'_> {
         self.expect_punct("[")?;
         let mut captures = Vec::new();
         while !self.is_punct("]") && !self.at_eof() {
-            captures.push((self.conv()?, self.name()?));
+            let span = self.span();
+            captures.push((self.conv()?, self.name()?, span));
         }
         self.close("]", open)?;
         let params = self.list("(", ")", Self::param)?;
@@ -1345,11 +1373,12 @@ impl Parser<'_> {
     }
 
     fn atom(&mut self) -> PResult<Atom> {
+        let span = self.span();
         if let Some(l) = self.literal() {
-            return Ok(Atom::Lit(l));
+            return Ok(Atom::Lit(l, span));
         }
         match self.peek() {
-            Tok::Name(_) => Ok(Atom::Name(self.name()?)),
+            Tok::Name(_) => Ok(Atom::Name(self.name()?, span)),
             _ => self.unexpected("a name or a literal"),
         }
     }

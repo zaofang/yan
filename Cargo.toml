@@ -16,6 +16,7 @@ serde_json = "1"
 yong-core = { path = "crates/yong-core" }
 yong-diag = { path = "crates/yong-diag" }
 yong-interp = { path = "crates/yong-interp" }
+yong-check = { path = "crates/yong-check" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

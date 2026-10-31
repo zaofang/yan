@@ -1,12 +1,13 @@
 //! Yong IR: data types, the `.yong` text parser and the canonical printer.
 
 pub mod ast;
+pub mod intrinsics;
 mod lexer;
 mod parser;
 mod printer;
 
 pub use parser::parse;
-pub use printer::print;
+pub use printer::{print, ty as type_text};
 
 #[cfg(test)]
 mod selftest {
