@@ -809,6 +809,26 @@ fn breaks(stmts: &[j::Stmt]) -> bool {
     })
 }
 
+/// Std methods that only read their receiver.
+const READS: [&str; 16] = [
+    "copy",
+    "get",
+    "index",
+    "keys",
+    "values",
+    "items",
+    "contains",
+    "contains_key",
+    "split",
+    "splitlines",
+    "partition",
+    "strip",
+    "upper",
+    "lower",
+    "startswith",
+    "endswith",
+];
+
 /// Every name that `stmts` assigns or passes `&`, or calls a mutating method on.
 fn assigned(stmts: &[j::Stmt]) -> HashSet<String> {
     let mut out = HashSet::new();
@@ -827,7 +847,8 @@ fn assigned(stmts: &[j::Stmt]) -> HashSet<String> {
             let K::Call(callee, args) = &x.kind else {
                 return;
             };
-            if let K::Attr(b, _, _) = &callee.kind
+            if let K::Attr(b, m, _) = &callee.kind
+                && !READS.contains(&m.as_str())
                 && let Some(r) = root(b)
             {
                 out.insert(r.to_owned());
