@@ -311,9 +311,17 @@ fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
     })
 }
 
-/// The prelude functions with non-generic Jian bodies that `m` calls, directly or through
-/// each other, and does not define itself.
-fn prelude_bodies(m: &j::Module) -> Vec<&'static Decl> {
+/// A std function with a Jian body, lowered into the module that calls it.
+pub(crate) struct Body {
+    module: &'static str,
+    /// The definition, renamed to the call path: the bare name for the prelude,
+    /// `std.<module>.<name>` for a method.
+    def: j::FuncDef,
+}
+
+/// The std functions with Jian bodies that `m` calls, directly or through each other, and does
+/// not define itself.
+fn bodies(m: &j::Module) -> Vec<Body> {
     let mut seen = HashSet::new();
     let mut names = HashSet::new();
     for it in &m.items {
@@ -327,42 +335,60 @@ fn prelude_bodies(m: &j::Module) -> Vec<&'static Decl> {
     let mut out = Vec::new();
     while let Some(n) = names.iter().find(|n| !seen.contains(*n)).cloned() {
         seen.insert(n.clone());
-        let Some(d) = decl(&format!("std.prelude.{n}")) else {
-            continue;
-        };
-        if d.intrinsic || !d.def.tparams.is_empty() {
-            continue;
-        }
-        if let Some(b) = &d.def.body {
+        let prelude = decl(&format!("std.prelude.{n}")).map(|d| (n.clone(), d));
+        let methods = STD
+            .fns
+            .iter()
+            .filter(|(p, d)| d.module != "prelude" && p.rsplit('.').next() == Some(n.as_str()))
+            .map(|(p, d)| (p.clone(), d));
+        for (key, d) in prelude.into_iter().chain(methods) {
+            if d.intrinsic || d.cap {
+                continue;
+            }
+            let Some(b) = &d.def.body else { continue };
             crate::lower::callees(&b.stmts, &mut names);
+            let mut def = d.def.clone();
+            def.name = key;
+            out.push(Body {
+                module: d.module,
+                def,
+            });
         }
-        out.push(d);
     }
+    out.sort_by(|a, b| a.def.name.cmp(&b.def.name));
     out
 }
 
 /// Add the signatures of the std bodies `m` calls, so calls to them resolve like the module's
 /// own functions.
-pub(crate) fn collect(g: &mut Globals, m: &j::Module) -> R<Vec<&'static Decl>> {
-    let ds = prelude_bodies(m);
-    for d in &ds {
-        let mut cx = std_cx(d.module);
-        let s = crate::sig(g, &d.def, &mut cx)?;
-        g.fns.insert(d.def.name.clone(), s);
+pub(crate) fn collect(g: &mut Globals, m: &j::Module) -> R<Vec<Body>> {
+    let bs = bodies(m);
+    for b in &bs {
+        let mut cx = std_cx(b.module);
+        let s = crate::sig(g, &b.def, &mut cx)?;
+        g.fns.insert(b.def.name.clone(), s);
     }
-    Ok(ds)
+    Ok(bs)
 }
 
-pub(crate) fn lower(g: &Globals, ds: &[&'static Decl]) -> R<Vec<y::Item>> {
-    ds.iter()
-        .map(|d| {
-            let mut cx = std_cx(d.module);
-            let f = crate::lower::function(g, &d.def, &g.fns[&d.def.name], false, &mut cx)?;
-            debug_assert!(cx.diags.is_empty(), "std.{}: {:?}", d.module, cx.diags);
+pub(crate) fn lower(g: &Globals, bs: &[Body]) -> R<Vec<y::Item>> {
+    bs.iter()
+        .map(|b| {
+            let mut cx = std_cx(b.module);
+            let f = crate::lower::function(g, &b.def, &g.fns[&b.def.name], false, &mut cx)?;
+            // Warnings (a kept bounds check) stay inside std; errors would be std bugs.
+            debug_assert!(
+                cx.diags
+                    .iter()
+                    .all(|d| d.severity != yong_diag::Severity::Error),
+                "std.{}: {:?}",
+                b.module,
+                cx.diags
+            );
             Ok(y::Item {
                 attrs: Vec::new(),
                 kind: y::ItemKind::Fn(f),
-                span: d.def.name_span,
+                span: b.def.name_span,
             })
         })
         .collect()

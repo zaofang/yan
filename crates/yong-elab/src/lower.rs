@@ -2983,7 +2983,7 @@ impl Lower<'_, '_, '_> {
             return Ok((Rhs::Proj(p), e(), None));
         };
         if !d.intrinsic {
-            return unsupported(format!("`{path}`, a generic std function"));
+            return self.user_call(&path, Some(b), args, at);
         }
         let Some(crate::stdlib::Method {
             inout,

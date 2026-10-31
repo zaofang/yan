@@ -87,8 +87,7 @@ pub def zip[A, B](xs: list[A], ys: list[B]) -> list[tuple[A, B]]:
 pub def reversed[T](xs: list[T]) -> list[T]:
     ex reversed([1, 2, 3]) == [3, 2, 1]
     out: list[T] = []
-    i = len(xs) - 1
-    while i >= 0:
-        out.append(xs[i].copy())
-        i -= 1
+    n = len(xs)
+    for i in range(n):
+        out.append(xs[n - 1 - i].copy())
     return out

@@ -77,3 +77,15 @@ fn failures_inject_into_error_with_context() {
                \x20   b = outer() else err -> err.message.char_count()\n    io.print(f\"{a} {b}\")\n";
     assert_eq!(run(src), "0 16\n");
 }
+
+#[test]
+fn generic_std_bodies_lower_at_their_instance() {
+    let src = "pub def main() uses io:\n    xs = [3, 1, 2]\n\
+               \x20   for i, x in enumerate(xs):\n        io.print(f\"{i} {x}\")\n\
+               \x20   ys = [9]\n    xs.extend(ys)\n\
+               \x20   io.print(f\"{zip(xs, ['a', 'b'])} {reversed(xs)}\")\n";
+    assert_eq!(
+        run(src),
+        "0 3\n1 1\n2 2\n[(3, 'a'), (1, 'b')] [9, 2, 1, 3]\n"
+    );
+}
