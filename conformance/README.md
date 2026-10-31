@@ -19,8 +19,8 @@ read-only to agents (22.6).
 | `roundtrip/`, `sim/` | | not populated yet |
 
 `yong/run/` is not in the 24.1 tree; M0 needs it because its interpreter runs Yong text before any
-surface exists (question Q2). `pkg/` is not in it either: package and toolchain diagnostics need a
-package tree, not one file (question Q8).
+surface exists (question Q2). `pkg/` holds package and toolchain diagnostics, which need a package
+tree, not one file (question Q8, R479).
 
 ## Directory cases
 
@@ -119,16 +119,15 @@ attribute (spec rev 479).
 | Q5 | Decided 2026-10-31 (R471): a `par` branch reading another branch's write is E705 only, not E402. |
 | Q6 | Decided 2026-10-31 (R472): `with deadline(t)` always requires `Timeout` in the fail type. |
 | Q7 | Decided 2026-10-31 (R473): E422 goes on the subscript name and E423 on the yielded place. |
-| Q8 | Should 24.1 add `pkg/` for multi-file package cases (E001, E002, E008, E013, E014, E015)? |
-| Q9 | What reaches E006 at publish that `check` has not already reported as E314? The ceiling must list foreign-library capabilities, so the computed set's extern libraries, ffi modules and unsafe items need a capability name to be compared. |
+| Q8 | Decided 2026-10-31 (R479): 24.1 gains `pkg/` for multi-file package cases. |
+| Q9 | Decided 2026-10-31: E006 is the registry's check of its recomputed capability set at publish, so it is tested with the registry double, not as a `pkg/` case. |
 
 ## Not covered yet
 
 The other package codes need machinery the suite cannot hold as plain files:
 
-- E003, E004, E005, E007, E009, E011 need a registry, transparency log and Sigstore test double.
+- E003, E004, E005, E006, E007, E009, E011 need a registry, transparency log and Sigstore test double.
   The spec defines the index paths (19.3) but no local registry fixture format.
 - E010 needs a build that differs between roots, which a conforming toolchain cannot produce
   from source.
 - E012 is std CI's check, and the spec gives no command or flag that runs it on a package.
-- E006 waits on Q9.
