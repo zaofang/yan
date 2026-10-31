@@ -1,6 +1,6 @@
 //! Jian: lexer (INDENT/DEDENT), parser, syntactic lenient normalizations and canonical printer.
 
-pub mod ast;
+pub use yong_hir as ast;
 mod lexer;
 mod parser;
 mod printer;

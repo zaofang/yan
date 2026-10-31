@@ -1279,6 +1279,7 @@ impl Parser {
                 self.expect_newline_then_indent()?;
                 let mut cases = Vec::new();
                 while self.eat_kw("case") {
+                    let span = self.span();
                     let pat = self.pattern()?;
                     let guard = if self.eat_kw("if") {
                         Some(self.expr()?)
@@ -1287,6 +1288,7 @@ impl Parser {
                     };
                     cases.push(Case {
                         pat,
+                        span,
                         guard,
                         body: self.colon_block()?,
                     });
@@ -1889,9 +1891,10 @@ impl Parser {
             let span = e.span;
             if self.is_op(".") && matches!(self.tok_at(1), Tok::Name(_)) {
                 self.bump();
+                let at = self.span();
                 let n = self.name()?;
                 e = Expr {
-                    kind: ExprKind::Attr(Box::new(e), n),
+                    kind: ExprKind::Attr(Box::new(e), n, at),
                     span,
                     paren: false,
                 };
@@ -1916,7 +1919,7 @@ impl Parser {
 
     /// N17: `d.get(k, v)` becomes `d.get(k) else v`.
     fn lenient_call(&mut self, f: Expr, mut args: Vec<Arg>, span: Span) -> Expr {
-        let get = matches!(&f.kind, ExprKind::Attr(_, n) if n == "get");
+        let get = matches!(&f.kind, ExprKind::Attr(_, n, _) if n == "get");
         if get
             && !self.strict
             && args.len() == 2

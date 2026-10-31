@@ -351,7 +351,7 @@ pub fn expr(e: &Expr, min: u8) -> String {
             s.push_str(close);
             s
         }
-        ExprKind::Attr(b, n) => format!("{}.{n}", expr(b, 15)),
+        ExprKind::Attr(b, n, _) => format!("{}.{n}", expr(b, 15)),
         ExprKind::Call(f, a) => format!("{}({})", expr(f, 15), args(a)),
         ExprKind::Index(b, i) => format!("{}[{}]", expr(b, 15), expr(i, 0)),
         ExprKind::Slice(b, [lo, hi, step], has_step) => {

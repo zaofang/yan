@@ -65,3 +65,14 @@ Raised by the std build plan; Antonio accepted all three answers on 2026-10-31.
   scalars and `bigint` in `std.num`, and `Result` and `Option` in `std.result`.
 - R476: in Yong text, `Option[T]` matches as `Some { value: v }` and `None`, alongside Y5's
   `Ok { value: v }` and `Err { error: e }`.
+
+## Jian elaboration readings
+
+Assumed in `yong-elab` until resolved:
+
+- E210 exempts the arguments of a `become` call. `become count(n - 1, acc + 1)` with two `int`
+  parameters is a run case (`jian/run/tail/become_constant_stack`) and appears in
+  `jian/pass/syntax/every_production`, though 14.1's exemptions (literals, names equal to the
+  parameter, positional-only parameters, the receiver) do not cover it.
+- E210 is reported once per call, at the first argument that needs a keyword (the note in
+  `jian/fail/types/e210_record_keyword_required`).
