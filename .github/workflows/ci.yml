@@ -51,13 +51,25 @@ jobs:
       - run: uv run mypy tools
       - run: uv run pytest -q tools/selftest
 
+  rust:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo fmt --all --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+
   conformance:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --locked
-      - run: uv run python tools/conform.py --json conformance-summary.json
+      - run: cargo build --locked --release -p yong-cli
+      # Gate on the cases due by the milestone the implementation has reached (spec 23); raise it when a milestone starts.
+      - run: >-
+          uv run python tools/conform.py --json conformance-summary.json
+          --milestone M0 --executor interp=target/release/yong
       - uses: actions/upload-artifact@v4
         with:
           name: conformance-summary
