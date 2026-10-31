@@ -56,11 +56,19 @@ fn run(file: &Path) -> ExitCode {
         Ok(s) => s,
         Err(e) => return tool_failure(&format!("{}: {e}", file.display())),
     };
-    let (Some(module), diags) = yong_core::parse(&file.display().to_string(), &src) else {
-        return tool_failure(&format!("{} does not parse", file.display()));
+    let name = file.display().to_string();
+    let (Some(module), mut diags) = yong_core::parse(&name, &src) else {
+        return tool_failure(&format!("{name} does not parse"));
     };
-    if let Some(d) = diags.first() {
-        return tool_failure(&d.render_line(None));
+    if diags.is_empty() {
+        diags = yong_check::check(&name, &src, &module);
+    }
+    let diags = finish(diags, DEFAULT_MAX_ERRORS);
+    if diags.iter().any(|d| d.severity == Severity::Error) {
+        diags
+            .iter()
+            .for_each(|d| eprintln!("{}", d.render_line(None)));
+        return ExitCode::FAILURE;
     }
     let mut out = std::io::stdout().lock();
     match yong_interp::run(&module, &mut out) {
@@ -103,7 +111,11 @@ fn check_file(file: &Path) -> Result<Vec<Diagnostic>, String> {
         return Err(front_end_missing(file));
     }
     let src = std::fs::read_to_string(file).map_err(|e| format!("{}: {e}", file.display()))?;
-    Ok(yong_core::parse(&file.display().to_string(), &src).1)
+    let name = file.display().to_string();
+    Ok(match yong_core::parse(&name, &src) {
+        (Some(m), d) if d.is_empty() => yong_check::check(&name, &src, &m),
+        (_, d) => d,
+    })
 }
 
 fn front_end_missing(file: &Path) -> String {

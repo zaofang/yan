@@ -37,3 +37,18 @@ equals print(parse(x)).
 `Fn(...) -> T uses a, b` inside a parameter list or a type-argument list is ambiguous with that
 list's commas. Assumed: a comma continues the capability set unless the next name is followed by
 `:`, `[` or `.`.
+
+## Checker readings not fixed by the spec
+
+Assumed in `yong-check` until resolved:
+
+- Scalars (integers, floats, `bool`, `char`, `Unit`) are copied, so a `sink` argument does not
+  move them, and passing a scalar local to `become` with `let` is not E420.
+- E602 applies to direct and mutual recursion found in function bodies; `example` and other
+  contract calls are not edges.
+- E401 is flow-sensitive across `if` and `match`: a branch that ends in `ret`, `fail`, `jump`,
+  `become`, `break`, `continue` or `unreachable` does not carry its moves forward.
+- A type the checker cannot work out (std results, generic instances, tuples, closures) is unknown
+  and never produces E201. An integer literal fits any numeric type, a float literal any
+  non-integer numeric type.
+- `yong run` checks the module first and exits 1 with the diagnostics on stderr when it has errors.

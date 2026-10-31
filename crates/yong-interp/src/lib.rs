@@ -364,15 +364,19 @@ impl Interp<'_> {
 
     fn atom(&self, a: &Atom, frame: &Frame) -> R<Value> {
         match a {
-            Atom::Lit(l) => literal(l),
-            Atom::Name(n) => match frame.get(n) {
-                Some(v) => Ok(v.clone()),
-                None if self.nullary.contains(n) => Ok(Value::Data {
-                    name: n.clone(),
-                    fields: Vec::new(),
-                }),
-                None => unsupported(format!("unbound name `{n}`")),
-            },
+            Atom::Lit(l, _) => literal(l),
+            Atom::Name(n, _) => self.lookup(n, frame),
+        }
+    }
+
+    fn lookup(&self, n: &Name, frame: &Frame) -> R<Value> {
+        match frame.get(n) {
+            Some(v) => Ok(v.clone()),
+            None if self.nullary.contains(n) => Ok(Value::Data {
+                name: n.clone(),
+                fields: Vec::new(),
+            }),
+            None => unsupported(format!("unbound name `{n}`")),
         }
     }
 
@@ -395,7 +399,7 @@ impl Interp<'_> {
                 }
                 Flow::Normal
             }
-            StmtKind::Assign { place, rhs } => {
+            StmtKind::Assign { place, rhs, .. } => {
                 let v = match self.rhs(rhs, frame)? {
                     Ok(v) => v,
                     Err(flow) => return Ok(flow),
@@ -533,7 +537,7 @@ impl Interp<'_> {
                 let captured = c
                     .captures
                     .iter()
-                    .map(|(_, n)| Ok((n.clone(), self.atom(&Atom::Name(n.clone()), frame)?)))
+                    .map(|(_, n, _)| Ok((n.clone(), self.lookup(n, frame)?)))
                     .collect::<R<Frame>>()?;
                 Value::Closure(Rc::new(((**c).clone(), captured)))
             }
@@ -541,16 +545,16 @@ impl Interp<'_> {
     }
 
     fn read(&self, p: &Place, frame: &Frame) -> R<Value> {
-        let mut v = self.atom(&Atom::Name(p.root.clone()), frame)?;
+        let mut v = self.lookup(&p.root, frame)?;
         for proj in &p.projs {
             v = match (proj, v) {
-                (Proj::Field(f), Value::Data { fields, .. }) => {
+                (Proj::Field(f, _), Value::Data { fields, .. }) => {
                     match fields.into_iter().find(|(n, _)| n == f) {
                         Some((_, v)) => v,
                         None => return unsupported(format!("no field `{f}`")),
                     }
                 }
-                (Proj::Field(f), Value::Tuple(xs)) => {
+                (Proj::Field(f, _), Value::Tuple(xs)) => {
                     match f.strip_prefix('_').and_then(|i| i.parse::<usize>().ok()) {
                         Some(i) if i < xs.len() => xs[i].clone(),
                         _ => return unsupported(format!("tuple field `{f}`")),
@@ -591,7 +595,7 @@ impl Interp<'_> {
         };
         for (proj, i) in p.projs.iter().zip(idx) {
             slot = match (proj, slot) {
-                (Proj::Field(f), Value::Data { fields, .. }) => {
+                (Proj::Field(f, _), Value::Data { fields, .. }) => {
                     match fields.iter_mut().find(|(n, _)| n == f) {
                         Some((_, s)) => s,
                         None => return unsupported(format!("no field `{f}`")),
@@ -618,8 +622,8 @@ impl Interp<'_> {
             .args
             .iter()
             .map(|a| match a {
-                Arg::Value(_, a) => self.atom(a, frame),
-                Arg::Cap(n) => self.atom(&Atom::Name(n.clone()), frame),
+                Arg::Value(_, a, _) => self.atom(a, frame),
+                Arg::Cap(n, _) => self.lookup(n, frame),
             })
             .collect::<R<Vec<_>>>()?;
         let name = key(&c.path);
@@ -647,7 +651,7 @@ impl Interp<'_> {
             }
         };
         for (a, v) in c.args.iter().zip(finals) {
-            if let Arg::Value(Conv::Inout, Atom::Name(n)) = a {
+            if let Arg::Value(Conv::Inout, Atom::Name(n, _), _) = a {
                 frame.insert(n.clone(), v);
             }
         }

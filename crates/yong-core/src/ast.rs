@@ -54,6 +54,8 @@ pub struct FnDef {
     pub is_pub: bool,
     pub is_unsafe: bool,
     pub path: Path,
+    /// The first token of `path`.
+    pub name_span: Span,
     pub tparams: Vec<TParam>,
     pub params: Vec<Param>,
     pub ret: Type,
@@ -280,12 +282,15 @@ pub enum StmtKind {
     Let {
         mutable: bool,
         pat: Pat,
+        pat_span: Span,
         ty: Type,
         rhs: Rhs,
+        rhs_span: Span,
     },
     Assign {
         place: Place,
         rhs: Rhs,
+        rhs_span: Span,
     },
     If {
         cond: Atom,
@@ -378,14 +383,16 @@ pub enum Rhs {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Call {
     pub path: Path,
+    pub span: Span,
     pub targs: Vec<TArg>,
     pub args: Vec<Arg>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// The span is the argument's first token.
 pub enum Arg {
-    Value(Conv, Atom),
-    Cap(Name),
+    Value(Conv, Atom, Span),
+    Cap(Name, Span),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -401,18 +408,19 @@ pub enum Ctor {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Place {
     pub root: Name,
+    pub root_span: Span,
     pub projs: Vec<Proj>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Proj {
-    Field(Name),
+    Field(Name, Span),
     Index(Atom),
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Closure {
-    pub captures: Vec<(Conv, Name)>,
+    pub captures: Vec<(Conv, Name, Span)>,
     pub params: Vec<Param>,
     pub ret: Type,
     pub uses: Option<CapSet>,
@@ -442,8 +450,16 @@ pub enum Pat {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Atom {
-    Name(Name),
-    Lit(Literal),
+    Name(Name, Span),
+    Lit(Literal, Span),
+}
+
+impl Atom {
+    pub fn span(&self) -> Span {
+        match self {
+            Atom::Name(_, s) | Atom::Lit(_, s) => *s,
+        }
+    }
 }
 
 /// Pure expressions, used only in contracts and predicates.
