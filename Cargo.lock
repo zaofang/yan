@@ -241,6 +241,7 @@ dependencies = [
  "serde_json",
  "yong-core",
  "yong-diag",
+ "yong-interp",
 ]
 
 [[package]]
@@ -256,6 +257,13 @@ version = "0.0.0"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "yong-interp"
+version = "0.0.0"
+dependencies = [
+ "yong-core",
 ]
 
 [[package]]
