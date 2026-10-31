@@ -1,0 +1,21 @@
+module bench.fib
+
+fn fib(let n: i64) -> i64
+    requires ge_i64(let n, let 0)
+    decreases n
+{
+    let small: bool = lt_i64(let n, let 2)
+    if small { ret n }
+    let a: i64 = sub_checked_i64(let n, let 1)
+    let b: i64 = sub_checked_i64(let n, let 2)
+    let x: i64 = fib(let a)
+    let y: i64 = fib(let b)
+    let r: i64 = add_checked_i64(let x, let y)
+    ret r
+}
+
+fn main() -> Unit {
+    let r: i64 = fib(let 27)
+    assert eq_i64(let r, let 196418)
+    ret ()
+}

@@ -1,0 +1,15 @@
+{
+  "module": "m",
+  "edits": [
+    {
+      "item": "total",
+      "search": "t = 0",
+      "replace": "t = 1"
+    },
+    {
+      "item": "total",
+      "search": "missing",
+      "replace": "x"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+def price(qty: int, unit: int) -> int:
+    pre qty >= 0
+    return qty * unit
+
+def total(xs: list[int]) -> int:
+    t = 0
+    for x in xs:
+        t += x
+    return t
+
+def test_price():
+    assert price(2, 3) == 6
+
+def double(x: int) -> int:
+    return 2 * x

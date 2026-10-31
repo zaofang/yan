@@ -24,11 +24,23 @@ enum Command {
         format: Format,
         #[arg(long, default_value_t = DEFAULT_MAX_ERRORS)]
         max_errors: usize,
+        /// Disable the lenient reader (14.4).
+        #[arg(long)]
+        strict: bool,
+        /// Check level (8.5); accepted, not yet acted on.
+        #[arg(long)]
+        level: Option<String>,
         #[arg(required = true)]
         files: Vec<PathBuf>,
     },
     /// Run a program.
-    Run { file: PathBuf },
+    Run {
+        #[arg(long)]
+        strict: bool,
+        #[arg(long)]
+        level: Option<String>,
+        file: PathBuf,
+    },
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -42,9 +54,11 @@ fn main() -> ExitCode {
         Command::Check {
             format,
             max_errors,
+            strict,
             files,
-        } => check(&files, format, max_errors),
-        Command::Run { file } => run(&file),
+            ..
+        } => check(&files, format, max_errors, strict),
+        Command::Run { file, .. } => run(&file),
     }
 }
 
@@ -92,10 +106,10 @@ fn run(file: &Path) -> ExitCode {
     }
 }
 
-fn check(files: &[PathBuf], format: Format, max_errors: usize) -> ExitCode {
+fn check(files: &[PathBuf], format: Format, max_errors: usize, strict: bool) -> ExitCode {
     let mut diags = Vec::new();
     for file in files {
-        match check_file(file) {
+        match check_file(file, strict) {
             Ok(mut d) => diags.append(&mut d),
             Err(msg) => return tool_failure(&msg),
         }
@@ -117,15 +131,19 @@ fn check(files: &[PathBuf], format: Format, max_errors: usize) -> ExitCode {
     }
 }
 
-fn check_file(file: &Path) -> Result<Vec<Diagnostic>, String> {
-    if file.extension().is_some_and(|e| e == "wen") {
+fn check_file(file: &Path, strict: bool) -> Result<Vec<Diagnostic>, String> {
+    let ext = file.extension().and_then(|e| e.to_str()).unwrap_or("");
+    if ext == "wen" {
         return check_wen(file);
     }
-    if file.extension().is_none_or(|e| e != "yong") {
+    if ext != "yong" && ext != "jian" {
         return Err(front_end_missing(file));
     }
     let src = std::fs::read_to_string(file).map_err(|e| format!("{}: {e}", file.display()))?;
     let name = file.display().to_string();
+    if ext == "jian" {
+        return Ok(yong_jian::parse(&name, &src, strict).1);
+    }
     Ok(match yong_core::parse(&name, &src) {
         (Some(m), d) if d.is_empty() => yong_check::check(&name, &src, &m),
         (_, d) => d,

@@ -1,0 +1,12 @@
+-- spec: 12.3, 12.5
+-- note: a scoped callback accepts any function; Owned is dropped by its free function
+
+unsafe extern "C" lib sort link "sort"
+  safe qsort_view(xs: MutView[c_int], cmp: scoped (c_int, c_int) -> c_int)
+  safe greeting() -> Owned[CStr, free_greeting]
+  unsafe free_greeting(p: Ptr[c_char])
+
+cmp(a: c_int, b: c_int) -> c_int = a - b
+
+sorted(var xs: List[c_int]) =
+  qsort_view(&xs, cmp)

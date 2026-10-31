@@ -1,0 +1,6 @@
+{
+  "module": "m",
+  "add": [
+    "def total(xs: list[int]) -> int:\n    return 0"
+  ]
+}

@@ -1018,9 +1018,11 @@ pub fn expr(e: &Expr) -> String {
         ExprKind::Asm { template, args } => {
             let mut parts = vec![quoted(template)];
             parts.extend(args.iter().map(|a| match a {
-                AsmArg::Operand { dir, reg, value } => format!("{dir}({reg}) {}", expr(value)),
+                AsmArg::Operand { dir, reg, value } => {
+                    format!("{dir}({}) {}", asm_reg(reg), expr(value))
+                }
                 AsmArg::Typed { dir, reg, name, ty } => {
-                    format!("{dir}({reg}) {name}: {}", type_(ty))
+                    format!("{dir}({}) {name}: {}", asm_reg(reg), type_(ty))
                 }
                 AsmArg::ClobberAbi(s) => format!("clobber_abi({})", quoted(s)),
                 AsmArg::Option(n) => n.clone(),
@@ -1114,5 +1116,12 @@ fn grid_elem(e: &Expr) -> String {
             )
         }
         _ => expr(e),
+    }
+}
+
+fn asm_reg(r: &AsmReg) -> String {
+    match r {
+        AsmReg::Class(n) => n.clone(),
+        AsmReg::Explicit(s) => quoted(s),
     }
 }

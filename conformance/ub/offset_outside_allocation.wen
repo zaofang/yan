@@ -1,0 +1,9 @@
+-- spec: 6.7, 6.9
+-- note: the 6.7 item number; Ptr operations as in assumption A11
+-- ub: 3
+
+main() =
+  let xs = [1, 2, 3]
+  let p = xs.as_ptr().offset(4)
+  unsafe
+    assert p.read() == 0

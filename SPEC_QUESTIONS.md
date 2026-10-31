@@ -53,6 +53,19 @@ Assumed in `yong-check` until resolved:
   non-integer numeric type.
 - `yong run` checks the module first and exits 1 with the diagnostics on stderr when it has errors.
 
+## Standard library declarations (resolved: R474 to R476, spec rev 496)
+
+Raised by the std build plan; Antonio accepted all three answers on 2026-10-31.
+
+- R474: a std function with a native body is `@intrinsic def name(params) -> T: ...`. `@intrinsic`
+  is reserved to the `std` package; the intrinsic list, including the Y4 scalar ops, lives in
+  `yong-std`.
+- R475: for step 2 of method resolution (17.2), `str` and `char` are declared in `std.text`,
+  `list` in `std.list`, `dict` in `std.dict`, `set` in `std.set`, `bytes` in `std.encoding`, the
+  scalars and `bigint` in `std.num`, and `Result` and `Option` in `std.result`.
+- R476: in Yong text, `Option[T]` matches as `Some { value: v }` and `None`, alongside Y5's
+  `Ok { value: v }` and `Err { error: e }`.
+
 ## Wen lexical and grammar readings
 
 15.1 and 15.2 leave these open. Assumed in `yong-wen` until resolved:
@@ -75,6 +88,5 @@ Assumed in `yong-check` until resolved:
 - **Grammar gaps.** Accepted although 15.2 does not list them: a labelled inout argument
   (`swap(x: &a)`), a bare value name as a type (`Ptr[c_int]`, the `core.ffi` C types), and a
   negative number literal as a pattern (`-1 -> ...`).
-- **Test question.** `conformance/wen/pass/subscripts/index_read_and_write.wen` indexes with
-  `c[true]` and `c[false]`; Wen's literals are `True` and `False` (15.1), so these read as
-  unresolved names once Wen is checked.
+- **E112.** Two consecutive capitals are allowed only as a one-letter first word followed by a
+  lower-case letter, so the `core.ffi` names `CStr` and `CString` lex, and `HTTPError` is E112.

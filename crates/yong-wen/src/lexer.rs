@@ -449,9 +449,12 @@ impl<'a> Lexer<'a> {
             Tok::Kw(kw)
         } else if text.as_bytes()[0].is_ascii_uppercase() {
             let b = text.as_bytes();
-            let doubled = b
-                .windows(2)
-                .any(|w| w[0].is_ascii_uppercase() && w[1].is_ascii_uppercase());
+            // A one-letter first word is allowed: `CStr`, `XAxis`.
+            let doubled = b.windows(2).enumerate().any(|(i, w)| {
+                w[0].is_ascii_uppercase()
+                    && w[1].is_ascii_uppercase()
+                    && !(i == 0 && b.get(2).is_some_and(u8::is_ascii_lowercase))
+            });
             if doubled || text.contains('_') {
                 let (code, msg) = if doubled {
                     ("E112", "type names have no two consecutive capitals")

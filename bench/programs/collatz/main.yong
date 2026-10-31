@@ -1,0 +1,36 @@
+module bench.collatz
+
+-- `fuel` bounds the recursion; no start below 10001 needs more than 261 steps.
+fn steps(let n: i64, let acc: i64, let fuel: i64) -> i64
+    requires ge_i64(let n, let 1)
+    requires gt_i64(let fuel, let 0)
+    decreases fuel
+{
+    let one: bool = eq_i64(let n, let 1)
+    if one { ret acc }
+    let a: i64 = add_checked_i64(let acc, let 1)
+    let f: i64 = sub_checked_i64(let fuel, let 1)
+    let r: i64 = mod_i64(let n, let 2)
+    let even: bool = eq_i64(let r, let 0)
+    if even {
+        let h: i64 = floordiv_i64(let n, let 2)
+        become steps(let h, let a, let f)
+    }
+    let t: i64 = mul_checked_i64(let n, let 3)
+    let u: i64 = add_checked_i64(let t, let 1)
+    become steps(let u, let a, let f)
+}
+
+fn main() -> Unit {
+    var n: i64 = 1
+    var total: i64 = 0
+    loop 'l {
+        let done: bool = gt_i64(let n, let 10000)
+        if done { break 'l }
+        let s: i64 = steps(let n, let 0, let 1000)
+        total = add_checked_i64(let total, let s)
+        n = add_checked_i64(let n, let 1)
+    }
+    assert eq_i64(let total, let 849666)
+    ret ()
+}

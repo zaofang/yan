@@ -638,15 +638,23 @@ pub enum IxArg {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum AsmReg {
+    /// A register class: `reg`.
+    Class(Name),
+    /// An explicit register: `"rax"`.
+    Explicit(String),
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum AsmArg {
     Operand {
         dir: Name,
-        reg: String,
+        reg: AsmReg,
         value: Expr,
     },
     Typed {
         dir: Name,
-        reg: String,
+        reg: AsmReg,
         name: Name,
         ty: Type,
     },

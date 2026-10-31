@@ -2341,9 +2341,9 @@ impl<'a> Parser<'a> {
                     Tok::Name(n) => {
                         let n = n.clone();
                         self.bump();
-                        n
+                        AsmReg::Class(n)
                     }
-                    _ => self.string()?,
+                    _ => AsmReg::Explicit(self.string()?),
                 };
                 self.expect_p(")")?;
                 if matches!(self.peek(), Tok::Name(_)) && *self.peek_n(1) == Tok::Punct(":") {

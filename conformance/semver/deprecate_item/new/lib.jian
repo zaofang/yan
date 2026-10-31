@@ -1,0 +1,6 @@
+@deprecated(since="1.1", note="use g")
+pub def f() -> int:
+    return 1
+
+pub def g() -> int:
+    return 1

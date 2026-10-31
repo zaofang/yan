@@ -1,0 +1,6 @@
+{
+  "module": "m",
+  "replace": [
+    "def mean(xs: list[int]) -> float:\n    return 0.0"
+  ]
+}

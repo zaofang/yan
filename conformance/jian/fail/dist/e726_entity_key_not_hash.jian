@@ -1,0 +1,11 @@
+# spec: 9.6.1
+# rows: R413
+# note: float has no Hash, so it cannot key an entity; the span is the entity type
+# expect: E726 at 10:13
+
+@derive(Wire)
+class Account:
+    balance: int
+
+def open(e: Entity[float, Account]) -> None:
+    pass

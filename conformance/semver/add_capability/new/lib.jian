@@ -1,0 +1,3 @@
+pub def f(x: int) -> int uses log:
+    log.info("f")
+    return x
