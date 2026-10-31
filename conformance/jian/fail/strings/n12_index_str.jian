@@ -1,0 +1,5 @@
+# spec: 14.4
+# expect: N12 at 5:9
+
+def first(s: str) -> None:
+    _ = s[0]

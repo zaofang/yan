@@ -1,0 +1,9 @@
+-- spec: 4.6
+-- rows: R436
+-- expect: E716 at 8:13
+
+both(f: (int) -> int) -> int =
+  par
+    let a = f(1)
+    let b = f(2)
+  a + b

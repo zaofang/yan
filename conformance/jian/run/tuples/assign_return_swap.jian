@@ -1,0 +1,23 @@
+# spec: 13.2, 14.1
+# rows: R216
+# note: the right side is evaluated in full before any target is assigned
+# stdout:
+# 2 1 1 4 6
+
+def min_max(xs: list[int]) -> tuple[int, int]:
+    pre len(xs) > 0
+    lo, hi = xs[0], xs[0]
+    for x in xs:
+        if x < lo:
+            lo = x
+        if x > hi:
+            hi = x
+    return lo, hi
+
+pub def main() uses io:
+    a, b = 1, 2
+    a, b = b, a
+    lo, hi = min_max([3, 1, 4])
+    ys = [5, 6]
+    ys[0], ys[1] = ys[1], ys[0]
+    io.print(f"{a} {b} {lo} {hi} {ys[0]}")

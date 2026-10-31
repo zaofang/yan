@@ -1,0 +1,15 @@
+# spec: 4.3
+# note: q.a overlaps q (prefix rule)
+# expect: E402 at 14:14
+
+class Pair:
+    a: int
+    b: int
+
+def bump(var p: Pair, var n: int) -> None:
+    n += p.a
+
+def f() -> int:
+    q = Pair(a=1, b=2)
+    bump(&q, &q.a)
+    return q.b

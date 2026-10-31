@@ -1,0 +1,8 @@
+-- spec: 12.1
+-- note: a case under a directory named ffi is checked as an ffi module (assumption A9)
+-- expect: E903 at 8:35
+
+unsafe extern "C" lib m link "m"
+  unsafe frexp(x: f64, e: Ptr[c_int]) -> f64
+
+f(x: f64, e: Ptr[c_int]) -> f64 = frexp(x, e)

@@ -1,0 +1,19 @@
+# spec: 4.3
+# note: the second call fails the inserted exclusive_check (panic kind exclusivity)
+# stdout:
+# [2, 1]
+# exit: 101
+
+def swap(var x: int, var y: int) -> None:
+    t = x
+    x = y
+    y = t
+
+def f(xs: list[int], i: int, j: int) -> list[int]:
+    ys = xs.copy()
+    swap(x=&ys[i], y=&ys[j])
+    return ys
+
+pub def main() uses io:
+    io.print(f"{f([1, 2], 0, 1)}")
+    io.print(f"{f([1, 2], 1, 1)}")

@@ -1,0 +1,29 @@
+-- spec: 3.5, 9.2
+-- rows: R260
+
+module conf.concurrency
+
+fn sq(let x: i64) -> i64 {
+    let y: i64 = mul_checked_i64(let x, let x)
+    ret y
+}
+
+fn both() -> i64 {
+    par {
+        { let a: i64 = sq(let 2) }
+        { let b: i64 = sq(let 3) }
+    }
+    let c: i64 = add_checked_i64(let a, let b)
+    ret c
+}
+
+fn count(let n: i64, let acc: i64) -> i64
+    requires ge_i64(let n, let 0)
+    decreases n
+{
+    let z: bool = eq_i64(let n, let 0)
+    if z { ret acc }
+    let m: i64 = sub_checked_i64(let n, let 1)
+    let a: i64 = add_checked_i64(let acc, let 1)
+    become count(let m, let a)
+}

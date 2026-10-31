@@ -1,0 +1,5 @@
+# spec: 14.2
+# expect: E540 at 5:12
+
+def f() -> PlainDate:
+    return PlainDate(2026, 2, 30)

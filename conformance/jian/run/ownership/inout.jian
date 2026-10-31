@@ -1,0 +1,12 @@
+# spec: 4.1
+# stdout:
+# 3
+
+def bump(var n: int) -> None:
+    n += 1
+
+pub def main() uses io:
+    a = 1
+    bump(&a)
+    bump(&a)
+    io.print(f"{a}")

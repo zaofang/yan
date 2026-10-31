@@ -1,0 +1,6 @@
+-- spec: 15.1
+-- note: U+2067 RIGHT-TO-LEFT ISOLATE inside a comment
+-- expect: E105 at 5:10
+
+-- admin ⁧ only
+f() -> int = 1

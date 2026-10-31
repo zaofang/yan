@@ -1,0 +1,9 @@
+# spec: 8.3
+# stdout:
+# a
+# exit: 101
+
+pub def main() uses io:
+    io.print("a")
+    assert 1 + 1 == 3
+    io.print("b")

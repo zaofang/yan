@@ -1,0 +1,9 @@
+-- spec: 10.4
+-- expect: W816 at 6:5
+
+small[n: Nat]() -> int =
+  #if n > 4
+    #compile_warn("n above 4 is slow")
+  n
+
+f() -> int = small[8]()

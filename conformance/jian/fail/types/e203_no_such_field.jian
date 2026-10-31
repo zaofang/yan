@@ -1,0 +1,10 @@
+# spec: 10.2, 25.4
+# rows: R298
+# expect: E203 at 10:14
+
+class Point:
+    x: int
+    y: int
+
+def f(p: Point) -> int:
+    return p.z

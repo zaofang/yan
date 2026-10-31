@@ -1,0 +1,11 @@
+# spec: 14.4
+# rows: R425
+# expect: N26 at 11:5
+
+class Bad:
+    n: int
+
+def f(x: int) -> int fail Bad:
+    if x < 0:
+        fail Bad(n=x)
+    return Ok(x)

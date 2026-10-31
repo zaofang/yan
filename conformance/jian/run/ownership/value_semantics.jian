@@ -1,0 +1,13 @@
+# spec: 4.2
+# rows: R1
+# stdout:
+# 3 4
+
+def grow(take xs: list[int]) -> list[int]:
+    xs.append(9)
+    return xs
+
+pub def main() uses io:
+    xs = [1, 2, 3]
+    ys = grow(xs.copy())
+    io.print(f"{len(xs)} {len(ys)}")

@@ -1,0 +1,21 @@
+# spec: 8.1
+# rows: R424
+
+class ParseErr:
+    msg: str
+
+class IoErr:
+    msg: str
+
+def parse(s: str) -> int fail ParseErr:
+    return s.parse_int() else fail ParseErr(msg=s.copy())
+
+def run(s: str) -> int fail ParseErr | IoErr:
+    return parse(s)?
+
+def guarded(s: str) -> int:
+    return parse(s) else 0
+
+def reified(s: str) -> bool:
+    r: Result[int, ParseErr] = parse(s)
+    return r == Ok(1)

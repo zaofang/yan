@@ -1,0 +1,7 @@
+# spec: 13.1, 14.1
+# rows: R347
+# expect: E230 at 5:11
+
+def clamp(out: int) -> int:
+    post out >= 0
+    return out

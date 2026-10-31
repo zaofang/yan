@@ -1,0 +1,11 @@
+# spec: 4.5
+# rows: R2
+# note: assumes a list argument coerces to a View parameter (assumption A2)
+# expect: E414 at 11:12
+
+def head(xs: View[int]) -> View[int] from xs:
+    return xs
+
+def leak() -> View[int]:
+    xs = [1, 2, 3]
+    return head(xs)

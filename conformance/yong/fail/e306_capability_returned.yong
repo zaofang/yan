@@ -1,0 +1,8 @@
+-- spec: 7.2
+-- expect: E306 at 7:9
+
+module conf.e306
+
+fn leak(cap io: Io) -> Io {
+    ret io
+}

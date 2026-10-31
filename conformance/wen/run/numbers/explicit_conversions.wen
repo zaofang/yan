@@ -1,0 +1,9 @@
+-- spec: 3.4
+-- note: the spelling of wrap_as and sat_as as generic functions is assumption A6
+-- stdout:
+-- 44 255 0
+
+main() =
+  let x = 300
+  let y = -1
+  io.print("\(wrap_as[u8](x)) \(sat_as[u8](x)) \(sat_as[u8](y))")

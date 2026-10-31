@@ -1,0 +1,8 @@
+# spec: 4.2
+# rows: R1
+# expect: E413 at 7:10
+
+def f() -> int:
+    xs = [1, 2]
+    ys = xs
+    return len(xs) + len(ys)

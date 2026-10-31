@@ -1,0 +1,16 @@
+-- spec: 15.3
+-- rows: R371, R266
+
+type Point = { x: int, y: int }
+type Shape = Circle(r: float) | Square(side: float)
+type One = One(v: int)
+type Unit0 = Unit0()
+type FsError = { msg: str }
+type Timeout = { ms: int }
+type IoErr = FsError | Timeout
+
+moved(p: Point) -> Point = evolve(p, x: p.x + 1)
+
+area(s: Shape) -> float =
+  Circle(r) -> 3.0 * r * r
+  Square(side) -> side * side

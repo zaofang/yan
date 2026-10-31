@@ -1,0 +1,365 @@
+# Diagnostic codes (spec 25) and spec sections, read by tools/conform.py --coverage.
+# Derived from the 1.0 draft (rev 420). Update it when section 25 or the section list changes.
+
+[codes]
+E001 = { section = "20.6", status = "active", meaning = "preview item used without preview = [\"name\"]" }
+E002 = { section = "20.6", status = "active", meaning = "published package at 1.0 or later enables a preview" }
+E003 = { section = "19.4", status = "active", meaning = "package name does not exist; nearest names suggested" }
+E004 = { section = "19.4", status = "active", meaning = "agent add of a package neither locked nor established needs an approval" }
+E005 = { section = "19.4", status = "active", meaning = "update gains a capability or changes publisher identity; needs an approval" }
+E006 = { section = "19.2", status = "active", meaning = "declared capability ceiling does not contain the computed capability set" }
+E007 = { section = "19.3", status = "active", meaning = "version is marked malicious" }
+E008 = { section = "20.6", status = "active", meaning = "version bump is below the minimum yong semver computed" }
+E009 = { section = "19.4", status = "active", meaning = "approval signature invalid, or signer not in approvers" }
+E010 = { section = "19.5", status = "active", meaning = "build differs between two roots under --verify" }
+E011 = { section = "19.3", status = "active", meaning = "transparency-log inclusion, consistency or witness quorum check failed" }
+E012 = { section = "20.3", status = "active", meaning = "std pub item without a current @since" }
+E013 = { section = "20.6", status = "active", meaning = "confirmed breaking change (with witness) for the declared bump" }
+E014 = { section = "18.4", status = "active", meaning = "approved test changed since tests.lock was signed" }
+E015 = { section = "18.4", status = "active", meaning = "approved test in tests.lock is missing" }
+W014 = { section = "20.6", status = "active", meaning = "possible breaking change without a witness" }
+E100 = { section = "13.2, 15.2", status = "active", meaning = "unexpected token; the expected set is listed" }
+E101 = { section = "13.2, 15.2", status = "active", meaning = "operator mix that requires parentheses" }
+E102 = { section = "13.1, 15.1", status = "active", meaning = "unclosed bracket, string or block" }
+E103 = { section = "13.1", status = "active", meaning = "backslash continuation or; (Jian)" }
+E104 = { section = "13.2", status = "active", meaning = "chained comparison" }
+E105 = { section = "13.1", status = "active", meaning = "forbidden invisible, bidirectional or tag character" }
+E106 = { section = "13.1", status = "active", meaning = "contract line (pre, post, ex, decreases, invariant) after the first other statement of a body; fix moves it (R422)" }
+E107 = { section = "13.2", status = "active", meaning = "comprehension with more than one for clause" }
+E110 = { section = "13.1", status = "active", meaning = "malformed value name" }
+W111 = { section = "13.1", status = "active", meaning = "value name longer than 32 characters" }
+E112 = { section = "13.1", status = "active", meaning = "consecutive capitals in a type name" }
+E120 = { section = "13.1", status = "active", meaning = "try, except, finally or raise" }
+E121 = { section = "13.1", status = "active", meaning = "unsupported Python keyword (global, nonlocal, del, yield, async, await)" }
+E130 = { section = "", status = "retired", meaning = "retired in v0.2 (hyphenated Wen names)" }
+E131 = { section = "", status = "retired", meaning = "retired in v0.2 (hyphenated Wen names)" }
+E132 = { section = "15.1", status = "active", meaning = "-- not followed by a space (Wen)" }
+E133 = { section = "15.1", status = "active", meaning = "tab in Wen indentation" }
+E134 = { section = "15.1", status = "active", meaning = "a -b inside a grid literal" }
+E135 = { section = "15.3", status = "active", meaning = "nested implicit-subject closures" }
+E140 = { section = "12.3", status = "active", meaning = "interior NUL in a c\"...\" literal" }
+E141 = { section = "10.5", status = "active", meaning = "yield outside a generator body" }
+E143 = { section = "3.5", status = "active", meaning = "become inside a constructor not in last-evaluated argument position (R456)" }
+E200 = { section = "20.3", status = "active", meaning = "unresolved name, including std items newer than the package's yong version" }
+E201 = { section = "10.1, 14.1", status = "active", meaning = "type mismatch, with the differing parts of the two types marked" }
+E202 = { section = "14.1, 15.3", status = "active", meaning = "wrong number of arguments, or unknown keyword or label argument" }
+E203 = { section = "10.2, 17.2", status = "active", meaning = "no such field or method; nearest names suggested" }
+E210 = { section = "14.1, 15.3", status = "active", meaning = "keyword or label arguments required (parameters share a type)" }
+E220 = { section = "10.2", status = "active", meaning = "overlapping impls" }
+E221 = { section = "10.2", status = "active", meaning = "type does not implement a required trait; the trait's @diagnostic hint is shown when present" }
+E230 = { section = "14.1, 15.3", status = "active", meaning = "rebinding a name (no shadowing)" }
+E231 = { section = "14.1", status = "retired", meaning = "retired (R214): unused bindings and parameters are lint W812" }
+E240 = { section = "14.1", status = "active", meaning = "missing parameter or return annotation" }
+E241 = { section = "10.1", status = "active", meaning = "annotation needed: inference would need search" }
+E250 = { section = "17.2", status = "active", meaning = "two functions of one name at one method-resolution step" }
+E251 = { section = "7.1", status = "active", meaning = "capability set includes itself, directly or through another set (R431)" }
+E260 = { section = "10.4", status = "active", meaning = "stage-0 panic (with stage-0 backtrace and use site)" }
+E261 = { section = "10.4", status = "active", meaning = "stage-0 step, heap or depth budget exceeded" }
+E262 = { section = "10.4", status = "active", meaning = "non-materializable value crosses into run time" }
+E263 = { section = "10.4", status = "active", meaning = "compile-time function parameter not specialized away" }
+E264 = { section = "10.4", status = "active", meaning = "reflection access to an item or field not visible at the call site" }
+E265 = { section = "10.4", status = "active", meaning = "reified name collides with an existing name" }
+E266 = { section = "10.4", status = "active", meaning = "attribute function output not allowed (rewrite, removal, extern, export or built-in attribute)" }
+E267 = { section = "10.4", status = "active", meaning = "embed path outside the package root" }
+E268 = { section = "10.4", status = "active", meaning = "construct not allowed at stage 0 (unsafe, Ptr, extern, asm, atomics, Vec)" }
+E269 = { section = "10.4", status = "active", meaning = "derive of a trait without a derived body, or of an auto trait" }
+E270 = { section = "10.4", status = "active", meaning = "compile_error raised by stage-0 code" }
+E271 = { section = "3.5", status = "active", meaning = "become callee signature differs from the caller's" }
+E232 = { section = "14.1", status = "active", meaning = "a type that mixes inline variants with other alternatives, or lists None among variants (retargeted by R423)" }
+E272 = { section = "10.4", status = "active", meaning = "error in a stage-0-dependent body, found at an instantiation; carries the instantiation site and stage-0 backtrace" }
+E273 = { section = "3.5", status = "active", meaning = "become outside tail position, inside par, with or a generator, or calling a closure or dyn method" }
+E233 = { section = "13.1", status = "active", meaning = "str or f-string where a Template is expected (R452)" }
+E301 = { section = "7.2", status = "active", meaning = "missing capability (fix inserts uses)" }
+E306 = { section = "7.2", status = "active", meaning = "capability stored, returned or captured by an escaping closure" }
+E307 = { section = "7.3", status = "active", meaning = "dynamic handler for a capability that must be static" }
+E310 = { section = "8.1", status = "active", meaning = "missing From conversion" }
+E311 = { section = "8.1", status = "active", meaning = "try result never inspected" }
+E312 = { section = "8.1", status = "active", meaning = "non-unit result discarded" }
+E313 = { section = "8.1", status = "active", meaning = "both injection and From apply" }
+E315 = { section = "14.1", status = "active", meaning = "fallible call without ? or else where no Result is expected; fix inserts ? (R424)" }
+E316 = { section = "7.6", status = "active", meaning = "replay(trace, live=[...]) names a capability whose operations return values the program reads (R305, R379)" }
+E314 = { section = "7.4, 19.2", status = "active", meaning = "capability outside the package ceiling, directly or through a dependency" }
+E317 = { section = "7.3", status = "active", meaning = "release build binds a fault handler other than never" }
+E318 = { section = "21.4", status = "active", meaning = "release build binds the toolchain capability" }
+E319 = { section = "11.5", status = "active", meaning = "differentiating an impure function" }
+E320 = { section = "17.1", status = "active", meaning = "profile restriction violated (names the profile and the rule)" }
+E321 = { section = "17.1", status = "active", meaning = "stack bound not provable: call-graph cycle other than become, or extern without @stack" }
+E322 = { section = "17.1", status = "active", meaning = "task stack bound exceeds the manifest's stack reserve" }
+E323 = { section = "17.1", status = "active", meaning = "lock (Resource, CsMutex, Mutex or RwLock guard) held across a suspension point, on every platform (R395)" }
+E325 = { section = "17.4 (R451)", status = "active", meaning = "Untrusted value passed to a @trusted parameter (R451)" }
+E401 = { section = "4.1", status = "active", meaning = "use after move" }
+E402 = { section = "4.3", status = "active", meaning = "exclusivity violation" }
+E403 = { section = "4.1", status = "active", meaning = "assignment to an immutable binding" }
+E404 = { section = "14.1, 15.3", status = "active", meaning = "missing & on an inout argument" }
+E405 = { section = "14.1, 15.3", status = "active", meaning = "& where no inout parameter accepts it" }
+E406 = { section = "4.6", status = "active", meaning = "escaping closure captures an inout parameter, var, view or capability" }
+E407 = { section = "4.7", status = "retired", meaning = "retired by R441; an arena Ref that escapes is E414" }
+E408 = { section = "5.5", status = "retired", meaning = "retired by R441; arena data that escapes is E414" }
+E412 = { section = "10.6", status = "active", meaning = "@linear value not consumed" }
+E413 = { section = "4.2", status = "active", meaning = "implicit copy of a heap-backed value (fix inserts copy or share)" }
+E414 = { section = "4.5", status = "active", meaning = "view or second-class value escapes or outlives its source" }
+E415 = { section = "6.4", status = "active", meaning = "non-Send value crosses a task boundary" }
+E416 = { section = "4.2", status = "active", meaning = "copy of a Share value (fix: share)" }
+E417 = { section = "6.4", status = "active", meaning = "non-Sync value borrowed by two par branches" }
+E418 = { section = "6.2", status = "active", meaning = "Atomic[T] where the target has no lock-free form" }
+E419 = { section = "6.6", status = "active", meaning = "exposed provenance outside an ffi module" }
+E420 = { section = "3.5", status = "active", meaning = "become argument borrows a caller local" }
+E421 = { section = "5.4", status = "active", meaning = "drop body that can fail, blocks or uses a capability other than alloc, or Drop on a @linear type" }
+E422 = { section = "4.4", status = "active", meaning = "subscript body does not yield exactly once on every path (R457)" }
+E423 = { section = "4.4", status = "active", meaning = "subscript body fails under the let or inout mode it is used in (R457)" }
+E501 = { section = "14.1", status = "active", meaning = "index, key or other goal refuted, with the counterexample (R211)" }
+E502 = { section = "14.1", status = "active", meaning = "wildcard on a sum (Jian)" }
+E503 = { section = "14.1, 12.3", status = "active", meaning = "non-exhaustive match, including open C enums and @non_exhaustive types without _" }
+E504 = { section = "14.1", status = "active", meaning = "integer indexing or len on str" }
+E520 = { section = "11.2", status = "active", meaning = "positional axis broadcast against a non-scalar" }
+E521 = { section = "17.1", status = "active", meaning = "tile shape mismatch in a kernel operation" }
+E530 = { section = "11.4", status = "active", meaning = "unit, dimension, kind or affine-point mismatch" }
+E540 = { section = "14.2", status = "active", meaning = "invalid or out-of-range date or time literal" }
+E541 = { section = "14.2", status = "active", meaning = "zoned literal in a gap or an unresolved fold" }
+E542 = { section = "14.2", status = "active", meaning = "literal format pattern does not match the value's type" }
+E543 = { section = "20.6", status = "active", meaning = "literal or destructuring of a @non_exhaustive type from another package without .." }
+E544 = { section = "11.8", status = "active", meaning = "is_null on a non-optional column" }
+E550 = { section = "17.5", status = "active", meaning = "malformed locale literal (R332)" }
+E551 = { section = "17.5", status = "active", meaning = "malformed MessageFormat 2 message or unknown function (R335)" }
+E552 = { section = "17.5", status = "active", meaning = "translation key not in the source messages record (R335)" }
+E553 = { section = "17.5", status = "active", meaning = "message variable undeclared in the source message or of the wrong type (R335)" }
+E554 = { section = "17.5", status = "active", meaning = "plural match misses a CLDR category of the locale and has no * arm (R335)" }
+E555 = { section = "17.5", status = "active", meaning = "unbalanced message markup or a tag the source message lacks (R335)" }
+E601 = { section = "8.4", status = "active", meaning = "pub function with no ex and no test_ calling it (Jian; publish and release only, R284)" }
+E602 = { section = "8.4", status = "active", meaning = "recursion without decreases" }
+E603 = { section = "8.5", status = "active", meaning = "contract not proven in a @prove module" }
+E617 = { section = "18.4", status = "retired", meaning = "retired by R447; a test that binds a real capability is an I/O test" }
+V401 = { section = "8.7", status = "active", meaning = "proof failed, with counterexample" }
+W420 = { section = "8.5", status = "active", meaning = "proof fell back to a runtime check" }
+E604 = { section = "8.7", status = "active", meaning = "non-ghost code reads a ghost value (R458)" }
+E605 = { section = "8.7", status = "active", meaning = "lemma uses a capability (R458)" }
+H701 = { section = "21.2", status = "active", meaning = "typed hole, with expected type" }
+E702 = { section = "21.2", status = "active", meaning = "hole in a release build" }
+E705 = { section = "9.2", status = "active", meaning = "par branch reads a binding another branch makes, or a place it writes" }
+E708 = { section = "9.1", status = "active", meaning = "par concurrent under a handler without concurrent forward progress" }
+E709 = { section = "6.5", status = "active", meaning = "shared mutable state or nondeterministic channel operation without nondet" }
+E710 = { section = "7.3", status = "active", meaning = "virtual time handler under the pool scheduler" }
+E711 = { section = "15.3", status = "active", meaning = "select arm is not recv(), send(v), after(d) or deadline(t)" }
+E712 = { section = "9.3", status = "active", meaning = "body of a streaming (unit-bodied) par for can fail" }
+E713 = { section = "9.2, 9.3", status = "active", meaning = "plain par branch or par for item waits on a sibling through a channel (R390)" }
+E714 = { section = "6.3", status = "active", meaning = "Once or Lazy initializer reachable from several tasks uses a capability other than alloc without uses nondet (R393)" }
+E715 = { section = "9.6", status = "active", meaning = "@reentrant handler keeps a value read from actor state live across a suspension (R397)" }
+E716 = { section = "4.6", status = "active", meaning = "non-par function parameter called from more than one branch of a par or from a par for body (R436)" }
+E720 = { section = "9.6.1", status = "active", meaning = "actor shared as Remote has a handler whose parameters, result or failure are not Wire (R401)" }
+E721 = { section = "9.6.1", status = "active", meaning = "call_remote or an off-node spawn names something other than a @remote item, such as a closure (R407)" }
+E722 = { section = "9.6.1", status = "active", meaning = "@remote item's uses set exceeds the ceiling of every node role that exports it (R407)" }
+E723 = { section = "9.6.1", status = "active", meaning = "actor state schema changed with no @upgrade function and no automatic converter, or an @upgrade that is not uses none (R415)" }
+E724 = { section = "9.6.1, 20", status = "active", meaning = "breaking change to a pinned Wire schema (R406)" }
+E725 = { section = "9.6.1", status = "active", meaning = "@durable function uses a non-journaling capability, unjournaled nondeterminism, or a view across operations (R416)" }
+E726 = { section = "9.6.1", status = "active", meaning = "entity key not Wire + Hash, or entity state not Wire (R413)" }
+E717 = { section = "9.3 (R454)", status = "active", meaning = "Lub get() inside a par block that writes the cell (R454)" }
+E718 = { section = "9.3", status = "reserved", meaning = "reserved (R455, deferred past 1.0)" }
+W801 = { section = "13.1", status = "active", meaning = "confusable identifier" }
+W802 = { section = "5.4", status = "retired", meaning = "retired by R443; an unclosed @linear value is E412" }
+W803 = { section = "17.4", status = "active", meaning = "exposed Secret flows into log" }
+W804 = { section = "7.7", status = "retired", meaning = "retired by R448; FastHasher moved to @yong/fasthash" }
+W805 = { section = "8.1", status = "active", meaning = "error union over 8 members" }
+W806 = { section = "21.1", status = "active", meaning = "code special-cases literal ex inputs" }
+W807 = { section = "14.1", status = "active", meaning = "constant slice proven out of range" }
+W808 = { section = "9.6", status = "active", meaning = "static call cycle between actors" }
+W809 = { section = "7.1", status = "retired", meaning = "retired by R448; std has no shell" }
+W810 = { section = "18.2", status = "active", meaning = "@expect suppressed nothing" }
+W811 = { section = "15.3", status = "active", meaning = "wildcard on a sum (Wen)" }
+W812 = { section = "15.3", status = "active", meaning = "unused binding or parameter (Jian and Wen, R214)" }
+W813 = { section = "15.3", status = "active", meaning = "pub item without ex (Wen)" }
+W814 = { section = "6.5", status = "active", meaning = "spin loop on an atomic shared by plain par branches" }
+W815 = { section = "20.5", status = "active", meaning = "use of a deprecated item" }
+W816 = { section = "10.4", status = "active", meaning = "compile_warn raised by stage-0 code" }
+W817 = { section = "14.2", status = "active", meaning = "day or week Duration added to a ZonedDateTime" }
+W818 = { section = "9.4", status = "active", meaning = "else that discards a Cancelled failure (R341)" }
+W819 = { section = "17.2", status = "active", meaning = "method found at an earlier resolution step hides one of the same name at a later step (R348)" }
+W820 = { section = "8.6, 14.1", status = "active", meaning = "check neither proven nor refuted, compiled as a runtime check; carries the unknown goal (Jian, R211)" }
+W823 = { section = "14.3", status = "active", meaning = "local annotation that inference already gives (Jian); safe fix removes it (R429)" }
+W824 = { section = "14.3", status = "active", meaning = "a None or failure guard right after a binding that a fallback else replaces; safe fix rewrites it (R429)" }
+W821 = { section = "11.3", status = "active", meaning = "@multiversion function whose versions compile to the same code (R386)" }
+W822 = { section = "3.3", status = "active", meaning = "+ in a loop on a Str or List that is not at its last use (R388)" }
+W830 = { section = "18.9", status = "active", meaning = "pub item without a doc comment (R317)" }
+W831 = { section = "18.9", status = "active", meaning = "doc item link resolves to nothing (R317)" }
+W832 = { section = "18.9", status = "active", meaning = "Fails: or Uses: doc section disagrees with the signature (R317)" }
+W833 = { section = "18.9", status = "active", meaning = "fence tagged text parses as code (R317)" }
+W834 = { section = "8.1", status = "active", meaning = "pub item of a library package fails with std Error (R432)" }
+W840 = { section = "13.1", status = "active", meaning = "string literal content is not NFC; fix normalizes it (R338)" }
+W841 = { section = "17.5", status = "active", meaning = "message missing from a shipped locale; the source text is used (R335)" }
+W843 = { section = "9.6.1", status = "active", meaning = "permanent supervisor child placed on(node), which cannot fail over (R411)" }
+W850 = { section = "9.6.1 (R416 )", status = "active", meaning = "durable operation on a shared capability whose handler declares no idempotency support (R453)" }
+E900 = { section = "5.7", status = "active", meaning = "proof attribute (@forbid(...), R447) violated, per line" }
+E901 = { section = "12", status = "active", meaning = "unsafe outside std or an ffi module" }
+E902 = { section = "12", status = "active", meaning = "extern block outside an ffi module" }
+E903 = { section = "12.1", status = "active", meaning = "unsafe operation outside an unsafe block" }
+E904 = { section = "12.3", status = "active", meaning = "type crosses the FFI boundary without @layout(c) or a C-profile type" }
+E905 = { section = "12.3", status = "active", meaning = "C variadic argument violates the default promotions" }
+E906 = { section = "12.5", status = "active", meaning = "item with returns-twice semantics declared" }
+E907 = { section = "12.7", status = "active", meaning = "@export signature uses a type outside the C profile" }
+E908 = { section = "5.2", status = "active", meaning = "@layout(bits(uN)) field widths do not sum to N" }
+E909 = { section = "12.8", status = "active", meaning = "duplicate export name at link time" }
+E910 = { section = "12.9", status = "active", meaning = "asm operand type not supported" }
+E911 = { section = "12.9", status = "active", meaning = "asm register or register class invalid for the target" }
+P001 = { section = "18.3", status = "active", meaning = "base hash mismatch (current text returned)" }
+P002 = { section = "18.3", status = "active", meaning = "edit search text matched zero or many times" }
+P003 = { section = "18.3", status = "active", meaning = "patch introduces errors (under --check)" }
+P004 = { section = "18.3", status = "active", meaning = "replaced or deleted item missing" }
+P005 = { section = "18.3", status = "active", meaning = "added item already exists" }
+P006 = { section = "18.3", status = "active", meaning = "patch touches a protected target without a human confirmation token" }
+
+[sections]
+"3.1" = "Kinds"
+"3.2" = "Scalars"
+"3.3" = "Strings and bytes"
+"3.4" = "Integers and floats"
+"3.5" = "Yong text grammar"
+"3.6" = "Item identity"
+"4.1" = "Parameter conventions"
+"4.2" = "Copies, moves and sharing"
+"4.3" = "The law of exclusivity"
+"4.4" = "Projections"
+"4.5" = "Views"
+"4.6" = "Closures"
+"4.7" = "Explicit references (Wen L4)"
+"5.1" = "Representation"
+"5.2" = "Layout"
+"5.3" = "Ownership passes"
+"5.4" = "Drop order and cleanup"
+"5.5" = "Allocators and arenas"
+"5.6" = "Data-oriented containers"
+"5.7" = "Proof attributes (Wen L4)"
+"6.1" = "Abstract machine"
+"6.2" = "Atomics"
+"6.3" = "Interior mutability"
+"6.4" = "Thread-safety traits"
+"6.5" = "Guarantees and synchronization"
+"6.6" = "Aliasing and provenance"
+"6.7" = "Undefined behavior"
+"6.8" = "The safety contract"
+"6.9" = "Checkers"
+"7.1" = "Built-in capabilities"
+"7.2" = "Elaboration and signatures"
+"7.3" = "Handlers"
+"7.4" = "Platforms and ceilings"
+"7.5" = "Time and zones"
+"7.6" = "Record and replay"
+"7.7" = "Determinism"
+"8.1" = "Typed failure"
+"8.2" = "Integer arithmetic in queries"
+"8.3" = "Panics"
+"8.4" = "Contract language"
+"8.5" = "Enforcement levels and contract semantics"
+"8.6" = "The decidable fragment"
+"8.7" = "Proving"
+"9.1" = "Execution model"
+"9.2" = "par blocks"
+"9.3" = "par for and par_fold"
+"9.4" = "Cancellation, deadlines and drain"
+"9.5" = "Channels and select"
+"9.6" = "Actors and distribution"
+"9.6.1" = "Distributed compute (R400 to R419)"
+"9.7" = "I/O operation model"
+"10.1" = "Generics"
+"10.2" = "Traits"
+"10.3" = "Operators"
+"10.4" = "Compile time (stage 0)"
+"10.5" = "Generators"
+"10.6" = "Built-in attributes"
+"11.1" = "Floating point and the math library"
+"11.2" = "Array types"
+"11.3" = "SIMD"
+"11.4" = "Units"
+"11.5" = "Automatic differentiation"
+"11.6" = "Time"
+"11.7" = "Decimal and money"
+"11.8" = "Columnar memory"
+"11.9" = "Tables"
+"12.1" = "Extern blocks"
+"12.2" = "Libraries are capabilities"
+"12.3" = "Layout and C types"
+"12.4" = "Niches"
+"12.5" = "Ownership across the boundary"
+"12.6" = "Importing C"
+"12.7" = "The C profile and exports"
+"12.8" = "Linking"
+"12.9" = "Inline assembly"
+"12.10" = "Audit and scope"
+"13.1" = "Lexical rules"
+"13.2" = "Grammar"
+"14.1" = "Semantics (normative mapping to Yong)"
+"14.2" = "Compile-time literal checks"
+"14.3" = "Canonical form"
+"14.4" = "Lenient reader"
+"14.5" = "Complete example"
+"15.1" = "Lexical rules"
+"15.2" = "Grammar"
+"15.3" = "Semantics (normative mapping to Yong)"
+"15.4" = "Canonical form"
+"15.5" = "Diagnostics in Wen"
+"15.6" = "Example"
+"16.1" = "Names are word lists"
+"16.2" = "Foreign names"
+"16.3" = "The projection table"
+"16.4" = "Projection operations"
+"16.5" = "Round-trip laws"
+"17.1" = "Tiers and placement"
+"17.2" = "Method resolution and prelude"
+"17.3" = "Modules"
+"17.4" = "Data safety"
+"17.5" = "Time"
+"17.6" = "Networking defaults"
+"17.7" = "Simulation"
+"17.8" = "Python bridge"
+"18.1" = "Commands"
+"18.2" = "Diagnostics"
+"18.3" = "Patch protocol"
+"18.4" = "Build, cache and test verdicts"
+"18.5" = "Formatter"
+"18.6" = "Language server and editors"
+"18.7" = "Debugging and profiling"
+"18.8" = "Distribution"
+"18.9" = "Documentation (R310 to R319)"
+"19.1" = "Manifest and lockfile"
+"19.2" = "Capability ceilings"
+"19.3" = "Registry, index and log"
+"19.4" = "Adding and updating dependencies"
+"19.5" = "Reproducible builds and rebuilders"
+"19.6" = "Toolchain supply chain and hashes"
+"20.1" = "The compatibility promise"
+"20.2" = "What is frozen"
+"20.3" = "Toolchain and std API version"
+"20.4" = "Editions"
+"20.5" = "Deprecation"
+"20.6" = "API evolution and enforced versions"
+"20.7" = "Release train"
+"21.1" = "The spec gate"
+"21.2" = "Typed holes"
+"21.3" = "Constrained decoding"
+"21.4" = "Agent server (yong mcp)"
+"21.5" = "Provenance"
+"21.6" = "Evaluation harness"
+"22.1" = "Two implementations"
+"22.2" = "Crates"
+"22.3" = "Front end and passes"
+"22.4" = "Linking and runtime support"
+"22.5" = "Testing strategy"
+"22.6" = "Working rules for the implementing agent"
+"24.1" = "Layout and test format"
+"24.2" = "Required coverage"
+"24.3" = "Golden programs"
+"25.1" = "Families"
+"25.2" = "Packages, registry and stability"
+"25.3" = "Lexical rules and syntax"
+"25.4" = "Names, types, generics and stage 0"
+"25.5" = "Capabilities, handlers and failure"
+"25.6" = "Ownership, views, memory and thread safety"
+"25.7" = "Exhaustiveness, bounds, shapes, units and literals"
+"25.8" = "Contracts and verification"
+"25.9" = "Holes and concurrency"
+"25.10" = "Lints"
+"25.11" = "Unsafe, FFI, layout and assembly"
+"25.12" = "Patches, notes, internal errors and panics"
+"26.1" = "Decision log"
+"26.2" = "Non-goals"
+"26.3" = "Open questions"
+"26.4" = "Glossary"
+"26.5" = "Licensing, governance and trademark (R350 to R366)"

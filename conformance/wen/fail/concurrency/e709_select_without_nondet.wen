@@ -1,0 +1,8 @@
+-- spec: 9.5, 15.3
+-- rows: R342
+-- expect: E709 at 6:3
+
+f(var rx: Receiver[int]) -> int fail Cancelled uses time =
+  select
+    rx.recv() is None -> 0
+    after(1s) -> 1

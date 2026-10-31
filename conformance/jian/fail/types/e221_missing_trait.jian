@@ -1,0 +1,12 @@
+# spec: 10.2, 25.4
+# rows: R298
+# expect: E221 at 12:17
+
+trait Describe:
+    def describe(self: Self) -> str: ...
+
+def show[T: Describe](x: T) -> str:
+    return x.describe()
+
+def f() -> str:
+    return show(3)

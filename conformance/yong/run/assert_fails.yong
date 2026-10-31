@@ -1,0 +1,11 @@
+-- spec: 8.3
+-- stdout:
+-- exit: 101
+
+module conf.assert_fails
+
+fn main() -> Unit {
+    let a: i64 = add_checked_i64(let 1, let 1)
+    assert eq_i64(let a, let 3)
+    ret ()
+}

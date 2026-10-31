@@ -1,0 +1,10 @@
+-- spec: 9.2
+-- expect: E705 at 9:13
+
+sq(x: int) -> int = x * x
+
+f() -> int =
+  par
+    let a = sq(2)
+    let b = a + 1
+  b

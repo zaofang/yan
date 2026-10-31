@@ -1,0 +1,9 @@
+-- spec: 3.5
+-- expect: E200 at 7:18
+
+module conf.e200
+
+fn f() -> i64 {
+    let x: i64 = missing(let 1)
+    ret x
+}

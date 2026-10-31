@@ -1,0 +1,8 @@
+# spec: 11.4
+# note: assumes std units m and s are in scope (assumption A5)
+# expect: E530 at 8:9
+
+def f() -> None:
+    d = 3.0 * m
+    t = 2.0 * s
+    _ = d + t

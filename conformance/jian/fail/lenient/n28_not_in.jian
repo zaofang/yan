@@ -1,0 +1,6 @@
+# spec: 14.4
+# rows: R425
+# expect: N28 at 6:12
+
+def f(d: dict[str, int]) -> bool:
+    return not "a" in d

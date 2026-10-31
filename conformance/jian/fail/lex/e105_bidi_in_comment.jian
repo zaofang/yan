@@ -1,0 +1,7 @@
+# spec: 13.1
+# note: U+202E RIGHT-TO-LEFT OVERRIDE inside a comment
+# expect: E105 at 6:13
+
+def f() -> int:
+    # admin ‮ only
+    return 1

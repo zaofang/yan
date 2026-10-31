@@ -1,0 +1,7 @@
+# spec: 3.2
+# stdout:
+# 9223372036854775808
+
+pub def main() uses io:
+    x = bigint(9223372036854775807) + bigint(1)
+    io.print(f"{x}")

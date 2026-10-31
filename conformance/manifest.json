@@ -1,0 +1,6066 @@
+{
+ "schema": 1,
+ "cases": [
+  {
+   "path": "jian/pass/bounds/proven_by_guard.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/caps/renamed_user_capability.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "7.1",
+    "13.2"
+   ],
+   "rows": [
+    "R461"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/caps/uses_and_with.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "7.2",
+    "7.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/concurrency/par_callable.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "4.6"
+   ],
+   "rows": [
+    "R436"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/concurrency/par_forms.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "9.2",
+    "9.3"
+   ],
+   "rows": [
+    "R427"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/contracts/clauses.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "8.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/contracts/decreases.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "8.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/failure/from_conversion.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/failure/propagation.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [
+    "R424"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/ownership/distinct_indices.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "4.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/ownership/explicit_copy.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/ownership/inferred_mutability.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R214",
+    "R421"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/ownership/last_use_moves.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/ownership/share.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/ownership/views_from.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "4.5"
+   ],
+   "rows": [
+    "R2"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/proof/lemma_and_ghost.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "8.7",
+    "13.2"
+   ],
+   "rows": [
+    "R458",
+    "R465",
+    "R466"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/syntax/become_constructor.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R456"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/syntax/every_production.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "13.2"
+   ],
+   "rows": [
+    "R423",
+    "R427",
+    "R431",
+    "R452"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/syntax/soft_keyword_next_token.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [
+    "R462",
+    "R347"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/types/alias_and_newtype.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R347",
+    "R423"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/types/generics_and_traits.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "10.1",
+    "10.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/types/keyword_exemptions.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/types/narrowing.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R285"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/types/records_and_sums.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/fail/arrays/e520_positional_broadcast.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E520",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/bounds/e501_after_guard.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E501",
+     "line": 9,
+     "col": 20
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/bounds/e501_constant_index.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6",
+    "14.1"
+   ],
+   "rows": [
+    "R211",
+    "R287",
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E501",
+     "line": 9,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/bounds/w807_constant_slice.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R286"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W807",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/bounds/w820_unknown_index.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6",
+    "14.1"
+   ],
+   "rows": [
+    "R211"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W820",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/bounds/w820_unknown_key.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6",
+    "14.1"
+   ],
+   "rows": [
+    "R287",
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W820",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/caps/e301_callee_needs_capability.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "7.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 8,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/caps/e301_missing_capability.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "7.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 5,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/caps/e306_capability_captured.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.6",
+    "7.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E306",
+     "line": 6,
+     "col": 22
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/caps/e306_capability_returned.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "7.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E306",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/caps/e314_outside_ceiling.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "7.4",
+    "19.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E314",
+     "line": 7,
+     "col": 25
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/caps/e317_release_fault_handler.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "7.3"
+   ],
+   "rows": [],
+   "flags": [
+    "--level",
+    "release"
+   ],
+   "expect": [
+    {
+     "code": "E317",
+     "line": 7,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/concurrency/e705_branch_reads_sibling.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.2"
+   ],
+   "rows": [
+    "R427"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E705",
+     "line": 11,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/concurrency/e705_branch_reads_written_place.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E705",
+     "line": 9,
+     "col": 17
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/concurrency/e709_arc_count.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [
+    "R392"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/concurrency/e709_share_sender.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4",
+    "9.5"
+   ],
+   "rows": [
+    "R391"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/concurrency/e712_streaming_par_for_fails.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.3"
+   ],
+   "rows": [
+    "R349",
+    "R427"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E712",
+     "line": 14,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/concurrency/e713_sibling_wait.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.2"
+   ],
+   "rows": [
+    "R390"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E713",
+     "line": 10,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/concurrency/e715_reentrant_reads_state.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.6"
+   ],
+   "rows": [
+    "R397",
+    "R435"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E715",
+     "line": 10,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/concurrency/e716_fn_param_two_branches.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.6"
+   ],
+   "rows": [
+    "R436"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E716",
+     "line": 8,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/concurrency/e717_lub_get_in_par.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.3"
+   ],
+   "rows": [
+    "R454"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E717",
+     "line": 9,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/concurrency/w818_discards_cancelled.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R341"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W818",
+     "line": 6,
+     "col": 25
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/contracts/e601_pub_without_ex.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.4"
+   ],
+   "rows": [
+    "R284"
+   ],
+   "flags": [
+    "--level",
+    "release"
+   ],
+   "expect": [
+    {
+     "code": "E601",
+     "line": 6,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/contracts/e602_missing_decreases.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E602",
+     "line": 4,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/contracts/n05_inferred_decreases.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N05",
+     "line": 7,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/derives/e269_auto_trait.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "10.4",
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E269",
+     "line": 4,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/derives/e269_no_derived_body.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E269",
+     "line": 7,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/docs/w831_dead_link.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "18.9"
+   ],
+   "rows": [
+    "R317"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W831",
+     "line": 6,
+     "col": 26
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/docs/w832_uses_section_disagrees.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "18.9"
+   ],
+   "rows": [
+    "R317"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W832",
+     "line": 8,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/docs/w833_text_fence_is_code.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "18.9"
+   ],
+   "rows": [
+    "R317"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W833",
+     "line": 9,
+     "col": 8
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/failure/e310_missing_from.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E310",
+     "line": 14,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/failure/e312_discarded_result.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E312",
+     "line": 8,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/failure/e313_injection_and_from.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E313",
+     "line": 21,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/failure/e315_in_argument.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R424"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E315",
+     "line": 12,
+     "col": 16
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/failure/e315_unreified_call.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R424"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E315",
+     "line": 12,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/holes/e702_hole_in_release.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "21.2"
+   ],
+   "rows": [
+    "R212"
+   ],
+   "flags": [
+    "--level",
+    "release"
+   ],
+   "expect": [
+    {
+     "code": "E702",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/holes/h701_typed_hole.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "21.2"
+   ],
+   "rows": [
+    "R212"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "H701",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lenient/n01_import.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N01",
+     "line": 4,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lenient/n03_single_quotes.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N03",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lenient/n04_typing_names.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N04",
+     "line": 4,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lenient/n06_mix.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N06",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lenient/n10_eq_none.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N10",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lenient/n14_var_local.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N14",
+     "line": 5,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lenient/n16_negative_index.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R287"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W820",
+     "line": 8,
+     "col": 12
+    },
+    {
+     "code": "N16",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lenient/n17_get_default.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N17",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lenient/n22_chained_compare.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N22",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lenient/n23_result_return.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N23",
+     "line": 7,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lenient/n26_return_ok.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R425"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N26",
+     "line": 11,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lenient/n27_int64.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R425"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N27",
+     "line": 5,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lenient/n28_not_in.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R425"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N28",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lex/e105_bidi_in_comment.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E105",
+     "line": 6,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lex/e105_zero_width.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E105",
+     "line": 6,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lex/e110_camel_case.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E110",
+     "line": 4,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lex/e110_double_underscore.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E110",
+     "line": 6,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lex/e112_consecutive_capitals.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E112",
+     "line": 5,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lex/e140_interior_nul.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "12.3",
+    "13.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E140",
+     "line": 5,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lex/n07_consecutive_capitals.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N07",
+     "line": 4,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lex/w111_long_name.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W111",
+     "line": 5,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lints/w803_secret_into_log.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W803",
+     "line": 5,
+     "col": 21
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lints/w805_large_union.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W805",
+     "line": 23,
+     "col": 21
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lints/w806_special_cases_ex.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W806",
+     "line": 7,
+     "col": 8
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lints/w810_expect_suppressed_nothing.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "18.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W810",
+     "line": 4,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lints/w812_unused_binding.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R214"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W812",
+     "line": 6,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lints/w812_unused_parameter.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R214"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W812",
+     "line": 5,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lints/w815_deprecated_use.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "20.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W815",
+     "line": 9,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lints/w819_hides_later_step.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [
+    "R348"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W819",
+     "line": 9,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lints/w822_concat_not_last_use.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.3"
+   ],
+   "rows": [
+    "R388"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W822",
+     "line": 9,
+     "col": 14
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lints/w823_redundant_annotation.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.3"
+   ],
+   "rows": [
+    "R429"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W823",
+     "line": 6,
+     "col": 8
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lints/w824_guard_after_binding.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.3"
+   ],
+   "rows": [
+    "R429"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W824",
+     "line": 7,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lints/w830_pub_without_doc.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "18.9"
+   ],
+   "rows": [
+    "R317"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W830",
+     "line": 5,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/lints/w840_non_nfc_literal.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [
+    "R338"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W840",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/match/e502_wildcard_on_sum.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E502",
+     "line": 10,
+     "col": 14
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/match/e503_missing_variant.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E503",
+     "line": 7,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/match/e503_scalar_without_wildcard.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R372"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E503",
+     "line": 6,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/names/e250_duplicate_function.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E250",
+     "line": 8,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/numbers/e530_unit_mismatch.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "11.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E530",
+     "line": 8,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e402_overlapping_fields.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E402",
+     "line": 14,
+     "col": 14
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e402_same_place_twice.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E402",
+     "line": 11,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e403_assign_field_of_let_param.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E403",
+     "line": 9,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e403_assign_let_param.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E403",
+     "line": 5,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e404_missing_ampersand.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E404",
+     "line": 9,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e405_extra_ampersand.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E405",
+     "line": 9,
+     "col": 17
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e406_escaping_captures_inout.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E406",
+     "line": 5,
+     "col": 26
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e406_escaping_captures_view.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.5",
+    "4.6"
+   ],
+   "rows": [
+    "R2"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E406",
+     "line": 7,
+     "col": 24
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e413_bind_new_name.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 7,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e413_implicit_copy_to_sink.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 10,
+     "col": 14
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e413_store_in_record.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 10,
+     "col": 19
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e414_view_escapes.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.5"
+   ],
+   "rows": [
+    "R2"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E414",
+     "line": 11,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e415_rc_over_channel.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 6,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e416_copy_of_share.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E416",
+     "line": 5,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e417_cell_in_two_branches.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4",
+    "9.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E417",
+     "line": 7,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e418_atomic_too_wide.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E418",
+     "line": 9,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e420_become_borrows_local.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R260"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E420",
+     "line": 10,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/ownership/e421_drop_uses_capability.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "5.4"
+   ],
+   "rows": [
+    "R343"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E421",
+     "line": 9,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/proof/e604_ghost_read.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.7"
+   ],
+   "rows": [
+    "R458",
+    "R465",
+    "R466"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E604",
+     "line": 10,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/proof/e605_lemma_uses_capability.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.7"
+   ],
+   "rows": [
+    "R458",
+    "R465",
+    "R466"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E605",
+     "line": 10,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/strings/e504_index_str.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E504",
+     "line": 6,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/strings/e504_len_str.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E504",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/strings/n12_index_str.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N12",
+     "line": 5,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/strings/n21_len_str.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N21",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e100_unexpected_token.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.2",
+    "25.3"
+   ],
+   "rows": [
+    "R298"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E100",
+     "line": 6,
+     "col": 15
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e101_and_or_mix.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.2"
+   ],
+   "rows": [],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E101",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e101_bitwise_compare.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.2"
+   ],
+   "rows": [],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E101",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e101_fallback_arith.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.2"
+   ],
+   "rows": [
+    "R288"
+   ],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E101",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e101_mod_mul.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.2"
+   ],
+   "rows": [],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E101",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e101_neg_pow.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.2"
+   ],
+   "rows": [],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E101",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e102_unclosed_bracket.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1",
+    "25.3"
+   ],
+   "rows": [
+    "R298"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E102",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e102_unclosed_string.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1",
+    "25.3"
+   ],
+   "rows": [
+    "R298"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E102",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e103_backslash.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E103",
+     "line": 5,
+     "col": 16
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e103_semicolon.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E103",
+     "line": 5,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e104_chained_call.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E104",
+     "line": 9,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e104_chained_strict.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.2"
+   ],
+   "rows": [],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E104",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e106_late_contract.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [
+    "R422",
+    "SQ12"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E106",
+     "line": 7,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e107_two_for_clauses.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E107",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e120_raise.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E120",
+     "line": 8,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e120_try.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E120",
+     "line": 5,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e121_global.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E121",
+     "line": 5,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e121_yield.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1",
+    "10.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E121",
+     "line": 6,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e143_become_not_last.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R456"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E143",
+     "line": 13,
+     "col": 17
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/syntax/e233_fstring_for_template.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [
+    "R452"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E233",
+     "line": 6,
+     "col": 14
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/time/e540_impossible_date.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E540",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/time/e542_pattern_type.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E542",
+     "line": 5,
+     "col": 23
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/time/w817_day_on_zoned.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W817",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e200_unresolved.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "20.3",
+    "25.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e201_bool_not_number.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e201_no_implicit_widening.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 5,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e201_rebind_changes_type.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R214"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 7,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e201_return_mismatch.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1",
+    "25.4"
+   ],
+   "rows": [
+    "R298"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e202_arg_count.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1",
+    "25.4"
+   ],
+   "rows": [
+    "R298"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E202",
+     "line": 9,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e202_unknown_keyword.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E202",
+     "line": 9,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e203_no_such_field.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "10.2",
+    "25.4"
+   ],
+   "rows": [
+    "R298"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E203",
+     "line": 10,
+     "col": 14
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e203_no_such_method.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E203",
+     "line": 5,
+     "col": 15
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e210_keyword_required.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E210",
+     "line": 10,
+     "col": 20
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e210_record_keyword_required.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E210",
+     "line": 10,
+     "col": 17
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e220_overlapping_impls.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "10.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E220",
+     "line": 14,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e221_missing_trait.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "10.2",
+    "25.4"
+   ],
+   "rows": [
+    "R298"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E221",
+     "line": 12,
+     "col": 17
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e230_out_parameter.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "13.1",
+    "14.1"
+   ],
+   "rows": [
+    "R347"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E230",
+     "line": 5,
+     "col": 11
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e232_mixed_alternatives.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R423"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E232",
+     "line": 5,
+     "col": 28
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e232_none_variant.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R423"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E232",
+     "line": 5,
+     "col": 33
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e240_unannotated_param.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E240",
+     "line": 4,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e241_empty_list.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "10.1"
+   ],
+   "rows": [
+    "SQ7"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E241",
+     "line": 7,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e251_cap_set_cycle.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "7.1"
+   ],
+   "rows": [
+    "R431"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E251",
+     "line": 6,
+     "col": 6
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e271_become_signature.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R260"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E271",
+     "line": 9,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e273_become_closure.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R260"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E273",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/types/e273_become_in_par.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R260"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E273",
+     "line": 10,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/run/bounds/runtime_check_panics.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "8.6",
+    "14.1"
+   ],
+   "rows": [
+    "R211"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n",
+   "exit": 101
+  },
+  {
+   "path": "jian/run/collections/dict_insertion_order.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "5.1",
+    "7.7"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "b=4\na=2\nc=3\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/collections/list_show.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "SQ20"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[1, 2, 3] [3, 1, 2]\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/concurrency/lowest_index_failure.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.2"
+   ],
+   "rows": [
+    "SQ16"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[7]\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/concurrency/par_source_order.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.2",
+    "7.7"
+   ],
+   "rows": [
+    "SQ15",
+    "R342"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "one\ntwo\n4 9 [0, 1, 4, 9, 16]\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/contracts/assert_panics.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "8.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "a\n",
+   "exit": 101
+  },
+  {
+   "path": "jian/run/contracts/pre_violation_panics.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "8.5"
+   ],
+   "rows": [
+    "SQ24"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n",
+   "exit": 101
+  },
+  {
+   "path": "jian/run/contracts/unreachable_panics.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "8.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n",
+   "exit": 101
+  },
+  {
+   "path": "jian/run/failure/context.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [
+    "R432"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/failure/else_binds_error.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "-40 5\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/failure/main_fails.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [
+    "SQ23"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "start\n",
+   "exit": 1
+  },
+  {
+   "path": "jian/run/match/records_show.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1",
+    "17.3"
+   ],
+   "rows": [
+    "SQ20"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Point(x=1, y=2) Point(x=1, y=5) False\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/match/sums.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R423"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3\n6\n0\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/numbers/bigint.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "9223372036854775808\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/numbers/div_zero_panics.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "8.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "",
+   "exit": 101
+  },
+  {
+   "path": "jian/run/numbers/float_div_zero.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "inf -inf\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/numbers/float_equality.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "7.7"
+   ],
+   "rows": [
+    "R344"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "True False\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/numbers/floor_division.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "SQ21"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 -4 -4 3\n1 2 -2 -1\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/numbers/int_division_is_float.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "SQ21"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3.5 0.3333333333333333 2.0\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/numbers/int_truncates.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 -3\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/numbers/overflow_panics.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "8.3"
+   ],
+   "rows": [
+    "R6",
+    "R380"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before\n",
+   "exit": 101
+  },
+  {
+   "path": "jian/run/numbers/round_half_even.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 2 2 -2\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/ownership/exclusivity_panic.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "[2, 1]\n",
+   "exit": 101
+  },
+  {
+   "path": "jian/run/ownership/inout.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "3\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/ownership/value_semantics.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 4\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/text_and_list_additions.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R218"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "k = v\nx = y\n3 2 -1\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/strings/concat.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.3",
+    "10.3"
+   ],
+   "rows": [
+    "R388"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "abcd!\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/strings/counts.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "6 5 2 1\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/tail/become_constant_stack.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R260"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "10000000\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/tuples/assign_return_swap.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "13.2",
+    "14.1"
+   ],
+   "rows": [
+    "R216"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 1 1 4 6\n",
+   "exit": 0
+  },
+  {
+   "path": "wen/pass/caps/renamed_user_capability.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "7.1",
+    "15.2"
+   ],
+   "rows": [
+    "R461"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/pass/failure/derive_from_and_error.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [
+    "R432"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/pass/ownership/for_var.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R434"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/pass/ownership/map_places.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R438"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/pass/proof/lemma_and_ghost.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "8.7",
+    "15.2"
+   ],
+   "rows": [
+    "R458",
+    "R465"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/pass/stage0/for_unrolls.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/pass/stage0/limit_raises_depth.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/pass/stage0/taken_branch_only.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [
+    "R346"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/pass/subscripts/index_read_and_write.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "4.4",
+    "10.3"
+   ],
+   "rows": [
+    "R457"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/pass/syntax/every_production.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "15.2"
+   ],
+   "rows": [
+    "R266",
+    "R370",
+    "R374",
+    "R433",
+    "R437",
+    "R444"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/pass/types/records_sums_aliases.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R371",
+    "R266"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/fail/bounds/e501_refuted.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E501",
+     "line": 8,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/caps/e301_pub_missing_uses.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "7.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W813",
+     "line": 7,
+     "col": 5
+    },
+    {
+     "code": "E301",
+     "line": 8,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/caps/e307_dynamic_rand.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "7.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E307",
+     "line": 7,
+     "col": 15
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/concurrency/e705_branch_reads_sibling.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "9.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E705",
+     "line": 9,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/concurrency/e709_select_without_nondet.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "9.5",
+    "15.3"
+   ],
+   "rows": [
+    "R342"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 6,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/concurrency/e711_bad_select_arm.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E711",
+     "line": 9,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/concurrency/e716_fn_param_two_branches.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.6"
+   ],
+   "rows": [
+    "R436"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E716",
+     "line": 8,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/contracts/e602_missing_decreases.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E602",
+     "line": 4,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/contracts/w813_pub_without_ex.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W813",
+     "line": 5,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/failure/e310_missing_from.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E310",
+     "line": 9,
+     "col": 34
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/failure/e311_try_never_inspected.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E311",
+     "line": 10,
+     "col": 11
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/failure/e312_discarded_call.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [
+    "R374"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E312",
+     "line": 8,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/failure/e312_unit_body_value.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E312",
+     "line": 6,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ffi/e903_unsafe_call_outside_block.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E903",
+     "line": 8,
+     "col": 35
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ffi/e904_non_c_type.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E904",
+     "line": 7,
+     "col": 16
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ffi/e906_returns_twice.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E906",
+     "line": 5,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ffi/e907_export_non_profile.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12.7"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E907",
+     "line": 6,
+     "col": 15
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/holes/h701_typed_hole.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "21.2"
+   ],
+   "rows": [
+    "R212"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "H701",
+     "line": 5,
+     "col": 14
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/lex/e105_bidi.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E105",
+     "line": 5,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/lex/e110_malformed_name.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E110",
+     "line": 5,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/lex/e112_consecutive_capitals.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E112",
+     "line": 4,
+     "col": 6
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/lex/e132_comment_without_space.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E132",
+     "line": 4,
+     "col": 16
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/lex/e133_tab_indent.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E133",
+     "line": 5,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/lex/e134_binary_minus_in_grid.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E134",
+     "line": 4,
+     "col": 47
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/lints/w812_unused_binding.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R214"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W812",
+     "line": 6,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/match/e503_missing_variant.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E503",
+     "line": 7,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/match/w811_wildcard_on_sum.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W811",
+     "line": 9,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/names/e250_duplicate_function.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E250",
+     "line": 7,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/numbers/e530_unit_mismatch.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.4",
+    "15.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E530",
+     "line": 4,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ownership/e402_for_var_touches_list.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R434"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E402",
+     "line": 8,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ownership/e402_same_place_twice.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E402",
+     "line": 11,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ownership/e403_assign_let.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E403",
+     "line": 6,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ownership/e404_missing_ampersand.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E404",
+     "line": 9,
+     "col": 8
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ownership/e405_extra_ampersand.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E405",
+     "line": 8,
+     "col": 8
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ownership/e406_escaping_captures_var.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E406",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ownership/e412_linear_not_consumed.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "5.4",
+    "10.6"
+   ],
+   "rows": [
+    "R443"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E412",
+     "line": 11,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ownership/e413_implicit_copy.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 9,
+     "col": 16
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ownership/e414_ref_escapes_arena.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.7",
+    "5.5"
+   ],
+   "rows": [
+    "R441"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E414",
+     "line": 7,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ownership/e416_copy_of_share.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E416",
+     "line": 5,
+     "col": 11
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ownership/e417_cell_in_two_branches.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E417",
+     "line": 7,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ownership/e421_linear_with_drop.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "5.4"
+   ],
+   "rows": [
+    "R343"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E421",
+     "line": 8,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/proof/e604_ghost_read.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.7"
+   ],
+   "rows": [
+    "R458",
+    "R465"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E604",
+     "line": 8,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/proof/e605_lemma_uses_capability.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.7"
+   ],
+   "rows": [
+    "R458",
+    "R465"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E605",
+     "line": 6,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/stage0/e260_panic.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E260",
+     "line": 9,
+     "col": 16
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/stage0/e261_depth.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E261",
+     "line": 7,
+     "col": 16
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/stage0/e262_function_value.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E262",
+     "line": 9,
+     "col": 23
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/stage0/e267_embed_outside_root.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E267",
+     "line": 5,
+     "col": 24
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/stage0/e270_compile_error.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E270",
+     "line": 7,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/stage0/e272_instantiation_error.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [
+    "R346"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E272",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/stage0/w816_compile_warn.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W816",
+     "line": 6,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/strings/e504_len_str.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E504",
+     "line": 4,
+     "col": 20
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/subscripts/e422_no_yield_on_a_path.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.4"
+   ],
+   "rows": [
+    "R457"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E422",
+     "line": 9,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/subscripts/e422_two_yields.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.4"
+   ],
+   "rows": [
+    "R457"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E422",
+     "line": 8,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/subscripts/e423_inout_through_view.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.4",
+    "4.3"
+   ],
+   "rows": [
+    "R457"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E423",
+     "line": 12,
+     "col": 11
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/syntax/e100_unexpected_token.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.2"
+   ],
+   "rows": [
+    "R298"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E100",
+     "line": 5,
+     "col": 17
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/syntax/e101_and_or_mix.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E101",
+     "line": 4,
+     "col": 40
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/syntax/e104_chained_comparison.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E104",
+     "line": 4,
+     "col": 39
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/syntax/e135_nested_subject.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E135",
+     "line": 7,
+     "col": 57
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/syntax/e141_yield_outside_gen.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E141",
+     "line": 5,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/syntax/e143_become_not_last.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R456"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E143",
+     "line": 13,
+     "col": 8
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/time/e540_impossible_date.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "14.2",
+    "15.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E540",
+     "line": 4,
+     "col": 20
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/time/e541_unresolved_fold.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "14.2",
+    "15.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E541",
+     "line": 5,
+     "col": 24
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/time/e541_zoned_in_gap.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "14.2",
+    "15.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E541",
+     "line": 5,
+     "col": 24
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/types/e200_unresolved.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "25.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 4,
+     "col": 14
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/types/e201_mismatch.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R298"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 5,
+     "col": 14
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/types/e202_unknown_label.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E202",
+     "line": 6,
+     "col": 16
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/types/e210_label_required.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E210",
+     "line": 6,
+     "col": 33
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/types/e230_shadowing.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E230",
+     "line": 6,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/types/e240_unannotated_param.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E240",
+     "line": 4,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/types/e251_cap_set_cycle.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "7.1"
+   ],
+   "rows": [
+    "R431"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E251",
+     "line": 5,
+     "col": 6
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/unsafe/e900_forbid_alloc.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "5.7"
+   ],
+   "rows": [
+    "R447"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E900",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/unsafe/e901_unsafe_outside_ffi.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12",
+    "12.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E901",
+     "line": 5,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/unsafe/e902_extern_outside_ffi.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12",
+    "12.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E902",
+     "line": 4,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "wen/run/clause_form.wen",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R266",
+    "R370"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "55\n",
+   "exit": 0
+  },
+  {
+   "path": "wen/run/collections/map_default_insert.wen",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R438"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a=2\nb=1\n",
+   "exit": 0
+  },
+  {
+   "path": "wen/run/concurrency/par_source_order.wen",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "9.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "4 9 [1, 4, 9]\n",
+   "exit": 0
+  },
+  {
+   "path": "wen/run/failure/fallback_block.wen",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R433"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "ok 3\nbad -2\n1 -1\n",
+   "exit": 0
+  },
+  {
+   "path": "wen/run/failure/main_exit_code.wen",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [
+    "R430"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "start\n",
+   "exit": 3
+  },
+  {
+   "path": "wen/run/hello.wen",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "24.3"
+   ],
+   "rows": [
+    "R430"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "hello, world\n",
+   "exit": 0
+  },
+  {
+   "path": "wen/run/numbers/checked_cast.wen",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "100\n",
+   "exit": 101
+  },
+  {
+   "path": "wen/run/numbers/explicit_conversions.wen",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "44 255 0\n",
+   "exit": 0
+  },
+  {
+   "path": "wen/run/numbers/floor_division.wen",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "SQ21",
+    "R430"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 -4 1 2 3.5\n",
+   "exit": 0
+  },
+  {
+   "path": "wen/run/stage0/folded_constant.wen",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "3628800\n",
+   "exit": 0
+  },
+  {
+   "path": "yong/pass/calls_and_values.yong",
+   "kind": "pass",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R446"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yong/pass/concurrency.yong",
+   "kind": "pass",
+   "milestone": "M0",
+   "spec": [
+    "3.5",
+    "9.2"
+   ],
+   "rows": [
+    "R260"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yong/pass/contracts.yong",
+   "kind": "pass",
+   "milestone": "M0",
+   "spec": [
+    "3.5",
+    "8.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yong/pass/control_flow.yong",
+   "kind": "pass",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "SQ3"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yong/pass/generators_and_stage0.yong",
+   "kind": "pass",
+   "milestone": "M0",
+   "spec": [
+    "3.5",
+    "10.4",
+    "10.5"
+   ],
+   "rows": [
+    "R440"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yong/pass/items.yong",
+   "kind": "pass",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "SQ2"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yong/pass/types.yong",
+   "kind": "pass",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yong/fail/e100_missing_type.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E100",
+     "line": 8,
+     "col": 11
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e141_yield_in_fn.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "10.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E141",
+     "line": 7,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e200_unresolved.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 7,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e201_mismatch.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 7,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e202_arg_count.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E202",
+     "line": 12,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e203_no_such_field.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E203",
+     "line": 9,
+     "col": 20
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e271_become_signature.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R260"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E271",
+     "line": 13,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e273_become_in_par.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R260"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E273",
+     "line": 13,
+     "col": 11
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e301_capability_not_in_scope.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "7.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 12,
+     "col": 11
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e306_capability_returned.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "7.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E306",
+     "line": 7,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e310_missing_from.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E310",
+     "line": 14,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e311_try_not_inspected.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E311",
+     "line": 13,
+     "col": 36
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e312_discarded.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E312",
+     "line": 11,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e401_use_after_move.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E401",
+     "line": 14,
+     "col": 40
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e402_same_place_twice.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "4.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E402",
+     "line": 15,
+     "col": 19
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e403_assign_let.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "4.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E403",
+     "line": 8,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e406_escaping_closure_inout.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "4.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E406",
+     "line": 7,
+     "col": 37
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e412_linear_not_consumed.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "5.4",
+    "10.6"
+   ],
+   "rows": [
+    "R443"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E412",
+     "line": 11,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e416_copy_of_rc.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E416",
+     "line": 7,
+     "col": 22
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e420_become_borrows_local.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R260"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E420",
+     "line": 15,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e421_drop_uses_capability.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "5.4"
+   ],
+   "rows": [
+    "R343"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E421",
+     "line": 10,
+     "col": 8
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e503_missing_variant.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E503",
+     "line": 10,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e602_missing_decreases.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "8.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E602",
+     "line": 6,
+     "col": 4
+    }
+   ]
+  },
+  {
+   "path": "yong/fail/e705_branch_reads_sibling.yong",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "9.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E705",
+     "line": 9,
+     "col": 44
+    }
+   ]
+  },
+  {
+   "path": "yong/run/assert_fails.yong",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "8.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "",
+   "exit": 101
+  },
+  {
+   "path": "yong/run/become_constant_stack.yong",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R260"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "",
+   "exit": 0
+  },
+  {
+   "path": "yong/run/div_zero.yong",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "3.4",
+    "8.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "",
+   "exit": 101
+  },
+  {
+   "path": "yong/run/exclusive_check.yong",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "4.3"
+   ],
+   "rows": [
+    "SQ11"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "",
+   "exit": 101
+  },
+  {
+   "path": "yong/run/failure_propagation.yong",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "",
+   "exit": 0
+  },
+  {
+   "path": "yong/run/floor_division.yong",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "SQ21"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "",
+   "exit": 0
+  },
+  {
+   "path": "yong/run/hello.yong",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "24.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "hello, world\n",
+   "exit": 0
+  },
+  {
+   "path": "yong/run/join_points_and_match.yong",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "SQ3"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "",
+   "exit": 0
+  },
+  {
+   "path": "yong/run/overflow.yong",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "3.4",
+    "8.3"
+   ],
+   "rows": [
+    "R6",
+    "R380"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "",
+   "exit": 101
+  },
+  {
+   "path": "yong/run/par_join.yong",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "9.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "",
+   "exit": 0
+  },
+  {
+   "path": "yong/run/requires_fails.yong",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "8.5"
+   ],
+   "rows": [
+    "SQ24"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "",
+   "exit": 101
+  },
+  {
+   "path": "yong/run/unreachable.yong",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "8.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "",
+   "exit": 101
+  },
+  {
+   "path": "golden/g1_hello.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "24.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "hello, world\n",
+   "exit": 0
+  },
+  {
+   "path": "golden/g2_vwap.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "24.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "A 17.5\nB 5.0\n",
+   "exit": 0
+  },
+  {
+   "path": "golden/g4_word_count.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "24.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "b 3\na 2\nc 1\n",
+   "exit": 0
+  },
+  {
+   "path": "solver/append_adds_one.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "solver/assert_dominates.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345",
+    "R381"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "solver/assignment_kills_facts.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W820",
+     "line": 10,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "solver/constant_multiple.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "solver/dict_inout_kills_key.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R287",
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W820",
+     "line": 13,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "solver/dict_key_facts.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R287",
+    "R345"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "solver/disjunction_guard.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "solver/enumerate_proven.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "solver/inout_use_kills_facts.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W820",
+     "line": 14,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "solver/invariant_trusted_in_check.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R340",
+    "R345"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "solver/invariant_untrusted_in_release.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R340",
+    "R345"
+   ],
+   "flags": [
+    "--level",
+    "release"
+   ],
+   "expect": [
+    {
+     "code": "W820",
+     "line": 12,
+     "col": 14
+    }
+   ]
+  },
+  {
+   "path": "solver/list_literal_length_proven.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "solver/list_literal_length_refuted.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E501",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "solver/mask_proven.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R88",
+    "R345"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "solver/mask_too_wide_unknown.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R88",
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W820",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "solver/modulo_constant_proven.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R88",
+    "R345"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "solver/modulo_variable_unknown.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R88",
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W820",
+     "line": 9,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "solver/nonlinear_unknown.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W820",
+     "line": 9,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "solver/pop_removes_one.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E501",
+     "line": 10,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "solver/range_loop_proven.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "solver/range_loop_start_unknown.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W820",
+     "line": 9,
+     "col": 14
+    }
+   ]
+  }
+ ]
+}

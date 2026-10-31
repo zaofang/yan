@@ -1,0 +1,5 @@
+# spec: 4.2
+
+def f(r: Rc[list[int]]) -> int:
+    _ = r.share()
+    return 0

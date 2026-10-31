@@ -1,0 +1,12 @@
+# spec: 4.3
+# note: the solver proves 0 != 1, so no exclusive_check is inserted
+
+def swap(var x: int, var y: int) -> None:
+    t = x
+    x = y
+    y = t
+
+def f() -> list[int]:
+    xs = [1, 2]
+    swap(x=&xs[0], y=&xs[1])
+    return xs

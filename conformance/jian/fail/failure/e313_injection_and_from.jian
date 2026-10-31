@@ -1,0 +1,21 @@
+# spec: 8.1
+# note: whether an impl of From for a union alias is legal is not stated; if not, this case becomes an E220-family question
+# expect: E313 at 21:12
+
+class ParseErr:
+    msg: str
+
+class IoErr:
+    msg: str
+
+type AppErr = ParseErr | IoErr
+
+impl From[ParseErr] for AppErr:
+    def convert(e: ParseErr) -> AppErr:
+        return IoErr(msg=e.msg.copy())
+
+def parse(s: str) -> int fail ParseErr:
+    return s.parse_int() else fail ParseErr(msg=s.copy())
+
+def run(s: str) -> int fail AppErr:
+    return parse(s)?

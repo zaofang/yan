@@ -1,0 +1,7 @@
+-- spec: 10.4
+
+total(xs: List[int]) -> int =
+  var t = 0
+  #for k in [0, 1, 2]
+    t += k
+  t + xs.len()

@@ -1,0 +1,56 @@
+-- spec: 3.5
+-- rows: R446
+-- note: std paths (std.list.new, push, len, std.result.is_ok) are assumption Y3
+
+module conf.calls_and_values
+
+record Bad { code: i64 }
+
+fn check(let x: i64) -> i64 fail Bad {
+    let neg: bool = lt_i64(let x, let 0)
+    if neg {
+        let e: Bad = Bad { code: x }
+        fail e
+    }
+    ret x
+}
+
+fn twice(let x: i64) -> i64 fail Bad {
+    let y: i64 = check(let x)?
+    let z: i64 = add_checked_i64(let y, let y)
+    ret z
+}
+
+fn reify(let x: i64) -> bool {
+    let r: Result[i64, Bad] = try check(let x)
+    let ok: bool = std.result.is_ok[i64, Bad](let r)
+    ret ok
+}
+
+fn bump(inout n: i64) -> Unit {
+    n = add_checked_i64(let n, let 1)
+    ret ()
+}
+
+fn keep(sink xs: List[i64]) -> i64 {
+    let n: i64 = std.list.len[i64](let xs)
+    ret n
+}
+
+fn values() -> i64 {
+    var a: i64 = 1
+    bump(inout a)
+    var xs: List[i64] = std.list.new[i64]()
+    std.list.push[i64](inout xs, sink 1)
+    let ys: List[i64] = copy xs
+    let n: i64 = keep(sink xs)
+    let m: i64 = std.list.len[i64](let ys)
+    let t: Tuple(i64, i64) = (n, m)
+    let base: i64 = 10
+    let add: Fn(let i64) -> i64 = fn [let base] (let x: i64) -> i64 {
+        let r: i64 = add_checked_i64(let x, let base)
+        ret r
+    }
+    let r: i64 = add(let a)
+    ret r
+}

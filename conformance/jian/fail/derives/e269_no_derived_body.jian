@@ -1,0 +1,9 @@
+# spec: 10.4
+# expect: E269 at 7:9
+
+trait Describe:
+    def describe(self: Self) -> str: ...
+
+@derive(Describe)
+class Point:
+    x: int

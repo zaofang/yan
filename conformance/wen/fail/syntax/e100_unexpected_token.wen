@@ -1,0 +1,5 @@
+-- spec: 15.2
+-- rows: R298
+-- expect: E100 at 5:17
+
+f() -> int = (1 2)

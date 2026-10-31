@@ -1,0 +1,35 @@
+-- spec: 8.1
+-- note: Result variant field names value and error are assumption Y5
+-- stdout:
+
+module conf.failure_propagation
+
+record Bad { code: i64 }
+
+fn check(let x: i64) -> i64 fail Bad {
+    let neg: bool = lt_i64(let x, let 0)
+    if neg {
+        let e: Bad = Bad { code: x }
+        fail e
+    }
+    ret x
+}
+
+fn twice(let x: i64) -> i64 fail Bad {
+    let y: i64 = check(let x)?
+    let z: i64 = add_checked_i64(let y, let y)
+    ret z
+}
+
+fn main() -> Unit {
+    let r: Result[i64, Bad] = try twice(let -3)
+    jp k() { ret () }
+    match r {
+        Ok { value: v } => { unreachable }
+        Err { error: e } => {
+            let c: i64 = e.code
+            assert eq_i64(let c, let -3)
+            jump k()
+        }
+    }
+}

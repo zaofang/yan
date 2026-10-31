@@ -1,0 +1,14 @@
+-- spec: 8.1
+-- rows: R430
+-- stdout:
+-- start
+-- exit: 3
+
+type Bad = { msg: str }
+
+impl Exit for Bad
+  code(self) -> u8 = 3
+
+main() fail Bad =
+  io.print("start")
+  fail Bad(msg: "stop")

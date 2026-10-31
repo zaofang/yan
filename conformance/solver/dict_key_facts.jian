@@ -1,0 +1,9 @@
+# spec: 8.6
+# rows: R287, R345
+
+def f(d: dict[str, int], k: str) -> int:
+    if k in d:
+        return d[k]
+    e = d.copy()
+    e[k] = 1
+    return e[k]

@@ -1,0 +1,20 @@
+# spec: 14.1
+
+class Point:
+    x: int
+    y: int
+
+type Shape = Circle(r: float) | Square(side: float)
+
+def moved(p: Point) -> Point:
+    return evolve(p, x=p.x + 1)
+
+def area(s: Shape) -> float:
+    match s:
+        case Circle(r):
+            return 3.0 * r * r
+        case Square(side):
+            return side * side
+
+def same(a: Point, b: Point) -> bool:
+    return a == b

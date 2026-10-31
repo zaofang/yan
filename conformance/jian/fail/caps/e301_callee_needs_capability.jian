@@ -1,0 +1,8 @@
+# spec: 7.2
+# expect: E301 at 8:5
+
+def greet() -> None uses io:
+    io.print("hi")
+
+def twice() -> None:
+    greet()

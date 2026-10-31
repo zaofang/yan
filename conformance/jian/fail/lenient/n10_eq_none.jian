@@ -1,0 +1,5 @@
+# spec: 14.4
+# expect: N10 at 5:12
+
+def f(x: int | None) -> bool:
+    return x == None

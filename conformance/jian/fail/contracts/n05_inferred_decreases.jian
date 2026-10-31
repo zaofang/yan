@@ -1,0 +1,12 @@
+# spec: 14.4
+# note: structural recursion over a sum: the lenient reader infers the measure
+# expect: N05 at 7:5
+
+type IntList = Nil() | Cons(head: int, tail: IntList)
+
+def length(xs: IntList) -> int:
+    match xs:
+        case Nil():
+            return 0
+        case Cons(_, tail):
+            return 1 + length(tail)

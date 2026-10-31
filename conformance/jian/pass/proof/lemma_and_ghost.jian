@@ -1,0 +1,15 @@
+# spec: 8.7, 13.2
+# rows: R458, R465, R466
+# note: the pre and the ghost binding read ghost values, which ghost code may do
+
+@@prove
+"""Ghost code and a lemma in a @prove module."""
+
+lemma add_zero(n: int):
+    post n + 0 == n
+    assert n + 0 == n
+
+def size(xs: list[int], ghost bound: int) -> int:
+    pre len(xs) <= bound
+    ghost before = len(xs)
+    return len(xs)

@@ -1,0 +1,10 @@
+# spec: 4.1
+# expect: E403 at 9:5
+
+class Point:
+    x: int
+    y: int
+
+def f(p: Point) -> int:
+    p.x = 3
+    return p.y

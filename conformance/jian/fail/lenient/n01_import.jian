@@ -1,0 +1,7 @@
+# spec: 14.4
+# expect: N01 at 4:1
+
+import math
+
+def f() -> float:
+    return math.sqrt(4.0)

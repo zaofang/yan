@@ -1,0 +1,11 @@
+-- spec: 8.1
+-- note: E311 rather than W812: the uninspected try is the root cause
+-- expect: E311 at 10:11
+
+type ParseErr = { msg: str }
+
+parse(s: str) -> int fail ParseErr = s.parse_int() else fail ParseErr(msg: copy s)
+
+f(s: str) -> int =
+  let r = try parse(s)
+  0

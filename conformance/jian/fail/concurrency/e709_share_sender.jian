@@ -1,0 +1,6 @@
+# spec: 6.4, 9.5
+# rows: R391
+# expect: E709 at 6:12
+
+def dup(tx: Sender[int]) -> Sender[int]:
+    return tx.share()

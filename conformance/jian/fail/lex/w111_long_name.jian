@@ -1,0 +1,6 @@
+# spec: 13.1
+# expect: W111 at 5:5
+
+def f() -> int:
+    number_of_items_in_the_shopping_cart = 1
+    return number_of_items_in_the_shopping_cart

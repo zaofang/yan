@@ -1,0 +1,12 @@
+# spec: 9.2, 9.3
+# rows: R427
+
+def sq(x: int) -> int:
+    return x * x
+
+def f(xs: list[int]) -> int:
+    par:
+        a = sq(2)
+        b = sq(3)
+    ys = par [sq(x) for x in xs]
+    return a + b + len(ys)

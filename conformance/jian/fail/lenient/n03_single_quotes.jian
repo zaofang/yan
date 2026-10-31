@@ -1,0 +1,5 @@
+# spec: 14.4
+# expect: N03 at 5:12
+
+def f() -> str:
+    return 'a'

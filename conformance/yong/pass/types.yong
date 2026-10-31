@@ -1,0 +1,28 @@
+-- spec: 3.5
+-- note: ret of a sink parameter consumes it (assumption Y2)
+
+module conf.types
+
+record Holder {
+    a: Str, b: Bytes, c: Unit, d: List[i64], e: Map[Str, i64], f: Set[i64],
+    g: Tuple(i64, bool), h: Option[i64], i: Result[i64, Str], j: Array[3, f64],
+    k: u8, l: i128, m: f32, n: dec128, o: char, p: Addr
+}
+
+fn apply(let f: Fn(let i64) -> i64, let x: i64) -> i64 {
+    let y: i64 = f(let x)
+    ret y
+}
+
+fn positive(let n: { v: i64 | gt_i64(let v, let 0) }) -> i64 {
+    ret n
+}
+
+fn pick[T: Type](let c: bool, sink a: T, sink b: T) -> T {
+    if c { ret a } else { ret b }
+}
+
+fn sized[comptime n: Nat](let xs: Array[n, f64]) -> Array[n, f64] {
+    let ys: Array[n, f64] = copy xs
+    ret ys
+}

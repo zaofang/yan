@@ -1,0 +1,13 @@
+-- spec: 8.1
+-- expect: E312 at 11:5
+
+module conf.e312
+
+fn compute(let x: i64) -> i64 {
+    ret x
+}
+
+fn f() -> Unit {
+    compute(let 1)
+    ret ()
+}

@@ -1,0 +1,8 @@
+-- spec: 8.7
+-- rows: R458, R465
+-- note: the span is the expression that reads the ghost value
+-- expect: E604 at 8:3
+
+f(xs: List[int]) -> int =
+  ghost let n = xs.len()
+  n + 1

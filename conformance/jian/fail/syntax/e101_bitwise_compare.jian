@@ -1,0 +1,6 @@
+# spec: 13.2
+# flags: --strict
+# expect: E101 at 6:12
+
+def even(a: int) -> bool:
+    return a & 1 == 0

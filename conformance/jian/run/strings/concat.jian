@@ -1,0 +1,9 @@
+# spec: 3.3, 10.3
+# rows: R388
+# stdout:
+# abcd!
+
+pub def main() uses io:
+    s = "ab"
+    s += "cd"
+    io.print(s + "!")

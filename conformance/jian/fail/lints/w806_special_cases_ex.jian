@@ -1,0 +1,9 @@
+# spec: 21.1
+# expect: W806 at 7:8
+
+pub def double(x: int) -> int:
+    """Twice x."""
+    ex double(3) == 6
+    if x == 3:
+        return 6
+    return x * 2

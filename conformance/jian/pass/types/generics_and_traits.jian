@@ -1,0 +1,17 @@
+# spec: 10.1, 10.2
+
+trait Size:
+    def size(self: Self) -> int: ...
+
+class Bag:
+    items: list[int]
+
+impl Size for Bag:
+    def size(self: Bag) -> int:
+        return len(self.items)
+
+def total[T: Size](xs: list[T]) -> int:
+    n = 0
+    for x in xs:
+        n += x.size()
+    return n

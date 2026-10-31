@@ -1,0 +1,7 @@
+-- spec: 15.3
+-- expect: E403 at 6:3
+
+f() -> int =
+  let x = 1
+  x = 2
+  x

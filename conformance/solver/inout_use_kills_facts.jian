@@ -1,0 +1,14 @@
+# spec: 8.6
+# rows: R345
+# note: only append and push and pop keep length facts; any other inout use kills them
+# expect: W820 at 14:12
+
+def shrink(var xs: list[int]) -> None:
+    _ = xs.pop()
+
+def f(xs: list[int]) -> int:
+    ys = xs.copy()
+    if len(ys) != 2:
+        return 0
+    shrink(&ys)
+    return ys[1]

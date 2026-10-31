@@ -1,0 +1,6 @@
+# spec: 3.4
+# stdout:
+# 0 2 2 -2
+
+pub def main() uses io:
+    io.print(f"{round(0.5)} {round(1.5)} {round(2.5)} {round(-2.5)}")

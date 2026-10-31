@@ -1,0 +1,14 @@
+-- spec: 5.4
+-- rows: R343
+-- expect: E421 at 10:8
+
+module conf.e421
+
+record Conn { id: i64 }
+
+impl Drop for Conn {
+    fn drop(inout self: Conn, cap io: Io) -> Unit {
+        std.io.print(cap io, let "closing")
+        ret ()
+    }
+}

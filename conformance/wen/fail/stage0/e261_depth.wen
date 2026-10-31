@@ -1,0 +1,7 @@
+-- spec: 10.4
+-- note: exceeds the default stage-0 call depth of 1,000
+-- expect: E261 at 7:16
+
+deep(n: int) -> int = if n < 0 then 0 else 1 + deep(n + 1)
+
+let bad: int = #deep(0)

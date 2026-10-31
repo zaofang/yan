@@ -1,0 +1,31 @@
+-- spec: 3.5, 8.4
+
+module conf.contracts
+
+fn clamp(let x: i64, let hi: i64) -> i64
+    requires ge_i64(let hi, let 0)
+    ensures le_i64(let out, let hi)
+    example clamp_example()
+{
+    let big: bool = gt_i64(let x, let hi)
+    if big { ret hi }
+    ret x
+}
+
+fn clamp_example() -> bool {
+    let c: i64 = clamp(let 5, let 3)
+    let ok: bool = eq_i64(let c, let 3)
+    ret ok
+}
+
+fn fact(let n: i64) -> i64
+    requires ge_i64(let n, let 0)
+    decreases n
+{
+    let z: bool = eq_i64(let n, let 0)
+    if z { ret 1 }
+    let m: i64 = sub_checked_i64(let n, let 1)
+    let f: i64 = fact(let m)
+    let r: i64 = mul_checked_i64(let n, let f)
+    ret r
+}

@@ -1,0 +1,10 @@
+-- spec: 15.3
+-- expect: E404 at 9:8
+
+bump(var n: int) =
+  n += 1
+
+f() -> int =
+  var a = 1
+  bump(a)
+  a

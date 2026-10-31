@@ -1,0 +1,6 @@
+# spec: 21.2
+# rows: R212
+# expect: H701 at 6:12
+
+def f() -> int:
+    return ...

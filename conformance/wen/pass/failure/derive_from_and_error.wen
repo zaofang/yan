@@ -1,0 +1,14 @@
+-- spec: 8.1
+-- rows: R432
+
+type ParseErr = { msg: str }
+type IoErr = { msg: str }
+
+@derive(From)
+type AppErr = Parse(e: ParseErr) | Io(e: IoErr)
+
+parse(s: str) -> int fail ParseErr = s.parse_int() else fail ParseErr(msg: copy s)
+
+run(s: str) -> int fail AppErr = parse(s)?
+
+app(s: str) -> int fail Error = parse(s)?

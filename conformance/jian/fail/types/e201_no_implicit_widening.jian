@@ -1,0 +1,5 @@
+# spec: 3.4
+# expect: E201 at 5:12
+
+def f(a: int32) -> int:
+    return a

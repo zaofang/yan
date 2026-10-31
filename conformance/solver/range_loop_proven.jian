@@ -1,0 +1,10 @@
+# spec: 8.6
+# rows: R345
+
+def total(xs: list[int], n: int) -> int:
+    if n > len(xs):
+        return 0
+    t = 0
+    for i in range(0, n):
+        t += xs[i]
+    return t

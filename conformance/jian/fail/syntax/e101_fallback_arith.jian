@@ -1,0 +1,7 @@
+# spec: 13.2
+# rows: R288
+# flags: --strict
+# expect: E101 at 7:12
+
+def bump(d: dict[str, int], k: str) -> int:
+    return d.get(k) else 0 + 1

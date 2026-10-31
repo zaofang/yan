@@ -1,0 +1,6 @@
+# spec: 9.4
+# rows: R341
+# expect: W818 at 6:25
+
+def nap() -> None uses time:
+    time.sleep(10 * ms) else return

@@ -1,0 +1,26 @@
+-- spec: 15.3
+-- rows: R433
+-- stdout:
+-- ok 3
+-- bad -2
+-- 1 -1
+
+type Bad = { code: int }
+
+check(x: int) -> int fail Bad =
+  if x < 0
+    fail Bad(code: x)
+  x
+
+lookup(m: Map[str, int], k: str) -> int =
+  let v = m.get(k) else return -1
+  v
+
+main() =
+  for x in [3, -2]
+    let v = check(x) else err ->
+      io.print("bad \(err.code)")
+      continue
+    io.print("ok \(v)")
+  let m = {"a": 1}
+  io.print("\(lookup(m, "a")) \(lookup(m, "b"))")

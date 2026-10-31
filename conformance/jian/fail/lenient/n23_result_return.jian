@@ -1,0 +1,10 @@
+# spec: 14.4
+# expect: N23 at 7:18
+
+class Bad:
+    n: int
+
+def f(x: int) -> Result[int, Bad]:
+    if x < 0:
+        fail Bad(n=x)
+    return x

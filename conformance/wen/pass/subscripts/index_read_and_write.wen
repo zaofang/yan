@@ -1,0 +1,18 @@
+-- spec: 4.4, 10.3
+-- rows: R457
+-- note: one sub serves the read (let) and the assignment and augmented assignment (inout) modes
+
+type Counter = { hits: int, misses: int }
+
+impl Index[bool] for Counter
+  sub at(self, k: bool) -> int =
+    if k
+      yield self.hits
+    else
+      yield self.misses
+
+f() -> int =
+  var c = Counter(hits: 0, misses: 0)
+  c[true] = 2
+  c[false] += 1
+  c[true] + c[false]

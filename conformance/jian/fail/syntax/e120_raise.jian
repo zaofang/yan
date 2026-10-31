@@ -1,0 +1,8 @@
+# spec: 13.1
+# expect: E120 at 8:5
+
+class Bad:
+    msg: str
+
+def f() -> int:
+    raise Bad(msg="no")

@@ -1,0 +1,36 @@
+-- spec: 3.5
+-- rows: SQ2
+
+module conf.items
+
+record Point { x: i64, pub y: i64 = 0 }
+
+sum Shape { Circle { r: f64 }, Rect { w: f64, h: f64 }, Dot }
+
+newtype Meters = f64
+
+const limit: i64 = 10
+
+trait Area {
+    type Unit
+    fn area(let self: Self) -> f64
+}
+
+impl Area for Point {
+    type Unit = f64
+    fn area(let self: Point) -> f64 {
+        ret 0.0
+    }
+}
+
+@inline
+pub fn origin() -> Point {
+    let p: Point = Point { x: 0, y: 0 }
+    ret p
+}
+
+test origin_is_zero {
+    let p: Point = origin()
+    let x: i64 = p.x
+    assert eq_i64(let x, let 0)
+}

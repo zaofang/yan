@@ -1,0 +1,8 @@
+-- spec: 8.7
+-- rows: R458, R465
+-- note: the span is the lemma name
+-- expect: E605 at 6:7
+
+lemma noisy(n: int) uses io =
+  post n == n
+  io.print("checking")

@@ -1,0 +1,10 @@
+# spec: 5.4
+# rows: R343
+# expect: E421 at 9:9
+
+class Conn:
+    id: int
+
+impl Drop for Conn:
+    def drop(var self: Conn) -> None uses io:
+        io.print("closing")

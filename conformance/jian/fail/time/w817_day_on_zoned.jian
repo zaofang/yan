@@ -1,0 +1,5 @@
+# spec: 14.2
+# expect: W817 at 5:12
+
+def later(z: ZonedDateTime) -> ZonedDateTime:
+    return z + 1 * day

@@ -1,0 +1,14 @@
+# spec: 8.6
+# rows: R345
+# note: no W820: both indices are proven by facts of 8.6
+
+def second(xs: list[int]) -> int:
+    if len(xs) < 2:
+        return 0
+    return xs[1]
+
+def each(xs: list[int]) -> int:
+    t = 0
+    for i in range(0, len(xs)):
+        t += xs[i]
+    return t

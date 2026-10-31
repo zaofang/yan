@@ -1,0 +1,6 @@
+# spec: 4.6, 7.2
+# note: E306 and E406 both list a capability captured by an escaping closure (question Q1); E306 assumed
+# expect: E306 at 6:22
+
+def make() -> Callable[[str], None] uses io:
+    return lambda s: io.print(s)

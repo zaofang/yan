@@ -1,0 +1,9 @@
+-- spec: 15.3
+-- expect: E503 at 7:3
+
+type Shape = Circle(r: float) | Square(side: float) | Dot()
+
+area(s: Shape) -> float =
+  match s
+    Circle(r) -> 3.0 * r * r
+    Square(side) -> side * side

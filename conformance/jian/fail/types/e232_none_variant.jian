@@ -1,0 +1,5 @@
+# spec: 14.1
+# rows: R423
+# expect: E232 at 5:33
+
+type Shape = Circle(r: float) | None

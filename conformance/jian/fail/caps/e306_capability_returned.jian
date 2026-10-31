@@ -1,0 +1,5 @@
+# spec: 7.2
+# expect: E306 at 5:12
+
+def leak() -> Io uses io:
+    return io

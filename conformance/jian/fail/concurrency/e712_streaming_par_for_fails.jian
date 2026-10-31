@@ -1,0 +1,14 @@
+# spec: 9.3
+# rows: R349, R427
+# expect: E712 at 14:9
+
+class Bad:
+    n: int
+
+def check(x: int) -> None fail Bad:
+    if x < 0:
+        fail Bad(n=x)
+
+def f(xs: list[int]) -> None fail Bad:
+    par for x in xs:
+        check(x)?

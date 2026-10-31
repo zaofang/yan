@@ -1,0 +1,11 @@
+-- spec: 3.5
+-- expect: E203 at 9:20
+
+module conf.e203
+
+record Point { x: i64, y: i64 }
+
+fn f(let p: Point) -> i64 {
+    let z: i64 = p.z
+    ret z
+}

@@ -1,0 +1,10 @@
+-- spec: 10.4
+-- rows: R346
+-- note: #if checks only the taken branch, so the str return in the n == 0 branch is never checked for n = 3
+
+describe[n: Nat]() -> int =
+  #if n == 0
+    return "zero"
+  n
+
+f() -> int = describe[3]()

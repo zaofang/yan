@@ -1,0 +1,7 @@
+-- spec: 4.6
+-- expect: E406 at 7:12
+
+make() -> (int) -> int =
+  var total = 1
+  total += 1
+  x -> x + total

@@ -1,0 +1,10 @@
+-- spec: 4.1
+-- expect: E403 at 8:5
+
+module conf.e403
+
+fn f() -> i64 {
+    let x: i64 = 1
+    x = 2
+    ret x
+}

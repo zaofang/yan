@@ -1,0 +1,5 @@
+# spec: 14.4
+# expect: N21 at 5:12
+
+def size(s: str) -> int:
+    return len(s)

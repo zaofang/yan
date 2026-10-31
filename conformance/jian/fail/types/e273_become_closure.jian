@@ -1,0 +1,7 @@
+# spec: 3.5
+# rows: R260
+# expect: E273 at 7:12
+
+def f(n: int) -> int:
+    k = lambda x: x + 1
+    become k(n)

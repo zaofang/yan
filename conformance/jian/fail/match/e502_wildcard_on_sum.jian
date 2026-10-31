@@ -1,0 +1,11 @@
+# spec: 14.1
+# expect: E502 at 10:14
+
+type Shape = Circle(r: float) | Square(side: float)
+
+def area(s: Shape) -> float:
+    match s:
+        case Circle(r):
+            return 3.0 * r * r
+        case _:
+            return 0.0

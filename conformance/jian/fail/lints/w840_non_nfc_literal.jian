@@ -1,0 +1,7 @@
+# spec: 13.1
+# rows: R338
+# note: the literal holds e followed by U+0301 COMBINING ACUTE ACCENT
+# expect: W840 at 7:12
+
+def f() -> str:
+    return "café"

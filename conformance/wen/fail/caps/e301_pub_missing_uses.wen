@@ -1,0 +1,8 @@
+-- spec: 7.2
+-- note: pub functions write uses in full (15.3); private ones infer it
+-- expect: W813 at 7:5
+-- expect: E301 at 8:3
+
+--- Says hi.
+pub greet() =
+  io.print("hi")

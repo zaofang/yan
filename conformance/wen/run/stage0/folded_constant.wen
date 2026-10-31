@@ -1,0 +1,10 @@
+-- spec: 10.4
+-- stdout:
+-- 3628800
+
+fact(n: int) -> int = if n <= 1 then 1 else n * fact(n - 1)
+
+let table: int = #fact(10)
+
+main() uses io =
+  io.print("\(table)")

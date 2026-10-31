@@ -1,0 +1,17 @@
+-- spec: 3.4
+-- rows: SQ21
+-- stdout:
+
+module conf.floor_division
+
+fn main() -> Unit {
+    let a: i64 = floordiv_i64(let -7, let 2)
+    assert eq_i64(let a, let -4)
+    let b: i64 = mod_i64(let -7, let 3)
+    assert eq_i64(let b, let 2)
+    let c: i64 = mod_i64(let 7, let -3)
+    assert eq_i64(let c, let -2)
+    let d: f64 = div_i64(let 7, let 2)
+    assert eq_f64(let d, let 3.5)
+    ret ()
+}

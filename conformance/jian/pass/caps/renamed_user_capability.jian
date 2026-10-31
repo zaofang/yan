@@ -1,0 +1,13 @@
+# spec: 7.1, 13.2
+# rows: R461
+# note: Kv binds as kv by default and under another name with as
+
+@capability
+trait Kv:
+    def get(self: Self, k: str) -> str | None: ...
+
+def lookup(k: str) -> str uses Kv as cache:
+    return cache.get(k) else ""
+
+def lookup_default(k: str) -> str uses kv:
+    return kv.get(k) else ""

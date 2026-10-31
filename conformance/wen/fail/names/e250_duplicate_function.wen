@@ -1,0 +1,7 @@
+-- spec: 17.2
+-- note: reported at the second definition (decided 2026-10-31, Q3)
+-- expect: E250 at 7:1
+
+f() -> int = 1
+
+f() -> int = 2

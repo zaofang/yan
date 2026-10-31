@@ -1,0 +1,9 @@
+-- spec: 5.4
+-- rows: R343
+-- expect: E421 at 8:1
+
+@linear
+type Handle = { fd: int }
+
+impl Drop for Handle
+  drop(var self) = ()

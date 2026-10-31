@@ -1,0 +1,10 @@
+# spec: 9.2
+# note: E705 is the specific form of the cross-branch E402; one diagnostic expected
+# expect: E705 at 9:17
+
+def f(xs: list[int]) -> int:
+    ys = xs.copy()
+    par:
+        ys.append(1)
+        n = len(ys)
+    return n

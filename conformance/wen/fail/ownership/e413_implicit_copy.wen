@@ -1,0 +1,10 @@
+-- spec: 4.2
+-- rows: R1
+-- expect: E413 at 9:16
+
+keep(take xs: List[int]) -> int = xs.len()
+
+f() -> int =
+  let xs = [1, 2]
+  let n = keep(xs)
+  n + xs.len()

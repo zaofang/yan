@@ -1,0 +1,11 @@
+-- spec: 24.3
+-- note: entry point and capability-operation spelling are assumption Y1
+-- stdout:
+-- hello, world
+
+module conf.hello
+
+fn main(cap io: Io) -> Unit {
+    std.io.print(cap io, let "hello, world")
+    ret ()
+}

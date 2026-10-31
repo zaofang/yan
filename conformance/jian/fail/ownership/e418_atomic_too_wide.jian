@@ -1,0 +1,10 @@
+# spec: 6.2
+# expect: E418 at 9:10
+
+class Triple:
+    a: int
+    b: int
+    c: int
+
+def f(_: Atomic[Triple]) -> None:
+    pass

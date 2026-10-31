@@ -1,0 +1,8 @@
+# spec: 8.6, 14.1
+# rows: R287, R345
+# note: absence of a key is not a solver fact, so this is unknown, not refuted
+# expect: W820 at 8:12
+
+def f() -> int:
+    d: dict[str, int] = {}
+    return d["a"]

@@ -1,0 +1,8 @@
+-- spec: 24.3
+-- rows: R430
+-- note: G1; main need not be pub in Wen
+-- stdout:
+-- hello, world
+
+main() uses io =
+  io.print("hello, world")

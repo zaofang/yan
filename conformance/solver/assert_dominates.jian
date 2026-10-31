@@ -1,0 +1,6 @@
+# spec: 8.6
+# rows: R345, R381
+
+def f(xs: list[int], i: int) -> int:
+    assert i >= 0 and i < len(xs)
+    return xs[i]

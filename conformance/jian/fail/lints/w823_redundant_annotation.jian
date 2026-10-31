@@ -1,0 +1,7 @@
+# spec: 14.3
+# rows: R429
+# expect: W823 at 6:8
+
+def f() -> int:
+    x: int = 1
+    return x

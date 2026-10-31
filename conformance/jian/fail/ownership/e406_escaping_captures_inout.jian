@@ -1,0 +1,5 @@
+# spec: 4.6
+# expect: E406 at 5:26
+
+def make(var total: int) -> Callable[[int], int]:
+    return lambda x: x + total

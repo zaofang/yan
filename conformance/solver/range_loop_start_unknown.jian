@@ -1,0 +1,10 @@
+# spec: 8.6
+# rows: R345
+# note: a may be negative, so 0 <= i is unknown
+# expect: W820 at 9:14
+
+def total(xs: list[int], a: int) -> int:
+    t = 0
+    for i in range(a, len(xs)):
+        t += xs[i]
+    return t

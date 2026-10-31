@@ -1,0 +1,8 @@
+-- spec: 7.3
+-- expect: E307 at 7:15
+
+pick() -> dyn Rand = seeded(1)
+
+roll() -> int uses rand =
+  with rand = dyn pick()
+    rand.next_u64() as int

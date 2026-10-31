@@ -1,0 +1,6 @@
+# spec: 18.9
+# rows: R317
+# expect: W830 at 5:9
+
+pub def one() -> int:
+    return 1

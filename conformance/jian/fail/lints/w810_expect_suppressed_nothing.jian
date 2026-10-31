@@ -1,0 +1,6 @@
+# spec: 18.2
+# expect: W810 at 4:1
+
+@expect(W812, reason="kept for the docs")
+def f(x: int) -> int:
+    return x

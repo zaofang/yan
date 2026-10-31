@@ -1,0 +1,14 @@
+# spec: 8.6
+# rows: R340, R345
+# flags: --level release
+# note: release does not check loop invariants, so the bounds check stays (R340)
+# expect: W820 at 12:14
+
+def total(xs: list[int]) -> int:
+    t = 0
+    i = 0
+    while i < len(xs):
+        invariant i >= 0
+        t += xs[i]
+        i += 1
+    return t

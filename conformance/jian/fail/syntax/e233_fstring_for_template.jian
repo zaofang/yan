@@ -1,0 +1,6 @@
+# spec: 13.1
+# rows: R452
+# expect: E233 at 6:14
+
+def report(n: int) uses log:
+    log.info(f"count {n}")

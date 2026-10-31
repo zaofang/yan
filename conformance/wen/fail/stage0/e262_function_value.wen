@@ -1,0 +1,9 @@
+-- spec: 10.4
+-- note: function values do not cross into run time
+-- expect: E262 at 9:23
+
+double(x: int) -> int = x * 2
+
+pick() -> (int) -> int = double
+
+let f: (int) -> int = #pick()

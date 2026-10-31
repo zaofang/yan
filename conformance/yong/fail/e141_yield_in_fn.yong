@@ -1,0 +1,9 @@
+-- spec: 10.5
+-- expect: E141 at 7:5
+
+module conf.e141
+
+fn f() -> i64 {
+    yield 1
+    ret 0
+}

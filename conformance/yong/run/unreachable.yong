@@ -1,0 +1,9 @@
+-- spec: 8.3
+-- stdout:
+-- exit: 101
+
+module conf.unreachable
+
+fn main() -> Unit {
+    unreachable
+}

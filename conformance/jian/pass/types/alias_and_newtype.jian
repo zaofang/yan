@@ -1,0 +1,16 @@
+# spec: 14.1
+# rows: R347, R423
+
+class FsError:
+    msg: str
+
+class Timeout:
+    ms: int
+
+type IoErr = FsError | Timeout
+type UserId = newtype[int]
+
+def lookup(id: UserId) -> int fail IoErr:
+    if id.value < 0:
+        fail Timeout(ms=1)
+    return id.value

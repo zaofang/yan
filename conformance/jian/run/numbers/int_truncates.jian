@@ -1,0 +1,6 @@
+# spec: 14.1
+# stdout:
+# 3 -3
+
+pub def main() uses io:
+    io.print(f"{int(3.7)} {int(-3.7)}")

@@ -1,0 +1,10 @@
+# spec: 4.2
+# rows: R1
+
+def keep(take xs: list[int]) -> int:
+    return len(xs)
+
+def f() -> int:
+    xs = [1, 2]
+    n = keep(xs.copy())
+    return n + len(xs)

@@ -1,0 +1,8 @@
+# spec: 7.3
+# flags: --level release
+# note: assumes the seeded fault handler is spelled sim(seed)
+# expect: E317 at 7:18
+
+pub def main() uses io:
+    with fault = sim(7):
+        io.print("hi")

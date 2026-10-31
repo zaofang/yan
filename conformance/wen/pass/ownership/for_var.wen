@@ -1,0 +1,8 @@
+-- spec: 15.3
+-- rows: R434
+
+f() -> List[int] =
+  var xs = [1, 2, 3]
+  for var x in xs
+    x += 1
+  xs

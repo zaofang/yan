@@ -1,0 +1,8 @@
+# spec: 10.1
+# rows: SQ7
+# note: element type is not fixed by any use; local inference does not search
+# expect: E241 at 7:10
+
+def f() -> int:
+    xs = []
+    return len(xs)

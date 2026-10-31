@@ -1,0 +1,10 @@
+-- spec: 3.4
+-- stdout:
+-- 100
+-- exit: 101
+
+narrow(x: int) -> i8 = x as i8
+
+main() =
+  io.print("\(narrow(100))")
+  io.print("\(narrow(300))")

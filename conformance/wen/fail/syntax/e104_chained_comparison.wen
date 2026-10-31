@@ -1,0 +1,4 @@
+-- spec: 15.2
+-- expect: E104 at 4:39
+
+f(lo: int, x: int, hi: int) -> bool = lo < x < hi

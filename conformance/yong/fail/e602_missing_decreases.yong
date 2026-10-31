@@ -1,0 +1,12 @@
+-- spec: 8.4
+-- expect: E602 at 6:4
+
+module conf.e602
+
+fn down(let n: i64) -> i64 {
+    let z: bool = le_i64(let n, let 0)
+    if z { ret 0 }
+    let m: i64 = sub_checked_i64(let n, let 1)
+    let r: i64 = down(let m)
+    ret r
+}

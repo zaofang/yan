@@ -1,0 +1,9 @@
+-- spec: 10.4
+-- note: the span is the use site; the stage-0 backtrace goes in the notes
+-- expect: E260 at 9:16
+
+root(n: int) -> int =
+  assert n >= 0
+  n
+
+let bad: int = #root(-1)

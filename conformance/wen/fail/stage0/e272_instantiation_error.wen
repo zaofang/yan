@@ -1,0 +1,11 @@
+-- spec: 10.4
+-- rows: R346
+-- note: the str return is checked only at the n = 0 instantiation; the span is the faulty expression and the instantiation site goes in the notes
+-- expect: E272 at 8:12
+
+describe[n: Nat]() -> int =
+  #if n == 0
+    return "zero"
+  n
+
+f() -> int = describe[0]()

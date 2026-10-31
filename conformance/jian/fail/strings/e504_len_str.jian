@@ -1,0 +1,6 @@
+# spec: 14.1
+# flags: --strict
+# expect: E504 at 6:12
+
+def size(s: str) -> int:
+    return len(s)

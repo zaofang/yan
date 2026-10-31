@@ -1,0 +1,10 @@
+# spec: 14.1
+# rows: R214, R421
+
+def f() -> list[int]:
+    xs = [1]
+    xs.append(2)
+    n = 0
+    n += len(xs)
+    ys = [n]
+    return xs + ys

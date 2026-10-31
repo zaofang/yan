@@ -1,0 +1,8 @@
+# spec: 21.2
+# rows: R212
+# flags: --level release
+# note: E702 replaces H701 under release
+# expect: E702 at 8:12
+
+def f() -> int:
+    return ...

@@ -1,0 +1,8 @@
+# spec: 7.7
+# rows: R344
+# stdout:
+# True False
+
+pub def main() uses io:
+    nan = 0.0 / 0.0
+    io.print(f"{-0.0 == 0.0} {nan == nan}")

@@ -1,0 +1,16 @@
+-- spec: 8.1
+-- expect: E310 at 14:18
+
+module conf.e310
+
+record ParseErr { code: i64 }
+record AppErr { code: i64 }
+
+fn parse(let x: i64) -> i64 fail ParseErr {
+    ret x
+}
+
+fn run(let x: i64) -> i64 fail AppErr {
+    let y: i64 = parse(let x)?
+    ret y
+}

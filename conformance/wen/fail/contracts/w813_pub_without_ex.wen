@@ -1,0 +1,5 @@
+-- spec: 15.3
+-- expect: W813 at 5:5
+
+--- Twice x.
+pub double(x: int) -> int = x * 2

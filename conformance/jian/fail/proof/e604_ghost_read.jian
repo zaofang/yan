@@ -1,0 +1,10 @@
+# spec: 8.7
+# rows: R458, R465, R466
+# note: the span is the expression that reads the ghost value
+# expect: E604 at 10:12
+
+@@prove
+
+def f(xs: list[int]) -> int:
+    ghost n = len(xs)
+    return n

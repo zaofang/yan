@@ -1,0 +1,6 @@
+-- spec: 7.1
+-- rows: R431
+-- expect: E251 at 5:6
+
+type Svc = uses net, Ops
+type Ops = uses log, Svc

@@ -1,0 +1,5 @@
+# spec: 11.2
+# expect: E520 at 5:12
+
+def f(x: Array[3, float], y: Array[2, 3, float]) -> Array[2, 3, float]:
+    return x + y

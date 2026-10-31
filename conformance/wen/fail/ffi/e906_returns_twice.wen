@@ -1,0 +1,5 @@
+-- spec: 12.5
+-- expect: E906 at 5:10
+
+unsafe extern "C" lib c link "c"
+  unsafe setjmp(env: Ptr[u8]) -> c_int

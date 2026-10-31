@@ -1,0 +1,12 @@
+# spec: 5.1, 7.7
+# stdout:
+# b=4
+# a=2
+# c=3
+
+pub def main() uses io:
+    d = {"b": 1, "a": 2}
+    d["c"] = 3
+    d["b"] = 4
+    for k, v in d.items():
+        io.print(f"{k}={v}")

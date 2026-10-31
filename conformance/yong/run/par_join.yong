@@ -1,0 +1,19 @@
+-- spec: 9.2
+-- stdout:
+
+module conf.par_join
+
+fn sq(let x: i64) -> i64 {
+    let y: i64 = mul_checked_i64(let x, let x)
+    ret y
+}
+
+fn main() -> Unit {
+    par {
+        { let a: i64 = sq(let 2) }
+        { let b: i64 = sq(let 3) }
+    }
+    let c: i64 = add_checked_i64(let a, let b)
+    assert eq_i64(let c, let 13)
+    ret ()
+}

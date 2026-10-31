@@ -1,0 +1,6 @@
+-- spec: 12, 12.1
+-- expect: E901 at 5:3
+
+f() -> int =
+  unsafe
+    1

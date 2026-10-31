@@ -1,0 +1,17 @@
+# spec: 8.1
+# rows: R432
+# stdout:
+# 0
+
+class Bad:
+    msg: str
+
+def inner() -> int fail Bad:
+    fail Bad(msg="inner")
+
+def outer() -> int fail Error:
+    return inner().context("outer")?
+
+pub def main() uses io:
+    n = outer() else err -> 0
+    io.print(f"{n}")

@@ -1,0 +1,10 @@
+# spec: 14.1
+# note: one diagnostic per call, at the first argument that needs a keyword
+# expect: E210 at 10:17
+
+class Size:
+    w: int
+    h: int
+
+def f(a: int, b: int) -> Size:
+    return Size(a, b)

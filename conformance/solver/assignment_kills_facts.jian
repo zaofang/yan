@@ -1,0 +1,10 @@
+# spec: 8.6
+# rows: R345
+# expect: W820 at 10:12
+
+def f(xs: list[int], j: int) -> int:
+    i = 0
+    if i >= len(xs):
+        return 0
+    i = j
+    return xs[i]

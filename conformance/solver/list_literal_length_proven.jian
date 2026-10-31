@@ -1,0 +1,7 @@
+# spec: 8.6
+# rows: R345
+# note: a list literal's length is a solver fact (decided 2026-10-31, Q4)
+
+def f() -> int:
+    xs = [1, 2, 3]
+    return xs[0] + xs[2]

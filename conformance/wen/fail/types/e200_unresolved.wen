@@ -1,0 +1,4 @@
+-- spec: 25.4
+-- expect: E200 at 4:14
+
+f() -> int = missing + 1

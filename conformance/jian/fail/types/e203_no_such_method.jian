@@ -1,0 +1,5 @@
+# spec: 17.2
+# expect: E203 at 5:15
+
+def f(xs: list[int]) -> int:
+    return xs.lenght()

@@ -1,0 +1,14 @@
+-- spec: 4.3
+-- rows: SQ11
+-- note: exclusive_check is called as a statement (assumption Y4)
+-- stdout:
+-- exit: 101
+
+module conf.exclusive_check
+
+fn main() -> Unit {
+    let i: i64 = 1
+    let j: i64 = 1
+    exclusive_check(let i, let j)
+    ret ()
+}

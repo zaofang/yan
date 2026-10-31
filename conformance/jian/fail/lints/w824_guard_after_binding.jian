@@ -1,0 +1,9 @@
+# spec: 14.3
+# rows: R429
+# expect: W824 at 7:5
+
+def f(d: dict[str, int]) -> int:
+    v = d.get("a")
+    if v is None:
+        return 0
+    return v

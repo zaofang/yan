@@ -1,0 +1,6 @@
+# spec: 13.1
+# expect: E121 at 5:5
+
+def f() -> int:
+    global counter
+    return 1

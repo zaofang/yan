@@ -1,0 +1,4 @@
+-- spec: 15.1
+-- expect: E132 at 4:16
+
+f() -> int = 1 --no space

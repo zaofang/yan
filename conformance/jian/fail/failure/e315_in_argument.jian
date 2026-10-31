@@ -1,0 +1,12 @@
+# spec: 14.1
+# rows: R424
+# expect: E315 at 12:16
+
+class ParseErr:
+    msg: str
+
+def parse(s: str) -> int fail ParseErr:
+    return s.parse_int() else fail ParseErr(msg=s.copy())
+
+def f(s: str) -> int fail ParseErr:
+    return abs(parse(s))
