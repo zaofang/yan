@@ -1,0 +1,36 @@
+module bench.ring
+
+-- A 64-slot ring buffer: each round pushes one value and, once full, pops the oldest.
+fn main() -> Unit {
+    var buf: List[i64] = std.list.new[i64]()
+    var i: i64 = 0
+    loop 'fill {
+        let done: bool = ge_i64(let i, let 64)
+        if done { break 'fill }
+        std.list.push[i64](inout buf, let 0)
+        i = add_checked_i64(let i, let 1)
+    }
+    var head: i64 = 0
+    var len: i64 = 0
+    var sum: i64 = 0
+    var n: i64 = 0
+    loop 'l {
+        let done: bool = ge_i64(let n, let 500000)
+        if done { break 'l }
+        let full: bool = eq_i64(let len, let 64)
+        if full {
+            let old: i64 = buf[head]
+            sum = add_checked_i64(let sum, let old)
+            let h: i64 = add_checked_i64(let head, let 1)
+            head = mod_i64(let h, let 64)
+            len = sub_checked_i64(let len, let 1)
+        }
+        let t: i64 = add_checked_i64(let head, let len)
+        let tail: i64 = mod_i64(let t, let 64)
+        buf[tail] = n
+        len = add_checked_i64(let len, let 1)
+        n = add_checked_i64(let n, let 1)
+    }
+    assert eq_i64(let sum, let 124967752080)
+    ret ()
+}

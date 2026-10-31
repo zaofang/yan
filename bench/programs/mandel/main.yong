@@ -1,0 +1,48 @@
+module bench.mandel
+
+-- Counts the points of a 100x100 grid over [-2, 1) x [-1.5, 1.5) that stay bounded for 100 iterations.
+fn bounded(let cr: f64, let ci: f64) -> bool {
+    var zr: f64 = 0.0
+    var zi: f64 = 0.0
+    var k: i64 = 0
+    loop 'l {
+        let done: bool = ge_i64(let k, let 100)
+        if done { break 'l }
+        let zr2: f64 = mul_f64(let zr, let zr)
+        let zi2: f64 = mul_f64(let zi, let zi)
+        let r2: f64 = add_f64(let zr2, let zi2)
+        let out: bool = gt_f64(let r2, let 4.0)
+        if out { ret false }
+        let m: f64 = mul_f64(let zr, let zi)
+        let d: f64 = mul_f64(let m, let 2.0)
+        zi = add_f64(let d, let ci)
+        let s: f64 = sub_f64(let zr2, let zi2)
+        zr = add_f64(let s, let cr)
+        k = add_checked_i64(let k, let 1)
+    }
+    ret true
+}
+
+fn main() -> Unit {
+    var count: i64 = 0
+    var ci: f64 = -1.5
+    var row: i64 = 0
+    loop 'rows {
+        let rdone: bool = ge_i64(let row, let 100)
+        if rdone { break 'rows }
+        var cr: f64 = -2.0
+        var col: i64 = 0
+        loop 'cols {
+            let cdone: bool = ge_i64(let col, let 100)
+            if cdone { break 'cols }
+            let b: bool = bounded(let cr, let ci)
+            if b { count = add_checked_i64(let count, let 1) }
+            cr = add_f64(let cr, let 0.03)
+            col = add_checked_i64(let col, let 1)
+        }
+        ci = add_f64(let ci, let 0.03)
+        row = add_checked_i64(let row, let 1)
+    }
+    assert eq_i64(let count, let 1740)
+    ret ()
+}

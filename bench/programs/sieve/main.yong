@@ -1,0 +1,32 @@
+module bench.sieve
+
+fn main() -> Unit {
+    var xs: List[bool] = std.list.new[bool]()
+    var i: i64 = 0
+    loop 'fill {
+        let done: bool = gt_i64(let i, let 10000)
+        if done { break 'fill }
+        std.list.push[bool](inout xs, let true)
+        i = add_checked_i64(let i, let 1)
+    }
+    var count: i64 = 0
+    var p: i64 = 2
+    loop 'outer {
+        let done: bool = gt_i64(let p, let 10000)
+        if done { break 'outer }
+        let prime: bool = xs[p]
+        if prime {
+            count = add_checked_i64(let count, let 1)
+            var m: i64 = mul_checked_i64(let p, let p)
+            loop 'inner {
+                let past: bool = gt_i64(let m, let 10000)
+                if past { break 'inner }
+                xs[m] = false
+                m = add_checked_i64(let m, let p)
+            }
+        }
+        p = add_checked_i64(let p, let 1)
+    }
+    assert eq_i64(let count, let 1229)
+    ret ()
+}
