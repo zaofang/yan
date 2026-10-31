@@ -66,7 +66,7 @@ wheels = [
 ]
 
 [[package]]
-name = "ming-workspace"
+name = "yong-workspace"
 version = "0.0.0"
 source = { virtual = "." }
 
