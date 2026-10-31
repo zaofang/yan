@@ -66,9 +66,10 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --locked
       - run: cargo build --locked --release -p yong-cli
+      # Gate on the cases due by the milestone the implementation has reached (spec 23); raise it when a milestone starts.
       - run: >-
           uv run python tools/conform.py --json conformance-summary.json
-          --executor interp=target/release/yong
+          --milestone M0 --executor interp=target/release/yong
       - uses: actions/upload-artifact@v4
         with:
           name: conformance-summary
