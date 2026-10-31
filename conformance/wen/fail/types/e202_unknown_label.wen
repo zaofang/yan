@@ -1,0 +1,6 @@
+-- spec: 15.3
+-- expect: E202 at 6:16
+
+type Point = { x: int, y: int }
+
+f() -> Point = Point(x: 1, z: 2)

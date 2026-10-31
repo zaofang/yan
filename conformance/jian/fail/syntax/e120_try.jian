@@ -1,0 +1,8 @@
+# spec: 13.1
+# expect: E120 at 5:5
+
+def f(s: str) -> int:
+    try:
+        return 1
+    except:
+        return 0

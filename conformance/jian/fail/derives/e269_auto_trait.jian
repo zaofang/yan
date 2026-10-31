@@ -1,0 +1,6 @@
+# spec: 10.4, 6.4
+# expect: E269 at 4:9
+
+@derive(Send)
+class Point:
+    x: int

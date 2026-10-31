@@ -1,0 +1,9 @@
+-- spec: 3.5
+-- expect: E201 at 7:18
+
+module conf.e201
+
+fn f() -> i64 {
+    let x: i64 = "one"
+    ret x
+}

@@ -1,0 +1,14 @@
+-- spec: 3.5
+-- expect: E202 at 12:18
+
+module conf.e202
+
+fn add(let a: i64, let b: i64) -> i64 {
+    let c: i64 = add_checked_i64(let a, let b)
+    ret c
+}
+
+fn f() -> i64 {
+    let x: i64 = add(let 1)
+    ret x
+}

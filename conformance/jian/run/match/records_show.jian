@@ -1,0 +1,13 @@
+# spec: 14.1, 17.3
+# rows: SQ20
+# stdout:
+# Point(x=1, y=2) Point(x=1, y=5) False
+
+class Point:
+    x: int
+    y: int
+
+pub def main() uses io:
+    p = Point(x=1, y=2)
+    q = evolve(p, y=5)
+    io.print(f"{p} {q} {p == q}")

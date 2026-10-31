@@ -1,0 +1,5 @@
+# spec: 13.1
+# expect: E110 at 4:5
+
+def getValue() -> int:
+    return 1

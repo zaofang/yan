@@ -1,0 +1,6 @@
+# spec: 13.1
+# flags: --strict
+# expect: E112 at 5:7
+
+class HTTPError:
+    status: int

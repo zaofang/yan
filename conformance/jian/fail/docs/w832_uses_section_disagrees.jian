@@ -1,0 +1,10 @@
+# spec: 18.9
+# rows: R317
+# expect: W832 at 8:5
+
+pub def greet() uses io:
+    """Prints a greeting.
+
+    Uses: net
+    """
+    io.print("hi")

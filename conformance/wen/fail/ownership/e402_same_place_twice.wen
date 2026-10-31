@@ -1,0 +1,12 @@
+-- spec: 4.3
+-- expect: E402 at 11:18
+
+swap(var x: int, var y: int) =
+  let t = x
+  x = y
+  y = t
+
+f() -> int =
+  var a = 1
+  swap(x: &a, y: &a)
+  a

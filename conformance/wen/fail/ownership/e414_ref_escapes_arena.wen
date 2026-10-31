@@ -1,0 +1,7 @@
+-- spec: 4.7, 5.5
+-- rows: R441
+-- expect: E414 at 7:3
+
+f() -> Ref[int] =
+  let arena = Arena()
+  arena.alloc(1)

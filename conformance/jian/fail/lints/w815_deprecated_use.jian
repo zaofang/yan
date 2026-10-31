@@ -1,0 +1,9 @@
+# spec: 20.5
+# expect: W815 at 9:12
+
+@deprecated(since="0.1", note="use g")
+def f() -> int:
+    return 1
+
+def g() -> int:
+    return f()

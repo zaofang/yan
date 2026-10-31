@@ -1,0 +1,14 @@
+-- spec: 7.2
+-- expect: E301 at 12:11
+
+module conf.e301
+
+fn greet(cap io: Io) -> Unit {
+    std.io.print(cap io, let "hi")
+    ret ()
+}
+
+fn f() -> Unit {
+    greet(cap io)
+    ret ()
+}

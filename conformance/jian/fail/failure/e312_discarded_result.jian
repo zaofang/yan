@@ -1,0 +1,8 @@
+# spec: 8.1
+# expect: E312 at 8:5
+
+def compute(x: int) -> int:
+    return x * 2
+
+def f() -> None:
+    compute(1)

@@ -1,0 +1,10 @@
+# spec: 14.1
+# expect: E404 at 9:10
+
+def bump(var n: int) -> None:
+    n += 1
+
+def f() -> int:
+    a = 1
+    bump(a)
+    return a

@@ -1,0 +1,7 @@
+# spec: 13.1
+# note: U+200B ZERO WIDTH SPACE after an identifier
+# expect: E105 at 6:10
+
+def f() -> int:
+    total​ = 1
+    return total

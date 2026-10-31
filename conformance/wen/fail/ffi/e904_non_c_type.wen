@@ -1,0 +1,7 @@
+-- spec: 12.3
+-- expect: E904 at 7:16
+
+type Point = { x: f64, y: f64 }
+
+unsafe extern "C" lib geo link "geo"
+  safe norm(p: Point) -> f64

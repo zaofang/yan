@@ -1,0 +1,6 @@
+# spec: 13.2, 25.3
+# rows: R298
+# expect: E100 at 6:15
+
+def pair() -> tuple[int, int]:
+    return (1 2)

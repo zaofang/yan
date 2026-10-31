@@ -1,0 +1,9 @@
+# spec: 14.1
+# expect: E202 at 9:12
+
+class Point:
+    x: int
+    y: int
+
+def f() -> Point:
+    return Point(x=1, z=2)

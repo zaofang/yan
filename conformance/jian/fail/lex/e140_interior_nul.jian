@@ -1,0 +1,5 @@
+# spec: 12.3, 13.1
+# expect: E140 at 5:9
+
+def name() -> None:
+    _ = c"ab\0cd"

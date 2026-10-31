@@ -1,0 +1,6 @@
+# spec: 6.4
+# rows: R392
+# expect: E709 at 6:12
+
+def count(a: Arc[int]) -> int:
+    return a.strong_count()

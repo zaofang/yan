@@ -1,0 +1,12 @@
+# spec: 8.1
+# rows: SQ23
+# stdout:
+# start
+# exit: 1
+
+class Bad:
+    msg: str
+
+pub def main() -> fail Bad uses io:
+    io.print("start")
+    fail Bad(msg="stop")

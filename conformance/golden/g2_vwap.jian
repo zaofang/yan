@@ -1,0 +1,35 @@
+# spec: 24.3
+# note: the program of 24.3 plus a main; p[0] to p[2] are proven by the length check
+# stdout:
+# A 17.5
+# B 5.0
+
+class Trade:
+    sym: str
+    px: float
+    qty: int
+
+class BadLine:
+    line: str
+
+def parse_line(line: str) -> Trade fail BadLine:
+    p = line.split(",")
+    if len(p) != 3:
+        fail BadLine(line=line.copy())
+    px = p[1].parse_float() else fail BadLine(line=line.copy())
+    qty = p[2].parse_int() else fail BadLine(line=line.copy())
+    return Trade(sym=p[0].copy(), px=px, qty=qty)
+
+pub def vwap(ts: list[Trade]) -> dict[str, float]:
+    ex vwap([Trade(sym="A", px=10.0, qty=1), Trade(sym="A", px=20.0, qty=3)]) == {"A": 17.5}
+    acc: dict[str, tuple[float, int]] = {}
+    for t in ts:
+        n, v = acc.get(t.sym) else (0.0, 0)
+        acc[t.sym.copy()] = (n + t.px * float(t.qty), v + t.qty)
+    return {s.copy(): nv[0] / float(nv[1]) for s, nv in acc.items()}
+
+pub def main() -> fail BadLine uses io:
+    lines = ["A,10.0,1", "B,5.0,2", "A,20.0,3"]
+    ts = [parse_line(l)? for l in lines]
+    for s, v in vwap(ts).items():
+        io.print(f"{s} {v}")

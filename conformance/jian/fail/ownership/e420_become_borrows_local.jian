@@ -1,0 +1,10 @@
+# spec: 3.5
+# rows: R260
+# expect: E420 at 10:18
+
+def total(xs: list[int], acc: int) -> int:
+    return len(xs) + acc
+
+def f(xs: list[int], acc: int) -> int:
+    ys = xs.copy()
+    become total(ys, acc)

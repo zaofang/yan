@@ -1,0 +1,9 @@
+-- spec: 4.2
+-- expect: E416 at 7:22
+
+module conf.e416
+
+fn f(let r: Rc[i64]) -> i64 {
+    let s: Rc[i64] = copy r
+    ret 0
+}

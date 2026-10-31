@@ -1,0 +1,11 @@
+-- spec: 3.4, 8.3
+-- stdout:
+-- exit: 101
+
+module conf.div_zero
+
+fn main() -> Unit {
+    let z: i64 = 0
+    let b: i64 = floordiv_i64(let 1, let z)
+    ret ()
+}

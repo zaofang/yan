@@ -1,0 +1,7 @@
+# spec: 14.1
+# rows: R285
+
+def f(x: int | None) -> int:
+    if x is None:
+        return 0
+    return x + 1

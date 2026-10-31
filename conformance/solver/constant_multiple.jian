@@ -1,0 +1,7 @@
+# spec: 8.6
+# rows: R345
+
+def f(xs: list[int], i: int) -> int:
+    if len(xs) != 10 or i < 0 or i >= 5:
+        return 0
+    return xs[2 * i + 1]

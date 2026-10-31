@@ -1,0 +1,6 @@
+# spec: 13.2
+# flags: --strict
+# expect: E104 at 6:12
+
+def between(lo: int, x: int, hi: int) -> bool:
+    return lo < x < hi

@@ -1,0 +1,9 @@
+# spec: 8.6
+# rows: R345
+# note: multiplication of two variables is outside the fragment
+# expect: W820 at 9:12
+
+def f(xs: list[int], i: int) -> int:
+    if len(xs) != 10 or i < 0 or i >= 3:
+        return 0
+    return xs[i * i]

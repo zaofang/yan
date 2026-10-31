@@ -1,0 +1,9 @@
+-- spec: 8.1
+-- expect: E310 at 9:34
+
+type ParseErr = { msg: str }
+type AppErr = { msg: str }
+
+parse(s: str) -> int fail ParseErr = s.parse_int() else fail ParseErr(msg: copy s)
+
+run(s: str) -> int fail AppErr = parse(s)?

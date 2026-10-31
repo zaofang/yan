@@ -1,0 +1,13 @@
+-- spec: 3.4, 8.3
+-- rows: R6, R380
+-- note: the unused overflowing result must still panic before main returns
+-- stdout:
+-- exit: 101
+
+module conf.overflow
+
+fn main() -> Unit {
+    let a: i64 = 9223372036854775807
+    let b: i64 = add_checked_i64(let a, let 1)
+    ret ()
+}

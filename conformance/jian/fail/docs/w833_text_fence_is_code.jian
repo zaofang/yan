@@ -1,0 +1,13 @@
+# spec: 18.9
+# rows: R317
+# note: span is the fence tag
+# expect: W833 at 9:8
+
+pub def one() -> int:
+    """Returns one.
+
+    ```text
+    x = one()
+    ```
+    """
+    return 1

@@ -1,0 +1,10 @@
+# spec: 3.4
+# note: CPython 3.12 float layout (SQ20)
+# stdout:
+# inf -inf
+
+def div(a: float, b: float) -> float:
+    return a / b
+
+pub def main() uses io:
+    io.print(f"{div(1.0, 0.0)} {div(-1.0, 0.0)}")

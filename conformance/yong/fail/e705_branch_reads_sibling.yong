@@ -1,0 +1,12 @@
+-- spec: 9.2
+-- expect: E705 at 9:44
+
+module conf.e705
+
+fn f() -> i64 {
+    par {
+        { let a: i64 = 1 }
+        { let b: i64 = add_checked_i64(let a, let 1) }
+    }
+    ret b
+}

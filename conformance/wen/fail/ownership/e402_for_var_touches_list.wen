@@ -1,0 +1,9 @@
+-- spec: 15.3
+-- rows: R434
+-- expect: E402 at 8:10
+
+f() -> List[int] =
+  var xs = [1, 2, 3]
+  for var x in xs
+    x += xs.len()
+  xs

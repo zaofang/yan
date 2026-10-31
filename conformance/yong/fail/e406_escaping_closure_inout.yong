@@ -1,0 +1,12 @@
+-- spec: 4.6
+-- expect: E406 at 7:37
+
+module conf.e406
+
+fn make(inout t: i64) -> Fn(let i64) -> i64 {
+    let k: Fn(let i64) -> i64 = fn [inout t] (let x: i64) -> i64 {
+        let r: i64 = add_checked_i64(let x, let t)
+        ret r
+    }
+    ret k
+}

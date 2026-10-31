@@ -1,0 +1,10 @@
+# spec: 8.6
+# rows: R345
+# expect: E501 at 10:12
+
+def f(xs: list[int]) -> int:
+    ys = xs.copy()
+    if len(ys) != 2:
+        return 0
+    _ = ys.pop()
+    return ys[1]

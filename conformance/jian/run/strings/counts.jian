@@ -1,0 +1,8 @@
+# spec: 3.3
+# stdout:
+# 6 5 2 1
+
+pub def main() uses io:
+    s = "héllo"
+    t = "é"
+    io.print(f"{s.byte_len()} {s.char_count()} {t.char_count()} {t.grapheme_count()}")

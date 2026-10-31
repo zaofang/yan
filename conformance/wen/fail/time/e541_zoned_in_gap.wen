@@ -1,0 +1,5 @@
+-- spec: 14.2, 15.1
+-- note: 02:30 does not exist on 2026-03-08 in New York
+-- expect: E541 at 5:24
+
+f() -> ZonedDateTime = 2026-03-08T02:30[America/New_York]

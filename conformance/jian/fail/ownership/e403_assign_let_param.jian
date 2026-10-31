@@ -1,0 +1,6 @@
+# spec: 4.1
+# expect: E403 at 5:5
+
+def f(x: int) -> int:
+    x = x + 1
+    return x

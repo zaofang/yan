@@ -1,0 +1,7 @@
+# spec: 8.6
+# rows: R88, R345
+
+def f(xs: list[int], k: int) -> int:
+    if len(xs) != 16:
+        return 0
+    return xs[k & 15]

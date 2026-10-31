@@ -1,0 +1,8 @@
+# spec: 14.4
+# rows: R287
+# note: the rewritten xs[len(xs) - 1] is a checked index, so W820 also fires
+# expect: W820 at 8:12
+# expect: N16 at 8:12
+
+def last(xs: list[int]) -> int:
+    return xs[-1]

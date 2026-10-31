@@ -1,0 +1,7 @@
+# spec: 14.4
+# expect: N14 at 5:5
+
+def f() -> int:
+    var x = 1
+    x += 1
+    return x

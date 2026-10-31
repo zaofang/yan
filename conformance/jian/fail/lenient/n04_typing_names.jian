@@ -1,0 +1,5 @@
+# spec: 14.4
+# expect: N04 at 4:10
+
+def f(x: Optional[int]) -> int:
+    return x else 0

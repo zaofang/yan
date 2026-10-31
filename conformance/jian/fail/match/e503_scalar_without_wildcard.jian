@@ -1,0 +1,10 @@
+# spec: 14.1
+# rows: R372
+# expect: E503 at 6:5
+
+def name(n: int) -> str:
+    match n:
+        case 0:
+            return "zero"
+        case 1:
+            return "one"

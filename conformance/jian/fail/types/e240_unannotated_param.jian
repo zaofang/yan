@@ -1,0 +1,5 @@
+# spec: 14.1
+# expect: E240 at 4:12
+
+def double(x) -> int:
+    return x * 2

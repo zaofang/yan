@@ -1,0 +1,24 @@
+-- spec: 3.5, 10.4, 10.5
+-- rows: R440
+
+module conf.generators_and_stage0
+
+gen up_to(let n: i64) -> i64 {
+    var i: i64 = 0
+    loop 'l {
+        let done: bool = ge_i64(let i, let n)
+        if done { break 'l }
+        yield i
+        i = add_checked_i64(let i, let 1)
+    }
+}
+
+const steps: List[i64] = [1, 2, 3]
+
+fn unrolled() -> i64 {
+    var t: i64 = 0
+    comptime for s: i64 in steps {
+        t = add_checked_i64(let t, let s)
+    }
+    comptime if true { ret t } else { ret 0 }
+}

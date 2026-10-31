@@ -1,0 +1,17 @@
+# spec: 8.1
+
+class ParseErr:
+    msg: str
+
+class AppErr:
+    msg: str
+
+impl From[ParseErr] for AppErr:
+    def convert(e: ParseErr) -> AppErr:
+        return AppErr(msg=e.msg.copy())
+
+def parse(s: str) -> int fail ParseErr:
+    return s.parse_int() else fail ParseErr(msg=s.copy())
+
+def run(s: str) -> int fail AppErr:
+    return parse(s)?

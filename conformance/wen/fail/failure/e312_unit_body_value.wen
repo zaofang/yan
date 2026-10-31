@@ -1,0 +1,6 @@
+-- spec: 15.3
+-- expect: E312 at 6:3
+
+f() uses io =
+  io.print("a")
+  1 + 1

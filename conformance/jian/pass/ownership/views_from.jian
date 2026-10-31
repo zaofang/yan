@@ -1,0 +1,10 @@
+# spec: 4.5
+# rows: R2
+
+def head(xs: View[int]) -> View[int] from xs:
+    return xs
+
+def f() -> int:
+    xs = [1, 2, 3]
+    h = head(xs)
+    return len(h)

@@ -1,0 +1,48 @@
+-- spec: 3.5
+-- rows: SQ3
+
+module conf.control_flow
+
+fn max(let a: i64, let b: i64) -> i64 {
+    jp k(let r: i64) { ret r }
+    let c: bool = gt_i64(let a, let b)
+    if c { jump k(a) } else { jump k(b) }
+}
+
+fn sum_to(let n: i64) -> i64 {
+    var i: i64 = 0
+    var t: i64 = 0
+    loop 'l invariant ge_i64(let i, let 0) {
+        let done: bool = gt_i64(let i, let n)
+        if done { break 'l }
+        t = add_checked_i64(let t, let i)
+        i = add_checked_i64(let i, let 1)
+        continue 'l
+    }
+    ret t
+}
+
+sum Shape { Circle { r: i64 }, Rect { w: i64, h: i64 }, Dot }
+
+fn area(let s: Shape) -> i64 {
+    jp k(let a: i64) { ret a }
+    match s {
+        Circle { r: r } => { let a: i64 = mul_checked_i64(let r, let r)  jump k(a) }
+        Rect { w: w, .. } => { jump k(w) }
+        Dot => { jump k(0) }
+    }
+}
+
+fn digit(let n: i64) -> bool {
+    jp k(let b: bool) { ret b }
+    match n {
+        0 ..= 9 => { jump k(true) }
+        _ => { jump k(false) }
+    }
+}
+
+fn never(let n: i64) -> i64 {
+    let neg: bool = lt_i64(let n, let 0)
+    if neg { unreachable }
+    ret n
+}

@@ -1,0 +1,9 @@
+# spec: 8.6
+# rows: R88, R345
+# note: x % c is in the fragment only for a constant c > 0
+# expect: W820 at 9:12
+
+def f(xs: list[int], k: int) -> int:
+    if len(xs) == 0:
+        return 0
+    return xs[k % len(xs)]

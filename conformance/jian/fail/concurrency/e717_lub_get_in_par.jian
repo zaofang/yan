@@ -1,0 +1,10 @@
+# spec: 9.3
+# rows: R454
+# note: Max(v) construction and .value are assumption A8
+# expect: E717 at 9:13
+
+def f(best: Lub[Max[int]]) -> int:
+    par:
+        best.put(Max(1))
+        x = best.get()
+    return x.value

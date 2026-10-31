@@ -1,0 +1,9 @@
+# spec: 8.6, 14.1
+# rows: R211, R287, R345
+# note: list literal lengths are not solver facts (8.6), so the length comes from a guard
+# expect: E501 at 9:12
+
+def f(xs: list[int]) -> int:
+    if len(xs) != 3:
+        return 0
+    return xs[3]

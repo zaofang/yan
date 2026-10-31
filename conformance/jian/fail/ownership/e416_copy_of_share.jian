@@ -1,0 +1,6 @@
+# spec: 4.2
+# expect: E416 at 5:9
+
+def f(r: Rc[list[int]]) -> int:
+    _ = r.copy()
+    return 0

@@ -1,0 +1,11 @@
+# spec: 3.3
+# rows: R388
+# expect: W822 at 9:14
+
+def f(xs: list[int]) -> int:
+    acc = [0]
+    n = 0
+    for x in xs:
+        ys = acc + [x]
+        n += len(ys) + len(acc)
+    return n

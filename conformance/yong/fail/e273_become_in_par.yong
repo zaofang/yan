@@ -1,0 +1,16 @@
+-- spec: 3.5
+-- rows: R260
+-- expect: E273 at 13:11
+
+module conf.e273
+
+fn g(let n: i64) -> i64 {
+    ret n
+}
+
+fn f(let n: i64) -> i64 {
+    par {
+        { become g(let n) }
+    }
+    ret n
+}

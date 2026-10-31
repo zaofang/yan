@@ -1,0 +1,7 @@
+# spec: 4.5, 4.6
+# rows: R2
+# note: a view captured by an escaping closure is E406 (4.6), not E414
+# expect: E406 at 7:24
+
+def make(xs: View[int]) -> Callable[[], int]:
+    return lambda: len(xs)

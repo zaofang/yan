@@ -1,0 +1,12 @@
+# spec: 9.2
+# rows: R427
+# expect: E705 at 11:13
+
+def sq(x: int) -> int:
+    return x * x
+
+def f() -> int:
+    par:
+        a = sq(2)
+        b = a + 1
+    return b

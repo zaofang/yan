@@ -1,0 +1,9 @@
+# spec: 14.1
+# expect: E405 at 9:17
+
+def show(n: int) -> int:
+    return n
+
+def f() -> int:
+    a = 1
+    return show(&a)

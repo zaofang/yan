@@ -1,0 +1,6 @@
+# spec: 13.1
+# expect: E103 at 5:16
+
+def f(a: int, b: int) -> int:
+    return a + \
+        b

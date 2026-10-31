@@ -1,0 +1,13 @@
+-- spec: 8.6
+-- expect: E503 at 10:5
+
+module conf.e503
+
+sum Shape { Circle { r: i64 }, Dot }
+
+fn area(let s: Shape) -> i64 {
+    jp k(let a: i64) { ret a }
+    match s {
+        Circle { r: r } => { jump k(r) }
+    }
+}

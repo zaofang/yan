@@ -1,0 +1,17 @@
+-- spec: 4.3
+-- expect: E402 at 15:19
+
+module conf.e402
+
+fn swap(inout x: i64, inout y: i64) -> Unit {
+    let t: i64 = x
+    x = y
+    y = t
+    ret ()
+}
+
+fn f() -> i64 {
+    var a: i64 = 1
+    swap(inout a, inout a)
+    ret a
+}

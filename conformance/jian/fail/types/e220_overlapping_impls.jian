@@ -1,0 +1,16 @@
+# spec: 10.2
+# expect: E220 at 14:1
+
+trait Describe:
+    def describe(self: Self) -> str: ...
+
+class Point:
+    x: int
+
+impl Describe for Point:
+    def describe(self: Point) -> str:
+        return "point"
+
+impl Describe for Point:
+    def describe(self: Point) -> str:
+        return "other"

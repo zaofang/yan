@@ -1,0 +1,8 @@
+-- spec: 6.4
+-- expect: E417 at 7:13
+
+f(c: Cell[int]) -> int =
+  par
+    let a = c.get()
+    let b = c.get()
+  a + b

@@ -1,0 +1,7 @@
+# spec: 13.1
+# note: one diagnostic at the binding; the later use refers to the same malformed name
+# expect: E110 at 6:5
+
+def f() -> int:
+    user__id = 1
+    return user__id

@@ -1,0 +1,6 @@
+# spec: 14.4
+# rows: R425
+# expect: N27 at 5:10
+
+def f(x: int64) -> int:
+    return x

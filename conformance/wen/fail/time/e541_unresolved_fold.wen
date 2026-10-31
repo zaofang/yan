@@ -1,0 +1,5 @@
+-- spec: 14.2, 15.1
+-- note: 01:30 occurs twice on 2026-11-01 in New York and no offset is given
+-- expect: E541 at 5:24
+
+f() -> ZonedDateTime = 2026-11-01T01:30[America/New_York]

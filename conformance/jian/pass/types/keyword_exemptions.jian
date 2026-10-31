@@ -1,0 +1,8 @@
+# spec: 14.1
+# note: names equal to parameter names and literals are exempt from E210
+
+def area(w: int, h: int) -> int:
+    return w * h
+
+def f(w: int, h: int) -> int:
+    return area(w, h) + area(3, 4) + area(w=h, h=w)

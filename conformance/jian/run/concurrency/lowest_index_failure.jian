@@ -1,0 +1,19 @@
+# spec: 9.2
+# rows: SQ16
+# stdout:
+# [7]
+
+class Bad:
+    n: int
+
+def check(x: int) -> int fail Bad:
+    if x % 2 == 1:
+        fail Bad(n=x)
+    return x
+
+def all_even(xs: list[int]) -> list[int] fail Bad:
+    return par [check(x)? for x in xs]
+
+pub def main() uses io:
+    r = all_even([2, 7, 4, 9, 3]) else err -> [err.n]
+    io.print(f"{r}")

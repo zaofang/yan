@@ -1,0 +1,6 @@
+# spec: 14.1, 25.4
+# rows: R298
+# expect: E201 at 6:12
+
+def f() -> int:
+    return "one"

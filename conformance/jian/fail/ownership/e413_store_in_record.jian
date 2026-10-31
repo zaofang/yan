@@ -1,0 +1,11 @@
+# spec: 4.2
+# rows: R1
+# expect: E413 at 10:19
+
+class Box:
+    items: list[int]
+
+def f() -> int:
+    xs = [1, 2]
+    b = Box(items=xs)
+    return len(b.items) + len(xs)

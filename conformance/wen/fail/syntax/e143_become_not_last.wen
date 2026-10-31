@@ -1,0 +1,13 @@
+-- spec: 3.5
+-- rows: R456
+-- note: 15.2 has become only as a statement (grammar question G1)
+-- expect: E143 at 13:8
+
+type Tree = Leaf() | Node(left: Tree, right: Tree)
+
+spine(n: int) -> Tree =
+  pre n >= 0
+  decreases n
+  if n == 0
+    return Leaf()
+  Node(become spine(n - 1), Leaf())

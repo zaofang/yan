@@ -1,0 +1,5 @@
+# spec: 14.4
+# expect: N07 at 4:7
+
+class HTTPError:
+    status: int

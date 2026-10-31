@@ -1,0 +1,8 @@
+# spec: 8.4
+# rows: R284
+# flags: --level release
+# expect: E601 at 6:9
+
+pub def double(x: int) -> int:
+    """Twice x."""
+    return x * 2

@@ -1,0 +1,7 @@
+# spec: 18.9
+# rows: R317
+# expect: W831 at 6:26
+
+pub def one() -> int:
+    """Returns one; see [Missing]."""
+    return 1

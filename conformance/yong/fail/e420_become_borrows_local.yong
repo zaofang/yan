@@ -1,0 +1,16 @@
+-- spec: 3.5
+-- rows: R260
+-- expect: E420 at 15:18
+
+module conf.e420
+
+fn total(let xs: List[i64], let acc: i64) -> i64 {
+    let n: i64 = std.list.len[i64](let xs)
+    let r: i64 = add_checked_i64(let n, let acc)
+    ret r
+}
+
+fn f(let xs: List[i64], let acc: i64) -> i64 {
+    let ys: List[i64] = copy xs
+    become total(let ys, let acc)
+}

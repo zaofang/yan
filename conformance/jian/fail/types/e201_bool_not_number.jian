@@ -1,0 +1,5 @@
+# spec: 14.1
+# expect: E201 at 5:12
+
+def f(b: bool) -> int:
+    return b + 1

@@ -1,0 +1,8 @@
+-- spec: 15.3
+-- expect: E405 at 8:8
+
+show(n: int) -> int = n
+
+f() -> int =
+  var a = 1
+  show(&a)

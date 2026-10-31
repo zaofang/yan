@@ -1,0 +1,12 @@
+# spec: 9.6
+# rows: R397, R435
+# expect: E715 at 10:9
+
+class Counter:
+    n: int
+
+@reentrant
+def slow(var self: Counter) -> int fail Cancelled uses time:
+    v = self.n
+    time.sleep(10 * ms)?
+    return v

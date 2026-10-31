@@ -1,0 +1,12 @@
+# spec: 8.6
+# rows: R340, R345
+# note: the invariant is checked at run time under check, so it is a trusted fact
+
+def total(xs: list[int]) -> int:
+    t = 0
+    i = 0
+    while i < len(xs):
+        invariant i >= 0
+        t += xs[i]
+        i += 1
+    return t

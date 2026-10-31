@@ -1,0 +1,8 @@
+# spec: 6.4, 9.2
+# expect: E417 at 7:13
+
+def f(c: Cell[int]) -> int:
+    par:
+        a = c.get()
+        b = c.get()
+    return a + b

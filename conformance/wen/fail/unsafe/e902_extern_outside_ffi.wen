@@ -1,0 +1,5 @@
+-- spec: 12, 12.1
+-- expect: E902 at 4:1
+
+unsafe extern "C" lib m link "m"
+  safe cos(x: f64) -> f64 uses none

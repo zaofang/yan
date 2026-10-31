@@ -1,0 +1,13 @@
+# spec: 8.3
+# stdout:
+# 2
+# exit: 101
+
+def pick(n: int) -> int:
+    if n > 0:
+        return n
+    unreachable
+
+pub def main() uses io:
+    io.print(f"{pick(2)}")
+    io.print(f"{pick(0)}")

@@ -1,0 +1,20 @@
+-- spec: 8.5
+-- rows: SQ24
+-- stdout:
+-- exit: 101
+
+module conf.requires_fails
+
+fn half(let x: i64) -> i64
+    requires ge_i64(let x, let 0)
+{
+    let h: i64 = floordiv_i64(let x, let 2)
+    ret h
+}
+
+fn main() -> Unit {
+    let a: i64 = half(let 4)
+    assert eq_i64(let a, let 2)
+    let b: i64 = half(let -3)
+    ret ()
+}

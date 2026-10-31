@@ -1,0 +1,8 @@
+# spec: 8.6
+# rows: R345
+
+def total(xs: list[int]) -> int:
+    t = 0
+    for i, x in enumerate(xs):
+        t += xs[i] + x
+    return t

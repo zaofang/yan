@@ -1,0 +1,9 @@
+# spec: 4.6
+# rows: R436
+# expect: E716 at 8:13
+
+def both(f: Callable[[int], int]) -> int:
+    par:
+        a = f(1)
+        b = f(2)
+    return a + b

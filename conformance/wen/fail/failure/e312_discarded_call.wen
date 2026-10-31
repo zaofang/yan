@@ -1,0 +1,9 @@
+-- spec: 8.1
+-- rows: R374
+-- expect: E312 at 8:3
+
+double(x: int) -> int = x * 2
+
+f() =
+  double(2)
+  ()

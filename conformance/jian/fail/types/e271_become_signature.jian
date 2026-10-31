@@ -1,0 +1,9 @@
+# spec: 3.5
+# rows: R260
+# expect: E271 at 9:12
+
+def total(n: int, acc: int) -> int:
+    return n + acc
+
+def f(n: int) -> int:
+    become total(n, 0)

@@ -1,0 +1,7 @@
+-- spec: 15.3
+-- rows: R214
+-- expect: W812 at 6:7
+
+f() -> int =
+  let y = 2
+  1

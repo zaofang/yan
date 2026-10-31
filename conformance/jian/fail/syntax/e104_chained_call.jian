@@ -1,0 +1,9 @@
+# spec: 13.2
+# note: the middle operand is a call, so the lenient reader (N22) does not apply
+# expect: E104 at 9:12
+
+def scale(x: int) -> int:
+    return x * 2
+
+def between(lo: int, x: int, hi: int) -> bool:
+    return lo < scale(x) < hi

@@ -1,0 +1,8 @@
+-- spec: 8.6
+-- rows: R345
+-- expect: E501 at 8:3
+
+f(xs: List[int]) -> int =
+  if xs.len() != 3
+    return 0
+  xs[3]

@@ -1,0 +1,8 @@
+# spec: 14.1
+# rows: R286
+# expect: W807 at 8:12
+
+def f(xs: list[int]) -> list[int]:
+    if len(xs) != 3:
+        return []
+    return xs[5:7]

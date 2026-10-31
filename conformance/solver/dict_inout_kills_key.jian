@@ -1,0 +1,13 @@
+# spec: 8.6
+# rows: R287, R345
+# expect: W820 at 13:12
+
+def reset(var d: dict[str, int]) -> None:
+    _ = d.remove("a")
+
+def f(d: dict[str, int], k: str) -> int:
+    e = d.copy()
+    if k not in e:
+        return 0
+    reset(&e)
+    return e[k]

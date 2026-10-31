@@ -1,0 +1,9 @@
+-- spec: 15.3
+-- expect: E711 at 9:5
+
+compute() -> int = 1
+
+f(var rx: Receiver[int]) -> int fail Cancelled uses nondet =
+  select
+    rx.recv() is None -> 0
+    compute() -> 2

@@ -1,0 +1,12 @@
+-- spec: 15.3
+-- rows: R438
+-- stdout:
+-- a=2
+-- b=1
+
+main() =
+  var m: Map[str, int] = {}
+  for w in ["a", "b", "a"]
+    m[w] += 1
+  for (k, v) in m.items()
+    io.print("\(k)=\(v)")

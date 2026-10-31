@@ -1,0 +1,6 @@
+# spec: 13.2
+# flags: --strict
+# expect: E101 at 6:12
+
+def either(a: bool, b: bool, c: bool) -> bool:
+    return a and b or c

@@ -1,0 +1,6 @@
+-- spec: 10.5
+-- expect: E141 at 5:3
+
+f() -> int =
+  yield 1
+  0

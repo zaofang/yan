@@ -1,0 +1,5 @@
+# spec: 14.4
+# expect: N22 at 5:12
+
+def between(lo: int, x: int, hi: int) -> bool:
+    return lo < x < hi

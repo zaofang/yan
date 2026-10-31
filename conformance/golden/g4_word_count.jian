@@ -1,0 +1,20 @@
+# spec: 24.3
+# note: fake_fs(files) from std.test (17.3) and fs.read returning str are assumption A7
+# stdout:
+# b 3
+# a 2
+# c 1
+
+pub def count_words(text: str) -> dict[str, int]:
+    """Counts space-separated words in first-appearance order."""
+    ex count_words("a b a") == {"a": 2, "b": 1}
+    counts: dict[str, int] = {}
+    for w in text.split(" "):
+        counts[w.copy()] = (counts.get(w) else 0) + 1
+    return counts
+
+pub def main() -> fail FsError uses io:
+    with fs = fake_fs({"in.txt": "b a b c a b"}):
+        text = fs.read("in.txt")?
+        for w, n in count_words(text).items():
+            io.print(f"{w} {n}")

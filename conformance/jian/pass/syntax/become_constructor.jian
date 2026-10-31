@@ -1,0 +1,12 @@
+# spec: 3.5
+# rows: R456
+# note: 13.2 has no expression form of become yet (grammar question G1)
+
+type Tree = Leaf() | Node(left: Tree, right: Tree)
+
+def spine(n: int) -> Tree:
+    pre n >= 0
+    decreases n
+    if n == 0:
+        return Leaf()
+    return Node(Leaf(), become spine(n - 1))

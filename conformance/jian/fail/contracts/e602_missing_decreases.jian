@@ -1,0 +1,7 @@
+# spec: 8.4
+# expect: E602 at 4:5
+
+def countdown(n: int) -> int:
+    if n <= 0:
+        return 0
+    return countdown(n - 1)

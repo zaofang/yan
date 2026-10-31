@@ -1,0 +1,26 @@
+-- spec: 3.5
+-- rows: SQ3
+-- stdout:
+
+module conf.join_points_and_match
+
+sum Shape { Circle { r: i64 }, Rect { w: i64, h: i64 }, Dot }
+
+fn area(let s: Shape) -> i64 {
+    jp k(let a: i64) { ret a }
+    match s {
+        Circle { r: r } => { let a: i64 = mul_checked_i64(let r, let r)  jump k(a) }
+        Rect { w: w, h: h } => { let a: i64 = mul_checked_i64(let w, let h)  jump k(a) }
+        Dot => { jump k(0) }
+    }
+}
+
+fn main() -> Unit {
+    let c: Shape = Circle { r: 3 }
+    let a: i64 = area(let c)
+    assert eq_i64(let a, let 9)
+    let r: Shape = Rect { w: 2, h: 5 }
+    let b: i64 = area(let r)
+    assert eq_i64(let b, let 10)
+    ret ()
+}

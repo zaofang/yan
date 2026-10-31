@@ -1,0 +1,12 @@
+# spec: 3.4, 8.3
+# rows: R6, R380
+# stdout:
+# before
+# exit: 101
+
+def add(a: int, b: int) -> int:
+    return a + b
+
+pub def main() uses io:
+    io.print("before")
+    io.print(f"{add(9223372036854775807, 1)}")

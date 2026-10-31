@@ -1,0 +1,12 @@
+# spec: 3.5
+# rows: R260
+# expect: E273 at 10:9
+
+def g(n: int) -> int:
+    return n
+
+def f(n: int) -> int:
+    par:
+        become g(n)
+        m = g(n)
+    return m

@@ -1,0 +1,5 @@
+# spec: 14.1
+# rows: R423
+# expect: E232 at 5:28
+
+type Value = Num(n: int) | str

@@ -1,0 +1,5 @@
+# spec: 14.2
+# expect: E542 at 5:23
+
+def f(d: PlainDate) -> str:
+    return d.strftime("%H:%M")

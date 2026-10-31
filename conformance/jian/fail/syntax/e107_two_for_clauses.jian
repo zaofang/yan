@@ -1,0 +1,5 @@
+# spec: 13.2
+# expect: E107 at 5:12
+
+def pairs(xs: list[int], ys: list[int]) -> list[int]:
+    return [x + y for x in xs for y in ys]

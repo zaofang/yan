@@ -1,0 +1,14 @@
+-- spec: 15.3
+-- rows: R266, R370
+-- stdout:
+-- 55
+
+fib(n: int) -> int =
+  pre n >= 0
+  decreases n
+  0 -> 0
+  1 -> 1
+  _ -> fib(n - 1) + fib(n - 2)
+
+main() =
+  io.print("\(fib(10))")

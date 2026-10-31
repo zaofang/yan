@@ -1,0 +1,6 @@
+-- spec: 15.1
+-- expect: E110 at 5:7
+
+f() -> int =
+  let item__count = 1
+  item__count

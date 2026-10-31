@@ -1,0 +1,17 @@
+-- spec: 4.1, 4.2
+-- rows: R1
+-- expect: E401 at 14:40
+
+module conf.e401
+
+fn keep(sink xs: List[i64]) -> i64 {
+    let n: i64 = std.list.len[i64](let xs)
+    ret n
+}
+
+fn f(sink xs: List[i64]) -> i64 {
+    let a: i64 = keep(sink xs)
+    let b: i64 = std.list.len[i64](let xs)
+    let c: i64 = add_checked_i64(let a, let b)
+    ret c
+}

@@ -1,0 +1,8 @@
+# spec: 8.6
+# rows: R88, R345
+# expect: W820 at 8:12
+
+def f(xs: list[int], k: int) -> int:
+    if len(xs) != 16:
+        return 0
+    return xs[k & 16]

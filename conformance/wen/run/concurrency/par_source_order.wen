@@ -1,0 +1,13 @@
+-- spec: 9.2
+-- stdout:
+-- 4 9 [1, 4, 9]
+
+sq(x: int) -> int = x * x
+
+main() =
+  par
+    let a = sq(2)
+    let b = sq(3)
+  let ys = par for x in [1, 2, 3]
+    sq(x)
+  io.print("\(a) \(b) \(ys)")

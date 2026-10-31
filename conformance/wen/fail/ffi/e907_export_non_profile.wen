@@ -1,0 +1,8 @@
+-- spec: 12.7
+-- expect: E907 at 6:15
+
+--- Sums a list.
+@export
+pub total(xs: List[int]) -> int =
+  ex total([1, 2]) == 3
+  xs.sum()

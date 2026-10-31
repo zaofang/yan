@@ -1,0 +1,14 @@
+# spec: 8.1
+# expect: E310 at 14:12
+
+class ParseErr:
+    msg: str
+
+class AppErr:
+    msg: str
+
+def parse(s: str) -> int fail ParseErr:
+    return s.parse_int() else fail ParseErr(msg=s.copy())
+
+def run(s: str) -> int fail AppErr:
+    return parse(s)?

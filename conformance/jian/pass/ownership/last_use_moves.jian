@@ -1,0 +1,11 @@
+# spec: 4.2
+# rows: R1
+# note: the sink use is the last use, so it is a move and needs no copy
+
+def keep(take xs: list[int]) -> int:
+    return len(xs)
+
+def f() -> int:
+    xs = [1, 2]
+    n = len(xs)
+    return n + keep(xs)

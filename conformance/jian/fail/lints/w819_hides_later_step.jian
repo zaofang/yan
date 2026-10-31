@@ -1,0 +1,9 @@
+# spec: 17.2
+# rows: R348
+# expect: W819 at 9:12
+
+def upper(s: str) -> str:
+    return s.copy()
+
+def f(s: str) -> str:
+    return s.upper()

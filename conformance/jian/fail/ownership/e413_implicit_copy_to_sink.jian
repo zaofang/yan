@@ -1,0 +1,11 @@
+# spec: 4.2
+# rows: R1
+# expect: E413 at 10:14
+
+def keep(take xs: list[int]) -> int:
+    return len(xs)
+
+def f() -> int:
+    xs = [1, 2]
+    n = keep(xs)
+    return n + len(xs)

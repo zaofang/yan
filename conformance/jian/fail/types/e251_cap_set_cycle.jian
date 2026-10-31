@@ -1,0 +1,7 @@
+# spec: 7.1
+# rows: R431
+# note: reported once, at the first set of the cycle in source order
+# expect: E251 at 6:6
+
+type Svc = uses net, Ops
+type Ops = uses log, Svc

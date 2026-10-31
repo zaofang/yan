@@ -1,0 +1,6 @@
+# spec: 13.1, 25.3
+# rows: R298
+# expect: E102 at 6:12
+
+def f() -> list[int]:
+    return [1, 2

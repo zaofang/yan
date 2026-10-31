@@ -1,0 +1,18 @@
+# spec: 9.2, 7.7
+# rows: SQ15, R342
+# stdout:
+# one
+# two
+# 4 9 [0, 1, 4, 9, 16]
+
+def sq(x: int) -> int:
+    return x * x
+
+pub def main() uses io:
+    par:
+        a = sq(2)
+        b = sq(3)
+        io.print("one")
+        io.print("two")
+    ys = par [sq(x) for x in range(5)]
+    io.print(f"{a} {b} {ys}")

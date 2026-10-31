@@ -1,0 +1,14 @@
+# spec: 3.5
+# rows: R260
+# stdout:
+# 10000000
+
+def count(n: int, acc: int) -> int:
+    pre n >= 0
+    decreases n
+    if n == 0:
+        return acc
+    become count(n - 1, acc + 1)
+
+pub def main() uses io:
+    io.print(f"{count(10000000, 0)}")

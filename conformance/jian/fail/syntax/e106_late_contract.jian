@@ -1,0 +1,8 @@
+# spec: 13.1
+# rows: R422, SQ12
+# expect: E106 at 7:5
+
+def f(x: int) -> int:
+    y = x + 1
+    pre x > 0
+    return y

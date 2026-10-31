@@ -1,0 +1,10 @@
+# spec: 14.1
+# note: w matches its parameter name and is exempt; a is not
+# expect: E210 at 10:20
+
+def area(w: int, h: int) -> int:
+    return w * h
+
+def f(a: int) -> int:
+    w = 2
+    return area(w, a)
