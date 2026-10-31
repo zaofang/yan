@@ -56,6 +56,8 @@ struct Lower<'a, 'c, 's> {
     bound: Vec<(String, Span)>,
     /// What each index expression indexes, for the bounds solver.
     sites: HashMap<Span, Site>,
+    /// `&` of a field or element passes a copy; it is stored back after the statement.
+    writeback: Vec<(String, Place, Span)>,
 }
 
 pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
@@ -301,6 +303,7 @@ pub(crate) fn function(g: &Globals, f: &j::FuncDef, is_pub: bool, cx: &mut Cx) -
         inferred: None,
         bound: Vec::new(),
         sites: HashMap::new(),
+        writeback: Vec::new(),
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -613,7 +616,26 @@ impl Lower<'_, '_, '_> {
     }
 
     fn stmts(&mut self, stmts: &[j::Stmt]) -> R<()> {
-        stmts.iter().try_for_each(|s| self.stmt(s))
+        for s in stmts {
+            let start = self.writeback.len();
+            self.stmt(s)?;
+            if self.writeback.len() > start {
+                if ends(std::slice::from_ref(s)) {
+                    return unsupported("`&` of a field or element in a statement that exits");
+                }
+                for (t, place, at) in self.writeback.split_off(start) {
+                    self.emit(
+                        StmtKind::Assign {
+                            place,
+                            rhs: Rhs::Atom(Atom::Name(t, at)),
+                            rhs_span: at,
+                        },
+                        at,
+                    );
+                }
+            }
+        }
+        Ok(())
     }
 
     fn label(&mut self) -> String {
@@ -741,7 +763,7 @@ impl Lower<'_, '_, '_> {
             }
             K::For {
                 target, iter, body, ..
-            } => self.for_(target, iter, body, at)?,
+            } => self.for_(target, iter, at, |l| l.stmts(body))?,
             K::Match { scrutinee, cases } => self.match_(scrutinee, cases, at)?,
             K::Par {
                 concurrent,
@@ -780,7 +802,13 @@ impl Lower<'_, '_, '_> {
         Ok(())
     }
 
-    fn for_(&mut self, target: &[String], iter: &j::Expr, body: &[j::Stmt], at: Span) -> R<()> {
+    fn for_(
+        &mut self,
+        target: &[String],
+        iter: &j::Expr,
+        at: Span,
+        body: impl FnOnce(&mut Self) -> R<()>,
+    ) -> R<()> {
         let label = self.label();
         let i = self.fresh("i");
         let one = Atom::Lit(Literal::Int("1".into()), at);
@@ -929,7 +957,7 @@ impl Lower<'_, '_, '_> {
                 },
                 at,
             );
-            l.stmts(body)
+            body(l)
         });
         self.loops.pop();
         let body = b?;
@@ -943,6 +971,113 @@ impl Lower<'_, '_, '_> {
             at,
         );
         Ok(())
+    }
+
+    /// A loop that fills a fresh collection. Its element type is known only once the element
+    /// is lowered inside the loop, so the collection's `let` is patched afterwards.
+    /// `par` comprehensions run in source order, which is what their results observe (12.2).
+    fn comprehension(&mut self, e: &j::Expr) -> R<(Rhs, Ty)> {
+        let j::ExprKind::Comp {
+            kind,
+            elem,
+            value,
+            target,
+            iter,
+            cond,
+            ..
+        } = &e.kind
+        else {
+            unreachable!("called on a comprehension")
+        };
+        let (kind, value, cond, at) = (*kind, value.as_deref(), cond.as_deref(), e.span);
+        let acc = self.fresh("c");
+        let new = match kind {
+            j::CompKind::List => "std.list.new",
+            j::CompKind::Set => "std.set.new",
+            j::CompKind::Dict => "std.dict.new",
+        };
+        self.bind(
+            &acc,
+            true,
+            &Ty::Err,
+            Rhs::Call(call(new, vec![], vec![], at)),
+            at,
+            at,
+        );
+        let slot = self.out.len() - 1;
+        let mut found: Option<(Ty, Option<Ty>)> = None;
+        let acc_arg = Arg::Value(Conv::Inout, Atom::Name(acc.clone(), at), at);
+        self.for_(target, iter, at, |l| {
+            let mut push = |l: &mut Self| -> R<()> {
+                let (x, xt) = l.atom(elem, None)?;
+                let (path, mut args, mut targs) = match kind {
+                    j::CompKind::List => {
+                        ("std.list.append", vec![acc_arg.clone()], vec![xt.targ()])
+                    }
+                    j::CompKind::Set => ("std.set.add", vec![acc_arg.clone()], vec![xt.targ()]),
+                    j::CompKind::Dict => {
+                        ("std.dict.insert", vec![acc_arg.clone()], vec![xt.targ()])
+                    }
+                };
+                let vt = match (kind, value) {
+                    (j::CompKind::Dict, Some(v)) => {
+                        let (va, vt) = l.atom(v, None)?;
+                        targs.push(vt.targ());
+                        args.push(let_arg(x));
+                        args.push(sink_arg(va));
+                        Some(vt)
+                    }
+                    _ => {
+                        args.push(sink_arg(x));
+                        None
+                    }
+                };
+                found = Some((xt, vt));
+                l.emit(StmtKind::Rhs(Rhs::Call(call(path, targs, args, at))), at);
+                Ok(())
+            };
+            match cond {
+                None => push(l),
+                Some(c) => {
+                    let (ca, ct) = l.atom(c, Some(&Ty::Bool))?;
+                    l.expect(&ct, &Ty::Bool, c.span);
+                    let then = l.block_with(push)?;
+                    l.emit(
+                        StmtKind::If {
+                            cond: ca,
+                            then,
+                            els: None,
+                        },
+                        at,
+                    );
+                    Ok(())
+                }
+            }
+        })?;
+        let ty = match (kind, found) {
+            (_, None) => Ty::Err,
+            (j::CompKind::List, Some((x, _))) => Ty::List(Box::new(x)),
+            (j::CompKind::Set, Some((x, _))) => Ty::Set(Box::new(x)),
+            (j::CompKind::Dict, Some((k, v))) => {
+                Ty::Dict(Box::new(k), Box::new(v.unwrap_or(Ty::Err)))
+            }
+        };
+        let targs = match &ty {
+            Ty::List(x) | Ty::Set(x) => vec![x.targ()],
+            Ty::Dict(k, v) => vec![k.targ(), v.targ()],
+            _ => vec![],
+        };
+        if let StmtKind::Let {
+            ty: t,
+            rhs: Rhs::Call(c),
+            ..
+        } = &mut self.out[slot].kind
+        {
+            *t = ty.core();
+            c.targs = targs;
+        }
+        self.declare(&acc, ty.clone());
+        Ok((Rhs::Atom(Atom::Name(acc, at)), ty))
     }
 
     fn match_(&mut self, scrutinee: &j::Expr, cases: &[j::Case], at: Span) -> R<()> {
@@ -1351,6 +1486,26 @@ impl Lower<'_, '_, '_> {
                         p.projs.push(Proj::Index(ia));
                         Ok((p, et))
                     }
+                    Ty::Tuple(ts) => {
+                        let k = match &i.kind {
+                            j::ExprKind::Lit(j::Lit::Int(s)) => s.parse::<usize>().ok(),
+                            _ => None,
+                        };
+                        match k.and_then(|k| ts.get(k).map(|t| (k, t.clone()))) {
+                            Some((k, t)) => {
+                                p.projs.push(Proj::Field(format!("_{k}"), i.span));
+                                Ok((p, t))
+                            }
+                            None => {
+                                self.err(
+                                    "E201",
+                                    i.span,
+                                    format!("a `{t}` is indexed by a literal below {}", ts.len()),
+                                );
+                                Ok((p, Ty::Err))
+                            }
+                        }
+                    }
                     Ty::Str => {
                         self.err(
                             "E504",
@@ -1690,7 +1845,7 @@ impl Lower<'_, '_, '_> {
             K::Fallback(x, fb) => self.fallback(x, fb, at, want)?,
             K::FStr { .. } => return unsupported("t-strings"),
             K::Hole => return unsupported("typed holes"),
-            K::Comp { .. } => return unsupported("comprehensions"),
+            K::Comp { .. } => self.comprehension(e)?,
             K::Slice(..) => return unsupported("slices"),
             K::Lambda(..) => return unsupported("lambdas"),
             K::Set(_) => return unsupported("set literals"),
@@ -2135,6 +2290,7 @@ impl Lower<'_, '_, '_> {
             }
         }
         let mut out = Vec::new();
+        let mut elems: Vec<(String, Atom)> = Vec::new();
         for (p, slot) in ps.iter().zip(slots) {
             let (e, is_ref, sp) = match slot {
                 Some(Given::Expr(e, r, sp, _)) => (e, r, sp),
@@ -2156,14 +2312,33 @@ impl Lower<'_, '_, '_> {
                 (Conv::Inout, true) => {
                     let (pl, t) = self.place(e)?;
                     self.expect(&t, &p.ty, sp);
-                    if !pl.projs.is_empty() {
-                        return unsupported("`&` of a field or element");
+                    if pl.projs.is_empty() {
+                        out.push(Arg::Value(
+                            Conv::Inout,
+                            Atom::Name(pl.root, pl.root_span),
+                            sp,
+                        ));
+                        continue;
                     }
-                    out.push(Arg::Value(
-                        Conv::Inout,
-                        Atom::Name(pl.root, pl.root_span),
-                        sp,
-                    ));
+                    // Two elements of one list may alias: the inserted check panics if they do.
+                    if let [Proj::Index(i)] = pl.projs.as_slice() {
+                        for (root, j) in &elems {
+                            if *root == pl.root {
+                                let c = call(
+                                    "exclusive_check",
+                                    vec![],
+                                    vec![let_arg(j.clone()), let_arg(i.clone())],
+                                    sp,
+                                );
+                                self.emit(StmtKind::Rhs(Rhs::Call(c)), sp);
+                            }
+                        }
+                        elems.push((pl.root.clone(), i.clone()));
+                    }
+                    let n = self.fresh("w");
+                    self.bind(&n, true, &t, Rhs::Proj(pl.clone()), sp, sp);
+                    self.writeback.push((n.clone(), pl, sp));
+                    out.push(Arg::Value(Conv::Inout, Atom::Name(n, sp), sp));
                 }
                 (Conv::Inout, false) => {
                     self.err(
