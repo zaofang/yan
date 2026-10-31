@@ -1,0 +1,10 @@
+{
+  "module": "m",
+  "edits": [
+    {
+      "item": "price",
+      "search": "pre qty >= 0",
+      "replace": "pre qty >= 1"
+    }
+  ]
+}

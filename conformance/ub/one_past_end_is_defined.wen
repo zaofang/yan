@@ -1,0 +1,9 @@
+-- spec: 6.7, 6.9
+-- note: an offset one past the end is allowed (assumption A11)
+-- ub: none
+
+main() =
+  let xs = [1, 2, 3]
+  let end = xs.as_ptr().offset(3)
+  unsafe
+    assert end.offset(-1).read() == 3

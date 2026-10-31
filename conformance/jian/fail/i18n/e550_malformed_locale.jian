@@ -1,0 +1,7 @@
+# spec: 17.5
+# rows: R332
+# note: the span is the literal
+# expect: E550 at 7:24
+
+def default_locale() -> i18n.Locale:
+    return i18n.Locale("en_US!!")

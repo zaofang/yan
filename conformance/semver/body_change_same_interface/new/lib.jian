@@ -1,0 +1,3 @@
+pub def total(xs: list[int]) -> int:
+    ex total([1, 2]) == 3
+    return sum(xs)

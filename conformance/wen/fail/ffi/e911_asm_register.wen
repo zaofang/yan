@@ -1,0 +1,9 @@
+-- spec: 12.9
+-- note: the span is the register name
+-- expect: E911 at 8:31
+
+zero() -> u64 =
+  var r: u64 = 1
+  unsafe
+    asm("xor {0}, {0}", inout("no_such_register") r)
+  r

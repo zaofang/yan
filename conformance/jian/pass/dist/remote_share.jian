@@ -1,0 +1,13 @@
+# spec: 9.6.1
+# rows: R401, R442
+
+@derive(Wire)
+class Cache:
+    hits: int
+
+def bump(var self: Cache, by: int) -> int:
+    self.hits += by
+    return self.hits
+
+def publish(a: Actor[Cache]) -> Remote[Actor[Cache]] uses nondet:
+    return a.share()

@@ -90,6 +90,20 @@
    "expect": []
   },
   {
+   "path": "jian/pass/dist/remote_share.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R401",
+    "R442"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "jian/pass/failure/from_conversion.jian",
    "kind": "pass",
    "milestone": "M1",
@@ -109,6 +123,19 @@
    ],
    "rows": [
     "R424"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/i18n/messages.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R335"
    ],
    "flags": [],
    "expect": []
@@ -816,6 +843,44 @@
    ]
   },
   {
+   "path": "jian/fail/dist/e720_non_wire_handler.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R401"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E720",
+     "line": 13,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/dist/e726_entity_key_not_hash.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R413"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E726",
+     "line": 10,
+     "col": 13
+    }
+   ]
+  },
+  {
    "path": "jian/fail/docs/w831_dead_link.jian",
    "kind": "fail",
    "milestone": "M1",
@@ -999,6 +1064,82 @@
      "code": "H701",
      "line": 6,
      "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/i18n/e550_malformed_locale.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R332"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E550",
+     "line": 7,
+     "col": 24
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/i18n/e551_malformed_message.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R335"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E551",
+     "line": 8,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/i18n/e554_plural_missing_other.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R335"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E554",
+     "line": 8,
+     "col": 19
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/i18n/e555_unbalanced_markup.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R335"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E555",
+     "line": 7,
+     "col": 18
     }
    ]
   },
@@ -3427,6 +3568,18 @@
    "expect": []
   },
   {
+   "path": "wen/pass/ffi/callbacks_and_ownership.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "12.3",
+    "12.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "wen/pass/ownership/for_var.wen",
    "kind": "pass",
    "milestone": "M3",
@@ -3818,6 +3971,23 @@
    ]
   },
   {
+   "path": "wen/fail/ffi/e905_variadic_promotion.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E905",
+     "line": 11,
+     "col": 23
+    }
+   ]
+  },
+  {
    "path": "wen/fail/ffi/e906_returns_twice.wen",
    "kind": "fail",
    "milestone": "M3",
@@ -3848,6 +4018,40 @@
      "code": "E907",
      "line": 6,
      "col": 15
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ffi/e910_asm_operand_type.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12.9"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E910",
+     "line": 7,
+     "col": 24
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/ffi/e911_asm_register.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12.9"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E911",
+     "line": 8,
+     "col": 31
     }
    ]
   },
@@ -6061,6 +6265,622 @@
      "col": 14
     }
    ]
+  },
+  {
+   "path": "ub/data_race.wen",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "6.9"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "1"
+  },
+  {
+   "path": "ub/dead_allocation.wen",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "6.9"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "2"
+  },
+  {
+   "path": "ub/invalid_bool.wen",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "6.9"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "6"
+  },
+  {
+   "path": "ub/offset_outside_allocation.wen",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "6.9"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "3"
+  },
+  {
+   "path": "ub/one_past_end_is_defined.wen",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "6.9"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "none"
+  },
+  {
+   "path": "semver/add_capability",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "major"
+   }
+  },
+  {
+   "path": "semver/add_ex",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "minor"
+   }
+  },
+  {
+   "path": "semver/add_item",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "minor"
+   }
+  },
+  {
+   "path": "semver/add_parameter_with_default",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "minor"
+   }
+  },
+  {
+   "path": "semver/add_parameter_without_default",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "major"
+   }
+  },
+  {
+   "path": "semver/add_record_field",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "major"
+   }
+  },
+  {
+   "path": "semver/add_sum_variant",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "major"
+   }
+  },
+  {
+   "path": "semver/add_trait_method_without_default",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "major"
+   }
+  },
+  {
+   "path": "semver/add_variant_non_exhaustive",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "minor"
+   }
+  },
+  {
+   "path": "semver/body_change_same_interface",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "patch"
+   }
+  },
+  {
+   "path": "semver/change_ex_result",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "major"
+   }
+  },
+  {
+   "path": "semver/change_parameter_type",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "major"
+   }
+  },
+  {
+   "path": "semver/change_return_type",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "major"
+   }
+  },
+  {
+   "path": "semver/deprecate_item",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "minor"
+   }
+  },
+  {
+   "path": "semver/grow_fail_union",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "major"
+   }
+  },
+  {
+   "path": "semver/private_change",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "patch",
+    "note": "only pub items count"
+   }
+  },
+  {
+   "path": "semver/remove_capability",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "minor"
+   }
+  },
+  {
+   "path": "semver/remove_item",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "major"
+   }
+  },
+  {
+   "path": "semver/rename_item",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "major"
+   }
+  },
+  {
+   "path": "semver/strengthen_pre",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "major"
+   }
+  },
+  {
+   "path": "semver/weaken_pre",
+   "kind": "semver",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "bump": "minor"
+   }
+  },
+  {
+   "path": "patch/add_item",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "result": "result.jian"
+   }
+  },
+  {
+   "path": "patch/delete_item",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "result": "result.jian"
+   }
+  },
+  {
+   "path": "patch/edit_once",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "result": "result.jian"
+   }
+  },
+  {
+   "path": "patch/p001_base_mismatch",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "code": "P001",
+    "note": "the hash cannot match any item text"
+   }
+  },
+  {
+   "path": "patch/p002_many_matches",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "code": "P002"
+   }
+  },
+  {
+   "path": "patch/p002_patch_is_atomic",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "code": "P002",
+    "note": "the first edit would apply alone; the module must stay unchanged"
+   }
+  },
+  {
+   "path": "patch/p002_zero_matches",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "code": "P002"
+   }
+  },
+  {
+   "path": "patch/p003_check_introduces_error",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [
+    "--check"
+   ],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "code": "P003",
+    "flags": [
+     "--check"
+    ]
+   }
+  },
+  {
+   "path": "patch/p004_delete_missing",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "code": "P004"
+   }
+  },
+  {
+   "path": "patch/p004_replace_missing",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "code": "P004"
+   }
+  },
+  {
+   "path": "patch/p005_add_existing",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "code": "P005"
+   }
+  },
+  {
+   "path": "patch/p006_contract_edit",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "code": "P006",
+    "note": "pre clauses are protected"
+   }
+  },
+  {
+   "path": "patch/p006_test_replace",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "code": "P006",
+    "note": "test functions are protected"
+   }
+  },
+  {
+   "path": "patch/plain_file_patch",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "note": "each item replaces the item of its name or is added",
+    "result": "result.jian"
+   }
+  },
+  {
+   "path": "patch/replace_item",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "result": "result.jian"
+   }
   }
  ]
 }
