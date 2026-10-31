@@ -77,6 +77,19 @@ Assumed in `yong-elab` until resolved:
 - E210 is reported once per call, at the first argument that needs a keyword (the note in
   `jian/fail/types/e210_record_keyword_required`).
 
+## Std runtime readings (Wave 0)
+
+Assumed in `yong-interp`'s native std functions until the spec says otherwise:
+
+- `d[k]` on a dict without `k` panics with kind `bounds`; 8.3 lists no key-specific kind.
+- `bigint` arithmetic intrinsics are spelled `<op>_bigint` (`add`, `sub`, `mul`, `floordiv`, `mod`
+  and the six comparisons), with no `_checked` suffix because they cannot overflow. Floor division
+  and modulo round toward negative infinity, as for the sized integers.
+- `str.parse_int` accepts an optional sign and ASCII digits only (no spaces, underscores or radix
+  prefixes) and returns None outside `int`. `str.parse_float` accepts the same plus `.`, an
+  exponent, and `inf`, `infinity` and `nan` in any case.
+- `str.splitlines` splits on CPython's line boundaries and drops a final empty line.
+
 ## Wen lexical and grammar readings
 
 15.1 and 15.2 leave these open. Assumed in `yong-wen` until resolved:

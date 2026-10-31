@@ -3,6 +3,8 @@
 use std::cmp::Ordering;
 use std::mem;
 
+use unicode_segmentation::UnicodeSegmentation;
+
 use super::{R, Value, panic};
 
 pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
@@ -13,9 +15,7 @@ pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
         ("std.text.concat", [Str(a), Str(b)]) => return text(format!("{a}{b}")),
         ("std.text.byte_len", [Str(s)]) => Int(s.len() as i128),
         ("std.text.char_count", [Str(s)]) => Int(s.chars().count() as i128),
-        ("std.text.grapheme_count", [Str(s)]) => {
-            Int(s.chars().filter(|c| !is_combining(*c)).count() as i128)
-        }
+        ("std.text.grapheme_count", [Str(s)]) => Int(s.graphemes(true).count() as i128),
         ("std.text.upper", [Str(s)]) => return text(s.to_uppercase()),
         ("std.text.lower", [Str(s)]) => return text(s.to_lowercase()),
         ("std.text.strip", [Str(s)]) => return text(s.trim().to_owned()),
@@ -96,15 +96,11 @@ pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
     }))
 }
 
-/// Combining marks, so that `e` plus U+0301 counts as one grapheme. A stand-in for UAX #29.
-fn is_combining(c: char) -> bool {
-    matches!(c as u32, 0x0300..=0x036F | 0x1AB0..=0x1AFF | 0x1DC0..=0x1DFF | 0x20D0..=0x20FF | 0xFE20..=0xFE2F)
-}
-
 fn order(a: &Value, b: &Value) -> Option<Ordering> {
     use Value::*;
     match (a, b) {
         (Int(x), Int(y)) => Some(x.cmp(y)),
+        (BigInt(x), BigInt(y)) => Some(x.cmp(y)),
         (Float(x), Float(y)) => x.partial_cmp(y),
         (Bool(x), Bool(y)) => Some(x.cmp(y)),
         (Char(x), Char(y)) => Some(x.cmp(y)),
@@ -143,7 +139,21 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Tuple(xs) if xs.len() == 1 => format!("({},)", show(&xs[0], true)),
         Tuple(xs) => format!("({})", join(xs)),
         List(xs) => format!("[{}]", join(xs)),
+        Dict(d) => {
+            let kvs: Vec<String> = d
+                .iter()
+                .map(|(k, v)| format!("{}: {}", show(&k.0, true), show(v, true)))
+                .collect();
+            format!("{{{}}}", kvs.join(", "))
+        }
+        Set(s) if s.is_empty() => "set()".into(),
+        Set(s) => {
+            let xs: Vec<String> = s.iter().map(|x| show(&x.0, true)).collect();
+            format!("{{{}}}", xs.join(", "))
+        }
+        BigInt(b) => b.to_string(),
         Data { name, fields } if name == "Some" && fields.len() == 1 => show(&fields[0].1, nested),
+        Data { name, fields } if name == "None" && fields.is_empty() => "None".into(),
         Data { name, fields } => {
             let fs: Vec<String> = fields
                 .iter()
