@@ -387,6 +387,13 @@ impl Solver<'_> {
             S::Assign { target, value, .. } => self.assign(target, value, &mut f),
             S::AugAssign { target, value, .. } => {
                 self.expr(value, &mut f);
+                // R438: a missing key gets the default first.
+                if let K::Index(b, k) = &target.kind
+                    && let (K::Name(d), Some(key)) = (&b.kind, key_of(k))
+                    && self.sites.get(&target.span) == Some(&Site::Dict)
+                {
+                    f.keys.push((d.clone(), key));
+                }
                 self.target(target, &mut f);
             }
             S::If { arms, els } => {
@@ -802,6 +809,26 @@ fn breaks(stmts: &[j::Stmt]) -> bool {
     })
 }
 
+/// Std methods that only read their receiver.
+const READS: [&str; 16] = [
+    "copy",
+    "get",
+    "index",
+    "keys",
+    "values",
+    "items",
+    "contains",
+    "contains_key",
+    "split",
+    "splitlines",
+    "partition",
+    "strip",
+    "upper",
+    "lower",
+    "startswith",
+    "endswith",
+];
+
 /// Every name that `stmts` assigns or passes `&`, or calls a mutating method on.
 fn assigned(stmts: &[j::Stmt]) -> HashSet<String> {
     let mut out = HashSet::new();
@@ -820,7 +847,8 @@ fn assigned(stmts: &[j::Stmt]) -> HashSet<String> {
             let K::Call(callee, args) = &x.kind else {
                 return;
             };
-            if let K::Attr(b, _, _) = &callee.kind
+            if let K::Attr(b, m, _) = &callee.kind
+                && !READS.contains(&m.as_str())
                 && let Some(r) = root(b)
             {
                 out.insert(r.to_owned());
