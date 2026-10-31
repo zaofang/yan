@@ -3305,6 +3305,20 @@
    "expect": []
   },
   {
+   "path": "wen/pass/subscripts/index_read_and_write.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "4.4",
+    "10.3"
+   ],
+   "rows": [
+    "R457"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "wen/pass/syntax/every_production.wen",
    "kind": "pass",
    "milestone": "M3",
@@ -4061,6 +4075,64 @@
      "code": "E504",
      "line": 4,
      "col": 20
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/subscripts/e422_no_yield_on_a_path.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.4"
+   ],
+   "rows": [
+    "R457"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E422",
+     "line": 9,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/subscripts/e422_two_yields.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.4"
+   ],
+   "rows": [
+    "R457"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E422",
+     "line": 8,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/subscripts/e423_inout_through_view.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.4",
+    "4.3"
+   ],
+   "rows": [
+    "R457"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E423",
+     "line": 12,
+     "col": 11
     }
    ]
   },

@@ -1,0 +1,10 @@
+-- spec: 4.4
+-- rows: R457
+-- expect: E422 at 8:7
+
+type Counter = { hits: int, misses: int }
+
+impl Index[bool] for Counter
+  sub at(self, k: bool) -> int =
+    yield self.hits
+    yield self.misses

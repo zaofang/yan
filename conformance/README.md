@@ -74,13 +74,16 @@ entry of SPEC_QUESTIONS.md; every `yong/` case parses with the Rust `yong-core` 
 
 ## Questions for the spec
 
+Answered by the grammar work: `become postfix` is an `arg` in Jian and Wen, and E143 comes from the
+checker when it is not the last-evaluated argument; Wen subscripts are `subdef = "sub" sig "=" body`
+with `yield expr`, and Jian has no subscript definition.
+
 | Id | Question |
 |---|---|
-| G1 | R456 says Jian and Wen spell `become` inside a constructor as `Node(l, become f(r))`, but 13.2 and 15.2 have `become` only as a statement. Cases `syntax/e143_*` and `jian/pass/syntax/become_constructor` assume an expression form in the last argument. |
-| G2 | 4.4 gives Wen subscripts as `sub name(self, ...) -> T { ... yield place ... }`, but 15.2 has no `sub` production. E422 and E423 have no case until it does. |
 | Q1 | E306 and E406 both cover a capability captured by an escaping closure. `jian/fail/caps/e306_capability_captured` assumes E306. |
 | Q2 | 24.1 has no `yong/run/`; this suite adds it for M0. |
 | Q3 | E250 ("two functions of one name at one method-resolution step"): is a second item of the same name in one module an error at the definition or at a call? No case yet. |
 | Q4 | List literal lengths are not 8.6 facts, so `xs = [1, 2, 3]; xs[3]` is unknown (W820), not refuted (E501). The E501 cases get the length from a guard. Confirm that this is intended. |
 | Q5 | 9.2 makes a read of a place another `par` branch writes E705, and 4.3 makes the same overlap E402. The cases expect only E705. |
 | Q6 | Is `with deadline(t)` in Jian required to have `Timeout` in the function's fail type even when nothing in the block can block? `jian/pass/syntax/every_production` declares it. |
+| Q7 | E422 and E423 spans: the cases put E422 on the subscript name and E423 on the yielded place. |
