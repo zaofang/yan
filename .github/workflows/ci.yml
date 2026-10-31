@@ -74,3 +74,17 @@ jobs:
         with:
           name: conformance-summary
           path: conformance-summary.json
+
+  # One run per program: checks that every benchmark still computes its result; times are indicative.
+  bench:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - run: cargo build --locked --release -p yong-cli
+      - run: uv run python bench/run.py --runs 1 --json bench-summary.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-summary
+          path: bench-summary.json
