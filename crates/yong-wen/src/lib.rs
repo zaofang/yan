@@ -2,9 +2,11 @@
 
 pub mod ast;
 mod lexer;
+mod lower;
 mod parser;
 mod printer;
 
+pub use lower::{Unsupported, lower};
 pub use printer::print;
 
 use yong_diag::Diagnostic;
