@@ -1,0 +1,7 @@
+# spec: 17.5
+# rows: R335
+
+@messages(source="en")
+class Inbox:
+    unread: str = ".input {$n :number}\n.match $n\none {{One message}}\n* {{{$n} messages}}"
+    hello: str = "Hello, {$name}"

@@ -1,0 +1,12 @@
+-- spec: 6.7, 6.9
+-- note: the list is dropped when make returns (assumption A11)
+-- ub: 2
+
+main() =
+  let p = make()
+  unsafe
+    assert p.read() == 1
+
+make() -> Ptr[int] =
+  let xs = [1]
+  xs.as_ptr()

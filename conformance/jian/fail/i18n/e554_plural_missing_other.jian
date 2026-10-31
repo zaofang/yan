@@ -1,0 +1,8 @@
+# spec: 17.5
+# rows: R335
+# note: English has the plural categories one and other, and there is no * arm
+# expect: E554 at 8:19
+
+@messages(source="en")
+class Inbox:
+    unread: str = ".input {$n :number}\n.match $n\none {{One message}}"

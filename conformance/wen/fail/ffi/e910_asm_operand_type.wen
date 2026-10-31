@@ -1,0 +1,8 @@
+-- spec: 12.9
+-- note: asm operands are scalars and Vec only; the span is the operand expression
+-- expect: E910 at 7:24
+
+peek(s: str) -> int =
+  unsafe
+    asm("nop", in(reg) s)
+  0

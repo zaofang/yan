@@ -1,0 +1,6 @@
+pub def total(xs: list[int]) -> int:
+    ex total([1, 2]) == 3
+    t = 0
+    for x in xs:
+        t += x
+    return t

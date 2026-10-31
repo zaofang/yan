@@ -1,0 +1,1 @@
+pub type Shape = Circle(r: float) | Square(s: float)

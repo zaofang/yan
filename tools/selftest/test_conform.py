@@ -21,6 +21,10 @@ class Fake:
     diags: list[dict[str, object]] = field(default_factory=list)
     output: tuple[str, int] = ("", 0)
     seen_flags: list[list[str]] = field(default_factory=list)
+    ub_output: tuple[str, int] = ("", 0)
+    patched: str | None = None
+    patch_records: list[dict[str, object]] = field(default_factory=list)
+    bump: str = "patch"
 
     def check(self, path: Path, flags: list[str]) -> list[dict[str, object]]:
         self.seen_flags.append(flags)
@@ -29,6 +33,19 @@ class Fake:
     def run(self, path: Path, flags: list[str]) -> tuple[str, int]:
         self.seen_flags.append(flags)
         return self.output
+
+    def run_ub(self, path: Path, flags: list[str]) -> tuple[str, int]:
+        return self.ub_output
+
+    def patch(
+        self, workdir: Path, patch: Path, flags: list[str]
+    ) -> tuple[list[dict[str, object]], int]:
+        if self.patched is not None:
+            (workdir / "m.jian").write_text(self.patched)
+        return self.patch_records, 1 if self.patch_records else 0
+
+    def semver(self, old: Path, new: Path) -> str:
+        return self.bump
 
 
 def diag(code: str, line: int, col: int, severity: str = "error") -> dict[str, object]:
@@ -118,7 +135,7 @@ def test_discover(tmp_path: Path) -> None:
     ]
     assert cases[1].expect == [Diag("E2", 3, 4)]
     assert judge(cases[3], Fake()).status == "pass"
-    assert judge(cases[4], Fake()).status == "skip"
+    assert judge(cases[4], Fake()).status == "fail"
 
 
 def test_missing_suite_is_empty(tmp_path: Path) -> None:
@@ -175,3 +192,56 @@ def test_coverage_counts_codes_and_sections() -> None:
     assert "| E502 | 7.1 | non-exhaustive match | **none** |" in report
     assert "E231" not in report
     assert "N05" in report
+
+
+def test_ub_cases() -> None:
+    flagged = Case("ub", Path("u.wen"), ub="3")
+    assert (
+        judge(flagged, Fake(ub_output=("ub(3): offset outside allocation\n", 101))).status == "pass"
+    )
+    assert judge(flagged, Fake(ub_output=("ub(2): dead allocation\n", 101))).status == "fail"
+    assert judge(flagged, Fake()).status == "fail"
+    clean = Case("ub", Path("c.wen"), ub="none")
+    assert judge(clean, Fake()).status == "pass"
+    assert judge(clean, Fake(ub_output=("ub(1): data race\n", 101))).status == "fail"
+
+
+def _patch_case(tmp: Path, expect: str) -> Case:
+    (tmp / "m.jian").write_text("old\n")
+    (tmp / "patch.json").write_text("{}")
+    (tmp / "result.jian").write_text("new\n")
+    (tmp / "expect.toml").write_text(expect)
+    [case] = discover_dirs(tmp)
+    return case
+
+
+def discover_dirs(tmp: Path) -> list[Case]:
+    root = tmp.parent / (tmp.name + "-root")
+    (root / "patch").mkdir(parents=True)
+    tmp.rename(root / "patch" / "p1")
+    return [c for c in discover(root) if c.kind == "patch"]
+
+
+def test_patch_result(tmp_path: Path) -> None:
+    (tmp_path / "a").mkdir()
+    case = _patch_case(tmp_path / "a", 'spec = "18.3"\nresult = "result.jian"\n')
+    assert judge(case, Fake(patched="new\n")).status == "pass"
+    assert judge(case, Fake(patched="other\n")).status == "fail"
+
+
+def test_patch_refusal_leaves_module(tmp_path: Path) -> None:
+    (tmp_path / "a").mkdir()
+    case = _patch_case(tmp_path / "a", 'spec = "18.3"\ncode = "P002"\n')
+    refusal: list[dict[str, object]] = [{"code": "P002"}]
+    assert judge(case, Fake(patch_records=refusal)).status == "pass"
+    assert judge(case, Fake(patch_records=refusal, patched="half\n")).status == "fail"
+    assert judge(case, Fake()).status == "fail"
+
+
+def test_semver_bump(tmp_path: Path) -> None:
+    (tmp_path / "semver" / "s1").mkdir(parents=True)
+    (tmp_path / "semver" / "s1" / "expect.toml").write_text('spec = "20.6"\nbump = "major"\n')
+    [case] = discover(tmp_path)
+    assert case.milestone == "M2a"
+    assert judge(case, Fake(bump="major")).status == "pass"
+    assert judge(case, Fake(bump="minor")).status == "fail"

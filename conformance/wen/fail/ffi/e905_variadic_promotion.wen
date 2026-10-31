@@ -1,0 +1,12 @@
+-- spec: 12.3
+-- note: a float argument to a C variadic must be promoted to f64
+-- expect: E905 at 11:23
+
+unsafe extern "C" lib c link "c"
+  unsafe printf(fmt: CStr, ...) -> c_int
+
+show(x: f32) -> c_int =
+  var n: c_int = 0
+  unsafe
+    n = printf(c"%f", x)
+  n

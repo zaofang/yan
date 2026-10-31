@@ -1,0 +1,15 @@
+module bench.loop
+
+fn main() -> Unit {
+    var i: i64 = 0
+    var acc: i64 = 0
+    loop 'l {
+        let done: bool = ge_i64(let i, let 1000000)
+        if done { break 'l }
+        let m: i64 = mod_i64(let i, let 7)
+        acc = add_checked_i64(let acc, let m)
+        i = add_checked_i64(let i, let 1)
+    }
+    assert eq_i64(let acc, let 2999997)
+    ret ()
+}

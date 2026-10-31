@@ -1,0 +1,8 @@
+# spec: 17.5
+# rows: R335
+# note: unclosed placeholder; the span is the message literal
+# expect: E551 at 8:18
+
+@messages(source="en")
+class Greetings:
+    hello: str = "Hello, {$name"

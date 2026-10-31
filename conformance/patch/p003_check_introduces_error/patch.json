@@ -1,0 +1,6 @@
+{
+  "module": "m",
+  "replace": [
+    "def total(xs: list[int]) -> int:\n    return \"none\""
+  ]
+}

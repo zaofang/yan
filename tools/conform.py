@@ -3,6 +3,9 @@
 An executor is any command that implements:
     CMD check --format json [FLAGS] FILE  -> JSON array of diagnostic records (spec 18.2)
     CMD run [FLAGS] FILE                  -> the program's stdout and exit status
+    CMD run --ub [FLAGS] FILE             -> exit status; a UB report names "ub(N)" on stderr
+    CMD patch --format json [FLAGS] PATCH -> applies PATCH in its directory; JSON records on refusal
+    CMD semver --format json --base OLD NEW -> JSON object with "bump"
 Exit status 2 or above from either command is a failure of the tool, never a verdict.
 The same suite drives the interpreter and every code generator (spec 22.1, 24.1).
 
@@ -13,8 +16,10 @@ from the case headers and conformance/catalogue.toml.
 import argparse
 import json
 import shlex
+import shutil
 import subprocess
 import sys
+import tempfile
 import tomllib
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, field
@@ -38,7 +43,9 @@ COMMENT = {".jian": "#", ".wen": "--", ".yong": "--"}
 DEFAULT_MILESTONE = {".yong": "M0", ".jian": "M1", ".wen": "M3"}
 MILESTONES = ("P0", "M0", "M1", "M1b", "M2a", "M2b", "M3", "RC", "M4")
 TOOL_FAILURE = 2
-HEADERS = frozenset({"expect", "exit", "stdout", "spec", "rows", "flags", "milestone", "note"})
+HEADERS = frozenset(
+    {"expect", "exit", "stdout", "spec", "rows", "flags", "milestone", "note", "ub"}
+)
 
 type Status = Literal["pass", "fail", "skip"]
 
@@ -61,6 +68,8 @@ class Case:
     rows: list[str] = field(default_factory=list)
     flags: list[str] = field(default_factory=list)
     milestone: str = "M0"
+    ub: str | None = None
+    meta: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -82,6 +91,14 @@ class Executor(Protocol):
     def check(self, path: Path, flags: list[str]) -> list[dict[str, object]]: ...
 
     def run(self, path: Path, flags: list[str]) -> tuple[str, int]: ...
+
+    def run_ub(self, path: Path, flags: list[str]) -> tuple[str, int]: ...
+
+    def patch(
+        self, workdir: Path, patch: Path, flags: list[str]
+    ) -> tuple[list[dict[str, object]], int]: ...
+
+    def semver(self, old: Path, new: Path) -> str: ...
 
 
 @dataclass(frozen=True)
@@ -105,6 +122,38 @@ class CommandExecutor:
         if out.returncode == TOOL_FAILURE and out.stderr.startswith("yong:"):
             raise ToolFailure(out.stderr.strip())
         return out.stdout, out.returncode
+
+    def run_ub(self, path: Path, flags: list[str]) -> tuple[str, int]:
+        out = subprocess.run(
+            [*self.argv, "run", "--ub", *flags, str(path)], capture_output=True, text=True
+        )
+        if out.returncode == TOOL_FAILURE and out.stderr.startswith("yong:"):
+            raise ToolFailure(out.stderr.strip())
+        return out.stderr, out.returncode
+
+    def patch(
+        self, workdir: Path, patch: Path, flags: list[str]
+    ) -> tuple[list[dict[str, object]], int]:
+        out = subprocess.run(
+            [*self.argv, "patch", "--format", "json", *flags, patch.name],
+            capture_output=True,
+            text=True,
+            cwd=workdir,
+        )
+        if out.returncode >= TOOL_FAILURE:
+            raise ToolFailure(out.stderr.strip())
+        records: list[dict[str, object]] = json.loads(out.stdout or "[]")
+        return records, out.returncode
+
+    def semver(self, old: Path, new: Path) -> str:
+        out = subprocess.run(
+            [*self.argv, "semver", "--format", "json", "--base", str(old), str(new)],
+            capture_output=True,
+            text=True,
+        )
+        if out.returncode >= TOOL_FAILURE:
+            raise ToolFailure(out.stderr.strip())
+        return str(json.loads(out.stdout)["bump"])
 
 
 def _items(value: str) -> list[str]:
@@ -149,6 +198,8 @@ def parse_case(kind: str, path: Path, text: str) -> Case:
                 case.flags = value.split()
             case "milestone":
                 case.milestone = value.strip()
+            case "ub":
+                case.ub = value.strip()
     case.stdout = None if stdout is None else "".join(s + "\n" for s in stdout)
     return case
 
@@ -168,11 +219,28 @@ def discover(root: Path) -> list[Case]:
         if not base.is_dir():
             continue
         if kind in ("patch", "semver"):
-            cases += [Case(kind, p) for p in sorted(base.iterdir()) if p.is_dir()]
+            cases += [_dir_case(kind, p) for p in sorted(base.iterdir()) if p.is_dir()]
             continue
         for p in _files(base):
             cases.append(parse_case(kind, p, p.read_text(encoding="utf-8")))
     return cases
+
+
+# Directory cases (patch/, semver/) describe themselves in expect.toml (see conformance/README.md).
+def _dir_case(kind: str, path: Path) -> Case:
+    expect = path / "expect.toml"
+    meta = tomllib.loads(expect.read_text(encoding="utf-8")) if expect.is_file() else {}
+    spec = meta.get("spec", "")
+    flags = meta.get("flags", [])
+    assert isinstance(spec, str) and isinstance(flags, list)
+    return Case(
+        kind,
+        path,
+        spec=_items(spec),
+        flags=[str(f) for f in flags],
+        milestone=str(meta.get("milestone", "M1" if kind == "patch" else "M2a")),
+        meta=meta,
+    )
 
 
 def _diags(records: list[dict[str, object]], errors_only: bool) -> list[Diag]:
@@ -208,8 +276,50 @@ def _judge(case: Case, ex: Executor) -> Result:
             stdout, code = ex.run(case.path, case.flags)
             if stdout != (case.stdout or "") or code != case.exit:
                 return Result(name, ex.name, "fail", f"exit {code}, stdout {stdout!r}")
+        case "ub":
+            stderr, code = ex.run_ub(case.path, case.flags)
+            flagged = "ub(" in stderr
+            if case.ub == "none" and (flagged or code != 0):
+                return Result(name, ex.name, "fail", f"expected a clean run, exit {code}: {stderr}")
+            if case.ub != "none" and (f"ub({case.ub})" not in stderr or code == 0):
+                return Result(
+                    name, ex.name, "fail", f"expected ub({case.ub}), exit {code}: {stderr}"
+                )
+        case "patch":
+            return _judge_patch(case, ex)
+        case "semver":
+            bump = ex.semver(case.path / "old", case.path / "new")
+            if bump != case.meta.get("bump"):
+                return Result(
+                    name, ex.name, "fail", f"expected {case.meta.get('bump')}, got {bump}"
+                )
         case _:
             return Result(name, ex.name, "skip", f"{case.kind} case format not defined yet")
+    return Result(name, ex.name, "pass")
+
+
+def _judge_patch(case: Case, ex: Executor) -> Result:
+    name = str(case.path)
+    found = [p for p in (case.path / "patch.json", case.path / "patch.jian") if p.is_file()]
+    if not found:
+        return Result(name, ex.name, "fail", "no patch.json or patch.jian")
+    patch = found[0]
+    with tempfile.TemporaryDirectory() as tmp:
+        work = Path(tmp)
+        for f in case.path.iterdir():
+            shutil.copy(f, work / f.name)
+        records, code = ex.patch(work, work / patch.name, case.flags)
+        after = (work / "m.jian").read_text(encoding="utf-8")
+    before = (case.path / "m.jian").read_text(encoding="utf-8")
+    want_code = case.meta.get("code")
+    if want_code is not None:
+        codes = [str(r.get("code")) for r in records]
+        if want_code not in codes or code == 0 or after != before:
+            return Result(name, ex.name, "fail", f"expected {want_code} and no change, got {codes}")
+        return Result(name, ex.name, "pass")
+    want = (case.path / str(case.meta["result"])).read_text(encoding="utf-8")
+    if code != 0 or after != want:
+        return Result(name, ex.name, "fail", f"exit {code}, module {after!r}")
     return Result(name, ex.name, "pass")
 
 
@@ -233,6 +343,8 @@ def manifest(cases: list[Case], root: Path) -> dict[str, object]:
                 "flags": c.flags,
                 "expect": [asdict(d) for d in c.expect],
                 **({"stdout": c.stdout, "exit": c.exit} if c.kind == "run" else {}),
+                **({"ub": c.ub} if c.ub else {}),
+                **({"expect_toml": c.meta} if c.meta else {}),
             }
             for c in cases
         ],
@@ -240,7 +352,8 @@ def manifest(cases: list[Case], root: Path) -> dict[str, object]:
 
 
 def _surface(case: Case) -> str:
-    return {".jian": "Jian", ".wen": "Wen", ".yong": "Yong"}[case.path.suffix]
+    # patch/ and semver/ directories hold Jian modules.
+    return {".jian": "Jian", ".wen": "Wen", ".yong": "Yong"}.get(case.path.suffix, "Jian")
 
 
 def coverage(cases: list[Case], catalogue: dict[str, dict[str, dict[str, str]]]) -> str:
@@ -250,6 +363,8 @@ def coverage(cases: list[Case], catalogue: dict[str, dict[str, dict[str, str]]])
     for c in cases:
         for d in c.expect:
             by_code[d.code].add(_surface(c))
+        if "code" in c.meta:
+            by_code[str(c.meta["code"])].add(_surface(c))
         for s in c.spec:
             by_section[s].add(_surface(c))
         rows.update(c.rows)
@@ -298,7 +413,7 @@ def coverage(cases: list[Case], catalogue: dict[str, dict[str, dict[str, str]]])
 
 
 def _counts(cases: list[Case]) -> str:
-    c = Counter(f"{p.path.suffix[1:]} {p.kind}" for p in cases)
+    c = Counter(f"{p.path.suffix[1:] or 'jian'} {p.kind}" for p in cases)
     return ", ".join(f"{k} {n}" for k, n in sorted(c.items()))
 
 

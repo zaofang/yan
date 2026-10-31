@@ -1,0 +1,12 @@
+class Bad:
+    msg: str
+
+class Worse:
+    msg: str
+
+pub def f(x: int) -> int fail Bad | Worse:
+    if x < 0:
+        fail Bad(msg="negative")
+    if x > 100:
+        fail Worse(msg="large")
+    return x

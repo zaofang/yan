@@ -1,0 +1,6 @@
+{
+  "module": "m",
+  "add": [
+    "def double(x: int) -> int:\n    return 2 * x"
+  ]
+}
