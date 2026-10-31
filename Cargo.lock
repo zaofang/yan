@@ -313,8 +313,10 @@ dependencies = [
  "yong-core",
  "yong-diag",
  "yong-elab",
+ "yong-hir",
  "yong-interp",
  "yong-jian",
+ "yong-wen",
 ]
 
 [[package]]
@@ -375,6 +377,14 @@ dependencies = [
 [[package]]
 name = "yong-std"
 version = "0.0.0"
+
+[[package]]
+name = "yong-wen"
+version = "0.0.0"
+dependencies = [
+ "yong-diag",
+ "yong-hir",
+]
 
 [[package]]
 name = "zmij"

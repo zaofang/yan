@@ -1,5 +1,5 @@
 fn main() {
-    let n: usize = std::hint::black_box(10_000);
+    let n: usize = std::hint::black_box(500_000);
     let mut xs = vec![true; n + 1];
     let mut count: i64 = 0;
     for p in 2..=n {
@@ -12,5 +12,5 @@ fn main() {
             }
         }
     }
-    assert_eq!(count, 1229);
+    assert_eq!(count, 41538);
 }
