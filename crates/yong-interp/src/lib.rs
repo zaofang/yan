@@ -280,6 +280,9 @@ fn intrinsic(name: &str, args: &[Value]) -> Option<R<Value>> {
                     checked(Some(if r != 0 && b < 0 { r + b } else { r }), ty)
                 }
                 "div" => Ok(Value::Float(a as f64 / b as f64)),
+                "and" => Ok(Value::Int(a & b)),
+                "or" => Ok(Value::Int(a | b)),
+                "xor" => Ok(Value::Int(a ^ b)),
                 "eq" => Ok(Value::Bool(a == b)),
                 "ne" => Ok(Value::Bool(a != b)),
                 "lt" => Ok(Value::Bool(a < b)),
