@@ -102,6 +102,13 @@ fn load(file: &Path, src: &str, strict: bool) -> Result<Loaded, String> {
                 }
             })
         }
+        Some("wen") => {
+            let (_, diags) = yong_wen::parse(&name, src);
+            if diags.is_empty() {
+                return Err(format!("Wen lowering is not implemented yet: {name}"));
+            }
+            Ok(Loaded::Stopped(diags))
+        }
         _ => Err(front_end_missing(file)),
     }
 }

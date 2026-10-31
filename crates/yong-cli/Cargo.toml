@@ -20,6 +20,7 @@ yong-diag.workspace = true
 yong-interp.workspace = true
 yong-jian.workspace = true
 yong-elab.workspace = true
+yong-wen.workspace = true
 
 [lints]
 workspace = true

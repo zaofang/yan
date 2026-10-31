@@ -20,6 +20,7 @@ yong-check = { path = "crates/yong-check" }
 yong-hir = { path = "crates/yong-hir" }
 yong-jian = { path = "crates/yong-jian" }
 yong-elab = { path = "crates/yong-elab" }
+yong-wen = { path = "crates/yong-wen" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
