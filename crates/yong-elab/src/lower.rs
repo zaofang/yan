@@ -51,6 +51,8 @@ struct Lower<'a, 'c, 's> {
     ghosts: HashSet<String>,
     /// The parameter N05 took as the measure.
     inferred: Option<String>,
+    /// User bindings and where each is made, for W812.
+    bound: Vec<(String, Span)>,
 }
 
 pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
@@ -294,6 +296,7 @@ pub(crate) fn function(g: &Globals, f: &j::FuncDef, is_pub: bool, cx: &mut Cx) -
         uses: HashMap::new(),
         ghosts: HashSet::new(),
         inferred: None,
+        bound: Vec::new(),
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -352,6 +355,22 @@ pub(crate) fn function(g: &Globals, f: &j::FuncDef, is_pub: bool, cx: &mut Cx) -
         }
         Ok(())
     })?;
+    let unused: Vec<(String, Span)> = sig
+        .params
+        .iter()
+        .map(|p| (p.name.clone(), p.span))
+        .chain(mem::take(&mut l.bound))
+        .filter(|(n, _)| !n.starts_with('_') && l.uses.get(n).is_none_or(Vec::is_empty))
+        .collect();
+    for (n, sp) in unused {
+        let item = l.item.clone();
+        l.cx.warn(
+            "W812",
+            sp,
+            &item,
+            format!("`{n}` is never read; name it `_{n}` or remove it"),
+        );
+    }
     Ok(y::FnDef {
         is_pub,
         is_unsafe: false,
@@ -898,6 +917,34 @@ impl Lower<'_, '_, '_> {
 
     fn match_(&mut self, scrutinee: &j::Expr, cases: &[j::Case], at: Span) -> R<()> {
         let (a, t) = self.atom(scrutinee, None)?;
+        let catch_all = |p: &j::Pat| match p {
+            j::Pat::Wild => true,
+            j::Pat::Path { path, args: None } => {
+                path.len() == 1 && !self.g.variant_of.contains_key(&path[0])
+            }
+            _ => false,
+        };
+        if let Ty::Data(d) = &t
+            && self.g.sums.contains_key(d)
+            && let Some(c) = cases.iter().find(|c| matches!(c.pat, j::Pat::Wild))
+        {
+            self.err(
+                "E502",
+                c.span,
+                format!("`case _` on the sum `{d}`; name each variant"),
+            );
+        }
+        let scalar = matches!(t, Ty::Int | Ty::Float | Ty::Str | Ty::Char | Ty::Fixed(_));
+        let bools = |b: bool| {
+            cases.iter().any(|c| {
+                matches!(&c.pat, j::Pat::Lit(e) if matches!(e.kind, j::ExprKind::Lit(j::Lit::Bool(x)) if x == b))
+            })
+        };
+        let covered = cases.iter().any(|c| c.guard.is_none() && catch_all(&c.pat))
+            || (matches!(t, Ty::Bool) && bools(true) && bools(false));
+        if (scalar || matches!(t, Ty::Bool)) && !covered {
+            self.err("E503", at, format!("this `match` on `{t}` needs `case _`"));
+        }
         let mut arms = Vec::new();
         for c in cases {
             if c.guard.is_some() {
@@ -1103,6 +1150,18 @@ impl Lower<'_, '_, '_> {
     }
 
     fn store(&mut self, target: &j::Expr, ann: Option<Ty>, r: Rhs, t: Ty, at: Span) -> R<()> {
+        if let Rhs::Atom(Atom::Name(x, _)) = &r
+            && !t.is_copy()
+            && self.locals.contains_key(x)
+            && !x.starts_with('_')
+            && self.used_after(x, at)
+        {
+            self.err(
+                "E413",
+                at,
+                format!("`{x}` is used again later; bind `{x}.copy()`"),
+            );
+        }
         match &target.kind {
             j::ExprKind::Name(n) if n == "_" => {
                 if !matches!(r, Rhs::Atom(_)) {
@@ -1148,6 +1207,7 @@ impl Lower<'_, '_, '_> {
                 };
                 let m = self.mutable.contains(n);
                 self.bind(n, m, &ty, r, target.span, at);
+                self.bound.push((n.clone(), target.span));
             }
             j::ExprKind::Index(d, k) if matches!(self.ty_of_local(d), Some(Ty::Dict(..))) => {
                 let Some(Ty::Dict(kt, vt)) = self.ty_of_local(d) else {
@@ -1865,7 +1925,7 @@ impl Lower<'_, '_, '_> {
                     return self.user_call(n, None, args, at);
                 }
                 if let Some(fs) = self.g.records.get(n) {
-                    let ps = field_params(fs);
+                    let ps = field_params(fs, at);
                     let r = self.ctor(n, &ps, args, at)?;
                     return Ok((r, Ty::Data(n.clone()), None));
                 }
@@ -1875,7 +1935,7 @@ impl Lower<'_, '_, '_> {
                         .find(|(v, _)| v == n)
                         .expect("declared")
                         .1;
-                    let ps = field_params(fs);
+                    let ps = field_params(fs, at);
                     if ps.is_empty() && args.is_empty() {
                         return Ok((Rhs::Atom(Atom::Name(n.clone(), at)), Ty::Data(s), None));
                     }
@@ -2122,7 +2182,24 @@ impl Lower<'_, '_, '_> {
                     ("len", Ty::List(e)) => ("std.list.len", vec![e.targ()], Ty::Int),
                     ("len", Ty::Set(e)) => ("std.set.len", vec![e.targ()], Ty::Int),
                     ("len", Ty::Dict(k, v)) => ("std.dict.len", vec![k.targ(), v.targ()], Ty::Int),
-                    ("len", Ty::Str) => ("std.text.char_count", vec![], Ty::Int),
+                    ("len", Ty::Str) if self.cx.strict => {
+                        self.err(
+                            "E504",
+                            at,
+                            "`len` of a `str`; use `s.char_count()` or `s.byte_len()`".into(),
+                        );
+                        return Ok(err);
+                    }
+                    ("len", Ty::Str) => {
+                        let item = self.item.clone();
+                        self.cx.note(
+                            "N21",
+                            at,
+                            &item,
+                            "`len(s)` normalized to `s.char_count()`".into(),
+                        );
+                        ("std.text.char_count", vec![], Ty::Int)
+                    }
                     ("sorted", Ty::List(e)) => ("std.prelude.sorted", vec![e.targ()], t.clone()),
                     ("int", Ty::Int) | ("float", Ty::Float) => return Ok((Rhs::Atom(a), t)),
                     ("int", Ty::Float) => ("std.prelude.int", vec![], Ty::Int),
@@ -2408,7 +2485,7 @@ fn dict_key(t: &Ty) -> Ty {
     }
 }
 
-fn field_params(fs: &[crate::Field]) -> Vec<crate::P> {
+fn field_params(fs: &[crate::Field], at: Span) -> Vec<crate::P> {
     fs.iter()
         .map(|f| crate::P {
             name: f.name.clone(),
@@ -2416,13 +2493,29 @@ fn field_params(fs: &[crate::Field]) -> Vec<crate::P> {
             ty: f.ty.clone(),
             default: f.default.clone(),
             positional: false,
+            span: at,
         })
         .collect()
 }
 
 fn names_used(stmts: &[j::Stmt], out: &mut HashMap<String, Vec<Span>>) {
     for s in stmts {
-        for e in stmt_exprs(s) {
+        let exprs: Vec<&j::Expr> = match &s.kind {
+            j::StmtKind::Assign { target, value, .. } => {
+                let mut v: Vec<&j::Expr> = match &target.kind {
+                    j::ExprKind::Name(_) => Vec::new(),
+                    j::ExprKind::Tuple(ts) => ts
+                        .iter()
+                        .filter(|t| !matches!(t.kind, j::ExprKind::Name(_)))
+                        .collect(),
+                    _ => vec![target],
+                };
+                v.push(value);
+                v
+            }
+            _ => stmt_exprs(s),
+        };
+        for e in exprs {
             walk(e, &mut |e| {
                 if let j::ExprKind::Name(n) = &e.kind {
                     out.entry(n.clone()).or_default().push(e.span);
@@ -2487,6 +2580,27 @@ impl Lower<'_, '_, '_> {
                 self.inferred = Some(p.clone());
                 return;
             }
+        }
+    }
+}
+
+/// Names of functions called anywhere in `stmts`.
+pub(crate) fn callees(stmts: &[j::Stmt], out: &mut HashSet<String>) {
+    for s in stmts {
+        for e in stmt_exprs(s) {
+            walk(e, &mut |e| {
+                if let j::ExprKind::Call(f, _) = &e.kind {
+                    match &f.kind {
+                        j::ExprKind::Name(n) | j::ExprKind::Attr(_, n, _) => {
+                            out.insert(n.clone());
+                        }
+                        _ => {}
+                    }
+                }
+            });
+        }
+        for b in sub_blocks(s) {
+            callees(b, out);
         }
     }
 }

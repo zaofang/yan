@@ -15,6 +15,15 @@ use yong_hir as j;
 
 pub use ty::Ty;
 
+/// How the module is checked.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Options {
+    /// `--strict`: the lenient reader is off (14.4).
+    pub strict: bool,
+    /// `--level release` (8.5).
+    pub release: bool,
+}
+
 /// A construct the elaborator does not lower yet; the caller skips the semantic checks.
 #[derive(Debug)]
 pub struct Unsupported(pub String);
@@ -37,6 +46,7 @@ pub(crate) struct P {
     pub ty: Ty,
     pub default: Option<j::Expr>,
     pub positional: bool,
+    pub span: Span,
 }
 
 pub(crate) struct Sig {
@@ -54,13 +64,15 @@ pub(crate) struct Globals {
     pub aliases: HashMap<String, j::Type>,
     pub fns: HashMap<String, Sig>,
     pub consts: HashMap<String, Ty>,
+    /// Functions called from a `test_` function (E601).
+    pub tested: std::collections::HashSet<String>,
 }
 
 pub(crate) struct Cx<'s> {
     pub file: &'s str,
     pub src: &'s str,
-    /// `--strict`: the lenient reader is off (14.4).
     pub strict: bool,
+    pub release: bool,
     pub diags: Vec<Diagnostic>,
 }
 
@@ -69,6 +81,13 @@ impl Cx<'_> {
         self.err(code, span, item, message);
         if let Some(d) = self.diags.last_mut() {
             d.severity = yong_diag::Severity::Note;
+        }
+    }
+
+    pub fn warn(&mut self, code: &str, span: Span, item: &str, message: String) {
+        self.err(code, span, item, message);
+        if let Some(d) = self.diags.last_mut() {
+            d.severity = yong_diag::Severity::Warning;
         }
     }
 
@@ -160,12 +179,13 @@ pub fn elaborate(
     file: &str,
     src: &str,
     m: &j::Module,
-    strict: bool,
+    opts: Options,
 ) -> Result<(y::Module, Vec<Diagnostic>), Unsupported> {
     let mut cx = Cx {
         file,
         src,
-        strict,
+        strict: opts.strict,
+        release: opts.release,
         diags: Vec::new(),
     };
     let mut g = Globals::default();
@@ -254,9 +274,22 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     }
     for it in &m.items {
         match &it.kind {
+            j::ItemKind::Func(f) if g.fns.contains_key(&f.name) => {
+                cx.err(
+                    "E250",
+                    f.name_span,
+                    &f.name,
+                    format!("`{}` is defined twice", f.name),
+                );
+            }
             j::ItemKind::Func(f) => {
                 let s = sig(g, f, cx)?;
                 g.fns.insert(f.name.clone(), s);
+                if f.name.starts_with("test_")
+                    && let Some(b) = &f.body
+                {
+                    lower::callees(&b.stmts, &mut g.tested);
+                }
             }
             j::ItemKind::Const { name, ty, .. } => {
                 let t = g.ty(ty, cx, it.span)?;
@@ -295,6 +328,7 @@ fn sig(g: &Globals, f: &j::FuncDef, cx: &mut Cx) -> R<Sig> {
                 ty: g.ty(ty, cx, *span)?,
                 default: default.clone(),
                 positional,
+                span: *span,
             }),
         }
     }
@@ -409,7 +443,33 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             value: const_val(value)?,
         }),
         j::ItemKind::Lemma(_) => return Ok(None),
-        j::ItemKind::Func(f) => y::ItemKind::Fn(lower::function(g, f, it.is_pub, cx)?),
+        j::ItemKind::Func(f) => {
+            if it.is_pub && f.name != "main" {
+                let body = f.body.as_ref();
+                if body.is_none_or(|b| b.doc.is_none()) {
+                    cx.warn(
+                        "W830",
+                        f.name_span,
+                        &f.name,
+                        format!("`{}` is pub and has no docstring", f.name),
+                    );
+                }
+                let has_ex = body.is_some_and(|b| {
+                    b.contracts
+                        .iter()
+                        .any(|c| matches!(c, j::Contract::Ex { .. }))
+                });
+                if cx.release && !has_ex && !g.tested.contains(&f.name) {
+                    cx.err(
+                        "E601",
+                        f.name_span,
+                        &f.name,
+                        format!("`{}` is pub and has no `ex` line or test", f.name),
+                    );
+                }
+            }
+            y::ItemKind::Fn(lower::function(g, f, it.is_pub, cx)?)
+        }
         j::ItemKind::Trait(_) | j::ItemKind::Impl(_) => return unsupported("traits"),
     }))
 }

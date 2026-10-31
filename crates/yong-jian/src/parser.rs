@@ -1279,6 +1279,7 @@ impl Parser {
                 self.expect_newline_then_indent()?;
                 let mut cases = Vec::new();
                 while self.eat_kw("case") {
+                    let span = self.span();
                     let pat = self.pattern()?;
                     let guard = if self.eat_kw("if") {
                         Some(self.expr()?)
@@ -1287,6 +1288,7 @@ impl Parser {
                     };
                     cases.push(Case {
                         pat,
+                        span,
                         guard,
                         body: self.colon_block()?,
                     });
