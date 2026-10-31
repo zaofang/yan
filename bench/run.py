@@ -19,6 +19,7 @@ from pathlib import Path
 BENCH = Path(__file__).resolve().parent
 ROOT = BENCH.parent
 LANGS = ("yong", "py", "rs")
+FLOOR = 0.001
 RUSTC_FLAGS = ("-C", "opt-level=3", "-C", "overflow-checks=on", "-C", "codegen-units=1")
 
 
@@ -70,6 +71,12 @@ def ms(seconds: float) -> str:
     return f"{seconds * 1000:.1f}"
 
 
+def ratio(num: float, den: float, digits: int) -> str:
+    # Below FLOOR a time is startup noise, so the ratio is only a lower bound.
+    bound = "> " if den < FLOOR else ""
+    return f"{bound}{num / max(den, FLOOR):.{digits}f}x"
+
+
 def report(rows: list[Row], startup: dict[str, float]) -> str:
     lines = [
         "| program | yong ms | python ms | rust ms | yong/python | yong/rust |",
@@ -77,14 +84,13 @@ def report(rows: list[Row], startup: dict[str, float]) -> str:
     ]
     for r in rows:
         net = {lang: r.net(lang, startup) for lang in LANGS}
-        # Below a millisecond the Rust time is startup noise; the ratio is then a lower bound.
-        rs = max(net["rs"], 0.001)
-        bound = "> " if net["rs"] < 0.001 else ""
         lines.append(
             f"| {r.program} | {ms(net['yong'])} | {ms(net['py'])} | {ms(net['rs'])} "
-            f"| {net['yong'] / net['py']:.1f}x | {bound}{net['yong'] / rs:.0f}x |"
+            f"| {ratio(net['yong'], net['py'], 1)} | {ratio(net['yong'], net['rs'], 0)} |"
         )
-    yp = statistics.geometric_mean(r.net("yong", startup) / r.net("py", startup) for r in rows)
+    yp = statistics.geometric_mean(
+        r.net("yong", startup) / max(r.net("py", startup), FLOOR) for r in rows
+    )
     lines.append(f"\nGeometric mean, yong/python: {yp:.1f}x.")
     lines.append(
         "Startup subtracted (ms): "

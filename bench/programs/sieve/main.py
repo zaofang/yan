@@ -1,5 +1,5 @@
 def main() -> None:
-    n = 10_000
+    n = 500_000
     xs = [True] * (n + 1)
     count = 0
     for p in range(2, n + 1):
@@ -7,7 +7,7 @@ def main() -> None:
             count += 1
             for m in range(p * p, n + 1, p):
                 xs[m] = False
-    assert count == 1229
+    assert count == 41538
 
 
 main()
