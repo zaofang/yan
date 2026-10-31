@@ -52,3 +52,16 @@ Assumed in `yong-check` until resolved:
   and never produces E201. An integer literal fits any numeric type, a float literal any
   non-integer numeric type.
 - `yong run` checks the module first and exits 1 with the diagnostics on stderr when it has errors.
+
+## Standard library declarations (resolved: R474 to R476, spec rev 496)
+
+Raised by the std build plan; Antonio accepted all three answers on 2026-10-31.
+
+- R474: a std function with a native body is `@intrinsic def name(params) -> T: ...`. `@intrinsic`
+  is reserved to the `std` package; the intrinsic list, including the Y4 scalar ops, lives in
+  `yong-std`.
+- R475: for step 2 of method resolution (17.2), `str` and `char` are declared in `std.text`,
+  `list` in `std.list`, `dict` in `std.dict`, `set` in `std.set`, `bytes` in `std.encoding`, the
+  scalars and `bigint` in `std.num`, and `Result` and `Option` in `std.result`.
+- R476: in Yong text, `Option[T]` matches as `Some { value: v }` and `None`, alongside Y5's
+  `Ok { value: v }` and `Err { error: e }`.
