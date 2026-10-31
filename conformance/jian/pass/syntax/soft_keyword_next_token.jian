@@ -1,0 +1,10 @@
+# spec: 13.1
+# rows: R462, R347
+# note: a soft word followed by = is a name
+
+def f() -> int:
+    match = 2
+    type = 3
+    ghost = 4
+    out = [match, type, ghost]
+    return out[0] + out[1] + out[2]

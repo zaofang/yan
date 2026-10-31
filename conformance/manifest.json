@@ -15,6 +15,20 @@
    "expect": []
   },
   {
+   "path": "jian/pass/caps/renamed_user_capability.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "7.1",
+    "13.2"
+   ],
+   "rows": [
+    "R461"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "jian/pass/caps/uses_and_with.jian",
    "kind": "pass",
    "milestone": "M1",
@@ -199,6 +213,20 @@
     "R427",
     "R431",
     "R452"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "jian/pass/syntax/soft_keyword_next_token.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "13.1"
+   ],
+   "rows": [
+    "R462",
+    "R347"
    ],
    "flags": [],
    "expect": []
@@ -3266,6 +3294,20 @@
    "exit": 0
   },
   {
+   "path": "wen/pass/caps/renamed_user_capability.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "7.1",
+    "15.2"
+   ],
+   "rows": [
+    "R461"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "wen/pass/failure/derive_from_and_error.wen",
    "kind": "pass",
    "milestone": "M3",
@@ -3300,6 +3342,21 @@
    ],
    "rows": [
     "R438"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "wen/pass/proof/lemma_and_ghost.wen",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "8.7",
+    "15.2"
+   ],
+   "rows": [
+    "R458",
+    "R465"
    ],
    "flags": [],
    "expect": []
@@ -4093,6 +4150,46 @@
      "code": "E421",
      "line": 8,
      "col": 1
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/proof/e604_ghost_read.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.7"
+   ],
+   "rows": [
+    "R458",
+    "R465"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E604",
+     "line": 8,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "wen/fail/proof/e605_lemma_uses_capability.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.7"
+   ],
+   "rows": [
+    "R458",
+    "R465"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E605",
+     "line": 6,
+     "col": 7
     }
    ]
   },

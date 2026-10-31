@@ -1,0 +1,8 @@
+-- spec: 7.1, 15.2
+-- rows: R461
+
+@capability
+trait Kv
+  get(self, k: str) -> str?
+
+lookup(k: str) -> str uses cache: Kv = cache.get(k) else ""

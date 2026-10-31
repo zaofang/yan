@@ -1,0 +1,15 @@
+-- spec: 8.7, 15.2
+-- rows: R458, R465
+-- note: the pre and the ghost binding read ghost values, which ghost code may do
+
+lemma add_zero(n: int) =
+  post n + 0 == n
+  assert n + 0 == n
+
+count(xs: List[int], ghost bound: int) -> int =
+  pre xs.len() <= bound
+  ghost let before = xs.len()
+  var t = 0
+  for x in xs
+    t += 1
+  t
