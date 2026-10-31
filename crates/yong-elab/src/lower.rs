@@ -58,6 +58,8 @@ struct Lower<'a, 'c, 's> {
     sites: HashMap<Span, Site>,
     /// `&` of a field or element passes a copy; it is stored back after the statement.
     writeback: Vec<(String, Place, Span)>,
+    /// The parameter type, argument type and span of each argument `args` lowered.
+    arg_tys: Vec<(Ty, Ty, Span)>,
 }
 
 pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
@@ -275,8 +277,61 @@ fn ends(stmts: &[j::Stmt]) -> bool {
     )
 }
 
-pub(crate) fn function(g: &Globals, f: &j::FuncDef, is_pub: bool, cx: &mut Cx) -> R<y::FnDef> {
-    let sig = &g.fns[&f.name];
+/// A bodiless Yong signature, as a trait declares it.
+pub(crate) fn signature(name: &str, sig: &Sig, is_pub: bool, at: Span) -> y::FnDef {
+    y::FnDef {
+        is_pub,
+        is_unsafe: false,
+        path: vec![name.to_owned()],
+        name_span: at,
+        tparams: tparams(sig),
+        params: sig
+            .params
+            .iter()
+            .map(|p| y::Param::Value {
+                comptime: false,
+                conv: p.conv,
+                name: p.name.clone(),
+                ty: p.ty.core(),
+            })
+            .collect(),
+        ret: sig.ret.core(),
+        from: Vec::new(),
+        fail: sig.fail.as_ref().map(Ty::core),
+        contracts: Vec::new(),
+        body: None,
+    }
+}
+
+fn tparams(sig: &Sig) -> Vec<y::TParam> {
+    sig.tparams
+        .iter()
+        .map(|(n, bs)| y::TParam {
+            comptime: false,
+            name: n.clone(),
+            kind: y::Kind::Type,
+            bounds: bs.iter().map(|b| vec![b.clone()]).collect(),
+        })
+        .collect()
+}
+
+pub(crate) fn function(
+    g: &Globals,
+    f: &j::FuncDef,
+    sig: &Sig,
+    is_pub: bool,
+    cx: &mut Cx,
+) -> R<y::FnDef> {
+    let outer = g.scope.borrow().len();
+    g.scope
+        .borrow_mut()
+        .extend(sig.tparams.iter().map(|(n, _)| n.clone()));
+    let r = function_body(g, f, sig, is_pub, cx);
+    g.scope.borrow_mut().truncate(outer);
+    r
+}
+
+fn function_body(g: &Globals, f: &j::FuncDef, sig: &Sig, is_pub: bool, cx: &mut Cx) -> R<y::FnDef> {
     let Some(body) = &f.body else {
         return unsupported("functions without bodies");
     };
@@ -304,6 +359,7 @@ pub(crate) fn function(g: &Globals, f: &j::FuncDef, is_pub: bool, cx: &mut Cx) -
         bound: Vec::new(),
         sites: HashMap::new(),
         writeback: Vec::new(),
+        arg_tys: Vec::new(),
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -390,7 +446,7 @@ pub(crate) fn function(g: &Globals, f: &j::FuncDef, is_pub: bool, cx: &mut Cx) -
         is_unsafe: false,
         path: vec![f.name.clone()],
         name_span: f.name_span,
-        tparams: Vec::new(),
+        tparams: tparams(sig),
         params,
         ret: sig.ret.core(),
         from: Vec::new(),
@@ -2181,16 +2237,99 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         let sig = &self.g.fns[name];
+        self.call_sig(name, sig, recv, args, at)
+    }
+
+    /// A call of `path` with signature `sig`. A generic callee's type arguments are inferred
+    /// from the argument types, and each must implement its bounds (E221).
+    fn call_sig(
+        &mut self,
+        path: &str,
+        sig: &Sig,
+        recv: Option<&j::Expr>,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
         let mut out: Vec<Arg> = sig.caps.iter().map(|c| Arg::Cap(c.clone(), at)).collect();
-        let Some(vals) = self.args(&sig.params, recv, args, at)? else {
+        let outer = mem::take(&mut self.arg_tys);
+        let vals = self.args(&sig.params, recv, args, at);
+        let got = mem::replace(&mut self.arg_tys, outer);
+        let Some(vals) = vals? else {
             return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
         };
         out.extend(vals);
+        let mut map = Vec::new();
+        for (want, t, _) in &got {
+            want.unify(t, &mut map);
+        }
+        for (n, bounds) in &sig.tparams {
+            let Some((_, t)) = map.iter().find(|(m, _)| m == n) else {
+                continue;
+            };
+            for b in bounds {
+                if !self.implements(t, b) {
+                    let sp = got
+                        .iter()
+                        .find(|(w, _, _)| w.mentions(n))
+                        .map_or(at, |(_, _, sp)| *sp);
+                    self.err("E221", sp, format!("`{t}` does not implement `{b}`"));
+                }
+            }
+        }
+        let targs = sig
+            .tparams
+            .iter()
+            .map(|(n, _)| {
+                map.iter()
+                    .find(|(m, _)| m == n)
+                    .map_or(Ty::Err, |(_, t)| t.clone())
+                    .targ()
+            })
+            .collect();
+        let targs = if sig.tparams.is_empty() {
+            vec![]
+        } else {
+            targs
+        };
         Ok((
-            Rhs::Call(call(name, vec![], out, at)),
-            sig.ret.clone(),
-            sig.fail.clone(),
+            Rhs::Call(call(path, targs, out, at)),
+            sig.ret.subst(&map),
+            sig.fail.as_ref().map(|f| f.subst(&map)),
         ))
+    }
+
+    /// The signature of method `m` on `t` from an `impl`, or from a bound of a type parameter.
+    fn trait_method(&self, t: &Ty, m: &str) -> Option<Sig> {
+        if let Some(s) = self.g.methods.get(&(t.to_string(), m.to_owned())) {
+            return Some(s.clone());
+        }
+        let Ty::Param(p) = t else {
+            return None;
+        };
+        let (_, bounds) = self.sig.tparams.iter().find(|(n, _)| n == p)?;
+        let map = [("Self".to_owned(), t.clone())];
+        bounds.iter().find_map(|b| {
+            let (_, s) = self.g.traits.get(b)?.iter().find(|(n, _)| n == m)?;
+            let mut s = s.clone();
+            for q in &mut s.params {
+                q.ty = q.ty.subst(&map);
+            }
+            s.ret = s.ret.subst(&map);
+            Some(s)
+        })
+    }
+
+    /// `t` implements trait `b`: an `impl`, or a type parameter bounded by it.
+    fn implements(&self, t: &Ty, b: &str) -> bool {
+        match t {
+            Ty::Err => true,
+            Ty::Param(p) => self
+                .sig
+                .tparams
+                .iter()
+                .any(|(n, bs)| n == p && bs.iter().any(|x| x == b)),
+            t => self.g.impls.contains(&(b.to_owned(), t.to_string())),
+        }
     }
 
     fn ctor(&mut self, name: &str, ps: &[crate::P], args: &[j::Arg], at: Span) -> R<Rhs> {
@@ -2299,6 +2438,7 @@ impl Lower<'_, '_, '_> {
                     Some(d) => {
                         let (a, t) = self.atom(&d.clone(), Some(&p.ty))?;
                         self.expect(&t, &p.ty, at);
+                        self.arg_tys.push((p.ty.clone(), t.clone(), at));
                         out.push(Arg::Value(p.conv, a, at));
                         continue;
                     }
@@ -2312,6 +2452,7 @@ impl Lower<'_, '_, '_> {
                 (Conv::Inout, true) => {
                     let (pl, t) = self.place(e)?;
                     self.expect(&t, &p.ty, sp);
+                    self.arg_tys.push((p.ty.clone(), t.clone(), sp));
                     if pl.projs.is_empty() {
                         out.push(Arg::Value(
                             Conv::Inout,
@@ -2357,6 +2498,7 @@ impl Lower<'_, '_, '_> {
                 (conv, false) => {
                     let (a, t) = self.atom(e, Some(&p.ty))?;
                     self.expect(&t, &p.ty, sp);
+                    self.arg_tys.push((p.ty.clone(), t.clone(), sp));
                     if let (Conv::Sink, Atom::Name(n, _)) = (conv, &a)
                         && !t.is_copy()
                         && self.locals.contains_key(n)
@@ -2620,6 +2762,9 @@ impl Lower<'_, '_, '_> {
             return self.user_call(m, Some(b), args, at);
         }
         let (p, t) = self.place(b)?;
+        if let Some(sig) = self.trait_method(&t, m) {
+            return self.call_sig(m, &sig, Some(b), args, at);
+        }
         let e = || Ty::Err;
         // (path, receiver is var, argument types, result)
         let (path, inout, params, ret): (String, bool, Vec<Ty>, Ty) = match (&t, m) {

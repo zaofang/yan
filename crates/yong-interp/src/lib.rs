@@ -136,8 +136,23 @@ enum FnRef {
 
 struct Interp<'o> {
     fns: Map<Name, Rc<FnDef>>,
+    /// `impl` methods by `<type>.<method>`; a call by method name dispatches on its first argument.
+    methods: Map<Name, Rc<FnDef>>,
     nullary: HashSet<Name, BuildHasherDefault<Fnv>>,
     out: &'o mut dyn Write,
+}
+
+/// The Yong type a value's `impl` is keyed by, where the value tells it.
+fn type_key(v: &Value) -> Option<String> {
+    Some(match v {
+        Value::Data { name, .. } => name.to_string(),
+        Value::Int(_) => "i64".into(),
+        Value::Float(_) => "f64".into(),
+        Value::Bool(_) => "bool".into(),
+        Value::Str(_) => "Str".into(),
+        Value::Char(_) => "char".into(),
+        _ => return None,
+    })
 }
 
 fn panic<T>(kind: &str) -> R<T> {
@@ -152,6 +167,7 @@ fn unsupported<T>(what: impl Into<String>) -> R<T> {
 pub fn run(m: &Module, out: &mut dyn Write) -> R<i32> {
     let mut it = Interp {
         fns: Map::default(),
+        methods: Map::default(),
         nullary: ["None".to_owned()].into_iter().collect(),
         out,
     };
@@ -159,6 +175,13 @@ pub fn run(m: &Module, out: &mut dyn Write) -> R<i32> {
         match &item.kind {
             ItemKind::Fn(f) => {
                 it.fns.insert(f.path.join("."), Rc::new(f.clone()));
+            }
+            ItemKind::Impl(i) => {
+                let ty = yong_core::type_text(&i.for_ty);
+                for f in &i.fns {
+                    it.methods
+                        .insert(format!("{ty}.{}", f.path.join(".")), Rc::new(f.clone()));
+                }
             }
             ItemKind::Sum(s) => {
                 it.nullary.extend(
@@ -682,6 +705,11 @@ impl Interp<'_> {
             .collect::<R<Vec<_>>>()?;
         let name = key(&c.path);
         if let Some(f) = self.fns.get(name.as_ref()) {
+            return Ok((Some(FnRef::Item(f.clone())), args));
+        }
+        if let Some(ty) = args.first().and_then(type_key)
+            && let Some(f) = self.methods.get(&format!("{ty}.{name}"))
+        {
             return Ok((Some(FnRef::Item(f.clone())), args));
         }
         if let (true, Some(Value::Closure(k))) = (c.path.len() == 1, frame.get(name.as_ref())) {
