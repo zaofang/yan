@@ -364,6 +364,8 @@ dependencies = [
  "num-traits",
  "unicode-segmentation",
  "yong-core",
+ "yong-jian",
+ "yong-std",
 ]
 
 [[package]]

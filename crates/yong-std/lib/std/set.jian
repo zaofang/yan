@@ -1,0 +1,29 @@
+"""Methods on set: insertion-ordered (17.3, R475)."""
+
+@intrinsic
+@since("1.0")
+pub def new[T: Hash]() -> set[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def add[T: Hash](var self: set[T], take x: T) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def discard[T: Hash](var self: set[T], x: T) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def contains[T: Hash](self: set[T], x: T) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def len[T: Hash](self: set[T]) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def union[T: Hash](self: set[T], other: set[T]) -> set[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def intersection[T: Hash](self: set[T], other: set[T]) -> set[T]: ...

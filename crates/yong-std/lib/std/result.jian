@@ -1,0 +1,5 @@
+"""Result and Option (R475, R476)."""
+
+@intrinsic
+@since("1.0")
+pub def is_ok[T, E](self: Result[T, E]) -> bool: ...

@@ -1,0 +1,5 @@
+"""Correctly rounded math (11.1, 17.3)."""
+
+@intrinsic
+@since("1.0")
+pub def sqrt(x: float) -> float: ...
