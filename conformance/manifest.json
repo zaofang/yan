@@ -1666,6 +1666,23 @@
    ]
   },
   {
+   "path": "jian/fail/names/e250_duplicate_function.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E250",
+     "line": 8,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "jian/fail/numbers/e530_unit_mismatch.jian",
    "kind": "fail",
    "milestone": "M1",
@@ -4009,6 +4026,23 @@
    ]
   },
   {
+   "path": "wen/fail/names/e250_duplicate_function.wen",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E250",
+     "line": 7,
+     "col": 1
+    }
+   ]
+  },
+  {
    "path": "wen/fail/numbers/e530_unit_mismatch.wen",
    "kind": "fail",
    "milestone": "M3",
@@ -5855,6 +5889,38 @@
      "code": "W820",
      "line": 12,
      "col": 14
+    }
+   ]
+  },
+  {
+   "path": "solver/list_literal_length_proven.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "solver/list_literal_length_refuted.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E501",
+     "line": 8,
+     "col": 12
     }
    ]
   },

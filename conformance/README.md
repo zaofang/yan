@@ -72,7 +72,7 @@ naming one of these. Each is a proposed answer; change the cases if the spec dec
 Yong text lexing (`true`, `false`, `()`, literals, labels) follows the "Yong text lexical rules"
 entry of SPEC_QUESTIONS.md; every `yong/` case parses with the Rust `yong-core` parser.
 
-## Questions for the spec
+## Spec questions
 
 Answered by the grammar work: `become postfix` is an `arg` in Jian and Wen, and E143 comes from the
 checker when it is not the last-evaluated argument; Wen subscripts are `subdef = "sub" sig "=" body`
@@ -83,9 +83,9 @@ attribute (spec rev 479).
 | Id | Question |
 |---|---|
 | Q1 | Decided 2026-10-31: a capability captured by an escaping closure is E306 only, not E406. |
-| Q2 | 24.1 has no `yong/run/`; this suite adds it for M0. |
-| Q3 | E250 ("two functions of one name at one method-resolution step"): is a second item of the same name in one module an error at the definition or at a call? No case yet. |
-| Q4 | List literal lengths are not 8.6 facts, so `xs = [1, 2, 3]; xs[3]` is unknown (W820), not refuted (E501). The E501 cases get the length from a guard. Confirm that this is intended. |
-| Q5 | 9.2 makes a read of a place another `par` branch writes E705, and 4.3 makes the same overlap E402. The cases expect only E705. |
-| Q6 | Is `with deadline(t)` in Jian required to have `Timeout` in the function's fail type even when nothing in the block can block? `jian/pass/syntax/every_production` declares it. |
-| Q7 | E422 and E423 spans: the cases put E422 on the subscript name and E423 on the yielded place. |
+| Q2 | Decided 2026-10-31: 24.1 gains `yong/run/` for M0 Yong text run cases. |
+| Q3 | Decided 2026-10-31: E250 is reported at the second definition of the name. |
+| Q4 | Decided 2026-10-31: a list literal's length is an 8.6 fact, so `xs = [1, 2, 3]; xs[3]` is E501. |
+| Q5 | Decided 2026-10-31: a `par` branch reading another branch's write is E705 only, not E402. |
+| Q6 | Decided 2026-10-31: `with deadline(t)` always requires `Timeout` in the fail type. |
+| Q7 | Decided 2026-10-31: E422 goes on the subscript name and E423 on the yielded place. |
