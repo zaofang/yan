@@ -4,6 +4,7 @@
 //!
 //! The Yong tree keeps Jian spans, so the Yong checker reports at Jian positions.
 
+mod bounds;
 mod lower;
 mod ty;
 

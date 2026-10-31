@@ -12,6 +12,7 @@ use yong_core::ast::{self as y, Arg, Atom, Conv, Literal, Place, Proj, Rhs, Stmt
 use yong_diag::Span;
 use yong_hir as j;
 
+use crate::bounds::{self, Site};
 use crate::{Cx, Globals, R, Sig, Ty, cap_type, unsupported};
 
 /// List and dict methods whose receiver is `var` (R421).
@@ -53,6 +54,8 @@ struct Lower<'a, 'c, 's> {
     inferred: Option<String>,
     /// User bindings and where each is made, for W812.
     bound: Vec<(String, Span)>,
+    /// What each index expression indexes, for the bounds solver.
+    sites: HashMap<Span, Site>,
 }
 
 pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
@@ -83,7 +86,7 @@ fn int_text(s: &str) -> R<String> {
     }
 }
 
-fn walk(e: &j::Expr, f: &mut impl FnMut(&j::Expr)) {
+pub(crate) fn walk(e: &j::Expr, f: &mut impl FnMut(&j::Expr)) {
     f(e);
     use j::ExprKind as K;
     match &e.kind {
@@ -297,6 +300,7 @@ pub(crate) fn function(g: &Globals, f: &j::FuncDef, is_pub: bool, cx: &mut Cx) -
         ghosts: HashSet::new(),
         inferred: None,
         bound: Vec::new(),
+        sites: HashMap::new(),
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -362,6 +366,13 @@ pub(crate) fn function(g: &Globals, f: &j::FuncDef, is_pub: bool, cx: &mut Cx) -
         .chain(mem::take(&mut l.bound))
         .filter(|(n, _)| !n.starts_with('_') && l.uses.get(n).is_none_or(Vec::is_empty))
         .collect();
+    let item = l.item.clone();
+    for b in bounds::check(&body.stmts, &l.sites, l.cx.release) {
+        match b.code {
+            "E501" => l.cx.err(b.code, b.span, &item, b.message),
+            _ => l.cx.warn(b.code, b.span, &item, b.message),
+        }
+    }
     for (n, sp) in unused {
         let item = l.item.clone();
         l.cx.warn(
@@ -413,6 +424,9 @@ fn int_op(op: &str) -> Option<(&'static str, Ty)> {
         "//" => ("floordiv_i64", Ty::Int),
         "%" => ("mod_i64", Ty::Int),
         "/" => ("div_i64", Ty::Float),
+        "&" => ("and_i64", Ty::Int),
+        "|" => ("or_i64", Ty::Int),
+        "^" => ("xor_i64", Ty::Int),
         _ => return None,
     })
 }
@@ -1260,6 +1274,7 @@ impl Lower<'_, '_, '_> {
                     target.span,
                 );
             }
+            j::ExprKind::Wild => self.emit(StmtKind::Rhs(r), target.span),
             _ => return unsupported("this assignment target"),
         }
         Ok(())
@@ -1308,6 +1323,29 @@ impl Lower<'_, '_, '_> {
                 match &t {
                     Ty::List(et) => {
                         let et = (**et).clone();
+                        self.sites.insert(e.span, Site::List);
+                        // N16: the parser kept `xs[-k]`; it means `xs[len(xs) - k]`.
+                        let from_end;
+                        let i = match &i.kind {
+                            j::ExprKind::Lit(j::Lit::Int(s)) if s.starts_with('-') => {
+                                let x = |kind| j::Expr {
+                                    kind,
+                                    span: i.span,
+                                    paren: false,
+                                };
+                                let len = x(j::ExprKind::Call(
+                                    Box::new(x(j::ExprKind::Name("len".into()))),
+                                    vec![j::Arg {
+                                        name: None,
+                                        kind: j::ArgKind::Expr((**b).clone()),
+                                        span: b.span,
+                                    }],
+                                ));
+                                from_end = x(j::ExprKind::Binary("+", Box::new(len), i.clone()));
+                                &from_end
+                            }
+                            _ => &**i,
+                        };
                         let (ia, it) = self.atom(i, Some(&Ty::Int))?;
                         self.expect(&it, &Ty::Int, i.span);
                         p.projs.push(Proj::Index(ia));
@@ -1493,6 +1531,7 @@ impl Lower<'_, '_, '_> {
                 let (p, t) = self.place(b)?;
                 match &t {
                     Ty::Dict(kt, vt) => {
+                        self.sites.insert(e.span, Site::Dict);
                         let (kt, vt) = ((**kt).clone(), (**vt).clone());
                         let d = self.tmp(&t, Rhs::Proj(p), b.span);
                         let (ka, kty) = self.atom(k, Some(&kt))?;

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 pub const SCHEMA: u32 = 1;
 pub const DEFAULT_MAX_ERRORS: usize = 10;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Span {
     pub line: u32,
     pub col: u32,

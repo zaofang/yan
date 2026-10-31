@@ -77,6 +77,11 @@ Assumed in `yong-elab` until resolved:
 - E210 is reported once per call, at the first argument that needs a keyword (the note in
   `jian/fail/types/e210_record_keyword_required`).
 
+- Bitwise `&`, `|` and `^` on integers lower to the intrinsics `and_<int>`, `or_<int>` and
+  `xor_<int>`, which Y4 does not name; they cannot overflow. Shifts stay unsupported until their
+  overflow rule is settled.
+- `_ = e` evaluates `e` and discards it.
+
 ## Std runtime readings (Wave 0)
 
 Assumed in `yong-interp`'s native std functions until the spec says otherwise:

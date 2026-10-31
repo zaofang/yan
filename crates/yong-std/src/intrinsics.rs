@@ -26,7 +26,8 @@ pub fn lookup(name: &str) -> Option<Sig> {
     let cmp = matches!(op, "eq" | "ne" | "lt" | "le" | "gt" | "ge");
     if INTS.contains(&ty) {
         return match op {
-            "add_checked" | "sub_checked" | "mul_checked" | "floordiv" | "mod" => sig(2, ty),
+            "add_checked" | "sub_checked" | "mul_checked" | "floordiv" | "mod" | "and" | "or"
+            | "xor" => sig(2, ty),
             "div" => sig(2, "f64"),
             _ if cmp => sig(2, "bool"),
             _ => None,
