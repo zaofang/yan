@@ -3,9 +3,6 @@ name = "yong-workspace"
 version = "0.0.0"
 requires-python = "==3.14.*"
 
-[tool.uv.workspace]
-members = ["packages/*"]
-
 [dependency-groups]
 dev = ["mypy", "pytest", "ruff"]
 
