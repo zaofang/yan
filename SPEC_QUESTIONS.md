@@ -81,6 +81,10 @@ Assumed in `yong-elab` until resolved:
   `xor_<int>`, which Y4 does not name; they cannot overflow. Shifts stay unsupported until their
   overflow rule is settled.
 - `_ = e` evaluates `e` and discards it.
+- `par [e for x in xs]` runs sequentially in the interpreter. The result order and the
+  lowest-index failure (9.2) are what a parallel run must also produce.
+- `&xs[i]` and `&r.f` pass a copy that is stored back after the statement. Two `&` elements of
+  the same list in one call insert `exclusive_check` on their indices first (4.3).
 
 ## Std runtime readings (Wave 0)
 
