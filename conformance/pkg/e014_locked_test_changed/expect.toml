@@ -1,0 +1,5 @@
+spec = "18.4"
+rows = ["R300"]
+note = "the locked hash cannot match any test"
+command = ["test", "--gate"]
+code = "E014"

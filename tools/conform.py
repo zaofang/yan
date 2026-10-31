@@ -6,6 +6,7 @@ An executor is any command that implements:
     CMD run --ub [FLAGS] FILE             -> exit status; a UB report names "ub(N)" on stderr
     CMD patch --format json [FLAGS] PATCH -> applies PATCH in its directory; JSON records on refusal
     CMD semver --format json --base OLD NEW -> JSON object with "bump"
+    CMD ARGS... --format json             -> run in a pkg/ case's copied root; JSON records
 Exit status 2 or above from either command is a failure of the tool, never a verdict.
 The same suite drives the interpreter and every code generator (spec 22.1, 24.1).
 
@@ -36,6 +37,7 @@ TOP_KINDS = {
     "ub": "ub",
     "semver": "semver",
     "patch": "patch",
+    "pkg": "pkg",
     "roundtrip": "roundtrip",
     "sim": "sim",
 }
@@ -100,6 +102,8 @@ class Executor(Protocol):
 
     def semver(self, old: Path, new: Path) -> str: ...
 
+    def tool(self, workdir: Path, args: list[str]) -> tuple[list[dict[str, object]], int]: ...
+
 
 @dataclass(frozen=True)
 class CommandExecutor:
@@ -154,6 +158,15 @@ class CommandExecutor:
         if out.returncode >= TOOL_FAILURE:
             raise ToolFailure(out.stderr.strip())
         return str(json.loads(out.stdout)["bump"])
+
+    def tool(self, workdir: Path, args: list[str]) -> tuple[list[dict[str, object]], int]:
+        out = subprocess.run(
+            [*self.argv, *args, "--format", "json"], capture_output=True, text=True, cwd=workdir
+        )
+        if out.returncode >= TOOL_FAILURE:
+            raise ToolFailure(out.stderr.strip())
+        records: list[dict[str, object]] = json.loads(out.stdout or "[]")
+        return records, out.returncode
 
 
 def _items(value: str) -> list[str]:
@@ -218,7 +231,7 @@ def discover(root: Path) -> list[Case]:
         base = root / top
         if not base.is_dir():
             continue
-        if kind in ("patch", "semver"):
+        if kind in ("patch", "semver", "pkg"):
             cases += [_dir_case(kind, p) for p in sorted(base.iterdir()) if p.is_dir()]
             continue
         for p in _files(base):
@@ -226,7 +239,8 @@ def discover(root: Path) -> list[Case]:
     return cases
 
 
-# Directory cases (patch/, semver/) describe themselves in expect.toml (see conformance/README.md).
+# Directory cases (patch/, semver/, pkg/) describe themselves in expect.toml
+# (see conformance/README.md).
 def _dir_case(kind: str, path: Path) -> Case:
     expect = path / "expect.toml"
     meta = tomllib.loads(expect.read_text(encoding="utf-8")) if expect.is_file() else {}
@@ -237,8 +251,9 @@ def _dir_case(kind: str, path: Path) -> Case:
         kind,
         path,
         spec=_items(spec),
+        rows=[str(r) for r in meta.get("rows", [])],
         flags=[str(f) for f in flags],
-        milestone=str(meta.get("milestone", "M1" if kind == "patch" else "M2a")),
+        milestone=str(meta.get("milestone", "M2a" if kind == "semver" else "M1")),
         meta=meta,
     )
 
@@ -287,6 +302,8 @@ def _judge(case: Case, ex: Executor) -> Result:
                 )
         case "patch":
             return _judge_patch(case, ex)
+        case "pkg":
+            return _judge_pkg(case, ex)
         case "semver":
             bump = ex.semver(case.path / "old", case.path / "new")
             if bump != case.meta.get("bump"):
@@ -323,6 +340,35 @@ def _judge_patch(case: Case, ex: Executor) -> Result:
     return Result(name, ex.name, "pass")
 
 
+def _judge_pkg(case: Case, ex: Executor) -> Result:
+    name = str(case.path)
+    args = case.meta.get("command")
+    if not isinstance(args, list) or not (case.path / "root").is_dir():
+        return Result(name, ex.name, "fail", "no command or no root/")
+    with tempfile.TemporaryDirectory() as tmp:
+        shutil.copytree(case.path, tmp, dirs_exist_ok=True)
+        records, code = ex.tool(Path(tmp) / "root", [str(a) for a in args])
+    want = case.meta.get("code")
+    if want is None:
+        errors = [r.get("code") for r in records if r.get("severity") == "error"]
+        if code != 0 or errors:
+            return Result(name, ex.name, "fail", f"exit {code}, errors {errors}")
+        return Result(name, ex.name, "pass")
+    at = case.meta.get("at")
+    hits = [r for r in records if r.get("code") == want]
+    if at is not None:
+        hits = [r for r in hits if _where(r) == at]
+    if not hits or code == 0:
+        return Result(name, ex.name, "fail", f"expected {want} at {at}, exit {code}: {records}")
+    return Result(name, ex.name, "pass")
+
+
+def _where(record: dict[str, object]) -> str:
+    span = record.get("span")
+    assert isinstance(span, dict)
+    return f"{record.get('file')}:{span['line']}:{span['col']}"
+
+
 def selected(cases: list[Case], milestone: str | None) -> list[Case]:
     if milestone is None:
         return cases
@@ -352,7 +398,7 @@ def manifest(cases: list[Case], root: Path) -> dict[str, object]:
 
 
 def _surface(case: Case) -> str:
-    # patch/ and semver/ directories hold Jian modules.
+    # patch/, semver/ and pkg/ directories hold Jian modules.
     return {".jian": "Jian", ".wen": "Wen", ".yong": "Yong"}.get(case.path.suffix, "Jian")
 
 

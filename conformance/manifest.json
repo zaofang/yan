@@ -6881,6 +6881,241 @@
     "spec": "18.3",
     "result": "result.jian"
    }
+  },
+  {
+   "path": "pkg/addition_under_declared_minor",
+   "kind": "pkg",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "milestone": "M2a",
+    "command": [
+     "semver",
+     "--base",
+     "../base"
+    ]
+   }
+  },
+  {
+   "path": "pkg/e001_preview_without_opt_in",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "note": "std.evented handlers are previews named evented; the span is the handler reference",
+    "command": [
+     "check"
+    ],
+    "code": "E001",
+    "at": "src/app.jian:2:18"
+   }
+  },
+  {
+   "path": "pkg/e002_published_preview_at_1_0",
+   "kind": "pkg",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "milestone": "M2a",
+    "command": [
+     "publish",
+     "--dry-run"
+    ],
+    "code": "E002"
+   }
+  },
+  {
+   "path": "pkg/e008_bump_below_minimum",
+   "kind": "pkg",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "milestone": "M2a",
+    "note": "removing g needs a major; 1.2.1 is a patch",
+    "command": [
+     "publish",
+     "--dry-run",
+     "--base",
+     "../base"
+    ],
+    "code": "E008"
+   }
+  },
+  {
+   "path": "pkg/e013_break_under_declared_minor",
+   "kind": "pkg",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "milestone": "M2a",
+    "note": "removing a pub item is a type-level break with a witness",
+    "command": [
+     "semver",
+     "--base",
+     "../base"
+    ],
+    "code": "E013"
+   }
+  },
+  {
+   "path": "pkg/e014_locked_test_changed",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.4"
+   ],
+   "rows": [
+    "R300"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.4",
+    "rows": [
+     "R300"
+    ],
+    "note": "the locked hash cannot match any test",
+    "command": [
+     "test",
+     "--gate"
+    ],
+    "code": "E014"
+   }
+  },
+  {
+   "path": "pkg/e015_locked_test_missing",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.4"
+   ],
+   "rows": [
+    "R300"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.4",
+    "rows": [
+     "R300"
+    ],
+    "command": [
+     "test",
+     "--gate"
+    ],
+    "code": "E015"
+   }
+  },
+  {
+   "path": "pkg/major_bump_meets_minimum",
+   "kind": "pkg",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "milestone": "M2a",
+    "command": [
+     "publish",
+     "--dry-run",
+     "--base",
+     "../base"
+    ]
+   }
+  },
+  {
+   "path": "pkg/preview_published_before_1_0",
+   "kind": "pkg",
+   "milestone": "M2a",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "milestone": "M2a",
+    "command": [
+     "publish",
+     "--dry-run"
+    ]
+   }
+  },
+  {
+   "path": "pkg/preview_with_opt_in",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "20.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.6",
+    "command": [
+     "check"
+    ]
+   }
+  },
+  {
+   "path": "pkg/proposed_tests_do_not_gate",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.4"
+   ],
+   "rows": [
+    "R300"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.4",
+    "rows": [
+     "R300"
+    ],
+    "note": "an unapproved failing test is reported but does not fail the gate",
+    "command": [
+     "test",
+     "--gate"
+    ]
+   }
   }
  ]
 }

@@ -1,0 +1,5 @@
+spec = "20.6"
+milestone = "M2a"
+note = "removing a pub item is a type-level break with a witness"
+command = ["semver", "--base", "../base"]
+code = "E013"

@@ -1,0 +1,4 @@
+spec = "18.4"
+rows = ["R300"]
+command = ["test", "--gate"]
+code = "E015"

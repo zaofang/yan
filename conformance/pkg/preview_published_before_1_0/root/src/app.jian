@@ -1,0 +1,3 @@
+pub def main() uses io:
+    with sched = evented.sched():
+        io.print("hi")

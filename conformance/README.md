@@ -15,22 +15,29 @@ read-only to agents (22.6).
 | `ub/` | ub | `run --ub` reports `ub(N)` for the case's `ub: N` header (the 6.7 item number), or runs clean for `ub: none` |
 | `patch/<case>/` | patch | `patch` applied to `m.jian` gives `result.jian`, or is refused with the `code` of `expect.toml` and leaves `m.jian` unchanged |
 | `semver/<case>/` | semver | `semver` on `old/` and `new/` computes the `bump` of `expect.toml` (one pair per row of the 20.6 table) |
+| `pkg/<case>/` | pkg | the `command` of `expect.toml`, run in `root/`, reports `code` (at `at` when given) and exits nonzero, or exits 0 with no errors when there is no `code` |
 | `roundtrip/`, `sim/` | | not populated yet |
 
 `yong/run/` is not in the 24.1 tree; M0 needs it because its interpreter runs Yong text before any
-surface exists (question Q2).
+surface exists (question Q2). `pkg/` holds package and toolchain diagnostics, which need a package
+tree, not one file (question Q8, R479).
 
 ## Directory cases
 
 A `patch/` case holds `m.jian`, the patch as `patch.json` (the 18.3 JSON form) or `patch.jian` (the
 plain-file form), and `expect.toml` with `spec`, optional `flags` (such as `["--check"]`) and either
 `result = "result.jian"` or `code = "P00N"`. A `semver/` case holds `old/lib.jian`, `new/lib.jian`
-and `expect.toml` with `spec` and `bump`. The runner adds these commands to the executor contract:
+and `expect.toml` with `spec` and `bump`. A `pkg/` case holds a package tree in `root/`, an optional
+`base/` (an earlier version for `--base ../base`), and `expect.toml` with `spec`, optional `rows`,
+`command` (the arguments after `CMD`), and optionally `code` and `at` (`file:line:col`, the file
+relative to `root/`). The runner copies the case and runs the command in the copy's `root/`. The
+runner adds these commands to the executor contract:
 
 ```
 CMD run --ub [FLAGS] FILE                exit status; a UB report names ub(N) on stderr
 CMD patch --format json [FLAGS] PATCH    run in the case's copied directory; JSON records on refusal
 CMD semver --format json --base OLD NEW  a JSON object with "bump"
+CMD ARGS... --format json                a pkg/ case's command, run in root/; JSON records
 ```
 
 ## Headers
@@ -83,6 +90,9 @@ naming one of these. Each is a proposed answer; change the cases if the spec dec
 | A11 | Raw pointers: `xs.as_ptr()`, `Ptr.of(&x)`, `p.offset(n)`, `p.cast[T]()` are safe to build; `p.read()` and `p.write(v)` need `unsafe`. |
 | A12 | `@yong/i18n` is reached as `i18n` (`i18n.Locale("en")`), and `@messages` records give each message as a field default. |
 | A13 | The `semver` and `patch` command lines above, and a UB report line `ub(N): message` on stderr with a nonzero exit. |
+| A14 | The std.evented scheduler handler is `evented.sched()`, bound as `with sched = evented.sched():`. |
+| A15 | `tests.lock` is TOML: `format = 1` and one `[[test]]` table per approved test with `path` (`module.item`, a module named by its path under `src/` without the suffix) and `hash` (`blake3:` and 64 hex digits). It is unsigned before M1. |
+| A16 | `yong publish --dry-run` runs every publish check (20.6, 19.2) and uploads nothing. |
 | Y1 | Yong text: the entry point is `fn main` of the file's module; a capability operation is a call such as `std.io.print(cap io, let s)`. |
 | Y2 | Yong text: `ret` of a `sink` parameter or local consumes it. |
 | Y3 | Yong text: std functions are called by full path (`std.list.len[i64](let xs)`, `std.list.new`, `std.list.push`, `std.result.is_ok`). |
@@ -109,3 +119,15 @@ attribute (spec rev 479).
 | Q5 | Decided 2026-10-31 (R471): a `par` branch reading another branch's write is E705 only, not E402. |
 | Q6 | Decided 2026-10-31 (R472): `with deadline(t)` always requires `Timeout` in the fail type. |
 | Q7 | Decided 2026-10-31 (R473): E422 goes on the subscript name and E423 on the yielded place. |
+| Q8 | Decided 2026-10-31 (R479): 24.1 gains `pkg/` for multi-file package cases. |
+| Q9 | Decided 2026-10-31: E006 is the registry's check of its recomputed capability set at publish, so it is tested with the registry double, not as a `pkg/` case. |
+
+## Not covered yet
+
+The other package codes need machinery the suite cannot hold as plain files:
+
+- E003, E004, E005, E006, E007, E009, E011 need a registry, transparency log and Sigstore test double.
+  The spec defines the index paths (19.3) but no local registry fixture format.
+- E010 needs a build that differs between roots, which a conforming toolchain cannot produce
+  from source.
+- E012 is std CI's check, and the spec gives no command or flag that runs it on a package.
