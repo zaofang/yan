@@ -34,30 +34,30 @@ def test_no_stdout_header_means_none() -> None:
 
 
 def test_fail_case_needs_exact_codes() -> None:
-    case = Case("fail", Path("f.fan"), [Diag("E501", 1, 2)])
+    case = Case("fail", Path("f.jian"), [Diag("E501", 1, 2)])
     assert judge(case, Fake(diags=[diag("E501", 1, 2)])).status == "pass"
     assert judge(case, Fake(diags=[diag("E501", 1, 2), diag("E502", 3, 1)])).status == "fail"
     assert judge(case, Fake(diags=[])).status == "fail"
 
 
 def test_pass_case_ignores_warnings() -> None:
-    case = Case("pass", Path("p.fan"))
+    case = Case("pass", Path("p.jian"))
     assert judge(case, Fake(diags=[diag("W100", 1, 1, "warning")])).status == "pass"
     assert judge(case, Fake(diags=[diag("E100", 1, 1)])).status == "fail"
 
 
 def test_run_case_compares_stdout_and_exit() -> None:
-    case = Case("run", Path("r.fan"), stdout="hi\n", exit=101)
+    case = Case("run", Path("r.jian"), stdout="hi\n", exit=101)
     assert judge(case, Fake(output=("hi\n", 101))).status == "pass"
     assert judge(case, Fake(output=("hi\n", 0))).status == "fail"
 
 
 def test_discover(tmp_path: Path) -> None:
     (tmp_path / "fail").mkdir()
-    (tmp_path / "fail" / "a.fan").write_text("# expect: E1 at 1:1\n")
+    (tmp_path / "fail" / "a.jian").write_text("# expect: E1 at 1:1\n")
     (tmp_path / "patch" / "p1").mkdir(parents=True)
     cases = discover(tmp_path)
-    assert [(c.kind, c.path.name) for c in cases] == [("fail", "a.fan"), ("patch", "p1")]
+    assert [(c.kind, c.path.name) for c in cases] == [("fail", "a.jian"), ("patch", "p1")]
     assert judge(cases[1], Fake()).status == "skip"
 
 
