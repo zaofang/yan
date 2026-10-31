@@ -1,7 +1,7 @@
 //! Yong IR: data types, the `.yong` text parser and the canonical printer.
 
 pub mod ast;
-pub mod intrinsics;
+pub use yong_std::intrinsics;
 mod lexer;
 mod parser;
 mod printer;

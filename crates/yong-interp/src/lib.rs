@@ -5,13 +5,18 @@
 
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
-use std::hash::{BuildHasherDefault, Hasher};
+use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::io::Write;
 use std::rc::Rc;
 
+use indexmap::{IndexMap, IndexSet};
+use num_bigint::BigInt;
 use yong_core::ast::*;
 
+mod native;
 mod prelude;
+#[cfg(test)]
+mod std_selftest;
 
 pub const EXIT_FAILURE: i32 = 1;
 pub const EXIT_PANIC: i32 = 101;
@@ -26,6 +31,10 @@ enum Value {
     Str(Rc<str>),
     Tuple(Vec<Value>),
     List(Vec<Value>),
+    /// Insertion-ordered; removal keeps the order of the rest (std.dict).
+    Dict(IndexMap<Key, Value, BuildHasherDefault<Fnv>>),
+    Set(IndexSet<Key, BuildHasherDefault<Fnv>>),
+    BigInt(BigInt),
     /// A record or a sum variant.
     Data {
         name: Name,
@@ -58,6 +67,35 @@ impl Hasher for Fnv {
 }
 
 type Map<K, V> = HashMap<K, V, BuildHasherDefault<Fnv>>;
+
+/// A dict key or set element. Only hashable values reach here; the checker rejects the rest.
+#[derive(Clone, Debug, PartialEq)]
+struct Key(Value);
+
+impl Eq for Key {}
+
+impl Hash for Key {
+    fn hash<H: Hasher>(&self, h: &mut H) {
+        fn go<H: Hasher>(v: &Value, h: &mut H) {
+            std::mem::discriminant(v).hash(h);
+            match v {
+                Value::Bool(b) => b.hash(h),
+                Value::Int(i) => i.hash(h),
+                Value::Float(f) => (if *f == 0.0 { 0.0f64 } else { *f }).to_bits().hash(h),
+                Value::Char(c) => c.hash(h),
+                Value::Str(s) => s.hash(h),
+                Value::BigInt(b) => b.hash(h),
+                Value::Tuple(xs) | Value::List(xs) => xs.iter().for_each(|x| go(x, h)),
+                Value::Data { name, fields } => {
+                    name.hash(h);
+                    fields.iter().for_each(|(_, x)| go(x, h));
+                }
+                _ => {}
+            }
+        }
+        go(&self.0, h)
+    }
+}
 type Frame = Map<Name, Value>;
 
 fn key(p: &Path) -> Cow<'_, str> {
@@ -220,6 +258,9 @@ fn intrinsic(name: &str, args: &[Value]) -> Option<R<Value>> {
         });
     }
     let (op, ty) = name.rsplit_once('_')?;
+    if let [Value::BigInt(a), Value::BigInt(b)] = args {
+        return native::bigint_op(op, a, b);
+    }
     Some(match (args, int_range(ty)) {
         ([Value::Int(a), Value::Int(b)], Some(_)) => {
             let (a, b) = (*a, *b);
@@ -669,6 +710,9 @@ impl Interp<'_> {
     /// The std functions used by M0 programs (assumption Y3).
     fn std(&mut self, name: &str, args: &mut [Value]) -> R<Value> {
         if let Some(r) = prelude::call(name, args) {
+            return r;
+        }
+        if let Some(r) = native::call(name, args) {
             return r;
         }
         Ok(match (name, &mut *args) {

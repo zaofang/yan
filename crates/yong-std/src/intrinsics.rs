@@ -1,4 +1,5 @@
-//! Intrinsic signatures, spelled `<op>_<scalar>` (assumption Y4).
+//! Intrinsic signatures, spelled `<op>_<scalar>` (assumption Y4). `bigint` arithmetic never
+//! overflows, so its ops have no `_checked` suffix.
 
 pub const INTS: [&str; 10] = [
     "i8", "i16", "i32", "i64", "i128", "u8", "u16", "u32", "u64", "Addr",
@@ -34,6 +35,13 @@ pub fn lookup(name: &str) -> Option<Sig> {
     if FLOATS.contains(&ty) {
         return match op {
             "add" | "sub" | "mul" | "div" => sig(2, ty),
+            _ if cmp => sig(2, "bool"),
+            _ => None,
+        };
+    }
+    if ty == "bigint" {
+        return match op {
+            "add" | "sub" | "mul" | "floordiv" | "mod" => sig(2, ty),
             _ if cmp => sig(2, "bool"),
             _ => None,
         };
