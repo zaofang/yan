@@ -3,7 +3,7 @@
 ## Conformance header layout
 
 Spec 20.1 shows `# expect: E501 at 14:9`, `# stdout:` blocks and `# exit: 101`, but not how a
-`# stdout:` block is laid out, and `.ming` has no comment syntax yet (proposed SQ2 in the Technical
+`# stdout:` block is laid out, and `.yong` has no comment syntax yet (proposed SQ2 in the Technical
 Implementation Spec).
 
 Assumed in `tools/conform.py` until resolved: headers are the file's leading `#` lines; a
