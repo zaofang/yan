@@ -11,6 +11,8 @@ publish.workspace = true
 yong-core.workspace = true
 yong-diag.workspace = true
 yong-hir.workspace = true
+yong-jian.workspace = true
+yong-std.workspace = true
 
 [lints]
 workspace = true

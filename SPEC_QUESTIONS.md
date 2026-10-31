@@ -99,6 +99,27 @@ Assumed in `yong-interp`'s native std functions until the spec says otherwise:
   exponent, and `inf`, `infinity` and `nan` in any case.
 - `str.splitlines` splits on CPython's line boundaries and drops a final empty line.
 
+## Std elaboration readings (Wave 2)
+
+Assumed in `yong-elab`'s std loading until the spec says otherwise:
+
+- `FsError` is a record with `path: str` and `reason: str`. 17.3 says only that each module's
+  error type is a record or sum with `Show`, `Eq` and `Wire`. A missing file has reason
+  `not found`.
+- `fake_fs(files)` takes the map, and `with fs = fake_fs(...)` installs it as the `fs`
+  capability for the block. `fs.read` of a path the map lacks fails with `FsError`.
+- Like the prelude, `std.test` is in scope without an import, which extends assumption A7 from
+  `fake_fs` to every `std.test` function.
+- A std class reaches a module when the module's source names the class or the class's module
+  (for example `fs`). Such a class is lowered into the module as a record, unless the module
+  defines that name itself.
+- `Error` is a record with `message: str`, the wrapped failure's `Show` text, and
+  `context: list[str]`, outermost first. Keeping the text instead of the value means
+  `e is HttpError(...)` cannot downcast yet. `?` into a function that fails with `Error`
+  converts through `std.error.wrap`. `f().context(msg)` calls `std.error.context` on
+  `try f()`: on success it gives the value, and otherwise it fails with an `Error` that has
+  `msg` added.
+
 ## Wen lexical and grammar readings
 
 15.1 and 15.2 leave these open. Assumed in `yong-wen` until resolved:
