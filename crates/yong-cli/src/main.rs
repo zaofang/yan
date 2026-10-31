@@ -97,30 +97,57 @@ fn load(file: &Path, src: &str, strict: bool, release: bool) -> Result<Loaded, S
         }),
         Some("jian") => {
             let (m, diags) = yong_jian::parse(&name, src, strict);
-            let Some(m) = m.filter(|_| !diags.iter().any(|d| d.severity == Severity::Error)) else {
+            let Some(m) = m.filter(|_| !has_error(&diags)) else {
                 return Ok(Loaded::Stopped(diags));
             };
-            let opts = yong_elab::Options { strict, release };
-            Ok(match yong_elab::elaborate(&name, src, &m, opts) {
-                Err(yong_elab::Unsupported(what)) => Loaded::Unsupported(what, diags),
-                Ok((y, mut errs)) if !errs.iter().any(|d| d.severity == Severity::Error) => {
-                    errs.extend(diags);
-                    Loaded::Ready(y, errs)
-                }
-                Ok((_, mut errs)) => {
-                    errs.extend(diags);
-                    Loaded::Stopped(errs)
-                }
-            })
+            Ok(elaborate(&name, src, &m, diags, strict, release))
         }
         Some("wen") => {
-            let (_, diags) = yong_wen::parse(&name, src);
-            if diags.is_empty() {
-                return Err(format!("Wen lowering is not implemented yet: {name}"));
+            let (m, diags) = yong_wen::parse(&name, src);
+            if has_error(&diags) {
+                return Ok(Loaded::Stopped(diags));
             }
-            Ok(Loaded::Stopped(diags))
+            match yong_wen::lower(&name, src, &m) {
+                Err(yong_wen::Unsupported(what)) => Ok(Loaded::Unsupported(what, diags)),
+                Ok((_, mut errs)) if has_error(&errs) => {
+                    errs.extend(diags);
+                    Ok(Loaded::Stopped(errs))
+                }
+                Ok((h, mut errs)) => {
+                    errs.extend(diags);
+                    Ok(elaborate(&name, src, &h, errs, strict, release))
+                }
+            }
         }
         _ => Err(front_end_missing(file)),
+    }
+}
+
+fn has_error(diags: &[Diagnostic]) -> bool {
+    diags.iter().any(|d| d.severity == Severity::Error)
+}
+
+/// The shared IR to Yong, for both surfaces; `diags` are the front end's warnings.
+fn elaborate(
+    name: &str,
+    src: &str,
+    m: &yong_hir::Module,
+    diags: Vec<Diagnostic>,
+    strict: bool,
+    release: bool,
+) -> Loaded {
+    let opts = yong_elab::Options { strict, release };
+    match yong_elab::elaborate(name, src, m, opts) {
+        Err(yong_elab::Unsupported(what)) => Loaded::Unsupported(what, diags),
+        Ok((y, mut errs)) => {
+            let stop = has_error(&errs);
+            errs.extend(diags);
+            if stop {
+                Loaded::Stopped(errs)
+            } else {
+                Loaded::Ready(y, errs)
+            }
+        }
     }
 }
 
