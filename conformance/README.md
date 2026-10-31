@@ -77,7 +77,8 @@ entry of SPEC_QUESTIONS.md; every `yong/` case parses with the Rust `yong-core` 
 Answered by the grammar work: `become postfix` is an `arg` in Jian and Wen, and E143 comes from the
 checker when it is not the last-evaluated argument; Wen subscripts are `subdef = "sub" sig "=" body`
 with `yield expr`, and Jian has no subscript definition. The cases follow the checked grammars of
-spec rev 474 (R460 to R465), including the R465 spellings of `ghost`, `lemma` and `reveal`.
+spec rev 474 (R460 to R465), including the R465 spellings of `ghost`, `lemma` and `reveal`, and the R466 `@@prove` module
+attribute (spec rev 479).
 
 | Id | Question |
 |---|---|
@@ -88,4 +89,3 @@ spec rev 474 (R460 to R465), including the R465 spellings of `ghost`, `lemma` an
 | Q5 | 9.2 makes a read of a place another `par` branch writes E705, and 4.3 makes the same overlap E402. The cases expect only E705. |
 | Q6 | Is `with deadline(t)` in Jian required to have `Timeout` in the function's fail type even when nothing in the block can block? `jian/pass/syntax/every_production` declares it. |
 | Q7 | E422 and E423 spans: the cases put E422 on the subscript name and E423 on the yielded place. |
-| Q8 | How is a Jian module marked `@prove`? Jian may use `ghost` and `lemma` only there, so ghost and lemma cases are Wen only for now. |

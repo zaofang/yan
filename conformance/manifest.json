@@ -189,6 +189,22 @@
    "expect": []
   },
   {
+   "path": "jian/pass/proof/lemma_and_ghost.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "8.7",
+    "13.2"
+   ],
+   "rows": [
+    "R458",
+    "R465",
+    "R466"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "jian/pass/syntax/become_constructor.jian",
    "kind": "pass",
    "milestone": "M1",
@@ -1985,6 +2001,48 @@
      "code": "E421",
      "line": 9,
      "col": 9
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/proof/e604_ghost_read.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.7"
+   ],
+   "rows": [
+    "R458",
+    "R465",
+    "R466"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E604",
+     "line": 10,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/proof/e605_lemma_uses_capability.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.7"
+   ],
+   "rows": [
+    "R458",
+    "R465",
+    "R466"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E605",
+     "line": 10,
+     "col": 5
     }
    ]
   },
