@@ -25,7 +25,7 @@ bounds.
 | `loop` | a counted loop with checked integer ops | 1,000,000 iterations |
 | `collatz` | `become` tail calls, `requires` on every call | starts 1 to 10,000 |
 | `mandel` | `f64` arithmetic, strict floats | 100 x 100 grid, 100 iterations |
-| `sieve` | `List[bool]` push, index read and write | primes up to 10,000 |
+| `sieve` | `List[bool]` push, index read and write | primes up to 500,000 |
 | `ring` | a 64-slot ring buffer over `List[i64]` | 500,000 rounds |
 
 Sizes are set so each program takes one to two seconds under the M0 interpreter. Raise them when
@@ -33,17 +33,17 @@ native code generation lands, since the Rust times are near the timer floor toda
 
 ## M0 baseline
 
-Linux x86_64 (4 vCPU Xeon, 2.1 GHz), CPython 3.14.6, rustc 1.97.1, `yong` at 9bc606d, 5 runs.
+Linux x86_64 (4 vCPU Xeon, 2.1 GHz), CPython 3.14.6, rustc 1.97.1, `yong` with #16 (lists read
+by reference), 11 runs.
 
 | program | yong ms | python ms | rust ms | yong/python | yong/rust |
 |---|---:|---:|---:|---:|---:|
-| collatz | 1893.3 | 62.2 | 2.2 | 30.4x | 852x |
-| fib | 752.8 | 27.1 | 2.3 | 27.8x | 333x |
-| loop | 828.0 | 41.6 | 1.1 | 19.9x | 756x |
-| mandel | 503.2 | 18.3 | 1.5 | 27.5x | 331x |
-| ring | 1361.9 | 72.2 | 0.4 | 18.9x | > 1362x |
-| sieve | 1444.8 | 2.3 | 0.1 | 639.8x | > 1445x |
+| collatz | 2032.6 | 46.7 | 1.6 | 43.5x | 1243x |
+| fib | 674.6 | 12.1 | 1.6 | 55.7x | 435x |
+| loop | 774.1 | 30.8 | 0.9 | 25.1x | > 774x |
+| mandel | 512.1 | 17.1 | 1.1 | 30.0x | 470x |
+| ring | 1122.8 | 36.8 | 0.3 | 30.5x | > 1123x |
+| sieve | 1311.8 | 25.8 | 2.1 | 50.8x | 628x |
 
-Geometric mean, yong/python: 42.1x. Without `sieve`, the interpreter runs scalar code 19x to 30x
-slower than CPython. `sieve` is quadratic: the interpreter clones the whole list on every index read
-and on every `inout` argument.
+Geometric mean, yong/python: 37.6x. Python times here are tens of milliseconds over a ~20 ms startup,
+so they move by up to 2x between sessions on a shared host; read the Python ratios as 20x to 60x.
