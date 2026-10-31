@@ -298,6 +298,8 @@ pub struct Block {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Case {
     pub pat: Pat,
+    /// The pattern's first token.
+    pub span: Span,
     pub guard: Option<Expr>,
     pub body: Block,
 }

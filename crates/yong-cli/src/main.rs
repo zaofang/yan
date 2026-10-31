@@ -27,7 +27,7 @@ enum Command {
         /// Disable the lenient reader (14.4).
         #[arg(long)]
         strict: bool,
-        /// Check level (8.5); accepted, not yet acted on.
+        /// Check level (8.5); `release` enables the release-only rules.
         #[arg(long)]
         level: Option<String>,
         #[arg(required = true)]
@@ -61,10 +61,20 @@ fn main() -> ExitCode {
             format,
             max_errors,
             strict,
+            level,
             files,
-            ..
-        } => check(&files, format, max_errors, strict),
-        Command::Run { file, strict, .. } => run(&file, strict),
+        } => check(
+            &files,
+            format,
+            max_errors,
+            strict,
+            level.as_deref() == Some("release"),
+        ),
+        Command::Run {
+            file,
+            strict,
+            level,
+        } => run(&file, strict, level.as_deref() == Some("release")),
         Command::View { as_, file } => view(&as_, &file),
     }
 }
@@ -78,7 +88,7 @@ enum Loaded {
     Unsupported(String, Vec<Diagnostic>),
 }
 
-fn load(file: &Path, src: &str, strict: bool) -> Result<Loaded, String> {
+fn load(file: &Path, src: &str, strict: bool, release: bool) -> Result<Loaded, String> {
     let name = file.display().to_string();
     match file.extension().and_then(|e| e.to_str()) {
         Some("yong") => Ok(match yong_core::parse(&name, src) {
@@ -90,7 +100,8 @@ fn load(file: &Path, src: &str, strict: bool) -> Result<Loaded, String> {
             let Some(m) = m.filter(|_| !diags.iter().any(|d| d.severity == Severity::Error)) else {
                 return Ok(Loaded::Stopped(diags));
             };
-            Ok(match yong_elab::elaborate(&name, src, &m, strict) {
+            let opts = yong_elab::Options { strict, release };
+            Ok(match yong_elab::elaborate(&name, src, &m, opts) {
                 Err(yong_elab::Unsupported(what)) => Loaded::Unsupported(what, diags),
                 Ok((y, mut errs)) if !errs.iter().any(|d| d.severity == Severity::Error) => {
                     errs.extend(diags);
@@ -121,7 +132,7 @@ fn view(as_: &str, file: &Path) -> ExitCode {
         Ok(s) => s,
         Err(e) => return tool_failure(&format!("{}: {e}", file.display())),
     };
-    match load(file, &src, false) {
+    match load(file, &src, false, false) {
         Ok(Loaded::Ready(m, _)) => {
             print!("{}", yong_core::print(&m));
             ExitCode::SUCCESS
@@ -135,13 +146,13 @@ fn view(as_: &str, file: &Path) -> ExitCode {
     }
 }
 
-fn run(file: &Path, strict: bool) -> ExitCode {
+fn run(file: &Path, strict: bool, release: bool) -> ExitCode {
     let src = match std::fs::read_to_string(file) {
         Ok(s) => s,
         Err(e) => return tool_failure(&format!("{}: {e}", file.display())),
     };
     let name = file.display().to_string();
-    let module = match load(file, &src, strict) {
+    let module = match load(file, &src, strict, release) {
         Ok(Loaded::Ready(m, mut diags)) => {
             diags.extend(yong_check::check(&name, &src, &m));
             let diags = finish(diags, DEFAULT_MAX_ERRORS);
@@ -176,10 +187,16 @@ fn run(file: &Path, strict: bool) -> ExitCode {
     }
 }
 
-fn check(files: &[PathBuf], format: Format, max_errors: usize, strict: bool) -> ExitCode {
+fn check(
+    files: &[PathBuf],
+    format: Format,
+    max_errors: usize,
+    strict: bool,
+    release: bool,
+) -> ExitCode {
     let mut diags = Vec::new();
     for file in files {
-        match check_file(file, strict) {
+        match check_file(file, strict, release) {
             Ok(mut d) => diags.append(&mut d),
             Err(msg) => return tool_failure(&msg),
         }
@@ -201,10 +218,10 @@ fn check(files: &[PathBuf], format: Format, max_errors: usize, strict: bool) -> 
     }
 }
 
-fn check_file(file: &Path, strict: bool) -> Result<Vec<Diagnostic>, String> {
+fn check_file(file: &Path, strict: bool, release: bool) -> Result<Vec<Diagnostic>, String> {
     let src = std::fs::read_to_string(file).map_err(|e| format!("{}: {e}", file.display()))?;
     let name = file.display().to_string();
-    Ok(match load(file, &src, strict)? {
+    Ok(match load(file, &src, strict, release)? {
         Loaded::Ready(m, mut d) => {
             d.extend(yong_check::check(&name, &src, &m));
             d

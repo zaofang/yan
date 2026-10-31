@@ -6,7 +6,7 @@ fn lower(src: &str) -> (y::Module, Vec<Diagnostic>) {
         d.iter().all(|d| d.severity != yong_diag::Severity::Error),
         "{d:?}"
     );
-    elaborate("t.jian", src, &m.expect("parses"), false).expect("supported")
+    elaborate("t.jian", src, &m.expect("parses"), Options::default()).expect("supported")
 }
 
 #[test]
