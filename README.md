@@ -6,18 +6,18 @@ Yong is a programming language with one core and two surfaces.
 - **Wen**: the human syntax.
 
 Both compile to the same Yong core, which is fast, concurrent, deterministic and capability-safe.
-The implementation starts as a Python reference and is ported to Rust.
+The implementation is written in Rust, as one Cargo workspace (spec 22.2).
 
 The developer owns the spec, tests and gates; agents write the code and never edit tests.
-Authoritative documents: Spec v0.2 and the 1.0 Development Roadmap.
+Authoritative documents: the Yong 1.0 spec (draft) and the 1.0 Development Roadmap.
 
 ## Layout
 
 | Path | Owner | Notes |
 |---|---|---|
 | `spec/`, `conformance/`, `tests/` | Antonio | Agents propose changes in a separate PR and never edit these. CI rejects agent PRs that touch them. |
-| `packages/` | agents | Added as crates are built. uv workspace, one package per Rust crate in spec section 18, each a subpackage of the `yong` namespace. |
-| `tools/conform.py` | agents | Conformance runner (spec 20.1), independent of the implementation. |
+| `crates/` | agents | Cargo workspace, one crate per row of spec 22.2, added as they are built. Agent self-tests live in `#[cfg(test)] mod selftest` (SQ28). |
+| `tools/conform.py` | agents | Conformance runner (spec 24.1), independent of the implementation. Python, run with uv. |
 | `tools/guard.py` | Antonio (CODEOWNERS) | Path guard used by CI. |
 | `SPEC_QUESTIONS.md` | Antonio | Spec ambiguities; code cites them with `SPEC-Q`. |
 
@@ -26,20 +26,20 @@ Held-out evaluation tests live in a separate private repository that agents cann
 ## Development
 
 ```sh
-uv sync
-uv run pytest -q tools/selftest
-uv run python tools/conform.py                                 # no executors yet
-uv run python tools/conform.py --executor py-interp="uv run yong"  # once yong-cli exists
+cargo fmt --all --check && cargo clippy --all-targets -- -D warnings && cargo test
+cargo build -p yong-cli
+uv sync && uv run pytest -q tools/selftest
+uv run python tools/conform.py --executor interp=target/debug/yong
 ```
 
 An executor is any command that implements `CMD check --format json FILE` (prints a JSON array of
-spec 16.1 diagnostic records) and `CMD run FILE`.
+spec 18.2 diagnostic records) and `CMD run FILE`. Exit status 2 from either is a tool failure.
 
 ## Licensing
 
 | What | License |
 |---|---|
-| Code: compiler, toolchain, std, runtime support, Python reference, conformance suite | [Apache-2.0 WITH LLVM-exception](LICENSE) |
+| Code: compiler, toolchain, std, runtime support, conformance suite | [Apache-2.0 WITH LLVM-exception](LICENSE) |
 | Spec text, docs, tour, book | [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/) |
 | Grammars, normative tables, spec code samples | CC-BY-4.0, or Apache-2.0 WITH LLVM-exception |
 | Doc examples, `yong new` templates, published eval task statements | [0BSD](https://opensource.org/license/0bsd) |
@@ -59,5 +59,6 @@ CI runs on a self-hosted runner (no hosted Actions minutes): register one under 
 
 
 Branch protection on `main`: require a pull request, require review from Code Owners, and require
-the `guard`, `canary`, `check` and `conformance` status checks.
+the `guard`, `canary`, `check`, `rust` and `conformance` status checks. The runner needs rustup
+(the toolchain is pinned in `rust-toolchain.toml`) and uv.
 Enable private vulnerability reporting under Settings → Code security.

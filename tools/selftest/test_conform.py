@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from tools.conform import Case, Diag, discover, judge, parse_headers
+from tools.conform import Case, Diag, ToolFailure, discover, judge, parse_headers
 
 
 @dataclass
@@ -53,12 +53,35 @@ def test_run_case_compares_stdout_and_exit() -> None:
 
 
 def test_discover(tmp_path: Path) -> None:
-    (tmp_path / "fail").mkdir()
-    (tmp_path / "fail" / "a.jian").write_text("# expect: E1 at 1:1\n")
+    (tmp_path / "jian" / "fail").mkdir(parents=True)
+    (tmp_path / "jian" / "fail" / "a.jian").write_text("# expect: E1 at 1:1\n")
+    (tmp_path / "yong" / "fail").mkdir(parents=True)
+    (tmp_path / "yong" / "fail" / "b.yong").write_text("-- expect: E2 at 3:4\nmodule m\n")
+    (tmp_path / "yong" / "fail" / "stray.jian").write_text("")
     (tmp_path / "patch" / "p1").mkdir(parents=True)
     cases = discover(tmp_path)
-    assert [(c.kind, c.path.name) for c in cases] == [("fail", "a.jian"), ("patch", "p1")]
-    assert judge(cases[1], Fake()).status == "skip"
+    assert [(c.kind, c.path.name) for c in cases] == [
+        ("fail", "a.jian"),
+        ("fail", "b.yong"),
+        ("patch", "p1"),
+    ]
+    assert cases[1].expect == [Diag("E2", 3, 4)]
+    assert judge(cases[2], Fake()).status == "skip"
+
+
+def test_dash_comment_headers() -> None:
+    text = "-- exit: 1\n-- stdout:\n-- hi\n--\nmodule m\n"
+    assert parse_headers(text, "--") == ([], "hi\n\n", 1)
+
+
+def test_tool_failure_is_a_failed_case() -> None:
+    class Broken(Fake):
+        def check(self, path: Path) -> list[dict[str, object]]:
+            raise ToolFailure("no front end")
+
+    result = judge(Case("pass", Path("p.yong")), Broken())
+    assert result.status == "fail"
+    assert "no front end" in result.detail
 
 
 def test_missing_suite_is_empty(tmp_path: Path) -> None:

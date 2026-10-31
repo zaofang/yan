@@ -3,7 +3,8 @@
 An executor is any command that implements:
     CMD check --format json FILE  -> JSON array of diagnostic records (spec 16.1)
     CMD run FILE                  -> the program's stdout and exit status
-so the same suite drives the Python reference and, later, the Rust port.
+Exit status 2 or above from either command is a failure of the tool, never a verdict.
+The same suite drives the interpreter and every code generator (spec 22.1, 24.1).
 """
 
 import argparse
@@ -16,8 +17,10 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Literal, Protocol
 
-KINDS = ("pass", "fail", "run", "patch")
-SUFFIXES = (".jian", ".wen", ".yong")
+SURFACES = {"jian": ".jian", "wen": ".wen", "yong": ".yong"}
+KINDS = ("pass", "fail", "run")
+COMMENT = {".jian": "#", ".wen": "--", ".yong": "--"}
+TOOL_FAILURE = 2
 
 type Status = Literal["pass", "fail", "skip"]
 
@@ -46,6 +49,10 @@ class Result:
     detail: str = ""
 
 
+class ToolFailure(Exception):
+    pass
+
+
 class Executor(Protocol):
     @property
     def name(self) -> str: ...
@@ -64,27 +71,31 @@ class CommandExecutor:
         out = subprocess.run(
             [*self.argv, "check", "--format", "json", str(path)], capture_output=True, text=True
         )
+        if out.returncode >= TOOL_FAILURE:
+            raise ToolFailure(out.stderr.strip())
         records: list[dict[str, object]] = json.loads(out.stdout or "[]")
         return records
 
     def run(self, path: Path) -> tuple[str, int]:
         out = subprocess.run([*self.argv, "run", str(path)], capture_output=True, text=True)
+        if out.returncode == TOOL_FAILURE and out.stderr.startswith("yong:"):
+            raise ToolFailure(out.stderr.strip())
         return out.stdout, out.returncode
 
 
-# SPEC-Q: spec 20.1 does not fix the header layout, and .yong has no comment syntax yet
-# (proposed SQ2). Assumed: headers are leading "#" lines; a "# stdout:" block is the
-# following "# "-prefixed lines ("#" alone is an empty line) up to the next header or
-# non-comment line; several blocks concatenate.
-def parse_headers(text: str) -> tuple[list[Diag], str | None, int]:
+# SPEC-Q: spec 24.1 does not fix the stdout block layout. Assumed: headers are the leading
+# comment lines ("#" in Jian, "--" in Wen and Yong); a "stdout:" block is the following
+# comment lines with one space stripped (a bare marker is an empty line) up to the next
+# header or non-comment line; several blocks concatenate.
+def parse_headers(text: str, mark: str = "#") -> tuple[list[Diag], str | None, int]:
     expect: list[Diag] = []
     stdout: list[str] | None = None
     exit_code = 0
     in_stdout = False
     for line in text.splitlines():
-        if not line.startswith("#"):
+        if not line.startswith(mark):
             break
-        body = line[1:].removeprefix(" ")
+        body = line[len(mark) :].removeprefix(" ")
         if body.startswith("expect:"):
             in_stdout = False
             code, _, pos = body.removeprefix("expect:").strip().partition(" at ")
@@ -103,17 +114,15 @@ def parse_headers(text: str) -> tuple[list[Diag], str | None, int]:
 
 def discover(root: Path) -> list[Case]:
     cases: list[Case] = []
-    for kind in KINDS:
-        base = root / kind
-        if not base.is_dir():
-            continue
-        if kind == "patch":
-            cases += [Case(kind, p) for p in sorted(base.iterdir()) if p.is_dir()]
-            continue
-        for p in sorted(base.rglob("*")):
-            if p.suffix in SUFFIXES:
-                expect, stdout, exit_code = parse_headers(p.read_text(encoding="utf-8"))
+    for surface, suffix in SURFACES.items():
+        for kind in KINDS:
+            for p in sorted((root / surface / kind).rglob(f"*{suffix}")):
+                text = p.read_text(encoding="utf-8")
+                expect, stdout, exit_code = parse_headers(text, COMMENT[suffix])
                 cases.append(Case(kind, p, expect, stdout, exit_code))
+    patch = root / "patch"
+    if patch.is_dir():
+        cases += [Case("patch", p) for p in sorted(patch.iterdir()) if p.is_dir()]
     return cases
 
 
@@ -129,6 +138,13 @@ def _diags(records: list[dict[str, object]], errors_only: bool) -> list[Diag]:
 
 
 def judge(case: Case, ex: Executor) -> Result:
+    try:
+        return _judge(case, ex)
+    except ToolFailure as e:
+        return Result(str(case.path), ex.name, "fail", f"tool failure: {e}")
+
+
+def _judge(case: Case, ex: Executor) -> Result:
     name = str(case.path)
     match case.kind:
         case "pass":
