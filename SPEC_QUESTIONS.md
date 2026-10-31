@@ -113,6 +113,12 @@ Assumed in `yong-elab`'s std loading until the spec says otherwise:
 - A std class reaches a module when the module's source names the class or the class's module
   (for example `fs`). Such a class is lowered into the module as a record, unless the module
   defines that name itself.
+- `Error` is a record with `message: str`, the wrapped failure's `Show` text, and
+  `context: list[str]`, outermost first. Keeping the text instead of the value means
+  `e is HttpError(...)` cannot downcast yet. `?` into a function that fails with `Error`
+  converts through `std.error.wrap`. `f().context(msg)` calls `std.error.context` on
+  `try f()`: on success it gives the value, and otherwise it fails with an `Error` that has
+  `msg` added.
 
 ## Wen lexical and grammar readings
 

@@ -66,3 +66,14 @@ fn fake_fs_reads_and_fails_with_fs_error() {
                \x20       io.print(f\"{a} {b}\")\n";
     assert_eq!(run(src), "x not found\n");
 }
+
+#[test]
+fn failures_inject_into_error_with_context() {
+    let src = "class Bad:\n    msg: str\n\n\
+               def inner() -> int fail Bad:\n    fail Bad(msg=\"inner\")\n\n\
+               def plain() -> int fail Error:\n    return inner()?\n\n\
+               def outer() -> int fail Error:\n    return inner().context(\"outer\")?\n\n\
+               pub def main() uses io:\n    a = plain() else err -> len(err.context)\n\
+               \x20   b = outer() else err -> err.message.char_count()\n    io.print(f\"{a} {b}\")\n";
+    assert_eq!(run(src), "0 16\n");
+}

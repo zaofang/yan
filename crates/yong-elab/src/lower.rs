@@ -1754,7 +1754,15 @@ impl Lower<'_, '_, '_> {
                 };
                 let (r, t, fail) = self.call_expr(f, args, x.span, None)?;
                 match (fail, r) {
-                    (Some(_), Rhs::Call(c)) => (Rhs::Propagate { call: c, via: None }, t),
+                    (Some(e), Rhs::Call(c)) => {
+                        // `?` injects any failure into `Error` with no `From` (R432).
+                        let into_error = e != Ty::Data("Error".into())
+                            && self.sig.fail == Some(Ty::Data("Error".into()))
+                            && self.g.std_records.contains("Error");
+                        let via =
+                            into_error.then(|| vec!["std".into(), "error".into(), "wrap".into()]);
+                        (Rhs::Propagate { call: c, via }, t)
+                    }
                     _ => return unsupported("`?` on an optional or on a call that cannot fail"),
                 }
             }
@@ -2186,6 +2194,9 @@ impl Lower<'_, '_, '_> {
                     && (self.sig.caps.contains(c) || self.handlers.contains(c) || c == "io")
                 {
                     return self.cap_call(c, m, args, at);
+                }
+                if let (j::ExprKind::Call(f, fargs), "context") = (&b.kind, m.as_str()) {
+                    return self.context(f, fargs, b.span, args, at);
                 }
                 self.method(b, m, *name_at, args, at)
             }
@@ -2620,6 +2631,38 @@ impl Lower<'_, '_, '_> {
                 Ok(err)
             }
         }
+    }
+
+    /// `f(...).context(msg)`: the call's failure as an `Error` with `msg` added (R432).
+    fn context(
+        &mut self,
+        f: &j::Expr,
+        fargs: &[j::Arg],
+        fat: Span,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let (r, t, fail) = self.call_expr(f, fargs, fat, None)?;
+        let (Some(e), Rhs::Call(c)) = (fail, r) else {
+            return unsupported("`.context` on a call that cannot fail");
+        };
+        if !self.g.std_records.contains("Error") {
+            return unsupported("`.context` where the module defines its own `Error`");
+        }
+        let Some(xs) = self.positional(args, 1, "context", at)? else {
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        };
+        let (msg, mt) = self.atom(xs[0], Some(&Ty::Str))?;
+        self.expect(&mt, &Ty::Str, xs[0].span);
+        let rt = Ty::Result(Box::new(t.clone()), Box::new(e.clone()));
+        let tried = self.tmp(&rt, Rhs::Try(c), fat);
+        let c = call(
+            "std.error.context",
+            vec![t.targ(), e.targ()],
+            vec![sink_arg(tried), let_arg(msg)],
+            at,
+        );
+        Ok((Rhs::Call(c), t, Some(Ty::Data("Error".into()))))
     }
 
     /// An operation of a std capability (`io.print(s)`, `fs.read(p)`), declared in its module.

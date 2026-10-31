@@ -576,7 +576,10 @@ impl Interp<'_> {
                             Some(f) => match self.call(FnRef::Item(f), vec![e])?.0 {
                                 Ok(v) | Err(v) => v,
                             },
-                            None => return unsupported(format!("`via {}`", p.join("."))),
+                            None => match native::fallible(&key(p), &[e]) {
+                                Some(Ok(v) | Err(v)) => v,
+                                None => return unsupported(format!("`via {}`", p.join("."))),
+                            },
                         },
                     };
                     return Ok(Err(Flow::Fail(e)));

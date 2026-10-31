@@ -66,6 +66,8 @@ pub(crate) struct Globals {
     pub aliases: HashMap<String, j::Type>,
     pub fns: HashMap<String, Sig>,
     pub consts: HashMap<String, Ty>,
+    /// The records that come from std rather than the module.
+    pub std_records: std::collections::HashSet<String>,
     /// Functions called from a `test_` function (E601).
     pub tested: std::collections::HashSet<String>,
 }

@@ -40,8 +40,42 @@ pub(super) fn fallible(name: &str, args: &[Value]) -> Option<Result<Value, Value
             .get(&Key(Str(path.clone())))
             .cloned()
             .ok_or_else(|| fs_error(path, "not found")),
+        ("std.error.context", [Data { name, fields }, Str(msg)]) => {
+            match (name.as_str(), &fields[..]) {
+                ("Ok", [(_, v)]) => Ok(v.clone()),
+                (_, [(_, e)]) => {
+                    let Data { name, fields } = wrap(e) else {
+                        unreachable!("wrap builds a record")
+                    };
+                    let mut fields = fields;
+                    if let (_, List(chain)) = &mut fields[1] {
+                        chain.insert(0, Str(msg.clone()));
+                    }
+                    Err(Data { name, fields })
+                }
+                _ => return None,
+            }
+        }
+        ("std.error.wrap", [e]) => Ok(wrap(e)),
         _ => return None,
     })
+}
+
+/// `e` as an `Error`: itself when it is one, else its shown text with no context.
+fn wrap(e: &Value) -> Value {
+    match e {
+        Value::Data { name, .. } if name == "Error" => e.clone(),
+        _ => Value::Data {
+            name: "Error".into(),
+            fields: vec![
+                (
+                    "message".into(),
+                    Value::Str(super::prelude::show(e, false).into()),
+                ),
+                ("context".into(), Value::List(Vec::new())),
+            ],
+        },
+    }
 }
 
 fn fs_error(path: &str, reason: &str) -> Value {

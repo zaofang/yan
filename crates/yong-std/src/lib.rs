@@ -6,6 +6,7 @@ pub mod intrinsics;
 pub const SOURCES: &[(&str, &str)] = &[
     ("cmp", include_str!("../lib/std/cmp.jian")),
     ("dict", include_str!("../lib/std/dict.jian")),
+    ("error", include_str!("../lib/std/error.jian")),
     ("fmt", include_str!("../lib/std/fmt.jian")),
     ("fs", include_str!("../lib/std/fs.jian")),
     ("io", include_str!("../lib/std/io.jian")),

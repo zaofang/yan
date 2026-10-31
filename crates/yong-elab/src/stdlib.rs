@@ -202,6 +202,7 @@ pub(crate) fn classes(g: &mut Globals, m: &j::Module, src: &str) -> R<Vec<String
             && !own.contains(name.as_str())
         {
             g.records.insert(name.clone(), Vec::new());
+            g.std_records.insert(name.clone());
             out.push((name, c));
         }
     }
