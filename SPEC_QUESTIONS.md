@@ -76,3 +76,28 @@ Assumed in `yong-elab` until resolved:
   parameter, positional-only parameters, the receiver) do not cover it.
 - E210 is reported once per call, at the first argument that needs a keyword (the note in
   `jian/fail/types/e210_record_keyword_required`).
+
+## Wen lexical and grammar readings
+
+15.1 and 15.2 leave these open. Assumed in `yong-wen` until resolved:
+
+- **Signature continuation.** A line whose first token is `fail` or `uses` continues the previous
+  logical line when that line is indented less, starts (after `pub`, `unsafe`, `gen`, `sub`,
+  `lemma` or `safe`) with a name followed by `(` or `[`, has no `=` outside brackets and does not
+  end in `->`. Other continuation lines start with `.`, `and`, `or` or a binary operator other
+  than `@`, which would read as an attribute.
+- **E134.** Inside a grid, a signed element is E134 when the element before it in the row or the
+  signed operand is not a literal: `[1 -2]` is two elements, `[a -b]` and `[1 -b]` are E134. The
+  span starts at the element before the sign.
+- **SIGN and SPLPAREN outside grids.** The lexer marks them wherever the innermost bracket is
+  `[`. In an index (`xs[i -1]`) they are read as a binary operator and a call; in a list after a
+  `,` a SIGN is a unary sign.
+- **Time literals.** A standalone time needs seconds (`09:00:00`), so `{10:20}` stays a map.
+  Inside a date-time, `T09:00` may omit them.
+- **Stage-0 calls.** `#` applies to the whole postfix chain after it: `#deep(0)` is the stage-0
+  value of the call.
+- **Grammar gaps.** Accepted although 15.2 does not list them: a labelled inout argument
+  (`swap(x: &a)`), a bare value name as a type (`Ptr[c_int]`, the `core.ffi` C types), and a
+  negative number literal as a pattern (`-1 -> ...`).
+- **E112.** Two consecutive capitals are allowed only as a one-letter first word followed by a
+  lower-case letter, so the `core.ffi` names `CStr` and `CString` lex, and `HTTPError` is E112.
