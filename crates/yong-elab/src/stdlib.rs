@@ -375,6 +375,7 @@ fn std_cx(module: &str) -> Cx<'static> {
         src,
         strict: true,
         release: false,
+        wen: false,
         diags: Vec::new(),
     }
 }

@@ -1253,6 +1253,7 @@ impl Parser {
                 self.expect_op(":")?;
                 let (contracts, body) = self.lbody()?;
                 StmtKind::While {
+                    label: None,
                     cond,
                     contracts,
                     body,
@@ -1266,6 +1267,7 @@ impl Parser {
                 self.expect_op(":")?;
                 let (contracts, body) = self.lbody()?;
                 StmtKind::For {
+                    label: None,
                     target,
                     iter,
                     contracts,

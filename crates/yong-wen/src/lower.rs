@@ -31,6 +31,8 @@ pub fn lower(file: &str, src: &str, m: &Module) -> R<(h::Module, Vec<Diagnostic>
         src,
         diags: Vec::new(),
         inferred,
+        docs: m.docs.iter().cloned().collect(),
+        doc: None,
     };
     let mut items = Vec::new();
     for it in &m.items {
@@ -52,6 +54,10 @@ struct Lower<'a> {
     src: &'a str,
     diags: Vec<Diagnostic>,
     inferred: HashMap<String, Vec<String>>,
+    /// `---` lines by line number.
+    docs: HashMap<u32, String>,
+    /// The doc comment above the item being lowered.
+    doc: Option<String>,
 }
 
 fn mk(kind: h::ExprKind, span: Span) -> h::Expr {
@@ -94,6 +100,21 @@ impl Lower<'_> {
             .push(Diagnostic::error(code, self.file, span, quote, msg));
     }
 
+    /// The consecutive `---` lines that end on the line before `line`.
+    fn doc_above(&self, line: u32) -> Option<String> {
+        let mut lines = Vec::new();
+        let mut l = line.checked_sub(1)?;
+        while let Some(t) = self.docs.get(&l) {
+            lines.push(t.as_str());
+            l = l.checked_sub(1)?;
+        }
+        if lines.is_empty() {
+            return None;
+        }
+        lines.reverse();
+        Some(lines.join("\n"))
+    }
+
     fn attr(&mut self, a: &Attr) -> R<h::Decorator> {
         Ok(h::Decorator {
             path: vec![a.name.clone()],
@@ -107,6 +128,7 @@ impl Lower<'_> {
 
     fn item(&mut self, it: &Item) -> R<Option<h::Item>> {
         let decorators = it.attrs.iter().map(|a| self.attr(a)).collect::<R<_>>()?;
+        self.doc = self.doc_above(it.span.line);
         let (kind, name_span) = match &it.kind {
             ItemKind::Fn(f) => {
                 let def = self.fn_def(f, it.public)?;
@@ -150,7 +172,7 @@ impl Lower<'_> {
                 return Ok(h::ItemKind::Class(h::Class {
                     name: t.name.clone(),
                     tparams,
-                    doc: None,
+                    doc: self.doc.clone(),
                     fields: fields.iter().map(|f| self.field(f)).collect::<R<_>>()?,
                 }));
             }
@@ -398,7 +420,7 @@ impl Lower<'_> {
                     tail_return(&mut stmts);
                 }
                 h::Body {
-                    doc: None,
+                    doc: self.doc.clone(),
                     contracts: Vec::new(),
                     stmts,
                 }
@@ -409,7 +431,7 @@ impl Lower<'_> {
                     tail_return(&mut out);
                 }
                 h::Body {
-                    doc: None,
+                    doc: self.doc.clone(),
                     contracts: self.contracts(contracts)?,
                     stmts: out,
                 }
@@ -441,7 +463,7 @@ impl Lower<'_> {
                     tail_return(&mut out);
                 }
                 h::Body {
-                    doc: None,
+                    doc: self.doc.clone(),
                     contracts: self.contracts(contracts)?,
                     stmts: out,
                 }
@@ -551,18 +573,15 @@ impl Lower<'_> {
                 }
             }
             StmtKind::Let {
+                mutable,
                 ghost,
                 pattern,
                 ty,
                 value,
-                ..
             } => {
                 let ty = ty.as_ref().map(|t| self.ty(t)).transpose()?;
                 let PatKind::Bind(name) = &pattern.kind else {
-                    return match pattern.kind {
-                        PatKind::Wild => Ok(stmt(K::Expr(self.expr(value)?), s.span)),
-                        _ => unsupported("pattern bindings and let-else"),
-                    };
+                    return Ok(stmt(self.let_pattern(pattern, ty, value)?, s.span));
                 };
                 let value = match &value.kind {
                     ExprKind::ParFor {
@@ -584,8 +603,10 @@ impl Lower<'_> {
                         value,
                     }
                 } else {
-                    K::Assign {
-                        target: mk(h::ExprKind::Name(name.clone()), pattern.span),
+                    K::Bind {
+                        mutable: *mutable,
+                        target: name.clone(),
+                        target_span: pattern.span,
                         ty,
                         value,
                     }
@@ -596,9 +617,8 @@ impl Lower<'_> {
             StmtKind::Become(e) => K::Become(self.expr(e)?),
             StmtKind::Break(None) => K::Break,
             StmtKind::Continue(None) => K::Continue,
-            StmtKind::Break(Some(_)) | StmtKind::Continue(Some(_)) => {
-                return unsupported("labelled `break` and `continue`");
-            }
+            StmtKind::Break(Some(n)) => K::BreakTo(n.clone()),
+            StmtKind::Continue(Some(n)) => K::ContinueTo(n.clone()),
             StmtKind::Assert(e) => K::Assert(self.expr(e)?),
             StmtKind::Unreachable => K::Unreachable,
             StmtKind::Reveal(p) => K::Reveal(p.clone()),
@@ -618,13 +638,14 @@ impl Lower<'_> {
                 cases: arms.iter().map(|a| self.arm(a)).collect::<R<_>>()?,
             },
             StmtKind::For {
-                label: None,
+                label,
                 mutable: false,
                 pattern,
                 iter,
                 invariants,
                 body,
             } => K::For {
+                label: label.clone(),
                 target: self.targets(pattern)?,
                 iter: self.expr(iter)?,
                 contracts: self.loop_contracts(invariants)?,
@@ -632,27 +653,26 @@ impl Lower<'_> {
             },
             StmtKind::For { mutable: true, .. } => return unsupported("`for var`"),
             StmtKind::While {
-                label: None,
+                label,
                 cond,
                 invariants,
                 body,
             } => K::While {
+                label: label.clone(),
                 cond: self.expr(cond)?,
                 contracts: self.loop_contracts(invariants)?,
                 body: self.stmts(body)?,
             },
             StmtKind::Loop {
-                label: None,
+                label,
                 invariants,
                 body,
             } => K::While {
+                label: label.clone(),
                 cond: mk(h::ExprKind::Lit(h::Lit::Bool(true)), s.span),
                 contracts: self.loop_contracts(invariants)?,
                 body: self.stmts(body)?,
             },
-            StmtKind::For { .. } | StmtKind::While { .. } | StmtKind::Loop { .. } => {
-                return unsupported("labelled loops");
-            }
             StmtKind::Par { concurrent, body } => K::Par {
                 concurrent: *concurrent,
                 limit: None,
@@ -678,6 +698,43 @@ impl Lower<'_> {
             }
         };
         Ok(stmt(kind, s.span))
+    }
+
+    /// `let p = e` with a pattern: a tuple of names unpacks, `let p = e else ...` is let-else.
+    fn let_pattern(&mut self, p: &Pattern, ty: Option<h::Type>, value: &Expr) -> R<h::StmtKind> {
+        if let ExprKind::Fallback(lhs, fb) = &value.kind {
+            let els = match fb.as_ref() {
+                Fallback::Diverge(s) => vec![self.stmt(s)?],
+                Fallback::Block(None, ss) => self.stmts(ss)?,
+                _ => return unsupported("this let-else"),
+            };
+            return Ok(h::StmtKind::LetElse {
+                pat: self.pattern(p)?,
+                value: self.expr(lhs)?,
+                els: h::Block {
+                    inline: false,
+                    stmts: els,
+                },
+            });
+        }
+        Ok(match &p.kind {
+            PatKind::Wild => h::StmtKind::Expr(self.expr(value)?),
+            PatKind::Tuple(ps) if ps.iter().all(|p| matches!(p.kind, PatKind::Bind(_))) => {
+                let names = ps
+                    .iter()
+                    .map(|p| match &p.kind {
+                        PatKind::Bind(n) => mk(h::ExprKind::Name(n.clone()), p.span),
+                        _ => unreachable!("checked above"),
+                    })
+                    .collect();
+                h::StmtKind::Assign {
+                    target: mk(h::ExprKind::Tuple(names), p.span),
+                    ty,
+                    value: self.expr(value)?,
+                }
+            }
+            _ => return unsupported("this pattern binding"),
+        })
     }
 
     fn par_comp(
@@ -766,9 +823,23 @@ impl Lower<'_> {
                 h::Pat::Tuple(ps.iter().map(|p| self.pattern(p)).collect::<R<_>>()?)
             }
             PatKind::As(p, n) => h::Pat::As(Box::new(self.pattern(p)?), n.clone()),
-            PatKind::Range { .. } => return unsupported("range patterns"),
-            PatKind::Slice(_) => return unsupported("slice patterns"),
-            PatKind::Or(_) => return unsupported("or-patterns"),
+            PatKind::Range { lo, hi, inclusive } => h::Pat::Range {
+                lo: self.expr(lo)?,
+                hi: self.expr(hi)?,
+                inclusive: *inclusive,
+            },
+            PatKind::Slice(ps) => {
+                let mut elems = Vec::new();
+                let mut rest = None;
+                for p in ps {
+                    match p {
+                        SPat::Pat(p) => elems.push(self.pattern(p)?),
+                        SPat::Rest(n) => rest = Some((elems.len(), n.clone())),
+                    }
+                }
+                h::Pat::Slice(elems, rest)
+            }
+            PatKind::Or(ps) => h::Pat::Or(ps.iter().map(|p| self.pattern(p)).collect::<R<_>>()?),
         })
     }
 
@@ -919,7 +990,7 @@ impl Lower<'_> {
                         let callee = mk(K::Attr(b(inner), m.to_owned(), span), span);
                         K::Call(b(callee), Vec::new())
                     }
-                    UnOp::Try => return unsupported("`try`"),
+                    UnOp::Try => K::Reify(b(inner)),
                 }
             }
             ExprKind::Binary(op, l, r) => {
@@ -944,7 +1015,15 @@ impl Lower<'_> {
                     b(none),
                 )
             }
-            ExprKind::Is { .. } => return unsupported("`is` with a pattern"),
+            ExprKind::Is {
+                value,
+                negated,
+                pattern,
+            } => K::Is {
+                value: b(self.expr(value)?),
+                negated: *negated,
+                pat: Box::new(self.pattern(pattern)?),
+            },
             ExprKind::If {
                 cond,
                 then,
@@ -968,13 +1047,13 @@ impl Lower<'_> {
                         StmtKind::Continue(None) => h::Fallback::Continue,
                         _ => return unsupported("this fallback"),
                     },
-                    Fallback::Block(..) => return unsupported("fallback blocks"),
+                    Fallback::Block(n, ss) => h::Fallback::Block(n.clone(), self.stmts(ss)?),
                 };
                 K::Fallback(lhs, Box::new(fb))
             }
             ExprKind::Lambda { params, body } => K::Lambda(params.clone(), b(self.expr(body)?)),
             ExprKind::Subject(_) => return self.subject(e),
-            ExprKind::Cast(..) => return unsupported("`as` conversions"),
+            ExprKind::Cast(x, t) => K::Cast(b(self.expr(x)?), self.ty(t)?),
             ExprKind::UnitNum { .. } => return unsupported("unit literals"),
             ExprKind::Temporal { .. } => return unsupported("date and time literals"),
             ExprKind::Grid(_) => return unsupported("grid literals"),

@@ -43,7 +43,8 @@ struct Lower<'a, 'c, 's> {
     /// Names whose block has ended; a later use needs function-level scope.
     gone: HashSet<String>,
     mutable: HashSet<String>,
-    loops: Vec<String>,
+    /// Each enclosing loop's label, with the name the source gave it.
+    loops: Vec<(String, Option<String>)>,
     n: usize,
     /// Lowering a `become` call, whose arguments are exempt from E210 (SPEC_QUESTIONS).
     in_become: bool,
@@ -113,7 +114,14 @@ pub(crate) fn walk(e: &j::Expr, f: &mut impl FnMut(&j::Expr)) {
             walk(iter, f);
             cond.iter().for_each(|c| walk(c, f));
         }
-        K::Attr(b, ..) | K::Try(b) | K::Unary(_, b) | K::Not(b) | K::Lambda(_, b) => walk(b, f),
+        K::Attr(b, ..)
+        | K::Try(b)
+        | K::Unary(_, b)
+        | K::Not(b)
+        | K::Lambda(_, b)
+        | K::Is { value: b, .. }
+        | K::Reify(b)
+        | K::Cast(b, _) => walk(b, f),
         K::Call(c, args) => {
             walk(c, f);
             for a in args {
@@ -142,7 +150,7 @@ pub(crate) fn walk(e: &j::Expr, f: &mut impl FnMut(&j::Expr)) {
                     walk(x, f)
                 }
                 j::Fallback::Return(x) => x.iter().for_each(|x| walk(x, f)),
-                j::Fallback::Break | j::Fallback::Continue => {}
+                j::Fallback::Break | j::Fallback::Continue | j::Fallback::Block(..) => {}
             }
         }
         K::FStr { pieces, .. } => {
@@ -170,7 +178,7 @@ fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
     match &s.kind {
         K::Expr(e) | K::Become(e) | K::Fail(e) | K::Assert(e) => vec![e],
         K::Assign { target, value, .. } | K::AugAssign { target, value, .. } => vec![target, value],
-        K::Ghost { value, .. } => vec![value],
+        K::Ghost { value, .. } | K::Bind { value, .. } | K::LetElse { value, .. } => vec![value],
         K::Return(e) => e.iter().collect(),
         K::If { arms, .. } => arms.iter().map(|(c, _)| c).collect(),
         K::While { cond, .. } => vec![cond],
@@ -194,7 +202,7 @@ fn sub_blocks(s: &j::Stmt) -> Vec<&[j::Stmt]> {
             .collect(),
         K::While { body, .. } | K::For { body, .. } => vec![body],
         K::Match { cases, .. } => cases.iter().map(|c| c.body.stmts.as_slice()).collect(),
-        K::With { body, .. } => vec![&body.stmts],
+        K::With { body, .. } | K::LetElse { els: body, .. } => vec![&body.stmts],
         K::Par { body, .. } => match body {
             j::ParBody::Block(b) => vec![b],
             j::ParBody::For { body, .. } => vec![body],
@@ -233,6 +241,13 @@ fn mutables(
                 if let Some(r) = root(target) {
                     out.insert(r.to_owned());
                 }
+            }
+            j::StmtKind::Bind {
+                mutable: true,
+                target,
+                ..
+            } => {
+                out.insert(target.clone());
             }
             _ => {}
         }
@@ -719,6 +734,29 @@ impl Lower<'_, '_, '_> {
                 }
             }
             K::Assign { target, ty, value } => self.assign(target, ty.as_ref(), value, at)?,
+            K::Bind {
+                target,
+                target_span,
+                ty,
+                value,
+                ..
+            } => {
+                if self.locals.contains_key(target) {
+                    self.err(
+                        "E230",
+                        *target_span,
+                        format!("`{target}` is already bound; pick another name"),
+                    );
+                    return Ok(());
+                }
+                let t = j::Expr {
+                    kind: j::ExprKind::Name(target.clone()),
+                    span: *target_span,
+                    paren: false,
+                };
+                self.assign(&t, ty.as_ref(), value, at)?;
+            }
+            K::LetElse { .. } => return unsupported("let-else"),
             K::AugAssign { target, op, value } => {
                 let op: &'static str = op.trim_end_matches('=');
                 if !["+", "-", "*", "/", "//", "%"].contains(&op) {
@@ -765,11 +803,20 @@ impl Lower<'_, '_, '_> {
                 };
                 self.emit(StmtKind::Become(c), at);
             }
-            K::Break | K::Continue => {
-                let Some(label) = self.loops.last().cloned() else {
-                    return unsupported("`break` outside a loop");
+            K::Break | K::Continue | K::BreakTo(_) | K::ContinueTo(_) => {
+                let label = match &s.kind {
+                    K::BreakTo(n) | K::ContinueTo(n) => self
+                        .loops
+                        .iter()
+                        .rev()
+                        .find(|(_, name)| name.as_ref() == Some(n))
+                        .map(|(l, _)| l.clone()),
+                    _ => self.loops.last().map(|(l, _)| l.clone()),
                 };
-                let kind = if matches!(s.kind, K::Break) {
+                let Some(label) = label else {
+                    return unsupported("`break` outside its loop");
+                };
+                let kind = if matches!(s.kind, K::Break | K::BreakTo(_)) {
                     StmtKind::Break { label, value: None }
                 } else {
                     StmtKind::Continue { label }
@@ -783,9 +830,14 @@ impl Lower<'_, '_, '_> {
             }
             K::Unreachable => self.emit(StmtKind::Unreachable, at),
             K::If { arms, els } => self.if_(arms, els.as_ref(), at)?,
-            K::While { cond, body, .. } => {
+            K::While {
+                label: name,
+                cond,
+                body,
+                ..
+            } => {
                 let label = self.label();
-                self.loops.push(label.clone());
+                self.loops.push((label.clone(), name.clone()));
                 let b = self.block_with(|l| {
                     let (c, t) = l.atom(cond, Some(&Ty::Bool))?;
                     l.expect(&t, &Ty::Bool, cond.span);
@@ -821,8 +873,12 @@ impl Lower<'_, '_, '_> {
                 );
             }
             K::For {
-                target, iter, body, ..
-            } => self.for_(target, iter, at, |l| l.stmts(body))?,
+                label,
+                target,
+                iter,
+                body,
+                ..
+            } => self.for_(label.as_deref(), target, iter, at, |l| l.stmts(body))?,
             K::Match { scrutinee, cases } => self.match_(scrutinee, cases, at)?,
             K::Par {
                 concurrent,
@@ -881,6 +937,7 @@ impl Lower<'_, '_, '_> {
 
     fn for_(
         &mut self,
+        name: Option<&str>,
         target: &[String],
         iter: &j::Expr,
         at: Span,
@@ -952,7 +1009,7 @@ impl Lower<'_, '_, '_> {
             let n = self.tmp(&Ty::Int, Rhs::Call(len), at);
             (Some((xs, e)), n, one)
         };
-        self.loops.push(label.clone());
+        self.loops.push((label.clone(), name.map(str::to_owned)));
         let b = self.block_with(|l| {
             let ge = call(
                 "ge_i64",
@@ -1084,7 +1141,7 @@ impl Lower<'_, '_, '_> {
         let slot = self.out.len() - 1;
         let mut found: Option<(Ty, Option<Ty>)> = None;
         let acc_arg = Arg::Value(Conv::Inout, Atom::Name(acc.clone(), at), at);
-        self.for_(target, iter, at, |l| {
+        self.for_(None, target, iter, at, |l| {
             let mut push = |l: &mut Self| -> R<()> {
                 let (x, xt) = l.atom(elem, None)?;
                 let (path, mut args, mut targs) = match kind {
@@ -1170,11 +1227,21 @@ impl Lower<'_, '_, '_> {
             && self.g.sums.contains_key(d)
             && let Some(c) = cases.iter().find(|c| matches!(c.pat, j::Pat::Wild))
         {
-            self.err(
-                "E502",
-                c.span,
-                format!("`case _` on the sum `{d}`; name each variant"),
-            );
+            if self.cx.wen {
+                let item = self.item.clone();
+                self.cx.warn(
+                    "W811",
+                    c.span,
+                    &item,
+                    format!("`_` on the sum `{d}`; name each variant"),
+                );
+            } else {
+                self.err(
+                    "E502",
+                    c.span,
+                    format!("`case _` on the sum `{d}`; name each variant"),
+                );
+            }
         }
         let scalar = matches!(t, Ty::Int | Ty::Float | Ty::Str | Ty::Char | Ty::Fixed(_));
         let bools = |b: bool| {
@@ -1933,6 +2000,20 @@ impl Lower<'_, '_, '_> {
             K::Comp { .. } => self.comprehension(e)?,
             K::Slice(..) => return unsupported("slices"),
             K::Lambda(..) => return unsupported("lambdas"),
+            K::Cast(x, j::Type::Named { path, args })
+                if args.is_empty()
+                    && matches!(path.as_slice(), [n] if n == "int" || n == "float") =>
+            {
+                let arg = j::Arg {
+                    name: None,
+                    kind: j::ArgKind::Expr((**x).clone()),
+                    span: x.span,
+                };
+                return self.builtin(&path[0], &[arg], at, want);
+            }
+            K::Cast(..) => return unsupported("`as` to a fixed-width type"),
+            K::Is { .. } => return unsupported("`is` with a pattern"),
+            K::Reify(_) => return unsupported("`try`"),
             K::Set(_) => return unsupported("set literals"),
             K::Wild => return unsupported("`_` as a value"),
         })
@@ -2042,7 +2123,7 @@ impl Lower<'_, '_, '_> {
                 Ok(())
             })?;
             let (err_name, err_pat) = match (&fb, &err_ty) {
-                (j::Fallback::Bind(n, _), Some(_)) => (
+                (j::Fallback::Bind(n, _) | j::Fallback::Block(Some(n), _), Some(_)) => (
                     Some(n.clone()),
                     y::Pat::Ctor {
                         path: vec!["Err".into()],
@@ -2084,6 +2165,25 @@ impl Lower<'_, '_, '_> {
                         kind: j::StmtKind::Continue,
                         span: at,
                     })?,
+                    j::Fallback::Block(_, stmts) => {
+                        let exits = matches!(
+                            stmts.last().map(|s| &s.kind),
+                            Some(
+                                j::StmtKind::Return(_)
+                                    | j::StmtKind::Fail(_)
+                                    | j::StmtKind::Become(_)
+                                    | j::StmtKind::Unreachable
+                                    | j::StmtKind::Break
+                                    | j::StmtKind::Continue
+                                    | j::StmtKind::BreakTo(_)
+                                    | j::StmtKind::ContinueTo(_)
+                            )
+                        );
+                        if !exits {
+                            return unsupported("a fallback block that does not exit");
+                        }
+                        l.stmts(stmts)?;
+                    }
                 }
                 Ok(())
             })?;
