@@ -68,6 +68,8 @@ Conv     ::= "let" | "inout" | "sink"                -- R446
 From     ::= "from" Name {"," Name}
 CapType  ::= Path ["[" TArg {"," TArg} "]"]
 Contract ::= "requires" Pred | "ensures" Pred | "decreases" Expr {"," Expr} | "example" Expr
+           | "cost" CostBound {"," CostBound}             -- R610
+CostBound ::= ("steps" | "alloc") "<=" Expr
 
 Record   ::= ["pub"] "record" Path [TParams] "{" [Field {"," Field}] "}"
 Field    ::= ["pub"] Name ":" Type ["=" ConstVal]

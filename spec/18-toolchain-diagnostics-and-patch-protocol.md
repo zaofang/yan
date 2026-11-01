@@ -17,7 +17,7 @@ One binary, `yong`, provides every tool. All subcommands share the query databas
 | `yong fix [--edition]` | apply machine-applicable fixes, edition migrations and deprecation inlining as patches (20.4, 20.5) | M1 |
 | `yong export --python`, `yong import --python` | Python source bridge (17.8) | M1 |
 | `yong mcp` | agent server (21.4) | M1 |
-| `yong add`, `remove`, `update`, `tree`, `why`, `vendor` | dependency management (section 19) | M1 |
+| `yong add`, `remove`, `update`, `tree`, `why`, `vendor` | dependency management (section 19); `yong why <item> <fact>` explains an item's capability, `fail` member or panic kind (R612) | M1 |
 | `yong x <pkg> <tool>` | run a package's tool under its ceiling | M1 |
 | `yong schema gen <file>` | write table row types from data files (11.9) | M1 |
 | `yong toolchain`, `yong self update` | fetch and verify toolchains (20.3, 19.6) | M1 |
@@ -136,6 +136,8 @@ Semantics (normative):
 
 - **Incremental builds.** The query database (salsa) caches per item and per instantiation; Cranelift compiles each instantiation to its own object fragment in parallel. Debug links use wild (Linux), ld-prime (macOS) and lld-link (Windows). A remote content-addressed cache is read by everyone and written only by CI. Hot reload swaps functions through a debug jump table (M2).
 - **Test verdict cache.** A test that binds no real capability is a pure function of the hashes of every item it reaches, its handler bindings, its generator seed and the toolchain hash. `yong test` MAY reuse a stored verdict for an unchanged key and MUST mark it cached; `--no-cache` forces a run. Tests that bind a real capability with `with` are never cached.
+- **Symbolic search (R609).** `yong test --symbolic[=bound] [item]` runs items on the checked interpreter with symbolic inputs and symbolic handlers for capabilities, and searches within the bound for inputs that violate a `post`, an `assert` or any panic kind. Each input found is written to `.yong/found/` as a proposed test. For a `pub` Xin function with no `ex`, it proposes `ex` lines for approval. If R557 is adopted, `yong diff --semantic` uses it for bounded equivalence outside the decidable fragment.
+- **Item facts (R612).** `yong why <item> <fact>`, where the fact is a capability, a `fail` member or a panic kind, prints the shortest chain of statements and callees that makes the item need it, one line and span per step. An empty chain means the declaration is unneeded, and its fix removes it.
 - **Fuzzing and mutation.** `yong test --fuzz name` runs coverage-guided fuzzing over a property test's generators (LibAFL fork server); a crashing input is minimized and written to .yong/found/ as a proposed test (R300, R303). `yong test --mutate` scores how well tests catch injected bugs, pruning mutants by item hash.
 - **Benchmarks** count instructions in CI and report copy, `Rc` and `Arc` events per site.
 

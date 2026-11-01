@@ -149,6 +149,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E421 | drop body that can fail, blocks or uses a capability other than alloc, or Drop on a @linear type new | 5.4 |
 | E422 | subscript body does not yield exactly once on every path (R457) new | 4.4 |
 | E423 | subscript body fails under the let or inout mode it is used in (R457) new | 4.4 |
+| E424 | branch, index, division or early exit depends on a secret-derived value in a `@constant_time` function (R611) new | 17.4 |
 
 ### 25.7 Exhaustiveness, bounds, shapes, units and literals
 
@@ -185,6 +186,8 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | W420 | proof fell back to a runtime check | 8.5 |
 | E604 | non-ghost code reads a ghost value (R458) new | 8.7 |
 | E605 | lemma uses a capability (R458) new | 8.7 |
+| E618 | `cost` bound refuted, with a witness input (R610) new | 8.4 |
+| V402 | proof certificate rejected by the toolchain's checker (R608) new | 8.7 |
 
 ### 25.9 Holes and concurrency
 
@@ -251,6 +254,9 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | W841 | message missing from a shipped locale; the source text is used (R335) new | 17.5 |
 | W843 | permanent supervisor child placed on(node), which cannot fail over (R411) new | 9.6.1 |
 | W850 | durable operation on a shared capability whose handler declares no idempotency support (R453) new | 9.6.1 (R416) |
+| W851 | `cost` bound neither proven nor refuted, compiled as a counter in `checked-all` (R610) new | 8.4 |
+| W852 | float expression less accurate than a rewrite found for it (R613) new | 11.1 |
+| W853 | match arm that can match no value left by earlier arms (R606) new | 8.6 |
 
 ### 25.11 Unsafe, FFI, layout and assembly
 
