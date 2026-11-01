@@ -56,7 +56,8 @@ M2b (library, registry and tools):
 
 ### M3 · Wen
 
-- Wen lexer, parser and printer; projections in both directions; all five round-trip laws pass on the whole suite.
+- Wen lexer, parser and printer; projections in both directions; all round-trip laws that apply pass on the whole suite, and `conform.py --laws` gates CI (R564).
+- The print-only Fei view, `yong view --as fei` (16.6, R563).
 - Prose diagnostics; language server; reactive notebooks; live values computed on examples; depth-lens inlay hints; Wen tree-sitter grammar; item-level merge driver.
 - Wen surface: grapheme-aware display, date literals, `select`, generators, deadline blocks; HTTP server; localizable diagnostics.
 - Randomized comparison (at least 30 participants) on contested Wen syntax: implicit-subject lambdas and the typed implicit subject in frame expressions, grid literals, unit suffixes, `\(x)` interpolation, and the `&x` mark.
@@ -76,5 +77,5 @@ M2b (library, registry and tools):
 - CHERI targets; a native Tree Borrows sanitizer (candidate).
 - Stretch: GPU code generation for `par for` bodies with `uses none`, through MLIR and LLVM to Apple Metal first, then NVIDIA, AMD and Vulkan (R327 to R329), with `@fast_math` allowed under `nondet`.
 - WASM components (`wasm32-wasip2`, capabilities as WASI interfaces, platforms as WIT worlds).
-- Fei (16.6, R516): reader, printer with spelling notes, lenient reader, and `yong view --as fei`; the grammar moves from RFC 0001 into section 16.6 first, and every Wen conformance program round-trips through Fei by item hash.
+- Fei (16.6, R516): reader, printer with spelling notes and lenient reader (the print-only view is M3, R563); the grammar moves from RFC 0001 into section 16.6 first, and every Wen conformance program round-trips through Fei by item hash.
 - Niche surfaces (16.7, R536 to R550) are post-1.0 and follow the order of R550; none is part of any milestone above. Durable timers (R552) ship with `@yong/durable`.

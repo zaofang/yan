@@ -16,23 +16,30 @@ The compiler and tools MUST be written in Rust (stable toolchain) as one Cargo w
 | `yong-syntax` | shared lexer infrastructure, lossless syntax trees, trivia | `rowan` |
 | `yong-jian` | Jian lexer (INDENT/DEDENT), parser, lenient normalizer, canonical printer, exported grammars |  |
 | `yong-wen` | Wen lexer, parser and printer (M3) |  |
-| `yong-hir` | name resolution, surface-independent high-level IR |  |
+| `yong-names` | word-list and foreign names, the projection table (16.1 to 16.3) (R560) |  |
+| `yong-surface` | the `Surface` trait (parse, abstract, lower, subset, resugar, print, optional lenient reader, grammar export, message rendering), the trivia side table, the round-trip law harness (R560) |  |
+| `yong-fei` | Fei lexer, parser, printer and spelling notes; print-only view in M3, reader in M4 (R560, R563) |  |
+| `yong-hir` | name resolution, the surface-neutral high-level IR every surface lowers to, and the shared raise from Yong (R558, R559) |  |
 | `yong-elab` | type inference (bidirectional, local inside items), desugaring, capability passing, copy and move insertion, lowering to Yong |  |
 | `yong-core` | Yong IR data types, text parser and printer, IR validator |  |
 | `yong-check` | ownership, exclusivity, views, auto traits, exhaustiveness, bounds solver, unit and shape checking |  |
 | `yong-prove` | verification-condition generation and SMT-LIB2 subprocess client (M4) |  |
 | `yong-opt` | monomorphization, comptime specialization, ownership passes, fusion, handler resolution, query-plan specialization |  |
+| `yong-mir` | mid-level IR for code generation: per-instance control-flow graphs, explicit drops, intrinsic ids (R560) |  |
 | `yong-interp` | interpreter over checked Yong: stage 0 (bytecode), REPL, `yong run` in M1, checked UB mode, `explore` |  |
 | `yong-cg-cranelift` | debug code generation (M1b) | `cranelift-*` |
 | `yong-cg-llvm` | release code generation (M2) | `inkwell` |
 | `yong-rt` | std support: alloc handlers, `pool` scheduler, blocking platform I/O, record and replay handlers, panic-abort hook | mimalloc, a heartbeat scheduler for pool (R481); corosensei, io-uring only in `std.evented` |
-| `yong-std` | standard library sources (`.jian`) plus intrinsics | `arrow`, `regex-automata`, `rustls` with `aws-lc-rs`, `jiff`, ICU4X segmenter, a CORE-MATH-style libm |
+| `yong-std` | standard library sources (`.jian` and `.wen`, in `core/`, `alloc/` and `std/`) plus the intrinsic registry (R561, R562) | `arrow`, `regex-automata`, `rustls` with `aws-lc-rs`, `jiff`, ICU4X segmenter, a CORE-MATH-style libm |
 | `yong-ffi` | `yong ffi import`, `yong bind`, the C profile | libclang (import only) |
 | `yong-py` | Python export and import (M1); CPython embedding and extensions (M2) | `pyo3` |
 | `yong-pkg` | resolver, lockfile, registry client, log verification, approvals, semver, SBOM | `sigstore` |
 | `yong-diag` | diagnostic records and the three renderings |  |
+| `yong-ide` | analysis API (diagnostics, hover, inlay hints, lenses, watch expressions, view-as) shared by `yong-cli`, `yong-mcp` and `yong-lsp` (R560) |  |
 | `yong-mcp`, `yong-lsp` | agent server, language server | `lsp-server` |
 | `yong-cli` | the `yong` binary | `clap` |
+
+**Layering (R558, R560).** Dependencies run one way: base crates (`yong-diag`, `yong-syntax`, `yong-names`), then the surface kit and the surface crates, then `yong-hir` and `yong-elab`, then `yong-core`, `yong-check` and `yong-prove`, then `yong-opt` and `yong-mir`, then the interpreter and code generators, with `yong-rt` and `yong-std` beside them, and the tools on top. A surface crate depends on nothing below `yong-hir`, and `yong-elab` depends on no surface crate; std sources are loaded by `yong-db`. The interpreter runs checked Yong; the code generators start from `yong-mir`.
 
 Other dependencies: `opentelemetry` (spans), `gimli` (DWARF), LibAFL (fuzzing).
 
@@ -46,6 +53,7 @@ Other dependencies: `opentelemetry` (spans), `gimli` (DWARF), LibAFL (fuzzing).
 ### 22.4 Linking and runtime support
 
 - **Linking.** M1 uses the system linker. M2 bundles lld (`lld-link` on Windows with MinGW or UCRT import libraries) and target libc stubs, which make cross-compilation work without a platform toolchain. C sources compile with the toolchain's pinned clang (19.5).
+- **Intrinsics (R561).** Each std intrinsic has one registry entry in `yong-std` (id, signature, stage, purity) and is resolved to its id during elaboration. The interpreter and every code generator bind the same id to the same implementation in `yong-rt`: the interpreter by a direct call, native code through a C-ABI symbol or an inline lowering. Nothing dispatches on intrinsic names at run time.
 - **No language runtime.** `yong-rt` holds std's support code only. Ordinary values carry no header; `Rc` and `Arc` keep their count in their block. Generated code has no landing pads, only table-only abort pads at extern call sites; the interpreter aborts the same way.
 
 ### 22.5 Testing strategy
