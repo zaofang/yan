@@ -799,7 +799,6 @@ mod tests {
             ("prelude", include_str!("prelude.rs")),
             ("regex", include_str!("regex.rs")),
             ("collections", include_str!("collections.rs")),
-            ("math", include_str!("math.rs")),
             ("iter", include_str!("iter.rs")),
             ("keyed", include_str!("keyed.rs")),
         ];

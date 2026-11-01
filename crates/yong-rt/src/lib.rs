@@ -2,4 +2,5 @@
 //! interpreter calls it directly and native code will call it through a C-ABI symbol (R561).
 //! Functions take and return plain Rust data, never interpreter values.
 
+pub mod math;
 pub mod text;
