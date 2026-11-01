@@ -362,6 +362,7 @@ fn run(file: &Path, strict: bool, release: bool) -> ExitCode {
             ExitCode::from(EXIT_PANIC as u8)
         }
         Err(Stop::Unsupported(what)) => tool_failure(&format!("not supported yet: {what}")),
+        Err(Stop::Limit(what)) => tool_failure(&format!("stage-0 {what} limit at run time")),
     }
 }
 

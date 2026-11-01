@@ -29,6 +29,7 @@ fn item(it: &mut Item) -> R {
         ItemKind::Trait(t) => t.sigs.iter_mut().try_for_each(|(_, f)| func(f)),
         ItemKind::Impl(i) => i.fns.iter_mut().try_for_each(func),
         ItemKind::Const { value, .. } => expr(value),
+        ItemKind::Extern(_) => Err("an extern block"),
     }
 }
 
@@ -104,6 +105,9 @@ fn stmt(s: &mut Stmt) -> R {
         StmtKind::Ghost { value, .. } => expr(value),
         StmtKind::Bind { .. } => unreachable!("rewritten above"),
         StmtKind::LetElse { .. } => Err("`let ... else`"),
+        StmtKind::Unsafe(_) => Err("`unsafe`"),
+        StmtKind::Asm { .. } => Err("`asm`"),
+        StmtKind::StageIf { .. } | StmtKind::StageFor { .. } => Err("stage-0 control"),
         StmtKind::BreakTo(_) | StmtKind::ContinueTo(_) => Err("a labelled `break` or `continue`"),
         StmtKind::Return(None)
         | StmtKind::Break
@@ -197,6 +201,7 @@ fn arg(a: &mut Arg) -> R {
 fn expr(e: &mut Expr) -> R {
     match &mut e.kind {
         ExprKind::Name(_) | ExprKind::Lit(_) | ExprKind::Hole | ExprKind::Wild => Ok(()),
+        ExprKind::Stage(_) => Err("a stage-0 expression"),
         ExprKind::FStr { pieces, .. } => pieces.iter_mut().try_for_each(|p| match p {
             FPiece::Lit(_) => Ok(()),
             FPiece::Expr(e, _) => expr(e),

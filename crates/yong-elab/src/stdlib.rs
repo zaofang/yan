@@ -281,7 +281,7 @@ fn words(m: &j::Module) -> HashSet<String> {
                 t.sigs.iter_mut().for_each(|(_, f)| undoc(f));
             }
             j::ItemKind::Impl(i) => i.fns.iter_mut().for_each(undoc),
-            j::ItemKind::Type(_) | j::ItemKind::Const { .. } => {}
+            j::ItemKind::Type(_) | j::ItemKind::Const { .. } | j::ItemKind::Extern(_) => {}
         }
     }
     // HIR's Debug text quotes every name, path segment and literal, and nothing else.

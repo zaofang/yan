@@ -8,6 +8,7 @@ mod bounds;
 mod decorators;
 mod ffi;
 mod lower;
+mod stage0;
 mod stdlib;
 mod ty;
 
@@ -79,6 +80,11 @@ pub(crate) struct Globals {
     pub fns: HashMap<String, Sig>,
     /// `@derive(From)` conversions (R432): (from type, sum) to the generated function.
     pub froms: HashMap<(String, String), String>,
+    /// Functions with a stage-0 (`Nat`) parameter, and its name: lowered per instance (10.4).
+    pub templates: HashMap<String, (j::FuncDef, String)>,
+    pub instances: RefCell<HashMap<String, Sig>>,
+    /// The instances lowered so far.
+    pub generated: RefCell<Vec<y::Item>>,
     /// Extern functions: whether each is `safe` and variadic (12.1).
     pub externs: HashMap<String, (bool, bool)>,
     /// Records marked `@layout(c)` (12.3).
@@ -334,6 +340,32 @@ pub fn elaborate(
         }
     }
     items.extend(stdlib::lower(&g, &std_fns)?);
+    items.extend(g.generated.take());
+    for it in &m.items {
+        if let j::ItemKind::Const {
+            name,
+            value:
+                j::Expr {
+                    kind: j::ExprKind::Stage(e),
+                    span,
+                    ..
+                },
+            ..
+        } = &it.kind
+            && let Some(value) = stage0::constant(&g, it, name, e, *span, &items, &mut cx)?
+        {
+            items.push(y::Item {
+                attrs: Vec::new(),
+                kind: y::ItemKind::Const(y::Const {
+                    is_pub: it.is_pub,
+                    path: vec![name.clone()],
+                    ty: g.consts[name].core(),
+                    value,
+                }),
+                span: it.span,
+            });
+        }
+    }
     let stem = std::path::Path::new(file)
         .file_stem()
         .and_then(|s| s.to_str())
@@ -424,6 +456,25 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                     format!("`{}` is defined twice", f.name),
                 );
             }
+            j::ItemKind::Func(f)
+                if f.tparams
+                    .iter()
+                    .any(|t| matches!(t, j::TParam::Value { .. })) =>
+            {
+                let names: Vec<&String> = f
+                    .tparams
+                    .iter()
+                    .filter_map(|t| match t {
+                        j::TParam::Value { name, .. } => Some(name),
+                        j::TParam::Type { .. } => None,
+                    })
+                    .collect();
+                if names.len() != 1 || f.tparams.len() != 1 {
+                    return unsupported("more than one stage-0 parameter");
+                }
+                g.templates
+                    .insert(f.name.clone(), (f.clone(), names[0].clone()));
+            }
             j::ItemKind::Func(f) => {
                 let s = sig(g, f, cx)?;
                 g.fns.insert(f.name.clone(), s);
@@ -498,7 +549,7 @@ fn impl_trait(i: &j::Impl) -> Option<String> {
     }
 }
 
-fn sig(g: &Globals, f: &j::FuncDef, cx: &mut Cx) -> R<Sig> {
+pub(crate) fn sig(g: &Globals, f: &j::FuncDef, cx: &mut Cx) -> R<Sig> {
     let mut tparams = Vec::new();
     for t in &f.tparams {
         let j::TParam::Type { name, bounds } = t else {
@@ -747,6 +798,14 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             }
             _ => return Ok(None),
         },
+        j::ItemKind::Const {
+            value:
+                j::Expr {
+                    kind: j::ExprKind::Stage(_),
+                    ..
+                },
+            ..
+        } => return Ok(None),
         j::ItemKind::Const { name, value, .. } => y::ItemKind::Const(y::Const {
             is_pub: it.is_pub,
             path: vec![name.clone()],
@@ -764,6 +823,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             }
             return Ok(None);
         }
+        j::ItemKind::Func(f) if g.templates.contains_key(&f.name) => return Ok(None),
         j::ItemKind::Func(f) => {
             if it.is_pub && f.name != "main" {
                 let body = f.body.as_ref();
