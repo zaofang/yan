@@ -120,6 +120,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R607 to R609 | Proof and test power (RFC 0011), decided by the owner: invariant inference written back as source by `yong fix --infer` (R607); Alethe proof certificates checked in-tree, V402, re-checked by the registry (R608); `yong test --symbolic` over the checked interpreter (R609) | 8.7, 18.1, 18.4, 19.2, 21.4, 25 |
 | R610 to R612 | New header facts (RFC 0012), decided by the owner: `cost steps <= A, alloc <= B` checked by amortized resource analysis, E618 and W851, in Yong, Xin and Wen (R610); `@constant_time` functions and E424 (R611); `yong why <item> <fact>` and `why_needs` (R612) | 3.5, 8.4, 13, 14, 15, 17.4, 18.1, 18.4, 21.4, 25 |
 | R613 to R615 | Numerics (RFC 0013), decided by the owner: accuracy lint W852 with an e-graph rewrite fix (R613); reverse mode as linearize then transpose on checked Yong (R614); sparse storage formats for `math.ein` (R615) | 11.1, 11.2, 11.5, 25 |
+| R680 | Formal core model (RFC 0022, https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y), decided by the owner: a Lean 4 model of Yong-K under `formal/`, checked against the interpreter by differential testing, never shipped and never a build dependency; the one exception to R215 (R680) | 22.1, 26.1 |
 
 <!-- /rows -->
 
