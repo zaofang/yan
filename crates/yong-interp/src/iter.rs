@@ -211,7 +211,9 @@ impl Vm<'_> {
         };
         Ok(match (id, &*args) {
             (STD_LIST_ITER, [List(xs)]) => items(xs.clone()),
-            (STD_TEXT_ITER, [Str(s)]) => items(s.chars().map(Char).collect::<Vec<_>>()),
+            (STD_TEXT_ITER | STD_TEXT_CHARS, [Str(s)]) => {
+                items(s.chars().map(Char).collect::<Vec<_>>())
+            }
             (STD_SET_ITER, [Set(xs)]) => items(xs.iter().map(|k| k.0.clone())),
             (STD_DICT_ITER, [Dict(d)]) => items(d.keys().map(|k| k.0.clone())),
             (STD_COLLECTIONS_DEQUE_ITER, [Deque(xs, _)]) => items(xs.clone()),
@@ -410,5 +412,6 @@ pub(crate) const IDS: &[Id] = &[
     STD_PRELUDE_DICT,
     STD_PRELUDE_SET,
     STD_SET_ITER,
+    STD_TEXT_CHARS,
     STD_TEXT_ITER,
 ];

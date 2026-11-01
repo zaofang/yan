@@ -15,6 +15,10 @@ impl Vm<'_> {
     pub(crate) fn key(&mut self, key: &Value, x: &Value) -> R<Value> {
         match key {
             Value::Closure(f) => self.apply(f, vec![x.clone()]),
+            Value::Data { name, fields } if name == "Some" => match fields.first() {
+                Some((_, Value::Closure(f))) => self.apply(&f.clone(), vec![x.clone()]),
+                _ => Ok(x.clone()),
+            },
             _ => Ok(x.clone()),
         }
     }

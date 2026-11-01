@@ -618,17 +618,38 @@ fn sig_body(
                 Some(t) => g.ty(t, cx, f.name_span)?,
                 None => Ty::Unit,
             };
-            let fail = match r.fail.as_slice() {
-                [] => None,
-                [p] if p.len() == 1 => Some(g.ty(
+            let mut members = Vec::new();
+            for p in &r.fail {
+                if p.len() != 1 {
+                    return unsupported("a qualified error type");
+                }
+                let t = g.ty(
                     &j::Type::Named {
                         path: p.clone(),
                         args: Vec::new(),
                     },
                     cx,
                     f.name_span,
-                )?),
-                _ => return unsupported("error unions"),
+                )?;
+                if !members.contains(&t) {
+                    members.push(t);
+                }
+            }
+            if members.len() > 8 {
+                cx.warn(
+                    "W805",
+                    fail_span(cx.src, f.name_span),
+                    &f.name,
+                    format!(
+                        "this error union has {} members; name it as a sum type",
+                        members.len()
+                    ),
+                );
+            }
+            let fail = match members.len() {
+                0 => None,
+                1 => members.pop(),
+                _ => Some(Ty::Union(members)),
             };
             (ret, fail)
         }
@@ -653,6 +674,22 @@ fn sig_body(
         fail,
         caps,
     })
+}
+
+/// The error type after `fail` on the header line of the function named at `name`.
+fn fail_span(src: &str, name: Span) -> Span {
+    let line = src.lines().nth(name.line as usize - 1).unwrap_or("");
+    let Some(k) = line.find(" fail ") else {
+        return name;
+    };
+    let col = (k + " fail ".len() + 1) as u32;
+    let text = line[k + " fail ".len()..].trim_end().trim_end_matches(':');
+    Span {
+        line: name.line,
+        col,
+        end_line: name.line,
+        end_col: col + text.trim_end().chars().count() as u32,
+    }
 }
 
 fn const_val(e: &j::Expr) -> R<y::ConstVal> {

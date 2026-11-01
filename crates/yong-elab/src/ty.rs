@@ -24,6 +24,8 @@ pub enum Ty {
     Tuple(Vec<Ty>),
     Option(Box<Ty>),
     Result(Box<Ty>, Box<Ty>),
+    /// An anonymous union of nominal error types, only after `fail` (8.1).
+    Union(Vec<Ty>),
     /// A record, sum or newtype of this module.
     Data(String),
     /// A type parameter of the enclosing function, or `Self` in a trait.
@@ -75,6 +77,7 @@ impl Ty {
             Ty::Tuple(ts) => y::Type::Tuple(ts.iter().map(Ty::core).collect()),
             Ty::Option(t) => named("Option", vec![t.core()]),
             Ty::Result(t, e) => named("Result", vec![t.core(), e.core()]),
+            Ty::Union(ts) => y::Type::Union(ts.iter().map(Ty::core).collect()),
             Ty::Data(n) | Ty::Param(n) => named(n, vec![]),
             Ty::Foreign(n, ts) => named(n, ts.iter().map(Ty::core).collect()),
             Ty::Fn(_, ps, r) => y::Type::Fn(y::FnType {
@@ -132,6 +135,8 @@ impl Ty {
             // A list passes as a view of its elements (12.5).
             (Ty::List(a), Ty::Foreign("View" | "MutView", b)) => b.len() == 1 && a.fits(&b[0]),
             (a, Ty::Option(b)) => a.fits(b),
+            (Ty::Union(xs), Ty::Union(ys)) => xs.iter().all(|x| ys.contains(x)),
+            (a, Ty::Union(ms)) => ms.contains(a),
             (a, b) => a == b,
         }
     }
@@ -275,6 +280,10 @@ impl std::fmt::Display for Ty {
             }
             Ty::Option(t) => write!(f, "{t} | None"),
             Ty::Result(t, e) => write!(f, "Result[{t}, {e}]"),
+            Ty::Union(ts) => {
+                let ts: Vec<String> = ts.iter().map(Ty::to_string).collect();
+                write!(f, "{}", ts.join(" | "))
+            }
             Ty::Data(n) | Ty::Param(n) => write!(f, "{n}"),
             Ty::Fn(p, ps, r) => {
                 let ps: Vec<String> = ps.iter().map(Ty::to_string).collect();

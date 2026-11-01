@@ -78,6 +78,13 @@ struct Lower<'a, 'c, 's> {
     in_unsafe: bool,
     /// Stage-0 names: an instance's `Nat` parameters and `#for` targets (10.4).
     stage: Vec<(String, Sv)>,
+    /// Optional locals narrowed by an `is None` test (R285): the source name, the local
+    /// holding the unwrapped value, and the scope depth the narrowing ends with.
+    narrow: Vec<(String, String, usize)>,
+    /// The `post` clauses, checked at each return (8.4).
+    posts: Vec<j::Expr>,
+    /// Each `var` parameter `old(p)` reads, with the local holding its entry value.
+    olds: Vec<(String, String)>,
 }
 
 /// A stage-0 value the elaborator folds itself.
@@ -545,6 +552,9 @@ fn function_body(
         target: None,
         in_unsafe: false,
         stage,
+        narrow: Vec::new(),
+        posts: Vec::new(),
+        olds: Vec::new(),
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -580,7 +590,7 @@ fn function_body(
                 Some(x) => contracts.push(y::Contract::Decreases(vec![x])),
                 None => return unsupported("a `decreases` measure that is not one operation"),
             },
-            j::Contract::Post(_) => return unsupported("`post`"),
+            j::Contract::Post(e) => l.posts.push(e.clone()),
             j::Contract::Ex { .. } => {}
         }
     }
@@ -590,16 +600,44 @@ fn function_body(
             f.name_span,
         ))]));
     }
+    if !l.posts.is_empty()
+        && let Some(p) = sig.params.iter().find(|p| p.name == "out")
+    {
+        let item = l.item.clone();
+        l.cx.err(
+            "E230",
+            p.span,
+            &item,
+            "`out` is the result in `post`; rename this parameter".into(),
+        );
+    }
     let block = l.block_with(|l| {
         for e in pre {
-            let (a, t) = l.atom(e, Some(&Ty::Bool))?;
-            l.expect(&t, &Ty::Bool, e.span);
+            let a = l.cond(e)?;
             l.emit(StmtKind::Assert(y::Expr::Atom(a)), e.span);
+        }
+        for p in olds(&l.posts) {
+            let Some(t) = sig
+                .params
+                .iter()
+                .find(|q| q.name == p)
+                .map(|q| q.ty.clone())
+            else {
+                continue;
+            };
+            let place = Place {
+                root: p.clone(),
+                root_span: f.name_span,
+                projs: Vec::new(),
+            };
+            let v = l.fresh("old");
+            l.bind(&v, false, &t, Rhs::Copy(place), f.name_span, f.name_span);
+            l.olds.push((p, v));
         }
         l.stmts(&body.stmts)?;
         if !ends(&body.stmts) && matches!(sig.ret, Ty::Unit) {
             let at = body.stmts.last().map_or(f.name_span, |s| s.span);
-            l.emit(StmtKind::Ret(Atom::Lit(Literal::Unit, at)), at);
+            l.ret(Atom::Lit(Literal::Unit, at), at)?;
         }
         Ok(())
     })?;
@@ -796,6 +834,8 @@ impl Lower<'_, '_, '_> {
             body = before;
         }
         let scope = self.scopes.pop().expect("pushed");
+        let depth = self.scopes.len();
+        self.narrow.retain(|n| n.2 <= depth);
         if keep {
             if let Some(s) = self.scopes.last_mut() {
                 s.extend(scope);
@@ -881,7 +921,19 @@ impl Lower<'_, '_, '_> {
     }
 
     fn stmts(&mut self, stmts: &[j::Stmt]) -> R<()> {
-        for s in stmts {
+        for (k, s) in stmts.iter().enumerate() {
+            if k > 0
+                && let Some(v) = guard_after_binding(&stmts[k - 1], s)
+                && matches!(self.locals.get(v), Some(Local { ty: Ty::Option(_) }))
+            {
+                let item = self.item.clone();
+                self.cx.warn(
+                    "W824",
+                    s.span,
+                    &item,
+                    format!("this guard on `{v}` is a fallback; write `{v} = ... else ...` (R429)"),
+                );
+            }
             let start = self.writeback.len();
             self.stmt(s)?;
             if self.writeback.len() > start {
@@ -1007,7 +1059,7 @@ impl Lower<'_, '_, '_> {
                         a
                     }
                 };
-                self.emit(StmtKind::Ret(a), at);
+                self.ret(a, at)?;
             }
             K::Fail(e) => {
                 let Some(want) = self.sig.fail.clone() else {
@@ -1048,8 +1100,7 @@ impl Lower<'_, '_, '_> {
                 self.emit(kind, at);
             }
             K::Assert(e) => {
-                let (a, t) = self.atom(e, Some(&Ty::Bool))?;
-                self.expect(&t, &Ty::Bool, e.span);
+                let a = self.cond(e)?;
                 self.emit(StmtKind::Assert(y::Expr::Atom(a)), at);
             }
             K::Unreachable => self.emit(StmtKind::Unreachable, at),
@@ -1064,8 +1115,7 @@ impl Lower<'_, '_, '_> {
                 self.loops.push((label.clone(), name.clone()));
                 self.loop_outer.push(self.locals.keys().cloned().collect());
                 let b = self.block_with(|l| {
-                    let (c, t) = l.atom(cond, Some(&Ty::Bool))?;
-                    l.expect(&t, &Ty::Bool, cond.span);
+                    let c = l.cond(cond)?;
                     let stop = y::Block {
                         stmts: vec![y::Stmt {
                             kind: StmtKind::Break {
@@ -1083,10 +1133,12 @@ impl Lower<'_, '_, '_> {
                         },
                         at,
                     );
+                    for (x, inner) in l.narrowings(cond, true) {
+                        l.narrow_to(&x, inner, cond.span);
+                    }
                     l.stmts(body)
                 });
                 self.loops.pop();
-                self.loop_outer.pop();
                 self.loop_outer.pop();
                 let body = b?;
                 self.emit(
@@ -1202,16 +1254,267 @@ impl Lower<'_, '_, '_> {
 
     fn if_(&mut self, arms: &[(j::Expr, j::Block)], els: Option<&j::Block>, at: Span) -> R<()> {
         let (cond, body) = &arms[0];
-        let (c, t) = self.atom(cond, Some(&Ty::Bool))?;
-        self.expect(&t, &Ty::Bool, cond.span);
-        let then = self.block(&body.stmts)?;
-        let els = if arms.len() > 1 {
-            Some(self.block_with(|l| l.if_(&arms[1..], els, at))?)
+        let c = self.cond(cond)?;
+        let yes = self.narrowings(cond, true);
+        let no = self.narrowings(cond, false);
+        let then = self.block_with(|l| {
+            for (x, inner) in yes.clone() {
+                l.narrow_to(&x, inner, cond.span);
+            }
+            l.stmts(&body.stmts)
+        })?;
+        let narrow_else = |l: &mut Self| {
+            for (x, inner) in no.clone() {
+                l.narrow_to(&x, inner, cond.span);
+            }
+        };
+        let (els, els_exits) = if arms.len() > 1 {
+            let b = self.block_with(|l| {
+                narrow_else(l);
+                l.if_(&arms[1..], els, at)
+            })?;
+            (Some(b), false)
         } else {
-            els.map(|b| self.block(&b.stmts)).transpose()?
+            match els {
+                Some(e) => {
+                    let b = self.block_with(|l| {
+                        narrow_else(l);
+                        l.stmts(&e.stmts)
+                    })?;
+                    (Some(b), ends(&e.stmts))
+                }
+                None => (None, false),
+            }
         };
         self.emit(StmtKind::If { cond: c, then, els }, at);
+        // A branch that exits narrows the rest of the block by the other branch's test.
+        if ends(&body.stmts) && arms.len() == 1 {
+            narrow_else(self);
+        }
+        if els_exits {
+            for (x, inner) in yes {
+                self.narrow_to(&x, inner, cond.span);
+            }
+        }
         Ok(())
+    }
+
+    /// Return `a`, after checking each `post` with `out` naming it.
+    fn ret(&mut self, a: Atom, at: Span) -> R<()> {
+        if self.posts.is_empty() {
+            self.emit(StmtKind::Ret(a), at);
+            return Ok(());
+        }
+        let ty = self.sig.ret.clone();
+        let out = match &a {
+            Atom::Name(n, _) if self.locals.contains_key(n) => n.clone(),
+            _ => {
+                let n = self.fresh("out");
+                self.bind(&n, false, &ty, Rhs::Atom(a), at, at);
+                n
+            }
+        };
+        let depth = self.scopes.len();
+        self.narrow.push(("out".into(), out.clone(), depth));
+        for p in self.posts.clone() {
+            let c = self.cond(&p)?;
+            self.emit(StmtKind::Assert(y::Expr::Atom(c)), p.span);
+        }
+        self.narrow.retain(|m| m.1 != out || m.0 != "out");
+        self.emit(StmtKind::Ret(Atom::Name(out, at)), at);
+        Ok(())
+    }
+
+    /// A condition: a `bool`, or under the lenient reader a value tested by its type (N15).
+    fn cond(&mut self, e: &j::Expr) -> R<Atom> {
+        let (a, t) = self.atom(e, Some(&Ty::Bool))?;
+        if matches!(t, Ty::Bool | Ty::Err | Ty::Never) || self.cx.strict {
+            self.expect(&t, &Ty::Bool, e.span);
+            return Ok(a);
+        }
+        let Some((test, how)) = self.truth(a, &t, e.span)? else {
+            self.expect(&t, &Ty::Bool, e.span);
+            return Ok(Atom::Lit(Literal::Bool(false), e.span));
+        };
+        let item = self.item.clone();
+        self.cx.note(
+            "N15",
+            e.span,
+            &item,
+            format!("a `{t}` as a condition normalized to {how}"),
+        );
+        Ok(test)
+    }
+
+    /// The truth test of `a: t` that N15 writes out, and how it is spelled.
+    fn truth(&mut self, a: Atom, t: &Ty, at: Span) -> R<Option<(Atom, &'static str)>> {
+        let zero = |s: &str| {
+            Atom::Lit(
+                if s.starts_with('f') {
+                    Literal::Float("0.0".into())
+                } else {
+                    Literal::Int("0".into())
+                },
+                at,
+            )
+        };
+        let (r, how) = match t {
+            Ty::Int | Ty::Float | Ty::Fixed(_) => {
+                let s = t.scalar().expect("a scalar");
+                let c = call(
+                    &format!("ne_{s}"),
+                    vec![],
+                    vec![let_arg(a), let_arg(zero(s))],
+                    at,
+                );
+                (Rhs::Call(c), "`n != 0`")
+            }
+            Ty::BigInt => {
+                let z = call("std.prelude.bigint", vec![], vec![let_arg(zero("i64"))], at);
+                let z = self.tmp(&Ty::BigInt, Rhs::Call(z), at);
+                let c = call("ne_bigint", vec![], vec![let_arg(a), let_arg(z)], at);
+                (Rhs::Call(c), "`n != 0`")
+            }
+            Ty::Str => {
+                let empty = Atom::Lit(Literal::Str(String::new()), at);
+                let c = call(
+                    "std.cmp.ne",
+                    vec![t.targ()],
+                    vec![let_arg(a), let_arg(empty)],
+                    at,
+                );
+                (Rhs::Call(c), "`s != \"\"`")
+            }
+            Ty::List(_) | Ty::Set(_) | Ty::Dict(..) | Ty::Coll(..) => {
+                let targs = match t {
+                    Ty::List(e) | Ty::Set(e) => vec![e.targ()],
+                    Ty::Dict(k, v) => vec![k.targ(), v.targ()],
+                    _ => coll_targs(t),
+                };
+                let path = format!("std.{}.len", t.module().expect("a collection"));
+                let n = self.tmp(
+                    &Ty::Int,
+                    Rhs::Call(call(&path, targs, vec![let_arg(a)], at)),
+                    at,
+                );
+                let c = call("gt_i64", vec![], vec![let_arg(n), let_arg(zero("i64"))], at);
+                (Rhs::Call(c), "`len(xs) > 0`")
+            }
+            Ty::Option(_) => {
+                let (v, _) = self.is_some(a, at)?;
+                return Ok(Some((v, "`x is not None`")));
+            }
+            _ => return Ok(None),
+        };
+        Ok(Some((self.tmp(&Ty::Bool, r, at), how)))
+    }
+
+    /// Whether the optional `a` holds a value.
+    fn is_some(&mut self, a: Atom, at: Span) -> R<(Atom, Ty)> {
+        self.join(at, |l, k| {
+            let arm = |l: &mut Self, b: bool| {
+                l.block_with(|l| {
+                    l.jump(k, Atom::Lit(Literal::Bool(b), at), at);
+                    Ok(())
+                })
+            };
+            let some = y::Pat::Ctor {
+                path: vec!["Some".into()],
+                fields: Some((vec![("value".into(), y::Pat::Wild)], false)),
+            };
+            let arms = vec![
+                (some, arm(l, true)?),
+                (y::Pat::Bind("None".into()), arm(l, false)?),
+            ];
+            Ok((
+                y::Stmt {
+                    kind: StmtKind::Match { scrutinee: a, arms },
+                    span: at,
+                },
+                Ty::Bool,
+            ))
+        })
+    }
+
+    /// The local an optional `n` is narrowed to here.
+    fn narrowed(&self, n: &str) -> Option<&str> {
+        self.narrow
+            .iter()
+            .rev()
+            .find(|m| m.0 == n)
+            .map(|m| m.1.as_str())
+    }
+
+    /// The optional locals that `cond` being `holds` proves present, with their value types:
+    /// `x is not None` when it holds, `x is None` when it does not, through `and` and `or`.
+    fn narrowings(&self, cond: &j::Expr, holds: bool) -> Vec<(String, Ty)> {
+        use j::ExprKind as K;
+        match &cond.kind {
+            K::Compare(op @ ("is" | "is not"), x, none)
+                if matches!(none.kind, K::Lit(j::Lit::None)) && (*op == "is not") == holds =>
+            {
+                match &x.kind {
+                    K::Name(n) if self.narrowed(n).is_none() => match self.locals.get(n) {
+                        Some(Local {
+                            ty: Ty::Option(inner),
+                        }) => vec![(n.clone(), (**inner).clone())],
+                        _ => Vec::new(),
+                    },
+                    _ => Vec::new(),
+                }
+            }
+            K::Not(x) => self.narrowings(x, !holds),
+            K::Binary("and", a, b) if holds => {
+                let mut v = self.narrowings(a, true);
+                v.extend(self.narrowings(b, true));
+                v
+            }
+            K::Binary("or", a, b) if !holds => {
+                let mut v = self.narrowings(a, false);
+                v.extend(self.narrowings(b, false));
+                v
+            }
+            _ => Vec::new(),
+        }
+    }
+
+    /// From here to the end of the block, `x` names its unwrapped value.
+    fn narrow_to(&mut self, x: &str, inner: Ty, at: Span) {
+        let o = self.fresh("n");
+        let (v, _) = self
+            .join(at, |l, k| {
+                let some = y::Pat::Ctor {
+                    path: vec!["Some".into()],
+                    fields: Some((vec![("value".into(), y::Pat::Bind(o.clone()))], false)),
+                };
+                let some_b = l.block_with(|l| {
+                    l.declare(&o, inner.clone());
+                    l.jump(k, Atom::Name(o.clone(), at), at);
+                    Ok(())
+                })?;
+                let none_b = y::Block {
+                    stmts: vec![y::Stmt {
+                        kind: StmtKind::Unreachable,
+                        span: at,
+                    }],
+                };
+                Ok((
+                    y::Stmt {
+                        kind: StmtKind::Match {
+                            scrutinee: Atom::Name(x.to_owned(), at),
+                            arms: vec![(some, some_b), (y::Pat::Bind("None".into()), none_b)],
+                        },
+                        span: at,
+                    },
+                    inner.clone(),
+                ))
+            })
+            .expect("lowering a narrowing cannot fail");
+        let Atom::Name(v, _) = v else {
+            unreachable!("a join value is a name")
+        };
+        let depth = self.scopes.len();
+        self.narrow.push((x.to_owned(), v, depth));
     }
 
     /// Bind a `for` target, one name or a tuple of names, to `cur` of type `ty`.
@@ -1896,7 +2199,9 @@ impl Lower<'_, '_, '_> {
                 }
             }
             j::ExprKind::Name(n) if ann.is_none() && self.locals.contains_key(n) => {
+                self.narrow.retain(|m| m.0 != *n);
                 let want = self.locals[n].ty.clone();
+                let (r, t) = self.inject(r, t, Some(&want), at);
                 self.expect(&t, &want, at);
                 self.emit(
                     StmtKind::Assign {
@@ -1915,12 +2220,13 @@ impl Lower<'_, '_, '_> {
                 if self.gone.contains(n) {
                     return unsupported("a binding made again after its block ended");
                 }
-                let ty = match ann {
+                let (r, ty) = match ann {
                     Some(a) => {
+                        let (r, t) = self.inject(r, t, Some(&a), at);
                         self.expect(&t, &a, at);
-                        a
+                        (r, a)
                     }
-                    None => t,
+                    None => (r, t),
                 };
                 let m = self.mutable.contains(n);
                 self.bind(n, m, &ty, r, target.span, at);
@@ -1999,13 +2305,28 @@ impl Lower<'_, '_, '_> {
 
     fn ty_of_local(&self, e: &j::Expr) -> Option<Ty> {
         match &e.kind {
-            j::ExprKind::Name(n) => self.locals.get(n).map(|l| l.ty.clone()),
+            j::ExprKind::Name(n) => {
+                let n = self.narrowed(n).unwrap_or(n);
+                self.locals.get(n).map(|l| l.ty.clone())
+            }
             _ => None,
         }
     }
 
     fn place(&mut self, e: &j::Expr) -> R<(Place, Ty)> {
         match &e.kind {
+            j::ExprKind::Name(n) if self.narrowed(n).is_some() => {
+                let m = self.narrowed(n).expect("checked").to_owned();
+                let t = self.locals[&m].ty.clone();
+                Ok((
+                    Place {
+                        root: m,
+                        root_span: e.span,
+                        projs: Vec::new(),
+                    },
+                    t,
+                ))
+            }
             j::ExprKind::Name(n) if self.locals.contains_key(n) => Ok((
                 Place {
                     root: n.clone(),
@@ -2119,7 +2440,71 @@ impl Lower<'_, '_, '_> {
 
     fn atom(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Atom, Ty)> {
         let (r, t) = self.rhs(e, want)?;
+        let (r, t) = self.inject(r, t, want, e.span);
         Ok((self.tmp(&t, r, e.span), t))
+    }
+
+    /// The `bigint` of decimal `text`, built from `int` pieces of at most 18 digits.
+    fn bigint_lit(&mut self, text: &str, at: Span) -> Rhs {
+        let (neg, digits) = match text.strip_prefix('-') {
+            Some(d) => (true, d),
+            None => (false, text),
+        };
+        let piece = |l: &mut Self, d: &str| {
+            let d = d.trim_start_matches('0');
+            let lit = Atom::Lit(Literal::Int(if d.is_empty() { "0" } else { d }.into()), at);
+            let c = call("std.prelude.bigint", vec![], vec![let_arg(lit)], at);
+            l.tmp(&Ty::BigInt, Rhs::Call(c), at)
+        };
+        let head = digits.len() % 18;
+        let (first, rest) = digits.split_at(if head == 0 {
+            18.min(digits.len())
+        } else {
+            head
+        });
+        let mut acc = piece(self, first);
+        if !rest.is_empty() {
+            let base = piece(self, "1000000000000000000");
+            for k in (0..rest.len()).step_by(18) {
+                let shifted = call(
+                    "mul_bigint",
+                    vec![],
+                    vec![let_arg(acc), let_arg(base.clone())],
+                    at,
+                );
+                let shifted = self.tmp(&Ty::BigInt, Rhs::Call(shifted), at);
+                let p = piece(self, &rest[k..k + 18]);
+                let sum = call("add_bigint", vec![], vec![let_arg(shifted), let_arg(p)], at);
+                acc = self.tmp(&Ty::BigInt, Rhs::Call(sum), at);
+            }
+        }
+        if !neg {
+            return Rhs::Atom(acc);
+        }
+        let z = piece(self, "0");
+        Rhs::Call(call(
+            "sub_bigint",
+            vec![],
+            vec![let_arg(z), let_arg(acc)],
+            at,
+        ))
+    }
+
+    /// A `T` where `T | None` is expected is `Some` of it.
+    fn inject(&mut self, r: Rhs, t: Ty, want: Option<&Ty>, at: Span) -> (Rhs, Ty) {
+        let Some(Ty::Option(inner)) = want else {
+            return (r, t);
+        };
+        if matches!(t, Ty::Option(_) | Ty::Err | Ty::Never) || !t.fits(inner) {
+            return (r, t);
+        }
+        let a = self.tmp(&t, r, at);
+        let ctor = y::Ctor::Named {
+            path: vec!["Some".into()],
+            targs: Vec::new(),
+            fields: vec![("value".into(), a)],
+        };
+        (Rhs::Ctor(ctor), Ty::Option(Box::new(t)))
     }
 
     fn rhs(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Rhs, Ty)> {
@@ -2137,6 +2522,22 @@ impl Lower<'_, '_, '_> {
                 let (a, t) = v.atom(at);
                 (Rhs::Atom(a), t)
             }
+            K::Call(f, args)
+                if matches!(&f.kind, K::Name(o) if o == "old")
+                    && let [
+                        j::Arg {
+                            name: None,
+                            kind: j::ArgKind::Expr(x),
+                            ..
+                        },
+                    ] = args.as_slice()
+                    && let K::Name(p) = &x.kind
+                    && let Some((_, v)) = self.olds.iter().find(|(q, _)| q == p) =>
+            {
+                let v = v.clone();
+                let t = self.locals[&v].ty.clone();
+                (Rhs::Atom(Atom::Name(v, at)), t)
+            }
             K::Stage(x) => match fold(x, &self.stage) {
                 Some(v) => {
                     let (a, t) = v.atom(at);
@@ -2146,6 +2547,12 @@ impl Lower<'_, '_, '_> {
                     return unsupported("stage-0 expressions in a function body beyond constants");
                 }
             },
+            K::Name(n) if self.narrowed(n).is_some() => {
+                let m = self.narrowed(n).expect("checked").to_owned();
+                self.uses.entry(n.clone()).or_default().push(at);
+                let t = self.locals[&m].ty.clone();
+                (Rhs::Atom(Atom::Name(m, at)), t)
+            }
             K::Name(n) => {
                 if let Some(l) = self.locals.get(n) {
                     (Rhs::Atom(Atom::Name(n.clone(), at)), l.ty.clone())
@@ -2219,6 +2626,9 @@ impl Lower<'_, '_, '_> {
                         &item,
                         "this string is not in NFC; normalize it (R338)".into(),
                     );
+                }
+                if let (j::Lit::Int(s), Some(Ty::BigInt)) = (l, want) {
+                    return Ok((self.bigint_lit(&int_text(s)?, at), Ty::BigInt));
                 }
                 let t = match (l, want) {
                     (j::Lit::Int(_), Some(w @ Ty::Fixed(n))) if !n.starts_with('f') => w.clone(),
@@ -2420,6 +2830,10 @@ impl Lower<'_, '_, '_> {
                 }
             }
             K::Unary(op, x) => match (*op, &x.kind) {
+                ("-", K::Lit(j::Lit::Int(s))) if want == Some(&Ty::BigInt) => (
+                    self.bigint_lit(&format!("-{}", int_text(s)?), at),
+                    Ty::BigInt,
+                ),
                 ("-", K::Lit(j::Lit::Int(s))) => (
                     Rhs::Atom(Atom::Lit(Literal::Int(format!("-{}", int_text(s)?)), at)),
                     Ty::Int,
@@ -2450,6 +2864,11 @@ impl Lower<'_, '_, '_> {
                             ],
                             at,
                         ),
+                        Ty::BigInt => {
+                            let z = self.bigint_lit("0", at);
+                            let z = self.tmp(&Ty::BigInt, z, at);
+                            call("sub_bigint", vec![], vec![let_arg(z), let_arg(a)], at)
+                        }
                         Ty::Err => return Ok((Rhs::Atom(a), Ty::Err)),
                         t => {
                             self.err("E201", x.span, format!("cannot negate a `{t}`"));
@@ -2461,19 +2880,25 @@ impl Lower<'_, '_, '_> {
                 _ => return unsupported(format!("unary `{op}`")),
             },
             K::Not(x) => {
-                let (a, t) = self.atom(x, Some(&Ty::Bool))?;
-                self.expect(&t, &Ty::Bool, x.span);
+                let a = self.cond(x)?;
                 (
                     Rhs::Call(call("not_bool", vec![], vec![let_arg(a)], at)),
                     Ty::Bool,
                 )
             }
             K::Binary(op @ ("and" | "or"), a, b) => {
-                let (x, t) = self.atom(a, Some(&Ty::Bool))?;
-                self.expect(&t, &Ty::Bool, a.span);
+                let x = self.cond(a)?;
                 let op = *op;
+                let narrow = self.narrowings(a, op == "and");
                 let (v, t) = self.join(at, |l, k| {
-                    let (rest, _) = l.arm(k, b, Some(&Ty::Bool))?;
+                    let rest = l.block_with(|l| {
+                        for (n, inner) in narrow {
+                            l.narrow_to(&n, inner, a.span);
+                        }
+                        let c = l.cond(b)?;
+                        l.jump(k, c, b.span);
+                        Ok(())
+                    })?;
                     let short = y::Block {
                         stmts: vec![y::Stmt {
                             kind: StmtKind::Jump {
@@ -2505,8 +2930,7 @@ impl Lower<'_, '_, '_> {
             K::Binary(op, a, b) => self.arith(op, a, b, at, want)?,
             K::Compare(op, a, b) => self.compare(op, a, b, at)?,
             K::Cond { then, cond, els } => {
-                let (c, t) = self.atom(cond, Some(&Ty::Bool))?;
-                self.expect(&t, &Ty::Bool, cond.span);
+                let c = self.cond(cond)?;
                 let (v, t) = self.join(at, |l, k| {
                     let (tb, tt) = l.arm(k, then, want)?;
                     let (eb, _) = l.arm(k, els, Some(want.unwrap_or(&tt)))?;
@@ -2528,7 +2952,37 @@ impl Lower<'_, '_, '_> {
             K::FStr { .. } => return unsupported("t-strings"),
             K::Hole => return unsupported("typed holes"),
             K::Comp { .. } => self.comprehension(e)?,
-            K::Slice(..) => return unsupported("slices"),
+            K::Slice(b, bounds, _) => {
+                let (xs, t) = self.atom(b, None)?;
+                let et = match &t {
+                    Ty::List(e) => (**e).clone(),
+                    Ty::Err => return Ok((Rhs::Atom(xs), Ty::Err)),
+                    Ty::Str if self.cx.strict => {
+                        self.err("E504", at, "a slice of a `str`; use `s.chars()`".into());
+                        return Ok((Rhs::Atom(xs), Ty::Err));
+                    }
+                    Ty::Str => return unsupported("slices of a `str`"),
+                    t => {
+                        self.err("E201", b.span, format!("cannot slice a `{t}`"));
+                        return Ok((Rhs::Atom(xs), Ty::Err));
+                    }
+                };
+                let opt = Ty::Option(Box::new(Ty::Int));
+                let mut args = vec![let_arg(xs)];
+                for x in bounds {
+                    let a = match x {
+                        Some(x) => {
+                            let (a, xt) = self.atom(x, Some(&opt))?;
+                            self.expect(&xt, &opt, x.span);
+                            a
+                        }
+                        None => Atom::Name("None".into(), at),
+                    };
+                    args.push(let_arg(a));
+                }
+                let c = call("std.list.slice_clamped", vec![et.targ()], args, at);
+                (Rhs::Call(c), t)
+            }
             K::Lambda(ps, body) => self.lambda(ps, body, want)?,
             K::Cast(x, j::Type::Named { path, args })
                 if args.is_empty()
@@ -2907,8 +3361,25 @@ impl Lower<'_, '_, '_> {
     }
 
     fn compare(&mut self, op: &str, a: &j::Expr, b: &j::Expr, at: Span) -> R<(Rhs, Ty)> {
+        let none = |e: &j::Expr| matches!(e.kind, j::ExprKind::Lit(j::Lit::None));
         if matches!(op, "is" | "is not") {
-            return unsupported("`is None` narrowing");
+            if !none(b) {
+                return unsupported("`is` with other than `None`");
+            }
+            let (x, t) = self.atom(a, None)?;
+            let present = match t {
+                Ty::Option(_) => self.is_some(x, at)?.0,
+                Ty::Err => return Ok((Rhs::Atom(x), Ty::Bool)),
+                t => {
+                    self.err("E201", a.span, format!("a `{t}` is never `None`"));
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Bool(false), at)), Ty::Bool));
+                }
+            };
+            if op == "is not" {
+                return Ok((Rhs::Atom(present), Ty::Bool));
+            }
+            let c = call("not_bool", vec![], vec![let_arg(present)], at);
+            return Ok((Rhs::Call(c), Ty::Bool));
         }
         if matches!(op, "in" | "not in") {
             let (x, _) = self.atom(a, None)?;
@@ -4212,7 +4683,32 @@ impl Lower<'_, '_, '_> {
             };
             let_arg(a)
         };
-        let Some(xs) = self.positional(args, params.len(), m, at)? else {
+        // Trailing parameters that default to `None` may be left out (`s.split()`).
+        let defaults: Vec<_> = d
+            .def
+            .params
+            .iter()
+            .filter_map(|p| match p {
+                j::Param::Value { default, .. } => Some(default),
+                _ => None,
+            })
+            .skip(1)
+            .collect();
+        let none_defaults = defaults
+            .iter()
+            .rev()
+            .take_while(|d| {
+                matches!(
+                    d,
+                    Some(j::Expr {
+                        kind: j::ExprKind::Lit(j::Lit::None),
+                        ..
+                    })
+                )
+            })
+            .count();
+        let n = args.len().clamp(params.len() - none_defaults, params.len());
+        let Some(xs) = self.positional(args, n, m, at)? else {
             return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), e(), None));
         };
         let mut out = vec![recv];
@@ -4221,6 +4717,9 @@ impl Lower<'_, '_, '_> {
             self.expect(&xt, pt, x.span);
             let conv = if *take { Conv::Sink } else { Conv::Let };
             out.push(Arg::Value(conv, a, x.span));
+        }
+        for _ in n..params.len() {
+            out.push(let_arg(Atom::Name("None".into(), at)));
         }
         Ok((Rhs::Call(call(&path, targs, out, at)), ret, None))
     }
@@ -4322,6 +4821,57 @@ fn names_used(stmts: &[j::Stmt], out: &mut HashMap<String, Vec<Span>>) {
             names_used(b, out);
         }
     }
+}
+
+/// The parameters that `old(p)` reads in `posts`.
+fn olds(posts: &[j::Expr]) -> Vec<String> {
+    let mut out = Vec::new();
+    for e in posts {
+        walk(e, &mut |e| {
+            if let j::ExprKind::Call(f, args) = &e.kind
+                && matches!(&f.kind, j::ExprKind::Name(o) if o == "old")
+                && let [
+                    j::Arg {
+                        kind: j::ArgKind::Expr(x),
+                        ..
+                    },
+                ] = args.as_slice()
+                && let j::ExprKind::Name(p) = &x.kind
+                && !out.contains(p)
+            {
+                out.push(p.clone());
+            }
+        });
+    }
+    out
+}
+
+/// `v` when `prev` binds it and `s` is `if v is None:` around one exit, with no other branch.
+fn guard_after_binding<'s>(prev: &'s j::Stmt, s: &j::Stmt) -> Option<&'s str> {
+    let j::StmtKind::Assign {
+        target: j::Expr {
+            kind: j::ExprKind::Name(v),
+            ..
+        },
+        ..
+    } = &prev.kind
+    else {
+        return None;
+    };
+    let j::StmtKind::If { arms, els: None } = &s.kind else {
+        return None;
+    };
+    let [(cond, body)] = arms.as_slice() else {
+        return None;
+    };
+    let j::ExprKind::Compare("is", x, none) = &cond.kind else {
+        return None;
+    };
+    let guarded = matches!(&x.kind, j::ExprKind::Name(n) if n == v)
+        && matches!(none.kind, j::ExprKind::Lit(j::Lit::None))
+        && body.stmts.len() == 1
+        && ends(&body.stmts);
+    guarded.then_some(v.as_str())
 }
 
 fn calls_self(stmts: &[j::Stmt], name: &str) -> bool {
