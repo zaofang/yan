@@ -1,0 +1,15 @@
+# spec: 17.3
+# rows: R485
+# note: split keeps captured groups, as Python's re.split
+# stdout:
+# ['a', 'b', '', 'c']
+# ['a', ',', 'b']
+# 2/1 and 4/3
+# a\b $x
+
+pub def main() uses io:
+    io.print(f"{regex.compile(',').split('a,b,,c')}")
+    io.print(f"{regex.compile('(,)').split('a,b')}")
+    r = regex.compile(r"(?P<a>\d)-(\d)")
+    io.print(r.sub(r"\2/\g<a>", "1-2 and 3-4"))
+    io.print(regex.compile("-").sub(r"\\", "a-b $x"))

@@ -1,0 +1,15 @@
+# spec: 17.3
+# rows: R483
+# note: offsets count chars, not UTF-8 bytes
+# stdout:
+# héllo 2 7
+# 永 1 2
+# ABC
+
+pub def main() uses io:
+    m = regex.compile(r"\w+").search("  héllo") else return
+    io.print(f"{m.text()} {m.start()} {m.end()}")
+    n = regex.compile("永").search("a永b") else return
+    io.print(f"{n.text()} {n.start()} {n.end()}")
+    k = regex.compile("(?i)abc").search("xABCx") else return
+    io.print(k.text())

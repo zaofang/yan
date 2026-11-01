@@ -1,0 +1,20 @@
+# spec: 17.3
+# rows: R482
+# stdout:
+# search ab
+# match -
+# fullmatch -
+# match ab
+# fullmatch ab
+
+def show(m: Match | None) -> str:
+    x = m else return "-"
+    return x.text()
+
+pub def main() uses io:
+    r = regex.compile("a+b")
+    io.print(f"search {show(r.search('xab'))}")
+    io.print(f"match {show(r.match('xab'))}")
+    io.print(f"fullmatch {show(r.fullmatch('abx'))}")
+    io.print(f"match {show(r.match('abx'))}")
+    io.print(f"fullmatch {show(r.fullmatch('ab'))}")

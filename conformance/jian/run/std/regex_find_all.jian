@@ -1,0 +1,15 @@
+# spec: 17.3
+# rows: R482
+# note: find_all returns Match values left to right, without overlaps
+# stdout:
+# 2
+# 1-2 4 7
+# 3-4 12 15
+
+pub def main() uses io:
+    r = regex.compile(r"\d-\d")
+    ms = r.find_all("x 1-2-3 9 3-4")
+    io.print(f"{len(ms)}")
+    for m in r.find_all("1-2 1-2-3 9 3-4 x"):
+        if m.start() > 0:
+            io.print(f"{m.text()} {m.start()} {m.end()}")
