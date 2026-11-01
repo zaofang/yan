@@ -526,6 +526,6 @@ topic = "Niche surface engines (RFC 0006, https://claude.ai/artifact/NpTvDsHWcBn
 sections = "1, 16.7, 22.2"
 
 [[entry]]
-rows = "R577 to R583"
-topic = "std.encoding and `bytes` (RFC 0007), decided by the owner: immutable `bytes` (R577); UTF-8 strict and lossy (R578); hex (R579); strict base64 (R580); `EncodingError` (R581); `Show` for `bytes` (R582); mutable `bytearray` (R583)"
+rows = "R579 to R585"
+topic = "std.encoding and `bytes` (RFC 0007), decided by the owner: immutable `bytes` (R579); UTF-8 strict and lossy (R580); hex (R581); strict base64 (R582); `EncodingError` (R583); `Show` for `bytes` (R584); mutable `bytearray` (R585)"
 sections = "17.3"

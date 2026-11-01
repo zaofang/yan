@@ -27,4 +27,4 @@ research index links their studies and rows.
 | [0004](0004-architecture.md) | Architecture for one core and many surfaces | accepted | R558 to R565 |
 | [0005](0005-std-json.md) | std.json | accepted | R569 to R575 |
 | [0006](0006-engine-layering.md) | Where niche surface engines sit | accepted | R576 |
-| [0007](0007-std-encoding.md) | std.encoding and `bytes` | accepted | R577 to R583 |
+| [0007](0007-std-encoding.md) | std.encoding and `bytes` | accepted | R579 to R585 |

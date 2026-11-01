@@ -112,7 +112,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R568 | Niche surfaces may own semantics (https://claude.ai/artifact/4piYJXunC1Vp4f14HAtYHh), decided by the owner: niche surfaces are exempt from law 1 behind a boundary signature in Yong types, keeping laws 2, 4, 6, 7 and capabilities; forms lower to checked Yong or run on a surface engine linked as an extern item (R568) | 2, 16.7 |
 | R569 to R575 | std.json (RFC 0005), decided by the owner: `json.Value` with `parse_value`/`dump_value`, shipping with typed `parse[T: Wire]`/`dump[T: Wire]` once `derive(Wire)` exists (R569); numbers (R570); strict RFC 8259 input, duplicate keys and depth (R571); deterministic output (R572); `JsonError` (R573); total accessors on `Value` (R574); `parse_float` (R575) | 17.3 |
 | R576 | Niche surface engines (RFC 0006, https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC): engine items enter the HIR as extern signatures; engines are separate `yong-<name>-engine` crates or std packages at the runtime layer beside `yong-rt` | 1, 16.7, 22.2 |
-| R577 to R583 | std.encoding and `bytes` (RFC 0007), decided by the owner: immutable `bytes` (R577); UTF-8 strict and lossy (R578); hex (R579); strict base64 (R580); `EncodingError` (R581); `Show` for `bytes` (R582); mutable `bytearray` (R583) | 17.3 |
+| R579 to R585 | std.encoding and `bytes` (RFC 0007), decided by the owner: immutable `bytes` (R579); UTF-8 strict and lossy (R580); hex (R581); strict base64 (R582); `EncodingError` (R583); `Show` for `bytes` (R584); mutable `bytearray` (R585) | 17.3 |
 
 <!-- /rows -->
 

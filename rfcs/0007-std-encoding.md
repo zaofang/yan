@@ -2,7 +2,7 @@
 
 - Status: accepted (the lead chose "Accept, add bytearray too" on 2026-11-01: D1 to D6 accepted, D7 added)
 - Research: none; this RFC is the proposal (Wave 3 of the std build plan)
-- Rows: R577 to R583
+- Rows: R579 to R585
 
 ## Summary
 
@@ -38,7 +38,7 @@ Options weighed:
 Recommended: one immutable `bytes`, with no literal until the syntax hold lifts.
 
 - Decision: accepted, 2026-11-01
-- Row: R577
+- Row: R579
 
 ### D2: UTF-8
 
@@ -48,7 +48,7 @@ invalid subpart with U+FFFD, as the Unicode standard recommends and as Rust's
 `String::from_utf8_lossy` does. `s.bytes()` never fails.
 
 - Decision: accepted, 2026-11-01
-- Row: R578
+- Row: R580
 
 ### D3: hex
 
@@ -56,7 +56,7 @@ invalid subpart with U+FFFD, as the Unicode standard recommends and as Rust's
 accepts either case. It rejects whitespace, `0x` prefixes and odd length.
 
 - Decision: accepted, 2026-11-01
-- Row: R579
+- Row: R581
 
 ### D4: base64
 
@@ -70,7 +70,7 @@ Options weighed: Python's lenient decoder, which discards characters outside the
 the malleability that signatures and cache keys trip over.
 
 - Decision: accepted, 2026-11-01
-- Row: R580
+- Row: R582
 
 ### D5: `EncodingError`
 
@@ -84,7 +84,7 @@ indexes do. `Show` prints `invalid <kind> at <at>`. The type derives `Show` and 
 module's only error type.
 
 - Decision: accepted, 2026-11-01
-- Row: R581
+- Row: R583
 
 ### D6: `Show` for `bytes`
 
@@ -93,7 +93,7 @@ and `\r` as escapes; and every other byte as `\xNN` in lowercase. This matches t
 R493 for collections, so an agent reading output sees familiar text.
 
 - Decision: accepted, 2026-11-01
-- Row: R582
+- Row: R584
 
 ### D7: a mutable `bytearray`
 
@@ -113,7 +113,7 @@ It implements `Eq`. It does not implement `Ord` or `Hash`, because it is mutable
 to it.
 
 - Decision: accepted, 2026-11-01
-- Row: R583
+- Row: R585
 
 ## Spec changes
 
