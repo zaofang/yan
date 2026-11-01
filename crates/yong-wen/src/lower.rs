@@ -34,6 +34,7 @@ pub fn lower(file: &str, src: &str, m: &Module) -> R<(h::Module, Vec<Diagnostic>
         docs: m.docs.iter().cloned().collect(),
         doc: None,
         self_ty: named(&["Self"], Vec::new()),
+        fresh: 0,
     };
     let mut items = Vec::new();
     for it in &m.items {
@@ -61,6 +62,8 @@ struct Lower<'a> {
     doc: Option<String>,
     /// What an unannotated `self` is: the impl's type, else `Self`.
     self_ty: h::Type,
+    /// Names made up by desugaring, numbered.
+    fresh: usize,
 }
 
 fn mk(kind: h::ExprKind, span: Span) -> h::Expr {
@@ -663,7 +666,7 @@ impl Lower<'_> {
                         span,
                     ),
                 };
-                let cases = arms.iter().map(|a| self.arm(a)).collect::<R<_>>()?;
+                let cases = self.arms(arms)?;
                 let mut out = vec![stmt(h::StmtKind::Match { scrutinee, cases }, span)];
                 if value {
                     tail_return(&mut out);
@@ -715,13 +718,194 @@ impl Lower<'_> {
             .collect()
     }
 
-    fn arm(&mut self, a: &Arm) -> R<h::Case> {
-        Ok(h::Case {
-            pat: self.pattern(&a.pattern)?,
-            span: a.pattern.span,
-            guard: a.guard.as_ref().map(|g| self.expr(g)).transpose()?,
-            body: self.arm_body(&a.body, a.span)?,
-        })
+    fn arms(&mut self, arms: &[Arm]) -> R<Vec<h::Case>> {
+        let mut out = Vec::new();
+        for a in arms {
+            out.extend(self.arm(a)?);
+        }
+        Ok(out)
+    }
+
+    /// Or, range and slice patterns are Wen's alone (R558), so they stay here: an or-pattern
+    /// becomes one case per alternative, and a range or slice pattern a fresh name with a guard.
+    fn arm(&mut self, a: &Arm) -> R<Vec<h::Case>> {
+        let span = a.pattern.span;
+        let alts: Vec<&Pattern> = match &a.pattern.kind {
+            PatKind::Or(ps) => ps.iter().collect(),
+            _ => vec![&a.pattern],
+        };
+        let mut out = Vec::new();
+        for p in alts {
+            let mut guard = a.guard.as_ref().map(|g| self.expr(g)).transpose()?;
+            let mut prefix = Vec::new();
+            let pat = match &p.kind {
+                PatKind::Range { lo, hi, inclusive } => {
+                    let t = self.fresh_name("r");
+                    let v = mk(h::ExprKind::Name(t.clone()), p.span);
+                    let low = mk(
+                        h::ExprKind::Compare("<=", Box::new(self.expr(lo)?), Box::new(v.clone())),
+                        p.span,
+                    );
+                    let op = if *inclusive { "<=" } else { "<" };
+                    let high = mk(
+                        h::ExprKind::Compare(op, Box::new(v), Box::new(self.expr(hi)?)),
+                        p.span,
+                    );
+                    guard = Some(and_all([Some(low), Some(high), guard], p.span));
+                    bind_pat(t)
+                }
+                PatKind::Slice(ps) => {
+                    let t = self.fresh_name("s");
+                    let (check, binds) = self.slice(&t, ps, p.span)?;
+                    guard = Some(and_all([Some(check), guard], p.span));
+                    prefix = binds;
+                    bind_pat(t)
+                }
+                _ => self.pattern(p)?,
+            };
+            let mut body = self.arm_body(&a.body, a.span)?;
+            if !prefix.is_empty() {
+                // The slice's names are bound by a one-case match, like any pattern's names.
+                let (names, values): (Vec<_>, Vec<_>) = prefix.into_iter().unzip();
+                let (pat, scrutinee) = if names.len() == 1 {
+                    (
+                        bind_pat(names[0].clone()),
+                        values.into_iter().next().expect("one"),
+                    )
+                } else {
+                    (
+                        h::Pat::Tuple(names.into_iter().map(bind_pat).collect()),
+                        mk(h::ExprKind::Tuple(values), span),
+                    )
+                };
+                let inner = h::Case {
+                    pat,
+                    span,
+                    guard: None,
+                    body,
+                };
+                body = h::Block {
+                    inline: false,
+                    stmts: vec![stmt(
+                        h::StmtKind::Match {
+                            scrutinee,
+                            cases: vec![inner],
+                        },
+                        span,
+                    )],
+                };
+            }
+            out.push(h::Case {
+                pat,
+                span,
+                guard,
+                body,
+            });
+        }
+        Ok(out)
+    }
+
+    fn fresh_name(&mut self, base: &str) -> Name {
+        self.fresh += 1;
+        format!("_{base}{}", self.fresh)
+    }
+
+    /// `[a, b, ..rest, z]` against the list named `t`: the length test, and each name with
+    /// the value it binds. Elements are names or `_`.
+    fn slice(&mut self, t: &str, ps: &[SPat], at: Span) -> R<(h::Expr, Vec<(Name, h::Expr)>)> {
+        let name = |n: &str| mk(h::ExprKind::Name(n.to_owned()), at);
+        let int = |k: usize| mk(h::ExprKind::Lit(h::Lit::Int(k.to_string())), at);
+        let len = || {
+            mk(
+                h::ExprKind::Call(
+                    Box::new(name("len")),
+                    vec![h::Arg {
+                        name: None,
+                        kind: h::ArgKind::Expr(name(t)),
+                        span: at,
+                    }],
+                ),
+                at,
+            )
+        };
+        let rest = ps.iter().position(|p| matches!(p, SPat::Rest(_)));
+        let fixed = ps.len() - usize::from(rest.is_some());
+        let check = mk(
+            h::ExprKind::Compare(
+                if rest.is_some() { ">=" } else { "==" },
+                Box::new(len()),
+                Box::new(int(fixed)),
+            ),
+            at,
+        );
+        let mut binds = Vec::new();
+        let mut assign = |target: &str, value: h::Expr| binds.push((target.to_owned(), value));
+        for (k, p) in ps.iter().enumerate() {
+            let after = rest.is_some_and(|r| k > r);
+            let index = if after {
+                // Counted from the end: `len(t) - (ps.len() - k)`.
+                mk(
+                    h::ExprKind::Binary("-", Box::new(len()), Box::new(int(ps.len() - k))),
+                    at,
+                )
+            } else {
+                int(k)
+            };
+            match p {
+                SPat::Pat(Pattern {
+                    kind: PatKind::Bind(n),
+                    ..
+                }) => assign(
+                    n,
+                    mk(h::ExprKind::Index(Box::new(name(t)), Box::new(index)), at),
+                ),
+                SPat::Pat(Pattern {
+                    kind: PatKind::Wild,
+                    ..
+                })
+                | SPat::Rest(None) => {}
+                SPat::Rest(Some(n)) => {
+                    let hi = mk(
+                        h::ExprKind::Binary("-", Box::new(len()), Box::new(int(ps.len() - k - 1))),
+                        at,
+                    );
+                    // `[t[i] for i in range(k, hi)]`: elab has no slices yet.
+                    let i = self.fresh_name("_i");
+                    let range = mk(
+                        h::ExprKind::Call(
+                            Box::new(name("range")),
+                            [int(k), hi]
+                                .into_iter()
+                                .map(|e| h::Arg {
+                                    name: None,
+                                    kind: h::ArgKind::Expr(e),
+                                    span: at,
+                                })
+                                .collect(),
+                        ),
+                        at,
+                    );
+                    let whole = mk(
+                        h::ExprKind::Comp {
+                            kind: h::CompKind::List,
+                            par: None,
+                            elem: Box::new(mk(
+                                h::ExprKind::Index(Box::new(name(t)), Box::new(name(&i))),
+                                at,
+                            )),
+                            value: None,
+                            target: vec![i],
+                            iter: Box::new(range),
+                            cond: None,
+                        },
+                        at,
+                    );
+                    assign(n, whole);
+                }
+                SPat::Pat(_) => return unsupported("a nested pattern inside a slice pattern"),
+            }
+        }
+        Ok((check, binds))
     }
 
     fn arm_body(&mut self, b: &ArmBody, span: Span) -> R<h::Block> {
@@ -827,6 +1011,44 @@ impl Lower<'_> {
             StmtKind::Unreachable => K::Unreachable,
             StmtKind::Reveal(p) => K::Reveal(p.clone()),
             StmtKind::Yield(_) => return unsupported("`yield`"),
+            // `if e is P` with no `elif` is a match on `e` (R558: `is` stays in Wen).
+            StmtKind::If {
+                branches,
+                otherwise,
+            } if matches!(branches.as_slice(), [(Expr { kind: ExprKind::Is { negated: false, pattern, .. }, .. }, _)]
+                if !is_none(pattern)) =>
+            {
+                let [(cond, then)] = branches.as_slice() else {
+                    unreachable!("matched")
+                };
+                let ExprKind::Is { value, pattern, .. } = &cond.kind else {
+                    unreachable!("matched")
+                };
+                let arm = Arm {
+                    pattern: pattern.clone(),
+                    guard: None,
+                    body: ArmBody::Block(then.clone()),
+                    span: cond.span,
+                };
+                let mut cases = self.arm(&arm)?;
+                // The statement's span marks this `_` as written by the desugar, not the user.
+                cases.push(h::Case {
+                    pat: h::Pat::Wild,
+                    span: s.span,
+                    guard: None,
+                    body: match otherwise {
+                        Some(b) => self.block(b)?,
+                        None => h::Block {
+                            inline: false,
+                            stmts: vec![stmt(K::Pass, cond.span)],
+                        },
+                    },
+                });
+                K::Match {
+                    scrutinee: self.expr(value)?,
+                    cases,
+                }
+            }
             StmtKind::If {
                 branches,
                 otherwise,
@@ -839,7 +1061,7 @@ impl Lower<'_> {
             },
             StmtKind::Match { scrutinee, arms } => K::Match {
                 scrutinee: self.expr(scrutinee)?,
-                cases: arms.iter().map(|a| self.arm(a)).collect::<R<_>>()?,
+                cases: self.arms(arms)?,
             },
             StmtKind::For {
                 label,
@@ -855,7 +1077,14 @@ impl Lower<'_> {
                 contracts: self.loop_contracts(invariants)?,
                 body: self.stmts(body)?,
             },
-            StmtKind::For { mutable: true, .. } => return unsupported("`for var`"),
+            StmtKind::For {
+                label,
+                mutable: true,
+                pattern,
+                iter,
+                invariants,
+                body,
+            } => self.for_var(label, pattern, iter, invariants, body)?,
             StmtKind::While {
                 label,
                 cond,
@@ -924,21 +1153,109 @@ impl Lower<'_> {
         Ok(stmt(kind, s.span))
     }
 
+    /// `for var x in xs` (R434): an index loop that reads each element into `x` and writes it
+    /// back. The list is exclusively borrowed for the loop, so the body may not name it (E402).
+    fn for_var(
+        &mut self,
+        label: &Option<Name>,
+        pattern: &Pattern,
+        iter: &Expr,
+        invariants: &[Contract],
+        body: &[Stmt],
+    ) -> R<h::StmtKind> {
+        let (PatKind::Bind(x), ExprKind::Name(xs)) = (&pattern.kind, &iter.kind) else {
+            return unsupported("`for var` over anything but a named list");
+        };
+        if continues(body) {
+            return unsupported("`continue` in a `for var` body");
+        }
+        let mut used = Names::new();
+        body.iter()
+            .for_each(|s| stmt_names(s, &mut used, &mut HashSet::new()));
+        if let Some(at) = used.get(xs) {
+            self.err(
+                "E402",
+                *at,
+                &format!("`{xs}` is borrowed by `for var` for the whole loop; use `{x}`"),
+            );
+        }
+        self.fresh += 1;
+        let i = format!("_i{}", self.fresh);
+        let (at, ps) = (iter.span, pattern.span);
+        let name = |n: &str, sp| mk(h::ExprKind::Name(n.to_owned()), sp);
+        let arg = |e| h::Arg {
+            name: None,
+            kind: h::ArgKind::Expr(e),
+            span: at,
+        };
+        let len = mk(
+            h::ExprKind::Call(Box::new(name("len", at)), vec![arg(name(xs, at))]),
+            at,
+        );
+        let zero = mk(h::ExprKind::Lit(h::Lit::Int("0".into())), at);
+        let range = mk(
+            h::ExprKind::Call(Box::new(name("range", at)), vec![arg(zero), arg(len)]),
+            at,
+        );
+        let elem = mk(
+            h::ExprKind::Index(Box::new(name(xs, at)), Box::new(name(&i, at))),
+            at,
+        );
+        let mut stmts = vec![stmt(
+            h::StmtKind::Assign {
+                target: name(x, ps),
+                ty: None,
+                value: elem.clone(),
+            },
+            ps,
+        )];
+        stmts.extend(self.stmts(body)?);
+        stmts.push(stmt(
+            h::StmtKind::Assign {
+                target: elem,
+                ty: None,
+                value: name(x, ps),
+            },
+            ps,
+        ));
+        Ok(h::StmtKind::For {
+            label: label.clone(),
+            target: vec![i],
+            iter: range,
+            contracts: self.loop_contracts(invariants)?,
+            body: stmts,
+        })
+    }
+
     /// `let p = e` with a pattern: a tuple of names unpacks, `let p = e else ...` is let-else.
     fn let_pattern(&mut self, p: &Pattern, ty: Option<h::Type>, value: &Expr) -> R<h::StmtKind> {
-        if let ExprKind::Fallback(lhs, fb) = &value.kind {
-            let els = match fb.as_ref() {
-                Fallback::Diverge(s) => vec![self.stmt(s)?],
-                Fallback::Block(None, ss) => self.stmts(ss)?,
-                _ => return unsupported("this let-else"),
-            };
-            return Ok(h::StmtKind::LetElse {
-                pat: self.pattern(p)?,
-                value: self.expr(lhs)?,
-                els: h::Block {
-                    inline: false,
-                    stmts: els,
+        if let ExprKind::Fallback(_, fb) = &value.kind {
+            // `let Some(x) = e else ...` and `let Ok(x) = ...` are the fallback `x = e else ...`.
+            let unwrapped = match &p.kind {
+                PatKind::Ctor {
+                    name,
+                    args: Some(args),
+                } if (name == "Some" || name == "Ok") => match args.as_slice() {
+                    [
+                        PPat::Pos(Pattern {
+                            kind: PatKind::Bind(x),
+                            span,
+                        }),
+                    ] => Some((x, *span)),
+                    _ => None,
                 },
+                _ => None,
+            };
+            let Some((x, at)) = unwrapped else {
+                return unsupported("let-else with a pattern other than `Some(x)` or `Ok(x)`");
+            };
+            if !matches!(fb.as_ref(), Fallback::Diverge(_) | Fallback::Block(None, _)) {
+                return unsupported("this let-else");
+            }
+            return Ok(h::StmtKind::Assign {
+                target: mk(h::ExprKind::Name(x.clone()), at),
+                ty,
+                value: self.expr(value)?,
             });
         }
         Ok(match &p.kind {
@@ -1047,23 +1364,9 @@ impl Lower<'_> {
                 h::Pat::Tuple(ps.iter().map(|p| self.pattern(p)).collect::<R<_>>()?)
             }
             PatKind::As(p, n) => h::Pat::As(Box::new(self.pattern(p)?), n.clone()),
-            PatKind::Range { lo, hi, inclusive } => h::Pat::Range {
-                lo: self.expr(lo)?,
-                hi: self.expr(hi)?,
-                inclusive: *inclusive,
-            },
-            PatKind::Slice(ps) => {
-                let mut elems = Vec::new();
-                let mut rest = None;
-                for p in ps {
-                    match p {
-                        SPat::Pat(p) => elems.push(self.pattern(p)?),
-                        SPat::Rest(n) => rest = Some((elems.len(), n.clone())),
-                    }
-                }
-                h::Pat::Slice(elems, rest)
+            PatKind::Range { .. } | PatKind::Slice(_) | PatKind::Or(_) => {
+                return unsupported("or, range and slice patterns below the top of an arm");
             }
-            PatKind::Or(ps) => h::Pat::Or(ps.iter().map(|p| self.pattern(p)).collect::<R<_>>()?),
         })
     }
 
@@ -1253,15 +1556,9 @@ impl Lower<'_> {
                     b(none),
                 )
             }
-            ExprKind::Is {
-                value,
-                negated,
-                pattern,
-            } => K::Is {
-                value: b(self.expr(value)?),
-                negated: *negated,
-                pat: Box::new(self.pattern(pattern)?),
-            },
+            ExprKind::Is { .. } => {
+                return unsupported("`is` with a pattern outside `if e is P`");
+            }
             ExprKind::If {
                 cond,
                 then,
@@ -1340,6 +1637,45 @@ impl Lower<'_> {
     }
 }
 
+fn is_none(p: &Pattern) -> bool {
+    matches!(&p.kind, PatKind::Lit(l) if matches!(l.kind, ExprKind::NoneLit))
+}
+
+fn bind_pat(n: Name) -> h::Pat {
+    h::Pat::Path {
+        path: vec![n],
+        args: None,
+    }
+}
+
+/// The present conditions joined by `and`.
+fn and_all<const N: usize>(cs: [Option<h::Expr>; N], at: Span) -> h::Expr {
+    cs.into_iter()
+        .flatten()
+        .reduce(|a, b| mk(h::ExprKind::Binary("and", Box::new(a), Box::new(b)), at))
+        .expect("at least one condition")
+}
+
+/// Whether a loop body has a `continue` for its own loop.
+fn continues(stmts: &[Stmt]) -> bool {
+    stmts.iter().any(|s| match &s.kind {
+        StmtKind::Continue(_) => true,
+        StmtKind::If {
+            branches,
+            otherwise,
+        } => {
+            branches.iter().any(|(_, b)| continues(b))
+                || otherwise.as_deref().is_some_and(continues)
+        }
+        StmtKind::Match { arms, .. } => arms.iter().any(|a| match &a.body {
+            ArmBody::Block(b) => continues(b),
+            ArmBody::Expr(_) => false,
+        }),
+        StmtKind::With { body, .. } | StmtKind::Unsafe(body) => continues(body),
+        _ => false,
+    })
+}
+
 /// Rewrites a body whose last statement is a value into one that returns it.
 fn tail_return(stmts: &mut [h::Stmt]) {
     let Some(last) = stmts.last_mut() else {
@@ -1414,7 +1750,7 @@ fn infer_caps(m: &Module) -> HashMap<String, Vec<String>> {
     let mut caps: HashMap<String, HashSet<String>> = HashMap::new();
     let mut calls: HashMap<String, HashSet<String>> = HashMap::new();
     for (name, f) in &fns {
-        let mut names = HashSet::new();
+        let mut names = Names::new();
         let mut bound = HashSet::new();
         for p in &f.sig.params {
             if let Param::Value { name, .. } = p {
@@ -1431,14 +1767,14 @@ fn infer_caps(m: &Module) -> HashMap<String, Vec<String>> {
                 })
                 .collect(),
             None => names
-                .iter()
+                .keys()
                 .filter(|n| CAPS.contains(&n.as_str()) && !bound.contains(*n))
                 .cloned()
                 .collect(),
         };
         caps.insert((*name).to_owned(), declared);
         let callees = names
-            .iter()
+            .keys()
             .filter(|n| fns.contains_key(n.as_str()) && !bound.contains(*n) && n.as_str() != *name)
             .cloned()
             .collect();
@@ -1472,7 +1808,10 @@ fn infer_caps(m: &Module) -> HashMap<String, Vec<String>> {
         .collect()
 }
 
-fn body_names(b: &Body, names: &mut HashSet<String>, bound: &mut HashSet<String>) {
+/// Each free name a body reads, at its first use.
+type Names = HashMap<String, Span>;
+
+fn body_names(b: &Body, names: &mut Names, bound: &mut HashSet<String>) {
     match b {
         Body::Expr(e) => expr_names(e, names, bound),
         Body::Block { contracts, stmts } => {
@@ -1528,7 +1867,7 @@ fn pat_binds(p: &Pattern, bound: &mut HashSet<String>) {
     }
 }
 
-fn arm_names(a: &Arm, names: &mut HashSet<String>, bound: &mut HashSet<String>) {
+fn arm_names(a: &Arm, names: &mut Names, bound: &mut HashSet<String>) {
     pat_binds(&a.pattern, bound);
     if let Some(g) = &a.guard {
         expr_names(g, names, bound);
@@ -1536,18 +1875,16 @@ fn arm_names(a: &Arm, names: &mut HashSet<String>, bound: &mut HashSet<String>) 
     arm_body_names(&a.body, names, bound);
 }
 
-fn arm_body_names(b: &ArmBody, names: &mut HashSet<String>, bound: &mut HashSet<String>) {
+fn arm_body_names(b: &ArmBody, names: &mut Names, bound: &mut HashSet<String>) {
     match b {
         ArmBody::Expr(e) => expr_names(e, names, bound),
         ArmBody::Block(ss) => ss.iter().for_each(|s| stmt_names(s, names, bound)),
     }
 }
 
-fn stmt_names(s: &Stmt, names: &mut HashSet<String>, bound: &mut HashSet<String>) {
-    let e = |x: &Expr, names: &mut HashSet<String>, bound: &mut HashSet<String>| {
-        expr_names(x, names, bound)
-    };
-    let block = |ss: &[Stmt], names: &mut HashSet<String>, bound: &mut HashSet<String>| {
+fn stmt_names(s: &Stmt, names: &mut Names, bound: &mut HashSet<String>) {
+    let e = |x: &Expr, names: &mut Names, bound: &mut HashSet<String>| expr_names(x, names, bound);
+    let block = |ss: &[Stmt], names: &mut Names, bound: &mut HashSet<String>| {
         ss.iter().for_each(|s| stmt_names(s, names, bound))
     };
     match &s.kind {
@@ -1657,11 +1994,11 @@ fn stmt_names(s: &Stmt, names: &mut HashSet<String>, bound: &mut HashSet<String>
     }
 }
 
-fn expr_names(e: &Expr, names: &mut HashSet<String>, bound: &mut HashSet<String>) {
+fn expr_names(e: &Expr, names: &mut Names, bound: &mut HashSet<String>) {
     let mut go = |x: &Expr| expr_names(x, names, bound);
     match &e.kind {
         ExprKind::Name(n) => {
-            names.insert(n.clone());
+            names.entry(n.clone()).or_insert(e.span);
         }
         ExprKind::Str(s) => {
             for p in &s.parts {
@@ -1693,7 +2030,7 @@ fn expr_names(e: &Expr, names: &mut HashSet<String>, bound: &mut HashSet<String>
                     }
                     ArgKind::Pun => {
                         if let Some(l) = &a.label {
-                            names.insert(l.clone());
+                            names.entry(l.clone()).or_insert(a.span);
                         }
                     }
                 }
@@ -1701,7 +2038,7 @@ fn expr_names(e: &Expr, names: &mut HashSet<String>, bound: &mut HashSet<String>
         }
         ExprKind::Index(x, ix) => {
             go(x);
-            fn ix_names(i: &IxArg, names: &mut HashSet<String>, bound: &mut HashSet<String>) {
+            fn ix_names(i: &IxArg, names: &mut Names, bound: &mut HashSet<String>) {
                 match i {
                     IxArg::Expr(x) => expr_names(x, names, bound),
                     IxArg::Slice { lo, hi, .. } => lo
