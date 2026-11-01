@@ -1,8 +1,8 @@
 # 0014: The reference agent loop
 
-- Status: draft
+- Status: accepted (the lead chose "Accept all (D1 to D6)" on 2026-11-01)
 - Research: [Yong product study](https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU), shortlist item 1
-- Rows: filled in when accepted
+- Rows: R616 to R621
 
 ## Summary
 
@@ -38,8 +38,8 @@ Options weighed:
 
 Recommendation: the command.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R616
 
 ### D2: the loop
 
@@ -67,8 +67,8 @@ is the 21.1 rule that an agent which believes a frozen test is wrong stops inste
 
 The prompts are fixed in the toolchain and versioned with it. The primer and the shots are inputs.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R617
 
 ### D3: model adapters
 
@@ -87,8 +87,8 @@ changes.
 
 Recommendation: stub and cmd only.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R618
 
 ### D4: the run record
 
@@ -105,8 +105,8 @@ The run record is JSON with `schema: 1`. Its fields:
 
 New fields are added only as optional fields, as for diagnostics (18.2).
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R619
 
 ### D5: the harnesses drive Xin through `yong agent`
 
@@ -115,8 +115,8 @@ runs through `yong agent`, so repair rounds and autofix are counted the way a us
 The typed-Python arm keeps the same shape: a spec phase with pytest tests, then a body phase with
 mypy and pytest repairs. That arm stays in the harness.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R620
 
 ### D6: a code for an `ex` line that breaks `pre`
 
@@ -125,8 +125,8 @@ This adds an error code in 25.8: "the arguments of an `ex` line break the functi
 reported by `spec_check`, at the `ex` line. A `pre` that cannot be evaluated yet is skipped, as 21.1
 allows. One example is a `pre` that calls a function whose body is still `...`.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R621
 
 ## Spec changes
 

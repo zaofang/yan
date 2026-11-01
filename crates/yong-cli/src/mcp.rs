@@ -207,8 +207,8 @@ fn spec_check(path: &Path, text: &str) -> Result<Vec<Diagnostic>, String> {
     Ok(diags)
 }
 
-/// R-row pending: an `ex` line whose arguments break the function's `pre` (21.1).
-const EX_BREAKS_PRE: &str = "E6xx";
+/// An `ex` line whose arguments break the function's `pre` (21.1, R621).
+const EX_BREAKS_PRE: &str = "E619";
 
 /// A diagnostics result: the line rendering for the model, the records for the harness (R295).
 /// Under `max_tokens`, lines are kept while they fit (four bytes per token) and a last line
