@@ -148,7 +148,6 @@ pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
         ("std.prelude.range", [Int(n)]) => List((0..*n).map(Int).collect()),
         ("std.prelude.range", [Int(a), Int(b)]) => List((*a..*b).map(Int).collect()),
         ("std.prelude.bigint", [Int(i)]) => BigInt((*i).into()),
-        ("std.math.sqrt", [Float(x)]) => Float(x.sqrt()),
         ("std.test.fake_fs", [Dict(files)]) => Dict(mem::take(files)),
         _ => return None,
     }))

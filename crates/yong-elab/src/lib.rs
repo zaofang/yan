@@ -238,6 +238,7 @@ pub fn elaborate(
     };
     let mut g = Globals::default();
     let std_classes = stdlib::classes(&mut g, m, src)?;
+    let std_sums = stdlib::sums(&mut g, m, src);
     collect(&mut g, m, &mut cx)?;
     let std_fns = stdlib::collect(&mut g, m)?;
     let mut items = Vec::new();
@@ -249,6 +250,30 @@ pub fn elaborate(
                 path: vec![name.clone()],
                 tparams: Vec::new(),
                 fields: core_fields(&g.records[&name])?,
+            }),
+            span: Span {
+                line: 1,
+                col: 1,
+                end_line: 1,
+                end_col: 1,
+            },
+        });
+    }
+    for name in std_sums {
+        let variants = g.sums[&name]
+            .iter()
+            .map(|(v, _)| y::Variant {
+                name: v.clone(),
+                fields: None,
+            })
+            .collect();
+        items.push(y::Item {
+            attrs: Vec::new(),
+            kind: y::ItemKind::Sum(y::Sum {
+                is_pub: true,
+                path: vec![name],
+                tparams: Vec::new(),
+                variants,
             }),
             span: Span {
                 line: 1,

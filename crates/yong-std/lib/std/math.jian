@@ -1,5 +1,269 @@
-"""Correctly rounded math (11.1, 17.3)."""
+"""Correctly rounded math (11.1, 17.3). Every function is tier E. Domain errors give the IEEE
+result (NaN or an infinity), never a panic."""
+
+@since("1.0")
+pub type Round = NearestEven() | Up() | Down() | TowardZero()
+
+@since("1.0")
+pub pi: float = 3.141592653589793
+
+@since("1.0")
+pub e: float = 2.718281828459045
+
+@since("1.0")
+pub inf: float = 1e999
+
+@since("1.0")
+pub nan: float = 1e999 - 1e999
 
 @intrinsic
 @since("1.0")
-pub def sqrt(x: float) -> float: ...
+pub def add(a: float, b: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def sub(a: float, b: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def mul(a: float, b: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def div(a: float, b: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def fma(a: float, b: float, c: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def sqrt(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def sum_exact(xs: list[float], round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def dot_exact(xs: list[float], ys: list[float], round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def exp(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def exp2(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def exp10(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def expm1(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def exp2m1(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def exp10m1(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def log(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def log2(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def log10(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def log1p(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def log2p1(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def log10p1(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def cbrt(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def rsqrt(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def sin(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def cos(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def tan(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def sinpi(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def cospi(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def tanpi(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def asin(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def acos(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def atan(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def asinpi(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def acospi(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def atanpi(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def sinh(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def cosh(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def tanh(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def asinh(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def acosh(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def atanh(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def erf(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def erfc(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def lgamma(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def tgamma(x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def pow(x: float, y: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def powr(x: float, y: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def hypot(x: float, y: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def atan2(y: float, x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def atan2pi(y: float, x: float, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def pown(x: float, n: int, round: Round = NearestEven()) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def floor(x: float) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def ceil(x: float) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def trunc(x: float) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def next_up(x: float) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def next_down(x: float) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def fmod(x: float, y: float) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def remainder(x: float, y: float) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def copysign(x: float, y: float) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def ldexp(x: float, n: int) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def frexp(x: float) -> tuple[float, int]: ...
+
+@intrinsic
+@since("1.0")
+pub def is_nan(x: float) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def is_inf(x: float) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def is_finite(x: float) -> bool: ...

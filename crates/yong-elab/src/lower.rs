@@ -1905,6 +1905,23 @@ impl Lower<'_, '_, '_> {
                 }
                 (Rhs::Atom(Atom::Name(d, at)), dt)
             }
+            K::Attr(b, m, _)
+                if let K::Name(module) = &b.kind
+                    && !self.locals.contains_key(module)
+                    && let Some(v) = crate::stdlib::konst(&format!("std.{module}.{m}")) =>
+            {
+                self.rhs(v, want)?
+            }
+            K::Attr(b, m, _)
+                if let K::Name(module) = &b.kind
+                    && !self.locals.contains_key(module)
+                    && self.std_variant(module, m) =>
+            {
+                (
+                    Rhs::Atom(Atom::Name(m.clone(), at)),
+                    Ty::Data(self.g.variant_of[m].clone()),
+                )
+            }
             K::Attr(..) => {
                 let (p, t) = self.place(e)?;
                 (Rhs::Proj(p), t)
@@ -2535,6 +2552,17 @@ impl Lower<'_, '_, '_> {
                     && (self.sig.caps.contains(c) || self.handlers.contains(c) || c == "io")
                 {
                     return self.cap_call(c, m, args, at);
+                }
+                if let j::ExprKind::Name(module) = &b.kind
+                    && !self.locals.contains_key(module)
+                    && self.std_variant(module, m)
+                {
+                    let f = j::Expr {
+                        kind: j::ExprKind::Name(m.clone()),
+                        span: *name_at,
+                        paren: false,
+                    };
+                    return self.call_expr(&f, args, at, want);
                 }
                 if let j::ExprKind::Name(module) = &b.kind
                     && !self.locals.contains_key(module)
@@ -3241,6 +3269,59 @@ impl Lower<'_, '_, '_> {
         self.std_call(&path, p, vec![Arg::Cap(cap.to_owned(), at)], args, op, at)
     }
 
+    /// `module.v` names variant `v` of a std sum type declared in `module`, as `math.Up`.
+    fn std_variant(&self, module: &str, v: &str) -> bool {
+        self.g
+            .variant_of
+            .get(v)
+            .is_some_and(|s| crate::stdlib::sum_module(s) == Some(module))
+    }
+
+    /// The arguments of a std call matched to `names`: positional, then by keyword, then the
+    /// declared defaults. `None` after reporting a mismatch.
+    fn bind_std<'e>(
+        &mut self,
+        args: &'e [j::Arg],
+        names: &[(&str, Option<&'e j::Expr>)],
+        what: &str,
+        at: Span,
+    ) -> R<Option<Vec<&'e j::Expr>>> {
+        let mut out: Vec<Option<&j::Expr>> = vec![None; names.len()];
+        let mut next = 0;
+        for a in args {
+            let j::ArgKind::Expr(e) = &a.kind else {
+                return unsupported(format!("reference arguments to `{what}`"));
+            };
+            let i = match &a.name {
+                None => next,
+                Some(n) => match names.iter().position(|(p, _)| p == n) {
+                    Some(i) => i,
+                    None => {
+                        self.err("E202", a.span, format!("`{what}` has no parameter `{n}`"));
+                        return Ok(None);
+                    }
+                },
+            };
+            if i >= names.len() || out[i].is_some() {
+                self.err("E202", a.span, format!("too many arguments to `{what}`"));
+                return Ok(None);
+            }
+            out[i] = Some(e);
+            next = i + 1;
+        }
+        let mut xs = Vec::new();
+        for (x, (n, default)) in out.into_iter().zip(names) {
+            match x.or(*default) {
+                Some(e) => xs.push(e),
+                None => {
+                    self.err("E202", at, format!("`{what}` needs argument `{n}`"));
+                    return Ok(None);
+                }
+            }
+        }
+        Ok(Some(xs))
+    }
+
     /// A call of a non-generic std function; `lead` are the arguments before the written ones.
     fn std_call(
         &mut self,
@@ -3251,7 +3332,7 @@ impl Lower<'_, '_, '_> {
         what: &str,
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
-        let Some(xs) = self.positional(args, p.params.len(), what, at)? else {
+        let Some(xs) = self.bind_std(args, &p.names, what, at)? else {
             return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
         };
         for (x, (take, pt)) in xs.into_iter().zip(&p.params) {

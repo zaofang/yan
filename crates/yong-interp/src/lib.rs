@@ -15,6 +15,7 @@ use yong_core::ast::*;
 
 mod collections;
 mod compile;
+mod math;
 mod native;
 mod prelude;
 mod regex;
@@ -121,7 +122,7 @@ pub enum Stop {
 
 pub(crate) type R<T> = Result<T, Stop>;
 
-pub(crate) const STD_STAGES: u8 = 5;
+pub(crate) const STD_STAGES: u8 = 6;
 
 pub(crate) struct Interp<'o> {
     out: &'o mut dyn Write,
@@ -317,6 +318,7 @@ impl Interp<'_> {
             1 => native::call(name, args),
             2 => regex::call(name, args),
             3 => collections::call(name, args),
+            4 => math::call(name, args),
             _ => self.builtin(name, args),
         }
     }
