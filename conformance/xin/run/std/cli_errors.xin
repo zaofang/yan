@@ -1,0 +1,45 @@
+# spec: 17.3
+# note: after -- every argument is positional; the first problem in argument order is reported with fixed wording and the usage line
+# stdout:
+# error: unknown option '--nope'
+# usage: count [options] <path> <color>
+# error: missing argument <color>
+# usage: count [options] <path> <color>
+# error: invalid value 'red' for <color>: expected one of dark, light
+# usage: count [options] <path> <color>
+# error: invalid value 'x' for '--top': expected int
+# usage: count [options] <path> <color>
+# error: option '--top' needs a value
+# usage: count [options] <path> <color>
+# error: '--top' given twice
+# usage: count [options] <path> <color>
+# error: option '--verbose' takes no value
+# usage: count [options] <path> <color>
+# error: unexpected argument 'extra'
+# usage: count [options] <path> <color>
+# error: invalid value '--top' for <color>: expected one of dark, light
+# usage: count [options] <path> <color>
+
+type Color = Dark() | Light()
+
+@derive(Cli)
+class Count:
+    path: str
+    color: Color
+    top: int = 10
+    verbose: bool = False
+
+def check(xs: list[str]) -> str fail CliError:
+    a = cli.parse_args[Count](xs)?
+    return f"{a.path} {a.color} {a.verbose}"
+
+pub def main() uses io:
+    io.print(check(["a.txt", "dark", "--nope"]) else e -> f"{e}")
+    io.print(check(["a.txt"]) else e -> f"{e}")
+    io.print(check(["a.txt", "red"]) else e -> f"{e}")
+    io.print(check(["a.txt", "dark", "--top", "x"]) else e -> f"{e}")
+    io.print(check(["a.txt", "dark", "--top"]) else e -> f"{e}")
+    io.print(check(["a.txt", "dark", "--top=1", "--top=2"]) else e -> f"{e}")
+    io.print(check(["a.txt", "dark", "--verbose=yes"]) else e -> f"{e}")
+    io.print(check(["a.txt", "dark", "extra"]) else e -> f"{e}")
+    io.print(check(["a.txt", "--", "--top"]) else e -> f"{e}")

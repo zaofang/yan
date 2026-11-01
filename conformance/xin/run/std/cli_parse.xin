@@ -1,0 +1,25 @@
+# spec: 17.3
+# note: derive(Cli): no default is a positional, a default an option, bool a flag, a list the rest, a unit sum a choice
+# stdout:
+# a.txt Light() ['x', 'y'] 3 0.5 n True
+# a.txt Dark() [] 10 0.25 None False
+
+type Color = Dark() | Light()
+
+@derive(Cli)
+class WordCount:
+    path: Path
+    color: Color
+    files: list[str]
+    top: int = 10
+    ratio: float = 0.5
+    name: str | None = None
+    verbose: bool = False
+
+def show_args(xs: list[str]) -> str fail CliError:
+    a = cli.parse_args[WordCount](xs)?
+    return f"{a.path} {a.color} {a.files} {a.top} {a.ratio} {a.name} {a.verbose}"
+
+pub def main() uses io:
+    io.print(show_args(["a.txt", "light", "x", "y", "--top=3", "--verbose", "--name", "n"]) else e -> f"{e}")
+    io.print(show_args(["a.txt", "--ratio", "0.25", "dark"]) else e -> f"{e}")

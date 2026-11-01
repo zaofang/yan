@@ -1,0 +1,10 @@
+# spec: 17.3
+# note: bigint has count_ones and bit_width over its magnitude, as Python's bit_count and bit_length
+# stdout:
+# 8 8 71 0
+
+pub def main() uses io:
+    a: bigint = 255
+    b: bigint = 1
+    z: bigint = 0
+    io.print(f"{bits.count_ones(a)} {bits.bit_width(a)} {bits.bit_width(b << 70)} {bits.bit_width(z)}")

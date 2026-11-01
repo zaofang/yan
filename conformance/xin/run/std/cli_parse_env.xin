@@ -1,0 +1,17 @@
+# spec: 17.3
+# note: cli.parse reads env.args()
+# stdout:
+# in.txt 2
+
+@derive(Cli)
+class Args:
+    path: str
+    n: int = 1
+
+def run() -> str fail CliError uses env:
+    a = cli.parse[Args]()?
+    return f"{a.path} {a.n}"
+
+pub def main() uses io:
+    with env = fake_env(args=["in.txt", "--n", "2"]):
+        io.print(run() else e -> f"{e}")

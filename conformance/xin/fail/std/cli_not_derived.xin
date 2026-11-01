@@ -1,0 +1,13 @@
+# spec: 17.3
+# note: cli.parse_args needs a type that derives Cli
+# expect: E201 at 9:24
+
+class Args:
+    path: str
+
+def f(xs: list[str]) -> str:
+    a = cli.parse_args[Args](xs) else e -> Args(path="none")
+    return a.path
+
+pub def main() uses io:
+    io.print(f(["x"]))

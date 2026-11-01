@@ -1,0 +1,11 @@
+# spec: 3.4
+# note: << panics with overflow when it loses a bit; bits.wrapping_shl discards it
+# stdout:
+# 0 64
+# exit: 101
+
+pub def main() uses io:
+    n: int8 = 64
+    m: uint8 = 128
+    io.print(f"{bits.wrapping_shl(m, 1)} {n << 0}")
+    io.print(f"{n << 1}")

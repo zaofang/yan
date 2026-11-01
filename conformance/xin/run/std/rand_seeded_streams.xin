@@ -1,0 +1,19 @@
+# spec: 7.1, 17.3
+# note: each algorithm has one fixed stream per seed (ChaCha8 by default, and Pcg64Dxsm)
+# stdout:
+# 13804888775535289832 4211859015901796865
+# 3536907876931541756 1681417456739323905
+# 11580484839666122119 11978924969568863972
+
+def two() -> str uses rand:
+    a = rand.next_u64()
+    b = rand.next_u64()
+    return f"{a} {b}"
+
+pub def main() uses io:
+    with rand = seeded(0):
+        io.print(two())
+    with rand = seeded(42):
+        io.print(two())
+    with rand = seeded(0, Pcg64Dxsm()):
+        io.print(two())
