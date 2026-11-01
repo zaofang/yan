@@ -5,6 +5,7 @@
 //! The Yong tree keeps Jian spans, so the Yong checker reports at Jian positions.
 
 mod bounds;
+mod decorators;
 mod lower;
 mod stdlib;
 mod ty;
@@ -72,6 +73,10 @@ pub(crate) struct Globals {
     pub variant_of: HashMap<String, String>,
     pub aliases: HashMap<String, j::Type>,
     pub fns: HashMap<String, Sig>,
+    /// `@derive(From)` conversions (R432): (from type, sum) to the generated function.
+    pub froms: HashMap<(String, String), String>,
+    /// Functions marked `@deprecated`, for W815.
+    pub deprecated: HashSet<String>,
     pub consts: HashMap<String, Ty>,
     /// The records that come from std rather than the module.
     pub std_records: std::collections::HashSet<String>,
@@ -241,7 +246,7 @@ pub fn elaborate(
     let std_sums = stdlib::sums(&mut g, m, src);
     collect(&mut g, m, &mut cx)?;
     let std_fns = stdlib::collect(&mut g, m)?;
-    let mut items = Vec::new();
+    let mut items = derive_froms(&mut g, m);
     for name in std_classes {
         items.push(y::Item {
             attrs: Vec::new(),
@@ -284,7 +289,10 @@ pub fn elaborate(
         });
     }
     for it in &m.items {
-        if let Some(k) = item(&g, it, &mut cx)? {
+        let start = cx.diags.len();
+        let k = item(&g, it, &mut cx)?;
+        decorators::check(it, start, &mut cx)?;
+        if let Some(k) = k {
             items.push(y::Item {
                 attrs: Vec::new(),
                 kind: k,
@@ -377,6 +385,9 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             j::ItemKind::Func(f) => {
                 let s = sig(g, f, cx)?;
                 g.fns.insert(f.name.clone(), s);
+                if it.decorators.iter().any(|d| d.path == ["deprecated"]) {
+                    g.deprecated.insert(f.name.clone());
+                }
                 if f.name.starts_with("test_")
                     && let Some(b) = &f.body
                 {
@@ -562,6 +573,94 @@ fn const_val(e: &j::Expr) -> R<y::ConstVal> {
     }))
 }
 
+/// R432: `@derive(From)` on a sum gives a conversion from the field type of each variant with
+/// exactly one field of a nominal type, unless two variants share that type.
+fn derive_froms(g: &mut Globals, m: &j::Module) -> Vec<y::Item> {
+    let mut items = Vec::new();
+    for it in &m.items {
+        let j::ItemKind::Type(t) = &it.kind else {
+            continue;
+        };
+        let derives_from = it.decorators.iter().any(|d| {
+            d.path == ["derive"]
+                && d.args.iter().flatten().any(|a| {
+                    matches!(&a.kind, j::ArgKind::Expr(j::Expr { kind: j::ExprKind::Name(n), .. })
+                        if n == "From")
+                })
+        });
+        let Some(variants) = g.sums.get(&t.name).filter(|_| derives_from) else {
+            continue;
+        };
+        let singles: Vec<(&str, &Field, String)> = variants
+            .iter()
+            .filter_map(|(v, fs)| match fs.as_slice() {
+                [
+                    f @ Field {
+                        ty: Ty::Data(d), ..
+                    },
+                ] => Some((v.as_str(), f, d.clone())),
+                _ => None,
+            })
+            .collect();
+        let mut made = Vec::new();
+        for (v, f, d) in &singles {
+            if singles.iter().filter(|(_, _, e)| e == d).count() > 1 {
+                continue;
+            }
+            let name = format!("{}__from_{v}", t.name);
+            let at = it.span;
+            let sum = Ty::Data(t.name.clone());
+            let ctor = y::Rhs::Ctor(y::Ctor::Named {
+                path: vec![(*v).to_owned()],
+                targs: Vec::new(),
+                fields: vec![(f.name.clone(), y::Atom::Name("e".into(), at))],
+            });
+            let body = vec![
+                y::Stmt {
+                    kind: y::StmtKind::Let {
+                        mutable: false,
+                        pat: y::Pat::Bind("r".into()),
+                        pat_span: at,
+                        ty: sum.core(),
+                        rhs: ctor,
+                        rhs_span: at,
+                    },
+                    span: at,
+                },
+                y::Stmt {
+                    kind: y::StmtKind::Ret(y::Atom::Name("r".into(), at)),
+                    span: at,
+                },
+            ];
+            items.push(y::Item {
+                attrs: Vec::new(),
+                kind: y::ItemKind::Fn(y::FnDef {
+                    is_pub: false,
+                    is_unsafe: false,
+                    path: vec![name.clone()],
+                    name_span: at,
+                    tparams: Vec::new(),
+                    params: vec![y::Param::Value {
+                        comptime: false,
+                        conv: y::Conv::Sink,
+                        name: "e".into(),
+                        ty: f.ty.core(),
+                    }],
+                    ret: sum.core(),
+                    from: Vec::new(),
+                    fail: None,
+                    contracts: Vec::new(),
+                    body: Some(y::Block { stmts: body }),
+                }),
+                span: at,
+            });
+            made.push(((d.clone(), t.name.clone()), name));
+        }
+        g.froms.extend(made);
+    }
+    items
+}
+
 fn core_fields(fs: &[Field]) -> R<Vec<y::Field>> {
     fs.iter()
         .map(|f| {
@@ -576,9 +675,6 @@ fn core_fields(fs: &[Field]) -> R<Vec<y::Field>> {
 }
 
 fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
-    if !it.decorators.is_empty() {
-        return unsupported("decorators");
-    }
     Ok(Some(match &it.kind {
         j::ItemKind::Class(c) => y::ItemKind::Record(y::Record {
             is_pub: it.is_pub,

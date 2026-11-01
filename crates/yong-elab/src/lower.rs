@@ -2191,8 +2191,15 @@ impl Lower<'_, '_, '_> {
                         let into_error = e != Ty::Data("Error".into())
                             && self.sig.fail == Some(Ty::Data("Error".into()))
                             && self.g.std_records.contains("Error");
-                        let via =
-                            into_error.then(|| vec!["std".into(), "error".into(), "wrap".into()]);
+                        let from =
+                            self.sig.fail.as_ref().and_then(|own| {
+                                self.g.froms.get(&(e.to_string(), own.to_string()))
+                            });
+                        let via = match from {
+                            Some(f) => Some(vec![f.clone()]),
+                            None => into_error
+                                .then(|| vec!["std".into(), "error".into(), "wrap".into()]),
+                        };
                         (Rhs::Propagate { call: c, via }, t)
                     }
                     _ => return unsupported("`?` on an optional or on a call that cannot fail"),
@@ -2878,6 +2885,11 @@ impl Lower<'_, '_, '_> {
         args: &[j::Arg],
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
+        if self.g.deprecated.contains(name) {
+            let item = self.item.clone();
+            self.cx
+                .warn("W815", at, &item, format!("`{name}` is deprecated"));
+        }
         let sig = &self.g.fns[name];
         self.call_sig(name, sig, recv, args, at)
     }
