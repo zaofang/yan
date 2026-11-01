@@ -28,6 +28,8 @@ yong-interp = { path = "crates/yong-interp" }
 yong-check = { path = "crates/yong-check" }
 yong-std = { path = "crates/yong-std" }
 yong-rt = { path = "crates/yong-rt" }
+yong-mir = { path = "crates/yong-mir" }
+yong-cg-cranelift = { path = "crates/yong-cg-cranelift" }
 yong-hir = { path = "crates/yong-hir" }
 yong-jian = { path = "crates/yong-jian" }
 yong-elab = { path = "crates/yong-elab" }

@@ -15,8 +15,17 @@ const TOOL_FAILURE: u8 = 2;
 #[derive(Parser)]
 #[command(name = "yong", version)]
 struct Cli {
+    /// What `run` executes on: the interpreter, or native code from Cranelift (M1b).
+    #[arg(long, global = true, value_enum, default_value_t = Backend::Interp)]
+    backend: Backend,
     #[command(subcommand)]
     command: Command,
+}
+
+#[derive(Clone, Copy, PartialEq, ValueEnum)]
+enum Backend {
+    Interp,
+    Cranelift,
 }
 
 #[derive(Subcommand)]
@@ -83,7 +92,8 @@ enum Format {
 
 fn main() -> ExitCode {
     yong_elab::install_std(yong_db::std_modules);
-    match Cli::parse().command {
+    let cli = Cli::parse();
+    match cli.command {
         Command::Check {
             format,
             max_errors,
@@ -101,7 +111,12 @@ fn main() -> ExitCode {
             file,
             strict,
             level,
-        } => run(&file, strict, level.as_deref() == Some("release")),
+        } => run(
+            &file,
+            strict,
+            level.as_deref() == Some("release"),
+            cli.backend,
+        ),
         Command::View { as_, file } => view(&as_, &file),
         Command::Hash {
             format,
@@ -324,7 +339,7 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn run(file: &Path, strict: bool, release: bool) -> ExitCode {
+fn run(file: &Path, strict: bool, release: bool, backend: Backend) -> ExitCode {
     let src = match std::fs::read_to_string(file) {
         Ok(s) => s,
         Err(e) => return tool_failure(&format!("{}: {e}", file.display())),
@@ -354,6 +369,9 @@ fn run(file: &Path, strict: bool, release: bool) -> ExitCode {
         }
         Err(msg) => return tool_failure(&msg),
     };
+    if backend == Backend::Cranelift {
+        return native(&module);
+    }
     let mut out = std::io::stdout().lock();
     match yong_interp::run(&module, &mut out) {
         Ok(status) => ExitCode::from(status as u8),
@@ -450,6 +468,18 @@ fn is_ffi(file: &Path) -> bool {
 fn front_end_missing(file: &Path) -> String {
     let ext = file.extension().and_then(|e| e.to_str()).unwrap_or("");
     format!("no front end for .{ext} files yet: {}", file.display())
+}
+
+/// Run `m` as native code. A panic exits from inside the program.
+fn native(m: &yong_core::ast::Module) -> ExitCode {
+    let compiled = yong_mir::lower(m).and_then(|p| yong_cg_cranelift::compile(&p));
+    match compiled {
+        Ok(c) => {
+            c.run();
+            ExitCode::SUCCESS
+        }
+        Err(what) => tool_failure(&format!("not supported yet: {what}")),
+    }
 }
 
 fn tool_failure(msg: &str) -> ExitCode {

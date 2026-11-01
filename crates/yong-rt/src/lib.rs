@@ -2,6 +2,8 @@
 //! interpreter calls it directly and native code will call it through a C-ABI symbol (R561).
 //! Functions take and return plain Rust data, never interpreter values.
 
+#[allow(unsafe_code)]
+pub mod abi;
 pub mod collections;
 pub mod fmt;
 pub mod list;
