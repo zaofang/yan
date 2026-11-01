@@ -12,7 +12,8 @@ The same suite drives the interpreter and every code generator (spec 22.1, 24.1)
 
 With --laws, the runner instead checks the round-trip laws of 16.5 on every case (R564), using
     CMD hash --format json [--reverse-items] FILE -> JSON array of {"key", "hash", "identity"}
-    CMD view --as xin FILE.wen                   -> the module's Xin projection
+    CMD view --as xin FILE                        -> the module's Xin projection
+    CMD fmt --check FILE                          -> exit 1 if FILE is not canonical
 Exit status 1 from either means the module does not load or is outside the Xin subset; the
 law is then skipped for that case.
 
@@ -196,6 +197,12 @@ class CommandExecutor:
             raise ToolFailure(out.stderr.strip())
         return out.stdout if out.returncode == 0 else None
 
+    def canonical(self, path: Path) -> bool:
+        out = subprocess.run([*self.argv, "fmt", "--check", str(path)], capture_output=True)
+        if out.returncode >= TOOL_FAILURE:
+            raise ToolFailure(out.stderr.decode().strip())
+        return out.returncode == 0
+
 
 class LawExecutor(Protocol):
     @property
@@ -204,6 +211,8 @@ class LawExecutor(Protocol):
     def hash(self, path: Path, reverse: bool = False) -> list[tuple[str, str]] | None: ...
 
     def view(self, path: Path, surface: str) -> str | None: ...
+
+    def canonical(self, path: Path) -> bool: ...
 
 
 def _items(value: str) -> list[str]:
@@ -475,7 +484,33 @@ def law3(case: Case, ex: LawExecutor) -> Result:
     return Result(name, ex.name, "pass")
 
 
-LAWS = {"3": law3, "4": law4}
+def _first_difference(a: str, b: str) -> str:
+    for n, (x, y) in enumerate(zip(a.splitlines(), b.splitlines(), strict=False), 1):
+        if x != y:
+            return f"line {n}: {x!r} vs {y!r}"
+    return f"{len(a.splitlines())} vs {len(b.splitlines())} lines"
+
+
+def law1(case: Case, ex: LawExecutor) -> Result:
+    """A canonical Xin module prints back from its Yong byte for byte.
+
+    Comments do not reach Yong yet, so both sides are compared without comment lines.
+    """
+    name = str(case.path)
+    if case.path.suffix not in (".xin", ".jian"):
+        return Result(name, ex.name, "skip", "not Xin")
+    if not ex.canonical(case.path):
+        return Result(name, ex.name, "skip", "not canonical")
+    got = ex.view(case.path, "xin")
+    if got is None:
+        return Result(name, ex.name, "skip", "does not load or is outside the Xin subset")
+    want = _without_comments(case.path.read_text(encoding="utf-8"), "#").lstrip("\n")
+    if got != want:
+        return Result(name, ex.name, "fail", _first_difference(want, got))
+    return Result(name, ex.name, "pass")
+
+
+LAWS = {"1": law1, "3": law3, "4": law4}
 LAW_KINDS = ("pass", "run")
 
 

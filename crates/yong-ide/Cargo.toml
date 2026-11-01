@@ -12,6 +12,7 @@ serde.workspace = true
 yong-core.workspace = true
 yong-db.workspace = true
 yong-diag.workspace = true
+yong-elab.workspace = true
 yong-hir.workspace = true
 yong-names.workspace = true
 yong-wen.workspace = true

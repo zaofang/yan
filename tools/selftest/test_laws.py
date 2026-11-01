@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from tools.conform import Case, ToolFailure, check_laws, law3, law4
+from tools.conform import Case, ToolFailure, check_laws, law1, law3, law4
 
 type Hashes = list[tuple[str, str]]
 
@@ -29,6 +29,9 @@ class FakeLaws:
 
     def view(self, path: Path, surface: str) -> str | None:
         return self.xin
+
+    def canonical(self, path: Path) -> bool:
+        return True
 
 
 def case(tmp: Path, name: str, text: str, kind: str = "run") -> Case:
@@ -73,3 +76,11 @@ def test_unsupported_constructs_skip_and_fail_cases_are_not_checked(tmp_path: Pa
     ]
     out = check_laws(cases, FakeLaws())
     assert [r.status for r in out["4"]] == ["skip"]
+
+
+def test_law1_compares_without_comments(tmp_path: Path) -> None:
+    c = case(tmp_path, "m.xin", "# stdout: x\n\nx = 1\n")
+    assert law1(c, FakeLaws()).status == "pass"
+    r = law1(c, FakeLaws(xin="x = 2\n"))
+    assert r.status == "fail"
+    assert "line 1" in r.detail

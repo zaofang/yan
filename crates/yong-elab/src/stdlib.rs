@@ -106,6 +106,52 @@ static STD: LazyLock<Std> = LazyLock::new(|| {
     out
 });
 
+/// What raise needs from std (R559): which items elaboration copies in, which module declares a
+/// type, and each function's parameters with their defaults.
+pub struct StdInfo;
+
+impl yong_hir::raise::Std for StdInfo {
+    fn inserted(&self, path: &str) -> bool {
+        path.starts_with("std.")
+            || STD.classes.contains_key(path)
+            || STD.sums.contains_key(path)
+            || STD.fns.contains_key(&format!("std.prelude.{path}"))
+    }
+
+    fn type_module(&self, name: &str) -> Option<String> {
+        class_module(name)
+            .or_else(|| sum_module(name))
+            .map(str::to_owned)
+    }
+
+    fn params(&self, path: &str) -> Option<Vec<yong_hir::raise::StdParam>> {
+        let d = STD.fns.get(path)?;
+        let slash = d
+            .def
+            .params
+            .iter()
+            .position(|p| matches!(p, j::Param::Slash));
+        Some(
+            d.def
+                .params
+                .iter()
+                .enumerate()
+                .filter_map(|(i, p)| match p {
+                    j::Param::Value {
+                        name, default, ty, ..
+                    } => Some(yong_hir::raise::StdParam {
+                        name: name.clone(),
+                        default: default.clone(),
+                        positional: slash.is_some_and(|s| i < s),
+                        iter: matches!(ty, j::Type::Named { path, .. } if path == &["iter"]),
+                    }),
+                    _ => None,
+                })
+                .collect(),
+        )
+    }
+}
+
 pub(crate) fn decl(path: &str) -> Option<&'static Decl> {
     STD.fns.get(path)
 }
