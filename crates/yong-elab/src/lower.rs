@@ -76,6 +76,70 @@ struct Lower<'a, 'c, 's> {
     target: Option<String>,
     /// Inside an `unsafe` block (12.1).
     in_unsafe: bool,
+    /// Stage-0 names: an instance's `Nat` parameters and `#for` targets (10.4).
+    stage: Vec<(String, Sv)>,
+}
+
+/// A stage-0 value the elaborator folds itself.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum Sv {
+    Int(i128),
+    Bool(bool),
+}
+
+impl Sv {
+    fn atom(self, at: Span) -> (Atom, Ty) {
+        match self {
+            Sv::Int(n) => (Atom::Lit(Literal::Int(n.to_string()), at), Ty::Int),
+            Sv::Bool(b) => (Atom::Lit(Literal::Bool(b), at), Ty::Bool),
+        }
+    }
+}
+
+/// `e` folded with the stage-0 names in `env`, when it is built from literals and those names.
+pub(crate) fn fold(e: &j::Expr, env: &[(String, Sv)]) -> Option<Sv> {
+    use j::ExprKind as K;
+    let int = |e| match fold(e, env)? {
+        Sv::Int(n) => Some(n),
+        Sv::Bool(_) => None,
+    };
+    let bool_ = |e| match fold(e, env)? {
+        Sv::Bool(b) => Some(b),
+        Sv::Int(_) => None,
+    };
+    Some(match &e.kind {
+        K::Lit(j::Lit::Int(t)) => Sv::Int(int_text(t).ok()?.parse().ok()?),
+        K::Lit(j::Lit::Bool(b)) => Sv::Bool(*b),
+        K::Name(n) => env.iter().rev().find(|(m, _)| m == n)?.1,
+        K::Unary("-", x) => Sv::Int(int(x)?.checked_neg()?),
+        K::Not(x) => Sv::Bool(!bool_(x)?),
+        K::Binary("and", a, b) => Sv::Bool(bool_(a)? && bool_(b)?),
+        K::Binary("or", a, b) => Sv::Bool(bool_(a)? || bool_(b)?),
+        K::Binary(op, a, b) => {
+            let (x, y) = (int(a)?, int(b)?);
+            Sv::Int(match *op {
+                "+" => x.checked_add(y)?,
+                "-" => x.checked_sub(y)?,
+                "*" => x.checked_mul(y)?,
+                "//" if y != 0 => x.div_euclid(y),
+                "%" if y != 0 => x.rem_euclid(y),
+                _ => return None,
+            })
+        }
+        K::Compare(op, a, b) => {
+            let (x, y) = (fold(a, env)?, fold(b, env)?);
+            Sv::Bool(match (*op, x, y) {
+                ("==", x, y) => x == y,
+                ("!=", x, y) => x != y,
+                ("<", Sv::Int(x), Sv::Int(y)) => x < y,
+                ("<=", Sv::Int(x), Sv::Int(y)) => x <= y,
+                (">", Sv::Int(x), Sv::Int(y)) => x > y,
+                (">=", Sv::Int(x), Sv::Int(y)) => x >= y,
+                _ => return None,
+            })
+        }
+        _ => return None,
+    })
 }
 
 pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
@@ -136,6 +200,7 @@ pub(crate) fn walk(e: &j::Expr, f: &mut impl FnMut(&j::Expr)) {
         | K::Lambda(_, b)
         | K::Is { value: b, .. }
         | K::Reify(b)
+        | K::Stage(b)
         | K::Cast(b, _) => walk(b, f),
         K::Call(c, args) => {
             walk(c, f);
@@ -196,7 +261,8 @@ pub(crate) fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
         K::Ghost { value, .. } | K::Bind { value, .. } | K::LetElse { value, .. } => vec![value],
         K::Return(e) => e.iter().collect(),
         K::If { arms, .. } => arms.iter().map(|(c, _)| c).collect(),
-        K::While { cond, .. } => vec![cond],
+        K::While { cond, .. } | K::StageIf { cond, .. } => vec![cond],
+        K::StageFor { iter, .. } => vec![iter],
         K::For { iter, .. } => vec![iter],
         K::Match { scrutinee, .. } => vec![scrutinee],
         K::Par {
@@ -222,7 +288,13 @@ pub(crate) fn sub_blocks(s: &j::Stmt) -> Vec<&[j::Stmt]> {
             .map(|(_, b)| b.stmts.as_slice())
             .chain(els.iter().map(|b| b.stmts.as_slice()))
             .collect(),
-        K::While { body, .. } | K::For { body, .. } | K::Unsafe(body) => vec![body],
+        K::While { body, .. }
+        | K::For { body, .. }
+        | K::Unsafe(body)
+        | K::StageFor { body, .. } => vec![body],
+        K::StageIf { then, els, .. } => std::iter::once(then.as_slice())
+            .chain(els.iter().map(Vec::as_slice))
+            .collect(),
         K::Match { cases, .. } => cases.iter().map(|c| c.body.stmts.as_slice()).collect(),
         K::With { body, .. } | K::LetElse { els: body, .. } => vec![&body.stmts],
         K::Par { body, .. } => match body {
@@ -424,12 +496,19 @@ pub(crate) fn function(
     g.scope
         .borrow_mut()
         .extend(sig.tparams.iter().map(|(n, _)| n.clone()));
-    let r = function_body(g, f, sig, is_pub, cx);
+    let r = function_body(g, f, sig, is_pub, Vec::new(), cx);
     g.scope.borrow_mut().truncate(outer);
     r
 }
 
-fn function_body(g: &Globals, f: &j::FuncDef, sig: &Sig, is_pub: bool, cx: &mut Cx) -> R<y::FnDef> {
+fn function_body(
+    g: &Globals,
+    f: &j::FuncDef,
+    sig: &Sig,
+    is_pub: bool,
+    stage: Vec<(String, Sv)>,
+    cx: &mut Cx,
+) -> R<y::FnDef> {
     let Some(body) = &f.body else {
         return unsupported("functions without bodies");
     };
@@ -465,6 +544,7 @@ fn function_body(g: &Globals, f: &j::FuncDef, sig: &Sig, is_pub: bool, cx: &mut 
         loop_outer: Vec::new(),
         target: None,
         in_unsafe: false,
+        stage,
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -835,6 +915,34 @@ impl Lower<'_, '_, '_> {
             K::Ghost { name, .. } => {
                 self.ghosts.insert(name.clone());
             }
+            K::Expr(j::Expr {
+                kind: j::ExprKind::Stage(x),
+                ..
+            }) if matches!(&x.kind, j::ExprKind::Call(f, _) if matches!(&f.kind, j::ExprKind::Name(n) if n == "compile_error" || n == "compile_warn")) =>
+            {
+                let j::ExprKind::Call(f, args) = &x.kind else {
+                    unreachable!("matched")
+                };
+                let msg = match args.as_slice() {
+                    [
+                        j::Arg {
+                            kind:
+                                j::ArgKind::Expr(j::Expr {
+                                    kind: j::ExprKind::Lit(j::Lit::Str { value, .. }),
+                                    ..
+                                }),
+                            ..
+                        },
+                    ] => value.clone(),
+                    _ => return unsupported("`compile_error` with other than one string literal"),
+                };
+                let item = self.item.clone();
+                if matches!(&f.kind, j::ExprKind::Name(n) if n == "compile_error") {
+                    self.cx.err("E270", at, &item, msg);
+                } else {
+                    self.cx.warn("W816", at, &item, msg);
+                }
+            }
             K::Expr(e) => {
                 let (rhs, t) = self.rhs(e, None)?;
                 if !matches!(t, Ty::Unit | Ty::Never | Ty::Err) && matches!(rhs, Rhs::Call(_)) {
@@ -1064,6 +1172,30 @@ impl Lower<'_, '_, '_> {
                 self.emit(StmtKind::Unsafe(b?), at);
             }
             K::Asm { template, args } => self.asm(template, args, at)?,
+            K::StageIf { cond, then, els } => {
+                let Some(Sv::Bool(c)) = fold(cond, &self.stage) else {
+                    return unsupported("a `#if` condition that is not a stage-0 constant");
+                };
+                match (c, els) {
+                    (true, _) => self.stmts(then)?,
+                    (false, Some(b)) => self.stmts(b)?,
+                    (false, None) => {}
+                }
+            }
+            K::StageFor { target, iter, body } => {
+                let j::ExprKind::List(xs) = &iter.kind else {
+                    return unsupported("`#for` over a sequence other than a list literal");
+                };
+                for x in xs {
+                    let Some(v) = fold(x, &self.stage) else {
+                        return unsupported("a `#for` element that is not a stage-0 constant");
+                    };
+                    self.stage.push((target.clone(), v));
+                    let r = self.stmts(body);
+                    self.stage.pop();
+                    r?;
+                }
+            }
         }
         Ok(())
     }
@@ -1994,6 +2126,26 @@ impl Lower<'_, '_, '_> {
         use j::ExprKind as K;
         let at = e.span;
         Ok(match &e.kind {
+            K::Name(n) if self.stage.iter().any(|(m, _)| m == n) => {
+                let v = self
+                    .stage
+                    .iter()
+                    .rev()
+                    .find(|(m, _)| m == n)
+                    .expect("checked")
+                    .1;
+                let (a, t) = v.atom(at);
+                (Rhs::Atom(a), t)
+            }
+            K::Stage(x) => match fold(x, &self.stage) {
+                Some(v) => {
+                    let (a, t) = v.atom(at);
+                    (Rhs::Atom(a), t)
+                }
+                None => {
+                    return unsupported("stage-0 expressions in a function body beyond constants");
+                }
+            },
             K::Name(n) => {
                 if let Some(l) = self.locals.get(n) {
                     (Rhs::Atom(Atom::Name(n.clone(), at)), l.ty.clone())
@@ -2846,6 +2998,17 @@ impl Lower<'_, '_, '_> {
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         self.want_ret = want.map(|w| (w.clone(), at));
         match &f.kind {
+            j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if self.g.templates.contains_key(n)) =>
+            {
+                let j::ExprKind::Name(n) = &b.kind else {
+                    unreachable!("matched")
+                };
+                let Some(v) = fold(k, &self.stage) else {
+                    return unsupported("a stage-0 argument that is not a constant");
+                };
+                let (name, sig) = self.instance(n, v, at)?;
+                self.call_sig(&name, &sig, None, args, at)
+            }
             j::ExprKind::Name(n)
                 if !self.locals.contains_key(n) && self.pending.contains_key(n) =>
             {
@@ -2989,6 +3152,44 @@ impl Lower<'_, '_, '_> {
             _ => name,
         };
         self.call_sig(name, sig, recv, args, at)
+    }
+
+    /// The instance of template `n` for stage-0 argument `v`, lowered on first use (10.4).
+    /// Its errors are E272, noted with the instantiation site.
+    fn instance(&mut self, n: &str, v: Sv, at: Span) -> R<(String, Sig)> {
+        let shown = match v {
+            Sv::Int(i) => i.to_string(),
+            Sv::Bool(b) => b.to_string(),
+        };
+        let name = format!("{n}__{}", shown.replace('-', "m"));
+        if let Some(s) = self.g.instances.borrow().get(&name) {
+            return Ok((name, s.clone()));
+        }
+        let (def, param) = self.g.templates[n].clone();
+        let mut f = def.clone();
+        f.name = name.clone();
+        f.tparams.retain(|t| !matches!(t, j::TParam::Value { .. }));
+        let sig = crate::sig(self.g, &f, self.cx)?;
+        self.g
+            .instances
+            .borrow_mut()
+            .insert(name.clone(), sig.clone());
+        let start = self.cx.diags.len();
+        let fd = function_body(self.g, &f, &sig, false, vec![(param, v)], self.cx)?;
+        let site = format!("in `{n}[{shown}]`, instantiated at {}:{}", at.line, at.col);
+        for d in &mut self.cx.diags[start..] {
+            if d.severity == yong_diag::Severity::Error && d.code != "E270" {
+                d.code = "E272".into();
+            }
+            d.item = n.to_owned();
+            d.notes.push(site.clone());
+        }
+        self.g.generated.borrow_mut().push(y::Item {
+            attrs: Vec::new(),
+            kind: y::ItemKind::Fn(fd),
+            span: f.name_span,
+        });
+        Ok((name, sig))
     }
 
     /// A call of a C variadic: the arguments past the declared ones get the default argument

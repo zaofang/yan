@@ -219,3 +219,11 @@ Assumed in `yong patch` until the spec says otherwise:
 - E911 checks register classes and explicit registers of the host target (x86_64 or aarch64).
 - `@forbid(alloc)` (E900) flags list, set and dict literals, comprehensions and f-strings. `@forbid(rc, copy, panic)` is not checked yet and stops elaboration.
 - A named function used as a value lowers to a closure that calls it (closures are the only function values in core).
+
+## Stage-0 readings (10.4)
+
+- `let x: T = #e` at the top level is evaluated on the interpreter as a nullary function over the module, and its value becomes the constant. Inside function bodies, `#e` folds only integer and bool constants for now.
+- Steps count executed calls; loop iterations and allocations are not counted yet. The evaluator runs on a 1 GiB stack so `@limit(stage0_depth: n)` above the default is reachable.
+- A function with one `Nat` parameter is a template: each call `f[k](...)` lowers an instance `f__k` with `k` folded in. `#if` must fold to a bool, and only its taken branch is lowered. `#for` runs over a list literal of constants. Errors inside an instance are E272, except `compile_error` (E270), and each carries a note naming the instantiation. Code that does not depend on the parameter is not yet checked once at the definition (R346 phase one).
+- `embed(path)` resolves against the module's directory. The package root is the nearest ancestor with a `yong.toml`, else the module's directory.
+- Conformance question: `wen/pass/stage0/limit_raises_depth.wen` and `wen/run/stage0/folded_constant.wen` recurse without `decreases`, which is E602 (14, 8.4), and Wen has no lenient reader to infer N05. Either the cases need `decreases` lines, or Wen infers simple measures too.

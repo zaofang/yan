@@ -897,9 +897,29 @@ impl Lower<'_> {
             },
             StmtKind::Select(_) => return unsupported("`select`"),
             StmtKind::Unsafe(body) => K::Unsafe(self.stmts(body)?),
-            StmtKind::StageFor { .. } | StmtKind::StageIf { .. } => {
-                return unsupported("stage-0 statements");
-            }
+            StmtKind::StageIf {
+                cond,
+                then,
+                otherwise,
+            } => K::StageIf {
+                cond: self.expr(cond)?,
+                then: self.stmts(then)?,
+                els: otherwise.as_ref().map(|b| self.stmts(b)).transpose()?,
+            },
+            StmtKind::StageFor {
+                pattern:
+                    Pattern {
+                        kind: PatKind::Bind(target),
+                        ..
+                    },
+                iter,
+                body,
+            } => K::StageFor {
+                target: target.clone(),
+                iter: self.expr(iter)?,
+                body: self.stmts(body)?,
+            },
+            StmtKind::StageFor { .. } => return unsupported("`#for` over a pattern"),
         };
         Ok(stmt(kind, s.span))
     }
@@ -1275,7 +1295,7 @@ impl Lower<'_> {
             ExprKind::UnitNum { .. } => return unsupported("unit literals"),
             ExprKind::Temporal { .. } => return unsupported("date and time literals"),
             ExprKind::Grid(_) => return unsupported("grid literals"),
-            ExprKind::Stage(_) => return unsupported("stage-0 expressions"),
+            ExprKind::Stage(x) => K::Stage(b(self.expr(x)?)),
             ExprKind::Asm { .. } => return unsupported("`asm`"),
             ExprKind::TypeField(..) | ExprKind::Reflect(..) => {
                 return unsupported("type fields and reflection");

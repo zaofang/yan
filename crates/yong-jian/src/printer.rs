@@ -307,6 +307,7 @@ pub fn expr(e: &Expr, min: u8) -> String {
         ExprKind::Name(n) => n.clone(),
         ExprKind::Lit(l) => lit(l),
         ExprKind::Hole => "...".into(),
+        ExprKind::Stage(_) => unreachable!("Jian has no stage-0 expressions"),
         ExprKind::Wild => "_".into(),
         ExprKind::FStr { template, pieces } => {
             let q = QUOTE.get();

@@ -323,6 +323,18 @@ pub enum StmtKind {
     Reveal(Path),
     /// Wen's `unsafe` block (12).
     Unsafe(Vec<Stmt>),
+    /// Wen's `#if` (10.4): only the taken branch is checked.
+    StageIf {
+        cond: Expr,
+        then: Vec<Stmt>,
+        els: Option<Vec<Stmt>>,
+    },
+    /// Wen's `#for`: unrolled over a stage-0 sequence.
+    StageFor {
+        target: Name,
+        iter: Expr,
+        body: Vec<Stmt>,
+    },
     /// `asm(template, operands...)` inside `unsafe` (12.9).
     Asm {
         template: String,
@@ -527,6 +539,8 @@ pub enum ExprKind {
     Reify(Box<Expr>),
     /// `e as T`.
     Cast(Box<Expr>, Type),
+    /// Wen's `#e`: evaluated at stage 0 (10.4).
+    Stage(Box<Expr>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
