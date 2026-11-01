@@ -34,6 +34,8 @@ body      = expr NEWLINE
           | NEWLINE INDENT {contract} stmt {stmt} DEDENT
           | NEWLINE INDENT {contract} arm {arm} DEDENT                    -- clause form (R266, R370)
 contract  = ("pre" | "post" | "ex" | "decreases") expr NEWLINE
+          | "cost" bound {"," bound} NEWLINE            (R610; cost, steps and alloc are soft keywords here)
+bound     = ("steps" | "alloc") "<=" expr
 capitem   = NAME [":" TYPENAME] | TYPENAME | "none"                  -- TYPENAME: a capability set (R431)
 tparams   = "[" tparam {"," tparam} "]"
 tparam    = TYPENAME [":" bound {"+" bound}] | NAME ":" type          -- type or compile-time value
@@ -183,13 +185,13 @@ sync_prices(src: Url, dst: Path, since: PlainDate) -> Report
 
 **Indexing and strings.** As in Xin, an `xs[i]` that cannot be proven in bounds compiles with one runtime check, which the editor shows as a hint; Wen raises no W820 for it (R372). `@forbid(panic)` forbids such checks. Slices clamp as in Xin. No `len` and no integer indexing on `str` (E504). Maps index as in Xin (R287): `m[k]` reads with a check and `m[k] = v` inserts or replaces. `m[k]` is a mutable place when `m` is, so `m[k].hits += 1` works, and `m[k] op= v` inserts `Default` first when `k` is missing (R438). `for var x in xs` binds `x` to the mutable place of each element of a mutable place `xs` (`List`, `Deque`, `Soa` rows, `Map` values through `.values()`); the body may not otherwise touch `xs` (E402), and the loop lowers to an index loop with no bounds checks (R434).
 
-**Patterns.** `match` must be exhaustive (E503). On a sum, `_` is lint W811 (deny under `--strict` and release) rather than E502. `e is P` is a bool expression whose bindings scope over the branch it guards. `let P = e else d` requires `d` to diverge; P is never a bare name, since let x = e already binds (R374). Or-patterns, range patterns (`0..=9`), slice patterns on `View`, `StrView` and `List` (`[p, q, ..]`, `[p, ..rest]`, with `rest` a view of the scrutinee) and named-field patterns (`Rect(w:, h: 0.0)`) are available.
+**Patterns.** `match` must be exhaustive (E503), decided with guards as facts (8.6, R606). On a sum, `_` is lint W811 (deny under `--strict` and release) rather than E502. `e is P` is a bool expression whose bindings scope over the branch it guards. `let P = e else d` requires `d` to diverge; P is never a bare name, since let x = e already binds (R374). Or-patterns, range patterns (`0..=9`), slice patterns on `View`, `StrView` and `List` (`[p, q, ..]`, `[p, ..rest]`, with `rest` a view of the scrutinee) and named-field patterns (`Rect(w:, h: 0.0)`) are available.
 
 **Effects and handlers.** `uses` lists capabilities, never failure. `with name = e` binds a handler for the block and `with name = dyn e` makes it dynamic.
 
 **Concurrency.** `par` runs each top-level statement of its block as a branch; `par for x in xs` collects a `List` in input order, or streams when its body is unit, with `limit:`. `par concurrent` requires concurrent progress (E708). `select` waits on channel operations, `after(d)` and `deadline(t)`; the first ready arm in source order wins, and a recv arm's pattern matches `T?`, where None means the channel closed (E711 for any other arm form). `select` needs `uses nondet`. `with deadline(t)` and `with timeout(d)` open cancel scopes, as in Xin (R444). Actors (R435): an actor handler is a function whose first parameter is `var self: S`, the state. `actor.spawn(e, mailbox:, overflow:)` starts an actor locally and `cluster.spawn(e, placement:)` on a node (R400, R412); Wen has no spawn keyword. `h.f(args)` on an `Actor[S]` or `Remote[Actor[S]]` sends a message, found by 17.2 in the module that declares S, and its fail type is the handler's plus Timeout (9.6), plus RemoteError for a Remote handle (R408). `@reentrant` marks an actor handler.
 
-**Contracts and tests.** `pre`, `post`, `ex`, `decreases` and loop `invariant` lines open a body, in that order; `yong doc` renders `ex` lines under the doc comment. A `pub` item without `ex` is lint W813. A top-level function named `test_...` is a test, as in Xin.
+**Contracts and tests.** `pre`, `post`, `ex`, `decreases`, `cost` (R610) and loop `invariant` lines open a body, in that order; `yong doc` renders `ex` lines under the doc comment. A `pub` item without `ex` is lint W813. A top-level function named `test_...` is a test, as in Xin.
 
 **Numbers and operators.** As Xin: `int` is a checked i64, `/` on integers gives a float, `//` and `%` floor, `**` is power, and `& | ^ ~ << >>` are bitwise. `as`, `wrap_as`, `sat_as` and `trunc_as` convert. The percent unit is `pct`.
 
@@ -203,7 +205,7 @@ sync_prices(src: Url, dst: Path, since: PlainDate) -> Report
 - One blank line between top-level items; inside a body, author blank lines are kept, at most one in a row and none at the body's start or end (18.5, R376).
 - Items in author order; patches append new items at the end of the module.
 - Signature clauses in the order `-> T from p`, `fail E`, `uses`, laid out as 15.3 says. Clauses the author left to inference are not printed.
-- Contracts in the order `pre`, `post`, `ex`, `decreases`.
+- Contracts in the order `pre`, `post`, `ex`, `decreases`, `cost`.
 - Double-quoted strings, minimal parentheses plus those E101 requires, and nothing aligned.
 - Lines over 100 characters wrap inside brackets, one element per line with a trailing comma. Method chains wrap with one leading-`.` call per line.
 - A lambda whose body is a field-access chain on its parameter prints as the implicit subject.

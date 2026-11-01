@@ -32,7 +32,7 @@ Optional features and conditional dependencies are a non-goal for 1.0; platform 
 
 ### 19.2 Capability ceilings
 
-`capabilities` is a ceiling enforced transitively: using a capability the package did not declare is E314, including through dependencies. At publish the registry computes each version's effective capability set per `pub` item, with attenuations, plus extern libraries, `uses none` claims, `ffi` modules and unsafe items. It goes into the version's `.info`, the log leaf and the provenance. The declared ceiling MUST contain it, or publish fails (E006). Approvals and ceilings compare against this computed set.
+`capabilities` is a ceiling enforced transitively: using a capability the package did not declare is E314, including through dependencies. At publish the registry computes each version's effective capability set per `pub` item, with attenuations, plus extern libraries, `uses none` claims, `ffi` modules and unsafe items. It goes into the version's `.info`, the log leaf and the provenance, together with each `pub` item's contracts proven by certificates the registry re-checked (R608). The declared ceiling MUST contain it, or publish fails (E006). Approvals and ceilings compare against this computed set.
 
 ### 19.3 Registry, index and log
 

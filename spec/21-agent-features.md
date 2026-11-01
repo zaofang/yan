@@ -53,6 +53,8 @@ A Model Context Protocol server (protocol 2026-07-28, stateless) over stdio. Eve
 | `spec_check` | an item with body `...` | phase-1 results (21.1) |
 | `run_tests` | filter | results, with counterexamples for property tests |
 | `why_shared` | item or site | where a value is deep-copied or shared through `Rc` or `Arc` |
+| `why_needs` | item and a capability, `fail` member or panic kind | the chain of `yong why` (R612) |
+| `infer_invariants` | item | the patch adding accepted `invariant` clauses (R607) |
 | `debug` | a trace or a running test; a query (why, last\_write, step, back) | the answer of the one trace query engine of 18.4 (R306, R378) |
 | `explain` | code | long-form text |
 | `query` | a Xin body using only the `toolchain` capability; step and token budgets | the body's return value as JSON, or its diagnostics |
