@@ -1,0 +1,15 @@
+# spec: 17.3
+# rows: R509
+# stdout:
+# ['h', 'é', 'l', 'l', 'o'] 5
+# ['a', 'b', 'c']
+# h
+# é
+
+pub def main() uses io:
+    s = "héllo"
+    io.print(f"{s.iter().collect()} {s.iter().count()}")
+    t = "cab"
+    io.print(f"{sorted(t)}")
+    for c in s.iter().take(2):
+        io.print(f"{c}")

@@ -1,0 +1,18 @@
+# spec: 17.3
+# rows: R514
+# stdout:
+# ['a', 'bb', 'dd', 'ccc']
+# [-1, 2, 3, -5]
+# [3, -1, 2, -5]
+# [(1, 'x'), (1, 'y'), (2, 'z')]
+
+pub def main() uses io:
+    ws = ["bb", "a", "ccc", "dd"]
+    ws.sort(key=lambda w: w.char_count())
+    io.print(f"{ws}")
+    xs = [3, -1, 2, -5]
+    io.print(f"{sorted(xs, key=lambda x: abs(x))}")
+    io.print(f"{xs}")
+    ps = [(2, "z"), (1, "x"), (1, "y")]
+    ps.sort_unstable(key=lambda p: p)
+    io.print(f"{ps}")

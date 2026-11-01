@@ -1,0 +1,13 @@
+# spec: 17.3
+# rows: R514, R511
+# stdout:
+# 3 -4 1
+# bb a
+# None
+
+pub def main() uses io:
+    io.print(f"{min(3, -4, key=lambda x: abs(x))} {max(3, -4, key=lambda x: abs(x))} {min(2, 1)}")
+    ws = ["a", "bb", "cc"]
+    io.print(f"{ws.iter().max(key=lambda w: w.char_count())} {ws.iter().min(key=lambda w: w.char_count())}")
+    e: list[str] = []
+    io.print(f"{e.iter().max(key=lambda w: w.char_count())}")

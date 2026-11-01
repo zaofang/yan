@@ -1,0 +1,11 @@
+# spec: 17.3
+# rows: R514, R496
+# stdout:
+# 1 2
+# [(1, 'a'), (2, 'b'), (2, 'c'), (3, 'd')]
+
+pub def main() uses io:
+    ps = [(1, "a"), (2, "b"), (3, "d")]
+    io.print(f"{ps.bisect_left(2, key=lambda p: p[0])} {ps.bisect_right(2, key=lambda p: p[0])}")
+    ps.insort((2, "c"), key=lambda p: p[0])
+    io.print(f"{ps}")
