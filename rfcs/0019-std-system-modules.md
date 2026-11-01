@@ -212,12 +212,18 @@ Recommendation: accept.
 
 ### D11: `proc.Command`
 
-`Command(program: str, args: list[str] = [])` is a value, and each builder method returns a new
-`Command`:
-- `.arg(s)` and `.args(xs)`.
+`Command(program: str, args: list[str] = [])` is a built-in value type, and each builder method
+returns a new `Command`:
+- `.arg(s)` and `.with_args(xs)`.
 - `.env(name, value)` and `.env_clear()`.
-- `.cwd(p: P: AsPath)`.
+- `.in_dir(p: P: AsPath)`.
 - `.stdin(b: bytes)`, which defaults to empty.
+
+`.program()` and `.argv()` read it back, and `show` prints `Command(['echo', 'hi'])`.
+
+It is a built-in type rather than a class because class field defaults must still be literals,
+and a constructor that names every field would be noise. The names `with_args` and `in_dir` avoid
+a method and a field sharing a name with the `args` parameter and the `cwd` concept.
 
 `program` is `argv[0]`. The OS handler resolves it through `PATH` when it has no `/`, and never
 runs a shell (R448). An argument is never split or expanded.
@@ -227,20 +233,24 @@ Recommendation: accept.
 ### D12: `proc.run` and `Output`
 
 `proc.run(cmd: Command) -> Output fail ProcError` waits for the child and captures both output
-streams as `bytes`.
+streams as `bytes`. The handler writes `stdin` from its own thread, so a child that fills its
+output pipe before reading all its input cannot deadlock.
 
-`Output` has these parts:
-- `status: ExitStatus`, where `ExitStatus = Exited(code: int) | Signaled(signal: int)`.
+`Output` is a class:
+- `code: int | None`, which is `None` when a signal ended the child.
+- `signal: int | None`, the signal number on Unix.
 - `stdout: bytes` and `stderr: bytes`.
-- `out.success() -> bool`, which is true only for `Exited(0)`.
+- `out.success() -> bool`, which is true only for code 0.
 
-A non-zero exit is data, not a failure, as in Python's `subprocess.run` without `check`.
-`ProcError = { program: str, reason: ProcReason }`, where `ProcReason = NotFound() | Denied() |
-Io(msg: str)`, covers only a child that could not start or be read. `show(e)` prints
-`<program>: <reason>`.
+The draft's `ExitStatus = Exited(code) | Signaled(signal)` waits for std sum variants with
+fields. A non-zero exit is data, not a failure, as in Python's `subprocess.run` without `check`.
 
-The test handler is `fake_proc(outputs: dict[str, Output])`, keyed by `program`. An unknown program
-fails with `NotFound`. The default under `yong test` is `fake_proc({})`.
+`ProcError` has `program: str`, `reason: ProcReason` and `message: str`, where
+`ProcReason = NotFound() | PermissionDenied() | OsError()`. It covers only a child that could not
+start or be read. `show(e)` prints `<program>: <message>`.
+
+The test handler is `fake_proc(outputs: dict[str, Output] = {})`, keyed by `program`. An unknown
+program fails with `NotFound`. The default under `yong test` is `fake_proc({})`.
 
 Recommendation: accept.
 
