@@ -1,0 +1,15 @@
+# spec: 17.3
+# rows: R590
+# note: `suffix` is empty for a name whose only `.` is its first char
+# stdout:
+# archive.tar.gz .gz archive.tar
+# [] .bashrc [] []
+# dir/b.txt dir/archive.tar.bz2 dir/archive.tar
+# /a . / .
+
+pub def main() uses io:
+    f = Path("dir/archive.tar.gz")
+    io.print(f"{f.name()} {f.suffix()} {f.stem()}")
+    io.print(f"[{Path('.bashrc').suffix()}] {Path('.bashrc').stem()} [{Path('/').name()}] [{Path('a').suffix()}]")
+    io.print(f"{f.with_name('b.txt')} {f.with_suffix('.bz2')} {f.with_suffix('')}")
+    io.print(f"{Path('/a/b').parent()} {Path('a').parent()} {Path('/').parent()} {Path('..').parent()}")

@@ -14,9 +14,11 @@ clap = { version = "4.6", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 blake3 = "1"
+toml = "1"
 salsa = { version = "0.28", default-features = false, features = ["macros", "inventory"] }
 core-math = "1.4"
 indexmap = "2"
+jiff = { version = "0.2", default-features = false, features = ["std", "tzdb-bundle-always"] }
 libm = "0.2"
 num-bigint = "0.4"
 num-integer = "0.1"

@@ -1,0 +1,12 @@
+# spec: 17.3
+# rows: R587, R589
+# note: construction collapses separators, drops `.` and a trailing `/`, maps "" to `.`, and keeps `..`
+# stdout:
+# a/b . / a a/../b
+# True False x
+# ['/', 'usr', 'lib'] ['a', 'b'] []
+
+pub def main() uses io:
+    io.print(f"{Path('a//./b/')} {Path('')} {Path('/')} {Path('./a')} {Path('a/../b')}")
+    io.print(f"{Path('a//b') == Path('a/b')} {Path('a/../b') == Path('b')} {Path('x').text()}")
+    io.print(f"{Path('/usr/lib').parts()} {Path('a/b').parts()} {Path('.').parts()}")

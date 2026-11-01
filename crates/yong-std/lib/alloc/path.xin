@@ -1,0 +1,63 @@
+"""Lexical paths with `/` on every host; no capability (17.3, R587 to R591)."""
+
+@since("1.0")
+pub trait AsPath:
+    """A value that names a path: `str` and `Path`."""
+    def as_path(self: Self) -> Path: ...
+
+@intrinsic
+@since("1.0")
+pub def text(self: Path) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def parent(self: Path) -> Path: ...
+
+@intrinsic
+@since("1.0")
+pub def name(self: Path) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def suffix(self: Path) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def stem(self: Path) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def with_name(self: Path, n: str) -> Path: ...
+
+@intrinsic
+@since("1.0")
+pub def with_suffix(self: Path, s: str) -> Path: ...
+
+@intrinsic
+@since("1.0")
+pub def parts(self: Path) -> list[str]: ...
+
+@intrinsic
+@since("1.0")
+pub def is_absolute(self: Path) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def relative_to(self: Path, base: Path) -> Path | None: ...
+
+@intrinsic
+@since("1.0")
+pub def starts_with(self: Path, base: Path) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def normalize(self: Path) -> Path: ...
+
+
+@intrinsic
+@since("1.0")
+pub def as_path(self: Path) -> Path: ...
+
+@intrinsic
+@since("1.0")
+pub def join[P: AsPath](self: Path, part: P) -> Path: ...

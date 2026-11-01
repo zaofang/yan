@@ -1,0 +1,53 @@
+"""Exact time: `Duration`, `Instant`, `MonoInstant` and the `time` capability (17.5, R593 to R597)."""
+
+@since("1.0")
+pub type TimeReason = Syntax() | Range() | Zone() | Offset()
+
+@since("1.0")
+pub class TimeError:
+    """Text a time parser rejected: the char offset of the first bad char, and why."""
+    at: int
+    reason: TimeReason
+
+@since("1.0")
+pub type Disambiguation = Compatible() | Earlier() | Later()
+
+@since("1.0")
+pub class ZonedDateTime:
+    """An instant in a zone, with its wall-clock reading; equal by instant and zone (11.6)."""
+    instant: Instant
+    plain: PlainDateTime
+    zone: TimeZone
+
+@intrinsic
+@since("1.0")
+pub def offset_seconds(self: ZonedDateTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def zoned_add(self: ZonedDateTime, d: Duration) -> ZonedDateTime: ...
+
+@intrinsic
+@since("1.0")
+pub def zoned_sub(self: ZonedDateTime, d: Duration) -> ZonedDateTime: ...
+
+@intrinsic
+@since("1.0")
+pub def zoned_add_period(self: ZonedDateTime, p: Period) -> ZonedDateTime: ...
+
+@intrinsic
+@since("1.0")
+pub def strftime(self: ZonedDateTime, fmt: str) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def parse(s: str) -> ZonedDateTime fail TimeError: ...
+
+@capability
+@since("1.0")
+pub trait Time:
+    def now(self: Self) -> Instant: ...
+    def monotonic(self: Self) -> MonoInstant: ...
+    def sleep(self: Self, d: Duration) -> None: ...
+    def sleep_until(self: Self, m: MonoInstant) -> None: ...
+

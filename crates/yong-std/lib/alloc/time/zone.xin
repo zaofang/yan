@@ -1,0 +1,17 @@
+"""Methods on TimeZone, an IANA zone in the pinned std.tzdb or a fixed offset (7.5, 17.5, R600)."""
+
+@intrinsic
+@since("1.0")
+pub def parse(id: str) -> TimeZone fail TimeError: ...
+
+@intrinsic
+@since("1.0")
+pub def utc() -> TimeZone: ...
+
+@intrinsic
+@since("1.0")
+pub def fixed(offset_seconds: int) -> TimeZone: ...
+
+@intrinsic
+@since("1.0")
+pub def id(self: TimeZone) -> str: ...

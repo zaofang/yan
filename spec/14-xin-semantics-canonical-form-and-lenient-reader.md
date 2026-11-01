@@ -16,7 +16,7 @@
 
 **Sums, aliases and newtypes (R347, R214, R423).** Sums are syntactic. `type S = ...` declares a sum exactly when every alternative is an inline variant `Name(f: T, ...)`, or `Name()` when it has no fields: `type Tree = Leaf(value: int) | Node(left: Tree, right: Tree)`. Each variant declares a class that belongs to that sum, and constructing a variant yields a value of the sum type. Patterns spell a field-less variant `case Name():`. Any other `type X = T` is an alias, as in Python 3.12: `X` and `T` are the same type. So `type IoErr = FsError | Timeout` is an alias, usable only where a union is allowed (after `fail` or in `Result`), whether its classes are local or imported. `None` is never a sum alternative, and mixing inline variants with other alternatives is E232. The lenient reader turns a class used only as an alternative of one sum into an inline variant of it (N24), and `case Name:` on a variant into `case Name():` (N25). A newtype is `type N = newtype[T]`: a distinct type with no implicit conversion, built with `N(v)` and unwrapped with `.value`. A `where` clause adds a refinement predicate and is legal only on a newtype.
 
-**Match.** `match` must be exhaustive (E503). On a sum type, `case _` is forbidden (E502), so adding a variant breaks every match that should handle it, except for `@non_exhaustive` sums from another package and open C enums, which require it. On scalars and strings, `case _` is required unless the cases are provably exhaustive.
+**Match.** `match` must be exhaustive (E503). On a sum type, `case _` is forbidden (E502), so adding a variant breaks every match that should handle it, except for `@non_exhaustive` sums from another package and open C enums, which require it. On scalars and strings, `case _` is required unless the cases are provably exhaustive, with guards and refinements as facts (8.6, R606).
 
 **None and narrowing (R285, R421).** `T | None` is `Option[T]`. `x is None` and `x is not None` narrow a local's type in the branch they guard, as in mypy. For a mutable local the narrowing lasts until the next assignment to it, the next call that passes it as `&x`, or the next call that uses it as a `var` receiver. `x else y` unwraps or falls back. `x?` propagates `None` when the function returns an optional type.
 
@@ -34,7 +34,7 @@
 
 **Effects.** Every function lists its capabilities in `uses`, except `alloc`. A user capability is named by the snake\_case form of its trait, or `uses Trait as name` (R461). A capability set is declared as in Wen, `type Svc = uses net, log, time`, and its PascalCase name may appear in any `uses` list, where it expands in place (R431). `print` is `io.print`. `with name = e:` binds a handler for the block.
 
-**Contracts (R284).** `pre`, `post`, `ex` and `decreases` lines come first in a body, after the docstring, and are part of the header. In `post`, `out` is the result and `old(p)` is a `var` parameter's entry value. `ex` lines are optional at `yong check`. `yong publish` and `--level release` require at least one `ex`, or a `test_` function that calls it, for every `pub` function except `main` (E601). A recursive function MUST have `decreases` (E602), except where the lenient reader infers it (N05).
+**Contracts (R284).** `pre`, `post`, `ex`, `decreases` and `cost` (R610) lines come first in a body, after the docstring, and are part of the header. In `post`, `out` is the result and `old(p)` is a `var` parameter's entry value. `ex` lines are optional at `yong check`. `yong publish` and `--level release` require at least one `ex`, or a `test_` function that calls it, for every `pub` function except `main` (E601). A recursive function MUST have `decreases` (E602), except where the lenient reader infers it (N05).
 
 **Tests.** A top-level function named `test_...` that returns `None` is a test, whether `-> None` is written or not (R420); its `assert`s must hold. If it has parameters, it is a property test: inputs are generated from the parameter types by generators that read a ChaCha8 choice sequence, and failures are shrunk by editing that sequence with fixed passes (SQ27). Tests may bind fake handlers with `with`. Tests run with the default handlers of 7.3: an in-memory `fs`, seeded `rand`, virtual `time`, `fault = never` and no `net`, and sched = seeded(0) (R349); a test that needs a real capability binds it with `with`. Snapshot tests compare against stored output; `yong test --update` rewrites the snapshots as a patch for review. Test verdicts are cached as section 18.4 describes.
 
@@ -56,7 +56,7 @@ The printer MUST produce exactly one text for a given Xin tree:
 - Double-quoted strings, choosing f-strings where the source used them.
 - Minimal parentheses, plus those required by E101.
 - Lines over 100 characters are wrapped inside brackets with one argument per line and a trailing comma. Nothing is aligned.
-- Contracts in the order `pre`, `post`, `ex`, `decreases`.
+- Contracts in the order `pre`, `post`, `ex`, `decreases`, `cost`.
 - Locals print as `x = e`, never `var` or `let`; mutability is inferred (R214).
 - Fallible returns print as `-> T fail E`, and `-> None fail E` as `-> fail E`.
 - A sum prints on one line, variants with fields inline as `Name(f: T)`, while it fits in 100 characters; past that, one variant per line after `=`, each starting with `|`.

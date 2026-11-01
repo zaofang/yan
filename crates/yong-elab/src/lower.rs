@@ -699,6 +699,96 @@ fn call(path: &str, targs: Vec<y::TArg>, args: Vec<Arg>, span: Span) -> y::Call 
     }
 }
 
+/// The std function and result type of `op` between time values (17.5).
+fn time_op(c: &str, b: &Ty, op: &str) -> Option<(String, Ty)> {
+    let Ty::Coll(b, _) = b else {
+        return match (c, b, op) {
+            ("Duration", Ty::Int, "*") => {
+                Some(("std.time.duration.mul".into(), Ty::Coll("Duration", vec![])))
+            }
+            ("Duration", Ty::Int, "/") => {
+                Some(("std.time.duration.div".into(), Ty::Coll("Duration", vec![])))
+            }
+            ("Duration", Ty::Int, "//") => Some((
+                "std.time.duration.floordiv".into(),
+                Ty::Coll("Duration", vec![]),
+            )),
+            ("Duration", Ty::Int, "%") => {
+                Some(("std.time.duration.rem".into(), Ty::Coll("Duration", vec![])))
+            }
+            _ => None,
+        };
+    };
+    // (left, right, operator, module, function, result)
+    const OPS: &[(&str, &str, &str, &str, &str, &str)] = &[
+        ("Duration", "Duration", "+", "duration", "add", "Duration"),
+        ("Duration", "Duration", "-", "duration", "sub", "Duration"),
+        ("Duration", "Duration", "/", "duration", "ratio", "float"),
+        ("Duration", "Duration", "//", "duration", "quotient", "int"),
+        ("Instant", "Duration", "+", "instant", "add", "Instant"),
+        ("Instant", "Duration", "-", "instant", "sub", "Instant"),
+        ("Instant", "Instant", "-", "instant", "since", "Duration"),
+        ("MonoInstant", "Duration", "+", "mono", "add", "MonoInstant"),
+        ("MonoInstant", "Duration", "-", "mono", "sub", "MonoInstant"),
+        (
+            "MonoInstant",
+            "MonoInstant",
+            "-",
+            "mono",
+            "since",
+            "Duration",
+        ),
+        ("PlainDate", "Period", "+", "date", "add", "PlainDate"),
+        (
+            "PlainTime",
+            "Duration",
+            "+",
+            "plain_time",
+            "add",
+            "PlainTime",
+        ),
+        (
+            "PlainTime",
+            "Duration",
+            "-",
+            "plain_time",
+            "sub",
+            "PlainTime",
+        ),
+        (
+            "PlainDateTime",
+            "Duration",
+            "+",
+            "plain_date_time",
+            "add",
+            "PlainDateTime",
+        ),
+        (
+            "PlainDateTime",
+            "Duration",
+            "-",
+            "plain_date_time",
+            "sub",
+            "PlainDateTime",
+        ),
+        (
+            "PlainDateTime",
+            "Period",
+            "+",
+            "plain_date_time",
+            "add_period",
+            "PlainDateTime",
+        ),
+    ];
+    let &(_, _, _, module, f, rt) = OPS.iter().find(|r| (r.0, r.1, r.2) == (c, *b, op))?;
+    let rt = match rt {
+        "float" => Ty::Float,
+        "int" => Ty::Int,
+        t => Ty::Coll(crate::ty::collection(t).expect("a time type").0, vec![]),
+    };
+    Some((format!("std.time.{module}.{f}"), rt))
+}
+
 fn let_arg(a: Atom) -> Arg {
     let s = a.span();
     Arg::Value(Conv::Let, a, s)
@@ -2985,6 +3075,9 @@ impl Lower<'_, '_, '_> {
                             let z = self.tmp(&Ty::BigInt, z, at);
                             call("sub_bigint", vec![], vec![let_arg(z), let_arg(a)], at)
                         }
+                        Ty::Coll("Duration", _) => {
+                            call("std.time.duration.neg", vec![], vec![let_arg(a)], at)
+                        }
                         Ty::Err => return Ok((Rhs::Atom(a), Ty::Err)),
                         t => {
                             self.err("E201", x.span, format!("cannot negate a `{t}`"));
@@ -3440,6 +3533,17 @@ impl Lower<'_, '_, '_> {
                     None => return unsupported(format!("`{op}` on `{tx}`")),
                 }
             }
+            (Ty::Coll(c, _), _) if let Some((p, rt)) = time_op(c, &ty, op) => (p, rt, vec![]),
+            (Ty::Data(z), Ty::Coll(c @ ("Duration" | "Period"), _))
+                if z == "ZonedDateTime" && (op == "+" || (op == "-" && *c == "Duration")) =>
+            {
+                let f = match (*c, op) {
+                    ("Period", _) => "zoned_add_period",
+                    (_, "+") => "zoned_add",
+                    _ => "zoned_sub",
+                };
+                (format!("std.time.{f}"), tx.clone(), vec![])
+            }
             (Ty::Str, Ty::Str) if op == "+" => ("std.text.concat".to_owned(), Ty::Str, vec![]),
             (Ty::List(e), Ty::List(_)) if op == "+" => {
                 ("std.list.concat".to_owned(), tx.clone(), vec![e.targ()])
@@ -3740,6 +3844,14 @@ impl Lower<'_, '_, '_> {
                     && let module = match module.as_str() {
                         "bytes" => "encoding",
                         "bytearray" => "encoding.bytearray",
+                        "Duration" => "time.duration.of",
+                        "Instant" => "time.instant",
+                        "PlainDate" => "time.date",
+                        "PlainTime" => "time.plain_time",
+                        "PlainDateTime" => "time.plain_date_time",
+                        "Period" => "time.period",
+                        "TimeZone" => "time.zone",
+                        "ZonedDateTime" => "time",
                         m => m,
                     }
                     && let Some(d) = crate::stdlib::decl(&format!("std.{module}.{m}"))
@@ -3788,6 +3900,98 @@ impl Lower<'_, '_, '_> {
             _ => name,
         };
         self.call_sig(name, sig, recv, args, at)
+    }
+
+    /// E542: a literal `strftime` or `strptime` pattern may only use the directives its civil
+    /// type has fields for (14.2).
+    fn pattern_check(&mut self, ty: &str, fmt: Option<&j::Arg>) {
+        let has = match ty {
+            "PlainDate" => DATE,
+            "PlainTime" => TIME,
+            "PlainDateTime" => DATE | TIME,
+            _ => return,
+        };
+        let Some(j::Arg {
+            kind: j::ArgKind::Expr(e),
+            ..
+        }) = fmt
+        else {
+            return;
+        };
+        let j::ExprKind::Lit(j::Lit::Str { prefix, value }) = &e.kind else {
+            return;
+        };
+        if !matches!(prefix.as_str(), "" | "r") {
+            return;
+        }
+        let msg = match directives(value) {
+            Err(d) => format!("`{d}` is not a format directive"),
+            Ok(ds) => match ds.into_iter().find(|(_, need)| need & !has != 0) {
+                Some((d, _)) => format!("`{d}` does not apply to a `{ty}`"),
+                None => return,
+            },
+        };
+        self.err("E542", e.span, msg);
+    }
+
+    /// E540: `PlainDate` and `PlainTime` called with integer literals only must name a real
+    /// date or time (14.2).
+    fn civil_literal(&mut self, name: &str, args: &[j::Arg], at: Span) {
+        let (params, mut vals): (&[&str], Vec<Option<i128>>) = match name {
+            "PlainDate" => (&["y", "m", "d"], vec![None; 3]),
+            "PlainTime" => (&["h", "mi", "s", "ns"], vec![None, None, Some(0), Some(0)]),
+            _ => return,
+        };
+        for (i, a) in args.iter().enumerate() {
+            let j::ArgKind::Expr(e) = &a.kind else { return };
+            let j::ExprKind::Lit(j::Lit::Int(t)) = &e.kind else {
+                return;
+            };
+            let Some(v) = int_text(t).ok().and_then(|s| s.parse().ok()) else {
+                return;
+            };
+            let k = match &a.name {
+                None => i,
+                Some(n) => match params.iter().position(|p| p == n) {
+                    Some(k) => k,
+                    None => return,
+                },
+            };
+            let Some(slot) = vals.get_mut(k) else { return };
+            *slot = Some(v);
+        }
+        let Some(v) = vals.into_iter().collect::<Option<Vec<i128>>>() else {
+            return;
+        };
+        let ok = match name {
+            "PlainDate" => {
+                let leap = v[0] % 4 == 0 && (v[0] % 100 != 0 || v[0] % 400 == 0);
+                let dim = match v[1] {
+                    2 if leap => 29,
+                    2 => 28,
+                    4 | 6 | 9 | 11 => 30,
+                    _ => 31,
+                };
+                (-9999..=9999).contains(&v[0])
+                    && (1..=12).contains(&v[1])
+                    && (1..=dim).contains(&v[2])
+            }
+            _ => {
+                (0..24).contains(&v[0])
+                    && (0..60).contains(&v[1])
+                    && (0..60).contains(&v[2])
+                    && (0..1_000_000_000).contains(&v[3])
+            }
+        };
+        if !ok {
+            let shown: Vec<String> = v.iter().map(i128::to_string).collect();
+            let what = if name == "PlainDate" { "date" } else { "time" };
+            self.err(
+                "E540",
+                at,
+                format!("`{name}({})` is not a valid {what}", shown.join(", ")),
+            );
+        }
     }
 
     /// The instance of template `n` for stage-0 argument `v`, lowered on first use (10.4).
@@ -4058,6 +4262,14 @@ impl Lower<'_, '_, '_> {
             Ty::List(t) if matches!(b, "Eq" | "Ord") => self.implements(t, b),
             Ty::Coll("bytes", _) => matches!(b, "Eq" | "Ord" | "Hash"),
             Ty::Coll("bytearray", _) => b == "Eq",
+            Ty::Coll("Path" | "WindowsPath", _) if matches!(b, "Eq" | "Ord" | "Hash") => true,
+            Ty::Str | Ty::Coll("Path", _) if b == "AsPath" => true,
+            Ty::Coll("Duration" | "Instant", _) => matches!(b, "Eq" | "Ord" | "Hash"),
+            Ty::Coll("MonoInstant", _) => matches!(b, "Eq" | "Ord"),
+            Ty::Coll("PlainDate" | "PlainTime" | "PlainDateTime", _) => {
+                matches!(b, "Eq" | "Ord" | "Hash")
+            }
+            Ty::Coll("Period" | "TimeZone", _) => matches!(b, "Eq" | "Hash"),
             t => self.g.impls.contains(&(b.to_owned(), t.to_string())),
         }
     }
@@ -4575,6 +4787,7 @@ impl Lower<'_, '_, '_> {
                 if p.fail.is_some() {
                     return unsupported(format!("`{path}`, a std function that can fail"));
                 }
+                self.civil_literal(n, args, at);
                 let (r, t, _) = self.std_call(&path, p, Vec::new(), args, n, at)?;
                 Ok((r, t))
             }
@@ -4637,6 +4850,16 @@ impl Lower<'_, '_, '_> {
         let Some(mut p) = crate::stdlib::decl(&path).and_then(|d| d.plain()) else {
             return unsupported(format!("`{path}`"));
         };
+        if f == "strptime"
+            && let Some(n) = match module {
+                "time.date" => Some("PlainDate"),
+                "time.plain_time" => Some("PlainTime"),
+                "time.plain_date_time" => Some("PlainDateTime"),
+                _ => None,
+            }
+        {
+            self.pattern_check(n, args.get(1));
+        }
         // A literal pattern is checked here, so the call cannot fail (R484).
         if path == "std.regex.compile"
             && let [
@@ -4819,6 +5042,11 @@ impl Lower<'_, '_, '_> {
             self.err("E200", at, format!("no function `{m}` takes a `{t}` first"));
             return Ok((Rhs::Proj(p), e(), None));
         };
+        if m == "strftime"
+            && let Ty::Coll(n, _) = &t
+        {
+            self.pattern_check(n, args.first());
+        }
         let path = format!("std.{module}.{m}");
         let Some(d) = crate::stdlib::decl(&path) else {
             self.err("E203", name_at, format!("`{t}` has no method `{m}`"));
@@ -5159,4 +5387,45 @@ fn map_kv(t: &Ty) -> Option<(Ty, Ty)> {
         Ty::Coll("sorted_dict", ts) => Some((ts[0].clone(), ts[1].clone())),
         _ => None,
     }
+}
+
+const DATE: u8 = 1;
+const TIME: u8 = 2;
+const ZONE: u8 = 4;
+
+/// Each Jiff `strtime` directive in `fmt` with the fields it needs, or the first unknown one.
+fn directives(fmt: &str) -> Result<Vec<(String, u8)>, String> {
+    let cs: Vec<char> = fmt.chars().collect();
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < cs.len() {
+        if cs[i] != '%' {
+            i += 1;
+            continue;
+        }
+        let start = i;
+        i += 1;
+        while i < cs.len()
+            && (matches!(cs[i], '_' | '-' | '0' | '^' | '#' | '.' | ':') || cs[i].is_ascii_digit())
+        {
+            i += 1;
+        }
+        let text: String = cs[start..(i + 1).min(cs.len())].iter().collect();
+        let need = match cs.get(i) {
+            Some('%' | 'n' | 't') => 0,
+            Some(
+                'A' | 'a' | 'B' | 'b' | 'h' | 'C' | 'D' | 'd' | 'e' | 'F' | 'G' | 'g' | 'j' | 'm'
+                | 'q' | 'U' | 'u' | 'V' | 'W' | 'w' | 'x' | 'Y' | 'y',
+            ) => DATE,
+            Some(
+                'f' | 'H' | 'I' | 'k' | 'l' | 'M' | 'N' | 'P' | 'p' | 'R' | 'r' | 'S' | 'T' | 'X',
+            ) => TIME,
+            Some('c') => DATE | TIME,
+            Some('Q' | 's' | 'Z' | 'z') => ZONE,
+            _ => return Err(text),
+        };
+        out.push((text, need));
+        i += 1;
+    }
+    Ok(out)
 }

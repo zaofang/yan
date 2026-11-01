@@ -1,0 +1,93 @@
+"""Methods on PlainDateTime, a date and wall-clock time with no zone (17.5, R598, R599, R601, R602)."""
+
+@intrinsic
+@since("1.0")
+pub def parse(s: str) -> PlainDateTime fail TimeError: ...
+
+@intrinsic
+@since("1.0")
+pub def strptime(s: str, fmt: str) -> PlainDateTime fail TimeError: ...
+
+@intrinsic
+@since("1.0")
+pub def date(self: PlainDateTime) -> PlainDate: ...
+
+@intrinsic
+@since("1.0")
+pub def time(self: PlainDateTime) -> PlainTime: ...
+
+@intrinsic
+@since("1.0")
+pub def year(self: PlainDateTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def month(self: PlainDateTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def day(self: PlainDateTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def weekday(self: PlainDateTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def day_of_year(self: PlainDateTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def days_in_month(self: PlainDateTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def in_leap_year(self: PlainDateTime) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def hour(self: PlainDateTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def minute(self: PlainDateTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def second(self: PlainDateTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def nanosecond(self: PlainDateTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def add(self: PlainDateTime, d: Duration) -> PlainDateTime: ...
+
+@intrinsic
+@since("1.0")
+pub def sub(self: PlainDateTime, d: Duration) -> PlainDateTime: ...
+
+@intrinsic
+@since("1.0")
+pub def add_period(self: PlainDateTime, p: Period) -> PlainDateTime: ...
+
+@intrinsic
+@since("1.0")
+pub def checked_add(self: PlainDateTime, p: Period) -> PlainDateTime | None: ...
+
+@intrinsic
+@since("1.0")
+pub def until(self: PlainDateTime, o: PlainDateTime) -> tuple[Period, Duration]: ...
+
+@intrinsic
+@since("1.0")
+pub def in_zone(self: PlainDateTime, tz: TimeZone, d: Disambiguation) -> ZonedDateTime: ...
+
+@intrinsic
+@since("1.0")
+pub def in_zone_exact(self: PlainDateTime, tz: TimeZone) -> ZonedDateTime | None: ...
+
+@intrinsic
+@since("1.0")
+pub def strftime(self: PlainDateTime, fmt: str) -> str: ...

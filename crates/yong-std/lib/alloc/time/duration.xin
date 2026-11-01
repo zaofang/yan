@@ -1,0 +1,65 @@
+"""Methods on Duration, exact i128 nanoseconds (11.6, 17.5, R593, R595)."""
+
+@intrinsic
+@since("1.0")
+pub def nanos(self: Duration) -> int128: ...
+
+@intrinsic
+@since("1.0")
+pub def seconds(self: Duration) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def as_seconds_float(self: Duration) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def abs(self: Duration) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def checked_add(self: Duration, o: Duration) -> Duration | None: ...
+
+@intrinsic
+@since("1.0")
+pub def checked_sub(self: Duration, o: Duration) -> Duration | None: ...
+
+@intrinsic
+@since("1.0")
+pub def checked_mul(self: Duration, n: int) -> Duration | None: ...
+
+@intrinsic
+@since("1.0")
+pub def add(self: Duration, o: Duration) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def sub(self: Duration, o: Duration) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def neg(self: Duration) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def mul(self: Duration, n: int) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def floordiv(self: Duration, n: int) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def rem(self: Duration, n: int) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def div(self: Duration, n: int) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def ratio(self: Duration, o: Duration) -> float: ...
+
+@intrinsic
+@since("1.0")
+pub def quotient(self: Duration, o: Duration) -> int: ...

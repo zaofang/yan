@@ -539,3 +539,28 @@ sections = "1, 16.7, 26"
 rows = "R587 to R592"
 topic = "std.path (RFC 0008), decided by the owner: `Path` value type over `str` (R587); `/` on every host (R588); construction normalizes, `..` kept, explicit `normalize()` (R589); the lexical method set and `AsPath` (R590); `fs` takes `AsPath` and fails on non-UTF-8 names (R591); `WindowsPath` for Windows path text as data (R592)"
 sections = "17.3"
+
+[[entry]]
+rows = "R593 to R604"
+topic = "std.time (RFC 0009), decided by the owner: `Duration` API before units (R593); `Instant` and `MonoInstant` (R594); strict RFC 9557 `Show` and parsing (R595); `TimeError` (R596); `os`, `fixed_time` and `virtual` handlers (R597); plain civil types (R598); `Period` arithmetic with month-end clamping (R599); `TimeZone` and `TzDb` (R600); `ZonedDateTime` with required disambiguation (R601); strftime and strptime (R602); `env.local_zone()` in tests (R603); `Zone` and `Offset` error reasons (R604)"
+sections = "11.6, 17.5"
+
+[[entry]]
+rows = "R605 to R606"
+topic = "Exact solver and guard-aware matches (RFC 0010, https://claude.ai/artifact/YNj73yYvBWphMVzAdNLABE), decided by the owner: the Omega test decides R345 goals, with `%` and low-bit masks tied to their operands (R605); match exhaustiveness decided by the 8.6 solver with guards and refinements as facts, witnesses in E503, W853 for empty arms (R606)"
+sections = "8.6, 14.1, 15, 25"
+
+[[entry]]
+rows = "R607 to R609"
+topic = "Proof and test power (RFC 0011), decided by the owner: invariant inference written back as source by `yong fix --infer` (R607); Alethe proof certificates checked in-tree, V402, re-checked by the registry (R608); `yong test --symbolic` over the checked interpreter (R609)"
+sections = "8.7, 18.1, 18.4, 19.2, 21.4, 25"
+
+[[entry]]
+rows = "R610 to R612"
+topic = "New header facts (RFC 0012), decided by the owner: `cost steps <= A, alloc <= B` checked by amortized resource analysis, E618 and W851, in Yong, Xin and Wen (R610); `@constant_time` functions and E424 (R611); `yong why <item> <fact>` and `why_needs` (R612)"
+sections = "3.5, 8.4, 13, 14, 15, 17.4, 18.1, 18.4, 21.4, 25"
+
+[[entry]]
+rows = "R613 to R615"
+topic = "Numerics (RFC 0013), decided by the owner: accuracy lint W852 with an e-graph rewrite fix (R613); reverse mode as linearize then transpose on checked Yong (R614); sparse storage formats for `math.ein` (R615)"
+sections = "11.1, 11.2, 11.5, 25"

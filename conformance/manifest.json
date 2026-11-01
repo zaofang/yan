@@ -4197,6 +4197,113 @@
    "exit": 0
   },
   {
+   "path": "xin/run/std/path_construct.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R587",
+    "R589"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a/b . / a a/../b\nTrue False x\n['/', 'usr', 'lib'] ['a', 'b'] []\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/path_eq_ord_hash.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R587"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[/z, a, a/c, a-b, b]\nTrue True\n1 1\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/path_join_relative.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R588",
+    "R590"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "/srv/app/logs /srv/app/x/y /etc /srv/app/data\nTrue False\nlogs/x . None\nNone True False\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/path_names.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R590"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "archive.tar.gz .gz archive.tar\n[] .bashrc [] []\ndir/b.txt dir/archive.tar.bz2 dir/archive.tar\n/a . / .\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/path_normalize.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R589"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a/c / /b\n.. . ../../x\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/path_windows.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R592"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "C:\\Users\\Ann\\notes.TXT C: \\ C:\\ True ['C:\\\\', 'Users', 'Ann', 'notes.TXT']\nnotes.TXT .TXT C:\\Users\\Ann C:\\Users\\Ann\\notes.TXT\\x D:\\y C:\\top\n\\\\server\\share\\dir\\f \\\\server\\share True False False\n\\\\?\\C:\\a\\.\\b \\\\?\\C:\nTrue 1\na/b None b\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/path_with_name_invalid.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R590"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a/c\n",
+   "exit": 101
+  },
+  {
    "path": "xin/run/std/regex_anchors.xin",
    "kind": "run",
    "milestone": "M1",
