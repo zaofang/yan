@@ -1,0 +1,19 @@
+# spec: 11.1
+# rows: R505
+# stdout:
+# 1.0 0.9999999999999999
+# 1.0 1e+308
+# 2.0000000000000004 2.0
+# nan inf -0.0
+# 2.0 nan
+
+pub def main() uses io:
+    tenths = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+    naive = 0.0
+    for t in tenths:
+        naive += t
+    io.print(f"{math.sum_exact(tenths)} {naive}")
+    io.print(f"{math.sum_exact([1e100, 1.0, -1e100])} {math.sum_exact([1e308, 1e308, -1e308])}")
+    io.print(f"{math.sum_exact([2.0, 1e-30], round=math.Up())} {math.sum_exact([2.0, 1e-30], round=math.Down())}")
+    io.print(f"{math.sum_exact([math.inf, -math.inf])} {math.sum_exact([math.inf, 1.0])} {math.sum_exact([-0.0, -0.0])}")
+    io.print(f"{math.dot_exact([1e100, 1.0, -1e100], [1.0, 2.0, 1.0])} {math.dot_exact([math.inf], [0.0])}")

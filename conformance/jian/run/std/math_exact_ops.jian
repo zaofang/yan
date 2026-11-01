@@ -1,0 +1,13 @@
+# spec: 11.1, 17.3
+# rows: R501
+# stdout:
+# 2.0 -3.0 -2.0 3.0
+# 1.0 -1.0 2.0 -0.0
+# (0.75, 2) 12.0 5e-324
+# 1.0000000000000002 0.9999999999999999
+
+pub def main() uses io:
+    io.print(f"{math.floor(2.5)} {math.floor(-2.5)} {math.trunc(-2.5)} {math.ceil(2.5)}")
+    io.print(f"{math.fmod(7.0, 3.0)} {math.fmod(-7.0, 3.0)} {math.remainder(10.0, 4.0)} {math.copysign(0.0, -1.0)}")
+    io.print(f"{math.frexp(3.0)} {math.ldexp(3.0, 2)} {math.next_up(0.0)}")
+    io.print(f"{math.next_up(1.0)} {math.next_down(1.0)}")

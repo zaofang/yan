@@ -3697,6 +3697,131 @@
    "exit": 0
   },
   {
+   "path": "jian/run/std/math_constants.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "11.1",
+    "17.3"
+   ],
+   "rows": [
+    "R506"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3.141592653589793 2.718281828459045\ninf -inf nan\nTrue False True\nFalse True False\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/math_domain.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "11.1"
+   ],
+   "rows": [
+    "R503"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "nan -inf inf\nnan nan inf\nnan nan 1.0\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/math_dot_exact_lengths.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "11.1"
+   ],
+   "rows": [
+    "R505"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "11.0\n",
+   "exit": 101
+  },
+  {
+   "path": "jian/run/std/math_exact_ops.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "11.1",
+    "17.3"
+   ],
+   "rows": [
+    "R501"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2.0 -3.0 -2.0 3.0\n1.0 -1.0 2.0 -0.0\n(0.75, 2) 12.0 5e-324\n1.0000000000000002 0.9999999999999999\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/math_functions.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "11.1",
+    "17.3"
+   ],
+   "rows": [
+    "R501",
+    "R502"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2.718281828459045 1024.0 1000.0 0.0\n0.0 3.0 2.0 1.0\n0.0 -1.0 0.0 1.0\n1.4142135623730951 3.0 0.5 5.0\n1024.0 -8.0 0.125 3.0\n120.0 0.0 1.0 0.0\n0.5 0.25 0.75 1.0\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/math_hard_cases.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "11.1"
+   ],
+   "rows": [
+    "R500",
+    "R501"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0.7338601008640645\n1.8559676262001739\n34.737994747766855\n0.19350237337635803\n1.2336100807049262\n0.883694409607053\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/math_round_modes.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "11.1"
+   ],
+   "rows": [
+    "R504"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0.3333333333333333 0.33333333333333337 0.3333333333333333 0.3333333333333333\n-0.3333333333333333 -0.3333333333333333 -0.33333333333333337 -0.3333333333333333\n1.0 1.0000000000000002 1.0 1.0\n1.4142135623730951 1.414213562373095\n1.7976931348623157e+308 inf\n-0.0 0.0\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/math_sum_exact.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "11.1"
+   ],
+   "rows": [
+    "R505"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1.0 0.9999999999999999\n1.0 1e+308\n2.0000000000000004 2.0\nnan inf -0.0\n2.0 nan\n",
+   "exit": 0
+  },
+  {
    "path": "jian/run/std/regex_anchors.jian",
    "kind": "run",
    "milestone": "M1",

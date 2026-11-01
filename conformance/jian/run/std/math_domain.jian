@@ -1,0 +1,12 @@
+# spec: 11.1
+# rows: R503
+# note: a domain error or overflow gives the IEEE result, never a panic
+# stdout:
+# nan -inf inf
+# nan nan inf
+# nan nan 1.0
+
+pub def main() uses io:
+    io.print(f"{math.sqrt(-1.0)} {math.log(0.0)} {math.exp(1000.0)}")
+    io.print(f"{math.acos(2.0)} {math.log(-1.0)} {math.tgamma(0.0)}")
+    io.print(f"{math.powr(-8.0, 1.0 / 3.0)} {math.powr(1.0, math.inf)} {math.pow(1.0, math.inf)}")
