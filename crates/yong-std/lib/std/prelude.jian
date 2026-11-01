@@ -2,7 +2,7 @@
 
 @intrinsic
 @since("1.0")
-pub def sorted[T: Ord](xs: list[T]) -> list[T]: ...
+pub def sorted[T, K: Ord](xs: iter[T], key: Callable[[T], K] | None = None) -> list[T]: ...
 
 @intrinsic
 @since("1.0")
@@ -22,11 +22,11 @@ pub def abs[T: Num](x: T) -> T: ...
 
 @intrinsic
 @since("1.0")
-pub def min[T: Ord](a: T, b: T, /) -> T: ...
+pub def min[T, K: Ord](a: T, b: T, /, key: Callable[[T], K] | None = None) -> T: ...
 
 @intrinsic
 @since("1.0")
-pub def max[T: Ord](a: T, b: T, /) -> T: ...
+pub def max[T, K: Ord](a: T, b: T, /, key: Callable[[T], K] | None = None) -> T: ...
 
 @intrinsic
 @since("1.0")
@@ -107,3 +107,11 @@ pub def reversed[T](xs: list[T]) -> list[T]:
     for i in range(n):
         out.append(xs[n - 1 - i].copy())
     return out
+
+@intrinsic
+@since("1.0")
+pub def set[T: Hash](xs: iter[T]) -> set[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def dict[K: Hash, V](xs: iter[tuple[K, V]]) -> dict[K, V]: ...

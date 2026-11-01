@@ -55,7 +55,7 @@ fn every_intrinsic_method_instantiates() {
                 .is_some_and(|p| matches!(p, j::Param::Value { name, .. } if name == "self"));
             let path = format!("std.{module}.{}", f.name);
             let d = stdlib::decl(&path).expect("declared");
-            if is_method && d.intrinsic {
+            if is_method && d.intrinsic && !d.typed_at_call() {
                 assert!(d.method(&t).is_some(), "{path} on {t}");
             }
         }

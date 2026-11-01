@@ -54,27 +54,8 @@ pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
             xs.insert(at as usize, mem::replace(v, Unit));
             Unit
         }
-        ("std.list.sort", [List(xs)]) => {
-            xs.sort_by(cmp);
-            Unit
-        }
-        ("std.list.sort_unstable", [List(xs)]) => {
-            xs.sort_unstable_by(cmp);
-            Unit
-        }
         ("std.list.reverse", [List(xs)]) => {
             xs.reverse();
-            Unit
-        }
-        ("std.list.bisect_left", [List(xs), x]) => {
-            Int(xs.partition_point(|y| cmp(y, x) == Ordering::Less) as i128)
-        }
-        ("std.list.bisect_right", [List(xs), x]) => {
-            Int(xs.partition_point(|y| cmp(y, x) != Ordering::Greater) as i128)
-        }
-        ("std.list.insort", [List(xs), x]) => {
-            let at = xs.partition_point(|y| cmp(y, x) != Ordering::Greater);
-            xs.insert(at, mem::replace(x, Unit));
             Unit
         }
         ("std.list.slice_exact", [List(xs), Int(a), Int(b)]) => {
@@ -82,11 +63,6 @@ pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
                 (Ok(a), Ok(b)) if a <= b && b <= xs.len() => List(xs[a..b].to_vec()),
                 _ => return Some(panic("bounds")),
             }
-        }
-        ("std.prelude.sorted", [List(xs)]) => {
-            let mut v = xs.clone();
-            v.sort_by(cmp);
-            List(v)
         }
         ("std.prelude.int", [Float(f)]) => {
             let t = f.trunc();
@@ -106,15 +82,6 @@ pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
         ("std.prelude.abs", [Int(i)]) if *i == i64::MIN.into() => return Some(panic("overflow")),
         ("std.prelude.abs", [Int(i)]) => Int(i.abs()),
         ("std.prelude.abs", [Float(f)]) => Float(f.abs()),
-        ("std.prelude.min" | "std.prelude.max", [a, b]) => {
-            let less = order(b, a) == Some(Ordering::Less);
-            let pick_b = if name.ends_with("min") {
-                less
-            } else {
-                order(b, a) == Some(Ordering::Greater)
-            };
-            if pick_b { b.clone() } else { a.clone() }
-        }
         ("std.cmp.eq", [a, b]) => Bool(a == b),
         ("std.cmp.ne", [a, b]) => Bool(a != b),
         ("std.cmp.lt", [a, b]) => Bool(order(a, b) == Some(Ordering::Less)),
