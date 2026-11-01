@@ -36,6 +36,38 @@ pub def concat[T](self: list[T], other: list[T]) -> list[T]: ...
 @since("1.0")
 pub def contains[T: Eq](self: list[T], x: T) -> bool: ...
 
+@intrinsic
+@since("1.0")
+pub def insert[T](var self: list[T], i: int, take x: T) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def sort[T: Ord](var self: list[T]) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def sort_unstable[T: Ord](var self: list[T]) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def reverse[T](var self: list[T]) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def bisect_left[T: Ord](self: list[T], x: T) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def bisect_right[T: Ord](self: list[T], x: T) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def insort[T: Ord](var self: list[T], take x: T) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def slice_exact[T](self: list[T], start: int, stop: int) -> list[T]: ...
+
 @since("1.0")
 pub def extend[T](var self: list[T], other: list[T]) -> None:
     for x in other:

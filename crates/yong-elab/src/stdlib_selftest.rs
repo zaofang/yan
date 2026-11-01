@@ -130,3 +130,11 @@ fn collections_build_query_and_show() {
         "deque([4, 2, 3], maxlen=3) 4 0 heap([1, 3, 5]) sorted_dict({1: 'a', 2: 'b'}) b (2, 'b') [2, 3] 6\n"
     );
 }
+
+#[test]
+fn list_sorts_and_bisects_like_python() {
+    let src = "pub def main() uses io:\n    xs = [3, 1, 2, 2]\n    xs.sort()\n\
+               \x20   xs.insort(2)\n    xs.insert(-1, 9)\n\
+               \x20   io.print(f\"{xs} {xs.bisect_left(2)} {xs.bisect_right(2)} {xs.slice_exact(1, 3)}\")\n";
+    assert_eq!(run(src), "[1, 2, 2, 2, 9, 3] 1 4 [2, 2]\n");
+}

@@ -48,9 +48,44 @@ pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
             List(a.iter().chain(b.iter()).cloned().collect())
         }
         ("std.list.contains", [List(xs), v]) => Bool(xs.contains(v)),
+        ("std.list.insert", [List(xs), Int(i), v]) => {
+            let n = xs.len() as i128;
+            let at = if *i < 0 { (n + *i).max(0) } else { (*i).min(n) };
+            xs.insert(at as usize, mem::replace(v, Unit));
+            Unit
+        }
+        ("std.list.sort", [List(xs)]) => {
+            xs.sort_by(cmp);
+            Unit
+        }
+        ("std.list.sort_unstable", [List(xs)]) => {
+            xs.sort_unstable_by(cmp);
+            Unit
+        }
+        ("std.list.reverse", [List(xs)]) => {
+            xs.reverse();
+            Unit
+        }
+        ("std.list.bisect_left", [List(xs), x]) => {
+            Int(xs.partition_point(|y| cmp(y, x) == Ordering::Less) as i128)
+        }
+        ("std.list.bisect_right", [List(xs), x]) => {
+            Int(xs.partition_point(|y| cmp(y, x) != Ordering::Greater) as i128)
+        }
+        ("std.list.insort", [List(xs), x]) => {
+            let at = xs.partition_point(|y| cmp(y, x) != Ordering::Greater);
+            xs.insert(at, mem::replace(x, Unit));
+            Unit
+        }
+        ("std.list.slice_exact", [List(xs), Int(a), Int(b)]) => {
+            match (usize::try_from(*a), usize::try_from(*b)) {
+                (Ok(a), Ok(b)) if a <= b && b <= xs.len() => List(xs[a..b].to_vec()),
+                _ => return Some(panic("bounds")),
+            }
+        }
         ("std.prelude.sorted", [List(xs)]) => {
             let mut v = xs.clone();
-            v.sort_by(|a, b| order(a, b).unwrap_or(Ordering::Equal));
+            v.sort_by(cmp);
             List(v)
         }
         ("std.prelude.int", [Float(f)]) => {
@@ -96,7 +131,7 @@ pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
     }))
 }
 
-pub(super) fn order(a: &Value, b: &Value) -> Option<Ordering> {
+fn order(a: &Value, b: &Value) -> Option<Ordering> {
     use Value::*;
     match (a, b) {
         (Int(x), Int(y)) => Some(x.cmp(y)),
@@ -230,4 +265,9 @@ pub(super) fn float_repr(f: f64) -> String {
     }
     let s = format!("{f}");
     if s.contains('.') { s } else { format!("{s}.0") }
+}
+
+/// A total order for sorting; the checker admits only `Ord` element types.
+pub(super) fn cmp(a: &Value, b: &Value) -> Ordering {
+    order(a, b).unwrap_or(Ordering::Equal)
 }
