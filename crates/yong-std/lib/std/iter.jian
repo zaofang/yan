@@ -1,0 +1,17 @@
+"""Lazy iterators: sources (17.3, R508 to R515). The methods are in std.iter.ops."""
+
+@intrinsic
+@since("1.0")
+pub def count(start: int = 0, step: int = 1) -> iter[int]: ...
+
+@intrinsic
+@since("1.0")
+pub def repeat[T](x: T, n: int | None = None) -> iter[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def once[T](x: T) -> iter[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def empty[T]() -> iter[T]: ...

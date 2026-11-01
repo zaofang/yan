@@ -1,0 +1,102 @@
+"""Methods on iter[T]: lazy adapters and consumers. A pipeline pulls one item at a time from
+its end (R508 to R515)."""
+
+@intrinsic
+@since("1.0")
+pub def map[T, U](self: iter[T], f: Callable[[T], U]) -> iter[U]: ...
+
+@intrinsic
+@since("1.0")
+pub def filter[T](self: iter[T], keep: Callable[[T], bool]) -> iter[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def take_while[T](self: iter[T], keep: Callable[[T], bool]) -> iter[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def drop_while[T](self: iter[T], drop: Callable[[T], bool]) -> iter[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def take[T](self: iter[T], n: int) -> iter[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def skip[T](self: iter[T], n: int) -> iter[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def step_by[T](self: iter[T], n: int) -> iter[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def zip[T, U](self: iter[T], other: iter[U]) -> iter[tuple[T, U]]: ...
+
+@intrinsic
+@since("1.0")
+pub def enumerate[T](self: iter[T]) -> iter[tuple[int, T]]: ...
+
+@intrinsic
+@since("1.0")
+pub def flat_map[T, U](self: iter[T], f: Callable[[T], list[U]]) -> iter[U]: ...
+
+@intrinsic
+@since("1.0")
+pub def chain[T](self: iter[T], other: iter[T]) -> iter[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def windows[T](self: iter[T], n: int) -> iter[list[T]]: ...
+
+@intrinsic
+@since("1.0")
+pub def chunks[T](self: iter[T], n: int) -> iter[list[T]]: ...
+
+@intrinsic
+@since("1.0")
+pub def next[T](self: iter[T]) -> T | None: ...
+
+@intrinsic
+@since("1.0")
+pub def collect[T](self: iter[T]) -> list[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def fold[T, A](self: iter[T], init: A, f: Callable[[A, T], A]) -> A: ...
+
+@intrinsic
+@since("1.0")
+pub def count[T](self: iter[T]) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def any[T](self: iter[T], p: Callable[[T], bool]) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def all[T](self: iter[T], p: Callable[[T], bool]) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def find[T](self: iter[T], p: Callable[[T], bool]) -> T | None: ...
+
+@intrinsic
+@since("1.0")
+pub def min[T: Ord](self: iter[T]) -> T | None: ...
+
+@intrinsic
+@since("1.0")
+pub def max[T: Ord](self: iter[T]) -> T | None: ...
+
+@intrinsic
+@since("1.0")
+pub def sum[T: Num](self: iter[T]) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def done[T](self: iter[T]) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def current[T](self: iter[T]) -> T: ...

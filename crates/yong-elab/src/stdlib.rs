@@ -178,6 +178,24 @@ pub(crate) struct Plain {
 }
 
 impl Decl {
+    /// A generic intrinsic whose type arguments come from all its arguments, not just the
+    /// receiver: std.iter's functions and any that take a function. Calls to it are typed as
+    /// calls to a module function.
+    pub fn typed_at_call(&self) -> bool {
+        self.intrinsic
+            && !self.def.tparams.is_empty()
+            && (self.module.starts_with("iter")
+                || self.def.params.iter().any(|p| {
+                    matches!(
+                        p,
+                        j::Param::Value {
+                            ty: j::Type::Callable { .. },
+                            ..
+                        }
+                    )
+                }))
+    }
+
     /// `None` for a generic function or a type beyond [`Ty`].
     pub fn plain(&'static self) -> Option<Plain> {
         if !self.def.tparams.is_empty() {
@@ -396,6 +414,8 @@ pub(crate) struct Body {
     /// The definition, renamed to the call path: the bare name for the prelude,
     /// `std.<module>.<name>` for a method.
     def: j::FuncDef,
+    /// Native: only its signature is registered, for calls typed by [`Decl::typed_at_call`].
+    intrinsic: bool,
 }
 
 /// The std functions with Jian bodies that `m` calls, directly or through each other, and does
@@ -421,7 +441,19 @@ fn bodies(m: &j::Module) -> Vec<Body> {
             .filter(|(p, d)| d.module != "prelude" && p.rsplit('.').next() == Some(n.as_str()))
             .map(|(p, d)| (p.clone(), d));
         for (key, d) in prelude.into_iter().chain(methods) {
-            if d.intrinsic || d.cap {
+            if d.cap {
+                continue;
+            }
+            if d.intrinsic {
+                if d.typed_at_call() {
+                    let mut def = d.def.clone();
+                    def.name = key;
+                    out.push(Body {
+                        module: d.module,
+                        def,
+                        intrinsic: true,
+                    });
+                }
                 continue;
             }
             let Some(b) = &d.def.body else { continue };
@@ -431,6 +463,7 @@ fn bodies(m: &j::Module) -> Vec<Body> {
             out.push(Body {
                 module: d.module,
                 def,
+                intrinsic: false,
             });
         }
     }
@@ -452,6 +485,7 @@ pub(crate) fn collect(g: &mut Globals, m: &j::Module) -> R<Vec<Body>> {
 
 pub(crate) fn lower(g: &Globals, bs: &[Body]) -> R<Vec<y::Item>> {
     bs.iter()
+        .filter(|b| !b.intrinsic)
         .map(|b| {
             let mut cx = std_cx(b.module);
             let f = crate::lower::function(g, &b.def, &g.fns[&b.def.name], false, &mut cx)?;

@@ -293,6 +293,20 @@ impl<'o> Vm<'o> {
         Ok((r, finals))
     }
 
+    /// Call closure `c`; a closure cannot fail, since function types have no `fail` yet.
+    pub(crate) fn apply(&mut self, c: &Rc<Clo>, args: Vec<Value>) -> R<Value> {
+        let base = self.stack.len();
+        let n = args.len();
+        self.stack.extend(args);
+        self.enter(c.code, Some(c), base, n);
+        let r = self.exec(c.code, base)?;
+        release(&mut self.stack, base);
+        match r {
+            Ok(v) => Ok(v),
+            Err(_) => unsupported("a closure failed inside std.iter"),
+        }
+    }
+
     /// Lay out the frame at `base`, whose first `nargs` slots hold the arguments.
     fn enter(&mut self, f: usize, clo: Option<&Clo>, base: usize, nargs: usize) {
         let code = &self.codes[f];
@@ -629,6 +643,13 @@ impl<'o> Vm<'o> {
                 }
                 r
             }
+            Target::Native if s.name.starts_with("std.iter.") || s.name.ends_with(".iter") => {
+                let args = self.stack[new_base..].iter_mut().map(mem::take).collect();
+                match self.iter_call(&s.name, args) {
+                    Some(r) => Ok(r?),
+                    None => return unsupported(format!("call of `{}`", s.name)),
+                }
+            }
             Target::Native => {
                 let r = native_call(&mut self.it, &s.name, &mut self.stack[new_base..], &s.stage)?;
                 for (i, a) in s.args.iter().enumerate() {
@@ -761,6 +782,7 @@ mod tests {
             ("regex", include_str!("regex.rs")),
             ("collections", include_str!("collections.rs")),
             ("math", include_str!("math.rs")),
+            ("iter", include_str!("iter.rs")),
             ("lib builtins", include_str!("lib.rs")),
         ];
         let mut seen: BTreeMap<&str, &str> = BTreeMap::new();

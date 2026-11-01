@@ -94,3 +94,7 @@ pub def fold[T, A](self: list[T], init: A, f: Callable[[A, T], A]) -> A:
     for x in self:
         acc = f(acc, x)
     return acc
+
+@intrinsic
+@since("1.0")
+pub def iter[T](self: list[T]) -> iter[T]: ...

@@ -972,6 +972,98 @@ impl Lower<'_, '_, '_> {
         Ok(())
     }
 
+    /// Bind a `for` target, one name or a tuple of names, to `cur` of type `ty`.
+    fn bind_target(&mut self, target: &[String], ty: &Ty, cur: Rhs, at: Span, span: Span) {
+        match (target, ty) {
+            ([n], _) => {
+                let m = self.mutable.contains(n);
+                self.bind(n, m, ty, cur, at, span);
+            }
+            (ns, Ty::Tuple(ts)) if ns.len() == ts.len() => {
+                let e = self.tmp(ty, cur, at);
+                let Atom::Name(e, _) = e else {
+                    unreachable!("a projection is bound")
+                };
+                for (k, (n, t)) in ns.iter().zip(ts).enumerate() {
+                    let p = Rhs::Proj(Place {
+                        root: e.clone(),
+                        root_span: at,
+                        projs: vec![Proj::Field(format!("_{k}"), at)],
+                    });
+                    let m = self.mutable.contains(n);
+                    self.bind(n, m, t, p, at, at);
+                }
+            }
+            _ => {
+                self.err(
+                    "E201",
+                    at,
+                    format!("cannot unpack `{ty}` into {} names", target.len()),
+                );
+            }
+        }
+    }
+
+    /// `for` over an `iter[T]`: pull until it is done (R515).
+    #[allow(clippy::too_many_arguments)]
+    fn for_iter(
+        &mut self,
+        label: String,
+        name: Option<&str>,
+        target: &[String],
+        it: Atom,
+        e: Ty,
+        span: Span,
+        at: Span,
+        body: impl FnOnce(&mut Self) -> R<()>,
+    ) -> R<()> {
+        self.loops.push((label.clone(), name.map(str::to_owned)));
+        let b = self.block_with(|l| {
+            let done = call(
+                "std.iter.ops.done",
+                vec![e.targ()],
+                vec![let_arg(it.clone())],
+                at,
+            );
+            let done = l.tmp(&Ty::Bool, Rhs::Call(done), at);
+            let brk = y::Stmt {
+                kind: StmtKind::Break {
+                    label: label.clone(),
+                    value: None,
+                },
+                span: at,
+            };
+            l.emit(
+                StmtKind::If {
+                    cond: done,
+                    then: y::Block { stmts: vec![brk] },
+                    els: None,
+                },
+                at,
+            );
+            let cur = call(
+                "std.iter.ops.current",
+                vec![e.targ()],
+                vec![let_arg(it)],
+                at,
+            );
+            l.bind_target(target, &e, Rhs::Call(cur), at, span);
+            body(l)
+        });
+        self.loops.pop();
+        let body = b?;
+        self.emit(
+            StmtKind::Loop {
+                label,
+                invariants: Vec::new(),
+                decreases: Vec::new(),
+                body,
+            },
+            at,
+        );
+        Ok(())
+    }
+
     fn for_(
         &mut self,
         name: Option<&str>,
@@ -1022,6 +1114,10 @@ impl Lower<'_, '_, '_> {
             (None, stop, step)
         } else {
             let (mut xs, t) = self.atom(iter, None)?;
+            if let Ty::Coll("iter", ts) = &t {
+                let e = ts[0].clone();
+                return self.for_iter(label, name, target, xs, e, iter.span, at, body);
+            }
             let mut len_path = "std.list.len".to_owned();
             let e = match &t {
                 Ty::List(e) => (**e).clone(),
@@ -1101,34 +1197,7 @@ impl Lower<'_, '_, '_> {
                 ),
                 Some(_) => return unsupported("iterating a literal"),
             };
-            match (target, &ty) {
-                ([n], _) => {
-                    let m = l.mutable.contains(n);
-                    l.bind(n, m, &ty, cur, at, iter.span);
-                }
-                (ns, Ty::Tuple(ts)) if ns.len() == ts.len() => {
-                    let e = l.tmp(&ty, cur, at);
-                    let Atom::Name(e, _) = e else {
-                        unreachable!("a projection is bound")
-                    };
-                    for (k, (n, t)) in ns.iter().zip(ts).enumerate() {
-                        let p = Rhs::Proj(Place {
-                            root: e.clone(),
-                            root_span: at,
-                            projs: vec![Proj::Field(format!("_{k}"), at)],
-                        });
-                        let m = l.mutable.contains(n);
-                        l.bind(n, m, t, p, at, at);
-                    }
-                }
-                _ => {
-                    l.err(
-                        "E201",
-                        at,
-                        format!("cannot unpack `{ty}` into {} names", target.len()),
-                    );
-                }
-            }
+            l.bind_target(target, &ty, cur, at, iter.span);
             let next = call(
                 "add_checked_i64",
                 vec![],
@@ -2728,6 +2797,12 @@ impl Lower<'_, '_, '_> {
                 .tparams
                 .iter()
                 .any(|(n, bs)| n == p && bs.iter().any(|x| x == b)),
+            Ty::Int | Ty::Float | Ty::BigInt | Ty::Fixed(_) if b == "Num" => true,
+            Ty::Int | Ty::Float | Ty::BigInt | Ty::Fixed(_) | Ty::Str | Ty::Char | Ty::Bool
+                if matches!(b, "Eq" | "Ord" | "Hash") =>
+            {
+                !(b == "Hash" && matches!(t, Ty::Float | Ty::Fixed("f32" | "f64")))
+            }
             t => self.g.impls.contains(&(b.to_owned(), t.to_string())),
         }
     }
@@ -3273,6 +3348,9 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         let path = format!("std.{module}.{f}");
+        if crate::stdlib::decl(&path).is_some_and(|d| d.typed_at_call()) {
+            return self.user_call(&path, None, args, at);
+        }
         let Some(mut p) = crate::stdlib::decl(&path).and_then(|d| d.plain()) else {
             return unsupported(format!("`{path}`"));
         };
@@ -3408,6 +3486,27 @@ impl Lower<'_, '_, '_> {
             let (p, t) = self.place(b)?;
             return Ok((Rhs::Copy(p), t, None));
         }
+        // A prelude function that shares its name with an iter method (`zip`, `max`): the
+        // receiver's type picks. Both take the receiver by `let`, so a temporary is enough.
+        if self.g.fns.contains_key(m)
+            && crate::stdlib::decl(&format!("std.prelude.{m}")).is_some()
+            && crate::stdlib::decl(&format!("std.iter.ops.{m}")).is_some()
+        {
+            let (a, t) = self.atom(b, None)?;
+            let Atom::Name(n, _) = a else {
+                return unsupported(format!("`.{m}()` on a literal"));
+            };
+            let recv = j::Expr {
+                kind: j::ExprKind::Name(n),
+                span: b.span,
+                paren: false,
+            };
+            let path = match t {
+                Ty::Coll("iter", _) => format!("std.iter.ops.{m}"),
+                _ => m.to_owned(),
+            };
+            return self.user_call(&path, Some(&recv), args, at);
+        }
         if self.g.fns.contains_key(m) {
             return self.user_call(m, Some(b), args, at);
         }
@@ -3432,7 +3531,7 @@ impl Lower<'_, '_, '_> {
             self.err("E203", name_at, format!("`{t}` has no method `{m}`"));
             return Ok((Rhs::Proj(p), e(), None));
         };
-        if !d.intrinsic {
+        if !d.intrinsic || d.typed_at_call() {
             return self.user_call(&path, Some(b), args, at);
         }
         let Some(crate::stdlib::Method {

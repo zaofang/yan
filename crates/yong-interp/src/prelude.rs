@@ -215,6 +215,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         }
         Cap(n) => format!("<capability {n}>"),
         Closure(_) => "<function>".into(),
+        Iter(_) => "<iter>".into(),
     }
 }
 

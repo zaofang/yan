@@ -28,6 +28,8 @@ pub const SOURCES: &[(&str, &str)] = &[
     ("fmt", include_str!("../lib/std/fmt.jian")),
     ("fs", include_str!("../lib/std/fs.jian")),
     ("io", include_str!("../lib/std/io.jian")),
+    ("iter", include_str!("../lib/std/iter.jian")),
+    ("iter.ops", include_str!("../lib/std/iter/ops.jian")),
     ("list", include_str!("../lib/std/list.jian")),
     ("log", include_str!("../lib/std/log.jian")),
     ("math", include_str!("../lib/std/math.jian")),

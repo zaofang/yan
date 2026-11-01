@@ -34,8 +34,9 @@ pub enum Ty {
 }
 
 /// Each std.collections type: its Jian name and its Yong name.
-pub const COLLECTIONS: [(&str, &str); 4] = [
+pub const COLLECTIONS: [(&str, &str); 5] = [
     ("deque", "Deque"),
+    ("iter", "Iter"),
     ("heap", "Heap"),
     ("sorted_dict", "SortedMap"),
     ("sorted_set", "SortedSet"),
@@ -162,6 +163,7 @@ impl Ty {
             Ty::Coll("deque", _) => Some("collections.deque"),
             Ty::Coll("heap", _) => Some("collections.heap"),
             Ty::Coll("sorted_dict", _) => Some("collections.sorted_dict"),
+            Ty::Coll("iter", _) => Some("iter.ops"),
             Ty::Coll(_, _) => Some("collections.sorted_set"),
             Ty::Int | Ty::Float | Ty::BigInt | Ty::Bool | Ty::Fixed(_) => Some("num"),
             Ty::Option(_) | Ty::Result(..) => Some("result"),

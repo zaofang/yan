@@ -15,6 +15,7 @@ use yong_core::ast::*;
 
 mod collections;
 mod compile;
+mod iter;
 mod math;
 mod native;
 mod prelude;
@@ -57,6 +58,7 @@ pub(crate) enum Value {
     },
     Cap(Name),
     Closure(Rc<vm::Clo>),
+    Iter(iter::It),
 }
 
 /// FNV-1a: frames hash short names on every access, where SipHash dominated the profile.
