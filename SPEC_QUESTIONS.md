@@ -197,3 +197,11 @@ Assumed in `yong patch` until the spec says otherwise:
 - P006 covers a change to, or the deletion of, an existing `test_` function, and any change to the set of `pre`, `post`, `ex`, `invariant` and `decreases` lines of an existing item. Adding a new test is allowed.
 - `--check` refuses with P003 when the patched module has an error whose code and item the original module did not have. The introduced diagnostics follow the P003 record.
 - The oplog line is `{"file", "before", "after"}` with the module's whole text.
+
+## MCP readings (21.4)
+
+- `yong mcp` serves the modules under the working directory. A tool's `name` of `a.b` means item `b` of module `a` when `a.jian` exists and `a/b.jian` does not.
+- `max_tokens` and `budget` count four bytes per token; lines or items are kept in order while they fit.
+- No diagnostic carries a machine fix yet, so `autofix` returns the canonical reprint (the lenient reader's normalizations, 14.4) of each item whose text differs, as a `replace` patch with base hashes.
+- `sig` gives each function up to its first body statement (decorators, header, docstring, `pre`/`post`/`ex`/`decreases`), and every other item whole.
+- A plain text patch through `check_patch`/`apply_patch` takes the module as a `module` argument. Patches are always checked (P003), and protected targets refuse with P006, since the server has no confirmation token yet.
