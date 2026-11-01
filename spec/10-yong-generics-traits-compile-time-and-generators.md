@@ -71,6 +71,8 @@ Generators are the only control handlers. A generator (Wen L5 `gen name(params) 
 | `@non_exhaustive` | outside the package, matches need a wildcard and literals and destructuring need `..` (20.6) | L1 |
 | `@prove` | module (written @@prove at the top of the file, R466) or function uses the `prove` level | Contracts |
 | `@forbid(rc, alloc, copy, panic)`, any subset (R447) | proof obligations (5.7) | L4 |
+| `@vectorize` | `par for` bodies run in SIMD lanes, as a proof obligation (5.7, R618) | L4 |
+| `@access(...)` | access pattern of a kernel, extern or engine item, used for fusion (11.2, R621) | L4 |
 | `@inline`, `@cold` | optimization hints | L1 |
 | `@unordered`, `@fast_math` | relax determinism; require `uses nondet` | L3 |
 | `nonblocking` | marks a foreign call that does not block; every other foreign call blocks (9.7, R447) | L6 |

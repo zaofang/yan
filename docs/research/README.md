@@ -6,7 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
-| 2026-11-01 | [Deep frontier survey: speed and capability](https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H) | Pending: four RFC cards (E to H) |
+| 2026-11-01 | [Deep frontier survey: speed and capability](https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H) | RFCs 0015 to 0018 (R616 to R628) |
 | 2026-11-01 | [Theory and compiler frontier survey](https://claude.ai/artifact/YNj73yYvBWphMVzAdNLABE) | RFCs 0010 to 0013 (R605 to R615) |
 | 2026-11-01 | [Naming study: Yong and its surfaces](https://claude.ai/artifact/8zD7T9QnYtNUsbF96cLHNN) | R586 |
 | 2026-11-01 | [What makes Xin and Wen special](https://claude.ai/artifact/4piYJXunC1Vp4f14HAtYHh) | R566 to R568; Xin-to-Wen view stays in M3 |

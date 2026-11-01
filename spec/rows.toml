@@ -564,3 +564,23 @@ sections = "3.5, 8.4, 13, 14, 15, 17.4, 18.1, 18.4, 21.4, 25"
 rows = "R613 to R615"
 topic = "Numerics (RFC 0013), decided by the owner: accuracy lint W852 with an e-graph rewrite fix (R613); reverse mode as linearize then transpose on checked Yong (R614); sparse storage formats for `math.ein` (R615)"
 sections = "11.1, 11.2, 11.5, 25"
+
+[[entry]]
+rows = "R616 to R618"
+topic = "Guaranteed zero-cost abstractions (RFC 0015, https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H), decided by the owner: lambda set specialization, so a closure with a closed lambda set and no heap-backed captures never allocates or calls indirectly (R616); every chain of std adapters fuses to one loop with no allocation or indirect call (R617); SIMD lanes for `uses none` `par for` bodies, and `@vectorize` as a proof attribute (R618)"
+sections = "5.5, 5.7, 9.3, 10.6, 11.3, 13, 17"
+
+[[entry]]
+rows = "R619 to R622"
+topic = "Data engines (RFC 0016), decided by the owner: DBSP incremental views in `@yong/frame` with exact float sums (R619); `get_many`, `contains_many` and `index_many` batch lookups (R620); `@access` patterns for fusion across kernels, extern functions and engine items, E274 (R621); `par_scan` and integer affine recurrences as scans (R622)"
+sections = "5.6, 9.3, 10.6, 11.2, 11.9, 17, 25"
+
+[[entry]]
+rows = "R623 to R626"
+topic = "std algorithms (RFC 0017), decided by the owner: `boolean=True` regex patterns with `&`, `~` and flat lookarounds, leftmost-longest, in linear time (R623); `math.fsum` and `sum(exact = true)` in `ColExpr` and query aggregates (R624); `frozen_sorted_set` and `frozen_sorted_dict` (R625); `fuse_filter` and `roaring_set` (R626)"
+sections = "11.1, 17"
+
+[[entry]]
+rows = "R627 to R628"
+topic = "Session protocols (RFC 0018), decided by the owner: `session.protocol` global protocols projected onto roles, E728 (R627); linear session endpoints for tasks, actors and `Remote`, E727 (R628)"
+sections = "9.5, 9.6, 25"
