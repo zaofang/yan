@@ -207,6 +207,7 @@ const RT: &[RtFn] = &[
     RtFn::ListLen,
     RtFn::ListAt,
     RtFn::ListCopy,
+    RtFn::Alloc,
 ];
 
 /// Symbol, address, parameter types and result type.
@@ -290,6 +291,12 @@ fn rt_fn(
             "yong_rt_list_at",
             abi::yong_rt_list_at as *const u8,
             &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::Alloc => (
+            "yong_rt_alloc",
+            abi::yong_rt_alloc as *const u8,
+            &[I64],
             Some(I64),
         ),
         RtFn::ListCopy => (
@@ -393,6 +400,7 @@ impl Gen<'_, '_> {
             Operand::Bool(x) => self.b.ins().iconst(types::I8, i64::from(*x)),
             Operand::Unit => return None,
             Operand::Str(s) => self.b.ins().iconst(types::I64, self.strings[*s as usize]),
+            Operand::Func(f) => self.b.ins().func_addr(types::I64, self.funcs[*f as usize]),
         })
     }
 
@@ -419,6 +427,28 @@ impl Gen<'_, '_> {
                 let c = self.b.ins().call(self.funcs[*func as usize], &args);
                 let rs = self.b.inst_results(c).to_vec();
                 // Unit slots have neither a variable nor a result.
+                let ds = dst.iter().filter(|d| self.vars[**d as usize].is_some());
+                for (d, r) in ds.copied().collect::<Vec<_>>().into_iter().zip(rs) {
+                    self.set(Some(d), Some(r));
+                }
+            }
+            Inst::CallIndirect {
+                dst,
+                code,
+                args,
+                params,
+                ret,
+            } => {
+                let mut sig = Signature::new(CallConv::Tail);
+                sig.params
+                    .extend(params.iter().filter_map(|t| clif(*t)).map(AbiParam::new));
+                sig.returns
+                    .extend(ret.iter().filter_map(|t| clif(*t)).map(AbiParam::new));
+                let sig = self.b.import_signature(sig);
+                let code = self.val(code).expect("a code address");
+                let args = self.vals(args);
+                let c = self.b.ins().call_indirect(sig, code, &args);
+                let rs = self.b.inst_results(c).to_vec();
                 let ds = dst.iter().filter(|d| self.vars[**d as usize].is_some());
                 for (d, r) in ds.copied().collect::<Vec<_>>().into_iter().zip(rs) {
                     self.set(Some(d), Some(r));
@@ -679,6 +709,28 @@ mod selftest {
         let (m, d) = yong_core::parse("t.yong", src);
         assert!(d.is_empty(), "{d:?}");
         let p = yong_mir::lower(&m.unwrap()).expect("lowers");
+        super::compile(&p).expect("compiles").run();
+    }
+
+    #[test]
+    fn runs_generic_functions_and_closures() {
+        let src = "module t\n\
+            fn apply[T: Type, U: Type](let f: Fn(let T) -> U, let x: T) -> U {\n\
+            let y: U = f(let x)\n ret y\n}\n\
+            fn main() -> Unit {\n let k: i64 = 10\n\
+            let add: Fn(let i64) -> i64 = fn [let k](let x: i64) -> i64 {\n\
+            let s: i64 = add_checked_i64(let x, let k)\n ret s\n }\n\
+            let r: i64 = apply[i64, i64](let add, let 5)\n assert eq_i64(let r, let 15)\n\
+            let neg: Fn(let bool) -> bool = fn [](let b: bool) -> bool {\n let n: bool = not_bool(let b)\n ret n\n }\n\
+            let q: bool = apply[bool, bool](let neg, let true)\n assert eq_bool(let q, let false)\n ret ()\n}\n";
+        let (m, d) = yong_core::parse("t.yong", src);
+        assert!(d.is_empty(), "{d:?}");
+        let p = yong_mir::lower(&m.unwrap()).expect("lowers");
+        assert_eq!(
+            p.funcs.len(),
+            5,
+            "main, two instances of apply, two closures"
+        );
         super::compile(&p).expect("compiles").run();
     }
 
