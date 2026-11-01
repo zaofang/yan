@@ -33,6 +33,7 @@ pub fn lower(file: &str, src: &str, m: &Module) -> R<(h::Module, Vec<Diagnostic>
         inferred,
         docs: m.docs.iter().cloned().collect(),
         doc: None,
+        self_ty: named(&["Self"], Vec::new()),
     };
     let mut items = Vec::new();
     for it in &m.items {
@@ -58,6 +59,8 @@ struct Lower<'a> {
     docs: HashMap<u32, String>,
     /// The doc comment above the item being lowered.
     doc: Option<String>,
+    /// What an unannotated `self` is: the impl's type, else `Self`.
+    self_ty: h::Type,
 }
 
 fn mk(kind: h::ExprKind, span: Span) -> h::Expr {
@@ -131,7 +134,7 @@ impl Lower<'_> {
         self.doc = self.doc_above(it.span.line);
         let (kind, name_span) = match &it.kind {
             ItemKind::Fn(f) => {
-                let def = self.fn_def(f, it.public)?;
+                let def = self.fn_def(&f.sig, Some(&f.body), !it.public)?;
                 let span = f.sig.name_span;
                 match f.kind {
                     FnKind::Plain => (h::ItemKind::Func(def), span),
@@ -149,7 +152,8 @@ impl Lower<'_> {
                 },
                 it.span,
             ),
-            ItemKind::Trait(_) | ItemKind::Impl(_) => return unsupported("traits and impls"),
+            ItemKind::Trait(t) => (h::ItemKind::Trait(self.trait_def(t)?), it.span),
+            ItemKind::Impl(i) => (h::ItemKind::Impl(self.impl_def(i)?), it.span),
             ItemKind::Extern(_) => return unsupported("extern blocks"),
             ItemKind::Use(_) => return unsupported("use declarations"),
         };
@@ -160,6 +164,62 @@ impl Lower<'_> {
             span: it.span,
             name_span,
         }))
+    }
+
+    fn trait_def(&mut self, t: &TraitDef) -> R<h::Trait> {
+        if t.derived.is_some() {
+            return unsupported("derived traits");
+        }
+        let doc = self.doc.take();
+        let mut sigs = Vec::new();
+        for m in &t.methods {
+            let decs = m.attrs.iter().map(|a| self.attr(a)).collect::<R<_>>()?;
+            self.doc = self.doc_above(m.sig.span.line);
+            sigs.push((decs, self.fn_def(&m.sig, m.default.as_ref(), false)?));
+        }
+        Ok(h::Trait {
+            name: t.name.clone(),
+            tparams: self.tparams(&t.tparams)?,
+            doc,
+            assoc: t.assoc.clone(),
+            sigs,
+        })
+    }
+
+    fn impl_def(&mut self, i: &ImplDef) -> R<h::Impl> {
+        if i.unsafe_ {
+            return unsupported("`unsafe impl`");
+        }
+        let for_ty = self.ty(&i.for_type)?;
+        let outer = std::mem::replace(&mut self.self_ty, for_ty.clone());
+        let fns = self.impl_fns(&i.items);
+        self.self_ty = outer;
+        Ok(h::Impl {
+            trait_: i.trait_path.clone(),
+            args: i.trait_args.iter().map(|t| self.ty(t)).collect::<R<_>>()?,
+            for_ty,
+            assoc: i
+                .assoc
+                .iter()
+                .map(|(n, t)| Ok((n.clone(), self.ty(t)?)))
+                .collect::<R<_>>()?,
+            fns: fns?,
+        })
+    }
+
+    fn impl_fns(&mut self, items: &[Item]) -> R<Vec<h::FuncDef>> {
+        let mut fns = Vec::new();
+        for it in items {
+            let ItemKind::Fn(f) = &it.kind else {
+                return unsupported("this impl item");
+            };
+            if f.kind != FnKind::Plain {
+                return unsupported("generators and subscripts in an impl");
+            }
+            self.doc = self.doc_above(it.span.line);
+            fns.push(self.fn_def(&f.sig, Some(&f.body), false)?);
+        }
+        Ok(fns)
     }
 
     fn type_def(&mut self, t: &TypeDef) -> R<h::ItemKind> {
@@ -286,6 +346,10 @@ impl Lower<'_> {
                     (["List"], 1) => named(&["list"], a),
                     (["Map"], 2) => named(&["dict"], a),
                     (["Set"], 1) => named(&["set"], a),
+                    // The sized scalars under the shared IR's (Jian's) names.
+                    ([n], 0) if fixed_name(n).is_some() => {
+                        named(&[fixed_name(n).expect("checked")], Vec::new())
+                    }
                     (["Option"], 1) => match a.pop() {
                         Some(h::TArg::Type(t)) => h::Type::Optional(Box::new(t)),
                         _ => return unsupported("this Option type"),
@@ -337,8 +401,9 @@ impl Lower<'_> {
         })
     }
 
-    fn fn_def(&mut self, f: &FnDef, public: bool) -> R<h::FuncDef> {
-        let s = &f.sig;
+    /// `infer` is false for pub functions and for trait and impl methods, whose names are not
+    /// module-level.
+    fn fn_def(&mut self, s: &Sig, body: Option<&Body>, infer: bool) -> R<h::FuncDef> {
         let mut params = Vec::new();
         for p in &s.params {
             params.push(match p {
@@ -356,7 +421,7 @@ impl Lower<'_> {
                 } => {
                     let ty = match ty {
                         Some(t) => self.ty(t)?,
-                        None if name == "self" => named(&["Self"], Vec::new()),
+                        None if name == "self" => self.self_ty.clone(),
                         None => {
                             self.err("E240", *span, "parameters are always annotated; add `: T`");
                             named(&["_"], Vec::new())
@@ -395,7 +460,7 @@ impl Lower<'_> {
         let uses = match &s.uses {
             Some(caps) if caps.iter().any(|c| matches!(c, CapItem::None)) => Some(h::Uses::None),
             Some(caps) => Some(h::Uses::Caps(self.caps(caps))),
-            None if public => None,
+            None if !infer => None,
             None => self
                 .inferred
                 .get(&s.name)
@@ -411,8 +476,21 @@ impl Lower<'_> {
                     )
                 }),
         };
+        let body = body.map(|b| self.body(s, b)).transpose()?;
+        Ok(h::FuncDef {
+            name: s.name.clone(),
+            name_span: s.name_span,
+            tparams: self.tparams(&s.tparams)?,
+            params,
+            ret,
+            uses,
+            body,
+        })
+    }
+
+    fn body(&mut self, s: &Sig, b: &Body) -> R<h::Body> {
         let value = returns_value(s);
-        let body = match &f.body {
+        Ok(match b {
             Body::Expr(e) => {
                 let span = e.span;
                 let mut stmts = self.tail_expr(e, span)?;
@@ -468,15 +546,6 @@ impl Lower<'_> {
                     stmts: out,
                 }
             }
-        };
-        Ok(h::FuncDef {
-            name: s.name.clone(),
-            name_span: s.name_span,
-            tparams: self.tparams(&s.tparams)?,
-            params,
-            ret,
-            uses,
-            body: Some(body),
         })
     }
 
@@ -953,6 +1022,20 @@ impl Lower<'_> {
                 };
                 K::Attr(b(self.expr(x)?), n.clone(), at)
             }
+            // `x.len()` is the builtin `len(x)`, so E504 and the bounds solver see it (15.3).
+            ExprKind::Call(f, args)
+                if args.is_empty() && matches!(&f.kind, ExprKind::Field(_, m) if m == "len") =>
+            {
+                let ExprKind::Field(x, _) = &f.kind else {
+                    unreachable!("matched")
+                };
+                let arg = h::Arg {
+                    name: None,
+                    kind: h::ArgKind::Expr(self.expr(x)?),
+                    span: x.span,
+                };
+                K::Call(b(mk(K::Name("len".into()), f.span)), vec![arg])
+            }
             ExprKind::Call(f, args) => K::Call(b(self.expr(f)?), self.args(args)?),
             ExprKind::Index(x, ix) => match ix.as_slice() {
                 [IxArg::Expr(i)] => K::Index(b(self.expr(x)?), b(self.expr(i)?)),
@@ -1125,6 +1208,22 @@ fn tail_return(stmts: &mut [h::Stmt]) {
         }
         _ => {}
     }
+}
+
+fn fixed_name(n: &str) -> Option<&'static str> {
+    Some(match n {
+        "i8" => "int8",
+        "i16" => "int16",
+        "i32" => "int32",
+        "i64" => "int",
+        "u8" => "uint8",
+        "u16" => "uint16",
+        "u32" => "uint32",
+        "u64" => "uint64",
+        "f32" => "float32",
+        "f64" => "float",
+        _ => return None,
+    })
 }
 
 fn binop_text(op: BinOp) -> &'static str {
