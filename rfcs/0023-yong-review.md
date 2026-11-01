@@ -2,7 +2,7 @@
 
 - Status: accepted (the lead chose "Accept all (D1 to D7)" on 2026-11-01)
 - Research: [What Yong is and how it fits together](https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU), gap 2
-- Rows: R652 to R658
+- Rows: R665 to R671
 
 ## Summary
 
@@ -28,7 +28,7 @@ Options weighed: two directory arguments (simpler, but every CI caller rebuilds 
 separate GitHub app (out of scope for M1). Recommended: git revisions.
 
 - Decision: accepted, 2026-11-01
-- Row: R652
+- Row: R665
 
 ### D2: item changes
 
@@ -41,7 +41,7 @@ which tests D5 reports. Each added or edited item prints its header (signature, 
 when the item-level view lands in M3.
 
 - Decision: accepted, 2026-11-01
-- Row: R653
+- Row: R666
 
 ### D3: authority diff
 
@@ -52,7 +52,7 @@ everything else. Because the checker enforces `uses` (7.1), the declared set is 
 authority, and no body needs to be read for it.
 
 - Decision: accepted, 2026-11-01
-- Row: R654
+- Row: R667
 
 ### D4: contracts, tests and approvals
 
@@ -63,7 +63,7 @@ approved test or to a contract clause of an item that has one is marked *frozen*
 an implement step.
 
 - Decision: accepted, 2026-11-01
-- Row: R655
+- Row: R668
 
 ### D5: test verdicts and the verdict cache
 
@@ -76,7 +76,7 @@ affected item, with its verdict, approved or proposed, and cached or run. Tests 
 changed are counted.
 
 - Decision: accepted, 2026-11-01
-- Row: R656
+- Row: R669
 
 ### D6: provenance
 
@@ -85,7 +85,7 @@ its HEAD identity hash: `human`, `model(id, version)` or `unknown`. `yong agent`
 is a follow-up to RFC 0014.
 
 - Decision: accepted, 2026-11-01
-- Row: R657
+- Row: R670
 
 ### D7: exit status
 
@@ -95,7 +95,7 @@ change; or a failing test from D5. Every finding in JSON has a `kind` and an `at
 can gate on the exit status and a bot can render the rest.
 
 - Decision: accepted, 2026-11-01
-- Row: R658
+- Row: R671
 
 ## Spec changes
 

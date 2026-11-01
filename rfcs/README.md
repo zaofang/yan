@@ -36,4 +36,4 @@ research index links their studies and rows.
 | [0013](0013-numerics.md) | Numerics: accuracy lint, reverse mode, sparse index equations | accepted | R613 to R615 |
 | [0014](0014-agent-loop.md) | The reference agent loop | accepted | R616 to R621 |
 | [0020](0020-packaging-and-ecosystem.md) | Packaging and ecosystem | accepted | R635 to R647 |
-| [0023](0023-yong-review.md) | `yong review`, a report for agent PRs | accepted | R652 to R658 |
+| [0023](0023-yong-review.md) | `yong review`, a report for agent PRs | accepted | R665 to R671 |
