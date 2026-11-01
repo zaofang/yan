@@ -19,7 +19,7 @@ fn none() -> Value {
     }
 }
 
-fn opt(v: Option<Value>) -> Value {
+pub(super) fn opt(v: Option<Value>) -> Value {
     v.map_or_else(none, some)
 }
 
@@ -57,6 +57,7 @@ pub(super) fn fallible(name: &str, args: &[Value]) -> Option<Result<Value, Value
             }
         }
         ("std.error.wrap", [e]) => Ok(wrap(e)),
+        ("std.regex.compile", [Str(p)]) => super::regex::compile(p),
         _ => return None,
     })
 }

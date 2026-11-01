@@ -15,6 +15,7 @@ use yong_core::ast::*;
 
 mod native;
 mod prelude;
+mod regex;
 #[cfg(test)]
 mod std_parity;
 #[cfg(test)]
@@ -768,6 +769,9 @@ impl Interp<'_> {
             return r;
         }
         if let Some(r) = native::call(name, args) {
+            return r;
+        }
+        if let Some(r) = regex::call(name, args) {
             return r;
         }
         Ok(match (name, &mut *args) {

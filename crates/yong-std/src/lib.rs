@@ -1,6 +1,7 @@
 //! The standard library: the intrinsic table and the `.jian` sources (spec 22.2, R474).
 
 pub mod intrinsics;
+pub mod regex;
 
 /// `(module, source)` for each `std.<module>`.
 pub const SOURCES: &[(&str, &str)] = &[
@@ -15,6 +16,7 @@ pub const SOURCES: &[(&str, &str)] = &[
     ("math", include_str!("../lib/std/math.jian")),
     ("prelude", include_str!("../lib/std/prelude.jian")),
     ("rand", include_str!("../lib/std/rand.jian")),
+    ("regex", include_str!("../lib/std/regex.jian")),
     ("result", include_str!("../lib/std/result.jian")),
     ("set", include_str!("../lib/std/set.jian")),
     ("test", include_str!("../lib/std/test.jian")),

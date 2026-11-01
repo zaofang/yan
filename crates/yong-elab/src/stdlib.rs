@@ -87,6 +87,11 @@ pub(crate) fn decl(path: &str) -> Option<&'static Decl> {
     STD.fns.get(path)
 }
 
+/// The std module that declares class `name`.
+pub(crate) fn class_module(name: &str) -> Option<&'static str> {
+    STD.classes.get(name).map(|c| c.module)
+}
+
 /// A method instantiated at its receiver's type.
 pub(crate) struct Method {
     /// The receiver is `var`.
@@ -238,6 +243,9 @@ fn unify(pat: &j::Type, t: &Ty, tps: &[&str], b: &mut HashMap<String, Ty>) -> bo
         j::Type::Optional(p) => matches!(t, Ty::Option(x) if unify(p, x, tps, b)),
         j::Type::None => *t == Ty::Unit,
         j::Type::Callable { .. } => false,
+        j::Type::Named { path, args } if matches!(t, Ty::Data(_)) => {
+            args.is_empty() && matches!(t, Ty::Data(n) if path.as_slice() == [n.as_str()])
+        }
         j::Type::Named { path, args } => {
             let Some((name, parts)) = shape(t) else {
                 return false;

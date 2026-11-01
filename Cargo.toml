@@ -17,6 +17,7 @@ indexmap = "2"
 num-bigint = "0.4"
 num-integer = "0.1"
 num-traits = "0.2"
+regex = "1"
 unicode-segmentation = "1"
 yong-core = { path = "crates/yong-core" }
 yong-diag = { path = "crates/yong-diag" }

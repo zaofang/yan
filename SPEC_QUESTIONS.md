@@ -99,6 +99,19 @@ Assumed in `yong-interp`'s native std functions until the spec says otherwise:
   exponent, and `inf`, `infinity` and `nan` in any case.
 - `str.splitlines` splits on CPython's line boundaries and drops a final empty line.
 
+## std.regex readings (R482 to R486)
+
+Assumed in the regex implementation until the spec says otherwise:
+
+- `split` keeps each captured group between the pieces, as Python does. A group that did not
+  take part is `""`, because the result is `list[str]`, where Python gives None.
+- A `RegexError` reason, and the E545 message, is the crate's text (for example `unclosed group`).
+  It is not Python's wording.
+- `group(i)` past the last group, and `named(n)` for a name the pattern lacks, panic with kind
+  `bounds`. Python raises IndexError there.
+- A free std function is called by its module's name with no import (`regex.compile`,
+  `math.sqrt`), as the N01 reading of `import` implies.
+
 ## Std elaboration readings (Wave 2)
 
 Assumed in `yong-elab`'s std loading until the spec says otherwise:

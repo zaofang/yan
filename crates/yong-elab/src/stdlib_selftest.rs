@@ -89,3 +89,27 @@ fn generic_std_bodies_lower_at_their_instance() {
         "0 3\n1 1\n2 2\n[(3, 'a'), (1, 'b')] [9, 2, 1, 3]\n"
     );
 }
+
+#[test]
+fn regex_matches_like_python() {
+    let src = "pub def main() uses io:\n    r = regex.compile(r\"(?P<y>\\d+)-(\\d+)\")\n\
+               \x20   m = r.search(\"on 2024-10\") else return\n\
+               \x20   io.print(f\"{m.text()} {m.group(2)} {m.named('y')} {m.start()} {m.end()}\")\n\
+               \x20   io.print(f\"{len(r.find_all('1-2 3-4'))} {r.sub('\\\\2/\\\\g<y>', 'a 1-2 b')}\")\n\
+               \x20   io.print(f\"{regex.compile('(,)').split('a,b')}\")\n\
+               \x20   v = regex.compile(r\"\\w+\").search(\"  h\u{e9}llo\") else return\n\
+               \x20   io.print(f\"{v.start()} {v.end()}\")\n";
+    assert_eq!(
+        run(src),
+        "2024-10 10 2024 3 10\n2 a 2/1 b\n['a', ',', 'b']\n2 7\n"
+    );
+}
+
+#[test]
+fn literal_patterns_are_checked_at_stage_0() {
+    let src = "def f() -> int:\n    r = regex.compile(\"(a)\\\\1\")\n    return len(r.pattern)\n";
+    let (m, _) = yong_jian::parse("t.jian", src, false);
+    let (_, d) =
+        elaborate("t.jian", src, &m.expect("parses"), Options::default()).expect("supported");
+    assert!(d.iter().any(|d| d.code == "E545"), "{d:?}");
+}
