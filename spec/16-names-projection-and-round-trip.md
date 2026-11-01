@@ -111,7 +111,7 @@ A niche surface is a small, domain-shaped language over Yong. It may be a spelli
 3. **N3 One printing.** Law 8 holds as for Jian and Wen. Sugar is recovered from the Yong tree, from stage-0 metadata attached by the lowering, or from the trivia of 16.5.
 4. **N4 Same item hash.** A lowering never creates or drops a hashed name (3.6); generated names follow a fixed rule.
 5. **N5 Five facts visible.** Each of the five facts (law 4) keeps a mark in the text.
-6. **N6 Crate.** `yong-<name>` holds the lexer, parser, AST and lowering into `yong-hir`, and touches nothing below it.
+6. **N6 Crate.** `yong-<name>` holds the lexer, parser, AST and lowering into `yong-hir`, and touches nothing below it. A surface engine (R568), if the surface has one, is a separate crate `yong-<name>-engine` or a std package, at the runtime layer beside `yong-rt` (R576).
 7. **N7 Round-trip laws.** For surface S: `S(elaborate(F)) == F` byte for byte for canonical F, and `elaborate(S(W)) == elaborate(W)` by item hash for any Wen W in the subset.
 8. **N8 Names and diagnostics.** A column in 16.3 for names it spells differently; messages render per surface (R297); new codes only for its own syntax.
 9. **N9 Files and lexis.** Extension `.<name>`, one surface per file, any mix per package, calls across surfaces by name; lexical rules as 13.1.
@@ -136,7 +136,7 @@ A niche surface is a small, domain-shaped language over Yong. It may be a spelli
 
 1. **Boundary signature.** Every item another surface can call has a signature in Yong types, with `fail` and `uses`. Calls across surfaces go through that signature only, and checked Yong sees the item as that signature.
 2. **Laws kept.** Laws 2 (safe by default), 4 (five facts), 6 (local reasoning) and 7 (deterministic by default) hold under the surface's own semantics. Effects happen only through capabilities named in `uses`, so capability ceilings, `nondet` and record and replay apply unchanged.
-3. **Two routes.** A form either lowers to checked Yong, which keeps N4, N7 and the one back end, or runs on a surface engine: an interpreter or compiler in `yong-<name>` or a std package, linked to its boundary signature as an extern item is (section 12). N6 allows the engine crates. Lowering is preferred where it can express the form.
+3. **Two routes.** A form either lowers to checked Yong, which keeps N4, N7 and the one back end, or runs on a surface engine: an interpreter or compiler in `yong-<name>-engine` or a std package, linked to its boundary signature as an extern item is (section 12). N6 allows the engine crates. Lowering is preferred where it can express the form.
 4. **Engine items.** For an item on an engine, N2, N3 and N7 apply to its boundary signature only. `yong view --as wen` and `--as jian` print the signature and report the body as "<name> semantics (R568)". The item hash covers the canonical surface text and the engine's identity hash (R348).
 5. **Conformance.** The surface's conformance column tests its semantics, including determinism under two hash keys (M0), and every engine item passes `yong test --ub`.
 
