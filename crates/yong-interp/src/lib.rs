@@ -16,6 +16,7 @@ use yong_core::ast::*;
 mod bind;
 mod collections;
 mod compile;
+mod encoding;
 mod iter;
 mod keyed;
 mod math;
@@ -59,6 +60,8 @@ pub(crate) enum Value {
         fields: Vec<(Name, Value)>,
     },
     Cap(Name),
+    Bytes(Rc<[u8]>),
+    ByteArray(Vec<u8>),
     Closure(Rc<vm::Clo>),
     Iter(iter::It),
 }
@@ -103,6 +106,7 @@ impl Hash for Key {
                 Value::Float(f) => (if *f == 0.0 { 0.0f64 } else { *f }).to_bits().hash(h),
                 Value::Char(c) => c.hash(h),
                 Value::Str(s) => s.hash(h),
+                Value::Bytes(b) => b.hash(h),
                 Value::BigInt(b) => b.hash(h),
                 Value::Tuple(xs) | Value::List(xs) => xs.iter().for_each(|x| go(x, h)),
                 Value::Data { name, fields } => {

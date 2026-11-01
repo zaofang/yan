@@ -1899,7 +1899,9 @@ impl Lower<'_, '_, '_> {
         };
         if let Ty::Data(d) = &t
             && self.g.sums.contains_key(d)
-            && let Some(c) = cases.iter().find(|c| matches!(c.pat, j::Pat::Wild))
+            && let Some(c) = cases
+                .iter()
+                .find(|c| matches!(c.pat, j::Pat::Wild) && c.span != at)
         {
             if self.cx.wen {
                 let item = self.item.clone();
@@ -1928,11 +1930,11 @@ impl Lower<'_, '_, '_> {
         if (scalar || matches!(t, Ty::Bool)) && !covered {
             self.err("E503", at, format!("this `match` on `{t}` needs `case _`"));
         }
+        if cases.iter().any(|c| c.guard.is_some()) {
+            return self.guarded_match(a, &t, cases, at);
+        }
         let mut arms = Vec::new();
         for c in cases {
-            if c.guard.is_some() {
-                return unsupported("case guards");
-            }
             let mut pat = y::Pat::Wild;
             let b = self.block_with(|l| {
                 let (p, binds) = l.pat(&c.pat, &t, at)?;
@@ -1945,6 +1947,74 @@ impl Lower<'_, '_, '_> {
             arms.push((pat, b));
         }
         self.emit(StmtKind::Match { scrutinee: a, arms }, at);
+        Ok(())
+    }
+
+    /// Yong's `match` has no guards, so a guarded one is a block that tries each case in turn:
+    /// a one-case match per case whose arm runs the body when the guard holds and leaves.
+    fn guarded_match(&mut self, a: Atom, t: &Ty, cases: &[j::Case], at: Span) -> R<()> {
+        let done = self.label();
+        let leave = |at| y::Stmt {
+            kind: StmtKind::Break {
+                label: done.clone(),
+                value: None,
+            },
+            span: at,
+        };
+        let b = self.block_with(|l| {
+            for c in cases {
+                let mut pat = y::Pat::Wild;
+                let arm = l.block_with(|l| {
+                    let (p, binds) = l.pat(&c.pat, t, at)?;
+                    pat = p;
+                    for (n, ty) in binds {
+                        l.declare(&n, ty);
+                    }
+                    let body = l.block_with(|l| {
+                        l.stmts(&c.body.stmts)?;
+                        if !ends(&c.body.stmts) {
+                            l.out.push(leave(c.span));
+                        }
+                        Ok(())
+                    })?;
+                    match &c.guard {
+                        None => l.out.extend(body.stmts),
+                        Some(g) => {
+                            let (cond, gt) = l.atom(g, Some(&Ty::Bool))?;
+                            l.expect(&gt, &Ty::Bool, g.span);
+                            l.emit(
+                                StmtKind::If {
+                                    cond,
+                                    then: body,
+                                    els: None,
+                                },
+                                c.span,
+                            );
+                        }
+                    }
+                    Ok(())
+                })?;
+                let rest = y::Block { stmts: Vec::new() };
+                l.emit(
+                    StmtKind::Match {
+                        scrutinee: a.clone(),
+                        arms: vec![(pat, arm), (y::Pat::Wild, rest)],
+                    },
+                    c.span,
+                );
+            }
+            l.out.push(leave(at));
+            Ok(())
+        })?;
+        self.emit(
+            StmtKind::Loop {
+                label: done.clone(),
+                invariants: Vec::new(),
+                decreases: Vec::new(),
+                body: b,
+            },
+            at,
+        );
         Ok(())
     }
 
@@ -2163,7 +2233,16 @@ impl Lower<'_, '_, '_> {
                 self.store(target, ann, r, t, value.span)
             }
             _ => {
-                let (r, t) = self.rhs(value, None)?;
+                // An element's type types a literal stored into it: `ba[0] = 66` is a `uint8`.
+                let want = match &target.kind {
+                    j::ExprKind::Index(b, _) => match self.ty_of_local(b) {
+                        Some(Ty::List(x)) => Some(*x),
+                        Some(Ty::Coll("bytearray", _)) => Some(Ty::Fixed("u8")),
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                let (r, t) = self.rhs(value, want.as_ref())?;
                 self.store(target, ann, r, t, value.span)
             }
         }
@@ -2229,8 +2308,12 @@ impl Lower<'_, '_, '_> {
                     None => (r, t),
                 };
                 let m = self.mutable.contains(n);
+                // An unread `try` result is E311 from the checker, not W812.
+                let tried = matches!(r, Rhs::Try(_));
                 self.bind(n, m, &ty, r, target.span, at);
-                self.bound.push((n.clone(), target.span));
+                if !tried {
+                    self.bound.push((n.clone(), target.span));
+                }
             }
             j::ExprKind::Index(d, k) if self.ty_of_local(d).as_ref().and_then(map_kv).is_some() => {
                 let dt = self.ty_of_local(d).expect("matched");
@@ -2255,6 +2338,16 @@ impl Lower<'_, '_, '_> {
                 self.emit(StmtKind::Rhs(Rhs::Call(c)), target.span);
             }
             j::ExprKind::Attr(..) | j::ExprKind::Index(..) => {
+                if let j::ExprKind::Index(b, _) = &target.kind
+                    && let Some(Ty::Coll("bytes", _)) = self.ty_of_local(b)
+                {
+                    self.err(
+                        "E201",
+                        target.span,
+                        "`bytes` is immutable; use a `bytearray`".into(),
+                    );
+                    return Ok(());
+                }
                 let (p, pt) = self.place(target)?;
                 self.expect(&t, &pt, at);
                 self.emit(
@@ -2359,8 +2452,11 @@ impl Lower<'_, '_, '_> {
             j::ExprKind::Index(b, i) => {
                 let (mut p, t) = self.place(b)?;
                 match &t {
-                    Ty::List(_) | Ty::Coll("deque", _) => {
-                        let et = t.elem().cloned().expect("an element type");
+                    Ty::List(_) | Ty::Coll("deque" | "bytes" | "bytearray", _) => {
+                        let et = match t {
+                            Ty::Coll("bytes" | "bytearray", _) => Ty::Fixed("u8"),
+                            _ => t.elem().cloned().expect("an element type"),
+                        };
                         self.sites.insert(e.span, Site::List);
                         // N16: the parser kept `xs[-k]`; it means `xs[len(xs) - k]`.
                         let from_end;
@@ -2442,6 +2538,25 @@ impl Lower<'_, '_, '_> {
         let (r, t) = self.rhs(e, want)?;
         let (r, t) = self.inject(r, t, want, e.span);
         Ok((self.tmp(&t, r, e.span), t))
+    }
+
+    /// The type of the integer literal `text`: the expected integer type when its range holds
+    /// the value (3.4), else `int`. A value outside the expected type's range is E201.
+    fn int_lit_ty(&mut self, text: &str, want: Option<&Ty>, at: Span) -> Ty {
+        let t = match want {
+            Some(w @ Ty::Fixed(n)) if !n.starts_with('f') => w.clone(),
+            _ => Ty::Int,
+        };
+        let fits = text.parse::<i128>().ok().is_some_and(|v| {
+            let (lo, hi) = int_range(t.scalar().expect("an integer type"));
+            lo <= v && v <= hi
+        });
+        if !fits {
+            let hint = if t == Ty::Int { "; use `bigint`" } else { "" };
+            self.err("E201", at, format!("`{text}` does not fit in `{t}`{hint}"));
+            return Ty::Err;
+        }
+        t
     }
 
     /// The `bigint` of decimal `text`, built from `int` pieces of at most 18 digits.
@@ -2631,7 +2746,7 @@ impl Lower<'_, '_, '_> {
                     return Ok((self.bigint_lit(&int_text(s)?, at), Ty::BigInt));
                 }
                 let t = match (l, want) {
-                    (j::Lit::Int(_), Some(w @ Ty::Fixed(n))) if !n.starts_with('f') => w.clone(),
+                    (j::Lit::Int(s), _) => self.int_lit_ty(&int_text(s)?, want, at),
                     (j::Lit::Float(_), Some(w @ Ty::Fixed(n))) if n.starts_with('f') => w.clone(),
                     _ => lit_ty(l),
                 };
@@ -2834,10 +2949,11 @@ impl Lower<'_, '_, '_> {
                     self.bigint_lit(&format!("-{}", int_text(s)?), at),
                     Ty::BigInt,
                 ),
-                ("-", K::Lit(j::Lit::Int(s))) => (
-                    Rhs::Atom(Atom::Lit(Literal::Int(format!("-{}", int_text(s)?)), at)),
-                    Ty::Int,
-                ),
+                ("-", K::Lit(j::Lit::Int(s))) => {
+                    let text = format!("-{}", int_text(s)?);
+                    let t = self.int_lit_ty(&text, want, at);
+                    (Rhs::Atom(Atom::Lit(Literal::Int(text), at)), t)
+                }
                 ("-", K::Lit(j::Lit::Float(s))) => (
                     Rhs::Atom(Atom::Lit(
                         Literal::Float(format!("-{}", s.replace('_', ""))),
@@ -2997,7 +3113,31 @@ impl Lower<'_, '_, '_> {
             }
             K::Cast(..) => return unsupported("`as` to a fixed-width type"),
             K::Is { .. } => return unsupported("`is` with a pattern"),
-            K::Reify(_) => return unsupported("`try`"),
+            // Wen's `try f(x)`: the call's failure as a `Result` value, as Xin reifies a failing
+            // call bound at a `Result` type.
+            K::Reify(x) => {
+                let j::ExprKind::Call(f, args) = &x.kind else {
+                    return unsupported("`try` of anything but a call");
+                };
+                let want = match want {
+                    Some(Ty::Result(ok, _)) => Some(ok.as_ref().clone()),
+                    _ => None,
+                };
+                match self.call_expr(f, args, x.span, want.as_ref())? {
+                    (Rhs::Call(c), t, Some(fl)) => {
+                        (Rhs::Try(c), Ty::Result(Box::new(t), Box::new(fl)))
+                    }
+                    (r, t, None) => {
+                        self.err(
+                            "E201",
+                            at,
+                            format!("`try` of a call that cannot fail; it returns `{t}`"),
+                        );
+                        (r, t)
+                    }
+                    _ => return unsupported("`try` of this call"),
+                }
+            }
             K::Set(_) => return unsupported("set literals"),
             K::Wild => return unsupported("`_` as a value"),
         })
@@ -3426,6 +3566,10 @@ impl Lower<'_, '_, '_> {
             self.err("E201", b.span, format!("cannot compare `{tx}` with `{ty}`"));
             return Ok((Rhs::Atom(x), Ty::Bool));
         }
+        if matches!(name, "lt" | "le" | "gt" | "ge") && !self.implements(&tx, "Ord") {
+            self.err("E221", at, format!("`{tx}` does not implement `Ord`"));
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Bool(false), at)), Ty::Bool));
+        }
         let args = vec![let_arg(x), let_arg(y_)];
         let c = match tx.scalar() {
             Some("bool") if !matches!(name, "eq" | "ne") => {
@@ -3436,6 +3580,21 @@ impl Lower<'_, '_, '_> {
             None => call(&format!("std.cmp.{name}"), vec![tx.targ()], args, at),
         };
         Ok((Rhs::Call(c), Ty::Bool))
+    }
+}
+
+/// The range of the Yong integer type `n`.
+fn int_range(n: &str) -> (i128, i128) {
+    match n {
+        "i8" => (i8::MIN.into(), i8::MAX.into()),
+        "i16" => (i16::MIN.into(), i16::MAX.into()),
+        "i32" => (i32::MIN.into(), i32::MAX.into()),
+        "i128" => (i128::MIN, i128::MAX),
+        "u8" => (0, u8::MAX.into()),
+        "u16" => (0, u16::MAX.into()),
+        "u32" => (0, u32::MAX.into()),
+        "u64" | "Addr" => (0, u64::MAX.into()),
+        _ => (i64::MIN.into(), i64::MAX.into()),
     }
 }
 
@@ -3575,8 +3734,14 @@ impl Lower<'_, '_, '_> {
                     };
                     return self.call_expr(&f, args, at, want);
                 }
+                // `bytes.from_list` and `bytearray.from_bytes` name their type's declaring module.
                 if let j::ExprKind::Name(module) = &b.kind
                     && !self.locals.contains_key(module)
+                    && let module = match module.as_str() {
+                        "bytes" => "encoding",
+                        "bytearray" => "encoding.bytearray",
+                        m => m,
+                    }
                     && let Some(d) = crate::stdlib::decl(&format!("std.{module}.{m}"))
                     && !d.cap
                 {
@@ -3891,6 +4056,8 @@ impl Lower<'_, '_, '_> {
                 ts.iter().all(|t| self.implements(t, b))
             }
             Ty::List(t) if matches!(b, "Eq" | "Ord") => self.implements(t, b),
+            Ty::Coll("bytes", _) => matches!(b, "Eq" | "Ord" | "Hash"),
+            Ty::Coll("bytearray", _) => b == "Eq",
             t => self.g.impls.contains(&(b.to_owned(), t.to_string())),
         }
     }
@@ -4659,6 +4826,21 @@ impl Lower<'_, '_, '_> {
         };
         if !d.intrinsic || d.typed_at_call() {
             return self.user_call(&path, Some(b), args, at);
+        }
+        // A fallible method (`b.decode_utf8()`) is typed as its plain signature, which carries
+        // the failure type.
+        if d.def.ret.as_ref().is_some_and(|r| !r.fail.is_empty())
+            && let Some(mut plain) = d.plain()
+        {
+            let (_, self_ty) = plain.params.remove(0);
+            plain.names.remove(0);
+            self.expect(&t, &self_ty, b.span);
+            let a = if p.projs.is_empty() {
+                Atom::Name(p.root, p.root_span)
+            } else {
+                self.tmp(&t, Rhs::Proj(p), b.span)
+            };
+            return self.std_call(&path, plain, vec![let_arg(a)], args, m, at);
         }
         let Some(crate::stdlib::Method {
             inout,

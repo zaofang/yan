@@ -232,7 +232,7 @@ Assumed in `yong patch` until the spec says otherwise:
 
 Assumed in `yong-std`'s registry and the interpreter until the spec says otherwise:
 
-- **Generated entries.** The registry is generated at build time from the `@intrinsic` functions and `@capability` operations in `yong-std/lib/std`, plus the scalar `<op>_<ty>` family and `exclusive_check`. An entry's signature is its declaration line; purity is read from it (a capability operation is `Cap`, a `var` parameter makes it `Mutates`, otherwise `Pure`). Only `Cap` entries are restricted to run time (stage 1 and later).
+- **Generated entries.** The registry is generated at build time from the `@intrinsic` functions and `@capability` operations in `yong-std/lib/<tier>/` (`core`, `alloc`, `std`), plus the scalar `<op>_<ty>` family and `exclusive_check`. An entry's signature is its declaration line; purity is read from it (a capability operation is `Cap`, a `var` parameter makes it `Mutates`, otherwise `Pure`). Only `Cap` entries are restricted to run time (stage 1 and later).
 - **Ids.** An id is the entry's index in path order, stable within one build only. Nothing persists ids; the stage-0 query cache, when it exists, will key on paths.
 - **Resolution point.** Yong text names std functions by path, and Yong text is the interpreter's input, so the path is resolved to its id when the interpreter compiles a call site, and again by each code generator from `yong-mir`. Elaboration checks only that every std function it may call has an entry (`registry_matches_declarations`). Run time never looks an intrinsic up by name once its module is bound by id.
 
@@ -260,3 +260,5 @@ Assumed in `yong-elab` and the interpreter until the spec says otherwise:
 - **`bigint` literals.** An integer literal where `bigint` is expected is built from pieces of at most 18 digits.
 - **Error unions.** `fail A | B` is an anonymous union of the named types, without repeats. `?` injects a member into a union that contains it with no conversion. Matching on a union's members is not supported yet.
 - **`post`.** Each `post` is checked at every return, including falling off the end, with `out` naming the result; a failure panics with kind `assert`, as `pre` does. `old(p)` reads a copy of `p` taken on entry. A parameter named `out` in a function with `post` is E230. `post` is not yet emitted as a Yong `ensures` clause.
+- **Integer literal range.** An integer literal outside the range of the integer type expected of it, or outside `int` when no sized type is expected, is E201 with the message "does not fit"; 25 has no dedicated code. A negative literal takes the expected sized type like a positive one.
+- **Ordering needs `Ord`.** `<`, `<=`, `>` and `>=` on a type that does not implement `Ord` (a record without `derive(Ord)`, `bytearray`) are E221, as for a bound.

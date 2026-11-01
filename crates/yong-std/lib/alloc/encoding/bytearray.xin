@@ -1,0 +1,29 @@
+"""Methods on bytearray, a growable byte buffer (17.3, R585)."""
+
+@intrinsic
+@since("1.0")
+pub def from_bytes(b: bytes) -> bytearray: ...
+
+@intrinsic
+@since("1.0")
+pub def len(self: bytearray) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def append(var self: bytearray, x: uint8) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def extend(var self: bytearray, b: bytes) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def pop(var self: bytearray) -> uint8: ...
+
+@intrinsic
+@since("1.0")
+pub def clear(var self: bytearray) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def to_bytes(self: bytearray) -> bytes: ...

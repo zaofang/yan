@@ -703,6 +703,12 @@ impl<'o> Vm<'o> {
                         None => return panic("bounds"),
                     }
                 }
+                (Proj_::Index(i), Value::Bytes(b)) => {
+                    return index_byte(b, self.val(code, base, *i));
+                }
+                (Proj_::Index(i), Value::ByteArray(b)) => {
+                    return index_byte(b, self.val(code, base, *i));
+                }
                 (_, v) => return unsupported(format!("projection {src:?} on {v:?}")),
             };
         }
@@ -719,13 +725,41 @@ impl<'o> Vm<'o> {
         }
         // The root moves out while the projections walk it, so index registers stay readable.
         let mut root = mem::take(&mut self.stack[base + p.root as usize]);
-        let r = walk_mut(&mut root, &p.projs, |o| match o.konst() {
+        let at = |o: &Opnd| match o.konst() {
             Some(k) => &code.consts[k],
             None => &self.stack[base + o.idx()],
-        })
-        .map(|slot| *slot = v);
+        };
+        // A byte of a `bytearray` is no `Value` slot: the last projection stores into it.
+        let r = match p.projs.split_last() {
+            Some((Proj_::Index(i), init)) => walk_mut(&mut root, init, at).and_then(|s| match s {
+                Value::ByteArray(b) => {
+                    let (Value::Int(i), Value::Int(x)) = (at(i), &v) else {
+                        unreachable!("checked")
+                    };
+                    match usize::try_from(*i).ok().and_then(|i| b.get_mut(i)) {
+                        Some(c) => {
+                            *c = *x as u8;
+                            Ok(())
+                        }
+                        None => panic("bounds"),
+                    }
+                }
+                s => walk_mut(s, &p.projs[init.len()..], at).map(|slot| *slot = v.clone()),
+            }),
+            _ => walk_mut(&mut root, &p.projs, at).map(|slot| *slot = v),
+        };
         self.stack[base + p.root as usize] = root;
         r
+    }
+}
+
+fn index_byte(b: &[u8], i: &Value) -> R<Value> {
+    let Value::Int(i) = i else {
+        return unsupported("non-integer index");
+    };
+    match usize::try_from(*i).ok().and_then(|i| b.get(i)) {
+        Some(c) => Ok(Value::Int(*c as i128)),
+        None => panic("bounds"),
     }
 }
 

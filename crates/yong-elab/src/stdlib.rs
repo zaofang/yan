@@ -264,6 +264,16 @@ impl Decl {
 /// The words of every name, path and literal in `m`. Comments and docstrings are trivia (16.5),
 /// so they never decide which std types a module sees (law 4).
 fn words(m: &j::Module) -> HashSet<String> {
+    let mut w = raw_words(m);
+    // A built-in type names its declaring module (R475): `bytes` methods fail with
+    // `std.encoding` types.
+    if w.contains("bytes") || w.contains("bytearray") {
+        w.insert("encoding".into());
+    }
+    w
+}
+
+fn raw_words(m: &j::Module) -> HashSet<String> {
     fn undoc(f: &mut j::FuncDef) {
         if let Some(b) = &mut f.body {
             b.doc = None;
@@ -335,7 +345,12 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> Vec<String> {
         let j::TypeRhs::Sum(vs) = &t.rhs else {
             continue;
         };
-        if (words.contains(name.as_str()) || words.contains(*module))
+        // A std class may name a sum of its module in a field.
+        let class_named = STD
+            .classes
+            .iter()
+            .any(|(c, k)| k.module == *module && words.contains(c.as_str()));
+        if (words.contains(name.as_str()) || words.contains(*module) || class_named)
             && !own.contains(name.as_str())
         {
             for v in vs {
@@ -398,6 +413,10 @@ fn shape(t: &Ty) -> Option<(&'static str, Vec<&Ty>)> {
         Ty::Result(x, e) => ("Result", vec![x, e]),
         Ty::Tuple(ts) => ("tuple", ts.iter().collect()),
         Ty::Coll(n, ts) => (*n, ts.iter().collect()),
+        Ty::Fixed(n) => (
+            yong_names::type_name(n, yong_names::Surface::Yong, yong_names::Surface::Xin)?,
+            vec![],
+        ),
         _ => return None,
     })
 }
@@ -436,6 +455,9 @@ fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
                 ("bool", []) => Ty::Bool,
                 ("str", []) => Ty::Str,
                 ("char", []) => Ty::Char,
+                (n, []) if crate::ty::fixed(n).is_some() => {
+                    Ty::Fixed(crate::ty::fixed(n).expect("matched"))
+                }
                 ("list", [t]) => Ty::List(Box::new(t.clone())),
                 ("set", [t]) => Ty::Set(Box::new(t.clone())),
                 ("dict", [k, v]) => Ty::Dict(Box::new(k.clone()), Box::new(v.clone())),
