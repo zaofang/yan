@@ -1,0 +1,69 @@
+"""Methods on sorted_dict, ordered by key (17.3, R488 to R493)."""
+
+@intrinsic
+@since("1.0")
+pub def insert[K: Ord, V](var self: sorted_dict[K, V], take key: K, take value: V) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def index[K: Ord, V](self: sorted_dict[K, V], key: K) -> V: ...
+
+@intrinsic
+@since("1.0")
+pub def get[K: Ord, V](self: sorted_dict[K, V], key: K) -> V | None: ...
+
+@intrinsic
+@since("1.0")
+pub def contains_key[K: Ord, V](self: sorted_dict[K, V], key: K) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def len[K: Ord, V](self: sorted_dict[K, V]) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def remove[K: Ord, V](var self: sorted_dict[K, V], key: K) -> V | None: ...
+
+@intrinsic
+@since("1.0")
+pub def setdefault[K: Ord, V](var self: sorted_dict[K, V], take key: K, take value: V) -> V: ...
+
+@intrinsic
+@since("1.0")
+pub def items[K: Ord, V](self: sorted_dict[K, V]) -> list[tuple[K, V]]: ...
+
+@intrinsic
+@since("1.0")
+pub def keys[K: Ord, V](self: sorted_dict[K, V]) -> list[K]: ...
+
+@intrinsic
+@since("1.0")
+pub def values[K: Ord, V](self: sorted_dict[K, V]) -> list[V]: ...
+
+@intrinsic
+@since("1.0")
+pub def first[K: Ord, V](self: sorted_dict[K, V]) -> tuple[K, V] | None: ...
+
+@intrinsic
+@since("1.0")
+pub def last[K: Ord, V](self: sorted_dict[K, V]) -> tuple[K, V] | None: ...
+
+@intrinsic
+@since("1.0")
+pub def pop_first[K: Ord, V](var self: sorted_dict[K, V]) -> tuple[K, V] | None: ...
+
+@intrinsic
+@since("1.0")
+pub def pop_last[K: Ord, V](var self: sorted_dict[K, V]) -> tuple[K, V] | None: ...
+
+@intrinsic
+@since("1.0")
+pub def floor[K: Ord, V](self: sorted_dict[K, V], key: K) -> tuple[K, V] | None: ...
+
+@intrinsic
+@since("1.0")
+pub def ceiling[K: Ord, V](self: sorted_dict[K, V], key: K) -> tuple[K, V] | None: ...
+
+@intrinsic
+@since("1.0")
+pub def range[K: Ord, V](self: sorted_dict[K, V], lo: K, hi: K) -> list[tuple[K, V]]: ...

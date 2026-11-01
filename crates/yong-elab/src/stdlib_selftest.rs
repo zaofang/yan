@@ -36,6 +36,10 @@ fn every_intrinsic_method_instantiates() {
         "set" => Some(Ty::Set(Box::new(Ty::Int))),
         "dict" => Some(Ty::Dict(Box::new(Ty::Str), Box::new(Ty::Int))),
         "result" => Some(Ty::Result(Box::new(Ty::Int), Box::new(Ty::Str))),
+        m if m.starts_with("collections.") => {
+            let (n, k) = crate::ty::collection(&m["collections.".len()..]).expect("a type");
+            Some(Ty::Coll(n, vec![Ty::Int; k]))
+        }
         _ => None,
     };
     for &(module, src) in yong_std::SOURCES {
@@ -112,4 +116,17 @@ fn literal_patterns_are_checked_at_stage_0() {
     let (_, d) =
         elaborate("t.jian", src, &m.expect("parses"), Options::default()).expect("supported");
     assert!(d.iter().any(|d| d.code == "E545"), "{d:?}");
+}
+
+#[test]
+fn collections_build_query_and_show() {
+    let src = "pub def main() uses io:\n    d = deque([1, 2, 3], maxlen=3)\n\
+               \x20   d.append(4)\n    d.rotate(1)\n    h = heap([5, 1, 3])\n    h.push(0)\n\
+               \x20   m: sorted_dict[int, str] = sorted_dict()\n    m[2] = \"b\"\n    m[1] = \"a\"\n\
+               \x20   s = sorted_set([3, 1, 2])\n    total = 0\n    for x in s:\n        total += x\n\
+               \x20   io.print(f\"{d} {d.first() else -1} {h.pop()} {h} {m} {m.get(2) else '?'} {m.floor(5)} {s.range(2, 9)} {total}\")\n";
+    assert_eq!(
+        run(src),
+        "deque([4, 2, 3], maxlen=3) 4 0 heap([1, 3, 5]) sorted_dict({1: 'a', 2: 'b'}) b (2, 'b') [2, 3] 6\n"
+    );
 }

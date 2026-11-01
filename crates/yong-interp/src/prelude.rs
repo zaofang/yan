@@ -96,7 +96,7 @@ pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
     }))
 }
 
-fn order(a: &Value, b: &Value) -> Option<Ordering> {
+pub(super) fn order(a: &Value, b: &Value) -> Option<Ordering> {
     use Value::*;
     match (a, b) {
         (Int(x), Int(y)) => Some(x.cmp(y)),
@@ -146,6 +146,23 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
                 .collect();
             format!("{{{}}}", kvs.join(", "))
         }
+        Deque(d, m) => {
+            let xs: Vec<Value> = d.iter().cloned().collect();
+            match m {
+                Some(m) => format!("deque([{}], maxlen={m})", join(&xs)),
+                None => format!("deque([{}])", join(&xs)),
+            }
+        }
+        Heap(h) => format!("heap([{}])", join(&super::collections::ascending(h))),
+        SortedMap(m) => {
+            let kvs: Vec<String> = m
+                .iter()
+                .map(|(k, v)| format!("{}: {}", show(k, true), show(v, true)))
+                .collect();
+            format!("sorted_dict({{{}}})", kvs.join(", "))
+        }
+        SortedSet(s) if s.is_empty() => "sorted_set()".into(),
+        SortedSet(s) => format!("sorted_set({{{}}})", join(s)),
         Set(s) if s.is_empty() => "set()".into(),
         Set(s) => {
             let xs: Vec<String> = s.iter().map(|x| show(&x.0, true)).collect();

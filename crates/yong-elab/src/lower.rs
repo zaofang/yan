@@ -1002,9 +1002,33 @@ impl Lower<'_, '_, '_> {
             self.bind(&i, true, &Ty::Int, Rhs::Atom(start), at, at);
             (None, stop, step)
         } else {
-            let (xs, t) = self.atom(iter, None)?;
+            let (mut xs, t) = self.atom(iter, None)?;
+            let mut len_path = "std.list.len".to_owned();
             let e = match &t {
                 Ty::List(e) => (**e).clone(),
+                Ty::Coll("heap", _) => {
+                    self.err(
+                        "E201",
+                        iter.span,
+                        "a `heap` is not iterable; use `h.into_sorted()`".into(),
+                    );
+                    return Ok(());
+                }
+                // Keys in ascending order, as a list.
+                Ty::Coll("sorted_dict", ts) => {
+                    let keys = call(
+                        "std.collections.sorted_dict.keys",
+                        coll_targs(&t),
+                        vec![let_arg(xs)],
+                        at,
+                    );
+                    xs = self.tmp(&Ty::List(Box::new(ts[0].clone())), Rhs::Call(keys), at);
+                    ts[0].clone()
+                }
+                Ty::Coll(_, ts) => {
+                    len_path = format!("std.{}.len", t.module().expect("a collection"));
+                    ts[0].clone()
+                }
                 Ty::Str => {
                     self.err(
                         "E504",
@@ -1018,12 +1042,7 @@ impl Lower<'_, '_, '_> {
             };
             let zero = Atom::Lit(Literal::Int("0".into()), at);
             self.bind(&i, true, &Ty::Int, Rhs::Atom(zero), at, at);
-            let len = call(
-                "std.list.len",
-                vec![e.targ()],
-                vec![let_arg(xs.clone())],
-                at,
-            );
+            let len = call(&len_path, vec![e.targ()], vec![let_arg(xs.clone())], at);
             let n = self.tmp(&Ty::Int, Rhs::Call(len), at);
             (Some((xs, e)), n, one)
         };
@@ -1536,10 +1555,9 @@ impl Lower<'_, '_, '_> {
                 self.bind(n, m, &ty, r, target.span, at);
                 self.bound.push((n.clone(), target.span));
             }
-            j::ExprKind::Index(d, k) if matches!(self.ty_of_local(d), Some(Ty::Dict(..))) => {
-                let Some(Ty::Dict(kt, vt)) = self.ty_of_local(d) else {
-                    unreachable!("matched")
-                };
+            j::ExprKind::Index(d, k) if self.ty_of_local(d).as_ref().and_then(map_kv).is_some() => {
+                let dt = self.ty_of_local(d).expect("matched");
+                let (kt, vt) = map_kv(&dt).expect("matched");
                 let j::ExprKind::Name(dn) = &d.kind else {
                     unreachable!("a local")
                 };
@@ -1548,7 +1566,7 @@ impl Lower<'_, '_, '_> {
                 self.expect(&t, &vt, at);
                 let v = self.tmp(&t, r, at);
                 let c = call(
-                    "std.dict.insert",
+                    &format!("std.{}.insert", dt.module().expect("a map")),
                     vec![kt.targ(), vt.targ()],
                     vec![
                         Arg::Value(Conv::Inout, Atom::Name(dn.clone(), d.span), d.span),
@@ -1649,8 +1667,8 @@ impl Lower<'_, '_, '_> {
             j::ExprKind::Index(b, i) => {
                 let (mut p, t) = self.place(b)?;
                 match &t {
-                    Ty::List(et) => {
-                        let et = (**et).clone();
+                    Ty::List(_) | Ty::Coll("deque", _) => {
+                        let et = t.elem().cloned().expect("an element type");
                         self.sites.insert(e.span, Site::List);
                         // N16: the parser kept `xs[-k]`; it means `xs[len(xs) - k]`.
                         let from_end;
@@ -1877,15 +1895,15 @@ impl Lower<'_, '_, '_> {
             }
             K::Index(b, k) => {
                 let (p, t) = self.place(b)?;
-                match &t {
-                    Ty::Dict(kt, vt) => {
+                match map_kv(&t) {
+                    Some((kt, vt)) => {
                         self.sites.insert(e.span, Site::Dict);
-                        let (kt, vt) = ((**kt).clone(), (**vt).clone());
                         let d = self.tmp(&t, Rhs::Proj(p), b.span);
                         let (ka, kty) = self.atom(k, Some(&kt))?;
                         self.expect(&kty, &kt, k.span);
+                        let path = format!("std.{}.index", t.module().expect("a map"));
                         let c = call(
-                            "std.dict.index",
+                            &path,
                             vec![kt.targ(), vt.targ()],
                             vec![let_arg(d), let_arg(ka)],
                             at,
@@ -2295,17 +2313,26 @@ impl Lower<'_, '_, '_> {
             let (x, _) = self.atom(a, None)?;
             let (c, ct) = self.atom(b, None)?;
             let (path, targs) = match &ct {
-                Ty::List(e) => ("std.list.contains", vec![e.targ()]),
-                Ty::Set(e) => ("std.set.contains", vec![e.targ()]),
-                Ty::Dict(k, v) => ("std.dict.contains_key", vec![k.targ(), v.targ()]),
-                Ty::Str => ("std.text.contains", vec![]),
+                Ty::List(e) => ("std.list.contains".to_owned(), vec![e.targ()]),
+                Ty::Set(e) => ("std.set.contains".to_owned(), vec![e.targ()]),
+                Ty::Dict(k, v) => ("std.dict.contains_key".to_owned(), vec![k.targ(), v.targ()]),
+                Ty::Coll(n, _) if *n != "heap" => {
+                    let m = if *n == "sorted_dict" {
+                        "contains_key"
+                    } else {
+                        "contains"
+                    };
+                    let module = ct.module().expect("a collection");
+                    (format!("std.{module}.{m}"), coll_targs(&ct))
+                }
+                Ty::Str => ("std.text.contains".to_owned(), vec![]),
                 Ty::Err => return Ok((Rhs::Atom(x), Ty::Err)),
                 t => {
                     self.err("E201", b.span, format!("`in` on a `{t}`"));
                     return Ok((Rhs::Atom(x), Ty::Err));
                 }
             };
-            let r = Rhs::Call(call(path, targs, vec![let_arg(c), let_arg(x)], at));
+            let r = Rhs::Call(call(&path, targs, vec![let_arg(c), let_arg(x)], at));
             if op == "in" {
                 return Ok((r, Ty::Bool));
             }
@@ -2732,6 +2759,78 @@ impl Lower<'_, '_, '_> {
         Ok(Some(out))
     }
 
+    /// `deque(xs, maxlen=n)`, `heap(xs)`, `sorted_dict(d)`, `sorted_set(xs)`, each argument optional (R488).
+    fn collection(
+        &mut self,
+        n: &str,
+        args: &[j::Arg],
+        at: Span,
+        want: Option<&Ty>,
+    ) -> R<(Rhs, Ty)> {
+        let (name, arity) = crate::ty::collection(n).expect("a collection name");
+        let (mut src, mut maxlen) = (None, None);
+        for a in args {
+            match (a.name.as_deref(), &a.kind) {
+                (None, j::ArgKind::Expr(e)) if src.is_none() => src = Some(e),
+                (Some("maxlen"), j::ArgKind::Expr(e)) | (None, j::ArgKind::Expr(e))
+                    if name == "deque" && maxlen.is_none() =>
+                {
+                    maxlen = Some(e)
+                }
+                _ => {
+                    self.err("E202", a.span, format!("unexpected argument to `{n}`"));
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err));
+                }
+            }
+        }
+        let wanted = match want {
+            Some(Ty::Coll(m, ts)) if *m == name => Some(ts.clone()),
+            _ => None,
+        };
+        let src_ty = |ts: &[Ty]| match ts {
+            [k, v] => Ty::Dict(Box::new(k.clone()), Box::new(v.clone())),
+            [t] => Ty::List(Box::new(t.clone())),
+            _ => Ty::Err,
+        };
+        let mut out = Vec::new();
+        let ts = match src {
+            Some(e) => {
+                let (a, t) = self.atom(e, wanted.as_deref().map(src_ty).as_ref())?;
+                let ts = match (&t, arity) {
+                    (Ty::Dict(k, v), 2) => vec![(**k).clone(), (**v).clone()],
+                    (Ty::List(x), 1) => vec![(**x).clone()],
+                    (Ty::Err, _) => return Ok((Rhs::Atom(a), Ty::Err)),
+                    _ => {
+                        self.err("E201", e.span, format!("`{n}` does not take a `{t}`"));
+                        return Ok((Rhs::Atom(a), Ty::Err));
+                    }
+                };
+                out.push(sink_arg(a));
+                ts
+            }
+            None => match wanted {
+                Some(ts) => ts,
+                None => {
+                    self.err("E241", at, format!("annotate the type of this empty {n}"));
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err));
+                }
+            },
+        };
+        if let Some(e) = maxlen {
+            if out.is_empty() {
+                let new = call("std.list.new", vec![ts[0].targ()], vec![], at);
+                let xs = self.tmp(&src_ty(&ts), Rhs::Call(new), at);
+                out.push(sink_arg(xs));
+            }
+            let (a, t) = self.atom(e, Some(&Ty::Int))?;
+            self.expect(&t, &Ty::Int, e.span);
+            out.push(let_arg(a));
+        }
+        let path = format!("std.prelude.{name}");
+        let targs = ts.iter().map(Ty::targ).collect();
+        Ok((Rhs::Call(call(&path, targs, out, at)), Ty::Coll(name, ts)))
+    }
+
     fn builtin(&mut self, n: &str, args: &[j::Arg], at: Span, want: Option<&Ty>) -> R<(Rhs, Ty)> {
         let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err);
         match n {
@@ -2745,6 +2844,11 @@ impl Lower<'_, '_, '_> {
                     ("len", Ty::List(e)) => ("std.list.len", vec![e.targ()], Ty::Int),
                     ("len", Ty::Set(e)) => ("std.set.len", vec![e.targ()], Ty::Int),
                     ("len", Ty::Dict(k, v)) => ("std.dict.len", vec![k.targ(), v.targ()], Ty::Int),
+                    ("len", Ty::Coll(..)) => {
+                        let path = format!("std.{}.len", t.module().expect("a collection"));
+                        let c = call(&path, coll_targs(&t), vec![let_arg(a)], at);
+                        return Ok((Rhs::Call(c), Ty::Int));
+                    }
                     ("len", Ty::Str) if self.cx.strict => {
                         self.err(
                             "E504",
@@ -2903,6 +3007,7 @@ impl Lower<'_, '_, '_> {
                 let c = call("std.prelude.range", vec![], out, at);
                 Ok((Rhs::Call(c), Ty::List(Box::new(Ty::Int))))
             }
+            "deque" | "heap" | "sorted_dict" | "sorted_set" => self.collection(n, args, at, want),
             "dict" | "set" | "enumerate" | "zip" | "sum" | "any" | "all" | "reversed"
             | "isinstance" | "hash" | "repr" | "divmod" | "pow" | "chr" | "ord" | "atan2"
             | "hypot" => unsupported(format!("`{n}`")),
@@ -3290,5 +3395,22 @@ pub(crate) fn callees(stmts: &[j::Stmt], out: &mut HashSet<String>) {
         for b in sub_blocks(s) {
             callees(b, out);
         }
+    }
+}
+
+/// A collection's type arguments, which its std methods take in the same order.
+fn coll_targs(t: &Ty) -> Vec<y::TArg> {
+    match t {
+        Ty::Coll(_, ts) => ts.iter().map(Ty::targ).collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// The key and value types of a `dict` or `sorted_dict`.
+fn map_kv(t: &Ty) -> Option<(Ty, Ty)> {
+    match t {
+        Ty::Dict(k, v) => Some(((**k).clone(), (**v).clone())),
+        Ty::Coll("sorted_dict", ts) => Some((ts[0].clone(), ts[1].clone())),
+        _ => None,
     }
 }

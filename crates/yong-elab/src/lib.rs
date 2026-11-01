@@ -173,6 +173,9 @@ impl Globals {
                     ("set", [t]) => Ty::Set(Box::new(t.clone())),
                     ("dict", [k, v]) => Ty::Dict(Box::new(k.clone()), Box::new(v.clone())),
                     ("tuple", ts) => Ty::Tuple(ts.to_vec()),
+                    (n, ts) if ty::collection(n).is_some_and(|(_, k)| k == ts.len()) => {
+                        Ty::Coll(ty::collection(n).expect("matched").0, ts.to_vec())
+                    }
                     ("Result", [t, e]) => Ty::Result(Box::new(t.clone()), Box::new(e.clone())),
                     (n, []) if self.records.contains_key(n) || self.sums.contains_key(n) => {
                         Ty::Data(n.to_owned())

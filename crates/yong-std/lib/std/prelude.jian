@@ -34,6 +34,22 @@ pub def list[T](take xs: list[T]) -> list[T]: ...
 
 @intrinsic
 @since("1.0")
+pub def deque[T](take xs: list[T] = [], maxlen: int | None = None) -> deque[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def heap[T: Ord](take xs: list[T] = []) -> heap[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def sorted_dict[K: Ord, V](take d: dict[K, V] = {}) -> sorted_dict[K, V]: ...
+
+@intrinsic
+@since("1.0")
+pub def sorted_set[T: Ord](take xs: list[T] = []) -> sorted_set[T]: ...
+
+@intrinsic
+@since("1.0")
 pub def range(start: int, stop: int | None = None, /) -> list[int]: ...
 
 @intrinsic

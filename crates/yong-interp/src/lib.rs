@@ -4,7 +4,7 @@
 //! `requires`; `ensures`, `decreases` and `example` are not evaluated yet.
 
 use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::io::Write;
 use std::rc::Rc;
@@ -13,6 +13,7 @@ use indexmap::{IndexMap, IndexSet};
 use num_bigint::BigInt;
 use yong_core::ast::*;
 
+mod collections;
 mod native;
 mod prelude;
 mod regex;
@@ -37,6 +38,13 @@ enum Value {
     /// Insertion-ordered; removal keeps the order of the rest (std.dict).
     Dict(IndexMap<Key, Value, BuildHasherDefault<Fnv>>),
     Set(IndexSet<Key, BuildHasherDefault<Fnv>>),
+    /// A deque and its `maxlen`.
+    Deque(VecDeque<Value>, Option<usize>),
+    /// A 4-ary min-heap in array order.
+    Heap(Vec<Value>),
+    /// Sorted by key.
+    SortedMap(Vec<(Value, Value)>),
+    SortedSet(Vec<Value>),
     BigInt(BigInt),
     /// A record or a sum variant.
     Data {
@@ -652,13 +660,24 @@ impl Interp<'_> {
                         _ => return unsupported(format!("tuple field `{f}`")),
                     }
                 }
-                (Proj::Index(i), Value::List(xs)) => match self.atom(i, frame)? {
-                    Value::Int(i) => match usize::try_from(i).ok().and_then(|i| xs.get(i)) {
+                (
+                    Proj::Index(i),
+                    xs @ (Value::List(_) | Value::Deque(..) | Value::SortedSet(_)),
+                ) => {
+                    let Value::Int(i) = self.atom(i, frame)? else {
+                        return unsupported("non-integer index");
+                    };
+                    let i = usize::try_from(i).ok();
+                    let got = match xs {
+                        Value::List(xs) | Value::SortedSet(xs) => i.and_then(|i| xs.get(i)),
+                        Value::Deque(d, _) => i.and_then(|i| d.get(i)),
+                        _ => unreachable!("matched"),
+                    };
+                    match got {
                         Some(v) => v,
                         None => return panic("bounds"),
-                    },
-                    _ => return unsupported("non-integer index"),
-                },
+                    }
+                }
                 (proj, v) => return unsupported(format!("projection {proj:?} on {v:?}")),
             };
         }
@@ -693,11 +712,14 @@ impl Interp<'_> {
                         None => return unsupported(format!("no field `{f}`")),
                     }
                 }
-                (Proj::Index(_), Value::List(xs)) => {
-                    match usize::try_from(i.expect("index computed"))
-                        .ok()
-                        .and_then(|i| xs.get_mut(i))
-                    {
+                (Proj::Index(_), xs @ (Value::List(_) | Value::Deque(..))) => {
+                    let i = usize::try_from(i.expect("index computed")).ok();
+                    let got = match xs {
+                        Value::List(xs) => i.and_then(|i| xs.get_mut(i)),
+                        Value::Deque(d, _) => i.and_then(|i| d.get_mut(i)),
+                        _ => unreachable!("matched"),
+                    };
+                    match got {
                         Some(s) => s,
                         None => return panic("bounds"),
                     }
@@ -772,6 +794,9 @@ impl Interp<'_> {
             return r;
         }
         if let Some(r) = regex::call(name, args) {
+            return r;
+        }
+        if let Some(r) = collections::call(name, args) {
             return r;
         }
         Ok(match (name, &mut *args) {

@@ -1,0 +1,49 @@
+"""Methods on deque, a ring buffer with an optional maxlen (17.3, R488 to R493)."""
+
+@intrinsic
+@since("1.0")
+pub def append[T](var self: deque[T], take x: T) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def appendleft[T](var self: deque[T], take x: T) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def pop[T](var self: deque[T]) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def popleft[T](var self: deque[T]) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def first[T](self: deque[T]) -> T | None: ...
+
+@intrinsic
+@since("1.0")
+pub def last[T](self: deque[T]) -> T | None: ...
+
+@intrinsic
+@since("1.0")
+pub def extend[T](var self: deque[T], take xs: list[T]) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def rotate[T](var self: deque[T], n: int) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def clear[T](var self: deque[T]) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def maxlen[T](self: deque[T]) -> int | None: ...
+
+@intrinsic
+@since("1.0")
+pub def len[T](self: deque[T]) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def contains[T: Eq](self: deque[T], x: T) -> bool: ...
