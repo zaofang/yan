@@ -24,3 +24,4 @@ research index links their studies and rows.
 | [0001](0001-fei.md) | Fei, the third surface | accepted | R516 to R535 |
 | [0002](0002-niche-surfaces.md) | Niche surfaces | accepted | R536 to R550 |
 | [0003](0003-core-gaps-from-surfaces.md) | Yong gaps found by the surface study | accepted | R551 to R557 |
+| [0004](0004-architecture.md) | Architecture for one core and many surfaces | draft | |
