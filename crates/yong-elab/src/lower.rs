@@ -1072,6 +1072,10 @@ impl Lower<'_, '_, '_> {
     }
 
     fn stmt(&mut self, s: &j::Stmt) -> R<()> {
+        self.stmt_inner(s).map_err(|u| u.at(s.span))
+    }
+
+    fn stmt_inner(&mut self, s: &j::Stmt) -> R<()> {
         use j::StmtKind as K;
         let at = s.span;
         match &s.kind {
@@ -2522,6 +2526,10 @@ impl Lower<'_, '_, '_> {
     }
 
     fn place(&mut self, e: &j::Expr) -> R<(Place, Ty)> {
+        self.place_inner(e).map_err(|u| u.at(e.span))
+    }
+
+    fn place_inner(&mut self, e: &j::Expr) -> R<(Place, Ty)> {
         match &e.kind {
             j::ExprKind::Name(n) if self.narrowed(n).is_some() => {
                 let m = self.narrowed(n).expect("checked").to_owned();
@@ -2738,6 +2746,10 @@ impl Lower<'_, '_, '_> {
     }
 
     fn rhs(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Rhs, Ty)> {
+        self.rhs_inner(e, want).map_err(|u| u.at(e.span))
+    }
+
+    fn rhs_inner(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Rhs, Ty)> {
         use j::ExprKind as K;
         let at = e.span;
         Ok(match &e.kind {

@@ -180,7 +180,6 @@ fn spec_check(path: &Path, text: &str) -> Result<Vec<Diagnostic>, String> {
     }
     let m = match yong_db::load(&db, f) {
         Ok(Loaded::Ready(m, _)) => m.clone(),
-        Ok(Loaded::Unsupported(what, _)) => return Err(format!("not supported yet: {what}")),
         Ok(Loaded::Stopped(d)) => return Ok(examples::remap(d.clone(), &exs)),
         Err(msg) => return Err(msg.clone()),
     };

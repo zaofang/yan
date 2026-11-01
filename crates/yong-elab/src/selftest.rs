@@ -99,3 +99,15 @@ pub def main() uses io:
 ";
     assert_eq!(raised(src), src);
 }
+
+#[test]
+fn unsupported_construct_is_e017_and_the_next_item_is_checked() {
+    let src =
+        "def a() -> int:\n    s = {1, 2}\n    return 1\n\ndef b() -> int:\n    return missing\n";
+    let (_, d) = lower(src);
+    let got: Vec<_> = d
+        .iter()
+        .map(|d| (d.code.as_str(), d.span.line, d.span.col, d.item.as_str()))
+        .collect();
+    assert_eq!(got, [("E017", 2, 9, "a"), ("E200", 6, 12, "b")], "{d:?}");
+}

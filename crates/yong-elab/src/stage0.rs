@@ -103,7 +103,7 @@ fn limits(it: &j::Item) -> R<Limits> {
             let n: u64 = n
                 .replace('_', "")
                 .parse()
-                .map_err(|_| crate::Unsupported(format!("`@limit` value {n}")))?;
+                .or_else(|_| crate::unsupported(format!("`@limit` value {n}")))?;
             match a.name.as_deref() {
                 Some("stage0_depth") => l.depth = n as usize,
                 Some("stage0_steps") => l.steps = n,

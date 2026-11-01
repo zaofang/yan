@@ -333,9 +333,6 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
             print_diags(d);
             return ExitCode::FAILURE;
         }
-        Ok(Loaded::Unsupported(what, _)) => {
-            return tool_failure(&format!("not supported yet: {what}"));
-        }
         Err(msg) => return tool_failure(msg),
     };
     match format {
@@ -382,9 +379,6 @@ fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
         }
         Ok(Loaded::Stopped(_)) => {
             return tool_failure(&format!("{} does not parse", file.display()));
-        }
-        Ok(Loaded::Unsupported(what, _)) => {
-            return tool_failure(&format!("not supported yet: {what}"));
         }
         Err(msg) => return tool_failure(msg),
     };
