@@ -80,7 +80,11 @@ fn hex_decode(s: &str) -> Result<Value, Value> {
     if ds.len() % 2 == 1 {
         return Err(error(ds.len(), "Hex"));
     }
-    Ok(bytes(ds.chunks(2).map(|d| (d[0] * 16 + d[1]) as u8).collect::<Vec<_>>()))
+    Ok(bytes(
+        ds.chunks(2)
+            .map(|d| (d[0] * 16 + d[1]) as u8)
+            .collect::<Vec<_>>(),
+    ))
 }
 
 fn alphabet(url: bool) -> &'static [u8; 64] {
