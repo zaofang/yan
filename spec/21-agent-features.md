@@ -13,6 +13,10 @@ Human review of model-written code starts with the spec, which is short and read
 
 **Spec freeze (normative).** Coding agents rewrite tests to pass when they can: ImpossibleBench (ICLR 2026) measured a 93% test-hacking rate in one configuration. So the tests and contracts produced by the spec step are frozen once a human accepts them. An implement-step patch may not touch test functions or `pre`, `post`, `ex`, `invariant` and `decreases` clauses; `check_patch` enforces this (P006). If the agent believes a frozen test is wrong, it stops and reports instead of editing. W806 flags code that special-cases the literal inputs of `ex` clauses.
 
+**Spec-gate checks (R621).** `spec_check` runs each `ex` line's arguments through `pre`. Arguments that break it are E619 at the `ex` line. A `pre` that cannot be evaluated yet, such as one calling a function whose body is still `...`, is skipped.
+
+**The reference loop (R617).** `yong agent` (18.1, R616) runs one task through both phases using only the 21.4 tools, called in process as JSON-RPC messages to the handler `yong mcp` serves. Phase 1: the model writes items with `...` bodies, `spec_check` checks them, and up to `--spec-repairs` rounds (default 2) show it the line rendering. The accepted spec is written and frozen. Phase 2, each round in order: a reply that drops a spec item or changes a def line, docstring or contract is refused before any tool runs; `apply_patch` applies the reply with `--check`; `autofix` runs and its patch is applied; `run_tests` runs the module's `test_` functions and `ex` lines. The first refusal or failure is the next repair round, up to `--body-repairs` (default 3). The run is green when the tests pass. A reply with a line `STOP: <reason>` ends the run as `stopped`, the stop-and-report rule above. The prompts are fixed in the toolchain and versioned with it; the primer and shots are inputs.
+
 ### 21.2 Typed holes
 
 `...` in expression position is a typed hole in Xin (R212), and `_` is one in Wen. In Xin `_` is only a discard (R347), and `...` as a whole body (a trait signature, or a function whose body is a hole) stays valid.
@@ -59,6 +63,8 @@ A Model Context Protocol server (protocol 2026-07-28, stateless) over stdio. Eve
 | `explain` | code | long-form text |
 | `query` | a Xin body using only the `toolchain` capability; step and token budgets | the body's return value as JSON, or its diagnostics |
 
+**Model adapters (R618).** `yong agent --model` takes `stub:FILE`, a JSON array of scripted replies for tests and CI, or `cmd:PROGRAM ARGS`, a process that reads one JSON line per turn, `{"system", "messages", "max_tokens"}`, and writes one line, `{"text", "usage": {"in", "out", "reasoning"}, "model"}` or `{"error"}`. Hosted models are reached through `cmd:` adapters that the harness ships; the toolchain makes no HTTPS calls and holds no API keys.
+
 **The `toolchain` capability.** A built-in read-only capability over the query database: `check`, `sig`, `search_type`, `type_at`, `hole_context`, `callers`, `callees`, `uses_of`, index search and generated-item expansion. `query` runs its body on the interpreter with a step budget and an output token budget. Release builds never bind `toolchain` (E318), and it cannot produce approvals (19.4).
 
 **Autofix loop.** An agent SHOULD call `autofix` before asking the model to repair anything. Errors whose only fix is mechanical (missing `uses`, keyword arguments, parentheses, `&` marks, `copy` and `share` insertion, lenient normalizations) never cost a model generation. check and check\_patch apply auto fixes before they answer, so the model sees only diagnostics that need judgment (R295).
@@ -86,5 +92,7 @@ The M1 gate is measured with a harness specified here, so the result can be trus
 - Tokens are reported in two parts (R567). Spec-phase tokens cover the signature, `uses`, contracts and `ex` clauses of 21.1; body tokens cover the body and every repair round. Body tokens compare against the typed-Python program; spec-phase tokens compare against the pytest cases the same model writes for the same task when the prompt asks typed Python for tests, so both sides pay for their tests.
 - The Xin primer the model receives stays at or under 500 tokens; the canonical example set (`yong skill`) counts toward it (R289).
 - Each run reports, per task, rounds to green, the diagnostics hit, and which of them an autofix closed in the loop (R280).
+- The Xin arm runs through `yong agent` (R620), so repair rounds and autofix count as a user meets them. The typed-Python arm keeps the same two phases, with mypy and pytest, in the harness.
+- **Run record (R619).** `yong agent` writes JSON with `schema: 1`: `task`, `model` (the adapter's id), `toolchain` (`version` and the BLAKE3 hash of the binary), `status` (`green`, `spec_failed`, `body_failed` or `stopped`), `rounds_to_green`, `tokens.spec` and `tokens.body` (each `{in, out, reasoning}` as the provider reports them, R567), and `rounds`. Each round has its phase, number, usage, `ok`, the report the model saw next, and its tool calls, each with the codes it hit, failing test ids and items autofix replaced. `system`, `messages`, `spec` and `final` let the harness recount tokens with each tokenizer. New fields are optional additions only.
 
 **If the fluency gate fails,** the plan is continued pre-training of an open 8B to 32B model on Xin plus instruction transfer, not fine-tuning of hosted models.

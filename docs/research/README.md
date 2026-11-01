@@ -6,7 +6,10 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
-| 2026-11-01 | [Formal core study: what a mechanized proof would take](https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y) | Pending: Lean under `formal/`, normative definition, start time |
+| 2026-11-01 | [Formal core study: what a mechanized proof would take](https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y) | RFC 0022 (R680): Lean model under `formal/`, phase 0 now; normative definition open |
+| 2026-11-01 | [Adoption path and 1.0 launch](https://claude.ai/artifact/YFzwDZ97bftr7Vq2KmLUGD) | Decided: single 1.0 launch, no previews (card, 2026-11-01) |
+| 2026-11-01 | [Yong packaging and ecosystem](https://claude.ai/artifact/NHdZaQ9Q6X5tFxz1xh9BQC) | RFC 0020 (R635 to R647) |
+| 2026-11-01 | [What Yong is and how it fits together](https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU) | RFC 0014 (R616 to R621): the reference agent loop, built first |
 | 2026-11-01 | [Theory and compiler frontier survey](https://claude.ai/artifact/YNj73yYvBWphMVzAdNLABE) | RFCs 0010 to 0013 (R605 to R615) |
 | 2026-11-01 | [Naming study: Yong and its surfaces](https://claude.ai/artifact/8zD7T9QnYtNUsbF96cLHNN) | R586 |
 | 2026-11-01 | [What makes Xin and Wen special](https://claude.ai/artifact/4piYJXunC1Vp4f14HAtYHh) | R566 to R568; Xin-to-Wen view stays in M3 |
