@@ -155,6 +155,7 @@ fn order(a: &Value, b: &Value) -> Option<Ordering> {
         (Bool(x), Bool(y)) => Some(x.cmp(y)),
         (Char(x), Char(y)) => Some(x.cmp(y)),
         (Str(x), Str(y)) => Some(x.cmp(y)),
+        (Bytes(x), Bytes(y)) => Some(x.cmp(y)),
         (Tuple(xs), Tuple(ys)) | (List(xs), List(ys)) => {
             for (x, y) in xs.iter().zip(ys) {
                 match order(x, y)? {
@@ -221,6 +222,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         BigInt(b) => b.to_string(),
         Data { name, fields } if name == "Some" && fields.len() == 1 => show(&fields[0].1, nested),
         Data { name, fields } if name == "None" && fields.is_empty() => "None".into(),
+        Data { name, fields } if name == "EncodingError" => super::encoding::show_error(fields),
         Data { name, fields } => {
             let fs: Vec<String> = fields
                 .iter()
@@ -231,6 +233,8 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Cap(n) => format!("<capability {n}>"),
         Closure(_) => "<function>".into(),
         Iter(_) => "<iter>".into(),
+        Bytes(b) => super::encoding::repr(b),
+        ByteArray(b) => format!("bytearray({})", super::encoding::repr(b)),
     }
 }
 
