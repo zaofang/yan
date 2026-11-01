@@ -474,3 +474,13 @@ sections = "11.1, 17.3"
 rows = "R508 to R515"
 topic = "std.iter proposal (https://claude.ai/artifact/5bV4s3C4spRNVJnzVDqAGr), decided by the owner: built-in lazy iter\\[T\\] (R508); sources, range stays a list (R509); adapters (R510); consumers (R511); eager list methods kept (R512); borrowing iterators second-class (R513); key= (R514); pull order (R515)"
 sections = "6.x, 17.3"
+
+[[entry]]
+rows = "R516 to R521"
+topic = "Fei, the third surface (RFC 0001, https://claude.ai/artifact/Urz3zEhuESTobLRf8aqk2X), decided by the owner: Fei is a full surface with `.fei` files, built at M4 (R516); admission rules K1 to K5 (R517); law 8 per surface, Fei spelling notes as hash-neutral trivia, round-trip law 6 (R518); positional locals in the item hash (R519); keyboard rule, ASCII outside strings and comments (R520); open admission and the readmitted forms (R521)"
+sections = "1, 2, 3.6, 16.5, 16.6, 23, 26.1, 26.2"
+
+[[entry]]
+rows = "R522 to R535"
+topic = "Research track (https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8), accepted for research, not normative for 1.0: effect handlers (R522); information-flow labels (R523); graded types (R524); typed staging (R525); per-reader spelling (R526); bidirectional grammars (R527); incremental computation (R528); synthesis from examples (R529); positional type parameters (R530); Sym (R531); Any (R532); panic recovery (R533); STM (R534); eval (R535)"
+sections = "26.6"

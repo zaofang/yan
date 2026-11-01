@@ -76,3 +76,4 @@ M2b (library, registry and tools):
 - CHERI targets; a native Tree Borrows sanitizer (candidate).
 - Stretch: GPU code generation for `par for` bodies with `uses none`, through MLIR and LLVM to Apple Metal first, then NVIDIA, AMD and Vulkan (R327 to R329), with `@fast_math` allowed under `nondet`.
 - WASM components (`wasm32-wasip2`, capabilities as WASI interfaces, platforms as WIT worlds).
+- Fei (16.6, R516): reader, printer with spelling notes, lenient reader, and `yong view --as fei`; the grammar moves from RFC 0001 into section 16.6 first, and every Wen conformance program round-trips through Fei by item hash.

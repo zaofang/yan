@@ -68,9 +68,29 @@ These MUST hold within each edition and MUST be tested on every conformance prog
 1. For any canonical Jian module F: `jian(elaborate(F)) == F`, byte for byte.
 2. For any canonical Jian module F: `jian(wen(F)) == F`, byte for byte.
 3. For any Wen module W within the Jian subset: `elaborate(jian(W)) == elaborate(W)` as Yong, compared by item hash.
-4. For any module X in either surface: the item hashes of `elaborate(X)` do not depend on formatting, comments or item order.
+4. For any module X in any surface: the item hashes of `elaborate(X)` do not depend on formatting, comments or item order.
 5. For any Wen module W: `wen(elaborate(W)) == fmt(W)`, byte for byte, comments kept at their items. A function whose whole body is one `match` on its parameters prints in clause form (15.3, R266), so this law keeps one printing per tree.
+6. For any canonical Fei module F: `fei(elaborate(F), spelling(F)) == F`, byte for byte, comments kept at their items; and every Yong item has a canonical Fei printing with no spelling notes (R518).
 
-**Trivia through Yong.** Yong carries three hash-neutral kinds of trivia, so laws 1, 2 and 5 hold byte for byte: comments and docstrings; blank lines; and literal spelling (18.5). Comments attach as leading (on their own line, to the next node), trailing (on the same line, to the previous node) or dangling (in an empty construct or before a closer).
+**Trivia through Yong.** Yong carries five hash-neutral kinds of trivia, so laws 1, 2, 5 and 6 hold byte for byte: comments and docstrings; blank lines; literal spelling (18.5); local names (3.6, R519); and Fei spelling notes, which record which of several Fei spellings produced a node (16.6, R518). A note whose spelling no longer matches its node after an edit is dropped, and the default spelling prints. Comments attach as leading (on their own line, to the next node), trailing (on the same line, to the previous node) or dangling (in an empty construct or before a closer).
 
 **Item identity.** An item's hash is defined in section 3.6. Two items with the same hash are the same item, whichever surface they came from.
+
+### 16.6 Fei: the third surface
+
+Fei (斐, "brilliantly patterned") is the dense ASCII surface and the language-design playground (R516). Files use the extension `.fei`. It covers layers L0 to L6 and is built in milestone M4; until then its text is produced only by `yong view --as fei`. Any Yong item prints as Fei. Fei adds only syntax (law 1): every Fei module elaborates to the same Yong items, with the same hashes, as its Wen projection. Where Fei leaves a conversion, a `None` or a loop implicit in its text, the Yong text is explicit (law 5). The full reference, with the lexicon, precedence, grammar, spelling-note model and one entry per form, is RFC 0001 (`rfcs/0001-fei.md`); it moves into this section before the Fei build starts.
+
+**Admission (R517).** A Fei form is admitted only if it passes all five rules:
+
+1. **K1 Same core.** It lowers to Yong that Wen can write, or to an accepted Yong extension (26.6). A form that needs an extension is rejected with a diagnostic naming it until the extension lands.
+2. **K2 No invented hashed names.** A lowering never creates or drops a name the item hash includes (3.6).
+3. **K3 Recognisable.** The printer has a decidable recogniser for the lowered shape, and the grammar is LL(1) after the four factorings of RFC 0001 section 4.
+4. **K4 Spelling kept like comments.** Where several spellings elaborate to one tree, the author's choice is a spelling note (16.5): `fei(elaborate(F), spelling(F)) == F`. A tree with no notes prints with each shape's default.
+5. **K5 Five facts visible.** Each of the five facts (law 4) keeps a mark in the text. A form may move a mark to the definition (variadic parameters, properties) but never drop it.
+
+**Keyboard rule (R520).** Every Fei token outside string literals and comments is ASCII, so all of Fei can be typed on an ordinary keyboard. Unicode is allowed in strings and comments, as in every surface (R338). Operator glyphs outside ASCII are not admitted, even as aliases.
+
+**Open admission (R521).** Any form that makes Fei more expressive is admitted if it passes K1 to K5. Fei therefore admits forms that Jian and Wen leave out: shadowing, `where`, for-else, `goto` to join points, parallel assignment, try/catch over typed failures, `defer`, null as `None`, lossless implicit widening, `extends` as delegation (no subtyping), `async`/`await` as branch and join inside `par concurrent`, file-local operator fixity, tacit trains and the rest of RFC 0001's catalogue. Forms that need an accepted extension (macros, `@memo`, effects with resume, symbols, `any`, `recover`, `atomic`, `eval`) wait for it. Out: operator glyphs outside ASCII (R520), juxtaposition calls and implicit multiplication (ambiguous, law 3), global monkey patching (law 6) and multi-shot continuations.
+
+**Core spellings.** `:=` binds, `<-` assigns, `=` is equality, prefix `~` marks mutation, `!` in a type and `!!` in code mark failure, `|-` lists capabilities, `|>` is the pipeline, `e |?` opens a match, `||` and `|||` are `par` and `par concurrent`, and `<~` sends and receives on channels. Precedence comes from an operator's characters, so a file parses before any import is resolved; a file may declare fixity for operators it defines or imports, relative to an existing operator, for that file only.
+
