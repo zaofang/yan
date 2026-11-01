@@ -584,3 +584,8 @@ sections = "11.7, 15.2, 15.3, 24.3"
 rows = "R680"
 topic = "Formal core model (RFC 0022, https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y), decided by the owner: a Lean 4 model of Yong-K under `formal/`, checked against the interpreter by differential testing, never shipped and never a build dependency; the one exception to R215 (R680)"
 sections = "22.1, 26.1"
+
+[[entry]]
+rows = "R681 to R682"
+topic = "Gaps found by the formal core model (RFC 0022), decided by the owner: a join point body that falls through continues after the statement that jumped to it (R681); an `inout` argument takes the callee's final value when the callee fails (R682)"
+sections = "3.5, 4.1"

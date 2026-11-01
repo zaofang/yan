@@ -1,8 +1,8 @@
 # 0022: A formal model of Yong's core in Lean 4
 
-- Status: accepted (D1); D2 open
+- Status: accepted (D1, D3, D4); D2 open
 - Research: [Formal core study](https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y)
-- Rows: R680
+- Rows: R680, R681, R682
 
 ## Summary
 
@@ -39,10 +39,29 @@ the three is a spec bug to file, not a tie to break.
 - Decision: open
 - Row: none yet
 
+### D3: Join point fall-through
+
+A join point body that ends without `ret`, `jump`, `fail`, `become` or `unreachable` continues
+after the statement of its block that jumped to it. This is what the interpreter and the model do,
+and it matches Cranelift block semantics. The alternative, forbidding fall-through with a new error,
+was not taken.
+
+- Decision: accepted by the lead on 2026-11-01 (card)
+- Row: R681
+
+### D4: `inout` after a failure
+
+When the callee fails, the caller's `inout` argument holds the callee's final value, as on a normal
+return. This is free with in-place lowering and matches both implementations. The alternative,
+keeping the old value, costs a copy before every fallible call.
+
+- Decision: accepted by the lead on 2026-11-01 (card)
+- Row: R682
+
 ## Findings from phase 0
 
-Building the model and running 1,000 generated programs turned up these questions. Each needs its
-own decision; none is written into the spec by this RFC.
+Building the model and running 1,000 generated programs turned up these questions. Items 1 and 2
+are D3 and D4; item 3 is fixed in #129; item 4 is open.
 
 1. **Join point fall-through.** 3.5 does not say what happens when a `jp` body ends without `ret`
    or `jump`. The interpreter and the model both continue after the statement that jumped.
@@ -62,3 +81,5 @@ own decision; none is written into the spec by this RFC.
 
 - 22.1: a paragraph on the formal model (R680).
 - 26.1: the implementation-language row notes the exception.
+- 3.5: join point fall-through (R681).
+- 4.1: `inout` after a failure (R682).
