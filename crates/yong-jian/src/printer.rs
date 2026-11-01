@@ -1,5 +1,7 @@
 //! The canonical Jian printer (14.3).
 
+use std::cell::Cell;
+
 use crate::ast::*;
 
 pub fn print(m: &Module) -> String {
@@ -53,12 +55,21 @@ fn docstring(s: &str) -> String {
     )
 }
 
+thread_local! {
+    /// The quote for string literals: `'` inside an f-string's braces, which Jian cannot nest.
+    static QUOTE: Cell<char> = const { Cell::new('"') };
+}
+
 fn escape(s: &str, braces: bool) -> String {
+    let q = QUOTE.get();
     let mut out = String::new();
     for c in s.chars() {
         match c {
             '\\' => out.push_str("\\\\"),
-            '"' => out.push_str("\\\""),
+            c if c == q => {
+                out.push('\\');
+                out.push(c);
+            }
             '\n' => out.push_str("\\n"),
             '\t' => out.push_str("\\t"),
             '\r' => out.push_str("\\r"),
@@ -212,8 +223,14 @@ fn args(a: &[Arg]) -> String {
 fn lit(l: &Lit) -> String {
     match l {
         Lit::Int(s) | Lit::Float(s) => s.clone(),
-        Lit::Str { prefix, value } if prefix.contains('r') => format!("{prefix}\"{value}\""),
-        Lit::Str { prefix, value } => format!("{prefix}\"{}\"", escape(value, false)),
+        Lit::Str { prefix, value } if prefix.contains('r') => {
+            let q = QUOTE.get();
+            format!("{prefix}{q}{value}{q}")
+        }
+        Lit::Str { prefix, value } => {
+            let q = QUOTE.get();
+            format!("{prefix}{q}{}{q}", escape(value, false))
+        }
         Lit::Char(c) => match c {
             '\'' => "c'\\''".into(),
             c => format!("c'{}'", escape(&c.to_string(), false)),
@@ -292,13 +309,16 @@ pub fn expr(e: &Expr, min: u8) -> String {
         ExprKind::Hole => "...".into(),
         ExprKind::Wild => "_".into(),
         ExprKind::FStr { template, pieces } => {
-            let mut s = String::from(if *template { "t\"" } else { "f\"" });
+            let q = QUOTE.get();
+            let mut s = format!("{}{q}", if *template { 't' } else { 'f' });
             for p in pieces {
                 match p {
                     FPiece::Lit(l) => s.push_str(&escape(l, true)),
                     FPiece::Expr(e, fmt) => {
                         s.push('{');
+                        let outer = QUOTE.replace('\'');
                         s.push_str(&expr(e, 0));
+                        QUOTE.set(outer);
                         if let Some(f) = fmt {
                             s.push(':');
                             s.push_str(f);
@@ -307,7 +327,7 @@ pub fn expr(e: &Expr, min: u8) -> String {
                     }
                 }
             }
-            s.push('"');
+            s.push(q);
             s
         }
         ExprKind::Tuple(xs) if xs.len() == 1 => format!("({},)", expr(&xs[0], 0)),
