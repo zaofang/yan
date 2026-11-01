@@ -26,7 +26,9 @@ of any surface, registry policy, and the project's licensing and governance rule
 wording, performance work and internal refactors do not need one.
 
 The pipeline: draft, adversarial review by an independent reviewer, decision by the lead, spec rows, preview
-behind `@preview`, stable. Accepted and rejected RFCs are kept in `rfcs/NNNN-slug.md`.
+behind `@preview`, stable. Accepted and rejected RFCs are kept in `rfcs/NNNN-slug.md`; [rfcs/README.md](rfcs/README.md)
+says how to write one. Row numbers are taken only in the PR that writes the rows, from `tools/rows.py next`, and
+CI rejects a row registered twice. Studies are listed in [docs/research](docs/research/README.md).
 
 ## Tests
 
