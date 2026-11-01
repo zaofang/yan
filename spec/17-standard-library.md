@@ -122,6 +122,8 @@ An incompatible redesign of a std module ships as a `.v2` module (`std.rand.v2`)
 
 **Model calls (R450).** The first-party package `@yong/model` declares `@capability @shared trait Model` with `generate[T: Wire](prompt: Template) -> Untrusted[T] fail ModelError`, `embed` and `tool_call`. A handler uses the provider's constrained decoding where it exists and otherwise parses against the `Wire` schema; either way decoding follows the rules above, so a model never selects a type. `model.only(models=[...], max_tokens=n, max_cost=m)` attenuates the capability, and package ceilings may carry the same limits (19.2). Tests bind no model by default. `fake_model(...)` and `replay(trace)` are the test handlers, so a test that calls a model is cached like any other, and an `ex` line may bind `model = fake_model(...)`. Model operations are recorded under R305.
 
+**Role-aware calls (R551).** `@yong/model` also declares `generate_chat[T: Wire](messages: List[Message]) -> Untrusted[T] fail ModelError`, with `type Message = { role: Role, content: Template }` and `Role` one of `system`, `user` and `assistant`. `generate(p)` is `generate_chat([Message(user, p)])`. A handler whose provider has no roles renders the messages in order under a fixed role header that the handler documents. `model.only`, `fake_model`, `replay` and recording apply as for `generate`.
+
 **Errors.** Each module that can fail defines one error type (`FsError`, `HttpError`, `JsonError`, ...) as a record or sum with `Show`, `Eq` and `Wire`.
 
 ### 17.5 Time
