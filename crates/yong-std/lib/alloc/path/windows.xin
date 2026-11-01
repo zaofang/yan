@@ -1,0 +1,69 @@
+"""Windows path text as data, on any host (17.3, R592)."""
+
+@intrinsic
+@since("1.0")
+pub def text(self: WindowsPath) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def parent(self: WindowsPath) -> WindowsPath: ...
+
+@intrinsic
+@since("1.0")
+pub def name(self: WindowsPath) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def suffix(self: WindowsPath) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def stem(self: WindowsPath) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def with_name(self: WindowsPath, n: str) -> WindowsPath: ...
+
+@intrinsic
+@since("1.0")
+pub def with_suffix(self: WindowsPath, s: str) -> WindowsPath: ...
+
+@intrinsic
+@since("1.0")
+pub def parts(self: WindowsPath) -> list[str]: ...
+
+@intrinsic
+@since("1.0")
+pub def is_absolute(self: WindowsPath) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def relative_to(self: WindowsPath, base: WindowsPath) -> WindowsPath | None: ...
+
+@intrinsic
+@since("1.0")
+pub def starts_with(self: WindowsPath, base: WindowsPath) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def normalize(self: WindowsPath) -> WindowsPath: ...
+
+@intrinsic
+@since("1.0")
+pub def join(self: WindowsPath, part: str) -> WindowsPath: ...
+
+@intrinsic
+@since("1.0")
+pub def drive(self: WindowsPath) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def root(self: WindowsPath) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def anchor(self: WindowsPath) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def to_posix(self: WindowsPath) -> Path | None: ...

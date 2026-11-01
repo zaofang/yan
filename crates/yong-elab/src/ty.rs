@@ -39,7 +39,7 @@ pub enum Ty {
 }
 
 /// Each std.collections type, by its Xin name; its Yong name is in the projection table.
-pub const COLLECTIONS: [&str; 7] = [
+pub const COLLECTIONS: [&str; 9] = [
     "deque",
     "iter",
     "heap",
@@ -47,6 +47,8 @@ pub const COLLECTIONS: [&str; 7] = [
     "sorted_set",
     "bytes",
     "bytearray",
+    "Path",
+    "WindowsPath",
 ];
 
 /// `name` as a std.collections type, with its `&'static` spelling and arity.
@@ -174,6 +176,8 @@ impl Ty {
             Ty::Coll("iter", _) => Some("iter.ops"),
             Ty::Coll("bytes", _) => Some("encoding"),
             Ty::Coll("bytearray", _) => Some("encoding.bytearray"),
+            Ty::Coll("Path", _) => Some("path"),
+            Ty::Coll("WindowsPath", _) => Some("path.windows"),
             Ty::Coll(_, _) => Some("collections.sorted_set"),
             Ty::Int | Ty::Float | Ty::BigInt | Ty::Bool | Ty::Fixed(_) => Some("num"),
             Ty::Option(_) | Ty::Result(..) => Some("result"),

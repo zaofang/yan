@@ -251,7 +251,23 @@ impl Decl {
                         t => matches!(t, j::Type::Callable { .. }),
                     },
                     _ => false,
-                }))
+                })
+                || self.tparam_past_receiver())
+    }
+
+    /// A type parameter that the receiver's type does not fix, as `P` in `join[P: AsPath]`.
+    fn tparam_past_receiver(&self) -> bool {
+        let mut ps = self.def.params.iter().filter_map(|p| match p {
+            j::Param::Value { ty, .. } => Some(ty),
+            _ => None,
+        });
+        let Some(recv) = ps.next() else {
+            return false;
+        };
+        let rest: Vec<_> = ps.collect();
+        self.tparams()
+            .iter()
+            .any(|n| !mentions(recv, n) && rest.iter().any(|t| mentions(t, n)))
     }
 
     /// `None` for a generic function or a type beyond [`Ty`].
@@ -409,6 +425,22 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> Vec<String> {
     }
     out.sort();
     out
+}
+
+fn mentions(t: &j::Type, n: &str) -> bool {
+    match t {
+        j::Type::Named { path, args } => {
+            path.as_slice() == [n]
+                || args
+                    .iter()
+                    .any(|a| matches!(a, j::TArg::Type(t) if mentions(t, n)))
+        }
+        j::Type::Callable { params, ret, .. } => {
+            params.iter().any(|p| mentions(p, n)) || mentions(ret, n)
+        }
+        j::Type::Optional(t) => mentions(t, n),
+        j::Type::None => false,
+    }
 }
 
 fn unify(pat: &j::Type, t: &Ty, tps: &[&str], b: &mut HashMap<String, Ty>) -> bool {

@@ -21,6 +21,7 @@ mod iter;
 mod keyed;
 mod math;
 mod native;
+mod path;
 mod prelude;
 mod regex;
 #[cfg(test)]
@@ -62,6 +63,8 @@ pub(crate) enum Value {
     Cap(Name),
     Bytes(Rc<[u8]>),
     ByteArray(Vec<u8>),
+    Path(Rc<str>),
+    WindowsPath(Rc<path::WinPath>),
     Closure(Rc<vm::Clo>),
     Iter(iter::It),
 }
@@ -107,6 +110,8 @@ impl Hash for Key {
                 Value::Char(c) => c.hash(h),
                 Value::Str(s) => s.hash(h),
                 Value::Bytes(b) => b.hash(h),
+                Value::Path(s) => s.hash(h),
+                Value::WindowsPath(w) => w.folded().hash(h),
                 Value::BigInt(b) => b.hash(h),
                 Value::Tuple(xs) | Value::List(xs) => xs.iter().for_each(|x| go(x, h)),
                 Value::Data { name, fields } => {
