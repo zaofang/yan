@@ -2400,6 +2400,13 @@ impl Lower<'_, '_, '_> {
                 {
                     return self.cap_call(c, m, args, at);
                 }
+                if let j::ExprKind::Name(module) = &b.kind
+                    && !self.locals.contains_key(module)
+                    && let Some(d) = crate::stdlib::decl(&format!("std.{module}.{m}"))
+                    && !d.cap
+                {
+                    return self.module_call(module, m, args, at);
+                }
                 if let (j::ExprKind::Call(f, fargs), "context") = (&b.kind, m.as_str()) {
                     return self.context(f, fargs, b.span, args, at);
                 }
@@ -2956,6 +2963,42 @@ impl Lower<'_, '_, '_> {
         Ok((Rhs::Call(c), t, Some(Ty::Data("Error".into()))))
     }
 
+    /// `module.f(...)`, a free std function called by its module's name, as `math.sqrt(x)`.
+    fn module_call(
+        &mut self,
+        module: &str,
+        f: &str,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let path = format!("std.{module}.{f}");
+        let Some(mut p) = crate::stdlib::decl(&path).and_then(|d| d.plain()) else {
+            return unsupported(format!("`{path}`"));
+        };
+        // A literal pattern is checked here, so the call cannot fail (R484).
+        if path == "std.regex.compile"
+            && let [
+                j::Arg {
+                    name: None,
+                    kind: j::ArgKind::Expr(e),
+                    ..
+                },
+            ] = args
+            && let j::ExprKind::Lit(j::Lit::Str { prefix, value }) = &e.kind
+            && matches!(prefix.as_str(), "" | "r")
+        {
+            if let Err(reason) = yong_std::regex::build(value) {
+                self.err(
+                    "E545",
+                    e.span,
+                    format!("invalid regular expression: {reason}"),
+                );
+            }
+            p.fail = None;
+        }
+        self.std_call(&path, p, Vec::new(), args, f, at)
+    }
+
     /// An operation of a std capability (`io.print(s)`, `fs.read(p)`), declared in its module.
     fn cap_call(
         &mut self,
@@ -3022,7 +3065,11 @@ impl Lower<'_, '_, '_> {
         if t == Ty::Err {
             return Ok((Rhs::Proj(p), e(), None));
         }
-        let Some(module) = t.module() else {
+        let std_class = match &t {
+            Ty::Data(n) if self.g.std_records.contains(n) => crate::stdlib::class_module(n),
+            _ => None,
+        };
+        let Some(module) = t.module().or(std_class) else {
             self.err("E200", at, format!("no function `{m}` takes a `{t}` first"));
             return Ok((Rhs::Proj(p), e(), None));
         };

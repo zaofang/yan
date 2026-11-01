@@ -8,6 +8,8 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+regex.workspace = true
+yong-std.workspace = true
 yong-core.workspace = true
 indexmap.workspace = true
 num-bigint.workspace = true
@@ -17,7 +19,6 @@ unicode-segmentation.workspace = true
 
 [dev-dependencies]
 yong-jian.workspace = true
-yong-std.workspace = true
 
 [lints]
 workspace = true

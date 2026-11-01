@@ -1,0 +1,73 @@
+"""Linear-time regular expressions: no backreferences or lookaround (17.3)."""
+
+@since("1.0")
+pub class RegexError:
+    """A pattern that was rejected and why."""
+    pattern: str
+    reason: str
+
+@since("1.0")
+pub class Regex:
+    """A compiled pattern."""
+    pattern: str
+
+@since("1.0")
+pub class Match:
+    """One match: its text, char offsets and groups (group 0 is the whole match)."""
+    whole: str
+    begin: int
+    finish: int
+    groups: list[str | None]
+    names: dict[str, int]
+
+@intrinsic
+@since("1.0")
+pub def compile(pattern: str) -> Regex fail RegexError: ...
+
+@intrinsic
+@since("1.0")
+pub def escape(s: str) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def search(self: Regex, s: str) -> Match | None: ...
+
+@intrinsic
+@since("1.0")
+pub def match(self: Regex, s: str) -> Match | None: ...
+
+@intrinsic
+@since("1.0")
+pub def fullmatch(self: Regex, s: str) -> Match | None: ...
+
+@intrinsic
+@since("1.0")
+pub def find_all(self: Regex, s: str) -> list[Match]: ...
+
+@intrinsic
+@since("1.0")
+pub def split(self: Regex, s: str) -> list[str]: ...
+
+@intrinsic
+@since("1.0")
+pub def sub(self: Regex, repl: str, s: str) -> str: ...
+
+@since("1.0")
+pub def text(self: Match) -> str:
+    return self.whole.copy()
+
+@intrinsic
+@since("1.0")
+pub def group(self: Match, i: int) -> str | None: ...
+
+@intrinsic
+@since("1.0")
+pub def named(self: Match, name: str) -> str | None: ...
+
+@since("1.0")
+pub def start(self: Match) -> int:
+    return self.begin
+
+@since("1.0")
+pub def end(self: Match) -> int:
+    return self.finish
