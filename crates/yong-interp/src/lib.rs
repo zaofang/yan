@@ -22,6 +22,7 @@ mod encoding;
 mod env;
 mod iter;
 mod keyed;
+mod log;
 mod math;
 mod native;
 mod path;
@@ -198,6 +199,7 @@ pub fn stage0(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
                         clocks: Vec::new(),
                         rngs: Vec::new(),
                         args: Vec::new(),
+                        test: false,
                     },
                 );
                 vm.limit(limits);
@@ -254,6 +256,8 @@ pub(crate) struct Interp<'o> {
     rngs: Vec<rand::Gen>,
     /// The program's arguments under the host `env` handler.
     args: Vec<String>,
+    /// Running under `yong test`, which picks the default handlers (7.3).
+    test: bool,
 }
 
 pub(crate) fn panic<T>(kind: &str) -> R<T> {
@@ -324,6 +328,7 @@ fn entry(
         clocks: Vec::new(),
         rngs: Vec::new(),
         args: argv,
+        test: limits.is_some(),
     };
     // The test handler set (7.3): `rand = seeded(0)`, `env = fake_env()`.
     let args = args

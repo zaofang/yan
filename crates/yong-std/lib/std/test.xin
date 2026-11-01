@@ -19,3 +19,15 @@ pub def seeded(seed: uint64, algorithm: Algorithm = ChaCha8()) -> std.rand.Rand:
 @intrinsic
 @since("1.0")
 pub def fake_env(args: list[str] = [], vars: dict[str, str] = {}, zone: TimeZone = TimeZone.utc()) -> std.env.Env: ...
+
+@intrinsic
+@since("1.0")
+pub def log_stderr(level: Level = InfoLevel()) -> std.log.Log: ...
+
+@intrinsic
+@since("1.0")
+pub def log_stdout(level: Level = DebugLevel()) -> std.log.Log: ...
+
+@intrinsic
+@since("1.0")
+pub def discard_log() -> std.log.Log: ...
