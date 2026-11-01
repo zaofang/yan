@@ -443,15 +443,21 @@ fn mutables(
 }
 
 fn ends(stmts: &[j::Stmt]) -> bool {
-    matches!(
-        stmts.last().map(|s| &s.kind),
-        Some(
-            j::StmtKind::Return(_)
-                | j::StmtKind::Fail(_)
-                | j::StmtKind::Become(_)
-                | j::StmtKind::Unreachable
+    stmts.last().is_some_and(is_hole)
+        || matches!(
+            stmts.last().map(|s| &s.kind),
+            Some(
+                j::StmtKind::Return(_)
+                    | j::StmtKind::Fail(_)
+                    | j::StmtKind::Become(_)
+                    | j::StmtKind::Unreachable
+            )
         )
-    )
+}
+
+/// `...` or `return ...` as a statement.
+fn is_hole(s: &j::Stmt) -> bool {
+    matches!(&s.kind, j::StmtKind::Expr(e) | j::StmtKind::Return(Some(e)) if matches!(e.kind, j::ExprKind::Hole))
 }
 
 /// A bodiless Yong signature, as a trait declares it.
@@ -650,9 +656,11 @@ fn function_body(
             "this branch special-cases an `ex` input (21.1)".into(),
         );
     }
+    let hole_body = matches!(body.stmts.as_slice(), [s] if is_hole(s));
     let unused: Vec<(String, Span)> = sig
         .params
         .iter()
+        .filter(|_| !hole_body)
         .map(|p| (p.name.clone(), p.span))
         .chain(mem::take(&mut l.bound))
         .filter(|(n, _)| {
@@ -862,6 +870,20 @@ impl Lower<'_, '_, '_> {
         self.cx.err(code, span, &item, msg);
     }
 
+    /// A hole in statement position (21.2): H701 with the expected type, or E702 under
+    /// release. It runs as `unreachable`, so a call to an unwritten body panics.
+    fn hole(&mut self, at: Span) {
+        let item = self.item.clone();
+        let msg = format!("hole of type `{}`", self.sig.ret);
+        if self.cx.release {
+            self.cx
+                .err("E702", at, &item, format!("{msg} in a release build"));
+        } else {
+            self.cx.note("H701", at, &item, msg);
+        }
+        self.emit(StmtKind::Unreachable, at);
+    }
+
     fn expect(&mut self, got: &Ty, want: &Ty, at: Span) {
         if !got.fits(want) {
             self.err("E201", at, format!("expected `{want}`, found `{got}`"));
@@ -1054,6 +1076,9 @@ impl Lower<'_, '_, '_> {
         let at = s.span;
         match &s.kind {
             K::Pass | K::Reveal(_) => {}
+            K::Expr(e) | K::Return(Some(e)) if matches!(e.kind, j::ExprKind::Hole) => {
+                self.hole(e.span);
+            }
             K::Ghost { name, .. } => {
                 self.ghosts.insert(name.clone());
             }
