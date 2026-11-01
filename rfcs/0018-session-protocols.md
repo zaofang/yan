@@ -2,7 +2,7 @@
 
 - Status: accepted (the lead chose "Accept as normative" on 2026-11-01)
 - Research: [Deep frontier survey: speed and capability](https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H), pick 18
-- Rows: R627, R628
+- Rows: R633, R634
 
 ## Summary
 
@@ -19,7 +19,7 @@ Yoshida and Carbone, POPL 2008). A protocol that cannot be projected is E728. A 
 `math.ein` uses, keeps the three surfaces' grammars unchanged; Chang may add sugar later.
 
 - Decision: accepted as normative, 2026-11-01
-- Row: R627
+- Row: R633
 
 ### D2: linear endpoints
 
@@ -30,7 +30,7 @@ are exempt from E713 and deterministic. Asynchronous subtyping (Rumpsteak, PPoPP
 sends.
 
 - Decision: accepted as normative, 2026-11-01
-- Row: R628
+- Row: R634
 
 ## Spec changes
 

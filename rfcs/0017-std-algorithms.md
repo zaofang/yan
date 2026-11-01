@@ -2,7 +2,7 @@
 
 - Status: accepted (the lead chose "Accept all four" on 2026-11-01)
 - Research: [Deep frontier survey: speed and capability](https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H), picks 10, 12, 13 and 14
-- Rows: R623 to R626
+- Rows: R629 to R632
 
 ## Summary
 
@@ -17,7 +17,7 @@ where only the fixed tree was available, cache-friendly static search, and compa
 leftmost-longest in linear time (RE#, POPL 2025). Without the flag nothing changes.
 
 - Decision: accepted, 2026-11-01
-- Row: R623
+- Row: R629
 
 ### D2: exact sums everywhere
 
@@ -26,7 +26,7 @@ aggregates. The kernel is Neal's superaccumulator (2015). The survey first misse
 already existed; this item is what remained.
 
 - Decision: accepted, 2026-11-01
-- Row: R624
+- Row: R630
 
 ### D3: static sorted collections
 
@@ -34,7 +34,7 @@ already existed; this item is what remained.
 (Khuong and Morin, 2017), with `rank`.
 
 - Decision: accepted, 2026-11-01
-- Row: R625
+- Row: R631
 
 ### D4: filters and compressed sets
 
@@ -42,7 +42,7 @@ already existed; this item is what remained.
 `u32` and `u64`.
 
 - Decision: accepted, 2026-11-01
-- Row: R626
+- Row: R632
 
 ## Spec changes
 

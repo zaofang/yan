@@ -2,7 +2,7 @@
 
 - Status: accepted (the lead chose "Accept all four" on 2026-11-01)
 - Research: [Deep frontier survey: speed and capability](https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H), picks 2, 8, 9 and 16
-- Rows: R619 to R622
+- Rows: R625 to R628
 
 ## Summary
 
@@ -19,7 +19,7 @@ are exact, so deletion is exact, and the result MUST equal a rerun of the plan w
 engine is the `yong-dbsp-engine` crate (R576 layout).
 
 - Decision: accepted, 2026-11-01
-- Row: R619
+- Row: R625
 
 ### D2: batch lookups
 
@@ -28,7 +28,7 @@ input order and probe in interleaved groups with prefetching (AMAC, VLDB 2015). 
 uses the same kernel.
 
 - Decision: accepted, 2026-11-01
-- Row: R620
+- Row: R626
 
 ### D3: access patterns for fusion
 
@@ -37,7 +37,7 @@ written per output tile. The optimizer MAY fuse across the call without seeing t
 PLDI 2025). A body that contradicts its claim is E274; an extern claim is trusted and audited.
 
 - Decision: accepted, 2026-11-01
-- Row: R621
+- Row: R627
 
 ### D4: parallel scans
 
@@ -46,7 +46,7 @@ loops MAY run as scans when the solver rules out overflow; float recurrences onl
 explicit call (Blelloch 1990; ScanWeaver, 2026).
 
 - Decision: accepted, 2026-11-01
-- Row: R622
+- Row: R628
 
 ## Spec changes
 

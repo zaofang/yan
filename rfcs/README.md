@@ -34,7 +34,7 @@ research index links their studies and rows.
 | [0011](0011-proof-and-test-power.md) | Proof and test power | accepted | R607 to R609 |
 | [0012](0012-header-facts.md) | New facts in the header | accepted | R610 to R612 |
 | [0013](0013-numerics.md) | Numerics: accuracy lint, reverse mode, sparse index equations | accepted | R613 to R615 |
-| [0015](0015-zero-cost-guarantees.md) | Guaranteed zero-cost abstractions | accepted | R616 to R618 |
-| [0016](0016-data-engines.md) | Data engines | accepted | R619 to R622 |
-| [0017](0017-std-algorithms.md) | std algorithms | accepted | R623 to R626 |
-| [0018](0018-session-protocols.md) | Session protocols | accepted | R627, R628 |
+| [0015](0015-zero-cost-guarantees.md) | Guaranteed zero-cost abstractions | accepted | R622 to R624 |
+| [0016](0016-data-engines.md) | Data engines | accepted | R625 to R628 |
+| [0017](0017-std-algorithms.md) | std algorithms | accepted | R629 to R632 |
+| [0018](0018-session-protocols.md) | Session protocols | accepted | R633, R634 |

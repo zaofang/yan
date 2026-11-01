@@ -2,7 +2,7 @@
 
 - Status: accepted (the lead chose "Accept all three" on 2026-11-01)
 - Research: [Deep frontier survey: speed and capability](https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H), picks 1, 4 and 7
-- Rows: R616 to R618
+- Rows: R622 to R624
 
 ## Summary
 
@@ -21,7 +21,7 @@ MUST NOT allocate or be called indirectly, so it passes `@forbid(alloc)`. Values
 `dyn` or recursive containers stay boxed. This replaces the env block and `call_indirect` lowering of #90.
 
 - Decision: accepted, 2026-11-01
-- Row: R616
+- Row: R622
 
 ### D2: complete fusion of std adapter chains
 
@@ -31,7 +31,7 @@ A chain of std adapters, `zip` over `flat_map` included, consumed by a `for`, a 
 from comprehensions to all of `std.iter`.
 
 - Decision: accepted, 2026-11-01
-- Row: R617
+- Row: R623
 
 ### D3: SIMD lanes for `par for` and `@vectorize`
 
@@ -40,7 +40,7 @@ masked (Moll and Hack, Partial Control-Flow Linearization, PLDI 2018). Results a
 execution. `@vectorize` on a function makes this a proof obligation, with E900 for each blocking line.
 
 - Decision: accepted, 2026-11-01
-- Row: R618
+- Row: R624
 
 ## Spec changes
 
