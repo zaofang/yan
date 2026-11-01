@@ -281,8 +281,8 @@ pub fn elaborate(
         diags: Vec::new(),
     };
     let mut g = Globals::default();
-    let std_classes = stdlib::classes(&mut g, m)?;
     let std_sums = stdlib::sums(&mut g, m);
+    let std_classes = stdlib::classes(&mut g, m)?;
     collect(&mut g, m, &mut cx)?;
     let std_fns = stdlib::collect(&mut g, m)?;
     let mut items = derive_froms(&mut g, m);

@@ -52,6 +52,7 @@ pub const TYPES: &[TypeName] = &[
     row("BigInt", "bigint", "BigInt", 0),
     row("Str", "str", "str", 0),
     row("Bytes", "bytes", "Bytes", 0),
+    row("ByteArray", "bytearray", "ByteArray", 0),
     row("dec128", "decimal", "dec128", 0),
     row("i8", "int8", "i8", 0),
     row("i16", "int16", "i16", 0),
