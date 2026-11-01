@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-01 | [Surface shortlist, revision 2](https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD) | RFC 0002 (R536 to R550), RFC 0003 (R551 to R557) |
 | 2026-11-01 | [Research track: eight extensions](https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8) | R522 to R529 (research, post-1.0) |
 | 2026-11-01 | [Tracking research, proposals and spec revisions](https://claude.ai/artifact/1Nc3D55kos87dCFhrWgwyP) | Accepted: spec moved to `spec/`, row registry, `rfcs/`, this index |
 | 2026-11-01 | [std.iter proposal](https://claude.ai/artifact/5bV4s3C4spRNVJnzVDqAGr) | R508 to R515 |
@@ -13,10 +14,10 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-01 | [std slices and bisect proposal](https://claude.ai/artifact/GfKVALRNrp1oa6PFatYqZq) | R494 to R499 |
 | 2026-11-01 | [std.collections proposal](https://claude.ai/artifact/V79buG5mN2UWG7yV1aiaSX) | R488 to R493 |
 | 2026-11-01 | [std.regex proposal](https://claude.ai/artifact/VfVzs8W5JiZJ8rJmUiaUDN) | R482 to R486 |
-| 2026-11-01 | [Positioning and market gaps](https://claude.ai/artifact/5HW3yvtnC4CcdwREm5Byz3) | Research only |
-| 2026-11-01 | [Niche surfaces](https://claude.ai/artifact/KeTJFKjzLUGkq1DXDCTSdk) | Research only |
-| 2026-11-01 | [Surface mock-ups with names](https://claude.ai/artifact/PH4PixndFSBKFfsRKzZrbn) | Research only |
-| 2026-11-01 | [Novelty audit](https://claude.ai/artifact/UGAdAaZBTP4kFekXPszC1M) | Research only |
+| 2026-11-01 | [Positioning and market gaps](https://claude.ai/artifact/5HW3yvtnC4CcdwREm5Byz3) | Background for RFC 0002 |
+| 2026-11-01 | [Niche surfaces](https://claude.ai/artifact/KeTJFKjzLUGkq1DXDCTSdk) | Superseded by the surface shortlist (RFC 0002) |
+| 2026-11-01 | [Surface mock-ups with names](https://claude.ai/artifact/PH4PixndFSBKFfsRKzZrbn) | Superseded by the surface shortlist (RFC 0002) |
+| 2026-11-01 | [Novelty audit](https://claude.ai/artifact/UGAdAaZBTP4kFekXPszC1M) | Background for RFC 0002 |
 | 2026-10-31 | [Performance frontier survey](https://claude.ai/artifact/4kaWSExgSYFAbkzN9xG1hp) | R480, R481, R487 |
 | 2026-10-31 | [Std build plan](https://claude.ai/artifact/FKZWX8ou7oHRZ3TcKkoKjQ) | R474 to R476 |
 | 2026-10-31 | [Jian, Wen and Yong comparison](https://claude.ai/artifact/VpqnGVVrQ46MrR5p5ZgJaP) | R477, R478 |

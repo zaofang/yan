@@ -484,3 +484,18 @@ sections = "1, 2, 3.6, 16.5, 16.6, 23, 26.1, 26.2"
 rows = "R522 to R535"
 topic = "Research track (https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8), accepted for research, not normative for 1.0: effect handlers (R522); information-flow labels (R523); graded types (R524); typed staging (R525); per-reader spelling (R526); bidirectional grammars (R527); incremental computation (R528); synthesis from examples (R529); positional type parameters (R530); Sym (R531); Any (R532); panic recovery (R533); STM (R534); eval (R535)"
 sections = "26.6"
+
+[[entry]]
+rows = "R536 to R550"
+topic = "Niche surfaces (RFC 0002, https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD), accepted by the owner, post-1.0: admission rules N1 to N9 (R536); Qi (R537); Xun (R538); Cha (R539); Ling (R540); Cheng (R541); Zhu (R542); Wei (R543); Lu (R544); research surfaces Meng (R545), Gua (R546), Li (R547), Pu (R548), Zi (R549); order and gating (R550)"
+sections = "16.7, 23"
+
+[[entry]]
+rows = "R551 to R553"
+topic = "Yong gaps from the surface study (RFC 0003), accepted by the owner: `generate_chat` in `@yong/model` (R551); durable timers in `@yong/durable` (R552); `head` and window operations in `@yong/frame` (R553)"
+sections = "17.4, 9.6.1, 11.9"
+
+[[entry]]
+rows = "R554 to R557"
+topic = "Research track additions (RFC 0003), not normative for 1.0: dry-run handler class (R554); streams over `Remote` (R555); ceiling-level `fs.only` (R556); semantic diff (R557)"
+sections = "26.6"

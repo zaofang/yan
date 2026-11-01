@@ -110,9 +110,9 @@ The owner accepted these rows on 2026-10-31 from the licensing and governance de
 | R365 | Trademark policy: nominative use is free, including in package names. Forks rename, except distro packages with build or security patches. "Yong-compatible" requires passing the published conformance suite for the claimed version and surface. "Official" and "std" mean project artifacts only. |
 | R366 | Registry namespaces `yong`, `std`, `core`, `jian` and `wen` are reserved to the project (R195), along with the project domain and handles. |
 
-### 26.6 Research track (R522 to R535)
+### 26.6 Research track (R522 to R535, R554 to R557)
 
-Accepted for research on 2026-11-01, not normative for 1.0. Each row names the 1.0 text it would amend if adopted; adoption takes its own RFC. The study is https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8; the Fei forms waiting on each row are in RFC 0001.
+Accepted for research on 2026-11-01, not normative for 1.0. Each row names the 1.0 text it would amend if adopted; adoption takes its own RFC. The study is https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8; the Fei forms waiting on each row are in RFC 0001. Rows R554 to R557 come from RFC 0003 (study https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD).
 
 | Row | Research item | 1.0 text it would amend |
 | --- | --- | --- |
@@ -130,4 +130,8 @@ Accepted for research on 2026-11-01, not normative for 1.0. Each row names the 1
 | R533 | Panic recovery at a task boundary behind a `Recover` capability; unwinding only inside the recovered task. | 8.3, 26.2 |
 | R534 | Software transactional memory over `TVar` cells behind an `Stm` capability, under `uses nondet`. | 9 |
 | R535 | `eval` behind an `Eval` capability: parse, check and run on the reference interpreter with only the capabilities passed in. | 11.9 |
+| R554 | Dry-run handler class: handlers that perform no effect and return `Deferred[T]` placeholders; a later real run re-reads state and fails with `Drift` on a changed read (RFC 0003). | 7.3 |
+| R555 | Streams over `Remote`: a call returning a typed receiver with credit-based backpressure on the R404 transport (RFC 0003). | 9.6.1 |
+| R556 | Ceiling-level `fs.only(read=..., write=...)`, so package ceilings can name paths (RFC 0003). | 17.6, 19.2 |
+| R557 | Semantic diff: `yong diff --semantic` decides equivalence of two item versions in the decidable fragment and gives a distinguishing input otherwise (RFC 0003). | none |
 
