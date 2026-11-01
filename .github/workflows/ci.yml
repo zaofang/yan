@@ -11,6 +11,12 @@ on:
 permissions:
   contents: read
 
+# One runner serves every run; a newer push to a PR replaces its older run.
+# Other events get a group of their own, since a group keeps only one pending run.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   guard:
     if: github.event_name == 'pull_request'
