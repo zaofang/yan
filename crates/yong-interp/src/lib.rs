@@ -27,6 +27,7 @@ mod math;
 mod native;
 mod path;
 mod prelude;
+mod proc;
 mod rand;
 mod regex;
 #[cfg(test)]
@@ -330,12 +331,13 @@ fn entry(
         args: argv,
         test: limits.is_some(),
     };
-    // The test handler set (7.3): `rand = seeded(0)`, `env = fake_env()`.
+    // The test handler set (7.3): `rand = seeded(0)`, `env = fake_env()`, `proc = fake_proc()`.
     let args = args
         .into_iter()
         .map(|a| match a {
             Value::Cap(n) if limits.is_some() && n == "rand" => rand::seeded(&mut it, 0, "ChaCha8"),
             Value::Cap(n) if limits.is_some() && n == "env" => env::test_default(),
+            Value::Cap(n) if limits.is_some() && n == "proc" => proc::test_default(),
             a => a,
         })
         .collect();
