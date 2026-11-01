@@ -16,6 +16,7 @@ use yong_core::ast::*;
 mod collections;
 mod compile;
 mod iter;
+mod keyed;
 mod math;
 mod native;
 mod prelude;

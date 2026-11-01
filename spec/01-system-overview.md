@@ -5,18 +5,20 @@ Each surface has its own reader. Everything from the elaborator down is shared:
 ```
 .jian --> Jian reader (+ lenient reader) --\
                                             >-- elaborator --> checked Yong --> optimizer --+--> interpreter (reference, stage 0, checked UB mode)
-.wen  --> Wen reader ----------------------/                                               +--> Cranelift (debug builds)
-                                                                                            +--> LLVM (release builds)
+.wen  --> Wen reader ----------------------+                                               +--> Cranelift (debug builds)
+.fei  --> Fei reader ----------------------/                                               +--> LLVM (release builds)
 checked Yong --> Wen printer (any item);  checked Yong --> Jian printer (items inside the Jian subset)
+checked Yong --> Fei printer (any item, with its spelling notes)
 ```
 
-The printers are projections: any Yong item prints as Wen, and any Yong item inside the Jian subset prints as Jian (section 16).
+The printers are projections: any Yong item prints as Wen or Fei, and any Yong item inside the Jian subset prints as Jian (section 16).
 
 | Name | Role | Files |
 | --- | --- | --- |
 | Yong (永, "eternal") | core semantics, IR, compiler, the `yong` binary | `.yong` (IR text), `package.jian`, `yong.lock`, `.yong/` (caches, checkpoints, provenance) |
 | Jian (简, "concise and clear") | surface written by language models; canonical, explicit, Python-shaped | `.jian` |
 | Wen (文, "text, writing") | surface written and read by people; inferred, expressive | `.wen` |
+| Fei (斐, "brilliantly patterned") | dense ASCII surface and language-design playground; every form lowers to the shared core (16.6, R516) | `.fei` |
 
 **No language runtime.** No scheduler, collector or implicit reference counting runs unless the program binds a library that provides it. Concurrency, I/O waiting and allocation are capability handlers chosen by the program, and actors are a std package over them (sections 7 and 9).
 

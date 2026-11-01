@@ -185,14 +185,13 @@ impl Decl {
         self.intrinsic
             && !self.def.tparams.is_empty()
             && (self.module.starts_with("iter")
-                || self.def.params.iter().any(|p| {
-                    matches!(
-                        p,
-                        j::Param::Value {
-                            ty: j::Type::Callable { .. },
-                            ..
-                        }
-                    )
+                || self.def.params.iter().any(|p| match p {
+                    j::Param::Value { ty, .. } => match ty {
+                        j::Type::Optional(t) => matches!(**t, j::Type::Callable { .. }),
+                        j::Type::Named { path, .. } => path.len() == 1 && path[0] == "iter",
+                        t => matches!(t, j::Type::Callable { .. }),
+                    },
+                    _ => false,
                 }))
     }
 

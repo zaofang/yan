@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-01 | [Research track: eight extensions](https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8) | R522 to R529 (research, post-1.0) |
 | 2026-11-01 | [Tracking research, proposals and spec revisions](https://claude.ai/artifact/1Nc3D55kos87dCFhrWgwyP) | Accepted: spec moved to `spec/`, row registry, `rfcs/`, this index |
 | 2026-11-01 | [std.iter proposal](https://claude.ai/artifact/5bV4s3C4spRNVJnzVDqAGr) | R508 to R515 |
 | 2026-11-01 | [std.math proposal](https://claude.ai/artifact/DyYksx46pyAe555dLaBB2H) | R500 to R507 |
@@ -57,7 +58,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-10-31 | [Naming workshop](https://claude.ai/artifact/FTwhvf6qauq7jhfyLJmSv1) | Yong, Jian, Wen chosen |
 | 2026-10-31 | [Mo, model-first surface](https://claude.ai/artifact/U6kJcvaXvVTviNcqyvq2JN) | R210 to R214 (Jian surface rules) |
 | 2026-10-31 | [Yue, token-minimal surface](https://claude.ai/artifact/7CuJcNUgbYvhnnKbtucKZN) | Study only (cited in 26.1) |
-| 2026-10-31 | [Fei, dense ASCII surface](https://claude.ai/artifact/DubBokGE1zKEpoVzwYKfAz) | Accepted as a surface 2026-11-01; rows pending |
-| 2026-10-31 | [Fei minimal features](https://claude.ai/artifact/Urz3zEhuESTobLRf8aqk2X) | Study |
-| 2026-10-31 | [Fei K2 study (positional local names)](https://claude.ai/artifact/V6Do54hGXcokurJ45NHF6f) | Study |
+| 2026-10-31 | [Fei, dense ASCII surface](https://claude.ai/artifact/DubBokGE1zKEpoVzwYKfAz) | Fei 1; superseded by Fei 2 and RFC 0001 (R516 to R521) |
+| 2026-11-01 | [Fei 2, kitchen sink](https://claude.ai/artifact/Urz3zEhuESTobLRf8aqk2X) | RFC 0001: R516 to R521, R530 to R535 |
+| 2026-11-01 | [Fei K2 study (positional local names)](https://claude.ai/artifact/V6Do54hGXcokurJ45NHF6f) | R519 |
 | 2026-10-30 | [1.0 Development Roadmap](https://claude.ai/artifact/3ADZraWojw9z33QdGY8GsS) | Living plan |

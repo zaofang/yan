@@ -140,8 +140,9 @@ fn load(file: &Path, src: &str, strict: bool, release: bool) -> Result<Loaded, S
                 }
                 Ok((h, mut errs)) => {
                     errs.extend(diags);
+                    // Wen has no lenient reader (14.4).
                     let opts = yong_elab::Options {
-                        strict,
+                        strict: true,
                         release,
                         wen: true,
                     };

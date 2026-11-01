@@ -34,6 +34,7 @@
 | Supply chain | witnessed log, registry-built archives, SLSA L3, OIDC-only publishing, computed capabilities, signed approvals | API tokens; uploaded tarballs | xz backdoor; npm worms; slopsquatting |
 | Stability | bit-identical output across 1.x; surface-only editions; enforced semver; 12-week minors | LTS branches; nightly channel | Rust and Go promises, Elm enforcement |
 | Implementation language | Rust only (R215) | Python reference, then a Rust port | one codebase with no port; the chosen toolchain stack is Rust crates; the conformance suite is the oracle |
+| Third surface | Fei, dense ASCII with spelling kept as trivia, admitting any form that lowers to the core (R516 to R521) | one printing per tree (Fei 1); no third surface | a design playground that stays one language: same items, same hashes, same checker |
 | Jian 1.0 rules | model-first rules on the Python shape: full headers as the contract, undecided checks as runtime checks with W820, ... holes, header changes report broken callers, a wide lenient reader (R210 to R214, R280 to R289) | Yue, a token-minimal surface (research only); implicit string copies (R283) | in the dry run output was about 5% of loop tokens and repair rounds dominated, so rounds and pass@1 matter more than terseness; copies stay explicit and the autofix inserts them |
 
 ### 26.2 Non-goals
@@ -48,6 +49,8 @@
 - No generic associated types.
 - No stable Yong-to-Yong ABI, no direct C++ interop, no dylib plugins passing Yong types in 1.0.
 - No `Condvar` in 1.0.
+
+These are non-goals for Yong. Fei (16.6) may spell some of them as sugar over the core, such as `null` for `None`, lossless widening written out in Yong, `extends` as delegation and `async`/`await` as branch and join; the Yong it elaborates to keeps every non-goal above.
 
 ### 26.3 Open questions
 
@@ -106,3 +109,25 @@ The owner accepted these rows on 2026-10-31 from the licensing and governance de
 | R364 | YONG (word) and the 永 logo are registered in classes 9 and 42: US first, then Madrid designating CN and EU. Jian and Wen are unregistered sub-names. The logo calligraphy MUST be original or assigned in writing. |
 | R365 | Trademark policy: nominative use is free, including in package names. Forks rename, except distro packages with build or security patches. "Yong-compatible" requires passing the published conformance suite for the claimed version and surface. "Official" and "std" mean project artifacts only. |
 | R366 | Registry namespaces `yong`, `std`, `core`, `jian` and `wen` are reserved to the project (R195), along with the project domain and handles. |
+
+### 26.6 Research track (R522 to R535)
+
+Accepted for research on 2026-11-01, not normative for 1.0. Each row names the 1.0 text it would amend if adopted; adoption takes its own RFC. The study is https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8; the Fei forms waiting on each row are in RFC 0001.
+
+| Row | Research item | 1.0 text it would amend |
+| --- | --- | --- |
+| R522 | Lexical effect handlers with one-shot resume, the handler passed as a capability parameter (Effekt). | 10.5 (no continuations), for one-shot lexical segments only |
+| R523 | Information-flow labels `T@L` on a Lub lattice, with `declassify` behind a `Declassify[L]` capability (Jif, FlowCaml). | law 4 (a sixth fact) |
+| R524 | Graded types, the 0/1/many semiring first; grade 0 makes erasure of ghost code and type arguments checked (Granule, Idris 2). | none |
+| R525 | Typed staging: `Code[T]` values at stage 0, quote and splice, splice output hashed as ordinary text; no run-time code generation (MetaOCaml, Scala 3). | 10.4 (no quotes or AST values), for typed code only |
+| R526 | Per-reader spelling: `yong view --as <surface>` for review and diff, over item hashes (Hazel, MPS). | none |
+| R527 | Bidirectional grammars: one definition per surface yields its parser, printer and round-trip check; later `std.syntax` for user formats (Boomerang). | none |
+| R528 | Incremental computation: compiler queries keyed by item hash; later a `Cell[T]` library with pure derivations (Adapton, Salsa). | none |
+| R529 | Synthesis from examples: `yong fill` proposes code for a hole from its type, capabilities, contracts and `ex` clauses; tool-only, the result is committed as source (Myth, Hazel). | none |
+| R530 | Positional type parameters, for anonymous generics (`some Trait`). | 3.6 |
+| R531 | `std.sym.Sym`, an interned text type compared by content. | 17 |
+| R532 | `std.any.Any` with type ids from the identity hash and checked downcast. | 10.2 |
+| R533 | Panic recovery at a task boundary behind a `Recover` capability; unwinding only inside the recovered task. | 8.3, 26.2 |
+| R534 | Software transactional memory over `TVar` cells behind an `Stm` capability, under `uses nondet`. | 9 |
+| R535 | `eval` behind an `Eval` capability: parse, check and run on the reference interpreter with only the capabilities passed in. | 11.9 |
+

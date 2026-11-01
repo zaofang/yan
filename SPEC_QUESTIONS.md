@@ -180,6 +180,11 @@ Assumed in `yong-elab`'s std loading until the spec says otherwise:
   negative number literal as a pattern (`-1 -> ...`).
 - **E112.** Two consecutive capitals are allowed only as a one-letter first word followed by a
   lower-case letter, so the `core.ffi` names `CStr` and `CString` lex, and `HTTPError` is E112.
+- **Strict checking.** Wen is elaborated with the lenient reader off (14.4 is Jian's), so
+  `s.len()` on a `str` is E504 and recursion without `decreases` gets no N05 measure.
+- **`x.len()`.** A call of `len` with no arguments is read as the builtin `len(x)`, which the
+  bounds solver and E504 recognise; a user type's own `len` method is not reachable this way yet.
+- **Unannotated `self`.** In an impl, `self` has the impl's type; in a trait, `Self`.
 
 ## Patch protocol readings (18.3)
 

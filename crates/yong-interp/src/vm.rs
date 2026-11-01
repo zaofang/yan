@@ -643,7 +643,11 @@ impl<'o> Vm<'o> {
                 }
                 r
             }
-            Target::Native if s.name.starts_with("std.iter.") || s.name.ends_with(".iter") => {
+            Target::Native
+                if s.name.starts_with("std.iter.")
+                    || s.name.ends_with(".iter")
+                    || matches!(&*s.name, "std.prelude.set" | "std.prelude.dict") =>
+            {
                 let args = self.stack[new_base..].iter_mut().map(mem::take).collect();
                 match self.iter_call(&s.name, args) {
                     Some(r) => Ok(r?),
@@ -651,7 +655,18 @@ impl<'o> Vm<'o> {
                 }
             }
             Target::Native => {
-                let r = native_call(&mut self.it, &s.name, &mut self.stack[new_base..], &s.stage)?;
+                let r = if super::keyed::KEYED.contains(&&*s.name) {
+                    // Taken off the stack: the key closure runs on it.
+                    let mut args: Vec<Value> =
+                        self.stack[new_base..].iter_mut().map(mem::take).collect();
+                    let r = self.keyed_call(&s.name, &mut args)?;
+                    for (i, v) in args.into_iter().enumerate() {
+                        self.stack[new_base + i] = v;
+                    }
+                    Ok(r)
+                } else {
+                    native_call(&mut self.it, &s.name, &mut self.stack[new_base..], &s.stage)?
+                };
                 for (i, a) in s.args.iter().enumerate() {
                     if let ArgC::Inout(r) = a {
                         let v = mem::take(&mut self.stack[new_base + i]);
@@ -783,6 +798,7 @@ mod tests {
             ("collections", include_str!("collections.rs")),
             ("math", include_str!("math.rs")),
             ("iter", include_str!("iter.rs")),
+            ("keyed", include_str!("keyed.rs")),
             ("lib builtins", include_str!("lib.rs")),
         ];
         let mut seen: BTreeMap<&str, &str> = BTreeMap::new();
