@@ -63,3 +63,18 @@ function compiled to slot-resolved registers, typed ops for the scalar intrinsic
 | sieve | 1956.4 | 212.8 | 9.2x | 33.4 | 6.4x |
 
 Geometric mean speedup over the walker: 20.8x; yong/python: 2.3x.
+
+## VM fast paths
+
+Instruction counts (callgrind, millions), which are stable where wall times on a shared host are
+not. Fused compare-and-branch, `if c { break }` as one branch, frames laid out without cloning,
+std calls on the argument registers in place, i64 division on the hardware path.
+
+| program | before | after | change |
+|---|---:|---:|---:|
+| collatz | 2500 | 1825 | -27% |
+| fib | 1113 | 775 | -30% |
+| loop | 568 | 503 | -11% |
+| mandel | 270 | 253 | -6% |
+| ring | 949 | 892 | -6% |
+| sieve | 1761 | 1458 | -17% |

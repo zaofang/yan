@@ -31,6 +31,31 @@ fn type_key(v: &Value) -> Option<&str> {
     })
 }
 
+/// `v.clone()`, inline for scalars.
+#[inline(always)]
+fn dup(v: &Value) -> Value {
+    match v {
+        Value::Int(n) => Value::Int(*n),
+        Value::Bool(b) => Value::Bool(*b),
+        Value::Float(f) => Value::Float(*f),
+        Value::Unit => Value::Unit,
+        v => v.clone(),
+    }
+}
+
+/// `stack.truncate(len)`, skipping drop glue for scalars.
+#[inline(always)]
+fn release(stack: &mut Vec<Value>, len: usize) {
+    while stack.len() > len {
+        match stack.pop() {
+            Some(v @ (Value::Int(_) | Value::Bool(_) | Value::Float(_) | Value::Unit)) => {
+                mem::forget(v)
+            }
+            v => drop(v),
+        }
+    }
+}
+
 /// A scalar op result, written into a register without drop glue when it held a scalar.
 enum Scalar {
     I(i128),
@@ -65,6 +90,18 @@ fn int_op(op: IntOp, ty: u8, a: i128, b: i128) -> Result<Scalar, &'static str> {
         IntOp::Sub => return checked(a.checked_sub(b), ty),
         IntOp::Mul => return checked(a.checked_mul(b), ty),
         IntOp::FloorDiv | IntOp::Mod if b == 0 => return Err("div_zero"),
+        // i128 division is a libcall; i64 operands take the hardware path.
+        IntOp::FloorDiv | IntOp::Mod
+            if let (Ok(x), Ok(y)) = (i64::try_from(a), i64::try_from(b))
+                && let Some(r) = x.checked_rem_euclid(y) =>
+        {
+            let v = if matches!(op, IntOp::Mod) {
+                i128::from(if r != 0 && y < 0 { r + y } else { r })
+            } else {
+                i128::from(x.div_euclid(y)) - i128::from(r != 0 && y < 0)
+            };
+            return checked(Some(v), ty);
+        }
         IntOp::FloorDiv => {
             return checked(
                 Some(a.div_euclid(b) - i128::from(a.rem_euclid(b) != 0 && b < 0)),
@@ -153,7 +190,7 @@ fn matches(p: &CPat, v: &Value) -> bool {
 /// The bindings of `p`, which matched `v`, in binding order.
 fn bindings(p: &CPat, v: &Value, out: &mut Vec<(Reg, Value)>) {
     match (p, v) {
-        (CPat::Bind(r), _) => out.push((*r, v.clone())),
+        (CPat::Bind(r), _) => out.push((*r, dup(v))),
         (CPat::Tuple(ps), Value::Tuple(xs)) => {
             for (p, x) in ps.iter().zip(xs) {
                 bindings(p, x, out);
@@ -186,6 +223,16 @@ fn bindings(p: &CPat, v: &Value, out: &mut Vec<(Reg, Value)>) {
         }
         _ => {}
     }
+}
+
+fn native_call(it: &mut Interp, name: &str, args: &mut [Value]) -> R<Result<Value, Value>> {
+    if let Some(r) = native::fallible(name, args) {
+        return Ok(r);
+    }
+    Ok(Ok(match intrinsic(name, args) {
+        Some(v) => v?,
+        None => it.std(name, args)?,
+    }))
 }
 
 enum Target {
@@ -221,8 +268,9 @@ impl<'o> Vm<'o> {
     fn enter(&mut self, f: usize, clo: Option<&Clo>, base: usize, nargs: usize) {
         let code = &self.codes[f];
         let np = code.nparams as usize;
-        self.stack.truncate(base + nargs.min(np));
-        self.stack.resize(base + code.nregs as usize, Value::Unit);
+        release(&mut self.stack, base + nargs.min(np));
+        self.stack
+            .resize_with(base + code.nregs as usize, || Value::Unit);
         if let Some(c) = clo {
             for (r, v) in code.capture_regs.iter().zip(&c.captured) {
                 // A parameter of the same name wins over the capture.
@@ -274,11 +322,44 @@ impl<'o> Vm<'o> {
                 }
                 Op::Clear(r) => self.stack[base + r as usize] = Value::Unit,
                 Op::Jmp(to) => pc = to as usize,
+                Op::JmpIf { cond, to } => match self.val(&code, base, cond) {
+                    Value::Bool(true) => pc = to as usize,
+                    Value::Bool(false) => {}
+                    v => return unsupported(format!("condition is not a bool: {v:?}")),
+                },
                 Op::JmpIfNot { cond, to } => match self.val(&code, base, cond) {
                     Value::Bool(true) => {}
                     Value::Bool(false) => pc = to as usize,
                     v => return unsupported(format!("condition is not a bool: {v:?}")),
                 },
+                Op::CmpJmp {
+                    when,
+                    c,
+                    dst,
+                    a,
+                    b,
+                    to,
+                    site,
+                } => {
+                    let t = match (self.val(&code, base, a), self.val(&code, base, b)) {
+                        (Value::Int(a), Value::Int(b)) => {
+                            let t = cmp(c, a, b);
+                            set(&mut self.stack[base + dst as usize], Scalar::B(t));
+                            t
+                        }
+                        _ => {
+                            let v = self.slow(&code, base, site)?;
+                            self.stack[base + dst as usize] = v;
+                            match &self.stack[base + dst as usize] {
+                                Value::Bool(t) => *t,
+                                v => return unsupported(format!("condition is not a bool: {v:?}")),
+                            }
+                        }
+                    };
+                    if t == when {
+                        pc = to as usize;
+                    }
+                }
                 Op::SetCont { reg, to } => {
                     self.stack[base + reg as usize] = Value::Int(i128::from(to));
                 }
@@ -286,8 +367,8 @@ impl<'o> Vm<'o> {
                     Value::Int(to) => pc = to as usize,
                     _ => unreachable!("join point continuation is set before the jump"),
                 },
-                Op::Ret(o) => return Ok(Ok(self.val(&code, base, o).clone())),
-                Op::Fail(o) => return Ok(Err(self.val(&code, base, o).clone())),
+                Op::Ret(o) => return Ok(Ok(dup(self.val(&code, base, o)))),
+                Op::Fail(o) => return Ok(Err(dup(self.val(&code, base, o)))),
                 Op::Call { site, dst } => {
                     let s = &code.sites[site as usize];
                     let r = self.call_site(&code, base, s)?;
@@ -315,7 +396,15 @@ impl<'o> Vm<'o> {
                         }
                     };
                     let nargs = self.stack.len() - new_base;
-                    self.stack.drain(base..new_base);
+                    // Move the arguments down over the old frame.
+                    if nargs <= new_base - base {
+                        for i in 0..nargs {
+                            self.stack.swap(base + i, new_base + i);
+                        }
+                        release(&mut self.stack, base + nargs);
+                    } else {
+                        self.stack.drain(base..new_base);
+                    }
                     self.enter(g, clo.as_deref(), base, nargs);
                     code = self.codes[g].clone();
                     pc = 0;
@@ -383,7 +472,7 @@ impl<'o> Vm<'o> {
                     self.stack[base + dst as usize] = v;
                 }
                 Op::Check { src, kind } => {
-                    if self.stack[base + src as usize] != Value::Bool(true) {
+                    if !matches!(self.stack[base + src as usize], Value::Bool(true)) {
                         return panic(kind);
                     }
                 }
@@ -465,7 +554,7 @@ impl<'o> Vm<'o> {
         for a in &s.args {
             let v = match a {
                 ArgC::Inout(r) => mem::take(&mut self.stack[base + *r as usize]),
-                ArgC::Val(o) => self.val(code, base, *o).clone(),
+                ArgC::Val(o) => dup(self.val(code, base, *o)),
             };
             self.stack.push(v);
         }
@@ -512,28 +601,18 @@ impl<'o> Vm<'o> {
                 r
             }
             Target::Native => {
-                let mut args: Vec<Value> = self.stack.drain(new_base..).collect();
-                let r = self.native(&s.name, &mut args)?;
-                for (a, v) in s.args.iter().zip(args) {
+                let r = native_call(&mut self.it, &s.name, &mut self.stack[new_base..])?;
+                for (i, a) in s.args.iter().enumerate() {
                     if let ArgC::Inout(r) = a {
+                        let v = mem::take(&mut self.stack[new_base + i]);
                         self.stack[base + *r as usize] = v;
                     }
                 }
                 r
             }
         };
-        self.stack.truncate(new_base);
+        release(&mut self.stack, new_base);
         Ok(outcome)
-    }
-
-    fn native(&mut self, name: &str, args: &mut [Value]) -> R<Result<Value, Value>> {
-        if let Some(r) = native::fallible(name, args) {
-            return Ok(r);
-        }
-        Ok(Ok(match intrinsic(name, args) {
-            Some(v) => v?,
-            None => self.it.std(name, args)?,
-        }))
     }
 
     fn read(&self, code: &Code, base: usize, p: &PlaceC) -> R<Value> {
@@ -569,7 +648,7 @@ impl<'o> Vm<'o> {
                 (_, v) => return unsupported(format!("projection {src:?} on {v:?}")),
             };
         }
-        Ok(v.clone())
+        Ok(dup(v))
     }
 
     fn write(&mut self, code: &Code, base: usize, p: &PlaceC, v: Value) -> R<()> {
@@ -624,4 +703,52 @@ fn walk_mut<'v, 's>(
         };
     }
     Ok(slot)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn int_ops_agree_with_intrinsics() {
+        let edge = [
+            i64::MIN as i128,
+            i64::MIN as i128 + 1,
+            -7,
+            -2,
+            -1,
+            0,
+            1,
+            2,
+            3,
+            7,
+            i64::MAX as i128,
+        ];
+        let ops = [
+            (IntOp::FloorDiv, "floordiv"),
+            (IntOp::Mod, "mod"),
+            (IntOp::Add, "add_checked"),
+            (IntOp::Mul, "mul_checked"),
+        ];
+        for (ti, ty) in INT_TYS
+            .iter()
+            .enumerate()
+            .filter(|(_, t)| ["i64", "i128"].contains(t))
+        {
+            for (op, name) in ops {
+                for a in edge {
+                    for b in edge {
+                        let want =
+                            intrinsic(&format!("{name}_{ty}"), &[Value::Int(a), Value::Int(b)]);
+                        let got = match int_op(op, ti as u8, a, b) {
+                            Ok(Scalar::I(v)) => Some(Value::Int(v)),
+                            Ok(_) => unreachable!("integer op"),
+                            Err(_) => None,
+                        };
+                        assert_eq!(got, want.and_then(Result::ok), "{name}_{ty}({a}, {b})");
+                    }
+                }
+            }
+        }
+    }
 }
