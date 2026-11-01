@@ -2,9 +2,10 @@
 //! calls named by registry id (R561). It is lowered from checked Yong and feeds the code
 //! generators; the interpreter keeps running checked Yong.
 //!
-//! This first cut covers scalar programs: integers up to 64 bits, `f64`, `bool` and `Unit`
-//! locals, direct and tail calls, loops, join points, contracts and assertions, and printing a
-//! literal. Anything else is reported as unsupported.
+//! Locals are scalars. Records, tuples and non-recursive sums are split into one local per
+//! scalar slot (a sum is a tag slot followed by every variant's slots), and `inout` parameters
+//! come back as extra results. `Str` and `List` are pointers to yong-rt blocks, which are not
+//! freed yet. Anything else is reported as unsupported.
 
 mod lower;
 
@@ -38,6 +39,8 @@ pub enum Ty {
     F64,
     Bool,
     Unit,
+    /// A yong-rt block (`Str`, `List`).
+    Ptr,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -47,7 +50,7 @@ pub enum Operand {
     F64(f64),
     Bool(bool),
     Unit,
-    /// A string literal, by index into [`Program::strings`].
+    /// A `Str` literal, by index into [`Program::strings`].
     Str(u32),
 }
 
@@ -93,17 +96,60 @@ pub enum Inst {
         ty: Ty,
         args: Vec<Operand>,
     },
+    /// The results go to `dst` in order: the callee's result slots, then its `inout` slots.
     Call {
-        dst: Option<Local>,
+        dst: Vec<Local>,
         func: FuncId,
         args: Vec<Operand>,
     },
-    /// A std function bound in yong-rt.
-    Std {
+    /// A yong-rt C-ABI function.
+    Rt {
         dst: Option<Local>,
-        id: Id,
+        f: RtFn,
         args: Vec<Operand>,
     },
+    /// `dst = ptr[word]`, one 8-byte word per slot.
+    Load {
+        dst: Local,
+        ptr: Operand,
+        word: u32,
+    },
+    Store {
+        ptr: Operand,
+        word: u32,
+        src: Operand,
+    },
+}
+
+/// The yong-rt entry points native code calls.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RtFn {
+    /// `(Str)`
+    Print,
+    /// `(Str, Str) -> Str`
+    Concat,
+    /// `(i64) -> Str`
+    ShowI64,
+    /// `(u64) -> Str`
+    ShowU64,
+    /// `(f64) -> Str`
+    ShowF64,
+    /// `(bool) -> Str`
+    ShowBool,
+    /// `(Str) -> Str`, CPython `repr`.
+    Repr,
+    /// `(Str, Str) -> bool`
+    StrEq,
+    /// `(words) -> List` with elements of `words` slots.
+    ListNew,
+    /// `(List) -> Ptr` to a new last element's slots.
+    ListPush,
+    /// `(List) -> i64`
+    ListLen,
+    /// `(List, i64) -> Ptr` to an element's slots; panics `bounds`.
+    ListAt,
+    /// `(List) -> List`, a copy of the slots.
+    ListCopy,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -119,7 +165,7 @@ pub enum Term {
         on: Local,
         targets: Vec<BlockId>,
     },
-    Return(Operand),
+    Return(Vec<Operand>),
     TailCall {
         func: FuncId,
         args: Vec<Operand>,
@@ -139,7 +185,8 @@ pub struct Func {
     pub name: String,
     /// The first `params` locals are the parameters, in order.
     pub params: u32,
-    pub ret: Ty,
+    /// The result slots, then the final value of each `inout` parameter's slots.
+    pub ret: Vec<Ty>,
     pub locals: Vec<Ty>,
     /// Block 0 is the entry.
     pub blocks: Vec<Block>,

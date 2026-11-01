@@ -6,15 +6,16 @@ use std::collections::HashMap;
 
 use cranelift_codegen::ir::condcodes::{FloatCC, IntCC};
 use cranelift_codegen::ir::{
-    AbiParam, Block as CBlock, FuncRef, InstBuilder, Signature, TrapCode, Value, types,
+    AbiParam, Block as CBlock, FuncRef, InstBuilder, MemFlagsData, Signature, TrapCode, Value,
+    types,
 };
 use cranelift_codegen::isa::CallConv;
 use cranelift_codegen::settings::{self, Configurable};
 use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext, Switch, Variable};
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{FuncId as CFuncId, Linkage, Module, default_libcall_names};
-use yong_mir::{Func, Inst, IntTy, Operand, Program, ScalarOp, Term, Ty};
-use yong_std::registry::id;
+use yong_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
+use yong_rt::abi;
 
 type R<T> = Result<T, String>;
 
@@ -24,7 +25,7 @@ fn err(e: impl std::fmt::Display) -> String {
 
 fn clif(t: Ty) -> Option<types::Type> {
     match t {
-        Ty::Int(_) => Some(types::I64),
+        Ty::Int(_) | Ty::Ptr => Some(types::I64),
         Ty::F64 => Some(types::F64),
         Ty::Bool => Some(types::I8),
         Ty::Unit => None,
@@ -55,21 +56,33 @@ pub fn compile(p: &Program) -> R<Compiled> {
         .finish(settings::Flags::new(flags))
         .map_err(err)?;
     let mut jb = JITBuilder::with_isa(isa, default_libcall_names());
-    jb.symbol("yong_rt_print", yong_rt::abi::yong_rt_print as *const u8);
-    jb.symbol("yong_rt_panic", yong_rt::abi::yong_rt_panic as *const u8);
+    jb.symbol("yong_rt_panic", abi::yong_rt_panic as *const u8);
+    for f in RT {
+        let (name, addr, ..) = rt_fn(*f);
+        jb.symbol(name, addr);
+    }
     let mut module = JITModule::new(jb);
     let ptr = module.target_config().pointer_type();
 
-    let mut rt_sig = module.make_signature();
-    rt_sig
+    let mut panic_sig = module.make_signature();
+    panic_sig
         .params
         .extend([AbiParam::new(ptr), AbiParam::new(ptr)]);
-    let print = module
-        .declare_function("yong_rt_print", Linkage::Import, &rt_sig)
-        .map_err(err)?;
     let panic = module
-        .declare_function("yong_rt_panic", Linkage::Import, &rt_sig)
+        .declare_function("yong_rt_panic", Linkage::Import, &panic_sig)
         .map_err(err)?;
+    let rt_ids = RT
+        .iter()
+        .map(|f| {
+            let (name, _, params, ret) = rt_fn(*f);
+            let mut sig = module.make_signature();
+            sig.params.extend(params.iter().map(|t| AbiParam::new(*t)));
+            sig.returns.extend(ret.map(AbiParam::new));
+            module
+                .declare_function(name, Linkage::Import, &sig)
+                .map_err(err)
+        })
+        .collect::<R<Vec<_>>>()?;
 
     let sigs: Vec<Signature> = p.funcs.iter().map(|f| signature(f, &module)).collect();
     let ids: Vec<CFuncId> = p
@@ -83,12 +96,8 @@ pub fn compile(p: &Program) -> R<Compiled> {
                 .map_err(err)
         })
         .collect::<R<_>>()?;
-    // Leaked: the JIT code refers to them by address for the life of the process.
-    let strings: Vec<&'static str> = p
-        .strings
-        .iter()
-        .map(|s| &*Box::leak(s.clone().into_boxed_str()))
-        .collect();
+    // Owned by the program: the JIT code refers to them by address.
+    let strings: Vec<i64> = p.strings.iter().map(|s| abi::str_block(s) as i64).collect();
 
     let mut fctx = FunctionBuilderContext::new();
     let mut ctx = module.make_context();
@@ -100,7 +109,10 @@ pub fn compile(p: &Program) -> R<Compiled> {
             .map(|id| module.declare_func_in_func(*id, b.func))
             .collect();
         let rt = Rt {
-            print: module.declare_func_in_func(print, b.func),
+            fns: rt_ids
+                .iter()
+                .map(|id| module.declare_func_in_func(*id, b.func))
+                .collect(),
             panic: module.declare_func_in_func(panic, b.func),
             ptr,
         };
@@ -158,14 +170,122 @@ fn signature(f: &Func, m: &JITModule) -> Signature {
             s.params.push(AbiParam::new(t));
         }
     }
-    if let Some(t) = clif(f.ret) {
-        s.returns.push(AbiParam::new(t));
-    }
+    s.returns
+        .extend(f.ret.iter().filter_map(|t| clif(*t)).map(AbiParam::new));
     s
 }
 
+const RT: &[RtFn] = &[
+    RtFn::Print,
+    RtFn::Concat,
+    RtFn::ShowI64,
+    RtFn::ShowU64,
+    RtFn::ShowF64,
+    RtFn::ShowBool,
+    RtFn::Repr,
+    RtFn::StrEq,
+    RtFn::ListNew,
+    RtFn::ListPush,
+    RtFn::ListLen,
+    RtFn::ListAt,
+    RtFn::ListCopy,
+];
+
+/// Symbol, address, parameter types and result type.
+fn rt_fn(
+    f: RtFn,
+) -> (
+    &'static str,
+    *const u8,
+    &'static [types::Type],
+    Option<types::Type>,
+) {
+    use types::{F64, I8, I64};
+    match f {
+        RtFn::Print => (
+            "yong_rt_print_str",
+            abi::yong_rt_print_str as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::Concat => (
+            "yong_rt_concat",
+            abi::yong_rt_concat as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::ShowI64 => (
+            "yong_rt_show_i64",
+            abi::yong_rt_show_i64 as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::ShowU64 => (
+            "yong_rt_show_u64",
+            abi::yong_rt_show_u64 as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::ShowF64 => (
+            "yong_rt_show_f64",
+            abi::yong_rt_show_f64 as *const u8,
+            &[F64],
+            Some(I64),
+        ),
+        RtFn::ShowBool => (
+            "yong_rt_show_bool",
+            abi::yong_rt_show_bool as *const u8,
+            &[I8],
+            Some(I64),
+        ),
+        RtFn::Repr => (
+            "yong_rt_repr",
+            abi::yong_rt_repr as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::StrEq => (
+            "yong_rt_str_eq",
+            abi::yong_rt_str_eq as *const u8,
+            &[I64, I64],
+            Some(I8),
+        ),
+        RtFn::ListNew => (
+            "yong_rt_list_new",
+            abi::yong_rt_list_new as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::ListPush => (
+            "yong_rt_list_push",
+            abi::yong_rt_list_push as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::ListLen => (
+            "yong_rt_list_len",
+            abi::yong_rt_list_len as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::ListAt => (
+            "yong_rt_list_at",
+            abi::yong_rt_list_at as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::ListCopy => (
+            "yong_rt_list_copy",
+            abi::yong_rt_list_copy as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+    }
+}
+
 struct Rt {
-    print: FuncRef,
+    /// In the order of [`RT`].
+    fns: Vec<FuncRef>,
     panic: FuncRef,
     ptr: types::Type,
 }
@@ -177,7 +297,7 @@ struct Gen<'a, 'b> {
     blocks: Vec<CBlock>,
     funcs: Vec<FuncRef>,
     rt: Rt,
-    strings: &'a [&'static str],
+    strings: &'a [i64],
     /// One panic block per kind.
     kinds: HashMap<&'static str, CBlock>,
 }
@@ -254,7 +374,7 @@ impl Gen<'_, '_> {
             Operand::F64(x) => self.b.ins().f64const(*x),
             Operand::Bool(x) => self.b.ins().iconst(types::I8, i64::from(*x)),
             Operand::Unit => return None,
-            Operand::Str(_) => unreachable!("strings only reach print"),
+            Operand::Str(s) => self.b.ins().iconst(types::I64, self.strings[*s as usize]),
         })
     }
 
@@ -279,18 +399,38 @@ impl Gen<'_, '_> {
             Inst::Call { dst, func, args } => {
                 let args = self.vals(args);
                 let c = self.b.ins().call(self.funcs[*func as usize], &args);
+                let rs = self.b.inst_results(c).to_vec();
+                // Unit slots have neither a variable nor a result.
+                let ds = dst.iter().filter(|d| self.vars[**d as usize].is_some());
+                for (d, r) in ds.copied().collect::<Vec<_>>().into_iter().zip(rs) {
+                    self.set(Some(d), Some(r));
+                }
+            }
+            Inst::Rt { dst, f, args } => {
+                let args = self.vals(args);
+                let at = RT.iter().position(|x| x == f).expect("every RtFn is in RT");
+                let c = self.b.ins().call(self.rt.fns[at], &args);
                 let r = self.b.inst_results(c).first().copied();
                 self.set(*dst, r);
             }
-            Inst::Std { id: sid, args, .. } => match (*sid, args.as_slice()) {
-                (id::STD_IO_PRINT, [Operand::Str(s)]) => {
-                    let s = self.strings[*s as usize];
-                    let ptr = self.b.ins().iconst(self.rt.ptr, s.as_ptr() as i64);
-                    let len = self.b.ins().iconst(self.rt.ptr, s.len() as i64);
-                    self.b.ins().call(self.rt.print, &[ptr, len]);
+            Inst::Load { dst, ptr, word } => {
+                if let Some(t) = clif(self.f.locals[*dst as usize]) {
+                    let p = self.val(ptr).expect("a pointer");
+                    let v = self
+                        .b
+                        .ins()
+                        .load(t, MemFlagsData::trusted(), p, *word as i32 * 8);
+                    self.set(Some(*dst), Some(v));
                 }
-                _ => unreachable!("yong-mir lowers no other std call yet"),
-            },
+            }
+            Inst::Store { ptr, word, src } => {
+                if let Some(v) = self.val(src) {
+                    let p = self.val(ptr).expect("a pointer");
+                    self.b
+                        .ins()
+                        .store(MemFlagsData::trusted(), v, p, *word as i32 * 8);
+                }
+            }
             Inst::Scalar {
                 dst, op, ty, args, ..
             } => {
@@ -320,8 +460,8 @@ impl Gen<'_, '_> {
                 let otherwise = self.panic_block("unreachable");
                 sw.emit(self.b, v, otherwise);
             }
-            Term::Return(o) => {
-                let v: Vec<Value> = self.val(o).into_iter().collect();
+            Term::Return(os) => {
+                let v = self.vals(os);
                 self.b.ins().return_(&v);
             }
             Term::TailCall { func, args } => {
@@ -498,6 +638,29 @@ mod selftest {
             assert eq_i64(let n, let 13)\n let r: i64 = count(let 1000000, let 0)\n assert eq_i64(let r, let 1000000)\n\
             let q: i64 = floordiv_i64(let -7, let 2)\n assert eq_i64(let q, let -4)\n\
             let w: u8 = mod_u8(let 7, let 3)\n assert eq_u8(let w, let 1)\n ret ()\n}\n";
+        let (m, d) = yong_core::parse("t.yong", src);
+        assert!(d.is_empty(), "{d:?}");
+        let p = yong_mir::lower(&m.unwrap()).expect("lowers");
+        super::compile(&p).expect("compiles").run();
+    }
+
+    #[test]
+    fn runs_sums_lists_inout_and_show() {
+        let src = "module t\n\
+            sum S { A { pub x: i64 }, B { pub w: i64, pub h: bool }, C }\n\
+            record P { pub s: S, pub t: Tuple(f64, Str) }\n\
+            fn bump(inout n: i64, let by: i64) -> Unit {\n n = add_checked_i64(let n, let by)\n ret ()\n}\n\
+            fn main() -> Unit {\n var xs: List[S] = std.list.new[S]()\n let a: S = A { x: 7 }\n\
+            std.list.push[S](inout xs, sink a)\n std.list.push[S](inout xs, sink C)\n\
+            let b: S = B { w: 2, h: true }\n std.list.push[S](inout xs, sink b)\n\
+            var n: i64 = 0\n let e: S = xs[2]\n\
+            match e {\n B { w: w, h: true } => { bump(inout n, let w) }\n _ => { unreachable }\n }\n\
+            bump(inout n, let 1)\n assert eq_i64(let n, let 3)\n\
+            let t: Tuple(f64, Str) = (0.5, \"q\")\n let p: P = P { s: C, t: t }\n\
+            let shown: Str = std.fmt.show[List[S]](let xs)\n\
+            match shown {\n \"[A(x=7), C(), B(w=2, h=True)]\" => {}\n _ => { unreachable }\n }\n\
+            let q: Str = std.fmt.show[P](let p)\n\
+            match q {\n \"P(s=C(), t=(0.5, 'q'))\" => {}\n _ => { unreachable }\n }\n ret ()\n}\n";
         let (m, d) = yong_core::parse("t.yong", src);
         assert!(d.is_empty(), "{d:?}");
         let p = yong_mir::lower(&m.unwrap()).expect("lowers");
