@@ -99,3 +99,16 @@ pub def main() uses io:
 ";
     assert_eq!(raised(src), src);
 }
+
+#[test]
+fn a_value_function_must_not_fall_off_its_end() {
+    let codes = |src: &str| {
+        let (_, d) = lower(src);
+        d.into_iter().map(|d| d.code).collect::<Vec<_>>()
+    };
+    let src = "def f(x: int) -> int:\n    if x > 0:\n        return 1\n";
+    assert_eq!(codes(src), ["E201"]);
+    let ok = "def f(x: int) -> int:\n    if x > 0:\n        return 1\n    else:\n        return 0\n\n\
+              def g(x: int) -> int:\n    while True:\n        x += 1\n        if x > 9:\n            return x\n";
+    assert!(codes(ok).is_empty());
+}

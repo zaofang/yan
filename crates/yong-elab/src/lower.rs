@@ -455,6 +455,37 @@ fn ends(stmts: &[j::Stmt]) -> bool {
         )
 }
 
+/// Whether control can leave the end of `stmts` without a `return`, `fail` or `become`.
+fn falls_through(stmts: &[j::Stmt]) -> bool {
+    use j::StmtKind as K;
+    if ends(stmts) {
+        return false;
+    }
+    match stmts.last().map(|s| &s.kind) {
+        Some(K::If {
+            arms,
+            els: Some(els),
+        }) => arms.iter().any(|(_, b)| falls_through(&b.stmts)) || falls_through(&els.stmts),
+        Some(K::Match { cases, .. }) => cases.iter().any(|c| falls_through(&c.body.stmts)),
+        Some(K::With { body, .. }) => falls_through(&body.stmts),
+        Some(K::Unsafe(b)) => falls_through(b),
+        Some(K::While { cond, body, .. }) => {
+            !matches!(cond.kind, j::ExprKind::Lit(j::Lit::Bool(true))) || breaks(body)
+        }
+        _ => true,
+    }
+}
+
+/// Whether a loop body has a `break` that leaves this loop.
+fn breaks(stmts: &[j::Stmt]) -> bool {
+    use j::StmtKind as K;
+    stmts.iter().any(|s| match &s.kind {
+        K::Break | K::BreakTo(_) => true,
+        K::While { .. } | K::For { .. } => false,
+        _ => sub_blocks(s).into_iter().any(breaks),
+    })
+}
+
 /// `...` or `return ...` as a statement.
 fn is_hole(s: &j::Stmt) -> bool {
     matches!(&s.kind, j::StmtKind::Expr(e) | j::StmtKind::Return(Some(e)) if matches!(e.kind, j::ExprKind::Hole))
@@ -639,6 +670,17 @@ fn function_body(
             let v = l.fresh("old");
             l.bind(&v, false, &t, Rhs::Copy(place), f.name_span, f.name_span);
             l.olds.push((p, v));
+        }
+        if !l.cx.wen && !matches!(sig.ret, Ty::Unit | Ty::Err) && falls_through(&body.stmts) {
+            let at = body.stmts.last().map_or(f.name_span, |s| s.span);
+            l.err(
+                "E201",
+                at,
+                format!(
+                    "`{}` can reach its end without returning its `{}`; add a `return`",
+                    f.name, sig.ret
+                ),
+            );
         }
         l.stmts(&body.stmts)?;
         if !ends(&body.stmts) && matches!(sig.ret, Ty::Unit) {
