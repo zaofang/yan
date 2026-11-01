@@ -1,0 +1,14 @@
+# spec: 17.3
+# rows: R510
+# stdout:
+# [[1, 2, 3], [2, 3, 4]]
+# [[1, 2], [3, 4]]
+# [[1, 2, 3]]
+# []
+
+pub def main() uses io:
+    xs = [1, 2, 3, 4]
+    io.print(f"{xs.iter().windows(3).collect()}")
+    io.print(f"{xs.iter().chunks(2).collect()}")
+    io.print(f"{xs.iter().take(3).chunks(5).collect()}")
+    io.print(f"{xs.iter().windows(5).collect()}")

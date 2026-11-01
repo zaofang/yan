@@ -1,0 +1,11 @@
+# spec: 17.3
+# rows: R508, R509, R515
+# stdout:
+# [0, 3, 6, 9]
+# [5, 7, 9]
+# [1, 2]
+
+pub def main() uses io:
+    io.print(f"{iter.count().map(lambda x: x * 3).take(4).collect()}")
+    io.print(f"{iter.count(start=5, step=2).take_while(lambda x: x < 10).collect()}")
+    io.print(f"{iter.count(1).filter(lambda x: x < 3).take(2).collect()}")

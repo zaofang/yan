@@ -1,0 +1,19 @@
+# spec: 17.3
+# rows: R510
+# stdout:
+# [3, 4, 5]
+# [2, 3]
+# [1, 3, 5]
+# [(0, 'a'), (1, 'b')]
+# [(1, 'a'), (2, 'b')]
+# [1, 2, 3, 4]
+
+pub def main() uses io:
+    xs = [1, 2, 3, 4, 5]
+    io.print(f"{xs.iter().drop_while(lambda x: x < 3).collect()}")
+    io.print(f"{xs.iter().skip(1).take(2).collect()}")
+    io.print(f"{xs.iter().step_by(2).collect()}")
+    ab = ["a", "b"]
+    io.print(f"{ab.iter().enumerate().collect()}")
+    io.print(f"{xs.iter().zip(ab.iter()).collect()}")
+    io.print(f"{[1, 2].iter().chain([3, 4].iter()).collect()}")

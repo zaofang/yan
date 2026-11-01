@@ -1,0 +1,14 @@
+# spec: 17.3
+# rows: R512
+# stdout:
+# [2, 4, 6]
+# [1, 3]
+# 6
+# [1, 2, 3]
+
+pub def main() uses io:
+    xs = [1, 2, 3]
+    io.print(f"{xs.map(lambda x: x * 2)}")
+    io.print(f"{xs.filter(lambda x: x != 2)}")
+    io.print(f"{xs.fold(0, lambda a, x: a + x)}")
+    io.print(f"{xs}")
