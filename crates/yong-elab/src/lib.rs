@@ -1,8 +1,8 @@
-//! HIR to Yong elaboration (14.1, 22.3), for Jian and later Wen: resolve names, check
+//! HIR to Yong elaboration (14.1, 22.3), for Xin and later Wen: resolve names, check
 //! signatures, infer bodies bidirectionally, pass capabilities and lower to Yong IR in
 //! A-normal form.
 //!
-//! The Yong tree keeps Jian spans, so the Yong checker reports at Jian positions.
+//! The Yong tree keeps Xin spans, so the Yong checker reports at Xin positions.
 
 mod bounds;
 mod decorators;
@@ -29,7 +29,7 @@ pub struct Options {
     pub strict: bool,
     /// `--level release` (8.5).
     pub release: bool,
-    /// The module came from Wen, whose lints differ from Jian's (15.3).
+    /// The module came from Wen, whose lints differ from Xin's (15.3).
     pub wen: bool,
     /// The module is an ffi module, under the package's `ffi/` directory (12).
     pub ffi: bool,
@@ -98,7 +98,7 @@ pub(crate) struct Globals {
     pub tested: HashSet<String>,
     /// Each trait's methods, with `Self` as a type parameter.
     pub traits: HashMap<String, Vec<(String, Sig)>>,
-    /// `(trait, type)` for each `impl`, the type as written in Jian.
+    /// `(trait, type)` for each `impl`, the type as written in Xin.
     pub impls: HashSet<(String, String)>,
     /// `(type, method)` to the method's signature, from every `impl`.
     pub methods: HashMap<(String, String), Sig>,
@@ -263,7 +263,7 @@ impl Globals {
     }
 }
 
-/// Elaborate a parsed Jian module. Returns the Yong module and the elaboration diagnostics;
+/// Elaborate a parsed Xin module. Returns the Yong module and the elaboration diagnostics;
 /// when none is an error, the module is ready for `yong_check::check`.
 pub fn elaborate(
     file: &str,

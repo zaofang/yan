@@ -1,4 +1,4 @@
-//! Recursive-descent parser for the factored Jian grammar of 13.2, with the lenient-reader
+//! Recursive-descent parser for the factored Xin grammar of 13.2, with the lenient-reader
 //! normalizations that are purely syntactic (14.4). Errors recover at item boundaries (22.3).
 
 use std::collections::HashSet;
@@ -68,7 +68,7 @@ struct Parser {
     pub issues: Vec<Issue>,
 }
 
-/// Parse a `.jian` file. The module is `None` only when the lexer stopped early.
+/// Parse a `.xin` file. The module is `None` only when the lexer stopped early.
 pub fn parse(src: &str, strict: bool) -> (Option<Module>, Vec<Issue>) {
     let lexed = lex(src);
     let mut p = Parser {
@@ -1203,7 +1203,7 @@ impl Parser {
             self.error(
                 "E120",
                 span,
-                format!("`{word}` is not Jian; use `fail` and `Result`"),
+                format!("`{word}` is not Xin; use `fail` and `Result`"),
             );
             self.skip_stmt();
             while ["except", "finally", "else"].iter().any(|w| self.is_kw(w)) {
@@ -1212,7 +1212,7 @@ impl Parser {
             return Ok(None);
         }
         if REJECTED_E121.contains(&word.as_str()) {
-            self.error("E121", span, format!("`{word}` is not part of Jian"));
+            self.error("E121", span, format!("`{word}` is not part of Xin"));
             self.skip_stmt();
             return Ok(None);
         }

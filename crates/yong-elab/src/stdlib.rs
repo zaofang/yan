@@ -1,5 +1,5 @@
 //! The std modules as the elaborator sees them (R474, R475): method signatures and the
-//! non-generic Jian bodies a module calls, read from yong-std's sources.
+//! non-generic Xin bodies a module calls, read from yong-std's sources.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::{LazyLock, OnceLock};
@@ -383,7 +383,7 @@ fn unify(pat: &j::Type, t: &Ty, tps: &[&str], b: &mut HashMap<String, Ty>) -> bo
     }
 }
 
-/// The Jian name of `t`'s type constructor and its arguments.
+/// The Xin name of `t`'s type constructor and its arguments.
 fn shape(t: &Ty) -> Option<(&'static str, Vec<&Ty>)> {
     Some(match t {
         Ty::Int => ("int", vec![]),
@@ -450,7 +450,7 @@ fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
     })
 }
 
-/// A std function with a Jian body, lowered into the module that calls it.
+/// A std function with a Xin body, lowered into the module that calls it.
 pub(crate) struct Body {
     module: &'static str,
     /// The definition, renamed to the call path: the bare name for the prelude,
@@ -460,7 +460,7 @@ pub(crate) struct Body {
     intrinsic: bool,
 }
 
-/// The std functions with Jian bodies that `m` calls, directly or through each other, and does
+/// The std functions with Xin bodies that `m` calls, directly or through each other, and does
 /// not define itself.
 fn bodies(m: &j::Module) -> Vec<Body> {
     let mut seen = HashSet::new();

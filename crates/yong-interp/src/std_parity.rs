@@ -2,7 +2,7 @@
 //! declared, as an intrinsic or as a capability operation (R474).
 
 use std::collections::BTreeSet;
-use yong_jian::ast::ItemKind;
+use yong_xin::ast::ItemKind;
 
 fn native_paths() -> BTreeSet<String> {
     crate::bind::bound().map(str::to_owned).collect()
@@ -11,7 +11,7 @@ fn native_paths() -> BTreeSet<String> {
 fn declared() -> (BTreeSet<String>, BTreeSet<String>) {
     let (mut intrinsics, mut caps) = (BTreeSet::new(), BTreeSet::new());
     for (module, src) in yong_std::SOURCES {
-        let (ast, diags) = yong_jian::parse(&format!("std/{module}.jian"), src, true);
+        let (ast, diags) = yong_xin::parse(&format!("std/{module}.xin"), src, true);
         assert!(diags.is_empty(), "std.{module}: {diags:?}");
         for item in ast.unwrap().items {
             let has = |d: &str| item.decorators.iter().any(|x| x.path == [d]);

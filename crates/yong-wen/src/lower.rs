@@ -473,9 +473,9 @@ impl Lower<'_> {
                 }
                 let p: Vec<&str> = path.iter().map(String::as_str).collect();
                 match (p.as_slice(), a.len()) {
-                    // Built-in types under the shared IR's (Jian's) names.
-                    ([n], k) if jian_type(n, k).is_some() => {
-                        named(&[jian_type(n, k).expect("checked")], a)
+                    // Built-in types under the shared IR's (Xin's) names.
+                    ([n], k) if xin_type(n, k).is_some() => {
+                        named(&[xin_type(n, k).expect("checked")], a)
                     }
                     (["Option"], 1) => match a.pop() {
                         Some(h::TArg::Type(t)) => h::Type::Optional(Box::new(t)),
@@ -1365,11 +1365,11 @@ fn tail_return(stmts: &mut [h::Stmt]) {
     }
 }
 
-/// Wen's built-in type `n` with `k` type arguments, as Jian spells it (16.3).
-fn jian_type(n: &str, k: usize) -> Option<&'static str> {
+/// Wen's built-in type `n` with `k` type arguments, as Xin spells it (16.3).
+fn xin_type(n: &str, k: usize) -> Option<&'static str> {
     yong_names::type_row(n, yong_names::Surface::Wen)
         .filter(|r| r.arity == k)
-        .map(|r| r.jian)
+        .map(|r| r.xin)
 }
 
 fn binop_text(op: BinOp) -> &'static str {

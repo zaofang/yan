@@ -4,12 +4,12 @@ The design behind this section is the Yong supply-chain security design (https:/
 
 ### 19.1 Manifest and lockfile
 
-`package.jian` holds one constant, `package: Package = Package(...)`, built from literals only, so tools read it without running code. A single `.jian` file may define the same constant and is then a runnable script whose dependencies resolve into the global store and which runs under its declared ceiling.
+`package.xin` holds one constant, `package: Package = Package(...)`, built from literals only, so tools read it without running code. A single `.xin` file may define the same constant and is then a runnable script whose dependencies resolve into the global store and which runs under its declared ceiling.
 
 | Field | Meaning |
 | --- | --- |
 | `name`, `version` | `@org/name` and a semver version; in 0.y.z, y is the major |
-| `edition` | the language edition for every `.jian` and `.wen` file of the package (20.4) |
+| `edition` | the language edition for every `.xin` and `.wen` file of the package (20.4) |
 | `yong` | the required toolchain and std API version, `"1.x"` (20.3) |
 | `dependencies` | name to minimum version; each major is a distinct package path |
 | `exclude` | versions version selection must skip |
@@ -51,7 +51,7 @@ Optional features and conditional dependencies are a non-goal for 1.0; platform 
 - **Agent gate.** Through the `toolchain` capability an agent may add only a package already in `yong.lock` or established (published 30 days or more and depended on by at least 10 packages); otherwise the add waits for an approval (E004). The MCP `query` tool exposes index search.
 - **Cool-off.** `yong add` and `yong update` skip versions younger than `min_release_age` (default 3 days, all packages), unless the version fixes an advisory affecting the current lock or a human pins it exactly (`@=x.y.z`).
 - **Identity pinning.** An update whose publisher identity differs from the one in `yong.lock` blocks like a capability gain (E005). `yong audit --diff` shows both identities.
-- **Signed approvals.** A capability gain, an identity change or a gated agent add needs `yong approve`: an in-toto statement accepting (package, version, archive digest, capability digest, identity), signed with Sigstore keyless signing after the human's interactive OIDC login. Bundles live in `yong.lock`. CI verifies each signer against `approvers` in the root `package.jian` (E009); the `toolchain` capability cannot produce one.
+- **Signed approvals.** A capability gain, an identity change or a gated agent add needs `yong approve`: an in-toto statement accepting (package, version, archive digest, capability digest, identity), signed with Sigstore keyless signing after the human's interactive OIDC login. Bundles live in `yong.lock`. CI verifies each signer against `approvers` in the root `package.xin` (E009); the `toolchain` capability cannot produce one.
 - **Shared audits.** An approval is also an audit with criteria `safe-to-run` or `safe-to-deploy`. `trust = [...]` imports another party's approvals as satisfying gates. std and `@yong/*` ship with team audits.
 - **Advisories and reachability.** Advisories are OSV records (ecosystem `Yong`) in a git repository, exported to osv.dev, naming affected version ranges and item paths. `yong audit` marks an advisory as affecting the build only when an affected item is reachable in the query database's call graph; others are listed as present, not reachable.
 - **Registries, mirrors and offline builds.** User or CI configuration maps namespaces to registries exactly; a mapped namespace never falls back to the public registry. `yong vendor` copies archives and bundles into the repository; `--offline --locked` builds verify from `yong.lock` and `.yong/` with no network.

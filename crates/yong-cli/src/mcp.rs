@@ -258,8 +258,8 @@ fn header(item: &str) -> String {
     out.join("\n")
 }
 
-/// `pricing.value` is item `value` of module `pricing` when `pricing.jian` exists and
-/// `pricing/value.jian` does not.
+/// `pricing.value` is item `value` of module `pricing` when `pricing.xin` exists and
+/// `pricing/value.xin` does not.
 fn split(root: &Path, name: &str) -> (String, Option<String>) {
     if let Some((m, i)) = name.rsplit_once('.')
         && !patch::module_path(root, name).is_file()

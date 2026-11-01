@@ -1,4 +1,4 @@
-//! Jian tokens and the layout rules of 13.1: INDENT and DEDENT at line starts outside brackets,
+//! Xin tokens and the layout rules of 13.1: INDENT and DEDENT at line starts outside brackets,
 //! newlines joined inside brackets.
 
 use yong_diag::{Severity, Span};

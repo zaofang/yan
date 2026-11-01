@@ -1,4 +1,4 @@
-//! Jian syntax tree (13.2). Spans are the first token of each node.
+//! Xin syntax tree (13.2). Spans are the first token of each node.
 
 use yong_diag::Span;
 

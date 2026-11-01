@@ -1,4 +1,4 @@
-//! The std functions elaborated Jian calls (paths per R475), bound by registry id (R561).
+//! The std functions elaborated Xin calls (paths per R475), bound by registry id (R561).
 
 use std::cmp::Ordering;
 use std::mem;

@@ -1,6 +1,6 @@
 ## 21. Agent features
 
-These features make Jian cheap and reliable for models to write. They are toolchain features, not language features, and all of them read from the same query database.
+These features make Xin cheap and reliable for models to write. They are toolchain features, not language features, and all of them read from the same query database.
 
 ### 21.1 The spec gate
 
@@ -15,7 +15,7 @@ Human review of model-written code starts with the spec, which is short and read
 
 ### 21.2 Typed holes
 
-`...` in expression position is a typed hole in Jian (R212), and `_` is one in Wen. In Jian `_` is only a discard (R347), and `...` as a whole body (a trait signature, or a function whose body is a hole) stays valid.
+`...` in expression position is a typed hole in Xin (R212), and `_` is one in Wen. In Xin `_` is only a discard (R347), and `...` as a whole body (a trait signature, or a function whose body is a hole) stays valid.
 
 - `yong check` reports each hole as H701 with its expected type.
 - In development builds a program with holes runs: a hole evaluates to an indeterminate value, operations on it propagate indeterminacy, and evaluation continues around it, as in Hazel. Release builds reject holes (E702).
@@ -25,13 +25,13 @@ Human review of model-written code starts with the spec, which is short and read
 
 The compiler exposes, for any prefix of an item being generated, the set of valid continuations:
 
-- **Grammar.** The Jian grammar (13.2) as a token-aligned grammar for llguidance and XGrammar, and as GBNF for llama.cpp, all generated from the same source as the factored LL(1) grammar that CI checks (R428). It ships with the toolchain and is versioned with it.
+- **Grammar.** The Xin grammar (13.2) as a token-aligned grammar for llguidance and XGrammar, and as GBNF for llama.cpp, all generated from the same source as the factored LL(1) grammar that CI checks (R428). It ships with the toolchain and is versioned with it.
 - **Names and types.** At each identifier position: the in-scope names whose types can fit the expected type.
 - **Effects and mutability.** Calls needing a capability the function does not declare, and `&` arguments to non-`var` places, are excluded.
 
-Masks apply only to the code being generated, never to the model's reasoning. Jian MUST remain fully usable without any constraint, because hosted model APIs may not expose masks.
+Masks apply only to the code being generated, never to the model's reasoning. Xin MUST remain fully usable without any constraint, because hosted model APIs may not expose masks.
 
-**Prompting.** Prompts carry 5-shot Jian examples, not retrieved documentation; `yong skill` prints the canonical example set.
+**Prompting.** Prompts carry 5-shot Xin examples, not retrieved documentation; `yong skill` prints the canonical example set.
 
 ### 21.4 Agent server (`yong mcp`)
 
@@ -55,7 +55,7 @@ A Model Context Protocol server (protocol 2026-07-28, stateless) over stdio. Eve
 | `why_shared` | item or site | where a value is deep-copied or shared through `Rc` or `Arc` |
 | `debug` | a trace or a running test; a query (why, last\_write, step, back) | the answer of the one trace query engine of 18.4 (R306, R378) |
 | `explain` | code | long-form text |
-| `query` | a Jian body using only the `toolchain` capability; step and token budgets | the body's return value as JSON, or its diagnostics |
+| `query` | a Xin body using only the `toolchain` capability; step and token budgets | the body's return value as JSON, or its diagnostics |
 
 **The `toolchain` capability.** A built-in read-only capability over the query database: `check`, `sig`, `search_type`, `type_at`, `hole_context`, `callers`, `callees`, `uses_of`, index search and generated-item expansion. `query` runs its body on the interpreter with a step budget and an output token budget. Release builds never bind `toolchain` (E318), and it cannot produce approvals (19.4).
 
@@ -82,7 +82,7 @@ The M1 gate is measured with a harness specified here, so the result can be trus
 - Results stored with the toolchain hash and the model identifier.
 - The unit is total tokens per solved task: (1/p) times the sum over every turn of harness prompt, code read, history and output, counted with the deployed model's own tokenizer plus o200k and cl100k. Repair rounds and tool results are included (R289).
 - Tokens are reported in two parts (R567). Spec-phase tokens cover the signature, `uses`, contracts and `ex` clauses of 21.1; body tokens cover the body and every repair round. Body tokens compare against the typed-Python program; spec-phase tokens compare against the pytest cases the same model writes for the same task when the prompt asks typed Python for tests, so both sides pay for their tests.
-- The Jian primer the model receives stays at or under 500 tokens; the canonical example set (`yong skill`) counts toward it (R289).
+- The Xin primer the model receives stays at or under 500 tokens; the canonical example set (`yong skill`) counts toward it (R289).
 - Each run reports, per task, rounds to green, the diagnostics hit, and which of them an autofix closed in the loop (R280).
 
-**If the fluency gate fails,** the plan is continued pre-training of an open 8B to 32B model on Jian plus instruction transfer, not fine-tuning of hosted models.
+**If the fluency gate fails,** the plan is continued pre-training of an open 8B to 32B model on Xin plus instruction transfer, not fine-tuning of hosted models.

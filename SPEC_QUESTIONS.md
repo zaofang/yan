@@ -6,7 +6,7 @@ Spec 24.1 shows `# expect: E501 at 14:9` (Wen and Yong: `-- expect:`), `# stdout
 `# exit: 101`, but not how a `stdout:` block is laid out.
 
 Assumed in `tools/conform.py` until resolved: headers are the file's leading comment lines (`#` in
-Jian, `--` in Wen and Yong); a `stdout:` block is the following comment lines with one space
+Xin, `--` in Wen and Yong); a `stdout:` block is the following comment lines with one space
 stripped (a bare marker is an empty line) up to the next header or the first non-comment line;
 several blocks concatenate. `patch/` cases are directories and are skipped until their format is
 defined.
@@ -66,16 +66,16 @@ Raised by the std build plan; Antonio accepted all three answers on 2026-10-31.
 - R476: in Yong text, `Option[T]` matches as `Some { value: v }` and `None`, alongside Y5's
   `Ok { value: v }` and `Err { error: e }`.
 
-## Jian elaboration readings
+## Xin elaboration readings
 
 Assumed in `yong-elab` until resolved:
 
 - E210 exempts the arguments of a `become` call. `become count(n - 1, acc + 1)` with two `int`
-  parameters is a run case (`jian/run/tail/become_constant_stack`) and appears in
-  `jian/pass/syntax/every_production`, though 14.1's exemptions (literals, names equal to the
+  parameters is a run case (`xin/run/tail/become_constant_stack`) and appears in
+  `xin/pass/syntax/every_production`, though 14.1's exemptions (literals, names equal to the
   parameter, positional-only parameters, the receiver) do not cover it.
 - E210 is reported once per call, at the first argument that needs a keyword (the note in
-  `jian/fail/types/e210_record_keyword_required`).
+  `xin/fail/types/e210_record_keyword_required`).
 
 - Bitwise `&`, `|` and `^` on integers lower to the intrinsics `and_<int>`, `or_<int>` and
   `xor_<int>`, which Y4 does not name; they cannot overflow. Shifts stay unsupported until their
@@ -180,7 +180,7 @@ Assumed in `yong-elab`'s std loading until the spec says otherwise:
   negative number literal as a pattern (`-1 -> ...`).
 - **E112.** Two consecutive capitals are allowed only as a one-letter first word followed by a
   lower-case letter, so the `core.ffi` names `CStr` and `CString` lex, and `HTTPError` is E112.
-- **Strict checking.** Wen is elaborated with the lenient reader off (14.4 is Jian's), so
+- **Strict checking.** Wen is elaborated with the lenient reader off (14.4 is Xin's), so
   `s.len()` on a `str` is E504 and recursion without `decreases` gets no N05 measure.
 - **`x.len()`.** A call of `len` with no arguments is read as the builtin `len(x)`, which the
   bounds solver and E504 recognise; a user type's own `len` method is not reachable this way yet.
@@ -190,8 +190,8 @@ Assumed in `yong-elab`'s std loading until the spec says otherwise:
 
 Assumed in `yong patch` until the spec says otherwise:
 
-- A JSON patch's `module` names `<module with dots as slashes>.jian` beside the patch.
-- A plain file patch names no module. `--module NAME` gives it; without the flag, the patch applies only when exactly one other `.jian` file is beside it. `conformance/patch/plain_file_patch` has `m.jian` and `result.jian` beside it, so it needs `flags = ["--module", "m"]`.
+- A JSON patch's `module` names `<module with dots as slashes>.xin` beside the patch.
+- A plain file patch names no module. `--module NAME` gives it; without the flag, the patch applies only when exactly one other `.xin` file is beside it. `conformance/patch/plain_file_patch` has `m.xin` and `result.xin` beside it, so it needs `flags = ["--module", "m"]`.
 - The item hash in `base` is `b3:` followed by the BLAKE3 hex digest of the item's canonical text, printed alone.
 - An edit's search text is matched in the item's canonical text, and the edited text must still parse as that one item; otherwise the patch is P002.
 - P006 covers a change to, or the deletion of, an existing `test_` function, and any change to the set of `pre`, `post`, `ex`, `invariant` and `decreases` lines of an existing item. Adding a new test is allowed.
@@ -200,7 +200,7 @@ Assumed in `yong patch` until the spec says otherwise:
 
 ## MCP readings (21.4)
 
-- `yong mcp` serves the modules under the working directory. A tool's `name` of `a.b` means item `b` of module `a` when `a.jian` exists and `a/b.jian` does not.
+- `yong mcp` serves the modules under the working directory. A tool's `name` of `a.b` means item `b` of module `a` when `a.xin` exists and `a/b.xin` does not.
 - `max_tokens` and `budget` count four bytes per token; lines or items are kept in order while they fit.
 - No diagnostic carries a machine fix yet, so `autofix` returns the canonical reprint (the lenient reader's normalizations, 14.4) of each item whose text differs, as a `replace` patch with base hashes.
 - `sig` gives each function up to its first body statement (decorators, header, docstring, `pre`/`post`/`ex`/`decreases`), and every other item whole.

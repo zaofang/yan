@@ -1,34 +1,34 @@
-# 0001: Fei, the third surface
+# 0001: Chang, the third surface
 
 - Status: accepted (the lead accepted every decision below on 2026-11-01)
-- Research: [Fei 2, kitchen sink](https://claude.ai/artifact/Urz3zEhuESTobLRf8aqk2X),
-  [Fei 1, dense ASCII surface](https://claude.ai/artifact/DubBokGE1zKEpoVzwYKfAz),
+- Research: [Chang 2, kitchen sink](https://claude.ai/artifact/Urz3zEhuESTobLRf8aqk2X),
+  [Chang 1, dense ASCII surface](https://claude.ai/artifact/DubBokGE1zKEpoVzwYKfAz),
   [positional local names](https://claude.ai/artifact/V6Do54hGXcokurJ45NHF6f),
   [research track: eight extensions](https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8)
 - Rows: R516 to R535
 
 ## Summary
 
-Fei (斐, "brilliantly patterned") is Yong's third surface, beside Jian and Wen. It is the dense,
+Chang (畅, "unhindered", from 兰亭集序 畅叙幽情; formerly Chang 畅) is Yong's third surface, beside Xin and Wen. It is the dense,
 operator-rich surface and the language-design playground: any form that makes it more expressive
-is admitted as long as it can be built and lowers to the shared core. Every Fei module elaborates
-to the same Yong items, with the same item hashes, as its Wen projection. Fei adds no semantics of
+is admitted as long as it can be built and lowers to the shared core. Every Chang module elaborates
+to the same Yong items, with the same item hashes, as its Wen projection. Chang adds no semantics of
 its own. A form that needs something Yong lacks waits for that Yong change.
 
-This RFC records the decisions, then gives the reference a Fei implementation is built from:
+This RFC records the decisions, then gives the reference a Chang implementation is built from:
 lexicon, precedence, grammar, the spelling-note model, and one entry per feature with its syntax,
 lowering, printing, static rules and tests. The spec gets the normative core (sections 16.6, 3.6,
-16.5, law 8, 26.6); this file stays the full reference until the Fei build at M4, when the grammar moves
+16.5, law 8, 26.6); this file stays the full reference until the Chang build at M4, when the grammar moves
 into the spec as section 16.6's appendix.
 
 ## Decisions
 
-### D1: Fei is a full third surface, spelling kept (K4)
+### D1: Chang is a full third surface, spelling kept (K4)
 
-Fei is a surface like Jian and Wen: files `.fei`, a reader, a printer, a lenient reader, and the
-round-trip law of 16.5 restated for Fei. Several spellings may elaborate to one tree; the author's
+Chang is a surface like Xin and Wen: files `.chang`, a reader, a printer, a lenient reader, and the
+round-trip law of 16.5 restated for Chang. Several spellings may elaborate to one tree; the author's
 choice is kept beside the item as hash-neutral trivia (the fourth kind, after comments, blank lines
-and literal spelling). The alternative, one printing per tree as in Fei 1, would have kept only about
+and literal spelling). The alternative, one printing per tree as in Chang 1, would have kept only about
 a third of the catalog.
 
 - Decision: accepted, 2026-11-01 (card "Full surface, spelling kept (K4)")
@@ -36,16 +36,16 @@ a third of the catalog.
 
 ### D2: Admission rules K1 to K5
 
-A Fei form is admitted only if it passes all five:
+A Chang form is admitted only if it passes all five:
 
 - **K1 Same core.** It lowers to Yong that Wen can already write, or to a Yong extension that has
-  been accepted (D7, D8). Fei never has private semantics.
+  been accepted (D7, D8). Chang never has private semantics.
 - **K2 No invented hashed names.** A lowering never creates or drops a name the item hash includes.
   With positional locals (D4) that is parameters, fields, variants, capabilities, type parameters
   and items.
 - **K3 Recognisable.** The printer has a decidable recogniser for the lowered shape, and the
   grammar stays LL(1) apart from the four factorings listed in the grammar section.
-- **K4 Spelling kept like comments.** `fei(elaborate(F), spelling(F)) == fmt(F)` byte for byte.
+- **K4 Spelling kept like comments.** `chang(elaborate(F), spelling(F)) == fmt(F)` byte for byte.
   Spelling is not hashed. A tree with no notes prints with each shape's default spelling.
 - **K5 Five facts visible.** Mutation, failure, compile time, concurrency and capability use keep a
   mark in the text. A form may move the mark to the definition (variadics, `@prop`) but never drop it.
@@ -55,8 +55,8 @@ A Fei form is admitted only if it passes all five:
 
 ### D3: Law 8 reads per surface
 
-Law 8 ("each surface has exactly one canonical printing of any program") gains: "for Fei, of any
-program together with its spelling notes". Without notes, Fei also has exactly one printing.
+Law 8 ("each surface has exactly one canonical printing of any program") gains: "for Chang, of any
+program together with its spelling notes". Without notes, Chang also has exactly one printing.
 
 - Decision: accepted, 2026-11-01 (follows from D1)
 - Row: R518
@@ -69,9 +69,9 @@ because labelled arguments, `info(f)`, `Wire` and stage-0 reflection read them. 
 names live in a per-surface name table that is hash-neutral trivia. Compiler-generated contract
 and assertion text (the message a failed `post` prints) is fixed as a string literal before
 hashing, so renaming a local never changes a hash. This settles the open item on closure parameter
-names and lets Fei admit shadowing, for-else, general parallel assignment and nested `?` in `try`.
+names and lets Chang admit shadowing, for-else, general parallel assignment and nested `?` in `try`.
 
-The surfaces keep their own rules: Jian and Wen still reject shadowing (E230). The change is only
+The surfaces keep their own rules: Xin and Wen still reject shadowing (E230). The change is only
 in what is hashed.
 
 - Decision: accepted, 2026-11-01
@@ -79,7 +79,7 @@ in what is hashed.
 
 ### D5: Keyboard rule
 
-Every Fei token outside strings and comments is ASCII: nothing an average programmer cannot type.
+Every Chang token outside strings and comments is ASCII: nothing an average programmer cannot type.
 Unicode is allowed in strings and comments, as in all of Yong (identifiers are ASCII, R338).
 Unicode operator glyphs are not admitted, even as aliases.
 
@@ -90,8 +90,8 @@ Unicode operator glyphs are not admitted, even as aliases.
 ### D6: The open rule and the readmitted forms
 
 The lead's rule: accept anything that grows Yong in capability and power and can be implemented;
-accept anything for Fei that makes it more expressive, more powerful or sweeter. Under it, 21 of
-the 23 forms the Fei 2 study had rejected are admitted (two only in part), plus nested `?` in
+accept anything for Chang that makes it more expressive, more powerful or sweeter. Under it, 21 of
+the 23 forms the Chang 2 study had rejected are admitted (two only in part), plus nested `?` in
 `try`. Four stay out because they cannot be built or break D5: Unicode operators, juxtaposition
 calls and implicit multiplication (ambiguous grammar), global monkey patching (changes items
 other packages already hashed), and multi-shot continuations (duplicate linear values).
@@ -119,35 +119,35 @@ Accepted for research, not normative for 1.0. Each names the 1.0 text it would a
 - Decision: accepted for research, 2026-11-01
 - Row: R522 to R529
 
-### D8: Yong additions behind readmitted Fei forms (post-1.0 research)
+### D8: Yong additions behind readmitted Chang forms (post-1.0 research)
 
 1. Positional type parameters, for anonymous generics (`some Trait`).
-2. `std.sym.Sym`, an interned text type hashed by content (Fei symbols).
-3. `std.any.Any` with type ids from the identity hash, and checked downcast (Fei `any`).
+2. `std.sym.Sym`, an interned text type hashed by content (Chang symbols).
+3. `std.any.Any` with type ids from the identity hash, and checked downcast (Chang `any`).
 4. Panic recovery at a task boundary behind a `Recover` capability; needs unwinding in the
-   recovered task only (Fei `recover`).
-5. Software transactional memory behind an `Stm` capability, under `uses nondet` (Fei `atomic`).
+   recovered task only (Chang `recover`).
+5. Software transactional memory behind an `Stm` capability, under `uses nondet` (Chang `atomic`).
 6. `eval` behind an `Eval` capability: parse, check and run on the reference interpreter with only
-   the capabilities passed in (Fei `eval`).
+   the capabilities passed in (Chang `eval`).
 
 - Decision: accepted for research, 2026-11-01
 - Row: R530 to R535
 
 ## Review findings
 
-A review pass on 2026-11-01 checked every Fei 2 entry against the spec at `spec/`. These were
+A review pass on 2026-11-01 checked every Chang 2 entry against the spec at `spec/`. These were
 fixed here and on the study page.
 
 | # | Entry | Problem | Fix |
 | --- | --- | --- | --- |
 | 1 | Postfix modifiers, lockstep loops | Used `push`; R477 makes `append` the only list append | `append` |
-| 2 | Tacit trains | Used `%`, which Fei does not have (`%%` is remainder), and `#`, which is compile-time evaluation, not length | `(\| +/ / len \|)` |
+| 2 | Tacit trains | Used `%`, which Chang does not have (`%%` is remainder), and `#`, which is compile-time evaluation, not length | `(\| +/ / len \|)` |
 | 3 | Lockstep loops | `for a in xs & b in ys` parses as `for a in ((xs & b) in ys)` | The iterable in a `for` header is parsed above the bitwise level (grammar `iterexpr`) |
 | 4 | Ternary vs postfix `if` | `x := a if c else b` is ambiguous with the postfix modifier | After `if cond`, a following `else` makes it the conditional expression; otherwise a modifier. Decided after `cond`, one token |
 | 5 | Implicit self `@x` vs attributes | A lone `@x` line reads as an attribute | `@NAME` at a statement start followed by a newline, NAME, `(` or `@` is an attribute; write `self.x` or `(@x)` there |
 | 6 | Macros | Backtick quasiquote collides with infix words | MetaOCaml brackets `.< e >.` and escape `.~e` |
 | 7 | Brace blocks | `{ x }` could be a block or a set literal | A brace block is admitted only where a block is expected (after `:=` of a function, `then`, `else`, `do`, loop headers, arms); elsewhere `{` opens a literal |
-| 8 | Probabilistic `~` with shadowing | With shadowing admitted, `p ~ d` on a bound `p` could mean a new sample | Infix `~` never shadows: on a bound name it always observes. A second sample takes a new name (rule `fei-trace-rebind`) |
+| 8 | Probabilistic `~` with shadowing | With shadowing admitted, `p ~ d` on a bound `p` could mean a new sample | Infix `~` never shadows: on a bound name it always observes. A second sample takes a new name (rule `chang-trace-rebind`) |
 | 9 | try/catch example | The Wen lowering caught every failure of `fs.read`, not only `NotFound` | Lowering rule states that unnamed failure types propagate, with `finally` copied first |
 | 10 | Notes on where, sections, yield*, try, memo, methods | Still cited rejections that D4 and D6 lift | Rewritten |
 | 11 | Inheritance | `extends` would invent a field name | The field is the reserved name `super`, written by `extends` itself |
@@ -159,13 +159,13 @@ fixed here and on the study page.
 
 ## Reference
 
-This part is what a Fei reader, printer and lenient reader are built from. Where it says "as Wen",
-the rule in section 15 applies unchanged. Diagnostics are named by slug (`fei-...`); each gets a
+This part is what a Chang reader, printer and lenient reader are built from. Where it says "as Wen",
+the rule in section 15 applies unchanged. Diagnostics are named by slug (`chang-...`); each gets a
 code from its section 25 family when the grammar moves into the spec at M4.
 
 ### 1. Files and encoding
 
-- Files end in `.fei`. A package may mix `.jian`, `.wen` and `.fei` modules; a module is one file.
+- Files end in `.chang`. A package may mix `.xin`, `.wen` and `.chang` modules; a module is one file.
 - Encoding, line ends, BOM handling, E105 and W840 are as 13.1 and 15.1 (R338). Every token outside
   string literals and comments is ASCII (D5).
 - Layout is by indentation, as Wen (15.1): an indented line opens a block, a dedent closes it. A
@@ -230,9 +230,9 @@ Contextual, keywords only in one position:
 and a bar. `.<` opens a quote only at the start of an operand. `>.` closes one only inside a quote.
 
 **Spacing.** Longest match makes `x<-1` an assignment, `a=~b` a regex match and `x:-1` a rule head.
-The reader accepts them; the lenient reader warns (`fei-spacing`) and suggests the spaced form.
+The reader accepts them; the lenient reader warns (`chang-spacing`) and suggests the spaced form.
 
-**User operators.** Fei 1 rule (F21): `@op("<+>")` lends an operator spelling to a function or trait
+**User operators.** Chang 1 rule (F21): `@op("<+>")` lends an operator spelling to a function or trait
 method. An operator is a run of `+ - * / % < > = ! & | ~ ^ :` that is not in the reserved set above.
 Its level comes from its first character (`*` `/` `%`: multiplicative; `+` `-`: additive; `<` `>`
 `=` `!`: relation; `&` `|`: bitwise; `~` `^` `:`: relation), unless the same file declares it with
@@ -378,19 +378,19 @@ hash-neutral trivia (16.5).
   node in the item's Yong tree; the choice is a small integer naming one entry's spelling (the
   entry's "Kept" list fixes the numbering). Only nodes whose spelling differs from the default are
   recorded.
-- **Storage.** In the `.fei` file the spelling is the text itself. When a Fei item passes through
-  a tool that keeps trivia (the formatter, `yong view`, patches made in Fei), the notes travel with
+- **Storage.** In the `.chang` file the spelling is the text itself. When a Chang item passes through
+  a tool that keeps trivia (the formatter, `yong view`, patches made in Chang), the notes travel with
   the item as comments do. A Yong-level or Wen-level edit keeps the notes of untouched nodes; a node
   whose shape changed falls back to the default.
 - **Validity.** A note is used only if the recogniser for that choice still matches the node;
   otherwise it is dropped silently, and the printer uses the default.
-- **Law.** For any canonical Fei module F: `fei(elaborate(F), spelling(F)) == F` byte for byte
-  (16.5 law 6, new). For any Yong item Y: `fei(Y, {})` is defined and canonical.
+- **Law.** For any canonical Chang module F: `chang(elaborate(F), spelling(F)) == F` byte for byte
+  (16.5 law 6, new). For any Yong item Y: `chang(Y, {})` is defined and canonical.
 
 ### 6. Name table
 
 Locals are hashed by position (D4). The written names live in a name table per item and surface:
-`(binder position, name)`. The Fei printer takes names from the Fei table, then the Wen table, then
+`(binder position, name)`. The Chang printer takes names from the Chang table, then the Wen table, then
 generates `x`, `y`, `z`, `x1`, ... avoiding names in scope. A shadowing `:=` gets a new position
 and the same written name.
 
@@ -404,15 +404,15 @@ composition, section, then `\x ->`. Canonical text is one space around binary op
 
 ### 8. Lenient reader
 
-As 14.4 for Jian: it accepts Wen tokens (`==`, `let`, `var`, `fail`, `uses`, `match`, `else` as
+As 14.4 for Xin: it accepts Wen tokens (`==`, `let`, `var`, `fail`, `uses`, `match`, `else` as
 fallback) and the spacing forms above, and rewrites them. It never changes meaning.
 
-### 9. Fei 1 base forms
+### 9. Chang 1 base forms
 
-Fei 2 keeps every Fei 1 form (study rows F1 to F30) except the match introducer, which moves from
+Chang 2 keeps every Chang 1 form (study rows F1 to F30) except the match introducer, which moves from
 `e |>` to `e |?`. Each lowers one to one:
 
-| Fei | Wen | Notes |
+| Chang | Wen | Notes |
 | --- | --- | --- |
 | `x := e`, `x: T := e`, `~x := e` | `let x = e`, `var x = e` | `~` is the mutation mark |
 | `x <- e`, `x += e` | `x = e`, `x += e` | assignment needs a `~` binding (E403) |
@@ -428,7 +428,7 @@ Fei 2 keeps every Fei 1 form (study rows F1 to F30) except the match introducer,
 | `#e` | compile-time evaluation | |
 | `@op("<+>")`, `a <> b` | user operator, Monoid combine | |
 | `x'` | transpose | |
-| `e \|?` then `\| P if g => e` arms | `match` | was `e \|>` in Fei 1 |
+| `e \|?` then `\| P if g => e` arms | `match` | was `e \|>` in Chang 1 |
 
 ### 10. Feature entries
 
@@ -441,20 +441,20 @@ it with no spelling note; "kept" means it prints only when a note asks.
 **B1 Destructuring bind.** Default.
 `(lo, hi) := e`, `.{name, age} := e`, `[first, ..rest] := e else !! Usage`.
 Lowers to `let` with the same pattern; a refutable pattern needs `else` with a diverging body
-(R433), else `fei-refutable-bind`. A record pattern `.{a, b}` takes its type from the right side;
-if that type is not a record, `fei-record-pattern`. Prints: any `let` with a pattern.
+(R433), else `chang-refutable-bind`. A record pattern `.{a, b}` takes its type from the right side;
+if that type is not a record, `chang-record-pattern`. Prints: any `let` with a pattern.
 Tests: tuple, record, list-rest, refutable with and without `else`.
 
 **B2 Parallel assignment.** Default.
 `a, b <- b, a`; `a, b <- b, a + b`. Every right side is evaluated first, left to right, into
 positional temporaries, then assigned left to right. A pure permutation of places lowers to
-`std.mem.swap` calls (no temporaries). Rules: the left places must be distinct (`fei-assign-alias`)
+`std.mem.swap` calls (no temporaries). Rules: the left places must be distinct (`chang-assign-alias`)
 and mutable (E403). Prints: a run of assignments whose right sides read only pre-run values of the
 left places. Tests: swap, rotate three, Fibonacci step, aliasing failure.
 
 **B3 `where` clauses.** Kept.
 `f(...) := e` followed by an indented `where n := e; ...`. The bindings move to the top of the body
-in dependency order (a topological sort; a cycle is `fei-where-cycle`). They may shadow parameters
+in dependency order (a topological sort; a cycle is `chang-where-cycle`). They may shadow parameters
 only under the shadowing rule of B10. Prints when a note says so and the body's leading `let`s are
 used only by the final expression.
 
@@ -466,7 +466,7 @@ as the indented block. Tests: one-line function body; `{x}` as a set in argument
 **B5 Binding inside a condition.** Default.
 `while (line := r.read_line()?) != ""` and `if (m := find(x)) != None`. Lowers to `loop` with the
 binding, a test and `break` (for `while`), or to a `let` before the `if` whose scope is the `if`
-(for `if`). The name is in scope in the body only (`fei-cond-binding-scope` on use after). Prints:
+(for `if`). The name is in scope in the body only (`chang-cond-binding-scope` on use after). Prints:
 a `loop` whose first statements are a `let` and a test that breaks.
 
 **B6 Cascade.** Default.
@@ -477,7 +477,7 @@ Prints: two or more consecutive inout calls on the same place with no other stat
 **B7 Functional update.** Default.
 `p.{pos.x: 0.0}`, `p.{name: "b", age: 3}`. Lowers to nested `evolve`. Consumes `p` at its last use;
 elsewhere E413 asks for `copy p`. Paths may go through records only (not lists or maps:
-`fei-update-path`).
+`chang-update-path`).
 
 **B8 Record spread.** Kept spelling of B7: `.{...p, name: "b"}`. Same tree. The spread must come
 first and only once.
@@ -501,18 +501,18 @@ binding visible at the closure).
 parameters (the 15.3 clause form, R266).
 `gcd :: (a: int, b: int) -> int` then contract lines, then `gcd(a, 0) := a` and `gcd(a, b) := ...`.
 A clause binder with a parameter's name means that parameter; any other binder is a local.
-Every clause must have one pattern per parameter (`fei-clause-arity`) and the same name
-(`fei-clause-name`). Non-exhaustive clauses are E-level as for `match`.
+Every clause must have one pattern per parameter (`chang-clause-arity`) and the same name
+(`chang-clause-name`). Non-exhaustive clauses are E-level as for `match`.
 
 **F2 Clause guards.** Default. `step(n) if n %% 2 = 0 := ...` is a guarded arm.
 
 **F3 Pipeline.** Kept.
 `x |> f(a)` is `f(x, a)`; with a `_` among the arguments, `x` goes there instead, and only one `_`
-may appear (`fei-pipe-hole`). `x |> f` with no parentheses is `f(x)`. Uniform call syntax makes
+may appear (`chang-pipe-hole`). `x |> f` with no parentheses is `f(x)`. Uniform call syntax makes
 the method form the default printing.
 
 **F4 Composition both ways.** Default. `f >>> g` is `x -> g(f(x))`; `g <<< f` is the same tree and
-prints only when kept. No mixing with arithmetic without parentheses (`fei-compose-mix`).
+prints only when kept. No mixing with arithmetic without parentheses (`chang-compose-mix`).
 
 **F5 Operator sections.** Default.
 `(+ 1)`, `(2 *)`, `(_ - 1)`. `(- 1)` is the number. Lowers to a one-parameter closure. Prints for
@@ -521,7 +521,7 @@ bound outside on the other.
 
 **F6 Reusable lambda parameter.** Default. `$` may appear several times and is the one parameter;
 `$1`, `$2` name positional parameters of a multi-parameter closure. `$` and `_` may not mix in one
-closure (`fei-hole-mix`). The closure's extent is the innermost enclosing argument or parenthesis.
+closure (`chang-hole-mix`). The closure's extent is the innermost enclosing argument or parenthesis.
 
 **F7 Partial application by hole.** Default. `add(1, _)` is `x -> add(1, x)`. Arguments other than
 the hole are evaluated when the closure is created. An escaping partial obeys E406.
@@ -537,7 +537,7 @@ last argument. With parameters: `f(a) do \x ->`. The closure is non-escaping (4.
 
 **F11 Uniform-access properties.** Default with `@prop`. `@prop area(self: Circle) -> float := ...`
 lets `c.area` mean `c.area()`. Only for a function with exactly one parameter, `self`, no failure
-type and no capabilities (`fei-prop-effect`).
+type and no capabilities (`chang-prop-effect`).
 
 **F12 Infix words.** Kept. ``a `div` b`` is `div(a, b)`, at the multiplicative level.
 
@@ -545,7 +545,7 @@ type and no capabilities (`fei-prop-effect`).
 `std.memo` owns a map for one top-level call and frees it after; deterministic.
 
 **F14 `@memo`.** Needs D7.4 (typed staging). `@memo fib(n: int) -> int := ...` is a stage-0 macro
-that adds a cache item and rewrites calls to go through it. Until staging lands, `fei-needs-staging`.
+that adds a cache item and rewrites calls to go through it. Until staging lands, `chang-needs-staging`.
 
 **F15 Ternary conditional.** Default for a short `if` expression: `a if c else b`. Never
 `c ? a : b`, since `?` means failure. Level 15. Prints when both branches are operands of level 14
@@ -553,7 +553,7 @@ or tighter and fit on one line.
 
 **F16 File-local fixity.** `infixl <+> like +` at the top of a file gives `<+>` the level and
 associativity of `+` for this file only. Imported operators keep first-character precedence.
-Rules: declared before first use (`fei-fixity-late`), only for operators defined or imported in the
+Rules: declared before first use (`chang-fixity-late`), only for operators defined or imported in the
 file, one declaration per operator.
 
 **F17 Tacit trains.** Default for forks. `(| f g h |)` is `x -> g(f(x), h(x))` (an APL fork):
@@ -571,7 +571,7 @@ that the optimizer never materialises.
 
 **P2 Active patterns.** Default. `@pattern f(s: S) -> T?` (or `-> bool`) declares an extractor.
 In a pattern, `?f(p)` calls `f` on the scrutinee and matches `Some(p)`; `?f` with a `bool` result is
-a test. `f` must be pure (no capabilities, no failure: `fei-pattern-effect`). Arms keep source order.
+a test. `f` must be pure (no capabilities, no failure: `chang-pattern-effect`). Arms keep source order.
 
 **P3 String-prefix patterns.** Default. `"GET " ++ path` matches a `str` starting with the literal
 and binds the rest as a `StrView` into the scrutinee (store it with `copy`).
@@ -580,7 +580,7 @@ and binds the rest as a `StrView` into the scrutinee (store it with `copy`).
 `View[u8]`; widths are in bits, big-endian unless `/le`; `NAME/rest` binds the remaining bytes and
 must be last and byte-aligned. As a literal, `<<1:8, n:16>>` builds `Bytes`. A pattern fails if the
 view is too short; its length test proves every index. Widths must sum to whole bytes
-(`fei-bits-align`); a field over 64 bits is `fei-bits-width`.
+(`chang-bits-align`); a field over 64 bits is `chang-bits-width`.
 
 **P5 Regex patterns.** Default (library). `re"(\d+)-(\d+)"(lo, hi)` matches with `std.regex` and
 binds captures as `StrView`s. The capture count must equal the names (stage-0 error, R484).
@@ -596,10 +596,10 @@ apply to one simple statement. Marks stay on the statement.
 Lowers to `loop` with a final test and `break`. A `-{ e }` line may follow `repeat`.
 
 **C4 Multi-way `if`.** Default for an `if`/`else if` chain of three or more arms. Arms in source
-order; a final `| _ =>` arm is required (`fei-if-total`).
+order; a final `| _ =>` arm is required (`chang-if-total`).
 
 **C5 Comparison chains.** Default. `a < b <= c` is `a < b and b <= c`. All operators in a chain
-face the same way (`<` and `<=`, or `>` and `>=`, or `=` alone: `fei-chain-mixed`), and each middle
+face the same way (`<` and `<=`, or `>` and `>=`, or `=` alone: `chang-chain-mixed`), and each middle
 operand is a place or a literal, so it is evaluated once.
 
 **C6 Lockstep loops.** Default. `for a in xs & b in ys` is `for (a, b) in zip(xs, ys)`; stops at the
@@ -610,7 +610,7 @@ parentheses.
 gets `0 <= i < xs.len()` (8.6).
 
 **C8 Stepped ranges and end indexes.** Default. `0..n by 2` is `range(0, n).step_by(2)`. `xs[^k]` is
-`xs[xs.len() - k]` and `xs[a..^k]` is `xs[a..xs.len() - k]`; `^k` only on a place (`fei-end-index`).
+`xs[xs.len() - k]` and `xs[a..^k]` is `xs[a..xs.len() - k]`; `^k` only on a place (`chang-end-index`).
 
 **C9 Unbounded ranges.** Default. `n..` is `count_from(n)`, an iterator.
 
@@ -628,11 +628,11 @@ the `else` block and whose `break` skips it. Labelled `break` out of an outer lo
 
 **C14 `goto` and `fallthrough`.** Default (D6). `label L` marks a statement in the same function;
 `goto L` jumps there. Lowers to a join point; locals live at `L` become its parameters. Rules:
-the target is in the same function, in the same block or an enclosing one (`fei-goto-scope`); a
-jump may not enter a scope or skip a binding that is used after `L` (`fei-goto-binding`); a jump
+the target is in the same function, in the same block or an enclosing one (`chang-goto-scope`); a
+jump may not enter a scope or skip a binding that is used after `L` (`chang-goto-binding`); a jump
 may not leave a `par` branch or a `with` block. A jump out of a block runs that block's `defer`s, as any exit does (X2). `fallthrough` as the last
 statement of a match arm jumps to the next arm's body; that arm must bind no names
-(`fei-fallthrough-binds`) and the current arm must not be the last.
+(`chang-fallthrough-binds`) and the current arm must not be the last.
 
 #### Failure
 
@@ -651,12 +651,12 @@ whose type is that site's failure type, or a variant set of it; an error no arm 
 with `fail e` after the `finally` block. With D4, a `?` may sit anywhere in an expression: the
 partial results to its left are bound to positional locals first, so evaluation order is kept.
 `finally` is a `defer` on the block. Catches typed failures only; panics go to X7. Rules: an arm
-whose type no site can fail with is `fei-catch-dead`; arm order matters only for overlapping types.
+whose type no site can fail with is `chang-catch-dead`; arm order matters only for overlapping types.
 
 **X2 `defer`, `errdefer`.** Default. The statement is copied to every exit of the enclosing block
 (normal end, `return`, `break`, `continue`, `?`, `!!`, `goto` out), in reverse order of
 declaration; `errdefer` goes only to failing exits. Not run on panic (8.3). A deferred statement that
-can fail must handle it (`fei-defer-fails`).
+can fail must handle it (`chang-defer-fails`).
 
 **X3 Propagate with context.** Default. `e ?> msg` is `e.context(msg)?`; the failure type needs a
 context chain (8.1).
@@ -666,11 +666,11 @@ context chain (8.1).
 **X5 Force unwrap.** Default. `o.!` is `o else unreachable`.
 
 **X6 Optional chaining.** Default. `a.?f` on `Option[A]`: if `A.f` is `Option[B]`, it is
-`a.and_then(.f)`; otherwise `a.map(.f)`. Not defined on non-options (`fei-optchain-type`).
+`a.and_then(.f)`; otherwise `a.map(.f)`. Not defined on non-options (`chang-optchain-type`).
 
 **X7 `recover`.** Needs D8.4. `recover` block `else e => body` runs the block as a child task;
 a panic inside it becomes the failure `Panicked(msg)` and runs `body`. Needs `|- recover`.
-Until the addition lands, `fei-needs-recover`.
+Until the addition lands, `chang-needs-recover`.
 
 #### Types
 
@@ -695,7 +695,7 @@ a record type plus handlers for `std.actor` (9.6).
 
 **T8 Implicit self.** Default inside a function with a `self` parameter. `@x` is `self.x`; `@x <- v`
 assigns. At a statement start, `@NAME` followed by a newline, a NAME, `(` or `@` is an attribute;
-write `self.x` or `(@x)` there (`fei-attr-or-field` explains). Outside a method, `fei-self-missing`.
+write `self.x` or `(@x)` there (`chang-attr-or-field` explains). Outside a method, `chang-self-missing`.
 
 **T9 Inheritance as delegation.** Default (D6). `type B extends A := {extra fields}` adds a first
 field `super: A` and, for each trait `A` implements, a delegating impl unless `B` writes its own.
@@ -710,7 +710,7 @@ is widened if the conversion is lossless: signed to wider signed, unsigned to wi
 wider signed, `f32` to `f64`. Lowers to the explicit conversion call. Never to or from floats and
 integers, never narrowing.
 
-**T12 `null`.** Default. `null` is `None` where an option type is expected (`fei-null-type`
+**T12 `null`.** Default. `null` is `None` where an option type is expected (`chang-null-type`
 otherwise).
 
 **T13 Dynamic `any`.** Needs D8.3. `x: any` is `dyn Any`; `x is int` and `x |? | n: int => ...` are
@@ -765,7 +765,7 @@ supervisor (R397).
 
 **K9 async / await.** Default (D6). Inside `|||` (or `par concurrent`), `h := async e` starts `e`
 as a branch and returns a handle; `await h` joins it and yields its result, failing as the branch
-failed. Handles cannot leave the block (`fei-async-escape`); a handle never awaited is joined at
+failed. Handles cannot leave the block (`chang-async-escape`); a handle never awaited is joined at
 the block's end. No function colouring: `async` and `await` are expressions in ordinary functions.
 
 **K10 Software transactional memory.** Needs D8.5. `atomic` block reads and writes `TVar` cells;
@@ -781,11 +781,11 @@ handle
 with Ask
   | ask() resume k => k(42)
 ```
-`k` is used at most once (`fei-resume-twice`). Until handlers land, `fei-needs-handlers`.
+`k` is used at most once (`chang-resume-twice`). Until handlers land, `chang-needs-handlers`.
 
 **E2 Macros and quasiquote.** Needs D7.4. `macro m(e: Code[int]) -> Code[int] := .< .~e * 2 >.`;
 `.< e >.` is a typed quote, `.~e` splices. Expanded at stage 0; the expansion is hashed as written
-text. Until staging lands, `fei-needs-staging`.
+text. Until staging lands, `chang-needs-staging`.
 
 **E3 `eval`.** Needs D8.6. `eval[T](src, caps: .{log})` parses, checks and runs `src` on the
 interpreter with only the listed capabilities; fails with `EvalErr`. Needs `|- eval`.
@@ -802,7 +802,7 @@ Rules are a stage-0 string checked against the relation types; semi-naive, sorte
 
 **M4 Probabilistic models.** Library. In a function with exactly one `~t: Trace` parameter,
 `x ~ d` samples into a new `x` when `x` is unbound and observes when bound. Never shadows
-(`fei-trace-rebind` if `x` was bound by a shadowing `:=` in the same block).
+(`chang-trace-rebind` if `x` was bound by a shadowing `:=` in the same block).
 
 **M5 Property tests.** Library. `test "name" := forall t: T => p` checks `p` for generated `t`
 (seeded, shrinking). `T` needs `@derive(Arbitrary)`.
@@ -819,16 +819,16 @@ Rules are a stage-0 string checked against the relation types; semi-naive, sorte
 ### 12. Conformance
 
 Agents do not edit `conformance/`; a separate PR proposes the cases. Each entry above lists its
-cases. In addition: every pass case in `conformance/wen/` gets a Fei projection checked by
-`fei(elaborate(W), {})` then `elaborate` back to the same item hashes; and every Fei pass case
+cases. In addition: every pass case in `conformance/wen/` gets a Chang projection checked by
+`chang(elaborate(W), {})` then `elaborate` back to the same item hashes; and every Chang pass case
 checks law 6 of 16.5 with and without spelling notes.
 
 ## Spec changes
 
-- 1: the surfaces table and the reader diagram gain Fei.
-- 2: law 8 gains the Fei clause (D3).
+- 1: the surfaces table and the reader diagram gain Chang.
+- 2: law 8 gains the Chang clause (D3).
 - 3.6: positional locals and the name table (D4).
-- 16.5: law 6 for Fei, and spelling notes as the fourth kind of trivia.
-- 16.6 (new): Fei, the third surface: D1, D2, D5, D6, with this RFC as the reference until M4.
-- 23: M4 gains the Fei reader, printer and lenient reader.
+- 16.5: law 6 for Chang, and spelling notes as the fourth kind of trivia.
+- 16.6 (new): Chang, the third surface: D1, D2, D5, D6, with this RFC as the reference until M4.
+- 23: M4 gains the Chang reader, printer and lenient reader.
 - 26.6 (new): research track, D7 and D8.

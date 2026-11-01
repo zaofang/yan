@@ -14,9 +14,9 @@ Yong gains a family of planned niche surfaces: small, domain-shaped spellings of
 each serving one market that today uses its own language (protobuf, BAML, PRQL, Terraform, Temporal,
 bash, Kaitai, Lustre, Catala and others). A niche surface adds syntax only. It lowers into
 `yong-hir` like Wen, prints back exactly, keeps the item hash, and shows the five facts. Thirteen
-surfaces are accepted: eight practical (Xun, Qi, Zhu, Cha, Cheng, Ling, Wei, Lu) and five research
-(Meng, Gua, Li, Pu, Zi). None is built before 1.0. Each starts as a print-only view and gets its
-reader, grammar, diagnostic codes and conformance column in its own later RFC, the way Fei's grammar
+surfaces are accepted: eight practical (Wu, Qi, Ting, Cha, Xu, Yin, Xing, Liu) and five research
+(Tuo, Sui, Hui, Guan, Yan). None is built before 1.0. Each starts as a print-only view and gets its
+reader, grammar, diagnostic codes and conformance column in its own later RFC, the way Chang's grammar
 moves from RFC 0001 into section 16.6.
 
 The spec gets the admission rules and a table of planned surfaces (new section 16.7) and a post-1.0
@@ -30,7 +30,7 @@ labels (XUN-1 and so on); codes are assigned in each surface's own RFC.
 
 ### D1: Admission rules and shared machinery
 
-A niche surface is admitted only if it meets all nine rules (N1 to N9). Fei's K1 to K5 (R517) are
+A niche surface is admitted only if it meets all nine rules (N1 to N9). Chang's K1 to K5 (R517) are
 the model; the difference is that a niche surface prints only a subset of Yong and has exactly one
 printing per tree, so it needs no spelling notes.
 
@@ -40,8 +40,8 @@ printing per tree, so it needs no spelling notes.
   a boundary signature.
 - **N2 Subset with a checker.** A decidable predicate over Yong items says whether an item prints in
   the surface. Outside it, `yong view --as <name>` reports the first excluding construct, as 16.4 does
-  for Jian.
-- **N3 One printing.** Law 8 holds as for Jian and Wen: one canonical printing per tree. Sugar is
+  for Xin.
+- **N3 One printing.** Law 8 holds as for Xin and Wen: one canonical printing per tree. Sugar is
   recovered from the Yong tree alone, from stage-0 metadata attached by the lowering, or from
   hash-neutral trivia already defined in 16.5. Each surface states which.
 - **N4 Same item hash.** A lowering never creates or drops a hashed name (K2). Generated names follow a
@@ -115,7 +115,7 @@ service Book
 - Decision: accepted, 2026-11-01. First after 1.0 (D15).
 - Row: R537
 
-### D3: Xun 询, typed model programs
+### D3: Wu 悟, typed model programs
 
 **Job.** Write model calls as typed functions: prompt, schema, validation and examples in one item.
 **Users:** teams building LLM features (the BAML and DSPy audience), and agents writing their own
@@ -163,7 +163,7 @@ pub route(t: Ticket) -> Team fail ModelError uses model, pager =
 - Decision: accepted, 2026-11-01. Second after 1.0 (D15).
 - Row: R538
 
-### D4: Cha 查, queries
+### D4: Cha 察, queries
 
 **Job.** Typed, compiled, deterministic table pipelines. **Users:** analysts, data engineers, dbt
 users, and agents fluent in SQL.
@@ -180,7 +180,7 @@ query movers(trades: Table[Trade], since: PlainDate) -> Table[Mover] =
 ```
 
 - **Subset.** Functions whose body is one `LazyFrame[R]` pipeline over `Table` inputs, `uses none`.
-  Reading from storage stays in a Wen or Jian function.
+  Reading from storage stays in a Wen or Xin function.
 - **Grammar sketch.** PRQL-ordered stages, one per line: `from`, `where`, `derive`, `select`,
   `group KEYS (AGGS)`, `join T on PRED`, `sort KEYS`, `take N [per KEYS]`. Bare column names resolve
   against the row type at that stage.
@@ -194,7 +194,7 @@ query movers(trades: Table[Trade], since: PlainDate) -> Table[Mover] =
 - **Diagnostics.** CHA-1 a column not in the row type at that stage, listing the available columns;
   CHA-2 an aggregate outside `group`.
 - **Relation to existing work.** `@yong/frame` SQL text yields an untyped `LazyFrame[Dyn]`; Cha is the
-  typed alternative. Fei's query comprehensions (RFC 0001, M3) lower to the same operations. `@yong/rel`
+  typed alternative. Chang's query comprehensions (RFC 0001, M3) lower to the same operations. `@yong/rel`
   (Datalog) may become a second Cha mode.
 - **First slice.** `from`, `where`, `derive`, `select`, `group`, `sort`, `join`. Later: windows,
   `take per`, incremental maintenance (DBSP-style).
@@ -202,7 +202,7 @@ query movers(trades: Table[Trade], since: PlainDate) -> Table[Mover] =
 - Decision: accepted, 2026-11-01
 - Row: R539
 
-### D5: Ling 令, capability-safe shell
+### D5: Yin 引, capability-safe shell
 
 **Job.** Replace bash for scripts, CI steps and agent actions, with authority stated up front.
 **Users:** ops and CI authors, and agents.
@@ -222,7 +222,7 @@ main(args: Args) uses proc, fs, net =
 
 - **Subset.** Functions whose statements are pipelines, redirections, `run` commands and ordinary
   control flow.
-- **Grammar sketch.** `pipeline = stage {"|" stage} [(">" | ">>") expr]`; a stage is a call to a Ling
+- **Grammar sketch.** `pipeline = stage {"|" stage} [(">" | ">>") expr]`; a stage is a call to a Yin
   built-in (`lines`, `grep`, `sort`, `uniq`, `head`, `cut`, `wc`, ...) or `run TSTRING`. Bare words are
   never programs; only `run` starts a process.
 - **Lowering.** Built-ins are std functions over line iterators; `|` composes iterators; `>` writes
@@ -241,7 +241,7 @@ main(args: Args) uses proc, fs, net =
 - Decision: accepted, 2026-11-01
 - Row: R540
 
-### D6: Cheng 程, durable workflows
+### D6: Xu 序, durable workflows
 
 **Job.** Long-running business processes that survive crashes and deploys. **Users:** backend teams
 on Temporal, Step Functions or job queues.
@@ -268,14 +268,14 @@ workflow onboard(user: UserId) -> Done fail OnboardError
 - **Recovery.** Exact: every journaled operation is a capability call.
 - **Five facts.** Capabilities in the header; `par` blocks; failure in the header.
 - **Diagnostics.** E725 already covers non-journaling capabilities; CHENG-1 a `step` whose handler
-  declares no idempotency (W850 in Yong; an error in Cheng).
-- **Depends on.** `@yong/durable` (M4, R419) and durable timers (RFC 0003). Cheng cannot ship first.
+  declares no idempotency (W850 in Yong; an error in Xu).
+- **Depends on.** `@yong/durable` (M4, R419) and durable timers (RFC 0003). Xu cannot ship first.
 - **First slice.** Steps, `par`, `wait d`, versioning, `yong replay --against REV` as the deploy check.
 
 - Decision: accepted, 2026-11-01
 - Row: R541
 
-### D7: Zhu 筑, infrastructure
+### D7: Ting 亭, infrastructure
 
 **Job.** Declare cloud resources as a typed program with plan and apply. **Users:** platform teams on
 Terraform or Pulumi.
@@ -316,7 +316,7 @@ test_web_plan() uses none =
 - Decision: accepted, 2026-11-01
 - Row: R542
 
-### D8: Wei 位, binary formats
+### D8: Xing 形, binary formats
 
 **Job.** Declare packet, file and register layouts and get checked zero-copy parsers and writers.
 **Users:** networking, embedded, file-format and security engineers.
@@ -356,7 +356,7 @@ layout Ipv4Header big_endian msb_first
 - Decision: accepted, 2026-11-01
 - Row: R543
 
-### D9: Lu 律, synchronous dataflow
+### D9: Liu 流, synchronous dataflow
 
 **Job.** Control laws and signal processing in the Lustre and SCADE style, on the embedded profile.
 **Users:** avionics, automotive, rail, robotics and audio DSP engineers.
@@ -393,7 +393,7 @@ pub node attitude(target: Angles, imu: Imu, g: Gains3) -> Motors every 1ms =
 - Decision: accepted, 2026-11-01
 - Row: R544
 
-### D10: Meng 梦, contracts with generated bodies (research)
+### D10: Tuo 托, contracts with generated bodies (research)
 
 ```
 dream dedupe_emails(xs: List[str]) -> List[str] =
@@ -405,11 +405,11 @@ dream dedupe_emails(xs: List[str]) -> List[str] =
 ```
 
 - **Idea.** The source is the contract; the body is a pinned, checked artifact. `yong dream` runs the
-  agent patch loop (section 21) to fill the body, writes it as checked-in Jian in a sibling file, and
+  agent patch loop (section 21) to fill the body, writes it as checked-in Xin in a sibling file, and
   records its item hash on the `body` line. `yong build` never calls a model; it checks that the pinned
   body exists, matches its hash and meets the contracts (proved, or runtime-checked under R211).
 - **Lowering.** A `dream` item is an ordinary function whose body is the pinned item; with no body it
-  is a Jian hole (R212). Related: synthesis from examples (R529).
+  is a Xin hole (R212). Related: synthesis from examples (R529).
 - **Questions.** Regeneration stability when the header changes; whether review of the body is
   required; how strong contracts must be; how `out` reads in quantified posts.
 - **First slice.** One command, one model handler, pinned bodies, a CI check that every `dream` has a
@@ -418,7 +418,7 @@ dream dedupe_emails(xs: List[str]) -> List[str] =
 - Decision: accepted for research, 2026-11-01
 - Row: R545
 
-### D11: Gua 卦, probabilistic programming (research)
+### D11: Sui 随, probabilistic programming (research)
 
 ```
 model coin_bias(flips: List[bool]) -> f64 uses prob =
@@ -439,13 +439,13 @@ main() uses prob, io =
   each. NUTS and HMC need `grad`, an M4 preview (11.5); the first slice uses importance sampling and
   SMC. Distributions come from `@yong/rand_distr`.
 - **Questions.** The spelling of `observe` on continuous data; enumeration of discrete variables; one
-  library for Gua and Fei's probabilistic models (RFC 0001, M4, which passes a `Trace` parameter), so
-  the two must agree on capability versus parameter in Gua's own RFC.
+  library for Sui and Chang's probabilistic models (RFC 0001, M4, which passes a `Trace` parameter), so
+  the two must agree on capability versus parameter in Sui's own RFC.
 
 - Decision: accepted for research, 2026-11-01
 - Row: R546
 
-### D12: Li 礼, session-typed protocols (research)
+### D12: Hui 会, session-typed protocols (research)
 
 ```
 protocol Checkout between Client, Shop
@@ -470,7 +470,7 @@ protocol Checkout between Client, Shop
 - Decision: accepted for research, 2026-11-01
 - Row: R547
 
-### D13: Pu 谱, specs checked against code (research)
+### D13: Guan 观, specs checked against code (research)
 
 ```
 spec Lease
@@ -500,7 +500,7 @@ refines actor LeaseServer
 - Decision: accepted for research, 2026-11-01
 - Row: R548
 
-### D14: Zi 字, law as code (research)
+### D14: Yan 言, law as code (research)
 
 ```
 scope IncomeTax
@@ -529,10 +529,10 @@ scope IncomeTax
 ### D15: Order and gating
 
 1. No niche surface is built before 1.0.
-2. After 1.0: Qi first (types only; it proves the shared machinery), then Xun.
-3. Cha and Ling next. Cheng waits for `@yong/durable` (M4) and durable timers; Zhu waits for the
+2. After 1.0: Qi first (types only; it proves the shared machinery), then Wu.
+3. Cha and Yin next. Xu waits for `@yong/durable` (M4) and durable timers; Ting waits for the
    dry-run handler class (RFC 0003).
-4. Every surface starts as a print-only view (`yong view --as <name>`, as Fei is until M4, 16.6) before it gets a reader.
+4. Every surface starts as a print-only view (`yong view --as <name>`, as Chang is until M4, 16.6) before it gets a reader.
 5. Each surface enters the normative spec through its own RFC: grammar, subset predicate, projection
    column, diagnostic codes and conformance column.
 
@@ -547,7 +547,7 @@ Recorded so the question is not reopened without new evidence. No rows.
 | --- | --- |
 | He 核 (GPU kernels) | Wen `@kernel` covers it. |
 | Yan 验 (tests) | Property tests, fuzzing and `ex` exist (R301, R303). |
-| Yun 允 (policy) | Small market; Jian with `uses none` and `@@prove` covers it. |
+| Yun 允 (policy) | Small market; Xin with `uses none` and `@@prove` covers it. |
 | Zheng 证 (proofs) | Lemma bodies exist (R458). |
 | Fa 法 (grammars) | A std combinator library suffices; see R527. |
 | Yuan 圆 (S-expressions) | Internal tool, no users. |

@@ -1,4 +1,4 @@
-//! Jian: lexer (INDENT/DEDENT), parser, syntactic lenient normalizations and canonical printer.
+//! Xin: lexer (INDENT/DEDENT), parser, syntactic lenient normalizations and canonical printer.
 
 pub use yong_hir as ast;
 mod lexer;
@@ -10,7 +10,7 @@ pub use printer::print;
 pub use resugar::resugar;
 use yong_diag::{Diagnostic, Severity};
 
-/// Parse a `.jian` file. `strict` disables the lenient reader (14.4): its deviations become
+/// Parse a `.xin` file. `strict` disables the lenient reader (14.4): its deviations become
 /// errors where 13 names one, and its notes are not reported.
 pub fn parse(file: &str, src: &str, strict: bool) -> (Option<ast::Module>, Vec<Diagnostic>) {
     let (m, issues) = parser::parse(src, strict);
@@ -47,7 +47,7 @@ mod selftest {
     use super::*;
 
     fn roundtrip(src: &str) -> String {
-        let (m, d) = parse("t.jian", src, false);
+        let (m, d) = parse("t.xin", src, false);
         let errors: Vec<_> = d
             .iter()
             .filter(|d| d.severity == Severity::Error)
@@ -55,7 +55,7 @@ mod selftest {
             .collect();
         assert!(errors.is_empty(), "{errors:#?}");
         let once = print(&m.unwrap());
-        let (m2, d2) = parse("t.jian", &once, false);
+        let (m2, d2) = parse("t.xin", &once, false);
         let errors: Vec<_> = d2
             .iter()
             .filter(|d| d.severity == Severity::Error)
@@ -150,7 +150,7 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
     }
 
     fn codes(src: &str, strict: bool) -> Vec<(String, u32, u32)> {
-        parse("t.jian", src, strict)
+        parse("t.xin", src, strict)
             .1
             .into_iter()
             .map(|d| (d.code, d.span.line, d.span.col))
@@ -181,15 +181,15 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
     #[test]
     fn prefixes_never_panic() {
         for (i, _) in SAMPLE.char_indices() {
-            parse("t.jian", &SAMPLE[..i], false);
+            parse("t.xin", &SAMPLE[..i], false);
         }
     }
 
-    /// Every pass, run and golden Jian case parses and round-trips through the printer.
+    /// Every pass, run and golden Xin case parses and round-trips through the printer.
     #[test]
-    fn conformance_jian_files_round_trip() {
+    fn conformance_xin_files_round_trip() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../conformance");
-        let mut stack = vec![root.join("jian"), root.join("golden")];
+        let mut stack = vec![root.join("xin"), root.join("jian"), root.join("golden")];
         let mut n = 0;
         while let Some(dir) = stack.pop() {
             let Ok(entries) = std::fs::read_dir(&dir) else {
@@ -199,7 +199,7 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
                 let p = e.path();
                 if p.is_dir() {
                     stack.push(p);
-                } else if p.extension().is_some_and(|x| x == "jian")
+                } else if p.extension().is_some_and(|x| x == "xin" || x == "jian")
                     && !p.components().any(|c| c.as_os_str() == "fail")
                 {
                     roundtrip(&std::fs::read_to_string(&p).unwrap());

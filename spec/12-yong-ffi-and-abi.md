@@ -29,7 +29,7 @@ Types say who owns what:
 | `View[T]`, `MutView[T]` | borrowed for the call, not retained | ptr and len |
 | `-> View[T] from p` | the result borrows `p` | ptr and len |
 | `Owned[T, free_fn]` | C-allocated, dropped by calling `free_fn` once | pointer |
-| `sink` parameter (take in Jian and Wen) | ownership passes to C | by value |
+| `sink` parameter (take in Xin and Wen) | ownership passes to C | by value |
 | `extern type T drop f` | unsized opaque handle, dropped by `f` | pointer |
 | `Ptr[T]` | anything else, unsafe | pointer |
 
@@ -41,7 +41,7 @@ Out parameters become return values.
 
 ### 12.6 Importing C
 
-`yong ffi import header --lib name` reads headers with libclang once, writes `ffi/name.wen` and pins header hashes in `yong.lock`; the compiler never parses C. `__counted_by`, `__sized_by`, `__noescape`, `__lifetimebound`, nullability, ownership and pure attributes map to `View`, `MutView`, `from`, `Option`, `Owned` and `uses none`. An item is emitted `safe` only when every pointer is fully annotated. A Jian overlay `ffi/name.overlay.jian` adds annotations to headers the user does not own. Hand edits to imported modules are flagged by `yong audit`.
+`yong ffi import header --lib name` reads headers with libclang once, writes `ffi/name.wen` and pins header hashes in `yong.lock`; the compiler never parses C. `__counted_by`, `__sized_by`, `__noescape`, `__lifetimebound`, nullability, ownership and pure attributes map to `View`, `MutView`, `from`, `Option`, `Owned` and `uses none`. An item is emitted `safe` only when every pointer is fully annotated. A Xin overlay `ffi/name.overlay.xin` adds annotations to headers the user does not own. Hand edits to imported modules are flagged by `yong audit`.
 
 ### 12.7 The C profile and exports
 
@@ -57,7 +57,7 @@ Yong has no stable Yong-to-Yong ABI. The stable binary boundary is the C ABI und
 | opaque exported types | pointers with a generated `_free` |
 | closures | `{fn, ctx}` or `{fn, ctx, drop}` |
 
-`@export` (optionally `@export(name=...)`) on a `pub` item whose signature uses only profile types is legal in Jian and Wen (E907 otherwise). A `uses none` export is a plain C function. An export that uses capabilities takes a leading `yong_world *`, built by the host from explicit grants (directories, network targets, scheduler) and binding std's hosted handlers.
+`@export` (optionally `@export(name=...)`) on a `pub` item whose signature uses only profile types is legal in Xin and Wen (E907 otherwise). A `uses none` export is a plain C function. An export that uses capabilities takes a leading `yong_world *`, built by the host from explicit grants (directories, network targets, scheduler) and binding std's hosted handlers.
 
 **Bindings.** `yong bind --lang c`, `rust` or `python` generates from the export set: a C header with `_Static_assert` on every size, alignment and offset; a Rust `-sys` crate plus a safe crate (slices, lifetimes from `from`, Drop, Result, Send and Sync); a CPython extension.
 

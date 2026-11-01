@@ -1,6 +1,6 @@
 [package]
 name = "yong-hir"
-description = "Surface-independent high-level IR shared by the Jian and Wen front ends"
+description = "Surface-independent high-level IR shared by the Xin and Wen front ends"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
