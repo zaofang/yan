@@ -135,7 +135,7 @@ enum Command {
         #[arg(long)]
         out: Option<PathBuf>,
     },
-    /// Compare two revisions of the package item by item (RFC 0020); exit 1 when a change
+    /// Compare two revisions of the package item by item (RFC 0023); exit 1 when a change
     /// needs a human.
     Review {
         /// `BASE` or `BASE..HEAD`, git revisions; HEAD left out is the working tree.

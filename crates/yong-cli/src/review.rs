@@ -1,4 +1,4 @@
-//! `yong review` (RFC 0020): compare two revisions of a package item by item and report what a
+//! `yong review` (RFC 0023): compare two revisions of a package item by item and report what a
 //! reviewer must look at.
 
 use std::collections::{BTreeMap, BTreeSet};

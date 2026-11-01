@@ -1,4 +1,4 @@
-# 0020: `yong review`, a report for agent PRs
+# 0023: `yong review`, a report for agent PRs
 
 - Status: draft
 - Research: [What Yong is and how it fits together](https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU), gap 2
