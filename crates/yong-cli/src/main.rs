@@ -2,6 +2,8 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand, ValueEnum};
+
+mod patch;
 use yong_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, finish};
 
 /// Exit status for a failure of the tool itself, as opposed to errors in the program.
@@ -38,6 +40,18 @@ enum Command {
         #[arg(long = "as")]
         as_: String,
         file: PathBuf,
+    },
+    /// Apply a patch (18.3): JSON, or a plain file of whole items.
+    Patch {
+        #[arg(long, value_enum, default_value_t = Format::Line)]
+        format: Format,
+        /// Reject the patch if it introduces an error (P003).
+        #[arg(long)]
+        check: bool,
+        /// The module a plain file patch applies to.
+        #[arg(long)]
+        module: Option<String>,
+        patch: PathBuf,
     },
     /// Run a program.
     Run {
@@ -76,6 +90,12 @@ fn main() -> ExitCode {
             level,
         } => run(&file, strict, level.as_deref() == Some("release")),
         Command::View { as_, file } => view(&as_, &file),
+        Command::Patch {
+            format,
+            check,
+            module,
+            patch,
+        } => apply_patch(&patch, module.as_deref(), check, format),
     }
 }
 
@@ -256,14 +276,46 @@ fn check(
 
 fn check_file(file: &Path, strict: bool, release: bool) -> Result<Vec<Diagnostic>, String> {
     let src = std::fs::read_to_string(file).map_err(|e| format!("{}: {e}", file.display()))?;
+    check_src(file, &src, strict, release)
+}
+
+fn check_src(
+    file: &Path,
+    src: &str,
+    strict: bool,
+    release: bool,
+) -> Result<Vec<Diagnostic>, String> {
     let name = file.display().to_string();
-    Ok(match load(file, &src, strict, release)? {
+    Ok(match load(file, src, strict, release)? {
         Loaded::Ready(m, mut d) => {
-            d.extend(yong_check::check(&name, &src, &m));
+            d.extend(yong_check::check(&name, src, &m));
             d
         }
         Loaded::Stopped(d) | Loaded::Unsupported(_, d) => d,
     })
+}
+
+fn apply_patch(file: &Path, module: Option<&str>, check: bool, format: Format) -> ExitCode {
+    let diagnose = |p: &Path, src: &str| check_src(p, src, false, false);
+    match patch::apply(file, module, check, &diagnose) {
+        Err(msg) => tool_failure(&msg),
+        Ok(Ok((target, text))) => match std::fs::write(&target, text) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(e) => tool_failure(&format!("{}: {e}", target.display())),
+        },
+        Ok(Err(diags)) => {
+            match format {
+                Format::Json => println!(
+                    "{}",
+                    serde_json::to_string(&diags).expect("records serialize")
+                ),
+                Format::Line => diags
+                    .iter()
+                    .for_each(|d| println!("{}", d.render_line(None))),
+            }
+            ExitCode::FAILURE
+        }
+    }
 }
 
 fn front_end_missing(file: &Path) -> String {
