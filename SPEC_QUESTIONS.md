@@ -85,8 +85,10 @@ Assumed in `yong-elab` until resolved:
   lowest-index failure (9.2) are what a parallel run must also produce.
 - `&xs[i]` and `&r.f` pass a copy that is stored back after the statement. Two `&` elements of
   the same list in one call insert `exclusive_check` on their indices first (4.3).
-- A lambda's parameter types come from the expected callable type; a lambda with none (as in
-  `k = lambda x: x + 1`) is not lowered yet. Lambda arguments are lowered after the call's other
+- A lambda's parameter types come from the expected callable type. `k = lambda x: x + 1` with
+  no annotation takes them from the first call `k(...)`, where the closure is created; that is
+  the same as creating it at the binding only because nothing it captures is reassigned, so a
+  lambda that captures a reassigned name, or whose name is used before a call, is not lowered yet. Lambda arguments are lowered after the call's other
   arguments, so `twice(lambda s: s + "!", "hi")` finds `T` from `"hi"`; creating a closure has no
   effects, so the order is not observable.
 - A lambda captures locals by copy, `var` parameters `inout` (E406 if it escapes) and

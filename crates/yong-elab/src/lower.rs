@@ -65,6 +65,8 @@ struct Lower<'a, 'c, 's> {
     handlers: Vec<String>,
     /// Each call of a non-`par` callable local, for E716.
     fn_calls: Vec<(String, Span)>,
+    /// `k = lambda ...` with no expected type: the target and lambda, lowered at the first call.
+    pending: HashMap<String, (j::Expr, j::Expr)>,
 }
 
 pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
@@ -381,6 +383,7 @@ fn function_body(g: &Globals, f: &j::FuncDef, sig: &Sig, is_pub: bool, cx: &mut 
         arg_tys: Vec::new(),
         handlers: Vec::new(),
         fn_calls: Vec::new(),
+        pending: HashMap::new(),
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -1501,6 +1504,26 @@ impl Lower<'_, '_, '_> {
                 let want = ann
                     .clone()
                     .or_else(|| self.locals.get(n).map(|l| l.ty.clone()));
+                // Captures are copied at creation, so creating the closure at its first call is
+                // the same only when nothing it captures is reassigned.
+                if let (None, j::ExprKind::Lambda(ps, body)) = (&want, &value.kind)
+                    && !self.mutable.contains(n)
+                {
+                    let mut stable = true;
+                    walk(body, &mut |e| {
+                        if let j::ExprKind::Name(m) = &e.kind
+                            && !ps.contains(m)
+                            && self.mutable.contains(m)
+                        {
+                            stable = false;
+                        }
+                    });
+                    if stable {
+                        self.pending
+                            .insert(n.clone(), (target.clone(), value.clone()));
+                        return Ok(());
+                    }
+                }
                 let (r, t) = self.rhs(value, want.as_ref())?;
                 self.store(target, ann, r, t, value.span)
             }
@@ -1778,6 +1801,8 @@ impl Lower<'_, '_, '_> {
                     (Rhs::Atom(Atom::Name(n.clone(), at)), t.clone())
                 } else if let Some(s) = self.g.variant_of.get(n) {
                     (Rhs::Atom(Atom::Name(n.clone(), at)), Ty::Data(s.clone()))
+                } else if self.pending.contains_key(n) {
+                    return unsupported("a lambda with no expected type used before a call");
                 } else if self.gone.contains(n) {
                     return unsupported("a binding used after the block that made it");
                 } else if self.ghosts.contains(n) {
@@ -2476,6 +2501,30 @@ impl Lower<'_, '_, '_> {
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         match &f.kind {
+            j::ExprKind::Name(n)
+                if !self.locals.contains_key(n) && self.pending.contains_key(n) =>
+            {
+                let mut vals = Vec::new();
+                let mut tys = Vec::new();
+                for a in args {
+                    let (j::ArgKind::Expr(e), None) = (&a.kind, &a.name) else {
+                        return unsupported("keyword, `&` or `become` arguments to a lambda");
+                    };
+                    let (x, t) = self.atom(e, None)?;
+                    vals.push(let_arg(x));
+                    tys.push(t);
+                }
+                let (target, value) = self.pending.remove(n).expect("checked");
+                // An unbound parameter as the return type: the lambda's body decides it.
+                let want = Ty::Fn(false, tys, Box::new(Ty::Param(String::new())));
+                let (r, t) = self.rhs(&value, Some(&want))?;
+                let Ty::Fn(_, _, ret) = t.clone() else {
+                    unreachable!("a lambda")
+                };
+                self.store(&target, None, r, t, value.span)?;
+                self.fn_calls.push((n.clone(), f.span));
+                Ok((Rhs::Call(call(n, vec![], vals, at)), *ret, None))
+            }
             j::ExprKind::Name(n)
                 if matches!(self.locals.get(n), Some(Local { ty: Ty::Fn(..) })) =>
             {
