@@ -1,6 +1,7 @@
 //! Jian types during elaboration and their Yong spelling.
 
 use yong_core::ast::{self as y, Named, TArg};
+use yong_names::{Surface, type_name};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Ty {
@@ -35,21 +36,14 @@ pub enum Ty {
     Err,
 }
 
-/// Each std.collections type: its Jian name and its Yong name.
-pub const COLLECTIONS: [(&str, &str); 5] = [
-    ("deque", "Deque"),
-    ("iter", "Iter"),
-    ("heap", "Heap"),
-    ("sorted_dict", "SortedMap"),
-    ("sorted_set", "SortedSet"),
-];
+/// Each std.collections type, by its Jian name; its Yong name is in the projection table.
+pub const COLLECTIONS: [&str; 5] = ["deque", "iter", "heap", "sorted_dict", "sorted_set"];
 
 /// `name` as a std.collections type, with its `&'static` spelling and arity.
 pub fn collection(name: &str) -> Option<(&'static str, usize)> {
-    COLLECTIONS
-        .iter()
-        .find(|(n, _)| *n == name)
-        .map(|(n, _)| (*n, if *n == "sorted_dict" { 2 } else { 1 }))
+    let n = COLLECTIONS.iter().find(|n| **n == name)?;
+    let row = yong_names::type_row(n, Surface::Jian).expect("in the projection table");
+    Some((n, row.arity))
 }
 
 fn named(name: &str, args: Vec<y::Type>) -> y::Type {
@@ -75,11 +69,7 @@ impl Ty {
             Ty::Dict(k, v) => named("Map", vec![k.core(), v.core()]),
             Ty::Set(t) => named("Set", vec![t.core()]),
             Ty::Coll(n, ts) => {
-                let y = COLLECTIONS
-                    .iter()
-                    .find(|(j, _)| j == n)
-                    .expect("a collection")
-                    .1;
+                let y = type_name(n, Surface::Jian, Surface::Yong).expect("a collection");
                 named(y, ts.iter().map(Ty::core).collect())
             }
             Ty::Tuple(ts) => y::Type::Tuple(ts.iter().map(Ty::core).collect()),
@@ -295,17 +285,13 @@ impl std::fmt::Display for Ty {
     }
 }
 
-/// Jian's sized scalar names and their Yong spelling.
+/// Jian's sized scalar names the elaborator lowers, and their Yong spelling (16.3).
 pub fn fixed(name: &str) -> Option<&'static str> {
-    Some(match name {
-        "int8" => "i8",
-        "int16" => "i16",
-        "int32" => "i32",
-        "uint8" => "u8",
-        "uint16" => "u16",
-        "uint32" => "u32",
-        "uint64" => "u64",
-        "float32" => "f32",
-        _ => return None,
-    })
+    const LOWERED: [&str; 8] = [
+        "int8", "int16", "int32", "uint8", "uint16", "uint32", "uint64", "float32",
+    ];
+    LOWERED
+        .contains(&name)
+        .then(|| type_name(name, Surface::Jian, Surface::Yong))
+        .flatten()
 }

@@ -18,6 +18,7 @@ use yong_core::ast as y;
 use yong_diag::{Diagnostic, Span};
 use yong_hir as j;
 
+pub use stdlib::{StdModule, install_std};
 pub use ty::Ty;
 
 /// How the module is checked.
@@ -274,8 +275,8 @@ pub fn elaborate(
         diags: Vec::new(),
     };
     let mut g = Globals::default();
-    let std_classes = stdlib::classes(&mut g, m, src)?;
-    let std_sums = stdlib::sums(&mut g, m, src);
+    let std_classes = stdlib::classes(&mut g, m)?;
+    let std_sums = stdlib::sums(&mut g, m);
     collect(&mut g, m, &mut cx)?;
     let std_fns = stdlib::collect(&mut g, m)?;
     let mut items = derive_froms(&mut g, m);
@@ -836,5 +837,6 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
 
 #[cfg(test)]
 mod selftest;
+
 #[cfg(test)]
 mod stdlib_selftest;

@@ -473,12 +473,9 @@ impl Lower<'_> {
                 }
                 let p: Vec<&str> = path.iter().map(String::as_str).collect();
                 match (p.as_slice(), a.len()) {
-                    (["List"], 1) => named(&["list"], a),
-                    (["Map"], 2) => named(&["dict"], a),
-                    (["Set"], 1) => named(&["set"], a),
-                    // The sized scalars under the shared IR's (Jian's) names.
-                    ([n], 0) if fixed_name(n).is_some() => {
-                        named(&[fixed_name(n).expect("checked")], Vec::new())
+                    // Built-in types under the shared IR's (Jian's) names.
+                    ([n], k) if jian_type(n, k).is_some() => {
+                        named(&[jian_type(n, k).expect("checked")], a)
                     }
                     (["Option"], 1) => match a.pop() {
                         Some(h::TArg::Type(t)) => h::Type::Optional(Box::new(t)),
@@ -1348,20 +1345,11 @@ fn tail_return(stmts: &mut [h::Stmt]) {
     }
 }
 
-fn fixed_name(n: &str) -> Option<&'static str> {
-    Some(match n {
-        "i8" => "int8",
-        "i16" => "int16",
-        "i32" => "int32",
-        "i64" => "int",
-        "u8" => "uint8",
-        "u16" => "uint16",
-        "u32" => "uint32",
-        "u64" => "uint64",
-        "f32" => "float32",
-        "f64" => "float",
-        _ => return None,
-    })
+/// Wen's built-in type `n` with `k` type arguments, as Jian spells it (16.3).
+fn jian_type(n: &str, k: usize) -> Option<&'static str> {
+    yong_names::type_row(n, yong_names::Surface::Wen)
+        .filter(|r| r.arity == k)
+        .map(|r| r.jian)
 }
 
 fn binop_text(op: BinOp) -> &'static str {
