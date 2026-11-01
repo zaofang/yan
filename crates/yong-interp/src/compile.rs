@@ -650,6 +650,7 @@ impl<'g, 'm> FnC<'g, 'm> {
             Atom::Lit(l, _) => match literal(l) {
                 Ok(v) => Ok(self.konst(v)),
                 Err(crate::Stop::Unsupported(m) | crate::Stop::Panic(m)) => Err(m),
+                Err(crate::Stop::Limit(m)) => Err(m.to_owned()),
             },
             Atom::Name(n, _) => self.lookup(n),
         }

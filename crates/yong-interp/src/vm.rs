@@ -17,6 +17,8 @@ pub(crate) struct Vm<'o> {
     codes: Vec<Rc<Code>>,
     stack: Vec<Value>,
     it: Interp<'o>,
+    /// Stage-0 budgets, with the current depth and the steps taken; none at run time.
+    limits: Option<(crate::Limits, usize, u64)>,
 }
 
 /// The type name a value's `impl` is keyed by, where the value tells it.
@@ -237,7 +239,12 @@ impl<'o> Vm<'o> {
             codes: p.codes,
             stack: Vec::with_capacity(1 << 12),
             it,
+            limits: None,
         }
+    }
+
+    pub(crate) fn limit(&mut self, l: crate::Limits) {
+        self.limits = Some((l, 0, 0));
     }
 
     /// Call code `f` with `args`. The outcome, plus the final values of the parameters.
@@ -595,8 +602,21 @@ impl<'o> Vm<'o> {
         let nargs = s.args.len();
         let outcome = match self.target_at(s, base, new_base) {
             Target::Code(f, clo) => {
+                if let Some((l, depth, steps)) = &mut self.limits {
+                    *depth += 1;
+                    *steps += 1;
+                    if *depth > l.depth {
+                        return Err(crate::Stop::Limit("depth"));
+                    }
+                    if *steps > l.steps {
+                        return Err(crate::Stop::Limit("steps"));
+                    }
+                }
                 self.enter(f, clo.as_deref(), new_base, nargs);
                 let r = self.exec(f, new_base)?;
+                if let Some((_, depth, _)) = &mut self.limits {
+                    *depth -= 1;
+                }
                 for (i, a) in s.args.iter().enumerate() {
                     if let ArgC::Inout(r) = a {
                         let v = self

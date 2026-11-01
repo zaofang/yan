@@ -206,6 +206,28 @@ Assumed in `yong patch` until the spec says otherwise:
 - `sig` gives each function up to its first body statement (decorators, header, docstring, `pre`/`post`/`ex`/`decreases`), and every other item whole.
 - A plain text patch through `check_patch`/`apply_patch` takes the module as a `module` argument. Patches are always checked (P003), and protected targets refuse with P006, since the server has no confirmation token yet.
 
+## FFI readings (12)
+
+- A module is an ffi module when a directory named `ffi` contains it (conformance A9); the CLI decides from the path.
+- `core.ffi` names (`c_int` and the rest, `Ptr`, `CStr`, `CString`, `Owned`, `View`, `MutView`) resolve only in ffi modules. The C scalars take LP64 sizes: `c_int` is `i32`, `c_long` and `c_ssize` are `i64`, `c_size` is `u64`, `c_double` is `f64`, `c_void` is `Unit`.
+- Yong has no C string literal yet: `c"..."` lowers to a `Str` literal typed `CStr`. Interior NUL (E140) is not checked yet.
+- Calling an extern item does not yet require `uses lib` (12.2): the conformance cases call extern items from functions without a `uses` clause.
+- A `MutView[T]` extern parameter takes `&list`; a list passes as `View[T]` by value.
+- E905 covers the default argument promotions: `f32` to `f64`, and `i8`, `i16`, `u8`, `u16`, `bool` to `c_int`.
+- E906 names: `setjmp`, `_setjmp`, `sigsetjmp`, `savectx`, `vfork`, `getcontext`.
+- E907: the profile table lists owned `Str` and `List`, and `e907_export_non_profile` rejects `total(xs: List[int])`. Reading: an owned `Str` or `List` crosses only as a `take` parameter or a result; a `let` parameter must be a `View`.
+- E911 checks register classes and explicit registers of the host target (x86_64 or aarch64).
+- `@forbid(alloc)` (E900) flags list, set and dict literals, comprehensions and f-strings. `@forbid(rc, copy, panic)` is not checked yet and stops elaboration.
+- A named function used as a value lowers to a closure that calls it (closures are the only function values in core).
+
+## Stage-0 readings (10.4)
+
+- `let x: T = #e` at the top level is evaluated on the interpreter as a nullary function over the module, and its value becomes the constant. Inside function bodies, `#e` folds only integer and bool constants for now.
+- Steps count executed calls; loop iterations and allocations are not counted yet. The evaluator runs on a 1 GiB stack so `@limit(stage0_depth: n)` above the default is reachable.
+- A function with one `Nat` parameter is a template: each call `f[k](...)` lowers an instance `f__k` with `k` folded in. `#if` must fold to a bool, and only its taken branch is lowered. `#for` runs over a list literal of constants. Errors inside an instance are E272, except `compile_error` (E270), and each carries a note naming the instantiation. Code that does not depend on the parameter is not yet checked once at the definition (R346 phase one).
+- `embed(path)` resolves against the module's directory. The package root is the nearest ancestor with a `yong.toml`, else the module's directory.
+- Conformance question: `wen/pass/stage0/limit_raises_depth.wen` and `wen/run/stage0/folded_constant.wen` recurse without `decreases`, which is E602 (14, 8.4), and Wen has no lenient reader to infer N05. Either the cases need `decreases` lines, or Wen infers simple measures too.
+
 ## Intrinsic registry readings (R561)
 
 Assumed in `yong-std`'s registry and the interpreter until the spec says otherwise:
