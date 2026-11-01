@@ -112,15 +112,15 @@ fn base64_decode(s: &str, url: bool) -> Result<Value, Value> {
     let cs: Vec<char> = s.chars().collect();
     let body = cs.len() - cs.iter().rev().take_while(|c| **c == '=').count();
     let pads = cs.len() - body;
-    if body % 4 == 1 || (pads > 0 && (!cs.len().is_multiple_of(4) || pads != 4 - body % 4)) {
-        return Err(error(body, "Base64"));
-    }
     let mut vals = Vec::with_capacity(body);
     for (i, c) in cs[..body].iter().enumerate() {
         match a.iter().position(|x| *x as char == *c) {
             Some(v) => vals.push(v as u32),
             None => return Err(error(i, "Base64")),
         }
+    }
+    if body % 4 == 1 || (pads > 0 && (!cs.len().is_multiple_of(4) || pads != 4 - body % 4)) {
+        return Err(error(body, "Base64"));
     }
     let mut out = Vec::with_capacity(body * 3 / 4);
     for (g, chunk) in vals.chunks(4).enumerate() {
