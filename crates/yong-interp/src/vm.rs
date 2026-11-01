@@ -1,10 +1,11 @@
 //! The register VM that runs compiled Yong IR.
 
+use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
 
 use crate::compile::*;
-use crate::{Interp, R, Value, data, intrinsic, native, panic, unsupported};
+use crate::{Interp, R, STD_STAGES, Value, data, intrinsic, native, panic, unsupported};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Clo {
@@ -225,14 +226,42 @@ fn bindings(p: &CPat, v: &Value, out: &mut Vec<(Reg, Value)>) {
     }
 }
 
-fn native_call(it: &mut Interp, name: &str, args: &mut [Value]) -> R<Result<Value, Value>> {
-    if let Some(r) = native::fallible(name, args) {
-        return Ok(r);
+/// Dispatch stages: `fallible`, the intrinsics, then the std stages.
+const STAGES: u8 = 2 + STD_STAGES;
+
+fn stage(
+    it: &mut Interp,
+    s: u8,
+    name: &str,
+    args: &mut [Value],
+) -> Option<R<Result<Value, Value>>> {
+    match s {
+        0 => native::fallible(name, args).map(Ok),
+        1 => intrinsic(name, args).map(|r| r.map(Ok)),
+        s => it.std_stage(s - 2, name, args).map(|r| r.map(Ok)),
     }
-    Ok(Ok(match intrinsic(name, args) {
-        Some(v) => v?,
-        None => it.std(name, args)?,
-    }))
+}
+
+/// Call std function `name`, starting at the stage that last handled this call site. Each std
+/// path is handled by one stage only (`std_paths_have_one_stage`), so skipping the others keeps
+/// the order of the full dispatch.
+fn native_call(
+    it: &mut Interp,
+    name: &str,
+    args: &mut [Value],
+    hint: &Cell<u8>,
+) -> R<Result<Value, Value>> {
+    let h = hint.get();
+    if let Some(r) = stage(it, h, name, args) {
+        return r;
+    }
+    for s in (0..STAGES).filter(|s| *s != h) {
+        if let Some(r) = stage(it, s, name, args) {
+            hint.set(s);
+            return r;
+        }
+    }
+    unsupported(format!("call of `{name}`"))
 }
 
 enum Target {
@@ -601,7 +630,7 @@ impl<'o> Vm<'o> {
                 r
             }
             Target::Native => {
-                let r = native_call(&mut self.it, &s.name, &mut self.stack[new_base..])?;
+                let r = native_call(&mut self.it, &s.name, &mut self.stack[new_base..], &s.stage)?;
                 for (i, a) in s.args.iter().enumerate() {
                     if let ArgC::Inout(r) = a {
                         let v = mem::take(&mut self.stack[new_base + i]);
@@ -708,6 +737,40 @@ fn walk_mut<'v, 's>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
+
+    /// The std paths quoted in `src`.
+    fn paths(src: &str) -> Vec<&str> {
+        src.split('"')
+            .skip(1)
+            .step_by(2)
+            .filter(|c| c.starts_with("std.") && !c.contains(' '))
+            .collect()
+    }
+
+    #[test]
+    fn std_paths_have_one_stage() {
+        let native = include_str!("native.rs");
+        let (fallible, call) = native
+            .split_once("pub(super) fn call(")
+            .expect("native.rs has `call`");
+        let stages = [
+            ("native::fallible", fallible),
+            ("native::call", call),
+            ("prelude", include_str!("prelude.rs")),
+            ("regex", include_str!("regex.rs")),
+            ("collections", include_str!("collections.rs")),
+            ("lib builtins", include_str!("lib.rs")),
+        ];
+        let mut seen: BTreeMap<&str, &str> = BTreeMap::new();
+        for (stage, src) in stages {
+            for p in paths(src) {
+                if let Some(other) = seen.insert(p, stage) {
+                    assert_eq!(other, stage, "`{p}` is handled in two dispatch stages");
+                }
+            }
+        }
+    }
 
     #[test]
     fn int_ops_agree_with_intrinsics() {

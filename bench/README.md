@@ -68,7 +68,8 @@ Geometric mean speedup over the walker: 20.8x; yong/python: 2.3x.
 
 Instruction counts (callgrind, millions), which are stable where wall times on a shared host are
 not. Fused compare-and-branch, `if c { break }` as one branch, frames laid out without cloning,
-std calls on the argument registers in place, i64 division on the hardware path.
+std calls on the argument registers in place and starting at the dispatch stage that last
+handled the call site, i64 division on the hardware path.
 
 | program | before | after | change |
 |---|---:|---:|---:|
@@ -77,4 +78,4 @@ std calls on the argument registers in place, i64 division on the hardware path.
 | loop | 568 | 503 | -11% |
 | mandel | 270 | 253 | -6% |
 | ring | 949 | 892 | -6% |
-| sieve | 1761 | 1458 | -17% |
+| sieve | 1761 | 1277 | -27% |
