@@ -9,7 +9,9 @@ use std::rc::Rc;
 use super::native::opt;
 use super::prelude::cmp;
 use super::vm::{Clo, Vm};
-use super::{R, Value, panic, unsupported};
+use indexmap::IndexMap;
+
+use super::{Key, R, Value, panic, unsupported};
 
 /// A shared, single-pass pipeline; copies of the value pull from the same state.
 #[derive(Clone)]
@@ -67,7 +69,7 @@ fn truthy(v: Value) -> bool {
 }
 
 impl Vm<'_> {
-    fn pull(&mut self, i: &It) -> R<Option<Value>> {
+    pub(crate) fn pull(&mut self, i: &It) -> R<Option<Value>> {
         let mut s = i.0.borrow_mut();
         Ok(match &mut s.pipe {
             Pipe::Items(xs) => xs.pop_front(),
@@ -186,7 +188,7 @@ impl Vm<'_> {
         })
     }
 
-    fn drain(&mut self, i: &It) -> R<Vec<Value>> {
+    pub(crate) fn drain(&mut self, i: &It) -> R<Vec<Value>> {
         let mut out = Vec::new();
         while let Some(x) = self.pull(i)? {
             out.push(x);
@@ -207,6 +209,7 @@ impl Vm<'_> {
             };
             Ok(Some(match (name, args.as_slice()) {
                 ("std.list.iter", [List(xs)]) => items(xs.clone()),
+                ("std.text.iter", [Str(s)]) => items(s.chars().map(Char).collect::<Vec<_>>()),
                 ("std.set.iter", [Set(xs)]) => items(xs.iter().map(|k| k.0.clone())),
                 ("std.dict.iter", [Dict(d)]) => items(d.keys().map(|k| k.0.clone())),
                 ("std.collections.deque.iter", [Deque(xs, _)]) => items(xs.clone()),
@@ -227,6 +230,20 @@ impl Vm<'_> {
                     },
                 )),
                 ("std.iter.once", [x]) => items([x.clone()]),
+                ("std.prelude.set", [Iter(i)]) => {
+                    Set(self.drain(&i.clone())?.into_iter().map(Key).collect())
+                }
+                ("std.prelude.dict", [Iter(i)]) => {
+                    let mut d = IndexMap::default();
+                    for kv in self.drain(&i.clone())? {
+                        if let Tuple(mut kv) = kv
+                            && let (Some(v), Some(k)) = (kv.pop(), kv.pop())
+                        {
+                            d.insert(Key(k), v);
+                        }
+                    }
+                    Dict(d)
+                }
                 ("std.iter.empty", []) => items([]),
                 (_, [Iter(i), rest @ ..]) => {
                     let i = i.clone();
@@ -291,10 +308,23 @@ impl Vm<'_> {
                                 None => break opt(None),
                             }
                         },
-                        ("std.iter.ops.min", []) => opt(self.drain(&i)?.into_iter().min_by(cmp)),
-                        // The first of equal maxima, as Python's max.
-                        ("std.iter.ops.max", []) => {
-                            opt(self.drain(&i)?.into_iter().rev().max_by(cmp))
+                        // The first of equal extremes, as Python's.
+                        ("std.iter.ops.min" | "std.iter.ops.max", [key]) => {
+                            let key = key.clone();
+                            let mut best: Option<(Value, Value)> = None;
+                            while let Some(x) = self.pull(&i)? {
+                                let k = self.key(&key, &x)?;
+                                let o = best.as_ref().map(|(b, _)| cmp(&k, b));
+                                let wins = match o {
+                                    None => true,
+                                    Some(o) if name.ends_with("min") => o.is_lt(),
+                                    Some(o) => o.is_gt(),
+                                };
+                                if wins {
+                                    best = Some((k, x));
+                                }
+                            }
+                            opt(best.map(|(_, x)| x))
                         }
                         ("std.iter.ops.sum", []) => sum(self.drain(&i)?)?,
                         ("std.iter.ops.done", []) => {
