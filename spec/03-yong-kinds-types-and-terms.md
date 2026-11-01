@@ -39,7 +39,7 @@ Large integers are the library type `BigInt` (Xin `bigint`).
 
 ### 3.4 Integers and floats
 
-There is no implicit widening or narrowing. Integer literals take any integer type whose range contains them. `x as T` is checked and panics with kind `overflow` when the value does not fit; `wrap_as`, `sat_as` and `trunc_as` convert explicitly. Arithmetic families are `wrapping_*`, `checked_*` (returning `Option`), `saturating_*` and `overflowing_*`.
+There is no implicit widening or narrowing. Integer literals take any integer type whose range contains them, and any binary float type (`f16`, `bf16`, `f32`, `f64`, `f128`) in which their value is exactly representable, so `x * 2` and `f(3)` work for a float `x` and a float parameter; a variable never converts (R656). `x as T` is checked and panics with kind `overflow` when the value does not fit; `wrap_as`, `sat_as` and `trunc_as` convert explicitly. Arithmetic families are `wrapping_*`, `checked_*` (returning `Option`), `saturating_*` and `overflowing_*`.
 
 - Overflow is checked in every build mode. Builds never change behavior. The range solver (section 8.6) removes provable checks; hot paths use `wrapping_*`, `wrap_as` and `sat_as`.
 - Integer division by zero panics with kind `div_zero`. A shift by at least the bit width panics with kind `overflow`.

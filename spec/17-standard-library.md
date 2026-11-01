@@ -71,6 +71,7 @@ A module belongs in std only if it is shared vocabulary, a capability handler or
 - Types: `int`, `bigint`, `float`, `bool`, `str`, `char`, `bytes`, `decimal`, the sized scalars, `list`, `dict`, `set`, `deque`, `heap`, `sorted_dict`, `sorted_set`, `soa`, `tuple`, `Result`, `Ok`, `Err`, `View`, `MutView`, `StrView`, `Rc`, `Arc`, `Weak`, `Array`, `Table`, `Quantity`, `Money`, `Secret`, `PlainDate`, `PlainTime`, `PlainDateTime`, `ZonedDateTime`, `Instant`, `MonoInstant`, `Duration`, `Period`.
 - Traits: `Eq`, `Ord`, `Hash`, `Show`, `Default`, `Num`, `Field`, `Pow`, `Bits`, `Concat`, `MatMul`, `Monoid`, `From`, `Wire`, `Share`, `Iterator`, `IntoIter`, `Len`, `Send`, `Sync`, `Freeze`.
 - Functions: `len` (not on `str`), `range`, `enumerate`, `zip`, `min`, `max`, `sum`, `any`, `all`, `sorted`, `reversed`, `abs`, `round`, `float`, `int`, `str`, `list` (an owned list from any iterable, R218), `evolve`.
+- `min` and `max` take two values positionally, or one iterable as `max(xs, key=None, default=...)`; on an empty iterable with no `default` they panic with kind `value` (R658). `sorted(xs, key=None, reverse=False)` and `xs.sort(key=None, reverse=False)` are stable in both directions (R659).
 
 ### 17.3 Modules
 
@@ -97,7 +98,7 @@ A module belongs in std only if it is shared vocabulary, a capability handler or
 | `table`, `std.arrow` | `from_records`, `read_csv`, `filter`, `select`, `with_columns`, `group_by`, `agg`, `join`, `pivot`, `sort`; Arrow arrays, `StringView`, C Data and C Stream interfaces | `fs` for I/O only |
 | `rand` | `next_u64`, `next_f64`, `choice`, `shuffle`; algorithms `Pcg64Dxsm` and `ChaCha8`, versioned so seeded streams never change | `rand` |
 | `std.crypto` | CSPRNG, SHA-2, SHA-3, BLAKE3, HMAC, HKDF, constant-time compare, AEAD, ML-KEM and ML-DSA through aws-lc | `crypto_rand` for key generation |
-| `io` | `print(s: str)`, `eprint(s: str)`, `read_line() -> str \| None`, `split(n)`; buffer-in-interface `Reader` and `Writer` | `io` |
+| `io` | `print[T: Show](x: T)`, `eprint[T: Show](x: T)` (R655), `read_line() -> str \| None`, `split(n)`; buffer-in-interface `Reader` and `Writer` | `io` |
 | `fs` | `read`, `read_bytes`, `read_all`, `write`, `append`, `list_dir`, `exists`, `remove`, all failing with `FsError`; rooted directory handles; paths are `P: AsPath`, listings return `Path`, and a host name that is not UTF-8 fails with reason `NotUnicode` carrying its `bytes` (R591) | `fs` |
 | `std.path`, `std.tmp` | `Path`, `WindowsPath`, `AsPath` (R587 to R592); scoped scratch directories | none; `tmp` |
 | `std.net` | `tcp_connect`, `tcp_listen`, `listener.incoming`, `udp_bind`, `stream.split`, `BufPool`, `Lease`, `recv_pooled`, `send_zc`, `net.only(connect=..., listen=...)`; post-DNS private-range rule (17.6) | `net` |

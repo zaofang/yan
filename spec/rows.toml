@@ -569,3 +569,18 @@ sections = "11.1, 11.2, 11.5, 25"
 rows = "R616 to R621"
 topic = "Reference agent loop (RFC 0014), decided by the owner: `yong agent` at M1 over the in-process `yong mcp` tools (R616); the two-phase loop with freeze, autofix, run_tests and stop-and-report (R617); `stub:` and `cmd:` model adapters, no HTTPS in the toolchain (R618); the schema-1 run record (R619); the Xin arm of the 21.6 harness runs through `yong agent` (R620); E619 for an `ex` line whose arguments break `pre` (R621)"
 sections = "18.1, 21.1, 21.4, 21.6, 25"
+
+[[entry]]
+rows = "R655 to R657"
+topic = "Learnability (RFC 0024), decided by the owner: `print` and `eprint` take any `Show` value (R655); an integer literal also types as a binary float when exactly representable (R656); `float ** int` is C23 `pown` (R657)"
+sections = "3.4, 11.1, 14.1, 17.1"
+
+[[entry]]
+rows = "R658 to R661"
+topic = "Python idiom parity (RFC 0024), decided by the owner: `min` and `max` over one iterable with `key=` and `default=` (R658); `sorted` and `sort` with `key=` and `reverse=` (R659); `str` and `list` repetition by `*` (R660); N31 lifts a capture-free nested `def` (R661)"
+sections = "14.1, 14.4, 17.2, 25"
+
+[[entry]]
+rows = "R662 to R664"
+topic = "Habit help (RFC 0024), decided by the owner: `habit` children on diagnostics triggered by Python or TypeScript habits (R662); W854 for `${...}` in a Wen string (R663); a TypeScript migration guide in the learning set (R664)"
+sections = "15.1, 15.5, 18.2, 18.9, 25"
