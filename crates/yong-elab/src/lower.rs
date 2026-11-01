@@ -5109,13 +5109,13 @@ impl Lower<'_, '_, '_> {
         let j::ExprKind::Name(n) = &t.kind else {
             return unsupported(format!("`cli.{op}` of a type that is not a name"));
         };
-        if !self.g.clis.contains_key(n) {
+        // After an error the call is still lowered, so what follows it checks.
+        let schema = if self.g.clis.contains_key(n) {
+            // An error here was reported at the derive.
+            crate::cli::schema(self.g, n).unwrap_or_default()
+        } else {
             self.err("E201", t.span, format!("`{n}` does not derive `Cli`"));
-            return Ok(err);
-        }
-        let Ok(schema) = crate::cli::schema(self.g, n) else {
-            // Reported at the derive.
-            return Ok(err);
+            String::new()
         };
         let xs = if op == "parse" {
             if !args.is_empty() {
