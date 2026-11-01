@@ -3041,6 +3041,17 @@ impl Lower<'_, '_, '_> {
                 let (r, t, fail) = self.call_expr(f, args, x.span, None)?;
                 match (fail, r) {
                     (Some(e), Rhs::Call(c)) => {
+                        if self.sig.fail.is_none() {
+                            self.err(
+                                "E310",
+                                at,
+                                format!(
+                                    "`?` passes a `{e}` failure up, but `{}` cannot fail; \
+                                     declare `fail {e}` on it or handle the failure with `else`",
+                                    self.item
+                                ),
+                            );
+                        }
                         // `?` injects any failure into `Error` with no `From` (R432).
                         let into_error = e != Ty::Data("Error".into())
                             && self.sig.fail == Some(Ty::Data("Error".into()))
