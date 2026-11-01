@@ -552,7 +552,6 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
- "regex",
  "unicode-segmentation",
  "yong-core",
  "yong-jian",
@@ -580,13 +579,14 @@ dependencies = [
  "libm",
  "num-bigint",
  "num-traits",
+ "regex",
 ]
 
 [[package]]
 name = "yong-std"
 version = "0.0.0"
 dependencies = [
- "regex",
+ "yong-rt",
 ]
 
 [[package]]
