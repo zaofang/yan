@@ -937,6 +937,16 @@ impl<'g, 'm> Cx<'g, 'm> {
                         Conv::Inout => How::Inout,
                         Conv::Sink => How::Sink,
                     };
+                    // An inout argument is written back (4.1), so it must be a mutable place; a
+                    // `sink` parameter is owned and may be changed in place. Names starting with
+                    // `_` are elaborator temporaries, which the surface reports.
+                    if *conv == Conv::Inout
+                        && !n.starts_with('_')
+                        && let Some(Kind::Let | Kind::Param(Conv::Let)) =
+                            self.env.get(n).map(|b| b.kind)
+                    {
+                        self.err("E403", *sp, format!("`{n}` is not mutable"));
+                    }
                     self.use_name(n, *sp, how);
                 }
                 Arg::Value(_, Atom::Lit(..), _) => {}
