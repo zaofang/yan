@@ -332,6 +332,20 @@ fn words(m: &j::Module) -> HashSet<String> {
     if w.contains("bytes") || w.contains("bytearray") {
         w.insert("encoding".into());
     }
+    // Civil values reach `ZonedDateTime`, `Disambiguation` and `TimeError` (R601).
+    const TIME: [&str; 8] = [
+        "Duration",
+        "Instant",
+        "MonoInstant",
+        "PlainDate",
+        "PlainTime",
+        "PlainDateTime",
+        "Period",
+        "TimeZone",
+    ];
+    if TIME.iter().any(|t| w.contains(*t)) {
+        w.insert("time".into());
+    }
     w
 }
 
