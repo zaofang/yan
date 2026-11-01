@@ -99,3 +99,24 @@ pub def main() uses io:
 ";
     assert_eq!(raised(src), src);
 }
+
+#[test]
+fn a_misspelt_use_reports_only_the_unresolved_name() {
+    let (_, d) = lower("def f(count: int) -> int:\n    return cout + 1\n");
+    assert_eq!(
+        d.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
+        ["E200"]
+    );
+}
+
+#[test]
+fn messages_name_the_real_problem() {
+    let (_, d) = lower("def f() -> int:\n    y = 2\n    return 1\n");
+    assert!(
+        d[0].message
+            .ends_with("remove it or write `_` in its place"),
+        "{d:?}"
+    );
+    let (_, d) = lower("def f(d: dict[str, int]) -> int:\n    return d.get(\"a\") + 1\n");
+    assert!(d[0].message.contains("may be `None`"), "{d:?}");
+}

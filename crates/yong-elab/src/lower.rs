@@ -527,6 +527,7 @@ fn function_body(
     };
     let mut assigned = HashMap::new();
     let mut mutable = HashSet::new();
+    let first_diag = cx.diags.len();
     mutables(g, &body.stmts, &mut assigned, &mut mutable);
     mutable.extend(assigned.into_iter().filter(|(_, n)| *n > 1).map(|(k, _)| k));
     let mut l = Lower {
@@ -668,19 +669,23 @@ fn function_body(
         })
         .collect();
     let item = l.item.clone();
+    // A name the item could not resolve may be a misspelt use of an "unused" binding (R291).
+    let unresolved = l.cx.diags[first_diag..].iter().any(|d| d.code == "E200");
     for b in bounds::check(&body.stmts, &l.sites, l.cx.release) {
         match b.code {
             "E501" => l.cx.err(b.code, b.span, &item, b.message),
+            // Wen shows a kept check as an editor hint, not W820 (R372).
+            "W820" if l.cx.wen => {}
             _ => l.cx.warn(b.code, b.span, &item, b.message),
         }
     }
-    for (n, sp) in unused {
+    for (n, sp) in unused.into_iter().filter(|_| !unresolved) {
         let item = l.item.clone();
         l.cx.warn(
             "W812",
             sp,
             &item,
-            format!("`{n}` is never read; name it `_{n}` or remove it"),
+            format!("`{n}` is never read; remove it or write `_` in its place"),
         );
     }
     Ok(y::FnDef {
@@ -3573,6 +3578,19 @@ impl Lower<'_, '_, '_> {
             (Ty::List(e), Ty::List(_)) if op == "+" => {
                 ("std.list.concat".to_owned(), tx.clone(), vec![e.targ()])
             }
+            (Ty::Option(_), _) | (_, Ty::Option(_)) => {
+                let t = if matches!(tx, Ty::Option(_)) {
+                    &tx
+                } else {
+                    &ty
+                };
+                self.err(
+                    "E201",
+                    at,
+                    format!("`{op}` on a `{t}`, which may be `None`; unwrap it first with `else`"),
+                );
+                return Ok((Rhs::Atom(x), Ty::Err));
+            }
             _ => {
                 self.err("E201", at, format!("`{op}` between `{tx}` and `{ty}`"));
                 return Ok((Rhs::Atom(x), Ty::Err));
@@ -3639,6 +3657,16 @@ impl Lower<'_, '_, '_> {
             let present = match t {
                 Ty::Option(_) => self.is_some(x, at)?.0,
                 Ty::Err => return Ok((Rhs::Atom(x), Ty::Bool)),
+                Ty::Unit => {
+                    self.err(
+                        "E201",
+                        a.span,
+                        "this is always `None`; annotate the binding with its type, as \
+                         `x: int | None = None`"
+                            .into(),
+                    );
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Bool(false), at)), Ty::Bool));
+                }
                 t => {
                     self.err("E201", a.span, format!("a `{t}` is never `None`"));
                     return Ok((Rhs::Atom(Atom::Lit(Literal::Bool(false), at)), Ty::Bool));
