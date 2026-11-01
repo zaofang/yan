@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet};
 use std::mem;
 
 use yong_core::ast::{self as y, Arg, Atom, Conv, Literal, Place, Proj, Rhs, StmtKind};
-use yong_diag::Span;
+use yong_diag::{Applicability, Span};
 use yong_hir as j;
 
 use crate::bounds::{self, Site};
@@ -680,8 +680,10 @@ fn function_body(
             "W812",
             sp,
             &item,
-            format!("`{n}` is never read; name it `_{n}` or remove it"),
+            format!("`{n}` is never read; name it `_` or remove it"),
         );
+        // Choice: a later assignment or a keyword argument may still use the name.
+        l.cx.fix(Applicability::Choice, "name it `_`", sp, "_");
     }
     Ok(y::FnDef {
         is_pub,
@@ -911,18 +913,9 @@ impl Lower<'_, '_, '_> {
         candidates: impl IntoIterator<Item = &'n str>,
     ) {
         self.err(code, span, msg);
-        let near = yong_diag::near(name, candidates);
-        if let Some(mut d) = self.cx.diags.pop() {
-            for n in near {
-                d = d.with_fix(
-                    yong_diag::Applicability::Choice,
-                    format!("use `{n}`"),
-                    span,
-                    name,
-                    n,
-                );
-            }
-            self.cx.diags.push(d);
+        for n in yong_diag::near(name, candidates) {
+            self.cx
+                .fix(Applicability::Choice, &format!("use `{n}`"), span, n);
         }
     }
 
@@ -2410,6 +2403,16 @@ impl Lower<'_, '_, '_> {
                         &item,
                         format!("`{n}` is inferred as `{t}`; remove the annotation"),
                     );
+                    let colon_to_type = Span {
+                        col: target.span.end_col,
+                        ..sp
+                    };
+                    self.cx.fix(
+                        Applicability::Auto,
+                        "remove the annotation",
+                        colon_to_type,
+                        "",
+                    );
                 }
                 self.store(target, ann, r, t, value.span)
             }
@@ -2441,6 +2444,8 @@ impl Lower<'_, '_, '_> {
                 at,
                 format!("`{x}` is used again later; bind `{x}.copy()`"),
             );
+            self.cx
+                .fix(Applicability::Auto, "copy", at, &format!("{x}.copy()"));
             self.cx.label(later, "used again");
         }
         match &target.kind {
@@ -4531,6 +4536,8 @@ impl Lower<'_, '_, '_> {
                         sp,
                         format!("`{}` is a `var` parameter; pass `&place`", p.name),
                     );
+                    let marked = format!("&{}", self.cx.text(sp));
+                    self.cx.fix(Applicability::Auto, "pass `&`", sp, &marked);
                 }
                 (_, true) => {
                     self.err(
@@ -4538,6 +4545,7 @@ impl Lower<'_, '_, '_> {
                         sp,
                         format!("`{}` is not a `var` parameter; remove `&`", p.name),
                     );
+                    self.cx.fix(Applicability::Auto, "remove `&`", sp, "");
                 }
                 (conv, false) => {
                     let mut map = Vec::new();
@@ -4560,6 +4568,8 @@ impl Lower<'_, '_, '_> {
                             sp,
                             format!("`{n}` is used again later; pass `{n}.copy()`"),
                         );
+                        let copied = format!("{}.copy()", self.cx.text(sp));
+                        self.cx.fix(Applicability::Auto, "copy", sp, &copied);
                         self.cx.label(later, "used again");
                     }
                     *out = Some(Arg::Value(conv, a, sp));

@@ -16,7 +16,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 
 use yong_core::ast as y;
-use yong_diag::{Diagnostic, Span};
+use yong_diag::{Applicability, Diagnostic, Span};
 use yong_hir as j;
 
 pub use stdlib::{StdInfo, StdModule, install_std};
@@ -118,7 +118,7 @@ pub(crate) struct Cx<'s> {
     pub diags: Vec<Diagnostic>,
 }
 
-impl Cx<'_> {
+impl<'s> Cx<'s> {
     pub fn note(&mut self, code: &str, span: Span, item: &str, message: String) {
         self.err(code, span, item, message);
         if let Some(d) = self.diags.last_mut() {
@@ -134,6 +134,13 @@ impl Cx<'_> {
     }
 
     pub fn err(&mut self, code: &str, span: Span, item: &str, message: String) {
+        let quote = self.text(span);
+        self.diags
+            .push(Diagnostic::error(code, self.file, span, quote, message).with_item(item));
+    }
+
+    /// The source text of `span`, cut at the end of its first line.
+    pub fn text(&self, span: Span) -> &'s str {
         let line = self
             .src
             .lines()
@@ -145,9 +152,16 @@ impl Cx<'_> {
         } else {
             line.len()
         };
-        let quote = line.get(from..to).unwrap_or("");
-        self.diags
-            .push(Diagnostic::error(code, self.file, span, quote, message).with_item(item));
+        line.get(from..to).unwrap_or("")
+    }
+
+    /// Adds to the last diagnostic a fix that replaces the text of `span` with `text`.
+    pub fn fix(&mut self, applicability: Applicability, title: &str, span: Span, text: &str) {
+        let search = self.text(span);
+        if let Some(d) = self.diags.pop() {
+            self.diags
+                .push(d.with_fix(applicability, title, span, search, text));
+        }
     }
 
     /// Adds a secondary span to the last diagnostic.

@@ -136,3 +136,38 @@ fn second_sites_are_labels() {
         "{d:?}"
     );
 }
+
+/// Applies every fix's single edit to `src`, last edit first so earlier spans stay valid.
+fn apply_fixes(src: &str, d: &[Diagnostic]) -> String {
+    let mut lines: Vec<String> = src.lines().map(str::to_owned).collect();
+    let mut edits: Vec<_> = d
+        .iter()
+        .flat_map(|d| &d.fixes)
+        .map(|f| &f["edits"][0])
+        .collect();
+    edits.sort_by_key(|e| (e["span"]["line"].as_u64(), e["span"]["col"].as_u64()));
+    for e in edits.into_iter().rev() {
+        let line = &mut lines[e["span"]["line"].as_u64().unwrap() as usize - 1];
+        let from = e["span"]["col"].as_u64().unwrap() as usize - 1;
+        let to = e["span"]["end_col"].as_u64().unwrap() as usize - 1;
+        assert_eq!(&line[from..to], e["search"].as_str().unwrap());
+        line.replace_range(from..to, e["text"].as_str().unwrap());
+    }
+    lines.join("\n") + "\n"
+}
+
+#[test]
+fn mechanical_fixes_remove_their_diagnostics() {
+    let src = "def bump(var n: int) -> None:\n    n += 1\n\n\
+               def show(n: int) -> int:\n    return n\n\n\
+               def keep(xs: list[int]) -> list[int]:\n    return xs\n\n\
+               def f() -> int:\n    a = 1\n    bump(a)\n    b = show(&a)\n    c: int = 2\n    unused = 3\n\
+               \x20   xs = [1]\n    ys = xs\n    return a + b + c + len(xs) + len(ys)\n";
+    let (_, d) = lower(src);
+    let mut codes: Vec<_> = d.iter().map(|d| d.code.as_str()).collect();
+    codes.sort();
+    assert_eq!(codes, ["E404", "E405", "E413", "W812", "W823"], "{d:?}");
+    let fixed = apply_fixes(src, &d);
+    let (_, d) = lower(&fixed);
+    assert!(d.is_empty(), "{fixed}\n{d:?}");
+}
