@@ -317,8 +317,26 @@ struct Globals<'m> {
     /// Method full names (`<type>.<name>`) to code index.
     methods: Map<Name, usize>,
     nullary: HashSet<Name, std::hash::BuildHasherDefault<Fnv>>,
+    /// Module constants with literal or materialized (stage-0) values.
+    consts: Map<Name, Value>,
     codes: Vec<Option<Code>>,
     pending: Vec<(usize, &'m FnDef)>,
+}
+
+fn const_value(c: &ConstVal) -> Option<Value> {
+    Some(match c {
+        ConstVal::Lit(l) => literal(l).ok()?,
+        ConstVal::List(xs) => Value::List(xs.iter().map(const_value).collect::<Option<_>>()?),
+        ConstVal::Tuple(xs) => Value::Tuple(xs.iter().map(const_value).collect::<Option<_>>()?),
+        ConstVal::Path { path, fields } => Value::Data {
+            name: path.join("."),
+            fields: fields
+                .iter()
+                .flatten()
+                .map(|(n, v)| Some((n.clone(), const_value(v)?)))
+                .collect::<Option<_>>()?,
+        },
+    })
 }
 
 pub(crate) fn compile(m: &Module) -> Program {
@@ -326,6 +344,7 @@ pub(crate) fn compile(m: &Module) -> Program {
         fns: Map::default(),
         methods: Map::default(),
         nullary: ["None".to_owned()].into_iter().collect(),
+        consts: Map::default(),
         codes: Vec::new(),
         pending: Vec::new(),
     };
@@ -353,6 +372,11 @@ pub(crate) fn compile(m: &Module) -> Program {
                         .filter(|v| v.fields.is_none())
                         .map(|v| v.name.clone()),
                 );
+            }
+            ItemKind::Const(c) => {
+                if let Some(v) = const_value(&c.value) {
+                    g.consts.insert(c.path.join("."), v);
+                }
             }
             _ => {}
         }
@@ -635,6 +659,9 @@ impl<'g, 'm> FnC<'g, 'm> {
     fn lookup(&mut self, n: &Name) -> Result<Opnd, String> {
         if let Some(r) = self.regs.get(n) {
             return Ok(Opnd(*r));
+        }
+        if let Some(v) = self.g.consts.get(n) {
+            return Ok(self.konst(v.clone()));
         }
         if self.g.nullary.contains(n) {
             return Ok(self.konst(Value::Data {

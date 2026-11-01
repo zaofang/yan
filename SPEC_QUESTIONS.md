@@ -226,7 +226,7 @@ Assumed in `yong patch` until the spec says otherwise:
 - Steps count executed calls; loop iterations and allocations are not counted yet. The evaluator runs on a 1 GiB stack so `@limit(stage0_depth: n)` above the default is reachable.
 - A function with one `Nat` parameter is a template: each call `f[k](...)` lowers an instance `f__k` with `k` folded in. `#if` must fold to a bool, and only its taken branch is lowered. `#for` runs over a list literal of constants. Errors inside an instance are E272, except `compile_error` (E270), and each carries a note naming the instantiation. Code that does not depend on the parameter is not yet checked once at the definition (R346 phase one).
 - `embed(path)` resolves against the module's directory. The package root is the nearest ancestor with a `yong.toml`, else the module's directory.
-- Conformance question: `wen/pass/stage0/limit_raises_depth.wen` and `wen/run/stage0/folded_constant.wen` recurse without `decreases`, which is E602 (14, 8.4), and Wen has no lenient reader to infer N05. Either the cases need `decreases` lines, or Wen infers simple measures too.
+- `wen/pass/stage0/limit_raises_depth.wen` and `wen/run/stage0/folded_constant.wen` recursed without `decreases` (E602). Antonio chose to add the lines to the cases (2026-11-01); Wen infers no measures.
 
 ## Intrinsic registry readings (R561)
 
