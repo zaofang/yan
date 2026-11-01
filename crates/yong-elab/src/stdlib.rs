@@ -616,7 +616,16 @@ fn bodies(m: &j::Module) -> Vec<Body> {
 /// Add the signatures of the std bodies `m` calls, so calls to them resolve like the module's
 /// own functions.
 pub(crate) fn collect(g: &mut Globals, m: &j::Module) -> R<Vec<Body>> {
-    let bs = bodies(m);
+    // A method of a std class the program never names (regex's `Match.text` for a `Path.text`
+    // call) cannot be called, and its types are not registered.
+    let unnamed = |b: &Body| {
+        b.def.params.first().is_some_and(|p| {
+            matches!(p, j::Param::Value { ty: j::Type::Named { path, .. }, .. }
+                if path.len() == 1 && STD.classes.contains_key(&path[0])
+                    && !g.std_records.contains(&path[0]))
+        })
+    };
+    let bs: Vec<Body> = bodies(m).into_iter().filter(|b| !unnamed(b)).collect();
     for b in &bs {
         let mut cx = std_cx(b.module);
         let s = crate::sig(g, &b.def, &mut cx)?;
