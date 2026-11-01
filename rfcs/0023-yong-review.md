@@ -1,8 +1,8 @@
 # 0023: `yong review`, a report for agent PRs
 
-- Status: draft
+- Status: accepted (the lead chose "Accept all (D1 to D7)" on 2026-11-01)
 - Research: [What Yong is and how it fits together](https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU), gap 2
-- Rows: filled in when accepted
+- Rows: R652 to R658
 
 ## Summary
 
@@ -27,8 +27,8 @@ posts the output as a comment or check summary.
 Options weighed: two directory arguments (simpler, but every CI caller rebuilds the checkout); a
 separate GitHub app (out of scope for M1). Recommended: git revisions.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R652
 
 ### D2: item changes
 
@@ -40,8 +40,8 @@ which tests D5 reports. Each added or edited item prints its header (signature, 
 `fail`, contracts; no body) old and new in Yong. Per-reader spelling (`--as xin|wen`, R526) follows
 when the item-level view lands in M3.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R653
 
 ### D3: authority diff
 
@@ -51,8 +51,8 @@ lost, `pub` gained or lost, and every extern block added, removed or edited. Gai
 everything else. Because the checker enforces `uses` (7.1), the declared set is the item's
 authority, and no body needs to be read for it.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R654
 
 ### D4: contracts, tests and approvals
 
@@ -62,8 +62,8 @@ is judged by BASE's `tests.lock`, never HEAD's, so a PR cannot approve its own t
 approved test or to a contract clause of an item that has one is marked *frozen*: 21.1 forbids it in
 an implement step.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R655
 
 ### D5: test verdicts and the verdict cache
 
@@ -75,8 +75,8 @@ BLAKE3 of the `yong` binary. Verdicts are stored in `.yong/cache/verdicts.json`;
 affected item, with its verdict, approved or proposed, and cached or run. Tests that reach nothing
 changed are counted.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R656
 
 ### D6: provenance
 
@@ -84,8 +84,8 @@ When `.yong/provenance.jsonl` (21.5) exists, each listed item carries its author
 its HEAD identity hash: `human`, `model(id, version)` or `unknown`. `yong agent` writing these records
 is a follow-up to RFC 0014.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R657
 
 ### D7: exit status
 
@@ -94,8 +94,8 @@ a capability, `fail`, `unsafe` or `pub` gain; an extern block change; a frozen e
 change; or a failing test from D5. Every finding in JSON has a `kind` and an `attention` flag, so CI
 can gate on the exit status and a bot can render the rest.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R658
 
 ## Spec changes
 
