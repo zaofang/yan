@@ -107,6 +107,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R536 to R550 | Niche surfaces (RFC 0002, https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD), accepted by the owner, post-1.0: admission rules N1 to N9 (R536); Qi (R537); Xun (R538); Cha (R539); Ling (R540); Cheng (R541); Zhu (R542); Wei (R543); Lu (R544); research surfaces Meng (R545), Gua (R546), Li (R547), Pu (R548), Zi (R549); order and gating (R550) | 16.7, 23 |
 | R551 to R553 | Yong gaps from the surface study (RFC 0003), accepted by the owner: `generate_chat` in `@yong/model` (R551); durable timers in `@yong/durable` (R552); `head` and window operations in `@yong/frame` (R553) | 17.4, 9.6.1, 11.9 |
 | R554 to R557 | Research track additions (RFC 0003), not normative for 1.0: dry-run handler class (R554); streams over `Remote` (R555); ceiling-level `fs.only` (R556); semantic diff (R557) | 26.6 |
+| R558 to R565 | Architecture for one core and many surfaces (RFC 0004, https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC), accepted by the owner: HIR as the surface-neutral pivot (R558); one printer per surface and a shared raise (R559); crate boundaries and layering (R560); one intrinsic registry (R561); std source layout by tier, Jian and Wen sources (R562); Fei print-only view in M3 (R563); law checking over the whole suite (R564); origin marks as trivia and raise (R565) | 1, 16.4, 16.5, 16.6, 17.1, 22.2, 22.4, 23, 24.2 |
 
 <!-- /rows -->
 

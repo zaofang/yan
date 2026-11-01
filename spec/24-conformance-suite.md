@@ -40,7 +40,7 @@ conformance/
 | FFI | E901 to E911; the C profile with `_Static_assert` checks; callbacks; abort on foreign unwind |
 | Time | literal checks (every E54x code, R378); tz edge cases against the pinned tzdb; virtual time |
 | Data | Arrow layouts; deterministic queries across thread counts; `QueryError` |
-| Round-trip | the five laws of 16.5 on every `pass` and `run` program |
+| Round-trip | the laws of 16.5 (and N7 for each niche surface) on every conformance program, run by `conform.py --laws` (R564) |
 | Python bridge | every M1 `run` program exported with `yong export --python` produces identical output under CPython 3.12 |
 | Determinism | hash-key independence (two keys, identical outputs); record and replay; `std.sim` seed replay |
 | Safety | `Wire` decoder fuzz targets with limits enforced; patch protection and invisible-Unicode rejection; actor reentrancy, deadlock, timeout and supervisor-intensity scenarios |

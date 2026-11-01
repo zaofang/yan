@@ -6,7 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
-| 2026-11-01 | [Yong architecture plan: one core, many surfaces](https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC) | RFC 0004 (draft) |
+| 2026-11-01 | [Yong architecture plan: one core, many surfaces](https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC) | RFC 0004 (R558 to R565) |
 | 2026-11-01 | [Surface shortlist, revision 2](https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD) | RFC 0002 (R536 to R550), RFC 0003 (R551 to R557) |
 | 2026-11-01 | [Research track: eight extensions](https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8) | R522 to R529 (research, post-1.0) |
 | 2026-11-01 | [Tracking research, proposals and spec revisions](https://claude.ai/artifact/1Nc3D55kos87dCFhrWgwyP) | Accepted: spec moved to `spec/`, row registry, `rfcs/`, this index |

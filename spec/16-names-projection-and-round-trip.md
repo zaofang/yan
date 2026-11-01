@@ -59,6 +59,8 @@ Some names and forms differ by surface on purpose, so each reads natively. The t
 | `yong view --as jian W` | a Wen module | canonical Jian, for every item within the Jian subset |
 | `yong view --as yong X` | either surface | Yong text |
 
+**Projection as composition (R559).** Each surface has six steps: parse (text to lossless tree), abstract (tree to surface AST), lower (AST to HIR, with spelling notes and the name table), and their inverses print, resugar and the shared raise (Yong to HIR). Each surface has exactly one canonical printer, over its own AST, and both `yong fmt` and `yong view` use it: `fmt F` is print(abstract(parse(F))), and `view --as S X` is print(resugar(raise(elaborate(X)))). The laws of 16.5 are statements about these compositions. Raise restores written names from the name table and removes what elaboration inserted (R565).
+
 Items outside the Jian subset are reported, not dropped. The report names the first construct that excludes each item (for example "uses `Ref` (L4)"). `view` takes `--edition`. Neither surface allows shadowing (E230), so projection renames nothing.
 
 ### 16.5 Round-trip laws
@@ -72,13 +74,17 @@ These MUST hold within each edition and MUST be tested on every conformance prog
 5. For any Wen module W: `wen(elaborate(W)) == fmt(W)`, byte for byte, comments kept at their items. A function whose whole body is one `match` on its parameters prints in clause form (15.3, R266), so this law keeps one printing per tree.
 6. For any canonical Fei module F: `fei(elaborate(F), spelling(F)) == F`, byte for byte, comments kept at their items; and every Yong item has a canonical Fei printing with no spelling notes (R518).
 
-**Trivia through Yong.** Yong carries five hash-neutral kinds of trivia, so laws 1, 2, 5 and 6 hold byte for byte: comments and docstrings; blank lines; literal spelling (18.5); local names (3.6, R519); and Fei spelling notes, which record which of several Fei spellings produced a node (16.6, R518). A note whose spelling no longer matches its node after an edit is dropped, and the default spelling prints. Comments attach as leading (on their own line, to the next node), trailing (on the same line, to the previous node) or dangling (in an empty construct or before a closer).
+**Trivia through Yong.** Yong carries six hash-neutral kinds of trivia, so laws 1, 2, 5 and 6 hold byte for byte: comments and docstrings; blank lines; literal spelling (18.5); local names (3.6, R519); Fei spelling notes, which record which of several Fei spellings produced a node (16.6, R518); and origin marks, which record that elaboration inserted a node (a capability argument, a copy, a move or a conversion) rather than the author writing it (R565). Trivia is kept in one side table per module, keyed by item hash and node path, and is never hashed. A note whose spelling no longer matches its node after an edit is dropped, and the default spelling prints. Comments attach as leading (on their own line, to the next node), trailing (on the same line, to the previous node) or dangling (in an empty construct or before a closer).
+
+**Raise (R565).** Raise removes every node that carries an origin mark. For Yong text without marks, such as hand-written `.yong` files, raise removes a node of an inserted kind only if elaborating the result inserts it again at the same place, so the raised item elaborates to the same Yong.
+
+**Checking the laws (R564).** `tools/conform.py --laws` checks every law that applies (laws 1 to 6, and N7 for each niche surface) on every conformance program, with no extra case files. CI reports the results once the printers from Yong exist and gates on them from M3. `conformance/roundtrip/` holds cases that pin spellings the suite does not otherwise reach.
 
 **Item identity.** An item's hash is defined in section 3.6. Two items with the same hash are the same item, whichever surface they came from.
 
 ### 16.6 Fei: the third surface
 
-Fei (斐, "brilliantly patterned") is the dense ASCII surface and the language-design playground (R516). Files use the extension `.fei`. It covers layers L0 to L6 and is built in milestone M4; until then its text is produced only by `yong view --as fei`. Any Yong item prints as Fei. Fei adds only syntax (law 1): every Fei module elaborates to the same Yong items, with the same hashes, as its Wen projection. Where Fei leaves a conversion, a `None` or a loop implicit in its text, the Yong text is explicit (law 5). The full reference, with the lexicon, precedence, grammar, spelling-note model and one entry per form, is RFC 0001 (`rfcs/0001-fei.md`); it moves into this section before the Fei build starts.
+Fei (斐, "brilliantly patterned") is the dense ASCII surface and the language-design playground (R516). Files use the extension `.fei`. It covers layers L0 to L6. Its print-only view, `yong view --as fei`, ships in M3 beside the Wen printer, printing any Yong item with no spelling notes (R563); its reader, lenient reader and spelling-note round trip are built in M4. Any Yong item prints as Fei. Fei adds only syntax (law 1): every Fei module elaborates to the same Yong items, with the same hashes, as its Wen projection. Where Fei leaves a conversion, a `None` or a loop implicit in its text, the Yong text is explicit (law 5). The full reference, with the lexicon, precedence, grammar, spelling-note model and one entry per form, is RFC 0001 (`rfcs/0001-fei.md`); it moves into this section before the Fei build starts.
 
 **Admission (R517).** A Fei form is admitted only if it passes all five rules:
 

@@ -1,8 +1,8 @@
 # 0004: Architecture for one core and many surfaces
 
-- Status: draft
+- Status: accepted (the lead accepted D1 to D7, and Q1 as D8, on 2026-11-01)
 - Research: [Yong architecture plan: one core, many surfaces](https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC)
-- Rows: filled in when accepted
+- Rows: R558 to R565
 
 ## Summary
 
@@ -27,8 +27,8 @@ Options weighed: keep growing HIR as the union of every surface's forms (cheap n
 sixteen surfaces); let surfaces lower straight to Yong (each would reimplement inference, capability
 passing and copy insertion). Recommended: the pivot.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R558
 
 ### D2: One printer per surface, one shared raise
 
@@ -38,8 +38,8 @@ names from the name table and removes what elaboration inserted. `fmt F` is
 print(abstract(parse(F))); `view --as S X` is print(resugar(raise(elaborate(X)))). The round-trip laws
 of 16.5 and N7 are statements about these compositions.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R559
 
 ### D3: Crate boundaries
 
@@ -57,8 +57,8 @@ Add to the 22.2 table:
 `yong-db` loads std; `yong-elab` depends on no surface crate. Dependencies run one way, by layer:
 base, surfaces, pivot, core, lowering, backends, runtime, tools.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R560
 
 ### D4: One intrinsic registry
 
@@ -68,8 +68,8 @@ implementations in `yong-rt`: a direct call from the interpreter, a C-ABI symbol
 from native code. Name-based dispatch goes away, and the M1b differential tests compare one std
 implementation on both sides.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R561
 
 ### D5: Std sources in tiers and in two surfaces
 
@@ -79,8 +79,8 @@ Jian when it is inside the Jian subset; bodies that need L4 to L6 (`unsafe`, `Pt
 blocks) go in a `.wen` file of the same module. 22.2 now says std sources are `.jian` only, which
 cannot express those bodies.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R562
 
 ### D6: Fei print-only view in M3
 
@@ -89,8 +89,8 @@ with no spelling notes (law 6, second half). The Fei reader, lenient reader and 
 trip stay in M4. The print-only view is the first test of the surface kit on a surface that is not
 Jian or Wen, and it is how R550 already ships niche surfaces.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R563
 
 ### D7: Law checking over the whole suite
 
@@ -98,21 +98,28 @@ Jian or Wen, and it is how R550 already ships niche surfaces.
 conformance program, with no new case files. CI reports it once printers from Yong exist and gates on
 it at M3. `conformance/roundtrip/` stays for cases the lead writes to pin hard spellings.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R564
+
+### D8: Origin marks (was Q1)
+
+Raise must tell an inserted copy, move, capability argument or conversion from one the author wrote.
+Each node elaboration inserts carries an origin mark, a sixth kind of hash-neutral trivia in 16.5.
+For Yong text with no marks, raise removes a node of an inserted kind only if elaborating the result
+inserts it again at the same place.
+
+- Decision: accepted, 2026-11-01 (option "Accept all, plus Q1 as D8")
+- Row: R565
 
 ## Open questions
 
-- Q1. Raise must tell an inserted copy or move from a written one. Proposed: an origin mark on each
-  inserted node, kept as hash-neutral trivia (a sixth kind in 16.5), with re-elaboration as the
-  fallback for Yong text that has no marks. Becomes D8 if the lead agrees.
 - Q2. When do golden item hashes enter `conformance/`? The lead's call.
 
 ## Spec changes
 
 - 1: the system overview diagram (D1, D2).
-- 16.4, 16.5: projection as compositions; law checking (D2, D7).
+- 16.4, 16.5: projection as compositions; law checking; origin marks and raise (D2, D7, D8).
 - 16.6, 23: Fei print-only view in M3 (D6).
 - 17.1: tier directories, std sources in Jian and Wen (D5).
 - 22.2, 22.3, 22.4: crates, pivot, intrinsic registry (D1, D3, D4, D5).
-- 24: the `--laws` mode (D7).
+- 24.2: the `--laws` mode (D7).

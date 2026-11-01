@@ -499,3 +499,8 @@ sections = "17.4, 9.6.1, 11.9"
 rows = "R554 to R557"
 topic = "Research track additions (RFC 0003), not normative for 1.0: dry-run handler class (R554); streams over `Remote` (R555); ceiling-level `fs.only` (R556); semantic diff (R557)"
 sections = "26.6"
+
+[[entry]]
+rows = "R558 to R565"
+topic = "Architecture for one core and many surfaces (RFC 0004, https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC), accepted by the owner: HIR as the surface-neutral pivot (R558); one printer per surface and a shared raise (R559); crate boundaries and layering (R560); one intrinsic registry (R561); std source layout by tier, Jian and Wen sources (R562); Fei print-only view in M3 (R563); law checking over the whole suite (R564); origin marks as trivia and raise (R565)"
+sections = "1, 16.4, 16.5, 16.6, 17.1, 22.2, 22.4, 23, 24.2"
