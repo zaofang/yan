@@ -1,8 +1,8 @@
 # 0008: std.path
 
-- Status: draft
+- Status: accepted (the lead chose "Accept, add WindowsPath now" on 2026-11-01: D1 to D5 accepted, D6 added)
 - Research: none; this RFC is the proposal (Wave 3 of the std build plan)
-- Rows: filled in when accepted
+- Rows: R587 to R592
 
 ## Summary
 
@@ -28,6 +28,9 @@ Options weighed:
 
 Recommendation: accept.
 
+- Decision: accepted, 2026-11-01
+- Row: R587
+
 ### D2: one separator on every host
 
 `Path` always uses `/` as its separator and has no Windows semantics: no drive letters, no `\`
@@ -37,6 +40,9 @@ on Windows it maps `/` to `\` there. Windows-style parsing, for tools that proce
 as data, can come later as a separate `WindowsPath` type.
 
 Recommendation: accept.
+
+- Decision: accepted, 2026-11-01
+- Row: R588
 
 ### D3: construction normalizes, `..` is kept
 
@@ -54,6 +60,9 @@ change the meaning of a path once symlinks are involved. Python's `PurePath` mak
 - A leading `..` on a relative path stays.
 
 Recommendation: accept.
+
+- Decision: accepted, 2026-11-01
+- Row: R589
 
 ### D4: the method set
 
@@ -78,6 +87,9 @@ method, not `/`: section 10 binds `/` to `Field`, and a path is not a field.
 
 Recommendation: accept.
 
+- Decision: accepted, 2026-11-01
+- Row: R590
+
 ### D5: `fs` takes `Path` and never returns a non-UTF-8 name
 
 When `Path` lands, each `fs` operation that takes a path takes `P: AsPath`, so existing calls with a
@@ -87,7 +99,31 @@ replaced: the listing fails with `FsError` and a `NotUnicode` reason that carrie
 
 Recommendation: accept. This sets the `fs` rule now, so the `fs` wave does not need to reopen it.
 
+- Decision: accepted, 2026-11-01
+- Row: R591
+
+### D6: `WindowsPath`, Windows path text as data
+
+`WindowsPath` is a second lexical type for tools that read or write Windows path text on any host:
+build scripts, archive tools, config files. It never reaches `fs`, which takes `Path` (D2, D5), and
+it does not implement `AsPath`.
+
+- `WindowsPath(s: str)` accepts `\` and `/` as separators and prints `\`. It recognizes a drive
+  (`C:`), a UNC share (`\\server\share`) and the verbatim prefix `\\?\`, which it keeps as written
+  with no normalization after it.
+- Construction normalizes as in D3, except under the verbatim prefix.
+- It has the D4 methods with the same results, plus `drive() -> str`, `root() -> str` (`\` or `""`)
+  and `anchor() -> str` (the two joined). `is_absolute()` needs both a drive (or share) and a root,
+  so `C:a` and `\a` are relative.
+- `Eq`, `Ord` and `Hash` compare parts case-insensitively by Unicode simple lowercase, as Python's
+  `PureWindowsPath` does; `show` keeps the original case.
+- `w.to_posix() -> Path | None` maps a relative path with no drive to a `Path`; anything with a
+  drive, share or root is `None`.
+
+- Decision: accepted (added by the lead), 2026-11-01
+- Row: R592
+
 ## Spec changes
 
-- 17.3: a `std.path` paragraph with D1 to D4, and a row-table entry.
-- 17.3 `fs`: D5.
+- 17.3: a `std.path` paragraph with D1 to D4 and D6, and the module-table row.
+- 17.3 `fs` row: D5 replaces "paths are `OsStr`".
