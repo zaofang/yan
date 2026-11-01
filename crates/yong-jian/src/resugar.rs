@@ -29,6 +29,7 @@ fn item(it: &mut Item) -> R {
         ItemKind::Trait(t) => t.sigs.iter_mut().try_for_each(|(_, f)| func(f)),
         ItemKind::Impl(i) => i.fns.iter_mut().try_for_each(func),
         ItemKind::Const { value, .. } => expr(value),
+        ItemKind::Extern(_) => Err("an extern block"),
     }
 }
 
@@ -104,6 +105,8 @@ fn stmt(s: &mut Stmt) -> R {
         StmtKind::Ghost { value, .. } => expr(value),
         StmtKind::Bind { .. } => unreachable!("rewritten above"),
         StmtKind::LetElse { .. } => Err("`let ... else`"),
+        StmtKind::Unsafe(_) => Err("`unsafe`"),
+        StmtKind::Asm { .. } => Err("`asm`"),
         StmtKind::BreakTo(_) | StmtKind::ContinueTo(_) => Err("a labelled `break` or `continue`"),
         StmtKind::Return(None)
         | StmtKind::Break
