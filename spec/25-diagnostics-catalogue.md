@@ -40,6 +40,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E013 | confirmed breaking change (with witness) for the declared bump *new* | 20.6 |
 | E014 | approved test changed since tests.lock was signed new | 18.4 |
 | E015 | approved test in tests.lock is missing new | 18.4 |
+| E016 | `yong publish` refuses the manifest: `overrides`, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later *new* | 19.4 |
 | E017 | construct this toolchain does not support yet, reported at the construct; checking continues (R649) new | 18.2 |
 | W014 | possible breaking change without a witness *new* | 20.6 |
 
