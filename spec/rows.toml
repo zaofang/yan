@@ -576,6 +576,11 @@ topic = "Packaging and ecosystem (RFC 0020, https://claude.ai/artifact/NHdZaQ9Q6
 sections = "12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25"
 
 [[entry]]
+rows = "R652 to R654"
+topic = "Tally slice findings (examples/tally), decided by the owner: Wen variant patterns may be qualified, `schema.Grocery()` (R652); currency units per ISO 4217 code, Money written as `12.50usd` in Wen and `12.50 * usd` in Xin and read exactly as dec128, `money(d, c)`, `.amount`, `.currency` (R653); golden program G5, the Tally slice in Xin and Wen (R654)"
+sections = "11.7, 15.2, 15.3, 24.3"
+
+[[entry]]
 rows = "R672 to R677"
 topic = "Security model (RFC 0026, https://claude.ai/artifact/Hotw9YyR8LEvWE4GbB9gLi), decided by the owner: host handlers are unforgeable, E326 (R672); unconfined class for proc, py and foreign libraries, `uses none` externs stay in the ceiling (R673); `fs.only`, `fs.sub`, `proc.only` and `env.only` attenuators (R674); frozen clauses keep their meaning and P006 covers the test-hash closure (R675); `yong mcp` confinement, budgets, untrusted channel and `yong trust` (R676); `embed` resolves symlinks and archives hold none (R677)"
 sections = "7.1, 7.3, 10.4, 12.2, 12.7, 17.6, 18.3, 19.2, 19.3, 19.4, 21.1, 21.4, 25"
