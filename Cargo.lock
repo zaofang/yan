@@ -486,6 +486,7 @@ dependencies = [
  "serde_json",
  "yong-check",
  "yong-core",
+ "yong-db",
  "yong-diag",
  "yong-elab",
  "yong-hir",
@@ -499,6 +500,15 @@ name = "yong-core"
 version = "0.0.0"
 dependencies = [
  "yong-diag",
+ "yong-std",
+]
+
+[[package]]
+name = "yong-db"
+version = "0.0.0"
+dependencies = [
+ "yong-hir",
+ "yong-jian",
  "yong-std",
 ]
 
@@ -517,10 +527,12 @@ dependencies = [
  "unicode-normalization",
  "yong-check",
  "yong-core",
+ "yong-db",
  "yong-diag",
  "yong-hir",
  "yong-interp",
  "yong-jian",
+ "yong-names",
  "yong-std",
 ]
 
@@ -557,6 +569,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "yong-names"
+version = "0.0.0"
+
+[[package]]
 name = "yong-std"
 version = "0.0.0"
 dependencies = [
@@ -564,11 +580,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "yong-surface"
+version = "0.0.0"
+
+[[package]]
 name = "yong-wen"
 version = "0.0.0"
 dependencies = [
  "yong-diag",
  "yong-hir",
+ "yong-names",
 ]
 
 [[package]]

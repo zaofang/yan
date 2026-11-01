@@ -12,13 +12,14 @@ unicode-normalization = "0.1.26"
 yong-core.workspace = true
 yong-diag.workspace = true
 yong-hir.workspace = true
-yong-jian.workspace = true
+yong-names.workspace = true
 yong-std.workspace = true
 
 [lints]
 workspace = true
 
 [dev-dependencies]
+yong-db.workspace = true
 yong-check.workspace = true
 yong-interp.workspace = true
 yong-jian.workspace = true

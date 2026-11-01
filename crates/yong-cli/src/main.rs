@@ -73,6 +73,7 @@ enum Format {
 }
 
 fn main() -> ExitCode {
+    yong_elab::install_std(yong_db::std_modules);
     match Cli::parse().command {
         Command::Check {
             format,
