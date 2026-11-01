@@ -16,7 +16,7 @@ pub type Local = u32;
 pub type BlockId = u32;
 pub type FuncId = u32;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct IntTy {
     pub bits: u8,
     pub signed: bool,
@@ -33,7 +33,7 @@ impl IntTy {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Ty {
     Int(IntTy),
     F64,
@@ -52,6 +52,8 @@ pub enum Operand {
     Unit,
     /// A `Str` literal, by index into [`Program::strings`].
     Str(u32),
+    /// A function's code address.
+    Func(FuncId),
 }
 
 /// A scalar intrinsic, decoded from its `<op>_<ty>` path once at lowering.
@@ -102,6 +104,14 @@ pub enum Inst {
         func: FuncId,
         args: Vec<Operand>,
     },
+    /// A call of a code address with the tail convention and these slot types.
+    CallIndirect {
+        dst: Vec<Local>,
+        code: Operand,
+        args: Vec<Operand>,
+        params: Vec<Ty>,
+        ret: Vec<Ty>,
+    },
     /// A yong-rt C-ABI function.
     Rt {
         dst: Option<Local>,
@@ -150,6 +160,8 @@ pub enum RtFn {
     ListAt,
     /// `(List) -> List`, a copy of the slots.
     ListCopy,
+    /// `(words) -> Ptr` to that many zeroed words.
+    Alloc,
 }
 
 #[derive(Clone, Debug, PartialEq)]

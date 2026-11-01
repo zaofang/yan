@@ -29,3 +29,4 @@ research index links their studies and rows.
 | [0006](0006-engine-layering.md) | Where niche surface engines sit | accepted | R576 |
 | [0007](0007-std-encoding.md) | std.encoding and `bytes` | accepted | R579 to R585 |
 | [0008](0008-std-path.md) | std.path | accepted | R587 to R592 |
+| [0009](0009-std-time.md) | std.time | accepted | R593 to R604 |

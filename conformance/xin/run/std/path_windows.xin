@@ -1,0 +1,21 @@
+# spec: 17.3
+# rows: R592
+# note: Windows parts compare case-insensitively; show keeps case
+# stdout:
+# C:\Users\Ann\notes.TXT C: \ C:\ True ['C:\\', 'Users', 'Ann', 'notes.TXT']
+# notes.TXT .TXT C:\Users\Ann C:\Users\Ann\notes.TXT\x D:\y C:\top
+# \\server\share\dir\f \\server\share True False False
+# \\?\C:\a\.\b \\?\C:
+# True 1
+# a/b None b
+
+pub def main() uses io:
+    w = WindowsPath("C:/Users/./Ann/notes.TXT")
+    io.print(f"{w} {w.drive()} {w.root()} {w.anchor()} {w.is_absolute()} {w.parts()}")
+    io.print(f"{w.name()} {w.suffix()} {w.parent()} {w.join('x')} {w.join('D:\\y')} {w.join('\\top')}")
+    u = WindowsPath("//server/share/dir/f")
+    io.print(f"{u} {u.drive()} {u.is_absolute()} {WindowsPath('C:a').is_absolute()} {WindowsPath('\\a').is_absolute()}")
+    v = WindowsPath("\\\\?\\C:\\a\\.\\b")
+    io.print(f"{v} {v.drive()}")
+    io.print(f"{w == WindowsPath('c:\\users\\ann\\NOTES.txt')} {len(set([w.copy(), WindowsPath('C:\\USERS\\ann\\notes.txt')]))}")
+    io.print(f"{WindowsPath('a\\b').to_posix()} {w.to_posix()} {WindowsPath('a\\..\\b').normalize()}")

@@ -41,6 +41,7 @@ static TABLE: LazyLock<Vec<Option<Bind>>> = LazyLock::new(|| {
         .chain(crate::prelude::BINDS)
         .chain(crate::collections::BINDS)
         .chain(crate::encoding::BINDS)
+        .chain(crate::path::binds())
         .chain(VM.iter())
     {
         assert!(

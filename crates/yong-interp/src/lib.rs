@@ -21,6 +21,7 @@ mod iter;
 mod keyed;
 mod math;
 mod native;
+mod path;
 mod prelude;
 mod regex;
 #[cfg(test)]
@@ -62,6 +63,8 @@ pub(crate) enum Value {
     Cap(Name),
     Bytes(Rc<[u8]>),
     ByteArray(Vec<u8>),
+    Path(Rc<str>),
+    WindowsPath(Rc<path::WinPath>),
     Closure(Rc<vm::Clo>),
     Iter(iter::It),
 }
@@ -107,6 +110,8 @@ impl Hash for Key {
                 Value::Char(c) => c.hash(h),
                 Value::Str(s) => s.hash(h),
                 Value::Bytes(b) => b.hash(h),
+                Value::Path(s) => s.hash(h),
+                Value::WindowsPath(w) => w.folded().hash(h),
                 Value::BigInt(b) => b.hash(h),
                 Value::Tuple(xs) | Value::List(xs) => xs.iter().for_each(|x| go(x, h)),
                 Value::Data { name, fields } => {
@@ -225,32 +230,53 @@ pub(crate) fn unsupported<T>(what: impl Into<String>) -> R<T> {
 
 /// Run `fn main` of `m`, writing program output to `out`. Returns the exit status.
 pub fn run(m: &Module, out: &mut dyn Write) -> R<i32> {
+    Ok(match entry(m, "main", out, None)? {
+        true => 0,
+        false => EXIT_FAILURE,
+    })
+}
+
+/// Run the test `fn f` of `m` under `limits`, on a thread with room for deep recursion.
+/// `Ok(false)` means it returned a failure.
+pub fn test(m: &Module, f: &str, limits: Limits, out: &mut (dyn Write + Send)) -> R<bool> {
+    std::thread::scope(|s| {
+        std::thread::Builder::new()
+            .stack_size(1 << 30)
+            .spawn_scoped(s, || entry(m, f, out, Some(limits)))
+            .expect("spawn the test thread")
+            .join()
+            .unwrap_or_else(|_| unsupported("the interpreter crashed"))
+    })
+}
+
+/// Call `fn f` of `m` with its capabilities bound; `false` when it returns a failure.
+fn entry(m: &Module, f: &str, out: &mut dyn Write, limits: Option<Limits>) -> R<bool> {
     let program = compile::compile(m);
-    let Some(main) = program.fns.get("main").copied() else {
-        return unsupported("no `fn main` in the module");
+    let Some(code) = program.fns.get(f).copied() else {
+        return unsupported(format!("no `fn {f}` in the module"));
     };
     let def = m
         .items
         .iter()
         .rev()
         .find_map(|i| match &i.kind {
-            ItemKind::Fn(f) if f.path.join(".") == "main" => Some(f),
+            ItemKind::Fn(d) if d.path.join(".") == f => Some(d),
             _ => None,
         })
-        .expect("main is a fn item");
+        .expect("a fn item");
     let args = def
         .params
         .iter()
         .map(|p| match p {
             Param::Cap { name, .. } => Ok(Value::Cap(name.clone())),
-            Param::Value { .. } => unsupported("`main` with value parameters"),
+            Param::Value { .. } => unsupported(format!("`{f}` with value parameters")),
         })
         .collect::<R<Vec<_>>>()?;
-    let status = match vm::Vm::new(program, Interp { out }).call(main, args)?.0 {
-        Ok(_) => 0,
-        Err(_) => EXIT_FAILURE,
-    };
-    Ok(status)
+    let mut vm = vm::Vm::new(program, Interp { out });
+    if let Some(l) = limits {
+        vm.limit(l);
+    }
+    Ok(vm.call(code, args)?.0.is_ok())
 }
 
 pub(crate) fn int_range(ty: &str) -> Option<(i128, i128)> {

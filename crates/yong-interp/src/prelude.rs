@@ -156,6 +156,7 @@ fn order(a: &Value, b: &Value) -> Option<Ordering> {
         (Char(x), Char(y)) => Some(x.cmp(y)),
         (Str(x), Str(y)) => Some(x.cmp(y)),
         (Bytes(x), Bytes(y)) => Some(x.cmp(y)),
+        (Path(_), Path(_)) | (WindowsPath(_), WindowsPath(_)) => Some(super::path::order(a, b)),
         (Tuple(xs), Tuple(ys)) | (List(xs), List(ys)) => {
             for (x, y) in xs.iter().zip(ys) {
                 match order(x, y)? {
@@ -234,6 +235,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Closure(_) => "<function>".into(),
         Iter(_) => "<iter>".into(),
         Bytes(b) => super::encoding::repr(b),
+        Path(_) | WindowsPath(_) => super::path::text(v).to_owned(),
         ByteArray(b) => format!("bytearray({})", super::encoding::repr(b)),
     }
 }

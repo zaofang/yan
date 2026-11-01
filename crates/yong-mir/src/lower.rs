@@ -1,5 +1,6 @@
 //! Checked Yong to MIR.
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 use yong_core::ast as y;
@@ -21,7 +22,7 @@ const I64: Ty = Ty::Int(IntTy {
 type Fields = Vec<(String, Shape)>;
 
 /// A Yong type as scalar slots.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum Shape {
     Scalar(Ty),
     Str,
@@ -30,6 +31,8 @@ enum Shape {
     Tuple(Vec<Shape>),
     /// A tag slot, then each variant's fields in order.
     Sum(String, Vec<(String, Vec<(String, Shape)>)>),
+    /// A closure: its code and its captures' block. `ret` is a `Result` for `fail E`.
+    Fn(Vec<Shape>, Box<Shape>),
 }
 
 impl Shape {
@@ -37,6 +40,7 @@ impl Shape {
         match self {
             Shape::Scalar(t) => out.push(*t),
             Shape::Str | Shape::List(_) => out.push(Ty::Ptr),
+            Shape::Fn(..) => out.extend([Ty::Ptr, Ty::Ptr]),
             Shape::Rec(_, fs) => fs.iter().for_each(|(_, s)| s.slots(out)),
             Shape::Tuple(ss) => ss.iter().for_each(|s| s.slots(out)),
             Shape::Sum(_, vs) => {
@@ -61,7 +65,7 @@ impl Shape {
     fn has_list(&self) -> bool {
         match self {
             Shape::List(_) => true,
-            Shape::Scalar(_) | Shape::Str => false,
+            Shape::Scalar(_) | Shape::Str | Shape::Fn(..) => false,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| s.has_list()),
             Shape::Tuple(ss) => ss.iter().any(Shape::has_list),
             Shape::Sum(_, vs) => vs.iter().flat_map(|(_, fs)| fs).any(|(_, s)| s.has_list()),
@@ -75,7 +79,7 @@ impl Shape {
             Shape::Tuple(ss) => ss
                 .iter()
                 .enumerate()
-                .map(|(i, s)| (i.to_string(), s))
+                .map(|(i, s)| (format!("_{i}"), s))
                 .collect(),
             _ => return None,
         };
@@ -122,27 +126,33 @@ struct Types<'m> {
     sums: HashMap<&'m str, &'m y::Sum>,
 }
 
+type Env = HashMap<String, Shape>;
+
 impl Types<'_> {
-    fn shape(&self, t: &y::Type) -> R<Shape> {
-        self.shape_in(t, &mut Vec::new())
+    /// `t` with the type parameters in `env` replaced.
+    fn shape(&self, t: &y::Type, env: &Env) -> R<Shape> {
+        self.shape_in(t, &mut Vec::new(), env)
     }
 
-    fn shape_in(&self, t: &y::Type, stack: &mut Vec<String>) -> R<Shape> {
+    fn shape_in(&self, t: &y::Type, stack: &mut Vec<String>, env: &Env) -> R<Shape> {
         match t {
             y::Type::Tuple(ts) => Ok(Shape::Tuple(
                 ts.iter()
-                    .map(|t| self.shape_in(t, stack))
+                    .map(|t| self.shape_in(t, stack, env))
                     .collect::<R<_>>()?,
             )),
             y::Type::Named(n) if n.path.len() == 1 => {
                 let name = n.path[0].as_str();
+                if let (Some(s), []) = (env.get(name), n.args.as_slice()) {
+                    return Ok(s.clone());
+                }
                 match (name, n.args.as_slice()) {
                     ("Str", []) => return Ok(Shape::Str),
                     ("List", [y::TArg::Type(e)]) => {
-                        return Ok(Shape::List(Box::new(self.shape_in(e, stack)?)));
+                        return Ok(Shape::List(Box::new(self.shape_in(e, stack, env)?)));
                     }
                     ("Option", [y::TArg::Type(t)]) => {
-                        let t = self.shape_in(t, stack)?;
+                        let t = self.shape_in(t, stack, env)?;
                         return Ok(Shape::Sum(
                             "Option".into(),
                             vec![
@@ -152,7 +162,10 @@ impl Types<'_> {
                         ));
                     }
                     ("Result", [y::TArg::Type(t), y::TArg::Type(e)]) => {
-                        return Ok(result(self.shape_in(t, stack)?, self.shape_in(e, stack)?));
+                        return Ok(result(
+                            self.shape_in(t, stack, env)?,
+                            self.shape_in(e, stack, env)?,
+                        ));
                     }
                     (_, []) => {}
                     _ => return unsupported(format!("type `{name}[..]`")),
@@ -166,7 +179,7 @@ impl Types<'_> {
                 stack.push(name.to_owned());
                 let fields = |fs: &[y::Field], stack: &mut Vec<String>| {
                     fs.iter()
-                        .map(|f| Ok((f.name.clone(), self.shape_in(&f.ty, stack)?)))
+                        .map(|f| Ok((f.name.clone(), self.shape_in(&f.ty, stack, env)?)))
                         .collect::<R<Vec<_>>>()
                 };
                 let s = if let Some(r) = self.recs.get(name).filter(|r| r.tparams.is_empty()) {
@@ -187,6 +200,22 @@ impl Types<'_> {
                 stack.pop();
                 Ok(s)
             }
+            y::Type::Fn(ft) => {
+                if ft.params.iter().any(|(c, _)| *c == y::Conv::Inout) {
+                    return unsupported("a closure type with `inout` parameters");
+                }
+                let ps = ft
+                    .params
+                    .iter()
+                    .map(|(_, t)| self.shape_in(t, stack, env))
+                    .collect::<R<_>>()?;
+                let ok = self.shape_in(&ft.ret, stack, env)?;
+                let ret = match &ft.fail {
+                    Some(e) => result(ok, self.shape_in(e, stack, env)?),
+                    None => ok,
+                };
+                Ok(Shape::Fn(ps, Box::new(ret)))
+            }
             _ => unsupported("a compound type"),
         }
     }
@@ -202,6 +231,7 @@ fn result(ok: Shape, err: Shape) -> Shape {
     )
 }
 
+#[derive(Clone)]
 struct Sig {
     params: Vec<(y::Conv, Shape)>,
     /// The declared result.
@@ -241,43 +271,106 @@ pub fn lower(m: &y::Module) -> R<Program> {
             _ => return unsupported(format!("item at line {}", i.span.line)),
         }
     }
-    let ids: HashMap<String, FuncId> = defs
+    let by_name: HashMap<String, usize> = defs
         .iter()
         .enumerate()
-        .map(|(i, f)| (f.path.join("."), i as FuncId))
+        .map(|(i, f)| (f.path.join("."), i))
         .collect();
+    let main = *by_name.get("main").ok_or("no `fn main` in the module")?;
+    let mono = RefCell::new(Mono {
+        defs,
+        by_name,
+        insts: HashMap::new(),
+        sigs: Vec::new(),
+        todo: Vec::new(),
+    });
+    let main = mono.borrow_mut().instance(&types, main, Vec::new())?;
     let mut prog = Program {
         funcs: Vec::new(),
-        main: *ids.get("main").ok_or("no `fn main` in the module")?,
-        main_fails: false,
+        main,
+        main_fails: mono.borrow().sigs[main as usize].fails,
         strings: Vec::new(),
     };
-    let sigs: Vec<Sig> = defs
-        .iter()
-        .map(|f| {
-            if !f.tparams.is_empty() {
-                return unsupported("a generic function");
+    // Instances are lowered in id order; lowering one can add more.
+    while prog.funcs.len() < mono.borrow().todo.len() {
+        let me = prog.funcs.len();
+        let todo = mono.borrow().todo[me].clone();
+        let func = match todo {
+            Todo::Def(def, env) => {
+                let f: &y::FnDef = mono.borrow().defs[def];
+                Fn::new(&mono, &types, &mut prog.strings, me, env).func(f)?
             }
-            Ok(Sig {
-                params: params(f)?
-                    .into_iter()
-                    .map(|(_, c, t)| Ok((c, types.shape(t)?)))
-                    .collect::<R<_>>()?,
-                ok: types.shape(&f.ret)?,
-                ret: match &f.fail {
-                    Some(e) => result(types.shape(&f.ret)?, types.shape(e)?),
-                    None => types.shape(&f.ret)?,
-                },
-                fails: f.fail.is_some(),
-            })
-        })
-        .collect::<R<_>>()?;
-    prog.main_fails = sigs[prog.main as usize].fails;
-    for (i, f) in defs.iter().enumerate() {
-        let func = Fn::new(&ids, &sigs, &types, &mut prog.strings, i).func(f)?;
+            Todo::Closure(c, env, caps) => {
+                Fn::new(&mono, &types, &mut prog.strings, me, env).closure(c, caps)?
+            }
+        };
         prog.funcs.push(func);
     }
     Ok(prog)
+}
+
+/// Monomorphization: one MIR function per definition and list of type arguments.
+struct Mono<'m> {
+    defs: Vec<&'m y::FnDef>,
+    by_name: HashMap<String, usize>,
+    insts: HashMap<(usize, Vec<Shape>), FuncId>,
+    sigs: Vec<Sig>,
+    /// What each instance lowers, in id order.
+    todo: Vec<Todo<'m>>,
+}
+
+#[derive(Clone)]
+enum Todo<'m> {
+    /// A definition and its type arguments.
+    Def(usize, Env),
+    /// A closure body with its captures' names and types, read from the block in its first
+    /// parameter.
+    Closure(&'m y::Closure, Env, Vec<(String, Shape)>),
+}
+
+impl Mono<'_> {
+    fn instance(&mut self, types: &Types, def: usize, targs: Vec<Shape>) -> R<FuncId> {
+        if let Some(&id) = self.insts.get(&(def, targs.clone())) {
+            return Ok(id);
+        }
+        let f = self.defs[def];
+        if f.tparams
+            .iter()
+            .any(|t| t.comptime || !matches!(t.kind, y::Kind::Type))
+        {
+            return unsupported("a comptime type parameter");
+        }
+        if f.tparams.len() != targs.len() {
+            return unsupported(format!(
+                "call of `{}` without its type arguments",
+                f.path.join(".")
+            ));
+        }
+        let env: Env = f
+            .tparams
+            .iter()
+            .map(|t| t.name.clone())
+            .zip(targs.iter().cloned())
+            .collect();
+        let ok = types.shape(&f.ret, &env)?;
+        let sig = Sig {
+            params: params(f)?
+                .into_iter()
+                .map(|(_, c, t)| Ok((c, types.shape(t, &env)?)))
+                .collect::<R<_>>()?,
+            ret: match &f.fail {
+                Some(e) => result(ok.clone(), types.shape(e, &env)?),
+                None => ok.clone(),
+            },
+            ok,
+            fails: f.fail.is_some(),
+        };
+        let id = self.sigs.len() as FuncId;
+        self.sigs.push(sig);
+        self.todo.push(Todo::Def(def, env));
+        self.insts.insert((def, targs), id);
+        Ok(id)
+    }
 }
 
 fn params(f: &y::FnDef) -> R<Vec<(&str, y::Conv, &y::Type)>> {
@@ -385,10 +478,10 @@ enum Scope {
     },
 }
 
-struct Fn<'a> {
-    ids: &'a HashMap<String, FuncId>,
-    sigs: &'a [Sig],
-    types: &'a Types<'a>,
+struct Fn<'a, 'm> {
+    mono: &'a RefCell<Mono<'m>>,
+    types: &'a Types<'m>,
+    env: Env,
     strings: &'a mut Vec<String>,
     me: usize,
     locals: Vec<Ty>,
@@ -401,18 +494,18 @@ struct Fn<'a> {
     scopes: Vec<Scope>,
 }
 
-impl<'a> Fn<'a> {
+impl<'a, 'm> Fn<'a, 'm> {
     fn new(
-        ids: &'a HashMap<String, FuncId>,
-        sigs: &'a [Sig],
-        types: &'a Types<'a>,
+        mono: &'a RefCell<Mono<'m>>,
+        types: &'a Types<'m>,
         strings: &'a mut Vec<String>,
         me: usize,
+        env: Env,
     ) -> Self {
         Fn {
-            ids,
-            sigs,
+            mono,
             types,
+            env,
             strings,
             me,
             locals: Vec::new(),
@@ -425,29 +518,96 @@ impl<'a> Fn<'a> {
         }
     }
 
-    fn func(mut self, f: &y::FnDef) -> R<Func> {
-        let sig = &self.sigs[self.me];
-        for ((name, ..), (conv, shape)) in params(f)?.iter().zip(&sig.params) {
+    fn sig(&self, f: FuncId) -> Sig {
+        self.mono.borrow().sigs[f as usize].clone()
+    }
+
+    fn shape(&self, t: &y::Type) -> R<Shape> {
+        self.types.shape(t, &self.env)
+    }
+
+    /// The instance a call names, if it names a function of this module.
+    fn callee(&self, c: &y::Call) -> R<Option<FuncId>> {
+        let Some(&def) = self.mono.borrow().by_name.get(&c.path.join(".")) else {
+            return Ok(None);
+        };
+        let targs = c
+            .targs
+            .iter()
+            .map(|t| match t {
+                y::TArg::Type(t) => self.shape(t),
+                y::TArg::Nat(_) => unsupported("a Nat type argument"),
+            })
+            .collect::<R<Vec<_>>>()?;
+        self.mono
+            .borrow_mut()
+            .instance(self.types, def, targs)
+            .map(Some)
+    }
+
+    fn func(self, f: &'m y::FnDef) -> R<Func> {
+        let names: Vec<&str> = params(f)?.into_iter().map(|(n, ..)| n).collect();
+        let body = f.body.as_ref().expect("filtered on body");
+        self.body(&f.path.join("."), &names, &f.contracts, body, Vec::new())
+    }
+
+    fn closure(self, c: &'m y::Closure, caps: Vec<(String, Shape)>) -> R<Func> {
+        let mut names = vec![""];
+        for p in &c.params {
+            let y::Param::Value { name, .. } = p else {
+                return unsupported("a closure with a capability parameter");
+            };
+            names.push(name);
+        }
+        self.body("closure", &names, &[], &c.body, caps)
+    }
+
+    /// With `caps`, the first parameter is the captures' block.
+    fn body(
+        mut self,
+        name: &str,
+        param_names: &[&str],
+        contracts: &[y::Contract],
+        body: &'m y::Block,
+        caps: Vec<(String, Shape)>,
+    ) -> R<Func> {
+        let sig = self.sig(self.me as FuncId);
+        let mut env = None;
+        for (name, (conv, shape)) in param_names.iter().zip(&sig.params) {
             let v = self.var(shape.clone());
             if *conv == y::Conv::Inout {
                 self.inout.extend(&v.locals);
             }
-            self.names.insert((*name).to_owned(), v);
+            if name.is_empty() {
+                env = Some(Operand::Local(v.locals[0]));
+            } else {
+                self.names.insert((*name).to_owned(), v);
+            }
         }
         let n_params = self.locals.len() as u32;
         let mut ret = sig.ret.tys();
         ret.extend(sig.inout());
         self.cur = self.block_new();
-        for c in &f.contracts {
+        if let Some(env) = env {
+            let mut word = 0;
+            for (n, shape) in caps {
+                let v = self.read(&At::Mem(env.clone(), word), &shape);
+                word += v.len() as u32;
+                let var = self.var(shape);
+                self.copy_to(&var.locals.clone(), v);
+                self.names.insert(n, var);
+            }
+        }
+        for c in contracts {
             if let y::Contract::Requires(e) = c {
                 let t = self.expr(e)?;
                 self.check(t, "contract");
             }
         }
-        self.block(f.body.as_ref().expect("filtered on body"))?;
+        self.block(body)?;
         self.finish(Term::Panic("unreachable"));
         Ok(Func {
-            name: f.path.join("."),
+            name: name.to_owned(),
             params: n_params,
             ret,
             locals: self.locals,
@@ -670,14 +830,14 @@ impl<'a> Fn<'a> {
 
     fn targ(&self, c: &y::Call) -> R<Option<Shape>> {
         match c.targs.as_slice() {
-            [y::TArg::Type(t)] => Ok(Some(self.types.shape(t)?)),
+            [y::TArg::Type(t)] => Ok(Some(self.shape(t)?)),
             _ => Ok(None),
         }
     }
 
     fn user_args(&mut self, func: FuncId, c: &y::Call) -> R<(Vec<Operand>, Vec<Local>)> {
         let args = Self::value_args(c)?;
-        let sig = &self.sigs[func as usize];
+        let sig = &self.sig(func);
         if sig.params.len() != args.len() {
             return unsupported(format!(
                 "call of `{}` with these arguments",
@@ -701,14 +861,47 @@ impl<'a> Fn<'a> {
 
     fn call(&mut self, c: &y::Call, dst: Option<Var>) -> R<()> {
         let name = c.path.join(".");
-        if let Some(&func) = self.ids.get(&name) {
+        if let Some(func) = self.callee(c)? {
             let (args, back) = self.user_args(func, c)?;
             let mut d = match dst {
                 Some(v) => v.locals,
-                None => self.var(self.sigs[func as usize].ret.clone()).locals,
+                None => self.var(self.sig(func).ret.clone()).locals,
             };
             d.extend(back);
             self.emit(Inst::Call { dst: d, func, args });
+            return Ok(());
+        }
+        if let (
+            [n],
+            Some(Var {
+                shape: Shape::Fn(ps, ret),
+                locals,
+            }),
+        ) = (
+            c.path.as_slice(),
+            self.names.get(&c.path.join(".")).cloned(),
+        ) {
+            let args = Self::value_args(c)?;
+            if args.len() != ps.len() {
+                return unsupported(format!("call of `{n}` with these arguments"));
+            }
+            let mut ops = vec![Operand::Local(locals[1])];
+            let mut tys = vec![Ty::Ptr];
+            for ((_, a), s) in args.into_iter().zip(&ps) {
+                ops.extend(self.atom(a, s)?);
+                tys.extend(s.tys());
+            }
+            let d = match dst {
+                Some(v) => v.locals,
+                None => self.var((*ret).clone()).locals,
+            };
+            self.emit(Inst::CallIndirect {
+                dst: d,
+                code: Operand::Local(locals[0]),
+                args: ops,
+                params: tys,
+                ret: ret.tys(),
+            });
             return Ok(());
         }
         let Some(id) = registry::id(&name) else {
@@ -815,6 +1008,7 @@ impl<'a> Fn<'a> {
             Shape::Scalar(Ty::Bool) => self.rt(RtFn::ShowBool, Ty::Ptr, vec![v[0].clone()]),
             Shape::Scalar(Ty::Unit) => self.lit("None"),
             Shape::Scalar(Ty::Ptr) => unreachable!("not a Yong type"),
+            Shape::Fn(..) => self.lit("<function>"),
             Shape::Str if nested => self.rt(RtFn::Repr, Ty::Ptr, vec![v[0].clone()]),
             Shape::Str => v[0].clone(),
             Shape::Rec(name, fs) => self.show_fields(name, v, fs)?,
@@ -990,7 +1184,7 @@ impl<'a> Fn<'a> {
     }
 
     /// The value of `r`, of type `want`.
-    fn value(&mut self, r: &y::Rhs, want: &Shape) -> R<Vec<Operand>> {
+    fn value(&mut self, r: &'m y::Rhs, want: &Shape) -> R<Vec<Operand>> {
         match r {
             y::Rhs::Atom(a) => self.atom(a, want),
             y::Rhs::Call(c) => {
@@ -1015,20 +1209,25 @@ impl<'a> Fn<'a> {
                 }
             }
             y::Rhs::Ctor(c) => self.ctor(c, want),
-            y::Rhs::Try(c) => self.value(&y::Rhs::Call(c.clone()), want),
+            y::Rhs::Try(c) => {
+                let v = self.var(want.clone());
+                let ops = Self::ops(&v);
+                self.call(c, Some(v))?;
+                Ok(ops)
+            }
             y::Rhs::Propagate { call, via: None } => self.propagate(call, want),
             y::Rhs::Propagate { .. } => unsupported("`?` through a conversion"),
-            y::Rhs::Closure(_) => unsupported("a closure"),
+            y::Rhs::Closure(c) => self.make_closure(c, want),
         }
     }
 
     /// `c?`: its `Ok` value, or return its error from this function.
     fn propagate(&mut self, c: &y::Call, want: &Shape) -> R<Vec<Operand>> {
-        let Some(&func) = self.ids.get(&c.path.join(".")) else {
+        let Some(func) = self.callee(c)? else {
             return unsupported(format!("`?` on `{}`", c.path.join(".")));
         };
-        let theirs = self.sigs[func as usize].ret.clone();
-        let mine = self.sigs[self.me].ret.clone();
+        let theirs = self.sig(func).ret.clone();
+        let mine = self.sig(self.me as FuncId).ret.clone();
         let (Some((_, ok_at, _)), Some((_, err_at, efs)), Some((_, _, mine_e))) = (
             theirs.variant("Ok"),
             theirs.variant("Err"),
@@ -1050,6 +1249,47 @@ impl<'a> Fn<'a> {
         self.ret(Self::variant_value(&mine, "Err", ev));
         self.cur = ok;
         Ok(v[ok_at..ok_at + want.width()].to_vec())
+    }
+
+    /// Lift `c` to its own function; its value is that code and a block of the captures.
+    fn make_closure(&mut self, c: &'m y::Closure, want: &Shape) -> R<Vec<Operand>> {
+        let mut caps = Vec::new();
+        let mut vals = Vec::new();
+        for (conv, n, _) in &c.captures {
+            if *conv == y::Conv::Inout {
+                return unsupported("an `inout` capture");
+            }
+            let v = self.name(n)?.clone();
+            vals.extend(Self::ops(&v));
+            caps.push((n.clone(), v.shape));
+        }
+        let Shape::Fn(ps, ret) = want else {
+            return unsupported("a closure of this type");
+        };
+        let mut params = vec![(y::Conv::Let, Shape::Scalar(Ty::Ptr))];
+        params.extend(ps.iter().map(|s| (y::Conv::Let, s.clone())));
+        let ok = match ret.variant("Err").filter(|_| c.fail.is_some()) {
+            Some(_) => match &**ret {
+                Shape::Sum(_, vs) => vs[0].1[0].1.clone(),
+                _ => unreachable!("a Result"),
+            },
+            None => (**ret).clone(),
+        };
+        let id = {
+            let mut m = self.mono.borrow_mut();
+            let id = m.sigs.len() as FuncId;
+            m.sigs.push(Sig {
+                params,
+                ok,
+                ret: (**ret).clone(),
+                fails: c.fail.is_some(),
+            });
+            m.todo.push(Todo::Closure(c, self.env.clone(), caps));
+            id
+        };
+        let block = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(vals.len() as i128)]);
+        self.write(&At::Mem(block.clone(), 0), vals);
+        Ok(vec![Operand::Func(id), block])
     }
 
     fn ctor(&mut self, c: &y::Ctor, want: &Shape) -> R<Vec<Operand>> {
@@ -1198,14 +1438,14 @@ impl<'a> Fn<'a> {
     }
 
     /// Names bound in `b` go out of scope at its end.
-    fn block(&mut self, b: &y::Block) -> R<()> {
+    fn block(&mut self, b: &'m y::Block) -> R<()> {
         let outer = self.names.clone();
         let r = self.block_in(b);
         self.names = outer;
         r
     }
 
-    fn block_in(&mut self, b: &y::Block) -> R<()> {
+    fn block_in(&mut self, b: &'m y::Block) -> R<()> {
         let decls: Vec<_> = b
             .stmts
             .iter()
@@ -1227,7 +1467,7 @@ impl<'a> Fn<'a> {
                 let y::Param::Value { name, ty, .. } = p else {
                     return unsupported("a capability join-point parameter");
                 };
-                let v = self.var(self.types.shape(ty)?);
+                let v = self.var(self.shape(ty)?);
                 ls.extend(&v.locals);
                 vs.push((name.clone(), v));
             }
@@ -1334,11 +1574,11 @@ impl<'a> Fn<'a> {
         }
     }
 
-    fn stmt(&mut self, s: &y::Stmt) -> R<()> {
+    fn stmt(&mut self, s: &'m y::Stmt) -> R<()> {
         use y::StmtKind as K;
         match &s.kind {
             K::Let { pat, ty, rhs, .. } => {
-                let shape = self.types.shape(ty)?;
+                let shape = self.shape(ty)?;
                 let v = self.value(rhs, &shape)?;
                 match pat {
                     y::Pat::Bind(n) => {
@@ -1412,7 +1652,7 @@ impl<'a> Fn<'a> {
             K::Jp { .. } => unreachable!("handled by `block`"),
             K::Jump { name, args } => self.jump(name, args),
             K::Ret(a) => {
-                let sig = &self.sigs[self.me];
+                let sig = &self.sig(self.me as FuncId);
                 let (ok, ret, fails) = (sig.ok.clone(), sig.ret.clone(), sig.fails);
                 let v = self.atom(a, &ok)?;
                 let v = if fails {
@@ -1424,7 +1664,7 @@ impl<'a> Fn<'a> {
                 Ok(())
             }
             K::Fail(a) => {
-                let ret = self.sigs[self.me].ret.clone();
+                let ret = self.sig(self.me as FuncId).ret.clone();
                 let Some((_, _, fs)) = ret.variant("Err") else {
                     return unsupported("`fail` outside a failing function");
                 };
@@ -1435,13 +1675,13 @@ impl<'a> Fn<'a> {
             }
             K::Become(c) => {
                 let name = c.path.join(".");
-                let Some(&func) = self.ids.get(&name) else {
+                let Some(func) = self.callee(c)? else {
                     return unsupported(format!("`become` of `{name}`"));
                 };
-                if !self.inout.is_empty() || !self.sigs[func as usize].inout().is_empty() {
+                if !self.inout.is_empty() || !self.sig(func).inout().is_empty() {
                     return unsupported("`become` with `inout` parameters");
                 }
-                if self.sigs[func as usize].ret != self.sigs[self.me].ret {
+                if self.sig(func).ret != self.sig(self.me as FuncId).ret {
                     return unsupported("`become` across failure types");
                 }
                 let (args, _) = self.user_args(func, c)?;

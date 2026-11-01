@@ -1,0 +1,14 @@
+# spec: 17.3
+# rows: R588, R590
+# stdout:
+# /srv/app/logs /srv/app/x/y /etc /srv/app/data
+# True False
+# logs/x . None
+# None True False
+
+pub def main() uses io:
+    a = Path("/srv/app")
+    io.print(f"{a.join('logs')} {a.join('x/./y/')} {a.join('/etc')} {a.join(Path('data'))}")
+    io.print(f"{a.is_absolute()} {Path('a/b').is_absolute()}")
+    io.print(f"{a.join('logs/x').relative_to(a)} {a.relative_to(a)} {a.relative_to(Path('/srv/other'))}")
+    io.print(f"{Path('a/b').relative_to(Path('/a'))} {a.starts_with(Path('/srv'))} {a.starts_with(Path('/sr'))}")
