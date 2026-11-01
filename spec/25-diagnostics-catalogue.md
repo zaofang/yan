@@ -187,6 +187,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E604 | non-ghost code reads a ghost value (R458) new | 8.7 |
 | E605 | lemma uses a capability (R458) new | 8.7 |
 | E618 | `cost` bound refuted, with a witness input (R610) new | 8.4 |
+| E619 | the arguments of an `ex` line break the function's `pre` (R621) new | 21.1 |
 | V402 | proof certificate rejected by the toolchain's checker (R608) new | 8.7 |
 
 ### 25.9 Holes and concurrency

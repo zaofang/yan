@@ -4,6 +4,8 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
+mod agent;
+mod examples;
 mod mcp;
 mod patch;
 mod test;
@@ -93,9 +95,41 @@ enum Command {
         /// test fails the run, and proposed tests only report.
         #[arg(long)]
         gate: bool,
-        /// Run only this test, `module.test_name`.
+        /// Run only this test (`module.test_name`, `module.f#ex1`), or the tests under a module
+        /// or function prefix.
         #[arg(long)]
         only: Option<String>,
+    },
+    /// Run one task through the spec gate as a client of `yong mcp` (the reference agent
+    /// loop), and print its run record.
+    Agent {
+        /// The task: a JSON file with `id` and `prompt`.
+        task: PathBuf,
+        /// `stub:FILE` (scripted replies) or `cmd:PROGRAM` (one JSON line per turn).
+        #[arg(long)]
+        model: String,
+        /// The system prompt; the Xin primer.
+        #[arg(long)]
+        primer: Option<PathBuf>,
+        /// A directory of `.xin` examples appended to the system prompt.
+        #[arg(long)]
+        shots: Option<PathBuf>,
+        /// The work directory; a new temporary one by default.
+        #[arg(long)]
+        dir: Option<PathBuf>,
+        /// The module the task is written in.
+        #[arg(long, default_value = "task")]
+        module: String,
+        #[arg(long, default_value_t = 2)]
+        spec_repairs: usize,
+        #[arg(long, default_value_t = 3)]
+        body_repairs: usize,
+        /// The output budget of each model turn.
+        #[arg(long, default_value_t = 16000)]
+        max_tokens: u64,
+        /// Write the run record here instead of stdout.
+        #[arg(long)]
+        out: Option<PathBuf>,
     },
     /// Run a program.
     Run {
@@ -151,6 +185,45 @@ fn main() -> ExitCode {
             module,
             patch,
         } => apply_patch(&patch, module.as_deref(), check, format),
+        Command::Agent {
+            task,
+            model,
+            primer,
+            shots,
+            dir,
+            module,
+            spec_repairs,
+            body_repairs,
+            max_tokens,
+            out,
+        } => {
+            let o = agent::Options {
+                task,
+                model,
+                primer,
+                shots,
+                dir,
+                module,
+                spec_repairs,
+                body_repairs,
+                max_tokens,
+            };
+            match agent::run(&o) {
+                Ok((rec, green)) => {
+                    let text = format!("{rec:#}\n");
+                    match out {
+                        Some(f) => {
+                            if let Err(e) = std::fs::write(&f, text) {
+                                return tool_failure(&format!("{}: {e}", f.display()));
+                            }
+                        }
+                        None => print!("{text}"),
+                    }
+                    ExitCode::from(u8::from(!green))
+                }
+                Err(msg) => tool_failure(&msg),
+            }
+        }
         Command::Mcp => match mcp::serve(Path::new(".")) {
             Ok(()) => ExitCode::SUCCESS,
             Err(msg) => tool_failure(&msg),

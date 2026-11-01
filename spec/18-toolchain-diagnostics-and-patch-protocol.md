@@ -17,6 +17,7 @@ One binary, `yong`, provides every tool. All subcommands share the query databas
 | `yong fix [--edition]` | apply machine-applicable fixes, edition migrations and deprecation inlining as patches (20.4, 20.5) | M1 |
 | `yong export --python`, `yong import --python` | Python source bridge (17.8) | M1 |
 | `yong mcp` | agent server (21.4) | M1 |
+| `yong agent <task.json> --model stub:FILE\|cmd:PROGRAM [--primer f] [--shots dir] [--dir d] [--module m] [--spec-repairs n] [--body-repairs n] [--out f]` | the reference agent loop: one task through both phases of the spec gate over the `yong mcp` tools, writing a run record (21.1, 21.6, R616) | M1 |
 | `yong add`, `remove`, `update`, `tree`, `why`, `vendor` | dependency management (section 19); `yong why <item> <fact>` explains an item's capability, `fail` member or panic kind (R612) | M1 |
 | `yong x <pkg> <tool>` | run a package's tool under its ceiling | M1 |
 | `yong schema gen <file>` | write table row types from data files (11.9) | M1 |

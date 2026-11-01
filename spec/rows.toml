@@ -564,3 +564,8 @@ sections = "3.5, 8.4, 13, 14, 15, 17.4, 18.1, 18.4, 21.4, 25"
 rows = "R613 to R615"
 topic = "Numerics (RFC 0013), decided by the owner: accuracy lint W852 with an e-graph rewrite fix (R613); reverse mode as linearize then transpose on checked Yong (R614); sparse storage formats for `math.ein` (R615)"
 sections = "11.1, 11.2, 11.5, 25"
+
+[[entry]]
+rows = "R616 to R621"
+topic = "Reference agent loop (RFC 0014), decided by the owner: `yong agent` at M1 over the in-process `yong mcp` tools (R616); the two-phase loop with freeze, autofix, run_tests and stop-and-report (R617); `stub:` and `cmd:` model adapters, no HTTPS in the toolchain (R618); the schema-1 run record (R619); the Xin arm of the 21.6 harness runs through `yong agent` (R620); E619 for an `ex` line whose arguments break `pre` (R621)"
+sections = "18.1, 21.1, 21.4, 21.6, 25"
