@@ -104,6 +104,9 @@ enum Command {
         #[arg(long)]
         level: Option<String>,
         file: PathBuf,
+        /// The program's arguments, after `--`.
+        #[arg(last = true)]
+        args: Vec<String>,
     },
 }
 
@@ -132,10 +135,12 @@ fn main() -> ExitCode {
             file,
             strict,
             level,
+            args,
         } => run(
             &file,
             Database::new(strict, level.as_deref() == Some("release")),
             cli.backend,
+            args,
         ),
         Command::Test { format, gate, only } => run_tests(format, gate, only.as_deref()),
         Command::View { as_, file } => view(&as_, &file),
@@ -288,7 +293,7 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
+fn run(file: &Path, mut db: Database, backend: Backend, args: Vec<String>) -> ExitCode {
     let f = match db.open(file) {
         Ok(f) => f,
         Err(msg) => return tool_failure(&msg),
@@ -319,7 +324,7 @@ fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
         return native(module);
     }
     let mut out = std::io::stdout().lock();
-    match yong_interp::run(module, &mut out) {
+    match yong_interp::run_with(module, &mut out, args) {
         Ok(status) => ExitCode::from(status as u8),
         Err(Stop::Panic(kind)) => {
             eprintln!("panic: {kind}");
