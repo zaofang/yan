@@ -1,5 +1,12 @@
 //! std.text kernels.
 
+use unicode_segmentation::UnicodeSegmentation;
+
+/// Extended grapheme clusters in `s`.
+pub fn grapheme_count(s: &str) -> usize {
+    s.graphemes(true).count()
+}
+
 /// `s` split at the first `sep`: before, the separator, after; `(s, "", "")` when absent.
 pub fn partition<'a>(s: &'a str, sep: &'a str) -> (&'a str, &'a str, &'a str) {
     match s.split_once(sep) {

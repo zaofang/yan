@@ -109,6 +109,6 @@ fn float_repr_matches_cpython() {
         (0.0001, "0.0001"),
         (9999999999999998.0, "9999999999999998.0"),
     ] {
-        assert_eq!(prelude::float_repr(f), want);
+        assert_eq!(yong_rt::fmt::float_repr(f), want);
     }
 }

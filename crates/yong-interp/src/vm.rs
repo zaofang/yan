@@ -1,12 +1,11 @@
 //! The register VM that runs compiled Yong IR.
 
-use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
 
 use crate::bind::{self, Bind};
 use crate::compile::*;
-use crate::{Interp, R, STD_STAGES, Value, data, intrinsic, panic, std_stage, unsupported};
+use crate::{Interp, R, Value, data, intrinsic, panic, unsupported};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Clo {
@@ -225,33 +224,6 @@ fn bindings(p: &CPat, v: &Value, out: &mut Vec<(Reg, Value)>) {
         }
         _ => {}
     }
-}
-
-/// Dispatch stages: the intrinsics, then the std stages.
-const STAGES: u8 = 1 + STD_STAGES;
-
-fn stage(s: u8, name: &str, args: &mut [Value]) -> Option<R<Value>> {
-    match s {
-        0 => intrinsic(name, args),
-        s => std_stage(s - 1, name, args),
-    }
-}
-
-/// Call std function `name`, starting at the stage that last handled this call site. Each std
-/// path is handled by one stage only (`std_paths_have_one_stage`), so skipping the others keeps
-/// the order of the full dispatch.
-fn native_call(name: &str, args: &mut [Value], hint: &Cell<u8>) -> R<Value> {
-    let h = hint.get();
-    if let Some(r) = stage(h, name, args) {
-        return r;
-    }
-    for s in (0..STAGES).filter(|s| *s != h) {
-        if let Some(r) = stage(s, name, args) {
-            hint.set(s);
-            return r;
-        }
-    }
-    unsupported(format!("call of `{name}`"))
 }
 
 enum Target {
@@ -674,7 +646,10 @@ impl<'o> Vm<'o> {
                     }
                     Ok(r)
                 } else {
-                    Ok(native_call(&s.name, &mut self.stack[new_base..], &s.stage)?)
+                    match intrinsic(&s.name, &self.stack[new_base..]) {
+                        Some(r) => Ok(r?),
+                        None => return unsupported(format!("call of `{}`", s.name)),
+                    }
                 };
                 for (i, a) in s.args.iter().enumerate() {
                     if let ArgC::Inout(r) = a {
@@ -794,10 +769,8 @@ mod tests {
     }
 
     #[test]
-    fn std_paths_have_one_stage() {
+    fn std_paths_have_one_handler() {
         let stages = [
-            ("prelude", include_str!("prelude.rs")),
-            ("collections", include_str!("collections.rs")),
             ("iter", include_str!("iter.rs")),
             ("keyed", include_str!("keyed.rs")),
         ];
@@ -805,7 +778,7 @@ mod tests {
         for (stage, src) in stages {
             for p in paths(src) {
                 if let Some(other) = seen.insert(p, stage) {
-                    assert_eq!(other, stage, "`{p}` is handled in two dispatch stages");
+                    assert_eq!(other, stage, "`{p}` is handled in two name-matched modules");
                 }
             }
         }

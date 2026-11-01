@@ -24,6 +24,8 @@ static TABLE: LazyLock<Vec<Option<Bind>>> = LazyLock::new(|| {
         .chain(crate::BUILTINS)
         .chain(crate::math::BINDS)
         .chain(crate::regex::BINDS)
+        .chain(crate::prelude::BINDS)
+        .chain(crate::collections::BINDS)
     {
         assert!(
             t[id.0 as usize].replace(b).is_none(),
