@@ -4474,7 +4474,12 @@ impl Lower<'_, '_, '_> {
                         w.unify(t, &mut map);
                     }
                     let w = p.ty.subst(&map);
-                    let w = (!matches!(w, Ty::Coll("iter", _))).then_some(w);
+                    // An unbound type parameter is no expectation: `first(["a"])` must bind `T`
+                    // from the literal, not type the literal by `T`. Lambdas still need it.
+                    let lambda = matches!(e.kind, j::ExprKind::Lambda(..));
+                    let w = (!matches!(w, Ty::Coll("iter", _))
+                        && (lambda || !self.unbound_param(&w)))
+                    .then_some(w);
                     let (a, t) = self.atom(e, w.as_ref())?;
                     let (a, t) = self.as_iter(&p.ty, a, t, sp)?;
                     self.expect(&t, &p.ty, sp);
@@ -4495,6 +4500,22 @@ impl Lower<'_, '_, '_> {
             }
         }
         Ok(Some(done.into_iter().flatten().collect()))
+    }
+
+    /// Whether `t` mentions a type parameter of the callee that is not yet bound; the caller's
+    /// own type parameters are fixed types here.
+    fn unbound_param(&self, t: &Ty) -> bool {
+        fn free(t: &Ty, scope: &[String]) -> bool {
+            match t {
+                Ty::Param(n) => !scope.contains(n),
+                Ty::List(t) | Ty::Set(t) | Ty::Option(t) => free(t, scope),
+                Ty::Dict(a, b) | Ty::Result(a, b) => free(a, scope) || free(b, scope),
+                Ty::Tuple(ts) | Ty::Coll(_, ts) => ts.iter().any(|t| free(t, scope)),
+                Ty::Fn(_, ps, r) => free(r, scope) || ps.iter().any(|t| free(t, scope)),
+                _ => false,
+            }
+        }
+        free(t, &self.g.scope.borrow())
     }
 
     /// A collection passed where `iter[T]` is wanted is passed as its `.iter()` (R511).

@@ -99,3 +99,11 @@ pub def main() uses io:
 ";
     assert_eq!(raised(src), src);
 }
+
+#[test]
+fn a_literal_argument_binds_a_type_parameter() {
+    let src = "def first[T](xs: list[T]) -> T | None:\n    return xs.get(0)\n\n\
+               pub def main() uses io:\n    s = first([\"a\"]) else \"z\"\n    n = first([1]) else 0\n\
+               \x20   io.print(f\"{s} {n + 1}\")\n";
+    assert_eq!(run(src), "a 2\n");
+}
