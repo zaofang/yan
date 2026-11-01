@@ -57,6 +57,7 @@ pub fn compile(p: &Program) -> R<Compiled> {
         .map_err(err)?;
     let mut jb = JITBuilder::with_isa(isa, default_libcall_names());
     jb.symbol("yong_rt_panic", abi::yong_rt_panic as *const u8);
+    jb.symbol("yong_rt_exit", abi::yong_rt_exit as *const u8);
     for f in RT {
         let (name, addr, ..) = rt_fn(*f);
         jb.symbol(name, addr);
@@ -70,6 +71,11 @@ pub fn compile(p: &Program) -> R<Compiled> {
         .extend([AbiParam::new(ptr), AbiParam::new(ptr)]);
     let panic = module
         .declare_function("yong_rt_panic", Linkage::Import, &panic_sig)
+        .map_err(err)?;
+    let mut exit_sig = module.make_signature();
+    exit_sig.params.push(AbiParam::new(types::I64));
+    let exit = module
+        .declare_function("yong_rt_exit", Linkage::Import, &exit_sig)
         .map_err(err)?;
     let rt_ids = RT
         .iter()
@@ -144,7 +150,19 @@ pub fn compile(p: &Program) -> R<Compiled> {
         b.switch_to_block(blk);
         b.seal_block(blk);
         let main = module.declare_func_in_func(ids[p.main as usize], b.func);
-        b.ins().call(main, &[]);
+        let c = b.ins().call(main, &[]);
+        if p.main_fails {
+            let tag = b.inst_results(c)[0];
+            let (failed, done) = (b.create_block(), b.create_block());
+            b.ins().brif(tag, failed, &[], done, &[]);
+            b.switch_to_block(failed);
+            let exit = module.declare_func_in_func(exit, b.func);
+            let one = b.ins().iconst(types::I64, 1);
+            b.ins().call(exit, &[one]);
+            b.ins().trap(TrapCode::unwrap_user(1));
+            b.switch_to_block(done);
+            b.seal_all_blocks();
+        }
         b.ins().return_(&[]);
         b.finalize(module.target_config());
     }
@@ -638,6 +656,26 @@ mod selftest {
             assert eq_i64(let n, let 13)\n let r: i64 = count(let 1000000, let 0)\n assert eq_i64(let r, let 1000000)\n\
             let q: i64 = floordiv_i64(let -7, let 2)\n assert eq_i64(let q, let -4)\n\
             let w: u8 = mod_u8(let 7, let 3)\n assert eq_u8(let w, let 1)\n ret ()\n}\n";
+        let (m, d) = yong_core::parse("t.yong", src);
+        assert!(d.is_empty(), "{d:?}");
+        let p = yong_mir::lower(&m.unwrap()).expect("lowers");
+        super::compile(&p).expect("compiles").run();
+    }
+
+    /// `twice` propagates `check`'s error with `?`; `main` catches it with `try`.
+    #[test]
+    fn runs_fail_try_and_propagate() {
+        let src = "module t\nrecord Bad { pub code: i64 }\n\
+            fn check(let x: i64) -> i64 fail Bad {\n let neg: bool = lt_i64(let x, let 0)\n\
+            if neg {\n let e: Bad = Bad { code: x }\n fail e\n }\n ret x\n}\n\
+            fn twice(let x: i64) -> i64 fail Bad {\n let y: i64 = check(let x)?\n\
+            let z: i64 = add_checked_i64(let y, let y)\n ret z\n}\n\
+            fn main() -> Unit {\n let r: Result[i64, Bad] = try twice(let -3)\n\
+            match r {\n Err { error: e } => {\n let c: i64 = e.code\n assert eq_i64(let c, let -3)\n }\n _ => { unreachable }\n }\n\
+            let o: Result[i64, Bad] = try twice(let 4)\n\
+            match o {\n Ok { value: 8 } => {}\n _ => { unreachable }\n }\n\
+            let s: Option[i64] = Some { value: 2 }\n let t: Str = std.fmt.show[Option[i64]](let s)\n\
+            match t {\n \"2\" => {}\n _ => { unreachable }\n }\n ret ()\n}\n";
         let (m, d) = yong_core::parse("t.yong", src);
         assert!(d.is_empty(), "{d:?}");
         let p = yong_mir::lower(&m.unwrap()).expect("lowers");

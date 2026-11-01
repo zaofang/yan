@@ -19,7 +19,7 @@ use yong_core::ast as y;
 use yong_diag::{Diagnostic, Span};
 use yong_hir as j;
 
-pub use stdlib::{StdModule, install_std};
+pub use stdlib::{StdInfo, StdModule, install_std};
 pub use ty::Ty;
 
 /// How the module is checked.

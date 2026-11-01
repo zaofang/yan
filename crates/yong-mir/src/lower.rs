@@ -141,6 +141,19 @@ impl Types<'_> {
                     ("List", [y::TArg::Type(e)]) => {
                         return Ok(Shape::List(Box::new(self.shape_in(e, stack)?)));
                     }
+                    ("Option", [y::TArg::Type(t)]) => {
+                        let t = self.shape_in(t, stack)?;
+                        return Ok(Shape::Sum(
+                            "Option".into(),
+                            vec![
+                                ("Some".into(), vec![("value".into(), t)]),
+                                ("None".into(), vec![]),
+                            ],
+                        ));
+                    }
+                    ("Result", [y::TArg::Type(t), y::TArg::Type(e)]) => {
+                        return Ok(result(self.shape_in(t, stack)?, self.shape_in(e, stack)?));
+                    }
                     (_, []) => {}
                     _ => return unsupported(format!("type `{name}[..]`")),
                 }
@@ -179,9 +192,23 @@ impl Types<'_> {
     }
 }
 
+fn result(ok: Shape, err: Shape) -> Shape {
+    Shape::Sum(
+        "Result".into(),
+        vec![
+            ("Ok".into(), vec![("value".into(), ok)]),
+            ("Err".into(), vec![("error".into(), err)]),
+        ],
+    )
+}
+
 struct Sig {
     params: Vec<(y::Conv, Shape)>,
+    /// The declared result.
+    ok: Shape,
+    /// What the function returns: `ok`, or `Result[ok, E]` for `fail E`.
     ret: Shape,
+    fails: bool,
 }
 
 impl Sig {
@@ -222,6 +249,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
     let mut prog = Program {
         funcs: Vec::new(),
         main: *ids.get("main").ok_or("no `fn main` in the module")?,
+        main_fails: false,
         strings: Vec::new(),
     };
     let sigs: Vec<Sig> = defs
@@ -235,10 +263,16 @@ pub fn lower(m: &y::Module) -> R<Program> {
                     .into_iter()
                     .map(|(_, c, t)| Ok((c, types.shape(t)?)))
                     .collect::<R<_>>()?,
-                ret: types.shape(&f.ret)?,
+                ok: types.shape(&f.ret)?,
+                ret: match &f.fail {
+                    Some(e) => result(types.shape(&f.ret)?, types.shape(e)?),
+                    None => types.shape(&f.ret)?,
+                },
+                fails: f.fail.is_some(),
             })
         })
         .collect::<R<_>>()?;
+    prog.main_fails = sigs[prog.main as usize].fails;
     for (i, f) in defs.iter().enumerate() {
         let func = Fn::new(&ids, &sigs, &types, &mut prog.strings, i).func(f)?;
         prog.funcs.push(func);
@@ -392,9 +426,6 @@ impl<'a> Fn<'a> {
     }
 
     fn func(mut self, f: &y::FnDef) -> R<Func> {
-        if f.fail.is_some() {
-            return unsupported("a failing function");
-        }
         let sig = &self.sigs[self.me];
         for ((name, ..), (conv, shape)) in params(f)?.iter().zip(&sig.params) {
             let v = self.var(shape.clone());
@@ -498,6 +529,22 @@ impl<'a> Fn<'a> {
             args,
         });
         Operand::Local(d)
+    }
+
+    /// Return `v` with the final `inout` slots.
+    fn ret(&mut self, mut v: Vec<Operand>) {
+        v.extend(self.inout.iter().map(|l| Operand::Local(*l)));
+        self.end(Term::Return(v));
+    }
+
+    /// The slots of sum `s` holding variant `name` with fields `v`.
+    fn variant_value(s: &Shape, name: &str, v: Vec<Operand>) -> Vec<Operand> {
+        let (tag, at, _) = s.variant(name).expect("a variant of the sum");
+        let mut out: Vec<Operand> = s.tys().into_iter().map(zero).collect();
+        out[0] = Operand::Int(tag);
+        let w = v.len();
+        out.splice(at..at + w, v);
+        out
     }
 
     fn lit(&mut self, s: &str) -> Operand {
@@ -785,7 +832,8 @@ impl<'a> Fn<'a> {
                 parts.push(self.lit(if ss.len() == 1 { ",)" } else { ")" }));
                 self.concat(parts)
             }
-            Shape::Sum(_, vs) => {
+            Shape::Sum(name, vs) => {
+                let option = name == "Option";
                 let out = self.local(Ty::Ptr);
                 let join = self.block_new();
                 for (n, fs) in vs {
@@ -795,7 +843,12 @@ impl<'a> Fn<'a> {
                         self.scalar_op(ScalarOp::Eq, I64, vec![v[0].clone(), Operand::Int(tag)]);
                     let (t, e) = self.branch(is);
                     self.cur = t;
-                    let r = self.show_fields(n, &v[at..at + w], fs)?;
+                    // `Option` shows as its value or `None`.
+                    let r = match (option, fs.first()) {
+                        (true, Some((_, inner))) => self.show(&v[at..at + w], inner, nested)?,
+                        (true, None) => self.lit("None"),
+                        _ => self.show_fields(n, &v[at..at + w], fs)?,
+                    };
                     self.emit(Inst::Copy { dst: out, src: r });
                     self.finish(Term::Jump(join));
                     self.cur = e;
@@ -962,9 +1015,41 @@ impl<'a> Fn<'a> {
                 }
             }
             y::Rhs::Ctor(c) => self.ctor(c, want),
-            y::Rhs::Propagate { .. } | y::Rhs::Try(_) => unsupported("a failure"),
+            y::Rhs::Try(c) => self.value(&y::Rhs::Call(c.clone()), want),
+            y::Rhs::Propagate { call, via: None } => self.propagate(call, want),
+            y::Rhs::Propagate { .. } => unsupported("`?` through a conversion"),
             y::Rhs::Closure(_) => unsupported("a closure"),
         }
+    }
+
+    /// `c?`: its `Ok` value, or return its error from this function.
+    fn propagate(&mut self, c: &y::Call, want: &Shape) -> R<Vec<Operand>> {
+        let Some(&func) = self.ids.get(&c.path.join(".")) else {
+            return unsupported(format!("`?` on `{}`", c.path.join(".")));
+        };
+        let theirs = self.sigs[func as usize].ret.clone();
+        let mine = self.sigs[self.me].ret.clone();
+        let (Some((_, ok_at, _)), Some((_, err_at, efs)), Some((_, _, mine_e))) = (
+            theirs.variant("Ok"),
+            theirs.variant("Err"),
+            mine.variant("Err"),
+        ) else {
+            return unsupported("`?` outside a failing function");
+        };
+        if efs[0].1 != mine_e[0].1 {
+            return unsupported("`?` across error types");
+        }
+        let e = efs[0].1.clone();
+        let r = self.var(theirs);
+        let v = Self::ops(&r);
+        self.call(c, Some(r))?;
+        let is_ok = self.scalar_op(ScalarOp::Eq, I64, vec![v[0].clone(), Operand::Int(0)]);
+        let (ok, err) = self.branch(is_ok);
+        self.cur = err;
+        let ev = v[err_at..err_at + e.width()].to_vec();
+        self.ret(Self::variant_value(&mine, "Err", ev));
+        self.cur = ok;
+        Ok(v[ok_at..ok_at + want.width()].to_vec())
     }
 
     fn ctor(&mut self, c: &y::Ctor, want: &Shape) -> R<Vec<Operand>> {
@@ -1327,10 +1412,25 @@ impl<'a> Fn<'a> {
             K::Jp { .. } => unreachable!("handled by `block`"),
             K::Jump { name, args } => self.jump(name, args),
             K::Ret(a) => {
+                let sig = &self.sigs[self.me];
+                let (ok, ret, fails) = (sig.ok.clone(), sig.ret.clone(), sig.fails);
+                let v = self.atom(a, &ok)?;
+                let v = if fails {
+                    Self::variant_value(&ret, "Ok", v)
+                } else {
+                    v
+                };
+                self.ret(v);
+                Ok(())
+            }
+            K::Fail(a) => {
                 let ret = self.sigs[self.me].ret.clone();
-                let mut v = self.atom(a, &ret)?;
-                v.extend(self.inout.iter().map(|l| Operand::Local(*l)));
-                self.end(Term::Return(v));
+                let Some((_, _, fs)) = ret.variant("Err") else {
+                    return unsupported("`fail` outside a failing function");
+                };
+                let e = fs[0].1.clone();
+                let v = self.atom(a, &e)?;
+                self.ret(Self::variant_value(&ret, "Err", v));
                 Ok(())
             }
             K::Become(c) => {
@@ -1340,6 +1440,9 @@ impl<'a> Fn<'a> {
                 };
                 if !self.inout.is_empty() || !self.sigs[func as usize].inout().is_empty() {
                     return unsupported("`become` with `inout` parameters");
+                }
+                if self.sigs[func as usize].ret != self.sigs[self.me].ret {
+                    return unsupported("`become` across failure types");
                 }
                 let (args, _) = self.user_args(func, c)?;
                 self.end(Term::TailCall { func, args });
@@ -1360,7 +1463,6 @@ impl<'a> Fn<'a> {
             K::Drop(_) => Ok(()),
             K::Rhs(y::Rhs::Call(c)) => self.call(c, None),
             K::Rhs(_) => Ok(()),
-            K::Fail(_) => unsupported("`fail`"),
             K::Yield(_) => unsupported("generators"),
             K::With { .. } => unsupported("`with`"),
             K::ComptimeFor { .. } | K::ComptimeIf { .. } => unsupported("a comptime statement"),

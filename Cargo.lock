@@ -1173,7 +1173,9 @@ dependencies = [
 name = "yong-hir"
 version = "0.0.0"
 dependencies = [
+ "yong-core",
  "yong-diag",
+ "yong-names",
 ]
 
 [[package]]
@@ -1184,6 +1186,7 @@ dependencies = [
  "yong-core",
  "yong-db",
  "yong-diag",
+ "yong-elab",
  "yong-hir",
  "yong-names",
  "yong-wen",
