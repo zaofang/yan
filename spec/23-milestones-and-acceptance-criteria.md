@@ -18,7 +18,7 @@ A milestone is complete only when every criterion below passes in CI. Performanc
 - Core semantics: UTF-8 strings and `char`, integer conversion rules, associated types, join points, drop order, error injection and context, contract semantics.
 - Diagnostics in the 18.2 format from the start.
 - Hash-key independence: every conformance test runs under two hash keys and the outputs are identical.
-- **Probe (around month 6).** Jian lexer, parser, canonical printer and lenient reader only. Two model families write Jian for 50 tasks, zero-shot and 5-shot; at least 95% of their output parses after lenient reading (target), with tokens per program recorded against typed Python.
+- **Probe (R566).** Runs as soon as the Jian lexer, parser, lenient reader, elaborator and interpreter pass the conformance cases they cover; it does not wait for month 6. Two model families write Jian for 50 development tasks (never the sealed set), zero-shot and 5-shot. Recorded: the share that parses after lenient reading (target at least 95%), the share that checks, the diagnostics hit, and tokens against typed Python, split as 21.6 says. Until the probe reports, no row changes Jian syntax (13, 14.3, 14.4); afterwards a row that changes it cites a probe or M1 measurement. Rows for std, Yong, Wen and Fei are not held.
 
 ### M1 · Jian and the agent toolchain
 
@@ -31,7 +31,7 @@ A milestone is complete only when every criterion below passes in CI. Performanc
 - Golden programs G1 to G4 run on the interpreter and, exported, under CPython 3.12 with identical output.
 - The registry design (section 19) written and reviewed.
 - **Benchmark harness.** Translate a public benchmark (MultiPL-E HumanEval and MBPP, or LiveCodeBench) into Jian and into typed Python with identical hidden tests. Run at least three model families in the same agent loop, with and without constrained decoding. Record pass@1, total tokens per solved task (prompt, reasoning, output and repairs), repair rounds, the failure mix and the cheating rate (21.6).
-- **Gate:** Jian's pass@1 is at least typed Python's, and its total tokens per solved task are lower. If not, record the failure mix, move Jian closer to Python, and apply the fluency plan of 21.6 before continuing.
+- **Gate (R567):** Jian's pass@1 is at least typed Python's, and both token measures of 21.6 are lower: its body and repair tokens per solved task than typed Python's, and its spec-phase tokens than those of the pytest cases the same model writes for the same task. The cheating rate and the capability violations the checker caught are reported beside the gate. If the gate fails, record the failure mix, move Jian closer to Python, and apply the fluency plan of 21.6 before continuing.
 
 ### M1b · Native code
 

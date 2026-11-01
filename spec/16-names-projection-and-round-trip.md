@@ -61,7 +61,7 @@ Some names and forms differ by surface on purpose, so each reads natively. The t
 
 **Projection as composition (R559).** Each surface has six steps: parse (text to lossless tree), abstract (tree to surface AST), lower (AST to HIR, with spelling notes and the name table), and their inverses print, resugar and the shared raise (Yong to HIR). Each surface has exactly one canonical printer, over its own AST, and both `yong fmt` and `yong view` use it: `fmt F` is print(abstract(parse(F))), and `view --as S X` is print(resugar(raise(elaborate(X)))). The laws of 16.5 are statements about these compositions. Raise restores written names from the name table and removes what elaboration inserted (R565).
 
-Items outside the Jian subset are reported, not dropped. The report names the first construct that excludes each item (for example "uses `Ref` (L4)"). `view` takes `--edition`. Neither surface allows shadowing (E230), so projection renames nothing.
+Items outside the Jian subset are reported, not dropped. The report names the first construct that excludes each item (for example "uses `Ref` (L4)"). `view` takes `--edition`. Jian and Wen reject shadowing (E230), so projection between them renames nothing. A projection from Fei, which admits shadowing (R521), gives each shadowed local a fresh name from the name table (RFC 0001 section 6).
 
 ### 16.5 Round-trip laws
 
@@ -102,11 +102,11 @@ Fei (斐, "brilliantly patterned") is the dense ASCII surface and the language-d
 
 ### 16.7 Planned niche surfaces (R536 to R550)
 
-A niche surface is a small, domain-shaped spelling of a subset of Yong. None is part of 1.0. The reference for each is RFC 0002; each enters this section normatively through its own RFC, with its grammar, subset predicate, projection column (16.3), diagnostic codes and conformance column.
+A niche surface is a small, domain-shaped language over Yong. It may be a spelling of a subset of Yong, or it may give its items semantics of their own (R568). None is part of 1.0. The reference for each is RFC 0002; each enters this section normatively through its own RFC, with its grammar, subset predicate, projection column (16.3), diagnostic codes and conformance column.
 
 **Admission (R536).** A niche surface is admitted only if it meets all nine rules:
 
-1. **N1 Syntax only.** It lowers to Yong that Wen can write, or to an accepted Yong extension (law 1).
+1. **N1 Semantics (R568).** It lowers to Yong that Wen can write or to an accepted Yong extension, or it defines semantics of its own under the boundary rules below. Its RFC says which, per form.
 2. **N2 Subset with a checker.** A decidable predicate says which items print in the surface; outside it, `yong view --as <name>` reports the first excluding construct, as 16.4 does for Jian.
 3. **N3 One printing.** Law 8 holds as for Jian and Wen. Sugar is recovered from the Yong tree, from stage-0 metadata attached by the lowering, or from the trivia of 16.5.
 4. **N4 Same item hash.** A lowering never creates or drops a hashed name (3.6); generated names follow a fixed rule.
@@ -131,5 +131,13 @@ A niche surface is a small, domain-shaped spelling of a subset of Yong. None is 
 | R547 | Li 礼 | `.li` | session-typed protocols | `@linear` state types (R443) over `std.chan` | none | research |
 | R548 | Pu 谱 | `.pu` | specs checked against actors by trace refinement | `std.sim` models and replay checks (17.7) | none | research |
 | R549 | Zi 字 | `.zi` | statute-shaped rules with default logic | `uses none` functions over `Money` (11.7) | none | research |
+
+**Own semantics (R568).** A niche surface is exempt from law 1. Inside its items it may define behavior that Yong cannot express, such as three-valued logic, inference as evaluation, or clocked time. These rules still bind it:
+
+1. **Boundary signature.** Every item another surface can call has a signature in Yong types, with `fail` and `uses`. Calls across surfaces go through that signature only, and checked Yong sees the item as that signature.
+2. **Laws kept.** Laws 2 (safe by default), 4 (five facts), 6 (local reasoning) and 7 (deterministic by default) hold under the surface's own semantics. Effects happen only through capabilities named in `uses`, so capability ceilings, `nondet` and record and replay apply unchanged.
+3. **Two routes.** A form either lowers to checked Yong, which keeps N4, N7 and the one back end, or runs on a surface engine: an interpreter or compiler in `yong-<name>` or a std package, linked to its boundary signature as an extern item is (section 12). N6 allows the engine crates. Lowering is preferred where it can express the form.
+4. **Engine items.** For an item on an engine, N2, N3 and N7 apply to its boundary signature only. `yong view --as wen` and `--as jian` print the signature and report the body as "<name> semantics (R568)". The item hash covers the canonical surface text and the engine's identity hash (R348).
+5. **Conformance.** The surface's conformance column tests its semantics, including determinism under two hash keys (M0), and every engine item passes `yong test --ub`.
 
 **Order (R550).** No niche surface is built before 1.0. After 1.0, Qi comes first, then Xun, then Cha and Ling; Cheng and Zhu follow the items they wait for. Each surface ships first as a print-only view, `yong view --as <name>`, before it has a reader.

@@ -81,6 +81,7 @@ The M1 gate is measured with a harness specified here, so the result can be trus
 - An ImpossibleBench-style cheating rate: tasks whose tests contradict the spec, where any pass counts as cheating.
 - Results stored with the toolchain hash and the model identifier.
 - The unit is total tokens per solved task: (1/p) times the sum over every turn of harness prompt, code read, history and output, counted with the deployed model's own tokenizer plus o200k and cl100k. Repair rounds and tool results are included (R289).
+- Tokens are reported in two parts (R567). Spec-phase tokens cover the signature, `uses`, contracts and `ex` clauses of 21.1; body tokens cover the body and every repair round. Body tokens compare against the typed-Python program; spec-phase tokens compare against the pytest cases the same model writes for the same task when the prompt asks typed Python for tests, so both sides pay for their tests.
 - The Jian primer the model receives stays at or under 500 tokens; the canonical example set (`yong skill`) counts toward it (R289).
 - Each run reports, per task, rounds to green, the diagnostics hit, and which of them an autofix closed in the loop (R280).
 

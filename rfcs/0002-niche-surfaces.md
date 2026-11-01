@@ -36,6 +36,8 @@ printing per tree, so it needs no spelling notes.
 
 - **N1 Syntax only.** The surface lowers to Yong that Wen can write, or to a Yong extension already
   accepted. It has no private semantics (law 1).
+  Superseded 2026-11-01 by R568 (spec 16.7): a niche surface may define semantics of its own behind
+  a boundary signature.
 - **N2 Subset with a checker.** A decidable predicate over Yong items says whether an item prints in
   the surface. Outside it, `yong view --as <name>` reports the first excluding construct, as 16.4 does
   for Jian.
