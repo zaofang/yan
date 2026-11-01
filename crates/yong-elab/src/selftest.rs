@@ -61,3 +61,10 @@ fn lambdas_capture_and_take_types_from_the_callee() {
                \x20   inc = add(1)\n    s = twice(lambda w: w + \"!\", \"hi\")\n    io.print(f\"{a} {inc(41)} {s}\")\n";
     assert_eq!(run(src), "18 42 hi!!\n");
 }
+
+#[test]
+fn unannotated_lambdas_take_types_from_their_first_call() {
+    let src = "pub def main() uses io:\n    m = 5\n    k = lambda x, y: x * y + m\n\
+               \x20   s = lambda t: t + \"?\"\n    io.print(f\"{k(2, 3)} {k(4, 1)} {s('ok')}\")\n";
+    assert_eq!(run(src), "11 9 ok?\n");
+}
