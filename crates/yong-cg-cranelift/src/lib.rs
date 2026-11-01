@@ -199,6 +199,8 @@ const RT: &[RtFn] = &[
     RtFn::ShowI64,
     RtFn::ShowU64,
     RtFn::ShowF64,
+    RtFn::DivI64,
+    RtFn::DivU64,
     RtFn::ShowBool,
     RtFn::Repr,
     RtFn::StrEq,
@@ -250,6 +252,18 @@ fn rt_fn(
             abi::yong_rt_show_f64 as *const u8,
             &[F64],
             Some(I64),
+        ),
+        RtFn::DivI64 => (
+            "yong_rt_div_i64",
+            abi::yong_rt_div_i64 as *const u8,
+            &[I64, I64],
+            Some(F64),
+        ),
+        RtFn::DivU64 => (
+            "yong_rt_div_u64",
+            abi::yong_rt_div_u64 as *const u8,
+            &[I64, I64],
+            Some(F64),
         ),
         RtFn::ShowBool => (
             "yong_rt_show_bool",
@@ -574,6 +588,16 @@ impl Gen<'_, '_> {
                 };
                 self.b.ins().icmp(cc, a[0], a[1])
             }
+            (Div, Ty::Int(t)) if t.bits == 64 => {
+                let f = if t.signed { RtFn::DivI64 } else { RtFn::DivU64 };
+                let at = RT
+                    .iter()
+                    .position(|x| *x == f)
+                    .expect("every RtFn is in RT");
+                let c = self.b.ins().call(self.rt.fns[at], &[a[0], a[1]]);
+                self.b.inst_results(c)[0]
+            }
+            // narrower operands convert exactly, so the division rounds once
             (Div, Ty::Int(t)) => {
                 let (x, y) = if t.signed {
                     (

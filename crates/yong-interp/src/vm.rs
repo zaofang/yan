@@ -115,7 +115,7 @@ fn int_op(op: IntOp, ty: u8, a: i128, b: i128) -> Result<Scalar, &'static str> {
             let r = a.rem_euclid(b);
             return checked(Some(if r != 0 && b < 0 { r + b } else { r }), ty);
         }
-        IntOp::Div => Scalar::F(a as f64 / b as f64),
+        IntOp::Div => Scalar::F(yong_rt::num::div_i128(a, b)),
         IntOp::And => Scalar::I(a & b),
         IntOp::Or => Scalar::I(a | b),
         IntOp::Xor => Scalar::I(a ^ b),
