@@ -4058,6 +4058,8 @@ impl Lower<'_, '_, '_> {
             Ty::List(t) if matches!(b, "Eq" | "Ord") => self.implements(t, b),
             Ty::Coll("bytes", _) => matches!(b, "Eq" | "Ord" | "Hash"),
             Ty::Coll("bytearray", _) => b == "Eq",
+            Ty::Coll("Path" | "WindowsPath", _) if matches!(b, "Eq" | "Ord" | "Hash") => true,
+            Ty::Str | Ty::Coll("Path", _) if b == "AsPath" => true,
             t => self.g.impls.contains(&(b.to_owned(), t.to_string())),
         }
     }
