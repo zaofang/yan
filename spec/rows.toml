@@ -1,0 +1,476 @@
+# Change rows, in Appendix A.1 order. tools/rows.py renders A.1 from this file and checks it.
+# rows: the row ids ("R1, R2", "R450 to R459"). topic, sections: the A.1 cells, as Markdown.
+# also: ids this entry maps to more sections but does not allocate (another entry does).
+# New rows take numbers from `tools/rows.py next`, in the PR that writes them.
+
+[[entry]]
+rows = "R1, R2"
+topic = "ownership, views"
+sections = "4.2, 4.5, 5.1"
+
+[[entry]]
+rows = "R3, R4"
+topic = "`sched` handler, I/O handlers, `par concurrent`"
+sections = "9.1, 9.7"
+
+[[entry]]
+rows = "R5"
+topic = "panics abort"
+sections = "8.3"
+
+[[entry]]
+rows = "R6"
+topic = "overflow checked"
+sections = "3.4"
+
+[[entry]]
+rows = "R7, R27"
+topic = "allocation failure, `try_` siblings"
+sections = "5.5"
+
+[[entry]]
+rows = "R8"
+topic = "Jian subset"
+sections = "1, 14.1"
+
+[[entry]]
+rows = "R9, R85"
+topic = "generators"
+sections = "10.5, 15.2"
+
+[[entry]]
+rows = "R10, R60"
+topic = "library tiers"
+sections = "1, 17.1"
+also = ["R60"]
+
+[[entry]]
+rows = "R11, R13"
+topic = "performance target, GPU"
+sections = "23"
+
+[[entry]]
+rows = "R12"
+topic = "no GATs"
+sections = "10.2"
+
+[[entry]]
+rows = "R14"
+topic = "Jian fluency plan"
+sections = "21.3, 21.6, 23"
+
+[[entry]]
+rows = "R15"
+topic = "lints"
+sections = "18.2, 25.10"
+
+[[entry]]
+rows = "R16"
+topic = "`toolchain` capability, `query`, `undo`"
+sections = "7.1, 21.4"
+
+[[entry]]
+rows = "R17"
+topic = "debugging and profiling"
+sections = "18.7"
+
+[[entry]]
+rows = "R18"
+topic = "commands"
+sections = "18.1"
+
+[[entry]]
+rows = "R19"
+topic = "test verdict cache"
+sections = "18.4"
+
+[[entry]]
+rows = "R20"
+topic = "scripts"
+sections = "19.1"
+
+[[entry]]
+rows = "R21"
+topic = "watch expressions"
+sections = "13.1, 15.1, 18.6"
+
+[[entry]]
+rows = "R22"
+topic = "no optional features"
+sections = "19.1, 26.2"
+
+[[entry]]
+rows = "R23 to R26"
+topic = "std scope, `@yong` packages, `std.evented` preview, `Wire` codecs"
+sections = "17, 9.7"
+
+[[entry]]
+rows = "R28 to R33"
+topic = "floating point, libm, tiers, reductions, 128-bit and f128, FMA"
+sections = "3.2, 11.1"
+
+[[entry]]
+rows = "R34"
+topic = "autodiff"
+sections = "11.5"
+
+[[entry]]
+rows = "R35"
+topic = "units extensions"
+sections = "11.4"
+
+[[entry]]
+rows = "R36"
+topic = "`Nat` parameters"
+sections = "3.1, 10.1"
+
+[[entry]]
+rows = "R37"
+topic = "`Pcg64Dxsm`"
+sections = "11.1"
+
+[[entry]]
+rows = "R38 to R41"
+topic = "`Soa`, handles, allocators, columnar memory"
+sections = "5.5, 5.6, 11.8"
+
+[[entry]]
+rows = "R42 to R48"
+topic = "tables, deterministic queries, query arithmetic, argument packs, query compilation, `tmp`, data packages"
+sections = "10.1, 11.9, 7.1, 17.1"
+
+[[entry]]
+rows = "R49 to R60"
+topic = "time"
+sections = "7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8"
+
+[[entry]]
+rows = "R61 to R84"
+topic = "Wen ergonomics"
+sections = "15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3"
+
+[[entry]]
+rows = "R86"
+topic = "inline assembly"
+sections = "12.9, 15.2"
+
+[[entry]]
+rows = "R87"
+topic = "`select`"
+sections = "15.2, 15.3"
+
+[[entry]]
+rows = "R88"
+topic = "`&` and `%` in the solver"
+sections = "8.6"
+
+[[entry]]
+rows = "R89 to R105"
+topic = "FFI and ABI"
+sections = "12, 5.2"
+
+[[entry]]
+rows = "R106"
+topic = "Wen signature layout"
+sections = "15.3"
+
+[[entry]]
+rows = "R110 to R124"
+topic = "memory and concurrency model"
+sections = "6"
+
+[[entry]]
+rows = "R130 to R144"
+topic = "compile time"
+sections = "10.4, 10.6"
+
+[[entry]]
+rows = "R150 to R167"
+topic = "networking and async I/O"
+sections = "9.4, 9.7, 17.6, 17.7, 7.1"
+
+[[entry]]
+rows = "R170 to R189"
+topic = "stability and evolution"
+sections = "20"
+
+[[entry]]
+rows = "R190 to R209"
+topic = "supply chain"
+sections = "19"
+
+[[entry]]
+rows = "R240 to R255"
+topic = "formatter"
+sections = "18.5, 16.5"
+
+[[entry]]
+rows = "R260 to R268"
+topic = "paradigm keepers: become, column expressions and keyed tables, std.rel, math.ein, actor moves, lenses, clause form, policy audit, stats"
+sections = "3.5, 5.6, 9.6, 11.2, 15, 15.3, 16.5, 17.3, 18.1, 18.6"
+
+[[entry]]
+rows = "R290 to R299"
+topic = "diagnostics: record fields, recovery by marking, verified fixes, quote anchors, line format, MCP repair channel and apply\\_fixes, prose rendering and neutral voice, MessageFormat templates and trait hints, core error codes, tested and scored catalogue"
+sections = "15.5, 18.2, 21.4, 25"
+
+[[entry]]
+rows = "R341, R342, R344, R348"
+topic = "red-team review: cancellation only at blocking operations; capability sharing classes; float equality, order and hashing; method resolution order"
+sections = "4.3, 7.1, 7.7, 9.2, 9.4, 10.2, 10.6, 14.1, 17.2, 25"
+also = ["R342", "R348"]
+
+[[entry]]
+rows = "R340, R342 (determinism), R343, R345 to R347, R348 (lints, identity hash), R349"
+topic = "red-team review, second pass: trusted facts for check removal and refinement checks; Receiver sharing, scope of strong determinism, dropped buffers, replay logging; Drop; normative bounds solver; two-phase stage-0 checking and materialized maps; Jian discards, aliases, newtype\\[T\\], soft keywords; minor-release lints and identity hashes; streaming par for, test scheduler, opt-in deadlock detection"
+sections = "3.6, 5.4, 6.5, 7.3, 7.6, 7.7, 8.5, 8.6, 9.2, 9.3, 9.5, 9.6, 10.4, 13.1, 13.2, 14.1, 14.4, 18.2, 25"
+
+[[entry]]
+rows = "R300 to R309"
+topic = "testing and debugging: tests.lock approval, property tests, file snapshots, choice-sequence fuzzing and coverage, pct and linearizability, trace format and divergence, debugger query engine, count and causal profiling, deterministic spans, runner contract"
+sections = "7.6, 18.4, 25"
+
+[[entry]]
+rows = "R310 to R319"
+topic = "documentation: doc model, hash-resolved links, site/JSON/agent outputs, surface toggle, item page order, deterministic doc fences with generated outputs, guide pages, doc lints, registry docs and wasm playground, learning set and RC gate"
+sections = "18.9, 23, 25"
+
+[[entry]]
+rows = "R320 to R329"
+topic = "embedded and GPU profiles: profiles, static stack bound, SVD peripherals and HAL, srp and executor scheduling, abort and deferred log, embedded atomics, embedded targets, tile kernels, strict GPU determinism, gpu capability and backends"
+sections = "17.1, 23, 25"
+
+[[entry]]
+rows = "R350 to R366"
+topic = "licensing, governance and trademark: code, spec and docs licenses, compiled output, DCO, AI provenance, registry license rules, lead and RFC pipeline, RFC scope, transition and succession, community files, marks and policy, reserved names"
+sections = "26.5"
+
+[[entry]]
+rows = "R390 to R399"
+topic = "concurrency pass: sibling waits and cooperative sequential; channel handles not Sync; Arc count observation; shared initializers; cancel-all in par concurrent; locks across suspension; global deadlock and virtual-time quiescence; actor scope, call admission, reentrancy; live tagged output, alloc budgets; cancel grace and stream ends"
+sections = "6.3, 6.4, 6.7, 7.3, 7.7, 9.1, 9.2, 9.3, 9.4, 9.6, 25"
+
+[[entry]]
+rows = "R400 to R419"
+topic = "distributed compute: cluster capability, location-transparent Remote handles, local equivalence, node identity and unforgeable pids, QUIC transport, wire encoding, schema hashes and evolution, @remote items, delivery and RemoteError, Rapid views, majority partitions, cross-node supervision and child specs, placement, entities, groups, image-migration upgrades, @yong/durable, cluster simulation, security, delivery plan"
+sections = "9.6, 9.6.1, 25"
+
+[[entry]]
+rows = "R380 to R389"
+topic = "performance: deferred overflow traps, check elision and loop versioning, one reduction order, LLVM code-generation facts, move and return elision, unobservable allocation, safe portable SIMD and multiversioning, hashing and UnorderedMap, in-place concatenation, release pipeline and M2a gate"
+sections = "3.3, 3.4, 4.1, 5.5, 6.6, 7.7, 8.5, 8.6, 9.3, 10.6, 11.1, 11.3, 23"
+
+[[entry]]
+rows = "R330 to R339"
+topic = "internationalization: Unicode 18.0 and CLDR 49 pins, std.unicode scope, explicit Locale values, @yong/cldr baked data, ICU4X binding, typed MessageFormat 2 messages, locale-free root formatting, localized diagnostics, source text rules, display width"
+sections = "3.3, 13.1, 17.5, 25"
+
+[[entry]]
+rows = "SQ2, SQ3"
+topic = "Yong productions, join points"
+sections = "3.5"
+
+[[entry]]
+rows = "SQ4"
+topic = "internal-error range"
+sections = "25.12"
+
+[[entry]]
+rows = "SQ5"
+topic = "recursive item hashes"
+sections = "3.6"
+
+[[entry]]
+rows = "SQ6, SQ26"
+topic = "Jian base names; no arena in Jian"
+sections = "13.2, 14.1"
+
+[[entry]]
+rows = "SQ7"
+topic = "E241"
+sections = "10.1"
+
+[[entry]]
+rows = "SQ8, SQ9"
+topic = "method vs field; receiver exemption"
+sections = "10.2, 4.1"
+
+[[entry]]
+rows = "SQ10, SQ13, SQ14"
+topic = "projection bindings, partial moves, drop order"
+sections = "4.2, 5.3"
+
+[[entry]]
+rows = "SQ11, SQ15"
+topic = "`exclusive_check`; capabilities are places"
+sections = "3.5, 4.3"
+
+[[entry]]
+rows = "SQ16, SQ17"
+topic = "par failure order; fold tree"
+sections = "9.2, 9.3"
+
+[[entry]]
+rows = "SQ18, SQ19"
+topic = "seeded rand across tasks; determinism statement"
+sections = "7.7, 2"
+
+[[entry]]
+rows = "SQ20, SQ21"
+topic = "Show layout; float and integer division"
+sections = "17.3, 3.4"
+
+[[entry]]
+rows = "SQ22"
+topic = "diagnostic order"
+sections = "18.2"
+
+[[entry]]
+rows = "SQ23"
+topic = "exit status"
+sections = "8.1"
+
+[[entry]]
+rows = "SQ24"
+topic = "contract levels"
+sections = "8.5"
+
+[[entry]]
+rows = "SQ25"
+topic = "Unicode tables"
+sections = "3.3"
+
+[[entry]]
+rows = "SQ27"
+topic = "property-test generation"
+sections = "14.1"
+
+[[entry]]
+rows = "SQ28"
+topic = "agent self-tests"
+sections = "22.6"
+
+[[entry]]
+rows = "SQ29"
+topic = "receiver mark"
+sections = "2, 14.1"
+
+[[entry]]
+rows = "SQ30 to SQ33"
+topic = "MVS, literal manifest, workspaces, toolchain field"
+sections = "19.1, 20.3"
+
+[[entry]]
+rows = "R210 to R214"
+topic = "Jian 1.0 model-first rules: full headers with ex handlers, undecided checks as runtime checks with W820, ... typed holes, header patches report broken call sites, T fail E with inline sum variants and inferred local mutability"
+sections = "8.4, 8.6, 11.2, 13.2, 14.1, 14.3, 14.4, 18.3, 21.2, 25"
+
+[[entry]]
+rows = "R280 to R289"
+topic = "Jian token dry run: autofix in the loop, lenient N14 to N23, keyword inout arguments, explicit copies kept (R283 rejected), E601 at publish and release only, narrowing of mutable locals, slice step, checked indexing, parentheses after a fallback else, primer budget and measurement protocol"
+sections = "8.4, 13.2, 14.1, 14.3, 14.4, 21.6, 25"
+
+[[entry]]
+rows = "R420 to R429"
+topic = "Jian ambiguity pass: spec consistency (R420), receiver calls infer mutability (R421), soft keywords by position (R422), syntactic sums (R423), explicit reification (R424), one spelling per type and return (R425), no clause form in Jian (R426), par for statement (R427), factorings and LL(1) CI check (R428), lints W823 and W824 (R429)"
+sections = "2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25"
+
+[[entry]]
+rows = "R370 to R379"
+topic = "consistency audit (https://claude.ai/artifact/6m2hzP9zq9KsgcMXv8VqEp): clause form in Wen only (R370); Wen aliases, sums and newtype\\[T\\] as in Jian (R371); W820 only for solver goals and call-site pre, plain overflow checks (R372); Jian soft match, case and type, Callable fail, par(limit=) (R373); Wen grammar gaps: become, unit, guards, select arms, typed hole, let-else, grids (R374); examples in canonical form (R375); blank lines inside bodies (R376); ChaCha8 default rand, capability and attribute registries, one test handler set (R377); commands, milestones, debug tool and coverage (R378); code families E273, E521, E014, E015, E316, warning rules, cross-references and names (R379)"
+sections = "3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2"
+
+[[entry]]
+rows = "SQ12"
+topic = "misplaced contract lines, resolved by E106 (R422)"
+sections = "13.1"
+
+[[entry]]
+rows = "R430 to R439"
+topic = "Wen real-programs pass (accepted 2026-10-31): main entry and ExitCode, capability sets, derive(From) and std Error, fallback blocks, for var, actor surface (aligned with R400 to R412), par function parameters (aligned with R390 to R399), field attributes and positional records, Map places, Scale\\[S\\]. Jian spelling of R431 (type S = uses ...), R435 (var self: S handlers) and R436 (par Callable) accepted 2026-10-31 and written in 13.2 and 14.1"
+sections = "4.6, 6.4, 7.1, 7.2, 8.1, 10.3, 15.1, 15.2, 15.3, 17.2, 25"
+
+[[entry]]
+rows = "R440 to R449"
+topic = "Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Type, Nat, Dim; regions become arena views (Ref\\[T\\], E414); no actor capability; @must\\_close folds into @linear; Wen uses Jian's words (var parameters, with deadline and timeout, top-level let, 22 soft keywords); no Sym; no Yong set convention, else (f) or par fold syntax (std par\\_fold); no @blocking or @io, @no\\_\\* becomes @forbid(...); std.rel, FastHasher and proc.shell leave std, one ColExpr type, std.arrow its only home; seven commands fold into test, profile, check, view and audit. Retires E407, E408, E617, W802, W804, W809"
+sections = "1, 3.1, 3.3, 4.1, 4.7, 5.4, 5.5, 5.6, 5.7, 7.1, 7.7, 8.1, 9.3, 9.6, 9.7, 10.4, 10.6, 11.2, 15.1, 15.2, 15.3, 16, 17.1, 17.3, 18.1, 18.4, 25"
+
+[[entry]]
+rows = "R450 to R459"
+topic = "Futures: model calls, Untrusted, t-strings, durable resume, Lub cells, become in constructors and @fip, subscripts, ghost and lemma; R455 deferred past 1.0, R459 carried by R386"
+sections = "3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3"
+
+[[entry]]
+rows = "R460 to R466"
+topic = "Grammar check (https://claude.ai/artifact/BgkEJ6284UCgx2rJmMtGfa): 13.2 and 15.2 restated so that Jian has no LALR(1) conflicts and Wen none once three lookahead points are marked, productions for forms the prose already used, the seven missing factorings, built-in type words as keywords in type position (R460); uses Kv as cache in Jian (R461); the next-token rule for soft keywords, and Wen reserves fail (R462); Wen grid elements and spacing (R463); Wen conditional branches, function-type clauses and let-else (R464); ghost and lemma as prefix words (R465); @@prove as the module attribute (R466)"
+sections = "4.4, 7, 13.1, 13.2, 14, 15.1, 15.2"
+
+[[entry]]
+rows = "R215"
+topic = "Implementation language: Yong has one implementation, written in Rust, with no Python reference and no port (R215)"
+sections = "22, 26.1"
+
+[[entry]]
+rows = "R216 to R218"
+topic = "Jian token rerun (https://claude.ai/artifact/Nwge2MBPHS5a4f8tzdRp52): expression lists as tuples on the right of =, after return and as a tuple of places (R216); a class with \\_\\_init\\_\\_ read as record fields, N30 (R217); splitlines, partition, list index and list(...) in std, closing G9 (R218)"
+sections = "13.2, 14.1, 14.4, 17.2, 17.3"
+
+[[entry]]
+rows = "R467 to R473"
+topic = "Conformance suite questions, decided by the owner: a capability captured by an escaping closure is E306, not E406 (R467); conformance/yong/run/ holds M0 run cases (R468); E250 is reported at the second definition (R469); a list literal's length is a solver fact (R470); a par branch reading another branch's write is E705 alone (R471); a function that opens a deadline or timeout scope always has Timeout in its fail type (R472); E422 is reported at the subscript's name and E423 at the yielded place (R473)"
+sections = "4.4, 7.1, 8.6, 9.2, 9.4, 17.2, 24.1, 25"
+
+[[entry]]
+rows = "R474 to R476"
+topic = "Std build plan (https://claude.ai/artifact/FKZWX8ou7oHRZ3TcKkoKjQ), decided by the owner: native std bodies are @intrinsic def with a ... body, reserved to std (R474); the declaring module of each built-in type for method resolution, with the new module std.num (R475); Option in Yong text is Some { value: v } and None (R476)"
+sections = "17, 17.2"
+
+[[entry]]
+rows = "R477 to R478"
+topic = "Comparison doc spec gaps, decided by the owner: the list append operation is append everywhere and std has no push (R477); f-strings lower to a left-to-right std.text.concat chain over std.fmt.show, with std.fmt.show\\_spec for a format spec (R478)"
+sections = "17.3"
+
+[[entry]]
+rows = "R479"
+topic = "Conformance suite question, decided by the owner: conformance/pkg/ holds multi-file package cases for package and toolchain diagnostics (R479)"
+sections = "24.1"
+
+[[entry]]
+rows = "R480"
+topic = "Performance frontier survey, accepted by the owner: a list comprehension that is only iterated is fused and never built (R480); pointer from R385"
+sections = "13 (N18 paragraph), 5.5"
+
+[[entry]]
+rows = "R481"
+topic = "Performance frontier survey, accepted by the owner: pool uses heartbeat scheduling, no grain-size parameter; par concurrent starts eagerly (R481); replaces rayon-core in the crate table"
+sections = "6.4, 22.2"
+
+[[entry]]
+rows = "R482 to R486"
+topic = "std.regex proposal (https://claude.ai/artifact/VfVzs8W5JiZJ8rJmUiaUDN), decided by the owner: find\\_all returns Match values (R482); char offsets (R483); literal patterns checked at stage 0 as E545 and infallible (R484); Python replacement syntax (R485); 1 MiB automaton limit (R486)"
+sections = "17.3"
+
+[[entry]]
+rows = "R488 to R493"
+topic = "std.collections proposal (https://claude.ai/artifact/V79buG5mN2UWG7yV1aiaSX), decided by the owner: prelude constructors (R488); empty pop panics, peeks return None (R489); deque maxlen (R490); heap not iterable, shown ascending, Reverse for max (R491); no positional indexing on sorted types (R492); CPython repr show formats (R493)"
+sections = "17.3"
+
+[[entry]]
+rows = "R487"
+topic = "Performance frontier survey, second sweep, accepted by the owner: stage-0 steps are calls, loop iterations and allocations, counted the same by every evaluator, so stage 0 may run compiled (R487)"
+sections = "10.4"
+
+[[entry]]
+rows = "R494 to R499"
+topic = "std slices and bisect proposal (https://claude.ai/artifact/GfKVALRNrp1oa6PFatYqZq), decided by the owner: list methods now, std.slices with views (R494); bisect\\_left, bisect\\_right, insort without lo/hi (R495); key= with closures (R496); reverse() and no sort(reverse=) (R497); insert clamps (R498); slice\\_exact panics outside its range (R499)"
+sections = "17.3"
+
+[[entry]]
+rows = "R500 to R507"
+topic = "std.math proposal (https://claude.ai/artifact/DyYksx46pyAe555dLaBB2H), decided by the owner: CORE-MATH, tier E (R500); float scope, compound and rootn later (R501); C23 and IEEE names (R502); IEEE results on domain errors (R503); Round sum type, libm directed modes after codegen in the interpreter (R504); exact sum\\_exact and dot\\_exact (R505); pi, e, inf, nan (R506); grad deferred to M4 (R507)"
+sections = "11.1, 17.3"
+
+[[entry]]
+rows = "R508 to R515"
+topic = "std.iter proposal (https://claude.ai/artifact/5bV4s3C4spRNVJnzVDqAGr), decided by the owner: built-in lazy iter\\[T\\] (R508); sources, range stays a list (R509); adapters (R510); consumers (R511); eager list methods kept (R512); borrowing iterators second-class (R513); key= (R514); pull order (R515)"
+sections = "6.x, 17.3"

@@ -1,0 +1,122 @@
+## Appendix A. Traceability
+
+### A.1 Rows to sections
+
+Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archive/v0.3.md` keeps the original row text.
+
+<!-- rows: generated from spec/rows.toml by tools/rows.py render; do not edit -->
+
+| Rows | Topic | Sections |
+| --- | --- | --- |
+| R1, R2 | ownership, views | 4.2, 4.5, 5.1 |
+| R3, R4 | `sched` handler, I/O handlers, `par concurrent` | 9.1, 9.7 |
+| R5 | panics abort | 8.3 |
+| R6 | overflow checked | 3.4 |
+| R7, R27 | allocation failure, `try_` siblings | 5.5 |
+| R8 | Jian subset | 1, 14.1 |
+| R9, R85 | generators | 10.5, 15.2 |
+| R10, R60 | library tiers | 1, 17.1 |
+| R11, R13 | performance target, GPU | 23 |
+| R12 | no GATs | 10.2 |
+| R14 | Jian fluency plan | 21.3, 21.6, 23 |
+| R15 | lints | 18.2, 25.10 |
+| R16 | `toolchain` capability, `query`, `undo` | 7.1, 21.4 |
+| R17 | debugging and profiling | 18.7 |
+| R18 | commands | 18.1 |
+| R19 | test verdict cache | 18.4 |
+| R20 | scripts | 19.1 |
+| R21 | watch expressions | 13.1, 15.1, 18.6 |
+| R22 | no optional features | 19.1, 26.2 |
+| R23 to R26 | std scope, `@yong` packages, `std.evented` preview, `Wire` codecs | 17, 9.7 |
+| R28 to R33 | floating point, libm, tiers, reductions, 128-bit and f128, FMA | 3.2, 11.1 |
+| R34 | autodiff | 11.5 |
+| R35 | units extensions | 11.4 |
+| R36 | `Nat` parameters | 3.1, 10.1 |
+| R37 | `Pcg64Dxsm` | 11.1 |
+| R38 to R41 | `Soa`, handles, allocators, columnar memory | 5.5, 5.6, 11.8 |
+| R42 to R48 | tables, deterministic queries, query arithmetic, argument packs, query compilation, `tmp`, data packages | 10.1, 11.9, 7.1, 17.1 |
+| R49 to R60 | time | 7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8 |
+| R61 to R84 | Wen ergonomics | 15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3 |
+| R86 | inline assembly | 12.9, 15.2 |
+| R87 | `select` | 15.2, 15.3 |
+| R88 | `&` and `%` in the solver | 8.6 |
+| R89 to R105 | FFI and ABI | 12, 5.2 |
+| R106 | Wen signature layout | 15.3 |
+| R110 to R124 | memory and concurrency model | 6 |
+| R130 to R144 | compile time | 10.4, 10.6 |
+| R150 to R167 | networking and async I/O | 9.4, 9.7, 17.6, 17.7, 7.1 |
+| R170 to R189 | stability and evolution | 20 |
+| R190 to R209 | supply chain | 19 |
+| R240 to R255 | formatter | 18.5, 16.5 |
+| R260 to R268 | paradigm keepers: become, column expressions and keyed tables, std.rel, math.ein, actor moves, lenses, clause form, policy audit, stats | 3.5, 5.6, 9.6, 11.2, 15, 15.3, 16.5, 17.3, 18.1, 18.6 |
+| R290 to R299 | diagnostics: record fields, recovery by marking, verified fixes, quote anchors, line format, MCP repair channel and apply\_fixes, prose rendering and neutral voice, MessageFormat templates and trait hints, core error codes, tested and scored catalogue | 15.5, 18.2, 21.4, 25 |
+| R341, R342, R344, R348 | red-team review: cancellation only at blocking operations; capability sharing classes; float equality, order and hashing; method resolution order | 4.3, 7.1, 7.7, 9.2, 9.4, 10.2, 10.6, 14.1, 17.2, 25 |
+| R340, R342 (determinism), R343, R345 to R347, R348 (lints, identity hash), R349 | red-team review, second pass: trusted facts for check removal and refinement checks; Receiver sharing, scope of strong determinism, dropped buffers, replay logging; Drop; normative bounds solver; two-phase stage-0 checking and materialized maps; Jian discards, aliases, newtype\[T\], soft keywords; minor-release lints and identity hashes; streaming par for, test scheduler, opt-in deadlock detection | 3.6, 5.4, 6.5, 7.3, 7.6, 7.7, 8.5, 8.6, 9.2, 9.3, 9.5, 9.6, 10.4, 13.1, 13.2, 14.1, 14.4, 18.2, 25 |
+| R300 to R309 | testing and debugging: tests.lock approval, property tests, file snapshots, choice-sequence fuzzing and coverage, pct and linearizability, trace format and divergence, debugger query engine, count and causal profiling, deterministic spans, runner contract | 7.6, 18.4, 25 |
+| R310 to R319 | documentation: doc model, hash-resolved links, site/JSON/agent outputs, surface toggle, item page order, deterministic doc fences with generated outputs, guide pages, doc lints, registry docs and wasm playground, learning set and RC gate | 18.9, 23, 25 |
+| R320 to R329 | embedded and GPU profiles: profiles, static stack bound, SVD peripherals and HAL, srp and executor scheduling, abort and deferred log, embedded atomics, embedded targets, tile kernels, strict GPU determinism, gpu capability and backends | 17.1, 23, 25 |
+| R350 to R366 | licensing, governance and trademark: code, spec and docs licenses, compiled output, DCO, AI provenance, registry license rules, lead and RFC pipeline, RFC scope, transition and succession, community files, marks and policy, reserved names | 26.5 |
+| R390 to R399 | concurrency pass: sibling waits and cooperative sequential; channel handles not Sync; Arc count observation; shared initializers; cancel-all in par concurrent; locks across suspension; global deadlock and virtual-time quiescence; actor scope, call admission, reentrancy; live tagged output, alloc budgets; cancel grace and stream ends | 6.3, 6.4, 6.7, 7.3, 7.7, 9.1, 9.2, 9.3, 9.4, 9.6, 25 |
+| R400 to R419 | distributed compute: cluster capability, location-transparent Remote handles, local equivalence, node identity and unforgeable pids, QUIC transport, wire encoding, schema hashes and evolution, @remote items, delivery and RemoteError, Rapid views, majority partitions, cross-node supervision and child specs, placement, entities, groups, image-migration upgrades, @yong/durable, cluster simulation, security, delivery plan | 9.6, 9.6.1, 25 |
+| R380 to R389 | performance: deferred overflow traps, check elision and loop versioning, one reduction order, LLVM code-generation facts, move and return elision, unobservable allocation, safe portable SIMD and multiversioning, hashing and UnorderedMap, in-place concatenation, release pipeline and M2a gate | 3.3, 3.4, 4.1, 5.5, 6.6, 7.7, 8.5, 8.6, 9.3, 10.6, 11.1, 11.3, 23 |
+| R330 to R339 | internationalization: Unicode 18.0 and CLDR 49 pins, std.unicode scope, explicit Locale values, @yong/cldr baked data, ICU4X binding, typed MessageFormat 2 messages, locale-free root formatting, localized diagnostics, source text rules, display width | 3.3, 13.1, 17.5, 25 |
+| SQ2, SQ3 | Yong productions, join points | 3.5 |
+| SQ4 | internal-error range | 25.12 |
+| SQ5 | recursive item hashes | 3.6 |
+| SQ6, SQ26 | Jian base names; no arena in Jian | 13.2, 14.1 |
+| SQ7 | E241 | 10.1 |
+| SQ8, SQ9 | method vs field; receiver exemption | 10.2, 4.1 |
+| SQ10, SQ13, SQ14 | projection bindings, partial moves, drop order | 4.2, 5.3 |
+| SQ11, SQ15 | `exclusive_check`; capabilities are places | 3.5, 4.3 |
+| SQ16, SQ17 | par failure order; fold tree | 9.2, 9.3 |
+| SQ18, SQ19 | seeded rand across tasks; determinism statement | 7.7, 2 |
+| SQ20, SQ21 | Show layout; float and integer division | 17.3, 3.4 |
+| SQ22 | diagnostic order | 18.2 |
+| SQ23 | exit status | 8.1 |
+| SQ24 | contract levels | 8.5 |
+| SQ25 | Unicode tables | 3.3 |
+| SQ27 | property-test generation | 14.1 |
+| SQ28 | agent self-tests | 22.6 |
+| SQ29 | receiver mark | 2, 14.1 |
+| SQ30 to SQ33 | MVS, literal manifest, workspaces, toolchain field | 19.1, 20.3 |
+| R210 to R214 | Jian 1.0 model-first rules: full headers with ex handlers, undecided checks as runtime checks with W820, ... typed holes, header patches report broken call sites, T fail E with inline sum variants and inferred local mutability | 8.4, 8.6, 11.2, 13.2, 14.1, 14.3, 14.4, 18.3, 21.2, 25 |
+| R280 to R289 | Jian token dry run: autofix in the loop, lenient N14 to N23, keyword inout arguments, explicit copies kept (R283 rejected), E601 at publish and release only, narrowing of mutable locals, slice step, checked indexing, parentheses after a fallback else, primer budget and measurement protocol | 8.4, 13.2, 14.1, 14.3, 14.4, 21.6, 25 |
+| R420 to R429 | Jian ambiguity pass: spec consistency (R420), receiver calls infer mutability (R421), soft keywords by position (R422), syntactic sums (R423), explicit reification (R424), one spelling per type and return (R425), no clause form in Jian (R426), par for statement (R427), factorings and LL(1) CI check (R428), lints W823 and W824 (R429) | 2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25 |
+| R370 to R379 | consistency audit (https://claude.ai/artifact/6m2hzP9zq9KsgcMXv8VqEp): clause form in Wen only (R370); Wen aliases, sums and newtype\[T\] as in Jian (R371); W820 only for solver goals and call-site pre, plain overflow checks (R372); Jian soft match, case and type, Callable fail, par(limit=) (R373); Wen grammar gaps: become, unit, guards, select arms, typed hole, let-else, grids (R374); examples in canonical form (R375); blank lines inside bodies (R376); ChaCha8 default rand, capability and attribute registries, one test handler set (R377); commands, milestones, debug tool and coverage (R378); code families E273, E521, E014, E015, E316, warning rules, cross-references and names (R379) | 3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2 |
+| SQ12 | misplaced contract lines, resolved by E106 (R422) | 13.1 |
+| R430 to R439 | Wen real-programs pass (accepted 2026-10-31): main entry and ExitCode, capability sets, derive(From) and std Error, fallback blocks, for var, actor surface (aligned with R400 to R412), par function parameters (aligned with R390 to R399), field attributes and positional records, Map places, Scale\[S\]. Jian spelling of R431 (type S = uses ...), R435 (var self: S handlers) and R436 (par Callable) accepted 2026-10-31 and written in 13.2 and 14.1 | 4.6, 6.4, 7.1, 7.2, 8.1, 10.3, 15.1, 15.2, 15.3, 17.2, 25 |
+| R440 to R449 | Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Type, Nat, Dim; regions become arena views (Ref\[T\], E414); no actor capability; @must\_close folds into @linear; Wen uses Jian's words (var parameters, with deadline and timeout, top-level let, 22 soft keywords); no Sym; no Yong set convention, else (f) or par fold syntax (std par\_fold); no @blocking or @io, @no\_\* becomes @forbid(...); std.rel, FastHasher and proc.shell leave std, one ColExpr type, std.arrow its only home; seven commands fold into test, profile, check, view and audit. Retires E407, E408, E617, W802, W804, W809 | 1, 3.1, 3.3, 4.1, 4.7, 5.4, 5.5, 5.6, 5.7, 7.1, 7.7, 8.1, 9.3, 9.6, 9.7, 10.4, 10.6, 11.2, 15.1, 15.2, 15.3, 16, 17.1, 17.3, 18.1, 18.4, 25 |
+| R450 to R459 | Futures: model calls, Untrusted, t-strings, durable resume, Lub cells, become in constructors and @fip, subscripts, ghost and lemma; R455 deferred past 1.0, R459 carried by R386 | 3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3 |
+| R460 to R466 | Grammar check (https://claude.ai/artifact/BgkEJ6284UCgx2rJmMtGfa): 13.2 and 15.2 restated so that Jian has no LALR(1) conflicts and Wen none once three lookahead points are marked, productions for forms the prose already used, the seven missing factorings, built-in type words as keywords in type position (R460); uses Kv as cache in Jian (R461); the next-token rule for soft keywords, and Wen reserves fail (R462); Wen grid elements and spacing (R463); Wen conditional branches, function-type clauses and let-else (R464); ghost and lemma as prefix words (R465); @@prove as the module attribute (R466) | 4.4, 7, 13.1, 13.2, 14, 15.1, 15.2 |
+| R215 | Implementation language: Yong has one implementation, written in Rust, with no Python reference and no port (R215) | 22, 26.1 |
+| R216 to R218 | Jian token rerun (https://claude.ai/artifact/Nwge2MBPHS5a4f8tzdRp52): expression lists as tuples on the right of =, after return and as a tuple of places (R216); a class with \_\_init\_\_ read as record fields, N30 (R217); splitlines, partition, list index and list(...) in std, closing G9 (R218) | 13.2, 14.1, 14.4, 17.2, 17.3 |
+| R467 to R473 | Conformance suite questions, decided by the owner: a capability captured by an escaping closure is E306, not E406 (R467); conformance/yong/run/ holds M0 run cases (R468); E250 is reported at the second definition (R469); a list literal's length is a solver fact (R470); a par branch reading another branch's write is E705 alone (R471); a function that opens a deadline or timeout scope always has Timeout in its fail type (R472); E422 is reported at the subscript's name and E423 at the yielded place (R473) | 4.4, 7.1, 8.6, 9.2, 9.4, 17.2, 24.1, 25 |
+| R474 to R476 | Std build plan (https://claude.ai/artifact/FKZWX8ou7oHRZ3TcKkoKjQ), decided by the owner: native std bodies are @intrinsic def with a ... body, reserved to std (R474); the declaring module of each built-in type for method resolution, with the new module std.num (R475); Option in Yong text is Some { value: v } and None (R476) | 17, 17.2 |
+| R477 to R478 | Comparison doc spec gaps, decided by the owner: the list append operation is append everywhere and std has no push (R477); f-strings lower to a left-to-right std.text.concat chain over std.fmt.show, with std.fmt.show\_spec for a format spec (R478) | 17.3 |
+| R479 | Conformance suite question, decided by the owner: conformance/pkg/ holds multi-file package cases for package and toolchain diagnostics (R479) | 24.1 |
+| R480 | Performance frontier survey, accepted by the owner: a list comprehension that is only iterated is fused and never built (R480); pointer from R385 | 13 (N18 paragraph), 5.5 |
+| R481 | Performance frontier survey, accepted by the owner: pool uses heartbeat scheduling, no grain-size parameter; par concurrent starts eagerly (R481); replaces rayon-core in the crate table | 6.4, 22.2 |
+| R482 to R486 | std.regex proposal (https://claude.ai/artifact/VfVzs8W5JiZJ8rJmUiaUDN), decided by the owner: find\_all returns Match values (R482); char offsets (R483); literal patterns checked at stage 0 as E545 and infallible (R484); Python replacement syntax (R485); 1 MiB automaton limit (R486) | 17.3 |
+| R488 to R493 | std.collections proposal (https://claude.ai/artifact/V79buG5mN2UWG7yV1aiaSX), decided by the owner: prelude constructors (R488); empty pop panics, peeks return None (R489); deque maxlen (R490); heap not iterable, shown ascending, Reverse for max (R491); no positional indexing on sorted types (R492); CPython repr show formats (R493) | 17.3 |
+| R487 | Performance frontier survey, second sweep, accepted by the owner: stage-0 steps are calls, loop iterations and allocations, counted the same by every evaluator, so stage 0 may run compiled (R487) | 10.4 |
+| R494 to R499 | std slices and bisect proposal (https://claude.ai/artifact/GfKVALRNrp1oa6PFatYqZq), decided by the owner: list methods now, std.slices with views (R494); bisect\_left, bisect\_right, insort without lo/hi (R495); key= with closures (R496); reverse() and no sort(reverse=) (R497); insert clamps (R498); slice\_exact panics outside its range (R499) | 17.3 |
+| R500 to R507 | std.math proposal (https://claude.ai/artifact/DyYksx46pyAe555dLaBB2H), decided by the owner: CORE-MATH, tier E (R500); float scope, compound and rootn later (R501); C23 and IEEE names (R502); IEEE results on domain errors (R503); Round sum type, libm directed modes after codegen in the interpreter (R504); exact sum\_exact and dot\_exact (R505); pi, e, inf, nan (R506); grad deferred to M4 (R507) | 11.1, 17.3 |
+| R508 to R515 | std.iter proposal (https://claude.ai/artifact/5bV4s3C4spRNVJnzVDqAGr), decided by the owner: built-in lazy iter\[T\] (R508); sources, range stays a list (R509); adapters (R510); consumers (R511); eager list methods kept (R512); borrowing iterators second-class (R513); key= (R514); pull order (R515) | 6.x, 17.3 |
+
+<!-- /rows -->
+
+### A.2 Consolidation choices
+
+Where the rows left wording to the consolidation, this draft chose as follows. Each is open to the owner's override.
+
+- **Numbering.** 55 new diagnostic codes were assigned (marked *new* in section 25). Packages and stability take the new E0xx family; stage 0 takes E260 to E270; systems-layer errors take the new E9xx family. Virtual time under `pool` is E710, beside E708, as the time design suggested.
+- **Kind `Size` renamed `Nat`**, matching the surfaces' `N: Nat` bounds (R36, R62).
+- **`uint` removed** from Jian's base types and the prelude, as R80 listed it among the replaced forms; Jian uses the sized `uint8` to `uint128`.
+- **`ffi` modules** are the files under a package's `ffi/` directory, where `yong ffi import` writes them; v0.3 never said how a module is marked.
+- **`@forbid(rc)`** (spelled `@no_rc` before R447) now means no `Rc` or `Arc` count operation is reachable, since Yong has no `dup` after R1.
+- **`yong` field.** SQ33's `toolchain` field is the `yong = "1.x"` field of R177.
+- **API evolution table.** R183 listed the major changes; the minor and patch rows of 20.6, and the "trait method without default" and "parameter added without default" rows, follow Cargo's SemVer chapter.
+- **Examples.** The portfolio and VWAP examples now call `http.get_text` from `std.http` and insert the `copy` calls that R1 requires.
+- **Section numbers** changed: the memory model (6), FFI (12) and stability (20) became sections, and every cross-reference follows the new numbering.
+- **Paradigm keepers (R260 to R268)**, accepted on 2026-10-31 from the paradigm keepers design (https://claude.ai/artifact/UeApdTe98kdRA3d5K1w5hp). Yong spells the tail call `become Call`, beside `ret`, and Wen allows `become postfix`. Wen's clause form uses Wen's own match arms (`pattern -> ...`, R370), not the `|` arms of the design sketch, and a function with several parameters matches on their tuple. The codes are E273, E271 and E420 (E142 renumbered by R379). The class and fold views were placed in 18.6, and `view --steps`, `audit --stats` and `audit --policy` in 18.1, where R449 folded the first two. R264 is wording only.
+- **Diagnostics (R290 to R299)**, accepted on 2026-10-31 from the diagnostics design (https://claude.ai/artifact/GLRhfwSr8xcyE1gZqSLhg3). The owner chose recovery by marking (R291), the line rendering as MCP content (R295) and the neutral voice (R296); the other rows follow the design. The new codes are E100, E102, E201, E202, E203 and E221.

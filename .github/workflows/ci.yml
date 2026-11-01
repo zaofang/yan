@@ -50,6 +50,7 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy tools
       - run: uv run pytest -q tools/selftest
+      - run: uv run python tools/rows.py check
 
   rust:
     runs-on: self-hosted
