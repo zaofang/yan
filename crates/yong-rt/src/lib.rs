@@ -3,4 +3,5 @@
 //! Functions take and return plain Rust data, never interpreter values.
 
 pub mod math;
+pub mod regex;
 pub mod text;

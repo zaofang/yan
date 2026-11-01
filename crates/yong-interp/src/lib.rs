@@ -126,7 +126,7 @@ pub enum Stop {
 
 pub(crate) type R<T> = Result<T, Stop>;
 
-pub(crate) const STD_STAGES: u8 = 3;
+pub(crate) const STD_STAGES: u8 = 2;
 
 pub(crate) struct Interp<'o> {
     out: &'o mut dyn Write,
@@ -314,7 +314,6 @@ pub(crate) fn data(name: &str, field: &str, v: Value) -> Value {
 pub(crate) fn std_stage(stage: u8, name: &str, args: &mut [Value]) -> Option<R<Value>> {
     match stage {
         0 => prelude::call(name, args),
-        1 => regex::call(name, args),
         _ => collections::call(name, args),
     }
 }
