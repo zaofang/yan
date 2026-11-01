@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-01 | [What makes Jian and Wen special](https://claude.ai/artifact/4piYJXunC1Vp4f14HAtYHh) | R566, R567; Jian-to-Wen view stays in M3 |
 | 2026-11-01 | [Yong architecture plan: one core, many surfaces](https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC) | RFC 0004 (R558 to R565) |
 | 2026-11-01 | [Surface shortlist, revision 2](https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD) | RFC 0002 (R536 to R550), RFC 0003 (R551 to R557) |
 | 2026-11-01 | [Research track: eight extensions](https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8) | R522 to R529 (research, post-1.0) |

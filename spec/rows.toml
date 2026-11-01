@@ -504,3 +504,8 @@ sections = "26.6"
 rows = "R558 to R565"
 topic = "Architecture for one core and many surfaces (RFC 0004, https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC), accepted by the owner: HIR as the surface-neutral pivot (R558); one printer per surface and a shared raise (R559); crate boundaries and layering (R560); one intrinsic registry (R561); std source layout by tier, Jian and Wen sources (R562); Fei print-only view in M3 (R563); law checking over the whole suite (R564); origin marks as trivia and raise (R565)"
 sections = "1, 16.4, 16.5, 16.6, 17.1, 22.2, 22.4, 23, 24.2"
+
+[[entry]]
+rows = "R566, R567"
+topic = "Jian and Wen direction (https://claude.ai/artifact/4piYJXunC1Vp4f14HAtYHh), decided by the owner: the model probe runs as soon as the Jian front end and interpreter work, and Jian syntax rows wait for it (R566); the M1 token gate splits spec-phase from body and repair tokens, with a tests-included typed-Python baseline (R567)"
+sections = "21.6, 23"
