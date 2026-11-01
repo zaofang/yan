@@ -127,8 +127,7 @@ pub fn has_error(diags: &[Diagnostic]) -> bool {
 pub fn surface(path: &Path) -> Option<yong_names::Surface> {
     match path.extension().and_then(|e| e.to_str()) {
         Some("yong") => Some(yong_names::Surface::Yong),
-        // `jian` until conformance/ is renamed to the Xin names.
-        Some("xin" | "jian") => Some(yong_names::Surface::Xin),
+        Some("xin") => Some(yong_names::Surface::Xin),
         Some("wen") => Some(yong_names::Surface::Wen),
         _ => None,
     }

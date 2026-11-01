@@ -33,8 +33,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Literal, Protocol
 
-# "jian" and ".jian" stay until conformance/ is renamed to the Xin names.
-SURFACES = ("xin", "jian", "wen", "yong")
+SURFACES = ("xin", "wen", "yong")
 SURFACE_KINDS = ("pass", "fail", "run")
 # Top-level directories of 24.1 and the kind each one is judged as. Kinds without a defined
 # case format yet are discovered and skipped.
@@ -48,8 +47,8 @@ TOP_KINDS = {
     "roundtrip": "roundtrip",
     "sim": "sim",
 }
-COMMENT = {".xin": "#", ".jian": "#", ".wen": "--", ".yong": "--"}
-DEFAULT_MILESTONE = {".yong": "M0", ".xin": "M1", ".jian": "M1", ".wen": "M3"}
+COMMENT = {".xin": "#", ".wen": "--", ".yong": "--"}
+DEFAULT_MILESTONE = {".yong": "M0", ".xin": "M1", ".wen": "M3"}
 MILESTONES = ("P0", "M0", "M1", "M1b", "M2a", "M2b", "M3", "RC", "M4")
 TOOL_FAILURE = 2
 HEADERS = frozenset(
@@ -354,8 +353,7 @@ def _judge(case: Case, ex: Executor) -> Result:
 
 def _judge_patch(case: Case, ex: Executor) -> Result:
     name = str(case.path)
-    names = ("patch.json", "patch.xin", "patch.jian")
-    found = [case.path / n for n in names if (case.path / n).is_file()]
+    found = [p for p in (case.path / "patch.json", case.path / "patch.xin") if p.is_file()]
     if not found:
         return Result(name, ex.name, "fail", "no patch.json or patch.xin")
     patch = found[0]
@@ -364,9 +362,8 @@ def _judge_patch(case: Case, ex: Executor) -> Result:
         for f in case.path.iterdir():
             shutil.copy(f, work / f.name)
         records, code = ex.patch(work, work / patch.name, case.flags)
-        module = "m.xin" if (case.path / "m.xin").is_file() else "m.jian"
-        after = (work / module).read_text(encoding="utf-8")
-    before = (case.path / module).read_text(encoding="utf-8")
+        after = (work / "m.xin").read_text(encoding="utf-8")
+    before = (case.path / "m.xin").read_text(encoding="utf-8")
     want_code = case.meta.get("code")
     if want_code is not None:
         codes = [str(r.get("code")) for r in records]
@@ -526,9 +523,7 @@ def manifest(cases: list[Case], root: Path) -> dict[str, object]:
 
 def _surface(case: Case) -> str:
     # patch/, semver/ and pkg/ directories hold Xin modules.
-    return {".xin": "Xin", ".jian": "Xin", ".wen": "Wen", ".yong": "Yong"}.get(
-        case.path.suffix, "Xin"
-    )
+    return {".xin": "Xin", ".wen": "Wen", ".yong": "Yong"}.get(case.path.suffix, "Xin")
 
 
 def coverage(cases: list[Case], catalogue: dict[str, dict[str, dict[str, str]]]) -> str:
