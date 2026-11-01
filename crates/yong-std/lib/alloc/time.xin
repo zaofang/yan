@@ -9,6 +9,40 @@ pub class TimeError:
     at: int
     reason: TimeReason
 
+@since("1.0")
+pub type Disambiguation = Compatible() | Earlier() | Later()
+
+@since("1.0")
+pub class ZonedDateTime:
+    """An instant in a zone, with its wall-clock reading; equal by instant and zone (11.6)."""
+    instant: Instant
+    plain: PlainDateTime
+    zone: TimeZone
+
+@intrinsic
+@since("1.0")
+pub def offset_seconds(self: ZonedDateTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def zoned_add(self: ZonedDateTime, d: Duration) -> ZonedDateTime: ...
+
+@intrinsic
+@since("1.0")
+pub def zoned_sub(self: ZonedDateTime, d: Duration) -> ZonedDateTime: ...
+
+@intrinsic
+@since("1.0")
+pub def zoned_add_period(self: ZonedDateTime, p: Period) -> ZonedDateTime: ...
+
+@intrinsic
+@since("1.0")
+pub def strftime(self: ZonedDateTime, fmt: str) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def parse(s: str) -> ZonedDateTime fail TimeError: ...
+
 @capability
 @since("1.0")
 pub trait Time:

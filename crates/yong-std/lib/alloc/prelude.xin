@@ -127,3 +127,23 @@ pub def Path(s: str) -> Path: ...
 @intrinsic
 @since("1.0")
 pub def WindowsPath(s: str) -> WindowsPath: ...
+
+@intrinsic
+@since("1.0")
+pub def PlainDate(y: int, m: int, d: int) -> PlainDate: ...
+
+@intrinsic
+@since("1.0")
+pub def PlainTime(h: int, mi: int, s: int = 0, ns: int = 0) -> PlainTime: ...
+
+@intrinsic
+@since("1.0")
+pub def PlainDateTime(date: PlainDate, time: PlainTime) -> PlainDateTime: ...
+
+@intrinsic
+@since("1.0")
+pub def Period(years: int = 0, months: int = 0, weeks: int = 0, days: int = 0) -> Period: ...
+
+@intrinsic
+@since("1.0")
+pub def TimeZone(id: str) -> TimeZone: ...

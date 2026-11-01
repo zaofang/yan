@@ -10,11 +10,11 @@ use super::native::opt;
 use super::{Interp, R, Value, panic};
 use Value::*;
 
-const NS: i128 = 1_000_000_000;
-const DAY: i128 = 86_400 * NS;
+pub(super) const NS: i128 = 1_000_000_000;
+pub(super) const DAY: i128 = 86_400 * NS;
 
 /// Days from 1970-01-01 to the proleptic Gregorian date `y-m-d` (Hinnant's algorithm).
-fn days_from_civil(y: i128, m: i128, d: i128) -> i128 {
+pub(super) fn days_from_civil(y: i128, m: i128, d: i128) -> i128 {
     let y = if m <= 2 { y - 1 } else { y };
     let era = y.div_euclid(400);
     let yoe = y - era * 400;
@@ -24,7 +24,7 @@ fn days_from_civil(y: i128, m: i128, d: i128) -> i128 {
     era * 146_097 + doe - 719_468
 }
 
-fn civil_from_days(z: i128) -> (i128, i128, i128) {
+pub(super) fn civil_from_days(z: i128) -> (i128, i128, i128) {
     let z = z + 719_468;
     let era = z.div_euclid(146_097);
     let doe = z - era * 146_097;
@@ -49,15 +49,15 @@ fn days_in_month(y: i128, m: i128) -> i128 {
 static MIN: LazyLock<i128> = LazyLock::new(|| days_from_civil(-9999, 1, 1) * DAY);
 static MAX: LazyLock<i128> = LazyLock::new(|| days_from_civil(10000, 1, 1) * DAY - 1);
 
-fn in_instant(ns: i128) -> Option<i128> {
+pub(super) fn in_instant(ns: i128) -> Option<i128> {
     (*MIN..=*MAX).contains(&ns).then_some(ns)
 }
 
-fn in_duration(ns: i128) -> Option<i128> {
+pub(super) fn in_duration(ns: i128) -> Option<i128> {
     (ns.abs() <= *MAX - *MIN).then_some(ns)
 }
 
-fn or_overflow(v: Option<i128>, f: fn(i128) -> Value) -> R<Value> {
+pub(super) fn or_overflow(v: Option<i128>, f: fn(i128) -> Value) -> R<Value> {
     match v {
         Some(n) => Ok(f(n)),
         None => panic("overflow"),
@@ -65,14 +65,14 @@ fn or_overflow(v: Option<i128>, f: fn(i128) -> Value) -> R<Value> {
 }
 
 /// `.5`, `.123456789` or nothing: fractional seconds with trailing zeros dropped.
-fn frac(ns: i128) -> String {
+pub(super) fn frac(ns: i128) -> String {
     if ns == 0 {
         return String::new();
     }
     format!(".{ns:09}").trim_end_matches('0').to_owned()
 }
 
-fn year(y: i128) -> String {
+pub(super) fn year(y: i128) -> String {
     if (0..=9999).contains(&y) {
         format!("{y:04}")
     } else {
@@ -110,7 +110,7 @@ pub(super) fn show_duration(ns: i128) -> String {
     out
 }
 
-fn error(at: usize, kind: &str) -> Value {
+pub(super) fn error(at: usize, kind: &str) -> Value {
     Data {
         name: "TimeError".into(),
         fields: vec![
@@ -141,17 +141,24 @@ pub(super) fn show_error(fields: &[(super::Name, Value)]) -> String {
 }
 
 /// A strict RFC 3339 reader over chars, failing at the first bad char (R595).
-struct Reader {
-    cs: Vec<char>,
-    i: usize,
+pub(super) struct Reader {
+    pub(super) cs: Vec<char>,
+    pub(super) i: usize,
 }
 
 impl Reader {
-    fn syntax<T>(&self) -> Result<T, Value> {
+    pub(super) fn new(s: &str) -> Reader {
+        Reader {
+            cs: s.chars().collect(),
+            i: 0,
+        }
+    }
+
+    pub(super) fn syntax<T>(&self) -> Result<T, Value> {
         Err(error(self.i, "Syntax"))
     }
 
-    fn digits(&mut self, n: usize) -> Result<i128, Value> {
+    pub(super) fn digits(&mut self, n: usize) -> Result<i128, Value> {
         let mut v = 0;
         for _ in 0..n {
             match self.cs.get(self.i).and_then(|c| c.to_digit(10)) {
@@ -163,7 +170,7 @@ impl Reader {
         Ok(v)
     }
 
-    fn lit(&mut self, c: char) -> Result<(), Value> {
+    pub(super) fn lit(&mut self, c: char) -> Result<(), Value> {
         if self.cs.get(self.i) != Some(&c) {
             return self.syntax();
         }
@@ -172,7 +179,7 @@ impl Reader {
     }
 
     /// A field that must lie in `lo..=hi`, reported at its first char.
-    fn field(&mut self, n: usize, lo: i128, hi: i128) -> Result<i128, Value> {
+    pub(super) fn field(&mut self, n: usize, lo: i128, hi: i128) -> Result<i128, Value> {
         let at = self.i;
         let v = self.digits(n)?;
         if !(lo..=hi).contains(&v) {
@@ -180,84 +187,104 @@ impl Reader {
         }
         Ok(v)
     }
+
+    /// `YYYY-MM-DD`.
+    pub(super) fn date(&mut self) -> Result<(i128, i128, i128), Value> {
+        let y = self.digits(4)?;
+        self.lit('-')?;
+        let m = self.field(2, 1, 12)?;
+        self.lit('-')?;
+        let d = self.field(2, 1, days_in_month(y, m))?;
+        Ok((y, m, d))
+    }
+
+    /// `HH:MM:SS` with up to 9 fractional digits; no leap second.
+    pub(super) fn clock(&mut self) -> Result<(i128, i128, i128, i128), Value> {
+        let h = self.field(2, 0, 23)?;
+        self.lit(':')?;
+        let mi = self.field(2, 0, 59)?;
+        self.lit(':')?;
+        let sec = self.field(2, 0, 59)?;
+        let mut ns = 0;
+        if self.cs.get(self.i) == Some(&'.') {
+            self.i += 1;
+            let start = self.i;
+            while self.cs.get(self.i).is_some_and(char::is_ascii_digit) {
+                if self.i - start == 9 {
+                    return self.syntax();
+                }
+                self.i += 1;
+            }
+            if self.i == start {
+                return self.syntax();
+            }
+            let text: String = self.cs[start..self.i].iter().collect();
+            ns = format!("{text:0<9}").parse().expect("digits");
+        }
+        Ok((h, mi, sec, ns))
+    }
+
+    /// `Z` (None) or `+HH:MM`, in minutes.
+    pub(super) fn offset(&mut self) -> Result<Option<i128>, Value> {
+        match self.cs.get(self.i) {
+            Some('Z') => {
+                self.i += 1;
+                Ok(None)
+            }
+            Some(c @ ('+' | '-')) => {
+                let sign = if *c == '-' { -1 } else { 1 };
+                self.i += 1;
+                let oh = self.field(2, 0, 23)?;
+                self.lit(':')?;
+                let om = self.field(2, 0, 59)?;
+                Ok(Some(sign * (oh * 60 + om)))
+            }
+            _ => self.syntax(),
+        }
+    }
+
+    /// An RFC 9557 `[tag]`, without a critical `!`.
+    pub(super) fn tag(&mut self) -> Result<String, Value> {
+        self.lit('[')?;
+        let Some(len) = self.cs[self.i..].iter().position(|c| *c == ']') else {
+            return self.syntax();
+        };
+        let tag: String = self.cs[self.i..self.i + len].iter().collect();
+        self.i += len + 1;
+        Ok(tag.strip_prefix('!').unwrap_or(&tag).to_owned())
+    }
+
+    pub(super) fn end(&self) -> Result<(), Value> {
+        if self.i != self.cs.len() {
+            return self.syntax();
+        }
+        Ok(())
+    }
 }
 
 fn parse_instant(s: &str) -> Result<Value, Value> {
-    let mut r = Reader {
-        cs: s.chars().collect(),
-        i: 0,
-    };
-    let y = r.digits(4)?;
-    r.lit('-')?;
-    let m = r.field(2, 1, 12)?;
-    r.lit('-')?;
-    let at = r.i;
-    let d = r.digits(2)?;
-    if !(1..=days_in_month(y, m)).contains(&d) {
-        return Err(error(at, "Range"));
-    }
+    let mut r = Reader::new(s);
+    let (y, m, d) = r.date()?;
     r.lit('T')?;
-    let h = r.field(2, 0, 23)?;
-    r.lit(':')?;
-    let mi = r.field(2, 0, 59)?;
-    r.lit(':')?;
-    let sec = r.field(2, 0, 59)?;
-    let mut ns = 0;
-    if r.cs.get(r.i) == Some(&'.') {
-        r.i += 1;
-        let start = r.i;
-        while r.cs.get(r.i).is_some_and(char::is_ascii_digit) {
-            if r.i - start == 9 {
-                return r.syntax();
-            }
-            r.i += 1;
-        }
-        if r.i == start {
-            return r.syntax();
-        }
-        let text: String = r.cs[start..r.i].iter().collect();
-        ns = format!("{text:0<9}").parse().expect("digits");
-    }
+    let (h, mi, sec, ns) = r.clock()?;
     let off_at = r.i;
-    let offset = match r.cs.get(r.i) {
-        Some('Z') => {
-            r.i += 1;
-            0
-        }
-        Some(c @ ('+' | '-')) => {
-            let sign = if *c == '-' { -1 } else { 1 };
-            r.i += 1;
-            let oh = r.field(2, 0, 23)?;
-            r.lit(':')?;
-            let om = r.field(2, 0, 59)?;
-            sign * (oh * 60 + om)
-        }
-        _ => return r.syntax(),
-    };
+    let offset = r.offset()?.unwrap_or(0);
     let off_text: String = r.cs[off_at..r.i].iter().collect();
     if r.cs.get(r.i) == Some(&'[') {
         let at = r.i;
-        let close = r.cs[at..].iter().position(|c| *c == ']');
-        let Some(len) = close else {
-            return r.syntax();
-        };
-        let tag: String = r.cs[at + 1..at + len].iter().collect();
-        let tag = tag.strip_prefix('!').unwrap_or(&tag);
-        if !(matches!(tag, "UTC" | "Etc/UTC") || tag == off_text) {
+        let tag = r.tag()?;
+        if !(matches!(tag.as_str(), "UTC" | "Etc/UTC") || tag == off_text) {
             return Err(error(at, "Zone"));
         }
-        r.i = at + len + 1;
     }
-    if r.i != r.cs.len() {
-        return r.syntax();
-    }
+    r.end()?;
     let secs = days_from_civil(y, m, d) * 86_400 + h * 3600 + mi * 60 + sec - offset * 60;
     in_instant(secs * NS + ns)
         .map(Instant)
         .ok_or_else(|| error(0, "Range"))
 }
 
-fn dur(v: &Value) -> i128 {
+pub(super) fn dur(v: &Value) -> i128 {
     match v {
         Duration(n) | Instant(n) | Mono(n) => *n,
         _ => unreachable!("a time value"),

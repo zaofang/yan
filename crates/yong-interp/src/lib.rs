@@ -14,6 +14,7 @@ use num_bigint::BigInt;
 use yong_core::ast::*;
 
 mod bind;
+mod civil;
 mod collections;
 mod compile;
 mod encoding;
@@ -69,6 +70,12 @@ pub(crate) enum Value {
     Duration(i128),
     Instant(i128),
     Mono(i128),
+    PlainDate(jiff::civil::Date),
+    PlainTime(jiff::civil::Time),
+    PlainDateTime(jiff::civil::DateTime),
+    /// Years, months, weeks and days, with one sign.
+    Period([i64; 4]),
+    Zone(Rc<civil::Zone>),
     Closure(Rc<vm::Clo>),
     Iter(iter::It),
 }
@@ -117,6 +124,11 @@ impl Hash for Key {
                 Value::Path(s) => s.hash(h),
                 Value::Duration(n) | Value::Instant(n) | Value::Mono(n) => n.hash(h),
                 Value::WindowsPath(w) => w.folded().hash(h),
+                Value::PlainDate(d) => d.hash(h),
+                Value::PlainTime(t) => t.hash(h),
+                Value::PlainDateTime(dt) => dt.hash(h),
+                Value::Period(p) => p.hash(h),
+                Value::Zone(z) => z.id().hash(h),
                 Value::BigInt(b) => b.hash(h),
                 Value::Tuple(xs) | Value::List(xs) => xs.iter().for_each(|x| go(x, h)),
                 Value::Data { name, fields } => {

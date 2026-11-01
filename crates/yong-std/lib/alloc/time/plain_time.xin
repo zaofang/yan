@@ -1,0 +1,41 @@
+"""Methods on PlainTime, a wall-clock time of day (17.5, R598, R602)."""
+
+@intrinsic
+@since("1.0")
+pub def try_new(h: int, mi: int, s: int = 0, ns: int = 0) -> PlainTime | None: ...
+
+@intrinsic
+@since("1.0")
+pub def parse(s: str) -> PlainTime fail TimeError: ...
+
+@intrinsic
+@since("1.0")
+pub def strptime(s: str, fmt: str) -> PlainTime fail TimeError: ...
+
+@intrinsic
+@since("1.0")
+pub def hour(self: PlainTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def minute(self: PlainTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def second(self: PlainTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def nanosecond(self: PlainTime) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def add(self: PlainTime, d: Duration) -> PlainTime: ...
+
+@intrinsic
+@since("1.0")
+pub def sub(self: PlainTime, d: Duration) -> PlainTime: ...
+
+@intrinsic
+@since("1.0")
+pub def strftime(self: PlainTime, fmt: str) -> str: ...

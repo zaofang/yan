@@ -39,7 +39,7 @@ pub enum Ty {
 }
 
 /// Each std.collections type, by its Xin name; its Yong name is in the projection table.
-pub const COLLECTIONS: [&str; 12] = [
+pub const COLLECTIONS: [&str; 17] = [
     "deque",
     "iter",
     "heap",
@@ -52,6 +52,11 @@ pub const COLLECTIONS: [&str; 12] = [
     "Duration",
     "Instant",
     "MonoInstant",
+    "PlainDate",
+    "PlainTime",
+    "PlainDateTime",
+    "Period",
+    "TimeZone",
 ];
 
 /// `name` as a std.collections type, with its `&'static` spelling and arity.
@@ -184,6 +189,11 @@ impl Ty {
             Ty::Coll("Duration", _) => Some("time.duration"),
             Ty::Coll("Instant", _) => Some("time.instant"),
             Ty::Coll("MonoInstant", _) => Some("time.mono"),
+            Ty::Coll("PlainDate", _) => Some("time.date"),
+            Ty::Coll("PlainTime", _) => Some("time.plain_time"),
+            Ty::Coll("PlainDateTime", _) => Some("time.plain_date_time"),
+            Ty::Coll("Period", _) => Some("time.period"),
+            Ty::Coll("TimeZone", _) => Some("time.zone"),
             Ty::Coll(_, _) => Some("collections.sorted_set"),
             Ty::Int | Ty::Float | Ty::BigInt | Ty::Bool | Ty::Fixed(_) => Some("num"),
             Ty::Option(_) | Ty::Result(..) => Some("result"),
