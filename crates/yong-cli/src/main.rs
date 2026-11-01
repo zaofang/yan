@@ -37,8 +37,9 @@ enum Backend {
 enum Command {
     /// Check files and report diagnostics.
     Check {
-        #[arg(long, value_enum, default_value_t = Format::Line)]
-        format: Format,
+        /// `prose` when output is a terminal, `line` otherwise (18.2).
+        #[arg(long, value_enum)]
+        format: Option<Format>,
         #[arg(long, default_value_t = DEFAULT_MAX_ERRORS)]
         max_errors: usize,
         /// Disable the lenient reader (14.4).
@@ -131,6 +132,8 @@ enum Command {
         #[arg(long)]
         out: Option<PathBuf>,
     },
+    /// Explain a diagnostic code, with its conformance examples and their fixes (R299).
+    Explain { code: String },
     /// Run a program.
     Run {
         #[arg(long)]
@@ -144,6 +147,7 @@ enum Command {
 #[derive(Clone, Copy, ValueEnum)]
 enum Format {
     Line,
+    Prose,
     Json,
 }
 
@@ -162,6 +166,7 @@ fn main() -> ExitCode {
             max_errors,
             Database::new(strict, level.as_deref() == Some("release")),
         ),
+        Command::Explain { code } => explain(&code),
         Command::Run {
             file,
             strict,
@@ -238,13 +243,48 @@ fn run_tests(format: Format, gate: bool, only: Option<&str>) -> ExitCode {
     };
     match format {
         Format::Json => println!("{}", report.json()),
-        Format::Line => report.lines().iter().for_each(|l| println!("{l}")),
+        Format::Line | Format::Prose => report.lines().iter().for_each(|l| println!("{l}")),
     }
     if report.failed(gate) {
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
     }
+}
+
+mod cases {
+    include!(concat!(env!("OUT_DIR"), "/explain_cases.rs"));
+}
+
+/// `yong explain CODE`: the catalogue entry, then each surface's first `fail/` conformance
+/// case for the code, checked and rendered as prose, so its fixes show as diffs.
+fn explain(code: &str) -> ExitCode {
+    let Some((meaning, sections)) = yong_diag::catalogue(code) else {
+        return tool_failure(&format!("`{code}` is not in the diagnostics catalogue"));
+    };
+    println!("{code}: {meaning}");
+    if !sections.is_empty() {
+        println!("spec: {sections}");
+    }
+    let mut any = false;
+    for (_, path, flags, text) in cases::CASES.iter().filter(|c| c.0 == code) {
+        let mut db = Database::new(
+            flags.contains("--strict"),
+            flags.contains("--level release"),
+        );
+        let f = db.file(Path::new(path), text);
+        let Ok(diags) = yong_ide::diagnostics(&db, f) else {
+            continue;
+        };
+        for d in diags.iter().filter(|d| d.code == code) {
+            println!("\nexample: {path}\n{}", d.render_prose(text));
+            any = true;
+        }
+    }
+    if !any {
+        println!("\nNo conformance example for {code} yet.");
+    }
+    ExitCode::SUCCESS
 }
 
 fn print_diags(diags: &[Diagnostic]) {
@@ -339,7 +379,7 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
         Err(msg) => return tool_failure(msg),
     };
     match format {
-        Format::Line => {
+        Format::Line | Format::Prose => {
             for h in hashes {
                 println!("{}\t{}\t{}", h.key, h.salted, h.identity);
             }
@@ -403,17 +443,36 @@ fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
     }
 }
 
-fn check(files: &[PathBuf], format: Format, max_errors: usize, mut db: Database) -> ExitCode {
+fn check(
+    files: &[PathBuf],
+    format: Option<Format>,
+    max_errors: usize,
+    mut db: Database,
+) -> ExitCode {
+    use std::io::IsTerminal;
     let mut diags = Vec::new();
+    let mut texts = std::collections::HashMap::new();
     for file in files {
-        let d = db.open(file).and_then(|f| yong_ide::diagnostics(&db, f));
+        let d = db.open(file).and_then(|f| {
+            texts.insert(file.display().to_string(), f.text(&db).clone());
+            yong_ide::diagnostics(&db, f)
+        });
         match d {
             Ok(mut d) => diags.append(&mut d),
             Err(msg) => return tool_failure(&msg),
         }
     }
     let diags = finish(diags, max_errors);
+    let format = format.unwrap_or(if std::io::stdout().is_terminal() {
+        Format::Prose
+    } else {
+        Format::Line
+    });
     match format {
+        Format::Prose => diags.iter().for_each(|d| {
+            let src = texts.get(&d.file).map_or("", String::as_str);
+            println!("{}", d.render_prose(src));
+        }),
         Format::Json => println!(
             "{}",
             serde_json::to_string(&diags).expect("records serialize")
@@ -445,7 +504,7 @@ fn apply_patch(file: &Path, module: Option<&str>, check: bool, format: Format) -
                     "{}",
                     serde_json::to_string(&diags).expect("records serialize")
                 ),
-                Format::Line => diags
+                Format::Line | Format::Prose => diags
                     .iter()
                     .for_each(|d| println!("{}", d.render_line(None))),
             }

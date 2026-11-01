@@ -146,6 +146,109 @@ impl Diagnostic {
     }
 }
 
+const CATALOGUE: &str = include_str!("../../../spec/25-diagnostics-catalogue.md");
+
+/// The section 25 entry for `code`: its meaning and the spec sections it cites.
+pub fn catalogue(code: &str) -> Option<(String, &'static str)> {
+    CATALOGUE.lines().find_map(|l| {
+        let cells: Vec<&str> = l.split('|').map(str::trim).collect();
+        match cells.as_slice() {
+            ["", c, meaning, rest @ ..] if *c == code => {
+                let meaning = meaning.replace("* new*", "").replace("*new*", "");
+                Some((
+                    meaning.trim().to_owned(),
+                    rest.first().copied().unwrap_or(""),
+                ))
+            }
+            _ => None,
+        }
+    })
+}
+
+impl Diagnostic {
+    /// The prose rendering for people (R296): header, location, excerpt with the primary span
+    /// and labels, notes, each fix as a diff, and the `yong explain` pointer. `src` is the
+    /// file's text.
+    pub fn render_prose(&self, src: &str) -> String {
+        let lines: Vec<&str> = src.lines().collect();
+        let kind = match self.severity {
+            Severity::Error => "error",
+            Severity::Warning => "warning",
+            Severity::Note => "note",
+        };
+        let title = catalogue(&self.code).map_or_else(|| self.message.clone(), |(m, _)| m);
+        let mut marks: Vec<(Span, char, &str)> = vec![(self.span, '^', self.message.as_str())];
+        marks.extend(self.labels.iter().map(|l| (l.span, '-', l.text.as_str())));
+        marks.sort_by_key(|(s, ..)| (s.line, s.col));
+        let width = marks
+            .iter()
+            .map(|(s, ..)| s.line)
+            .max()
+            .unwrap_or(1)
+            .to_string()
+            .len();
+        let pad = " ".repeat(width);
+        let mut out = format!(
+            "{kind}[{}]: {title}\n{pad}--> {}:{}:{}\n{pad} |\n",
+            self.code, self.file, self.span.line, self.span.col
+        );
+        let mut shown = None;
+        for (span, mark, text) in marks {
+            let Some(line) = lines.get((span.line as usize).wrapping_sub(1)) else {
+                continue;
+            };
+            if shown != Some(span.line) {
+                out += &format!("{:>width$} | {line}\n", span.line);
+                shown = Some(span.line);
+            }
+            let from = (span.col as usize).saturating_sub(1).min(line.len());
+            let to = if span.end_line == span.line {
+                (span.end_col as usize)
+                    .saturating_sub(1)
+                    .clamp(from + 1, line.len().max(from + 1))
+            } else {
+                line.len().max(from + 1)
+            };
+            let indent: String = line[..from]
+                .chars()
+                .map(|c| if c == '\t' { '\t' } else { ' ' })
+                .collect();
+            let under = mark
+                .to_string()
+                .repeat(line[from..to.min(line.len())].chars().count().max(1));
+            out += &format!("{pad} | {indent}{under} {text}\n");
+        }
+        for note in &self.notes {
+            out += &format!("{pad} = note: {note}\n");
+        }
+        for fix in &self.fixes {
+            let kind = match fix["applicability"].as_str() {
+                Some("auto") => "fix",
+                Some("choice") => "maybe",
+                _ => "fill",
+            };
+            out += &format!("{pad} = {kind}: {}\n", fix["title"].as_str().unwrap_or(""));
+            for e in fix["edits"].as_array().into_iter().flatten() {
+                let at = e["span"]["line"].as_u64().unwrap_or(0) as usize;
+                let (Some(line), Some(search), Some(text)) = (
+                    lines.get(at.wrapping_sub(1)),
+                    e["search"].as_str(),
+                    e["text"].as_str(),
+                ) else {
+                    continue;
+                };
+                let col = e["span"]["col"].as_u64().unwrap_or(1) as usize - 1;
+                if line.get(col..col + search.len()) == Some(search) {
+                    let new = format!("{}{text}{}", &line[..col], &line[col + search.len()..]);
+                    out += &format!("{pad}   - {line}\n{pad}   + {new}\n");
+                }
+            }
+        }
+        out += &format!("{pad} = more: yong explain {}\n", self.code);
+        out
+    }
+}
+
 /// How a fix may be applied (R292): `auto` keeps meaning, `choice` changes it, `template`
 /// has typed holes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -339,6 +442,36 @@ mod selftest {
         assert_eq!(d.render_line(None), "P002 m.xin:5:1 `t` matches 9 times");
         let d = Diagnostic::error("E101", "f.xin", at(6, 12), "a", "needs parentheses");
         assert_eq!(d.render_line(None), "E101 f.xin:6:12 `a` needs parentheses");
+    }
+
+    #[test]
+    fn prose_shows_the_excerpt_labels_and_fix_as_a_diff() {
+        let src = "def f(xs):\n    ys = xs\n    return len(xs)\n";
+        let d = Diagnostic::error(
+            "E413",
+            "m.xin",
+            at(2, 10),
+            "= xs",
+            "`xs` is used again later",
+        )
+        .with_label(at(3, 16), "used again")
+        .with_fix(Applicability::Auto, "copy", at(2, 10), "xs", "xs.copy()");
+        let d = Diagnostic {
+            span: Span {
+                end_col: 12,
+                ..d.span
+            },
+            ..d
+        };
+        assert_eq!(
+            d.render_prose(src),
+            "error[E413]: implicit copy of a heap-backed value (fix inserts `copy` or `share`)\n\
+             \x20--> m.xin:2:10\n  |\n\
+             2 |     ys = xs\n  |          ^^ `xs` is used again later\n\
+             3 |     return len(xs)\n  |                - used again\n\
+             \x20 = fix: copy\n    -     ys = xs\n    +     ys = xs.copy()\n\
+             \x20 = more: yong explain E413\n"
+        );
     }
 
     #[test]
