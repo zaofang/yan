@@ -1,4 +1,6 @@
-"""Fail when an agent-authored change touches a human-owned path.
+"""Fail when an agent-authored change touches tests or conformance cases.
+
+spec/ and rfcs/ are open to agent PRs; CODEOWNERS routes them to the lead, who merges them.
 
 Reads changed paths (one per line) on stdin. Exit 1 on any violation.
 """
@@ -6,7 +8,7 @@ Reads changed paths (one per line) on stdin. Exit 1 on any violation.
 import argparse
 import sys
 
-PROTECTED = ("tests/", "conformance/", "spec/")
+PROTECTED = ("tests/", "conformance/")
 AGENT_BRANCH_PREFIXES = ("agent/", "claude/")
 
 

@@ -2,6 +2,7 @@
 /tests/                @atbraz
 /conformance/          @atbraz
 /spec/                 @atbraz
+/rfcs/                 @atbraz
 /.github/              @atbraz
 /tools/guard.py        @atbraz
 /SPEC_QUESTIONS.md     @atbraz

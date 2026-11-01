@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Reject agent changes to tests, conformance and spec
+      - name: Reject agent changes to tests and conformance
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
@@ -50,6 +50,7 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy tools
       - run: uv run pytest -q tools/selftest
+      - run: uv run python tools/rows.py check
 
   rust:
     runs-on: self-hosted

@@ -1,0 +1,78 @@
+## 23. Milestones and acceptance criteria
+
+A milestone is complete only when every criterion below passes in CI. Performance figures are targets. The M1 gate is the project's central bet, and its result decides whether the later milestones proceed unchanged. Dates and staffing are in the 1.0 Roadmap (https://claude.ai/artifact/3ADZraWojw9z33QdGY8GsS).
+
+### P0 · Setup
+
+- Repositories, the Cargo workspace scaffold, CI on the self-hosted runner, and the path guard that rejects an agent patch touching `tests/`, `conformance/` or `spec/`.
+- No blocking `SPEC_QUESTIONS.md` entries.
+- Evaluation tasks, typed-Python baselines and held-out tests sealed. The imports of the sealed baselines are scanned, and every Python module used by at least 1% of them needs a Jian equivalent by M1.
+
+### M0 · Yong core
+
+- `yong-core` data types; the text parser and printer round-trip every `conformance/yong` file.
+- The validator rejects every malformed-IR test with an internal-error code.
+- Type checker for Yong, plus ownership, exclusivity and views (section 4), capabilities (section 7) and failure (section 8).
+- Exhaustiveness checker and bounds solver for the decidable fragment.
+- Interpreter runs checked Yong, with panics, `par` (sequential execution is acceptable) and contracts at the `check` level.
+- Core semantics: UTF-8 strings and `char`, integer conversion rules, associated types, join points, drop order, error injection and context, contract semantics.
+- Diagnostics in the 18.2 format from the start.
+- Hash-key independence: every conformance test runs under two hash keys and the outputs are identical.
+- **Probe (around month 6).** Jian lexer, parser, canonical printer and lenient reader only. Two model families write Jian for 50 tasks, zero-shot and 5-shot; at least 95% of their output parses after lenient reading (target), with tokens per program recorded against typed Python.
+
+### M1 · Jian and the agent toolchain
+
+- Jian lexer, parser, lenient normalizations N01 to N30, canonical printer.
+- Elaborator to Yong, including inference, capability passing, copy, share and move insertion, narrowing and fail-transparent closures.
+- Standard library: the M1 row of the std roadmap, including prelude, text, list, dict, set, iter, collections, rc, slices with bisect, fmt, regex, csv, encoding, path, cli, `proc.run`, rand, bigint, bits, `Secret`, log, io, fs, json, math, test; Temporal-style time types.
+- `yong check` with lints, `run` (including scripts), `test` with verdict caching, `fmt`, `sig`, `patch`, `undo`, `explain`, `fix`, `export --python`, `import --python`, `mcp`, `add`, `remove`, `update`, `tree`, `why`, `vendor`, `x`, `schema gen`, `toolchain`, `skill`.
+- Agent features: spec gate, typed holes, autofix, `pack_context`, `search_type`, `query` over the `toolchain` capability; the grammar exported for llguidance, XGrammar and GBNF.
+- Safety: `Wire` limits, `Secret`, `proc`, `crypto_rand`, capability ceilings, test isolation, lexical safety, E312, spec freeze, protected targets, the untrusted-content channel.
+- Golden programs G1 to G4 run on the interpreter and, exported, under CPython 3.12 with identical output.
+- The registry design (section 19) written and reviewed.
+- **Benchmark harness.** Translate a public benchmark (MultiPL-E HumanEval and MBPP, or LiveCodeBench) into Jian and into typed Python with identical hidden tests. Run at least three model families in the same agent loop, with and without constrained decoding. Record pass@1, total tokens per solved task (prompt, reasoning, output and repairs), repair rounds, the failure mix and the cheating rate (21.6).
+- **Gate:** Jian's pass@1 is at least typed Python's, and its total tokens per solved task are lower. If not, record the failure mix, move Jian closer to Python, and apply the fluency plan of 21.6 before continuing.
+
+### M1b · Native code
+
+- Cranelift backend runs every `run` test with output identical to the interpreter; system linker.
+
+### M2 · Systems layer, performance and library
+
+M2a (systems layer and performance; gate: Rust parity):
+
+- Monomorphization, comptime specialization, ownership passes, fusion, static handler resolution.
+- LLVM backend; release builds; Windows and WebAssembly targets.
+- Systems layer: `unsafe`, `Ptr`, `RawCell`, layout control, SIMD `Vec`, atomics and the memory model (section 6), `yong test --ub` and `--explore` on native builds (their interpreter forms are M1, R378), FFI and the C profile (section 12), `core`, `alloc` and `std` tiers and platform `freestanding`, with a freestanding binary in the conformance suite that passes the embedded profile checks and prints its stack bound (R320, R321, R324, R325). The rest of the embedded profile (R322, R323, R326) is M4.
+- Concurrency: `pool` scheduler, `par concurrent`, cancellation and drain, `std.evented` (io\_uring with epoll fallback, kqueue, IOCP) as a preview.
+- Determinism tests pass, and record and replay works for every built-in capability.
+- Benchmark set (R389), checked into `bench/` with equivalent Rust, Zig and C programs: numeric kernels, table queries, a JSON service, a zero-copy parser, a graph over `Pool` and `Handle` (arena Ref is M4), and a ring buffer. Gate: geometric mean at parity or better with Rust and within 5% of C and Zig, with overflow checks and strict floats on; each opt-out (wrapping ops, `@fast_math`, `@unordered`) reported separately. Release builds use whole-program ThinLTO by default; `yong build --pgo profile.yprof` applies a profile whose hash is pinned in `yong.lock`.
+
+M2b (library, registry and tools):
+
+- Full standard library of section 17, including `table` over Arrow, `array`, units, `net`, `dns`, `tls`, `http`, `sim`, actors, decimal and money, the correctly rounded libm, and CPython embedding and extensions.
+- Registry and supply chain built to section 19; bundled lld and pinned clang; reproducible builds with `--verify`.
+- DWARF, native debugging with checkpoints, profiling, native coverage and fuzzing, and mutation testing (the interpreter debugger, replay, coverage, fuzzing, --ub, --explore and yong doc are M1, R378); `yong semver`, `publish`, `audit`, `approve`, `sbom`, `rebuild`.
+
+### M3 · Wen
+
+- Wen lexer, parser and printer; projections in both directions; all five round-trip laws pass on the whole suite.
+- Prose diagnostics; language server; reactive notebooks; live values computed on examples; depth-lens inlay hints; Wen tree-sitter grammar; item-level merge driver.
+- Wen surface: grapheme-aware display, date literals, `select`, generators, deadline blocks; HTTP server; localizable diagnostics.
+- Randomized comparison (at least 30 participants) on contested Wen syntax: implicit-subject lambdas and the typed implicit subject in frame expressions, grid literals, unit suffixes, `\(x)` interpolation, and the `&x` mark.
+
+### RC · Release candidate
+
+- The 1.0 edition is named; the freeze list (20.2) takes effect; the release train (20.7) starts.
+
+**Docs gate (R319).** Every fence in the tour, book, guides and std passes, and std `pub` doc coverage is 100%. The doc model and links land in M0; `yong doc`, the fence runner and doc lints in M1; the wasm interpreter in M1b; the surface toggle, tour, book and playground in M3.
+
+### M4 · Depth
+
+- `prove` level with Z3 or cvc5 through SMT-LIB2; counterexamples in V401; proof cache keyed by hashes.
+- L4 to L6 remainder: arena `Ref`, proof attributes, reflection and attribute functions at full scope.
+- Reverse-mode autodiff preview; `std.evented` handlers and `@yong/quic` considered for stabilization.
+- Remote scheduling with `RemoteError` failure types and `Wire` checking.
+- CHERI targets; a native Tree Borrows sanitizer (candidate).
+- Stretch: GPU code generation for `par for` bodies with `uses none`, through MLIR and LLVM to Apple Metal first, then NVIDIA, AMD and Vulkan (R327 to R329), with `@fast_math` allowed under `nondet`.
+- WASM components (`wasm32-wasip2`, capabilities as WASI interfaces, platforms as WIT worlds).
