@@ -1,0 +1,14 @@
+# spec: 17.3
+# rows: R587
+# note: paths order by parts, so `a/b` sorts before `a-b`
+# stdout:
+# [/z, a, a/c, a-b, b]
+# True True
+# 1 1
+
+pub def main() uses io:
+    xs = sorted([Path("b"), Path("a-b"), Path("a/c"), Path("a"), Path("/z")])
+    io.print(f"{xs}")
+    io.print(f"{Path('a/b') < Path('a-b')} {Path('a') < Path('a/b')}")
+    d = {Path("a/b"): 1}
+    io.print(f"{d.get(Path('a//b/')) else 0} {len(set([Path('x'), Path('./x'), Path('x/')]))}")

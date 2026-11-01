@@ -1,0 +1,9 @@
+# spec: 17.3
+# rows: R589
+# stdout:
+# a/c / /b
+# .. . ../../x
+
+pub def main() uses io:
+    io.print(f"{Path('a/b/../c').normalize()} {Path('/..').normalize()} {Path('/a/../../b').normalize()}")
+    io.print(f"{Path('../a/..').normalize()} {Path('a/..').normalize()} {Path('../../x').normalize()}")
