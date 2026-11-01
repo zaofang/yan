@@ -760,6 +760,7 @@ mod tests {
             ("prelude", include_str!("prelude.rs")),
             ("regex", include_str!("regex.rs")),
             ("collections", include_str!("collections.rs")),
+            ("math", include_str!("math.rs")),
             ("lib builtins", include_str!("lib.rs")),
         ];
         let mut seen: BTreeMap<&str, &str> = BTreeMap::new();

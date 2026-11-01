@@ -31,6 +31,10 @@ struct Std {
     /// By bare name; std class names do not repeat across modules.
     classes: HashMap<String, Class>,
     caps: HashSet<String>,
+    /// Sum types by bare name, as classes.
+    sums: HashMap<String, (&'static str, j::TypeDef)>,
+    /// Constants by path, `std.<module>.<name>`.
+    consts: HashMap<String, j::Expr>,
     /// Each module's file name and source, for diagnostics in std bodies.
     files: HashMap<&'static str, (String, &'static str)>,
 }
@@ -61,6 +65,12 @@ static STD: LazyLock<Std> = LazyLock::new(|| {
                         out.fns.insert(path, decl(def, false, true));
                     }
                 }
+                j::ItemKind::Type(t) if matches!(t.rhs, j::TypeRhs::Sum(_)) => {
+                    out.sums.insert(t.name.clone(), (module, t));
+                }
+                j::ItemKind::Const { name, value, .. } => {
+                    out.consts.insert(format!("std.{module}.{name}"), value);
+                }
                 j::ItemKind::Class(class) => {
                     let span = it.span;
                     out.classes.insert(
@@ -85,6 +95,16 @@ fn file(module: &str) -> String {
 
 pub(crate) fn decl(path: &str) -> Option<&'static Decl> {
     STD.fns.get(path)
+}
+
+/// The value of std constant `path`, an expression with no free names.
+pub(crate) fn konst(path: &str) -> Option<&'static j::Expr> {
+    STD.consts.get(path)
+}
+
+/// The std module that declares sum type `name`.
+pub(crate) fn sum_module(name: &str) -> Option<&'static str> {
+    STD.sums.get(name).map(|(m, _)| *m)
 }
 
 /// The std module that declares class `name`.
@@ -151,17 +171,29 @@ impl Decl {
 pub(crate) struct Plain {
     /// `take` and the type of each parameter, without an operation's `self`.
     pub params: Vec<(bool, Ty)>,
+    /// Each parameter's name and default.
+    pub names: Vec<(&'static str, Option<&'static j::Expr>)>,
     pub ret: Ty,
     pub fail: Option<Ty>,
 }
 
 impl Decl {
     /// `None` for a generic function or a type beyond [`Ty`].
-    pub fn plain(&self) -> Option<Plain> {
+    pub fn plain(&'static self) -> Option<Plain> {
         if !self.def.tparams.is_empty() {
             return None;
         }
         let b = HashMap::new();
+        let names = self
+            .def
+            .params
+            .iter()
+            .skip(usize::from(self.cap))
+            .filter_map(|p| match p {
+                j::Param::Value { name, default, .. } => Some((name.as_str(), default.as_ref())),
+                _ => None,
+            })
+            .collect();
         let params = self
             .def
             .params
@@ -190,7 +222,12 @@ impl Decl {
             )?),
             _ => return None,
         };
-        Some(Plain { params, ret, fail })
+        Some(Plain {
+            params,
+            names,
+            ret,
+            fail,
+        })
     }
 }
 
@@ -225,6 +262,32 @@ pub(crate) fn classes(g: &mut Globals, m: &j::Module, src: &str) -> R<Vec<String
         g.records.insert((*name).clone(), fs);
     }
     Ok(out.into_iter().map(|(n, _)| n.clone()).collect())
+}
+
+/// The std sum types `m` may meet, registered in `g` as [`classes`] registers classes. Their
+/// variants have no fields.
+pub(crate) fn sums(g: &mut Globals, m: &j::Module, src: &str) -> Vec<String> {
+    let own: HashSet<&str> = m.items.iter().map(|it| it.kind.name()).collect();
+    let words: HashSet<&str> = src
+        .split(|c: char| !c.is_alphanumeric() && c != '_')
+        .collect();
+    let mut out = Vec::new();
+    for (name, (module, t)) in &STD.sums {
+        let j::TypeRhs::Sum(vs) = &t.rhs else {
+            continue;
+        };
+        if (words.contains(name.as_str()) || words.contains(module)) && !own.contains(name.as_str())
+        {
+            for v in vs {
+                g.variant_of.insert(v.name.clone(), name.clone());
+            }
+            let vs = vs.iter().map(|v| (v.name.clone(), Vec::new())).collect();
+            g.sums.insert(name.clone(), vs);
+            out.push(name.clone());
+        }
+    }
+    out.sort();
+    out
 }
 
 fn unify(pat: &j::Type, t: &Ty, tps: &[&str], b: &mut HashMap<String, Ty>) -> bool {
@@ -299,7 +362,11 @@ fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
                 _ => return None,
             };
             match (n.as_str(), a.as_slice()) {
-                (n, []) if STD.classes.contains_key(n) || STD.caps.contains(n) => {
+                (n, [])
+                    if STD.classes.contains_key(n)
+                        || STD.caps.contains(n)
+                        || STD.sums.contains_key(n) =>
+                {
                     Ty::Data(n.to_owned())
                 }
                 (n, []) if b.contains_key(n) => b[n].clone(),
