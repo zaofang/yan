@@ -1,17 +1,21 @@
 //! `yong mcp` (21.4): the agent server over stdio, newline-delimited JSON-RPC 2.0.
-//! This first version serves `check`, `check_patch`, `apply_patch`, `autofix` and `sig`.
+//! This first version serves `check`, `check_patch`, `apply_patch`, `autofix` and `sig`, all
+//! answered from one query database that lives as long as the server.
 
+use std::cell::RefCell;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
 
 use serde_json::{Value, json};
+use yong_db::Database;
 use yong_diag::{DEFAULT_MAX_ERRORS, Diagnostic, finish};
 
-use crate::patch::{self, Diagnose, Ops};
+use crate::patch::{self, Ops};
 
 const PROTOCOL: &str = "2026-07-28";
 
-pub fn serve(root: &Path, diagnose: Diagnose) -> Result<(), String> {
+pub fn serve(root: &Path) -> Result<(), String> {
+    let db = RefCell::new(Database::new(false, false));
     let stdin = std::io::stdin();
     let mut out = std::io::stdout().lock();
     for line in stdin.lock().lines() {
@@ -20,7 +24,7 @@ pub fn serve(root: &Path, diagnose: Diagnose) -> Result<(), String> {
             continue;
         }
         let reply = match serde_json::from_str::<Value>(&line) {
-            Ok(req) => respond(root, diagnose, &req),
+            Ok(req) => respond(root, &db, &req),
             Err(e) => Some(error(Value::Null, -32700, &e.to_string())),
         };
         if let Some(r) = reply {
@@ -33,7 +37,7 @@ pub fn serve(root: &Path, diagnose: Diagnose) -> Result<(), String> {
 }
 
 /// The reply to one message; notifications get none.
-fn respond(root: &Path, diagnose: Diagnose, req: &Value) -> Option<Value> {
+fn respond(root: &Path, db: &RefCell<Database>, req: &Value) -> Option<Value> {
     let id = req.get("id")?.clone();
     let params = &req["params"];
     let result = match req["method"].as_str().unwrap_or("") {
@@ -46,7 +50,7 @@ fn respond(root: &Path, diagnose: Diagnose, req: &Value) -> Option<Value> {
         "tools/list" => json!({"tools": tools()}),
         "tools/call" => {
             let args = &params["arguments"];
-            match call(root, diagnose, params["name"].as_str().unwrap_or(""), args) {
+            match call(root, db, params["name"].as_str().unwrap_or(""), args) {
                 Ok(r) => r,
                 Err(msg) => json!({
                     "content": [{"type": "text", "text": msg}],
@@ -63,17 +67,24 @@ fn error(id: Value, code: i64, message: &str) -> Value {
     json!({"jsonrpc": "2.0", "id": id, "error": {"code": code, "message": message}})
 }
 
-fn call(root: &Path, diagnose: Diagnose, tool: &str, args: &Value) -> Result<Value, String> {
+fn call(root: &Path, db: &RefCell<Database>, tool: &str, args: &Value) -> Result<Value, String> {
+    let diagnose = |p: &Path, src: &str| {
+        let mut db = db.borrow_mut();
+        let f = db.file(p, src);
+        yong_ide::diagnostics(&*db, f)
+    };
     match tool {
         "check" => {
             let name = str_arg(args, "name")?;
             let (module, item) = split(root, name);
             let path = patch::module_path(root, &module);
             let src = read(&path)?;
-            let diags: Vec<Diagnostic> = diagnose(&path, &src)?
-                .into_iter()
-                .filter(|d| item.as_ref().is_none_or(|i| d.item == *i))
-                .collect();
+            let mut db = db.borrow_mut();
+            let f = db.file(&path, &src);
+            let diags = match &item {
+                Some(i) => yong_ide::item_diagnostics(&*db, f, i)?,
+                None => yong_ide::diagnostics(&*db, f)?,
+            };
             Ok(diagnostics(
                 finish(diags, DEFAULT_MAX_ERRORS),
                 max_tokens(args),
@@ -88,7 +99,7 @@ fn call(root: &Path, diagnose: Diagnose, tool: &str, args: &Value) -> Result<Val
                 }
                 v => Ops::Json(v),
             };
-            match patch::plan(root, ops, true, diagnose)? {
+            match patch::plan(root, ops, true, &diagnose)? {
                 Err(diags) => Ok(diagnostics(diags, max_tokens(args))),
                 Ok(applied) => {
                     let write = tool == "apply_patch";
@@ -118,7 +129,7 @@ fn call(root: &Path, diagnose: Diagnose, tool: &str, args: &Value) -> Result<Val
             let path = patch::module_path(root, module);
             let m = patch::parse(&path.display().to_string(), &read(&path)?)?;
             let budget = args["budget"].as_u64().map(|b| b as usize);
-            let text = sig(&m, budget);
+            let text = yong_ide::sig(&m, budget);
             Ok(json!({
                 "content": [{"type": "text", "text": text}],
                 "structuredContent": {"module": module, "text": text},
@@ -205,57 +216,6 @@ fn autofix(root: &Path, module: &str, item: Option<&str>) -> Result<Value, Strin
         "content": [{"type": "text", "text": text}],
         "structuredContent": {"patch": p},
     }))
-}
-
-/// Signatures, docstrings, contracts and examples: each function's canonical text up to its
-/// first body statement, and every other item whole. A budget in tokens (four bytes each)
-/// keeps items in module order while they fit.
-fn sig(m: &yong_hir::Module, budget: Option<usize>) -> String {
-    let mut out = Vec::new();
-    let mut used = 0;
-    for it in &m.items {
-        let text = patch::item_text(it);
-        let text = match &it.kind {
-            yong_hir::ItemKind::Func(_) | yong_hir::ItemKind::Lemma(_) => header(&text),
-            _ => text.trim_end().to_owned(),
-        };
-        used += text.len() / 4 + 1;
-        if budget.is_some_and(|b| used > b) {
-            break;
-        }
-        out.push(text);
-    }
-    out.join("\n\n")
-}
-
-/// The decorator, `def` and continuation lines, then the docstring and contract lines.
-fn header(item: &str) -> String {
-    let mut lines = item.lines();
-    let mut out: Vec<&str> = Vec::new();
-    for l in lines.by_ref() {
-        out.push(l);
-        if !l.starts_with('@') && l.trim_end().ends_with(':') {
-            break;
-        }
-    }
-    let mut in_doc = false;
-    for l in lines {
-        let t = l.trim_start();
-        let contract = ["pre ", "post ", "ex ", "decreases "]
-            .iter()
-            .any(|k| t.starts_with(k));
-        if in_doc || t.starts_with("\"\"\"") {
-            let opens = t.starts_with("\"\"\"") && !in_doc;
-            out.push(l);
-            let closes = t.ends_with("\"\"\"") && (!opens || t.len() >= 6);
-            in_doc = !closes;
-        } else if contract {
-            out.push(l);
-        } else {
-            break;
-        }
-    }
-    out.join("\n")
 }
 
 /// `pricing.value` is item `value` of module `pricing` when `pricing.xin` exists and
@@ -359,17 +319,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn header_keeps_doc_and_contracts() {
-        let f = "@inline\ndef f(x: int) -> int:\n    \"\"\"Doc\n    more.\"\"\"\n    pre x > 0\n    ex f(1) == 2\n    return x + 1\n";
-        assert_eq!(
-            header(f),
-            "@inline\ndef f(x: int) -> int:\n    \"\"\"Doc\n    more.\"\"\"\n    pre x > 0\n    ex f(1) == 2"
-        );
-    }
-
-    #[test]
     fn notifications_get_no_reply() {
-        let d = |_: &Path, _: &str| Ok(Vec::new());
+        let d = RefCell::new(Database::new(false, false));
         let note = json!({"jsonrpc": "2.0", "method": "notifications/initialized"});
         assert!(respond(Path::new("."), &d, &note).is_none());
         let list = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list"});
