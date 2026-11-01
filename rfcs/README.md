@@ -35,4 +35,5 @@ research index links their studies and rows.
 | [0012](0012-header-facts.md) | New facts in the header | accepted | R610 to R612 |
 | [0013](0013-numerics.md) | Numerics: accuracy lint, reverse mode, sparse index equations | accepted | R613 to R615 |
 | [0014](0014-agent-loop.md) | The reference agent loop | accepted | R616 to R621 |
+| [0020](0020-packaging-and-ecosystem.md) | Packaging and ecosystem | accepted | R635 to R647 |
 | [0021](0021-error-messages.md) | Error messages: E545, E017 for unsupported constructs, line format, near names | accepted | R648 to R651 |
