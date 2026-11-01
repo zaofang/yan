@@ -67,3 +67,7 @@ pub def ceiling[K: Ord, V](self: sorted_dict[K, V], key: K) -> tuple[K, V] | Non
 @intrinsic
 @since("1.0")
 pub def range[K: Ord, V](self: sorted_dict[K, V], lo: K, hi: K) -> list[tuple[K, V]]: ...
+
+@intrinsic
+@since("1.0")
+pub def iter[K: Ord, V](self: sorted_dict[K, V]) -> iter[K]: ...
