@@ -28,6 +28,7 @@ mod regex;
 mod std_parity;
 #[cfg(test)]
 mod std_selftest;
+mod time;
 mod vm;
 
 pub const EXIT_FAILURE: i32 = 1;
@@ -65,6 +66,9 @@ pub(crate) enum Value {
     ByteArray(Vec<u8>),
     Path(Rc<str>),
     WindowsPath(Rc<path::WinPath>),
+    Duration(i128),
+    Instant(i128),
+    Mono(i128),
     Closure(Rc<vm::Clo>),
     Iter(iter::It),
 }
@@ -111,6 +115,7 @@ impl Hash for Key {
                 Value::Str(s) => s.hash(h),
                 Value::Bytes(b) => b.hash(h),
                 Value::Path(s) => s.hash(h),
+                Value::Duration(n) | Value::Instant(n) | Value::Mono(n) => n.hash(h),
                 Value::WindowsPath(w) => w.folded().hash(h),
                 Value::BigInt(b) => b.hash(h),
                 Value::Tuple(xs) | Value::List(xs) => xs.iter().for_each(|x| go(x, h)),
@@ -169,7 +174,13 @@ pub fn stage0(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
                     return unsupported(format!("no `fn {f}` to evaluate"));
                 };
                 let mut sink = std::io::sink();
-                let mut vm = vm::Vm::new(program, Interp { out: &mut sink });
+                let mut vm = vm::Vm::new(
+                    program,
+                    Interp {
+                        out: &mut sink,
+                        clocks: Vec::new(),
+                    },
+                );
                 vm.limit(limits);
                 match vm.call(code, Vec::new())?.0 {
                     Ok(v) => Ok(materialize(&v)),
@@ -218,6 +229,8 @@ pub(crate) type R<T> = Result<T, Stop>;
 
 pub(crate) struct Interp<'o> {
     out: &'o mut dyn Write,
+    /// Nanoseconds slept under each `fixed_time` or `virtual` handler, by handler.
+    clocks: Vec<i128>,
 }
 
 pub(crate) fn panic<T>(kind: &str) -> R<T> {
@@ -251,7 +264,16 @@ pub fn run(m: &Module, out: &mut dyn Write) -> R<i32> {
             Param::Value { .. } => unsupported("`main` with value parameters"),
         })
         .collect::<R<Vec<_>>>()?;
-    let status = match vm::Vm::new(program, Interp { out }).call(main, args)?.0 {
+    let status = match vm::Vm::new(
+        program,
+        Interp {
+            out,
+            clocks: Vec::new(),
+        },
+    )
+    .call(main, args)?
+    .0
+    {
         Ok(_) => 0,
         Err(_) => EXIT_FAILURE,
     };
