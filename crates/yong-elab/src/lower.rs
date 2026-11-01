@@ -676,6 +676,15 @@ fn function_body(
     }
     for (n, sp) in unused {
         let item = l.item.clone();
+        // A misspelled use is E200 with `n` as its near name, not an unread `n` (R291).
+        let misspelled = l.cx.diags.iter().any(|d| {
+            d.item == item
+                && d.code == "E200"
+                && d.fixes.iter().any(|f| f["edits"][0]["text"] == n.as_str())
+        });
+        if misspelled {
+            continue;
+        }
         l.cx.warn(
             "W812",
             sp,

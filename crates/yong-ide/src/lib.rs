@@ -12,8 +12,67 @@ use yong_names::Surface;
 pub use yong_db::Database;
 
 /// Every diagnostic of the module, or a tool failure (an unsupported construct, no front end).
+/// Each fix is kept only once it is verified (R292).
 pub fn diagnostics(db: &dyn Db, file: SourceFile) -> Result<Vec<Diagnostic>, String> {
-    yong_db::diagnostics(db, file).clone()
+    let mut diags = yong_db::diagnostics(db, file).clone()?;
+    verify_fixes(db, file, &mut diags);
+    Ok(diags)
+}
+
+/// Applies each fix to a copy of the file and re-checks it. A fix that removes its diagnostic
+/// and adds none is marked `verified: true`; any other fix is dropped (R292).
+fn verify_fixes(db: &dyn Db, file: SourceFile, diags: &mut [Diagnostic]) {
+    let settings = yong_db::Settings::get(db);
+    let (strict, release) = (settings.strict(db), settings.release(db));
+    let codes: Vec<String> = diags.iter().map(|d| d.code.clone()).collect();
+    for (i, d) in diags.iter_mut().enumerate() {
+        let mut allowed = codes.clone();
+        allowed.remove(i);
+        let fixes = std::mem::take(&mut d.fixes);
+        for mut fix in fixes {
+            let Some(text) = apply_edits(file.text(db), &fix["edits"]) else {
+                continue;
+            };
+            let mut fresh = Database::new(strict, release);
+            let f = fresh.file(file.path(db), &text);
+            let Ok(after) = yong_db::diagnostics(&fresh, f) else {
+                continue;
+            };
+            let mut left = allowed.clone();
+            let adds_none = after.iter().all(|a| {
+                left.iter()
+                    .position(|c| *c == a.code)
+                    .map(|k| left.swap_remove(k))
+                    .is_some()
+            });
+            if adds_none {
+                fix["verified"] = serde_json::Value::Bool(true);
+                d.fixes.push(fix);
+            }
+        }
+    }
+}
+
+/// `src` with each single-line edit applied, or `None` when an edit's span does not hold its
+/// `search` text.
+fn apply_edits(src: &str, edits: &serde_json::Value) -> Option<String> {
+    let mut lines: Vec<String> = src.split('\n').map(str::to_owned).collect();
+    let mut edits: Vec<_> = edits.as_array()?.iter().collect();
+    edits.sort_by_key(|e| (e["span"]["line"].as_u64(), e["span"]["col"].as_u64()));
+    for e in edits.into_iter().rev() {
+        let span = &e["span"];
+        if span["line"] != span["end_line"] {
+            return None;
+        }
+        let line = lines.get_mut((span["line"].as_u64()? as usize).checked_sub(1)?)?;
+        let from = (span["col"].as_u64()? as usize).checked_sub(1)?;
+        let to = (span["end_col"].as_u64()? as usize).checked_sub(1)?;
+        if line.get(from..to)? != e["search"].as_str()? {
+            return None;
+        }
+        line.replace_range(from..to, e["text"].as_str()?);
+    }
+    Some(lines.join("\n"))
 }
 
 /// The diagnostics reported in item `name` of the module.
@@ -437,6 +496,26 @@ mod tests {
     use super::*;
 
     const SRC: &str = "def f(x: int) -> int:\n    y = x + 1\n    z: int = y\n    return z\n";
+
+    #[test]
+    fn only_verified_fixes_are_reported() {
+        let src = "def f(name: str, count: int) -> int:\n    _ = name\n    return cont + 1\n\n\
+                   def g(nane: str, pane: int) -> int:\n    _ = pane\n    return nam + 1\n";
+        let mut db = Database::new(false, false);
+        let file = db.file(Path::new("m.xin"), src);
+        let fixes: Vec<_> = diagnostics(&db, file)
+            .unwrap()
+            .iter()
+            .map(|d| {
+                d.fixes
+                    .iter()
+                    .map(|f| (f["edits"][0]["text"].clone(), f["verified"].clone()))
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        // `nane + 1` would be a new E201, so g's near name is dropped.
+        assert_eq!(fixes, [vec![("count".into(), true.into())], vec![]]);
+    }
 
     #[test]
     fn header_keeps_doc_and_contracts() {
