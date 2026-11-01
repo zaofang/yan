@@ -74,19 +74,25 @@ Recommendation: accept.
 
 The handlers are:
 - `seeded(seed: u64, algorithm: Algorithm = ChaCha8())`. This is the test default, with seed 0
-  unless `yong test --seed` gives another.
-- `os()`. This is the default under `yong run`, and it reads the operating system's CSPRNG.
+  unless `yong test --seed` gives another. It swaps the argument order of 7.1's
+  `seeded(algorithm, seed)` so the algorithm can default.
+- The OS handler, which is the default under `yong run` and reads the operating system's CSPRNG.
 
 `type Algorithm = ChaCha8() | Pcg64Dxsm()` is declared in `std.rand`.
 
 Each algorithm has one fixed stream per seed, versioned with the module (20.5):
 - **ChaCha8.** The key is four SplitMix64 outputs from `seed`, written little-endian. The nonce and
-  the counter start at 0. `next_u64` takes the block words in order, two at a time, low word first.
-  These are the `rand_chacha` 0.3 words for `ChaCha8Rng::from_seed(key)`.
-- **Pcg64Dxsm.** This is NumPy's `PCG64DXSM`. The 128-bit state and increment come from four
-  SplitMix64 outputs from `seed`, and the increment is forced odd.
+  the 64-bit block counter start at 0. `next_u64` takes the block words in order, two at a time,
+  low word first. These are the words of `rand_chacha` 0.9's `ChaCha8Rng::from_seed(key)`.
+- **Pcg64Dxsm.** This is the 128-bit LCG with the cheap multiplier and the DXSM output, which is
+  NumPy's `PCG64DXSM`. With four SplitMix64 outputs `a, b, c, d` from `seed`, the generator is
+  `rand_pcg` 0.9's `Lcg128CmDxsm64::new(a << 64 | b, c << 64 | d)`.
 
-The interpreter's selftests pin the first outputs of both algorithms for seeds 0 and 42.
+The handlers `seeded` and the log handlers of D10 are in `std.test`, which is in scope without an
+import, next to `fixed_time` and `virtual`.
+
+`yong-rt`'s tests check both generators word for word against those crates and pin the first
+output for seed 0.
 
 Recommendation: accept.
 
@@ -158,7 +164,9 @@ A log event is written `log.info(msg, key=value, ...)`, and the same holds for `
 - Every keyword argument is a field, and any `Show` type is allowed.
 - A field records its name and `show(value)`, in call order. Typed field values come with
   `derive(Wire)`.
-- `type Level = Debug() | Info() | Warn() | Error()` is ordered in that order.
+- `type Level = DebugLevel() | InfoLevel() | WarnLevel() | ErrorLevel()` is ordered in that order.
+  The suffix is there because variant names are bare in Xin, and `Error` would collide with
+  `std.error.Error` and with users' own `Error` types.
 
 The trait operation underneath is `event(level: Level, msg: str, fields: list[(str, str)])`, and
 the four calls lower to it. A user handler implements only `event`.
@@ -187,17 +195,17 @@ Recommendation: accept.
 ### D10: log handlers and the text format
 
 Events print in logfmt: `level=info msg="parsed" span=load file=a.csv rows=3`.
-- A value is quoted when it is empty or holds a space, `=` or `"`.
+- A value is quoted when it is empty or holds a space, `=`, `"` or a control character.
 - Inside quotes, `\"`, `\\` and `\n` are escaped.
 
 The handlers are:
-- `log_stderr(level: Level = Info())` is the default under `yong run`. It writes to stderr, and
+- `log_stderr(level: Level = InfoLevel())` is the default under `yong run`. It writes to stderr, and
   each line starts with `ts=` and the host time as RFC 3339 UTC to the microsecond.
-- `log_stdout(level: Level = Debug())` writes to stdout with no timestamp, so output is
+- `log_stdout(level: Level = DebugLevel())` writes to stdout with no timestamp, so output is
   deterministic.
 - `discard_log()` drops every event.
 
-Under `yong test` the default is `log_stdout(Debug())` into the test's captured output. That output
+Under `yong test` the default is `log_stdout(DebugLevel())` into the test's captured output. That output
 is shown when the test fails, so log lines never change a verdict.
 
 Recommendation: accept.
