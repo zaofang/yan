@@ -27,6 +27,8 @@ pub enum Ty {
     Data(String),
     /// A type parameter of the enclosing function, or `Self` in a trait.
     Param(String),
+    /// `Callable[[params], ret]`; `par` when prefixed `par` (R436).
+    Fn(bool, Vec<Ty>, Box<Ty>),
     /// Produced after an error was reported; compatible with every type.
     Err,
 }
@@ -81,6 +83,12 @@ impl Ty {
             Ty::Option(t) => named("Option", vec![t.core()]),
             Ty::Result(t, e) => named("Result", vec![t.core(), e.core()]),
             Ty::Data(n) | Ty::Param(n) => named(n, vec![]),
+            Ty::Fn(_, ps, r) => y::Type::Fn(y::FnType {
+                params: ps.iter().map(|t| (y::Conv::Let, t.core())).collect(),
+                ret: Box::new(r.core()),
+                uses: None,
+                fail: None,
+            }),
         }
     }
 
@@ -120,6 +128,12 @@ impl Ty {
             }
             (Ty::Coll(m, a), Ty::Coll(n, b)) => {
                 m == n && a.len() == b.len() && a.iter().zip(b).all(|(x, y)| x.fits(y))
+            }
+            (Ty::Fn(p, a, r), Ty::Fn(q, b, s)) => {
+                (*p || !q)
+                    && a.len() == b.len()
+                    && a.iter().zip(b).all(|(x, y)| x.fits(y))
+                    && r.fits(s)
             }
             (a, Ty::Option(b)) => a.fits(b),
             (a, b) => a == b,
@@ -175,6 +189,10 @@ impl Ty {
             (Ty::Coll(m, a), Ty::Coll(n, b)) if m == n => {
                 a.iter().zip(b).for_each(|(x, y)| x.unify(y, map))
             }
+            (Ty::Fn(_, a, r), Ty::Fn(_, b, s)) => {
+                a.iter().zip(b).for_each(|(x, y)| x.unify(y, map));
+                r.unify(s, map);
+            }
             (Ty::Option(a), b) => a.unify(b, map),
             _ => {}
         }
@@ -186,6 +204,7 @@ impl Ty {
             Ty::List(t) | Ty::Set(t) | Ty::Option(t) => t.mentions(p),
             Ty::Dict(a, b) | Ty::Result(a, b) => a.mentions(p) || b.mentions(p),
             Ty::Tuple(ts) | Ty::Coll(_, ts) => ts.iter().any(|t| t.mentions(p)),
+            Ty::Fn(_, ps, r) => r.mentions(p) || ps.iter().any(|t| t.mentions(p)),
             _ => false,
         }
     }
@@ -204,6 +223,7 @@ impl Ty {
             Ty::Result(t, e) => Ty::Result(s(t), s(e)),
             Ty::Tuple(ts) => Ty::Tuple(ts.iter().map(|t| t.subst(map)).collect()),
             Ty::Coll(n, ts) => Ty::Coll(n, ts.iter().map(|t| t.subst(map)).collect()),
+            Ty::Fn(p, ps, r) => Ty::Fn(*p, ps.iter().map(|t| t.subst(map)).collect(), s(r)),
             t => t.clone(),
         }
     }
@@ -258,6 +278,11 @@ impl std::fmt::Display for Ty {
             Ty::Option(t) => write!(f, "{t} | None"),
             Ty::Result(t, e) => write!(f, "Result[{t}, {e}]"),
             Ty::Data(n) | Ty::Param(n) => write!(f, "{n}"),
+            Ty::Fn(p, ps, r) => {
+                let ps: Vec<String> = ps.iter().map(Ty::to_string).collect();
+                let par = if *p { "par " } else { "" };
+                write!(f, "{par}Callable[[{}], {r}]", ps.join(", "))
+            }
         }
     }
 }

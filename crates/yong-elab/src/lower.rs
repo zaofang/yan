@@ -63,6 +63,8 @@ struct Lower<'a, 'c, 's> {
     arg_tys: Vec<(Ty, Ty, Span)>,
     /// Capabilities bound by an enclosing `with name = handler`.
     handlers: Vec<String>,
+    /// Each call of a non-`par` callable local, for E716.
+    fn_calls: Vec<(String, Span)>,
 }
 
 pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
@@ -378,6 +380,7 @@ fn function_body(g: &Globals, f: &j::FuncDef, sig: &Sig, is_pub: bool, cx: &mut 
         writeback: Vec::new(),
         arg_tys: Vec::new(),
         handlers: Vec::new(),
+        fn_calls: Vec::new(),
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -904,8 +907,21 @@ impl Lower<'_, '_, '_> {
                 body: j::ParBody::Block(b),
             } => {
                 let mut blocks = Vec::new();
+                let mut called: Vec<String> = Vec::new();
                 for s in b {
+                    let start = self.fn_calls.len();
                     blocks.push(self.block_scoped(|l| l.stmts(std::slice::from_ref(s)), true)?);
+                    let mine: Vec<(String, Span)> = self.fn_calls[start..].to_vec();
+                    for (n, sp) in &mine {
+                        if called.contains(n) {
+                            self.err(
+                                "E716",
+                                *sp,
+                                format!("`{n}` is not `par`; it is called from two branches"),
+                            );
+                        }
+                    }
+                    called.extend(mine.into_iter().map(|(n, _)| n));
                 }
                 self.emit(
                     StmtKind::Par {
@@ -2066,7 +2082,7 @@ impl Lower<'_, '_, '_> {
             K::Hole => return unsupported("typed holes"),
             K::Comp { .. } => self.comprehension(e)?,
             K::Slice(..) => return unsupported("slices"),
-            K::Lambda(..) => return unsupported("lambdas"),
+            K::Lambda(ps, body) => self.lambda(ps, body, want)?,
             K::Cast(x, j::Type::Named { path, args })
                 if args.is_empty()
                     && matches!(path.as_slice(), [n] if n == "int" || n == "float") =>
@@ -2084,6 +2100,71 @@ impl Lower<'_, '_, '_> {
             K::Set(_) => return unsupported("set literals"),
             K::Wild => return unsupported("`_` as a value"),
         })
+    }
+
+    /// A lambda becomes a closure; its parameter types come from the expected callable type.
+    /// Locals capture by copy, `var` parameters by reference and capabilities by name (4.6).
+    fn lambda(&mut self, names: &[String], body: &j::Expr, want: Option<&Ty>) -> R<(Rhs, Ty)> {
+        let (par, ps, ret) = match want {
+            Some(Ty::Fn(par, ps, ret)) if ps.len() == names.len() && !ps.iter().any(has_param) => {
+                (*par, ps.clone(), (!has_param(ret)).then(|| (**ret).clone()))
+            }
+            _ => return unsupported("a lambda without a known callable type"),
+        };
+        let mut captures: Vec<(Conv, String, Span)> = Vec::new();
+        walk(body, &mut |e| {
+            let j::ExprKind::Name(n) = &e.kind else {
+                return;
+            };
+            if names.contains(n) || captures.iter().any(|(_, m, _)| m == n) {
+                return;
+            }
+            let inout = self
+                .sig
+                .params
+                .iter()
+                .any(|p| p.name == *n && p.conv == Conv::Inout);
+            if inout {
+                captures.push((Conv::Inout, n.clone(), e.span));
+            } else if self.locals.contains_key(n)
+                || self.sig.caps.contains(n)
+                || self.handlers.contains(n)
+            {
+                captures.push((Conv::Let, n.clone(), e.span));
+            }
+        });
+        let mut rt = Ty::Err;
+        let block = self.block_with(|l| {
+            for (n, t) in names.iter().zip(&ps) {
+                l.declare(n, t.clone());
+            }
+            let (a, t) = l.atom(body, ret.as_ref())?;
+            if let Some(r) = &ret {
+                l.expect(&t, r, body.span);
+            }
+            rt = ret.clone().unwrap_or(t);
+            l.emit(StmtKind::Ret(a), body.span);
+            Ok(())
+        })?;
+        let params = names
+            .iter()
+            .zip(&ps)
+            .map(|(n, t)| y::Param::Value {
+                comptime: false,
+                conv: Conv::Let,
+                name: n.clone(),
+                ty: t.core(),
+            })
+            .collect();
+        let clo = y::Closure {
+            captures,
+            params,
+            ret: rt.core(),
+            uses: None,
+            fail: None,
+            body: block,
+        };
+        Ok((Rhs::Closure(Box::new(clo)), Ty::Fn(par, ps, Box::new(rt))))
     }
 
     fn fstr(&mut self, pieces: &[j::FPiece], at: Span) -> R<(Rhs, Ty)> {
@@ -2395,6 +2476,34 @@ impl Lower<'_, '_, '_> {
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         match &f.kind {
+            j::ExprKind::Name(n)
+                if matches!(self.locals.get(n), Some(Local { ty: Ty::Fn(..) })) =>
+            {
+                let Ty::Fn(par, ps, ret) = self.locals[n].ty.clone() else {
+                    unreachable!("matched")
+                };
+                if args.len() != ps.len() || args.iter().any(|a| a.name.is_some()) {
+                    self.err(
+                        "E202",
+                        at,
+                        format!("`{n}` takes {} positional arguments", ps.len()),
+                    );
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+                }
+                let mut out = Vec::new();
+                for (a, p) in args.iter().zip(&ps) {
+                    let j::ArgKind::Expr(e) = &a.kind else {
+                        return unsupported("`&` or `become` arguments to a callable");
+                    };
+                    let (x, t) = self.atom(e, Some(p))?;
+                    self.expect(&t, p, a.span);
+                    out.push(let_arg(x));
+                }
+                if !par {
+                    self.fn_calls.push((n.clone(), f.span));
+                }
+                Ok((Rhs::Call(call(n, vec![], out, at)), *ret, None))
+            }
             j::ExprKind::Name(n) if !self.locals.contains_key(n) => {
                 if self.g.fns.contains_key(n) {
                     return self.user_call(n, None, args, at);
@@ -2642,9 +2751,15 @@ impl Lower<'_, '_, '_> {
                 break;
             }
         }
-        let mut out = Vec::new();
         let mut elems: Vec<(String, Atom)> = Vec::new();
-        for (p, slot) in ps.iter().zip(slots) {
+        // Lambdas go last, so their parameter types can come from the other arguments.
+        let lambda = |s: &Option<Given>| matches!(s, Some(Given::Expr(e, ..)) if matches!(e.kind, j::ExprKind::Lambda(..)));
+        let mut order: Vec<usize> = (0..ps.len()).filter(|&k| !lambda(&slots[k])).collect();
+        order.extend((0..ps.len()).filter(|&k| lambda(&slots[k])));
+        let mut done: Vec<Option<Arg>> = (0..ps.len()).map(|_| None).collect();
+        for k in order {
+            let (p, slot) = (&ps[k], slots[k].take());
+            let out = &mut done[k];
             let (e, is_ref, sp) = match slot {
                 Some(Given::Expr(e, r, sp, _)) => (e, r, sp),
                 Some(Given::Recv(e)) => (e, p.conv == Conv::Inout, e.span),
@@ -2653,7 +2768,7 @@ impl Lower<'_, '_, '_> {
                         let (a, t) = self.atom(&d.clone(), Some(&p.ty))?;
                         self.expect(&t, &p.ty, at);
                         self.arg_tys.push((p.ty.clone(), t.clone(), at));
-                        out.push(Arg::Value(p.conv, a, at));
+                        *out = Some(Arg::Value(p.conv, a, at));
                         continue;
                     }
                     None => {
@@ -2668,7 +2783,7 @@ impl Lower<'_, '_, '_> {
                     self.expect(&t, &p.ty, sp);
                     self.arg_tys.push((p.ty.clone(), t.clone(), sp));
                     if pl.projs.is_empty() {
-                        out.push(Arg::Value(
+                        *out = Some(Arg::Value(
                             Conv::Inout,
                             Atom::Name(pl.root, pl.root_span),
                             sp,
@@ -2693,7 +2808,7 @@ impl Lower<'_, '_, '_> {
                     let n = self.fresh("w");
                     self.bind(&n, true, &t, Rhs::Proj(pl.clone()), sp, sp);
                     self.writeback.push((n.clone(), pl, sp));
-                    out.push(Arg::Value(Conv::Inout, Atom::Name(n, sp), sp));
+                    *out = Some(Arg::Value(Conv::Inout, Atom::Name(n, sp), sp));
                 }
                 (Conv::Inout, false) => {
                     self.err(
@@ -2710,7 +2825,11 @@ impl Lower<'_, '_, '_> {
                     );
                 }
                 (conv, false) => {
-                    let (a, t) = self.atom(e, Some(&p.ty))?;
+                    let mut map = Vec::new();
+                    for (w, t, _) in &self.arg_tys {
+                        w.unify(t, &mut map);
+                    }
+                    let (a, t) = self.atom(e, Some(&p.ty.subst(&map)))?;
                     self.expect(&t, &p.ty, sp);
                     self.arg_tys.push((p.ty.clone(), t.clone(), sp));
                     if let (Conv::Sink, Atom::Name(n, _)) = (conv, &a)
@@ -2724,11 +2843,11 @@ impl Lower<'_, '_, '_> {
                             format!("`{n}` is used again later; pass `{n}.copy()`"),
                         );
                     }
-                    out.push(Arg::Value(conv, a, sp));
+                    *out = Some(Arg::Value(conv, a, sp));
                 }
             }
         }
-        Ok(Some(out))
+        Ok(Some(done.into_iter().flatten().collect()))
     }
 
     fn positional<'e>(
@@ -3399,6 +3518,17 @@ pub(crate) fn callees(stmts: &[j::Stmt], out: &mut HashSet<String>) {
 }
 
 /// A collection's type arguments, which its std methods take in the same order.
+fn has_param(t: &Ty) -> bool {
+    match t {
+        Ty::Param(_) => true,
+        Ty::List(t) | Ty::Set(t) | Ty::Option(t) => has_param(t),
+        Ty::Dict(a, b) | Ty::Result(a, b) => has_param(a) || has_param(b),
+        Ty::Tuple(ts) | Ty::Coll(_, ts) => ts.iter().any(has_param),
+        Ty::Fn(_, ps, r) => has_param(r) || ps.iter().any(has_param),
+        _ => false,
+    }
+}
+
 fn coll_targs(t: &Ty) -> Vec<y::TArg> {
     match t {
         Ty::Coll(_, ts) => ts.iter().map(Ty::targ).collect(),

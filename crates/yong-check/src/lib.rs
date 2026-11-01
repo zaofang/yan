@@ -341,8 +341,8 @@ struct Binding {
     /// Bound by `let` or `var` in this body, not a parameter.
     local: bool,
     try_at: Option<Span>,
-    /// Captures that make the bound closure non-escaping (E406).
-    bad_captures: Vec<Span>,
+    /// Captures that make the bound closure non-escaping: E406, or E306 for a capability (R467).
+    bad_captures: Vec<(&'static str, Span)>,
 }
 
 struct Cx<'g, 'm> {
@@ -497,11 +497,16 @@ impl<'g, 'm> Cx<'g, 'm> {
                 );
             }
             if uses.iter().any(|h| h.escapes()) {
-                for at in b.bad_captures {
+                for (code, at) in b.bad_captures {
+                    let what = if code == "E306" {
+                        "a capability"
+                    } else {
+                        "a borrow"
+                    };
                     self.err(
-                        "E406",
+                        code,
                         at,
-                        format!("closure `{n}` escapes but captures a borrow or a capability"),
+                        format!("closure `{n}` escapes but captures {what}"),
                     );
                 }
             }
@@ -603,11 +608,13 @@ impl<'g, 'm> Cx<'g, 'm> {
                     Rhs::Closure(c) => c
                         .captures
                         .iter()
-                        .filter(|(cv, n, _)| {
-                            *cv == Conv::Inout
-                                || self.env.get(n).is_some_and(|b| b.kind == Kind::Cap)
+                        .filter_map(|(cv, n, sp)| {
+                            if self.env.get(n).is_some_and(|b| b.kind == Kind::Cap) {
+                                Some(("E306", *sp))
+                            } else {
+                                (*cv == Conv::Inout).then_some(("E406", *sp))
+                            }
                         })
-                        .map(|(_, _, sp)| *sp)
                         .collect(),
                     _ => Vec::new(),
                 };
@@ -1026,7 +1033,7 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
         let name = c.path.join(".");
         if c.path.len() == 1 && self.env.get(&name).is_some_and(|b| b.local) {
-            self.err("E273", at, "`become` through a closure".into());
+            self.err("E273", c.span, "`become` through a closure".into());
             return;
         }
         let (_, callee) = self.call(c);
