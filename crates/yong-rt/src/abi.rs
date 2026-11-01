@@ -33,3 +33,126 @@ pub unsafe extern "C" fn yong_rt_panic(ptr: *const u8, len: usize) -> ! {
     eprintln!("panic: {kind}");
     std::process::exit(101)
 }
+
+// `Str` and `List` values in native code are pointers to these leaked blocks; drops are not
+// elaborated yet (5.3).
+
+/// A list of `words`-slot elements.
+pub struct List {
+    words: usize,
+    data: Vec<u64>,
+}
+
+fn leak<T>(x: T) -> *mut T {
+    Box::into_raw(Box::new(x))
+}
+
+fn panic(kind: &str) -> ! {
+    // SAFETY: a str is valid UTF-8.
+    unsafe { yong_rt_panic(kind.as_ptr(), kind.len()) }
+}
+
+/// A `Str` block for `s`, owned by the program from now on.
+pub fn str_block(s: &str) -> *mut String {
+    leak(s.to_owned())
+}
+
+/// # Safety
+/// `s` is a `Str` block.
+pub unsafe extern "C" fn yong_rt_print_str(s: *const String) {
+    // SAFETY: the caller's contract.
+    let s = unsafe { &*s };
+    // SAFETY: a String is UTF-8.
+    unsafe { yong_rt_print(s.as_ptr(), s.len()) }
+}
+
+/// # Safety
+/// `a` and `b` are `Str` blocks.
+pub unsafe extern "C" fn yong_rt_concat(a: *const String, b: *const String) -> *mut String {
+    // SAFETY: the caller's contract.
+    let (a, b) = unsafe { (&*a, &*b) };
+    leak(format!("{a}{b}"))
+}
+
+pub extern "C" fn yong_rt_show_i64(x: i64) -> *mut String {
+    leak(x.to_string())
+}
+
+pub extern "C" fn yong_rt_show_u64(x: u64) -> *mut String {
+    leak(x.to_string())
+}
+
+pub extern "C" fn yong_rt_show_f64(x: f64) -> *mut String {
+    leak(crate::fmt::float_repr(x))
+}
+
+pub extern "C" fn yong_rt_show_bool(x: u8) -> *mut String {
+    leak(if x != 0 { "True" } else { "False" }.to_owned())
+}
+
+/// # Safety
+/// `s` is a `Str` block.
+pub unsafe extern "C" fn yong_rt_repr(s: *const String) -> *mut String {
+    // SAFETY: the caller's contract.
+    leak(crate::fmt::repr(unsafe { &*s }))
+}
+
+/// # Safety
+/// `a` and `b` are `Str` blocks.
+pub unsafe extern "C" fn yong_rt_str_eq(a: *const String, b: *const String) -> u8 {
+    // SAFETY: the caller's contract.
+    u8::from(unsafe { *a == *b })
+}
+
+pub extern "C" fn yong_rt_list_new(words: u64) -> *mut List {
+    leak(List {
+        words: words as usize,
+        data: Vec::new(),
+    })
+}
+
+/// The slots of a new last element, valid until the list next grows.
+///
+/// # Safety
+/// `l` is a `List` block that nothing else borrows.
+pub unsafe extern "C" fn yong_rt_list_push(l: *mut List) -> *mut u64 {
+    // SAFETY: the caller's contract.
+    let l = unsafe { &mut *l };
+    let at = l.data.len();
+    l.data.resize(at + l.words, 0);
+    l.data[at..].as_mut_ptr()
+}
+
+/// # Safety
+/// `l` is a `List` block.
+pub unsafe extern "C" fn yong_rt_list_len(l: *const List) -> i64 {
+    // SAFETY: the caller's contract.
+    let l = unsafe { &*l };
+    l.data.len().checked_div(l.words).unwrap_or(0) as i64
+}
+
+/// The slots of element `i`; a `bounds` panic when there is none.
+///
+/// # Safety
+/// `l` is a `List` block.
+pub unsafe extern "C" fn yong_rt_list_at(l: *mut List, i: i64) -> *mut u64 {
+    // SAFETY: the caller's contract.
+    let n = unsafe { yong_rt_list_len(l) };
+    if !(0..n).contains(&i) {
+        panic("bounds");
+    }
+    // SAFETY: as above; `i` is in bounds.
+    let l = unsafe { &mut *l };
+    l.data[i as usize * l.words..].as_mut_ptr()
+}
+
+/// # Safety
+/// `l` is a `List` block.
+pub unsafe extern "C" fn yong_rt_list_copy(l: *const List) -> *mut List {
+    // SAFETY: the caller's contract.
+    let l = unsafe { &*l };
+    leak(List {
+        words: l.words,
+        data: l.data.clone(),
+    })
+}
