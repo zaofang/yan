@@ -149,6 +149,16 @@ impl Cx<'_> {
         self.diags
             .push(Diagnostic::error(code, self.file, span, quote, message).with_item(item));
     }
+
+    /// Adds a secondary span to the last diagnostic.
+    pub fn label(&mut self, span: Span, text: &str) {
+        if let Some(d) = self.diags.last_mut() {
+            d.labels.push(yong_diag::Label {
+                span,
+                text: text.to_owned(),
+            });
+        }
+    }
 }
 
 /// The capability trait a `uses` name stands for: `io` is `Io`, `user_store` is `UserStore`.
@@ -446,6 +456,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             _ => {}
         }
     }
+    let mut first = HashMap::new();
     for it in &m.items {
         match &it.kind {
             j::ItemKind::Func(f) if g.fns.contains_key(&f.name) => {
@@ -455,6 +466,9 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                     &f.name,
                     format!("`{}` is defined twice", f.name),
                 );
+                if let Some(&at) = first.get(&f.name) {
+                    cx.label(at, "first defined");
+                }
             }
             j::ItemKind::Func(f)
                 if f.tparams
@@ -478,6 +492,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             j::ItemKind::Func(f) => {
                 let s = sig(g, f, cx)?;
                 g.fns.insert(f.name.clone(), s);
+                first.insert(f.name.clone(), f.name_span);
                 if it.decorators.iter().any(|d| d.path == ["deprecated"]) {
                     g.deprecated.insert(f.name.clone());
                 }
@@ -507,6 +522,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             _ => {}
         }
     }
+    let mut impls = HashMap::new();
     for it in &m.items {
         if let j::ItemKind::Impl(i) = &it.kind {
             let (Some(tr), true, true) = (impl_trait(i), i.args.is_empty(), i.assoc.is_empty())
@@ -521,13 +537,17 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 g.methods.insert((key.clone(), f.name.clone()), s);
             }
             *g.self_ty.borrow_mut() = None;
-            if !g.impls.insert((tr.clone(), key.clone())) {
+            if let Some(&at) = impls.get(&(tr.clone(), key.clone())) {
                 cx.err(
                     "E220",
                     it.span,
                     &tr,
                     format!("`{key}` already implements `{tr}`"),
                 );
+                cx.label(at, "first implemented");
+            } else {
+                impls.insert((tr.clone(), key.clone()), it.span);
+                g.impls.insert((tr.clone(), key.clone()));
             }
         }
     }

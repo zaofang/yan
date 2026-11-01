@@ -34,6 +34,15 @@ pub struct Diagnostic {
     pub fixes: Vec<serde_json::Value>,
     pub counterexample: Option<serde_json::Value>,
     pub quote: String,
+    /// Secondary spans, each with what happened there (R290).
+    #[serde(default)]
+    pub labels: Vec<Label>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Label {
+    pub span: Span,
+    pub text: String,
 }
 
 impl Diagnostic {
@@ -56,6 +65,7 @@ impl Diagnostic {
             fixes: Vec::new(),
             counterexample: None,
             quote: quote.to_owned(),
+            labels: Vec::new(),
         }
     }
 
@@ -66,6 +76,14 @@ impl Diagnostic {
 
     pub fn with_note(mut self, note: impl Into<String>) -> Self {
         self.notes.push(note.into());
+        self
+    }
+
+    pub fn with_label(mut self, span: Span, text: impl Into<String>) -> Self {
+        self.labels.push(Label {
+            span,
+            text: text.into(),
+        });
         self
     }
 
@@ -87,7 +105,7 @@ impl Diagnostic {
     }
 
     /// `[#n ] code path:line:col[ item:][ `quote`] message { | note } { | kind: old -> new }`
-    /// (R294, R650).
+    /// (R294, R650). A label renders as the note `text at line:col`.
     pub fn render_line(&self, id: Option<usize>) -> String {
         let mut out = String::new();
         if let Some(n) = id {
@@ -105,6 +123,9 @@ impl Diagnostic {
         }
         out.push(' ');
         out.push_str(&self.message);
+        for l in &self.labels {
+            out.push_str(&format!(" | {} at {}:{}", l.text, l.span.line, l.span.col));
+        }
         for note in &self.notes {
             out.push_str(" | ");
             out.push_str(note);

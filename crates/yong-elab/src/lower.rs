@@ -2434,13 +2434,14 @@ impl Lower<'_, '_, '_> {
             && !t.is_copy()
             && self.locals.contains_key(x)
             && !x.starts_with('_')
-            && self.used_after(x, at)
+            && let Some(later) = self.next_use(x, at)
         {
             self.err(
                 "E413",
                 at,
                 format!("`{x}` is used again later; bind `{x}.copy()`"),
             );
+            self.cx.label(later, "used again");
         }
         match &target.kind {
             j::ExprKind::Name(n) if n == "_" => {
@@ -4552,13 +4553,14 @@ impl Lower<'_, '_, '_> {
                     if let (Conv::Sink, Atom::Name(n, _)) = (conv, &a)
                         && !t.is_copy()
                         && self.locals.contains_key(n)
-                        && self.used_after(n, e.span)
+                        && let Some(later) = self.next_use(n, e.span)
                     {
                         self.err(
                             "E413",
                             sp,
                             format!("`{n}` is used again later; pass `{n}.copy()`"),
                         );
+                        self.cx.label(later, "used again");
                     }
                     *out = Some(Arg::Value(conv, a, sp));
                 }
@@ -5411,9 +5413,17 @@ fn calls_self(stmts: &[j::Stmt], name: &str) -> bool {
 
 impl Lower<'_, '_, '_> {
     fn used_after(&self, n: &str, at: Span) -> bool {
+        self.next_use(n, at).is_some()
+    }
+
+    /// The first use of `n` after `at`.
+    fn next_use(&self, n: &str, at: Span) -> Option<Span> {
         self.uses
-            .get(n)
-            .is_some_and(|v| v.iter().any(|s| (s.line, s.col) > (at.line, at.col)))
+            .get(n)?
+            .iter()
+            .filter(|s| (s.line, s.col) > (at.line, at.col))
+            .min_by_key(|s| (s.line, s.col))
+            .copied()
     }
 
     /// N05: a recursive function without `decreases` whose body matches a sum-typed parameter

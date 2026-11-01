@@ -116,3 +116,23 @@ fn unknown_names_carry_near_names_as_maybe_fixes() {
         .collect();
     assert_eq!(fixes, [("E200", "count"), ("E203", "name")], "{d:?}");
 }
+
+#[test]
+fn second_sites_are_labels() {
+    let src = "def f() -> int:\n    return 1\n\ndef f() -> int:\n    return 2\n\n\
+               def g(xs: list[int]) -> list[int]:\n    ys = xs\n    return xs\n";
+    let (_, d) = lower(src);
+    let labels: Vec<_> = d
+        .iter()
+        .flat_map(|d| {
+            d.labels
+                .iter()
+                .map(|l| (d.code.as_str(), l.text.as_str(), l.span.line))
+        })
+        .collect();
+    assert_eq!(
+        labels,
+        [("E250", "first defined", 1), ("E413", "used again", 9)],
+        "{d:?}"
+    );
+}
