@@ -2275,6 +2275,25 @@
    ]
   },
   {
+   "path": "jian/fail/std/heap_not_iterable.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R491"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 7,
+     "col": 14
+    }
+   ]
+  },
+  {
    "path": "jian/fail/strings/e504_index_str.jian",
    "kind": "fail",
    "milestone": "M1",
@@ -3536,6 +3555,87 @@
    "exit": 0
   },
   {
+   "path": "jian/run/std/deque_empty_pop.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R489"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n",
+   "exit": 101
+  },
+  {
+   "path": "jian/run/std/deque_ends.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R488",
+    "R489",
+    "R493"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "deque([1, 2, 3]) 3\n1 3 3\n1 3\nTrue False True\n24\n3 1 deque([20])\ndeque([]) -1\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/deque_maxlen_rotate.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R490",
+    "R493"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "deque([2, 3, 4], maxlen=3)\ndeque([0, 2, 3], maxlen=3)\ndeque([3, 7, 8], maxlen=3) 3\ndeque([4, 5, 1, 2, 3])\ndeque([2, 3, 4, 5, 1]) -1\ndeque([4, 5], maxlen=2)\ndeque([])\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/heap_empty_pop.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R489"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "-1\n",
+   "exit": 101
+  },
+  {
+   "path": "jian/run/std/heap_order.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R488",
+    "R489",
+    "R491",
+    "R493"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "heap([1, 2, 3, 5, 8, 9]) 6 1\n0 1\n2 3\n[4, 5, 7] [8, 9, 100]\nheap(['a', 'b']) a b\n",
+   "exit": 0
+  },
+  {
    "path": "jian/run/std/regex_anchors.jian",
    "kind": "run",
    "milestone": "M1",
@@ -3639,6 +3739,56 @@
    "flags": [],
    "expect": [],
    "stdout": "h\u00e9llo 2 7\n\u6c38 1 2\nABC\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/sorted_dict_basic.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R488",
+    "R493"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "sorted_dict({'apple': 1, 'fig': 2, 'pear': 3}) 3\n2 0 True\n[('apple', 10), ('fig', 2), ('pear', 3)]\n2 0\n4 4\napple\nkiwi\npear\n['apple', 'kiwi', 'pear'] [10, 4, 3]\nsorted_dict({1: 'a', 2: 'b', 3: 'c'})\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/sorted_dict_queries.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R489",
+    "R492"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "(10, 'a') (40, 'd')\n(20, 'b') (20, 'b') None\n(30, 'c') (30, 'c') None\n[(20, 'b'), (30, 'c')] []\n(40, 'd')\n(30, 'c')\n(20, 'b')\n(10, 'a')\nsorted_dict({}) None\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/sorted_set_basic.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R488",
+    "R489",
+    "R492",
+    "R493"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "sorted_set({3, 4, 5}) 3 True False\nsorted_set({3, 4, 5, 6}) sorted_set({4})\n3\n4\n5\nNone 3 [3, 4]\n3 5 3 5 sorted_set({4})\nsorted_set() None\n",
    "exit": 0
   },
   {

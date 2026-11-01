@@ -1,0 +1,24 @@
+# spec: 17.3
+# rows: R488, R489, R491, R493
+# stdout:
+# heap([1, 2, 3, 5, 8, 9]) 6 1
+# 0 1
+# 2 3
+# [4, 5, 7] [8, 9, 100]
+# heap(['a', 'b']) a b
+
+pub def main() uses io:
+    h = heap([5, 1, 8, 3, 9, 2])
+    io.print(f"{h} {len(h)} {h.peek() else -1}")
+    h.push(0)
+    h.push(7)
+    io.print(f"{h.pop()} {h.pop()}")
+    io.print(f"{h.pushpop(4)} {h.pushpop(100)}")
+    out: list[int] = []
+    while len(h) > 3:
+        out.append(h.pop())
+    io.print(f"{out} {h.into_sorted()}")
+    e: heap[str] = heap()
+    e.push("b")
+    e.push("a")
+    io.print(f"{e} {e.pop()} {e.peek() else '-'}")

@@ -1,0 +1,28 @@
+# spec: 17.3
+# rows: R490, R493
+# stdout:
+# deque([2, 3, 4], maxlen=3)
+# deque([0, 2, 3], maxlen=3)
+# deque([3, 7, 8], maxlen=3) 3
+# deque([4, 5, 1, 2, 3])
+# deque([2, 3, 4, 5, 1]) -1
+# deque([4, 5], maxlen=2)
+# deque([])
+
+pub def main() uses io:
+    d = deque([1, 2, 3], maxlen=3)
+    d.append(4)
+    io.print(f"{d}")
+    d.appendleft(0)
+    io.print(f"{d}")
+    d.extend([7, 8])
+    io.print(f"{d} {d.maxlen() else -1}")
+    r = deque([1, 2, 3, 4, 5])
+    r.rotate(2)
+    io.print(f"{r}")
+    r.rotate(-3)
+    io.print(f"{r} {r.maxlen() else -1}")
+    w = deque([1, 2, 3, 4, 5], maxlen=2)
+    io.print(f"{w}")
+    r.clear()
+    io.print(f"{r}")

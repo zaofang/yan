@@ -1,0 +1,11 @@
+# spec: 17.3
+# rows: R489
+# note: popleft on an empty deque panics with kind bounds
+# stdout:
+# 1
+# exit: 101
+
+pub def main() uses io:
+    d = deque([1])
+    io.print(f"{d.popleft()}")
+    io.print(f"{d.popleft()}")

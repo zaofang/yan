@@ -1,0 +1,8 @@
+# spec: 17.3
+# rows: R491
+# expect: E201 at 7:14
+
+pub def main() uses io:
+    h = heap([1, 2])
+    for x in h:
+        io.print(f"{x}")
