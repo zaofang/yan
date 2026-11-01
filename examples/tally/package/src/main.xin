@@ -1,0 +1,25 @@
+"""Runs a batch through the service under simulated acquirer faults, then settles it."""
+
+class SimAcquirer:
+    limit: Money
+
+impl service.Acquirer for SimAcquirer:
+    def send(self: Self, pan: Secret[str], amount: Money) -> schema.Decision fail service.AcquirerDown uses fault:
+        if fault.maybe("acquirer.down"):
+            fail service.AcquirerDown(attempt=1)
+        if amount > self.limit:
+            return schema.Declined(reason="limit")
+        return schema.Approved(code="A1")
+
+pub def main() -> None fail json.JsonError uses io, log, fault:
+    auths = json.parse[list[schema.Auth]](batch)?
+    with acquirer = SimAcquirer(limit=1000.00 * usd):
+        ds = [service.authorize(a) else schema.Declined(reason="acquirer down") for a in auths]
+    for s in settle.settle(auths, ds):
+        io.print(json.dump(s))
+
+def test_batch_under_faults(seed: int) -> None fail json.JsonError uses io, log:
+    with fault = sim(seed, rate=0.2):
+        main()?
+
+batch: str = """[{"id": 1, "merchant": "corner-shop", "pan": "4242424242424242", "amount": "12.50 USD", "mcc": {"Grocery": {}}}]"""
