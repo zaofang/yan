@@ -99,3 +99,28 @@ pub def main() uses io:
 ";
     assert_eq!(raised(src), src);
 }
+
+#[test]
+fn early_return_guards_prove_indices() {
+    let codes = |src: &str| -> Vec<String> { lower(src).1.into_iter().map(|d| d.code).collect() };
+    let guarded = "\
+def first(xs: list[int]) -> int:
+    if len(xs) == 0:
+        return 0
+    return xs[0]
+
+def last(xs: list[int]) -> int:
+    if not xs:
+        return 0
+    return xs[len(xs) - 1]
+
+def inner(xs: list[int], i: int) -> int:
+    if i != 0 and i >= 0 and i < len(xs):
+        return xs[i - 1]
+    return 0
+";
+    assert_eq!(codes(guarded), ["N15"]);
+    let open =
+        "def f(xs: list[int]) -> int:\n    if len(xs) == 1:\n        return 0\n    return xs[0]\n";
+    assert_eq!(codes(open), ["W820"]);
+}

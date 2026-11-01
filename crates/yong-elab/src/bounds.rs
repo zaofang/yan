@@ -145,12 +145,16 @@ struct Facts {
     lin: Vec<Lin>,
     /// `(dict, key)` pairs known present; a key is `n:<name>` or `s:<text>`.
     keys: Vec<(String, String)>,
+    /// Disjunctions, each alternative a conjunction; goals split over them (R605).
+    ors: Vec<Vec<Vec<Lin>>>,
 }
 
 impl Facts {
     fn kill(&mut self, name: &str) {
         let (v, l) = (var(name), len(name));
         self.lin.retain(|c| !c.mentions(&v) && !c.mentions(&l));
+        self.ors
+            .retain(|d| !d.iter().flatten().any(|c| c.mentions(&v) || c.mentions(&l)));
         let k = format!("n:{name}");
         self.keys.retain(|(d, key)| d != name && *key != k);
     }
@@ -159,9 +163,50 @@ impl Facts {
         Facts {
             lin: a.lin.into_iter().filter(|c| b.lin.contains(c)).collect(),
             keys: a.keys.into_iter().filter(|k| b.keys.contains(k)).collect(),
+            ors: a.ors.into_iter().filter(|d| b.ors.contains(d)).collect(),
         }
     }
+
+    /// Adds `alts` as a disjunction; an alternative that says nothing makes it vacuous.
+    fn disjoin(&mut self, alts: Vec<Vec<Lin>>) {
+        if alts.len() > 1 && alts.len() <= CASES && alts.iter().all(|a| !a.is_empty()) {
+            self.ors.push(alts);
+        }
+    }
+
+    fn subst(&mut self, t: &str, by: &Lin) {
+        self.lin = self.lin.iter().map(|c| c.subst(t, by)).collect();
+        for d in &mut self.ors {
+            for alt in d.iter_mut() {
+                *alt = alt.iter().map(|c| c.subst(t, by)).collect();
+            }
+        }
+    }
+
+    /// The conjunctions a goal is decided under: `lin` with one alternative of each
+    /// disjunction, taking disjunctions in order while there are at most `CASES`.
+    fn cases(&self) -> Vec<Vec<Lin>> {
+        let mut out = vec![self.lin.clone()];
+        for d in &self.ors {
+            if out.len() * d.len() > CASES {
+                continue;
+            }
+            out = out
+                .iter()
+                .flat_map(|c| {
+                    d.iter().map(move |alt| {
+                        let mut c = c.clone();
+                        c.extend(alt.iter().cloned());
+                        c
+                    })
+                })
+                .collect();
+        }
+        out
+    }
 }
+
+const CASES: usize = 8;
 
 fn var(n: &str) -> String {
     format!("v:{n}")
@@ -290,6 +335,22 @@ impl Solver<'_> {
                 self.assume(a, false, into);
                 self.assume(b, false, into);
             }
+            K::Binary(op @ ("or" | "and"), a, b) => {
+                let pos_or = *op == "or";
+                let (mut fa, mut fb) = (Facts::default(), Facts::default());
+                self.assume(a, pos_or, &mut fa);
+                self.assume(b, pos_or, &mut fb);
+                into.disjoin(fa.cases().into_iter().chain(fb.cases()).collect());
+            }
+            // A list as a condition (N15) is `len(xs) > 0`.
+            K::Name(n) if self.sites.get(&e.span) == Some(&Site::List) => {
+                let l = Lin::term(len(n));
+                into.lin.push(if pos {
+                    l.sub(&Lin::konst(1))
+                } else {
+                    l.scale(-1)
+                });
+            }
             K::Compare(op @ ("in" | "not in"), k, d) => {
                 if (*op == "in") == pos
                     && let (K::Name(dn), Some(key)) = (&d.kind, key_of(k))
@@ -316,6 +377,11 @@ impl Solver<'_> {
                         _ => return,
                     }
                 };
+                if op == "!=" {
+                    into.lin.extend(side);
+                    into.disjoin(vec![vec![ge(&x, &y.add(&one))], vec![ge(&y, &x.add(&one))]]);
+                    return;
+                }
                 let cs: Vec<Lin> = match op {
                     "<" => vec![ge(&y, &x.add(&one))],
                     "<=" => vec![ge(&y, &x)],
@@ -676,10 +742,8 @@ impl Solver<'_> {
                     let l = len(n);
                     let by = |d: i128| Lin::term(l.clone()).add(&Lin::konst(d));
                     match m.as_str() {
-                        "append" | "push" => {
-                            f.lin = f.lin.iter().map(|c| c.subst(&l, &by(-1))).collect()
-                        }
-                        "pop" => f.lin = f.lin.iter().map(|c| c.subst(&l, &by(1))).collect(),
+                        "append" | "push" => f.subst(&l, &by(-1)),
+                        "pop" => f.subst(&l, &by(1)),
                         "insert" | "extend" | "remove" | "clear" | "sort" | "reverse" | "add"
                         | "discard" | "setdefault" | "update" => f.kill(n),
                         _ => {}
@@ -739,33 +803,38 @@ impl Solver<'_> {
             self.unknown(at, "the index is outside the linear fragment");
             return;
         };
-        let mut base = f.lin.clone();
-        base.extend(side);
-        for c in base.clone().iter().chain([&n]) {
-            for t in c.terms.keys().filter(|t| t.starts_with("len:")) {
-                base.push(Lin::term(t.clone()));
+        let last = n.sub(&Lin::konst(1));
+        let (mut live, mut refuted, mut proven) = (0, 0, 0);
+        for case in f.cases() {
+            let mut base = case;
+            base.extend(side.iter().cloned());
+            for c in base.clone().iter().chain([&n]) {
+                for t in c.terms.keys().filter(|t| t.starts_with("len:")) {
+                    base.push(Lin::term(t.clone()));
+                }
+            }
+            if unsat(&base) {
+                continue;
+            }
+            let with = |extra: Vec<Lin>| {
+                let mut cs = base.clone();
+                cs.extend(extra);
+                unsat(&cs)
+            };
+            live += 1;
+            if with(vec![i.clone(), ge(&last, &i)]) {
+                refuted += 1;
+            } else if with(vec![ge(&Lin::konst(-1), &i)]) && with(vec![ge(&i, &n)]) {
+                proven += 1;
             }
         }
-        if unsat(&base) {
-            return;
-        }
-        let with = |extra: Vec<Lin>| {
-            let mut cs = base.clone();
-            cs.extend(extra);
-            unsat(&cs)
-        };
-        let last = n.sub(&Lin::konst(1));
-        if with(vec![i.clone(), ge(&last, &i)]) {
+        if live > 0 && refuted == live {
             self.out.push(Finding {
                 code: "E501",
                 span: at,
                 message: "this index is always out of bounds".into(),
             });
-            return;
-        }
-        let low = with(vec![ge(&Lin::konst(-1), &i)]);
-        let high = with(vec![ge(&i, &n)]);
-        if !(low && high) {
+        } else if proven < live {
             self.unknown(at, "the solver cannot prove this index in bounds");
         }
     }

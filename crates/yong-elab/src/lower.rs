@@ -1447,6 +1447,9 @@ impl Lower<'_, '_, '_> {
             self.expect(&t, &Ty::Bool, e.span);
             return Ok(a);
         }
+        if matches!(t, Ty::List(_)) {
+            self.sites.insert(e.span, Site::List);
+        }
         let Some((test, how)) = self.truth(a, &t, e.span)? else {
             self.expect(&t, &Ty::Bool, e.span);
             return Ok(Atom::Lit(Literal::Bool(false), e.span));
