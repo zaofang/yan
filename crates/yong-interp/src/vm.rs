@@ -488,6 +488,17 @@ impl<'o> Vm<'o> {
                         return panic(kind);
                     }
                 }
+                Op::Assert { src, info } => {
+                    if !matches!(self.stack[base + src as usize], Value::Bool(true)) {
+                        let a = &code.asserts[info as usize];
+                        let mut msg = format!("line {}", a.line);
+                        if let [l, r] = a.sides[..] {
+                            let show = |o| crate::prelude::show(self.val(&code, base, o), true);
+                            msg += &format!(": left is {}, right is {}", show(l), show(r));
+                        }
+                        return Err(crate::Stop::Panic("assert".into(), msg));
+                    }
+                }
                 Op::Panic(kind) => return panic(kind),
                 Op::Unsupported(m) => return unsupported(code.msgs[m as usize].clone()),
                 Op::Match { pat, src, to } => {

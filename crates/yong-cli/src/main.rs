@@ -394,8 +394,12 @@ fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
     let mut out = std::io::stdout().lock();
     match yong_interp::run(module, &mut out) {
         Ok(status) => ExitCode::from(status as u8),
-        Err(Stop::Panic(kind)) => {
-            eprintln!("panic: {kind}");
+        Err(Stop::Panic(kind, msg)) => {
+            if msg.is_empty() {
+                eprintln!("panic: {kind}");
+            } else {
+                eprintln!("panic: {kind}: {msg}");
+            }
             ExitCode::from(EXIT_PANIC as u8)
         }
         Err(Stop::Unsupported(what)) => tool_failure(&format!("not supported yet: {what}")),

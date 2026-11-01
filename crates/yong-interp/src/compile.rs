@@ -158,6 +158,11 @@ pub(crate) enum Op {
         src: Reg,
         kind: &'static str,
     },
+    /// An `assert` of `src`, described by `code.asserts[info]`.
+    Assert {
+        src: Reg,
+        info: u32,
+    },
     Panic(&'static str),
     Unsupported(u32),
     /// Bind `pat` from `src` or jump to `to` when it does not match.
@@ -305,6 +310,14 @@ pub(crate) struct Code {
     pub ctors: Vec<CtorC>,
     pub clos: Vec<CloC>,
     pub msgs: Vec<String>,
+    pub asserts: Vec<AssertC>,
+}
+
+/// Where an `assert` is, and the operands of the comparison it tests, if any.
+#[derive(Debug)]
+pub(crate) struct AssertC {
+    pub line: u32,
+    pub sides: Vec<Opnd>,
 }
 
 pub(crate) struct Program {
@@ -511,6 +524,8 @@ struct FnC<'g, 'm> {
     scopes: Vec<Scope>,
     /// The last pc taken as a jump target; ops before it cannot fuse with ops after.
     barrier: u32,
+    /// Booleans bound to a comparison of two atoms, for the message of an `assert` on them.
+    cmps: Map<Name, [Atom; 2]>,
 }
 
 impl<'g, 'm> FnC<'g, 'm> {
@@ -521,6 +536,7 @@ impl<'g, 'm> FnC<'g, 'm> {
             regs: Map::default(),
             scopes: Vec::new(),
             barrier: 0,
+            cmps: Map::default(),
         };
         for p in params {
             let r = c.temp();
@@ -676,7 +692,7 @@ impl<'g, 'm> FnC<'g, 'm> {
         match a {
             Atom::Lit(l, _) => match literal(l) {
                 Ok(v) => Ok(self.konst(v)),
-                Err(crate::Stop::Unsupported(m) | crate::Stop::Panic(m)) => Err(m),
+                Err(crate::Stop::Unsupported(m) | crate::Stop::Panic(m, _)) => Err(m),
                 Err(crate::Stop::Limit(m)) => Err(m.to_owned()),
             },
             Atom::Name(n, _) => self.lookup(n),
@@ -747,6 +763,10 @@ impl<'g, 'm> FnC<'g, 'm> {
         match &s.kind {
             StmtKind::Let { pat, rhs, .. } => match pat {
                 Pat::Bind(n) if !self.g.nullary.contains(n) => {
+                    match comparison(rhs) {
+                        Some(sides) => self.cmps.insert(n.clone(), sides),
+                        None => self.cmps.remove(n),
+                    };
                     let dst = self.reg_of(n);
                     self.rhs(rhs, dst);
                 }
@@ -875,16 +895,30 @@ impl<'g, 'm> FnC<'g, 'm> {
             StmtKind::Assert(e) => {
                 let t = self.temp();
                 self.expr(e, t);
-                self.emit(Op::Check {
-                    src: t,
-                    kind: "assert",
+                let sides = match e {
+                    Expr::Atom(Atom::Name(n, _)) => self.cmps.get(n).cloned(),
+                    _ => None,
+                };
+                let sides = sides
+                    .and_then(|[a, b]| Some(vec![self.atom(&a).ok()?, self.atom(&b).ok()?]))
+                    .unwrap_or_default();
+                self.code.asserts.push(AssertC {
+                    line: s.span.line,
+                    sides,
                 });
+                let info = self.code.asserts.len() as u32 - 1;
+                self.emit(Op::Assert { src: t, info });
             }
             StmtKind::Unreachable => {
                 self.emit(Op::Panic("unreachable"));
             }
             StmtKind::Unsafe(b) => self.block(b),
             StmtKind::Drop(n) => {
+                self.cmps.retain(|_, sides| {
+                    !sides
+                        .iter()
+                        .any(|a| matches!(a, Atom::Name(m, _) if m == n))
+                });
                 if let Some(r) = self.regs.get(n) {
                     let r = *r;
                     self.emit(Op::Clear(r));
@@ -1319,6 +1353,19 @@ fn intrinsic_op(name: &str, args: &[ArgC], dst: Reg, site: u32) -> Option<Op> {
         });
     }
     None
+}
+
+/// The two sides of `rhs` when it is a comparison call on atoms.
+fn comparison(rhs: &Rhs) -> Option<[Atom; 2]> {
+    let Rhs::Call(c) = rhs else { return None };
+    let f = c.path.last()?;
+    let cmp = ["eq", "ne", "lt", "le", "gt", "ge"]
+        .iter()
+        .any(|p| f == p || f.strip_prefix(p).is_some_and(|r| r.starts_with('_')));
+    match c.args.as_slice() {
+        [Arg::Value(_, a, _), Arg::Value(_, b, _)] if cmp => Some([a.clone(), b.clone()]),
+        _ => None,
+    }
 }
 
 #[cfg(test)]

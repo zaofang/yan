@@ -77,7 +77,7 @@ pub(crate) fn constant(
             "E262",
             format!("{what} cannot cross into run time; only data is materialized"),
         ),
-        Err(Stop::Panic(kind)) => ("E260", format!("stage-0 evaluation panicked: {kind}")),
+        Err(Stop::Panic(kind, _)) => ("E260", format!("stage-0 evaluation panicked: {kind}")),
         Err(Stop::Limit(what)) => (
             "E261",
             format!("stage-0 evaluation exceeded its {what} limit; raise it with `@limit`"),

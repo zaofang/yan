@@ -99,3 +99,17 @@ pub def main() uses io:
 ";
     assert_eq!(raised(src), src);
 }
+
+#[test]
+fn a_failed_assert_reports_its_line_and_sides() {
+    let src = "pub def main():\n    x = 1 + 1\n    assert x == 3\n";
+    let (m, _) = lower(src);
+    let r = yong_interp::run(&m, &mut Vec::new());
+    let Err(yong_interp::Stop::Panic(kind, msg)) = r else {
+        panic!("expected a panic")
+    };
+    assert_eq!(
+        (kind.as_str(), msg.as_str()),
+        ("assert", "line 3: left is 2, right is 3")
+    );
+}

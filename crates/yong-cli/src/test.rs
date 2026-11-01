@@ -213,6 +213,25 @@ fn test_hash(m: &y::Module, it: &y::Item) -> String {
     )
 }
 
+/// `assert failed at f.xin:7: \`x == 1\`; left is 0, right is 1`, from the panic's
+/// `line N[: values]` message.
+fn assert_failed(file: &str, src: &str, msg: &str) -> String {
+    let (line, values) = msg.split_once(": ").unwrap_or((msg, ""));
+    let Some(n) = line
+        .strip_prefix("line ")
+        .and_then(|n| n.parse::<usize>().ok())
+    else {
+        return format!("panic assert: {msg}");
+    };
+    let text = src.lines().nth(n - 1).unwrap_or("").trim();
+    let text = text.strip_prefix("assert ").unwrap_or(text);
+    let mut out = format!("assert failed at {file}:{n}: `{text}`");
+    if !values.is_empty() {
+        out += &format!("; {values}");
+    }
+    out
+}
+
 /// Whether test `id` is selected by `filter`: the id itself, or a module or function prefix.
 fn selected(id: &str, filter: Option<&str>) -> bool {
     filter.is_none_or(|f| {
@@ -282,10 +301,13 @@ pub fn run(root: &Path, filter: Option<&str>, gate: bool) -> Result<Report, Stri
             let verdict = match yong_interp::test(&m, &fname, Limits::default(), &mut out) {
                 Ok(true) => Verdict::Pass,
                 Ok(false) => Verdict::Fail("returned a failure".into()),
-                Err(Stop::Panic(k)) if k == "assert" && ex.is_some() => {
+                Err(Stop::Panic(k, _)) if k == "assert" && ex.is_some() => {
                     Verdict::Fail(format!("`{}` does not hold", ex.expect("an ex line").text))
                 }
-                Err(Stop::Panic(k)) => Verdict::Fail(format!("panic {k}")),
+                Err(Stop::Panic(k, msg)) if k == "assert" => {
+                    Verdict::Fail(assert_failed(&shown, &text, &msg))
+                }
+                Err(Stop::Panic(k, _)) => Verdict::Fail(format!("panic {k}")),
                 Err(Stop::Limit(_)) => Verdict::Budget,
                 Err(Stop::Unsupported(what)) => {
                     return Err(format!("{id}: not supported yet: {what}"));

@@ -144,8 +144,8 @@ impl Hash for Key {
 /// Why a run stopped early.
 #[derive(Debug)]
 pub enum Stop {
-    /// A panic with its kind (8.3).
-    Panic(String),
+    /// A panic with its kind (8.3) and message.
+    Panic(String, String),
     /// A construct this interpreter does not run yet: a tool failure, not a program result.
     Unsupported(String),
     /// A stage-0 budget ran out (10.4): `depth` or `steps`.
@@ -246,7 +246,7 @@ pub(crate) struct Interp<'o> {
 }
 
 pub(crate) fn panic<T>(kind: &str) -> R<T> {
-    Err(Stop::Panic(kind.to_owned()))
+    Err(Stop::Panic(kind.to_owned(), String::new()))
 }
 
 pub(crate) fn unsupported<T>(what: impl Into<String>) -> R<T> {
@@ -506,7 +506,7 @@ mod selftest {
         let mut out = Vec::new();
         let status = match run(&m.unwrap(), &mut out) {
             Ok(s) => s,
-            Err(Stop::Panic(_)) => EXIT_PANIC,
+            Err(Stop::Panic(..)) => EXIT_PANIC,
             Err(Stop::Unsupported(w)) => panic!("unsupported: {w}"),
             Err(Stop::Limit(w)) => panic!("limit: {w}"),
         };
