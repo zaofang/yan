@@ -1,8 +1,8 @@
 # 0005: std.json
 
-- Status: draft
+- Status: accepted (the lead chose "Accept, but wait for typed parse" on 2026-11-01: D2 to D7 accepted; D1 amended so that nothing ships before `derive(Wire)`)
 - Research: none; this RFC is the proposal (Wave 3 of the std build plan)
-- Rows: filled in when accepted
+- Rows: R569 to R575
 
 ## Summary
 
@@ -33,8 +33,8 @@ Options weighed:
 Recommended: ship `Value` now and add the typed calls later. `parse_value` and `dump_value` are
 separate names, so the typed `parse` and `dump` keep their spec meaning.
 
-- Decision:
-- Row:
+- Decision: amended, 2026-11-01. `json.Value`, `parse_value` and `dump_value` keep this design but ship together with typed `parse[T]` and `dump[T]` once `derive(Wire)` exists; no untyped interim API ships first.
+- Row: R569
 
 ### D2: Numbers
 
@@ -53,8 +53,8 @@ always includes a `.` or an exponent, so the value parses back as a `Float`. A n
 JSON form, so dumping one panics with `value`. A non-finite float cannot come from `parse_value`, so
 only constructed values can panic.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R570
 
 ### D3: Strict RFC 8259 input
 
@@ -76,8 +76,8 @@ not opt in. Nesting deeper than `max_depth` fails with reason `Depth`.
 Options weighed: a lenient mode, like JSON5 or Python's acceptance of `NaN`. Lenient input belongs to
 a separate `@yong/json5`. Recommended: strict only.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R571
 
 ### D4: Deterministic output
 
@@ -95,8 +95,8 @@ So equal values always print the same bytes, on every platform and in every run.
 Options weighed: Python's `", "` and `": "` separators, and `ensure_ascii`. Both make the output longer
 and add nothing a reader needs. Recommended: compact output with no `ensure_ascii`.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R572
 
 ### D5: `JsonError`
 
@@ -109,8 +109,8 @@ type JsonReason = Syntax(msg: str) | Depth() | Duplicate(key: str) | Range()
 derives `Show` and `Eq`, as the errors rule of 17 requires; `Wire` follows when derives exist. This is
 the only error type of the module.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R573
 
 ### D6: Accessors on `Value`
 
@@ -125,8 +125,8 @@ nested `match`.
 Options weighed: `match` only (no new API), or indexing that panics (Python's `d["k"]`). Recommended:
 total accessors.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R574
 
 ### D7: `parse_float`
 
@@ -134,8 +134,8 @@ total accessors.
 optional surrounding whitespace. It uses the number grammar of D2 and D3, and an integer literal
 widens to `float` exactly or fails with `Range`. It is the call shown in the examples of 14 and 15.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R575
 
 ## Spec changes
 

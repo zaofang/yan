@@ -25,4 +25,4 @@ research index links their studies and rows.
 | [0002](0002-niche-surfaces.md) | Niche surfaces | accepted | R536 to R550 |
 | [0003](0003-core-gaps-from-surfaces.md) | Yong gaps found by the surface study | accepted | R551 to R557 |
 | [0004](0004-architecture.md) | Architecture for one core and many surfaces | accepted | R558 to R565 |
-| [0005](0005-std-json.md) | std.json | draft | |
+| [0005](0005-std-json.md) | std.json | accepted | R569 to R575 |
