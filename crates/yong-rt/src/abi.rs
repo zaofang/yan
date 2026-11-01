@@ -162,3 +162,8 @@ pub extern "C" fn yong_rt_exit(code: i64) -> ! {
     let _ = std::io::stdout().flush();
     std::process::exit(code as i32)
 }
+
+/// `words` zeroed words: a closure's captures.
+pub extern "C" fn yong_rt_alloc(words: u64) -> *mut u64 {
+    Box::leak(vec![0u64; words as usize].into_boxed_slice()).as_mut_ptr()
+}
