@@ -232,6 +232,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Data { name, fields } if name == "EncodingError" => super::encoding::show_error(fields),
         Data { name, fields } if name == "TimeError" => super::time::show_error(fields),
         Data { name, fields } if name == "ProcError" => super::proc::show_error(fields),
+        Data { name, fields } if name == "CliError" => super::cli::show_error(fields),
         Data { name, fields } if name == super::proc::COMMAND => super::proc::show_command(fields),
         Data { name, .. } if name == "ZonedDateTime" => super::civil::show_zoned(v),
         Data { name, fields } => {

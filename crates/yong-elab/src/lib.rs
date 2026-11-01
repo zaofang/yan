@@ -5,6 +5,7 @@
 //! The Yong tree keeps Xin spans, so the Yong checker reports at Xin positions.
 
 mod bounds;
+mod cli;
 mod decorators;
 mod ffi;
 mod lower;
@@ -89,6 +90,8 @@ pub(crate) struct Globals {
     pub externs: HashMap<String, (bool, bool)>,
     /// Records marked `@layout(c)` (12.3).
     pub layout_c: HashSet<String>,
+    /// Records marked `@derive(Cli)`, with their `@help` texts (RFC 0019 D14).
+    pub clis: HashMap<String, HashMap<String, String>>,
     /// Functions marked `@deprecated`, for W815.
     pub deprecated: HashSet<String>,
     pub consts: HashMap<String, Ty>,
@@ -410,6 +413,26 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 };
                 if it.decorators.iter().any(c_layout) {
                     g.layout_c.insert(c.name.clone());
+                }
+                let cli = |d: &j::Decorator| {
+                    d.path == ["derive"]
+                        && d.args.as_deref().unwrap_or_default().iter().any(|a| {
+                            matches!(&a.kind, j::ArgKind::Expr(j::Expr { kind: j::ExprKind::Name(n), .. }) if n == "Cli")
+                        })
+                };
+                if it.decorators.iter().any(cli) {
+                    let help = it
+                        .decorators
+                        .iter()
+                        .find(|d| d.path == ["help"])
+                        .map(cli::help)
+                        .transpose();
+                    match help {
+                        Ok(h) => {
+                            g.clis.insert(c.name.clone(), h.unwrap_or_default());
+                        }
+                        Err(msg) => cx.err("E269", it.span, &c.name, msg),
+                    }
                 }
             }
             _ => {}

@@ -16,6 +16,7 @@ use yong_core::ast::*;
 mod bind;
 mod bits;
 mod civil;
+mod cli;
 mod collections;
 mod compile;
 mod encoding;

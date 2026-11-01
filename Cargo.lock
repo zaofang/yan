@@ -1397,6 +1397,7 @@ dependencies = [
 name = "yong-elab"
 version = "0.0.0"
 dependencies = [
+ "serde_json",
  "unicode-normalization",
  "yong-check",
  "yong-core",
@@ -1444,6 +1445,7 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
+ "serde_json",
  "yong-core",
  "yong-rt",
  "yong-std",

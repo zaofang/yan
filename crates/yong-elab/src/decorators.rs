@@ -8,8 +8,8 @@ use yong_hir as j;
 use crate::{Cx, Globals, R, ffi, lower, unsupported};
 
 /// std traits with a `derived` body (10.4); `From` derives on sums (R432).
-const DERIVABLE: [&str; 8] = [
-    "Eq", "Ord", "Hash", "Show", "Default", "Wire", "Num", "From",
+const DERIVABLE: [&str; 9] = [
+    "Eq", "Ord", "Hash", "Show", "Default", "Wire", "Num", "From", "Cli",
 ];
 /// The compiler derives these itself (6.2).
 const AUTO: [&str; 3] = ["Send", "Sync", "Freeze"];
@@ -31,6 +31,11 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
                     };
                     let why = if AUTO.contains(&t.as_str()) {
                         "is an auto trait; the compiler derives it"
+                    } else if t == "Cli" {
+                        if let Err(msg) = crate::cli::schema(g, &item) {
+                            cx.err("E269", a.span, &item, msg);
+                        }
+                        continue;
                     } else if DERIVABLE.contains(&t.as_str()) {
                         continue;
                     } else {
@@ -94,6 +99,14 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
             "layout" if g.layout_c.contains(&item) => {}
             "layout" => return unsupported("`@layout` other than `@layout(c)` on a record"),
             "deprecated" | "inline" | "limit" => {}
+            // Read with `@derive(Cli)` (RFC 0019 D14).
+            "help" if g.clis.contains_key(&item) => {}
+            "help" => cx.err(
+                "E269",
+                decorator_span(it, k),
+                &item,
+                "`@help` needs `@derive(Cli)`".into(),
+            ),
             other => return unsupported(format!("decorator `@{other}`")),
         }
     }
