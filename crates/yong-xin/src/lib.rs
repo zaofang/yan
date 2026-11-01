@@ -189,7 +189,7 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
     #[test]
     fn conformance_xin_files_round_trip() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../conformance");
-        let mut stack = vec![root.join("xin"), root.join("jian"), root.join("golden")];
+        let mut stack = vec![root.join("xin"), root.join("golden")];
         let mut n = 0;
         while let Some(dir) = stack.pop() {
             let Ok(entries) = std::fs::read_dir(&dir) else {
@@ -199,7 +199,7 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
                 let p = e.path();
                 if p.is_dir() {
                     stack.push(p);
-                } else if p.extension().is_some_and(|x| x == "xin" || x == "jian")
+                } else if p.extension().is_some_and(|x| x == "xin")
                     && !p.components().any(|c| c.as_os_str() == "fail")
                 {
                     roundtrip(&std::fs::read_to_string(&p).unwrap());

@@ -7,13 +7,13 @@ read-only to agents (22.6).
 
 | Path | Kind | A case passes when |
 |---|---|---|
-| `jian/pass/`, `wen/pass/`, `yong/pass/` | pass | `check` reports no errors (warnings and notes allowed) |
-| `jian/fail/`, `wen/fail/`, `yong/fail/` | fail | `check` reports exactly the `expect` lines, all severities, and nothing else |
-| `jian/run/`, `wen/run/`, `yong/run/` | run | `run` prints exactly the `stdout` block and exits with `exit` (default 0) |
+| `xin/pass/`, `wen/pass/`, `yong/pass/` | pass | `check` reports no errors (warnings and notes allowed) |
+| `xin/fail/`, `wen/fail/`, `yong/fail/` | fail | `check` reports exactly the `expect` lines, all severities, and nothing else |
+| `xin/run/`, `wen/run/`, `yong/run/` | run | `run` prints exactly the `stdout` block and exits with `exit` (default 0) |
 | `golden/` | run | as run; G1, G2 and G4 of 24.3 |
 | `solver/` | fail | as fail; no `expect` line means no diagnostics at all (8.6 boundaries) |
 | `ub/` | ub | `run --ub` reports `ub(N)` for the case's `ub: N` header (the 6.7 item number), or runs clean for `ub: none` |
-| `patch/<case>/` | patch | `patch` applied to `m.jian` gives `result.jian`, or is refused with the `code` of `expect.toml` and leaves `m.jian` unchanged |
+| `patch/<case>/` | patch | `patch` applied to `m.xin` gives `result.xin`, or is refused with the `code` of `expect.toml` and leaves `m.xin` unchanged |
 | `semver/<case>/` | semver | `semver` on `old/` and `new/` computes the `bump` of `expect.toml` (one pair per row of the 20.6 table) |
 | `pkg/<case>/` | pkg | the `command` of `expect.toml`, run in `root/`, reports `code` (at `at` when given) and exits nonzero, or exits 0 with no errors when there is no `code` |
 | `roundtrip/`, `sim/` | | not populated yet |
@@ -24,9 +24,9 @@ tree, not one file (question Q8, R479).
 
 ## Directory cases
 
-A `patch/` case holds `m.jian`, the patch as `patch.json` (the 18.3 JSON form) or `patch.jian` (the
+A `patch/` case holds `m.xin`, the patch as `patch.json` (the 18.3 JSON form) or `patch.xin` (the
 plain-file form), and `expect.toml` with `spec`, optional `flags` (such as `["--check"]`) and either
-`result = "result.jian"` or `code = "P00N"`. A `semver/` case holds `old/lib.jian`, `new/lib.jian`
+`result = "result.xin"` or `code = "P00N"`. A `semver/` case holds `old/lib.xin`, `new/lib.xin`
 and `expect.toml` with `spec` and `bump`. A `pkg/` case holds a package tree in `root/`, an optional
 `base/` (an earlier version for `--base ../base`), and `expect.toml` with `spec`, optional `rows`,
 `command` (the arguments after `CMD`), and optionally `code` and `at` (`file:line:col`, the file
@@ -42,12 +42,12 @@ CMD ARGS... --format json                a pkg/ case's command, run in root/; JS
 
 ## Headers
 
-Headers are the file's leading comment lines (`#` in Jian, `--` in Wen and Yong):
+Headers are the file's leading comment lines (`#` in Xin, `--` in Wen and Yong):
 
 ```
 # spec: 4.3, 9.2          sections the case tests
 # rows: R342, SQ15        change rows and resolved SPEC_QUESTIONS it tests
-# milestone: M2a          only when later than the surface default (yong M0, jian M1, wen M3)
+# milestone: M2a          only when later than the surface default (yong M0, xin M1, wen M3)
 # flags: --strict         extra arguments to check and run
 # note: ...               why the expectation reads the spec this way
 # expect: E402 at 11:18   one per expected diagnostic: code, line, column of the primary span
@@ -86,7 +86,7 @@ naming one of these. Each is a proposed answer; change the cases if the spec dec
 | A7 | `fake_fs(files)` takes a `dict[str, str]`; `fs.read(path)` returns `str fail FsError`. |
 | A8 | `Max(v)` builds a `Max[T]` lattice value and `.value` unwraps it. |
 | A9 | A case file inside a directory named `ffi` is checked as an ffi module (12). |
-| A10 | A patch's `"module": "m"` names `m.jian` in the directory it runs in, and `base` may be omitted. |
+| A10 | A patch's `"module": "m"` names `m.xin` in the directory it runs in, and `base` may be omitted. |
 | A11 | Raw pointers: `xs.as_ptr()`, `Ptr.of(&x)`, `p.offset(n)`, `p.cast[T]()` are safe to build; `p.read()` and `p.write(v)` need `unsafe`. |
 | A12 | `@yong/i18n` is reached as `i18n` (`i18n.Locale("en")`), and `@messages` records give each message as a field default. |
 | A13 | The `semver` and `patch` command lines above, and a UB report line `ub(N): message` on stderr with a nonzero exit. |
@@ -104,9 +104,9 @@ entry of SPEC_QUESTIONS.md; every `yong/` case parses with the Rust `yong-core` 
 
 ## Spec questions
 
-Answered by the grammar work: `become postfix` is an `arg` in Jian and Wen, and E143 comes from the
+Answered by the grammar work: `become postfix` is an `arg` in Xin and Wen, and E143 comes from the
 checker when it is not the last-evaluated argument; Wen subscripts are `subdef = "sub" sig "=" body`
-with `yield expr`, and Jian has no subscript definition. The cases follow the checked grammars of
+with `yield expr`, and Xin has no subscript definition. The cases follow the checked grammars of
 spec rev 474 (R460 to R465), including the R465 spellings of `ghost`, `lemma` and `reveal`, and the R466 `@@prove` module
 attribute (spec rev 479).
 
