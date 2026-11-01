@@ -1,0 +1,21 @@
+"""Methods on Period: years, months, weeks and days with one sign (11.6, 17.5, R599)."""
+
+@intrinsic
+@since("1.0")
+pub def parse(s: str) -> Period fail TimeError: ...
+
+@intrinsic
+@since("1.0")
+pub def years(self: Period) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def months(self: Period) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def weeks(self: Period) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def days(self: Period) -> int: ...

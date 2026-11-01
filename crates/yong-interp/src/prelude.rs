@@ -160,6 +160,9 @@ fn order(a: &Value, b: &Value) -> Option<Ordering> {
         (Duration(x), Duration(y)) | (Instant(x), Instant(y)) | (Mono(x), Mono(y)) => {
             Some(x.cmp(y))
         }
+        (PlainDate(x), PlainDate(y)) => Some(x.cmp(y)),
+        (PlainTime(x), PlainTime(y)) => Some(x.cmp(y)),
+        (PlainDateTime(x), PlainDateTime(y)) => Some(x.cmp(y)),
         (Tuple(xs), Tuple(ys)) | (List(xs), List(ys)) => {
             for (x, y) in xs.iter().zip(ys) {
                 match order(x, y)? {
@@ -228,6 +231,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Data { name, fields } if name == "None" && fields.is_empty() => "None".into(),
         Data { name, fields } if name == "EncodingError" => super::encoding::show_error(fields),
         Data { name, fields } if name == "TimeError" => super::time::show_error(fields),
+        Data { name, .. } if name == "ZonedDateTime" => super::civil::show_zoned(v),
         Data { name, fields } => {
             let fs: Vec<String> = fields
                 .iter()
@@ -243,6 +247,11 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Duration(n) => super::time::show_duration(*n),
         Instant(n) => super::time::show_instant(*n),
         Mono(n) => format!("MonoInstant({n})"),
+        PlainDate(d) => super::civil::show_date(*d),
+        PlainTime(t) => super::civil::show_time(*t),
+        PlainDateTime(dt) => super::civil::show_datetime(*dt),
+        Period(p) => super::civil::show_period(p),
+        Zone(z) => z.id().to_owned(),
         ByteArray(b) => format!("bytearray({})", super::encoding::repr(b)),
     }
 }
