@@ -1,0 +1,23 @@
+# spec: 17.5
+# rows: R600, R601
+# stdout:
+# America/New_York +05:30 UTC
+# 2024-03-10T03:30:00-04:00[America/New_York] -14400
+# 2024-03-10T04:30:00-04:00[America/New_York]
+# 2024-03-11T03:30:00-04:00[America/New_York]
+# None
+# 2024-11-03T01:30:00-04:00[America/New_York] 2024-11-03T01:30:00-05:00[America/New_York]
+# 1969-12-31T19:00:00-05:00[America/New_York]
+
+pub def main() uses io:
+    tz = TimeZone("America/New_York")
+    io.print(f"{tz} {TimeZone.fixed(19800)} {TimeZone.utc()}")
+    gap = PlainDateTime(PlainDate(2024, 3, 10), PlainTime(2, 30))
+    z = gap.in_zone(tz, Compatible())
+    io.print(f"{z} {z.offset_seconds()}")
+    io.print(f"{z + Duration.hours(1)}")
+    io.print(f"{z + Period(days=1)}")
+    io.print(f"{gap.in_zone_exact(tz)}")
+    fold = PlainDateTime(PlainDate(2024, 11, 3), PlainTime(1, 30))
+    io.print(f"{fold.in_zone(tz, Earlier())} {fold.in_zone(tz, Later())}")
+    io.print(f"{Instant.from_unix_seconds(0).in_zone(tz)}")
