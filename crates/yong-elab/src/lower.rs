@@ -2518,6 +2518,25 @@ impl Lower<'_, '_, '_> {
         Ok((self.tmp(&t, r, e.span), t))
     }
 
+    /// The type of the integer literal `text`: the expected integer type when its range holds
+    /// the value (3.4), else `int`. A value outside the expected type's range is E201.
+    fn int_lit_ty(&mut self, text: &str, want: Option<&Ty>, at: Span) -> Ty {
+        let t = match want {
+            Some(w @ Ty::Fixed(n)) if !n.starts_with('f') => w.clone(),
+            _ => Ty::Int,
+        };
+        let fits = text.parse::<i128>().ok().is_some_and(|v| {
+            let (lo, hi) = int_range(t.scalar().expect("an integer type"));
+            lo <= v && v <= hi
+        });
+        if !fits {
+            let hint = if t == Ty::Int { "; use `bigint`" } else { "" };
+            self.err("E201", at, format!("`{text}` does not fit in `{t}`{hint}"));
+            return Ty::Err;
+        }
+        t
+    }
+
     /// The `bigint` of decimal `text`, built from `int` pieces of at most 18 digits.
     fn bigint_lit(&mut self, text: &str, at: Span) -> Rhs {
         let (neg, digits) = match text.strip_prefix('-') {
@@ -2705,7 +2724,7 @@ impl Lower<'_, '_, '_> {
                     return Ok((self.bigint_lit(&int_text(s)?, at), Ty::BigInt));
                 }
                 let t = match (l, want) {
-                    (j::Lit::Int(_), Some(w @ Ty::Fixed(n))) if !n.starts_with('f') => w.clone(),
+                    (j::Lit::Int(s), _) => self.int_lit_ty(&int_text(s)?, want, at),
                     (j::Lit::Float(_), Some(w @ Ty::Fixed(n))) if n.starts_with('f') => w.clone(),
                     _ => lit_ty(l),
                 };
@@ -2908,10 +2927,11 @@ impl Lower<'_, '_, '_> {
                     self.bigint_lit(&format!("-{}", int_text(s)?), at),
                     Ty::BigInt,
                 ),
-                ("-", K::Lit(j::Lit::Int(s))) => (
-                    Rhs::Atom(Atom::Lit(Literal::Int(format!("-{}", int_text(s)?)), at)),
-                    Ty::Int,
-                ),
+                ("-", K::Lit(j::Lit::Int(s))) => {
+                    let text = format!("-{}", int_text(s)?);
+                    let t = self.int_lit_ty(&text, want, at);
+                    (Rhs::Atom(Atom::Lit(Literal::Int(text), at)), t)
+                }
                 ("-", K::Lit(j::Lit::Float(s))) => (
                     Rhs::Atom(Atom::Lit(
                         Literal::Float(format!("-{}", s.replace('_', ""))),
@@ -3524,6 +3544,10 @@ impl Lower<'_, '_, '_> {
             self.err("E201", b.span, format!("cannot compare `{tx}` with `{ty}`"));
             return Ok((Rhs::Atom(x), Ty::Bool));
         }
+        if matches!(name, "lt" | "le" | "gt" | "ge") && !self.implements(&tx, "Ord") {
+            self.err("E221", at, format!("`{tx}` does not implement `Ord`"));
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Bool(false), at)), Ty::Bool));
+        }
         let args = vec![let_arg(x), let_arg(y_)];
         let c = match tx.scalar() {
             Some("bool") if !matches!(name, "eq" | "ne") => {
@@ -3534,6 +3558,21 @@ impl Lower<'_, '_, '_> {
             None => call(&format!("std.cmp.{name}"), vec![tx.targ()], args, at),
         };
         Ok((Rhs::Call(c), Ty::Bool))
+    }
+}
+
+/// The range of the Yong integer type `n`.
+fn int_range(n: &str) -> (i128, i128) {
+    match n {
+        "i8" => (i8::MIN.into(), i8::MAX.into()),
+        "i16" => (i16::MIN.into(), i16::MAX.into()),
+        "i32" => (i32::MIN.into(), i32::MAX.into()),
+        "i128" => (i128::MIN, i128::MAX),
+        "u8" => (0, u8::MAX.into()),
+        "u16" => (0, u16::MAX.into()),
+        "u32" => (0, u32::MAX.into()),
+        "u64" | "Addr" => (0, u64::MAX.into()),
+        _ => (i64::MIN.into(), i64::MAX.into()),
     }
 }
 
