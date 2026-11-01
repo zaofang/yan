@@ -1,0 +1,506 @@
+//! Debug code generation (M1b): yong-mir to machine code with Cranelift, run in process. Std
+//! calls go to yong-rt's C-ABI symbols (R561); scalar intrinsics are lowered inline. Every
+//! function uses the tail calling convention so `become` is a `return_call` (3.5).
+
+use std::collections::HashMap;
+
+use cranelift_codegen::ir::condcodes::{FloatCC, IntCC};
+use cranelift_codegen::ir::{
+    AbiParam, Block as CBlock, FuncRef, InstBuilder, Signature, TrapCode, Value, types,
+};
+use cranelift_codegen::isa::CallConv;
+use cranelift_codegen::settings::{self, Configurable};
+use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext, Switch, Variable};
+use cranelift_jit::{JITBuilder, JITModule};
+use cranelift_module::{FuncId as CFuncId, Linkage, Module, default_libcall_names};
+use yong_mir::{Func, Inst, IntTy, Operand, Program, ScalarOp, Term, Ty};
+use yong_std::registry::id;
+
+type R<T> = Result<T, String>;
+
+fn err(e: impl std::fmt::Display) -> String {
+    format!("cranelift: {e}")
+}
+
+fn clif(t: Ty) -> Option<types::Type> {
+    match t {
+        Ty::Int(_) => Some(types::I64),
+        Ty::F64 => Some(types::F64),
+        Ty::Bool => Some(types::I8),
+        Ty::Unit => None,
+    }
+}
+
+/// A compiled program, ready to run.
+pub struct Compiled {
+    _module: JITModule,
+    entry: extern "C" fn(),
+}
+
+impl Compiled {
+    /// Run `main`. A panic exits the process with status 101 (8.3).
+    pub fn run(&self) {
+        (self.entry)()
+    }
+}
+
+/// Compile `p` for the host.
+pub fn compile(p: &Program) -> R<Compiled> {
+    let mut flags = settings::builder();
+    flags.set("opt_level", "none").map_err(err)?;
+    // Cranelift's tail calls need frame pointers.
+    flags.set("preserve_frame_pointers", "true").map_err(err)?;
+    let isa = cranelift_native::builder()
+        .map_err(err)?
+        .finish(settings::Flags::new(flags))
+        .map_err(err)?;
+    let mut jb = JITBuilder::with_isa(isa, default_libcall_names());
+    jb.symbol("yong_rt_print", yong_rt::abi::yong_rt_print as *const u8);
+    jb.symbol("yong_rt_panic", yong_rt::abi::yong_rt_panic as *const u8);
+    let mut module = JITModule::new(jb);
+    let ptr = module.target_config().pointer_type();
+
+    let mut rt_sig = module.make_signature();
+    rt_sig
+        .params
+        .extend([AbiParam::new(ptr), AbiParam::new(ptr)]);
+    let print = module
+        .declare_function("yong_rt_print", Linkage::Import, &rt_sig)
+        .map_err(err)?;
+    let panic = module
+        .declare_function("yong_rt_panic", Linkage::Import, &rt_sig)
+        .map_err(err)?;
+
+    let sigs: Vec<Signature> = p.funcs.iter().map(|f| signature(f, &module)).collect();
+    let ids: Vec<CFuncId> = p
+        .funcs
+        .iter()
+        .zip(&sigs)
+        .enumerate()
+        .map(|(i, (f, s))| {
+            module
+                .declare_function(&format!("yong.{i}.{}", f.name), Linkage::Local, s)
+                .map_err(err)
+        })
+        .collect::<R<_>>()?;
+    // Leaked: the JIT code refers to them by address for the life of the process.
+    let strings: Vec<&'static str> = p
+        .strings
+        .iter()
+        .map(|s| &*Box::leak(s.clone().into_boxed_str()))
+        .collect();
+
+    let mut fctx = FunctionBuilderContext::new();
+    let mut ctx = module.make_context();
+    for (i, f) in p.funcs.iter().enumerate() {
+        ctx.func.signature = sigs[i].clone();
+        let mut b = FunctionBuilder::new(&mut ctx.func, &mut fctx);
+        let funcs: Vec<FuncRef> = ids
+            .iter()
+            .map(|id| module.declare_func_in_func(*id, b.func))
+            .collect();
+        let rt = Rt {
+            print: module.declare_func_in_func(print, b.func),
+            panic: module.declare_func_in_func(panic, b.func),
+            ptr,
+        };
+        Gen {
+            b: &mut b,
+            f,
+            vars: Vec::new(),
+            blocks: Vec::new(),
+            funcs,
+            rt,
+            strings: &strings,
+            kinds: HashMap::new(),
+        }
+        .func();
+        b.finalize(module.target_config());
+        module.define_function(ids[i], &mut ctx).map_err(err)?;
+        module.clear_context(&mut ctx);
+    }
+
+    // The host calls this C-ABI trampoline, which calls the tail-convention `main`.
+    let entry_sig = module.make_signature();
+    let entry = module
+        .declare_function("yong.entry", Linkage::Local, &entry_sig)
+        .map_err(err)?;
+    ctx.func.signature = entry_sig;
+    {
+        let mut b = FunctionBuilder::new(&mut ctx.func, &mut fctx);
+        let blk = b.create_block();
+        b.switch_to_block(blk);
+        b.seal_block(blk);
+        let main = module.declare_func_in_func(ids[p.main as usize], b.func);
+        b.ins().call(main, &[]);
+        b.ins().return_(&[]);
+        b.finalize(module.target_config());
+    }
+    module.define_function(entry, &mut ctx).map_err(err)?;
+    module.clear_context(&mut ctx);
+    module.finalize_definitions().map_err(err)?;
+    let code = module.get_finalized_function(entry);
+    #[allow(unsafe_code)]
+    // SAFETY: `yong.entry` was defined above with the host's default C signature, no arguments
+    // and no result.
+    let entry = unsafe { std::mem::transmute::<*const u8, extern "C" fn()>(code) };
+    Ok(Compiled {
+        _module: module,
+        entry,
+    })
+}
+
+fn signature(f: &Func, m: &JITModule) -> Signature {
+    let mut s = m.make_signature();
+    s.call_conv = CallConv::Tail;
+    for t in &f.locals[..f.params as usize] {
+        if let Some(t) = clif(*t) {
+            s.params.push(AbiParam::new(t));
+        }
+    }
+    if let Some(t) = clif(f.ret) {
+        s.returns.push(AbiParam::new(t));
+    }
+    s
+}
+
+struct Rt {
+    print: FuncRef,
+    panic: FuncRef,
+    ptr: types::Type,
+}
+
+struct Gen<'a, 'b> {
+    b: &'a mut FunctionBuilder<'b>,
+    f: &'a Func,
+    vars: Vec<Option<Variable>>,
+    blocks: Vec<CBlock>,
+    funcs: Vec<FuncRef>,
+    rt: Rt,
+    strings: &'a [&'static str],
+    /// One panic block per kind.
+    kinds: HashMap<&'static str, CBlock>,
+}
+
+impl Gen<'_, '_> {
+    fn func(mut self) {
+        self.blocks = self
+            .f
+            .blocks
+            .iter()
+            .map(|_| self.b.create_block())
+            .collect();
+        let entry = self.blocks[0];
+        self.b.append_block_params_for_function_params(entry);
+        self.vars = self
+            .f
+            .locals
+            .iter()
+            .map(|t| clif(*t).map(|t| self.b.declare_var(t)))
+            .collect();
+        self.b.switch_to_block(entry);
+        let params = self.b.block_params(entry).to_vec();
+        let mut it = params.into_iter();
+        for l in 0..self.f.params as usize {
+            if let Some(v) = self.vars[l] {
+                let p = it.next().expect("one block param per non-Unit parameter");
+                self.b.def_var(v, p);
+            }
+        }
+        for (i, blk) in self.f.blocks.iter().enumerate() {
+            if i > 0 {
+                self.b.switch_to_block(self.blocks[i]);
+            }
+            for inst in &blk.insts {
+                self.inst(inst);
+            }
+            self.term(&blk.term);
+        }
+        let kinds: Vec<(&'static str, CBlock)> = self.kinds.drain().collect();
+        for (kind, blk) in kinds {
+            self.b.switch_to_block(blk);
+            self.call_panic(kind);
+        }
+        self.b.seal_all_blocks();
+    }
+
+    fn call_panic(&mut self, kind: &'static str) {
+        let ptr = self.b.ins().iconst(self.rt.ptr, kind.as_ptr() as i64);
+        let len = self.b.ins().iconst(self.rt.ptr, kind.len() as i64);
+        self.b.ins().call(self.rt.panic, &[ptr, len]);
+        self.b.ins().trap(TrapCode::unwrap_user(1));
+    }
+
+    fn panic_block(&mut self, kind: &'static str) -> CBlock {
+        let b = &mut *self.b;
+        *self.kinds.entry(kind).or_insert_with(|| b.create_block())
+    }
+
+    /// Continue only when `ok` is true, else panic with `kind`.
+    fn guard(&mut self, ok: Value, kind: &'static str) {
+        let bad = self.panic_block(kind);
+        let next = self.b.create_block();
+        self.b.ins().brif(ok, next, &[], bad, &[]);
+        self.b.switch_to_block(next);
+    }
+
+    fn val(&mut self, o: &Operand) -> Option<Value> {
+        Some(match o {
+            Operand::Local(l) => {
+                let v = self.vars[*l as usize]?;
+                self.b.use_var(v)
+            }
+            Operand::Int(i) => self.b.ins().iconst(types::I64, *i as i64),
+            Operand::F64(x) => self.b.ins().f64const(*x),
+            Operand::Bool(x) => self.b.ins().iconst(types::I8, i64::from(*x)),
+            Operand::Unit => return None,
+            Operand::Str(_) => unreachable!("strings only reach print"),
+        })
+    }
+
+    fn vals(&mut self, os: &[Operand]) -> Vec<Value> {
+        os.iter().filter_map(|o| self.val(o)).collect()
+    }
+
+    fn set(&mut self, dst: Option<u32>, v: Option<Value>) {
+        if let (Some(d), Some(v)) = (dst, v)
+            && let Some(var) = self.vars[d as usize]
+        {
+            self.b.def_var(var, v);
+        }
+    }
+
+    fn inst(&mut self, i: &Inst) {
+        match i {
+            Inst::Copy { dst, src } => {
+                let v = self.val(src);
+                self.set(Some(*dst), v);
+            }
+            Inst::Call { dst, func, args } => {
+                let args = self.vals(args);
+                let c = self.b.ins().call(self.funcs[*func as usize], &args);
+                let r = self.b.inst_results(c).first().copied();
+                self.set(*dst, r);
+            }
+            Inst::Std { id: sid, args, .. } => match (*sid, args.as_slice()) {
+                (id::STD_IO_PRINT, [Operand::Str(s)]) => {
+                    let s = self.strings[*s as usize];
+                    let ptr = self.b.ins().iconst(self.rt.ptr, s.as_ptr() as i64);
+                    let len = self.b.ins().iconst(self.rt.ptr, s.len() as i64);
+                    self.b.ins().call(self.rt.print, &[ptr, len]);
+                }
+                _ => unreachable!("yong-mir lowers no other std call yet"),
+            },
+            Inst::Scalar {
+                dst, op, ty, args, ..
+            } => {
+                let args = self.vals(args);
+                let v = self.scalar(*op, *ty, &args);
+                self.set(*dst, v);
+            }
+        }
+    }
+
+    fn term(&mut self, t: &Term) {
+        match t {
+            Term::Jump(b) => {
+                self.b.ins().jump(self.blocks[*b as usize], &[]);
+            }
+            Term::Branch { cond, then, els } => {
+                let c = self.val(cond).expect("a bool");
+                let (t, e) = (self.blocks[*then as usize], self.blocks[*els as usize]);
+                self.b.ins().brif(c, t, &[], e, &[]);
+            }
+            Term::Switch { on, targets } => {
+                let v = self.val(&Operand::Local(*on)).expect("an int");
+                let mut sw = Switch::new();
+                for (i, t) in targets.iter().enumerate() {
+                    sw.set_entry(i as u128, self.blocks[*t as usize]);
+                }
+                let otherwise = self.panic_block("unreachable");
+                sw.emit(self.b, v, otherwise);
+            }
+            Term::Return(o) => {
+                let v: Vec<Value> = self.val(o).into_iter().collect();
+                self.b.ins().return_(&v);
+            }
+            Term::TailCall { func, args } => {
+                let args = self.vals(args);
+                self.b.ins().return_call(self.funcs[*func as usize], &args);
+            }
+            Term::Panic(kind) => self.call_panic(kind),
+        }
+    }
+
+    fn scalar(&mut self, op: ScalarOp, ty: Ty, a: &[Value]) -> Option<Value> {
+        use ScalarOp::*;
+        Some(match (op, ty) {
+            (Exclusive, _) => {
+                let ne = if ty == Ty::F64 {
+                    self.b.ins().fcmp(FloatCC::NotEqual, a[0], a[1])
+                } else {
+                    self.b.ins().icmp(IntCC::NotEqual, a[0], a[1])
+                };
+                self.guard(ne, "exclusivity");
+                return None;
+            }
+            (Not, Ty::Bool) => self.b.ins().bxor_imm_s(a[0], 1),
+            (And, _) => self.b.ins().band(a[0], a[1]),
+            (Or, _) => self.b.ins().bor(a[0], a[1]),
+            (Xor, _) => self.b.ins().bxor(a[0], a[1]),
+            (Add, Ty::F64) => self.b.ins().fadd(a[0], a[1]),
+            (Sub, Ty::F64) => self.b.ins().fsub(a[0], a[1]),
+            (Mul, Ty::F64) => self.b.ins().fmul(a[0], a[1]),
+            (Div, Ty::F64) => self.b.ins().fdiv(a[0], a[1]),
+            (Eq | Ne | Lt | Le | Gt | Ge, Ty::F64) => {
+                let cc = match op {
+                    Eq => FloatCC::Equal,
+                    Ne => FloatCC::NotEqual,
+                    Lt => FloatCC::LessThan,
+                    Le => FloatCC::LessThanOrEqual,
+                    Gt => FloatCC::GreaterThan,
+                    _ => FloatCC::GreaterThanOrEqual,
+                };
+                self.b.ins().fcmp(cc, a[0], a[1])
+            }
+            (Eq | Ne | Lt | Le | Gt | Ge, Ty::Int(t)) => {
+                let cc = match (op, t.signed) {
+                    (Eq, _) => IntCC::Equal,
+                    (Ne, _) => IntCC::NotEqual,
+                    (Lt, true) => IntCC::SignedLessThan,
+                    (Le, true) => IntCC::SignedLessThanOrEqual,
+                    (Gt, true) => IntCC::SignedGreaterThan,
+                    (Ge, true) => IntCC::SignedGreaterThanOrEqual,
+                    (Lt, false) => IntCC::UnsignedLessThan,
+                    (Le, false) => IntCC::UnsignedLessThanOrEqual,
+                    (Gt, false) => IntCC::UnsignedGreaterThan,
+                    _ => IntCC::UnsignedGreaterThanOrEqual,
+                };
+                self.b.ins().icmp(cc, a[0], a[1])
+            }
+            (Eq | Ne, Ty::Bool) => {
+                let cc = if op == Eq {
+                    IntCC::Equal
+                } else {
+                    IntCC::NotEqual
+                };
+                self.b.ins().icmp(cc, a[0], a[1])
+            }
+            (Div, Ty::Int(t)) => {
+                let (x, y) = if t.signed {
+                    (
+                        self.b.ins().fcvt_from_sint(types::F64, a[0]),
+                        self.b.ins().fcvt_from_sint(types::F64, a[1]),
+                    )
+                } else {
+                    (
+                        self.b.ins().fcvt_from_uint(types::F64, a[0]),
+                        self.b.ins().fcvt_from_uint(types::F64, a[1]),
+                    )
+                };
+                self.b.ins().fdiv(x, y)
+            }
+            (AddChecked | SubChecked | MulChecked, Ty::Int(t)) => self.checked(op, t, a[0], a[1]),
+            (FloorDiv | Mod, Ty::Int(t)) => self.floor(op, t, a[0], a[1]),
+            _ => unreachable!("yong-mir decoded {op:?} on {ty:?}"),
+        })
+    }
+
+    fn checked(&mut self, op: ScalarOp, t: IntTy, x: Value, y: Value) -> Value {
+        use ScalarOp::*;
+        if t.bits == 64 {
+            let (r, of) = match (op, t.signed) {
+                (AddChecked, true) => self.b.ins().sadd_overflow(x, y),
+                (SubChecked, true) => self.b.ins().ssub_overflow(x, y),
+                (MulChecked, true) => self.b.ins().smul_overflow(x, y),
+                (AddChecked, false) => self.b.ins().uadd_overflow(x, y),
+                (SubChecked, false) => self.b.ins().usub_overflow(x, y),
+                _ => self.b.ins().umul_overflow(x, y),
+            };
+            let ok = self.b.ins().icmp_imm_s(IntCC::Equal, of, 0);
+            self.guard(ok, "overflow");
+            return r;
+        }
+        // Narrower operands are exact in i64, or wrap to a negative value that is out of range.
+        let r = match op {
+            AddChecked => self.b.ins().iadd(x, y),
+            SubChecked => self.b.ins().isub(x, y),
+            _ => self.b.ins().imul(x, y),
+        };
+        self.in_range(r, t);
+        r
+    }
+
+    fn in_range(&mut self, r: Value, t: IntTy) {
+        let (lo, hi) = t.range();
+        let ge = self
+            .b
+            .ins()
+            .icmp_imm_s(IntCC::SignedGreaterThanOrEqual, r, lo as i64);
+        let le = self
+            .b
+            .ins()
+            .icmp_imm_s(IntCC::SignedLessThanOrEqual, r, hi as i64);
+        let ok = self.b.ins().band(ge, le);
+        self.guard(ok, "overflow");
+    }
+
+    /// Division and remainder rounding toward negative infinity.
+    fn floor(&mut self, op: ScalarOp, t: IntTy, x: Value, y: Value) -> Value {
+        let nonzero = self.b.ins().icmp_imm_s(IntCC::NotEqual, y, 0);
+        self.guard(nonzero, "div_zero");
+        if !t.signed {
+            return if op == ScalarOp::FloorDiv {
+                self.b.ins().udiv(x, y)
+            } else {
+                self.b.ins().urem(x, y)
+            };
+        }
+        // `x / -1` is `-x`; dividing by -1 directly traps at i64::MIN.
+        let minus_one = self.b.ins().icmp_imm_s(IntCC::Equal, y, -1);
+        let one = self.b.ins().iconst(types::I64, 1);
+        let d = self.b.ins().select(minus_one, one, y);
+        let q = self.b.ins().sdiv(x, d);
+        let r = self.b.ins().srem(x, d);
+        let rnz = self.b.ins().icmp_imm_s(IntCC::NotEqual, r, 0);
+        let sx = self.b.ins().bxor(r, y);
+        let neg = self.b.ins().icmp_imm_s(IntCC::SignedLessThan, sx, 0);
+        let adjust = self.b.ins().band(rnz, neg);
+        if op == ScalarOp::Mod {
+            let r2 = self.b.ins().iadd(r, y);
+            return self.b.ins().select(adjust, r2, r);
+        }
+        let q1 = self.b.ins().iadd_imm_s(q, -1);
+        let q = self.b.ins().select(adjust, q1, q);
+        let zero = self.b.ins().iconst(types::I64, 0);
+        let (negx, of) = self.b.ins().ssub_overflow(zero, x);
+        let bad = self.b.ins().band(minus_one, of);
+        let ok = self.b.ins().icmp_imm_s(IntCC::Equal, bad, 0);
+        self.guard(ok, "overflow");
+        let q = self.b.ins().select(minus_one, negx, q);
+        if t.bits < 64 {
+            self.in_range(q, t);
+        }
+        q
+    }
+}
+
+#[cfg(test)]
+mod selftest {
+    /// Runs in process: a failed `assert` in the program exits the test binary with 101.
+    #[test]
+    fn runs_loops_join_points_and_tail_calls() {
+        let src = "module t\n\
+            fn count(let n: i64, let acc: i64) -> i64 {\n let z: bool = eq_i64(let n, let 0)\n if z { ret acc }\n\
+            let m: i64 = sub_checked_i64(let n, let 1)\n let a: i64 = add_checked_i64(let acc, let 1)\n become count(let m, let a)\n}\n\
+            fn main() -> Unit {\n var n: i64 = 0\n jp k(let m: i64) { n = add_checked_i64(let n, let m) }\n\
+            loop 'l {\n n = add_checked_i64(let n, let 1)\n let big: bool = gt_i64(let n, let 2)\n if big { jump k(10) }\n }\n\
+            assert eq_i64(let n, let 13)\n let r: i64 = count(let 1000000, let 0)\n assert eq_i64(let r, let 1000000)\n\
+            let q: i64 = floordiv_i64(let -7, let 2)\n assert eq_i64(let q, let -4)\n\
+            let w: u8 = mod_u8(let 7, let 3)\n assert eq_u8(let w, let 1)\n ret ()\n}\n";
+        let (m, d) = yong_core::parse("t.yong", src);
+        assert!(d.is_empty(), "{d:?}");
+        let p = yong_mir::lower(&m.unwrap()).expect("lowers");
+        super::compile(&p).expect("compiles").run();
+    }
+}

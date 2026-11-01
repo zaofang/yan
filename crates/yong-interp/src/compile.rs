@@ -4,11 +4,11 @@
 //! keeps one slot across blocks) plus temporaries. Constructs the VM cannot run compile to an
 //! `Unsupported` op, so they fail only when reached, as before.
 
-use std::cell::Cell;
 use std::collections::HashSet;
 use std::rc::Rc;
 
 use yong_core::ast::*;
+use yong_std::registry::{self, Id};
 
 use crate::{Fnv, Map, Value, int_range, literal};
 
@@ -227,7 +227,7 @@ pub(crate) enum Mode {
 pub(crate) enum Via {
     None,
     Item(usize),
-    Native(Rc<str>),
+    Native(Option<Id>),
 }
 
 #[derive(Debug)]
@@ -253,8 +253,9 @@ pub(crate) struct Site {
     pub callee: Callee,
     pub args: Vec<ArgC>,
     pub name: Rc<str>,
-    /// The std dispatch stage that last handled this site.
-    pub stage: Cell<u8>,
+    /// The registry id of the std function `name`, resolved here so that bound intrinsics are
+    /// not looked up by name at run time (R561).
+    pub id: Option<Id>,
     pub mode: Mode,
 }
 
@@ -316,8 +317,26 @@ struct Globals<'m> {
     /// Method full names (`<type>.<name>`) to code index.
     methods: Map<Name, usize>,
     nullary: HashSet<Name, std::hash::BuildHasherDefault<Fnv>>,
+    /// Module constants with literal or materialized (stage-0) values.
+    consts: Map<Name, Value>,
     codes: Vec<Option<Code>>,
     pending: Vec<(usize, &'m FnDef)>,
+}
+
+fn const_value(c: &ConstVal) -> Option<Value> {
+    Some(match c {
+        ConstVal::Lit(l) => literal(l).ok()?,
+        ConstVal::List(xs) => Value::List(xs.iter().map(const_value).collect::<Option<_>>()?),
+        ConstVal::Tuple(xs) => Value::Tuple(xs.iter().map(const_value).collect::<Option<_>>()?),
+        ConstVal::Path { path, fields } => Value::Data {
+            name: path.join("."),
+            fields: fields
+                .iter()
+                .flatten()
+                .map(|(n, v)| Some((n.clone(), const_value(v)?)))
+                .collect::<Option<_>>()?,
+        },
+    })
 }
 
 pub(crate) fn compile(m: &Module) -> Program {
@@ -325,6 +344,7 @@ pub(crate) fn compile(m: &Module) -> Program {
         fns: Map::default(),
         methods: Map::default(),
         nullary: ["None".to_owned()].into_iter().collect(),
+        consts: Map::default(),
         codes: Vec::new(),
         pending: Vec::new(),
     };
@@ -352,6 +372,11 @@ pub(crate) fn compile(m: &Module) -> Program {
                         .filter(|v| v.fields.is_none())
                         .map(|v| v.name.clone()),
                 );
+            }
+            ItemKind::Const(c) => {
+                if let Some(v) = const_value(&c.value) {
+                    g.consts.insert(c.path.join("."), v);
+                }
             }
             _ => {}
         }
@@ -634,6 +659,9 @@ impl<'g, 'm> FnC<'g, 'm> {
     fn lookup(&mut self, n: &Name) -> Result<Opnd, String> {
         if let Some(r) = self.regs.get(n) {
             return Ok(Opnd(*r));
+        }
+        if let Some(v) = self.g.consts.get(n) {
+            return Ok(self.konst(v.clone()));
         }
         if self.g.nullary.contains(n) {
             return Ok(self.konst(Value::Data {
@@ -1045,7 +1073,7 @@ impl<'g, 'm> FnC<'g, 'm> {
                         let k = p.join(".");
                         match self.g.fns.get(&k) {
                             Some(f) => Via::Item(*f),
-                            None => Via::Native(k.into()),
+                            None => Via::Native(registry::id(&k)),
                         }
                     }
                 };
@@ -1184,8 +1212,8 @@ impl<'g, 'm> FnC<'g, 'm> {
         self.code.sites.push(Site {
             callee,
             args,
+            id: registry::id(&name),
             name: name.into(),
-            stage: Cell::new(0),
             mode,
         });
         Some(self.code.sites.len() as u32 - 1)

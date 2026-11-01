@@ -1,6 +1,8 @@
 -- spec: 10.4
 
-deep(n: int) -> int = if n >= 2000 then 0 else 1 + deep(n + 1)
+deep(n: int) -> int =
+  decreases 2000 - n
+  if n >= 2000 then 0 else 1 + deep(n + 1)
 
 @limit(stage0_depth: 5000)
 let fine: int = #deep(0)

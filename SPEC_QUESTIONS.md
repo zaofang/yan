@@ -226,4 +226,21 @@ Assumed in `yong patch` until the spec says otherwise:
 - Steps count executed calls; loop iterations and allocations are not counted yet. The evaluator runs on a 1 GiB stack so `@limit(stage0_depth: n)` above the default is reachable.
 - A function with one `Nat` parameter is a template: each call `f[k](...)` lowers an instance `f__k` with `k` folded in. `#if` must fold to a bool, and only its taken branch is lowered. `#for` runs over a list literal of constants. Errors inside an instance are E272, except `compile_error` (E270), and each carries a note naming the instantiation. Code that does not depend on the parameter is not yet checked once at the definition (R346 phase one).
 - `embed(path)` resolves against the module's directory. The package root is the nearest ancestor with a `yong.toml`, else the module's directory.
-- Conformance question: `wen/pass/stage0/limit_raises_depth.wen` and `wen/run/stage0/folded_constant.wen` recurse without `decreases`, which is E602 (14, 8.4), and Wen has no lenient reader to infer N05. Either the cases need `decreases` lines, or Wen infers simple measures too.
+- `wen/pass/stage0/limit_raises_depth.wen` and `wen/run/stage0/folded_constant.wen` recursed without `decreases` (E602). Antonio chose to add the lines to the cases (2026-11-01); Wen infers no measures.
+
+## Intrinsic registry readings (R561)
+
+Assumed in `yong-std`'s registry and the interpreter until the spec says otherwise:
+
+- **Generated entries.** The registry is generated at build time from the `@intrinsic` functions and `@capability` operations in `yong-std/lib/std`, plus the scalar `<op>_<ty>` family and `exclusive_check`. An entry's signature is its declaration line; purity is read from it (a capability operation is `Cap`, a `var` parameter makes it `Mutates`, otherwise `Pure`). Only `Cap` entries are restricted to run time (stage 1 and later).
+- **Ids.** An id is the entry's index in path order, stable within one build only. Nothing persists ids; the stage-0 query cache, when it exists, will key on paths.
+- **Resolution point.** Yong text names std functions by path, and Yong text is the interpreter's input, so the path is resolved to its id when the interpreter compiles a call site, and again by each code generator from `yong-mir`. Elaboration checks only that every std function it may call has an entry (`registry_matches_declarations`). Run time never looks an intrinsic up by name once its module is bound by id.
+
+## Native code readings (M1b, 22.1 to 22.4)
+
+Assumed in `yong-mir` and `yong-cg-cranelift` until the spec says otherwise:
+
+- **Milestone order.** The lead chose on 2026-11-01 to start M1b before the M1 gate passes, against 22.6 rule 1, because code generation depends on checked Yong only. The interpreter stays the oracle; native code must match it on every case it runs.
+- **In-process first.** The first backend compiles with Cranelift's JIT and runs in the `yong` process (`yong --backend cranelift run FILE`). Object files and the system linker of 23 (M1b) come next, once std values have a native layout.
+- **Coverage.** `yong-mir` lowers integers up to 64 bits, `f64`, `bool` and `Unit`, direct and tail calls, loops, join points, `requires`, `assert`, `par` (in order) and printing a string literal. Anything else is a tool failure (`not supported yet`), not a program result.
+- **Unsafe code.** The workspace forbids `unsafe`. `yong-rt` and `yong-cg-cranelift` deny it instead and allow it only in `yong_rt::abi` (the C-ABI entry points) and at the call into generated code.

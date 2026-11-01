@@ -5,18 +5,10 @@ use std::cmp::Ordering;
 
 use super::prelude::cmp;
 use super::vm::Vm;
-use super::{R, Value, unsupported};
+use yong_std::registry::{Id, id::*};
 
-pub(crate) const KEYED: [&str; 8] = [
-    "std.list.sort",
-    "std.list.sort_unstable",
-    "std.list.bisect_left",
-    "std.list.bisect_right",
-    "std.list.insort",
-    "std.prelude.sorted",
-    "std.prelude.min",
-    "std.prelude.max",
-];
+use super::bind::bad_args;
+use super::{R, Value};
 
 impl Vm<'_> {
     /// `key(x)`, or `x` for an omitted key.
@@ -59,40 +51,52 @@ impl Vm<'_> {
     }
 
     /// `args` are the call's arguments in place; `var` ones are written back by the caller.
-    pub(crate) fn keyed_call(&mut self, name: &str, args: &mut [Value]) -> R<Value> {
+    pub(crate) fn keyed_call(&mut self, id: Id, args: &mut [Value]) -> R<Value> {
         use Value::*;
         let Some((key, args)) = args.split_last_mut() else {
-            return unsupported(format!("call of `{name}`"));
+            return bad_args(id);
         };
         let key = key.clone();
-        Ok(match (name, args) {
-            ("std.list.sort" | "std.list.sort_unstable", [List(xs)]) => {
-                *xs = self.sort_by_key(std::mem::take(xs), &key, name == "std.list.sort")?;
+        Ok(match (id, args) {
+            (STD_LIST_SORT | STD_LIST_SORT_UNSTABLE, [List(xs)]) => {
+                *xs = self.sort_by_key(std::mem::take(xs), &key, id == STD_LIST_SORT)?;
                 Unit
             }
-            ("std.prelude.sorted", [Iter(i)]) => {
+            (STD_PRELUDE_SORTED, [Iter(i)]) => {
                 let xs = self.drain(&i.clone())?;
                 List(self.sort_by_key(xs, &key, true)?)
             }
-            ("std.list.bisect_left" | "std.list.bisect_right", [List(xs), x]) => {
-                Int(self.bisect(xs, x, &key, name.ends_with("right"))? as i128)
+            (STD_LIST_BISECT_LEFT | STD_LIST_BISECT_RIGHT, [List(xs), x]) => {
+                Int(self.bisect(xs, x, &key, id == STD_LIST_BISECT_RIGHT)? as i128)
             }
-            ("std.list.insort", [List(xs), x]) => {
+            (STD_LIST_INSORT, [List(xs), x]) => {
                 let k = self.key(&key, x)?;
                 let at = self.bisect(xs, &k, &key, true)?;
                 xs.insert(at, std::mem::take(x));
                 Unit
             }
-            ("std.prelude.min" | "std.prelude.max", [a, b]) => {
+            (STD_PRELUDE_MIN | STD_PRELUDE_MAX, [a, b]) => {
                 let o = cmp(&self.key(&key, b)?, &self.key(&key, a)?);
-                let pick_b = if name.ends_with("min") {
+                let pick_b = if id == STD_PRELUDE_MIN {
                     o == Ordering::Less
                 } else {
                     o == Ordering::Greater
                 };
                 if pick_b { b.clone() } else { a.clone() }
             }
-            _ => return unsupported(format!("call of `{name}`")),
+            _ => return bad_args(id),
         })
     }
 }
+
+/// The ids `keyed_call` handles.
+pub(crate) const IDS: &[Id] = &[
+    STD_LIST_BISECT_LEFT,
+    STD_LIST_BISECT_RIGHT,
+    STD_LIST_INSORT,
+    STD_LIST_SORT,
+    STD_LIST_SORT_UNSTABLE,
+    STD_PRELUDE_MAX,
+    STD_PRELUDE_MIN,
+    STD_PRELUDE_SORTED,
+];

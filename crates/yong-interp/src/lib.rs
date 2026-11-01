@@ -13,6 +13,7 @@ use indexmap::{IndexMap, IndexSet};
 use num_bigint::BigInt;
 use yong_core::ast::*;
 
+mod bind;
 mod collections;
 mod compile;
 mod iter;
@@ -206,8 +207,6 @@ fn materialize(v: &Value) -> Stage0 {
 
 pub(crate) type R<T> = Result<T, Stop>;
 
-pub(crate) const STD_STAGES: u8 = 6;
-
 pub(crate) struct Interp<'o> {
     out: &'o mut dyn Write,
 }
@@ -388,45 +387,48 @@ pub(crate) fn data(name: &str, field: &str, v: Value) -> Value {
     }
 }
 
-impl Interp<'_> {
-    /// Stage `stage` of the std dispatch (assumption Y3), tried in order from 0 to
-    /// `STD_STAGES - 1`; `None` when the stage does not handle `name` with these arguments.
-    pub(crate) fn std_stage(
-        &mut self,
-        stage: u8,
-        name: &str,
-        args: &mut [Value],
-    ) -> Option<R<Value>> {
-        match stage {
-            0 => prelude::call(name, args),
-            1 => native::call(name, args),
-            2 => regex::call(name, args),
-            3 => collections::call(name, args),
-            4 => math::call(name, args),
-            _ => self.builtin(name, args),
-        }
-    }
-
-    /// The std functions used by M0 programs.
-    fn builtin(&mut self, name: &str, args: &mut [Value]) -> Option<R<Value>> {
-        Some(Ok(match (name, &mut *args) {
-            ("std.io.print", [Value::Cap(_), Value::Str(s)]) => {
-                if let Err(e) = writeln!(self.out, "{s}") {
-                    return Some(unsupported(format!("stdout: {e}")));
+/// The std functions used by M0 programs.
+static BUILTINS: &[(yong_std::registry::Id, bind::Bind)] = {
+    use bind::{Bind, bad_args};
+    use yong_std::registry::id::*;
+    &[
+        (
+            STD_IO_PRINT,
+            Bind::Cap(|it, a| match a {
+                [Value::Cap(_), Value::Str(s)] => match writeln!(it.out, "{s}") {
+                    Ok(()) => Ok(Value::Unit),
+                    Err(e) => unsupported(format!("stdout: {e}")),
+                },
+                _ => bad_args(STD_IO_PRINT),
+            }),
+        ),
+        (STD_LIST_NEW, Bind::Plain(|_| Ok(Value::List(Vec::new())))),
+        (
+            STD_LIST_LEN,
+            Bind::Plain(|a| match a {
+                [Value::List(xs)] => Ok(Value::Int(xs.len() as i128)),
+                _ => bad_args(STD_LIST_LEN),
+            }),
+        ),
+        (
+            STD_LIST_PUSH,
+            Bind::Plain(|a| match a {
+                [Value::List(xs), v] => {
+                    xs.push(std::mem::take(v));
+                    Ok(Value::Unit)
                 }
-                Value::Unit
-            }
-            ("std.list.new", []) => Value::List(Vec::new()),
-            ("std.list.len", [Value::List(xs)]) => Value::Int(xs.len() as i128),
-            ("std.list.push", [Value::List(xs), v]) => {
-                xs.push(v.clone());
-                Value::Unit
-            }
-            ("std.result.is_ok", [Value::Data { name, .. }]) => Value::Bool(name == "Ok"),
-            _ => return None,
-        }))
-    }
-}
+                _ => bad_args(STD_LIST_PUSH),
+            }),
+        ),
+        (
+            STD_RESULT_IS_OK,
+            Bind::Plain(|a| match a {
+                [Value::Data { name, .. }] => Ok(Value::Bool(name == "Ok")),
+                _ => bad_args(STD_RESULT_IS_OK),
+            }),
+        ),
+    ]
+};
 
 #[cfg(test)]
 mod selftest {

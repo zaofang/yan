@@ -138,3 +138,70 @@ fn list_sorts_and_bisects_like_python() {
                \x20   io.print(f\"{xs} {xs.bisect_left(2)} {xs.bisect_right(2)} {xs.slice_exact(1, 3)}\")\n";
     assert_eq!(run(src), "[1, 2, 2, 2, 9, 3] 1 4 [2, 2]\n");
 }
+
+/// The registry yong-std generates by line scan agrees with the parsed declarations (R561).
+#[test]
+fn registry_matches_declarations() {
+    use yong_std::registry::{self, Effect};
+    let mut declared = 0;
+    for &(module, src) in yong_std::SOURCES {
+        let (m, _) = yong_jian::parse(module, src, true);
+        for it in m.expect("parses").items {
+            let has = |d: &str| it.decorators.iter().any(|x| x.path == [d]);
+            let defs: Vec<(j::FuncDef, bool)> = match it.kind {
+                j::ItemKind::Func(f) if has("intrinsic") => vec![(f, false)],
+                j::ItemKind::Trait(t) if has("capability") => {
+                    t.sigs.into_iter().map(|(_, f)| (f, true)).collect()
+                }
+                _ => continue,
+            };
+            for (f, cap) in defs {
+                declared += 1;
+                let path = format!("std.{module}.{}", f.name);
+                let id = registry::id(&path).unwrap_or_else(|| panic!("{path} not registered"));
+                let e = registry::entry(id);
+                let vals: Vec<_> = f
+                    .params
+                    .iter()
+                    .filter_map(|p| match p {
+                        j::Param::Value {
+                            conv, default, ty, ..
+                        } => Some((conv, default, ty)),
+                        _ => None,
+                    })
+                    .collect();
+                let effect = if cap {
+                    Effect::Cap
+                } else if vals.iter().any(|(c, ..)| **c == Some(j::Conv::Var)) {
+                    Effect::Mutates
+                } else {
+                    Effect::Pure
+                };
+                let min = vals.iter().filter(|(_, d, _)| d.is_none()).count();
+                let fails = f.ret.as_ref().is_some_and(|r| !r.fail.is_empty());
+                let callback = vals.iter().any(|(.., t)| has_callable(t));
+                assert_eq!(
+                    (e.min_args, e.max_args, e.effect, e.fails, e.callback),
+                    (min, vals.len(), effect, fails, callback),
+                    "{path}"
+                );
+            }
+        }
+    }
+    let registered = registry::ENTRIES
+        .iter()
+        .filter(|e| e.path.starts_with("std."))
+        .count();
+    assert_eq!(declared, registered);
+}
+
+fn has_callable(t: &j::Type) -> bool {
+    match t {
+        j::Type::Callable { .. } => true,
+        j::Type::Optional(t) => has_callable(t),
+        j::Type::Named { args, .. } => args
+            .iter()
+            .any(|a| matches!(a, j::TArg::Type(t) if has_callable(t))),
+        j::Type::None => false,
+    }
+}
