@@ -1,11 +1,11 @@
 //! std.rand: the `seeded` handler, the OS generator and the derived operations (RFC 0019 D3,
 //! D4), all over `next_u64`.
 
-use yong_rt::rand::{ChaCha8, Pcg64Dxsm, below, f64_from};
+use yong_rt::rand::{ChaCha8, Pcg64Dxsm, below, f64_from, split};
 use yong_std::registry::{Id, id::*};
 
 use super::bind::{Bind, bad_args};
-use super::{Interp, R, Value, panic};
+use super::{Interp, R, Value, panic, unsupported};
 
 pub(crate) enum Gen {
     ChaCha8(ChaCha8),
@@ -20,7 +20,11 @@ pub(crate) fn seeded(it: &mut Interp, seed: u64, algorithm: &str) -> Value {
     });
     Value::Data {
         name: "Seeded".into(),
-        fields: vec![("rng".into(), Value::Int(it.rngs.len() as i128 - 1))],
+        fields: vec![
+            ("rng".into(), Value::Int(it.rngs.len() as i128 - 1)),
+            ("seed".into(), Value::Int(seed.into())),
+            ("algorithm".into(), Value::Str(algorithm.into())),
+        ],
     }
 }
 
@@ -47,7 +51,30 @@ fn below_int(it: &mut Interp, h: &Value, n: i128) -> R<i128> {
     Ok(below(n as u64, || next(it, h)).into())
 }
 
+/// The handler for branch `k` of a `par` (RFC 0019 D5).
+fn branch(it: &mut Interp, h: &Value, k: i128) -> R<Value> {
+    match h {
+        Value::Data { name, fields } if name == "Seeded" => match &fields[1..] {
+            [(_, Value::Int(seed)), (_, Value::Str(alg))] if &**alg == "ChaCha8" => {
+                Ok(seeded(it, split(*seed as u64, k as u64), alg))
+            }
+            _ => unsupported("`seeded(seed, Pcg64Dxsm())` in a `par`, which cannot split (E402)"),
+        },
+        h => Ok(h.clone()),
+    }
+}
+
 pub(super) static BINDS: &[(Id, Bind)] = &[
+    (
+        STD_RAND_SPLIT,
+        Bind::Cap(|it, a| match a {
+            [h, Value::Int(k)] => {
+                let h = h.clone();
+                branch(it, &h, *k)
+            }
+            _ => bad_args(STD_RAND_SPLIT),
+        }),
+    ),
     (
         STD_TEST_SEEDED,
         Bind::Cap(|it, a| match a {

@@ -871,7 +871,7 @@ impl<'g, 'm> FnC<'g, 'm> {
                     self.emit(Op::Become { site });
                 }
             }
-            StmtKind::Par { blocks, .. } => blocks.iter().for_each(|b| self.block(b)),
+            StmtKind::Par { blocks, .. } => self.par(blocks),
             StmtKind::Assert(e) => {
                 let t = self.temp();
                 self.expr(e, t);
@@ -923,6 +923,38 @@ impl<'g, 'm> FnC<'g, 'm> {
             StmtKind::Asm { .. } => self.unsupported("inline assembly"),
             StmtKind::Reuse { .. } => self.unsupported("`reuse`"),
         }
+    }
+
+    /// The branches of a `par` in source order. With `rand` in scope, branch `k` runs under
+    /// `rand.split(k)`, so its stream depends on its task path only (RFC 0019 D5).
+    fn par(&mut self, blocks: &[Block]) {
+        let Some(reg) = self.regs.get("rand").copied() else {
+            return blocks.iter().for_each(|b| self.block(b));
+        };
+        let saved = self.temp();
+        self.emit(Op::Restore {
+            dst: saved,
+            src: reg,
+        });
+        self.scopes.push(Scope::With { reg, saved });
+        for (k, b) in blocks.iter().enumerate() {
+            let branch = self.konst(Value::Int(k as i128));
+            self.code.sites.push(Site {
+                callee: Callee::Native,
+                args: vec![ArgC::Val(Opnd(saved)), ArgC::Val(branch)],
+                id: registry::id("std.rand.split"),
+                name: "std.rand.split".into(),
+                mode: Mode::Plain,
+            });
+            let site = self.code.sites.len() as u32 - 1;
+            self.emit(Op::Call { site, dst: reg });
+            self.block(b);
+        }
+        self.scopes.pop();
+        self.emit(Op::Restore {
+            dst: reg,
+            src: saved,
+        });
     }
 
     /// Restore the `with` names between the top scope and scope `to`, exclusive.
