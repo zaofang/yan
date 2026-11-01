@@ -71,10 +71,16 @@ jobs:
       - run: >-
           uv run python tools/conform.py --json conformance-summary.json
           --milestone M0 --executor interp=target/release/yong
+      # Round-trip laws 3 and 4 (16.5): reported, not gated, until M3 (R564).
+      - run: >-
+          uv run python tools/conform.py --laws --json laws-summary.json
+          --executor interp=target/release/yong
       - uses: actions/upload-artifact@v4
         with:
           name: conformance-summary
-          path: conformance-summary.json
+          path: |
+            conformance-summary.json
+            laws-summary.json
 
   # One run per program: checks that every benchmark still computes its result; times are indicative.
   bench:

@@ -36,10 +36,19 @@ enum Command {
         #[arg(required = true)]
         files: Vec<PathBuf>,
     },
-    /// Print a module in another surface; only Jian to Yong for now.
+    /// Print a module in another surface: Jian or Wen as Yong, Wen as Jian.
     View {
         #[arg(long = "as")]
         as_: String,
+        file: PathBuf,
+    },
+    /// Print the item hashes (3.6): key, salted hash and identity hash, one item per line.
+    Hash {
+        #[arg(long, value_enum, default_value_t = Format::Line)]
+        format: Format,
+        /// Reverse the item order before elaborating, for checking law 4 (16.5).
+        #[arg(long, hide = true)]
+        reverse_items: bool,
         file: PathBuf,
     },
     /// Apply a patch (18.3): JSON, or a plain file of whole items.
@@ -93,6 +102,11 @@ fn main() -> ExitCode {
             level,
         } => run(&file, strict, level.as_deref() == Some("release")),
         Command::View { as_, file } => view(&as_, &file),
+        Command::Hash {
+            format,
+            reverse_items,
+            file,
+        } => hash(&file, reverse_items, format),
         Command::Patch {
             format,
             check,
@@ -119,17 +133,36 @@ enum Loaded {
 }
 
 fn load(file: &Path, src: &str, strict: bool, release: bool) -> Result<Loaded, String> {
+    load_ordered(file, src, strict, release, false)
+}
+
+/// [`load`], with the module's items reversed first when `reverse`.
+fn load_ordered(
+    file: &Path,
+    src: &str,
+    strict: bool,
+    release: bool,
+    reverse: bool,
+) -> Result<Loaded, String> {
     let name = file.display().to_string();
     match file.extension().and_then(|e| e.to_str()) {
         Some("yong") => Ok(match yong_core::parse(&name, src) {
-            (Some(m), d) if d.is_empty() => Loaded::Ready(m, Vec::new()),
+            (Some(mut m), d) if d.is_empty() => {
+                if reverse {
+                    m.items.reverse();
+                }
+                Loaded::Ready(m, Vec::new())
+            }
             (_, d) => Loaded::Stopped(d),
         }),
         Some("jian") => {
             let (m, diags) = yong_jian::parse(&name, src, strict);
-            let Some(m) = m.filter(|_| !has_error(&diags)) else {
+            let Some(mut m) = m.filter(|_| !has_error(&diags)) else {
                 return Ok(Loaded::Stopped(diags));
             };
+            if reverse {
+                m.items.reverse();
+            }
             let opts = yong_elab::Options {
                 strict,
                 release,
@@ -138,7 +171,10 @@ fn load(file: &Path, src: &str, strict: bool, release: bool) -> Result<Loaded, S
             Ok(elaborate(&name, src, &m, diags, opts))
         }
         Some("wen") => {
-            let (m, diags) = yong_wen::parse(&name, src);
+            let (mut m, diags) = yong_wen::parse(&name, src);
+            if reverse {
+                m.items.reverse();
+            }
             if has_error(&diags) {
                 return Ok(Loaded::Stopped(diags));
             }
@@ -191,13 +227,16 @@ fn elaborate(
 }
 
 fn view(as_: &str, file: &Path) -> ExitCode {
-    if as_ != "yong" {
-        return tool_failure(&format!("no printer for `{as_}` yet"));
-    }
     let src = match std::fs::read_to_string(file) {
         Ok(s) => s,
         Err(e) => return tool_failure(&format!("{}: {e}", file.display())),
     };
+    let ext = file.extension().and_then(|e| e.to_str());
+    match (as_, ext) {
+        ("yong", _) => {}
+        ("jian", Some("wen")) => return view_wen_as_jian(file, &src),
+        _ => return tool_failure(&format!("no printer for `{as_}` yet")),
+    }
     match load(file, &src, false, false) {
         Ok(Loaded::Ready(m, _)) => {
             print!("{}", yong_core::print(&m));
@@ -210,6 +249,76 @@ fn view(as_: &str, file: &Path) -> ExitCode {
         Ok(Loaded::Unsupported(what, _)) => tool_failure(&format!("not supported yet: {what}")),
         Err(msg) => tool_failure(&msg),
     }
+}
+
+/// Wen's HIR printed by the Jian printer: the Jian projection of law 3 (16.5).
+fn view_wen_as_jian(file: &Path, src: &str) -> ExitCode {
+    let name = file.display().to_string();
+    let (m, diags) = yong_wen::parse(&name, src);
+    if has_error(&diags) {
+        diags
+            .iter()
+            .for_each(|d| eprintln!("{}", d.render_line(None)));
+        return ExitCode::FAILURE;
+    }
+    match yong_wen::lower(&name, src, &m) {
+        Err(yong_wen::Unsupported(what)) => tool_failure(&format!("not supported yet: {what}")),
+        Ok((_, errs)) if has_error(&errs) => {
+            errs.iter()
+                .for_each(|d| eprintln!("{}", d.render_line(None)));
+            ExitCode::FAILURE
+        }
+        Ok((h, _)) => match yong_jian::resugar(h) {
+            Ok(j) => {
+                print!("{}", yong_jian::print(&j));
+                ExitCode::SUCCESS
+            }
+            Err(what) => {
+                eprintln!("yong: outside the Jian subset: {what}");
+                ExitCode::FAILURE
+            }
+        },
+    }
+}
+
+fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
+    let src = match std::fs::read_to_string(file) {
+        Ok(s) => s,
+        Err(e) => return tool_failure(&format!("{}: {e}", file.display())),
+    };
+    let m = match load_ordered(file, &src, false, false, reverse) {
+        Ok(Loaded::Ready(m, _)) => m,
+        Ok(Loaded::Stopped(d)) => {
+            d.iter().for_each(|d| eprintln!("{}", d.render_line(None)));
+            return ExitCode::FAILURE;
+        }
+        Ok(Loaded::Unsupported(what, _)) => {
+            return tool_failure(&format!("not supported yet: {what}"));
+        }
+        Err(msg) => return tool_failure(&msg),
+    };
+    let hashes = yong_core::hash::hash_module(&m);
+    match format {
+        Format::Line => {
+            for h in hashes {
+                println!("{}\t{}\t{}", h.key, h.salted, h.identity);
+            }
+        }
+        Format::Json => {
+            let items: Vec<_> = hashes
+                .iter()
+                .map(|h| {
+                    serde_json::json!({
+                        "key": h.key,
+                        "hash": h.salted.to_string(),
+                        "identity": h.identity.to_string(),
+                    })
+                })
+                .collect();
+            println!("{}", serde_json::Value::Array(items));
+        }
+    }
+    ExitCode::SUCCESS
 }
 
 fn run(file: &Path, strict: bool, release: bool) -> ExitCode {
