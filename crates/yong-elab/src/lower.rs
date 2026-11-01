@@ -708,6 +708,36 @@ fn call(path: &str, targs: Vec<y::TArg>, args: Vec<Arg>, span: Span) -> y::Call 
 }
 
 /// The std function and result type of `op` between time values (17.5).
+/// The builtin functions `builtin` lowers, offered as near names (R651).
+const BUILTINS: [&str; 26] = [
+    "len",
+    "sorted",
+    "int",
+    "float",
+    "round",
+    "abs",
+    "str",
+    "bigint",
+    "list",
+    "min",
+    "max",
+    "print",
+    "evolve",
+    "range",
+    "deque",
+    "heap",
+    "sorted_dict",
+    "sorted_set",
+    "dict",
+    "set",
+    "enumerate",
+    "zip",
+    "sum",
+    "any",
+    "all",
+    "reversed",
+];
+
 fn time_op(c: &str, b: &Ty, op: &str) -> Option<(String, Ty)> {
     let Ty::Coll(b, _) = b else {
         return match (c, b, op) {
@@ -868,6 +898,42 @@ impl Lower<'_, '_, '_> {
     fn err(&mut self, code: &str, span: Span, msg: String) {
         let item = self.item.clone();
         self.cx.err(code, span, &item, msg);
+    }
+
+    /// An E200 or E203 for the unknown `name` at `span`, with each near name as a `maybe`
+    /// fix (R651).
+    fn err_near<'n>(
+        &mut self,
+        code: &str,
+        span: Span,
+        msg: String,
+        name: &str,
+        candidates: impl IntoIterator<Item = &'n str>,
+    ) {
+        self.err(code, span, msg);
+        let near = yong_diag::near(name, candidates);
+        if let Some(mut d) = self.cx.diags.pop() {
+            for n in near {
+                d = d.with_fix(
+                    yong_diag::Applicability::Choice,
+                    format!("use `{n}`"),
+                    span,
+                    name,
+                    n,
+                );
+            }
+            self.cx.diags.push(d);
+        }
+    }
+
+    /// Value names visible here: locals, functions and constants.
+    fn names_in_scope(&self) -> Vec<String> {
+        self.locals
+            .keys()
+            .chain(self.g.fns.keys())
+            .chain(self.g.consts.keys())
+            .cloned()
+            .collect()
     }
 
     /// A hole in statement position (21.2): H701 with the expected type, or E702 under
@@ -2551,7 +2617,9 @@ impl Lower<'_, '_, '_> {
                         match self.g.records[r].iter().find(|fd| fd.name == *f) {
                             Some(fd) => fd.ty.clone(),
                             None => {
-                                self.err("E203", *fsp, format!("`{r}` has no field `{f}`"));
+                                let names = self.g.records[r].iter().map(|fd| fd.name.as_str());
+                                let msg = format!("`{r}` has no field `{f}`");
+                                self.err_near("E203", *fsp, msg, f, names);
                                 Ty::Err
                             }
                         }
@@ -2837,7 +2905,9 @@ impl Lower<'_, '_, '_> {
                     );
                     (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err)
                 } else {
-                    self.err("E200", at, format!("cannot find `{n}`"));
+                    let names = self.names_in_scope();
+                    let names = names.iter().map(String::as_str);
+                    self.err_near("E200", at, format!("cannot find `{n}`"), n, names);
                     (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err)
                 }
             }
@@ -4735,7 +4805,9 @@ impl Lower<'_, '_, '_> {
                         continue;
                     };
                     let Some((_, ft)) = fs.iter().find(|(f, _)| f == name) else {
-                        self.err("E203", a.span, format!("`{r}` has no field `{name}`"));
+                        let names = fs.iter().map(|(f, _)| f.as_str());
+                        let msg = format!("`{r}` has no field `{name}`");
+                        self.err_near("E203", a.span, msg, name, names);
                         continue;
                     };
                     let (x, xt) = self.atom(e, Some(ft))?;
@@ -4817,7 +4889,11 @@ impl Lower<'_, '_, '_> {
                 Ok((r, t))
             }
             _ => {
-                self.err("E200", at, format!("cannot find function `{n}`"));
+                let mut names: Vec<&str> = self.g.fns.keys().map(String::as_str).collect();
+                names.extend(BUILTINS);
+                names.extend(crate::stdlib::members("prelude"));
+                names.extend(crate::stdlib::members("test"));
+                self.err_near("E200", at, format!("cannot find function `{n}`"), n, names);
                 for a in args {
                     if let j::ArgKind::Expr(e) | j::ArgKind::Ref(e) = &a.kind {
                         self.atom(e, None)?;
@@ -5074,7 +5150,14 @@ impl Lower<'_, '_, '_> {
         }
         let path = format!("std.{module}.{m}");
         let Some(d) = crate::stdlib::decl(&path) else {
-            self.err("E203", name_at, format!("`{t}` has no method `{m}`"));
+            let names = crate::stdlib::members(module);
+            self.err_near(
+                "E203",
+                name_at,
+                format!("`{t}` has no method `{m}`"),
+                m,
+                names,
+            );
             return Ok((Rhs::Proj(p), e(), None));
         };
         if !d.intrinsic || d.typed_at_call() {

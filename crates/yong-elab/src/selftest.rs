@@ -99,3 +99,20 @@ pub def main() uses io:
 ";
     assert_eq!(raised(src), src);
 }
+
+#[test]
+fn unknown_names_carry_near_names_as_maybe_fixes() {
+    let src = "class P:\n    name: str\n\ndef f(p: P, count: int) -> str:\n    _ = cout\n    return p.nmae\n";
+    let (_, d) = lower(src);
+    let fixes: Vec<_> = d
+        .iter()
+        .filter(|d| d.code == "E200" || d.code == "E203")
+        .map(|d| {
+            (
+                d.code.as_str(),
+                d.fixes[0]["edits"][0]["text"].as_str().unwrap_or(""),
+            )
+        })
+        .collect();
+    assert_eq!(fixes, [("E200", "count"), ("E203", "name")], "{d:?}");
+}

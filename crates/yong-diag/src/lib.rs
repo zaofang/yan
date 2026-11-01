@@ -69,7 +69,25 @@ impl Diagnostic {
         self
     }
 
-    /// `[#n ] code path:line:col[ item:][ `quote`] message { | note }` (R294, R650).
+    /// Adds a one-edit fix that replaces `search` at `span` with `text` (R292).
+    pub fn with_fix(
+        mut self,
+        applicability: Applicability,
+        title: impl Into<String>,
+        span: Span,
+        search: &str,
+        text: &str,
+    ) -> Self {
+        self.fixes.push(serde_json::json!({
+            "title": title.into(),
+            "applicability": applicability,
+            "edits": [{"span": span, "search": search, "text": text}],
+        }));
+        self
+    }
+
+    /// `[#n ] code path:line:col[ item:][ `quote`] message { | note } { | kind: old -> new }`
+    /// (R294, R650).
     pub fn render_line(&self, id: Option<usize>) -> String {
         let mut out = String::new();
         if let Some(n) = id {
@@ -91,8 +109,67 @@ impl Diagnostic {
             out.push_str(" | ");
             out.push_str(note);
         }
+        for fix in &self.fixes {
+            let kind = match fix["applicability"].as_str() {
+                Some("auto") => "fix",
+                Some("choice") => "maybe",
+                Some("template") => "fill",
+                _ => continue,
+            };
+            let edit = &fix["edits"][0];
+            if let (Some(old), Some(new)) = (edit["search"].as_str(), edit["text"].as_str()) {
+                out.push_str(&format!(" | {kind}: {old} -> {new}"));
+            }
+        }
         out.replace('\n', "\\n")
     }
+}
+
+/// How a fix may be applied (R292): `auto` keeps meaning, `choice` changes it, `template`
+/// has typed holes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Applicability {
+    Auto,
+    Choice,
+    Template,
+}
+
+/// The candidates within edit distance 2 of `name`, nearest first, at most three (R651).
+pub fn near<'a>(name: &str, candidates: impl IntoIterator<Item = &'a str>) -> Vec<&'a str> {
+    let mut hits: Vec<(usize, &str)> = candidates
+        .into_iter()
+        .filter(|c| *c != name)
+        .map(|c| (distance(name, c), c))
+        .filter(|(d, _)| *d <= 2)
+        .collect();
+    hits.sort();
+    hits.dedup();
+    hits.into_iter().take(3).map(|(_, c)| c).collect()
+}
+
+/// Optimal string alignment distance: insertions, deletions, substitutions and adjacent
+/// transpositions, by characters.
+fn distance(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let mut d = vec![vec![0; b.len() + 1]; a.len() + 1];
+    for (i, row) in d.iter_mut().enumerate() {
+        row[0] = i;
+    }
+    d[0] = (0..=b.len()).collect();
+    for i in 1..=a.len() {
+        for j in 1..=b.len() {
+            let cost = usize::from(a[i - 1] != b[j - 1]);
+            d[i][j] = (d[i - 1][j] + 1)
+                .min(d[i][j - 1] + 1)
+                .min(d[i - 1][j - 1] + cost);
+            if i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1] {
+                d[i][j] = d[i][j].min(d[i - 2][j - 2] + 1);
+            }
+        }
+    }
+    d[a.len()][b.len()]
 }
 
 /// Sort by file, line, column, then code, and keep at most `max_errors` errors (18.2).
@@ -162,6 +239,33 @@ mod selftest {
         assert_eq!(d.render_line(None), "P002 m.xin:5:1 `t` matches 9 times");
         let d = Diagnostic::error("E101", "f.xin", at(6, 12), "a", "needs parentheses");
         assert_eq!(d.render_line(None), "E101 f.xin:6:12 `a` needs parentheses");
+    }
+
+    #[test]
+    fn near_names_nearest_first() {
+        let names = ["len", "lens", "length", "sort", "x"];
+        assert_eq!(near("lenght", names), ["length"]);
+        assert_eq!(near("lne", names), ["len", "lens"]);
+        assert!(near("zzzzzz", names).is_empty());
+    }
+
+    #[test]
+    fn line_rendering_shows_fixes() {
+        let d = Diagnostic::error("E200", "f.xin", at(2, 12), "lenght", "cannot find `lenght`")
+            .with_item("f")
+            .with_fix(
+                Applicability::Choice,
+                "use `length`",
+                at(2, 12),
+                "lenght",
+                "length",
+            );
+        assert_eq!(
+            d.render_line(None),
+            "E200 f.xin:2:12 f: `lenght` cannot find `lenght` | maybe: lenght -> length"
+        );
+        let v = serde_json::to_value(&d).unwrap();
+        assert_eq!(v["fixes"][0]["applicability"], "choice");
     }
 
     #[test]
