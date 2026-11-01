@@ -17,6 +17,7 @@ clap.workspace = true
 serde_json.workspace = true
 yong-check.workspace = true
 yong-core.workspace = true
+yong-db.workspace = true
 yong-diag.workspace = true
 yong-interp.workspace = true
 yong-jian.workspace = true

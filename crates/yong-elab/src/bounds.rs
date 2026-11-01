@@ -384,6 +384,31 @@ impl Solver<'_> {
                 self.expr(e, &mut f);
                 self.assume(e, true, &mut f);
             }
+            S::Unsafe(body) => return self.stmts(body, f),
+            // Stage-0 control is resolved during lowering; its bodies are not analyzed here.
+            S::StageIf { then, els, .. } => {
+                for n in assigned(then)
+                    .into_iter()
+                    .chain(els.iter().flat_map(|b| assigned(b)))
+                {
+                    f.kill(&n);
+                }
+            }
+            S::StageFor { body, .. } => {
+                for n in assigned(body) {
+                    f.kill(&n);
+                }
+            }
+            S::Asm { args, .. } => {
+                for a in args {
+                    if let j::AsmArg::Operand { dir, value, .. } = a {
+                        self.expr(value, &mut f);
+                        if dir != "in" {
+                            self.target(value, &mut f);
+                        }
+                    }
+                }
+            }
             S::Assign { target, value, .. } => self.assign(target, value, &mut f),
             S::AugAssign { target, value, .. } => {
                 self.expr(value, &mut f);
@@ -591,6 +616,7 @@ impl Solver<'_> {
     /// Checks every index in `e`, in evaluation order, and applies the effects of its calls.
     fn expr(&mut self, e: &j::Expr, f: &mut Facts) {
         match &e.kind {
+            K::Stage(_) => {}
             K::Index(b, k) => {
                 self.expr(b, f);
                 self.expr(k, f);
@@ -888,6 +914,23 @@ fn assigned(stmts: &[j::Stmt]) -> HashSet<String> {
                     go(&els.stmts, out);
                 }
                 S::Expr(e) | S::Become(e) | S::Fail(e) | S::Assert(e) => expr(e, out),
+                S::Unsafe(body) | S::StageFor { body, .. } => go(body, out),
+                S::StageIf { then, els, .. } => {
+                    go(then, out);
+                    if let Some(b) = els {
+                        go(b, out);
+                    }
+                }
+                S::Asm { args, .. } => {
+                    for a in args {
+                        if let j::AsmArg::Operand { dir, value, .. } = a
+                            && dir != "in"
+                            && let K::Name(n) = &value.kind
+                        {
+                            out.insert(n.clone());
+                        }
+                    }
+                }
                 S::Return(e) => e.iter().for_each(|e| expr(e, out)),
                 S::If { arms, els } => {
                     for (c, b) in arms {
