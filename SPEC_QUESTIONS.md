@@ -262,3 +262,14 @@ Assumed in `yong-elab` and the interpreter until the spec says otherwise:
 - **`post`.** Each `post` is checked at every return, including falling off the end, with `out` naming the result; a failure panics with kind `assert`, as `pre` does. `old(p)` reads a copy of `p` taken on entry. A parameter named `out` in a function with `post` is E230. `post` is not yet emitted as a Yong `ensures` clause.
 - **Integer literal range.** An integer literal outside the range of the integer type expected of it, or outside `int` when no sized type is expected, is E201 with the message "does not fit"; 25 has no dedicated code. A negative literal takes the expected sized type like a positive one.
 - **Ordering needs `Ord`.** `<`, `<=`, `>` and `>=` on a type that does not implement `Ord` (a record without `derive(Ord)`, `bytearray`) are E221, as for a bound.
+
+## `yong test` readings (18.4, R300, R309)
+
+Assumed in `yong-cli` until the spec says otherwise:
+
+- **Package and ids.** `yong test` runs in the package root. Its modules are the `.xin` and `.wen` files under `src/`, or under the root when there is no `src/`, without `package.xin`. A test's id is its module path, dots for directories, then the function name: `lib.test_price`.
+- **What runs.** Only `test_` functions with no value parameters run so far. `ex` clauses, `bench_` functions and property tests (R301) are not run yet, and no verdict is cached.
+- **Budget.** Every test gets the stage-0 step and depth budgets (50 million calls, depth 1,000) on its own thread. I/O tests are not told apart yet, so none gets a wall-clock timeout.
+- **Test hash.** It is blake3 of the test function's canonical Yong text, prefixed `blake3:`. References are by path, so an implementation change keeps approvals. Test-support items are not yet hashed in, and neither are callees' interfaces.
+- **Gate.** Without `--gate`, any failing test fails the run. With `--gate`, a locked test whose hash differs is E014 at the test, one missing from the module set is E015 at its `tests.lock` line, and a failing approved test fails the run. Proposed tests are reported only. A test counts as approved only when its id and hash both match.
+- **Output.** `--format json` prints one array of diagnostic records followed by one `"kind": "test"` record per test. The line format prints one line per failing test, ending in `| repro: yong test --only <id>`, and then a count.
