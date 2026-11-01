@@ -2,7 +2,7 @@
 
 - Status: accepted (D1, D3, D4); D2 open
 - Research: [Formal core study](https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y)
-- Rows: R680, R681, R682
+- Rows: R680, R764, R765
 
 ## Summary
 
@@ -47,7 +47,7 @@ and it matches Cranelift block semantics. The alternative, forbidding fall-throu
 was not taken.
 
 - Decision: accepted by the lead on 2026-11-01 (card)
-- Row: R681
+- Row: R764
 
 ### D4: `inout` after a failure
 
@@ -56,7 +56,7 @@ return. This is free with in-place lowering and matches both implementations. Th
 keeping the old value, costs a copy before every fallible call.
 
 - Decision: accepted by the lead on 2026-11-01 (card)
-- Row: R682
+- Row: R765
 
 ## Findings from phase 0
 
@@ -81,5 +81,5 @@ are D3 and D4; item 3 is fixed in #129; item 4 is open.
 
 - 22.1: a paragraph on the formal model (R680).
 - 26.1: the implementation-language row notes the exception.
-- 3.5: join point fall-through (R681).
-- 4.1: `inout` after a failure (R682).
+- 3.5: join point fall-through (R764).
+- 4.1: `inout` after a failure (R765).

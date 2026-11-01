@@ -586,6 +586,6 @@ topic = "Formal core model (RFC 0022, https://claude.ai/artifact/6PKpzbDykX73NCV
 sections = "22.1, 26.1"
 
 [[entry]]
-rows = "R681 to R682"
-topic = "Gaps found by the formal core model (RFC 0022), decided by the owner: a join point body that falls through continues after the statement that jumped to it (R681); an `inout` argument takes the callee's final value when the callee fails (R682)"
+rows = "R764 to R765"
+topic = "Gaps found by the formal core model (RFC 0022), decided by the owner: a join point body that falls through continues after the statement that jumped to it (R764); an `inout` argument takes the callee's final value when the callee fails (R765)"
 sections = "3.5, 4.1"

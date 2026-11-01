@@ -12,7 +12,7 @@ Yong has mutable value semantics with unique ownership. Every value has exactly 
 
 The receiver of a method is a parameter like any other; it is exempt from E210 (SQ9). A type that holds a `RawCell` inline is not trivially copyable and always passes by address under `let` (section 6.3).
 
-**`inout` and failure (R682).** When the callee fails, the caller's `inout` argument still holds the callee's final value, as on a normal return. No copy is made before the call.
+**`inout` and failure (R765).** When the callee fails, the caller's `inout` argument still holds the callee's final value, as on a normal return. No copy is made before the call.
 
 **Bindings.** `let` bindings are immutable. Only `var` bindings and `inout` parameters may be targets of `Place = Rhs` (E403 otherwise). A field or element of a mutable place is itself mutable.
 
