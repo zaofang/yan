@@ -1,6 +1,8 @@
 //! The analysis API (22.2, R560) over the query database: diagnostics, hover, inlay hints and
 //! view-as. `yong-cli` and `yong mcp` use it, and the language server will.
 
+use std::path::Path;
+
 use serde::Serialize;
 use yong_core::ast as y;
 use yong_db::{Db, Front, Loaded, SourceFile};
@@ -206,11 +208,44 @@ pub fn view(db: &dyn Db, file: SourceFile, as_: Surface) -> Result<String, ViewE
                 Front::Yong(_) => unreachable!("a .wen file has a Wen front end"),
             }
         }
+        // print(resugar(raise(elaborate(X)))) (16.4, R559).
+        (Surface::Xin, _) => match yong_db::load(db, file).as_ref().map_err(|m| tool(m))? {
+            Loaded::Ready(m, _) => {
+                let h = yong_hir::raise::raise(m, &yong_elab::StdInfo).map_err(
+                    |yong_hir::raise::Unraised(what)| unsupported(&format!("raising {what}")),
+                )?;
+                yong_xin::resugar(h)
+                    .map(|x| yong_xin::print(&x))
+                    .map_err(|what| ViewError::Outside(what.to_owned()))
+            }
+            Loaded::Stopped(d) => Err(ViewError::Diagnostics(d.clone())),
+            Loaded::Unsupported(what, _) => Err(unsupported(what)),
+        },
         _ => Err(ViewError::Tool(format!(
             "no printer for `{}` yet",
             surface_name(as_)
         ))),
     }
+}
+
+/// `src` in canonical form (18.4): print(parse(src)), for the surfaces with a printer.
+pub fn canonical(path: &Path, src: &str) -> Result<String, ViewError> {
+    let name = path.display().to_string();
+    let (text, diags) = match yong_db::surface(path) {
+        Some(Surface::Xin) => {
+            let (m, d) = yong_xin::parse(&name, src, false);
+            let text = m
+                .filter(|_| !yong_db::has_error(&d))
+                .map(|m| yong_xin::print(&m));
+            (text, d)
+        }
+        Some(Surface::Wen) => {
+            let (m, d) = yong_wen::parse(&name, src);
+            ((!yong_db::has_error(&d)).then(|| yong_wen::print(&m)), d)
+        }
+        _ => return Err(ViewError::Tool(format!("{name}: no printer for this file"))),
+    };
+    text.ok_or(ViewError::Diagnostics(diags))
 }
 
 pub fn surface_name(s: Surface) -> &'static str {

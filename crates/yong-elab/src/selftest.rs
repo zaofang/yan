@@ -68,3 +68,34 @@ fn unannotated_lambdas_take_types_from_their_first_call() {
                \x20   s = lambda t: t + \"?\"\n    io.print(f\"{k(2, 3)} {k(4, 1)} {s('ok')}\")\n";
     assert_eq!(run(src), "11 9 ok?\n");
 }
+
+/// Law 1 (16.5) through the shared raise: Xin to Yong and back prints the same text.
+fn raised(src: &str) -> String {
+    let (y, d) = lower(src);
+    assert!(
+        d.iter().all(|d| d.severity != yong_diag::Severity::Error),
+        "{d:?}"
+    );
+    let h = yong_hir::raise::raise(&y, &StdInfo).expect("raises");
+    yong_xin::print(&yong_xin::resugar(h).expect("in the Xin subset"))
+}
+
+#[test]
+fn raise_restores_loops_fallbacks_and_fstrings() {
+    let src = "\
+pub def count_words(text: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for w in text.split(\" \"):
+        counts[w.copy()] = (counts.get(w) else 0) + 1
+    return counts
+
+pub def main() uses io:
+    xs = [1, 2, 3]
+    n = 0
+    while n < 10:
+        n += len(xs)
+    for i in range(3):
+        io.print(f\"{i}: {n}\")
+";
+    assert_eq!(raised(src), src);
+}

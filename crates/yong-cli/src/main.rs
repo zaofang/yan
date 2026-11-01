@@ -53,6 +53,14 @@ enum Command {
         as_: String,
         file: PathBuf,
     },
+    /// Rewrite files in canonical form (18.4): print(parse(F)) (R559).
+    Fmt {
+        /// Change nothing; print the files that are not canonical and exit 1.
+        #[arg(long)]
+        check: bool,
+        #[arg(required = true)]
+        files: Vec<PathBuf>,
+    },
     /// Print the item hashes (3.6): key, salted hash and identity hash, one item per line.
     Hash {
         #[arg(long, value_enum, default_value_t = Format::Line)]
@@ -117,6 +125,7 @@ fn main() -> ExitCode {
             cli.backend,
         ),
         Command::View { as_, file } => view(&as_, &file),
+        Command::Fmt { check, files } => fmt(&files, check),
         Command::Hash {
             format,
             reverse_items,
@@ -170,6 +179,38 @@ fn view(as_: &str, file: &Path) -> ExitCode {
             ExitCode::FAILURE
         }
         Err(ViewError::Tool(msg)) => tool_failure(&msg),
+    }
+}
+
+fn fmt(files: &[PathBuf], check: bool) -> ExitCode {
+    let mut changed = false;
+    for file in files {
+        let src = match std::fs::read_to_string(file) {
+            Ok(s) => s,
+            Err(e) => return tool_failure(&format!("{}: {e}", file.display())),
+        };
+        let text = match yong_ide::canonical(file, &src) {
+            Ok(t) => t,
+            Err(ViewError::Diagnostics(d)) => {
+                print_diags(&d);
+                return ExitCode::FAILURE;
+            }
+            Err(ViewError::Outside(msg) | ViewError::Tool(msg)) => return tool_failure(&msg),
+        };
+        if text == src {
+            continue;
+        }
+        changed = true;
+        if check {
+            println!("{}", file.display());
+        } else if let Err(e) = std::fs::write(file, text) {
+            return tool_failure(&format!("{}: {e}", file.display()));
+        }
+    }
+    if check && changed {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
     }
 }
 
