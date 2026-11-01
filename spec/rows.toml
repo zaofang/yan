@@ -576,6 +576,11 @@ topic = "Packaging and ecosystem (RFC 0020, https://claude.ai/artifact/NHdZaQ9Q6
 sections = "12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25"
 
 [[entry]]
+rows = "R652 to R654"
+topic = "Tally slice findings (examples/tally), decided by the owner: Wen variant patterns may be qualified, `schema.Grocery()` (R652); currency units per ISO 4217 code, Money written as `12.50usd` in Wen and `12.50 * usd` in Xin and read exactly as dec128, `money(d, c)`, `.amount`, `.currency` (R653); golden program G5, the Tally slice in Xin and Wen (R654)"
+sections = "11.7, 15.2, 15.3, 24.3"
+
+[[entry]]
 rows = "R680"
 topic = "Formal core model (RFC 0022, https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y), decided by the owner: a Lean 4 model of Yong-K under `formal/`, checked against the interpreter by differential testing, never shipped and never a build dependency; the one exception to R215 (R680)"
 sections = "22.1, 26.1"
