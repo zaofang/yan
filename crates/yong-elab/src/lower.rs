@@ -70,6 +70,10 @@ struct Lower<'a, 'c, 's> {
     fn_calls: Vec<(String, Span)>,
     /// `k = lambda ...` with no expected type: the target and lambda, lowered at the first call.
     pending: HashMap<String, (j::Expr, j::Expr)>,
+    /// The locals bound outside each enclosing loop, for W822.
+    loop_outer: Vec<HashSet<String>>,
+    /// The name the current statement assigns, for W822.
+    target: Option<String>,
 }
 
 pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
@@ -216,6 +220,65 @@ fn sub_blocks(s: &j::Stmt) -> Vec<&[j::Stmt]> {
         },
         _ => Vec::new(),
     }
+}
+
+/// W806: `if p == lit` conditions where `lit` is the literal an `ex` line passes as `p`.
+fn special_cases(f: &j::FuncDef, contracts: &[j::Contract], stmts: &[j::Stmt]) -> Vec<Span> {
+    let mut inputs: Vec<(&str, &j::Lit)> = Vec::new();
+    for c in contracts {
+        let j::Contract::Ex { expr, .. } = c else {
+            continue;
+        };
+        let j::ExprKind::Compare(_, call, _) = &expr.kind else {
+            continue;
+        };
+        let j::ExprKind::Call(callee, args) = &call.kind else {
+            continue;
+        };
+        if !matches!(&callee.kind, j::ExprKind::Name(n) if *n == f.name) {
+            continue;
+        }
+        let names = f.params.iter().filter_map(|p| match p {
+            j::Param::Value { name, .. } => Some(name),
+            _ => None,
+        });
+        for (p, a) in names.zip(args) {
+            if let (None, j::ArgKind::Expr(e)) = (&a.name, &a.kind)
+                && let j::ExprKind::Lit(l) = &e.kind
+            {
+                inputs.push((p, l));
+            }
+        }
+    }
+    let mut out = Vec::new();
+    if inputs.is_empty() {
+        return out;
+    }
+    fn conds<'e>(stmts: &'e [j::Stmt], out: &mut Vec<&'e j::Expr>) {
+        for s in stmts {
+            if let j::StmtKind::If { arms, .. } = &s.kind {
+                out.extend(arms.iter().map(|(c, _)| c));
+            }
+            for b in sub_blocks(s) {
+                conds(b, out);
+            }
+        }
+    }
+    let mut cs = Vec::new();
+    conds(stmts, &mut cs);
+    for c in cs {
+        let j::ExprKind::Compare("==", a, b) = &c.kind else {
+            continue;
+        };
+        let hit = |x: &j::Expr, y: &j::Expr| {
+            matches!((&x.kind, &y.kind), (j::ExprKind::Name(n), j::ExprKind::Lit(l))
+                if inputs.iter().any(|(p, v)| p == n && *v == l))
+        };
+        if hit(a, b) || hit(b, a) {
+            out.push(c.span);
+        }
+    }
+    out
 }
 
 /// R421: a local is mutable when the function assigns it again, assigns through it, passes
@@ -388,6 +451,8 @@ fn function_body(g: &Globals, f: &j::FuncDef, sig: &Sig, is_pub: bool, cx: &mut 
         handlers: Vec::new(),
         fn_calls: Vec::new(),
         pending: HashMap::new(),
+        loop_outer: Vec::new(),
+        target: None,
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -446,12 +511,23 @@ fn function_body(g: &Globals, f: &j::FuncDef, sig: &Sig, is_pub: bool, cx: &mut 
         }
         Ok(())
     })?;
+    for sp in special_cases(f, &body.contracts, &body.stmts) {
+        let item = l.item.clone();
+        l.cx.warn(
+            "W806",
+            sp,
+            &item,
+            "this branch special-cases an `ex` input (21.1)".into(),
+        );
+    }
     let unused: Vec<(String, Span)> = sig
         .params
         .iter()
         .map(|p| (p.name.clone(), p.span))
         .chain(mem::take(&mut l.bound))
-        .filter(|(n, _)| !n.starts_with('_') && l.uses.get(n).is_none_or(Vec::is_empty))
+        .filter(|(n, _)| {
+            !n.starts_with('_') && n != "self" && l.uses.get(n).is_none_or(Vec::is_empty)
+        })
         .collect();
     let item = l.item.clone();
     for b in bounds::check(&body.stmts, &l.sites, l.cx.release) {
@@ -866,6 +942,7 @@ impl Lower<'_, '_, '_> {
             } => {
                 let label = self.label();
                 self.loops.push((label.clone(), name.clone()));
+                self.loop_outer.push(self.locals.keys().cloned().collect());
                 let b = self.block_with(|l| {
                     let (c, t) = l.atom(cond, Some(&Ty::Bool))?;
                     l.expect(&t, &Ty::Bool, cond.span);
@@ -889,6 +966,8 @@ impl Lower<'_, '_, '_> {
                     l.stmts(body)
                 });
                 self.loops.pop();
+                self.loop_outer.pop();
+                self.loop_outer.pop();
                 let body = b?;
                 self.emit(
                     StmtKind::Loop {
@@ -1022,6 +1101,7 @@ impl Lower<'_, '_, '_> {
         body: impl FnOnce(&mut Self) -> R<()>,
     ) -> R<()> {
         self.loops.push((label.clone(), name.map(str::to_owned)));
+        self.loop_outer.push(self.locals.keys().cloned().collect());
         let b = self.block_with(|l| {
             let done = call(
                 "std.iter.ops.done",
@@ -1055,6 +1135,7 @@ impl Lower<'_, '_, '_> {
             body(l)
         });
         self.loops.pop();
+        self.loop_outer.pop();
         let body = b?;
         self.emit(
             StmtKind::Loop {
@@ -1166,6 +1247,7 @@ impl Lower<'_, '_, '_> {
             (Some((xs, e)), n, one)
         };
         self.loops.push((label.clone(), name.map(str::to_owned)));
+        self.loop_outer.push(self.locals.keys().cloned().collect());
         let b = self.block_with(|l| {
             let ge = call(
                 "ge_i64",
@@ -1223,6 +1305,7 @@ impl Lower<'_, '_, '_> {
             body(l)
         });
         self.loops.pop();
+        self.loop_outer.pop();
         let body = b?;
         self.emit(
             StmtKind::Loop {
@@ -1597,7 +1680,24 @@ impl Lower<'_, '_, '_> {
                         return Ok(());
                     }
                 }
-                let (r, t) = self.rhs(value, want.as_ref())?;
+                let outer = self.target.replace(n.clone());
+                let r = self.rhs(value, want.as_ref());
+                self.target = outer;
+                let (r, t) = r?;
+                if let Some(a) = &ann
+                    && *a == t
+                    && !self.locals.contains_key(n)
+                    && self.inferred_alone(value, &t)
+                {
+                    let sp = self.annotation_span(target.span);
+                    let item = self.item.clone();
+                    self.cx.warn(
+                        "W823",
+                        sp,
+                        &item,
+                        format!("`{n}` is inferred as `{t}`; remove the annotation"),
+                    );
+                }
                 self.store(target, ann, r, t, value.span)
             }
             _ => {
@@ -1895,6 +1995,17 @@ impl Lower<'_, '_, '_> {
                 _ => (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Unit),
             },
             K::Lit(l) => {
+                if let j::Lit::Str { value, .. } = l
+                    && !unicode_normalization::is_nfc(value)
+                {
+                    let item = self.item.clone();
+                    self.cx.warn(
+                        "W840",
+                        at,
+                        &item,
+                        "this string is not in NFC; normalize it (R338)".into(),
+                    );
+                }
                 let t = match (l, want) {
                     (j::Lit::Int(_), Some(w @ Ty::Fixed(n))) if !n.starts_with('f') => w.clone(),
                     (j::Lit::Float(_), Some(w @ Ty::Fixed(n))) if n.starts_with('f') => w.clone(),
@@ -2479,6 +2590,15 @@ impl Lower<'_, '_, '_> {
     ) -> R<(Rhs, Ty)> {
         let (x, tx) = self.atom(a, want.filter(|w| !matches!(w, Ty::Float) || op != "/"))?;
         let (y_, ty) = self.atom(b, Some(&tx))?;
+        if op == "+" && matches!(tx, Ty::Str | Ty::List(_)) && self.not_last_use(a, at) {
+            let item = self.item.clone();
+            self.cx.warn(
+                "W822",
+                at,
+                &item,
+                "`+` in a loop copies its left operand, which is not at its last use (R388)".into(),
+            );
+        }
         let args = vec![let_arg(x.clone()), let_arg(y_)];
         let (path, rt, targs) = match (&tx, &ty) {
             (Ty::Err, _) | (_, Ty::Err) => return Ok((Rhs::Atom(x), Ty::Err)),
@@ -2504,6 +2624,54 @@ impl Lower<'_, '_, '_> {
             }
         };
         Ok((Rhs::Call(call(&path, targs, args, at)), rt))
+    }
+
+    /// Lowering `value` with no expected type gives `t`: a literal of its default type, a local,
+    /// or a call of a non-generic function of this module.
+    fn inferred_alone(&self, value: &j::Expr, t: &Ty) -> bool {
+        match &value.kind {
+            j::ExprKind::Lit(l) => !matches!(l, j::Lit::None) && lit_ty(l) == *t,
+            j::ExprKind::Name(n) => self.locals.get(n).is_some_and(|l| l.ty == *t),
+            j::ExprKind::Call(f, _) => matches!(&f.kind, j::ExprKind::Name(n)
+                if self.g.fns.get(n).is_some_and(|s| s.tparams.is_empty() && s.ret == *t)),
+            _ => false,
+        }
+    }
+
+    /// The type after `name:` on the line of `name`.
+    fn annotation_span(&self, name: Span) -> Span {
+        let line = self
+            .cx
+            .src
+            .lines()
+            .nth(name.line as usize - 1)
+            .unwrap_or("");
+        let from = (name.end_col as usize).saturating_sub(1).min(line.len());
+        let rest = &line[from..];
+        let skip = rest.find(':').map_or(0, |k| {
+            k + 1 + rest[k + 1..].len() - rest[k + 1..].trim_start().len()
+        });
+        let col = (from + skip + 1) as u32;
+        let end = line[from + skip..]
+            .find(" =")
+            .map_or(col, |k| col + k as u32);
+        Span {
+            col,
+            end_col: end,
+            end_line: name.line,
+            ..name
+        }
+    }
+
+    /// `a` names a local the loop reads again: it is bound outside the loop and this statement
+    /// does not reassign it, or it is read later.
+    fn not_last_use(&self, a: &j::Expr, at: Span) -> bool {
+        let (j::ExprKind::Name(n), Some(outer)) = (&a.kind, self.loop_outer.last()) else {
+            return false;
+        };
+        self.locals.contains_key(n)
+            && self.target.as_ref() != Some(n)
+            && (outer.contains(n) || self.used_after(n, at))
     }
 
     fn compare(&mut self, op: &str, a: &j::Expr, b: &j::Expr, at: Span) -> R<(Rhs, Ty)> {
@@ -3587,6 +3755,16 @@ impl Lower<'_, '_, '_> {
             return self.user_call(&path, Some(&recv), args, at);
         }
         if self.g.fns.contains_key(m) {
+            if let Some(module) = self.ty_of_local(b).as_ref().and_then(Ty::module)
+                && crate::stdlib::decl(&format!("std.{module}.{m}")).is_some()
+            {
+                self.cx.warn(
+                    "W819",
+                    at,
+                    &self.item.clone(),
+                    format!("this module's `{m}` hides `std.{module}.{m}` (17.2)"),
+                );
+            }
             return self.user_call(m, Some(b), args, at);
         }
         let (p, t) = self.place(b)?;
