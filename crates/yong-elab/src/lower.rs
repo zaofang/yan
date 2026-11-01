@@ -455,6 +455,11 @@ fn ends(stmts: &[j::Stmt]) -> bool {
         )
 }
 
+/// `Ok(...)` or `Err(...)`.
+fn is_outcome(e: &j::Expr) -> bool {
+    matches!(&e.kind, j::ExprKind::Call(f, _) if matches!(&f.kind, j::ExprKind::Name(n) if n == "Ok" || n == "Err"))
+}
+
 /// `...` or `return ...` as a statement.
 fn is_hole(s: &j::Stmt) -> bool {
     matches!(&s.kind, j::StmtKind::Expr(e) | j::StmtKind::Return(Some(e)) if matches!(e.kind, j::ExprKind::Hole))
@@ -3629,6 +3634,20 @@ impl Lower<'_, '_, '_> {
             && (outer.contains(n) || self.used_after(n, at))
     }
 
+    /// The side of `f(x) == Ok(v)` that is not the constructor: a fallible call is its
+    /// `Result`, so the constructor gets an expected type (R309 `ex` lines compare this way).
+    fn operand(&mut self, e: &j::Expr) -> R<(Atom, Ty)> {
+        let j::ExprKind::Call(f, args) = &e.kind else {
+            return self.atom(e, None);
+        };
+        let (r, t, fail) = self.call_expr(f, args, e.span, None)?;
+        let (r, t) = match (fail, r) {
+            (Some(fl), Rhs::Call(c)) => (Rhs::Try(c), Ty::Result(Box::new(t), Box::new(fl))),
+            (_, r) => (r, t),
+        };
+        Ok((self.tmp(&t, r, e.span), t))
+    }
+
     fn compare(&mut self, op: &str, a: &j::Expr, b: &j::Expr, at: Span) -> R<(Rhs, Ty)> {
         let none = |e: &j::Expr| matches!(e.kind, j::ExprKind::Lit(j::Lit::None));
         if matches!(op, "is" | "is not") {
@@ -3686,8 +3705,19 @@ impl Lower<'_, '_, '_> {
         let Some(name) = cmp_name(op) else {
             return unsupported(format!("`{op}`"));
         };
-        let (x, tx) = self.atom(a, None)?;
-        let (y_, ty) = self.atom(b, Some(&tx))?;
+        let (x, tx, y_, ty) = if is_outcome(a) && !is_outcome(b) {
+            let (y_, ty) = self.operand(b)?;
+            let (x, tx) = self.atom(a, Some(&ty))?;
+            (x, tx, y_, ty)
+        } else {
+            let (x, tx) = if is_outcome(b) {
+                self.operand(a)?
+            } else {
+                self.atom(a, None)?
+            };
+            let (y_, ty) = self.atom(b, Some(&tx))?;
+            (x, tx, y_, ty)
+        };
         if matches!(tx, Ty::Err) || matches!(ty, Ty::Err) {
             return Ok((Rhs::Atom(x), Ty::Bool));
         }
