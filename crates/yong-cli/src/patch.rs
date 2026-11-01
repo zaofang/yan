@@ -12,34 +12,66 @@ pub type Refusal = Vec<Diagnostic>;
 /// A source checker: the diagnostics of `src` as the module at `path`.
 pub type Diagnose<'a> = &'a dyn Fn(&Path, &str) -> Result<Vec<Diagnostic>, String>;
 
-/// Applies `patch` and returns the module path with its new text, or the refusal.
-/// `Err` is a failure of the tool.
-pub fn apply(
+/// A patch that applies: the module, its text before and after, and each touched item's new
+/// hash (none when it was deleted).
+pub struct Applied {
+    pub target: PathBuf,
+    pub before: String,
+    pub after: String,
+    pub hashes: Vec<(String, Option<String>)>,
+}
+
+/// The patch in file `patch`, applied to its module (written unless refused).
+pub fn apply_file(
     patch: &Path,
     module: Option<&str>,
     check: bool,
     diagnose: Diagnose,
-) -> Result<Result<(PathBuf, String), Refusal>, String> {
+) -> Result<Result<Applied, Refusal>, String> {
     let text = read(patch)?;
     let dir = patch
         .parent()
         .filter(|d| !d.as_os_str().is_empty())
         .unwrap_or(Path::new("."));
-    let is_json = patch.extension().is_some_and(|e| e == "json");
-    let named = |m: &str| dir.join(format!("{}.jian", m.replace('.', "/")));
-    let (target, ops) = if is_json {
-        let v: Value =
-            serde_json::from_str(&text).map_err(|e| format!("{}: {e}", patch.display()))?;
-        let module = v["module"]
-            .as_str()
-            .ok_or_else(|| format!("{}: no `module`", patch.display()))?;
-        (named(module), Ops::Json(v))
+    let ops = if patch.extension().is_some_and(|e| e == "json") {
+        Ops::Json(serde_json::from_str(&text).map_err(|e| format!("{}: {e}", patch.display()))?)
     } else {
         let target = match module {
-            Some(m) => named(m),
+            Some(m) => module_path(dir, m),
             None => plain_target(patch, dir)?,
         };
-        (target, Ops::Plain(text))
+        Ops::Plain(target, text)
+    };
+    let r = plan(dir, ops, check, diagnose)?;
+    if let Ok(a) = &r {
+        commit(dir, a)?;
+    }
+    Ok(r)
+}
+
+pub fn module_path(dir: &Path, module: &str) -> PathBuf {
+    dir.join(format!("{}.jian", module.replace('.', "/")))
+}
+
+/// Writes an applied patch and appends it to the oplog (18.3 rule 7).
+pub fn commit(dir: &Path, a: &Applied) -> Result<(), String> {
+    std::fs::write(&a.target, &a.after).map_err(|e| format!("{}: {e}", a.target.display()))?;
+    oplog(dir, &a.target.display().to_string(), &a.before, &a.after)
+}
+
+/// Checks `ops` against the module under `dir` without writing anything.
+pub fn plan(
+    dir: &Path,
+    ops: Ops,
+    check: bool,
+    diagnose: Diagnose,
+) -> Result<Result<Applied, Refusal>, String> {
+    let target = match &ops {
+        Ops::Json(v) => module_path(
+            dir,
+            v["module"].as_str().ok_or("the patch has no `module`")?,
+        ),
+        Ops::Plain(t, _) => t.clone(),
     };
     let file = target.display().to_string();
     let before = read(&target)?;
@@ -50,8 +82,8 @@ pub fn apply(
     let mut items = m.items.clone();
     let mut touched: Vec<String> = Vec::new();
     match ops {
-        Ops::Plain(src) => {
-            for it in parse(&patch.display().to_string(), &src)?.items {
+        Ops::Plain(_, src) => {
+            for it in parse(&file, &src)?.items {
                 let name = it.kind.name().to_owned();
                 match items.iter().position(|x| x.kind.name() == name) {
                     Some(k) => items[k] = it,
@@ -117,10 +149,7 @@ pub fn apply(
                     e["search"].as_str(),
                     e["replace"].as_str(),
                 ) else {
-                    return Err(format!(
-                        "{}: an edit needs item, search and replace",
-                        patch.display()
-                    ));
+                    return Err("an edit needs item, search and replace".into());
                 };
                 let Some(k) = items.iter().position(|x| x.kind.name() == name) else {
                     return refuse("P004", whole(), format!("no item `{name}` to edit"));
@@ -179,13 +208,26 @@ pub fn apply(
             return Ok(Err(out));
         }
     }
-    oplog(dir, &file, &before, &after)?;
-    Ok(Ok((target, after)))
+    let new = parse(&file, &after)?;
+    let hashes = touched
+        .into_iter()
+        .map(|n| {
+            let h = find(&new.items, &n).map(hash);
+            (n, h)
+        })
+        .collect();
+    Ok(Ok(Applied {
+        target,
+        before,
+        after,
+        hashes,
+    }))
 }
 
-enum Ops {
+pub enum Ops {
     Json(Value),
-    Plain(String),
+    /// A plain file of whole items and the module it patches.
+    Plain(PathBuf, String),
 }
 
 /// A plain file patch names no module: without `--module` it applies to the one other Jian
@@ -232,11 +274,11 @@ fn protected(old: Option<&Item>, new: Option<&Item>) -> Option<&'static str> {
     (old.is_some() && contracts(old) != contracts(new)).then_some("it changes a contract clause")
 }
 
-fn find<'m>(items: &'m [Item], name: &str) -> Option<&'m Item> {
+pub fn find<'m>(items: &'m [Item], name: &str) -> Option<&'m Item> {
     items.iter().find(|it| it.kind.name() == name)
 }
 
-fn item_text(it: &Item) -> String {
+pub fn item_text(it: &Item) -> String {
     yong_jian::print(&Module {
         header: Vec::new(),
         attrs: Vec::new(),
@@ -246,7 +288,7 @@ fn item_text(it: &Item) -> String {
 }
 
 /// The item hash of 18.3: BLAKE3 of its canonical text.
-fn hash(it: &Item) -> String {
+pub fn hash(it: &Item) -> String {
     format!("b3:{}", blake3::hash(item_text(it).as_bytes()).to_hex())
 }
 
@@ -258,7 +300,7 @@ fn strings(v: &Value) -> Vec<String> {
         .collect()
 }
 
-fn parse(file: &str, src: &str) -> Result<Module, String> {
+pub fn parse(file: &str, src: &str) -> Result<Module, String> {
     let (m, diags) = yong_jian::parse(file, src, false);
     match m {
         Some(m) if !diags.iter().any(|d| d.severity == Severity::Error) => Ok(m),
