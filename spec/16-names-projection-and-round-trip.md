@@ -61,7 +61,7 @@ Some names and forms differ by surface on purpose, so each reads natively. The t
 
 **Projection as composition (R559).** Each surface has six steps: parse (text to lossless tree), abstract (tree to surface AST), lower (AST to HIR, with spelling notes and the name table), and their inverses print, resugar and the shared raise (Yong to HIR). Each surface has exactly one canonical printer, over its own AST, and both `yong fmt` and `yong view` use it: `fmt F` is print(abstract(parse(F))), and `view --as S X` is print(resugar(raise(elaborate(X)))). The laws of 16.5 are statements about these compositions. Raise restores written names from the name table and removes what elaboration inserted (R565).
 
-Items outside the Jian subset are reported, not dropped. The report names the first construct that excludes each item (for example "uses `Ref` (L4)"). `view` takes `--edition`. Neither surface allows shadowing (E230), so projection renames nothing.
+Items outside the Jian subset are reported, not dropped. The report names the first construct that excludes each item (for example "uses `Ref` (L4)"). `view` takes `--edition`. Jian and Wen reject shadowing (E230), so projection between them renames nothing. A projection from Fei, which admits shadowing (R521), gives each shadowed local a fresh name from the name table (RFC 0001 section 6).
 
 ### 16.5 Round-trip laws
 
