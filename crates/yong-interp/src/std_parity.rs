@@ -4,7 +4,7 @@
 use std::collections::BTreeSet;
 use yong_jian::ast::ItemKind;
 
-const NATIVE: [&str; 7] = [
+const NATIVE: [&str; 8] = [
     include_str!("lib.rs"),
     include_str!("native.rs"),
     include_str!("prelude.rs"),
@@ -12,6 +12,7 @@ const NATIVE: [&str; 7] = [
     include_str!("collections.rs"),
     include_str!("math.rs"),
     include_str!("iter.rs"),
+    include_str!("keyed.rs"),
 ];
 
 fn native_paths() -> BTreeSet<String> {

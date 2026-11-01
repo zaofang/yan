@@ -2220,6 +2220,11 @@ impl Lower<'_, '_, '_> {
     /// A lambda becomes a closure; its parameter types come from the expected callable type.
     /// Locals capture by copy, `var` parameters by reference and capabilities by name (4.6).
     fn lambda(&mut self, names: &[String], body: &j::Expr, want: Option<&Ty>) -> R<(Rhs, Ty)> {
+        // An optional callable parameter (`key: ... | None`) takes a lambda as its callable.
+        let want = match want {
+            Some(Ty::Option(f)) => Some(&**f),
+            w => w,
+        };
         let (par, ps, ret) = match want {
             Some(Ty::Fn(par, ps, ret)) if ps.len() == names.len() && !ps.iter().any(has_param) => {
                 (*par, ps.clone(), (!has_param(ret)).then(|| (**ret).clone()))
@@ -2711,6 +2716,12 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         let sig = &self.g.fns[name];
+        // A prelude intrinsic typed here is still called by its std path.
+        let path = format!("std.prelude.{name}");
+        let name = match crate::stdlib::decl(&path) {
+            Some(d) if d.intrinsic => &path,
+            _ => name,
+        };
         self.call_sig(name, sig, recv, args, at)
     }
 
@@ -2734,11 +2745,38 @@ impl Lower<'_, '_, '_> {
         };
         out.extend(vals);
         let mut map = Vec::new();
+        // A default typed at its parameter's own type (`key=None`) says nothing about the
+        // parameters it mentions.
+        let given = |w: &Ty, t: &Ty| w != t || !sig.tparams.iter().any(|(n, _)| w.mentions(n));
         for (w, t, _) in &got {
-            w.unify(t, &mut map);
+            if given(w, t) {
+                w.unify(t, &mut map);
+            }
         }
         if let Some((w, _)) = &want {
             sig.ret.unify(w, &mut map);
+        }
+        // An omitted `key: Callable[[T], K] | None` is the identity: `K` is `T` (R514).
+        for p in &sig.params {
+            let Ty::Option(f) = &p.ty else { continue };
+            let Ty::Fn(_, ps, r) = &**f else { continue };
+            let ([Ty::Param(t)], Ty::Param(k)) = (ps.as_slice(), &**r) else {
+                continue;
+            };
+            if got.iter().any(|(w, t, _)| w == &p.ty && given(w, t)) {
+                continue;
+            }
+            let Some(tv) = map.iter().find(|(n, _)| n == t).map(|(_, v)| v.clone()) else {
+                continue;
+            };
+            match map.iter().find(|(n, _)| n == k) {
+                None => map.push((k.clone(), tv)),
+                Some((_, kv)) if *kv != tv && !matches!(kv, Ty::Err) && !matches!(tv, Ty::Err) => {
+                    let msg = format!("expected `{tv}`, found `{kv}`");
+                    self.err("E201", at, msg);
+                }
+                Some(_) => {}
+            }
         }
         for (n, bounds) in &sig.tparams {
             let Some((_, t)) = map.iter().find(|(m, _)| m == n) else {
@@ -2812,6 +2850,10 @@ impl Lower<'_, '_, '_> {
             {
                 !(b == "Hash" && matches!(t, Ty::Float | Ty::Fixed("f32" | "f64")))
             }
+            Ty::Tuple(ts) if matches!(b, "Eq" | "Ord" | "Hash") => {
+                ts.iter().all(|t| self.implements(t, b))
+            }
+            Ty::List(t) if matches!(b, "Eq" | "Ord") => self.implements(t, b),
             t => self.g.impls.contains(&(b.to_owned(), t.to_string())),
         }
     }
@@ -2990,7 +3032,10 @@ impl Lower<'_, '_, '_> {
                     for (w, t, _) in &self.arg_tys {
                         w.unify(t, &mut map);
                     }
-                    let (a, t) = self.atom(e, Some(&p.ty.subst(&map)))?;
+                    let w = p.ty.subst(&map);
+                    let w = (!matches!(w, Ty::Coll("iter", _))).then_some(w);
+                    let (a, t) = self.atom(e, w.as_ref())?;
+                    let (a, t) = self.as_iter(&p.ty, a, t, sp)?;
                     self.expect(&t, &p.ty, sp);
                     self.arg_tys.push((p.ty.clone(), t.clone(), sp));
                     if let (Conv::Sink, Atom::Name(n, _)) = (conv, &a)
@@ -3009,6 +3054,31 @@ impl Lower<'_, '_, '_> {
             }
         }
         Ok(Some(done.into_iter().flatten().collect()))
+    }
+
+    /// A collection passed where `iter[T]` is wanted is passed as its `.iter()` (R511).
+    fn as_iter(&mut self, want: &Ty, a: Atom, t: Ty, sp: Span) -> R<(Atom, Ty)> {
+        let iterable = matches!(t, Ty::Str | Ty::List(_) | Ty::Set(_) | Ty::Dict(..))
+            || matches!(t, Ty::Coll(c, _) if c != "iter" && c != "heap");
+        let (Ty::Coll("iter", _), true, Atom::Name(n, _)) = (want, iterable, &a) else {
+            return Ok((a, t));
+        };
+        let name = j::Expr {
+            kind: j::ExprKind::Name(n.clone()),
+            span: sp,
+            paren: false,
+        };
+        let f = j::Expr {
+            kind: j::ExprKind::Attr(Box::new(name), "iter".into(), sp),
+            span: sp,
+            paren: false,
+        };
+        let call = j::Expr {
+            kind: j::ExprKind::Call(Box::new(f), vec![]),
+            span: sp,
+            paren: false,
+        };
+        self.atom(&call, None)
     }
 
     fn positional<'e>(
