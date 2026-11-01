@@ -1,0 +1,19 @@
+# spec: 17.3
+# rows: R495
+# stdout:
+# 1 4
+# 0 0 6 6
+# 4 4
+# 0 0
+# [0, 1, 2, 2, 2, 2, 4, 5, 8, 9]
+
+pub def main() uses io:
+    xs = [1, 2, 2, 2, 5, 8]
+    io.print(f"{xs.bisect_left(2)} {xs.bisect_right(2)}")
+    io.print(f"{xs.bisect_left(0)} {xs.bisect_right(0)} {xs.bisect_left(9)} {xs.bisect_right(9)}")
+    io.print(f"{xs.bisect_left(3)} {xs.bisect_right(3)}")
+    e: list[int] = []
+    io.print(f"{e.bisect_left(1)} {e.bisect_right(1)}")
+    for x in [4, 2, 9, 0]:
+        xs.insort(x)
+    io.print(f"{xs}")
