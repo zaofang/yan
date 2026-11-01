@@ -99,3 +99,13 @@ pub def main() uses io:
 ";
     assert_eq!(raised(src), src);
 }
+
+#[test]
+fn str_advice_names_the_receiver() {
+    let src = "def first(name: str) -> str:\n    return name[0]\n";
+    let (_, d) = lower(src);
+    assert_eq!(
+        d[0].message, "`str` has no indexing; use `name.chars()`",
+        "{d:?}"
+    );
+}

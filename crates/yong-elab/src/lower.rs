@@ -653,7 +653,7 @@ fn function_body(
             "W806",
             sp,
             &item,
-            "this branch special-cases an `ex` input (21.1)".into(),
+            "this branch special-cases an `ex` input".into(),
         );
     }
     let hole_body = matches!(body.stmts.as_slice(), [s] if is_hole(s));
@@ -1807,10 +1807,11 @@ impl Lower<'_, '_, '_> {
                     ts[0].clone()
                 }
                 Ty::Str => {
+                    let s = self.cx.text(iter.span);
                     self.err(
                         "E504",
                         iter.span,
-                        "a `str` is not iterable; use `s.chars()`".into(),
+                        format!("a `str` is not iterable; use `{s}.chars()`"),
                     );
                     return Ok(());
                 }
@@ -2621,10 +2622,11 @@ impl Lower<'_, '_, '_> {
                         }
                     }
                     Ty::Str => {
+                        let s = self.cx.text(e.span);
                         self.err(
                             "E504",
                             e.span,
-                            "`str` has no indexing; use `s.chars()`".into(),
+                            format!("`str` has no indexing; use `{s}.chars()`"),
                         );
                         Ok((p, Ty::Err))
                     }
@@ -3192,7 +3194,8 @@ impl Lower<'_, '_, '_> {
                     Ty::List(e) => (**e).clone(),
                     Ty::Err => return Ok((Rhs::Atom(xs), Ty::Err)),
                     Ty::Str if self.cx.strict => {
-                        self.err("E504", at, "a slice of a `str`; use `s.chars()`".into());
+                        let s = self.cx.text(b.span);
+                        self.err("E504", at, format!("a slice of a `str`; use `{s}.chars()`"));
                         return Ok((Rhs::Atom(xs), Ty::Err));
                     }
                     Ty::Str => return unsupported("slices of a `str`"),
@@ -4641,10 +4644,11 @@ impl Lower<'_, '_, '_> {
                         return Ok((Rhs::Call(c), Ty::Int));
                     }
                     ("len", Ty::Str) if self.cx.strict => {
+                        let s = self.cx.text(xs[0].span);
                         self.err(
                             "E504",
                             at,
-                            "`len` of a `str`; use `s.char_count()` or `s.byte_len()`".into(),
+                            format!("`len` of a `str`; use `{s}.char_count()` or `{s}.byte_len()`"),
                         );
                         return Ok(err);
                     }
@@ -5046,7 +5050,7 @@ impl Lower<'_, '_, '_> {
                     "W819",
                     at,
                     &self.item.clone(),
-                    format!("this module's `{m}` hides `std.{module}.{m}` (17.2)"),
+                    format!("this module's `{m}` hides `std.{module}.{m}`"),
                 );
             }
             return self.user_call(m, Some(b), args, at);

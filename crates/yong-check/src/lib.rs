@@ -503,11 +503,13 @@ impl<'g, 'm> Cx<'g, 'm> {
                     } else {
                         "a borrow"
                     };
-                    self.err(
-                        code,
-                        at,
-                        format!("closure `{n}` escapes but captures {what}"),
-                    );
+                    // A closure the elaborator named (`_t2`) has no name in the source.
+                    let closure = if n.starts_with('_') {
+                        "this closure".to_owned()
+                    } else {
+                        format!("closure `{n}`")
+                    };
+                    self.err(code, at, format!("{closure} escapes but captures {what}"));
                 }
             }
         }
@@ -1014,7 +1016,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                 self.err(
                     "E402",
                     *sj,
-                    format!("`{nj}` is passed `inout` and accessed again in this call"),
+                    format!("`{nj}` is passed for mutation and accessed again in this call"),
                 );
                 return;
             }

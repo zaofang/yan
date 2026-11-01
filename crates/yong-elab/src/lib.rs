@@ -118,7 +118,7 @@ pub(crate) struct Cx<'s> {
     pub diags: Vec<Diagnostic>,
 }
 
-impl Cx<'_> {
+impl<'s> Cx<'s> {
     pub fn note(&mut self, code: &str, span: Span, item: &str, message: String) {
         self.err(code, span, item, message);
         if let Some(d) = self.diags.last_mut() {
@@ -134,6 +134,13 @@ impl Cx<'_> {
     }
 
     pub fn err(&mut self, code: &str, span: Span, item: &str, message: String) {
+        let quote = self.text(span);
+        self.diags
+            .push(Diagnostic::error(code, self.file, span, quote, message).with_item(item));
+    }
+
+    /// The source text of `span`, cut at the end of its first line.
+    pub fn text(&self, span: Span) -> &'s str {
         let line = self
             .src
             .lines()
@@ -145,9 +152,7 @@ impl Cx<'_> {
         } else {
             line.len()
         };
-        let quote = line.get(from..to).unwrap_or("");
-        self.diags
-            .push(Diagnostic::error(code, self.file, span, quote, message).with_item(item));
+        line.get(from..to).unwrap_or("")
     }
 }
 
