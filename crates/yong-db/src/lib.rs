@@ -15,8 +15,9 @@ use yong_diag::{Diagnostic, Severity};
 pub fn std_modules() -> Vec<(&'static str, String, &'static str, yong_hir::Module)> {
     yong_std::SOURCES
         .iter()
-        .map(|&(module, src)| {
-            let file = format!("std/{}.xin", module.replace('.', "/"));
+        .zip(yong_std::TIERS)
+        .map(|(&(module, src), tier)| {
+            let file = format!("{}/{}.xin", tier.dir(), module.replace('.', "/"));
             let (m, diags) = yong_xin::parse(&file, src, true);
             assert!(diags.is_empty(), "std.{module}: {diags:?}");
             (module, file, src, m.expect("std parses"))
