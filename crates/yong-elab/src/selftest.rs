@@ -99,3 +99,30 @@ pub def main() uses io:
 ";
     assert_eq!(raised(src), src);
 }
+
+#[test]
+fn lenient_methods_and_string_loops_run() {
+    let src = "\
+class Word:
+    text: str
+
+    def count(self, x: char) -> int:
+        n = 0
+        for c in self.text:
+            if c == x:
+                n += 1
+        return n
+
+pub def main() uses io:
+    w = Word(\"hehh\")
+    io.print(str(w.count(c'h')))
+";
+    let (m, d) = lower(src);
+    let codes: Vec<_> = d.iter().map(|d| d.code.as_str()).collect();
+    assert_eq!(codes, ["N21"]);
+    let checked = yong_check::check("t.xin", src, &m);
+    assert!(checked.is_empty(), "{checked:?}");
+    let mut out = Vec::new();
+    yong_interp::run(&m, &mut out).expect("runs");
+    assert_eq!(String::from_utf8(out).unwrap(), "3\n");
+}

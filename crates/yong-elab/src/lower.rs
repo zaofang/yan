@@ -1806,13 +1806,26 @@ impl Lower<'_, '_, '_> {
                     len_path = format!("std.{}.len", t.module().expect("a collection"));
                     ts[0].clone()
                 }
-                Ty::Str => {
+                Ty::Str if self.cx.strict => {
                     self.err(
                         "E504",
                         iter.span,
                         "a `str` is not iterable; use `s.chars()`".into(),
                     );
                     return Ok(());
+                }
+                Ty::Str => {
+                    let item = self.item.clone();
+                    self.cx.note(
+                        "N21",
+                        iter.span,
+                        &item,
+                        "`for c in s` normalized to `for c in s.chars()`".into(),
+                    );
+                    let chars = call("std.text.chars", vec![], vec![let_arg(xs)], at);
+                    let it = Ty::Coll("iter", vec![Ty::Char]);
+                    let it = self.tmp(&it, Rhs::Call(chars), at);
+                    return self.for_iter(label, name, target, it, Ty::Char, iter.span, at, body);
                 }
                 Ty::Err => return Ok(()),
                 t => return unsupported(format!("iterating a `{t}`")),
