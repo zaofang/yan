@@ -13,7 +13,7 @@ checked Yong --> Fei printer (any item, with its spelling notes)
 
 The printers are projections: any Yong item prints as Wen or Fei, and any Yong item inside the Jian subset prints as Jian (section 16).
 
-**One pivot (R558).** Every surface, the niche surfaces of 16.7 included, lowers to the shared high-level IR (`yong-hir`) and is printed from it; no surface depends on anything below it. A form belongs in the HIR only when two or more surfaces spell it; other sugar stays in the surface and is recovered from spelling notes (16.5). Elaboration from HIR to Yong and raising from Yong back to HIR are written once, for all surfaces (16.4, R559).
+**One pivot (R558).** Every surface, the niche surfaces of 16.7 included, lowers to the shared high-level IR (`yong-hir`) and is printed from it; no surface depends on anything below it. A form belongs in the HIR only when two or more surfaces spell it; other sugar stays in the surface and is recovered from spelling notes (16.5). Elaboration from HIR to Yong and raising from Yong back to HIR are written once, for all surfaces (16.4, R559). An item that runs on a niche surface engine (16.7, R568) enters the HIR as its boundary signature only, as an extern item; the engine is runtime code, not part of the surface crate (R576).
 
 | Name | Role | Files |
 | --- | --- | --- |

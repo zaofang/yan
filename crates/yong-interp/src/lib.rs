@@ -122,6 +122,87 @@ pub enum Stop {
     Panic(String),
     /// A construct this interpreter does not run yet: a tool failure, not a program result.
     Unsupported(String),
+    /// A stage-0 budget ran out (10.4): `depth` or `steps`.
+    Limit(&'static str),
+}
+
+/// Stage-0 budgets (10.4, R487): call depth, and steps counted as executed calls.
+#[derive(Clone, Copy)]
+pub struct Limits {
+    pub depth: usize,
+    pub steps: u64,
+}
+
+impl Default for Limits {
+    fn default() -> Self {
+        Limits {
+            depth: 1_000,
+            steps: 50_000_000,
+        }
+    }
+}
+
+/// What a stage-0 evaluation gives: a value that can cross into run time, or the kind of
+/// value that cannot (E262).
+pub enum Stage0 {
+    Value(yong_core::ast::ConstVal),
+    NotMaterializable(&'static str),
+}
+
+/// Evaluate nullary `fn f` of `m` at stage 0, on a thread with room for deep recursion.
+pub fn stage0(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
+    std::thread::scope(|s| {
+        std::thread::Builder::new()
+            .stack_size(1 << 30)
+            .spawn_scoped(s, || {
+                let program = compile::compile(m);
+                let Some(code) = program.fns.get(f).copied() else {
+                    return unsupported(format!("no `fn {f}` to evaluate"));
+                };
+                let mut sink = std::io::sink();
+                let mut vm = vm::Vm::new(program, Interp { out: &mut sink });
+                vm.limit(limits);
+                match vm.call(code, Vec::new())?.0 {
+                    Ok(v) => Ok(materialize(&v)),
+                    Err(_) => unsupported("a failing stage-0 call"),
+                }
+            })
+            .expect("spawn the stage-0 thread")
+            .join()
+            .unwrap_or_else(|_| unsupported("the stage-0 evaluator crashed"))
+    })
+}
+
+/// 10.4: scalars, strings, lists, tuples and data of them cross into run time.
+fn materialize(v: &Value) -> Stage0 {
+    use yong_core::ast::{ConstVal as C, Literal as L};
+    fn go(v: &Value) -> Result<C, &'static str> {
+        Ok(match v {
+            Value::Unit => C::Lit(L::Unit),
+            Value::Bool(b) => C::Lit(L::Bool(*b)),
+            Value::Int(n) => C::Lit(L::Int(n.to_string())),
+            Value::Float(f) => C::Lit(L::Float(format!("{f:?}"))),
+            Value::Char(c) => C::Lit(L::Char(*c)),
+            Value::Str(s) => C::Lit(L::Str(s.to_string())),
+            Value::List(xs) => C::List(xs.iter().map(go).collect::<Result<_, _>>()?),
+            Value::Tuple(xs) => C::Tuple(xs.iter().map(go).collect::<Result<_, _>>()?),
+            Value::Data { name, fields } => C::Path {
+                path: vec![name.clone()],
+                fields: Some(
+                    fields
+                        .iter()
+                        .map(|(n, x)| Ok::<_, &str>((n.clone(), go(x)?)))
+                        .collect::<Result<_, _>>()?,
+                ),
+            },
+            Value::Closure(_) => return Err("a function value"),
+            _ => return Err("this value"),
+        })
+    }
+    match go(v) {
+        Ok(c) => Stage0::Value(c),
+        Err(k) => Stage0::NotMaterializable(k),
+    }
 }
 
 pub(crate) type R<T> = Result<T, Stop>;
@@ -378,6 +459,7 @@ mod selftest {
             Ok(s) => s,
             Err(Stop::Panic(_)) => EXIT_PANIC,
             Err(Stop::Unsupported(w)) => panic!("unsupported: {w}"),
+            Err(Stop::Limit(w)) => panic!("limit: {w}"),
         };
         (status, String::from_utf8(out).unwrap())
     }

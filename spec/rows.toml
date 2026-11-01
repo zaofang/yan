@@ -519,3 +519,8 @@ sections = "2, 16.7"
 rows = "R569 to R575"
 topic = "std.json (RFC 0005), decided by the owner: `json.Value` with `parse_value`/`dump_value`, shipping with typed `parse[T: Wire]`/`dump[T: Wire]` once `derive(Wire)` exists (R569); numbers (R570); strict RFC 8259 input, duplicate keys and depth (R571); deterministic output (R572); `JsonError` (R573); total accessors on `Value` (R574); `parse_float` (R575)"
 sections = "17.3"
+
+[[entry]]
+rows = "R576"
+topic = "Niche surface engines (RFC 0006, https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC): engine items enter the HIR as extern signatures; engines are separate `yong-<name>-engine` crates or std packages at the runtime layer beside `yong-rt`"
+sections = "1, 16.7, 22.2"

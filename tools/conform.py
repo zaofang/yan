@@ -10,6 +10,12 @@ An executor is any command that implements:
 Exit status 2 or above from either command is a failure of the tool, never a verdict.
 The same suite drives the interpreter and every code generator (spec 22.1, 24.1).
 
+With --laws, the runner instead checks the round-trip laws of 16.5 on every case (R564), using
+    CMD hash --format json [--reverse-items] FILE -> JSON array of {"key", "hash", "identity"}
+    CMD view --as jian FILE.wen                   -> the module's Jian projection
+Exit status 1 from either means the module does not load or is outside the Jian subset; the
+law is then skipped for that case.
+
 The runner also writes the suite's manifest (--manifest) and coverage report (--coverage)
 from the case headers and conformance/catalogue.toml.
 """
@@ -167,6 +173,36 @@ class CommandExecutor:
             raise ToolFailure(out.stderr.strip())
         records: list[dict[str, object]] = json.loads(out.stdout or "[]")
         return records, out.returncode
+
+    def hash(self, path: Path, reverse: bool = False) -> list[tuple[str, str]] | None:
+        flags = ["--reverse-items"] if reverse else []
+        out = subprocess.run(
+            [*self.argv, "hash", "--format", "json", *flags, str(path)],
+            capture_output=True,
+            text=True,
+        )
+        if out.returncode >= TOOL_FAILURE:
+            raise ToolFailure(out.stderr.strip())
+        if out.returncode != 0:
+            return None
+        return sorted((str(h["key"]), str(h["hash"])) for h in json.loads(out.stdout))
+
+    def view(self, path: Path, surface: str) -> str | None:
+        out = subprocess.run(
+            [*self.argv, "view", "--as", surface, str(path)], capture_output=True, text=True
+        )
+        if out.returncode >= TOOL_FAILURE:
+            raise ToolFailure(out.stderr.strip())
+        return out.stdout if out.returncode == 0 else None
+
+
+class LawExecutor(Protocol):
+    @property
+    def name(self) -> str: ...
+
+    def hash(self, path: Path, reverse: bool = False) -> list[tuple[str, str]] | None: ...
+
+    def view(self, path: Path, surface: str) -> str | None: ...
 
 
 def _items(value: str) -> list[str]:
@@ -369,6 +405,94 @@ def _where(record: dict[str, object]) -> str:
     return f"{record.get('file')}:{span['line']}:{span['col']}"
 
 
+type Hashes = list[tuple[str, str]]
+
+
+def _hash_diff(a: Hashes, b: Hashes) -> str:
+    only_a = sorted(set(a) - set(b))
+    only_b = sorted(set(b) - set(a))
+    keys = sorted({k for k, _ in only_a} | {k for k, _ in only_b})
+    return "hashes differ for " + ", ".join(keys)
+
+
+def _without_comments(text: str, prefix: str) -> str:
+    return "".join(
+        line for line in text.splitlines(keepends=True) if not line.lstrip().startswith(prefix)
+    )
+
+
+def _more_blank_lines(text: str) -> str:
+    return text.replace("\n\n", "\n\n\n") + "\n\n"
+
+
+def law4(case: Case, ex: LawExecutor) -> Result:
+    """Item hashes do not depend on formatting, comments or item order."""
+    name = str(case.path)
+    base = ex.hash(case.path)
+    if base is None:
+        return Result(name, ex.name, "skip", "does not load")
+    text = case.path.read_text(encoding="utf-8")
+    prefix = COMMENT[case.path.suffix]
+    with tempfile.TemporaryDirectory() as tmp:
+        variants: list[tuple[str, Hashes | None]] = [("item order", ex.hash(case.path, True))]
+        for what, body in [
+            ("comments", _without_comments(text, prefix)),
+            ("blank lines", _more_blank_lines(text)),
+        ]:
+            p = Path(tmp) / case.path.name
+            p.write_text(body, encoding="utf-8")
+            variants.append((what, ex.hash(p)))
+    for what, got in variants:
+        if got is None:
+            return Result(name, ex.name, "fail", f"{what}: no longer loads")
+        if got != base:
+            return Result(name, ex.name, "fail", f"{what}: {_hash_diff(base, got)}")
+    return Result(name, ex.name, "pass")
+
+
+def law3(case: Case, ex: LawExecutor) -> Result:
+    """A Wen module within the Jian subset elaborates as its Jian projection does."""
+    name = str(case.path)
+    if case.path.suffix != ".wen":
+        return Result(name, ex.name, "skip", "not Wen")
+    base = ex.hash(case.path)
+    if base is None:
+        return Result(name, ex.name, "skip", "does not load")
+    jian = ex.view(case.path, "jian")
+    if jian is None:
+        return Result(name, ex.name, "skip", "outside the Jian subset")
+    with tempfile.TemporaryDirectory() as tmp:
+        p = Path(tmp) / case.path.with_suffix(".jian").name
+        p.write_text(jian, encoding="utf-8")
+        got = ex.hash(p)
+    if got is None:
+        return Result(name, ex.name, "fail", "the Jian projection does not load")
+    if got != base:
+        return Result(name, ex.name, "fail", _hash_diff(base, got))
+    return Result(name, ex.name, "pass")
+
+
+LAWS = {"3": law3, "4": law4}
+LAW_KINDS = ("pass", "run")
+
+
+def check_laws(cases: list[Case], ex: LawExecutor) -> dict[str, list[Result]]:
+    out: dict[str, list[Result]] = {}
+    for law, check in LAWS.items():
+        results = []
+        for c in cases:
+            if c.kind not in LAW_KINDS or c.path.suffix not in COMMENT:
+                continue
+            try:
+                results.append(check(c, ex))
+            except ToolFailure as e:
+                # A construct the implementation does not lower yet is not a law violation.
+                status: Status = "skip" if "not supported yet" in str(e) else "fail"
+                results.append(Result(str(c.path), ex.name, status, f"tool failure: {e}"))
+        out[law] = results
+    return out
+
+
 def selected(cases: list[Case], milestone: str | None) -> list[Case]:
     if milestone is None:
         return cases
@@ -471,6 +595,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--json", type=Path, help="write a JSON summary here")
     ap.add_argument("--manifest", type=Path, help="write the case manifest (JSON) here")
     ap.add_argument("--coverage", type=Path, help="write the coverage report (Markdown) here")
+    ap.add_argument(
+        "--laws", action="store_true", help="report the round-trip laws (16.5) instead; never fails"
+    )
     args = ap.parse_args(argv)
 
     executors = []
@@ -486,6 +613,8 @@ def main(argv: list[str] | None = None) -> int:
         args.coverage.write_text(coverage(cases, catalogue))
 
     cases = selected(cases, args.milestone)
+    if args.laws:
+        return report_laws(cases, executors, args.json)
     results = [judge(c, ex) for c in cases for ex in executors]
     counts = Counter(r.status for r in results)
     for r in results:
@@ -505,6 +634,26 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
     return 1 if counts["fail"] else 0
+
+
+def report_laws(cases: list[Case], executors: list[CommandExecutor], out: Path | None) -> int:
+    summary: dict[str, object] = {}
+    for ex in executors:
+        for law, results in check_laws(cases, ex).items():
+            counts = Counter(r.status for r in results)
+            for r in results:
+                if r.status == "fail":
+                    print(f"FAIL law {law} {r.executor} {r.case}: {r.detail}")
+            print(f"law {law}, {ex.name}: {dict(counts)}")
+            tally = {str(k): n for k, n in counts.items()}
+            summary[f"{ex.name} law {law}"] = {
+                "counts": tally,
+                "results": [asdict(r) for r in results],
+            }
+    if out:
+        out.write_text(json.dumps(summary, indent=2))
+    # Reported only until M3, when the laws gate CI (R564).
+    return 0
 
 
 if __name__ == "__main__":

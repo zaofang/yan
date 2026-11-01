@@ -6,7 +6,9 @@
 
 mod bounds;
 mod decorators;
+mod ffi;
 mod lower;
+mod stage0;
 mod stdlib;
 mod ty;
 
@@ -17,6 +19,7 @@ use yong_core::ast as y;
 use yong_diag::{Diagnostic, Span};
 use yong_hir as j;
 
+pub use stdlib::{StdModule, install_std};
 pub use ty::Ty;
 
 /// How the module is checked.
@@ -28,6 +31,8 @@ pub struct Options {
     pub release: bool,
     /// The module came from Wen, whose lints differ from Jian's (15.3).
     pub wen: bool,
+    /// The module is an ffi module, under the package's `ffi/` directory (12).
+    pub ffi: bool,
 }
 
 /// A construct the elaborator does not lower yet; the caller skips the semantic checks.
@@ -75,6 +80,15 @@ pub(crate) struct Globals {
     pub fns: HashMap<String, Sig>,
     /// `@derive(From)` conversions (R432): (from type, sum) to the generated function.
     pub froms: HashMap<(String, String), String>,
+    /// Functions with a stage-0 (`Nat`) parameter, and its name: lowered per instance (10.4).
+    pub templates: HashMap<String, (j::FuncDef, String)>,
+    pub instances: RefCell<HashMap<String, Sig>>,
+    /// The instances lowered so far.
+    pub generated: RefCell<Vec<y::Item>>,
+    /// Extern functions: whether each is `safe` and variadic (12.1).
+    pub externs: HashMap<String, (bool, bool)>,
+    /// Records marked `@layout(c)` (12.3).
+    pub layout_c: HashSet<String>,
     /// Functions marked `@deprecated`, for W815.
     pub deprecated: HashSet<String>,
     pub consts: HashMap<String, Ty>,
@@ -100,6 +114,7 @@ pub(crate) struct Cx<'s> {
     pub strict: bool,
     pub release: bool,
     pub wen: bool,
+    pub ffi: bool,
     pub diags: Vec<Diagnostic>,
 }
 
@@ -170,6 +185,29 @@ impl Globals {
                 }
                 Ty::Fn(*par, ps, Box::new(self.ty(ret, cx, span)?))
             }
+            j::Type::Named { path, .. } if cx.ffi && ffi::c_scalar(&path.join(".")).is_some() => {
+                ffi::c_scalar(&path[0]).expect("checked")
+            }
+            j::Type::Named { path, args }
+                if cx.ffi && path.len() == 1 && ffi::FOREIGN.contains(&path[0].as_str()) =>
+            {
+                let n = path[0].as_str();
+                let k = ffi::FOREIGN.iter().position(|f| *f == n).expect("checked");
+                let mut a = Vec::new();
+                for (k, arg) in args.iter().enumerate() {
+                    match arg {
+                        // `Owned[T, free_fn]` names its free function.
+                        j::TArg::Type(j::Type::Named { path, args })
+                            if n == "Owned" && k == 1 && args.is_empty() =>
+                        {
+                            a.push(Ty::Data(path.join(".")))
+                        }
+                        j::TArg::Type(t) => a.push(self.ty(t, cx, span)?),
+                        _ => return unsupported("value type arguments"),
+                    }
+                }
+                Ty::Foreign(ffi::FOREIGN[k], a)
+            }
             j::Type::Named { path, args } => {
                 let mut a = Vec::new();
                 for arg in args {
@@ -239,11 +277,12 @@ pub fn elaborate(
         strict: opts.strict,
         release: opts.release,
         wen: opts.wen,
+        ffi: opts.ffi,
         diags: Vec::new(),
     };
     let mut g = Globals::default();
-    let std_classes = stdlib::classes(&mut g, m, src)?;
-    let std_sums = stdlib::sums(&mut g, m, src);
+    let std_classes = stdlib::classes(&mut g, m)?;
+    let std_sums = stdlib::sums(&mut g, m);
     collect(&mut g, m, &mut cx)?;
     let std_fns = stdlib::collect(&mut g, m)?;
     let mut items = derive_froms(&mut g, m);
@@ -291,7 +330,7 @@ pub fn elaborate(
     for it in &m.items {
         let start = cx.diags.len();
         let k = item(&g, it, &mut cx)?;
-        decorators::check(it, start, &mut cx)?;
+        decorators::check(&g, it, start, &mut cx)?;
         if let Some(k) = k {
             items.push(y::Item {
                 attrs: Vec::new(),
@@ -301,6 +340,32 @@ pub fn elaborate(
         }
     }
     items.extend(stdlib::lower(&g, &std_fns)?);
+    items.extend(g.generated.take());
+    for it in &m.items {
+        if let j::ItemKind::Const {
+            name,
+            value:
+                j::Expr {
+                    kind: j::ExprKind::Stage(e),
+                    span,
+                    ..
+                },
+            ..
+        } = &it.kind
+            && let Some(value) = stage0::constant(&g, it, name, e, *span, &items, &mut cx)?
+        {
+            items.push(y::Item {
+                attrs: Vec::new(),
+                kind: y::ItemKind::Const(y::Const {
+                    is_pub: it.is_pub,
+                    path: vec![name.clone()],
+                    ty: g.consts[name].core(),
+                    value,
+                }),
+                span: it.span,
+            });
+        }
+    }
     let stem = std::path::Path::new(file)
         .file_stem()
         .and_then(|s| s.to_str())
@@ -337,6 +402,15 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             }
             j::ItemKind::Class(c) => {
                 g.records.insert(c.name.clone(), Vec::new());
+                let c_layout = |d: &j::Decorator| {
+                    d.path == ["layout"]
+                        && d.args.as_ref().is_some_and(|a| {
+                            matches!(&a[..], [j::Arg { kind: j::ArgKind::Expr(j::Expr { kind: j::ExprKind::Name(n), .. }), .. }] if n == "c")
+                        })
+                };
+                if it.decorators.iter().any(c_layout) {
+                    g.layout_c.insert(c.name.clone());
+                }
             }
             _ => {}
         }
@@ -382,6 +456,25 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                     format!("`{}` is defined twice", f.name),
                 );
             }
+            j::ItemKind::Func(f)
+                if f.tparams
+                    .iter()
+                    .any(|t| matches!(t, j::TParam::Value { .. })) =>
+            {
+                let names: Vec<&String> = f
+                    .tparams
+                    .iter()
+                    .filter_map(|t| match t {
+                        j::TParam::Value { name, .. } => Some(name),
+                        j::TParam::Type { .. } => None,
+                    })
+                    .collect();
+                if names.len() != 1 || f.tparams.len() != 1 {
+                    return unsupported("more than one stage-0 parameter");
+                }
+                g.templates
+                    .insert(f.name.clone(), (f.clone(), names[0].clone()));
+            }
             j::ItemKind::Func(f) => {
                 let s = sig(g, f, cx)?;
                 g.fns.insert(f.name.clone(), s);
@@ -398,6 +491,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 let t = g.ty(ty, cx, it.span)?;
                 g.consts.insert(name.clone(), t);
             }
+            j::ItemKind::Extern(x) => ffi::collect(g, x, it.span, cx)?,
             j::ItemKind::Trait(t) => {
                 if !t.tparams.is_empty() || !t.assoc.is_empty() {
                     return unsupported("generic traits and associated types");
@@ -455,7 +549,7 @@ fn impl_trait(i: &j::Impl) -> Option<String> {
     }
 }
 
-fn sig(g: &Globals, f: &j::FuncDef, cx: &mut Cx) -> R<Sig> {
+pub(crate) fn sig(g: &Globals, f: &j::FuncDef, cx: &mut Cx) -> R<Sig> {
     let mut tparams = Vec::new();
     for t in &f.tparams {
         let j::TParam::Type { name, bounds } = t else {
@@ -704,6 +798,14 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             }
             _ => return Ok(None),
         },
+        j::ItemKind::Const {
+            value:
+                j::Expr {
+                    kind: j::ExprKind::Stage(_),
+                    ..
+                },
+            ..
+        } => return Ok(None),
         j::ItemKind::Const { name, value, .. } => y::ItemKind::Const(y::Const {
             is_pub: it.is_pub,
             path: vec![name.clone()],
@@ -721,6 +823,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             }
             return Ok(None);
         }
+        j::ItemKind::Func(f) if g.templates.contains_key(&f.name) => return Ok(None),
         j::ItemKind::Func(f) => {
             if it.is_pub && f.name != "main" {
                 let body = f.body.as_ref();
@@ -755,6 +858,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             }
             y::ItemKind::Fn(lower::function(g, f, &g.fns[&f.name], it.is_pub, cx)?)
         }
+        j::ItemKind::Extern(x) => y::ItemKind::Extern(ffi::lower(g, x, cx)?),
         j::ItemKind::Trait(t) => y::ItemKind::Trait(y::Trait {
             is_pub: it.is_pub,
             path: vec![t.name.clone()],
@@ -793,5 +897,6 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
 
 #[cfg(test)]
 mod selftest;
+
 #[cfg(test)]
 mod stdlib_selftest;
