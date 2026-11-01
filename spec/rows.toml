@@ -534,3 +534,8 @@ sections = "17.3"
 rows = "R586"
 topic = "Surface names from Wang Xizhi's 兰亭集序 (https://claude.ai/artifact/8zD7T9QnYtNUsbF96cLHNN), decided by the owner: Yong 永 and Wen 文 kept; Jian 简 becomes Xin 信 (`.xin`, crate `yong-xin`), Fei 斐 becomes Chang 畅 (`.chang`); niche surfaces Wu 悟, Qi 契, Ting 亭, Cha 察, Xu 序, Yin 引, Xing 形, Liu 流, Tuo 托, Sui 随, Hui 会, Guan 观, Yan 言 (R586)"
 sections = "1, 16.7, 26"
+
+[[entry]]
+rows = "R587 to R592"
+topic = "std.path (RFC 0008), decided by the owner: `Path` value type over `str` (R587); `/` on every host (R588); construction normalizes, `..` kept, explicit `normalize()` (R589); the lexical method set and `AsPath` (R590); `fs` takes `AsPath` and fails on non-UTF-8 names (R591); `WindowsPath` for Windows path text as data (R592)"
+sections = "17.3"
