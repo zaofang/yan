@@ -29,6 +29,19 @@ fn error(at: usize, kind: &str) -> Value {
     }
 }
 
+/// `invalid <kind> at <at>` (R583).
+pub(super) fn show_error(fields: &[(super::Name, Value)]) -> String {
+    let [(_, Int(at)), (_, Data { name, .. })] = fields else {
+        unreachable!("an EncodingError")
+    };
+    let kind = match name.as_str() {
+        "Utf8" => "UTF-8",
+        "Hex" => "hex",
+        _ => "base64",
+    };
+    format!("invalid {kind} at {at}")
+}
+
 fn byte(v: &Value) -> u8 {
     match v {
         Int(i) => *i as u8,
@@ -59,16 +72,15 @@ fn hex(b: &[u8]) -> String {
 }
 
 fn hex_decode(s: &str) -> Result<Value, Value> {
-    let cs: Vec<char> = s.chars().collect();
-    let digit = |i: usize| cs[i].to_digit(16).ok_or_else(|| error(i, "Hex"));
-    if cs.len() % 2 == 1 {
-        return Err(error(cs.len(), "Hex"));
+    let ds = s
+        .chars()
+        .enumerate()
+        .map(|(i, c)| c.to_digit(16).ok_or_else(|| error(i, "Hex")))
+        .collect::<Result<Vec<_>, _>>()?;
+    if ds.len() % 2 == 1 {
+        return Err(error(ds.len(), "Hex"));
     }
-    let mut out = Vec::with_capacity(cs.len() / 2);
-    for i in (0..cs.len()).step_by(2) {
-        out.push((digit(i)? * 16 + digit(i + 1)?) as u8);
-    }
-    Ok(bytes(out))
+    Ok(bytes(ds.chunks(2).map(|d| (d[0] * 16 + d[1]) as u8).collect::<Vec<_>>()))
 }
 
 fn alphabet(url: bool) -> &'static [u8; 64] {

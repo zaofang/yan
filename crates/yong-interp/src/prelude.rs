@@ -222,6 +222,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         BigInt(b) => b.to_string(),
         Data { name, fields } if name == "Some" && fields.len() == 1 => show(&fields[0].1, nested),
         Data { name, fields } if name == "None" && fields.is_empty() => "None".into(),
+        Data { name, fields } if name == "EncodingError" => super::encoding::show_error(fields),
         Data { name, fields } => {
             let fs: Vec<String> = fields
                 .iter()
