@@ -1,4 +1,4 @@
-from tools.rows import allocations, check, expand
+from tools.rows import allocations, check, expand, missing_sections, next_code
 
 
 def test_expand_lists_and_ranges() -> None:
@@ -20,3 +20,13 @@ def test_also_maps_without_allocating() -> None:
 
 def test_repository_registry_is_consistent() -> None:
     assert check() == []
+
+
+def test_next_code_follows_the_family_maximum() -> None:
+    code = next_code("E3")
+    assert code.startswith("E3") and len(code) == 4
+
+
+def test_unknown_section_is_an_error() -> None:
+    entry = {"rows": "R1", "sections": "3.1, 99.9 (note 4.4)"}
+    assert missing_sections([entry]) == ["R1: section 99.9 does not exist"]

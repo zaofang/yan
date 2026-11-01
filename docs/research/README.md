@@ -38,6 +38,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-10-31 | [Embedded and GPU profiles](https://claude.ai/artifact/4vauJ4fyd3eUSTWJqXhiTx) | R320 to R329 |
 | 2026-10-31 | [Docs and learning](https://claude.ai/artifact/P85rp8yccZ2Kggomit9aKe) | R310 to R319 |
 | 2026-10-31 | [Testing and debugging](https://claude.ai/artifact/DY1uJTqzajm9v4PareFfu4) | R300 to R309 |
+| 2026-10-31 | [Paradigm keepers](https://claude.ai/artifact/UeApdTe98kdRA3d5K1w5hp) | R260 to R268 |
 | 2026-10-31 | [Diagnostics](https://claude.ai/artifact/GLRhfwSr8xcyE1gZqSLhg3) | R290 to R299 |
 | 2026-10-31 | [Formatter](https://claude.ai/artifact/L5u1PmipnjWYvtvCrRhNNj) | R240 to R255 |
 | 2026-10-31 | [Supply-chain security](https://claude.ai/artifact/XcMuaSWJuuHdxNPs3R6668) | R190 to R209 |
