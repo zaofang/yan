@@ -16,7 +16,39 @@ pub use yong_db::Database;
 pub fn diagnostics(db: &dyn Db, file: SourceFile) -> Result<Vec<Diagnostic>, String> {
     let mut diags = yong_db::diagnostics(db, file).clone()?;
     verify_fixes(db, file, &mut diags);
+    unique_quotes(db, file, &mut diags);
     Ok(diags)
+}
+
+/// Grows each quote until it occurs once in its item (R293).
+fn unique_quotes(db: &dyn Db, file: SourceFile, diags: &mut [Diagnostic]) {
+    let src = file.text(db);
+    let lines: Vec<&str> = src.lines().collect();
+    let items: Vec<Span> = match yong_db::front(db, file) {
+        Ok(Front::Hir(m, _)) => m.items.iter().map(|i| i.span).collect(),
+        Ok(Front::Yong(m)) => m.items.iter().map(|i| i.span).collect(),
+        _ => Vec::new(),
+    };
+    for d in diags {
+        let Some(&line) = lines.get((d.span.line as usize).wrapping_sub(1)) else {
+            continue;
+        };
+        let from = (d.span.col as usize).saturating_sub(1);
+        let to = from + d.quote.len();
+        if d.quote.is_empty() || line.get(from..to) != Some(d.quote.as_str()) {
+            continue;
+        }
+        let item = match items
+            .iter()
+            .find(|s| (s.line..=s.end_line).contains(&d.span.line))
+        {
+            Some(s) => {
+                lines[s.line as usize - 1..(s.end_line as usize).min(lines.len())].join("\n")
+            }
+            None => src.to_owned(),
+        };
+        d.quote = yong_diag::unique_quote(line, from, to, &item).to_owned();
+    }
 }
 
 /// Applies each fix to a copy of the file and re-checks it. A fix that removes its diagnostic

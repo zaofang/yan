@@ -156,6 +156,85 @@ pub enum Applicability {
     Template,
 }
 
+/// The quote for bytes `from..to` of `line` (R293): that text, extended outward by whole
+/// tokens until it occurs exactly once in `item`, or the whole line when nothing shorter does.
+pub fn unique_quote<'a>(line: &'a str, from: usize, to: usize, item: &str) -> &'a str {
+    let word = |c: char| c.is_alphanumeric() || c == '_';
+    let (mut from, mut to) = (from, to);
+    let repeated = |from: usize, to: usize| item.matches(&line[from..to]).count() > 1;
+    while from < to && repeated(from, to) {
+        let mut grew = false;
+        if let Some(n) = next_token(&line[to..], word) {
+            to += n;
+            grew = true;
+            if !repeated(from, to) {
+                break;
+            }
+        }
+        if let Some(k) = next_token_back(&line[..from], word) {
+            from = k;
+            grew = true;
+        }
+        if !grew {
+            break;
+        }
+    }
+    // Close brackets the quote opens or closes, so it never ends in a lone `(` or `)`.
+    loop {
+        let (open, close) = unmatched(&line[from..to]);
+        if close > 0
+            && let Some(k) = next_token_back(&line[..from], word)
+        {
+            from = k;
+        } else if open > 0
+            && let Some(n) = next_token(&line[to..], word)
+        {
+            to += n;
+        } else {
+            break;
+        }
+    }
+    &line[from..to]
+}
+
+/// The brackets `s` opens and does not close, and closes without opening.
+fn unmatched(s: &str) -> (usize, usize) {
+    let (mut open, mut close) = (0usize, 0usize);
+    for c in s.chars() {
+        match c {
+            '(' | '[' | '{' => open += 1,
+            ')' | ']' | '}' if open > 0 => open -= 1,
+            ')' | ']' | '}' => close += 1,
+            _ => {}
+        }
+    }
+    (open, close)
+}
+
+/// The byte length of the leading whitespace and first token of `s`.
+fn next_token(s: &str, word: impl Fn(char) -> bool) -> Option<usize> {
+    let ws = s.len() - s.trim_start().len();
+    let rest = &s[ws..];
+    let first = rest.chars().next()?;
+    let len = if word(first) {
+        rest.find(|c: char| !word(c)).unwrap_or(rest.len())
+    } else {
+        first.len_utf8()
+    };
+    Some(ws + len)
+}
+
+/// The byte offset in `s` where its last token, with the whitespace after it, starts.
+fn next_token_back(s: &str, word: impl Fn(char) -> bool) -> Option<usize> {
+    let end = s.trim_end().len();
+    let last = s[..end].chars().next_back()?;
+    Some(if word(last) {
+        s[..end].rfind(|c: char| !word(c)).map_or(0, |k| k + 1)
+    } else {
+        end - last.len_utf8()
+    })
+}
+
 /// The candidates within edit distance 2 of `name`, nearest first, at most three (R651).
 pub fn near<'a>(name: &str, candidates: impl IntoIterator<Item = &'a str>) -> Vec<&'a str> {
     let mut hits: Vec<(usize, &str)> = candidates
@@ -260,6 +339,18 @@ mod selftest {
         assert_eq!(d.render_line(None), "P002 m.xin:5:1 `t` matches 9 times");
         let d = Diagnostic::error("E101", "f.xin", at(6, 12), "a", "needs parentheses");
         assert_eq!(d.render_line(None), "E101 f.xin:6:12 `a` needs parentheses");
+    }
+
+    #[test]
+    fn quotes_grow_by_tokens_until_unique() {
+        let item = "def f(xs):\n    ys = xs\n    return len(xs)\n";
+        let line = "    return len(xs)";
+        assert_eq!(unique_quote(line, 15, 17, item), "len(xs)");
+        let item = "f(&a, a)\ng(&a)\n";
+        assert_eq!(unique_quote("g(&a)", 2, 4, item), "(&a)");
+        assert_eq!(unique_quote(line, 4, 10, item), "return");
+        let item = "a = 1\na = 1\n";
+        assert_eq!(unique_quote("a = 1", 0, 1, item), "a = 1");
     }
 
     #[test]
