@@ -301,7 +301,10 @@ fn check_src(
             d.extend(yong_check::check(&name, src, &m));
             d
         }
-        Loaded::Stopped(d) | Loaded::Unsupported(_, d) => d,
+        Loaded::Stopped(d) => d,
+        // Front-end errors found before the unsupported construct are still real.
+        Loaded::Unsupported(_, d) if has_error(&d) => d,
+        Loaded::Unsupported(what, _) => return Err(format!("not supported yet: {what}")),
     })
 }
 
