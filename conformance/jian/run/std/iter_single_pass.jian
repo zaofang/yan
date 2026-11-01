@@ -1,0 +1,15 @@
+# spec: 17.3
+# rows: R508, R513, R515
+# stdout:
+# 1 2
+# [3, 4]
+# []
+# None
+
+pub def main() uses io:
+    xs = [1, 2, 3, 4]
+    it = xs.iter()
+    io.print(f"{it.next()} {it.next()}")
+    io.print(f"{it.collect()}")
+    io.print(f"{it.collect()}")
+    io.print(f"{it.next()}")

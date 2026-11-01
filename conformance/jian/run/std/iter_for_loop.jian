@@ -1,0 +1,12 @@
+# spec: 17.3
+# rows: R508, R510
+# stdout:
+# 0 a
+# 1 b
+# 16
+
+pub def main() uses io:
+    for i, s in ["a", "b"].iter().enumerate():
+        io.print(f"{i} {s}")
+    for x in iter.count(2, 2).map(lambda x: x * x).take_while(lambda x: x < 20).skip(1):
+        io.print(f"{x}")

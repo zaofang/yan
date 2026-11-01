@@ -1,0 +1,19 @@
+# spec: 17.3
+# rows: R511
+# stdout:
+# 10 4 10
+# True False True
+# 3 None
+# 1 4
+# None None
+# 2.5
+
+pub def main() uses io:
+    xs = [3, 1, 4, 2]
+    io.print(f"{xs.iter().fold(0, lambda a, x: a + x)} {xs.iter().count()} {xs.iter().sum()}")
+    io.print(f"{xs.iter().any(lambda x: x > 3)} {xs.iter().all(lambda x: x > 3)} {xs.iter().all(lambda x: x > 0)}")
+    io.print(f"{xs.iter().find(lambda x: x > 2)} {xs.iter().find(lambda x: x > 9)}")
+    io.print(f"{xs.iter().min()} {xs.iter().max()}")
+    e: list[int] = []
+    io.print(f"{e.iter().min()} {e.iter().max()}")
+    io.print(f"{[1.0, 1.5].iter().sum()}")
