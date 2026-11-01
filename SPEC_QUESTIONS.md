@@ -227,3 +227,11 @@ Assumed in `yong patch` until the spec says otherwise:
 - A function with one `Nat` parameter is a template: each call `f[k](...)` lowers an instance `f__k` with `k` folded in. `#if` must fold to a bool, and only its taken branch is lowered. `#for` runs over a list literal of constants. Errors inside an instance are E272, except `compile_error` (E270), and each carries a note naming the instantiation. Code that does not depend on the parameter is not yet checked once at the definition (R346 phase one).
 - `embed(path)` resolves against the module's directory. The package root is the nearest ancestor with a `yong.toml`, else the module's directory.
 - Conformance question: `wen/pass/stage0/limit_raises_depth.wen` and `wen/run/stage0/folded_constant.wen` recurse without `decreases`, which is E602 (14, 8.4), and Wen has no lenient reader to infer N05. Either the cases need `decreases` lines, or Wen infers simple measures too.
+
+## Intrinsic registry readings (R561)
+
+Assumed in `yong-std`'s registry and the interpreter until the spec says otherwise:
+
+- **Generated entries.** The registry is generated at build time from the `@intrinsic` functions and `@capability` operations in `yong-std/lib/std`, plus the scalar `<op>_<ty>` family and `exclusive_check`. An entry's signature is its declaration line; purity is read from it (a capability operation is `Cap`, a `var` parameter makes it `Mutates`, otherwise `Pure`). Only `Cap` entries are restricted to run time (stage 1 and later).
+- **Ids.** An id is the entry's index in path order, stable within one build only. Nothing persists ids; the stage-0 query cache, when it exists, will key on paths.
+- **Resolution point.** Yong text names std functions by path, and Yong text is the interpreter's input, so the path is resolved to its id when the interpreter compiles a call site, and again by each code generator from `yong-mir`. Elaboration checks only that every std function it may call has an entry (`registry_matches_declarations`). Run time never looks an intrinsic up by name once its module is bound by id.

@@ -4,9 +4,8 @@
 use std::collections::BTreeSet;
 use yong_jian::ast::ItemKind;
 
-const NATIVE: [&str; 8] = [
-    include_str!("lib.rs"),
-    include_str!("native.rs"),
+/// The modules still dispatched by name; the rest are bound by id (`bind`).
+const NATIVE: [&str; 6] = [
     include_str!("prelude.rs"),
     include_str!("regex.rs"),
     include_str!("collections.rs"),
@@ -16,7 +15,7 @@ const NATIVE: [&str; 8] = [
 ];
 
 fn native_paths() -> BTreeSet<String> {
-    let mut out = BTreeSet::new();
+    let mut out: BTreeSet<String> = crate::bind::bound().map(str::to_owned).collect();
     for src in NATIVE {
         for chunk in src.split('"').skip(1).step_by(2) {
             let segs: Vec<&str> = chunk.split('.').collect();

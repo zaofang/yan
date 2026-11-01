@@ -27,6 +27,7 @@ yong-diag = { path = "crates/yong-diag" }
 yong-interp = { path = "crates/yong-interp" }
 yong-check = { path = "crates/yong-check" }
 yong-std = { path = "crates/yong-std" }
+yong-rt = { path = "crates/yong-rt" }
 yong-hir = { path = "crates/yong-hir" }
 yong-jian = { path = "crates/yong-jian" }
 yong-elab = { path = "crates/yong-elab" }
