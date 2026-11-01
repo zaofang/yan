@@ -1,0 +1,1 @@
+package: Package = Package(name="@tally/slice", version="0.1.0", yong="1.x", platform="service", capabilities=["io", "log", "fault", "net.only(connect=\"acquirer.example:443\")"])
