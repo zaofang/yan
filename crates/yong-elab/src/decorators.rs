@@ -1,10 +1,11 @@
-//! The decorators Jian may apply: `@derive` (10.4), `@expect` (18.2), `@deprecated` (20.5),
-//! `@messages` (17.5) and `@inline`.
+//! The decorators the elaborator applies: `@derive` (10.4), `@expect` (18.2), `@deprecated`
+//! (20.5), `@messages` (17.5), `@export` and `@layout(c)` (12), `@forbid(alloc)` (5.7),
+//! `@limit` (10.4) and `@inline`.
 
 use yong_diag::Span;
 use yong_hir as j;
 
-use crate::{Cx, R, unsupported};
+use crate::{Cx, Globals, R, ffi, lower, unsupported};
 
 /// std traits with a `derived` body (10.4); `From` derives on sums (R432).
 const DERIVABLE: [&str; 8] = [
@@ -14,7 +15,7 @@ const DERIVABLE: [&str; 8] = [
 const AUTO: [&str; 3] = ["Send", "Sync", "Freeze"];
 
 /// Checks `it`'s decorators after the item was lowered; its diagnostics start at `start`.
-pub(crate) fn check(it: &j::Item, start: usize, cx: &mut Cx) -> R<()> {
+pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<()> {
     let item = it.kind.name().to_owned();
     for (k, d) in it.decorators.iter().enumerate() {
         let args = d.args.as_deref().unwrap_or_default();
@@ -78,11 +79,59 @@ pub(crate) fn check(it: &j::Item, start: usize, cx: &mut Cx) -> R<()> {
                     }
                 }
             }
-            "deprecated" | "inline" => {}
+            "export" => ffi::export(g, it, cx)?,
+            "forbid" => {
+                for a in args {
+                    match &a.kind {
+                        j::ArgKind::Expr(j::Expr {
+                            kind: j::ExprKind::Name(n),
+                            ..
+                        }) if n == "alloc" => forbid_alloc(it, cx),
+                        _ => return unsupported("`@forbid` other than `alloc`"),
+                    }
+                }
+            }
+            "layout" if g.layout_c.contains(&item) => {}
+            "layout" => return unsupported("`@layout` other than `@layout(c)` on a record"),
+            "deprecated" | "inline" | "limit" => {}
             other => return unsupported(format!("decorator `@{other}`")),
         }
     }
     Ok(())
+}
+
+/// E900: every expression that allocates in a function marked `@forbid(alloc)` (5.7, R447).
+fn forbid_alloc(it: &j::Item, cx: &mut Cx) {
+    let j::ItemKind::Func(f) = &it.kind else {
+        return;
+    };
+    let mut found = Vec::new();
+    let mut stack: Vec<&[j::Stmt]> = f.body.iter().map(|b| b.stmts.as_slice()).collect();
+    while let Some(stmts) = stack.pop() {
+        for s in stmts {
+            for e in lower::stmt_exprs(s) {
+                lower::walk(e, &mut |x| {
+                    use j::ExprKind as K;
+                    if matches!(
+                        x.kind,
+                        K::List(_) | K::Set(_) | K::Dict(_) | K::Comp { .. } | K::FStr { .. }
+                    ) {
+                        found.push(x.span);
+                    }
+                });
+            }
+            stack.extend(lower::sub_blocks(s));
+        }
+    }
+    found.sort_by_key(|s| (s.line, s.col));
+    for at in found {
+        cx.err(
+            "E900",
+            at,
+            &f.name,
+            format!("`{}` is `@forbid(alloc)` and this allocates", f.name),
+        );
+    }
 }
 
 /// Decorators sit on the lines just above their item, one per line.

@@ -1,11 +1,11 @@
 //! The register VM that runs compiled Yong IR.
 
-use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
 
+use crate::bind::{self, Bind};
 use crate::compile::*;
-use crate::{Interp, R, STD_STAGES, Value, data, intrinsic, native, panic, unsupported};
+use crate::{Interp, R, Value, data, intrinsic, panic, unsupported};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Clo {
@@ -17,6 +17,8 @@ pub(crate) struct Vm<'o> {
     codes: Vec<Rc<Code>>,
     stack: Vec<Value>,
     it: Interp<'o>,
+    /// Stage-0 budgets, with the current depth and the steps taken; none at run time.
+    limits: Option<(crate::Limits, usize, u64)>,
 }
 
 /// The type name a value's `impl` is keyed by, where the value tells it.
@@ -226,44 +228,6 @@ fn bindings(p: &CPat, v: &Value, out: &mut Vec<(Reg, Value)>) {
     }
 }
 
-/// Dispatch stages: `fallible`, the intrinsics, then the std stages.
-const STAGES: u8 = 2 + STD_STAGES;
-
-fn stage(
-    it: &mut Interp,
-    s: u8,
-    name: &str,
-    args: &mut [Value],
-) -> Option<R<Result<Value, Value>>> {
-    match s {
-        0 => native::fallible(name, args).map(Ok),
-        1 => intrinsic(name, args).map(|r| r.map(Ok)),
-        s => it.std_stage(s - 2, name, args).map(|r| r.map(Ok)),
-    }
-}
-
-/// Call std function `name`, starting at the stage that last handled this call site. Each std
-/// path is handled by one stage only (`std_paths_have_one_stage`), so skipping the others keeps
-/// the order of the full dispatch.
-fn native_call(
-    it: &mut Interp,
-    name: &str,
-    args: &mut [Value],
-    hint: &Cell<u8>,
-) -> R<Result<Value, Value>> {
-    let h = hint.get();
-    if let Some(r) = stage(it, h, name, args) {
-        return r;
-    }
-    for s in (0..STAGES).filter(|s| *s != h) {
-        if let Some(r) = stage(it, s, name, args) {
-            hint.set(s);
-            return r;
-        }
-    }
-    unsupported(format!("call of `{name}`"))
-}
-
 enum Target {
     Code(usize, Option<Rc<Clo>>),
     Native,
@@ -275,7 +239,12 @@ impl<'o> Vm<'o> {
             codes: p.codes,
             stack: Vec::with_capacity(1 << 12),
             it,
+            limits: None,
         }
+    }
+
+    pub(crate) fn limit(&mut self, l: crate::Limits) {
+        self.limits = Some((l, 0, 0));
     }
 
     /// Call code `f` with `args`. The outcome, plus the final values of the parameters.
@@ -585,9 +554,13 @@ impl<'o> Vm<'o> {
             Via::Item(f) => match self.call(*f, vec![e])?.0 {
                 Ok(v) | Err(v) => v,
             },
-            Via::Native(name) => match native::fallible(name, &[e]) {
-                Some(Ok(v) | Err(v)) => v,
-                None => return unsupported(format!("`via {name}`")),
+            Via::Native(id) => match id.and_then(bind::get) {
+                Some(Bind::Fallible(f)) => match f(&[e])? {
+                    Ok(v) | Err(v) => v,
+                },
+                _ => {
+                    return unsupported("`via` of a std function that is not a fallible intrinsic");
+                }
             },
         })
     }
@@ -629,8 +602,21 @@ impl<'o> Vm<'o> {
         let nargs = s.args.len();
         let outcome = match self.target_at(s, base, new_base) {
             Target::Code(f, clo) => {
+                if let Some((l, depth, steps)) = &mut self.limits {
+                    *depth += 1;
+                    *steps += 1;
+                    if *depth > l.depth {
+                        return Err(crate::Stop::Limit("depth"));
+                    }
+                    if *steps > l.steps {
+                        return Err(crate::Stop::Limit("steps"));
+                    }
+                }
                 self.enter(f, clo.as_deref(), new_base, nargs);
                 let r = self.exec(f, new_base)?;
+                if let Some((_, depth, _)) = &mut self.limits {
+                    *depth -= 1;
+                }
                 for (i, a) in s.args.iter().enumerate() {
                     if let ArgC::Inout(r) = a {
                         let v = self
@@ -644,28 +630,35 @@ impl<'o> Vm<'o> {
                 r
             }
             Target::Native
-                if s.name.starts_with("std.iter.")
-                    || s.name.ends_with(".iter")
-                    || matches!(&*s.name, "std.prelude.set" | "std.prelude.dict") =>
+                if let Some((id, b)) = s.id.and_then(|id| Some((id, bind::get(id)?))) =>
             {
-                let args = self.stack[new_base..].iter_mut().map(mem::take).collect();
-                match self.iter_call(&s.name, args) {
-                    Some(r) => Ok(r?),
-                    None => return unsupported(format!("call of `{}`", s.name)),
+                let r = match b {
+                    Bind::Plain(f) => Ok(f(&mut self.stack[new_base..])?),
+                    Bind::Cap(f) => Ok(f(&mut self.it, &mut self.stack[new_base..])?),
+                    Bind::Fallible(f) => f(&self.stack[new_base..])?,
+                    Bind::Vm(f) => {
+                        // Taken off the stack: closures the function calls run on it.
+                        let mut args: Vec<Value> =
+                            self.stack[new_base..].iter_mut().map(mem::take).collect();
+                        let r = f(self, id, &mut args)?;
+                        for (i, v) in args.into_iter().enumerate() {
+                            self.stack[new_base + i] = v;
+                        }
+                        Ok(r)
+                    }
+                };
+                for (i, a) in s.args.iter().enumerate() {
+                    if let ArgC::Inout(r) = a {
+                        let v = mem::take(&mut self.stack[new_base + i]);
+                        self.stack[base + *r as usize] = v;
+                    }
                 }
+                r
             }
             Target::Native => {
-                let r = if super::keyed::KEYED.contains(&&*s.name) {
-                    // Taken off the stack: the key closure runs on it.
-                    let mut args: Vec<Value> =
-                        self.stack[new_base..].iter_mut().map(mem::take).collect();
-                    let r = self.keyed_call(&s.name, &mut args)?;
-                    for (i, v) in args.into_iter().enumerate() {
-                        self.stack[new_base + i] = v;
-                    }
-                    Ok(r)
-                } else {
-                    native_call(&mut self.it, &s.name, &mut self.stack[new_base..], &s.stage)?
+                let r = match intrinsic(&s.name, &self.stack[new_base..]) {
+                    Some(r) => Ok(r?),
+                    None => return unsupported(format!("call of `{}`", s.name)),
                 };
                 for (i, a) in s.args.iter().enumerate() {
                     if let ArgC::Inout(r) = a {
@@ -773,43 +766,6 @@ fn walk_mut<'v, 's>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::BTreeMap;
-
-    /// The std paths quoted in `src`.
-    fn paths(src: &str) -> Vec<&str> {
-        src.split('"')
-            .skip(1)
-            .step_by(2)
-            .filter(|c| c.starts_with("std.") && !c.contains(' '))
-            .collect()
-    }
-
-    #[test]
-    fn std_paths_have_one_stage() {
-        let native = include_str!("native.rs");
-        let (fallible, call) = native
-            .split_once("pub(super) fn call(")
-            .expect("native.rs has `call`");
-        let stages = [
-            ("native::fallible", fallible),
-            ("native::call", call),
-            ("prelude", include_str!("prelude.rs")),
-            ("regex", include_str!("regex.rs")),
-            ("collections", include_str!("collections.rs")),
-            ("math", include_str!("math.rs")),
-            ("iter", include_str!("iter.rs")),
-            ("keyed", include_str!("keyed.rs")),
-            ("lib builtins", include_str!("lib.rs")),
-        ];
-        let mut seen: BTreeMap<&str, &str> = BTreeMap::new();
-        for (stage, src) in stages {
-            for p in paths(src) {
-                if let Some(other) = seen.insert(p, stage) {
-                    assert_eq!(other, stage, "`{p}` is handled in two dispatch stages");
-                }
-            }
-        }
-    }
 
     #[test]
     fn int_ops_agree_with_intrinsics() {

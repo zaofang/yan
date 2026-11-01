@@ -307,6 +307,7 @@ pub fn expr(e: &Expr, min: u8) -> String {
         ExprKind::Name(n) => n.clone(),
         ExprKind::Lit(l) => lit(l),
         ExprKind::Hole => "...".into(),
+        ExprKind::Stage(_) => unreachable!("Jian has no stage-0 expressions"),
         ExprKind::Wild => "_".into(),
         ExprKind::FStr { template, pieces } => {
             let q = QUOTE.get();
@@ -496,6 +497,7 @@ impl Printer {
         match &it.kind {
             ItemKind::Func(f) => self.func(f, pubs, "def", 0),
             ItemKind::Lemma(f) => self.func(f, pubs, "lemma", 0),
+            ItemKind::Extern(_) => unreachable!("Jian has no extern blocks"),
             ItemKind::Class(c) => {
                 self.line(
                     0,

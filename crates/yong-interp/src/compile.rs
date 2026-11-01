@@ -4,11 +4,11 @@
 //! keeps one slot across blocks) plus temporaries. Constructs the VM cannot run compile to an
 //! `Unsupported` op, so they fail only when reached, as before.
 
-use std::cell::Cell;
 use std::collections::HashSet;
 use std::rc::Rc;
 
 use yong_core::ast::*;
+use yong_std::registry::{self, Id};
 
 use crate::{Fnv, Map, Value, int_range, literal};
 
@@ -227,7 +227,7 @@ pub(crate) enum Mode {
 pub(crate) enum Via {
     None,
     Item(usize),
-    Native(Rc<str>),
+    Native(Option<Id>),
 }
 
 #[derive(Debug)]
@@ -253,8 +253,9 @@ pub(crate) struct Site {
     pub callee: Callee,
     pub args: Vec<ArgC>,
     pub name: Rc<str>,
-    /// The std dispatch stage that last handled this site.
-    pub stage: Cell<u8>,
+    /// The registry id of the std function `name`, resolved here so that bound intrinsics are
+    /// not looked up by name at run time (R561).
+    pub id: Option<Id>,
     pub mode: Mode,
 }
 
@@ -649,6 +650,7 @@ impl<'g, 'm> FnC<'g, 'm> {
             Atom::Lit(l, _) => match literal(l) {
                 Ok(v) => Ok(self.konst(v)),
                 Err(crate::Stop::Unsupported(m) | crate::Stop::Panic(m)) => Err(m),
+                Err(crate::Stop::Limit(m)) => Err(m.to_owned()),
             },
             Atom::Name(n, _) => self.lookup(n),
         }
@@ -1044,7 +1046,7 @@ impl<'g, 'm> FnC<'g, 'm> {
                         let k = p.join(".");
                         match self.g.fns.get(&k) {
                             Some(f) => Via::Item(*f),
-                            None => Via::Native(k.into()),
+                            None => Via::Native(registry::id(&k)),
                         }
                     }
                 };
@@ -1183,8 +1185,8 @@ impl<'g, 'm> FnC<'g, 'm> {
         self.code.sites.push(Site {
             callee,
             args,
+            id: registry::id(&name),
             name: name.into(),
-            stage: Cell::new(0),
             mode,
         });
         Some(self.code.sites.len() as u32 - 1)

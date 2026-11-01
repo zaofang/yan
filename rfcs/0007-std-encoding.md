@@ -1,8 +1,8 @@
 # 0007: std.encoding and `bytes`
 
-- Status: draft
+- Status: accepted (the lead chose "Accept, add bytearray too" on 2026-11-01: D1 to D6 accepted, D7 added)
 - Research: none; this RFC is the proposal (Wave 3 of the std build plan)
-- Rows: filled in when accepted
+- Rows: R577 to R583
 
 ## Summary
 
@@ -37,8 +37,8 @@ Options weighed:
 
 Recommended: one immutable `bytes`, with no literal until the syntax hold lifts.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R577
 
 ### D2: UTF-8
 
@@ -47,16 +47,16 @@ sequences fail at the byte where they start. `b.decode_utf8_lossy() -> str` repl
 invalid subpart with U+FFFD, as the Unicode standard recommends and as Rust's
 `String::from_utf8_lossy` does. `s.bytes()` never fails.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R578
 
 ### D3: hex
 
 `encoding.hex(b) -> str` writes lowercase digits. `encoding.hex_decode(s) -> bytes fail EncodingError`
 accepts either case. It rejects whitespace, `0x` prefixes and odd length.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R579
 
 ### D4: base64
 
@@ -69,8 +69,8 @@ Options weighed: Python's lenient decoder, which discards characters outside the
 `validate=True`. Recommended: strict decoding. It follows the strict-input rule of R571, and it closes
 the malleability that signatures and cache keys trip over.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R580
 
 ### D5: `EncodingError`
 
@@ -83,8 +83,8 @@ type EncodingReason = Utf8() | Hex() | Base64()
 indexes do. `Show` prints `invalid <kind> at <at>`. The type derives `Show` and `Eq`, and it is the
 module's only error type.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R581
 
 ### D6: `Show` for `bytes`
 
@@ -92,8 +92,28 @@ module's only error type.
 and `\r` as escapes; and every other byte as `\xNN` in lowercase. This matches the CPython style of
 R493 for collections, so an agent reading output sees familiar text.
 
-- Decision:
-- Row:
+- Decision: accepted, 2026-11-01
+- Row: R582
+
+### D7: a mutable `bytearray`
+
+Added by the lead's answer. `bytearray` is a growable, mutable byte buffer with these methods:
+- `bytearray()` and `bytearray.from_bytes(b)`
+- `len()`
+- `b[i] -> u8` and `b[i] = x`, both of which panic with `bounds`
+- `append(x: u8)`
+- `extend(b: bytes)`
+- `pop() -> u8`, which panics with `bounds` when the buffer is empty
+- `clear()`
+- `to_bytes() -> bytes`, which copies
+
+It implements `Eq`. It does not implement `Ord` or `Hash`, because it is mutable and so cannot be a
+`dict` key, as in Python. `show` prints `bytearray(b'...')`. The encoders and `decode_utf8` take
+`bytes`, so a buffer is encoded through `to_bytes()`. When `MutView[u8]` arrives, `bytearray` coerces
+to it.
+
+- Decision: accepted, 2026-11-01
+- Row: R583
 
 ## Spec changes
 
