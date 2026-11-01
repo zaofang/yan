@@ -1,36 +1,11 @@
-//! Every `@intrinsic` in yong-std's sources has a native arm here, and every native arm is
+//! Every `@intrinsic` in yong-std's sources is bound by id here, and every bound id is
 //! declared, as an intrinsic or as a capability operation (R474).
 
 use std::collections::BTreeSet;
 use yong_jian::ast::ItemKind;
 
-/// The modules still dispatched by name; the rest are bound by id (`bind`).
-const NATIVE: [&str; 4] = [
-    include_str!("prelude.rs"),
-    include_str!("collections.rs"),
-    include_str!("iter.rs"),
-    include_str!("keyed.rs"),
-];
-
 fn native_paths() -> BTreeSet<String> {
-    let mut out: BTreeSet<String> = crate::bind::bound().map(str::to_owned).collect();
-    for src in NATIVE {
-        for chunk in src.split('"').skip(1).step_by(2) {
-            let segs: Vec<&str> = chunk.split('.').collect();
-            let word = |s: &str| {
-                !s.is_empty()
-                    && s.starts_with(|c: char| c.is_ascii_lowercase())
-                    && s.bytes()
-                        .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
-            };
-            // Three segments, or four for a submodule (std.collections.deque.len).
-            if matches!(segs.len(), 3 | 4) && segs[0] == "std" && segs[1..].iter().all(|s| word(s))
-            {
-                out.insert(chunk.to_string());
-            }
-        }
-    }
-    out
+    crate::bind::bound().map(str::to_owned).collect()
 }
 
 fn declared() -> (BTreeSet<String>, BTreeSet<String>) {

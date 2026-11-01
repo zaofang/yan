@@ -207,8 +207,6 @@ fn materialize(v: &Value) -> Stage0 {
 
 pub(crate) type R<T> = Result<T, Stop>;
 
-pub(crate) const STD_STAGES: u8 = 2;
-
 pub(crate) struct Interp<'o> {
     out: &'o mut dyn Write,
 }
@@ -386,16 +384,6 @@ pub(crate) fn data(name: &str, field: &str, v: Value) -> Value {
     Value::Data {
         name: name.to_owned(),
         fields: vec![(field.to_owned(), v)],
-    }
-}
-
-/// Stage `stage` of the name-matched std dispatch (assumption Y3), for modules not yet bound by
-/// id, tried in order from 0 to `STD_STAGES - 1`; `None` when the stage does not handle `name`
-/// with these arguments.
-pub(crate) fn std_stage(stage: u8, name: &str, args: &mut [Value]) -> Option<R<Value>> {
-    match stage {
-        0 => prelude::call(name, args),
-        _ => collections::call(name, args),
     }
 }
 

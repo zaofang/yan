@@ -1,32 +1,52 @@
-//! The std functions elaborated Jian calls (paths per R475), until yong-std provides them.
+//! The std functions elaborated Jian calls (paths per R475), bound by registry id (R561).
 
 use std::cmp::Ordering;
 use std::mem;
 
-use unicode_segmentation::UnicodeSegmentation;
+use yong_rt::{fmt, list, num, text};
+use yong_std::registry::{Id, id::*};
 
-use super::{R, Value, panic};
+use super::bind::{Bind, bad_args};
+use super::{Value, panic};
+use Value::*;
 
-pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
-    use Value::*;
-    let text = |s: String| Some(Ok(Str(s.into())));
-    Some(Ok(match (name, &mut *args) {
-        ("std.fmt.show", [v]) => return text(show(v, false)),
-        ("std.text.concat", [Str(a), Str(b)]) => return text(format!("{a}{b}")),
-        ("std.text.byte_len", [Str(s)]) => Int(s.len() as i128),
-        ("std.text.char_count", [Str(s)]) => Int(s.chars().count() as i128),
-        ("std.text.grapheme_count", [Str(s)]) => Int(s.graphemes(true).count() as i128),
-        ("std.text.upper", [Str(s)]) => return text(s.to_uppercase()),
-        ("std.text.lower", [Str(s)]) => return text(s.to_lowercase()),
-        ("std.text.strip", [Str(s)]) => return text(s.trim().to_owned()),
-        ("std.text.startswith", [Str(s), Str(p)]) => Bool(s.starts_with(&**p)),
-        ("std.text.endswith", [Str(s), Str(p)]) => Bool(s.ends_with(&**p)),
-        ("std.text.contains", [Str(s), Str(p)]) => Bool(s.contains(&**p)),
-        ("std.text.replace", [Str(s), Str(a), Str(b)]) => return text(s.replace(&**a, b)),
-        ("std.text.split", [Str(s), Str(sep)]) => {
-            List(s.split(&**sep).map(|p| Str(p.into())).collect())
-        }
-        ("std.text.join", [Str(sep), List(xs)]) => {
+macro_rules! f {
+    ($id:ident, |$a:ident| { $($pat:pat => $e:expr),+ $(,)? }) => {
+        (
+            $id,
+            Bind::Plain(|$a| {
+                Ok(match &mut *$a {
+                    $($pat => $e,)+
+                    #[allow(unreachable_patterns)]
+                    _ => return bad_args($id),
+                })
+            }),
+        )
+    };
+}
+
+fn s(x: String) -> Value {
+    Str(x.into())
+}
+
+pub(super) static BINDS: &[(Id, Bind)] = &[
+    f!(STD_FMT_SHOW, |a| { [v] => s(show(v, false)) }),
+    f!(STD_TEXT_CONCAT, |a| { [Str(x), Str(y)] => s(format!("{x}{y}")) }),
+    f!(STD_TEXT_BYTE_LEN, |a| { [Str(x)] => Int(x.len() as i128) }),
+    f!(STD_TEXT_CHAR_COUNT, |a| { [Str(x)] => Int(x.chars().count() as i128) }),
+    f!(STD_TEXT_GRAPHEME_COUNT, |a| { [Str(x)] => Int(text::grapheme_count(x) as i128) }),
+    f!(STD_TEXT_UPPER, |a| { [Str(x)] => s(x.to_uppercase()) }),
+    f!(STD_TEXT_LOWER, |a| { [Str(x)] => s(x.to_lowercase()) }),
+    f!(STD_TEXT_STRIP, |a| { [Str(x)] => s(x.trim().to_owned()) }),
+    f!(STD_TEXT_STARTSWITH, |a| { [Str(x), Str(p)] => Bool(x.starts_with(&**p)) }),
+    f!(STD_TEXT_ENDSWITH, |a| { [Str(x), Str(p)] => Bool(x.ends_with(&**p)) }),
+    f!(STD_TEXT_CONTAINS, |a| { [Str(x), Str(p)] => Bool(x.contains(&**p)) }),
+    f!(STD_TEXT_REPLACE, |a| { [Str(x), Str(p), Str(q)] => s(x.replace(&**p, q)) }),
+    f!(STD_TEXT_SPLIT, |a| {
+        [Str(x), Str(sep)] => List(x.split(&**sep).map(|p| Str(p.into())).collect())
+    }),
+    f!(STD_TEXT_JOIN, |a| {
+        [Str(sep), List(xs)] => {
             let parts: Vec<&str> = xs
                 .iter()
                 .filter_map(|x| match x {
@@ -34,69 +54,74 @@ pub(super) fn call(name: &str, args: &mut [Value]) -> Option<R<Value>> {
                     _ => None,
                 })
                 .collect();
-            return text(parts.join(sep));
+            s(parts.join(sep))
         }
-        ("std.list.append", [List(xs), v]) => {
+    }),
+    f!(STD_LIST_APPEND, |a| {
+        [List(xs), v] => {
             xs.push(mem::replace(v, Unit));
             Unit
         }
-        ("std.list.pop", [List(xs)]) => match xs.pop() {
+    }),
+    f!(STD_LIST_POP, |a| {
+        [List(xs)] => match xs.pop() {
             Some(v) => v,
-            None => return Some(panic("bounds")),
-        },
-        ("std.list.concat", [List(a), List(b)]) => {
-            List(a.iter().chain(b.iter()).cloned().collect())
+            None => return panic("bounds"),
         }
-        ("std.list.contains", [List(xs), v]) => Bool(xs.contains(v)),
-        ("std.list.insert", [List(xs), Int(i), v]) => {
-            let n = xs.len() as i128;
-            let at = if *i < 0 { (n + *i).max(0) } else { (*i).min(n) };
-            xs.insert(at as usize, mem::replace(v, Unit));
+    }),
+    f!(STD_LIST_CONCAT, |a| {
+        [List(x), List(y)] => List(x.iter().chain(y.iter()).cloned().collect())
+    }),
+    f!(STD_LIST_CONTAINS, |a| { [List(xs), v] => Bool(xs.contains(v)) }),
+    f!(STD_LIST_INSERT, |a| {
+        [List(xs), Int(i), v] => {
+            xs.insert(list::insert_at(*i, xs.len()), mem::replace(v, Unit));
             Unit
         }
-        ("std.list.reverse", [List(xs)]) => {
+    }),
+    f!(STD_LIST_REVERSE, |a| {
+        [List(xs)] => {
             xs.reverse();
             Unit
         }
-        ("std.list.slice_exact", [List(xs), Int(a), Int(b)]) => {
-            match (usize::try_from(*a), usize::try_from(*b)) {
-                (Ok(a), Ok(b)) if a <= b && b <= xs.len() => List(xs[a..b].to_vec()),
-                _ => return Some(panic("bounds")),
-            }
+    }),
+    f!(STD_LIST_SLICE_EXACT, |a| {
+        [List(xs), Int(i), Int(j)] => match (usize::try_from(*i), usize::try_from(*j)) {
+            (Ok(i), Ok(j)) if i <= j && j <= xs.len() => List(xs[i..j].to_vec()),
+            _ => return panic("bounds"),
         }
-        ("std.prelude.int", [Float(f)]) => {
-            let t = f.trunc();
-            if t.is_nan() || t < i64::MIN as f64 || t >= i64::MAX as f64 {
-                return Some(panic("conversion"));
-            }
-            Int(t as i128)
+    }),
+    f!(STD_PRELUDE_INT, |a| {
+        [Float(x)] => match num::trunc_i64(*x) {
+            Some(i) => Int(i.into()),
+            None => return panic("conversion"),
         }
-        ("std.prelude.float", [Int(i)]) => Float(*i as f64),
-        ("std.prelude.round", [Float(f)]) => {
-            let r = f.round_ties_even();
-            if r.is_nan() || r < i64::MIN as f64 || r >= i64::MAX as f64 {
-                return Some(panic("conversion"));
-            }
-            Int(r as i128)
+    }),
+    f!(STD_PRELUDE_FLOAT, |a| { [Int(i)] => Float(*i as f64) }),
+    f!(STD_PRELUDE_ROUND, |a| {
+        [Float(x)] => match num::round_i64(*x) {
+            Some(i) => Int(i.into()),
+            None => return panic("conversion"),
         }
-        ("std.prelude.abs", [Int(i)]) if *i == i64::MIN.into() => return Some(panic("overflow")),
-        ("std.prelude.abs", [Int(i)]) => Int(i.abs()),
-        ("std.prelude.abs", [Float(f)]) => Float(f.abs()),
-        ("std.cmp.eq", [a, b]) => Bool(a == b),
-        ("std.cmp.ne", [a, b]) => Bool(a != b),
-        ("std.cmp.lt", [a, b]) => Bool(order(a, b) == Some(Ordering::Less)),
-        ("std.cmp.le", [a, b]) => Bool(matches!(
-            order(a, b),
-            Some(Ordering::Less | Ordering::Equal)
-        )),
-        ("std.cmp.gt", [a, b]) => Bool(order(a, b) == Some(Ordering::Greater)),
-        ("std.cmp.ge", [a, b]) => Bool(matches!(
-            order(a, b),
-            Some(Ordering::Greater | Ordering::Equal)
-        )),
-        _ => return None,
-    }))
-}
+    }),
+    f!(STD_PRELUDE_ABS, |a| {
+        [Int(i)] => match i64::try_from(*i).ok().and_then(i64::checked_abs) {
+            Some(v) => Int(v.into()),
+            None => return panic("overflow"),
+        },
+        [Float(x)] => Float(x.abs()),
+    }),
+    f!(STD_CMP_EQ, |a| { [x, y] => Bool(x == y) }),
+    f!(STD_CMP_NE, |a| { [x, y] => Bool(x != y) }),
+    f!(STD_CMP_LT, |a| { [x, y] => Bool(order(x, y) == Some(Ordering::Less)) }),
+    f!(STD_CMP_LE, |a| {
+        [x, y] => Bool(matches!(order(x, y), Some(Ordering::Less | Ordering::Equal)))
+    }),
+    f!(STD_CMP_GT, |a| { [x, y] => Bool(order(x, y) == Some(Ordering::Greater)) }),
+    f!(STD_CMP_GE, |a| {
+        [x, y] => Bool(matches!(order(x, y), Some(Ordering::Greater | Ordering::Equal)))
+    }),
+];
 
 fn order(a: &Value, b: &Value) -> Option<Ordering> {
     use Value::*;
@@ -133,10 +158,10 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Unit => "None".into(),
         Bool(b) => if *b { "True" } else { "False" }.into(),
         Int(i) => i.to_string(),
-        Float(f) => float_repr(*f),
-        Char(c) if nested => repr(&c.to_string()),
+        Float(f) => fmt::float_repr(*f),
+        Char(c) if nested => fmt::repr(&c.to_string()),
         Char(c) => c.to_string(),
-        Str(s) if nested => repr(s),
+        Str(s) if nested => fmt::repr(s),
         Str(s) => s.to_string(),
         Tuple(xs) if xs.len() == 1 => format!("({},)", show(&xs[0], true)),
         Tuple(xs) => format!("({})", join(xs)),
@@ -184,55 +209,6 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Closure(_) => "<function>".into(),
         Iter(_) => "<iter>".into(),
     }
-}
-
-fn repr(s: &str) -> String {
-    let q = if s.contains('\'') && !s.contains('"') {
-        '"'
-    } else {
-        '\''
-    };
-    let mut out = String::from(q);
-    for c in s.chars() {
-        match c {
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            c if c == q => {
-                out.push('\\');
-                out.push(c);
-            }
-            c if (c as u32) < 0x20 || c as u32 == 0x7f => {
-                out.push_str(&format!("\\x{:02x}", c as u32))
-            }
-            c => out.push(c),
-        }
-    }
-    out.push(q);
-    out
-}
-
-/// CPython float `repr`: shortest round-trip digits, exponent form outside [1e-4, 1e16).
-pub(super) fn float_repr(f: f64) -> String {
-    if f.is_nan() {
-        return "nan".into();
-    }
-    if f.is_infinite() {
-        return if f > 0.0 { "inf" } else { "-inf" }.into();
-    }
-    let a = f.abs();
-    if a != 0.0 && !(1e-4..1e16).contains(&a) {
-        let e = format!("{f:e}");
-        let (m, x) = e.split_once('e').expect("exponent form");
-        let (sign, digits) = match x.strip_prefix('-') {
-            Some(d) => ('-', d),
-            None => ('+', x),
-        };
-        return format!("{m}e{sign}{digits:0>2}");
-    }
-    let s = format!("{f}");
-    if s.contains('.') { s } else { format!("{s}.0") }
 }
 
 /// A total order for sorting; the checker admits only `Ord` element types.

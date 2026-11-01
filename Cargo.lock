@@ -552,7 +552,6 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
- "unicode-segmentation",
  "yong-core",
  "yong-jian",
  "yong-rt",
@@ -580,6 +579,7 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "regex",
+ "unicode-segmentation",
 ]
 
 [[package]]
