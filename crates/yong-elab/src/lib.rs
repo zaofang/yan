@@ -416,7 +416,14 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 g.methods.insert((key.clone(), f.name.clone()), s);
             }
             *g.self_ty.borrow_mut() = None;
-            g.impls.insert((tr, key));
+            if !g.impls.insert((tr.clone(), key.clone())) {
+                cx.err(
+                    "E220",
+                    it.span,
+                    &tr,
+                    format!("`{key}` already implements `{tr}`"),
+                );
+            }
         }
     }
     Ok(())
