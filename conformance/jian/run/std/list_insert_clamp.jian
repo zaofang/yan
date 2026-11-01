@@ -1,0 +1,17 @@
+# spec: 17.3
+# rows: R498
+# stdout:
+# [0, 1, 2, 3, 4]
+# [0, 1, 2, 3, 9, 4]
+# [8, 0, 1, 2, 3, 9, 4, 7]
+
+pub def main() uses io:
+    xs = [1, 2, 3]
+    xs.insert(0, 0)
+    xs.insert(len(xs), 4)
+    io.print(f"{xs}")
+    xs.insert(-1, 9)
+    io.print(f"{xs}")
+    xs.insert(100, 7)
+    xs.insert(-100, 8)
+    io.print(f"{xs}")

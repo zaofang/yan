@@ -1,0 +1,11 @@
+# spec: 17.3
+# rows: R499
+# note: a range past the end panics with kind bounds
+# stdout:
+# [20, 30] [10, 20, 30, 40] []
+# exit: 101
+
+pub def main() uses io:
+    xs = [10, 20, 30, 40]
+    io.print(f"{xs.slice_exact(1, 3)} {xs.slice_exact(0, 4)} {xs.slice_exact(2, 2)}")
+    io.print(f"{xs.slice_exact(3, 5)}")

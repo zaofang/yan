@@ -1,0 +1,29 @@
+# spec: 17.3
+# rows: R494, R497
+# stdout:
+# [1, 2, 5, 5, 6, 9]
+# ['apple', 'fig', 'pear']
+# [(1, 'y'), (1, 'z'), (2, 'a'), (2, 'b')]
+# [1, 2, 3]
+# [3, 2, 1]
+# []
+
+pub def main() uses io:
+    xs = [5, 2, 9, 1, 5, 6]
+    xs.sort()
+    io.print(f"{xs}")
+    ws = ["pear", "fig", "apple"]
+    ws.sort()
+    io.print(f"{ws}")
+    ps = [(2, "b"), (1, "z"), (2, "a"), (1, "y")]
+    ps.sort()
+    io.print(f"{ps}")
+    us = [3, 1, 2]
+    us.sort_unstable()
+    io.print(f"{us}")
+    us.reverse()
+    io.print(f"{us}")
+    e: list[int] = []
+    e.sort()
+    e.reverse()
+    io.print(f"{e}")

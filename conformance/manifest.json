@@ -3636,6 +3636,67 @@
    "exit": 0
   },
   {
+   "path": "jian/run/std/list_bisect.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R495"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 4\n0 0 6 6\n4 4\n0 0\n[0, 1, 2, 2, 2, 2, 4, 5, 8, 9]\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/list_insert_clamp.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R498"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[0, 1, 2, 3, 4]\n[0, 1, 2, 3, 9, 4]\n[8, 0, 1, 2, 3, 9, 4, 7]\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/list_slice_exact.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R499"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[20, 30] [10, 20, 30, 40] []\n",
+   "exit": 101
+  },
+  {
+   "path": "jian/run/std/list_sort.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R494",
+    "R497"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[1, 2, 5, 5, 6, 9]\n['apple', 'fig', 'pear']\n[(1, 'y'), (1, 'z'), (2, 'a'), (2, 'b')]\n[1, 2, 3]\n[3, 2, 1]\n[]\n",
+   "exit": 0
+  },
+  {
    "path": "jian/run/std/regex_anchors.jian",
    "kind": "run",
    "milestone": "M1",
