@@ -40,6 +40,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E013 | confirmed breaking change (with witness) for the declared bump *new* | 20.6 |
 | E014 | approved test changed since tests.lock was signed new | 18.4 |
 | E015 | approved test in tests.lock is missing new | 18.4 |
+| E016 | `yong publish` refuses the manifest: `overrides`, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later *new* | 19.4 |
 | W014 | possible breaking change without a witness *new* | 20.6 |
 
 ### 25.3 Lexical rules and syntax
@@ -188,6 +189,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E604 | non-ghost code reads a ghost value (R458) new | 8.7 |
 | E605 | lemma uses a capability (R458) new | 8.7 |
 | E618 | `cost` bound refuted, with a witness input (R610) new | 8.4 |
+| E619 | the arguments of an `ex` line break the function's `pre` (R621) new | 21.1 |
 | V402 | proof certificate rejected by the toolchain's checker (R608) new | 8.7 |
 
 ### 25.9 Holes and concurrency

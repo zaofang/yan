@@ -63,9 +63,11 @@ Yong has no stable Yong-to-Yong ABI. The stable binary boundary is the C ABI und
 
 **Python extensions** are built on the CPython Limited API: abi3 wheels (3.12+) and abi3t wheels (3.15+), the PEP 793 entry point, PEP 697 type data, vectorcall and `.pyi` stubs. Modules whose exports are Sync or `uses none` declare `Py_MOD_GIL_NOT_USED`. Scalar views use the buffer protocol, tables and columns the Arrow PyCapsule interface, arrays DLPack. `fail E` raises a generated exception class; a panic aborts.
 
+**Shipping (R640).** `yong build --wheel` writes the abi3 and abi3t wheels with PEP 740 attestations derived from the version's provenance, for PyPI trusted publishing. The `yong` PyPI wheel (18.8) is also a PEP 517 build backend, so `pip install` of a source distribution fetches the pinned toolchain and builds. The published `yong-build` crate lets a Rust `build.rs` run `yong build` and link the generated `-sys` crate.
+
 ### 12.8 Linking
 
-The manifest's `native` table sets static or dynamic linking per target and may list C sources, compiled with the toolchain's pinned clang (section 19.5). Windows imports need no import libraries. Internal symbols are hash-mangled with hidden visibility; duplicate export names are E909 at link time. `@weak` gives an `Option[fn ...]`.
+The manifest's `native` table sets static or dynamic linking per target and may list C sources, compiled with the toolchain's pinned clang (section 19.5). Windows imports need no import libraries. Native libraries that first-party packages bind (ICU4X for `@yong/i18n`) ship inside the toolchain, built reproducibly with it under the audits of 19.6; packages carry no Rust sources or prebuilt binaries (R639). Internal symbols are hash-mangled with hidden visibility; duplicate export names are E909 at link time. `@weak` gives an `Option[fn ...]`.
 
 ### 12.9 Inline assembly
 
