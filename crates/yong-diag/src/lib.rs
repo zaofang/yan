@@ -69,22 +69,24 @@ impl Diagnostic {
         self
     }
 
-    /// `[#n ] code path:line:col item: `quote` message { | note }` (R294).
+    /// `[#n ] code path:line:col[ item:][ `quote`] message { | note }` (R294, R650).
     pub fn render_line(&self, id: Option<usize>) -> String {
         let mut out = String::new();
         if let Some(n) = id {
             out.push_str(&format!("#{n} "));
         }
         out.push_str(&format!(
-            "{} {}:{}:{} {}: `{}` {}",
-            self.code,
-            self.file,
-            self.span.line,
-            self.span.col,
-            self.item,
-            self.quote,
-            self.message
+            "{} {}:{}:{}",
+            self.code, self.file, self.span.line, self.span.col
         ));
+        if !self.item.is_empty() {
+            out.push_str(&format!(" {}:", self.item));
+        }
+        if !self.quote.is_empty() {
+            out.push_str(&format!(" `{}`", self.quote));
+        }
+        out.push(' ');
+        out.push_str(&self.message);
         for note in &self.notes {
             out.push_str(" | ");
             out.push_str(note);
@@ -152,6 +154,14 @@ mod selftest {
             d.render_line(Some(1)),
             "#1 E501 src/p.xin:14:9 value: `xs[i]` index not proven in bounds | a\\nb"
         );
+    }
+
+    #[test]
+    fn line_rendering_omits_empty_item_and_quote() {
+        let d = Diagnostic::error("P002", "m.xin", at(5, 1), "", "`t` matches 9 times");
+        assert_eq!(d.render_line(None), "P002 m.xin:5:1 `t` matches 9 times");
+        let d = Diagnostic::error("E101", "f.xin", at(6, 12), "a", "needs parentheses");
+        assert_eq!(d.render_line(None), "E101 f.xin:6:12 `a` needs parentheses");
     }
 
     #[test]

@@ -69,6 +69,7 @@ Renderings from the same record:
 Rules:
 
 - Report root causes only. A failing expression is marked and checking of its item continues around it (R291).
+- A construct the toolchain does not implement yet is E017 at the construct's span, never a message without a record. The construct is marked as in R291 and checking continues around it (R649).
 - Sort by file, line, column, then code; apply the cap after sorting. At most 10 errors per run by default (`--max-errors`).
 - Codes keep their meaning forever. A code may be retired, never reused; tools key on codes, not wording.
 - Every error with a mechanical fix MUST include it in `fixes`.
@@ -86,10 +87,10 @@ The design behind R290 to R299 is the Yong diagnostics design (https://claude.ai
 
 **Quote anchors (R293).** `quote` is the text of the primary span, extended outward by whole tokens until it occurs exactly once in its item. It is always a valid `search` string for an 18.3 `edits` entry.
 
-**Line format (R294).** The line rendering is normative and byte-identical across implementations: one line per diagnostic, with no colour and no excerpt. The fix kinds `fix`, `maybe` and `fill` mark `auto`, `choice` and `template` fixes. Newlines in fix text are written `\n`. Diagnostics with the same code and the same fix in one item collapse into the first line plus `(+k like this at l:c, ...)`.
+**Line format (R294).** The line rendering is normative and byte-identical across implementations: one line per diagnostic, with no colour and no excerpt. The fix kinds `fix`, `maybe` and `fill` mark `auto`, `choice` and `template` fixes. Newlines in fix text are written `\n`. Diagnostics with the same code and the same fix in one item collapse into the first line plus `(+k like this at l:c, ...)`. An empty `item` or `quote` is left out together with its separators, as for a syntax error outside any item or a patch rejection with no search text (R650).
 
 ```
-line  = [ "#" n " " ] code " " path ":" line ":" col " " item ": " "`" quote "`" " " message
+line  = [ "#" n " " ] code " " path ":" line ":" col [ " " item ":" ] [ " " "`" quote "`" ] " " message
         { " | " note } { " | " kind ": " old " -> " new } [ " (+" k " like this at " locs ")" ]
 kind  = "fix" | "maybe" | "fill"
 
@@ -102,7 +103,7 @@ kind  = "fix" | "maybe" | "fill"
 
 **Message templates (R297).** Each code has one template set in Unicode MessageFormat 2.0: title, message, rule and fix titles, with a variant per surface, filled from `args`. Types and code inside a message are printed by the surface's printer (18.5), so a Wen message shows Wen syntax. The toolchain build fails if a Wen template uses a term from the list in 15.5. Messages are English in 1.0. A trait may carry `@diagnostic(on_missing="...", note="...")`, which supplies the message and a note for E221 on that trait; it never changes what compiles.
 
-**Core error codes (R298).** E100, E102, E201, E202, E203 and E221 (section 25) cover syntax errors, type mismatches, argument counts, unknown fields and methods, and unimplemented traits.
+**Core error codes (R298).** E100, E102, E201, E202, E203 and E221 (section 25) cover syntax errors, type mismatches, argument counts, unknown fields and methods, and unimplemented traits. When a name in scope, a field, a method or a std module member is within edit distance 2 of the unknown name, E200 and E203 carry it as a `maybe` fix, nearest first, at most three (R651).
 
 **Tested and scored catalogue (R299).** Every code has at least one `fail/` conformance test asserting its code, span and quote, and every fix kind it emits has a `patch/` test that applies the fix and checks clean. `yong explain` text and its broken and fixed examples are generated from those tests. Message wording is not normative. The evaluation harness (21.6) reports, per code, the share of diagnostics repaired on the first model attempt and the tokens per repair, and template rewrites are prioritized by those numbers (law 11).
 

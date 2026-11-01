@@ -569,3 +569,23 @@ sections = "11.1, 11.2, 11.5, 25"
 rows = "R616 to R621"
 topic = "Reference agent loop (RFC 0014), decided by the owner: `yong agent` at M1 over the in-process `yong mcp` tools (R616); the two-phase loop with freeze, autofix, run_tests and stop-and-report (R617); `stub:` and `cmd:` model adapters, no HTTPS in the toolchain (R618); the schema-1 run record (R619); the Xin arm of the 21.6 harness runs through `yong agent` (R620); E619 for an `ex` line whose arguments break `pre` (R621)"
 sections = "18.1, 21.1, 21.4, 21.6, 25"
+
+[[entry]]
+rows = "R648"
+topic = "Error messages (RFC 0021, https://claude.ai/artifact/6catGcMdztyszRmvJLoiRu), decided by the owner: D1, E545 registered in section 25; `tools/rows.py check` fails when the spec cites a code that section 25 does not list"
+sections = "17.2, 25"
+
+[[entry]]
+rows = "R649"
+topic = "Error messages (RFC 0021) D2, decided by the owner: a construct the toolchain does not support yet is E017, a record at the construct's span, and checking continues"
+sections = "18.2, 25"
+
+[[entry]]
+rows = "R650"
+topic = "Error messages (RFC 0021) D3, decided by the owner: the R294 line format leaves out an empty item or quote with its separators"
+sections = "18.2"
+
+[[entry]]
+rows = "R651"
+topic = "Error messages (RFC 0021) D4, decided by the owner: E200 and E203 carry near names within edit distance 2 as `maybe` fixes"
+sections = "18.2"
