@@ -1,0 +1,11 @@
+# spec: 17.5
+# rows: R593
+# note: checked forms return None; operators panic with kind overflow outside years -9999 to 9999
+# stdout:
+# None None -PT2S
+# exit: 101
+
+pub def main() uses io:
+    big = Duration.hours(100000000)
+    io.print(f"{big.checked_mul(2)} {big.checked_add(big)} {Duration.seconds(1).checked_sub(Duration.seconds(3))}")
+    io.print(f"{big * 2}")
