@@ -47,3 +47,19 @@ by reference), 11 runs.
 
 Geometric mean, yong/python: 37.6x. Python times here are tens of milliseconds over a ~20 ms startup,
 so they move by up to 2x between sessions on a shared host; read the Python ratios as 20x to 60x.
+
+## Register VM
+
+Same host and session as the walker rerun beside it; `yong` with the register bytecode VM (each
+function compiled to slot-resolved registers, typed ops for the scalar intrinsics), 5 runs.
+
+| program | walker ms | VM ms | speedup | python ms | VM/python |
+|---|---:|---:|---:|---:|---:|
+| collatz | 2918.2 | 154.9 | 18.8x | 46.9 | 3.3x |
+| fib | 1032.1 | 76.0 | 13.6x | 17.3 | 4.4x |
+| loop | 1267.1 | 41.4 | 30.6x | 39.2 | 1.1x |
+| mandel | 782.1 | 19.1 | 40.9x | 21.3 | 0.9x |
+| ring | 1769.7 | 64.7 | 27.4x | 43.9 | 1.5x |
+| sieve | 1956.4 | 212.8 | 9.2x | 33.4 | 6.4x |
+
+Geometric mean speedup over the walker: 20.8x; yong/python: 2.3x.
