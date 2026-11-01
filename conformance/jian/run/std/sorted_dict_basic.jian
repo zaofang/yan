@@ -1,0 +1,30 @@
+# spec: 17.3
+# rows: R488, R493
+# stdout:
+# sorted_dict({'apple': 1, 'fig': 2, 'pear': 3}) 3
+# 2 0 True
+# [('apple', 10), ('fig', 2), ('pear', 3)]
+# 2 0
+# 4 4
+# apple
+# kiwi
+# pear
+# ['apple', 'kiwi', 'pear'] [10, 4, 3]
+# sorted_dict({1: 'a', 2: 'b', 3: 'c'})
+
+pub def main() uses io:
+    m: sorted_dict[str, int] = sorted_dict()
+    m["pear"] = 3
+    m["apple"] = 1
+    m.insert("fig", 2)
+    io.print(f"{m} {len(m)}")
+    io.print(f"{m['fig']} {m.get('kiwi') else 0} {'apple' in m}")
+    m["apple"] = 10
+    io.print(f"{m.items()}")
+    io.print(f"{m.remove('fig') else 0} {m.remove('fig') else 0}")
+    io.print(f"{m.setdefault('kiwi', 4)} {m.setdefault('kiwi', 5)}")
+    for k in m:
+        io.print(k)
+    io.print(f"{m.keys()} {m.values()}")
+    s = sorted_dict({3: "c", 1: "a", 2: "b"})
+    io.print(f"{s}")
