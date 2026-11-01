@@ -2,4 +2,4 @@ spec = "20.6"
 note = "std.evented handlers are previews named evented; the span is the handler reference"
 command = ["check"]
 code = "E001"
-at = "src/app.jian:2:18"
+at = "src/app.xin:2:18"

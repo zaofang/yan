@@ -21,7 +21,7 @@ W014 = { section = "20.6", status = "active", meaning = "possible breaking chang
 E100 = { section = "13.2, 15.2", status = "active", meaning = "unexpected token; the expected set is listed" }
 E101 = { section = "13.2, 15.2", status = "active", meaning = "operator mix that requires parentheses" }
 E102 = { section = "13.1, 15.1", status = "active", meaning = "unclosed bracket, string or block" }
-E103 = { section = "13.1", status = "active", meaning = "backslash continuation or; (Jian)" }
+E103 = { section = "13.1", status = "active", meaning = "backslash continuation or; (Xin)" }
 E104 = { section = "13.2", status = "active", meaning = "chained comparison" }
 E105 = { section = "13.1", status = "active", meaning = "forbidden invisible, bidirectional or tag character" }
 E106 = { section = "13.1", status = "active", meaning = "contract line (pre, post, ex, decreases, invariant) after the first other statement of a body; fix moves it (R422)" }
@@ -108,7 +108,7 @@ E421 = { section = "5.4", status = "active", meaning = "drop body that can fail,
 E422 = { section = "4.4", status = "active", meaning = "subscript body does not yield exactly once on every path (R457)" }
 E423 = { section = "4.4", status = "active", meaning = "subscript body fails under the let or inout mode it is used in (R457)" }
 E501 = { section = "14.1", status = "active", meaning = "index, key or other goal refuted, with the counterexample (R211)" }
-E502 = { section = "14.1", status = "active", meaning = "wildcard on a sum (Jian)" }
+E502 = { section = "14.1", status = "active", meaning = "wildcard on a sum (Xin)" }
 E503 = { section = "14.1, 12.3", status = "active", meaning = "non-exhaustive match, including open C enums and @non_exhaustive types without _" }
 E504 = { section = "14.1", status = "active", meaning = "integer indexing or len on str" }
 E520 = { section = "11.2", status = "active", meaning = "positional axis broadcast against a non-scalar" }
@@ -126,7 +126,7 @@ E552 = { section = "17.5", status = "active", meaning = "translation key not in 
 E553 = { section = "17.5", status = "active", meaning = "message variable undeclared in the source message or of the wrong type (R335)" }
 E554 = { section = "17.5", status = "active", meaning = "plural match misses a CLDR category of the locale and has no * arm (R335)" }
 E555 = { section = "17.5", status = "active", meaning = "unbalanced message markup or a tag the source message lacks (R335)" }
-E601 = { section = "8.4", status = "active", meaning = "pub function with no ex and no test_ calling it (Jian; publish and release only, R284)" }
+E601 = { section = "8.4", status = "active", meaning = "pub function with no ex and no test_ calling it (Xin; publish and release only, R284)" }
 E602 = { section = "8.4", status = "active", meaning = "recursion without decreases" }
 E603 = { section = "8.5", status = "active", meaning = "contract not proven in a @prove module" }
 E617 = { section = "18.4", status = "retired", meaning = "retired by R447; a test that binds a real capability is an I/O test" }
@@ -166,7 +166,7 @@ W808 = { section = "9.6", status = "active", meaning = "static call cycle betwee
 W809 = { section = "7.1", status = "retired", meaning = "retired by R448; std has no shell" }
 W810 = { section = "18.2", status = "active", meaning = "@expect suppressed nothing" }
 W811 = { section = "15.3", status = "active", meaning = "wildcard on a sum (Wen)" }
-W812 = { section = "15.3", status = "active", meaning = "unused binding or parameter (Jian and Wen, R214)" }
+W812 = { section = "15.3", status = "active", meaning = "unused binding or parameter (Xin and Wen, R214)" }
 W813 = { section = "15.3", status = "active", meaning = "pub item without ex (Wen)" }
 W814 = { section = "6.5", status = "active", meaning = "spin loop on an atomic shared by plain par branches" }
 W815 = { section = "20.5", status = "active", meaning = "use of a deprecated item" }
@@ -174,8 +174,8 @@ W816 = { section = "10.4", status = "active", meaning = "compile_warn raised by 
 W817 = { section = "14.2", status = "active", meaning = "day or week Duration added to a ZonedDateTime" }
 W818 = { section = "9.4", status = "active", meaning = "else that discards a Cancelled failure (R341)" }
 W819 = { section = "17.2", status = "active", meaning = "method found at an earlier resolution step hides one of the same name at a later step (R348)" }
-W820 = { section = "8.6, 14.1", status = "active", meaning = "check neither proven nor refuted, compiled as a runtime check; carries the unknown goal (Jian, R211)" }
-W823 = { section = "14.3", status = "active", meaning = "local annotation that inference already gives (Jian); safe fix removes it (R429)" }
+W820 = { section = "8.6, 14.1", status = "active", meaning = "check neither proven nor refuted, compiled as a runtime check; carries the unknown goal (Xin, R211)" }
+W823 = { section = "14.3", status = "active", meaning = "local annotation that inference already gives (Xin); safe fix removes it (R429)" }
 W824 = { section = "14.3", status = "active", meaning = "a None or failure guard right after a binding that a fallback else replaces; safe fix rewrites it (R429)" }
 W821 = { section = "11.3", status = "active", meaning = "@multiversion function whose versions compile to the same code (R386)" }
 W822 = { section = "3.3", status = "active", meaning = "+ in a loop on a Str or List that is not at its last use (R388)" }

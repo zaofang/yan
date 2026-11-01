@@ -2,7 +2,7 @@
  "schema": 1,
  "cases": [
   {
-   "path": "jian/pass/bounds/proven_by_guard.jian",
+   "path": "xin/pass/bounds/proven_by_guard.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -15,7 +15,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/caps/renamed_user_capability.jian",
+   "path": "xin/pass/caps/renamed_user_capability.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -29,7 +29,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/caps/uses_and_with.jian",
+   "path": "xin/pass/caps/uses_and_with.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -41,7 +41,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/concurrency/par_callable.jian",
+   "path": "xin/pass/concurrency/par_callable.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -54,7 +54,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/concurrency/par_forms.jian",
+   "path": "xin/pass/concurrency/par_forms.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -68,7 +68,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/contracts/clauses.jian",
+   "path": "xin/pass/contracts/clauses.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -79,7 +79,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/contracts/decreases.jian",
+   "path": "xin/pass/contracts/decreases.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -90,7 +90,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/dist/remote_share.jian",
+   "path": "xin/pass/dist/remote_share.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -104,7 +104,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/failure/from_conversion.jian",
+   "path": "xin/pass/failure/from_conversion.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -115,7 +115,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/failure/propagation.jian",
+   "path": "xin/pass/failure/propagation.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -128,7 +128,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/i18n/messages.jian",
+   "path": "xin/pass/i18n/messages.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -141,7 +141,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/ownership/distinct_indices.jian",
+   "path": "xin/pass/ownership/distinct_indices.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -152,7 +152,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/ownership/explicit_copy.jian",
+   "path": "xin/pass/ownership/explicit_copy.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -165,7 +165,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/ownership/inferred_mutability.jian",
+   "path": "xin/pass/ownership/inferred_mutability.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -179,7 +179,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/ownership/last_use_moves.jian",
+   "path": "xin/pass/ownership/last_use_moves.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -192,7 +192,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/ownership/share.jian",
+   "path": "xin/pass/ownership/share.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -203,7 +203,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/ownership/views_from.jian",
+   "path": "xin/pass/ownership/views_from.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -216,7 +216,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/proof/lemma_and_ghost.jian",
+   "path": "xin/pass/proof/lemma_and_ghost.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -232,7 +232,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/std/regex_literal_infallible.jian",
+   "path": "xin/pass/std/regex_literal_infallible.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -245,7 +245,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/syntax/become_constructor.jian",
+   "path": "xin/pass/syntax/become_constructor.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -258,7 +258,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/syntax/every_production.jian",
+   "path": "xin/pass/syntax/every_production.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -274,7 +274,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/syntax/soft_keyword_next_token.jian",
+   "path": "xin/pass/syntax/soft_keyword_next_token.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -288,7 +288,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/types/alias_and_newtype.jian",
+   "path": "xin/pass/types/alias_and_newtype.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -302,7 +302,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/types/generics_and_traits.jian",
+   "path": "xin/pass/types/generics_and_traits.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -314,7 +314,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/types/keyword_exemptions.jian",
+   "path": "xin/pass/types/keyword_exemptions.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -325,7 +325,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/types/narrowing.jian",
+   "path": "xin/pass/types/narrowing.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -338,7 +338,7 @@
    "expect": []
   },
   {
-   "path": "jian/pass/types/records_and_sums.jian",
+   "path": "xin/pass/types/records_and_sums.xin",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -349,7 +349,7 @@
    "expect": []
   },
   {
-   "path": "jian/fail/arrays/e520_positional_broadcast.jian",
+   "path": "xin/fail/arrays/e520_positional_broadcast.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -366,7 +366,7 @@
    ]
   },
   {
-   "path": "jian/fail/bounds/e501_after_guard.jian",
+   "path": "xin/fail/bounds/e501_after_guard.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -385,7 +385,7 @@
    ]
   },
   {
-   "path": "jian/fail/bounds/e501_constant_index.jian",
+   "path": "xin/fail/bounds/e501_constant_index.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -407,7 +407,7 @@
    ]
   },
   {
-   "path": "jian/fail/bounds/w807_constant_slice.jian",
+   "path": "xin/fail/bounds/w807_constant_slice.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -426,7 +426,7 @@
    ]
   },
   {
-   "path": "jian/fail/bounds/w820_unknown_index.jian",
+   "path": "xin/fail/bounds/w820_unknown_index.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -446,7 +446,7 @@
    ]
   },
   {
-   "path": "jian/fail/bounds/w820_unknown_key.jian",
+   "path": "xin/fail/bounds/w820_unknown_key.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -467,7 +467,7 @@
    ]
   },
   {
-   "path": "jian/fail/caps/e301_callee_needs_capability.jian",
+   "path": "xin/fail/caps/e301_callee_needs_capability.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -484,7 +484,7 @@
    ]
   },
   {
-   "path": "jian/fail/caps/e301_missing_capability.jian",
+   "path": "xin/fail/caps/e301_missing_capability.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -501,7 +501,7 @@
    ]
   },
   {
-   "path": "jian/fail/caps/e306_capability_captured.jian",
+   "path": "xin/fail/caps/e306_capability_captured.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -519,7 +519,7 @@
    ]
   },
   {
-   "path": "jian/fail/caps/e306_capability_returned.jian",
+   "path": "xin/fail/caps/e306_capability_returned.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -536,7 +536,7 @@
    ]
   },
   {
-   "path": "jian/fail/caps/e314_outside_ceiling.jian",
+   "path": "xin/fail/caps/e314_outside_ceiling.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -554,7 +554,7 @@
    ]
   },
   {
-   "path": "jian/fail/caps/e317_release_fault_handler.jian",
+   "path": "xin/fail/caps/e317_release_fault_handler.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -574,7 +574,7 @@
    ]
   },
   {
-   "path": "jian/fail/concurrency/e705_branch_reads_sibling.jian",
+   "path": "xin/fail/concurrency/e705_branch_reads_sibling.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -593,7 +593,7 @@
    ]
   },
   {
-   "path": "jian/fail/concurrency/e705_branch_reads_written_place.jian",
+   "path": "xin/fail/concurrency/e705_branch_reads_written_place.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -610,7 +610,7 @@
    ]
   },
   {
-   "path": "jian/fail/concurrency/e709_arc_count.jian",
+   "path": "xin/fail/concurrency/e709_arc_count.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -629,7 +629,7 @@
    ]
   },
   {
-   "path": "jian/fail/concurrency/e709_share_sender.jian",
+   "path": "xin/fail/concurrency/e709_share_sender.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -649,7 +649,7 @@
    ]
   },
   {
-   "path": "jian/fail/concurrency/e712_streaming_par_for_fails.jian",
+   "path": "xin/fail/concurrency/e712_streaming_par_for_fails.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -669,7 +669,7 @@
    ]
   },
   {
-   "path": "jian/fail/concurrency/e713_sibling_wait.jian",
+   "path": "xin/fail/concurrency/e713_sibling_wait.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -688,7 +688,7 @@
    ]
   },
   {
-   "path": "jian/fail/concurrency/e715_reentrant_reads_state.jian",
+   "path": "xin/fail/concurrency/e715_reentrant_reads_state.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -708,7 +708,7 @@
    ]
   },
   {
-   "path": "jian/fail/concurrency/e716_fn_param_two_branches.jian",
+   "path": "xin/fail/concurrency/e716_fn_param_two_branches.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -727,7 +727,7 @@
    ]
   },
   {
-   "path": "jian/fail/concurrency/e717_lub_get_in_par.jian",
+   "path": "xin/fail/concurrency/e717_lub_get_in_par.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -746,7 +746,7 @@
    ]
   },
   {
-   "path": "jian/fail/concurrency/w818_discards_cancelled.jian",
+   "path": "xin/fail/concurrency/w818_discards_cancelled.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -765,7 +765,7 @@
    ]
   },
   {
-   "path": "jian/fail/contracts/e601_pub_without_ex.jian",
+   "path": "xin/fail/contracts/e601_pub_without_ex.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -787,7 +787,7 @@
    ]
   },
   {
-   "path": "jian/fail/contracts/e602_missing_decreases.jian",
+   "path": "xin/fail/contracts/e602_missing_decreases.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -804,7 +804,7 @@
    ]
   },
   {
-   "path": "jian/fail/contracts/n05_inferred_decreases.jian",
+   "path": "xin/fail/contracts/n05_inferred_decreases.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -821,7 +821,7 @@
    ]
   },
   {
-   "path": "jian/fail/derives/e269_auto_trait.jian",
+   "path": "xin/fail/derives/e269_auto_trait.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -839,7 +839,7 @@
    ]
   },
   {
-   "path": "jian/fail/derives/e269_no_derived_body.jian",
+   "path": "xin/fail/derives/e269_no_derived_body.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -856,7 +856,7 @@
    ]
   },
   {
-   "path": "jian/fail/dist/e720_non_wire_handler.jian",
+   "path": "xin/fail/dist/e720_non_wire_handler.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -875,7 +875,7 @@
    ]
   },
   {
-   "path": "jian/fail/dist/e726_entity_key_not_hash.jian",
+   "path": "xin/fail/dist/e726_entity_key_not_hash.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -894,7 +894,7 @@
    ]
   },
   {
-   "path": "jian/fail/docs/w831_dead_link.jian",
+   "path": "xin/fail/docs/w831_dead_link.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -913,7 +913,7 @@
    ]
   },
   {
-   "path": "jian/fail/docs/w832_uses_section_disagrees.jian",
+   "path": "xin/fail/docs/w832_uses_section_disagrees.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -932,7 +932,7 @@
    ]
   },
   {
-   "path": "jian/fail/docs/w833_text_fence_is_code.jian",
+   "path": "xin/fail/docs/w833_text_fence_is_code.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -951,7 +951,7 @@
    ]
   },
   {
-   "path": "jian/fail/failure/e310_missing_from.jian",
+   "path": "xin/fail/failure/e310_missing_from.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -968,7 +968,7 @@
    ]
   },
   {
-   "path": "jian/fail/failure/e312_discarded_result.jian",
+   "path": "xin/fail/failure/e312_discarded_result.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -985,7 +985,7 @@
    ]
   },
   {
-   "path": "jian/fail/failure/e313_injection_and_from.jian",
+   "path": "xin/fail/failure/e313_injection_and_from.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1002,7 +1002,7 @@
    ]
   },
   {
-   "path": "jian/fail/failure/e315_in_argument.jian",
+   "path": "xin/fail/failure/e315_in_argument.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1021,7 +1021,7 @@
    ]
   },
   {
-   "path": "jian/fail/failure/e315_unreified_call.jian",
+   "path": "xin/fail/failure/e315_unreified_call.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1040,7 +1040,7 @@
    ]
   },
   {
-   "path": "jian/fail/holes/e702_hole_in_release.jian",
+   "path": "xin/fail/holes/e702_hole_in_release.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1062,7 +1062,7 @@
    ]
   },
   {
-   "path": "jian/fail/holes/h701_typed_hole.jian",
+   "path": "xin/fail/holes/h701_typed_hole.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1081,7 +1081,7 @@
    ]
   },
   {
-   "path": "jian/fail/i18n/e550_malformed_locale.jian",
+   "path": "xin/fail/i18n/e550_malformed_locale.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1100,7 +1100,7 @@
    ]
   },
   {
-   "path": "jian/fail/i18n/e551_malformed_message.jian",
+   "path": "xin/fail/i18n/e551_malformed_message.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1119,7 +1119,7 @@
    ]
   },
   {
-   "path": "jian/fail/i18n/e554_plural_missing_other.jian",
+   "path": "xin/fail/i18n/e554_plural_missing_other.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1138,7 +1138,7 @@
    ]
   },
   {
-   "path": "jian/fail/i18n/e555_unbalanced_markup.jian",
+   "path": "xin/fail/i18n/e555_unbalanced_markup.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1157,7 +1157,7 @@
    ]
   },
   {
-   "path": "jian/fail/lenient/n01_import.jian",
+   "path": "xin/fail/lenient/n01_import.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1174,7 +1174,7 @@
    ]
   },
   {
-   "path": "jian/fail/lenient/n03_single_quotes.jian",
+   "path": "xin/fail/lenient/n03_single_quotes.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1191,7 +1191,7 @@
    ]
   },
   {
-   "path": "jian/fail/lenient/n04_typing_names.jian",
+   "path": "xin/fail/lenient/n04_typing_names.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1208,7 +1208,7 @@
    ]
   },
   {
-   "path": "jian/fail/lenient/n06_mix.jian",
+   "path": "xin/fail/lenient/n06_mix.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1225,7 +1225,7 @@
    ]
   },
   {
-   "path": "jian/fail/lenient/n10_eq_none.jian",
+   "path": "xin/fail/lenient/n10_eq_none.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1242,7 +1242,7 @@
    ]
   },
   {
-   "path": "jian/fail/lenient/n14_var_local.jian",
+   "path": "xin/fail/lenient/n14_var_local.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1259,7 +1259,7 @@
    ]
   },
   {
-   "path": "jian/fail/lenient/n16_negative_index.jian",
+   "path": "xin/fail/lenient/n16_negative_index.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1283,7 +1283,7 @@
    ]
   },
   {
-   "path": "jian/fail/lenient/n17_get_default.jian",
+   "path": "xin/fail/lenient/n17_get_default.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1300,7 +1300,7 @@
    ]
   },
   {
-   "path": "jian/fail/lenient/n22_chained_compare.jian",
+   "path": "xin/fail/lenient/n22_chained_compare.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1317,7 +1317,7 @@
    ]
   },
   {
-   "path": "jian/fail/lenient/n23_result_return.jian",
+   "path": "xin/fail/lenient/n23_result_return.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1334,7 +1334,7 @@
    ]
   },
   {
-   "path": "jian/fail/lenient/n26_return_ok.jian",
+   "path": "xin/fail/lenient/n26_return_ok.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1353,7 +1353,7 @@
    ]
   },
   {
-   "path": "jian/fail/lenient/n27_int64.jian",
+   "path": "xin/fail/lenient/n27_int64.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1372,7 +1372,7 @@
    ]
   },
   {
-   "path": "jian/fail/lenient/n28_not_in.jian",
+   "path": "xin/fail/lenient/n28_not_in.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1391,7 +1391,7 @@
    ]
   },
   {
-   "path": "jian/fail/lex/e105_bidi_in_comment.jian",
+   "path": "xin/fail/lex/e105_bidi_in_comment.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1408,7 +1408,7 @@
    ]
   },
   {
-   "path": "jian/fail/lex/e105_zero_width.jian",
+   "path": "xin/fail/lex/e105_zero_width.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1425,7 +1425,7 @@
    ]
   },
   {
-   "path": "jian/fail/lex/e110_camel_case.jian",
+   "path": "xin/fail/lex/e110_camel_case.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1442,7 +1442,7 @@
    ]
   },
   {
-   "path": "jian/fail/lex/e110_double_underscore.jian",
+   "path": "xin/fail/lex/e110_double_underscore.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1459,7 +1459,7 @@
    ]
   },
   {
-   "path": "jian/fail/lex/e112_consecutive_capitals.jian",
+   "path": "xin/fail/lex/e112_consecutive_capitals.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1478,7 +1478,7 @@
    ]
   },
   {
-   "path": "jian/fail/lex/e140_interior_nul.jian",
+   "path": "xin/fail/lex/e140_interior_nul.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1496,7 +1496,7 @@
    ]
   },
   {
-   "path": "jian/fail/lex/n07_consecutive_capitals.jian",
+   "path": "xin/fail/lex/n07_consecutive_capitals.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1513,7 +1513,7 @@
    ]
   },
   {
-   "path": "jian/fail/lex/w111_long_name.jian",
+   "path": "xin/fail/lex/w111_long_name.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1530,7 +1530,7 @@
    ]
   },
   {
-   "path": "jian/fail/lints/w803_secret_into_log.jian",
+   "path": "xin/fail/lints/w803_secret_into_log.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1547,7 +1547,7 @@
    ]
   },
   {
-   "path": "jian/fail/lints/w805_large_union.jian",
+   "path": "xin/fail/lints/w805_large_union.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1564,7 +1564,7 @@
    ]
   },
   {
-   "path": "jian/fail/lints/w806_special_cases_ex.jian",
+   "path": "xin/fail/lints/w806_special_cases_ex.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1581,7 +1581,7 @@
    ]
   },
   {
-   "path": "jian/fail/lints/w810_expect_suppressed_nothing.jian",
+   "path": "xin/fail/lints/w810_expect_suppressed_nothing.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1598,7 +1598,7 @@
    ]
   },
   {
-   "path": "jian/fail/lints/w812_unused_binding.jian",
+   "path": "xin/fail/lints/w812_unused_binding.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1617,7 +1617,7 @@
    ]
   },
   {
-   "path": "jian/fail/lints/w812_unused_parameter.jian",
+   "path": "xin/fail/lints/w812_unused_parameter.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1636,7 +1636,7 @@
    ]
   },
   {
-   "path": "jian/fail/lints/w815_deprecated_use.jian",
+   "path": "xin/fail/lints/w815_deprecated_use.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1653,7 +1653,7 @@
    ]
   },
   {
-   "path": "jian/fail/lints/w819_hides_later_step.jian",
+   "path": "xin/fail/lints/w819_hides_later_step.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1672,7 +1672,7 @@
    ]
   },
   {
-   "path": "jian/fail/lints/w822_concat_not_last_use.jian",
+   "path": "xin/fail/lints/w822_concat_not_last_use.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1691,7 +1691,7 @@
    ]
   },
   {
-   "path": "jian/fail/lints/w823_redundant_annotation.jian",
+   "path": "xin/fail/lints/w823_redundant_annotation.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1710,7 +1710,7 @@
    ]
   },
   {
-   "path": "jian/fail/lints/w824_guard_after_binding.jian",
+   "path": "xin/fail/lints/w824_guard_after_binding.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1729,7 +1729,7 @@
    ]
   },
   {
-   "path": "jian/fail/lints/w830_pub_without_doc.jian",
+   "path": "xin/fail/lints/w830_pub_without_doc.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1748,7 +1748,7 @@
    ]
   },
   {
-   "path": "jian/fail/lints/w840_non_nfc_literal.jian",
+   "path": "xin/fail/lints/w840_non_nfc_literal.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1767,7 +1767,7 @@
    ]
   },
   {
-   "path": "jian/fail/match/e502_wildcard_on_sum.jian",
+   "path": "xin/fail/match/e502_wildcard_on_sum.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1784,7 +1784,7 @@
    ]
   },
   {
-   "path": "jian/fail/match/e503_missing_variant.jian",
+   "path": "xin/fail/match/e503_missing_variant.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1801,7 +1801,7 @@
    ]
   },
   {
-   "path": "jian/fail/match/e503_scalar_without_wildcard.jian",
+   "path": "xin/fail/match/e503_scalar_without_wildcard.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1820,7 +1820,7 @@
    ]
   },
   {
-   "path": "jian/fail/names/e250_duplicate_function.jian",
+   "path": "xin/fail/names/e250_duplicate_function.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1837,7 +1837,7 @@
    ]
   },
   {
-   "path": "jian/fail/numbers/e530_unit_mismatch.jian",
+   "path": "xin/fail/numbers/e530_unit_mismatch.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1854,7 +1854,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e402_overlapping_fields.jian",
+   "path": "xin/fail/ownership/e402_overlapping_fields.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1871,7 +1871,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e402_same_place_twice.jian",
+   "path": "xin/fail/ownership/e402_same_place_twice.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1888,7 +1888,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e403_assign_field_of_let_param.jian",
+   "path": "xin/fail/ownership/e403_assign_field_of_let_param.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1905,7 +1905,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e403_assign_let_param.jian",
+   "path": "xin/fail/ownership/e403_assign_let_param.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1922,7 +1922,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e404_missing_ampersand.jian",
+   "path": "xin/fail/ownership/e404_missing_ampersand.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1939,7 +1939,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e405_extra_ampersand.jian",
+   "path": "xin/fail/ownership/e405_extra_ampersand.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1956,7 +1956,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e406_escaping_captures_inout.jian",
+   "path": "xin/fail/ownership/e406_escaping_captures_inout.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1973,7 +1973,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e406_escaping_captures_view.jian",
+   "path": "xin/fail/ownership/e406_escaping_captures_view.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1993,7 +1993,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e413_bind_new_name.jian",
+   "path": "xin/fail/ownership/e413_bind_new_name.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2012,7 +2012,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e413_implicit_copy_to_sink.jian",
+   "path": "xin/fail/ownership/e413_implicit_copy_to_sink.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2031,7 +2031,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e413_store_in_record.jian",
+   "path": "xin/fail/ownership/e413_store_in_record.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2050,7 +2050,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e414_view_escapes.jian",
+   "path": "xin/fail/ownership/e414_view_escapes.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2069,7 +2069,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e415_rc_over_channel.jian",
+   "path": "xin/fail/ownership/e415_rc_over_channel.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2086,7 +2086,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e416_copy_of_share.jian",
+   "path": "xin/fail/ownership/e416_copy_of_share.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2103,7 +2103,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e417_cell_in_two_branches.jian",
+   "path": "xin/fail/ownership/e417_cell_in_two_branches.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2121,7 +2121,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e418_atomic_too_wide.jian",
+   "path": "xin/fail/ownership/e418_atomic_too_wide.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2138,7 +2138,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e420_become_borrows_local.jian",
+   "path": "xin/fail/ownership/e420_become_borrows_local.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2157,7 +2157,7 @@
    ]
   },
   {
-   "path": "jian/fail/ownership/e421_drop_uses_capability.jian",
+   "path": "xin/fail/ownership/e421_drop_uses_capability.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2176,7 +2176,7 @@
    ]
   },
   {
-   "path": "jian/fail/proof/e604_ghost_read.jian",
+   "path": "xin/fail/proof/e604_ghost_read.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2197,7 +2197,7 @@
    ]
   },
   {
-   "path": "jian/fail/proof/e605_lemma_uses_capability.jian",
+   "path": "xin/fail/proof/e605_lemma_uses_capability.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2218,7 +2218,7 @@
    ]
   },
   {
-   "path": "jian/fail/std/e545_backreference.jian",
+   "path": "xin/fail/std/e545_backreference.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2237,7 +2237,7 @@
    ]
   },
   {
-   "path": "jian/fail/std/e545_bad_literal.jian",
+   "path": "xin/fail/std/e545_bad_literal.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2256,7 +2256,7 @@
    ]
   },
   {
-   "path": "jian/fail/std/e545_lookaround.jian",
+   "path": "xin/fail/std/e545_lookaround.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2275,7 +2275,7 @@
    ]
   },
   {
-   "path": "jian/fail/std/encoding_bytearray_not_hash.jian",
+   "path": "xin/fail/std/encoding_bytearray_not_hash.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2294,7 +2294,7 @@
    ]
   },
   {
-   "path": "jian/fail/std/encoding_bytes_immutable.jian",
+   "path": "xin/fail/std/encoding_bytes_immutable.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2313,7 +2313,7 @@
    ]
   },
   {
-   "path": "jian/fail/std/heap_not_iterable.jian",
+   "path": "xin/fail/std/heap_not_iterable.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2332,7 +2332,7 @@
    ]
   },
   {
-   "path": "jian/fail/strings/e504_index_str.jian",
+   "path": "xin/fail/strings/e504_index_str.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2351,7 +2351,7 @@
    ]
   },
   {
-   "path": "jian/fail/strings/e504_len_str.jian",
+   "path": "xin/fail/strings/e504_len_str.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2370,7 +2370,7 @@
    ]
   },
   {
-   "path": "jian/fail/strings/n12_index_str.jian",
+   "path": "xin/fail/strings/n12_index_str.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2387,7 +2387,7 @@
    ]
   },
   {
-   "path": "jian/fail/strings/n21_len_str.jian",
+   "path": "xin/fail/strings/n21_len_str.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2404,7 +2404,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e100_unexpected_token.jian",
+   "path": "xin/fail/syntax/e100_unexpected_token.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2424,7 +2424,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e101_and_or_mix.jian",
+   "path": "xin/fail/syntax/e101_and_or_mix.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2443,7 +2443,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e101_bitwise_compare.jian",
+   "path": "xin/fail/syntax/e101_bitwise_compare.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2462,7 +2462,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e101_fallback_arith.jian",
+   "path": "xin/fail/syntax/e101_fallback_arith.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2483,7 +2483,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e101_mod_mul.jian",
+   "path": "xin/fail/syntax/e101_mod_mul.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2502,7 +2502,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e101_neg_pow.jian",
+   "path": "xin/fail/syntax/e101_neg_pow.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2521,7 +2521,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e102_unclosed_bracket.jian",
+   "path": "xin/fail/syntax/e102_unclosed_bracket.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2541,7 +2541,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e102_unclosed_string.jian",
+   "path": "xin/fail/syntax/e102_unclosed_string.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2561,7 +2561,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e103_backslash.jian",
+   "path": "xin/fail/syntax/e103_backslash.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2578,7 +2578,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e103_semicolon.jian",
+   "path": "xin/fail/syntax/e103_semicolon.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2595,7 +2595,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e104_chained_call.jian",
+   "path": "xin/fail/syntax/e104_chained_call.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2612,7 +2612,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e104_chained_strict.jian",
+   "path": "xin/fail/syntax/e104_chained_strict.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2631,7 +2631,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e106_late_contract.jian",
+   "path": "xin/fail/syntax/e106_late_contract.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2651,7 +2651,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e107_two_for_clauses.jian",
+   "path": "xin/fail/syntax/e107_two_for_clauses.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2668,7 +2668,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e120_raise.jian",
+   "path": "xin/fail/syntax/e120_raise.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2685,7 +2685,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e120_try.jian",
+   "path": "xin/fail/syntax/e120_try.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2702,7 +2702,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e121_global.jian",
+   "path": "xin/fail/syntax/e121_global.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2719,7 +2719,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e121_yield.jian",
+   "path": "xin/fail/syntax/e121_yield.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2737,7 +2737,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e143_become_not_last.jian",
+   "path": "xin/fail/syntax/e143_become_not_last.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2756,7 +2756,7 @@
    ]
   },
   {
-   "path": "jian/fail/syntax/e233_fstring_for_template.jian",
+   "path": "xin/fail/syntax/e233_fstring_for_template.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2775,7 +2775,7 @@
    ]
   },
   {
-   "path": "jian/fail/time/e540_impossible_date.jian",
+   "path": "xin/fail/time/e540_impossible_date.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2792,7 +2792,7 @@
    ]
   },
   {
-   "path": "jian/fail/time/e542_pattern_type.jian",
+   "path": "xin/fail/time/e542_pattern_type.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2809,7 +2809,7 @@
    ]
   },
   {
-   "path": "jian/fail/time/w817_day_on_zoned.jian",
+   "path": "xin/fail/time/w817_day_on_zoned.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2826,7 +2826,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e200_unresolved.jian",
+   "path": "xin/fail/types/e200_unresolved.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2844,7 +2844,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e201_bool_not_number.jian",
+   "path": "xin/fail/types/e201_bool_not_number.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2861,7 +2861,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e201_no_implicit_widening.jian",
+   "path": "xin/fail/types/e201_no_implicit_widening.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2878,7 +2878,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e201_rebind_changes_type.jian",
+   "path": "xin/fail/types/e201_rebind_changes_type.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2897,7 +2897,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e201_return_mismatch.jian",
+   "path": "xin/fail/types/e201_return_mismatch.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2917,7 +2917,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e202_arg_count.jian",
+   "path": "xin/fail/types/e202_arg_count.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2937,7 +2937,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e202_unknown_keyword.jian",
+   "path": "xin/fail/types/e202_unknown_keyword.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2954,7 +2954,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e203_no_such_field.jian",
+   "path": "xin/fail/types/e203_no_such_field.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2974,7 +2974,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e203_no_such_method.jian",
+   "path": "xin/fail/types/e203_no_such_method.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2991,7 +2991,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e210_keyword_required.jian",
+   "path": "xin/fail/types/e210_keyword_required.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3008,7 +3008,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e210_record_keyword_required.jian",
+   "path": "xin/fail/types/e210_record_keyword_required.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3025,7 +3025,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e220_overlapping_impls.jian",
+   "path": "xin/fail/types/e220_overlapping_impls.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3042,7 +3042,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e221_missing_trait.jian",
+   "path": "xin/fail/types/e221_missing_trait.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3062,7 +3062,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e230_out_parameter.jian",
+   "path": "xin/fail/types/e230_out_parameter.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3082,7 +3082,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e232_mixed_alternatives.jian",
+   "path": "xin/fail/types/e232_mixed_alternatives.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3101,7 +3101,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e232_none_variant.jian",
+   "path": "xin/fail/types/e232_none_variant.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3120,7 +3120,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e240_unannotated_param.jian",
+   "path": "xin/fail/types/e240_unannotated_param.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3137,7 +3137,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e241_empty_list.jian",
+   "path": "xin/fail/types/e241_empty_list.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3156,7 +3156,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e251_cap_set_cycle.jian",
+   "path": "xin/fail/types/e251_cap_set_cycle.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3175,7 +3175,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e271_become_signature.jian",
+   "path": "xin/fail/types/e271_become_signature.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3194,7 +3194,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e273_become_closure.jian",
+   "path": "xin/fail/types/e273_become_closure.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3213,7 +3213,7 @@
    ]
   },
   {
-   "path": "jian/fail/types/e273_become_in_par.jian",
+   "path": "xin/fail/types/e273_become_in_par.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3232,7 +3232,7 @@
    ]
   },
   {
-   "path": "jian/run/bounds/runtime_check_panics.jian",
+   "path": "xin/run/bounds/runtime_check_panics.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3248,7 +3248,7 @@
    "exit": 101
   },
   {
-   "path": "jian/run/collections/dict_insertion_order.jian",
+   "path": "xin/run/collections/dict_insertion_order.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3262,7 +3262,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/collections/list_show.jian",
+   "path": "xin/run/collections/list_show.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3277,7 +3277,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/concurrency/lowest_index_failure.jian",
+   "path": "xin/run/concurrency/lowest_index_failure.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3292,7 +3292,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/concurrency/par_source_order.jian",
+   "path": "xin/run/concurrency/par_source_order.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3309,7 +3309,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/contracts/assert_panics.jian",
+   "path": "xin/run/contracts/assert_panics.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3322,7 +3322,7 @@
    "exit": 101
   },
   {
-   "path": "jian/run/contracts/pre_violation_panics.jian",
+   "path": "xin/run/contracts/pre_violation_panics.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3337,7 +3337,7 @@
    "exit": 101
   },
   {
-   "path": "jian/run/contracts/unreachable_panics.jian",
+   "path": "xin/run/contracts/unreachable_panics.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3350,7 +3350,7 @@
    "exit": 101
   },
   {
-   "path": "jian/run/failure/context.jian",
+   "path": "xin/run/failure/context.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3365,7 +3365,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/failure/else_binds_error.jian",
+   "path": "xin/run/failure/else_binds_error.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3378,7 +3378,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/failure/main_fails.jian",
+   "path": "xin/run/failure/main_fails.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3393,7 +3393,7 @@
    "exit": 1
   },
   {
-   "path": "jian/run/match/records_show.jian",
+   "path": "xin/run/match/records_show.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3409,7 +3409,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/match/sums.jian",
+   "path": "xin/run/match/sums.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3424,7 +3424,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/numbers/bigint.jian",
+   "path": "xin/run/numbers/bigint.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3437,7 +3437,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/numbers/div_zero_panics.jian",
+   "path": "xin/run/numbers/div_zero_panics.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3451,7 +3451,7 @@
    "exit": 101
   },
   {
-   "path": "jian/run/numbers/float_div_zero.jian",
+   "path": "xin/run/numbers/float_div_zero.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3464,7 +3464,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/numbers/float_equality.jian",
+   "path": "xin/run/numbers/float_equality.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3479,7 +3479,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/numbers/floor_division.jian",
+   "path": "xin/run/numbers/floor_division.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3494,7 +3494,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/numbers/int_division_is_float.jian",
+   "path": "xin/run/numbers/int_division_is_float.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3509,7 +3509,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/numbers/int_truncates.jian",
+   "path": "xin/run/numbers/int_truncates.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3522,7 +3522,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/numbers/overflow_panics.jian",
+   "path": "xin/run/numbers/overflow_panics.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3539,7 +3539,7 @@
    "exit": 101
   },
   {
-   "path": "jian/run/numbers/round_half_even.jian",
+   "path": "xin/run/numbers/round_half_even.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3552,7 +3552,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/ownership/exclusivity_panic.jian",
+   "path": "xin/run/ownership/exclusivity_panic.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3565,7 +3565,7 @@
    "exit": 101
   },
   {
-   "path": "jian/run/ownership/inout.jian",
+   "path": "xin/run/ownership/inout.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3578,7 +3578,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/ownership/value_semantics.jian",
+   "path": "xin/run/ownership/value_semantics.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3593,7 +3593,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/bisect_key.jian",
+   "path": "xin/run/std/bisect_key.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3609,7 +3609,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/deque_empty_pop.jian",
+   "path": "xin/run/std/deque_empty_pop.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3624,7 +3624,7 @@
    "exit": 101
   },
   {
-   "path": "jian/run/std/deque_ends.jian",
+   "path": "xin/run/std/deque_ends.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3641,7 +3641,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/deque_maxlen_rotate.jian",
+   "path": "xin/run/std/deque_maxlen_rotate.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3657,7 +3657,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/encoding_base64.jian",
+   "path": "xin/run/std/encoding_base64.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3672,7 +3672,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/encoding_bytearray.jian",
+   "path": "xin/run/std/encoding_bytearray.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3687,7 +3687,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/encoding_bytearray_pop_empty.jian",
+   "path": "xin/run/std/encoding_bytearray_pop_empty.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3702,7 +3702,7 @@
    "exit": 101
   },
   {
-   "path": "jian/run/std/encoding_bytes_basic.jian",
+   "path": "xin/run/std/encoding_bytes_basic.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3717,7 +3717,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/encoding_bytes_eq_ord_hash.jian",
+   "path": "xin/run/std/encoding_bytes_eq_ord_hash.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3732,7 +3732,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/encoding_bytes_index_bounds.jian",
+   "path": "xin/run/std/encoding_bytes_index_bounds.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3747,7 +3747,7 @@
    "exit": 101
   },
   {
-   "path": "jian/run/std/encoding_bytes_show.jian",
+   "path": "xin/run/std/encoding_bytes_show.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3762,7 +3762,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/encoding_error.jian",
+   "path": "xin/run/std/encoding_error.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3777,7 +3777,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/encoding_hex.jian",
+   "path": "xin/run/std/encoding_hex.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3792,7 +3792,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/encoding_utf8.jian",
+   "path": "xin/run/std/encoding_utf8.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3807,7 +3807,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/heap_empty_pop.jian",
+   "path": "xin/run/std/heap_empty_pop.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3822,7 +3822,7 @@
    "exit": 101
   },
   {
-   "path": "jian/run/std/heap_order.jian",
+   "path": "xin/run/std/heap_order.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3840,7 +3840,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/iter_adapters.jian",
+   "path": "xin/run/std/iter_adapters.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3855,7 +3855,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/iter_consumers.jian",
+   "path": "xin/run/std/iter_consumers.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3870,7 +3870,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/iter_for_loop.jian",
+   "path": "xin/run/std/iter_for_loop.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3886,7 +3886,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/iter_into_collections.jian",
+   "path": "xin/run/std/iter_into_collections.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3901,7 +3901,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/iter_lazy_infinite.jian",
+   "path": "xin/run/std/iter_lazy_infinite.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3918,7 +3918,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/iter_list_eager.jian",
+   "path": "xin/run/std/iter_list_eager.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3933,7 +3933,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/iter_single_pass.jian",
+   "path": "xin/run/std/iter_single_pass.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3950,7 +3950,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/iter_sources.jian",
+   "path": "xin/run/std/iter_sources.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3965,7 +3965,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/iter_windows_chunks.jian",
+   "path": "xin/run/std/iter_windows_chunks.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3980,7 +3980,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/list_bisect.jian",
+   "path": "xin/run/std/list_bisect.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3995,7 +3995,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/list_insert_clamp.jian",
+   "path": "xin/run/std/list_insert_clamp.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4010,7 +4010,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/list_slice_exact.jian",
+   "path": "xin/run/std/list_slice_exact.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4025,7 +4025,7 @@
    "exit": 101
   },
   {
-   "path": "jian/run/std/list_sort.jian",
+   "path": "xin/run/std/list_sort.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4041,7 +4041,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/list_sort_key.jian",
+   "path": "xin/run/std/list_sort_key.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4056,7 +4056,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/math_constants.jian",
+   "path": "xin/run/std/math_constants.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4072,7 +4072,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/math_domain.jian",
+   "path": "xin/run/std/math_domain.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4087,7 +4087,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/math_dot_exact_lengths.jian",
+   "path": "xin/run/std/math_dot_exact_lengths.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4102,7 +4102,7 @@
    "exit": 101
   },
   {
-   "path": "jian/run/std/math_exact_ops.jian",
+   "path": "xin/run/std/math_exact_ops.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4118,7 +4118,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/math_functions.jian",
+   "path": "xin/run/std/math_functions.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4135,7 +4135,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/math_hard_cases.jian",
+   "path": "xin/run/std/math_hard_cases.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4151,7 +4151,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/math_round_modes.jian",
+   "path": "xin/run/std/math_round_modes.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4166,7 +4166,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/math_sum_exact.jian",
+   "path": "xin/run/std/math_sum_exact.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4181,7 +4181,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/min_max_key.jian",
+   "path": "xin/run/std/min_max_key.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4197,7 +4197,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/regex_anchors.jian",
+   "path": "xin/run/std/regex_anchors.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4212,7 +4212,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/regex_escape.jian",
+   "path": "xin/run/std/regex_escape.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4227,7 +4227,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/regex_find_all.jian",
+   "path": "xin/run/std/regex_find_all.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4242,7 +4242,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/regex_runtime_error.jian",
+   "path": "xin/run/std/regex_runtime_error.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4257,7 +4257,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/regex_search_groups.jian",
+   "path": "xin/run/std/regex_search_groups.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4273,7 +4273,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/regex_split_sub.jian",
+   "path": "xin/run/std/regex_split_sub.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4288,7 +4288,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/regex_unicode.jian",
+   "path": "xin/run/std/regex_unicode.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4303,7 +4303,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/sorted_dict_basic.jian",
+   "path": "xin/run/std/sorted_dict_basic.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4319,7 +4319,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/sorted_dict_queries.jian",
+   "path": "xin/run/std/sorted_dict_queries.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4335,7 +4335,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/sorted_set_basic.jian",
+   "path": "xin/run/std/sorted_set_basic.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4353,7 +4353,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/str_iter.jian",
+   "path": "xin/run/std/str_iter.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4368,7 +4368,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/std/text_and_list_additions.jian",
+   "path": "xin/run/std/text_and_list_additions.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4383,7 +4383,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/strings/concat.jian",
+   "path": "xin/run/strings/concat.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4399,7 +4399,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/strings/counts.jian",
+   "path": "xin/run/strings/counts.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4412,7 +4412,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/tail/become_constant_stack.jian",
+   "path": "xin/run/tail/become_constant_stack.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4427,7 +4427,7 @@
    "exit": 0
   },
   {
-   "path": "jian/run/tuples/assign_return_swap.jian",
+   "path": "xin/run/tuples/assign_return_swap.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -6785,7 +6785,7 @@
    "exit": 101
   },
   {
-   "path": "golden/g1_hello.jian",
+   "path": "golden/g1_hello.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -6798,7 +6798,7 @@
    "exit": 0
   },
   {
-   "path": "golden/g2_vwap.jian",
+   "path": "golden/g2_vwap.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -6811,7 +6811,7 @@
    "exit": 0
   },
   {
-   "path": "golden/g4_word_count.jian",
+   "path": "golden/g4_word_count.xin",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -6824,7 +6824,7 @@
    "exit": 0
   },
   {
-   "path": "solver/append_adds_one.jian",
+   "path": "solver/append_adds_one.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -6837,7 +6837,7 @@
    "expect": []
   },
   {
-   "path": "solver/assert_dominates.jian",
+   "path": "solver/assert_dominates.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -6851,7 +6851,7 @@
    "expect": []
   },
   {
-   "path": "solver/assignment_kills_facts.jian",
+   "path": "solver/assignment_kills_facts.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -6870,7 +6870,7 @@
    ]
   },
   {
-   "path": "solver/constant_multiple.jian",
+   "path": "solver/constant_multiple.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -6883,7 +6883,7 @@
    "expect": []
   },
   {
-   "path": "solver/dict_inout_kills_key.jian",
+   "path": "solver/dict_inout_kills_key.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -6903,7 +6903,7 @@
    ]
   },
   {
-   "path": "solver/dict_key_facts.jian",
+   "path": "solver/dict_key_facts.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -6917,7 +6917,7 @@
    "expect": []
   },
   {
-   "path": "solver/disjunction_guard.jian",
+   "path": "solver/disjunction_guard.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -6930,7 +6930,7 @@
    "expect": []
   },
   {
-   "path": "solver/enumerate_proven.jian",
+   "path": "solver/enumerate_proven.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -6943,7 +6943,7 @@
    "expect": []
   },
   {
-   "path": "solver/inout_use_kills_facts.jian",
+   "path": "solver/inout_use_kills_facts.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -6962,7 +6962,7 @@
    ]
   },
   {
-   "path": "solver/invariant_trusted_in_check.jian",
+   "path": "solver/invariant_trusted_in_check.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -6976,7 +6976,7 @@
    "expect": []
   },
   {
-   "path": "solver/invariant_untrusted_in_release.jian",
+   "path": "solver/invariant_untrusted_in_release.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -6999,7 +6999,7 @@
    ]
   },
   {
-   "path": "solver/list_literal_length_proven.jian",
+   "path": "solver/list_literal_length_proven.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7012,7 +7012,7 @@
    "expect": []
   },
   {
-   "path": "solver/list_literal_length_refuted.jian",
+   "path": "solver/list_literal_length_refuted.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7031,7 +7031,7 @@
    ]
   },
   {
-   "path": "solver/mask_proven.jian",
+   "path": "solver/mask_proven.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7045,7 +7045,7 @@
    "expect": []
   },
   {
-   "path": "solver/mask_too_wide_unknown.jian",
+   "path": "solver/mask_too_wide_unknown.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7065,7 +7065,7 @@
    ]
   },
   {
-   "path": "solver/modulo_constant_proven.jian",
+   "path": "solver/modulo_constant_proven.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7079,7 +7079,7 @@
    "expect": []
   },
   {
-   "path": "solver/modulo_variable_unknown.jian",
+   "path": "solver/modulo_variable_unknown.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7099,7 +7099,7 @@
    ]
   },
   {
-   "path": "solver/nonlinear_unknown.jian",
+   "path": "solver/nonlinear_unknown.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7118,7 +7118,7 @@
    ]
   },
   {
-   "path": "solver/pop_removes_one.jian",
+   "path": "solver/pop_removes_one.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7137,7 +7137,7 @@
    ]
   },
   {
-   "path": "solver/range_loop_proven.jian",
+   "path": "solver/range_loop_proven.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7150,7 +7150,7 @@
    "expect": []
   },
   {
-   "path": "solver/range_loop_start_unknown.jian",
+   "path": "solver/range_loop_start_unknown.xin",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7561,7 +7561,7 @@
    "expect": [],
    "expect_toml": {
     "spec": "18.3",
-    "result": "result.jian"
+    "result": "result.xin"
    }
   },
   {
@@ -7576,7 +7576,7 @@
    "expect": [],
    "expect_toml": {
     "spec": "18.3",
-    "result": "result.jian"
+    "result": "result.xin"
    }
   },
   {
@@ -7591,7 +7591,7 @@
    "expect": [],
    "expect_toml": {
     "spec": "18.3",
-    "result": "result.jian"
+    "result": "result.xin"
    }
   },
   {
@@ -7766,7 +7766,7 @@
    "expect_toml": {
     "spec": "18.3",
     "note": "each item replaces the item of its name or is added",
-    "result": "result.jian"
+    "result": "result.xin"
    }
   },
   {
@@ -7781,7 +7781,7 @@
    "expect": [],
    "expect_toml": {
     "spec": "18.3",
-    "result": "result.jian"
+    "result": "result.xin"
    }
   },
   {
@@ -7821,7 +7821,7 @@
      "check"
     ],
     "code": "E001",
-    "at": "src/app.jian:2:18"
+    "at": "src/app.xin:2:18"
    }
   },
   {

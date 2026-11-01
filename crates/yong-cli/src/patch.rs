@@ -50,15 +50,7 @@ pub fn apply_file(
 }
 
 pub fn module_path(dir: &Path, module: &str) -> PathBuf {
-    let stem = module.replace('.', "/");
-    let xin = dir.join(format!("{stem}.xin"));
-    // Legacy `.jian` modules until conformance/ is renamed to the Xin names.
-    let jian = dir.join(format!("{stem}.jian"));
-    if !xin.is_file() && jian.is_file() {
-        jian
-    } else {
-        xin
-    }
+    dir.join(format!("{}.xin", module.replace('.', "/")))
 }
 
 /// Writes an applied patch and appends it to the oplog (18.3 rule 7).
@@ -244,10 +236,7 @@ fn plain_target(patch: &Path, dir: &Path) -> Result<PathBuf, String> {
     let mut found: Vec<PathBuf> = std::fs::read_dir(dir)
         .map_err(|e| format!("{}: {e}", dir.display()))?
         .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| {
-            p.extension().is_some_and(|e| e == "xin" || e == "jian")
-                && p.file_name() != patch.file_name()
-        })
+        .filter(|p| p.extension().is_some_and(|e| e == "xin") && p.file_name() != patch.file_name())
         .collect();
     match found.len() {
         1 => Ok(found.remove(0)),

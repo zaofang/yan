@@ -196,5 +196,7 @@ pub struct Func {
 pub struct Program {
     pub funcs: Vec<Func>,
     pub main: FuncId,
+    /// `main` returns a `Result`, whose tag is its first slot; `Err` exits with status 1.
+    pub main_fails: bool,
     pub strings: Vec<String>,
 }

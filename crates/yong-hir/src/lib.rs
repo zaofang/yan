@@ -2,6 +2,8 @@
 //! Xin's grammar (13.2); Wen-only forms are added here as Wen needs them. Spans are the first
 //! token of each node.
 
+pub mod raise;
+
 use yong_diag::Span;
 
 pub type Name = String;

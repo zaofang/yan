@@ -156,3 +156,9 @@ pub unsafe extern "C" fn yong_rt_list_copy(l: *const List) -> *mut List {
         data: l.data.clone(),
     })
 }
+
+/// End the program with `code` once stdout is flushed: `main` failed (8.1).
+pub extern "C" fn yong_rt_exit(code: i64) -> ! {
+    let _ = std::io::stdout().flush();
+    std::process::exit(code as i32)
+}
