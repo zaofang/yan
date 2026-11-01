@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-01 | [What Yong is and how it fits together](https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU) | Study only; gap shortlist pending cards |
 | 2026-11-01 | [Naming study: Yong and its surfaces](https://claude.ai/artifact/8zD7T9QnYtNUsbF96cLHNN) | R586 |
 | 2026-11-01 | [What makes Xin and Wen special](https://claude.ai/artifact/4piYJXunC1Vp4f14HAtYHh) | R566 to R568; Xin-to-Wen view stays in M3 |
 | 2026-11-01 | [Yong architecture plan: one core, many surfaces](https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC) | RFC 0004 (R558 to R565) |
