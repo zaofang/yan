@@ -333,7 +333,18 @@ impl<'o> Vm<'o> {
                     self.stack[base + dst as usize] = v;
                 }
                 Op::Clear(r) => self.stack[base + r as usize] = Value::Unit,
-                Op::Jmp(to) => pc = to as usize,
+                Op::Jmp(to) => {
+                    // A backward jump is a loop iteration, one stage-0 step (R487).
+                    if (to as usize) < pc
+                        && let Some((l, _, steps)) = &mut self.limits
+                    {
+                        *steps += 1;
+                        if *steps > l.steps {
+                            return Err(crate::Stop::Limit("steps"));
+                        }
+                    }
+                    pc = to as usize;
+                }
                 Op::JmpIf { cond, to } => match self.val(&code, base, cond) {
                     Value::Bool(true) => pc = to as usize,
                     Value::Bool(false) => {}
