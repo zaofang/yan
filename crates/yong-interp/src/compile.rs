@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use std::rc::Rc;
 
 use yong_core::ast::*;
+use yong_diag::Span;
 use yong_std::registry::{self, Id};
 
 use crate::{Fnv, Map, Value, int_range, literal};
@@ -305,6 +306,10 @@ pub(crate) struct Code {
     pub ctors: Vec<CtorC>,
     pub clos: Vec<CloC>,
     pub msgs: Vec<String>,
+    /// The item a panic trace names for this code.
+    pub name: String,
+    /// The statement each op came from, by pc.
+    pub spans: Vec<Span>,
 }
 
 pub(crate) struct Program {
@@ -320,7 +325,7 @@ struct Globals<'m> {
     /// Module constants with literal or materialized (stage-0) values.
     consts: Map<Name, Value>,
     codes: Vec<Option<Code>>,
-    pending: Vec<(usize, &'m FnDef)>,
+    pending: Vec<(usize, Name, &'m FnDef)>,
 }
 
 fn const_value(c: &ConstVal) -> Option<Value> {
@@ -354,15 +359,16 @@ pub(crate) fn compile(m: &Module) -> Program {
                 let id = g.codes.len();
                 g.codes.push(None);
                 g.fns.insert(f.path.join("."), id);
-                g.pending.push((id, f));
+                g.pending.push((id, f.path.join("."), f));
             }
             ItemKind::Impl(i) => {
                 let ty = yong_core::type_text(&i.for_ty);
                 for f in &i.fns {
                     let id = g.codes.len();
                     g.codes.push(None);
-                    g.methods.insert(format!("{ty}.{}", f.path.join(".")), id);
-                    g.pending.push((id, f));
+                    let name = format!("{ty}.{}", f.path.join("."));
+                    g.methods.insert(name.clone(), id);
+                    g.pending.push((id, name, f));
                 }
             }
             ItemKind::Sum(s) => {
@@ -383,9 +389,9 @@ pub(crate) fn compile(m: &Module) -> Program {
     }
     // A later item of the same name replaces an earlier one; compile only the live ones.
     let live: HashSet<usize> = g.fns.values().chain(g.methods.values()).copied().collect();
-    for (id, f) in std::mem::take(&mut g.pending) {
+    for (id, name, f) in std::mem::take(&mut g.pending) {
         if live.contains(&id) {
-            let code = FnC::item(&mut g, f);
+            let code = FnC::item(&mut g, name, f);
             g.codes[id] = Some(code);
         }
     }
@@ -511,6 +517,8 @@ struct FnC<'g, 'm> {
     scopes: Vec<Scope>,
     /// The last pc taken as a jump target; ops before it cannot fuse with ops after.
     barrier: u32,
+    /// The statement being compiled.
+    at: Span,
 }
 
 impl<'g, 'm> FnC<'g, 'm> {
@@ -521,6 +529,7 @@ impl<'g, 'm> FnC<'g, 'm> {
             regs: Map::default(),
             scopes: Vec::new(),
             barrier: 0,
+            at: Span::default(),
         };
         for p in params {
             let r = c.temp();
@@ -538,8 +547,10 @@ impl<'g, 'm> FnC<'g, 'm> {
         c
     }
 
-    fn item(g: &'g mut Globals<'m>, f: &FnDef) -> Code {
+    fn item(g: &'g mut Globals<'m>, name: Name, f: &FnDef) -> Code {
         let mut c = FnC::new(g, &f.params, f.body.as_ref(), &[]);
+        c.code.name = name;
+        c.at = f.name_span;
         for k in &f.contracts {
             if let Contract::Requires(e) = k {
                 let t = c.temp();
@@ -565,6 +576,8 @@ impl<'g, 'm> FnC<'g, 'm> {
         let id = self.g.codes.len();
         self.g.codes.push(None);
         let mut c = FnC::new(self.g, &k.params, Some(&k.body), &names);
+        c.code.name = format!("closure in {}", self.code.name);
+        c.at = self.at;
         c.code.capture_regs = names.iter().map(|n| c.regs[n]).collect();
         c.block(&k.body);
         c.unsupported("function body ended without `ret`");
@@ -590,6 +603,7 @@ impl<'g, 'm> FnC<'g, 'm> {
 
     fn emit(&mut self, op: Op) -> usize {
         self.code.ops.push(op);
+        self.code.spans.push(self.at);
         self.code.ops.len() - 1
     }
 
@@ -676,7 +690,8 @@ impl<'g, 'm> FnC<'g, 'm> {
         match a {
             Atom::Lit(l, _) => match literal(l) {
                 Ok(v) => Ok(self.konst(v)),
-                Err(crate::Stop::Unsupported(m) | crate::Stop::Panic(m)) => Err(m),
+                Err(crate::Stop::Unsupported(m)) => Err(m),
+                Err(crate::Stop::Panic(p)) => Err(p.message),
                 Err(crate::Stop::Limit(m)) => Err(m.to_owned()),
             },
             Atom::Name(n, _) => self.lookup(n),
@@ -744,6 +759,12 @@ impl<'g, 'm> FnC<'g, 'm> {
     }
 
     fn stmt(&mut self, s: &Stmt) {
+        let outer = std::mem::replace(&mut self.at, s.span);
+        self.stmt_ops(s);
+        self.at = outer;
+    }
+
+    fn stmt_ops(&mut self, s: &Stmt) {
         match &s.kind {
             StmtKind::Let { pat, rhs, .. } => match pat {
                 Pat::Bind(n) if !self.g.nullary.contains(n) => {

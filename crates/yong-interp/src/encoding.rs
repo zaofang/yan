@@ -6,7 +6,7 @@ use yong_std::registry::{Id, id::*};
 
 use super::bind::{Bind, bad_args};
 use super::native::opt;
-use super::{Value, panic};
+use super::{Value, panic_with, slice_out_of_range};
 use Value::*;
 
 fn bytes(b: impl Into<Rc<[u8]>>) -> Value {
@@ -179,7 +179,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_ENCODING_SLICE_EXACT, |a| {
         [Bytes(b), Int(x), Int(y)] => match (usize::try_from(*x), usize::try_from(*y)) {
             (Ok(x), Ok(y)) if x <= y && y <= b.len() => bytes(&b[x..y]),
-            _ => return panic("bounds"),
+            _ => return slice_out_of_range(*x, *y, b.len()),
         },
     }),
     f!(STD_ENCODING_CONCAT, |a| { [Bytes(x), Bytes(y)] => bytes([&x[..], &y[..]].concat()) }),
@@ -223,7 +223,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_ENCODING_BYTEARRAY_POP, |a| {
         [ByteArray(b)] => match b.pop() {
             Some(c) => Int(c as i128),
-            None => return panic("bounds"),
+            None => return panic_with("bounds", "pop from an empty bytearray"),
         },
     }),
     f!(STD_ENCODING_BYTEARRAY_CLEAR, |a| {

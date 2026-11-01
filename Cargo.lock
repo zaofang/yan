@@ -1373,6 +1373,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "yong-core",
+ "yong-diag",
  "yong-rt",
  "yong-std",
  "yong-xin",
