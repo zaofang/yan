@@ -121,6 +121,8 @@ pub enum Stop {
 
 pub(crate) type R<T> = Result<T, Stop>;
 
+pub(crate) const STD_STAGES: u8 = 5;
+
 pub(crate) struct Interp<'o> {
     out: &'o mut dyn Write,
 }
@@ -302,23 +304,30 @@ pub(crate) fn data(name: &str, field: &str, v: Value) -> Value {
 }
 
 impl Interp<'_> {
-    /// The std functions used by M0 programs (assumption Y3).
-    pub(crate) fn std(&mut self, name: &str, args: &mut [Value]) -> R<Value> {
-        if let Some(r) = prelude::call(name, args) {
-            return r;
+    /// Stage `stage` of the std dispatch (assumption Y3), tried in order from 0 to
+    /// `STD_STAGES - 1`; `None` when the stage does not handle `name` with these arguments.
+    pub(crate) fn std_stage(
+        &mut self,
+        stage: u8,
+        name: &str,
+        args: &mut [Value],
+    ) -> Option<R<Value>> {
+        match stage {
+            0 => prelude::call(name, args),
+            1 => native::call(name, args),
+            2 => regex::call(name, args),
+            3 => collections::call(name, args),
+            _ => self.builtin(name, args),
         }
-        if let Some(r) = native::call(name, args) {
-            return r;
-        }
-        if let Some(r) = regex::call(name, args) {
-            return r;
-        }
-        if let Some(r) = collections::call(name, args) {
-            return r;
-        }
-        Ok(match (name, &mut *args) {
+    }
+
+    /// The std functions used by M0 programs.
+    fn builtin(&mut self, name: &str, args: &mut [Value]) -> Option<R<Value>> {
+        Some(Ok(match (name, &mut *args) {
             ("std.io.print", [Value::Cap(_), Value::Str(s)]) => {
-                writeln!(self.out, "{s}").map_err(|e| Stop::Unsupported(format!("stdout: {e}")))?;
+                if let Err(e) = writeln!(self.out, "{s}") {
+                    return Some(unsupported(format!("stdout: {e}")));
+                }
                 Value::Unit
             }
             ("std.list.new", []) => Value::List(Vec::new()),
@@ -328,8 +337,8 @@ impl Interp<'_> {
                 Value::Unit
             }
             ("std.result.is_ok", [Value::Data { name, .. }]) => Value::Bool(name == "Ok"),
-            _ => return unsupported(format!("call of `{name}`")),
-        })
+            _ => return None,
+        }))
     }
 }
 

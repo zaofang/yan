@@ -4,6 +4,7 @@
 //! keeps one slot across blocks) plus temporaries. Constructs the VM cannot run compile to an
 //! `Unsupported` op, so they fail only when reached, as before.
 
+use std::cell::Cell;
 use std::collections::HashSet;
 use std::rc::Rc;
 
@@ -94,6 +95,20 @@ pub(crate) enum Op {
     JmpIfNot {
         cond: Opnd,
         to: u32,
+    },
+    JmpIf {
+        cond: Opnd,
+        to: u32,
+    },
+    /// An integer compare into `dst` fused with the branch on it: jump when the result is `when`.
+    CmpJmp {
+        when: bool,
+        c: Cmp,
+        dst: Reg,
+        a: Opnd,
+        b: Opnd,
+        to: u32,
+        site: u32,
     },
     /// Record where a join point returns to.
     SetCont {
@@ -238,6 +253,8 @@ pub(crate) struct Site {
     pub callee: Callee,
     pub args: Vec<ArgC>,
     pub name: Rc<str>,
+    /// The std dispatch stage that last handled this site.
+    pub stage: Cell<u8>,
     pub mode: Mode,
 }
 
@@ -467,6 +484,8 @@ struct FnC<'g, 'm> {
     code: Code,
     regs: Map<Name, Reg>,
     scopes: Vec<Scope>,
+    /// The last pc taken as a jump target; ops before it cannot fuse with ops after.
+    barrier: u32,
 }
 
 impl<'g, 'm> FnC<'g, 'm> {
@@ -476,10 +495,10 @@ impl<'g, 'm> FnC<'g, 'm> {
             code: Code::default(),
             regs: Map::default(),
             scopes: Vec::new(),
+            barrier: 0,
         };
         for p in params {
-            let r = c.code.nregs;
-            c.code.nregs += 1;
+            let r = c.temp();
             // A repeated parameter name keeps its first slot.
             c.regs.entry(param_name(p).clone()).or_insert(r);
         }
@@ -549,14 +568,51 @@ impl<'g, 'm> FnC<'g, 'm> {
         self.code.ops.len() - 1
     }
 
-    fn pc(&self) -> u32 {
-        self.code.ops.len() as u32
+    /// The next pc, as a jump target.
+    fn pc(&mut self) -> u32 {
+        self.barrier = self.code.ops.len() as u32;
+        self.barrier
+    }
+
+    /// Jump when `cond` is `when`. An integer compare into `cond` just before fuses with it.
+    fn branch(&mut self, cond: Opnd, when: bool) -> usize {
+        let n = self.code.ops.len();
+        if n as u32 > self.barrier
+            && let Some(Op::Int {
+                op: IntOp::Cmp(c),
+                dst,
+                a,
+                b,
+                site,
+                ..
+            }) = self.code.ops.last().copied()
+            && cond.konst().is_none()
+            && cond.idx() == dst as usize
+        {
+            self.code.ops[n - 1] = Op::CmpJmp {
+                when,
+                c,
+                dst,
+                a,
+                b,
+                to: 0,
+                site,
+            };
+            return n - 1;
+        }
+        self.emit(if when {
+            Op::JmpIf { cond, to: 0 }
+        } else {
+            Op::JmpIfNot { cond, to: 0 }
+        })
     }
 
     fn patch(&mut self, at: usize, to: u32) {
         match &mut self.code.ops[at] {
             Op::Jmp(t)
             | Op::JmpIfNot { to: t, .. }
+            | Op::JmpIf { to: t, .. }
+            | Op::CmpJmp { to: t, .. }
             | Op::SetCont { to: t, .. }
             | Op::Match { to: t, .. } => *t = to,
             _ => unreachable!("patched op has no target"),
@@ -648,9 +704,11 @@ impl<'g, 'm> FnC<'g, 'm> {
                 unreachable!()
             };
             let pending = sets.take().unwrap_or_default();
-            let end = self.pc();
-            for at in pending {
-                self.patch(at, end);
+            if !pending.is_empty() {
+                let end = self.pc();
+                for at in pending {
+                    self.patch(at, end);
+                }
             }
         }
         self.scopes.pop();
@@ -704,7 +762,14 @@ impl<'g, 'm> FnC<'g, 'm> {
                     Ok(c) => c,
                     Err(m) => return self.unsupported(m),
                 };
-                let at = self.emit(Op::JmpIfNot { cond, to: 0 });
+                if els.is_none()
+                    && let [only] = &then.stmts[..]
+                    && let StmtKind::Break { label, .. } | StmtKind::Continue { label } = &only.kind
+                    && self.leave_loop_if(cond, label, matches!(only.kind, StmtKind::Break { .. }))
+                {
+                    return;
+                }
+                let at = self.branch(cond, false);
                 self.block(then);
                 match els {
                     Some(e) => {
@@ -844,6 +909,34 @@ impl<'g, 'm> FnC<'g, 'm> {
         for (dst, src) in restores {
             self.emit(Op::Restore { dst, src });
         }
+    }
+
+    /// `if cond { break 'label }` (or `continue`) as one branch, when no `with` is in between.
+    fn leave_loop_if(&mut self, cond: Opnd, label: &Name, brk: bool) -> bool {
+        let Some(i) = self
+            .scopes
+            .iter()
+            .rposition(|s| matches!(s, Scope::Loop { label: l, .. } if l == label))
+        else {
+            return false;
+        };
+        if self.scopes[i + 1..]
+            .iter()
+            .any(|s| matches!(s, Scope::With { .. }))
+        {
+            return false;
+        }
+        let at = self.branch(cond, true);
+        let Scope::Loop { start, breaks, .. } = &mut self.scopes[i] else {
+            unreachable!()
+        };
+        if brk {
+            breaks.push(at);
+        } else {
+            let s = *start;
+            self.patch(at, s);
+        }
+        true
     }
 
     fn leave_loop(&mut self, label: &Name, brk: bool) {
@@ -1091,6 +1184,7 @@ impl<'g, 'm> FnC<'g, 'm> {
             callee,
             args,
             name: name.into(),
+            stage: Cell::new(0),
             mode,
         });
         Some(self.code.sites.len() as u32 - 1)
