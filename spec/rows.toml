@@ -514,3 +514,8 @@ sections = "21.6, 23"
 rows = "R568"
 topic = "Niche surfaces may own semantics (https://claude.ai/artifact/4piYJXunC1Vp4f14HAtYHh), decided by the owner: niche surfaces are exempt from law 1 behind a boundary signature in Yong types, keeping laws 2, 4, 6, 7 and capabilities; forms lower to checked Yong or run on a surface engine linked as an extern item (R568)"
 sections = "2, 16.7"
+
+[[entry]]
+rows = "R569 to R575"
+topic = "std.json (RFC 0005), decided by the owner: `json.Value` with `parse_value`/`dump_value`, shipping with typed `parse[T: Wire]`/`dump[T: Wire]` once `derive(Wire)` exists (R569); numbers (R570); strict RFC 8259 input, duplicate keys and depth (R571); deterministic output (R572); `JsonError` (R573); total accessors on `Value` (R574); `parse_float` (R575)"
+sections = "17.3"
