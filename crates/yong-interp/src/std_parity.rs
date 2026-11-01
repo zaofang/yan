@@ -4,11 +4,12 @@
 use std::collections::BTreeSet;
 use yong_jian::ast::ItemKind;
 
-const NATIVE: [&str; 4] = [
+const NATIVE: [&str; 5] = [
     include_str!("lib.rs"),
     include_str!("native.rs"),
     include_str!("prelude.rs"),
     include_str!("regex.rs"),
+    include_str!("collections.rs"),
 ];
 
 fn native_paths() -> BTreeSet<String> {
@@ -18,7 +19,9 @@ fn native_paths() -> BTreeSet<String> {
             let segs: Vec<&str> = chunk.split('.').collect();
             let word =
                 |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_lowercase() || b == b'_');
-            if segs.len() == 3 && segs[0] == "std" && word(segs[1]) && word(segs[2]) {
+            // Three segments, or four for a submodule (std.collections.deque.len).
+            if matches!(segs.len(), 3 | 4) && segs[0] == "std" && segs[1..].iter().all(|s| word(s))
+            {
                 out.insert(chunk.to_string());
             }
         }

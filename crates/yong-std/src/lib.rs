@@ -3,9 +3,26 @@
 pub mod intrinsics;
 pub mod regex;
 
-/// `(module, source)` for each `std.<module>`.
+/// `(module, source)` for each `std.<module>`. std.collections declares one submodule per type,
+/// since their methods share names.
 pub const SOURCES: &[(&str, &str)] = &[
     ("cmp", include_str!("../lib/std/cmp.jian")),
+    (
+        "collections.deque",
+        include_str!("../lib/std/collections/deque.jian"),
+    ),
+    (
+        "collections.heap",
+        include_str!("../lib/std/collections/heap.jian"),
+    ),
+    (
+        "collections.sorted_dict",
+        include_str!("../lib/std/collections/sorted_dict.jian"),
+    ),
+    (
+        "collections.sorted_set",
+        include_str!("../lib/std/collections/sorted_set.jian"),
+    ),
     ("dict", include_str!("../lib/std/dict.jian")),
     ("error", include_str!("../lib/std/error.jian")),
     ("fmt", include_str!("../lib/std/fmt.jian")),

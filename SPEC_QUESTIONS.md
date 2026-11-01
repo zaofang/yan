@@ -112,6 +112,21 @@ Assumed in the regex implementation until the spec says otherwise:
 - A free std function is called by its module's name with no import (`regex.compile`,
   `math.sqrt`), as the N01 reading of `import` implies.
 
+## std.collections readings (R488 to R493)
+
+Assumed in the collections implementation until the spec says otherwise:
+
+- std.collections declares one submodule per type (`std.collections.deque`, `.heap`,
+  `.sorted_dict`, `.sorted_set`), because the four types share method names such as `len`, `pop`
+  and `first`. R475's declaring module for each type is its submodule.
+- `for k in m` over a `sorted_dict` iterates its keys in ascending order, as over a Python dict.
+  `for` over a heap is E201, the code for a type that does not fit.
+- `sorted_set(xs)` and `heap(xs)` take a list, and `sorted_dict(d)` takes a dict.
+- `m[k] op= v` on a `sorted_dict` does not insert `Default` first yet; R438 is implemented for
+  `dict` only, so a missing key panics with `bounds`.
+- The interpreter keeps the sorted types as sorted vectors, with O(n) insertion. No program can
+  tell this from a B-tree except by timing.
+
 ## Std elaboration readings (Wave 2)
 
 Assumed in `yong-elab`'s std loading until the spec says otherwise:

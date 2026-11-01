@@ -80,7 +80,7 @@ static STD: LazyLock<Std> = LazyLock::new(|| {
 });
 
 fn file(module: &str) -> String {
-    format!("std/{module}.jian")
+    format!("std/{}.jian", module.replace('.', "/"))
 }
 
 pub(crate) fn decl(path: &str) -> Option<&'static Decl> {
@@ -274,6 +274,7 @@ fn shape(t: &Ty) -> Option<(&'static str, Vec<&Ty>)> {
         Ty::Dict(k, v) => ("dict", vec![k, v]),
         Ty::Result(x, e) => ("Result", vec![x, e]),
         Ty::Tuple(ts) => ("tuple", ts.iter().collect()),
+        Ty::Coll(n, ts) => (*n, ts.iter().collect()),
         _ => return None,
     })
 }
@@ -312,6 +313,9 @@ fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
                 ("set", [t]) => Ty::Set(Box::new(t.clone())),
                 ("dict", [k, v]) => Ty::Dict(Box::new(k.clone()), Box::new(v.clone())),
                 ("tuple", ts) => Ty::Tuple(ts.to_vec()),
+                (n, ts) if crate::ty::collection(n).is_some_and(|(_, k)| k == ts.len()) => {
+                    Ty::Coll(crate::ty::collection(n).expect("matched").0, ts.to_vec())
+                }
                 ("Result", [t, e]) => Ty::Result(Box::new(t.clone()), Box::new(e.clone())),
                 _ => return None,
             }

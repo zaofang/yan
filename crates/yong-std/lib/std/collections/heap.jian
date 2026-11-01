@@ -1,0 +1,25 @@
+"""Methods on heap, a 4-ary min-heap; max is heap[cmp.Reverse[T]] (17.3, R488 to R493)."""
+
+@intrinsic
+@since("1.0")
+pub def push[T: Ord](var self: heap[T], take x: T) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def pop[T: Ord](var self: heap[T]) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def peek[T: Ord](self: heap[T]) -> T | None: ...
+
+@intrinsic
+@since("1.0")
+pub def pushpop[T: Ord](var self: heap[T], take x: T) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def into_sorted[T: Ord](take self: heap[T]) -> list[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def len[T: Ord](self: heap[T]) -> int: ...
