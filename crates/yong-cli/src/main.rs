@@ -3,6 +3,7 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
+mod mcp;
 mod patch;
 use yong_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, finish};
 
@@ -53,6 +54,8 @@ enum Command {
         module: Option<String>,
         patch: PathBuf,
     },
+    /// Serve the agent tools over MCP on stdio (21.4), for the modules under the current directory.
+    Mcp,
     /// Run a program.
     Run {
         #[arg(long)]
@@ -96,6 +99,13 @@ fn main() -> ExitCode {
             module,
             patch,
         } => apply_patch(&patch, module.as_deref(), check, format),
+        Command::Mcp => {
+            let diagnose = |p: &Path, src: &str| check_src(p, src, false, false);
+            match mcp::serve(Path::new("."), &diagnose) {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(msg) => tool_failure(&msg),
+            }
+        }
     }
 }
 
@@ -297,12 +307,9 @@ fn check_src(
 
 fn apply_patch(file: &Path, module: Option<&str>, check: bool, format: Format) -> ExitCode {
     let diagnose = |p: &Path, src: &str| check_src(p, src, false, false);
-    match patch::apply(file, module, check, &diagnose) {
+    match patch::apply_file(file, module, check, &diagnose) {
         Err(msg) => tool_failure(&msg),
-        Ok(Ok((target, text))) => match std::fs::write(&target, text) {
-            Ok(()) => ExitCode::SUCCESS,
-            Err(e) => tool_failure(&format!("{}: {e}", target.display())),
-        },
+        Ok(Ok(_)) => ExitCode::SUCCESS,
         Ok(Err(diags)) => {
             match format {
                 Format::Json => println!(
