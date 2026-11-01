@@ -39,7 +39,7 @@ pub enum Ty {
 }
 
 /// Each std.collections type, by its Xin name; its Yong name is in the projection table.
-pub const COLLECTIONS: [&str; 9] = [
+pub const COLLECTIONS: [&str; 12] = [
     "deque",
     "iter",
     "heap",
@@ -49,6 +49,9 @@ pub const COLLECTIONS: [&str; 9] = [
     "bytearray",
     "Path",
     "WindowsPath",
+    "Duration",
+    "Instant",
+    "MonoInstant",
 ];
 
 /// `name` as a std.collections type, with its `&'static` spelling and arity.
@@ -178,6 +181,9 @@ impl Ty {
             Ty::Coll("bytearray", _) => Some("encoding.bytearray"),
             Ty::Coll("Path", _) => Some("path"),
             Ty::Coll("WindowsPath", _) => Some("path.windows"),
+            Ty::Coll("Duration", _) => Some("time.duration"),
+            Ty::Coll("Instant", _) => Some("time.instant"),
+            Ty::Coll("MonoInstant", _) => Some("time.mono"),
             Ty::Coll(_, _) => Some("collections.sorted_set"),
             Ty::Int | Ty::Float | Ty::BigInt | Ty::Bool | Ty::Fixed(_) => Some("num"),
             Ty::Option(_) | Ty::Result(..) => Some("result"),
@@ -310,8 +316,8 @@ impl std::fmt::Display for Ty {
 
 /// Xin's sized scalar names the elaborator lowers, and their Yong spelling (16.3).
 pub fn fixed(name: &str) -> Option<&'static str> {
-    const LOWERED: [&str; 8] = [
-        "int8", "int16", "int32", "uint8", "uint16", "uint32", "uint64", "float32",
+    const LOWERED: [&str; 9] = [
+        "int8", "int16", "int32", "int128", "uint8", "uint16", "uint32", "uint64", "float32",
     ];
     LOWERED
         .contains(&name)

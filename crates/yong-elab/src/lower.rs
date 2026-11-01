@@ -699,6 +699,54 @@ fn call(path: &str, targs: Vec<y::TArg>, args: Vec<Arg>, span: Span) -> y::Call 
     }
 }
 
+/// The std function and result type of `op` on a `Duration`, `Instant` or `MonoInstant` (17.5).
+fn time_op(c: &str, b: &Ty, op: &str) -> Option<(String, Ty)> {
+    let d = Ty::Coll("Duration", vec![]);
+    let (module, f, rt) = match (c, b, op) {
+        ("Duration", Ty::Coll("Duration", _), "+") => ("duration", "add", d),
+        ("Duration", Ty::Coll("Duration", _), "-") => ("duration", "sub", d),
+        ("Duration", Ty::Coll("Duration", _), "/") => ("duration", "ratio", Ty::Float),
+        ("Duration", Ty::Coll("Duration", _), "//") => ("duration", "quotient", Ty::Int),
+        ("Duration", Ty::Int, "*") => ("duration", "mul", d),
+        ("Duration", Ty::Int, "/") => ("duration", "div", d),
+        ("Duration", Ty::Int, "//") => ("duration", "floordiv", d),
+        ("Duration", Ty::Int, "%") => ("duration", "rem", d),
+        ("Instant" | "MonoInstant", Ty::Coll("Duration", _), "+") => (
+            "",
+            "add",
+            Ty::Coll(
+                if c == "Instant" {
+                    "Instant"
+                } else {
+                    "MonoInstant"
+                },
+                vec![],
+            ),
+        ),
+        ("Instant" | "MonoInstant", Ty::Coll("Duration", _), "-") => (
+            "",
+            "sub",
+            Ty::Coll(
+                if c == "Instant" {
+                    "Instant"
+                } else {
+                    "MonoInstant"
+                },
+                vec![],
+            ),
+        ),
+        ("Instant", Ty::Coll("Instant", _), "-")
+        | ("MonoInstant", Ty::Coll("MonoInstant", _), "-") => ("", "since", d),
+        _ => return None,
+    };
+    let module = match (module, c) {
+        ("", "Instant") => "instant",
+        ("", _) => "mono",
+        (m, _) => m,
+    };
+    Some((format!("std.time.{module}.{f}"), rt))
+}
+
 fn let_arg(a: Atom) -> Arg {
     let s = a.span();
     Arg::Value(Conv::Let, a, s)
@@ -2985,6 +3033,9 @@ impl Lower<'_, '_, '_> {
                             let z = self.tmp(&Ty::BigInt, z, at);
                             call("sub_bigint", vec![], vec![let_arg(z), let_arg(a)], at)
                         }
+                        Ty::Coll("Duration", _) => {
+                            call("std.time.duration.neg", vec![], vec![let_arg(a)], at)
+                        }
                         Ty::Err => return Ok((Rhs::Atom(a), Ty::Err)),
                         t => {
                             self.err("E201", x.span, format!("cannot negate a `{t}`"));
@@ -3440,6 +3491,7 @@ impl Lower<'_, '_, '_> {
                     None => return unsupported(format!("`{op}` on `{tx}`")),
                 }
             }
+            (Ty::Coll(c, _), _) if let Some((p, rt)) = time_op(c, &ty, op) => (p, rt, vec![]),
             (Ty::Str, Ty::Str) if op == "+" => ("std.text.concat".to_owned(), Ty::Str, vec![]),
             (Ty::List(e), Ty::List(_)) if op == "+" => {
                 ("std.list.concat".to_owned(), tx.clone(), vec![e.targ()])
@@ -3740,6 +3792,8 @@ impl Lower<'_, '_, '_> {
                     && let module = match module.as_str() {
                         "bytes" => "encoding",
                         "bytearray" => "encoding.bytearray",
+                        "Duration" => "time.duration.of",
+                        "Instant" => "time.instant",
                         m => m,
                     }
                     && let Some(d) = crate::stdlib::decl(&format!("std.{module}.{m}"))
@@ -4060,6 +4114,8 @@ impl Lower<'_, '_, '_> {
             Ty::Coll("bytearray", _) => b == "Eq",
             Ty::Coll("Path" | "WindowsPath", _) if matches!(b, "Eq" | "Ord" | "Hash") => true,
             Ty::Str | Ty::Coll("Path", _) if b == "AsPath" => true,
+            Ty::Coll("Duration" | "Instant", _) => matches!(b, "Eq" | "Ord" | "Hash"),
+            Ty::Coll("MonoInstant", _) => matches!(b, "Eq" | "Ord"),
             t => self.g.impls.contains(&(b.to_owned(), t.to_string())),
         }
     }

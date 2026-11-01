@@ -3,3 +3,11 @@
 @intrinsic
 @since("1.0")
 pub def fake_fs(take files: dict[str, str]) -> std.fs.Fs: ...
+
+@intrinsic
+@since("1.0")
+pub def fixed_time(i: Instant) -> std.time.Time: ...
+
+@intrinsic
+@since("1.0")
+pub def virtual(start: Instant) -> std.time.Time: ...

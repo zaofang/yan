@@ -1,0 +1,19 @@
+"""Exact time: `Duration`, `Instant`, `MonoInstant` and the `time` capability (17.5, R593 to R597)."""
+
+@since("1.0")
+pub type TimeReason = Syntax() | Range() | Zone() | Offset()
+
+@since("1.0")
+pub class TimeError:
+    """Text a time parser rejected: the char offset of the first bad char, and why."""
+    at: int
+    reason: TimeReason
+
+@capability
+@since("1.0")
+pub trait Time:
+    def now(self: Self) -> Instant: ...
+    def monotonic(self: Self) -> MonoInstant: ...
+    def sleep(self: Self, d: Duration) -> None: ...
+    def sleep_until(self: Self, m: MonoInstant) -> None: ...
+
