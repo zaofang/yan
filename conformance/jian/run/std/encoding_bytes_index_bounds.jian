@@ -1,0 +1,12 @@
+# spec: 17.3
+# rows: R579
+# note: indexing past the end panics with kind bounds
+# stdout:
+# 98
+# exit: 101
+
+pub def main() uses io:
+    s = "ab"
+    b = s.bytes()
+    io.print(f"{b[1]}")
+    io.print(f"{b[2]}")

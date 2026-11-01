@@ -1,0 +1,24 @@
+# spec: 17.3
+# rows: R585
+# stdout:
+# bytearray(b'') 0
+# bytearray(b'Hell!') 5 101 108
+# 33 bytearray(b'Hell') b'Hell!'
+# True False
+# bytearray(b'') b'Hell!'
+
+pub def main() uses io:
+    ba = bytearray()
+    io.print(f"{ba} {len(ba)}")
+    ba.append(104)
+    s = "ello"
+    ba.extend(s.bytes())
+    ba[0] = 72
+    ba[-1] = 33
+    io.print(f"{ba} {ba.len()} {ba[1]} {ba[-2]}")
+    snap = ba.to_bytes()
+    io.print(f"{ba.pop()} {ba} {snap}")
+    c = bytearray.from_bytes(snap)
+    io.print(f"{c == bytearray.from_bytes(snap)} {c == ba}")
+    ba.clear()
+    io.print(f"{ba} {snap}")

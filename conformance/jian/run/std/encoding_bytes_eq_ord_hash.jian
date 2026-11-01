@@ -1,0 +1,15 @@
+# spec: 17.3
+# rows: R579
+# stdout:
+# True False True True True
+# [b'\x01\x02', b'\x01\x02\x00', b'\x02']
+# a 2
+
+pub def main() uses io:
+    a = bytes.from_list([1, 2])
+    b = bytes.from_list([1, 2, 0])
+    c = bytes.from_list([2])
+    io.print(f"{a == bytes.from_list([1, 2])} {a == b} {a < b} {b < c} {c > a}")
+    io.print(f"{sorted([c.copy(), b.copy(), a.copy()])}")
+    d = {a.copy(): "a", c.copy(): "c"}
+    io.print(f"{d.get(bytes.from_list([1, 2])) else '-'} {len(set([a, b, bytes.from_list([1, 2])]))}")

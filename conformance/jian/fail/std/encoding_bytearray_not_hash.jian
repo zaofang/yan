@@ -1,0 +1,9 @@
+# spec: 17.3
+# rows: R585
+# note: bytearray implements Eq but not Hash
+# expect: E221 at 8:13
+
+def f() -> int:
+    a = bytearray()
+    s = set([a])
+    return len(s)

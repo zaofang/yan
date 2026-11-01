@@ -1,0 +1,21 @@
+# spec: 17.3
+# rows: R581
+# stdout:
+# 000aabff
+# 0
+# 0aff
+# deadbeef
+# 3
+# 1
+# 2
+# 1
+
+def rt(s: str) -> str fail EncodingError:
+    b = encoding.hex_decode(s)?
+    return encoding.hex(b)
+
+pub def main() uses io:
+    io.print(encoding.hex(bytes.from_list([0, 10, 171, 255])))
+    io.print(f"{len(rt('') else '?')}")
+    for s in ["0aFF", "DEADbeef", "abc", "0g", "ab cd", "0x00"]:
+        io.print(rt(s) else err -> f"{err.at}")

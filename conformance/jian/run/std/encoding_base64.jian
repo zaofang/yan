@@ -1,0 +1,37 @@
+# spec: 17.3
+# rows: R582
+# stdout:
+# 0
+# Zg== Zg
+# Zm8= Zm8
+# Zm9v Zm9v
+# Zm9vYg== Zm9vYg
+# Zm9vYmE= Zm9vYmE
+# Zm9vYmFy Zm9vYmFy
+# +/8= -_8= -_8
+# b'foob'
+# b'foob'
+# invalid 5
+# invalid 6
+# invalid 4
+# invalid 2
+# invalid 1
+# invalid 0
+# b'\xfb\xff'
+# invalid 0
+
+def rt(s: str, url: bool) -> str fail EncodingError:
+    b = encoding.base64_decode(s, url=url)?
+    return f"{b}"
+
+pub def main() uses io:
+    io.print(f"{len(encoding.base64(bytes.from_list([])))}")
+    for t in ["f", "fo", "foo", "foob", "fooba", "foobar"]:
+        b = t.bytes()
+        io.print(f"{encoding.base64(b)} {encoding.base64(b, pad=False)}")
+    w = bytes.from_list([0xfb, 0xff])
+    io.print(f"{encoding.base64(w)} {encoding.base64(w, url=True)} {encoding.base64(w, url=True, pad=False)}")
+    for s in ["Zm9vYg==", "Zm9vYg", "Zm9vYh==", "Zm9vYg=", "Zm9v Yg==", "Zg==Zg==", "Z", "-_8="]:
+        io.print(rt(s, False) else err -> f"invalid {err.at}")
+    io.print(rt("-_8=", True) else err -> f"invalid {err.at}")
+    io.print(rt("+/8=", True) else err -> f"invalid {err.at}")
