@@ -76,6 +76,6 @@ M2b (library, registry and tools):
 - Remote scheduling with `RemoteError` failure types and `Wire` checking.
 - CHERI targets; a native Tree Borrows sanitizer (candidate).
 - Stretch: GPU code generation for `par for` bodies with `uses none`, through MLIR and LLVM to Apple Metal first, then NVIDIA, AMD and Vulkan (R327 to R329), with `@fast_math` allowed under `nondet`.
-- WASM components (`wasm32-wasip2`, capabilities as WASI interfaces, platforms as WIT worlds).
+- WASM components (`wasm32-wasip2`, capabilities as WASI interfaces, platforms as WIT worlds), with `yong bind --lang js` writing an npm package through jco, published with npm trusted publishing (R641).
 - Chang (16.6, R516): reader, printer with spelling notes and lenient reader (the print-only view is M3, R563); the grammar moves from RFC 0001 into section 16.6 first, and every Wen conformance program round-trips through Chang by item hash.
 - Niche surfaces (16.7, R536 to R550) are post-1.0 and follow the order of R550; none is part of any milestone above. Durable timers (R552) ship with `@yong/durable`.
