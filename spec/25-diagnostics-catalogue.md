@@ -49,7 +49,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E100 | unexpected token; the expected set is listed* new* | 13.2, 15.2 |
 | E101 | operator mix that requires parentheses | 13.2, 15.2 |
 | E102 | unclosed bracket, string or block* new* | 13.1, 15.1 |
-| E103 | backslash continuation or `;` (Jian) | 13.1 |
+| E103 | backslash continuation or `;` (Xin) | 13.1 |
 | E104 | chained comparison | 13.2 |
 | E105 | forbidden invisible, bidirectional or tag character | 13.1 |
 | E106 | contract line (`pre`, `post`, `ex`, `decreases`, `invariant`) after the first other statement of a body; fix moves it (R422) new | 13.1 |
@@ -155,7 +155,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | Code | Meaning | Section |
 | --- | --- | --- |
 | E501 | index, key or other goal refuted, with the counterexample (R211) | 14.1 |
-| E502 | wildcard on a sum (Jian) | 14.1 |
+| E502 | wildcard on a sum (Xin) | 14.1 |
 | E503 | non-exhaustive match, including open C enums and `@non_exhaustive` types without `_` | 14.1, 12.3 |
 | E504 | integer indexing or `len` on `str` | 14.1 |
 | E520 | positional axis broadcast against a non-scalar | 11.2 |
@@ -177,7 +177,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 
 | Code | Meaning | Section |
 | --- | --- | --- |
-| E601 | `pub` function with no `ex` and no `test_` calling it (Jian; publish and release only, R284) | 8.4 |
+| E601 | `pub` function with no `ex` and no `test_` calling it (Xin; publish and release only, R284) | 8.4 |
 | E602 | recursion without `decreases` | 8.4 |
 | E603 | contract not proven in a `@prove` module *new* | 8.5 |
 | E617 | retired by R447; a test that binds a real capability is an I/O test | 18.4 |
@@ -229,7 +229,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | W809 | retired by R448; std has no `shell` | 7.1 |
 | W810 | `@expect` suppressed nothing | 18.2 |
 | W811 | wildcard on a sum (Wen) | 15.3 |
-| W812 | unused binding or parameter (Jian and Wen, R214) | 15.3 |
+| W812 | unused binding or parameter (Xin and Wen, R214) | 15.3 |
 | W813 | `pub` item without `ex` (Wen) | 15.3 |
 | W814 | spin loop on an atomic shared by plain `par` branches | 6.5 |
 | W815 | use of a deprecated item *new* | 20.5 |
@@ -237,8 +237,8 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | W817 | `day` or `week` `Duration` added to a `ZonedDateTime` *new* | 14.2 |
 | W818 | else that discards a Cancelled failure (R341) new | 9.4 |
 | W819 | method found at an earlier resolution step hides one of the same name at a later step (R348) new | 17.2 |
-| W820 | check neither proven nor refuted, compiled as a runtime check; carries the unknown goal (Jian, R211) new | 8.6, 14.1 |
-| W823 | local annotation that inference already gives (Jian); safe fix removes it (R429) new | 14.3 |
+| W820 | check neither proven nor refuted, compiled as a runtime check; carries the unknown goal (Xin, R211) new | 8.6, 14.1 |
+| W823 | local annotation that inference already gives (Xin); safe fix removes it (R429) new | 14.3 |
 | W824 | a `None` or failure guard right after a binding that a fallback `else` replaces; safe fix rewrites it (R429) new | 14.3 |
 | W821 | @multiversion function whose versions compile to the same code (R386) new | 11.3 |
 | W822 | + in a loop on a Str or List that is not at its last use (R388) new | 3.3 |

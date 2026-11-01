@@ -1,5 +1,5 @@
 //! Generates the intrinsic registry (R561) from the `@intrinsic` and `@capability` declarations
-//! in `lib/std`. The sources are canonical Jian, one signature per line, so a line scan suffices;
+//! in `lib/std`. The sources are canonical Xin, one signature per line, so a line scan suffices;
 //! yong-elab's selftest checks the result against the parser.
 
 use std::fmt::Write as _;

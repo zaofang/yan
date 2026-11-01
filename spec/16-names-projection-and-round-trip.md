@@ -4,7 +4,7 @@
 
 Yong stores every identifier as a sequence of lowercase ASCII words plus a class, `value` or `type`:
 
-| Class | Jian | Wen | Yong text |
+| Class | Xin | Wen | Yong text |
 | --- | --- | --- | --- |
 | value | words joined by `_` | words joined by `_` | words joined by `_` |
 | type | PascalCase | PascalCase | PascalCase |
@@ -19,7 +19,7 @@ Names that come from outside (C symbols, SQL columns, JSON keys, Python attribut
 
 Some names and forms differ by surface on purpose, so each reads natively. The table is part of the edition (section 20.4), and the round-trip laws hold through it.
 
-| Yong | Jian | Wen |
+| Yong | Xin | Wen |
 | --- | --- | --- |
 | `List`, `Map`, `Set` (insertion-ordered) | `list`, `dict`, `set` | `List`, `Map`, `Set` |
 | `Deque`, `Heap` (min-heap) | `deque`, `heap` | `Deque`, `Heap` |
@@ -55,26 +55,26 @@ Some names and forms differ by surface on purpose, so each reads natively. The t
 
 | Command | Input | Output |
 | --- | --- | --- |
-| `yong view --as wen F` | a Jian module | idiomatic Wen: `let` added, implicit-subject lambdas where a lambda is a single field-access chain, contracts and examples kept |
-| `yong view --as jian W` | a Wen module | canonical Jian, for every item within the Jian subset |
+| `yong view --as wen F` | a Xin module | idiomatic Wen: `let` added, implicit-subject lambdas where a lambda is a single field-access chain, contracts and examples kept |
+| `yong view --as xin W` | a Wen module | canonical Xin, for every item within the Xin subset |
 | `yong view --as yong X` | either surface | Yong text |
 
 **Projection as composition (R559).** Each surface has six steps: parse (text to lossless tree), abstract (tree to surface AST), lower (AST to HIR, with spelling notes and the name table), and their inverses print, resugar and the shared raise (Yong to HIR). Each surface has exactly one canonical printer, over its own AST, and both `yong fmt` and `yong view` use it: `fmt F` is print(abstract(parse(F))), and `view --as S X` is print(resugar(raise(elaborate(X)))). The laws of 16.5 are statements about these compositions. Raise restores written names from the name table and removes what elaboration inserted (R565).
 
-Items outside the Jian subset are reported, not dropped. The report names the first construct that excludes each item (for example "uses `Ref` (L4)"). `view` takes `--edition`. Jian and Wen reject shadowing (E230), so projection between them renames nothing. A projection from Fei, which admits shadowing (R521), gives each shadowed local a fresh name from the name table (RFC 0001 section 6).
+Items outside the Xin subset are reported, not dropped. The report names the first construct that excludes each item (for example "uses `Ref` (L4)"). `view` takes `--edition`. Xin and Wen reject shadowing (E230), so projection between them renames nothing. A projection from Chang, which admits shadowing (R521), gives each shadowed local a fresh name from the name table (RFC 0001 section 6).
 
 ### 16.5 Round-trip laws
 
 These MUST hold within each edition and MUST be tested on every conformance program (section 24):
 
-1. For any canonical Jian module F: `jian(elaborate(F)) == F`, byte for byte.
-2. For any canonical Jian module F: `jian(wen(F)) == F`, byte for byte.
-3. For any Wen module W within the Jian subset: `elaborate(jian(W)) == elaborate(W)` as Yong, compared by item hash.
+1. For any canonical Xin module F: `xin(elaborate(F)) == F`, byte for byte.
+2. For any canonical Xin module F: `xin(wen(F)) == F`, byte for byte.
+3. For any Wen module W within the Xin subset: `elaborate(xin(W)) == elaborate(W)` as Yong, compared by item hash.
 4. For any module X in any surface: the item hashes of `elaborate(X)` do not depend on formatting, comments or item order.
 5. For any Wen module W: `wen(elaborate(W)) == fmt(W)`, byte for byte, comments kept at their items. A function whose whole body is one `match` on its parameters prints in clause form (15.3, R266), so this law keeps one printing per tree.
-6. For any canonical Fei module F: `fei(elaborate(F), spelling(F)) == F`, byte for byte, comments kept at their items; and every Yong item has a canonical Fei printing with no spelling notes (R518).
+6. For any canonical Chang module F: `chang(elaborate(F), spelling(F)) == F`, byte for byte, comments kept at their items; and every Yong item has a canonical Chang printing with no spelling notes (R518).
 
-**Trivia through Yong.** Yong carries six hash-neutral kinds of trivia, so laws 1, 2, 5 and 6 hold byte for byte: comments and docstrings; blank lines; literal spelling (18.5); local names (3.6, R519); Fei spelling notes, which record which of several Fei spellings produced a node (16.6, R518); and origin marks, which record that elaboration inserted a node (a capability argument, a copy, a move or a conversion) rather than the author writing it (R565). Trivia is kept in one side table per module, keyed by item hash and node path, and is never hashed. A note whose spelling no longer matches its node after an edit is dropped, and the default spelling prints. Comments attach as leading (on their own line, to the next node), trailing (on the same line, to the previous node) or dangling (in an empty construct or before a closer).
+**Trivia through Yong.** Yong carries six hash-neutral kinds of trivia, so laws 1, 2, 5 and 6 hold byte for byte: comments and docstrings; blank lines; literal spelling (18.5); local names (3.6, R519); Chang spelling notes, which record which of several Chang spellings produced a node (16.6, R518); and origin marks, which record that elaboration inserted a node (a capability argument, a copy, a move or a conversion) rather than the author writing it (R565). Trivia is kept in one side table per module, keyed by item hash and node path, and is never hashed. A note whose spelling no longer matches its node after an edit is dropped, and the default spelling prints. Comments attach as leading (on their own line, to the next node), trailing (on the same line, to the previous node) or dangling (in an empty construct or before a closer).
 
 **Raise (R565).** Raise removes every node that carries an origin mark. For Yong text without marks, such as hand-written `.yong` files, raise removes a node of an inserted kind only if elaborating the result inserts it again at the same place, so the raised item elaborates to the same Yong.
 
@@ -82,21 +82,21 @@ These MUST hold within each edition and MUST be tested on every conformance prog
 
 **Item identity.** An item's hash is defined in section 3.6. Two items with the same hash are the same item, whichever surface they came from.
 
-### 16.6 Fei: the third surface
+### 16.6 Chang: the third surface
 
-Fei (斐, "brilliantly patterned") is the dense ASCII surface and the language-design playground (R516). Files use the extension `.fei`. It covers layers L0 to L6. Its print-only view, `yong view --as fei`, ships in M3 beside the Wen printer, printing any Yong item with no spelling notes (R563); its reader, lenient reader and spelling-note round trip are built in M4. Any Yong item prints as Fei. Fei adds only syntax (law 1): every Fei module elaborates to the same Yong items, with the same hashes, as its Wen projection. Where Fei leaves a conversion, a `None` or a loop implicit in its text, the Yong text is explicit (law 5). The full reference, with the lexicon, precedence, grammar, spelling-note model and one entry per form, is RFC 0001 (`rfcs/0001-fei.md`); it moves into this section before the Fei build starts.
+Chang (畅, "unhindered") is the dense ASCII surface and the language-design playground (R516). Files use the extension `.chang`. It covers layers L0 to L6. Its print-only view, `yong view --as chang`, ships in M3 beside the Wen printer, printing any Yong item with no spelling notes (R563); its reader, lenient reader and spelling-note round trip are built in M4. Any Yong item prints as Chang. Chang adds only syntax (law 1): every Chang module elaborates to the same Yong items, with the same hashes, as its Wen projection. Where Chang leaves a conversion, a `None` or a loop implicit in its text, the Yong text is explicit (law 5). The full reference, with the lexicon, precedence, grammar, spelling-note model and one entry per form, is RFC 0001 (`rfcs/0001-chang.md`); it moves into this section before the Chang build starts.
 
-**Admission (R517).** A Fei form is admitted only if it passes all five rules:
+**Admission (R517).** A Chang form is admitted only if it passes all five rules:
 
 1. **K1 Same core.** It lowers to Yong that Wen can write, or to an accepted Yong extension (26.6). A form that needs an extension is rejected with a diagnostic naming it until the extension lands.
 2. **K2 No invented hashed names.** A lowering never creates or drops a name the item hash includes (3.6).
 3. **K3 Recognisable.** The printer has a decidable recogniser for the lowered shape, and the grammar is LL(1) after the four factorings of RFC 0001 section 4.
-4. **K4 Spelling kept like comments.** Where several spellings elaborate to one tree, the author's choice is a spelling note (16.5): `fei(elaborate(F), spelling(F)) == F`. A tree with no notes prints with each shape's default.
+4. **K4 Spelling kept like comments.** Where several spellings elaborate to one tree, the author's choice is a spelling note (16.5): `chang(elaborate(F), spelling(F)) == F`. A tree with no notes prints with each shape's default.
 5. **K5 Five facts visible.** Each of the five facts (law 4) keeps a mark in the text. A form may move a mark to the definition (variadic parameters, properties) but never drop it.
 
-**Keyboard rule (R520).** Every Fei token outside string literals and comments is ASCII, so all of Fei can be typed on an ordinary keyboard. Unicode is allowed in strings and comments, as in every surface (R338). Operator glyphs outside ASCII are not admitted, even as aliases.
+**Keyboard rule (R520).** Every Chang token outside string literals and comments is ASCII, so all of Chang can be typed on an ordinary keyboard. Unicode is allowed in strings and comments, as in every surface (R338). Operator glyphs outside ASCII are not admitted, even as aliases.
 
-**Open admission (R521).** Any form that makes Fei more expressive is admitted if it passes K1 to K5. Fei therefore admits forms that Jian and Wen leave out: shadowing, `where`, for-else, `goto` to join points, parallel assignment, try/catch over typed failures, `defer`, null as `None`, lossless implicit widening, `extends` as delegation (no subtyping), `async`/`await` as branch and join inside `par concurrent`, file-local operator fixity, tacit trains and the rest of RFC 0001's catalogue. Forms that need an accepted extension (macros, `@memo`, effects with resume, symbols, `any`, `recover`, `atomic`, `eval`) wait for it. Out: operator glyphs outside ASCII (R520), juxtaposition calls and implicit multiplication (ambiguous, law 3), global monkey patching (law 6) and multi-shot continuations.
+**Open admission (R521).** Any form that makes Chang more expressive is admitted if it passes K1 to K5. Chang therefore admits forms that Xin and Wen leave out: shadowing, `where`, for-else, `goto` to join points, parallel assignment, try/catch over typed failures, `defer`, null as `None`, lossless implicit widening, `extends` as delegation (no subtyping), `async`/`await` as branch and join inside `par concurrent`, file-local operator fixity, tacit trains and the rest of RFC 0001's catalogue. Forms that need an accepted extension (macros, `@memo`, effects with resume, symbols, `any`, `recover`, `atomic`, `eval`) wait for it. Out: operator glyphs outside ASCII (R520), juxtaposition calls and implicit multiplication (ambiguous, law 3), global monkey patching (law 6) and multi-shot continuations.
 
 **Core spellings.** `:=` binds, `<-` assigns, `=` is equality, prefix `~` marks mutation, `!` in a type and `!!` in code mark failure, `|-` lists capabilities, `|>` is the pipeline, `e |?` opens a match, `||` and `|||` are `par` and `par concurrent`, and `<~` sends and receives on channels. Precedence comes from an operator's characters, so a file parses before any import is resolved; a file may declare fixity for operators it defines or imports, relative to an existing operator, for that file only.
 
@@ -107,8 +107,8 @@ A niche surface is a small, domain-shaped language over Yong. It may be a spelli
 **Admission (R536).** A niche surface is admitted only if it meets all nine rules:
 
 1. **N1 Semantics (R568).** It lowers to Yong that Wen can write or to an accepted Yong extension, or it defines semantics of its own under the boundary rules below. Its RFC says which, per form.
-2. **N2 Subset with a checker.** A decidable predicate says which items print in the surface; outside it, `yong view --as <name>` reports the first excluding construct, as 16.4 does for Jian.
-3. **N3 One printing.** Law 8 holds as for Jian and Wen. Sugar is recovered from the Yong tree, from stage-0 metadata attached by the lowering, or from the trivia of 16.5.
+2. **N2 Subset with a checker.** A decidable predicate says which items print in the surface; outside it, `yong view --as <name>` reports the first excluding construct, as 16.4 does for Xin.
+3. **N3 One printing.** Law 8 holds as for Xin and Wen. Sugar is recovered from the Yong tree, from stage-0 metadata attached by the lowering, or from the trivia of 16.5.
 4. **N4 Same item hash.** A lowering never creates or drops a hashed name (3.6); generated names follow a fixed rule.
 5. **N5 Five facts visible.** Each of the five facts (law 4) keeps a mark in the text.
 6. **N6 Crate.** `yong-<name>` holds the lexer, parser, AST and lowering into `yong-hir`, and touches nothing below it. A surface engine (R568), if the surface has one, is a separate crate `yong-<name>-engine` or a std package, at the runtime layer beside `yong-rt` (R576).
@@ -119,25 +119,25 @@ A niche surface is a small, domain-shaped language over Yong. It may be a spelli
 | Row | Surface | Extension | Job | Lowers to | Waits for | Track |
 | --- | --- | --- | --- | --- | --- | --- |
 | R537 | Qi 契 | `.qi` | wire schemas and remote interfaces with version history | `derive(Wire)` types, refinements, `@remote` traits, R406 converters | streams over `Remote` (R555) for stream methods | practical |
-| R538 | Xun 询 | `.xun` | typed model programs | `model.generate_chat` and `validate` (17.4) | none | practical |
-| R539 | Cha 查 | `.cha` | typed table queries | `LazyFrame[R]` plans (11.9) | none | practical |
-| R540 | Ling 令 | `.ling` | capability-safe shell scripts | line iterators, rooted handles, argv-only `proc` (R448) | none | practical |
-| R541 | Cheng 程 | `.cheng` | durable workflows | `@durable` functions (R416, R453), durable timers (R552) | `@yong/durable` (M4) | practical |
-| R542 | Zhu 筑 | `.zhu` | infrastructure with plan and apply | resource capabilities with `Deferred[T]` results | dry-run handler class (R554) | practical |
-| R543 | Wei 位 | `.wei` | binary layouts with checked parsers and writers | view-backed records over `View[u8]`, `@layout(bits)` for LSB-first registers | none | practical |
-| R544 | Lu 律 | `.lu` | synchronous dataflow on the embedded profile | state records and step functions under `executor` or `srp` (R323) | none | practical |
-| R545 | Meng 梦 | `.meng` | contracts whose bodies are generated by the agent loop and pinned by hash | functions with pinned bodies; Jian holes (R212) before a body exists | none | research |
-| R546 | Gua 卦 | `.gua` | probabilistic models with inference as handlers | a `Prob` capability in `@yong/prob` over seeded `rand` | `grad` (11.5) for gradient samplers | research |
-| R547 | Li 礼 | `.li` | session-typed protocols | `@linear` state types (R443) over `std.chan` | none | research |
-| R548 | Pu 谱 | `.pu` | specs checked against actors by trace refinement | `std.sim` models and replay checks (17.7) | none | research |
-| R549 | Zi 字 | `.zi` | statute-shaped rules with default logic | `uses none` functions over `Money` (11.7) | none | research |
+| R538 | Wu 悟 | `.wu` | typed model programs | `model.generate_chat` and `validate` (17.4) | none | practical |
+| R539 | Cha 察 | `.cha` | typed table queries | `LazyFrame[R]` plans (11.9) | none | practical |
+| R540 | Yin 引 | `.yin` | capability-safe shell scripts | line iterators, rooted handles, argv-only `proc` (R448) | none | practical |
+| R541 | Xu 序 | `.xu` | durable workflows | `@durable` functions (R416, R453), durable timers (R552) | `@yong/durable` (M4) | practical |
+| R542 | Ting 亭 | `.ting` | infrastructure with plan and apply | resource capabilities with `Deferred[T]` results | dry-run handler class (R554) | practical |
+| R543 | Xing 形 | `.xing` | binary layouts with checked parsers and writers | view-backed records over `View[u8]`, `@layout(bits)` for LSB-first registers | none | practical |
+| R544 | Liu 流 | `.liu` | synchronous dataflow on the embedded profile | state records and step functions under `executor` or `srp` (R323) | none | practical |
+| R545 | Tuo 托 | `.tuo` | contracts whose bodies are generated by the agent loop and pinned by hash | functions with pinned bodies; Xin holes (R212) before a body exists | none | research |
+| R546 | Sui 随 | `.sui` | probabilistic models with inference as handlers | a `Prob` capability in `@yong/prob` over seeded `rand` | `grad` (11.5) for gradient samplers | research |
+| R547 | Hui 会 | `.hui` | session-typed protocols | `@linear` state types (R443) over `std.chan` | none | research |
+| R548 | Guan 观 | `.guan` | specs checked against actors by trace refinement | `std.sim` models and replay checks (17.7) | none | research |
+| R549 | Yan 言 | `.yan` | statute-shaped rules with default logic | `uses none` functions over `Money` (11.7) | none | research |
 
 **Own semantics (R568).** A niche surface is exempt from law 1. Inside its items it may define behavior that Yong cannot express, such as three-valued logic, inference as evaluation, or clocked time. These rules still bind it:
 
 1. **Boundary signature.** Every item another surface can call has a signature in Yong types, with `fail` and `uses`. Calls across surfaces go through that signature only, and checked Yong sees the item as that signature.
 2. **Laws kept.** Laws 2 (safe by default), 4 (five facts), 6 (local reasoning) and 7 (deterministic by default) hold under the surface's own semantics. Effects happen only through capabilities named in `uses`, so capability ceilings, `nondet` and record and replay apply unchanged.
 3. **Two routes.** A form either lowers to checked Yong, which keeps N4, N7 and the one back end, or runs on a surface engine: an interpreter or compiler in `yong-<name>-engine` or a std package, linked to its boundary signature as an extern item is (section 12). N6 allows the engine crates. Lowering is preferred where it can express the form.
-4. **Engine items.** For an item on an engine, N2, N3 and N7 apply to its boundary signature only. `yong view --as wen` and `--as jian` print the signature and report the body as "<name> semantics (R568)". The item hash covers the canonical surface text and the engine's identity hash (R348).
+4. **Engine items.** For an item on an engine, N2, N3 and N7 apply to its boundary signature only. `yong view --as wen` and `--as xin` print the signature and report the body as "<name> semantics (R568)". The item hash covers the canonical surface text and the engine's identity hash (R348).
 5. **Conformance.** The surface's conformance column tests its semantics, including determinism under two hash keys (M0), and every engine item passes `yong test --ub`.
 
-**Order (R550).** No niche surface is built before 1.0. After 1.0, Qi comes first, then Xun, then Cha and Ling; Cheng and Zhu follow the items they wait for. Each surface ships first as a print-only view, `yong view --as <name>`, before it has a reader.
+**Order (R550).** No niche surface is built before 1.0. After 1.0, Qi comes first, then Wu, then Cha and Yin; Xu and Ting follow the items they wait for. Each surface ships first as a print-only view, `yong view --as <name>`, before it has a reader.

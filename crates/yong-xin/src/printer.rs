@@ -1,4 +1,4 @@
-//! The canonical Jian printer (14.3).
+//! The canonical Xin printer (14.3).
 
 use std::cell::Cell;
 
@@ -56,7 +56,7 @@ fn docstring(s: &str) -> String {
 }
 
 thread_local! {
-    /// The quote for string literals: `'` inside an f-string's braces, which Jian cannot nest.
+    /// The quote for string literals: `'` inside an f-string's braces, which Xin cannot nest.
     static QUOTE: Cell<char> = const { Cell::new('"') };
 }
 
@@ -307,7 +307,7 @@ pub fn expr(e: &Expr, min: u8) -> String {
         ExprKind::Name(n) => n.clone(),
         ExprKind::Lit(l) => lit(l),
         ExprKind::Hole => "...".into(),
-        ExprKind::Stage(_) => unreachable!("Jian has no stage-0 expressions"),
+        ExprKind::Stage(_) => unreachable!("Xin has no stage-0 expressions"),
         ExprKind::Wild => "_".into(),
         ExprKind::FStr { template, pieces } => {
             let q = QUOTE.get();
@@ -427,7 +427,7 @@ pub fn expr(e: &Expr, min: u8) -> String {
                 Fallback::Fail(v) => format!("fail {}", wrap(v, 2, false)),
                 Fallback::Break => "break".into(),
                 Fallback::Continue => "continue".into(),
-                Fallback::Block(..) => unreachable!("Wen only: Jian has no fallback block"),
+                Fallback::Block(..) => unreachable!("Wen only: Xin has no fallback block"),
             };
             format!("{left} else {right}")
         }
@@ -439,7 +439,7 @@ pub fn expr(e: &Expr, min: u8) -> String {
             }
         }
         ExprKind::Is { .. } | ExprKind::Reify(_) | ExprKind::Cast(..) => {
-            unreachable!("Wen only: Jian has no `is`, `try` or `as`")
+            unreachable!("Wen only: Xin has no `is`, `try` or `as`")
         }
     };
     if level(e) < min { format!("({s})") } else { s }
@@ -475,7 +475,7 @@ fn pat(p: &Pat) -> String {
         Pat::Tuple(ps) => format!("({})", comma(ps, pat)),
         Pat::As(q, n) => format!("{} as {n}", pat(q)),
         Pat::Or(..) | Pat::Range { .. } | Pat::Slice(..) => {
-            unreachable!("Wen only: Jian has no or, range or slice patterns")
+            unreachable!("Wen only: Xin has no or, range or slice patterns")
         }
     }
 }
@@ -497,7 +497,7 @@ impl Printer {
         match &it.kind {
             ItemKind::Func(f) => self.func(f, pubs, "def", 0),
             ItemKind::Lemma(f) => self.func(f, pubs, "lemma", 0),
-            ItemKind::Extern(_) => unreachable!("Jian has no extern blocks"),
+            ItemKind::Extern(_) => unreachable!("Xin has no extern blocks"),
             ItemKind::Class(c) => {
                 self.line(
                     0,

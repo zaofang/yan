@@ -1,4 +1,4 @@
-//! Function bodies: Jian statements and expressions to Yong statements in A-normal form.
+//! Function bodies: Xin statements and expressions to Yong statements in A-normal form.
 //!
 //! Every compound expression becomes a typed `let` of a fresh `_tN`. A value that joins
 //! control flow (`a if c else b`, `and`, `or`, `x else y`) becomes a join point whose body is

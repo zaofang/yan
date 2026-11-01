@@ -1,11 +1,11 @@
 //! Names across surfaces (16.1 to 16.3). The projection table gives each built-in type name its
-//! spelling in Yong, Jian and Wen; surfaces and the elaborator translate through it rather than
+//! spelling in Yong, Xin and Wen; surfaces and the elaborator translate through it rather than
 //! keeping tables of their own.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Surface {
     Yong,
-    Jian,
+    Xin,
     Wen,
 }
 
@@ -13,7 +13,7 @@ pub enum Surface {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TypeName {
     pub yong: &'static str,
-    pub jian: &'static str,
+    pub xin: &'static str,
     pub wen: &'static str,
     pub arity: usize,
 }
@@ -22,23 +22,23 @@ impl TypeName {
     pub fn get(&self, s: Surface) -> &'static str {
         match s {
             Surface::Yong => self.yong,
-            Surface::Jian => self.jian,
+            Surface::Xin => self.xin,
             Surface::Wen => self.wen,
         }
     }
 }
 
-const fn row(yong: &'static str, jian: &'static str, wen: &'static str, arity: usize) -> TypeName {
+const fn row(yong: &'static str, xin: &'static str, wen: &'static str, arity: usize) -> TypeName {
     TypeName {
         yong,
-        jian,
+        xin,
         wen,
         arity,
     }
 }
 
-/// Built-in type names that differ between surfaces (16.3). `int` and `float` are Jian's and
-/// Wen's shared spellings of `i64` and `f64`; Jian also reads `int64` (lenient note N27).
+/// Built-in type names that differ between surfaces (16.3). `int` and `float` are Xin's and
+/// Wen's shared spellings of `i64` and `f64`; Xin also reads `int64` (lenient note N27).
 pub const TYPES: &[TypeName] = &[
     row("List", "list", "List", 1),
     row("Map", "dict", "Map", 2),
@@ -91,7 +91,7 @@ mod selftest {
 
     #[test]
     fn spellings_are_unique_per_surface() {
-        for s in [Surface::Yong, Surface::Jian, Surface::Wen] {
+        for s in [Surface::Yong, Surface::Xin, Surface::Wen] {
             for (i, a) in TYPES.iter().enumerate() {
                 assert!(
                     TYPES[i + 1..].iter().all(|b| a.get(s) != b.get(s)),
@@ -105,10 +105,10 @@ mod selftest {
     #[test]
     fn projections() {
         use Surface::*;
-        assert_eq!(type_name("sorted_dict", Jian, Yong), Some("SortedMap"));
-        assert_eq!(type_name("i64", Wen, Jian), Some("int"));
-        assert_eq!(type_name("f32", Wen, Jian), Some("float32"));
-        assert_eq!(type_name("str", Jian, Yong), Some("Str"));
-        assert_eq!(type_name("Point", Wen, Jian), None);
+        assert_eq!(type_name("sorted_dict", Xin, Yong), Some("SortedMap"));
+        assert_eq!(type_name("i64", Wen, Xin), Some("int"));
+        assert_eq!(type_name("f32", Wen, Xin), Some("float32"));
+        assert_eq!(type_name("str", Xin, Yong), Some("Str"));
+        assert_eq!(type_name("Point", Wen, Xin), None);
     }
 }

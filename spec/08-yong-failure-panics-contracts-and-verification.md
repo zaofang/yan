@@ -8,7 +8,7 @@ A function declared `-> T fail E` returns either a `T` or an `E`. Failure is not
 
 - The calling convention returns the error in a dedicated register with a flag, as in Swift's typed throws, so the success path costs one predictable branch.
 - `Call?` propagates. When the caller's error type is a union that contains the callee's error type exactly (or a union of its members), `?` injects the value with no conversion. Otherwise a `From` implementation MUST exist and is named with `via`; a missing conversion is E310. If both injection and a `From` impl apply, that is E313.
-- `E` may be an anonymous union of nominal types, written `A | B`. Wen MAY infer the union on non-`pub` items; Jian MUST spell it out. A union of more than 8 members is lint W805, which suggests a named sum.
+- `E` may be an anonymous union of nominal types, written `A | B`. Wen MAY infer the union on non-`pub` items; Xin MUST spell it out. A union of more than 8 members is lint W805, which suggests a named sum.
 - `try Call` reifies the outcome as `Result[T, E]`. A `try` result that is never inspected is E311. More generally, discarding a non-unit result is E312; write `_ = f()` to discard on purpose (in Wen, let \_ = f(); R374).
 - `x else err -> h` (both surfaces) evaluates `h` when `x` fails, binding the failure to `err`, or `_` when `x` is an absent `Option`.
 - `x.context(msg)` wraps a failure with a message, building a context chain that `Show` prints outermost first. Failure glue (R432): @derive(From) on a sum derives From for each variant with exactly one field of a nominal type, when no two such fields share a type. The std type Error holds any failure that implements Show, with its context chain; ? injects every failure into Error with no From impl, and e is HttpError(status:) downcasts. A pub item of a library package whose fail type contains Error is lint W834; applications and jobs may use it freely. Debug builds capture a backtrace where a failure value is created; release builds do not.
@@ -32,7 +32,7 @@ Panic kinds: `overflow`, `div_zero`, `contract`, `exclusivity`, `bounds`, `shape
 
 Contracts are expressions in Yong's pure fragment: calls only to functions with no capabilities other than `alloc`, plus `out` (the result, in `ensures`), `old(p)` (the entry value of an `inout` parameter, in `ensures`), and the bounded quantifiers `all i in a..b: P` and `any i in a..b: P`.
 
-| Yong | Jian and Wen | Where | Meaning |
+| Yong | Xin and Wen | Where | Meaning |
 | --- | --- | --- | --- |
 | `requires P` | `pre P` | function header | caller must establish `P` |
 | `ensures P` | `post P` | function header | callee guarantees `P` on normal return |
@@ -40,7 +40,7 @@ Contracts are expressions in Yong's pure fragment: calls only to functions with 
 | `invariant P` | `invariant P` | loop header | holds on entry to every iteration |
 | `decreases M` | `decreases M` | recursive function or loop | a natural-number or lexicographic measure that strictly decreases (E602 when missing on recursion that is not structural) |
 
-`ex` clauses are part of an item's hash and are protected against implement patches (section 21.1). A `pub` Jian function needs at least one `ex`, or a `test_` function that calls it; the requirement is E601 and is enforced only by `yong publish` and `--level release`, never by `yong check` (R284; Wen: lint W813).
+`ex` clauses are part of an item's hash and are protected against implement patches (section 21.1). A `pub` Xin function needs at least one `ex`, or a `test_` function that calls it; the requirement is E601 and is enforced only by `yong publish` and `--level release`, never by `yong check` (R284; Wen: lint W813).
 
 ### 8.5 Enforcement levels and contract semantics
 
@@ -72,10 +72,10 @@ Refinement predicates, index bounds and exclusivity disjointness use only: integ
 
 **Loop versioning (R381).** In `release`, a loop whose undecided checks have indices affine in the induction variable MUST be versioned: one range test before the loop selects an unchecked copy when it holds and the checked loop otherwise, so the panic point stays exact.
 
-A goal the solver refutes is E501, reported with the counterexample. A goal it can neither prove nor refute compiles to a runtime check; in Jian that check also raises lint W820, denied under `--strict` and `--level release` (R211, 14.1), and in Wen it raises nothing. `conformance/solver/` holds accept and reject cases at each boundary of these rules.
+A goal the solver refutes is E501, reported with the counterexample. A goal it can neither prove nor refute compiles to a runtime check; in Xin that check also raises lint W820, denied under `--strict` and `--level release` (R211, 14.1), and in Wen it raises nothing. `conformance/solver/` holds accept and reject cases at each boundary of these rules.
 
 ### 8.7 Proving
 
 In `prove` mode the compiler generates verification conditions by weakest precondition over Yong, using callees' contracts as their specifications. Mutable value semantics means there is no heap model and no frame conditions. The conditions go to an external SMT solver (Z3 or cvc5) as SMT-LIB2 over a subprocess, with a per-item deterministic resource limit (the solver's rlimit, never wall-clock time), so a proof succeeds or fails identically on every machine. Results are cached by item hash plus the hashes of the contracts relied on. A failed proof reports the solver's counterexample as concrete values (V401).
 
-**Ghost code and lemmas (R458).** `ghost` bindings and parameters exist only for proofs and are erased before code generation. Ghost code may read any value; non-ghost code that reads a ghost value is E604. A `lemma` item has `pre` and `post` clauses and a body that is a proof: calls to other lemmas, `assert`, case splits and induction through `decreases`. A lemma uses no capability (E605) and is never compiled; calling one adds its `post`, under its `pre`, as a fact for the prover. In `@prove` modules `assert P` is both an obligation and a fact. `@opaque` on a pure function hides its body from the prover until a proof writes `reveal f`, which keeps results stable under the rlimit. Ghost code and lemma bodies never change behaviour, so an implement-step patch MAY add or change them (21.1); changing a lemma's `pre` or `post` is a protected edit (P006). `ghost` and `lemma` are soft keywords in Jian and Wen (R347), and Jian may use them, and proof asserts, only in `@prove` modules. A module is marked by a @@prove line at the top of the file, before the docstring and the items, in both surfaces (R466).
+**Ghost code and lemmas (R458).** `ghost` bindings and parameters exist only for proofs and are erased before code generation. Ghost code may read any value; non-ghost code that reads a ghost value is E604. A `lemma` item has `pre` and `post` clauses and a body that is a proof: calls to other lemmas, `assert`, case splits and induction through `decreases`. A lemma uses no capability (E605) and is never compiled; calling one adds its `post`, under its `pre`, as a fact for the prover. In `@prove` modules `assert P` is both an obligation and a fact. `@opaque` on a pure function hides its body from the prover until a proof writes `reveal f`, which keeps results stable under the rlimit. Ghost code and lemma bodies never change behaviour, so an implement-step patch MAY add or change them (21.1); changing a lemma's `pre` or `post` is a protected edit (P006). `ghost` and `lemma` are soft keywords in Xin and Wen (R347), and Xin may use them, and proof asserts, only in `@prove` modules. A module is marked by a @@prove line at the top of the file, before the docstring and the items, in both surfaces (R466).

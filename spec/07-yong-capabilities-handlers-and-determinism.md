@@ -30,7 +30,7 @@ Effects are capabilities: second-class values passed as explicit parameters in Y
 
 `embed` and `diag` are stage-0 only (10.4), and `abort` is a platform setting (17.1), so none of them is a runtime capability.
 
-**User capabilities.** A trait marked `@capability` may appear in `uses`. It binds under the snake\_case word list of its name: `@capability trait HttpClient` is `uses http_client` (section 16). `uses cache: Kv` in Wen and `uses Kv as cache` in Jian (R461) bind it under another name. Capability sets (R431): type Svc = uses net, log, time names a set of capabilities; a set name may appear in any uses list, in both surfaces, and expands in place. Sets may include sets, a cycle is E251, and yong sig shows sets expanded.
+**User capabilities.** A trait marked `@capability` may appear in `uses`. It binds under the snake\_case word list of its name: `@capability trait HttpClient` is `uses http_client` (section 16). `uses cache: Kv` in Wen and `uses Kv as cache` in Xin (R461) bind it under another name. Capability sets (R431): type Svc = uses net, log, time names a set of capabilities; a set name may appear in any uses list, in both surfaces, and expands in place. Sets may include sets, a cycle is E251, and yong sig shows sets expanded.
 
 **Sharing classes (R342).** Every capability has one sharing class, which fixes how branches that may run at once use it (4.3, 9.2). `sched`, like `alloc`, is ambient.
 
@@ -49,7 +49,7 @@ A `@capability` trait is exclusive unless marked `@splittable` or `@shared`. `no
 
 `uses a, b` on a function becomes parameters `cap a: A, cap b: B` in Yong. Each call passes the capabilities its callee needs from the caller's scope. A capability MUST NOT be stored in data, returned, or captured by an escaping closure (E306). Calling a function whose capabilities are not in scope is E301, and its fix inserts the missing `uses` entry.
 
-In Jian every function lists its capabilities. In Wen only `pub` functions must; others are inferred within their strongly connected component and shown as inlay hints. main is exempt in Wen (R430): it need not be pub, its uses is inferred, and the inferred set must fit the package ceiling (7.4, E314). `alloc` is never written in `uses`. `uses none` forbids every capability, including `alloc`; on an extern item it is a trusted purity claim (12.2).
+In Xin every function lists its capabilities. In Wen only `pub` functions must; others are inferred within their strongly connected component and shown as inlay hints. main is exempt in Wen (R430): it need not be pub, its uses is inferred, and the inferred set must fit the package ceiling (7.4, E314). `alloc` is never written in `uses`. `uses none` forbids every capability, including `alloc`; on an extern item it is a trusted purity claim (12.2).
 
 ### 7.3 Handlers
 
@@ -64,7 +64,7 @@ In Jian every function lists its capabilities. In Wen only `pub` functions must;
 
 ### 7.4 Platforms and ceilings
 
-`platform` in `package.jian` names a capability bundle with default handlers (`cli`, `service`, `job`, `wasm`, `freestanding`). A package's `capabilities` list is a ceiling enforced transitively (section 19.2): using a capability the package did not declare is E314, including through dependencies. Ceilings may carry `net.only` patterns and must list every foreign-library capability.
+`platform` in `package.xin` names a capability bundle with default handlers (`cli`, `service`, `job`, `wasm`, `freestanding`). A package's `capabilities` list is a ceiling enforced transitively (section 19.2): using a capability the package did not declare is E314, including through dependencies. Ceilings may carry `net.only` patterns and must list every foreign-library capability.
 
 ### 7.5 Time and zones
 

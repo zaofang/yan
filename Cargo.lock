@@ -918,9 +918,9 @@ dependencies = [
  "yong-elab",
  "yong-hir",
  "yong-interp",
- "yong-jian",
  "yong-mir",
  "yong-wen",
+ "yong-xin",
 ]
 
 [[package]]
@@ -937,8 +937,8 @@ name = "yong-db"
 version = "0.0.0"
 dependencies = [
  "yong-hir",
- "yong-jian",
  "yong-std",
+ "yong-xin",
 ]
 
 [[package]]
@@ -960,9 +960,9 @@ dependencies = [
  "yong-diag",
  "yong-hir",
  "yong-interp",
- "yong-jian",
  "yong-names",
  "yong-std",
+ "yong-xin",
 ]
 
 [[package]]
@@ -981,17 +981,9 @@ dependencies = [
  "num-integer",
  "num-traits",
  "yong-core",
- "yong-jian",
  "yong-rt",
  "yong-std",
-]
-
-[[package]]
-name = "yong-jian"
-version = "0.0.0"
-dependencies = [
- "yong-diag",
- "yong-hir",
+ "yong-xin",
 ]
 
 [[package]]
@@ -1036,6 +1028,14 @@ dependencies = [
  "yong-diag",
  "yong-hir",
  "yong-names",
+]
+
+[[package]]
+name = "yong-xin"
+version = "0.0.0"
+dependencies = [
+ "yong-diag",
+ "yong-hir",
 ]
 
 [[package]]

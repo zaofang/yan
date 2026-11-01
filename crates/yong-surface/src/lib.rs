@@ -36,7 +36,7 @@ pub enum Trivia {
     BlankLines(u32),
     /// A literal's spelling when it is not the canonical one (18.5).
     Literal(String),
-    /// Which of several Fei spellings produced the node (R518).
+    /// Which of several Chang spellings produced the node (R518).
     Spelling(String),
     /// The node was inserted by elaboration, not written (R565).
     Origin(Inserted),

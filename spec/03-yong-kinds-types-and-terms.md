@@ -14,7 +14,7 @@ Kinds other than `Type` exist only at compile time and MUST be erased before cod
 
 ### 3.2 Scalars
 
-| Yong | Jian | Wen | Notes |
+| Yong | Xin | Wen | Notes |
 | --- | --- | --- | --- |
 | `i8` ... `i128` | `int8`, `int16`, `int32`, `int128`; `int` is 64-bit (`int64` is lenient, N27) | `i8` ... `i128`; `int` = i64 | two's complement; overflow checked (3.4) |
 | `u8` ... `u128` | `uint8` ... `uint128` | `u8` ... `u128` |  |
@@ -23,11 +23,11 @@ Kinds other than `Type` exist only at compile time and MUST be erased before cod
 | `bool`, `char` | `bool`, `char` | `bool`, `char` | `char` is a Unicode scalar value (4 bytes), never a grapheme |
 | `Addr` | `Addr` | `Addr` | unsigned, the target's address width (u64 on 64-bit, u32 on CHERIoT); never a length or index; `size_of[Ptr[T]]` may exceed it |
 
-Large integers are the library type `BigInt` (Jian `bigint`).
+Large integers are the library type `BigInt` (Xin `bigint`).
 
 ### 3.3 Strings and bytes
 
-- `Str` (Jian `str`) is immutable UTF-8 with a 23-byte small-string optimization. It has no O(1) integer indexing and no single "length". Views are explicit: `bytes()`, `chars()` (Unicode scalars) and `graphemes()` (UAX #29). Counts are `byte_len()`, `char_count()` and `grapheme_count()`.
+- `Str` (Xin `str`) is immutable UTF-8 with a 23-byte small-string optimization. It has no O(1) integer indexing and no single "length". Views are explicit: `bytes()`, `chars()` (Unicode scalars) and `graphemes()` (UAX #29). Counts are `byte_len()`, `char_count()` and `grapheme_count()`.
 - Slicing takes `StrIndex` values returned by searches. Slicing by byte offset checks that both ends fall on char boundaries and panics with kind `bounds` otherwise. A borrowed part of a `Str` is a `StrView` (4.5).
 - Normalization (NFC, NFD) is explicit. Case mapping is locale-independent; locale-aware operations live in `@yong/i18n` (ICU4X).
 - `std.unicode` (R331) holds every locale-free algorithm, all `uses none`: `nfc`, `nfd`, `nfkc`, `nfkd` and `is_nfc` (UAX #15); default full case mapping `to_lower`, `to_upper`, `to_title` and full case folding `casefold`, `eq_casefold`; `graphemes`, `words`, `sentences` (UAX #29 default rules) and `line_breaks` (UAX #14); `width` in terminal columns (UAX #11 with UTS #51 emoji presentation); `skeleton` (UTS #39); and typed UCD properties. `==` and `Ord` on `Str` compare scalar values, which equals UTF-8 byte order; canonical equivalence is opt-in through `nfc` or `eq_canonical`. f-strings and `Show` never consult a locale (R336).
@@ -159,7 +159,7 @@ Comment  ::= "--" to end of line
 Rules on the grammar:
 
 - Records, sums and newtypes are nominal. Tuples are structural.
-- `Ptr`, `Uninit`, `asm` and `RawCell` are legal only inside `unsafe`. `Ref`, `Ptr`, `Uninit` and `Vec` are Wen-only (L4 to L6) and MUST NOT appear in Jian-elaborated code. `Ptr[T]` is never null; a nullable pointer is `Option[Ptr[T]]`.
+- `Ptr`, `Uninit`, `asm` and `RawCell` are legal only inside `unsafe`. `Ref`, `Ptr`, `Uninit` and `Vec` are Wen-only (L4 to L6) and MUST NOT appear in Xin-elaborated code. `Ptr[T]` is never null; a nullable pointer is `Option[Ptr[T]]`.
 - `Call?` propagates a failure; `via` names the `From` conversion when the error types differ and injection does not apply (8.1). `try Call` reifies the outcome as a `Result`.
 - Arithmetic and comparison are calls to named intrinsics (`add_checked_i64`, `eq_f64`, ...); there are no infix operators in Yong.
 - Value-producing `if` and `match` are written with join points: `jp k(x: T) { ... }` is declared before the branch, and each arm ends in `jump k(a)`. Join points map one to one to Cranelift block parameters.
@@ -167,12 +167,12 @@ Rules on the grammar:
 - `drop Name` and `reuse Name as Ctor` appear only after the ownership passes (5.3). There is no `dup`: Yong has no implicit reference counting.
 - `comptime for` and `comptime if` are the only code-generation forms (section 10.4). `select` (Wen), `share` and `par for` have no Yong forms: they are calls to `std.chan.select`, `Share.share` and the bound `sched` handler.
 
-**Guaranteed tail calls (R260).** `become f(args)` ends the current function by calling `f`, and it MUST NOT grow the stack on any backend, in any build mode, including the reference interpreter. It is legal only where `ret` is, and never inside `par`, `with` or a `Gen` body. Its call MUST be a direct call or a call through an `Fn`-typed parameter, never a `dyn` method or a closure (E273 for both). The callee's parameter conventions and types, return type, failure type and capability set MUST equal the caller's after monomorphisation (E271). The caller's locals are dropped in reverse declaration order before the transfer. An argument that borrows a caller local, as a `let` or `inout` argument or a view `from` that local, is E420, whose fix moves or copies it. Cranelift lowers `become` to `return_call` with the `tail` convention, LLVM to a `musttail` call, and WebAssembly to `return_call`. Jian and Wen spell it `become f(args)`.
+**Guaranteed tail calls (R260).** `become f(args)` ends the current function by calling `f`, and it MUST NOT grow the stack on any backend, in any build mode, including the reference interpreter. It is legal only where `ret` is, and never inside `par`, `with` or a `Gen` body. Its call MUST be a direct call or a call through an `Fn`-typed parameter, never a `dyn` method or a closure (E273 for both). The callee's parameter conventions and types, return type, failure type and capability set MUST equal the caller's after monomorphisation (E271). The caller's locals are dropped in reverse declaration order before the transfer. An argument that borrows a caller local, as a `let` or `inout` argument or a view `from` that local, is E420, whose fix moves or copies it. Cranelift lowers `become` to `return_call` with the `tail` convention, LLVM to a `musttail` call, and WebAssembly to `return_call`. Xin and Wen spell it `become f(args)`.
 
-**Become modulo constructor (R456).** `become` is also legal as the last-evaluated argument of a constructor in return position, as in `return Node(l, x, become insert(r, k))`, and constructors may nest. Every backend and the reference interpreter MUST lower it to destination passing: the constructor's block is allocated first, the call receives the open field as a `set` destination, and the recursion runs in constant stack. The R260 rules apply to the call (E273, E271, E420). A `become` in any other position inside a constructor is E143. Jian and Wen spell it the same way.
+**Become modulo constructor (R456).** `become` is also legal as the last-evaluated argument of a constructor in return position, as in `return Node(l, x, become insert(r, k))`, and constructors may nest. Every backend and the reference interpreter MUST lower it to destination passing: the constructor's block is allocated first, the call receives the open field as a `set` destination, and the recursion runs in constant stack. The R260 rules apply to the call (E273, E271, E420). A `become` in any other position inside a constructor is E143. Xin and Wen spell it the same way.
 
 ### 3.6 Item identity
 
 Each item has a content hash: BLAKE3 over its canonical Yong text with references replaced by the hashes of the items they name. A strongly connected component of recursive items is hashed as one group with in-group references as indices; each member's hash is `H(group).index` (SQ5). Item hashes ignore editions (section 20.4) and are salted by toolchain version. Watch expressions and comments do not affect them; `ex` clauses and contracts do.
 
-**Positional locals (R519).** In the hashed text, locals, closure parameters, labels and join points are named by binding order (`%0`, `%1`, ...), not by their written names. Parameters, fields, variants, capabilities, type parameters and items keep their names, because labelled arguments, `info(f)`, `Wire` and stage-0 reflection read them. Each surface keeps the written names in a per-item name table, which is hash-neutral trivia (16.5). Compiler-generated text that quotes source, such as the message of a failed `post` or `assert`, is fixed as a string literal before hashing. Renaming a local therefore never changes an item hash. Shadowing stays E230 in Jian and Wen; Fei admits it (16.6). Provenance, patch bases and spec freeze use the identity hash: the same hash without the toolchain salt, stable across toolchain versions (R348).
+**Positional locals (R519).** In the hashed text, locals, closure parameters, labels and join points are named by binding order (`%0`, `%1`, ...), not by their written names. Parameters, fields, variants, capabilities, type parameters and items keep their names, because labelled arguments, `info(f)`, `Wire` and stage-0 reflection read them. Each surface keeps the written names in a per-item name table, which is hash-neutral trivia (16.5). Compiler-generated text that quotes source, such as the message of a failed `post` or `assert`, is fixed as a string literal before hashing. Renaming a local therefore never changes an item hash. Shadowing stays E230 in Xin and Wen; Chang admits it (16.6). Provenance, patch bases and spec freeze use the identity hash: the same hash without the toolchain salt, stable across toolchain versions (R348).

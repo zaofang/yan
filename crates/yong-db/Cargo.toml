@@ -9,7 +9,7 @@ publish.workspace = true
 
 [dependencies]
 yong-hir.workspace = true
-yong-jian.workspace = true
+yong-xin.workspace = true
 yong-std.workspace = true
 
 [lints]

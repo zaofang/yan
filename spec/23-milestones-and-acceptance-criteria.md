@@ -6,7 +6,7 @@ A milestone is complete only when every criterion below passes in CI. Performanc
 
 - Repositories, the Cargo workspace scaffold, CI on the self-hosted runner, and the path guard that rejects an agent patch touching `tests/`, `conformance/` or `spec/`.
 - No blocking `SPEC_QUESTIONS.md` entries.
-- Evaluation tasks, typed-Python baselines and held-out tests sealed. The imports of the sealed baselines are scanned, and every Python module used by at least 1% of them needs a Jian equivalent by M1.
+- Evaluation tasks, typed-Python baselines and held-out tests sealed. The imports of the sealed baselines are scanned, and every Python module used by at least 1% of them needs a Xin equivalent by M1.
 
 ### M0 · Yong core
 
@@ -18,11 +18,11 @@ A milestone is complete only when every criterion below passes in CI. Performanc
 - Core semantics: UTF-8 strings and `char`, integer conversion rules, associated types, join points, drop order, error injection and context, contract semantics.
 - Diagnostics in the 18.2 format from the start.
 - Hash-key independence: every conformance test runs under two hash keys and the outputs are identical.
-- **Probe (R566).** Runs as soon as the Jian lexer, parser, lenient reader, elaborator and interpreter pass the conformance cases they cover; it does not wait for month 6. Two model families write Jian for 50 development tasks (never the sealed set), zero-shot and 5-shot. Recorded: the share that parses after lenient reading (target at least 95%), the share that checks, the diagnostics hit, and tokens against typed Python, split as 21.6 says. Until the probe reports, no row changes Jian syntax (13, 14.3, 14.4); afterwards a row that changes it cites a probe or M1 measurement. Rows for std, Yong, Wen and Fei are not held.
+- **Probe (R566).** Runs as soon as the Xin lexer, parser, lenient reader, elaborator and interpreter pass the conformance cases they cover; it does not wait for month 6. Two model families write Xin for 50 development tasks (never the sealed set), zero-shot and 5-shot. Recorded: the share that parses after lenient reading (target at least 95%), the share that checks, the diagnostics hit, and tokens against typed Python, split as 21.6 says. Until the probe reports, no row changes Xin syntax (13, 14.3, 14.4); afterwards a row that changes it cites a probe or M1 measurement. Rows for std, Yong, Wen and Chang are not held.
 
-### M1 · Jian and the agent toolchain
+### M1 · Xin and the agent toolchain
 
-- Jian lexer, parser, lenient normalizations N01 to N30, canonical printer.
+- Xin lexer, parser, lenient normalizations N01 to N30, canonical printer.
 - Elaborator to Yong, including inference, capability passing, copy, share and move insertion, narrowing and fail-transparent closures.
 - Standard library: the M1 row of the std roadmap, including prelude, text, list, dict, set, iter, collections, rc, slices with bisect, fmt, regex, csv, encoding, path, cli, `proc.run`, rand, bigint, bits, `Secret`, log, io, fs, json, math, test; Temporal-style time types.
 - `yong check` with lints, `run` (including scripts), `test` with verdict caching, `fmt`, `sig`, `patch`, `undo`, `explain`, `fix`, `export --python`, `import --python`, `mcp`, `add`, `remove`, `update`, `tree`, `why`, `vendor`, `x`, `schema gen`, `toolchain`, `skill`.
@@ -30,8 +30,8 @@ A milestone is complete only when every criterion below passes in CI. Performanc
 - Safety: `Wire` limits, `Secret`, `proc`, `crypto_rand`, capability ceilings, test isolation, lexical safety, E312, spec freeze, protected targets, the untrusted-content channel.
 - Golden programs G1 to G4 run on the interpreter and, exported, under CPython 3.12 with identical output.
 - The registry design (section 19) written and reviewed.
-- **Benchmark harness.** Translate a public benchmark (MultiPL-E HumanEval and MBPP, or LiveCodeBench) into Jian and into typed Python with identical hidden tests. Run at least three model families in the same agent loop, with and without constrained decoding. Record pass@1, total tokens per solved task (prompt, reasoning, output and repairs), repair rounds, the failure mix and the cheating rate (21.6).
-- **Gate (R567):** Jian's pass@1 is at least typed Python's, and both token measures of 21.6 are lower: its body and repair tokens per solved task than typed Python's, and its spec-phase tokens than those of the pytest cases the same model writes for the same task. The cheating rate and the capability violations the checker caught are reported beside the gate. If the gate fails, record the failure mix, move Jian closer to Python, and apply the fluency plan of 21.6 before continuing.
+- **Benchmark harness.** Translate a public benchmark (MultiPL-E HumanEval and MBPP, or LiveCodeBench) into Xin and into typed Python with identical hidden tests. Run at least three model families in the same agent loop, with and without constrained decoding. Record pass@1, total tokens per solved task (prompt, reasoning, output and repairs), repair rounds, the failure mix and the cheating rate (21.6).
+- **Gate (R567):** Xin's pass@1 is at least typed Python's, and both token measures of 21.6 are lower: its body and repair tokens per solved task than typed Python's, and its spec-phase tokens than those of the pytest cases the same model writes for the same task. The cheating rate and the capability violations the checker caught are reported beside the gate. If the gate fails, record the failure mix, move Xin closer to Python, and apply the fluency plan of 21.6 before continuing.
 
 ### M1b · Native code
 
@@ -57,7 +57,7 @@ M2b (library, registry and tools):
 ### M3 · Wen
 
 - Wen lexer, parser and printer; projections in both directions; all round-trip laws that apply pass on the whole suite, and `conform.py --laws` gates CI (R564).
-- The print-only Fei view, `yong view --as fei` (16.6, R563).
+- The print-only Chang view, `yong view --as chang` (16.6, R563).
 - Prose diagnostics; language server; reactive notebooks; live values computed on examples; depth-lens inlay hints; Wen tree-sitter grammar; item-level merge driver.
 - Wen surface: grapheme-aware display, date literals, `select`, generators, deadline blocks; HTTP server; localizable diagnostics.
 - Randomized comparison (at least 30 participants) on contested Wen syntax: implicit-subject lambdas and the typed implicit subject in frame expressions, grid literals, unit suffixes, `\(x)` interpolation, and the `&x` mark.
@@ -77,5 +77,5 @@ M2b (library, registry and tools):
 - CHERI targets; a native Tree Borrows sanitizer (candidate).
 - Stretch: GPU code generation for `par for` bodies with `uses none`, through MLIR and LLVM to Apple Metal first, then NVIDIA, AMD and Vulkan (R327 to R329), with `@fast_math` allowed under `nondet`.
 - WASM components (`wasm32-wasip2`, capabilities as WASI interfaces, platforms as WIT worlds).
-- Fei (16.6, R516): reader, printer with spelling notes and lenient reader (the print-only view is M3, R563); the grammar moves from RFC 0001 into section 16.6 first, and every Wen conformance program round-trips through Fei by item hash.
+- Chang (16.6, R516): reader, printer with spelling notes and lenient reader (the print-only view is M3, R563); the grammar moves from RFC 0001 into section 16.6 first, and every Wen conformance program round-trips through Chang by item hash.
 - Niche surfaces (16.7, R536 to R550) are post-1.0 and follow the order of R550; none is part of any milestone above. Durable timers (R552) ship with `@yong/durable`.

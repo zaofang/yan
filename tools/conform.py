@@ -12,8 +12,8 @@ The same suite drives the interpreter and every code generator (spec 22.1, 24.1)
 
 With --laws, the runner instead checks the round-trip laws of 16.5 on every case (R564), using
     CMD hash --format json [--reverse-items] FILE -> JSON array of {"key", "hash", "identity"}
-    CMD view --as jian FILE.wen                   -> the module's Jian projection
-Exit status 1 from either means the module does not load or is outside the Jian subset; the
+    CMD view --as xin FILE.wen                   -> the module's Xin projection
+Exit status 1 from either means the module does not load or is outside the Xin subset; the
 law is then skipped for that case.
 
 The runner also writes the suite's manifest (--manifest) and coverage report (--coverage)
@@ -33,7 +33,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Literal, Protocol
 
-SURFACES = ("jian", "wen", "yong")
+# "jian" and ".jian" stay until conformance/ is renamed to the Xin names.
+SURFACES = ("xin", "jian", "wen", "yong")
 SURFACE_KINDS = ("pass", "fail", "run")
 # Top-level directories of 24.1 and the kind each one is judged as. Kinds without a defined
 # case format yet are discovered and skipped.
@@ -47,8 +48,8 @@ TOP_KINDS = {
     "roundtrip": "roundtrip",
     "sim": "sim",
 }
-COMMENT = {".jian": "#", ".wen": "--", ".yong": "--"}
-DEFAULT_MILESTONE = {".yong": "M0", ".jian": "M1", ".wen": "M3"}
+COMMENT = {".xin": "#", ".jian": "#", ".wen": "--", ".yong": "--"}
+DEFAULT_MILESTONE = {".yong": "M0", ".xin": "M1", ".jian": "M1", ".wen": "M3"}
 MILESTONES = ("P0", "M0", "M1", "M1b", "M2a", "M2b", "M3", "RC", "M4")
 TOOL_FAILURE = 2
 HEADERS = frozenset(
@@ -209,7 +210,7 @@ def _items(value: str) -> list[str]:
     return [v.strip() for v in value.split(",") if v.strip()]
 
 
-# SPEC-Q: 24.1 shows "# expect: E501 at 14:9" (Jian; Wen and Yong use "--"), "# stdout:"
+# SPEC-Q: 24.1 shows "# expect: E501 at 14:9" (Xin; Wen and Yong use "--"), "# stdout:"
 # blocks and "# exit: 101", but not the block layout or the metadata headers. Assumed (see
 # conformance/README.md): headers are the file's leading comment lines; a "stdout:" block is
 # the following prefixed lines (the prefix alone is an empty line) up to the next header or
@@ -353,17 +354,19 @@ def _judge(case: Case, ex: Executor) -> Result:
 
 def _judge_patch(case: Case, ex: Executor) -> Result:
     name = str(case.path)
-    found = [p for p in (case.path / "patch.json", case.path / "patch.jian") if p.is_file()]
+    names = ("patch.json", "patch.xin", "patch.jian")
+    found = [case.path / n for n in names if (case.path / n).is_file()]
     if not found:
-        return Result(name, ex.name, "fail", "no patch.json or patch.jian")
+        return Result(name, ex.name, "fail", "no patch.json or patch.xin")
     patch = found[0]
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
         for f in case.path.iterdir():
             shutil.copy(f, work / f.name)
         records, code = ex.patch(work, work / patch.name, case.flags)
-        after = (work / "m.jian").read_text(encoding="utf-8")
-    before = (case.path / "m.jian").read_text(encoding="utf-8")
+        module = "m.xin" if (case.path / "m.xin").is_file() else "m.jian"
+        after = (work / module).read_text(encoding="utf-8")
+    before = (case.path / module).read_text(encoding="utf-8")
     want_code = case.meta.get("code")
     if want_code is not None:
         codes = [str(r.get("code")) for r in records]
@@ -451,22 +454,22 @@ def law4(case: Case, ex: LawExecutor) -> Result:
 
 
 def law3(case: Case, ex: LawExecutor) -> Result:
-    """A Wen module within the Jian subset elaborates as its Jian projection does."""
+    """A Wen module within the Xin subset elaborates as its Xin projection does."""
     name = str(case.path)
     if case.path.suffix != ".wen":
         return Result(name, ex.name, "skip", "not Wen")
     base = ex.hash(case.path)
     if base is None:
         return Result(name, ex.name, "skip", "does not load")
-    jian = ex.view(case.path, "jian")
-    if jian is None:
-        return Result(name, ex.name, "skip", "outside the Jian subset")
+    xin = ex.view(case.path, "xin")
+    if xin is None:
+        return Result(name, ex.name, "skip", "outside the Xin subset")
     with tempfile.TemporaryDirectory() as tmp:
-        p = Path(tmp) / case.path.with_suffix(".jian").name
-        p.write_text(jian, encoding="utf-8")
+        p = Path(tmp) / case.path.with_suffix(".xin").name
+        p.write_text(xin, encoding="utf-8")
         got = ex.hash(p)
     if got is None:
-        return Result(name, ex.name, "fail", "the Jian projection does not load")
+        return Result(name, ex.name, "fail", "the Xin projection does not load")
     if got != base:
         return Result(name, ex.name, "fail", _hash_diff(base, got))
     return Result(name, ex.name, "pass")
@@ -522,8 +525,10 @@ def manifest(cases: list[Case], root: Path) -> dict[str, object]:
 
 
 def _surface(case: Case) -> str:
-    # patch/, semver/ and pkg/ directories hold Jian modules.
-    return {".jian": "Jian", ".wen": "Wen", ".yong": "Yong"}.get(case.path.suffix, "Jian")
+    # patch/, semver/ and pkg/ directories hold Xin modules.
+    return {".xin": "Xin", ".jian": "Xin", ".wen": "Wen", ".yong": "Yong"}.get(
+        case.path.suffix, "Xin"
+    )
 
 
 def coverage(cases: list[Case], catalogue: dict[str, dict[str, dict[str, str]]]) -> str:
@@ -583,7 +588,7 @@ def coverage(cases: list[Case], catalogue: dict[str, dict[str, dict[str, str]]])
 
 
 def _counts(cases: list[Case]) -> str:
-    c = Counter(f"{p.path.suffix[1:] or 'jian'} {p.kind}" for p in cases)
+    c = Counter(f"{p.path.suffix[1:] or 'xin'} {p.kind}" for p in cases)
     return ", ".join(f"{k} {n}" for k, n in sorted(c.items()))
 
 

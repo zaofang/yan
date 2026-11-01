@@ -2,7 +2,7 @@
 
 Yong is a programming language with one core and two surfaces.
 
-- **Jian**: a typed, Python-shaped syntax optimized for LLM authors, measured in total tokens per solved task.
+- **Xin**: a typed, Python-shaped syntax optimized for LLM authors, measured in total tokens per solved task.
 - **Wen**: the human syntax.
 
 Both compile to the same Yong core, which is fast, concurrent, deterministic and capability-safe.

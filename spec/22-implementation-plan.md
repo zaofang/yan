@@ -4,7 +4,7 @@ This section is normative where it says MUST; elsewhere it is the recommended pa
 
 ### 22.1 Two implementations
 
-Yong has one implementation, written in Rust with the crate layout below (R215, chosen 2026-10-31 in place of a Python reference followed by a port). M0 and M1 run on the interpreter, whose checked mode defines the abstract machine (6.1); Cranelift debug code generation follows in M1b. The conformance runner is implementation-independent and is the oracle: for every conformance and evaluation program, the interpreter and every code generator MUST produce the same result, diagnostic codes included. For Jian programs, the output of `yong export --python` run under CPython 3.12 is an independent second check. Performance targets apply to native code.
+Yong has one implementation, written in Rust with the crate layout below (R215, chosen 2026-10-31 in place of a Python reference followed by a port). M0 and M1 run on the interpreter, whose checked mode defines the abstract machine (6.1); Cranelift debug code generation follows in M1b. The conformance runner is implementation-independent and is the oracle: for every conformance and evaluation program, the interpreter and every code generator MUST produce the same result, diagnostic codes included. For Xin programs, the output of `yong export --python` run under CPython 3.12 is an independent second check. Performance targets apply to native code.
 
 ### 22.2 Crates
 
@@ -14,11 +14,11 @@ The compiler and tools MUST be written in Rust (stable toolchain) as one Cargo w
 | --- | --- | --- |
 | `yong-db` | query database, item hashing, file inputs, stage-0 query cache | `salsa`, `blake3` |
 | `yong-syntax` | shared lexer infrastructure, lossless syntax trees, trivia | `rowan` |
-| `yong-jian` | Jian lexer (INDENT/DEDENT), parser, lenient normalizer, canonical printer, exported grammars |  |
+| `yong-xin` | Xin lexer (INDENT/DEDENT), parser, lenient normalizer, canonical printer, exported grammars |  |
 | `yong-wen` | Wen lexer, parser and printer (M3) |  |
 | `yong-names` | word-list and foreign names, the projection table (16.1 to 16.3) (R560) |  |
 | `yong-surface` | the `Surface` trait (parse, abstract, lower, subset, resugar, print, optional lenient reader, grammar export, message rendering), the trivia side table, the round-trip law harness (R560) |  |
-| `yong-fei` | Fei lexer, parser, printer and spelling notes; print-only view in M3, reader in M4 (R560, R563) |  |
+| `yong-chang` | Chang lexer, parser, printer and spelling notes; print-only view in M3, reader in M4 (R560, R563) |  |
 | `yong-hir` | name resolution, the surface-neutral high-level IR every surface lowers to, and the shared raise from Yong (R558, R559) |  |
 | `yong-elab` | type inference (bidirectional, local inside items), desugaring, capability passing, copy and move insertion, lowering to Yong |  |
 | `yong-core` | Yong IR data types, text parser and printer, IR validator |  |
@@ -30,7 +30,7 @@ The compiler and tools MUST be written in Rust (stable toolchain) as one Cargo w
 | `yong-cg-cranelift` | debug code generation (M1b) | `cranelift-*` |
 | `yong-cg-llvm` | release code generation (M2) | `inkwell` |
 | `yong-rt` | std support: alloc handlers, `pool` scheduler, blocking platform I/O, record and replay handlers, panic-abort hook | mimalloc, a heartbeat scheduler for pool (R481); corosensei, io-uring only in `std.evented` |
-| `yong-std` | standard library sources (`.jian` and `.wen`, in `core/`, `alloc/` and `std/`) plus the intrinsic registry (R561, R562) | `arrow`, `regex-automata`, `rustls` with `aws-lc-rs`, `jiff`, ICU4X segmenter, a CORE-MATH-style libm |
+| `yong-std` | standard library sources (`.xin` and `.wen`, in `core/`, `alloc/` and `std/`) plus the intrinsic registry (R561, R562) | `arrow`, `regex-automata`, `rustls` with `aws-lc-rs`, `jiff`, ICU4X segmenter, a CORE-MATH-style libm |
 | `yong-ffi` | `yong ffi import`, `yong bind`, the C profile | libclang (import only) |
 | `yong-py` | Python export and import (M1); CPython embedding and extensions (M2) | `pyo3` |
 | `yong-pkg` | resolver, lockfile, registry client, log verification, approvals, semver, SBOM | `sigstore` |

@@ -45,7 +45,7 @@ enum Command {
         #[arg(required = true)]
         files: Vec<PathBuf>,
     },
-    /// Print a module in another surface: Jian or Wen as Yong, Wen as Jian.
+    /// Print a module in another surface: Xin or Wen as Yong, Wen as Xin.
     View {
         #[arg(long = "as")]
         as_: String,
@@ -139,12 +139,12 @@ fn main() -> ExitCode {
     }
 }
 
-/// A module ready to check or run: parsed and, for Jian, elaborated to Yong.
+/// A module ready to check or run: parsed and, for Xin, elaborated to Yong.
 enum Loaded {
     Ready(yong_core::ast::Module, Vec<Diagnostic>),
     /// Front-end diagnostics that stop before the Yong checker.
     Stopped(Vec<Diagnostic>),
-    /// Jian the elaborator does not lower yet; its front-end diagnostics.
+    /// Xin the elaborator does not lower yet; its front-end diagnostics.
     Unsupported(String, Vec<Diagnostic>),
 }
 
@@ -171,8 +171,9 @@ fn load_ordered(
             }
             (_, d) => Loaded::Stopped(d),
         }),
-        Some("jian") => {
-            let (m, diags) = yong_jian::parse(&name, src, strict);
+        // `jian` until conformance/ is renamed to the Xin names.
+        Some("xin" | "jian") => {
+            let (m, diags) = yong_xin::parse(&name, src, strict);
             let Some(mut m) = m.filter(|_| !has_error(&diags)) else {
                 return Ok(Loaded::Stopped(diags));
             };
@@ -252,7 +253,7 @@ fn view(as_: &str, file: &Path) -> ExitCode {
     let ext = file.extension().and_then(|e| e.to_str());
     match (as_, ext) {
         ("yong", _) => {}
-        ("jian", Some("wen")) => return view_wen_as_jian(file, &src),
+        ("xin", Some("wen")) => return view_wen_as_xin(file, &src),
         _ => return tool_failure(&format!("no printer for `{as_}` yet")),
     }
     match load(file, &src, false, false) {
@@ -269,8 +270,8 @@ fn view(as_: &str, file: &Path) -> ExitCode {
     }
 }
 
-/// Wen's HIR printed by the Jian printer: the Jian projection of law 3 (16.5).
-fn view_wen_as_jian(file: &Path, src: &str) -> ExitCode {
+/// Wen's HIR printed by the Xin printer: the Xin projection of law 3 (16.5).
+fn view_wen_as_xin(file: &Path, src: &str) -> ExitCode {
     let name = file.display().to_string();
     let (m, diags) = yong_wen::parse(&name, src);
     if has_error(&diags) {
@@ -286,13 +287,13 @@ fn view_wen_as_jian(file: &Path, src: &str) -> ExitCode {
                 .for_each(|d| eprintln!("{}", d.render_line(None)));
             ExitCode::FAILURE
         }
-        Ok((h, _)) => match yong_jian::resugar(h) {
+        Ok((h, _)) => match yong_xin::resugar(h) {
             Ok(j) => {
-                print!("{}", yong_jian::print(&j));
+                print!("{}", yong_xin::print(&j));
                 ExitCode::SUCCESS
             }
             Err(what) => {
-                eprintln!("yong: outside the Jian subset: {what}");
+                eprintln!("yong: outside the Xin subset: {what}");
                 ExitCode::FAILURE
             }
         },

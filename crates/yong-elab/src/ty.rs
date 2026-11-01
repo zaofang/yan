@@ -1,4 +1,4 @@
-//! Jian types during elaboration and their Yong spelling.
+//! Xin types during elaboration and their Yong spelling.
 
 use yong_core::ast::{self as y, Named, TArg};
 use yong_names::{Surface, type_name};
@@ -19,7 +19,7 @@ pub enum Ty {
     List(Box<Ty>),
     Dict(Box<Ty>, Box<Ty>),
     Set(Box<Ty>),
-    /// A std.collections type by its Jian name (see [`COLLECTIONS`]), with its arguments.
+    /// A std.collections type by its Xin name (see [`COLLECTIONS`]), with its arguments.
     Coll(&'static str, Vec<Ty>),
     Tuple(Vec<Ty>),
     Option(Box<Ty>),
@@ -36,13 +36,13 @@ pub enum Ty {
     Err,
 }
 
-/// Each std.collections type, by its Jian name; its Yong name is in the projection table.
+/// Each std.collections type, by its Xin name; its Yong name is in the projection table.
 pub const COLLECTIONS: [&str; 5] = ["deque", "iter", "heap", "sorted_dict", "sorted_set"];
 
 /// `name` as a std.collections type, with its `&'static` spelling and arity.
 pub fn collection(name: &str) -> Option<(&'static str, usize)> {
     let n = COLLECTIONS.iter().find(|n| **n == name)?;
-    let row = yong_names::type_row(n, Surface::Jian).expect("in the projection table");
+    let row = yong_names::type_row(n, Surface::Xin).expect("in the projection table");
     Some((n, row.arity))
 }
 
@@ -69,7 +69,7 @@ impl Ty {
             Ty::Dict(k, v) => named("Map", vec![k.core(), v.core()]),
             Ty::Set(t) => named("Set", vec![t.core()]),
             Ty::Coll(n, ts) => {
-                let y = type_name(n, Surface::Jian, Surface::Yong).expect("a collection");
+                let y = type_name(n, Surface::Xin, Surface::Yong).expect("a collection");
                 named(y, ts.iter().map(Ty::core).collect())
             }
             Ty::Tuple(ts) => y::Type::Tuple(ts.iter().map(Ty::core).collect()),
@@ -285,13 +285,13 @@ impl std::fmt::Display for Ty {
     }
 }
 
-/// Jian's sized scalar names the elaborator lowers, and their Yong spelling (16.3).
+/// Xin's sized scalar names the elaborator lowers, and their Yong spelling (16.3).
 pub fn fixed(name: &str) -> Option<&'static str> {
     const LOWERED: [&str; 8] = [
         "int8", "int16", "int32", "uint8", "uint16", "uint32", "uint64", "float32",
     ];
     LOWERED
         .contains(&name)
-        .then(|| type_name(name, Surface::Jian, Surface::Yong))
+        .then(|| type_name(name, Surface::Xin, Surface::Yong))
         .flatten()
 }

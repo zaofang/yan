@@ -8,7 +8,7 @@ A package that builds and passes its tests on toolchain 1.a MUST build, pass and
 
 ### 20.2 What is frozen
 
-**Frozen at 1.0, additive after:** core semantics (never changed by an edition); the Jian and Wen grammars, elaboration and canonical printing per edition; the lenient reader's acceptance set (it only grows); the std and prelude API except `@preview` items; E and W codes, the JSON diagnostic schema, the patch protocol, MCP tool schemas, `sig` structure, the `package.jian` and `yong.lock` formats; `yong_abi_v1`.
+**Frozen at 1.0, additive after:** core semantics (never changed by an edition); the Xin and Wen grammars, elaboration and canonical printing per edition; the lenient reader's acceptance set (it only grows); the std and prelude API except `@preview` items; E and W codes, the JSON diagnostic schema, the patch protocol, MCP tool schemas, `sig` structure, the `package.xin` and `yong.lock` formats; `yong_abi_v1`.
 
 **Not frozen:** Yong IR text and item hashes (salted by toolchain version); performance; message wording; the set of warnings; cache and replay-trace formats (a trace replays on the minor that wrote it); the security defaults of tls, http and crypto.
 
@@ -16,18 +16,18 @@ A package that builds and passes its tests on toolchain 1.a MUST build, pass and
 
 **Diagnostics never break builds.** A minor adds warnings, never errors, except under the permitted-breakage list. A lint becomes an error only at an edition, with its `yong fix` rule.
 
-**Machine contract.** Codes keep their meaning and are never reused; retired codes stay in section 25. JSON diagnostics, the patch protocol, MCP schemas, `sig` output, `package.jian` and `yong.lock` change only by optional fields with a `schema` version.
+**Machine contract.** Codes keep their meaning and are never reused; retired codes stay in section 25. JSON diagnostics, the patch protocol, MCP schemas, `sig` output, `package.xin` and `yong.lock` change only by optional fields with a `schema` version.
 
 ### 20.3 Toolchain and std API version
 
-`package.jian` requires `yong = "1.x"`. The build needs the maximum over the package and its dependencies and fetches it through `yong toolchain` if the installed one is older. std and prelude items carry `@since`, and items newer than the package's version are invisible to it (E200). std CI rejects a `pub` item without a current `@since` (E012).
+`package.xin` requires `yong = "1.x"`. The build needs the maximum over the package and its dependencies and fetches it through `yong toolchain` if the installed one is older. std and prelude items carry `@since`, and items newer than the package's version are invisible to it (E200). std CI rejects a `pub` item without a current `@since` (E012).
 
 ### 20.4 Editions
 
 - **Surface-only.** An edition may change surface grammar, keywords, elaboration, canonical printing, lint-to-error promotions, prelude visibility and Unicode tables, never core semantics. Every edition elaborates into one core, so editions link with no glue and item hashes ignore editions. Every edition stays supported.
-- **One edition, both surfaces.** `edition` covers every `.jian` and `.wen` file of a package and fixes, as one unit, both grammars, elaboration rules, both printers, the projection table and the Unicode version. The round-trip laws hold within each edition.
+- **One edition, both surfaces.** `edition` covers every `.xin` and `.wen` file of a package and fixes, as one unit, both grammars, elaboration rules, both printers, the projection table and the Unicode version. The round-trip laws hold within each edition.
 - **Naming and process.** Editions are named by the year of the stabilizing toolchain; the 1.0 edition is named at RC. There is at most one edition per three years, and only with a change that passed law 11. Each edition-gated change ships with a machine-applicable `yong fix` rule, old and new conformance tests and its projection entry. `yong fix --edition` applies, rebuilds, tests and stops at the first failure. Before RC the field accepts only `next`.
-- **Stale-model tolerance.** Every Jian form an edition retires stays accepted by the lenient reader forever and normalizes to the current form. The law-11 gate for a Jian change measures total tokens per solved task with models that have not seen the new form.
+- **Stale-model tolerance.** Every Xin form an edition retires stays accepted by the lenient reader forever and normalizes to the current form. The law-11 gate for a Xin change measures total tokens per solved task with models that have not seen the new form.
 
 ### 20.5 Deprecation
 
@@ -35,7 +35,7 @@ A package that builds and passes its tests on toolchain 1.a MUST build, pass and
 
 ### 20.6 API evolution and enforced versions
 
-**Previews.** `@preview("name")` marks unstable items, modules, handlers and next-edition syntax; using one requires `preview = ["name"]` in `package.jian` (E001). There is one release channel. Previews are outside the compatibility promise. A published package at 1.0 or later MUST NOT enable one (E002). A preview stabilizes, is withdrawn or is re-justified within four minors. The `std.evented` handlers are the first.
+**Previews.** `@preview("name")` marks unstable items, modules, handlers and next-edition syntax; using one requires `preview = ["name"]` in `package.xin` (E001). There is one release channel. Previews are outside the compatibility promise. A published package at 1.0 or later MUST NOT enable one (E002). A preview stabilizes, is withdrawn or is re-justified within four minors. The `std.evented` handlers are the first.
 
 **API evolution table (normative).** Each row has a conformance witness in `conformance/semver/`.
 
@@ -68,7 +68,7 @@ A package that builds and passes its tests on toolchain 1.a MUST build, pass and
 
 **`yong semver`.** `yong semver [--base v]` builds each version's API digest from the query database (signatures, `uses`, `fail`, contracts, `ex`, auto traits, layout, exports, public dependencies), skips items whose interface hash is unchanged, and reports findings as diagnostics (E013 for a confirmed break, W014 for a possible one). `yong check` runs it against the last published version.
 
-**Witnesses.** Each type-level break carries a generated Jian program that checks against the old version and fails against the new. A finding without a witness is reported as possible (W014) and does not block publishing.
+**Witnesses.** Each type-level break carries a generated Xin program that checks against the old version and fails against the new. A finding without a witness is reported as possible (W014) and does not block publishing.
 
 **Behavioral check.** The base version's `ex` clauses and property tests of `pub` items run against the new implementation in the checked interpreter. A failure requires a major, or `publish --behavior-change item`, which is recorded in release notes and `audit --diff`.
 

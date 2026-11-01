@@ -6,7 +6,7 @@ The conformance suite is the executable form of this spec. It lives in `conforma
 
 ```
 conformance/
-  jian/pass/   jian/fail/   jian/run/
+  xin/pass/   xin/fail/   xin/run/
   wen/pass/    wen/fail/    wen/run/
   yong/pass/   yong/fail/   yong/run/      -- yong/run/ for M0 (R468)
   ub/          semver/      sim/
@@ -27,7 +27,7 @@ conformance/
 | Area | Minimum |
 | --- | --- |
 | Lexing and layout | every lexical rule of both surfaces; each lenient normalization N01 to N30 with an input and expected canonical output |
-| Parsing | every grammar production of Yong, Jian and Wen in one `pass` file; every E1xx code in one `fail` file |
+| Parsing | every grammar production of Yong, Xin and Wen in one `pass` file; every E1xx code in one `fail` file |
 | Types | inference, records, sums, newtypes, generics, traits, coherence (E220), method resolution (E250), named argument packs |
 | Ownership | each convention; value semantics (mutating a copy never changes the original); every E4xx code of section 25 (R378); the runtime exclusivity panic; views and `from` |
 | Memory model | every UB item in 6.7 flagged by `--ub`; DRF-SC litmus tests under `explore`; every happens-before edge in 6.5 |

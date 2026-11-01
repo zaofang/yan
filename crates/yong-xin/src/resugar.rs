@@ -1,10 +1,10 @@
-//! HIR to the Jian subset (16.4): Wen's `let` and `var` become assignments, whose mutability
-//! Jian infers (R421); a form Jian cannot spell is reported as the first construct outside the
+//! HIR to the Xin subset (16.4): Wen's `let` and `var` become assignments, whose mutability
+//! Xin infers (R421); a form Xin cannot spell is reported as the first construct outside the
 //! subset.
 
 use crate::ast::*;
 
-/// `m` as Jian the printer can print, or the first construct outside the Jian subset.
+/// `m` as Xin the printer can print, or the first construct outside the Xin subset.
 pub fn resugar(mut m: Module) -> Result<Module, &'static str> {
     for it in &mut m.items {
         item(it)?;

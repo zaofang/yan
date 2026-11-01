@@ -1,6 +1,6 @@
 [package]
-name = "yong-jian"
-description = "Jian lexer, parser and canonical printer"
+name = "yong-xin"
+description = "Xin lexer, parser and canonical printer"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
