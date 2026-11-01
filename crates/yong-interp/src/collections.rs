@@ -6,12 +6,8 @@ use std::collections::VecDeque;
 use std::mem;
 
 use super::native::opt;
-use super::prelude::order;
+use super::prelude::cmp;
 use super::{R, Value, panic};
-
-fn cmp(a: &Value, b: &Value) -> Ordering {
-    order(a, b).unwrap_or(Ordering::Equal)
-}
 
 fn take(v: &mut Value) -> Value {
     mem::replace(v, Value::Unit)
