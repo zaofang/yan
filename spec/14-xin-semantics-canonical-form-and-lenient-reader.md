@@ -34,7 +34,7 @@
 
 **Effects.** Every function lists its capabilities in `uses`, except `alloc`. A user capability is named by the snake\_case form of its trait, or `uses Trait as name` (R461). A capability set is declared as in Wen, `type Svc = uses net, log, time`, and its PascalCase name may appear in any `uses` list, where it expands in place (R431). `print` is `io.print`. `with name = e:` binds a handler for the block.
 
-**Contracts (R284).** `pre`, `post`, `ex` and `decreases` lines come first in a body, after the docstring, and are part of the header. In `post`, `out` is the result and `old(p)` is a `var` parameter's entry value. `ex` lines are optional at `yong check`. `yong publish` and `--level release` require at least one `ex`, or a `test_` function that calls it, for every `pub` function except `main` (E601). A recursive function MUST have `decreases` (E602), except where the lenient reader infers it (N05).
+**Contracts (R284).** `pre`, `post`, `ex`, `decreases` and `cost` (R610) lines come first in a body, after the docstring, and are part of the header. In `post`, `out` is the result and `old(p)` is a `var` parameter's entry value. `ex` lines are optional at `yong check`. `yong publish` and `--level release` require at least one `ex`, or a `test_` function that calls it, for every `pub` function except `main` (E601). A recursive function MUST have `decreases` (E602), except where the lenient reader infers it (N05).
 
 **Tests.** A top-level function named `test_...` that returns `None` is a test, whether `-> None` is written or not (R420); its `assert`s must hold. If it has parameters, it is a property test: inputs are generated from the parameter types by generators that read a ChaCha8 choice sequence, and failures are shrunk by editing that sequence with fixed passes (SQ27). Tests may bind fake handlers with `with`. Tests run with the default handlers of 7.3: an in-memory `fs`, seeded `rand`, virtual `time`, `fault = never` and no `net`, and sched = seeded(0) (R349); a test that needs a real capability binds it with `with`. Snapshot tests compare against stored output; `yong test --update` rewrites the snapshots as a patch for review. Test verdicts are cached as section 18.4 describes.
 
@@ -56,7 +56,7 @@ The printer MUST produce exactly one text for a given Xin tree:
 - Double-quoted strings, choosing f-strings where the source used them.
 - Minimal parentheses, plus those required by E101.
 - Lines over 100 characters are wrapped inside brackets with one argument per line and a trailing comma. Nothing is aligned.
-- Contracts in the order `pre`, `post`, `ex`, `decreases`.
+- Contracts in the order `pre`, `post`, `ex`, `decreases`, `cost`.
 - Locals print as `x = e`, never `var` or `let`; mutability is inferred (R214).
 - Fallible returns print as `-> T fail E`, and `-> None fail E` as `-> fail E`.
 - A sum prints on one line, variants with fields inline as `Name(f: T)`, while it fits in 100 characters; past that, one variant per line after `=`, each starting with `|`.

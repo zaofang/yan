@@ -21,8 +21,9 @@ unobservable). Bounds are checked by automatic amortized resource analysis (Hoff
 RaRust, 2025), reduced to a linear program. A refuted bound is E618 with a witness input; an unproven
 one is W851 and compiles to a step and allocation counter that panics with kind `contract` in
 `checked-all`, following R211. Callees' `cost` clauses are their specifications, so law 6 holds.
-Xin gets the clause only after the R566 probe reports, under the hold on Xin syntax rows; Yong and
-Wen get it now, and Xin tools show inferred bounds as inlays.
+Yong, Xin and Wen all spell the clause `cost`. The lead admitted the Xin spelling on 2026-11-01
+ahead of the R566 probe ("Xin syntax is fine if it's worth it"): it is a contract line, so a Xin
+program with contracts removed is still Python (law 10). Tools show inferred bounds as inlays.
 
 - Decision: accepted as normative, 2026-11-01
 - Row: R610
@@ -50,4 +51,4 @@ With one argument `yong why` keeps its dependency meaning (19). MCP adds `why_ne
 
 ## Spec changes
 
-8.4 and 8.5 (D1); 17 (`Secret[T]`, D2); 18.1 and 21.4 (D3); 25 (E618, W851, E424).
+3.5, 8.4, 13, 14 and 15 (D1); 17 (`Secret[T]`, D2); 18.1 and 21.4 (D3); 25 (E618, W851, E424).

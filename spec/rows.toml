@@ -557,8 +557,8 @@ sections = "8.7, 18.1, 18.4, 19.2, 21.4, 25"
 
 [[entry]]
 rows = "R610 to R612"
-topic = "New header facts (RFC 0012), decided by the owner: `cost steps <= A, alloc <= B` checked by amortized resource analysis, E618 and W851, Xin after the R566 probe (R610); `@constant_time` functions and E424 (R611); `yong why <item> <fact>` and `why_needs` (R612)"
-sections = "8.4, 17.4, 18.1, 18.4, 21.4, 25"
+topic = "New header facts (RFC 0012), decided by the owner: `cost steps <= A, alloc <= B` checked by amortized resource analysis, E618 and W851, in Yong, Xin and Wen (R610); `@constant_time` functions and E424 (R611); `yong why <item> <fact>` and `why_needs` (R612)"
+sections = "3.5, 8.4, 13, 14, 15, 17.4, 18.1, 18.4, 21.4, 25"
 
 [[entry]]
 rows = "R613 to R615"
