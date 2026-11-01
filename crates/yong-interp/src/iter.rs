@@ -11,6 +11,9 @@ use super::prelude::cmp;
 use super::vm::{Clo, Vm};
 use indexmap::IndexMap;
 
+use yong_std::registry::{Id, id::*};
+
+use super::bind::bad_args;
 use super::{Key, R, Value, panic, unsupported};
 
 /// A shared, single-pass pipeline; copies of the value pull from the same state.
@@ -196,153 +199,148 @@ impl Vm<'_> {
         Ok(out)
     }
 
-    /// The std.iter functions and the `iter()` methods of the containers; `None` for other names.
-    pub(crate) fn iter_call(&mut self, name: &str, args: Vec<Value>) -> Option<R<Value>> {
+    /// The std.iter functions and the `iter()` methods of the containers.
+    pub(crate) fn iter_call(&mut self, id: Id, args: &mut [Value]) -> R<Value> {
         use Value::*;
-        let r = (|| -> R<Option<Value>> {
-            let size = |n: i128| -> R<usize> {
-                if n < 1 {
-                    panic("value")
-                } else {
-                    Ok(n as usize)
-                }
-            };
-            Ok(Some(match (name, args.as_slice()) {
-                ("std.list.iter", [List(xs)]) => items(xs.clone()),
-                ("std.text.iter", [Str(s)]) => items(s.chars().map(Char).collect::<Vec<_>>()),
-                ("std.set.iter", [Set(xs)]) => items(xs.iter().map(|k| k.0.clone())),
-                ("std.dict.iter", [Dict(d)]) => items(d.keys().map(|k| k.0.clone())),
-                ("std.collections.deque.iter", [Deque(xs, _)]) => items(xs.clone()),
-                ("std.collections.sorted_set.iter", [SortedSet(xs)]) => items(xs.clone()),
-                ("std.collections.sorted_dict.iter", [SortedMap(kv)]) => {
-                    items(kv.iter().map(|(k, _)| k.clone()))
-                }
-                ("std.iter.count", [Int(a), Int(s)]) => it(Pipe::Count(*a, *s)),
-                ("std.iter.repeat", [x, n]) => it(Pipe::Repeat(
-                    x.clone(),
-                    match n {
-                        Data { fields, .. } => match fields.first() {
-                            Some((_, Int(n))) => Some((*n).max(0)),
-                            _ => None,
-                        },
-                        Int(n) => Some((*n).max(0)),
+        let size = |n: i128| -> R<usize> {
+            if n < 1 {
+                panic("value")
+            } else {
+                Ok(n as usize)
+            }
+        };
+        Ok(match (id, &*args) {
+            (STD_LIST_ITER, [List(xs)]) => items(xs.clone()),
+            (STD_TEXT_ITER, [Str(s)]) => items(s.chars().map(Char).collect::<Vec<_>>()),
+            (STD_SET_ITER, [Set(xs)]) => items(xs.iter().map(|k| k.0.clone())),
+            (STD_DICT_ITER, [Dict(d)]) => items(d.keys().map(|k| k.0.clone())),
+            (STD_COLLECTIONS_DEQUE_ITER, [Deque(xs, _)]) => items(xs.clone()),
+            (STD_COLLECTIONS_SORTED_SET_ITER, [SortedSet(xs)]) => items(xs.clone()),
+            (STD_COLLECTIONS_SORTED_DICT_ITER, [SortedMap(kv)]) => {
+                items(kv.iter().map(|(k, _)| k.clone()))
+            }
+            (STD_ITER_COUNT, [Int(a), Int(s)]) => it(Pipe::Count(*a, *s)),
+            (STD_ITER_REPEAT, [x, n]) => it(Pipe::Repeat(
+                x.clone(),
+                match n {
+                    Data { fields, .. } => match fields.first() {
+                        Some((_, Int(n))) => Some((*n).max(0)),
                         _ => None,
                     },
-                )),
-                ("std.iter.once", [x]) => items([x.clone()]),
-                ("std.prelude.set", [Iter(i)]) => {
-                    Set(self.drain(&i.clone())?.into_iter().map(Key).collect())
-                }
-                ("std.prelude.dict", [Iter(i)]) => {
-                    let mut d = IndexMap::default();
-                    for kv in self.drain(&i.clone())? {
-                        if let Tuple(mut kv) = kv
-                            && let (Some(v), Some(k)) = (kv.pop(), kv.pop())
-                        {
-                            d.insert(Key(k), v);
-                        }
-                    }
-                    Dict(d)
-                }
-                ("std.iter.empty", []) => items([]),
-                (_, [Iter(i), rest @ ..]) => {
-                    let i = i.clone();
-                    match (name, rest) {
-                        ("std.iter.ops.map", [Closure(f)]) => it(Pipe::Map(i, f.clone())),
-                        ("std.iter.ops.filter", [Closure(f)]) => it(Pipe::Filter(i, f.clone())),
-                        ("std.iter.ops.take_while", [Closure(f)]) => {
-                            it(Pipe::TakeWhile(i, f.clone(), false))
-                        }
-                        ("std.iter.ops.drop_while", [Closure(f)]) => {
-                            it(Pipe::DropWhile(i, f.clone(), true))
-                        }
-                        ("std.iter.ops.take", [Int(n)]) => it(Pipe::Take(i, (*n).max(0))),
-                        ("std.iter.ops.skip", [Int(n)]) => it(Pipe::Skip(i, (*n).max(0))),
-                        ("std.iter.ops.step_by", [Int(n)]) => {
-                            it(Pipe::StepBy(i, size(*n)? as i128, true))
-                        }
-                        ("std.iter.ops.zip", [Iter(b)]) => it(Pipe::Zip(i, b.clone())),
-                        ("std.iter.ops.enumerate", []) => it(Pipe::Enumerate(i, 0)),
-                        ("std.iter.ops.flat_map", [Closure(f)]) => {
-                            it(Pipe::FlatMap(i, f.clone(), VecDeque::new()))
-                        }
-                        ("std.iter.ops.chain", [Iter(b)]) => it(Pipe::Chain(i, b.clone())),
-                        ("std.iter.ops.windows", [Int(n)]) => {
-                            it(Pipe::Windows(i, size(*n)?, VecDeque::new()))
-                        }
-                        ("std.iter.ops.chunks", [Int(n)]) => it(Pipe::Chunks(i, size(*n)?)),
-                        ("std.iter.ops.next", []) => opt(self.pull(&i)?),
-                        ("std.iter.ops.collect", []) => List(self.drain(&i)?),
-                        ("std.iter.ops.fold", [init, Closure(f)]) => {
-                            let mut acc = init.clone();
-                            while let Some(x) = self.pull(&i)? {
-                                acc = self.apply(f, vec![acc, x])?;
-                            }
-                            acc
-                        }
-                        ("std.iter.ops.count", []) => Int(self.drain(&i)?.len() as i128),
-                        ("std.iter.ops.any", [Closure(f)]) => loop {
-                            match self.pull(&i)? {
-                                Some(x) if truthy(self.apply(f, vec![x.clone()])?) => {
-                                    break Bool(true);
-                                }
-                                Some(_) => {}
-                                None => break Bool(false),
-                            }
-                        },
-                        ("std.iter.ops.all", [Closure(f)]) => loop {
-                            match self.pull(&i)? {
-                                Some(x) if !truthy(self.apply(f, vec![x.clone()])?) => {
-                                    break Bool(false);
-                                }
-                                Some(_) => {}
-                                None => break Bool(true),
-                            }
-                        },
-                        ("std.iter.ops.find", [Closure(f)]) => loop {
-                            match self.pull(&i)? {
-                                Some(x) if truthy(self.apply(f, vec![x.clone()])?) => {
-                                    break opt(Some(x));
-                                }
-                                Some(_) => {}
-                                None => break opt(None),
-                            }
-                        },
-                        // The first of equal extremes, as Python's.
-                        ("std.iter.ops.min" | "std.iter.ops.max", [key]) => {
-                            let key = key.clone();
-                            let mut best: Option<(Value, Value)> = None;
-                            while let Some(x) = self.pull(&i)? {
-                                let k = self.key(&key, &x)?;
-                                let o = best.as_ref().map(|(b, _)| cmp(&k, b));
-                                let wins = match o {
-                                    None => true,
-                                    Some(o) if name.ends_with("min") => o.is_lt(),
-                                    Some(o) => o.is_gt(),
-                                };
-                                if wins {
-                                    best = Some((k, x));
-                                }
-                            }
-                            opt(best.map(|(_, x)| x))
-                        }
-                        ("std.iter.ops.sum", []) => sum(self.drain(&i)?)?,
-                        ("std.iter.ops.done", []) => {
-                            let x = self.pull(&i)?;
-                            let done = x.is_none();
-                            i.0.borrow_mut().cur = x;
-                            Bool(done)
-                        }
-                        ("std.iter.ops.current", []) => {
-                            i.0.borrow_mut().cur.take().unwrap_or_default()
-                        }
-                        _ => return Ok(None),
+                    Int(n) => Some((*n).max(0)),
+                    _ => None,
+                },
+            )),
+            (STD_ITER_ONCE, [x]) => items([x.clone()]),
+            (STD_PRELUDE_SET, [Iter(i)]) => {
+                Set(self.drain(&i.clone())?.into_iter().map(Key).collect())
+            }
+            (STD_PRELUDE_DICT, [Iter(i)]) => {
+                let mut d = IndexMap::default();
+                for kv in self.drain(&i.clone())? {
+                    if let Tuple(mut kv) = kv
+                        && let (Some(v), Some(k)) = (kv.pop(), kv.pop())
+                    {
+                        d.insert(Key(k), v);
                     }
                 }
-                _ => return Ok(None),
-            }))
-        })();
-        r.transpose()
+                Dict(d)
+            }
+            (STD_ITER_EMPTY, []) => items([]),
+            (_, [Iter(i), rest @ ..]) => {
+                let i = i.clone();
+                match (id, rest) {
+                    (STD_ITER_OPS_MAP, [Closure(f)]) => it(Pipe::Map(i, f.clone())),
+                    (STD_ITER_OPS_FILTER, [Closure(f)]) => it(Pipe::Filter(i, f.clone())),
+                    (STD_ITER_OPS_TAKE_WHILE, [Closure(f)]) => {
+                        it(Pipe::TakeWhile(i, f.clone(), false))
+                    }
+                    (STD_ITER_OPS_DROP_WHILE, [Closure(f)]) => {
+                        it(Pipe::DropWhile(i, f.clone(), true))
+                    }
+                    (STD_ITER_OPS_TAKE, [Int(n)]) => it(Pipe::Take(i, (*n).max(0))),
+                    (STD_ITER_OPS_SKIP, [Int(n)]) => it(Pipe::Skip(i, (*n).max(0))),
+                    (STD_ITER_OPS_STEP_BY, [Int(n)]) => {
+                        it(Pipe::StepBy(i, size(*n)? as i128, true))
+                    }
+                    (STD_ITER_OPS_ZIP, [Iter(b)]) => it(Pipe::Zip(i, b.clone())),
+                    (STD_ITER_OPS_ENUMERATE, []) => it(Pipe::Enumerate(i, 0)),
+                    (STD_ITER_OPS_FLAT_MAP, [Closure(f)]) => {
+                        it(Pipe::FlatMap(i, f.clone(), VecDeque::new()))
+                    }
+                    (STD_ITER_OPS_CHAIN, [Iter(b)]) => it(Pipe::Chain(i, b.clone())),
+                    (STD_ITER_OPS_WINDOWS, [Int(n)]) => {
+                        it(Pipe::Windows(i, size(*n)?, VecDeque::new()))
+                    }
+                    (STD_ITER_OPS_CHUNKS, [Int(n)]) => it(Pipe::Chunks(i, size(*n)?)),
+                    (STD_ITER_OPS_NEXT, []) => opt(self.pull(&i)?),
+                    (STD_ITER_OPS_COLLECT, []) => List(self.drain(&i)?),
+                    (STD_ITER_OPS_FOLD, [init, Closure(f)]) => {
+                        let mut acc = init.clone();
+                        while let Some(x) = self.pull(&i)? {
+                            acc = self.apply(f, vec![acc, x])?;
+                        }
+                        acc
+                    }
+                    (STD_ITER_OPS_COUNT, []) => Int(self.drain(&i)?.len() as i128),
+                    (STD_ITER_OPS_ANY, [Closure(f)]) => loop {
+                        match self.pull(&i)? {
+                            Some(x) if truthy(self.apply(f, vec![x.clone()])?) => {
+                                break Bool(true);
+                            }
+                            Some(_) => {}
+                            None => break Bool(false),
+                        }
+                    },
+                    (STD_ITER_OPS_ALL, [Closure(f)]) => loop {
+                        match self.pull(&i)? {
+                            Some(x) if !truthy(self.apply(f, vec![x.clone()])?) => {
+                                break Bool(false);
+                            }
+                            Some(_) => {}
+                            None => break Bool(true),
+                        }
+                    },
+                    (STD_ITER_OPS_FIND, [Closure(f)]) => loop {
+                        match self.pull(&i)? {
+                            Some(x) if truthy(self.apply(f, vec![x.clone()])?) => {
+                                break opt(Some(x));
+                            }
+                            Some(_) => {}
+                            None => break opt(None),
+                        }
+                    },
+                    // The first of equal extremes, as Python's.
+                    (STD_ITER_OPS_MIN | STD_ITER_OPS_MAX, [key]) => {
+                        let key = key.clone();
+                        let mut best: Option<(Value, Value)> = None;
+                        while let Some(x) = self.pull(&i)? {
+                            let k = self.key(&key, &x)?;
+                            let o = best.as_ref().map(|(b, _)| cmp(&k, b));
+                            let wins = match o {
+                                None => true,
+                                Some(o) if id == STD_ITER_OPS_MIN => o.is_lt(),
+                                Some(o) => o.is_gt(),
+                            };
+                            if wins {
+                                best = Some((k, x));
+                            }
+                        }
+                        opt(best.map(|(_, x)| x))
+                    }
+                    (STD_ITER_OPS_SUM, []) => sum(self.drain(&i)?)?,
+                    (STD_ITER_OPS_DONE, []) => {
+                        let x = self.pull(&i)?;
+                        let done = x.is_none();
+                        i.0.borrow_mut().cur = x;
+                        Bool(done)
+                    }
+                    (STD_ITER_OPS_CURRENT, []) => i.0.borrow_mut().cur.take().unwrap_or_default(),
+                    _ => return bad_args(id),
+                }
+            }
+            _ => return bad_args(id),
+        })
     }
 }
 
@@ -370,30 +368,47 @@ fn sum(xs: Vec<Value>) -> R<Value> {
             _ => 0.0,
         })
         .collect();
-    let blocks: Vec<f64> = fs
-        .chunks(4096)
-        .map(|b| {
-            let mut lanes = [-0.0f64; 64];
-            for (i, x) in b.iter().enumerate() {
-                lanes[i % 64] += x;
-            }
-            tree(&lanes)
-        })
-        .collect();
-    Ok(Value::Float(if blocks.is_empty() {
-        -0.0
-    } else {
-        tree(&blocks)
-    }))
+    Ok(Value::Float(yong_rt::num::sum_f64(&fs)))
 }
 
-/// The fixed tree: split at the largest power of two below the length.
-fn tree(xs: &[f64]) -> f64 {
-    match xs.len() {
-        1 => xs[0],
-        n => {
-            let k = 1 << (usize::BITS - 1 - (n - 1).leading_zeros());
-            tree(&xs[..k]) + tree(&xs[k..])
-        }
-    }
-}
+/// The ids `iter_call` handles.
+pub(crate) const IDS: &[Id] = &[
+    STD_COLLECTIONS_DEQUE_ITER,
+    STD_COLLECTIONS_SORTED_DICT_ITER,
+    STD_COLLECTIONS_SORTED_SET_ITER,
+    STD_DICT_ITER,
+    STD_ITER_COUNT,
+    STD_ITER_EMPTY,
+    STD_ITER_ONCE,
+    STD_ITER_OPS_ALL,
+    STD_ITER_OPS_ANY,
+    STD_ITER_OPS_CHAIN,
+    STD_ITER_OPS_CHUNKS,
+    STD_ITER_OPS_COLLECT,
+    STD_ITER_OPS_COUNT,
+    STD_ITER_OPS_CURRENT,
+    STD_ITER_OPS_DONE,
+    STD_ITER_OPS_DROP_WHILE,
+    STD_ITER_OPS_ENUMERATE,
+    STD_ITER_OPS_FILTER,
+    STD_ITER_OPS_FIND,
+    STD_ITER_OPS_FLAT_MAP,
+    STD_ITER_OPS_FOLD,
+    STD_ITER_OPS_MAP,
+    STD_ITER_OPS_MAX,
+    STD_ITER_OPS_MIN,
+    STD_ITER_OPS_NEXT,
+    STD_ITER_OPS_SKIP,
+    STD_ITER_OPS_STEP_BY,
+    STD_ITER_OPS_SUM,
+    STD_ITER_OPS_TAKE,
+    STD_ITER_OPS_TAKE_WHILE,
+    STD_ITER_OPS_WINDOWS,
+    STD_ITER_OPS_ZIP,
+    STD_ITER_REPEAT,
+    STD_LIST_ITER,
+    STD_PRELUDE_DICT,
+    STD_PRELUDE_SET,
+    STD_SET_ITER,
+    STD_TEXT_ITER,
+];
