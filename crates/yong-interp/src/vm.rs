@@ -4,8 +4,9 @@ use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
 
+use crate::bind::{self, Bind};
 use crate::compile::*;
-use crate::{Interp, R, STD_STAGES, Value, data, intrinsic, native, panic, unsupported};
+use crate::{Interp, R, STD_STAGES, Value, data, intrinsic, panic, std_stage, unsupported};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Clo {
@@ -226,37 +227,26 @@ fn bindings(p: &CPat, v: &Value, out: &mut Vec<(Reg, Value)>) {
     }
 }
 
-/// Dispatch stages: `fallible`, the intrinsics, then the std stages.
-const STAGES: u8 = 2 + STD_STAGES;
+/// Dispatch stages: the intrinsics, then the std stages.
+const STAGES: u8 = 1 + STD_STAGES;
 
-fn stage(
-    it: &mut Interp,
-    s: u8,
-    name: &str,
-    args: &mut [Value],
-) -> Option<R<Result<Value, Value>>> {
+fn stage(s: u8, name: &str, args: &mut [Value]) -> Option<R<Value>> {
     match s {
-        0 => native::fallible(name, args).map(Ok),
-        1 => intrinsic(name, args).map(|r| r.map(Ok)),
-        s => it.std_stage(s - 2, name, args).map(|r| r.map(Ok)),
+        0 => intrinsic(name, args),
+        s => std_stage(s - 1, name, args),
     }
 }
 
 /// Call std function `name`, starting at the stage that last handled this call site. Each std
 /// path is handled by one stage only (`std_paths_have_one_stage`), so skipping the others keeps
 /// the order of the full dispatch.
-fn native_call(
-    it: &mut Interp,
-    name: &str,
-    args: &mut [Value],
-    hint: &Cell<u8>,
-) -> R<Result<Value, Value>> {
+fn native_call(name: &str, args: &mut [Value], hint: &Cell<u8>) -> R<Value> {
     let h = hint.get();
-    if let Some(r) = stage(it, h, name, args) {
+    if let Some(r) = stage(h, name, args) {
         return r;
     }
     for s in (0..STAGES).filter(|s| *s != h) {
-        if let Some(r) = stage(it, s, name, args) {
+        if let Some(r) = stage(s, name, args) {
             hint.set(s);
             return r;
         }
@@ -585,9 +575,13 @@ impl<'o> Vm<'o> {
             Via::Item(f) => match self.call(*f, vec![e])?.0 {
                 Ok(v) | Err(v) => v,
             },
-            Via::Native(name) => match native::fallible(name, &[e]) {
-                Some(Ok(v) | Err(v)) => v,
-                None => return unsupported(format!("`via {name}`")),
+            Via::Native(id) => match id.and_then(bind::get) {
+                Some(Bind::Fallible(f)) => match f(&[e])? {
+                    Ok(v) | Err(v) => v,
+                },
+                _ => {
+                    return unsupported("`via` of a std function that is not a fallible intrinsic");
+                }
             },
         })
     }
@@ -643,6 +637,21 @@ impl<'o> Vm<'o> {
                 }
                 r
             }
+            Target::Native if let Some(b) = s.id.and_then(bind::get) => {
+                let args = &mut self.stack[new_base..];
+                let r = match b {
+                    Bind::Plain(f) => Ok(f(args)?),
+                    Bind::Cap(f) => Ok(f(&mut self.it, args)?),
+                    Bind::Fallible(f) => f(args)?,
+                };
+                for (i, a) in s.args.iter().enumerate() {
+                    if let ArgC::Inout(r) = a {
+                        let v = mem::take(&mut self.stack[new_base + i]);
+                        self.stack[base + *r as usize] = v;
+                    }
+                }
+                r
+            }
             Target::Native
                 if s.name.starts_with("std.iter.")
                     || s.name.ends_with(".iter")
@@ -665,7 +674,7 @@ impl<'o> Vm<'o> {
                     }
                     Ok(r)
                 } else {
-                    native_call(&mut self.it, &s.name, &mut self.stack[new_base..], &s.stage)?
+                    Ok(native_call(&s.name, &mut self.stack[new_base..], &s.stage)?)
                 };
                 for (i, a) in s.args.iter().enumerate() {
                     if let ArgC::Inout(r) = a {
@@ -786,20 +795,13 @@ mod tests {
 
     #[test]
     fn std_paths_have_one_stage() {
-        let native = include_str!("native.rs");
-        let (fallible, call) = native
-            .split_once("pub(super) fn call(")
-            .expect("native.rs has `call`");
         let stages = [
-            ("native::fallible", fallible),
-            ("native::call", call),
             ("prelude", include_str!("prelude.rs")),
             ("regex", include_str!("regex.rs")),
             ("collections", include_str!("collections.rs")),
             ("math", include_str!("math.rs")),
             ("iter", include_str!("iter.rs")),
             ("keyed", include_str!("keyed.rs")),
-            ("lib builtins", include_str!("lib.rs")),
         ];
         let mut seen: BTreeMap<&str, &str> = BTreeMap::new();
         for (stage, src) in stages {
@@ -808,6 +810,12 @@ mod tests {
                     assert_eq!(other, stage, "`{p}` is handled in two dispatch stages");
                 }
             }
+        }
+        for p in crate::bind::bound() {
+            assert!(
+                !seen.contains_key(p),
+                "`{p}` is bound by id and matched by name"
+            );
         }
     }
 

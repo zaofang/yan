@@ -1,7 +1,8 @@
-//! The standard library: the intrinsic table and the `.jian` sources (spec 22.2, R474).
+//! The standard library: the intrinsic registry (R561) and the `.jian` sources (spec 22.2, R474).
 
 pub mod intrinsics;
 pub mod regex;
+pub mod registry;
 
 /// `(module, source)` for each `std.<module>`. std.collections declares one submodule per type,
 /// since their methods share names.

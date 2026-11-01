@@ -545,6 +545,7 @@ dependencies = [
  "unicode-segmentation",
  "yong-core",
  "yong-jian",
+ "yong-rt",
  "yong-std",
 ]
 
@@ -555,6 +556,10 @@ dependencies = [
  "yong-diag",
  "yong-hir",
 ]
+
+[[package]]
+name = "yong-rt"
+version = "0.0.0"
 
 [[package]]
 name = "yong-std"

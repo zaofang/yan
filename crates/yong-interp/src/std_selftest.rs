@@ -1,11 +1,11 @@
 //! Non-gating tests for the native std functions (SQ28). Expected strings come from CPython 3.12.
 
 use super::Value::{self, *};
-use super::{native, prelude};
+use super::{bind, native, prelude};
 
 fn call(name: &str, mut args: Vec<Value>) -> Value {
-    match native::call(name, &mut args) {
-        Some(Ok(v)) => v,
+    match bind::call(name, &mut args) {
+        Ok(Ok(v)) => v,
         _ => panic!("{name} failed"),
     }
 }
@@ -23,13 +23,13 @@ fn dict_keeps_insertion_order_across_removal() {
     let mut d = call("std.dict.new", vec![]);
     for (k, v) in [("b", 1), ("a", 2), ("c", 3), ("b", 4)] {
         let mut args = vec![d, s(k), Int(v)];
-        native::call("std.dict.insert", &mut args);
+        bind::call("std.dict.insert", &mut args).unwrap().unwrap();
         d = args.swap_remove(0);
     }
     assert_eq!(shown(&d), "{'b': 4, 'a': 2, 'c': 3}");
     let mut args = vec![d, s("a")];
     assert_eq!(
-        shown(&native::call("std.dict.remove", &mut args).unwrap().unwrap()),
+        shown(&bind::call("std.dict.remove", &mut args).unwrap().unwrap()),
         "2"
     );
     assert_eq!(shown(&args[0]), "{'b': 4, 'c': 3}");

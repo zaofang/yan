@@ -205,3 +205,11 @@ Assumed in `yong patch` until the spec says otherwise:
 - No diagnostic carries a machine fix yet, so `autofix` returns the canonical reprint (the lenient reader's normalizations, 14.4) of each item whose text differs, as a `replace` patch with base hashes.
 - `sig` gives each function up to its first body statement (decorators, header, docstring, `pre`/`post`/`ex`/`decreases`), and every other item whole.
 - A plain text patch through `check_patch`/`apply_patch` takes the module as a `module` argument. Patches are always checked (P003), and protected targets refuse with P006, since the server has no confirmation token yet.
+
+## Intrinsic registry readings (R561)
+
+Assumed in `yong-std`'s registry and the interpreter until the spec says otherwise:
+
+- **Generated entries.** The registry is generated at build time from the `@intrinsic` functions and `@capability` operations in `yong-std/lib/std`, plus the scalar `<op>_<ty>` family and `exclusive_check`. An entry's signature is its declaration line; purity is read from it (a capability operation is `Cap`, a `var` parameter makes it `Mutates`, otherwise `Pure`). Only `Cap` entries are restricted to run time (stage 1 and later).
+- **Ids.** An id is the entry's index in path order, stable within one build only. Nothing persists ids; the stage-0 query cache, when it exists, will key on paths.
+- **Resolution point.** Yong text names std functions by path, and Yong text is the interpreter's input, so the path is resolved to its id when the interpreter compiles a call site, and again by each code generator from `yong-mir`. Elaboration checks only that every std function it may call has an entry (`registry_matches_declarations`). Run time never looks an intrinsic up by name once its module is bound by id.
