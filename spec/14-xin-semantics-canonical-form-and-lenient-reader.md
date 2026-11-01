@@ -1,8 +1,8 @@
-## 14. Jian: semantics, canonical form and lenient reader
+## 14. Xin: semantics, canonical form and lenient reader
 
 ### 14.1 Semantics (normative mapping to Yong)
 
-**Headers (R210).** An item's header is its `def` line plus its docstring and contract lines. The header states everything a caller relies on: parameter types, the return type, the `fail` type, `uses` and examples. Nothing in a header is inferred, and nothing in a body changes what a caller sees. `yong sig`, `pack_context` and the language server show headers only, as valid Jian text, so a model reads its dependencies in the language it writes. An `ex` line may bind handlers for its call: `ex fetch("A") == Quote("A", 10.0) with net = fake_net({"/A": "10.0"})`.
+**Headers (R210).** An item's header is its `def` line plus its docstring and contract lines. The header states everything a caller relies on: parameter types, the return type, the `fail` type, `uses` and examples. Nothing in a header is inferred, and nothing in a body changes what a caller sees. `yong sig`, `pack_context` and the language server show headers only, as valid Xin text, so a model reads its dependencies in the language it writes. An `ex` line may bind handlers for its call: `ex fetch("A") == Quote("A", 10.0) with net = fake_net({"/A": "10.0"})`.
 
 **Bindings (R214, R421).** The first `x = e` in a function binds `x`. The binding is mutable when the function later assigns it (`x = e`, `x += e`), assigns through it (`x.f = e`, `x[i] = e`), passes it as `&x`, or uses it as the receiver of a call whose callee's first parameter is `var` (`xs.append(v)`); the elaborator emits Yong `var` for it, and `let` otherwise. A later assignment must keep the binding's type (E201). `var x = e` on a local is accepted and normalized (N14). Unused bindings are lint W812, and a bare `_` binds nothing (R347).
 
@@ -10,7 +10,7 @@
 
 **Functions.** Every parameter and the return type MUST be annotated (E240); `-> None` may be omitted, and a function returning `None` may fall off its end. Where inference would need an annotation inside a body, the error is E241. `var p: T` is `inout`; `take p: T` is `sink`. A call passes a `var` parameter as `&place` (E404 if missing, E405 if not allowed). Parameters before `/` are positional-only. `**fields: Expr[_]` is a named argument pack (10.1). `-> View[T] from p` returns a view (4.5). Compile-time value parameters go in the generic brackets: `def fixed[n: int](...)`.
 
-**Calls (R282, R420).** `x.f(a)` and `f(x, a)` elaborate to the same call. The Jian tree records which form was written and the printer keeps it. The free form resolves `f` in scope (the current module, the prelude, or a qualified name); the dot form resolves it by the order of 17.2. If `f`'s first parameter is `var`, the receiver form is allowed only when `x` is a mutable place, and no `&` is written (SQ29); that call makes a local binding mutable (R421). If two parameters of the callee share a type, every argument for them must be passed by keyword (E210), except when the argument is a literal or a name equal to the parameter's name, and except for positional-only parameters and the receiver. A keyword argument for a `var` parameter is written `dst=&b`. The same rule applies to record constructors. The prelude's `min`, `max`, `atan2` and `hypot` are positional-only.
+**Calls (R282, R420).** `x.f(a)` and `f(x, a)` elaborate to the same call. The Xin tree records which form was written and the printer keeps it. The free form resolves `f` in scope (the current module, the prelude, or a qualified name); the dot form resolves it by the order of 17.2. If `f`'s first parameter is `var`, the receiver form is allowed only when `x` is a mutable place, and no `&` is written (SQ29); that call makes a local binding mutable (R421). If two parameters of the callee share a type, every argument for them must be passed by keyword (E210), except when the argument is a literal or a name equal to the parameter's name, and except for positional-only parameters and the receiver. A keyword argument for a `var` parameter is written `dst=&b`. The same rule applies to record constructors. The prelude's `min`, `max`, `atan2` and `hypot` are positional-only.
 
 **Records.** `class C:` with annotated fields declares a record. Records have no methods: functions taking the record first serve that role through the dot form. Fields may have defaults. Every record derives `Eq`, `Hash` and `Show`, as Python dataclasses do, each only when every field implements it, so a record with a float field has no Hash (R344). Records are constructed positionally or with keywords under the rule for calls (`C(1, "a")`, `C(a=1, b=2)`). A record value is immutable unless its binding is mutable (see Bindings). `evolve(c, a=3)` returns a copy with fields changed.
 
@@ -28,7 +28,7 @@
 
 **Undecided checks (R211).** Every static check of a value-level fact (bounds, keys in a dict, refinements, `pre` at a call site, exclusivity disjointness; R372) has three outcomes. Proven: no runtime check. Counterexample found: an error that shows the failing input (for example `i = 3, len(xs) = 3`). Unknown: the program compiles with a runtime check that panics, and lint W820 marks the spot; W820 is denied under `--strict` and `--level release`, so a release build contains no unproven check unless an `@expect` with a reason allows it. Type, capability and ownership errors are always definite and stay errors. Integer overflow that the solver does not rule out compiles to the check of 3.4 with no lint, in both surfaces, and a scalar match that is not provably exhaustive is E503 (R372).
 
-**Strings.** Jian has no `s[i]` on `str` (E504). Use `s.byte_len()`, `s.char_count()` or `s.grapheme_count()`, and iterate with `s.chars()`, `s.bytes()` or `s.graphemes()`. The lenient reader rewrites `len(s)` to `s.char_count()` and a `str` iterated directly (`for c in s`, `sorted(s)`) to `s.chars()` (N21).
+**Strings.** Xin has no `s[i]` on `str` (E504). Use `s.byte_len()`, `s.char_count()` or `s.grapheme_count()`, and iterate with `s.chars()`, `s.bytes()` or `s.graphemes()`. The lenient reader rewrites `len(s)` to `s.char_count()` and a `str` iterated directly (`for c in s`, `sorted(s)`) to `s.chars()` (N21).
 
 **Numbers.** `int` is a 64-bit checked integer; overflow panics, and the panic message suggests `bigint`. `/` on integers produces a correctly rounded `float`. `//` and `%` floor. `**` is power. `& | ^ ~ << >>` work on integer types through `Bits`. `bool` is not a number. Conversions are explicit: `float(x)`, `int(x)` (truncates toward zero, panics on NaN or out of range), `round(x)` (half-even), and the methods `wrap_as`, `sat_as`, `trunc_as`. `+` on `str` and on `list` concatenates (trait `Concat`).
 
@@ -40,7 +40,7 @@
 
 **Concurrency (R427).** In `par:`, each top-level statement is one branch, so a `for` inside `par:` is one sequential branch. A branch may not read a binding made by another branch in the same block (E705). `par for` has two forms: the comprehension `par [e for x in xs]` produces a list, and the statement `par for x in xs:` runs its body once per element for effects, and par(limit=n) for x in xs: bounds how many bodies run at once (R373); `par concurrent` applies to either, and to `par concurrent:`, and requires concurrent progress. `?` inside a `par` branch, comprehension or `par for` body propagates the lowest-index failure after cancelling later branches. `with deadline(t):` and `with timeout(d):` open cancel scopes; expiry surfaces as `Timeout` in the failure type. A function parameter typed par Callable\[\[A\], R\] may be called from several branches, under the capture rules of 4.6 (R436). An actor handler is a function whose first parameter is var self: S; actor.spawn(e, mailbox=..., overflow=...) and cluster.spawn(e, placement=...) start actors, and h.f(args) on an Actor\[S\] or Remote\[Actor\[S\]\] sends a message (R435). That call does not make h mutable under R421. Actors come from `std.actor`, channels from `std.chan`.
 
-**Not in Jian.** Arenas and `Ref`, layout control and proof attributes (L4); defining reflective code, stage-0 loops and generators (L5); `unsafe`, `Ptr`, `RawCell`, extern blocks, `Vec` and `asm` (L6). `@export` and applying derives and attribute functions are allowed.
+**Not in Xin.** Arenas and `Ref`, layout control and proof attributes (L4); defining reflective code, stage-0 loops and generators (L5); `unsafe`, `Ptr`, `RawCell`, extern blocks, `Vec` and `asm` (L6). `@export` and applying derives and attribute functions are allowed.
 
 ### 14.2 Compile-time literal checks
 
@@ -48,7 +48,7 @@ Calls that construct dates, times and zoned values from literals are checked at 
 
 ### 14.3 Canonical form
 
-The printer MUST produce exactly one text for a given Jian tree:
+The printer MUST produce exactly one text for a given Xin tree:
 
 - 4-space indentation, LF line endings, no trailing whitespace, one final newline.
 - One blank line between top-level items; inside a body, author blank lines are kept, at most one in a row and none at the body's start or end (18.5, R376).
@@ -64,13 +64,13 @@ The printer MUST produce exactly one text for a given Jian tree:
 - Copies print explicitly as `.copy()`; the autofix inserts them, the printer never drops them (R283 rejected).
 - `-> None` is omitted (R425); `int` and `float` print for the 64-bit types (N27).
 - Sums print with inline variants, a field-less one as `Name()`, and its pattern as `case Name():` (R423).
-- A function whose body is one `match` on its parameters prints as a `match` body; Jian has no clause form (R426).
+- A function whose body is one `match` on its parameters prints as a `match` body; Xin has no clause form (R426).
 - Calls print in the form written, dot or free (R420).
 - The fixes for W823 (redundant local annotation) and W824 (guard a fallback replaces) are safe fixes applied in the agent loop (R429).
 
 ### 14.4 Lenient reader
 
-The lenient reader accepts these deviations and normalizes them, reporting a note (N-code) instead of an error. `yong check --strict` disables it. Every Jian form an edition retires stays accepted by the lenient reader forever and normalizes to the current form (section 20.4); its acceptance set only grows.
+The lenient reader accepts these deviations and normalizes them, reporting a note (N-code) instead of an error. `yong check --strict` disables it. Every Xin form an edition retires stays accepted by the lenient reader forever and normalizes to the current form (section 20.4); its acceptance set only grows.
 
 | Code | Accepted input | Normalized to |
 | --- | --- | --- |

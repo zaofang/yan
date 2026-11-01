@@ -1,12 +1,12 @@
 use super::*;
 
 fn run(src: &str) -> String {
-    let (m, d) = yong_jian::parse("t.jian", src, false);
+    let (m, d) = yong_xin::parse("t.xin", src, false);
     assert!(d.is_empty(), "{d:?}");
     let (y, d) =
-        elaborate("t.jian", src, &m.expect("parses"), Options::default()).expect("supported");
+        elaborate("t.xin", src, &m.expect("parses"), Options::default()).expect("supported");
     assert!(d.is_empty(), "{d:?}");
-    let checked = yong_check::check("t.jian", src, &y);
+    let checked = yong_check::check("t.xin", src, &y);
     assert!(checked.is_empty(), "{checked:?}\n{}", yong_core::print(&y));
     let mut out = Vec::new();
     yong_interp::run(&y, &mut out).expect("runs");
@@ -44,7 +44,7 @@ fn every_intrinsic_method_instantiates() {
     };
     for &(module, src) in yong_std::SOURCES {
         let Some(t) = recv(module) else { continue };
-        let (m, _) = yong_jian::parse(module, src, true);
+        let (m, _) = yong_xin::parse(module, src, true);
         for it in m.expect("parses").items {
             let j::ItemKind::Func(f) = &it.kind else {
                 continue;
@@ -112,9 +112,9 @@ fn regex_matches_like_python() {
 #[test]
 fn literal_patterns_are_checked_at_stage_0() {
     let src = "def f() -> int:\n    r = regex.compile(\"(a)\\\\1\")\n    return len(r.pattern)\n";
-    let (m, _) = yong_jian::parse("t.jian", src, false);
+    let (m, _) = yong_xin::parse("t.xin", src, false);
     let (_, d) =
-        elaborate("t.jian", src, &m.expect("parses"), Options::default()).expect("supported");
+        elaborate("t.xin", src, &m.expect("parses"), Options::default()).expect("supported");
     assert!(d.iter().any(|d| d.code == "E545"), "{d:?}");
 }
 
@@ -145,7 +145,7 @@ fn registry_matches_declarations() {
     use yong_std::registry::{self, Effect};
     let mut declared = 0;
     for &(module, src) in yong_std::SOURCES {
-        let (m, _) = yong_jian::parse(module, src, true);
+        let (m, _) = yong_xin::parse(module, src, true);
         for it in m.expect("parses").items {
             let has = |d: &str| it.decorators.iter().any(|x| x.path == [d]);
             let defs: Vec<(j::FuncDef, bool)> = match it.kind {

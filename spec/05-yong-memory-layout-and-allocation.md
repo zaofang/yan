@@ -46,7 +46,7 @@ All allocation goes through the `alloc` capability (section 7.1), which decides 
 
 - Every `alloc` collection takes a type parameter `A: Allocator = Global`. `Global` is zero-size and forwards to the bound `alloc` handler.
 - std ships `Arena`, `FixedBuffer`, `PoolAlloc`, `Limited` and `Tracking` allocators.
-- `Arena` (Wen L4) is an ordinary value (R441). `arena.alloc(v)` takes the arena by `let` and returns `Ref[T] from arena` (4.7). A collection built over `arena.allocator()` is second-class `from arena` too, so neither may escape or outlive the arena (E414); `copy x` deep-copies a value into the enclosing allocator. Dropping the arena frees all of it in one step. Jian has no arenas.
+- `Arena` (Wen L4) is an ordinary value (R441). `arena.alloc(v)` takes the arena by `let` and returns `Ref[T] from arena` (4.7). A collection built over `arena.allocator()` is second-class `from arena` too, so neither may escape or outlive the arena (E414); `copy x` deep-copies a value into the enclosing allocator. Dropping the arena frees all of it in one step. Xin has no arenas.
 
 **Allocation failure.** The default `alloc` handler aborts the process on exhaustion. Every growable container operation (`append`, `insert`, `extend`, `reserve`, `with_capacity`) and every whole-input read (`read_all`, `read_to_str`) has a `try_` sibling returning `fail OutOfMemory`. A function whose allocation is bounded at compile time needs none. Freestanding code binds its own `alloc`.
 
@@ -56,7 +56,7 @@ All allocation goes through the `alloc` capability (section 7.1), which decides 
 
 `alloc` provides, beside the collections of section 17:
 
-- `Soa[T]` (Jian `soa[T]`) for any record `T`, generated at stage 0: one allocation, field segments 64-byte aligned; `view`, `span` and per-field accessors return second-class views; growth has `try_` siblings.
+- `Soa[T]` (Xin `soa[T]`) for any record `T`, generated at stage 0: one allocation, field segments 64-byte aligned; `view`, `span` and per-field accessors return second-class views; growth has `try_` siblings.
 - `Pool[T, Tag]`, `DensePool[T]` and `Handle[T]` (u32 index, u32 generation). `get` on a stale handle returns None. A slot whose generation would overflow retires instead of wrapping.
 - `Buffer` and `Bitmap`, the aligned columnar buffers shared by `Array` and `std.arrow` (section 11.8).
 

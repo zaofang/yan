@@ -15,17 +15,16 @@ path = "src/main.rs"
 blake3.workspace = true
 clap.workspace = true
 serde_json.workspace = true
-yong-check.workspace = true
 yong-core.workspace = true
 yong-db.workspace = true
 yong-diag.workspace = true
+yong-ide.workspace = true
 yong-interp.workspace = true
 yong-mir.workspace = true
 yong-cg-cranelift.workspace = true
-yong-jian.workspace = true
-yong-elab.workspace = true
-yong-wen.workspace = true
+yong-xin.workspace = true
 yong-hir.workspace = true
+yong-names.workspace = true
 
 [lints]
 workspace = true

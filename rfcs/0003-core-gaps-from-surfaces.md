@@ -26,7 +26,7 @@ no roles renders the messages in order under a fixed role header, documented per
 `fake_model`, `replay`, `model.only` and recording (R305) cover it as they cover `generate`.
 
 Options weighed: a role-marker convention inside `Template` (no API change, but every handler parses
-it); `generate_chat` (one new operation, typed). Recommended and accepted: `generate_chat`. Xun
+it); `generate_chat` (one new operation, typed). Recommended and accepted: `generate_chat`. Wu
 (RFC 0002) lowers to it.
 
 - Decision: accepted, 2026-11-01
@@ -62,7 +62,7 @@ A handler class whose operations perform no effect and return `Deferred[T]` plac
 known only after a real run. A `Deferred` may flow into later operations' arguments; branching on one
 is an error. Binding the dry-run handler of a capability previews any program that uses it as an
 operation graph; binding the real handler then applies it, re-reading state and failing with `Drift`
-where a read differs from the preview. Zhu (RFC 0002) needs it; every agent action could offer a
+where a read differs from the preview. Ting (RFC 0002) needs it; every agent action could offer a
 preview with it.
 
 - Decision: accepted for research, 2026-11-01
@@ -82,7 +82,7 @@ of a partially consumed stream, and `Wire` evolution of element types.
 
 Rooted directory handles (17.3) limit paths inside a program, but package ceilings (19.2) cannot name
 paths; only `net.only` exists (17.6). An `fs.only(read=[...], write=[...])` attenuator, usable in
-ceilings, would let Ling scripts and agent tools carry their reachable paths in the manifest.
+ceilings, would let Yin scripts and agent tools carry their reachable paths in the manifest.
 Questions: path canonicalization, symlinks and mount points, and how it composes with rooted handles.
 
 - Decision: accepted for research, 2026-11-01

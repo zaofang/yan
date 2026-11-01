@@ -17,7 +17,7 @@ num-integer.workspace = true
 num-traits.workspace = true
 
 [dev-dependencies]
-yong-jian.workspace = true
+yong-xin.workspace = true
 
 [lints]
 workspace = true

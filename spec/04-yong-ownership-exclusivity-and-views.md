@@ -22,9 +22,9 @@ Surfaces never write `move`; the elaborator inserts moves and trivial copies by 
 
 1. A use of a variable that is its last use on every path becomes `move`.
 2. Any other use passed to `sink`, stored into a container or record, or bound to a new name becomes a bitwise copy if the type is trivially copyable (contains no heap-backed component).
-3. For a heap-backed type such a use is E413 unless the source writes `copy x` (Jian `x.copy()`), a deep copy costing O(size). E413's fix inserts `copy`, or `share` when the type implements `Share`, so `autofix` resolves it without a model generation.
+3. For a heap-backed type such a use is E413 unless the source writes `copy x` (Xin `x.copy()`), a deep copy costing O(size). E413's fix inserts `copy`, or `share` when the type implements `Share`, so `autofix` resolves it without a model generation.
 
-`copy x` is always a deep copy. Cheap aliasing is the trait `Share`, implemented by `Rc`, `Arc`, `Weak`, `Sender`, `Receiver` and actor handles: `share x` (Jian `x.share()`) is an O(1) alias. `copy` on a `Share` type is E416, with the fix `share`. `copy v` on a view returns the owned type (`View[T]` gives `List[T]`, `StrView` gives `Str`).
+`copy x` is always a deep copy. Cheap aliasing is the trait `Share`, implemented by `Rc`, `Arc`, `Weak`, `Sender`, `Receiver` and actor handles: `share x` (Xin `x.share()`) is an O(1) alias. `copy` on a `Share` type is E416, with the fix `share`. `copy v` on a view returns the owned type (`View[T]` gives `List[T]`, `StrView` gives `Str`).
 
 **`let` of a projection** copies if the projected type is trivially copyable, moves at last use, and is E413 otherwise; borrowing part of a buffer is a view (SQ10).
 
@@ -44,7 +44,7 @@ For each statement, consider every place accessed through `inout` or `MutView`, 
 
 `a[i]`, `r.f` and accessor functions yield a borrowed place, valid only within the statement that produces it. A projection MUST NOT be stored, returned or captured. A borrow that outlives the statement is a view.
 
-**Subscripts (R457).** A `sub` item defines a projection. It has the header of a function, and its body contains `yield p` for a place `p` reachable from its parameters (Wen `sub name(self, ...) -> T =`). The body MUST yield exactly once on every path (E422). Code after the `yield` runs when the caller's statement ends. One definition serves both access modes: a read binds `self` and the place as `let`, and an assignment target, an augmented assignment or an `&` argument binds them as `inout`. The body is checked under each mode it is used in, and E423 names the mode that fails. E422 is reported at the subscript's name and E423 at the yielded place (R473). The yielded place is a projection under the rule above, valid for one statement, so subscripts need no lifetimes. At 1.0 a subscript is always inlined and MUST NOT be recursive. `trait Index[K]` with `sub at(self, k: K) -> V` gives a user type `x[k]` and `x[k] = v` (10.3). Jian may use any `Index` type but MUST NOT define a subscript.
+**Subscripts (R457).** A `sub` item defines a projection. It has the header of a function, and its body contains `yield p` for a place `p` reachable from its parameters (Wen `sub name(self, ...) -> T =`). The body MUST yield exactly once on every path (E422). Code after the `yield` runs when the caller's statement ends. One definition serves both access modes: a read binds `self` and the place as `let`, and an assignment target, an augmented assignment or an `&` argument binds them as `inout`. The body is checked under each mode it is used in, and E423 names the mode that fails. E422 is reported at the subscript's name and E423 at the yielded place (R473). The yielded place is a projection under the rule above, valid for one statement, so subscripts need no lifetimes. At 1.0 a subscript is always inlined and MUST NOT be recursive. `trait Index[K]` with `sub at(self, k: K) -> V` gives a user type `x[k]` and `x[k] = v` (10.3). Xin may use any `Index` type but MUST NOT define a subscript.
 
 ### 4.5 Views
 
@@ -55,7 +55,7 @@ For each statement, consider every place accessed through `inout` or `MutView`, 
 - **Exclusivity.** The law of exclusivity applies to views as to `inout` places, so two `MutView`s over overlapping ranges in one statement are E402.
 - **Lending iterators.** `next(self: inout) -> View[T] from self` gives lending iterators; there are no generic associated types.
 
-Views are in Jian and Wen. They cover zero-copy parsing, borrowing iterators and in-place algorithms without lifetime parameters.
+Views are in Xin and Wen. They cover zero-copy parsing, borrowing iterators and in-place algorithms without lifetime parameters.
 
 ### 4.6 Closures
 

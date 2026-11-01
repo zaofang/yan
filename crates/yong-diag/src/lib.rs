@@ -141,7 +141,7 @@ mod selftest {
     fn line_rendering() {
         let d = Diagnostic::error(
             "E501",
-            "src/p.jian",
+            "src/p.xin",
             at(14, 9),
             "xs[i]",
             "index not proven in bounds",
@@ -150,7 +150,7 @@ mod selftest {
         .with_note("a\nb");
         assert_eq!(
             d.render_line(Some(1)),
-            "#1 E501 src/p.jian:14:9 value: `xs[i]` index not proven in bounds | a\\nb"
+            "#1 E501 src/p.xin:14:9 value: `xs[i]` index not proven in bounds | a\\nb"
         );
     }
 

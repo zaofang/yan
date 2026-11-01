@@ -64,6 +64,11 @@ pub def bisect_right[T, K: Ord](self: list[T], x: K, key: Callable[[T], K] | Non
 @since("1.0")
 pub def insort[T, K: Ord](var self: list[T], take x: T, key: Callable[[T], K] | None = None) -> None: ...
 
+# What `xs[start:stop:step]` lowers to (R286).
+@intrinsic
+@since("1.0")
+pub def slice_clamped[T](self: list[T], start: int | None, stop: int | None, step: int | None) -> list[T]: ...
+
 @intrinsic
 @since("1.0")
 pub def slice_exact[T](self: list[T], start: int, stop: int) -> list[T]: ...

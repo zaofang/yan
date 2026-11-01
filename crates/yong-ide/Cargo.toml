@@ -1,0 +1,21 @@
+[package]
+name = "yong-ide"
+description = "Yong analysis API: diagnostics, hover, inlay hints and view-as, over yong-db"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde.workspace = true
+yong-core.workspace = true
+yong-db.workspace = true
+yong-diag.workspace = true
+yong-hir.workspace = true
+yong-names.workspace = true
+yong-wen.workspace = true
+yong-xin.workspace = true
+
+[lints]
+workspace = true

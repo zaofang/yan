@@ -1,4 +1,4 @@
-//! `yong patch` (18.3): apply a JSON patch, or a plain file of whole items, to a Jian module.
+//! `yong patch` (18.3): apply a JSON patch, or a plain file of whole items, to a Xin module.
 
 use std::path::{Path, PathBuf};
 
@@ -50,7 +50,15 @@ pub fn apply_file(
 }
 
 pub fn module_path(dir: &Path, module: &str) -> PathBuf {
-    dir.join(format!("{}.jian", module.replace('.', "/")))
+    let stem = module.replace('.', "/");
+    let xin = dir.join(format!("{stem}.xin"));
+    // Legacy `.jian` modules until conformance/ is renamed to the Xin names.
+    let jian = dir.join(format!("{stem}.jian"));
+    if !xin.is_file() && jian.is_file() {
+        jian
+    } else {
+        xin
+    }
 }
 
 /// Writes an applied patch and appends it to the oplog (18.3 rule 7).
@@ -188,7 +196,7 @@ pub fn plan(
             );
         }
     }
-    let after = yong_jian::print(&Module { items, ..m });
+    let after = yong_xin::print(&Module { items, ..m });
     if check {
         let was = diagnose(&target, &before)?;
         let introduced: Vec<Diagnostic> = diagnose(&target, &after)?
@@ -230,14 +238,15 @@ pub enum Ops {
     Plain(PathBuf, String),
 }
 
-/// A plain file patch names no module: without `--module` it applies to the one other Jian
+/// A plain file patch names no module: without `--module` it applies to the one other Xin
 /// module beside it.
 fn plain_target(patch: &Path, dir: &Path) -> Result<PathBuf, String> {
     let mut found: Vec<PathBuf> = std::fs::read_dir(dir)
         .map_err(|e| format!("{}: {e}", dir.display()))?
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| {
-            p.extension().is_some_and(|e| e == "jian") && p.file_name() != patch.file_name()
+            p.extension().is_some_and(|e| e == "xin" || e == "jian")
+                && p.file_name() != patch.file_name()
         })
         .collect();
     match found.len() {
@@ -279,7 +288,7 @@ pub fn find<'m>(items: &'m [Item], name: &str) -> Option<&'m Item> {
 }
 
 pub fn item_text(it: &Item) -> String {
-    yong_jian::print(&Module {
+    yong_xin::print(&Module {
         header: Vec::new(),
         attrs: Vec::new(),
         doc: None,
@@ -301,7 +310,7 @@ fn strings(v: &Value) -> Vec<String> {
 }
 
 pub fn parse(file: &str, src: &str) -> Result<Module, String> {
-    let (m, diags) = yong_jian::parse(file, src, false);
+    let (m, diags) = yong_xin::parse(file, src, false);
     match m {
         Some(m) if !diags.iter().any(|d| d.severity == Severity::Error) => Ok(m),
         _ => Err(format!("{file} does not parse")),

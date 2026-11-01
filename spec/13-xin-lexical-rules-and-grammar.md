@@ -1,6 +1,6 @@
-## 13. Jian: lexical rules and grammar
+## 13. Xin: lexical rules and grammar
 
-Jian is the surface written by language models. It is shaped like typed Python 3.12, covers layers L0 to L3 plus contracts, and every signature is explicit. Files use the extension `.jian`.
+Xin is the surface written by language models. It is shaped like typed Python 3.12, covers layers L0 to L3 plus contracts, and every signature is explicit. Files use the extension `.xin`.
 
 ### 13.1 Lexical rules
 
@@ -20,15 +20,15 @@ Jian is the surface written by language models. It is shaped like typed Python 3
 | --- | --- |
 | From Python, same meaning | `def` `class` `type` `return` `if` `elif` `else` `for` `while` `in` `not` `and` `or` `is` `break` `continue` `pass` `lambda` `match` `case` `assert` `True` `False` `None` `as` `from` |
 | From Python, adapted | `with` (binds a capability handler or opens a cancel scope); `from` (view sources in a signature) |
-| Jian only | `pub` `var` `take` `uses` `fail` `pre` `post` `ex` `invariant` `decreases` `par` `concurrent` `trait` `impl` `out` `become` `unreachable` |
+| Xin only | `pub` `var` `take` `uses` `fail` `pre` `post` `ex` `invariant` `decreases` `par` `concurrent` `trait` `impl` `out` `become` `unreachable` |
 | Rejected with a targeted diagnostic | `try` `except` `finally` `raise` (E120: use `fail` and `Result`); `global` `nonlocal` `del` `yield` `async` `await` (E121) |
 | Accepted by the lenient reader only | `import`, and `from` at the start of a statement (rewritten to qualified names, N01) |
 
-**Soft keywords (R347, R422, R373, R462).** `var`, `take`, `uses`, `pre`, `post`, `ex`, `invariant`, `decreases`, `concurrent`, `trait`, `impl`, `out`, `ghost`, `lemma` and `reveal` are keywords only where the grammar expects one, as Python treats `match`, `case` and `type`, and Jian's own match, case and type are soft the same way (R373); elsewhere they are ordinary names, so `out = []` binds a variable. Where the grammar accepts both a soft keyword and a name, the word is the keyword unless the next token is `=` or an augmented assignment, so `match = re.match(p, s)` and `type = "x"` bind variables (R462). `par`, `fail`, `become` and `unreachable` are reserved. The contract words `pre`, `post`, `ex`, `decreases` and `invariant` are keywords only in the contract region (the lines that open a function or loop body), and there only when the next token is not `=` or an augmented assignment. After the first other statement they are names, and a contract line there is E106 with a fix that moves it. In `post`, `out` always means the result; a parameter named `out` on a function with `post` is E230 with a rename fix. These grammar words are keywords only in one position each (R420): `newtype` after `type X =`, `where` after a newtype, `none` after `uses`, `deadline` and `timeout` followed by `(` after `with`, `old` in `post`, and `Nat` in a bound. The built-in type words of 13.2's `base` and `scalar` (`int`, `str`, `list`, `dict`, `Result`, `View`, `Callable` and the rest) are keywords only at the start of a type, so `list[int]` is the built-in type and `list(xs)` and `str(x)` are calls (R460).
+**Soft keywords (R347, R422, R373, R462).** `var`, `take`, `uses`, `pre`, `post`, `ex`, `invariant`, `decreases`, `concurrent`, `trait`, `impl`, `out`, `ghost`, `lemma` and `reveal` are keywords only where the grammar expects one, as Python treats `match`, `case` and `type`, and Xin's own match, case and type are soft the same way (R373); elsewhere they are ordinary names, so `out = []` binds a variable. Where the grammar accepts both a soft keyword and a name, the word is the keyword unless the next token is `=` or an augmented assignment, so `match = re.match(p, s)` and `type = "x"` bind variables (R462). `par`, `fail`, `become` and `unreachable` are reserved. The contract words `pre`, `post`, `ex`, `decreases` and `invariant` are keywords only in the contract region (the lines that open a function or loop body), and there only when the next token is not `=` or an augmented assignment. After the first other statement they are names, and a contract line there is E106 with a fix that moves it. In `post`, `out` always means the result; a parameter named `out` on a function with `post` is E230 with a rename fix. These grammar words are keywords only in one position each (R420): `newtype` after `type X =`, `where` after a newtype, `none` after `uses`, `deadline` and `timeout` followed by `(` after `with`, `old` in `post`, and `Nat` in a bound. The built-in type words of 13.2's `base` and `scalar` (`int`, `str`, `list`, `dict`, `Result`, `View`, `Callable` and the rest) are keywords only at the start of a type, so `list[int]` is the built-in type and `list(xs)` and `str(x)` are calls (R460).
 
 ### 13.2 Grammar
 
-This is the complete Jian grammar. Notation: `{x}` is zero or more, `[x]` optional, quoted text literal. NEWLINE, INDENT and DEDENT come from the layout rules.
+This is the complete Xin grammar. Notation: `{x}` is zero or more, `[x]` optional, quoted text literal. NEWLINE, INDENT and DEDENT come from the layout rules.
 
 ```
 module    = {modattr} [docstring] {item}

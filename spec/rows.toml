@@ -30,7 +30,7 @@ sections = "5.5"
 
 [[entry]]
 rows = "R8"
-topic = "Jian subset"
+topic = "Xin subset"
 sections = "1, 14.1"
 
 [[entry]]
@@ -56,7 +56,7 @@ sections = "10.2"
 
 [[entry]]
 rows = "R14"
-topic = "Jian fluency plan"
+topic = "Xin fluency plan"
 sections = "21.3, 21.6, 23"
 
 [[entry]]
@@ -222,7 +222,7 @@ also = ["R342", "R348"]
 
 [[entry]]
 rows = "R340, R342 (determinism), R343, R345 to R347, R348 (lints, identity hash), R349"
-topic = "red-team review, second pass: trusted facts for check removal and refinement checks; Receiver sharing, scope of strong determinism, dropped buffers, replay logging; Drop; normative bounds solver; two-phase stage-0 checking and materialized maps; Jian discards, aliases, newtype\\[T\\], soft keywords; minor-release lints and identity hashes; streaming par for, test scheduler, opt-in deadlock detection"
+topic = "red-team review, second pass: trusted facts for check removal and refinement checks; Receiver sharing, scope of strong determinism, dropped buffers, replay logging; Drop; normative bounds solver; two-phase stage-0 checking and materialized maps; Xin discards, aliases, newtype\\[T\\], soft keywords; minor-release lints and identity hashes; streaming par for, test scheduler, opt-in deadlock detection"
 sections = "3.6, 5.4, 6.5, 7.3, 7.6, 7.7, 8.5, 8.6, 9.2, 9.3, 9.5, 9.6, 10.4, 13.1, 13.2, 14.1, 14.4, 18.2, 25"
 
 [[entry]]
@@ -282,7 +282,7 @@ sections = "3.6"
 
 [[entry]]
 rows = "SQ6, SQ26"
-topic = "Jian base names; no arena in Jian"
+topic = "Xin base names; no arena in Xin"
 sections = "13.2, 14.1"
 
 [[entry]]
@@ -362,22 +362,22 @@ sections = "19.1, 20.3"
 
 [[entry]]
 rows = "R210 to R214"
-topic = "Jian 1.0 model-first rules: full headers with ex handlers, undecided checks as runtime checks with W820, ... typed holes, header patches report broken call sites, T fail E with inline sum variants and inferred local mutability"
+topic = "Xin 1.0 model-first rules: full headers with ex handlers, undecided checks as runtime checks with W820, ... typed holes, header patches report broken call sites, T fail E with inline sum variants and inferred local mutability"
 sections = "8.4, 8.6, 11.2, 13.2, 14.1, 14.3, 14.4, 18.3, 21.2, 25"
 
 [[entry]]
 rows = "R280 to R289"
-topic = "Jian token dry run: autofix in the loop, lenient N14 to N23, keyword inout arguments, explicit copies kept (R283 rejected), E601 at publish and release only, narrowing of mutable locals, slice step, checked indexing, parentheses after a fallback else, primer budget and measurement protocol"
+topic = "Xin token dry run: autofix in the loop, lenient N14 to N23, keyword inout arguments, explicit copies kept (R283 rejected), E601 at publish and release only, narrowing of mutable locals, slice step, checked indexing, parentheses after a fallback else, primer budget and measurement protocol"
 sections = "8.4, 13.2, 14.1, 14.3, 14.4, 21.6, 25"
 
 [[entry]]
 rows = "R420 to R429"
-topic = "Jian ambiguity pass: spec consistency (R420), receiver calls infer mutability (R421), soft keywords by position (R422), syntactic sums (R423), explicit reification (R424), one spelling per type and return (R425), no clause form in Jian (R426), par for statement (R427), factorings and LL(1) CI check (R428), lints W823 and W824 (R429)"
+topic = "Xin ambiguity pass: spec consistency (R420), receiver calls infer mutability (R421), soft keywords by position (R422), syntactic sums (R423), explicit reification (R424), one spelling per type and return (R425), no clause form in Xin (R426), par for statement (R427), factorings and LL(1) CI check (R428), lints W823 and W824 (R429)"
 sections = "2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25"
 
 [[entry]]
 rows = "R370 to R379"
-topic = "consistency audit (https://claude.ai/artifact/6m2hzP9zq9KsgcMXv8VqEp): clause form in Wen only (R370); Wen aliases, sums and newtype\\[T\\] as in Jian (R371); W820 only for solver goals and call-site pre, plain overflow checks (R372); Jian soft match, case and type, Callable fail, par(limit=) (R373); Wen grammar gaps: become, unit, guards, select arms, typed hole, let-else, grids (R374); examples in canonical form (R375); blank lines inside bodies (R376); ChaCha8 default rand, capability and attribute registries, one test handler set (R377); commands, milestones, debug tool and coverage (R378); code families E273, E521, E014, E015, E316, warning rules, cross-references and names (R379)"
+topic = "consistency audit (https://claude.ai/artifact/6m2hzP9zq9KsgcMXv8VqEp): clause form in Wen only (R370); Wen aliases, sums and newtype\\[T\\] as in Xin (R371); W820 only for solver goals and call-site pre, plain overflow checks (R372); Xin soft match, case and type, Callable fail, par(limit=) (R373); Wen grammar gaps: become, unit, guards, select arms, typed hole, let-else, grids (R374); examples in canonical form (R375); blank lines inside bodies (R376); ChaCha8 default rand, capability and attribute registries, one test handler set (R377); commands, milestones, debug tool and coverage (R378); code families E273, E521, E014, E015, E316, warning rules, cross-references and names (R379)"
 sections = "3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2"
 
 [[entry]]
@@ -387,12 +387,12 @@ sections = "13.1"
 
 [[entry]]
 rows = "R430 to R439"
-topic = "Wen real-programs pass (accepted 2026-10-31): main entry and ExitCode, capability sets, derive(From) and std Error, fallback blocks, for var, actor surface (aligned with R400 to R412), par function parameters (aligned with R390 to R399), field attributes and positional records, Map places, Scale\\[S\\]. Jian spelling of R431 (type S = uses ...), R435 (var self: S handlers) and R436 (par Callable) accepted 2026-10-31 and written in 13.2 and 14.1"
+topic = "Wen real-programs pass (accepted 2026-10-31): main entry and ExitCode, capability sets, derive(From) and std Error, fallback blocks, for var, actor surface (aligned with R400 to R412), par function parameters (aligned with R390 to R399), field attributes and positional records, Map places, Scale\\[S\\]. Xin spelling of R431 (type S = uses ...), R435 (var self: S handlers) and R436 (par Callable) accepted 2026-10-31 and written in 13.2 and 14.1"
 sections = "4.6, 6.4, 7.1, 7.2, 8.1, 10.3, 15.1, 15.2, 15.3, 17.2, 25"
 
 [[entry]]
 rows = "R440 to R449"
-topic = "Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Type, Nat, Dim; regions become arena views (Ref\\[T\\], E414); no actor capability; @must\\_close folds into @linear; Wen uses Jian's words (var parameters, with deadline and timeout, top-level let, 22 soft keywords); no Sym; no Yong set convention, else (f) or par fold syntax (std par\\_fold); no @blocking or @io, @no\\_\\* becomes @forbid(...); std.rel, FastHasher and proc.shell leave std, one ColExpr type, std.arrow its only home; seven commands fold into test, profile, check, view and audit. Retires E407, E408, E617, W802, W804, W809"
+topic = "Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Type, Nat, Dim; regions become arena views (Ref\\[T\\], E414); no actor capability; @must\\_close folds into @linear; Wen uses Xin's words (var parameters, with deadline and timeout, top-level let, 22 soft keywords); no Sym; no Yong set convention, else (f) or par fold syntax (std par\\_fold); no @blocking or @io, @no\\_\\* becomes @forbid(...); std.rel, FastHasher and proc.shell leave std, one ColExpr type, std.arrow its only home; seven commands fold into test, profile, check, view and audit. Retires E407, E408, E617, W802, W804, W809"
 sections = "1, 3.1, 3.3, 4.1, 4.7, 5.4, 5.5, 5.6, 5.7, 7.1, 7.7, 8.1, 9.3, 9.6, 9.7, 10.4, 10.6, 11.2, 15.1, 15.2, 15.3, 16, 17.1, 17.3, 18.1, 18.4, 25"
 
 [[entry]]
@@ -402,7 +402,7 @@ sections = "3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3"
 
 [[entry]]
 rows = "R460 to R466"
-topic = "Grammar check (https://claude.ai/artifact/BgkEJ6284UCgx2rJmMtGfa): 13.2 and 15.2 restated so that Jian has no LALR(1) conflicts and Wen none once three lookahead points are marked, productions for forms the prose already used, the seven missing factorings, built-in type words as keywords in type position (R460); uses Kv as cache in Jian (R461); the next-token rule for soft keywords, and Wen reserves fail (R462); Wen grid elements and spacing (R463); Wen conditional branches, function-type clauses and let-else (R464); ghost and lemma as prefix words (R465); @@prove as the module attribute (R466)"
+topic = "Grammar check (https://claude.ai/artifact/BgkEJ6284UCgx2rJmMtGfa): 13.2 and 15.2 restated so that Xin has no LALR(1) conflicts and Wen none once three lookahead points are marked, productions for forms the prose already used, the seven missing factorings, built-in type words as keywords in type position (R460); uses Kv as cache in Xin (R461); the next-token rule for soft keywords, and Wen reserves fail (R462); Wen grid elements and spacing (R463); Wen conditional branches, function-type clauses and let-else (R464); ghost and lemma as prefix words (R465); @@prove as the module attribute (R466)"
 sections = "4.4, 7, 13.1, 13.2, 14, 15.1, 15.2"
 
 [[entry]]
@@ -412,7 +412,7 @@ sections = "22, 26.1"
 
 [[entry]]
 rows = "R216 to R218"
-topic = "Jian token rerun (https://claude.ai/artifact/Nwge2MBPHS5a4f8tzdRp52): expression lists as tuples on the right of =, after return and as a tuple of places (R216); a class with \\_\\_init\\_\\_ read as record fields, N30 (R217); splitlines, partition, list index and list(...) in std, closing G9 (R218)"
+topic = "Xin token rerun (https://claude.ai/artifact/Nwge2MBPHS5a4f8tzdRp52): expression lists as tuples on the right of =, after return and as a tuple of places (R216); a class with \\_\\_init\\_\\_ read as record fields, N30 (R217); splitlines, partition, list index and list(...) in std, closing G9 (R218)"
 sections = "13.2, 14.1, 14.4, 17.2, 17.3"
 
 [[entry]]
@@ -477,7 +477,7 @@ sections = "6.x, 17.3"
 
 [[entry]]
 rows = "R516 to R521"
-topic = "Fei, the third surface (RFC 0001, https://claude.ai/artifact/Urz3zEhuESTobLRf8aqk2X), decided by the owner: Fei is a full surface with `.fei` files, built at M4 (R516); admission rules K1 to K5 (R517); law 8 per surface, Fei spelling notes as hash-neutral trivia, round-trip law 6 (R518); positional locals in the item hash (R519); keyboard rule, ASCII outside strings and comments (R520); open admission and the readmitted forms (R521)"
+topic = "Chang, the third surface (RFC 0001, https://claude.ai/artifact/Urz3zEhuESTobLRf8aqk2X), decided by the owner: Chang is a full surface with `.chang` files, built at M4 (R516); admission rules K1 to K5 (R517); law 8 per surface, Chang spelling notes as hash-neutral trivia, round-trip law 6 (R518); positional locals in the item hash (R519); keyboard rule, ASCII outside strings and comments (R520); open admission and the readmitted forms (R521)"
 sections = "1, 2, 3.6, 16.5, 16.6, 23, 26.1, 26.2"
 
 [[entry]]
@@ -487,7 +487,7 @@ sections = "26.6"
 
 [[entry]]
 rows = "R536 to R550"
-topic = "Niche surfaces (RFC 0002, https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD), accepted by the owner, post-1.0: admission rules N1 to N9 (R536); Qi (R537); Xun (R538); Cha (R539); Ling (R540); Cheng (R541); Zhu (R542); Wei (R543); Lu (R544); research surfaces Meng (R545), Gua (R546), Li (R547), Pu (R548), Zi (R549); order and gating (R550)"
+topic = "Niche surfaces (RFC 0002, https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD), accepted by the owner, post-1.0: admission rules N1 to N9 (R536); Qi (R537); Wu (R538); Cha (R539); Yin (R540); Xu (R541); Ting (R542); Xing (R543); Liu (R544); research surfaces Tuo (R545), Sui (R546), Hui (R547), Guan (R548), Yan (R549); order and gating (R550)"
 sections = "16.7, 23"
 
 [[entry]]
@@ -502,12 +502,12 @@ sections = "26.6"
 
 [[entry]]
 rows = "R558 to R565"
-topic = "Architecture for one core and many surfaces (RFC 0004, https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC), accepted by the owner: HIR as the surface-neutral pivot (R558); one printer per surface and a shared raise (R559); crate boundaries and layering (R560); one intrinsic registry (R561); std source layout by tier, Jian and Wen sources (R562); Fei print-only view in M3 (R563); law checking over the whole suite (R564); origin marks as trivia and raise (R565)"
+topic = "Architecture for one core and many surfaces (RFC 0004, https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC), accepted by the owner: HIR as the surface-neutral pivot (R558); one printer per surface and a shared raise (R559); crate boundaries and layering (R560); one intrinsic registry (R561); std source layout by tier, Xin and Wen sources (R562); Chang print-only view in M3 (R563); law checking over the whole suite (R564); origin marks as trivia and raise (R565)"
 sections = "1, 16.4, 16.5, 16.6, 17.1, 22.2, 22.4, 23, 24.2"
 
 [[entry]]
 rows = "R566, R567"
-topic = "Jian and Wen direction (https://claude.ai/artifact/4piYJXunC1Vp4f14HAtYHh), decided by the owner: the model probe runs as soon as the Jian front end and interpreter work, and Jian syntax rows wait for it (R566); the M1 token gate splits spec-phase from body and repair tokens, with a tests-included typed-Python baseline (R567)"
+topic = "Xin and Wen direction (https://claude.ai/artifact/4piYJXunC1Vp4f14HAtYHh), decided by the owner: the model probe runs as soon as the Xin front end and interpreter work, and Xin syntax rows wait for it (R566); the M1 token gate splits spec-phase from body and repair tokens, with a tests-included typed-Python baseline (R567)"
 sections = "21.6, 23"
 
 [[entry]]
@@ -529,3 +529,8 @@ sections = "1, 16.7, 22.2"
 rows = "R579 to R585"
 topic = "std.encoding and `bytes` (RFC 0007), decided by the owner: immutable `bytes` (R579); UTF-8 strict and lossy (R580); hex (R581); strict base64 (R582); `EncodingError` (R583); `Show` for `bytes` (R584); mutable `bytearray` (R585)"
 sections = "17.3"
+
+[[entry]]
+rows = "R586"
+topic = "Surface names from Wang Xizhi's 兰亭集序 (https://claude.ai/artifact/8zD7T9QnYtNUsbF96cLHNN), decided by the owner: Yong 永 and Wen 文 kept; Jian 简 becomes Xin 信 (`.xin`, crate `yong-xin`), Fei 斐 becomes Chang 畅 (`.chang`); niche surfaces Wu 悟, Qi 契, Ting 亭, Cha 察, Xu 序, Yin 引, Xing 形, Liu 流, Tuo 托, Sui 随, Hui 会, Guan 观, Yan 言 (R586)"
+sections = "1, 16.7, 26"

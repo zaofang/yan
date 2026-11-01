@@ -1,4 +1,4 @@
-//! The std functions elaborated Jian calls (paths per R475), bound by registry id (R561).
+//! The std functions elaborated Xin calls (paths per R475), bound by registry id (R561).
 
 use std::cmp::Ordering;
 use std::mem;
@@ -43,7 +43,10 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_TEXT_CONTAINS, |a| { [Str(x), Str(p)] => Bool(x.contains(&**p)) }),
     f!(STD_TEXT_REPLACE, |a| { [Str(x), Str(p), Str(q)] => s(x.replace(&**p, q)) }),
     f!(STD_TEXT_SPLIT, |a| {
-        [Str(x), Str(sep)] => List(x.split(&**sep).map(|p| Str(p.into())).collect())
+        [Str(x), Data { fields, .. }] => List(match fields.first() {
+            Some((_, Str(sep))) => x.split(&**sep).map(|p| Str(p.into())).collect(),
+            _ => text::split_whitespace(x).map(|p| Str(p.into())).collect(),
+        })
     }),
     f!(STD_TEXT_JOIN, |a| {
         [Str(sep), List(xs)] => {
@@ -83,6 +86,26 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         [List(xs)] => {
             xs.reverse();
             Unit
+        }
+    }),
+    f!(STD_LIST_SLICE_CLAMPED, |a| {
+        [List(xs), start, stop, step] => {
+            let int = |v: &Value| match v {
+                Data { fields, .. } => match fields.first() {
+                    Some((_, Int(i))) => Some(*i),
+                    _ => None,
+                },
+                _ => None,
+            };
+            let step = int(step).unwrap_or(1);
+            if step == 0 {
+                return panic("value");
+            }
+            List(
+                list::slice_indices(xs.len(), int(start), int(stop), step)
+                    .map(|k| xs[k].clone())
+                    .collect(),
+            )
         }
     }),
     f!(STD_LIST_SLICE_EXACT, |a| {

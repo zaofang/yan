@@ -1,8 +1,8 @@
-//! HIR to Yong elaboration (14.1, 22.3), for Jian and later Wen: resolve names, check
+//! HIR to Yong elaboration (14.1, 22.3), for Xin and later Wen: resolve names, check
 //! signatures, infer bodies bidirectionally, pass capabilities and lower to Yong IR in
 //! A-normal form.
 //!
-//! The Yong tree keeps Jian spans, so the Yong checker reports at Jian positions.
+//! The Yong tree keeps Xin spans, so the Yong checker reports at Xin positions.
 
 mod bounds;
 mod decorators;
@@ -29,7 +29,7 @@ pub struct Options {
     pub strict: bool,
     /// `--level release` (8.5).
     pub release: bool,
-    /// The module came from Wen, whose lints differ from Jian's (15.3).
+    /// The module came from Wen, whose lints differ from Xin's (15.3).
     pub wen: bool,
     /// The module is an ffi module, under the package's `ffi/` directory (12).
     pub ffi: bool,
@@ -98,7 +98,7 @@ pub(crate) struct Globals {
     pub tested: HashSet<String>,
     /// Each trait's methods, with `Self` as a type parameter.
     pub traits: HashMap<String, Vec<(String, Sig)>>,
-    /// `(trait, type)` for each `impl`, the type as written in Jian.
+    /// `(trait, type)` for each `impl`, the type as written in Xin.
     pub impls: HashSet<(String, String)>,
     /// `(type, method)` to the method's signature, from every `impl`.
     pub methods: HashMap<(String, String), Sig>,
@@ -263,7 +263,7 @@ impl Globals {
     }
 }
 
-/// Elaborate a parsed Jian module. Returns the Yong module and the elaboration diagnostics;
+/// Elaborate a parsed Xin module. Returns the Yong module and the elaboration diagnostics;
 /// when none is an error, the module is ready for `yong_check::check`.
 pub fn elaborate(
     file: &str,
@@ -618,17 +618,38 @@ fn sig_body(
                 Some(t) => g.ty(t, cx, f.name_span)?,
                 None => Ty::Unit,
             };
-            let fail = match r.fail.as_slice() {
-                [] => None,
-                [p] if p.len() == 1 => Some(g.ty(
+            let mut members = Vec::new();
+            for p in &r.fail {
+                if p.len() != 1 {
+                    return unsupported("a qualified error type");
+                }
+                let t = g.ty(
                     &j::Type::Named {
                         path: p.clone(),
                         args: Vec::new(),
                     },
                     cx,
                     f.name_span,
-                )?),
-                _ => return unsupported("error unions"),
+                )?;
+                if !members.contains(&t) {
+                    members.push(t);
+                }
+            }
+            if members.len() > 8 {
+                cx.warn(
+                    "W805",
+                    fail_span(cx.src, f.name_span),
+                    &f.name,
+                    format!(
+                        "this error union has {} members; name it as a sum type",
+                        members.len()
+                    ),
+                );
+            }
+            let fail = match members.len() {
+                0 => None,
+                1 => members.pop(),
+                _ => Some(Ty::Union(members)),
             };
             (ret, fail)
         }
@@ -653,6 +674,22 @@ fn sig_body(
         fail,
         caps,
     })
+}
+
+/// The error type after `fail` on the header line of the function named at `name`.
+fn fail_span(src: &str, name: Span) -> Span {
+    let line = src.lines().nth(name.line as usize - 1).unwrap_or("");
+    let Some(k) = line.find(" fail ") else {
+        return name;
+    };
+    let col = (k + " fail ".len() + 1) as u32;
+    let text = line[k + " fail ".len()..].trim_end().trim_end_matches(':');
+    Span {
+        line: name.line,
+        col,
+        end_line: name.line,
+        end_col: col + text.trim_end().chars().count() as u32,
+    }
 }
 
 fn const_val(e: &j::Expr) -> R<y::ConstVal> {

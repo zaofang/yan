@@ -1,6 +1,6 @@
 [package]
 name = "yong-db"
-description = "Yong query database; for now, loading the standard library's sources"
+description = "Yong query database: salsa queries over source files, keyed by file and item hash"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,9 +8,17 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+blake3.workspace = true
+salsa.workspace = true
+yong-check.workspace = true
+yong-core.workspace = true
+yong-diag.workspace = true
+yong-elab.workspace = true
 yong-hir.workspace = true
-yong-jian.workspace = true
+yong-names.workspace = true
 yong-std.workspace = true
+yong-wen.workspace = true
+yong-xin.workspace = true
 
 [lints]
 workspace = true

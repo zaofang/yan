@@ -1,6 +1,6 @@
 [package]
 name = "yong-std"
-description = "Standard library sources (.jian) plus the intrinsic table"
+description = "Standard library sources (.xin) plus the intrinsic table"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

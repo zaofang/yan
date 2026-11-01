@@ -1,12 +1,12 @@
 use super::*;
 
 fn lower(src: &str) -> (y::Module, Vec<Diagnostic>) {
-    let (m, d) = yong_jian::parse("t.jian", src, false);
+    let (m, d) = yong_xin::parse("t.xin", src, false);
     assert!(
         d.iter().all(|d| d.severity != yong_diag::Severity::Error),
         "{d:?}"
     );
-    elaborate("t.jian", src, &m.expect("parses"), Options::default()).expect("supported")
+    elaborate("t.xin", src, &m.expect("parses"), Options::default()).expect("supported")
 }
 
 #[test]
@@ -14,7 +14,7 @@ fn hello_lowers_to_checked_yong() {
     let src = "pub def main() uses io:\n    x = 1 + 2\n    io.print(f\"{x}\")\n";
     let (m, d) = lower(src);
     assert!(d.is_empty(), "{d:?}");
-    let checked = yong_check::check("t.jian", src, &m);
+    let checked = yong_check::check("t.xin", src, &m);
     assert!(checked.is_empty(), "{checked:?}");
     let text = yong_core::print(&m);
     assert!(text.contains("add_checked_i64"), "{text}");
@@ -23,7 +23,7 @@ fn hello_lowers_to_checked_yong() {
 fn run(src: &str) -> String {
     let (m, d) = lower(src);
     assert!(d.is_empty(), "{d:?}");
-    let checked = yong_check::check("t.jian", src, &m);
+    let checked = yong_check::check("t.xin", src, &m);
     assert!(checked.is_empty(), "{checked:?}\n{}", yong_core::print(&m));
     let mut out = Vec::new();
     yong_interp::run(&m, &mut out).expect("runs");
