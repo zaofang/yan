@@ -387,15 +387,15 @@ impl Solver<'_> {
             S::Unsafe(body) => return self.stmts(body, f),
             // Stage-0 control is resolved during lowering; its bodies are not analyzed here.
             S::StageIf { then, els, .. } => {
-                for n in assigned(then)
+                for n in assigned(then, self.sites)
                     .into_iter()
-                    .chain(els.iter().flat_map(|b| assigned(b)))
+                    .chain(els.iter().flat_map(|b| assigned(b, self.sites)))
                 {
                     f.kill(&n);
                 }
             }
             S::StageFor { body, .. } => {
-                for n in assigned(body) {
+                for n in assigned(body, self.sites) {
                     f.kill(&n);
                 }
             }
@@ -443,7 +443,7 @@ impl Solver<'_> {
                 body,
                 ..
             } => {
-                for n in assigned(body) {
+                for n in assigned(body, self.sites) {
                     f.kill(&n);
                 }
                 if !self.release {
@@ -465,7 +465,7 @@ impl Solver<'_> {
                 target, iter, body, ..
             } => {
                 self.expr(iter, &mut f);
-                let changed = assigned(body);
+                let changed = assigned(body, self.sites);
                 let mut inside = f.clone();
                 for n in changed.iter().chain(target) {
                     inside.kill(n);
@@ -478,13 +478,19 @@ impl Solver<'_> {
             }
             S::Match { scrutinee, cases } => {
                 self.expr(scrutinee, &mut f);
-                let changed: Vec<String> =
-                    cases.iter().flat_map(|c| assigned(&c.body.stmts)).collect();
+                let changed: Vec<String> = cases
+                    .iter()
+                    .flat_map(|c| assigned(&c.body.stmts, self.sites))
+                    .collect();
                 let mut outs = Vec::new();
                 for c in cases {
                     let mut g = f.clone();
                     for n in pat_names(&c.pat) {
                         g.kill(&n);
+                    }
+                    if let Some(guard) = &c.guard {
+                        self.expr(guard, &mut g);
+                        self.assume(guard, true, &mut g);
                     }
                     outs.extend(self.block(&c.body.stmts, g));
                 }
@@ -501,7 +507,7 @@ impl Solver<'_> {
                     j::ParBody::For { body, .. } => body,
                 };
                 self.stmts(stmts, f.clone());
-                for n in assigned(stmts) {
+                for n in assigned(stmts, self.sites) {
                     f.kill(&n);
                 }
             }
@@ -603,6 +609,7 @@ impl Solver<'_> {
         match &t.kind {
             K::Name(n) => f.kill(n),
             K::Tuple(xs) => xs.iter().for_each(|x| self.target(x, f)),
+            K::Index(..) if self.sites.get(&t.span) == Some(&Site::List) => self.expr(t, f),
             K::Index(..) | K::Attr(..) => {
                 self.expr(t, f);
                 if let Some(r) = root(t) {
@@ -856,11 +863,13 @@ const READS: [&str; 16] = [
 ];
 
 /// Every name that `stmts` assigns or passes `&`, or calls a mutating method on.
-fn assigned(stmts: &[j::Stmt]) -> HashSet<String> {
+fn assigned(stmts: &[j::Stmt], sites: &HashMap<Span, Site>) -> HashSet<String> {
     let mut out = HashSet::new();
-    fn target(t: &j::Expr, out: &mut HashSet<String>) {
+    fn target(t: &j::Expr, sites: &HashMap<Span, Site>, out: &mut HashSet<String>) {
         match &t.kind {
-            K::Tuple(xs) => xs.iter().for_each(|x| target(x, out)),
+            K::Tuple(xs) => xs.iter().for_each(|x| target(x, sites, out)),
+            // A store to a list element keeps every length.
+            K::Index(..) if sites.get(&t.span) == Some(&Site::List) => {}
             _ => {
                 if let Some(r) = root(t) {
                     out.insert(r.to_owned());
@@ -888,7 +897,7 @@ fn assigned(stmts: &[j::Stmt]) -> HashSet<String> {
             }
         });
     }
-    fn go(stmts: &[j::Stmt], out: &mut HashSet<String>) {
+    fn go(stmts: &[j::Stmt], sites: &HashMap<Span, Site>, out: &mut HashSet<String>) {
         use j::StmtKind as S;
         for s in stmts {
             match &s.kind {
@@ -898,7 +907,7 @@ fn assigned(stmts: &[j::Stmt]) -> HashSet<String> {
                 | S::AugAssign {
                     target: t, value, ..
                 } => {
-                    target(t, out);
+                    target(t, sites, out);
                     expr(value, out);
                 }
                 S::Ghost { name, .. } => {
@@ -911,14 +920,14 @@ fn assigned(stmts: &[j::Stmt]) -> HashSet<String> {
                 S::LetElse { pat, value, els } => {
                     out.extend(pat_names(pat));
                     expr(value, out);
-                    go(&els.stmts, out);
+                    go(&els.stmts, sites, out);
                 }
                 S::Expr(e) | S::Become(e) | S::Fail(e) | S::Assert(e) => expr(e, out),
-                S::Unsafe(body) | S::StageFor { body, .. } => go(body, out),
+                S::Unsafe(body) | S::StageFor { body, .. } => go(body, sites, out),
                 S::StageIf { then, els, .. } => {
-                    go(then, out);
+                    go(then, sites, out);
                     if let Some(b) = els {
-                        go(b, out);
+                        go(b, sites, out);
                     }
                 }
                 S::Asm { args, .. } => {
@@ -935,39 +944,39 @@ fn assigned(stmts: &[j::Stmt]) -> HashSet<String> {
                 S::If { arms, els } => {
                     for (c, b) in arms {
                         expr(c, out);
-                        go(&b.stmts, out);
+                        go(&b.stmts, sites, out);
                     }
                     if let Some(b) = els {
-                        go(&b.stmts, out);
+                        go(&b.stmts, sites, out);
                     }
                 }
                 S::While { cond, body, .. } => {
                     expr(cond, out);
-                    go(body, out);
+                    go(body, sites, out);
                 }
                 S::For {
                     target, iter, body, ..
                 } => {
                     out.extend(target.iter().cloned());
                     expr(iter, out);
-                    go(body, out);
+                    go(body, sites, out);
                 }
                 S::Match { scrutinee, cases } => {
                     expr(scrutinee, out);
                     for c in cases {
                         out.extend(pat_names(&c.pat));
-                        go(&c.body.stmts, out);
+                        go(&c.body.stmts, sites, out);
                     }
                 }
-                S::With { body, .. } => go(&body.stmts, out),
+                S::With { body, .. } => go(&body.stmts, sites, out),
                 S::Par { body, .. } => match body {
-                    j::ParBody::Block(b) => go(b, out),
-                    j::ParBody::For { body, .. } => go(body, out),
+                    j::ParBody::Block(b) => go(b, sites, out),
+                    j::ParBody::For { body, .. } => go(body, sites, out),
                 },
                 _ => {}
             }
         }
     }
-    go(stmts, &mut out);
+    go(stmts, sites, &mut out);
     out
 }

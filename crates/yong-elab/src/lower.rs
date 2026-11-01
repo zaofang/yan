@@ -1596,7 +1596,9 @@ impl Lower<'_, '_, '_> {
         };
         if let Ty::Data(d) = &t
             && self.g.sums.contains_key(d)
-            && let Some(c) = cases.iter().find(|c| matches!(c.pat, j::Pat::Wild))
+            && let Some(c) = cases
+                .iter()
+                .find(|c| matches!(c.pat, j::Pat::Wild) && c.span != at)
         {
             if self.cx.wen {
                 let item = self.item.clone();
@@ -1625,11 +1627,11 @@ impl Lower<'_, '_, '_> {
         if (scalar || matches!(t, Ty::Bool)) && !covered {
             self.err("E503", at, format!("this `match` on `{t}` needs `case _`"));
         }
+        if cases.iter().any(|c| c.guard.is_some()) {
+            return self.guarded_match(a, &t, cases, at);
+        }
         let mut arms = Vec::new();
         for c in cases {
-            if c.guard.is_some() {
-                return unsupported("case guards");
-            }
             let mut pat = y::Pat::Wild;
             let b = self.block_with(|l| {
                 let (p, binds) = l.pat(&c.pat, &t, at)?;
@@ -1642,6 +1644,74 @@ impl Lower<'_, '_, '_> {
             arms.push((pat, b));
         }
         self.emit(StmtKind::Match { scrutinee: a, arms }, at);
+        Ok(())
+    }
+
+    /// Yong's `match` has no guards, so a guarded one is a block that tries each case in turn:
+    /// a one-case match per case whose arm runs the body when the guard holds and leaves.
+    fn guarded_match(&mut self, a: Atom, t: &Ty, cases: &[j::Case], at: Span) -> R<()> {
+        let done = self.label();
+        let leave = |at| y::Stmt {
+            kind: StmtKind::Break {
+                label: done.clone(),
+                value: None,
+            },
+            span: at,
+        };
+        let b = self.block_with(|l| {
+            for c in cases {
+                let mut pat = y::Pat::Wild;
+                let arm = l.block_with(|l| {
+                    let (p, binds) = l.pat(&c.pat, t, at)?;
+                    pat = p;
+                    for (n, ty) in binds {
+                        l.declare(&n, ty);
+                    }
+                    let body = l.block_with(|l| {
+                        l.stmts(&c.body.stmts)?;
+                        if !ends(&c.body.stmts) {
+                            l.out.push(leave(c.span));
+                        }
+                        Ok(())
+                    })?;
+                    match &c.guard {
+                        None => l.out.extend(body.stmts),
+                        Some(g) => {
+                            let (cond, gt) = l.atom(g, Some(&Ty::Bool))?;
+                            l.expect(&gt, &Ty::Bool, g.span);
+                            l.emit(
+                                StmtKind::If {
+                                    cond,
+                                    then: body,
+                                    els: None,
+                                },
+                                c.span,
+                            );
+                        }
+                    }
+                    Ok(())
+                })?;
+                let rest = y::Block { stmts: Vec::new() };
+                l.emit(
+                    StmtKind::Match {
+                        scrutinee: a.clone(),
+                        arms: vec![(pat, arm), (y::Pat::Wild, rest)],
+                    },
+                    c.span,
+                );
+            }
+            l.out.push(leave(at));
+            Ok(())
+        })?;
+        self.emit(
+            StmtKind::Loop {
+                label: done.clone(),
+                invariants: Vec::new(),
+                decreases: Vec::new(),
+                body: b,
+            },
+            at,
+        );
         Ok(())
     }
 
@@ -1923,8 +1993,12 @@ impl Lower<'_, '_, '_> {
                     None => t,
                 };
                 let m = self.mutable.contains(n);
+                // An unread `try` result is E311 from the checker, not W812.
+                let tried = matches!(r, Rhs::Try(_));
                 self.bind(n, m, &ty, r, target.span, at);
-                self.bound.push((n.clone(), target.span));
+                if !tried {
+                    self.bound.push((n.clone(), target.span));
+                }
             }
             j::ExprKind::Index(d, k) if self.ty_of_local(d).as_ref().and_then(map_kv).is_some() => {
                 let dt = self.ty_of_local(d).expect("matched");
@@ -2543,7 +2617,31 @@ impl Lower<'_, '_, '_> {
             }
             K::Cast(..) => return unsupported("`as` to a fixed-width type"),
             K::Is { .. } => return unsupported("`is` with a pattern"),
-            K::Reify(_) => return unsupported("`try`"),
+            // Wen's `try f(x)`: the call's failure as a `Result` value, as Xin reifies a failing
+            // call bound at a `Result` type.
+            K::Reify(x) => {
+                let j::ExprKind::Call(f, args) = &x.kind else {
+                    return unsupported("`try` of anything but a call");
+                };
+                let want = match want {
+                    Some(Ty::Result(ok, _)) => Some(ok.as_ref().clone()),
+                    _ => None,
+                };
+                match self.call_expr(f, args, x.span, want.as_ref())? {
+                    (Rhs::Call(c), t, Some(fl)) => {
+                        (Rhs::Try(c), Ty::Result(Box::new(t), Box::new(fl)))
+                    }
+                    (r, t, None) => {
+                        self.err(
+                            "E201",
+                            at,
+                            format!("`try` of a call that cannot fail; it returns `{t}`"),
+                        );
+                        (r, t)
+                    }
+                    _ => return unsupported("`try` of this call"),
+                }
+            }
             K::Set(_) => return unsupported("set literals"),
             K::Wild => return unsupported("`_` as a value"),
         })
