@@ -19,7 +19,12 @@ pub(crate) enum Bind {
 
 static TABLE: LazyLock<Vec<Option<Bind>>> = LazyLock::new(|| {
     let mut t = vec![None; ENTRIES.len()];
-    for &(id, b) in crate::native::BINDS.iter().chain(crate::BUILTINS) {
+    for &(id, b) in crate::native::BINDS
+        .iter()
+        .chain(crate::BUILTINS)
+        .chain(crate::math::BINDS)
+        .chain(crate::regex::BINDS)
+    {
         assert!(
             t[id.0 as usize].replace(b).is_none(),
             "{} bound twice",

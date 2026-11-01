@@ -5,11 +5,9 @@ use std::collections::BTreeSet;
 use yong_jian::ast::ItemKind;
 
 /// The modules still dispatched by name; the rest are bound by id (`bind`).
-const NATIVE: [&str; 6] = [
+const NATIVE: [&str; 4] = [
     include_str!("prelude.rs"),
-    include_str!("regex.rs"),
     include_str!("collections.rs"),
-    include_str!("math.rs"),
     include_str!("iter.rs"),
     include_str!("keyed.rs"),
 ];

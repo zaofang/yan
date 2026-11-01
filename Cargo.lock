@@ -548,13 +548,10 @@ dependencies = [
 name = "yong-interp"
 version = "0.0.0"
 dependencies = [
- "core-math",
  "indexmap",
- "libm",
  "num-bigint",
  "num-integer",
  "num-traits",
- "regex",
  "unicode-segmentation",
  "yong-core",
  "yong-jian",
@@ -577,12 +574,19 @@ version = "0.0.0"
 [[package]]
 name = "yong-rt"
 version = "0.0.0"
+dependencies = [
+ "core-math",
+ "libm",
+ "num-bigint",
+ "num-traits",
+ "regex",
+]
 
 [[package]]
 name = "yong-std"
 version = "0.0.0"
 dependencies = [
- "regex",
+ "yong-rt",
 ]
 
 [[package]]

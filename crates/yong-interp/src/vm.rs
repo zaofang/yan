@@ -817,9 +817,7 @@ mod tests {
     fn std_paths_have_one_stage() {
         let stages = [
             ("prelude", include_str!("prelude.rs")),
-            ("regex", include_str!("regex.rs")),
             ("collections", include_str!("collections.rs")),
-            ("math", include_str!("math.rs")),
             ("iter", include_str!("iter.rs")),
             ("keyed", include_str!("keyed.rs")),
         ];
