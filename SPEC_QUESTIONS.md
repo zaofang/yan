@@ -180,3 +180,15 @@ Assumed in `yong-elab`'s std loading until the spec says otherwise:
   negative number literal as a pattern (`-1 -> ...`).
 - **E112.** Two consecutive capitals are allowed only as a one-letter first word followed by a
   lower-case letter, so the `core.ffi` names `CStr` and `CString` lex, and `HTTPError` is E112.
+
+## Patch protocol readings (18.3)
+
+Assumed in `yong patch` until the spec says otherwise:
+
+- A JSON patch's `module` names `<module with dots as slashes>.jian` beside the patch.
+- A plain file patch names no module. `--module NAME` gives it; without the flag, the patch applies only when exactly one other `.jian` file is beside it. `conformance/patch/plain_file_patch` has `m.jian` and `result.jian` beside it, so it needs `flags = ["--module", "m"]`.
+- The item hash in `base` is `b3:` followed by the BLAKE3 hex digest of the item's canonical text, printed alone.
+- An edit's search text is matched in the item's canonical text, and the edited text must still parse as that one item; otherwise the patch is P002.
+- P006 covers a change to, or the deletion of, an existing `test_` function, and any change to the set of `pre`, `post`, `ex`, `invariant` and `decreases` lines of an existing item. Adding a new test is allowed.
+- `--check` refuses with P003 when the patched module has an error whose code and item the original module did not have. The introduced diagnostics follow the P003 record.
+- The oplog line is `{"file", "before", "after"}` with the module's whole text.
