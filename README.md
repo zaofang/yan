@@ -15,7 +15,8 @@ Authoritative documents: the Yong 1.0 spec (draft) in [`spec/`](spec/README.md) 
 
 | Path | Owner | Notes |
 |---|---|---|
-| `spec/`, `conformance/`, `tests/` | Antonio | Agents propose changes in a separate PR and never edit these. CI rejects agent PRs that touch them. |
+| `spec/` | Antonio | Agents open spec PRs for accepted rows; Antonio merges them. Rows are registered in `spec/rows.toml`. |
+| `conformance/`, `tests/` | Antonio | Agents propose changes in a separate PR and never edit these. CI rejects agent PRs that touch them. |
 | `crates/` | agents | Cargo workspace, one crate per row of spec 22.2, added as they are built. Agent self-tests live in `#[cfg(test)] mod selftest` (SQ28). |
 | `bench/` | agents | Benchmark set (R389): each program in Yong, typed Python and Rust, run by `bench/run.py`. |
 | `tools/conform.py` | agents | Conformance runner (spec 24.1), independent of the implementation. Python, run with uv. |

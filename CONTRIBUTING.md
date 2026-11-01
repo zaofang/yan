@@ -16,7 +16,8 @@ AI-assisted work is welcome when a human has read it, run it and takes responsib
 - Mark each such commit with an `Assisted-by: <tool or agent>` trailer.
 - Bulk or unreviewed agent PRs from outside contributors are closed without review.
 - Project agents may draft, research, implement and review. They never accept RFCs, approve tests, merge,
-  publish, or edit `spec/`, `tests/` or `conformance/`. CODEOWNERS and the CI path guard enforce this.
+  publish, or edit `tests/` or `conformance/`. CODEOWNERS and the CI path guard enforce this. Agents may open PRs
+  that edit `spec/` or `rfcs/` for rows the lead accepted; the lead merges them.
 
 ## What needs an RFC
 

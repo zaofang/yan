@@ -6,7 +6,11 @@ def test_agent_branch_touching_tests_is_rejected() -> None:
 
 
 def test_bot_author_is_agent() -> None:
-    assert violations(["spec/s.md"], "feature", "Bot") == ["spec/s.md"]
+    assert violations(["tests/s.jian"], "feature", "Bot") == ["tests/s.jian"]
+
+
+def test_agent_may_propose_spec_and_rfc_changes() -> None:
+    assert violations(["spec/03-yong.md", "rfcs/0001-x.md"], "claude/x", "User") == []
 
 
 def test_human_may_touch_tests() -> None:
