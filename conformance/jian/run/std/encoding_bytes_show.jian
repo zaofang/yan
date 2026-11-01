@@ -1,0 +1,12 @@
+# spec: 17.3
+# rows: R584
+# stdout:
+# b''
+# b'a\x00\'\\\n\t\r"\x7f\x80\xff'
+# b'it\'s' [b'it\'s']
+
+pub def main() uses io:
+    io.print(f"{bytes.from_list([])}")
+    io.print(f"{bytes.from_list([97, 0, 39, 92, 10, 9, 13, 34, 127, 128, 255])}")
+    s = "it's"
+    io.print(f"{s.bytes()} {[s.bytes()]}")

@@ -1,0 +1,16 @@
+# spec: 17.3
+# rows: R579
+# stdout:
+# 6 6 97 99 99 None None
+# b'bca' b'' [97, 98, 99, 97, 98, 99]
+# b'abcabc\x00\xff' False True
+# 1 None 0
+
+pub def main() uses io:
+    s = "abcabc"
+    b = s.bytes()
+    io.print(f"{len(b)} {b.len()} {b[0]} {b[-1]} {b.at(5)} {b.at(6)} {b.at(-1)}")
+    io.print(f"{b.slice_exact(1, 4)} {b.slice_exact(6, 6)} {b.to_list()}")
+    c = bytes.from_list([0, 255])
+    io.print(f"{b.concat(c)} {b.starts_with(c)} {b.ends_with(b.slice_exact(4, 6))}")
+    io.print(f"{b.find(b.slice_exact(1, 3))} {b.find(c)} {b.find(bytes.from_list([]))}")

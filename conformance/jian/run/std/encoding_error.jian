@@ -1,0 +1,31 @@
+# spec: 17.3
+# rows: R583
+# stdout:
+# invalid hex at 1 hex
+# invalid UTF-8 at 2 utf8
+# invalid base64 at 2 base64
+
+def hex(s: str) -> str fail EncodingError:
+    b = encoding.hex_decode(s)?
+    return f"{b}"
+
+def utf8(xs: list[uint8]) -> str fail EncodingError:
+    return bytes.from_list(xs).decode_utf8()?
+
+def b64(s: str) -> str fail EncodingError:
+    b = encoding.base64_decode(s)?
+    return f"{b}"
+
+def kind(e: EncodingError) -> str:
+    match e.reason:
+        case Utf8():
+            return "utf8"
+        case Hex():
+            return "hex"
+        case Base64():
+            return "base64"
+
+pub def main() uses io:
+    io.print(hex("0z") else err -> f"{err} {kind(err)}")
+    io.print(utf8([104, 105, 255]) else err -> f"{err} {kind(err)}")
+    io.print(b64("ab!d") else err -> f"{err} {kind(err)}")

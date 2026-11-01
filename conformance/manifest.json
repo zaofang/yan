@@ -2275,6 +2275,44 @@
    ]
   },
   {
+   "path": "jian/fail/std/encoding_bytearray_not_hash.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R585"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E221",
+     "line": 8,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/std/encoding_bytes_immutable.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R579"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 8,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "jian/fail/std/heap_not_iterable.jian",
    "kind": "fail",
    "milestone": "M1",
@@ -3616,6 +3654,156 @@
    "flags": [],
    "expect": [],
    "stdout": "deque([2, 3, 4], maxlen=3)\ndeque([0, 2, 3], maxlen=3)\ndeque([3, 7, 8], maxlen=3) 3\ndeque([4, 5, 1, 2, 3])\ndeque([2, 3, 4, 5, 1]) -1\ndeque([4, 5], maxlen=2)\ndeque([])\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/encoding_base64.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R582"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0\nZg== Zg\nZm8= Zm8\nZm9v Zm9v\nZm9vYg== Zm9vYg\nZm9vYmE= Zm9vYmE\nZm9vYmFy Zm9vYmFy\n+/8= -_8= -_8\nb'foob'\nb'foob'\ninvalid 5\ninvalid 6\ninvalid 4\ninvalid 2\ninvalid 1\ninvalid 0\nb'\\xfb\\xff'\ninvalid 0\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/encoding_bytearray.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R585"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "bytearray(b'') 0\nbytearray(b'Hell!') 5 101 108\n33 bytearray(b'Hell') b'Hell!'\nTrue False\nbytearray(b'') b'Hell!'\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/encoding_bytearray_pop_empty.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R585"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n",
+   "exit": 101
+  },
+  {
+   "path": "jian/run/std/encoding_bytes_basic.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R579"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "6 6 97 99 99 None None\nb'bca' b'' [97, 98, 99, 97, 98, 99]\nb'abcabc\\x00\\xff' False True\n1 None 0\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/encoding_bytes_eq_ord_hash.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R579"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "True False True True True\n[b'\\x01\\x02', b'\\x01\\x02\\x00', b'\\x02']\na 2\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/encoding_bytes_index_bounds.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R579"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "98\n",
+   "exit": 101
+  },
+  {
+   "path": "jian/run/std/encoding_bytes_show.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R584"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "b''\nb'a\\x00\\'\\\\\\n\\t\\r\"\\x7f\\x80\\xff'\nb'it\\'s' [b'it\\'s']\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/encoding_error.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R583"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "invalid hex at 1 hex\ninvalid UTF-8 at 2 utf8\ninvalid base64 at 2 base64\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/encoding_hex.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R581"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "000aabff\n0\n0aff\ndeadbeef\n3\n1\n2\n1\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/encoding_utf8.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R580"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "10 h\u00e9llo \u6c38 h\u00e9llo \u6c38\n1\n0\n2\na\ufffdb\ufffd\n\ud83d\ude00\n",
    "exit": 0
   },
   {

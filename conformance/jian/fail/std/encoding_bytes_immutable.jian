@@ -1,0 +1,9 @@
+# spec: 17.3
+# rows: R579
+# expect: E201 at 8:5
+
+def f() -> int:
+    s = "ab"
+    b = s.bytes()
+    b[0] = 1
+    return len(b)
