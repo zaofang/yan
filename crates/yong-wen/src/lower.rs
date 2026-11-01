@@ -154,7 +154,7 @@ impl Lower<'_> {
             ),
             ItemKind::Trait(t) => (h::ItemKind::Trait(self.trait_def(t)?), it.span),
             ItemKind::Impl(i) => (h::ItemKind::Impl(self.impl_def(i)?), it.span),
-            ItemKind::Extern(_) => return unsupported("extern blocks"),
+            ItemKind::Extern(x) => (h::ItemKind::Extern(self.extern_def(x)?), it.span),
             ItemKind::Use(_) => return unsupported("use declarations"),
         };
         Ok(Some(h::Item {
@@ -164,6 +164,136 @@ impl Lower<'_> {
             span: it.span,
             name_span,
         }))
+    }
+
+    fn extern_def(&mut self, x: &ExternDef) -> R<h::Extern> {
+        let mut items = Vec::new();
+        for xi in &x.items {
+            items.push(match xi {
+                XItem::Fn {
+                    attrs,
+                    safe,
+                    name,
+                    params,
+                    ret,
+                    from,
+                    uses_none,
+                    nonblocking,
+                    span,
+                } => {
+                    if !attrs.is_empty() || !from.is_empty() {
+                        return unsupported("attributes and `from` on extern items");
+                    }
+                    let mut ps = Vec::new();
+                    let mut variadic = false;
+                    for p in params {
+                        match p {
+                            XParam::Variadic => variadic = true,
+                            XParam::Typed { name, callback, ty } => ps.push(h::XParam {
+                                name: name.clone(),
+                                callback: callback.map(|c| match c {
+                                    Callback::Scoped => h::Callback::Scoped,
+                                    Callback::Escaping => h::Callback::Escaping,
+                                }),
+                                ty: self.ty(ty)?,
+                                ty_span: ty.span,
+                            }),
+                        }
+                    }
+                    h::XItem::Fn {
+                        safe: *safe,
+                        name: name.clone(),
+                        name_span: self.find(*span, name),
+                        params: ps,
+                        variadic,
+                        ret: match ret {
+                            Some(t) => Some((self.ty(t)?, t.span)),
+                            None => None,
+                        },
+                        uses_none: *uses_none,
+                        nonblocking: *nonblocking,
+                    }
+                }
+                XItem::Static {
+                    attrs,
+                    safe,
+                    name,
+                    ty,
+                    ..
+                } => {
+                    if !attrs.is_empty() {
+                        return unsupported("attributes on extern items");
+                    }
+                    h::XItem::Static {
+                        safe: *safe,
+                        name: name.clone(),
+                        ty: self.ty(ty)?,
+                        ty_span: ty.span,
+                    }
+                }
+                XItem::Type { name, drop, .. } => h::XItem::Type {
+                    name: name.clone(),
+                    drop: drop.clone(),
+                },
+            });
+        }
+        Ok(h::Extern {
+            abi: x.abi.clone(),
+            lib: x.lib.clone(),
+            link: x.link.clone(),
+            items,
+        })
+    }
+
+    fn asm_arg(&mut self, a: &AsmArg, at: Span) -> R<h::AsmArg> {
+        let reg = |r: &AsmReg| match r {
+            AsmReg::Class(n) => h::AsmReg::Class(n.clone()),
+            AsmReg::Explicit(n) => {
+                h::AsmReg::Explicit(n.clone(), self.find(at, &format!("\"{n}\"")))
+            }
+        };
+        Ok(match a {
+            AsmArg::Operand { dir, reg: r, value } => h::AsmArg::Operand {
+                dir: dir.clone(),
+                reg: reg(r),
+                value: self.expr(value)?,
+            },
+            AsmArg::Typed {
+                dir,
+                reg: r,
+                name,
+                ty,
+            } => h::AsmArg::Typed {
+                dir: dir.clone(),
+                reg: reg(r),
+                name: name.clone(),
+                ty: self.ty(ty)?,
+            },
+            AsmArg::ClobberAbi(s) => h::AsmArg::ClobberAbi(s.clone()),
+            AsmArg::Option(n) => h::AsmArg::Option(n.clone()),
+        })
+    }
+
+    /// The span of the first `text` at or after `from`, on its line or the lines below.
+    fn find(&self, from: Span, text: &str) -> Span {
+        for (k, line) in self.src.lines().enumerate().skip(from.line as usize - 1) {
+            let start = if k + 1 == from.line as usize {
+                (from.col as usize - 1).min(line.len())
+            } else {
+                0
+            };
+            if let Some(i) = line[start..].find(text) {
+                let col = (start + i + 1) as u32;
+                let line = k as u32 + 1;
+                return Span {
+                    line,
+                    col,
+                    end_line: line,
+                    end_col: col + text.chars().count() as u32,
+                };
+            }
+        }
+        from
     }
 
     fn trait_def(&mut self, t: &TraitDef) -> R<h::Trait> {
@@ -394,8 +524,9 @@ impl Lower<'_> {
             },
             TypeKind::Union(_) => return unsupported("union types outside `fail` and aliases"),
             TypeKind::Dyn { .. } => return unsupported("`dyn` types"),
-            TypeKind::Ref(_) | TypeKind::Ptr(_) | TypeKind::Vec { .. } => {
-                return unsupported("Ref, Ptr and Vec types");
+            TypeKind::Ptr(t) => named(&["Ptr"], vec![h::TArg::Type(self.ty(t)?)]),
+            TypeKind::Ref(_) | TypeKind::Vec { .. } => {
+                return unsupported("Ref and Vec types");
             }
             TypeKind::Record(_) => return unsupported("anonymous record types"),
         })
@@ -626,6 +757,13 @@ impl Lower<'_> {
         let kind = match &s.kind {
             StmtKind::Expr(e) => match &e.kind {
                 ExprKind::ParFor { .. } => return unsupported("`par for` statements"),
+                ExprKind::Asm { template, args } => K::Asm {
+                    template: template.clone(),
+                    args: args
+                        .iter()
+                        .map(|a| self.asm_arg(a, e.span))
+                        .collect::<R<_>>()?,
+                },
                 _ => K::Expr(self.expr(e)?),
             },
             StmtKind::Assign { place, op, value } => {
@@ -761,7 +899,7 @@ impl Lower<'_> {
                 body: self.block(body)?,
             },
             StmtKind::Select(_) => return unsupported("`select`"),
-            StmtKind::Unsafe(_) => return unsupported("`unsafe` blocks"),
+            StmtKind::Unsafe(body) => K::Unsafe(self.stmts(body)?),
             StmtKind::StageFor { .. } | StmtKind::StageIf { .. } => {
                 return unsupported("stage-0 statements");
             }

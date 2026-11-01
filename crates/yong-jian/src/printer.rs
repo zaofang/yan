@@ -496,6 +496,7 @@ impl Printer {
         match &it.kind {
             ItemKind::Func(f) => self.func(f, pubs, "def", 0),
             ItemKind::Lemma(f) => self.func(f, pubs, "lemma", 0),
+            ItemKind::Extern(_) => unreachable!("Jian has no extern blocks"),
             ItemKind::Class(c) => {
                 self.line(
                     0,

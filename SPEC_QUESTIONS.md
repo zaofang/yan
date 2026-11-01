@@ -205,3 +205,17 @@ Assumed in `yong patch` until the spec says otherwise:
 - No diagnostic carries a machine fix yet, so `autofix` returns the canonical reprint (the lenient reader's normalizations, 14.4) of each item whose text differs, as a `replace` patch with base hashes.
 - `sig` gives each function up to its first body statement (decorators, header, docstring, `pre`/`post`/`ex`/`decreases`), and every other item whole.
 - A plain text patch through `check_patch`/`apply_patch` takes the module as a `module` argument. Patches are always checked (P003), and protected targets refuse with P006, since the server has no confirmation token yet.
+
+## FFI readings (12)
+
+- A module is an ffi module when a directory named `ffi` contains it (conformance A9); the CLI decides from the path.
+- `core.ffi` names (`c_int` and the rest, `Ptr`, `CStr`, `CString`, `Owned`, `View`, `MutView`) resolve only in ffi modules. The C scalars take LP64 sizes: `c_int` is `i32`, `c_long` and `c_ssize` are `i64`, `c_size` is `u64`, `c_double` is `f64`, `c_void` is `Unit`.
+- Yong has no C string literal yet: `c"..."` lowers to a `Str` literal typed `CStr`. Interior NUL (E140) is not checked yet.
+- Calling an extern item does not yet require `uses lib` (12.2): the conformance cases call extern items from functions without a `uses` clause.
+- A `MutView[T]` extern parameter takes `&list`; a list passes as `View[T]` by value.
+- E905 covers the default argument promotions: `f32` to `f64`, and `i8`, `i16`, `u8`, `u16`, `bool` to `c_int`.
+- E906 names: `setjmp`, `_setjmp`, `sigsetjmp`, `savectx`, `vfork`, `getcontext`.
+- E907: the profile table lists owned `Str` and `List`, and `e907_export_non_profile` rejects `total(xs: List[int])`. Reading: an owned `Str` or `List` crosses only as a `take` parameter or a result; a `let` parameter must be a `View`.
+- E911 checks register classes and explicit registers of the host target (x86_64 or aarch64).
+- `@forbid(alloc)` (E900) flags list, set and dict literals, comprehensions and f-strings. `@forbid(rc, copy, panic)` is not checked yet and stops elaboration.
+- A named function used as a value lowers to a closure that calls it (closures are the only function values in core).

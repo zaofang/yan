@@ -29,6 +29,8 @@ pub enum Ty {
     Param(String),
     /// `Callable[[params], ret]`; `par` when prefixed `par` (R436).
     Fn(bool, Vec<Ty>, Box<Ty>),
+    /// A `core.ffi` type in an ffi module (12.3, 12.5): `Ptr[T]`, `CStr`, `View[T]` and so on.
+    Foreign(&'static str, Vec<Ty>),
     /// Produced after an error was reported; compatible with every type.
     Err,
 }
@@ -84,6 +86,7 @@ impl Ty {
             Ty::Option(t) => named("Option", vec![t.core()]),
             Ty::Result(t, e) => named("Result", vec![t.core(), e.core()]),
             Ty::Data(n) | Ty::Param(n) => named(n, vec![]),
+            Ty::Foreign(n, ts) => named(n, ts.iter().map(Ty::core).collect()),
             Ty::Fn(_, ps, r) => y::Type::Fn(y::FnType {
                 params: ps.iter().map(|t| (y::Conv::Let, t.core())).collect(),
                 ret: Box::new(r.core()),
@@ -136,6 +139,8 @@ impl Ty {
                     && a.iter().zip(b).all(|(x, y)| x.fits(y))
                     && r.fits(s)
             }
+            // A list passes as a view of its elements (12.5).
+            (Ty::List(a), Ty::Foreign("View" | "MutView", b)) => b.len() == 1 && a.fits(&b[0]),
             (a, Ty::Option(b)) => a.fits(b),
             (a, b) => a == b,
         }
@@ -263,9 +268,10 @@ impl std::fmt::Display for Ty {
             Ty::List(t) => write!(f, "list[{t}]"),
             Ty::Dict(k, v) => write!(f, "dict[{k}, {v}]"),
             Ty::Set(t) => write!(f, "set[{t}]"),
-            Ty::Tuple(ts) | Ty::Coll(_, ts) => {
+            Ty::Foreign(n, ts) if ts.is_empty() => write!(f, "{n}"),
+            Ty::Tuple(ts) | Ty::Coll(_, ts) | Ty::Foreign(_, ts) => {
                 let name = match self {
-                    Ty::Coll(n, _) => n,
+                    Ty::Coll(n, _) | Ty::Foreign(n, _) => n,
                     _ => "tuple",
                 };
                 write!(f, "{name}[")?;
