@@ -270,24 +270,28 @@ fields become arguments.
 | Field | Argument |
 | --- | --- |
 | no default | a positional argument, required, in field order |
-| `list[T]`, no default | the remaining positionals; at most one, and last |
-| `bool`, default `False` | a flag, `--name` |
-| any other default | an option, `--name VALUE` or `--name=VALUE` |
-| `T \| None`, default `None` | an optional option |
-| `list[T]`, default `[]` | a repeatable option |
-| a sum of unit variants | its value is the kebab-case variant name, such as `--color dark` |
-| a sum whose variants are records | a subcommand, one per variant, parsed by the same rules; at most one, and last |
+| `list[T]`, no default | the remaining positionals; at most one |
+| `bool`, no default or default `False` | a flag, `--name` |
+| any other literal default | an option, `--name VALUE` or `--name=VALUE` |
+| `T \| None`, no default or default `None` | an optional option |
+| a sum of unit variants | its value is the kebab-case variant name, such as `dark` |
+| a sum whose variants are records | a subcommand, one per variant, parsed by the same rules; it must be the last field |
 
 The rest of the mapping:
 - Names are kebab-case: `max_depth` becomes `--max-depth`, and variant `DryRun` becomes `dry-run`.
-- Supported value types are `str`, `int`, `float`, `bool`, `Path`, the unit sums above, and
-  `T | None` and `list[T]` of those. Any other type is E269 at the derive.
+- Supported value types are `str`, `int`, `float`, `Path`, the unit sums above, and `T | None` and
+  `list[T]` of those. Any other type, a non-literal default or a `bool` defaulting to `True` is
+  E269 at the derive.
+- Class field defaults must be literals today. So a repeatable `list[T] = []` option and a choice
+  option with a default wait for non-literal defaults; a choice is a positional or a `T | None`
+  option until then.
 - `--` ends the options.
 - `-h` and `--help` are reserved.
 - There are no short options. They need field decorators, which do not exist.
 
-Help text comes from `@help(about="...", field="...", ...)` on the record, because docstrings are
-hash-neutral trivia (16.5) and may not change behavior. A `@help` key that names no field is E269.
+Help text comes from `@help(about="...", field="...", Variant="...")` on the record, because
+docstrings are hash-neutral trivia (16.5) and may not change behavior. A key that names neither a
+field nor a subcommand variant is E269, and so is `@help` without `@derive(Cli)`.
 
 This is the clap derive's positional-by-default rule, with Typer's choice that a default makes an
 option.
@@ -297,28 +301,36 @@ Recommendation: accept.
 ### D15: `cli.parse` and deterministic errors
 
 There are two calls:
-- `cli.parse[T: Cli]() -> T fail CliError uses env` parses `env.args()`.
-- `cli.parse_args[T: Cli](args: list[str]) -> T fail CliError` is pure.
+- `cli.parse[T]()` parses `env.args()`, so the caller needs `uses env`.
+- `cli.parse_args[T](args: list[str])` is pure.
 
-`CliError = { message: str, help: bool }`:
+Both return `T fail CliError`, and `T` must derive `Cli` (E201 otherwise).
+
+`CliError` has `message: str` and `help: bool`, and `show` prints `message`:
 - `help` is true for `-h` and `--help`. Then `message` is the full help text, and the program
   prints it and exits 0.
-- Otherwise `message` is one error line followed by the usage line.
+- Otherwise `message` is `error: <problem>` followed by the usage line.
 
 The first problem in argument order is the one reported, with fixed wording:
 - `unknown option '--x'`
-- `missing argument <path>`
+- `option '--v' takes no value`
 - `option '--n' needs a value`
 - `invalid value 'abc' for '--n': expected int`
+- `invalid value 'red' for <color>: expected one of dark, light`
 - `'--n' given twice`
+- `missing argument <path>`
+- `missing command`
 - `unknown command 'x'`
+- `unexpected argument 'x'`
 
 The help text layout is also fixed:
-1. `usage: <prog> [options] <positionals>`, where `<prog>` is the record name in kebab-case.
+1. `usage: <prog> [options] <a> [<rest>...] <command>`, where `<prog>` is the record name in
+   kebab-case, followed by the command name inside a subcommand.
 2. The `about` text.
-3. The positionals.
-4. The options, with each option's type, its default shown by `show`, and its `@help` text, in
-   field order.
+3. `arguments:`, one line per positional with its type.
+4. `options:`, one line per option with its value type, its `@help` text and
+   `(default: <show(default)>)`, in field order, then `-h, --help`.
+5. `commands:`, one line per subcommand with its `@help` text.
 
 So the help text is a stable snapshot.
 
