@@ -1,0 +1,7 @@
+# spec: 17.3
+# rows: R484
+# expect: E545 at 6:23
+
+def f() -> str:
+    r = regex.compile("(a")
+    return r.pattern.copy()

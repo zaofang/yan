@@ -1,0 +1,14 @@
+# spec: 17.3
+# rows: R484
+# note: a pattern that is not a literal can fail at run time; the reason text is not specified
+# stdout:
+# failed (
+# a+
+
+def check(p: str) -> str:
+    r = regex.compile(p) else err -> Regex(pattern=f"failed {err.pattern}")
+    return r.pattern.copy()
+
+pub def main() uses io:
+    io.print(check("(" + ""))
+    io.print(check("a" + "+"))

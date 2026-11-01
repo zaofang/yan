@@ -1,0 +1,7 @@
+# spec: 17.3
+# rows: R484
+# note: a literal pattern was checked at stage 0, so compile needs no ? or else
+
+def count(s: str) -> int:
+    r = regex.compile("a+")
+    return len(r.find_all(s))

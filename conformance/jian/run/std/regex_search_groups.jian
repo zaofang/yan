@@ -1,0 +1,13 @@
+# spec: 17.3
+# rows: R482, R483
+# stdout:
+# 2024-10 2024 10 2024
+# 3 10
+# None
+
+pub def main() uses io:
+    r = regex.compile(r"(?P<y>\d+)-(\d+)(x)?")
+    m = r.search("on 2024-10 now") else return
+    io.print(f"{m.text()} {m.group(1)} {m.group(2)} {m.named('y')}")
+    io.print(f"{m.start()} {m.end()}")
+    io.print(f"{m.group(3)}")

@@ -232,6 +232,19 @@
    "expect": []
   },
   {
+   "path": "jian/pass/std/regex_literal_infallible.jian",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R484"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "jian/pass/syntax/become_constructor.jian",
    "kind": "pass",
    "milestone": "M1",
@@ -2205,6 +2218,63 @@
    ]
   },
   {
+   "path": "jian/fail/std/e545_backreference.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R484"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E545",
+     "line": 6,
+     "col": 23
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/std/e545_bad_literal.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R484"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E545",
+     "line": 6,
+     "col": 23
+    }
+   ]
+  },
+  {
+   "path": "jian/fail/std/e545_lookaround.jian",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R484"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E545",
+     "line": 6,
+     "col": 23
+    }
+   ]
+  },
+  {
    "path": "jian/fail/strings/e504_index_str.jian",
    "kind": "fail",
    "milestone": "M1",
@@ -3463,6 +3533,112 @@
    "flags": [],
    "expect": [],
    "stdout": "3 4\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/regex_anchors.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R482"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "search ab\nmatch -\nfullmatch -\nmatch ab\nfullmatch ab\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/regex_escape.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R482"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a\\.b\\*\nTrue\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/regex_find_all.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R482"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n1-2 4 7\n3-4 12 15\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/regex_runtime_error.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R484"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "failed (\na+\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/regex_search_groups.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R482",
+    "R483"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2024-10 2024 10 2024\n3 10\nNone\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/regex_split_sub.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R485"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "['a', 'b', '', 'c']\n['a', ',', 'b']\n2/1 and 4/3\na\\b $x\n",
+   "exit": 0
+  },
+  {
+   "path": "jian/run/std/regex_unicode.jian",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R483"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "h\u00e9llo 2 7\n\u6c38 1 2\nABC\n",
    "exit": 0
   },
   {

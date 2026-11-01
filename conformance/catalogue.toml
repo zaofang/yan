@@ -119,6 +119,7 @@ E541 = { section = "14.2", status = "active", meaning = "zoned literal in a gap 
 E542 = { section = "14.2", status = "active", meaning = "literal format pattern does not match the value's type" }
 E543 = { section = "20.6", status = "active", meaning = "literal or destructuring of a @non_exhaustive type from another package without .." }
 E544 = { section = "11.8", status = "active", meaning = "is_null on a non-optional column" }
+E545 = { section = "17.3", status = "active", meaning = "literal regular expression rejected at stage 0: syntax, backreference or lookaround, or over the size limit (R484)" }
 E550 = { section = "17.5", status = "active", meaning = "malformed locale literal (R332)" }
 E551 = { section = "17.5", status = "active", meaning = "malformed MessageFormat 2 message or unknown function (R335)" }
 E552 = { section = "17.5", status = "active", meaning = "translation key not in the source messages record (R335)" }

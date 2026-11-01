@@ -1,0 +1,12 @@
+# spec: 17.3
+# rows: R482
+# stdout:
+# a\.b\*
+# True
+
+pub def main() uses io:
+    e = regex.escape("a.b*")
+    io.print(e)
+    r = regex.compile(e) else return
+    m = r.fullmatch("a.b*") else return
+    io.print(f"{m.text() == 'a.b*'}")
