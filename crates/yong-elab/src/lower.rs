@@ -13,7 +13,7 @@ use yong_diag::Span;
 use yong_hir as j;
 
 use crate::bounds::{self, Site};
-use crate::{Cx, Globals, R, Sig, Ty, cap_type, unsupported};
+use crate::{Cx, Globals, R, Sig, Ty, cap_type, ffi, unsupported};
 
 /// List and dict methods whose receiver is `var` (R421).
 const MUTATING: [&str; 11] = [
@@ -74,6 +74,8 @@ struct Lower<'a, 'c, 's> {
     loop_outer: Vec<HashSet<String>>,
     /// The name the current statement assigns, for W822.
     target: Option<String>,
+    /// Inside an `unsafe` block (12.1).
+    in_unsafe: bool,
 }
 
 pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
@@ -83,7 +85,9 @@ pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
         j::Lit::Str { prefix, value } if prefix.is_empty() || prefix == "r" => {
             Literal::Str(value.clone())
         }
-        j::Lit::Str { .. } => return unsupported("byte and C strings"),
+        // Yong has no C string literal yet; the value is the text, typed `CStr` (SPEC_QUESTIONS).
+        j::Lit::Str { prefix, value } if prefix == "c" => Literal::Str(value.clone()),
+        j::Lit::Str { .. } => return unsupported("byte strings"),
         j::Lit::Char(c) => Literal::Char(*c),
         j::Lit::Bool(b) => Literal::Bool(*b),
         j::Lit::None => Literal::Unit,
@@ -184,7 +188,7 @@ fn root(e: &j::Expr) -> Option<&str> {
 }
 
 /// Exprs directly in a statement, for the mutability scan.
-fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
+pub(crate) fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
     use j::StmtKind as K;
     match &s.kind {
         K::Expr(e) | K::Become(e) | K::Fail(e) | K::Assert(e) => vec![e],
@@ -199,11 +203,18 @@ fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
             body: j::ParBody::For { iter, .. },
             ..
         } => vec![iter],
+        K::Asm { args, .. } => args
+            .iter()
+            .filter_map(|a| match a {
+                j::AsmArg::Operand { value, .. } => Some(value),
+                _ => None,
+            })
+            .collect(),
         _ => Vec::new(),
     }
 }
 
-fn sub_blocks(s: &j::Stmt) -> Vec<&[j::Stmt]> {
+pub(crate) fn sub_blocks(s: &j::Stmt) -> Vec<&[j::Stmt]> {
     use j::StmtKind as K;
     match &s.kind {
         K::If { arms, els } => arms
@@ -211,7 +222,7 @@ fn sub_blocks(s: &j::Stmt) -> Vec<&[j::Stmt]> {
             .map(|(_, b)| b.stmts.as_slice())
             .chain(els.iter().map(|b| b.stmts.as_slice()))
             .collect(),
-        K::While { body, .. } | K::For { body, .. } => vec![body],
+        K::While { body, .. } | K::For { body, .. } | K::Unsafe(body) => vec![body],
         K::Match { cases, .. } => cases.iter().map(|c| c.body.stmts.as_slice()).collect(),
         K::With { body, .. } | K::LetElse { els: body, .. } => vec![&body.stmts],
         K::Par { body, .. } => match body {
@@ -453,6 +464,7 @@ fn function_body(g: &Globals, f: &j::FuncDef, sig: &Sig, is_pub: bool, cx: &mut 
         pending: HashMap::new(),
         loop_outer: Vec::new(),
         target: None,
+        in_unsafe: false,
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -1037,6 +1049,21 @@ impl Lower<'_, '_, '_> {
                 );
             }
             K::With { .. } => return unsupported("`with deadline` and `with timeout`"),
+            K::Unsafe(body) => {
+                if !self.cx.ffi {
+                    self.err(
+                        "E901",
+                        at,
+                        "`unsafe` belongs in an ffi module, under the package's `ffi/` directory"
+                            .into(),
+                    );
+                }
+                let outer = mem::replace(&mut self.in_unsafe, true);
+                let b = self.block(body);
+                self.in_unsafe = outer;
+                self.emit(StmtKind::Unsafe(b?), at);
+            }
+            K::Asm { template, args } => self.asm(template, args, at)?,
         }
         Ok(())
     }
@@ -1976,6 +2003,41 @@ impl Lower<'_, '_, '_> {
                     (Rhs::Atom(Atom::Name(n.clone(), at)), Ty::Data(s.clone()))
                 } else if self.pending.contains_key(n) {
                     return unsupported("a lambda with no expected type used before a call");
+                } else if let Some(sig) = self.g.fns.get(n)
+                    && sig.tparams.is_empty()
+                    && sig.caps.is_empty()
+                    && sig.fail.is_none()
+                    && sig.params.iter().all(|p| p.conv == Conv::Let)
+                {
+                    // A function used as a value is the lambda that calls it.
+                    let names: Vec<String> =
+                        (0..sig.params.len()).map(|k| format!("_{n}_{k}")).collect();
+                    let name = |x: &str| j::Expr {
+                        kind: K::Name(x.to_owned()),
+                        span: at,
+                        paren: false,
+                    };
+                    let args = names
+                        .iter()
+                        .zip(&sig.params)
+                        .map(|(x, p)| j::Arg {
+                            name: (!p.positional).then(|| p.name.clone()),
+                            kind: j::ArgKind::Expr(name(x)),
+                            span: at,
+                        })
+                        .collect();
+                    let body = j::Expr {
+                        kind: K::Call(Box::new(name(n)), args),
+                        span: at,
+                        paren: false,
+                    };
+                    let ty = Ty::Fn(
+                        false,
+                        sig.params.iter().map(|p| p.ty.clone()).collect(),
+                        Box::new(sig.ret.clone()),
+                    );
+                    let (r, _) = self.lambda(&names, &body, Some(&ty))?;
+                    (r, ty)
                 } else if self.gone.contains(n) {
                     return unsupported("a binding used after the block that made it");
                 } else if self.ghosts.contains(n) {
@@ -2621,6 +2683,17 @@ impl Lower<'_, '_, '_> {
                 Some(p) => (p.to_owned(), Ty::BigInt, vec![]),
                 None => return unsupported(format!("`{op}` on `bigint`")),
             },
+            (Ty::Fixed(n), Ty::Fixed(m)) if n == m && op != "/" => {
+                let p = if n.starts_with('f') {
+                    float_op(op).map(|p| p.replace("f64", n))
+                } else {
+                    int_op(op).map(|(p, _)| p.replace("i64", n))
+                };
+                match p {
+                    Some(p) => (p, tx.clone(), vec![]),
+                    None => return unsupported(format!("`{op}` on `{tx}`")),
+                }
+            }
             (Ty::Str, Ty::Str) if op == "+" => ("std.text.concat".to_owned(), Ty::Str, vec![]),
             (Ty::List(e), Ty::List(_)) if op == "+" => {
                 ("std.list.concat".to_owned(), tx.clone(), vec![e.targ()])
@@ -2747,6 +2820,7 @@ fn lit_ty(l: &j::Lit) -> Ty {
     match l {
         j::Lit::Int(_) => Ty::Int,
         j::Lit::Float(_) => Ty::Float,
+        j::Lit::Str { prefix, .. } if prefix == "c" => Ty::Foreign("CStr", Vec::new()),
         j::Lit::Str { .. } => Ty::Str,
         j::Lit::Char(_) => Ty::Char,
         j::Lit::Bool(_) => Ty::Bool,
@@ -2896,6 +2970,18 @@ impl Lower<'_, '_, '_> {
                 .warn("W815", at, &item, format!("`{name}` is deprecated"));
         }
         let sig = &self.g.fns[name];
+        if let Some(&(safe, variadic)) = self.g.externs.get(name) {
+            if !safe && !self.in_unsafe {
+                self.err(
+                    "E903",
+                    at,
+                    format!("`{name}` is an unsafe extern function; call it inside `unsafe`"),
+                );
+            }
+            if variadic {
+                return self.variadic_call(name, sig, args, at);
+            }
+        }
         // A prelude intrinsic typed here is still called by its std path.
         let path = format!("std.prelude.{name}");
         let name = match crate::stdlib::decl(&path) {
@@ -2903,6 +2989,105 @@ impl Lower<'_, '_, '_> {
             _ => name,
         };
         self.call_sig(name, sig, recv, args, at)
+    }
+
+    /// A call of a C variadic: the arguments past the declared ones get the default argument
+    /// promotions, so none may be a type that promotes (12.3, E905).
+    fn variadic_call(
+        &mut self,
+        name: &str,
+        sig: &Sig,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let n = sig.params.len().min(args.len());
+        let (rhs, t, fail) = self.call_sig(name, sig, None, &args[..n], at)?;
+        let Rhs::Call(mut c) = rhs else {
+            return Ok((rhs, t, fail));
+        };
+        for a in &args[n..] {
+            let j::ArgKind::Expr(e) = &a.kind else {
+                return unsupported("`&` arguments to a C variadic");
+            };
+            let (v, vt) = self.atom(e, None)?;
+            if matches!(
+                vt,
+                Ty::Fixed("f32" | "i8" | "i16" | "u8" | "u16") | Ty::Bool
+            ) {
+                let to = if vt == Ty::Fixed("f32") {
+                    "f64"
+                } else {
+                    "c_int"
+                };
+                self.err(
+                    "E905",
+                    e.span,
+                    format!("a `{vt}` passed to a C variadic is promoted; convert it to `{to}`"),
+                );
+            }
+            c.args.push(let_arg(v));
+        }
+        Ok((Rhs::Call(c), t, fail))
+    }
+
+    /// `asm(...)` (12.9): operands are scalars or `Vec` (E910) in registers of the target (E911).
+    fn asm(&mut self, template: &str, args: &[j::AsmArg], at: Span) -> R<()> {
+        let mut operands = Vec::new();
+        for a in args {
+            operands.push(match a {
+                j::AsmArg::Operand { dir, reg, value } => {
+                    let reg = match reg {
+                        j::AsmReg::Class(n) => {
+                            if !ffi::register_ok(true, n) {
+                                self.err(
+                                    "E911",
+                                    value.span,
+                                    format!("no register class `{n}` on this target"),
+                                );
+                            }
+                            y::AsmReg::Class(n.clone())
+                        }
+                        j::AsmReg::Explicit(n, sp) => {
+                            if !ffi::register_ok(false, n) {
+                                self.err("E911", *sp, format!("no register `{n}` on this target"));
+                            }
+                            y::AsmReg::Explicit(n.clone())
+                        }
+                    };
+                    let (v, t) = self.atom(value, None)?;
+                    let vec = matches!(&t, Ty::Coll(..)) && t.to_string().starts_with("Vec");
+                    if !(t.scalar().is_some_and(|s| s != "bigint")
+                        || matches!(t, Ty::Char | Ty::Err)
+                        || vec)
+                    {
+                        self.err(
+                            "E910",
+                            value.span,
+                            format!("an `asm` operand is a scalar or `Vec`, not `{t}`"),
+                        );
+                    }
+                    let dir = match dir.as_str() {
+                        "in" => y::AsmDir::In,
+                        "out" => y::AsmDir::Out,
+                        "inout" => y::AsmDir::Inout,
+                        "lateout" => y::AsmDir::Lateout,
+                        d => return unsupported(format!("`asm` operand direction `{d}`")),
+                    };
+                    y::AsmOperand::Reg { dir, reg, value: v }
+                }
+                j::AsmArg::Typed { .. } => return unsupported("typed `asm` outputs"),
+                j::AsmArg::ClobberAbi(s) => y::AsmOperand::ClobberAbi(s.clone()),
+                j::AsmArg::Option(n) => y::AsmOperand::Options(vec![n.clone()]),
+            });
+        }
+        self.emit(
+            StmtKind::Asm {
+                template: template.to_owned(),
+                operands,
+            },
+            at,
+        );
+        Ok(())
     }
 
     /// A call of `path` with signature `sig`. A generic callee's type arguments are inferred

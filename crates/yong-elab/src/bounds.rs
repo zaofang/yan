@@ -384,6 +384,17 @@ impl Solver<'_> {
                 self.expr(e, &mut f);
                 self.assume(e, true, &mut f);
             }
+            S::Unsafe(body) => return self.stmts(body, f),
+            S::Asm { args, .. } => {
+                for a in args {
+                    if let j::AsmArg::Operand { dir, value, .. } = a {
+                        self.expr(value, &mut f);
+                        if dir != "in" {
+                            self.target(value, &mut f);
+                        }
+                    }
+                }
+            }
             S::Assign { target, value, .. } => self.assign(target, value, &mut f),
             S::AugAssign { target, value, .. } => {
                 self.expr(value, &mut f);
@@ -888,6 +899,17 @@ fn assigned(stmts: &[j::Stmt]) -> HashSet<String> {
                     go(&els.stmts, out);
                 }
                 S::Expr(e) | S::Become(e) | S::Fail(e) | S::Assert(e) => expr(e, out),
+                S::Unsafe(body) => go(body, out),
+                S::Asm { args, .. } => {
+                    for a in args {
+                        if let j::AsmArg::Operand { dir, value, .. } = a
+                            && dir != "in"
+                            && let K::Name(n) = &value.kind
+                        {
+                            out.insert(n.clone());
+                        }
+                    }
+                }
                 S::Return(e) => e.iter().for_each(|e| expr(e, out)),
                 S::If { arms, els } => {
                     for (c, b) in arms {

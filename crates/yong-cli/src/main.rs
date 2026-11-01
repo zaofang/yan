@@ -134,6 +134,7 @@ fn load(file: &Path, src: &str, strict: bool, release: bool) -> Result<Loaded, S
                 strict,
                 release,
                 wen: false,
+                ffi: is_ffi(file),
             };
             Ok(elaborate(&name, src, &m, diags, opts))
         }
@@ -155,6 +156,7 @@ fn load(file: &Path, src: &str, strict: bool, release: bool) -> Result<Loaded, S
                         strict: true,
                         release,
                         wen: true,
+                        ffi: is_ffi(file),
                     };
                     Ok(elaborate(&name, src, &h, errs, opts))
                 }
@@ -326,6 +328,12 @@ fn apply_patch(file: &Path, module: Option<&str>, check: bool, format: Format) -
             ExitCode::FAILURE
         }
     }
+}
+
+/// 12: a module under a directory named `ffi` (conformance assumption A9).
+fn is_ffi(file: &Path) -> bool {
+    file.parent()
+        .is_some_and(|d| d.components().any(|c| c.as_os_str() == "ffi"))
 }
 
 fn front_end_missing(file: &Path) -> String {
