@@ -149,7 +149,22 @@ impl Globals {
         Ok(match t {
             j::Type::None => Ty::Unit,
             j::Type::Optional(t) => Ty::Option(Box::new(self.ty(t, cx, span)?)),
-            j::Type::Callable { .. } => return unsupported("callable types"),
+            j::Type::Callable {
+                par,
+                params,
+                ret,
+                fail,
+                uses,
+            } => {
+                if !fail.is_empty() || !uses.is_empty() {
+                    return unsupported("callable types with `fail` or `uses`");
+                }
+                let mut ps = Vec::new();
+                for p in params {
+                    ps.push(self.ty(p, cx, span)?);
+                }
+                Ty::Fn(*par, ps, Box::new(self.ty(ret, cx, span)?))
+            }
             j::Type::Named { path, args } => {
                 let mut a = Vec::new();
                 for arg in args {
