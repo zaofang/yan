@@ -15,6 +15,12 @@ pub fn partition<'a>(s: &'a str, sep: &'a str) -> (&'a str, &'a str, &'a str) {
     }
 }
 
+/// Python's `str.split()` with no separator: runs of `str.isspace` characters, no empty parts.
+pub fn split_whitespace(s: &str) -> impl Iterator<Item = &str> {
+    s.split(|c: char| c.is_whitespace() || ('\x1c'..='\x1f').contains(&c))
+        .filter(|p| !p.is_empty())
+}
+
 /// Python's `str.splitlines()` boundaries, with no empty last line.
 pub fn splitlines(s: &str) -> impl Iterator<Item = &str> {
     let mut rest = s;

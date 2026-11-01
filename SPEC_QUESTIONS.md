@@ -244,3 +244,17 @@ Assumed in `yong-mir` and `yong-cg-cranelift` until the spec says otherwise:
 - **In-process first.** The first backend compiles with Cranelift's JIT and runs in the `yong` process (`yong --backend cranelift run FILE`). Object files and the system linker of 23 (M1b) come next, once std values have a native layout.
 - **Coverage.** `yong-mir` lowers integers up to 64 bits, `f64`, `bool` and `Unit`, direct and tail calls, loops, join points, `requires`, `assert`, `par` (in order) and printing a string literal. Anything else is a tool failure (`not supported yet`), not a program result.
 - **Unsafe code.** The workspace forbids `unsafe`. `yong-rt` and `yong-cg-cranelift` deny it instead and allow it only in `yong_rt::abi` (the C-ABI entry points) and at the call into generated code.
+
+## Probe-gap readings (14.1, 14.4, 8.1, 8.4)
+
+Assumed in `yong-elab` and the interpreter until the spec says otherwise:
+
+- **Injection into `T | None`.** A `T` where `T | None` is expected (an argument, a return, an assignment, an annotated binding) is lowered as `Some` of it. Std natives that take an optional closure accept it either way.
+- **Narrowing.** `x is None` and `x is not None` narrow a local of optional type in the branch they guard, through `and`, `or` and `not`. When one branch of an `if` without `elif` exits, the rest of the block is narrowed by the other branch's test. A `while x is not None:` body is narrowed. An assignment to `x` ends the narrowing; a call that passes `&x` or uses `x` as a `var` receiver does not end it yet. `x is None` on a type that is not optional is E201.
+- **N15.** The truth test of a non-`bool` condition (in `if`, `while`, `assert`, `post`, `not`, `and`, `or` and conditional expressions) is `n != 0` for numbers, `s != ""` for `str`, `len(xs) > 0` for collections and `x is not None` for optionals. Other types stay E201. In strict mode every such condition is E201.
+- **`s.split()`.** With no separator it splits at runs of the characters CPython's `str.isspace` accepts and drops empty parts. `split(sep: str | None = None)` is the std declaration.
+- **`s.chars()`.** Returns `iter[char]`, like iterating a `str` under N21.
+- **Slices.** `xs[a:b:c]` on a list lowers to `std.list.slice_clamped`, which clamps as CPython's `slice.indices` does; a step of 0 panics with kind `value`. Slices of a `str` are not supported yet, and in strict mode they are E504. W807 is not reported yet.
+- **`bigint` literals.** An integer literal where `bigint` is expected is built from pieces of at most 18 digits.
+- **Error unions.** `fail A | B` is an anonymous union of the named types, without repeats. `?` injects a member into a union that contains it with no conversion. Matching on a union's members is not supported yet.
+- **`post`.** Each `post` is checked at every return, including falling off the end, with `out` naming the result; a failure panics with kind `assert`, as `pre` does. `old(p)` reads a copy of `p` taken on entry. A parameter named `out` in a function with `post` is E230. `post` is not yet emitted as a Yong `ensures` clause.
