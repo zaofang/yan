@@ -609,12 +609,23 @@ impl<'o> Vm<'o> {
                 }
                 r
             }
-            Target::Native if let Some(b) = s.id.and_then(bind::get) => {
-                let args = &mut self.stack[new_base..];
+            Target::Native
+                if let Some((id, b)) = s.id.and_then(|id| Some((id, bind::get(id)?))) =>
+            {
                 let r = match b {
-                    Bind::Plain(f) => Ok(f(args)?),
-                    Bind::Cap(f) => Ok(f(&mut self.it, args)?),
-                    Bind::Fallible(f) => f(args)?,
+                    Bind::Plain(f) => Ok(f(&mut self.stack[new_base..])?),
+                    Bind::Cap(f) => Ok(f(&mut self.it, &mut self.stack[new_base..])?),
+                    Bind::Fallible(f) => f(&self.stack[new_base..])?,
+                    Bind::Vm(f) => {
+                        // Taken off the stack: closures the function calls run on it.
+                        let mut args: Vec<Value> =
+                            self.stack[new_base..].iter_mut().map(mem::take).collect();
+                        let r = f(self, id, &mut args)?;
+                        for (i, v) in args.into_iter().enumerate() {
+                            self.stack[new_base + i] = v;
+                        }
+                        Ok(r)
+                    }
                 };
                 for (i, a) in s.args.iter().enumerate() {
                     if let ArgC::Inout(r) = a {
@@ -624,32 +635,10 @@ impl<'o> Vm<'o> {
                 }
                 r
             }
-            Target::Native
-                if s.name.starts_with("std.iter.")
-                    || s.name.ends_with(".iter")
-                    || matches!(&*s.name, "std.prelude.set" | "std.prelude.dict") =>
-            {
-                let args = self.stack[new_base..].iter_mut().map(mem::take).collect();
-                match self.iter_call(&s.name, args) {
+            Target::Native => {
+                let r = match intrinsic(&s.name, &self.stack[new_base..]) {
                     Some(r) => Ok(r?),
                     None => return unsupported(format!("call of `{}`", s.name)),
-                }
-            }
-            Target::Native => {
-                let r = if super::keyed::KEYED.contains(&&*s.name) {
-                    // Taken off the stack: the key closure runs on it.
-                    let mut args: Vec<Value> =
-                        self.stack[new_base..].iter_mut().map(mem::take).collect();
-                    let r = self.keyed_call(&s.name, &mut args)?;
-                    for (i, v) in args.into_iter().enumerate() {
-                        self.stack[new_base + i] = v;
-                    }
-                    Ok(r)
-                } else {
-                    match intrinsic(&s.name, &self.stack[new_base..]) {
-                        Some(r) => Ok(r?),
-                        None => return unsupported(format!("call of `{}`", s.name)),
-                    }
                 };
                 for (i, a) in s.args.iter().enumerate() {
                     if let ArgC::Inout(r) = a {
@@ -757,38 +746,6 @@ fn walk_mut<'v, 's>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::BTreeMap;
-
-    /// The std paths quoted in `src`.
-    fn paths(src: &str) -> Vec<&str> {
-        src.split('"')
-            .skip(1)
-            .step_by(2)
-            .filter(|c| c.starts_with("std.") && !c.contains(' '))
-            .collect()
-    }
-
-    #[test]
-    fn std_paths_have_one_handler() {
-        let stages = [
-            ("iter", include_str!("iter.rs")),
-            ("keyed", include_str!("keyed.rs")),
-        ];
-        let mut seen: BTreeMap<&str, &str> = BTreeMap::new();
-        for (stage, src) in stages {
-            for p in paths(src) {
-                if let Some(other) = seen.insert(p, stage) {
-                    assert_eq!(other, stage, "`{p}` is handled in two name-matched modules");
-                }
-            }
-        }
-        for p in crate::bind::bound() {
-            assert!(
-                !seen.contains_key(p),
-                "`{p}` is bound by id and matched by name"
-            );
-        }
-    }
 
     #[test]
     fn int_ops_agree_with_intrinsics() {

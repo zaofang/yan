@@ -6,6 +6,7 @@ use std::sync::LazyLock;
 
 use yong_std::registry::{ENTRIES, Id};
 
+use crate::vm::Vm;
 use crate::{Interp, R, Value};
 
 #[derive(Clone, Copy)]
@@ -15,7 +16,20 @@ pub(crate) enum Bind {
     Cap(fn(&mut Interp, &mut [Value]) -> R<Value>),
     /// `Err` is the failure value.
     Fallible(fn(&[Value]) -> R<Result<Value, Value>>),
+    /// Runs in the VM, which it may call back into for closures.
+    Vm(fn(&mut Vm, Id, &mut [Value]) -> R<Value>),
 }
+
+/// The functions that call closures, bound to their VM handlers.
+static VM: LazyLock<Vec<(Id, Bind)>> = LazyLock::new(|| {
+    let iter = crate::iter::IDS
+        .iter()
+        .map(|&id| (id, Bind::Vm(|vm, id, a| vm.iter_call(id, a))));
+    let keyed = crate::keyed::IDS
+        .iter()
+        .map(|&id| (id, Bind::Vm(|vm, id, a| vm.keyed_call(id, a))));
+    iter.chain(keyed).collect()
+});
 
 static TABLE: LazyLock<Vec<Option<Bind>>> = LazyLock::new(|| {
     let mut t = vec![None; ENTRIES.len()];
@@ -26,6 +40,7 @@ static TABLE: LazyLock<Vec<Option<Bind>>> = LazyLock::new(|| {
         .chain(crate::regex::BINDS)
         .chain(crate::prelude::BINDS)
         .chain(crate::collections::BINDS)
+        .chain(VM.iter())
     {
         assert!(
             t[id.0 as usize].replace(b).is_none(),
@@ -63,6 +78,6 @@ pub(crate) fn call(path: &str, args: &mut [Value]) -> R<Result<Value, Value>> {
     match get(id).expect("bound") {
         Bind::Plain(f) => f(args).map(Ok),
         Bind::Fallible(f) => f(args),
-        Bind::Cap(_) => unreachable!("selftests call no capability"),
+        Bind::Cap(_) | Bind::Vm(_) => unreachable!("selftests call neither"),
     }
 }
