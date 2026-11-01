@@ -235,3 +235,12 @@ Assumed in `yong-std`'s registry and the interpreter until the spec says otherwi
 - **Generated entries.** The registry is generated at build time from the `@intrinsic` functions and `@capability` operations in `yong-std/lib/std`, plus the scalar `<op>_<ty>` family and `exclusive_check`. An entry's signature is its declaration line; purity is read from it (a capability operation is `Cap`, a `var` parameter makes it `Mutates`, otherwise `Pure`). Only `Cap` entries are restricted to run time (stage 1 and later).
 - **Ids.** An id is the entry's index in path order, stable within one build only. Nothing persists ids; the stage-0 query cache, when it exists, will key on paths.
 - **Resolution point.** Yong text names std functions by path, and Yong text is the interpreter's input, so the path is resolved to its id when the interpreter compiles a call site, and again by each code generator from `yong-mir`. Elaboration checks only that every std function it may call has an entry (`registry_matches_declarations`). Run time never looks an intrinsic up by name once its module is bound by id.
+
+## Native code readings (M1b, 22.1 to 22.4)
+
+Assumed in `yong-mir` and `yong-cg-cranelift` until the spec says otherwise:
+
+- **Milestone order.** The lead chose on 2026-11-01 to start M1b before the M1 gate passes, against 22.6 rule 1, because code generation depends on checked Yong only. The interpreter stays the oracle; native code must match it on every case it runs.
+- **In-process first.** The first backend compiles with Cranelift's JIT and runs in the `yong` process (`yong --backend cranelift run FILE`). Object files and the system linker of 23 (M1b) come next, once std values have a native layout.
+- **Coverage.** `yong-mir` lowers integers up to 64 bits, `f64`, `bool` and `Unit`, direct and tail calls, loops, join points, `requires`, `assert`, `par` (in order) and printing a string literal. Anything else is a tool failure (`not supported yet`), not a program result.
+- **Unsafe code.** The workspace forbids `unsafe`. `yong-rt` and `yong-cg-cranelift` deny it instead and allow it only in `yong_rt::abi` (the C-ABI entry points) and at the call into generated code.
