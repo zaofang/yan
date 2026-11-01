@@ -2,7 +2,7 @@
 
 These are normative. Every implementation decision not settled elsewhere in this spec MUST be resolved by them, in this order of priority.
 
-1. **One semantics.** Yong defines all behavior. A surface MUST NOT add behavior that cannot be expressed in Yong; it may only add syntax.
+1. **One semantics.** Yong defines all behavior. A surface MUST NOT add behavior that cannot be expressed in Yong; it may only add syntax. Niche surfaces (16.7) are exempt (R568): they may give their own items semantics of their own, under the boundary rules of 16.7. Jian, Wen and Fei are not exempt.
 2. **Safe by default.** Outside `unsafe` blocks, a well-typed program MUST NOT exhibit undefined behavior, data races, use-after-free, null dereference, or an unhandled error or capability. Undefined behavior is the closed list in section 6.7; anything not on it is defined. `unsafe` is permitted only in the standard library and in modules marked `ffi`.
 3. **Unambiguous text.** Every source text has exactly one parse and one meaning. The grammars are deterministic with one token of lookahead after the factorings given in sections 13, 15 and 16.6. Operator mixes that people commonly misread require parentheses.
 4. **Five facts at the use site.** Mutation of a passed-in variable, possible failure, compile-time evaluation, concurrency, and capability use MUST be visible where they happen, by the marks defined in each surface. For a method call whose receiver is a mutable place, the receiver's `var` declaration is the mark (SQ29); in Jian, where local mutability is inferred, the mark is the receiver form together with the callee's `var` first parameter, which tools show as an inlay (R421). Everything else may be inferred.
