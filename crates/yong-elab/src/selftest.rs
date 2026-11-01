@@ -99,3 +99,18 @@ pub def main() uses io:
 ";
     assert_eq!(raised(src), src);
 }
+
+#[test]
+fn wen_spells_types_its_own_way() {
+    let t = Ty::Fn(
+        false,
+        vec![Ty::Dict(Box::new(Ty::Str), Box::new(Ty::Int))],
+        Box::new(Ty::Option(Box::new(Ty::List(Box::new(Ty::BigInt))))),
+    );
+    assert_eq!(t.wen(), "(Map[str, int]) -> List[BigInt]?");
+    assert_eq!(
+        t.to_string(),
+        "Callable[[dict[str, int]], list[bigint] | None]"
+    );
+    assert_eq!(Ty::Unit.wen(), "()");
+}

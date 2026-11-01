@@ -865,6 +865,11 @@ impl Lower<'_, '_, '_> {
         self.out.push(y::Stmt { kind, span });
     }
 
+    /// `t` as the module's surface spells it.
+    fn ty_text(&self, t: &Ty) -> String {
+        if self.cx.wen { t.wen() } else { t.to_string() }
+    }
+
     fn err(&mut self, code: &str, span: Span, msg: String) {
         let item = self.item.clone();
         self.cx.err(code, span, &item, msg);
@@ -886,7 +891,15 @@ impl Lower<'_, '_, '_> {
 
     fn expect(&mut self, got: &Ty, want: &Ty, at: Span) {
         if !got.fits(want) {
-            self.err("E201", at, format!("expected `{want}`, found `{got}`"));
+            self.err(
+                "E201",
+                at,
+                format!(
+                    "expected `{want}`, found `{got}`",
+                    want = self.ty_text(want),
+                    got = self.ty_text(got)
+                ),
+            );
         }
     }
 
@@ -1113,7 +1126,11 @@ impl Lower<'_, '_, '_> {
             K::Expr(e) => {
                 let (rhs, t) = self.rhs(e, None)?;
                 if !matches!(t, Ty::Unit | Ty::Never | Ty::Err) && matches!(rhs, Rhs::Call(_)) {
-                    self.err("E312", at, format!("a result of type `{t}` is discarded"));
+                    self.err(
+                        "E312",
+                        at,
+                        format!("a result of type `{t}` is discarded", t = self.ty_text(&t)),
+                    );
                 }
                 if !matches!(rhs, Rhs::Atom(_)) {
                     self.emit(StmtKind::Rhs(rhs), at);
@@ -1456,7 +1473,10 @@ impl Lower<'_, '_, '_> {
             "N15",
             e.span,
             &item,
-            format!("a `{t}` as a condition normalized to {how}"),
+            format!(
+                "a `{t}` as a condition normalized to {how}",
+                t = self.ty_text(&t)
+            ),
         );
         Ok(test)
     }
@@ -1658,7 +1678,11 @@ impl Lower<'_, '_, '_> {
                 self.err(
                     "E201",
                     at,
-                    format!("cannot unpack `{ty}` into {} names", target.len()),
+                    format!(
+                        "cannot unpack `{ty}` into {} names",
+                        target.len(),
+                        ty = self.ty_text(ty)
+                    ),
                 );
             }
         }
@@ -1815,7 +1839,7 @@ impl Lower<'_, '_, '_> {
                     return Ok(());
                 }
                 Ty::Err => return Ok(()),
-                t => return unsupported(format!("iterating a `{t}`")),
+                t => return unsupported(format!("iterating a `{t}`", t = self.ty_text(t))),
             };
             let zero = Atom::Lit(Literal::Int("0".into()), at);
             self.bind(&i, true, &Ty::Int, Rhs::Atom(zero), at, at);
@@ -2043,7 +2067,11 @@ impl Lower<'_, '_, '_> {
         let covered = cases.iter().any(|c| c.guard.is_none() && catch_all(&c.pat))
             || (matches!(t, Ty::Bool) && bools(true) && bools(false));
         if (scalar || matches!(t, Ty::Bool)) && !covered {
-            self.err("E503", at, format!("this `match` on `{t}` needs `case _`"));
+            self.err(
+                "E503",
+                at,
+                format!("this `match` on `{t}` needs `case _`", t = self.ty_text(&t)),
+            );
         }
         if cases.iter().any(|c| c.guard.is_some()) {
             return self.guarded_match(a, &t, cases, at);
@@ -2174,7 +2202,11 @@ impl Lower<'_, '_, '_> {
                     (None, _) => (y::Pat::Bind(n.clone()), vec![(n.clone(), ty.clone())]),
                     (Some(_), None) if matches!(ty, Ty::Err) => (y::Pat::Wild, Vec::new()),
                     (Some(_), None) => {
-                        self.err("E201", at, format!("pattern `{n}` cannot match a `{ty}`"));
+                        self.err(
+                            "E201",
+                            at,
+                            format!("pattern `{n}` cannot match a `{ty}`", ty = self.ty_text(ty)),
+                        );
                         (y::Pat::Wild, Vec::new())
                     }
                     (Some(ps), Some(fs)) if fs.is_empty() && ps.is_empty() => {
@@ -2213,14 +2245,25 @@ impl Lower<'_, '_, '_> {
             }
             j::Pat::Tuple(ps) => {
                 let Ty::Tuple(ts) = ty else {
-                    self.err("E201", at, format!("a tuple pattern cannot match a `{ty}`"));
+                    self.err(
+                        "E201",
+                        at,
+                        format!(
+                            "a tuple pattern cannot match a `{ty}`",
+                            ty = self.ty_text(ty)
+                        ),
+                    );
                     return Ok((y::Pat::Wild, Vec::new()));
                 };
                 if ts.len() != ps.len() {
                     self.err(
                         "E201",
                         at,
-                        format!("a {}-tuple pattern cannot match a `{ty}`", ps.len()),
+                        format!(
+                            "a {}-tuple pattern cannot match a `{ty}`",
+                            ps.len(),
+                            ty = self.ty_text(ty)
+                        ),
                     );
                     return Ok((y::Pat::Wild, Vec::new()));
                 }
@@ -2271,7 +2314,11 @@ impl Lower<'_, '_, '_> {
                                 self.err(
                                     "E201",
                                     value.span,
-                                    format!("cannot unpack `{t}` into {} targets", ts.len()),
+                                    format!(
+                                        "cannot unpack `{t}` into {} targets",
+                                        ts.len(),
+                                        t = self.ty_text(&t)
+                                    ),
                                 );
                             }
                             return Ok(());
@@ -2280,7 +2327,11 @@ impl Lower<'_, '_, '_> {
                             self.err(
                                 "E201",
                                 value.span,
-                                format!("cannot unpack `{t}` into {} targets", ts.len()),
+                                format!(
+                                    "cannot unpack `{t}` into {} targets",
+                                    ts.len(),
+                                    t = self.ty_text(&t)
+                                ),
                             );
                             return Ok(());
                         }
@@ -2342,7 +2393,10 @@ impl Lower<'_, '_, '_> {
                         "W823",
                         sp,
                         &item,
-                        format!("`{n}` is inferred as `{t}`; remove the annotation"),
+                        format!(
+                            "`{n}` is inferred as `{t}`; remove the annotation",
+                            t = self.ty_text(&t)
+                        ),
                     );
                 }
                 self.store(target, ann, r, t, value.span)
@@ -2493,7 +2547,12 @@ impl Lower<'_, '_, '_> {
             Ty::Int => lit(Literal::Int("0".into())),
             Ty::Float => lit(Literal::Float("0.0".into())),
             Ty::Str => lit(Literal::Str(String::new())),
-            _ => return unsupported(format!("`d[k] op= v` on a `{vt}` value")),
+            _ => {
+                return unsupported(format!(
+                    "`d[k] op= v` on a `{vt}` value",
+                    vt = self.ty_text(vt)
+                ));
+            }
         };
         let (ka, kty) = self.atom(k, Some(kt))?;
         self.expect(&kty, kt, k.span);
@@ -2557,7 +2616,11 @@ impl Lower<'_, '_, '_> {
                         }
                     }
                     t => {
-                        self.err("E203", *fsp, format!("`{t}` has no field `{f}`"));
+                        self.err(
+                            "E203",
+                            *fsp,
+                            format!("`{t}` has no field `{f}`", t = self.ty_text(t)),
+                        );
                         Ty::Err
                     }
                 };
@@ -2614,7 +2677,11 @@ impl Lower<'_, '_, '_> {
                                 self.err(
                                     "E201",
                                     i.span,
-                                    format!("a `{t}` is indexed by a literal below {}", ts.len()),
+                                    format!(
+                                        "a `{t}` is indexed by a literal below {}",
+                                        ts.len(),
+                                        t = self.ty_text(&t)
+                                    ),
                                 );
                                 Ok((p, Ty::Err))
                             }
@@ -2629,7 +2696,7 @@ impl Lower<'_, '_, '_> {
                         Ok((p, Ty::Err))
                     }
                     Ty::Err => Ok((p, Ty::Err)),
-                    t => unsupported(format!("indexing a `{t}` as a place")),
+                    t => unsupported(format!("indexing a `{t}` as a place", t = self.ty_text(t))),
                 }
             }
             _ => {
@@ -2668,7 +2735,11 @@ impl Lower<'_, '_, '_> {
         });
         if !fits {
             let hint = if t == Ty::Int { "; use `bigint`" } else { "" };
-            self.err("E201", at, format!("`{text}` does not fit in `{t}`{hint}"));
+            self.err(
+                "E201",
+                at,
+                format!("`{text}` does not fit in `{t}`{hint}", t = self.ty_text(&t)),
+            );
             return Ty::Err;
         }
         t
@@ -3105,7 +3176,11 @@ impl Lower<'_, '_, '_> {
                         }
                         Ty::Err => return Ok((Rhs::Atom(a), Ty::Err)),
                         t => {
-                            self.err("E201", x.span, format!("cannot negate a `{t}`"));
+                            self.err(
+                                "E201",
+                                x.span,
+                                format!("cannot negate a `{t}`", t = self.ty_text(&t)),
+                            );
                             return Ok((Rhs::Atom(a), Ty::Err));
                         }
                     };
@@ -3197,7 +3272,11 @@ impl Lower<'_, '_, '_> {
                     }
                     Ty::Str => return unsupported("slices of a `str`"),
                     t => {
-                        self.err("E201", b.span, format!("cannot slice a `{t}`"));
+                        self.err(
+                            "E201",
+                            b.span,
+                            format!("cannot slice a `{t}`", t = self.ty_text(t)),
+                        );
                         return Ok((Rhs::Atom(xs), Ty::Err));
                     }
                 };
@@ -3249,7 +3328,10 @@ impl Lower<'_, '_, '_> {
                         self.err(
                             "E201",
                             at,
-                            format!("`try` of a call that cannot fail; it returns `{t}`"),
+                            format!(
+                                "`try` of a call that cannot fail; it returns `{t}`",
+                                t = self.ty_text(&t)
+                            ),
                         );
                         (r, t)
                     }
@@ -3397,7 +3479,10 @@ impl Lower<'_, '_, '_> {
                             self.err(
                                 "E201",
                                 x.span,
-                                format!("`else` needs an optional or a fallible call, found `{t}`"),
+                                format!(
+                                    "`else` needs an optional or a fallible call, found `{t}`",
+                                    t = self.ty_text(&t)
+                                ),
                             );
                             return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err));
                         }
@@ -3413,7 +3498,10 @@ impl Lower<'_, '_, '_> {
                         self.err(
                             "E201",
                             x.span,
-                            format!("`else` needs an optional or a fallible call, found `{t}`"),
+                            format!(
+                                "`else` needs an optional or a fallible call, found `{t}`",
+                                t = self.ty_text(&t)
+                            ),
                         );
                         return Ok((Rhs::Atom(a), Ty::Err));
                     }
@@ -3555,7 +3643,9 @@ impl Lower<'_, '_, '_> {
                 };
                 match p {
                     Some(p) => (p, tx.clone(), vec![]),
-                    None => return unsupported(format!("`{op}` on `{tx}`")),
+                    None => {
+                        return unsupported(format!("`{op}` on `{tx}`", tx = self.ty_text(&tx)));
+                    }
                 }
             }
             (Ty::Coll(c, _), _) if let Some((p, rt)) = time_op(c, &ty, op) => (p, rt, vec![]),
@@ -3574,7 +3664,15 @@ impl Lower<'_, '_, '_> {
                 ("std.list.concat".to_owned(), tx.clone(), vec![e.targ()])
             }
             _ => {
-                self.err("E201", at, format!("`{op}` between `{tx}` and `{ty}`"));
+                self.err(
+                    "E201",
+                    at,
+                    format!(
+                        "`{op}` between `{tx}` and `{ty}`",
+                        ty = self.ty_text(&ty),
+                        tx = self.ty_text(&tx)
+                    ),
+                );
                 return Ok((Rhs::Atom(x), Ty::Err));
             }
         };
@@ -3640,7 +3738,11 @@ impl Lower<'_, '_, '_> {
                 Ty::Option(_) => self.is_some(x, at)?.0,
                 Ty::Err => return Ok((Rhs::Atom(x), Ty::Bool)),
                 t => {
-                    self.err("E201", a.span, format!("a `{t}` is never `None`"));
+                    self.err(
+                        "E201",
+                        a.span,
+                        format!("a `{t}` is never `None`", t = self.ty_text(&t)),
+                    );
                     return Ok((Rhs::Atom(Atom::Lit(Literal::Bool(false), at)), Ty::Bool));
                 }
             };
@@ -3669,7 +3771,11 @@ impl Lower<'_, '_, '_> {
                 Ty::Str => ("std.text.contains".to_owned(), vec![]),
                 Ty::Err => return Ok((Rhs::Atom(x), Ty::Err)),
                 t => {
-                    self.err("E201", b.span, format!("`in` on a `{t}`"));
+                    self.err(
+                        "E201",
+                        b.span,
+                        format!("`in` on a `{t}`", t = self.ty_text(t)),
+                    );
                     return Ok((Rhs::Atom(x), Ty::Err));
                 }
             };
@@ -3692,11 +3798,23 @@ impl Lower<'_, '_, '_> {
             return Ok((Rhs::Atom(x), Ty::Bool));
         }
         if !ty.fits(&tx) && !tx.fits(&ty) {
-            self.err("E201", b.span, format!("cannot compare `{tx}` with `{ty}`"));
+            self.err(
+                "E201",
+                b.span,
+                format!(
+                    "cannot compare `{tx}` with `{ty}`",
+                    ty = self.ty_text(&ty),
+                    tx = self.ty_text(&tx)
+                ),
+            );
             return Ok((Rhs::Atom(x), Ty::Bool));
         }
         if matches!(name, "lt" | "le" | "gt" | "ge") && !self.implements(&tx, "Ord") {
-            self.err("E221", at, format!("`{tx}` does not implement `Ord`"));
+            self.err(
+                "E221",
+                at,
+                format!("`{tx}` does not implement `Ord`", tx = self.ty_text(&tx)),
+            );
             return Ok((Rhs::Atom(Atom::Lit(Literal::Bool(false), at)), Ty::Bool));
         }
         let args = vec![let_arg(x), let_arg(y_)];
@@ -4088,7 +4206,10 @@ impl Lower<'_, '_, '_> {
                 self.err(
                     "E905",
                     e.span,
-                    format!("a `{vt}` passed to a C variadic is promoted; convert it to `{to}`"),
+                    format!(
+                        "a `{vt}` passed to a C variadic is promoted; convert it to `{to}`",
+                        vt = self.ty_text(&vt)
+                    ),
                 );
             }
             c.args.push(let_arg(v));
@@ -4129,7 +4250,10 @@ impl Lower<'_, '_, '_> {
                         self.err(
                             "E910",
                             value.span,
-                            format!("an `asm` operand is a scalar or `Vec`, not `{t}`"),
+                            format!(
+                                "an `asm` operand is a scalar or `Vec`, not `{t}`",
+                                t = self.ty_text(&t)
+                            ),
                         );
                     }
                     let dir = match dir.as_str() {
@@ -4203,7 +4327,11 @@ impl Lower<'_, '_, '_> {
             match map.iter().find(|(n, _)| n == k) {
                 None => map.push((k.clone(), tv)),
                 Some((_, kv)) if *kv != tv && !matches!(kv, Ty::Err) && !matches!(tv, Ty::Err) => {
-                    let msg = format!("expected `{tv}`, found `{kv}`");
+                    let msg = format!(
+                        "expected `{tv}`, found `{kv}`",
+                        tv = self.ty_text(&tv),
+                        kv = self.ty_text(kv)
+                    );
                     self.err("E201", at, msg);
                 }
                 Some(_) => {}
@@ -4219,7 +4347,11 @@ impl Lower<'_, '_, '_> {
                         .iter()
                         .find(|(w, _, _)| w.mentions(n))
                         .map_or(at, |(_, _, sp)| *sp);
-                    self.err("E221", sp, format!("`{t}` does not implement `{b}`"));
+                    self.err(
+                        "E221",
+                        sp,
+                        format!("`{t}` does not implement `{b}`", t = self.ty_text(t)),
+                    );
                 }
             }
         }
@@ -4592,7 +4724,11 @@ impl Lower<'_, '_, '_> {
                     (Ty::List(x), 1) => vec![(**x).clone()],
                     (Ty::Err, _) => return Ok((Rhs::Atom(a), Ty::Err)),
                     _ => {
-                        self.err("E201", e.span, format!("`{n}` does not take a `{t}`"));
+                        self.err(
+                            "E201",
+                            e.span,
+                            format!("`{n}` does not take a `{t}`", t = self.ty_text(&t)),
+                        );
                         return Ok((Rhs::Atom(a), Ty::Err));
                     }
                 };
@@ -4672,7 +4808,11 @@ impl Lower<'_, '_, '_> {
                     ("abs", Ty::Int | Ty::Float) => ("std.prelude.abs", vec![t.targ()], t.clone()),
                     ("str", _) => return Ok((Rhs::Atom(self.show(a, &t, at)), Ty::Str)),
                     _ => {
-                        self.err("E201", xs[0].span, format!("`{n}` does not take a `{t}`"));
+                        self.err(
+                            "E201",
+                            xs[0].span,
+                            format!("`{n}` does not take a `{t}`", t = self.ty_text(&t)),
+                        );
                         return Ok(err);
                     }
                 };
@@ -4713,7 +4853,7 @@ impl Lower<'_, '_, '_> {
                     self.err(
                         "E201",
                         c.span,
-                        format!("`evolve` takes a record, found `{t}`"),
+                        format!("`evolve` takes a record, found `{t}`", t = self.ty_text(&t)),
                     );
                     return Ok(err);
                 };
@@ -4721,7 +4861,7 @@ impl Lower<'_, '_, '_> {
                     self.err(
                         "E201",
                         c.span,
-                        format!("`evolve` takes a record, found `{t}`"),
+                        format!("`evolve` takes a record, found `{t}`", t = self.ty_text(&t)),
                     );
                     return Ok(err);
                 };
@@ -5064,7 +5204,14 @@ impl Lower<'_, '_, '_> {
             _ => None,
         };
         let Some(module) = t.module().or(std_class) else {
-            self.err("E200", at, format!("no function `{m}` takes a `{t}` first"));
+            self.err(
+                "E200",
+                at,
+                format!(
+                    "no function `{m}` takes a `{t}` first",
+                    t = self.ty_text(&t)
+                ),
+            );
             return Ok((Rhs::Proj(p), e(), None));
         };
         if m == "strftime"
@@ -5074,7 +5221,11 @@ impl Lower<'_, '_, '_> {
         }
         let path = format!("std.{module}.{m}");
         let Some(d) = crate::stdlib::decl(&path) else {
-            self.err("E203", name_at, format!("`{t}` has no method `{m}`"));
+            self.err(
+                "E203",
+                name_at,
+                format!("`{t}` has no method `{m}`", t = self.ty_text(&t)),
+            );
             return Ok((Rhs::Proj(p), e(), None));
         };
         if !d.intrinsic || d.typed_at_call() {
@@ -5102,7 +5253,7 @@ impl Lower<'_, '_, '_> {
             targs,
         }) = d.method(&t)
         else {
-            return unsupported(format!("`{path}` on `{t}`"));
+            return unsupported(format!("`{path}` on `{t}`", t = self.ty_text(&t)));
         };
         let targs: Vec<_> = targs.iter().map(Ty::targ).collect();
         let recv = if inout {
