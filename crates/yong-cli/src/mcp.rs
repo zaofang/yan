@@ -1,6 +1,6 @@
 //! `yong mcp` (21.4): the agent server over stdio, newline-delimited JSON-RPC 2.0.
-//! This first version serves `check`, `check_patch`, `apply_patch`, `autofix` and `sig`, all
-//! answered from one query database that lives as long as the server.
+//! It serves `check`, `check_patch`, `apply_patch`, `autofix`, `sig`, `spec_check` and
+//! `run_tests`, answered from one query database that lives as long as the server.
 
 use std::cell::RefCell;
 use std::io::{BufRead, Write};
@@ -8,9 +8,13 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Value, json};
 use yong_db::Database;
-use yong_diag::{DEFAULT_MAX_ERRORS, Diagnostic, finish};
+use yong_db::Loaded;
+use yong_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, finish};
+use yong_interp::{Limits, Stop};
 
+use crate::examples::{self, Kind};
 use crate::patch::{self, Ops};
+use crate::test;
 
 const PROTOCOL: &str = "2026-07-28";
 
@@ -37,7 +41,7 @@ pub fn serve(root: &Path) -> Result<(), String> {
 }
 
 /// The reply to one message; notifications get none.
-fn respond(root: &Path, db: &RefCell<Database>, req: &Value) -> Option<Value> {
+pub fn respond(root: &Path, db: &RefCell<Database>, req: &Value) -> Option<Value> {
     let id = req.get("id")?.clone();
     let params = &req["params"];
     let result = match req["method"].as_str().unwrap_or("") {
@@ -135,9 +139,76 @@ fn call(root: &Path, db: &RefCell<Database>, tool: &str, args: &Value) -> Result
                 "structuredContent": {"module": module, "text": text},
             }))
         }
+        "spec_check" => {
+            let module = str_arg(args, "module")?;
+            let text = str_arg(args, "text")?;
+            let diags = spec_check(&patch::module_path(root, module), text)?;
+            Ok(diagnostics(
+                finish(diags, DEFAULT_MAX_ERRORS),
+                max_tokens(args),
+            ))
+        }
+        "run_tests" => {
+            let r = test::run(
+                root,
+                args["filter"].as_str(),
+                args["gate"].as_bool() == Some(true),
+            )?;
+            let failed = r.failed(false);
+            Ok(json!({
+                "content": [{"type": "text", "text": r.lines().join("\n")}],
+                "structuredContent": {"ok": !failed, "results": r.json()},
+            }))
+        }
         t => Err(format!("no tool `{t}`")),
     }
 }
+
+/// Phase 1 of the spec gate (21.1) for items whose bodies are `...`: their types resolve, each
+/// `ex` line is well typed, and the arguments of each `ex` line satisfy `pre`. Nothing is written.
+fn spec_check(path: &Path, text: &str) -> Result<Vec<Diagnostic>, String> {
+    let file = path.display().to_string();
+    let (src, exs) = examples::augment(&file, text, true);
+    let mut db = Database::new(false, false);
+    let f = db.file(path, &src);
+    let mut diags: Vec<Diagnostic> = examples::remap(yong_ide::diagnostics(&db, f)?, &exs)
+        .into_iter()
+        .filter(|d| d.code != "H701")
+        .collect();
+    if diags.iter().any(|d| d.severity == Severity::Error) {
+        return Ok(diags);
+    }
+    let m = match yong_db::load(&db, f) {
+        Ok(Loaded::Ready(m, _)) => m.clone(),
+        Ok(Loaded::Unsupported(what, _)) => return Err(format!("not supported yet: {what}")),
+        Ok(Loaded::Stopped(d)) => return Ok(examples::remap(d.clone(), &exs)),
+        Err(msg) => return Err(msg.clone()),
+    };
+    for x in exs.iter().filter(|x| matches!(x.kind, Kind::Pre)) {
+        let mut out = Vec::new();
+        let r = yong_interp::test(&m, &x.name, Limits::default(), &mut out);
+        let d = match r {
+            Ok(_) => continue,
+            Err(Stop::Panic(k)) if k == "assert" => Diagnostic::error(
+                EX_BREAKS_PRE,
+                &file,
+                x.span,
+                &x.func,
+                format!(
+                    "the arguments of `ex` line {} break `pre` of `{}`",
+                    x.k, x.func
+                ),
+            ),
+            // `pre` that calls an unwritten body cannot be evaluated yet (21.1).
+            Err(_) => continue,
+        };
+        diags.push(d.with_item(&x.func));
+    }
+    Ok(diags)
+}
+
+/// An `ex` line whose arguments break the function's `pre` (21.1, R621).
+const EX_BREAKS_PRE: &str = "E619";
 
 /// A diagnostics result: the line rendering for the model, the records for the harness (R295).
 /// Under `max_tokens`, lines are kept while they fit (four bytes per token) and a last line
@@ -299,6 +370,32 @@ fn tools() -> Value {
             "outputSchema": {"type": "object", "properties": {"patch": {"type": "object"}}},
         },
         {
+            "name": "spec_check",
+            "description": "Phase 1 of the spec gate: items whose bodies are `...`; their types, their ex lines and pre for each ex line. Writes nothing.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "module": {"type": "string"},
+                    "text": {"type": "string", "description": "whole items with `...` bodies"},
+                    "max_tokens": {"type": "integer"},
+                },
+                "required": ["module", "text"],
+            },
+            "outputSchema": diags_out,
+        },
+        {
+            "name": "run_tests",
+            "description": "Run test_ functions and ex lines; filter is a test id or a module or function prefix.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"filter": {"type": "string"}, "gate": {"type": "boolean"}},
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {"ok": {"type": "boolean"}, "results": {"type": "array"}},
+            },
+        },
+        {
             "name": "sig",
             "description": "Signatures, contracts and examples of a module, within an optional token budget.",
             "inputSchema": {
@@ -325,6 +422,6 @@ mod tests {
         assert!(respond(Path::new("."), &d, &note).is_none());
         let list = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list"});
         let r = respond(Path::new("."), &d, &list).unwrap();
-        assert_eq!(r["result"]["tools"].as_array().unwrap().len(), 5);
+        assert_eq!(r["result"]["tools"].as_array().unwrap().len(), 7);
     }
 }

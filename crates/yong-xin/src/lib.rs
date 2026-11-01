@@ -6,7 +6,7 @@ mod parser;
 mod printer;
 mod resugar;
 
-pub use printer::print;
+pub use printer::{expr as print_expr, print};
 pub use resugar::resugar;
 use yong_diag::{Diagnostic, Severity};
 
