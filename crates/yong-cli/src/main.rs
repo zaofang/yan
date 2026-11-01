@@ -6,6 +6,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 
 mod mcp;
 mod patch;
+mod test;
 use yong_db::{Database, Loaded};
 use yong_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, finish};
 use yong_ide::ViewError;
@@ -84,6 +85,18 @@ enum Command {
     },
     /// Serve the agent tools over MCP on stdio (21.4), for the modules under the current directory.
     Mcp,
+    /// Run the package's tests (18.4): its `test_` functions, under the current directory.
+    Test {
+        #[arg(long, value_enum, default_value_t = Format::Line)]
+        format: Format,
+        /// Hold approved tests to tests.lock (R300): a changed, missing or failing approved
+        /// test fails the run, and proposed tests only report.
+        #[arg(long)]
+        gate: bool,
+        /// Run only this test, `module.test_name`.
+        #[arg(long)]
+        only: Option<String>,
+    },
     /// Run a program.
     Run {
         #[arg(long)]
@@ -124,6 +137,7 @@ fn main() -> ExitCode {
             Database::new(strict, level.as_deref() == Some("release")),
             cli.backend,
         ),
+        Command::Test { format, gate, only } => run_tests(format, gate, only.as_deref()),
         Command::View { as_, file } => view(&as_, &file),
         Command::Fmt { check, files } => fmt(&files, check),
         Command::Hash {
@@ -141,6 +155,22 @@ fn main() -> ExitCode {
             Ok(()) => ExitCode::SUCCESS,
             Err(msg) => tool_failure(&msg),
         },
+    }
+}
+
+fn run_tests(format: Format, gate: bool, only: Option<&str>) -> ExitCode {
+    let report = match test::run(Path::new("."), only, gate) {
+        Ok(r) => r,
+        Err(msg) => return tool_failure(&msg),
+    };
+    match format {
+        Format::Json => println!("{}", report.json()),
+        Format::Line => report.lines().iter().for_each(|l| println!("{l}")),
+    }
+    if report.failed(gate) {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
     }
 }
 
