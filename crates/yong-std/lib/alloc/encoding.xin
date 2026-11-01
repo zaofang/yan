@@ -1,0 +1,70 @@
+"""Byte strings and their text encodings: `bytes`, UTF-8, hex and base64 (17.3, R579 to R585)."""
+
+@since("1.0")
+pub type EncodingReason = Utf8() | Hex() | Base64()
+
+@since("1.0")
+pub class EncodingError:
+    """Input a decoder rejected: the byte offset (UTF-8) or char offset (hex, base64) and the kind."""
+    at: int
+    reason: EncodingReason
+
+@intrinsic
+@since("1.0")
+pub def from_list(xs: list[uint8]) -> bytes: ...
+
+@intrinsic
+@since("1.0")
+pub def len(self: bytes) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def at(self: bytes, i: int) -> uint8 | None: ...
+
+@intrinsic
+@since("1.0")
+pub def slice_exact(self: bytes, start: int, stop: int) -> bytes: ...
+
+@intrinsic
+@since("1.0")
+pub def concat(self: bytes, other: bytes) -> bytes: ...
+
+@intrinsic
+@since("1.0")
+pub def to_list(self: bytes) -> list[uint8]: ...
+
+@intrinsic
+@since("1.0")
+pub def starts_with(self: bytes, prefix: bytes) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def ends_with(self: bytes, suffix: bytes) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def find(self: bytes, sub: bytes) -> int | None: ...
+
+@intrinsic
+@since("1.0")
+pub def decode_utf8(self: bytes) -> str fail EncodingError: ...
+
+@intrinsic
+@since("1.0")
+pub def decode_utf8_lossy(self: bytes) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def hex(b: bytes) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def hex_decode(s: str) -> bytes fail EncodingError: ...
+
+@intrinsic
+@since("1.0")
+pub def base64(b: bytes, url: bool = False, pad: bool = True) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def base64_decode(s: str, url: bool = False) -> bytes fail EncodingError: ...

@@ -39,7 +39,15 @@ pub enum Ty {
 }
 
 /// Each std.collections type, by its Xin name; its Yong name is in the projection table.
-pub const COLLECTIONS: [&str; 5] = ["deque", "iter", "heap", "sorted_dict", "sorted_set"];
+pub const COLLECTIONS: [&str; 7] = [
+    "deque",
+    "iter",
+    "heap",
+    "sorted_dict",
+    "sorted_set",
+    "bytes",
+    "bytearray",
+];
 
 /// `name` as a std.collections type, with its `&'static` spelling and arity.
 pub fn collection(name: &str) -> Option<(&'static str, usize)> {
@@ -164,6 +172,8 @@ impl Ty {
             Ty::Coll("heap", _) => Some("collections.heap"),
             Ty::Coll("sorted_dict", _) => Some("collections.sorted_dict"),
             Ty::Coll("iter", _) => Some("iter.ops"),
+            Ty::Coll("bytes", _) => Some("encoding"),
+            Ty::Coll("bytearray", _) => Some("encoding.bytearray"),
             Ty::Coll(_, _) => Some("collections.sorted_set"),
             Ty::Int | Ty::Float | Ty::BigInt | Ty::Bool | Ty::Fixed(_) => Some("num"),
             Ty::Option(_) | Ty::Result(..) => Some("result"),
@@ -263,7 +273,7 @@ impl std::fmt::Display for Ty {
             Ty::List(t) => write!(f, "list[{t}]"),
             Ty::Dict(k, v) => write!(f, "dict[{k}, {v}]"),
             Ty::Set(t) => write!(f, "set[{t}]"),
-            Ty::Foreign(n, ts) if ts.is_empty() => write!(f, "{n}"),
+            Ty::Foreign(n, ts) | Ty::Coll(n, ts) if ts.is_empty() => write!(f, "{n}"),
             Ty::Tuple(ts) | Ty::Coll(_, ts) | Ty::Foreign(_, ts) => {
                 let name = match self {
                     Ty::Coll(n, _) | Ty::Foreign(n, _) => n,

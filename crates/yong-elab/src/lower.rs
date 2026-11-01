@@ -2233,7 +2233,16 @@ impl Lower<'_, '_, '_> {
                 self.store(target, ann, r, t, value.span)
             }
             _ => {
-                let (r, t) = self.rhs(value, None)?;
+                // An element's type types a literal stored into it: `ba[0] = 66` is a `uint8`.
+                let want = match &target.kind {
+                    j::ExprKind::Index(b, _) => match self.ty_of_local(b) {
+                        Some(Ty::List(x)) => Some(*x),
+                        Some(Ty::Coll("bytearray", _)) => Some(Ty::Fixed("u8")),
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                let (r, t) = self.rhs(value, want.as_ref())?;
                 self.store(target, ann, r, t, value.span)
             }
         }
@@ -2329,6 +2338,16 @@ impl Lower<'_, '_, '_> {
                 self.emit(StmtKind::Rhs(Rhs::Call(c)), target.span);
             }
             j::ExprKind::Attr(..) | j::ExprKind::Index(..) => {
+                if let j::ExprKind::Index(b, _) = &target.kind
+                    && let Some(Ty::Coll("bytes", _)) = self.ty_of_local(b)
+                {
+                    self.err(
+                        "E201",
+                        target.span,
+                        "`bytes` is immutable; use a `bytearray`".into(),
+                    );
+                    return Ok(());
+                }
                 let (p, pt) = self.place(target)?;
                 self.expect(&t, &pt, at);
                 self.emit(
@@ -2433,8 +2452,11 @@ impl Lower<'_, '_, '_> {
             j::ExprKind::Index(b, i) => {
                 let (mut p, t) = self.place(b)?;
                 match &t {
-                    Ty::List(_) | Ty::Coll("deque", _) => {
-                        let et = t.elem().cloned().expect("an element type");
+                    Ty::List(_) | Ty::Coll("deque" | "bytes" | "bytearray", _) => {
+                        let et = match t {
+                            Ty::Coll("bytes" | "bytearray", _) => Ty::Fixed("u8"),
+                            _ => t.elem().cloned().expect("an element type"),
+                        };
                         self.sites.insert(e.span, Site::List);
                         // N16: the parser kept `xs[-k]`; it means `xs[len(xs) - k]`.
                         let from_end;
@@ -3673,8 +3695,14 @@ impl Lower<'_, '_, '_> {
                     };
                     return self.call_expr(&f, args, at, want);
                 }
+                // `bytes.from_list` and `bytearray.from_bytes` name their type's declaring module.
                 if let j::ExprKind::Name(module) = &b.kind
                     && !self.locals.contains_key(module)
+                    && let module = match module.as_str() {
+                        "bytes" => "encoding",
+                        "bytearray" => "encoding.bytearray",
+                        m => m,
+                    }
                     && let Some(d) = crate::stdlib::decl(&format!("std.{module}.{m}"))
                     && !d.cap
                 {
@@ -3989,6 +4017,8 @@ impl Lower<'_, '_, '_> {
                 ts.iter().all(|t| self.implements(t, b))
             }
             Ty::List(t) if matches!(b, "Eq" | "Ord") => self.implements(t, b),
+            Ty::Coll("bytes", _) => matches!(b, "Eq" | "Ord" | "Hash"),
+            Ty::Coll("bytearray", _) => b == "Eq",
             t => self.g.impls.contains(&(b.to_owned(), t.to_string())),
         }
     }
@@ -4757,6 +4787,21 @@ impl Lower<'_, '_, '_> {
         };
         if !d.intrinsic || d.typed_at_call() {
             return self.user_call(&path, Some(b), args, at);
+        }
+        // A fallible method (`b.decode_utf8()`) is typed as its plain signature, which carries
+        // the failure type.
+        if d.def.ret.as_ref().is_some_and(|r| !r.fail.is_empty())
+            && let Some(mut plain) = d.plain()
+        {
+            let (_, self_ty) = plain.params.remove(0);
+            plain.names.remove(0);
+            self.expect(&t, &self_ty, b.span);
+            let a = if p.projs.is_empty() {
+                Atom::Name(p.root, p.root_span)
+            } else {
+                self.tmp(&t, Rhs::Proj(p), b.span)
+            };
+            return self.std_call(&path, plain, vec![let_arg(a)], args, m, at);
         }
         let Some(crate::stdlib::Method {
             inout,
