@@ -1,4 +1,4 @@
-# 0006: std.encoding and `bytes`
+# 0007: std.encoding and `bytes`
 
 - Status: draft
 - Research: none; this RFC is the proposal (Wave 3 of the std build plan)
