@@ -291,9 +291,7 @@ impl Vm<'_> {
                                 None => break opt(None),
                             }
                         },
-                        ("std.iter.ops.min", []) => {
-                            opt(self.drain(&i)?.into_iter().min_by(cmp))
-                        }
+                        ("std.iter.ops.min", []) => opt(self.drain(&i)?.into_iter().min_by(cmp)),
                         // The first of equal maxima, as Python's max.
                         ("std.iter.ops.max", []) => {
                             opt(self.drain(&i)?.into_iter().rev().max_by(cmp))

@@ -61,6 +61,9 @@ struct Lower<'a, 'c, 's> {
     writeback: Vec<(String, Place, Span)>,
     /// The parameter type, argument type and span of each argument `args` lowered.
     arg_tys: Vec<(Ty, Ty, Span)>,
+    /// The type the enclosing context expects of the call being lowered; infers a type
+    /// parameter that only the return mentions (`e: iter[int] = iter.empty()`).
+    want_ret: Option<(Ty, Span)>,
     /// Capabilities bound by an enclosing `with name = handler`.
     handlers: Vec<String>,
     /// Each call of a non-`par` callable local, for E716.
@@ -381,6 +384,7 @@ fn function_body(g: &Globals, f: &j::FuncDef, sig: &Sig, is_pub: bool, cx: &mut 
         sites: HashMap::new(),
         writeback: Vec::new(),
         arg_tys: Vec::new(),
+        want_ret: None,
         handlers: Vec::new(),
         fn_calls: Vec::new(),
         pending: HashMap::new(),
@@ -2586,6 +2590,7 @@ impl Lower<'_, '_, '_> {
         at: Span,
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
+        self.want_ret = want.map(|w| (w.clone(), at));
         match &f.kind {
             j::ExprKind::Name(n)
                 if !self.locals.contains_key(n) && self.pending.contains_key(n) =>
@@ -2720,6 +2725,7 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         let mut out: Vec<Arg> = sig.caps.iter().map(|c| Arg::Cap(c.clone(), at)).collect();
+        let want = self.want_ret.take().filter(|(_, sp)| *sp == at);
         let outer = mem::take(&mut self.arg_tys);
         let vals = self.args(&sig.params, recv, args, at);
         let got = mem::replace(&mut self.arg_tys, outer);
@@ -2728,8 +2734,11 @@ impl Lower<'_, '_, '_> {
         };
         out.extend(vals);
         let mut map = Vec::new();
-        for (want, t, _) in &got {
-            want.unify(t, &mut map);
+        for (w, t, _) in &got {
+            w.unify(t, &mut map);
+        }
+        if let Some((w, _)) = &want {
+            sig.ret.unify(w, &mut map);
         }
         for (n, bounds) in &sig.tparams {
             let Some((_, t)) = map.iter().find(|(m, _)| m == n) else {
