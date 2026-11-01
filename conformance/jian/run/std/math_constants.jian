@@ -1,0 +1,13 @@
+# spec: 11.1, 17.3
+# rows: R506
+# stdout:
+# 3.141592653589793 2.718281828459045
+# inf -inf nan
+# True False True
+# False True False
+
+pub def main() uses io:
+    io.print(f"{math.pi} {math.e}")
+    io.print(f"{math.inf} {-math.inf} {math.nan}")
+    io.print(f"{math.is_inf(math.inf)} {math.is_finite(math.inf)} {math.is_nan(math.nan)}")
+    io.print(f"{math.nan == math.nan} {math.is_finite(math.pi)} {math.is_inf(1e308)}")

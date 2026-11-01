@@ -1,0 +1,21 @@
+# spec: 11.1
+# rows: R504
+# stdout:
+# 0.3333333333333333 0.33333333333333337 0.3333333333333333 0.3333333333333333
+# -0.3333333333333333 -0.3333333333333333 -0.33333333333333337 -0.3333333333333333
+# 1.0 1.0000000000000002 1.0 1.0
+# 1.4142135623730951 1.414213562373095
+# 1.7976931348623157e+308 inf
+# -0.0 0.0
+
+pub def main() uses io:
+    a = 1.0
+    b = 3.0
+    io.print(f"{math.div(a, b)} {math.div(a, b, round=math.Up())} {math.div(a, b, round=math.Down())} {math.div(a, b, round=math.TowardZero())}")
+    io.print(f"{math.div(-a, b)} {math.div(-a, b, round=math.Up())} {math.div(-a, b, round=math.Down())} {math.div(-a, b, round=math.TowardZero())}")
+    tiny = 1e-30
+    io.print(f"{math.add(a, tiny)} {math.add(a, tiny, round=math.Up())} {math.add(a, tiny, round=math.Down())} {math.fma(a, a, tiny, round=math.TowardZero())}")
+    io.print(f"{math.sqrt(2.0, round=math.Up())} {math.sqrt(2.0, round=math.Down())}")
+    big = 1e308
+    io.print(f"{math.mul(big, 10.0, round=math.TowardZero())} {math.mul(big, 10.0)}")
+    io.print(f"{math.sub(a, a, round=math.Down())} {math.sub(a, a)}")

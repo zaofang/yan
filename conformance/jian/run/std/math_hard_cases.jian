@@ -1,0 +1,18 @@
+# spec: 11.1
+# rows: R500, R501
+# note: each input is one where common platform libms return a neighbor of the correctly rounded result
+# stdout:
+# 0.7338601008640645
+# 1.8559676262001739
+# 34.737994747766855
+# 0.19350237337635803
+# 1.2336100807049262
+# 0.883694409607053
+
+pub def main() uses io:
+    io.print(f"{math.sin(0.8239871083336938)}")
+    io.print(f"{math.tan(1.0765906708143111)}")
+    io.print(f"{math.exp(3.547834037436198)}")
+    io.print(f"{math.log(1.2134922666219383)}")
+    io.print(f"{math.atan(2.852463355945189)}")
+    io.print(f"{math.tanh(1.3923845559575003)}")

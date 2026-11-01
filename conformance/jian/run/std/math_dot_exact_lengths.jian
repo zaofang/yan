@@ -1,0 +1,10 @@
+# spec: 11.1
+# rows: R505
+# note: lists of different lengths panic with kind value
+# stdout:
+# 11.0
+# exit: 101
+
+pub def main() uses io:
+    io.print(f"{math.dot_exact([1.0, 2.0], [3.0, 4.0])}")
+    io.print(f"{math.dot_exact([1.0, 2.0], [3.0])}")

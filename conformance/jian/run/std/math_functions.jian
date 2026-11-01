@@ -1,0 +1,19 @@
+# spec: 11.1, 17.3
+# rows: R501, R502
+# stdout:
+# 2.718281828459045 1024.0 1000.0 0.0
+# 0.0 3.0 2.0 1.0
+# 0.0 -1.0 0.0 1.0
+# 1.4142135623730951 3.0 0.5 5.0
+# 1024.0 -8.0 0.125 3.0
+# 120.0 0.0 1.0 0.0
+# 0.5 0.25 0.75 1.0
+
+pub def main() uses io:
+    io.print(f"{math.exp(1.0)} {math.exp2(10.0)} {math.exp10(3.0)} {math.expm1(0.0)}")
+    io.print(f"{math.log(1.0)} {math.log2(8.0)} {math.log10(100.0)} {math.log1p(math.e - 1.0)}")
+    io.print(f"{math.sinpi(1.0)} {math.cospi(1.0)} {math.cospi(0.5)} {math.tanpi(0.25)}")
+    io.print(f"{math.sqrt(2.0)} {math.cbrt(27.0)} {math.rsqrt(4.0)} {math.hypot(3.0, 4.0)}")
+    io.print(f"{math.pow(2.0, 10.0)} {math.pown(-2.0, 3)} {math.pown(2.0, -3)} {math.powr(9.0, 0.5)}")
+    io.print(f"{math.tgamma(6.0)} {math.lgamma(1.0)} {math.erf(math.inf)} {math.erfc(math.inf)}")
+    io.print(f"{math.asinpi(1.0)} {math.atan2pi(1.0, 1.0)} {math.acospi(-0.5 * math.sqrt(2.0))} {math.atanpi(math.inf) * 2.0}")
