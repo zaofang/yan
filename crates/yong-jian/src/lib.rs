@@ -4,8 +4,10 @@ pub use yong_hir as ast;
 mod lexer;
 mod parser;
 mod printer;
+mod resugar;
 
 pub use printer::print;
+pub use resugar::resugar;
 use yong_diag::{Diagnostic, Severity};
 
 /// Parse a `.jian` file. `strict` disables the lenient reader (14.4): its deviations become

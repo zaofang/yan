@@ -39,7 +39,7 @@ The compiler and tools MUST be written in Rust (stable toolchain) as one Cargo w
 | `yong-mcp`, `yong-lsp` | agent server, language server | `lsp-server` |
 | `yong-cli` | the `yong` binary | `clap` |
 
-**Layering (R558, R560).** Dependencies run one way: base crates (`yong-diag`, `yong-syntax`, `yong-names`), then the surface kit and the surface crates, then `yong-hir` and `yong-elab`, then `yong-core`, `yong-check` and `yong-prove`, then `yong-opt` and `yong-mir`, then the interpreter and code generators, with `yong-rt` and `yong-std` beside them, and the tools on top. A surface crate depends on nothing below `yong-hir`, and `yong-elab` depends on no surface crate; std sources are loaded by `yong-db`. The interpreter runs checked Yong; the code generators start from `yong-mir`.
+**Layering (R558, R560).** Dependencies run one way: base crates (`yong-diag`, `yong-syntax`, `yong-names`), then the surface kit and the surface crates, then `yong-hir` and `yong-elab`, then `yong-core`, `yong-check` and `yong-prove`, then `yong-opt` and `yong-mir`, then the interpreter and code generators, with `yong-rt` and `yong-std` beside them, and the tools on top. A surface crate depends on nothing below `yong-hir`; a niche surface engine (R568) is a separate `yong-<name>-engine` crate at the runtime layer, beside `yong-rt`, and its items reach the HIR only as extern signatures (R576); and `yong-elab` depends on no surface crate; std sources are loaded by `yong-db`. The interpreter runs checked Yong; the code generators start from `yong-mir`.
 
 Other dependencies: `opentelemetry` (spans), `gimli` (DWARF), LibAFL (fuzzing).
 

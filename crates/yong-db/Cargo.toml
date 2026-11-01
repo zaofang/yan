@@ -1,0 +1,16 @@
+[package]
+name = "yong-db"
+description = "Yong query database; for now, loading the standard library's sources"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+yong-hir.workspace = true
+yong-jian.workspace = true
+yong-std.workspace = true
+
+[lints]
+workspace = true

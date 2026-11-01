@@ -39,7 +39,59 @@ pub enum ItemKind {
     Type(TypeDef),
     Trait(Trait),
     Impl(Impl),
-    Const { name: Name, ty: Type, value: Expr },
+    Const {
+        name: Name,
+        ty: Type,
+        value: Expr,
+    },
+    /// Wen's `unsafe extern "C" lib name link "x"` (12.1).
+    Extern(Extern),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Extern {
+    pub abi: String,
+    pub lib: Name,
+    pub link: Option<String>,
+    pub items: Vec<XItem>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum XItem {
+    Fn {
+        safe: bool,
+        name: Name,
+        name_span: Span,
+        params: Vec<XParam>,
+        variadic: bool,
+        ret: Option<(Type, Span)>,
+        uses_none: bool,
+        nonblocking: bool,
+    },
+    Static {
+        safe: bool,
+        name: Name,
+        ty: Type,
+        ty_span: Span,
+    },
+    Type {
+        name: Name,
+        drop: Name,
+    },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Callback {
+    Scoped,
+    Escaping,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct XParam {
+    pub name: Name,
+    pub callback: Option<Callback>,
+    pub ty: Type,
+    pub ty_span: Span,
 }
 
 impl ItemKind {
@@ -51,6 +103,7 @@ impl ItemKind {
             ItemKind::Trait(t) => &t.name,
             ItemKind::Impl(_) => "impl",
             ItemKind::Const { name, .. } => name,
+            ItemKind::Extern(x) => &x.lib,
         }
     }
 }
@@ -268,6 +321,25 @@ pub enum StmtKind {
     Assert(Expr),
     Unreachable,
     Reveal(Path),
+    /// Wen's `unsafe` block (12).
+    Unsafe(Vec<Stmt>),
+    /// Wen's `#if` (10.4): only the taken branch is checked.
+    StageIf {
+        cond: Expr,
+        then: Vec<Stmt>,
+        els: Option<Vec<Stmt>>,
+    },
+    /// Wen's `#for`: unrolled over a stage-0 sequence.
+    StageFor {
+        target: Name,
+        iter: Expr,
+        body: Vec<Stmt>,
+    },
+    /// `asm(template, operands...)` inside `unsafe` (12.9).
+    Asm {
+        template: String,
+        args: Vec<AsmArg>,
+    },
     If {
         arms: Vec<(Expr, Block)>,
         els: Option<Block>,
@@ -298,6 +370,30 @@ pub enum StmtKind {
         limit: Option<Expr>,
         body: ParBody,
     },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum AsmReg {
+    Class(Name),
+    /// An explicit register, with the span of its string literal.
+    Explicit(String, Span),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum AsmArg {
+    Operand {
+        dir: Name,
+        reg: AsmReg,
+        value: Expr,
+    },
+    Typed {
+        dir: Name,
+        reg: AsmReg,
+        name: Name,
+        ty: Type,
+    },
+    ClobberAbi(String),
+    Option(Name),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -443,6 +539,8 @@ pub enum ExprKind {
     Reify(Box<Expr>),
     /// `e as T`.
     Cast(Box<Expr>, Type),
+    /// Wen's `#e`: evaluated at stage 0 (10.4).
+    Stage(Box<Expr>),
 }
 
 #[derive(Clone, Debug, PartialEq)]

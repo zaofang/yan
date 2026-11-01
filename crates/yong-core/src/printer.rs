@@ -25,6 +25,16 @@ pub fn print(m: &Module) -> String {
     p.out
 }
 
+/// One item's canonical text, as the item hash reads it (3.6).
+pub(crate) fn item(i: &Item) -> String {
+    let mut p = Printer {
+        out: String::new(),
+        indent: 0,
+    };
+    p.item(i);
+    p.out
+}
+
 struct Printer {
     out: String,
     indent: usize,

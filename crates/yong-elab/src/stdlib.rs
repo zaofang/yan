@@ -2,7 +2,7 @@
 //! non-generic Jian bodies a module calls, read from yong-std's sources.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
+use std::sync::{LazyLock, OnceLock};
 
 use yong_core::ast as y;
 use yong_diag::Span;
@@ -39,13 +39,30 @@ struct Std {
     files: HashMap<&'static str, (String, &'static str)>,
 }
 
+/// A std module as the driver parsed it: its path below `std.`, its file name and source (for
+/// diagnostics in its bodies), and its HIR.
+pub type StdModule = (&'static str, String, &'static str, j::Module);
+
+static LOADER: OnceLock<fn() -> Vec<StdModule>> = OnceLock::new();
+
+/// Tell the elaborator how to load the std modules, which it does on first use. The driver
+/// parses them (std sources are loaded by `yong-db`, so this crate depends on no surface,
+/// R560); the first call wins.
+pub fn install_std(load: fn() -> Vec<StdModule>) {
+    let _ = LOADER.set(load);
+}
+
 static STD: LazyLock<Std> = LazyLock::new(|| {
     let mut out = Std::default();
-    for &(module, src) in yong_std::SOURCES {
-        let (m, diags) = yong_jian::parse(&file(module), src, true);
-        assert!(diags.is_empty(), "std.{module}: {diags:?}");
-        out.files.insert(module, (file(module), src));
-        for it in m.expect("std parses").items {
+    // This crate's tests load std as the driver does.
+    #[cfg(test)]
+    install_std(yong_db::std_modules);
+    let load = LOADER
+        .get()
+        .expect("yong_elab::install_std runs before elaboration");
+    for (module, file, src, m) in load() {
+        out.files.insert(module, (file, src));
+        for it in m.items {
             let has = |d: &str| it.decorators.iter().any(|x| x.path == [d]);
             let decl = |def: j::FuncDef, intrinsic, cap| Decl {
                 module,
@@ -88,10 +105,6 @@ static STD: LazyLock<Std> = LazyLock::new(|| {
     }
     out
 });
-
-fn file(module: &str) -> String {
-    format!("std/{}.jian", module.replace('.', "/"))
-}
 
 pub(crate) fn decl(path: &str) -> Option<&'static Decl> {
     STD.fns.get(path)
@@ -248,13 +261,44 @@ impl Decl {
     }
 }
 
+/// The words of every name, path and literal in `m`. Comments and docstrings are trivia (16.5),
+/// so they never decide which std types a module sees (law 4).
+fn words(m: &j::Module) -> HashSet<String> {
+    fn undoc(f: &mut j::FuncDef) {
+        if let Some(b) = &mut f.body {
+            b.doc = None;
+        }
+    }
+    let mut m = m.clone();
+    m.header.clear();
+    m.doc = None;
+    for it in &mut m.items {
+        match &mut it.kind {
+            j::ItemKind::Func(f) | j::ItemKind::Lemma(f) => undoc(f),
+            j::ItemKind::Class(c) => c.doc = None,
+            j::ItemKind::Trait(t) => {
+                t.doc = None;
+                t.sigs.iter_mut().for_each(|(_, f)| undoc(f));
+            }
+            j::ItemKind::Impl(i) => i.fns.iter_mut().for_each(undoc),
+            j::ItemKind::Type(_) | j::ItemKind::Const { .. } | j::ItemKind::Extern(_) => {}
+        }
+    }
+    // HIR's Debug text quotes every name, path segment and literal, and nothing else.
+    format!("{m:?}")
+        .split('"')
+        .skip(1)
+        .step_by(2)
+        .flat_map(|s| s.split(|c: char| !c.is_alphanumeric() && c != '_'))
+        .map(str::to_owned)
+        .collect()
+}
+
 /// The std classes `m` may meet, registered in `g`: those whose name or module (a capability
 /// such as `fs`) `src` names, unless `m` defines the name itself.
-pub(crate) fn classes(g: &mut Globals, m: &j::Module, src: &str) -> R<Vec<String>> {
+pub(crate) fn classes(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
     let own: HashSet<&str> = m.items.iter().map(|it| it.kind.name()).collect();
-    let words: HashSet<&str> = src
-        .split(|c: char| !c.is_alphanumeric() && c != '_')
-        .collect();
+    let words = words(m);
     let mut out = Vec::new();
     for (name, c) in &STD.classes {
         if (words.contains(name.as_str()) || words.contains(c.module))
@@ -283,17 +327,16 @@ pub(crate) fn classes(g: &mut Globals, m: &j::Module, src: &str) -> R<Vec<String
 
 /// The std sum types `m` may meet, registered in `g` as [`classes`] registers classes. Their
 /// variants have no fields.
-pub(crate) fn sums(g: &mut Globals, m: &j::Module, src: &str) -> Vec<String> {
+pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> Vec<String> {
     let own: HashSet<&str> = m.items.iter().map(|it| it.kind.name()).collect();
-    let words: HashSet<&str> = src
-        .split(|c: char| !c.is_alphanumeric() && c != '_')
-        .collect();
+    let words = words(m);
     let mut out = Vec::new();
     for (name, (module, t)) in &STD.sums {
         let j::TypeRhs::Sum(vs) = &t.rhs else {
             continue;
         };
-        if (words.contains(name.as_str()) || words.contains(module)) && !own.contains(name.as_str())
+        if (words.contains(name.as_str()) || words.contains(*module))
+            && !own.contains(name.as_str())
         {
             for v in vs {
                 g.variant_of.insert(v.name.clone(), name.clone());
@@ -514,6 +557,7 @@ fn std_cx(module: &str) -> Cx<'static> {
         strict: true,
         release: false,
         wen: false,
+        ffi: false,
         diags: Vec::new(),
     }
 }

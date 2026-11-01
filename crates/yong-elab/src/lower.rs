@@ -13,7 +13,7 @@ use yong_diag::Span;
 use yong_hir as j;
 
 use crate::bounds::{self, Site};
-use crate::{Cx, Globals, R, Sig, Ty, cap_type, unsupported};
+use crate::{Cx, Globals, R, Sig, Ty, cap_type, ffi, unsupported};
 
 /// List and dict methods whose receiver is `var` (R421).
 const MUTATING: [&str; 11] = [
@@ -74,6 +74,72 @@ struct Lower<'a, 'c, 's> {
     loop_outer: Vec<HashSet<String>>,
     /// The name the current statement assigns, for W822.
     target: Option<String>,
+    /// Inside an `unsafe` block (12.1).
+    in_unsafe: bool,
+    /// Stage-0 names: an instance's `Nat` parameters and `#for` targets (10.4).
+    stage: Vec<(String, Sv)>,
+}
+
+/// A stage-0 value the elaborator folds itself.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum Sv {
+    Int(i128),
+    Bool(bool),
+}
+
+impl Sv {
+    fn atom(self, at: Span) -> (Atom, Ty) {
+        match self {
+            Sv::Int(n) => (Atom::Lit(Literal::Int(n.to_string()), at), Ty::Int),
+            Sv::Bool(b) => (Atom::Lit(Literal::Bool(b), at), Ty::Bool),
+        }
+    }
+}
+
+/// `e` folded with the stage-0 names in `env`, when it is built from literals and those names.
+pub(crate) fn fold(e: &j::Expr, env: &[(String, Sv)]) -> Option<Sv> {
+    use j::ExprKind as K;
+    let int = |e| match fold(e, env)? {
+        Sv::Int(n) => Some(n),
+        Sv::Bool(_) => None,
+    };
+    let bool_ = |e| match fold(e, env)? {
+        Sv::Bool(b) => Some(b),
+        Sv::Int(_) => None,
+    };
+    Some(match &e.kind {
+        K::Lit(j::Lit::Int(t)) => Sv::Int(int_text(t).ok()?.parse().ok()?),
+        K::Lit(j::Lit::Bool(b)) => Sv::Bool(*b),
+        K::Name(n) => env.iter().rev().find(|(m, _)| m == n)?.1,
+        K::Unary("-", x) => Sv::Int(int(x)?.checked_neg()?),
+        K::Not(x) => Sv::Bool(!bool_(x)?),
+        K::Binary("and", a, b) => Sv::Bool(bool_(a)? && bool_(b)?),
+        K::Binary("or", a, b) => Sv::Bool(bool_(a)? || bool_(b)?),
+        K::Binary(op, a, b) => {
+            let (x, y) = (int(a)?, int(b)?);
+            Sv::Int(match *op {
+                "+" => x.checked_add(y)?,
+                "-" => x.checked_sub(y)?,
+                "*" => x.checked_mul(y)?,
+                "//" if y != 0 => x.div_euclid(y),
+                "%" if y != 0 => x.rem_euclid(y),
+                _ => return None,
+            })
+        }
+        K::Compare(op, a, b) => {
+            let (x, y) = (fold(a, env)?, fold(b, env)?);
+            Sv::Bool(match (*op, x, y) {
+                ("==", x, y) => x == y,
+                ("!=", x, y) => x != y,
+                ("<", Sv::Int(x), Sv::Int(y)) => x < y,
+                ("<=", Sv::Int(x), Sv::Int(y)) => x <= y,
+                (">", Sv::Int(x), Sv::Int(y)) => x > y,
+                (">=", Sv::Int(x), Sv::Int(y)) => x >= y,
+                _ => return None,
+            })
+        }
+        _ => return None,
+    })
 }
 
 pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
@@ -83,7 +149,9 @@ pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
         j::Lit::Str { prefix, value } if prefix.is_empty() || prefix == "r" => {
             Literal::Str(value.clone())
         }
-        j::Lit::Str { .. } => return unsupported("byte and C strings"),
+        // Yong has no C string literal yet; the value is the text, typed `CStr` (SPEC_QUESTIONS).
+        j::Lit::Str { prefix, value } if prefix == "c" => Literal::Str(value.clone()),
+        j::Lit::Str { .. } => return unsupported("byte strings"),
         j::Lit::Char(c) => Literal::Char(*c),
         j::Lit::Bool(b) => Literal::Bool(*b),
         j::Lit::None => Literal::Unit,
@@ -132,6 +200,7 @@ pub(crate) fn walk(e: &j::Expr, f: &mut impl FnMut(&j::Expr)) {
         | K::Lambda(_, b)
         | K::Is { value: b, .. }
         | K::Reify(b)
+        | K::Stage(b)
         | K::Cast(b, _) => walk(b, f),
         K::Call(c, args) => {
             walk(c, f);
@@ -184,7 +253,7 @@ fn root(e: &j::Expr) -> Option<&str> {
 }
 
 /// Exprs directly in a statement, for the mutability scan.
-fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
+pub(crate) fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
     use j::StmtKind as K;
     match &s.kind {
         K::Expr(e) | K::Become(e) | K::Fail(e) | K::Assert(e) => vec![e],
@@ -192,18 +261,26 @@ fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
         K::Ghost { value, .. } | K::Bind { value, .. } | K::LetElse { value, .. } => vec![value],
         K::Return(e) => e.iter().collect(),
         K::If { arms, .. } => arms.iter().map(|(c, _)| c).collect(),
-        K::While { cond, .. } => vec![cond],
+        K::While { cond, .. } | K::StageIf { cond, .. } => vec![cond],
+        K::StageFor { iter, .. } => vec![iter],
         K::For { iter, .. } => vec![iter],
         K::Match { scrutinee, .. } => vec![scrutinee],
         K::Par {
             body: j::ParBody::For { iter, .. },
             ..
         } => vec![iter],
+        K::Asm { args, .. } => args
+            .iter()
+            .filter_map(|a| match a {
+                j::AsmArg::Operand { value, .. } => Some(value),
+                _ => None,
+            })
+            .collect(),
         _ => Vec::new(),
     }
 }
 
-fn sub_blocks(s: &j::Stmt) -> Vec<&[j::Stmt]> {
+pub(crate) fn sub_blocks(s: &j::Stmt) -> Vec<&[j::Stmt]> {
     use j::StmtKind as K;
     match &s.kind {
         K::If { arms, els } => arms
@@ -211,7 +288,13 @@ fn sub_blocks(s: &j::Stmt) -> Vec<&[j::Stmt]> {
             .map(|(_, b)| b.stmts.as_slice())
             .chain(els.iter().map(|b| b.stmts.as_slice()))
             .collect(),
-        K::While { body, .. } | K::For { body, .. } => vec![body],
+        K::While { body, .. }
+        | K::For { body, .. }
+        | K::Unsafe(body)
+        | K::StageFor { body, .. } => vec![body],
+        K::StageIf { then, els, .. } => std::iter::once(then.as_slice())
+            .chain(els.iter().map(Vec::as_slice))
+            .collect(),
         K::Match { cases, .. } => cases.iter().map(|c| c.body.stmts.as_slice()).collect(),
         K::With { body, .. } | K::LetElse { els: body, .. } => vec![&body.stmts],
         K::Par { body, .. } => match body {
@@ -413,12 +496,19 @@ pub(crate) fn function(
     g.scope
         .borrow_mut()
         .extend(sig.tparams.iter().map(|(n, _)| n.clone()));
-    let r = function_body(g, f, sig, is_pub, cx);
+    let r = function_body(g, f, sig, is_pub, Vec::new(), cx);
     g.scope.borrow_mut().truncate(outer);
     r
 }
 
-fn function_body(g: &Globals, f: &j::FuncDef, sig: &Sig, is_pub: bool, cx: &mut Cx) -> R<y::FnDef> {
+fn function_body(
+    g: &Globals,
+    f: &j::FuncDef,
+    sig: &Sig,
+    is_pub: bool,
+    stage: Vec<(String, Sv)>,
+    cx: &mut Cx,
+) -> R<y::FnDef> {
     let Some(body) = &f.body else {
         return unsupported("functions without bodies");
     };
@@ -453,6 +543,8 @@ fn function_body(g: &Globals, f: &j::FuncDef, sig: &Sig, is_pub: bool, cx: &mut 
         pending: HashMap::new(),
         loop_outer: Vec::new(),
         target: None,
+        in_unsafe: false,
+        stage,
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -823,6 +915,34 @@ impl Lower<'_, '_, '_> {
             K::Ghost { name, .. } => {
                 self.ghosts.insert(name.clone());
             }
+            K::Expr(j::Expr {
+                kind: j::ExprKind::Stage(x),
+                ..
+            }) if matches!(&x.kind, j::ExprKind::Call(f, _) if matches!(&f.kind, j::ExprKind::Name(n) if n == "compile_error" || n == "compile_warn")) =>
+            {
+                let j::ExprKind::Call(f, args) = &x.kind else {
+                    unreachable!("matched")
+                };
+                let msg = match args.as_slice() {
+                    [
+                        j::Arg {
+                            kind:
+                                j::ArgKind::Expr(j::Expr {
+                                    kind: j::ExprKind::Lit(j::Lit::Str { value, .. }),
+                                    ..
+                                }),
+                            ..
+                        },
+                    ] => value.clone(),
+                    _ => return unsupported("`compile_error` with other than one string literal"),
+                };
+                let item = self.item.clone();
+                if matches!(&f.kind, j::ExprKind::Name(n) if n == "compile_error") {
+                    self.cx.err("E270", at, &item, msg);
+                } else {
+                    self.cx.warn("W816", at, &item, msg);
+                }
+            }
             K::Expr(e) => {
                 let (rhs, t) = self.rhs(e, None)?;
                 if !matches!(t, Ty::Unit | Ty::Never | Ty::Err) && matches!(rhs, Rhs::Call(_)) {
@@ -1037,6 +1157,45 @@ impl Lower<'_, '_, '_> {
                 );
             }
             K::With { .. } => return unsupported("`with deadline` and `with timeout`"),
+            K::Unsafe(body) => {
+                if !self.cx.ffi {
+                    self.err(
+                        "E901",
+                        at,
+                        "`unsafe` belongs in an ffi module, under the package's `ffi/` directory"
+                            .into(),
+                    );
+                }
+                let outer = mem::replace(&mut self.in_unsafe, true);
+                let b = self.block(body);
+                self.in_unsafe = outer;
+                self.emit(StmtKind::Unsafe(b?), at);
+            }
+            K::Asm { template, args } => self.asm(template, args, at)?,
+            K::StageIf { cond, then, els } => {
+                let Some(Sv::Bool(c)) = fold(cond, &self.stage) else {
+                    return unsupported("a `#if` condition that is not a stage-0 constant");
+                };
+                match (c, els) {
+                    (true, _) => self.stmts(then)?,
+                    (false, Some(b)) => self.stmts(b)?,
+                    (false, None) => {}
+                }
+            }
+            K::StageFor { target, iter, body } => {
+                let j::ExprKind::List(xs) = &iter.kind else {
+                    return unsupported("`#for` over a sequence other than a list literal");
+                };
+                for x in xs {
+                    let Some(v) = fold(x, &self.stage) else {
+                        return unsupported("a `#for` element that is not a stage-0 constant");
+                    };
+                    self.stage.push((target.clone(), v));
+                    let r = self.stmts(body);
+                    self.stage.pop();
+                    r?;
+                }
+            }
         }
         Ok(())
     }
@@ -1967,6 +2126,26 @@ impl Lower<'_, '_, '_> {
         use j::ExprKind as K;
         let at = e.span;
         Ok(match &e.kind {
+            K::Name(n) if self.stage.iter().any(|(m, _)| m == n) => {
+                let v = self
+                    .stage
+                    .iter()
+                    .rev()
+                    .find(|(m, _)| m == n)
+                    .expect("checked")
+                    .1;
+                let (a, t) = v.atom(at);
+                (Rhs::Atom(a), t)
+            }
+            K::Stage(x) => match fold(x, &self.stage) {
+                Some(v) => {
+                    let (a, t) = v.atom(at);
+                    (Rhs::Atom(a), t)
+                }
+                None => {
+                    return unsupported("stage-0 expressions in a function body beyond constants");
+                }
+            },
             K::Name(n) => {
                 if let Some(l) = self.locals.get(n) {
                     (Rhs::Atom(Atom::Name(n.clone(), at)), l.ty.clone())
@@ -1976,6 +2155,41 @@ impl Lower<'_, '_, '_> {
                     (Rhs::Atom(Atom::Name(n.clone(), at)), Ty::Data(s.clone()))
                 } else if self.pending.contains_key(n) {
                     return unsupported("a lambda with no expected type used before a call");
+                } else if let Some(sig) = self.g.fns.get(n)
+                    && sig.tparams.is_empty()
+                    && sig.caps.is_empty()
+                    && sig.fail.is_none()
+                    && sig.params.iter().all(|p| p.conv == Conv::Let)
+                {
+                    // A function used as a value is the lambda that calls it.
+                    let names: Vec<String> =
+                        (0..sig.params.len()).map(|k| format!("_{n}_{k}")).collect();
+                    let name = |x: &str| j::Expr {
+                        kind: K::Name(x.to_owned()),
+                        span: at,
+                        paren: false,
+                    };
+                    let args = names
+                        .iter()
+                        .zip(&sig.params)
+                        .map(|(x, p)| j::Arg {
+                            name: (!p.positional).then(|| p.name.clone()),
+                            kind: j::ArgKind::Expr(name(x)),
+                            span: at,
+                        })
+                        .collect();
+                    let body = j::Expr {
+                        kind: K::Call(Box::new(name(n)), args),
+                        span: at,
+                        paren: false,
+                    };
+                    let ty = Ty::Fn(
+                        false,
+                        sig.params.iter().map(|p| p.ty.clone()).collect(),
+                        Box::new(sig.ret.clone()),
+                    );
+                    let (r, _) = self.lambda(&names, &body, Some(&ty))?;
+                    (r, ty)
                 } else if self.gone.contains(n) {
                     return unsupported("a binding used after the block that made it");
                 } else if self.ghosts.contains(n) {
@@ -2621,6 +2835,17 @@ impl Lower<'_, '_, '_> {
                 Some(p) => (p.to_owned(), Ty::BigInt, vec![]),
                 None => return unsupported(format!("`{op}` on `bigint`")),
             },
+            (Ty::Fixed(n), Ty::Fixed(m)) if n == m && op != "/" => {
+                let p = if n.starts_with('f') {
+                    float_op(op).map(|p| p.replace("f64", n))
+                } else {
+                    int_op(op).map(|(p, _)| p.replace("i64", n))
+                };
+                match p {
+                    Some(p) => (p, tx.clone(), vec![]),
+                    None => return unsupported(format!("`{op}` on `{tx}`")),
+                }
+            }
             (Ty::Str, Ty::Str) if op == "+" => ("std.text.concat".to_owned(), Ty::Str, vec![]),
             (Ty::List(e), Ty::List(_)) if op == "+" => {
                 ("std.list.concat".to_owned(), tx.clone(), vec![e.targ()])
@@ -2747,6 +2972,7 @@ fn lit_ty(l: &j::Lit) -> Ty {
     match l {
         j::Lit::Int(_) => Ty::Int,
         j::Lit::Float(_) => Ty::Float,
+        j::Lit::Str { prefix, .. } if prefix == "c" => Ty::Foreign("CStr", Vec::new()),
         j::Lit::Str { .. } => Ty::Str,
         j::Lit::Char(_) => Ty::Char,
         j::Lit::Bool(_) => Ty::Bool,
@@ -2772,6 +2998,17 @@ impl Lower<'_, '_, '_> {
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         self.want_ret = want.map(|w| (w.clone(), at));
         match &f.kind {
+            j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if self.g.templates.contains_key(n)) =>
+            {
+                let j::ExprKind::Name(n) = &b.kind else {
+                    unreachable!("matched")
+                };
+                let Some(v) = fold(k, &self.stage) else {
+                    return unsupported("a stage-0 argument that is not a constant");
+                };
+                let (name, sig) = self.instance(n, v, at)?;
+                self.call_sig(&name, &sig, None, args, at)
+            }
             j::ExprKind::Name(n)
                 if !self.locals.contains_key(n) && self.pending.contains_key(n) =>
             {
@@ -2896,6 +3133,18 @@ impl Lower<'_, '_, '_> {
                 .warn("W815", at, &item, format!("`{name}` is deprecated"));
         }
         let sig = &self.g.fns[name];
+        if let Some(&(safe, variadic)) = self.g.externs.get(name) {
+            if !safe && !self.in_unsafe {
+                self.err(
+                    "E903",
+                    at,
+                    format!("`{name}` is an unsafe extern function; call it inside `unsafe`"),
+                );
+            }
+            if variadic {
+                return self.variadic_call(name, sig, args, at);
+            }
+        }
         // A prelude intrinsic typed here is still called by its std path.
         let path = format!("std.prelude.{name}");
         let name = match crate::stdlib::decl(&path) {
@@ -2903,6 +3152,143 @@ impl Lower<'_, '_, '_> {
             _ => name,
         };
         self.call_sig(name, sig, recv, args, at)
+    }
+
+    /// The instance of template `n` for stage-0 argument `v`, lowered on first use (10.4).
+    /// Its errors are E272, noted with the instantiation site.
+    fn instance(&mut self, n: &str, v: Sv, at: Span) -> R<(String, Sig)> {
+        let shown = match v {
+            Sv::Int(i) => i.to_string(),
+            Sv::Bool(b) => b.to_string(),
+        };
+        let name = format!("{n}__{}", shown.replace('-', "m"));
+        if let Some(s) = self.g.instances.borrow().get(&name) {
+            return Ok((name, s.clone()));
+        }
+        let (def, param) = self.g.templates[n].clone();
+        let mut f = def.clone();
+        f.name = name.clone();
+        f.tparams.retain(|t| !matches!(t, j::TParam::Value { .. }));
+        let sig = crate::sig(self.g, &f, self.cx)?;
+        self.g
+            .instances
+            .borrow_mut()
+            .insert(name.clone(), sig.clone());
+        let start = self.cx.diags.len();
+        let fd = function_body(self.g, &f, &sig, false, vec![(param, v)], self.cx)?;
+        let site = format!("in `{n}[{shown}]`, instantiated at {}:{}", at.line, at.col);
+        for d in &mut self.cx.diags[start..] {
+            if d.severity == yong_diag::Severity::Error && d.code != "E270" {
+                d.code = "E272".into();
+            }
+            d.item = n.to_owned();
+            d.notes.push(site.clone());
+        }
+        self.g.generated.borrow_mut().push(y::Item {
+            attrs: Vec::new(),
+            kind: y::ItemKind::Fn(fd),
+            span: f.name_span,
+        });
+        Ok((name, sig))
+    }
+
+    /// A call of a C variadic: the arguments past the declared ones get the default argument
+    /// promotions, so none may be a type that promotes (12.3, E905).
+    fn variadic_call(
+        &mut self,
+        name: &str,
+        sig: &Sig,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let n = sig.params.len().min(args.len());
+        let (rhs, t, fail) = self.call_sig(name, sig, None, &args[..n], at)?;
+        let Rhs::Call(mut c) = rhs else {
+            return Ok((rhs, t, fail));
+        };
+        for a in &args[n..] {
+            let j::ArgKind::Expr(e) = &a.kind else {
+                return unsupported("`&` arguments to a C variadic");
+            };
+            let (v, vt) = self.atom(e, None)?;
+            if matches!(
+                vt,
+                Ty::Fixed("f32" | "i8" | "i16" | "u8" | "u16") | Ty::Bool
+            ) {
+                let to = if vt == Ty::Fixed("f32") {
+                    "f64"
+                } else {
+                    "c_int"
+                };
+                self.err(
+                    "E905",
+                    e.span,
+                    format!("a `{vt}` passed to a C variadic is promoted; convert it to `{to}`"),
+                );
+            }
+            c.args.push(let_arg(v));
+        }
+        Ok((Rhs::Call(c), t, fail))
+    }
+
+    /// `asm(...)` (12.9): operands are scalars or `Vec` (E910) in registers of the target (E911).
+    fn asm(&mut self, template: &str, args: &[j::AsmArg], at: Span) -> R<()> {
+        let mut operands = Vec::new();
+        for a in args {
+            operands.push(match a {
+                j::AsmArg::Operand { dir, reg, value } => {
+                    let reg = match reg {
+                        j::AsmReg::Class(n) => {
+                            if !ffi::register_ok(true, n) {
+                                self.err(
+                                    "E911",
+                                    value.span,
+                                    format!("no register class `{n}` on this target"),
+                                );
+                            }
+                            y::AsmReg::Class(n.clone())
+                        }
+                        j::AsmReg::Explicit(n, sp) => {
+                            if !ffi::register_ok(false, n) {
+                                self.err("E911", *sp, format!("no register `{n}` on this target"));
+                            }
+                            y::AsmReg::Explicit(n.clone())
+                        }
+                    };
+                    let (v, t) = self.atom(value, None)?;
+                    let vec = matches!(&t, Ty::Coll(..)) && t.to_string().starts_with("Vec");
+                    if !(t.scalar().is_some_and(|s| s != "bigint")
+                        || matches!(t, Ty::Char | Ty::Err)
+                        || vec)
+                    {
+                        self.err(
+                            "E910",
+                            value.span,
+                            format!("an `asm` operand is a scalar or `Vec`, not `{t}`"),
+                        );
+                    }
+                    let dir = match dir.as_str() {
+                        "in" => y::AsmDir::In,
+                        "out" => y::AsmDir::Out,
+                        "inout" => y::AsmDir::Inout,
+                        "lateout" => y::AsmDir::Lateout,
+                        d => return unsupported(format!("`asm` operand direction `{d}`")),
+                    };
+                    y::AsmOperand::Reg { dir, reg, value: v }
+                }
+                j::AsmArg::Typed { .. } => return unsupported("typed `asm` outputs"),
+                j::AsmArg::ClobberAbi(s) => y::AsmOperand::ClobberAbi(s.clone()),
+                j::AsmArg::Option(n) => y::AsmOperand::Options(vec![n.clone()]),
+            });
+        }
+        self.emit(
+            StmtKind::Asm {
+                template: template.to_owned(),
+                operands,
+            },
+            at,
+        );
+        Ok(())
     }
 
     /// A call of `path` with signature `sig`. A generic callee's type arguments are inferred
