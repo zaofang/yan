@@ -1,8 +1,8 @@
 # 0009: std.time
 
-- Status: draft (the lead chose "Accept, civil time in this RFC" on 2026-11-01: D2 to D6 accepted, D1 replaced, D7 to D13 added for a second decision)
+- Status: accepted (the lead chose "Accept, civil time in this RFC" on 2026-11-01: D2 to D6 accepted, D1 replaced; then "Accept all (D7 to D13)" the same day)
 - Research: [Date and time](https://claude.ai/artifact/MoSWSGCoXQ4zqGm8RtKvVd) (the design behind 7.5, 11.6 and 17.5)
-- Rows: filled in when accepted
+- Rows: R593 to R604
 
 ## Summary
 
@@ -48,7 +48,7 @@ becomes the quantity type.
 Recommendation: accept.
 
 - Decision: accepted, 2026-11-01
-- Row: (assigned with the spec edit)
+- Row: R593
 
 ### D3: `Instant` and `MonoInstant`
 
@@ -65,7 +65,7 @@ beyond `MonoInstant(<ns>)`. Its epoch is unspecified and only differences mean a
 Recommendation: accept.
 
 - Decision: accepted, 2026-11-01
-- Row: (assigned with the spec edit)
+- Row: R594
 
 ### D4: `Show` and parsing are RFC 9557, strict
 
@@ -88,7 +88,7 @@ minutes and seconds only, because a `Duration` has no calendar units.
 Recommendation: accept.
 
 - Decision: accepted, 2026-11-01
-- Row: (assigned with the spec edit)
+- Row: R595
 
 ### D5: `TimeError`
 
@@ -103,7 +103,7 @@ It is the module's only error type. Step 2 adds reasons to it, not new types.
 Recommendation: accept.
 
 - Decision: accepted, 2026-11-01
-- Row: (assigned with the spec edit)
+- Row: R596
 
 ### D6: handlers in the interpreter
 
@@ -120,7 +120,7 @@ There is no spec change beyond what the rows above add. This item records the or
 Recommendation: accept.
 
 - Decision: accepted, 2026-11-01
-- Row: (assigned with the spec edit)
+- Row: R597
 
 ### D7: `PlainDate`, `PlainTime`, `PlainDateTime`
 
@@ -141,6 +141,9 @@ These are the ISO 8601 proleptic Gregorian types. They have no zone and no offse
 
 Recommendation: accept.
 
+- Decision: accepted, 2026-11-01
+- Row: R598
+
 ### D8: `Period` arithmetic
 
 `Period(years=0, months=0, weeks=0, days=0)` holds one sign (11.6). A mixed sign panics with `value`.
@@ -153,6 +156,9 @@ Recommendation: accept.
 - `Period.parse` accepts the same form.
 
 Recommendation: accept.
+
+- Decision: accepted, 2026-11-01
+- Row: R599
 
 ### D9: `TimeZone` and `TzDb`
 
@@ -168,6 +174,9 @@ Recommendation: accept.
 The interpreter takes the zone rules from Jiff's bundled tzdb, at the version pinned in `yong.lock`.
 
 Recommendation: accept.
+
+- Decision: accepted, 2026-11-01
+- Row: R600
 
 ### D10: `ZonedDateTime`
 
@@ -185,6 +194,9 @@ Recommendation: accept.
 
 Recommendation: accept.
 
+- Decision: accepted, 2026-11-01
+- Row: R601
+
 ### D11: strftime and strptime
 
 The directive set is Jiff's (17.3): POSIX plus `%f`, `%.f`, `%:z` and `%Q`.
@@ -197,6 +209,9 @@ The directive set is Jiff's (17.3): POSIX plus `%f`, `%.f`, `%:z` and `%Q`.
 
 Recommendation: accept.
 
+- Decision: accepted, 2026-11-01
+- Row: R602
+
 ### D12: `env.local_zone()` in tests
 
 `env.local_zone()` is the only way to reach the host's zone (17.5).
@@ -205,6 +220,9 @@ Recommendation: accept.
   on the machine's zone.
 
 Recommendation: accept.
+
+- Decision: accepted, 2026-11-01
+- Row: R603
 
 ### D13: `TimeError` reasons for civil time
 
@@ -215,6 +233,9 @@ Recommendation: accept.
 A gap or fold is never an error: `in_zone` resolves it, and `in_zone_exact` returns `None`.
 
 Recommendation: accept.
+
+- Decision: accepted, 2026-11-01
+- Row: R604
 
 ## Spec changes
 

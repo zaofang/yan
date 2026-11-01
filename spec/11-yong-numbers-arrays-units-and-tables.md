@@ -52,7 +52,7 @@ Shape and unit errors are type errors. All shape-label and unit information MUST
 
 ### 11.6 Time
 
-`Instant`, `Duration` and `MonoInstant` are i128 nanoseconds; `Duration` is `Quantity[i128, ns]` and exact. Every time type covers years -9999 to 9999; leaving the range is overflow and panics with kind `overflow` (operators panic, `checked_` forms return None). `Period` holds only years, months, weeks and days with one sign; calendar differences return `(Period, Duration)`; `Instant + Period` and `PlainDate + Duration` are type errors. `ZonedDateTime` has structural equality (instant and zone) and no ordering; order by `.instant`. Bundled zones and `ZonedDateTime` are in `core`. The full API is section 17.5.
+`Instant`, `Duration` and `MonoInstant` are i128 nanoseconds; `Duration` is `Quantity[i128, ns]` and exact. Until units are implemented, `Duration` is an opaque type over i128 nanoseconds with the API of 17.5, which it keeps as a `Quantity` (R593). Every time type covers years -9999 to 9999; leaving the range is overflow and panics with kind `overflow` (operators panic, `checked_` forms return None). `Period` holds only years, months, weeks and days with one sign; calendar differences return `(Period, Duration)`; `Instant + Period` and `PlainDate + Duration` are type errors. `ZonedDateTime` has structural equality (instant and zone) and no ordering; order by `.instant`. Bundled zones and `ZonedDateTime` are in `core`. The full API is section 17.5.
 
 ### 11.7 Decimal and money
 
