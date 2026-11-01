@@ -157,6 +157,9 @@ fn order(a: &Value, b: &Value) -> Option<Ordering> {
         (Str(x), Str(y)) => Some(x.cmp(y)),
         (Bytes(x), Bytes(y)) => Some(x.cmp(y)),
         (Path(_), Path(_)) | (WindowsPath(_), WindowsPath(_)) => Some(super::path::order(a, b)),
+        (Duration(x), Duration(y)) | (Instant(x), Instant(y)) | (Mono(x), Mono(y)) => {
+            Some(x.cmp(y))
+        }
         (Tuple(xs), Tuple(ys)) | (List(xs), List(ys)) => {
             for (x, y) in xs.iter().zip(ys) {
                 match order(x, y)? {
@@ -224,6 +227,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Data { name, fields } if name == "Some" && fields.len() == 1 => show(&fields[0].1, nested),
         Data { name, fields } if name == "None" && fields.is_empty() => "None".into(),
         Data { name, fields } if name == "EncodingError" => super::encoding::show_error(fields),
+        Data { name, fields } if name == "TimeError" => super::time::show_error(fields),
         Data { name, fields } => {
             let fs: Vec<String> = fields
                 .iter()
@@ -236,6 +240,9 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Iter(_) => "<iter>".into(),
         Bytes(b) => super::encoding::repr(b),
         Path(_) | WindowsPath(_) => super::path::text(v).to_owned(),
+        Duration(n) => super::time::show_duration(*n),
+        Instant(n) => super::time::show_instant(*n),
+        Mono(n) => format!("MonoInstant({n})"),
         ByteArray(b) => format!("bytearray({})", super::encoding::repr(b)),
     }
 }

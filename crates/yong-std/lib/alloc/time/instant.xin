@@ -1,0 +1,41 @@
+"""Instant: UTC nanoseconds since the Unix epoch (11.6, 17.5, R594, R595)."""
+
+@intrinsic
+@since("1.0")
+pub def from_unix_seconds(n: int) -> Instant: ...
+
+@intrinsic
+@since("1.0")
+pub def from_unix_nanos(n: int128) -> Instant: ...
+
+@intrinsic
+@since("1.0")
+pub def unix_seconds(self: Instant) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def unix_nanos(self: Instant) -> int128: ...
+
+@intrinsic
+@since("1.0")
+pub def add(self: Instant, d: Duration) -> Instant: ...
+
+@intrinsic
+@since("1.0")
+pub def sub(self: Instant, d: Duration) -> Instant: ...
+
+@intrinsic
+@since("1.0")
+pub def since(self: Instant, o: Instant) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def checked_add(self: Instant, d: Duration) -> Instant | None: ...
+
+@intrinsic
+@since("1.0")
+pub def checked_sub(self: Instant, d: Duration) -> Instant | None: ...
+
+@intrinsic
+@since("1.0")
+pub def parse(s: str) -> Instant fail TimeError: ...
