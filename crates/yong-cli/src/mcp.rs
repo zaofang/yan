@@ -153,6 +153,7 @@ fn call(root: &Path, db: &RefCell<Database>, tool: &str, args: &Value) -> Result
                 root,
                 args["filter"].as_str(),
                 args["gate"].as_bool() == Some(true),
+                Some(&test::cache_file(root)),
             )?;
             let failed = r.failed(false);
             Ok(json!({
