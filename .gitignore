@@ -5,3 +5,4 @@ __pycache__/
 .ruff_cache/
 conformance-summary.json
 /target/
+playground/yong.wasm
