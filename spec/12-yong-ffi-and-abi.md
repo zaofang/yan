@@ -8,7 +8,7 @@ Foreign code is reached through C. A module is an `ffi` module when its file liv
 
 ### 12.2 Libraries are capabilities
 
-`lib zlib` declares trait `Zlib`, capability `zlib` and a native handler that calls the linked symbols. Callers need `uses zlib`, the package ceiling must list it (E314), and tests may bind a fake. An item marked `uses none` is pure: it needs no capability, is deterministic and is cacheable (18.4); this is a trusted claim, listed by `yong audit`. Calls through a library capability are nondeterministic like I/O and blocking unless the item is declared `nonblocking`. Extern libraries that std binds inside its own handlers (aws-lc, io\_uring syscalls) never appear in user signatures.
+`lib zlib` declares trait `Zlib`, capability `zlib` and a native handler that calls the linked symbols. Callers need `uses zlib`, the package ceiling must list it (E314), and tests may bind a fake. An item marked `uses none` is pure: it needs no capability, is deterministic and is cacheable (18.4); this is a trusted claim, listed by `yong audit`. Its library still appears in the package ceiling and needs the root's `allow_ffi` consent, so a `uses none` claim never moves code outside the ceiling (R673). Calls through a library capability are nondeterministic like I/O and blocking unless the item is declared `nonblocking`. Extern libraries that std binds inside its own handlers (aws-lc, io\_uring syscalls) never appear in user signatures.
 
 ### 12.3 Layout and C types
 
@@ -57,7 +57,7 @@ Yong has no stable Yong-to-Yong ABI. The stable binary boundary is the C ABI und
 | opaque exported types | pointers with a generated `_free` |
 | closures | `{fn, ctx}` or `{fn, ctx, drop}` |
 
-`@export` (optionally `@export(name=...)`) on a `pub` item whose signature uses only profile types is legal in Xin and Wen (E907 otherwise). A `uses none` export is a plain C function. An export that uses capabilities takes a leading `yong_world *`, built by the host from explicit grants (directories, network targets, scheduler) and binding std's hosted handlers.
+`@export` (optionally `@export(name=...)`) on a `pub` item whose signature uses only profile types is legal in Xin and Wen (E907 otherwise). A `uses none` export is a plain C function. An export that uses capabilities takes a leading `yong_world *`, built by the host from explicit grants (directories, network targets, scheduler) and binding std's hosted handlers; it is the only source of host handlers besides the platform (R672).
 
 **Bindings.** `yong bind --lang c`, `rust` or `python` generates from the export set: a C header with `_Static_assert` on every size, alignment and offset; a Rust `-sys` crate plus a safe crate (slices, lifetimes from `from`, Drop, Result, Send and Sync); a CPython extension.
 

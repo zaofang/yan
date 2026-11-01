@@ -569,3 +569,8 @@ sections = "11.1, 11.2, 11.5, 25"
 rows = "R616 to R621"
 topic = "Reference agent loop (RFC 0014), decided by the owner: `yong agent` at M1 over the in-process `yong mcp` tools (R616); the two-phase loop with freeze, autofix, run_tests and stop-and-report (R617); `stub:` and `cmd:` model adapters, no HTTPS in the toolchain (R618); the schema-1 run record (R619); the Xin arm of the 21.6 harness runs through `yong agent` (R620); E619 for an `ex` line whose arguments break `pre` (R621)"
 sections = "18.1, 21.1, 21.4, 21.6, 25"
+
+[[entry]]
+rows = "R672 to R677"
+topic = "Security model (RFC 0026, https://claude.ai/artifact/Hotw9YyR8LEvWE4GbB9gLi), decided by the owner: host handlers are unforgeable, E326 (R672); unconfined class for proc, py and foreign libraries, `uses none` externs stay in the ceiling (R673); `fs.only`, `fs.sub`, `proc.only` and `env.only` attenuators (R674); frozen clauses keep their meaning and P006 covers the test-hash closure (R675); `yong mcp` confinement, budgets, untrusted channel and `yong trust` (R676); `embed` resolves symlinks and archives hold none (R677)"
+sections = "7.1, 7.3, 10.4, 12.2, 12.7, 17.6, 18.3, 19.2, 19.3, 19.4, 21.1, 21.4, 25"

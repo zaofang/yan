@@ -32,7 +32,7 @@ Indexing a user type, `x[k]` and `x[k] = v`, resolves to `Index[K]`, whose `at` 
 
 **Stage-0 steps (R487).** A stage-0 step is one executed call, one loop iteration or one allocation of checked Yong, counted the same by every evaluator. The step budget, `@limit(stage0_steps: n)` and `--stage0-profile` count these steps, so a compiled stage-0 evaluator raises E261 at the same point as the bytecode interpreter.
 
-**Capabilities.** Stage 0 gets only `alloc` (a stage-0 arena), `embed(path)` restricted to the package root with its content hash recorded (E267 outside it), and `diag`: `compile_error` (E270) and `compile_warn` (W816), optionally at a span inside a string-literal argument. Stage 0 is therefore hermetic and deterministic.
+**Capabilities.** Stage 0 gets only `alloc` (a stage-0 arena), `embed(path)` restricted to the package root with its content hash recorded (E267 outside it, checked on the symlink-resolved path, R677), and `diag`: `compile_error` (E270) and `compile_warn` (W816), optionally at a span inside a string-literal argument. Stage 0 is therefore hermetic and deterministic.
 
 **Materialization.** Only materializable values cross into run time (E262 otherwise): scalars, `Str`, `Bytes`, arrays, `List`, `Map`, `Set`, and records, sums or tuples of them, emitted once as read-only data. A materialized Map or Set carries an index built at compile time with a stable hash, independent of the run-time hash seed (R346). A `Type` crosses only as a monomorphization argument. `Rc`, `Arc`, function values and handlers do not cross.
 

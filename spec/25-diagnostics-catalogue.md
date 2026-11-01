@@ -124,6 +124,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E322 | task stack bound exceeds the manifest's stack reserve new | 17.1 |
 | E323 | lock (Resource, CsMutex, Mutex or RwLock guard) held across a suspension point, on every platform (R395) new | 17.1 |
 | E325 | Untrusted value passed to a @trusted parameter (R451) new | 17.4 (R451) |
+| E326 | host handler built or bound outside the platform, a `yong_world` or an attenuation of a held handle (R672) new | 7.3 (R672) |
 
 ### 25.6 Ownership, views, memory and thread safety
 
