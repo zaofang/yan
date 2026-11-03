@@ -48,6 +48,8 @@ struct Lower<'a, 'c, 's> {
     n: usize,
     /// Lowering a `become` call, whose arguments are exempt from E210 (SPEC_QUESTIONS).
     in_become: bool,
+    /// Dict elements that `place` copied out; a mutating caller stores them back.
+    dict_places: Vec<DictPlace>,
     /// Every read of each name, for last-use moves (E413).
     uses: HashMap<String, Vec<Span>>,
     ghosts: HashSet<String>,
@@ -610,6 +612,7 @@ fn function_body(
         loops: Vec::new(),
         n: 0,
         in_become: false,
+        dict_places: Vec::new(),
         uses: HashMap::new(),
         ghosts: HashSet::new(),
         inferred: None,
@@ -2744,7 +2747,9 @@ impl Lower<'_, '_, '_> {
                     );
                     return Ok(());
                 }
+                self.dict_places.clear();
                 let (p, pt) = self.place(target)?;
+                let stores = mem::take(&mut self.dict_places);
                 self.expect(&t, &pt, at);
                 self.emit(
                     StmtKind::Assign {
@@ -2754,6 +2759,7 @@ impl Lower<'_, '_, '_> {
                     },
                     target.span,
                 );
+                self.store_dict_places(stores, target.span);
             }
             j::ExprKind::Wild => self.emit(StmtKind::Rhs(r), target.span),
             _ => return unsupported("this assignment target"),
@@ -2930,6 +2936,35 @@ impl Lower<'_, '_, '_> {
                         Ok((p, Ty::Err))
                     }
                     Ty::Err => Ok((p, Ty::Err)),
+                    t if p.projs.is_empty() && map_kv(t).is_some() => {
+                        let (kt, vt) = map_kv(t).expect("matched");
+                        self.sites.insert(e.span, Site::Dict);
+                        let (ka, kty) = self.atom(i, Some(&kt))?;
+                        self.expect(&kty, &kt, i.span);
+                        let path = format!("std.{}.index", t.module().expect("a map"));
+                        let root = Atom::Name(p.root.clone(), p.root_span);
+                        let c = call(
+                            &path,
+                            vec![kt.targ(), vt.targ()],
+                            vec![let_arg(root), let_arg(ka.clone())],
+                            e.span,
+                        );
+                        let v = self.fresh("t");
+                        self.bind(&v, true, &vt, Rhs::Call(c), e.span, e.span);
+                        self.dict_places.push(DictPlace {
+                            map: t.clone(),
+                            root: p.root,
+                            root_span: p.root_span,
+                            key: ka,
+                            value: v.clone(),
+                        });
+                        let place = Place {
+                            root: v,
+                            root_span: e.span,
+                            projs: Vec::new(),
+                        };
+                        Ok((place, vt))
+                    }
                     t => unsupported(format!("indexing a `{t}` as a place", t = self.ty_text(t))),
                 }
             }
@@ -2956,6 +2991,24 @@ impl Lower<'_, '_, '_> {
                     }
                 }
             }
+        }
+    }
+
+    /// Stores the dict elements `place` copied out back into their dicts.
+    fn store_dict_places(&mut self, places: Vec<DictPlace>, at: Span) {
+        for d in places.into_iter().rev() {
+            let (kt, vt) = map_kv(&d.map).expect("a map");
+            let c = call(
+                &format!("std.{}.insert", d.map.module().expect("a map")),
+                vec![kt.targ(), vt.targ()],
+                vec![
+                    Arg::Value(Conv::Inout, Atom::Name(d.root, d.root_span), at),
+                    Arg::Value(Conv::Let, d.key, at),
+                    Arg::Value(Conv::Sink, Atom::Name(d.value, at), at),
+                ],
+                at,
+            );
+            self.emit(StmtKind::Rhs(Rhs::Call(c)), at);
         }
     }
 
@@ -5857,7 +5910,9 @@ impl Lower<'_, '_, '_> {
             }
             return self.user_call(m, Some(b), args, at);
         }
+        self.dict_places.clear();
         let (p, t) = self.place(b)?;
+        let mut stores = mem::take(&mut self.dict_places);
         if let Some(sig) = self.trait_method(&t, m) {
             return self.call_sig(m, &sig, Some(b), args, at);
         }
@@ -5937,14 +5992,20 @@ impl Lower<'_, '_, '_> {
             return unsupported(format!("`{path}` on `{t}`", t = self.ty_text(&t)));
         };
         let targs: Vec<_> = targs.iter().map(Ty::targ).collect();
+        let mut writeback = None;
         let recv = if inout {
             if root(b).is_none() {
                 self.err("E403", b.span, temporary_receiver(&format!("`{m}`")));
             }
-            if !p.projs.is_empty() {
-                return unsupported("a `var` method on a field or element");
+            if p.projs.is_empty() {
+                Arg::Value(Conv::Inout, Atom::Name(p.root, p.root_span), b.span)
+            } else {
+                // The method runs on a copy that is stored back.
+                let v = self.fresh("t");
+                self.bind(&v, true, &t, Rhs::Copy(p.clone()), b.span, b.span);
+                writeback = Some((p, v.clone()));
+                Arg::Value(Conv::Inout, Atom::Name(v, b.span), b.span)
             }
-            Arg::Value(Conv::Inout, Atom::Name(p.root, p.root_span), b.span)
         } else {
             let a = if p.projs.is_empty() {
                 Atom::Name(p.root, p.root_span)
@@ -5991,7 +6052,25 @@ impl Lower<'_, '_, '_> {
         for _ in n..params.len() {
             out.push(let_arg(Atom::Name("None".into(), at)));
         }
-        Ok((Rhs::Call(call(&path, targs, out, at)), ret, None))
+        let rhs = Rhs::Call(call(&path, targs, out, at));
+        if writeback.is_none() && (!inout || stores.is_empty()) {
+            return Ok((rhs, ret, None));
+        }
+        let r = self.tmp(&ret, rhs, at);
+        if let Some((place, v)) = writeback {
+            self.emit(
+                StmtKind::Assign {
+                    place,
+                    rhs: Rhs::Atom(Atom::Name(v, at)),
+                    rhs_span: at,
+                },
+                at,
+            );
+        }
+        if inout {
+            self.store_dict_places(mem::take(&mut stores), at);
+        }
+        Ok((Rhs::Atom(r), ret, None))
     }
 
     /// A contract expression that is one operation on names and literals, as Yong requires.
@@ -6249,6 +6328,14 @@ fn coll_targs(t: &Ty) -> Vec<y::TArg> {
 }
 
 /// The key and value types of a `dict` or `sorted_dict`.
+struct DictPlace {
+    map: Ty,
+    root: String,
+    root_span: Span,
+    key: Atom,
+    value: String,
+}
+
 fn map_kv(t: &Ty) -> Option<(Ty, Ty)> {
     match t {
         Ty::Dict(k, v) => Some(((**k).clone(), (**v).clone())),

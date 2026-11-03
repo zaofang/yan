@@ -370,6 +370,29 @@ def f(xs: list[int]) -> int:
 }
 
 #[test]
+fn a_var_method_on_a_field_or_element_is_stored_back() {
+    let src = [
+        "class Q:",
+        "    items: list[int]",
+        "",
+        "pub def main() uses io:",
+        "    q = Q(items=[1])",
+        "    xss = [[1], [2]]",
+        "    d: dict[str, list[int]] = {\"a\": [1]}",
+        "    q.items.append(3)",
+        "    xss[1].append(4)",
+        "    a = [0]",
+        "    if \"a\" in d:",
+        "        d[\"a\"].append(2)",
+        "        a = d[\"a\"]",
+        "    io.print(f\"{q.items} {xss} {a}\")",
+        "",
+    ]
+    .join("\n");
+    assert_eq!(run(&src), "[1, 3] [[1], [2, 4]] [1, 2]\n");
+}
+
+#[test]
 fn upper_and_lower_take_a_char() {
     let src = "def both(s: str) -> str:\n    out = \"\"\n    for c in s.chars():\n\
         \x20       out += c.upper() + c.lower()\n    return out\n\n\
