@@ -571,6 +571,31 @@ topic = "Reference agent loop (RFC 0014), decided by the owner: `yong agent` at 
 sections = "18.1, 21.1, 21.4, 21.6, 25"
 
 [[entry]]
+rows = "R622 to R624"
+topic = "Guaranteed zero-cost abstractions (RFC 0015, https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H), decided by the owner: lambda set specialization, so a closure with a closed lambda set and no heap-backed captures never allocates or calls indirectly (R622); every chain of std adapters fuses to one loop with no allocation or indirect call (R623); SIMD lanes for `uses none` `par for` bodies, and `@vectorize` as a proof attribute (R624)"
+sections = "5.5, 5.7, 9.3, 10.6, 11.3, 13, 17"
+
+[[entry]]
+rows = "R625 to R628"
+topic = "Data engines (RFC 0016), decided by the owner: DBSP incremental views in `@yong/frame` with exact float sums (R625); `get_many`, `contains_many` and `index_many` batch lookups (R626); `@access` patterns for fusion across kernels, extern functions and engine items, E274 (R627); `par_scan` and integer affine recurrences as scans (R628)"
+sections = "5.6, 9.3, 10.6, 11.2, 11.9, 17, 25"
+
+[[entry]]
+rows = "R629 to R632"
+topic = "std algorithms (RFC 0017), decided by the owner: `boolean=True` regex patterns with `&`, `~` and flat lookarounds, leftmost-longest, in linear time (R629); `math.fsum` and `sum(exact = true)` in `ColExpr` and query aggregates (R630); `frozen_sorted_set` and `frozen_sorted_dict` (R631); `fuse_filter` and `roaring_set` (R632)"
+sections = "11.1, 17"
+
+[[entry]]
+rows = "R633 to R634"
+topic = "Session protocols (RFC 0018), decided by the owner: `session.protocol` global protocols projected onto roles, E728 (R633); linear session endpoints for tasks, actors and `Remote`, E727 (R634)"
+sections = "9.5, 9.6, 25"
+
+[[entry]]
+rows = "R635 to R647"
+topic = "Packaging and ecosystem (RFC 0020, https://claude.ai/artifact/NHdZaQ9Q6X5tFxz1xh9BQC), decided by the owner: local dependency names (R635); dev, tool and root-only override dependencies and the M1 static index (R636); registry operations on Tessera, public witnesses, one job runner and an Actions rebuilder (R637); Python dependencies locked as pylock.toml (R638); first-party native libraries bundled in the toolchain (R639); wheels, a PEP 517 backend and the yong-build crate (R640); npm through components and jco at M4 (R641); requirement syntax (R642); pre-releases (R643); publisher yank (R644); search snapshot (R645); E016 publish refusals (R646); optional lock fields (R647)"
+sections = "12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25"
+
+[[entry]]
 rows = "R648"
 topic = "Error messages (RFC 0021, https://claude.ai/artifact/6catGcMdztyszRmvJLoiRu), decided by the owner: D1, E545 registered in section 25; `tools/rows.py check` fails when the spec cites a code that section 25 does not list"
 sections = "17.2, 25"
@@ -589,3 +614,43 @@ sections = "18.2"
 rows = "R651"
 topic = "Error messages (RFC 0021) D4, decided by the owner: E200 and E203 carry near names within edit distance 2 as `maybe` fixes"
 sections = "18.2"
+
+[[entry]]
+rows = "R652 to R654"
+topic = "Tally slice findings (examples/tally), decided by the owner: Wen variant patterns may be qualified, `schema.Grocery()` (R652); currency units per ISO 4217 code, Money written as `12.50usd` in Wen and `12.50 * usd` in Xin and read exactly as dec128, `money(d, c)`, `.amount`, `.currency` (R653); golden program G5, the Tally slice in Xin and Wen (R654)"
+sections = "11.7, 15.2, 15.3, 24.3"
+
+[[entry]]
+rows = "R672 to R677"
+topic = "Security model (RFC 0026, https://claude.ai/artifact/Hotw9YyR8LEvWE4GbB9gLi), decided by the owner: host handlers are unforgeable, E326 (R672); unconfined class for proc, py and foreign libraries, `uses none` externs stay in the ceiling (R673); `fs.only`, `fs.sub`, `proc.only` and `env.only` attenuators (R674); frozen clauses keep their meaning and P006 covers the test-hash closure (R675); `yong mcp` confinement, budgets, untrusted channel and `yong trust` (R676); `embed` resolves symlinks and archives hold none (R677)"
+sections = "7.1, 7.3, 10.4, 12.2, 12.7, 17.6, 18.3, 19.2, 19.3, 19.4, 21.1, 21.4, 25"
+
+[[entry]]
+rows = "R680"
+topic = "Formal core model (RFC 0022, https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y), decided by the owner: a Lean 4 model of Yong-K under `formal/`, checked against the interpreter by differential testing, never shipped and never a build dependency; the one exception to R215 (R680)"
+sections = "22.1, 26.1"
+
+[[entry]]
+rows = "R764 to R765"
+topic = "Gaps found by the formal core model (RFC 0022), decided by the owner: a join point body that falls through continues after the statement that jumped to it (R764); an `inout` argument takes the callee's final value when the callee fails (R765)"
+sections = "3.5, 4.1"
+
+[[entry]]
+rows = "R655 to R657"
+topic = "Learnability (RFC 0024), decided by the owner: `print` and `eprint` take any `Show` value (R655); an integer literal also types as a binary float when exactly representable (R656); `float ** int` is C23 `pown` (R657)"
+sections = "3.4, 11.1, 14.1, 17.1"
+
+[[entry]]
+rows = "R658 to R661"
+topic = "Python idiom parity (RFC 0024), decided by the owner: `min` and `max` over one iterable with `key=` and `default=` (R658); `sorted` and `sort` with `key=` and `reverse=` (R659); `str` and `list` repetition by `*` (R660); N31 lifts a capture-free nested `def` (R661)"
+sections = "14.1, 14.4, 17.2, 25"
+
+[[entry]]
+rows = "R662 to R664"
+topic = "Habit help (RFC 0024), decided by the owner: `habit` children on diagnostics triggered by Python or TypeScript habits (R662); W854 for `${...}` in a Wen string (R663); a TypeScript migration guide in the learning set (R664)"
+sections = "15.1, 15.5, 18.2, 18.9, 25"
+
+[[entry]]
+rows = "R760 to R763"
+topic = "Inferred loop invariants (RFC 0027), decided by the owner: kills keep implied facts by Fourier-Motzkin elimination (R760); `x = x + d` substitutes (R761); joins keep facts every path implies (R762); `while` invariants inferred from entry facts the body preserves (R763)"
+sections = "8.6"
