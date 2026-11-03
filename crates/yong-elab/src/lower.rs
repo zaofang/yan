@@ -2912,7 +2912,16 @@ impl Lower<'_, '_, '_> {
                         },
                         t,
                     )),
-                    Atom::Lit(..) => unsupported("a projection of a literal"),
+                    lit @ Atom::Lit(..) => {
+                        let v = self.fresh("t");
+                        self.bind(&v, true, &t, Rhs::Atom(lit), e.span, e.span);
+                        let place = Place {
+                            root: v,
+                            root_span: e.span,
+                            projs: Vec::new(),
+                        };
+                        Ok((place, t))
+                    }
                 }
             }
         }

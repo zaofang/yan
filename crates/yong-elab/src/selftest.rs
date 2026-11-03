@@ -368,3 +368,9 @@ def f(xs: list[int]) -> int:
 ";
     assert_eq!(codes(off_by_one), ["W820"]);
 }
+
+#[test]
+fn a_method_on_a_literal_lowers() {
+    let src = "pub def main() uses io:\n    io.print(\"-\".join([\"a\", \"b\"]))\n";
+    assert_eq!(run(src), "a-b\n");
+}
