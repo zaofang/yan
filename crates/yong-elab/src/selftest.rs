@@ -368,3 +368,11 @@ def f(xs: list[int]) -> int:
 ";
     assert_eq!(codes(off_by_one), ["W820"]);
 }
+
+#[test]
+fn a_call_result_can_be_called() {
+    let src = "def inc(x: int) -> int:\n    return x + 1\n\n\
+        def pick() -> Callable[[int], int]:\n    return inc\n\n\
+        pub def main() uses io:\n    fs = [inc]\n    io.print(f\"{pick()(1)}{fs[0](5)}\")\n";
+    assert_eq!(run(src), "26\n");
+}
