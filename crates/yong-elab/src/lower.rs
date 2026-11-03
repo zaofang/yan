@@ -857,6 +857,14 @@ fn int_op(op: &str) -> Option<(&'static str, Ty)> {
     })
 }
 
+fn is_integer(t: &Ty) -> bool {
+    match t {
+        Ty::Int | Ty::BigInt => true,
+        Ty::Fixed(n) => !n.starts_with('f'),
+        _ => false,
+    }
+}
+
 fn bigint_op(op: &str) -> Option<&'static str> {
     Some(match op {
         "+" => "add_bigint",
@@ -864,6 +872,9 @@ fn bigint_op(op: &str) -> Option<&'static str> {
         "*" => "mul_bigint",
         "//" => "floordiv_bigint",
         "%" => "mod_bigint",
+        "&" => "and_bigint",
+        "|" => "or_bigint",
+        "^" => "xor_bigint",
         _ => return None,
     })
 }
@@ -3157,6 +3168,20 @@ impl Lower<'_, '_, '_> {
                     };
                     (Rhs::Call(c), t)
                 }
+                ("~", _) => {
+                    let (a, t) = self.atom(x, want)?;
+                    match t {
+                        Ty::Int | Ty::BigInt => {}
+                        Ty::Fixed(n) if !n.starts_with('f') => {}
+                        Ty::Err => return Ok((Rhs::Atom(a), Ty::Err)),
+                        t => {
+                            self.err("E201", x.span, format!("`~` on a `{t}`"));
+                            return Ok((Rhs::Atom(a), Ty::Err));
+                        }
+                    }
+                    let p = format!("not_{}", t.scalar().expect("an integer"));
+                    (Rhs::Call(call(&p, vec![], vec![let_arg(a)], at)), t)
+                }
                 _ => return unsupported(format!("unary `{op}`")),
             },
             K::Not(x) => {
@@ -3568,6 +3593,32 @@ impl Lower<'_, '_, '_> {
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty)> {
         let (x, tx) = self.atom(a, want.filter(|w| !matches!(w, Ty::Float) || op != "/"))?;
+        if matches!(op, "<<" | ">>") && is_integer(&tx) {
+            // The amount is any integer type; a `bigint` shifts by an `int`.
+            let hint = if tx == Ty::BigInt {
+                Ty::Int
+            } else {
+                tx.clone()
+            };
+            let (n, nt) = self.atom(b, Some(&hint))?;
+            if nt == Ty::Err {
+                return Ok((Rhs::Atom(x), Ty::Err));
+            }
+            if !is_integer(&nt) || nt == Ty::BigInt {
+                self.err(
+                    "E201",
+                    b.span,
+                    format!("a shift amount must be an integer, not `{nt}`"),
+                );
+                return Ok((Rhs::Atom(x), Ty::Err));
+            }
+            let f = if op == "<<" { "shl" } else { "shr" };
+            let p = format!("{f}_{}", tx.scalar().expect("an integer"));
+            return Ok((
+                Rhs::Call(call(&p, vec![], vec![let_arg(x), let_arg(n)], at)),
+                tx,
+            ));
+        }
         let (y_, ty) = self.atom(b, Some(&tx))?;
         if op == "+" && matches!(tx, Ty::Str | Ty::List(_)) && self.not_last_use(a, at) {
             let item = self.item.clone();
@@ -4934,6 +4985,56 @@ impl Lower<'_, '_, '_> {
         Ok((Rhs::Call(c), t, Some(Ty::Data("Error".into()))))
     }
 
+    /// `bits.f(x, ...)` as the typed `<f>_<type>` operation for `x`'s integer type.
+    fn bits_call(&mut self, f: &str, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
+        let n = if matches!(f, "rotate_left" | "rotate_right" | "wrapping_shl") {
+            2
+        } else {
+            1
+        };
+        let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        let Some(xs) = self.positional(args, n, f, at)? else {
+            return Ok(err);
+        };
+        let (x, t) = self.atom(xs[0], None)?;
+        if t == Ty::Err {
+            return Ok(err);
+        }
+        let big_ok = matches!(f, "count_ones" | "bit_width");
+        if !is_integer(&t) || (t == Ty::BigInt && !big_ok) {
+            self.err(
+                "E201",
+                xs[0].span,
+                format!("`bits.{f}` does not take a `{t}`"),
+            );
+            return Ok(err);
+        }
+        let mut out = vec![let_arg(x)];
+        if let Some(e) = xs.get(1) {
+            let (a, nt) = self.atom(e, Some(&Ty::Int))?;
+            if !is_integer(&nt) || nt == Ty::BigInt {
+                if nt != Ty::Err {
+                    self.err(
+                        "E201",
+                        e.span,
+                        format!("`bits.{f}` needs an integer amount, not `{nt}`"),
+                    );
+                }
+                return Ok(err);
+            }
+            out.push(let_arg(a));
+        }
+        let rt = match f {
+            "is_power_of_two" => Ty::Bool,
+            "count_ones" | "count_zeros" | "leading_zeros" | "trailing_zeros" | "bit_width" => {
+                Ty::Int
+            }
+            _ => t.clone(),
+        };
+        let p = format!("{f}_{}", t.scalar().expect("an integer"));
+        Ok((Rhs::Call(call(&p, vec![], out, at)), rt, None))
+    }
+
     /// `module.f(...)`, a free std function called by its module's name, as `math.sqrt(x)`.
     fn module_call(
         &mut self,
@@ -4942,6 +5043,9 @@ impl Lower<'_, '_, '_> {
         args: &[j::Arg],
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
+        if module == "bits" {
+            return self.bits_call(f, args, at);
+        }
         let path = format!("std.{module}.{f}");
         if crate::stdlib::decl(&path).is_some_and(|d| d.typed_at_call()) {
             return self.user_call(&path, None, args, at);

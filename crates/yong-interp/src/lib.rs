@@ -14,6 +14,7 @@ use num_bigint::BigInt;
 use yong_core::ast::*;
 
 mod bind;
+mod bits;
 mod civil;
 mod collections;
 mod compile;
@@ -390,6 +391,13 @@ pub(crate) fn intrinsic(name: &str, args: &[Value]) -> Option<R<Value>> {
         });
     }
     let (op, ty) = name.rsplit_once('_')?;
+    if let Some(r) = if ty == "bigint" {
+        bits::bigint(op, args)
+    } else {
+        bits::int(op, ty, args)
+    } {
+        return Some(r);
+    }
     if let [Value::BigInt(a), Value::BigInt(b)] = args {
         return native::bigint_op(op, a, b);
     }
