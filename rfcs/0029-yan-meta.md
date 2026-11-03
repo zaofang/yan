@@ -1,6 +1,6 @@
 # 0029: Yan Meta, the lab and canary surface
 
-- Status: draft (D1 decided; D2 to D4 follow the lead's direction of 2026-11-03 and await his review)
+- Status: accepted (the lead accepted every decision below on 2026-11-03)
 - Research: [Yan Notation: names and real features](https://claude.ai/artifact/XwShntWVWkEzcMhkxbswiT)
 - Rows: R776 to R786
 
@@ -62,8 +62,7 @@ Options weighed: no lifecycle (RFC 0001 as is; open admission grows without exit
 diagnostic family (E001 and E002 already say exactly this for previews). Recommendation: the five
 steps above.
 
-- Decision: direction accepted, 2026-11-03 (lead: charter is lab, kitchen sink and canary); the
-  stages, `@lab` spelling and E001/E002 reuse await review
+- Decision: accepted, 2026-11-03 (card "Accept RFC 0029's D2 to D4 details as written")
 - Row: R777 (charter, stages, promotion, graduation, retirement), R778 (`@lab` opt-in, E001, E002)
 
 ### D3: Features that need no core change join RFC 0001 as experimental
@@ -101,8 +100,7 @@ Out, as the lead decided: tooling (notebook cells, typed-hole filling beyond X4,
 diff, per-reader view). Also out: probabilistic models beyond RFC 0001's M4 library form, which the
 planned prob surface owns, and multi-shot continuations (RFC 0001 section 11).
 
-- Decision: direction accepted, 2026-11-03 (lead: "all language features, no tooling"); the entry
-  list awaits review
+- Decision: accepted, 2026-11-03 (lead: "all language features, no tooling"; card as D2)
 - Row: R779
 
 ### D4: Features that need a core change join the research track (26.6)
@@ -132,7 +130,7 @@ macros), R527 (user grammars), R530 (positional type parameters), R531 (`Sym`), 
    anonymous record types outside stage 0. Amends 3.
 7. **GADTs.** Sum constructors that refine the sum's type parameters. Amends 3.
 
-- Decision: direction accepted, 2026-11-03 (lead: core-change features go to the research track)
+- Decision: accepted, 2026-11-03 (card as D2)
 - Row: R780 to R786
 
 ## Spec changes

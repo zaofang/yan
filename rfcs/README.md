@@ -49,4 +49,4 @@ research index links their studies and rows.
 | [0021](0021-error-messages.md) | Error messages: E545, E017 for unsupported constructs, line format, near names | accepted | R648 to R651 |
 | [0023](0023-yan-review.md) | `yan review`, a report for agent PRs | accepted | R665 to R671 |
 | [0028](0028-drops-and-yan-opt.md) | Ownership facts, drop elaboration and the `yan-opt` contract | accepted | R769 to R773 |
-| [0029](0029-yan-meta.md) | Yan Meta, the lab and canary surface | draft | R776 to R786 |
+| [0029](0029-yan-meta.md) | Yan Meta, the lab and canary surface | accepted | R776 to R786 |
