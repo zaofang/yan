@@ -77,7 +77,10 @@ pub(crate) fn constant(
             "E262",
             format!("{what} cannot cross into run time; only data is materialized"),
         ),
-        Err(Stop::Panic(kind)) => ("E260", format!("stage-0 evaluation panicked: {kind}")),
+        Err(Stop::Panic(p)) => (
+            "E260",
+            format!("stage-0 evaluation panicked: {}: {}", p.kind, p.message),
+        ),
         Err(Stop::Limit(what)) => (
             "E261",
             format!("stage-0 evaluation exceeded its {what} limit; raise it with `@limit`"),
@@ -103,7 +106,7 @@ fn limits(it: &j::Item) -> R<Limits> {
             let n: u64 = n
                 .replace('_', "")
                 .parse()
-                .map_err(|_| crate::Unsupported(format!("`@limit` value {n}")))?;
+                .or_else(|_| crate::unsupported(format!("`@limit` value {n}")))?;
             match a.name.as_deref() {
                 Some("stage0_depth") => l.depth = n as usize,
                 Some("stage0_steps") => l.steps = n,

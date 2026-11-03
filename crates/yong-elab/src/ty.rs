@@ -271,6 +271,40 @@ impl Ty {
     }
 }
 
+impl Ty {
+    /// The type as Wen spells it (16.3); `Display` gives Xin's spelling.
+    pub fn wen(&self) -> String {
+        let all = |ts: &[Ty]| ts.iter().map(Ty::wen).collect::<Vec<_>>().join(", ");
+        let named = |n: &str| {
+            type_name(n, Surface::Xin, Surface::Wen)
+                .unwrap_or(n)
+                .to_owned()
+        };
+        match self {
+            Ty::Unit => "()".into(),
+            Ty::List(t) => format!("List[{}]", t.wen()),
+            Ty::Set(t) => format!("Set[{}]", t.wen()),
+            Ty::Dict(k, v) => format!("Map[{}, {}]", k.wen(), v.wen()),
+            Ty::Tuple(ts) => format!("({})", all(ts)),
+            Ty::Coll(n, ts) | Ty::Foreign(n, ts) if ts.is_empty() => named(n),
+            Ty::Coll(n, ts) | Ty::Foreign(n, ts) => format!("{}[{}]", named(n), all(ts)),
+            Ty::Option(t) if matches!(**t, Ty::Union(_) | Ty::Fn(..)) => format!("({})?", t.wen()),
+            Ty::Option(t) => format!("{}?", t.wen()),
+            Ty::Result(t, e) => format!("Result[{}, {}]", t.wen(), e.wen()),
+            Ty::Union(ts) => ts.iter().map(Ty::wen).collect::<Vec<_>>().join(" | "),
+            Ty::Fn(p, ps, r) => {
+                format!(
+                    "{}({}) -> {}",
+                    if *p { "par " } else { "" },
+                    all(ps),
+                    r.wen()
+                )
+            }
+            t => named(&t.to_string()),
+        }
+    }
+}
+
 impl std::fmt::Display for Ty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

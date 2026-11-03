@@ -30,8 +30,25 @@ pub unsafe extern "C" fn yong_rt_panic(ptr: *const u8, len: usize) -> ! {
     // SAFETY: forwarded.
     let kind = unsafe { text(ptr, len) };
     let _ = std::io::stdout().flush();
-    eprintln!("panic: {kind}");
+    eprintln!("panic({kind}): {}", panic_message(kind));
     std::process::exit(101)
+}
+
+/// The message a panic of `kind` prints when its site gives no specific one.
+pub fn panic_message(kind: &str) -> &'static str {
+    match kind {
+        "bounds" => "index out of range",
+        "overflow" => "integer overflow",
+        "div_zero" => "division by zero",
+        "assert" => "assertion failed",
+        "contract" => "precondition failed",
+        "match" => "no arm matched the value",
+        "pattern" => "the value did not match the pattern",
+        "unreachable" => "reached code marked unreachable",
+        "exclusivity" => "two mutable accesses to the same place",
+        "conversion" => "the value does not fit the target type",
+        _ => "invalid value",
+    }
 }
 
 // `Str` and `List` values in native code are pointers to these leaked blocks; drops are not

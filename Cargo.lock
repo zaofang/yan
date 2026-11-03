@@ -1424,6 +1424,7 @@ name = "yong-ide"
 version = "0.0.0"
 dependencies = [
  "serde",
+ "serde_json",
  "yong-core",
  "yong-db",
  "yong-diag",
@@ -1445,6 +1446,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "yong-core",
+ "yong-diag",
  "yong-rt",
  "yong-std",
  "yong-xin",

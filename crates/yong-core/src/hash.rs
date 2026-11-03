@@ -41,6 +41,8 @@ pub struct Hashed {
     pub identity: ItemHash,
     /// The name table (R519): `names[k]` is the written name of `%k`.
     pub names: Vec<Name>,
+    /// Indices of the module's items this item references directly.
+    pub refs: Vec<usize>,
 }
 
 /// The hashes of `m`'s items, in item order.
@@ -106,6 +108,7 @@ pub fn hash_module_salted(m: &Module, salt: &str) -> Vec<Hashed> {
             salted: salted[i].expect("every item hashed"),
             identity: identity[i].expect("every item hashed"),
             names: c.names,
+            refs: c.refs,
         })
         .collect()
 }
