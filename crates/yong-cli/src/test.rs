@@ -258,9 +258,6 @@ pub fn run(root: &Path, filter: Option<&str>, gate: bool) -> Result<Report, Stri
                 );
                 continue;
             }
-            Ok(Loaded::Unsupported(what, _)) => {
-                return Err(format!("{shown}: not supported yet: {what}"));
-            }
             Err(msg) => return Err(msg.clone()),
         };
         for it in &m.items {

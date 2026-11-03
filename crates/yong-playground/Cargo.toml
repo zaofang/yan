@@ -1,0 +1,26 @@
+[package]
+name = "yong-playground"
+description = "The browser playground's WebAssembly entry points: views in every surface and runs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde_json.workspace = true
+yong-db.workspace = true
+yong-diag.workspace = true
+yong-ide.workspace = true
+yong-interp.workspace = true
+yong-names.workspace = true
+
+# The workspace forbids unsafe code; this crate allows it only for the C-ABI exports the page calls.
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }

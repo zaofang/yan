@@ -48,7 +48,7 @@ conformance/
 
 ### 24.3 Golden programs
 
-G1 is hello world (`io.print`), G3 is the portfolio program of 14.5 under `std.sim`, and G4 is a word count over `fake_fs`. G2 parses trades and computes volume-weighted average price:
+G1 is hello world (`io.print`), G3 is the portfolio program of 14.5 under `std.sim`, G4 is a word count over `fake_fs`, and G5 is the Tally slice (`examples/tally`): card authorization, an interchange fee and per-merchant settlement, written once in Xin and once in Wen, whose two modules print the same output and elaborate to the same Yong with the same item hashes (R654). G2 parses trades and computes volume-weighted average price:
 
 ```
 class Trade:

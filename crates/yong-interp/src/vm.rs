@@ -115,7 +115,7 @@ fn int_op(op: IntOp, ty: u8, a: i128, b: i128) -> Result<Scalar, &'static str> {
             let r = a.rem_euclid(b);
             return checked(Some(if r != 0 && b < 0 { r + b } else { r }), ty);
         }
-        IntOp::Div => Scalar::F(a as f64 / b as f64),
+        IntOp::Div => Scalar::F(yong_rt::num::div_i128(a, b)),
         IntOp::And => Scalar::I(a & b),
         IntOp::Or => Scalar::I(a | b),
         IntOp::Xor => Scalar::I(a ^ b),
@@ -333,7 +333,18 @@ impl<'o> Vm<'o> {
                     self.stack[base + dst as usize] = v;
                 }
                 Op::Clear(r) => self.stack[base + r as usize] = Value::Unit,
-                Op::Jmp(to) => pc = to as usize,
+                Op::Jmp(to) => {
+                    // A backward jump is a loop iteration, one stage-0 step (R487).
+                    if (to as usize) < pc
+                        && let Some((l, _, steps)) = &mut self.limits
+                    {
+                        *steps += 1;
+                        if *steps > l.steps {
+                            return Err(crate::Stop::Limit("steps"));
+                        }
+                    }
+                    pc = to as usize;
+                }
                 Op::JmpIf { cond, to } => match self.val(&code, base, cond) {
                     Value::Bool(true) => pc = to as usize,
                     Value::Bool(false) => {}

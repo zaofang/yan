@@ -2,6 +2,7 @@
 //! calls go to yong-rt's C-ABI symbols (R561); scalar intrinsics are lowered inline. Every
 //! function uses the tail calling convention so `become` is a `return_call` (3.5).
 
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
 use cranelift_codegen::ir::condcodes::{FloatCC, IntCC};
@@ -34,7 +35,7 @@ fn clif(t: Ty) -> Option<types::Type> {
 
 /// A compiled program, ready to run.
 pub struct Compiled {
-    _module: JITModule,
+    _lazy: Box<Lazy>,
     entry: extern "C" fn(),
 }
 
@@ -45,8 +46,144 @@ impl Compiled {
     }
 }
 
-/// Compile `p` for the host.
+/// When functions become machine code.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Jit {
+    /// All of them before `main` starts, with direct calls.
+    Eager,
+    /// Each one at its first call (debug `yong run`). Calls go through the debug jump table of
+    /// 18.4: one code address per function, first that of a stub that compiles the function,
+    /// stores its address in the table and tail-calls it. Hot reload writes the same table.
+    Lazy,
+}
+
+/// The module and what it takes to define more functions in it.
+struct State {
+    module: JITModule,
+    program: Program,
+    sigs: Vec<Signature>,
+    ids: Vec<CFuncId>,
+    rt_ids: Vec<CFuncId>,
+    panic: CFuncId,
+    /// Owned by the program: the JIT code refers to them by address.
+    strings: Vec<i64>,
+    fctx: FunctionBuilderContext,
+    ctx: cranelift_codegen::Context,
+}
+
+/// Owns the module; its address is baked into the stubs, so it is boxed.
+struct Lazy {
+    state: RefCell<State>,
+    /// The jump table, read by the JIT code at its address. Empty for [`Jit::Eager`].
+    table: Box<[Cell<usize>]>,
+    done: RefCell<Vec<bool>>,
+}
+
+/// How generated code calls the program's functions.
+enum Calls {
+    Direct(Vec<FuncRef>),
+    /// Load the callee's address from the jump table at `table`.
+    Table {
+        table: i64,
+        sigs: Vec<cranelift_codegen::ir::SigRef>,
+    },
+}
+
+impl State {
+    /// Define function `i`, calling the others directly or through the jump table at `table`.
+    fn define(&mut self, i: usize, table: Option<i64>) -> R<()> {
+        let State {
+            module,
+            program,
+            sigs,
+            ids,
+            rt_ids,
+            panic,
+            strings,
+            fctx,
+            ctx,
+        } = self;
+        let ptr = module.target_config().pointer_type();
+        ctx.func.signature = sigs[i].clone();
+        let mut b = FunctionBuilder::new(&mut ctx.func, fctx);
+        let calls = match table {
+            None => Calls::Direct(
+                ids.iter()
+                    .map(|id| module.declare_func_in_func(*id, b.func))
+                    .collect(),
+            ),
+            Some(table) => Calls::Table {
+                table,
+                sigs: sigs.iter().map(|s| b.import_signature(s.clone())).collect(),
+            },
+        };
+        let rt = Rt {
+            fns: rt_ids
+                .iter()
+                .map(|id| module.declare_func_in_func(*id, b.func))
+                .collect(),
+            panic: module.declare_func_in_func(*panic, b.func),
+            ptr,
+        };
+        Gen {
+            b: &mut b,
+            f: &program.funcs[i],
+            vars: Vec::new(),
+            blocks: Vec::new(),
+            calls,
+            rt,
+            strings,
+            kinds: HashMap::new(),
+        }
+        .func();
+        b.finalize(module.target_config());
+        module.define_function(ids[i], ctx).map_err(err)?;
+        module.clear_context(ctx);
+        Ok(())
+    }
+}
+
+impl Lazy {
+    fn table_addr(&self) -> i64 {
+        self.table.as_ptr() as i64
+    }
+
+    /// The code of function `i`, compiled now if this is its first call.
+    fn resolve(&self, i: usize) -> R<usize> {
+        if self.done.borrow()[i] {
+            return Ok(self.table[i].get());
+        }
+        let mut st = self.state.borrow_mut();
+        st.define(i, Some(self.table_addr()))?;
+        st.module.finalize_definitions().map_err(err)?;
+        let code = st.module.get_finalized_function(st.ids[i]) as usize;
+        self.table[i].set(code);
+        self.done.borrow_mut()[i] = true;
+        Ok(code)
+    }
+}
+
+/// Called by a stub: compile function `i` of `lazy` and return its code address.
+#[allow(unsafe_code)]
+extern "C" fn yong_jit_resolve(lazy: *const Lazy, i: i64) -> usize {
+    // SAFETY: stubs pass the address of the boxed `Lazy` that the running `Compiled` owns.
+    let lazy = unsafe { &*lazy };
+    match lazy.resolve(i as usize) {
+        Ok(code) => code,
+        Err(e) => {
+            eprintln!("yong: not supported yet: {e}");
+            std::process::exit(2)
+        }
+    }
+}
+
+/// Compile `p` for the host, every function before `main` starts.
 pub fn compile(p: &Program) -> R<Compiled> {
+    compile_with(p, Jit::Eager)
+}
+
+/// Compile `p` for the host.
+pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
     let mut flags = settings::builder();
     flags.set("opt_level", "none").map_err(err)?;
     // Cranelift's tail calls need frame pointers.
@@ -58,6 +195,7 @@ pub fn compile(p: &Program) -> R<Compiled> {
     let mut jb = JITBuilder::with_isa(isa, default_libcall_names());
     jb.symbol("yong_rt_panic", abi::yong_rt_panic as *const u8);
     jb.symbol("yong_rt_exit", abi::yong_rt_exit as *const u8);
+    jb.symbol("yong_jit_resolve", yong_jit_resolve as *const u8);
     for f in RT {
         let (name, addr, ..) = rt_fn(*f);
         jb.symbol(name, addr);
@@ -76,6 +214,14 @@ pub fn compile(p: &Program) -> R<Compiled> {
     exit_sig.params.push(AbiParam::new(types::I64));
     let exit = module
         .declare_function("yong_rt_exit", Linkage::Import, &exit_sig)
+        .map_err(err)?;
+    let mut resolve_sig = module.make_signature();
+    resolve_sig
+        .params
+        .extend([AbiParam::new(ptr), AbiParam::new(types::I64)]);
+    resolve_sig.returns.push(AbiParam::new(ptr));
+    let resolve = module
+        .declare_function("yong_jit_resolve", Linkage::Import, &resolve_sig)
         .map_err(err)?;
     let rt_ids = RT
         .iter()
@@ -102,56 +248,106 @@ pub fn compile(p: &Program) -> R<Compiled> {
                 .map_err(err)
         })
         .collect::<R<_>>()?;
-    // Owned by the program: the JIT code refers to them by address.
-    let strings: Vec<i64> = p.strings.iter().map(|s| abi::str_block(s) as i64).collect();
-
-    let mut fctx = FunctionBuilderContext::new();
-    let mut ctx = module.make_context();
-    for (i, f) in p.funcs.iter().enumerate() {
-        ctx.func.signature = sigs[i].clone();
-        let mut b = FunctionBuilder::new(&mut ctx.func, &mut fctx);
-        let funcs: Vec<FuncRef> = ids
-            .iter()
-            .map(|id| module.declare_func_in_func(*id, b.func))
-            .collect();
-        let rt = Rt {
-            fns: rt_ids
-                .iter()
-                .map(|id| module.declare_func_in_func(*id, b.func))
-                .collect(),
-            panic: module.declare_func_in_func(panic, b.func),
-            ptr,
+    let ctx = module.make_context();
+    let n = p.funcs.len();
+    let lazy = Box::new(Lazy {
+        state: RefCell::new(State {
+            module,
+            program: p.clone(),
+            sigs,
+            ids,
+            rt_ids,
+            panic,
+            strings: p.strings.iter().map(|s| abi::str_block(s) as i64).collect(),
+            fctx: FunctionBuilderContext::new(),
+            ctx,
+        }),
+        table: (0..if jit == Jit::Lazy { n } else { 0 })
+            .map(|_| Cell::new(0))
+            .collect(),
+        done: RefCell::new(vec![false; n]),
+    });
+    let entry = {
+        let mut st = lazy.state.borrow_mut();
+        let main = match jit {
+            Jit::Eager => {
+                for i in 0..n {
+                    st.define(i, None)?;
+                }
+                st.ids[p.main as usize]
+            }
+            Jit::Lazy => {
+                let stubs = stubs(&mut st, &lazy, resolve)?;
+                st.module.finalize_definitions().map_err(err)?;
+                for (slot, id) in lazy.table.iter().zip(&stubs) {
+                    slot.set(st.module.get_finalized_function(*id) as usize);
+                }
+                stubs[p.main as usize]
+            }
         };
-        Gen {
-            b: &mut b,
-            f,
-            vars: Vec::new(),
-            blocks: Vec::new(),
-            funcs,
-            rt,
-            strings: &strings,
-            kinds: HashMap::new(),
-        }
-        .func();
-        b.finalize(module.target_config());
-        module.define_function(ids[i], &mut ctx).map_err(err)?;
-        module.clear_context(&mut ctx);
-    }
+        entry_point(&mut st, main, p.main_fails, exit)?
+    };
+    Ok(Compiled { _lazy: lazy, entry })
+}
 
-    // The host calls this C-ABI trampoline, which calls the tail-convention `main`.
+/// One stub per function, with its signature: resolve the function, then tail-call it with
+/// the same arguments.
+fn stubs(st: &mut State, lazy: &Lazy, resolve: CFuncId) -> R<Vec<CFuncId>> {
+    let me = std::ptr::from_ref(lazy) as i64;
+    let mut out = Vec::new();
+    for i in 0..st.sigs.len() {
+        let State {
+            module,
+            sigs,
+            fctx,
+            ctx,
+            ..
+        } = st;
+        let id = module
+            .declare_function(&format!("yong.stub.{i}"), Linkage::Local, &sigs[i])
+            .map_err(err)?;
+        ctx.func.signature = sigs[i].clone();
+        let mut b = FunctionBuilder::new(&mut ctx.func, fctx);
+        let blk = b.create_block();
+        b.append_block_params_for_function_params(blk);
+        b.switch_to_block(blk);
+        b.seal_block(blk);
+        let args = b.block_params(blk).to_vec();
+        let resolve = module.declare_func_in_func(resolve, b.func);
+        let ptr = module.target_config().pointer_type();
+        let me = b.ins().iconst(ptr, me);
+        let idx = b.ins().iconst(types::I64, i as i64);
+        let c = b.ins().call(resolve, &[me, idx]);
+        let code = b.inst_results(c)[0];
+        let sig = b.import_signature(sigs[i].clone());
+        b.ins().return_call_indirect(sig, code, &args);
+        b.finalize(module.target_config());
+        module.define_function(id, ctx).map_err(err)?;
+        module.clear_context(ctx);
+        out.push(id);
+    }
+    Ok(out)
+}
+
+/// Define the C-ABI trampoline the host calls, which calls the tail-convention `main`, and
+/// finalize the module.
+fn entry_point(st: &mut State, main: CFuncId, fails: bool, exit: CFuncId) -> R<extern "C" fn()> {
+    let State {
+        module, fctx, ctx, ..
+    } = st;
     let entry_sig = module.make_signature();
     let entry = module
         .declare_function("yong.entry", Linkage::Local, &entry_sig)
         .map_err(err)?;
     ctx.func.signature = entry_sig;
     {
-        let mut b = FunctionBuilder::new(&mut ctx.func, &mut fctx);
+        let mut b = FunctionBuilder::new(&mut ctx.func, fctx);
         let blk = b.create_block();
         b.switch_to_block(blk);
         b.seal_block(blk);
-        let main = module.declare_func_in_func(ids[p.main as usize], b.func);
+        let main = module.declare_func_in_func(main, b.func);
         let c = b.ins().call(main, &[]);
-        if p.main_fails {
+        if fails {
             let tag = b.inst_results(c)[0];
             let (failed, done) = (b.create_block(), b.create_block());
             b.ins().brif(tag, failed, &[], done, &[]);
@@ -166,18 +362,15 @@ pub fn compile(p: &Program) -> R<Compiled> {
         b.ins().return_(&[]);
         b.finalize(module.target_config());
     }
-    module.define_function(entry, &mut ctx).map_err(err)?;
-    module.clear_context(&mut ctx);
+    module.define_function(entry, ctx).map_err(err)?;
+    module.clear_context(ctx);
     module.finalize_definitions().map_err(err)?;
     let code = module.get_finalized_function(entry);
     #[allow(unsafe_code)]
     // SAFETY: `yong.entry` was defined above with the host's default C signature, no arguments
     // and no result.
     let entry = unsafe { std::mem::transmute::<*const u8, extern "C" fn()>(code) };
-    Ok(Compiled {
-        _module: module,
-        entry,
-    })
+    Ok(entry)
 }
 
 fn signature(f: &Func, m: &JITModule) -> Signature {
@@ -199,6 +392,8 @@ const RT: &[RtFn] = &[
     RtFn::ShowI64,
     RtFn::ShowU64,
     RtFn::ShowF64,
+    RtFn::DivI64,
+    RtFn::DivU64,
     RtFn::ShowBool,
     RtFn::Repr,
     RtFn::StrEq,
@@ -250,6 +445,18 @@ fn rt_fn(
             abi::yong_rt_show_f64 as *const u8,
             &[F64],
             Some(I64),
+        ),
+        RtFn::DivI64 => (
+            "yong_rt_div_i64",
+            abi::yong_rt_div_i64 as *const u8,
+            &[I64, I64],
+            Some(F64),
+        ),
+        RtFn::DivU64 => (
+            "yong_rt_div_u64",
+            abi::yong_rt_div_u64 as *const u8,
+            &[I64, I64],
+            Some(F64),
         ),
         RtFn::ShowBool => (
             "yong_rt_show_bool",
@@ -320,7 +527,7 @@ struct Gen<'a, 'b> {
     f: &'a Func,
     vars: Vec<Option<Variable>>,
     blocks: Vec<CBlock>,
-    funcs: Vec<FuncRef>,
+    calls: Calls,
     rt: Rt,
     strings: &'a [i64],
     /// One panic block per kind.
@@ -400,8 +607,19 @@ impl Gen<'_, '_> {
             Operand::Bool(x) => self.b.ins().iconst(types::I8, i64::from(*x)),
             Operand::Unit => return None,
             Operand::Str(s) => self.b.ins().iconst(types::I64, self.strings[*s as usize]),
-            Operand::Func(f) => self.b.ins().func_addr(types::I64, self.funcs[*f as usize]),
+            Operand::Func(f) => match &self.calls {
+                Calls::Direct(fs) => self.b.ins().func_addr(types::I64, fs[*f as usize]),
+                Calls::Table { table, .. } => self.slot(*table, *f),
+            },
         })
+    }
+
+    /// Function `f`'s current code address in the jump table at `table`.
+    fn slot(&mut self, table: i64, f: u32) -> Value {
+        let base = self.b.ins().iconst(types::I64, table);
+        self.b
+            .ins()
+            .load(types::I64, MemFlagsData::trusted(), base, f as i32 * 8)
     }
 
     fn vals(&mut self, os: &[Operand]) -> Vec<Value> {
@@ -424,7 +642,14 @@ impl Gen<'_, '_> {
             }
             Inst::Call { dst, func, args } => {
                 let args = self.vals(args);
-                let c = self.b.ins().call(self.funcs[*func as usize], &args);
+                let c = match &self.calls {
+                    Calls::Direct(fs) => self.b.ins().call(fs[*func as usize], &args),
+                    Calls::Table { table, sigs } => {
+                        let sig = sigs[*func as usize];
+                        let code = self.slot(*table, *func);
+                        self.b.ins().call_indirect(sig, code, &args)
+                    }
+                };
                 let rs = self.b.inst_results(c).to_vec();
                 // Unit slots have neither a variable nor a result.
                 let ds = dst.iter().filter(|d| self.vars[**d as usize].is_some());
@@ -501,6 +726,27 @@ impl Gen<'_, '_> {
             }
             Term::Switch { on, targets } => {
                 let v = self.val(&Operand::Local(*on)).expect("an int");
+                // A jump table costs about as much as four compares, so a switch with at most
+                // that many cases besides its most common target branches instead.
+                let common = *targets
+                    .iter()
+                    .max_by_key(|t| targets.iter().filter(|u| u == t).count())
+                    .expect("a switch has targets");
+                if targets.iter().filter(|t| **t != common).count() <= 4 {
+                    for (i, t) in targets.iter().enumerate() {
+                        if *t == common {
+                            continue;
+                        }
+                        let eq = self.b.ins().icmp_imm_s(IntCC::Equal, v, i as i64);
+                        let next = self.b.create_block();
+                        self.b
+                            .ins()
+                            .brif(eq, self.blocks[*t as usize], &[], next, &[]);
+                        self.b.switch_to_block(next);
+                    }
+                    self.b.ins().jump(self.blocks[common as usize], &[]);
+                    return;
+                }
                 let mut sw = Switch::new();
                 for (i, t) in targets.iter().enumerate() {
                     sw.set_entry(i as u128, self.blocks[*t as usize]);
@@ -514,7 +760,16 @@ impl Gen<'_, '_> {
             }
             Term::TailCall { func, args } => {
                 let args = self.vals(args);
-                self.b.ins().return_call(self.funcs[*func as usize], &args);
+                match &self.calls {
+                    Calls::Direct(fs) => {
+                        self.b.ins().return_call(fs[*func as usize], &args);
+                    }
+                    Calls::Table { table, sigs } => {
+                        let sig = sigs[*func as usize];
+                        let code = self.slot(*table, *func);
+                        self.b.ins().return_call_indirect(sig, code, &args);
+                    }
+                }
             }
             Term::Panic(kind) => self.call_panic(kind),
         }
@@ -574,6 +829,16 @@ impl Gen<'_, '_> {
                 };
                 self.b.ins().icmp(cc, a[0], a[1])
             }
+            (Div, Ty::Int(t)) if t.bits == 64 => {
+                let f = if t.signed { RtFn::DivI64 } else { RtFn::DivU64 };
+                let at = RT
+                    .iter()
+                    .position(|x| *x == f)
+                    .expect("every RtFn is in RT");
+                let c = self.b.ins().call(self.rt.fns[at], &[a[0], a[1]]);
+                self.b.inst_results(c)[0]
+            }
+            // narrower operands convert exactly, so the division rounds once
             (Div, Ty::Int(t)) => {
                 let (x, y) = if t.signed {
                     (
@@ -675,6 +940,14 @@ impl Gen<'_, '_> {
 
 #[cfg(test)]
 mod selftest {
+    use super::{Jit, compile_with};
+
+    fn run_both(p: &yong_mir::Program) {
+        for jit in [Jit::Eager, Jit::Lazy] {
+            compile_with(p, jit).expect("compiles").run();
+        }
+    }
+
     /// Runs in process: a failed `assert` in the program exits the test binary with 101.
     #[test]
     fn runs_loops_join_points_and_tail_calls() {
@@ -689,7 +962,7 @@ mod selftest {
         let (m, d) = yong_core::parse("t.yong", src);
         assert!(d.is_empty(), "{d:?}");
         let p = yong_mir::lower(&m.unwrap()).expect("lowers");
-        super::compile(&p).expect("compiles").run();
+        run_both(&p);
     }
 
     /// `twice` propagates `check`'s error with `?`; `main` catches it with `try`.
@@ -709,7 +982,7 @@ mod selftest {
         let (m, d) = yong_core::parse("t.yong", src);
         assert!(d.is_empty(), "{d:?}");
         let p = yong_mir::lower(&m.unwrap()).expect("lowers");
-        super::compile(&p).expect("compiles").run();
+        run_both(&p);
     }
 
     #[test]
@@ -731,7 +1004,7 @@ mod selftest {
             5,
             "main, two instances of apply, two closures"
         );
-        super::compile(&p).expect("compiles").run();
+        run_both(&p);
     }
 
     #[test]
@@ -751,6 +1024,118 @@ mod selftest {
             match shown {\n \"[A(x=7), C(), B(w=2, h=True)]\" => {}\n _ => { unreachable }\n }\n\
             let q: Str = std.fmt.show[P](let p)\n\
             match q {\n \"P(s=C(), t=(0.5, 'q'))\" => {}\n _ => { unreachable }\n }\n ret ()\n}\n";
+        let (m, d) = yong_core::parse("t.yong", src);
+        assert!(d.is_empty(), "{d:?}");
+        let p = yong_mir::lower(&m.unwrap()).expect("lowers");
+        run_both(&p);
+    }
+
+    /// Nested variants, or-patterns that bind, literals, ranges, tuples and `Str` through the
+    /// decision-tree lowering of `match`.
+    #[test]
+    fn runs_decision_tree_matches() {
+        let src = r#"module t1
+
+sum Op { Add, Sub, Neg { k: i64 }, Lit { v: i64 } }
+sum Pair2 { P { a: Op, b: Op }, Q }
+
+fn f(let o: Op) -> i64 {
+    jp k(let a: i64) { ret a }
+    match o {
+        Add => { jump k(1) }
+        Neg { k: 0 } => { jump k(2) }
+        Neg { k: n } | Lit { v: n } => { jump k(n) }
+        _ => { jump k(7) }
+    }
+}
+
+fn g(let p: Pair2) -> i64 {
+    jp k(let a: i64) { ret a }
+    match p {
+        P { a: Add, b: Add } => { jump k(10) }
+        P { a: _, b: Sub } => { jump k(20) }
+        P { a: Lit { v: 1..=5 }, b: x } => { let r: i64 = f(let x)  jump k(r) }
+        P { a: Lit { v: 6 }, b: _ } => { jump k(30) }
+        P { .. } => { jump k(40) }
+        Q => { jump k(50) }
+    }
+}
+
+fn h(let t: Tuple(i64, bool)) -> i64 {
+    jp k(let a: i64) { ret a }
+    match t {
+        (0, true) => { jump k(1) }
+        (0, false) => { jump k(2) }
+        (1, _) | (2, _) => { jump k(3) }
+        (n, true) => { jump k(n) }
+        (_, false) => { jump k(9) }
+    }
+}
+
+fn s(let x: Str) -> i64 {
+    jp k(let a: i64) { ret a }
+    match x {
+        "a" => { jump k(1) }
+        "b" | "c" => { jump k(2) }
+        _ => { jump k(3) }
+    }
+}
+
+fn main() -> Unit {
+    let a: i64 = f(let Add)
+    assert eq_i64(let a, let 1)
+    let n0: Op = Neg { k: 0 }
+    let b: i64 = f(let n0)
+    assert eq_i64(let b, let 2)
+    let n5: Op = Neg { k: 5 }
+    let c: i64 = f(let n5)
+    assert eq_i64(let c, let 5)
+    let l8: Op = Lit { v: 8 }
+    let d: i64 = f(let l8)
+    assert eq_i64(let d, let 8)
+    let e: i64 = f(let Sub)
+    assert eq_i64(let e, let 7)
+    let p1: Pair2 = P { a: Add, b: Add }
+    let r1: i64 = g(let p1)
+    assert eq_i64(let r1, let 10)
+    let p2: Pair2 = P { a: l8, b: Sub }
+    let r2: i64 = g(let p2)
+    assert eq_i64(let r2, let 20)
+    let l3: Op = Lit { v: 3 }
+    let p3: Pair2 = P { a: l3, b: n5 }
+    let r3: i64 = g(let p3)
+    assert eq_i64(let r3, let 5)
+    let l6: Op = Lit { v: 6 }
+    let p4: Pair2 = P { a: l6, b: Add }
+    let r4: i64 = g(let p4)
+    assert eq_i64(let r4, let 30)
+    let p5: Pair2 = P { a: Add, b: n5 }
+    let r5: i64 = g(let p5)
+    assert eq_i64(let r5, let 40)
+    let r6: i64 = g(let Q)
+    assert eq_i64(let r6, let 50)
+    let at1: Tuple(i64, bool) = (0, true)
+    let t1: i64 = h(let at1)
+    assert eq_i64(let t1, let 1)
+    let at2: Tuple(i64, bool) = (0, false)
+    let t2: i64 = h(let at2)
+    assert eq_i64(let t2, let 2)
+    let at3: Tuple(i64, bool) = (2, false)
+    let t3: i64 = h(let at3)
+    assert eq_i64(let t3, let 3)
+    let at4: Tuple(i64, bool) = (8, true)
+    let t4: i64 = h(let at4)
+    assert eq_i64(let t4, let 8)
+    let at5: Tuple(i64, bool) = (8, false)
+    let t5: i64 = h(let at5)
+    assert eq_i64(let t5, let 9)
+    let s1: i64 = s(let "c")
+    assert eq_i64(let s1, let 2)
+    let s2: i64 = s(let "z")
+    assert eq_i64(let s2, let 3)
+    ret ()
+}
+"#;
         let (m, d) = yong_core::parse("t.yong", src);
         assert!(d.is_empty(), "{d:?}");
         let p = yong_mir::lower(&m.unwrap()).expect("lowers");
