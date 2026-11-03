@@ -23,8 +23,32 @@ impl Vm<'_> {
         }
     }
 
+    /// Whether `key` is a closure rather than an omitted key.
+    fn has_key(&self, key: &Value) -> bool {
+        match key {
+            Value::Closure(_) => true,
+            Value::Data { name, fields } if name == "Some" => {
+                matches!(fields.first(), Some((_, Value::Closure(_))))
+            }
+            _ => false,
+        }
+    }
+
     /// Sorted by key, calling `key` once per element.
     fn sort_by_key(&mut self, xs: Vec<Value>, key: &Value, stable: bool) -> R<Vec<Value>> {
+        // Equal primitive keys cannot be told apart, so stable and unstable agree here.
+        if !self.has_key(key)
+            && let Some(mut ks) = xs
+                .iter()
+                .map(|x| match x {
+                    Value::Int(n) => i64::try_from(*n).ok(),
+                    _ => None,
+                })
+                .collect::<Option<Vec<i64>>>()
+        {
+            yong_rt::sort::sort_unstable_i64(&mut ks);
+            return Ok(ks.into_iter().map(|k| Value::Int(k.into())).collect());
+        }
         let mut ks = Vec::with_capacity(xs.len());
         for x in &xs {
             ks.push(self.key(key, x)?);

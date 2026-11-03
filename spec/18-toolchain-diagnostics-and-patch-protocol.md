@@ -70,6 +70,7 @@ Renderings from the same record:
 Rules:
 
 - Report root causes only. A failing expression is marked and checking of its item continues around it (R291).
+- A construct the toolchain does not implement yet is E017 at the construct's span, never a message without a record. The construct is marked as in R291 and checking continues around it (R649).
 - Sort by file, line, column, then code; apply the cap after sorting. At most 10 errors per run by default (`--max-errors`).
 - Codes keep their meaning forever. A code may be retired, never reused; tools key on codes, not wording.
 - Every error with a mechanical fix MUST include it in `fixes`.
@@ -79,7 +80,7 @@ Rules:
 
 The design behind R290 to R299 is the Yong diagnostics design (https://claude.ai/artifact/GLRhfwSr8xcyE1gZqSLhg3).
 
-**Record fields (R290).** The record gains optional fields under `schema` 1: `id` (short and unique within one response, written `#n` in line form), `item_hash` (the hash of the item the checker saw), `quote` (R293), `args` (the values of the template slots, R297), `labels` (secondary spans, each with text), `children` (nested notes and helps, each with an optional span) and `explain` (the code to pass to `yong explain`). `notes` keeps the text of the children. SARIF output maps the item to a logical location.
+**Record fields (R290).** The record gains optional fields under `schema` 1: `id` (short and unique within one response, written `#n` in line form), `item_hash` (the hash of the item the checker saw), `quote` (R293), `args` (the values of the template slots, R297), `labels` (secondary spans, each with text), `children` (nested notes and helps, each with an optional span) and `explain` (the code to pass to `yong explain`). A child of kind `habit` (R662) names a Python or TypeScript habit that triggered the diagnostic, as `{"kind": "habit", "lang": "python", "text": ...}`, and the Yong form for it. The toolchain's habit table covers at least the corpus of the learnability study; prose renders a habit child as `note:`, and the line form leaves it out. `notes` keeps the text of the children. SARIF output maps the item to a logical location.
 
 **Recovery by marking (R291).** An expression that fails name resolution or typing is marked and given the error type, as in the marked lambda calculus (Zhao et al., POPL 2024), and checking of its item continues. A diagnostic whose span or inputs include a marked node is suppressed. Later phases skip marked subtrees, not whole items. Spans always point at surface text: an error in an operation inserted by elaboration (a copy, a move, a capability argument) is reported at the construct that caused it. Two diagnostics from one root cause are a toolchain bug, and the conformance suite tests for them.
 
@@ -87,10 +88,10 @@ The design behind R290 to R299 is the Yong diagnostics design (https://claude.ai
 
 **Quote anchors (R293).** `quote` is the text of the primary span, extended outward by whole tokens until it occurs exactly once in its item. It is always a valid `search` string for an 18.3 `edits` entry.
 
-**Line format (R294).** The line rendering is normative and byte-identical across implementations: one line per diagnostic, with no colour and no excerpt. The fix kinds `fix`, `maybe` and `fill` mark `auto`, `choice` and `template` fixes. Newlines in fix text are written `\n`. Diagnostics with the same code and the same fix in one item collapse into the first line plus `(+k like this at l:c, ...)`.
+**Line format (R294).** The line rendering is normative and byte-identical across implementations: one line per diagnostic, with no colour and no excerpt. The fix kinds `fix`, `maybe` and `fill` mark `auto`, `choice` and `template` fixes. Newlines in fix text are written `\n`. Diagnostics with the same code and the same fix in one item collapse into the first line plus `(+k like this at l:c, ...)`. An empty `item` or `quote` is left out together with its separators, as for a syntax error outside any item or a patch rejection with no search text (R650).
 
 ```
-line  = [ "#" n " " ] code " " path ":" line ":" col " " item ": " "`" quote "`" " " message
+line  = [ "#" n " " ] code " " path ":" line ":" col [ " " item ":" ] [ " " "`" quote "`" ] " " message
         { " | " note } { " | " kind ": " old " -> " new } [ " (+" k " like this at " locs ")" ]
 kind  = "fix" | "maybe" | "fill"
 
@@ -103,7 +104,7 @@ kind  = "fix" | "maybe" | "fill"
 
 **Message templates (R297).** Each code has one template set in Unicode MessageFormat 2.0: title, message, rule and fix titles, with a variant per surface, filled from `args`. Types and code inside a message are printed by the surface's printer (18.5), so a Wen message shows Wen syntax. The toolchain build fails if a Wen template uses a term from the list in 15.5. Messages are English in 1.0. A trait may carry `@diagnostic(on_missing="...", note="...")`, which supplies the message and a note for E221 on that trait; it never changes what compiles.
 
-**Core error codes (R298).** E100, E102, E201, E202, E203 and E221 (section 25) cover syntax errors, type mismatches, argument counts, unknown fields and methods, and unimplemented traits.
+**Core error codes (R298).** E100, E102, E201, E202, E203 and E221 (section 25) cover syntax errors, type mismatches, argument counts, unknown fields and methods, and unimplemented traits. When a name in scope, a field, a method or a std module member is within edit distance 2 of the unknown name, E200 and E203 carry it as a `maybe` fix, nearest first, at most three (R651).
 
 **Tested and scored catalogue (R299).** Every code has at least one `fail/` conformance test asserting its code, span and quote, and every fix kind it emits has a `patch/` test that applies the fix and checks clean. `yong explain` text and its broken and fixed examples are generated from those tests. Message wording is not normative. The evaluation harness (21.6) reports, per code, the share of diagnostics repaired on the first model attempt and the tokens per repair, and template rewrites are prioritized by those numbers (law 11).
 
@@ -132,7 +133,7 @@ Semantics (normative):
 6. A plain source file containing only whole items is also accepted as a patch: each item replaces the item of the same name, or is added if new. Patches to `.wen` modules carry Wen item text.
 7. Every applied patch is appended to `.yong/oplog.jsonl`; `yong undo` and the MCP `undo` tool revert from it.
 
-**Protected targets.** `check_patch` rejects a patch that touches any of the following unless it carries a human confirmation token (P006): test functions; `pre`, `post`, `ex`, `invariant` and `decreases` clauses; `package.xin` capabilities, `approvers` and `trust`; `yong.lock`; extern blocks and `ffi/` overlays; and agent configuration files. An implement-step patch never carries one (21.1).
+**Protected targets.** `check_patch` rejects a patch that touches any of the following unless it carries a human confirmation token (P006): test functions, `@test_support` items and items under `tests/` (the R300 test-hash closure); `pre`, `post`, `ex`, `invariant` and `decreases` clauses; a new item named by one of those clauses (R675); `package.xin` capabilities, `approvers` and `trust`; `yong.lock`; extern blocks and `ffi/` overlays; and agent configuration files. An implement-step patch never carries one (21.1).
 
 ### 18.4 Build, cache and test verdicts
 
@@ -200,4 +201,4 @@ Accepted 2026-10-31 from the docs and learning design (https://claude.ai/artifac
 - **Guide pages (R316).** `docs/*.md` files are Markdown with fences as in R310. `yong doc` renders them beside the API pages in the order `docs/index.md` lists, and `yong test` runs their fences as in R315. Fences on one page share a scope in order; a page MAY declare `uses` once in a front-matter fence, and its fences get only those capabilities.
 - **Doc lints (R317).** W830 `pub` item without a doc comment; W831 item link resolves to nothing (fix: nearest name within edit distance 2); W832 a `Fails:` or `Uses:` section disagrees with the signature (fix: rewrite it from the signature); W833 fence tagged `text` parses as code in the file's surface (fix: retag).
 - **Hosting and playground (R318).** On publish, the registry builds the version's docs hermetically from the published artifact with the pinned toolchain, records the doc build hash beside the package hash, and serves the static output beside the index; anyone can rebuild the same bytes. The playground is the checked interpreter built for wasm32-wasip2, running in the browser under the R315 handlers; every fence on the site and in the tour opens in it. Nothing runs on a server.
-- **Learning set (R319).** The tour (about 70 pages; exercises are a signature, its `ex` clauses and a `...` body, graded by the `ex` clauses; served offline by `yong tour`), the book, the cookbook, the Python and Rust migration guides, std API docs and this reference rendered by `yong doc` are packages whose `yong test` runs in CI. The book is not normative and cites spec sections for rules.
+- **Learning set (R319).** The tour (about 70 pages; exercises are a signature, its `ex` clauses and a `...` body, graded by the `ex` clauses; served offline by `yong tour`), the book, the cookbook, the Python, Rust and TypeScript migration guides (R664), std API docs and this reference rendered by `yong doc` are packages whose `yong test` runs in CI. The book is not normative and cites spec sections for rules.

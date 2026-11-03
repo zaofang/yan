@@ -167,6 +167,20 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
     }
 
     #[test]
+    fn python_classes_normalize() {
+        let src = "@dataclass\nclass P:\n    x: \"P\"\n\n    def m(self, o: P) -> int:\n        return 1\n\nclass E(Exception):\n    pass\n\nShape = P | E\n";
+        let got: Vec<_> = codes(src, false).into_iter().map(|c| c.0).collect();
+        assert_eq!(got, ["N08", "N19", "N09", "N20", "N20"]);
+        let out = print(&parse("t.xin", src, false).0.unwrap());
+        assert!(out.contains("def m(self: P, o: P) -> int:"), "{out}");
+        assert!(
+            out.contains("class E:") && out.contains("type Shape = P | E"),
+            "{out}"
+        );
+        assert!(!codes(src, true).iter().all(|c| c.0.starts_with('N')));
+    }
+
+    #[test]
     fn layout_errors() {
         assert_eq!(
             codes("def f() -> int:\n    a = 1; b = 2\n    return a\n", false),
