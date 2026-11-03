@@ -34,7 +34,7 @@
 | ABI | C profile `yong_abi_v1`, no Yong-to-Yong ABI | a stable native ABI | Swift's resilience needs runtime metadata |
 | Supply chain | witnessed log, registry-built archives, SLSA L3, OIDC-only publishing, computed capabilities, signed approvals | API tokens; uploaded tarballs | xz backdoor; npm worms; slopsquatting |
 | Stability | bit-identical output across 1.x; surface-only editions; enforced semver; 12-week minors | LTS branches; nightly channel | Rust and Go promises, Elm enforcement |
-| Implementation language | Rust only (R215) | Python reference, then a Rust port | one codebase with no port; the chosen toolchain stack is Rust crates; the conformance suite is the oracle |
+| Implementation language | Rust only (R215); a non-shipping Lean 4 model of the core under `formal/` (R680) | Python reference, then a Rust port | one codebase with no port; the chosen toolchain stack is Rust crates; the conformance suite is the oracle |
 | Third surface | Chang, dense ASCII with spelling kept as trivia, admitting any form that lowers to the core (R516 to R521) | one printing per tree (Chang 1); no third surface | a design playground that stays one language: same items, same hashes, same checker |
 | Xin 1.0 rules | model-first rules on the Python shape: full headers as the contract, undecided checks as runtime checks with W820, ... holes, header changes report broken callers, a wide lenient reader (R210 to R214, R280 to R289) | Yue, a token-minimal surface (research only); implicit string copies (R283) | in the dry run output was about 5% of loop tokens and repair rounds dominated, so rounds and pass@1 matter more than terseness; copies stay explicit and the autofix inserts them |
 

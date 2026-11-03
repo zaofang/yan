@@ -5,7 +5,9 @@ use std::rc::Rc;
 
 use crate::bind::{self, Bind};
 use crate::compile::*;
-use crate::{Interp, R, Value, data, intrinsic, panic, unsupported};
+use crate::{
+    Frame, Interp, R, Stop, Value, data, intrinsic, out_of_range, panic, panic_with, unsupported,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Clo {
@@ -115,12 +117,28 @@ fn int_op(op: IntOp, ty: u8, a: i128, b: i128) -> Result<Scalar, &'static str> {
             let r = a.rem_euclid(b);
             return checked(Some(if r != 0 && b < 0 { r + b } else { r }), ty);
         }
-        IntOp::Div => Scalar::F(a as f64 / b as f64),
+        IntOp::Div => Scalar::F(yong_rt::num::div_i128(a, b)),
         IntOp::And => Scalar::I(a & b),
         IntOp::Or => Scalar::I(a | b),
         IntOp::Xor => Scalar::I(a ^ b),
         IntOp::Cmp(c) => Scalar::B(cmp(c, &a, &b)),
     })
+}
+
+fn int_panic<T>(kind: &str, op: IntOp, ty: u8, a: i128, b: i128) -> R<T> {
+    let ty = INT_TYS[ty as usize];
+    let what = match op {
+        IntOp::Add => format!("{a} + {b}"),
+        IntOp::Sub => format!("{a} - {b}"),
+        IntOp::Mul => format!("{a} * {b}"),
+        IntOp::FloorDiv if b == 0 => format!("floor division of {a} by zero"),
+        IntOp::FloorDiv => format!("floor division of {a} by {b}"),
+        _ => format!("{a} modulo zero"),
+    };
+    match kind {
+        "overflow" => panic_with(kind, format!("{what} overflows {ty}")),
+        _ => panic_with(kind, what),
+    }
 }
 
 fn cmp<T: PartialOrd>(c: Cmp, a: &T, b: &T) -> bool {
@@ -303,12 +321,32 @@ impl<'o> Vm<'o> {
     fn exec(&mut self, f: usize, base: usize) -> R<Result<Value, Value>> {
         let mut code = self.codes[f].clone();
         let mut pc = 0usize;
+        let r = self.exec_from(&mut code, &mut pc, base);
+        match r {
+            Err(Stop::Panic(mut p)) => {
+                p.trace.push(Frame {
+                    item: code.name.clone(),
+                    at: code.spans[pc - 1],
+                });
+                Err(Stop::Panic(p))
+            }
+            r => r,
+        }
+    }
+
+    /// Runs `code` from `pc`, leaving both at the op that stopped it.
+    fn exec_from(
+        &mut self,
+        code: &mut Rc<Code>,
+        pc: &mut usize,
+        base: usize,
+    ) -> R<Result<Value, Value>> {
         loop {
-            let op = code.ops[pc];
-            pc += 1;
+            let op = code.ops[*pc];
+            *pc += 1;
             match op {
                 Op::Move { dst, src } => {
-                    let v = match *self.val(&code, base, src) {
+                    let v = match *self.val(code, base, src) {
                         Value::Int(n) => Scalar::I(n),
                         Value::Bool(b) => Scalar::B(b),
                         Value::Float(f) => Scalar::F(f),
@@ -321,27 +359,38 @@ impl<'o> Vm<'o> {
                     set(&mut self.stack[base + dst as usize], v);
                 }
                 Op::Read { dst, place } => {
-                    let v = self.read(&code, base, &code.places[place as usize])?;
+                    let v = self.read(code, base, &code.places[place as usize])?;
                     self.stack[base + dst as usize] = v;
                 }
                 Op::Write { place, src } => {
                     let v = mem::take(&mut self.stack[base + src as usize]);
-                    self.write(&code, base, &code.places[place as usize], v)?;
+                    self.write(code, base, &code.places[place as usize], v)?;
                 }
                 Op::Restore { dst, src } => {
                     let v = mem::take(&mut self.stack[base + src as usize]);
                     self.stack[base + dst as usize] = v;
                 }
                 Op::Clear(r) => self.stack[base + r as usize] = Value::Unit,
-                Op::Jmp(to) => pc = to as usize,
-                Op::JmpIf { cond, to } => match self.val(&code, base, cond) {
-                    Value::Bool(true) => pc = to as usize,
+                Op::Jmp(to) => {
+                    // A backward jump is a loop iteration, one stage-0 step (R487).
+                    if (to as usize) < *pc
+                        && let Some((l, _, steps)) = &mut self.limits
+                    {
+                        *steps += 1;
+                        if *steps > l.steps {
+                            return Err(crate::Stop::Limit("steps"));
+                        }
+                    }
+                    *pc = to as usize;
+                }
+                Op::JmpIf { cond, to } => match self.val(code, base, cond) {
+                    Value::Bool(true) => *pc = to as usize,
                     Value::Bool(false) => {}
                     v => return unsupported(format!("condition is not a bool: {v:?}")),
                 },
-                Op::JmpIfNot { cond, to } => match self.val(&code, base, cond) {
+                Op::JmpIfNot { cond, to } => match self.val(code, base, cond) {
                     Value::Bool(true) => {}
-                    Value::Bool(false) => pc = to as usize,
+                    Value::Bool(false) => *pc = to as usize,
                     v => return unsupported(format!("condition is not a bool: {v:?}")),
                 },
                 Op::CmpJmp {
@@ -353,14 +402,14 @@ impl<'o> Vm<'o> {
                     to,
                     site,
                 } => {
-                    let t = match (self.val(&code, base, a), self.val(&code, base, b)) {
+                    let t = match (self.val(code, base, a), self.val(code, base, b)) {
                         (Value::Int(a), Value::Int(b)) => {
                             let t = cmp(c, a, b);
                             set(&mut self.stack[base + dst as usize], Scalar::B(t));
                             t
                         }
                         _ => {
-                            let v = self.slow(&code, base, site)?;
+                            let v = self.slow(code, base, site)?;
                             self.stack[base + dst as usize] = v;
                             match &self.stack[base + dst as usize] {
                                 Value::Bool(t) => *t,
@@ -369,21 +418,21 @@ impl<'o> Vm<'o> {
                         }
                     };
                     if t == when {
-                        pc = to as usize;
+                        *pc = to as usize;
                     }
                 }
                 Op::SetCont { reg, to } => {
                     self.stack[base + reg as usize] = Value::Int(i128::from(to));
                 }
                 Op::JmpCont(reg) => match self.stack[base + reg as usize] {
-                    Value::Int(to) => pc = to as usize,
+                    Value::Int(to) => *pc = to as usize,
                     _ => unreachable!("join point continuation is set before the jump"),
                 },
-                Op::Ret(o) => return Ok(Ok(dup(self.val(&code, base, o)))),
-                Op::Fail(o) => return Ok(Err(dup(self.val(&code, base, o)))),
+                Op::Ret(o) => return Ok(Ok(dup(self.val(code, base, o)))),
+                Op::Fail(o) => return Ok(Err(dup(self.val(code, base, o)))),
                 Op::Call { site, dst } => {
                     let s = &code.sites[site as usize];
-                    let r = self.call_site(&code, base, s)?;
+                    let r = self.call_site(code, base, s)?;
                     let v = match (r, &s.mode) {
                         (Ok(v), Mode::Try) => data("Ok", "value", v),
                         (Err(e), Mode::Try) => data("Err", "error", e),
@@ -400,7 +449,7 @@ impl<'o> Vm<'o> {
                 Op::Become { site } => {
                     let s = &code.sites[site as usize];
                     let new_base = self.stack.len();
-                    self.push_args(&code, base, s);
+                    self.push_args(code, base, s);
                     let (g, clo) = match self.target_at(s, base, new_base) {
                         Target::Code(g, clo) => (g, clo),
                         Target::Native => {
@@ -418,8 +467,8 @@ impl<'o> Vm<'o> {
                         self.stack.drain(base..new_base);
                     }
                     self.enter(g, clo.as_deref(), base, nargs);
-                    code = self.codes[g].clone();
-                    pc = 0;
+                    *code = self.codes[g].clone();
+                    *pc = 0;
                 }
                 Op::Int {
                     op,
@@ -430,14 +479,14 @@ impl<'o> Vm<'o> {
                     site,
                 } => {
                     if let (Value::Int(a), Value::Int(b)) =
-                        (self.val(&code, base, a), self.val(&code, base, b))
+                        (self.val(code, base, a), self.val(code, base, b))
                     {
                         match int_op(op, ty, *a, *b) {
                             Ok(v) => set(&mut self.stack[base + dst as usize], v),
-                            Err(kind) => return panic(kind),
+                            Err(kind) => return int_panic(kind, op, ty, *a, *b),
                         }
                     } else {
-                        let v = self.slow(&code, base, site)?;
+                        let v = self.slow(code, base, site)?;
                         self.stack[base + dst as usize] = v;
                     }
                 }
@@ -449,12 +498,12 @@ impl<'o> Vm<'o> {
                     site,
                 } => {
                     if let (Value::Float(a), Value::Float(b)) =
-                        (self.val(&code, base, a), self.val(&code, base, b))
+                        (self.val(code, base, a), self.val(code, base, b))
                     {
                         let v = float_op(op, *a, *b);
                         set(&mut self.stack[base + dst as usize], v);
                     } else {
-                        let v = self.slow(&code, base, site)?;
+                        let v = self.slow(code, base, site)?;
                         self.stack[base + dst as usize] = v;
                     }
                 }
@@ -465,21 +514,21 @@ impl<'o> Vm<'o> {
                     b,
                     site,
                 } => {
-                    let v = match (self.val(&code, base, a), self.val(&code, base, b)) {
+                    let v = match (self.val(code, base, a), self.val(code, base, b)) {
                         (Value::Bool(a), Value::Bool(b)) => Value::Bool(match op {
                             BoolOp::And => *a && *b,
                             BoolOp::Or => *a || *b,
                             BoolOp::Eq => a == b,
                             BoolOp::Ne => a != b,
                         }),
-                        _ => self.slow(&code, base, site)?,
+                        _ => self.slow(code, base, site)?,
                     };
                     self.stack[base + dst as usize] = v;
                 }
                 Op::Not { dst, a, site } => {
-                    let v = match self.val(&code, base, a) {
+                    let v = match self.val(code, base, a) {
                         Value::Bool(a) => Value::Bool(!a),
-                        _ => self.slow(&code, base, site)?,
+                        _ => self.slow(code, base, site)?,
                     };
                     self.stack[base + dst as usize] = v;
                 }
@@ -493,10 +542,10 @@ impl<'o> Vm<'o> {
                         let a = &code.asserts[info as usize];
                         let mut msg = format!("line {}", a.line);
                         if let [l, r] = a.sides[..] {
-                            let show = |o| crate::prelude::show(self.val(&code, base, o), true);
+                            let show = |o| crate::prelude::show(self.val(code, base, o), true);
                             msg += &format!(": left is {}, right is {}", show(l), show(r));
                         }
-                        return Err(crate::Stop::Panic("assert".into(), msg));
+                        return panic_with("assert", msg);
                     }
                 }
                 Op::Panic(kind) => return panic(kind),
@@ -511,14 +560,14 @@ impl<'o> Vm<'o> {
                             self.stack[base + r as usize] = v;
                         }
                     } else {
-                        pc = to as usize;
+                        *pc = to as usize;
                     }
                 }
                 Op::Tuple { dst, list } => {
                     let v = Value::Tuple(
                         code.lists[list as usize]
                             .iter()
-                            .map(|o| self.val(&code, base, *o).clone())
+                            .map(|o| self.val(code, base, *o).clone())
                             .collect(),
                     );
                     self.stack[base + dst as usize] = v;
@@ -530,7 +579,7 @@ impl<'o> Vm<'o> {
                         fields: c
                             .fields
                             .iter()
-                            .map(|(n, o)| (n.clone(), self.val(&code, base, *o).clone()))
+                            .map(|(n, o)| (n.clone(), self.val(code, base, *o).clone()))
                             .collect(),
                     };
                     self.stack[base + dst as usize] = v;
@@ -542,7 +591,7 @@ impl<'o> Vm<'o> {
                         captured: c
                             .captures
                             .iter()
-                            .map(|o| self.val(&code, base, *o).clone())
+                            .map(|o| self.val(code, base, *o).clone())
                             .collect(),
                     }));
                     self.stack[base + dst as usize] = v;
@@ -703,15 +752,17 @@ impl<'o> Vm<'o> {
                     let Value::Int(i) = self.val(code, base, *i) else {
                         return unsupported("non-integer index");
                     };
-                    let i = usize::try_from(*i).ok();
-                    let got = match xs {
-                        Value::List(xs) | Value::SortedSet(xs) => i.and_then(|i| xs.get(i)),
-                        Value::Deque(d, _) => i.and_then(|i| d.get(i)),
+                    let at = usize::try_from(*i).ok();
+                    let (got, len) = match xs {
+                        Value::List(xs) | Value::SortedSet(xs) => {
+                            (at.and_then(|i| xs.get(i)), xs.len())
+                        }
+                        Value::Deque(d, _) => (at.and_then(|i| d.get(i)), d.len()),
                         _ => unreachable!("matched"),
                     };
                     match got {
                         Some(v) => v,
-                        None => return panic("bounds"),
+                        None => return out_of_range(*i, len),
                     }
                 }
                 (Proj_::Index(i), Value::Bytes(b)) => {
@@ -747,12 +798,13 @@ impl<'o> Vm<'o> {
                     let (Value::Int(i), Value::Int(x)) = (at(i), &v) else {
                         unreachable!("checked")
                     };
+                    let len = b.len();
                     match usize::try_from(*i).ok().and_then(|i| b.get_mut(i)) {
                         Some(c) => {
                             *c = *x as u8;
                             Ok(())
                         }
-                        None => panic("bounds"),
+                        None => out_of_range(*i, len),
                     }
                 }
                 s => walk_mut(s, &p.projs[init.len()..], at).map(|slot| *slot = v.clone()),
@@ -770,7 +822,7 @@ fn index_byte(b: &[u8], i: &Value) -> R<Value> {
     };
     match usize::try_from(*i).ok().and_then(|i| b.get(i)) {
         Some(c) => Ok(Value::Int(*c as i128)),
-        None => panic("bounds"),
+        None => out_of_range(*i, b.len()),
     }
 }
 
@@ -791,15 +843,20 @@ fn walk_mut<'v, 's>(
                 let Value::Int(i) = index(i) else {
                     unreachable!("indices are checked first")
                 };
-                let i = usize::try_from(*i).ok();
+                let at = usize::try_from(*i).ok();
+                let len = match xs {
+                    Value::List(xs) => xs.len(),
+                    Value::Deque(d, _) => d.len(),
+                    _ => unreachable!("matched"),
+                };
                 let got = match xs {
-                    Value::List(xs) => i.and_then(|i| xs.get_mut(i)),
-                    Value::Deque(d, _) => i.and_then(|i| d.get_mut(i)),
+                    Value::List(xs) => at.and_then(|i| xs.get_mut(i)),
+                    Value::Deque(d, _) => at.and_then(|i| d.get_mut(i)),
                     _ => unreachable!("matched"),
                 };
                 match got {
                     Some(s) => s,
-                    None => return panic("bounds"),
+                    None => return out_of_range(*i, len),
                 }
             }
             _ => return unsupported("assignment through this projection"),

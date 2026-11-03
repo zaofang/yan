@@ -277,9 +277,6 @@ pub fn run(root: &Path, filter: Option<&str>, gate: bool) -> Result<Report, Stri
                 );
                 continue;
             }
-            Ok(Loaded::Unsupported(what, _)) => {
-                return Err(format!("{shown}: not supported yet: {what}"));
-            }
             Err(msg) => return Err(msg.clone()),
         };
         for it in &m.items {
@@ -301,13 +298,13 @@ pub fn run(root: &Path, filter: Option<&str>, gate: bool) -> Result<Report, Stri
             let verdict = match yong_interp::test(&m, &fname, Limits::default(), &mut out) {
                 Ok(true) => Verdict::Pass,
                 Ok(false) => Verdict::Fail("returned a failure".into()),
-                Err(Stop::Panic(k, _)) if k == "assert" && ex.is_some() => {
+                Err(Stop::Panic(p)) if p.kind == "assert" && ex.is_some() => {
                     Verdict::Fail(format!("`{}` does not hold", ex.expect("an ex line").text))
                 }
-                Err(Stop::Panic(k, msg)) if k == "assert" => {
-                    Verdict::Fail(assert_failed(&shown, &text, &msg))
+                Err(Stop::Panic(p)) if p.kind == "assert" => {
+                    Verdict::Fail(assert_failed(&shown, &text, &p.message))
                 }
-                Err(Stop::Panic(k, _)) => Verdict::Fail(format!("panic {k}")),
+                Err(Stop::Panic(p)) => Verdict::Fail(format!("panic({}): {}", p.kind, p.message)),
                 Err(Stop::Limit(_)) => Verdict::Budget,
                 Err(Stop::Unsupported(what)) => {
                     return Err(format!("{id}: not supported yet: {what}"));
