@@ -6,7 +6,7 @@ use yong_std::registry::{Id, id::*};
 
 use super::bind::{Bind, bad_args};
 use super::native::opt;
-use super::{Key, Value, panic};
+use super::{Key, Value, out_of_range, panic_with};
 use Value::*;
 
 fn record(name: &str, fields: Vec<(&str, Value)>) -> Value {
@@ -108,7 +108,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_REGEX_GROUP, |a| [m, Int(i)] => match field(m, "groups") {
         List(gs) => match usize::try_from(*i).ok().and_then(|i| gs.get(i)) {
             Some(g) => g.clone(),
-            None => return panic("bounds"),
+            None => return out_of_range(*i, gs.len()),
         },
         _ => unreachable!("list field"),
     }),
@@ -118,7 +118,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                 List(gs) => gs[*i as usize].clone(),
                 _ => unreachable!("list field"),
             },
-            _ => return panic("bounds"),
+            _ => return panic_with("bounds", format!("the pattern has no group named `{n}`")),
         },
         _ => unreachable!("dict field"),
     }),

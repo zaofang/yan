@@ -254,7 +254,6 @@ pub fn view(db: &dyn Db, file: SourceFile, as_: Surface) -> Result<String, ViewE
         (Surface::Yong, _) => match yong_db::load(db, file).as_ref().map_err(|m| tool(m))? {
             Loaded::Ready(m, _) => Ok(yong_core::print(m)),
             Loaded::Stopped(d) => Err(ViewError::Diagnostics(d.clone())),
-            Loaded::Unsupported(what, _) => Err(unsupported(what)),
         },
         // Wen's HIR printed by the Xin printer: the Xin projection of law 3 (16.5).
         (Surface::Xin, Some(Surface::Wen)) => {
@@ -263,7 +262,6 @@ pub fn view(db: &dyn Db, file: SourceFile, as_: Surface) -> Result<String, ViewE
                     .map(|x| yong_xin::print(&x))
                     .map_err(|what| ViewError::Outside(what.to_owned())),
                 Front::Stopped(d) => Err(ViewError::Diagnostics(d.clone())),
-                Front::Unsupported(what, _) => Err(unsupported(what)),
                 Front::Yong(_) => unreachable!("a .wen file has a Wen front end"),
             }
         }
@@ -278,7 +276,6 @@ pub fn view(db: &dyn Db, file: SourceFile, as_: Surface) -> Result<String, ViewE
                     .map_err(|what| ViewError::Outside(what.to_owned()))
             }
             Loaded::Stopped(d) => Err(ViewError::Diagnostics(d.clone())),
-            Loaded::Unsupported(what, _) => Err(unsupported(what)),
         },
         _ => Err(ViewError::Tool(format!(
             "no printer for `{}` yet",

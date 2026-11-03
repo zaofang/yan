@@ -35,14 +35,34 @@ pub struct Options {
     pub ffi: bool,
 }
 
-/// A construct the elaborator does not lower yet; the caller skips the semantic checks.
+/// A construct the elaborator does not lower yet, at the innermost statement or expression
+/// that was being lowered when it was found (E017, R649).
 #[derive(Debug)]
-pub struct Unsupported(pub String);
+pub struct Unsupported {
+    pub what: String,
+    pub at: Option<Span>,
+}
+
+impl Unsupported {
+    /// Keeps the innermost span: the first one set wins as the error propagates outward.
+    pub(crate) fn at(mut self, span: Span) -> Self {
+        self.at.get_or_insert(span);
+        self
+    }
+}
 
 pub(crate) type R<T> = Result<T, Unsupported>;
 
 pub(crate) fn unsupported<T>(what: impl Into<String>) -> R<T> {
-    Err(Unsupported(what.into()))
+    Err(Unsupported {
+        what: what.into(),
+        at: None,
+    })
+}
+
+/// E017 for a construct this toolchain does not support yet (R649).
+pub fn unsupported_message(what: &str) -> String {
+    format!("{what}: not supported by this toolchain yet")
 }
 
 pub(crate) struct Field {
@@ -353,8 +373,17 @@ pub fn elaborate(
     }
     for it in &m.items {
         let start = cx.diags.len();
-        let k = item(&g, it, &mut cx)?;
-        decorators::check(&g, it, start, &mut cx)?;
+        let k = match item(&g, it, &mut cx)
+            .and_then(|k| decorators::check(&g, it, start, &mut cx).map(|()| k))
+        {
+            Ok(k) => k,
+            // R649: report the construct and go on with the next item.
+            Err(u) => {
+                let at = u.at.unwrap_or(it.span);
+                cx.err("E017", at, it.kind.name(), unsupported_message(&u.what));
+                continue;
+            }
+        };
         if let Some(k) = k {
             items.push(y::Item {
                 attrs: Vec::new(),
@@ -408,7 +437,9 @@ pub fn elaborate(
 fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     for it in &m.items {
         match &it.kind {
-            j::ItemKind::Type(t) if !t.tparams.is_empty() => return unsupported("generic types"),
+            j::ItemKind::Type(t) if !t.tparams.is_empty() => {
+                return unsupported("generic types").map_err(|u| u.at(it.span));
+            }
             j::ItemKind::Type(t) => match &t.rhs {
                 j::TypeRhs::Sum(vs) => {
                     for v in vs {
@@ -419,10 +450,13 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 j::TypeRhs::Alias(ts) if ts.len() == 1 => {
                     g.aliases.insert(t.name.clone(), ts[0].clone());
                 }
-                _ => return unsupported("union aliases, newtypes and capability sets"),
+                _ => {
+                    return unsupported("union aliases, newtypes and capability sets")
+                        .map_err(|u| u.at(it.span));
+                }
             },
             j::ItemKind::Class(c) if !c.tparams.is_empty() => {
-                return unsupported("generic classes");
+                return unsupported("generic classes").map_err(|u| u.at(it.span));
             }
             j::ItemKind::Class(c) => {
                 g.records.insert(c.name.clone(), Vec::new());
