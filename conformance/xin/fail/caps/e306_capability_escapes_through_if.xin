@@ -1,0 +1,6 @@
+# spec: 7.2
+# note: the closure leaves through the join point of an `if` expression (security study F4)
+# expect: E306 at 6:23
+
+def later() -> Callable[[str], None] uses io:
+    return (lambda s: io.print(s)) if True else (lambda s: None)

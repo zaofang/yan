@@ -37,7 +37,7 @@ pub fn apply_file(
         Ops::Json(serde_json::from_str(&text).map_err(|e| format!("{}: {e}", patch.display()))?)
     } else {
         let target = match module {
-            Some(m) => module_path(dir, m),
+            Some(m) => module_path(dir, m)?,
             None => plain_target(patch, dir)?,
         };
         Ops::Plain(target, text)
@@ -49,8 +49,25 @@ pub fn apply_file(
     Ok(r)
 }
 
-pub fn module_path(dir: &Path, module: &str) -> PathBuf {
-    dir.join(format!("{}.xin", module.replace('.', "/")))
+/// The file of `module` under `dir`. A module name is dotted identifiers, and the file must
+/// resolve beneath `dir` after symlinks, so a name never reaches a file outside the root (21.4).
+pub fn module_path(dir: &Path, module: &str) -> Result<PathBuf, String> {
+    let ident = |s: &str| {
+        s.chars()
+            .next()
+            .is_some_and(|c| c.is_alphabetic() || c == '_')
+            && s.chars().all(|c| c.is_alphanumeric() || c == '_')
+    };
+    if !module.split('.').all(ident) {
+        return Err(format!("`{module}` is not a module name"));
+    }
+    let path = dir.join(format!("{}.xin", module.replace('.', "/")));
+    if let (Ok(root), Ok(real)) = (dir.canonicalize(), path.canonicalize())
+        && !real.starts_with(&root)
+    {
+        return Err(format!("`{module}` resolves outside {}", dir.display()));
+    }
+    Ok(path)
 }
 
 /// Writes an applied patch and appends it to the oplog (18.3 rule 7).
@@ -70,7 +87,7 @@ pub fn plan(
         Ops::Json(v) => module_path(
             dir,
             v["module"].as_str().ok_or("the patch has no `module`")?,
-        ),
+        )?,
         Ops::Plain(t, _) => t.clone(),
     };
     let file = target.display().to_string();
@@ -176,9 +193,20 @@ pub fn plan(
             }
         }
     }
+    let frozen_names: Vec<String> = m.items.iter().flat_map(contract_names).collect();
     for name in &touched {
         let old = find(&m.items, name);
         let new = find(&items, name);
+        if old.is_none() && frozen_names.contains(name) {
+            let at = new.map_or(whole(), |it| it.span);
+            return refuse(
+                "P006",
+                at,
+                format!(
+                    "`{name}` shadows a name a contract clause uses, without a human confirmation token"
+                ),
+            );
+        }
         if let Some(why) = protected(old, new) {
             let at = old.or(new).map_or(whole(), |it| it.span);
             return refuse(
@@ -247,29 +275,54 @@ fn plain_target(patch: &Path, dir: &Path) -> Result<PathBuf, String> {
     }
 }
 
-/// R300 and 18.3: test functions and contract clauses are protected.
+/// R300 and 18.3: test functions, `@test_support` items and contract clauses are protected.
 fn protected(old: Option<&Item>, new: Option<&Item>) -> Option<&'static str> {
-    let is_test = |it: &Item| it.kind.name().starts_with("test_");
     if let Some(o) = old
-        && is_test(o)
         && new.is_none_or(|n| item_text(n) != item_text(o))
     {
-        return Some("it changes a test function");
+        if o.kind.name().starts_with("test_") {
+            return Some("it changes a test function");
+        }
+        if o.decorators
+            .iter()
+            .any(|d| d.path.last().is_some_and(|n| n == "test_support"))
+        {
+            return Some("it changes a `@test_support` item");
+        }
     }
-    let contracts = |it: Option<&Item>| -> Vec<String> {
-        it.map(item_text)
-            .unwrap_or_default()
-            .lines()
-            .map(str::trim)
-            .filter(|l| {
-                ["pre ", "post ", "ex ", "invariant ", "decreases "]
-                    .iter()
-                    .any(|k| l.starts_with(k))
-            })
-            .map(str::to_owned)
-            .collect()
-    };
+    let contracts = |it: Option<&Item>| it.map(contract_lines).unwrap_or_default();
     (old.is_some() && contracts(old) != contracts(new)).then_some("it changes a contract clause")
+}
+
+fn contract_lines(it: &Item) -> Vec<String> {
+    item_text(it)
+        .lines()
+        .map(str::trim)
+        .filter(|l| {
+            ["pre ", "post ", "ex ", "invariant ", "decreases "]
+                .iter()
+                .any(|k| l.starts_with(k))
+        })
+        .map(str::to_owned)
+        .collect()
+}
+
+/// The identifiers a contract clause of `it` mentions: an item added beside a frozen clause
+/// may not take one of these names, or the clause would call the new item (21.1).
+fn contract_names(it: &Item) -> Vec<String> {
+    contract_lines(it)
+        .iter()
+        .flat_map(|l| {
+            l.split(|c: char| !(c.is_alphanumeric() || c == '_'))
+                .filter(|w| {
+                    w.chars()
+                        .next()
+                        .is_some_and(|c| c.is_alphabetic() || c == '_')
+                })
+                .map(str::to_owned)
+                .collect::<Vec<_>>()
+        })
+        .collect()
 }
 
 pub fn find<'m>(items: &'m [Item], name: &str) -> Option<&'m Item> {
@@ -331,4 +384,44 @@ fn oplog(dir: &Path, file: &str, before: &str, after: &str) -> Result<(), String
         .open(log.join("oplog.jsonl"))
         .and_then(|mut f| writeln!(f, "{line}"))
         .map_err(|e| format!("oplog: {e}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The P006 refusal message of applying `patch` to a module holding `before`, if any.
+    fn refused(name: &str, before: &str, patch: &str) -> Option<String> {
+        let dir = std::env::temp_dir().join(format!("yong-patch-{name}-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("m.xin"), before).unwrap();
+        let none = |_: &Path, _: &str| Ok(Vec::new());
+        let ops = Ops::Plain(dir.join("m.xin"), patch.to_owned());
+        match plan(&dir, ops, false, &none).unwrap() {
+            Ok(_) => None,
+            Err(d) => Some(d[0].message.clone()),
+        }
+    }
+
+    const SPEC: &str =
+        "def dedup(xs: list[int]) -> list[int]:\n    ex len(dedup([1, 1])) == 1\n    ...\n";
+
+    #[test]
+    fn an_added_item_may_not_shadow_a_contract_name() {
+        let body = "def dedup(xs: list[int]) -> list[int]:\n    ex len(dedup([1, 1])) == 1\n    return xs\n\ndef len(xs: list[int]) -> int:\n    return 1\n";
+        assert!(refused("shadow", SPEC, body).unwrap().contains("shadows"));
+        let helper = body.replace("def len(", "def size(");
+        assert_eq!(refused("helper", SPEC, &helper), None);
+    }
+
+    #[test]
+    fn test_support_items_are_protected() {
+        let before = "@test_support\ndef expected() -> int:\n    return 4\n";
+        let after = before.replace("return 4", "return 0");
+        assert!(
+            refused("support", before, &after)
+                .unwrap()
+                .contains("@test_support")
+        );
+    }
 }

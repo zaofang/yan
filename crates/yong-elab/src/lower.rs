@@ -251,6 +251,13 @@ pub(crate) fn walk(e: &j::Expr, f: &mut impl FnMut(&j::Expr)) {
     }
 }
 
+fn temporary_receiver(what: &str) -> String {
+    format!(
+        "{what} changes its receiver, but the receiver is a temporary that is dropped after \
+         the call; bind it to a local first"
+    )
+}
+
 fn root(e: &j::Expr) -> Option<&str> {
     match &e.kind {
         j::ExprKind::Name(n) => Some(n),
@@ -429,7 +436,10 @@ fn mutables(
                             .get(m)
                             .and_then(|s| s.params.first())
                             .is_some_and(|p| p.conv == Conv::Inout);
-                        if var_first || MUTATING.contains(&m.as_str()) {
+                        if var_first
+                            || MUTATING.contains(&m.as_str())
+                            || crate::stdlib::mutates_receiver(m)
+                        {
                             out.insert(r.to_owned());
                         }
                     }
@@ -438,6 +448,22 @@ fn mutables(
         }
         for b in sub_blocks(s) {
             mutables(g, b, assigned, out);
+        }
+    }
+}
+
+fn declared_lets(stmts: &[j::Stmt], out: &mut HashSet<String>) {
+    for s in stmts {
+        if let j::StmtKind::Bind {
+            mutable: false,
+            target,
+            ..
+        } = &s.kind
+        {
+            out.insert(target.clone());
+        }
+        for b in sub_blocks(s) {
+            declared_lets(b, out);
         }
     }
 }
@@ -453,6 +479,42 @@ fn ends(stmts: &[j::Stmt]) -> bool {
                     | j::StmtKind::Unreachable
             )
         )
+}
+
+/// `Ok(...)` or `Err(...)`.
+fn is_outcome(e: &j::Expr) -> bool {
+    matches!(&e.kind, j::ExprKind::Call(f, _) if matches!(&f.kind, j::ExprKind::Name(n) if n == "Ok" || n == "Err"))
+}
+
+/// Whether control can leave the end of `stmts` without a `return`, `fail` or `become`.
+fn falls_through(stmts: &[j::Stmt]) -> bool {
+    use j::StmtKind as K;
+    if ends(stmts) {
+        return false;
+    }
+    match stmts.last().map(|s| &s.kind) {
+        Some(K::If {
+            arms,
+            els: Some(els),
+        }) => arms.iter().any(|(_, b)| falls_through(&b.stmts)) || falls_through(&els.stmts),
+        Some(K::Match { cases, .. }) => cases.iter().any(|c| falls_through(&c.body.stmts)),
+        Some(K::With { body, .. }) => falls_through(&body.stmts),
+        Some(K::Unsafe(b)) => falls_through(b),
+        Some(K::While { cond, body, .. }) => {
+            !matches!(cond.kind, j::ExprKind::Lit(j::Lit::Bool(true))) || breaks(body)
+        }
+        _ => true,
+    }
+}
+
+/// Whether a loop body has a `break` that leaves this loop.
+fn breaks(stmts: &[j::Stmt]) -> bool {
+    use j::StmtKind as K;
+    stmts.iter().any(|s| match &s.kind {
+        K::Break | K::BreakTo(_) => true,
+        K::While { .. } | K::For { .. } => false,
+        _ => sub_blocks(s).into_iter().any(breaks),
+    })
 }
 
 /// `...` or `return ...` as a statement.
@@ -530,6 +592,10 @@ fn function_body(
     let first_diag = cx.diags.len();
     mutables(g, &body.stmts, &mut assigned, &mut mutable);
     mutable.extend(assigned.into_iter().filter(|(_, n)| *n > 1).map(|(k, _)| k));
+    // Wen declares mutability (15.3): a `let` stays immutable, and assigning it is E403.
+    let mut lets = HashSet::new();
+    declared_lets(&body.stmts, &mut lets);
+    mutable.retain(|n| !lets.contains(n));
     let mut l = Lower {
         g,
         cx,
@@ -640,6 +706,17 @@ fn function_body(
             let v = l.fresh("old");
             l.bind(&v, false, &t, Rhs::Copy(place), f.name_span, f.name_span);
             l.olds.push((p, v));
+        }
+        if !l.cx.wen && !matches!(sig.ret, Ty::Unit | Ty::Err) && falls_through(&body.stmts) {
+            let at = body.stmts.last().map_or(f.name_span, |s| s.span);
+            l.err(
+                "E201",
+                at,
+                format!(
+                    "`{}` can reach its end without returning its `{}`; add a `return`",
+                    f.name, sig.ret
+                ),
+            );
         }
         l.stmts(&body.stmts)?;
         if !ends(&body.stmts) && matches!(sig.ret, Ty::Unit) {
@@ -827,6 +904,14 @@ fn int_op(op: &str) -> Option<(&'static str, Ty)> {
     })
 }
 
+fn is_integer(t: &Ty) -> bool {
+    match t {
+        Ty::Int | Ty::BigInt => true,
+        Ty::Fixed(n) => !n.starts_with('f'),
+        _ => false,
+    }
+}
+
 fn bigint_op(op: &str) -> Option<&'static str> {
     Some(match op {
         "+" => "add_bigint",
@@ -834,6 +919,9 @@ fn bigint_op(op: &str) -> Option<&'static str> {
         "*" => "mul_bigint",
         "//" => "floordiv_bigint",
         "%" => "mod_bigint",
+        "&" => "and_bigint",
+        "|" => "or_bigint",
+        "^" => "xor_bigint",
         _ => return None,
     })
 }
@@ -1077,6 +1165,10 @@ impl Lower<'_, '_, '_> {
     }
 
     fn stmt(&mut self, s: &j::Stmt) -> R<()> {
+        self.stmt_inner(s).map_err(|u| u.at(s.span))
+    }
+
+    fn stmt_inner(&mut self, s: &j::Stmt) -> R<()> {
         use j::StmtKind as K;
         let at = s.span;
         match &s.kind {
@@ -2527,6 +2619,10 @@ impl Lower<'_, '_, '_> {
     }
 
     fn place(&mut self, e: &j::Expr) -> R<(Place, Ty)> {
+        self.place_inner(e).map_err(|u| u.at(e.span))
+    }
+
+    fn place_inner(&mut self, e: &j::Expr) -> R<(Place, Ty)> {
         match &e.kind {
             j::ExprKind::Name(n) if self.narrowed(n).is_some() => {
                 let m = self.narrowed(n).expect("checked").to_owned();
@@ -2743,6 +2839,10 @@ impl Lower<'_, '_, '_> {
     }
 
     fn rhs(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Rhs, Ty)> {
+        self.rhs_inner(e, want).map_err(|u| u.at(e.span))
+    }
+
+    fn rhs_inner(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Rhs, Ty)> {
         use j::ExprKind as K;
         let at = e.span;
         Ok(match &e.kind {
@@ -3046,6 +3146,17 @@ impl Lower<'_, '_, '_> {
                 let (r, t, fail) = self.call_expr(f, args, x.span, None)?;
                 match (fail, r) {
                     (Some(e), Rhs::Call(c)) => {
+                        if self.sig.fail.is_none() {
+                            self.err(
+                                "E310",
+                                at,
+                                format!(
+                                    "`?` passes a `{e}` failure up, but `{}` cannot fail; \
+                                     declare `fail {e}` on it or handle the failure with `else`",
+                                    self.item
+                                ),
+                            );
+                        }
                         // `?` injects any failure into `Error` with no `From` (R432).
                         let into_error = e != Ty::Data("Error".into())
                             && self.sig.fail == Some(Ty::Data("Error".into()))
@@ -3115,6 +3226,20 @@ impl Lower<'_, '_, '_> {
                         }
                     };
                     (Rhs::Call(c), t)
+                }
+                ("~", _) => {
+                    let (a, t) = self.atom(x, want)?;
+                    match t {
+                        Ty::Int | Ty::BigInt => {}
+                        Ty::Fixed(n) if !n.starts_with('f') => {}
+                        Ty::Err => return Ok((Rhs::Atom(a), Ty::Err)),
+                        t => {
+                            self.err("E201", x.span, format!("`~` on a `{t}`"));
+                            return Ok((Rhs::Atom(a), Ty::Err));
+                        }
+                    }
+                    let p = format!("not_{}", t.scalar().expect("an integer"));
+                    (Rhs::Call(call(&p, vec![], vec![let_arg(a)], at)), t)
                 }
                 _ => return unsupported(format!("unary `{op}`")),
             },
@@ -3527,6 +3652,32 @@ impl Lower<'_, '_, '_> {
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty)> {
         let (x, tx) = self.atom(a, want.filter(|w| !matches!(w, Ty::Float) || op != "/"))?;
+        if matches!(op, "<<" | ">>") && is_integer(&tx) {
+            // The amount is any integer type; a `bigint` shifts by an `int`.
+            let hint = if tx == Ty::BigInt {
+                Ty::Int
+            } else {
+                tx.clone()
+            };
+            let (n, nt) = self.atom(b, Some(&hint))?;
+            if nt == Ty::Err {
+                return Ok((Rhs::Atom(x), Ty::Err));
+            }
+            if !is_integer(&nt) || nt == Ty::BigInt {
+                self.err(
+                    "E201",
+                    b.span,
+                    format!("a shift amount must be an integer, not `{nt}`"),
+                );
+                return Ok((Rhs::Atom(x), Ty::Err));
+            }
+            let f = if op == "<<" { "shl" } else { "shr" };
+            let p = format!("{f}_{}", tx.scalar().expect("an integer"));
+            return Ok((
+                Rhs::Call(call(&p, vec![], vec![let_arg(x), let_arg(n)], at)),
+                tx,
+            ));
+        }
         let (y_, ty) = self.atom(b, Some(&tx))?;
         if op == "+" && matches!(tx, Ty::Str | Ty::List(_)) && self.not_last_use(a, at) {
             let item = self.item.clone();
@@ -3647,6 +3798,20 @@ impl Lower<'_, '_, '_> {
             && (outer.contains(n) || self.used_after(n, at))
     }
 
+    /// The side of `f(x) == Ok(v)` that is not the constructor: a fallible call is its
+    /// `Result`, so the constructor gets an expected type (R309 `ex` lines compare this way).
+    fn operand(&mut self, e: &j::Expr) -> R<(Atom, Ty)> {
+        let j::ExprKind::Call(f, args) = &e.kind else {
+            return self.atom(e, None);
+        };
+        let (r, t, fail) = self.call_expr(f, args, e.span, None)?;
+        let (r, t) = match (fail, r) {
+            (Some(fl), Rhs::Call(c)) => (Rhs::Try(c), Ty::Result(Box::new(t), Box::new(fl))),
+            (_, r) => (r, t),
+        };
+        Ok((self.tmp(&t, r, e.span), t))
+    }
+
     fn compare(&mut self, op: &str, a: &j::Expr, b: &j::Expr, at: Span) -> R<(Rhs, Ty)> {
         let none = |e: &j::Expr| matches!(e.kind, j::ExprKind::Lit(j::Lit::None));
         if matches!(op, "is" | "is not") {
@@ -3714,8 +3879,19 @@ impl Lower<'_, '_, '_> {
         let Some(name) = cmp_name(op) else {
             return unsupported(format!("`{op}`"));
         };
-        let (x, tx) = self.atom(a, None)?;
-        let (y_, ty) = self.atom(b, Some(&tx))?;
+        let (x, tx, y_, ty) = if is_outcome(a) && !is_outcome(b) {
+            let (y_, ty) = self.operand(b)?;
+            let (x, tx) = self.atom(a, Some(&ty))?;
+            (x, tx, y_, ty)
+        } else {
+            let (x, tx) = if is_outcome(b) {
+                self.operand(a)?
+            } else {
+                self.atom(a, None)?
+            };
+            let (y_, ty) = self.atom(b, Some(&tx))?;
+            (x, tx, y_, ty)
+        };
         if matches!(tx, Ty::Err) || matches!(ty, Ty::Err) {
             return Ok((Rhs::Atom(x), Ty::Bool));
         }
@@ -4451,6 +4627,9 @@ impl Lower<'_, '_, '_> {
             };
             match (p.conv, is_ref) {
                 (Conv::Inout, true) => {
+                    if root(e).is_none() {
+                        self.err("E403", sp, temporary_receiver("this call"));
+                    }
                     let (pl, t) = self.place(e)?;
                     self.expect(&t, &p.ty, sp);
                     self.arg_tys.push((p.ty.clone(), t.clone(), sp));
@@ -4888,6 +5067,56 @@ impl Lower<'_, '_, '_> {
         Ok((Rhs::Call(c), t, Some(Ty::Data("Error".into()))))
     }
 
+    /// `bits.f(x, ...)` as the typed `<f>_<type>` operation for `x`'s integer type.
+    fn bits_call(&mut self, f: &str, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
+        let n = if matches!(f, "rotate_left" | "rotate_right" | "wrapping_shl") {
+            2
+        } else {
+            1
+        };
+        let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        let Some(xs) = self.positional(args, n, f, at)? else {
+            return Ok(err);
+        };
+        let (x, t) = self.atom(xs[0], None)?;
+        if t == Ty::Err {
+            return Ok(err);
+        }
+        let big_ok = matches!(f, "count_ones" | "bit_width");
+        if !is_integer(&t) || (t == Ty::BigInt && !big_ok) {
+            self.err(
+                "E201",
+                xs[0].span,
+                format!("`bits.{f}` does not take a `{t}`"),
+            );
+            return Ok(err);
+        }
+        let mut out = vec![let_arg(x)];
+        if let Some(e) = xs.get(1) {
+            let (a, nt) = self.atom(e, Some(&Ty::Int))?;
+            if !is_integer(&nt) || nt == Ty::BigInt {
+                if nt != Ty::Err {
+                    self.err(
+                        "E201",
+                        e.span,
+                        format!("`bits.{f}` needs an integer amount, not `{nt}`"),
+                    );
+                }
+                return Ok(err);
+            }
+            out.push(let_arg(a));
+        }
+        let rt = match f {
+            "is_power_of_two" => Ty::Bool,
+            "count_ones" | "count_zeros" | "leading_zeros" | "trailing_zeros" | "bit_width" => {
+                Ty::Int
+            }
+            _ => t.clone(),
+        };
+        let p = format!("{f}_{}", t.scalar().expect("an integer"));
+        Ok((Rhs::Call(call(&p, vec![], out, at)), rt, None))
+    }
+
     /// `module.f(...)`, a free std function called by its module's name, as `math.sqrt(x)`.
     fn module_call(
         &mut self,
@@ -4896,6 +5125,9 @@ impl Lower<'_, '_, '_> {
         args: &[j::Arg],
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
+        if module == "bits" {
+            return self.bits_call(f, args, at);
+        }
         let path = format!("std.{module}.{f}");
         if crate::stdlib::decl(&path).is_some_and(|d| d.typed_at_call()) {
             return self.user_call(&path, None, args, at);
@@ -5134,6 +5366,9 @@ impl Lower<'_, '_, '_> {
         };
         let targs: Vec<_> = targs.iter().map(Ty::targ).collect();
         let recv = if inout {
+            if root(b).is_none() {
+                self.err("E403", b.span, temporary_receiver(&format!("`{m}`")));
+            }
             if !p.projs.is_empty() {
                 return unsupported("a `var` method on a field or element");
             }
