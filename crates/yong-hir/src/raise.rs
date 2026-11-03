@@ -551,6 +551,22 @@ impl<'a> Fold<'a> {
                 ExprKind::Binary(op, Box::new(a), Box::new(b))
             }));
         }
+        if let Some((f, ty)) = p.rsplit_once('_')
+            && ty != "bool"
+            && !p.contains('.')
+        {
+            if f == "not" && vals.len() == 1 {
+                let x = self.atom(vals[0])?;
+                return Ok(e(ExprKind::Unary("~", Box::new(x))));
+            }
+            if yong_std::intrinsics::BITS.contains(&f) {
+                let args = vals
+                    .iter()
+                    .map(|v| self.atom(v).map(arg))
+                    .collect::<R<Vec<_>>>()?;
+                return Ok(call(attr(name("bits"), f), args));
+            }
+        }
         if p == "not_bool" && vals.len() == 1 {
             let x = self.atom(vals[0])?;
             return Ok(match x.kind {
@@ -1585,6 +1601,14 @@ fn annotation(value: &Expr, t: &y::Type) -> R<Option<Type>> {
             args.is_empty()
                 && matches!(&f.kind, ExprKind::Name(n) if COLLECTIONS.contains(&n.as_str()))
         }
+        // A literal of a fixed-width type keeps its annotation.
+        ExprKind::Lit(Lit::Int(_) | Lit::Float(_)) | ExprKind::Unary("-", _) => matches!(
+            t,
+            y::Type::Named(n) if n.path.len() == 1
+                && !matches!(n.path[0].as_str(), "i64" | "f64" | "BigInt")
+                && yong_std::intrinsics::INTS.iter().chain(&yong_std::intrinsics::FLOATS)
+                    .any(|s| *s == n.path[0])
+        ),
         _ => false,
     };
     empty.then(|| ty(t)).transpose()
@@ -1621,6 +1645,8 @@ fn binary(path: &str) -> Option<&'static str> {
         "and" => "&",
         "or" => "|",
         "xor" => "^",
+        "shl" => "<<",
+        "shr" => ">>",
         "eq" => "==",
         "ne" => "!=",
         "lt" => "<",

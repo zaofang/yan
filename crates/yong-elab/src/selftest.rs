@@ -99,3 +99,15 @@ pub def main() uses io:
 ";
     assert_eq!(raised(src), src);
 }
+
+#[test]
+fn question_mark_needs_a_function_that_can_fail() {
+    let g = "def g() -> int fail str:\n    fail \"x\"\n\n";
+    let (_, d) = lower(&format!("{g}def f() -> int:\n    return g()?\n"));
+    assert_eq!(
+        d.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
+        ["E310"]
+    );
+    let (_, d) = lower(&format!("{g}def f() -> int fail str:\n    return g()?\n"));
+    assert!(d.is_empty(), "{d:?}");
+}
