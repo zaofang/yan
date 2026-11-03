@@ -129,3 +129,14 @@ fn post_names_resolve_in_a_hole_body() {
     );
     assert!(codes(&format!("{head}    post out >= n\n    ...\n")).is_empty());
 }
+
+#[test]
+fn a_method_with_no_loaded_signature_is_unsupported_not_a_panic() {
+    let src = "def f(xss: list[list[int]]) -> int:\n    \"\"\"Doc.\"\"\"\n    post out == xss.map(lambda xs: xs.len()).sum()\n    ...\n";
+    let (m, d) = yong_xin::parse("t.xin", src, false);
+    assert!(
+        d.iter().all(|d| d.severity != yong_diag::Severity::Error),
+        "{d:?}"
+    );
+    assert!(elaborate("t.xin", src, &m.expect("parses"), Options::default()).is_err());
+}

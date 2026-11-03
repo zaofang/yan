@@ -4059,7 +4059,9 @@ impl Lower<'_, '_, '_> {
             self.cx
                 .warn("W815", at, &item, format!("`{name}` is deprecated"));
         }
-        let sig = &self.g.fns[name];
+        let Some(sig) = self.g.fns.get(name) else {
+            return unsupported(format!("`{name}`"));
+        };
         if let Some(&(safe, variadic)) = self.g.externs.get(name) {
             if !safe && !self.in_unsafe {
                 self.err(
