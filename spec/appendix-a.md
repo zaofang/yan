@@ -138,6 +138,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R658 to R661 | Python idiom parity (RFC 0024), decided by the owner: `min` and `max` over one iterable with `key=` and `default=` (R658); `sorted` and `sort` with `key=` and `reverse=` (R659); `str` and `list` repetition by `*` (R660); N31 lifts a capture-free nested `def` (R661) | 14.1, 14.4, 17.2, 25 |
 | R662 to R664 | Habit help (RFC 0024), decided by the owner: `habit` children on diagnostics triggered by Python or TypeScript habits (R662); W854 for `${...}` in a Wen string (R663); a TypeScript migration guide in the learning set (R664) | 15.1, 15.5, 18.2, 18.9, 25 |
 | R760 to R763 | Inferred loop invariants (RFC 0027), decided by the owner: kills keep implied facts by Fourier-Motzkin elimination (R760); `x = x + d` substitutes (R761); joins keep facts every path implies (R762); `while` invariants inferred from entry facts the body preserves (R763) | 8.6 |
+| R665 to R671 | `yong review` (RFC 0023, https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU), decided by the owner: the command over git revisions at M1 (R665); item changes on elaborated Yong, edited and affected (R666); authority gains and losses (R667); contracts, tests and `tests.lock`, approval judged by BASE, frozen edits (R668); the test verdict cache key and file (R669); provenance authors (R670); exit status and the JSON and Markdown formats (R671) | 18.1, 18.4, 21.5 |
 
 <!-- /rows -->
 

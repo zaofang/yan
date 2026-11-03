@@ -8,6 +8,7 @@ mod agent;
 mod examples;
 mod mcp;
 mod patch;
+mod review;
 mod test;
 use yong_db::{Database, Loaded};
 use yong_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, finish};
@@ -110,6 +111,9 @@ enum Command {
         /// or function prefix.
         #[arg(long)]
         only: Option<String>,
+        /// Run every test instead of reusing cached verdicts (18.4).
+        #[arg(long)]
+        no_cache: bool,
     },
     /// Run one task through the spec gate as a client of `yong mcp` (the reference agent
     /// loop), and print its run record.
@@ -144,6 +148,15 @@ enum Command {
     },
     /// Explain a diagnostic code, with its conformance examples and their fixes (R299).
     Explain { code: String },
+    /// Compare two revisions of the package item by item (RFC 0023); exit 1 when a change
+    /// needs a human.
+    Review {
+        /// `BASE` or `BASE..HEAD`, git revisions; HEAD left out is the working tree.
+        #[arg(default_value = "HEAD")]
+        range: String,
+        #[arg(long, value_enum, default_value_t = ReviewFormat::Line)]
+        format: ReviewFormat,
+    },
     /// Run a program.
     Run {
         #[arg(long)]
@@ -159,6 +172,13 @@ enum Format {
     Line,
     Prose,
     Json,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum ReviewFormat {
+    Line,
+    Json,
+    Md,
 }
 
 fn main() -> ExitCode {
@@ -187,7 +207,13 @@ fn main() -> ExitCode {
             cli.backend,
             cli.jit,
         ),
-        Command::Test { format, gate, only } => run_tests(format, gate, only.as_deref()),
+        Command::Test {
+            format,
+            gate,
+            only,
+            no_cache,
+        } => run_tests(format, gate, only.as_deref(), no_cache),
+        Command::Review { range, format } => review(&range, format),
         Command::View { as_, file } => view(&as_, &file),
         Command::Fmt { check, files } => fmt(&files, check),
         Command::Hash {
@@ -247,8 +273,10 @@ fn main() -> ExitCode {
     }
 }
 
-fn run_tests(format: Format, gate: bool, only: Option<&str>) -> ExitCode {
-    let report = match test::run(Path::new("."), only, gate) {
+fn run_tests(format: Format, gate: bool, only: Option<&str>, no_cache: bool) -> ExitCode {
+    let root = Path::new(".");
+    let cache = (!no_cache).then(|| test::cache_file(root));
+    let report = match test::run(root, only, gate, cache.as_deref()) {
         Ok(r) => r,
         Err(msg) => return tool_failure(&msg),
     };
@@ -296,6 +324,27 @@ fn explain(code: &str) -> ExitCode {
         println!("\nNo conformance example for {code} yet.");
     }
     ExitCode::SUCCESS
+}
+
+fn review(range: &str, format: ReviewFormat) -> ExitCode {
+    let (base, head) = match range.split_once("..") {
+        Some((b, h)) => (b, Some(h)),
+        None => (range, None),
+    };
+    let r = match review::review(Path::new("."), base, head) {
+        Ok(r) => r,
+        Err(msg) => return tool_failure(&msg),
+    };
+    match format {
+        ReviewFormat::Line => r.lines().iter().for_each(|l| println!("{l}")),
+        ReviewFormat::Json => println!("{}", r.json()),
+        ReviewFormat::Md => print!("{}", r.markdown()),
+    }
+    if r.needs_human() {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
 }
 
 fn print_diags(diags: &[Diagnostic]) {

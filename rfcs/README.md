@@ -46,3 +46,4 @@ research index links their studies and rows.
 | [0024](0024-learnability.md) | Learnability for Python and TypeScript developers | accepted | R655 to R664 |
 | [0027](0027-loop-invariants.md) | Inferred loop invariants for the bounds solver | accepted | R760 to R763 |
 | [0021](0021-error-messages.md) | Error messages: E545, E017 for unsupported constructs, line format, near names | accepted | R648 to R651 |
+| [0023](0023-yong-review.md) | `yong review`, a report for agent PRs | accepted | R665 to R671 |
