@@ -1,0 +1,12 @@
+# spec: 17.3
+# rows: R694
+# note: a @help key that names no field is E269
+# expect: E269 at 6:9
+
+@derive(Cli)
+@help(nope="x")
+class Args:
+    path: str
+
+pub def main() uses io:
+    io.print("x")

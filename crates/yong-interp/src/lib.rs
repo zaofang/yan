@@ -12,22 +12,31 @@ use std::rc::Rc;
 use indexmap::{IndexMap, IndexSet};
 use num_bigint::BigInt;
 use yong_core::ast::*;
+use yong_diag::Span;
 
 mod bind;
+mod bits;
+mod civil;
+mod cli;
 mod collections;
 mod compile;
 mod encoding;
+mod env;
 mod iter;
 mod keyed;
+mod log;
 mod math;
 mod native;
 mod path;
 mod prelude;
+mod proc;
+mod rand;
 mod regex;
 #[cfg(test)]
 mod std_parity;
 #[cfg(test)]
 mod std_selftest;
+mod time;
 mod vm;
 
 pub const EXIT_FAILURE: i32 = 1;
@@ -64,7 +73,18 @@ pub(crate) enum Value {
     Bytes(Rc<[u8]>),
     ByteArray(Vec<u8>),
     Path(Rc<str>),
+    /// A `Secret[T]` (RFC 0019 D7); it shows as `Secret(***)`.
+    Secret(Rc<Value>),
     WindowsPath(Rc<path::WinPath>),
+    Duration(i128),
+    Instant(i128),
+    Mono(i128),
+    PlainDate(jiff::civil::Date),
+    PlainTime(jiff::civil::Time),
+    PlainDateTime(jiff::civil::DateTime),
+    /// Years, months, weeks and days, with one sign.
+    Period([i64; 4]),
+    Zone(Rc<civil::Zone>),
     Closure(Rc<vm::Clo>),
     Iter(iter::It),
 }
@@ -111,7 +131,13 @@ impl Hash for Key {
                 Value::Str(s) => s.hash(h),
                 Value::Bytes(b) => b.hash(h),
                 Value::Path(s) => s.hash(h),
+                Value::Duration(n) | Value::Instant(n) | Value::Mono(n) => n.hash(h),
                 Value::WindowsPath(w) => w.folded().hash(h),
+                Value::PlainDate(d) => d.hash(h),
+                Value::PlainTime(t) => t.hash(h),
+                Value::PlainDateTime(dt) => dt.hash(h),
+                Value::Period(p) => p.hash(h),
+                Value::Zone(z) => z.id().hash(h),
                 Value::BigInt(b) => b.hash(h),
                 Value::Tuple(xs) | Value::List(xs) => xs.iter().for_each(|x| go(x, h)),
                 Value::Data { name, fields } => {
@@ -127,8 +153,8 @@ impl Hash for Key {
 /// Why a run stopped early.
 #[derive(Debug)]
 pub enum Stop {
-    /// A panic with its kind (8.3).
-    Panic(String),
+    /// A panic (8.3).
+    Panic(Box<Panic>),
     /// A construct this interpreter does not run yet: a tool failure, not a program result.
     Unsupported(String),
     /// A stage-0 budget ran out (10.4): `depth` or `steps`.
@@ -159,27 +185,45 @@ pub enum Stage0 {
 }
 
 /// Evaluate nullary `fn f` of `m` at stage 0, on a thread with room for deep recursion.
+#[cfg(not(target_family = "wasm"))]
 pub fn stage0(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
     std::thread::scope(|s| {
         std::thread::Builder::new()
             .stack_size(1 << 30)
-            .spawn_scoped(s, || {
-                let program = compile::compile(m);
-                let Some(code) = program.fns.get(f).copied() else {
-                    return unsupported(format!("no `fn {f}` to evaluate"));
-                };
-                let mut sink = std::io::sink();
-                let mut vm = vm::Vm::new(program, Interp { out: &mut sink });
-                vm.limit(limits);
-                match vm.call(code, Vec::new())?.0 {
-                    Ok(v) => Ok(materialize(&v)),
-                    Err(_) => unsupported("a failing stage-0 call"),
-                }
-            })
+            .spawn_scoped(s, || stage0_here(m, f, limits))
             .expect("spawn the stage-0 thread")
             .join()
             .unwrap_or_else(|_| unsupported("the stage-0 evaluator crashed"))
     })
+}
+
+/// WebAssembly in the browser has no threads; the playground links a large stack instead.
+#[cfg(target_family = "wasm")]
+pub fn stage0(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
+    stage0_here(m, f, limits)
+}
+
+fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
+    let program = compile::compile(m);
+    let Some(code) = program.fns.get(f).copied() else {
+        return unsupported(format!("no `fn {f}` to evaluate"));
+    };
+    let mut sink = std::io::sink();
+    let mut vm = vm::Vm::new(
+        program,
+        Interp {
+            out: &mut sink,
+            clocks: Vec::new(),
+            rngs: Vec::new(),
+            args: Vec::new(),
+            test: false,
+        },
+    );
+    vm.limit(limits);
+    match vm.call(code, Vec::new())?.0 {
+        Ok(v) => Ok(materialize(&v)),
+        Err(_) => unsupported("a failing stage-0 call"),
+    }
 }
 
 /// 10.4: scalars, strings, lists, tuples and data of them cross into run time.
@@ -214,14 +258,69 @@ fn materialize(v: &Value) -> Stage0 {
     }
 }
 
+/// A panic's kind, message and the frames it unwound through, innermost first.
+#[derive(Debug)]
+pub struct Panic {
+    pub kind: String,
+    pub message: String,
+    pub trace: Vec<Frame>,
+}
+
+#[derive(Debug)]
+pub struct Frame {
+    pub item: String,
+    pub at: Span,
+}
+
+impl Panic {
+    /// `panic(kind): message` and one `  at item line:col` line per frame (8.3).
+    pub fn render(&self, path: &str) -> String {
+        let mut s = format!("panic({}): {}", self.kind, self.message);
+        for f in &self.trace {
+            s += &format!("\n  at {} {path}:{}:{}", f.item, f.at.line, f.at.col);
+        }
+        s
+    }
+}
+
 pub(crate) type R<T> = Result<T, Stop>;
 
 pub(crate) struct Interp<'o> {
     out: &'o mut dyn Write,
+    /// Nanoseconds slept under each `fixed_time` or `virtual` handler, by handler.
+    clocks: Vec<i128>,
+    /// The generator of each `seeded` handler, by handler.
+    rngs: Vec<rand::Gen>,
+    /// The program's arguments under the host `env` handler.
+    args: Vec<String>,
+    /// Running under `yong test`, which picks the default handlers (7.3).
+    test: bool,
 }
 
 pub(crate) fn panic<T>(kind: &str) -> R<T> {
-    Err(Stop::Panic(kind.to_owned()))
+    panic_with(kind, yong_rt::abi::panic_message(kind))
+}
+
+pub(crate) fn panic_with<T>(kind: &str, message: impl Into<String>) -> R<T> {
+    Err(Stop::Panic(Box::new(Panic {
+        kind: kind.to_owned(),
+        message: message.into(),
+        trace: Vec::new(),
+    })))
+}
+
+pub(crate) fn out_of_range<T>(i: i128, len: usize) -> R<T> {
+    panic_with(
+        "bounds",
+        format!("index {i} is out of range for length {len}"),
+    )
+}
+
+pub(crate) fn slice_out_of_range<T>(i: i128, j: i128, len: usize) -> R<T> {
+    panic_with(
+        "bounds",
+        format!("slice {i}:{j} is out of range for length {len}"),
+    )
 }
 
 pub(crate) fn unsupported<T>(what: impl Into<String>) -> R<T> {
@@ -230,7 +329,12 @@ pub(crate) fn unsupported<T>(what: impl Into<String>) -> R<T> {
 
 /// Run `fn main` of `m`, writing program output to `out`. Returns the exit status.
 pub fn run(m: &Module, out: &mut dyn Write) -> R<i32> {
-    Ok(match entry(m, "main", out, None)? {
+    run_with(m, out, Vec::new())
+}
+
+/// [`run`] with the program arguments `env.args()` returns.
+pub fn run_with(m: &Module, out: &mut dyn Write, args: Vec<String>) -> R<i32> {
+    Ok(match entry(m, "main", out, None, args)? {
         true => 0,
         false => EXIT_FAILURE,
     })
@@ -242,7 +346,7 @@ pub fn test(m: &Module, f: &str, limits: Limits, out: &mut (dyn Write + Send)) -
     std::thread::scope(|s| {
         std::thread::Builder::new()
             .stack_size(1 << 30)
-            .spawn_scoped(s, || entry(m, f, out, Some(limits)))
+            .spawn_scoped(s, || entry(m, f, out, Some(limits), Vec::new()))
             .expect("spawn the test thread")
             .join()
             .unwrap_or_else(|_| unsupported("the interpreter crashed"))
@@ -250,7 +354,13 @@ pub fn test(m: &Module, f: &str, limits: Limits, out: &mut (dyn Write + Send)) -
 }
 
 /// Call `fn f` of `m` with its capabilities bound; `false` when it returns a failure.
-fn entry(m: &Module, f: &str, out: &mut dyn Write, limits: Option<Limits>) -> R<bool> {
+fn entry(
+    m: &Module,
+    f: &str,
+    out: &mut dyn Write,
+    limits: Option<Limits>,
+    argv: Vec<String>,
+) -> R<bool> {
     let program = compile::compile(m);
     let Some(code) = program.fns.get(f).copied() else {
         return unsupported(format!("no `fn {f}` in the module"));
@@ -272,7 +382,24 @@ fn entry(m: &Module, f: &str, out: &mut dyn Write, limits: Option<Limits>) -> R<
             Param::Value { .. } => unsupported(format!("`{f}` with value parameters")),
         })
         .collect::<R<Vec<_>>>()?;
-    let mut vm = vm::Vm::new(program, Interp { out });
+    let mut it = Interp {
+        out,
+        clocks: Vec::new(),
+        rngs: Vec::new(),
+        args: argv,
+        test: limits.is_some(),
+    };
+    // The test handler set (7.3): `rand = seeded(0)`, `env = fake_env()`, `proc = fake_proc()`.
+    let args = args
+        .into_iter()
+        .map(|a| match a {
+            Value::Cap(n) if limits.is_some() && n == "rand" => rand::seeded(&mut it, 0, "ChaCha8"),
+            Value::Cap(n) if limits.is_some() && n == "env" => env::test_default(),
+            Value::Cap(n) if limits.is_some() && n == "proc" => proc::test_default(),
+            a => a,
+        })
+        .collect();
+    let mut vm = vm::Vm::new(program, it);
     if let Some(l) = limits {
         vm.limit(l);
     }
@@ -350,6 +477,13 @@ pub(crate) fn intrinsic(name: &str, args: &[Value]) -> Option<R<Value>> {
         });
     }
     let (op, ty) = name.rsplit_once('_')?;
+    if let Some(r) = if ty == "bigint" {
+        bits::bigint(op, args)
+    } else {
+        bits::int(op, ty, args)
+    } {
+        return Some(r);
+    }
     if let [Value::BigInt(a), Value::BigInt(b)] = args {
         return native::bigint_op(op, a, b);
     }
@@ -369,7 +503,7 @@ pub(crate) fn intrinsic(name: &str, args: &[Value]) -> Option<R<Value>> {
                     let r = a.rem_euclid(b);
                     checked(Some(if r != 0 && b < 0 { r + b } else { r }), ty)
                 }
-                "div" => Ok(Value::Float(a as f64 / b as f64)),
+                "div" => Ok(Value::Float(yong_rt::num::div_i128(a, b))),
                 "and" => Ok(Value::Int(a & b)),
                 "or" => Ok(Value::Int(a | b)),
                 "xor" => Ok(Value::Int(a ^ b)),
@@ -475,7 +609,7 @@ mod selftest {
         let mut out = Vec::new();
         let status = match run(&m.unwrap(), &mut out) {
             Ok(s) => s,
-            Err(Stop::Panic(_)) => EXIT_PANIC,
+            Err(Stop::Panic(..)) => EXIT_PANIC,
             Err(Stop::Unsupported(w)) => panic!("unsupported: {w}"),
             Err(Stop::Limit(w)) => panic!("limit: {w}"),
         };
@@ -491,6 +625,21 @@ mod selftest {
              let r: i64 = f(let a)\n assert eq_i64(let r, let 12)\n ret ()\n}\n",
         );
         assert_eq!(s, 0);
+    }
+
+    #[test]
+    fn panic_names_values_and_each_frame() {
+        let src = "module t\nfn half(let n: i64, let d: i64) -> i64 {\n let h: i64 = floordiv_i64(let n, let d)\n ret h\n}\n\
+                   fn main() -> Unit {\n let z: i64 = 0\n let y: i64 = half(let 7, let z)\n ret ()\n}\n";
+        let (m, d) = yong_core::parse("t.yong", src);
+        assert!(d.is_empty());
+        let Err(Stop::Panic(p)) = run(&m.unwrap(), &mut Vec::new()) else {
+            panic!("expected a panic")
+        };
+        assert_eq!(
+            p.render("t.yong"),
+            "panic(div_zero): floor division of 7 by zero\n  at half t.yong:3:2\n  at main t.yong:8:2"
+        );
     }
 
     #[test]

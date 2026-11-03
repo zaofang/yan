@@ -1,0 +1,14 @@
+"""Settlement: net approved authorizations per merchant."""
+
+pub def settle(auths: list[schema.Auth], ds: list[schema.Decision]) -> list[schema.Settled] uses none:
+    """Nets approved authorizations per merchant, in first-seen order."""
+    pre len(auths) == len(ds)
+    ex settle([], []) == []
+    acc: dict[str, schema.Settled] = {}
+    for a, d in zip(auths, ds):
+        if d is schema.Approved(_):
+            zero = Money(0, a.amount.currency)
+            s = acc.get(a.merchant) else schema.Settled(merchant=a.merchant.copy(), gross=zero, fees=zero, net=zero)
+            f = fees.fee(a.amount, a.mcc)
+            acc[a.merchant.copy()] = schema.Settled(merchant=a.merchant.copy(), gross=s.gross + a.amount, fees=s.fees + f, net=s.net + a.amount - f)
+    return acc.values()

@@ -22,3 +22,8 @@ unsafe_code = "deny"
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }
+
+[dev-dependencies]
+rand_chacha = "0.9"
+rand_core = "0.9"
+rand_pcg = "0.9"

@@ -519,6 +519,23 @@
    ]
   },
   {
+   "path": "xin/fail/caps/e306_capability_escapes_through_if.xin",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "7.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E306",
+     "line": 6,
+     "col": 23
+    }
+   ]
+  },
+  {
    "path": "xin/fail/caps/e306_capability_returned.xin",
    "kind": "fail",
    "milestone": "M1",
@@ -2218,6 +2235,120 @@
    ]
   },
   {
+   "path": "xin/fail/std/bits_bigint_rotate.xin",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R681"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 8,
+     "col": 34
+    }
+   ]
+  },
+  {
+   "path": "xin/fail/std/bits_shift_by_float.xin",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R682"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 8,
+     "col": 22
+    }
+   ]
+  },
+  {
+   "path": "xin/fail/std/cli_help_unknown_key.xin",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R694"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E269",
+     "line": 6,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "xin/fail/std/cli_help_without_derive.xin",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R694"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E269",
+     "line": 6,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "xin/fail/std/cli_not_derived.xin",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R695"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 10,
+     "col": 24
+    }
+   ]
+  },
+  {
+   "path": "xin/fail/std/cli_unsupported_field.xin",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R694"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E269",
+     "line": 6,
+     "col": 9
+    }
+   ]
+  },
+  {
    "path": "xin/fail/std/e545_backreference.xin",
    "kind": "fail",
    "milestone": "M1",
@@ -3609,6 +3740,161 @@
    "exit": 0
   },
   {
+   "path": "xin/run/std/bits_bigint.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R681",
+    "R682"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "8 8 71 0\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/bits_functions.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R681"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 5 3 1 5\n97 11 104 96\n2018915346 True False 64 64\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/bits_operators.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "17.3"
+   ],
+   "rows": [
+    "R682"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "40 2 4290000000 4294967290\n28 -8 -5 6\n1180591620717411303424 2 -2 4\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/bits_shift_amount.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R682"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n",
+   "exit": 101
+  },
+  {
+   "path": "xin/run/std/bits_shl_overflow.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R681",
+    "R682"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 64\n",
+   "exit": 101
+  },
+  {
+   "path": "xin/run/std/cli_errors.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R695"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "error: unknown option '--nope'\nusage: count [options] <path> <color>\nerror: missing argument <color>\nusage: count [options] <path> <color>\nerror: invalid value 'red' for <color>: expected one of dark, light\nusage: count [options] <path> <color>\nerror: invalid value 'x' for '--top': expected int\nusage: count [options] <path> <color>\nerror: option '--top' needs a value\nusage: count [options] <path> <color>\nerror: '--top' given twice\nusage: count [options] <path> <color>\nerror: option '--verbose' takes no value\nusage: count [options] <path> <color>\nerror: unexpected argument 'extra'\nusage: count [options] <path> <color>\nerror: invalid value '--top' for <color>: expected one of dark, light\nusage: count [options] <path> <color>\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/cli_help.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R694",
+    "R695"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "True\nusage: word-count [options] <path>\n\nCount words in a file.\n\narguments:\n  <path> Path  the file to read\n\noptions:\n  --top <int>  how many to show (default: 10)\n  --verbose\n  -h, --help  show this help\nTrue\nusage: tool [options] <command>\n\nManage items.\n\noptions:\n  -h, --help  show this help\n\ncommands:\n  add  add one item\n  remove  remove items\nTrue\nusage: tool add [options] <name>\n\nadd one item\n\narguments:\n  <name> str\n\noptions:\n  -h, --help  show this help\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/cli_parse.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R694",
+    "R695"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a.txt Light() ['x', 'y'] 3 0.5 n True\na.txt Dark() [] 10 0.25 None False\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/cli_parse_env.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R695"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "in.txt 2\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/cli_subcommands.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R694"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Add(name='x', force=True)\nRemove(names=['a', 'b'])\nerror: missing argument <name>\nusage: tool add [options] <name>\nerror: unknown command 'zap'\nusage: tool [options] <command>\nerror: missing command\nusage: tool [options] <command>\n",
+   "exit": 0
+  },
+  {
    "path": "xin/run/std/deque_empty_pop.xin",
    "kind": "run",
    "milestone": "M1",
@@ -3804,6 +4090,37 @@
    "flags": [],
    "expect": [],
    "stdout": "10 h\u00e9llo \u6c38 h\u00e9llo \u6c38\n1\n0\n2\na\ufffdb\ufffd\n\ud83d\ude00\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/env_fake.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "7.1",
+    "17.3"
+   ],
+   "rows": [
+    "R686"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "['a', 'b'] /h None {'A': '1', 'HOME': '/h'} Europe/Lisbon\n[] UTC\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/env_secret.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.4"
+   ],
+   "rows": [
+    "R687"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Secret(***) hunter2 True None\n[Secret(***)]\n",
    "exit": 0
   },
   {
@@ -4056,6 +4373,23 @@
    "exit": 0
   },
   {
+   "path": "xin/run/std/log_events.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R688",
+    "R689",
+    "R690"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "level=debug msg=open span=load file=a.csv\nlevel=info msg=parsed span=load file=a.csv rows=3 note=\"two words\"\nlevel=warn msg=odd span=load/check file=a.csv empty=\"\" q=\"say \\\"hi\\\"\"\nlevel=error msg=done ok=False\nlevel=warn msg=odd span=load/check file=b.csv empty=\"\" q=\"say \\\"hi\\\"\"\n",
+   "exit": 0
+  },
+  {
    "path": "xin/run/std/math_constants.xin",
    "kind": "run",
    "milestone": "M1",
@@ -4302,6 +4636,100 @@
    "expect": [],
    "stdout": "a/c\n",
    "exit": 101
+  },
+  {
+   "path": "xin/run/std/proc_fake.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R691",
+    "R692"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Command(['git', '--version', '-q']) ['git', '--version', '-q']\n0 None b'git 2' True\n3 None b'' False\nls: not in fake_proc NotFound()\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/rand_below_zero.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R684"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0\n",
+   "exit": 101
+  },
+  {
+   "path": "xin/run/std/rand_choice_empty.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R684"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7\n",
+   "exit": 101
+  },
+  {
+   "path": "xin/run/std/rand_derived.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R683",
+    "R684"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 -3 True 0.7231518528398883 [6, 5, 4, 3, 2, 1] 6\n1 -3 True 0.7231518528398883 [6, 5, 4, 3, 2, 1] 6\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/rand_par_split.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "7.1",
+    "9.2"
+   ],
+   "rows": [
+    "R685"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "903 282 400\n903 282 400 42\n400\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/rand_seeded_streams.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "7.1",
+    "17.3"
+   ],
+   "rows": [
+    "R683"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "13804888775535289832 4211859015901796865\n3536907876931541756 1681417456739323905\n11580484839666122119 11978924969568863972\n",
+   "exit": 0
   },
   {
    "path": "xin/run/std/regex_anchors.xin",
@@ -7022,6 +7450,34 @@
    "exit": 0
   },
   {
+   "path": "golden/g5_tally.wen",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "24.3",
+    "16.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 approved A86\n2 approved A82\n3 declined luhn\n4 declined limit\n5 approved A22\n6 declined amount\n7 declined issuer\n8 approved A75\ncorner-shop gross=5249 fees=77 net=5172\nair-lines gross=48000 fees=1200 net=46800\nbookstore gross=2500 fees=72 net=2428\n",
+   "exit": 0
+  },
+  {
+   "path": "golden/g5_tally.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "24.3",
+    "16.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 approved A86\n2 approved A82\n3 declined luhn\n4 declined limit\n5 approved A22\n6 declined amount\n7 declined issuer\n8 approved A75\ncorner-shop gross=5249 fees=77 net=5172\nair-lines gross=48000 fees=1200 net=46800\nbookstore gross=2500 fees=72 net=2428\n",
+   "exit": 0
+  },
+  {
    "path": "solver/append_adds_one.xin",
    "kind": "fail",
    "milestone": "M1",
@@ -7066,6 +7522,26 @@
      "col": 12
     }
    ]
+  },
+  {
+   "path": "solver/binary_search_invariant.xin",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "8.6"
+   ],
+   "rows": [
+    "R345",
+    "R760",
+    "R761",
+    "R762",
+    "R763"
+   ],
+   "flags": [
+    "--level",
+    "release"
+   ],
+   "expect": []
   },
   {
    "path": "solver/constant_multiple.xin",
@@ -7182,7 +7658,8 @@
    ],
    "rows": [
     "R340",
-    "R345"
+    "R345",
+    "R763"
    ],
    "flags": [
     "--level",

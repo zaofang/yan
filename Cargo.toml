@@ -18,6 +18,7 @@ toml = "1"
 salsa = { version = "0.28", default-features = false, features = ["macros", "inventory"] }
 core-math = "1.4"
 indexmap = "2"
+jiff = { version = "0.2", default-features = false, features = ["std", "tzdb-bundle-always"] }
 libm = "0.2"
 num-bigint = "0.4"
 num-integer = "0.1"
@@ -37,7 +38,6 @@ yong-xin = { path = "crates/yong-xin" }
 yong-elab = { path = "crates/yong-elab" }
 yong-wen = { path = "crates/yong-wen" }
 yong-names = { path = "crates/yong-names" }
-yong-surface = { path = "crates/yong-surface" }
 yong-db = { path = "crates/yong-db" }
 yong-ide = { path = "crates/yong-ide" }
 

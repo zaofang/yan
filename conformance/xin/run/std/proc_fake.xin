@@ -1,0 +1,27 @@
+# spec: 17.3
+# rows: R691, R692
+# note: fake_proc answers by program name; an unknown program fails with NotFound; a non-zero exit is data
+# stdout:
+# Command(['git', '--version', '-q']) ['git', '--version', '-q']
+# 0 None b'git 2' True
+# 3 None b'' False
+# ls: not in fake_proc NotFound()
+
+def describe(c: Command) -> str fail ProcError uses proc:
+    out = proc.run(c)?
+    return f"{out.code} {out.signal} {out.stdout} {out.success()}"
+
+def run_or_why(c: Command) -> str uses proc:
+    return describe(c) else e -> f"{e} {e.reason}"
+
+pub def main() uses io:
+    v = "git 2"
+    none = ""
+    ok = Output(code=0, signal=None, stdout=v.bytes(), stderr=none.bytes())
+    bad = Output(code=3, signal=None, stdout=none.bytes(), stderr=none.bytes())
+    c = Command("git", ["--version"]).arg("-q")
+    io.print(f"{c} {c.argv()}")
+    with proc = fake_proc({"git": ok, "false": bad}):
+        io.print(run_or_why(c))
+        io.print(run_or_why(Command("false")))
+        io.print(run_or_why(Command("ls")))

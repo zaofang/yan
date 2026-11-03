@@ -32,7 +32,7 @@ Indexing a user type, `x[k]` and `x[k] = v`, resolves to `Index[K]`, whose `at` 
 
 **Stage-0 steps (R487).** A stage-0 step is one executed call, one loop iteration or one allocation of checked Yong, counted the same by every evaluator. The step budget, `@limit(stage0_steps: n)` and `--stage0-profile` count these steps, so a compiled stage-0 evaluator raises E261 at the same point as the bytecode interpreter.
 
-**Capabilities.** Stage 0 gets only `alloc` (a stage-0 arena), `embed(path)` restricted to the package root with its content hash recorded (E267 outside it), and `diag`: `compile_error` (E270) and `compile_warn` (W816), optionally at a span inside a string-literal argument. Stage 0 is therefore hermetic and deterministic.
+**Capabilities.** Stage 0 gets only `alloc` (a stage-0 arena), `embed(path)` restricted to the package root with its content hash recorded (E267 outside it, checked on the symlink-resolved path, R677), and `diag`: `compile_error` (E270) and `compile_warn` (W816), optionally at a span inside a string-literal argument. Stage 0 is therefore hermetic and deterministic.
 
 **Materialization.** Only materializable values cross into run time (E262 otherwise): scalars, `Str`, `Bytes`, arrays, `List`, `Map`, `Set`, and records, sums or tuples of them, emitted once as read-only data. A materialized Map or Set carries an index built at compile time with a stable hash, independent of the run-time hash seed (R346). A `Type` crosses only as a monomorphization argument. `Rc`, `Arc`, function values and handlers do not cross.
 
@@ -42,7 +42,7 @@ Indexing a user type, `x[k]` and `x[k] = v`, resolves to `Index[K]`, whose `at` 
 
 **Reflection.** `info(T)` returns a non-exhaustive `TypeInfo` sum (`Record`, `Sum`, `Newtype`, `Scalar`, `Array`, `View`, `Fn`, `Trait` and so on, with annotations and layout). `info(f)` gives a signature, parameter names, `uses`, `fail` and doc string, never a body. `info(module)` lists items. `implements(T, Tr)` tests conformance, including the auto traits read-only. `x.(f)` accesses a reflected field. Reflection is access-checked at the call site (E264).
 
-**Derives.** A trait may define one `derived` body over reflection. `@derive(Tr)` instantiates it for the type with the defining module's access, then specializes it. `Eq`, `Ord`, `Hash`, `Show`, `Default`, `Wire` and `Num` (for newtypes over numeric types) are std traits with `derived` bodies. Deriving a trait without a `derived` body, or an auto trait, is E269.
+**Derives.** A trait may define one `derived` body over reflection. `@derive(Tr)` instantiates it for the type with the defining module's access, then specializes it. `Eq`, `Ord`, `Hash`, `Show`, `Default`, `Wire`, `Num` (for newtypes over numeric types) and `Cli` (R694) are std traits with `derived` bodies. Deriving a trait without a `derived` body, or an auto trait, is E269.
 
 **Attributes.** A user attribute is either a typed annotation (an inert materializable value read through reflection) or an `@attribute` function `Fn(DeclInfo) -> List[Decl]` that may only add impls, reified types and const items, which are then checked like any others. It never rewrites or removes the declaration and cannot emit extern items, exports or built-in attributes (E266).
 
@@ -71,6 +71,8 @@ Generators are the only control handlers. A generator (Wen L5 `gen name(params) 
 | `@non_exhaustive` | outside the package, matches need a wildcard and literals and destructuring need `..` (20.6) | L1 |
 | `@prove` | module (written @@prove at the top of the file, R466) or function uses the `prove` level | Contracts |
 | `@forbid(rc, alloc, copy, panic)`, any subset (R447) | proof obligations (5.7) | L4 |
+| `@vectorize` | `par for` bodies run in SIMD lanes, as a proof obligation (5.7, R624) | L4 |
+| `@access(...)` | access pattern of a kernel, extern or engine item, used for fusion (11.2, R627) | L4 |
 | `@inline`, `@cold` | optimization hints | L1 |
 | `@unordered`, `@fast_math` | relax determinism; require `uses nondet` | L3 |
 | `nonblocking` | marks a foreign call that does not block; every other foreign call blocks (9.7, R447) | L6 |

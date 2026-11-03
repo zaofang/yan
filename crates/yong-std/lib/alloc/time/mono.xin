@@ -1,0 +1,13 @@
+"""MonoInstant: a monotonic reading whose epoch is unspecified (17.5, R594)."""
+
+@intrinsic
+@since("1.0")
+pub def add(self: MonoInstant, d: Duration) -> MonoInstant: ...
+
+@intrinsic
+@since("1.0")
+pub def sub(self: MonoInstant, d: Duration) -> MonoInstant: ...
+
+@intrinsic
+@since("1.0")
+pub def since(self: MonoInstant, o: MonoInstant) -> Duration: ...

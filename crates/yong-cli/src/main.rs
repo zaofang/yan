@@ -4,8 +4,11 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
+mod agent;
+mod examples;
 mod mcp;
 mod patch;
+mod review;
 mod test;
 use yong_db::{Database, Loaded};
 use yong_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, finish};
@@ -21,6 +24,10 @@ struct Cli {
     /// What `run` executes on: the interpreter, or native code from Cranelift (M1b).
     #[arg(long, global = true, value_enum, default_value_t = Backend::Interp)]
     backend: Backend,
+    /// With the Cranelift backend: compile each function at its first call (debug), or all of
+    /// them before `main` starts.
+    #[arg(long, global = true, value_enum, default_value_t = Jit::Lazy)]
+    jit: Jit,
     #[command(subcommand)]
     command: Command,
 }
@@ -31,12 +38,19 @@ enum Backend {
     Cranelift,
 }
 
+#[derive(Clone, Copy, PartialEq, ValueEnum)]
+enum Jit {
+    Lazy,
+    Eager,
+}
+
 #[derive(Subcommand)]
 enum Command {
     /// Check files and report diagnostics.
     Check {
-        #[arg(long, value_enum, default_value_t = Format::Line)]
-        format: Format,
+        /// `prose` when output is a terminal, `line` otherwise (18.2).
+        #[arg(long, value_enum)]
+        format: Option<Format>,
         #[arg(long, default_value_t = DEFAULT_MAX_ERRORS)]
         max_errors: usize,
         /// Disable the lenient reader (14.4).
@@ -93,9 +107,55 @@ enum Command {
         /// test fails the run, and proposed tests only report.
         #[arg(long)]
         gate: bool,
-        /// Run only this test, `module.test_name`.
+        /// Run only this test (`module.test_name`, `module.f#ex1`), or the tests under a module
+        /// or function prefix.
         #[arg(long)]
         only: Option<String>,
+        /// Run every test instead of reusing cached verdicts (18.4).
+        #[arg(long)]
+        no_cache: bool,
+    },
+    /// Run one task through the spec gate as a client of `yong mcp` (the reference agent
+    /// loop), and print its run record.
+    Agent {
+        /// The task: a JSON file with `id` and `prompt`.
+        task: PathBuf,
+        /// `stub:FILE` (scripted replies) or `cmd:PROGRAM` (one JSON line per turn).
+        #[arg(long)]
+        model: String,
+        /// The system prompt; the Xin primer.
+        #[arg(long)]
+        primer: Option<PathBuf>,
+        /// A directory of `.xin` examples appended to the system prompt.
+        #[arg(long)]
+        shots: Option<PathBuf>,
+        /// The work directory; a new temporary one by default.
+        #[arg(long)]
+        dir: Option<PathBuf>,
+        /// The module the task is written in.
+        #[arg(long, default_value = "task")]
+        module: String,
+        #[arg(long, default_value_t = 2)]
+        spec_repairs: usize,
+        #[arg(long, default_value_t = 3)]
+        body_repairs: usize,
+        /// The output budget of each model turn.
+        #[arg(long, default_value_t = 16000)]
+        max_tokens: u64,
+        /// Write the run record here instead of stdout.
+        #[arg(long)]
+        out: Option<PathBuf>,
+    },
+    /// Explain a diagnostic code, with its conformance examples and their fixes (R299).
+    Explain { code: String },
+    /// Compare two revisions of the package item by item (RFC 0023); exit 1 when a change
+    /// needs a human.
+    Review {
+        /// `BASE` or `BASE..HEAD`, git revisions; HEAD left out is the working tree.
+        #[arg(default_value = "HEAD")]
+        range: String,
+        #[arg(long, value_enum, default_value_t = ReviewFormat::Line)]
+        format: ReviewFormat,
     },
     /// Run a program.
     Run {
@@ -104,13 +164,24 @@ enum Command {
         #[arg(long)]
         level: Option<String>,
         file: PathBuf,
+        /// The program's arguments, after `--`.
+        #[arg(last = true)]
+        args: Vec<String>,
     },
 }
 
 #[derive(Clone, Copy, ValueEnum)]
 enum Format {
     Line,
+    Prose,
     Json,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum ReviewFormat {
+    Line,
+    Json,
+    Md,
 }
 
 fn main() -> ExitCode {
@@ -128,16 +199,26 @@ fn main() -> ExitCode {
             max_errors,
             Database::new(strict, level.as_deref() == Some("release")),
         ),
+        Command::Explain { code } => explain(&code),
         Command::Run {
             file,
             strict,
             level,
+            args,
         } => run(
             &file,
             Database::new(strict, level.as_deref() == Some("release")),
             cli.backend,
+            cli.jit,
+            args,
         ),
-        Command::Test { format, gate, only } => run_tests(format, gate, only.as_deref()),
+        Command::Test {
+            format,
+            gate,
+            only,
+            no_cache,
+        } => run_tests(format, gate, only.as_deref(), no_cache),
+        Command::Review { range, format } => review(&range, format),
         Command::View { as_, file } => view(&as_, &file),
         Command::Fmt { check, files } => fmt(&files, check),
         Command::Hash {
@@ -151,6 +232,45 @@ fn main() -> ExitCode {
             module,
             patch,
         } => apply_patch(&patch, module.as_deref(), check, format),
+        Command::Agent {
+            task,
+            model,
+            primer,
+            shots,
+            dir,
+            module,
+            spec_repairs,
+            body_repairs,
+            max_tokens,
+            out,
+        } => {
+            let o = agent::Options {
+                task,
+                model,
+                primer,
+                shots,
+                dir,
+                module,
+                spec_repairs,
+                body_repairs,
+                max_tokens,
+            };
+            match agent::run(&o) {
+                Ok((rec, green)) => {
+                    let text = format!("{rec:#}\n");
+                    match out {
+                        Some(f) => {
+                            if let Err(e) = std::fs::write(&f, text) {
+                                return tool_failure(&format!("{}: {e}", f.display()));
+                            }
+                        }
+                        None => print!("{text}"),
+                    }
+                    ExitCode::from(u8::from(!green))
+                }
+                Err(msg) => tool_failure(&msg),
+            }
+        }
         Command::Mcp => match mcp::serve(Path::new(".")) {
             Ok(()) => ExitCode::SUCCESS,
             Err(msg) => tool_failure(&msg),
@@ -158,20 +278,78 @@ fn main() -> ExitCode {
     }
 }
 
-fn run_tests(format: Format, gate: bool, only: Option<&str>) -> ExitCode {
-    let report = match test::run(Path::new("."), only, gate) {
+fn run_tests(format: Format, gate: bool, only: Option<&str>, no_cache: bool) -> ExitCode {
+    let root = Path::new(".");
+    let cache = (!no_cache).then(|| test::cache_file(root));
+    let report = match test::run(root, only, gate, cache.as_deref()) {
         Ok(r) => r,
         Err(msg) => return tool_failure(&msg),
     };
     match format {
         Format::Json => println!("{}", report.json()),
-        Format::Line => report.lines().iter().for_each(|l| println!("{l}")),
+        Format::Line | Format::Prose => report.lines().iter().for_each(|l| println!("{l}")),
     }
     if report.failed(gate) {
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
     }
+}
+
+fn review(range: &str, format: ReviewFormat) -> ExitCode {
+    let (base, head) = match range.split_once("..") {
+        Some((b, h)) => (b, Some(h)),
+        None => (range, None),
+    };
+    let r = match review::review(Path::new("."), base, head) {
+        Ok(r) => r,
+        Err(msg) => return tool_failure(&msg),
+    };
+    match format {
+        ReviewFormat::Line => r.lines().iter().for_each(|l| println!("{l}")),
+        ReviewFormat::Json => println!("{}", r.json()),
+        ReviewFormat::Md => print!("{}", r.markdown()),
+    }
+    if r.needs_human() {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+mod cases {
+    include!(concat!(env!("OUT_DIR"), "/explain_cases.rs"));
+}
+
+/// `yong explain CODE`: the catalogue entry, then each surface's first `fail/` conformance
+/// case for the code, checked and rendered as prose, so its fixes show as diffs.
+fn explain(code: &str) -> ExitCode {
+    let Some((meaning, sections)) = yong_diag::catalogue(code) else {
+        return tool_failure(&format!("`{code}` is not in the diagnostics catalogue"));
+    };
+    println!("{code}: {meaning}");
+    if !sections.is_empty() {
+        println!("spec: {sections}");
+    }
+    let mut any = false;
+    for (_, path, flags, text) in cases::CASES.iter().filter(|c| c.0 == code) {
+        let mut db = Database::new(
+            flags.contains("--strict"),
+            flags.contains("--level release"),
+        );
+        let f = db.file(Path::new(path), text);
+        let Ok(diags) = yong_ide::diagnostics(&db, f) else {
+            continue;
+        };
+        for d in diags.iter().filter(|d| d.code == code) {
+            println!("\nexample: {path}\n{}", d.render_prose(text));
+            any = true;
+        }
+    }
+    if !any {
+        println!("\nNo conformance example for {code} yet.");
+    }
+    ExitCode::SUCCESS
 }
 
 fn print_diags(diags: &[Diagnostic]) {
@@ -260,13 +438,10 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
             print_diags(d);
             return ExitCode::FAILURE;
         }
-        Ok(Loaded::Unsupported(what, _)) => {
-            return tool_failure(&format!("not supported yet: {what}"));
-        }
         Err(msg) => return tool_failure(msg),
     };
     match format {
-        Format::Line => {
+        Format::Line | Format::Prose => {
             for h in hashes {
                 println!("{}\t{}\t{}", h.key, h.salted, h.identity);
             }
@@ -288,7 +463,7 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
+fn run(file: &Path, mut db: Database, backend: Backend, jit: Jit, args: Vec<String>) -> ExitCode {
     let f = match db.open(file) {
         Ok(f) => f,
         Err(msg) => return tool_failure(&msg),
@@ -310,19 +485,16 @@ fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
         Ok(Loaded::Stopped(_)) => {
             return tool_failure(&format!("{} does not parse", file.display()));
         }
-        Ok(Loaded::Unsupported(what, _)) => {
-            return tool_failure(&format!("not supported yet: {what}"));
-        }
         Err(msg) => return tool_failure(msg),
     };
     if backend == Backend::Cranelift {
-        return native(module);
+        return native(module, jit);
     }
     let mut out = std::io::stdout().lock();
-    match yong_interp::run(module, &mut out) {
+    match yong_interp::run_with(module, &mut out, args) {
         Ok(status) => ExitCode::from(status as u8),
-        Err(Stop::Panic(kind)) => {
-            eprintln!("panic: {kind}");
+        Err(Stop::Panic(p)) => {
+            eprintln!("{}", p.render(&file.display().to_string()));
             ExitCode::from(EXIT_PANIC as u8)
         }
         Err(Stop::Unsupported(what)) => tool_failure(&format!("not supported yet: {what}")),
@@ -330,17 +502,36 @@ fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
     }
 }
 
-fn check(files: &[PathBuf], format: Format, max_errors: usize, mut db: Database) -> ExitCode {
+fn check(
+    files: &[PathBuf],
+    format: Option<Format>,
+    max_errors: usize,
+    mut db: Database,
+) -> ExitCode {
+    use std::io::IsTerminal;
     let mut diags = Vec::new();
+    let mut texts = std::collections::HashMap::new();
     for file in files {
-        let d = db.open(file).and_then(|f| yong_ide::diagnostics(&db, f));
+        let d = db.open(file).and_then(|f| {
+            texts.insert(file.display().to_string(), f.text(&db).clone());
+            yong_ide::diagnostics(&db, f)
+        });
         match d {
             Ok(mut d) => diags.append(&mut d),
             Err(msg) => return tool_failure(&msg),
         }
     }
     let diags = finish(diags, max_errors);
+    let format = format.unwrap_or(if std::io::stdout().is_terminal() {
+        Format::Prose
+    } else {
+        Format::Line
+    });
     match format {
+        Format::Prose => diags.iter().for_each(|d| {
+            let src = texts.get(&d.file).map_or("", String::as_str);
+            println!("{}", d.render_prose(src));
+        }),
         Format::Json => println!(
             "{}",
             serde_json::to_string(&diags).expect("records serialize")
@@ -372,7 +563,7 @@ fn apply_patch(file: &Path, module: Option<&str>, check: bool, format: Format) -
                     "{}",
                     serde_json::to_string(&diags).expect("records serialize")
                 ),
-                Format::Line => diags
+                Format::Line | Format::Prose => diags
                     .iter()
                     .for_each(|d| println!("{}", d.render_line(None))),
             }
@@ -382,8 +573,12 @@ fn apply_patch(file: &Path, module: Option<&str>, check: bool, format: Format) -
 }
 
 /// Run `m` as native code. A panic exits from inside the program.
-fn native(m: &yong_core::ast::Module) -> ExitCode {
-    let compiled = yong_mir::lower(m).and_then(|p| yong_cg_cranelift::compile(&p));
+fn native(m: &yong_core::ast::Module, jit: Jit) -> ExitCode {
+    let jit = match jit {
+        Jit::Lazy => yong_cg_cranelift::Jit::Lazy,
+        Jit::Eager => yong_cg_cranelift::Jit::Eager,
+    };
+    let compiled = yong_mir::lower(m).and_then(|p| yong_cg_cranelift::compile_with(&p, jit));
     match compiled {
         Ok(c) => {
             c.run();
