@@ -167,6 +167,23 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
     }
 
     #[test]
+    fn loose_ex_moves_into_the_function_above() {
+        let src =
+            "def f(n: int) -> int:\n    \"\"\"Doc.\"\"\"\n    ...\n\nex f(1) == 1\nex f(2) == 2\n";
+        assert_eq!(
+            codes(src, false),
+            [("N31".into(), 5, 1), ("N31".into(), 6, 1)]
+        );
+        let printed = roundtrip(src);
+        assert!(printed.contains("    ex f(1) == 1\n    ex f(2) == 2\n"));
+        assert_eq!(
+            codes(src, true),
+            [("E100".into(), 5, 1), ("E100".into(), 6, 1)]
+        );
+        assert_eq!(codes("ex f(1) == 1\n", false)[0].0, "E100");
+    }
+
+    #[test]
     fn layout_errors() {
         assert_eq!(
             codes("def f() -> int:\n    a = 1; b = 2\n    return a\n", false),

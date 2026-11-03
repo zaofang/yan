@@ -614,3 +614,8 @@ sections = "22.1, 26.1"
 rows = "R764 to R765"
 topic = "Gaps found by the formal core model (RFC 0022), decided by the owner: a join point body that falls through continues after the statement that jumped to it (R764); an `inout` argument takes the callee's final value when the callee fails (R765)"
 sections = "3.5, 4.1"
+
+[[entry]]
+rows = "R766 to R767"
+topic = "Xin model probe findings (https://claude.ai/artifact/8bZgdYmkeds1yWouV8Ryxs), decided by the owner: the lenient reader moves an `ex` line at the left margin into the function above, N31 (R766); the spec gate checks the names in `post` lines, so `result` fails in phase 1 and not after the freeze (R767)"
+sections = "14.4, 21.1, 23, 24, 25"

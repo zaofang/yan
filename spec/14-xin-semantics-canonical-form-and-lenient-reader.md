@@ -104,6 +104,7 @@ The lenient reader accepts these deviations and normalizes them, reporting a not
 | N28 | `not k in d`, `not x is None` | `k not in d`, `x is not None` (R425) |
 | N29 | a function body of `case` arms (clause form) | `match` on the parameter, or on the tuple of parameters (R426) |
 | N30 | a class whose `__init__(self, ...)` only assigns `self.f = e` or `self.f: T = e` | the record's fields: `f: T = e` for an annotated or literal default, `f: T` with the parameter's type for an assigned parameter; other methods are lifted as N09 (R217) |
+| N31 | an `ex` line at the left margin, right after a function whose body it follows | the function's `ex` lines, appended after its other contracts (R766) |
 
 The reader never inserts `_ =` before an unused result, because that would hide the bug E312 exists to catch; it emits a note with a machine-applicable fix instead. `raise`, `try` and `except` are not normalized: they are errors (E120) with a suggested rewrite, because their semantics differ from `Result`.
 

@@ -6,7 +6,7 @@ These features make Xin cheap and reliable for models to write. They are toolcha
 
 Generation happens in two phases, enforced by `yong mcp` and available to any agent.
 
-1. **Spec.** The model submits an item with a body of `...`: signature, `uses`, docstring, `pre`, `post`, `ex`. The tool checks that types resolve; that each `ex` is well-typed; that each `ex` satisfies `pre`; that each `ex`'s expected result satisfies `post`, where that can be evaluated; and that `pre` is satisfiable, by the bounds solver or SMT when available. Problems are returned as diagnostics.
+1. **Spec.** The model submits an item with a body of `...`: signature, `uses`, docstring, `pre`, `post`, `ex`. The tool checks that types resolve; that each `ex` is well-typed; that each `post` is well-typed and every name in it resolves, with `out` naming the result (R767); that each `ex` satisfies `pre`; that each `ex`'s expected result satisfies `post`, where that can be evaluated; and that `pre` is satisfiable, by the bounds solver or SMT when available. Problems are returned as diagnostics.
 2. **Body.** The model submits the body against the frozen spec. Changing any spec line reopens phase 1.
 
 Human review of model-written code starts with the spec, which is short and readable.

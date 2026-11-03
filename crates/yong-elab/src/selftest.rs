@@ -111,3 +111,21 @@ fn question_mark_needs_a_function_that_can_fail() {
     let (_, d) = lower(&format!("{g}def f() -> int fail str:\n    return g()?\n"));
     assert!(d.is_empty(), "{d:?}");
 }
+
+#[test]
+fn post_names_resolve_in_a_hole_body() {
+    let codes = |src: &str| {
+        lower(src)
+            .1
+            .iter()
+            .filter(|d| d.severity == yong_diag::Severity::Error)
+            .map(|d| d.code.clone())
+            .collect::<Vec<_>>()
+    };
+    let head = "def f(n: int) -> int:\n    \"\"\"Doc.\"\"\"\n";
+    assert_eq!(
+        codes(&format!("{head}    post result >= 0\n    ...\n")),
+        ["E200"]
+    );
+    assert!(codes(&format!("{head}    post out >= n\n    ...\n")).is_empty());
+}
