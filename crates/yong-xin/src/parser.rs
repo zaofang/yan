@@ -365,6 +365,26 @@ impl Parser {
                 self.skip_line();
                 continue;
             }
+            if !self.strict
+                && self.at_loose_ex()
+                && let Some(ItemKind::Func(FuncDef {
+                    body: Some(body), ..
+                })) = m.items.last_mut().map(|it| &mut it.kind)
+            {
+                let sp = self.span();
+                match self.contract() {
+                    Ok(c) => {
+                        self.note(
+                            "N32",
+                            sp,
+                            "top-level `ex` moved into the body of the function above",
+                        );
+                        body.contracts.push(c);
+                    }
+                    Err(e) => self.recover(e),
+                }
+                continue;
+            }
             match self.item() {
                 Ok(it) => m.items.push(it),
                 Err(e) => self.recover(e),
@@ -372,6 +392,21 @@ impl Parser {
             m.items.append(&mut self.lifted);
         }
         m
+    }
+
+    /// An `ex` line at the left margin, where an item should start (N32).
+    fn at_loose_ex(&self) -> bool {
+        self.toks[self.pos].line_start
+            && self.toks[self.pos].span.col == 1
+            && self.soft("ex")
+            && matches!(
+                self.tok_at(1),
+                Tok::Name(_)
+                    | Tok::Int(_)
+                    | Tok::Float(_)
+                    | Tok::Str { .. }
+                    | Tok::Op("-" | "[" | "(")
+            )
     }
 
     fn recover(&mut self, e: PErr) {

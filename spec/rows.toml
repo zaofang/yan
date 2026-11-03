@@ -664,3 +664,8 @@ sections = "18.1, 18.4, 21.5"
 rows = "R681 to R695"
 topic = "std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bit operators, `<<` exact or `overflow`, `bigint` bit ops (R682); `seeded(seed, algorithm)` and the ChaCha8 and Pcg64Dxsm streams (R683); derived `rand` operations through `next_u64` (R684); `rand` split by task path (R685); `env` operations and `fake_env` (R686); `Secret[T]` operations (R687); log events, fields and `Level` (R688); log spans as child handlers (R689); log handlers and logfmt (R690); `proc.Command` (R691); `proc.run`, `Output`, `ProcError` and `fake_proc` (R692); `proc.spawn` deferred to `Reader` and `Writer` (R693); the `derive(Cli)` mapping and `@help` (R694); `cli.parse`, `CliError` and fixed wording (R695)"
 sections = "3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25"
+
+[[entry]]
+rows = "R766 to R767"
+topic = "Xin model probe findings (https://claude.ai/artifact/8bZgdYmkeds1yWouV8Ryxs), decided by the owner: the lenient reader moves an `ex` line at the left margin into the function above, N32 (R766); the spec gate checks the names in `post` lines, so `result` fails in phase 1 and not after the freeze (R767)"
+sections = "14.4, 21.1, 23, 24, 25"
