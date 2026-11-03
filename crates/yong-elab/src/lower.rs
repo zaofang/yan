@@ -251,6 +251,13 @@ pub(crate) fn walk(e: &j::Expr, f: &mut impl FnMut(&j::Expr)) {
     }
 }
 
+fn temporary_receiver(what: &str) -> String {
+    format!(
+        "{what} changes its receiver, but the receiver is a temporary that is dropped after \
+         the call; bind it to a local first"
+    )
+}
+
 fn root(e: &j::Expr) -> Option<&str> {
     match &e.kind {
         j::ExprKind::Name(n) => Some(n),
@@ -429,7 +436,10 @@ fn mutables(
                             .get(m)
                             .and_then(|s| s.params.first())
                             .is_some_and(|p| p.conv == Conv::Inout);
-                        if var_first || MUTATING.contains(&m.as_str()) {
+                        if var_first
+                            || MUTATING.contains(&m.as_str())
+                            || crate::stdlib::mutates_receiver(m)
+                        {
                             out.insert(r.to_owned());
                         }
                     }
@@ -438,6 +448,22 @@ fn mutables(
         }
         for b in sub_blocks(s) {
             mutables(g, b, assigned, out);
+        }
+    }
+}
+
+fn declared_lets(stmts: &[j::Stmt], out: &mut HashSet<String>) {
+    for s in stmts {
+        if let j::StmtKind::Bind {
+            mutable: false,
+            target,
+            ..
+        } = &s.kind
+        {
+            out.insert(target.clone());
+        }
+        for b in sub_blocks(s) {
+            declared_lets(b, out);
         }
     }
 }
@@ -534,6 +560,10 @@ fn function_body(
     let mut mutable = HashSet::new();
     mutables(g, &body.stmts, &mut assigned, &mut mutable);
     mutable.extend(assigned.into_iter().filter(|(_, n)| *n > 1).map(|(k, _)| k));
+    // Wen declares mutability (15.3): a `let` stays immutable, and assigning it is E403.
+    let mut lets = HashSet::new();
+    declared_lets(&body.stmts, &mut lets);
+    mutable.retain(|n| !lets.contains(n));
     let mut l = Lower {
         g,
         cx,
@@ -4453,6 +4483,9 @@ impl Lower<'_, '_, '_> {
             };
             match (p.conv, is_ref) {
                 (Conv::Inout, true) => {
+                    if root(e).is_none() {
+                        self.err("E403", sp, temporary_receiver("this call"));
+                    }
                     let (pl, t) = self.place(e)?;
                     self.expect(&t, &p.ty, sp);
                     self.arg_tys.push((p.ty.clone(), t.clone(), sp));
@@ -5136,6 +5169,9 @@ impl Lower<'_, '_, '_> {
         };
         let targs: Vec<_> = targs.iter().map(Ty::targ).collect();
         let recv = if inout {
+            if root(b).is_none() {
+                self.err("E403", b.span, temporary_receiver(&format!("`{m}`")));
+            }
             if !p.projs.is_empty() {
                 return unsupported("a `var` method on a field or element");
             }

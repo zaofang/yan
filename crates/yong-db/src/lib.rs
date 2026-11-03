@@ -349,3 +349,47 @@ mod tests {
         assert_eq!(item_diagnostics(&db, g).len(), d.len());
     }
 }
+
+#[cfg(test)]
+mod selftest {
+    use super::*;
+
+    fn codes(path: &str, src: &str) -> Vec<String> {
+        let mut db = Database::new(false, false);
+        let f = db.file(Path::new(path), src);
+        diagnostics(&db, f)
+            .as_ref()
+            .expect("supported")
+            .iter()
+            .map(|d| d.code.clone())
+            .collect()
+    }
+
+    #[test]
+    fn a_var_method_on_a_let_parameter_is_e403() {
+        let src = "def add(dst: list[int], x: int):\n    dst.append(x)\n";
+        assert_eq!(codes("t.xin", src), ["E403"]);
+        let ok = "def add(var dst: list[int], x: int):\n    dst.append(x)\n";
+        assert!(codes("t.xin", ok).is_empty());
+    }
+
+    #[test]
+    fn a_var_method_on_a_temporary_is_e403() {
+        let src = "def f():\n    d = {\"a\": [1]}\n    d.setdefault(\"b\", []).append(2)\n";
+        assert_eq!(codes("t.xin", src), ["E403"]);
+    }
+
+    #[test]
+    fn a_sink_parameter_may_change_in_place() {
+        let src = "def grow(take xs: list[int]) -> list[int]:\n    xs.append(9)\n    return xs\n";
+        assert!(codes("t.xin", src).is_empty());
+    }
+
+    #[test]
+    fn a_wen_let_stays_immutable() {
+        let src = "main() =\n  let total = 0\n  total += 1\n";
+        assert_eq!(codes("t.wen", src), ["E403"]);
+        let ok = "main() =\n  var total = 0\n  total += 1\n";
+        assert!(codes("t.wen", ok).is_empty());
+    }
+}
