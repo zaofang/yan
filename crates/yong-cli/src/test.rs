@@ -238,6 +238,25 @@ fn test_hash(m: &y::Module, it: &y::Item) -> String {
     )
 }
 
+/// `assert failed at f.xin:7: \`x == 1\`; left is 0, right is 1`, from the panic's
+/// `line N[: values]` message.
+fn assert_failed(file: &str, src: &str, msg: &str) -> String {
+    let (line, values) = msg.split_once(": ").unwrap_or((msg, ""));
+    let Some(n) = line
+        .strip_prefix("line ")
+        .and_then(|n| n.parse::<usize>().ok())
+    else {
+        return format!("panic assert: {msg}");
+    };
+    let text = src.lines().nth(n - 1).unwrap_or("").trim();
+    let text = text.strip_prefix("assert ").unwrap_or(text);
+    let mut out = format!("assert failed at {file}:{n}: `{text}`");
+    if !values.is_empty() {
+        out += &format!("; {values}");
+    }
+    out
+}
+
 /// Whether test `id` is selected by `filter`: the id itself, or a module or function prefix.
 fn selected(id: &str, filter: Option<&str>) -> bool {
     filter.is_none_or(|f| {
@@ -383,9 +402,6 @@ pub fn run(
                 );
                 continue;
             }
-            Ok(Loaded::Unsupported(what, _)) => {
-                return Err(format!("{shown}: not supported yet: {what}"));
-            }
             Err(msg) => return Err(msg.clone()),
         };
         let hashes = yong_core::hash::hash_module(&m);
@@ -420,10 +436,15 @@ pub fn run(
                     let v = match yong_interp::test(&m, &fname, Limits::default(), &mut out) {
                         Ok(true) => Verdict::Pass,
                         Ok(false) => Verdict::Fail("returned a failure".into()),
-                        Err(Stop::Panic(k)) if k == "assert" && ex.is_some() => Verdict::Fail(
+                        Err(Stop::Panic(p)) if p.kind == "assert" && ex.is_some() => Verdict::Fail(
                             format!("`{}` does not hold", ex.expect("an ex line").text),
                         ),
-                        Err(Stop::Panic(k)) => Verdict::Fail(format!("panic {k}")),
+                        Err(Stop::Panic(p)) if p.kind == "assert" => {
+                            Verdict::Fail(assert_failed(&shown, &text, &p.message))
+                        }
+                        Err(Stop::Panic(p)) => {
+                            Verdict::Fail(format!("panic({}): {}", p.kind, p.message))
+                        }
                         Err(Stop::Limit(_)) => Verdict::Budget,
                         Err(Stop::Unsupported(what)) => {
                             return Err(format!("{id}: not supported yet: {what}"));

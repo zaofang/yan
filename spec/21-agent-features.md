@@ -11,7 +11,9 @@ Generation happens in two phases, enforced by `yong mcp` and available to any ag
 
 Human review of model-written code starts with the spec, which is short and readable.
 
-**Spec freeze (normative).** Coding agents rewrite tests to pass when they can: ImpossibleBench (ICLR 2026) measured a 93% test-hacking rate in one configuration. So the tests and contracts produced by the spec step are frozen once a human accepts them. An implement-step patch may not touch test functions or `pre`, `post`, `ex`, `invariant` and `decreases` clauses; `check_patch` enforces this (P006). If the agent believes a frozen test is wrong, it stops and reports instead of editing. W806 flags code that special-cases the literal inputs of `ex` clauses.
+**Spec freeze (normative).** Coding agents rewrite tests to pass when they can: ImpossibleBench (ICLR 2026) measured a 93% test-hacking rate in one configuration. So the tests and contracts produced by the spec step are frozen once a human accepts them. An implement-step patch may not touch test functions or `pre`, `post`, `ex`, `invariant` and `decreases` clauses; `check_patch` enforces this (P006). If the agent believes a frozen test is wrong, it stops and reports instead of editing. W806 flags code that special-cases the literal inputs of `ex` clauses, including lookups keyed by them; in the spec gate it is an error.
+
+**Frozen meaning (R675).** Names in frozen clauses resolve against the module as the spec was accepted, plus the prelude, so an implement patch cannot change what a clause calls: adding an item a frozen clause names is P006.
 
 **Spec-gate checks (R621).** `spec_check` runs each `ex` line's arguments through `pre`. Arguments that break it are E619 at the `ex` line. A `pre` that cannot be evaluated yet, such as one calling a function whose body is still `...`, is skipped.
 
@@ -73,7 +75,10 @@ A Model Context Protocol server (protocol 2026-07-28, stateless) over stdio. Eve
 
 - `pack_context`, `hole_context` and `query` emit comments, docstrings and string literals in a fenced channel marked untrusted, and strip or flag zero-width, bidirectional and tag characters.
 - `yong mcp` never applies a patch to a protected target (18.3) without a human confirmation token.
-- No repository-defined code or configuration runs before the user has trusted the repository.
+- No repository-defined code or configuration runs before the user has trusted the repository; `yong trust` records that, and `run_tests`, `query` and stage 0 refuse to run without it (R676).
+- `sig`, the `quote` and `notes` of diagnostics, and test output carry repository text in the same untrusted channel (R676).
+
+**Confinement (R676).** A module name in a request is dotted identifiers resolved beneath the server root, never through a symlink out of it. Every tool that runs code has step, heap and wall-clock budgets per call and per session; a step includes a loop iteration (R487).
 
 ### 21.5 Provenance
 

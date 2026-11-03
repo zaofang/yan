@@ -6,6 +6,10 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-01 | [Deep frontier survey: speed and capability](https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H) | RFCs 0015 to 0018 (R622 to R634) |
+| 2026-11-01 | [Formal core study: what a mechanized proof would take](https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y) | RFC 0022 (R680): Lean model under `formal/`, phase 0 now; normative definition open |
+| 2026-11-01 | [Xin and Wen learnability](https://claude.ai/artifact/SWCzhtopJtJjpSFa2MBY1x) | RFC 0024 (R655 to R664); D1, the learnability gate, declined |
+| 2026-11-01 | [Error messages audit](https://claude.ai/artifact/6catGcMdztyszRmvJLoiRu) | R648 to R651 (RFC 0021) |
 | 2026-11-01 | [Adoption path and 1.0 launch](https://claude.ai/artifact/YFzwDZ97bftr7Vq2KmLUGD) | Decided: single 1.0 launch, no previews (card, 2026-11-01) |
 | 2026-11-01 | [Yong packaging and ecosystem](https://claude.ai/artifact/NHdZaQ9Q6X5tFxz1xh9BQC) | RFC 0020 (R635 to R647) |
 | 2026-11-01 | [What Yong is and how it fits together](https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU) | RFC 0014 (R616 to R621): the reference agent loop, built first; RFC 0023 (R665 to R671): `yong review` |
@@ -69,4 +73,5 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-10-31 | [Chang, dense ASCII surface](https://claude.ai/artifact/DubBokGE1zKEpoVzwYKfAz) | Chang 1; superseded by Chang 2 and RFC 0001 (R516 to R521) |
 | 2026-11-01 | [Chang 2, kitchen sink](https://claude.ai/artifact/Urz3zEhuESTobLRf8aqk2X) | RFC 0001: R516 to R521, R530 to R535 |
 | 2026-11-01 | [Chang K2 study (positional local names)](https://claude.ai/artifact/V6Do54hGXcokurJ45NHF6f) | R519 |
+| 2026-11-01 | [Security model: capabilities, FFI and agents](https://claude.ai/artifact/Hotw9YyR8LEvWE4GbB9gLi) | RFC 0026: R672 to R677 |
 | 2026-10-30 | [1.0 Development Roadmap](https://claude.ai/artifact/3ADZraWojw9z33QdGY8GsS) | Living plan |

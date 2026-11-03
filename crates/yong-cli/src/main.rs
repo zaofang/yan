@@ -24,6 +24,10 @@ struct Cli {
     /// What `run` executes on: the interpreter, or native code from Cranelift (M1b).
     #[arg(long, global = true, value_enum, default_value_t = Backend::Interp)]
     backend: Backend,
+    /// With the Cranelift backend: compile each function at its first call (debug), or all of
+    /// them before `main` starts.
+    #[arg(long, global = true, value_enum, default_value_t = Jit::Lazy)]
+    jit: Jit,
     #[command(subcommand)]
     command: Command,
 }
@@ -34,12 +38,19 @@ enum Backend {
     Cranelift,
 }
 
+#[derive(Clone, Copy, PartialEq, ValueEnum)]
+enum Jit {
+    Lazy,
+    Eager,
+}
+
 #[derive(Subcommand)]
 enum Command {
     /// Check files and report diagnostics.
     Check {
-        #[arg(long, value_enum, default_value_t = Format::Line)]
-        format: Format,
+        /// `prose` when output is a terminal, `line` otherwise (18.2).
+        #[arg(long, value_enum)]
+        format: Option<Format>,
         #[arg(long, default_value_t = DEFAULT_MAX_ERRORS)]
         max_errors: usize,
         /// Disable the lenient reader (14.4).
@@ -135,6 +146,8 @@ enum Command {
         #[arg(long)]
         out: Option<PathBuf>,
     },
+    /// Explain a diagnostic code, with its conformance examples and their fixes (R299).
+    Explain { code: String },
     /// Compare two revisions of the package item by item (RFC 0023); exit 1 when a change
     /// needs a human.
     Review {
@@ -157,6 +170,7 @@ enum Command {
 #[derive(Clone, Copy, ValueEnum)]
 enum Format {
     Line,
+    Prose,
     Json,
 }
 
@@ -182,6 +196,7 @@ fn main() -> ExitCode {
             max_errors,
             Database::new(strict, level.as_deref() == Some("release")),
         ),
+        Command::Explain { code } => explain(&code),
         Command::Run {
             file,
             strict,
@@ -190,6 +205,7 @@ fn main() -> ExitCode {
             &file,
             Database::new(strict, level.as_deref() == Some("release")),
             cli.backend,
+            cli.jit,
         ),
         Command::Test {
             format,
@@ -266,7 +282,7 @@ fn run_tests(format: Format, gate: bool, only: Option<&str>, no_cache: bool) -> 
     };
     match format {
         Format::Json => println!("{}", report.json()),
-        Format::Line => report.lines().iter().for_each(|l| println!("{l}")),
+        Format::Line | Format::Prose => report.lines().iter().for_each(|l| println!("{l}")),
     }
     if report.failed(gate) {
         ExitCode::FAILURE
@@ -294,6 +310,41 @@ fn review(range: &str, format: ReviewFormat) -> ExitCode {
     } else {
         ExitCode::SUCCESS
     }
+}
+
+mod cases {
+    include!(concat!(env!("OUT_DIR"), "/explain_cases.rs"));
+}
+
+/// `yong explain CODE`: the catalogue entry, then each surface's first `fail/` conformance
+/// case for the code, checked and rendered as prose, so its fixes show as diffs.
+fn explain(code: &str) -> ExitCode {
+    let Some((meaning, sections)) = yong_diag::catalogue(code) else {
+        return tool_failure(&format!("`{code}` is not in the diagnostics catalogue"));
+    };
+    println!("{code}: {meaning}");
+    if !sections.is_empty() {
+        println!("spec: {sections}");
+    }
+    let mut any = false;
+    for (_, path, flags, text) in cases::CASES.iter().filter(|c| c.0 == code) {
+        let mut db = Database::new(
+            flags.contains("--strict"),
+            flags.contains("--level release"),
+        );
+        let f = db.file(Path::new(path), text);
+        let Ok(diags) = yong_ide::diagnostics(&db, f) else {
+            continue;
+        };
+        for d in diags.iter().filter(|d| d.code == code) {
+            println!("\nexample: {path}\n{}", d.render_prose(text));
+            any = true;
+        }
+    }
+    if !any {
+        println!("\nNo conformance example for {code} yet.");
+    }
+    ExitCode::SUCCESS
 }
 
 fn print_diags(diags: &[Diagnostic]) {
@@ -382,13 +433,10 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
             print_diags(d);
             return ExitCode::FAILURE;
         }
-        Ok(Loaded::Unsupported(what, _)) => {
-            return tool_failure(&format!("not supported yet: {what}"));
-        }
         Err(msg) => return tool_failure(msg),
     };
     match format {
-        Format::Line => {
+        Format::Line | Format::Prose => {
             for h in hashes {
                 println!("{}\t{}\t{}", h.key, h.salted, h.identity);
             }
@@ -410,7 +458,7 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
+fn run(file: &Path, mut db: Database, backend: Backend, jit: Jit) -> ExitCode {
     let f = match db.open(file) {
         Ok(f) => f,
         Err(msg) => return tool_failure(&msg),
@@ -432,19 +480,16 @@ fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
         Ok(Loaded::Stopped(_)) => {
             return tool_failure(&format!("{} does not parse", file.display()));
         }
-        Ok(Loaded::Unsupported(what, _)) => {
-            return tool_failure(&format!("not supported yet: {what}"));
-        }
         Err(msg) => return tool_failure(msg),
     };
     if backend == Backend::Cranelift {
-        return native(module);
+        return native(module, jit);
     }
     let mut out = std::io::stdout().lock();
     match yong_interp::run(module, &mut out) {
         Ok(status) => ExitCode::from(status as u8),
-        Err(Stop::Panic(kind)) => {
-            eprintln!("panic: {kind}");
+        Err(Stop::Panic(p)) => {
+            eprintln!("{}", p.render(&file.display().to_string()));
             ExitCode::from(EXIT_PANIC as u8)
         }
         Err(Stop::Unsupported(what)) => tool_failure(&format!("not supported yet: {what}")),
@@ -452,17 +497,36 @@ fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
     }
 }
 
-fn check(files: &[PathBuf], format: Format, max_errors: usize, mut db: Database) -> ExitCode {
+fn check(
+    files: &[PathBuf],
+    format: Option<Format>,
+    max_errors: usize,
+    mut db: Database,
+) -> ExitCode {
+    use std::io::IsTerminal;
     let mut diags = Vec::new();
+    let mut texts = std::collections::HashMap::new();
     for file in files {
-        let d = db.open(file).and_then(|f| yong_ide::diagnostics(&db, f));
+        let d = db.open(file).and_then(|f| {
+            texts.insert(file.display().to_string(), f.text(&db).clone());
+            yong_ide::diagnostics(&db, f)
+        });
         match d {
             Ok(mut d) => diags.append(&mut d),
             Err(msg) => return tool_failure(&msg),
         }
     }
     let diags = finish(diags, max_errors);
+    let format = format.unwrap_or(if std::io::stdout().is_terminal() {
+        Format::Prose
+    } else {
+        Format::Line
+    });
     match format {
+        Format::Prose => diags.iter().for_each(|d| {
+            let src = texts.get(&d.file).map_or("", String::as_str);
+            println!("{}", d.render_prose(src));
+        }),
         Format::Json => println!(
             "{}",
             serde_json::to_string(&diags).expect("records serialize")
@@ -494,7 +558,7 @@ fn apply_patch(file: &Path, module: Option<&str>, check: bool, format: Format) -
                     "{}",
                     serde_json::to_string(&diags).expect("records serialize")
                 ),
-                Format::Line => diags
+                Format::Line | Format::Prose => diags
                     .iter()
                     .for_each(|d| println!("{}", d.render_line(None))),
             }
@@ -504,8 +568,12 @@ fn apply_patch(file: &Path, module: Option<&str>, check: bool, format: Format) -
 }
 
 /// Run `m` as native code. A panic exits from inside the program.
-fn native(m: &yong_core::ast::Module) -> ExitCode {
-    let compiled = yong_mir::lower(m).and_then(|p| yong_cg_cranelift::compile(&p));
+fn native(m: &yong_core::ast::Module, jit: Jit) -> ExitCode {
+    let jit = match jit {
+        Jit::Lazy => yong_cg_cranelift::Jit::Lazy,
+        Jit::Eager => yong_cg_cranelift::Jit::Eager,
+    };
+    let compiled = yong_mir::lower(m).and_then(|p| yong_cg_cranelift::compile_with(&p, jit));
     match compiled {
         Ok(c) => {
             c.run();
