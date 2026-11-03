@@ -1,0 +1,13 @@
+# spec: 17.5
+# rows: R594
+# stdout:
+# 2000-01-01T00:00:00Z 2000-01-01T01:00:00Z 1999-12-31T23:59:59.999999999Z 946684800 946684800000000000
+# 2000-01-01T00:00:00.25Z PT0.25S True 1969-12-31T23:59:59.999999999Z -1
+# 2
+
+pub def main() uses io:
+    i = Instant.from_unix_seconds(946684800)
+    io.print(f"{i} {i + Duration.hours(1)} {i - Duration.nanos(1)} {i.unix_seconds()} {i.unix_nanos()}")
+    j = i + Duration.millis(250)
+    io.print(f"{j} {j - i} {i < j} {Instant.from_unix_nanos(-1)} {Instant.from_unix_nanos(-1).unix_seconds()}")
+    io.print(f"{len(set([i, j, Instant.from_unix_seconds(946684800)]))}")

@@ -1,0 +1,29 @@
+# spec: 17.5
+# rows: R595, R596
+# note: strict RFC 3339; `at` is the char offset of the first bad char
+# stdout:
+# 2024-02-29T15:30:00.25Z
+# 1999-12-31T23:59:59Z
+# 2000-01-01T00:00:00Z
+# invalid time at 10
+# invalid time at 10
+# invalid time at 19
+# invalid time at 19
+# time out of range at 8
+# time out of range at 5
+# time out of range at 17
+# invalid time at 29
+# unknown time zone at 20
+
+def why(s: str) -> str:
+    return try_parse(s) else err -> f"{err}"
+
+def try_parse(s: str) -> str fail TimeError:
+    i = Instant.parse(s)?
+    return f"{i}"
+
+pub def main() uses io:
+    for s in ["2024-02-29T12:30:00.250-03:00", "1999-12-31T23:59:59Z[UTC]", "2000-01-01T05:30:00+05:30[+05:30]"]:
+        io.print(why(s))
+    for s in ["2000-01-01 00:00:00Z", "2000-01-01t00:00:00Z", "2000-01-01T00:00:00z", "2000-01-01T00:00:00", "2023-02-29T00:00:00Z", "2000-13-01T00:00:00Z", "2000-01-01T00:00:60Z", "2000-01-01T00:00:00.1234567891Z", "2000-01-01T00:00:00Z[Europe/Paris]"]:
+        io.print(why(s))

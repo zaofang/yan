@@ -1,0 +1,15 @@
+# spec: 7.1, 17.3
+# rows: R686
+# note: fake_env gives args, variables (vars sorted by name) and the local zone; an unset variable is None
+# stdout:
+# ['a', 'b'] /h None {'A': '1', 'HOME': '/h'} Europe/Lisbon
+# [] UTC
+
+def report() -> str uses env:
+    return f"{env.args()} {env.var('HOME')} {env.var('NOPE')} {env.vars()} {env.local_zone()}"
+
+pub def main() uses io:
+    with env = fake_env(args=["a", "b"], vars={"HOME": "/h", "A": "1"}, zone=TimeZone("Europe/Lisbon")):
+        io.print(report())
+    with env = fake_env():
+        io.print(f"{env.args()} {env.local_zone()}")

@@ -147,3 +147,11 @@ pub def Period(years: int = 0, months: int = 0, weeks: int = 0, days: int = 0) -
 @intrinsic
 @since("1.0")
 pub def TimeZone(id: str) -> TimeZone: ...
+
+@intrinsic
+@since("1.0")
+pub def Secret[T](take value: T) -> Secret[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def Command(program: str, args: list[str] = []) -> Command: ...

@@ -36,7 +36,7 @@ impl Zone {
     }
 }
 
-fn utc() -> Value {
+pub(super) fn utc() -> Value {
     Value::Zone(Rc::new(Zone {
         id: "UTC".into(),
         tz: TimeZone::UTC,
@@ -66,7 +66,7 @@ fn fixed(secs: i128) -> Option<Value> {
 }
 
 /// An IANA ID in the bundled tzdb, `UTC`, or a fixed `+HH:MM`.
-fn lookup(id: &str) -> Option<Value> {
+pub(super) fn lookup(id: &str) -> Option<Value> {
     if id == "UTC" {
         return Some(utc());
     }

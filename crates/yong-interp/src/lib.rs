@@ -17,15 +17,20 @@ use yong_diag::Span;
 mod bind;
 mod bits;
 mod civil;
+mod cli;
 mod collections;
 mod compile;
 mod encoding;
+mod env;
 mod iter;
 mod keyed;
+mod log;
 mod math;
 mod native;
 mod path;
 mod prelude;
+mod proc;
+mod rand;
 mod regex;
 #[cfg(test)]
 mod std_parity;
@@ -68,6 +73,8 @@ pub(crate) enum Value {
     Bytes(Rc<[u8]>),
     ByteArray(Vec<u8>),
     Path(Rc<str>),
+    /// A `Secret[T]` (RFC 0019 D7); it shows as `Secret(***)`.
+    Secret(Rc<Value>),
     WindowsPath(Rc<path::WinPath>),
     Duration(i128),
     Instant(i128),
@@ -207,6 +214,9 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
         Interp {
             out: &mut sink,
             clocks: Vec::new(),
+            rngs: Vec::new(),
+            args: Vec::new(),
+            test: false,
         },
     );
     vm.limit(limits);
@@ -279,6 +289,12 @@ pub(crate) struct Interp<'o> {
     out: &'o mut dyn Write,
     /// Nanoseconds slept under each `fixed_time` or `virtual` handler, by handler.
     clocks: Vec<i128>,
+    /// The generator of each `seeded` handler, by handler.
+    rngs: Vec<rand::Gen>,
+    /// The program's arguments under the host `env` handler.
+    args: Vec<String>,
+    /// Running under `yong test`, which picks the default handlers (7.3).
+    test: bool,
 }
 
 pub(crate) fn panic<T>(kind: &str) -> R<T> {
@@ -313,7 +329,12 @@ pub(crate) fn unsupported<T>(what: impl Into<String>) -> R<T> {
 
 /// Run `fn main` of `m`, writing program output to `out`. Returns the exit status.
 pub fn run(m: &Module, out: &mut dyn Write) -> R<i32> {
-    Ok(match entry(m, "main", out, None)? {
+    run_with(m, out, Vec::new())
+}
+
+/// [`run`] with the program arguments `env.args()` returns.
+pub fn run_with(m: &Module, out: &mut dyn Write, args: Vec<String>) -> R<i32> {
+    Ok(match entry(m, "main", out, None, args)? {
         true => 0,
         false => EXIT_FAILURE,
     })
@@ -325,7 +346,7 @@ pub fn test(m: &Module, f: &str, limits: Limits, out: &mut (dyn Write + Send)) -
     std::thread::scope(|s| {
         std::thread::Builder::new()
             .stack_size(1 << 30)
-            .spawn_scoped(s, || entry(m, f, out, Some(limits)))
+            .spawn_scoped(s, || entry(m, f, out, Some(limits), Vec::new()))
             .expect("spawn the test thread")
             .join()
             .unwrap_or_else(|_| unsupported("the interpreter crashed"))
@@ -333,7 +354,13 @@ pub fn test(m: &Module, f: &str, limits: Limits, out: &mut (dyn Write + Send)) -
 }
 
 /// Call `fn f` of `m` with its capabilities bound; `false` when it returns a failure.
-fn entry(m: &Module, f: &str, out: &mut dyn Write, limits: Option<Limits>) -> R<bool> {
+fn entry(
+    m: &Module,
+    f: &str,
+    out: &mut dyn Write,
+    limits: Option<Limits>,
+    argv: Vec<String>,
+) -> R<bool> {
     let program = compile::compile(m);
     let Some(code) = program.fns.get(f).copied() else {
         return unsupported(format!("no `fn {f}` in the module"));
@@ -355,13 +382,24 @@ fn entry(m: &Module, f: &str, out: &mut dyn Write, limits: Option<Limits>) -> R<
             Param::Value { .. } => unsupported(format!("`{f}` with value parameters")),
         })
         .collect::<R<Vec<_>>>()?;
-    let mut vm = vm::Vm::new(
-        program,
-        Interp {
-            out,
-            clocks: Vec::new(),
-        },
-    );
+    let mut it = Interp {
+        out,
+        clocks: Vec::new(),
+        rngs: Vec::new(),
+        args: argv,
+        test: limits.is_some(),
+    };
+    // The test handler set (7.3): `rand = seeded(0)`, `env = fake_env()`, `proc = fake_proc()`.
+    let args = args
+        .into_iter()
+        .map(|a| match a {
+            Value::Cap(n) if limits.is_some() && n == "rand" => rand::seeded(&mut it, 0, "ChaCha8"),
+            Value::Cap(n) if limits.is_some() && n == "env" => env::test_default(),
+            Value::Cap(n) if limits.is_some() && n == "proc" => proc::test_default(),
+            a => a,
+        })
+        .collect();
+    let mut vm = vm::Vm::new(program, it);
     if let Some(l) = limits {
         vm.limit(l);
     }
