@@ -35,5 +35,5 @@ research index links their studies and rows.
 | [0012](0012-header-facts.md) | New facts in the header | accepted | R610 to R612 |
 | [0013](0013-numerics.md) | Numerics: accuracy lint, reverse mode, sparse index equations | accepted | R613 to R615 |
 | [0014](0014-agent-loop.md) | The reference agent loop | accepted | R616 to R621 |
-| [0019](0019-std-system-modules.md) | std.bits, std.rand, std.env, std.log, std.proc and std.cli | draft | |
+| [0019](0019-std-system-modules.md) | std.bits, std.rand, std.env, std.log, std.proc and std.cli | accepted | R681 to R695 |
 | [0020](0020-packaging-and-ecosystem.md) | Packaging and ecosystem | accepted | R635 to R647 |

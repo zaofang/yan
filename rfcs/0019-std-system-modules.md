@@ -1,8 +1,8 @@
 # 0019: std.bits, std.rand, std.env, std.log, std.proc and std.cli
 
-- Status: draft
+- Status: accepted (the lead chose "Accept all (D1 to D15)" on 2026-11-03)
 - Research: none; this RFC is the proposal (Wave 3 of the std build plan)
-- Rows: filled in when accepted
+- Rows: R681 to R695
 
 ## Summary
 

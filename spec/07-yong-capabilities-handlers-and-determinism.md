@@ -11,12 +11,12 @@ Effects are capabilities: second-class values passed as explicit parameters in Y
 | `tmp` | `Tmp` | a scoped scratch directory removed at scope exit |
 | `net` | `Net` | `tcp_connect`, `tcp_listen`, `udp_bind`, `resolve`; completion-shaped with deadlines (9.7); attenuated by `net.only` (17.6) |
 | `time` | `Time` | clock reads only: `now`, `monotonic` (returns `MonoInstant`, includes suspended time), `sleep`, `sleep_until(MonoInstant)` |
-| `rand` | `Rand` | `next_u64`, `next_f64`; handlers `seeded(algorithm, seed)` (default in tests; ChaCha8 by task path unless an algorithm is named, and seeded(Pcg64Dxsm, seed) is not splittable, so using it in two branches is E402; R377) and `os` |
+| `rand` | `Rand` | `next_u64`, `next_f64`; handlers `seeded(seed, algorithm=ChaCha8())` (default in tests with seed 0; the streams are R683, the split R685; `seeded(seed, Pcg64Dxsm())` is not splittable, so using it in two branches is E402; R377) and `os` |
 | `crypto_rand` | `CryptoRand` | `fill_bytes`; a CSPRNG that tests may replace and release builds may not |
-| `log` | `Log` | structured key-value events at `debug`, `info`, `warn`, `error`, plus spans; `@splittable` |
+| `log` | `Log` | structured key-value events at `debug`, `info`, `warn`, `error` over one `event(level, msg, fields)` operation, plus spans as child handlers (R688, R689); `@splittable` |
 | `metrics` | `Metrics` | counters, gauges, histograms; `@splittable` |
-| `env` | `Env` | `args`, `var`, `secret` (returns `Secret[str]`), `local_zone`, `system_tzdb` |
-| `proc` | `Proc` | `spawn(Command)` taking argv, never a shell string; there is no shell helper (R448) |
+| `env` | `Env` | `args`, `var`, `vars`, `secret` (returns `Secret[str] \| None`), `local_zone`, `system_tzdb`; no `set_var` (R686) |
+| `proc` | `Proc` | `run(Command)` taking argv, never a shell string (R692); `spawn(Command)` with piped stdio follows `Reader` and `Writer` (R693); there is no shell helper (R448) |
 | `signals` | `Signals` | a stream of OS signals; SIGINT and SIGTERM also drain `main`'s root scope (9.4) |
 | `py` | `Py` | `call`, `import_module` (Python bridge, section 17) |
 | `fault` | `Fault` | `maybe(name) -> bool`; handlers `never` (default, compiles away) and `sim` (seeded) |
@@ -57,8 +57,8 @@ In Xin every function lists its capabilities. In Wen only `pub` functions must; 
 
 - The handlers for `alloc`, `rand`, `time`, `sched` and `fault` MUST be resolvable at compile time to a concrete type, so calls monomorphize to direct calls (E307 otherwise). `with name = dyn expr` opts into one indirect call per operation, where allowed.
 - Other capabilities MAY be dynamic; the compiler SHOULD monomorphize when the handler type is known.
-- On hosted platforms, std binds a default handler for every built-in capability before `main` runs: system heap, OS clock, OS-seeded generator, the `pool` scheduler, blocking I/O, standard streams, `fault = never`. On platform `freestanding` nothing is bound: the program binds every capability it uses.
-- The test defaults are `time = virtual(2000-01-01T00:00Z)`, which advances only when every task is blocked, a timer is pending and no I/O is outstanding (R396), and `rand = seeded`. Binding `virtual` under the `pool` scheduler is E710, because `pool` has no quiescence point. Real-time tests bind `os` explicitly and are never cached. This is the one test handler set: in-memory fs, rand = seeded, virtual time, fault = never, no net, no model and sched = seeded(0); 14.1, 15.3, 18.4 and 18.9 refer here (R377).
+- On hosted platforms, std binds a default handler for every built-in capability before `main` runs: system heap, OS clock, OS-seeded generator, the `pool` scheduler, blocking I/O, standard streams, `log = log_stderr(InfoLevel())` (R690), `fault = never`. On platform `freestanding` nothing is bound: the program binds every capability it uses.
+- The test defaults are `time = virtual(2000-01-01T00:00Z)`, which advances only when every task is blocked, a timer is pending and no I/O is outstanding (R396), and `rand = seeded`. Binding `virtual` under the `pool` scheduler is E710, because `pool` has no quiescence point. Real-time tests bind `os` explicitly and are never cached. This is the one test handler set: in-memory fs, rand = seeded(0), virtual time, fault = never, env = fake_env(), log = log_stdout(DebugLevel()) into the test's captured output, proc = fake_proc({}), no net, no model and sched = seeded(0) (R686, R690, R692); 14.1, 15.3, 18.4 and 18.9 refer here (R377).
 - Release builds bind only `fault = never` (E317 otherwise).
 - Control handlers are generators only (section 10.5). There are no general continuations and no fiber stacks.
 
