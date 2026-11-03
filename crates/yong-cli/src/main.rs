@@ -4,6 +4,8 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
+mod agent;
+mod examples;
 mod mcp;
 mod patch;
 mod test;
@@ -21,6 +23,10 @@ struct Cli {
     /// What `run` executes on: the interpreter, or native code from Cranelift (M1b).
     #[arg(long, global = true, value_enum, default_value_t = Backend::Interp)]
     backend: Backend,
+    /// With the Cranelift backend: compile each function at its first call (debug), or all of
+    /// them before `main` starts.
+    #[arg(long, global = true, value_enum, default_value_t = Jit::Lazy)]
+    jit: Jit,
     #[command(subcommand)]
     command: Command,
 }
@@ -29,6 +35,12 @@ struct Cli {
 enum Backend {
     Interp,
     Cranelift,
+}
+
+#[derive(Clone, Copy, PartialEq, ValueEnum)]
+enum Jit {
+    Lazy,
+    Eager,
 }
 
 #[derive(Subcommand)]
@@ -93,9 +105,41 @@ enum Command {
         /// test fails the run, and proposed tests only report.
         #[arg(long)]
         gate: bool,
-        /// Run only this test, `module.test_name`.
+        /// Run only this test (`module.test_name`, `module.f#ex1`), or the tests under a module
+        /// or function prefix.
         #[arg(long)]
         only: Option<String>,
+    },
+    /// Run one task through the spec gate as a client of `yong mcp` (the reference agent
+    /// loop), and print its run record.
+    Agent {
+        /// The task: a JSON file with `id` and `prompt`.
+        task: PathBuf,
+        /// `stub:FILE` (scripted replies) or `cmd:PROGRAM` (one JSON line per turn).
+        #[arg(long)]
+        model: String,
+        /// The system prompt; the Xin primer.
+        #[arg(long)]
+        primer: Option<PathBuf>,
+        /// A directory of `.xin` examples appended to the system prompt.
+        #[arg(long)]
+        shots: Option<PathBuf>,
+        /// The work directory; a new temporary one by default.
+        #[arg(long)]
+        dir: Option<PathBuf>,
+        /// The module the task is written in.
+        #[arg(long, default_value = "task")]
+        module: String,
+        #[arg(long, default_value_t = 2)]
+        spec_repairs: usize,
+        #[arg(long, default_value_t = 3)]
+        body_repairs: usize,
+        /// The output budget of each model turn.
+        #[arg(long, default_value_t = 16000)]
+        max_tokens: u64,
+        /// Write the run record here instead of stdout.
+        #[arg(long)]
+        out: Option<PathBuf>,
     },
     /// Run a program.
     Run {
@@ -136,6 +180,7 @@ fn main() -> ExitCode {
             &file,
             Database::new(strict, level.as_deref() == Some("release")),
             cli.backend,
+            cli.jit,
         ),
         Command::Test { format, gate, only } => run_tests(format, gate, only.as_deref()),
         Command::View { as_, file } => view(&as_, &file),
@@ -151,6 +196,45 @@ fn main() -> ExitCode {
             module,
             patch,
         } => apply_patch(&patch, module.as_deref(), check, format),
+        Command::Agent {
+            task,
+            model,
+            primer,
+            shots,
+            dir,
+            module,
+            spec_repairs,
+            body_repairs,
+            max_tokens,
+            out,
+        } => {
+            let o = agent::Options {
+                task,
+                model,
+                primer,
+                shots,
+                dir,
+                module,
+                spec_repairs,
+                body_repairs,
+                max_tokens,
+            };
+            match agent::run(&o) {
+                Ok((rec, green)) => {
+                    let text = format!("{rec:#}\n");
+                    match out {
+                        Some(f) => {
+                            if let Err(e) = std::fs::write(&f, text) {
+                                return tool_failure(&format!("{}: {e}", f.display()));
+                            }
+                        }
+                        None => print!("{text}"),
+                    }
+                    ExitCode::from(u8::from(!green))
+                }
+                Err(msg) => tool_failure(&msg),
+            }
+        }
         Command::Mcp => match mcp::serve(Path::new(".")) {
             Ok(()) => ExitCode::SUCCESS,
             Err(msg) => tool_failure(&msg),
@@ -288,7 +372,7 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
+fn run(file: &Path, mut db: Database, backend: Backend, jit: Jit) -> ExitCode {
     let f = match db.open(file) {
         Ok(f) => f,
         Err(msg) => return tool_failure(&msg),
@@ -316,7 +400,7 @@ fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
         Err(msg) => return tool_failure(msg),
     };
     if backend == Backend::Cranelift {
-        return native(module);
+        return native(module, jit);
     }
     let mut out = std::io::stdout().lock();
     match yong_interp::run(module, &mut out) {
@@ -382,8 +466,12 @@ fn apply_patch(file: &Path, module: Option<&str>, check: bool, format: Format) -
 }
 
 /// Run `m` as native code. A panic exits from inside the program.
-fn native(m: &yong_core::ast::Module) -> ExitCode {
-    let compiled = yong_mir::lower(m).and_then(|p| yong_cg_cranelift::compile(&p));
+fn native(m: &yong_core::ast::Module, jit: Jit) -> ExitCode {
+    let jit = match jit {
+        Jit::Lazy => yong_cg_cranelift::Jit::Lazy,
+        Jit::Eager => yong_cg_cranelift::Jit::Eager,
+    };
+    let compiled = yong_mir::lower(m).and_then(|p| yong_cg_cranelift::compile_with(&p, jit));
     match compiled {
         Ok(c) => {
             c.run();

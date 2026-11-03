@@ -1,0 +1,14 @@
+--- Interchange fee rules: pure functions over Money, reviewed by people.
+
+bps(mcc: schema.Mcc) -> int uses none =
+  schema.Grocery() -> 150
+  schema.Travel() -> 250
+  schema.Other(_) -> 290
+
+--- Interchange fee, rounded down to the currency's minor unit.
+pub fee(amount: Money, mcc: schema.Mcc) -> Money uses none =
+  pre amount >= Money(0, amount.currency)
+  post out <= amount
+  ex fee(100.00usd, schema.Grocery()) == 1.50usd
+  ex fee(100.00usd, schema.Other(code: 5999)) == 2.90usd
+  (amount * bps(mcc) / 10000).quantize(amount.currency.minor, Floor)
