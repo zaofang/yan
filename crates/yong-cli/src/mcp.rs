@@ -81,7 +81,7 @@ fn call(root: &Path, db: &RefCell<Database>, tool: &str, args: &Value) -> Result
         "check" => {
             let name = str_arg(args, "name")?;
             let (module, item) = split(root, name);
-            let path = patch::module_path(root, &module);
+            let path = patch::module_path(root, &module)?;
             let src = read(&path)?;
             let mut db = db.borrow_mut();
             let f = db.file(&path, &src);
@@ -99,7 +99,7 @@ fn call(root: &Path, db: &RefCell<Database>, tool: &str, args: &Value) -> Result
             let ops = match p {
                 Value::String(text) => {
                     let module = str_arg(args, "module")?;
-                    Ops::Plain(patch::module_path(root, module), text)
+                    Ops::Plain(patch::module_path(root, module)?, text)
                 }
                 v => Ops::Json(v),
             };
@@ -130,7 +130,7 @@ fn call(root: &Path, db: &RefCell<Database>, tool: &str, args: &Value) -> Result
         }
         "sig" => {
             let module = str_arg(args, "module")?;
-            let path = patch::module_path(root, module);
+            let path = patch::module_path(root, module)?;
             let m = patch::parse(&path.display().to_string(), &read(&path)?)?;
             let budget = args["budget"].as_u64().map(|b| b as usize);
             let text = yong_ide::sig(&m, budget);
@@ -142,7 +142,7 @@ fn call(root: &Path, db: &RefCell<Database>, tool: &str, args: &Value) -> Result
         "spec_check" => {
             let module = str_arg(args, "module")?;
             let text = str_arg(args, "text")?;
-            let diags = spec_check(&patch::module_path(root, module), text)?;
+            let diags = spec_check(&patch::module_path(root, module)?, text)?;
             Ok(diagnostics(
                 finish(diags, DEFAULT_MAX_ERRORS),
                 max_tokens(args),
@@ -180,7 +180,6 @@ fn spec_check(path: &Path, text: &str) -> Result<Vec<Diagnostic>, String> {
     }
     let m = match yong_db::load(&db, f) {
         Ok(Loaded::Ready(m, _)) => m.clone(),
-        Ok(Loaded::Unsupported(what, _)) => return Err(format!("not supported yet: {what}")),
         Ok(Loaded::Stopped(d)) => return Ok(examples::remap(d.clone(), &exs)),
         Err(msg) => return Err(msg.clone()),
     };
@@ -248,7 +247,7 @@ fn diagnostics(diags: Vec<Diagnostic>, max_tokens: Option<usize>) -> Value {
 /// The patch that canonical printing makes to the item, or to every item of the module: it
 /// applies the lenient reader's normalizations (14.4), the only machine fixes so far.
 fn autofix(root: &Path, module: &str, item: Option<&str>) -> Result<Value, String> {
-    let path = patch::module_path(root, module);
+    let path = patch::module_path(root, module)?;
     let src = read(&path)?;
     let m = patch::parse(&path.display().to_string(), &src)?;
     if let Some(i) = item
@@ -293,8 +292,8 @@ fn autofix(root: &Path, module: &str, item: Option<&str>) -> Result<Value, Strin
 /// `pricing/value.xin` does not.
 fn split(root: &Path, name: &str) -> (String, Option<String>) {
     if let Some((m, i)) = name.rsplit_once('.')
-        && !patch::module_path(root, name).is_file()
-        && patch::module_path(root, m).is_file()
+        && !patch::module_path(root, name).is_ok_and(|p| p.is_file())
+        && patch::module_path(root, m).is_ok_and(|p| p.is_file())
     {
         return (m.to_owned(), Some(i.to_owned()));
     }
@@ -423,5 +422,26 @@ mod tests {
         let list = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list"});
         let r = respond(Path::new("."), &d, &list).unwrap();
         assert_eq!(r["result"]["tools"].as_array().unwrap().len(), 7);
+    }
+
+    #[test]
+    fn module_names_stay_under_the_root() {
+        let dir = std::env::temp_dir().join(format!("yong-mcp-root-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let outside = dir.join("outside");
+        let root = dir.join("root");
+        std::fs::create_dir_all(&outside).unwrap();
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(outside.join("v.xin"), "def f() -> int:\n    return 1\n").unwrap();
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&outside, root.join("link")).unwrap();
+        let abs = outside.join("v").display().to_string().replace('/', ".");
+        let d = RefCell::new(Database::new(false, false));
+        for name in [abs.as_str(), "..v", "a..b", "link.v"] {
+            let req = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                "params": {"name": "check", "arguments": {"name": name}}});
+            let r = respond(&root, &d, &req).unwrap();
+            assert_eq!(r["result"]["isError"], true, "{name}");
+        }
     }
 }

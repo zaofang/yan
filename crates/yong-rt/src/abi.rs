@@ -103,6 +103,14 @@ pub extern "C" fn yong_rt_show_f64(x: f64) -> *mut String {
     leak(crate::fmt::float_repr(x))
 }
 
+pub extern "C" fn yong_rt_div_i64(a: i64, b: i64) -> f64 {
+    crate::num::div_i128(a.into(), b.into())
+}
+
+pub extern "C" fn yong_rt_div_u64(a: u64, b: u64) -> f64 {
+    crate::num::div_i128(a.into(), b.into())
+}
+
 pub extern "C" fn yong_rt_show_bool(x: u8) -> *mut String {
     leak(if x != 0 { "True" } else { "False" }.to_owned())
 }

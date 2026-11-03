@@ -274,6 +274,9 @@ impl Called {
     }
 }
 
+/// A tool error for code the toolchain cannot judge yet; the run ends with `unsupported` set.
+const UNSUPPORTED: &str = "not supported yet";
+
 /// The run record (21.6): schema 1.
 pub fn run(o: &Options) -> Result<(Value, bool), String> {
     let task: Value = serde_json::from_str(
@@ -281,14 +284,27 @@ pub fn run(o: &Options) -> Result<(Value, bool), String> {
     )
     .map_err(|e| format!("{}: {e}", o.task.display()))?;
     let id = task["id"].as_str().unwrap_or("task").to_owned();
+    if id.is_empty()
+        || !id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
+        || id.starts_with('.')
+    {
+        return Err(format!(
+            "{}: task id `{id}` must be letters, digits, `_`, `-` and `.`",
+            o.task.display()
+        ));
+    }
     let prompt = task["prompt"]
         .as_str()
         .ok_or(format!("{}: the task has no `prompt`", o.task.display()))?;
     let dir = match &o.dir {
-        Some(d) => d.clone(),
-        None => std::env::temp_dir().join(format!("yong-agent-{id}-{}", std::process::id())),
+        Some(d) => {
+            std::fs::create_dir_all(d).map_err(|e| format!("{}: {e}", d.display()))?;
+            d.clone()
+        }
+        None => fresh_dir(&id)?,
     };
-    std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let system = system_prompt(o)?;
     let mut model = Model::open(&o.model)?;
     let mut mcp = Mcp::start(&dir)?;
@@ -318,7 +334,15 @@ pub fn run(o: &Options) -> Result<(Value, bool), String> {
     for n in 0..=o.spec_repairs {
         let (text, usage) = ask(&mut model, &mut msgs, &mut totals, "spec", content)?;
         let code = extract(&text);
-        let r = mcp.call("spec_check", json!({"module": o.module, "text": code}))?;
+        let r = match mcp.call("spec_check", json!({"module": o.module, "text": code})) {
+            Err(e) if e.contains(UNSUPPORTED) => {
+                rounds.push(round("spec", n, usage, &mut mcp, Some(&e), None));
+                let mut rec = record(&id, &model_id, "spec_failed", None, &rounds, &totals);
+                rec["unsupported"] = json!(e);
+                return Ok((finish(rec, &system, &msgs, None, None), false));
+            }
+            r => r?,
+        };
         let ok = !r.errors();
         let report = (!ok).then_some(r.text.as_str());
         rounds.push(round("spec", n, usage, &mut mcp, report, None));
@@ -335,7 +359,7 @@ pub fn run(o: &Options) -> Result<(Value, bool), String> {
         return Ok((finish(rec, &system, &msgs, None, None), false));
     };
     // The spec is accepted here and frozen for phase 2; a person accepts it outside the harness.
-    let target = patch::module_path(&dir, &o.module);
+    let target = patch::module_path(&dir, &o.module)?;
     std::fs::write(&target, &spec).map_err(|e| format!("{}: {e}", target.display()))?;
     let frozen = patch::parse(&target.display().to_string(), &spec)?;
 
@@ -343,6 +367,7 @@ pub fn run(o: &Options) -> Result<(Value, bool), String> {
     let mut content = BODY_ASK.to_owned();
     let mut status = "body_failed";
     let mut green_at = None;
+    let mut unsupported = None;
     for n in 0..=o.body_repairs {
         let (text, usage) = ask(&mut model, &mut msgs, &mut totals, "body", content)?;
         if let Some(why) = text.lines().find_map(|l| l.trim().strip_prefix("STOP:")) {
@@ -353,7 +378,15 @@ pub fn run(o: &Options) -> Result<(Value, bool), String> {
         let code = extract(&text);
         let (tool, report) = match frozen_changes(&frozen, &code, &target) {
             Some(report) => ("the spec gate", Some(report)),
-            None => body_round(&mut mcp, &o.module, &code)?,
+            None => match body_round(&mut mcp, &o.module, &code) {
+                // The toolchain cannot judge this body yet: a run result, not a harness failure.
+                Err(e) if e.contains(UNSUPPORTED) => {
+                    rounds.push(round("body", n, usage, &mut mcp, Some(&e), None));
+                    unsupported = Some(e);
+                    break;
+                }
+                r => r?,
+            },
         };
         rounds.push(round("body", n, usage, &mut mcp, report.as_deref(), None));
         let Some(report) = report else {
@@ -365,12 +398,25 @@ pub fn run(o: &Options) -> Result<(Value, bool), String> {
             .replace("{tool}", tool)
             .replace("{report}", &report);
     }
-    let rec = record(&id, &model_id, status, green_at, &rounds, &totals);
+    let mut rec = record(&id, &model_id, status, green_at, &rounds, &totals);
+    if let Some(e) = unsupported {
+        rec["unsupported"] = json!(e);
+    }
     let last = std::fs::read_to_string(&target).ok();
     Ok((
         finish(rec, &system, &msgs, Some(&spec), last.as_deref()),
         status == "green",
     ))
+}
+
+/// A new directory under the system temp dir with an unpredictable name; `create_dir` fails
+/// rather than reuse a path someone else made first.
+fn fresh_dir(id: &str) -> Result<PathBuf, String> {
+    use std::hash::{BuildHasher, RandomState};
+    let tag = RandomState::new().hash_one(std::time::SystemTime::now());
+    let dir = std::env::temp_dir().join(format!("yong-agent-{id}-{tag:016x}"));
+    std::fs::create_dir(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    Ok(dir)
 }
 
 /// Apply the body, close what autofix can, run the tests; the report for the model when the
@@ -618,6 +664,26 @@ mod tests {
         assert!(!green);
         assert_eq!(rec["status"], "spec_failed");
         assert_eq!(rec["rounds"][0]["tools"][0]["codes"], json!(["E201"]));
+    }
+
+    #[test]
+    fn a_task_id_cannot_leave_the_temp_dir() {
+        let dir = std::env::temp_dir().join(format!("yong-agent-id-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let task = dir.join("task.json");
+        std::fs::write(&task, r#"{"id": "x/../../y", "prompt": "p"}"#).unwrap();
+        let o = Options {
+            task,
+            model: "stub:none".into(),
+            primer: None,
+            shots: None,
+            dir: None,
+            module: "task".into(),
+            spec_repairs: 0,
+            body_repairs: 0,
+            max_tokens: 1,
+        };
+        assert!(run(&o).unwrap_err().contains("task id"));
     }
 
     #[test]

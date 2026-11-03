@@ -106,7 +106,7 @@ fn limits(it: &j::Item) -> R<Limits> {
             let n: u64 = n
                 .replace('_', "")
                 .parse()
-                .map_err(|_| crate::Unsupported(format!("`@limit` value {n}")))?;
+                .or_else(|_| crate::unsupported(format!("`@limit` value {n}")))?;
             match a.name.as_deref() {
                 Some("stage0_depth") => l.depth = n as usize,
                 Some("stage0_steps") => l.steps = n,
@@ -143,9 +143,14 @@ fn embed(name: &str, args: &[j::Arg], cx: &mut Cx) -> R<Option<y::ConstVal>> {
         .ancestors()
         .find(|d| d.join("yong.toml").is_file())
         .unwrap_or(dir);
+    // A symlink inside the root may point out of it, so the resolved target is checked too.
+    let escapes = match (dir.join(value).canonicalize(), root.canonicalize()) {
+        (Ok(real), Ok(real_root)) => !real.starts_with(real_root),
+        _ => false,
+    };
     let path = normalize(&dir.join(value));
     let root = normalize(root);
-    if path.starts_with("..") || !path.starts_with(&root) {
+    if path.starts_with("..") || !path.starts_with(&root) || escapes {
         cx.err(
             "E267",
             *span,
