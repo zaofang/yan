@@ -501,6 +501,27 @@ impl Gen<'_, '_> {
             }
             Term::Switch { on, targets } => {
                 let v = self.val(&Operand::Local(*on)).expect("an int");
+                // A jump table costs about as much as four compares, so a switch with at most
+                // that many cases besides its most common target branches instead.
+                let common = *targets
+                    .iter()
+                    .max_by_key(|t| targets.iter().filter(|u| u == t).count())
+                    .expect("a switch has targets");
+                if targets.iter().filter(|t| **t != common).count() <= 4 {
+                    for (i, t) in targets.iter().enumerate() {
+                        if *t == common {
+                            continue;
+                        }
+                        let eq = self.b.ins().icmp_imm_s(IntCC::Equal, v, i as i64);
+                        let next = self.b.create_block();
+                        self.b
+                            .ins()
+                            .brif(eq, self.blocks[*t as usize], &[], next, &[]);
+                        self.b.switch_to_block(next);
+                    }
+                    self.b.ins().jump(self.blocks[common as usize], &[]);
+                    return;
+                }
                 let mut sw = Switch::new();
                 for (i, t) in targets.iter().enumerate() {
                     sw.set_entry(i as u128, self.blocks[*t as usize]);
@@ -751,6 +772,118 @@ mod selftest {
             match shown {\n \"[A(x=7), C(), B(w=2, h=True)]\" => {}\n _ => { unreachable }\n }\n\
             let q: Str = std.fmt.show[P](let p)\n\
             match q {\n \"P(s=C(), t=(0.5, 'q'))\" => {}\n _ => { unreachable }\n }\n ret ()\n}\n";
+        let (m, d) = yong_core::parse("t.yong", src);
+        assert!(d.is_empty(), "{d:?}");
+        let p = yong_mir::lower(&m.unwrap()).expect("lowers");
+        super::compile(&p).expect("compiles").run();
+    }
+
+    /// Nested variants, or-patterns that bind, literals, ranges, tuples and `Str` through the
+    /// decision-tree lowering of `match`.
+    #[test]
+    fn runs_decision_tree_matches() {
+        let src = r#"module t1
+
+sum Op { Add, Sub, Neg { k: i64 }, Lit { v: i64 } }
+sum Pair2 { P { a: Op, b: Op }, Q }
+
+fn f(let o: Op) -> i64 {
+    jp k(let a: i64) { ret a }
+    match o {
+        Add => { jump k(1) }
+        Neg { k: 0 } => { jump k(2) }
+        Neg { k: n } | Lit { v: n } => { jump k(n) }
+        _ => { jump k(7) }
+    }
+}
+
+fn g(let p: Pair2) -> i64 {
+    jp k(let a: i64) { ret a }
+    match p {
+        P { a: Add, b: Add } => { jump k(10) }
+        P { a: _, b: Sub } => { jump k(20) }
+        P { a: Lit { v: 1..=5 }, b: x } => { let r: i64 = f(let x)  jump k(r) }
+        P { a: Lit { v: 6 }, b: _ } => { jump k(30) }
+        P { .. } => { jump k(40) }
+        Q => { jump k(50) }
+    }
+}
+
+fn h(let t: Tuple(i64, bool)) -> i64 {
+    jp k(let a: i64) { ret a }
+    match t {
+        (0, true) => { jump k(1) }
+        (0, false) => { jump k(2) }
+        (1, _) | (2, _) => { jump k(3) }
+        (n, true) => { jump k(n) }
+        (_, false) => { jump k(9) }
+    }
+}
+
+fn s(let x: Str) -> i64 {
+    jp k(let a: i64) { ret a }
+    match x {
+        "a" => { jump k(1) }
+        "b" | "c" => { jump k(2) }
+        _ => { jump k(3) }
+    }
+}
+
+fn main() -> Unit {
+    let a: i64 = f(let Add)
+    assert eq_i64(let a, let 1)
+    let n0: Op = Neg { k: 0 }
+    let b: i64 = f(let n0)
+    assert eq_i64(let b, let 2)
+    let n5: Op = Neg { k: 5 }
+    let c: i64 = f(let n5)
+    assert eq_i64(let c, let 5)
+    let l8: Op = Lit { v: 8 }
+    let d: i64 = f(let l8)
+    assert eq_i64(let d, let 8)
+    let e: i64 = f(let Sub)
+    assert eq_i64(let e, let 7)
+    let p1: Pair2 = P { a: Add, b: Add }
+    let r1: i64 = g(let p1)
+    assert eq_i64(let r1, let 10)
+    let p2: Pair2 = P { a: l8, b: Sub }
+    let r2: i64 = g(let p2)
+    assert eq_i64(let r2, let 20)
+    let l3: Op = Lit { v: 3 }
+    let p3: Pair2 = P { a: l3, b: n5 }
+    let r3: i64 = g(let p3)
+    assert eq_i64(let r3, let 5)
+    let l6: Op = Lit { v: 6 }
+    let p4: Pair2 = P { a: l6, b: Add }
+    let r4: i64 = g(let p4)
+    assert eq_i64(let r4, let 30)
+    let p5: Pair2 = P { a: Add, b: n5 }
+    let r5: i64 = g(let p5)
+    assert eq_i64(let r5, let 40)
+    let r6: i64 = g(let Q)
+    assert eq_i64(let r6, let 50)
+    let at1: Tuple(i64, bool) = (0, true)
+    let t1: i64 = h(let at1)
+    assert eq_i64(let t1, let 1)
+    let at2: Tuple(i64, bool) = (0, false)
+    let t2: i64 = h(let at2)
+    assert eq_i64(let t2, let 2)
+    let at3: Tuple(i64, bool) = (2, false)
+    let t3: i64 = h(let at3)
+    assert eq_i64(let t3, let 3)
+    let at4: Tuple(i64, bool) = (8, true)
+    let t4: i64 = h(let at4)
+    assert eq_i64(let t4, let 8)
+    let at5: Tuple(i64, bool) = (8, false)
+    let t5: i64 = h(let at5)
+    assert eq_i64(let t5, let 9)
+    let s1: i64 = s(let "c")
+    assert eq_i64(let s1, let 2)
+    let s2: i64 = s(let "z")
+    assert eq_i64(let s2, let 3)
+    ret ()
+}
+"#;
         let (m, d) = yong_core::parse("t.yong", src);
         assert!(d.is_empty(), "{d:?}");
         let p = yong_mir::lower(&m.unwrap()).expect("lowers");
