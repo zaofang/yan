@@ -58,7 +58,7 @@ Shape and unit errors are type errors. All shape-label and unit information MUST
 
 ### 11.7 Decimal and money
 
-`dec128` is IEEE 754-2008 decimal128. Rounding defaults to half-even, and division and `quantize` take an explicit `RoundingMode`. Decimal literals are exact, and there is no implicit conversion between floats and decimals. `Money` is `Quantity[dec128, Currency]`: amounts in different currencies do not add, and conversion takes an explicit rate. ISO 4217 minor units come from a table pinned in `yong.lock`. The columnar fixed-point type is `Decimal(p, s)` (11.8).
+`dec128` is IEEE 754-2008 decimal128. Rounding defaults to half-even, and division and `quantize` take an explicit `RoundingMode`. Decimal literals are exact, and there is no implicit conversion between floats and decimals. `Money` is `Quantity[dec128, Currency]`: amounts in different currencies do not add, and conversion takes an explicit rate. ISO 4217 minor units come from a table pinned in `yong.lock`. `std.decimal` declares one currency unit per ISO 4217 code, named by the code in lower case (`usd`, `eur`, `jpy`), each its own dimension of type `Currency`. A `Money` value is written as a unit quantity, `12.50usd` in Wen and `12.50 * usd` in Xin, and its number is read exactly as a `dec128`, never through a float; a computed amount is `money(d, c)` for a `dec128` `d` and a `Currency` `c`, and `m.amount` and `m.currency` read it back (R653). The columnar fixed-point type is `Decimal(p, s)` (11.8).
 
 ### 11.8 Columnar memory
 

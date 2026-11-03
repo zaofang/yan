@@ -126,7 +126,8 @@ literal   = INT | FLOAT | STRING | BYTES | CHAR | TSTRING | UNITNUM | DATE | TIM
 
 pattern   = alt {"|" alt}
 alt       = "_" | literal [".." ["="] literal] | NAME
-          | TYPENAME ["(" [ppat {"," ppat}] ")"]                       -- ".." only last, checked after parsing
+          | vpath ["(" [ppat {"," ppat}] ")"]                          -- ".." only last, checked after parsing
+vpath     = {NAME "."} TYPENAME                                        -- a variant of another module, as schema.Grocery (R652)
           | "(" pattern "," pattern {"," pattern} ")"
           | "[" [spat {"," spat}] "]" | alt "as" NAME
 ppat      = pattern | NAME ":" [pattern] | ".."
@@ -185,7 +186,7 @@ sync_prices(src: Url, dst: Path, since: PlainDate) -> Report
 
 **Indexing and strings.** As in Xin, an `xs[i]` that cannot be proven in bounds compiles with one runtime check, which the editor shows as a hint; Wen raises no W820 for it (R372). `@forbid(panic)` forbids such checks. Slices clamp as in Xin. No `len` and no integer indexing on `str` (E504). Maps index as in Xin (R287): `m[k]` reads with a check and `m[k] = v` inserts or replaces. `m[k]` is a mutable place when `m` is, so `m[k].hits += 1` works, and `m[k] op= v` inserts `Default` first when `k` is missing (R438). `for var x in xs` binds `x` to the mutable place of each element of a mutable place `xs` (`List`, `Deque`, `Soa` rows, `Map` values through `.values()`); the body may not otherwise touch `xs` (E402), and the loop lowers to an index loop with no bounds checks (R434).
 
-**Patterns.** `match` must be exhaustive (E503), decided with guards as facts (8.6, R606). On a sum, `_` is lint W811 (deny under `--strict` and release) rather than E502. `e is P` is a bool expression whose bindings scope over the branch it guards. `let P = e else d` requires `d` to diverge; P is never a bare name, since let x = e already binds (R374). Or-patterns, range patterns (`0..=9`), slice patterns on `View`, `StrView` and `List` (`[p, q, ..]`, `[p, ..rest]`, with `rest` a view of the scrutinee) and named-field patterns (`Rect(w:, h: 0.0)`) are available.
+**Patterns.** `match` must be exhaustive (E503), decided with guards as facts (8.6, R606). On a sum, `_` is lint W811 (deny under `--strict` and release) rather than E502. `e is P` is a bool expression whose bindings scope over the branch it guards. `let P = e else d` requires `d` to diverge; P is never a bare name, since let x = e already binds (R374). Or-patterns, range patterns (`0..=9`), slice patterns on `View`, `StrView` and `List` (`[p, q, ..]`, `[p, ..rest]`, with `rest` a view of the scrutinee) and named-field patterns (`Rect(w:, h: 0.0)`) are available. A variant pattern may name another module's variant by its qualified name, `schema.Grocery()`, as Xin's may (R652).
 
 **Effects and handlers.** `uses` lists capabilities, never failure. `with name = e` binds a handler for the block and `with name = dyn e` makes it dynamic.
 
