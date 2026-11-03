@@ -370,6 +370,14 @@ def f(xs: list[int]) -> int:
 }
 
 #[test]
+fn upper_and_lower_take_a_char() {
+    let src = "def both(s: str) -> str:\n    out = \"\"\n    for c in s.chars():\n\
+        \x20       out += c.upper() + c.lower()\n    return out\n\n\
+        pub def main() uses io:\n    io.print(both(\"aB\"))\n";
+    assert_eq!(run(src), "AaBb\n");
+}
+
+#[test]
 fn sum_any_and_all_take_lists_and_comprehensions() {
     let src = "pub def main() uses io:\n    xs = [1, 2, 3]\n\
         \x20   io.print(f\"{sum(x * 2 for x in xs)} {sum(xs)} {all(x > 0 for x in xs)} {any(x > 5 for x in xs)}\")\n";
