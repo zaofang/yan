@@ -126,6 +126,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R649 | Error messages (RFC 0021) D2, decided by the owner: a construct the toolchain does not support yet is E017, a record at the construct's span, and checking continues | 18.2, 25 |
 | R650 | Error messages (RFC 0021) D3, decided by the owner: the R294 line format leaves out an empty item or quote with its separators | 18.2 |
 | R651 | Error messages (RFC 0021) D4, decided by the owner: E200 and E203 carry near names within edit distance 2 as `maybe` fixes | 18.2 |
+| R652 to R654 | Tally slice findings (examples/tally), decided by the owner: Wen variant patterns may be qualified, `schema.Grocery()` (R652); currency units per ISO 4217 code, Money written as `12.50usd` in Wen and `12.50 * usd` in Xin and read exactly as dec128, `money(d, c)`, `.amount`, `.currency` (R653); golden program G5, the Tally slice in Xin and Wen (R654) | 11.7, 15.2, 15.3, 24.3 |
 
 <!-- /rows -->
 
