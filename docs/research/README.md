@@ -6,8 +6,8 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
-| 2026-11-01 | [Deep frontier survey: speed and capability](https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H) | RFCs 0015 to 0018 (R622 to R634) |
 | 2026-11-01 | [Formal core study: what a mechanized proof would take](https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y) | RFC 0022 (R680): Lean model under `formal/`, phase 0 now; normative definition open |
+| 2026-11-01 | [Deep frontier survey: speed and capability](https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H) | RFCs 0015 to 0018 (R622 to R634) |
 | 2026-11-01 | [Xin and Wen learnability](https://claude.ai/artifact/SWCzhtopJtJjpSFa2MBY1x) | RFC 0024 (R655 to R664); D1, the learnability gate, declined |
 | 2026-11-01 | [Adoption path and 1.0 launch](https://claude.ai/artifact/YFzwDZ97bftr7Vq2KmLUGD) | Decided: single 1.0 launch, no previews (card, 2026-11-01) |
 | 2026-11-01 | [Yong packaging and ecosystem](https://claude.ai/artifact/NHdZaQ9Q6X5tFxz1xh9BQC) | RFC 0020 (R635 to R647) |
