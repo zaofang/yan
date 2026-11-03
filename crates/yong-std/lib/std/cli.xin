@@ -1,0 +1,20 @@
+"""Command-line parsing for records that derive `Cli` (17.3, RFC 0019 D14, D15). A field with no
+default is a positional, a default makes an option, a `bool` is a flag, a `list` takes the
+remaining positionals and a sum of records is a subcommand. `cli.parse[T]()` parses
+`env.args()`; `cli.parse_args[T](args)` parses a given list."""
+
+@since("1.0")
+pub trait Cli:
+    """A record whose fields map to arguments; `@derive(Cli)` implements it."""
+    def cli_schema(self: Self) -> str: ...
+
+@since("1.0")
+pub class CliError:
+    """`help` is true for `-h` and `--help`, and `message` is then the help text; otherwise it is
+    one error line and the usage line. `show` prints `message`."""
+    message: str
+    help: bool
+
+@intrinsic
+@since("1.0")
+pub def parse_args[T: Cli](args: list[str], schema: str, /) -> T fail CliError: ...

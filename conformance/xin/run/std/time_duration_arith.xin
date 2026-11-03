@@ -1,0 +1,17 @@
+# spec: 17.5
+# rows: R593
+# note: `//` and `%` floor; `d / n` rounds half to even
+# stdout:
+# PT1M30.5S 90 90500000000 90.5
+# -PT1M30.5S PT3M1S PT22.625S PT22.625S PT0.000000004S
+# 3.0166666666666666 3
+# -PT3.5S PT0.000000002S PT0.000000004S PT7S
+# True True
+
+pub def main() uses io:
+    d = Duration.seconds(90) + Duration.millis(500)
+    io.print(f"{d} {d.seconds()} {d.nanos()} {d.as_seconds_float()}")
+    io.print(f"{-d} {d * 2} {d // 4} {d / 4} {d % 7}")
+    io.print(f"{d / Duration.seconds(30)} {d // Duration.seconds(30)}")
+    io.print(f"{Duration.seconds(-7) // 2} {Duration.nanos(5) / 2} {Duration.nanos(7) / 2} {Duration.seconds(-7).abs()}")
+    io.print(f"{Duration.hours(2) > Duration.minutes(119)} {Duration.micros(1000) == Duration.millis(1)}")

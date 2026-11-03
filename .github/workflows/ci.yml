@@ -88,6 +88,26 @@ jobs:
       - run: uv run pytest -q tools/selftest
       - run: uv run python tools/rows.py check
 
+  # The Lean model of the core (RFC 0022): it builds, and it agrees with the interpreter.
+  formal:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: Swatinem/rust-cache@v2
+      - name: Install Lean at the version formal/lean-toolchain pins
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - run: lake build
+        working-directory: formal
+      - run: cargo build --locked --release -p yong-cli
+      - run: uv sync --locked
+      - run: uv run python formal/drt.py cases
+      - run: uv run python formal/drt.py gen --count 300 --seed 1
+
   # Rust checks and conformance share one checkout and one build cache.
   rust:
     needs: changes

@@ -1,0 +1,23 @@
+# spec: 17.5
+# rows: R598, R599
+# stdout:
+# 2024-01-31 3 31 31 True
+# 2024-02-29 P1M -P1Y2D P0D
+# P1Y1M1D 2025-03-01
+# True True None
+# 2024-01-31T09:05:00.5 2024-02-01T09:05:00.5
+# 00:30:00 9 5
+
+pub def main() uses io:
+    d = PlainDate(2024, 1, 31)
+    io.print(f"{d} {d.weekday()} {d.day_of_year()} {d.days_in_month()} {d.in_leap_year()}")
+    p = Period(months=1)
+    io.print(f"{d + p} {p} {Period(years=-1, days=-2)} {Period()}")
+    e = PlainDate(2025, 3, 1)
+    q = d.until(e)
+    io.print(f"{q} {d + q}")
+    io.print(f"{d < e} {d == PlainDate(2024, 1, 31)} {PlainDate.try_new(2023, 2, 29)}")
+    dt = PlainDateTime(d, PlainTime(9, 5, 0, 500000000))
+    io.print(f"{dt} {dt + Duration.hours(24)}")
+    t = PlainTime(23, 30) + Duration.hours(1)
+    io.print(f"{t} {dt.hour()} {dt.minute()}")

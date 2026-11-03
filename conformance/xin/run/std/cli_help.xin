@@ -1,0 +1,64 @@
+# spec: 17.3
+# rows: R694, R695
+# note: -h and --help fail with help=True and the fixed help text, which @help fills in
+# stdout:
+# True
+# usage: word-count [options] <path>
+#
+# Count words in a file.
+#
+# arguments:
+#   <path> Path  the file to read
+#
+# options:
+#   --top <int>  how many to show (default: 10)
+#   --verbose
+#   -h, --help  show this help
+# True
+# usage: tool [options] <command>
+#
+# Manage items.
+#
+# options:
+#   -h, --help  show this help
+#
+# commands:
+#   add  add one item
+#   remove  remove items
+# True
+# usage: tool add [options] <name>
+#
+# add one item
+#
+# arguments:
+#   <name> str
+#
+# options:
+#   -h, --help  show this help
+
+type Cmd = Add(name: str) | Remove(names: list[str])
+
+@derive(Cli)
+@help(about="Count words in a file.", path="the file to read", top="how many to show")
+class WordCount:
+    path: Path
+    top: int = 10
+    verbose: bool = False
+
+@derive(Cli)
+@help(about="Manage items.", Add="add one item", Remove="remove items")
+class Tool:
+    cmd: Cmd
+
+def wc(xs: list[str]) -> str fail CliError:
+    a = cli.parse_args[WordCount](xs)?
+    return f"{a.path}"
+
+def tool(xs: list[str]) -> str fail CliError:
+    t = cli.parse_args[Tool](xs)?
+    return f"{t.cmd}"
+
+pub def main() uses io:
+    io.print(wc(["-h"]) else e -> f"{e.help}\n{e}")
+    io.print(tool(["--help"]) else e -> f"{e.help}\n{e}")
+    io.print(tool(["add", "--help"]) else e -> f"{e.help}\n{e}")
