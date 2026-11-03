@@ -274,6 +274,9 @@ impl Called {
     }
 }
 
+/// A tool error for code the toolchain cannot judge yet; the run ends with `unsupported` set.
+const UNSUPPORTED: &str = "not supported yet";
+
 /// The run record (21.6): schema 1.
 pub fn run(o: &Options) -> Result<(Value, bool), String> {
     let task: Value = serde_json::from_str(
@@ -331,7 +334,15 @@ pub fn run(o: &Options) -> Result<(Value, bool), String> {
     for n in 0..=o.spec_repairs {
         let (text, usage) = ask(&mut model, &mut msgs, &mut totals, "spec", content)?;
         let code = extract(&text);
-        let r = mcp.call("spec_check", json!({"module": o.module, "text": code}))?;
+        let r = match mcp.call("spec_check", json!({"module": o.module, "text": code})) {
+            Err(e) if e.contains(UNSUPPORTED) => {
+                rounds.push(round("spec", n, usage, &mut mcp, Some(&e), None));
+                let mut rec = record(&id, &model_id, "spec_failed", None, &rounds, &totals);
+                rec["unsupported"] = json!(e);
+                return Ok((finish(rec, &system, &msgs, None, None), false));
+            }
+            r => r?,
+        };
         let ok = !r.errors();
         let report = (!ok).then_some(r.text.as_str());
         rounds.push(round("spec", n, usage, &mut mcp, report, None));
@@ -356,6 +367,7 @@ pub fn run(o: &Options) -> Result<(Value, bool), String> {
     let mut content = BODY_ASK.to_owned();
     let mut status = "body_failed";
     let mut green_at = None;
+    let mut unsupported = None;
     for n in 0..=o.body_repairs {
         let (text, usage) = ask(&mut model, &mut msgs, &mut totals, "body", content)?;
         if let Some(why) = text.lines().find_map(|l| l.trim().strip_prefix("STOP:")) {
@@ -366,7 +378,15 @@ pub fn run(o: &Options) -> Result<(Value, bool), String> {
         let code = extract(&text);
         let (tool, report) = match frozen_changes(&frozen, &code, &target) {
             Some(report) => ("the spec gate", Some(report)),
-            None => body_round(&mut mcp, &o.module, &code)?,
+            None => match body_round(&mut mcp, &o.module, &code) {
+                // The toolchain cannot judge this body yet: a run result, not a harness failure.
+                Err(e) if e.contains(UNSUPPORTED) => {
+                    rounds.push(round("body", n, usage, &mut mcp, Some(&e), None));
+                    unsupported = Some(e);
+                    break;
+                }
+                r => r?,
+            },
         };
         rounds.push(round("body", n, usage, &mut mcp, report.as_deref(), None));
         let Some(report) = report else {
@@ -378,7 +398,10 @@ pub fn run(o: &Options) -> Result<(Value, bool), String> {
             .replace("{tool}", tool)
             .replace("{report}", &report);
     }
-    let rec = record(&id, &model_id, status, green_at, &rounds, &totals);
+    let mut rec = record(&id, &model_id, status, green_at, &rounds, &totals);
+    if let Some(e) = unsupported {
+        rec["unsupported"] = json!(e);
+    }
     let last = std::fs::read_to_string(&target).ok();
     Ok((
         finish(rec, &system, &msgs, Some(&spec), last.as_deref()),
