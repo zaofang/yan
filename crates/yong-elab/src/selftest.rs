@@ -374,6 +374,11 @@ fn sum_any_and_all_take_lists_and_comprehensions() {
     let src = "pub def main() uses io:\n    xs = [1, 2, 3]\n\
         \x20   io.print(f\"{sum(x * 2 for x in xs)} {sum(xs)} {all(x > 0 for x in xs)} {any(x > 5 for x in xs)}\")\n";
     assert_eq!(run(src), "12 6 True False\n");
+fn a_call_result_can_be_called() {
+    let src = "def inc(x: int) -> int:\n    return x + 1\n\n\
+        def pick() -> Callable[[int], int]:\n    return inc\n\n\
+        pub def main() uses io:\n    fs = [inc]\n    io.print(f\"{pick()(1)}{fs[0](5)}\")\n";
+    assert_eq!(run(src), "26\n");
 }
 
 #[test]
