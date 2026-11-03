@@ -669,3 +669,8 @@ sections = "3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25"
 rows = "R766 to R767"
 topic = "Xin model probe findings (https://claude.ai/artifact/8bZgdYmkeds1yWouV8Ryxs), decided by the owner: the lenient reader moves an `ex` line at the left margin into the function above, N32 (R766); the spec gate checks the names in `post` lines, so `result` fails in phase 1 and not after the freeze (R767)"
 sections = "14.4, 21.1, 23, 24, 25"
+
+[[entry]]
+rows = "R768"
+topic = "Wen out of the admission path, decided by the owner: K1 and N1 require lowering to Yong (core or accepted extension), no longer Yong that Wen can write; Wen prints every Yong item, in a generic canonical form it also reads where it has no idiomatic syntax yet (R768)"
+sections = "15.4, 16.6, 16.7"

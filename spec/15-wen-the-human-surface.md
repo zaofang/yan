@@ -211,6 +211,8 @@ sync_prices(src: Url, dst: Path, since: PlainDate) -> Report
 - Lines over 100 characters wrap inside brackets, one element per line with a trailing comma. Method chains wrap with one leading-`.` call per line.
 - A lambda whose body is a field-access chain on its parameter prints as the implicit subject.
 
+**Wen prints every Yong item (R768).** Wen is the review view, not the admission gate. A Yong extension (26.6) may land before Wen has idiomatic syntax for it; until then Wen prints its nodes in a generic canonical form that Wen also reads, so law 5 holds and the text stays writable by hand. The extension's RFC gives either the idiomatic Wen syntax or the generic form; the first extension that needs a generic form fixes its grammar for all of them. The generic form keeps every mark of the five facts (law 4).
+
 ### 15.5 Diagnostics in Wen
 
 Message templates are keyed per code and rendered per surface, and fixes are rendered in that surface's syntax. Wen prose never uses Yong terms (inout, sink, projection, heap-backed, elaborate). A Wen diagnostic states what happened at the span, the rule in one sentence, then the fix and its cost. The JSON `message` field keeps the registry text. The voice is neutral, with no "I", "we" or blame (R296), and templates are rendered per surface as R297 says. A habit child (R662) is rendered after the fix as `note:`, naming the TypeScript or Python habit and the Wen form.
