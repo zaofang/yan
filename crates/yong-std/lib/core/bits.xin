@@ -1,0 +1,47 @@
+"""Bit counts, rotations and byte swaps on the integer types (17.3). Each call is lowered to the
+typed `<f>_<type>` operation for its argument; `bigint` has only `count_ones` and `bit_width`.
+The operators `& | ^ ~ << >>` are on `Bits` (3.4)."""
+
+@intrinsic
+@since("1.0")
+pub def count_ones[T: Bits](x: T, /) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def count_zeros[T: Bits](x: T, /) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def leading_zeros[T: Bits](x: T, /) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def trailing_zeros[T: Bits](x: T, /) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def bit_width[T: Bits](x: T, /) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def rotate_left[T: Bits](x: T, n: int, /) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def rotate_right[T: Bits](x: T, n: int, /) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def swap_bytes[T: Bits](x: T, /) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def reverse_bits[T: Bits](x: T, /) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def is_power_of_two[T: Bits](x: T, /) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def wrapping_shl[T: Bits](x: T, n: int, /) -> T: ...

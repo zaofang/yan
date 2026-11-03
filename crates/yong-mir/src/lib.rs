@@ -144,6 +144,10 @@ pub enum RtFn {
     ShowU64,
     /// `(f64) -> Str`
     ShowF64,
+    /// `(i64, i64) -> f64`, correctly rounded `int / int`.
+    DivI64,
+    /// `(u64, u64) -> f64`, correctly rounded.
+    DivU64,
     /// `(bool) -> Str`
     ShowBool,
     /// `(Str) -> Str`, CPython `repr`.
