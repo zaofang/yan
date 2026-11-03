@@ -448,7 +448,9 @@ def law4(case: Case, ex: LawExecutor) -> Result:
             ("comments", _without_comments(text, prefix)),
             ("blank lines", _more_blank_lines(text)),
         ]:
-            p = Path(tmp) / case.path.name
+            # Keep the case's directories: a module under `ffi/` is an ffi module (12).
+            p = Path(tmp) / case.path.relative_to(case.path.anchor)
+            p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(body, encoding="utf-8")
             variants.append((what, ex.hash(p)))
     for what, got in variants:

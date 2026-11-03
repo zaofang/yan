@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use std::rc::Rc;
 
 use yong_core::ast::*;
+use yong_diag::Span;
 use yong_std::registry::{self, Id};
 
 use crate::{Fnv, Map, Value, int_range, literal};
@@ -158,6 +159,11 @@ pub(crate) enum Op {
         src: Reg,
         kind: &'static str,
     },
+    /// An `assert` of `src`, described by `code.asserts[info]`.
+    Assert {
+        src: Reg,
+        info: u32,
+    },
     Panic(&'static str),
     Unsupported(u32),
     /// Bind `pat` from `src` or jump to `to` when it does not match.
@@ -305,6 +311,18 @@ pub(crate) struct Code {
     pub ctors: Vec<CtorC>,
     pub clos: Vec<CloC>,
     pub msgs: Vec<String>,
+    /// The item a panic trace names for this code.
+    pub name: String,
+    /// The statement each op came from, by pc.
+    pub spans: Vec<Span>,
+    pub asserts: Vec<AssertC>,
+}
+
+/// Where an `assert` is, and the operands of the comparison it tests, if any.
+#[derive(Debug)]
+pub(crate) struct AssertC {
+    pub line: u32,
+    pub sides: Vec<Opnd>,
 }
 
 pub(crate) struct Program {
@@ -320,7 +338,7 @@ struct Globals<'m> {
     /// Module constants with literal or materialized (stage-0) values.
     consts: Map<Name, Value>,
     codes: Vec<Option<Code>>,
-    pending: Vec<(usize, &'m FnDef)>,
+    pending: Vec<(usize, Name, &'m FnDef)>,
 }
 
 fn const_value(c: &ConstVal) -> Option<Value> {
@@ -354,15 +372,16 @@ pub(crate) fn compile(m: &Module) -> Program {
                 let id = g.codes.len();
                 g.codes.push(None);
                 g.fns.insert(f.path.join("."), id);
-                g.pending.push((id, f));
+                g.pending.push((id, f.path.join("."), f));
             }
             ItemKind::Impl(i) => {
                 let ty = yong_core::type_text(&i.for_ty);
                 for f in &i.fns {
                     let id = g.codes.len();
                     g.codes.push(None);
-                    g.methods.insert(format!("{ty}.{}", f.path.join(".")), id);
-                    g.pending.push((id, f));
+                    let name = format!("{ty}.{}", f.path.join("."));
+                    g.methods.insert(name.clone(), id);
+                    g.pending.push((id, name, f));
                 }
             }
             ItemKind::Sum(s) => {
@@ -383,9 +402,9 @@ pub(crate) fn compile(m: &Module) -> Program {
     }
     // A later item of the same name replaces an earlier one; compile only the live ones.
     let live: HashSet<usize> = g.fns.values().chain(g.methods.values()).copied().collect();
-    for (id, f) in std::mem::take(&mut g.pending) {
+    for (id, name, f) in std::mem::take(&mut g.pending) {
         if live.contains(&id) {
-            let code = FnC::item(&mut g, f);
+            let code = FnC::item(&mut g, name, f);
             g.codes[id] = Some(code);
         }
     }
@@ -511,6 +530,10 @@ struct FnC<'g, 'm> {
     scopes: Vec<Scope>,
     /// The last pc taken as a jump target; ops before it cannot fuse with ops after.
     barrier: u32,
+    /// The statement being compiled.
+    at: Span,
+    /// Booleans bound to a comparison of two atoms, for the message of an `assert` on them.
+    cmps: Map<Name, [Atom; 2]>,
 }
 
 impl<'g, 'm> FnC<'g, 'm> {
@@ -521,6 +544,8 @@ impl<'g, 'm> FnC<'g, 'm> {
             regs: Map::default(),
             scopes: Vec::new(),
             barrier: 0,
+            at: Span::default(),
+            cmps: Map::default(),
         };
         for p in params {
             let r = c.temp();
@@ -538,8 +563,10 @@ impl<'g, 'm> FnC<'g, 'm> {
         c
     }
 
-    fn item(g: &'g mut Globals<'m>, f: &FnDef) -> Code {
+    fn item(g: &'g mut Globals<'m>, name: Name, f: &FnDef) -> Code {
         let mut c = FnC::new(g, &f.params, f.body.as_ref(), &[]);
+        c.code.name = name;
+        c.at = f.name_span;
         for k in &f.contracts {
             if let Contract::Requires(e) = k {
                 let t = c.temp();
@@ -565,6 +592,8 @@ impl<'g, 'm> FnC<'g, 'm> {
         let id = self.g.codes.len();
         self.g.codes.push(None);
         let mut c = FnC::new(self.g, &k.params, Some(&k.body), &names);
+        c.code.name = format!("closure in {}", self.code.name);
+        c.at = self.at;
         c.code.capture_regs = names.iter().map(|n| c.regs[n]).collect();
         c.block(&k.body);
         c.unsupported("function body ended without `ret`");
@@ -590,6 +619,7 @@ impl<'g, 'm> FnC<'g, 'm> {
 
     fn emit(&mut self, op: Op) -> usize {
         self.code.ops.push(op);
+        self.code.spans.push(self.at);
         self.code.ops.len() - 1
     }
 
@@ -676,7 +706,8 @@ impl<'g, 'm> FnC<'g, 'm> {
         match a {
             Atom::Lit(l, _) => match literal(l) {
                 Ok(v) => Ok(self.konst(v)),
-                Err(crate::Stop::Unsupported(m) | crate::Stop::Panic(m)) => Err(m),
+                Err(crate::Stop::Unsupported(m)) => Err(m),
+                Err(crate::Stop::Panic(p)) => Err(p.message),
                 Err(crate::Stop::Limit(m)) => Err(m.to_owned()),
             },
             Atom::Name(n, _) => self.lookup(n),
@@ -744,9 +775,19 @@ impl<'g, 'm> FnC<'g, 'm> {
     }
 
     fn stmt(&mut self, s: &Stmt) {
+        let outer = std::mem::replace(&mut self.at, s.span);
+        self.stmt_ops(s);
+        self.at = outer;
+    }
+
+    fn stmt_ops(&mut self, s: &Stmt) {
         match &s.kind {
             StmtKind::Let { pat, rhs, .. } => match pat {
                 Pat::Bind(n) if !self.g.nullary.contains(n) => {
+                    match comparison(rhs) {
+                        Some(sides) => self.cmps.insert(n.clone(), sides),
+                        None => self.cmps.remove(n),
+                    };
                     let dst = self.reg_of(n);
                     self.rhs(rhs, dst);
                 }
@@ -871,20 +912,34 @@ impl<'g, 'm> FnC<'g, 'm> {
                     self.emit(Op::Become { site });
                 }
             }
-            StmtKind::Par { blocks, .. } => blocks.iter().for_each(|b| self.block(b)),
+            StmtKind::Par { blocks, .. } => self.par(blocks),
             StmtKind::Assert(e) => {
                 let t = self.temp();
                 self.expr(e, t);
-                self.emit(Op::Check {
-                    src: t,
-                    kind: "assert",
+                let sides = match e {
+                    Expr::Atom(Atom::Name(n, _)) => self.cmps.get(n).cloned(),
+                    _ => None,
+                };
+                let sides = sides
+                    .and_then(|[a, b]| Some(vec![self.atom(&a).ok()?, self.atom(&b).ok()?]))
+                    .unwrap_or_default();
+                self.code.asserts.push(AssertC {
+                    line: s.span.line,
+                    sides,
                 });
+                let info = self.code.asserts.len() as u32 - 1;
+                self.emit(Op::Assert { src: t, info });
             }
             StmtKind::Unreachable => {
                 self.emit(Op::Panic("unreachable"));
             }
             StmtKind::Unsafe(b) => self.block(b),
             StmtKind::Drop(n) => {
+                self.cmps.retain(|_, sides| {
+                    !sides
+                        .iter()
+                        .any(|a| matches!(a, Atom::Name(m, _) if m == n))
+                });
                 if let Some(r) = self.regs.get(n) {
                     let r = *r;
                     self.emit(Op::Clear(r));
@@ -923,6 +978,38 @@ impl<'g, 'm> FnC<'g, 'm> {
             StmtKind::Asm { .. } => self.unsupported("inline assembly"),
             StmtKind::Reuse { .. } => self.unsupported("`reuse`"),
         }
+    }
+
+    /// The branches of a `par` in source order. With `rand` in scope, branch `k` runs under
+    /// `rand.split(k)`, so its stream depends on its task path only (RFC 0019 D5).
+    fn par(&mut self, blocks: &[Block]) {
+        let Some(reg) = self.regs.get("rand").copied() else {
+            return blocks.iter().for_each(|b| self.block(b));
+        };
+        let saved = self.temp();
+        self.emit(Op::Restore {
+            dst: saved,
+            src: reg,
+        });
+        self.scopes.push(Scope::With { reg, saved });
+        for (k, b) in blocks.iter().enumerate() {
+            let branch = self.konst(Value::Int(k as i128));
+            self.code.sites.push(Site {
+                callee: Callee::Native,
+                args: vec![ArgC::Val(Opnd(saved)), ArgC::Val(branch)],
+                id: registry::id("std.rand.split"),
+                name: "std.rand.split".into(),
+                mode: Mode::Plain,
+            });
+            let site = self.code.sites.len() as u32 - 1;
+            self.emit(Op::Call { site, dst: reg });
+            self.block(b);
+        }
+        self.scopes.pop();
+        self.emit(Op::Restore {
+            dst: reg,
+            src: saved,
+        });
     }
 
     /// Restore the `with` names between the top scope and scope `to`, exclusive.
@@ -1319,6 +1406,19 @@ fn intrinsic_op(name: &str, args: &[ArgC], dst: Reg, site: u32) -> Option<Op> {
         });
     }
     None
+}
+
+/// The two sides of `rhs` when it is a comparison call on atoms.
+fn comparison(rhs: &Rhs) -> Option<[Atom; 2]> {
+    let Rhs::Call(c) = rhs else { return None };
+    let f = c.path.last()?;
+    let cmp = ["eq", "ne", "lt", "le", "gt", "ge"]
+        .iter()
+        .any(|p| f == p || f.strip_prefix(p).is_some_and(|r| r.starts_with('_')));
+    match c.args.as_slice() {
+        [Arg::Value(_, a, _), Arg::Value(_, b, _)] if cmp => Some([a.clone(), b.clone()]),
+        _ => None,
+    }
 }
 
 #[cfg(test)]

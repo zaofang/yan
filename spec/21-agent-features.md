@@ -11,7 +11,13 @@ Generation happens in two phases, enforced by `yong mcp` and available to any ag
 
 Human review of model-written code starts with the spec, which is short and readable.
 
-**Spec freeze (normative).** Coding agents rewrite tests to pass when they can: ImpossibleBench (ICLR 2026) measured a 93% test-hacking rate in one configuration. So the tests and contracts produced by the spec step are frozen once a human accepts them. An implement-step patch may not touch test functions or `pre`, `post`, `ex`, `invariant` and `decreases` clauses; `check_patch` enforces this (P006). If the agent believes a frozen test is wrong, it stops and reports instead of editing. W806 flags code that special-cases the literal inputs of `ex` clauses.
+**Spec freeze (normative).** Coding agents rewrite tests to pass when they can: ImpossibleBench (ICLR 2026) measured a 93% test-hacking rate in one configuration. So the tests and contracts produced by the spec step are frozen once a human accepts them. An implement-step patch may not touch test functions or `pre`, `post`, `ex`, `invariant` and `decreases` clauses; `check_patch` enforces this (P006). If the agent believes a frozen test is wrong, it stops and reports instead of editing. W806 flags code that special-cases the literal inputs of `ex` clauses, including lookups keyed by them; in the spec gate it is an error.
+
+**Frozen meaning (R675).** Names in frozen clauses resolve against the module as the spec was accepted, plus the prelude, so an implement patch cannot change what a clause calls: adding an item a frozen clause names is P006.
+
+**Spec-gate checks (R621).** `spec_check` runs each `ex` line's arguments through `pre`. Arguments that break it are E619 at the `ex` line. A `pre` that cannot be evaluated yet, such as one calling a function whose body is still `...`, is skipped.
+
+**The reference loop (R617).** `yong agent` (18.1, R616) runs one task through both phases using only the 21.4 tools, called in process as JSON-RPC messages to the handler `yong mcp` serves. Phase 1: the model writes items with `...` bodies, `spec_check` checks them, and up to `--spec-repairs` rounds (default 2) show it the line rendering. The accepted spec is written and frozen. Phase 2, each round in order: a reply that drops a spec item or changes a def line, docstring or contract is refused before any tool runs; `apply_patch` applies the reply with `--check`; `autofix` runs and its patch is applied; `run_tests` runs the module's `test_` functions and `ex` lines. The first refusal or failure is the next repair round, up to `--body-repairs` (default 3). The run is green when the tests pass. A reply with a line `STOP: <reason>` ends the run as `stopped`, the stop-and-report rule above. The prompts are fixed in the toolchain and versioned with it; the primer and shots are inputs.
 
 ### 21.2 Typed holes
 
@@ -53,9 +59,13 @@ A Model Context Protocol server (protocol 2026-07-28, stateless) over stdio. Eve
 | `spec_check` | an item with body `...` | phase-1 results (21.1) |
 | `run_tests` | filter | results, with counterexamples for property tests |
 | `why_shared` | item or site | where a value is deep-copied or shared through `Rc` or `Arc` |
+| `why_needs` | item and a capability, `fail` member or panic kind | the chain of `yong why` (R612) |
+| `infer_invariants` | item | the patch adding accepted `invariant` clauses (R607) |
 | `debug` | a trace or a running test; a query (why, last\_write, step, back) | the answer of the one trace query engine of 18.4 (R306, R378) |
 | `explain` | code | long-form text |
 | `query` | a Xin body using only the `toolchain` capability; step and token budgets | the body's return value as JSON, or its diagnostics |
+
+**Model adapters (R618).** `yong agent --model` takes `stub:FILE`, a JSON array of scripted replies for tests and CI, or `cmd:PROGRAM ARGS`, a process that reads one JSON line per turn, `{"system", "messages", "max_tokens"}`, and writes one line, `{"text", "usage": {"in", "out", "reasoning"}, "model"}` or `{"error"}`. Hosted models are reached through `cmd:` adapters that the harness ships; the toolchain makes no HTTPS calls and holds no API keys.
 
 **The `toolchain` capability.** A built-in read-only capability over the query database: `check`, `sig`, `search_type`, `type_at`, `hole_context`, `callers`, `callees`, `uses_of`, index search and generated-item expansion. `query` runs its body on the interpreter with a step budget and an output token budget. Release builds never bind `toolchain` (E318), and it cannot produce approvals (19.4).
 
@@ -65,11 +75,16 @@ A Model Context Protocol server (protocol 2026-07-28, stateless) over stdio. Eve
 
 - `pack_context`, `hole_context` and `query` emit comments, docstrings and string literals in a fenced channel marked untrusted, and strip or flag zero-width, bidirectional and tag characters.
 - `yong mcp` never applies a patch to a protected target (18.3) without a human confirmation token.
-- No repository-defined code or configuration runs before the user has trusted the repository.
+- No repository-defined code or configuration runs before the user has trusted the repository; `yong trust` records that, and `run_tests`, `query` and stage 0 refuse to run without it (R676).
+- `sig`, the `quote` and `notes` of diagnostics, and test output carry repository text in the same untrusted channel (R676).
+
+**Confinement (R676).** A module name in a request is dotted identifiers resolved beneath the server root, never through a symlink out of it. Every tool that runs code has step, heap and wall-clock budgets per call and per session; a step includes a loop iteration (R487).
 
 ### 21.5 Provenance
 
 Each item MAY carry provenance in `.yong/provenance.jsonl`, keyed by item hash. Each record is an in-toto statement: `{item_hash, author: human | model(id, version), prompt_hash?, tool_calls_hash, base_hashes, time, status: checked | tested | proven}`, optionally signed. `yong audit` reports model-authored code no human has reviewed, model-authored changes to `ffi` modules and to any item whose capability set grew, and every extern block, `safe` item and `uses none` claim (12.10).
+
+**Review report (R665 to R671).** `yong review [BASE[..HEAD]]` (18.1) compares two git revisions of a package; HEAD left out is the working tree and BASE left out is `HEAD`, and neither tree is written (R665). Items are compared by key on elaborated Yong, so converting a file between Xin and Wen changes nothing. An item is added, removed or edited, where edited means its canonical Yong text without docstrings differs; an item with the same text whose identity hash (3.6) changed is affected, counted but not listed. Each added or edited item shows its header old and new; tests show whole. `--as xin|wen` follows the item-level view in M3 (R666). For every function, generator, impl method, trait signature and extern block it lists capability and `fail` gains and losses, `unsafe` and `pub` gained or lost, and extern blocks added, edited or removed, gains first (R667). It lists each `pre`, `post`, `ex`, `invariant` and `decreases` line added or removed, each test added, edited or removed, and any change to `tests.lock`. Approval is judged by BASE's `tests.lock`, so a change cannot approve its own tests; an edit to an approved test, or to the contract lines of an item that had any at BASE, is marked frozen (R668). It runs HEAD's tests through the verdict cache (18.4, R669) and lists each test that reaches an added, edited or affected item with its verdict, approved or proposed, and cached or run. When `.yong/provenance.jsonl` exists, each listed item carries the author recorded for its identity hash, or `unknown` (R670). The exit status is 0 when nothing needs a human, 1 when something does and 2 on a tool failure; needing a human means a capability, `fail`, `unsafe` or `pub` gain, an extern block change, a frozen edit, a `tests.lock` change, a failing reached test or a module that does not elaborate at HEAD. `--format json` gives each finding a `kind` and an `attention` flag, and `--format md` renders a PR comment (R671).
 
 ### 21.6 Evaluation harness
 
@@ -84,5 +99,7 @@ The M1 gate is measured with a harness specified here, so the result can be trus
 - Tokens are reported in two parts (R567). Spec-phase tokens cover the signature, `uses`, contracts and `ex` clauses of 21.1; body tokens cover the body and every repair round. Body tokens compare against the typed-Python program; spec-phase tokens compare against the pytest cases the same model writes for the same task when the prompt asks typed Python for tests, so both sides pay for their tests.
 - The Xin primer the model receives stays at or under 500 tokens; the canonical example set (`yong skill`) counts toward it (R289).
 - Each run reports, per task, rounds to green, the diagnostics hit, and which of them an autofix closed in the loop (R280).
+- The Xin arm runs through `yong agent` (R620), so repair rounds and autofix count as a user meets them. The typed-Python arm keeps the same two phases, with mypy and pytest, in the harness.
+- **Run record (R619).** `yong agent` writes JSON with `schema: 1`: `task`, `model` (the adapter's id), `toolchain` (`version` and the BLAKE3 hash of the binary), `status` (`green`, `spec_failed`, `body_failed` or `stopped`), `rounds_to_green`, `tokens.spec` and `tokens.body` (each `{in, out, reasoning}` as the provider reports them, R567), and `rounds`. Each round has its phase, number, usage, `ok`, the report the model saw next, and its tool calls, each with the codes it hit, failing test ids and items autofix replaced. `system`, `messages`, `spec` and `final` let the harness recount tokens with each tokenizer. New fields are optional additions only.
 
 **If the fluency gate fails,** the plan is continued pre-training of an open 8B to 32B model on Xin plus instruction transfer, not fine-tuning of hosted models.

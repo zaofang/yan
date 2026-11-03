@@ -1,0 +1,33 @@
+# spec: 7.1, 9.2
+# rows: R685
+# note: par branch k draws from a stream split by its task path; adding a branch shifts no other, and the parent's stream is unchanged
+# stdout:
+# 903 282 400
+# 903 282 400 42
+# 400
+
+def draw() -> int uses rand:
+    return rand.below(1000)
+
+def two() -> str uses rand:
+    par:
+        a = draw()
+        b = draw()
+    c = draw()
+    return f"{a} {b} {c}"
+
+def three() -> str uses rand:
+    par:
+        a = draw()
+        b = draw()
+        d = draw()
+    c = draw()
+    return f"{a} {b} {c} {d}"
+
+pub def main() uses io:
+    with rand = seeded(7):
+        io.print(two())
+    with rand = seeded(7):
+        io.print(three())
+    with rand = seeded(7):
+        io.print(f"{draw()}")

@@ -1,0 +1,57 @@
+"""Methods on PlainDate, a proleptic Gregorian date with no zone (17.5, R598, R599, R602)."""
+
+@intrinsic
+@since("1.0")
+pub def try_new(y: int, m: int, d: int) -> PlainDate | None: ...
+
+@intrinsic
+@since("1.0")
+pub def parse(s: str) -> PlainDate fail TimeError: ...
+
+@intrinsic
+@since("1.0")
+pub def strptime(s: str, fmt: str) -> PlainDate fail TimeError: ...
+
+@intrinsic
+@since("1.0")
+pub def year(self: PlainDate) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def month(self: PlainDate) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def day(self: PlainDate) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def weekday(self: PlainDate) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def day_of_year(self: PlainDate) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def days_in_month(self: PlainDate) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def in_leap_year(self: PlainDate) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def add(self: PlainDate, p: Period) -> PlainDate: ...
+
+@intrinsic
+@since("1.0")
+pub def checked_add(self: PlainDate, p: Period) -> PlainDate | None: ...
+
+@intrinsic
+@since("1.0")
+pub def until(self: PlainDate, o: PlainDate) -> Period: ...
+
+@intrinsic
+@since("1.0")
+pub def strftime(self: PlainDate, fmt: str) -> str: ...

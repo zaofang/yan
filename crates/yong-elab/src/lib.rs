@@ -5,6 +5,7 @@
 //! The Yong tree keeps Xin spans, so the Yong checker reports at Xin positions.
 
 mod bounds;
+mod cli;
 mod decorators;
 mod ffi;
 mod lower;
@@ -16,7 +17,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 
 use yong_core::ast as y;
-use yong_diag::{Diagnostic, Span};
+use yong_diag::{Applicability, Diagnostic, Span};
 use yong_hir as j;
 
 pub use stdlib::{StdInfo, StdModule, install_std};
@@ -35,14 +36,34 @@ pub struct Options {
     pub ffi: bool,
 }
 
-/// A construct the elaborator does not lower yet; the caller skips the semantic checks.
+/// A construct the elaborator does not lower yet, at the innermost statement or expression
+/// that was being lowered when it was found (E017, R649).
 #[derive(Debug)]
-pub struct Unsupported(pub String);
+pub struct Unsupported {
+    pub what: String,
+    pub at: Option<Span>,
+}
+
+impl Unsupported {
+    /// Keeps the innermost span: the first one set wins as the error propagates outward.
+    pub(crate) fn at(mut self, span: Span) -> Self {
+        self.at.get_or_insert(span);
+        self
+    }
+}
 
 pub(crate) type R<T> = Result<T, Unsupported>;
 
 pub(crate) fn unsupported<T>(what: impl Into<String>) -> R<T> {
-    Err(Unsupported(what.into()))
+    Err(Unsupported {
+        what: what.into(),
+        at: None,
+    })
+}
+
+/// E017 for a construct this toolchain does not support yet (R649).
+pub fn unsupported_message(what: &str) -> String {
+    format!("{what}: not supported by this toolchain yet")
 }
 
 pub(crate) struct Field {
@@ -89,6 +110,8 @@ pub(crate) struct Globals {
     pub externs: HashMap<String, (bool, bool)>,
     /// Records marked `@layout(c)` (12.3).
     pub layout_c: HashSet<String>,
+    /// Records marked `@derive(Cli)`, with their `@help` texts (RFC 0019 D14).
+    pub clis: HashMap<String, HashMap<String, String>>,
     /// Functions marked `@deprecated`, for W815.
     pub deprecated: HashSet<String>,
     pub consts: HashMap<String, Ty>,
@@ -118,7 +141,7 @@ pub(crate) struct Cx<'s> {
     pub diags: Vec<Diagnostic>,
 }
 
-impl Cx<'_> {
+impl<'s> Cx<'s> {
     pub fn note(&mut self, code: &str, span: Span, item: &str, message: String) {
         self.err(code, span, item, message);
         if let Some(d) = self.diags.last_mut() {
@@ -134,6 +157,13 @@ impl Cx<'_> {
     }
 
     pub fn err(&mut self, code: &str, span: Span, item: &str, message: String) {
+        let quote = self.text(span);
+        self.diags
+            .push(Diagnostic::error(code, self.file, span, quote, message).with_item(item));
+    }
+
+    /// The source text of `span`, cut at the end of its first line.
+    pub fn text(&self, span: Span) -> &'s str {
         let line = self
             .src
             .lines()
@@ -145,9 +175,26 @@ impl Cx<'_> {
         } else {
             line.len()
         };
-        let quote = line.get(from..to).unwrap_or("");
-        self.diags
-            .push(Diagnostic::error(code, self.file, span, quote, message).with_item(item));
+        line.get(from..to).unwrap_or("")
+    }
+
+    /// Adds to the last diagnostic a fix that replaces the text of `span` with `text`.
+    pub fn fix(&mut self, applicability: Applicability, title: &str, span: Span, text: &str) {
+        let search = self.text(span);
+        if let Some(d) = self.diags.pop() {
+            self.diags
+                .push(d.with_fix(applicability, title, span, search, text));
+        }
+    }
+
+    /// Adds a secondary span to the last diagnostic.
+    pub fn label(&mut self, span: Span, text: &str) {
+        if let Some(d) = self.diags.last_mut() {
+            d.labels.push(yong_diag::Label {
+                span,
+                text: text.to_owned(),
+            });
+        }
     }
 }
 
@@ -329,8 +376,17 @@ pub fn elaborate(
     }
     for it in &m.items {
         let start = cx.diags.len();
-        let k = item(&g, it, &mut cx)?;
-        decorators::check(&g, it, start, &mut cx)?;
+        let k = match item(&g, it, &mut cx)
+            .and_then(|k| decorators::check(&g, it, start, &mut cx).map(|()| k))
+        {
+            Ok(k) => k,
+            // R649: report the construct and go on with the next item.
+            Err(u) => {
+                let at = u.at.unwrap_or(it.span);
+                cx.err("E017", at, it.kind.name(), unsupported_message(&u.what));
+                continue;
+            }
+        };
         if let Some(k) = k {
             items.push(y::Item {
                 attrs: Vec::new(),
@@ -384,7 +440,9 @@ pub fn elaborate(
 fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     for it in &m.items {
         match &it.kind {
-            j::ItemKind::Type(t) if !t.tparams.is_empty() => return unsupported("generic types"),
+            j::ItemKind::Type(t) if !t.tparams.is_empty() => {
+                return unsupported("generic types").map_err(|u| u.at(it.span));
+            }
             j::ItemKind::Type(t) => match &t.rhs {
                 j::TypeRhs::Sum(vs) => {
                     for v in vs {
@@ -395,10 +453,13 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 j::TypeRhs::Alias(ts) if ts.len() == 1 => {
                     g.aliases.insert(t.name.clone(), ts[0].clone());
                 }
-                _ => return unsupported("union aliases, newtypes and capability sets"),
+                _ => {
+                    return unsupported("union aliases, newtypes and capability sets")
+                        .map_err(|u| u.at(it.span));
+                }
             },
             j::ItemKind::Class(c) if !c.tparams.is_empty() => {
-                return unsupported("generic classes");
+                return unsupported("generic classes").map_err(|u| u.at(it.span));
             }
             j::ItemKind::Class(c) => {
                 g.records.insert(c.name.clone(), Vec::new());
@@ -410,6 +471,26 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 };
                 if it.decorators.iter().any(c_layout) {
                     g.layout_c.insert(c.name.clone());
+                }
+                let cli = |d: &j::Decorator| {
+                    d.path == ["derive"]
+                        && d.args.as_deref().unwrap_or_default().iter().any(|a| {
+                            matches!(&a.kind, j::ArgKind::Expr(j::Expr { kind: j::ExprKind::Name(n), .. }) if n == "Cli")
+                        })
+                };
+                if it.decorators.iter().any(cli) {
+                    let help = it
+                        .decorators
+                        .iter()
+                        .find(|d| d.path == ["help"])
+                        .map(cli::help)
+                        .transpose();
+                    match help {
+                        Ok(h) => {
+                            g.clis.insert(c.name.clone(), h.unwrap_or_default());
+                        }
+                        Err(msg) => cx.err("E269", it.span, &c.name, msg),
+                    }
                 }
             }
             _ => {}
@@ -446,6 +527,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             _ => {}
         }
     }
+    let mut first = HashMap::new();
     for it in &m.items {
         match &it.kind {
             j::ItemKind::Func(f) if g.fns.contains_key(&f.name) => {
@@ -455,6 +537,9 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                     &f.name,
                     format!("`{}` is defined twice", f.name),
                 );
+                if let Some(&at) = first.get(&f.name) {
+                    cx.label(at, "first defined");
+                }
             }
             j::ItemKind::Func(f)
                 if f.tparams
@@ -478,6 +563,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             j::ItemKind::Func(f) => {
                 let s = sig(g, f, cx)?;
                 g.fns.insert(f.name.clone(), s);
+                first.insert(f.name.clone(), f.name_span);
                 if it.decorators.iter().any(|d| d.path == ["deprecated"]) {
                     g.deprecated.insert(f.name.clone());
                 }
@@ -507,6 +593,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             _ => {}
         }
     }
+    let mut impls = HashMap::new();
     for it in &m.items {
         if let j::ItemKind::Impl(i) = &it.kind {
             let (Some(tr), true, true) = (impl_trait(i), i.args.is_empty(), i.assoc.is_empty())
@@ -521,13 +608,17 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 g.methods.insert((key.clone(), f.name.clone()), s);
             }
             *g.self_ty.borrow_mut() = None;
-            if !g.impls.insert((tr.clone(), key.clone())) {
+            if let Some(&at) = impls.get(&(tr.clone(), key.clone())) {
                 cx.err(
                     "E220",
                     it.span,
                     &tr,
                     format!("`{key}` already implements `{tr}`"),
                 );
+                cx.label(at, "first implemented");
+            } else {
+                impls.insert((tr.clone(), key.clone()), it.span);
+                g.impls.insert((tr.clone(), key.clone()));
             }
         }
     }

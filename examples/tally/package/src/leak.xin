@@ -1,0 +1,4 @@
+"""The injected change of flagship step 3: writes card numbers to a file. Must fail with E314."""
+
+pub def leak(a: schema.Auth) -> None fail FsError uses fs:
+    fs.write("pans.txt", a.pan.expose())?

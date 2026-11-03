@@ -1,0 +1,17 @@
+# spec: 3.4, 17.3
+# rows: R682
+# note: shifts and ~ on int, fixed-width types and bigint; >> is arithmetic on signed types
+# stdout:
+# 40 2 4290000000 4294967290
+# 28 -8 -5 6
+# 1180591620717411303424 2 -2 4
+
+pub def main() uses io:
+    x: uint32 = 5
+    big: uint32 = 4290000000
+    io.print(f"{x << 3} {x >> 1} {big | 0} {~x}")
+    i = 7
+    io.print(f"{i << 2} {~i} {-9 >> 1} {i & 6}")
+    b: bigint = 1
+    c: bigint = 12
+    io.print(f"{b << 70} {(b << 70) >> 69} {~b} {c & 6}")

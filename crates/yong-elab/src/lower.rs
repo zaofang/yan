@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet};
 use std::mem;
 
 use yong_core::ast::{self as y, Arg, Atom, Conv, Literal, Place, Proj, Rhs, StmtKind};
-use yong_diag::Span;
+use yong_diag::{Applicability, Span};
 use yong_hir as j;
 
 use crate::bounds::{self, Site};
@@ -251,6 +251,13 @@ pub(crate) fn walk(e: &j::Expr, f: &mut impl FnMut(&j::Expr)) {
     }
 }
 
+fn temporary_receiver(what: &str) -> String {
+    format!(
+        "{what} changes its receiver, but the receiver is a temporary that is dropped after \
+         the call; bind it to a local first"
+    )
+}
+
 fn root(e: &j::Expr) -> Option<&str> {
     match &e.kind {
         j::ExprKind::Name(n) => Some(n),
@@ -429,7 +436,10 @@ fn mutables(
                             .get(m)
                             .and_then(|s| s.params.first())
                             .is_some_and(|p| p.conv == Conv::Inout);
-                        if var_first || MUTATING.contains(&m.as_str()) {
+                        if var_first
+                            || MUTATING.contains(&m.as_str())
+                            || crate::stdlib::mutates_receiver(m)
+                        {
                             out.insert(r.to_owned());
                         }
                     }
@@ -442,16 +452,74 @@ fn mutables(
     }
 }
 
+fn declared_lets(stmts: &[j::Stmt], out: &mut HashSet<String>) {
+    for s in stmts {
+        if let j::StmtKind::Bind {
+            mutable: false,
+            target,
+            ..
+        } = &s.kind
+        {
+            out.insert(target.clone());
+        }
+        for b in sub_blocks(s) {
+            declared_lets(b, out);
+        }
+    }
+}
+
 fn ends(stmts: &[j::Stmt]) -> bool {
-    matches!(
-        stmts.last().map(|s| &s.kind),
-        Some(
-            j::StmtKind::Return(_)
-                | j::StmtKind::Fail(_)
-                | j::StmtKind::Become(_)
-                | j::StmtKind::Unreachable
+    stmts.last().is_some_and(is_hole)
+        || matches!(
+            stmts.last().map(|s| &s.kind),
+            Some(
+                j::StmtKind::Return(_)
+                    | j::StmtKind::Fail(_)
+                    | j::StmtKind::Become(_)
+                    | j::StmtKind::Unreachable
+            )
         )
-    )
+}
+
+/// `Ok(...)` or `Err(...)`.
+fn is_outcome(e: &j::Expr) -> bool {
+    matches!(&e.kind, j::ExprKind::Call(f, _) if matches!(&f.kind, j::ExprKind::Name(n) if n == "Ok" || n == "Err"))
+}
+
+/// Whether control can leave the end of `stmts` without a `return`, `fail` or `become`.
+fn falls_through(stmts: &[j::Stmt]) -> bool {
+    use j::StmtKind as K;
+    if ends(stmts) {
+        return false;
+    }
+    match stmts.last().map(|s| &s.kind) {
+        Some(K::If {
+            arms,
+            els: Some(els),
+        }) => arms.iter().any(|(_, b)| falls_through(&b.stmts)) || falls_through(&els.stmts),
+        Some(K::Match { cases, .. }) => cases.iter().any(|c| falls_through(&c.body.stmts)),
+        Some(K::With { body, .. }) => falls_through(&body.stmts),
+        Some(K::Unsafe(b)) => falls_through(b),
+        Some(K::While { cond, body, .. }) => {
+            !matches!(cond.kind, j::ExprKind::Lit(j::Lit::Bool(true))) || breaks(body)
+        }
+        _ => true,
+    }
+}
+
+/// Whether a loop body has a `break` that leaves this loop.
+fn breaks(stmts: &[j::Stmt]) -> bool {
+    use j::StmtKind as K;
+    stmts.iter().any(|s| match &s.kind {
+        K::Break | K::BreakTo(_) => true,
+        K::While { .. } | K::For { .. } => false,
+        _ => sub_blocks(s).into_iter().any(breaks),
+    })
+}
+
+/// `...` or `return ...` as a statement.
+fn is_hole(s: &j::Stmt) -> bool {
+    matches!(&s.kind, j::StmtKind::Expr(e) | j::StmtKind::Return(Some(e)) if matches!(e.kind, j::ExprKind::Hole))
 }
 
 /// A bodiless Yong signature, as a trait declares it.
@@ -521,8 +589,13 @@ fn function_body(
     };
     let mut assigned = HashMap::new();
     let mut mutable = HashSet::new();
+    let first_diag = cx.diags.len();
     mutables(g, &body.stmts, &mut assigned, &mut mutable);
     mutable.extend(assigned.into_iter().filter(|(_, n)| *n > 1).map(|(k, _)| k));
+    // Wen declares mutability (15.3): a `let` stays immutable, and assigning it is E403.
+    let mut lets = HashSet::new();
+    declared_lets(&body.stmts, &mut lets);
+    mutable.retain(|n| !lets.contains(n));
     let mut l = Lower {
         g,
         cx,
@@ -634,6 +707,17 @@ fn function_body(
             l.bind(&v, false, &t, Rhs::Copy(place), f.name_span, f.name_span);
             l.olds.push((p, v));
         }
+        if !l.cx.wen && !matches!(sig.ret, Ty::Unit | Ty::Err) && falls_through(&body.stmts) {
+            let at = body.stmts.last().map_or(f.name_span, |s| s.span);
+            l.err(
+                "E201",
+                at,
+                format!(
+                    "`{}` can reach its end without returning its `{}`; add a `return`",
+                    f.name, sig.ret
+                ),
+            );
+        }
         l.stmts(&body.stmts)?;
         if !ends(&body.stmts) && matches!(sig.ret, Ty::Unit) {
             let at = body.stmts.last().map_or(f.name_span, |s| s.span);
@@ -647,12 +731,14 @@ fn function_body(
             "W806",
             sp,
             &item,
-            "this branch special-cases an `ex` input (21.1)".into(),
+            "this branch special-cases an `ex` input".into(),
         );
     }
+    let hole_body = matches!(body.stmts.as_slice(), [s] if is_hole(s));
     let unused: Vec<(String, Span)> = sig
         .params
         .iter()
+        .filter(|_| !hole_body)
         .map(|p| (p.name.clone(), p.span))
         .chain(mem::take(&mut l.bound))
         .filter(|(n, _)| {
@@ -660,20 +746,35 @@ fn function_body(
         })
         .collect();
     let item = l.item.clone();
+    // A name the item could not resolve may be a misspelt use of an "unused" binding (R291).
+    let unresolved = l.cx.diags[first_diag..].iter().any(|d| d.code == "E200");
     for b in bounds::check(&body.stmts, &l.sites, l.cx.release) {
         match b.code {
             "E501" => l.cx.err(b.code, b.span, &item, b.message),
+            // Wen shows a kept check as an editor hint, not W820 (R372).
+            "W820" if l.cx.wen => {}
             _ => l.cx.warn(b.code, b.span, &item, b.message),
         }
     }
-    for (n, sp) in unused {
+    for (n, sp) in unused.into_iter().filter(|_| !unresolved) {
         let item = l.item.clone();
+        // A misspelled use is E200 with `n` as its near name, not an unread `n` (R291).
+        let misspelled = l.cx.diags.iter().any(|d| {
+            d.item == item
+                && d.code == "E200"
+                && d.fixes.iter().any(|f| f["edits"][0]["text"] == n.as_str())
+        });
+        if misspelled {
+            continue;
+        }
         l.cx.warn(
             "W812",
             sp,
             &item,
-            format!("`{n}` is never read; name it `_{n}` or remove it"),
+            format!("`{n}` is never read; remove it or write `_` in its place"),
         );
+        // Choice: a later assignment or a keyword argument may still use the name.
+        l.cx.fix(Applicability::Choice, "name it `_`", sp, "_");
     }
     Ok(y::FnDef {
         is_pub,
@@ -697,6 +798,126 @@ fn call(path: &str, targs: Vec<y::TArg>, args: Vec<Arg>, span: Span) -> y::Call 
         targs,
         args,
     }
+}
+
+/// The std function and result type of `op` between time values (17.5).
+/// The builtin functions `builtin` lowers, offered as near names (R651).
+const BUILTINS: [&str; 26] = [
+    "len",
+    "sorted",
+    "int",
+    "float",
+    "round",
+    "abs",
+    "str",
+    "bigint",
+    "list",
+    "min",
+    "max",
+    "print",
+    "evolve",
+    "range",
+    "deque",
+    "heap",
+    "sorted_dict",
+    "sorted_set",
+    "dict",
+    "set",
+    "enumerate",
+    "zip",
+    "sum",
+    "any",
+    "all",
+    "reversed",
+];
+
+fn time_op(c: &str, b: &Ty, op: &str) -> Option<(String, Ty)> {
+    let Ty::Coll(b, _) = b else {
+        return match (c, b, op) {
+            ("Duration", Ty::Int, "*") => {
+                Some(("std.time.duration.mul".into(), Ty::Coll("Duration", vec![])))
+            }
+            ("Duration", Ty::Int, "/") => {
+                Some(("std.time.duration.div".into(), Ty::Coll("Duration", vec![])))
+            }
+            ("Duration", Ty::Int, "//") => Some((
+                "std.time.duration.floordiv".into(),
+                Ty::Coll("Duration", vec![]),
+            )),
+            ("Duration", Ty::Int, "%") => {
+                Some(("std.time.duration.rem".into(), Ty::Coll("Duration", vec![])))
+            }
+            _ => None,
+        };
+    };
+    // (left, right, operator, module, function, result)
+    const OPS: &[(&str, &str, &str, &str, &str, &str)] = &[
+        ("Duration", "Duration", "+", "duration", "add", "Duration"),
+        ("Duration", "Duration", "-", "duration", "sub", "Duration"),
+        ("Duration", "Duration", "/", "duration", "ratio", "float"),
+        ("Duration", "Duration", "//", "duration", "quotient", "int"),
+        ("Instant", "Duration", "+", "instant", "add", "Instant"),
+        ("Instant", "Duration", "-", "instant", "sub", "Instant"),
+        ("Instant", "Instant", "-", "instant", "since", "Duration"),
+        ("MonoInstant", "Duration", "+", "mono", "add", "MonoInstant"),
+        ("MonoInstant", "Duration", "-", "mono", "sub", "MonoInstant"),
+        (
+            "MonoInstant",
+            "MonoInstant",
+            "-",
+            "mono",
+            "since",
+            "Duration",
+        ),
+        ("PlainDate", "Period", "+", "date", "add", "PlainDate"),
+        (
+            "PlainTime",
+            "Duration",
+            "+",
+            "plain_time",
+            "add",
+            "PlainTime",
+        ),
+        (
+            "PlainTime",
+            "Duration",
+            "-",
+            "plain_time",
+            "sub",
+            "PlainTime",
+        ),
+        (
+            "PlainDateTime",
+            "Duration",
+            "+",
+            "plain_date_time",
+            "add",
+            "PlainDateTime",
+        ),
+        (
+            "PlainDateTime",
+            "Duration",
+            "-",
+            "plain_date_time",
+            "sub",
+            "PlainDateTime",
+        ),
+        (
+            "PlainDateTime",
+            "Period",
+            "+",
+            "plain_date_time",
+            "add_period",
+            "PlainDateTime",
+        ),
+    ];
+    let &(_, _, _, module, f, rt) = OPS.iter().find(|r| (r.0, r.1, r.2) == (c, *b, op))?;
+    let rt = match rt {
+        "float" => Ty::Float,
+        "int" => Ty::Int,
+        t => Ty::Coll(crate::ty::collection(t).expect("a time type").0, vec![]),
+    };
+    Some((format!("std.time.{module}.{f}"), rt))
 }
 
 fn let_arg(a: Atom) -> Arg {
@@ -724,6 +945,14 @@ fn int_op(op: &str) -> Option<(&'static str, Ty)> {
     })
 }
 
+fn is_integer(t: &Ty) -> bool {
+    match t {
+        Ty::Int | Ty::BigInt => true,
+        Ty::Fixed(n) => !n.starts_with('f'),
+        _ => false,
+    }
+}
+
 fn bigint_op(op: &str) -> Option<&'static str> {
     Some(match op {
         "+" => "add_bigint",
@@ -731,6 +960,9 @@ fn bigint_op(op: &str) -> Option<&'static str> {
         "*" => "mul_bigint",
         "//" => "floordiv_bigint",
         "%" => "mod_bigint",
+        "&" => "and_bigint",
+        "|" => "or_bigint",
+        "^" => "xor_bigint",
         _ => return None,
     })
 }
@@ -767,14 +999,68 @@ impl Lower<'_, '_, '_> {
         self.out.push(y::Stmt { kind, span });
     }
 
+    /// `t` as the module's surface spells it.
+    fn ty_text(&self, t: &Ty) -> String {
+        if self.cx.wen { t.wen() } else { t.to_string() }
+    }
+
     fn err(&mut self, code: &str, span: Span, msg: String) {
         let item = self.item.clone();
         self.cx.err(code, span, &item, msg);
     }
 
+    /// An E200 or E203 for the unknown `name` at `span`, with each near name as a `maybe`
+    /// fix (R651).
+    fn err_near<'n>(
+        &mut self,
+        code: &str,
+        span: Span,
+        msg: String,
+        name: &str,
+        candidates: impl IntoIterator<Item = &'n str>,
+    ) {
+        self.err(code, span, msg);
+        for n in yong_diag::near(name, candidates) {
+            self.cx
+                .fix(Applicability::Choice, &format!("use `{n}`"), span, n);
+        }
+    }
+
+    /// Value names visible here: locals, functions and constants.
+    fn names_in_scope(&self) -> Vec<String> {
+        self.locals
+            .keys()
+            .chain(self.g.fns.keys())
+            .chain(self.g.consts.keys())
+            .cloned()
+            .collect()
+    }
+
+    /// A hole in statement position (21.2): H701 with the expected type, or E702 under
+    /// release. It runs as `unreachable`, so a call to an unwritten body panics.
+    fn hole(&mut self, at: Span) {
+        let item = self.item.clone();
+        let msg = format!("hole of type `{}`", self.sig.ret);
+        if self.cx.release {
+            self.cx
+                .err("E702", at, &item, format!("{msg} in a release build"));
+        } else {
+            self.cx.note("H701", at, &item, msg);
+        }
+        self.emit(StmtKind::Unreachable, at);
+    }
+
     fn expect(&mut self, got: &Ty, want: &Ty, at: Span) {
         if !got.fits(want) {
-            self.err("E201", at, format!("expected `{want}`, found `{got}`"));
+            self.err(
+                "E201",
+                at,
+                format!(
+                    "expected `{want}`, found `{got}`",
+                    want = self.ty_text(want),
+                    got = self.ty_text(got)
+                ),
+            );
         }
     }
 
@@ -960,10 +1246,17 @@ impl Lower<'_, '_, '_> {
     }
 
     fn stmt(&mut self, s: &j::Stmt) -> R<()> {
+        self.stmt_inner(s).map_err(|u| u.at(s.span))
+    }
+
+    fn stmt_inner(&mut self, s: &j::Stmt) -> R<()> {
         use j::StmtKind as K;
         let at = s.span;
         match &s.kind {
             K::Pass | K::Reveal(_) => {}
+            K::Expr(e) | K::Return(Some(e)) if matches!(e.kind, j::ExprKind::Hole) => {
+                self.hole(e.span);
+            }
             K::Ghost { name, .. } => {
                 self.ghosts.insert(name.clone());
             }
@@ -998,7 +1291,11 @@ impl Lower<'_, '_, '_> {
             K::Expr(e) => {
                 let (rhs, t) = self.rhs(e, None)?;
                 if !matches!(t, Ty::Unit | Ty::Never | Ty::Err) && matches!(rhs, Rhs::Call(_)) {
-                    self.err("E312", at, format!("a result of type `{t}` is discarded"));
+                    self.err(
+                        "E312",
+                        at,
+                        format!("a result of type `{t}` is discarded", t = self.ty_text(&t)),
+                    );
                 }
                 if !matches!(rhs, Rhs::Atom(_)) {
                     self.emit(StmtKind::Rhs(rhs), at);
@@ -1332,6 +1629,9 @@ impl Lower<'_, '_, '_> {
             self.expect(&t, &Ty::Bool, e.span);
             return Ok(a);
         }
+        if matches!(t, Ty::List(_)) {
+            self.sites.insert(e.span, Site::List);
+        }
         let Some((test, how)) = self.truth(a, &t, e.span)? else {
             self.expect(&t, &Ty::Bool, e.span);
             return Ok(Atom::Lit(Literal::Bool(false), e.span));
@@ -1341,7 +1641,10 @@ impl Lower<'_, '_, '_> {
             "N15",
             e.span,
             &item,
-            format!("a `{t}` as a condition normalized to {how}"),
+            format!(
+                "a `{t}` as a condition normalized to {how}",
+                t = self.ty_text(&t)
+            ),
         );
         Ok(test)
     }
@@ -1543,7 +1846,11 @@ impl Lower<'_, '_, '_> {
                 self.err(
                     "E201",
                     at,
-                    format!("cannot unpack `{ty}` into {} names", target.len()),
+                    format!(
+                        "cannot unpack `{ty}` into {} names",
+                        target.len(),
+                        ty = self.ty_text(ty)
+                    ),
                 );
             }
         }
@@ -1691,16 +1998,30 @@ impl Lower<'_, '_, '_> {
                     len_path = format!("std.{}.len", t.module().expect("a collection"));
                     ts[0].clone()
                 }
-                Ty::Str => {
+                Ty::Str if self.cx.strict => {
+                    let s = self.cx.text(iter.span);
                     self.err(
                         "E504",
                         iter.span,
-                        "a `str` is not iterable; use `s.chars()`".into(),
+                        format!("a `str` is not iterable; use `{s}.chars()`"),
                     );
                     return Ok(());
                 }
+                Ty::Str => {
+                    let item = self.item.clone();
+                    self.cx.note(
+                        "N21",
+                        iter.span,
+                        &item,
+                        "`for c in s` normalized to `for c in s.chars()`".into(),
+                    );
+                    let chars = call("std.text.chars", vec![], vec![let_arg(xs)], at);
+                    let it = Ty::Coll("iter", vec![Ty::Char]);
+                    let it = self.tmp(&it, Rhs::Call(chars), at);
+                    return self.for_iter(label, name, target, it, Ty::Char, iter.span, at, body);
+                }
                 Ty::Err => return Ok(()),
-                t => return unsupported(format!("iterating a `{t}`")),
+                t => return unsupported(format!("iterating a `{t}`", t = self.ty_text(t))),
             };
             let zero = Atom::Lit(Literal::Int("0".into()), at);
             self.bind(&i, true, &Ty::Int, Rhs::Atom(zero), at, at);
@@ -1928,7 +2249,11 @@ impl Lower<'_, '_, '_> {
         let covered = cases.iter().any(|c| c.guard.is_none() && catch_all(&c.pat))
             || (matches!(t, Ty::Bool) && bools(true) && bools(false));
         if (scalar || matches!(t, Ty::Bool)) && !covered {
-            self.err("E503", at, format!("this `match` on `{t}` needs `case _`"));
+            self.err(
+                "E503",
+                at,
+                format!("this `match` on `{t}` needs `case _`", t = self.ty_text(&t)),
+            );
         }
         if cases.iter().any(|c| c.guard.is_some()) {
             return self.guarded_match(a, &t, cases, at);
@@ -2059,7 +2384,11 @@ impl Lower<'_, '_, '_> {
                     (None, _) => (y::Pat::Bind(n.clone()), vec![(n.clone(), ty.clone())]),
                     (Some(_), None) if matches!(ty, Ty::Err) => (y::Pat::Wild, Vec::new()),
                     (Some(_), None) => {
-                        self.err("E201", at, format!("pattern `{n}` cannot match a `{ty}`"));
+                        self.err(
+                            "E201",
+                            at,
+                            format!("pattern `{n}` cannot match a `{ty}`", ty = self.ty_text(ty)),
+                        );
                         (y::Pat::Wild, Vec::new())
                     }
                     (Some(ps), Some(fs)) if fs.is_empty() && ps.is_empty() => {
@@ -2098,14 +2427,25 @@ impl Lower<'_, '_, '_> {
             }
             j::Pat::Tuple(ps) => {
                 let Ty::Tuple(ts) = ty else {
-                    self.err("E201", at, format!("a tuple pattern cannot match a `{ty}`"));
+                    self.err(
+                        "E201",
+                        at,
+                        format!(
+                            "a tuple pattern cannot match a `{ty}`",
+                            ty = self.ty_text(ty)
+                        ),
+                    );
                     return Ok((y::Pat::Wild, Vec::new()));
                 };
                 if ts.len() != ps.len() {
                     self.err(
                         "E201",
                         at,
-                        format!("a {}-tuple pattern cannot match a `{ty}`", ps.len()),
+                        format!(
+                            "a {}-tuple pattern cannot match a `{ty}`",
+                            ps.len(),
+                            ty = self.ty_text(ty)
+                        ),
                     );
                     return Ok((y::Pat::Wild, Vec::new()));
                 }
@@ -2156,7 +2496,11 @@ impl Lower<'_, '_, '_> {
                                 self.err(
                                     "E201",
                                     value.span,
-                                    format!("cannot unpack `{t}` into {} targets", ts.len()),
+                                    format!(
+                                        "cannot unpack `{t}` into {} targets",
+                                        ts.len(),
+                                        t = self.ty_text(&t)
+                                    ),
                                 );
                             }
                             return Ok(());
@@ -2165,7 +2509,11 @@ impl Lower<'_, '_, '_> {
                             self.err(
                                 "E201",
                                 value.span,
-                                format!("cannot unpack `{t}` into {} targets", ts.len()),
+                                format!(
+                                    "cannot unpack `{t}` into {} targets",
+                                    ts.len(),
+                                    t = self.ty_text(&t)
+                                ),
                             );
                             return Ok(());
                         }
@@ -2227,7 +2575,20 @@ impl Lower<'_, '_, '_> {
                         "W823",
                         sp,
                         &item,
-                        format!("`{n}` is inferred as `{t}`; remove the annotation"),
+                        format!(
+                            "`{n}` is inferred as `{t}`; remove the annotation",
+                            t = self.ty_text(&t)
+                        ),
+                    );
+                    let colon_to_type = Span {
+                        col: target.span.end_col,
+                        ..sp
+                    };
+                    self.cx.fix(
+                        Applicability::Auto,
+                        "remove the annotation",
+                        colon_to_type,
+                        "",
                     );
                 }
                 self.store(target, ann, r, t, value.span)
@@ -2253,13 +2614,16 @@ impl Lower<'_, '_, '_> {
             && !t.is_copy()
             && self.locals.contains_key(x)
             && !x.starts_with('_')
-            && self.used_after(x, at)
+            && let Some(later) = self.next_use(x, at)
         {
             self.err(
                 "E413",
                 at,
                 format!("`{x}` is used again later; bind `{x}.copy()`"),
             );
+            self.cx
+                .fix(Applicability::Auto, "copy", at, &format!("{x}.copy()"));
+            self.cx.label(later, "used again");
         }
         match &target.kind {
             j::ExprKind::Name(n) if n == "_" => {
@@ -2378,7 +2742,12 @@ impl Lower<'_, '_, '_> {
             Ty::Int => lit(Literal::Int("0".into())),
             Ty::Float => lit(Literal::Float("0.0".into())),
             Ty::Str => lit(Literal::Str(String::new())),
-            _ => return unsupported(format!("`d[k] op= v` on a `{vt}` value")),
+            _ => {
+                return unsupported(format!(
+                    "`d[k] op= v` on a `{vt}` value",
+                    vt = self.ty_text(vt)
+                ));
+            }
         };
         let (ka, kty) = self.atom(k, Some(kt))?;
         self.expect(&kty, kt, k.span);
@@ -2407,6 +2776,10 @@ impl Lower<'_, '_, '_> {
     }
 
     fn place(&mut self, e: &j::Expr) -> R<(Place, Ty)> {
+        self.place_inner(e).map_err(|u| u.at(e.span))
+    }
+
+    fn place_inner(&mut self, e: &j::Expr) -> R<(Place, Ty)> {
         match &e.kind {
             j::ExprKind::Name(n) if self.narrowed(n).is_some() => {
                 let m = self.narrowed(n).expect("checked").to_owned();
@@ -2436,13 +2809,19 @@ impl Lower<'_, '_, '_> {
                         match self.g.records[r].iter().find(|fd| fd.name == *f) {
                             Some(fd) => fd.ty.clone(),
                             None => {
-                                self.err("E203", *fsp, format!("`{r}` has no field `{f}`"));
+                                let names = self.g.records[r].iter().map(|fd| fd.name.as_str());
+                                let msg = format!("`{r}` has no field `{f}`");
+                                self.err_near("E203", *fsp, msg, f, names);
                                 Ty::Err
                             }
                         }
                     }
                     t => {
-                        self.err("E203", *fsp, format!("`{t}` has no field `{f}`"));
+                        self.err(
+                            "E203",
+                            *fsp,
+                            format!("`{t}` has no field `{f}`", t = self.ty_text(t)),
+                        );
                         Ty::Err
                     }
                 };
@@ -2499,22 +2878,27 @@ impl Lower<'_, '_, '_> {
                                 self.err(
                                     "E201",
                                     i.span,
-                                    format!("a `{t}` is indexed by a literal below {}", ts.len()),
+                                    format!(
+                                        "a `{t}` is indexed by a literal below {}",
+                                        ts.len(),
+                                        t = self.ty_text(&t)
+                                    ),
                                 );
                                 Ok((p, Ty::Err))
                             }
                         }
                     }
                     Ty::Str => {
+                        let s = self.cx.text(e.span);
                         self.err(
                             "E504",
                             e.span,
-                            "`str` has no indexing; use `s.chars()`".into(),
+                            format!("`str` has no indexing; use `{s}.chars()`"),
                         );
                         Ok((p, Ty::Err))
                     }
                     Ty::Err => Ok((p, Ty::Err)),
-                    t => unsupported(format!("indexing a `{t}` as a place")),
+                    t => unsupported(format!("indexing a `{t}` as a place", t = self.ty_text(t))),
                 }
             }
             _ => {
@@ -2528,7 +2912,16 @@ impl Lower<'_, '_, '_> {
                         },
                         t,
                     )),
-                    Atom::Lit(..) => unsupported("a projection of a literal"),
+                    lit @ Atom::Lit(..) => {
+                        let v = self.fresh("t");
+                        self.bind(&v, true, &t, Rhs::Atom(lit), e.span, e.span);
+                        let place = Place {
+                            root: v,
+                            root_span: e.span,
+                            projs: Vec::new(),
+                        };
+                        Ok((place, t))
+                    }
                 }
             }
         }
@@ -2553,7 +2946,11 @@ impl Lower<'_, '_, '_> {
         });
         if !fits {
             let hint = if t == Ty::Int { "; use `bigint`" } else { "" };
-            self.err("E201", at, format!("`{text}` does not fit in `{t}`{hint}"));
+            self.err(
+                "E201",
+                at,
+                format!("`{text}` does not fit in `{t}`{hint}", t = self.ty_text(&t)),
+            );
             return Ty::Err;
         }
         t
@@ -2623,6 +3020,10 @@ impl Lower<'_, '_, '_> {
     }
 
     fn rhs(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Rhs, Ty)> {
+        self.rhs_inner(e, want).map_err(|u| u.at(e.span))
+    }
+
+    fn rhs_inner(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Rhs, Ty)> {
         use j::ExprKind as K;
         let at = e.span;
         Ok(match &e.kind {
@@ -2722,7 +3123,9 @@ impl Lower<'_, '_, '_> {
                     );
                     (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err)
                 } else {
-                    self.err("E200", at, format!("cannot find `{n}`"));
+                    let names = self.names_in_scope();
+                    let names = names.iter().map(String::as_str);
+                    self.err_near("E200", at, format!("cannot find `{n}`"), n, names);
                     (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err)
                 }
             }
@@ -2926,6 +3329,17 @@ impl Lower<'_, '_, '_> {
                 let (r, t, fail) = self.call_expr(f, args, x.span, None)?;
                 match (fail, r) {
                     (Some(e), Rhs::Call(c)) => {
+                        if self.sig.fail.is_none() {
+                            self.err(
+                                "E310",
+                                at,
+                                format!(
+                                    "`?` passes a `{e}` failure up, but `{}` cannot fail; \
+                                     declare `fail {e}` on it or handle the failure with `else`",
+                                    self.item
+                                ),
+                            );
+                        }
                         // `?` injects any failure into `Error` with no `From` (R432).
                         let into_error = e != Ty::Data("Error".into())
                             && self.sig.fail == Some(Ty::Data("Error".into()))
@@ -2985,13 +3399,34 @@ impl Lower<'_, '_, '_> {
                             let z = self.tmp(&Ty::BigInt, z, at);
                             call("sub_bigint", vec![], vec![let_arg(z), let_arg(a)], at)
                         }
+                        Ty::Coll("Duration", _) => {
+                            call("std.time.duration.neg", vec![], vec![let_arg(a)], at)
+                        }
                         Ty::Err => return Ok((Rhs::Atom(a), Ty::Err)),
                         t => {
-                            self.err("E201", x.span, format!("cannot negate a `{t}`"));
+                            self.err(
+                                "E201",
+                                x.span,
+                                format!("cannot negate a `{t}`", t = self.ty_text(&t)),
+                            );
                             return Ok((Rhs::Atom(a), Ty::Err));
                         }
                     };
                     (Rhs::Call(c), t)
+                }
+                ("~", _) => {
+                    let (a, t) = self.atom(x, want)?;
+                    match t {
+                        Ty::Int | Ty::BigInt => {}
+                        Ty::Fixed(n) if !n.starts_with('f') => {}
+                        Ty::Err => return Ok((Rhs::Atom(a), Ty::Err)),
+                        t => {
+                            self.err("E201", x.span, format!("`~` on a `{t}`"));
+                            return Ok((Rhs::Atom(a), Ty::Err));
+                        }
+                    }
+                    let p = format!("not_{}", t.scalar().expect("an integer"));
+                    (Rhs::Call(call(&p, vec![], vec![let_arg(a)], at)), t)
                 }
                 _ => return unsupported(format!("unary `{op}`")),
             },
@@ -3074,12 +3509,17 @@ impl Lower<'_, '_, '_> {
                     Ty::List(e) => (**e).clone(),
                     Ty::Err => return Ok((Rhs::Atom(xs), Ty::Err)),
                     Ty::Str if self.cx.strict => {
-                        self.err("E504", at, "a slice of a `str`; use `s.chars()`".into());
+                        let s = self.cx.text(b.span);
+                        self.err("E504", at, format!("a slice of a `str`; use `{s}.chars()`"));
                         return Ok((Rhs::Atom(xs), Ty::Err));
                     }
                     Ty::Str => return unsupported("slices of a `str`"),
                     t => {
-                        self.err("E201", b.span, format!("cannot slice a `{t}`"));
+                        self.err(
+                            "E201",
+                            b.span,
+                            format!("cannot slice a `{t}`", t = self.ty_text(t)),
+                        );
                         return Ok((Rhs::Atom(xs), Ty::Err));
                     }
                 };
@@ -3131,7 +3571,10 @@ impl Lower<'_, '_, '_> {
                         self.err(
                             "E201",
                             at,
-                            format!("`try` of a call that cannot fail; it returns `{t}`"),
+                            format!(
+                                "`try` of a call that cannot fail; it returns `{t}`",
+                                t = self.ty_text(&t)
+                            ),
                         );
                         (r, t)
                     }
@@ -3279,7 +3722,10 @@ impl Lower<'_, '_, '_> {
                             self.err(
                                 "E201",
                                 x.span,
-                                format!("`else` needs an optional or a fallible call, found `{t}`"),
+                                format!(
+                                    "`else` needs an optional or a fallible call, found `{t}`",
+                                    t = self.ty_text(&t)
+                                ),
                             );
                             return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err));
                         }
@@ -3295,7 +3741,10 @@ impl Lower<'_, '_, '_> {
                         self.err(
                             "E201",
                             x.span,
-                            format!("`else` needs an optional or a fallible call, found `{t}`"),
+                            format!(
+                                "`else` needs an optional or a fallible call, found `{t}`",
+                                t = self.ty_text(&t)
+                            ),
                         );
                         return Ok((Rhs::Atom(a), Ty::Err));
                     }
@@ -3404,6 +3853,32 @@ impl Lower<'_, '_, '_> {
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty)> {
         let (x, tx) = self.atom(a, want.filter(|w| !matches!(w, Ty::Float) || op != "/"))?;
+        if matches!(op, "<<" | ">>") && is_integer(&tx) {
+            // The amount is any integer type; a `bigint` shifts by an `int`.
+            let hint = if tx == Ty::BigInt {
+                Ty::Int
+            } else {
+                tx.clone()
+            };
+            let (n, nt) = self.atom(b, Some(&hint))?;
+            if nt == Ty::Err {
+                return Ok((Rhs::Atom(x), Ty::Err));
+            }
+            if !is_integer(&nt) || nt == Ty::BigInt {
+                self.err(
+                    "E201",
+                    b.span,
+                    format!("a shift amount must be an integer, not `{nt}`"),
+                );
+                return Ok((Rhs::Atom(x), Ty::Err));
+            }
+            let f = if op == "<<" { "shl" } else { "shr" };
+            let p = format!("{f}_{}", tx.scalar().expect("an integer"));
+            return Ok((
+                Rhs::Call(call(&p, vec![], vec![let_arg(x), let_arg(n)], at)),
+                tx,
+            ));
+        }
         let (y_, ty) = self.atom(b, Some(&tx))?;
         if op == "+" && matches!(tx, Ty::Str | Ty::List(_)) && self.not_last_use(a, at) {
             let item = self.item.clone();
@@ -3437,15 +3912,49 @@ impl Lower<'_, '_, '_> {
                 };
                 match p {
                     Some(p) => (p, tx.clone(), vec![]),
-                    None => return unsupported(format!("`{op}` on `{tx}`")),
+                    None => {
+                        return unsupported(format!("`{op}` on `{tx}`", tx = self.ty_text(&tx)));
+                    }
                 }
+            }
+            (Ty::Coll(c, _), _) if let Some((p, rt)) = time_op(c, &ty, op) => (p, rt, vec![]),
+            (Ty::Data(z), Ty::Coll(c @ ("Duration" | "Period"), _))
+                if z == "ZonedDateTime" && (op == "+" || (op == "-" && *c == "Duration")) =>
+            {
+                let f = match (*c, op) {
+                    ("Period", _) => "zoned_add_period",
+                    (_, "+") => "zoned_add",
+                    _ => "zoned_sub",
+                };
+                (format!("std.time.{f}"), tx.clone(), vec![])
             }
             (Ty::Str, Ty::Str) if op == "+" => ("std.text.concat".to_owned(), Ty::Str, vec![]),
             (Ty::List(e), Ty::List(_)) if op == "+" => {
                 ("std.list.concat".to_owned(), tx.clone(), vec![e.targ()])
             }
+            (Ty::Option(_), _) | (_, Ty::Option(_)) => {
+                let t = if matches!(tx, Ty::Option(_)) {
+                    &tx
+                } else {
+                    &ty
+                };
+                self.err(
+                    "E201",
+                    at,
+                    format!("`{op}` on a `{t}`, which may be `None`; unwrap it first with `else`"),
+                );
+                return Ok((Rhs::Atom(x), Ty::Err));
+            }
             _ => {
-                self.err("E201", at, format!("`{op}` between `{tx}` and `{ty}`"));
+                self.err(
+                    "E201",
+                    at,
+                    format!(
+                        "`{op}` between `{tx}` and `{ty}`",
+                        ty = self.ty_text(&ty),
+                        tx = self.ty_text(&tx)
+                    ),
+                );
                 return Ok((Rhs::Atom(x), Ty::Err));
             }
         };
@@ -3500,6 +4009,20 @@ impl Lower<'_, '_, '_> {
             && (outer.contains(n) || self.used_after(n, at))
     }
 
+    /// The side of `f(x) == Ok(v)` that is not the constructor: a fallible call is its
+    /// `Result`, so the constructor gets an expected type (R309 `ex` lines compare this way).
+    fn operand(&mut self, e: &j::Expr) -> R<(Atom, Ty)> {
+        let j::ExprKind::Call(f, args) = &e.kind else {
+            return self.atom(e, None);
+        };
+        let (r, t, fail) = self.call_expr(f, args, e.span, None)?;
+        let (r, t) = match (fail, r) {
+            (Some(fl), Rhs::Call(c)) => (Rhs::Try(c), Ty::Result(Box::new(t), Box::new(fl))),
+            (_, r) => (r, t),
+        };
+        Ok((self.tmp(&t, r, e.span), t))
+    }
+
     fn compare(&mut self, op: &str, a: &j::Expr, b: &j::Expr, at: Span) -> R<(Rhs, Ty)> {
         let none = |e: &j::Expr| matches!(e.kind, j::ExprKind::Lit(j::Lit::None));
         if matches!(op, "is" | "is not") {
@@ -3510,8 +4033,22 @@ impl Lower<'_, '_, '_> {
             let present = match t {
                 Ty::Option(_) => self.is_some(x, at)?.0,
                 Ty::Err => return Ok((Rhs::Atom(x), Ty::Bool)),
+                Ty::Unit => {
+                    self.err(
+                        "E201",
+                        a.span,
+                        "this is always `None`; annotate the binding with its type, as \
+                         `x: int | None = None`"
+                            .into(),
+                    );
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Bool(false), at)), Ty::Bool));
+                }
                 t => {
-                    self.err("E201", a.span, format!("a `{t}` is never `None`"));
+                    self.err(
+                        "E201",
+                        a.span,
+                        format!("a `{t}` is never `None`", t = self.ty_text(&t)),
+                    );
                     return Ok((Rhs::Atom(Atom::Lit(Literal::Bool(false), at)), Ty::Bool));
                 }
             };
@@ -3540,7 +4077,11 @@ impl Lower<'_, '_, '_> {
                 Ty::Str => ("std.text.contains".to_owned(), vec![]),
                 Ty::Err => return Ok((Rhs::Atom(x), Ty::Err)),
                 t => {
-                    self.err("E201", b.span, format!("`in` on a `{t}`"));
+                    self.err(
+                        "E201",
+                        b.span,
+                        format!("`in` on a `{t}`", t = self.ty_text(t)),
+                    );
                     return Ok((Rhs::Atom(x), Ty::Err));
                 }
             };
@@ -3557,17 +4098,40 @@ impl Lower<'_, '_, '_> {
         let Some(name) = cmp_name(op) else {
             return unsupported(format!("`{op}`"));
         };
-        let (x, tx) = self.atom(a, None)?;
-        let (y_, ty) = self.atom(b, Some(&tx))?;
+        let (x, tx, y_, ty) = if is_outcome(a) && !is_outcome(b) {
+            let (y_, ty) = self.operand(b)?;
+            let (x, tx) = self.atom(a, Some(&ty))?;
+            (x, tx, y_, ty)
+        } else {
+            let (x, tx) = if is_outcome(b) {
+                self.operand(a)?
+            } else {
+                self.atom(a, None)?
+            };
+            let (y_, ty) = self.atom(b, Some(&tx))?;
+            (x, tx, y_, ty)
+        };
         if matches!(tx, Ty::Err) || matches!(ty, Ty::Err) {
             return Ok((Rhs::Atom(x), Ty::Bool));
         }
         if !ty.fits(&tx) && !tx.fits(&ty) {
-            self.err("E201", b.span, format!("cannot compare `{tx}` with `{ty}`"));
+            self.err(
+                "E201",
+                b.span,
+                format!(
+                    "cannot compare `{tx}` with `{ty}`",
+                    ty = self.ty_text(&ty),
+                    tx = self.ty_text(&tx)
+                ),
+            );
             return Ok((Rhs::Atom(x), Ty::Bool));
         }
         if matches!(name, "lt" | "le" | "gt" | "ge") && !self.implements(&tx, "Ord") {
-            self.err("E221", at, format!("`{tx}` does not implement `Ord`"));
+            self.err(
+                "E221",
+                at,
+                format!("`{tx}` does not implement `Ord`", tx = self.ty_text(&tx)),
+            );
             return Ok((Rhs::Atom(Atom::Lit(Literal::Bool(false), at)), Ty::Bool));
         }
         let args = vec![let_arg(x), let_arg(y_)];
@@ -3628,6 +4192,13 @@ impl Lower<'_, '_, '_> {
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         self.want_ret = want.map(|w| (w.clone(), at));
         match &f.kind {
+            j::ExprKind::Index(b, k)
+                if let j::ExprKind::Attr(m, op, _) = &b.kind
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "cli" && !self.locals.contains_key(c))
+                    && matches!(op.as_str(), "parse" | "parse_args") =>
+            {
+                self.cli_call(op, k, args, at)
+            }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if self.g.templates.contains_key(n)) =>
             {
                 let j::ExprKind::Name(n) = &b.kind else {
@@ -3740,6 +4311,14 @@ impl Lower<'_, '_, '_> {
                     && let module = match module.as_str() {
                         "bytes" => "encoding",
                         "bytearray" => "encoding.bytearray",
+                        "Duration" => "time.duration.of",
+                        "Instant" => "time.instant",
+                        "PlainDate" => "time.date",
+                        "PlainTime" => "time.plain_time",
+                        "PlainDateTime" => "time.plain_date_time",
+                        "Period" => "time.period",
+                        "TimeZone" => "time.zone",
+                        "ZonedDateTime" => "time",
                         m => m,
                     }
                     && let Some(d) = crate::stdlib::decl(&format!("std.{module}.{m}"))
@@ -3788,6 +4367,98 @@ impl Lower<'_, '_, '_> {
             _ => name,
         };
         self.call_sig(name, sig, recv, args, at)
+    }
+
+    /// E542: a literal `strftime` or `strptime` pattern may only use the directives its civil
+    /// type has fields for (14.2).
+    fn pattern_check(&mut self, ty: &str, fmt: Option<&j::Arg>) {
+        let has = match ty {
+            "PlainDate" => DATE,
+            "PlainTime" => TIME,
+            "PlainDateTime" => DATE | TIME,
+            _ => return,
+        };
+        let Some(j::Arg {
+            kind: j::ArgKind::Expr(e),
+            ..
+        }) = fmt
+        else {
+            return;
+        };
+        let j::ExprKind::Lit(j::Lit::Str { prefix, value }) = &e.kind else {
+            return;
+        };
+        if !matches!(prefix.as_str(), "" | "r") {
+            return;
+        }
+        let msg = match directives(value) {
+            Err(d) => format!("`{d}` is not a format directive"),
+            Ok(ds) => match ds.into_iter().find(|(_, need)| need & !has != 0) {
+                Some((d, _)) => format!("`{d}` does not apply to a `{ty}`"),
+                None => return,
+            },
+        };
+        self.err("E542", e.span, msg);
+    }
+
+    /// E540: `PlainDate` and `PlainTime` called with integer literals only must name a real
+    /// date or time (14.2).
+    fn civil_literal(&mut self, name: &str, args: &[j::Arg], at: Span) {
+        let (params, mut vals): (&[&str], Vec<Option<i128>>) = match name {
+            "PlainDate" => (&["y", "m", "d"], vec![None; 3]),
+            "PlainTime" => (&["h", "mi", "s", "ns"], vec![None, None, Some(0), Some(0)]),
+            _ => return,
+        };
+        for (i, a) in args.iter().enumerate() {
+            let j::ArgKind::Expr(e) = &a.kind else { return };
+            let j::ExprKind::Lit(j::Lit::Int(t)) = &e.kind else {
+                return;
+            };
+            let Some(v) = int_text(t).ok().and_then(|s| s.parse().ok()) else {
+                return;
+            };
+            let k = match &a.name {
+                None => i,
+                Some(n) => match params.iter().position(|p| p == n) {
+                    Some(k) => k,
+                    None => return,
+                },
+            };
+            let Some(slot) = vals.get_mut(k) else { return };
+            *slot = Some(v);
+        }
+        let Some(v) = vals.into_iter().collect::<Option<Vec<i128>>>() else {
+            return;
+        };
+        let ok = match name {
+            "PlainDate" => {
+                let leap = v[0] % 4 == 0 && (v[0] % 100 != 0 || v[0] % 400 == 0);
+                let dim = match v[1] {
+                    2 if leap => 29,
+                    2 => 28,
+                    4 | 6 | 9 | 11 => 30,
+                    _ => 31,
+                };
+                (-9999..=9999).contains(&v[0])
+                    && (1..=12).contains(&v[1])
+                    && (1..=dim).contains(&v[2])
+            }
+            _ => {
+                (0..24).contains(&v[0])
+                    && (0..60).contains(&v[1])
+                    && (0..60).contains(&v[2])
+                    && (0..1_000_000_000).contains(&v[3])
+            }
+        };
+        if !ok {
+            let shown: Vec<String> = v.iter().map(i128::to_string).collect();
+            let what = if name == "PlainDate" { "date" } else { "time" };
+            self.err(
+                "E540",
+                at,
+                format!("`{name}({})` is not a valid {what}", shown.join(", ")),
+            );
+        }
     }
 
     /// The instance of template `n` for stage-0 argument `v`, lowered on first use (10.4).
@@ -3859,7 +4530,10 @@ impl Lower<'_, '_, '_> {
                 self.err(
                     "E905",
                     e.span,
-                    format!("a `{vt}` passed to a C variadic is promoted; convert it to `{to}`"),
+                    format!(
+                        "a `{vt}` passed to a C variadic is promoted; convert it to `{to}`",
+                        vt = self.ty_text(&vt)
+                    ),
                 );
             }
             c.args.push(let_arg(v));
@@ -3900,7 +4574,10 @@ impl Lower<'_, '_, '_> {
                         self.err(
                             "E910",
                             value.span,
-                            format!("an `asm` operand is a scalar or `Vec`, not `{t}`"),
+                            format!(
+                                "an `asm` operand is a scalar or `Vec`, not `{t}`",
+                                t = self.ty_text(&t)
+                            ),
                         );
                     }
                     let dir = match dir.as_str() {
@@ -3974,7 +4651,11 @@ impl Lower<'_, '_, '_> {
             match map.iter().find(|(n, _)| n == k) {
                 None => map.push((k.clone(), tv)),
                 Some((_, kv)) if *kv != tv && !matches!(kv, Ty::Err) && !matches!(tv, Ty::Err) => {
-                    let msg = format!("expected `{tv}`, found `{kv}`");
+                    let msg = format!(
+                        "expected `{tv}`, found `{kv}`",
+                        tv = self.ty_text(&tv),
+                        kv = self.ty_text(kv)
+                    );
                     self.err("E201", at, msg);
                 }
                 Some(_) => {}
@@ -3990,7 +4671,11 @@ impl Lower<'_, '_, '_> {
                         .iter()
                         .find(|(w, _, _)| w.mentions(n))
                         .map_or(at, |(_, _, sp)| *sp);
-                    self.err("E221", sp, format!("`{t}` does not implement `{b}`"));
+                    self.err(
+                        "E221",
+                        sp,
+                        format!("`{t}` does not implement `{b}`", t = self.ty_text(t)),
+                    );
                 }
             }
         }
@@ -4058,8 +4743,15 @@ impl Lower<'_, '_, '_> {
             Ty::List(t) if matches!(b, "Eq" | "Ord") => self.implements(t, b),
             Ty::Coll("bytes", _) => matches!(b, "Eq" | "Ord" | "Hash"),
             Ty::Coll("bytearray", _) => b == "Eq",
+            Ty::Coll("Secret", ts) if b == "Eq" => self.implements(&ts[0], b),
             Ty::Coll("Path" | "WindowsPath", _) if matches!(b, "Eq" | "Ord" | "Hash") => true,
             Ty::Str | Ty::Coll("Path", _) if b == "AsPath" => true,
+            Ty::Coll("Duration" | "Instant", _) => matches!(b, "Eq" | "Ord" | "Hash"),
+            Ty::Coll("MonoInstant", _) => matches!(b, "Eq" | "Ord"),
+            Ty::Coll("PlainDate" | "PlainTime" | "PlainDateTime", _) => {
+                matches!(b, "Eq" | "Ord" | "Hash")
+            }
+            Ty::Coll("Period" | "TimeZone", _) => matches!(b, "Eq" | "Hash"),
             t => self.g.impls.contains(&(b.to_owned(), t.to_string())),
         }
     }
@@ -4188,6 +4880,9 @@ impl Lower<'_, '_, '_> {
             };
             match (p.conv, is_ref) {
                 (Conv::Inout, true) => {
+                    if root(e).is_none() {
+                        self.err("E403", sp, temporary_receiver("this call"));
+                    }
                     let (pl, t) = self.place(e)?;
                     self.expect(&t, &p.ty, sp);
                     self.arg_tys.push((p.ty.clone(), t.clone(), sp));
@@ -4225,6 +4920,8 @@ impl Lower<'_, '_, '_> {
                         sp,
                         format!("`{}` is a `var` parameter; pass `&place`", p.name),
                     );
+                    let marked = format!("&{}", self.cx.text(sp));
+                    self.cx.fix(Applicability::Auto, "pass `&`", sp, &marked);
                 }
                 (_, true) => {
                     self.err(
@@ -4232,6 +4929,7 @@ impl Lower<'_, '_, '_> {
                         sp,
                         format!("`{}` is not a `var` parameter; remove `&`", p.name),
                     );
+                    self.cx.fix(Applicability::Auto, "remove `&`", sp, "");
                 }
                 (conv, false) => {
                     let mut map = Vec::new();
@@ -4239,7 +4937,12 @@ impl Lower<'_, '_, '_> {
                         w.unify(t, &mut map);
                     }
                     let w = p.ty.subst(&map);
-                    let w = (!matches!(w, Ty::Coll("iter", _))).then_some(w);
+                    // An unbound type parameter is no expectation: `first(["a"])` must bind `T`
+                    // from the literal, not type the literal by `T`. Lambdas still need it.
+                    let lambda = matches!(e.kind, j::ExprKind::Lambda(..));
+                    let w = (!matches!(w, Ty::Coll("iter", _))
+                        && (lambda || !self.unbound_param(&w)))
+                    .then_some(w);
                     let (a, t) = self.atom(e, w.as_ref())?;
                     let (a, t) = self.as_iter(&p.ty, a, t, sp)?;
                     self.expect(&t, &p.ty, sp);
@@ -4247,19 +4950,38 @@ impl Lower<'_, '_, '_> {
                     if let (Conv::Sink, Atom::Name(n, _)) = (conv, &a)
                         && !t.is_copy()
                         && self.locals.contains_key(n)
-                        && self.used_after(n, e.span)
+                        && let Some(later) = self.next_use(n, e.span)
                     {
                         self.err(
                             "E413",
                             sp,
                             format!("`{n}` is used again later; pass `{n}.copy()`"),
                         );
+                        let copied = format!("{}.copy()", self.cx.text(sp));
+                        self.cx.fix(Applicability::Auto, "copy", sp, &copied);
+                        self.cx.label(later, "used again");
                     }
                     *out = Some(Arg::Value(conv, a, sp));
                 }
             }
         }
         Ok(Some(done.into_iter().flatten().collect()))
+    }
+
+    /// Whether `t` mentions a type parameter of the callee that is not yet bound; the caller's
+    /// own type parameters are fixed types here.
+    fn unbound_param(&self, t: &Ty) -> bool {
+        fn free(t: &Ty, scope: &[String]) -> bool {
+            match t {
+                Ty::Param(n) => !scope.contains(n),
+                Ty::List(t) | Ty::Set(t) | Ty::Option(t) => free(t, scope),
+                Ty::Dict(a, b) | Ty::Result(a, b) => free(a, scope) || free(b, scope),
+                Ty::Tuple(ts) | Ty::Coll(_, ts) => ts.iter().any(|t| free(t, scope)),
+                Ty::Fn(_, ps, r) => free(r, scope) || ps.iter().any(|t| free(t, scope)),
+                _ => false,
+            }
+        }
+        free(t, &self.g.scope.borrow())
     }
 
     /// A collection passed where `iter[T]` is wanted is passed as its `.iter()` (R511).
@@ -4357,7 +5079,11 @@ impl Lower<'_, '_, '_> {
                     (Ty::List(x), 1) => vec![(**x).clone()],
                     (Ty::Err, _) => return Ok((Rhs::Atom(a), Ty::Err)),
                     _ => {
-                        self.err("E201", e.span, format!("`{n}` does not take a `{t}`"));
+                        self.err(
+                            "E201",
+                            e.span,
+                            format!("`{n}` does not take a `{t}`", t = self.ty_text(&t)),
+                        );
                         return Ok((Rhs::Atom(a), Ty::Err));
                     }
                 };
@@ -4406,10 +5132,11 @@ impl Lower<'_, '_, '_> {
                         return Ok((Rhs::Call(c), Ty::Int));
                     }
                     ("len", Ty::Str) if self.cx.strict => {
+                        let s = self.cx.text(xs[0].span);
                         self.err(
                             "E504",
                             at,
-                            "`len` of a `str`; use `s.char_count()` or `s.byte_len()`".into(),
+                            format!("`len` of a `str`; use `{s}.char_count()` or `{s}.byte_len()`"),
                         );
                         return Ok(err);
                     }
@@ -4437,7 +5164,11 @@ impl Lower<'_, '_, '_> {
                     ("abs", Ty::Int | Ty::Float) => ("std.prelude.abs", vec![t.targ()], t.clone()),
                     ("str", _) => return Ok((Rhs::Atom(self.show(a, &t, at)), Ty::Str)),
                     _ => {
-                        self.err("E201", xs[0].span, format!("`{n}` does not take a `{t}`"));
+                        self.err(
+                            "E201",
+                            xs[0].span,
+                            format!("`{n}` does not take a `{t}`", t = self.ty_text(&t)),
+                        );
                         return Ok(err);
                     }
                 };
@@ -4478,7 +5209,7 @@ impl Lower<'_, '_, '_> {
                     self.err(
                         "E201",
                         c.span,
-                        format!("`evolve` takes a record, found `{t}`"),
+                        format!("`evolve` takes a record, found `{t}`", t = self.ty_text(&t)),
                     );
                     return Ok(err);
                 };
@@ -4486,7 +5217,7 @@ impl Lower<'_, '_, '_> {
                     self.err(
                         "E201",
                         c.span,
-                        format!("`evolve` takes a record, found `{t}`"),
+                        format!("`evolve` takes a record, found `{t}`", t = self.ty_text(&t)),
                     );
                     return Ok(err);
                 };
@@ -4500,7 +5231,9 @@ impl Lower<'_, '_, '_> {
                         continue;
                     };
                     let Some((_, ft)) = fs.iter().find(|(f, _)| f == name) else {
-                        self.err("E203", a.span, format!("`{r}` has no field `{name}`"));
+                        let names = fs.iter().map(|(f, _)| f.as_str());
+                        let msg = format!("`{r}` has no field `{name}`");
+                        self.err_near("E203", a.span, msg, name, names);
                         continue;
                     };
                     let (x, xt) = self.atom(e, Some(ft))?;
@@ -4564,6 +5297,18 @@ impl Lower<'_, '_, '_> {
                 Ok((Rhs::Call(c), Ty::List(Box::new(Ty::Int))))
             }
             "deque" | "heap" | "sorted_dict" | "sorted_set" => self.collection(n, args, at, want),
+            "Secret" => {
+                let Some(xs) = self.positional(args, 1, n, at)? else {
+                    return Ok(err);
+                };
+                let inner = match want {
+                    Some(Ty::Coll("Secret", ts)) => ts.first().cloned(),
+                    _ => None,
+                };
+                let (a, t) = self.atom(xs[0], inner.as_ref())?;
+                let c = call("std.prelude.Secret", vec![t.targ()], vec![sink_arg(a)], at);
+                Ok((Rhs::Call(c), Ty::Coll("Secret", vec![t])))
+            }
             "dict" | "set" | "enumerate" | "zip" | "sum" | "any" | "all" | "reversed"
             | "isinstance" | "hash" | "repr" | "divmod" | "pow" | "chr" | "ord" | "atan2"
             | "hypot" => unsupported(format!("`{n}`")),
@@ -4577,11 +5322,16 @@ impl Lower<'_, '_, '_> {
                 if p.fail.is_some() {
                     return unsupported(format!("`{path}`, a std function that can fail"));
                 }
+                self.civil_literal(n, args, at);
                 let (r, t, _) = self.std_call(&path, p, Vec::new(), args, n, at)?;
                 Ok((r, t))
             }
             _ => {
-                self.err("E200", at, format!("cannot find function `{n}`"));
+                let mut names: Vec<&str> = self.g.fns.keys().map(String::as_str).collect();
+                names.extend(BUILTINS);
+                names.extend(crate::stdlib::members("prelude"));
+                names.extend(crate::stdlib::members("test"));
+                self.err_near("E200", at, format!("cannot find function `{n}`"), n, names);
                 for a in args {
                     if let j::ArgKind::Expr(e) | j::ArgKind::Ref(e) = &a.kind {
                         self.atom(e, None)?;
@@ -4624,6 +5374,56 @@ impl Lower<'_, '_, '_> {
         Ok((Rhs::Call(c), t, Some(Ty::Data("Error".into()))))
     }
 
+    /// `bits.f(x, ...)` as the typed `<f>_<type>` operation for `x`'s integer type.
+    fn bits_call(&mut self, f: &str, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
+        let n = if matches!(f, "rotate_left" | "rotate_right" | "wrapping_shl") {
+            2
+        } else {
+            1
+        };
+        let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        let Some(xs) = self.positional(args, n, f, at)? else {
+            return Ok(err);
+        };
+        let (x, t) = self.atom(xs[0], None)?;
+        if t == Ty::Err {
+            return Ok(err);
+        }
+        let big_ok = matches!(f, "count_ones" | "bit_width");
+        if !is_integer(&t) || (t == Ty::BigInt && !big_ok) {
+            self.err(
+                "E201",
+                xs[0].span,
+                format!("`bits.{f}` does not take a `{t}`"),
+            );
+            return Ok(err);
+        }
+        let mut out = vec![let_arg(x)];
+        if let Some(e) = xs.get(1) {
+            let (a, nt) = self.atom(e, Some(&Ty::Int))?;
+            if !is_integer(&nt) || nt == Ty::BigInt {
+                if nt != Ty::Err {
+                    self.err(
+                        "E201",
+                        e.span,
+                        format!("`bits.{f}` needs an integer amount, not `{nt}`"),
+                    );
+                }
+                return Ok(err);
+            }
+            out.push(let_arg(a));
+        }
+        let rt = match f {
+            "is_power_of_two" => Ty::Bool,
+            "count_ones" | "count_zeros" | "leading_zeros" | "trailing_zeros" | "bit_width" => {
+                Ty::Int
+            }
+            _ => t.clone(),
+        };
+        let p = format!("{f}_{}", t.scalar().expect("an integer"));
+        Ok((Rhs::Call(call(&p, vec![], out, at)), rt, None))
+    }
+
     /// `module.f(...)`, a free std function called by its module's name, as `math.sqrt(x)`.
     fn module_call(
         &mut self,
@@ -4632,6 +5432,9 @@ impl Lower<'_, '_, '_> {
         args: &[j::Arg],
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
+        if module == "bits" {
+            return self.bits_call(f, args, at);
+        }
         let path = format!("std.{module}.{f}");
         if crate::stdlib::decl(&path).is_some_and(|d| d.typed_at_call()) {
             return self.user_call(&path, None, args, at);
@@ -4639,6 +5442,16 @@ impl Lower<'_, '_, '_> {
         let Some(mut p) = crate::stdlib::decl(&path).and_then(|d| d.plain()) else {
             return unsupported(format!("`{path}`"));
         };
+        if f == "strptime"
+            && let Some(n) = match module {
+                "time.date" => Some("PlainDate"),
+                "time.plain_time" => Some("PlainTime"),
+                "time.plain_date_time" => Some("PlainDateTime"),
+                _ => None,
+            }
+        {
+            self.pattern_check(n, args.get(1));
+        }
         // A literal pattern is checked here, so the call cannot fail (R484).
         if path == "std.regex.compile"
             && let [
@@ -4672,6 +5485,12 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         let path = format!("std.{cap}.{op}");
+        if path == "std.rand.choice" || path == "std.rand.shuffle" {
+            return self.rand_list_op(cap, op, args, at);
+        }
+        if cap == "log" && matches!(op, "debug" | "info" | "warn" | "error" | "span") {
+            return self.log_call(op, args, at);
+        }
         let Some(p) = crate::stdlib::decl(&path)
             .filter(|d| d.cap)
             .and_then(|d| d.plain())
@@ -4679,6 +5498,185 @@ impl Lower<'_, '_, '_> {
             return unsupported(format!("capability operation `{cap}.{op}`"));
         };
         self.std_call(&path, p, vec![Arg::Cap(cap.to_owned(), at)], args, op, at)
+    }
+
+    /// `log.info(msg, key=value, ...)` as `log.event(InfoLevel(), msg, [("key", show(value))])`,
+    /// and `log.span(name, key=value)` as `log.span(name, [...])`.
+    fn log_call(&mut self, op: &str, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
+        let ex = |kind| j::Expr {
+            kind,
+            span: at,
+            paren: false,
+        };
+        let mut msg = None;
+        let mut fields = Vec::new();
+        for a in args {
+            let j::ArgKind::Expr(e) = &a.kind else {
+                return unsupported(format!("a reference argument to `log.{op}`"));
+            };
+            match &a.name {
+                None if msg.is_none() => msg = Some(e.clone()),
+                None => {
+                    self.err(
+                        "E202",
+                        a.span,
+                        format!("`log.{op}` fields are keyword arguments"),
+                    );
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+                }
+                Some(n) => fields.push(ex(j::ExprKind::Tuple(vec![
+                    ex(j::ExprKind::Lit(j::Lit::Str {
+                        prefix: String::new(),
+                        value: n.clone(),
+                    })),
+                    ex(j::ExprKind::FStr {
+                        template: false,
+                        pieces: vec![j::FPiece::Expr(e.clone(), None)],
+                    }),
+                ]))),
+            }
+        }
+        let Some(msg) = msg else {
+            self.err("E202", at, format!("`log.{op}` needs a message"));
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        };
+        let arg = |e| j::Arg {
+            name: None,
+            kind: j::ArgKind::Expr(e),
+            span: at,
+        };
+        let mut synth = Vec::new();
+        let f = if op == "span" {
+            "span"
+        } else {
+            let level = format!("{}{}Level", op[..1].to_uppercase(), &op[1..]);
+            synth.push(arg(ex(j::ExprKind::Call(
+                Box::new(ex(j::ExprKind::Name(level))),
+                Vec::new(),
+            ))));
+            "event"
+        };
+        synth.push(arg(msg));
+        synth.push(arg(ex(j::ExprKind::List(fields))));
+        let path = format!("std.log.{f}");
+        let p = crate::stdlib::decl(&path)
+            .and_then(|d| d.plain())
+            .expect("std.log declares the operation");
+        self.std_call(&path, p, vec![Arg::Cap("log".into(), at)], &synth, op, at)
+    }
+
+    /// `cli.parse_args[T](args)` with `T`'s schema, and `cli.parse[T]()` over `env.args()`.
+    fn cli_call(
+        &mut self,
+        op: &str,
+        t: &j::Expr,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        let j::ExprKind::Name(n) = &t.kind else {
+            return unsupported(format!("`cli.{op}` of a type that is not a name"));
+        };
+        // After an error the call is still lowered, so what follows it checks.
+        let schema = if self.g.clis.contains_key(n) {
+            // An error here was reported at the derive.
+            crate::cli::schema(self.g, n).unwrap_or_default()
+        } else {
+            self.err("E201", t.span, format!("`{n}` does not derive `Cli`"));
+            String::new()
+        };
+        let xs = if op == "parse" {
+            if !args.is_empty() {
+                self.err(
+                    "E202",
+                    at,
+                    "`cli.parse` takes no arguments; it reads `env.args()`".into(),
+                );
+                return Ok(err);
+            }
+            let (r, t, _) = self.cap_call("env", "args", &[], at)?;
+            self.tmp(&t, r, at)
+        } else {
+            let Some(xs) = self.positional(args, 1, "parse_args", at)? else {
+                return Ok(err);
+            };
+            let want = Ty::List(Box::new(Ty::Str));
+            let (a, t) = self.atom(xs[0], Some(&want))?;
+            self.expect(&t, &want, xs[0].span);
+            a
+        };
+        let rt = Ty::Data(n.clone());
+        let c = call(
+            "std.cli.parse_args",
+            vec![rt.targ()],
+            vec![let_arg(xs), let_arg(Atom::Lit(Literal::Str(schema), at))],
+            at,
+        );
+        Ok((Rhs::Call(c), rt, Some(Ty::Data("CliError".into()))))
+    }
+
+    /// `rand.choice(xs)` and `rand.shuffle(&xs)`, the generic operations of `Rand`.
+    fn rand_list_op(
+        &mut self,
+        cap: &str,
+        op: &str,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        let [a] = args else {
+            self.err("E202", at, format!("`rand.{op}` takes one list"));
+            return Ok(err);
+        };
+        let path = format!("std.rand.{op}");
+        let mut out = vec![Arg::Cap(cap.to_owned(), at)];
+        let (t, ret) = match (op, &a.kind) {
+            ("choice", j::ArgKind::Expr(e)) => {
+                let (x, t) = self.atom(e, None)?;
+                out.push(let_arg(x));
+                let el = match &t {
+                    Ty::List(el) => (**el).clone(),
+                    _ => Ty::Err,
+                };
+                (t, el)
+            }
+            ("shuffle", j::ArgKind::Ref(e)) => {
+                let (pl, t) = self.place(e)?;
+                if !pl.projs.is_empty() {
+                    return unsupported("`rand.shuffle` of a projection");
+                }
+                out.push(Arg::Value(
+                    Conv::Inout,
+                    Atom::Name(pl.root, pl.root_span),
+                    a.span,
+                ));
+                (t, Ty::Unit)
+            }
+            ("shuffle", _) => {
+                self.err("E404", a.span, "`rand.shuffle` takes `&place`".into());
+                return Ok(err);
+            }
+            _ => {
+                self.err(
+                    "E405",
+                    a.span,
+                    "`rand.choice` takes the list, not `&`".into(),
+                );
+                return Ok(err);
+            }
+        };
+        let Ty::List(el) = &t else {
+            if t != Ty::Err {
+                self.err(
+                    "E201",
+                    a.span,
+                    format!("`rand.{op}` takes a list, not `{t}`"),
+                );
+            }
+            return Ok(err);
+        };
+        let targs = vec![el.targ()];
+        Ok((Rhs::Call(call(&path, targs, out, at)), ret, None))
     }
 
     /// `module.v` names variant `v` of a std sum type declared in `module`, as `math.Up`.
@@ -4800,7 +5798,7 @@ impl Lower<'_, '_, '_> {
                     "W819",
                     at,
                     &self.item.clone(),
-                    format!("this module's `{m}` hides `std.{module}.{m}` (17.2)"),
+                    format!("this module's `{m}` hides `std.{module}.{m}`"),
                 );
             }
             return self.user_call(m, Some(b), args, at);
@@ -4818,12 +5816,31 @@ impl Lower<'_, '_, '_> {
             _ => None,
         };
         let Some(module) = t.module().or(std_class) else {
-            self.err("E200", at, format!("no function `{m}` takes a `{t}` first"));
+            self.err(
+                "E200",
+                at,
+                format!(
+                    "no function `{m}` takes a `{t}` first",
+                    t = self.ty_text(&t)
+                ),
+            );
             return Ok((Rhs::Proj(p), e(), None));
         };
+        if m == "strftime"
+            && let Ty::Coll(n, _) = &t
+        {
+            self.pattern_check(n, args.first());
+        }
         let path = format!("std.{module}.{m}");
         let Some(d) = crate::stdlib::decl(&path) else {
-            self.err("E203", name_at, format!("`{t}` has no method `{m}`"));
+            let names = crate::stdlib::members(module);
+            self.err_near(
+                "E203",
+                name_at,
+                format!("`{t}` has no method `{m}`", t = self.ty_text(&t)),
+                m,
+                names,
+            );
             return Ok((Rhs::Proj(p), e(), None));
         };
         if !d.intrinsic || d.typed_at_call() {
@@ -4851,10 +5868,13 @@ impl Lower<'_, '_, '_> {
             targs,
         }) = d.method(&t)
         else {
-            return unsupported(format!("`{path}` on `{t}`"));
+            return unsupported(format!("`{path}` on `{t}`", t = self.ty_text(&t)));
         };
         let targs: Vec<_> = targs.iter().map(Ty::targ).collect();
         let recv = if inout {
+            if root(b).is_none() {
+                self.err("E403", b.span, temporary_receiver(&format!("`{m}`")));
+            }
             if !p.projs.is_empty() {
                 return unsupported("a `var` method on a field or element");
             }
@@ -5077,9 +6097,17 @@ fn calls_self(stmts: &[j::Stmt], name: &str) -> bool {
 
 impl Lower<'_, '_, '_> {
     fn used_after(&self, n: &str, at: Span) -> bool {
+        self.next_use(n, at).is_some()
+    }
+
+    /// The first use of `n` after `at`.
+    fn next_use(&self, n: &str, at: Span) -> Option<Span> {
         self.uses
-            .get(n)
-            .is_some_and(|v| v.iter().any(|s| (s.line, s.col) > (at.line, at.col)))
+            .get(n)?
+            .iter()
+            .filter(|s| (s.line, s.col) > (at.line, at.col))
+            .min_by_key(|s| (s.line, s.col))
+            .copied()
     }
 
     /// N05: a recursive function without `decreases` whose body matches a sum-typed parameter
@@ -5161,4 +6189,45 @@ fn map_kv(t: &Ty) -> Option<(Ty, Ty)> {
         Ty::Coll("sorted_dict", ts) => Some((ts[0].clone(), ts[1].clone())),
         _ => None,
     }
+}
+
+const DATE: u8 = 1;
+const TIME: u8 = 2;
+const ZONE: u8 = 4;
+
+/// Each Jiff `strtime` directive in `fmt` with the fields it needs, or the first unknown one.
+fn directives(fmt: &str) -> Result<Vec<(String, u8)>, String> {
+    let cs: Vec<char> = fmt.chars().collect();
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < cs.len() {
+        if cs[i] != '%' {
+            i += 1;
+            continue;
+        }
+        let start = i;
+        i += 1;
+        while i < cs.len()
+            && (matches!(cs[i], '_' | '-' | '0' | '^' | '#' | '.' | ':') || cs[i].is_ascii_digit())
+        {
+            i += 1;
+        }
+        let text: String = cs[start..(i + 1).min(cs.len())].iter().collect();
+        let need = match cs.get(i) {
+            Some('%' | 'n' | 't') => 0,
+            Some(
+                'A' | 'a' | 'B' | 'b' | 'h' | 'C' | 'D' | 'd' | 'e' | 'F' | 'G' | 'g' | 'j' | 'm'
+                | 'q' | 'U' | 'u' | 'V' | 'W' | 'w' | 'x' | 'Y' | 'y',
+            ) => DATE,
+            Some(
+                'f' | 'H' | 'I' | 'k' | 'l' | 'M' | 'N' | 'P' | 'p' | 'R' | 'r' | 'S' | 'T' | 'X',
+            ) => TIME,
+            Some('c') => DATE | TIME,
+            Some('Q' | 's' | 'Z' | 'z') => ZONE,
+            _ => return Err(text),
+        };
+        out.push((text, need));
+        i += 1;
+    }
+    Ok(out)
 }

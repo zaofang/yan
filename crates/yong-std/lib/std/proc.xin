@@ -1,0 +1,60 @@
+"""The proc capability: run a program by argv, never through a shell (17.3, 7.1, R448)."""
+
+@since("1.0")
+pub type ProcReason = NotFound() | PermissionDenied() | OsError()
+
+@since("1.0")
+pub class ProcError:
+    """A child that could not start or be read; `show` prints `<program>: <reason>`."""
+    program: str
+    reason: ProcReason
+    message: str
+
+@since("1.0")
+pub class Output:
+    """A finished child: `code` is `None` when a signal ended it."""
+    code: int | None
+    signal: int | None
+    stdout: bytes
+    stderr: bytes
+
+@intrinsic
+@since("1.0")
+pub def program(self: Command) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def argv(self: Command) -> list[str]: ...
+
+@intrinsic
+@since("1.0")
+pub def arg(self: Command, s: str) -> Command: ...
+
+@intrinsic
+@since("1.0")
+pub def with_args(self: Command, xs: list[str]) -> Command: ...
+
+@intrinsic
+@since("1.0")
+pub def env(self: Command, name: str, value: str) -> Command: ...
+
+@intrinsic
+@since("1.0")
+pub def env_clear(self: Command) -> Command: ...
+
+@intrinsic
+@since("1.0")
+pub def in_dir[P: AsPath](self: Command, p: P) -> Command: ...
+
+@intrinsic
+@since("1.0")
+pub def stdin(self: Command, b: bytes) -> Command: ...
+
+@intrinsic
+@since("1.0")
+pub def success(self: Output) -> bool: ...
+
+@capability
+@since("1.0")
+pub trait Proc:
+    def run(self: Self, cmd: Command) -> Output fail ProcError: ...

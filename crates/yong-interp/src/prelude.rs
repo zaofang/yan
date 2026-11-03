@@ -7,7 +7,7 @@ use yong_rt::{fmt, list, num, text};
 use yong_std::registry::{Id, id::*};
 
 use super::bind::{Bind, bad_args};
-use super::{Value, panic};
+use super::{Value, panic, panic_with, slice_out_of_range};
 use Value::*;
 
 macro_rules! f {
@@ -69,7 +69,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_LIST_POP, |a| {
         [List(xs)] => match xs.pop() {
             Some(v) => v,
-            None => return panic("bounds"),
+            None => return panic_with("bounds", "pop from an empty list"),
         }
     }),
     f!(STD_LIST_CONCAT, |a| {
@@ -111,7 +111,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_LIST_SLICE_EXACT, |a| {
         [List(xs), Int(i), Int(j)] => match (usize::try_from(*i), usize::try_from(*j)) {
             (Ok(i), Ok(j)) if i <= j && j <= xs.len() => List(xs[i..j].to_vec()),
-            _ => return panic("bounds"),
+            _ => return slice_out_of_range(*i, *j, xs.len()),
         }
     }),
     f!(STD_PRELUDE_INT, |a| {
@@ -157,6 +157,12 @@ fn order(a: &Value, b: &Value) -> Option<Ordering> {
         (Str(x), Str(y)) => Some(x.cmp(y)),
         (Bytes(x), Bytes(y)) => Some(x.cmp(y)),
         (Path(_), Path(_)) | (WindowsPath(_), WindowsPath(_)) => Some(super::path::order(a, b)),
+        (Duration(x), Duration(y)) | (Instant(x), Instant(y)) | (Mono(x), Mono(y)) => {
+            Some(x.cmp(y))
+        }
+        (PlainDate(x), PlainDate(y)) => Some(x.cmp(y)),
+        (PlainTime(x), PlainTime(y)) => Some(x.cmp(y)),
+        (PlainDateTime(x), PlainDateTime(y)) => Some(x.cmp(y)),
         (Tuple(xs), Tuple(ys)) | (List(xs), List(ys)) => {
             for (x, y) in xs.iter().zip(ys) {
                 match order(x, y)? {
@@ -224,6 +230,11 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Data { name, fields } if name == "Some" && fields.len() == 1 => show(&fields[0].1, nested),
         Data { name, fields } if name == "None" && fields.is_empty() => "None".into(),
         Data { name, fields } if name == "EncodingError" => super::encoding::show_error(fields),
+        Data { name, fields } if name == "TimeError" => super::time::show_error(fields),
+        Data { name, fields } if name == "ProcError" => super::proc::show_error(fields),
+        Data { name, fields } if name == "CliError" => super::cli::show_error(fields),
+        Data { name, fields } if name == super::proc::COMMAND => super::proc::show_command(fields),
+        Data { name, .. } if name == "ZonedDateTime" => super::civil::show_zoned(v),
         Data { name, fields } => {
             let fs: Vec<String> = fields
                 .iter()
@@ -235,7 +246,16 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Closure(_) => "<function>".into(),
         Iter(_) => "<iter>".into(),
         Bytes(b) => super::encoding::repr(b),
+        Secret(_) => "Secret(***)".into(),
         Path(_) | WindowsPath(_) => super::path::text(v).to_owned(),
+        Duration(n) => super::time::show_duration(*n),
+        Instant(n) => super::time::show_instant(*n),
+        Mono(n) => format!("MonoInstant({n})"),
+        PlainDate(d) => super::civil::show_date(*d),
+        PlainTime(t) => super::civil::show_time(*t),
+        PlainDateTime(dt) => super::civil::show_datetime(*dt),
+        Period(p) => super::civil::show_period(p),
+        Zone(z) => z.id().to_owned(),
         ByteArray(b) => format!("bytearray({})", super::encoding::repr(b)),
     }
 }

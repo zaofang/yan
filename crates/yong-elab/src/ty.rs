@@ -39,7 +39,7 @@ pub enum Ty {
 }
 
 /// Each std.collections type, by its Xin name; its Yong name is in the projection table.
-pub const COLLECTIONS: [&str; 9] = [
+pub const COLLECTIONS: [&str; 19] = [
     "deque",
     "iter",
     "heap",
@@ -49,6 +49,16 @@ pub const COLLECTIONS: [&str; 9] = [
     "bytearray",
     "Path",
     "WindowsPath",
+    "Secret",
+    "Command",
+    "Duration",
+    "Instant",
+    "MonoInstant",
+    "PlainDate",
+    "PlainTime",
+    "PlainDateTime",
+    "Period",
+    "TimeZone",
 ];
 
 /// `name` as a std.collections type, with its `&'static` spelling and arity.
@@ -177,7 +187,17 @@ impl Ty {
             Ty::Coll("bytes", _) => Some("encoding"),
             Ty::Coll("bytearray", _) => Some("encoding.bytearray"),
             Ty::Coll("Path", _) => Some("path"),
+            Ty::Coll("Secret", _) => Some("env"),
+            Ty::Coll("Command", _) => Some("proc"),
             Ty::Coll("WindowsPath", _) => Some("path.windows"),
+            Ty::Coll("Duration", _) => Some("time.duration"),
+            Ty::Coll("Instant", _) => Some("time.instant"),
+            Ty::Coll("MonoInstant", _) => Some("time.mono"),
+            Ty::Coll("PlainDate", _) => Some("time.date"),
+            Ty::Coll("PlainTime", _) => Some("time.plain_time"),
+            Ty::Coll("PlainDateTime", _) => Some("time.plain_date_time"),
+            Ty::Coll("Period", _) => Some("time.period"),
+            Ty::Coll("TimeZone", _) => Some("time.zone"),
             Ty::Coll(_, _) => Some("collections.sorted_set"),
             Ty::Int | Ty::Float | Ty::BigInt | Ty::Bool | Ty::Fixed(_) => Some("num"),
             Ty::Option(_) | Ty::Result(..) => Some("result"),
@@ -253,6 +273,40 @@ impl Ty {
     }
 }
 
+impl Ty {
+    /// The type as Wen spells it (16.3); `Display` gives Xin's spelling.
+    pub fn wen(&self) -> String {
+        let all = |ts: &[Ty]| ts.iter().map(Ty::wen).collect::<Vec<_>>().join(", ");
+        let named = |n: &str| {
+            type_name(n, Surface::Xin, Surface::Wen)
+                .unwrap_or(n)
+                .to_owned()
+        };
+        match self {
+            Ty::Unit => "()".into(),
+            Ty::List(t) => format!("List[{}]", t.wen()),
+            Ty::Set(t) => format!("Set[{}]", t.wen()),
+            Ty::Dict(k, v) => format!("Map[{}, {}]", k.wen(), v.wen()),
+            Ty::Tuple(ts) => format!("({})", all(ts)),
+            Ty::Coll(n, ts) | Ty::Foreign(n, ts) if ts.is_empty() => named(n),
+            Ty::Coll(n, ts) | Ty::Foreign(n, ts) => format!("{}[{}]", named(n), all(ts)),
+            Ty::Option(t) if matches!(**t, Ty::Union(_) | Ty::Fn(..)) => format!("({})?", t.wen()),
+            Ty::Option(t) => format!("{}?", t.wen()),
+            Ty::Result(t, e) => format!("Result[{}, {}]", t.wen(), e.wen()),
+            Ty::Union(ts) => ts.iter().map(Ty::wen).collect::<Vec<_>>().join(" | "),
+            Ty::Fn(p, ps, r) => {
+                format!(
+                    "{}({}) -> {}",
+                    if *p { "par " } else { "" },
+                    all(ps),
+                    r.wen()
+                )
+            }
+            t => named(&t.to_string()),
+        }
+    }
+}
+
 impl std::fmt::Display for Ty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -310,8 +364,8 @@ impl std::fmt::Display for Ty {
 
 /// Xin's sized scalar names the elaborator lowers, and their Yong spelling (16.3).
 pub fn fixed(name: &str) -> Option<&'static str> {
-    const LOWERED: [&str; 8] = [
-        "int8", "int16", "int32", "uint8", "uint16", "uint32", "uint64", "float32",
+    const LOWERED: [&str; 9] = [
+        "int8", "int16", "int32", "int128", "uint8", "uint16", "uint32", "uint64", "float32",
     ];
     LOWERED
         .contains(&name)

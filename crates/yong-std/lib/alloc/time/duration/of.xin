@@ -1,0 +1,25 @@
+"""Duration constructors: `Duration.seconds(n)` and the rest (17.5, R593)."""
+
+@intrinsic
+@since("1.0")
+pub def nanos(n: int) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def micros(n: int) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def millis(n: int) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def seconds(n: int) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def minutes(n: int) -> Duration: ...
+
+@intrinsic
+@since("1.0")
+pub def hours(n: int) -> Duration: ...

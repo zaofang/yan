@@ -8,7 +8,7 @@ Wen is the surface people write and read. It covers layers L0 to L6, files use t
 - **Names.** Value names are snake\_case and type names PascalCase, exactly as in Xin (E110, E112), so both surfaces spell every name identically. Backticks quote foreign names only (section 16.2).
 - **Comments.** ` --  ` (with the space) runs to end of line; `--` anywhere else is E132. ` ---  ` starts a Markdown doc comment. A line starting ` -->  ` holds a watch expression. Examples are `ex` clauses, not doc-comment lines.
 - **Layout.** Blocks are indentation only, 2 spaces; tabs are E133. Newlines inside brackets are joined. A line whose first token is `.` or a binary operator continues the previous line. There is no `;` outside grid literals. A line whose first token is `fail` or `uses` also continues a function signature that has not yet reached its `=`, which gives the signature layout of 15.3 (R460).
-- **Literals.** Integers, floats, `True`, `False` and `None` as in Xin. Strings `"..."`, raw `r"..."`, bytes `b"..."`, C strings `c"..."` (E140 on interior NUL) and triple-quoted strings; non-raw strings interpolate `\(expr)` and `\(expr:spec)`, and braces are literal. A char is `c'a'`.
+- **Literals.** Integers, floats, `True`, `False` and `None` as in Xin. Strings `"..."`, raw `r"..."`, bytes `b"..."`, C strings `c"..."` (E140 on interior NUL) and triple-quoted strings; non-raw strings interpolate `\(expr)` and `\(expr:spec)`, and braces are literal. A non-raw string that contains `${` followed by a name or expression and `}` is lint W854, whose fix rewrites it to `\(...)` (R663). A char is `c'a'`.
 - **Units, dates and grids.** Unit-suffixed numbers such as `150ms`, `64MB`, `2.5bp` and `5pct`, where the suffix must be a declared unit. A date is `2026-10-30` (PlainDate), a time `09:00:00`, an instant `2026-10-30T09:00:00Z`, and a zoned time `2026-10-30T09:00[America/Chicago]`, with an offset when it falls in a fold; there is no implicit local zone. These are checked at compile time (14.2). Grid literals separate elements by spaces and rows by `;`: `[1 2; 3 4]`; newlines inside the brackets are joined as elsewhere (R463). An element is a literal, a name or a parenthesized expression, with an optional attached sign. Inside a grid, a `-` or `+` after a space and before a non-space is a sign (SIGN in 15.2), so `[1 -2]` is two elements, and `a -b` is E134; a `(` after a space starts a new element (SPLPAREN in 15.2), so `[a (b)]` is two elements and `[a(b)]` one call. A grid has two elements or a `;`, so `[e]` is a list (R374). Display widths count graphemes.
 - **Keywords.** Reserved: `let var take pub type trait impl dyn use as try if then else match is for in while loop break continue return par with unsafe extern and or not copy share self assert unreachable become fail` (`fail` as in Xin, R462). Soft (keywords only where the grammar expects them, ordinary names elsewhere): `safe lib link asm gen sub yield select concurrent from uses pre post ex invariant decreases ghost lemma reveal`, and `deadline` and `timeout` after `with` (R444, R374). A soft word follows Xin's next-token rule (13.1, R462).
 
@@ -34,6 +34,8 @@ body      = expr NEWLINE
           | NEWLINE INDENT {contract} stmt {stmt} DEDENT
           | NEWLINE INDENT {contract} arm {arm} DEDENT                    -- clause form (R266, R370)
 contract  = ("pre" | "post" | "ex" | "decreases") expr NEWLINE
+          | "cost" bound {"," bound} NEWLINE            (R610; cost, steps and alloc are soft keywords here)
+bound     = ("steps" | "alloc") "<=" expr
 capitem   = NAME [":" TYPENAME] | TYPENAME | "none"                  -- TYPENAME: a capability set (R431)
 tparams   = "[" tparam {"," tparam} "]"
 tparam    = TYPENAME [":" bound {"+" bound}] | NAME ":" type          -- type or compile-time value
@@ -124,7 +126,8 @@ literal   = INT | FLOAT | STRING | BYTES | CHAR | TSTRING | UNITNUM | DATE | TIM
 
 pattern   = alt {"|" alt}
 alt       = "_" | literal [".." ["="] literal] | NAME
-          | TYPENAME ["(" [ppat {"," ppat}] ")"]                       -- ".." only last, checked after parsing
+          | vpath ["(" [ppat {"," ppat}] ")"]                          -- ".." only last, checked after parsing
+vpath     = {NAME "."} TYPENAME                                        -- a variant of another module, as schema.Grocery (R652)
           | "(" pattern "," pattern {"," pattern} ")"
           | "[" [spat {"," spat}] "]" | alt "as" NAME
 ppat      = pattern | NAME ":" [pattern] | ".."
@@ -183,13 +186,13 @@ sync_prices(src: Url, dst: Path, since: PlainDate) -> Report
 
 **Indexing and strings.** As in Xin, an `xs[i]` that cannot be proven in bounds compiles with one runtime check, which the editor shows as a hint; Wen raises no W820 for it (R372). `@forbid(panic)` forbids such checks. Slices clamp as in Xin. No `len` and no integer indexing on `str` (E504). Maps index as in Xin (R287): `m[k]` reads with a check and `m[k] = v` inserts or replaces. `m[k]` is a mutable place when `m` is, so `m[k].hits += 1` works, and `m[k] op= v` inserts `Default` first when `k` is missing (R438). `for var x in xs` binds `x` to the mutable place of each element of a mutable place `xs` (`List`, `Deque`, `Soa` rows, `Map` values through `.values()`); the body may not otherwise touch `xs` (E402), and the loop lowers to an index loop with no bounds checks (R434).
 
-**Patterns.** `match` must be exhaustive (E503). On a sum, `_` is lint W811 (deny under `--strict` and release) rather than E502. `e is P` is a bool expression whose bindings scope over the branch it guards. `let P = e else d` requires `d` to diverge; P is never a bare name, since let x = e already binds (R374). Or-patterns, range patterns (`0..=9`), slice patterns on `View`, `StrView` and `List` (`[p, q, ..]`, `[p, ..rest]`, with `rest` a view of the scrutinee) and named-field patterns (`Rect(w:, h: 0.0)`) are available.
+**Patterns.** `match` must be exhaustive (E503), decided with guards as facts (8.6, R606). On a sum, `_` is lint W811 (deny under `--strict` and release) rather than E502. `e is P` is a bool expression whose bindings scope over the branch it guards. `let P = e else d` requires `d` to diverge; P is never a bare name, since let x = e already binds (R374). Or-patterns, range patterns (`0..=9`), slice patterns on `View`, `StrView` and `List` (`[p, q, ..]`, `[p, ..rest]`, with `rest` a view of the scrutinee) and named-field patterns (`Rect(w:, h: 0.0)`) are available. A variant pattern may name another module's variant by its qualified name, `schema.Grocery()`, as Xin's may (R652).
 
 **Effects and handlers.** `uses` lists capabilities, never failure. `with name = e` binds a handler for the block and `with name = dyn e` makes it dynamic.
 
 **Concurrency.** `par` runs each top-level statement of its block as a branch; `par for x in xs` collects a `List` in input order, or streams when its body is unit, with `limit:`. `par concurrent` requires concurrent progress (E708). `select` waits on channel operations, `after(d)` and `deadline(t)`; the first ready arm in source order wins, and a recv arm's pattern matches `T?`, where None means the channel closed (E711 for any other arm form). `select` needs `uses nondet`. `with deadline(t)` and `with timeout(d)` open cancel scopes, as in Xin (R444). Actors (R435): an actor handler is a function whose first parameter is `var self: S`, the state. `actor.spawn(e, mailbox:, overflow:)` starts an actor locally and `cluster.spawn(e, placement:)` on a node (R400, R412); Wen has no spawn keyword. `h.f(args)` on an `Actor[S]` or `Remote[Actor[S]]` sends a message, found by 17.2 in the module that declares S, and its fail type is the handler's plus Timeout (9.6), plus RemoteError for a Remote handle (R408). `@reentrant` marks an actor handler.
 
-**Contracts and tests.** `pre`, `post`, `ex`, `decreases` and loop `invariant` lines open a body, in that order; `yong doc` renders `ex` lines under the doc comment. A `pub` item without `ex` is lint W813. A top-level function named `test_...` is a test, as in Xin.
+**Contracts and tests.** `pre`, `post`, `ex`, `decreases`, `cost` (R610) and loop `invariant` lines open a body, in that order; `yong doc` renders `ex` lines under the doc comment. A `pub` item without `ex` is lint W813. A top-level function named `test_...` is a test, as in Xin.
 
 **Numbers and operators.** As Xin: `int` is a checked i64, `/` on integers gives a float, `//` and `%` floor, `**` is power, and `& | ^ ~ << >>` are bitwise. `as`, `wrap_as`, `sat_as` and `trunc_as` convert. The percent unit is `pct`.
 
@@ -203,14 +206,14 @@ sync_prices(src: Url, dst: Path, since: PlainDate) -> Report
 - One blank line between top-level items; inside a body, author blank lines are kept, at most one in a row and none at the body's start or end (18.5, R376).
 - Items in author order; patches append new items at the end of the module.
 - Signature clauses in the order `-> T from p`, `fail E`, `uses`, laid out as 15.3 says. Clauses the author left to inference are not printed.
-- Contracts in the order `pre`, `post`, `ex`, `decreases`.
+- Contracts in the order `pre`, `post`, `ex`, `decreases`, `cost`.
 - Double-quoted strings, minimal parentheses plus those E101 requires, and nothing aligned.
 - Lines over 100 characters wrap inside brackets, one element per line with a trailing comma. Method chains wrap with one leading-`.` call per line.
 - A lambda whose body is a field-access chain on its parameter prints as the implicit subject.
 
 ### 15.5 Diagnostics in Wen
 
-Message templates are keyed per code and rendered per surface, and fixes are rendered in that surface's syntax. Wen prose never uses Yong terms (inout, sink, projection, heap-backed, elaborate). A Wen diagnostic states what happened at the span, the rule in one sentence, then the fix and its cost. The JSON `message` field keeps the registry text. The voice is neutral, with no "I", "we" or blame (R296), and templates are rendered per surface as R297 says.
+Message templates are keyed per code and rendered per surface, and fixes are rendered in that surface's syntax. Wen prose never uses Yong terms (inout, sink, projection, heap-backed, elaborate). A Wen diagnostic states what happened at the span, the rule in one sentence, then the fix and its cost. The JSON `message` field keeps the registry text. The voice is neutral, with no "I", "we" or blame (R296), and templates are rendered per surface as R297 says. A habit child (R662) is rendered after the fix as `note:`, naming the TypeScript or Python habit and the Wen form.
 
 ### 15.6 Example
 

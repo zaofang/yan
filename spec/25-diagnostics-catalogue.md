@@ -18,7 +18,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | W8xx | lints |
 | E9xx | unsafe, FFI, layout, linking and inline assembly |
 | P0xx | patches |
-| N01 to N30 | lenient-reader notes (14.4) |
+| N01 to N31 | lenient-reader notes (14.4) |
 | I001 to I999 | internal errors |
 
 ### 25.2 Packages, registry and stability
@@ -40,6 +40,8 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E013 | confirmed breaking change (with witness) for the declared bump *new* | 20.6 |
 | E014 | approved test changed since tests.lock was signed new | 18.4 |
 | E015 | approved test in tests.lock is missing new | 18.4 |
+| E016 | `yong publish` refuses the manifest: `overrides`, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later *new* | 19.4 |
+| E017 | construct this toolchain does not support yet, reported at the construct; checking continues (R649) new | 18.2 |
 | W014 | possible breaking change without a witness *new* | 20.6 |
 
 ### 25.3 Lexical rules and syntax
@@ -94,12 +96,13 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E266 | attribute function output not allowed (rewrite, removal, extern, export or built-in attribute) *new* | 10.4 |
 | E267 | `embed` path outside the package root *new* | 10.4 |
 | E268 | construct not allowed at stage 0 (`unsafe`, `Ptr`, `extern`, `asm`, atomics, `Vec`) *new* | 10.4 |
-| E269 | derive of a trait without a `derived` body, or of an auto trait *new* | 10.4 |
+| E269 | derive of a trait without a `derived` body, or of an auto trait; a `derive(Cli)` field the mapping cannot parse, or an `@help` key that names nothing or appears without `derive(Cli)` (R694) *new* | 10.4, 17.3 |
 | E270 | `compile_error` raised by stage-0 code *new* | 10.4 |
 | E271 | `become` callee signature differs from the caller's *new* | 3.5 |
 | E232 | a `type` that mixes inline variants with other alternatives, or lists `None` among variants (retargeted by R423) | 14.1 |
 | E272 | error in a stage-0-dependent body, found at an instantiation; carries the instantiation site and stage-0 backtrace new | 10.4 |
 | E273 | `become` outside tail position, inside par, with or a generator, or calling a closure or dyn method *new* | 3.5 |
+| E274 | access outside the region an `@access` claim declares (R627) new | 11.2 |
 | E233 | str or f-string where a Template is expected (R452) new | 13.1 |
 
 ### 25.5 Capabilities, handlers and failure
@@ -124,6 +127,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E322 | task stack bound exceeds the manifest's stack reserve new | 17.1 |
 | E323 | lock (Resource, CsMutex, Mutex or RwLock guard) held across a suspension point, on every platform (R395) new | 17.1 |
 | E325 | Untrusted value passed to a @trusted parameter (R451) new | 17.4 (R451) |
+| E326 | host handler built or bound outside the platform, a `yong_world` or an attenuation of a held handle (R672) new | 7.3 (R672) |
 
 ### 25.6 Ownership, views, memory and thread safety
 
@@ -149,6 +153,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E421 | drop body that can fail, blocks or uses a capability other than alloc, or Drop on a @linear type new | 5.4 |
 | E422 | subscript body does not yield exactly once on every path (R457) new | 4.4 |
 | E423 | subscript body fails under the let or inout mode it is used in (R457) new | 4.4 |
+| E424 | branch, index, division or early exit depends on a secret-derived value in a `@constant_time` function (R611) new | 17.4 |
 
 ### 25.7 Exhaustiveness, bounds, shapes, units and literals
 
@@ -166,6 +171,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E542 | literal format pattern does not match the value's type *new* | 14.2 |
 | E543 | literal or destructuring of a `@non_exhaustive` type from another package without `..` *new* | 20.6 |
 | E544 | `is_null` on a non-optional column *new* | 11.8 |
+| E545 | literal regular expression rejected at stage 0: syntax, a backreference or lookaround, or an automaton over the size limit (R484, R486; registered by R648) | 17.2 |
 | E550 | malformed locale literal (R332) new | 17.5 |
 | E551 | malformed MessageFormat 2 message or unknown function (R335) new | 17.5 |
 | E552 | translation key not in the source messages record (R335) new | 17.5 |
@@ -185,6 +191,9 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | W420 | proof fell back to a runtime check | 8.5 |
 | E604 | non-ghost code reads a ghost value (R458) new | 8.7 |
 | E605 | lemma uses a capability (R458) new | 8.7 |
+| E618 | `cost` bound refuted, with a witness input (R610) new | 8.4 |
+| E619 | the arguments of an `ex` line break the function's `pre` (R621) new | 21.1 |
+| V402 | proof certificate rejected by the toolchain's checker (R608) new | 8.7 |
 
 ### 25.9 Holes and concurrency
 
@@ -209,6 +218,8 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E724 | breaking change to a pinned Wire schema (R406) new | 9.6.1, 20 |
 | E725 | @durable function uses a non-journaling capability, unjournaled nondeterminism, or a view across operations (R416) new | 9.6.1 |
 | E726 | entity key not Wire + Hash, or entity state not Wire (R413) new | 9.6.1 |
+| E727 | session send of a label the endpoint's current state does not allow (R634) new | 9.5 |
+| E728 | session protocol cannot be projected onto a role (R633) new | 9.5 |
 | E717 | Lub get() inside a par block that writes the cell (R454) new | 9.3 (R454) |
 | E718 | reserved (R455, deferred past 1.0) | 9.3 |
 
@@ -251,6 +262,10 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | W841 | message missing from a shipped locale; the source text is used (R335) new | 17.5 |
 | W843 | permanent supervisor child placed on(node), which cannot fail over (R411) new | 9.6.1 |
 | W850 | durable operation on a shared capability whose handler declares no idempotency support (R453) new | 9.6.1 (R416) |
+| W851 | `cost` bound neither proven nor refuted, compiled as a counter in `checked-all` (R610) new | 8.4 |
+| W852 | float expression less accurate than a rewrite found for it (R613) new | 11.1 |
+| W853 | match arm that can match no value left by earlier arms (R606) new | 8.6 |
+| W854 | Wen string with `${...}`, which Wen prints literally; fix rewrites it to `\(...)` (R663) new | 15.1 |
 
 ### 25.11 Unsafe, FFI, layout and assembly
 
@@ -279,7 +294,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | P004 | replaced or deleted item missing |
 | P005 | added item already exists |
 | P006 | patch touches a protected target without a human confirmation token |
-| N01 to N30 | lenient-reader normalizations (14.4) |
+| N01 to N31 | lenient-reader normalizations (14.4) |
 | I001 to I999 | internal errors, including Yong validator failures |
 
 Panic kinds, reported as `panic(kind): message` with exit status 101: `overflow`, `div_zero`, `contract`, `exclusivity`, `bounds`, `shape`, `unreachable`, `assert`, `deadlock`. Undefined-behavior reports from `--ub` name the item number of 6.7.

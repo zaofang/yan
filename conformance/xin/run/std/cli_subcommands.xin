@@ -1,0 +1,29 @@
+# spec: 17.3
+# rows: R694
+# note: a sum of records is a subcommand parsed by the same rules
+# stdout:
+# Add(name='x', force=True)
+# Remove(names=['a', 'b'])
+# error: missing argument <name>
+# usage: tool add [options] <name>
+# error: unknown command 'zap'
+# usage: tool [options] <command>
+# error: missing command
+# usage: tool [options] <command>
+
+type Cmd = Add(name: str, force: bool) | Remove(names: list[str])
+
+@derive(Cli)
+class Tool:
+    cmd: Cmd
+
+def check(xs: list[str]) -> str fail CliError:
+    t = cli.parse_args[Tool](xs)?
+    return f"{t.cmd}"
+
+pub def main() uses io:
+    io.print(check(["add", "x", "--force"]) else e -> f"{e}")
+    io.print(check(["remove", "a", "b"]) else e -> f"{e}")
+    io.print(check(["add"]) else e -> f"{e}")
+    io.print(check(["zap"]) else e -> f"{e}")
+    io.print(check([]) else e -> f"{e}")

@@ -30,8 +30,25 @@ pub unsafe extern "C" fn yong_rt_panic(ptr: *const u8, len: usize) -> ! {
     // SAFETY: forwarded.
     let kind = unsafe { text(ptr, len) };
     let _ = std::io::stdout().flush();
-    eprintln!("panic: {kind}");
+    eprintln!("panic({kind}): {}", panic_message(kind));
     std::process::exit(101)
+}
+
+/// The message a panic of `kind` prints when its site gives no specific one.
+pub fn panic_message(kind: &str) -> &'static str {
+    match kind {
+        "bounds" => "index out of range",
+        "overflow" => "integer overflow",
+        "div_zero" => "division by zero",
+        "assert" => "assertion failed",
+        "contract" => "precondition failed",
+        "match" => "no arm matched the value",
+        "pattern" => "the value did not match the pattern",
+        "unreachable" => "reached code marked unreachable",
+        "exclusivity" => "two mutable accesses to the same place",
+        "conversion" => "the value does not fit the target type",
+        _ => "invalid value",
+    }
 }
 
 // `Str` and `List` values in native code are pointers to these leaked blocks; drops are not
@@ -84,6 +101,14 @@ pub extern "C" fn yong_rt_show_u64(x: u64) -> *mut String {
 
 pub extern "C" fn yong_rt_show_f64(x: f64) -> *mut String {
     leak(crate::fmt::float_repr(x))
+}
+
+pub extern "C" fn yong_rt_div_i64(a: i64, b: i64) -> f64 {
+    crate::num::div_i128(a.into(), b.into())
+}
+
+pub extern "C" fn yong_rt_div_u64(a: u64, b: u64) -> f64 {
+    crate::num::div_i128(a.into(), b.into())
 }
 
 pub extern "C" fn yong_rt_show_bool(x: u8) -> *mut String {

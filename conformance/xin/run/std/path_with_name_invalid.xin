@@ -1,0 +1,11 @@
+# spec: 17.3
+# rows: R590
+# note: `with_name` panics with kind value on a separator
+# stdout:
+# a/c
+# exit: 101
+
+pub def main() uses io:
+    f = Path("a/b.txt")
+    io.print(f"{f.with_name('c')}")
+    io.print(f"{f.with_name('x/y')}")
