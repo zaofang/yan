@@ -156,6 +156,26 @@ pub(crate) fn decl(path: &str) -> Option<&'static Decl> {
     STD.fns.get(path)
 }
 
+/// Whether some std method named `m` takes its receiver `var` (R421).
+pub(crate) fn mutates_receiver(m: &str) -> bool {
+    static MUTATING: LazyLock<HashSet<String>> = LazyLock::new(|| {
+        STD.fns
+            .iter()
+            .filter(|(_, d)| {
+                matches!(
+                    d.def.params.first(),
+                    Some(j::Param::Value {
+                        conv: Some(j::Conv::Var),
+                        ..
+                    })
+                )
+            })
+            .filter_map(|(path, _)| path.rsplit('.').next().map(str::to_owned))
+            .collect()
+    });
+    MUTATING.contains(m)
+}
+
 /// The value of std constant `path`, an expression with no free names.
 pub(crate) fn konst(path: &str) -> Option<&'static j::Expr> {
     STD.consts.get(path)

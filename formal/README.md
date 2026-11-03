@@ -1,0 +1,33 @@
+# Formal core (Lean 4)
+
+A Lean 4 model of Yong-K, the fragment of Yong text in RFC 0022, and from phase 1 on the proofs of
+the formal core study. It never ships and nothing in the Cargo workspace depends on it (R680).
+
+| File | What it is |
+| --- | --- |
+| `YongK/Syntax.lean` | abstract syntax of Yong-K |
+| `YongK/Parse.lean` | a reader for the Yong-K subset of the 3.5 grammar, independent of `yong-core` |
+| `YongK/Eval.lean` | the executable semantics: `inout` as copy-in, copy-out; `par` in source order; panics at once |
+| `Main.lean` | `yongk run FILE`, with the exit statuses of the conformance runner (0, 1, 101; 2 for unsupported) |
+| `drt.py` | differential testing against `yong run` |
+
+## Use
+
+```
+cd formal && lake build                       # needs elan; lean-toolchain pins the version
+cargo build --release -p yong-cli
+uv run python formal/drt.py cases             # conformance/yong/run on both
+uv run python formal/drt.py gen --count 1000 --seed 1 --keep /tmp/drt
+```
+
+`gen` writes random Yong-K programs over `i64`, a sum, a failure record, `inout`, `try` and `?`,
+join points, loops, `par` and asserts. Each prints branch markers and residues of its values, so
+two runs agree only if they took the same path and computed the same numbers. A program either side
+reports as unsupported (exit 2) is skipped. Any difference is a bug in one implementation or a gap
+in the spec, and `--keep` saves the program.
+
+## Phases
+
+Phase 0 (this) is the executable model and the differential tests. Phases 1 to 4 add an inductive
+semantics, proved equal to this interpreter on Yong-K, and the theorems T1 to T5 of the study. They
+start after the M1 gate. A proof with `sorry` never merges.
