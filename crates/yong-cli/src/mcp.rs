@@ -153,6 +153,7 @@ fn call(root: &Path, db: &RefCell<Database>, tool: &str, args: &Value) -> Result
                 root,
                 args["filter"].as_str(),
                 args["gate"].as_bool() == Some(true),
+                Some(&test::cache_file(root)),
             )?;
             let failed = r.failed(false);
             Ok(json!({
@@ -180,7 +181,6 @@ fn spec_check(path: &Path, text: &str) -> Result<Vec<Diagnostic>, String> {
     }
     let m = match yong_db::load(&db, f) {
         Ok(Loaded::Ready(m, _)) => m.clone(),
-        Ok(Loaded::Unsupported(what, _)) => return Err(format!("not supported yet: {what}")),
         Ok(Loaded::Stopped(d)) => return Ok(examples::remap(d.clone(), &exs)),
         Err(msg) => return Err(msg.clone()),
     };
@@ -189,7 +189,7 @@ fn spec_check(path: &Path, text: &str) -> Result<Vec<Diagnostic>, String> {
         let r = yong_interp::test(&m, &x.name, Limits::default(), &mut out);
         let d = match r {
             Ok(_) => continue,
-            Err(Stop::Panic(k)) if k == "assert" => Diagnostic::error(
+            Err(Stop::Panic(p)) if p.kind == "assert" => Diagnostic::error(
                 EX_BREAKS_PRE,
                 &file,
                 x.span,

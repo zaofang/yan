@@ -7,7 +7,7 @@ use yong_rt::{fmt, list, num, text};
 use yong_std::registry::{Id, id::*};
 
 use super::bind::{Bind, bad_args};
-use super::{Value, panic};
+use super::{Value, panic, panic_with, slice_out_of_range};
 use Value::*;
 
 macro_rules! f {
@@ -69,7 +69,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_LIST_POP, |a| {
         [List(xs)] => match xs.pop() {
             Some(v) => v,
-            None => return panic("bounds"),
+            None => return panic_with("bounds", "pop from an empty list"),
         }
     }),
     f!(STD_LIST_CONCAT, |a| {
@@ -111,7 +111,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_LIST_SLICE_EXACT, |a| {
         [List(xs), Int(i), Int(j)] => match (usize::try_from(*i), usize::try_from(*j)) {
             (Ok(i), Ok(j)) if i <= j && j <= xs.len() => List(xs[i..j].to_vec()),
-            _ => return panic("bounds"),
+            _ => return slice_out_of_range(*i, *j, xs.len()),
         }
     }),
     f!(STD_PRELUDE_INT, |a| {
