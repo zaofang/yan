@@ -22,7 +22,7 @@ A milestone is complete only when every criterion below passes in CI. Performanc
 
 ### M1 · Xin and the agent toolchain
 
-- Xin lexer, parser, lenient normalizations N01 to N31, canonical printer.
+- Xin lexer, parser, lenient normalizations N01 to N32, canonical printer.
 - Elaborator to Yong, including inference, capability passing, copy, share and move insertion, narrowing and fail-transparent closures.
 - Standard library: the M1 row of the std roadmap, including prelude, text, list, dict, set, iter, collections, rc, slices with bisect, fmt, regex, csv, encoding, path, cli, `proc.run`, rand, bigint, bits, `Secret`, log, io, fs, json, math, test; Temporal-style time types.
 - `yong check` with lints, `run` (including scripts), `test` with verdict caching, `fmt`, `sig`, `patch`, `undo`, `explain`, `fix`, `export --python`, `import --python`, `mcp`, `add`, `remove`, `update`, `tree`, `why`, `vendor`, `x`, `schema gen`, `toolchain`, `skill`.

@@ -2,8 +2,9 @@
 
 rows.py check            fail on a row allocated twice, a cited row that is not registered,
                          a stale Appendix A.1, an A.1 section that does not exist, a code
-                         listed twice in section 25, two RFCs with one number, or a study
-                         cited in spec/ or rfcs/ that docs/research/README.md does not list
+                         listed twice in section 25, a code cited in spec/ but missing from
+                         section 25, two RFCs with one number, or a study cited in spec/ or
+                         rfcs/ that docs/research/README.md does not list
 rows.py next [N]         print the next N free row numbers (default 1)
 rows.py next-code FAM    print the next free diagnostic code in a family, e.g. E3 or W8
 rows.py render           rewrite Appendix A.1 from spec/rows.toml
@@ -29,6 +30,8 @@ ID = re.compile(r"\b((?:R|SQ)\d+)(?:\s+to\s+((?:R|SQ)\d+))?\b")
 CITED_ROW = re.compile(r"\bR(\d+)\b")
 ROWS_HEADER = re.compile(r"^(?:#|--) rows:(.*)$", re.M)
 CODE_CELL = re.compile(r"^\| ([A-Z]\d{2,3}) \|", re.M)
+CODE_LIST_CELL = re.compile(r"^\| ([A-Z]\d{2,3}(?:, [A-Z]\d{2,3})*) \|", re.M)
+CITED_CODE = re.compile(r"\b[EWHVP]\d{3}\b")
 HEADING = re.compile(r"^#{2,4} (?:Appendix )?(\d+(?:\.\d+)*|[A-Z]\.\d+)[. ]", re.M)
 SECTION_REF = re.compile(r"\b\d+(?:\.\d+)*\b")
 ARTIFACT = re.compile(r"https://claude\.ai/artifact/[A-Za-z0-9]+")
@@ -130,6 +133,16 @@ def unindexed_studies() -> list[str]:
     return errors
 
 
+def uncatalogued_codes() -> list[str]:
+    listed = {c for cell in CODE_LIST_CELL.findall(CATALOGUE.read_text()) for c in cell.split(", ")}
+    errors = []
+    # Appendix A records history, including codes later moved or retired (R379).
+    for path in sorted(p for p in SPEC.glob("*.md") if p != APPENDIX):
+        for code in sorted(set(CITED_CODE.findall(path.read_text())) - listed):
+            errors.append(f"{code} cited in {path.relative_to(ROOT)} but not listed in section 25")
+    return errors
+
+
 def check() -> list[str]:
     entries = load()
     owner, errors = allocations(entries)
@@ -144,7 +157,13 @@ def check() -> list[str]:
         for c in sorted(set(codes))
         if codes.count(c) > 1
     ]
-    return errors + missing_sections(entries) + duplicate_rfcs() + unindexed_studies()
+    return (
+        errors
+        + uncatalogued_codes()
+        + missing_sections(entries)
+        + duplicate_rfcs()
+        + unindexed_studies()
+    )
 
 
 def next_free(count: int) -> list[str]:
