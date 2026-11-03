@@ -362,6 +362,8 @@ struct Cx<'g, 'm> {
     next_par: usize,
     with_depth: usize,
     callees: HashSet<String>,
+    /// Each join point's parameter names, so a jump's arguments carry their captures in.
+    jps: HashMap<Name, Vec<Name>>,
     diags: Vec<Diagnostic>,
 }
 
@@ -424,6 +426,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             next_par: 0,
             with_depth: 0,
             callees: HashSet::new(),
+            jps: HashMap::new(),
             diags: Vec::new(),
         };
         for p in &def.params {
@@ -503,11 +506,13 @@ impl<'g, 'm> Cx<'g, 'm> {
                     } else {
                         "a borrow"
                     };
-                    self.err(
-                        code,
-                        at,
-                        format!("closure `{n}` escapes but captures {what}"),
-                    );
+                    // A closure the elaborator named (`_t2`) has no name in the source.
+                    let closure = if n.starts_with('_') {
+                        "this closure".to_owned()
+                    } else {
+                        format!("closure `{n}`")
+                    };
+                    self.err(code, at, format!("{closure} escapes but captures {what}"));
                 }
             }
         }
@@ -616,7 +621,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                             }
                         })
                         .collect(),
-                    _ => Vec::new(),
+                    _ => self.carried_captures(rhs),
                 };
                 let got = self.rhs(rhs, *rhs_span);
                 self.compatible(ty, got, *rhs_span);
@@ -634,6 +639,14 @@ impl<'g, 'm> Cx<'g, 'm> {
                 rhs,
                 rhs_span,
             } => {
+                // A closure copied into another binding (an `if` or `match` result) escapes
+                // through it, so its bad captures travel with it.
+                let carried = self.carried_captures(rhs);
+                if !carried.is_empty()
+                    && let Some(b) = self.env.get_mut(&place.root)
+                {
+                    b.bad_captures.extend(carried);
+                }
                 let got = self.rhs(rhs, *rhs_span);
                 if let Some(Kind::Let | Kind::Cap | Kind::Param(Conv::Let | Conv::Sink)) =
                     self.env.get(&place.root).map(|b| b.kind)
@@ -682,7 +695,14 @@ impl<'g, 'm> Cx<'g, 'm> {
                 }
             }
             StmtKind::Continue { .. } | StmtKind::Unreachable | StmtKind::Asm { .. } => {}
-            StmtKind::Jp { params, body, .. } => {
+            StmtKind::Jp { name, params, body } => {
+                let names = params
+                    .iter()
+                    .map(|p| match p {
+                        Param::Value { name, .. } | Param::Cap { name, .. } => name.clone(),
+                    })
+                    .collect();
+                self.jps.insert(name.clone(), names);
                 for p in params {
                     self.bind_param(p, s.span);
                 }
@@ -690,9 +710,18 @@ impl<'g, 'm> Cx<'g, 'm> {
                 self.block(body);
                 self.moved = before;
             }
-            StmtKind::Jump { args, .. } => args.iter().for_each(|a| {
-                self.atom(a, How::Read);
-            }),
+            StmtKind::Jump { name, args } => {
+                let params = self.jps.get(name).cloned().unwrap_or_default();
+                for (a, p) in args.iter().zip(&params) {
+                    let carried = self.carried_captures(&Rhs::Atom(a.clone()));
+                    if let Some(b) = self.env.get_mut(p) {
+                        b.bad_captures.extend(carried);
+                    }
+                }
+                for a in args {
+                    self.atom(a, How::Read);
+                }
+            }
             StmtKind::Ret(a) => {
                 self.atom(a, How::Ret);
             }
@@ -825,6 +854,18 @@ impl<'g, 'm> Cx<'g, 'm> {
         self.place_ty(p)
     }
 
+    /// The bad captures of the closure binding `rhs` names, if it names one.
+    fn carried_captures(&self, rhs: &Rhs) -> Vec<(&'static str, Span)> {
+        match rhs {
+            Rhs::Atom(Atom::Name(n, _)) => self
+                .env
+                .get(n)
+                .map(|b| b.bad_captures.clone())
+                .unwrap_or_default(),
+            _ => Vec::new(),
+        }
+    }
+
     /// The type text of `rhs` when it is known.
     fn rhs(&mut self, rhs: &Rhs, at: Span) -> Option<String> {
         match rhs {
@@ -937,6 +978,16 @@ impl<'g, 'm> Cx<'g, 'm> {
                         Conv::Inout => How::Inout,
                         Conv::Sink => How::Sink,
                     };
+                    // An inout argument is written back (4.1), so it must be a mutable place; a
+                    // `sink` parameter is owned and may be changed in place. Names starting with
+                    // `_` are elaborator temporaries, which the surface reports.
+                    if *conv == Conv::Inout
+                        && !n.starts_with('_')
+                        && let Some(Kind::Let | Kind::Param(Conv::Let)) =
+                            self.env.get(n).map(|b| b.kind)
+                    {
+                        self.err("E403", *sp, format!("`{n}` is not mutable"));
+                    }
                     self.use_name(n, *sp, how);
                 }
                 Arg::Value(_, Atom::Lit(..), _) => {}
@@ -1014,7 +1065,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                 self.err(
                     "E402",
                     *sj,
-                    format!("`{nj}` is passed `inout` and accessed again in this call"),
+                    format!("`{nj}` is passed for mutation and accessed again in this call"),
                 );
                 return;
             }
