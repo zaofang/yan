@@ -1,7 +1,7 @@
 # Playground
 
 A browser page that checks and runs a module and shows it in every surface at once: Yan Core,
-Yan Agent, Yan and Yan Notation. Everything runs client side in `yan.wasm`, built from
+Yan Agent, Yan and Yan Meta. Everything runs client side in `yan.wasm`, built from
 `crates/yan-playground` over `yan-db`, `yan-ide` and `yan-interp`.
 
 ## Build and serve
@@ -28,7 +28,7 @@ Then open http://localhost:8000.
 | Yan  | elaborated module       | elaborated module        | the source       |
 | Yan Agent   | `yan fmt` of the source | `view --as yag`          | `view --as yag`  |
 | Yan   | no printer yet          | `yan fmt` of the source | no printer yet   |
-| Yan Notation | no printer yet          | no printer yet           | no printer yet   |
+| Yan Meta | no printer yet          | no printer yet           | no printer yet   |
 
 "Edit this" loads a pane's text into the editor as that surface, so a round trip is two
 clicks.

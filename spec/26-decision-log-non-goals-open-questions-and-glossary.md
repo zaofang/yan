@@ -36,7 +36,7 @@
 | Supply chain | witnessed log, registry-built archives, SLSA L3, OIDC-only publishing, computed capabilities, signed approvals | API tokens; uploaded tarballs | xz backdoor; npm worms; slopsquatting |
 | Stability | bit-identical output across 1.x; surface-only editions; enforced semver; 12-week minors | LTS branches; nightly channel | Rust and Go promises, Elm enforcement |
 | Implementation language | Rust only (R215); a non-shipping Lean 4 model of the core under `formal/` (R680) | Python reference, then a Rust port | one codebase with no port; the chosen toolchain stack is Rust crates; the conformance suite is the oracle |
-| Third surface | Yan Notation, dense ASCII with spelling kept as trivia, admitting any form that lowers to the core (R516 to R521) | one printing per tree (Yan Notation 1); no third surface | a design playground that stays one language: same items, same hashes, same checker |
+| Third surface | Yan Meta, dense ASCII with spelling kept as trivia, admitting any form that lowers to the core (R516 to R521) | one printing per tree (Chang 1); no third surface | a design playground that stays one language: same items, same hashes, same checker |
 | Yan Agent 1.0 rules | model-first rules on the Python shape: full headers as the contract, undecided checks as runtime checks with W820, ... holes, header changes report broken callers, a wide lenient reader (R210 to R214, R280 to R289) | Yue, a token-minimal surface (research only); implicit string copies (R283) | in the dry run output was about 5% of loop tokens and repair rounds dominated, so rounds and pass@1 matter more than terseness; copies stay explicit and the autofix inserts them |
 
 ### 26.2 Non-goals
@@ -52,7 +52,7 @@
 - No stable Yan Core-to-Yan ABI, no direct C++ interop, no dylib plugins passing Yan Core types in 1.0.
 - No `Condvar` in 1.0.
 
-These are non-goals for Yan Core. Yan Notation (16.6) may spell some of them as sugar over the core, such as `null` for `None`, lossless widening written out in Yan Core, `extends` as delegation and `async`/`await` as branch and join; the Yan Core it elaborates to keeps every non-goal above.
+These are non-goals for Yan Core. Yan Meta (16.6) may spell some of them as sugar over the core, such as `null` for `None`, lossless widening written out in Yan Core, `extends` as delegation and `async`/`await` as branch and join; the Yan Core it elaborates to keeps every non-goal above.
 
 ### 26.3 Open questions
 
@@ -112,9 +112,9 @@ The owner accepted these rows on 2026-10-31 from the licensing and governance de
 | R365 | Trademark policy: nominative use is free, including in package names. Forks rename, except distro packages with build or security patches. "Yan-compatible" requires passing the published conformance suite for the claimed version and surface. "Official" and "std" mean project artifacts only. |
 | R366 | Registry namespaces `yan`, `std`, `core`, `yag` and `yn` are reserved to the project (R195, R775), along with the project domain and handles: `yan-lang` on PyPI, `@yan-lang/*` on npm, `yan-*` on crates.io and the `@yan/*` scope in the project registry. |
 
-### 26.6 Research track (R522 to R535, R554 to R557)
+### 26.6 Research track (R522 to R535, R554 to R557, R780 to R786)
 
-Accepted for research on 2026-11-01, not normative for 1.0. Each row names the 1.0 text it would amend if adopted; adoption takes its own RFC. The study is https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8; the Yan Notation forms waiting on each row are in RFC 0001. Rows R554 to R557 come from RFC 0003 (study https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD).
+Accepted for research on 2026-11-01, not normative for 1.0. Each row names the 1.0 text it would amend if adopted; adoption takes its own RFC. The study is https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8; the Yan Meta forms waiting on each row are in RFC 0001. Rows R554 to R557 come from RFC 0003 (study https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD). Rows R780 to R786 come from RFC 0029 (study https://claude.ai/artifact/XwShntWVWkEzcMhkxbswiT). Yan Meta (16.6) spells each item first, as an experimental form that K1 rejects until the extension lands; no extension is enabled early for one surface (law 1).
 
 | Row | Research item | 1.0 text it would amend |
 | --- | --- | --- |
@@ -136,4 +136,11 @@ Accepted for research on 2026-11-01, not normative for 1.0. Each row names the 1
 | R555 | Streams over `Remote`: a call returning a typed receiver with credit-based backpressure on the R404 transport (RFC 0003). | 9.6.1 |
 | R556 | Ceiling-level `fs.only(read=..., write=...)`, so package ceilings can name paths (RFC 0003). | 17.6, 19.2 |
 | R557 | Semantic diff: `yan diff --semantic` decides equivalence of two item versions in the decidable fragment and gives a distinguishing input otherwise (RFC 0003). | none |
+| R780 | Rank polymorphism: a shape-row kind, `Array[...B, n, T]` with `...B` an axis-list variable, and a lifting rule for functions over cells (Remora, Dex) (RFC 0029). | 3, 11.2 |
+| R781 | Size arithmetic: linear (Presburger) constraints over `Nat` size variables, so `concat` gives `n + m`; undecided goals follow 8.6 (RFC 0029). | 11.2 |
+| R782 | Body reflection: `info(f)` at stage 0 returns a read-only view of a function body; a stage-0 query hashes every body it reads (RFC 0029). | 10.4 |
+| R783 | Rewriting attributes: an `@attribute` function may wrap or replace the body it annotates; `yan expand` prints the result (RFC 0029). | 10.4, E266 |
+| R784 | Proof tactics: stage-0 scripts that discharge 8.6 goals through goal reflection and a tactic API (LCF) (RFC 0029). | none |
+| R785 | Row-polymorphic records `.{x: int \| r}` and anonymous record types outside stage 0 (RFC 0029). | 3 |
+| R786 | GADTs: sum constructors that refine the sum's type parameters (RFC 0029). | 3 |
 

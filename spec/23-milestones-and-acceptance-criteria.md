@@ -18,7 +18,7 @@ A milestone is complete only when every criterion below passes in CI. Performanc
 - Core semantics: UTF-8 strings and `char`, integer conversion rules, associated types, join points, drop order, error injection and context, contract semantics.
 - Diagnostics in the 18.2 format from the start.
 - Hash-key independence: every conformance test runs under two hash keys and the outputs are identical.
-- **Probe (R566).** Runs as soon as the Yan Agent lexer, parser, lenient reader, elaborator and interpreter pass the conformance cases they cover; it does not wait for month 6. Two model families write Yan Agent for 50 development tasks (never the sealed set), zero-shot and 5-shot. Recorded: the share that parses after lenient reading (target at least 95%), the share that checks, the diagnostics hit, and tokens against typed Python, split as 21.6 says. Until the probe reports, no row changes Yan Agent syntax (13, 14.3, 14.4); afterwards a row that changes it cites a probe or M1 measurement. Rows for std, Yan Core, Yan and Yan Notation are not held.
+- **Probe (R566).** Runs as soon as the Yan Agent lexer, parser, lenient reader, elaborator and interpreter pass the conformance cases they cover; it does not wait for month 6. Two model families write Yan Agent for 50 development tasks (never the sealed set), zero-shot and 5-shot. Recorded: the share that parses after lenient reading (target at least 95%), the share that checks, the diagnostics hit, and tokens against typed Python, split as 21.6 says. Until the probe reports, no row changes Yan Agent syntax (13, 14.3, 14.4); afterwards a row that changes it cites a probe or M1 measurement. Rows for std, Yan Core, Yan and Yan Meta are not held.
 
 ### M1 · Yan Agent and the agent toolchain
 
@@ -57,7 +57,7 @@ M2b (library, registry and tools):
 ### M3 · Yan
 
 - Yan lexer, parser and printer; projections in both directions; all round-trip laws that apply pass on the whole suite, and `conform.py --laws` gates CI (R564).
-- The print-only Yan Notation view, `yan view --as chang` (16.6, R563).
+- The print-only Yan Meta view, `yan view --as ymt` (16.6, R563).
 - Prose diagnostics; language server; reactive notebooks; live values computed on examples; depth-lens inlay hints; Yan tree-sitter grammar; item-level merge driver.
 - Yan surface: grapheme-aware display, date literals, `select`, generators, deadline blocks; HTTP server; localizable diagnostics.
 - Randomized comparison (at least 30 participants) on contested Yan syntax: implicit-subject lambdas and the typed implicit subject in frame expressions, grid literals, unit suffixes, `\(x)` interpolation, and the `&x` mark.
@@ -77,5 +77,5 @@ M2b (library, registry and tools):
 - CHERI targets; a native Tree Borrows sanitizer (candidate).
 - Stretch: GPU code generation for `par for` bodies with `uses none`, through MLIR and LLVM to Apple Metal first, then NVIDIA, AMD and Vulkan (R327 to R329), with `@fast_math` allowed under `nondet`.
 - WASM components (`wasm32-wasip2`, capabilities as WASI interfaces, platforms as WIT worlds), with `yan bind --lang js` writing an npm package through jco, published with npm trusted publishing (R641).
-- Yan Notation (16.6, R516): reader, printer with spelling notes and lenient reader (the print-only view is M3, R563); the grammar moves from RFC 0001 into section 16.6 first, and every Yan conformance program round-trips through Yan Notation by item hash.
+- Yan Meta (16.6, R516): reader, printer with spelling notes and lenient reader (the print-only view is M3, R563); the grammar moves from RFC 0001 into section 16.6 first, and every Yan conformance program round-trips through Yan Meta by item hash.
 - Niche surfaces (16.7, R536 to R550) are post-1.0 and follow the order of R550; none is part of any milestone above. Durable timers (R552) ship with `@yan/durable`.

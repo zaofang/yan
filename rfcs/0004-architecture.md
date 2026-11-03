@@ -6,7 +6,7 @@
 
 ## Summary
 
-Yan Core now has three accepted surfaces (Yan Agent, Yan, Yan Notation) and thirteen planned niche surfaces (RFC 0002),
+Yan Core now has three accepted surfaces (Yan Agent, Yan, Yan Meta) and thirteen planned niche surfaces (RFC 0002),
 but the implementation was laid out for one surface. HIR follows Yan Agent's grammar, printers only print
 their own syntax trees, nothing computes the item hash of 3.6, `yan-elab` depends on `yan-yag` to
 load std, and std natives live inside the interpreter. This RFC makes the shared HIR the one pivot
@@ -18,7 +18,7 @@ research study linked above.
 
 ### D1: HIR is the pivot
 
-Every surface crate (Yan Agent, Yan, Yan Notation and each niche surface) lowers to `yan-hir` and resugars from it,
+Every surface crate (Yan Agent, Yan, Yan Meta and each niche surface) lowers to `yan-hir` and resugars from it,
 and depends on nothing below it. HIR is surface-neutral: a form is in HIR only when two or more
 surfaces spell it; other sugar stays in the surface's own AST and is recorded as a spelling note. This
 extends admission rule N6 (R536) to the three main surfaces.
@@ -49,7 +49,7 @@ Add to the 22.2 table:
 - `yan-surface`: the `Surface` trait (parse, abstract, lower, subset, resugar, print, optional
   lenient reader, grammar export, message rendering), the trivia and spelling-note side table, and
   the generic law harness.
-- `yan-chang`: the Yan Notation surface.
+- `yan-ymt`: the Yan Meta surface.
 - `yan-mir`: the mid-level IR between `yan-opt` and the code generators (per-instance control-flow
   graph, explicit drops, intrinsic ids). The interpreter stays on checked Yan Core.
 - `yan-ide`: the analysis API shared by `yan-cli`, `yan-mcp` and `yan-lsp`.
@@ -82,10 +82,10 @@ cannot express those bodies.
 - Decision: accepted, 2026-11-01
 - Row: R562
 
-### D6: Yan Notation print-only view in M3
+### D6: Yan Meta print-only view in M3
 
-`yan view --as chang` moves from M4 to M3, beside the Yan printer, with every Yan Core item printing as Yan Notation
-with no spelling notes (law 6, second half). The Yan Notation reader, lenient reader and spelling-note round
+`yan view --as ymt` moves from M4 to M3, beside the Yan printer, with every Yan Core item printing as Yan Meta
+with no spelling notes (law 6, second half). The Yan Meta reader, lenient reader and spelling-note round
 trip stay in M4. The print-only view is the first test of the surface kit on a surface that is not
 Yan Agent or Yan, and it is how R550 already ships niche surfaces.
 
@@ -119,7 +119,7 @@ inserts it again at the same place.
 
 - 1: the system overview diagram (D1, D2).
 - 16.4, 16.5: projection as compositions; law checking; origin marks and raise (D2, D7, D8).
-- 16.6, 23: Yan Notation print-only view in M3 (D6).
+- 16.6, 23: Yan Meta print-only view in M3 (D6).
 - 17.1: tier directories, std sources in Yan Agent and Yan (D5).
 - 22.2, 22.3, 22.4: crates, pivot, intrinsic registry (D1, D3, D4, D5).
 - 24.2: the `--laws` mode (D7).
