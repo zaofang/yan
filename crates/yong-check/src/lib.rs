@@ -356,7 +356,8 @@ struct Cx<'g, 'm> {
     /// Bindings in order, for the end-of-body checks.
     order: Vec<Name>,
     uses: HashMap<Name, Vec<How>>,
-    moved: HashSet<Name>,
+    /// Moved names and where each moved.
+    moved: HashMap<Name, Span>,
     reported: HashSet<Name>,
     par: Vec<(usize, usize)>,
     next_par: usize,
@@ -420,7 +421,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             env: HashMap::new(),
             order: Vec::new(),
             uses: HashMap::new(),
-            moved: HashSet::new(),
+            moved: HashMap::new(),
             reported: HashSet::new(),
             par: Vec::new(),
             next_par: 0,
@@ -506,29 +507,45 @@ impl<'g, 'm> Cx<'g, 'm> {
                     } else {
                         "a borrow"
                     };
-                    self.err(
-                        code,
-                        at,
-                        format!("closure `{n}` escapes but captures {what}"),
-                    );
+                    // A closure the elaborator named (`_t2`) has no name in the source.
+                    let closure = if n.starts_with('_') {
+                        "this closure".to_owned()
+                    } else {
+                        format!("closure `{n}`")
+                    };
+                    self.err(code, at, format!("{closure} escapes but captures {what}"));
                 }
             }
         }
     }
 
     fn use_name(&mut self, n: &Name, span: Span, how: How) {
-        if self.moved.contains(n) && self.reported.insert(n.clone()) {
-            self.err("E401", span, format!("`{n}` is used after it was moved"));
+        if let Some(&at) = self.moved.get(n)
+            && self.reported.insert(n.clone())
+        {
+            let d = error(
+                self.file,
+                self.src,
+                &self.item,
+                "E401",
+                span,
+                format!("`{n}` is used after it was moved"),
+            );
+            self.diags.push(d.with_label(at, "moved"));
         }
         if let Some(b) = self.env.get(n)
             && let Some((pid, branch)) = b.tag
             && self.par.iter().any(|&(p, x)| p == pid && x != branch)
         {
-            self.err(
+            let d = error(
+                self.file,
+                self.src,
+                &self.item,
                 "E705",
                 span,
                 format!("`{n}` is bound in another branch of this `par`"),
             );
+            self.diags.push(d.with_label(b.span, "bound"));
         }
         self.uses.entry(n.clone()).or_default().push(how);
     }
@@ -579,7 +596,7 @@ impl<'g, 'm> Cx<'g, 'm> {
         let mut merged = if fallthrough {
             before.clone()
         } else {
-            HashSet::new()
+            HashMap::new()
         };
         for b in blocks {
             self.moved = before.clone();
@@ -932,7 +949,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             Rhs::Move(p) => {
                 let t = self.place(p, How::Move);
                 if p.projs.is_empty() {
-                    self.moved.insert(p.root.clone());
+                    self.moved.insert(p.root.clone(), at);
                 }
                 t.as_ref().map(type_text)
             }
@@ -1000,10 +1017,10 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
         self.overlap(&c.args);
         for a in &c.args {
-            if let Arg::Value(Conv::Sink, Atom::Name(n, _), _) = a
+            if let Arg::Value(Conv::Sink, Atom::Name(n, at), _) = a
                 && !is_copy(self.env.get(n).and_then(|b| b.ty.as_ref()))
             {
-                self.moved.insert(n.clone());
+                self.moved.insert(n.clone(), *at);
             }
         }
 
@@ -1063,7 +1080,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                 self.err(
                     "E402",
                     *sj,
-                    format!("`{nj}` is passed `inout` and accessed again in this call"),
+                    format!("`{nj}` is passed for mutation and accessed again in this call"),
                 );
                 return;
             }
@@ -1197,6 +1214,19 @@ mod selftest {
                    fn f(let c: bool, sink xs: List[i64]) -> i64 {\n    if c {\n        let n: i64 = keep(sink xs)\n    }\n\
                    \x20   let m: i64 = keep(sink xs)\n    ret m\n}\n";
         assert_eq!(codes(src), [("E401".into(), 9, 28)]);
+    }
+
+    #[test]
+    fn use_after_move_labels_the_move() {
+        let src = "module t\nfn keep(sink xs: List[i64]) -> i64 {\n    ret 0\n}\n\
+                   fn f(sink xs: List[i64]) -> i64 {\n    let a: i64 = keep(sink xs)\n    let b: i64 = keep(sink xs)\n    ret b\n}\n";
+        let (m, _) = yong_core::parse("t.yong", src);
+        let d = check("t.yong", src, &m.unwrap());
+        assert_eq!(d[0].code, "E401");
+        assert_eq!(
+            (d[0].labels[0].text.as_str(), d[0].labels[0].span.line),
+            ("moved", 6)
+        );
     }
 
     #[test]

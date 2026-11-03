@@ -42,7 +42,7 @@ Indexing a user type, `x[k]` and `x[k] = v`, resolves to `Index[K]`, whose `at` 
 
 **Reflection.** `info(T)` returns a non-exhaustive `TypeInfo` sum (`Record`, `Sum`, `Newtype`, `Scalar`, `Array`, `View`, `Fn`, `Trait` and so on, with annotations and layout). `info(f)` gives a signature, parameter names, `uses`, `fail` and doc string, never a body. `info(module)` lists items. `implements(T, Tr)` tests conformance, including the auto traits read-only. `x.(f)` accesses a reflected field. Reflection is access-checked at the call site (E264).
 
-**Derives.** A trait may define one `derived` body over reflection. `@derive(Tr)` instantiates it for the type with the defining module's access, then specializes it. `Eq`, `Ord`, `Hash`, `Show`, `Default`, `Wire` and `Num` (for newtypes over numeric types) are std traits with `derived` bodies. Deriving a trait without a `derived` body, or an auto trait, is E269.
+**Derives.** A trait may define one `derived` body over reflection. `@derive(Tr)` instantiates it for the type with the defining module's access, then specializes it. `Eq`, `Ord`, `Hash`, `Show`, `Default`, `Wire`, `Num` (for newtypes over numeric types) and `Cli` (R694) are std traits with `derived` bodies. Deriving a trait without a `derived` body, or an auto trait, is E269.
 
 **Attributes.** A user attribute is either a typed annotation (an inert materializable value read through reflection) or an `@attribute` function `Fn(DeclInfo) -> List[Decl]` that may only add impls, reified types and const items, which are then checked like any others. It never rewrites or removes the declaration and cannot emit extern items, exports or built-in attributes (E266).
 
