@@ -4322,30 +4322,8 @@ impl Lower<'_, '_, '_> {
             j::ExprKind::Name(n)
                 if matches!(self.locals.get(n), Some(Local { ty: Ty::Fn(..) })) =>
             {
-                let Ty::Fn(par, ps, ret) = self.locals[n].ty.clone() else {
-                    unreachable!("matched")
-                };
-                if args.len() != ps.len() || args.iter().any(|a| a.name.is_some()) {
-                    self.err(
-                        "E202",
-                        at,
-                        format!("`{n}` takes {} positional arguments", ps.len()),
-                    );
-                    return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
-                }
-                let mut out = Vec::new();
-                for (a, p) in args.iter().zip(&ps) {
-                    let j::ArgKind::Expr(e) = &a.kind else {
-                        return unsupported("`&` or `become` arguments to a callable");
-                    };
-                    let (x, t) = self.atom(e, Some(p))?;
-                    self.expect(&t, p, a.span);
-                    out.push(let_arg(x));
-                }
-                if !par {
-                    self.fn_calls.push((n.clone(), f.span));
-                }
-                Ok((Rhs::Call(call(n, vec![], out, at)), *ret, None))
+                let t = self.locals[n].ty.clone();
+                self.call_local(n, t, f.span, args, at)
             }
             j::ExprKind::Name(n) if !self.locals.contains_key(n) => {
                 if self.g.fns.contains_key(n) {
@@ -4416,7 +4394,15 @@ impl Lower<'_, '_, '_> {
                 }
                 self.method(b, m, *name_at, args, at)
             }
-            _ => unsupported("calling a value"),
+            _ => {
+                let (a, t) = self.atom(f, None)?;
+                match (a, &t) {
+                    (Atom::Name(n, _), Ty::Fn(..)) => {
+                        self.call_local(&n, t.clone(), f.span, args, at)
+                    }
+                    _ => unsupported("calling a value"),
+                }
+            }
         }
     }
 
@@ -5396,9 +5382,8 @@ impl Lower<'_, '_, '_> {
                 let c = call("std.prelude.Secret", vec![t.targ()], vec![sink_arg(a)], at);
                 Ok((Rhs::Call(c), Ty::Coll("Secret", vec![t])))
             }
-            "dict" | "set" | "enumerate" | "zip" | "sum" | "any" | "all" | "reversed"
-            | "isinstance" | "hash" | "repr" | "divmod" | "pow" | "chr" | "ord" | "atan2"
-            | "hypot" => unsupported(format!("`{n}`")),
+            "dict" | "set" | "enumerate" | "zip" | "reversed" | "isinstance" | "hash" | "repr"
+            | "divmod" | "pow" | "chr" | "ord" | "atan2" | "hypot" => unsupported(format!("`{n}`")),
             // std.test is in scope without an import (assumption A7).
             _ if let Some((path, p)) = ["prelude", "test"].iter().find_map(|m| {
                 let path = format!("std.{m}.{n}");
@@ -5427,6 +5412,41 @@ impl Lower<'_, '_, '_> {
                 Ok(err)
             }
         }
+    }
+
+    /// A call of the callable bound to the local `n`, of type `t`.
+    fn call_local(
+        &mut self,
+        n: &str,
+        t: Ty,
+        f_span: Span,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let Ty::Fn(par, ps, ret) = t else {
+            unreachable!("a callable")
+        };
+        if args.len() != ps.len() || args.iter().any(|a| a.name.is_some()) {
+            self.err(
+                "E202",
+                at,
+                format!("`{n}` takes {} positional arguments", ps.len()),
+            );
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        }
+        let mut out = Vec::new();
+        for (a, p) in args.iter().zip(&ps) {
+            let j::ArgKind::Expr(e) = &a.kind else {
+                return unsupported("`&` or `become` arguments to a callable");
+            };
+            let (x, t) = self.atom(e, Some(p))?;
+            self.expect(&t, p, a.span);
+            out.push(let_arg(x));
+        }
+        if !par {
+            self.fn_calls.push((n.to_owned(), f_span));
+        }
+        Ok((Rhs::Call(call(n, vec![], out, at)), *ret, None))
     }
 
     /// `f(...).context(msg)`: the call's failure as an `Error` with `msg` added (R432).
@@ -5899,6 +5919,18 @@ impl Lower<'_, '_, '_> {
         let e = || Ty::Err;
         if t == Ty::Err {
             return Ok((Rhs::Proj(p), e(), None));
+        }
+        // `std.text` declares `upper` and `lower` on `str` only; a `char` goes through its text.
+        if t == Ty::Char && matches!(m, "upper" | "lower") && args.is_empty() {
+            let c = if p.projs.is_empty() {
+                Atom::Name(p.root, p.root_span)
+            } else {
+                self.tmp(&t, Rhs::Proj(p), b.span)
+            };
+            let text = call("std.fmt.show", vec![t.targ()], vec![let_arg(c)], b.span);
+            let s = self.tmp(&Ty::Str, Rhs::Call(text), b.span);
+            let c = call(&format!("std.text.{m}"), vec![], vec![let_arg(s)], at);
+            return Ok((Rhs::Call(c), Ty::Str, None));
         }
         let std_class = match &t {
             Ty::Data(n) if self.g.std_records.contains(n) => crate::stdlib::class_module(n),

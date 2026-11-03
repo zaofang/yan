@@ -393,6 +393,29 @@ fn a_var_method_on_a_field_or_element_is_stored_back() {
 }
 
 #[test]
+fn upper_and_lower_take_a_char() {
+    let src = "def both(s: str) -> str:\n    out = \"\"\n    for c in s.chars():\n\
+        \x20       out += c.upper() + c.lower()\n    return out\n\n\
+        pub def main() uses io:\n    io.print(both(\"aB\"))\n";
+    assert_eq!(run(src), "AaBb\n");
+}
+
+#[test]
+fn sum_any_and_all_take_lists_and_comprehensions() {
+    let src = "pub def main() uses io:\n    xs = [1, 2, 3]\n\
+        \x20   io.print(f\"{sum(x * 2 for x in xs)} {sum(xs)} {all(x > 0 for x in xs)} {any(x > 5 for x in xs)}\")\n";
+    assert_eq!(run(src), "12 6 True False\n");
+}
+
+#[test]
+fn a_call_result_can_be_called() {
+    let src = "def inc(x: int) -> int:\n    return x + 1\n\n\
+        def pick() -> Callable[[int], int]:\n    return inc\n\n\
+        pub def main() uses io:\n    fs = [inc]\n    io.print(f\"{pick()(1)}{fs[0](5)}\")\n";
+    assert_eq!(run(src), "26\n");
+}
+
+#[test]
 fn post_names_resolve_in_a_hole_body() {
     let codes = |src: &str| {
         lower(src)
