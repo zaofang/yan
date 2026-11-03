@@ -1,0 +1,22 @@
+# spec: 17.5
+# rows: R602
+# stdout:
+# Wednesday 31 January 2024
+# 09:05 PM
+# 1970-01-01 00:00:00 UTC
+# 2024-07-14
+# invalid time at 0
+
+def strp(s: str) -> str:
+    return try_strp(s) else err -> f"{err}"
+
+def try_strp(s: str) -> str fail TimeError:
+    d = PlainDate.strptime(s, "%d/%m/%Y")?
+    return f"{d}"
+
+pub def main() uses io:
+    io.print(PlainDate(2024, 1, 31).strftime("%A %d %B %Y"))
+    io.print(PlainTime(21, 5).strftime("%I:%M %p"))
+    io.print(Instant.from_unix_seconds(0).strftime("%Y-%m-%d %H:%M:%S %Z"))
+    io.print(strp("14/07/2024"))
+    io.print(strp("2024-07-14"))

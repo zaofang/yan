@@ -376,3 +376,38 @@ fn upper_and_lower_take_a_char() {
         pub def main() uses io:\n    io.print(both(\"aB\"))\n";
     assert_eq!(run(src), "AaBb\n");
 }
+
+#[test]
+fn post_names_resolve_in_a_hole_body() {
+    let codes = |src: &str| {
+        lower(src)
+            .1
+            .iter()
+            .filter(|d| d.severity == yong_diag::Severity::Error)
+            .map(|d| d.code.clone())
+            .collect::<Vec<_>>()
+    };
+    let head = "def f(n: int) -> int:\n    \"\"\"Doc.\"\"\"\n";
+    assert_eq!(
+        codes(&format!("{head}    post result >= 0\n    ...\n")),
+        ["E200"]
+    );
+    assert!(codes(&format!("{head}    post out >= n\n    ...\n")).is_empty());
+}
+
+#[test]
+fn a_method_with_no_loaded_signature_does_not_panic() {
+    let src = "def f(xss: list[list[int]]) -> int:\n    \"\"\"Doc.\"\"\"\n    post out == xss.map(lambda xs: xs.len()).sum()\n    ...\n";
+    let (m, d) = yong_xin::parse("t.xin", src, false);
+    assert!(
+        d.iter().all(|d| d.severity != yong_diag::Severity::Error),
+        "{d:?}"
+    );
+    let _ = elaborate("t.xin", src, &m.expect("parses"), Options::default());
+}
+
+#[test]
+fn a_method_on_a_literal_lowers() {
+    let src = "pub def main() uses io:\n    io.print(\"-\".join([\"a\", \"b\"]))\n";
+    assert_eq!(run(src), "a-b\n");
+}

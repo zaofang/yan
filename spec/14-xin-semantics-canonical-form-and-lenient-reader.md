@@ -105,6 +105,7 @@ The lenient reader accepts these deviations and normalizes them, reporting a not
 | N29 | a function body of `case` arms (clause form) | `match` on the parameter, or on the tuple of parameters (R426) |
 | N30 | a class whose `__init__(self, ...)` only assigns `self.f = e` or `self.f: T = e` | the record's fields: `f: T = e` for an annotated or literal default, `f: T` with the parameter's type for an assigned parameter; other methods are lifted as N09 (R217) |
 | N31 | a `def` nested in a function body that reads no local of the enclosing function | a module-level function, keeping its name when that name is free at module level and named `outer_inner` otherwise; uses are renamed. A nested `def` that captures a local stays an error with a habit note (R661, R662) |
+| N32 | an `ex` line at the left margin, right after a function whose body it follows | the function's `ex` lines, appended after its other contracts (R766) |
 
 The reader never inserts `_ =` before an unused result, because that would hide the bug E312 exists to catch; it emits a note with a machine-applicable fix instead. `raise`, `try` and `except` are not normalized: they are errors (E120) with a suggested rewrite, because their semantics differ from `Result`.
 
