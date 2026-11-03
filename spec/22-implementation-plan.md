@@ -6,6 +6,8 @@ This section is normative where it says MUST; elsewhere it is the recommended pa
 
 Yong has one implementation, written in Rust with the crate layout below (R215, chosen 2026-10-31 in place of a Python reference followed by a port). M0 and M1 run on the interpreter, whose checked mode defines the abstract machine (6.1); Cranelift debug code generation follows in M1b. The conformance runner is implementation-independent and is the oracle: for every conformance and evaluation program, the interpreter and every code generator MUST produce the same result, diagnostic codes included. For Xin programs, the output of `yong export --python` run under CPython 3.12 is an independent second check. Performance targets apply to native code.
 
+**Formal core model (R680).** `formal/` holds a Lean 4 model of Yong-K, the fragment of Yong text named in RFC 0022: a reader, an executable semantics, and from phase 1 on the proofs of the formal core study. It is the one exception to R215: it never ships, no crate depends on it, and building the toolchain never needs Lean. `formal/drt.py` runs the `conformance/yong/run` cases and generated Yong-K programs on both the interpreter and the model and compares output, exit status and panic kind; a difference is a bug in one of them or a gap in this spec. Proofs start after the M1 gate.
+
 ### 22.2 Crates
 
 The compiler and tools MUST be written in Rust (stable toolchain) as one Cargo workspace:

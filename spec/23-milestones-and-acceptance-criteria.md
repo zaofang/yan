@@ -22,7 +22,7 @@ A milestone is complete only when every criterion below passes in CI. Performanc
 
 ### M1 · Xin and the agent toolchain
 
-- Xin lexer, parser, lenient normalizations N01 to N30, canonical printer.
+- Xin lexer, parser, lenient normalizations N01 to N31, canonical printer.
 - Elaborator to Yong, including inference, capability passing, copy, share and move insertion, narrowing and fail-transparent closures.
 - Standard library: the M1 row of the std roadmap, including prelude, text, list, dict, set, iter, collections, rc, slices with bisect, fmt, regex, csv, encoding, path, cli, `proc.run`, rand, bigint, bits, `Secret`, log, io, fs, json, math, test; Temporal-style time types.
 - `yong check` with lints, `run` (including scripts), `test` with verdict caching, `fmt`, `sig`, `patch`, `undo`, `explain`, `fix`, `export --python`, `import --python`, `mcp`, `add`, `remove`, `update`, `tree`, `why`, `vendor`, `x`, `schema gen`, `toolchain`, `skill`.
@@ -76,6 +76,6 @@ M2b (library, registry and tools):
 - Remote scheduling with `RemoteError` failure types and `Wire` checking.
 - CHERI targets; a native Tree Borrows sanitizer (candidate).
 - Stretch: GPU code generation for `par for` bodies with `uses none`, through MLIR and LLVM to Apple Metal first, then NVIDIA, AMD and Vulkan (R327 to R329), with `@fast_math` allowed under `nondet`.
-- WASM components (`wasm32-wasip2`, capabilities as WASI interfaces, platforms as WIT worlds).
+- WASM components (`wasm32-wasip2`, capabilities as WASI interfaces, platforms as WIT worlds), with `yong bind --lang js` writing an npm package through jco, published with npm trusted publishing (R641).
 - Chang (16.6, R516): reader, printer with spelling notes and lenient reader (the print-only view is M3, R563); the grammar moves from RFC 0001 into section 16.6 first, and every Wen conformance program round-trips through Chang by item hash.
 - Niche surfaces (16.7, R536 to R550) are post-1.0 and follow the order of R550; none is part of any milestone above. Durable timers (R552) ship with `@yong/durable`.
