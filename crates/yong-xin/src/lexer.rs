@@ -204,7 +204,7 @@ impl Lexer<'_> {
                         });
                     }
                     self.newline();
-                    self.at_line_start = true;
+                    self.at_line_start = self.brackets.is_empty();
                 }
                 '#' => self.comment(),
                 '0'..='9' => self.number(),
