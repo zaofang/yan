@@ -164,7 +164,7 @@ Rules on the grammar:
 - `Ptr`, `Uninit`, `asm` and `RawCell` are legal only inside `unsafe`. `Ref`, `Ptr`, `Uninit` and `Vec` are Wen-only (L4 to L6) and MUST NOT appear in Xin-elaborated code. `Ptr[T]` is never null; a nullable pointer is `Option[Ptr[T]]`.
 - `Call?` propagates a failure; `via` names the `From` conversion when the error types differ and injection does not apply (8.1). `try Call` reifies the outcome as a `Result`.
 - Arithmetic and comparison are calls to named intrinsics (`add_checked_i64`, `eq_f64`, ...); there are no infix operators in Yong.
-- Value-producing `if` and `match` are written with join points: `jp k(x: T) { ... }` is declared before the branch, and each arm ends in `jump k(a)`. Join points map one to one to Cranelift block parameters.
+- Value-producing `if` and `match` are written with join points: `jp k(x: T) { ... }` is declared before the branch, and each arm ends in `jump k(a)`. Join points map one to one to Cranelift block parameters. A join point body that ends without `ret`, `jump`, `fail`, `become` or `unreachable` continues after the statement of its block that jumped to it (R764).
 - The runtime exclusivity check of section 4.3 is the intrinsic `exclusive_check(i, j)`, which panics with kind `exclusivity`.
 - `drop Name` and `reuse Name as Ctor` appear only after the ownership passes (5.3). There is no `dup`: Yong has no implicit reference counting.
 - `comptime for` and `comptime if` are the only code-generation forms (section 10.4). `select` (Wen), `share` and `par for` have no Yong forms: they are calls to `std.chan.select`, `Share.share` and the bound `sched` handler.
