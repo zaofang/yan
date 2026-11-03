@@ -5597,6 +5597,18 @@ impl Lower<'_, '_, '_> {
         if t == Ty::Err {
             return Ok((Rhs::Proj(p), e(), None));
         }
+        // `std.text` declares `upper` and `lower` on `str` only; a `char` goes through its text.
+        if t == Ty::Char && matches!(m, "upper" | "lower") && args.is_empty() {
+            let c = if p.projs.is_empty() {
+                Atom::Name(p.root, p.root_span)
+            } else {
+                self.tmp(&t, Rhs::Proj(p), b.span)
+            };
+            let text = call("std.fmt.show", vec![t.targ()], vec![let_arg(c)], b.span);
+            let s = self.tmp(&Ty::Str, Rhs::Call(text), b.span);
+            let c = call(&format!("std.text.{m}"), vec![], vec![let_arg(s)], at);
+            return Ok((Rhs::Call(c), Ty::Str, None));
+        }
         let std_class = match &t {
             Ty::Data(n) if self.g.std_records.contains(n) => crate::stdlib::class_module(n),
             _ => None,
