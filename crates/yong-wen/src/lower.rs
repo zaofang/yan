@@ -9,14 +9,29 @@ use yong_hir as h;
 
 use crate::ast::*;
 
-/// A construct the shared IR has no node for yet.
+/// A construct the shared IR has no node for yet, at the innermost statement or expression
+/// that was being lowered (E017, R649).
 #[derive(Debug)]
-pub struct Unsupported(pub String);
+pub struct Unsupported {
+    pub what: String,
+    pub at: Option<Span>,
+}
+
+impl Unsupported {
+    /// Keeps the innermost span: the first one set wins as the error propagates outward.
+    fn at(mut self, span: Span) -> Self {
+        self.at.get_or_insert(span);
+        self
+    }
+}
 
 type R<T> = Result<T, Unsupported>;
 
 fn unsupported<T>(what: impl Into<String>) -> R<T> {
-    Err(Unsupported(what.into()))
+    Err(Unsupported {
+        what: what.into(),
+        at: None,
+    })
 }
 
 /// The std capabilities a body can name without declaring them (7.1).
@@ -38,8 +53,14 @@ pub fn lower(file: &str, src: &str, m: &Module) -> R<(h::Module, Vec<Diagnostic>
     };
     let mut items = Vec::new();
     for it in &m.items {
-        if let Some(i) = l.item(it)? {
-            items.push(i);
+        match l.item(it) {
+            Ok(Some(i)) => items.push(i),
+            Ok(None) => {}
+            // R649: report the construct and go on lowering the other items.
+            Err(u) => {
+                let msg = format!("{}: not supported by this toolchain yet", u.what);
+                l.err("E017", u.at.unwrap_or(it.span), &msg);
+            }
         }
     }
     let module = h::Module {
@@ -934,6 +955,10 @@ impl Lower<'_> {
     }
 
     fn stmt(&mut self, s: &Stmt) -> R<h::Stmt> {
+        self.stmt_inner(s).map_err(|u| u.at(s.span))
+    }
+
+    fn stmt_inner(&mut self, s: &Stmt) -> R<h::Stmt> {
         use h::StmtKind as K;
         let kind = match &s.kind {
             StmtKind::Expr(e) => match &e.kind {
@@ -1440,6 +1465,10 @@ impl Lower<'_> {
     }
 
     pub fn expr(&mut self, e: &Expr) -> R<h::Expr> {
+        self.expr_inner(e).map_err(|u| u.at(e.span))
+    }
+
+    fn expr_inner(&mut self, e: &Expr) -> R<h::Expr> {
         use h::ExprKind as K;
         let b = |x: h::Expr| Box::new(x);
         let span = e.span;
