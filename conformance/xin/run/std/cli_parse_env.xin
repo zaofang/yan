@@ -1,4 +1,5 @@
 # spec: 17.3
+# rows: R695
 # note: cli.parse reads env.args()
 # stdout:
 # in.txt 2

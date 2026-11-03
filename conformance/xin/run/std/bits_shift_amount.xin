@@ -1,4 +1,5 @@
 # spec: 3.4
+# rows: R682
 # note: a shift by at least the width, or by a negative amount, panics with overflow
 # stdout:
 # 1

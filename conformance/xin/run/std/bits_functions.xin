@@ -1,4 +1,5 @@
 # spec: 17.3
+# rows: R681
 # note: counts, rotations and swaps work on the bit pattern of the argument's type
 # stdout:
 # 3 5 3 1 5

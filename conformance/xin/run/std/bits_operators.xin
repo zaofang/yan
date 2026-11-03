@@ -1,4 +1,5 @@
 # spec: 3.4, 17.3
+# rows: R682
 # note: shifts and ~ on int, fixed-width types and bigint; >> is arithmetic on signed types
 # stdout:
 # 40 2 4290000000 4294967290

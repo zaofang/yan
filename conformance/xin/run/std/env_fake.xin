@@ -1,4 +1,5 @@
 # spec: 7.1, 17.3
+# rows: R686
 # note: fake_env gives args, variables (vars sorted by name) and the local zone; an unset variable is None
 # stdout:
 # ['a', 'b'] /h None {'A': '1', 'HOME': '/h'} Europe/Lisbon

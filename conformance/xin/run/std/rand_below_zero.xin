@@ -1,4 +1,5 @@
 # spec: 17.3
+# rows: R684
 # note: below(n) with n <= 0 panics with value
 # stdout:
 # 0

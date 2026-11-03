@@ -1,4 +1,5 @@
 # spec: 17.3
+# rows: R694
 # note: a field type Cli cannot parse is E269 at the derive
 # expect: E269 at 5:9
 

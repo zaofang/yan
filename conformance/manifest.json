@@ -2224,7 +2224,9 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R681"
+   ],
    "flags": [],
    "expect": [
     {
@@ -2241,7 +2243,9 @@
    "spec": [
     "3.4"
    ],
-   "rows": [],
+   "rows": [
+    "R682"
+   ],
    "flags": [],
    "expect": [
     {
@@ -2258,7 +2262,9 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R694"
+   ],
    "flags": [],
    "expect": [
     {
@@ -2275,7 +2281,9 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R694"
+   ],
    "flags": [],
    "expect": [
     {
@@ -2292,7 +2300,9 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R695"
+   ],
    "flags": [],
    "expect": [
     {
@@ -2309,7 +2319,9 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R694"
+   ],
    "flags": [],
    "expect": [
     {
@@ -3717,7 +3729,10 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R681",
+    "R682"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "8 8 71 0\n",
@@ -3730,7 +3745,9 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R681"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "3 5 3 1 5\n97 11 104 96\n2018915346 True False 64 64\n",
@@ -3744,7 +3761,9 @@
     "3.4",
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R682"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "40 2 4290000000 4294967290\n28 -8 -5 6\n1180591620717411303424 2 -2 4\n",
@@ -3757,7 +3776,9 @@
    "spec": [
     "3.4"
    ],
-   "rows": [],
+   "rows": [
+    "R682"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "1\n",
@@ -3770,7 +3791,10 @@
    "spec": [
     "3.4"
    ],
-   "rows": [],
+   "rows": [
+    "R681",
+    "R682"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "0 64\n",
@@ -3783,7 +3807,9 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R695"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "error: unknown option '--nope'\nusage: count [options] <path> <color>\nerror: missing argument <color>\nusage: count [options] <path> <color>\nerror: invalid value 'red' for <color>: expected one of dark, light\nusage: count [options] <path> <color>\nerror: invalid value 'x' for '--top': expected int\nusage: count [options] <path> <color>\nerror: option '--top' needs a value\nusage: count [options] <path> <color>\nerror: '--top' given twice\nusage: count [options] <path> <color>\nerror: option '--verbose' takes no value\nusage: count [options] <path> <color>\nerror: unexpected argument 'extra'\nusage: count [options] <path> <color>\nerror: invalid value '--top' for <color>: expected one of dark, light\nusage: count [options] <path> <color>\n",
@@ -3796,7 +3822,10 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R694",
+    "R695"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "True\nusage: word-count [options] <path>\n\nCount words in a file.\n\narguments:\n  <path> Path  the file to read\n\noptions:\n  --top <int>  how many to show (default: 10)\n  --verbose\n  -h, --help  show this help\nTrue\nusage: tool [options] <command>\n\nManage items.\n\noptions:\n  -h, --help  show this help\n\ncommands:\n  add  add one item\n  remove  remove items\nTrue\nusage: tool add [options] <name>\n\nadd one item\n\narguments:\n  <name> str\n\noptions:\n  -h, --help  show this help\n",
@@ -3809,7 +3838,10 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R694",
+    "R695"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "a.txt Light() ['x', 'y'] 3 0.5 n True\na.txt Dark() [] 10 0.25 None False\n",
@@ -3822,7 +3854,9 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R695"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "in.txt 2\n",
@@ -3835,7 +3869,9 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R694"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "Add(name='x', force=True)\nRemove(names=['a', 'b'])\nerror: missing argument <name>\nusage: tool add [options] <name>\nerror: unknown command 'zap'\nusage: tool [options] <command>\nerror: missing command\nusage: tool [options] <command>\n",
@@ -4047,7 +4083,9 @@
     "7.1",
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R686"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "['a', 'b'] /h None {'A': '1', 'HOME': '/h'} Europe/Lisbon\n[] UTC\n",
@@ -4060,7 +4098,9 @@
    "spec": [
     "17.4"
    ],
-   "rows": [],
+   "rows": [
+    "R687"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "Secret(***) hunter2 True None\n[Secret(***)]\n",
@@ -4322,7 +4362,11 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R688",
+    "R689",
+    "R690"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "level=debug msg=open span=load file=a.csv\nlevel=info msg=parsed span=load file=a.csv rows=3 note=\"two words\"\nlevel=warn msg=odd span=load/check file=a.csv empty=\"\" q=\"say \\\"hi\\\"\"\nlevel=error msg=done ok=False\nlevel=warn msg=odd span=load/check file=b.csv empty=\"\" q=\"say \\\"hi\\\"\"\n",
@@ -4583,7 +4627,10 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R691",
+    "R692"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "Command(['git', '--version', '-q']) ['git', '--version', '-q']\n0 None b'git 2' True\n3 None b'' False\nls: not in fake_proc NotFound()\n",
@@ -4596,7 +4643,9 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R684"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "0\n",
@@ -4609,7 +4658,9 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R684"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "7\n",
@@ -4622,7 +4673,10 @@
    "spec": [
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R683",
+    "R684"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "1 -3 True 0.7231518528398883 [6, 5, 4, 3, 2, 1] 6\n1 -3 True 0.7231518528398883 [6, 5, 4, 3, 2, 1] 6\n",
@@ -4636,7 +4690,9 @@
     "7.1",
     "9.2"
    ],
-   "rows": [],
+   "rows": [
+    "R685"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "903 282 400\n903 282 400 42\n400\n",
@@ -4650,7 +4706,9 @@
     "7.1",
     "17.3"
    ],
-   "rows": [],
+   "rows": [
+    "R683"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "13804888775535289832 4211859015901796865\n3536907876931541756 1681417456739323905\n11580484839666122119 11978924969568863972\n",

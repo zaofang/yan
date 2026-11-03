@@ -1,4 +1,5 @@
 # spec: 17.3
+# rows: R681, R682
 # note: bigint has count_ones and bit_width over its magnitude, as Python's bit_count and bit_length
 # stdout:
 # 8 8 71 0

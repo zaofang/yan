@@ -1,4 +1,5 @@
 # spec: 17.3
+# rows: R694
 # note: a sum of records is a subcommand parsed by the same rules
 # stdout:
 # Add(name='x', force=True)

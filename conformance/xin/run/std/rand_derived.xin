@@ -1,4 +1,5 @@
 # spec: 17.3
+# rows: R683, R684
 # note: below, range, bool, next_f64, choice and shuffle derive from next_u64 with fixed algorithms
 # stdout:
 # 1 -3 True 0.7231518528398883 [6, 5, 4, 3, 2, 1] 6

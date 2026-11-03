@@ -1,4 +1,5 @@
 # spec: 17.3
+# rows: R681
 # note: bigint has no fixed width, so it has only count_ones and bit_width
 # expect: E201 at 7:34
 

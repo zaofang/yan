@@ -1,4 +1,5 @@
 # spec: 7.1, 9.2
+# rows: R685
 # note: par branch k draws from a stream split by its task path; adding a branch shifts no other, and the parent's stream is unchanged
 # stdout:
 # 903 282 400

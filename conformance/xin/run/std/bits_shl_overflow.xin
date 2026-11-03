@@ -1,4 +1,5 @@
 # spec: 3.4
+# rows: R681, R682
 # note: << panics with overflow when it loses a bit; bits.wrapping_shl discards it
 # stdout:
 # 0 64

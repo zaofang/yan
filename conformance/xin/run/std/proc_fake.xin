@@ -1,4 +1,5 @@
 # spec: 17.3
+# rows: R691, R692
 # note: fake_proc answers by program name; an unknown program fails with NotFound; a non-zero exit is data
 # stdout:
 # Command(['git', '--version', '-q']) ['git', '--version', '-q']

@@ -1,4 +1,5 @@
 # spec: 17.3
+# rows: R684
 # note: choice of an empty list panics with bounds
 # stdout:
 # 7

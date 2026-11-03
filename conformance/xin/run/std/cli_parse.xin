@@ -1,4 +1,5 @@
 # spec: 17.3
+# rows: R694, R695
 # note: derive(Cli): no default is a positional, a default an option, bool a flag, a list the rest, a unit sum a choice
 # stdout:
 # a.txt Light() ['x', 'y'] 3 0.5 n True

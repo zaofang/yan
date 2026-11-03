@@ -1,4 +1,5 @@
 # spec: 17.3
+# rows: R695
 # note: after -- every argument is positional; the first problem in argument order is reported with fixed wording and the usage line
 # stdout:
 # error: unknown option '--nope'

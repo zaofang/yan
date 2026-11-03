@@ -1,4 +1,5 @@
 # spec: 7.1, 17.3
+# rows: R683
 # note: each algorithm has one fixed stream per seed (ChaCha8 by default, and Pcg64Dxsm)
 # stdout:
 # 13804888775535289832 4211859015901796865

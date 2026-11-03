@@ -1,4 +1,5 @@
 # spec: 17.3
+# rows: R688, R689, R690
 # note: logfmt events with keyword fields; spans are child handlers whose path and fields every event inherits; level filtering
 # stdout:
 # level=debug msg=open span=load file=a.csv
