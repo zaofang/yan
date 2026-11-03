@@ -28,6 +28,8 @@ Surfaces never write `move`; the elaborator inserts moves and trivial copies by 
 
 `copy x` is always a deep copy. Cheap aliasing is the trait `Share`, implemented by `Rc`, `Arc`, `Weak`, `Sender`, `Receiver` and actor handles: `share x` (Xin `x.share()`) is an O(1) alias. `copy` on a `Share` type is E416, with the fix `share`. `copy v` on a view returns the owned type (`View[T]` gives `List[T]`, `StrView` gives `Str`).
 
+**Consumption is written (R769).** In checked Yong a non-copy value leaves its local only by `move`, a `sink` argument, `ret`, a constructor field, a `sink` capture or (after optimization) `drop`; a bare bind `let y: T = x` of a non-copy `x` is a validator error. Ownership facts are not stored beside the text. `yong-check` owns one analysis over Yong, per function and per place (fields tracked separately): definitely initialized, maybe initialized, moved. It serves `yong-check`'s own use-after-move and exclusivity checks and `yong-opt`'s drop elaboration, and is recomputed on demand, never stored or hashed. The elaborator's last-use moves (rule 1) must agree with it; a disagreement is an internal error.
+
 **`let` of a projection** copies if the projected type is trivially copyable, moves at last use, and is E413 otherwise; borrowing part of a buffer is a view (SQ10).
 
 **Partial moves.** Fields may be moved out of an owned local, tracked per field. Not out of a type with a custom drop or `@linear`, nor through a view, `Rc` or `Arc` (SQ13).
