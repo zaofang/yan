@@ -96,7 +96,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E266 | attribute function output not allowed (rewrite, removal, extern, export or built-in attribute) *new* | 10.4 |
 | E267 | `embed` path outside the package root *new* | 10.4 |
 | E268 | construct not allowed at stage 0 (`unsafe`, `Ptr`, `extern`, `asm`, atomics, `Vec`) *new* | 10.4 |
-| E269 | derive of a trait without a `derived` body, or of an auto trait *new* | 10.4 |
+| E269 | derive of a trait without a `derived` body, or of an auto trait; a `derive(Cli)` field the mapping cannot parse, or an `@help` key that names nothing or appears without `derive(Cli)` (R694) *new* | 10.4, 17.3 |
 | E270 | `compile_error` raised by stage-0 code *new* | 10.4 |
 | E271 | `become` callee signature differs from the caller's *new* | 3.5 |
 | E232 | a `type` that mixes inline variants with other alternatives, or lists `None` among variants (retargeted by R423) | 14.1 |
