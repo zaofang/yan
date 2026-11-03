@@ -20,6 +20,7 @@ mod civil;
 mod collections;
 mod compile;
 mod encoding;
+mod env;
 mod iter;
 mod keyed;
 mod math;
@@ -69,6 +70,8 @@ pub(crate) enum Value {
     Bytes(Rc<[u8]>),
     ByteArray(Vec<u8>),
     Path(Rc<str>),
+    /// A `Secret[T]` (RFC 0019 D7); it shows as `Secret(***)`.
+    Secret(Rc<Value>),
     WindowsPath(Rc<path::WinPath>),
     Duration(i128),
     Instant(i128),
@@ -209,6 +212,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             out: &mut sink,
             clocks: Vec::new(),
             rngs: Vec::new(),
+            args: Vec::new(),
         },
     );
     vm.limit(limits);
@@ -283,6 +287,8 @@ pub(crate) struct Interp<'o> {
     clocks: Vec<i128>,
     /// The generator of each `seeded` handler, by handler.
     rngs: Vec<rand::Gen>,
+    /// The program's arguments under the host `env` handler.
+    args: Vec<String>,
 }
 
 pub(crate) fn panic<T>(kind: &str) -> R<T> {
@@ -317,7 +323,12 @@ pub(crate) fn unsupported<T>(what: impl Into<String>) -> R<T> {
 
 /// Run `fn main` of `m`, writing program output to `out`. Returns the exit status.
 pub fn run(m: &Module, out: &mut dyn Write) -> R<i32> {
-    Ok(match entry(m, "main", out, None)? {
+    run_with(m, out, Vec::new())
+}
+
+/// [`run`] with the program arguments `env.args()` returns.
+pub fn run_with(m: &Module, out: &mut dyn Write, args: Vec<String>) -> R<i32> {
+    Ok(match entry(m, "main", out, None, args)? {
         true => 0,
         false => EXIT_FAILURE,
     })
@@ -329,7 +340,7 @@ pub fn test(m: &Module, f: &str, limits: Limits, out: &mut (dyn Write + Send)) -
     std::thread::scope(|s| {
         std::thread::Builder::new()
             .stack_size(1 << 30)
-            .spawn_scoped(s, || entry(m, f, out, Some(limits)))
+            .spawn_scoped(s, || entry(m, f, out, Some(limits), Vec::new()))
             .expect("spawn the test thread")
             .join()
             .unwrap_or_else(|_| unsupported("the interpreter crashed"))
@@ -337,7 +348,13 @@ pub fn test(m: &Module, f: &str, limits: Limits, out: &mut (dyn Write + Send)) -
 }
 
 /// Call `fn f` of `m` with its capabilities bound; `false` when it returns a failure.
-fn entry(m: &Module, f: &str, out: &mut dyn Write, limits: Option<Limits>) -> R<bool> {
+fn entry(
+    m: &Module,
+    f: &str,
+    out: &mut dyn Write,
+    limits: Option<Limits>,
+    argv: Vec<String>,
+) -> R<bool> {
     let program = compile::compile(m);
     let Some(code) = program.fns.get(f).copied() else {
         return unsupported(format!("no `fn {f}` in the module"));
@@ -363,12 +380,14 @@ fn entry(m: &Module, f: &str, out: &mut dyn Write, limits: Option<Limits>) -> R<
         out,
         clocks: Vec::new(),
         rngs: Vec::new(),
+        args: argv,
     };
-    // The test handler set (7.3): `rand = seeded(0)`.
+    // The test handler set (7.3): `rand = seeded(0)`, `env = fake_env()`.
     let args = args
         .into_iter()
         .map(|a| match a {
             Value::Cap(n) if limits.is_some() && n == "rand" => rand::seeded(&mut it, 0, "ChaCha8"),
+            Value::Cap(n) if limits.is_some() && n == "env" => env::test_default(),
             a => a,
         })
         .collect();

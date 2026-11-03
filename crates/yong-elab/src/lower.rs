@@ -4727,6 +4727,7 @@ impl Lower<'_, '_, '_> {
             Ty::List(t) if matches!(b, "Eq" | "Ord") => self.implements(t, b),
             Ty::Coll("bytes", _) => matches!(b, "Eq" | "Ord" | "Hash"),
             Ty::Coll("bytearray", _) => b == "Eq",
+            Ty::Coll("Secret", ts) if b == "Eq" => self.implements(&ts[0], b),
             Ty::Coll("Path" | "WindowsPath", _) if matches!(b, "Eq" | "Ord" | "Hash") => true,
             Ty::Str | Ty::Coll("Path", _) if b == "AsPath" => true,
             Ty::Coll("Duration" | "Instant", _) => matches!(b, "Eq" | "Ord" | "Hash"),
@@ -5280,6 +5281,18 @@ impl Lower<'_, '_, '_> {
                 Ok((Rhs::Call(c), Ty::List(Box::new(Ty::Int))))
             }
             "deque" | "heap" | "sorted_dict" | "sorted_set" => self.collection(n, args, at, want),
+            "Secret" => {
+                let Some(xs) = self.positional(args, 1, n, at)? else {
+                    return Ok(err);
+                };
+                let inner = match want {
+                    Some(Ty::Coll("Secret", ts)) => ts.first().cloned(),
+                    _ => None,
+                };
+                let (a, t) = self.atom(xs[0], inner.as_ref())?;
+                let c = call("std.prelude.Secret", vec![t.targ()], vec![sink_arg(a)], at);
+                Ok((Rhs::Call(c), Ty::Coll("Secret", vec![t])))
+            }
             "dict" | "set" | "enumerate" | "zip" | "sum" | "any" | "all" | "reversed"
             | "isinstance" | "hash" | "repr" | "divmod" | "pow" | "chr" | "ord" | "atan2"
             | "hypot" => unsupported(format!("`{n}`")),

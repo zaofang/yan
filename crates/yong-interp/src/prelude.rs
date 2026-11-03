@@ -243,6 +243,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Closure(_) => "<function>".into(),
         Iter(_) => "<iter>".into(),
         Bytes(b) => super::encoding::repr(b),
+        Secret(_) => "Secret(***)".into(),
         Path(_) | WindowsPath(_) => super::path::text(v).to_owned(),
         Duration(n) => super::time::show_duration(*n),
         Instant(n) => super::time::show_instant(*n),
