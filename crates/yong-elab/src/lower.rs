@@ -5329,9 +5329,8 @@ impl Lower<'_, '_, '_> {
                 let c = call("std.prelude.Secret", vec![t.targ()], vec![sink_arg(a)], at);
                 Ok((Rhs::Call(c), Ty::Coll("Secret", vec![t])))
             }
-            "dict" | "set" | "enumerate" | "zip" | "sum" | "any" | "all" | "reversed"
-            | "isinstance" | "hash" | "repr" | "divmod" | "pow" | "chr" | "ord" | "atan2"
-            | "hypot" => unsupported(format!("`{n}`")),
+            "dict" | "set" | "enumerate" | "zip" | "reversed" | "isinstance" | "hash" | "repr"
+            | "divmod" | "pow" | "chr" | "ord" | "atan2" | "hypot" => unsupported(format!("`{n}`")),
             // std.test is in scope without an import (assumption A7).
             _ if let Some((path, p)) = ["prelude", "test"].iter().find_map(|m| {
                 let path = format!("std.{m}.{n}");
