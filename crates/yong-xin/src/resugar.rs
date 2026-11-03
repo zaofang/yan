@@ -17,7 +17,7 @@ type R = Result<(), &'static str>;
 fn item(it: &mut Item) -> R {
     match &mut it.kind {
         ItemKind::Func(f) | ItemKind::Lemma(f) => func(f),
-        ItemKind::Class(c) => c.fields.iter_mut().try_for_each(field),
+        ItemKind::Record(r) => r.fields.iter_mut().try_for_each(field),
         ItemKind::Type(t) => {
             if let TypeRhs::Sum(vs) = &mut t.rhs {
                 for v in vs {
@@ -104,7 +104,6 @@ fn stmt(s: &mut Stmt) -> R {
         }
         StmtKind::Ghost { value, .. } => expr(value),
         StmtKind::Bind { .. } => unreachable!("rewritten above"),
-        StmtKind::LetElse { .. } => Err("`let ... else`"),
         StmtKind::Unsafe(_) => Err("`unsafe`"),
         StmtKind::Asm { .. } => Err("`asm`"),
         StmtKind::StageIf { .. } | StmtKind::StageFor { .. } => Err("stage-0 control"),
@@ -186,9 +185,6 @@ fn pat(p: &mut Pat) -> R {
         Pat::Path { args: Some(a), .. } => a.iter_mut().try_for_each(|(_, p)| pat(p)),
         Pat::Tuple(ps) => ps.iter_mut().try_for_each(pat),
         Pat::As(p, _) => pat(p),
-        Pat::Or(_) => Err("an or-pattern"),
-        Pat::Range { .. } => Err("a range pattern"),
-        Pat::Slice(..) => Err("a slice pattern"),
     }
 }
 
@@ -256,7 +252,6 @@ fn expr(e: &mut Expr) -> R {
                 Fallback::Block(..) => Err("a fallback block"),
             }
         }
-        ExprKind::Is { .. } => Err("`is`"),
         ExprKind::Reify(_) => Err("`try` as a value"),
         ExprKind::Cast(..) => Err("`as`"),
     }

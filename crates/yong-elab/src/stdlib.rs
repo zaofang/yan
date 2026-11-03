@@ -20,7 +20,7 @@ pub(crate) struct Decl {
 
 pub(crate) struct Class {
     module: &'static str,
-    class: j::Class,
+    class: j::Record,
     span: Span,
 }
 
@@ -88,7 +88,7 @@ static STD: LazyLock<Std> = LazyLock::new(|| {
                 j::ItemKind::Const { name, value, .. } => {
                     out.consts.insert(format!("std.{module}.{name}"), value);
                 }
-                j::ItemKind::Class(class) => {
+                j::ItemKind::Record(class) => {
                     let span = it.span;
                     out.classes.insert(
                         class.name.clone(),
@@ -143,7 +143,7 @@ impl yong_hir::raise::Std for StdInfo {
                         name: name.clone(),
                         default: default.clone(),
                         positional: slash.is_some_and(|s| i < s),
-                        iter: matches!(ty, j::Type::Named { path, .. } if path == &["iter"]),
+                        iter: matches!(ty, j::Type::Named { path, .. } if path == &["Iter"]),
                     }),
                     _ => None,
                 })
@@ -276,8 +276,10 @@ impl Decl {
             && (self.module.starts_with("iter")
                 || self.def.params.iter().any(|p| match p {
                     j::Param::Value { ty, .. } => match ty {
-                        j::Type::Optional(t) => matches!(**t, j::Type::Callable { .. }),
-                        j::Type::Named { path, .. } => path.len() == 1 && path[0] == "iter",
+                        j::Type::Named { path, args } if path == &["Option"] => {
+                            matches!(&args[..], [j::TArg::Type(j::Type::Callable { .. })])
+                        }
+                        j::Type::Named { path, .. } => path == &["Iter"],
                         t => matches!(t, j::Type::Callable { .. }),
                     },
                     _ => false,
@@ -391,7 +393,7 @@ fn raw_words(m: &j::Module) -> HashSet<String> {
     for it in &mut m.items {
         match &mut it.kind {
             j::ItemKind::Func(f) | j::ItemKind::Lemma(f) => undoc(f),
-            j::ItemKind::Class(c) => c.doc = None,
+            j::ItemKind::Record(c) => c.doc = None,
             j::ItemKind::Trait(t) => {
                 t.doc = None;
                 t.sigs.iter_mut().for_each(|(_, f)| undoc(f));
@@ -482,7 +484,6 @@ fn mentions(t: &j::Type, n: &str) -> bool {
         j::Type::Callable { params, ret, .. } => {
             params.iter().any(|p| mentions(p, n)) || mentions(ret, n)
         }
-        j::Type::Optional(t) => mentions(t, n),
         j::Type::None => false,
     }
 }
@@ -500,7 +501,6 @@ fn unify(pat: &j::Type, t: &Ty, tps: &[&str], b: &mut HashMap<String, Ty>) -> bo
                 }
             }
         }
-        j::Type::Optional(p) => matches!(t, Ty::Option(x) if unify(p, x, tps, b)),
         j::Type::None => *t == Ty::Unit,
         j::Type::Callable { .. } => false,
         j::Type::Named { path, args } if matches!(t, Ty::Data(_)) => {
@@ -520,25 +520,26 @@ fn unify(pat: &j::Type, t: &Ty, tps: &[&str], b: &mut HashMap<String, Ty>) -> bo
     }
 }
 
-/// The Xin name of `t`'s type constructor and its arguments.
+/// The HIR (Yong) name of `t`'s type constructor and its arguments.
 fn shape(t: &Ty) -> Option<(&'static str, Vec<&Ty>)> {
     Some(match t {
-        Ty::Int => ("int", vec![]),
-        Ty::Float => ("float", vec![]),
-        Ty::BigInt => ("bigint", vec![]),
+        Ty::Int => ("i64", vec![]),
+        Ty::Float => ("f64", vec![]),
+        Ty::BigInt => ("BigInt", vec![]),
         Ty::Bool => ("bool", vec![]),
-        Ty::Str => ("str", vec![]),
+        Ty::Str => ("Str", vec![]),
         Ty::Char => ("char", vec![]),
-        Ty::List(x) => ("list", vec![x]),
-        Ty::Set(x) => ("set", vec![x]),
-        Ty::Dict(k, v) => ("dict", vec![k, v]),
+        Ty::List(x) => ("List", vec![x]),
+        Ty::Set(x) => ("Set", vec![x]),
+        Ty::Dict(k, v) => ("Map", vec![k, v]),
+        Ty::Option(x) => ("Option", vec![x]),
         Ty::Result(x, e) => ("Result", vec![x, e]),
         Ty::Tuple(ts) => ("tuple", ts.iter().collect()),
-        Ty::Coll(n, ts) => (*n, ts.iter().collect()),
-        Ty::Fixed(n) => (
-            yong_names::type_name(n, yong_names::Surface::Yong, yong_names::Surface::Xin)?,
-            vec![],
+        Ty::Coll(n, ts) => (
+            yong_names::type_name(n, yong_names::Surface::Xin, yong_names::Surface::Yong)?,
+            ts.iter().collect(),
         ),
+        Ty::Fixed(n) => (n, vec![]),
         _ => return None,
     })
 }
@@ -547,7 +548,6 @@ fn shape(t: &Ty) -> Option<(&'static str, Vec<&Ty>)> {
 fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
     Some(match pat {
         j::Type::None => Ty::Unit,
-        j::Type::Optional(t) => Ty::Option(Box::new(subst(t, b)?)),
         j::Type::Callable { .. } => return None,
         j::Type::Named { path, args } => {
             let a = args
@@ -571,24 +571,7 @@ fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
                     Ty::Data(n.to_owned())
                 }
                 (n, []) if b.contains_key(n) => b[n].clone(),
-                ("int", []) => Ty::Int,
-                ("float", []) => Ty::Float,
-                ("bigint", []) => Ty::BigInt,
-                ("bool", []) => Ty::Bool,
-                ("str", []) => Ty::Str,
-                ("char", []) => Ty::Char,
-                (n, []) if crate::ty::fixed(n).is_some() => {
-                    Ty::Fixed(crate::ty::fixed(n).expect("matched"))
-                }
-                ("list", [t]) => Ty::List(Box::new(t.clone())),
-                ("set", [t]) => Ty::Set(Box::new(t.clone())),
-                ("dict", [k, v]) => Ty::Dict(Box::new(k.clone()), Box::new(v.clone())),
-                ("tuple", ts) => Ty::Tuple(ts.to_vec()),
-                (n, ts) if crate::ty::collection(n).is_some_and(|(_, k)| k == ts.len()) => {
-                    Ty::Coll(crate::ty::collection(n).expect("matched").0, ts.to_vec())
-                }
-                ("Result", [t, e]) => Ty::Result(Box::new(t.clone()), Box::new(e.clone())),
-                _ => return None,
+                (n, a) => crate::ty::builtin(n, a)?,
             }
         }
     })

@@ -167,6 +167,56 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
     }
 
     #[test]
+    fn types_are_spelled_as_yong_in_hir() {
+        let src = "def f(x: int, y: list[str] | None, z: sorted_dict[int8, bytes]) -> dict[str, float]:\n    return {}\n";
+        let m = parse("t.xin", src, true).0.unwrap();
+        let ast::ItemKind::Func(f) = &m.items[0].kind else {
+            panic!("a function")
+        };
+        let names: Vec<String> = f
+            .params
+            .iter()
+            .map(|p| match p {
+                ast::Param::Value { ty, .. } => format!("{ty:?}"),
+                _ => String::new(),
+            })
+            .collect();
+        assert!(names[0].contains("\"i64\"") && !names[0].contains("\"int\""));
+        assert!(
+            names[1].contains("\"Option\"")
+                && names[1].contains("\"List\"")
+                && names[1].contains("\"Str\"")
+        );
+        assert!(
+            names[2].contains("\"SortedMap\"")
+                && names[2].contains("\"i8\"")
+                && names[2].contains("\"Bytes\"")
+        );
+        assert_eq!(print(&m), src);
+    }
+
+    #[test]
+    fn yong_spellings_are_not_xin_types() {
+        let src = "def f(x: i64, y: Option[int], z: List[int]) -> Map[str, int]:\n    return {}\n";
+        let got: Vec<_> = codes(src, true).into_iter().map(|c| (c.0, c.2)).collect();
+        assert_eq!(
+            got,
+            [
+                ("E200".into(), 10),
+                ("E200".into(), 18),
+                ("E200".into(), 34),
+                ("E200".into(), 48)
+            ]
+        );
+        // The lenient reader normalizes `List` (N04) before it reaches HIR.
+        assert!(
+            !codes("def f(z: List[int]) -> int:\n    return 0\n", false)
+                .iter()
+                .any(|c| c.0 == "E200")
+        );
+    }
+
+    #[test]
     fn python_classes_normalize() {
         let src = "@dataclass\nclass P:\n    x: \"P\"\n\n    def m(self, o: P) -> int:\n        return 1\n\nclass E(Exception):\n    pass\n\nShape = P | E\n";
         let got: Vec<_> = codes(src, false).into_iter().map(|c| c.0).collect();

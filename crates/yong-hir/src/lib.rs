@@ -1,6 +1,6 @@
-//! High-level IR (22.2): the tree both surfaces parse to and yong-elab lowers. It follows
-//! Xin's grammar (13.2); Wen-only forms are added here as Wen needs them. Spans are the first
-//! token of each node.
+//! High-level IR (22.2): the surface-neutral tree every surface lowers to and yong-elab lowers.
+//! Built-in types carry their Yong names (16.3); surfaces desugar their own forms before HIR
+//! (R558). Spans are the first token of each node.
 
 pub mod raise;
 
@@ -37,7 +37,7 @@ pub struct Item {
 pub enum ItemKind {
     Func(FuncDef),
     Lemma(FuncDef),
-    Class(Class),
+    Record(Record),
     Type(TypeDef),
     Trait(Trait),
     Impl(Impl),
@@ -100,7 +100,7 @@ impl ItemKind {
     pub fn name(&self) -> &str {
         match self {
             ItemKind::Func(f) | ItemKind::Lemma(f) => &f.name,
-            ItemKind::Class(c) => &c.name,
+            ItemKind::Record(r) => &r.name,
             ItemKind::Type(t) => &t.name,
             ItemKind::Trait(t) => &t.name,
             ItemKind::Impl(_) => "impl",
@@ -192,7 +192,7 @@ pub enum Contract {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Class {
+pub struct Record {
     pub name: Name,
     pub tparams: Vec<TParam>,
     pub doc: Option<String>,
@@ -248,7 +248,8 @@ pub struct Impl {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Type {
-    /// Built-in and user types alike; `list[int]` is `list` with one argument.
+    /// Built-in and user types alike, built-ins by their Yong names: `List[i64]` is `List` with
+    /// one argument, `Option[T]` is an optional.
     Named {
         path: Path,
         args: Vec<TArg>,
@@ -260,8 +261,6 @@ pub enum Type {
         fail: Vec<Path>,
         uses: Vec<Name>,
     },
-    /// `T | None`.
-    Optional(Box<Type>),
     None,
 }
 
@@ -305,12 +304,6 @@ pub enum StmtKind {
         target_span: Span,
         ty: Option<Type>,
         value: Expr,
-    },
-    /// `let p = e else` with a block that must exit.
-    LetElse {
-        pat: Pat,
-        value: Expr,
-        els: Block,
     },
     Return(Option<Expr>),
     Become(Expr),
@@ -449,14 +442,6 @@ pub enum Pat {
     },
     Tuple(Vec<Pat>),
     As(Box<Pat>, Name),
-    Or(Vec<Pat>),
-    Range {
-        lo: Expr,
-        hi: Expr,
-        inclusive: bool,
-    },
-    /// The elements, and where a `..rest` sits with its optional name.
-    Slice(Vec<Pat>, Option<(usize, Option<Name>)>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -531,12 +516,6 @@ pub enum ExprKind {
     },
     Fallback(Box<Expr>, Box<Fallback>),
     Lambda(Vec<Name>, Box<Expr>),
-    /// `e is p`, negated for `is not`.
-    Is {
-        value: Box<Expr>,
-        negated: bool,
-        pat: Box<Pat>,
-    },
     /// Wen's `try e`: the failure as a `Result` value.
     Reify(Box<Expr>),
     /// `e as T`.

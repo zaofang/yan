@@ -383,7 +383,7 @@ impl Lower<'_> {
                 if positional.is_some() {
                     return unsupported("positional-only record fields");
                 }
-                return Ok(h::ItemKind::Class(h::Class {
+                return Ok(h::ItemKind::Record(h::Record {
                     name: t.name.clone(),
                     tparams,
                     doc: self.doc.clone(),
@@ -473,7 +473,10 @@ impl Lower<'_> {
 
     fn fail_paths(&mut self, t: &Type) -> R<Vec<h::Path>> {
         match &t.kind {
-            TypeKind::Path { path, args } if args.is_empty() => Ok(vec![path.clone()]),
+            TypeKind::Path { path, args } if args.is_empty() => Ok(vec![match path.as_slice() {
+                [n] if yong_type(n, 0).is_some() => vec![yong_type(n, 0).expect("checked").into()],
+                _ => path.clone(),
+            }]),
             TypeKind::Union(ts) => {
                 let mut out = Vec::new();
                 for t in ts {
@@ -497,14 +500,9 @@ impl Lower<'_> {
                 }
                 let p: Vec<&str> = path.iter().map(String::as_str).collect();
                 match (p.as_slice(), a.len()) {
-                    // Built-in types under the shared IR's (Xin's) names.
-                    ([n], k) if xin_type(n, k).is_some() => {
-                        named(&[xin_type(n, k).expect("checked")], a)
+                    ([n], k) if yong_type(n, k).is_some() => {
+                        named(&[yong_type(n, k).expect("checked")], a)
                     }
-                    (["Option"], 1) => match a.pop() {
-                        Some(h::TArg::Type(t)) => h::Type::Optional(Box::new(t)),
-                        _ => return unsupported("this Option type"),
-                    },
                     _ => h::Type::Named {
                         path: path.clone(),
                         args: a,
@@ -518,7 +516,7 @@ impl Lower<'_> {
                     .map(|t| Ok(h::TArg::Type(self.ty(t)?)))
                     .collect::<R<_>>()?,
             ),
-            TypeKind::Option(t) => h::Type::Optional(Box::new(self.ty(t)?)),
+            TypeKind::Option(t) => named(&["Option"], vec![h::TArg::Type(self.ty(t)?)]),
             TypeKind::Fn {
                 par,
                 params,
@@ -1731,10 +1729,10 @@ fn tail_return(stmts: &mut [h::Stmt]) {
 }
 
 /// Wen's built-in type `n` with `k` type arguments, as Xin spells it (16.3).
-fn xin_type(n: &str, k: usize) -> Option<&'static str> {
+fn yong_type(n: &str, k: usize) -> Option<&'static str> {
     yong_names::type_row(n, yong_names::Surface::Wen)
         .filter(|r| r.arity == k)
-        .map(|r| r.xin)
+        .map(|r| r.yong)
 }
 
 fn binop_text(op: BinOp) -> &'static str {

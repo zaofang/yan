@@ -4,6 +4,7 @@
 use std::collections::HashSet;
 
 use yong_diag::{Severity, Span};
+use yong_names::{Surface, TYPES, type_row};
 
 use crate::ast::*;
 use crate::lexer::{FPart, Issue, Tok, Token, lex};
@@ -489,7 +490,7 @@ impl Parser {
         } else if self.is_kw("class") {
             let ns = name_at(self);
             self.bump();
-            (ItemKind::Class(self.class_rest(is_pub)?), ns)
+            (ItemKind::Record(self.class_rest(is_pub)?), ns)
         } else if self.soft("type") && matches!(self.tok_at(1), Tok::Name(n) if is_type_name(n)) {
             let ns = name_at(self);
             self.bump();
@@ -648,7 +649,11 @@ impl Parser {
                         TArg::Type(Type::Named { path, .. }) => vec![path.clone()],
                         TArg::Text(t) => t
                             .split(" | ")
-                            .map(|p| p.split('.').map(str::to_owned).collect())
+                            .map(|p| {
+                                let mut p = p.split('.').map(str::to_owned).collect();
+                                self.builtin(&mut p, 0, at);
+                                p
+                            })
                             .collect(),
                         _ => Vec::new(),
                     };
@@ -670,11 +675,16 @@ impl Parser {
     }
 
     fn errtype(&mut self) -> P<Vec<Path>> {
-        let mut out = vec![self.path()?];
-        while self.eat_op("|") {
-            out.push(self.path()?);
+        let mut out = Vec::new();
+        loop {
+            let at = self.span();
+            let mut p = self.path()?;
+            self.builtin(&mut p, 0, at);
+            out.push(p);
+            if !self.eat_op("|") {
+                return Ok(out);
+            }
         }
-        Ok(out)
     }
 
     fn uses(&mut self) -> P<Uses> {
@@ -917,7 +927,7 @@ impl Parser {
         Ok(out)
     }
 
-    fn class_rest(&mut self, is_pub: bool) -> P<Class> {
+    fn class_rest(&mut self, is_pub: bool) -> P<Record> {
         let name = self.name()?;
         let tparams = self.tparams()?;
         if !self.strict && self.is_op("(") && self.is_kw_at(1, "Exception") && self.is_op_at(2, ")")
@@ -947,7 +957,7 @@ impl Parser {
         if matches!(self.tok(), Tok::Dedent) {
             self.bump();
         }
-        Ok(Class {
+        Ok(Record {
             name,
             tparams,
             doc,
@@ -1155,7 +1165,7 @@ impl Parser {
         if self.is_op("|") && self.is_kw_at(1, "None") {
             self.bump();
             self.bump();
-            return Ok(Type::Optional(Box::new(base)));
+            return Ok(option(base));
         }
         Ok(base)
     }
@@ -1246,12 +1256,33 @@ impl Parser {
                     let TArg::Type(t) = args.remove(0) else {
                         return Ok(Type::Named { path, args });
                     };
-                    return Ok(Type::Optional(Box::new(t)));
+                    return Ok(option(t));
                 }
                 path = vec![to.to_owned()];
             }
         }
+        self.builtin(&mut path, args.len(), at);
         Ok(Type::Named { path, args })
+    }
+
+    /// Respells a built-in type name as HIR does, in Yong (16.3).
+    fn builtin(&mut self, path: &mut Path, arity: usize, at: Span) {
+        let [n] = path.as_slice() else {
+            return;
+        };
+        let yong = match n.as_str() {
+            "int64" => Some("i64"),
+            "float64" => Some("f64"),
+            n => type_row(n, Surface::Xin)
+                .filter(|r| r.arity == arity)
+                .map(|r| r.yong),
+        };
+        if let Some(y) = yong {
+            *path = vec![y.to_owned()];
+        } else if n == "Option" || TYPES.iter().any(|r| r.yong == n && r.xin != n) {
+            // Yong's own spelling would otherwise pass for Xin's.
+            self.error("E200", at, format!("cannot find type `{n}`"));
+        }
     }
 
     fn targ(&mut self) -> P<TArg> {
@@ -2433,5 +2464,12 @@ impl Parser {
             });
         }
         Ok(e)
+    }
+}
+
+fn option(t: Type) -> Type {
+    Type::Named {
+        path: vec!["Option".into()],
+        args: vec![TArg::Type(t)],
     }
 }

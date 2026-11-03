@@ -11,7 +11,6 @@ use std::collections::HashMap;
 
 use yong_core::ast as y;
 use yong_diag::Span;
-use yong_names::{Surface, type_name};
 
 use crate::*;
 
@@ -96,7 +95,7 @@ fn item(it: &y::Item, std: &dyn Std) -> R<Option<Item>> {
         y::ItemKind::Sum(s) if std.inserted(&last(&s.path)) => return Ok(None),
         y::ItemKind::Record(r) => (
             r.is_pub,
-            ItemKind::Class(Class {
+            ItemKind::Record(Record {
                 name: last(&r.path),
                 tparams: tparams(&r.tparams),
                 doc: None,
@@ -182,27 +181,18 @@ fn ty(t: &y::Type) -> R<Type> {
     Ok(match t {
         y::Type::Named(n) => match (n.path.as_slice(), n.args.as_slice()) {
             ([u], []) if u == "Unit" => Type::None,
-            ([o], [y::TArg::Type(t)]) if o == "Option" => Type::Optional(Box::new(ty(t)?)),
-            (p, args) => {
-                let mut path = p.to_vec();
-                if let [one] = p
-                    && let Some(j) = type_name(one, Surface::Yong, Surface::Xin)
-                {
-                    path = vec![j.to_owned()];
-                }
-                Type::Named {
-                    path,
-                    args: args
-                        .iter()
-                        .map(|a| {
-                            Ok(match a {
-                                y::TArg::Type(t) => TArg::Type(ty(t)?),
-                                y::TArg::Nat(n) => TArg::Int(n.clone()),
-                            })
+            (path, args) => Type::Named {
+                path: path.to_vec(),
+                args: args
+                    .iter()
+                    .map(|a| {
+                        Ok(match a {
+                            y::TArg::Type(t) => TArg::Type(ty(t)?),
+                            y::TArg::Nat(n) => TArg::Int(n.clone()),
                         })
-                        .collect::<R<_>>()?,
-                }
-            }
+                    })
+                    .collect::<R<_>>()?,
+            },
         },
         y::Type::Tuple(ts) => Type::Named {
             path: vec!["tuple".into()],
