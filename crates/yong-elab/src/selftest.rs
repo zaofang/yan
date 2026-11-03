@@ -101,6 +101,72 @@ pub def main() uses io:
 }
 
 #[test]
+fn question_mark_needs_a_function_that_can_fail() {
+    let g = "def g() -> int fail str:\n    fail \"x\"\n\n";
+    let (_, d) = lower(&format!("{g}def f() -> int:\n    return g()?\n"));
+    assert_eq!(
+        d.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
+        ["E310"]
+    );
+    let (_, d) = lower(&format!("{g}def f() -> int fail str:\n    return g()?\n"));
+    assert!(d.is_empty(), "{d:?}");
+}
+
+#[test]
+fn unsupported_construct_is_e017_and_the_next_item_is_checked() {
+    let src =
+        "def a() -> int:\n    s = {1, 2}\n    return 1\n\ndef b() -> int:\n    return missing\n";
+    let (_, d) = lower(src);
+    let got: Vec<_> = d
+        .iter()
+        .map(|d| (d.code.as_str(), d.span.line, d.span.col, d.item.as_str()))
+        .collect();
+    assert_eq!(got, [("E017", 2, 9, "a"), ("E200", 6, 12, "b")], "{d:?}");
+}
+
+#[test]
+fn a_value_function_must_not_fall_off_its_end() {
+    let codes = |src: &str| {
+        let (_, d) = lower(src);
+        d.into_iter().map(|d| d.code).collect::<Vec<_>>()
+    };
+    let src = "def f(x: int) -> int:\n    if x > 0:\n        return 1\n";
+    assert_eq!(codes(src), ["E201"]);
+    let ok = "def f(x: int) -> int:\n    if x > 0:\n        return 1\n    else:\n        return 0\n\n\
+              def g(x: int) -> int:\n    while True:\n        x += 1\n        if x > 9:\n            return x\n";
+    assert!(codes(ok).is_empty());
+}
+
+#[test]
+fn a_misspelt_use_reports_only_the_unresolved_name() {
+    let (_, d) = lower("def f(count: int) -> int:\n    return cout + 1\n");
+    assert_eq!(
+        d.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
+        ["E200"]
+    );
+}
+
+#[test]
+fn messages_name_the_real_problem() {
+    let (_, d) = lower("def f() -> int:\n    y = 2\n    return 1\n");
+    assert!(
+        d[0].message
+            .ends_with("remove it or write `_` in its place"),
+        "{d:?}"
+    );
+    let (_, d) = lower("def f(d: dict[str, int]) -> int:\n    return d.get(\"a\") + 1\n");
+    assert!(d[0].message.contains("may be `None`"), "{d:?}");
+}
+
+#[test]
+fn a_literal_argument_binds_a_type_parameter() {
+    let src = "def first[T](xs: list[T]) -> T | None:\n    return xs.get(0)\n\n\
+               pub def main() uses io:\n    s = first([\"a\"]) else \"z\"\n    n = first([1]) else 0\n\
+               \x20   io.print(f\"{s} {n + 1}\")\n";
+    assert_eq!(run(src), "a 2\n");
+}
+
+#[test]
 fn lenient_methods_and_string_loops_run() {
     let src = "\
 class Word:

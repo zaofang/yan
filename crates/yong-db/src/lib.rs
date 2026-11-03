@@ -9,7 +9,7 @@ use std::sync::Once;
 
 use yong_core::ast as y;
 use yong_core::hash::Hashed;
-use yong_diag::{Diagnostic, Severity};
+use yong_diag::{Diagnostic, Severity, Span};
 
 /// Each std module: its path below `std.`, its file name, its source and its HIR.
 pub fn std_modules() -> Vec<(&'static str, String, &'static str, yong_hir::Module)> {
@@ -105,18 +105,14 @@ pub enum Front {
     Hir(yong_hir::Module, Vec<Diagnostic>),
     /// Front-end errors.
     Stopped(Vec<Diagnostic>),
-    /// Wen the lowering does not handle yet; the front end's diagnostics.
-    Unsupported(String, Vec<Diagnostic>),
 }
 
 /// A module ready to check or run: parsed and, for Xin and Wen, elaborated to Yong.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Loaded {
     Ready(y::Module, Vec<Diagnostic>),
-    /// Front-end diagnostics that stop before the Yong checker.
+    /// Front-end diagnostics that stop before the Yong checker, E017 among them (R649).
     Stopped(Vec<Diagnostic>),
-    /// A construct the elaborator does not lower yet; the front end's diagnostics.
-    Unsupported(String, Vec<Diagnostic>),
 }
 
 pub fn has_error(diags: &[Diagnostic]) -> bool {
@@ -156,7 +152,7 @@ pub fn front(db: &dyn Db, file: SourceFile) -> Result<Front, String> {
                 return Ok(Front::Stopped(diags));
             }
             match yong_wen::lower(&name, src, &m) {
-                Err(yong_wen::Unsupported(what)) => Front::Unsupported(what, diags),
+                Err(u) => Front::Stopped(unsupported(&name, src, &u.what, u.at, diags)),
                 Ok((_, mut errs)) if has_error(&errs) => {
                     errs.extend(diags);
                     Front::Stopped(errs)
@@ -207,7 +203,6 @@ fn load_ordered(db: &dyn Db, file: SourceFile, reverse: bool) -> Result<Loaded, 
             elaborate(db, file, &h, diags)
         }
         Front::Stopped(d) => Loaded::Stopped(d),
-        Front::Unsupported(what, d) => Loaded::Unsupported(what, d),
     })
 }
 
@@ -230,7 +225,7 @@ fn elaborate(
     };
     let name = path.display().to_string();
     match yong_elab::elaborate(&name, file.text(db), m, opts) {
-        Err(yong_elab::Unsupported(what)) => Loaded::Unsupported(what, diags),
+        Err(u) => Loaded::Stopped(unsupported(&name, file.text(db), &u.what, u.at, diags)),
         Ok((y, mut errs)) => {
             let stop = has_error(&errs);
             errs.extend(diags);
@@ -243,10 +238,21 @@ fn elaborate(
     }
 }
 
-/// 12: a module under a directory named `ffi` (conformance assumption A9).
+/// 12: a module under the package's `ffi/` directory. The package root is the nearest
+/// directory above the module with a `yong.toml`; without one, the module's own directory
+/// must be named `ffi` (conformance assumption A9). Directories above the root never count.
 fn is_ffi(path: &Path) -> bool {
-    path.parent()
-        .is_some_and(|d| d.components().any(|c| c.as_os_str() == "ffi"))
+    let Some(dir) = path.parent() else {
+        return false;
+    };
+    match dir.ancestors().find(|d| d.join("yong.toml").is_file()) {
+        Some(root) => dir.strip_prefix(root).is_ok_and(|rel| {
+            rel.components()
+                .next()
+                .is_some_and(|c| c.as_os_str() == "ffi")
+        }),
+        None => dir.file_name().is_some_and(|n| n == "ffi"),
+    }
 }
 
 /// Every diagnostic of the module: the front end's, the elaborator's and the Yong checker's.
@@ -259,10 +265,44 @@ pub fn diagnostics(db: &dyn Db, file: SourceFile) -> Result<Vec<Diagnostic>, Str
             d
         }
         Loaded::Stopped(d) => d,
-        // Front-end errors found before the unsupported construct are still real.
-        Loaded::Unsupported(_, d) if has_error(&d) => d,
-        Loaded::Unsupported(what, _) => return Err(format!("not supported yet: {what}")),
     })
+}
+
+/// E017 for a construct found where lowering cannot go on with the next item, such as a type
+/// declaration other items depend on; at line 1 when no span is known (R649).
+fn unsupported(
+    file: &str,
+    src: &str,
+    what: &str,
+    at: Option<Span>,
+    mut diags: Vec<Diagnostic>,
+) -> Vec<Diagnostic> {
+    let at = at.unwrap_or(Span {
+        line: 1,
+        col: 1,
+        end_line: 1,
+        end_col: 1,
+    });
+    let quote = src
+        .lines()
+        .nth(at.line.saturating_sub(1) as usize)
+        .and_then(|l| {
+            let to = if at.end_line == at.line {
+                at.end_col as usize
+            } else {
+                l.len() + 1
+            };
+            l.get(at.col.saturating_sub(1) as usize..to.saturating_sub(1))
+        })
+        .unwrap_or("");
+    diags.push(Diagnostic::error(
+        "E017",
+        file,
+        at,
+        quote,
+        yong_elab::unsupported_message(what),
+    ));
+    diags
 }
 
 /// The item hashes (3.6) of a module that elaborates.
@@ -347,5 +387,88 @@ mod tests {
         assert!(d.iter().any(|d| d.item == "g"), "{d:?}");
         let g = items(&db, file)[1];
         assert_eq!(item_diagnostics(&db, g).len(), d.len());
+    }
+
+    #[test]
+    fn ffi_is_the_package_ffi_directory() {
+        let dir = std::env::temp_dir().join(format!("yong-ffi-{}", std::process::id()));
+        let pkg = dir.join("ffi").join("pkg");
+        std::fs::create_dir_all(pkg.join("src")).unwrap();
+        std::fs::create_dir_all(pkg.join("ffi")).unwrap();
+        std::fs::write(pkg.join("yong.toml"), "").unwrap();
+        assert!(!is_ffi(&pkg.join("src").join("a.wen")));
+        assert!(is_ffi(&pkg.join("ffi").join("a.wen")));
+        assert!(is_ffi(Path::new("conformance/wen/pass/ffi/a.wen")));
+        assert!(!is_ffi(Path::new("conformance/wen/fail/unsafe/a.wen")));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn embed_does_not_follow_a_symlink_out_of_the_root() {
+        let dir = std::env::temp_dir().join(format!("yong-embed-{}", std::process::id()));
+        let root = dir.join("pkg");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join("yong.toml"), "").unwrap();
+        std::fs::write(dir.join("secret.txt"), "s").unwrap();
+        std::fs::write(root.join("ok.txt"), "o").unwrap();
+        std::os::unix::fs::symlink(dir.join("secret.txt"), root.join("out")).unwrap();
+        std::os::unix::fs::symlink(root.join("ok.txt"), root.join("in")).unwrap();
+        let mut db = Database::new(false, false);
+        let codes = |db: &mut Database, target: &str| -> Vec<String> {
+            let src = format!("let t: str = #embed(\"{target}\")\n");
+            let f = db.file(&root.join("m.wen"), &src);
+            diagnostics(db, f)
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|d| d.code.clone())
+                .collect()
+        };
+        assert_eq!(codes(&mut db, "out"), ["E267"]);
+        assert!(codes(&mut db, "in").is_empty());
+    }
+}
+
+#[cfg(test)]
+mod selftest {
+    use super::*;
+
+    fn codes(path: &str, src: &str) -> Vec<String> {
+        let mut db = Database::new(false, false);
+        let f = db.file(Path::new(path), src);
+        diagnostics(&db, f)
+            .as_ref()
+            .expect("supported")
+            .iter()
+            .map(|d| d.code.clone())
+            .collect()
+    }
+
+    #[test]
+    fn a_var_method_on_a_let_parameter_is_e403() {
+        let src = "def add(dst: list[int], x: int):\n    dst.append(x)\n";
+        assert_eq!(codes("t.xin", src), ["E403"]);
+        let ok = "def add(var dst: list[int], x: int):\n    dst.append(x)\n";
+        assert!(codes("t.xin", ok).is_empty());
+    }
+
+    #[test]
+    fn a_var_method_on_a_temporary_is_e403() {
+        let src = "def f():\n    d = {\"a\": [1]}\n    d.setdefault(\"b\", []).append(2)\n";
+        assert_eq!(codes("t.xin", src), ["E403"]);
+    }
+
+    #[test]
+    fn a_sink_parameter_may_change_in_place() {
+        let src = "def grow(take xs: list[int]) -> list[int]:\n    xs.append(9)\n    return xs\n";
+        assert!(codes("t.xin", src).is_empty());
+    }
+
+    #[test]
+    fn a_wen_let_stays_immutable() {
+        let src = "main() =\n  let total = 0\n  total += 1\n";
+        assert_eq!(codes("t.wen", src), ["E403"]);
+        let ok = "main() =\n  var total = 0\n  total += 1\n";
+        assert!(codes("t.wen", ok).is_empty());
     }
 }

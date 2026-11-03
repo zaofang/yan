@@ -193,6 +193,12 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
     }
 
     #[test]
+    fn statement_after_multiline_brackets() {
+        let src = "def f() -> int:\n    xs = [\n        1,\n    ]\n    return len(xs)\n";
+        assert_eq!(codes(src, true), []);
+    }
+
+    #[test]
     fn prefixes_never_panic() {
         for (i, _) in SAMPLE.char_indices() {
             parse("t.xin", &SAMPLE[..i], false);

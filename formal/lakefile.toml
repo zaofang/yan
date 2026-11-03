@@ -1,0 +1,10 @@
+name = "yongk"
+version = "0.1.0"
+defaultTargets = ["yongk"]
+
+[[lean_lib]]
+name = "YongK"
+
+[[lean_exe]]
+name = "yongk"
+root = "Main"

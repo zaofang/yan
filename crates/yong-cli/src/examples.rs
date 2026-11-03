@@ -186,3 +186,27 @@ pub fn remap(diags: Vec<Diagnostic>, found: &[Example]) -> Vec<Diagnostic> {
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test;
+
+    #[test]
+    fn ex_lines_run_and_compare_outcomes() {
+        let dir = std::env::temp_dir().join(format!("yong-ex-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let src = "class P:\n    x: int\n\ndef f(n: int) -> P fail str:\n    ex f(0) == Ok(P(0))\n    ex Err(\"no\") == f(1)\n    ex f(1) == Ok(P(1))\n    if n > 0:\n        fail \"no\"\n    return P(n)\n";
+        std::fs::write(dir.join("m.xin"), src).unwrap();
+        let r = test::run(&dir, None, false).unwrap();
+        let v: Vec<(&str, bool)> = r
+            .tests
+            .iter()
+            .map(|t| (t.id.as_str(), t.verdict == test::Verdict::Pass))
+            .collect();
+        assert_eq!(
+            v,
+            [("m.f#ex1", true), ("m.f#ex2", true), ("m.f#ex3", false)]
+        );
+    }
+}
