@@ -93,7 +93,7 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
             }
             "layout" if g.layout_c.contains(&item) => {}
             "layout" => return unsupported("`@layout` other than `@layout(c)` on a record"),
-            "deprecated" | "inline" | "limit" => {}
+            "deprecated" | "inline" | "limit" | "test_support" => {}
             other => return unsupported(format!("decorator `@{other}`")),
         }
     }

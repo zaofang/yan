@@ -1346,6 +1346,7 @@ dependencies = [
  "yong-core",
  "yong-diag",
  "yong-names",
+ "yong-std",
 ]
 
 [[package]]

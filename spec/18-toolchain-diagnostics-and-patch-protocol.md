@@ -132,7 +132,7 @@ Semantics (normative):
 6. A plain source file containing only whole items is also accepted as a patch: each item replaces the item of the same name, or is added if new. Patches to `.wen` modules carry Wen item text.
 7. Every applied patch is appended to `.yong/oplog.jsonl`; `yong undo` and the MCP `undo` tool revert from it.
 
-**Protected targets.** `check_patch` rejects a patch that touches any of the following unless it carries a human confirmation token (P006): test functions; `pre`, `post`, `ex`, `invariant` and `decreases` clauses; `package.xin` capabilities, `approvers` and `trust`; `yong.lock`; extern blocks and `ffi/` overlays; and agent configuration files. An implement-step patch never carries one (21.1).
+**Protected targets.** `check_patch` rejects a patch that touches any of the following unless it carries a human confirmation token (P006): test functions, `@test_support` items and items under `tests/` (the R300 test-hash closure); `pre`, `post`, `ex`, `invariant` and `decreases` clauses; a new item named by one of those clauses (R675); `package.xin` capabilities, `approvers` and `trust`; `yong.lock`; extern blocks and `ffi/` overlays; and agent configuration files. An implement-step patch never carries one (21.1).
 
 ### 18.4 Build, cache and test verdicts
 
