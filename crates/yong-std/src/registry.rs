@@ -80,6 +80,6 @@ mod selftest {
             (1, 2)
         );
         assert!(id("add_checked_i64").is_some() && id("not_bool").is_some());
-        assert!(id("not_i64").is_none());
+        assert!(id("not_i64").is_some() && id("not_f64").is_none());
     }
 }
