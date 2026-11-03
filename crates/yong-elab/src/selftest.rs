@@ -328,3 +328,43 @@ def inner(xs: list[int], i: int) -> int:
         "def f(xs: list[int]) -> int:\n    if len(xs) == 1:\n        return 0\n    return xs[0]\n";
     assert_eq!(codes(open), ["W820"]);
 }
+
+#[test]
+fn binary_search_and_counting_loops_prove_indices() {
+    let codes = |src: &str| -> Vec<String> { lower(src).1.into_iter().map(|d| d.code).collect() };
+    let proven = "\
+def find(xs: list[int], t: int) -> int:
+    lo = 0
+    hi = len(xs) - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if xs[mid] == t:
+            return mid
+        elif xs[mid] < t:
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return -1
+
+def total(xs: list[int]) -> int:
+    t = 0
+    i = 0
+    while i < len(xs):
+        t += xs[i]
+        i += 1
+    return t
+";
+    assert!(codes(proven).is_empty(), "{:?}", codes(proven));
+    let off_by_one = "\
+def f(xs: list[int]) -> int:
+    lo = 0
+    hi = len(xs)
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if xs[mid] > 0:
+            return mid
+        lo = mid + 1
+    return -1
+";
+    assert_eq!(codes(off_by_one), ["W820"]);
+}

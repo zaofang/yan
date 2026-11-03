@@ -150,21 +150,44 @@ struct Facts {
 }
 
 impl Facts {
+    /// Forgets `name`, keeping what its facts imply about other terms (R760).
     fn kill(&mut self, name: &str) {
         let (v, l) = (var(name), len(name));
-        self.lin.retain(|c| !c.mentions(&v) && !c.mentions(&l));
+        let lin = std::mem::take(&mut self.lin);
+        self.lin = project(project(lin, &v), &l);
         self.ors
             .retain(|d| !d.iter().flatten().any(|c| c.mentions(&v) || c.mentions(&l)));
         let k = format!("n:{name}");
         self.keys.retain(|(d, key)| d != name && *key != k);
     }
 
+    /// What holds on both paths: a fact of either that the other implies (R762).
     fn meet(a: Facts, b: &Facts) -> Facts {
+        let mut lin: Vec<Lin> = a
+            .lin
+            .iter()
+            .filter(|c| b.lin.contains(c) || b.implies(c))
+            .cloned()
+            .collect();
+        for c in &b.lin {
+            if !lin.contains(c) && a.implies(c) {
+                lin.push(c.clone());
+            }
+        }
         Facts {
-            lin: a.lin.into_iter().filter(|c| b.lin.contains(c)).collect(),
+            lin,
             keys: a.keys.into_iter().filter(|k| b.keys.contains(k)).collect(),
             ors: a.ors.into_iter().filter(|d| b.ors.contains(d)).collect(),
         }
+    }
+
+    /// Every case of these facts implies `c >= 0`.
+    fn implies(&self, c: &Lin) -> bool {
+        self.cases().iter().all(|case| {
+            let mut all = with_lens(case, c);
+            all.push(c.scale(-1).add(&Lin::konst(-1)));
+            unsat(&all)
+        })
     }
 
     /// Adds `alts` as a disjunction; an alternative that says nothing makes it vacuous.
@@ -207,6 +230,36 @@ impl Facts {
 }
 
 const CASES: usize = 8;
+
+/// Eliminates `t` from `cs` by one Fourier-Motzkin step; past `LIMIT` derived facts, drops them.
+fn project(cs: Vec<Lin>, t: &str) -> Vec<Lin> {
+    const LIMIT: usize = 64;
+    let (with, mut out): (Vec<Lin>, Vec<Lin>) = cs.into_iter().partition(|c| c.mentions(t));
+    let (pos, neg): (Vec<&Lin>, Vec<&Lin>) = with.iter().partition(|c| c.terms[t] > 0);
+    if pos.len() * neg.len() > LIMIT {
+        return out;
+    }
+    for p in &pos {
+        for n in &neg {
+            let c = p.scale(-n.terms[t]).add(&n.scale(p.terms[t])).tighten();
+            if !(c.terms.is_empty() && c.k >= 0) && !out.contains(&c) {
+                out.push(c);
+            }
+        }
+    }
+    out
+}
+
+/// `cs` with every list length that they or `extra` mention known non-negative.
+fn with_lens(cs: &[Lin], extra: &Lin) -> Vec<Lin> {
+    let mut out = cs.to_vec();
+    for c in cs.iter().chain([extra]) {
+        for t in c.terms.keys().filter(|t| t.starts_with("len:")) {
+            out.push(Lin::term(t.clone()));
+        }
+    }
+    out
+}
 
 fn var(n: &str) -> String {
     format!("v:{n}")
@@ -476,6 +529,18 @@ impl Solver<'_> {
                 }
             }
             S::Assign { target, value, .. } => self.assign(target, value, &mut f),
+            S::AugAssign { target, op, value } if matches!(target.kind, K::Name(_)) => {
+                let bin = j::Expr {
+                    kind: K::Binary(
+                        op.trim_end_matches('='),
+                        Box::new(target.clone()),
+                        Box::new(value.clone()),
+                    ),
+                    span: value.span,
+                    paren: false,
+                };
+                self.assign(target, &bin, &mut f);
+            }
             S::AugAssign { target, value, .. } => {
                 self.expr(value, &mut f);
                 // R438: a missing key gets the default first.
@@ -509,9 +574,42 @@ impl Solver<'_> {
                 body,
                 ..
             } => {
-                for n in assigned(body, self.sites) {
-                    f.kill(&n);
+                let changed = assigned(body, self.sites);
+                let mut kept: Vec<Lin> = if continues(body) {
+                    Vec::new()
+                } else {
+                    f.lin
+                        .iter()
+                        .filter(|c| {
+                            changed
+                                .iter()
+                                .any(|n| c.mentions(&var(n)) || c.mentions(&len(n)))
+                        })
+                        .cloned()
+                        .collect()
+                };
+                for n in &changed {
+                    f.kill(n);
                 }
+                // R763: the candidates the body preserves are invariants; findings come
+                // only from the final pass below.
+                let seen = self.out.len();
+                while !kept.is_empty() {
+                    let mut inside = f.clone();
+                    inside.lin.extend(kept.iter().cloned());
+                    self.expr(cond, &mut inside);
+                    self.assume(cond, true, &mut inside);
+                    let Some(end) = self.block(body, inside) else {
+                        break;
+                    };
+                    let n = kept.len();
+                    kept.retain(|c| end.implies(c));
+                    if kept.len() == n {
+                        break;
+                    }
+                }
+                self.out.truncate(seen);
+                f.lin.extend(kept);
                 if !self.release {
                     for c in contracts {
                         if let j::LoopContract::Invariant(e) = c {
@@ -655,7 +753,21 @@ impl Solver<'_> {
             return;
         };
         let mut side = Vec::new();
-        let val = self.lin(value, &mut side).filter(|l| !l.mentions(&var(n)));
+        let x = var(n);
+        let val = self.lin(value, &mut side);
+        // R761: after `x = x + d` the old `x` is the new one minus `d`.
+        if let Some(v) = &val
+            && v.terms.get(&x) == Some(&1)
+            && side.iter().all(|c| !c.mentions(&x))
+        {
+            let d = v.sub(&Lin::term(x.clone()));
+            f.subst(&x, &Lin::term(x.clone()).sub(&d));
+            f.lin.extend(side);
+            let k = format!("n:{n}");
+            f.keys.retain(|(_, key)| *key != k);
+            return;
+        }
+        let val = val.filter(|l| !l.mentions(&x));
         let length = match &value.kind {
             K::List(xs) => Some(xs.len() as i128),
             _ => None,
@@ -895,6 +1007,39 @@ fn pat_names(p: &j::Pat) -> Vec<String> {
     }
     go(p, &mut out);
     out
+}
+
+/// `stmts` may continue the loop they are in, or an outer one.
+fn continues(stmts: &[j::Stmt]) -> bool {
+    use j::StmtKind as S;
+    stmts.iter().any(|s| match &s.kind {
+        S::Continue | S::ContinueTo(_) => true,
+        S::If { arms, els } => {
+            arms.iter().any(|(_, b)| continues(&b.stmts))
+                || els.as_ref().is_some_and(|b| continues(&b.stmts))
+        }
+        S::Match { cases, .. } => cases.iter().any(|c| continues(&c.body.stmts)),
+        S::With { body, .. } => continues(&body.stmts),
+        S::Unsafe(body) => continues(body),
+        S::While { body, .. } | S::For { body, .. } => continues_to(body),
+        _ => false,
+    })
+}
+
+/// `stmts` hold a labelled `continue`, which may target a loop outside them.
+fn continues_to(stmts: &[j::Stmt]) -> bool {
+    use j::StmtKind as S;
+    stmts.iter().any(|s| match &s.kind {
+        S::ContinueTo(_) => true,
+        S::If { arms, els } => {
+            arms.iter().any(|(_, b)| continues_to(&b.stmts))
+                || els.as_ref().is_some_and(|b| continues_to(&b.stmts))
+        }
+        S::Match { cases, .. } => cases.iter().any(|c| continues_to(&c.body.stmts)),
+        S::With { body, .. } => continues_to(&body.stmts),
+        S::Unsafe(body) | S::While { body, .. } | S::For { body, .. } => continues_to(body),
+        _ => false,
+    })
 }
 
 fn breaks(stmts: &[j::Stmt]) -> bool {
