@@ -343,14 +343,14 @@ def main() -> int:
     a = ap.parse_args()
     if a.mode == "cases":
         files = sorted((ROOT / "conformance/yir/run").glob("*.yir"))
-        return compare(files, a.yir, a.yancore, a.keep)
+        return compare(files, a.yan, a.yancore, a.keep)
     with tempfile.TemporaryDirectory() as d:
         files = []
         for i in range(a.count):
             p = Path(d) / f"g{a.seed}_{i}.yir"
             p.write_text(Gen(random.Random(a.seed * 1_000_003 + i)).program(f"g{i}"))
             files.append(p)
-        return compare(files, a.yir, a.yancore, a.keep)
+        return compare(files, a.yan, a.yancore, a.keep)
 
 
 if __name__ == "__main__":

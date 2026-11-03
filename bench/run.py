@@ -18,7 +18,7 @@ from pathlib import Path
 
 BENCH = Path(__file__).resolve().parent
 ROOT = BENCH.parent
-LANGS = ("yir", "py", "rs")
+LANGS = ("yan", "py", "rs")
 FLOOR = 0.001
 RUSTC_FLAGS = ("-C", "opt-level=3", "-C", "overflow-checks=on", "-C", "codegen-units=1")
 
@@ -48,7 +48,7 @@ def build_rust(src: Path, out_dir: Path) -> Path:
 
 def commands(prog: Path, yan: Path, python: str, rust_dir: Path) -> dict[str, list[str]]:
     return {
-        "yir": [str(yan), "run", str(prog / "main.yir")],
+        "yan": [str(yan), "run", str(prog / "main.yir")],
         "py": [python, str(prog / "main.py")],
         "rs": [str(build_rust(prog / "main.rs", rust_dir))],
     }
@@ -89,7 +89,7 @@ def report(rows: list[Row], startup: dict[str, float]) -> str:
             f"| {ratio(net['yan'], net['py'], 1)} | {ratio(net['yan'], net['rs'], 0)} |"
         )
     yp = statistics.geometric_mean(
-        r.net("yir", startup) / max(r.net("py", startup), FLOOR) for r in rows
+        r.net("yan", startup) / max(r.net("py", startup), FLOOR) for r in rows
     )
     lines.append(f"\nGeometric mean, yan/python: {yp:.1f}x.")
     lines.append(
@@ -115,11 +115,11 @@ def main() -> None:
     if args.programs:
         progs = [p for p in progs if p.name in args.programs]
 
-    base = commands(BENCH / "startup", args.yir, args.python, rust_dir)
+    base = commands(BENCH / "startup", args.yan, args.python, rust_dir)
     startup = {lang: measure(cmd, args.runs).median for lang, cmd in base.items()}
     rows = []
     for prog in progs:
-        cmds = commands(prog, args.yir, args.python, rust_dir)
+        cmds = commands(prog, args.yan, args.python, rust_dir)
         rows.append(Row(prog.name, {lang: measure(cmd, args.runs) for lang, cmd in cmds.items()}))
         print(f"{prog.name} done", file=sys.stderr)
 
