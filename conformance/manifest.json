@@ -2248,7 +2248,7 @@
    "expect": [
     {
      "code": "E201",
-     "line": 7,
+     "line": 8,
      "col": 34
     }
    ]
@@ -2267,7 +2267,7 @@
    "expect": [
     {
      "code": "E201",
-     "line": 7,
+     "line": 8,
      "col": 22
     }
    ]
@@ -2286,7 +2286,7 @@
    "expect": [
     {
      "code": "E269",
-     "line": 5,
+     "line": 6,
      "col": 9
     }
    ]
@@ -2305,7 +2305,7 @@
    "expect": [
     {
      "code": "E269",
-     "line": 5,
+     "line": 6,
      "col": 1
     }
    ]
@@ -2324,7 +2324,7 @@
    "expect": [
     {
      "code": "E201",
-     "line": 9,
+     "line": 10,
      "col": 24
     }
    ]
@@ -2343,7 +2343,7 @@
    "expect": [
     {
      "code": "E269",
-     "line": 5,
+     "line": 6,
      "col": 9
     }
    ]

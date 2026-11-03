@@ -1,7 +1,7 @@
 # spec: 17.3
 # rows: R681
 # note: bigint has no fixed width, so it has only count_ones and bit_width
-# expect: E201 at 7:34
+# expect: E201 at 8:34
 
 pub def main() uses io:
     b: bigint = 3

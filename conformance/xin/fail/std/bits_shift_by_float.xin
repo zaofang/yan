@@ -1,7 +1,7 @@
 # spec: 3.4
 # rows: R682
 # note: a shift amount must be an integer
-# expect: E201 at 7:22
+# expect: E201 at 8:22
 
 pub def main() uses io:
     x = 1

@@ -1,7 +1,7 @@
 # spec: 17.3
 # rows: R694
 # note: @help needs @derive(Cli)
-# expect: E269 at 5:1
+# expect: E269 at 6:1
 
 @help(about="x")
 class Args:
