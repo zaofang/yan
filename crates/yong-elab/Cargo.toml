@@ -8,6 +8,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+serde_json.workspace = true
 unicode-normalization = "0.1.26"
 yong-core.workspace = true
 yong-diag.workspace = true

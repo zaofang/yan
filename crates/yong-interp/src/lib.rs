@@ -17,6 +17,7 @@ use yong_diag::Span;
 mod bind;
 mod bits;
 mod civil;
+mod cli;
 mod collections;
 mod compile;
 mod encoding;

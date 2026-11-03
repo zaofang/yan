@@ -4183,6 +4183,13 @@ impl Lower<'_, '_, '_> {
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         self.want_ret = want.map(|w| (w.clone(), at));
         match &f.kind {
+            j::ExprKind::Index(b, k)
+                if let j::ExprKind::Attr(m, op, _) = &b.kind
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "cli" && !self.locals.contains_key(c))
+                    && matches!(op.as_str(), "parse" | "parse_args") =>
+            {
+                self.cli_call(op, k, args, at)
+            }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if self.g.templates.contains_key(n)) =>
             {
                 let j::ExprKind::Name(n) = &b.kind else {
@@ -5547,6 +5554,56 @@ impl Lower<'_, '_, '_> {
             .and_then(|d| d.plain())
             .expect("std.log declares the operation");
         self.std_call(&path, p, vec![Arg::Cap("log".into(), at)], &synth, op, at)
+    }
+
+    /// `cli.parse_args[T](args)` with `T`'s schema, and `cli.parse[T]()` over `env.args()`.
+    fn cli_call(
+        &mut self,
+        op: &str,
+        t: &j::Expr,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        let j::ExprKind::Name(n) = &t.kind else {
+            return unsupported(format!("`cli.{op}` of a type that is not a name"));
+        };
+        // After an error the call is still lowered, so what follows it checks.
+        let schema = if self.g.clis.contains_key(n) {
+            // An error here was reported at the derive.
+            crate::cli::schema(self.g, n).unwrap_or_default()
+        } else {
+            self.err("E201", t.span, format!("`{n}` does not derive `Cli`"));
+            String::new()
+        };
+        let xs = if op == "parse" {
+            if !args.is_empty() {
+                self.err(
+                    "E202",
+                    at,
+                    "`cli.parse` takes no arguments; it reads `env.args()`".into(),
+                );
+                return Ok(err);
+            }
+            let (r, t, _) = self.cap_call("env", "args", &[], at)?;
+            self.tmp(&t, r, at)
+        } else {
+            let Some(xs) = self.positional(args, 1, "parse_args", at)? else {
+                return Ok(err);
+            };
+            let want = Ty::List(Box::new(Ty::Str));
+            let (a, t) = self.atom(xs[0], Some(&want))?;
+            self.expect(&t, &want, xs[0].span);
+            a
+        };
+        let rt = Ty::Data(n.clone());
+        let c = call(
+            "std.cli.parse_args",
+            vec![rt.targ()],
+            vec![let_arg(xs), let_arg(Atom::Lit(Literal::Str(schema), at))],
+            at,
+        );
+        Ok((Rhs::Call(c), rt, Some(Ty::Data("CliError".into()))))
     }
 
     /// `rand.choice(xs)` and `rand.shuffle(&xs)`, the generic operations of `Rand`.

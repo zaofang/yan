@@ -1,0 +1,13 @@
+# spec: 17.3
+# rows: R684
+# note: choice of an empty list panics with bounds
+# stdout:
+# 7
+# exit: 101
+
+pub def main() uses io:
+    with rand = seeded(1):
+        io.print(f"{rand.choice([7])}")
+        e: list[int] = []
+        x = rand.choice(e)
+        io.print(f"{x}")
