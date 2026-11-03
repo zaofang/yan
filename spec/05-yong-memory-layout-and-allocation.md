@@ -50,7 +50,9 @@ All allocation goes through the `alloc` capability (section 7.1), which decides 
 
 **Allocation failure.** The default `alloc` handler aborts the process on exhaustion. Every growable container operation (`append`, `insert`, `extend`, `reserve`, `with_capacity`) and every whole-input read (`read_all`, `read_to_str`) has a `try_` sibling returning `fail OutOfMemory`. A function whose allocation is bounded at compile time needs none. Freestanding code binds its own `alloc`.
 
-**Allocation is not observable (R385).** The number, size and order of `alloc` operations are unspecified. The optimizer MAY elide an allocation whose block is never read after it is freed, merge allocations, reuse blocks (5.3), and place a block on the stack when it does not escape the function and the solver bounds its size by 4 KiB. A `Tracking` or `Limited` handler reports what happened; tests MUST NOT assert exact allocation counts except through `@forbid(alloc)`. Elision can remove an `OutOfMemory`, never cause one. R480 makes one elision mandatory: a list comprehension that is only iterated is never built.
+**Allocation is not observable (R385).** The number, size and order of `alloc` operations are unspecified. The optimizer MAY elide an allocation whose block is never read after it is freed, merge allocations, reuse blocks (5.3), and place a block on the stack when it does not escape the function and the solver bounds its size by 4 KiB. A `Tracking` or `Limited` handler reports what happened; tests MUST NOT assert exact allocation counts except through `@forbid(alloc)`. Elision can remove an `OutOfMemory`, never cause one. R480 makes one elision mandatory: a list comprehension that is only iterated is never built. R622 and R623 add closures and std adapter chains.
+
+**Closures without allocation (R622).** After monomorphization the optimizer infers, for each function-typed value, the set of lambdas that can reach it (lambda set specialization, PLDI 2023). A value whose set is closed is a tagged record of its captures, and a call through it is a direct call, or a switch on the tag when the set has more than one member. Such a value whose captures are not heap-backed MUST NOT allocate and MUST NOT be called indirectly, on every backend, so it passes `@forbid(alloc)`. A value whose set is open, because it passes through `dyn` or is stored in a recursive container, stays a boxed closure.
 
 ### 5.6 Data-oriented containers
 
@@ -62,7 +64,7 @@ All allocation goes through the `alloc` capability (section 7.1), which decides 
 
 **Column expressions (R261).** An arithmetic, comparison or cast operator applied to a `Soa` field view returns a `ColExpr`: a second-class, non-allocating expression tree typed by its operands, so the view rules of 4.5 and E414 apply. A `ColExpr` is consumed by a reduction (`sum`, `min`, `max`, `count`, `any`, `all`), by `assign_into`, or by `collect`, which allocates and has a `try_` sibling. Consumption runs one fused loop. Overflow is checked (3.4) and reductions use the fixed tree of 9.3, so results are bit-identical at every width. Operands come from one `Soa`, or have lengths the solver proves equal; otherwise consumption fails with `LengthMismatch` before any element is read. Tables, table kernels and @yong/frame use this same ColExpr type through one trait, Subject\[R\], which Wen's implicit subject targets (R448).
 
-**Keyed tables (R261).** `Keyed[K, T]` is a `Soa[T]` with a unique index on one field, chosen at stage 0, as in `Keyed[Str, Quote](key: .sym)`. Indexing it with a column yields a `ColExpr` of `Option[T]` rows, `or_fail(e)` turns the first miss into `fail e`, and inserting a duplicate key fails with `DuplicateKey`. Joins, grouping and query plans stay with tables (11.9).
+**Keyed tables (R261).** `Keyed[K, T]` is a `Soa[T]` with a unique index on one field, chosen at stage 0, as in `Keyed[Str, Quote](key: .sym)`. Indexing it with a column yields a `ColExpr` of `Option[T]` rows, `or_fail(e)` turns the first miss into `fail e`, `index_many(keys)` looks up a list of keys at once (R626), and inserting a duplicate key fails with `DuplicateKey`. Joins, grouping and query plans stay with tables (11.9).
 
 ### 5.7 Proof attributes (Wen L4)
 
@@ -72,5 +74,6 @@ All allocation goes through the `alloc` capability (section 7.1), which decides 
 | `@forbid(alloc)` | no use of the `alloc` capability |
 | `@forbid(copy)` | no `copy` of a heap-backed value remains |
 | `@forbid(panic)` | no reachable panic (bounds, overflow, contracts, exclusivity) |
+| `@vectorize` (R624) | every `par for` in the function whose body is `uses none` runs its iterations in SIMD lanes on targets with vector units (9.3) |
 
 **In-place functions (R456).** `@fip` is a proof attribute like those above (Wen L4). The compiler MUST prove that every allocation in the function is a `reuse x as Ctor` (5.3) of a block the function consumed, and that its stack is constant, with recursion only through `become`, including its constructor form (3.5). Each violating line is E900. An `@fip` function MUST NOT take an `Rc` or `Arc` by `sink`, since their blocks are not uniquely owned.

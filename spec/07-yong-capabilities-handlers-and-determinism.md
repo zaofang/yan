@@ -7,7 +7,7 @@ Effects are capabilities: second-class values passed as explicit parameters in Y
 | Name | Interface | Operations (minimum) |
 | --- | --- | --- |
 | `io` | `Io` | `print`, `eprint`, `read_line`; `split(n)` (4.3) |
-| `fs` | `Fs` | `read`, `write`, `append`, `list_dir`, `exists`, `remove`; completion-shaped (9.7) |
+| `fs` | `Fs` | `read`, `write`, `append`, `list_dir`, `exists`, `remove`; completion-shaped (9.7); attenuated by `fs.only` and `fs.sub` (17.6, R674) |
 | `tmp` | `Tmp` | a scoped scratch directory removed at scope exit |
 | `net` | `Net` | `tcp_connect`, `tcp_listen`, `udp_bind`, `resolve`; completion-shaped with deadlines (9.7); attenuated by `net.only` (17.6) |
 | `time` | `Time` | clock reads only: `now`, `monotonic` (returns `MonoInstant`, includes suspended time), `sleep`, `sleep_until(MonoInstant)` |
@@ -15,8 +15,8 @@ Effects are capabilities: second-class values passed as explicit parameters in Y
 | `crypto_rand` | `CryptoRand` | `fill_bytes`; a CSPRNG that tests may replace and release builds may not |
 | `log` | `Log` | structured key-value events at `debug`, `info`, `warn`, `error`, plus spans; `@splittable` |
 | `metrics` | `Metrics` | counters, gauges, histograms; `@splittable` |
-| `env` | `Env` | `args`, `var`, `secret` (returns `Secret[str]`), `local_zone`, `system_tzdb` |
-| `proc` | `Proc` | `spawn(Command)` taking argv, never a shell string; there is no shell helper (R448) |
+| `env` | `Env` | `args`, `var`, `secret` (returns `Secret[str]`), `local_zone`, `system_tzdb`; attenuated by `env.only` (R674) |
+| `proc` | `Proc` | `spawn(Command)` taking argv, never a shell string; there is no shell helper (R448); attenuated by `proc.only` (R674) |
 | `signals` | `Signals` | a stream of OS signals; SIGINT and SIGTERM also drain `main`'s root scope (9.4) |
 | `py` | `Py` | `call`, `import_module` (Python bridge, section 17) |
 | `fault` | `Fault` | `maybe(name) -> bool`; handlers `never` (default, compiles away) and `sim` (seeded) |
@@ -43,6 +43,8 @@ Effects are capabilities: second-class values passed as explicit parameters in Y
 
 A `@capability` trait is exclusive unless marked `@splittable` or `@shared`. `nondet` has no operations and is only a marker.
 
+**Unconfined capabilities (R673).** `proc`, `py` and every foreign-library capability give the holder the authority of the whole process, because a child process, Python code or C code can do anything the process can. Granting one in a ceiling is reported as granting every capability, gaining one blocks like a publisher identity change (19.4), and `yong audit` lists them first. Every other built-in capability is confined: it reaches only what its handler grants, and has an attenuator (17.6).
+
 **Foreign libraries are capabilities.** `lib zlib` in an extern block declares trait `Zlib`, capability `zlib` and a native handler that calls the linked symbols (section 12.2). Callers need `uses zlib`; tests may bind a fake.
 
 ### 7.2 Elaboration and signatures
@@ -59,6 +61,7 @@ In Xin every function lists its capabilities. In Wen only `pub` functions must; 
 - Other capabilities MAY be dynamic; the compiler SHOULD monomorphize when the handler type is known.
 - On hosted platforms, std binds a default handler for every built-in capability before `main` runs: system heap, OS clock, OS-seeded generator, the `pool` scheduler, blocking I/O, standard streams, `fault = never`. On platform `freestanding` nothing is bound: the program binds every capability it uses.
 - The test defaults are `time = virtual(2000-01-01T00:00Z)`, which advances only when every task is blocked, a timer is pending and no I/O is outstanding (R396), and `rand = seeded`. Binding `virtual` under the `pool` scheduler is E710, because `pool` has no quiescence point. Real-time tests bind `os` explicitly and are never cached. This is the one test handler set: in-memory fs, rand = seeded, virtual time, fault = never, no net, no model and sched = seeded(0); 14.1, 15.3, 18.4 and 18.9 refer here (R377).
+- **Host handlers are unforgeable (R672).** A handler that reaches the host is built only by the platform before `main`, from the grants of a `yong_world` (12.7), or by attenuating a handle of the same capability already in scope (`with fs = fs.only(...)`). Std's host handler constructors are not nameable by user code, and binding a host handler anywhere else is E326. Handlers written in Yong (fakes, recorders, replayers, wrappers) are unrestricted, because they reach the host only through capabilities they are given.
 - Release builds bind only `fault = never` (E317 otherwise).
 - Control handlers are generators only (section 10.5). There are no general continuations and no fiber stacks.
 

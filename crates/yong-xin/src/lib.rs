@@ -6,7 +6,7 @@ mod parser;
 mod printer;
 mod resugar;
 
-pub use printer::print;
+pub use printer::{expr as print_expr, print};
 pub use resugar::resugar;
 use yong_diag::{Diagnostic, Severity};
 
@@ -176,6 +176,12 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
             codes("def f() -> int:\n  return 1\n x = 2\n", false)[0].0,
             "E100"
         );
+    }
+
+    #[test]
+    fn statement_after_multiline_brackets() {
+        let src = "def f() -> int:\n    xs = [\n        1,\n    ]\n    return len(xs)\n";
+        assert_eq!(codes(src, true), []);
     }
 
     #[test]
