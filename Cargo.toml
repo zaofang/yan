@@ -38,7 +38,6 @@ yong-xin = { path = "crates/yong-xin" }
 yong-elab = { path = "crates/yong-elab" }
 yong-wen = { path = "crates/yong-wen" }
 yong-names = { path = "crates/yong-names" }
-yong-surface = { path = "crates/yong-surface" }
 yong-db = { path = "crates/yong-db" }
 yong-ide = { path = "crates/yong-ide" }
 

@@ -26,6 +26,7 @@ mod math;
 mod native;
 mod path;
 mod prelude;
+mod rand;
 mod regex;
 #[cfg(test)]
 mod std_parity;
@@ -207,6 +208,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
         Interp {
             out: &mut sink,
             clocks: Vec::new(),
+            rngs: Vec::new(),
         },
     );
     vm.limit(limits);
@@ -279,6 +281,8 @@ pub(crate) struct Interp<'o> {
     out: &'o mut dyn Write,
     /// Nanoseconds slept under each `fixed_time` or `virtual` handler, by handler.
     clocks: Vec<i128>,
+    /// The generator of each `seeded` handler, by handler.
+    rngs: Vec<rand::Gen>,
 }
 
 pub(crate) fn panic<T>(kind: &str) -> R<T> {
@@ -355,13 +359,20 @@ fn entry(m: &Module, f: &str, out: &mut dyn Write, limits: Option<Limits>) -> R<
             Param::Value { .. } => unsupported(format!("`{f}` with value parameters")),
         })
         .collect::<R<Vec<_>>>()?;
-    let mut vm = vm::Vm::new(
-        program,
-        Interp {
-            out,
-            clocks: Vec::new(),
-        },
-    );
+    let mut it = Interp {
+        out,
+        clocks: Vec::new(),
+        rngs: Vec::new(),
+    };
+    // The test handler set (7.3): `rand = seeded(0)`.
+    let args = args
+        .into_iter()
+        .map(|a| match a {
+            Value::Cap(n) if limits.is_some() && n == "rand" => rand::seeded(&mut it, 0, "ChaCha8"),
+            a => a,
+        })
+        .collect();
+    let mut vm = vm::Vm::new(program, it);
     if let Some(l) = limits {
         vm.limit(l);
     }

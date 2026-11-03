@@ -5456,6 +5456,9 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         let path = format!("std.{cap}.{op}");
+        if path == "std.rand.choice" || path == "std.rand.shuffle" {
+            return self.rand_list_op(cap, op, args, at);
+        }
         let Some(p) = crate::stdlib::decl(&path)
             .filter(|d| d.cap)
             .and_then(|d| d.plain())
@@ -5463,6 +5466,70 @@ impl Lower<'_, '_, '_> {
             return unsupported(format!("capability operation `{cap}.{op}`"));
         };
         self.std_call(&path, p, vec![Arg::Cap(cap.to_owned(), at)], args, op, at)
+    }
+
+    /// `rand.choice(xs)` and `rand.shuffle(&xs)`, the generic operations of `Rand`.
+    fn rand_list_op(
+        &mut self,
+        cap: &str,
+        op: &str,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        let [a] = args else {
+            self.err("E202", at, format!("`rand.{op}` takes one list"));
+            return Ok(err);
+        };
+        let path = format!("std.rand.{op}");
+        let mut out = vec![Arg::Cap(cap.to_owned(), at)];
+        let (t, ret) = match (op, &a.kind) {
+            ("choice", j::ArgKind::Expr(e)) => {
+                let (x, t) = self.atom(e, None)?;
+                out.push(let_arg(x));
+                let el = match &t {
+                    Ty::List(el) => (**el).clone(),
+                    _ => Ty::Err,
+                };
+                (t, el)
+            }
+            ("shuffle", j::ArgKind::Ref(e)) => {
+                let (pl, t) = self.place(e)?;
+                if !pl.projs.is_empty() {
+                    return unsupported("`rand.shuffle` of a projection");
+                }
+                out.push(Arg::Value(
+                    Conv::Inout,
+                    Atom::Name(pl.root, pl.root_span),
+                    a.span,
+                ));
+                (t, Ty::Unit)
+            }
+            ("shuffle", _) => {
+                self.err("E404", a.span, "`rand.shuffle` takes `&place`".into());
+                return Ok(err);
+            }
+            _ => {
+                self.err(
+                    "E405",
+                    a.span,
+                    "`rand.choice` takes the list, not `&`".into(),
+                );
+                return Ok(err);
+            }
+        };
+        let Ty::List(el) = &t else {
+            if t != Ty::Err {
+                self.err(
+                    "E201",
+                    a.span,
+                    format!("`rand.{op}` takes a list, not `{t}`"),
+                );
+            }
+            return Ok(err);
+        };
+        let targs = vec![el.targ()];
+        Ok((Rhs::Call(call(&path, targs, out, at)), ret, None))
     }
 
     /// `module.v` names variant `v` of a std sum type declared in `module`, as `math.Up`.
