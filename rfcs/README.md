@@ -40,3 +40,4 @@ research index links their studies and rows.
 | [0017](0017-std-algorithms.md) | std algorithms | accepted | R629 to R632 |
 | [0018](0018-session-protocols.md) | Session protocols | accepted | R633, R634 |
 | [0020](0020-packaging-and-ecosystem.md) | Packaging and ecosystem | accepted | R635 to R647 |
+| [0026](0026-security-model.md) | Security model: unforgeable handlers, unconfined capabilities, agent confinement | accepted | R672 to R677 |
