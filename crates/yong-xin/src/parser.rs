@@ -66,6 +66,10 @@ struct Parser {
     pos: usize,
     strict: bool,
     pub issues: Vec<Issue>,
+    /// N09: methods lifted out of the class being read, emitted after it.
+    lifted: Vec<Item>,
+    /// N09: the type an unannotated `self` parameter takes.
+    self_ty: Option<Type>,
 }
 
 /// Parse a `.xin` file. The module is `None` only when the lexer stopped early.
@@ -76,6 +80,8 @@ pub fn parse(src: &str, strict: bool) -> (Option<Module>, Vec<Issue>) {
         pos: 0,
         strict,
         issues: lexed.issues,
+        lifted: Vec::new(),
+        self_ty: None,
     };
     if lexed.fatal {
         return (None, p.issues);
@@ -363,6 +369,7 @@ impl Parser {
                 Ok(it) => m.items.push(it),
                 Err(e) => self.recover(e),
             }
+            m.items.append(&mut self.lifted);
         }
         m
     }
@@ -423,8 +430,18 @@ impl Parser {
 
     fn item(&mut self) -> P<Item> {
         let mut decorators = Vec::new();
-        while self.eat_op("@") {
-            decorators.push(self.decorator_rest()?);
+        while self.is_op("@") {
+            let at = self.span();
+            self.bump();
+            let d = self.decorator_rest()?;
+            if !self.strict
+                && self.is_kw("class")
+                && matches!(d.path.last(), Some(n) if n == "dataclass")
+            {
+                self.note("N08", at, "`@dataclass` removed; a Xin class is a record");
+                continue;
+            }
+            decorators.push(d);
         }
         let span = self.span();
         let is_pub = self.eat_kw("pub");
@@ -437,7 +454,7 @@ impl Parser {
         } else if self.is_kw("class") {
             let ns = name_at(self);
             self.bump();
-            (ItemKind::Class(self.class_rest()?), ns)
+            (ItemKind::Class(self.class_rest(is_pub)?), ns)
         } else if self.soft("type") && matches!(self.tok_at(1), Tok::Name(n) if is_type_name(n)) {
             let ns = name_at(self);
             self.bump();
@@ -454,6 +471,14 @@ impl Parser {
             let f = self.funcdef_rest(true)?;
             let ns = f.name_span;
             (ItemKind::Lemma(f), ns)
+        } else if !self.strict
+            && matches!(self.tok(), Tok::Name(n) if is_type_name(n) && n.contains(|c: char| c.is_ascii_lowercase()))
+            && self.is_op_at(1, "=")
+            && matches!(self.tok_at(2), Tok::Name(_))
+        {
+            let ns = self.span();
+            self.note("N20", ns, "type alias normalized to `type X = ...`");
+            (ItemKind::Type(self.typedef_rest()?), ns)
         } else if matches!(self.tok(), Tok::Name(_)) && self.is_op_at(1, ":") {
             let ns = self.span();
             let name = self.name()?;
@@ -729,6 +754,23 @@ impl Parser {
                 } else {
                     self.name()?
                 };
+                if out.is_empty()
+                    && name == "self"
+                    && !self.is_op(":")
+                    && let Some(ty) = self.self_ty.clone()
+                {
+                    out.push(Param::Value {
+                        conv,
+                        name,
+                        span,
+                        ty,
+                        default: None,
+                    });
+                    if !self.eat_op(",") {
+                        break;
+                    }
+                    continue;
+                }
                 if !self.is_op(":") {
                     return Err(PErr {
                         code: "E240",
@@ -840,9 +882,17 @@ impl Parser {
         Ok(out)
     }
 
-    fn class_rest(&mut self) -> P<Class> {
+    fn class_rest(&mut self, is_pub: bool) -> P<Class> {
         let name = self.name()?;
         let tparams = self.tparams()?;
+        if !self.strict && self.is_op("(") && self.is_kw_at(1, "Exception") && self.is_op_at(2, ")")
+        {
+            let at = self.toks[self.pos + 1].span;
+            self.note("N20", at, "base class `Exception` dropped");
+            self.bump();
+            self.bump();
+            self.bump();
+        }
         self.expect_op(":")?;
         self.expect_newline_then_indent()?;
         let doc = self.docstring();
@@ -851,6 +901,10 @@ impl Parser {
             self.expect_newline()?;
         } else {
             while !matches!(self.tok(), Tok::Dedent | Tok::Eof) {
+                if !self.strict && self.is_kw("def") {
+                    self.method(&name, &tparams, is_pub)?;
+                    continue;
+                }
                 fields.push(self.field()?);
                 self.expect_newline()?;
             }
@@ -864,6 +918,45 @@ impl Parser {
             doc,
             fields,
         })
+    }
+
+    /// N09: a method of class `class` becomes a top-level function taking `self: C`.
+    fn method(&mut self, class: &str, tparams: &[TParam], is_pub: bool) -> P<()> {
+        let span = self.span();
+        self.bump();
+        let args = tparams
+            .iter()
+            .map(|t| match t {
+                TParam::Type { name, .. } | TParam::Value { name, .. } => TArg::Type(Type::Named {
+                    path: vec![name.clone()],
+                    args: Vec::new(),
+                }),
+            })
+            .collect();
+        self.self_ty = Some(Type::Named {
+            path: vec![class.to_owned()],
+            args,
+        });
+        let f = self.funcdef_rest(false);
+        self.self_ty = None;
+        let mut f = f?;
+        self.note(
+            "N09",
+            span,
+            format!(
+                "method `{}` lifted to a top-level function taking `self: {class}`",
+                f.name
+            ),
+        );
+        f.tparams.splice(0..0, tparams.iter().cloned());
+        self.lifted.push(Item {
+            decorators: Vec::new(),
+            is_pub,
+            span,
+            name_span: f.name_span,
+            kind: ItemKind::Func(f),
+        });
+        Ok(())
     }
 
     fn field(&mut self) -> P<Field> {
@@ -1036,6 +1129,23 @@ impl Parser {
         let at = self.span();
         if self.eat_kw("None") {
             return Ok(Type::None);
+        }
+        if !self.strict
+            && let Tok::Str { prefix, value, .. } = self.tok()
+            && prefix.is_empty()
+            && !value.is_empty()
+            && value.split('.').all(|n| {
+                n.starts_with(|c: char| c.is_alphabetic() || c == '_')
+                    && n.chars().all(|c| c.is_alphanumeric() || c == '_')
+            })
+        {
+            let path = value.split('.').map(str::to_owned).collect();
+            self.note("N19", at, "quoted forward reference unquoted");
+            self.bump();
+            return Ok(Type::Named {
+                path,
+                args: Vec::new(),
+            });
         }
         let par = self.is_kw("par") && self.is_kw_at(1, "Callable");
         if par {
@@ -2274,6 +2384,8 @@ impl Parser {
             pos: 0,
             strict: self.strict,
             issues: Vec::new(),
+            lifted: Vec::new(),
+            self_ty: None,
         };
         let r = sub.expr();
         self.issues.append(&mut sub.issues);

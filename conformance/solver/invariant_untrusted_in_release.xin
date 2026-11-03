@@ -1,12 +1,12 @@
 # spec: 8.6
-# rows: R340, R345
+# rows: R340, R345, R763
 # flags: --level release
-# note: release does not check loop invariants, so the bounds check stays (R340)
+# note: release does not check loop invariants, so the bounds check stays (R340); `start` is unbounded, so none is inferred (R763)
 # expect: W820 at 12:14
 
-def total(xs: list[int]) -> int:
+def total(xs: list[int], start: int) -> int:
     t = 0
-    i = 0
+    i = start
     while i < len(xs):
         invariant i >= 0
         t += xs[i]

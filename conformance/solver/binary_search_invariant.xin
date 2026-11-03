@@ -1,0 +1,17 @@
+# spec: 8.6
+# rows: R345, R760, R761, R762, R763
+# flags: --level release
+# note: `0 <= lo` and `hi <= len(xs) - 1` are inferred invariants, so every index is proven
+
+def find(xs: list[int], t: int) -> int:
+    lo = 0
+    hi = len(xs) - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if xs[mid] == t:
+            return mid
+        elif xs[mid] < t:
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return -1

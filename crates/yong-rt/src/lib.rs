@@ -11,4 +11,5 @@ pub mod math;
 pub mod num;
 pub mod rand;
 pub mod regex;
+pub mod sort;
 pub mod text;

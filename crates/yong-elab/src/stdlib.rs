@@ -176,6 +176,16 @@ pub(crate) fn mutates_receiver(m: &str) -> bool {
     MUTATING.contains(m)
 }
 
+/// The bare names of the functions std module `module` declares, for near-name fixes (R651).
+pub(crate) fn members(module: &str) -> Vec<&'static str> {
+    let prefix = format!("std.{module}.");
+    STD.fns
+        .keys()
+        .filter_map(|k| k.strip_prefix(&prefix))
+        .filter(|n| !n.contains('.'))
+        .collect()
+}
+
 /// The value of std constant `path`, an expression with no free names.
 pub(crate) fn konst(path: &str) -> Option<&'static j::Expr> {
     STD.consts.get(path)

@@ -596,6 +596,26 @@ topic = "Packaging and ecosystem (RFC 0020, https://claude.ai/artifact/NHdZaQ9Q6
 sections = "12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25"
 
 [[entry]]
+rows = "R648"
+topic = "Error messages (RFC 0021, https://claude.ai/artifact/6catGcMdztyszRmvJLoiRu), decided by the owner: D1, E545 registered in section 25; `tools/rows.py check` fails when the spec cites a code that section 25 does not list"
+sections = "17.2, 25"
+
+[[entry]]
+rows = "R649"
+topic = "Error messages (RFC 0021) D2, decided by the owner: a construct the toolchain does not support yet is E017, a record at the construct's span, and checking continues"
+sections = "18.2, 25"
+
+[[entry]]
+rows = "R650"
+topic = "Error messages (RFC 0021) D3, decided by the owner: the R294 line format leaves out an empty item or quote with its separators"
+sections = "18.2"
+
+[[entry]]
+rows = "R651"
+topic = "Error messages (RFC 0021) D4, decided by the owner: E200 and E203 carry near names within edit distance 2 as `maybe` fixes"
+sections = "18.2"
+
+[[entry]]
 rows = "R652 to R654"
 topic = "Tally slice findings (examples/tally), decided by the owner: Wen variant patterns may be qualified, `schema.Grocery()` (R652); currency units per ISO 4217 code, Money written as `12.50usd` in Wen and `12.50 * usd` in Xin and read exactly as dec128, `money(d, c)`, `.amount`, `.currency` (R653); golden program G5, the Tally slice in Xin and Wen (R654)"
 sections = "11.7, 15.2, 15.3, 24.3"
@@ -604,3 +624,43 @@ sections = "11.7, 15.2, 15.3, 24.3"
 rows = "R672 to R677"
 topic = "Security model (RFC 0026, https://claude.ai/artifact/Hotw9YyR8LEvWE4GbB9gLi), decided by the owner: host handlers are unforgeable, E326 (R672); unconfined class for proc, py and foreign libraries, `uses none` externs stay in the ceiling (R673); `fs.only`, `fs.sub`, `proc.only` and `env.only` attenuators (R674); frozen clauses keep their meaning and P006 covers the test-hash closure (R675); `yong mcp` confinement, budgets, untrusted channel and `yong trust` (R676); `embed` resolves symlinks and archives hold none (R677)"
 sections = "7.1, 7.3, 10.4, 12.2, 12.7, 17.6, 18.3, 19.2, 19.3, 19.4, 21.1, 21.4, 25"
+
+[[entry]]
+rows = "R680"
+topic = "Formal core model (RFC 0022, https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y), decided by the owner: a Lean 4 model of Yong-K under `formal/`, checked against the interpreter by differential testing, never shipped and never a build dependency; the one exception to R215 (R680)"
+sections = "22.1, 26.1"
+
+[[entry]]
+rows = "R764 to R765"
+topic = "Gaps found by the formal core model (RFC 0022), decided by the owner: a join point body that falls through continues after the statement that jumped to it (R764); an `inout` argument takes the callee's final value when the callee fails (R765)"
+sections = "3.5, 4.1"
+
+[[entry]]
+rows = "R655 to R657"
+topic = "Learnability (RFC 0024), decided by the owner: `print` and `eprint` take any `Show` value (R655); an integer literal also types as a binary float when exactly representable (R656); `float ** int` is C23 `pown` (R657)"
+sections = "3.4, 11.1, 14.1, 17.1"
+
+[[entry]]
+rows = "R658 to R661"
+topic = "Python idiom parity (RFC 0024), decided by the owner: `min` and `max` over one iterable with `key=` and `default=` (R658); `sorted` and `sort` with `key=` and `reverse=` (R659); `str` and `list` repetition by `*` (R660); N31 lifts a capture-free nested `def` (R661)"
+sections = "14.1, 14.4, 17.2, 25"
+
+[[entry]]
+rows = "R662 to R664"
+topic = "Habit help (RFC 0024), decided by the owner: `habit` children on diagnostics triggered by Python or TypeScript habits (R662); W854 for `${...}` in a Wen string (R663); a TypeScript migration guide in the learning set (R664)"
+sections = "15.1, 15.5, 18.2, 18.9, 25"
+
+[[entry]]
+rows = "R760 to R763"
+topic = "Inferred loop invariants (RFC 0027), decided by the owner: kills keep implied facts by Fourier-Motzkin elimination (R760); `x = x + d` substitutes (R761); joins keep facts every path implies (R762); `while` invariants inferred from entry facts the body preserves (R763)"
+sections = "8.6"
+
+[[entry]]
+rows = "R665 to R671"
+topic = "`yong review` (RFC 0023, https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU), decided by the owner: the command over git revisions at M1 (R665); item changes on elaborated Yong, edited and affected (R666); authority gains and losses (R667); contracts, tests and `tests.lock`, approval judged by BASE, frozen edits (R668); the test verdict cache key and file (R669); provenance authors (R670); exit status and the JSON and Markdown formats (R671)"
+sections = "18.1, 18.4, 21.5"
+
+[[entry]]
+rows = "R681 to R695"
+topic = "std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bit operators, `<<` exact or `overflow`, `bigint` bit ops (R682); `seeded(seed, algorithm)` and the ChaCha8 and Pcg64Dxsm streams (R683); derived `rand` operations through `next_u64` (R684); `rand` split by task path (R685); `env` operations and `fake_env` (R686); `Secret[T]` operations (R687); log events, fields and `Level` (R688); log spans as child handlers (R689); log handlers and logfmt (R690); `proc.Command` (R691); `proc.run`, `Output`, `ProcError` and `fake_proc` (R692); `proc.spawn` deferred to `Reader` and `Writer` (R693); the `derive(Cli)` mapping and `@help` (R694); `cli.parse`, `CliError` and fixed wording (R695)"
+sections = "3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25"
