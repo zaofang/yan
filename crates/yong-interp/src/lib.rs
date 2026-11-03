@@ -409,7 +409,7 @@ pub(crate) fn intrinsic(name: &str, args: &[Value]) -> Option<R<Value>> {
                     let r = a.rem_euclid(b);
                     checked(Some(if r != 0 && b < 0 { r + b } else { r }), ty)
                 }
-                "div" => Ok(Value::Float(a as f64 / b as f64)),
+                "div" => Ok(Value::Float(yong_rt::num::div_i128(a, b))),
                 "and" => Ok(Value::Int(a & b)),
                 "or" => Ok(Value::Int(a | b)),
                 "xor" => Ok(Value::Int(a ^ b)),
