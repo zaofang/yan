@@ -1,4 +1,4 @@
-# 0022: A formal model of Yong's core in Lean 4
+# 0022: A formal model of Yan's core in Lean 4
 
 - Status: accepted (D1, D3, D4); D2 open
 - Research: [Formal core study](https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y)
@@ -6,7 +6,7 @@
 
 ## Summary
 
-Model a small, safe core of Yong text in Lean 4 under `formal/`, check it against the Rust
+Model a small, safe core of Yan Core text in Lean 4 under `formal/`, check it against the Rust
 interpreter by differential testing, and later prove the language's main claims on it: type
 safety, no observable aliasing, capability authority, schedule independence of `par`, and replay.
 The model never ships and no crate depends on it, so the toolchain stays Rust only (R215). This is
@@ -17,12 +17,12 @@ between them on every change.
 
 ### D1: Admit a Lean 4 model under `formal/`
 
-Yong-K is the fragment of the 3.5 grammar with records, sums, `let`/`var`, assignment, `if`,
+Yan-K is the fragment of the 3.5 grammar with records, sums, `let`/`var`, assignment, `if`,
 `match`, labelled loops, join points, `ret`, `fail`, `?`, `try`, `become`, plain `par`, `assert`,
 `unreachable`, the integer, `f64` and `bool` intrinsics, and `std.io.print`. Phases 2 to 4 add views,
 closures, capabilities and handlers. `unsafe`, Tree Borrows, atomics, FFI and stage 0 stay out.
 
-Phase 0, delivered with this RFC, is the executable model (`formal/YongK`) and `formal/drt.py`.
+Phase 0, delivered with this RFC, is the executable model (`formal/YanCore`) and `formal/drt.py`.
 Proofs (phases 1 to 4) start after the M1 gate. Lean is a non-shipping, non-build dependency, the
 one exception to R215.
 

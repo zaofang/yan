@@ -25,21 +25,21 @@ num-integer = "0.1"
 num-traits = "0.2"
 regex = "1"
 unicode-segmentation = "1"
-yong-core = { path = "crates/yong-core" }
-yong-diag = { path = "crates/yong-diag" }
-yong-interp = { path = "crates/yong-interp" }
-yong-check = { path = "crates/yong-check" }
-yong-std = { path = "crates/yong-std" }
-yong-rt = { path = "crates/yong-rt" }
-yong-mir = { path = "crates/yong-mir" }
-yong-cg-cranelift = { path = "crates/yong-cg-cranelift" }
-yong-hir = { path = "crates/yong-hir" }
-yong-xin = { path = "crates/yong-xin" }
-yong-elab = { path = "crates/yong-elab" }
-yong-wen = { path = "crates/yong-wen" }
-yong-names = { path = "crates/yong-names" }
-yong-db = { path = "crates/yong-db" }
-yong-ide = { path = "crates/yong-ide" }
+yan-core = { path = "crates/yan-core" }
+yan-diag = { path = "crates/yan-diag" }
+yan-interp = { path = "crates/yan-interp" }
+yan-check = { path = "crates/yan-check" }
+yan-std = { path = "crates/yan-std" }
+yan-rt = { path = "crates/yan-rt" }
+yan-mir = { path = "crates/yan-mir" }
+yan-cg-cranelift = { path = "crates/yan-cg-cranelift" }
+yan-hir = { path = "crates/yan-hir" }
+yan-yag = { path = "crates/yan-yag" }
+yan-elab = { path = "crates/yan-elab" }
+yan-yn = { path = "crates/yan-yn" }
+yan-names = { path = "crates/yan-names" }
+yan-db = { path = "crates/yan-db" }
+yan-ide = { path = "crates/yan-ide" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

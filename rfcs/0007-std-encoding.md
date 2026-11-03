@@ -9,7 +9,7 @@
 R475 makes `std.encoding` the declaring module of `bytes`, and the module table of 17 lists only
 `hex` and `base64`. The compiler has no `bytes` type yet. This RFC defines `bytes` as an immutable
 byte string with a small method set, UTF-8 conversion in both directions, strict hex and base64, and
-one error type. It adds no literal syntax: Xin syntax rows wait for the model probe (R566), so bytes
+one error type. It adds no literal syntax: Yan Agent syntax rows wait for the model probe (R566), so bytes
 are built by calls.
 
 ## Decisions

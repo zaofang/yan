@@ -74,7 +74,7 @@ Whitespace is space, tab, LF and CR only. A duplicate key in one object fails wi
 not opt in. Nesting deeper than `max_depth` fails with reason `Depth`.
 
 Options weighed: a lenient mode, like JSON5 or Python's acceptance of `NaN`. Lenient input belongs to
-a separate `@yong/json5`. Recommended: strict only.
+a separate `@yan/json5`. Recommended: strict only.
 
 - Decision: accepted, 2026-11-01
 - Row: R571

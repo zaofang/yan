@@ -1,5 +1,5 @@
 <!doctype html>
-<title>Yong Playground</title>
+<title>Yan Playground</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta charset="utf-8">
@@ -16,9 +16,9 @@
   --ash: #5B5E66;
   --rule: #D6D2C8;
   --seal: #C8341F;
-  --yong: #C8341F;
-  --xin: #2A7253;
-  --wen: #3D4FA8;
+  --yan: #C8341F;
+  --yag: #2A7253;
+  --yn: #3D4FA8;
   --chang: #8F5A0B;
   --ok: #2A7253;
   --warn: #8F5A0B;
@@ -35,7 +35,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --paper: #121316; --paper-2: #1A1B1F; --ink: #ECE9E2; --ash: #A9ACB4; --rule: #2C2E34;
-    --seal: #E2553F; --yong: #E2553F; --xin: #5DBB8E; --wen: #8C9BEA; --chang: #DEA461;
+    --seal: #E2553F; --yan: #E2553F; --yag: #5DBB8E; --yn: #8C9BEA; --chang: #DEA461;
     --ok: #5DBB8E; --warn: #DEA461;
     --code-k: #8C9BEA; --code-s: #5DBB8E; --code-n: #DEA461; --code-t: #CC98EE; --code-c: #6E7179;
     color-scheme: dark;
@@ -43,7 +43,7 @@
 }
 :root[data-theme="dark"] {
   --paper: #121316; --paper-2: #1A1B1F; --ink: #ECE9E2; --ash: #A9ACB4; --rule: #2C2E34;
-  --seal: #E2553F; --yong: #E2553F; --xin: #5DBB8E; --wen: #8C9BEA; --chang: #DEA461;
+  --seal: #E2553F; --yan: #E2553F; --yag: #5DBB8E; --yn: #8C9BEA; --chang: #DEA461;
   --ok: #5DBB8E; --warn: #DEA461;
   --code-k: #8C9BEA; --code-s: #5DBB8E; --code-n: #DEA461; --code-t: #CC98EE; --code-c: #6E7179;
   color-scheme: dark;
@@ -151,9 +151,9 @@ textarea {
 .pane .bar .btn { margin-left: auto; height: 26px; padding: 0 10px; font-size: 12px; border-color: var(--rule); }
 .pane .bar .btn:hover { border-color: var(--ink); }
 .seal { width: 22px; height: 22px; display: block; flex: none; }
-.pane[data-s="yong"] { --c: var(--yong); }
-.pane[data-s="xin"] { --c: var(--xin); }
-.pane[data-s="wen"] { --c: var(--wen); }
+.pane[data-s="yir"] { --c: var(--yan); }
+.pane[data-s="yag"] { --c: var(--yag); }
+.pane[data-s="yn"] { --c: var(--yn); }
 .pane[data-s="chang"] { --c: var(--chang); }
 .pane.source .bar { box-shadow: inset 0 3px 0 var(--c); }
 pre.code { margin: 0; padding: 12px 16px; overflow: auto; white-space: pre; min-height: 0; }
@@ -182,7 +182,7 @@ pre.code.msg { white-space: pre-wrap; font-family: var(--f-body); color: var(--a
 </style>
 
 <header>
-  <div class="brand"><svg class="lockup" xmlns="http://www.w3.org/2000/svg" viewBox="0 -19.69 359.38 139.38" role="img" aria-label="Yong 永"><title>Yong 永</title><path class="red" d="M 0.00 0.00 L 100.00 0.00 L 100.00 100.00 L 0.00 100.00 Z  M 12.91 12.91 L 33.36 12.91 L 33.36 5.31 L 5.31 5.31 L 5.31 33.36 L 35.98 33.36 L 35.98 35.98 L 5.31 35.98 L 5.31 53.80 L 35.98 53.80 L 35.98 56.42 L 5.31 56.42 L 5.31 74.24 L 35.98 74.24 L 35.98 76.87 L 5.31 76.87 L 5.31 94.69 L 23.13 94.69 L 23.13 87.09 L 12.91 87.09 L 12.91 84.47 L 43.58 84.47 L 43.58 66.64 L 12.91 66.64 L 12.91 64.02 L 43.58 64.02 L 43.58 46.20 L 12.91 46.20 L 12.91 43.58 L 43.58 43.58 L 43.58 25.76 L 12.91 25.76 Z  M 94.69 43.58 L 94.69 25.76 L 87.09 25.76 L 87.09 35.98 L 56.42 35.98 L 56.42 53.80 L 87.09 53.80 L 87.09 56.42 L 56.42 56.42 L 56.42 74.24 L 87.09 74.24 L 87.09 76.87 L 56.42 76.87 L 56.42 94.69 L 94.69 94.69 L 94.69 87.09 L 64.02 87.09 L 64.02 84.47 L 94.69 84.47 L 94.69 66.64 L 64.02 66.64 L 64.02 64.02 L 94.69 64.02 L 94.69 46.20 L 64.02 46.20 L 64.02 43.58 Z  M 53.80 15.53 L 15.53 15.53 L 15.53 23.13 L 46.20 23.13 L 46.20 87.09 L 25.76 87.09 L 25.76 94.69 L 53.80 94.69 Z  M 94.69 5.31 L 66.64 5.31 L 66.64 12.91 L 87.09 12.91 L 87.09 15.53 L 56.42 15.53 L 56.42 33.36 L 84.47 33.36 L 84.47 25.76 L 64.02 25.76 L 64.02 23.13 L 94.69 23.13 Z  M 64.02 5.31 L 35.98 5.31 L 35.98 12.91 L 64.02 12.91 Z "/><g transform="translate(129.688 27.500) scale(12.5)"><path fill="currentColor" d="M 18.38 0.00 L 18.38 6.00 Q 18.38 7.38 17.00 7.38 L 14.70 7.38 Q 14.66 7.38 14.63 7.37 Q 14.59 7.36 14.56 7.35 Q 14.52 7.33 14.49 7.31 Q 14.46 7.29 14.44 7.26 Q 14.41 7.24 14.39 7.21 Q 14.37 7.18 14.35 7.14 Q 14.34 7.11 14.33 7.07 Q 14.32 7.04 14.32 7.00 Q 14.32 6.96 14.33 6.93 Q 14.34 6.89 14.35 6.86 Q 14.37 6.82 14.39 6.79 Q 14.41 6.76 14.44 6.74 Q 14.46 6.71 14.49 6.69 Q 14.52 6.67 14.56 6.65 Q 14.59 6.64 14.63 6.63 Q 14.66 6.62 14.70 6.62 L 17.00 6.62 Q 17.62 6.62 17.62 6.00 L 17.62 4.38 L 15.70 4.38 Q 14.32 4.38 14.32 3.00 L 14.32 1.00 Q 14.32 -0.38 15.70 -0.38 L 18.00 -0.38 Q 18.04 -0.38 18.07 -0.37 Q 18.11 -0.36 18.14 -0.35 Q 18.18 -0.33 18.21 -0.31 Q 18.24 -0.29 18.26 -0.26 Q 18.29 -0.24 18.31 -0.21 Q 18.33 -0.18 18.35 -0.14 Q 18.36 -0.11 18.37 -0.07 Q 18.38 -0.04 18.38 0.00 Z  M 5.90 -0.38 L 7.20 -0.38 Q 8.57 -0.38 8.57 1.00 L 8.57 3.00 Q 8.57 4.38 7.20 4.38 L 5.90 4.38 Q 4.53 4.38 4.53 3.00 L 4.53 1.00 Q 4.53 -0.38 5.90 -0.38 Z  M 0.38 0.00 L 0.38 3.00 Q 0.38 3.62 1.00 3.62 L 2.92 3.62 L 2.92 0.00 Q 2.92 -0.04 2.93 -0.07 Q 2.94 -0.11 2.95 -0.14 Q 2.97 -0.18 2.99 -0.21 Q 3.01 -0.24 3.04 -0.26 Q 3.06 -0.29 3.09 -0.31 Q 3.12 -0.33 3.16 -0.35 Q 3.19 -0.36 3.23 -0.37 Q 3.26 -0.38 3.30 -0.38 Q 3.34 -0.38 3.37 -0.37 Q 3.41 -0.36 3.44 -0.35 Q 3.48 -0.33 3.51 -0.31 Q 3.54 -0.29 3.57 -0.26 Q 3.59 -0.24 3.61 -0.21 Q 3.63 -0.18 3.65 -0.14 Q 3.66 -0.11 3.67 -0.07 Q 3.67 -0.04 3.67 0.00 L 3.67 6.00 Q 3.67 7.38 2.30 7.38 L 0.00 7.38 Q -0.04 7.38 -0.07 7.37 Q -0.11 7.36 -0.14 7.35 Q -0.18 7.33 -0.21 7.31 Q -0.24 7.29 -0.26 7.26 Q -0.29 7.24 -0.31 7.21 Q -0.33 7.18 -0.35 7.14 Q -0.36 7.11 -0.37 7.07 Q -0.38 7.04 -0.38 7.00 Q -0.38 6.96 -0.37 6.93 Q -0.36 6.89 -0.35 6.86 Q -0.33 6.82 -0.31 6.79 Q -0.29 6.76 -0.26 6.74 Q -0.24 6.71 -0.21 6.69 Q -0.18 6.67 -0.14 6.65 Q -0.11 6.64 -0.07 6.63 Q -0.04 6.62 0.00 6.62 L 2.30 6.62 Q 2.92 6.62 2.92 6.00 L 2.92 4.38 L 1.00 4.38 Q -0.38 4.38 -0.38 3.00 L -0.38 0.00 Q -0.38 -0.04 -0.37 -0.07 Q -0.36 -0.11 -0.35 -0.14 Q -0.33 -0.18 -0.31 -0.21 Q -0.29 -0.24 -0.26 -0.26 Q -0.24 -0.29 -0.21 -0.31 Q -0.18 -0.33 -0.14 -0.35 Q -0.11 -0.36 -0.07 -0.37 Q -0.04 -0.38 0.00 -0.38 Q 0.04 -0.38 0.07 -0.37 Q 0.11 -0.36 0.14 -0.35 Q 0.18 -0.33 0.21 -0.31 Q 0.24 -0.29 0.26 -0.26 Q 0.29 -0.24 0.31 -0.21 Q 0.33 -0.18 0.35 -0.14 Q 0.36 -0.11 0.37 -0.07 Q 0.38 -0.04 0.38 0.00 Z  M 9.43 4.00 L 9.43 1.00 Q 9.43 -0.38 10.80 -0.38 L 12.10 -0.38 Q 13.48 -0.38 13.48 1.00 L 13.48 4.00 Q 13.48 4.04 13.47 4.07 Q 13.46 4.11 13.45 4.14 Q 13.43 4.18 13.41 4.21 Q 13.39 4.24 13.36 4.26 Q 13.34 4.29 13.31 4.31 Q 13.28 4.33 13.24 4.35 Q 13.21 4.36 13.17 4.37 Q 13.14 4.38 13.10 4.38 Q 13.06 4.38 13.03 4.37 Q 12.99 4.36 12.96 4.35 Q 12.92 4.33 12.89 4.31 Q 12.86 4.29 12.84 4.26 Q 12.81 4.24 12.79 4.21 Q 12.77 4.18 12.75 4.14 Q 12.74 4.11 12.73 4.07 Q 12.73 4.04 12.73 4.00 L 12.73 1.00 Q 12.73 0.38 12.10 0.38 L 10.80 0.38 Q 10.18 0.38 10.18 1.00 L 10.18 4.00 Q 10.18 4.04 10.17 4.07 Q 10.16 4.11 10.15 4.14 Q 10.13 4.18 10.11 4.21 Q 10.09 4.24 10.06 4.26 Q 10.04 4.29 10.01 4.31 Q 9.98 4.33 9.94 4.35 Q 9.91 4.36 9.87 4.37 Q 9.84 4.38 9.80 4.38 Q 9.76 4.38 9.73 4.37 Q 9.69 4.36 9.66 4.35 Q 9.62 4.33 9.59 4.31 Q 9.56 4.29 9.53 4.26 Q 9.51 4.24 9.49 4.21 Q 9.47 4.18 9.45 4.14 Q 9.44 4.11 9.43 4.07 Q 9.43 4.04 9.43 4.00 Z  M 17.62 3.62 L 17.62 0.38 L 15.70 0.38 Q 15.07 0.38 15.07 1.00 L 15.07 3.00 Q 15.07 3.62 15.70 3.62 L 17.62 3.62 Z  M 5.90 0.38 Q 5.28 0.38 5.28 1.00 L 5.28 3.00 Q 5.28 3.62 5.90 3.62 L 7.20 3.62 Q 7.82 3.62 7.82 3.00 L 7.82 1.00 Q 7.82 0.38 7.20 0.38 Z "/><path class="red" d="M 5.82 -3.07 L 6.55 -2.33 L 7.28 -3.07 Q 7.31 -3.09 7.34 -3.11 Q 7.37 -3.13 7.41 -3.15 Q 7.44 -3.16 7.48 -3.17 Q 7.51 -3.17 7.55 -3.17 Q 7.59 -3.17 7.62 -3.17 Q 7.66 -3.16 7.69 -3.15 Q 7.73 -3.13 7.76 -3.11 Q 7.79 -3.09 7.82 -3.07 Q 7.84 -3.04 7.86 -3.01 Q 7.88 -2.98 7.90 -2.94 Q 7.91 -2.91 7.92 -2.87 Q 7.93 -2.84 7.93 -2.80 Q 7.93 -2.76 7.92 -2.73 Q 7.91 -2.69 7.90 -2.66 Q 7.88 -2.62 7.86 -2.59 Q 7.84 -2.56 7.82 -2.54 L 6.82 -1.53 Q 6.79 -1.51 6.76 -1.49 Q 6.73 -1.47 6.69 -1.45 Q 6.66 -1.44 6.62 -1.43 Q 6.59 -1.42 6.55 -1.42 Q 6.51 -1.42 6.48 -1.43 Q 6.44 -1.44 6.41 -1.45 Q 6.37 -1.47 6.34 -1.49 Q 6.31 -1.51 6.28 -1.53 L 5.28 -2.54 Q 5.26 -2.56 5.24 -2.59 Q 5.22 -2.62 5.20 -2.66 Q 5.19 -2.69 5.18 -2.73 Q 5.18 -2.76 5.18 -2.80 Q 5.18 -2.84 5.18 -2.87 Q 5.19 -2.91 5.20 -2.94 Q 5.22 -2.98 5.24 -3.01 Q 5.26 -3.04 5.28 -3.07 Q 5.31 -3.09 5.34 -3.11 Q 5.37 -3.13 5.41 -3.15 Q 5.44 -3.16 5.48 -3.17 Q 5.51 -3.17 5.55 -3.17 Q 5.59 -3.17 5.62 -3.17 Q 5.66 -3.16 5.69 -3.15 Q 5.73 -3.13 5.76 -3.11 Q 5.79 -3.09 5.82 -3.07 Z "/></g></svg>
+  <div class="brand"><svg class="lockup" xmlns="http://www.w3.org/2000/svg" viewBox="0 -19.69 359.38 139.38" role="img" aria-label="Yan 言"><title>Yan 言</title><path class="red" d="M 0.00 0.00 L 100.00 0.00 L 100.00 100.00 L 0.00 100.00 Z  M 12.91 12.91 L 33.36 12.91 L 33.36 5.31 L 5.31 5.31 L 5.31 33.36 L 35.98 33.36 L 35.98 35.98 L 5.31 35.98 L 5.31 53.80 L 35.98 53.80 L 35.98 56.42 L 5.31 56.42 L 5.31 74.24 L 35.98 74.24 L 35.98 76.87 L 5.31 76.87 L 5.31 94.69 L 23.13 94.69 L 23.13 87.09 L 12.91 87.09 L 12.91 84.47 L 43.58 84.47 L 43.58 66.64 L 12.91 66.64 L 12.91 64.02 L 43.58 64.02 L 43.58 46.20 L 12.91 46.20 L 12.91 43.58 L 43.58 43.58 L 43.58 25.76 L 12.91 25.76 Z  M 94.69 43.58 L 94.69 25.76 L 87.09 25.76 L 87.09 35.98 L 56.42 35.98 L 56.42 53.80 L 87.09 53.80 L 87.09 56.42 L 56.42 56.42 L 56.42 74.24 L 87.09 74.24 L 87.09 76.87 L 56.42 76.87 L 56.42 94.69 L 94.69 94.69 L 94.69 87.09 L 64.02 87.09 L 64.02 84.47 L 94.69 84.47 L 94.69 66.64 L 64.02 66.64 L 64.02 64.02 L 94.69 64.02 L 94.69 46.20 L 64.02 46.20 L 64.02 43.58 Z  M 53.80 15.53 L 15.53 15.53 L 15.53 23.13 L 46.20 23.13 L 46.20 87.09 L 25.76 87.09 L 25.76 94.69 L 53.80 94.69 Z  M 94.69 5.31 L 66.64 5.31 L 66.64 12.91 L 87.09 12.91 L 87.09 15.53 L 56.42 15.53 L 56.42 33.36 L 84.47 33.36 L 84.47 25.76 L 64.02 25.76 L 64.02 23.13 L 94.69 23.13 Z  M 64.02 5.31 L 35.98 5.31 L 35.98 12.91 L 64.02 12.91 Z "/><g transform="translate(129.688 27.500) scale(12.5)"><path fill="currentColor" d="M 18.38 0.00 L 18.38 6.00 Q 18.38 7.38 17.00 7.38 L 14.70 7.38 Q 14.66 7.38 14.63 7.37 Q 14.59 7.36 14.56 7.35 Q 14.52 7.33 14.49 7.31 Q 14.46 7.29 14.44 7.26 Q 14.41 7.24 14.39 7.21 Q 14.37 7.18 14.35 7.14 Q 14.34 7.11 14.33 7.07 Q 14.32 7.04 14.32 7.00 Q 14.32 6.96 14.33 6.93 Q 14.34 6.89 14.35 6.86 Q 14.37 6.82 14.39 6.79 Q 14.41 6.76 14.44 6.74 Q 14.46 6.71 14.49 6.69 Q 14.52 6.67 14.56 6.65 Q 14.59 6.64 14.63 6.63 Q 14.66 6.62 14.70 6.62 L 17.00 6.62 Q 17.62 6.62 17.62 6.00 L 17.62 4.38 L 15.70 4.38 Q 14.32 4.38 14.32 3.00 L 14.32 1.00 Q 14.32 -0.38 15.70 -0.38 L 18.00 -0.38 Q 18.04 -0.38 18.07 -0.37 Q 18.11 -0.36 18.14 -0.35 Q 18.18 -0.33 18.21 -0.31 Q 18.24 -0.29 18.26 -0.26 Q 18.29 -0.24 18.31 -0.21 Q 18.33 -0.18 18.35 -0.14 Q 18.36 -0.11 18.37 -0.07 Q 18.38 -0.04 18.38 0.00 Z  M 5.90 -0.38 L 7.20 -0.38 Q 8.57 -0.38 8.57 1.00 L 8.57 3.00 Q 8.57 4.38 7.20 4.38 L 5.90 4.38 Q 4.53 4.38 4.53 3.00 L 4.53 1.00 Q 4.53 -0.38 5.90 -0.38 Z  M 0.38 0.00 L 0.38 3.00 Q 0.38 3.62 1.00 3.62 L 2.92 3.62 L 2.92 0.00 Q 2.92 -0.04 2.93 -0.07 Q 2.94 -0.11 2.95 -0.14 Q 2.97 -0.18 2.99 -0.21 Q 3.01 -0.24 3.04 -0.26 Q 3.06 -0.29 3.09 -0.31 Q 3.12 -0.33 3.16 -0.35 Q 3.19 -0.36 3.23 -0.37 Q 3.26 -0.38 3.30 -0.38 Q 3.34 -0.38 3.37 -0.37 Q 3.41 -0.36 3.44 -0.35 Q 3.48 -0.33 3.51 -0.31 Q 3.54 -0.29 3.57 -0.26 Q 3.59 -0.24 3.61 -0.21 Q 3.63 -0.18 3.65 -0.14 Q 3.66 -0.11 3.67 -0.07 Q 3.67 -0.04 3.67 0.00 L 3.67 6.00 Q 3.67 7.38 2.30 7.38 L 0.00 7.38 Q -0.04 7.38 -0.07 7.37 Q -0.11 7.36 -0.14 7.35 Q -0.18 7.33 -0.21 7.31 Q -0.24 7.29 -0.26 7.26 Q -0.29 7.24 -0.31 7.21 Q -0.33 7.18 -0.35 7.14 Q -0.36 7.11 -0.37 7.07 Q -0.38 7.04 -0.38 7.00 Q -0.38 6.96 -0.37 6.93 Q -0.36 6.89 -0.35 6.86 Q -0.33 6.82 -0.31 6.79 Q -0.29 6.76 -0.26 6.74 Q -0.24 6.71 -0.21 6.69 Q -0.18 6.67 -0.14 6.65 Q -0.11 6.64 -0.07 6.63 Q -0.04 6.62 0.00 6.62 L 2.30 6.62 Q 2.92 6.62 2.92 6.00 L 2.92 4.38 L 1.00 4.38 Q -0.38 4.38 -0.38 3.00 L -0.38 0.00 Q -0.38 -0.04 -0.37 -0.07 Q -0.36 -0.11 -0.35 -0.14 Q -0.33 -0.18 -0.31 -0.21 Q -0.29 -0.24 -0.26 -0.26 Q -0.24 -0.29 -0.21 -0.31 Q -0.18 -0.33 -0.14 -0.35 Q -0.11 -0.36 -0.07 -0.37 Q -0.04 -0.38 0.00 -0.38 Q 0.04 -0.38 0.07 -0.37 Q 0.11 -0.36 0.14 -0.35 Q 0.18 -0.33 0.21 -0.31 Q 0.24 -0.29 0.26 -0.26 Q 0.29 -0.24 0.31 -0.21 Q 0.33 -0.18 0.35 -0.14 Q 0.36 -0.11 0.37 -0.07 Q 0.38 -0.04 0.38 0.00 Z  M 9.43 4.00 L 9.43 1.00 Q 9.43 -0.38 10.80 -0.38 L 12.10 -0.38 Q 13.48 -0.38 13.48 1.00 L 13.48 4.00 Q 13.48 4.04 13.47 4.07 Q 13.46 4.11 13.45 4.14 Q 13.43 4.18 13.41 4.21 Q 13.39 4.24 13.36 4.26 Q 13.34 4.29 13.31 4.31 Q 13.28 4.33 13.24 4.35 Q 13.21 4.36 13.17 4.37 Q 13.14 4.38 13.10 4.38 Q 13.06 4.38 13.03 4.37 Q 12.99 4.36 12.96 4.35 Q 12.92 4.33 12.89 4.31 Q 12.86 4.29 12.84 4.26 Q 12.81 4.24 12.79 4.21 Q 12.77 4.18 12.75 4.14 Q 12.74 4.11 12.73 4.07 Q 12.73 4.04 12.73 4.00 L 12.73 1.00 Q 12.73 0.38 12.10 0.38 L 10.80 0.38 Q 10.18 0.38 10.18 1.00 L 10.18 4.00 Q 10.18 4.04 10.17 4.07 Q 10.16 4.11 10.15 4.14 Q 10.13 4.18 10.11 4.21 Q 10.09 4.24 10.06 4.26 Q 10.04 4.29 10.01 4.31 Q 9.98 4.33 9.94 4.35 Q 9.91 4.36 9.87 4.37 Q 9.84 4.38 9.80 4.38 Q 9.76 4.38 9.73 4.37 Q 9.69 4.36 9.66 4.35 Q 9.62 4.33 9.59 4.31 Q 9.56 4.29 9.53 4.26 Q 9.51 4.24 9.49 4.21 Q 9.47 4.18 9.45 4.14 Q 9.44 4.11 9.43 4.07 Q 9.43 4.04 9.43 4.00 Z  M 17.62 3.62 L 17.62 0.38 L 15.70 0.38 Q 15.07 0.38 15.07 1.00 L 15.07 3.00 Q 15.07 3.62 15.70 3.62 L 17.62 3.62 Z  M 5.90 0.38 Q 5.28 0.38 5.28 1.00 L 5.28 3.00 Q 5.28 3.62 5.90 3.62 L 7.20 3.62 Q 7.82 3.62 7.82 3.00 L 7.82 1.00 Q 7.82 0.38 7.20 0.38 Z "/><path class="red" d="M 5.82 -3.07 L 6.55 -2.33 L 7.28 -3.07 Q 7.31 -3.09 7.34 -3.11 Q 7.37 -3.13 7.41 -3.15 Q 7.44 -3.16 7.48 -3.17 Q 7.51 -3.17 7.55 -3.17 Q 7.59 -3.17 7.62 -3.17 Q 7.66 -3.16 7.69 -3.15 Q 7.73 -3.13 7.76 -3.11 Q 7.79 -3.09 7.82 -3.07 Q 7.84 -3.04 7.86 -3.01 Q 7.88 -2.98 7.90 -2.94 Q 7.91 -2.91 7.92 -2.87 Q 7.93 -2.84 7.93 -2.80 Q 7.93 -2.76 7.92 -2.73 Q 7.91 -2.69 7.90 -2.66 Q 7.88 -2.62 7.86 -2.59 Q 7.84 -2.56 7.82 -2.54 L 6.82 -1.53 Q 6.79 -1.51 6.76 -1.49 Q 6.73 -1.47 6.69 -1.45 Q 6.66 -1.44 6.62 -1.43 Q 6.59 -1.42 6.55 -1.42 Q 6.51 -1.42 6.48 -1.43 Q 6.44 -1.44 6.41 -1.45 Q 6.37 -1.47 6.34 -1.49 Q 6.31 -1.51 6.28 -1.53 L 5.28 -2.54 Q 5.26 -2.56 5.24 -2.59 Q 5.22 -2.62 5.20 -2.66 Q 5.19 -2.69 5.18 -2.73 Q 5.18 -2.76 5.18 -2.80 Q 5.18 -2.84 5.18 -2.87 Q 5.19 -2.91 5.20 -2.94 Q 5.22 -2.98 5.24 -3.01 Q 5.26 -3.04 5.28 -3.07 Q 5.31 -3.09 5.34 -3.11 Q 5.37 -3.13 5.41 -3.15 Q 5.44 -3.16 5.48 -3.17 Q 5.51 -3.17 5.55 -3.17 Q 5.59 -3.17 5.62 -3.17 Q 5.66 -3.16 5.69 -3.15 Q 5.73 -3.13 5.76 -3.11 Q 5.79 -3.09 5.82 -3.07 Z "/></g></svg>
 <span class="label">Playground</span></div>
   <div class="tools">
     <label class="label" for="example">Example</label>
@@ -197,9 +197,9 @@ pre.code.msg { white-space: pre-wrap; font-family: var(--f-body); color: var(--a
     <div class="bar">
       <span class="label">Write in</span>
       <div class="seg" role="group" aria-label="Source surface">
-        <button type="button" data-s="xin" aria-pressed="true">Xin <span class="han">信</span></button>
-        <button type="button" data-s="wen" aria-pressed="false">Wen <span class="han">文</span></button>
-        <button type="button" data-s="yong" aria-pressed="false">Yong <span class="han">永</span></button>
+        <button type="button" data-s="yag" aria-pressed="true">Yan Agent <span class="han">言信</span></button>
+        <button type="button" data-s="yn" aria-pressed="false">Yan <span class="han">言文</span></button>
+        <button type="button" data-s="yir" aria-pressed="false">Yan Core <span class="han">言核</span></button>
       </div>
     </div>
     <div class="editor">
@@ -218,27 +218,27 @@ pre.code.msg { white-space: pre-wrap; font-family: var(--f-body); color: var(--a
   </section>
 
   <section class="views" aria-label="The module in every surface">
-    <article class="pane" data-s="yong">
+    <article class="pane" data-s="yir">
       <div class="bar"><svg class="seal" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true"><path fill="currentColor" d="M 0.00 0.00 L 100.00 0.00 L 100.00 100.00 L 0.00 100.00 Z  M 12.91 12.91 L 33.36 12.91 L 33.36 5.31 L 5.31 5.31 L 5.31 33.36 L 35.98 33.36 L 35.98 35.98 L 5.31 35.98 L 5.31 53.80 L 35.98 53.80 L 35.98 56.42 L 5.31 56.42 L 5.31 74.24 L 35.98 74.24 L 35.98 76.87 L 5.31 76.87 L 5.31 94.69 L 23.13 94.69 L 23.13 87.09 L 12.91 87.09 L 12.91 84.47 L 43.58 84.47 L 43.58 66.64 L 12.91 66.64 L 12.91 64.02 L 43.58 64.02 L 43.58 46.20 L 12.91 46.20 L 12.91 43.58 L 43.58 43.58 L 43.58 25.76 L 12.91 25.76 Z  M 94.69 43.58 L 94.69 25.76 L 87.09 25.76 L 87.09 35.98 L 56.42 35.98 L 56.42 53.80 L 87.09 53.80 L 87.09 56.42 L 56.42 56.42 L 56.42 74.24 L 87.09 74.24 L 87.09 76.87 L 56.42 76.87 L 56.42 94.69 L 94.69 94.69 L 94.69 87.09 L 64.02 87.09 L 64.02 84.47 L 94.69 84.47 L 94.69 66.64 L 64.02 66.64 L 64.02 64.02 L 94.69 64.02 L 94.69 46.20 L 64.02 46.20 L 64.02 43.58 Z  M 53.80 15.53 L 15.53 15.53 L 15.53 23.13 L 46.20 23.13 L 46.20 87.09 L 25.76 87.09 L 25.76 94.69 L 53.80 94.69 Z  M 94.69 5.31 L 66.64 5.31 L 66.64 12.91 L 87.09 12.91 L 87.09 15.53 L 56.42 15.53 L 56.42 33.36 L 84.47 33.36 L 84.47 25.76 L 64.02 25.76 L 64.02 23.13 L 94.69 23.13 Z  M 64.02 5.31 L 35.98 5.31 L 35.98 12.91 L 64.02 12.91 Z "/></svg>
-<span class="name">Yong</span><span class="han">永</span><span class="label" data-role></span><button class="btn" type="button" data-edit>Edit this</button></div>
+<span class="name">Yan Core</span><span class="han">言核</span><span class="label" data-role></span><button class="btn" type="button" data-edit>Edit this</button></div>
       <pre class="code"></pre>
     </article>
-    <article class="pane" data-s="xin">
+    <article class="pane" data-s="yag">
       <div class="bar"><svg class="seal" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true"><path fill="currentColor" d="M 0.00 0.00 L 100.00 0.00 L 100.00 100.00 L 0.00 100.00 Z  M 38.76 63.86 L 38.76 94.69 L 94.69 94.69 L 94.69 63.86 Z  M 5.31 5.31 L 5.31 94.69 L 11.05 94.69 L 11.05 11.05 L 22.04 11.05 L 22.04 13.67 L 13.67 13.67 L 13.67 94.69 L 19.42 94.69 L 19.42 19.42 L 27.78 19.42 L 27.78 5.31 Z  M 88.95 69.60 L 88.95 88.95 L 44.51 88.95 L 44.51 69.60 L 88.95 69.60 Z  M 38.76 22.04 L 38.76 61.24 L 44.51 61.24 L 44.51 27.78 L 94.69 27.78 L 94.69 13.67 L 38.76 13.67 L 38.76 19.42 L 88.95 19.42 L 88.95 22.04 Z  M 30.40 13.67 L 30.40 94.69 L 36.14 94.69 L 36.14 13.67 Z  M 47.13 30.40 L 47.13 36.14 L 80.58 36.14 L 80.58 38.76 L 47.13 38.76 L 47.13 44.51 L 86.33 44.51 L 86.33 30.40 Z  M 47.13 47.13 L 47.13 52.87 L 80.58 52.87 L 80.58 55.49 L 47.13 55.49 L 47.13 61.24 L 86.33 61.24 L 86.33 47.13 Z  M 47.13 80.58 L 47.13 86.33 L 86.33 86.33 L 86.33 72.22 L 47.13 72.22 L 47.13 77.96 L 80.58 77.96 L 80.58 80.58 Z  M 22.04 22.04 L 22.04 94.69 L 27.78 94.69 L 27.78 22.04 Z  M 55.49 5.31 L 55.49 11.05 L 94.69 11.05 L 94.69 5.31 Z  M 88.95 30.40 L 88.95 61.24 L 94.69 61.24 L 94.69 30.40 Z  M 30.40 5.31 L 30.40 11.05 L 52.87 11.05 L 52.87 5.31 Z "/></svg>
-<span class="name">Xin</span><span class="han">信</span><span class="label" data-role></span><button class="btn" type="button" data-edit>Edit this</button></div>
+<span class="name">Yan Agent</span><span class="han">言信</span><span class="label" data-role></span><button class="btn" type="button" data-edit>Edit this</button></div>
       <pre class="code"></pre>
     </article>
-    <article class="pane" data-s="wen">
+    <article class="pane" data-s="yn">
       <div class="bar"><svg class="seal" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true"><path fill="currentColor" d="M 0.00 0.00 L 100.00 0.00 L 100.00 100.00 L 0.00 100.00 Z  M 94.69 15.53 L 5.31 15.53 L 5.31 23.13 L 87.09 23.13 L 87.09 25.76 L 5.31 25.76 L 5.31 43.58 L 94.69 43.58 L 94.69 35.98 L 12.91 35.98 L 12.91 33.36 L 94.69 33.36 Z  M 84.47 64.02 L 84.47 46.20 L 76.87 46.20 L 76.87 56.42 L 23.13 56.42 L 23.13 46.20 L 15.53 46.20 L 15.53 64.02 L 46.20 64.02 L 46.20 66.64 L 15.53 66.64 L 15.53 94.69 L 23.13 94.69 L 23.13 74.24 L 76.87 74.24 L 76.87 94.69 L 84.47 94.69 L 84.47 66.64 L 53.80 66.64 L 53.80 64.02 Z  M 94.69 94.69 L 94.69 46.20 L 87.09 46.20 L 87.09 94.69 Z  M 12.91 94.69 L 12.91 46.20 L 5.31 46.20 L 5.31 94.69 Z  M 74.24 46.20 L 25.76 46.20 L 25.76 53.80 L 74.24 53.80 L 74.24 46.20 Z  M 94.69 5.31 L 66.64 5.31 L 66.64 12.91 L 94.69 12.91 Z  M 33.36 5.31 L 5.31 5.31 L 5.31 12.91 L 33.36 12.91 Z  M 64.02 5.31 L 35.98 5.31 L 35.98 12.91 L 64.02 12.91 Z  M 74.24 94.69 L 74.24 76.87 L 66.64 76.87 L 66.64 94.69 Z  M 64.02 94.69 L 64.02 76.87 L 56.42 76.87 L 56.42 94.69 Z  M 33.36 94.69 L 33.36 76.87 L 25.76 76.87 L 25.76 94.69 Z  M 43.58 94.69 L 43.58 76.87 L 35.98 76.87 L 35.98 94.69 Z  M 53.80 94.69 L 53.80 76.87 L 46.20 76.87 L 46.20 94.69 Z "/></svg>
-<span class="name">Wen</span><span class="han">文</span><span class="label" data-role></span><button class="btn" type="button" data-edit>Edit this</button></div>
+<span class="name">Yan</span><span class="han">言文</span><span class="label" data-role></span><button class="btn" type="button" data-edit>Edit this</button></div>
       <pre class="code"></pre>
     </article>
     <article class="pane" data-s="chang">
       <div class="bar"><svg class="seal" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true"><path fill="currentColor" d="M 0.00 0.00 L 100.00 0.00 L 100.00 100.00 L 0.00 100.00 Z  M 22.04 5.31 L 22.04 22.04 L 13.67 22.04 L 13.67 44.51 L 19.42 44.51 L 19.42 27.78 L 22.04 27.78 L 22.04 47.13 L 13.67 47.13 L 13.67 52.87 L 22.04 52.87 L 22.04 72.22 L 19.42 72.22 L 19.42 55.49 L 13.67 55.49 L 13.67 77.96 L 22.04 77.96 L 22.04 94.69 L 27.78 94.69 L 27.78 77.96 L 44.51 77.96 L 44.51 22.04 L 27.78 22.04 L 27.78 5.31 Z  M 55.49 22.04 L 55.49 52.87 L 88.95 52.87 L 88.95 88.95 L 72.22 88.95 L 72.22 94.69 L 94.69 94.69 L 94.69 47.13 L 61.24 47.13 L 61.24 27.78 L 86.33 27.78 L 86.33 22.04 Z  M 5.31 5.31 L 5.31 94.69 L 19.42 94.69 L 19.42 80.58 L 13.67 80.58 L 13.67 88.95 L 11.05 88.95 L 11.05 11.05 L 13.67 11.05 L 13.67 19.42 L 19.42 19.42 L 19.42 5.31 Z  M 30.40 13.67 L 30.40 19.42 L 88.95 19.42 L 88.95 30.40 L 63.86 30.40 L 63.86 36.14 L 94.69 36.14 L 94.69 13.67 Z  M 55.49 55.49 L 55.49 86.33 L 86.33 86.33 L 86.33 55.49 L 80.58 55.49 L 80.58 80.58 L 61.24 80.58 L 61.24 55.49 Z  M 30.40 5.31 L 30.40 11.05 L 94.69 11.05 L 94.69 5.31 Z  M 30.40 80.58 L 30.40 86.33 L 52.87 86.33 L 52.87 47.13 L 47.13 47.13 L 47.13 80.58 Z  M 63.86 55.49 L 63.86 77.96 L 77.96 77.96 L 77.96 55.49 L 72.22 55.49 L 72.22 72.22 L 69.60 72.22 L 69.60 55.49 Z  M 30.40 88.95 L 30.40 94.69 L 69.60 94.69 L 69.60 88.95 Z  M 38.76 27.78 L 38.76 47.13 L 27.78 47.13 L 27.78 27.78 Z  M 27.78 52.87 L 38.76 52.87 L 38.76 72.22 L 27.78 72.22 Z  M 63.86 38.76 L 63.86 44.51 L 94.69 44.51 L 94.69 38.76 Z  M 47.13 22.04 L 47.13 44.51 L 52.87 44.51 L 52.87 22.04 Z  M 30.40 30.40 L 30.40 44.51 L 36.14 44.51 L 36.14 30.40 Z  M 30.40 55.49 L 30.40 69.60 L 36.14 69.60 L 36.14 55.49 Z "/></svg>
-<span class="name">Chang</span><span class="han">畅</span><span class="label">no printer yet</span></div>
+<span class="name">Yan Notation</span><span class="han">言符</span><span class="label">no printer yet</span></div>
       <div class="note">
-        <p><strong>Chang has no printer in the toolchain yet.</strong> Its reader and printer are planned work, so this pane stays empty until <code>yong view --as chang</code> exists.</p>
-        <p>Xin and Wen fill in from any source that elaborates, through the shared HIR.</p>
+        <p><strong>Yan Notation has no printer in the toolchain yet.</strong> Its reader and printer are planned work, so this pane stays empty until <code>yan view --as ynt</code> exists.</p>
+        <p>Yan Agent and Yan fill in from any source that elaborates, through the shared HIR.</p>
       </div>
     </article>
   </section>
@@ -248,8 +248,8 @@ pre.code.msg { white-space: pre-wrap; font-family: var(--f-body); color: var(--a
 <script>
 const $ = (q) => document.querySelector(q);
 const src = $("#src"), gutter = $("#gutter"), state = $("#state");
-const TITLES = { yong: "Yong", xin: "Xin", wen: "Wen" };
-let surface = "xin";
+const TITLES = { yir: "Yan Core", yag: "Yan Agent", yn: "Yan" };
+let surface = "yag";
 let lastViews = {};
 let badLines = new Set();
 
@@ -288,7 +288,7 @@ const KW = new Set(("def fn pub let var if else elif for in while return ret mat
   "async await handle resume do then end").split(" "));
 const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
 function highlight(text, s) {
-  const comment = s === "xin" ? "#" : "--";
+  const comment = s === "yag" ? "#" : "--";
   const re = new RegExp(`(${comment}.*$)|("(?:[^"\\\\\\n]|\\\\.)*"|'(?:[^'\\\\\\n]|\\\\.)')|(\\b\\d[\\d_]*(?:\\.\\d+)?(?:e[+-]?\\d+)?\\b)|([A-Za-z_]\\w*)`, "gm");
   let out = "", at = 0, m;
   while ((m = re.exec(text))) {
@@ -313,7 +313,7 @@ src.addEventListener("scroll", () => { gutter.scrollTop = src.scrollTop; });
 function setSurface(s) {
   surface = s;
   document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.s === s));
-  src.style.tabSize = s === "wen" ? 2 : 4;
+  src.style.tabSize = s === "yn" ? 2 : 4;
 }
 
 let viewTimer = 0, viewSeq = 0;
@@ -334,12 +334,12 @@ async function refresh() {
   }
   const { diagnostics, views } = r.ok;
   lastViews = views;
-  for (const s of ["yong", "xin", "wen"]) {
+  for (const s of ["yir", "yag", "yn"]) {
     const pane = $(`.pane[data-s="${s}"]`);
     const pre = pane.querySelector("pre");
     const v = views[s];
     pane.classList.toggle("source", s === surface);
-    pane.querySelector("[data-role]").textContent = s === surface ? (s === "yong" ? "source" : "formatted source") : "view";
+    pane.querySelector("[data-role]").textContent = s === surface ? (s === "yir" ? "source" : "formatted source") : "view";
     pane.querySelector("[data-edit]").hidden = !v.text || s === surface;
     pre.classList.remove("stale");
     pre.classList.toggle("msg", !v.text);
@@ -349,7 +349,7 @@ async function refresh() {
 }
 
 function viewMessage(s, error) {
-  if (error.startsWith("no printer for `wen`")) return "Wen prints only from Wen source for now. Write in Wen to see it here.";
+  if (error.startsWith("no printer for `yn`")) return "Yan prints only from Yan source for now. Write in Yan to see it here.";
   if (error === "the module has errors") return "Fix the problems first; this view prints only a module that checks.";
   return error;
 }
@@ -456,16 +456,16 @@ src.addEventListener("keydown", (e) => {
     run();
     return;
   }
-  const unit = surface === "wen" ? "  " : "    ";
+  const unit = surface === "yn" ? "  " : "    ";
   if (e.key === "Tab" && !e.altKey && !e.ctrlKey && !e.metaKey) {
     e.preventDefault();
     document.execCommand("insertText", false, unit);
   } else if (e.key === "Enter" && !e.shiftKey) {
     const line = src.value.slice(0, src.selectionStart).split("\n").pop();
     let indent = line.match(/^\s*/)[0];
-    if (/:\s*$/.test(line) && surface === "xin") indent += unit;
-    if (/(=|->)\s*$/.test(line) && surface === "wen") indent += unit;
-    if (/\{\s*$/.test(line) && surface === "yong") indent += unit;
+    if (/:\s*$/.test(line) && surface === "yag") indent += unit;
+    if (/(=|->)\s*$/.test(line) && surface === "yn") indent += unit;
+    if (/\{\s*$/.test(line) && surface === "yir") indent += unit;
     e.preventDefault();
     document.execCommand("insertText", false, "\n" + indent);
   }
@@ -484,7 +484,7 @@ select.onchange = () => {
   load(x.source, x.surface);
 };
 
-const KEY = "yong-playground-draft";
+const KEY = "yan-playground-draft";
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify({ surface, text: src.value })); } catch {}
 }

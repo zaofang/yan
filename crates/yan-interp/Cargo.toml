@@ -1,0 +1,27 @@
+[package]
+name = "yan-interp"
+description = "Interpreter over Yan IR: `yan run` in M0 and M1, checked mode"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde_json.workspace = true
+yan-std.workspace = true
+yan-rt.workspace = true
+yan-core.workspace = true
+yan-diag.workspace = true
+indexmap.workspace = true
+jiff.workspace = true
+num-bigint.workspace = true
+num-integer.workspace = true
+num-traits.workspace = true
+getrandom = "0.4"
+
+[dev-dependencies]
+yan-yag.workspace = true
+
+[lints]
+workspace = true

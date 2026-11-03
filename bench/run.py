@@ -1,6 +1,6 @@
-"""Time each program in bench/programs under the Yong interpreter, typed Python and Rust.
+"""Time each program in bench/programs under the Yan interpreter, typed Python and Rust.
 
-Every program directory holds main.yong, main.py and main.rs, which compute the same result with the
+Every program directory holds main.yir, main.py and main.rs, which compute the same result with the
 same algorithm and assert it, so a wrong answer fails the run. Each time is the median wall time of
 --runs runs after one warmup, minus the median time of the same language's bench/startup program.
 Rust is built with overflow checks on, the setting the M2a gate uses (R389).
@@ -18,7 +18,7 @@ from pathlib import Path
 
 BENCH = Path(__file__).resolve().parent
 ROOT = BENCH.parent
-LANGS = ("yong", "py", "rs")
+LANGS = ("yir", "py", "rs")
 FLOOR = 0.001
 RUSTC_FLAGS = ("-C", "opt-level=3", "-C", "overflow-checks=on", "-C", "codegen-units=1")
 
@@ -46,9 +46,9 @@ def build_rust(src: Path, out_dir: Path) -> Path:
     return exe
 
 
-def commands(prog: Path, yong: Path, python: str, rust_dir: Path) -> dict[str, list[str]]:
+def commands(prog: Path, yan: Path, python: str, rust_dir: Path) -> dict[str, list[str]]:
     return {
-        "yong": [str(yong), "run", str(prog / "main.yong")],
+        "yir": [str(yan), "run", str(prog / "main.yir")],
         "py": [python, str(prog / "main.py")],
         "rs": [str(build_rust(prog / "main.rs", rust_dir))],
     }
@@ -79,19 +79,19 @@ def ratio(num: float, den: float, digits: int) -> str:
 
 def report(rows: list[Row], startup: dict[str, float]) -> str:
     lines = [
-        "| program | yong ms | python ms | rust ms | yong/python | yong/rust |",
+        "| program | yan ms | python ms | rust ms | yan/python | yan/rust |",
         "|---|---:|---:|---:|---:|---:|",
     ]
     for r in rows:
         net = {lang: r.net(lang, startup) for lang in LANGS}
         lines.append(
-            f"| {r.program} | {ms(net['yong'])} | {ms(net['py'])} | {ms(net['rs'])} "
-            f"| {ratio(net['yong'], net['py'], 1)} | {ratio(net['yong'], net['rs'], 0)} |"
+            f"| {r.program} | {ms(net['yan'])} | {ms(net['py'])} | {ms(net['rs'])} "
+            f"| {ratio(net['yan'], net['py'], 1)} | {ratio(net['yan'], net['rs'], 0)} |"
         )
     yp = statistics.geometric_mean(
-        r.net("yong", startup) / max(r.net("py", startup), FLOOR) for r in rows
+        r.net("yir", startup) / max(r.net("py", startup), FLOOR) for r in rows
     )
-    lines.append(f"\nGeometric mean, yong/python: {yp:.1f}x.")
+    lines.append(f"\nGeometric mean, yan/python: {yp:.1f}x.")
     lines.append(
         "Startup subtracted (ms): "
         + ", ".join(f"{lang} {ms(startup[lang])}" for lang in LANGS)
@@ -102,7 +102,7 @@ def report(rows: list[Row], startup: dict[str, float]) -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--yong", type=Path, default=ROOT / "target/release/yong")
+    ap.add_argument("--yan", type=Path, default=ROOT / "target/release/yan")
     ap.add_argument("--python", default=sys.executable)
     ap.add_argument("--runs", type=int, default=5)
     ap.add_argument("--json", type=Path, help="also write the raw timings here")
@@ -115,11 +115,11 @@ def main() -> None:
     if args.programs:
         progs = [p for p in progs if p.name in args.programs]
 
-    base = commands(BENCH / "startup", args.yong, args.python, rust_dir)
+    base = commands(BENCH / "startup", args.yir, args.python, rust_dir)
     startup = {lang: measure(cmd, args.runs).median for lang, cmd in base.items()}
     rows = []
     for prog in progs:
-        cmds = commands(prog, args.yong, args.python, rust_dir)
+        cmds = commands(prog, args.yir, args.python, rust_dir)
         rows.append(Row(prog.name, {lang: measure(cmd, args.runs) for lang, cmd in cmds.items()}))
         print(f"{prog.name} done", file=sys.stderr)
 

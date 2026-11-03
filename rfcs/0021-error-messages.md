@@ -1,12 +1,12 @@
 # 0021: Error messages
 
 - Status: accepted
-- Research: [Yong error messages audit](https://claude.ai/artifact/6catGcMdztyszRmvJLoiRu)
+- Research: [Yan error messages audit](https://claude.ai/artifact/6catGcMdztyszRmvJLoiRu)
 - Rows: R648 to R651
 
 ## Summary
 
-The error messages audit ran every conformance fail case through `yong check` at 7dc69a2 and
+The error messages audit ran every conformance fail case through `yan check` at 7dc69a2 and
 scored the 115 codes it emits against Elm's and rustc's conventions. Most of the gap is
 implementation of R290 to R299, which are already normative. Four items needed a spec change:
 an emitted code missing from the catalogue, unsupported constructs that end in a bare stderr line,
@@ -25,7 +25,7 @@ cites a code that section 25 does not list.
 
 ### D2: a code for unsupported constructs
 
-43 of 278 fail cases end in `yong: not supported yet: X` on stderr, with no record, no span and
+43 of 278 fail cases end in `yan: not supported yet: X` on stderr, with no record, no span and
 the rest of the file unchecked. Options were a new E code, an I code, or no change. A missing
 feature is not an internal error, so it gets an E code: E017, reported at the construct, which is
 marked as in R291 so checking continues.

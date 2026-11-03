@@ -74,9 +74,9 @@ Recommendation: accept.
 
 The handlers are:
 - `seeded(seed: u64, algorithm: Algorithm = ChaCha8())`. This is the test default, with seed 0
-  unless `yong test --seed` gives another. It swaps the argument order of 7.1's
+  unless `yan test --seed` gives another. It swaps the argument order of 7.1's
   `seeded(algorithm, seed)` so the algorithm can default.
-- The OS handler, which is the default under `yong run` and reads the operating system's CSPRNG.
+- The OS handler, which is the default under `yan run` and reads the operating system's CSPRNG.
 
 `type Algorithm = ChaCha8() | Pcg64Dxsm()` is declared in `std.rand`.
 
@@ -91,7 +91,7 @@ Each algorithm has one fixed stream per seed, versioned with the module (20.5):
 The handlers `seeded` and the log handlers of D10 are in `std.test`, which is in scope without an
 import, next to `fixed_time` and `virtual`.
 
-`yong-rt`'s tests check both generators word for word against those crates and pin the first
+`yan-rt`'s tests check both generators word for word against those crates and pin the first
 output for seed 0.
 
 Recommendation: accept.
@@ -128,7 +128,7 @@ Recommendation: accept.
 
 | Operation | Meaning |
 | --- | --- |
-| `env.args() -> list[str]` | the program's arguments, without the program name: `yong run f.xin -- a b` gives `["a", "b"]` |
+| `env.args() -> list[str]` | the program's arguments, without the program name: `yan run f.yag -- a b` gives `["a", "b"]` |
 | `env.var(name: str) -> str \| None` | a variable; an unset variable or one that is not valid Unicode is `None` |
 | `env.vars() -> dict[str, str]` | every valid-Unicode variable, sorted by name |
 | `env.secret(name: str) -> Secret[str] \| None` | `env.var` wrapped in a `Secret` |
@@ -138,7 +138,7 @@ There is no `set_var`. The environment is a shared capability, and mutating it w
 read it is the race that made Rust mark `set_var` unsafe.
 
 The test handler is `fake_env(args: list[str] = [], vars: dict[str, str] = {}, zone: TimeZone =
-TimeZone.utc())`. The default `env` handler under `yong test` is `fake_env()`.
+TimeZone.utc())`. The default `env` handler under `yan test` is `fake_env()`.
 
 The 17.3 table changes `secret(name) -> Secret[str]` to return `Secret[str] | None`.
 
@@ -165,7 +165,7 @@ A log event is written `log.info(msg, key=value, ...)`, and the same holds for `
 - A field records its name and `show(value)`, in call order. Typed field values come with
   `derive(Wire)`.
 - `type Level = DebugLevel() | InfoLevel() | WarnLevel() | ErrorLevel()` is ordered in that order.
-  The suffix is there because variant names are bare in Xin, and `Error` would collide with
+  The suffix is there because variant names are bare in Yan Agent, and `Error` would collide with
   `std.error.Error` and with users' own `Error` types.
 
 The trait operation underneath is `event(level: Level, msg: str, fields: list[(str, str)])`, and
@@ -185,7 +185,7 @@ with log = log.span("load", file=path):
 
 Every event under the child carries the span path, which is `name` joined to the parent's with `/`,
 and the span's fields before its own. A span emits no event itself. OpenTelemetry start and end
-times come with the `time`-aware OTel handler in `@yong/otel`.
+times come with the `time`-aware OTel handler in `@yan/otel`.
 
 `par` branches inherit the current span. Their output is committed in source order at the join,
 as 7.1 already says.
@@ -199,13 +199,13 @@ Events print in logfmt: `level=info msg="parsed" span=load file=a.csv rows=3`.
 - Inside quotes, `\"`, `\\` and `\n` are escaped.
 
 The handlers are:
-- `log_stderr(level: Level = InfoLevel())` is the default under `yong run`. It writes to stderr, and
+- `log_stderr(level: Level = InfoLevel())` is the default under `yan run`. It writes to stderr, and
   each line starts with `ts=` and the host time as RFC 3339 UTC to the microsecond.
 - `log_stdout(level: Level = DebugLevel())` writes to stdout with no timestamp, so output is
   deterministic.
 - `discard_log()` drops every event.
 
-Under `yong test` the default is `log_stdout(DebugLevel())` into the test's captured output. That output
+Under `yan test` the default is `log_stdout(DebugLevel())` into the test's captured output. That output
 is shown when the test fails, so log lines never change a verdict.
 
 Recommendation: accept.
@@ -250,7 +250,7 @@ fields. A non-zero exit is data, not a failure, as in Python's `subprocess.run` 
 start or be read. `show(e)` prints `<program>: <message>`.
 
 The test handler is `fake_proc(outputs: dict[str, Output] = {})`, keyed by `program`. An unknown
-program fails with `NotFound`. The default under `yong test` is `fake_proc({})`.
+program fails with `NotFound`. The default under `yan test` is `fake_proc({})`.
 
 Recommendation: accept.
 

@@ -13,10 +13,10 @@ lookups that hide memory latency, fusion across kernels the compiler cannot read
 
 ### D1: incremental views
 
-`@yong/frame` adds `q.incremental()`, a `View[R]` updated by `apply(delta)` in time proportional to
+`@yan/frame` adds `q.incremental()`, a `View[R]` updated by `apply(delta)` in time proportional to
 the change, compiled to a DBSP circuit over Z-sets (Budiu et al., VLDB 2023). Float sums in a view
 are exact, so deletion is exact, and the result MUST equal a rerun of the plan with exact sums. The
-engine is the `yong-dbsp-engine` crate (R576 layout).
+engine is the `yan-dbsp-engine` crate (R576 layout).
 
 - Decision: accepted, 2026-11-01
 - Row: R625

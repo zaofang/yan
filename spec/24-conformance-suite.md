@@ -6,9 +6,9 @@ The conformance suite is the executable form of this spec. It lives in `conforma
 
 ```
 conformance/
-  xin/pass/   xin/fail/   xin/run/
-  wen/pass/    wen/fail/    wen/run/
-  yong/pass/   yong/fail/   yong/run/      -- yong/run/ for M0 (R468)
+  yag/pass/   yag/fail/   yag/run/
+  yn/pass/    yn/fail/    yn/run/
+  yir/pass/   yir/fail/   yir/run/      -- yir/run/ for M0 (R468)
   ub/          semver/      sim/
   patch/       roundtrip/   golden/
   solver/                                  -- 8.6 solver goals (R378)
@@ -16,7 +16,7 @@ conformance/
 ```
 
 - `pass/` files must check with no errors.
-- `fail/` files carry header lines `# expect: E501 at 14:9` (Wen and Yong: `-- expect:`), one per expected diagnostic. Exactly those codes must be reported, at those positions, and no others.
+- `fail/` files carry header lines `# expect: E501 at 14:9` (Yan and Yan Core: `-- expect:`), one per expected diagnostic. Exactly those codes must be reported, at those positions, and no others.
 - `run/` files carry `# stdout:` blocks and optionally `# exit: 101`. They must produce exactly that output on every executor.
 - `ub/` files must be flagged under `--ub` with the named item of 6.7, or run clean.
 - `semver/` holds one old/new package pair per row of the API evolution table (20.6) with the expected bump. pkg/ holds one package tree per case, with an optional earlier version, the toolchain command to run and the expected diagnostic, for the codes of sections 18 to 20 that need a whole package (R479).
@@ -27,7 +27,7 @@ conformance/
 | Area | Minimum |
 | --- | --- |
 | Lexing and layout | every lexical rule of both surfaces; each lenient normalization N01 to N32 with an input and expected canonical output |
-| Parsing | every grammar production of Yong, Xin and Wen in one `pass` file; every E1xx code in one `fail` file |
+| Parsing | every grammar production of Yan Core, Yan Agent and Yan in one `pass` file; every E1xx code in one `fail` file |
 | Types | inference, records, sums, newtypes, generics, traits, coherence (E220), method resolution (E250), named argument packs |
 | Ownership | each convention; value semantics (mutating a copy never changes the original); every E4xx code of section 25 (R378); the runtime exclusivity panic; views and `from` |
 | Memory model | every UB item in 6.7 flagged by `--ub`; DRF-SC litmus tests under `explore`; every happens-before edge in 6.5 |
@@ -41,14 +41,14 @@ conformance/
 | Time | literal checks (every E54x code, R378); tz edge cases against the pinned tzdb; virtual time |
 | Data | Arrow layouts; deterministic queries across thread counts; `QueryError` |
 | Round-trip | the laws of 16.5 (and N7 for each niche surface) on every conformance program, run by `conform.py --laws` (R564) |
-| Python bridge | every M1 `run` program exported with `yong export --python` produces identical output under CPython 3.12 |
+| Python bridge | every M1 `run` program exported with `yan export --python` produces identical output under CPython 3.12 |
 | Determinism | hash-key independence (two keys, identical outputs); record and replay; `std.sim` seed replay |
 | Safety | `Wire` decoder fuzz targets with limits enforced; patch protection and invisible-Unicode rejection; actor reentrancy, deadlock, timeout and supervisor-intensity scenarios |
 | Stability | every `semver/` pair; E001, E002, E008, E012, E013, W014 |
 
 ### 24.3 Golden programs
 
-G1 is hello world (`io.print`), G3 is the portfolio program of 14.5 under `std.sim`, G4 is a word count over `fake_fs`, and G5 is the Tally slice (`examples/tally`): card authorization, an interchange fee and per-merchant settlement, written once in Xin and once in Wen, whose two modules print the same output and elaborate to the same Yong with the same item hashes (R654). G2 parses trades and computes volume-weighted average price:
+G1 is hello world (`io.print`), G3 is the portfolio program of 14.5 under `std.sim`, G4 is a word count over `fake_fs`, and G5 is the Tally slice (`examples/tally`): card authorization, an interchange fee and per-merchant settlement, written once in Yan Agent and once in Yan, whose two modules print the same output and elaborate to the same Yan Core with the same item hashes (R654). G2 parses trades and computes volume-weighted average price:
 
 ```
 class Trade:

@@ -1,0 +1,15 @@
+[package]
+name = "yan-mir"
+description = "Mid-level IR for code generation: per-function control-flow graphs with intrinsic ids (R560)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+yan-core.workspace = true
+yan-std.workspace = true
+
+[lints]
+workspace = true

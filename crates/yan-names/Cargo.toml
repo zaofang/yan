@@ -1,0 +1,11 @@
+[package]
+name = "yan-names"
+description = "Names across surfaces: the projection table of spec 16.3"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
