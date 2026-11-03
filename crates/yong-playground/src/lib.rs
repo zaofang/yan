@@ -73,9 +73,6 @@ pub fn run(surface: &str, src: &str) -> Value {
                 m
             }
             Ok(Loaded::Stopped(_)) => return json!({ "error": "the module has errors" }),
-            Ok(Loaded::Unsupported(what, _)) => {
-                return json!({ "error": format!("not supported yet: {what}") });
-            }
             Err(msg) => return json!({ "error": msg }),
         };
         let mut out = Vec::new();
