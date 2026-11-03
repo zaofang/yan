@@ -519,6 +519,23 @@
    ]
   },
   {
+   "path": "xin/fail/caps/e306_capability_escapes_through_if.xin",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "7.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E306",
+     "line": 6,
+     "col": 23
+    }
+   ]
+  },
+  {
    "path": "xin/fail/caps/e306_capability_returned.xin",
    "kind": "fail",
    "milestone": "M1",
@@ -6928,6 +6945,34 @@
    "flags": [],
    "expect": [],
    "stdout": "b 3\na 2\nc 1\n",
+   "exit": 0
+  },
+  {
+   "path": "golden/g5_tally.wen",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "24.3",
+    "16.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 approved A86\n2 approved A82\n3 declined luhn\n4 declined limit\n5 approved A22\n6 declined amount\n7 declined issuer\n8 approved A75\ncorner-shop gross=5249 fees=77 net=5172\nair-lines gross=48000 fees=1200 net=46800\nbookstore gross=2500 fees=72 net=2428\n",
+   "exit": 0
+  },
+  {
+   "path": "golden/g5_tally.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "24.3",
+    "16.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 approved A86\n2 approved A82\n3 declined luhn\n4 declined limit\n5 approved A22\n6 declined amount\n7 declined issuer\n8 approved A75\ncorner-shop gross=5249 fees=77 net=5172\nair-lines gross=48000 fees=1200 net=46800\nbookstore gross=2500 fees=72 net=2428\n",
    "exit": 0
   },
   {
