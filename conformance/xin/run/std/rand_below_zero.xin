@@ -1,0 +1,11 @@
+# spec: 17.3
+# rows: R684
+# note: below(n) with n <= 0 panics with value
+# stdout:
+# 0
+# exit: 101
+
+pub def main() uses io:
+    with rand = seeded(1):
+        io.print(f"{rand.below(1)}")
+        io.print(f"{rand.below(0)}")
