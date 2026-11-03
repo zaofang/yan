@@ -35,4 +35,13 @@ research index links their studies and rows.
 | [0012](0012-header-facts.md) | New facts in the header | accepted | R610 to R612 |
 | [0013](0013-numerics.md) | Numerics: accuracy lint, reverse mode, sparse index equations | accepted | R613 to R615 |
 | [0014](0014-agent-loop.md) | The reference agent loop | accepted | R616 to R621 |
+| [0015](0015-zero-cost-guarantees.md) | Guaranteed zero-cost abstractions | accepted | R622 to R624 |
+| [0016](0016-data-engines.md) | Data engines | accepted | R625 to R628 |
+| [0017](0017-std-algorithms.md) | std algorithms | accepted | R629 to R632 |
+| [0018](0018-session-protocols.md) | Session protocols | accepted | R633, R634 |
+| [0020](0020-packaging-and-ecosystem.md) | Packaging and ecosystem | accepted | R635 to R647 |
+| [0026](0026-security-model.md) | Security model: unforgeable handlers, unconfined capabilities, agent confinement | accepted | R672 to R677 |
+| [0022](0022-formal-core.md) | A formal model of the core in Lean 4 | accepted (D1, D3, D4); D2 open | R680, R764, R765 |
+| [0024](0024-learnability.md) | Learnability for Python and TypeScript developers | accepted | R655 to R664 |
+| [0027](0027-loop-invariants.md) | Inferred loop invariants for the bounds solver | accepted | R760 to R763 |
 | [0021](0021-error-messages.md) | Error messages: E545, E017 for unsupported constructs, line format, near names | accepted | R648 to R651 |

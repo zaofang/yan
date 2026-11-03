@@ -23,6 +23,10 @@ struct Cli {
     /// What `run` executes on: the interpreter, or native code from Cranelift (M1b).
     #[arg(long, global = true, value_enum, default_value_t = Backend::Interp)]
     backend: Backend,
+    /// With the Cranelift backend: compile each function at its first call (debug), or all of
+    /// them before `main` starts.
+    #[arg(long, global = true, value_enum, default_value_t = Jit::Lazy)]
+    jit: Jit,
     #[command(subcommand)]
     command: Command,
 }
@@ -31,6 +35,12 @@ struct Cli {
 enum Backend {
     Interp,
     Cranelift,
+}
+
+#[derive(Clone, Copy, PartialEq, ValueEnum)]
+enum Jit {
+    Lazy,
+    Eager,
 }
 
 #[derive(Subcommand)]
@@ -170,6 +180,7 @@ fn main() -> ExitCode {
             &file,
             Database::new(strict, level.as_deref() == Some("release")),
             cli.backend,
+            cli.jit,
         ),
         Command::Test { format, gate, only } => run_tests(format, gate, only.as_deref()),
         Command::View { as_, file } => view(&as_, &file),
@@ -333,9 +344,6 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
             print_diags(d);
             return ExitCode::FAILURE;
         }
-        Ok(Loaded::Unsupported(what, _)) => {
-            return tool_failure(&format!("not supported yet: {what}"));
-        }
         Err(msg) => return tool_failure(msg),
     };
     match format {
@@ -361,7 +369,7 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
+fn run(file: &Path, mut db: Database, backend: Backend, jit: Jit) -> ExitCode {
     let f = match db.open(file) {
         Ok(f) => f,
         Err(msg) => return tool_failure(&msg),
@@ -383,19 +391,16 @@ fn run(file: &Path, mut db: Database, backend: Backend) -> ExitCode {
         Ok(Loaded::Stopped(_)) => {
             return tool_failure(&format!("{} does not parse", file.display()));
         }
-        Ok(Loaded::Unsupported(what, _)) => {
-            return tool_failure(&format!("not supported yet: {what}"));
-        }
         Err(msg) => return tool_failure(msg),
     };
     if backend == Backend::Cranelift {
-        return native(module);
+        return native(module, jit);
     }
     let mut out = std::io::stdout().lock();
     match yong_interp::run(module, &mut out) {
         Ok(status) => ExitCode::from(status as u8),
-        Err(Stop::Panic(kind)) => {
-            eprintln!("panic: {kind}");
+        Err(Stop::Panic(p)) => {
+            eprintln!("{}", p.render(&file.display().to_string()));
             ExitCode::from(EXIT_PANIC as u8)
         }
         Err(Stop::Unsupported(what)) => tool_failure(&format!("not supported yet: {what}")),
@@ -455,8 +460,12 @@ fn apply_patch(file: &Path, module: Option<&str>, check: bool, format: Format) -
 }
 
 /// Run `m` as native code. A panic exits from inside the program.
-fn native(m: &yong_core::ast::Module) -> ExitCode {
-    let compiled = yong_mir::lower(m).and_then(|p| yong_cg_cranelift::compile(&p));
+fn native(m: &yong_core::ast::Module, jit: Jit) -> ExitCode {
+    let jit = match jit {
+        Jit::Lazy => yong_cg_cranelift::Jit::Lazy,
+        Jit::Eager => yong_cg_cranelift::Jit::Eager,
+    };
+    let compiled = yong_mir::lower(m).and_then(|p| yong_cg_cranelift::compile_with(&p, jit));
     match compiled {
         Ok(c) => {
             c.run();

@@ -18,7 +18,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | W8xx | lints |
 | E9xx | unsafe, FFI, layout, linking and inline assembly |
 | P0xx | patches |
-| N01 to N30 | lenient-reader notes (14.4) |
+| N01 to N31 | lenient-reader notes (14.4) |
 | I001 to I999 | internal errors |
 
 ### 25.2 Packages, registry and stability
@@ -40,6 +40,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E013 | confirmed breaking change (with witness) for the declared bump *new* | 20.6 |
 | E014 | approved test changed since tests.lock was signed new | 18.4 |
 | E015 | approved test in tests.lock is missing new | 18.4 |
+| E016 | `yong publish` refuses the manifest: `overrides`, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later *new* | 19.4 |
 | E017 | construct this toolchain does not support yet, reported at the construct; checking continues (R649) new | 18.2 |
 | W014 | possible breaking change without a witness *new* | 20.6 |
 
@@ -101,6 +102,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E232 | a `type` that mixes inline variants with other alternatives, or lists `None` among variants (retargeted by R423) | 14.1 |
 | E272 | error in a stage-0-dependent body, found at an instantiation; carries the instantiation site and stage-0 backtrace new | 10.4 |
 | E273 | `become` outside tail position, inside par, with or a generator, or calling a closure or dyn method *new* | 3.5 |
+| E274 | access outside the region an `@access` claim declares (R627) new | 11.2 |
 | E233 | str or f-string where a Template is expected (R452) new | 13.1 |
 
 ### 25.5 Capabilities, handlers and failure
@@ -125,6 +127,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E322 | task stack bound exceeds the manifest's stack reserve new | 17.1 |
 | E323 | lock (Resource, CsMutex, Mutex or RwLock guard) held across a suspension point, on every platform (R395) new | 17.1 |
 | E325 | Untrusted value passed to a @trusted parameter (R451) new | 17.4 (R451) |
+| E326 | host handler built or bound outside the platform, a `yong_world` or an attenuation of a held handle (R672) new | 7.3 (R672) |
 
 ### 25.6 Ownership, views, memory and thread safety
 
@@ -215,6 +218,8 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E724 | breaking change to a pinned Wire schema (R406) new | 9.6.1, 20 |
 | E725 | @durable function uses a non-journaling capability, unjournaled nondeterminism, or a view across operations (R416) new | 9.6.1 |
 | E726 | entity key not Wire + Hash, or entity state not Wire (R413) new | 9.6.1 |
+| E727 | session send of a label the endpoint's current state does not allow (R634) new | 9.5 |
+| E728 | session protocol cannot be projected onto a role (R633) new | 9.5 |
 | E717 | Lub get() inside a par block that writes the cell (R454) new | 9.3 (R454) |
 | E718 | reserved (R455, deferred past 1.0) | 9.3 |
 
@@ -260,6 +265,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | W851 | `cost` bound neither proven nor refuted, compiled as a counter in `checked-all` (R610) new | 8.4 |
 | W852 | float expression less accurate than a rewrite found for it (R613) new | 11.1 |
 | W853 | match arm that can match no value left by earlier arms (R606) new | 8.6 |
+| W854 | Wen string with `${...}`, which Wen prints literally; fix rewrites it to `\(...)` (R663) new | 15.1 |
 
 ### 25.11 Unsafe, FFI, layout and assembly
 
@@ -288,7 +294,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | P004 | replaced or deleted item missing |
 | P005 | added item already exists |
 | P006 | patch touches a protected target without a human confirmation token |
-| N01 to N30 | lenient-reader normalizations (14.4) |
+| N01 to N31 | lenient-reader normalizations (14.4) |
 | I001 to I999 | internal errors, including Yong validator failures |
 
 Panic kinds, reported as `panic(kind): message` with exit status 101: `overflow`, `div_zero`, `contract`, `exclusivity`, `bounds`, `shape`, `unreachable`, `assert`, `deadlock`. Undefined-behavior reports from `--ub` name the item number of 6.7.
