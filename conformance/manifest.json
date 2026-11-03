@@ -4918,6 +4918,54 @@
    "exit": 0
   },
   {
+   "path": "xin/run/std/time_civil_dates.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R598",
+    "R599"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2024-01-31 3 31 31 True\n2024-02-29 P1M -P1Y2D P0D\nP1Y1M1D 2025-03-01\nTrue True None\n2024-01-31T09:05:00.5 2024-02-01T09:05:00.5\n00:30:00 9 5\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/time_civil_parse.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R598",
+    "R599"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2024-02-29\ntime out of range at 8\n09:05:00.5\ninvalid time at 5\n2024-02-29T09:05:00\nP1Y2M\ninvalid time at 4\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/time_civil_zones.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R600",
+    "R601"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "America/New_York +05:30 UTC\n2024-03-10T03:30:00-04:00[America/New_York] -14400\n2024-03-10T04:30:00-04:00[America/New_York]\n2024-03-11T03:30:00-04:00[America/New_York]\nNone\n2024-11-03T01:30:00-04:00[America/New_York] 2024-11-03T01:30:00-05:00[America/New_York]\n1969-12-31T19:00:00-05:00[America/New_York]\n",
+   "exit": 0
+  },
+  {
    "path": "xin/run/std/time_duration_arith.xin",
    "kind": "run",
    "milestone": "M1",
@@ -5006,6 +5054,37 @@
    "flags": [],
    "expect": [],
    "stdout": "2000-01-01T00:00:00Z PT5S MonoInstant(5000000000)\n2000-01-01T00:03:00Z PT3M\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/time_strftime.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R602"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Wednesday 31 January 2024\n09:05 PM\n1970-01-01 00:00:00 UTC\n2024-07-14\ninvalid time at 0\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/time_zoned_parse.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R601",
+    "R604"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2024-03-10T03:00:00-04:00[America/New_York]\n2024-03-10T03:00:00-04:00[America/New_York]\ntime zone offset mismatch at 19\nunknown time zone at 25\ninvalid time at 25\nunknown time zone at 0\n",
    "exit": 0
   },
   {

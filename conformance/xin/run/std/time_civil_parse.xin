@@ -1,0 +1,48 @@
+# spec: 17.5
+# rows: R598, R599
+# note: `at` is the char offset of the first bad char
+# stdout:
+# 2024-02-29
+# time out of range at 8
+# 09:05:00.5
+# invalid time at 5
+# 2024-02-29T09:05:00
+# P1Y2M
+# invalid time at 4
+
+def date(s: str) -> str:
+    return try_date(s) else err -> f"{err}"
+
+def try_date(s: str) -> str fail TimeError:
+    d = PlainDate.parse(s)?
+    return f"{d}"
+
+def time(s: str) -> str:
+    return try_time(s) else err -> f"{err}"
+
+def try_time(s: str) -> str fail TimeError:
+    t = PlainTime.parse(s)?
+    return f"{t}"
+
+def dt(s: str) -> str:
+    return try_dt(s) else err -> f"{err}"
+
+def try_dt(s: str) -> str fail TimeError:
+    x = PlainDateTime.parse(s)?
+    return f"{x}"
+
+def period(s: str) -> str:
+    return try_period(s) else err -> f"{err}"
+
+def try_period(s: str) -> str fail TimeError:
+    p = Period.parse(s)?
+    return f"{p}"
+
+pub def main() uses io:
+    io.print(date("2024-02-29"))
+    io.print(date("2023-02-29"))
+    io.print(time("09:05:00.500"))
+    io.print(time("09:05"))
+    io.print(dt("2024-02-29T09:05:00"))
+    io.print(period("P1Y2M"))
+    io.print(period("P1D1Y"))
