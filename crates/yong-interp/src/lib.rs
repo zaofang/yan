@@ -184,36 +184,45 @@ pub enum Stage0 {
 }
 
 /// Evaluate nullary `fn f` of `m` at stage 0, on a thread with room for deep recursion.
+#[cfg(not(target_family = "wasm"))]
 pub fn stage0(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
     std::thread::scope(|s| {
         std::thread::Builder::new()
             .stack_size(1 << 30)
-            .spawn_scoped(s, || {
-                let program = compile::compile(m);
-                let Some(code) = program.fns.get(f).copied() else {
-                    return unsupported(format!("no `fn {f}` to evaluate"));
-                };
-                let mut sink = std::io::sink();
-                let mut vm = vm::Vm::new(
-                    program,
-                    Interp {
-                        out: &mut sink,
-                        clocks: Vec::new(),
-                        rngs: Vec::new(),
-                        args: Vec::new(),
-                        test: false,
-                    },
-                );
-                vm.limit(limits);
-                match vm.call(code, Vec::new())?.0 {
-                    Ok(v) => Ok(materialize(&v)),
-                    Err(_) => unsupported("a failing stage-0 call"),
-                }
-            })
+            .spawn_scoped(s, || stage0_here(m, f, limits))
             .expect("spawn the stage-0 thread")
             .join()
             .unwrap_or_else(|_| unsupported("the stage-0 evaluator crashed"))
     })
+}
+
+/// WebAssembly in the browser has no threads; the playground links a large stack instead.
+#[cfg(target_family = "wasm")]
+pub fn stage0(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
+    stage0_here(m, f, limits)
+}
+
+fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
+    let program = compile::compile(m);
+    let Some(code) = program.fns.get(f).copied() else {
+        return unsupported(format!("no `fn {f}` to evaluate"));
+    };
+    let mut sink = std::io::sink();
+    let mut vm = vm::Vm::new(
+        program,
+        Interp {
+            out: &mut sink,
+            clocks: Vec::new(),
+            rngs: Vec::new(),
+            args: Vec::new(),
+            test: false,
+        },
+    );
+    vm.limit(limits);
+    match vm.call(code, Vec::new())?.0 {
+        Ok(v) => Ok(materialize(&v)),
+        Err(_) => unsupported("a failing stage-0 call"),
+    }
 }
 
 /// 10.4: scalars, strings, lists, tuples and data of them cross into run time.
@@ -446,7 +455,7 @@ pub(crate) fn intrinsic(name: &str, args: &[Value]) -> Option<R<Value>> {
                     let r = a.rem_euclid(b);
                     checked(Some(if r != 0 && b < 0 { r + b } else { r }), ty)
                 }
-                "div" => Ok(Value::Float(a as f64 / b as f64)),
+                "div" => Ok(Value::Float(yong_rt::num::div_i128(a, b))),
                 "and" => Ok(Value::Int(a & b)),
                 "or" => Ok(Value::Int(a | b)),
                 "xor" => Ok(Value::Int(a ^ b)),

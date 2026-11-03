@@ -9,6 +9,8 @@ use yong_db::{Database, Loaded};
 use yong_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, Span, finish};
 use yong_interp::{Limits, Stop};
 
+use crate::examples;
+
 /// One test's outcome.
 pub struct Record {
     /// `module.test_name`.
@@ -211,23 +213,36 @@ fn test_hash(m: &y::Module, it: &y::Item) -> String {
     )
 }
 
-/// Run every test of the package at `root`, or only `only`.
-pub fn run(root: &Path, only: Option<&str>, gate: bool) -> Result<Report, String> {
+/// Whether test `id` is selected by `filter`: the id itself, or a module or function prefix.
+fn selected(id: &str, filter: Option<&str>) -> bool {
+    filter.is_none_or(|f| {
+        id == f
+            || id
+                .strip_prefix(f)
+                .is_some_and(|rest| rest.starts_with(['.', '#']))
+    })
+}
+
+/// Run every test of the package at `root` that `filter` selects: `test_` functions and `ex`
+/// lines (R309).
+pub fn run(root: &Path, filter: Option<&str>, gate: bool) -> Result<Report, String> {
     let locked = lock(root)?;
     let mut diags = Vec::new();
     let mut tests = Vec::new();
     let mut found = BTreeMap::new();
     for (name, file) in modules(root)? {
         let mut db = Database::new(false, false);
-        let f = db.open(&file)?;
         let shown = file
             .strip_prefix(root)
             .unwrap_or(&file)
             .display()
             .to_string();
+        let src = std::fs::read_to_string(&file).map_err(|e| format!("{shown}: {e}"))?;
+        let (text, exs) = examples::augment(&shown, &src, false);
+        let f = db.file(&file, &text);
         let m = match yong_db::load(&db, f) {
             Ok(Loaded::Ready(m, _)) => {
-                let d = yong_ide::diagnostics(&db, f)?;
+                let d = examples::remap(yong_ide::diagnostics(&db, f)?, &exs);
                 let errors = d.iter().any(|d| d.severity == Severity::Error);
                 diags.extend(d.into_iter().filter(|d| d.severity == Severity::Error));
                 if errors {
@@ -236,7 +251,11 @@ pub fn run(root: &Path, only: Option<&str>, gate: bool) -> Result<Report, String
                 m.clone()
             }
             Ok(Loaded::Stopped(d)) => {
-                diags.extend(d.iter().filter(|d| d.severity == Severity::Error).cloned());
+                diags.extend(
+                    examples::remap(d.clone(), &exs)
+                        .into_iter()
+                        .filter(|d| d.severity == Severity::Error),
+                );
                 continue;
             }
             Ok(Loaded::Unsupported(what, _)) => {
@@ -249,18 +268,23 @@ pub fn run(root: &Path, only: Option<&str>, gate: bool) -> Result<Report, String
                 continue;
             };
             let fname = fd.path.join(".");
-            if !fname.starts_with("test_") {
-                continue;
-            }
-            let id = format!("{name}.{fname}");
+            let ex = exs.iter().find(|x| x.name == fname);
+            let id = match ex {
+                Some(x) => x.id(&name),
+                None if fname.starts_with("test_") => format!("{name}.{fname}"),
+                None => continue,
+            };
             found.insert(id.clone(), (test_hash(&m, it), shown.clone(), it.span));
-            if only.is_some_and(|o| o != id) {
+            if !selected(&id, filter) {
                 continue;
             }
             let mut out = Vec::new();
             let verdict = match yong_interp::test(&m, &fname, Limits::default(), &mut out) {
                 Ok(true) => Verdict::Pass,
                 Ok(false) => Verdict::Fail("returned a failure".into()),
+                Err(Stop::Panic(k)) if k == "assert" && ex.is_some() => {
+                    Verdict::Fail(format!("`{}` does not hold", ex.expect("an ex line").text))
+                }
                 Err(Stop::Panic(k)) => Verdict::Fail(format!("panic {k}")),
                 Err(Stop::Limit(_)) => Verdict::Budget,
                 Err(Stop::Unsupported(what)) => {
