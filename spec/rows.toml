@@ -614,3 +614,23 @@ sections = "22.1, 26.1"
 rows = "R764 to R765"
 topic = "Gaps found by the formal core model (RFC 0022), decided by the owner: a join point body that falls through continues after the statement that jumped to it (R764); an `inout` argument takes the callee's final value when the callee fails (R765)"
 sections = "3.5, 4.1"
+
+[[entry]]
+rows = "R655 to R657"
+topic = "Learnability (RFC 0024), decided by the owner: `print` and `eprint` take any `Show` value (R655); an integer literal also types as a binary float when exactly representable (R656); `float ** int` is C23 `pown` (R657)"
+sections = "3.4, 11.1, 14.1, 17.1"
+
+[[entry]]
+rows = "R658 to R661"
+topic = "Python idiom parity (RFC 0024), decided by the owner: `min` and `max` over one iterable with `key=` and `default=` (R658); `sorted` and `sort` with `key=` and `reverse=` (R659); `str` and `list` repetition by `*` (R660); N31 lifts a capture-free nested `def` (R661)"
+sections = "14.1, 14.4, 17.2, 25"
+
+[[entry]]
+rows = "R662 to R664"
+topic = "Habit help (RFC 0024), decided by the owner: `habit` children on diagnostics triggered by Python or TypeScript habits (R662); W854 for `${...}` in a Wen string (R663); a TypeScript migration guide in the learning set (R664)"
+sections = "15.1, 15.5, 18.2, 18.9, 25"
+
+[[entry]]
+rows = "R760 to R763"
+topic = "Inferred loop invariants (RFC 0027), decided by the owner: kills keep implied facts by Fourier-Motzkin elimination (R760); `x = x + d` substitutes (R761); joins keep facts every path implies (R762); `while` invariants inferred from entry facts the body preserves (R763)"
+sections = "8.6"

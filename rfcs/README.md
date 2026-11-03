@@ -42,3 +42,6 @@ research index links their studies and rows.
 | [0020](0020-packaging-and-ecosystem.md) | Packaging and ecosystem | accepted | R635 to R647 |
 | [0022](0022-formal-core.md) | A formal model of the core in Lean 4 | accepted (D1, D3, D4); D2 open | R680, R764, R765 |
 | [0026](0026-security-model.md) | Security model: unforgeable handlers, unconfined capabilities, agent confinement | accepted | R672 to R677 |
+| [0022](0022-formal-core.md) | A formal model of the core in Lean 4 | accepted (D1, D3, D4); D2 open | R680, R764, R765 |
+| [0024](0024-learnability.md) | Learnability for Python and TypeScript developers | accepted | R655 to R664 |
+| [0027](0027-loop-invariants.md) | Inferred loop invariants for the bounds solver | accepted | R760 to R763 |
