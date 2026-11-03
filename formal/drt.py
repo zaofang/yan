@@ -11,6 +11,7 @@ bug in one implementation or a gap in the spec; the program is kept for a report
 
 import argparse
 import random
+import re
 import shlex
 import subprocess
 import sys
@@ -40,14 +41,12 @@ def run(cmd: str, file: Path) -> Run:
         )
     except subprocess.TimeoutExpired:
         return Run(2, "", "timeout")
-    panic = next(
-        (
-            ln.removeprefix("panic: ").strip()
-            for ln in p.stderr.splitlines()
-            if ln.startswith("panic: ")
-        ),
-        "",
-    )
+    panic = ""
+    for ln in p.stderr.splitlines():
+        # `panic(kind): message` since 8.3; the interpreter used to print `panic: kind`
+        if m := re.match(r"panic(?:\((\w+)\))?: ?(\w*)", ln):
+            panic = m.group(1) or m.group(2)
+            break
     return Run(p.returncode, p.stdout, panic)
 
 

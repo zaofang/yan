@@ -1,0 +1,14 @@
+# spec: 17.3
+# rows: R681
+# note: counts, rotations and swaps work on the bit pattern of the argument's type
+# stdout:
+# 3 5 3 1 5
+# 97 11 104 96
+# 2018915346 True False 64 64
+
+pub def main() uses io:
+    x: uint8 = 22
+    io.print(f"{bits.count_ones(x)} {bits.count_zeros(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)}")
+    io.print(f"{bits.rotate_left(x, 4)} {bits.rotate_right(x, 1)} {bits.reverse_bits(x)} {bits.wrapping_shl(x, 4)}")
+    y: uint32 = 305419896
+    io.print(f"{bits.swap_bytes(y)} {bits.is_power_of_two(64)} {bits.is_power_of_two(0)} {bits.count_ones(-1)} {bits.leading_zeros(0)}")

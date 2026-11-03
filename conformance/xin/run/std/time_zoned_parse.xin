@@ -1,0 +1,31 @@
+# spec: 17.5
+# rows: R601, R604
+# stdout:
+# 2024-03-10T03:00:00-04:00[America/New_York]
+# 2024-03-10T03:00:00-04:00[America/New_York]
+# time zone offset mismatch at 19
+# unknown time zone at 25
+# invalid time at 25
+# unknown time zone at 0
+
+def zp(s: str) -> str:
+    return try_zp(s) else err -> f"{err}"
+
+def try_zp(s: str) -> str fail TimeError:
+    z = ZonedDateTime.parse(s)?
+    return f"{z}"
+
+def tz(s: str) -> str:
+    return try_tz(s) else err -> f"{err}"
+
+def try_tz(s: str) -> str fail TimeError:
+    z = TimeZone.parse(s)?
+    return f"{z}"
+
+pub def main() uses io:
+    io.print(zp("2024-03-10T03:00:00-04:00[America/New_York]"))
+    io.print(zp("2024-03-10T07:00:00Z[America/New_York]"))
+    io.print(zp("2024-03-10T03:00:00-05:00[America/New_York]"))
+    io.print(zp("2024-03-10T03:00:00-04:00[Mars/Base]"))
+    io.print(zp("2024-03-10T03:00:00-04:00"))
+    io.print(tz("Mars/Base"))
