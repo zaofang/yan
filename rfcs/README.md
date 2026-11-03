@@ -45,3 +45,4 @@ research index links their studies and rows.
 | [0022](0022-formal-core.md) | A formal model of the core in Lean 4 | accepted (D1, D3, D4); D2 open | R680, R764, R765 |
 | [0024](0024-learnability.md) | Learnability for Python and TypeScript developers | accepted | R655 to R664 |
 | [0027](0027-loop-invariants.md) | Inferred loop invariants for the bounds solver | accepted | R760 to R763 |
+| [0021](0021-error-messages.md) | Error messages: E545, E017 for unsupported constructs, line format, near names | accepted | R648 to R651 |

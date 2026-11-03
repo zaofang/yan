@@ -41,6 +41,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E014 | approved test changed since tests.lock was signed new | 18.4 |
 | E015 | approved test in tests.lock is missing new | 18.4 |
 | E016 | `yong publish` refuses the manifest: `overrides`, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later *new* | 19.4 |
+| E017 | construct this toolchain does not support yet, reported at the construct; checking continues (R649) new | 18.2 |
 | W014 | possible breaking change without a witness *new* | 20.6 |
 
 ### 25.3 Lexical rules and syntax
@@ -170,6 +171,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E542 | literal format pattern does not match the value's type *new* | 14.2 |
 | E543 | literal or destructuring of a `@non_exhaustive` type from another package without `..` *new* | 20.6 |
 | E544 | `is_null` on a non-optional column *new* | 11.8 |
+| E545 | literal regular expression rejected at stage 0: syntax, a backreference or lookaround, or an automaton over the size limit (R484, R486; registered by R648) | 17.2 |
 | E550 | malformed locale literal (R332) new | 17.5 |
 | E551 | malformed MessageFormat 2 message or unknown function (R335) new | 17.5 |
 | E552 | translation key not in the source messages record (R335) new | 17.5 |

@@ -9,7 +9,8 @@ use yong_rt::text;
 use yong_std::registry::id::*;
 
 use super::bind::{Bind, bad_args};
-use super::{Key, R, Value, data, panic};
+use super::prelude::show;
+use super::{Key, R, Value, data, panic, panic_with};
 use Value::*;
 
 fn some(v: Value) -> Value {
@@ -100,7 +101,7 @@ pub(super) static BINDS: &[(yong_std::registry::Id, Bind)] = &[
     plain!(STD_DICT_INDEX, |a| {
         [Dict(d), k] => match d.get(&Key(k.clone())) {
             Some(v) => v.clone(),
-            None => return panic("bounds"),
+            None => return panic_with("bounds", format!("key {} is not in the dict", show(k, true))),
         }
     }),
     plain!(STD_DICT_GET, |a| { [Dict(d), k] => opt(d.get(&Key(k.clone())).cloned()) }),

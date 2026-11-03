@@ -80,7 +80,7 @@ pub fn run(surface: &str, src: &str) -> Value {
         let stdout = String::from_utf8_lossy(&out).into_owned();
         match result {
             Ok(status) => json!({ "stdout": stdout, "status": status }),
-            Err(Stop::Panic(kind)) => json!({ "stdout": stdout, "panic": kind }),
+            Err(Stop::Panic(p)) => json!({ "stdout": stdout, "panic": p.kind }),
             Err(Stop::Unsupported(what)) => {
                 json!({ "stdout": stdout, "error": format!("not supported yet: {what}") })
             }
