@@ -142,7 +142,7 @@ fn scan(module: &str, src: &str, rows: &mut Vec<Row>) {
 
 /// The `<op>_<scalar>` family and `exclusive_check` (assumption Y4).
 fn scalars(rows: &mut Vec<Row>) {
-    const OPS: [&str; 19] = [
+    const OPS: [&str; 21] = [
         "add_checked",
         "sub_checked",
         "mul_checked",
@@ -162,13 +162,18 @@ fn scalars(rows: &mut Vec<Row>) {
         "gt",
         "ge",
         "not",
+        "shl",
+        "shr",
     ];
     let tys = intrinsics::INTS
         .iter()
         .chain(&intrinsics::FLOATS)
         .chain(&["bigint", "bool"]);
-    let names = std::iter::once("exclusive_check".to_owned())
-        .chain(tys.flat_map(|t| OPS.iter().map(move |o| format!("{o}_{t}"))));
+    let names = std::iter::once("exclusive_check".to_owned()).chain(tys.flat_map(|t| {
+        OPS.iter()
+            .chain(&intrinsics::BITS)
+            .map(move |o| format!("{o}_{t}"))
+    }));
     for name in names {
         if let Some(s) = intrinsics::lookup(&name) {
             rows.push(Row {

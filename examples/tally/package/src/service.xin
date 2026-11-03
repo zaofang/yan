@@ -1,0 +1,28 @@
+"""Authorization service: checks a request locally, then asks the acquirer."""
+
+@capability
+trait Acquirer:
+    def send(self: Self, pan: Secret[str], amount: Money) -> schema.Decision fail AcquirerDown: ...
+
+class AcquirerDown:
+    attempt: int
+
+pub def luhn(pan: Secret[str]) -> bool uses none:
+    """Checks the Luhn digit of a card number without exposing it."""
+    ex luhn(Secret("4242424242424242")) == True
+    total = 0
+    double = False
+    for d in reversed(pan.expose().digits()):
+        v = d * 2 if double else d
+        total += v - 9 if v > 9 else v
+        double = not double
+    return total % 10 == 0
+
+pub def authorize(a: schema.Auth) -> schema.Decision fail AcquirerDown uses acquirer, log:
+    """Rejects bad cards and amounts locally, then asks the acquirer once."""
+    if a.amount <= Money(0, a.amount.currency):
+        return schema.Declined(reason="amount")
+    if not luhn(a.pan):
+        return schema.Declined(reason="luhn")
+    log.info(t"auth {a.id} {a.merchant}")
+    return acquirer.send(a.pan, a.amount)?
