@@ -5280,9 +5280,8 @@ impl Lower<'_, '_, '_> {
                 Ok((Rhs::Call(c), Ty::List(Box::new(Ty::Int))))
             }
             "deque" | "heap" | "sorted_dict" | "sorted_set" => self.collection(n, args, at, want),
-            "dict" | "set" | "enumerate" | "zip" | "sum" | "any" | "all" | "reversed"
-            | "isinstance" | "hash" | "repr" | "divmod" | "pow" | "chr" | "ord" | "atan2"
-            | "hypot" => unsupported(format!("`{n}`")),
+            "dict" | "set" | "enumerate" | "zip" | "reversed" | "isinstance" | "hash" | "repr"
+            | "divmod" | "pow" | "chr" | "ord" | "atan2" | "hypot" => unsupported(format!("`{n}`")),
             // std.test is in scope without an import (assumption A7).
             _ if let Some((path, p)) = ["prelude", "test"].iter().find_map(|m| {
                 let path = format!("std.{m}.{n}");
