@@ -1,0 +1,25 @@
+# spec: 17.3
+# rows: R688, R689, R690
+# note: logfmt events with keyword fields; spans are child handlers whose path and fields every event inherits; level filtering
+# stdout:
+# level=debug msg=open span=load file=a.csv
+# level=info msg=parsed span=load file=a.csv rows=3 note="two words"
+# level=warn msg=odd span=load/check file=a.csv empty="" q="say \"hi\""
+# level=error msg=done ok=False
+# level=warn msg=odd span=load/check file=b.csv empty="" q="say \"hi\""
+
+def load(path: str, n: int) -> None uses log:
+    with log = log.span("load", file=path):
+        log.debug("open")
+        log.info("parsed", rows=n, note="two words")
+        with log = log.span("check"):
+            log.warn("odd", empty="", q="say \"hi\"")
+
+pub def main() uses io:
+    with log = log_stdout():
+        load("a.csv", 3)
+        log.error("done", ok=False)
+    with log = log_stdout(level=WarnLevel()):
+        load("b.csv", 4)
+    with log = discard_log():
+        log.error("hidden")

@@ -1,0 +1,11 @@
+# spec: 17.3
+# rows: R694
+# note: @help needs @derive(Cli)
+# expect: E269 at 6:1
+
+@help(about="x")
+class Args:
+    path: str
+
+pub def main() uses io:
+    io.print("x")

@@ -397,3 +397,9 @@ fn a_method_with_no_loaded_signature_does_not_panic() {
     );
     let _ = elaborate("t.xin", src, &m.expect("parses"), Options::default());
 }
+
+#[test]
+fn a_method_on_a_literal_lowers() {
+    let src = "pub def main() uses io:\n    io.print(\"-\".join([\"a\", \"b\"]))\n";
+    assert_eq!(run(src), "a-b\n");
+}

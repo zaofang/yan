@@ -231,6 +231,9 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Data { name, fields } if name == "None" && fields.is_empty() => "None".into(),
         Data { name, fields } if name == "EncodingError" => super::encoding::show_error(fields),
         Data { name, fields } if name == "TimeError" => super::time::show_error(fields),
+        Data { name, fields } if name == "ProcError" => super::proc::show_error(fields),
+        Data { name, fields } if name == "CliError" => super::cli::show_error(fields),
+        Data { name, fields } if name == super::proc::COMMAND => super::proc::show_command(fields),
         Data { name, .. } if name == "ZonedDateTime" => super::civil::show_zoned(v),
         Data { name, fields } => {
             let fs: Vec<String> = fields
@@ -243,6 +246,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Closure(_) => "<function>".into(),
         Iter(_) => "<iter>".into(),
         Bytes(b) => super::encoding::repr(b),
+        Secret(_) => "Secret(***)".into(),
         Path(_) | WindowsPath(_) => super::path::text(v).to_owned(),
         Duration(n) => super::time::show_duration(*n),
         Instant(n) => super::time::show_instant(*n),

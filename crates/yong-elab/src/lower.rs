@@ -2944,7 +2944,16 @@ impl Lower<'_, '_, '_> {
                         },
                         t,
                     )),
-                    Atom::Lit(..) => unsupported("a projection of a literal"),
+                    lit @ Atom::Lit(..) => {
+                        let v = self.fresh("t");
+                        self.bind(&v, true, &t, Rhs::Atom(lit), e.span, e.span);
+                        let place = Place {
+                            root: v,
+                            root_span: e.span,
+                            projs: Vec::new(),
+                        };
+                        Ok((place, t))
+                    }
                 }
             }
         }
@@ -4215,6 +4224,13 @@ impl Lower<'_, '_, '_> {
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         self.want_ret = want.map(|w| (w.clone(), at));
         match &f.kind {
+            j::ExprKind::Index(b, k)
+                if let j::ExprKind::Attr(m, op, _) = &b.kind
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "cli" && !self.locals.contains_key(c))
+                    && matches!(op.as_str(), "parse" | "parse_args") =>
+            {
+                self.cli_call(op, k, args, at)
+            }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if self.g.templates.contains_key(n)) =>
             {
                 let j::ExprKind::Name(n) = &b.kind else {
@@ -4761,6 +4777,7 @@ impl Lower<'_, '_, '_> {
             Ty::List(t) if matches!(b, "Eq" | "Ord") => self.implements(t, b),
             Ty::Coll("bytes", _) => matches!(b, "Eq" | "Ord" | "Hash"),
             Ty::Coll("bytearray", _) => b == "Eq",
+            Ty::Coll("Secret", ts) if b == "Eq" => self.implements(&ts[0], b),
             Ty::Coll("Path" | "WindowsPath", _) if matches!(b, "Eq" | "Ord" | "Hash") => true,
             Ty::Str | Ty::Coll("Path", _) if b == "AsPath" => true,
             Ty::Coll("Duration" | "Instant", _) => matches!(b, "Eq" | "Ord" | "Hash"),
@@ -5314,6 +5331,18 @@ impl Lower<'_, '_, '_> {
                 Ok((Rhs::Call(c), Ty::List(Box::new(Ty::Int))))
             }
             "deque" | "heap" | "sorted_dict" | "sorted_set" => self.collection(n, args, at, want),
+            "Secret" => {
+                let Some(xs) = self.positional(args, 1, n, at)? else {
+                    return Ok(err);
+                };
+                let inner = match want {
+                    Some(Ty::Coll("Secret", ts)) => ts.first().cloned(),
+                    _ => None,
+                };
+                let (a, t) = self.atom(xs[0], inner.as_ref())?;
+                let c = call("std.prelude.Secret", vec![t.targ()], vec![sink_arg(a)], at);
+                Ok((Rhs::Call(c), Ty::Coll("Secret", vec![t])))
+            }
             "dict" | "set" | "enumerate" | "zip" | "sum" | "any" | "all" | "reversed"
             | "isinstance" | "hash" | "repr" | "divmod" | "pow" | "chr" | "ord" | "atan2"
             | "hypot" => unsupported(format!("`{n}`")),
@@ -5490,6 +5519,12 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         let path = format!("std.{cap}.{op}");
+        if path == "std.rand.choice" || path == "std.rand.shuffle" {
+            return self.rand_list_op(cap, op, args, at);
+        }
+        if cap == "log" && matches!(op, "debug" | "info" | "warn" | "error" | "span") {
+            return self.log_call(op, args, at);
+        }
         let Some(p) = crate::stdlib::decl(&path)
             .filter(|d| d.cap)
             .and_then(|d| d.plain())
@@ -5497,6 +5532,185 @@ impl Lower<'_, '_, '_> {
             return unsupported(format!("capability operation `{cap}.{op}`"));
         };
         self.std_call(&path, p, vec![Arg::Cap(cap.to_owned(), at)], args, op, at)
+    }
+
+    /// `log.info(msg, key=value, ...)` as `log.event(InfoLevel(), msg, [("key", show(value))])`,
+    /// and `log.span(name, key=value)` as `log.span(name, [...])`.
+    fn log_call(&mut self, op: &str, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
+        let ex = |kind| j::Expr {
+            kind,
+            span: at,
+            paren: false,
+        };
+        let mut msg = None;
+        let mut fields = Vec::new();
+        for a in args {
+            let j::ArgKind::Expr(e) = &a.kind else {
+                return unsupported(format!("a reference argument to `log.{op}`"));
+            };
+            match &a.name {
+                None if msg.is_none() => msg = Some(e.clone()),
+                None => {
+                    self.err(
+                        "E202",
+                        a.span,
+                        format!("`log.{op}` fields are keyword arguments"),
+                    );
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+                }
+                Some(n) => fields.push(ex(j::ExprKind::Tuple(vec![
+                    ex(j::ExprKind::Lit(j::Lit::Str {
+                        prefix: String::new(),
+                        value: n.clone(),
+                    })),
+                    ex(j::ExprKind::FStr {
+                        template: false,
+                        pieces: vec![j::FPiece::Expr(e.clone(), None)],
+                    }),
+                ]))),
+            }
+        }
+        let Some(msg) = msg else {
+            self.err("E202", at, format!("`log.{op}` needs a message"));
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        };
+        let arg = |e| j::Arg {
+            name: None,
+            kind: j::ArgKind::Expr(e),
+            span: at,
+        };
+        let mut synth = Vec::new();
+        let f = if op == "span" {
+            "span"
+        } else {
+            let level = format!("{}{}Level", op[..1].to_uppercase(), &op[1..]);
+            synth.push(arg(ex(j::ExprKind::Call(
+                Box::new(ex(j::ExprKind::Name(level))),
+                Vec::new(),
+            ))));
+            "event"
+        };
+        synth.push(arg(msg));
+        synth.push(arg(ex(j::ExprKind::List(fields))));
+        let path = format!("std.log.{f}");
+        let p = crate::stdlib::decl(&path)
+            .and_then(|d| d.plain())
+            .expect("std.log declares the operation");
+        self.std_call(&path, p, vec![Arg::Cap("log".into(), at)], &synth, op, at)
+    }
+
+    /// `cli.parse_args[T](args)` with `T`'s schema, and `cli.parse[T]()` over `env.args()`.
+    fn cli_call(
+        &mut self,
+        op: &str,
+        t: &j::Expr,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        let j::ExprKind::Name(n) = &t.kind else {
+            return unsupported(format!("`cli.{op}` of a type that is not a name"));
+        };
+        // After an error the call is still lowered, so what follows it checks.
+        let schema = if self.g.clis.contains_key(n) {
+            // An error here was reported at the derive.
+            crate::cli::schema(self.g, n).unwrap_or_default()
+        } else {
+            self.err("E201", t.span, format!("`{n}` does not derive `Cli`"));
+            String::new()
+        };
+        let xs = if op == "parse" {
+            if !args.is_empty() {
+                self.err(
+                    "E202",
+                    at,
+                    "`cli.parse` takes no arguments; it reads `env.args()`".into(),
+                );
+                return Ok(err);
+            }
+            let (r, t, _) = self.cap_call("env", "args", &[], at)?;
+            self.tmp(&t, r, at)
+        } else {
+            let Some(xs) = self.positional(args, 1, "parse_args", at)? else {
+                return Ok(err);
+            };
+            let want = Ty::List(Box::new(Ty::Str));
+            let (a, t) = self.atom(xs[0], Some(&want))?;
+            self.expect(&t, &want, xs[0].span);
+            a
+        };
+        let rt = Ty::Data(n.clone());
+        let c = call(
+            "std.cli.parse_args",
+            vec![rt.targ()],
+            vec![let_arg(xs), let_arg(Atom::Lit(Literal::Str(schema), at))],
+            at,
+        );
+        Ok((Rhs::Call(c), rt, Some(Ty::Data("CliError".into()))))
+    }
+
+    /// `rand.choice(xs)` and `rand.shuffle(&xs)`, the generic operations of `Rand`.
+    fn rand_list_op(
+        &mut self,
+        cap: &str,
+        op: &str,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        let [a] = args else {
+            self.err("E202", at, format!("`rand.{op}` takes one list"));
+            return Ok(err);
+        };
+        let path = format!("std.rand.{op}");
+        let mut out = vec![Arg::Cap(cap.to_owned(), at)];
+        let (t, ret) = match (op, &a.kind) {
+            ("choice", j::ArgKind::Expr(e)) => {
+                let (x, t) = self.atom(e, None)?;
+                out.push(let_arg(x));
+                let el = match &t {
+                    Ty::List(el) => (**el).clone(),
+                    _ => Ty::Err,
+                };
+                (t, el)
+            }
+            ("shuffle", j::ArgKind::Ref(e)) => {
+                let (pl, t) = self.place(e)?;
+                if !pl.projs.is_empty() {
+                    return unsupported("`rand.shuffle` of a projection");
+                }
+                out.push(Arg::Value(
+                    Conv::Inout,
+                    Atom::Name(pl.root, pl.root_span),
+                    a.span,
+                ));
+                (t, Ty::Unit)
+            }
+            ("shuffle", _) => {
+                self.err("E404", a.span, "`rand.shuffle` takes `&place`".into());
+                return Ok(err);
+            }
+            _ => {
+                self.err(
+                    "E405",
+                    a.span,
+                    "`rand.choice` takes the list, not `&`".into(),
+                );
+                return Ok(err);
+            }
+        };
+        let Ty::List(el) = &t else {
+            if t != Ty::Err {
+                self.err(
+                    "E201",
+                    a.span,
+                    format!("`rand.{op}` takes a list, not `{t}`"),
+                );
+            }
+            return Ok(err);
+        };
+        let targs = vec![el.targ()];
+        Ok((Rhs::Call(call(&path, targs, out, at)), ret, None))
     }
 
     /// `module.v` names variant `v` of a std sum type declared in `module`, as `math.Up`.

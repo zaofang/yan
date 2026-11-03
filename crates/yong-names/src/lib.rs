@@ -54,6 +54,8 @@ pub const TYPES: &[TypeName] = &[
     row("Bytes", "bytes", "Bytes", 0),
     row("ByteArray", "bytearray", "ByteArray", 0),
     row("Path", "Path", "Path", 0),
+    row("Secret", "Secret", "Secret", 1),
+    row("Command", "Command", "Command", 0),
     row("WindowsPath", "WindowsPath", "WindowsPath", 0),
     row("Duration", "Duration", "Duration", 0),
     row("Instant", "Instant", "Instant", 0),
