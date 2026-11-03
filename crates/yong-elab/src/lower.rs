@@ -5472,6 +5472,9 @@ impl Lower<'_, '_, '_> {
         if path == "std.rand.choice" || path == "std.rand.shuffle" {
             return self.rand_list_op(cap, op, args, at);
         }
+        if cap == "log" && matches!(op, "debug" | "info" | "warn" | "error" | "span") {
+            return self.log_call(op, args, at);
+        }
         let Some(p) = crate::stdlib::decl(&path)
             .filter(|d| d.cap)
             .and_then(|d| d.plain())
@@ -5479,6 +5482,71 @@ impl Lower<'_, '_, '_> {
             return unsupported(format!("capability operation `{cap}.{op}`"));
         };
         self.std_call(&path, p, vec![Arg::Cap(cap.to_owned(), at)], args, op, at)
+    }
+
+    /// `log.info(msg, key=value, ...)` as `log.event(InfoLevel(), msg, [("key", show(value))])`,
+    /// and `log.span(name, key=value)` as `log.span(name, [...])`.
+    fn log_call(&mut self, op: &str, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
+        let ex = |kind| j::Expr {
+            kind,
+            span: at,
+            paren: false,
+        };
+        let mut msg = None;
+        let mut fields = Vec::new();
+        for a in args {
+            let j::ArgKind::Expr(e) = &a.kind else {
+                return unsupported(format!("a reference argument to `log.{op}`"));
+            };
+            match &a.name {
+                None if msg.is_none() => msg = Some(e.clone()),
+                None => {
+                    self.err(
+                        "E202",
+                        a.span,
+                        format!("`log.{op}` fields are keyword arguments"),
+                    );
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+                }
+                Some(n) => fields.push(ex(j::ExprKind::Tuple(vec![
+                    ex(j::ExprKind::Lit(j::Lit::Str {
+                        prefix: String::new(),
+                        value: n.clone(),
+                    })),
+                    ex(j::ExprKind::FStr {
+                        template: false,
+                        pieces: vec![j::FPiece::Expr(e.clone(), None)],
+                    }),
+                ]))),
+            }
+        }
+        let Some(msg) = msg else {
+            self.err("E202", at, format!("`log.{op}` needs a message"));
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        };
+        let arg = |e| j::Arg {
+            name: None,
+            kind: j::ArgKind::Expr(e),
+            span: at,
+        };
+        let mut synth = Vec::new();
+        let f = if op == "span" {
+            "span"
+        } else {
+            let level = format!("{}{}Level", op[..1].to_uppercase(), &op[1..]);
+            synth.push(arg(ex(j::ExprKind::Call(
+                Box::new(ex(j::ExprKind::Name(level))),
+                Vec::new(),
+            ))));
+            "event"
+        };
+        synth.push(arg(msg));
+        synth.push(arg(ex(j::ExprKind::List(fields))));
+        let path = format!("std.log.{f}");
+        let p = crate::stdlib::decl(&path)
+            .and_then(|d| d.plain())
+            .expect("std.log declares the operation");
+        self.std_call(&path, p, vec![Arg::Cap("log".into(), at)], &synth, op, at)
     }
 
     /// `rand.choice(xs)` and `rand.shuffle(&xs)`, the generic operations of `Rand`.
