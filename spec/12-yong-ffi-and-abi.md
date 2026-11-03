@@ -8,7 +8,7 @@ Foreign code is reached through C. A module is an `ffi` module when its file liv
 
 ### 12.2 Libraries are capabilities
 
-`lib zlib` declares trait `Zlib`, capability `zlib` and a native handler that calls the linked symbols. Callers need `uses zlib`, the package ceiling must list it (E314), and tests may bind a fake. An item marked `uses none` is pure: it needs no capability, is deterministic and is cacheable (18.4); this is a trusted claim, listed by `yong audit`. Calls through a library capability are nondeterministic like I/O and blocking unless the item is declared `nonblocking`. Extern libraries that std binds inside its own handlers (aws-lc, io\_uring syscalls) never appear in user signatures.
+`lib zlib` declares trait `Zlib`, capability `zlib` and a native handler that calls the linked symbols. Callers need `uses zlib`, the package ceiling must list it (E314), and tests may bind a fake. An item marked `uses none` is pure: it needs no capability, is deterministic and is cacheable (18.4); this is a trusted claim, listed by `yong audit`. Its library still appears in the package ceiling and needs the root's `allow_ffi` consent, so a `uses none` claim never moves code outside the ceiling (R673). Calls through a library capability are nondeterministic like I/O and blocking unless the item is declared `nonblocking`. Extern libraries that std binds inside its own handlers (aws-lc, io\_uring syscalls) never appear in user signatures.
 
 ### 12.3 Layout and C types
 
@@ -57,15 +57,17 @@ Yong has no stable Yong-to-Yong ABI. The stable binary boundary is the C ABI und
 | opaque exported types | pointers with a generated `_free` |
 | closures | `{fn, ctx}` or `{fn, ctx, drop}` |
 
-`@export` (optionally `@export(name=...)`) on a `pub` item whose signature uses only profile types is legal in Xin and Wen (E907 otherwise). A `uses none` export is a plain C function. An export that uses capabilities takes a leading `yong_world *`, built by the host from explicit grants (directories, network targets, scheduler) and binding std's hosted handlers.
+`@export` (optionally `@export(name=...)`) on a `pub` item whose signature uses only profile types is legal in Xin and Wen (E907 otherwise). A `uses none` export is a plain C function. An export that uses capabilities takes a leading `yong_world *`, built by the host from explicit grants (directories, network targets, scheduler) and binding std's hosted handlers; it is the only source of host handlers besides the platform (R672).
 
 **Bindings.** `yong bind --lang c`, `rust` or `python` generates from the export set: a C header with `_Static_assert` on every size, alignment and offset; a Rust `-sys` crate plus a safe crate (slices, lifetimes from `from`, Drop, Result, Send and Sync); a CPython extension.
 
 **Python extensions** are built on the CPython Limited API: abi3 wheels (3.12+) and abi3t wheels (3.15+), the PEP 793 entry point, PEP 697 type data, vectorcall and `.pyi` stubs. Modules whose exports are Sync or `uses none` declare `Py_MOD_GIL_NOT_USED`. Scalar views use the buffer protocol, tables and columns the Arrow PyCapsule interface, arrays DLPack. `fail E` raises a generated exception class; a panic aborts.
 
+**Shipping (R640).** `yong build --wheel` writes the abi3 and abi3t wheels with PEP 740 attestations derived from the version's provenance, for PyPI trusted publishing. The `yong` PyPI wheel (18.8) is also a PEP 517 build backend, so `pip install` of a source distribution fetches the pinned toolchain and builds. The published `yong-build` crate lets a Rust `build.rs` run `yong build` and link the generated `-sys` crate.
+
 ### 12.8 Linking
 
-The manifest's `native` table sets static or dynamic linking per target and may list C sources, compiled with the toolchain's pinned clang (section 19.5). Windows imports need no import libraries. Internal symbols are hash-mangled with hidden visibility; duplicate export names are E909 at link time. `@weak` gives an `Option[fn ...]`.
+The manifest's `native` table sets static or dynamic linking per target and may list C sources, compiled with the toolchain's pinned clang (section 19.5). Windows imports need no import libraries. Native libraries that first-party packages bind (ICU4X for `@yong/i18n`) ship inside the toolchain, built reproducibly with it under the audits of 19.6; packages carry no Rust sources or prebuilt binaries (R639). Internal symbols are hash-mangled with hidden visibility; duplicate export names are E909 at link time. `@weak` gives an `Option[fn ...]`.
 
 ### 12.9 Inline assembly
 
