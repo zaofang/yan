@@ -27,16 +27,17 @@ C bitfields are reached only through generated accessors (section 12.3).
 
 ### 5.3 Ownership passes
 
-The optimizer MUST run these on checked Yong, in order:
+`yong-opt` MUST run these after monomorphization and static handler resolution, in order, each from Yong to Yong (R773):
 
-1. **Borrow lowering.** `let` parameters and views pass by pointer or by value as section 4.1's lowering column says, with no ownership operations.
-2. **Drop elaboration.** Drops are placed at scope exit in reverse declaration order, temporaries at end of statement; moved-from values are not dropped, with drop flags only where a move is conditional (SQ14).
-3. **Drop specialization.** Inline the drop of a statically known variant.
-4. **Reuse analysis.** When a uniquely owned block of size n is dropped and a block of size n is then allocated in the same function, reuse it in place (`reuse x as Ctor`). Unique ownership makes this check static.
+1. **Drop elaboration (R770).** Drops are placed at scope exit in reverse declaration order, temporaries at end of statement; moved-from values are not dropped (SQ14). Afterwards every non-copy local is consumed or dropped exactly once on every path. Where a move is conditional, the pass puts the drop on the branch or join-point edge where the value is still owned, unless that would drop a type with custom `Drop` (R343) or a `@linear` type earlier than 5.4 allows; then it writes a drop flag as an ordinary `var _dN: bool`, cleared at the move, and `if _dN { drop x }` at scope exit. The post-optimization check accepts exactly this pattern.
+2. **Drop specialization.** `drop x` of a statically known variant becomes drops of its fields.
+3. **Reuse analysis.** When a uniquely owned block of size n is dropped and a block of size n is then allocated in the same function, reuse it in place (`reuse x as Ctor`). Unique ownership makes this check static.
+
+**Borrow lowering** is a `yong-mir` step, not a Yong pass: `let` parameters and views pass by pointer or by value as section 4.1's lowering column says, with no ownership operations (R773).
 
 ### 5.4 Drop order and cleanup
 
-Locals drop in reverse declaration order, record fields in declaration order, and collection elements front to back. The children of a `par` block drop before the block exits. A panic aborts without running drops (section 8.3). Cleanup that can fail is an explicit `close() -> () fail E`. Dropping a value of a `@linear` type that was not closed is E412 (R443), except on a path that is already propagating a failure, where the handler's release intrinsic frees the native resource without user I/O.
+Locals drop in reverse declaration order, record fields in declaration order, and collection elements front to back. A type with no custom `Drop` anywhere inside it frees only memory, which R385 makes unobservable, so the optimizer MAY drop it at its last use instead (R770). The children of a `par` block drop before the block exits. A panic aborts without running drops (section 8.3). Cleanup that can fail is an explicit `close() -> () fail E`. Dropping a value of a `@linear` type that was not closed is E412 (R443), except on a path that is already propagating a failure, where the handler's release intrinsic frees the native resource without user I/O.
 
 **Drop (R343).** A type gets custom destruction only by implementing `trait Drop` with `def drop(var self)`, which runs once when the value's owner drops it. A `drop` body is infallible, uses no capability except `alloc`, does not block and is not a cancellation point (E421 otherwise). Releasing a native resource, such as closing a file descriptor, is an intrinsic of the handler that created the resource, not a capability call. A `@linear` type MUST NOT implement `Drop` (E421). Because a drop has no effect other than freeing memory and native resources, which task runs the final `Rc` or `Arc` drop is not observable.
 

@@ -674,3 +674,8 @@ sections = "14.4, 21.1, 23, 24, 25"
 rows = "R768"
 topic = "Wen out of the admission path, decided by the owner: K1 and N1 require lowering to Yong (core or accepted extension), no longer Yong that Wen can write; Wen prints every Yong item, in a generic canonical form it also reads where it has no idiomatic syntax yet (R768)"
 sections = "15.4, 16.6, 16.7"
+
+[[entry]]
+rows = "R769 to R773"
+topic = "Ownership facts, drops and the `yong-opt` contract (RFC 0028), decided by the owner: consumption is written in checked Yong and one shared `yong-check` analysis derives ownership facts (R769); `drop` only in optimized Yong, drop flags as `var` plus `if`, early drop for types without custom `Drop`, drop glue in `yong-mir` (R770); `yong-opt` is Yong to Yong, `yong run --opt`, identity on checked Yong, the differential law (R771); monomorphization in `yong-opt` as `inst` items keyed by hash, E275 (R772); pass order, borrow lowering in `yong-mir` (R773)"
+sections = "3.5, 4.2, 5.3, 5.4, 22.2, 22.3, 25"

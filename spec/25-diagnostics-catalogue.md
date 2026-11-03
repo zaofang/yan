@@ -103,6 +103,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E272 | error in a stage-0-dependent body, found at an instantiation; carries the instantiation site and stage-0 backtrace new | 10.4 |
 | E273 | `become` outside tail position, inside par, with or a generator, or calling a closure or dyn method *new* | 3.5 |
 | E274 | access outside the region an `@access` claim declares (R627) new | 11.2 |
+| E275 | instantiation depth exceeded: polymorphic recursion past 64 nested instances, reported once per cycle (R772) *new* | 3.5, 10.1 |
 | E233 | str or f-string where a Template is expected (R452) new | 13.1 |
 
 ### 25.5 Capabilities, handlers and failure

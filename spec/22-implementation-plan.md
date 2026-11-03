@@ -26,8 +26,8 @@ The compiler and tools MUST be written in Rust (stable toolchain) as one Cargo w
 | `yong-core` | Yong IR data types, text parser and printer, IR validator |  |
 | `yong-check` | ownership, exclusivity, views, auto traits, exhaustiveness, bounds solver, unit and shape checking |  |
 | `yong-prove` | verification-condition generation and SMT-LIB2 subprocess client (M4) |  |
-| `yong-opt` | monomorphization, comptime specialization, ownership passes, fusion, handler resolution, query-plan specialization |  |
-| `yong-mir` | mid-level IR for code generation: per-instance control-flow graphs, explicit drops, intrinsic ids (R560) |  |
+| `yong-opt` | Yong to Yong: monomorphization, comptime specialization, ownership passes, fusion, handler resolution, query-plan specialization (R771, R772) |  |
+| `yong-mir` | mid-level IR for code generation from optimized Yong: per-instance control-flow graphs, layouts, drop glue, borrow lowering, decision trees, intrinsic ids (R560, R773) |  |
 | `yong-interp` | interpreter over checked Yong: stage 0 (bytecode), REPL, `yong run` in M1, checked UB mode, `explore` |  |
 | `yong-cg-cranelift` | debug code generation (M1b) | `cranelift-*` |
 | `yong-cg-llvm` | release code generation (M2) | `inkwell` |
@@ -50,7 +50,8 @@ Other dependencies: `opentelemetry` (spans), `gimli` (DWARF), LibAFL (fuzzing).
 - **Front end.** Hand-written lexers and recursive-descent parsers, with precedence climbing for expressions. Parsers MUST produce lossless syntax trees (every byte, including comments and whitespace, is recoverable), because the formatter, the lenient reader and patch application depend on them. Parse errors MUST recover at item boundaries, so one broken item never hides diagnostics in others.
 - **Elaboration order** per item: resolve names, check the signature, infer and check the body bidirectionally, insert capability arguments, insert copies and moves by last-use analysis, and lower to Yong. Yong is then validated (every `let` typed, every argument's convention explicit) before any checking pass runs. A validator failure is an internal error (I-code), never a user diagnostic.
 - **Check order** on Yong: exhaustiveness, then ownership, exclusivity and views, then auto traits, then bounds and refinements, then units and shapes, then contracts (at the selected level).
-- **Optimization** runs the ownership passes of 5.3 after monomorphization and comptime specialization.
+- **Optimization (R771, R773).** `yong-opt` runs monomorphization and comptime specialization, static handler resolution, the ownership passes of 5.3, then fusion and the rest. Every pass reads and writes valid Yong: the validator accepts it and `yong-check` accepts it in post-optimization mode (5.3 drop rules added, nothing else changed); a failing output is an internal error naming the pass. Optimized Yong prints with `yong view --as yong --opt` and runs with `yong run --opt`; `yong run` interprets checked Yong by default. Item identity stays on checked Yong (3.6): optimized items are cached by the checked item's hash, the instance key (R772) and the `yong-opt` version. `yong-mir` reads only optimized Yong and rejects a type parameter with an internal error. Native builds always run monomorphization, handler resolution and drop elaboration, at every optimization level.
+- **Differential law (R771).** For every conformance program, the interpreter on checked Yong, the interpreter on optimized Yong and native code agree on output, failure and panic kind. The law harness (R564) runs the second leg in CI.
 
 ### 22.4 Linking and runtime support
 

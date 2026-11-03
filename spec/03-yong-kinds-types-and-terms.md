@@ -56,7 +56,8 @@ This is the complete grammar of `.yong` files. `{X}` is zero or more, `[X]` opti
 
 ```
 Module   ::= "module" Path {Item}
-Item     ::= {Attr} (Fn | Gen | Record | Sum | Newtype | Trait | Impl | Const | Test | Extern)
+Item     ::= {Attr} (Fn | Gen | Record | Sum | Newtype | Trait | Impl | Const | Test | Extern | Inst)
+Inst     ::= "inst" (Fn | Gen)                            -- only after optimization (R772)
 Attr     ::= "@" Name ["(" AttrArg {"," AttrArg} ")"]
 AttrArg  ::= [Name "="] ConstVal
 
@@ -167,7 +168,8 @@ Rules on the grammar:
 - Arithmetic and comparison are calls to named intrinsics (`add_checked_i64`, `eq_f64`, ...); there are no infix operators in Yong.
 - Value-producing `if` and `match` are written with join points: `jp k(x: T) { ... }` is declared before the branch, and each arm ends in `jump k(a)`. Join points map one to one to Cranelift block parameters. A join point body that ends without `ret`, `jump`, `fail`, `become` or `unreachable` continues after the statement of its block that jumped to it (R764).
 - The runtime exclusivity check of section 4.3 is the intrinsic `exclusive_check(i, j)`, which panics with kind `exclusivity`.
-- `drop Name` and `reuse Name as Ctor` appear only after the ownership passes (5.3). There is no `dup`: Yong has no implicit reference counting.
+- `drop Name` and `reuse Name as Ctor` appear only after the ownership passes (5.3); in checked Yong either is a validator error (R770). `drop x` runs the drop glue of `x`'s type, which `yong-mir` generates per layout. There is no `dup`: Yong has no implicit reference counting.
+- **Instances (R772).** An `inst` item is a generic `fn` or `gen` specialized by monomorphization or comptime specialization (`yong-opt`, 22.3). Its brackets hold concrete type, `Nat`, `Dim` and comptime arguments, never parameters: `inst fn id[i64](let x: i64) -> i64 { ... }`. A call `id[i64](x)` names the instance when one exists. The instance key is the generic item's hash plus the hashes of its arguments, so every module that instantiates `std.list.len[i64]` shares one instance. Instantiation depth is bounded at 64 nested instances; past the bound, polymorphic recursion is E275, reported once per cycle. `inst` items appear only in optimized Yong and are never item identities (3.6).
 - `comptime for` and `comptime if` are the only code-generation forms (section 10.4). `select` (Wen), `share` and `par for` have no Yong forms: they are calls to `std.chan.select`, `Share.share` and the bound `sched` handler.
 
 **Guaranteed tail calls (R260).** `become f(args)` ends the current function by calling `f`, and it MUST NOT grow the stack on any backend, in any build mode, including the reference interpreter. It is legal only where `ret` is, and never inside `par`, `with` or a `Gen` body. Its call MUST be a direct call or a call through an `Fn`-typed parameter, never a `dyn` method or a closure (E273 for both). The callee's parameter conventions and types, return type, failure type and capability set MUST equal the caller's after monomorphisation (E271). The caller's locals are dropped in reverse declaration order before the transfer. An argument that borrows a caller local, as a `let` or `inout` argument or a view `from` that local, is E420, whose fix moves or copies it. Cranelift lowers `become` to `return_call` with the `tail` convention, LLVM to a `musttail` call, and WebAssembly to `return_call`. Xin and Wen spell it `become f(args)`.

@@ -1,9 +1,9 @@
 # 0028: Ownership facts, drop elaboration and the `yong-opt` contract
 
-- Status: draft
+- Status: accepted
 - Research: IR levels and assessment (project file `ir-study/ir-levels-and-assessment.md`, read
   against main 815d36d, 2026-11-03)
-- Rows: filled in when accepted
+- Rows: R769 to R773
 
 ## Summary
 
@@ -65,8 +65,8 @@ Under D1 a bare bind of a non-copy name is a validator error. Elab must write `m
 owns `xs`, and here, where `xs` is a `let` parameter it cannot move, `copy xs` or E413 (4.2
 rule 3). Returning a borrowed list as owned without either is the same gap, one level up.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (Antonio, card, 2026-11-03)
+- Row: R769
 
 ### D2: Drops are explicit in optimized Yong, never in checked Yong
 
@@ -94,8 +94,8 @@ the boundary enforceable and says how conditional moves are written.
 The interpreter executes `drop x` (today it clears the register), and in `yong test --ub` it
 reports a double drop or a use after drop.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (Antonio, card, 2026-11-03)
+- Row: R770
 
 ### D3: `yong-opt` is Yong to Yong
 
@@ -112,8 +112,8 @@ reports a double drop or a use after drop.
    interpreter on optimized Yong, and native code agree on output, failure and panic kind. The
    law harness (R564) runs the middle leg in CI.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (Antonio, card, 2026-11-03)
+- Row: R771
 
 ### D4: Monomorphization and comptime specialization move into `yong-opt`
 
@@ -129,11 +129,11 @@ reports a double drop or a use after drop.
    that instantiate `std.list.len[i64]` share one instance.
 4. Comptime parameters specialize the same way (`inst fn pow[3](...)`), which closes the
    "comptime type parameter" gap in `yong-mir`.
-5. Instantiation depth is bounded; polymorphic recursion past the bound is a new diagnostic in
-   the generics family of section 25, reported once per cycle.
+5. Instantiation depth is bounded at 64 nested instances; polymorphic recursion past the bound is
+   E275, reported once per cycle.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (Antonio, card, 2026-11-03)
+- Row: R772
 
 ### D5: Pass order of 5.3 and 22.3
 
@@ -149,8 +149,8 @@ elaboration, drop specialization, reuse analysis, then fusion and the rest.
 Native builds always run the required passes (monomorphization, handler resolution, drop
 elaboration) even at the lowest level.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (Antonio, card, 2026-11-03)
+- Row: R773
 
 ## Spec changes
 
@@ -162,7 +162,7 @@ elaboration) even at the lowest level.
 - 5.4: the early-drop permission and its limit (D2.3, D2.4).
 - 22.2: `yong-opt` row says Yong to Yong; `yong-mir` row drops monomorphization (D3, D4).
 - 22.3: optimization order (D5) and the differential law (D3.5).
-- 25: one new diagnostic for instantiation depth (D4.5).
+- 25: E275 for instantiation depth (D4.5).
 
 ## Not in this RFC
 
