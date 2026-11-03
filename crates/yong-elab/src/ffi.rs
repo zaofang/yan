@@ -236,7 +236,7 @@ pub(crate) fn export(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<()> {
                 "E907",
                 at,
                 &f.name,
-                format!("`{}` is not a C profile type (12.7)", p.ty),
+                format!("`{}` is not a C profile type", cx.text(at)),
             );
         }
     }
@@ -245,7 +245,7 @@ pub(crate) fn export(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<()> {
             "E907",
             f.name_span,
             &f.name,
-            format!("the result `{}` is not a C profile type (12.7)", sig.ret),
+            format!("the result `{}` is not a C profile type", sig.ret),
         );
     }
     Ok(())

@@ -9,7 +9,7 @@ use std::sync::Once;
 
 use yong_core::ast as y;
 use yong_core::hash::Hashed;
-use yong_diag::{Diagnostic, Severity};
+use yong_diag::{Diagnostic, Severity, Span};
 
 /// Each std module: its path below `std.`, its file name, its source and its HIR.
 pub fn std_modules() -> Vec<(&'static str, String, &'static str, yong_hir::Module)> {
@@ -105,18 +105,14 @@ pub enum Front {
     Hir(yong_hir::Module, Vec<Diagnostic>),
     /// Front-end errors.
     Stopped(Vec<Diagnostic>),
-    /// Wen the lowering does not handle yet; the front end's diagnostics.
-    Unsupported(String, Vec<Diagnostic>),
 }
 
 /// A module ready to check or run: parsed and, for Xin and Wen, elaborated to Yong.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Loaded {
     Ready(y::Module, Vec<Diagnostic>),
-    /// Front-end diagnostics that stop before the Yong checker.
+    /// Front-end diagnostics that stop before the Yong checker, E017 among them (R649).
     Stopped(Vec<Diagnostic>),
-    /// A construct the elaborator does not lower yet; the front end's diagnostics.
-    Unsupported(String, Vec<Diagnostic>),
 }
 
 pub fn has_error(diags: &[Diagnostic]) -> bool {
@@ -156,7 +152,7 @@ pub fn front(db: &dyn Db, file: SourceFile) -> Result<Front, String> {
                 return Ok(Front::Stopped(diags));
             }
             match yong_wen::lower(&name, src, &m) {
-                Err(yong_wen::Unsupported(what)) => Front::Unsupported(what, diags),
+                Err(u) => Front::Stopped(unsupported(&name, src, &u.what, u.at, diags)),
                 Ok((_, mut errs)) if has_error(&errs) => {
                     errs.extend(diags);
                     Front::Stopped(errs)
@@ -207,7 +203,6 @@ fn load_ordered(db: &dyn Db, file: SourceFile, reverse: bool) -> Result<Loaded, 
             elaborate(db, file, &h, diags)
         }
         Front::Stopped(d) => Loaded::Stopped(d),
-        Front::Unsupported(what, d) => Loaded::Unsupported(what, d),
     })
 }
 
@@ -230,7 +225,7 @@ fn elaborate(
     };
     let name = path.display().to_string();
     match yong_elab::elaborate(&name, file.text(db), m, opts) {
-        Err(yong_elab::Unsupported(what)) => Loaded::Unsupported(what, diags),
+        Err(u) => Loaded::Stopped(unsupported(&name, file.text(db), &u.what, u.at, diags)),
         Ok((y, mut errs)) => {
             let stop = has_error(&errs);
             errs.extend(diags);
@@ -270,10 +265,44 @@ pub fn diagnostics(db: &dyn Db, file: SourceFile) -> Result<Vec<Diagnostic>, Str
             d
         }
         Loaded::Stopped(d) => d,
-        // Front-end errors found before the unsupported construct are still real.
-        Loaded::Unsupported(_, d) if has_error(&d) => d,
-        Loaded::Unsupported(what, _) => return Err(format!("not supported yet: {what}")),
     })
+}
+
+/// E017 for a construct found where lowering cannot go on with the next item, such as a type
+/// declaration other items depend on; at line 1 when no span is known (R649).
+fn unsupported(
+    file: &str,
+    src: &str,
+    what: &str,
+    at: Option<Span>,
+    mut diags: Vec<Diagnostic>,
+) -> Vec<Diagnostic> {
+    let at = at.unwrap_or(Span {
+        line: 1,
+        col: 1,
+        end_line: 1,
+        end_col: 1,
+    });
+    let quote = src
+        .lines()
+        .nth(at.line.saturating_sub(1) as usize)
+        .and_then(|l| {
+            let to = if at.end_line == at.line {
+                at.end_col as usize
+            } else {
+                l.len() + 1
+            };
+            l.get(at.col.saturating_sub(1) as usize..to.saturating_sub(1))
+        })
+        .unwrap_or("");
+    diags.push(Diagnostic::error(
+        "E017",
+        file,
+        at,
+        quote,
+        yong_elab::unsupported_message(what),
+    ));
+    diags
 }
 
 /// The item hashes (3.6) of a module that elaborates.

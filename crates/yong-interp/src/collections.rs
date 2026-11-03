@@ -12,7 +12,8 @@ use yong_std::registry::{Id, id::*};
 use super::bind::{Bind, bad_args};
 use super::native::opt;
 use super::prelude::cmp;
-use super::{Value, panic};
+use super::prelude::show;
+use super::{Value, panic_with};
 use Value::*;
 
 fn take(v: &mut Value) -> Value {
@@ -111,13 +112,13 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_COLLECTIONS_DEQUE_POP, |a| {
         [Deque(d, _)] => match d.pop_back() {
             Some(v) => v,
-            None => return panic("bounds"),
+            None => return panic_with("bounds", "pop from an empty deque"),
         },
     }),
     f!(STD_COLLECTIONS_DEQUE_POPLEFT, |a| {
         [Deque(d, _)] => match d.pop_front() {
             Some(v) => v,
-            None => return panic("bounds"),
+            None => return panic_with("bounds", "popleft from an empty deque"),
         },
     }),
     f!(STD_COLLECTIONS_DEQUE_FIRST, |a| {
@@ -170,7 +171,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_COLLECTIONS_HEAP_POP, |a| {
         [Heap(h)] => match c::heap_pop(h, cmp) {
             Some(v) => v,
-            None => return panic("bounds"),
+            None => return panic_with("bounds", "pop from an empty heap"),
         },
     }),
     f!(STD_COLLECTIONS_HEAP_PEEK, |a| {
@@ -204,7 +205,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_COLLECTIONS_SORTED_DICT_INDEX, |a| {
         [SortedMap(m), k] => match find_key(m, k) {
             Ok(i) => m[i].1.clone(),
-            Err(_) => return panic("bounds"),
+            Err(_) => return panic_with("bounds", format!("key {} is not in the sorted dict", show(k, true))),
         },
     }),
     f!(STD_COLLECTIONS_SORTED_DICT_GET, |a| {
