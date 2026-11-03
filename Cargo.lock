@@ -1346,6 +1346,7 @@ dependencies = [
  "yong-core",
  "yong-diag",
  "yong-names",
+ "yong-std",
 ]
 
 [[package]]
@@ -1373,6 +1374,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "yong-core",
+ "yong-diag",
  "yong-rt",
  "yong-std",
  "yong-xin",
@@ -1389,6 +1391,18 @@ dependencies = [
 [[package]]
 name = "yong-names"
 version = "0.0.0"
+
+[[package]]
+name = "yong-playground"
+version = "0.0.0"
+dependencies = [
+ "serde_json",
+ "yong-db",
+ "yong-diag",
+ "yong-ide",
+ "yong-interp",
+ "yong-names",
+]
 
 [[package]]
 name = "yong-rt"
