@@ -40,6 +40,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E013 | confirmed breaking change (with witness) for the declared bump *new* | 20.6 |
 | E014 | approved test changed since tests.lock was signed new | 18.4 |
 | E015 | approved test in tests.lock is missing new | 18.4 |
+| E016 | `yong publish` refuses the manifest: `overrides`, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later *new* | 19.4 |
 | W014 | possible breaking change without a witness *new* | 20.6 |
 
 ### 25.3 Lexical rules and syntax
@@ -100,6 +101,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E232 | a `type` that mixes inline variants with other alternatives, or lists `None` among variants (retargeted by R423) | 14.1 |
 | E272 | error in a stage-0-dependent body, found at an instantiation; carries the instantiation site and stage-0 backtrace new | 10.4 |
 | E273 | `become` outside tail position, inside par, with or a generator, or calling a closure or dyn method *new* | 3.5 |
+| E274 | access outside the region an `@access` claim declares (R627) new | 11.2 |
 | E233 | str or f-string where a Template is expected (R452) new | 13.1 |
 
 ### 25.5 Capabilities, handlers and failure
@@ -213,6 +215,8 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E724 | breaking change to a pinned Wire schema (R406) new | 9.6.1, 20 |
 | E725 | @durable function uses a non-journaling capability, unjournaled nondeterminism, or a view across operations (R416) new | 9.6.1 |
 | E726 | entity key not Wire + Hash, or entity state not Wire (R413) new | 9.6.1 |
+| E727 | session send of a label the endpoint's current state does not allow (R634) new | 9.5 |
+| E728 | session protocol cannot be projected onto a role (R633) new | 9.5 |
 | E717 | Lub get() inside a par block that writes the cell (R454) new | 9.3 (R454) |
 | E718 | reserved (R455, deferred past 1.0) | 9.3 |
 
