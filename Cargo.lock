@@ -1463,6 +1463,18 @@ name = "yong-names"
 version = "0.0.0"
 
 [[package]]
+name = "yong-playground"
+version = "0.0.0"
+dependencies = [
+ "serde_json",
+ "yong-db",
+ "yong-diag",
+ "yong-ide",
+ "yong-interp",
+ "yong-names",
+]
+
+[[package]]
 name = "yong-rt"
 version = "0.0.0"
 dependencies = [
