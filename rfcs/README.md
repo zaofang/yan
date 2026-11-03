@@ -48,3 +48,4 @@ research index links their studies and rows.
 | [0027](0027-loop-invariants.md) | Inferred loop invariants for the bounds solver | accepted | R760 to R763 |
 | [0021](0021-error-messages.md) | Error messages: E545, E017 for unsupported constructs, line format, near names | accepted | R648 to R651 |
 | [0023](0023-yong-review.md) | `yong review`, a report for agent PRs | accepted | R665 to R671 |
+| [0028](0028-drops-and-yong-opt.md) | Ownership facts, drop elaboration and the `yong-opt` contract | draft | |
