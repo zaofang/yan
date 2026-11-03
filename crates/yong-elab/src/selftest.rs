@@ -101,6 +101,18 @@ pub def main() uses io:
 }
 
 #[test]
+fn question_mark_needs_a_function_that_can_fail() {
+    let g = "def g() -> int fail str:\n    fail \"x\"\n\n";
+    let (_, d) = lower(&format!("{g}def f() -> int:\n    return g()?\n"));
+    assert_eq!(
+        d.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
+        ["E310"]
+    );
+    let (_, d) = lower(&format!("{g}def f() -> int fail str:\n    return g()?\n"));
+    assert!(d.is_empty(), "{d:?}");
+}
+
+#[test]
 fn unsupported_construct_is_e017_and_the_next_item_is_checked() {
     let src =
         "def a() -> int:\n    s = {1, 2}\n    return 1\n\ndef b() -> int:\n    return missing\n";

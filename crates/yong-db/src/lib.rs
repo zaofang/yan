@@ -238,10 +238,21 @@ fn elaborate(
     }
 }
 
-/// 12: a module under a directory named `ffi` (conformance assumption A9).
+/// 12: a module under the package's `ffi/` directory. The package root is the nearest
+/// directory above the module with a `yong.toml`; without one, the module's own directory
+/// must be named `ffi` (conformance assumption A9). Directories above the root never count.
 fn is_ffi(path: &Path) -> bool {
-    path.parent()
-        .is_some_and(|d| d.components().any(|c| c.as_os_str() == "ffi"))
+    let Some(dir) = path.parent() else {
+        return false;
+    };
+    match dir.ancestors().find(|d| d.join("yong.toml").is_file()) {
+        Some(root) => dir.strip_prefix(root).is_ok_and(|rel| {
+            rel.components()
+                .next()
+                .is_some_and(|c| c.as_os_str() == "ffi")
+        }),
+        None => dir.file_name().is_some_and(|n| n == "ffi"),
+    }
 }
 
 /// Every diagnostic of the module: the front end's, the elaborator's and the Yong checker's.
@@ -376,5 +387,88 @@ mod tests {
         assert!(d.iter().any(|d| d.item == "g"), "{d:?}");
         let g = items(&db, file)[1];
         assert_eq!(item_diagnostics(&db, g).len(), d.len());
+    }
+
+    #[test]
+    fn ffi_is_the_package_ffi_directory() {
+        let dir = std::env::temp_dir().join(format!("yong-ffi-{}", std::process::id()));
+        let pkg = dir.join("ffi").join("pkg");
+        std::fs::create_dir_all(pkg.join("src")).unwrap();
+        std::fs::create_dir_all(pkg.join("ffi")).unwrap();
+        std::fs::write(pkg.join("yong.toml"), "").unwrap();
+        assert!(!is_ffi(&pkg.join("src").join("a.wen")));
+        assert!(is_ffi(&pkg.join("ffi").join("a.wen")));
+        assert!(is_ffi(Path::new("conformance/wen/pass/ffi/a.wen")));
+        assert!(!is_ffi(Path::new("conformance/wen/fail/unsafe/a.wen")));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn embed_does_not_follow_a_symlink_out_of_the_root() {
+        let dir = std::env::temp_dir().join(format!("yong-embed-{}", std::process::id()));
+        let root = dir.join("pkg");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join("yong.toml"), "").unwrap();
+        std::fs::write(dir.join("secret.txt"), "s").unwrap();
+        std::fs::write(root.join("ok.txt"), "o").unwrap();
+        std::os::unix::fs::symlink(dir.join("secret.txt"), root.join("out")).unwrap();
+        std::os::unix::fs::symlink(root.join("ok.txt"), root.join("in")).unwrap();
+        let mut db = Database::new(false, false);
+        let codes = |db: &mut Database, target: &str| -> Vec<String> {
+            let src = format!("let t: str = #embed(\"{target}\")\n");
+            let f = db.file(&root.join("m.wen"), &src);
+            diagnostics(db, f)
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|d| d.code.clone())
+                .collect()
+        };
+        assert_eq!(codes(&mut db, "out"), ["E267"]);
+        assert!(codes(&mut db, "in").is_empty());
+    }
+}
+
+#[cfg(test)]
+mod selftest {
+    use super::*;
+
+    fn codes(path: &str, src: &str) -> Vec<String> {
+        let mut db = Database::new(false, false);
+        let f = db.file(Path::new(path), src);
+        diagnostics(&db, f)
+            .as_ref()
+            .expect("supported")
+            .iter()
+            .map(|d| d.code.clone())
+            .collect()
+    }
+
+    #[test]
+    fn a_var_method_on_a_let_parameter_is_e403() {
+        let src = "def add(dst: list[int], x: int):\n    dst.append(x)\n";
+        assert_eq!(codes("t.xin", src), ["E403"]);
+        let ok = "def add(var dst: list[int], x: int):\n    dst.append(x)\n";
+        assert!(codes("t.xin", ok).is_empty());
+    }
+
+    #[test]
+    fn a_var_method_on_a_temporary_is_e403() {
+        let src = "def f():\n    d = {\"a\": [1]}\n    d.setdefault(\"b\", []).append(2)\n";
+        assert_eq!(codes("t.xin", src), ["E403"]);
+    }
+
+    #[test]
+    fn a_sink_parameter_may_change_in_place() {
+        let src = "def grow(take xs: list[int]) -> list[int]:\n    xs.append(9)\n    return xs\n";
+        assert!(codes("t.xin", src).is_empty());
+    }
+
+    #[test]
+    fn a_wen_let_stays_immutable() {
+        let src = "main() =\n  let total = 0\n  total += 1\n";
+        assert_eq!(codes("t.wen", src), ["E403"]);
+        let ok = "main() =\n  var total = 0\n  total += 1\n";
+        assert!(codes("t.wen", ok).is_empty());
     }
 }

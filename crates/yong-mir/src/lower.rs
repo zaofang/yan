@@ -450,6 +450,98 @@ fn parse_int(s: &str) -> R<i128> {
     Ok(if neg { -v } else { v })
 }
 
+/// A part of a match's scrutinee: its first slot and its shape.
+#[derive(Clone)]
+struct Occ {
+    at: usize,
+    shape: Shape,
+}
+
+/// A row of a match's clause matrix: one pattern per column, and the names bound so far.
+#[derive(Clone)]
+struct Row<'p> {
+    pats: Vec<&'p y::Pat>,
+    arm: usize,
+    binds: Vec<(&'p str, Occ)>,
+}
+
+/// A block that reaches a match arm, and the slots each name binds there.
+type Leaf = (BlockId, Vec<(String, Vec<Operand>, Shape)>);
+
+static WILD: y::Pat = y::Pat::Wild;
+
+/// Split or-patterns into rows and turn bindings into wildcards.
+fn normalize<'p>(rows: Vec<Row<'p>>, cols: &[Occ]) -> Vec<Row<'p>> {
+    fn expand<'p>(mut row: Row<'p>, cols: &[Occ], out: &mut Vec<Row<'p>>) {
+        for (i, c) in cols.iter().enumerate() {
+            match row.pats[i] {
+                y::Pat::Or(ps) => {
+                    for p in ps {
+                        let mut r = row.clone();
+                        r.pats[i] = p;
+                        expand(r, cols, out);
+                    }
+                    return;
+                }
+                y::Pat::Bind(n) if c.shape.variant(n).is_none() => {
+                    row.binds.push((n, c.clone()));
+                    row.pats[i] = &WILD;
+                }
+                _ => {}
+            }
+        }
+        out.push(row);
+    }
+    let mut out = Vec::new();
+    for r in rows {
+        expand(r, cols, &mut out);
+    }
+    out
+}
+
+/// The variant a pattern names; a bare name is a fieldless variant when the sum has one.
+fn ctor_name<'p>(p: &'p y::Pat, s: &Shape) -> Option<&'p str> {
+    match p {
+        y::Pat::Ctor { path, .. } => path.last().map(String::as_str),
+        y::Pat::Bind(n) if s.variant(n).is_some() => Some(n),
+        _ => None,
+    }
+}
+
+/// The patterns for the fields `names` of a record, tuple or variant pattern.
+fn sub_pats<'p>(p: &'p y::Pat, names: &[&str]) -> R<Vec<&'p y::Pat>> {
+    match p {
+        y::Pat::Wild | y::Pat::Bind(_) | y::Pat::Ctor { fields: None, .. } => {
+            Ok(vec![&WILD; names.len()])
+        }
+        y::Pat::Tuple(ps) if ps.len() == names.len() => Ok(ps.iter().collect()),
+        y::Pat::Ctor {
+            fields: Some((fs, _)),
+            ..
+        } => Ok(names
+            .iter()
+            .map(|n| fs.iter().find(|(f, _)| f == n).map_or(&WILD, |(_, p)| p))
+            .collect()),
+        _ => unsupported("this pattern"),
+    }
+}
+
+/// Whether `p` succeeds exactly when the test `h` does (`Some(true)`), never does
+/// (`Some(false)`), or neither is known (`None`, also for a wildcard).
+fn same_test(h: &y::Pat, p: &y::Pat) -> Option<bool> {
+    use y::Literal as L;
+    match (h, p) {
+        (y::Pat::Lit(a), y::Pat::Lit(b)) => match (a, b) {
+            (L::Int(x), L::Int(y)) => Some(parse_int(x).ok()? == parse_int(y).ok()?),
+            (L::Str(x), L::Str(y)) => Some(x == y),
+            (L::Bool(x), L::Bool(y)) => Some(x == y),
+            _ => None,
+        },
+        (y::Pat::Range(..), y::Pat::Range(..)) if h == p => Some(true),
+        _ => None,
+    }
+}
+
 #[derive(Clone)]
 struct Var {
     locals: Vec<Local>,
@@ -1437,6 +1529,202 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(())
     }
 
+    /// Lower the clause matrix `rows` over `cols` to a decision tree (Maranget, "Compiling
+    /// pattern matching to good decision trees", ML 2008), which tests each part of the
+    /// scrutinee at most once on any path. A leaf copies its row's bindings into the arm's
+    /// variables, and every arm body is lowered once.
+    fn tree(
+        &mut self,
+        v: &[Operand],
+        mut cols: Vec<Occ>,
+        rows: Vec<Row<'m>>,
+        leaves: &mut [Vec<Leaf>],
+    ) -> R<()> {
+        let mut rows = normalize(rows, &cols);
+        let Some(first) = rows.first() else {
+            self.finish(Term::Panic("unreachable"));
+            return Ok(());
+        };
+        let refutable = |p: &y::Pat| !matches!(p, y::Pat::Wild);
+        // The needed column of the first row with the longest refutable prefix (heuristic p).
+        let Some(col) = (0..cols.len())
+            .filter(|&c| refutable(first.pats[c]))
+            .max_by_key(|&c| {
+                let n = rows.iter().take_while(|r| refutable(r.pats[c])).count();
+                (n, std::cmp::Reverse(c))
+            })
+        else {
+            let first = rows.swap_remove(0);
+            return self.leaf(v, &first, leaves);
+        };
+        let occ = cols[col].clone();
+        match &occ.shape {
+            Shape::Tuple(_) | Shape::Rec(..) => {
+                let fs = occ.shape.fields().expect("a record or tuple");
+                let names: Vec<&str> = fs.iter().map(|(n, ..)| n.as_str()).collect();
+                cols.remove(col);
+                cols.extend(fs.iter().map(|(_, at, s)| Occ {
+                    at: occ.at + at,
+                    shape: (*s).clone(),
+                }));
+                for r in &mut rows {
+                    let h = r.pats.remove(col);
+                    r.pats.extend(sub_pats(h, &names)?);
+                }
+                self.tree(v, cols, rows, leaves)
+            }
+            Shape::Sum(_, vs) => {
+                cols.remove(col);
+                let heads: Vec<&y::Pat> = rows.iter_mut().map(|r| r.pats.remove(col)).collect();
+                let mut named = Vec::new();
+                for h in &heads {
+                    match ctor_name(h, &occ.shape) {
+                        Some(n) => named.push(n),
+                        None if matches!(h, y::Pat::Wild) => {}
+                        None => return unsupported("this pattern"),
+                    }
+                }
+                let on = match &v[occ.at] {
+                    Operand::Local(l) => *l,
+                    o => {
+                        let l = self.local(I64);
+                        self.emit(Inst::Copy {
+                            dst: l,
+                            src: o.clone(),
+                        });
+                        l
+                    }
+                };
+                let mut subs = Vec::new();
+                let mut default = None;
+                let mut targets = Vec::new();
+                for (name, fs) in vs {
+                    if !named.contains(&name.as_str()) {
+                        let b = *default.get_or_insert_with(|| {
+                            let b = self.block_new();
+                            let rows = rows
+                                .iter()
+                                .zip(&heads)
+                                .filter(|(_, h)| matches!(h, y::Pat::Wild))
+                                .map(|(r, _)| r.clone())
+                                .collect();
+                            subs.push((b, cols.clone(), rows));
+                            b
+                        });
+                        targets.push(b);
+                        continue;
+                    }
+                    let (_, mut at, _) = occ.shape.variant(name).expect("a variant");
+                    let mut c = cols.clone();
+                    for (_, s) in fs {
+                        c.push(Occ {
+                            at: occ.at + at,
+                            shape: s.clone(),
+                        });
+                        at += s.width();
+                    }
+                    let names: Vec<&str> = fs.iter().map(|(n, _)| n.as_str()).collect();
+                    let mut sub = Vec::new();
+                    for (r, h) in rows.iter().zip(&heads) {
+                        if matches!(h, y::Pat::Wild) || ctor_name(h, &occ.shape) == Some(name) {
+                            let mut r = r.clone();
+                            r.pats.extend(sub_pats(h, &names)?);
+                            sub.push(r);
+                        }
+                    }
+                    let b = self.block_new();
+                    subs.push((b, c, sub));
+                    targets.push(b);
+                }
+                self.finish(Term::Switch { on, targets });
+                for (b, c, sub) in subs {
+                    self.cur = b;
+                    self.tree(v, c, sub, leaves)?;
+                }
+                Ok(())
+            }
+            s => {
+                let h = first.pats[col];
+                let w = s.width();
+                let no = self.block_new();
+                self.pat(h, &v[occ.at..occ.at + w], s, no)?;
+                let is_bool = matches!(s, Shape::Scalar(Ty::Bool));
+                let (mut yes_rows, mut no_rows) = (Vec::new(), Vec::new());
+                for r in &rows {
+                    let same = same_test(h, r.pats[col]);
+                    if same != Some(false) {
+                        let mut r = r.clone();
+                        if same == Some(true) {
+                            r.pats[col] = &WILD;
+                        }
+                        yes_rows.push(r);
+                    }
+                    if same != Some(true) {
+                        let mut r = r.clone();
+                        if is_bool && same == Some(false) {
+                            r.pats[col] = &WILD;
+                        }
+                        no_rows.push(r);
+                    }
+                }
+                self.tree(v, cols.clone(), yes_rows, leaves)?;
+                self.cur = no;
+                self.tree(v, cols, no_rows, leaves)
+            }
+        }
+    }
+
+    /// Leave the current block open for `row`'s arm, with the slots each name binds.
+    fn leaf(&mut self, v: &[Operand], row: &Row, leaves: &mut [Vec<Leaf>]) -> R<()> {
+        let binds = row
+            .binds
+            .iter()
+            .map(|(n, o)| {
+                let src = v[o.at..o.at + o.shape.width()].to_vec();
+                ((*n).to_owned(), src, o.shape.clone())
+            })
+            .collect();
+        leaves[row.arm].push((self.cur, binds));
+        Ok(())
+    }
+
+    /// Lower `body` after its leaves: in the leaf's own block when there is one, else in a
+    /// block they all jump to.
+    fn arm(&mut self, leaves: Vec<Leaf>, body: &'m y::Block, join: BlockId) -> R<()> {
+        let outer = self.names.clone();
+        let Some((first, names)) = leaves.first() else {
+            return Ok(());
+        };
+        let vars: Vec<(String, Var)> = names
+            .iter()
+            .map(|(n, _, s)| (n.clone(), self.var(s.clone())))
+            .collect();
+        let entry = if leaves.len() == 1 {
+            *first
+        } else {
+            self.block_new()
+        };
+        for (b, binds) in &leaves {
+            self.cur = *b;
+            for (n, src, _) in binds {
+                let Some((_, var)) = vars.iter().find(|(m, _)| m == n) else {
+                    return unsupported("an or-pattern whose alternatives bind different names");
+                };
+                let dst = var.locals.clone();
+                self.copy_to(&dst, src.clone());
+            }
+            if *b != entry {
+                self.finish(Term::Jump(entry));
+            }
+        }
+        self.cur = entry;
+        self.names.extend(vars);
+        self.block(body)?;
+        self.finish(Term::Jump(join));
+        self.names = outer;
+        Ok(())
+    }
+
     /// Names bound in `b` go out of scope at its end.
     fn block(&mut self, b: &'m y::Block) -> R<()> {
         let outer = self.names.clone();
@@ -1620,15 +1908,21 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             K::Match { scrutinee, arms } => {
                 let (v, shape) = self.atom_any(scrutinee)?;
+                let rows = arms
+                    .iter()
+                    .enumerate()
+                    .map(|(arm, (p, _))| Row {
+                        pats: vec![p],
+                        arm,
+                        binds: Vec::new(),
+                    })
+                    .collect();
+                let mut leaves = vec![Vec::new(); arms.len()];
+                self.tree(&v, vec![Occ { at: 0, shape }], rows, &mut leaves)?;
                 let join = self.block_new();
-                for (p, body) in arms {
-                    let next = self.block_new();
-                    self.pat(p, &v, &shape, next)?;
-                    self.block(body)?;
-                    self.finish(Term::Jump(join));
-                    self.cur = next;
+                for ((_, body), l) in arms.iter().zip(leaves) {
+                    self.arm(l, body, join)?;
                 }
-                self.finish(Term::Panic("unreachable"));
                 self.cur = join;
                 Ok(())
             }
@@ -1753,5 +2047,42 @@ mod selftest {
         let p = lower(&m.unwrap()).expect("lowers");
         let f = &p.funcs[p.main as usize];
         assert_eq!(f.locals[..4], [I64, I64, Ty::F64, Ty::Bool]);
+    }
+
+    /// The tag of `o` is read by one switch, and `Neg { k: 0 }` falls through to the row
+    /// below it without testing the tag again.
+    #[test]
+    fn lowers_match_to_one_switch_per_tag() {
+        let (m, d) = yong_core::parse(
+            "t.yong",
+            "module t\nsum Op { Add, Sub, Neg { k: i64 }, Lit { v: i64 } }\n\
+             fn f(let o: Op) -> i64 {\n jp k(let a: i64) { ret a }\n match o {\n\
+             Add => { jump k(1) }\n Neg { k: 0 } => { jump k(2) }\n\
+             Neg { k: n } | Lit { v: n } => { jump k(n) }\n _ => { jump k(7) }\n }\n}\n\
+             fn main() -> Unit {\n let a: i64 = f(let Sub)\n ret ()\n}\n",
+        );
+        assert!(d.is_empty(), "{d:?}");
+        let p = lower(&m.unwrap()).expect("lowers");
+        let f = p.funcs.iter().find(|f| f.name.ends_with('f')).expect("f");
+        let switches = f
+            .blocks
+            .iter()
+            .filter(|b| matches!(&b.term, Term::Switch { targets, .. } if targets.len() == 4))
+            .count();
+        let tests = f
+            .blocks
+            .iter()
+            .flat_map(|b| &b.insts)
+            .filter(|i| {
+                matches!(
+                    i,
+                    Inst::Scalar {
+                        op: ScalarOp::Eq,
+                        ..
+                    }
+                )
+            })
+            .count();
+        assert_eq!((switches, tests), (1, 1));
     }
 }
