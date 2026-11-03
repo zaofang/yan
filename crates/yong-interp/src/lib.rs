@@ -12,6 +12,7 @@ use std::rc::Rc;
 use indexmap::{IndexMap, IndexSet};
 use num_bigint::BigInt;
 use yong_core::ast::*;
+use yong_diag::Span;
 
 mod bind;
 mod bits;
@@ -149,8 +150,8 @@ impl Hash for Key {
 /// Why a run stopped early.
 #[derive(Debug)]
 pub enum Stop {
-    /// A panic with its kind (8.3).
-    Panic(String),
+    /// A panic (8.3).
+    Panic(Box<Panic>),
     /// A construct this interpreter does not run yet: a tool failure, not a program result.
     Unsupported(String),
     /// A stage-0 budget ran out (10.4): `depth` or `steps`.
@@ -253,6 +254,31 @@ fn materialize(v: &Value) -> Stage0 {
     }
 }
 
+/// A panic's kind, message and the frames it unwound through, innermost first.
+#[derive(Debug)]
+pub struct Panic {
+    pub kind: String,
+    pub message: String,
+    pub trace: Vec<Frame>,
+}
+
+#[derive(Debug)]
+pub struct Frame {
+    pub item: String,
+    pub at: Span,
+}
+
+impl Panic {
+    /// `panic(kind): message` and one `  at item line:col` line per frame (8.3).
+    pub fn render(&self, path: &str) -> String {
+        let mut s = format!("panic({}): {}", self.kind, self.message);
+        for f in &self.trace {
+            s += &format!("\n  at {} {path}:{}:{}", f.item, f.at.line, f.at.col);
+        }
+        s
+    }
+}
+
 pub(crate) type R<T> = Result<T, Stop>;
 
 pub(crate) struct Interp<'o> {
@@ -266,7 +292,29 @@ pub(crate) struct Interp<'o> {
 }
 
 pub(crate) fn panic<T>(kind: &str) -> R<T> {
-    Err(Stop::Panic(kind.to_owned()))
+    panic_with(kind, yong_rt::abi::panic_message(kind))
+}
+
+pub(crate) fn panic_with<T>(kind: &str, message: impl Into<String>) -> R<T> {
+    Err(Stop::Panic(Box::new(Panic {
+        kind: kind.to_owned(),
+        message: message.into(),
+        trace: Vec::new(),
+    })))
+}
+
+pub(crate) fn out_of_range<T>(i: i128, len: usize) -> R<T> {
+    panic_with(
+        "bounds",
+        format!("index {i} is out of range for length {len}"),
+    )
+}
+
+pub(crate) fn slice_out_of_range<T>(i: i128, j: i128, len: usize) -> R<T> {
+    panic_with(
+        "bounds",
+        format!("slice {i}:{j} is out of range for length {len}"),
+    )
 }
 
 pub(crate) fn unsupported<T>(what: impl Into<String>) -> R<T> {
@@ -553,7 +601,7 @@ mod selftest {
         let mut out = Vec::new();
         let status = match run(&m.unwrap(), &mut out) {
             Ok(s) => s,
-            Err(Stop::Panic(_)) => EXIT_PANIC,
+            Err(Stop::Panic(..)) => EXIT_PANIC,
             Err(Stop::Unsupported(w)) => panic!("unsupported: {w}"),
             Err(Stop::Limit(w)) => panic!("limit: {w}"),
         };
@@ -569,6 +617,21 @@ mod selftest {
              let r: i64 = f(let a)\n assert eq_i64(let r, let 12)\n ret ()\n}\n",
         );
         assert_eq!(s, 0);
+    }
+
+    #[test]
+    fn panic_names_values_and_each_frame() {
+        let src = "module t\nfn half(let n: i64, let d: i64) -> i64 {\n let h: i64 = floordiv_i64(let n, let d)\n ret h\n}\n\
+                   fn main() -> Unit {\n let z: i64 = 0\n let y: i64 = half(let 7, let z)\n ret ()\n}\n";
+        let (m, d) = yong_core::parse("t.yong", src);
+        assert!(d.is_empty());
+        let Err(Stop::Panic(p)) = run(&m.unwrap(), &mut Vec::new()) else {
+            panic!("expected a panic")
+        };
+        assert_eq!(
+            p.render("t.yong"),
+            "panic(div_zero): floor division of 7 by zero\n  at half t.yong:3:2\n  at main t.yong:8:2"
+        );
     }
 
     #[test]
