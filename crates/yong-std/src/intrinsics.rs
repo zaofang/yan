@@ -5,6 +5,20 @@ pub const INTS: [&str; 10] = [
     "i8", "i16", "i32", "i64", "i128", "u8", "u16", "u32", "u64", "Addr",
 ];
 pub const FLOATS: [&str; 2] = ["f32", "f64"];
+/// The `std.bits` functions, lowered to `<f>_<int type>` by the elaborator.
+pub const BITS: [&str; 11] = [
+    "count_ones",
+    "count_zeros",
+    "leading_zeros",
+    "trailing_zeros",
+    "bit_width",
+    "rotate_left",
+    "rotate_right",
+    "swap_bytes",
+    "reverse_bits",
+    "is_power_of_two",
+    "wrapping_shl",
+];
 
 pub struct Sig {
     pub arity: usize,
@@ -27,7 +41,12 @@ pub fn lookup(name: &str) -> Option<Sig> {
     if INTS.contains(&ty) {
         return match op {
             "add_checked" | "sub_checked" | "mul_checked" | "floordiv" | "mod" | "and" | "or"
-            | "xor" => sig(2, ty),
+            | "xor" | "shl" | "shr" | "wrapping_shl" | "rotate_left" | "rotate_right" => sig(2, ty),
+            "not" | "swap_bytes" | "reverse_bits" => sig(1, ty),
+            "count_ones" | "count_zeros" | "leading_zeros" | "trailing_zeros" | "bit_width" => {
+                sig(1, "i64")
+            }
+            "is_power_of_two" => sig(1, "bool"),
             "div" => sig(2, "f64"),
             _ if cmp => sig(2, "bool"),
             _ => None,
@@ -42,7 +61,11 @@ pub fn lookup(name: &str) -> Option<Sig> {
     }
     if ty == "bigint" {
         return match op {
-            "add" | "sub" | "mul" | "floordiv" | "mod" => sig(2, ty),
+            "add" | "sub" | "mul" | "floordiv" | "mod" | "and" | "or" | "xor" | "shl" | "shr" => {
+                sig(2, ty)
+            }
+            "not" => sig(1, ty),
+            "count_ones" | "bit_width" => sig(1, "i64"),
             _ if cmp => sig(2, "bool"),
             _ => None,
         };
