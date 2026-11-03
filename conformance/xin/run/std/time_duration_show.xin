@@ -1,0 +1,9 @@
+# spec: 17.5
+# rows: R595
+# stdout:
+# PT0S PT1.5S PT2H30M -PT1H1M1S
+# PT0.000000001S PT48H [PT1S]
+
+pub def main() uses io:
+    io.print(f"{Duration.nanos(0)} {Duration.millis(1500)} {Duration.minutes(150)} {Duration.seconds(-3661)}")
+    io.print(f"{Duration.nanos(1)} {Duration.hours(48)} {[Duration.seconds(1)]}")

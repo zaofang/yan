@@ -4966,6 +4966,97 @@
    "exit": 0
   },
   {
+   "path": "xin/run/std/time_duration_arith.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R593"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "PT1M30.5S 90 90500000000 90.5\n-PT1M30.5S PT3M1S PT22.625S PT22.625S PT0.000000004S\n3.0166666666666666 3\n-PT3.5S PT0.000000002S PT0.000000004S PT7S\nTrue True\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/time_duration_checked.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R593"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "None None -PT2S\n",
+   "exit": 101
+  },
+  {
+   "path": "xin/run/std/time_duration_show.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R595"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "PT0S PT1.5S PT2H30M -PT1H1M1S\nPT0.000000001S PT48H [PT1S]\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/time_instant_basic.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R594"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2000-01-01T00:00:00Z 2000-01-01T01:00:00Z 1999-12-31T23:59:59.999999999Z 946684800 946684800000000000\n2000-01-01T00:00:00.25Z PT0.25S True 1969-12-31T23:59:59.999999999Z -1\n2\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/time_instant_parse.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R595",
+    "R596"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2024-02-29T15:30:00.25Z\n1999-12-31T23:59:59Z\n2000-01-01T00:00:00Z\ninvalid time at 10\ninvalid time at 10\ninvalid time at 19\ninvalid time at 19\ntime out of range at 8\ntime out of range at 5\ntime out of range at 17\ninvalid time at 29\nunknown time zone at 20\n",
+   "exit": 0
+  },
+  {
+   "path": "xin/run/std/time_mono_and_handlers.xin",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R597"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2000-01-01T00:00:00Z PT5S MonoInstant(5000000000)\n2000-01-01T00:03:00Z PT3M\n",
+   "exit": 0
+  },
+  {
    "path": "xin/run/std/time_strftime.xin",
    "kind": "run",
    "milestone": "M1",

@@ -719,6 +719,9 @@ fn function_body(
             );
         }
         l.stmts(&body.stmts)?;
+        if matches!(body.stmts.as_slice(), [s] if is_hole(s)) && !matches!(sig.ret, Ty::Unit) {
+            l.check_posts_of_hole(f.name_span)?;
+        }
         if !ends(&body.stmts) && matches!(sig.ret, Ty::Unit) {
             let at = body.stmts.last().map_or(f.name_span, |s| s.span);
             l.ret(Atom::Lit(Literal::Unit, at), at)?;
@@ -1593,6 +1596,35 @@ impl Lower<'_, '_, '_> {
                 self.narrow_to(&x, inner, cond.span);
             }
         }
+        Ok(())
+    }
+
+    /// A hole body never returns, so its `post` lines would go unchecked until the body is
+    /// written, after the spec is frozen. Check them against `out` in a block that is dropped.
+    fn check_posts_of_hole(&mut self, at: Span) -> R<()> {
+        if self.posts.is_empty() {
+            return Ok(());
+        }
+        let ty = self.sig.ret.clone();
+        let posts = self.posts.clone();
+        self.block_with(|l| {
+            let out = l.fresh("out");
+            l.bind(
+                &out,
+                false,
+                &ty,
+                Rhs::Atom(Atom::Lit(Literal::Unit, at)),
+                at,
+                at,
+            );
+            let depth = l.scopes.len();
+            l.narrow.push(("out".into(), out.clone(), depth));
+            for p in &posts {
+                l.cond(p)?;
+            }
+            l.narrow.retain(|m| m.1 != out || m.0 != "out");
+            Ok(())
+        })?;
         Ok(())
     }
 
@@ -4347,7 +4379,9 @@ impl Lower<'_, '_, '_> {
             self.cx
                 .warn("W815", at, &item, format!("`{name}` is deprecated"));
         }
-        let sig = &self.g.fns[name];
+        let Some(sig) = self.g.fns.get(name) else {
+            return unsupported(format!("`{name}`"));
+        };
         if let Some(&(safe, variadic)) = self.g.externs.get(name) {
             if !safe && !self.in_unsafe {
                 self.err(
