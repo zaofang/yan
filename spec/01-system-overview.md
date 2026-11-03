@@ -6,12 +6,12 @@ Each surface has its own reader. Everything from the elaborator down is shared:
 .yag --> Yan Agent reader (+ lenient reader) --\
                                             >-- elaborator --> checked Yan Core --> optimizer --+--> interpreter (reference, stage 0, checked UB mode)
 .yn  --> Yan reader ----------------------+                                               +--> Cranelift (debug builds)
-.ynt  --> Yan Notation reader ----------------------/                                               +--> LLVM (release builds)
+.ymt  --> Yan Meta reader ----------------------/                                               +--> LLVM (release builds)
 checked Yan Core --> Yan printer (any item);  checked Yan Core --> Yan Agent printer (items inside the Yan Agent subset)
-checked Yan Core --> Yan Notation printer (any item, with its spelling notes)
+checked Yan Core --> Yan Meta printer (any item, with its spelling notes)
 ```
 
-The printers are projections: any Yan Core item prints as Yan or Yan Notation, and any Yan Core item inside the Yan Agent subset prints as Yan Agent (section 16).
+The printers are projections: any Yan Core item prints as Yan or Yan Meta, and any Yan Core item inside the Yan Agent subset prints as Yan Agent (section 16).
 
 **One pivot (R558).** Every surface, the niche surfaces of 16.7 included, lowers to the shared high-level IR (`yan-hir`) and is printed from it; no surface depends on anything below it. A form belongs in the HIR only when two or more surfaces spell it; other sugar stays in the surface and is recovered from spelling notes (16.5). Elaboration from HIR to Yan Core and raising from Yan back to HIR are written once, for all surfaces (16.4, R559). An item that runs on a niche surface engine (16.7, R568) enters the HIR as its boundary signature only, as an extern item; the engine is runtime code, not part of the surface crate (R576).
 
@@ -21,7 +21,7 @@ The printers are projections: any Yan Core item prints as Yan or Yan Notation, a
 | Yan Core (言核, "core"; internal) | the shared IR and its text form | `.yir` (IR text) |
 | Yan Agent (言信; 言而有信, "words that keep faith") | surface written by language models; canonical, explicit, Python-shaped | `.yag` |
 | Yan (言文; 言文一致, "speech and writing unified"), plain Yan where it needs telling apart | surface written and read by people; inferred, expressive | `.yn` |
-| Yan Notation (言符, "symbol, notation") | dense ASCII surface and language-design playground; every form lowers to the shared core (16.6, R516) | `.ynt` |
+| Yan Meta (言元; 元语言, "metalanguage") | dense ASCII surface and language-design playground; every form lowers to the shared core (16.6, R516) | `.ymt` |
 
 **Naming rule (R774).** Every other surface is "Yan" plus a plain English job word, with a `.y` extension of 2 to 4 letters and a Chinese name of 言 plus one character that forms or echoes no negative phrase in either order. A surface's name and extension are used only once it ships.
 

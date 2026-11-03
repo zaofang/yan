@@ -1,34 +1,34 @@
-# 0001: Yan Notation, the third surface
+# 0001: Yan Meta, the third surface
 
 - Status: accepted (the lead accepted every decision below on 2026-11-01)
-- Research: [Yan Notation 2, kitchen sink](https://claude.ai/artifact/Urz3zEhuESTobLRf8aqk2X),
-  [Yan Notation 1, dense ASCII surface](https://claude.ai/artifact/DubBokGE1zKEpoVzwYKfAz),
+- Research: [Chang 2, kitchen sink](https://claude.ai/artifact/Urz3zEhuESTobLRf8aqk2X),
+  [Chang 1, dense ASCII surface](https://claude.ai/artifact/DubBokGE1zKEpoVzwYKfAz),
   [positional local names](https://claude.ai/artifact/V6Do54hGXcokurJ45NHF6f),
   [research track: eight extensions](https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8)
-- Rows: R516 to R535
+- Rows: R516 to R535; renamed and extended by RFC 0029 (R776 to R786)
 
 ## Summary
 
-Chang (畅, "unhindered", from 兰亭集序 畅叙幽情; formerly Chang 畅) is Yong's third surface, beside Xin and Wen. It is the dense,
+Yan Meta (言元, `.ymt`; formerly Chang 畅, then Yan Notation 言符) is Yan's third surface, beside Yan Agent and Yan. It is the dense,
 operator-rich surface and the language-design playground: any form that makes it more expressive
-is admitted as long as it can be built and lowers to the shared core. Every Yan Notation module elaborates
-to the same Yan Core items, with the same item hashes, as its Yan projection. Yan Notation adds no semantics of
+is admitted as long as it can be built and lowers to the shared core. Every Yan Meta module elaborates
+to the same Yan Core items, with the same item hashes, as its Yan projection. Yan Meta adds no semantics of
 its own. A form that needs something Yan lacks waits for that Yan change.
 
-This RFC records the decisions, then gives the reference a Yan Notation implementation is built from:
+This RFC records the decisions, then gives the reference a Yan Meta implementation is built from:
 lexicon, precedence, grammar, the spelling-note model, and one entry per feature with its syntax,
 lowering, printing, static rules and tests. The spec gets the normative core (sections 16.6, 3.6,
-16.5, law 8, 26.6); this file stays the full reference until the Yan Notation build at M4, when the grammar moves
+16.5, law 8, 26.6); this file stays the full reference until the Yan Meta build at M4, when the grammar moves
 into the spec as section 16.6's appendix.
 
 ## Decisions
 
-### D1: Yan Notation is a full third surface, spelling kept (K4)
+### D1: Yan Meta is a full third surface, spelling kept (K4)
 
-Yan Notation is a surface like Yan Agent and Yan: files `.ynt`, a reader, a printer, a lenient reader, and the
-round-trip law of 16.5 restated for Yan Notation. Several spellings may elaborate to one tree; the author's
+Yan Meta is a surface like Yan Agent and Yan: files `.ymt`, a reader, a printer, a lenient reader, and the
+round-trip law of 16.5 restated for Yan Meta. Several spellings may elaborate to one tree; the author's
 choice is kept beside the item as hash-neutral trivia (the fourth kind, after comments, blank lines
-and literal spelling). The alternative, one printing per tree as in Yan Notation 1, would have kept only about
+and literal spelling). The alternative, one printing per tree as in Chang 1, would have kept only about
 a third of the catalog.
 
 - Decision: accepted, 2026-11-01 (card "Full surface, spelling kept (K4)")
@@ -36,16 +36,16 @@ a third of the catalog.
 
 ### D2: Admission rules K1 to K5
 
-A Yan Notation form is admitted only if it passes all five:
+A Yan Meta form is admitted only if it passes all five:
 
 - **K1 Same core.** It lowers to Yan Core that Yan can already write, or to a Yan Core extension that has
-  been accepted (D7, D8). Yan Notation never has private semantics.
+  been accepted (D7, D8). Yan Meta never has private semantics.
 - **K2 No invented hashed names.** A lowering never creates or drops a name the item hash includes.
   With positional locals (D4) that is parameters, fields, variants, capabilities, type parameters
   and items.
 - **K3 Recognisable.** The printer has a decidable recogniser for the lowered shape, and the
   grammar stays LL(1) apart from the four factorings listed in the grammar section.
-- **K4 Spelling kept like comments.** `chang(elaborate(F), spelling(F)) == fmt(F)` byte for byte.
+- **K4 Spelling kept like comments.** `ymt(elaborate(F), spelling(F)) == fmt(F)` byte for byte.
   Spelling is not hashed. A tree with no notes prints with each shape's default spelling.
 - **K5 Five facts visible.** Mutation, failure, compile time, concurrency and capability use keep a
   mark in the text. A form may move the mark to the definition (variadics, `@prop`) but never drop it.
@@ -55,8 +55,8 @@ A Yan Notation form is admitted only if it passes all five:
 
 ### D3: Law 8 reads per surface
 
-Law 8 ("each surface has exactly one canonical printing of any program") gains: "for Yan Notation, of any
-program together with its spelling notes". Without notes, Yan Notation also has exactly one printing.
+Law 8 ("each surface has exactly one canonical printing of any program") gains: "for Yan Meta, of any
+program together with its spelling notes". Without notes, Yan Meta also has exactly one printing.
 
 - Decision: accepted, 2026-11-01 (follows from D1)
 - Row: R518
@@ -69,7 +69,7 @@ because labelled arguments, `info(f)`, `Wire` and stage-0 reflection read them. 
 names live in a per-surface name table that is hash-neutral trivia. Compiler-generated contract
 and assertion text (the message a failed `post` prints) is fixed as a string literal before
 hashing, so renaming a local never changes a hash. This settles the open item on closure parameter
-names and lets Yan Notation admit shadowing, for-else, general parallel assignment and nested `?` in `try`.
+names and lets Yan Meta admit shadowing, for-else, general parallel assignment and nested `?` in `try`.
 
 The surfaces keep their own rules: Yan Agent and Yan still reject shadowing (E230). The change is only
 in what is hashed.
@@ -79,7 +79,7 @@ in what is hashed.
 
 ### D5: Keyboard rule
 
-Every Yan Notation token outside strings and comments is ASCII: nothing an average programmer cannot type.
+Every Yan Meta token outside strings and comments is ASCII: nothing an average programmer cannot type.
 Unicode is allowed in strings and comments, as in all of Yan (identifiers are ASCII, R338).
 Unicode operator glyphs are not admitted, even as aliases.
 
@@ -90,8 +90,8 @@ Unicode operator glyphs are not admitted, even as aliases.
 ### D6: The open rule and the readmitted forms
 
 The lead's rule: accept anything that grows Yan in capability and power and can be implemented;
-accept anything for Yan Notation that makes it more expressive, more powerful or sweeter. Under it, 21 of
-the 23 forms the Yan Notation 2 study had rejected are admitted (two only in part), plus nested `?` in
+accept anything for Yan Meta that makes it more expressive, more powerful or sweeter. Under it, 21 of
+the 23 forms the Chang 2 study had rejected are admitted (two only in part), plus nested `?` in
 `try`. Four stay out because they cannot be built or break D5: Unicode operators, juxtaposition
 calls and implicit multiplication (ambiguous grammar), global monkey patching (changes items
 other packages already hashed), and multi-shot continuations (duplicate linear values).
@@ -119,35 +119,35 @@ Accepted for research, not normative for 1.0. Each names the 1.0 text it would a
 - Decision: accepted for research, 2026-11-01
 - Row: R522 to R529
 
-### D8: Yan Core additions behind readmitted Yan Notation forms (post-1.0 research)
+### D8: Yan Core additions behind readmitted Yan Meta forms (post-1.0 research)
 
 1. Positional type parameters, for anonymous generics (`some Trait`).
-2. `std.sym.Sym`, an interned text type hashed by content (Yan Notation symbols).
-3. `std.any.Any` with type ids from the identity hash, and checked downcast (Yan Notation `any`).
+2. `std.sym.Sym`, an interned text type hashed by content (Yan Meta symbols).
+3. `std.any.Any` with type ids from the identity hash, and checked downcast (Yan Meta `any`).
 4. Panic recovery at a task boundary behind a `Recover` capability; needs unwinding in the
-   recovered task only (Yan Notation `recover`).
-5. Software transactional memory behind an `Stm` capability, under `uses nondet` (Yan Notation `atomic`).
+   recovered task only (Yan Meta `recover`).
+5. Software transactional memory behind an `Stm` capability, under `uses nondet` (Yan Meta `atomic`).
 6. `eval` behind an `Eval` capability: parse, check and run on the reference interpreter with only
-   the capabilities passed in (Yan Notation `eval`).
+   the capabilities passed in (Yan Meta `eval`).
 
 - Decision: accepted for research, 2026-11-01
 - Row: R530 to R535
 
 ## Review findings
 
-A review pass on 2026-11-01 checked every Yan Notation 2 entry against the spec at `spec/`. These were
+A review pass on 2026-11-01 checked every Chang 2 entry against the spec at `spec/`. These were
 fixed here and on the study page.
 
 | # | Entry | Problem | Fix |
 | --- | --- | --- | --- |
 | 1 | Postfix modifiers, lockstep loops | Used `push`; R477 makes `append` the only list append | `append` |
-| 2 | Tacit trains | Used `%`, which Yan Notation does not have (`%%` is remainder), and `#`, which is compile-time evaluation, not length | `(\| +/ / len \|)` |
+| 2 | Tacit trains | Used `%`, which Yan Meta does not have (`%%` is remainder), and `#`, which is compile-time evaluation, not length | `(\| +/ / len \|)` |
 | 3 | Lockstep loops | `for a in xs & b in ys` parses as `for a in ((xs & b) in ys)` | The iterable in a `for` header is parsed above the bitwise level (grammar `iterexpr`) |
 | 4 | Ternary vs postfix `if` | `x := a if c else b` is ambiguous with the postfix modifier | After `if cond`, a following `else` makes it the conditional expression; otherwise a modifier. Decided after `cond`, one token |
 | 5 | Implicit self `@x` vs attributes | A lone `@x` line reads as an attribute | `@NAME` at a statement start followed by a newline, NAME, `(` or `@` is an attribute; write `self.x` or `(@x)` there |
 | 6 | Macros | Backtick quasiquote collides with infix words | MetaOCaml brackets `.< e >.` and escape `.~e` |
 | 7 | Brace blocks | `{ x }` could be a block or a set literal | A brace block is admitted only where a block is expected (after `:=` of a function, `then`, `else`, `do`, loop headers, arms); elsewhere `{` opens a literal |
-| 8 | Probabilistic `~` with shadowing | With shadowing admitted, `p ~ d` on a bound `p` could mean a new sample | Infix `~` never shadows: on a bound name it always observes. A second sample takes a new name (rule `chang-trace-rebind`) |
+| 8 | Probabilistic `~` with shadowing | With shadowing admitted, `p ~ d` on a bound `p` could mean a new sample | Infix `~` never shadows: on a bound name it always observes. A second sample takes a new name (rule `ymt-trace-rebind`) |
 | 9 | try/catch example | The Yan lowering caught every failure of `fs.read`, not only `NotFound` | Lowering rule states that unnamed failure types propagate, with `finally` copied first |
 | 10 | Notes on where, sections, yield*, try, memo, methods | Still cited rejections that D4 and D6 lift | Rewritten |
 | 11 | Inheritance | `extends` would invent a field name | The field is the reserved name `super`, written by `extends` itself |
@@ -159,13 +159,13 @@ fixed here and on the study page.
 
 ## Reference
 
-This part is what a Yan Notation reader, printer and lenient reader are built from. Where it says "as Yan",
-the rule in section 15 applies unchanged. Diagnostics are named by slug (`chang-...`); each gets a
+This part is what a Yan Meta reader, printer and lenient reader are built from. Where it says "as Yan",
+the rule in section 15 applies unchanged. Diagnostics are named by slug (`ymt-...`); each gets a
 code from its section 25 family when the grammar moves into the spec at M4.
 
 ### 1. Files and encoding
 
-- Files end in `.ynt`. A package may mix `.yag`, `.yn` and `.ynt` modules; a module is one file.
+- Files end in `.ymt`. A package may mix `.yag`, `.yn` and `.ymt` modules; a module is one file.
 - Encoding, line ends, BOM handling, E105 and W840 are as 13.1 and 15.1 (R338). Every token outside
   string literals and comments is ASCII (D5).
 - Layout is by indentation, as Yan (15.1): an indented line opens a block, a dedent closes it. A
@@ -230,9 +230,9 @@ Contextual, keywords only in one position:
 and a bar. `.<` opens a quote only at the start of an operand. `>.` closes one only inside a quote.
 
 **Spacing.** Longest match makes `x<-1` an assignment, `a=~b` a regex match and `x:-1` a rule head.
-The reader accepts them; the lenient reader warns (`chang-spacing`) and suggests the spaced form.
+The reader accepts them; the lenient reader warns (`ymt-spacing`) and suggests the spaced form.
 
-**User operators.** Yan Notation 1 rule (F21): `@op("<+>")` lends an operator spelling to a function or trait
+**User operators.** Chang 1 rule (F21): `@op("<+>")` lends an operator spelling to a function or trait
 method. An operator is a run of `+ - * / % < > = ! & | ~ ^ :` that is not in the reserved set above.
 Its level comes from its first character (`*` `/` `%`: multiplicative; `+` `-`: additive; `<` `>`
 `=` `!`: relation; `&` `|`: bitwise; `~` `^` `:`: relation), unless the same file declares it with
@@ -378,19 +378,19 @@ hash-neutral trivia (16.5).
   node in the item's Yan Core tree; the choice is a small integer naming one entry's spelling (the
   entry's "Kept" list fixes the numbering). Only nodes whose spelling differs from the default are
   recorded.
-- **Storage.** In the `.ynt` file the spelling is the text itself. When a Yan Notation item passes through
-  a tool that keeps trivia (the formatter, `yan view`, patches made in Yan Notation), the notes travel with
+- **Storage.** In the `.ymt` file the spelling is the text itself. When a Yan Meta item passes through
+  a tool that keeps trivia (the formatter, `yan view`, patches made in Yan Meta), the notes travel with
   the item as comments do. A Yan Core-level or Yan-level edit keeps the notes of untouched nodes; a node
   whose shape changed falls back to the default.
 - **Validity.** A note is used only if the recogniser for that choice still matches the node;
   otherwise it is dropped silently, and the printer uses the default.
-- **Law.** For any canonical Yan Notation module F: `chang(elaborate(F), spelling(F)) == F` byte for byte
-  (16.5 law 6, new). For any Yan Core item Y: `chang(Y, {})` is defined and canonical.
+- **Law.** For any canonical Yan Meta module F: `ymt(elaborate(F), spelling(F)) == F` byte for byte
+  (16.5 law 6, new). For any Yan Core item Y: `ymt(Y, {})` is defined and canonical.
 
 ### 6. Name table
 
 Locals are hashed by position (D4). The written names live in a name table per item and surface:
-`(binder position, name)`. The Yan Notation printer takes names from the Yan Notation table, then the Yan table, then
+`(binder position, name)`. The Yan Meta printer takes names from the Yan Meta table, then the Yan table, then
 generates `x`, `y`, `z`, `x1`, ... avoiding names in scope. A shadowing `:=` gets a new position
 and the same written name.
 
@@ -407,12 +407,12 @@ composition, section, then `\x ->`. Canonical text is one space around binary op
 As 14.4 for Yan Agent: it accepts Yan tokens (`==`, `let`, `var`, `fail`, `uses`, `match`, `else` as
 fallback) and the spacing forms above, and rewrites them. It never changes meaning.
 
-### 9. Yan Notation 1 base forms
+### 9. Chang 1 base forms
 
-Yan Notation 2 keeps every Yan Notation 1 form (study rows F1 to F30) except the match introducer, which moves from
+Chang 2 keeps every Chang 1 form (study rows F1 to F30) except the match introducer, which moves from
 `e |>` to `e |?`. Each lowers one to one:
 
-| Yan Notation | Yan | Notes |
+| Yan Meta | Yan | Notes |
 | --- | --- | --- |
 | `x := e`, `x: T := e`, `~x := e` | `let x = e`, `var x = e` | `~` is the mutation mark |
 | `x <- e`, `x += e` | `x = e`, `x += e` | assignment needs a `~` binding (E403) |
@@ -428,7 +428,7 @@ Yan Notation 2 keeps every Yan Notation 1 form (study rows F1 to F30) except the
 | `#e` | compile-time evaluation | |
 | `@op("<+>")`, `a <> b` | user operator, Monoid combine | |
 | `x'` | transpose | |
-| `e \|?` then `\| P if g => e` arms | `match` | was `e \|>` in Yan Notation 1 |
+| `e \|?` then `\| P if g => e` arms | `match` | was `e \|>` in Chang 1 |
 
 ### 10. Feature entries
 
@@ -436,25 +436,29 @@ Each entry gives the syntax, the lowering (as Yan, which 15.3 maps to Yan Core),
 back to it, the static rules and the conformance cases to add. "Default" means the printer picks
 it with no spelling note; "kept" means it prints only when a note asks.
 
+**Stages (R777).** Every entry in sections 9 and 10 above "Yan Meta additions" is `stable`.
+Every entry under "Yan Meta additions" is `experimental` and needs `@lab(<slug>)` in the module
+header (R778). An entry's stage changes only by an accepted row.
+
 #### Bindings
 
 **B1 Destructuring bind.** Default.
 `(lo, hi) := e`, `.{name, age} := e`, `[first, ..rest] := e else !! Usage`.
 Lowers to `let` with the same pattern; a refutable pattern needs `else` with a diverging body
-(R433), else `chang-refutable-bind`. A record pattern `.{a, b}` takes its type from the right side;
-if that type is not a record, `chang-record-pattern`. Prints: any `let` with a pattern.
+(R433), else `ymt-refutable-bind`. A record pattern `.{a, b}` takes its type from the right side;
+if that type is not a record, `ymt-record-pattern`. Prints: any `let` with a pattern.
 Tests: tuple, record, list-rest, refutable with and without `else`.
 
 **B2 Parallel assignment.** Default.
 `a, b <- b, a`; `a, b <- b, a + b`. Every right side is evaluated first, left to right, into
 positional temporaries, then assigned left to right. A pure permutation of places lowers to
-`std.mem.swap` calls (no temporaries). Rules: the left places must be distinct (`chang-assign-alias`)
+`std.mem.swap` calls (no temporaries). Rules: the left places must be distinct (`ymt-assign-alias`)
 and mutable (E403). Prints: a run of assignments whose right sides read only pre-run values of the
 left places. Tests: swap, rotate three, Fibonacci step, aliasing failure.
 
 **B3 `where` clauses.** Kept.
 `f(...) := e` followed by an indented `where n := e; ...`. The bindings move to the top of the body
-in dependency order (a topological sort; a cycle is `chang-where-cycle`). They may shadow parameters
+in dependency order (a topological sort; a cycle is `ymt-where-cycle`). They may shadow parameters
 only under the shadowing rule of B10. Prints when a note says so and the body's leading `let`s are
 used only by the final expression.
 
@@ -466,7 +470,7 @@ as the indented block. Tests: one-line function body; `{x}` as a set in argument
 **B5 Binding inside a condition.** Default.
 `while (line := r.read_line()?) != ""` and `if (m := find(x)) != None`. Lowers to `loop` with the
 binding, a test and `break` (for `while`), or to a `let` before the `if` whose scope is the `if`
-(for `if`). The name is in scope in the body only (`chang-cond-binding-scope` on use after). Prints:
+(for `if`). The name is in scope in the body only (`ymt-cond-binding-scope` on use after). Prints:
 a `loop` whose first statements are a `let` and a test that breaks.
 
 **B6 Cascade.** Default.
@@ -477,7 +481,7 @@ Prints: two or more consecutive inout calls on the same place with no other stat
 **B7 Functional update.** Default.
 `p.{pos.x: 0.0}`, `p.{name: "b", age: 3}`. Lowers to nested `evolve`. Consumes `p` at its last use;
 elsewhere E413 asks for `copy p`. Paths may go through records only (not lists or maps:
-`chang-update-path`).
+`ymt-update-path`).
 
 **B8 Record spread.** Kept spelling of B7: `.{...p, name: "b"}`. Same tree. The spread must come
 first and only once.
@@ -501,18 +505,18 @@ binding visible at the closure).
 parameters (the 15.3 clause form, R266).
 `gcd :: (a: int, b: int) -> int` then contract lines, then `gcd(a, 0) := a` and `gcd(a, b) := ...`.
 A clause binder with a parameter's name means that parameter; any other binder is a local.
-Every clause must have one pattern per parameter (`chang-clause-arity`) and the same name
-(`chang-clause-name`). Non-exhaustive clauses are E-level as for `match`.
+Every clause must have one pattern per parameter (`ymt-clause-arity`) and the same name
+(`ymt-clause-name`). Non-exhaustive clauses are E-level as for `match`.
 
 **F2 Clause guards.** Default. `step(n) if n %% 2 = 0 := ...` is a guarded arm.
 
 **F3 Pipeline.** Kept.
 `x |> f(a)` is `f(x, a)`; with a `_` among the arguments, `x` goes there instead, and only one `_`
-may appear (`chang-pipe-hole`). `x |> f` with no parentheses is `f(x)`. Uniform call syntax makes
+may appear (`ymt-pipe-hole`). `x |> f` with no parentheses is `f(x)`. Uniform call syntax makes
 the method form the default printing.
 
 **F4 Composition both ways.** Default. `f >>> g` is `x -> g(f(x))`; `g <<< f` is the same tree and
-prints only when kept. No mixing with arithmetic without parentheses (`chang-compose-mix`).
+prints only when kept. No mixing with arithmetic without parentheses (`ymt-compose-mix`).
 
 **F5 Operator sections.** Default.
 `(+ 1)`, `(2 *)`, `(_ - 1)`. `(- 1)` is the number. Lowers to a one-parameter closure. Prints for
@@ -521,7 +525,7 @@ bound outside on the other.
 
 **F6 Reusable lambda parameter.** Default. `$` may appear several times and is the one parameter;
 `$1`, `$2` name positional parameters of a multi-parameter closure. `$` and `_` may not mix in one
-closure (`chang-hole-mix`). The closure's extent is the innermost enclosing argument or parenthesis.
+closure (`ymt-hole-mix`). The closure's extent is the innermost enclosing argument or parenthesis.
 
 **F7 Partial application by hole.** Default. `add(1, _)` is `x -> add(1, x)`. Arguments other than
 the hole are evaluated when the closure is created. An escaping partial obeys E406.
@@ -537,7 +541,7 @@ last argument. With parameters: `f(a) do \x ->`. The closure is non-escaping (4.
 
 **F11 Uniform-access properties.** Default with `@prop`. `@prop area(self: Circle) -> float := ...`
 lets `c.area` mean `c.area()`. Only for a function with exactly one parameter, `self`, no failure
-type and no capabilities (`chang-prop-effect`).
+type and no capabilities (`ymt-prop-effect`).
 
 **F12 Infix words.** Kept. ``a `div` b`` is `div(a, b)`, at the multiplicative level.
 
@@ -545,7 +549,7 @@ type and no capabilities (`chang-prop-effect`).
 `std.memo` owns a map for one top-level call and frees it after; deterministic.
 
 **F14 `@memo`.** Needs D7.4 (typed staging). `@memo fib(n: int) -> int := ...` is a stage-0 macro
-that adds a cache item and rewrites calls to go through it. Until staging lands, `chang-needs-staging`.
+that adds a cache item and rewrites calls to go through it. Until staging lands, `ymt-needs-staging`.
 
 **F15 Ternary conditional.** Default for a short `if` expression: `a if c else b`. Never
 `c ? a : b`, since `?` means failure. Level 15. Prints when both branches are operands of level 14
@@ -553,7 +557,7 @@ or tighter and fit on one line.
 
 **F16 File-local fixity.** `infixl <+> like +` at the top of a file gives `<+>` the level and
 associativity of `+` for this file only. Imported operators keep first-character precedence.
-Rules: declared before first use (`chang-fixity-late`), only for operators defined or imported in the
+Rules: declared before first use (`ymt-fixity-late`), only for operators defined or imported in the
 file, one declaration per operator.
 
 **F17 Tacit trains.** Default for forks. `(| f g h |)` is `x -> g(f(x), h(x))` (an APL fork):
@@ -571,7 +575,7 @@ that the optimizer never materialises.
 
 **P2 Active patterns.** Default. `@pattern f(s: S) -> T?` (or `-> bool`) declares an extractor.
 In a pattern, `?f(p)` calls `f` on the scrutinee and matches `Some(p)`; `?f` with a `bool` result is
-a test. `f` must be pure (no capabilities, no failure: `chang-pattern-effect`). Arms keep source order.
+a test. `f` must be pure (no capabilities, no failure: `ymt-pattern-effect`). Arms keep source order.
 
 **P3 String-prefix patterns.** Default. `"GET " ++ path` matches a `str` starting with the literal
 and binds the rest as a `StrView` into the scrutinee (store it with `copy`).
@@ -580,7 +584,7 @@ and binds the rest as a `StrView` into the scrutinee (store it with `copy`).
 `View[u8]`; widths are in bits, big-endian unless `/le`; `NAME/rest` binds the remaining bytes and
 must be last and byte-aligned. As a literal, `<<1:8, n:16>>` builds `Bytes`. A pattern fails if the
 view is too short; its length test proves every index. Widths must sum to whole bytes
-(`chang-bits-align`); a field over 64 bits is `chang-bits-width`.
+(`ymt-bits-align`); a field over 64 bits is `ymt-bits-width`.
 
 **P5 Regex patterns.** Default (library). `re"(\d+)-(\d+)"(lo, hi)` matches with `std.regex` and
 binds captures as `StrView`s. The capture count must equal the names (stage-0 error, R484).
@@ -596,10 +600,10 @@ apply to one simple statement. Marks stay on the statement.
 Lowers to `loop` with a final test and `break`. A `-{ e }` line may follow `repeat`.
 
 **C4 Multi-way `if`.** Default for an `if`/`else if` chain of three or more arms. Arms in source
-order; a final `| _ =>` arm is required (`chang-if-total`).
+order; a final `| _ =>` arm is required (`ymt-if-total`).
 
 **C5 Comparison chains.** Default. `a < b <= c` is `a < b and b <= c`. All operators in a chain
-face the same way (`<` and `<=`, or `>` and `>=`, or `=` alone: `chang-chain-mixed`), and each middle
+face the same way (`<` and `<=`, or `>` and `>=`, or `=` alone: `ymt-chain-mixed`), and each middle
 operand is a place or a literal, so it is evaluated once.
 
 **C6 Lockstep loops.** Default. `for a in xs & b in ys` is `for (a, b) in zip(xs, ys)`; stops at the
@@ -610,7 +614,7 @@ parentheses.
 gets `0 <= i < xs.len()` (8.6).
 
 **C8 Stepped ranges and end indexes.** Default. `0..n by 2` is `range(0, n).step_by(2)`. `xs[^k]` is
-`xs[xs.len() - k]` and `xs[a..^k]` is `xs[a..xs.len() - k]`; `^k` only on a place (`chang-end-index`).
+`xs[xs.len() - k]` and `xs[a..^k]` is `xs[a..xs.len() - k]`; `^k` only on a place (`ymt-end-index`).
 
 **C9 Unbounded ranges.** Default. `n..` is `count_from(n)`, an iterator.
 
@@ -628,11 +632,11 @@ the `else` block and whose `break` skips it. Labelled `break` out of an outer lo
 
 **C14 `goto` and `fallthrough`.** Default (D6). `label L` marks a statement in the same function;
 `goto L` jumps there. Lowers to a join point; locals live at `L` become its parameters. Rules:
-the target is in the same function, in the same block or an enclosing one (`chang-goto-scope`); a
-jump may not enter a scope or skip a binding that is used after `L` (`chang-goto-binding`); a jump
+the target is in the same function, in the same block or an enclosing one (`ymt-goto-scope`); a
+jump may not enter a scope or skip a binding that is used after `L` (`ymt-goto-binding`); a jump
 may not leave a `par` branch or a `with` block. A jump out of a block runs that block's `defer`s, as any exit does (X2). `fallthrough` as the last
 statement of a match arm jumps to the next arm's body; that arm must bind no names
-(`chang-fallthrough-binds`) and the current arm must not be the last.
+(`ymt-fallthrough-binds`) and the current arm must not be the last.
 
 #### Failure
 
@@ -651,12 +655,12 @@ whose type is that site's failure type, or a variant set of it; an error no arm 
 with `fail e` after the `finally` block. With D4, a `?` may sit anywhere in an expression: the
 partial results to its left are bound to positional locals first, so evaluation order is kept.
 `finally` is a `defer` on the block. Catches typed failures only; panics go to X7. Rules: an arm
-whose type no site can fail with is `chang-catch-dead`; arm order matters only for overlapping types.
+whose type no site can fail with is `ymt-catch-dead`; arm order matters only for overlapping types.
 
 **X2 `defer`, `errdefer`.** Default. The statement is copied to every exit of the enclosing block
 (normal end, `return`, `break`, `continue`, `?`, `!!`, `goto` out), in reverse order of
 declaration; `errdefer` goes only to failing exits. Not run on panic (8.3). A deferred statement that
-can fail must handle it (`chang-defer-fails`).
+can fail must handle it (`ymt-defer-fails`).
 
 **X3 Propagate with context.** Default. `e ?> msg` is `e.context(msg)?`; the failure type needs a
 context chain (8.1).
@@ -666,11 +670,11 @@ context chain (8.1).
 **X5 Force unwrap.** Default. `o.!` is `o else unreachable`.
 
 **X6 Optional chaining.** Default. `a.?f` on `Option[A]`: if `A.f` is `Option[B]`, it is
-`a.and_then(.f)`; otherwise `a.map(.f)`. Not defined on non-options (`chang-optchain-type`).
+`a.and_then(.f)`; otherwise `a.map(.f)`. Not defined on non-options (`ymt-optchain-type`).
 
 **X7 `recover`.** Needs D8.4. `recover` block `else e => body` runs the block as a child task;
 a panic inside it becomes the failure `Panicked(msg)` and runs `body`. Needs `|- recover`.
-Until the addition lands, `chang-needs-recover`.
+Until the addition lands, `ymt-needs-recover`.
 
 #### Types
 
@@ -695,7 +699,7 @@ a record type plus handlers for `std.actor` (9.6).
 
 **T8 Implicit self.** Default inside a function with a `self` parameter. `@x` is `self.x`; `@x <- v`
 assigns. At a statement start, `@NAME` followed by a newline, a NAME, `(` or `@` is an attribute;
-write `self.x` or `(@x)` there (`chang-attr-or-field` explains). Outside a method, `chang-self-missing`.
+write `self.x` or `(@x)` there (`ymt-attr-or-field` explains). Outside a method, `ymt-self-missing`.
 
 **T9 Inheritance as delegation.** Default (D6). `type B extends A := {extra fields}` adds a first
 field `super: A` and, for each trait `A` implements, a delegating impl unless `B` writes its own.
@@ -710,7 +714,7 @@ is widened if the conversion is lossless: signed to wider signed, unsigned to wi
 wider signed, `f32` to `f64`. Lowers to the explicit conversion call. Never to or from floats and
 integers, never narrowing.
 
-**T12 `null`.** Default. `null` is `None` where an option type is expected (`chang-null-type`
+**T12 `null`.** Default. `null` is `None` where an option type is expected (`ymt-null-type`
 otherwise).
 
 **T13 Dynamic `any`.** Needs D8.3. `x: any` is `dyn Any`; `x is int` and `x |? | n: int => ...` are
@@ -765,7 +769,7 @@ supervisor (R397).
 
 **K9 async / await.** Default (D6). Inside `|||` (or `par concurrent`), `h := async e` starts `e`
 as a branch and returns a handle; `await h` joins it and yields its result, failing as the branch
-failed. Handles cannot leave the block (`chang-async-escape`); a handle never awaited is joined at
+failed. Handles cannot leave the block (`ymt-async-escape`); a handle never awaited is joined at
 the block's end. No function colouring: `async` and `await` are expressions in ordinary functions.
 
 **K10 Software transactional memory.** Needs D8.5. `atomic` block reads and writes `TVar` cells;
@@ -781,11 +785,11 @@ handle
 with Ask
   | ask() resume k => k(42)
 ```
-`k` is used at most once (`chang-resume-twice`). Until handlers land, `chang-needs-handlers`.
+`k` is used at most once (`ymt-resume-twice`). Until handlers land, `ymt-needs-handlers`.
 
 **E2 Macros and quasiquote.** Needs D7.4. `macro m(e: Code[int]) -> Code[int] := .< .~e * 2 >.`;
 `.< e >.` is a typed quote, `.~e` splices. Expanded at stage 0; the expansion is hashed as written
-text. Until staging lands, `chang-needs-staging`.
+text. Until staging lands, `ymt-needs-staging`.
 
 **E3 `eval`.** Needs D8.6. `eval[T](src, caps: .{log})` parses, checks and runs `src` on the
 interpreter with only the listed capabilities; fails with `EvalErr`. Needs `|- eval`.
@@ -802,10 +806,88 @@ Rules are a stage-0 string checked against the relation types; semi-naive, sorte
 
 **M4 Probabilistic models.** Library. In a function with exactly one `~t: Trace` parameter,
 `x ~ d` samples into a new `x` when `x` is unbound and observes when bound. Never shadows
-(`chang-trace-rebind` if `x` was bound by a shadowing `:=` in the same block).
+(`ymt-trace-rebind` if `x` was bound by a shadowing `:=` in the same block).
 
 **M5 Property tests.** Library. `test "name" := forall t: T => p` checks `p` for generated `t`
 (seeded, shrinking). `T` needs `@derive(Arbitrary)`.
+
+#### Yan Meta additions (RFC 0029, R779)
+
+All `experimental`. The `@lab` slug is the entry's name in lower case with hyphens.
+
+**O6 Index notation.** `y[i] := x[i-1] + x[i+1]` defines `y` by an index equation; `m[i] := max j
+=> a[i, j]` reduces with any Monoid or `min`/`max`; `h[k[i]] += 1` scatters. Lowers to a loop nest
+over the ranges every index use allows (their intersection); a bound the solver cannot prove is a
+check (8.6). The printer recognises the canonical nest. Rules: an index bound on the left is free
+on the right; `ymt-index-unbound` otherwise. Cases: a three-point stencil, a max reduction, a
+histogram scatter, an out-of-range edge.
+
+**O7 Static-rank lifting.** `f each x` applies `f` to each cell of `x` when the shapes are known
+statically. Lowers to an inline `map` or `for` at the site; no new item (K2). Until R780, a shape
+that is not static is `ymt-needs-rank-polymorphism`.
+
+**L7 Literal polymorphism.** `1` takes the element type from context (`xs * 2` with `xs: [f64]`).
+Lowers to the typed literal `2.0`; the spelling note keeps `2`. Only literals: a non-literal `int`
+is never widened by this entry (T11 is separate).
+
+**L8 More prefixed literals.** `fmt"..."` and `json"..."`, stage-0 `@literal` calls as `re` and
+`sql` (section 2).
+
+**B11 Record punning.** `.{x=, y=}` is `.{x: x, y: y}`, echoing `{x=}` (L5). Printer: a field whose
+value is the same-named local prints punned by default.
+
+**F19 Default arguments.** `f(x: int, step: int = 1)`. Lowers to a typed annotation
+`@defaults(step = 1)` on `f` (a stage-0 constant, part of the item) and the value passed at each
+call site that omits it. The printer omits an argument equal to the default only with a note.
+Rules: defaults are stage-0 constants and follow every parameter without one (`ymt-default-order`).
+
+**F20 Mixfix operators.** `mixfix "[|" _ "|]" := f` gives `f` a bracket form; `mixfix _ "?" _ ":" _
+:= cond` a ternary one. Lowers to a call; the form is in the name table, file-local like F16. Rules:
+the first and last parts are tokens no other form starts or ends with, so the grammar stays LL(1)
+(`ymt-mixfix-ambiguous`).
+
+**P6 View patterns.** `(f -> P)` in a pattern matches when `f(x)` matches `P`. Lowers to a call and a
+nested `match`; the printer recognises the shape.
+
+**P7 Pattern synonyms.** `pattern Origin := .{x: 0, y: 0}` declares a name usable as a pattern and as
+a constructor. Lowers to a P2 extractor and a function, both named `Origin` by the author (K2).
+
+**C15 `opt` and `res` blocks.** `opt` then an indented block whose `?` propagates to the block, not
+the function; the block's value is `T?` (`res`: `T ! E`). Lowers to nested matches, one per `?`.
+
+**C16 Labelled break with a value.** `@outer: for ...` then `break @outer e`. Lowers to a join point
+with one parameter (`goto` target, C14).
+
+**C17 `guard`.** `guard c else e`, where `e` diverges (`return`, `fail`, `break`, `continue`).
+Lowers to `if not c` then `e`; `ymt-guard-falls-through` when `e` can complete.
+
+**X8 `assume` and `assert` blocks.** `assume e` is a checked `assert e`; after it the solver uses
+`e` as a fact. Nothing is trusted unchecked. An `assert` block lists several conditions.
+
+**T14 Refinement aliases.** `type Pos := int{_ > 0}`; each signature that uses `Pos` gets the T1
+contracts. The alias is not an item: it expands at use and lives in the name table.
+
+**S1 Compact stage 0.** `#for f in fields(T)`, field access by reflection `x.#f`, reifier literals
+`#record{name: T, ...}` and `#sum{...}`. Lower to `comptime` loops, `info` and `record_type`/
+`sum_type` (10.4).
+
+**S2 Derive and attribute authoring.** `derive Show for T := body` is a `derived` body;
+`attr name(d: DeclInfo) := body` an additive `@attribute` function (10.4, E266 unchanged).
+
+**S3 Relational rules.** M1's `rel` blocks gain `fresh x` and `==` unification (miniKanren style).
+Library, a stage-0 DSL over `Table`.
+
+**K11 Reactive cells.** `cell x := e` declares a derived cell. Library: lowers to `Cell[T]` once the
+R528 library exists; until then `ymt-needs-cells`.
+
+**K12 Protocol spelling.** `proto P := A -> B: msg; B -> A: reply` declares a multiparty session
+type. Lowers to the `protocol` item (RFC 0018).
+
+**Core-change forms (RFC 0029 D4).** Each waits on its 26.6 row and is rejected with
+`ymt-needs-<row>` until it lands: shape-row variables `...B` (R780), size arithmetic in shapes
+(R781), `info(f)` bodies (R782), rewriting `@attribute`s (R783), `by tactic` proofs (R784),
+`.{x: int | r}` row types (R785), GADT constructors `| Lit(int): Expr[int]` (R786). Their syntax is
+fixed by the RFC that adopts each row.
 
 ### 11. Out
 
@@ -819,16 +901,16 @@ Rules are a stage-0 string checked against the relation types; semi-naive, sorte
 ### 12. Conformance
 
 Agents do not edit `conformance/`; a separate PR proposes the cases. Each entry above lists its
-cases. In addition: every pass case in `conformance/yn/` gets a Yan Notation projection checked by
-`chang(elaborate(W), {})` then `elaborate` back to the same item hashes; and every Yan Notation pass case
+cases. In addition: every pass case in `conformance/yn/` gets a Yan Meta projection checked by
+`ymt(elaborate(W), {})` then `elaborate` back to the same item hashes; and every Yan Meta pass case
 checks law 6 of 16.5 with and without spelling notes.
 
 ## Spec changes
 
-- 1: the surfaces table and the reader diagram gain Yan Notation.
-- 2: law 8 gains the Yan Notation clause (D3).
+- 1: the surfaces table and the reader diagram gain Yan Meta.
+- 2: law 8 gains the Yan Meta clause (D3).
 - 3.6: positional locals and the name table (D4).
-- 16.5: law 6 for Yan Notation, and spelling notes as the fourth kind of trivia.
-- 16.6 (new): Yan Notation, the third surface: D1, D2, D5, D6, with this RFC as the reference until M4.
-- 23: M4 gains the Yan Notation reader, printer and lenient reader.
+- 16.5: law 6 for Yan Meta, and spelling notes as the fourth kind of trivia.
+- 16.6 (new): Yan Meta, the third surface: D1, D2, D5, D6, with this RFC as the reference until M4.
+- 23: M4 gains the Yan Meta reader, printer and lenient reader.
 - 26.6 (new): research track, D7 and D8.

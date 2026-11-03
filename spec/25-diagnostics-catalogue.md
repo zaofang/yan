@@ -25,8 +25,8 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 
 | Code | Meaning | Section |
 | --- | --- | --- |
-| E001 | preview item used without `preview = ["name"]` | 20.6 |
-| E002 | published package at 1.0 or later enables a preview *new* | 20.6 |
+| E001 | preview item used without `preview = ["name"]`, or experimental Yan Meta form used without `@lab(name)` (R778) | 20.6, 16.6 |
+| E002 | published package at 1.0 or later enables a preview or contains `@lab` *new* | 20.6, 16.6 |
 | E003 | package name does not exist; nearest names suggested *new* | 19.4 |
 | E004 | agent add of a package neither locked nor established needs an approval *new* | 19.4 |
 | E005 | update gains a capability or changes publisher identity; needs an approval *new* | 19.4 |

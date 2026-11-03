@@ -20,7 +20,7 @@ The compiler and tools MUST be written in Rust (stable toolchain) as one Cargo w
 | `yan-yn` | Yan lexer, parser and printer (M3) |  |
 | `yan-names` | word-list and foreign names, the projection table (16.1 to 16.3) (R560) |  |
 | `yan-surface` | the `Surface` trait (parse, abstract, lower, subset, resugar, print, optional lenient reader, grammar export, message rendering), the trivia side table, the round-trip law harness (R560) |  |
-| `yan-chang` | Yan Notation lexer, parser, printer and spelling notes; print-only view in M3, reader in M4 (R560, R563) |  |
+| `yan-ymt` | Yan Meta lexer, parser, printer and spelling notes; print-only view in M3, reader in M4 (R560, R563) |  |
 | `yan-hir` | name resolution, the surface-neutral high-level IR every surface lowers to, and the shared raise from Yan (R558, R559) |  |
 | `yan-elab` | type inference (bidirectional, local inside items), desugaring, capability passing, copy and move insertion, lowering to Yan Core |  |
 | `yan-core` | Yan IR data types, text parser and printer, IR validator |  |

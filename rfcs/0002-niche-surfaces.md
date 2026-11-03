@@ -16,7 +16,7 @@ bash, Kaitai, Lustre, Catala and others). A niche surface adds syntax only. It l
 `yan-hir` like Yan, prints back exactly, keeps the item hash, and shows the five facts. Thirteen
 surfaces are accepted: eight practical (Yan Prompt, Yan Schema, Yan Infra, Yan Query Language, Yan Workflow, Yan Shell, Yan Binary Format, Yan Dataflow) and five research
 (Yan Delegate, Yan Probabilistic, Yan Protocol, Yan Spec, Yan Law). None is built before 1.0. Each starts as a print-only view and gets its
-reader, grammar, diagnostic codes and conformance column in its own later RFC, the way Yan Notation's grammar
+reader, grammar, diagnostic codes and conformance column in its own later RFC, the way Yan Meta's grammar
 moves from RFC 0001 into section 16.6.
 
 The spec gets the admission rules and a table of planned surfaces (new section 16.7) and a post-1.0
@@ -30,7 +30,7 @@ labels (XUN-1 and so on); codes are assigned in each surface's own RFC.
 
 ### D1: Admission rules and shared machinery
 
-A niche surface is admitted only if it meets all nine rules (N1 to N9). Yan Notation's K1 to K5 (R517) are
+A niche surface is admitted only if it meets all nine rules (N1 to N9). Yan Meta's K1 to K5 (R517) are
 the model; the difference is that a niche surface prints only a subset of Yan and has exactly one
 printing per tree, so it needs no spelling notes.
 
@@ -194,7 +194,7 @@ query movers(trades: Table[Trade], since: PlainDate) -> Table[Mover] =
 - **Diagnostics.** CHA-1 a column not in the row type at that stage, listing the available columns;
   CHA-2 an aggregate outside `group`.
 - **Relation to existing work.** `@yan/frame` SQL text yields an untyped `LazyFrame[Dyn]`; Yan Query Language is the
-  typed alternative. Yan Notation's query comprehensions (RFC 0001, M3) lower to the same operations. `@yan/rel`
+  typed alternative. Yan Meta's query comprehensions (RFC 0001, M3) lower to the same operations. `@yan/rel`
   (Datalog) may become a second Yan Query Language mode.
 - **First slice.** `from`, `where`, `derive`, `select`, `group`, `sort`, `join`. Later: windows,
   `take per`, incremental maintenance (DBSP-style).
@@ -439,7 +439,7 @@ main() uses prob, io =
   each. NUTS and HMC need `grad`, an M4 preview (11.5); the first slice uses importance sampling and
   SMC. Distributions come from `@yan/rand_distr`.
 - **Questions.** The spelling of `observe` on continuous data; enumeration of discrete variables; one
-  library for Yan Probabilistic and Yan Notation's probabilistic models (RFC 0001, M4, which passes a `Trace` parameter), so
+  library for Yan Probabilistic and Yan Meta's probabilistic models (RFC 0001, M4, which passes a `Trace` parameter), so
   the two must agree on capability versus parameter in Yan Probabilistic's own RFC.
 
 - Decision: accepted for research, 2026-11-01
@@ -532,7 +532,7 @@ scope IncomeTax
 2. After 1.0: Yan Schema first (types only; it proves the shared machinery), then Yan Prompt.
 3. Yan Query Language and Yan Shell next. Yan Workflow waits for `@yan/durable` (M4) and durable timers; Yan Infra waits for the
    dry-run handler class (RFC 0003).
-4. Every surface starts as a print-only view (`yan view --as <name>`, as Yan Notation is until M4, 16.6) before it gets a reader.
+4. Every surface starts as a print-only view (`yan view --as <name>`, as Yan Meta is until M4, 16.6) before it gets a reader.
 5. Each surface enters the normative spec through its own RFC: grammar, subset predicate, projection
    column, diagnostic codes and conformance column.
 

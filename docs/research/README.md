@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-03 | [Yan Notation: names and real features](https://claude.ai/artifact/XwShntWVWkEzcMhkxbswiT) | RFC 0029: R776 to R786 |
 | 2026-11-03 | [Yan naming proposal](https://claude.ai/artifact/BHBRo7tdX5b3H4uZbQGs6o) | R774, R775 |
 | 2026-11-03 | [Jian (Xin) model probe: Sonnet 5.5 on 50 development tasks](https://claude.ai/artifact/8bZgdYmkeds1yWouV8Ryxs) | R566 probe report, one model family; proposals only, no rows |
 | 2026-11-01 | [Formal core study: what a mechanized proof would take](https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y) | RFC 0022 (R680): Lean model under `formal/`, phase 0 now; normative definition open |

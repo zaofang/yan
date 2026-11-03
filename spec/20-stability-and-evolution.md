@@ -35,7 +35,7 @@ A package that builds and passes its tests on toolchain 1.a MUST build, pass and
 
 ### 20.6 API evolution and enforced versions
 
-**Previews.** `@preview("name")` marks unstable items, modules, handlers and next-edition syntax; using one requires `preview = ["name"]` in `package.yag` (E001). There is one release channel. Previews are outside the compatibility promise. A published package at 1.0 or later MUST NOT enable one (E002). A preview stabilizes, is withdrawn or is re-justified within four minors. The `std.evented` handlers are the first.
+**Previews.** `@preview("name")` marks unstable items, modules, handlers and next-edition syntax; using one requires `preview = ["name"]` in `package.yag` (E001). There is one release channel. Previews are outside the compatibility promise. A published package at 1.0 or later MUST NOT enable one (E002). A preview stabilizes, is withdrawn or is re-justified within four minors. The `std.evented` handlers are the first. Experimental Yan Meta forms are previews too, enabled per module by `@lab` (16.6, R778).
 
 **API evolution table (normative).** Each row has a conformance witness in `conformance/semver/`.
 
