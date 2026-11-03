@@ -3,6 +3,7 @@
 use std::cell::Cell;
 
 use crate::ast::*;
+use yong_names::{Surface, type_row};
 
 pub fn print(m: &Module) -> String {
     let mut p = Printer { out: String::new() };
@@ -84,8 +85,23 @@ fn escape(s: &str, braces: bool) -> String {
 
 pub fn ty(t: &Type) -> String {
     match t {
-        Type::Named { path: p, args } if args.is_empty() => path(p),
-        Type::Named { path: p, args } => format!("{}[{}]", path(p), comma(args, targ)),
+        Type::Named { path: p, args } if p == &["Option"] && args.len() == 1 => match &args[0] {
+            TArg::Type(t) => format!("{} | None", ty(t)),
+            a => format!("Option[{}]", targ(a)),
+        },
+        Type::Named { path: p, args } => {
+            let name = match p.as_slice() {
+                [n] => type_row(n, Surface::Yong)
+                    .filter(|r| r.arity == args.len())
+                    .map_or_else(|| path(p), |r| r.xin.to_owned()),
+                _ => path(p),
+            };
+            if args.is_empty() {
+                name
+            } else {
+                format!("{name}[{}]", comma(args, targ))
+            }
+        }
         Type::Callable {
             par,
             params,
@@ -108,7 +124,6 @@ pub fn ty(t: &Type) -> String {
             s.push(']');
             s
         }
-        Type::Optional(t) => format!("{} | None", ty(t)),
         Type::None => "None".into(),
     }
 }
@@ -121,7 +136,15 @@ fn targ(a: &TArg) -> String {
 }
 
 fn errtype(ps: &[Path]) -> String {
-    ps.iter().map(|p| path(p)).collect::<Vec<_>>().join(" | ")
+    ps.iter()
+        .map(|p| {
+            ty(&Type::Named {
+                path: p.clone(),
+                args: Vec::new(),
+            })
+        })
+        .collect::<Vec<_>>()
+        .join(" | ")
 }
 
 fn tparams(ps: &[TParam]) -> String {
@@ -438,8 +461,8 @@ pub fn expr(e: &Expr, min: u8) -> String {
                 format!("lambda {}: {}", ps.join(", "), expr(b, 0))
             }
         }
-        ExprKind::Is { .. } | ExprKind::Reify(_) | ExprKind::Cast(..) => {
-            unreachable!("Wen only: Xin has no `is`, `try` or `as`")
+        ExprKind::Reify(_) | ExprKind::Cast(..) => {
+            unreachable!("Wen only: Xin has no `try` or `as`")
         }
     };
     if level(e) < min { format!("({s})") } else { s }
@@ -474,9 +497,6 @@ fn pat(p: &Pat) -> String {
         ),
         Pat::Tuple(ps) => format!("({})", comma(ps, pat)),
         Pat::As(q, n) => format!("{} as {n}", pat(q)),
-        Pat::Or(..) | Pat::Range { .. } | Pat::Slice(..) => {
-            unreachable!("Wen only: Xin has no or, range or slice patterns")
-        }
     }
 }
 
@@ -498,7 +518,7 @@ impl Printer {
             ItemKind::Func(f) => self.func(f, pubs, "def", 0),
             ItemKind::Lemma(f) => self.func(f, pubs, "lemma", 0),
             ItemKind::Extern(_) => unreachable!("Xin has no extern blocks"),
-            ItemKind::Class(c) => {
+            ItemKind::Record(c) => {
                 self.line(
                     0,
                     &format!("{pubs}class {}{}:", c.name, tparams(&c.tparams)),

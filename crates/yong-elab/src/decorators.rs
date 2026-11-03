@@ -68,7 +68,7 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
                 }
             }
             "messages" => {
-                let j::ItemKind::Class(c) = &it.kind else {
+                let j::ItemKind::Record(c) = &it.kind else {
                     return unsupported("`@messages` on an item that is not a class");
                 };
                 for f in &c.fields {

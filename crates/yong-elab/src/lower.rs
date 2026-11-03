@@ -207,7 +207,6 @@ pub(crate) fn walk(e: &j::Expr, f: &mut impl FnMut(&j::Expr)) {
         | K::Unary(_, b)
         | K::Not(b)
         | K::Lambda(_, b)
-        | K::Is { value: b, .. }
         | K::Reify(b)
         | K::Stage(b)
         | K::Cast(b, _) => walk(b, f),
@@ -274,7 +273,7 @@ pub(crate) fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
     match &s.kind {
         K::Expr(e) | K::Become(e) | K::Fail(e) | K::Assert(e) => vec![e],
         K::Assign { target, value, .. } | K::AugAssign { target, value, .. } => vec![target, value],
-        K::Ghost { value, .. } | K::Bind { value, .. } | K::LetElse { value, .. } => vec![value],
+        K::Ghost { value, .. } | K::Bind { value, .. } => vec![value],
         K::Return(e) => e.iter().collect(),
         K::If { arms, .. } => arms.iter().map(|(c, _)| c).collect(),
         K::While { cond, .. } | K::StageIf { cond, .. } => vec![cond],
@@ -312,7 +311,7 @@ pub(crate) fn sub_blocks(s: &j::Stmt) -> Vec<&[j::Stmt]> {
             .chain(els.iter().map(Vec::as_slice))
             .collect(),
         K::Match { cases, .. } => cases.iter().map(|c| c.body.stmts.as_slice()).collect(),
-        K::With { body, .. } | K::LetElse { els: body, .. } => vec![&body.stmts],
+        K::With { body, .. } => vec![&body.stmts],
         K::Par { body, .. } => match body {
             j::ParBody::Block(b) => vec![b],
             j::ParBody::For { body, .. } => vec![body],
@@ -1330,7 +1329,6 @@ impl Lower<'_, '_, '_> {
                 };
                 self.assign(&t, ty.as_ref(), value, at)?;
             }
-            K::LetElse { .. } => return unsupported("let-else"),
             K::AugAssign { target, op, value } => {
                 let op: &'static str = op.trim_end_matches('=');
                 if !["+", "-", "*", "/", "//", "%"].contains(&op) {
@@ -3627,17 +3625,17 @@ impl Lower<'_, '_, '_> {
             K::Lambda(ps, body) => self.lambda(ps, body, want)?,
             K::Cast(x, j::Type::Named { path, args })
                 if args.is_empty()
-                    && matches!(path.as_slice(), [n] if n == "int" || n == "float") =>
+                    && matches!(path.as_slice(), [n] if n == "i64" || n == "f64") =>
             {
+                let conv = if path[0] == "i64" { "int" } else { "float" };
                 let arg = j::Arg {
                     name: None,
                     kind: j::ArgKind::Expr((**x).clone()),
                     span: x.span,
                 };
-                return self.builtin(&path[0], &[arg], at, want);
+                return self.builtin(conv, &[arg], at, want);
             }
             K::Cast(..) => return unsupported("`as` to a fixed-width type"),
-            K::Is { .. } => return unsupported("`is` with a pattern"),
             // Wen's `try f(x)`: the call's failure as a `Result` value, as Xin reifies a failing
             // call bound at a `Result` type.
             K::Reify(x) => {

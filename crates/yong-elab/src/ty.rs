@@ -68,6 +68,30 @@ pub fn collection(name: &str) -> Option<(&'static str, usize)> {
     Some((n, row.arity))
 }
 
+/// The built-in type HIR names `n` (its Yong spelling, 16.3) with arguments `a`.
+pub fn builtin(n: &str, a: &[Ty]) -> Option<Ty> {
+    Some(match (n, a) {
+        ("i64", []) => Ty::Int,
+        ("f64", []) => Ty::Float,
+        // Elaborated Yong still spells it `bigint`, and raise brings that back.
+        ("BigInt" | "bigint", []) => Ty::BigInt,
+        ("bool", []) => Ty::Bool,
+        ("Str", []) => Ty::Str,
+        ("char", []) => Ty::Char,
+        (n, []) if fixed(n).is_some() => Ty::Fixed(fixed(n)?),
+        ("List", [t]) => Ty::List(Box::new(t.clone())),
+        ("Set", [t]) => Ty::Set(Box::new(t.clone())),
+        ("Map", [k, v]) => Ty::Dict(Box::new(k.clone()), Box::new(v.clone())),
+        ("tuple", ts) => Ty::Tuple(ts.to_vec()),
+        ("Option", [t]) => Ty::Option(Box::new(t.clone())),
+        ("Result", [t, e]) => Ty::Result(Box::new(t.clone()), Box::new(e.clone())),
+        (n, ts) => match collection(type_name(n, Surface::Yong, Surface::Xin)?)? {
+            (c, k) if k == ts.len() => Ty::Coll(c, ts.to_vec()),
+            _ => return None,
+        },
+    })
+}
+
 fn named(name: &str, args: Vec<y::Type>) -> y::Type {
     y::Type::Named(Named {
         path: vec![name.to_owned()],
@@ -362,13 +386,8 @@ impl std::fmt::Display for Ty {
     }
 }
 
-/// Xin's sized scalar names the elaborator lowers, and their Yong spelling (16.3).
+/// The sized scalars the elaborator lowers, by their Yong names (16.3).
 pub fn fixed(name: &str) -> Option<&'static str> {
-    const LOWERED: [&str; 9] = [
-        "int8", "int16", "int32", "int128", "uint8", "uint16", "uint32", "uint64", "float32",
-    ];
-    LOWERED
-        .contains(&name)
-        .then(|| type_name(name, Surface::Xin, Surface::Yong))
-        .flatten()
+    const LOWERED: [&str; 9] = ["i8", "i16", "i32", "i128", "u8", "u16", "u32", "u64", "f32"];
+    LOWERED.iter().find(|n| **n == name).copied()
 }

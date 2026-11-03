@@ -215,7 +215,6 @@ impl Globals {
     pub fn ty(&self, t: &j::Type, cx: &mut Cx, span: Span) -> R<Ty> {
         Ok(match t {
             j::Type::None => Ty::Unit,
-            j::Type::Optional(t) => Ty::Option(Box::new(self.ty(t, cx, span)?)),
             j::Type::Callable {
                 par,
                 params,
@@ -264,24 +263,10 @@ impl Globals {
                     }
                 }
                 let name = path.join(".");
+                if let Some(t) = ty::builtin(&name, &a) {
+                    return Ok(t);
+                }
                 match (name.as_str(), a.as_slice()) {
-                    ("int", []) => Ty::Int,
-                    ("float", []) => Ty::Float,
-                    ("bigint", []) => Ty::BigInt,
-                    ("bool", []) => Ty::Bool,
-                    ("str", []) => Ty::Str,
-                    ("char", []) => Ty::Char,
-                    ("int64", []) => Ty::Int,
-                    ("float64", []) => Ty::Float,
-                    (n, []) if ty::fixed(n).is_some() => Ty::Fixed(ty::fixed(n).expect("matched")),
-                    ("list", [t]) => Ty::List(Box::new(t.clone())),
-                    ("set", [t]) => Ty::Set(Box::new(t.clone())),
-                    ("dict", [k, v]) => Ty::Dict(Box::new(k.clone()), Box::new(v.clone())),
-                    ("tuple", ts) => Ty::Tuple(ts.to_vec()),
-                    (n, ts) if ty::collection(n).is_some_and(|(_, k)| k == ts.len()) => {
-                        Ty::Coll(ty::collection(n).expect("matched").0, ts.to_vec())
-                    }
-                    ("Result", [t, e]) => Ty::Result(Box::new(t.clone()), Box::new(e.clone())),
                     (n, []) if self.records.contains_key(n) || self.sums.contains_key(n) => {
                         Ty::Data(n.to_owned())
                     }
@@ -458,10 +443,10 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                         .map_err(|u| u.at(it.span));
                 }
             },
-            j::ItemKind::Class(c) if !c.tparams.is_empty() => {
+            j::ItemKind::Record(c) if !c.tparams.is_empty() => {
                 return unsupported("generic classes").map_err(|u| u.at(it.span));
             }
-            j::ItemKind::Class(c) => {
+            j::ItemKind::Record(c) => {
                 g.records.insert(c.name.clone(), Vec::new());
                 let c_layout = |d: &j::Decorator| {
                     d.path == ["layout"]
@@ -509,7 +494,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     };
     for it in &m.items {
         match &it.kind {
-            j::ItemKind::Class(c) => {
+            j::ItemKind::Record(c) => {
                 let fs = fields(g, &c.fields, cx, it.span)?;
                 g.records.insert(c.name.clone(), fs);
             }
@@ -898,7 +883,7 @@ fn core_fields(fs: &[Field]) -> R<Vec<y::Field>> {
 
 fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
     Ok(Some(match &it.kind {
-        j::ItemKind::Class(c) => y::ItemKind::Record(y::Record {
+        j::ItemKind::Record(c) => y::ItemKind::Record(y::Record {
             is_pub: it.is_pub,
             path: vec![c.name.clone()],
             tparams: Vec::new(),

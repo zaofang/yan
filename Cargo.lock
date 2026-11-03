@@ -1416,7 +1416,6 @@ version = "0.0.0"
 dependencies = [
  "yong-core",
  "yong-diag",
- "yong-names",
  "yong-std",
 ]
 
@@ -1519,6 +1518,7 @@ version = "0.0.0"
 dependencies = [
  "yong-diag",
  "yong-hir",
+ "yong-names",
 ]
 
 [[package]]

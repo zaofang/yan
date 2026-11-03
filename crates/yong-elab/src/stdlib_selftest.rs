@@ -198,7 +198,6 @@ fn registry_matches_declarations() {
 fn has_callable(t: &j::Type) -> bool {
     match t {
         j::Type::Callable { .. } => true,
-        j::Type::Optional(t) => has_callable(t),
         j::Type::Named { args, .. } => args
             .iter()
             .any(|a| matches!(a, j::TArg::Type(t) if has_callable(t))),

@@ -492,13 +492,6 @@ impl Solver<'_> {
                 };
                 self.assign(&t, value, &mut f);
             }
-            S::LetElse { pat, value, els } => {
-                self.expr(value, &mut f);
-                self.stmts(&els.stmts, f.clone());
-                for n in pat_names(pat) {
-                    f.kill(&n);
-                }
-            }
             S::Assert(e) => {
                 self.expr(e, &mut f);
                 self.assume(e, true, &mut f);
@@ -883,7 +876,7 @@ impl Solver<'_> {
                 self.expr(b, f);
                 parts.iter().flatten().for_each(|x| self.expr(x, f));
             }
-            K::Is { value: b, .. } | K::Reify(b) | K::Cast(b, _) => self.expr(b, f),
+            K::Reify(b) | K::Cast(b, _) => self.expr(b, f),
             K::Fallback(x, fb) => {
                 self.expr(x, f);
                 if let j::Fallback::Value(v) | j::Fallback::Bind(_, v) | j::Fallback::Fail(v) =
@@ -995,14 +988,7 @@ fn pat_names(p: &j::Pat) -> Vec<String> {
             }
             j::Pat::Path { path, args: None } if path.len() == 1 => out.push(path[0].clone()),
             j::Pat::Path { args: Some(xs), .. } => xs.iter().for_each(|(_, p)| go(p, out)),
-            j::Pat::Or(ps) => ps.iter().take(1).for_each(|p| go(p, out)),
-            j::Pat::Slice(ps, rest) => {
-                ps.iter().for_each(|p| go(p, out));
-                if let Some((_, Some(n))) = rest {
-                    out.push(n.clone());
-                }
-            }
-            j::Pat::Path { .. } | j::Pat::Wild | j::Pat::Lit(_) | j::Pat::Range { .. } => {}
+            j::Pat::Path { .. } | j::Pat::Wild | j::Pat::Lit(_) => {}
         }
     }
     go(p, &mut out);
@@ -1130,11 +1116,6 @@ fn assigned(stmts: &[j::Stmt], sites: &HashMap<Span, Site>) -> HashSet<String> {
                 S::Bind { target, value, .. } => {
                     out.insert(target.clone());
                     expr(value, out);
-                }
-                S::LetElse { pat, value, els } => {
-                    out.extend(pat_names(pat));
-                    expr(value, out);
-                    go(&els.stmts, sites, out);
                 }
                 S::Expr(e) | S::Become(e) | S::Fail(e) | S::Assert(e) => expr(e, out),
                 S::Unsafe(body) | S::StageFor { body, .. } => go(body, sites, out),
