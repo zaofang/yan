@@ -88,7 +88,7 @@ Chang (畅, "unhindered") is the dense ASCII surface and the language-design pla
 
 **Admission (R517).** A Chang form is admitted only if it passes all five rules:
 
-1. **K1 Same core.** It lowers to Yong that Wen can write, or to an accepted Yong extension (26.6). A form that needs an extension is rejected with a diagnostic naming it until the extension lands.
+1. **K1 Same core (R768).** It lowers to Yong: the core, or an accepted Yong extension (26.6). Wen need not have idiomatic syntax for it; Wen prints it as 15.4 says. A form that needs an extension is rejected with a diagnostic naming it until the extension lands.
 2. **K2 No invented hashed names.** A lowering never creates or drops a name the item hash includes (3.6).
 3. **K3 Recognisable.** The printer has a decidable recogniser for the lowered shape, and the grammar is LL(1) after the four factorings of RFC 0001 section 4.
 4. **K4 Spelling kept like comments.** Where several spellings elaborate to one tree, the author's choice is a spelling note (16.5): `chang(elaborate(F), spelling(F)) == F`. A tree with no notes prints with each shape's default.
@@ -106,7 +106,7 @@ A niche surface is a small, domain-shaped language over Yong. It may be a spelli
 
 **Admission (R536).** A niche surface is admitted only if it meets all nine rules:
 
-1. **N1 Semantics (R568).** It lowers to Yong that Wen can write or to an accepted Yong extension, or it defines semantics of its own under the boundary rules below. Its RFC says which, per form.
+1. **N1 Semantics (R568, R768).** It lowers to Yong, the core or an accepted Yong extension, which Wen prints as 15.4 says; or it defines semantics of its own under the boundary rules below. Its RFC says which, per form.
 2. **N2 Subset with a checker.** A decidable predicate says which items print in the surface; outside it, `yong view --as <name>` reports the first excluding construct, as 16.4 does for Xin.
 3. **N3 One printing.** Law 8 holds as for Xin and Wen. Sugar is recovered from the Yong tree, from stage-0 metadata attached by the lowering, or from the trivia of 16.5.
 4. **N4 Same item hash.** A lowering never creates or drops a hashed name (3.6); generated names follow a fixed rule.
