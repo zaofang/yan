@@ -1163,6 +1163,14 @@ fn pad_spec(spec: &str, t: &Ty) -> R<(char, u8, usize)> {
     Ok((fill, align.unwrap_or(u8::from(numeric)), width))
 }
 
+/// `p as name` at the top of a case: the pattern and the name bound to the whole scrutinee.
+fn split_as(p: &j::Pat) -> (&j::Pat, Option<&str>) {
+    match p {
+        j::Pat::As(inner, n) => (inner, Some(n)),
+        p => (p, None),
+    }
+}
+
 /// An integer literal, possibly negated.
 fn is_int_lit(e: &j::Expr) -> bool {
     match &e.kind {
@@ -1720,7 +1728,7 @@ impl Lower<'_, '_, '_> {
             // A streaming `par for` (unit body) runs its items in order: the body may not fail
             // (E712) nor take `inout` access outside its iteration, so no result depends on order.
             K::Par {
-                limit: None,
+                limit,
                 body:
                     j::ParBody::For {
                         target,
@@ -1730,6 +1738,11 @@ impl Lower<'_, '_, '_> {
                     },
                 ..
             } => {
+                // The limit only bounds concurrency; the in-order run already respects it.
+                if let Some(l) = limit {
+                    let (_, lt) = self.atom(l, Some(&Ty::Int))?;
+                    self.expect(&lt, &Ty::Int, l.span);
+                }
                 if let Some(sp) = first_failure(body) {
                     self.err(
                         "E712",
@@ -2581,10 +2594,14 @@ impl Lower<'_, '_, '_> {
         for c in cases {
             let mut pat = y::Pat::Wild;
             let b = self.block_with(|l| {
-                let (p, binds) = l.pat(&c.pat, &t, at)?;
+                let (inner, alias) = split_as(&c.pat);
+                let (p, binds) = l.pat(inner, &t, at)?;
                 pat = p;
                 for (n, ty) in binds {
                     l.declare(&n, ty);
+                }
+                if let Some(n) = alias {
+                    l.bind(n, false, &t, Rhs::Atom(a.clone()), c.span, at);
                 }
                 l.stmts(&c.body.stmts)
             })?;
@@ -2609,10 +2626,14 @@ impl Lower<'_, '_, '_> {
             for c in cases {
                 let mut pat = y::Pat::Wild;
                 let arm = l.block_with(|l| {
-                    let (p, binds) = l.pat(&c.pat, t, at)?;
+                    let (inner, alias) = split_as(&c.pat);
+                    let (p, binds) = l.pat(inner, t, at)?;
                     pat = p;
                     for (n, ty) in binds {
                         l.declare(&n, ty);
+                    }
+                    if let Some(n) = alias {
+                        l.bind(n, false, t, Rhs::Atom(a.clone()), c.span, at);
                     }
                     let body = l.block_with(|l| {
                         l.stmts(&c.body.stmts)?;
@@ -3559,6 +3580,31 @@ impl Lower<'_, '_, '_> {
                 Some(t @ Ty::Option(_)) => (Rhs::Atom(Atom::Name("None".into(), at)), t.clone()),
                 _ => (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Unit),
             },
+            // `b"ab"` is `bytes.from_list([97, 98])`.
+            K::Lit(j::Lit::Str { prefix, value }) if prefix == "b" => {
+                let ex = |kind| j::Expr {
+                    kind,
+                    span: e.span,
+                    paren: false,
+                };
+                let items = value
+                    .bytes()
+                    .map(|b| ex(j::ExprKind::Lit(j::Lit::Int(b.to_string()))))
+                    .collect();
+                let from_list = ex(j::ExprKind::Attr(
+                    Box::new(ex(j::ExprKind::Name("bytes".into()))),
+                    "from_list".into(),
+                    e.span,
+                ));
+                let list = ex(j::ExprKind::List(items));
+                let arg = j::Arg {
+                    name: None,
+                    kind: j::ArgKind::Expr(list),
+                    span: e.span,
+                };
+                let call = ex(j::ExprKind::Call(Box::new(from_list), vec![arg]));
+                return self.rhs_inner(&call, want);
+            }
             K::Lit(l) => {
                 if let j::Lit::Str { value, .. } = l
                     && !unicode_normalization::is_nfc(value)
