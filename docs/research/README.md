@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-04 | [Yan Workflow syntax study](../studies/syntax/workflow.md) | Study only; recommends implicit steps, `first`, `undo`/`commit`, hash-pinned runs |
 | 2026-11-04 | [Yan Shell syntax and semantics study](../studies/syntax/yan-shell.md) | Study only; five proposals and a consolidated mix, D1 to D12 open |
 | 2026-11-04 | [Yan Law syntax study](../studies/syntax/yan-law.md) | Study only; consolidated proposal and items D1 to D9, no rows |
 | 2026-11-04 | [Yan Delegate syntax study](../studies/syntax/yan-delegate.md) | Study only; recommends `want` items, example rows, `like`/`law`/`held`, and ambiguity questions before pinning |
