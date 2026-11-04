@@ -5,14 +5,14 @@
 # 2000-01-01T00:00:00Z PT5S MonoInstant(5000000000)
 # 2000-01-01T00:03:00Z PT3M
 
-pub def main() uses io, time:
+pub def main() -> None fail Cancelled uses io, time:
     start = Instant.parse("2000-01-01T00:00:00Z") else Instant.from_unix_seconds(0)
     with time = fixed_time(start):
         a = time.monotonic()
-        time.sleep(Duration.seconds(5))
+        time.sleep(Duration.seconds(5))?
         io.print(f"{time.now()} {time.monotonic() - a} {time.monotonic()}")
     with time = virtual(start):
         m = time.monotonic()
-        time.sleep(Duration.minutes(1))
-        time.sleep_until(m + Duration.minutes(3))
+        time.sleep(Duration.minutes(1))?
+        time.sleep_until(m + Duration.minutes(3))?
         io.print(f"{time.now()} {time.monotonic() - m}")
