@@ -39,7 +39,7 @@ pub enum Ty {
 }
 
 /// Each std.collections type, by its Yan Agent name; its Yan Core name is in the projection table.
-pub const COLLECTIONS: [&str; 29] = [
+pub const COLLECTIONS: [&str; 30] = [
     "deque",
     "iter",
     "heap",
@@ -69,6 +69,7 @@ pub const COLLECTIONS: [&str; 29] = [
     "Remote",
     "Lub",
     "Max",
+    "Entity",
 ];
 
 /// `name` as a std.collections type, with its `&'static` spelling and arity.

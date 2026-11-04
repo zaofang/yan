@@ -65,6 +65,7 @@ pub const TYPES: &[TypeName] = &[
     row("Remote", "Remote", "Remote", 1),
     row("Lub", "Lub", "Lub", 1),
     row("Max", "Max", "Max", 1),
+    row("Entity", "Entity", "Entity", 2),
     row("Command", "Command", "Command", 0),
     row("WindowsPath", "WindowsPath", "WindowsPath", 0),
     row("Duration", "Duration", "Duration", 0),

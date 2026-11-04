@@ -769,6 +769,34 @@ fn function_body(
                 ),
             );
         }
+        if let Ty::Coll("Entity", ts) = &p.ty
+            && !hashable(g, &ts[0])
+        {
+            let line =
+                l.cx.src
+                    .lines()
+                    .nth(f.name_span.line as usize - 1)
+                    .unwrap_or("");
+            let col = line
+                .find("Entity[")
+                .map_or(f.name_span.col, |k| k as u32 + 1);
+            let at = Span {
+                line: f.name_span.line,
+                col,
+                end_line: f.name_span.line,
+                end_col: col + 6,
+            };
+            let item = l.item.clone();
+            l.cx.err(
+                "E726",
+                at,
+                &item,
+                format!(
+                    "an entity key must implement `Hash`; `{}` does not",
+                    l.ty_text(&ts[0])
+                ),
+            );
+        }
         l.locals.insert(p.name.clone(), Local { ty: p.ty.clone() });
         params.push(y::Param::Value {
             comptime: false,
@@ -1596,6 +1624,7 @@ impl Lower<'_, '_, '_> {
                 limit: None,
                 body: j::ParBody::Block(b),
             } => {
+                self.par_waits(b);
                 let mut blocks = Vec::new();
                 let mut called: Vec<String> = Vec::new();
                 for s in b {
@@ -3608,6 +3637,17 @@ impl Lower<'_, '_, '_> {
                     Ty::Data(self.g.variant_of[m].clone()),
                 )
             }
+            // A lattice value's `.value` is its read (A8).
+            K::Attr(b, f, _)
+                if f == "value" && matches!(self.ty_of_local(b), Some(Ty::Coll("Max", _))) =>
+            {
+                let c = j::Expr {
+                    kind: K::Call(Box::new(e.clone()), Vec::new()),
+                    span: e.span,
+                    paren: false,
+                };
+                self.rhs(&c, want)?
+            }
             K::Attr(..) => {
                 let (p, t) = self.place(e)?;
                 (Rhs::Proj(p), t)
@@ -4251,6 +4291,78 @@ impl Lower<'_, '_, '_> {
         Some(Ok((Rhs::Call(c), tx.clone())))
     }
 
+    /// The waits a plain `par` block may not hold: a branch receiving what a sibling sends
+    /// (E713, R390), and a `Lub` read in a block that writes it (E717, R454).
+    fn par_waits(&mut self, branches: &[j::Stmt]) {
+        let mut ops: Vec<Vec<(String, String, Span)>> = Vec::new();
+        for s in branches {
+            let mut mine = Vec::new();
+            for e in stmt_exprs(s) {
+                walk(e, &mut |e| {
+                    if let j::ExprKind::Call(f, _) = &e.kind
+                        && let j::ExprKind::Attr(b, m, _) = &f.kind
+                        && let j::ExprKind::Name(n) = &b.kind
+                    {
+                        mine.push((n.clone(), m.clone(), b.span));
+                    }
+                });
+            }
+            for b in sub_blocks(s) {
+                let mut inner = Vec::new();
+                for s in b {
+                    for e in stmt_exprs(s) {
+                        walk(e, &mut |e| {
+                            if let j::ExprKind::Call(f, _) = &e.kind
+                                && let j::ExprKind::Attr(b, m, _) = &f.kind
+                                && let j::ExprKind::Name(n) = &b.kind
+                            {
+                                inner.push((n.clone(), m.clone(), b.span));
+                            }
+                        });
+                    }
+                }
+                mine.extend(inner);
+            }
+            ops.push(mine);
+        }
+        let ty = |l: &Self, n: &str| l.locals.get(n).map(|x| x.ty.clone());
+        let sends = ops.iter().enumerate().flat_map(|(k, os)| {
+            os.iter()
+                .filter(|(n, m, _)| {
+                    m == "send" && matches!(ty(self, n), Some(Ty::Coll("Sender", _)))
+                })
+                .map(move |_| k)
+        });
+        let senders: Vec<usize> = sends.collect();
+        let writes: Vec<String> = ops
+            .iter()
+            .flatten()
+            .filter(|(n, m, _)| m == "put" && matches!(ty(self, n), Some(Ty::Coll("Lub", _))))
+            .map(|(n, _, _)| n.clone())
+            .collect();
+        for (k, os) in ops.iter().enumerate() {
+            for (n, m, sp) in os {
+                if m == "recv"
+                    && matches!(ty(self, n), Some(Ty::Coll("Receiver", _)))
+                    && senders.iter().any(|&j| j != k)
+                {
+                    self.err(
+                        "E713",
+                        *sp,
+                        format!("`{n}.recv()` waits on a sibling branch of this `par`; use `par concurrent`"),
+                    );
+                }
+                if m == "get" && writes.contains(n) {
+                    self.err(
+                        "E717",
+                        *sp,
+                        format!("`{n}.get()` in a `par` block that writes `{n}`; read it after the block"),
+                    );
+                }
+            }
+        }
+    }
+
     /// `n * u` or `u * n` where `u` names a std unit (11.4) and no binding of that name.
     fn unit_product<'e>(
         &self,
@@ -4786,6 +4898,30 @@ impl Lower<'_, '_, '_> {
             {
                 self.cli_call(op, k, args, at)
             }
+            j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Channel" && !self.locals.contains_key(n)) =>
+            {
+                let j::ExprKind::Name(tn) = &k.kind else {
+                    return unsupported("`Channel` of a type that is not a name");
+                };
+                let tn = yan_names::type_name(tn, yan_names::Surface::Yag, yan_names::Surface::Yir)
+                    .unwrap_or(tn);
+                let named = j::Type::Named {
+                    path: vec![tn.to_owned()],
+                    args: Vec::new(),
+                };
+                let t = self.g.ty(&named, self.cx, k.span)?;
+                let Some(xs) = self.positional(args, 1, "Channel", at)? else {
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+                };
+                let (cap, ct) = self.atom(xs[0], Some(&Ty::Int))?;
+                self.expect(&ct, &Ty::Int, xs[0].span);
+                let ret = Ty::Tuple(vec![
+                    Ty::Coll("Sender", vec![t.clone()]),
+                    Ty::Coll("Receiver", vec![t.clone()]),
+                ]);
+                let c = call("std.chan.Channel", vec![t.targ()], vec![let_arg(cap)], at);
+                Ok((Rhs::Call(c), ret, None))
+            }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if self.g.templates.contains_key(n)) =>
             {
                 let j::ExprKind::Name(n) = &b.kind else {
@@ -4911,6 +5047,29 @@ impl Lower<'_, '_, '_> {
                         at,
                         format!("`{m}` depends on other tasks; declare `uses nondet`"),
                     );
+                }
+                if let (Rhs::Call(c), _, _) = &r
+                    && c.path.join(".") == "std.actor.share"
+                    && let Some(Ty::Coll("Actor", ts)) = self.ty_of_local(b)
+                {
+                    let state = ts[0].clone();
+                    let mut bad: Vec<&String> = self
+                        .g
+                        .fns
+                        .iter()
+                        .filter(|(_, s)| {
+                            s.params.first().is_some_and(|p| p.ty == state)
+                                && s.params[1..].iter().any(|p| !wire(&p.ty))
+                        })
+                        .map(|(n, _)| n)
+                        .collect();
+                    bad.sort();
+                    if let Some(h) = bad.first() {
+                        let msg = format!(
+                            "a remote actor's handlers take Wire values, but `{h}` takes one that is not"
+                        );
+                        self.err("E720", at, msg);
+                    }
                 }
                 if let (Rhs::Call(c), _, _) = &r
                     && c.path.join(".") == "std.chan.sender.send"
@@ -6091,6 +6250,14 @@ impl Lower<'_, '_, '_> {
                 Ok((Rhs::Call(c), Ty::List(Box::new(Ty::Int))))
             }
             "deque" | "heap" | "sorted_dict" | "sorted_set" => self.collection(n, args, at, want),
+            "Max" => {
+                let Some(xs) = self.positional(args, 1, n, at)? else {
+                    return Ok(err);
+                };
+                let (a, t) = self.atom(xs[0], None)?;
+                let c = call("std.lattice.max_of", vec![t.targ()], vec![sink_arg(a)], at);
+                Ok((Rhs::Call(c), Ty::Coll("Max", vec![t])))
+            }
             "Secret" => {
                 let Some(xs) = self.positional(args, 1, n, at)? else {
                     return Ok(err);
@@ -7308,4 +7475,36 @@ fn byte_size(g: &Globals, t: &Ty) -> Option<usize> {
             .sum::<Option<usize>>()?,
         _ => return None,
     })
+}
+
+/// Whether values of `t` can key a hashed map or an entity (`Hash`; floats have none).
+fn hashable(g: &Globals, t: &Ty) -> bool {
+    match t {
+        Ty::Int | Ty::BigInt | Ty::Bool | Ty::Str | Ty::Char | Ty::Unit | Ty::Err => true,
+        Ty::Fixed(n) => !n.starts_with('f') && !n.starts_with("bf"),
+        Ty::Tuple(ts) => ts.iter().all(|t| hashable(g, t)),
+        Ty::Option(t) | Ty::List(t) => hashable(g, t),
+        Ty::Data(n) => g
+            .records
+            .get(n)
+            .is_none_or(|fs| fs.iter().all(|f| hashable(g, &f.ty))),
+        _ => false,
+    }
+}
+
+/// Whether `t` can cross a node boundary (`Wire`, 9.8): no callables, handles or capabilities.
+fn wire(t: &Ty) -> bool {
+    match t {
+        Ty::Fn(..) | Ty::Foreign(..) => false,
+        Ty::Coll(n, ts) => {
+            !matches!(
+                *n,
+                "Rc" | "Arc" | "Cell" | "Atomic" | "Sender" | "Receiver" | "iter" | "Secret"
+            ) && ts.iter().all(wire)
+        }
+        Ty::List(t) | Ty::Set(t) | Ty::Option(t) => wire(t),
+        Ty::Dict(k, v) | Ty::Result(k, v) => wire(k) && wire(v),
+        Ty::Tuple(ts) | Ty::Union(ts) => ts.iter().all(wire),
+        _ => true,
+    }
 }

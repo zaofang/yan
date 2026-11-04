@@ -1,0 +1,13 @@
+"""Lattice cells (9.3, R454): `Lub[L]` joins every `put`; `get` reads the join."""
+
+@intrinsic
+@since("1.0")
+pub def put[L](self: Lub[L], take v: L) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def get[L](self: Lub[L]) -> L: ...
+
+@intrinsic
+@since("1.0")
+pub def max_of[T: Ord](take v: T) -> Max[T]: ...

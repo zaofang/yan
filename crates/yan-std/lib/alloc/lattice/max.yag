@@ -1,0 +1,5 @@
+"""The max lattice over an ordered type."""
+
+@intrinsic
+@since("1.0")
+pub def value[T](self: Max[T]) -> T: ...

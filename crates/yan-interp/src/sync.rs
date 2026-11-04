@@ -1,4 +1,4 @@
-//! std.rc, std.sync, std.chan and std.actor: checked by the elaborator and the Yan Core checker;
+//! std.rc, std.sync, std.chan, std.actor and std.lattice: checked by the elaborator and the Yan Core checker;
 //! the interpreter runs none of them yet, and stops with "not supported" when it reaches one.
 
 use yan_std::registry::{Id, id::*};
@@ -62,5 +62,21 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_SYNC_CELL_SET,
         Bind::Plain(|_| unsupported("`std.sync.cell.set` in the interpreter")),
+    ),
+    (
+        STD_LATTICE_GET,
+        Bind::Plain(|_| unsupported("`std.lattice.get` in the interpreter")),
+    ),
+    (
+        STD_LATTICE_MAX_VALUE,
+        Bind::Plain(|_| unsupported("`std.lattice.max.value` in the interpreter")),
+    ),
+    (
+        STD_LATTICE_MAX_OF,
+        Bind::Plain(|_| unsupported("`std.lattice.max_of` in the interpreter")),
+    ),
+    (
+        STD_LATTICE_PUT,
+        Bind::Plain(|_| unsupported("`std.lattice.put` in the interpreter")),
     ),
 ];
