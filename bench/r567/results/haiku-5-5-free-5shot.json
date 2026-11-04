@@ -1,0 +1,108 @@
+{
+ "meta": {
+  "models": [
+   "claude:claude-haiku-5-5"
+  ],
+  "decoding": [
+   "free"
+  ],
+  "shots": [
+   5
+  ],
+  "tokenizer": [
+   "provider"
+  ],
+  "toolchain": [
+   "{'hash': 'blake3:b17ceb46b42a4e28b090583d0fb056b5ac2cbf83078b3a895d828300c1018571', 'version': '0.0.0'}"
+  ]
+ },
+ "arms": {
+  "py": {
+   "tasks": 100,
+   "pass_at_1": 77,
+   "pass_after_repair": 77,
+   "own_tests_green": 100,
+   "spec_failed": 0,
+   "stopped": 0,
+   "repair_rounds": 6,
+   "impossible_runs": 10,
+   "cheated": 2,
+   "spec_in": 518447,
+   "spec_in_per_solved": 6733.1,
+   "spec_out": 117996,
+   "spec_out_per_solved": 1532.4,
+   "spec_reasoning": 70014,
+   "spec_reasoning_per_solved": 909.3,
+   "spec_out_bytes": 107012,
+   "spec_out_bytes_per_solved": 1389.8,
+   "body_in": 695379,
+   "body_in_per_solved": 9030.9,
+   "body_out": 80116,
+   "body_out_per_solved": 1040.5,
+   "body_reasoning": 21364,
+   "body_reasoning_per_solved": 277.5,
+   "body_out_bytes": 132326,
+   "body_out_bytes_per_solved": 1718.5,
+   "checker_codes_before_repair": {}
+  },
+  "yag": {
+   "tasks": 100,
+   "pass_at_1": 33,
+   "pass_after_repair": 56,
+   "own_tests_green": 80,
+   "spec_failed": 1,
+   "stopped": 3,
+   "repair_rounds": 60,
+   "impossible_runs": 10,
+   "cheated": 1,
+   "spec_in": 751975,
+   "spec_in_per_solved": 13428.1,
+   "spec_out": 97680,
+   "spec_out_per_solved": 1744.3,
+   "spec_reasoning": 72772,
+   "spec_reasoning_per_solved": 1299.5,
+   "spec_out_bytes": 52181,
+   "spec_out_bytes_per_solved": 931.8,
+   "body_in": 1233794,
+   "body_in_per_solved": 22032.0,
+   "body_out": 126343,
+   "body_out_per_solved": 2256.1,
+   "body_reasoning": 75642,
+   "body_reasoning_per_solved": 1350.8,
+   "body_out_bytes": 117065,
+   "body_out_bytes_per_solved": 2090.4,
+   "checker_codes_before_repair": {
+    "P003": 57,
+    "E201": 30,
+    "E017": 19,
+    "E241": 10,
+    "E203": 8,
+    "W806": 7,
+    "E210": 6,
+    "E104": 3,
+    "E100": 3,
+    "N22": 2,
+    "E200": 2,
+    "E301": 2,
+    "N21": 1,
+    "E619": 1,
+    "E401": 1,
+    "E202": 1,
+    "E413": 1,
+    "E403": 1
+   }
+  }
+ },
+ "paired": {
+  "jointly_solved": 55,
+  "spec_out_ratio_yag_over_py": 0.836,
+  "spec_out_bytes_ratio_yag_over_py": 0.457,
+  "body_out_ratio_yag_over_py": 1.725,
+  "body_out_bytes_ratio_yag_over_py": 0.956
+ },
+ "gate": {
+  "pass_at_1_not_below_python": false,
+  "body_out_per_solved_lower": false,
+  "spec_out_per_solved_lower": false
+ }
+}
