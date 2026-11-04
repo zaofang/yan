@@ -36,13 +36,18 @@ pub(crate) fn module(m: &j::Module, cx: &mut Cx) -> j::Module {
                 "E251",
                 sets[n].1,
                 n,
-                format!("capability set `{n}` contains itself: {}", members.join(" -> ")),
+                format!(
+                    "capability set `{n}` contains itself: {}",
+                    members.join(" -> ")
+                ),
             );
             cyclic.extend(members);
         }
     }
     let mut out = m.clone();
-    out.items.retain(|it| !matches!(&it.kind, j::ItemKind::Type(t) if matches!(t.rhs, j::TypeRhs::Caps(_))));
+    out.items.retain(
+        |it| !matches!(&it.kind, j::ItemKind::Type(t) if matches!(t.rhs, j::TypeRhs::Caps(_))),
+    );
     for it in &mut out.items {
         match &mut it.kind {
             j::ItemKind::Type(t) if t.where_.is_none() && t.tparams.is_empty() => {
@@ -61,7 +66,10 @@ pub(crate) fn module(m: &j::Module, cx: &mut Cx) -> j::Module {
             }
             j::ItemKind::Func(f) | j::ItemKind::Lemma(f) => expand(f, &sets, &cyclic),
             j::ItemKind::Impl(i) => i.fns.iter_mut().for_each(|f| expand(f, &sets, &cyclic)),
-            j::ItemKind::Trait(t) => t.sigs.iter_mut().for_each(|(_, f)| expand(f, &sets, &cyclic)),
+            j::ItemKind::Trait(t) => t
+                .sigs
+                .iter_mut()
+                .for_each(|(_, f)| expand(f, &sets, &cyclic)),
             _ => {}
         }
     }
@@ -102,7 +110,13 @@ fn expand(f: &mut j::FuncDef, sets: &Sets, cyclic: &[String]) {
     *cs = out;
 }
 
-fn flatten(c: j::CapRef, sets: &Sets, cyclic: &[String], seen: &mut Vec<String>, out: &mut Vec<j::CapRef>) {
+fn flatten(
+    c: j::CapRef,
+    sets: &Sets,
+    cyclic: &[String],
+    seen: &mut Vec<String>,
+    out: &mut Vec<j::CapRef>,
+) {
     match set_name(&c).filter(|n| sets.contains_key(*n)) {
         Some(n) if cyclic.iter().any(|x| x == n) || seen.iter().any(|x| x == n) => {}
         Some(n) => {

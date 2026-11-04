@@ -3363,7 +3363,10 @@ impl Lower<'_, '_, '_> {
                     self.lambda(&[x], &body, Some(&f))?
                 } else if self.sig.caps.contains(n) || self.handlers.contains(n) {
                     // A capability as a value; the checker rejects returning or storing it (E306).
-                    (Rhs::Atom(Atom::Name(n.clone(), at)), Ty::Data(self.sig.cap_trait(n)))
+                    (
+                        Rhs::Atom(Atom::Name(n.clone(), at)),
+                        Ty::Data(self.sig.cap_trait(n)),
+                    )
                 } else if self.gone.contains(n) {
                     return unsupported("a binding used after the block that made it");
                 } else if self.ghosts.contains(n) {
@@ -3561,7 +3564,12 @@ impl Lower<'_, '_, '_> {
                         let s = self.tmp(&t, Rhs::Proj(p), b.span);
                         let (ia, ity) = self.atom(k, Some(&Ty::Int))?;
                         self.expect(&ity, &Ty::Int, k.span);
-                        let c = call("std.text.char_at", vec![], vec![let_arg(s), let_arg(ia)], at);
+                        let c = call(
+                            "std.text.char_at",
+                            vec![],
+                            vec![let_arg(s), let_arg(ia)],
+                            at,
+                        );
                         (Rhs::Call(c), Ty::Char)
                     }
                     _ => {
@@ -4973,7 +4981,13 @@ impl Lower<'_, '_, '_> {
 
     /// The caller's binding of capability trait `t`, which the callee binds as `callee`.
     fn cap_for(&self, t: &str, callee: &str) -> String {
-        if self.handlers.iter().any(|h| h == callee) || self.sig.caps.iter().any(|c| c == callee && self.sig.cap_trait(c) == t) {
+        if self.handlers.iter().any(|h| h == callee)
+            || self
+                .sig
+                .caps
+                .iter()
+                .any(|c| c == callee && self.sig.cap_trait(c) == t)
+        {
             return callee.to_owned();
         }
         self.sig
@@ -5174,12 +5188,15 @@ impl Lower<'_, '_, '_> {
         let n = args.len();
         // The arguments of a constructor holding a `become` are matched by position (E210 exempt).
         let fields: Vec<String> = match &f.kind {
-            j::ExprKind::Name(c) if args.iter().any(|a| matches!(a.kind, j::ArgKind::Become(_))) => {
+            j::ExprKind::Name(c)
+                if args.iter().any(|a| matches!(a.kind, j::ArgKind::Become(_))) =>
+            {
                 let fs = self.g.records.get(c).or_else(|| {
                     let s = self.g.sums.get(self.g.variant_of.get(c)?)?;
                     s.iter().find(|(v, _)| v == c).map(|(_, fs)| fs)
                 });
-                fs.map(|fs| fs.iter().map(|f| f.name.clone()).collect()).unwrap_or_default()
+                fs.map(|fs| fs.iter().map(|f| f.name.clone()).collect())
+                    .unwrap_or_default()
             }
             _ => Vec::new(),
         };
@@ -5195,7 +5212,8 @@ impl Lower<'_, '_, '_> {
                             self.err(
                                 "E143",
                                 a.span,
-                                "`become` in a constructor must be its last-evaluated argument".into(),
+                                "`become` in a constructor must be its last-evaluated argument"
+                                    .into(),
                             );
                         }
                         j::ArgKind::Expr(x.clone())
@@ -5340,7 +5358,8 @@ impl Lower<'_, '_, '_> {
                     let key: Vec<String> = fields.iter().map(|f| f.to_string()).collect();
                     let whole = fields.len() == pl.projs.len();
                     let overlaps = inouts.iter().any(|(r, fs, w)| {
-                        *r == pl.root && ((*w && key.starts_with(fs)) || (whole && fs.starts_with(&key)))
+                        *r == pl.root
+                            && ((*w && key.starts_with(fs)) || (whole && fs.starts_with(&key)))
                     });
                     if overlaps {
                         self.err(
@@ -6194,7 +6213,11 @@ impl Lower<'_, '_, '_> {
         };
         let interpolates = pieces.iter().any(|p| matches!(p, j::FPiece::Expr(..)));
         if !template && interpolates {
-            self.err("E233", e.span, "an f-string where a `Template` is expected; write `t\"...\"`".into());
+            self.err(
+                "E233",
+                e.span,
+                "an f-string where a `Template` is expected; write `t\"...\"`".into(),
+            );
         }
         for p in pieces {
             if let j::FPiece::Expr(x, _) = p
@@ -6202,7 +6225,12 @@ impl Lower<'_, '_, '_> {
                 && matches!(&f.kind, j::ExprKind::Attr(_, m, _) if m == "expose")
             {
                 let item = self.item.clone();
-                self.cx.warn("W803", x.span, &item, "an exposed `Secret` flows into `log`".into());
+                self.cx.warn(
+                    "W803",
+                    x.span,
+                    &item,
+                    "an exposed `Secret` flows into `log`".into(),
+                );
             }
         }
         j::Expr {

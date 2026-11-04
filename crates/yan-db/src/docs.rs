@@ -59,13 +59,22 @@ pub(crate) fn lint(file: &str, src: &str, m: &j::Module, surface: Surface) -> Ve
             }
             for (col, name) in links(line) {
                 if !names.contains(name) {
-                    warn("W831", k, col, name.len(), format!("`[{name}]` links to nothing"));
+                    warn(
+                        "W831",
+                        k,
+                        col,
+                        name.len(),
+                        format!("`[{name}]` links to nothing"),
+                    );
                 }
             }
             for (section, written) in [("Uses:", uses(f)), ("Fails:", fails(f))] {
                 if let Some(rest) = t.strip_prefix(section) {
-                    let said: HashSet<&str> =
-                        rest.split(',').map(str::trim).filter(|s| !s.is_empty()).collect();
+                    let said: HashSet<&str> = rest
+                        .split(',')
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty())
+                        .collect();
                     let sig: HashSet<&str> = written.iter().map(String::as_str).collect();
                     if said != sig {
                         let mut sig: Vec<&str> = sig.into_iter().collect();
@@ -75,7 +84,10 @@ pub(crate) fn lint(file: &str, src: &str, m: &j::Module, surface: Surface) -> Ve
                             k,
                             indent,
                             section.len(),
-                            format!("the `{section}` section disagrees with the signature: {}", sig.join(", ")),
+                            format!(
+                                "the `{section}` section disagrees with the signature: {}",
+                                sig.join(", ")
+                            ),
                         );
                     }
                 }
@@ -106,9 +118,12 @@ fn links(line: &str) -> Vec<(usize, &str)> {
             continue;
         };
         let name = &line[i + 1..i + 1 + len];
-        let ident = name
-            .split('.')
-            .all(|p| p.chars().next().is_some_and(|c| c.is_alphabetic() || c == '_') && p.chars().all(|c| c.is_alphanumeric() || c == '_'));
+        let ident = name.split('.').all(|p| {
+            p.chars()
+                .next()
+                .is_some_and(|c| c.is_alphabetic() || c == '_')
+                && p.chars().all(|c| c.is_alphanumeric() || c == '_')
+        });
         if !word_before && ident && line.as_bytes().get(i + 2 + len) != Some(&b'(') {
             out.push((i + 1, name));
         }

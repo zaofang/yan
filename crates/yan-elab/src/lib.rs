@@ -1042,7 +1042,12 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                 .collect();
             for (c, at) in uses {
                 if !params.contains(&c.as_str()) {
-                    cx.err("E605", at, &f.name, format!("a lemma uses no capabilities, but this uses `{c}`"));
+                    cx.err(
+                        "E605",
+                        at,
+                        &f.name,
+                        format!("a lemma uses no capabilities, but this uses `{c}`"),
+                    );
                 }
             }
             return Ok(None);

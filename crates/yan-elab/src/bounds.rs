@@ -979,7 +979,9 @@ impl Solver<'_> {
             self.out.push(Finding {
                 code: "W807",
                 span: at,
-                message: format!("this slice bound {k} is past the end of `{xs}`; the slice clamps"),
+                message: format!(
+                    "this slice bound {k} is past the end of `{xs}`; the slice clamps"
+                ),
             });
         }
     }
