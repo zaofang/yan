@@ -6477,6 +6477,21 @@ impl Lower<'_, '_, '_> {
             }
             p.fail = None;
         }
+        if path == "std.i18n.Locale"
+            && let [
+                j::Arg {
+                    name: None,
+                    kind: j::ArgKind::Expr(e),
+                    ..
+                },
+            ] = args
+            && let j::ExprKind::Lit(j::Lit::Str { value, .. }) = &e.kind
+        {
+            if let Err(reason) = yan_std::locale::canonical(value) {
+                self.err("E550", e.span, format!("malformed locale: {reason}"));
+            }
+            p.fail = None;
+        }
         self.std_call(&path, p, Vec::new(), args, f, at)
     }
 

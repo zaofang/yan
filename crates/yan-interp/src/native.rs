@@ -111,6 +111,15 @@ pub(super) static BINDS: &[(yan_std::registry::Id, Bind)] = &[
     }),
     fallible!(STD_ERROR_WRAP, |a| { [e] => Ok(wrap(e)) }),
     fallible!(STD_REGEX_COMPILE, |a| { [Str(p)] => super::regex::compile(p) }),
+    fallible!(STD_I18N_LOCALE, |a| {
+        [Str(t)] => match yan_std::locale::canonical(t) {
+            Ok(c) => Ok(Str(c.into())),
+            Err(reason) => Err(Data {
+                name: "LocaleError".into(),
+                fields: vec![("tag".into(), Str(t.clone())), ("reason".into(), Str(reason.into()))],
+            }),
+        },
+    }),
     plain!(STD_DICT_NEW, |a| { [] => Dict(Default::default()) }),
     plain!(STD_DICT_INSERT, |a| {
         [Dict(d), k, v] => {

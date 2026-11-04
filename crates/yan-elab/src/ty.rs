@@ -39,7 +39,7 @@ pub enum Ty {
 }
 
 /// Each std.collections type, by its Yan Agent name; its Yan Core name is in the projection table.
-pub const COLLECTIONS: [&str; 30] = [
+pub const COLLECTIONS: [&str; 31] = [
     "deque",
     "iter",
     "heap",
@@ -70,6 +70,7 @@ pub const COLLECTIONS: [&str; 30] = [
     "Lub",
     "Max",
     "Entity",
+    "Locale",
 ];
 
 /// `name` as a std.collections type, with its `&'static` spelling and arity.
@@ -245,6 +246,7 @@ impl Ty {
             Ty::Coll("Actor", _) => Some("actor"),
             Ty::Coll("Lub", _) => Some("lattice"),
             Ty::Coll("Max", _) => Some("lattice.max"),
+            Ty::Coll("Locale", _) => Some("i18n"),
             Ty::Coll(_, _) => Some("collections.sorted_set"),
             Ty::Int | Ty::Float | Ty::BigInt | Ty::Bool | Ty::Fixed(_) => Some("num"),
             Ty::Option(_) | Ty::Result(..) => Some("result"),

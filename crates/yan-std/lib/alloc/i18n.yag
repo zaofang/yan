@@ -1,0 +1,10 @@
+"""Locales (17.5, R332). A literal tag is checked at stage 0 (E550) and cannot fail."""
+
+@since("1.0")
+pub class LocaleError:
+    tag: str
+    reason: str
+
+@intrinsic
+@since("1.0")
+pub def Locale(tag: str) -> Locale fail LocaleError: ...

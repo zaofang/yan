@@ -300,7 +300,13 @@ impl Globals {
                         _ => return unsupported("value or union type arguments"),
                     }
                 }
-                let name = path.join(".");
+                let mut name = path.join(".");
+                // A std type named through its module, as `i18n.Locale`.
+                if let [_, last] = path.as_slice()
+                    && ty::collection(last).is_some()
+                {
+                    name = last.clone();
+                }
                 if let Some(t) = ty::builtin(&name, &a) {
                     return Ok(t);
                 }
