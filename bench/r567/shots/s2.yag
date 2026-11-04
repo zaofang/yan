@@ -1,0 +1,20 @@
+type ConfigErr = BadLine(line: int, msg: str) | DupKey(key: str)
+
+def parse_config(src: str) -> dict[str, int] fail ConfigErr:
+    ex parse_config("a = 1\n# c\nb=2") == Ok({"a": 1, "b": 2})
+    ex parse_config("a=1\na=2") == Err(DupKey(key="a"))
+    out: dict[str, int] = {}
+    n = 0
+    for raw in src.splitlines():
+        n += 1
+        line = raw.strip()
+        if line == "" or line.startswith("#"):
+            continue
+        key, sep, val = line.partition("=")
+        if sep == "":
+            fail BadLine(n, "missing =")
+        key = key.strip()
+        if key in out:
+            fail DupKey(key.copy())
+        out[key] = val.strip().parse_int() else fail BadLine(n, "bad int")
+    return out

@@ -1,0 +1,11 @@
+def greatest_common_divisor(a: int, b: int) -> int:
+    """Greatest common divisor of a and b."""
+    ex greatest_common_divisor(a=3, b=5) == 1
+    # ---
+    x = a
+    y = b
+    while y != 0:
+        t = x % y
+        x = y
+        y = t
+    return x

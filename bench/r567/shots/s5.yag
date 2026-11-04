@@ -1,0 +1,8 @@
+def is_sorted(xs: list[int]) -> bool:
+    """True when xs is in non-decreasing order."""
+    ex is_sorted([1, 2, 2]) == True
+    ex is_sorted([2, 1]) == False
+    for a, b in zip(xs, xs[1:]):
+        if a > b:
+            return False
+    return True

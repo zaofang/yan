@@ -1,0 +1,5 @@
+def filter_by_substring(strings: list[str], substring: str) -> list[str]:
+    """Keep the strings that contain substring."""
+    ex filter_by_substring([], "a") == []
+    # ---
+    return [s for s in strings if substring in s]
