@@ -685,6 +685,18 @@ impl<'a> Fold<'a> {
                 let (a, b) = (self.atom(vals[0])?, self.atom(vals[1])?);
                 return Ok(e(ExprKind::Compare(op, Box::new(a), Box::new(b))));
             }
+            // A pattern with a backslash is written raw.
+            ("regex", "compile", 1) => {
+                let mut x = self.atom(vals[0])?;
+                if let ExprKind::Lit(Lit::Str { prefix, value }) = &mut x.kind
+                    && value.contains('\\')
+                    && !value.ends_with('\\')
+                    && !value.contains(['"', '\n', '\r'])
+                {
+                    *prefix = "r".into();
+                }
+                return Ok(call(attr(name("regex"), f), vec![arg(x)]));
+            }
             ("error", "context", 2) => {
                 let recv = self.atom(vals[0])?;
                 let args = self.args(&c.args[1..])?;
@@ -730,7 +742,7 @@ impl<'a> Fold<'a> {
     }
 
     fn recv_module(&self, a: &y::Atom) -> Option<String> {
-        if self.atom_is_str(a) {
+        if self.atom_is_str(a) || matches!(a, y::Atom::Lit(y::Literal::Char(_), _)) {
             return Some("text".into());
         }
         let t = self.atom_ty(a)?;
@@ -1652,6 +1664,8 @@ fn same(a: &Expr, b: &Expr) -> bool {
     match (&a.kind, &b.kind) {
         (ExprKind::Lit(x), ExprKind::Lit(y)) => x == y,
         (ExprKind::Name(x), ExprKind::Name(y)) => x == y,
+        (ExprKind::List(x), ExprKind::List(y)) => x.is_empty() && y.is_empty(),
+        (ExprKind::Dict(x), ExprKind::Dict(y)) => x.is_empty() && y.is_empty(),
         (ExprKind::Attr(x, f, _), ExprKind::Attr(y, g, _)) => f == g && same(x, y),
         (ExprKind::Call(f, xs), ExprKind::Call(g, ys)) => {
             xs.is_empty() && ys.is_empty() && same(f, g)
@@ -1941,7 +1955,7 @@ fn type_module(t: &y::Type) -> Option<&'static str> {
             "List" => "list",
             "Map" => "dict",
             "Set" => "set",
-            "Str" => "text",
+            "Str" | "char" => "text",
             "Iter" => "iter",
             "Deque" => "collections.deque",
             "Heap" => "collections.heap",
