@@ -170,3 +170,16 @@ pub def int_pow(x: int, n: int) -> int:
         if e > 0:
             base *= base
     return result
+
+@since("1.0")
+pub def fmt_pad(s: str, width: int, align: int, fill: str) -> str:
+    """Pads `s` to `width` characters; `align` is 0 left, 1 right, 2 center (SQ20)."""
+    gap = width - s.char_count()
+    if gap <= 0:
+        return s
+    left = 0
+    if align == 1:
+        left = gap
+    elif align == 2:
+        left = gap // 2
+    return fill * left + s + fill * (gap - left)
