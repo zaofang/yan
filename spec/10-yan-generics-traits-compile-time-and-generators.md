@@ -70,11 +70,11 @@ Generators are the only control handlers. A generator (Yan L5 `gen name(params) 
 | `@linear` | values must be consumed exactly once by a `sink` function such as `close` (E412), except on a path already propagating a failure, where the handler's release intrinsic frees them (R443) | L4 |
 | `@non_exhaustive` | outside the package, matches need a wildcard and literals and destructuring need `..` (20.6) | L1 |
 | `@prove` | module (written @@prove at the top of the file, R466) or function uses the `prove` level | Contracts |
-| `@forbid(rc, alloc, copy, panic)`, any subset (R447) | proof obligations (5.7) | L4 |
+| `@forbid(rc, alloc, copy, panic)`, any subset (R447); on a module as `@@forbid` (R820) | proof obligations (5.7) | L4 |
 | `@vectorize` | `par for` bodies run in SIMD lanes, as a proof obligation (5.7, R624) | L4 |
 | `@access(...)` | access pattern of a kernel, extern or engine item, used for fusion (11.2, R627) | L4 |
 | `@inline`, `@cold` | optimization hints | L1 |
-| `@unordered`, `@fast_math` | relax determinism; require `uses nondet` | L3 |
+| `@unordered`, `@fast_math` | relax determinism; require `uses nondet`; also as `with unordered:` and `with fast_math:` blocks (7.7, R821) | L3 |
 | `nonblocking` | marks a foreign call that does not block; every other foreign call blocks (9.7, R447) | L6 |
 | `@reentrant` | actor handler may interleave (9.6) | L3 |
 | `@explore` | run the test under `explore` (6.9) | L3 |

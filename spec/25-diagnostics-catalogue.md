@@ -132,6 +132,9 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E323 | lock (Resource, CsMutex, Mutex or RwLock guard) held across a suspension point, on every platform (R395) new | 17.1 |
 | E325 | Untrusted value passed to a @trusted parameter (R451) new | 17.4 (R451) |
 | E326 | host handler built or bound outside the platform, a `yan_world` or an attenuation of a held handle (R672) new | 7.3 (R672) |
+| E327 | closure literal whose body consumes a capture, not marked `once` (R816) *new* | 4.6 |
+| E328 | `once` function value where a plain one is expected (R815), no automatic fix *new* | 4.6 |
+| E329 | extractor or view function that uses a capability other than `alloc`, or can fail (R817) *new* | 15.3 |
 
 ### 25.6 Ownership, views, memory and thread safety
 
@@ -270,6 +273,11 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | W852 | float expression less accurate than a rewrite found for it (R613) new | 11.1 |
 | W853 | match arm that can match no value left by earlier arms (R606) new | 8.6 |
 | W854 | Yan string with `${...}`, which Yan prints literally; fix rewrites it to `\(...)` (R663) new | 15.1 |
+| W855 | `shield` block with no blocking operation (R812) *new* | 9.4 |
+| W856 | `shield` duration not below the default cancel grace (R812) *new* | 9.4 |
+| W857 | send to a `drop_*` actor inside a `shield` (R814) *new* | 9.6 |
+| W858 | relaxed float block with no float operator (R822) *new* | 7.7 |
+| W859 | `with fast_math:` nested in a relaxed scope (R822) *new* | 7.7 |
 
 ### 25.11 Unsafe, FFI, layout and assembly
 

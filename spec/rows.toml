@@ -789,3 +789,78 @@ sections = "14.1"
 rows = "R810"
 topic = "A tuple of one element type is iterable in `for`; indexing or `len` on an `iter` names `.collect()` and `.count()` (R810)"
 sections = "14.1, 17.2"
+
+[[entry]]
+rows = "R811"
+topic = "`with shield(d):` holds enclosing cancellation for a bounded block with its own deadline; Core `shield at { ... }` (R811)"
+sections = "9.4"
+
+[[entry]]
+rows = "R812"
+topic = "Opening a shield needs the marker capability `uses shield`; expiry is `fail ShieldTimeout`, separate from `Timeout`; lints W855, W856 (R812)"
+sections = "7.1, 9.4"
+
+[[entry]]
+rows = "R813"
+topic = "One-way `actor.send(h).f(args)`: admission semantics, shared FIFO with `call`, detachment, stopped-actor drop (R813)"
+sections = "9.6"
+
+[[entry]]
+rows = "R814"
+topic = "Mailbox overflow policy in the handle type `Actor[S, P]`, failed send returns its payload, owned send-only handle, lossy policies need `uses nondet`, lint W857 (R814)"
+sections = "9.6"
+
+[[entry]]
+rows = "R815"
+topic = "`once` function types: a call consumes the value; `par` below plain below `once` by subtyping; E328 (R815)"
+sections = "4.6"
+
+[[entry]]
+rows = "R816"
+topic = "`once` closure literals are marked explicitly (E327), `@linear` captures, single-use capabilities, `par once`, definite initialization, std widenings (R816)"
+sections = "4.6"
+
+[[entry]]
+rows = "R817"
+topic = "`@pattern` extractors and view patterns `(f -> p)` with `Option`, `bool` and sum results; unspecified order and count; E329 (R817)"
+sections = "8.6, 15.3"
+
+[[entry]]
+rows = "R818"
+topic = "Extractors take constant arguments, may be trait methods, contribute `post` facts, and `Box`, `Rc`, `Str` have deref patterns (R818)"
+sections = "8.6, 15.3"
+
+[[entry]]
+rows = "R819"
+topic = "Manifest `lints=Lints(strict, deny, forbid)` that only strengthens, with std lint groups, explicit workspace opt-in, `yan test` gate, protected weakening (R819)"
+sections = "18.2, 18.3, 19.1"
+
+[[entry]]
+rows = "R820"
+topic = "`@@deny` and `@@forbid` on a module; user-written lint analyzers are a 1.0 non-goal (R820)"
+sections = "10.6, 18.2, 26.2"
+
+[[entry]]
+rows = "R821"
+topic = "`with fast_math:` block and the relaxed set (contraction, reassociation, sign of zero, reciprocal, approximate math), never NaN or infinity assumptions (R821)"
+sections = "7.7, 10.6"
+
+[[entry]]
+rows = "R822"
+topic = "`with strict:` escape, `with unordered:` block, Core `relaxed { ... }`, lints W858, W859 (R822)"
+sections = "7.7, 10.6"
+
+[[entry]]
+rows = "R823"
+topic = "`rand.state() -> Option[RandState]` with opaque `RandState` bytes, `seeded(state)` and byte-position `at=` restore (R823)"
+sections = "7.1, 17.3"
+
+[[entry]]
+rows = "R824"
+topic = "Split rule: a branch seed depends on the task path through a per-task split counter, fixing 17.3 and R685 to match 7.7 (R824)"
+sections = "7.7, 17.3"
+
+[[entry]]
+rows = "R825"
+topic = "`tls.Profile` enum `compatible` and `modern`, narrowing-only `.only`, no raw config, server default `modern`, audit facts, R404 wording (R825)"
+sections = "9.6.1, 17.6, 18.3"
