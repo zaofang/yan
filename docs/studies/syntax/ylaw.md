@@ -43,7 +43,7 @@ established, **M** known but not rechecked today, **L** recalled, verify before 
    with deadlines, and terms that need human judgment.
 2. Wrote five proposals, each pushed to one extreme: fidelity to the text, brevity, agent token cost,
    safety and explicitness, expressive power. Each writes the same tasks.
-3. Built a 70-line prototype of the default calculus in Python
+3. Built a 80-line prototype of the default calculus in Python
    ([`ylaw/defaults.py`](ylaw/defaults.py)) and ran it on task T2 to see whether gap and conflict
    checks find real drafting bugs (section 5).
 4. Measured the samples with a crude size proxy (section 6).
