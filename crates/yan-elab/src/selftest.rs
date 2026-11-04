@@ -548,3 +548,10 @@ fn exclusive_returning_branches_share_one_use() {
     let (_, d) = lower(src);
     assert!(d.iter().all(|d| d.code != "E413"), "{d:?}");
 }
+
+#[test]
+fn std_functions_called_only_in_a_contract_are_lowered() {
+    let src = "def below(n: int) -> list[int]:\n    post all(p < n for p in out)\n    return list(range(n))\n\n\
+               pub def main() uses io:\n    io.print(f\"{below(3)}\")\n";
+    assert_eq!(run(src), "[0, 1, 2]\n");
+}
