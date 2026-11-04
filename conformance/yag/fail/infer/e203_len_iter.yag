@@ -1,0 +1,8 @@
+# spec: 17.2
+# rows: R810
+# note: an iter has no len; the message names .count()
+# expect: E203 at 8:15
+
+def f(it: iter[int]) -> int:
+    xs = it
+    return xs.len()

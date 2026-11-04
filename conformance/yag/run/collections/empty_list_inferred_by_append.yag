@@ -1,0 +1,14 @@
+# spec: 14.1
+# rows: R808
+# note: xs = [] takes its element type from the later append, and is returned
+# stdout:
+# [0, 1, 2]
+
+def build(n: int) -> list[int]:
+    xs = []
+    for i in range(n):
+        xs.append(i)
+    return xs
+
+pub def main() uses io:
+    io.print(f"{build(3)}")

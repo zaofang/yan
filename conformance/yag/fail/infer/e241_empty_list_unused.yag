@@ -1,0 +1,8 @@
+# spec: 14.1
+# rows: R808
+# note: nothing later fixes the element type of xs
+# expect: E241 at 7:10
+
+def f() -> int:
+    xs = []
+    return len(xs)

@@ -1,0 +1,11 @@
+# spec: 14.1
+# rows: R810
+# note: a tuple of one element type iterates in for
+# stdout:
+# 6
+
+pub def main() uses io:
+    total = 0
+    for x in (1, 2, 3):
+        total += x
+    io.print(f"{total}")
