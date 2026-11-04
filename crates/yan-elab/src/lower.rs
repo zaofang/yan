@@ -5271,6 +5271,23 @@ impl Lower<'_, '_, '_> {
                 {
                     return self.extreme(n, args, at, want);
                 }
+                if prelude
+                    && !self.cx.strict
+                    && matches!(n.as_str(), "map" | "filter")
+                    && let [func, xs] = args
+                    && func.name.is_none()
+                    && xs.name.is_none()
+                    && let j::ArgKind::Expr(recv) = &xs.kind
+                {
+                    let item = self.item.clone();
+                    self.cx.note(
+                        "N33",
+                        at,
+                        &item,
+                        format!("`{n}(f, xs)` normalized to `xs.{n}(f)`"),
+                    );
+                    return self.method(recv, n, f.span, &args[..1], at);
+                }
                 if self.g.fns.contains_key(n) {
                     return self.user_call(n, None, args, at);
                 }
@@ -5319,11 +5336,54 @@ impl Lower<'_, '_, '_> {
                     };
                     return self.call_expr(&f, args, at, want);
                 }
+                // Python's `re.search(pattern, s)`: compile the pattern, then call the method.
+                if let j::ExprKind::Name(module) = &b.kind
+                    && module == "re"
+                    && !self.locals.contains_key(module)
+                    && !self.cx.strict
+                    && let Some(meth) = match m.as_str() {
+                        "match" | "search" | "fullmatch" | "split" | "sub" => Some(m.as_str()),
+                        "findall" => Some("find_all"),
+                        _ => None,
+                    }
+                    && let [pat, rest @ ..] = args
+                    && pat.name.is_none()
+                    && !rest.is_empty()
+                {
+                    let item = self.item.clone();
+                    self.cx.note(
+                        "N35",
+                        at,
+                        &item,
+                        format!("`re.{m}(pattern, ...)` normalized to `regex.compile(pattern).{meth}(...)`"),
+                    );
+                    let name = |n: &str| j::Expr {
+                        kind: j::ExprKind::Name(n.to_owned()),
+                        span: b.span,
+                        paren: false,
+                    };
+                    let compile = j::Expr {
+                        kind: j::ExprKind::Attr(
+                            Box::new(name("regex")),
+                            "compile".to_owned(),
+                            *name_at,
+                        ),
+                        span: b.span,
+                        paren: false,
+                    };
+                    let compiled = j::Expr {
+                        kind: j::ExprKind::Call(Box::new(compile), vec![pat.clone()]),
+                        span: b.span,
+                        paren: false,
+                    };
+                    return self.method(&compiled, meth, *name_at, rest, at);
+                }
                 // `bytes.from_list` and `bytearray.from_bytes` name their type's declaring module.
                 if let j::ExprKind::Name(module) = &b.kind
                     && !self.locals.contains_key(module)
                     && let module = match module.as_str() {
                         "bytes" => "encoding",
+                        "re" => "regex",
                         "bytearray" => "encoding.bytearray",
                         "Duration" => "time.duration.of",
                         "Instant" => "time.instant",
@@ -7360,6 +7420,57 @@ impl Lower<'_, '_, '_> {
         if t == Ty::Err {
             return Ok((Rhs::Proj(p), e(), None));
         }
+        let canon = match (&t, m) {
+            (Ty::Char, "isdigit") => "is_digit",
+            (Ty::Char, "isalpha") => "is_alpha",
+            (Ty::Char, "isalnum") => "is_alnum",
+            (Ty::Char, "isupper") => "is_upper",
+            (Ty::Char, "islower") => "is_lower",
+            (Ty::Char, "isspace") => "is_space",
+            (Ty::Str, "is_digit") => "isdigit",
+            (Ty::Str, "is_alpha") => "isalpha",
+            (Ty::Str, "is_alnum") => "isalnum",
+            (Ty::Str, "is_upper") => "isupper",
+            (Ty::Str, "is_lower") => "islower",
+            (Ty::Str, "is_space") => "isspace",
+            (Ty::Data(n), "findall") if n == "Regex" => "find_all",
+            _ => m,
+        };
+        if canon != m && !self.cx.strict {
+            let item = self.item.clone();
+            self.cx.note(
+                "N34",
+                at,
+                &item,
+                format!(
+                    "`{m}` on a `{t}` normalized to `{canon}`",
+                    t = self.ty_text(&t)
+                ),
+            );
+        }
+        let m = if self.cx.strict { m } else { canon };
+        let zero = [j::Arg {
+            name: None,
+            kind: j::ArgKind::Expr(j::Expr {
+                kind: j::ExprKind::Lit(j::Lit::Int("0".into())),
+                span: at,
+                paren: false,
+            }),
+            span: at,
+        }];
+        let args = match &t {
+            Ty::Data(n) if n == "Match" && m == "group" && args.is_empty() && !self.cx.strict => {
+                let item = self.item.clone();
+                self.cx.note(
+                    "N34",
+                    at,
+                    &item,
+                    "`group()` normalized to `group(0)`".into(),
+                );
+                &zero[..]
+            }
+            _ => args,
+        };
         // `std.text` declares `upper` and `lower` on `str` only; a `char` goes through its text.
         if t == Ty::Char && matches!(m, "upper" | "lower") && args.is_empty() {
             let c = if p.projs.is_empty() {

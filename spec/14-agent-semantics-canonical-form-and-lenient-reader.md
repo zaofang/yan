@@ -106,6 +106,11 @@ The lenient reader accepts these deviations and normalizes them, reporting a not
 | N30 | a class whose `__init__(self, ...)` only assigns `self.f = e` or `self.f: T = e` | the record's fields: `f: T = e` for an annotated or literal default, `f: T` with the parameter's type for an assigned parameter; other methods are lifted as N09 (R217) |
 | N31 | a `def` nested in a function body that reads no local of the enclosing function | a module-level function, keeping its name when that name is free at module level and named `outer_inner` otherwise; uses are renamed. A nested `def` that captures a local stays an error with a habit note (R661, R662) |
 | N32 | an `ex` line at the left margin, right after a function whose body it follows | the function's `ex` lines, appended after its other contracts (R766) |
+| N33 | `map(f, xs)`, `filter(f, xs)` with `f` first | `xs.map(f)`, `xs.filter(f)`, eager lists as in 17.3 (R804) |
+| N34 | on a `char`, Python's `isdigit`, `isalpha`, `isalnum`, `isupper`, `islower`, `isspace`; on a `str`, the `is_` spellings of the same; on a `Regex`, `findall`; on a `Match`, `group()` with no argument | `is_digit`, `is_alpha`, `is_alnum`, `is_upper`, `is_lower`, `is_space` on `char`; `isdigit` and the rest on `str`; `find_all`; `group(0)` (R805) |
+| N35 | `re.match`, `re.search`, `re.fullmatch`, `re.split`, `re.sub`, `re.findall` with the pattern first | `regex.compile(pattern).match(...)` and so on, `findall` as `find_all`; `re.compile` and `re.escape` name `regex.compile` and `regex.escape` (R806) |
+
+**Python names (R807).** A Python builtin or method that models reach for and Yan Agent lacks is either a real std function, when it fits determinism and the capability rules, or an N-code normalization with a note. It is never a bare E200 or E203. A name left out needs a recorded reason in the decision log.
 
 The reader never inserts `_ =` before an unused result, because that would hide the bug E312 exists to catch; it emits a note with a machine-applicable fix instead. `raise`, `try` and `except` are not normalized: they are errors (E120) with a suggested rewrite, because their semantics differ from `Result`.
 

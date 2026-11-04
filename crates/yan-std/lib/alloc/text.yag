@@ -91,3 +91,59 @@ pub def bytes(self: str) -> bytes: ...
 @intrinsic
 @since("1.0")
 pub def as_path(self: str) -> Path: ...
+
+@intrinsic
+@since("1.0")
+pub def count(self: str, part: str) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def isdigit(self: str) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def isalpha(self: str) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def isalnum(self: str) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def isupper(self: str) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def islower(self: str) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def isspace(self: str) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def is_digit(self: char) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def is_alpha(self: char) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def is_alnum(self: char) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def is_upper(self: char) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def is_lower(self: char) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def is_space(self: char) -> bool: ...
+
+@since("1.0")
+pub def to_str(self: char) -> str:
+    return str(self)
