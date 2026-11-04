@@ -273,45 +273,45 @@ trailing `!` pins it. `yan test` runs every fence. What is not defined: a `.ydoc
 are currently `docs/*.md` (R316).
 
 **MOCK.** A `.ydoc` file is a guide page whose fences are checked code. It is the R316 guide page
-with a fixed extension and a header fence:
+with a fixed extension and a header fence. Fences use `~~~` (CommonMark tilde fences), so a page can quote code that contains backticks:
 
 ```
 doc        = header {block}
-header     = "```yan-doc" NEWLINE {hline} "```" NEWLINE
+header     = "~~~yan-doc" NEWLINE {hline} "~~~" NEWLINE
 hline      = ("title" STRING | "uses" capitem {"," capitem} | "surface" EXT | "order" INT) NEWLINE
 block      = commonmark-block | fence | tagged
-fence      = "```" [EXT ["!"]] NEWLINE code "```"       -- EXT is yn, yag, ymt, yql ...; no tag = header surface
+fence      = "~~~" [EXT ["!"]] NEWLINE code "~~~"       -- EXT is yn, yag, ymt, yql ...; no tag = header surface
 tagged     = ("Fails:" | "Uses:" | "Panics:" | "Safety:" | "See also:") NEWLINE {commonmark-block}
 ```
 
-````markdown
-```yan-doc
+```
+~~~yan-doc
 title "Reading files"
 uses fs, io
 surface yn
-```
+~~~
 
 # Reading files
 
 Open a rooted handle with [std.fs.root] and read lines with [std.fs.lines].
 
-```
+~~~
 let logs = fs.root("./logs")
 for line in fs.lines(logs / "app.log")?
   io.print(line)
-```
+~~~
 
 Uses:
 - `fs` to read under `./logs`; nothing outside it is reachable.
-````
+```
 
 Lowering: none for prose. Each fence lowers as a test in the page's scope under the header's `uses`
 (R315); item links resolve to item hashes (R311).
 
 ---
 
-The niche surfaces (6 to 18) are the `Yan <job>` family of spec 16.7. None is built before 1.0
-(R550); each ships first as a print-only view, `yan view --as <ext>`. Each section quotes the RFC 0002
+The niche surfaces (6 to 18) are the "Yan + job word" family of spec 16.7. None is built before 1.0
+(R550); each ships first as a print-only view, `yan view --as EXT`. Each section quotes the RFC 0002
 example, then gives a **MOCK** grammar for the surface's own forms (everything else is plain Yan, per
 the shared rules above) and a second **MOCK** example.
 
