@@ -62,6 +62,10 @@ pub def sum[T: Num](xs: list[T]) -> T:
     ex sum([0.5, 0.25]) == 0.75
     return xs.iter().sum()
 
+@intrinsic
+@since("1.0")
+pub def sum_float(xs: list[float]) -> float: ...
+
 @since("1.0")
 pub def any(xs: list[bool]) -> bool:
     ex any([False, True]) == True

@@ -107,6 +107,10 @@ pub def sum[T: Num](self: iter[T]) -> T: ...
 
 @intrinsic
 @since("1.0")
+pub def sum_float(self: iter[float]) -> float: ...
+
+@intrinsic
+@since("1.0")
 pub def done[T](self: iter[T]) -> bool: ...
 
 @intrinsic
