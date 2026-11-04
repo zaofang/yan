@@ -1020,7 +1020,8 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             value: const_val(value)?,
         }),
         j::ItemKind::Lemma(f) => {
-            if matches!(&f.uses, Some(j::Uses::Caps(cs)) if !cs.is_empty()) {
+            let declared = matches!(&f.uses, Some(j::Uses::Caps(cs)) if !cs.is_empty());
+            if declared {
                 cx.err(
                     "E605",
                     f.name_span,
@@ -1029,7 +1030,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                 );
             }
             let mut uses = Vec::new();
-            if let Some(b) = &f.body {
+            if let Some(b) = f.body.as_ref().filter(|_| !declared) {
                 lower::cap_uses(&b.stmts, &mut uses);
             }
             let params: Vec<&str> = f
