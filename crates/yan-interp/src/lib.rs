@@ -575,16 +575,6 @@ static BUILTINS: &[(yan_std::registry::Id, bind::Bind)] = {
             }),
         ),
         (
-            STD_LIST_PUSH,
-            Bind::Plain(|a| match a {
-                [Value::List(xs), v] => {
-                    xs.push(std::mem::take(v));
-                    Ok(Value::Unit)
-                }
-                _ => bad_args(STD_LIST_PUSH),
-            }),
-        ),
-        (
             STD_RESULT_IS_OK,
             Bind::Plain(|a| match a {
                 [Value::Data { name, .. }] => Ok(Value::Bool(name == "Ok")),
