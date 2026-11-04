@@ -4,6 +4,13 @@ Study, 2026-11-04. Brainstorm only: no spec, conformance or row changes. Questio
 the peers of Yan Core 言核, find what works, write five proposals that each push one axis, then mix
 them into one opinionated design for the core text. Read against main `dd33531`.
 
+**Decisions (Antonio, cards, 2026-11-04 07:47 to 07:49).** Adopt the mix as the direction, RFC after
+the M1 gate, with these changes to section 5: conventions stay words, with `let` renamed to `borrow`
+(`borrow x`, `inout x`, `sink x`), so `let` only binds and no sigils are added; dotted intrinsics go
+in the same RFC (`i64.add` is checked, `i64.add_wrap` and `i64.add_sat` say what they give up); `par`
+declares its outputs in the header; the annotated printing goes in the spec as grammar trivia the
+parser drops, plus a toolchain printer.
+
 ## 1. Methodology and process
 
 **What Yan Core is for.** Yan Core is not a language people write programs in. It is the one text
