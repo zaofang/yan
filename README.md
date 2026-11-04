@@ -1,12 +1,19 @@
 # Yan
 
-Yan is a programming language with one core and two surfaces.
+Yan 言 is a programming language with one core and many surfaces. Every surface lowers to the same core, Yan Core (`.yir`),
+which is fast, concurrent, deterministic and capability-safe. The compiler is written in Rust (R215), as one Cargo
+workspace (spec 22.2).
 
-- **Yan Agent** (`.yag`): a typed, Python-shaped syntax optimized for LLM authors, measured in total tokens per solved task.
-- **Yan** (`.yn`): the human syntax, called plain Yan where it needs telling apart.
+| Surface | Ext | Status |
+|---|---|---|
+| Yan Agent | `.yag` | Built. Python-shaped, typed, written by LLMs; measured in total tokens per solved task. A lenient reader repairs common model mistakes, and R807 turns each missing Python builtin or method into a real std function or an N-code alias, never a bare E200. |
+| Yan | `.yn` | Built. The human syntax, called plain Yan where it needs telling apart. |
+| Yan Meta | `.ymt` | Research and canary surface, built after M1. |
+| Yan Shell, Yan Binary Format, and the other named job surfaces | `.ynsh`, `.ybf`, ... | Named niche surfaces, none built. See [docs/surfaces.md](docs/surfaces.md). |
 
-Both compile to the same core, Yan Core, which is fast, concurrent, deterministic and capability-safe.
-The implementation is written in Rust, as one Cargo workspace (spec 22.2).
+Status: milestone M1 is 410 of 410 conformance cases passing; the whole suite is 492 of 544.
+Design laws, pipeline and measured state: [docs/architecture.md](docs/architecture.md).
+Accepted decisions and studies: [docs/decisions-2026-11-04.md](docs/decisions-2026-11-04.md), [docs/studies/](docs/studies), [docs/research/README.md](docs/research/README.md).
 
 The developer owns the spec, tests and gates; agents write the code and never edit tests.
 Authoritative documents: the Yan 1.0 spec (draft) in [`spec/`](spec/README.md) and the 1.0 Development Roadmap.
@@ -17,7 +24,7 @@ Authoritative documents: the Yan 1.0 spec (draft) in [`spec/`](spec/README.md) a
 |---|---|---|
 | `spec/` | Antonio | Agents open spec PRs for accepted rows; Antonio merges them. Rows are registered in `spec/rows.toml`. |
 | `conformance/`, `tests/` | Antonio | Agents propose changes in a separate PR and never edit these. CI rejects agent PRs that touch them. |
-| `crates/` | agents | Cargo workspace, one crate per row of spec 22.2, added as they are built. Agent self-tests live in `#[cfg(test)] mod selftest` (SQ28). |
+| `crates/` | agents | Cargo workspace, `yan-*` crates per spec 22.2 (`yan-yag`, `yan-yn`, `yan-core`, `yan-cli`, ...). Agent self-tests live in `#[cfg(test)] mod selftest` (SQ28). |
 | `bench/` | agents | Benchmark set (R389): each program in Yan, typed Python and Rust, run by `bench/run.py`. |
 | `tools/conform.py` | agents | Conformance runner (spec 24.1), independent of the implementation. Python, run with uv. |
 | `tools/guard.py` | Antonio (CODEOWNERS) | Path guard used by CI. |

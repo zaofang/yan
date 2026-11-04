@@ -499,7 +499,7 @@ def law1(case: Case, ex: LawExecutor) -> Result:
     Comments do not reach Yan yet, so both sides are compared without comment lines.
     """
     name = str(case.path)
-    if case.path.suffix not in (".yag", ".jian"):
+    if case.path.suffix not in (".yag",):
         return Result(name, ex.name, "skip", "not Yan Agent")
     if not ex.canonical(case.path):
         return Result(name, ex.name, "skip", "not canonical")
