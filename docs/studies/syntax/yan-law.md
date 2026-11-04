@@ -44,7 +44,7 @@ established, **M** known but not rechecked today, **L** recalled, verify before 
 2. Wrote five proposals, each pushed to one extreme: fidelity to the text, brevity, agent token cost,
    safety and explicitness, expressive power. Each writes the same tasks.
 3. Built a 80-line prototype of the default calculus in Python
-   ([`ylaw/defaults.py`](ylaw/defaults.py)) and ran it on task T2 to see whether gap and conflict
+   ([`yan-law/defaults.py`](yan-law/defaults.py)) and ran it on task T2 to see whether gap and conflict
    checks find real drafting bugs (section 5).
 4. Measured the samples with a crude size proxy (section 6).
 5. Took the best idea from each proposal into one consolidated design (section 7) and checked it
@@ -470,7 +470,7 @@ counterfactual search is not cheap or always decidable; harder to lower to Yan C
 
 ## 5. Experiment: the default calculus, run
 
-[`ylaw/defaults.py`](ylaw/defaults.py) implements the calculus common to C, D and E: among the rules
+[`yan-law/defaults.py`](yan-law/defaults.py) implements the calculus common to C, D and E: among the rules
 that apply, drop each rule that another applying rule defeats; one survivor is the value, none is
 `Gap`, two survivors with different values are `Conflict`. It sweeps a small grid of inputs
 (children 0, 1, 3; income 40,000 to 120,000; disabled yes or no) for T2.
