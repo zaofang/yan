@@ -19,8 +19,9 @@ pub(crate) struct Vm<'o> {
     codes: Vec<Rc<Code>>,
     stack: Vec<Value>,
     it: Interp<'o>,
-    /// Stage-0 budgets, with the current depth and the steps taken; none at run time.
-    limits: Option<(crate::Limits, usize, u64)>,
+    /// Budgets, with the current depth, the steps taken and the live heap bytes at the
+    /// start; none at run time.
+    limits: Option<(crate::Limits, usize, u64, usize)>,
 }
 
 /// The type name a value's `impl` is keyed by, where the value tells it.
@@ -262,7 +263,32 @@ impl<'o> Vm<'o> {
     }
 
     pub(crate) fn limit(&mut self, l: crate::Limits) {
-        self.limits = Some((l, 0, 0));
+        self.limits = Some((l, 0, 0, yan_rt::heap::live()));
+    }
+
+    pub(crate) fn steps(&self) -> u64 {
+        self.limits.map_or(0, |(_, _, s, _)| s)
+    }
+
+    /// One step against the budgets; the clock is read every 4096 steps.
+    fn tick(&mut self) -> R<()> {
+        let Some((l, _, steps, base)) = &mut self.limits else {
+            return Ok(());
+        };
+        *steps += 1;
+        if *steps > l.steps {
+            return Err(crate::Stop::Limit("steps"));
+        }
+        if yan_rt::heap::live().saturating_sub(*base) > l.heap {
+            return Err(crate::Stop::Limit("heap"));
+        }
+        if *steps % 4096 == 0
+            && let Some(d) = l.deadline
+            && std::time::Instant::now() > d
+        {
+            return Err(crate::Stop::Limit("time"));
+        }
+        Ok(())
     }
 
     /// Call code `f` with `args`. The outcome, plus the final values of the parameters.
@@ -372,14 +398,9 @@ impl<'o> Vm<'o> {
                 }
                 Op::Clear(r) => self.stack[base + r as usize] = Value::Unit,
                 Op::Jmp(to) => {
-                    // A backward jump is a loop iteration, one stage-0 step (R487).
-                    if (to as usize) < *pc
-                        && let Some((l, _, steps)) = &mut self.limits
-                    {
-                        *steps += 1;
-                        if *steps > l.steps {
-                            return Err(crate::Stop::Limit("steps"));
-                        }
+                    // A backward jump is a loop iteration, one step (R487).
+                    if (to as usize) < *pc {
+                        self.tick()?;
                     }
                     *pc = to as usize;
                 }
@@ -662,19 +683,16 @@ impl<'o> Vm<'o> {
         let nargs = s.args.len();
         let outcome = match self.target_at(s, base, new_base) {
             Target::Code(f, clo) => {
-                if let Some((l, depth, steps)) = &mut self.limits {
+                if let Some((l, depth, ..)) = &mut self.limits {
                     *depth += 1;
-                    *steps += 1;
                     if *depth > l.depth {
                         return Err(crate::Stop::Limit("depth"));
                     }
-                    if *steps > l.steps {
-                        return Err(crate::Stop::Limit("steps"));
-                    }
                 }
+                self.tick()?;
                 self.enter(f, clo.as_deref(), new_base, nargs);
                 let r = self.exec(f, new_base)?;
-                if let Some((_, depth, _)) = &mut self.limits {
+                if let Some((_, depth, ..)) = &mut self.limits {
                     *depth -= 1;
                 }
                 for (i, a) in s.args.iter().enumerate() {

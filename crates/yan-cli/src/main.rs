@@ -10,10 +10,14 @@ mod mcp;
 mod patch;
 mod review;
 mod test;
+mod trust;
 use yan_db::{Database, Loaded};
 use yan_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, finish};
 use yan_ide::ViewError;
 use yan_interp::{EXIT_PANIC, Stop};
+
+#[global_allocator]
+static HEAP: yan_rt::heap::Counting = yan_rt::heap::Counting;
 
 /// Exit status for a failure of the tool itself, as opposed to errors in the program.
 const TOOL_FAILURE: u8 = 2;
@@ -99,6 +103,11 @@ enum Command {
     },
     /// Serve the agent tools over MCP on stdio (21.4), for the modules under the current directory.
     Mcp,
+    /// Trust a directory, so `yan mcp` runs its tests and stage 0 there (21.4, R676).
+    Trust {
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+    },
     /// Run the package's tests (18.4): its `test_` functions, under the current directory.
     Test {
         #[arg(long, value_enum, default_value_t = Format::Line)]
@@ -275,13 +284,20 @@ fn main() -> ExitCode {
             Ok(()) => ExitCode::SUCCESS,
             Err(msg) => tool_failure(&msg),
         },
+        Command::Trust { dir } => match trust::add(&dir) {
+            Ok(d) => {
+                println!("trusted {}", d.display());
+                ExitCode::SUCCESS
+            }
+            Err(msg) => tool_failure(&msg),
+        },
     }
 }
 
 fn run_tests(format: Format, gate: bool, only: Option<&str>, no_cache: bool) -> ExitCode {
     let root = Path::new(".");
     let cache = (!no_cache).then(|| test::cache_file(root));
-    let report = match test::run(root, only, gate, cache.as_deref()) {
+    let report = match test::run(root, only, gate, cache.as_deref(), None) {
         Ok(r) => r,
         Err(msg) => return tool_failure(&msg),
     };

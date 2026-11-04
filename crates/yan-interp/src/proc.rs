@@ -166,6 +166,17 @@ fn host_run(cmd: &Value) -> Result<Value, Value> {
 
 fn run(h: &Value, cmd: &Value) -> Result<Value, Value> {
     match h {
+        Value::Data { name, fields } if name == "OnlyProc" => {
+            let program = text(field(cmd, PROGRAM));
+            match &fields[1].1 {
+                Value::List(ps) if !ps.iter().any(|p| text(p) == program) => Err(error(
+                    program,
+                    "PermissionDenied",
+                    "not granted by proc.only".into(),
+                )),
+                _ => run(&fields[0].1, cmd),
+            }
+        }
         Value::Data { name, fields } if name == "FakeProc" => {
             let program = text(field(cmd, PROGRAM));
             match &fields[0].1 {
@@ -278,6 +289,19 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         }),
     ),
     (STD_TEST_FAKE_PROC, Bind::Plain(|a| Ok(fake(a[0].clone())))),
+    (
+        STD_PROC_ONLY,
+        Bind::Plain(|a| match a {
+            [h, programs] => Ok(Value::Data {
+                name: "OnlyProc".into(),
+                fields: vec![
+                    ("inner".into(), h.clone()),
+                    ("programs".into(), programs.clone()),
+                ],
+            }),
+            _ => bad_args(STD_PROC_ONLY),
+        }),
+    ),
     (
         STD_PROC_RUN,
         Bind::Fallible(|a| match a {

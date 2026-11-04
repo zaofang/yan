@@ -532,7 +532,13 @@ pub fn review(pkg: &Path, base: &str, head: Option<&str>) -> Result<Review, Stri
         ));
     }
 
-    let report = test::run(&head_tree.root, None, false, Some(&test::cache_file(pkg)))?;
+    let report = test::run(
+        &head_tree.root,
+        None,
+        false,
+        Some(&test::cache_file(pkg)),
+        None,
+    )?;
     let mut untouched = 0;
     for t in &report.tests {
         let module = t.id.rsplit_once('.').map_or("", |(m, _)| m);
@@ -642,7 +648,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("temp dir");
         std::fs::write(dir.join("m.yag"), BASE).expect("write");
-        let first = test::run(&dir, None, false, None).expect("tests run");
+        let first = test::run(&dir, None, false, None, None).expect("tests run");
         let h = &first
             .tests
             .iter()

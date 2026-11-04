@@ -67,13 +67,33 @@ macro_rules! fallible {
 }
 
 pub(super) static BINDS: &[(yan_std::registry::Id, Bind)] = &[
-    // A `fake_fs` handler is its file map.
     fallible!(STD_FS_READ, |a| {
-        [Dict(files), Str(path)] => files
-            .get(&Key(Str(path.clone())))
-            .cloned()
-            .ok_or_else(|| fs_error(path, "not found")),
+        [h, Str(path)] => fs_read(h, path),
     }),
+    (
+        STD_FS_ONLY,
+        Bind::Plain(|a| match a {
+            [h, read, write] => Ok(Data {
+                name: "OnlyFs".into(),
+                fields: vec![
+                    ("inner".into(), h.clone()),
+                    ("read".into(), read.clone()),
+                    ("write".into(), write.clone()),
+                ],
+            }),
+            _ => bad_args(STD_FS_ONLY),
+        }),
+    ),
+    (
+        STD_FS_SUB,
+        Bind::Plain(|a| match a {
+            [h, dir] => Ok(Data {
+                name: "SubFs".into(),
+                fields: vec![("inner".into(), h.clone()), ("dir".into(), dir.clone())],
+            }),
+            _ => bad_args(STD_FS_SUB),
+        }),
+    ),
     fallible!(STD_ERROR_CONTEXT, |a| {
         [Data { name, fields }, Str(msg)] => match (name.as_str(), &fields[..]) {
             ("Ok", [(_, v)]) => Ok(v.clone()),
@@ -177,6 +197,64 @@ fn wrap(e: &Value) -> Value {
                 ("context".into(), Value::List(Vec::new())),
             ],
         },
+    }
+}
+
+/// `path` without `.` and with each `..` taken against the component before it; `None` when
+/// a `..` would climb above where the path starts.
+fn lexical(path: &str) -> Option<Vec<&str>> {
+    let mut out = Vec::new();
+    for c in path.split('/') {
+        match c {
+            "" | "." => {}
+            ".." => {
+                out.pop()?;
+            }
+            c => out.push(c),
+        }
+    }
+    Some(out)
+}
+
+/// `fs.only` and `fs.sub` resolve paths beneath their grants, never above them (R674). A
+/// `fake_fs` handler is its file map.
+fn fs_read(h: &Value, path: &str) -> Result<Value, Value> {
+    let denied = || fs_error(path, "not granted");
+    match h {
+        Dict(files) => files
+            .get(&Key(Str(path.into())))
+            .cloned()
+            .ok_or_else(|| fs_error(path, "not found")),
+        Data { name, fields } if name == "SubFs" => {
+            let Str(dir) = &fields[1].1 else {
+                unreachable!("fs.sub takes a str")
+            };
+            let rel = lexical(path).filter(|_| !path.starts_with('/'));
+            let Some(rel) = rel else { return Err(denied()) };
+            let joined = format!("{}/{}", dir.trim_end_matches('/'), rel.join("/"));
+            fs_read(&fields[0].1, &joined)
+        }
+        Data { name, fields } if name == "OnlyFs" => {
+            let List(grants) = &fields[1].1 else {
+                unreachable!("fs.only takes a list")
+            };
+            let abs = path.starts_with('/');
+            let Some(p) = lexical(path) else {
+                return Err(denied());
+            };
+            let beneath = grants.iter().any(|g| match g {
+                Str(g) => {
+                    g.starts_with('/') == abs && lexical(g).is_some_and(|g| p.starts_with(&g))
+                }
+                _ => false,
+            });
+            if !beneath {
+                return Err(denied());
+            }
+            let resolved = format!("{}{}", if abs { "/" } else { "" }, p.join("/"));
+            fs_read(&fields[0].1, &resolved)
+        }
+        _ => Err(fs_error(path, "no host fs handler")),
     }
 }
 

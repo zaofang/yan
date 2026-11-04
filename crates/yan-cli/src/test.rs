@@ -4,12 +4,15 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+use std::time::Instant;
 
 use yan_core::ast::{self as y, ItemKind};
 use yan_core::hash::Hashed;
 use yan_db::{Database, Loaded};
 use yan_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, Span, finish};
 use yan_interp::{Limits, Stop};
+
+use crate::mcp::Budget;
 
 use crate::examples;
 
@@ -368,6 +371,7 @@ pub fn run(
     filter: Option<&str>,
     gate: bool,
     cache: Option<&Path>,
+    mut budget: Option<&mut Budget>,
 ) -> Result<Report, String> {
     let locked = lock(root)?;
     let mut cache = cache.map(Cache::open);
@@ -433,7 +437,15 @@ pub fn run(
                 Some(v) => v,
                 None => {
                     let mut out = Vec::new();
-                    let v = match yan_interp::test(&m, &fname, Limits::default(), &mut out) {
+                    let limits = budget
+                        .as_ref()
+                        .map_or(Limits::default(), |b| b.limits(Limits::default()));
+                    let (start, mut steps) = (Instant::now(), 0);
+                    let r = yan_interp::test_metered(&m, &fname, limits, &mut out, &mut steps);
+                    if let Some(b) = budget.as_mut() {
+                        b.spend(steps, start.elapsed());
+                    }
+                    let v = match r {
                         Ok(true) => Verdict::Pass,
                         Ok(false) => Verdict::Fail("returned a failure".into()),
                         Err(Stop::Panic(p)) if p.kind == "assert" && ex.is_some() => Verdict::Fail(
@@ -451,7 +463,9 @@ pub fn run(
                         }
                     };
                     let out = String::from_utf8_lossy(&out).into_owned();
-                    if let (Some(c), Some(k)) = (cache.as_mut(), key) {
+                    // A budget verdict depends on the session, not only the code (R676).
+                    let metered = budget.is_some() && matches!(v, Verdict::Budget);
+                    if let (Some(c), Some(k), false) = (cache.as_mut(), key, metered) {
                         c.put(k, &v, &out);
                     }
                     (v, out)

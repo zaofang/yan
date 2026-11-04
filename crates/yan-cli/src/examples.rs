@@ -198,7 +198,7 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let src = "class P:\n    x: int\n\ndef f(n: int) -> P fail str:\n    ex f(0) == Ok(P(0))\n    ex Err(\"no\") == f(1)\n    ex f(1) == Ok(P(1))\n    if n > 0:\n        fail \"no\"\n    return P(n)\n";
         std::fs::write(dir.join("m.yag"), src).unwrap();
-        let r = test::run(&dir, None, false, None).unwrap();
+        let r = test::run(&dir, None, false, None, None).unwrap();
         let v: Vec<(&str, bool)> = r
             .tests
             .iter()

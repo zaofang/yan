@@ -21,6 +21,7 @@ yan-db.workspace = true
 yan-diag.workspace = true
 yan-ide.workspace = true
 yan-interp.workspace = true
+yan-rt.workspace = true
 yan-mir.workspace = true
 yan-opt.workspace = true
 yan-cg-cranelift.workspace = true
