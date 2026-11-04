@@ -185,3 +185,16 @@ adds no nondeterminism and law 7 is untouched.
 If D1 to D11 are accepted, an RFC from `rfcs/0000-template.md` with the `RandState` type, the `state()`
 signature, the `at=` seek for both algorithms and the D6 split rule, then rows in the same PR as the
 7.1, 7.7 and 17.3 edits.
+
+## 9. Decisions (Antonio, cards, 2026-11-04)
+
+D1, D3, D4, D7, D8, D9, D10 and D11 accepted as recommended. D6 accepted as recommended too: a branch
+seed depends on the task path with a per-task split counter, so consecutive `par` blocks draw
+independent streams; the rows PR fixes the 17.3 and R685 wording to match 7.7. Two answers differ from
+the recommendation:
+
+- D2: `RandState` is opaque bytes, as in TC39, not a public position record. This allows algorithms not
+  built from a `uint64` seed later, at the cost of fields that cannot be inspected or constructed by
+  hand. The RFC must fix the byte layout, a version tag and how `at=` relates to it.
+- D5: the position unit is bytes or bits, not a count of `next_u64` draws. The RFC must fix the unit and
+  how it maps to draws and to the generator's internal state.
