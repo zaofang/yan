@@ -293,6 +293,7 @@ impl Globals {
                             Ty::Union(ms)
                         }
                     },
+                    (n, []) if stdlib::STD.caps.contains(n) => Ty::Data(n.to_owned()),
                     (n, _)
                         if n.contains('.') || n.chars().next().is_some_and(char::is_uppercase) =>
                     {

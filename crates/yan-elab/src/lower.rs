@@ -3361,6 +3361,9 @@ impl Lower<'_, '_, '_> {
                     };
                     let f = f.clone();
                     self.lambda(&[x], &body, Some(&f))?
+                } else if self.sig.caps.contains(n) || self.handlers.contains(n) {
+                    // A capability as a value; the checker rejects returning or storing it (E306).
+                    (Rhs::Atom(Atom::Name(n.clone(), at)), Ty::Data(crate::cap_type(n)))
                 } else if self.gone.contains(n) {
                     return unsupported("a binding used after the block that made it");
                 } else if self.ghosts.contains(n) {
