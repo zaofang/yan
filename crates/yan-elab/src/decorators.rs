@@ -98,6 +98,7 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
             }
             "layout" if g.layout_c.contains(&item) => {}
             "layout" => return unsupported("`@layout` other than `@layout(c)` on a record"),
+            "reentrant" => reentrant(it, cx),
             "deprecated" | "inline" | "limit" | "test_support" => {}
             "capability" if matches!(it.kind, j::ItemKind::Trait(_)) => {}
             // Read with `@derive(Cli)` (RFC 0019 D14).
@@ -144,6 +145,65 @@ fn forbid_alloc(it: &j::Item, cx: &mut Cx) {
             at,
             &f.name,
             format!("`{}` is `@forbid(alloc)` and this allocates", f.name),
+        );
+    }
+}
+
+/// E715: in a `@reentrant` handler, a local bound from actor state and used after a suspension
+/// (9.6, R397). Only top-level statements are followed.
+fn reentrant(it: &j::Item, cx: &mut Cx) {
+    let j::ItemKind::Func(f) = &it.kind else {
+        return;
+    };
+    let Some(j::Param::Value { name: state, .. }) = f.params.first() else {
+        return;
+    };
+    let mut reads: Vec<(String, Span)> = Vec::new();
+    let mut suspended = false;
+    let mut flagged = Vec::new();
+    for s in f.body.iter().flat_map(|b| &b.stmts) {
+        let mut used = Vec::new();
+        let mut suspends = false;
+        let mut state_read = None;
+        for e in lower::stmt_exprs(s) {
+            lower::walk(e, &mut |x| match &x.kind {
+                j::ExprKind::Name(n) => used.push(n.clone()),
+                j::ExprKind::Attr(b, _, _) if matches!(&b.kind, j::ExprKind::Name(n) if n == state) =>
+                {
+                    state_read.get_or_insert(x.span);
+                }
+                j::ExprKind::Call(c, _) => {
+                    if let j::ExprKind::Attr(b, m, _) = &c.kind {
+                        suspends |=
+                            m == "sleep" && matches!(&b.kind, j::ExprKind::Name(n) if n == "time");
+                    }
+                }
+                _ => {}
+            });
+        }
+        if suspended {
+            for (n, at) in &reads {
+                if used.contains(n) && !flagged.contains(at) {
+                    flagged.push(*at);
+                }
+            }
+        }
+        suspended |= suspends;
+        if let (j::StmtKind::Assign { target, .. }, Some(at)) = (&s.kind, state_read)
+            && let j::ExprKind::Name(n) = &target.kind
+        {
+            reads.push((n.clone(), at));
+        }
+    }
+    for at in flagged {
+        cx.err(
+            "E715",
+            at,
+            &f.name,
+            format!(
+                "`{}` is `@reentrant` and keeps a value read from state across a suspension",
+                f.name
+            ),
         );
     }
 }
