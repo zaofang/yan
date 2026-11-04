@@ -50,6 +50,23 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_TEXT_GRAPHEME_COUNT, |a| { [Str(x)] => Int(text::grapheme_count(x) as i128) }),
     f!(STD_TEXT_UPPER, |a| { [Str(x)] => s(x.to_uppercase()) }),
     f!(STD_TEXT_LOWER, |a| { [Str(x)] => s(x.to_lowercase()) }),
+    f!(STD_TEXT_COUNT, |a| { [Str(x), Str(p)] => Int(x.matches(&**p).count() as i128) }),
+    f!(STD_TEXT_ISDIGIT, |a| { [Str(x)] => Bool(!x.is_empty() && x.chars().all(|c| c.is_ascii_digit())) }),
+    f!(STD_TEXT_ISALPHA, |a| { [Str(x)] => Bool(!x.is_empty() && x.chars().all(char::is_alphabetic)) }),
+    f!(STD_TEXT_ISALNUM, |a| { [Str(x)] => Bool(!x.is_empty() && x.chars().all(char::is_alphanumeric)) }),
+    f!(STD_TEXT_ISUPPER, |a| {
+        [Str(x)] => Bool(x.chars().any(char::is_uppercase) && !x.chars().any(char::is_lowercase))
+    }),
+    f!(STD_TEXT_ISLOWER, |a| {
+        [Str(x)] => Bool(x.chars().any(char::is_lowercase) && !x.chars().any(char::is_uppercase))
+    }),
+    f!(STD_TEXT_ISSPACE, |a| { [Str(x)] => Bool(!x.is_empty() && x.chars().all(char::is_whitespace)) }),
+    f!(STD_TEXT_IS_DIGIT, |a| { [Char(c)] => Bool(c.is_ascii_digit()) }),
+    f!(STD_TEXT_IS_ALPHA, |a| { [Char(c)] => Bool(c.is_alphabetic()) }),
+    f!(STD_TEXT_IS_ALNUM, |a| { [Char(c)] => Bool(c.is_alphanumeric()) }),
+    f!(STD_TEXT_IS_UPPER, |a| { [Char(c)] => Bool(c.is_uppercase()) }),
+    f!(STD_TEXT_IS_LOWER, |a| { [Char(c)] => Bool(c.is_lowercase()) }),
+    f!(STD_TEXT_IS_SPACE, |a| { [Char(c)] => Bool(c.is_whitespace()) }),
     f!(STD_TEXT_STRIP, |a| { [Str(x)] => s(x.trim().to_owned()) }),
     f!(STD_TEXT_STARTSWITH, |a| { [Str(x), Str(p)] => Bool(x.starts_with(&**p)) }),
     f!(STD_TEXT_ENDSWITH, |a| { [Str(x), Str(p)] => Bool(x.ends_with(&**p)) }),

@@ -157,6 +157,11 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R800 | E210 relaxed: a callee with exactly two parameters takes them positionally even when they share a type; E210 applies to callees with three or more parameters (R800) | 14.1, 15.3 |
 | R801 | Free prelude functions `ord(c) -> int`, `chr(n) -> char fail EncodingError` (new reason `Scalar()`), `divmod(a, b)` as `(a // b, a % b)` and `pow(a, b)` as `a ** b` (R801) | 17.2 |
 | R802 | A one-character `str` literal (no prefix or `r`) takes type `char` where `char` is expected: the other side of a comparison, an `in` left operand over a `char` element type, an argument or assignment; a variable never converts, and `in` checks its left operand against the element type (E201) (R802) | 3.4 |
+| R803 | Python string and char predicates as std functions: `str.count(part)`, `str.isdigit` and the other five `str` predicates (non-empty, Python's meaning, `isdigit` ASCII), `char.is_digit`, `is_alpha`, `is_alnum`, `is_upper`, `is_lower`, `is_space` and `char.to_str()` (R803) | 17.3 |
+| R804 | N33 lifts Python's `map(f, xs)` and `filter(f, xs)` to the eager `xs.map(f)` and `xs.filter(f)` (R804) | 14.4, 17.2 |
+| R805 | N34 accepts Python spellings of the `char` and `str` predicates, `Regex.findall` and `Match.group()` (R805) | 14.4, 17.3 |
+| R806 | N35 lifts `re.match`, `re.search`, `re.fullmatch`, `re.split`, `re.sub` and `re.findall` to `regex.compile(pattern)` and the method, and `re` names the `regex` module (R806) | 14.4, 17.3 |
+| R807 | Standing policy: a Python builtin or method that models reach for and Yan Agent lacks is a real std function or an N-code normalization, never a bare E200 or E203 (R807) | 14.4 |
 
 <!-- /rows -->
 

@@ -60,9 +60,14 @@ fn every_intrinsic_method_instantiates() {
                 .params
                 .first()
                 .is_some_and(|p| matches!(p, j::Param::Value { name, .. } if name == "self"));
+            // `char` methods are declared in `std.text` beside the `str` ones.
+            let on_char = matches!(
+                f.params.first(),
+                Some(j::Param::Value { ty: j::Type::Named { path, .. }, .. }) if path == &["char"]
+            );
             let path = format!("std.{module}.{}", f.name);
             let d = stdlib::decl(&path).expect("declared");
-            if is_method && d.intrinsic && !d.typed_at_call() {
+            if is_method && !on_char && d.intrinsic && !d.typed_at_call() {
                 assert!(d.method(&t).is_some(), "{path} on {t}");
             }
         }
