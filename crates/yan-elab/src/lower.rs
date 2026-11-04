@@ -2088,7 +2088,8 @@ impl Lower<'_, '_, '_> {
                 let c = call("gt_i64", vec![], vec![let_arg(n), let_arg(zero("i64"))], at);
                 (Rhs::Call(c), "`len(xs) > 0`")
             }
-            Ty::Option(_) => {
+            // A nested optional has no single truth test (R795).
+            Ty::Option(inner) if !matches!(**inner, Ty::Option(_)) => {
                 let (v, _) = self.is_some(a, at)?;
                 return Ok(Some((v, "`x is not None`")));
             }
@@ -3469,13 +3470,33 @@ impl Lower<'_, '_, '_> {
         ))
     }
 
-    /// A `T` where `T | None` is expected is `Some` of it.
+    /// A `U` where `U | None` is expected is `Some` of it, once, even when `U` is optional
+    /// (R794).
     fn inject(&mut self, r: Rhs, t: Ty, want: Option<&Ty>, at: Span) -> (Rhs, Ty) {
         let Some(Ty::Option(inner)) = want else {
             return (r, t);
         };
-        if matches!(t, Ty::Option(_) | Ty::Err | Ty::Never) || !t.fits(inner) {
+        if matches!(t, Ty::Err | Ty::Never)
+            || option_depth(&t) >= option_depth(want.expect("matched"))
+            || !t.fits(inner)
+        {
             return (r, t);
+        }
+        if option_depth(&t) < option_depth(inner) {
+            let wanted = self.ty_text(want.expect("matched"));
+            self.err(
+                "E201",
+                at,
+                format!(
+                    "a `{t}` where `{wanted}` is expected; write `Some(v)`",
+                    t = self.ty_text(&t)
+                ),
+            );
+            if let Some(text) = span_text(self.cx.src, at) {
+                self.cx
+                    .fix(Applicability::Auto, "wrap", at, &format!("Some({text})"));
+            }
+            return (r, Ty::Err);
         }
         let a = self.tmp(&t, r, at);
         let ctor = y::Ctor::Named {
@@ -7949,4 +7970,21 @@ fn wire(t: &Ty) -> bool {
 
 fn is_view(t: &j::Type) -> bool {
     matches!(t, j::Type::Named { path, .. } if path.len() == 1 && path[0] == "View")
+}
+
+/// How many `Option` levels `t` has at the top.
+fn option_depth(t: &Ty) -> usize {
+    match t {
+        Ty::Option(t) => 1 + option_depth(t),
+        _ => 0,
+    }
+}
+
+/// The source text a one-line span covers.
+fn span_text(src: &str, at: Span) -> Option<&str> {
+    if at.line != at.end_line {
+        return None;
+    }
+    let line = src.lines().nth(at.line as usize - 1)?;
+    line.get(at.col as usize - 1..at.end_col as usize - 1)
 }

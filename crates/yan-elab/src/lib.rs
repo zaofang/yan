@@ -348,16 +348,28 @@ impl Globals {
                     (n, []) if self.scope.borrow().iter().any(|p| p == n) => {
                         Ty::Param(n.to_owned())
                     }
-                    (n, []) if self.aliases.contains_key(n) => match self.aliases[n].as_slice() {
-                        [t] => self.ty(t, cx, span)?,
-                        ts => {
-                            let mut ms = Vec::new();
-                            for t in ts {
-                                union_add(&mut ms, self.ty(t, cx, span)?);
+                    (n, []) if self.aliases.contains_key(n) => {
+                        // `type X = T | None` is `Option[T]`, and stays one level when used
+                        // as `X | None` (R793).
+                        let (nones, ts): (Vec<_>, Vec<_>) = self.aliases[n]
+                            .iter()
+                            .partition(|t| matches!(t, j::Type::None));
+                        let t = match ts.as_slice() {
+                            [t] => self.ty(t, cx, span)?,
+                            ts => {
+                                let mut ms = Vec::new();
+                                for t in ts {
+                                    union_add(&mut ms, self.ty(t, cx, span)?);
+                                }
+                                Ty::Union(ms)
                             }
-                            Ty::Union(ms)
+                        };
+                        if nones.is_empty() {
+                            t
+                        } else {
+                            Ty::Option(Box::new(t))
                         }
-                    },
+                    }
                     (n, []) if stdlib::STD.caps.contains(n) => Ty::Data(n.to_owned()),
                     (n, _)
                         if n.contains('.') || n.chars().next().is_some_and(char::is_uppercase) =>

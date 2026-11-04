@@ -1169,10 +1169,30 @@ impl Parser {
     // ---- types ----
 
     fn ty(&mut self) -> P<Type> {
+        let at = self.span();
         let base = self.base_ty()?;
         if self.is_op("|") && self.is_kw_at(1, "None") {
             self.bump();
             self.bump();
+            if self.is_op("|") && self.is_kw_at(1, "None") {
+                self.bump();
+                let end = self.span();
+                self.bump();
+                let span = Span {
+                    end_line: end.end_line,
+                    end_col: end.end_col,
+                    ..at
+                };
+                self.error(
+                    "E276",
+                    span,
+                    format!(
+                        "the union lists `None` twice; write `Option[{} | None]`",
+                        crate::printer::ty(&base)
+                    ),
+                );
+                return Ok(option(option(base)));
+            }
             return Ok(option(base));
         }
         Ok(base)
