@@ -312,11 +312,18 @@ impl Parser<'_> {
         let kind = match (kind.as_str(), is_pub, is_unsafe) {
             ("fn", _, _) => {
                 self.bump();
-                ItemKind::Fn(self.fn_rest(is_pub, is_unsafe, true, false)?)
+                ItemKind::Fn(self.fn_rest(is_pub, is_unsafe, true, false, None)?)
             }
             ("gen", _, false) => {
                 self.bump();
-                ItemKind::Gen(self.fn_rest(is_pub, false, true, true)?)
+                ItemKind::Gen(self.fn_rest(is_pub, false, true, true, None)?)
+            }
+            ("inst", _, _) if matches!(self.peek_at(1), Tok::Name(n) if n == "fn") => {
+                self.bump();
+                self.bump();
+                let mut args = Vec::new();
+                let def = self.fn_rest(is_pub, is_unsafe, true, false, Some(&mut args))?;
+                ItemKind::Inst(Inst { args, def })
             }
             ("record", _, false) => {
                 self.bump();
@@ -435,6 +442,7 @@ impl Parser<'_> {
         is_unsafe: bool,
         item: bool,
         is_gen: bool,
+        inst: Option<&mut Vec<TArg>>,
     ) -> PResult<FnDef> {
         let name_span = self.span();
         let path = if item {
@@ -442,7 +450,13 @@ impl Parser<'_> {
         } else {
             vec![self.name()?]
         };
-        let tparams = self.tparams()?;
+        let tparams = match inst {
+            Some(args) => {
+                *args = self.targs()?;
+                Vec::new()
+            }
+            None => self.tparams()?,
+        };
         let params = self.list("(", ")", Self::param)?;
         self.expect_punct("->")?;
         let ret = self.ty()?;
@@ -595,7 +609,7 @@ impl Parser<'_> {
         }
         let mut sigs = Vec::new();
         while self.eat_kw("fn") {
-            sigs.push(self.fn_rest(false, false, false, false)?);
+            sigs.push(self.fn_rest(false, false, false, false, None)?);
         }
         let derived = if self.eat_kw("derived") {
             Some(self.block()?)
@@ -635,7 +649,7 @@ impl Parser<'_> {
                 }
                 break;
             }
-            fns.push(self.fn_rest(is_pub, is_unsafe, true, false)?);
+            fns.push(self.fn_rest(is_pub, is_unsafe, true, false, None)?);
         }
         self.close("}", open)?;
         Ok(Impl {

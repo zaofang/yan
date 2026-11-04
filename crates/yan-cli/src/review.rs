@@ -243,7 +243,7 @@ fn is_pub(k: &ItemKind) -> bool {
         ItemKind::Newtype(n) => n.is_pub,
         ItemKind::Trait(t) => t.is_pub,
         ItemKind::Const(c) => c.is_pub,
-        ItemKind::Impl(_) | ItemKind::Test(_) | ItemKind::Extern(_) => false,
+        ItemKind::Impl(_) | ItemKind::Test(_) | ItemKind::Extern(_) | ItemKind::Inst(_) => false,
     }
 }
 

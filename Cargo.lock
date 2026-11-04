@@ -1327,6 +1327,7 @@ dependencies = [
  "cranelift-native",
  "yan-core",
  "yan-mir",
+ "yan-opt",
  "yan-rt",
  "yan-std",
 ]
@@ -1356,6 +1357,7 @@ dependencies = [
  "yan-interp",
  "yan-mir",
  "yan-names",
+ "yan-opt",
  "yan-yag",
 ]
 
@@ -1464,6 +1466,14 @@ dependencies = [
 [[package]]
 name = "yan-names"
 version = "0.0.0"
+
+[[package]]
+name = "yan-opt"
+version = "0.0.0"
+dependencies = [
+ "yan-core",
+ "yan-diag",
+]
 
 [[package]]
 name = "yan-playground"

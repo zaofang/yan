@@ -998,7 +998,8 @@ mod selftest {
             let q: bool = apply[bool, bool](let neg, let true)\n assert eq_bool(let q, let false)\n ret ()\n}\n";
         let (m, d) = yan_core::parse("t.yir", src);
         assert!(d.is_empty(), "{d:?}");
-        let p = yan_mir::lower(&m.unwrap()).expect("lowers");
+        let m = yan_opt::optimize("t.yir", &m.unwrap()).expect("specializes");
+        let p = yan_mir::lower(&m).expect("lowers");
         assert_eq!(
             p.funcs.len(),
             5,

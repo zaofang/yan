@@ -168,7 +168,7 @@ fn defines(it: &Item) -> Vec<String> {
         ItemKind::Trait(t) => vec![t.path.join(".")],
         ItemKind::Const(c) => vec![c.path.join(".")],
         ItemKind::Test(t) => vec![t.path.join(".")],
-        ItemKind::Impl(_) => vec![],
+        ItemKind::Impl(_) | ItemKind::Inst(_) => vec![],
         ItemKind::Extern(e) => e
             .items
             .iter()
@@ -363,6 +363,7 @@ impl Cx<'_> {
         }
         match &mut it.kind {
             ItemKind::Fn(f) | ItemKind::Gen(f) => self.func(f),
+            ItemKind::Inst(i) => self.func(&mut i.def),
             ItemKind::Record(r) => self.scoped(|cx| {
                 cx.tparams(&mut r.tparams);
                 cx.fields(&mut r.fields);

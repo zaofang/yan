@@ -19,6 +19,7 @@ yan-std.workspace = true
 
 [dev-dependencies]
 yan-core.workspace = true
+yan-opt.workspace = true
 
 # The workspace forbids unsafe code; this crate denies it and allows it only where native code
 # meets the host (C-ABI entry points, calling generated code).

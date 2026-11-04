@@ -128,6 +128,7 @@ fn item(it: &y::Item, std: &dyn Std) -> R<Option<Item>> {
         y::ItemKind::Const(_) => return no("constants"),
         y::ItemKind::Test(_) => return no("tests"),
         y::ItemKind::Extern(_) => return no("extern blocks"),
+        y::ItemKind::Inst(_) => return no("instances, which only optimized Yan Core has"),
     };
     let decorators = it
         .attrs
