@@ -456,29 +456,45 @@ them is accepted, not before.
 only, `&` for inout everywhere but Core; (b) adopt D3 only and decide `~` per surface later; (c) no
 rule. Rec: (a). It touches Meta and Core's open question 2, and Core's decision (words) stands.
 
+Answer (Antonio, 2026-11-04): (a). D3 to D5 adopted as a package; RFC after M1.
+
 **Q2. One `ex` shape?** (a) canonical `ex call == value`, rows as formatter sugar; (b) keep per-surface
 spellings. Rec: (a).
+
+Answer: (a). Canonical `ex call == value`; row tables are formatter sugar.
 
 **Q3. Decide Untrusted marking now?** It blocks Prompt, Agent and Docs. (a) one card now to choose
 between a type form and a label on the capability result, RFC after M1; (b) leave open until a run
 needs it. Rec: (a), because three surfaces cannot specify a lane or a fence without it.
 
+Answer: (a), and both forms: label propagation is the mechanism and `Untrusted of T` is the header-visible spelling. RFC after M1.
+
 **Q4. Authorize the name-drift sweep (D1)?** One spec-fix PR for `.ynsh` and the fence tags, no design
 content. Rec: yes, now; it is small and removes a known error from the spec.
+
+Answer: yes, now. Spec-fix PR #206 is merged.
 
 **Q5. Which wave goes first after M1?** (a) Core ledger cut, Plain Yan, Agent, Docs, Meta restructure
 (wave 1); (b) put Shell first because it is the most demonstrable capability story; (c) other. Rec:
 (a); (b) is the best second.
 
+Answer: (a). Wave 1 is Core ledger cut, Plain Yan, Agent, Docs, Meta restructure.
+
 **Q6. Meta: adopt the notation workbench and drop `~x` and observe-by-binding?** Rec: yes after M1,
 inside the existing lab charter.
+
+Answer: yes, after M1, inside the lab charter.
 
 **Q7. Shell fails on non-zero exit by default, with `$?` as the opt-out?** This differs from the std
 default of returning a status. Rec: yes, with the lowering adding a check.
 
+Answer: yes. `$` fails on non-zero exit, `$?` is the opt-out; lowering adds a check and std gains `check` on `Output`.
+
 **Q8. Pay for a current-tokenizer rerun?** The key in the cloud environment lets every token table in
 the family be rerun with the count-tokens API (section 9). Rec: yes, once the key is in; it is cheap and
 removes the caveat from every study at once.
+
+Answer: yes, once the key is in the cloud environment.
 
 ## 8. Adoption order relative to Plan A
 
