@@ -2869,10 +2869,6 @@ impl Lower<'_, '_, '_> {
         match &target.kind {
             j::ExprKind::Name(n) if n == "_" => {
                 if !matches!(r, Rhs::Atom(_)) {
-                    let rhs_span = match &r {
-                        Rhs::Copy(p) => p.root_span,
-                        _ => at,
-                    };
                     self.emit(
                         StmtKind::Let {
                             mutable: false,
@@ -2880,7 +2876,7 @@ impl Lower<'_, '_, '_> {
                             pat_span: target.span,
                             ty: t.core(),
                             rhs: r,
-                            rhs_span,
+                            rhs_span: at,
                         },
                         target.span,
                     );
@@ -2971,7 +2967,14 @@ impl Lower<'_, '_, '_> {
                 );
                 self.store_dict_places(stores, target.span);
             }
-            j::ExprKind::Wild => self.emit(StmtKind::Rhs(r), target.span),
+            j::ExprKind::Wild => {
+                // A discarded copy is reported at what it copies (E416).
+                let sp = match &r {
+                    Rhs::Copy(p) => p.root_span,
+                    _ => target.span,
+                };
+                self.emit(StmtKind::Rhs(r), sp);
+            }
             _ => return unsupported("this assignment target"),
         }
         Ok(())
