@@ -51,3 +51,4 @@ research index links their studies and rows.
 | [0028](0028-drops-and-yan-opt.md) | Ownership facts, drop elaboration and the `yan-opt` contract | accepted | R769 to R773 |
 | [0029](0029-yan-meta.md) | Yan Meta, the lab and canary surface | accepted | R776 to R786 |
 | [0030](0030-nested-optionals.md) | Nested optionals keep two levels | draft | |
+| [0031](0031-forum-batch.md) | Numeric panic operands, item-level deny, 7-day cool-off, target-typed variants as a non-goal | draft | |
