@@ -9,11 +9,16 @@ use yan_std::registry::{ENTRIES, Id};
 use crate::vm::Vm;
 use crate::{Interp, R, Value};
 
+/// A capability operation whose `Err` is the failure value.
+pub(crate) type CapFn = fn(&mut Interp, &mut [Value]) -> R<Result<Value, Value>>;
+
 #[derive(Clone, Copy)]
 pub(crate) enum Bind {
     Plain(fn(&mut [Value]) -> R<Value>),
     /// A capability operation, which writes through the interpreter.
     Cap(fn(&mut Interp, &mut [Value]) -> R<Value>),
+    /// A capability operation that may fail; `Err` is the failure value.
+    CapFallible(CapFn),
     /// `Err` is the failure value.
     Fallible(fn(&[Value]) -> R<Result<Value, Value>>),
     /// Runs in the VM, which it may call back into for closures.
@@ -90,6 +95,6 @@ pub(crate) fn call(path: &str, args: &mut [Value]) -> R<Result<Value, Value>> {
     match get(id).expect("bound") {
         Bind::Plain(f) => f(args).map(Ok),
         Bind::Fallible(f) => f(args),
-        Bind::Cap(_) | Bind::Vm(_) => unreachable!("selftests call neither"),
+        Bind::Cap(_) | Bind::CapFallible(_) | Bind::Vm(_) => unreachable!("selftests call neither"),
     }
 }

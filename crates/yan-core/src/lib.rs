@@ -70,6 +70,9 @@ pub fn value[T: Type is Eq + Show, comptime N: Nat](let xs: List[i64], inout acc
             {}
         }
     }
+    deadline when {
+        print(cap io, let s)
+    }
     comptime for t: Type in types {}
     comptime if flag {
         assert eq_i64(let x, let 1)

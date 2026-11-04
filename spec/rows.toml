@@ -699,3 +699,8 @@ sections = "1, 2, 16.6, 20.6, 22, 23, 25, 26"
 rows = "R787"
 topic = "`upper` and `lower` on `char`: methods of `std.text` that apply to the one-scalar `str` and return `str`, since full case mapping can expand (R787)"
 sections = "17"
+
+[[entry]]
+rows = "R788"
+topic = "Cancel scopes lower to a Yan Core statement `deadline at { ... }` on a `MonoInstant`, replacing the reserved-capability and `sleep_until` lowerings: `with timeout(d)` is `deadline time.monotonic() + d`; nested scopes keep the earliest instant, a callee inherits its caller's, and a blocking operation that would wait past it fails with `Timeout` (R788)"
+sections = "3.5, 9.4"

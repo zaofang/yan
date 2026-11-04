@@ -224,6 +224,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             clocks: Vec::new(),
             rngs: Vec::new(),
             args: Vec::new(),
+            deadline: None,
             test: false,
         },
     );
@@ -301,6 +302,8 @@ pub(crate) struct Interp<'o> {
     rngs: Vec<rand::Gen>,
     /// The program's arguments under the host `env` handler.
     args: Vec<String>,
+    /// The earliest enclosing `deadline` scope, as monotonic nanoseconds (9.4).
+    deadline: Option<i128>,
     /// Running under `yan test`, which picks the default handlers (7.3).
     test: bool,
 }
@@ -407,6 +410,7 @@ fn entry(
         clocks: Vec::new(),
         rngs: Vec::new(),
         args: argv,
+        deadline: None,
         test: limits.is_some(),
     };
     // The test handler set (7.3): `rand = seeded(0)`, `env = fake_env()`, `proc = fake_proc()`.
@@ -652,6 +656,29 @@ mod selftest {
             p.render("t.yir"),
             "panic(div_zero): floor division of 7 by zero\n  at half t.yir:3:2\n  at main t.yir:8:2"
         );
+    }
+
+    #[test]
+    fn deadline_cuts_a_sleep_short_with_timeout() {
+        let (s, out) = run_src(
+            "record Cancelled {}\nrecord Timeout {}\n\
+             fn slow(cap io: Io, cap time: Time) -> Unit fail Timeout {\n\
+             let t1: MonoInstant = std.time.monotonic(cap time)\n\
+             let t2: Duration = std.time.duration.of.millis(let 50)\n\
+             let t3: MonoInstant = std.time.mono.add(let t1, let t2)\n\
+             deadline t3 {\n\
+             let d1: Duration = std.time.duration.of.millis(let 10)\n\
+             std.time.sleep(cap time, let d1)?\n\
+             std.io.print(cap io, let \"a\")\n\
+             let d2: Duration = std.time.duration.of.millis(let 200)\n\
+             std.time.sleep(cap time, let d2)?\n\
+             std.io.print(cap io, let \"b\")\n\
+             }\n ret ()\n}\n\
+             fn main(cap io: Io, cap time: Time) -> Unit {\n\
+             let r: Result[Unit, Timeout] = try slow(cap io, cap time)\n\
+             std.io.print(cap io, let \"end\")\n ret ()\n}\n",
+        );
+        assert_eq!((s, out.as_str()), (0, "a\nend\n"));
     }
 
     #[test]

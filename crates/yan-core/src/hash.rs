@@ -759,6 +759,10 @@ impl Cx<'_> {
                     cx.block(body);
                 });
             }
+            StmtKind::Deadline { at, body } => {
+                self.atom(at);
+                self.block(body);
+            }
             StmtKind::Par { blocks, .. } => blocks.iter_mut().for_each(|b| self.block(b)),
             StmtKind::ComptimeFor {
                 name,

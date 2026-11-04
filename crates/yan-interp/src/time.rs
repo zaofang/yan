@@ -349,6 +349,26 @@ fn sleep(it: &mut Interp, h: &Value, ns: i128) {
     }
 }
 
+/// Sleeps `ns`, or until the enclosing deadline when that comes first; `Err` is `Timeout` (9.4).
+fn sleep_in_scope(it: &mut Interp, h: &Value, ns: i128) -> Result<Value, Value> {
+    let Mono(now) = monotonic(it, h) else {
+        unreachable!("a reading")
+    };
+    match it.deadline {
+        Some(d) if now + ns > d => {
+            sleep(it, h, d - now);
+            Err(Value::Data {
+                name: "Timeout".to_owned(),
+                fields: Vec::new(),
+            })
+        }
+        _ => {
+            sleep(it, h, ns);
+            Ok(Unit)
+        }
+    }
+}
+
 macro_rules! f {
     ($id:ident, |$a:ident| { $($pat:pat => $e:expr),+ $(,)? }) => {
         (
@@ -461,21 +481,19 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_TIME_SLEEP,
-        Bind::Cap(|it, a| {
+        Bind::CapFallible(|it, a| {
             let ns = dur(&a[1]);
-            sleep(it, &a[0].clone(), ns);
-            Ok(Unit)
+            Ok(sleep_in_scope(it, &a[0].clone(), ns))
         }),
     ),
     (
         STD_TIME_SLEEP_UNTIL,
-        Bind::Cap(|it, a| {
+        Bind::CapFallible(|it, a| {
             let h = a[0].clone();
             let Mono(now) = monotonic(it, &h) else {
                 unreachable!("a reading")
             };
-            sleep(it, &h, dur(&a[1]) - now);
-            Ok(Unit)
+            Ok(sleep_in_scope(it, &h, dur(&a[1]) - now))
         }),
     ),
 ];

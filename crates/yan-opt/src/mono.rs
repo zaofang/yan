@@ -278,7 +278,9 @@ impl<'a> Walk<'a> {
                 self.block(body);
             }
             StmtKind::Become(c) => self.call(c),
-            StmtKind::With { body, .. } | StmtKind::Unsafe(body) => self.block(body),
+            StmtKind::With { body, .. }
+            | StmtKind::Deadline { body, .. }
+            | StmtKind::Unsafe(body) => self.block(body),
             StmtKind::Par { blocks, .. } => blocks.iter_mut().for_each(|b| self.block(b)),
             StmtKind::ComptimeFor { ty, body, .. } => {
                 self.ty(ty);

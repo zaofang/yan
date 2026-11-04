@@ -1023,6 +1023,14 @@ impl Parser<'_> {
                 self.bump();
                 StmtKind::Become(self.call()?)
             }
+            "deadline" if !next_is("=") => {
+                self.bump();
+                let at = self.atom()?;
+                StmtKind::Deadline {
+                    at,
+                    body: self.block()?,
+                }
+            }
             "with" => {
                 self.bump();
                 let name = self.name()?;
