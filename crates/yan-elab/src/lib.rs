@@ -96,6 +96,8 @@ pub(crate) struct Sig {
     pub caps: Vec<String>,
     /// The capability trait of each binding in `caps` that is not named after it (`uses Kv as cache`).
     pub cap_tys: Vec<(String, String)>,
+    /// The parameters a returned view borrows from (`-> View[T] from xs`, 4.5).
+    pub from: Vec<String>,
 }
 
 impl Sig {
@@ -291,6 +293,16 @@ impl Globals {
                     }
                 }
                 Ty::Foreign(ffi::FOREIGN[k], a)
+            }
+            // A view is a borrowed list: a `let` parameter already borrows, and the escape
+            // rules (E406, E414) are checked from the written types (4.5).
+            j::Type::Named { path, args }
+                if path.len() == 1 && path[0] == "View" && args.len() == 1 =>
+            {
+                let j::TArg::Type(t) = &args[0] else {
+                    return unsupported("value type arguments");
+                };
+                Ty::List(Box::new(self.ty(t, cx, span)?))
             }
             j::Type::Named { path, args } => {
                 let mut a = Vec::new();
@@ -787,9 +799,6 @@ fn sig_body(
     let (ret, fail) = match &f.ret {
         None => (Ty::Unit, None),
         Some(r) => {
-            if !r.from.is_empty() {
-                return unsupported("views");
-            }
             let ret = match &r.ty {
                 Some(t) => g.ty(t, cx, f.name_span)?,
                 None => Ty::Unit,
@@ -859,6 +868,7 @@ fn sig_body(
         fail,
         caps,
         cap_tys,
+        from: f.ret.as_ref().map(|r| r.from.clone()).unwrap_or_default(),
     })
 }
 

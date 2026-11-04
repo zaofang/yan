@@ -87,6 +87,9 @@ struct Lower<'a, 'c, 's> {
     posts: Vec<j::Expr>,
     /// Each `var` parameter `old(p)` reads, with the local holding its entry value.
     olds: Vec<(String, String)>,
+    /// The parameters written as `View[T]`, and whether the function returns a view.
+    views: Vec<String>,
+    returns_view: bool,
 }
 
 /// A stage-0 value the elaborator folds itself.
@@ -726,6 +729,19 @@ fn function_body(
         narrow: Vec::new(),
         posts: Vec::new(),
         olds: Vec::new(),
+        views: f
+            .params
+            .iter()
+            .filter_map(|p| match p {
+                j::Param::Value { name, ty, .. } if is_view(ty) => Some(name.clone()),
+                _ => None,
+            })
+            .collect(),
+        returns_view: f
+            .ret
+            .as_ref()
+            .and_then(|r| r.ty.as_ref())
+            .is_some_and(is_view),
     };
     names_used(&body.stmts, &mut l.uses);
     l.infer_decreases(f, &body.stmts);
@@ -936,7 +952,7 @@ fn function_body(
         tparams: tparams(sig),
         params,
         ret: sig.ret.core(),
-        from: Vec::new(),
+        from: sig.from.clone(),
         fail: sig.fail.as_ref().map(Ty::core),
         contracts,
         body: Some(block),
@@ -1513,6 +1529,7 @@ impl Lower<'_, '_, '_> {
                 let a = match e {
                     None => Atom::Lit(Literal::Unit, at),
                     Some(e) => {
+                        self.view_escape(e);
                         let e = &self.become_in_ctor(e, true);
                         let (a, t) = self.atom(e, Some(&want))?;
                         self.expect(&t, &want, e.span);
@@ -5563,6 +5580,65 @@ impl Lower<'_, '_, '_> {
         }))
     }
 
+    /// A returned closure may not capture a view (E406), and a returned view must borrow from a
+    /// parameter, not a local (E414, 4.5).
+    fn view_escape(&mut self, e: &j::Expr) {
+        if let j::ExprKind::Lambda(ps, body) = &e.kind {
+            let mut hit = None;
+            walk(body, &mut |x| {
+                if let j::ExprKind::Name(n) = &x.kind
+                    && hit.is_none()
+                    && self.views.contains(n)
+                    && !ps.contains(n)
+                {
+                    hit = Some((n.clone(), x.span));
+                }
+            });
+            if let Some((n, sp)) = hit {
+                self.err(
+                    "E406",
+                    sp,
+                    format!("this closure escapes but captures the view `{n}`"),
+                );
+            }
+            return;
+        }
+        if !self.returns_view {
+            return;
+        }
+        let j::ExprKind::Call(f, args) = &e.kind else {
+            return;
+        };
+        let j::ExprKind::Name(callee) = &f.kind else {
+            return;
+        };
+        let Some(s) = self.g.fns.get(callee) else {
+            return;
+        };
+        for (k, a) in args.iter().enumerate() {
+            let param = match &a.name {
+                Some(n) => Some(n.as_str()),
+                None => s.params.get(k).map(|p| p.name.as_str()),
+            };
+            if let (
+                Some(p),
+                j::ArgKind::Expr(j::Expr {
+                    kind: j::ExprKind::Name(x),
+                    ..
+                }),
+            ) = (param, &a.kind)
+                && s.from.iter().any(|f| f == p)
+                && !self.sig.params.iter().any(|q| q.name == *x)
+            {
+                self.err(
+                    "E414",
+                    e.span,
+                    format!("this view borrows from the local `{x}`, which ends with the function"),
+                );
+            }
+        }
+    }
+
     /// `return C(..., become f(x))` (R456): `become` is legal as the last argument of a constructor
     /// in return position, nesting; anywhere else in a constructor it is E143. The call lowers as
     /// an ordinary call that fills the field, so it does not yet run in constant stack.
@@ -7531,4 +7607,8 @@ fn wire(t: &Ty) -> bool {
         Ty::Tuple(ts) | Ty::Union(ts) => ts.iter().all(wire),
         _ => true,
     }
+}
+
+fn is_view(t: &j::Type) -> bool {
+    matches!(t, j::Type::Named { path, .. } if path.len() == 1 && path[0] == "View")
 }
