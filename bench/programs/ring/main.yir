@@ -7,7 +7,7 @@ fn main() -> Unit {
     loop 'fill {
         let done: bool = ge_i64(let i, let 64)
         if done { break 'fill }
-        std.list.push[i64](inout buf, let 0)
+        std.list.append[i64](inout buf, let 0)
         i = add_checked_i64(let i, let 1)
     }
     var head: i64 = 0

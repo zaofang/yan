@@ -3363,7 +3363,7 @@ impl Lower<'_, '_, '_> {
                 for a in atoms {
                     let sp = a.span();
                     let push = call(
-                        "std.list.push",
+                        "std.list.append",
                         vec![et.targ()],
                         vec![
                             Arg::Value(Conv::Inout, Atom::Name(l.clone(), at), at),

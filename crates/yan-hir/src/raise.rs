@@ -349,10 +349,8 @@ struct Fold<'a> {
     loops: Vec<String>,
 }
 
-// `push` is what yan-elab emits today; R477 renames it `append`.
-const BUILDERS: [&str; 4] = [
+const BUILDERS: [&str; 3] = [
     "std.list.append",
-    "std.list.push",
     "std.set.add",
     "std.dict.insert",
 ];
