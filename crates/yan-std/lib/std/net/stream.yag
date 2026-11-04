@@ -1,0 +1,21 @@
+"""A connected TCP stream. `recv` returns empty bytes once the peer has closed and every byte is read."""
+
+@intrinsic
+@since("1.0")
+pub def send(var self: TcpStream, b: bytes) -> None fail NetError: ...
+
+@intrinsic
+@since("1.0")
+pub def recv(var self: TcpStream, max: int) -> bytes fail NetError | Timeout: ...
+
+@intrinsic
+@since("1.0")
+pub def close(var self: TcpStream) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def local(self: TcpStream) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def peer(self: TcpStream) -> str: ...

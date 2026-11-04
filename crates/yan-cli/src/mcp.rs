@@ -692,6 +692,87 @@ mod tests {
     }
 
     #[test]
+    fn mem_net_runs_tcp_in_memory() {
+        let dir = package("memnet", MEM_NET);
+        let r = tool(&Server::new(&dir, true), "run_tests", json!({}));
+        assert_eq!(r["structuredContent"]["ok"], true, "{r}");
+    }
+
+    const MEM_NET: &str = r#"def serve(l: TcpListener) -> str fail NetError | Timeout:
+    s = l.accept()?
+    b = s.recv(100)?
+    s.send(b)?
+    s.close()
+    return f"{s.local()} {s.peer()}"
+
+def roundtrip() -> str fail NetError | Timeout uses net:
+    l = net.tcp_listen("127.0.0.1:0")?
+    c = net.tcp_connect(l.addr())?
+    c.send("ping".bytes())?
+    who = serve(l)?
+    got = c.recv(2)?
+    rest = c.recv(100)?
+    end = c.recv(100)?
+    return f"{l.addr()} {who} {got.len()} {rest.len()} {end.len()} {c.local()}"
+
+def dial(a: str) -> str fail NetError uses net:
+    c = net.tcp_connect(a)?
+    return c.peer()
+
+def listen_at(a: str) -> str fail NetError uses net:
+    l = net.tcp_listen(a)?
+    return l.addr()
+
+def bind(a: str) -> str uses net:
+    return listen_at(a) else e -> f"{e.reason}"
+
+def refused() -> str uses net:
+    return dial("10.0.0.1:80") else e -> f"{e.reason} {e}"
+
+def test_mem_net():
+    with net = mem_net():
+        assert (roundtrip() else e -> f"{e}") == "127.0.0.1:49152 127.0.0.1:49152 127.0.0.1:49153 2 2 0 127.0.0.1:49153"
+        assert refused() == "Refused() 10.0.0.1:80: connection refused"
+
+def test_only():
+    with net = mem_net():
+        with net = net.only(connect=["10.0.0.1:*"]):
+            assert refused() == "Refused() 10.0.0.1:80: connection refused"
+            assert bind("127.0.0.1:0") == "NotGranted()"
+
+def send_ok(var s: TcpStream, b: bytes) -> str fail NetError:
+    s.send(b)?
+    return "sent"
+
+def closed() -> str fail NetError | Timeout uses net:
+    l = net.tcp_listen("h:1")?
+    c = net.tcp_connect("h:1")?
+    c.close()
+    c.close()
+    s = l.accept()?
+    end = s.recv(10)?
+    sent = send_ok(&s, "x".bytes()) else e -> f"{e.reason}"
+    return f"{end.len()} {sent}"
+
+def test_close_and_in_use():
+    with net = mem_net():
+        assert (listen_at("h:2") else _ -> "") == "h:2"
+        assert bind("h:2") == "AddrInUse()"
+        assert (closed() else e -> f"{e}") == "0 Closed()"
+
+def wait_accept() -> str fail NetError | Timeout uses net, time:
+    l = net.tcp_listen("h:3")?
+    with timeout(Duration.millis(5)):
+        s = l.accept()?
+    return "accepted"
+
+def test_timeout():
+    with net = mem_net():
+        with time = virtual(Instant.from_unix_seconds(0)):
+            assert (wait_accept() else e -> f"{e}") == "Timeout()"
+"#;
+
+    #[test]
     fn e326_for_another_capabilitys_attenuation() {
         let dir = package(
             "e326",

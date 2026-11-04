@@ -68,6 +68,8 @@ pub const TYPES: &[TypeName] = &[
     row("Entity", "Entity", "Entity", 2),
     row("Locale", "Locale", "Locale", 0),
     row("Command", "Command", "Command", 0),
+    row("TcpListener", "TcpListener", "TcpListener", 0),
+    row("TcpStream", "TcpStream", "TcpStream", 0),
     row("WindowsPath", "WindowsPath", "WindowsPath", 0),
     row("Duration", "Duration", "Duration", 0),
     row("Instant", "Instant", "Instant", 0),
