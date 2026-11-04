@@ -53,7 +53,10 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_TEXT_STRIP, |a| { [Str(x)] => s(x.trim().to_owned()) }),
     f!(STD_TEXT_STARTSWITH, |a| { [Str(x), Str(p)] => Bool(x.starts_with(&**p)) }),
     f!(STD_TEXT_ENDSWITH, |a| { [Str(x), Str(p)] => Bool(x.ends_with(&**p)) }),
-    f!(STD_TEXT_CONTAINS, |a| { [Str(x), Str(p)] => Bool(x.contains(&**p)) }),
+    f!(STD_TEXT_CONTAINS, |a| {
+        [Str(x), Str(p)] => Bool(x.contains(&**p)),
+        [Str(x), Char(c)] => Bool(x.contains(*c))
+    }),
     f!(STD_TEXT_REPLACE, |a| { [Str(x), Str(p), Str(q)] => s(x.replace(&**p, q)) }),
     f!(STD_TEXT_SPLIT, |a| {
         [Str(x), Data { fields, .. }] => List(match fields.first() {
