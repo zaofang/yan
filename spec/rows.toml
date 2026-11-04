@@ -774,3 +774,18 @@ sections = "14.4, 17.3"
 rows = "R807"
 topic = "Standing policy: a Python builtin or method that models reach for and Yan Agent lacks is a real std function or an N-code normalization, never a bare E200 or E203 (R807)"
 sections = "14.4"
+
+[[entry]]
+rows = "R808"
+topic = "Empty `[]` and `{}` bindings take their type from the first `append`, `extend`, key store or `return` that fixes it, else E241 (R808)"
+sections = "14.1"
+
+[[entry]]
+rows = "R809"
+topic = "`ex f(x) == v` means `Ok(v)` and `fail e` as an operand is `Err(e)`, so `ex f(x) == fail E` states a failure (R809)"
+sections = "14.1"
+
+[[entry]]
+rows = "R810"
+topic = "A tuple of one element type is iterable in `for`; indexing or `len` on an `iter` names `.collect()` and `.count()` (R810)"
+sections = "14.1, 17.2"
