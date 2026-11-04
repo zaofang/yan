@@ -98,6 +98,8 @@ pub(crate) struct Sig {
     pub cap_tys: Vec<(String, String)>,
     /// The parameters a returned view borrows from (`-> View[T] from xs`, 4.5).
     pub from: Vec<String>,
+    /// Erased ghost parameters, by position among all written parameters, and name.
+    pub ghosts: Vec<(usize, String)>,
 }
 
 impl Sig {
@@ -770,10 +772,17 @@ fn sig_body(
     cx: &mut Cx,
 ) -> R<Sig> {
     let mut params = Vec::new();
+    let mut ghosts = Vec::new();
     let mut positional = f.params.iter().any(|p| matches!(p, j::Param::Slash));
     for p in &f.params {
         match p {
             j::Param::Slash => positional = false,
+            // A ghost parameter exists only in proofs: erased here and at every call (8.7).
+            j::Param::Value {
+                conv: Some(j::Conv::Ghost),
+                name,
+                ..
+            } => ghosts.push((params.len() + ghosts.len(), name.clone())),
             j::Param::Pack { .. } => return unsupported("argument packs"),
             j::Param::Value {
                 conv,
@@ -787,7 +796,7 @@ fn sig_body(
                     None => y::Conv::Let,
                     Some(j::Conv::Var) => y::Conv::Inout,
                     Some(j::Conv::Take) => y::Conv::Sink,
-                    Some(j::Conv::Ghost) => return unsupported("ghost parameters"),
+                    Some(j::Conv::Ghost) => unreachable!("ghost parameters are erased above"),
                 },
                 ty: g.ty(ty, cx, *span)?,
                 default: default.clone(),
@@ -869,6 +878,7 @@ fn sig_body(
         caps,
         cap_tys,
         from: f.ret.as_ref().map(|r| r.from.clone()).unwrap_or_default(),
+        ghosts,
     })
 }
 

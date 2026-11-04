@@ -712,7 +712,7 @@ fn function_body(
         in_become: false,
         dict_places: Vec::new(),
         uses: HashMap::new(),
-        ghosts: HashSet::new(),
+        ghosts: sig.ghosts.iter().map(|(_, n)| n.clone()).collect(),
         inferred: None,
         bound: Vec::new(),
         sites: HashMap::new(),
@@ -824,7 +824,17 @@ fn function_body(
     let mut contracts = Vec::new();
     let mut pre = Vec::new();
     for c in &body.contracts {
+        let ghostly = |e: &j::Expr| {
+            let mut hit = false;
+            walk(
+                e,
+                &mut |x| hit |= matches!(&x.kind, j::ExprKind::Name(n) if l.ghosts.contains(n)),
+            );
+            hit
+        };
         match c {
+            // A contract on ghost values is a proof obligation only (8.7).
+            j::Contract::Pre(e) | j::Contract::Post(e) if ghostly(e) => {}
             j::Contract::Pre(e) => match l.pure(e)? {
                 Some(x) => contracts.push(y::Contract::Requires(x)),
                 None => pre.push(e),
@@ -5422,6 +5432,23 @@ impl Lower<'_, '_, '_> {
             .collect();
         let want = self.want_ret.take().filter(|(_, sp)| *sp == at);
         let outer = mem::take(&mut self.arg_tys);
+        // Arguments for ghost parameters are erased with them.
+        let kept: Vec<j::Arg>;
+        let args = if sig.ghosts.is_empty() {
+            args
+        } else {
+            let first = usize::from(recv.is_some());
+            kept = args
+                .iter()
+                .enumerate()
+                .filter(|(k, a)| match &a.name {
+                    Some(n) => !sig.ghosts.iter().any(|(_, g)| g == n),
+                    None => !sig.ghosts.iter().any(|(i, _)| *i == k + first),
+                })
+                .map(|(_, a)| a.clone())
+                .collect();
+            &kept[..]
+        };
         let vals = self.args(&sig.params, recv, args, at);
         let got = mem::replace(&mut self.arg_tys, outer);
         let Some(vals) = vals? else {
