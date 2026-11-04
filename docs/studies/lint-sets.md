@@ -171,3 +171,14 @@ model sees denied lints as errors from its first patch, not at CI.
 - **D10. Module-level attributes.** Whether `@deny` and `@forbid` may sit on a module as well as an
   item. Recommended: leave for a separate question; not needed for F9.
 - **D11. User-written analyzers.** Out of 1.0. Recommended: record as a non-goal for 1.0 in section 26.
+
+## 7. Decisions (Antonio, cards, 2026-11-04)
+
+D1, D5, D6, D7, D8, D9 and D11 accepted as recommended. Four answers differ from the recommendation:
+
+- D2: named std groups are allowed in the set, pinned per edition as .NET `AnalysisLevel` does, besides
+  listing codes one by one. The RFC must say how group membership is pinned and changed per edition.
+- D3: `@expect` under a package deny is an error (E277-style), so a package deny is as strong as an
+  item `@deny` and cannot be locally excused.
+- D4: workspace inheritance is explicit opt-in per member (Cargo style), not inherited by default.
+- D10: `@deny` and `@forbid` may sit on a module as well as an item, decided in this work.
