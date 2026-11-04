@@ -157,15 +157,19 @@ pub enum Stop {
     Panic(Box<Panic>),
     /// A construct this interpreter does not run yet: a tool failure, not a program result.
     Unsupported(String),
-    /// A stage-0 budget ran out (10.4): `depth` or `steps`.
+    /// A budget ran out (10.4, R676): `depth`, `steps`, `heap` or `time`.
     Limit(&'static str),
 }
 
-/// Stage-0 budgets (10.4, R487): call depth, and steps counted as executed calls.
+/// Budgets (10.4, R487, R676): call depth, steps counted as executed calls and loop
+/// iterations, bytes allocated above what the process held at the start (counted only under
+/// [`yan_rt::heap::Counting`]), and a wall-clock deadline.
 #[derive(Clone, Copy)]
 pub struct Limits {
     pub depth: usize,
     pub steps: u64,
+    pub heap: usize,
+    pub deadline: Option<std::time::Instant>,
 }
 
 impl Default for Limits {
@@ -173,6 +177,8 @@ impl Default for Limits {
         Limits {
             depth: 1_000,
             steps: 50_000_000,
+            heap: usize::MAX,
+            deadline: None,
         }
     }
 }
@@ -334,7 +340,7 @@ pub fn run(m: &Module, out: &mut dyn Write) -> R<i32> {
 
 /// [`run`] with the program arguments `env.args()` returns.
 pub fn run_with(m: &Module, out: &mut dyn Write, args: Vec<String>) -> R<i32> {
-    Ok(match entry(m, "main", out, None, args)? {
+    Ok(match entry(m, "main", out, None, args, &mut 0)? {
         true => 0,
         false => EXIT_FAILURE,
     })
@@ -343,10 +349,21 @@ pub fn run_with(m: &Module, out: &mut dyn Write, args: Vec<String>) -> R<i32> {
 /// Run the test `fn f` of `m` under `limits`, on a thread with room for deep recursion.
 /// `Ok(false)` means it returned a failure.
 pub fn test(m: &Module, f: &str, limits: Limits, out: &mut (dyn Write + Send)) -> R<bool> {
+    test_metered(m, f, limits, out, &mut 0)
+}
+
+/// [`test`], adding the steps it took to `spent`.
+pub fn test_metered(
+    m: &Module,
+    f: &str,
+    limits: Limits,
+    out: &mut (dyn Write + Send),
+    spent: &mut u64,
+) -> R<bool> {
     std::thread::scope(|s| {
         std::thread::Builder::new()
             .stack_size(1 << 30)
-            .spawn_scoped(s, || entry(m, f, out, Some(limits), Vec::new()))
+            .spawn_scoped(s, || entry(m, f, out, Some(limits), Vec::new(), spent))
             .expect("spawn the test thread")
             .join()
             .unwrap_or_else(|_| unsupported("the interpreter crashed"))
@@ -360,6 +377,7 @@ fn entry(
     out: &mut dyn Write,
     limits: Option<Limits>,
     argv: Vec<String>,
+    spent: &mut u64,
 ) -> R<bool> {
     let program = compile::compile(m);
     let Some(code) = program.fns.get(f).copied() else {
@@ -403,7 +421,9 @@ fn entry(
     if let Some(l) = limits {
         vm.limit(l);
     }
-    Ok(vm.call(code, args)?.0.is_ok())
+    let r = vm.call(code, args);
+    *spent += vm.steps();
+    Ok(r?.0.is_ok())
 }
 
 pub(crate) fn int_range(ty: &str) -> Option<(i128, i128)> {

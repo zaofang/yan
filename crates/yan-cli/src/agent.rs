@@ -3,14 +3,12 @@
 //! harness (21.6) reads. The model is behind an adapter: `stub:FILE` replays scripted replies,
 //! `cmd:PROGRAM` talks to a process that answers one JSON line per turn.
 
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
 use serde_json::{Value, json};
-use yan_db::Database;
 use yan_hir::ItemKind;
 
 use crate::{mcp, patch};
@@ -199,17 +197,15 @@ fn spawn(cmd: &mut Command) -> Result<(Child, Lines), String> {
 /// The `yan mcp` server for the work directory, spoken to in its own JSON-RPC messages but
 /// in this process.
 struct Mcp {
-    root: PathBuf,
-    db: RefCell<Database>,
+    server: mcp::Server,
     id: u64,
     calls: Vec<Value>,
 }
 
 impl Mcp {
-    fn start(dir: &Path) -> Result<Mcp, String> {
+    fn start(dir: &Path, trusted: bool) -> Result<Mcp, String> {
         let mut m = Mcp {
-            root: dir.to_path_buf(),
-            db: RefCell::new(Database::new(false, false)),
+            server: mcp::Server::new(dir, trusted),
             id: 0,
             calls: Vec::new(),
         };
@@ -220,7 +216,7 @@ impl Mcp {
     fn request(&mut self, method: &str, params: Value) -> Result<Value, String> {
         self.id += 1;
         let req = json!({"jsonrpc": "2.0", "id": self.id, "method": method, "params": params});
-        let r = mcp::respond(&self.root, &self.db, &req).ok_or("yan mcp gave no reply")?;
+        let r = mcp::respond(&self.server, &req).ok_or("yan mcp gave no reply")?;
         match r.get("error") {
             Some(e) => Err(format!("yan mcp: {e}")),
             None => Ok(r["result"].clone()),
@@ -298,16 +294,18 @@ pub fn run(o: &Options) -> Result<(Value, bool), String> {
     let prompt = task["prompt"]
         .as_str()
         .ok_or(format!("{}: the task has no `prompt`", o.task.display()))?;
-    let dir = match &o.dir {
+    // A directory the run creates holds only the model's code; any other must be trusted.
+    let (dir, trusted) = match &o.dir {
         Some(d) => {
+            let existed = d.exists();
             std::fs::create_dir_all(d).map_err(|e| format!("{}: {e}", d.display()))?;
-            d.clone()
+            (d.clone(), !existed || crate::trust::is_trusted(d))
         }
-        None => fresh_dir(&id)?,
+        None => (fresh_dir(&id)?, true),
     };
     let system = system_prompt(o)?;
     let mut model = Model::open(&o.model)?;
-    let mut mcp = Mcp::start(&dir)?;
+    let mut mcp = Mcp::start(&dir, trusted)?;
     let mut msgs: Vec<Value> = Vec::new();
     let mut rounds: Vec<Value> = Vec::new();
     let mut totals: BTreeMap<&str, Usage> = BTreeMap::new();

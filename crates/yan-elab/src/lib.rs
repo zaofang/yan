@@ -34,6 +34,8 @@ pub struct Options {
     pub yn: bool,
     /// The module is an ffi module, under the package's `ffi/` directory (12).
     pub ffi: bool,
+    /// The repository is not trusted, so stage 0 does not run (R676).
+    pub untrusted: bool,
 }
 
 /// A construct the elaborator does not lower yet, at the innermost statement or expression
@@ -141,6 +143,7 @@ pub(crate) struct Cx<'s> {
     pub release: bool,
     pub yn: bool,
     pub ffi: bool,
+    pub untrusted: bool,
     pub diags: Vec<Diagnostic>,
 }
 
@@ -319,6 +322,7 @@ pub fn elaborate(
         release: opts.release,
         yn: opts.yn,
         ffi: opts.ffi,
+        untrusted: opts.untrusted,
         diags: Vec::new(),
     };
     let mut g = Globals::default();

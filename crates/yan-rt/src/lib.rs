@@ -6,6 +6,8 @@
 pub mod abi;
 pub mod collections;
 pub mod fmt;
+#[allow(unsafe_code)]
+pub mod heap;
 pub mod list;
 pub mod math;
 pub mod num;

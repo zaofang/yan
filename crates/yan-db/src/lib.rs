@@ -41,6 +41,9 @@ pub struct Settings {
     pub strict: bool,
     #[returns(copy)]
     pub release: bool,
+    /// Stage 0 does not run (R676).
+    #[returns(copy)]
+    pub untrusted: bool,
 }
 
 /// An item of a module, keyed by its file, its name and its salted hash (3.6): an edited item
@@ -72,8 +75,15 @@ impl Database {
         static STD: Once = Once::new();
         STD.call_once(|| yan_elab::install_std(std_modules));
         let db = Self::default();
-        Settings::new(&db, strict, release);
+        Settings::new(&db, strict, release, false);
         db
+    }
+
+    /// Stop stage 0 from running, for a repository the user has not trusted (R676).
+    pub fn untrusted(mut self) -> Self {
+        use salsa::Setter;
+        Settings::get(&self).set_untrusted(&mut self).to(true);
+        self
     }
 
     /// The file at `path` with text `text`: the existing input, updated if the text changed.
@@ -217,6 +227,7 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
         release: settings.release(db),
         yn,
         ffi: is_ffi(path),
+        untrusted: settings.untrusted(db),
     };
     let name = path.display().to_string();
     match yan_elab::elaborate(&name, file.text(db), m, opts) {

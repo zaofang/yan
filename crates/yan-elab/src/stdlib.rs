@@ -701,6 +701,7 @@ fn std_cx(module: &str) -> Cx<'static> {
         release: false,
         yn: false,
         ffi: false,
+        untrusted: false,
         diags: Vec::new(),
     }
 }

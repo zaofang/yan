@@ -201,7 +201,7 @@ fn int_text(s: &str) -> R<String> {
     }
 }
 
-pub(crate) fn walk(e: &j::Expr, f: &mut impl FnMut(&j::Expr)) {
+pub(crate) fn walk<'e>(e: &'e j::Expr, f: &mut impl FnMut(&'e j::Expr)) {
     f(e);
     use j::ExprKind as K;
     match &e.kind {
@@ -340,8 +340,14 @@ pub(crate) fn sub_blocks(s: &j::Stmt) -> Vec<&[j::Stmt]> {
     }
 }
 
-/// W806: `if p == lit` conditions where `lit` is the literal an `ex` line passes as `p`.
-fn special_cases(f: &j::FuncDef, contracts: &[j::Contract], stmts: &[j::Stmt]) -> Vec<Span> {
+/// W806: `if p == lit` conditions where `lit` is the literal an `ex` line passes as `p`, and
+/// lookups keyed by one (R675): a `case lit` of `match p`, and `d[p]` or `d.get(p)` where `d`
+/// is a dict literal, or a local assigned one, with the key `lit`.
+fn special_cases(
+    f: &j::FuncDef,
+    contracts: &[j::Contract],
+    stmts: &[j::Stmt],
+) -> Vec<(Span, &'static str)> {
     let mut inputs: Vec<(&str, &j::Lit)> = Vec::new();
     for c in contracts {
         let j::Contract::Ex { expr, .. } = c else {
@@ -368,32 +374,102 @@ fn special_cases(f: &j::FuncDef, contracts: &[j::Contract], stmts: &[j::Stmt]) -
             }
         }
     }
+    const BRANCH: &str = "this branch special-cases an `ex` input";
     let mut out = Vec::new();
     if inputs.is_empty() {
         return out;
     }
-    fn conds<'e>(stmts: &'e [j::Stmt], out: &mut Vec<&'e j::Expr>) {
+    let is_input = |p: &str, l: &j::Lit| inputs.iter().any(|(q, v)| *q == p && *v == l);
+    fn name(e: &j::Expr) -> Option<&str> {
+        match &e.kind {
+            j::ExprKind::Name(n) => Some(n),
+            _ => None,
+        }
+    }
+    let mut dicts: HashMap<&str, &[(j::Expr, j::Expr)]> = HashMap::new();
+    let mut conds = Vec::new();
+    let mut lookups: Vec<(&j::Expr, &j::Expr, Span)> = Vec::new();
+    fn scan<'e>(
+        stmts: &'e [j::Stmt],
+        dicts: &mut HashMap<&'e str, &'e [(j::Expr, j::Expr)]>,
+        conds: &mut Vec<&'e j::Expr>,
+        lookups: &mut Vec<(&'e j::Expr, &'e j::Expr, Span)>,
+        cases: &mut Vec<(&'e j::Expr, &'e j::Case)>,
+    ) {
         for s in stmts {
-            if let j::StmtKind::If { arms, .. } = &s.kind {
-                out.extend(arms.iter().map(|(c, _)| c));
+            match &s.kind {
+                j::StmtKind::If { arms, .. } => conds.extend(arms.iter().map(|(c, _)| c)),
+                j::StmtKind::Match {
+                    scrutinee,
+                    cases: cs,
+                } => cases.extend(cs.iter().map(|c| (scrutinee, c))),
+                j::StmtKind::Assign { target, value, .. } => {
+                    if let (j::ExprKind::Name(n), j::ExprKind::Dict(kvs)) =
+                        (&target.kind, &value.kind)
+                    {
+                        dicts.insert(n, kvs);
+                    }
+                }
+                _ => {}
+            }
+            for e in stmt_exprs(s) {
+                walk(e, &mut |x| match &x.kind {
+                    j::ExprKind::Index(d, k) => lookups.push((d, k, x.span)),
+                    j::ExprKind::Call(c, args) => {
+                        if let (j::ExprKind::Attr(d, m, _), [a]) = (&c.kind, args.as_slice())
+                            && m == "get"
+                            && let (None, j::ArgKind::Expr(k)) = (&a.name, &a.kind)
+                        {
+                            lookups.push((d, k, x.span));
+                        }
+                    }
+                    _ => {}
+                });
             }
             for b in sub_blocks(s) {
-                conds(b, out);
+                scan(b, dicts, conds, lookups, cases);
             }
         }
     }
-    let mut cs = Vec::new();
-    conds(stmts, &mut cs);
-    for c in cs {
+    let mut cases = Vec::new();
+    scan(stmts, &mut dicts, &mut conds, &mut lookups, &mut cases);
+    for c in conds {
         let j::ExprKind::Compare("==", a, b) = &c.kind else {
             continue;
         };
-        let hit = |x: &j::Expr, y: &j::Expr| {
-            matches!((&x.kind, &y.kind), (j::ExprKind::Name(n), j::ExprKind::Lit(l))
-                if inputs.iter().any(|(p, v)| p == n && *v == l))
+        let hit = |x: &j::Expr, y: &j::Expr| match (name(x), &y.kind) {
+            (Some(n), j::ExprKind::Lit(l)) => is_input(n, l),
+            _ => false,
         };
         if hit(a, b) || hit(b, a) {
-            out.push(c.span);
+            out.push((c.span, BRANCH));
+        }
+    }
+    for (scrutinee, c) in cases {
+        if let (
+            Some(p),
+            j::Pat::Lit(j::Expr {
+                kind: j::ExprKind::Lit(l),
+                ..
+            }),
+        ) = (name(scrutinee), &c.pat)
+            && is_input(p, l)
+        {
+            out.push((c.span, BRANCH));
+        }
+    }
+    for (d, k, at) in lookups {
+        let Some(p) = name(k) else { continue };
+        let kvs = match &d.kind {
+            j::ExprKind::Dict(kvs) => Some(kvs.as_slice()),
+            j::ExprKind::Name(n) => dicts.get(n.as_str()).copied(),
+            _ => None,
+        };
+        if kvs.is_some_and(|kvs| {
+            kvs.iter()
+                .any(|(key, _)| matches!(&key.kind, j::ExprKind::Lit(l) if is_input(p, l)))
+        }) {
+            out.push((at, "this lookup is keyed by an `ex` input"));
         }
     }
     out
@@ -750,14 +826,9 @@ fn function_body(
         }
         Ok(())
     })?;
-    for sp in special_cases(f, &body.contracts, &body.stmts) {
+    for (sp, msg) in special_cases(f, &body.contracts, &body.stmts) {
         let item = l.item.clone();
-        l.cx.warn(
-            "W806",
-            sp,
-            &item,
-            "this branch special-cases an `ex` input".into(),
-        );
+        l.cx.warn("W806", sp, &item, msg.into());
     }
     let hole_body = matches!(body.stmts.as_slice(), [s] if is_hole(s));
     let unused: Vec<(String, Span)> = sig

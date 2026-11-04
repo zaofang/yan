@@ -71,6 +71,15 @@ pub(crate) fn constant(
         kind: y::ItemKind::Fn(fd),
         span: at,
     });
+    if cx.untrusted {
+        cx.err(
+            "E261",
+            at,
+            name,
+            "stage 0 has no budget in a repository that is not trusted; run `yan trust`".into(),
+        );
+        return Ok(None);
+    }
     let (code, msg) = match yan_interp::stage0(&module, &fname, limits(it)?) {
         Ok(Stage0::Value(v)) => return Ok(Some(v)),
         Ok(Stage0::NotMaterializable(what)) => (
