@@ -2286,7 +2286,8 @@ impl Lower<'_, '_, '_> {
                     (xs.remove(0), stop, one.clone())
                 }
                 3 if matches!(&xs[2], Atom::Lit(Literal::Int(s), _) if s != "0") => {
-                    descending = matches!(&xs[2], Atom::Lit(Literal::Int(s), _) if s.starts_with('-'));
+                    descending =
+                        matches!(&xs[2], Atom::Lit(Literal::Int(s), _) if s.starts_with('-'));
                     let step = xs.remove(2);
                     let stop = xs.remove(1);
                     (xs.remove(0), stop, step)
