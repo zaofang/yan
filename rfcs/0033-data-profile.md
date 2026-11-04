@@ -1,9 +1,9 @@
 # 0033: The data profile, a typed literal file in place of TOML
 
-- Status: draft
+- Status: accepted
 - Research: none; the 2026-11-03 assessment of a Yan-based TOML alternative, and the
   [build system study](../docs/studies/build-system.md) (D7, `yan.lock` stays TOML)
-- Rows: filled in when accepted
+- Rows: R826 to R829
 
 ## Summary
 
@@ -27,8 +27,8 @@ for); a profile (one rule, reused by the manifest, the lint set and user config)
 
 Recommendation: a profile.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-04)
+- Row: R826
 
 ### D2: what the profile admits
 
@@ -44,8 +44,8 @@ one-line diffs); arithmetic (same cost). Both are deferred, not rejected.
 
 Recommendation: literals only, as above.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-04)
+- Row: R827
 
 ### D3: typed loading through `Wire`
 
@@ -63,8 +63,8 @@ comments through `dump` (needs a concrete syntax tree API; deferred).
 
 Recommendation: typed `parse` and `dump` only.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-04)
+- Row: R828
 
 ### D4: the manifest and lint set use it
 
@@ -74,8 +74,8 @@ system D7), and `std.toml` stays for interop.
 
 Recommendation: restate 19.1 in terms of the profile.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-04)
+- Row: R829
 
 ### D5: timing
 
@@ -84,11 +84,11 @@ they need.
 
 Recommendation: rows now, implementation after M1.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-04)
+- Row: none (timing; `std.data` ships after M1 with `derive(Wire)`)
 
 ## Spec changes
 
 - 17.3: a `std.data` row in the module table and a paragraph for D2 and D3.
 - 19.1: the manifest sentence cites the profile (D4).
-- 25: one parse-family code for a profile violation.
+- 25: E144 for a profile violation.

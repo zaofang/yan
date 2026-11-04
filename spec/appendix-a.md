@@ -180,6 +180,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R823 | `rand.state() -> Option[RandState]` with opaque `RandState` bytes, `seeded(state)` and byte-position `at=` restore (R823) | 7.1, 17.3 |
 | R824 | Split rule: a branch seed depends on the task path through a per-task split counter, fixing 17.3 and R685 to match 7.7 (R824) | 7.7, 17.3 |
 | R825 | `tls.Profile` enum `compatible` and `modern`, narrowing-only `.only`, no raw config, server default `modern`, audit facts, R404 wording (R825) | 9.6.1, 17.6, 18.3 |
+| R826 to R829 | The data profile (RFC 0033), decided by the owner: a profile of Yan Agent, not a surface (R826); literal-only `NAME: Type = expr` constants, checked syntactically, E144 (R827); `std.data.parse` and `dump` over `Wire`, `DataError` (R828); `package.yag` and `Lints(...)` are data files (R829) | 17.3, 19.1, 25 |
 
 <!-- /rows -->
 

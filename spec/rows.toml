@@ -864,3 +864,8 @@ sections = "7.7, 17.3"
 rows = "R825"
 topic = "`tls.Profile` enum `compatible` and `modern`, narrowing-only `.only`, no raw config, server default `modern`, audit facts, R404 wording (R825)"
 sections = "9.6.1, 17.6, 18.3"
+
+[[entry]]
+rows = "R826 to R829"
+topic = "The data profile (RFC 0033), decided by the owner: a profile of Yan Agent, not a surface (R826); literal-only `NAME: Type = expr` constants, checked syntactically, E144 (R827); `std.data.parse` and `dump` over `Wire`, `DataError` (R828); `package.yag` and `Lints(...)` are data files (R829)"
+sections = "17.3, 19.1, 25"

@@ -53,4 +53,4 @@ research index links their studies and rows.
 | [0030](0030-nested-optionals.md) | Nested optionals keep two levels | draft | |
 | [0031](0031-forum-batch.md) | Numeric panic operands, item-level deny, 7-day cool-off, target-typed variants as a non-goal | draft | |
 | [0032](0032-std-net-and-mem-net.md) | A first `std.net` slice and the `mem_net` test handler | accepted | R789 to R792 |
-| [0033](0033-data-profile.md) | The data profile, a typed literal file in place of TOML | draft | |
+| [0033](0033-data-profile.md) | The data profile, a typed literal file in place of TOML | accepted | R826 to R829 |

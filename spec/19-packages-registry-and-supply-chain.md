@@ -4,7 +4,7 @@ The design behind this section is the Yan supply-chain security design (https://
 
 ### 19.1 Manifest and lockfile
 
-`package.yag` holds one constant, `package: Package = Package(...)`, built from literals only, so tools read it without running code. A single `.yag` file may define the same constant and is then a runnable script whose dependencies resolve into the global store and which runs under its declared ceiling. The optional `lints` field is a `Lints(...)` literal (18.2, R819).
+`package.yag` holds one constant, `package: Package = Package(...)`, and is a data file (17.3, R829): built from literals only, so tools read it without running code, and a violation is E144. A single `.yag` file may define the same constant and is then a runnable script whose dependencies resolve into the global store and which runs under its declared ceiling. The optional `lints` field is a `Lints(...)` literal (18.2, R819).
 
 | Field | Meaning |
 | --- | --- |
