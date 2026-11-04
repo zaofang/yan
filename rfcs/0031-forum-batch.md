@@ -42,7 +42,7 @@ review. (c) keeps most of the debugging value, since bounds, overflow and shape 
 Recommendation: (c).
 
 - Decision: (c) numeric operand fields only (lead, 2026-11-04)
-- Row: R792
+- Row: R799
 
 ### D2: item-level `@deny(code)`
 
@@ -62,7 +62,7 @@ Options weighed: (a) nothing, rely on `--strict`; (b) a manifest-level deny list
 Recommendation: (c). New diagnostic codes for the two errors are allocated only when accepted.
 
 - Decision: (c) item-level `@deny(code)` (lead, 2026-11-04)
-- Row: R793, E277, E278
+- Row: R800, E277, E278
 
 ### D3: 7-day cool-off, and forced moves skip it
 
@@ -82,7 +82,7 @@ the window the study's threads report.
 Recommendation: 7 days with the yank exemption.
 
 - Decision: 7 days, plus yank/malicious exemption (lead, 2026-11-04)
-- Row: R794
+- Row: R801
 
 ### D4: target-typed variant names are a non-goal
 
@@ -100,7 +100,7 @@ show up in model runs, qualified `Type.Variant` stays the follow-up.
 Recommendation: record it as a non-goal.
 
 - Decision: record as non-goal (lead, 2026-11-04)
-- Row: R795
+- Row: R802
 
 ## Spec changes
 

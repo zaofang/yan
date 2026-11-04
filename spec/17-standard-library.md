@@ -44,7 +44,7 @@ A module belongs in std only if it is shared vocabulary, a capability handler or
 
 **Declaring modules of built-in types (R475).** For the second step, the built-in types are declared in these std modules: `str` and `char` in `std.text`, `list` in `std.list`, `dict` in `std.dict`, `set` in `std.set`, `bytes` in `std.encoding`, the scalars and `bigint` in `std.num`, and `Result` and `Option` in `std.result`. So `s.partition("=")` is `std.text.partition(s, "=")` and `xs.index(2)` is `std.list.index(xs, 2)`. **Case mapping on `char` (R787).** `c.upper()` and `c.lower()` are `std.text.upper(std.fmt.show(c))` and `std.text.lower(std.fmt.show(c))` and return `str`, because full case mapping can yield several scalars (`'ß'.upper()` is `"SS"`).
 
-**Optional values in Yan Core text (R476).** `T | None` is `Option[T]`, whose variants are spelled `Some { value: v }` and `None` in Yan Core text, as `Result`'s are `Ok { value: v }` and `Err { error: e }`. A nested optional spells the inner value `Some { value: None }` (R789).
+**Optional values in Yan Core text (R476).** `T | None` is `Option[T]`, whose variants are spelled `Some { value: v }` and `None` in Yan Core text, as `Result`'s are `Ok { value: v }` and `Err { error: e }`. A nested optional spells the inner value `Some { value: None }` (R796).
 
 **List append (R477).** The one operation that adds an element at the end of a list is `append`: Yan Agent and Yan write `xs.append(v)`, and Yan Core text calls `std.list.append[T](inout xs, sink v)`. std has no `push`.
 

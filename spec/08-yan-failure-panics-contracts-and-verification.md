@@ -28,7 +28,7 @@ A panic aborts the process. It prints `panic(kind): message` and the panicking t
 
 Panic kinds: `overflow`, `div_zero`, `contract`, `exclusivity`, `bounds`, `shape`, `unreachable`, `assert`, `deadlock`.
 
-**Operand fields (R792).** A panic of kind `overflow`, `div_zero`, `bounds`, `shape`, `contract` or `assert` carries named operand fields: index, length, divisor, key hash with key type, the contract clause id, and for a `contract` or `assert` clause the numeric free variables of the predicate. A field is included only when its static type is an integer, float, bool or a unit-carrying number. Text, bytes, collections, records, and any `Secret[T]` or `Untrusted[T]` value are left out and shown as their type name only. Fields are computed on the panic path only, and the record-and-replay buffer stores them as data. A local debug run may add an escaped, length-bounded excerpt of a text operand to the terminal message; it never enters the payload or the buffer.
+**Operand fields (R799).** A panic of kind `overflow`, `div_zero`, `bounds`, `shape`, `contract` or `assert` carries named operand fields: index, length, divisor, key hash with key type, the contract clause id, and for a `contract` or `assert` clause the numeric free variables of the predicate. A field is included only when its static type is an integer, float, bool or a unit-carrying number. Text, bytes, collections, records, and any `Secret[T]` or `Untrusted[T]` value are left out and shown as their type name only. Fields are computed on the panic path only, and the record-and-replay buffer stores them as data. A local debug run may add an escaped, length-bounded excerpt of a text operand to the terminal message; it never enters the payload or the buffer.
 
 ### 8.4 Contract language
 
