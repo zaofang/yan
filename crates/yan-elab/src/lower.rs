@@ -2264,6 +2264,7 @@ impl Lower<'_, '_, '_> {
         let is_range = matches!(&iter.kind, j::ExprKind::Call(f, _)
             if matches!(&f.kind, j::ExprKind::Name(n) if n == "range" && !self.locals.contains_key(n)));
         // `src` is the list and its element type; `None` iterates the counter itself.
+        let mut descending = false;
         let (src, stop, step) = if is_range {
             let j::ExprKind::Call(_, args) = &iter.kind else {
                 unreachable!("matched above")
@@ -2284,13 +2285,13 @@ impl Lower<'_, '_, '_> {
                     let stop = xs.remove(1);
                     (xs.remove(0), stop, one.clone())
                 }
-                3 if matches!(&xs[2], Atom::Lit(Literal::Int(s), _) if !s.starts_with('-') && s != "0") =>
-                {
+                3 if matches!(&xs[2], Atom::Lit(Literal::Int(s), _) if s != "0") => {
+                    descending = matches!(&xs[2], Atom::Lit(Literal::Int(s), _) if s.starts_with('-'));
                     let step = xs.remove(2);
                     let stop = xs.remove(1);
                     (xs.remove(0), stop, step)
                 }
-                3 => return unsupported("`range` with a step that is not a positive literal"),
+                3 => return unsupported("`range` with a step that is not a nonzero literal"),
                 _ => {
                     self.err("E202", iter.span, "`range` takes 1 to 3 arguments".into());
                     return Ok(());
@@ -2365,7 +2366,7 @@ impl Lower<'_, '_, '_> {
         self.loop_outer.push(self.locals.keys().cloned().collect());
         let b = self.block_with(|l| {
             let ge = call(
-                "ge_i64",
+                if descending { "le_i64" } else { "ge_i64" },
                 vec![],
                 vec![let_arg(Atom::Name(i.clone(), at)), let_arg(stop)],
                 at,
@@ -3018,9 +3019,6 @@ impl Lower<'_, '_, '_> {
                 );
             }
             j::ExprKind::Name(n) => {
-                if self.gone.contains(n) {
-                    return unsupported("a binding made again after its block ended");
-                }
                 let (r, ty) = match ann {
                     Some(a) => {
                         let (r, t) = self.inject(r, t, Some(&a), at);
