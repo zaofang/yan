@@ -1,7 +1,0 @@
-# spec: 13.1, 10.5
-# note: Xin MUST NOT declare generators; yield is rejected with E121, not E141
-# expect: E121 at 6:5
-
-def f() -> int:
-    yield 1
-    return 1

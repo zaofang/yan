@@ -1317,7 +1317,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
 
 [[package]]
-name = "yong-cg-cranelift"
+name = "yan-cg-cranelift"
 version = "0.0.0"
 dependencies = [
  "cranelift-codegen",
@@ -1325,68 +1325,68 @@ dependencies = [
  "cranelift-jit",
  "cranelift-module",
  "cranelift-native",
- "yong-core",
- "yong-mir",
- "yong-rt",
- "yong-std",
+ "yan-core",
+ "yan-mir",
+ "yan-rt",
+ "yan-std",
 ]
 
 [[package]]
-name = "yong-check"
+name = "yan-check"
 version = "0.0.0"
 dependencies = [
- "yong-core",
- "yong-diag",
+ "yan-core",
+ "yan-diag",
 ]
 
 [[package]]
-name = "yong-cli"
+name = "yan-cli"
 version = "0.0.0"
 dependencies = [
  "blake3",
  "clap",
  "serde_json",
  "toml",
- "yong-cg-cranelift",
- "yong-core",
- "yong-db",
- "yong-diag",
- "yong-hir",
- "yong-ide",
- "yong-interp",
- "yong-mir",
- "yong-names",
- "yong-xin",
+ "yan-cg-cranelift",
+ "yan-core",
+ "yan-db",
+ "yan-diag",
+ "yan-hir",
+ "yan-ide",
+ "yan-interp",
+ "yan-mir",
+ "yan-names",
+ "yan-yag",
 ]
 
 [[package]]
-name = "yong-core"
+name = "yan-core"
 version = "0.0.0"
 dependencies = [
  "blake3",
- "yong-diag",
- "yong-std",
+ "yan-diag",
+ "yan-std",
 ]
 
 [[package]]
-name = "yong-db"
+name = "yan-db"
 version = "0.0.0"
 dependencies = [
  "blake3",
  "salsa",
- "yong-check",
- "yong-core",
- "yong-diag",
- "yong-elab",
- "yong-hir",
- "yong-names",
- "yong-std",
- "yong-wen",
- "yong-xin",
+ "yan-check",
+ "yan-core",
+ "yan-diag",
+ "yan-elab",
+ "yan-hir",
+ "yan-names",
+ "yan-std",
+ "yan-yag",
+ "yan-yn",
 ]
 
 [[package]]
-name = "yong-diag"
+name = "yan-diag"
 version = "0.0.0"
 dependencies = [
  "serde",
@@ -1394,49 +1394,49 @@ dependencies = [
 ]
 
 [[package]]
-name = "yong-elab"
+name = "yan-elab"
 version = "0.0.0"
 dependencies = [
  "serde_json",
  "unicode-normalization",
- "yong-check",
- "yong-core",
- "yong-db",
- "yong-diag",
- "yong-hir",
- "yong-interp",
- "yong-names",
- "yong-std",
- "yong-xin",
+ "yan-check",
+ "yan-core",
+ "yan-db",
+ "yan-diag",
+ "yan-hir",
+ "yan-interp",
+ "yan-names",
+ "yan-std",
+ "yan-yag",
 ]
 
 [[package]]
-name = "yong-hir"
+name = "yan-hir"
 version = "0.0.0"
 dependencies = [
- "yong-core",
- "yong-diag",
- "yong-std",
+ "yan-core",
+ "yan-diag",
+ "yan-std",
 ]
 
 [[package]]
-name = "yong-ide"
+name = "yan-ide"
 version = "0.0.0"
 dependencies = [
  "serde",
  "serde_json",
- "yong-core",
- "yong-db",
- "yong-diag",
- "yong-elab",
- "yong-hir",
- "yong-names",
- "yong-wen",
- "yong-xin",
+ "yan-core",
+ "yan-db",
+ "yan-diag",
+ "yan-elab",
+ "yan-hir",
+ "yan-names",
+ "yan-yag",
+ "yan-yn",
 ]
 
 [[package]]
-name = "yong-interp"
+name = "yan-interp"
 version = "0.0.0"
 dependencies = [
  "getrandom 0.4.3",
@@ -1446,39 +1446,39 @@ dependencies = [
  "num-integer",
  "num-traits",
  "serde_json",
- "yong-core",
- "yong-diag",
- "yong-rt",
- "yong-std",
- "yong-xin",
+ "yan-core",
+ "yan-diag",
+ "yan-rt",
+ "yan-std",
+ "yan-yag",
 ]
 
 [[package]]
-name = "yong-mir"
+name = "yan-mir"
 version = "0.0.0"
 dependencies = [
- "yong-core",
- "yong-std",
+ "yan-core",
+ "yan-std",
 ]
 
 [[package]]
-name = "yong-names"
+name = "yan-names"
 version = "0.0.0"
 
 [[package]]
-name = "yong-playground"
+name = "yan-playground"
 version = "0.0.0"
 dependencies = [
  "serde_json",
- "yong-db",
- "yong-diag",
- "yong-ide",
- "yong-interp",
- "yong-names",
+ "yan-db",
+ "yan-diag",
+ "yan-ide",
+ "yan-interp",
+ "yan-names",
 ]
 
 [[package]]
-name = "yong-rt"
+name = "yan-rt"
 version = "0.0.0"
 dependencies = [
  "core-math",
@@ -1493,32 +1493,32 @@ dependencies = [
 ]
 
 [[package]]
-name = "yong-std"
+name = "yan-std"
 version = "0.0.0"
 dependencies = [
- "yong-rt",
+ "yan-rt",
 ]
 
 [[package]]
-name = "yong-surface"
+name = "yan-surface"
 version = "0.0.0"
 
 [[package]]
-name = "yong-wen"
+name = "yan-yag"
 version = "0.0.0"
 dependencies = [
- "yong-diag",
- "yong-hir",
- "yong-names",
+ "yan-diag",
+ "yan-hir",
+ "yan-names",
 ]
 
 [[package]]
-name = "yong-xin"
+name = "yan-yn"
 version = "0.0.0"
 dependencies = [
- "yong-diag",
- "yong-hir",
- "yong-names",
+ "yan-diag",
+ "yan-hir",
+ "yan-names",
 ]
 
 [[package]]

@@ -1,9 +1,9 @@
-"""Differential testing of the Lean model of Yong-K against a Yong executor (formal core, phase 0).
+"""Differential testing of the Lean model of Yan-K against a Yan executor (formal core, phase 0).
 
-    uv run python formal/drt.py cases [--yong CMD] [--yongk CMD]
-    uv run python formal/drt.py gen --count N [--seed S] [--keep DIR] [--yong CMD] [--yongk CMD]
+    uv run python formal/drt.py cases [--yan CMD] [--yancore CMD]
+    uv run python formal/drt.py gen --count N [--seed S] [--keep DIR] [--yan CMD] [--yancore CMD]
 
-`cases` runs every conformance/yong/run case on both. `gen` writes N random Yong-K programs
+`cases` runs every conformance/yir/run case on both. `gen` writes N random Yan-K programs
 and runs each on both. A run is compared on stdout, exit status and panic kind. Exit status 2
 from either side means "not supported yet" and skips the program. Any other difference is a
 bug in one implementation or a gap in the spec; the program is kept for a report.
@@ -20,8 +20,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-YONG = str(ROOT / "target/release/yong")
-YONGK = str(ROOT / "formal/.lake/build/bin/yongk")
+YAN = str(ROOT / "target/release/yan")
+YANCORE = str(ROOT / "formal/.lake/build/bin/yancore")
 
 
 @dataclass(frozen=True)
@@ -50,12 +50,12 @@ def run(cmd: str, file: Path) -> Run:
     return Run(p.returncode, p.stdout, panic)
 
 
-def compare(files: list[Path], yong: str, yongk: str, keep: Path | None) -> int:
+def compare(files: list[Path], yan: str, yancore: str, keep: Path | None) -> int:
     agree = skipped = 0
     outcomes: dict[str, int] = {}
     differ: list[tuple[Path, Run, Run]] = []
     for f in files:
-        a, b = run(yong, f), run(yongk, f)
+        a, b = run(yan, f), run(yancore, f)
         if a.exit == 2 or b.exit == 2:
             skipped += 1
         elif a.key() == b.key():
@@ -69,12 +69,12 @@ def compare(files: list[Path], yong: str, yongk: str, keep: Path | None) -> int:
                 (keep / f.name).write_text(f.read_text())
     for f, a, b in differ:
         print(
-            f"DIFFER {f.name}: yong exit={a.exit} panic={a.panic or '-'}"
-            f" | yongk exit={b.exit} panic={b.panic or '-'}"
+            f"DIFFER {f.name}: yan exit={a.exit} panic={a.panic or '-'}"
+            f" | yancore exit={b.exit} panic={b.panic or '-'}"
         )
         if a.stdout != b.stdout:
-            print(f"  yong stdout:  {a.stdout[:200]!r}")
-            print(f"  yongk stdout: {b.stdout[:200]!r}")
+            print(f"  yan stdout:  {a.stdout[:200]!r}")
+            print(f"  yancore stdout: {b.stdout[:200]!r}")
     print(f"{agree} agree, {len(differ)} differ, {skipped} skipped (unsupported on one side)")
     print("agreed outcomes: " + ", ".join(f"{k} {v}" for k, v in sorted(outcomes.items())))
     return 1 if differ else 0
@@ -112,7 +112,7 @@ fn emit(cap io: Io, let x: i64) -> Unit {
 
 
 class Gen:
-    """Random well-typed Yong-K programs over i64, a sum, a failure record and `inout`."""
+    """Random well-typed Yan Core-K programs over i64, a sum, a failure record and `inout`."""
 
     def __init__(self, rng: random.Random) -> None:
         self.rng = rng
@@ -335,22 +335,22 @@ class Gen:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("mode", choices=["cases", "gen"])
-    ap.add_argument("--yong", default=YONG)
-    ap.add_argument("--yongk", default=YONGK)
+    ap.add_argument("--yan", default=YAN)
+    ap.add_argument("--yancore", default=YANCORE)
     ap.add_argument("--count", type=int, default=200)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--keep", type=Path)
     a = ap.parse_args()
     if a.mode == "cases":
-        files = sorted((ROOT / "conformance/yong/run").glob("*.yong"))
-        return compare(files, a.yong, a.yongk, a.keep)
+        files = sorted((ROOT / "conformance/yir/run").glob("*.yir"))
+        return compare(files, a.yan, a.yancore, a.keep)
     with tempfile.TemporaryDirectory() as d:
         files = []
         for i in range(a.count):
-            p = Path(d) / f"g{a.seed}_{i}.yong"
+            p = Path(d) / f"g{a.seed}_{i}.yir"
             p.write_text(Gen(random.Random(a.seed * 1_000_003 + i)).program(f"g{i}"))
             files.append(p)
-        return compare(files, a.yong, a.yongk, a.keep)
+        return compare(files, a.yan, a.yancore, a.keep)
 
 
 if __name__ == "__main__":

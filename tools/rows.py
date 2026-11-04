@@ -100,7 +100,7 @@ def cited_rows() -> dict[str, set[str]]:
         [f"R{n}" for n in CITED_ROW.findall((ROOT / "SPEC_QUESTIONS.md").read_text())],
     )
     for path in (ROOT / "conformance").rglob("*"):
-        if path.is_file() and path.suffix in {".xin", ".wen", ".yong"}:
+        if path.is_file() and path.suffix in {".yag", ".yn", ".yir"}:
             for header in ROWS_HEADER.findall(path.read_text(errors="replace")):
                 add(path, [r for r in expand(header) if r.startswith("R")])
     return cited

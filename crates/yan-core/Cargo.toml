@@ -1,0 +1,16 @@
+[package]
+name = "yan-core"
+description = "Yan IR data types, text parser and printer, IR validator"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+blake3.workspace = true
+yan-diag.workspace = true
+yan-std.workspace = true
+
+[lints]
+workspace = true

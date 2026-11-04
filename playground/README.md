@@ -1,8 +1,8 @@
 # Playground
 
-A browser page that checks and runs a module and shows it in every surface at once: Yong,
-Xin, Wen and Chang. Everything runs client side in `yong.wasm`, built from
-`crates/yong-playground` over `yong-db`, `yong-ide` and `yong-interp`.
+A browser page that checks and runs a module and shows it in every surface at once: Yan Core,
+Yan Agent, Yan and Yan Meta. Everything runs client side in `yan.wasm`, built from
+`crates/yan-playground` over `yan-db`, `yan-ide` and `yan-interp`.
 
 ## Build and serve
 
@@ -23,12 +23,12 @@ Then open http://localhost:8000.
 
 ## What each pane shows
 
-| Pane  | From Xin source         | From Wen source          | From Yong source |
+| Pane  | From Yan Agent source         | From Yan source          | From Yan Core source |
 |-------|-------------------------|--------------------------|------------------|
-| Yong  | elaborated module       | elaborated module        | the source       |
-| Xin   | `yong fmt` of the source | `view --as xin`          | `view --as xin`  |
-| Wen   | no printer yet          | `yong fmt` of the source | no printer yet   |
-| Chang | no printer yet          | no printer yet           | no printer yet   |
+| Yan  | elaborated module       | elaborated module        | the source       |
+| Yan Agent   | `yan fmt` of the source | `view --as yag`          | `view --as yag`  |
+| Yan   | no printer yet          | `yan fmt` of the source | no printer yet   |
+| Yan Meta | no printer yet          | no printer yet           | no printer yet   |
 
 "Edit this" loads a pane's text into the editor as that surface, so a round trip is two
 clicks.

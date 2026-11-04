@@ -1,0 +1,26 @@
+[package]
+name = "yan-elab"
+description = "Yan Agent to Yan Core elaboration: inference, capability passing, lowering (14.1)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde_json.workspace = true
+unicode-normalization = "0.1.26"
+yan-core.workspace = true
+yan-diag.workspace = true
+yan-hir.workspace = true
+yan-interp.workspace = true
+yan-names.workspace = true
+yan-std.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+yan-db.workspace = true
+yan-check.workspace = true
+yan-yag.workspace = true

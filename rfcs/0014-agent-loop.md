@@ -1,16 +1,16 @@
 # 0014: The reference agent loop
 
 - Status: accepted (the lead chose "Accept all (D1 to D6)" on 2026-11-01)
-- Research: [Yong product study](https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU), shortlist item 1
+- Research: [Yan product study](https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU), shortlist item 1
 - Rows: R616 to R621
 
 ## Summary
 
 Sections 21.1, 21.4 and 21.6 describe a spec gate, an agent server and an evaluation harness. Nothing
-yet runs a model through them. Without that, the M1 gate harness and the Xin probe each write their
-own loop, and neither one uses the gate or autofix. This RFC adds `yong agent`. It runs one task
-through both phases of 21.1 using only the `yong mcp` tools, and it writes a run record that 21.6
-reads. Both harnesses then drive the Xin arm through it.
+yet runs a model through them. Without that, the M1 gate harness and the Yan Agent probe each write their
+own loop, and neither one uses the gate or autofix. This RFC adds `yan agent`. It runs one task
+through both phases of 21.1 using only the `yan mcp` tools, and it writes a run record that 21.6
+reads. Both harnesses then drive the Yan Agent arm through it.
 
 The loop also needs things the spec already asks for but main lacks. These are implementation work,
 not decisions, and they land in the same PR:
@@ -20,14 +20,14 @@ not decisions, and they land in the same PR:
 
 ## Decisions
 
-### D1: `yong agent`, an M1 command
+### D1: `yan agent`, an M1 command
 
-`yong agent <task.json> --model M [--primer f] [--shots dir] [--dir d] [--module m]
+`yan agent <task.json> --model M [--primer f] [--shots dir] [--dir d] [--module m]
 [--spec-repairs 2] [--body-repairs 3] [--out run.json]` runs one task and prints its run record. The
 exit status is 0 when the task ends green, 1 when it does not, and 2 when the tool itself fails. It
 goes into the 18.1 table at M1.
 
-The loop calls the MCP tools in process, as JSON-RPC messages to the same handler that `yong mcp`
+The loop calls the MCP tools in process, as JSON-RPC messages to the same handler that `yan mcp`
 serves. Every step therefore goes through the tool schemas that 1.0 freezes. An external agent that
 does the same steps over stdio gets the same results.
 
@@ -108,10 +108,10 @@ New fields are added only as optional fields, as for diagnostics (18.2).
 - Decision: accepted, 2026-11-01
 - Row: R619
 
-### D5: the harnesses drive Xin through `yong agent`
+### D5: the harnesses drive Yan Agent through `yan agent`
 
-21.6 gains one rule: the Xin arm of the M1 gate harness, and of any probe that reports against it,
-runs through `yong agent`, so repair rounds and autofix are counted the way a user would meet them.
+21.6 gains one rule: the Yan Agent arm of the M1 gate harness, and of any probe that reports against it,
+runs through `yan agent`, so repair rounds and autofix are counted the way a user would meet them.
 The typed-Python arm keeps the same shape: a spec phase with pytest tests, then a body phase with
 mypy and pytest repairs. That arm stays in the harness.
 
@@ -130,11 +130,11 @@ allows. One example is a `pre` that calls a function whose body is still `...`.
 
 ## Spec changes
 
-- 18.1: a `yong agent` row at M1 (D1).
+- 18.1: a `yan agent` row at M1 (D1).
 - 21.1: one paragraph on the reference loop, its order of steps and stop-and-report (D2), and the
   new code (D6).
 - 21.4: the model adapter protocol (D3), as a short subsection after the tool table.
-- 21.6: the run record (D4) and the rule that the Xin arm runs through `yong agent` (D5).
+- 21.6: the run record (D4) and the rule that the Yan Agent arm runs through `yan agent` (D5).
 - 25.8: the code from D6.
 
 ## Open questions (not for this RFC)

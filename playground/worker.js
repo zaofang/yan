@@ -1,4 +1,4 @@
-// Runs yong.wasm off the page's thread, so a looping program can be stopped by ending the worker.
+// Runs yan.wasm off the page's thread, so a looping program can be stopped by ending the worker.
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 const zero = () => 0;
@@ -11,8 +11,8 @@ const env = {
 };
 
 // Some hosts serve .wasm without application/wasm, which streaming compilation refuses.
-const ready = WebAssembly.instantiateStreaming(fetch("yong.wasm"), { env })
-  .catch(() => fetch("yong.wasm").then((r) => r.arrayBuffer()).then((b) => WebAssembly.instantiate(b, { env })))
+const ready = WebAssembly.instantiateStreaming(fetch("yan.wasm"), { env })
+  .catch(() => fetch("yan.wasm").then((r) => r.arrayBuffer()).then((b) => WebAssembly.instantiate(b, { env })))
   .then(({ instance }) => instance.exports);
 
 function call(x, op, head, src) {

@@ -1,10 +1,10 @@
-name = "yongk"
+name = "yancore"
 version = "0.1.0"
-defaultTargets = ["yongk"]
+defaultTargets = ["yancore"]
 
 [[lean_lib]]
-name = "YongK"
+name = "YanCore"
 
 [[lean_exe]]
-name = "yongk"
+name = "yancore"
 root = "Main"

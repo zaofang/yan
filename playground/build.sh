@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds playground/yong.wasm. Needs the wasm32-unknown-unknown target, a clang with the
+# Builds playground/yan.wasm. Needs the wasm32-unknown-unknown target, a clang with the
 # WebAssembly backend and wasi-libc headers (core-math is C).
 set -eu
 cd "$(dirname "$0")/.."
@@ -10,5 +10,5 @@ export CFLAGS_wasm32_unknown_unknown="-isystem $WASI_INCLUDE -D__wasi__ \
   -DFE_INVALID=1 -DFE_DIVBYZERO=4 -DFE_OVERFLOW=8 -DFE_UNDERFLOW=16 -DFE_INEXACT=32"
 # The C fenv and stdio calls left undefined become imports the page stubs (worker.js).
 export RUSTFLAGS="-C link-arg=-zstack-size=33554432 -C link-arg=--allow-undefined"
-cargo build --release -p yong-playground --target wasm32-unknown-unknown
-cp target/wasm32-unknown-unknown/release/yong_playground.wasm playground/yong.wasm
+cargo build --release -p yan-playground --target wasm32-unknown-unknown
+cp target/wasm32-unknown-unknown/release/yan_playground.wasm playground/yan.wasm

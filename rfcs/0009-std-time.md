@@ -171,7 +171,7 @@ Recommendation: accept.
 - `TzDb.get(id)` is the lookup into a database that a capability returned (7.5).
 - `Eq` compares by ID.
 
-The interpreter takes the zone rules from Jiff's bundled tzdb, at the version pinned in `yong.lock`.
+The interpreter takes the zone rules from Jiff's bundled tzdb, at the version pinned in `yan.lock`.
 
 Recommendation: accept.
 
@@ -205,7 +205,7 @@ The directive set is Jiff's (17.3): POSIX plus `%f`, `%.f`, `%:z` and `%Q`.
 - `T.strptime(s, fmt) -> T fail TimeError` parses.
 - A literal `fmt` is checked against the type at stage 0 (E542). For example, `%z` on a
   `PlainDateTime` is an error.
-- Names (`%a`, `%B`, `%p`) are English only. Localized formats are `@yong/i18n` (R334).
+- Names (`%a`, `%B`, `%p`) are English only. Localized formats are `@yan/i18n` (R334).
 
 Recommendation: accept.
 

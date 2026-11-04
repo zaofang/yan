@@ -9,7 +9,7 @@ E004 = { section = "19.4", status = "active", meaning = "agent add of a package 
 E005 = { section = "19.4", status = "active", meaning = "update gains a capability or changes publisher identity; needs an approval" }
 E006 = { section = "19.2", status = "active", meaning = "declared capability ceiling does not contain the computed capability set" }
 E007 = { section = "19.3", status = "active", meaning = "version is marked malicious" }
-E008 = { section = "20.6", status = "active", meaning = "version bump is below the minimum yong semver computed" }
+E008 = { section = "20.6", status = "active", meaning = "version bump is below the minimum yan semver computed" }
 E009 = { section = "19.4", status = "active", meaning = "approval signature invalid, or signer not in approvers" }
 E010 = { section = "19.5", status = "active", meaning = "build differs between two roots under --verify" }
 E011 = { section = "19.3", status = "active", meaning = "transparency-log inclusion, consistency or witness quorum check failed" }
@@ -21,7 +21,7 @@ W014 = { section = "20.6", status = "active", meaning = "possible breaking chang
 E100 = { section = "13.2, 15.2", status = "active", meaning = "unexpected token; the expected set is listed" }
 E101 = { section = "13.2, 15.2", status = "active", meaning = "operator mix that requires parentheses" }
 E102 = { section = "13.1, 15.1", status = "active", meaning = "unclosed bracket, string or block" }
-E103 = { section = "13.1", status = "active", meaning = "backslash continuation or; (Xin)" }
+E103 = { section = "13.1", status = "active", meaning = "backslash continuation or; (Yan Agent)" }
 E104 = { section = "13.2", status = "active", meaning = "chained comparison" }
 E105 = { section = "13.1", status = "active", meaning = "forbidden invisible, bidirectional or tag character" }
 E106 = { section = "13.1", status = "active", meaning = "contract line (pre, post, ex, decreases, invariant) after the first other statement of a body; fix moves it (R422)" }
@@ -31,16 +31,16 @@ W111 = { section = "13.1", status = "active", meaning = "value name longer than 
 E112 = { section = "13.1", status = "active", meaning = "consecutive capitals in a type name" }
 E120 = { section = "13.1", status = "active", meaning = "try, except, finally or raise" }
 E121 = { section = "13.1", status = "active", meaning = "unsupported Python keyword (global, nonlocal, del, yield, async, await)" }
-E130 = { section = "", status = "retired", meaning = "retired in v0.2 (hyphenated Wen names)" }
-E131 = { section = "", status = "retired", meaning = "retired in v0.2 (hyphenated Wen names)" }
-E132 = { section = "15.1", status = "active", meaning = "-- not followed by a space (Wen)" }
-E133 = { section = "15.1", status = "active", meaning = "tab in Wen indentation" }
+E130 = { section = "", status = "retired", meaning = "retired in v0.2 (hyphenated Yan names)" }
+E131 = { section = "", status = "retired", meaning = "retired in v0.2 (hyphenated Yan names)" }
+E132 = { section = "15.1", status = "active", meaning = "-- not followed by a space (Yan)" }
+E133 = { section = "15.1", status = "active", meaning = "tab in Yan indentation" }
 E134 = { section = "15.1", status = "active", meaning = "a -b inside a grid literal" }
 E135 = { section = "15.3", status = "active", meaning = "nested implicit-subject closures" }
 E140 = { section = "12.3", status = "active", meaning = "interior NUL in a c\"...\" literal" }
 E141 = { section = "10.5", status = "active", meaning = "yield outside a generator body" }
 E143 = { section = "3.5", status = "active", meaning = "become inside a constructor not in last-evaluated argument position (R456)" }
-E200 = { section = "20.3", status = "active", meaning = "unresolved name, including std items newer than the package's yong version" }
+E200 = { section = "20.3", status = "active", meaning = "unresolved name, including std items newer than the package's yan version" }
 E201 = { section = "10.1, 14.1", status = "active", meaning = "type mismatch, with the differing parts of the two types marked" }
 E202 = { section = "14.1, 15.3", status = "active", meaning = "wrong number of arguments, or unknown keyword or label argument" }
 E203 = { section = "10.2, 17.2", status = "active", meaning = "no such field or method; nearest names suggested" }
@@ -108,7 +108,7 @@ E421 = { section = "5.4", status = "active", meaning = "drop body that can fail,
 E422 = { section = "4.4", status = "active", meaning = "subscript body does not yield exactly once on every path (R457)" }
 E423 = { section = "4.4", status = "active", meaning = "subscript body fails under the let or inout mode it is used in (R457)" }
 E501 = { section = "14.1", status = "active", meaning = "index, key or other goal refuted, with the counterexample (R211)" }
-E502 = { section = "14.1", status = "active", meaning = "wildcard on a sum (Xin)" }
+E502 = { section = "14.1", status = "active", meaning = "wildcard on a sum (Yan Agent)" }
 E503 = { section = "14.1, 12.3", status = "active", meaning = "non-exhaustive match, including open C enums and @non_exhaustive types without _" }
 E504 = { section = "14.1", status = "active", meaning = "integer indexing or len on str" }
 E520 = { section = "11.2", status = "active", meaning = "positional axis broadcast against a non-scalar" }
@@ -126,7 +126,7 @@ E552 = { section = "17.5", status = "active", meaning = "translation key not in 
 E553 = { section = "17.5", status = "active", meaning = "message variable undeclared in the source message or of the wrong type (R335)" }
 E554 = { section = "17.5", status = "active", meaning = "plural match misses a CLDR category of the locale and has no * arm (R335)" }
 E555 = { section = "17.5", status = "active", meaning = "unbalanced message markup or a tag the source message lacks (R335)" }
-E601 = { section = "8.4", status = "active", meaning = "pub function with no ex and no test_ calling it (Xin; publish and release only, R284)" }
+E601 = { section = "8.4", status = "active", meaning = "pub function with no ex and no test_ calling it (Yan Agent; publish and release only, R284)" }
 E602 = { section = "8.4", status = "active", meaning = "recursion without decreases" }
 E603 = { section = "8.5", status = "active", meaning = "contract not proven in a @prove module" }
 E617 = { section = "18.4", status = "retired", meaning = "retired by R447; a test that binds a real capability is an I/O test" }
@@ -158,24 +158,24 @@ E718 = { section = "9.3", status = "reserved", meaning = "reserved (R455, deferr
 W801 = { section = "13.1", status = "active", meaning = "confusable identifier" }
 W802 = { section = "5.4", status = "retired", meaning = "retired by R443; an unclosed @linear value is E412" }
 W803 = { section = "17.4", status = "active", meaning = "exposed Secret flows into log" }
-W804 = { section = "7.7", status = "retired", meaning = "retired by R448; FastHasher moved to @yong/fasthash" }
+W804 = { section = "7.7", status = "retired", meaning = "retired by R448; FastHasher moved to @yan/fasthash" }
 W805 = { section = "8.1", status = "active", meaning = "error union over 8 members" }
 W806 = { section = "21.1", status = "active", meaning = "code special-cases literal ex inputs" }
 W807 = { section = "14.1", status = "active", meaning = "constant slice proven out of range" }
 W808 = { section = "9.6", status = "active", meaning = "static call cycle between actors" }
 W809 = { section = "7.1", status = "retired", meaning = "retired by R448; std has no shell" }
 W810 = { section = "18.2", status = "active", meaning = "@expect suppressed nothing" }
-W811 = { section = "15.3", status = "active", meaning = "wildcard on a sum (Wen)" }
-W812 = { section = "15.3", status = "active", meaning = "unused binding or parameter (Xin and Wen, R214)" }
-W813 = { section = "15.3", status = "active", meaning = "pub item without ex (Wen)" }
+W811 = { section = "15.3", status = "active", meaning = "wildcard on a sum (Yan)" }
+W812 = { section = "15.3", status = "active", meaning = "unused binding or parameter (Yan Agent and Yan, R214)" }
+W813 = { section = "15.3", status = "active", meaning = "pub item without ex (Yan)" }
 W814 = { section = "6.5", status = "active", meaning = "spin loop on an atomic shared by plain par branches" }
 W815 = { section = "20.5", status = "active", meaning = "use of a deprecated item" }
 W816 = { section = "10.4", status = "active", meaning = "compile_warn raised by stage-0 code" }
 W817 = { section = "14.2", status = "active", meaning = "day or week Duration added to a ZonedDateTime" }
 W818 = { section = "9.4", status = "active", meaning = "else that discards a Cancelled failure (R341)" }
 W819 = { section = "17.2", status = "active", meaning = "method found at an earlier resolution step hides one of the same name at a later step (R348)" }
-W820 = { section = "8.6, 14.1", status = "active", meaning = "check neither proven nor refuted, compiled as a runtime check; carries the unknown goal (Xin, R211)" }
-W823 = { section = "14.3", status = "active", meaning = "local annotation that inference already gives (Xin); safe fix removes it (R429)" }
+W820 = { section = "8.6, 14.1", status = "active", meaning = "check neither proven nor refuted, compiled as a runtime check; carries the unknown goal (Yan Agent, R211)" }
+W823 = { section = "14.3", status = "active", meaning = "local annotation that inference already gives (Yan Agent); safe fix removes it (R429)" }
 W824 = { section = "14.3", status = "active", meaning = "a None or failure guard right after a binding that a fallback else replaces; safe fix rewrites it (R429)" }
 W821 = { section = "11.3", status = "active", meaning = "@multiversion function whose versions compile to the same code (R386)" }
 W822 = { section = "3.3", status = "active", meaning = "+ in a loop on a Str or List that is not at its last use (R388)" }
@@ -212,7 +212,7 @@ P006 = { section = "18.3", status = "active", meaning = "patch touches a protect
 "3.2" = "Scalars"
 "3.3" = "Strings and bytes"
 "3.4" = "Integers and floats"
-"3.5" = "Yong text grammar"
+"3.5" = "Yan Core text grammar"
 "3.6" = "Item identity"
 "4.1" = "Parameter conventions"
 "4.2" = "Copies, moves and sharing"
@@ -220,14 +220,14 @@ P006 = { section = "18.3", status = "active", meaning = "patch touches a protect
 "4.4" = "Projections"
 "4.5" = "Views"
 "4.6" = "Closures"
-"4.7" = "Explicit references (Wen L4)"
+"4.7" = "Explicit references (Yan L4)"
 "5.1" = "Representation"
 "5.2" = "Layout"
 "5.3" = "Ownership passes"
 "5.4" = "Drop order and cleanup"
 "5.5" = "Allocators and arenas"
 "5.6" = "Data-oriented containers"
-"5.7" = "Proof attributes (Wen L4)"
+"5.7" = "Proof attributes (Yan L4)"
 "6.1" = "Abstract machine"
 "6.2" = "Atomics"
 "6.3" = "Interior mutability"
@@ -286,16 +286,16 @@ P006 = { section = "18.3", status = "active", meaning = "patch touches a protect
 "12.10" = "Audit and scope"
 "13.1" = "Lexical rules"
 "13.2" = "Grammar"
-"14.1" = "Semantics (normative mapping to Yong)"
+"14.1" = "Semantics (normative mapping to Yan Core)"
 "14.2" = "Compile-time literal checks"
 "14.3" = "Canonical form"
 "14.4" = "Lenient reader"
 "14.5" = "Complete example"
 "15.1" = "Lexical rules"
 "15.2" = "Grammar"
-"15.3" = "Semantics (normative mapping to Yong)"
+"15.3" = "Semantics (normative mapping to Yan Core)"
 "15.4" = "Canonical form"
-"15.5" = "Diagnostics in Wen"
+"15.5" = "Diagnostics in Yan"
 "15.6" = "Example"
 "16.1" = "Names are word lists"
 "16.2" = "Foreign names"
@@ -335,7 +335,7 @@ P006 = { section = "18.3", status = "active", meaning = "patch touches a protect
 "21.1" = "The spec gate"
 "21.2" = "Typed holes"
 "21.3" = "Constrained decoding"
-"21.4" = "Agent server (yong mcp)"
+"21.4" = "Agent server (yan mcp)"
 "21.5" = "Provenance"
 "21.6" = "Evaluation harness"
 "22.1" = "Two implementations"

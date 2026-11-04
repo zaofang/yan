@@ -12,9 +12,9 @@ The same suite drives the interpreter and every code generator (spec 22.1, 24.1)
 
 With --laws, the runner instead checks the round-trip laws of 16.5 on every case (R564), using
     CMD hash --format json [--reverse-items] FILE -> JSON array of {"key", "hash", "identity"}
-    CMD view --as xin FILE                        -> the module's Xin projection
+    CMD view --as yag FILE                        -> the module's Yan Agent projection
     CMD fmt --check FILE                          -> exit 1 if FILE is not canonical
-Exit status 1 from either means the module does not load or is outside the Xin subset; the
+Exit status 1 from either means the module does not load or is outside the Yan Agent subset; the
 law is then skipped for that case.
 
 The runner also writes the suite's manifest (--manifest) and coverage report (--coverage)
@@ -34,7 +34,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Literal, Protocol
 
-SURFACES = ("xin", "wen", "yong")
+SURFACES = ("yag", "yn", "yir")
 SURFACE_KINDS = ("pass", "fail", "run")
 # Top-level directories of 24.1 and the kind each one is judged as. Kinds without a defined
 # case format yet are discovered and skipped.
@@ -48,8 +48,8 @@ TOP_KINDS = {
     "roundtrip": "roundtrip",
     "sim": "sim",
 }
-COMMENT = {".xin": "#", ".wen": "--", ".yong": "--"}
-DEFAULT_MILESTONE = {".yong": "M0", ".xin": "M1", ".wen": "M3"}
+COMMENT = {".yag": "#", ".yn": "--", ".yir": "--"}
+DEFAULT_MILESTONE = {".yir": "M0", ".yag": "M1", ".yn": "M3"}
 MILESTONES = ("P0", "M0", "M1", "M1b", "M2a", "M2b", "M3", "RC", "M4")
 TOOL_FAILURE = 2
 HEADERS = frozenset(
@@ -130,7 +130,7 @@ class CommandExecutor:
 
     def run(self, path: Path, flags: list[str]) -> tuple[str, int]:
         out = subprocess.run([*self.argv, "run", *flags, str(path)], capture_output=True, text=True)
-        if out.returncode == TOOL_FAILURE and out.stderr.startswith("yong:"):
+        if out.returncode == TOOL_FAILURE and out.stderr.startswith("yan:"):
             raise ToolFailure(out.stderr.strip())
         return out.stdout, out.returncode
 
@@ -138,7 +138,7 @@ class CommandExecutor:
         out = subprocess.run(
             [*self.argv, "run", "--ub", *flags, str(path)], capture_output=True, text=True
         )
-        if out.returncode == TOOL_FAILURE and out.stderr.startswith("yong:"):
+        if out.returncode == TOOL_FAILURE and out.stderr.startswith("yan:"):
             raise ToolFailure(out.stderr.strip())
         return out.stderr, out.returncode
 
@@ -218,7 +218,7 @@ def _items(value: str) -> list[str]:
     return [v.strip() for v in value.split(",") if v.strip()]
 
 
-# SPEC-Q: 24.1 shows "# expect: E501 at 14:9" (Xin; Wen and Yong use "--"), "# stdout:"
+# SPEC-Q: 24.1 shows "# expect: E501 at 14:9" (Yan Agent; Yan and Yan Core use "--"), "# stdout:"
 # blocks and "# exit: 101", but not the block layout or the metadata headers. Assumed (see
 # conformance/README.md): headers are the file's leading comment lines; a "stdout:" block is
 # the following prefixed lines (the prefix alone is an empty line) up to the next header or
@@ -362,17 +362,17 @@ def _judge(case: Case, ex: Executor) -> Result:
 
 def _judge_patch(case: Case, ex: Executor) -> Result:
     name = str(case.path)
-    found = [p for p in (case.path / "patch.json", case.path / "patch.xin") if p.is_file()]
+    found = [p for p in (case.path / "patch.json", case.path / "patch.yag") if p.is_file()]
     if not found:
-        return Result(name, ex.name, "fail", "no patch.json or patch.xin")
+        return Result(name, ex.name, "fail", "no patch.json or patch.yag")
     patch = found[0]
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
         for f in case.path.iterdir():
             shutil.copy(f, work / f.name)
         records, code = ex.patch(work, work / patch.name, case.flags)
-        after = (work / "m.xin").read_text(encoding="utf-8")
-    before = (case.path / "m.xin").read_text(encoding="utf-8")
+        after = (work / "m.yag").read_text(encoding="utf-8")
+    before = (case.path / "m.yag").read_text(encoding="utf-8")
     want_code = case.meta.get("code")
     if want_code is not None:
         codes = [str(r.get("code")) for r in records]
@@ -462,22 +462,22 @@ def law4(case: Case, ex: LawExecutor) -> Result:
 
 
 def law3(case: Case, ex: LawExecutor) -> Result:
-    """A Wen module within the Xin subset elaborates as its Xin projection does."""
+    """A Yan module within the Yan Agent subset elaborates as its Yan Agent projection does."""
     name = str(case.path)
-    if case.path.suffix != ".wen":
-        return Result(name, ex.name, "skip", "not Wen")
+    if case.path.suffix != ".yn":
+        return Result(name, ex.name, "skip", "not Yan")
     base = ex.hash(case.path)
     if base is None:
         return Result(name, ex.name, "skip", "does not load")
-    xin = ex.view(case.path, "xin")
-    if xin is None:
-        return Result(name, ex.name, "skip", "outside the Xin subset")
+    yag = ex.view(case.path, "yag")
+    if yag is None:
+        return Result(name, ex.name, "skip", "outside the Yan Agent subset")
     with tempfile.TemporaryDirectory() as tmp:
-        p = Path(tmp) / case.path.with_suffix(".xin").name
-        p.write_text(xin, encoding="utf-8")
+        p = Path(tmp) / case.path.with_suffix(".yag").name
+        p.write_text(yag, encoding="utf-8")
         got = ex.hash(p)
     if got is None:
-        return Result(name, ex.name, "fail", "the Xin projection does not load")
+        return Result(name, ex.name, "fail", "the Yan Agent projection does not load")
     if got != base:
         return Result(name, ex.name, "fail", _hash_diff(base, got))
     return Result(name, ex.name, "pass")
@@ -491,18 +491,18 @@ def _first_difference(a: str, b: str) -> str:
 
 
 def law1(case: Case, ex: LawExecutor) -> Result:
-    """A canonical Xin module prints back from its Yong byte for byte.
+    """A canonical Yan Agent module prints back from its Yan Core byte for byte.
 
-    Comments do not reach Yong yet, so both sides are compared without comment lines.
+    Comments do not reach Yan yet, so both sides are compared without comment lines.
     """
     name = str(case.path)
-    if case.path.suffix not in (".xin", ".jian"):
-        return Result(name, ex.name, "skip", "not Xin")
+    if case.path.suffix not in (".yag", ".jian"):
+        return Result(name, ex.name, "skip", "not Yan Agent")
     if not ex.canonical(case.path):
         return Result(name, ex.name, "skip", "not canonical")
-    got = ex.view(case.path, "xin")
+    got = ex.view(case.path, "yag")
     if got is None:
-        return Result(name, ex.name, "skip", "does not load or is outside the Xin subset")
+        return Result(name, ex.name, "skip", "does not load or is outside the Yan Agent subset")
     want = _without_comments(case.path.read_text(encoding="utf-8"), "#").lstrip("\n")
     if got != want:
         return Result(name, ex.name, "fail", _first_difference(want, got))
@@ -559,8 +559,10 @@ def manifest(cases: list[Case], root: Path) -> dict[str, object]:
 
 
 def _surface(case: Case) -> str:
-    # patch/, semver/ and pkg/ directories hold Xin modules.
-    return {".xin": "Xin", ".wen": "Wen", ".yong": "Yong"}.get(case.path.suffix, "Xin")
+    # patch/, semver/ and pkg/ directories hold Yan Agent modules.
+    return {".yag": "Yan Agent", ".yn": "Yan", ".yir": "Yan Core"}.get(
+        case.path.suffix, "Yan Agent"
+    )
 
 
 def coverage(cases: list[Case], catalogue: dict[str, dict[str, dict[str, str]]]) -> str:
@@ -620,7 +622,7 @@ def coverage(cases: list[Case], catalogue: dict[str, dict[str, dict[str, str]]])
 
 
 def _counts(cases: list[Case]) -> str:
-    c = Counter(f"{p.path.suffix[1:] or 'xin'} {p.kind}" for p in cases)
+    c = Counter(f"{p.path.suffix[1:] or 'yag'} {p.kind}" for p in cases)
     return ", ".join(f"{k} {n}" for k, n in sorted(c.items()))
 
 

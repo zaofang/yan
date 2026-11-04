@@ -21,8 +21,8 @@ unobservable). Bounds are checked by automatic amortized resource analysis (Hoff
 RaRust, 2025), reduced to a linear program. A refuted bound is E618 with a witness input; an unproven
 one is W851 and compiles to a step and allocation counter that panics with kind `contract` in
 `checked-all`, following R211. Callees' `cost` clauses are their specifications, so law 6 holds.
-Yong, Xin and Wen all spell the clause `cost`. The lead admitted the Xin spelling on 2026-11-01
-ahead of the R566 probe ("Xin syntax is fine if it's worth it"): it is a contract line, so a Xin
+Yan Core, Yan Agent and Yan all spell the clause `cost`. The lead admitted the Yan Agent spelling on 2026-11-01
+ahead of the R566 probe ("Yan Agent syntax is fine if it's worth it"): it is a contract line, so a Yan Agent
 program with contracts removed is still Python (law 10). Tools show inferred bounds as inlays.
 
 - Decision: accepted as normative, 2026-11-01
@@ -34,17 +34,17 @@ program with contracts removed is still Python (law 10). Tools show inferred bou
 secret-derived. A branch, a `match`, an index, a division or remainder, a variable-time intrinsic or
 an early exit that depends on a secret-derived value is E424. std adds `ct_select`, `ct_eq` and
 `ct_lt`. Release code generation lowers them to LLVM's constant-time selection support; Cranelift
-builds call `yong-rt` helpers. Sources: FaCT (PLDI 2019), Jasmin.
+builds call `yan-rt` helpers. Sources: FaCT (PLDI 2019), Jasmin.
 
 - Decision: accepted, 2026-11-01
 - Row: R611
 
-### D3: `yong why` for item facts
+### D3: `yan why` for item facts
 
-`yong why <item> <fact>`, where the fact is a capability, a `fail` member or a panic kind, prints
+`yan why <item> <fact>`, where the fact is a capability, a `fail` member or a panic kind, prints
 the shortest chain of statements and callees that makes the item need it, one line and span per step
 (thin slicing, PLDI 2007). An empty chain means the declaration is unneeded, and the fix removes it.
-With one argument `yong why` keeps its dependency meaning (19). MCP adds `why_needs`.
+With one argument `yan why` keeps its dependency meaning (19). MCP adds `why_needs`.
 
 - Decision: accepted, 2026-11-01
 - Row: R612

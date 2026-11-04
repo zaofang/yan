@@ -1,15 +1,15 @@
-# Yong
+# Yan
 
-Yong is a programming language with one core and two surfaces.
+Yan is a programming language with one core and two surfaces.
 
-- **Xin**: a typed, Python-shaped syntax optimized for LLM authors, measured in total tokens per solved task.
-- **Wen**: the human syntax.
+- **Yan Agent** (`.yag`): a typed, Python-shaped syntax optimized for LLM authors, measured in total tokens per solved task.
+- **Yan** (`.yn`): the human syntax, called plain Yan where it needs telling apart.
 
-Both compile to the same Yong core, which is fast, concurrent, deterministic and capability-safe.
+Both compile to the same core, Yan Core, which is fast, concurrent, deterministic and capability-safe.
 The implementation is written in Rust, as one Cargo workspace (spec 22.2).
 
 The developer owns the spec, tests and gates; agents write the code and never edit tests.
-Authoritative documents: the Yong 1.0 spec (draft) in [`spec/`](spec/README.md) and the 1.0 Development Roadmap.
+Authoritative documents: the Yan 1.0 spec (draft) in [`spec/`](spec/README.md) and the 1.0 Development Roadmap.
 
 ## Layout
 
@@ -18,7 +18,7 @@ Authoritative documents: the Yong 1.0 spec (draft) in [`spec/`](spec/README.md) 
 | `spec/` | Antonio | Agents open spec PRs for accepted rows; Antonio merges them. Rows are registered in `spec/rows.toml`. |
 | `conformance/`, `tests/` | Antonio | Agents propose changes in a separate PR and never edit these. CI rejects agent PRs that touch them. |
 | `crates/` | agents | Cargo workspace, one crate per row of spec 22.2, added as they are built. Agent self-tests live in `#[cfg(test)] mod selftest` (SQ28). |
-| `bench/` | agents | Benchmark set (R389): each program in Yong, typed Python and Rust, run by `bench/run.py`. |
+| `bench/` | agents | Benchmark set (R389): each program in Yan, typed Python and Rust, run by `bench/run.py`. |
 | `tools/conform.py` | agents | Conformance runner (spec 24.1), independent of the implementation. Python, run with uv. |
 | `tools/guard.py` | Antonio (CODEOWNERS) | Path guard used by CI. |
 | `tools/rows.py` | agents | Change-row registry check (`spec/rows.toml`): duplicate rows, unregistered citations, stale Appendix A.1. `next` prints free row numbers. |
@@ -30,9 +30,9 @@ Held-out evaluation tests live in a separate private repository that agents cann
 
 ```sh
 cargo fmt --all --check && cargo clippy --all-targets -- -D warnings && cargo test
-cargo build -p yong-cli
+cargo build -p yan-cli
 uv sync && uv run pytest -q tools/selftest
-uv run python tools/conform.py --executor interp=target/debug/yong
+uv run python tools/conform.py --executor interp=target/debug/yan
 ```
 
 An executor is any command that implements `CMD check --format json FILE` (prints a JSON array of
@@ -45,12 +45,12 @@ spec 18.2 diagnostic records) and `CMD run FILE`. Exit status 2 from either is a
 | Code: compiler, toolchain, std, runtime support, conformance suite | [Apache-2.0 WITH LLVM-exception](LICENSE) |
 | Spec text, docs, tour, book | [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/) |
 | Grammars, normative tables, spec code samples | CC-BY-4.0, or Apache-2.0 WITH LLVM-exception |
-| Doc examples, `yong new` templates, published eval task statements | [0BSD](https://opensource.org/license/0bsd) |
+| Doc examples, `yan new` templates, published eval task statements | [0BSD](https://opensource.org/license/0bsd) |
 
-Programs compiled with Yong belong to their authors. Std and runtime code embedded in them falls under the
-LLVM exception, so binaries need no Yong notice.
+Programs compiled with Yan belong to their authors. Std and runtime code embedded in them falls under the
+LLVM exception, so binaries need no Yan notice.
 
-Copyright the Yong authors. "Yong" and the 永 logo are trademarks claimed by the project lead; the trademark policy will be
+Copyright the Yan authors. "Yan" and the 言 logo are trademarks claimed by the project lead; the trademark policy will be
 published before the repository goes public.
 
 Contributions: see [CONTRIBUTING.md](CONTRIBUTING.md) (DCO sign-off, AI disclosure),

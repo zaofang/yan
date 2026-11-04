@@ -1,5 +1,0 @@
-"""Formatting: CPython 3.12 layout for the Xin subset (SQ20)."""
-
-@intrinsic
-@since("1.0")
-pub def show[T: Show](x: T) -> str: ...

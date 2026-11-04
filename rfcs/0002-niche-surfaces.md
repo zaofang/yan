@@ -10,17 +10,17 @@
 
 ## Summary
 
-Yong gains a family of planned niche surfaces: small, domain-shaped spellings of a subset of Yong,
+Yan gains a family of planned niche surfaces: small, domain-shaped spellings of a subset of Yan,
 each serving one market that today uses its own language (protobuf, BAML, PRQL, Terraform, Temporal,
 bash, Kaitai, Lustre, Catala and others). A niche surface adds syntax only. It lowers into
-`yong-hir` like Wen, prints back exactly, keeps the item hash, and shows the five facts. Thirteen
-surfaces are accepted: eight practical (Wu, Qi, Ting, Cha, Xu, Yin, Xing, Liu) and five research
-(Tuo, Sui, Hui, Guan, Yan). None is built before 1.0. Each starts as a print-only view and gets its
-reader, grammar, diagnostic codes and conformance column in its own later RFC, the way Chang's grammar
+`yan-hir` like Yan, prints back exactly, keeps the item hash, and shows the five facts. Thirteen
+surfaces are accepted: eight practical (Yan Prompt, Yan Schema, Yan Infra, Yan Query Language, Yan Workflow, Yan Shell, Yan Binary Format, Yan Dataflow) and five research
+(Yan Delegate, Yan Probabilistic, Yan Protocol, Yan Spec, Yan Law). None is built before 1.0. Each starts as a print-only view and gets its
+reader, grammar, diagnostic codes and conformance column in its own later RFC, the way Yan Meta's grammar
 moves from RFC 0001 into section 16.6.
 
 The spec gets the admission rules and a table of planned surfaces (new section 16.7) and a post-1.0
-note in section 23. This file stays the reference for each surface until its own RFC. The Yong
+note in section 23. This file stays the reference for each surface until its own RFC. The Yan
 changes these surfaces need are in RFC 0003.
 
 Programs below are design mocks; none has been parsed or checked. Diagnostics carry study-local
@@ -30,28 +30,28 @@ labels (XUN-1 and so on); codes are assigned in each surface's own RFC.
 
 ### D1: Admission rules and shared machinery
 
-A niche surface is admitted only if it meets all nine rules (N1 to N9). Chang's K1 to K5 (R517) are
-the model; the difference is that a niche surface prints only a subset of Yong and has exactly one
+A niche surface is admitted only if it meets all nine rules (N1 to N9). Yan Meta's K1 to K5 (R517) are
+the model; the difference is that a niche surface prints only a subset of Yan and has exactly one
 printing per tree, so it needs no spelling notes.
 
-- **N1 Syntax only.** The surface lowers to Yong that Wen can write, or to a Yong extension already
+- **N1 Syntax only.** The surface lowers to Yan Core that Yan can write, or to a Yan Core extension already
   accepted. It has no private semantics (law 1).
   Superseded 2026-11-01 by R568 (spec 16.7): a niche surface may define semantics of its own behind
   a boundary signature.
-- **N2 Subset with a checker.** A decidable predicate over Yong items says whether an item prints in
-  the surface. Outside it, `yong view --as <name>` reports the first excluding construct, as 16.4 does
-  for Xin.
-- **N3 One printing.** Law 8 holds as for Xin and Wen: one canonical printing per tree. Sugar is
-  recovered from the Yong tree alone, from stage-0 metadata attached by the lowering, or from
+- **N2 Subset with a checker.** A decidable predicate over Yan Core items says whether an item prints in
+  the surface. Outside it, `yan view --as <name>` reports the first excluding construct, as 16.4 does
+  for Yan Agent.
+- **N3 One printing.** Law 8 holds as for Yan Agent and Yan: one canonical printing per tree. Sugar is
+  recovered from the Yan Core tree alone, from stage-0 metadata attached by the lowering, or from
   hash-neutral trivia already defined in 16.5. Each surface states which.
 - **N4 Same item hash.** A lowering never creates or drops a hashed name (K2). Generated names follow a
   fixed, documented rule.
 - **N5 Five facts visible.** Each surface names its marks for mutation, failure, compile time,
   concurrency and capability use (law 4).
-- **N6 Crate.** `yong-<name>` holds the lexer, parser, AST and lowering into `yong-hir`. No surface
-  touches `yong-elab` or anything below it.
+- **N6 Crate.** `yan-<name>` holds the lexer, parser, AST and lowering into `yan-hir`. No surface
+  touches `yan-elab` or anything below it.
 - **N7 Round-trip laws.** For surface S: `S(elaborate(F)) == F` byte for byte for canonical F; and
-  `elaborate(S(W)) == elaborate(W)` by item hash for any Wen W in the subset. Conformance gains one
+  `elaborate(S(W)) == elaborate(W)` by item hash for any Yan W in the subset. Conformance gains one
   column per surface.
 - **N8 Names and diagnostics.** Each surface adds a column to the projection table (16.3) for names it
   spells differently. Messages render per surface from the shared registry (R297); a surface adds
@@ -63,7 +63,7 @@ printing per tree, so it needs no spelling notes.
 - Decision: accepted, 2026-11-01
 - Row: R536
 
-### D2: Qi 契, schemas
+### D2: Yan Schema 言契, schemas
 
 **Job.** Declare wire types and remote interfaces once, with their version history. **Users:** API
 and platform teams on protobuf, OpenAPI or JSON Schema.
@@ -97,25 +97,25 @@ service Book
 - **Lowering.** `record` is `type T = {...}` with `derive(Wire)`; `where` is a refinement
   `{q: i32 | q > 0}` (3.5), checked at construction (8.5); `service` is a `@remote` trait and its
   `Remote` handle (R401, R407). `since`, defaults and `was` feed the stage-0 converter generator
-  (R406); `yong schema pin` records each version in `.yong/schemas/`. There are no field tags:
+  (R406); `yan schema pin` records each version in `.yan/schemas/`. There are no field tags:
   schema identity is the structural hash.
 - **Recovery.** Types and refinements are exact. Version annotations are read back from the pinned
-  history, so printing needs `.yong/schemas/` beside the source.
+  history, so printing needs `.yan/schemas/` beside the source.
 - **Five facts.** Failure in each method signature; no other fact occurs.
 - **Diagnostics.** QI-1 a field added in a later version without a default (no converter possible);
   QI-2 a removed field still read by a pinned converter; QI-3 a non-`Wire` type in a service
   signature (E720 territory).
-- **Interop.** `@proto(n)` on a field exports `.proto` through `@yong/protobuf` and `@yong/grpc`; tags
+- **Interop.** `@proto(n)` on a field exports `.proto` through `@yan/protobuf` and `@yan/grpc`; tags
   never affect the schema hash.
 - **Needs.** Streams over `Remote` (RFC 0003). Until then a stream lowers to a subscription over
   `Group` or a callback actor.
-- **First slice.** Records, sums, refinements, `since`, `was`, services, `yong schema check`. Later:
+- **First slice.** Records, sums, refinements, `since`, `was`, services, `yan schema check`. Later:
   OpenAPI and JSON Schema import and export.
 
 - Decision: accepted, 2026-11-01. First after 1.0 (D15).
 - Row: R537
 
-### D3: Wu 悟, typed model programs
+### D3: Yan Prompt 言询, typed model programs
 
 **Job.** Write model calls as typed functions: prompt, schema, validation and examples in one item.
 **Users:** teams building LLM features (the BAML and DSPy audience), and agents writing their own
@@ -142,7 +142,7 @@ pub route(t: Ticket) -> Team fail ModelError uses model, pager =
 ```
 
 - **Subset.** Functions whose body is one model generation over role sections, followed by an
-  optional `validate`. Everything else in the file is ordinary Wen-shaped code.
+  optional `validate`. Everything else in the file is ordinary Yan-shaped code.
 - **Grammar sketch.** `prompt_item = "prompt" NAME params "->" type ["fail" type] "uses" caps "="
   INDENT [model_line] role_section+ [check_line] {ex_line} DEDENT`;
   `role_section = ("system" | "user" | "assistant") (STRING | TSTRING)`;
@@ -163,7 +163,7 @@ pub route(t: Ticket) -> Team fail ModelError uses model, pager =
 - Decision: accepted, 2026-11-01. Second after 1.0 (D15).
 - Row: R538
 
-### D4: Cha 察, queries
+### D4: Yan Query Language 言查, queries
 
 **Job.** Typed, compiled, deterministic table pipelines. **Users:** analysts, data engineers, dbt
 users, and agents fluent in SQL.
@@ -180,7 +180,7 @@ query movers(trades: Table[Trade], since: PlainDate) -> Table[Mover] =
 ```
 
 - **Subset.** Functions whose body is one `LazyFrame[R]` pipeline over `Table` inputs, `uses none`.
-  Reading from storage stays in a Wen or Xin function.
+  Reading from storage stays in a Yan or Yan Agent function.
 - **Grammar sketch.** PRQL-ordered stages, one per line: `from`, `where`, `derive`, `select`,
   `group KEYS (AGGS)`, `join T on PRED`, `sort KEYS`, `take N [per KEYS]`. Bare column names resolve
   against the row type at that stage.
@@ -193,22 +193,22 @@ query movers(trades: Table[Trade], since: PlainDate) -> Table[Mover] =
   fact occurs inside a query.
 - **Diagnostics.** CHA-1 a column not in the row type at that stage, listing the available columns;
   CHA-2 an aggregate outside `group`.
-- **Relation to existing work.** `@yong/frame` SQL text yields an untyped `LazyFrame[Dyn]`; Cha is the
-  typed alternative. Chang's query comprehensions (RFC 0001, M3) lower to the same operations. `@yong/rel`
-  (Datalog) may become a second Cha mode.
+- **Relation to existing work.** `@yan/frame` SQL text yields an untyped `LazyFrame[Dyn]`; Yan Query Language is the
+  typed alternative. Yan Meta's query comprehensions (RFC 0001, M3) lower to the same operations. `@yan/rel`
+  (Datalog) may become a second Yan Query Language mode.
 - **First slice.** `from`, `where`, `derive`, `select`, `group`, `sort`, `join`. Later: windows,
   `take per`, incremental maintenance (DBSP-style).
 
 - Decision: accepted, 2026-11-01
 - Row: R539
 
-### D5: Yin 引, capability-safe shell
+### D5: Yan Shell 言行, capability-safe shell
 
 **Job.** Replace bash for scripts, CI steps and agent actions, with authority stated up front.
 **Users:** ops and CI authors, and agents.
 
 ```
-#!/usr/bin/env -S yong run
+#!/usr/bin/env -S yan run
 main(args: Args) uses proc, fs, net =
   let logs = fs.root("./logs")
   let out = fs.root("./out", write)
@@ -222,7 +222,7 @@ main(args: Args) uses proc, fs, net =
 
 - **Subset.** Functions whose statements are pipelines, redirections, `run` commands and ordinary
   control flow.
-- **Grammar sketch.** `pipeline = stage {"|" stage} [(">" | ">>") expr]`; a stage is a call to a Yin
+- **Grammar sketch.** `pipeline = stage {"|" stage} [(">" | ">>") expr]`; a stage is a call to a Yan Shell
   built-in (`lines`, `grep`, `sort`, `uniq`, `head`, `cut`, `wc`, ...) or `run TSTRING`. Bare words are
   never programs; only `run` starts a process.
 - **Lowering.** Built-ins are std functions over line iterators; `|` composes iterators; `>` writes
@@ -241,7 +241,7 @@ main(args: Args) uses proc, fs, net =
 - Decision: accepted, 2026-11-01
 - Row: R540
 
-### D6: Xu 序, durable workflows
+### D6: Yan Workflow 言序, durable workflows
 
 **Job.** Long-running business processes that survive crashes and deploys. **Users:** backend teams
 on Temporal, Step Functions or job queues.
@@ -268,14 +268,14 @@ workflow onboard(user: UserId) -> Done fail OnboardError
 - **Recovery.** Exact: every journaled operation is a capability call.
 - **Five facts.** Capabilities in the header; `par` blocks; failure in the header.
 - **Diagnostics.** E725 already covers non-journaling capabilities; CHENG-1 a `step` whose handler
-  declares no idempotency (W850 in Yong; an error in Xu).
-- **Depends on.** `@yong/durable` (M4, R419) and durable timers (RFC 0003). Xu cannot ship first.
-- **First slice.** Steps, `par`, `wait d`, versioning, `yong replay --against REV` as the deploy check.
+  declares no idempotency (W850 in Yan; an error in Yan Workflow).
+- **Depends on.** `@yan/durable` (M4, R419) and durable timers (RFC 0003). Yan Workflow cannot ship first.
+- **First slice.** Steps, `par`, `wait d`, versioning, `yan replay --against REV` as the deploy check.
 
 - Decision: accepted, 2026-11-01
 - Row: R541
 
-### D7: Ting 亭, infrastructure
+### D7: Yan Infra 言基, infrastructure
 
 **Job.** Declare cloud resources as a typed program with plan and apply. **Users:** platform teams on
 Terraform or Pulumi.
@@ -316,7 +316,7 @@ test_web_plan() uses none =
 - Decision: accepted, 2026-11-01
 - Row: R542
 
-### D8: Xing 形, binary formats
+### D8: Yan Binary Format 言码, binary formats
 
 **Job.** Declare packet, file and register layouts and get checked zero-copy parsers and writers.
 **Users:** networking, embedded, file-format and security engineers.
@@ -356,7 +356,7 @@ layout Ipv4Header big_endian msb_first
 - Decision: accepted, 2026-11-01
 - Row: R543
 
-### D9: Liu 流, synchronous dataflow
+### D9: Yan Dataflow 言川, synchronous dataflow
 
 **Job.** Control laws and signal processing in the Lustre and SCADE style, on the embedded profile.
 **Users:** avionics, automotive, rail, robotics and audio DSP engineers.
@@ -393,7 +393,7 @@ pub node attitude(target: Angles, imu: Imu, g: Gains3) -> Motors every 1ms =
 - Decision: accepted, 2026-11-01
 - Row: R544
 
-### D10: Tuo 托, contracts with generated bodies (research)
+### D10: Yan Delegate 言代, contracts with generated bodies (research)
 
 ```
 dream dedupe_emails(xs: List[str]) -> List[str] =
@@ -404,12 +404,12 @@ dream dedupe_emails(xs: List[str]) -> List[str] =
   body 3f9a...c21
 ```
 
-- **Idea.** The source is the contract; the body is a pinned, checked artifact. `yong dream` runs the
-  agent patch loop (section 21) to fill the body, writes it as checked-in Xin in a sibling file, and
-  records its item hash on the `body` line. `yong build` never calls a model; it checks that the pinned
+- **Idea.** The source is the contract; the body is a pinned, checked artifact. `yan dream` runs the
+  agent patch loop (section 21) to fill the body, writes it as checked-in Yan Agent in a sibling file, and
+  records its item hash on the `body` line. `yan build` never calls a model; it checks that the pinned
   body exists, matches its hash and meets the contracts (proved, or runtime-checked under R211).
 - **Lowering.** A `dream` item is an ordinary function whose body is the pinned item; with no body it
-  is a Xin hole (R212). Related: synthesis from examples (R529).
+  is a Yan Agent hole (R212). Related: synthesis from examples (R529).
 - **Questions.** Regeneration stability when the header changes; whether review of the body is
   required; how strong contracts must be; how `out` reads in quantified posts.
 - **First slice.** One command, one model handler, pinned bodies, a CI check that every `dream` has a
@@ -418,7 +418,7 @@ dream dedupe_emails(xs: List[str]) -> List[str] =
 - Decision: accepted for research, 2026-11-01
 - Row: R545
 
-### D11: Sui 随, probabilistic programming (research)
+### D11: Yan Probabilistic 言随, probabilistic programming (research)
 
 ```
 model coin_bias(flips: List[bool]) -> f64 uses prob =
@@ -433,19 +433,19 @@ main() uses prob, io =
 ```
 
 - **Idea.** `sample` and `observe` are operations of a user capability `@capability trait Prob` in
-  `@yong/prob`; inference algorithms are handlers, so one model runs under any of them. Randomness
+  `@yan/prob`; inference algorithms are handlers, so one model runs under any of them. Randomness
   comes from a seeded `rand` handler (7.1), so posteriors are identical on every run.
 - **Constraints.** A user capability is exclusive by default (7.1), so parallel chains run one handler
   each. NUTS and HMC need `grad`, an M4 preview (11.5); the first slice uses importance sampling and
-  SMC. Distributions come from `@yong/rand_distr`.
+  SMC. Distributions come from `@yan/rand_distr`.
 - **Questions.** The spelling of `observe` on continuous data; enumeration of discrete variables; one
-  library for Sui and Chang's probabilistic models (RFC 0001, M4, which passes a `Trace` parameter), so
-  the two must agree on capability versus parameter in Sui's own RFC.
+  library for Yan Probabilistic and Yan Meta's probabilistic models (RFC 0001, M4, which passes a `Trace` parameter), so
+  the two must agree on capability versus parameter in Yan Probabilistic's own RFC.
 
 - Decision: accepted for research, 2026-11-01
 - Row: R546
 
-### D12: Hui 会, session-typed protocols (research)
+### D12: Yan Protocol 言礼, session-typed protocols (research)
 
 ```
 protocol Checkout between Client, Shop
@@ -470,7 +470,7 @@ protocol Checkout between Client, Shop
 - Decision: accepted for research, 2026-11-01
 - Row: R547
 
-### D13: Guan 观, specs checked against code (research)
+### D13: Yan Spec 言规, specs checked against code (research)
 
 ```
 spec Lease
@@ -500,7 +500,7 @@ refines actor LeaseServer
 - Decision: accepted for research, 2026-11-01
 - Row: R548
 
-### D14: Yan 言, law as code (research)
+### D14: Yan Law 言法, law as code (research)
 
 ```
 scope IncomeTax
@@ -529,10 +529,10 @@ scope IncomeTax
 ### D15: Order and gating
 
 1. No niche surface is built before 1.0.
-2. After 1.0: Qi first (types only; it proves the shared machinery), then Wu.
-3. Cha and Yin next. Xu waits for `@yong/durable` (M4) and durable timers; Ting waits for the
+2. After 1.0: Yan Schema first (types only; it proves the shared machinery), then Yan Prompt.
+3. Yan Query Language and Yan Shell next. Yan Workflow waits for `@yan/durable` (M4) and durable timers; Yan Infra waits for the
    dry-run handler class (RFC 0003).
-4. Every surface starts as a print-only view (`yong view --as <name>`, as Chang is until M4, 16.6) before it gets a reader.
+4. Every surface starts as a print-only view (`yan view --as <name>`, as Yan Meta is until M4, 16.6) before it gets a reader.
 5. Each surface enters the normative spec through its own RFC: grammar, subset predicate, projection
    column, diagnostic codes and conformance column.
 
@@ -545,9 +545,9 @@ Recorded so the question is not reopened without new evidence. No rows.
 
 | Candidate | Why |
 | --- | --- |
-| He 核 (GPU kernels) | Wen `@kernel` covers it. |
+| He 核 (GPU kernels) | Yan `@kernel` covers it. |
 | Yan 验 (tests) | Property tests, fuzzing and `ex` exist (R301, R303). |
-| Yun 允 (policy) | Small market; Xin with `uses none` and `@@prove` covers it. |
+| Yun 允 (policy) | Small market; Yan Agent with `uses none` and `@@prove` covers it. |
 | Zheng 证 (proofs) | Lemma bodies exist (R458). |
 | Fa 法 (grammars) | A std combinator library suffices; see R527. |
 | Yuan 圆 (S-expressions) | Internal tool, no users. |

@@ -21,9 +21,9 @@ research index links their studies and rows.
 
 | RFC | Title | Status | Rows |
 | --- | --- | --- | --- |
-| [0001](0001-chang.md) | Chang, the third surface | accepted | R516 to R535 |
+| [0001](0001-yan-meta.md) | Yan Meta, the third surface | accepted | R516 to R535 |
 | [0002](0002-niche-surfaces.md) | Niche surfaces | accepted | R536 to R550 |
-| [0003](0003-core-gaps-from-surfaces.md) | Yong gaps found by the surface study | accepted | R551 to R557 |
+| [0003](0003-core-gaps-from-surfaces.md) | Yan gaps found by the surface study | accepted | R551 to R557 |
 | [0004](0004-architecture.md) | Architecture for one core and many surfaces | accepted | R558 to R565 |
 | [0005](0005-std-json.md) | std.json | accepted | R569 to R575 |
 | [0006](0006-engine-layering.md) | Where niche surface engines sit | accepted | R576 |
@@ -47,5 +47,6 @@ research index links their studies and rows.
 | [0024](0024-learnability.md) | Learnability for Python and TypeScript developers | accepted | R655 to R664 |
 | [0027](0027-loop-invariants.md) | Inferred loop invariants for the bounds solver | accepted | R760 to R763 |
 | [0021](0021-error-messages.md) | Error messages: E545, E017 for unsupported constructs, line format, near names | accepted | R648 to R651 |
-| [0023](0023-yong-review.md) | `yong review`, a report for agent PRs | accepted | R665 to R671 |
-| [0028](0028-drops-and-yong-opt.md) | Ownership facts, drop elaboration and the `yong-opt` contract | accepted | R769 to R773 |
+| [0023](0023-yan-review.md) | `yan review`, a report for agent PRs | accepted | R665 to R671 |
+| [0028](0028-drops-and-yan-opt.md) | Ownership facts, drop elaboration and the `yan-opt` contract | accepted | R769 to R773 |
+| [0029](0029-yan-meta.md) | Yan Meta, the lab and canary surface | accepted | R776 to R786 |

@@ -6,7 +6,7 @@
 
 ## Summary
 
-The 8.6 solver forgets everything it knows about a variable when that variable is assigned. As a result, a loop that updates its indices, such as binary search or `i += 1` over a list, cannot prove any index in bounds. Each such index keeps a runtime check and, in Xin, raises W820. This RFC makes four changes, all deterministic: kills keep the facts they imply, `x = x + d` updates its facts, joins keep the facts that every path implies, and a `while` loop infers the invariants that its body preserves. A program still has one verdict in every implementation (R345).
+The 8.6 solver forgets everything it knows about a variable when that variable is assigned. As a result, a loop that updates its indices, such as binary search or `i += 1` over a list, cannot prove any index in bounds. Each such index keeps a runtime check and, in Yan Agent, raises W820. This RFC makes four changes, all deterministic: kills keep the facts they imply, `x = x + d` updates its facts, joins keep the facts that every path implies, and a `while` loop infers the invariants that its body preserves. A program still has one verdict in every implementation (R345).
 
 ## Decisions
 
@@ -42,4 +42,4 @@ Options weighed: keep 8.6 as is (binary search stays checked), or trust only wri
 
 ## Spec changes
 
-8.6 step 2 (kills), with new joins and loop invariants paragraphs after it. One conformance case, `conformance/solver/invariant_untrusted_in_release.xin`, becomes provable under D4. It needs an entry value the solver cannot bound to keep testing R340. That change is proposed in a separate PR.
+8.6 step 2 (kills), with new joins and loop invariants paragraphs after it. One conformance case, `conformance/solver/invariant_untrusted_in_release.yag`, becomes provable under D4. It needs an entry value the solver cannot bound to keep testing R340. That change is proposed in a separate PR.

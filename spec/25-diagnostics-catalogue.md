@@ -25,14 +25,14 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 
 | Code | Meaning | Section |
 | --- | --- | --- |
-| E001 | preview item used without `preview = ["name"]` | 20.6 |
-| E002 | published package at 1.0 or later enables a preview *new* | 20.6 |
+| E001 | preview item used without `preview = ["name"]`, or experimental Yan Meta form used without `@lab(name)` (R778) | 20.6, 16.6 |
+| E002 | published package at 1.0 or later enables a preview or contains `@lab` *new* | 20.6, 16.6 |
 | E003 | package name does not exist; nearest names suggested *new* | 19.4 |
 | E004 | agent add of a package neither locked nor established needs an approval *new* | 19.4 |
 | E005 | update gains a capability or changes publisher identity; needs an approval *new* | 19.4 |
 | E006 | declared capability ceiling does not contain the computed capability set *new* | 19.2 |
 | E007 | version is marked malicious *new* | 19.3 |
-| E008 | version bump is below the minimum `yong semver` computed *new* | 20.6 |
+| E008 | version bump is below the minimum `yan semver` computed *new* | 20.6 |
 | E009 | approval signature invalid, or signer not in `approvers` *new* | 19.4 |
 | E010 | build differs between two roots under `--verify` *new* | 19.5 |
 | E011 | transparency-log inclusion, consistency or witness quorum check failed *new* | 19.3 |
@@ -40,7 +40,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E013 | confirmed breaking change (with witness) for the declared bump *new* | 20.6 |
 | E014 | approved test changed since tests.lock was signed new | 18.4 |
 | E015 | approved test in tests.lock is missing new | 18.4 |
-| E016 | `yong publish` refuses the manifest: `overrides`, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later *new* | 19.4 |
+| E016 | `yan publish` refuses the manifest: `overrides`, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later *new* | 19.4 |
 | E017 | construct this toolchain does not support yet, reported at the construct; checking continues (R649) new | 18.2 |
 | W014 | possible breaking change without a witness *new* | 20.6 |
 
@@ -51,7 +51,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E100 | unexpected token; the expected set is listed* new* | 13.2, 15.2 |
 | E101 | operator mix that requires parentheses | 13.2, 15.2 |
 | E102 | unclosed bracket, string or block* new* | 13.1, 15.1 |
-| E103 | backslash continuation or `;` (Xin) | 13.1 |
+| E103 | backslash continuation or `;` (Yan Agent) | 13.1 |
 | E104 | chained comparison | 13.2 |
 | E105 | forbidden invisible, bidirectional or tag character | 13.1 |
 | E106 | contract line (`pre`, `post`, `ex`, `decreases`, `invariant`) after the first other statement of a body; fix moves it (R422) new | 13.1 |
@@ -61,9 +61,9 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E112 | consecutive capitals in a type name | 13.1 |
 | E120 | `try`, `except`, `finally` or `raise` | 13.1 |
 | E121 | unsupported Python keyword (`global`, `nonlocal`, `del`, `yield`, `async`, `await`) | 13.1 |
-| E130, E131 | retired in v0.2 (hyphenated Wen names) |  |
-| E132 | `--` not followed by a space (Wen) | 15.1 |
-| E133 | tab in Wen indentation | 15.1 |
+| E130, E131 | retired in v0.2 (hyphenated Yan names) |  |
+| E132 | `--` not followed by a space (Yan) | 15.1 |
+| E133 | tab in Yan indentation | 15.1 |
 | E134 | `a -b` inside a grid literal | 15.1 |
 | E135 | nested implicit-subject closures | 15.3 |
 | E140 | interior NUL in a `c"..."` literal *new* | 12.3 |
@@ -74,7 +74,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 
 | Code | Meaning | Section |
 | --- | --- | --- |
-| E200 | unresolved name, including std items newer than the package's `yong` version *new* | 20.3 |
+| E200 | unresolved name, including std items newer than the package's `yan` version *new* | 20.3 |
 | E201 | type mismatch, with the differing parts of the two types marked* new* | 10.1, 14.1 |
 | E202 | wrong number of arguments, or unknown keyword or label argument* new* | 14.1, 15.3 |
 | E203 | no such field or method; nearest names suggested* new* | 10.2, 17.2 |
@@ -128,7 +128,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E322 | task stack bound exceeds the manifest's stack reserve new | 17.1 |
 | E323 | lock (Resource, CsMutex, Mutex or RwLock guard) held across a suspension point, on every platform (R395) new | 17.1 |
 | E325 | Untrusted value passed to a @trusted parameter (R451) new | 17.4 (R451) |
-| E326 | host handler built or bound outside the platform, a `yong_world` or an attenuation of a held handle (R672) new | 7.3 (R672) |
+| E326 | host handler built or bound outside the platform, a `yan_world` or an attenuation of a held handle (R672) new | 7.3 (R672) |
 
 ### 25.6 Ownership, views, memory and thread safety
 
@@ -161,7 +161,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | Code | Meaning | Section |
 | --- | --- | --- |
 | E501 | index, key or other goal refuted, with the counterexample (R211) | 14.1 |
-| E502 | wildcard on a sum (Xin) | 14.1 |
+| E502 | wildcard on a sum (Yan Agent) | 14.1 |
 | E503 | non-exhaustive match, including open C enums and `@non_exhaustive` types without `_` | 14.1, 12.3 |
 | E504 | integer indexing or `len` on `str` | 14.1 |
 | E520 | positional axis broadcast against a non-scalar | 11.2 |
@@ -184,7 +184,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 
 | Code | Meaning | Section |
 | --- | --- | --- |
-| E601 | `pub` function with no `ex` and no `test_` calling it (Xin; publish and release only, R284) | 8.4 |
+| E601 | `pub` function with no `ex` and no `test_` calling it (Yan Agent; publish and release only, R284) | 8.4 |
 | E602 | recursion without `decreases` | 8.4 |
 | E603 | contract not proven in a `@prove` module *new* | 8.5 |
 | E617 | retired by R447; a test that binds a real capability is an I/O test | 18.4 |
@@ -233,24 +233,24 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | W801 | confusable identifier | 13.1 |
 | W802 | retired by R443; an unclosed `@linear` value is E412 | 5.4 |
 | W803 | exposed `Secret` flows into `log` | 17.4 |
-| W804 | retired by R448; `FastHasher` moved to `@yong/fasthash` | 7.7 |
+| W804 | retired by R448; `FastHasher` moved to `@yan/fasthash` | 7.7 |
 | W805 | error union over 8 members | 8.1 |
 | W806 | code special-cases literal `ex` inputs | 21.1 |
 | W807 | constant slice proven out of range | 14.1 |
 | W808 | static call cycle between actors | 9.6 |
 | W809 | retired by R448; std has no `shell` | 7.1 |
 | W810 | `@expect` suppressed nothing | 18.2 |
-| W811 | wildcard on a sum (Wen) | 15.3 |
-| W812 | unused binding or parameter (Xin and Wen, R214) | 15.3 |
-| W813 | `pub` item without `ex` (Wen) | 15.3 |
+| W811 | wildcard on a sum (Yan) | 15.3 |
+| W812 | unused binding or parameter (Yan Agent and Yan, R214) | 15.3 |
+| W813 | `pub` item without `ex` (Yan) | 15.3 |
 | W814 | spin loop on an atomic shared by plain `par` branches | 6.5 |
 | W815 | use of a deprecated item *new* | 20.5 |
 | W816 | `compile_warn` raised by stage-0 code *new* | 10.4 |
 | W817 | `day` or `week` `Duration` added to a `ZonedDateTime` *new* | 14.2 |
 | W818 | else that discards a Cancelled failure (R341) new | 9.4 |
 | W819 | method found at an earlier resolution step hides one of the same name at a later step (R348) new | 17.2 |
-| W820 | check neither proven nor refuted, compiled as a runtime check; carries the unknown goal (Xin, R211) new | 8.6, 14.1 |
-| W823 | local annotation that inference already gives (Xin); safe fix removes it (R429) new | 14.3 |
+| W820 | check neither proven nor refuted, compiled as a runtime check; carries the unknown goal (Yan Agent, R211) new | 8.6, 14.1 |
+| W823 | local annotation that inference already gives (Yan Agent); safe fix removes it (R429) new | 14.3 |
 | W824 | a `None` or failure guard right after a binding that a fallback `else` replaces; safe fix rewrites it (R429) new | 14.3 |
 | W821 | @multiversion function whose versions compile to the same code (R386) new | 11.3 |
 | W822 | + in a loop on a Str or List that is not at its last use (R388) new | 3.3 |
@@ -266,7 +266,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | W851 | `cost` bound neither proven nor refuted, compiled as a counter in `checked-all` (R610) new | 8.4 |
 | W852 | float expression less accurate than a rewrite found for it (R613) new | 11.1 |
 | W853 | match arm that can match no value left by earlier arms (R606) new | 8.6 |
-| W854 | Wen string with `${...}`, which Wen prints literally; fix rewrites it to `\(...)` (R663) new | 15.1 |
+| W854 | Yan string with `${...}`, which Yan prints literally; fix rewrites it to `\(...)` (R663) new | 15.1 |
 
 ### 25.11 Unsafe, FFI, layout and assembly
 
@@ -296,6 +296,6 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | P005 | added item already exists |
 | P006 | patch touches a protected target without a human confirmation token |
 | N01 to N32 | lenient-reader normalizations (14.4) |
-| I001 to I999 | internal errors, including Yong validator failures |
+| I001 to I999 | internal errors, including Yan validator failures |
 
 Panic kinds, reported as `panic(kind): message` with exit status 101: `overflow`, `div_zero`, `contract`, `exclusivity`, `bounds`, `shape`, `unreachable`, `assert`, `deadlock`. Undefined-behavior reports from `--ub` name the item number of 6.7.

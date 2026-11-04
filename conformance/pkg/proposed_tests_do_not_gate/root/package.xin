@@ -1,1 +1,0 @@
-package: Package = Package(name="@conf/proposed", version="0.1.0", yong="1.x", platform="cli", capabilities=["io"])

@@ -1,6 +1,6 @@
-# Contributing to Yong
+# Contributing to Yan Core
 
-Yong has one lead, Antonio ([@atbraz](https://github.com/atbraz)), who owns the spec, the tests and the gates,
+Yan has one lead, Antonio ([@atbraz](https://github.com/atbraz)), who owns the spec, the tests and the gates,
 accepts RFCs, approves tests, merges and cuts releases.
 
 ## Sign-off (DCO)

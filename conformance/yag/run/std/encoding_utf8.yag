@@ -1,0 +1,24 @@
+# spec: 17.3
+# rows: R580
+# note: strict decoding fails at the first byte of an overlong form, a surrogate or a truncated sequence; lossy replaces each maximal invalid subpart
+# stdout:
+# 10 héllo 言 héllo 言
+# 1
+# 0
+# 2
+# a�b�
+# 😀
+
+def check(b: bytes) -> str:
+    s = b.decode_utf8() else err -> f"{err.at}"
+    return s
+
+pub def main() uses io:
+    h = "héllo 言"
+    b = h.bytes()
+    io.print(f"{len(b)} {b.decode_utf8() else '?'} {b.decode_utf8_lossy()}")
+    io.print(check(bytes.from_list([97, 0xc0, 0xaf])))
+    io.print(check(bytes.from_list([0xed, 0xa0, 0x80])))
+    io.print(check(bytes.from_list([97, 98, 0xe6, 0xb0])))
+    io.print(bytes.from_list([97, 0xff, 98, 0xe6, 0xb0]).decode_utf8_lossy())
+    io.print(bytes.from_list([0xf0, 0x9f, 0x98, 0x80]).decode_utf8_lossy())

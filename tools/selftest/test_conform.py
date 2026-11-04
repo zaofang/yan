@@ -43,14 +43,14 @@ class Fake:
         self, workdir: Path, patch: Path, flags: list[str]
     ) -> tuple[list[dict[str, object]], int]:
         if self.patched is not None:
-            (workdir / "m.xin").write_text(self.patched)
+            (workdir / "m.yag").write_text(self.patched)
         return self.patch_records, 1 if self.patch_records else 0
 
     def semver(self, old: Path, new: Path) -> str:
         return self.bump
 
     def tool(self, workdir: Path, args: list[str]) -> tuple[list[dict[str, object]], int]:
-        assert (workdir / "package.xin").is_file()
+        assert (workdir / "package.yag").is_file()
         self.seen_args.append(args)
         return self.tool_result
 
@@ -64,7 +64,7 @@ def test_parse_case_headers() -> None:
         "# spec: 8.6, 4.3\n# rows: R345\n# milestone: M2a\n# flags: --strict\n# note: why\n"
         "# expect: E501 at 14:9\n# stdout:\n# hello\n#\n# world\n# exit: 101\nmain()\n# x\n"
     )
-    case = parse_case("run", Path("r.xin"), text)
+    case = parse_case("run", Path("r.yag"), text)
     assert case.expect == [Diag("E501", 14, 9)]
     assert case.stdout == "hello\n\nworld\n"
     assert case.exit == 101
@@ -75,18 +75,18 @@ def test_parse_case_headers() -> None:
 
 
 def test_defaults_by_surface() -> None:
-    case = parse_case("pass", Path("p.wen"), "x = 1\n")
+    case = parse_case("pass", Path("p.yn"), "x = 1\n")
     assert (case.stdout, case.exit, case.milestone, case.flags) == (None, 0, "M3", [])
-    assert parse_case("pass", Path("p.yong"), "").milestone == "M0"
+    assert parse_case("pass", Path("p.yir"), "").milestone == "M0"
 
 
 def test_dash_comment_headers() -> None:
-    case = parse_case("run", Path("r.yong"), "-- exit: 1\n-- stdout:\n-- hi\n--\nmodule m\n")
+    case = parse_case("run", Path("r.yir"), "-- exit: 1\n-- stdout:\n-- hi\n--\nmodule m\n")
     assert (case.stdout, case.exit) == ("hi\n\n", 1)
 
 
 def test_fail_case_needs_exact_codes() -> None:
-    case = Case("fail", Path("f.xin"), [Diag("E501", 1, 2)])
+    case = Case("fail", Path("f.yag"), [Diag("E501", 1, 2)])
     assert judge(case, Fake(diags=[diag("E501", 1, 2)])).status == "pass"
     assert judge(case, Fake(diags=[diag("E501", 1, 2), diag("E502", 3, 1)])).status == "fail"
     assert judge(case, Fake(diags=[diag("W820", 1, 2, "warning")])).status == "fail"
@@ -94,20 +94,20 @@ def test_fail_case_needs_exact_codes() -> None:
 
 
 def test_pass_case_ignores_warnings() -> None:
-    case = Case("pass", Path("p.xin"))
+    case = Case("pass", Path("p.yag"))
     assert judge(case, Fake(diags=[diag("W100", 1, 1, "warning")])).status == "pass"
     assert judge(case, Fake(diags=[diag("E100", 1, 1)])).status == "fail"
 
 
 def test_run_case_compares_stdout_and_exit() -> None:
-    case = Case("run", Path("r.xin"), stdout="hi\n", exit=101)
+    case = Case("run", Path("r.yag"), stdout="hi\n", exit=101)
     assert judge(case, Fake(output=("hi\n", 101))).status == "pass"
     assert judge(case, Fake(output=("hi\n", 0))).status == "fail"
 
 
 def test_flags_reach_the_executor() -> None:
     ex = Fake()
-    judge(Case("pass", Path("p.xin"), flags=["--level", "release"]), ex)
+    judge(Case("pass", Path("p.yag"), flags=["--level", "release"]), ex)
     assert ex.seen_flags == [["--level", "release"]]
 
 
@@ -116,28 +116,28 @@ def test_tool_failure_is_a_failed_case() -> None:
         def check(self, path: Path, flags: list[str]) -> list[dict[str, object]]:
             raise ToolFailure("no front end")
 
-    result = judge(Case("pass", Path("p.yong")), Broken())
+    result = judge(Case("pass", Path("p.yir")), Broken())
     assert result.status == "fail"
     assert "no front end" in result.detail
 
 
 def test_discover(tmp_path: Path) -> None:
-    (tmp_path / "xin" / "fail").mkdir(parents=True)
-    (tmp_path / "xin" / "fail" / "a.xin").write_text("# expect: E1 at 1:1\n")
-    (tmp_path / "yong" / "fail").mkdir(parents=True)
-    (tmp_path / "yong" / "fail" / "b.yong").write_text("-- expect: E2 at 3:4\nmodule m\n")
-    (tmp_path / "yong" / "fail" / "c.txt").write_text("")
+    (tmp_path / "yag" / "fail").mkdir(parents=True)
+    (tmp_path / "yag" / "fail" / "a.yag").write_text("# expect: E1 at 1:1\n")
+    (tmp_path / "yir" / "fail").mkdir(parents=True)
+    (tmp_path / "yir" / "fail" / "b.yir").write_text("-- expect: E2 at 3:4\nmodule m\n")
+    (tmp_path / "yir" / "fail" / "c.txt").write_text("")
     (tmp_path / "solver").mkdir()
-    (tmp_path / "solver" / "s.xin").write_text("x = 1\n")
+    (tmp_path / "solver" / "s.yag").write_text("x = 1\n")
     (tmp_path / "golden").mkdir()
-    (tmp_path / "golden" / "g.xin").write_text("# stdout:\n# hi\n")
+    (tmp_path / "golden" / "g.yag").write_text("# stdout:\n# hi\n")
     (tmp_path / "patch" / "p1").mkdir(parents=True)
     cases = discover(tmp_path)
     assert [(c.kind, c.path.name) for c in cases] == [
-        ("fail", "a.xin"),
-        ("fail", "b.yong"),
-        ("run", "g.xin"),
-        ("fail", "s.xin"),
+        ("fail", "a.yag"),
+        ("fail", "b.yir"),
+        ("run", "g.yag"),
+        ("fail", "s.yag"),
         ("patch", "p1"),
     ]
     assert cases[1].expect == [Diag("E2", 3, 4)]
@@ -150,17 +150,17 @@ def test_missing_suite_is_empty(tmp_path: Path) -> None:
 
 
 def test_milestone_selection() -> None:
-    early = Case("pass", Path("a.yong"), milestone="M0")
-    late = Case("pass", Path("b.wen"), milestone="M3")
+    early = Case("pass", Path("a.yir"), milestone="M0")
+    late = Case("pass", Path("b.yn"), milestone="M3")
     assert selected([early, late], "M1") == [early]
     assert selected([early, late], None) == [early, late]
 
 
 def test_manifest_paths_are_relative(tmp_path: Path) -> None:
-    case = Case("run", tmp_path / "xin" / "run" / "r.xin", stdout="hi\n", spec=["24.3"])
+    case = Case("run", tmp_path / "yag" / "run" / "r.yag", stdout="hi\n", spec=["24.3"])
     assert manifest([case], tmp_path)["cases"] == [
         {
-            "path": "xin/run/r.xin",
+            "path": "yag/run/r.yag",
             "kind": "run",
             "milestone": "M0",
             "spec": ["24.3"],
@@ -193,7 +193,7 @@ def test_coverage_counts_codes_and_sections() -> None:
         "7.1" = "Match"
         """
     )
-    case = Case("fail", Path("f.xin"), [Diag("E501", 1, 1), Diag("N05", 2, 1)], spec=["8.6"])
+    case = Case("fail", Path("f.yag"), [Diag("E501", 1, 1), Diag("N05", 2, 1)], spec=["8.6"])
     report = coverage([case], catalogue)
     assert "1 of 2 active codes" in report
     assert "| E502 | 7.1 | non-exhaustive match | **none** |" in report
@@ -202,21 +202,21 @@ def test_coverage_counts_codes_and_sections() -> None:
 
 
 def test_ub_cases() -> None:
-    flagged = Case("ub", Path("u.wen"), ub="3")
+    flagged = Case("ub", Path("u.yn"), ub="3")
     assert (
         judge(flagged, Fake(ub_output=("ub(3): offset outside allocation\n", 101))).status == "pass"
     )
     assert judge(flagged, Fake(ub_output=("ub(2): dead allocation\n", 101))).status == "fail"
     assert judge(flagged, Fake()).status == "fail"
-    clean = Case("ub", Path("c.wen"), ub="none")
+    clean = Case("ub", Path("c.yn"), ub="none")
     assert judge(clean, Fake()).status == "pass"
     assert judge(clean, Fake(ub_output=("ub(1): data race\n", 101))).status == "fail"
 
 
 def _patch_case(tmp: Path, expect: str) -> Case:
-    (tmp / "m.xin").write_text("old\n")
+    (tmp / "m.yag").write_text("old\n")
     (tmp / "patch.json").write_text("{}")
-    (tmp / "result.xin").write_text("new\n")
+    (tmp / "result.yag").write_text("new\n")
     (tmp / "expect.toml").write_text(expect)
     [case] = discover_dirs(tmp)
     return case
@@ -231,7 +231,7 @@ def discover_dirs(tmp: Path) -> list[Case]:
 
 def test_patch_result(tmp_path: Path) -> None:
     (tmp_path / "a").mkdir()
-    case = _patch_case(tmp_path / "a", 'spec = "18.3"\nresult = "result.xin"\n')
+    case = _patch_case(tmp_path / "a", 'spec = "18.3"\nresult = "result.yag"\n')
     assert judge(case, Fake(patched="new\n")).status == "pass"
     assert judge(case, Fake(patched="other\n")).status == "fail"
 
@@ -257,20 +257,20 @@ def test_semver_bump(tmp_path: Path) -> None:
 def _pkg(tmp_path: Path, expect: str) -> Path:
     case = tmp_path / "pkg" / "p1"
     (case / "root").mkdir(parents=True)
-    (case / "root" / "package.xin").write_text("")
+    (case / "root" / "package.yag").write_text("")
     (case / "expect.toml").write_text(expect)
     return case
 
 
 def test_pkg_code(tmp_path: Path) -> None:
-    _pkg(tmp_path, 'spec = "20.6"\ncommand = ["check"]\ncode = "E001"\nat = "src/a.xin:2:18"\n')
+    _pkg(tmp_path, 'spec = "20.6"\ncommand = ["check"]\ncode = "E001"\nat = "src/a.yag:2:18"\n')
     [case] = discover(tmp_path)
     assert case.milestone == "M1"
-    hit = {**diag("E001", 2, 18), "file": "src/a.xin"}
+    hit = {**diag("E001", 2, 18), "file": "src/a.yag"}
     fake = Fake(tool_result=([hit], 1))
     assert judge(case, fake).status == "pass"
     assert fake.seen_args == [["check"]]
-    moved = {**diag("E001", 3, 18), "file": "src/a.xin"}
+    moved = {**diag("E001", 3, 18), "file": "src/a.yag"}
     assert judge(case, Fake(tool_result=([moved], 1))).status == "fail"
     assert judge(case, Fake(tool_result=([hit], 0))).status == "fail"
 

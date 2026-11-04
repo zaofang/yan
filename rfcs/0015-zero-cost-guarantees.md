@@ -6,7 +6,7 @@
 
 ## Summary
 
-Closures, iterator chains and data-parallel loops are fast in Yong only when the optimizer happens to
+Closures, iterator chains and data-parallel loops are fast in Yan only when the optimizer happens to
 see through them. This RFC turns three of those optimizations into guarantees that every backend
 keeps, in line with the rule that builds never change behavior.
 

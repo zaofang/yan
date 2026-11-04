@@ -6,7 +6,7 @@
 
 ## Summary
 
-Yong finds deadlocks in actors and channels at test time (9.6). Multiparty session types rule out
+Yan finds deadlocks in actors and channels at test time (9.6). Multiparty session types rule out
 deadlocks and unexpected messages within a session before the program runs, `Remote` included.
 
 ## Decisions
@@ -16,7 +16,7 @@ deadlocks and unexpected messages within a session before the program runs, `Rem
 `session.protocol(spec)` is a stage-0 type function over a Scribble-style string: messages, sequence,
 a choice by one role, named recursion and `end`. The checker projects it onto each role (Honda,
 Yoshida and Carbone, POPL 2008). A protocol that cannot be projected is E728. A stage-0 string, as
-`math.ein` uses, keeps the three surfaces' grammars unchanged; Chang may add sugar later.
+`math.ein` uses, keeps the three surfaces' grammars unchanged; Yan Meta may add sugar later.
 
 - Decision: accepted as normative, 2026-11-01
 - Row: R633

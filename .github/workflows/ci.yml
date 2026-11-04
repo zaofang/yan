@@ -71,7 +71,7 @@ jobs:
           python-version: "3.14"
       - name: Guard must reject a synthetic agent patch to tests/
         run: |
-          if printf 'tests/canary.xin\n' | python3 tools/guard.py --branch agent/canary; then
+          if printf 'tests/canary.yag\n' | python3 tools/guard.py --branch agent/canary; then
             echo "guard accepted an agent patch to tests/" >&2
             exit 1
           fi
@@ -103,7 +103,7 @@ jobs:
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
       - run: lake build
         working-directory: formal
-      - run: cargo build --locked --release -p yong-cli
+      - run: cargo build --locked --release -p yan-cli
       - run: uv sync --locked
       - run: uv run python formal/drt.py cases
       - run: uv run python formal/drt.py gen --count 300 --seed 1
@@ -120,15 +120,15 @@ jobs:
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked
       - run: uv sync --locked
-      - run: cargo build --locked --release -p yong-cli
+      - run: cargo build --locked --release -p yan-cli
       # Gate on the cases due by the milestone the implementation has reached (spec 23); raise it when a milestone starts.
       - run: >-
           uv run python tools/conform.py --json conformance-summary.json
-          --milestone M0 --executor interp=target/release/yong
+          --milestone M0 --executor interp=target/release/yan
       # Round-trip laws 3 and 4 (16.5): reported, not gated, until M3 (R564).
       - run: >-
           uv run python tools/conform.py --laws --json laws-summary.json
-          --executor interp=target/release/yong
+          --executor interp=target/release/yan
       - uses: actions/upload-artifact@v4
         with:
           name: conformance-summary
@@ -145,7 +145,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --locked
-      - run: cargo build --locked --release -p yong-cli
+      - run: cargo build --locked --release -p yan-cli
       - run: uv run python bench/run.py --runs 1 --json bench-summary.json
       - uses: actions/upload-artifact@v4
         with:

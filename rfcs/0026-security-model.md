@@ -6,20 +6,20 @@
 
 ## Summary
 
-The study threat-modelled capabilities, FFI, `yong mcp` and `yong agent`. Code cannot reach the host today only because no host `fs`, `net` or `proc` handler exists and extern calls never run. The spec gap that would matter once they exist is that a handler is any value implementing the trait (7.3) and std names host handlers, so any function could bind one and `uses` would bound nothing. D1 makes host handlers unforgeable. D2 to D6 name the capabilities that confer full process authority, give every confined capability an attenuator, freeze the meaning of contract clauses, confine the agent server, and close `embed` through symlinks. The implementation findings F1 to F8 are fixed separately in #119.
+The study threat-modelled capabilities, FFI, `yan mcp` and `yan agent`. Code cannot reach the host today only because no host `fs`, `net` or `proc` handler exists and extern calls never run. The spec gap that would matter once they exist is that a handler is any value implementing the trait (7.3) and std names host handlers, so any function could bind one and `uses` would bound nothing. D1 makes host handlers unforgeable. D2 to D6 name the capabilities that confer full process authority, give every confined capability an attenuator, freeze the meaning of contract clauses, confine the agent server, and close `embed` through symlinks. The implementation findings F1 to F8 are fixed separately in #119.
 
 ## Decisions
 
 ### D1: host handlers are unforgeable
 
-A handler that reaches the host is built only by the platform before `main` (7.3), from the grants of a `yong_world` (12.7), or by attenuating a handle of the same capability already in scope (`with fs = fs.only(...)`). Std's host handler constructors are not nameable by user code. Binding one anywhere else is E326. Handlers written in Yong (fakes, recorders, replayers, wrappers) stay free, because they reach the host only through capabilities they are given.
+A handler that reaches the host is built only by the platform before `main` (7.3), from the grants of a `yan_world` (12.7), or by attenuating a handle of the same capability already in scope (`with fs = fs.only(...)`). Std's host handler constructors are not nameable by user code. Binding one anywhere else is E326. Handlers written in Yan (fakes, recorders, replayers, wrappers) stay free, because they reach the host only through capabilities they are given.
 
 - Decision: accepted as written (Antonio, card, 2026-11-01)
 - Row: R672
 
 ### D2: unconfined capabilities
 
-`proc`, `py` and every foreign-library capability give the holder the authority of the process: a child process, Python code or C code can do anything the process can. They form the unconfined class. Granting one in a ceiling is reported as granting every capability, gaining one blocks like a publisher identity change (19.4), and `yong audit` lists them first. A `uses none` extern item still requires its library in the package ceiling and the root's `allow_ffi` consent.
+`proc`, `py` and every foreign-library capability give the holder the authority of the process: a child process, Python code or C code can do anything the process can. They form the unconfined class. Granting one in a ceiling is reported as granting every capability, gaining one blocks like a publisher identity change (19.4), and `yan audit` lists them first. A `uses none` extern item still requires its library in the package ceiling and the root's `allow_ffi` consent.
 
 - Decision: accepted (Antonio, card "All five into one RFC", 2026-11-01)
 - Row: R673
@@ -40,7 +40,7 @@ Names in frozen `pre`, `post`, `ex`, `invariant` and `decreases` clauses resolve
 
 ### D5: agent server confinement
 
-A module name in a `yong mcp` request is dotted identifiers resolved beneath the server root, never through a symlink out of it. Every tool that runs code (`run_tests`, `spec_check`, `query`, `debug`) has step, heap and wall-clock budgets per call and per session; a step includes a loop iteration (R487). `sig`, the `quote` and `notes` of diagnostics, and test output carry repository text in the untrusted channel. `run_tests` and stage 0 run only in a repository the user has trusted, recorded by `yong trust`.
+A module name in a `yan mcp` request is dotted identifiers resolved beneath the server root, never through a symlink out of it. Every tool that runs code (`run_tests`, `spec_check`, `query`, `debug`) has step, heap and wall-clock budgets per call and per session; a step includes a loop iteration (R487). `sig`, the `quote` and `notes` of diagnostics, and test output carry repository text in the untrusted channel. `run_tests` and stage 0 run only in a repository the user has trusted, recorded by `yan trust`.
 
 - Decision: accepted (Antonio, card, 2026-11-01)
 - Row: R676
