@@ -297,6 +297,8 @@ fn func(f: &y::FnDef, std: &dyn Std) -> R<FuncDef> {
             if let Some(t) = b.pending.keys().find(|t| !b.pure.contains(*t)) {
                 return no(format!("a temporary used out of order: `{t}`"));
             }
+            let r = if unit { None } else { Some(ty(&f.ret)?) };
+            drop_inferred(&mut stmts, r.as_ref(), &b.types);
             if unit && matches!(stmts.last().map(|s| &s.kind), Some(StmtKind::Return(None))) {
                 stmts.pop();
             }
@@ -319,6 +321,13 @@ fn func(f: &y::FnDef, std: &dyn Std) -> R<FuncDef> {
         uses: (!caps.is_empty()).then_some(Uses::Caps(caps)),
         body,
     })
+}
+
+/// A nullary variant's name, which Yan Core spells without parentheses: `CamelCase`, not `None`.
+fn variant(n: &str) -> bool {
+    n != "None"
+        && n.starts_with(|c: char| c.is_ascii_uppercase())
+        && n.contains(|c: char| c.is_ascii_lowercase())
 }
 
 /// A name elaboration generates: `_`, a letter or two, digits.
@@ -378,6 +387,7 @@ impl<'a> Fold<'a> {
                 Some(Pending::Set(xs)) => e(ExprKind::Set(xs)),
                 Some(Pending::Dict(kvs)) => e(ExprKind::Dict(kvs)),
                 None if n == "None" => e(ExprKind::Lit(Lit::None)),
+                None if variant(n) => call(name(n), Vec::new()),
                 None => name(n),
             },
             y::Atom::Lit(l, _) => e(ExprKind::Lit(match l {
@@ -419,7 +429,16 @@ impl<'a> Fold<'a> {
         let mut x = self.atom(&y::Atom::Name(p.root.clone(), p.root_span))?;
         for pr in &p.projs {
             x = match pr {
-                y::Proj::Field(f, _) => e(ExprKind::Attr(Box::new(x), f.clone(), AT)),
+                // A tuple's field `_0` is written `t[0]`.
+                y::Proj::Field(f, _) => match f.strip_prefix('_') {
+                    Some(i) if !i.is_empty() && i.bytes().all(|b| b.is_ascii_digit()) => {
+                        e(ExprKind::Index(
+                            Box::new(x),
+                            Box::new(e(ExprKind::Lit(Lit::Int(i.into())))),
+                        ))
+                    }
+                    _ => e(ExprKind::Attr(Box::new(x), f.clone(), AT)),
+                },
                 y::Proj::Index(a) => {
                     let i = negative_index(&x, self.atom(a)?);
                     e(ExprKind::Index(Box::new(x), Box::new(i)))
@@ -577,6 +596,16 @@ impl<'a> Fold<'a> {
             }));
         }
         if let Some((m, f)) = p.strip_prefix("std.").and_then(|s| s.rsplit_once('.')) {
+            // A float `sum` is its own function only below Yan Agent.
+            let f = if f == "sum_float" { "sum" } else { f };
+            if let ([a], true) = (vals.as_slice(), m.starts_with("time.") && f == "neg") {
+                let a = self.atom(a)?;
+                return Ok(e(ExprKind::Unary("-", Box::new(a))));
+            }
+            if let ([a, b], Some(op)) = (vals.as_slice(), time_operator(m, f)) {
+                let (a, b) = (self.atom(a)?, self.atom(b)?);
+                return Ok(e(ExprKind::Binary(op, Box::new(a), Box::new(b))));
+            }
             return self.std_call(c, m, f);
         }
         let args = self.args(&c.args)?;
@@ -656,6 +685,18 @@ impl<'a> Fold<'a> {
                 let (a, b) = (self.atom(vals[0])?, self.atom(vals[1])?);
                 return Ok(e(ExprKind::Compare(op, Box::new(a), Box::new(b))));
             }
+            // A pattern with a backslash is written raw.
+            ("regex", "compile", 1) => {
+                let mut x = self.atom(vals[0])?;
+                if let ExprKind::Lit(Lit::Str { prefix, value }) = &mut x.kind
+                    && value.contains('\\')
+                    && !value.ends_with('\\')
+                    && !value.contains(['"', '\n', '\r'])
+                {
+                    *prefix = "r".into();
+                }
+                return Ok(call(attr(name("regex"), f), vec![arg(x)]));
+            }
             ("error", "context", 2) => {
                 let recv = self.atom(vals[0])?;
                 let args = self.args(&c.args[1..])?;
@@ -672,10 +713,15 @@ impl<'a> Fold<'a> {
             let args = self.args(&c.args[1..])?;
             return Ok(call(attr(name(cap), f), args));
         }
-        // A method of the type its module declares (17.2).
+        // A method of the type its module declares (17.2): its first parameter is `self`.
+        let path = format!("std.{module}.{f}");
         if let Some(recv) = vals.first()
             && let Some(tm) = self.recv_module(recv)
             && (module == tm || module.starts_with(&format!("{tm}.")))
+            && self
+                .std
+                .params(&path)
+                .is_none_or(|ps| ps.first().is_some_and(|p| p.name == "self"))
         {
             let recv = self.atom(recv)?;
             let args = self.std_args(c, &format!("std.{module}.{f}"), 1)?;
@@ -684,6 +730,8 @@ impl<'a> Fold<'a> {
         let args = self.std_args(c, &format!("std.{module}.{f}"), 0)?;
         let callee = if module == "test" {
             name(f)
+        } else if let Some(t) = static_type(module, f) {
+            attr(name(t), f)
         } else {
             attr(
                 path_expr(&module.split('.').map(str::to_owned).collect::<Vec<_>>()),
@@ -694,7 +742,7 @@ impl<'a> Fold<'a> {
     }
 
     fn recv_module(&self, a: &y::Atom) -> Option<String> {
-        if self.atom_is_str(a) {
+        if self.atom_is_str(a) || matches!(a, y::Atom::Lit(y::Literal::Char(_), _)) {
             return Some("text".into());
         }
         let t = self.atom_ty(a)?;
@@ -768,6 +816,61 @@ impl<'a> Fold<'a> {
         })
     }
 
+    /// `var t = copy p` and stores to its fields as `evolve(p, f=v, ...)` (14), pending at
+    /// `t`'s one use after them; returns how many statements after the copy it consumed.
+    fn evolve(
+        &mut self,
+        t: &str,
+        from: &y::Place,
+        rest: &[y::Stmt],
+        out: &mut Vec<Stmt>,
+    ) -> R<Option<usize>> {
+        use y::StmtKind as K;
+        let mut stores = 0;
+        let mut end = 0;
+        for (k, s) in rest.iter().enumerate() {
+            match &s.kind {
+                K::Let {
+                    pat: y::Pat::Bind(x),
+                    ..
+                } if generated(x) => {}
+                K::Assign { place, .. }
+                    if place.root == t
+                        && matches!(place.projs.as_slice(), [y::Proj::Field(..)]) =>
+                {
+                    stores += 1;
+                    end = k + 1;
+                }
+                _ => break,
+            }
+        }
+        if stores == 0 || self.uses(t) != stores + 1 {
+            return Ok(None);
+        }
+        let mut args = Vec::new();
+        let mut k = 0;
+        while k < end {
+            match &rest[k].kind {
+                K::Assign { place, rhs, .. } => {
+                    let [y::Proj::Field(f, _)] = place.projs.as_slice() else {
+                        unreachable!("matched")
+                    };
+                    args.push(Arg {
+                        name: Some(f.clone()),
+                        kind: ArgKind::Expr(self.rhs(rhs)?),
+                        span: AT,
+                    });
+                    k += 1;
+                }
+                _ => k += self.stmt(&rest[k..], out)?,
+            }
+        }
+        let mut all = vec![arg(self.place(from)?)];
+        all.extend(args);
+        self.bind_pending(t, Pending::Expr(call(name("evolve"), all)));
+        Ok(Some(end))
+    }
+
     /// Raises the statement at the head of `ss` into `out`; returns how many it consumed.
     fn stmt(&mut self, ss: &[y::Stmt], out: &mut Vec<Stmt>) -> R<usize> {
         use y::StmtKind as K;
@@ -784,6 +887,13 @@ impl<'a> Fold<'a> {
                 if *mutable
                     && generated(n)
                     && let Some(k) = self.for_loop(n, rhs, &ss[1..], out)?
+                {
+                    return Ok(1 + k);
+                }
+                if *mutable
+                    && generated(n)
+                    && let y::Rhs::Copy(from) = rhs
+                    && let Some(k) = self.evolve(n, from, &ss[1..], out)?
                 {
                     return Ok(1 + k);
                 }
@@ -813,8 +923,10 @@ impl<'a> Fold<'a> {
                         _ => None,
                     };
                     let builds = count_builds(n, &ss[1..]);
+                    // A `for` over the list also takes its length and indexes it.
+                    let loops = usize::from(for_over(n, &ss[1..]));
                     if let Some(b) = builder
-                        && self.uses(n) == builds + 1
+                        && self.uses(n) == builds + 1 + loops
                     {
                         self.bind_pending(n, b);
                         return Ok(1);
@@ -1552,6 +1664,8 @@ fn same(a: &Expr, b: &Expr) -> bool {
     match (&a.kind, &b.kind) {
         (ExprKind::Lit(x), ExprKind::Lit(y)) => x == y,
         (ExprKind::Name(x), ExprKind::Name(y)) => x == y,
+        (ExprKind::List(x), ExprKind::List(y)) => x.is_empty() && y.is_empty(),
+        (ExprKind::Dict(x), ExprKind::Dict(y)) => x.is_empty() && y.is_empty(),
         (ExprKind::Attr(x, f, _), ExprKind::Attr(y, g, _)) => f == g && same(x, y),
         (ExprKind::Call(f, xs), ExprKind::Call(g, ys)) => {
             xs.is_empty() && ys.is_empty() && same(f, g)
@@ -1585,6 +1699,127 @@ fn destructured_from(t: &str, ss: &[y::Stmt]) -> (Vec<String>, usize) {
 }
 
 /// Yan Agent writes a type on an assignment where inference needs it: an empty collection.
+/// Drops the annotation of an empty `[]` or `{}` whose type R808 infers from the first later
+/// statement that fixes it, as yan-elab's `learn` does.
+fn drop_inferred(ss: &mut [Stmt], ret: Option<&Type>, types: &HashMap<String, y::Type>) {
+    for i in 0..ss.len() {
+        let (head, rest) = ss.split_at_mut(i + 1);
+        if let StmtKind::Assign {
+            target: Expr {
+                kind: ExprKind::Name(n),
+                ..
+            },
+            ty: t @ Some(_),
+            value,
+        } = &mut head[i].kind
+            && matches!(&value.kind, ExprKind::List(xs) if xs.is_empty())
+                | matches!(&value.kind, ExprKind::Dict(kvs) if kvs.is_empty())
+            && first_fix(n, rest, ret, types).flatten().as_ref() == t.as_ref()
+        {
+            *t = None;
+        }
+        for b in blocks(&mut head[i].kind) {
+            drop_inferred(b, ret, types);
+        }
+    }
+}
+
+fn blocks(k: &mut StmtKind) -> Vec<&mut Vec<Stmt>> {
+    match k {
+        StmtKind::If { arms, els } => arms
+            .iter_mut()
+            .map(|(_, b)| &mut b.stmts)
+            .chain(els.as_mut().map(|b| &mut b.stmts))
+            .collect(),
+        StmtKind::While { body, .. } | StmtKind::For { body, .. } => vec![body],
+        StmtKind::Match { cases, .. } => cases.iter_mut().map(|c| &mut c.body.stmts).collect(),
+        StmtKind::With { body, .. } => vec![&mut body.stmts],
+        _ => Vec::new(),
+    }
+}
+
+/// The type the first statement of `ss` (in order, nested ones after their parent) that fixes
+/// `n` gives it: `Some(None)` when that type is not known here.
+fn first_fix(
+    n: &str,
+    ss: &[Stmt],
+    ret: Option<&Type>,
+    types: &HashMap<String, y::Type>,
+) -> Option<Option<Type>> {
+    let is_n = |e: &Expr| matches!(&e.kind, ExprKind::Name(x) if x == n);
+    let probe = |e: &Expr| -> Option<Type> {
+        let core = |p: &str| Type::Named {
+            path: vec![p.into()],
+            args: Vec::new(),
+        };
+        match &e.kind {
+            ExprKind::Lit(Lit::Int(_)) => Some(core("i64")),
+            ExprKind::Lit(Lit::Float(_)) => Some(core("f64")),
+            ExprKind::Lit(Lit::Bool(_)) => Some(core("bool")),
+            ExprKind::Lit(Lit::Str { prefix, .. }) if prefix.is_empty() => Some(core("Str")),
+            ExprKind::FStr { .. } => Some(core("Str")),
+            ExprKind::Name(x) => types.get(x).and_then(|t| ty(t).ok()),
+            _ => None,
+        }
+    };
+    let coll = |p: &str, ts: Vec<Option<Type>>| -> Option<Type> {
+        Some(Type::Named {
+            path: vec![p.into()],
+            args: ts
+                .into_iter()
+                .map(|t| t.map(TArg::Type))
+                .collect::<Option<_>>()?,
+        })
+    };
+    for s in ss {
+        match &s.kind {
+            StmtKind::Expr(Expr {
+                kind: ExprKind::Call(f, args),
+                ..
+            }) if let ExprKind::Attr(r, m, _) = &f.kind
+                && is_n(r)
+                && let [
+                    Arg {
+                        kind: ArgKind::Expr(a),
+                        ..
+                    },
+                ] = args.as_slice() =>
+            {
+                match m.as_str() {
+                    "append" => return Some(coll("List", vec![probe(a)])),
+                    "extend" => {
+                        let t = probe(a);
+                        if t.is_none()
+                            || matches!(&t, Some(Type::Named { path, .. }) if path == &["List"])
+                        {
+                            return Some(t);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            StmtKind::Assign {
+                target:
+                    Expr {
+                        kind: ExprKind::Index(d, k),
+                        ..
+                    },
+                ty: None,
+                value,
+            } if is_n(d) => return Some(coll("Map", vec![probe(k), probe(value)])),
+            StmtKind::Return(Some(e)) if is_n(e) => return Some(ret.cloned()),
+            _ => {}
+        }
+        let mut k = s.kind.clone();
+        for b in blocks(&mut k) {
+            if let Some(t) = first_fix(n, b, ret, types) {
+                return Some(t);
+            }
+        }
+    }
+    None
+}
+
 fn annotation(value: &Expr, t: &y::Type) -> R<Option<Type>> {
     let empty = match &value.kind {
         ExprKind::List(xs) | ExprKind::Set(xs) => xs.is_empty(),
@@ -1650,8 +1885,56 @@ fn binary(path: &str) -> Option<&'static str> {
     })
 }
 
-const TYPE_MODULES: [&str; 9] = [
+/// The operator that elaborates to `std.<module>.<f>` on time values (17.3).
+fn time_operator(module: &str, f: &str) -> Option<&'static str> {
+    if module == "time" {
+        return match f {
+            "zoned_add" | "zoned_add_period" => Some("+"),
+            "zoned_sub" => Some("-"),
+            _ => None,
+        };
+    }
+    module.strip_prefix("time.")?;
+    Some(match f {
+        "add" => "+",
+        "sub" | "since" => "-",
+        "mul" => "*",
+        "div" | "ratio" => "/",
+        "floordiv" | "quotient" => "//",
+        "rem" => "%",
+        _ => return None,
+    })
+}
+
+/// The std types Yan Agent names for their module's functions, as in `Duration.seconds(5)`.
+pub const TYPE_STATICS: [(&str, &str); 10] = [
+    ("bytes", "encoding"),
+    ("bytearray", "encoding.bytearray"),
+    ("Duration", "time.duration.of"),
+    ("Instant", "time.instant"),
+    ("PlainDate", "time.date"),
+    ("PlainTime", "time.plain_time"),
+    ("PlainDateTime", "time.plain_date_time"),
+    ("Period", "time.period"),
+    ("TimeZone", "time.zone"),
+    ("ZonedDateTime", "time"),
+];
+
+/// The type that spells `module.f` when it is not a method: `encoding` keeps its codecs.
+fn static_type(module: &str, f: &str) -> Option<&'static str> {
+    if module == "encoding" && f != "from_list" {
+        return None;
+    }
+    TYPE_STATICS
+        .iter()
+        .find(|(_, m)| *m == module)
+        .map(|(t, _)| *t)
+}
+
+const TYPE_MODULES: [&str; 11] = [
     "list",
+    "encoding",
+    "encoding.bytearray",
     "dict",
     "set",
     "text",
@@ -1672,7 +1955,7 @@ fn type_module(t: &y::Type) -> Option<&'static str> {
             "List" => "list",
             "Map" => "dict",
             "Set" => "set",
-            "Str" => "text",
+            "Str" | "char" => "text",
             "Iter" => "iter",
             "Deque" => "collections.deque",
             "Heap" => "collections.heap",
@@ -1688,13 +1971,14 @@ fn type_module(t: &y::Type) -> Option<&'static str> {
 fn pat(p: &y::Pat) -> R<Pat> {
     Ok(match p {
         y::Pat::Wild => Pat::Wild,
+        // A nullary variant is a class pattern, so it does not read as a capture.
         y::Pat::Bind(n) => Pat::Path {
             path: vec![n.clone()],
-            args: None,
+            args: variant(n).then(Vec::new),
         },
         y::Pat::Ctor { path, fields: None } => Pat::Path {
             path: path.clone(),
-            args: None,
+            args: path.last().is_some_and(|n| variant(n)).then(Vec::new),
         },
         y::Pat::Ctor {
             path,
@@ -1751,6 +2035,41 @@ fn path_expr(p: &[y::Name]) -> Expr {
         x = attr(x, n);
     }
     x
+}
+
+/// Whether the statements after `n`'s builds start a `for` over `n` as yan-elab lowers it:
+/// the index from 0, then the length.
+fn for_over(n: &str, ss: &[y::Stmt]) -> bool {
+    use y::StmtKind as K;
+    let starts = |w: &[y::Stmt]| {
+        matches!(
+            (&w[0].kind, &w[1].kind, &w[2].kind),
+            (
+                K::Let { pat: y::Pat::Bind(i), rhs: y::Rhs::Atom(y::Atom::Lit(y::Literal::Int(z), _)), .. },
+                K::Let { rhs: y::Rhs::Call(c), .. },
+                K::Loop { .. },
+            ) if generated(i) && z == "0"
+                && c.path.join(".") == "std.list.len"
+                && matches!(c.args.as_slice(), [y::Arg::Value(_, y::Atom::Name(x, _), _)] if x == n)
+        )
+    };
+    for (k, w) in ss.windows(3).enumerate() {
+        if starts(w) {
+            return true;
+        }
+        let built = match &ss[k].kind {
+            K::Let {
+                pat: y::Pat::Bind(t),
+                ..
+            } => generated(t),
+            K::Rhs(y::Rhs::Call(c)) => BUILDERS.contains(&c.path.join(".").as_str()),
+            _ => false,
+        };
+        if !built {
+            return false;
+        }
+    }
+    false
 }
 
 fn count_builds(n: &str, ss: &[y::Stmt]) -> usize {

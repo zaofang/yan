@@ -5588,18 +5588,11 @@ impl Lower<'_, '_, '_> {
                 if let j::ExprKind::Name(module) = &b.kind
                     && !self.locals.contains_key(module)
                     && let module = match module.as_str() {
-                        "bytes" => "encoding",
                         "re" => "regex",
-                        "bytearray" => "encoding.bytearray",
-                        "Duration" => "time.duration.of",
-                        "Instant" => "time.instant",
-                        "PlainDate" => "time.date",
-                        "PlainTime" => "time.plain_time",
-                        "PlainDateTime" => "time.plain_date_time",
-                        "Period" => "time.period",
-                        "TimeZone" => "time.zone",
-                        "ZonedDateTime" => "time",
-                        m => m,
+                        m => yan_hir::raise::TYPE_STATICS
+                            .iter()
+                            .find(|(t, _)| *t == m)
+                            .map_or(m, |(_, m)| *m),
                     }
                     && let Some(d) = crate::stdlib::decl(&format!("std.{module}.{m}"))
                     && !d.cap

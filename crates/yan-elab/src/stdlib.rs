@@ -137,6 +137,12 @@ impl yan_hir::raise::Std for StdInfo {
     fn type_module(&self, name: &str) -> Option<String> {
         class_module(name)
             .or_else(|| sum_module(name))
+            .or_else(|| {
+                let n =
+                    yan_names::type_name(name, yan_names::Surface::Yir, yan_names::Surface::Yag)?;
+                let (n, _) = crate::ty::collection(n)?;
+                Ty::Coll(n, Vec::new()).module()
+            })
             .map(str::to_owned)
     }
 

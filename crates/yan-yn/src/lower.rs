@@ -900,7 +900,7 @@ impl Lower<'_> {
                         at,
                     );
                     // `[t[i] for i in range(k, hi)]`: elab has no slices yet.
-                    let i = self.fresh_name("_i");
+                    let i = self.fresh_name("i");
                     let range = mk(
                         h::ExprKind::Call(
                             Box::new(name("range")),
