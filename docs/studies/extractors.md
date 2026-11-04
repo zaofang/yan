@@ -254,3 +254,19 @@ lowering with shared results. Docs: the item-page badge. Conformance would need 
 coverage, grouped totals with an E503 witness through the extractor, the at-most-once rule (observed
 through a panic or a cost bound), a view-returning extractor, an `inout` parameter rejected and a
 capability use rejected; those go in a separate PR by the lead.
+
+## 12. Decisions (Antonio, cards, 2026-11-04)
+
+D1, D4 and D7 accepted as recommended. Eight answers differ from the recommendation:
+
+- D2: view patterns `(f -> p)` with any pure function, not only declared `@pattern` functions. The RFC
+  must say how a view pattern's function is checked for purity and how it relates to `@pattern`.
+- D3: a `bool` result is also allowed as a result shape, besides `Option[T]` and sum results.
+- D5: an extractor parameter may be `sink` as well as `let`. The RFC must say how a consuming extractor
+  interacts with later arms that retry other patterns on the same scrutinee.
+- D6: evaluation order and count are unspecified; the compiler may reorder or repeat extractor calls.
+  The cost model and replay pinning in section 6 are dropped.
+- D8: extra arguments (parameterized patterns, `prefix("GET ")(rest)`) are added now.
+- D9: extractors as trait methods (generic `Seq` patterns) are added now.
+- D10: an extractor's `post` is used as solver facts now.
+- D11: Rust-style deref patterns for `Box`, `Rc` and `Str` are folded into this work.
