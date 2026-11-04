@@ -1,0 +1,6 @@
+pub top_words(path: Path, k: int) -> List[Entry[str, int]] fail IoError uses fs =
+  let text = fs.read_text(path)?
+  var counts: Map[str, int] = {}
+  for w in text.lower().split_whitespace()
+    counts[w] += 1
+  counts.entries().sort_by_key(e -> (-e.value, e.key)).first(k)
