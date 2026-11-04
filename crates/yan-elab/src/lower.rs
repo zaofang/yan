@@ -4529,6 +4529,17 @@ impl Lower<'_, '_, '_> {
         if op == "**" && tx == Ty::Float {
             return self.float_pow(x, b, at);
         }
+        if op == "**" && tx == Ty::Int {
+            let (n, nt) = self.atom(b, Some(&Ty::Int))?;
+            return match nt {
+                Ty::Err => Ok((Rhs::Atom(x), Ty::Err)),
+                Ty::Int => Ok((
+                    Rhs::Call(call("int_pow", vec![], vec![let_arg(x), let_arg(n)], at)),
+                    Ty::Int,
+                )),
+                _ => unsupported(format!("`**` between `int` and `{}`", self.ty_text(&nt))),
+            };
+        }
         if matches!(op, "<<" | ">>") && is_integer(&tx) {
             // The amount is any integer type; a `bigint` shifts by an `int`.
             let hint = if tx == Ty::BigInt {
@@ -7528,6 +7539,9 @@ pub(crate) fn callees(stmts: &[j::Stmt], out: &mut HashSet<String>) {
     for s in stmts {
         for e in stmt_exprs(s) {
             walk(e, &mut |e| {
+                if matches!(e.kind, j::ExprKind::Binary("**", ..)) {
+                    out.insert("int_pow".into());
+                }
                 if let j::ExprKind::Call(f, _) = &e.kind {
                     match &f.kind {
                         j::ExprKind::Name(n) | j::ExprKind::Attr(_, n, _) => {
