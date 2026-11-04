@@ -3692,6 +3692,13 @@ impl Lower<'_, '_, '_> {
                         "this string is not in NFC; normalize it (R338)".into(),
                     );
                 }
+                if let (j::Lit::Str { prefix, value }, Some(Ty::Char)) = (l, want)
+                    && (prefix.is_empty() || prefix == "r")
+                    && let mut cs = value.chars()
+                    && let (Some(c), None) = (cs.next(), cs.next())
+                {
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Char(c), at)), Ty::Char));
+                }
                 if let (j::Lit::Int(s), Some(Ty::BigInt)) = (l, want) {
                     return Ok((self.bigint_lit(&int_text(s)?, at), Ty::BigInt));
                 }
@@ -5023,8 +5030,20 @@ impl Lower<'_, '_, '_> {
             return Ok((Rhs::Call(c), Ty::Bool));
         }
         if matches!(op, "in" | "not in") {
-            let (x, _) = self.atom(a, None)?;
-            let (c, ct) = self.atom(b, None)?;
+            let a_lit = matches!(a.kind, j::ExprKind::Lit(j::Lit::Str { .. }));
+            // A one-character literal on the left takes the element type, so the container goes first.
+            let (x, xt, c, ct) = if a_lit {
+                let (c, ct) = self.atom(b, None)?;
+                let (x, xt) = self.atom(a, in_elem(&ct).as_ref())?;
+                (x, xt, c, ct)
+            } else {
+                let (x, xt) = self.atom(a, None)?;
+                let (c, ct) = self.atom(b, None)?;
+                (x, xt, c, ct)
+            };
+            if let Some(e) = in_elem(&ct) {
+                self.expect(&xt, &e, a.span);
+            }
             let (path, targs) = match &ct {
                 Ty::List(e) => ("std.list.contains".to_owned(), vec![e.targ()]),
                 Ty::Set(e) => ("std.set.contains".to_owned(), vec![e.targ()]),
@@ -5062,7 +5081,14 @@ impl Lower<'_, '_, '_> {
         let Some(name) = cmp_name(op) else {
             return unsupported(format!("`{op}`"));
         };
-        let (x, tx, y_, ty) = if is_outcome(a) && !is_outcome(b) {
+        let (x, tx, y_, ty) = if matches!(a.kind, j::ExprKind::Lit(j::Lit::Str { .. }))
+            && !matches!(b.kind, j::ExprKind::Lit(_))
+            && !is_outcome(b)
+        {
+            let (y_, ty) = self.atom(b, None)?;
+            let (x, tx) = self.atom(a, Some(&ty))?;
+            (x, tx, y_, ty)
+        } else if is_outcome(a) && !is_outcome(b) {
             let (y_, ty) = self.operand(b)?;
             let (x, tx) = self.atom(a, Some(&ty))?;
             (x, tx, y_, ty)
@@ -5123,6 +5149,15 @@ fn int_range(n: &str) -> (i128, i128) {
         "u32" => (0, u32::MAX.into()),
         "u64" | "Addr" => (0, u64::MAX.into()),
         _ => (i64::MIN.into(), i64::MAX.into()),
+    }
+}
+
+/// The type an `in` left operand must have for container type `ct`.
+fn in_elem(ct: &Ty) -> Option<Ty> {
+    match ct {
+        Ty::List(e) | Ty::Set(e) | Ty::Dict(e, _) => Some((**e).clone()),
+        Ty::Coll(n, a) if *n != "heap" => a.first().cloned(),
+        _ => None,
     }
 }
 
