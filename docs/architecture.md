@@ -109,6 +109,11 @@ ask it for a module's front end, elaborated core, diagnostics and items, keyed b
 - **Security model** (RFC 0026): no OS escape today because the interpreter has no host fs/net/proc
   handler and externs never run. Findings F1 to F8 (path handling in MCP, contract-name shadowing,
   closure capture of capabilities) were fixed in #119.
+- **Supply chain.** Packages have no install or build scripts, and no surface has syntactic macros
+  (section 19, 26.2). Building a dependency therefore runs no code from it: stage-0 evaluation is
+  hermetic and uses no capabilities, so a malicious package can act only through the capabilities a
+  caller passes it at run time, where they are visible in its signatures. This is a security property,
+  not only a simplicity choice, and a proposal that adds either feature must answer for it.
 
 ## 6. Std and the intrinsic registry
 
