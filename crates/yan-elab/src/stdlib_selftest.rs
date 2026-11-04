@@ -21,6 +21,13 @@ fn prelude_bodies_come_from_std() {
 }
 
 #[test]
+fn prelude_sum_takes_floats_in_the_fixed_order() {
+    let src = "pub def main() uses io:\n    xs = [0.5, 0.25, -0.0]\n\
+               \x20   io.print(f\"{sum(xs)} {sum([-0.0])}\")\n";
+    assert_eq!(run(src), "0.75 -0.0\n");
+}
+
+#[test]
 fn methods_take_their_signature_from_std() {
     let src = "pub def main() uses io:\n    d: dict[str, int] = {\"a\": 1, \"b\": 2}\n\
                \x20   r = d.remove(\"a\") else 0\n    xs = [1, 2]\n    xs.append(r)\n\
