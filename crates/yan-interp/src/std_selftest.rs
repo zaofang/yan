@@ -56,6 +56,14 @@ fn splitlines_matches_cpython() {
 }
 
 #[test]
+fn text_contains_takes_str_or_char() {
+    let has = |x: Value| shown(&call("std.text.contains", vec![s("abc"), x]));
+    assert_eq!(has(s("bc")), "True");
+    assert_eq!(has(Char('b')), "True");
+    assert_eq!(has(Char('z')), "False");
+}
+
+#[test]
 fn partition_and_index() {
     let p = |x: &str| shown(&call("std.text.partition", vec![s(x), s("=")]));
     assert_eq!(p("k=v=w"), "('k', '=', 'v=w')");
