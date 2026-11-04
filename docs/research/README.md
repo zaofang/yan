@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-04 | [Shielded sections for cancel scopes](../studies/shield.md) | Study only; forums item F5; recommends bounded `with shield(d):` (fresh deadline, held cancel delivered after the block, clamped under drain, no capability), D1 to D11 open; no rows |
 | 2026-11-04 | [Language forums study: ideas for Yan](https://claude.ai/artifact/E8xVSw3fhTwuxFu38DqrtT) | Study only; Rust, Swift, Go, Kotlin, C#, Zig and TC39 mined; 15 ranked items F1 to F15 (top: numeric-only panic payloads, in-memory `net` test handler, `@expect` already covers Python I4); no rows |
 | 2026-11-04 | [Python Ideas and PEPs: ideas for Yan](https://claude.ai/artifact/R1t3UGwQ9VKSaNbGjHPfVQ) | Study only; 15 ranked items I1 to I15 (top: foreign-name fix table, operand values in panic payloads, `Parse` trait), 15 Python debates already covered; no rows |
 | 2026-11-04 | [Yan build system study](../studies/build-system.md) | Decided (cards): D1 to D10 and Q2, Q3 as recommended except D7 (`yan.lock` is TOML) and Q1 (remote cache holds front-end snapshots too); RFC after M1, no rows. One engine over the query database, no build files, content cache with HTTP remote, sandbox only for C via pinned clang; D1 to D10, first milestone B1 in M1b; polyglot builder is a separate product |
