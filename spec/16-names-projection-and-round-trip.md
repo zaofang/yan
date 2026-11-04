@@ -125,7 +125,7 @@ A niche surface is a small, domain-shaped language over Yan. It may be a spellin
 | R537 | Yan Schema 言契 | `.ysd` | wire schemas and remote interfaces with version history | `derive(Wire)` types, refinements, `@remote` traits, R406 converters | streams over `Remote` (R555) for stream methods | practical |
 | R538 | Yan Prompt 言询 | `.ypm` | typed model programs | `model.generate_chat` and `validate` (17.4) | none | practical |
 | R539 | Yan Query Language 言查 | `.yql` | typed table queries | `LazyFrame[R]` plans (11.9) | none | practical |
-| R540 | Yan Shell 言行 | `.yosh` | capability-safe shell scripts | line iterators, rooted handles, argv-only `proc` (R448) | none | practical |
+| R540 | Yan Shell 言行 | `.ynsh` | capability-safe shell scripts | line iterators, rooted handles, argv-only `proc` (R448) | none | practical |
 | R541 | Yan Workflow 言序 | `.ywf` | durable workflows | `@durable` functions (R416, R453), durable timers (R552) | `@yan/durable` (M4) | practical |
 | R542 | Yan Infra 言基 | `.yinf` | infrastructure with plan and apply | resource capabilities with `Deferred[T]` results | dry-run handler class (R554) | practical |
 | R543 | Yan Binary Format 言码 | `.ybf` | binary layouts with checked parsers and writers | view-backed records over `View[u8]`, `@layout(bits)` for LSB-first registers | none | practical |

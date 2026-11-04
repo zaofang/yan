@@ -40,13 +40,6 @@ core. A mock becomes real only through an RFC and accepted rows (see `CLAUDE.md`
 **Counts: 3 defined, 15 partial, 0 undefined.** Plain Yan is the brand surface (seal 言); the other
 17 are the equal-rank surfaces on the seal grid.
 
-Known spelling drift, left for a spec PR:
-
-- Spec 16.7 row R540 still gives Yan Shell the extension `.yosh`. The name decided on 2026-11-04 is
-  `.ynsh` (command `ynsh`), used here.
-- Spec 18.9 R310 still names the fence tags `xin` and `wen` (pre-rename). This page uses `yag`, `yn`
-  and `ymt`.
-
 ## How every surface relates to the core
 
 All surfaces lower to the shared HIR and then to Yan Core (spec 1, R558; `docs/architecture.md`).
@@ -489,7 +482,7 @@ query late_orders(orders: Table[Order], users: Table[User], today: PlainDate) ->
 
 Capability-safe shell scripts: authority stated in the header, bare words never run programs, and
 interpolations are single argv entries. Lowers to line iterators, rooted handles and argv-only
-`proc`. The spec row still reads `.yosh`; see the drift note above.
+`proc`. The spec row reads `.ynsh`.
 
 RFC 0002 D5:
 
