@@ -41,7 +41,7 @@ fn values() -> i64 {
     var a: i64 = 1
     bump(inout a)
     var xs: List[i64] = std.list.new[i64]()
-    std.list.push[i64](inout xs, sink 1)
+    std.list.append[i64](inout xs, sink 1)
     let ys: List[i64] = copy xs
     let n: i64 = keep(sink xs)
     let m: i64 = std.list.len[i64](let ys)
