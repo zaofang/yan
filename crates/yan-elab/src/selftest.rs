@@ -530,3 +530,16 @@ fn nested_def_without_captures_is_lifted() {
         ["E100"]
     );
 }
+
+#[test]
+fn exclusive_returning_branches_share_one_use() {
+    let src = "type Tree = Leaf() | Node(left: Tree, key: int, right: Tree)\n\n\
+               def insert(t: Tree, x: int) -> Tree:\n    decreases t\n    match t:\n\
+               \x20       case Leaf():\n            return Node(left=Leaf(), key=x, right=Leaf())\n\
+               \x20       case Node(l, k, r):\n            if x < k:\n\
+               \x20               return Node(left=insert(l, x), key=k, right=r)\n\
+               \x20           if x > k:\n                return Node(left=l, key=k, right=insert(r, x))\n\
+               \x20           return Node(left=l, key=k, right=r)\n";
+    let (_, d) = lower(src);
+    assert!(d.iter().all(|d| d.code != "E413"), "{d:?}");
+}
