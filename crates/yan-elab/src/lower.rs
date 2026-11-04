@@ -3531,6 +3531,31 @@ impl Lower<'_, '_, '_> {
                 Some(t @ Ty::Option(_)) => (Rhs::Atom(Atom::Name("None".into(), at)), t.clone()),
                 _ => (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Unit),
             },
+            // `b"ab"` is `bytes.from_list([97, 98])`.
+            K::Lit(j::Lit::Str { prefix, value }) if prefix == "b" => {
+                let ex = |kind| j::Expr {
+                    kind,
+                    span: e.span,
+                    paren: false,
+                };
+                let items = value
+                    .bytes()
+                    .map(|b| ex(j::ExprKind::Lit(j::Lit::Int(b.to_string()))))
+                    .collect();
+                let from_list = ex(j::ExprKind::Attr(
+                    Box::new(ex(j::ExprKind::Name("bytes".into()))),
+                    "from_list".into(),
+                    e.span,
+                ));
+                let list = ex(j::ExprKind::List(items));
+                let arg = j::Arg {
+                    name: None,
+                    kind: j::ArgKind::Expr(list),
+                    span: e.span,
+                };
+                let call = ex(j::ExprKind::Call(Box::new(from_list), vec![arg]));
+                return self.rhs_inner(&call, want);
+            }
             K::Lit(l) => {
                 if let j::Lit::Str { value, .. } = l
                     && !unicode_normalization::is_nfc(value)
