@@ -704,3 +704,8 @@ sections = "17"
 rows = "R788"
 topic = "Cancel scopes lower to a Yan Core statement `deadline at { ... }` on a `MonoInstant`, replacing the reserved-capability and `sleep_until` lowerings: `with timeout(d)` is `deadline time.monotonic() + d`; nested scopes keep the earliest instant, a callee inherits its caller's, and a blocking operation that would wait past it fails with `Timeout` (R788)"
 sections = "3.5, 9.4"
+
+[[entry]]
+rows = "R789 to R792"
+topic = "A first `std.net` slice and `mem_net` (RFC 0032), decided by the owner: `Net` with `tcp_listen`, `tcp_connect` and `only` on `host:port` strings, built-in `TcpListener` and `TcpStream` handles, `NetError` and `NetReason` (R789); `std.test.mem_net()`, one deterministic in-memory network per handler value (R790); `net.only` patterns `host:port` and `host:*`, `NotGranted` (R791); the test handler set keeps no `net`, tests bind `mem_net()` explicitly (R792)"
+sections = "7.1, 7.3, 17.3"

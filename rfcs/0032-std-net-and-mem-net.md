@@ -1,8 +1,8 @@
 # 0032: A first `std.net` slice and the `mem_net` test handler
 
-- Status: draft
+- Status: accepted (the lead chose "Accept all (D1 to D4)" on 2026-11-04)
 - Research: [Language forums study](https://claude.ai/artifact/E8xVSw3fhTwuxFu38DqrtT), item F2
-- Rows: filled in when accepted
+- Rows: R789 to R792
 
 ## Summary
 
@@ -54,6 +54,9 @@ Addresses are `host:port` strings in this slice; a typed `SocketAddr` comes with
 
 Recommendation: accept.
 
+- Decision: accepted, 2026-11-04
+- Row: R789
+
 ### D2: `mem_net()`
 
 `std.test.mem_net() -> Net` is one in-memory network per handler value; two `mem_net()` handlers
@@ -70,6 +73,9 @@ share nothing.
 
 Recommendation: accept.
 
+- Decision: accepted, 2026-11-04
+- Row: R790
+
 ### D3: `net.only`
 
 `net.only(connect=..., listen=...)` attenuates any `net` handler. A pattern is an exact `host:port`
@@ -78,6 +84,9 @@ reached. Nesting narrows: both layers must grant. CIDR patterns come with the `o
 
 Recommendation: accept.
 
+- Decision: accepted, 2026-11-04
+- Row: R791
+
 ### D4: the test handler set keeps "no net"
 
 7.3 is unchanged: a test that uses `net` binds `with net = mem_net():` itself. The option weighed
@@ -85,6 +94,9 @@ was making `mem_net()` the default. Explicit binding is recommended, because a t
 the network should say so, and a listener and its client must share one handler value anyway.
 
 Recommendation: accept.
+
+- Decision: accepted, 2026-11-04
+- Row: R792
 
 ## Spec changes
 
