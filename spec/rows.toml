@@ -706,6 +706,31 @@ topic = "Cancel scopes lower to a Yan Core statement `deadline at { ... }` on a 
 sections = "3.5, 9.4"
 
 [[entry]]
+rows = "R793 to R795"
+topic = "Nested optionals keep two levels (RFC 0030): `Option[Option[T]]` is its own type and never flattens (R793), spelled `Option[T | None]` with a union listing `None` twice rejected as E276 and Core text `Some { value: None }`; injection wraps in `Some` once, a plain `T` for `Option[Option[T]]` is E201 with the fix `Some(v)` (R794); tests and operators act on the outer level and N15 excludes nested optionals (R795)"
+sections = "14, 17, 25"
+
+[[entry]]
+rows = "R796"
+topic = "Panic payloads carry numeric operand fields only (RFC 0031): integer, float, bool and unit-carrying values; text, collections, `Secret` and `Untrusted` show their type name; debug terminal excerpts never enter the payload (R796)"
+sections = "8.3, 14, 17"
+
+[[entry]]
+rows = "R797"
+topic = "Item-level `@deny(code)` makes a W8xx lint an error inside the item in every build mode; an `@expect` of that code inside is E277, a non-lint code is E278, a dependency's `@deny` stays a warning (RFC 0031, R797)"
+sections = "10, 18.2, 25"
+
+[[entry]]
+rows = "R798"
+topic = "Default `min_release_age` is 7 days; moving off a yanked or malicious locked version ignores the cool-off (RFC 0031, R798)"
+sections = "19"
+
+[[entry]]
+rows = "R799"
+topic = "Non-goal: no variant names resolved from the expected type in Yan or Yan Agent (RFC 0031, R799)"
+sections = "26"
+
+[[entry]]
 rows = "R789 to R792"
 topic = "A first `std.net` slice and `mem_net` (RFC 0032), decided by the owner: `Net` with `tcp_listen`, `tcp_connect` and `only` on `host:port` strings, built-in `TcpListener` and `TcpStream` handles, `NetError` and `NetReason` (R789); `std.test.mem_net()`, one deterministic in-memory network per handler value (R790); `net.only` patterns `host:port` and `host:*`, `NotGranted` (R791); the test handler set keeps no `net`, tests bind `mem_net()` explicitly (R792)"
 sections = "7.1, 7.3, 17.3"

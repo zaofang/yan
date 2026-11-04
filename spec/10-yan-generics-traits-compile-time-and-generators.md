@@ -81,6 +81,7 @@ Generators are the only control handlers. A generator (Yan L5 `gen name(params) 
 | `@limit(name: n, ...)` | raise a hard limit for one item | L1 |
 | @multiversion(target, ...) | compile once per target, select at process start (11.3, R386) | L4 |
 | `@expect(code, reason="...")` | the only lint suppression; W810 if it suppresses nothing | L0 |
+| `@deny(code)` | make a W8xx lint an error inside the item in every build mode (18.2, R797) | L0 |
 | `@deprecated(since, note)` | warn at uses (W815); `yan fix` inlines forwarders (20.5) | L0 |
 | `@preview("name")` | unstable; use needs opt-in (20.6) | L0 |
 | `@since("1.x")` | std API version (20.3) | std |
