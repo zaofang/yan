@@ -237,3 +237,35 @@ conformance work for any spec gap the second implementation finds.
   (recommended), or text identical from stage B.
 - **D11. Compiler capability ceiling.** Declare and enforce the compiler's capability set as a
   release check at stage E (recommended), or leave it to sandboxing.
+
+## 12. Lead's answers (cards, 2026-11-04)
+
+| Item | Answer | Differs from the recommendation |
+| --- | --- | --- |
+| D1 | keep R215 for 1.0; self-host after RC | no |
+| D2 | stage A before 1.0, after the M1 gate and the AOT build | no |
+| D3 | Yan Agent is the canonical source | no |
+| D4 | all surfaces at stage B | yes: `.yn`, Yan Meta and niche front ends are ported at B, not left in Rust until F |
+| D5 | a Yan query engine at stage C | yes: the self-hosted compiler is incremental from C; salsa is not cut |
+| D6 | LLVM through its C API only | no |
+| D7 | both seeds: the Rust tree for DDC and a committed `.yir` snapshot | yes |
+| D8 | self-hosted jobs block only after 20 consecutive green main commits | no |
+| D9 | retire the Rust tree once a `.yir` seed exists | yes |
+| D10 | codes identical from B, text from C | no |
+| D11 | the compiler's capability ceiling is a release check at stage E | no |
+
+Consequences for the sections above:
+
+- Section 9 loses three cuts: Yan-written salsa (D5), self-hosted `.yn`/`.ymt`/niche front ends (D4)
+  and, through D9, self-hosting the interpreter, since retiring the Rust tree retires `yan-interp`,
+  the executable definition of the abstract machine (6.1). Stage F must then port the interpreter
+  before the retirement, and its gate is the interpreter's own conformance plus agreement with the
+  Lean model (R680) on Yan-K.
+- D7 and D9 interact. Once the Rust tree is retired, DDC (section 7) has no independent compiler: the
+  partner becomes the previous Yan release, which shares ancestry. The Lean model stays independent
+  only for Yan-K. Open follow-up: keep a frozen Rust stage0 buildable for DDC only, or accept the
+  weaker check after retirement.
+- Stage B grows from about 5 to about 13 thousand Rust lines (`yan-yag` plus `yan-yn`), and stage C
+  adds a query engine; the effort estimate in section 10 rises accordingly.
+
+No rows are written: R215 stands for 1.0, and the first spec change (reopening R215) is due after RC.
