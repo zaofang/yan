@@ -79,6 +79,10 @@ pub def all[T](self: iter[T], p: Callable[[T], bool]) -> bool: ...
 
 @intrinsic
 @since("1.0")
+pub def contains[T: Eq](self: iter[T], x: T) -> bool: ...
+
+@intrinsic
+@since("1.0")
 pub def find[T](self: iter[T], p: Callable[[T], bool]) -> T | None: ...
 
 @intrinsic
