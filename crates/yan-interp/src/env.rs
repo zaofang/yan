@@ -28,9 +28,28 @@ pub(crate) fn test_default() -> Value {
     )
 }
 
+/// The handler under any `env.only` wrappers.
+fn base(h: &Value) -> &Value {
+    match h {
+        Value::Data { name, fields } if name == "OnlyEnv" => base(&fields[0].1),
+        h => h,
+    }
+}
+
+/// Every `env.only` wrapper of `h` grants variable `name`.
+fn granted(h: &Value, name: &str) -> bool {
+    match h {
+        Value::Data { name: n, fields } if n == "OnlyEnv" => {
+            matches!(&fields[1].1, Value::List(vs) if vs.iter().any(|v| matches!(v, Value::Str(s) if &**s == name)))
+                && granted(&fields[0].1, name)
+        }
+        _ => true,
+    }
+}
+
 /// The fields of a `fake_env` handler, or `None` for the host.
 fn fields(h: &Value) -> Option<&[(String, Value)]> {
-    match h {
+    match base(h) {
         Value::Data { name, fields } if name == "FakeEnv" => Some(fields),
         _ => None,
     }
@@ -41,6 +60,9 @@ fn str_list(xs: impl Iterator<Item = String>) -> Value {
 }
 
 fn var(h: &Value, name: &str) -> Option<Value> {
+    if !granted(h, name) {
+        return None;
+    }
     match fields(h) {
         Some(f) => match &f[1].1 {
             Value::Dict(d) => d.get(&Key(Value::Str(name.into()))).cloned(),
@@ -99,7 +121,8 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_ENV_VARS,
         Bind::Cap(|_, a| {
-            Ok(match fields(&a[0]) {
+            let h = &a[0];
+            let mut all = match fields(h) {
                 Some(f) => {
                     let Value::Dict(d) = &f[1].1 else {
                         return bad_args(STD_ENV_VARS);
@@ -122,7 +145,21 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                             .collect(),
                     )
                 }
-            })
+            };
+            if let Value::Dict(d) = &mut all {
+                d.retain(|k, _| matches!(&k.0, Value::Str(s) if granted(h, s)));
+            }
+            Ok(all)
+        }),
+    ),
+    (
+        STD_ENV_ONLY,
+        Bind::Plain(|a| match a {
+            [h, vars] => Ok(Value::Data {
+                name: "OnlyEnv".into(),
+                fields: vec![("inner".into(), h.clone()), ("vars".into(), vars.clone())],
+            }),
+            _ => bad_args(STD_ENV_ONLY),
         }),
     ),
     (

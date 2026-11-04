@@ -1597,6 +1597,24 @@ impl Lower<'_, '_, '_> {
                 kind: j::WithKind::Bind(name, h),
                 body,
             } => {
+                // A host handler is the platform's, or an attenuation of the held handle of
+                // the same capability (R672).
+                if let j::ExprKind::Call(f, _) = &h.kind
+                    && let j::ExprKind::Attr(b, op, _) = &f.kind
+                    && let j::ExprKind::Name(held) = &b.kind
+                    && matches!(op.as_str(), "only" | "sub")
+                    && held != name
+                    && crate::stdlib::decl(&format!("std.{held}.{op}")).is_some_and(|d| d.cap)
+                {
+                    self.err(
+                        "E326",
+                        h.span,
+                        format!(
+                            "`{held}.{op}` attenuates `{held}`; `with {name} = ...` takes an \
+                             attenuation of `{name}` or a handler written in Yan"
+                        ),
+                    );
+                }
                 let (a, _) = self.atom(h, None)?;
                 self.handlers.push(name.clone());
                 let b = self.block(&body.stmts);

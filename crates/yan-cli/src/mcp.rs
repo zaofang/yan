@@ -680,4 +680,27 @@ mod tests {
         let text = r["content"][0]["text"].as_str().unwrap();
         assert!(text.contains("W806") && text.contains("lookup"), "{text}");
     }
+
+    #[test]
+    fn attenuators_narrow_handlers() {
+        let dir = package(
+            "attenuate",
+            "def describe(c: Command) -> str fail ProcError uses proc:\n    out = proc.run(c)?\n    return f\"ran {out.code}\"\n\ndef try_run(p: str) -> str uses proc:\n    return describe(Command(p)) else e -> f\"{e.reason}\"\n\ndef home_and_a() -> str uses env:\n    return f\"{env.var('HOME')} {env.var('A')} {env.vars()}\"\n\ndef test_env_only():\n    with env = fake_env(vars={\"HOME\": \"/h\", \"A\": \"1\"}):\n        with env = env.only(vars=[\"HOME\"]):\n            assert home_and_a() == \"/h None {'HOME': '/h'}\"\n            with env = env.only(vars=[\"A\"]):\n                assert home_and_a() == \"None None {}\"\n\ndef test_proc_only():\n    none = \"\"\n    ok = Output(code=0, signal=None, stdout=none.bytes(), stderr=none.bytes())\n    with proc = fake_proc({\"git\": ok, \"rm\": ok.copy()}):\n        with proc = proc.only(programs=[\"git\"]):\n            assert try_run(\"git\") == \"ran 0\"\n            assert try_run(\"rm\") == \"PermissionDenied()\"\n\ndef test_fs_sub_and_only():\n    with fs = fake_fs({\"/r/a/x.txt\": \"X\", \"/r/b/y.txt\": \"Y\"}):\n        with fs = fs.sub(\"/r/a\"):\n            assert (fs.read(\"x.txt\") else _ -> \"\") == \"X\"\n            assert (fs.read(\"../b/y.txt\") else e -> e.reason) == \"not granted\"\n            assert (fs.read(\"/r/b/y.txt\") else e -> e.reason) == \"not granted\"\n        with fs = fs.only(read=[\"/r/b\"]):\n            assert (fs.read(\"/r/b/y.txt\") else _ -> \"\") == \"Y\"\n            assert (fs.read(\"/r/a/x.txt\") else e -> e.reason) == \"not granted\"\n            assert (fs.read(\"/r/b/../a/x.txt\") else e -> e.reason) == \"not granted\"\n",
+        );
+        let r = tool(&Server::new(&dir, true), "run_tests", json!({}));
+        assert_eq!(r["structuredContent"]["ok"], true, "{r}");
+    }
+
+    #[test]
+    fn e326_for_another_capabilitys_attenuation() {
+        let dir = package(
+            "e326",
+            "def f() -> str uses proc:\n    with env = proc.only(programs=[]):\n        return \"x\"\n",
+        );
+        let r = tool(&Server::new(&dir, true), "check", json!({"name": "m"}));
+        assert!(
+            r["content"][0]["text"].as_str().unwrap().contains("E326"),
+            "{r}"
+        );
+    }
 }
