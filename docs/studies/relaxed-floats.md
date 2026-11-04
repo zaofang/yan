@@ -178,7 +178,7 @@ If the lead accepts D1 and D2, an RFC from `rfcs/0000-template.md` states 4.1 an
 text; D2 alone is worth taking first, because it closes the undefined meaning of the existing
 attribute.
 
-## 7. Decisions (Antonio, cards, 2026-11-04)
+## 9. Decisions (Antonio, cards, 2026-11-04)
 
 D1, D2, D3, D6, D8, D10 and D11 accepted as recommended. Four answers differ from the recommendation:
 
