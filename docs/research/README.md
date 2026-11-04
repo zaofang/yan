@@ -6,8 +6,11 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-04 | [Yan Law syntax study](../studies/syntax/yan-law.md) | Study only; consolidated proposal and items D1 to D9, no rows |
+| 2026-11-04 | [Yan Delegate syntax study](../studies/syntax/yan-delegate.md) | Study only; recommends `want` items, example rows, `like`/`law`/`held`, and ambiguity questions before pinning |
 | 2026-11-04 | [Yan Docs (`.ydoc`) syntax study](../studies/syntax/yan-docs.md) | Study only; proposes D1 to D10 for a later RFC |
 | 2026-11-04 | [Yan Core (`.yir`) syntax study](../studies/syntax/yan-core.md) | Study only; recommends the "ledger cut" mix: convention sigils, dotted intrinsics, explicit `par` outputs, annotated printing as trivia |
+| 2026-11-04 | [Yan Dataflow syntax study](../studies/syntax/yan-dataflow.md) | Study only; five proposals and a mix, no rows |
 | 2026-11-04 | [Yan Infra syntax study](../studies/syntax/yan-infra.md) | Study only; five axis proposals and a mix, no rows |
 | 2026-11-04 | [Should surfaces change semantics?](2026-11-04-surface-semantics.md) | Study only; recommends keeping law 1 for Yan Agent, Yan and Yan Meta |
 | 2026-11-04 | [Yan Spec (`.ysp`) syntax study](../studies/syntax/yan-spec.md) | Study only; five proposals and a mix (state, steps, laws, worlds, links); no rows |
