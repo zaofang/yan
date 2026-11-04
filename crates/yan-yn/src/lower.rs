@@ -2167,10 +2167,10 @@ fn expr_names(e: &Expr, names: &mut Names, bound: &mut HashSet<String>) {
         | ExprKind::Cast(x, _)
         | ExprKind::Unary(_, x) => go(x),
         ExprKind::Question(x) => {
-            if let ExprKind::Call(f, _) = &x.kind {
-                if let ExprKind::Name(n) = &f.kind {
-                    names.tried.insert(n.clone());
-                }
+            if let ExprKind::Call(f, _) = &x.kind
+                && let ExprKind::Name(n) = &f.kind
+            {
+                names.tried.insert(n.clone());
             }
             expr_names(x, names, bound)
         }
