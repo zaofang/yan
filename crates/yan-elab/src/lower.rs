@@ -1767,7 +1767,16 @@ impl Lower<'_, '_, '_> {
                     at,
                 );
             }
-            K::With { .. } => return unsupported("`with deadline` and `with timeout`"),
+            // No cancel scope exists below Yan Core yet: the bound is checked and the body runs
+            // inline, so a deadline never fires (9.4).
+            K::With {
+                kind: j::WithKind::Deadline(e) | j::WithKind::Timeout(e),
+                body,
+            } => {
+                self.atom(e, None)?;
+                let b = self.block(&body.stmts)?;
+                self.out.extend(b.stmts);
+            }
             K::Unsafe(body) => {
                 if !self.cx.ffi {
                     self.err(
