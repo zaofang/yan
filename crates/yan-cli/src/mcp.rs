@@ -703,4 +703,16 @@ mod tests {
             "{r}"
         );
     }
+
+    #[test]
+    fn e201_for_a_handler_of_another_capability() {
+        let dir = package(
+            "withtype",
+            "def f() -> int uses rand:\n    with rand = fixed_time(Instant.epoch()):\n        return 1\n\ndef g() -> int uses rand:\n    with rand = seeded(1):\n        return 1\n",
+        );
+        let r = tool(&Server::new(&dir, true), "check", json!({"name": "m"}));
+        let text = r["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains("E201") && text.contains("Rand"), "{text}");
+        assert_eq!(text.matches("E201").count(), 1, "{text}");
+    }
 }

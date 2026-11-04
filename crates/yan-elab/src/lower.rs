@@ -1794,7 +1794,18 @@ impl Lower<'_, '_, '_> {
                         "a release build binds `fault` only to `never`".into(),
                     );
                 }
-                let (a, _) = self.atom(h, None)?;
+                let (a, ht) = self.atom(h, None)?;
+                let want = Ty::Data(self.sig.cap_trait(name));
+                let wrong = match &ht {
+                    Ty::Data(g) => {
+                        *g != self.sig.cap_trait(name) && crate::stdlib::STD.caps.contains(g)
+                    }
+                    Ty::Err | Ty::Never | Ty::Param(_) => false,
+                    _ => true,
+                };
+                if wrong {
+                    self.expect(&ht, &want, h.span);
+                }
                 self.handlers.push(name.clone());
                 let b = self.block(&body.stmts);
                 self.handlers.pop();
