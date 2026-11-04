@@ -5,8 +5,10 @@
 //! the rest of the enclosing block: the block is split where the join is made and closed
 //! when the block ends.
 
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::mem;
+use std::rc::Rc;
 
 use yan_core::ast::{self as y, Arg, Atom, Conv, Literal, Place, Proj, Rhs, StmtKind};
 use yan_diag::{Applicability, Span};
@@ -92,6 +94,10 @@ struct Lower<'a, 'c, 's> {
     /// The parameters written as `View[T]`, and whether the function returns a view.
     views: Vec<String>,
     returns_view: bool,
+    /// Types learned for empty `[]` and `{}` bindings, by the span of the literal (R808).
+    hints: Rc<RefCell<HashMap<Span, Ty>>>,
+    /// Locals bound to an empty literal with no type yet, and that literal's span.
+    open: HashMap<String, Span>,
 }
 
 /// A stage-0 value the elaborator folds itself.
@@ -681,6 +687,8 @@ pub(crate) fn function(
     r
 }
 
+/// Lowers `f`; when it binds empty `[]` or `{}` and a later use types them, lowers again with
+/// those types, so `xs = []` then `xs.append(1)` needs no annotation.
 fn function_body(
     g: &Globals,
     f: &j::FuncDef,
@@ -688,6 +696,25 @@ fn function_body(
     is_pub: bool,
     stage: Vec<(String, Sv)>,
     cx: &mut Cx,
+) -> R<y::FnDef> {
+    let first = cx.diags.len();
+    let hints = Rc::default();
+    let r = function_body_with(g, f, sig, is_pub, stage.clone(), cx, &hints);
+    if hints.borrow().is_empty() {
+        return r;
+    }
+    cx.diags.truncate(first);
+    function_body_with(g, f, sig, is_pub, stage, cx, &hints)
+}
+
+fn function_body_with(
+    g: &Globals,
+    f: &j::FuncDef,
+    sig: &Sig,
+    is_pub: bool,
+    stage: Vec<(String, Sv)>,
+    cx: &mut Cx,
+    hints: &Rc<RefCell<HashMap<Span, Ty>>>,
 ) -> R<y::FnDef> {
     let Some(body) = &f.body else {
         return unsupported("functions without bodies");
@@ -748,6 +775,8 @@ fn function_body(
             .as_ref()
             .and_then(|r| r.ty.as_ref())
             .is_some_and(is_view),
+        hints: Rc::clone(hints),
+        open: HashMap::new(),
     };
     names_used(
         &body.stmts,
@@ -1110,6 +1139,14 @@ fn time_op(c: &str, b: &Ty, op: &str) -> Option<(String, Ty)> {
         t => Ty::Coll(crate::ty::collection(t).expect("a time type").0, vec![]),
     };
     Some((format!("std.time.{module}.{f}"), rt))
+}
+
+fn is_empty_literal(e: &j::Expr) -> bool {
+    match &e.kind {
+        j::ExprKind::List(xs) => xs.is_empty(),
+        j::ExprKind::Dict(kvs) => kvs.is_empty(),
+        _ => false,
+    }
 }
 
 fn let_arg(a: Atom) -> Arg {
@@ -1488,9 +1525,78 @@ impl Lower<'_, '_, '_> {
         self.stmt_inner(s).map_err(|u| u.at(s.span))
     }
 
+    /// Types an open empty literal from the first statement that fixes its type.
+    fn learn(&mut self, s: &j::Stmt) {
+        use j::{ExprKind as E, StmtKind as K};
+        let named = |e: &j::Expr| match &e.kind {
+            E::Name(n) => Some(n.clone()),
+            _ => None,
+        };
+        let (name, ty) = match &s.kind {
+            K::Expr(j::Expr {
+                kind: E::Call(f, args),
+                ..
+            }) => {
+                let E::Attr(recv, m, _) = &f.kind else { return };
+                let (Some(n), [a]) = (named(recv), args.as_slice()) else {
+                    return;
+                };
+                let j::ArgKind::Expr(a) = &a.kind else { return };
+                let Some(t) = self.probe(a) else { return };
+                match m.as_str() {
+                    "append" => (n, Ty::List(Box::new(t))),
+                    "extend" if matches!(t, Ty::List(_)) => (n, t),
+                    _ => return,
+                }
+            }
+            K::Assign {
+                target:
+                    j::Expr {
+                        kind: E::Index(d, k),
+                        ..
+                    },
+                ty: None,
+                value,
+            } => {
+                let Some(n) = named(d) else { return };
+                let (Some(kt), Some(vt)) = (self.probe(k), self.probe(value)) else {
+                    return;
+                };
+                (n, Ty::Dict(Box::new(kt), Box::new(vt)))
+            }
+            K::Return(Some(e)) => {
+                let Some(n) = named(e) else { return };
+                (n, self.sig.ret.clone())
+            }
+            _ => return,
+        };
+        let Some(&lit) = self.open.get(&name) else {
+            return;
+        };
+        if matches!(ty, Ty::List(_) | Ty::Dict(..)) {
+            self.open.remove(&name);
+            self.hints.borrow_mut().insert(lit, ty);
+        }
+    }
+
+    /// The type `e` lowers to; its code and any errors are discarded with the first pass.
+    fn probe(&mut self, e: &j::Expr) -> Option<Ty> {
+        let (start, diags) = (self.out.len(), self.cx.diags.len());
+        let r = self.atom(e, None);
+        self.out.truncate(start);
+        self.cx.diags.truncate(diags);
+        match r {
+            Ok((_, Ty::Err)) | Err(_) => None,
+            Ok((_, t)) => Some(t),
+        }
+    }
+
     fn stmt_inner(&mut self, s: &j::Stmt) -> R<()> {
         use j::StmtKind as K;
         let at = s.span;
+        if !self.open.is_empty() {
+            self.learn(s);
+        }
         match &s.kind {
             K::Pass | K::Reveal(_) => {}
             K::Expr(e) | K::Return(Some(e)) if matches!(e.kind, j::ExprKind::Hole) => {
@@ -2410,6 +2516,49 @@ impl Lower<'_, '_, '_> {
                     let it = self.tmp(&it, Rhs::Call(chars), at);
                     return self.for_iter(label, name, target, it, Ty::Char, iter.span, at, body);
                 }
+                // A tuple of one type iterates as a list of its elements.
+                Ty::Tuple(ts) if !ts.is_empty() && ts.iter().all(|x| *x == ts[0]) => {
+                    let et = ts[0].clone();
+                    let Atom::Name(root, sp) = xs else {
+                        unreachable!("tuples are bound")
+                    };
+                    let lt = Ty::List(Box::new(et.clone()));
+                    let l = self.fresh("t");
+                    let new = call("std.list.new", vec![et.targ()], vec![], at);
+                    self.bind(&l, true, &lt, Rhs::Call(new), at, at);
+                    for k in 0..ts.len() {
+                        let place = Place {
+                            root: root.clone(),
+                            root_span: sp,
+                            projs: vec![Proj::Field(format!("_{k}"), sp)],
+                        };
+                        let a = self.tmp(&et, Rhs::Copy(place), at);
+                        let push = call(
+                            "std.list.append",
+                            vec![et.targ()],
+                            vec![
+                                Arg::Value(Conv::Inout, Atom::Name(l.clone(), at), at),
+                                Arg::Value(Conv::Sink, a, at),
+                            ],
+                            at,
+                        );
+                        self.emit(StmtKind::Rhs(Rhs::Call(push)), at);
+                    }
+                    xs = Atom::Name(l, at);
+                    et
+                }
+                Ty::Tuple(_) => {
+                    self.err(
+                        "E201",
+                        iter.span,
+                        format!(
+                            "a `{t}` has elements of different types; only a tuple of one type \
+                             can be iterated",
+                            t = self.ty_text(&t)
+                        ),
+                    );
+                    return Ok(());
+                }
                 Ty::Err => return Ok(()),
                 t => return unsupported(format!("iterating a `{t}`", t = self.ty_text(t))),
             };
@@ -2949,9 +3098,16 @@ impl Lower<'_, '_, '_> {
                 Ok(())
             }
             j::ExprKind::Name(n) => {
-                let want = ann
+                let mut want = ann
                     .clone()
                     .or_else(|| self.locals.get(n).map(|l| l.ty.clone()));
+                if want.is_none() && is_empty_literal(value) {
+                    let known = self.hints.borrow().get(&value.span).cloned();
+                    if known.is_none() {
+                        self.open.insert(n.clone(), value.span);
+                    }
+                    want = known;
+                }
                 // Captures are copied at creation, so creating the closure at its first call is
                 // the same only when nothing it captures is reassigned.
                 if let (None, j::ExprKind::Lambda(ps, body)) = (&want, &value.kind)
@@ -3349,6 +3505,16 @@ impl Lower<'_, '_, '_> {
                             projs: Vec::new(),
                         };
                         Ok((place, vt))
+                    }
+                    Ty::Coll("iter", _) => {
+                        self.err(
+                            "E201",
+                            e.span,
+                            "an `iter` is single-pass and cannot be indexed; \
+                             `.collect()` it to a list first"
+                                .into(),
+                        );
+                        Ok((p, Ty::Err))
                     }
                     t => unsupported(format!("indexing a `{t}` as a place", t = self.ty_text(t))),
                 }
@@ -3749,7 +3915,9 @@ impl Lower<'_, '_, '_> {
                     atoms.push(a);
                 }
                 let Some(et) = et else {
-                    self.err("E241", at, "annotate the type of this empty list".into());
+                    if !matches!(want, Some(Ty::Err)) {
+                        self.err("E241", at, "annotate the type of this empty list".into());
+                    }
                     return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err));
                 };
                 let lt = Ty::List(Box::new(et.clone()));
@@ -3791,7 +3959,9 @@ impl Lower<'_, '_, '_> {
                     atoms.push((ka, va));
                 }
                 let (Some(kt), Some(vt)) = (kt, vt) else {
-                    self.err("E241", at, "annotate the type of this empty dict".into());
+                    if !matches!(want, Some(Ty::Err)) {
+                        self.err("E241", at, "annotate the type of this empty dict".into());
+                    }
                     return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err));
                 };
                 let dt = Ty::Dict(Box::new(kt.clone()), Box::new(vt.clone()));
@@ -4994,6 +5164,14 @@ impl Lower<'_, '_, '_> {
         Ok((self.tmp(&t, r, e.span), t))
     }
 
+    /// A call of a function of this module that can fail.
+    fn fallible_call(&self, e: &j::Expr) -> bool {
+        matches!(&e.kind, j::ExprKind::Call(f, _)
+            if matches!(&f.kind, j::ExprKind::Name(n)
+                if !self.locals.contains_key(n)
+                    && self.g.fns.get(n).is_some_and(|s| s.fail.is_some())))
+    }
+
     fn compare(&mut self, op: &str, a: &j::Expr, b: &j::Expr, at: Span) -> R<(Rhs, Ty)> {
         let none = |e: &j::Expr| matches!(e.kind, j::ExprKind::Lit(j::Lit::None));
         if matches!(op, "is" | "is not") {
@@ -5081,9 +5259,10 @@ impl Lower<'_, '_, '_> {
         let Some(name) = cmp_name(op) else {
             return unsupported(format!("`{op}`"));
         };
-        let (x, tx, y_, ty) = if matches!(a.kind, j::ExprKind::Lit(j::Lit::Str { .. }))
+        let (x, tx, y_, ty) = if (matches!(a.kind, j::ExprKind::Lit(j::Lit::Str { .. }))
             && !matches!(b.kind, j::ExprKind::Lit(_))
-            && !is_outcome(b)
+            && !is_outcome(b))
+            || (is_empty_literal(a) && !is_empty_literal(b))
         {
             let (y_, ty) = self.atom(b, None)?;
             let (x, tx) = self.atom(a, Some(&ty))?;
@@ -5093,11 +5272,38 @@ impl Lower<'_, '_, '_> {
             let (x, tx) = self.atom(a, Some(&ty))?;
             (x, tx, y_, ty)
         } else {
-            let (x, tx) = if is_outcome(b) {
+            let fallible = matches!(op, "==" | "!=") && self.fallible_call(a);
+            let (x, tx) = if is_outcome(b) || fallible {
                 self.operand(a)?
             } else {
                 self.atom(a, None)?
             };
+            // `f(x) == v` means `f(x) == Ok(v)` when `v` is not itself an outcome.
+            let ok_b;
+            let mut b = b;
+            if fallible
+                && !is_outcome(b)
+                && let Ty::Result(..) = tx
+                && !self.probe(b).is_some_and(|t| t.fits(&tx))
+            {
+                ok_b = j::Expr {
+                    kind: j::ExprKind::Call(
+                        Box::new(j::Expr {
+                            kind: j::ExprKind::Name("Ok".into()),
+                            span: b.span,
+                            paren: false,
+                        }),
+                        vec![j::Arg {
+                            name: None,
+                            kind: j::ArgKind::Expr(b.clone()),
+                            span: b.span,
+                        }],
+                    ),
+                    span: b.span,
+                    paren: false,
+                };
+                b = &ok_b;
+            }
             let (y_, ty) = self.atom(b, Some(&tx))?;
             (x, tx, y_, ty)
         };
@@ -7506,6 +7712,16 @@ impl Lower<'_, '_, '_> {
         let path = format!("std.{module}.{m}");
         let Some(d) = crate::stdlib::decl(&path) else {
             let names = crate::stdlib::members(module);
+            if matches!(t, Ty::Coll("iter", _)) && m == "len" {
+                self.err(
+                    "E203",
+                    name_at,
+                    "an `iter` has no `len`; it is single-pass, so `.count()` consumes it \
+                     (or `.collect()` it to a list first)"
+                        .into(),
+                );
+                return Ok((Rhs::Proj(p), e(), None));
+            }
             self.err_near(
                 "E203",
                 name_at,

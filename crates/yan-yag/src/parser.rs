@@ -2286,6 +2286,20 @@ impl Parser {
             span,
             paren: false,
         };
+        if self.is_kw("fail") {
+            // `fail e` as an operand is the failed outcome, `Err(e)` (R424): `ex f(x) == fail E`.
+            self.bump();
+            let e = self.unary()?;
+            let arg = Arg {
+                name: None,
+                span: e.span,
+                kind: ArgKind::Expr(e),
+            };
+            return Ok(mk(ExprKind::Call(
+                Box::new(mk(ExprKind::Name("Err".into()))),
+                vec![arg],
+            )));
+        }
         let kind = match self.tok().clone() {
             Tok::Int(s) => ExprKind::Lit(Lit::Int(s)),
             Tok::Float(s) => ExprKind::Lit(Lit::Float(s)),
