@@ -305,6 +305,9 @@ pub(crate) fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
         K::StageFor { iter, .. } => vec![iter],
         K::For { iter, .. } => vec![iter],
         K::Match { scrutinee, .. } => vec![scrutinee],
+        K::With { kind, .. } => match kind {
+            j::WithKind::Bind(_, e) | j::WithKind::Deadline(e) | j::WithKind::Timeout(e) => vec![e],
+        },
         K::Par {
             body: j::ParBody::For { iter, .. },
             ..
@@ -4199,6 +4202,18 @@ impl Lower<'_, '_, '_> {
                 }
             }
         };
+        let cancels = |e: &Ty| match e {
+            Ty::Union(ms) => ms.contains(&Ty::Data("Cancelled".into())),
+            e => *e == Ty::Data("Cancelled".into()),
+        };
+        if err_ty.as_ref().is_some_and(cancels)
+            && !matches!(
+                fb,
+                j::Fallback::Fail(_) | j::Fallback::Bind(..) | j::Fallback::Block(Some(_), _)
+            )
+        {
+            self.discards_cancelled(x.span);
+        }
         let want = want.cloned().unwrap_or_else(|| ok_ty.clone());
         let fb = fb.clone();
         let (v, t) = self.join(at, |l, k| {
@@ -4677,6 +4692,34 @@ impl Lower<'_, '_, '_> {
                 if self.g.fns.get(n).is_some_and(|s| s.tparams.is_empty() && s.ret == *t)),
             _ => false,
         }
+    }
+
+    /// W818: an `else` after `call` that neither binds nor re-fails its `Cancelled` (R341).
+    fn discards_cancelled(&mut self, call: Span) {
+        let line = self
+            .cx
+            .src
+            .lines()
+            .nth(call.end_line as usize - 1)
+            .unwrap_or("");
+        let from = (call.end_col as usize).saturating_sub(1).min(line.len());
+        let Some(k) = line[from..].find("else").map(|k| k + from) else {
+            return;
+        };
+        let col = k as u32 + 1;
+        let at = Span {
+            line: call.end_line,
+            col,
+            end_line: call.end_line,
+            end_col: col + 4,
+        };
+        let item = self.item.clone();
+        self.cx.warn(
+            "W818",
+            at,
+            &item,
+            "this `else` discards `Cancelled`; bind the error or `fail` it".into(),
+        );
     }
 
     /// The type after `name:` on the line of `name`.
