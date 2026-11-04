@@ -1135,6 +1135,34 @@ fn int_op(op: &str) -> Option<(&'static str, Ty)> {
     })
 }
 
+/// `[[fill]align][width]` of a format spec as (fill, align, width); align is 0 left, 1 right,
+/// 2 center, defaulting to right for numbers and left otherwise (SQ20).
+fn pad_spec(spec: &str, t: &Ty) -> R<(char, u8, usize)> {
+    let cs: Vec<char> = spec.chars().collect();
+    let align_of = |c: char| match c {
+        '<' => Some(0),
+        '>' => Some(1),
+        '^' => Some(2),
+        _ => None,
+    };
+    let numeric = matches!(t, Ty::Int | Ty::Float | Ty::BigInt | Ty::Fixed(_));
+    let (fill, align, rest) = match cs.as_slice() {
+        [f, a, rest @ ..] if align_of(*a).is_some() => (*f, align_of(*a), rest),
+        [a, rest @ ..] if align_of(*a).is_some() => (' ', align_of(*a), rest),
+        rest => (' ', None, rest),
+    };
+    let digits: String = rest.iter().collect();
+    let width = if digits.is_empty() {
+        0
+    } else {
+        match digits.parse::<usize>() {
+            Ok(w) if !digits.starts_with('0') => w,
+            _ => return unsupported(format!("format specification `{spec}`")),
+        }
+    };
+    Ok((fill, align.unwrap_or(u8::from(numeric)), width))
+}
+
 /// `p as name` at the top of a case: the pattern and the name bound to the whole scrutinee.
 fn split_as(p: &j::Pat) -> (&j::Pat, Option<&str>) {
     match p {
@@ -4159,7 +4187,19 @@ impl Lower<'_, '_, '_> {
             match p {
                 j::FPiece::Lit(s) if s.is_empty() => {}
                 j::FPiece::Lit(s) => parts.push(Atom::Lit(Literal::Str(s.clone()), at)),
-                j::FPiece::Expr(_, Some(_)) => return unsupported("format specifications"),
+                j::FPiece::Expr(e, Some(spec)) => {
+                    let (a, t) = self.atom(e, None)?;
+                    let (fill, align, width) = pad_spec(spec, &t)?;
+                    let shown = self.show(a, &t, e.span);
+                    let args = vec![
+                        let_arg(shown),
+                        let_arg(Atom::Lit(Literal::Int(width.to_string()), e.span)),
+                        let_arg(Atom::Lit(Literal::Int(align.to_string()), e.span)),
+                        let_arg(Atom::Lit(Literal::Str(fill.to_string()), e.span)),
+                    ];
+                    let c = call("fmt_pad", vec![], args, e.span);
+                    parts.push(self.tmp(&Ty::Str, Rhs::Call(c), e.span));
+                }
                 j::FPiece::Expr(e, None) => {
                     let (a, t) = self.atom(e, None)?;
                     parts.push(self.show(a, &t, e.span));
@@ -7601,6 +7641,13 @@ pub(crate) fn callees(stmts: &[j::Stmt], out: &mut HashSet<String>) {
             walk(e, &mut |e| {
                 if matches!(e.kind, j::ExprKind::Binary("**", ..)) {
                     out.insert("int_pow".into());
+                }
+                if let j::ExprKind::FStr { pieces, .. } = &e.kind
+                    && pieces
+                        .iter()
+                        .any(|p| matches!(p, j::FPiece::Expr(_, Some(_))))
+                {
+                    out.insert("fmt_pad".into());
                 }
                 if let j::ExprKind::Call(f, _) = &e.kind {
                     match &f.kind {
