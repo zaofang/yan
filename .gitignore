@@ -7,3 +7,5 @@ conformance-summary.json
 /target/
 playground/yan.wasm
 /formal/.lake/
+bench/r567/runs/
+bench/r567/out/

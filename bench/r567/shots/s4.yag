@@ -1,0 +1,7 @@
+def diffs(xs: list[int]) -> list[int]:
+    """Differences between consecutive elements."""
+    ex diffs([1, 4, 9]) == [3, 5]
+    out: list[int] = []
+    for i in range(1, xs.len()):
+        out.append(xs[i] - xs[i - 1])
+    return out

@@ -1,0 +1,10 @@
+def below_zero(operations: list[int]) -> bool:
+    """True if the running balance ever drops below zero."""
+    ex below_zero([1, 2, -4, 5]) == True
+    # ---
+    balance = 0
+    for op in operations:
+        balance += op
+        if balance < 0:
+            return True
+    return False

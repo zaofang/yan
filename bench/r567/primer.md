@@ -1,0 +1,14 @@
+You write Yan Agent, a typed Python 3.12 dialect. Differences from Python:
+- No import. Qualify std names: io.print, http.get_text, json.parse.
+- Classes hold annotated fields only, no methods: write functions that take the record first and call them as c.f(). Build records with C(1, "a") or C(a=1, b="a").
+- Sums are one line of inline variants: `type Tree = Leaf(value: int) | Node(left: Tree, right: Tree)`. Match with `case Leaf():` or `case Node(left=l, right=r):`.
+- No exceptions (try, except, raise) and no async. A fallible function is `-> T fail E` (`-> fail E` when it returns nothing). `return v` succeeds, `fail e` fails, `x?` propagates, `x else y` falls back on None or failure, `x else fail E(...)` and `x else return` exit.
+- Locals are plain `x = e`; mutability is inferred. A parameter you mutate is `var p: T` and the caller passes `&x`; `take p: T` consumes it.
+- Annotate every parameter and the return type. List capabilities after the return type: `-> T uses net, io`.
+- Strings: no len(s) or s[i]. Use s.char_count(), s.byte_len(), s.chars(). Parse with s.parse_int() and s.parse_float(), which return T | None.
+- Write x.copy() when you store a str or list you only borrowed.
+- int is 64-bit and overflow panics; use bigint for large values. `/` on ints gives float.
+- `xs.get(i)` and `d.get(k)` return T | None. `xs[i]` is bounds-checked.
+- Concurrency: `par [f(x)? for x in xs]` runs the calls in parallel.
+- When two parameters share a type, callers pass those arguments by keyword unless they are literals or names equal to the parameter.
+- `pre`, `post` and `ex` lines come first in the body, after the docstring, indented: `ex f(1) == 2`. In `post`, `out` is the result.
