@@ -10,10 +10,6 @@ pub def len[T](self: list[T]) -> int: ...
 
 @intrinsic
 @since("1.0")
-pub def push[T](var self: list[T], take x: T) -> None: ...
-
-@intrinsic
-@since("1.0")
 pub def append[T](var self: list[T], take x: T) -> None: ...
 
 @intrinsic

@@ -1045,7 +1045,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 );
                 set(self, r);
             }
-            (id::STD_LIST_PUSH | id::STD_LIST_APPEND, [(_, y::Atom::Name(l, _)), (_, x)]) => {
+            (id::STD_LIST_APPEND, [(_, y::Atom::Name(l, _)), (_, x)]) => {
                 let list = self.name(l)?.clone();
                 let Shape::List(e) = &list.shape else {
                     return unsupported(format!("call of `{name}`"));
