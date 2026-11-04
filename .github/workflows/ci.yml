@@ -124,11 +124,11 @@ jobs:
       # Gate on the cases due by the milestone the implementation has reached (spec 23); raise it when a milestone starts.
       - run: >-
           uv run python tools/conform.py --json conformance-summary.json
-          --milestone M0 --executor interp=target/release/yan
+          --milestone M1 --executor interp=${{ github.workspace }}/target/release/yan
       # Round-trip laws 3 and 4 (16.5): reported, not gated, until M3 (R564).
       - run: >-
           uv run python tools/conform.py --laws --json laws-summary.json
-          --executor interp=target/release/yan
+          --executor interp=${{ github.workspace }}/target/release/yan
       - uses: actions/upload-artifact@v4
         with:
           name: conformance-summary
