@@ -1,0 +1,22 @@
+# spec: 14.4, 17.2
+# rows: R805
+# expect: N34 at 10:12
+# expect: N34 at 13:12
+# expect: N34 at 16:12
+# expect: N34 at 19:12
+# expect: N34 at 22:12
+
+def digit(c: char) -> bool:
+    return c.isdigit()
+
+def upper(c: char) -> bool:
+    return c.isupper()
+
+def str_digit(s: str) -> bool:
+    return s.is_digit()
+
+def all_matches(p: Regex, s: str) -> list[Match]:
+    return p.findall(s)
+
+def whole(m: Match) -> str | None:
+    return m.group()

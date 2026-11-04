@@ -1454,6 +1454,111 @@
    ]
   },
   {
+   "path": "yag/fail/lenient/n33_map_filter.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.3"
+   ],
+   "rows": [
+    "R804"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N33",
+     "line": 7,
+     "col": 17
+    },
+    {
+     "code": "N33",
+     "line": 10,
+     "col": 17
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n34_char_str_regex.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.2"
+   ],
+   "rows": [
+    "R805"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N34",
+     "line": 10,
+     "col": 12
+    },
+    {
+     "code": "N34",
+     "line": 13,
+     "col": 12
+    },
+    {
+     "code": "N34",
+     "line": 16,
+     "col": 12
+    },
+    {
+     "code": "N34",
+     "line": 19,
+     "col": 12
+    },
+    {
+     "code": "N34",
+     "line": 22,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n35_re_module.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.2"
+   ],
+   "rows": [
+    "R806"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N35",
+     "line": 10,
+     "col": 12
+    },
+    {
+     "code": "N35",
+     "line": 13,
+     "col": 12
+    },
+    {
+     "code": "N35",
+     "line": 16,
+     "col": 12
+    },
+    {
+     "code": "N35",
+     "line": 19,
+     "col": 12
+    },
+    {
+     "code": "N35",
+     "line": 22,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lex/e105_bidi_in_comment.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -5084,6 +5189,21 @@
    "flags": [],
    "expect": [],
    "stdout": "k = v\nx = y\n3 2 -1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/text_count_char_predicates.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [
+    "R803"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 0 4 1\nTrue False False\nTrue False True True\nTrue False True False\nTrue False True False\na 7\nFalse False False False False False\nTrue False True False False False\nFalse True True True False False\nFalse True True False True False\nFalse False False False False True\nFalse False False False False False\n",
    "exit": 0
   },
   {

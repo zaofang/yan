@@ -1,0 +1,32 @@
+# spec: 17.2
+# rows: R803
+# stdout:
+# 3 0 4 1
+# True False False
+# True False True True
+# True False True False
+# True False True False
+# a 7
+# False False False False False False
+# True False True False False False
+# False True True True False False
+# False True True False True False
+# False False False False False True
+# False False False False False False
+
+def preds(s: str) -> str:
+    return f"{s.isdigit()} {s.isalpha()} {s.isalnum()} {s.isupper()} {s.islower()} {s.isspace()}"
+
+pub def main() uses io:
+    io.print(f"{'banana'.count('a')} {'banana'.count('x')} {'abc'.count('')} {''.count('')}")
+    io.print(f"{'12'.isdigit()} {'1a'.isdigit()} {'é'.isdigit()}")
+    io.print(f"{c'7'.is_digit()} {c'x'.is_digit()} {c'x'.is_alpha()} {c'é'.is_alpha()}")
+    io.print(f"{c'x'.is_alnum()} {c'!'.is_alnum()} {c'Q'.is_upper()} {c'q'.is_upper()}")
+    io.print(f"{c'q'.is_lower()} {c'Q'.is_lower()} {c' '.is_space()} {c'a'.is_space()}")
+    io.print(f"{c'a'.to_str()} {ord(c'a') - 90}")
+    io.print(preds("Ab1 "))
+    io.print(preds("12"))
+    io.print(preds("AB"))
+    io.print(preds("ab"))
+    io.print(preds(" \t"))
+    io.print(preds(""))
