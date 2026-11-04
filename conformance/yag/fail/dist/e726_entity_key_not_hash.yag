@@ -7,5 +7,5 @@
 class Account:
     balance: int
 
-def open(e: Entity[float, Account]) -> None:
+def open(_: Entity[float, Account]) -> None:
     pass
