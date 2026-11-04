@@ -15,18 +15,22 @@ DIRS = ["baseline", "p1-shorthand", "p2-plainspoken", "p3-wire", "p4-ledger", "p
 
 
 def measure(text: str) -> tuple[int, int, int]:
-    lines = [l for l in text.splitlines() if l.strip()]
-    nonspace = sum(len(l.strip().replace(" ", "")) for l in lines)
-    lexemes = sum(len(LEXEME.findall(l)) for l in lines)
+    lines = [line for line in text.splitlines() if line.strip()]
+    nonspace = sum(len(line.strip().replace(" ", "")) for line in lines)
+    lexemes = sum(len(LEXEME.findall(line)) for line in lines)
     return len(lines), nonspace, lexemes
 
 
+def variant(d: str) -> str:
+    return "".join(p.read_text() for p in sorted((ROOT / d).glob("t*.yn")))
+
+
 def main() -> None:
-    base = measure("".join(p.read_text() for p in sorted((ROOT / "baseline").glob("t*.yn"))))
+    base = measure(variant("baseline"))
     print("| Variant | Lines | Non-space chars | Lexemes | Lexemes vs baseline |")
     print("| --- | --- | --- | --- | --- |")
     for d in DIRS:
-        lines, chars, lex = measure("".join(p.read_text() for p in sorted((ROOT / d).glob("t*.yn"))))
+        lines, chars, lex = measure(variant(d))
         print(f"| {d} | {lines} | {chars} | {lex} | {100 * (lex - base[2]) / base[2]:+.0f}% |")
     if "-v" in sys.argv:
         for d in DIRS:
