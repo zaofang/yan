@@ -148,3 +148,15 @@ Two rules keep the construct from becoming a general "ignore cancellation" switc
 If D1 to D11 are accepted, an RFC after M1 with the rows for 9.4, 3.5 (Yan Core), 14.1 and 15 (surface)
 and two warning codes, plus conformance cases proposed in a separate PR: held cancel delivered after
 the block, clamp under drain, nested timeout tightening inside a shield, `Remote` budget inside a shield.
+
+## 9. Decisions (Antonio, cards, 2026-11-04)
+
+D1, D2, D3, D5, D6, D8, D9, D10 and D11 accepted as recommended. Two answers differ from the
+recommendation:
+
+- D4: shield needs a marker capability, `uses shield`, visible in signatures and deniable in a ceiling.
+  `yan audit` still lists shields. The cost noted in section 5 stands: library `close` functions that
+  shield make every caller declare it, so the RFC must say how a caller forwards or confines it.
+- D7: a shield's expiry is a separate error type (called `ShieldTimeout` in the card), not `Timeout`.
+  A function that opens a shield carries that type in its fail type. Whether it is a subtype of
+  `Timeout` is left to the RFC.
