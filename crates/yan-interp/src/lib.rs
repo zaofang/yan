@@ -28,6 +28,7 @@ mod keyed;
 mod log;
 mod math;
 mod native;
+mod net;
 mod path;
 mod prelude;
 mod proc;
@@ -226,6 +227,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             args: Vec::new(),
             deadline: None,
             chans: Vec::new(),
+            net: Default::default(),
             test: false,
         },
     );
@@ -307,6 +309,8 @@ pub(crate) struct Interp<'o> {
     deadline: Option<i128>,
     /// Each channel's capacity and queued values, by channel.
     chans: Vec<(usize, VecDeque<Value>)>,
+    /// Every `mem_net` network, listener and stream end.
+    net: net::Nets,
     /// Running under `yan test`, which picks the default handlers (7.3).
     test: bool,
 }
@@ -415,6 +419,7 @@ fn entry(
         args: argv,
         deadline: None,
         chans: Vec::new(),
+        net: Default::default(),
         test: limits.is_some(),
     };
     // The test handler set (7.3): `rand = seeded(0)`, `env = fake_env()`, `proc = fake_proc()`.

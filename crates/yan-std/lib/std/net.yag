@@ -1,0 +1,18 @@
+"""The net capability: TCP over `host:port` addresses (17.3, 7.1, RFC 0032)."""
+
+@since("1.0")
+pub type NetReason = Refused() | AddrInUse() | Closed() | NotGranted() | OsError()
+
+@since("1.0")
+pub class NetError:
+    """A connection that could not be made or used; `show` prints `<addr>: <message>`."""
+    addr: str
+    reason: NetReason
+    message: str
+
+@capability
+@since("1.0")
+pub trait Net:
+    def tcp_listen(self: Self, addr: str) -> TcpListener fail NetError: ...
+    def tcp_connect(self: Self, addr: str) -> TcpStream fail NetError: ...
+    def only(self: Self, connect: list[str] = [], listen: list[str] = []) -> Net: ...

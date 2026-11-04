@@ -41,7 +41,7 @@ pub enum Ty {
 }
 
 /// Each std.collections type, by its Yan Agent name; its Yan Core name is in the projection table.
-pub const COLLECTIONS: [&str; 31] = [
+pub const COLLECTIONS: [&str; 33] = [
     "deque",
     "iter",
     "heap",
@@ -53,6 +53,8 @@ pub const COLLECTIONS: [&str; 31] = [
     "WindowsPath",
     "Secret",
     "Command",
+    "TcpListener",
+    "TcpStream",
     "Duration",
     "Instant",
     "MonoInstant",
@@ -231,6 +233,8 @@ impl Ty {
             Ty::Coll("Path", _) => Some("path"),
             Ty::Coll("Secret", _) => Some("env"),
             Ty::Coll("Command", _) => Some("proc"),
+            Ty::Coll("TcpListener", _) => Some("net.listener"),
+            Ty::Coll("TcpStream", _) => Some("net.stream"),
             Ty::Coll("WindowsPath", _) => Some("path.windows"),
             Ty::Coll("Duration", _) => Some("time.duration"),
             Ty::Coll("Instant", _) => Some("time.instant"),

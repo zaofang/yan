@@ -33,7 +33,7 @@ Recommendation: keep two levels. Substituting an optional type for a type parame
 flattens, so `get` on `dict[str, int | None]` returns `Option[int | None]`.
 
 - Decision: two levels, no collapse (lead, 2026-11-04)
-- Row: R796
+- Row: R793
 
 ### D2: spelling
 
@@ -43,7 +43,7 @@ in plain Yan, is rejected with a diagnostic that suggests `Option[T | None]`, be
 `Some { value: None }` (R476).
 
 - Decision: `Option[T | None]`; flat form rejected (lead, 2026-11-04)
-- Row: R796, E276
+- Row: R793, E276
 
 ### D3: injection adds one level
 
@@ -54,7 +54,7 @@ expected type, so it is the outer `None`; the inner one is written `Some(None)`.
 levels. `Ty::fits` stops accepting `Option[V]` for `Option[Option[V]]` without that wrap.
 
 - Decision: wrap once; fix `inject` and `Ty::fits` (lead, 2026-11-04)
-- Row: R797
+- Row: R794
 
 ### D4: tests and operators work one level at a time
 
@@ -64,7 +64,7 @@ Python's `if d.get(k):` is false for both a missing key and a stored `None`, so 
 preserves the author's meaning, and strict mode reports E201 as it does for any truthiness test.
 
 - Decision: outer level only; N15 excludes nested optionals (lead, 2026-11-04)
-- Row: R798
+- Row: R795
 
 ### D5: conformance (proposed, separate PR)
 
