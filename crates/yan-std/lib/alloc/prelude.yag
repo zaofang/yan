@@ -155,3 +155,18 @@ pub def Secret[T](take value: T) -> Secret[T]: ...
 @intrinsic
 @since("1.0")
 pub def Command(program: str, args: list[str] = []) -> Command: ...
+
+@since("1.0")
+pub def int_pow(x: int, n: int) -> int:
+    """`x ** n` on integers; overflow panics (14)."""
+    pre n >= 0
+    result = 1
+    base = x
+    e = n
+    while e > 0:
+        if e % 2 == 1:
+            result *= base
+        e //= 2
+        if e > 0:
+            base *= base
+    return result
