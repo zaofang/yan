@@ -3,7 +3,7 @@
 - Status: accepted (decisions only; rows pending)
 - Research: [Language forums study](https://claude.ai/artifact/E8xVSw3fhTwuxFu38DqrtT) items F1, F3 and F7;
   [Python Ideas and PEPs study](https://claude.ai/artifact/R1t3UGwQ9VKSaNbGjHPfVQ) items I2 and I4
-- Rows: filled in when accepted
+- Rows: see Decisions
 
 ## Summary
 
@@ -42,7 +42,7 @@ review. (c) keeps most of the debugging value, since bounds, overflow and shape 
 Recommendation: (c).
 
 - Decision: (c) numeric operand fields only (lead, 2026-11-04)
-- Row:
+- Row: R792
 
 ### D2: item-level `@deny(code)`
 
@@ -62,7 +62,7 @@ Options weighed: (a) nothing, rely on `--strict`; (b) a manifest-level deny list
 Recommendation: (c). New diagnostic codes for the two errors are allocated only when accepted.
 
 - Decision: (c) item-level `@deny(code)` (lead, 2026-11-04)
-- Row:
+- Row: R793, E277, E278
 
 ### D3: 7-day cool-off, and forced moves skip it
 
@@ -82,7 +82,7 @@ the window the study's threads report.
 Recommendation: 7 days with the yank exemption.
 
 - Decision: 7 days, plus yank/malicious exemption (lead, 2026-11-04)
-- Row:
+- Row: R794
 
 ### D4: target-typed variant names are a non-goal
 
@@ -100,7 +100,7 @@ show up in model runs, qualified `Type.Variant` stays the follow-up.
 Recommendation: record it as a non-goal.
 
 - Decision: record as non-goal (lead, 2026-11-04)
-- Row:
+- Row: R795
 
 ## Spec changes
 
