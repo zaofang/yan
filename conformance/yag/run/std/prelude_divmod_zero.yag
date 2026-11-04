@@ -1,0 +1,6 @@
+# spec: 17.2
+# rows: R801
+# exit: 101
+
+pub def main() uses io:
+    io.print(f"{divmod(1, 0)}")

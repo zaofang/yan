@@ -349,6 +349,19 @@
    "expect": []
   },
   {
+   "path": "yag/pass/types/two_param_positional.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R800"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yag/fail/arrays/e520_positional_broadcast.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -1272,6 +1285,26 @@
      "code": "N14",
      "line": 5,
      "col": 5
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n15_nested_optional.yag",
+   "kind": "fail",
+   "milestone": "M1b",
+   "spec": [
+    "14.1",
+    "14.4"
+   ],
+   "rows": [
+    "R795"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 8,
+     "col": 8
     }
    ]
   },
@@ -3145,13 +3178,15 @@
    "spec": [
     "14.1"
    ],
-   "rows": [],
+   "rows": [
+    "R800"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "E210",
-     "line": 10,
-     "col": 17
+     "line": 12,
+     "col": 16
     }
    ]
   },
@@ -3359,6 +3394,44 @@
      "code": "E273",
      "line": 10,
      "col": 9
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/types/e276_none_twice.yag",
+   "kind": "fail",
+   "milestone": "M1b",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R793"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E276",
+     "line": 7,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/types/prelude_ord_positional.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [
+    "R801"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E202",
+     "line": 6,
+     "col": 16
     }
    ]
   },
@@ -4638,6 +4711,51 @@
    "exit": 101
   },
   {
+   "path": "yag/run/std/prelude_divmod_pow.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [
+    "R801"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "(3, 1) (-4, 1)\n2 1\n1024 8.0 1.4142135623730951\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/prelude_divmod_zero.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [
+    "R801"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": null,
+   "exit": 101
+  },
+  {
+   "path": "yag/run/std/prelude_ord_chr.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [
+    "R801"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "65 35328\nA 65\nB\ninvalid scalar value at 0 scalar\ninvalid scalar value at 0 scalar\ninvalid scalar value at 0 scalar\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/proc_fake.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5145,6 +5263,39 @@
    "flags": [],
    "expect": [],
    "stdout": "2 1 1 4 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/types/nested_optional_get.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R793",
+    "R795"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\nstored None\nmissing\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/types/nested_optional_inject.yag",
+   "kind": "run",
+   "milestone": "M1b",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R793",
+    "R794",
+    "R795"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "True True\nTrue\n",
    "exit": 0
   },
   {

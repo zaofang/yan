@@ -30,6 +30,14 @@ pub def max[T, K: Ord](a: T, b: T, /, key: Callable[[T], K] | None = None) -> T:
 
 @intrinsic
 @since("1.0")
+pub def ord(c: char, /) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def chr(n: int, /) -> char fail EncodingError: ...
+
+@intrinsic
+@since("1.0")
 pub def list[T](take xs: list[T]) -> list[T]: ...
 
 @intrinsic

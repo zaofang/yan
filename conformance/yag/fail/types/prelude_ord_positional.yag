@@ -1,0 +1,6 @@
+# spec: 17.2
+# rows: R801
+# expect: E202 at 6:16
+
+def f() -> int:
+    return ord(c=c'a')

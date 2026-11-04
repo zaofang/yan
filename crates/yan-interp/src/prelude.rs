@@ -142,6 +142,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             None => return panic("conversion"),
         }
     }),
+    f!(STD_PRELUDE_ORD, |a| { [Char(c)] => Int(u32::from(*c).into()) }),
     f!(STD_PRELUDE_FLOAT, |a| { [Int(i)] => Float(*i as f64) }),
     f!(STD_PRELUDE_ROUND, |a| {
         [Float(x)] => match num::round_i64(*x) {

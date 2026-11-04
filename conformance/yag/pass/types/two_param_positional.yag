@@ -1,0 +1,13 @@
+# spec: 14.1
+# rows: R800
+# note: a callee with exactly two parameters takes them positionally, for functions and records
+
+class Size:
+    w: int
+    h: int
+
+def gcd_step(a: int, b: int) -> int:
+    return a % b
+
+def f(x: int, y: int) -> Size:
+    return Size(gcd_step(x, y), gcd_step(y, x))

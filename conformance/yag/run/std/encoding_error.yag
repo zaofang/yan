@@ -24,6 +24,8 @@ def kind(e: EncodingError) -> str:
             return "hex"
         case Base64():
             return "base64"
+        case Scalar():
+            return "scalar"
 
 pub def main() uses io:
     io.print(hex("0z") else err -> f"{err} {kind(err)}")
