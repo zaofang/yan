@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-04 | [Yan Meta syntax frameworks](../studies/syntax/yan-meta.md) | Study only; recommends a closed notation table, a glyph budget and word twins |
 | 2026-11-04 | [Yan Probabilistic syntax and semantics study](../studies/syntax/yan-probabilistic.md) | Study only; recommends typed call-site `given`, index-notation plates, three readings per model |
 | 2026-11-04 | [Yan Protocol (`.ypc`) syntax study](../studies/syntax/yan-protocol.md) | Study only; recommends three layers (protocol, `plays` functions, `play` choreographies), mostly lowering to R633 and R634 |
 | 2026-11-04 | [Plain Yan (`.yn`) syntax study](../studies/syntax/plain-yan.md) | Study only; five proposals and a mix: one-line guards, `for`/`with` as values, trailing block lambdas, one implicit-subject rule, example tables, typed holes, keywords as method names; no rows |
