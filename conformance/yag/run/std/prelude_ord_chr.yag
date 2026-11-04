@@ -1,0 +1,35 @@
+# spec: 17.2
+# rows: R801
+# stdout:
+# 65 35328
+# A 65
+# B
+# invalid scalar value at 0 scalar
+# invalid scalar value at 0 scalar
+# invalid scalar value at 0 scalar
+
+def kind(e: EncodingError) -> str:
+    match e.reason:
+        case Scalar():
+            return "scalar"
+        case Utf8():
+            return "utf8"
+        case Hex():
+            return "hex"
+        case Base64():
+            return "base64"
+
+def round_trip(n: int) -> str fail EncodingError:
+    c = chr(n)?
+    return f"{c} {ord(c)}"
+
+def check(n: int) -> str:
+    return round_trip(n) else err -> f"{err} {kind(err)}"
+
+pub def main() uses io:
+    io.print(f"{ord(c'A')} {ord(c'言')}")
+    io.print(check(65))
+    io.print(f"{chr(66) else e -> c'?'}")
+    io.print(check(-1))
+    io.print(check(0xD800))
+    io.print(check(0x110000))

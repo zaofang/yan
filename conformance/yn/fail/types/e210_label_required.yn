@@ -1,6 +1,6 @@
 -- spec: 15.3
 -- expect: E210 at 6:33
 
-area(w: int, h: int) -> int = w * h
+area(w: int, h: int, d: int) -> int = w * h * d
 
-f(a: int, b: int) -> int = area(a, b)
+f(a: int, b: int) -> int = area(a, b, 1)

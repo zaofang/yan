@@ -1,10 +1,12 @@
 # spec: 14.1
+# rows: R800
 # note: one diagnostic per call, at the first argument that needs a keyword
-# expect: E210 at 10:17
+# expect: E210 at 12:16
 
-class Size:
+class Box:
     w: int
     h: int
+    d: int
 
-def f(a: int, b: int) -> Size:
-    return Size(a, b)
+def f(a: int, b: int) -> Box:
+    return Box(a, b, a)

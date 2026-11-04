@@ -1,0 +1,15 @@
+# spec: 17.2
+# rows: R801
+# stdout:
+# (3, 1) (-4, 1)
+# 2 1
+# 1024 8.0 1.4142135623730951
+
+def next(n: int) -> int:
+    return n + 1
+
+pub def main() uses io:
+    io.print(f"{divmod(7, 2)} {divmod(-7, 2)}")
+    q, r = divmod(next(8), 4)
+    io.print(f"{q} {r}")
+    io.print(f"{pow(2, 10)} {pow(2.0, 3)} {pow(2.0, 0.5)}")
