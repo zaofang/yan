@@ -349,11 +349,7 @@ struct Fold<'a> {
     loops: Vec<String>,
 }
 
-const BUILDERS: [&str; 3] = [
-    "std.list.append",
-    "std.set.add",
-    "std.dict.insert",
-];
+const BUILDERS: [&str; 3] = ["std.list.append", "std.set.add", "std.dict.insert"];
 
 impl<'a> Fold<'a> {
     fn new(std: &'a dyn Std, types: HashMap<String, y::Type>, stmts: &[y::Stmt]) -> Fold<'a> {
