@@ -182,3 +182,12 @@ so it reports `modern` whatever was passed.
 
 If D1 to D11 are accepted, an RFC from `rfcs/0000-template.md` with the profile table, the `.only`
 signature and the audit facts, then rows in the same PR as the 17.6 edit.
+
+## 9. Decisions (Antonio, cards, 2026-11-04)
+
+D1, D3, D4, D5, D6, D7, D8, D9, D10 and D11 accepted as recommended. One answer differs from the
+recommendation:
+
+- D2: the default profile is `modern` for servers and `compatible` for clients, since a server can
+  choose its clients more often than a client can choose its servers. The RFC must say how a server
+  opts down to `compatible` and how 17.6 and R404 are reworded.
