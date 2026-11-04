@@ -69,6 +69,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E140 | interior NUL in a `c"..."` literal *new* | 12.3 |
 | E141 | `yield` outside a generator body *new* | 10.5 |
 | E143 | become inside a constructor not in last-evaluated argument position (R456) new | 3.5 |
+| E144 | data file outside the data profile: an item other than a literal constant, or an operator, call or name in a value (R827) *new* | 17.3, 19.1 |
 
 ### 25.4 Names, types, generics and stage 0
 
