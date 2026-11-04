@@ -154,6 +154,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R798 | Default `min_release_age` is 7 days; moving off a yanked or malicious locked version ignores the cool-off (RFC 0031, R798) | 19 |
 | R799 | Non-goal: no variant names resolved from the expected type in Yan or Yan Agent (RFC 0031, R799) | 26 |
 | R789 to R792 | A first `std.net` slice and `mem_net` (RFC 0032), decided by the owner: `Net` with `tcp_listen`, `tcp_connect` and `only` on `host:port` strings, built-in `TcpListener` and `TcpStream` handles, `NetError` and `NetReason` (R789); `std.test.mem_net()`, one deterministic in-memory network per handler value (R790); `net.only` patterns `host:port` and `host:*`, `NotGranted` (R791); the test handler set keeps no `net`, tests bind `mem_net()` explicitly (R792) | 7.1, 7.3, 17.3 |
+| R800 | E210 relaxed: a callee with exactly two parameters takes them positionally even when they share a type; E210 applies to callees with three or more parameters (R800) | 14.1, 15.3 |
+| R801 | Free prelude functions `ord(c) -> int`, `chr(n) -> char fail EncodingError` (new reason `Scalar()`), `divmod(a, b)` as `(a // b, a % b)` and `pow(a, b)` as `a ** b` (R801) | 17.2 |
 
 <!-- /rows -->
 

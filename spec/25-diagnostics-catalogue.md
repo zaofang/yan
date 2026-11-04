@@ -78,7 +78,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E201 | type mismatch, with the differing parts of the two types marked* new* | 10.1, 14.1 |
 | E202 | wrong number of arguments, or unknown keyword or label argument* new* | 14.1, 15.3 |
 | E203 | no such field or method; nearest names suggested* new* | 10.2, 17.2 |
-| E210 | keyword or label arguments required (parameters share a type) | 14.1, 15.3 |
+| E210 | keyword or label arguments required (two parameters of a callee with three or more share a type) | 14.1, 15.3 |
 | E220 | overlapping impls | 10.2 |
 | E221 | type does not implement a required trait; the trait's @diagnostic hint is shown when present* new* | 10.2 |
 | E230 | rebinding a name (no shadowing) | 14.1, 15.3 |
