@@ -37,6 +37,7 @@ pub(super) fn show_error(fields: &[(super::Name, Value)]) -> String {
     let kind = match name.as_str() {
         "Utf8" => "UTF-8",
         "Hex" => "hex",
+        "Scalar" => "scalar value",
         _ => "base64",
     };
     format!("invalid {kind} at {at}")
@@ -200,6 +201,13 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     }),
     f!(STD_ENCODING_DECODE_UTF8_LOSSY, |a| { [Bytes(b)] => Str(String::from_utf8_lossy(b).into()) }),
     f!(STD_ENCODING_HEX, |a| { [Bytes(b)] => Str(hex(b).into()) }),
+    fallible!(STD_PRELUDE_CHR, |a| {
+        [Int(n)] => u32::try_from(*n)
+            .ok()
+            .and_then(char::from_u32)
+            .map(Char)
+            .ok_or_else(|| error(0, "Scalar")),
+    }),
     fallible!(STD_ENCODING_HEX_DECODE, |a| { [Str(s)] => hex_decode(s) }),
     f!(STD_ENCODING_BASE64, |a| {
         [Bytes(b), Bool(url), Bool(pad)] => Str(base64(b, *url, *pad).into()),

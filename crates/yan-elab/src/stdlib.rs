@@ -289,6 +289,8 @@ pub(crate) struct Plain {
     pub params: Vec<(bool, Ty)>,
     /// Each parameter's name and default.
     pub names: Vec<(&'static str, Option<&'static j::Expr>)>,
+    /// How many leading parameters are positional-only (before `/`).
+    pub positional: usize,
     pub ret: Ty,
     pub fail: Option<Ty>,
 }
@@ -350,6 +352,7 @@ impl Decl {
             .params
             .iter()
             .skip(usize::from(self.cap))
+            .filter(|p| !matches!(p, j::Param::Slash))
             .map(|p| match p {
                 j::Param::Value { conv, ty, .. } => {
                     Some((*conv == Some(j::Conv::Take), subst(ty, &b)?))
@@ -363,9 +366,17 @@ impl Decl {
             None => Ty::Unit,
         };
         let fail = fail_ty(r.map(|r| r.fail.as_slice()).unwrap_or_default(), &b)?;
+        let positional = self
+            .def
+            .params
+            .iter()
+            .skip(usize::from(self.cap))
+            .position(|p| matches!(p, j::Param::Slash))
+            .unwrap_or(0);
         Some(Plain {
             params,
             names,
+            positional,
             ret,
             fail,
         })
@@ -429,8 +440,12 @@ fn raw_words(m: &j::Module) -> HashSet<String> {
         .map(str::to_owned)
         .collect();
     // `x ** n` on floats is `std.math.pown`, whose rounding default is a `std.math` sum (R657).
-    if text.contains("\"**\"") {
+    if text.contains("\"**\"") || w.contains("pow") {
         w.insert("math".into());
+    }
+    // `chr` fails with a `std.encoding` error (R801).
+    if w.contains("chr") {
+        w.insert("encoding".into());
     }
     w
 }

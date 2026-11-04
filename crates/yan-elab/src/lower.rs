@@ -992,7 +992,7 @@ fn call(path: &str, targs: Vec<y::TArg>, args: Vec<Arg>, span: Span) -> y::Call 
 
 /// The std function and result type of `op` between time values (17.5).
 /// The builtin functions `builtin` lowers, offered as near names (R651).
-const BUILTINS: [&str; 26] = [
+const BUILTINS: [&str; 28] = [
     "len",
     "sorted",
     "int",
@@ -1019,6 +1019,8 @@ const BUILTINS: [&str; 26] = [
     "any",
     "all",
     "reversed",
+    "divmod",
+    "pow",
 ];
 
 fn time_op(c: &str, b: &Ty, op: &str) -> Option<(String, Ty)> {
@@ -5255,6 +5257,12 @@ impl Lower<'_, '_, '_> {
                     let r = self.ctor(n, &ps, args, at)?;
                     return Ok((r, Ty::Data(s), None));
                 }
+                let path = format!("std.prelude.{n}");
+                if let Some(p) = crate::stdlib::decl(&path).and_then(|d| d.plain())
+                    && p.fail.is_some()
+                {
+                    return self.std_call(&path, p, Vec::new(), args, n, at);
+                }
                 let (r, t) = self.builtin(n, args, at, want)?;
                 Ok((r, t, None))
             }
@@ -6031,8 +6039,9 @@ impl Lower<'_, '_, '_> {
             };
             slots[k] = Some(Given::Expr(e, is_ref, sp, a.name.is_some()));
         }
-        // E210: parameters that share a type take keyword arguments.
-        for (k, slot) in slots.iter().enumerate() {
+        // E210: parameters that share a type take keyword arguments, in a callee with three or
+        // more parameters (R800).
+        for (k, slot) in slots.iter().enumerate().filter(|_| ps.len() > 2) {
             let Some(Given::Expr(e, _, sp, keyword)) = slot else {
                 continue;
             };
@@ -6420,6 +6429,24 @@ impl Lower<'_, '_, '_> {
         Ok((Rhs::Call(call(&path, targs, out, at)), Ty::Coll(name, ts)))
     }
 
+    /// `e` as an expression that can be lowered twice: a name or a literal as written, anything
+    /// else bound to a temporary first.
+    fn reusable(&mut self, e: &j::Expr) -> R<j::Expr> {
+        if matches!(&e.kind, j::ExprKind::Name(_) | j::ExprKind::Lit(_))
+            || matches!(&e.kind, j::ExprKind::Unary("-", x) if matches!(x.kind, j::ExprKind::Lit(_)))
+        {
+            return Ok(e.clone());
+        }
+        Ok(match self.atom(e, None)?.0 {
+            Atom::Name(n, span) => j::Expr {
+                kind: j::ExprKind::Name(n),
+                span,
+                paren: false,
+            },
+            Atom::Lit(..) => e.clone(),
+        })
+    }
+
     fn builtin(&mut self, n: &str, args: &[j::Arg], at: Span, want: Option<&Ty>) -> R<(Rhs, Ty)> {
         let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err);
         match n {
@@ -6498,6 +6525,33 @@ impl Lower<'_, '_, '_> {
                     )),
                     t,
                 ))
+            }
+            "pow" => {
+                let Some(xs) = self.positional(args, 2, n, at)? else {
+                    return Ok(err);
+                };
+                self.arith("**", xs[0], xs[1], at, want)
+            }
+            // `(a // b, a % b)`, each operand evaluated once (R801).
+            "divmod" => {
+                let Some(xs) = self.positional(args, 2, n, at)? else {
+                    return Ok(err);
+                };
+                let a = self.reusable(xs[0])?;
+                let b = self.reusable(xs[1])?;
+                let ex = |kind| j::Expr {
+                    kind,
+                    span: at,
+                    paren: false,
+                };
+                let op = |o| {
+                    ex(j::ExprKind::Binary(
+                        o,
+                        Box::new(a.clone()),
+                        Box::new(b.clone()),
+                    ))
+                };
+                self.rhs(&ex(j::ExprKind::Tuple(vec![op("//"), op("%")])), want)
             }
             "print" => {
                 let (r, t, _) = self.cap_call("io", "print", args, at)?;
@@ -6625,7 +6679,7 @@ impl Lower<'_, '_, '_> {
                 Ok((Rhs::Call(c), Ty::Coll("Secret", vec![t])))
             }
             "dict" | "set" | "enumerate" | "zip" | "reversed" | "isinstance" | "hash" | "repr"
-            | "divmod" | "pow" | "chr" | "ord" | "atan2" | "hypot" => unsupported(format!("`{n}`")),
+            | "atan2" | "hypot" => unsupported(format!("`{n}`")),
             // std.test is in scope without an import (assumption A7).
             _ if let Some((path, p)) = ["prelude", "test"].iter().find_map(|m| {
                 let path = format!("std.{m}.{n}");
@@ -7146,6 +7200,7 @@ impl Lower<'_, '_, '_> {
         &mut self,
         args: &'e [j::Arg],
         names: &[(&str, Option<&'e j::Expr>)],
+        positional: usize,
         what: &str,
         at: Span,
     ) -> R<Option<Vec<&'e j::Expr>>> {
@@ -7158,6 +7213,10 @@ impl Lower<'_, '_, '_> {
             let i = match &a.name {
                 None => next,
                 Some(n) => match names.iter().position(|(p, _)| p == n) {
+                    Some(i) if i < positional => {
+                        self.err("E202", a.span, format!("`{what}` takes `{n}` by position"));
+                        return Ok(None);
+                    }
                     Some(i) => i,
                     None => {
                         self.err("E202", a.span, format!("`{what}` has no parameter `{n}`"));
@@ -7195,7 +7254,7 @@ impl Lower<'_, '_, '_> {
         what: &str,
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
-        let Some(xs) = self.bind_std(args, &p.names, what, at)? else {
+        let Some(xs) = self.bind_std(args, &p.names, p.positional, what, at)? else {
             return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
         };
         for (x, (take, pt)) in xs.into_iter().zip(&p.params) {
@@ -7754,7 +7813,9 @@ pub(crate) fn body_callees(b: &j::Body, out: &mut HashSet<String>) {
 
 fn expr_callees(e: &j::Expr, out: &mut HashSet<String>) {
     walk(e, &mut |e| {
-        if matches!(e.kind, j::ExprKind::Binary("**", ..)) {
+        if matches!(e.kind, j::ExprKind::Binary("**", ..))
+            || matches!(&e.kind, j::ExprKind::Call(f, _) if matches!(&f.kind, j::ExprKind::Name(n) if n == "pow"))
+        {
             out.insert("int_pow".into());
         }
         if let j::ExprKind::FStr { pieces, .. } = &e.kind

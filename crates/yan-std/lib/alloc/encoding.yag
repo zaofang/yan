@@ -1,7 +1,7 @@
 """Byte strings and their text encodings: `bytes`, UTF-8, hex and base64 (17.3, R579 to R585)."""
 
 @since("1.0")
-pub type EncodingReason = Utf8() | Hex() | Base64()
+pub type EncodingReason = Utf8() | Hex() | Base64() | Scalar()
 
 @since("1.0")
 pub class EncodingError:
