@@ -357,16 +357,44 @@ fn sleep_in_scope(it: &mut Interp, h: &Value, ns: i128) -> Result<Value, Value> 
     match it.deadline {
         Some(d) if now + ns > d => {
             sleep(it, h, d - now);
-            Err(Value::Data {
-                name: "Timeout".to_owned(),
-                fields: Vec::new(),
-            })
+            Err(timeout())
         }
         _ => {
             sleep(it, h, ns);
             Ok(Unit)
         }
     }
+}
+
+pub(crate) fn timeout() -> Value {
+    Data {
+        name: "Timeout".to_owned(),
+        fields: Vec::new(),
+    }
+}
+
+/// For an operation that cannot complete, waits until the enclosing deadline and returns
+/// `Timeout` (9.4); `None` when no deadline is open. The operation names no clock, so under
+/// `fixed_time` or `virtual` handlers every such clock advances to the deadline.
+pub(crate) fn wait_out(it: &mut Interp) -> Option<Value> {
+    let d = it.deadline?;
+    if it.clocks.is_empty() {
+        let now = START.elapsed().as_nanos() as i128;
+        if d > now {
+            std::thread::sleep(std::time::Duration::from_nanos((d - now) as u64));
+        }
+    } else {
+        it.clocks.iter_mut().for_each(|c| *c = (*c).max(d));
+    }
+    Some(timeout())
+}
+
+/// The host time left before the enclosing deadline, for host I/O that can be cut short. Under
+/// `fixed_time` or `virtual` handlers host I/O takes no time, so no deadline bounds it.
+pub(crate) fn host_time_left(it: &Interp) -> Option<std::time::Duration> {
+    let d = it.deadline.filter(|_| it.clocks.is_empty())?;
+    let left = d - START.elapsed().as_nanos() as i128;
+    Some(std::time::Duration::from_nanos(left.max(0) as u64))
 }
 
 macro_rules! f {

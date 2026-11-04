@@ -319,4 +319,20 @@ frame() =
         assert_eq!(fail("top"), Some(vec![vec!["E".to_owned()]]));
         assert_eq!(fail("run"), Some(vec![]));
     }
+
+    #[test]
+    fn a_cancel_scope_infers_timeout() {
+        let src =
+            "wait(d: Duration) -> int uses time =\n  with timeout(d)\n    time.sleep(d)?\n  0\n";
+        let (m, diags) = super::parse("t.yn", src);
+        assert!(diags.is_empty(), "{diags:?}");
+        let (h, _) = super::lower("t.yn", src, &m).unwrap();
+        let fail = h.items.iter().find_map(|i| match &i.kind {
+            yan_hir::ItemKind::Func(f) if f.name == "wait" => {
+                Some(f.ret.as_ref().map(|r| r.fail.clone()).unwrap_or_default())
+            }
+            _ => None,
+        });
+        assert_eq!(fail, Some(vec![vec!["Timeout".to_owned()]]));
+    }
 }

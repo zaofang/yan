@@ -265,22 +265,14 @@ impl Decl {
             .iter()
             .map(|n| b.get(*n).cloned())
             .collect::<Option<_>>()?;
-        let fail = match self
-            .def
-            .ret
-            .as_ref()
-            .map(|r| r.fail.as_slice())
-            .unwrap_or_default()
-        {
-            [p] => Some(subst(
-                &j::Type::Named {
-                    path: p.clone(),
-                    args: Vec::new(),
-                },
-                &b,
-            )?),
-            _ => None,
-        };
+        let fail = fail_ty(
+            self.def
+                .ret
+                .as_ref()
+                .map(|r| r.fail.as_slice())
+                .unwrap_or_default(),
+            &b,
+        )?;
         Some(Method {
             inout: conv == Some(j::Conv::Var),
             params,
@@ -370,17 +362,7 @@ impl Decl {
             Some(t) => subst(t, &b)?,
             None => Ty::Unit,
         };
-        let fail = match r.map(|r| r.fail.as_slice()).unwrap_or_default() {
-            [] => None,
-            [p] => Some(subst(
-                &j::Type::Named {
-                    path: p.clone(),
-                    args: Vec::new(),
-                },
-                &b,
-            )?),
-            _ => return None,
-        };
+        let fail = fail_ty(r.map(|r| r.fail.as_slice()).unwrap_or_default(), &b)?;
         Some(Plain {
             params,
             names,
@@ -740,4 +722,25 @@ fn std_cx(module: &str) -> Cx<'static> {
         previews: Vec::new(),
         diags: Vec::new(),
     }
+}
+
+/// A declared fail type: `None` inside when it cannot fail, a union for several members.
+fn fail_ty(paths: &[Vec<String>], b: &HashMap<String, Ty>) -> Option<Option<Ty>> {
+    let mut ms = paths
+        .iter()
+        .map(|p| {
+            subst(
+                &j::Type::Named {
+                    path: p.clone(),
+                    args: Vec::new(),
+                },
+                b,
+            )
+        })
+        .collect::<Option<Vec<_>>>()?;
+    Some(match ms.len() {
+        0 => None,
+        1 => ms.pop(),
+        _ => Some(Ty::Union(ms)),
+    })
 }

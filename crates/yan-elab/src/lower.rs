@@ -1842,6 +1842,22 @@ impl Lower<'_, '_, '_> {
                 } else {
                     e.clone()
                 };
+                let timeout = Ty::Data("Timeout".into());
+                let lists = match &self.sig.fail {
+                    Some(Ty::Union(ms)) => ms.contains(&timeout),
+                    f => f.as_ref() == Some(&timeout),
+                };
+                if !lists {
+                    self.err(
+                        "E310",
+                        at,
+                        format!(
+                            "`{}` opens a cancel scope, so it can fail with `Timeout`; \
+                             add `Timeout` to its `fail` type (R472)",
+                            self.item
+                        ),
+                    );
+                }
                 let (a, _) = self.atom(&at_expr, None)?;
                 let b = self.block(&body.stmts)?;
                 self.emit(StmtKind::Deadline { at: a, body: b }, at);

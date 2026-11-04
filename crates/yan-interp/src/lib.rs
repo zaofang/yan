@@ -225,6 +225,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             rngs: Vec::new(),
             args: Vec::new(),
             deadline: None,
+            chans: Vec::new(),
             test: false,
         },
     );
@@ -304,6 +305,8 @@ pub(crate) struct Interp<'o> {
     args: Vec<String>,
     /// The earliest enclosing `deadline` scope, as monotonic nanoseconds (9.4).
     deadline: Option<i128>,
+    /// Each channel's capacity and queued values, by channel.
+    chans: Vec<(usize, VecDeque<Value>)>,
     /// Running under `yan test`, which picks the default handlers (7.3).
     test: bool,
 }
@@ -411,6 +414,7 @@ fn entry(
         rngs: Vec::new(),
         args: argv,
         deadline: None,
+        chans: Vec::new(),
         test: limits.is_some(),
     };
     // The test handler set (7.3): `rand = seeded(0)`, `env = fake_env()`, `proc = fake_proc()`.
