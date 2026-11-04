@@ -1457,6 +1457,7 @@ impl Lower<'_, '_, '_> {
                 let a = match e {
                     None => Atom::Lit(Literal::Unit, at),
                     Some(e) => {
+                        let e = &self.become_in_ctor(e, true);
                         let (a, t) = self.atom(e, Some(&want))?;
                         self.expect(&t, &want, e.span);
                         a
@@ -5136,6 +5137,63 @@ impl Lower<'_, '_, '_> {
             targs: Vec::new(),
             fields,
         }))
+    }
+
+    /// `return C(..., become f(x))` (R456): `become` is legal as the last argument of a constructor
+    /// in return position, nesting; anywhere else in a constructor it is E143. The call lowers as
+    /// an ordinary call that fills the field, so it does not yet run in constant stack.
+    fn become_in_ctor(&mut self, e: &j::Expr, last: bool) -> j::Expr {
+        let j::ExprKind::Call(f, args) = &e.kind else {
+            return e.clone();
+        };
+        let is_ctor = matches!(&f.kind, j::ExprKind::Name(n)
+            if self.g.records.contains_key(n) || self.g.variant_of.contains_key(n));
+        if !is_ctor {
+            return e.clone();
+        }
+        let n = args.len();
+        // The arguments of a constructor holding a `become` are matched by position (E210 exempt).
+        let fields: Vec<String> = match &f.kind {
+            j::ExprKind::Name(c) if args.iter().any(|a| matches!(a.kind, j::ArgKind::Become(_))) => {
+                let fs = self.g.records.get(c).or_else(|| {
+                    let s = self.g.sums.get(self.g.variant_of.get(c)?)?;
+                    s.iter().find(|(v, _)| v == c).map(|(_, fs)| fs)
+                });
+                fs.map(|fs| fs.iter().map(|f| f.name.clone()).collect()).unwrap_or_default()
+            }
+            _ => Vec::new(),
+        };
+        let args = args
+            .iter()
+            .enumerate()
+            .map(|(k, a)| {
+                let name = a.name.clone().or_else(|| fields.get(k).cloned());
+                let tail = last && k + 1 == n;
+                let kind = match &a.kind {
+                    j::ArgKind::Become(x) => {
+                        if !tail {
+                            self.err(
+                                "E143",
+                                a.span,
+                                "`become` in a constructor must be its last-evaluated argument".into(),
+                            );
+                        }
+                        j::ArgKind::Expr(x.clone())
+                    }
+                    j::ArgKind::Expr(x) => j::ArgKind::Expr(self.become_in_ctor(x, tail)),
+                    k => k.clone(),
+                };
+                j::Arg {
+                    name,
+                    kind,
+                    span: a.span,
+                }
+            })
+            .collect();
+        j::Expr {
+            kind: j::ExprKind::Call(f.clone(), args),
+            ..e.clone()
+        }
     }
 
     /// Match arguments to parameters (14.1 Calls) and lower them in parameter order.
