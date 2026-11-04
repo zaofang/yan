@@ -25,12 +25,12 @@ pub(crate) struct Class {
 }
 
 #[derive(Default)]
-struct Std {
+pub(crate) struct Std {
     /// By path, `std.<module>.<name>`; capability operations by `std.<module>.<op>`.
     fns: HashMap<String, Decl>,
     /// By bare name; std class names do not repeat across modules.
     classes: HashMap<String, Class>,
-    caps: HashSet<String>,
+    pub(crate) caps: HashSet<String>,
     /// Sum types by bare name, as classes.
     sums: HashMap<String, (&'static str, j::TypeDef)>,
     /// Constants by path, `std.<module>.<name>`.
@@ -52,7 +52,7 @@ pub fn install_std(load: fn() -> Vec<StdModule>) {
     let _ = LOADER.set(load);
 }
 
-static STD: LazyLock<Std> = LazyLock::new(|| {
+pub(crate) static STD: LazyLock<Std> = LazyLock::new(|| {
     let mut out = Std::default();
     // This crate's tests load std as the driver does.
     #[cfg(test)]

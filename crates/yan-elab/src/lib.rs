@@ -987,6 +987,23 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                     "a lemma uses no capabilities; drop the `uses` clause".into(),
                 );
             }
+            let mut uses = Vec::new();
+            if let Some(b) = &f.body {
+                lower::cap_uses(&b.stmts, &mut uses);
+            }
+            let params: Vec<&str> = f
+                .params
+                .iter()
+                .filter_map(|p| match p {
+                    j::Param::Value { name, .. } => Some(name.as_str()),
+                    _ => None,
+                })
+                .collect();
+            for (c, at) in uses {
+                if !params.contains(&c.as_str()) {
+                    cx.err("E605", at, &f.name, format!("a lemma uses no capabilities, but this uses `{c}`"));
+                }
+            }
             return Ok(None);
         }
         j::ItemKind::Func(f) if g.templates.contains_key(&f.name) => return Ok(None),

@@ -6790,6 +6790,26 @@ impl Lower<'_, '_, '_> {
 }
 
 /// Names of functions called anywhere in `stmts`.
+/// Receivers of calls such as `io.print(...)` that name a std capability, with their spans.
+pub(crate) fn cap_uses(stmts: &[j::Stmt], out: &mut Vec<(String, Span)>) {
+    for s in stmts {
+        for e in stmt_exprs(s) {
+            walk(e, &mut |e| {
+                if let j::ExprKind::Call(f, _) = &e.kind
+                    && let j::ExprKind::Attr(b, _, _) = &f.kind
+                    && let j::ExprKind::Name(c) = &b.kind
+                    && crate::stdlib::STD.caps.contains(&crate::cap_type(c))
+                {
+                    out.push((c.clone(), b.span));
+                }
+            });
+        }
+        for b in sub_blocks(s) {
+            cap_uses(b, out);
+        }
+    }
+}
+
 pub(crate) fn callees(stmts: &[j::Stmt], out: &mut HashSet<String>) {
     for s in stmts {
         for e in stmt_exprs(s) {
