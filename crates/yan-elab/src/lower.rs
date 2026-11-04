@@ -3546,6 +3546,20 @@ impl Lower<'_, '_, '_> {
                         );
                         (Rhs::Call(c), vt)
                     }
+                    None if t == Ty::Str && !self.cx.strict => {
+                        let item = self.item.clone();
+                        self.cx.note(
+                            "N12",
+                            at,
+                            &item,
+                            "`s[i]` normalized to `s.char_at(i)`, which costs O(n)".into(),
+                        );
+                        let s = self.tmp(&t, Rhs::Proj(p), b.span);
+                        let (ia, ity) = self.atom(k, Some(&Ty::Int))?;
+                        self.expect(&ity, &Ty::Int, k.span);
+                        let c = call("std.text.char_at", vec![], vec![let_arg(s), let_arg(ia)], at);
+                        (Rhs::Call(c), Ty::Char)
+                    }
                     _ => {
                         let (p, t) = self.place(e)?;
                         (Rhs::Proj(p), t)
@@ -5989,7 +6003,7 @@ impl Lower<'_, '_, '_> {
                 return unsupported(format!("a reference argument to `log.{op}`"));
             };
             match &a.name {
-                None if msg.is_none() => msg = Some(e.clone()),
+                None if msg.is_none() => msg = Some(self.log_message(e)),
                 None => {
                     self.err(
                         "E202",
@@ -6037,6 +6051,34 @@ impl Lower<'_, '_, '_> {
             .and_then(|d| d.plain())
             .expect("std.log declares the operation");
         self.std_call(&path, p, vec![Arg::Cap("log".into(), at)], &synth, op, at)
+    }
+
+    /// A log message is a `Template` (R452): an interpolating f-string is E233, and a t-string
+    /// interpolating an exposed `Secret` is W803. The template is logged as its rendered text.
+    fn log_message(&mut self, e: &j::Expr) -> j::Expr {
+        let j::ExprKind::FStr { template, pieces } = &e.kind else {
+            return e.clone();
+        };
+        let interpolates = pieces.iter().any(|p| matches!(p, j::FPiece::Expr(..)));
+        if !template && interpolates {
+            self.err("E233", e.span, "an f-string where a `Template` is expected; write `t\"...\"`".into());
+        }
+        for p in pieces {
+            if let j::FPiece::Expr(x, _) = p
+                && let j::ExprKind::Call(f, _) = &x.kind
+                && matches!(&f.kind, j::ExprKind::Attr(_, m, _) if m == "expose")
+            {
+                let item = self.item.clone();
+                self.cx.warn("W803", x.span, &item, "an exposed `Secret` flows into `log`".into());
+            }
+        }
+        j::Expr {
+            kind: j::ExprKind::FStr {
+                template: false,
+                pieces: pieces.clone(),
+            },
+            ..e.clone()
+        }
     }
 
     /// `cli.parse_args[T](args)` with `T`'s schema, and `cli.parse[T]()` over `env.args()`.

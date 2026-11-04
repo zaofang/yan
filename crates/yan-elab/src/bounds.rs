@@ -875,6 +875,9 @@ impl Solver<'_> {
             K::Slice(b, parts, _) => {
                 self.expr(b, f);
                 parts.iter().flatten().for_each(|x| self.expr(x, f));
+                if let K::Name(n) = &b.kind {
+                    self.constant_slice(e.span, n, parts, f);
+                }
             }
             K::Reify(b) | K::Cast(b, _) => self.expr(b, f),
             K::Fallback(x, fb) => {
@@ -941,6 +944,43 @@ impl Solver<'_> {
             });
         } else if proven < live {
             self.unknown(at, "the solver cannot prove this index in bounds");
+        }
+    }
+
+    /// W807: a literal slice bound past the end in every live case; the slice clamps, so it is a lint.
+    fn constant_slice(&mut self, at: Span, xs: &str, parts: &[Option<Box<j::Expr>>], f: &Facts) {
+        let n = Lin::term(len(xs));
+        let bounds: Vec<i128> = parts
+            .iter()
+            .take(2)
+            .flatten()
+            .filter_map(|p| match &p.kind {
+                K::Lit(j::Lit::Int(s)) => s.parse().ok(),
+                _ => None,
+            })
+            .filter(|k| *k > 0)
+            .collect();
+        let Some(&k) = bounds.iter().max() else {
+            return;
+        };
+        let (mut live, mut past) = (0, 0);
+        for mut case in f.cases() {
+            case.push(n.clone());
+            if unsat(&case) {
+                continue;
+            }
+            live += 1;
+            case.push(ge(&n, &Lin::konst(k)));
+            if unsat(&case) {
+                past += 1;
+            }
+        }
+        if live > 0 && past == live {
+            self.out.push(Finding {
+                code: "W807",
+                span: at,
+                message: format!("this slice bound {k} is past the end of `{xs}`; the slice clamps"),
+            });
         }
     }
 

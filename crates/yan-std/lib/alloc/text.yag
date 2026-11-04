@@ -18,6 +18,10 @@ pub def char_count(self: str) -> int: ...
 
 @intrinsic
 @since("1.0")
+pub def char_at(self: str, i: int) -> char: ...
+
+@intrinsic
+@since("1.0")
 pub def grapheme_count(self: str) -> int: ...
 
 @intrinsic

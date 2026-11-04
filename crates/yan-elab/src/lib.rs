@@ -7,6 +7,7 @@
 mod bounds;
 mod cli;
 mod decorators;
+mod desugar;
 mod ffi;
 mod lower;
 mod stage0;
@@ -325,6 +326,7 @@ pub fn elaborate(
         untrusted: opts.untrusted,
         diags: Vec::new(),
     };
+    let m = &desugar::module(m, &mut cx);
     let mut g = Globals::default();
     let std_sums = stdlib::sums(&mut g, m);
     let std_classes = stdlib::classes(&mut g, m)?;
