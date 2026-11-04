@@ -52,6 +52,8 @@ struct Lower<'a, 'c, 's> {
     dict_places: Vec<DictPlace>,
     /// Every read of each name, for last-use moves (E413).
     uses: HashMap<String, Vec<Span>>,
+    /// Where each read sits: the branch groups enclosing it, for E413 reachability.
+    use_paths: HashMap<Span, Vec<Branch>>,
     ghosts: HashSet<String>,
     /// The parameter N05 took as the measure.
     inferred: Option<String>,
@@ -709,6 +711,7 @@ fn function_body(
         in_become: false,
         dict_places: Vec::new(),
         uses: HashMap::new(),
+        use_paths: HashMap::new(),
         ghosts: HashSet::new(),
         inferred: None,
         bound: Vec::new(),
@@ -727,7 +730,13 @@ fn function_body(
         posts: Vec::new(),
         olds: Vec::new(),
     };
-    names_used(&body.stmts, &mut l.uses);
+    names_used(
+        &body.stmts,
+        &mut l.uses,
+        &mut l.use_paths,
+        &mut Vec::new(),
+        &mut 0,
+    );
     l.infer_decreases(f, &body.stmts);
     let mut params: Vec<y::Param> = sig
         .caps
@@ -6509,7 +6518,21 @@ fn field_params(fs: &[crate::Field], at: Span) -> Vec<crate::P> {
         .collect()
 }
 
-fn names_used(stmts: &[j::Stmt], out: &mut HashMap<String, Vec<Span>>) {
+/// One enclosing arm of a branching statement: its group, its index, and whether it ends.
+#[derive(Clone, Copy, PartialEq)]
+struct Branch {
+    group: usize,
+    arm: usize,
+    ends: bool,
+}
+
+fn names_used(
+    stmts: &[j::Stmt],
+    out: &mut HashMap<String, Vec<Span>>,
+    paths: &mut HashMap<Span, Vec<Branch>>,
+    path: &mut Vec<Branch>,
+    groups: &mut usize,
+) {
     for s in stmts {
         let exprs: Vec<&j::Expr> = match &s.kind {
             j::StmtKind::Assign { target, value, .. } => {
@@ -6530,11 +6553,25 @@ fn names_used(stmts: &[j::Stmt], out: &mut HashMap<String, Vec<Span>>) {
             walk(e, &mut |e| {
                 if let j::ExprKind::Name(n) = &e.kind {
                     out.entry(n.clone()).or_default().push(e.span);
+                    paths.insert(e.span, path.clone());
                 }
             });
         }
-        for b in sub_blocks(s) {
-            names_used(b, out);
+        let exclusive = matches!(s.kind, j::StmtKind::If { .. } | j::StmtKind::Match { .. });
+        *groups += 1;
+        let group = *groups;
+        for (arm, b) in sub_blocks(s).into_iter().enumerate() {
+            if exclusive {
+                path.push(Branch {
+                    group,
+                    arm,
+                    ends: ends(b),
+                });
+            }
+            names_used(b, out, paths, path, groups);
+            if exclusive {
+                path.pop();
+            }
         }
     }
 }
@@ -6613,11 +6650,24 @@ impl Lower<'_, '_, '_> {
     }
 
     /// The first use of `n` after `at`.
+    /// Whether control can pass from the read at `from` to the read at `to`: arms of one
+    /// `if` or `match` exclude each other, and an arm that ends does not reach past itself.
+    fn reachable(&self, from: Span, to: Span) -> bool {
+        let (Some(f), Some(t)) = (self.use_paths.get(&from), self.use_paths.get(&to)) else {
+            return true;
+        };
+        f.iter()
+            .all(|b| match t.iter().find(|c| c.group == b.group) {
+                Some(c) => c.arm == b.arm,
+                None => !b.ends,
+            })
+    }
+
     fn next_use(&self, n: &str, at: Span) -> Option<Span> {
         self.uses
             .get(n)?
             .iter()
-            .filter(|s| (s.line, s.col) > (at.line, at.col))
+            .filter(|s| (s.line, s.col) > (at.line, at.col) && self.reachable(at, **s))
             .min_by_key(|s| (s.line, s.col))
             .copied()
     }
