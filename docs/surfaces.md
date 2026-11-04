@@ -284,7 +284,7 @@ fence      = "```" [EXT ["!"]] NEWLINE code "```"       -- EXT is yn, yag, ymt, 
 tagged     = ("Fails:" | "Uses:" | "Panics:" | "Safety:" | "See also:") NEWLINE {commonmark-block}
 ```
 
-```
+````markdown
 ```yan-doc
 title "Reading files"
 uses fs, io
@@ -303,14 +303,14 @@ for line in fs.lines(logs / "app.log")?
 
 Uses:
 - `fs` to read under `./logs`; nothing outside it is reachable.
-```
+````
 
 Lowering: none for prose. Each fence lowers as a test in the page's scope under the header's `uses`
 (R315); item links resolve to item hashes (R311).
 
 ---
 
-The niche surfaces (6 to 18) are the "Yan &lt;job>" family of spec 16.7. None is built before 1.0
+The niche surfaces (6 to 18) are the `Yan <job>` family of spec 16.7. None is built before 1.0
 (R550); each ships first as a print-only view, `yan view --as <ext>`. Each section quotes the RFC 0002
 example, then gives a **MOCK** grammar for the surface's own forms (everything else is plain Yan, per
 the shared rules above) and a second **MOCK** example.
