@@ -247,10 +247,10 @@ conformance work for any spec gap the second implementation finds.
 | D3 | Yan Agent is the canonical source | no |
 | D4 | all surfaces at stage B | yes: `.yn`, Yan Meta and niche front ends are ported at B, not left in Rust until F |
 | D5 | a Yan query engine at stage C | yes: the self-hosted compiler is incremental from C; salsa is not cut |
-| D6 | LLVM through its C API only | no |
+| D6 | LLVM through its C API for release, plus a C-ABI shim over Cranelift for debug builds and the JIT (card answered LLVM only; changed in thread 2026-11-04: keep Cranelift for now) | yes |
 | D7 | both seeds: the Rust tree for DDC and a committed `.yir` snapshot | yes |
 | D8 | self-hosted jobs block only after 20 consecutive green main commits | no |
-| D9 | retire the Rust tree once a `.yir` seed exists | yes |
+| D9 | retire the Rust tree once a `.yir` seed exists, except the Cranelift shim crate (follows from D6) | yes |
 | D10 | codes identical from B, text from C | no |
 | D11 | the compiler's capability ceiling is a release check at stage E | no |
 
