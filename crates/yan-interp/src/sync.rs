@@ -1,10 +1,41 @@
-//! std.rc, std.sync, std.chan, std.actor and std.lattice: checked by the elaborator and the Yan Core checker;
-//! the interpreter runs none of them yet, and stops with "not supported" when it reaches one.
+//! std.rc, std.sync, std.chan, std.actor and std.lattice: checked by the elaborator and the Yan Core checker.
+//! The interpreter runs channels on one thread and stops with "not supported" at the rest.
+
+use std::collections::VecDeque;
 
 use yan_std::registry::{Id, id::*};
 
-use super::bind::Bind;
-use super::unsupported;
+use super::bind::{Bind, bad_args};
+use super::time::wait_out;
+use super::{Interp, R, Value, unsupported};
+
+fn end(name: &str, chan: usize) -> Value {
+    Value::Data {
+        name: name.into(),
+        fields: vec![("chan".into(), Value::Int(chan as i128))],
+    }
+}
+
+fn chan(v: &Value) -> usize {
+    match v {
+        Value::Data { fields, .. } => match fields[0].1 {
+            Value::Int(c) => c as usize,
+            _ => unreachable!("a channel end"),
+        },
+        _ => unreachable!("a channel end"),
+    }
+}
+
+/// Branches run one after another here, so a wait that nothing has ended yet never ends: under
+/// a deadline it fails with `Timeout` at the deadline (9.4), and otherwise the run stops.
+fn blocked(it: &mut Interp, op: &str) -> R<Result<Value, Value>> {
+    match wait_out(it) {
+        Some(t) => Ok(Err(t)),
+        None => unsupported(format!(
+            "a `{op}` that waits on another task, in the interpreter"
+        )),
+    }
+}
 
 pub(super) static BINDS: &[(Id, Bind)] = &[
     (
@@ -13,11 +44,21 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_CHAN_CHANNEL,
-        Bind::Plain(|_| unsupported("`std.chan.Channel` in the interpreter")),
+        Bind::Cap(|it, a| match a {
+            [Value::Int(cap)] => {
+                it.chans.push((*cap as usize, VecDeque::new()));
+                let c = it.chans.len() - 1;
+                Ok(Value::Tuple(vec![end("Sender", c), end("Receiver", c)]))
+            }
+            _ => bad_args(STD_CHAN_CHANNEL),
+        }),
     ),
     (
         STD_CHAN_RECEIVER_RECV,
-        Bind::Plain(|_| unsupported("`std.chan.receiver.recv` in the interpreter")),
+        Bind::CapFallible(|it, a| match it.chans[chan(&a[0])].1.pop_front() {
+            Some(v) => Ok(Ok(v)),
+            None => blocked(it, "recv"),
+        }),
     ),
     (
         STD_CHAN_RECEIVER_SHARE,
@@ -25,7 +66,15 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_CHAN_SENDER_SEND,
-        Bind::Plain(|_| unsupported("`std.chan.sender.send` in the interpreter")),
+        Bind::CapFallible(|it, a| {
+            let (cap, q) = &mut it.chans[chan(&a[0])];
+            if q.len() < *cap {
+                q.push_back(std::mem::take(&mut a[1]));
+                Ok(Ok(Value::Unit))
+            } else {
+                blocked(it, "send")
+            }
+        }),
     ),
     (
         STD_CHAN_SENDER_SHARE,

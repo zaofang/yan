@@ -555,3 +555,35 @@ fn std_functions_called_only_in_a_contract_are_lowered() {
                pub def main() uses io:\n    io.print(f\"{below(3)}\")\n";
     assert_eq!(run(src), "[0, 1, 2]\n");
 }
+
+#[test]
+fn a_cancel_scope_needs_timeout_in_the_fail_type() {
+    let body = "uses time:\n    with timeout(1 * s):\n        pass\n    return 0\n";
+    let codes = |fail: &str| {
+        let (_, d) = lower(&format!(
+            "class Timeout:\n    pass\n\ndef f() -> int{fail} {body}"
+        ));
+        d.into_iter().map(|d| d.code).collect::<Vec<_>>()
+    };
+    assert_eq!(codes(""), ["E310"]);
+    assert!(codes(" fail Timeout").is_empty());
+}
+
+#[test]
+fn channels_run_and_their_waits_time_out() {
+    let src = "def pair() -> int fail Cancelled:\n    tx, rx = Channel[int](2)\n    tx.send(1)?\n    tx.send(2)?\n    a = rx.recv()?\n    b = rx.recv()?\n    return a + b\n\n\
+               def empty() -> int fail Cancelled | Timeout uses time:\n    _, rx = Channel[int](1)\n    with timeout(5 * ms):\n        return rx.recv()?\n    return 0\n\n\
+               def full() -> int fail Cancelled | Timeout uses time:\n    tx, _ = Channel[int](1)\n    with timeout(5 * ms):\n        tx.send(1)?\n        tx.send(2)?\n    return 0\n\n\
+               pub def main() uses io, time:\n    p = pair() else _ -> -1\n    e = empty() else _ -> -1\n    f = full() else _ -> -1\n    io.print(f\"{p} {e} {f}\")\n";
+    assert_eq!(run(src), "3 -1 -1\n");
+}
+
+#[cfg(unix)]
+#[test]
+fn a_deadline_stops_a_host_process() {
+    let src = "def slow() -> int fail ProcError | Timeout uses proc, time:\n    with timeout(50 * ms):\n        _ = proc.run(Command(\"sleep\").arg(\"5\"))?\n        return 1\n    return 0\n\n\
+               pub def main() uses io, proc, time:\n    n = slow() else _ -> -1\n    io.print(f\"{n}\")\n";
+    let t = std::time::Instant::now();
+    assert_eq!(run(src), "-1\n");
+    assert!(t.elapsed() < std::time::Duration::from_secs(2));
+}

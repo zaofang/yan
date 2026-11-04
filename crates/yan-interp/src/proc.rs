@@ -8,6 +8,7 @@ use yan_std::registry::{Id, id::*};
 
 use super::bind::{Bind, bad_args};
 use super::native::opt;
+use super::time::{host_time_left, timeout};
 use super::{Key, R, Value};
 
 /// The record name of a `Command`, which no program can declare.
@@ -113,7 +114,7 @@ fn signal(_: &std::process::ExitStatus) -> Option<i32> {
     None
 }
 
-fn host_run(cmd: &Value) -> Result<Value, Value> {
+fn host_run(cmd: &Value, left: Option<std::time::Duration>) -> Result<Value, Value> {
     let program = text(field(cmd, PROGRAM));
     let mut c = std::process::Command::new(program);
     if let Value::List(xs) = field(cmd, ARGS) {
@@ -154,7 +155,39 @@ fn host_run(cmd: &Value) -> Result<Value, Value> {
     let writer = std::thread::spawn(move || {
         let _ = stdin.write_all(&input);
     });
-    let out = child.wait_with_output().map_err(fail)?;
+    let out = match left {
+        None => child.wait_with_output().map_err(fail)?,
+        Some(left) => {
+            let read = |r: Option<Box<dyn std::io::Read + Send>>| {
+                std::thread::spawn(move || {
+                    let mut buf = Vec::new();
+                    if let Some(mut r) = r {
+                        let _ = r.read_to_end(&mut buf);
+                    }
+                    buf
+                })
+            };
+            let stdout = read(child.stdout.take().map(|r| Box::new(r) as _));
+            let stderr = read(child.stderr.take().map(|r| Box::new(r) as _));
+            let end = std::time::Instant::now() + left;
+            let status = loop {
+                if let Some(s) = child.try_wait().map_err(fail)? {
+                    break s;
+                }
+                if std::time::Instant::now() >= end {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(timeout());
+                }
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            };
+            std::process::Output {
+                status,
+                stdout: stdout.join().unwrap_or_default(),
+                stderr: stderr.join().unwrap_or_default(),
+            }
+        }
+    };
     let _ = writer.join();
     Ok(output(
         out.status.code(),
@@ -164,7 +197,7 @@ fn host_run(cmd: &Value) -> Result<Value, Value> {
     ))
 }
 
-fn run(h: &Value, cmd: &Value) -> Result<Value, Value> {
+fn run(h: &Value, cmd: &Value, left: Option<std::time::Duration>) -> Result<Value, Value> {
     match h {
         Value::Data { name, fields } if name == "OnlyProc" => {
             let program = text(field(cmd, PROGRAM));
@@ -174,7 +207,7 @@ fn run(h: &Value, cmd: &Value) -> Result<Value, Value> {
                     "PermissionDenied",
                     "not granted by proc.only".into(),
                 )),
-                _ => run(&fields[0].1, cmd),
+                _ => run(&fields[0].1, cmd, left),
             }
         }
         Value::Data { name, fields } if name == "FakeProc" => {
@@ -187,7 +220,7 @@ fn run(h: &Value, cmd: &Value) -> Result<Value, Value> {
                 _ => unreachable!("a fake_proc map"),
             }
         }
-        _ => host_run(cmd),
+        _ => host_run(cmd, left),
     }
 }
 
@@ -304,8 +337,8 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_PROC_RUN,
-        Bind::Fallible(|a| match a {
-            [h, cmd] => Ok(run(h, cmd)),
+        Bind::CapFallible(|it, a| match a {
+            [h, cmd] => Ok(run(h, cmd, host_time_left(it))),
             _ => bad_args(STD_PROC_RUN),
         }),
     ),

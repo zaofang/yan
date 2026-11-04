@@ -2105,7 +2105,11 @@ fn stmt_names(s: &Stmt, names: &mut Names, bound: &mut HashSet<String>) {
                     e(value, names, bound);
                     bound.insert(name.clone());
                 }
-                WithKind::Deadline(x) | WithKind::Timeout(x) => e(x, names, bound),
+                WithKind::Deadline(x) | WithKind::Timeout(x) => {
+                    // A cancel scope can expire (R472).
+                    names.fails.insert("Timeout".into());
+                    e(x, names, bound)
+                }
             }
             block(body, names, bound);
         }
