@@ -637,7 +637,7 @@ fn bodies(m: &j::Module) -> Vec<Body> {
         if let j::ItemKind::Func(f) = &it.kind {
             seen.insert(f.name.clone());
             if let Some(b) = &f.body {
-                crate::lower::callees(&b.stmts, &mut names);
+                crate::lower::body_callees(b, &mut names);
             }
         }
     }
@@ -667,7 +667,7 @@ fn bodies(m: &j::Module) -> Vec<Body> {
                 continue;
             }
             let Some(b) = &d.def.body else { continue };
-            crate::lower::callees(&b.stmts, &mut names);
+            crate::lower::body_callees(b, &mut names);
             let mut def = d.def.clone();
             def.name = key;
             out.push(Body {

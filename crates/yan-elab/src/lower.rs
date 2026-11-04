@@ -7638,35 +7638,57 @@ pub(crate) fn cap_uses(stmts: &[j::Stmt], out: &mut Vec<(String, Span)>) {
 pub(crate) fn callees(stmts: &[j::Stmt], out: &mut HashSet<String>) {
     for s in stmts {
         for e in stmt_exprs(s) {
-            walk(e, &mut |e| {
-                if matches!(e.kind, j::ExprKind::Binary("**", ..)) {
-                    out.insert("int_pow".into());
-                }
-                if let j::ExprKind::FStr { pieces, .. } = &e.kind
-                    && pieces
-                        .iter()
-                        .any(|p| matches!(p, j::FPiece::Expr(_, Some(_))))
-                {
-                    out.insert("fmt_pad".into());
-                }
-                if let j::ExprKind::Call(f, _) = &e.kind {
-                    match &f.kind {
-                        j::ExprKind::Name(n) | j::ExprKind::Attr(_, n, _) => {
-                            // `max(xs)` lowers to the iterator's `max_nonempty` (R658).
-                            if n == "min" || n == "max" {
-                                out.insert(format!("{n}_nonempty"));
-                            }
-                            out.insert(n.clone());
-                        }
-                        _ => {}
-                    }
-                }
-            });
+            expr_callees(e, out);
         }
         for b in sub_blocks(s) {
             callees(b, out);
         }
     }
+}
+
+/// The callees of a body, contracts included: a `post all(...)` calls `all` too.
+pub(crate) fn body_callees(b: &j::Body, out: &mut HashSet<String>) {
+    callees(&b.stmts, out);
+    for c in &b.contracts {
+        match c {
+            j::Contract::Pre(e) | j::Contract::Post(e) | j::Contract::Decreases(e) => {
+                expr_callees(e, out);
+            }
+            j::Contract::Ex { expr, with } => {
+                expr_callees(expr, out);
+                for (_, e) in with {
+                    expr_callees(e, out);
+                }
+            }
+        }
+    }
+}
+
+fn expr_callees(e: &j::Expr, out: &mut HashSet<String>) {
+    walk(e, &mut |e| {
+        if matches!(e.kind, j::ExprKind::Binary("**", ..)) {
+            out.insert("int_pow".into());
+        }
+        if let j::ExprKind::FStr { pieces, .. } = &e.kind
+            && pieces
+                .iter()
+                .any(|p| matches!(p, j::FPiece::Expr(_, Some(_))))
+        {
+            out.insert("fmt_pad".into());
+        }
+        if let j::ExprKind::Call(f, _) = &e.kind {
+            match &f.kind {
+                j::ExprKind::Name(n) | j::ExprKind::Attr(_, n, _) => {
+                    // `max(xs)` lowers to the iterator's `max_nonempty` (R658).
+                    if n == "min" || n == "max" {
+                        out.insert(format!("{n}_nonempty"));
+                    }
+                    out.insert(n.clone());
+                }
+                _ => {}
+            }
+        }
+    });
 }
 
 /// A collection's type arguments, which its std methods take in the same order.
