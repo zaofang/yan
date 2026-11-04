@@ -343,6 +343,12 @@ pub enum StmtKind {
         handler: Atom,
         body: Block,
     },
+    /// A cancel scope: `at` is a `MonoInstant`; blocking operations in `body` fail with `Timeout`
+    /// once it passes, and the earliest enclosing deadline wins (9.4).
+    Deadline {
+        at: Atom,
+        body: Block,
+    },
     Par {
         concurrent: bool,
         blocks: Vec<Block>,

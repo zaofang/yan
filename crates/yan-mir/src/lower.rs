@@ -1984,6 +1984,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             K::Rhs(_) => Ok(()),
             K::Yield(_) => unsupported("generators"),
             K::With { .. } => unsupported("`with`"),
+            K::Deadline { .. } => unsupported("`deadline`"),
             K::ComptimeFor { .. } | K::ComptimeIf { .. } => unsupported("a comptime statement"),
             K::Asm { .. } => unsupported("`asm`"),
             K::Reuse { .. } => unsupported("`reuse`"),

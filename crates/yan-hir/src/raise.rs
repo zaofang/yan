@@ -1076,6 +1076,14 @@ impl<'a> Fold<'a> {
                     body,
                 }));
             }
+            K::Deadline { at, body } => {
+                let at = self.atom(at)?;
+                let body = self.block(body)?;
+                out.push(stmt(StmtKind::With {
+                    kind: WithKind::Deadline(at),
+                    body,
+                }));
+            }
             K::Assert(x) => {
                 let x = self.pure(x)?;
                 out.push(stmt(StmtKind::Assert(x)));
@@ -1845,8 +1853,11 @@ fn count_stmts(ss: &[y::Stmt], uses: &mut HashMap<String, usize>) {
             K::Jp { body, .. } => count_stmts(&body.stmts, uses),
             K::Jump { args, .. } => args.iter().for_each(|a| count_atom(a, uses)),
             K::Become(c) => count_call(c, uses),
-            K::With { handler, body, .. } => {
-                count_atom(handler, uses);
+            K::With {
+                handler: at, body, ..
+            }
+            | K::Deadline { at, body } => {
+                count_atom(at, uses);
                 count_stmts(&body.stmts, uses);
             }
             K::Par { blocks, .. } => blocks.iter().for_each(|b| count_stmts(&b.stmts, uses)),

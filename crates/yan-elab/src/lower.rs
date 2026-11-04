@@ -1808,7 +1808,33 @@ impl Lower<'_, '_, '_> {
                     at,
                 );
             }
-            K::With { .. } => return unsupported("`with deadline` and `with timeout`"),
+            // `timeout(d)` is a deadline `d` from now (9.4).
+            K::With {
+                kind: kind @ (j::WithKind::Deadline(e) | j::WithKind::Timeout(e)),
+                body,
+            } => {
+                let at_expr = if matches!(kind, j::WithKind::Timeout(_)) {
+                    let ex = |kind| j::Expr {
+                        kind,
+                        span: e.span,
+                        paren: false,
+                    };
+                    let now = ex(j::ExprKind::Call(
+                        Box::new(ex(j::ExprKind::Attr(
+                            Box::new(ex(j::ExprKind::Name("time".into()))),
+                            "monotonic".into(),
+                            e.span,
+                        ))),
+                        Vec::new(),
+                    ));
+                    ex(j::ExprKind::Binary("+", Box::new(now), Box::new(e.clone())))
+                } else {
+                    e.clone()
+                };
+                let (a, _) = self.atom(&at_expr, None)?;
+                let b = self.block(&body.stmts)?;
+                self.emit(StmtKind::Deadline { at: a, body: b }, at);
+            }
             K::Unsafe(body) => {
                 if !self.cx.ffi {
                     self.err(

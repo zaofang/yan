@@ -347,7 +347,10 @@ impl<'o> Vm<'o> {
     fn exec(&mut self, f: usize, base: usize) -> R<Result<Value, Value>> {
         let mut code = self.codes[f].clone();
         let mut pc = 0usize;
+        // A deadline scope ends with its function, however that returns.
+        let outer = self.it.deadline;
         let r = self.exec_from(&mut code, &mut pc, base);
+        self.it.deadline = outer;
         match r {
             Err(Stop::Panic(mut p)) => {
                 p.trace.push(Frame {
@@ -395,6 +398,22 @@ impl<'o> Vm<'o> {
                 Op::Restore { dst, src } => {
                     let v = mem::take(&mut self.stack[base + src as usize]);
                     self.stack[base + dst as usize] = v;
+                }
+                Op::DeadlineBegin { src, saved } => {
+                    let Value::Mono(at) = *self.val(code, base, src) else {
+                        return unsupported("a `deadline` that is not a monotonic instant");
+                    };
+                    self.stack[base + saved as usize] = match self.it.deadline {
+                        Some(d) => Value::Mono(d),
+                        None => Value::Unit,
+                    };
+                    self.it.deadline = Some(self.it.deadline.map_or(at, |d| d.min(at)));
+                }
+                Op::DeadlineEnd { saved } => {
+                    self.it.deadline = match self.stack[base + saved as usize] {
+                        Value::Mono(d) => Some(d),
+                        _ => None,
+                    };
                 }
                 Op::Clear(r) => self.stack[base + r as usize] = Value::Unit,
                 Op::Jmp(to) => {
@@ -713,6 +732,7 @@ impl<'o> Vm<'o> {
                 let r = match b {
                     Bind::Plain(f) => Ok(f(&mut self.stack[new_base..])?),
                     Bind::Cap(f) => Ok(f(&mut self.it, &mut self.stack[new_base..])?),
+                    Bind::CapFallible(f) => f(&mut self.it, &mut self.stack[new_base..])?,
                     Bind::Fallible(f) => f(&self.stack[new_base..])?,
                     Bind::Vm(f) => {
                         // Taken off the stack: closures the function calls run on it.

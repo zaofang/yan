@@ -74,6 +74,15 @@ pub(crate) enum BoolOp {
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum Op {
+    /// Enter a cancel scope ending at the monotonic instant `src`, keeping the outer deadline in
+    /// `saved`.
+    DeadlineBegin {
+        src: Opnd,
+        saved: Reg,
+    },
+    DeadlineEnd {
+        saved: Reg,
+    },
     Move {
         dst: Reg,
         src: Opnd,
@@ -496,6 +505,7 @@ fn binds(
                 out.push(name.clone());
                 binds(body, nullary, out);
             }
+            StmtKind::Deadline { body, .. } => binds(body, nullary, out),
             StmtKind::Par { blocks, .. } => blocks.iter().for_each(|b| binds(b, nullary, out)),
             StmtKind::Become(c) => call(c, out),
             StmtKind::Assert(e) => expr(e, out),
@@ -512,6 +522,9 @@ enum Scope {
     },
     With {
         reg: Reg,
+        saved: Reg,
+    },
+    Deadline {
         saved: Reg,
     },
     Block {
@@ -972,6 +985,18 @@ impl<'g, 'm> FnC<'g, 'm> {
                 });
             }
             StmtKind::With { .. } => self.unsupported("`with ... = dyn`"),
+            StmtKind::Deadline { at, body } => {
+                let src = match self.atom(at) {
+                    Ok(o) => o,
+                    Err(m) => return self.unsupported(m),
+                };
+                let saved = self.temp();
+                self.emit(Op::DeadlineBegin { src, saved });
+                self.scopes.push(Scope::Deadline { saved });
+                self.block(body);
+                self.scopes.pop();
+                self.emit(Op::DeadlineEnd { saved });
+            }
             StmtKind::ComptimeFor { .. } | StmtKind::ComptimeIf { .. } => {
                 self.unsupported("stage 0")
             }
@@ -1014,16 +1039,20 @@ impl<'g, 'm> FnC<'g, 'm> {
 
     /// Restore the `with` names between the top scope and scope `to`, exclusive.
     fn unwind(&mut self, to: usize) {
-        let restores: Vec<(Reg, Reg)> = self.scopes[to + 1..]
+        let restores: Vec<Op> = self.scopes[to + 1..]
             .iter()
             .rev()
             .filter_map(|s| match s {
-                Scope::With { reg, saved } => Some((*reg, *saved)),
+                Scope::With { reg, saved } => Some(Op::Restore {
+                    dst: *reg,
+                    src: *saved,
+                }),
+                Scope::Deadline { saved } => Some(Op::DeadlineEnd { saved: *saved }),
                 _ => None,
             })
             .collect();
-        for (dst, src) in restores {
-            self.emit(Op::Restore { dst, src });
+        for op in restores {
+            self.emit(op);
         }
     }
 
@@ -1038,7 +1067,7 @@ impl<'g, 'm> FnC<'g, 'm> {
         };
         if self.scopes[i + 1..]
             .iter()
-            .any(|s| matches!(s, Scope::With { .. }))
+            .any(|s| matches!(s, Scope::With { .. } | Scope::Deadline { .. }))
         {
             return false;
         }

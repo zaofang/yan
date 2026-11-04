@@ -128,6 +128,7 @@ Stmt     ::= ("let" | "var") Pat ":" Type "=" Rhs
            | "ret" Atom | "fail" Atom | "yield" Atom             -- yield only in a Gen body
            | "become" Call                                      -- guaranteed tail call (R260)
            | "with" Name "=" ["dyn"] Atom Block
+           | "deadline" Atom Block                              -- cancel scope ending at a MonoInstant (R788)
            | "par" ["concurrent"] "{" {Block} "}"
            | "comptime" "for" Name ":" Type "in" Atom Block
            | "comptime" "if" Atom Block ["else" Block]
