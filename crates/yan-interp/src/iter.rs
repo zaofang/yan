@@ -303,6 +303,13 @@ impl Vm<'_> {
                             None => break Bool(true),
                         }
                     },
+                    (STD_ITER_OPS_CONTAINS, [x]) => loop {
+                        match self.pull(&i)? {
+                            Some(y) if y == *x => break Bool(true),
+                            Some(_) => {}
+                            None => break Bool(false),
+                        }
+                    },
                     (STD_ITER_OPS_FIND, [Closure(f)]) => loop {
                         match self.pull(&i)? {
                             Some(x) if truthy(self.apply(f, vec![x.clone()])?) => {
@@ -418,6 +425,7 @@ pub(crate) const IDS: &[Id] = &[
     STD_ITER_OPS_CHAIN,
     STD_ITER_OPS_CHUNKS,
     STD_ITER_OPS_COLLECT,
+    STD_ITER_OPS_CONTAINS,
     STD_ITER_OPS_COUNT,
     STD_ITER_OPS_CURRENT,
     STD_ITER_OPS_DONE,
