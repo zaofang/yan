@@ -57,12 +57,10 @@ pub def range(start: int, stop: int | None = None, /) -> list[int]: ...
 pub def bigint(x: int) -> bigint: ...
 
 @since("1.0")
-pub def sum(xs: list[int]) -> int:
+pub def sum[T: Num](xs: list[T]) -> T:
     ex sum([1, 2, 3]) == 6
-    total = 0
-    for x in xs:
-        total += x
-    return total
+    ex sum([0.5, 0.25]) == 0.75
+    return xs.iter().sum()
 
 @since("1.0")
 pub def any(xs: list[bool]) -> bool:
