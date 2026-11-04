@@ -18,3 +18,8 @@ pub def wrap[E: Show](take e: E) -> Error: ...
 pub class Cancelled:
     """The failure a blocking operation returns in a cancelled task (9.4)."""
     pass
+
+@since("1.0")
+pub class Timeout:
+    """The failure of an operation whose deadline expired (9.4)."""
+    pass
