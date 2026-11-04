@@ -7,6 +7,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | Date | Study | Outcome |
 | --- | --- | --- |
 | 2026-11-04 | [Yan Docs (`.ydoc`) syntax study](../studies/syntax/yan-docs.md) | Study only; proposes D1 to D10 for a later RFC |
+| 2026-11-04 | [Yan Core (`.yir`) syntax study](../studies/syntax/yan-core.md) | Study only; recommends the "ledger cut" mix: convention sigils, dotted intrinsics, explicit `par` outputs, annotated printing as trivia |
 | 2026-11-04 | [Should surfaces change semantics?](2026-11-04-surface-semantics.md) | Study only; recommends keeping law 1 for Yan Agent, Yan and Yan Meta |
 | 2026-11-03 | [Yan Notation: names and real features](https://claude.ai/artifact/XwShntWVWkEzcMhkxbswiT) | RFC 0029: R776 to R786 |
 | 2026-11-03 | [Yan naming proposal](https://claude.ai/artifact/BHBRo7tdX5b3H4uZbQGs6o) | R774, R775 |
