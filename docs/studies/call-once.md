@@ -207,3 +207,17 @@ existing ownership analysis. Core: the marker in `FnType`, printer and hash. Low
 environment convention and the open-set wrapper. std: parameter widenings in D5 and the FFI wrapper in
 D9. Conformance would need cases for E401 on a second call, inference, coercion in both directions, the
 `@linear` closure under failure and cancellation, and `par once`; those go in a separate PR by the lead.
+
+## 12. Decisions (Antonio, cards, 2026-11-04)
+
+D1, D4, D5, D8 and D9 accepted as recommended. Six answers differ from the recommendation:
+
+- D2: `par`, plain and `once` function types are related by real subtyping, not only implicit
+  coercion at expected-type positions. The RFC must define variance for function types and generics.
+- D3: a closure literal's `once`-ness is annotated explicitly, not inferred from its body.
+- D6: `par once` is allowed: a `once` value may be handed to one of several parallel branches. The RFC
+  must say who may call it and how two branches are kept from both calling it.
+- D7: a `once` closure may carry a single-use capability. The RFC must define the capability rules.
+- D10: a `once` closure given to a plain parameter is a diagnostic only, with no autofix.
+- D11: Kotlin-style definite initialization through exactly-once closures is supported, which needs
+  definite-call analysis beyond ownership.
