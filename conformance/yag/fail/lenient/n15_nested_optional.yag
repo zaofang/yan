@@ -1,0 +1,10 @@
+# spec: 14.1, 14.4
+# rows: R795
+# milestone: M1b
+# note: N15 excludes nested optionals; the truthiness test stays E201 as in strict mode
+# expect: E201 at 8:8
+
+def has(d: dict[str, int | None], k: str) -> bool:
+    if d.get(k):
+        return True
+    return False

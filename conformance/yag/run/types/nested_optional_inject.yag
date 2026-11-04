@@ -1,0 +1,17 @@
+# spec: 14.1
+# rows: R794, R795
+# milestone: M1b
+# note: a V | None value returned as Option[V | None] is wrapped in Some once, so a stored None is not the outer None
+# stdout:
+# True True
+# True
+
+def lookup(v: int | None) -> Option[int | None]:
+    return v
+
+pub def main() uses io:
+    a = lookup(None)
+    b = lookup(7)
+    io.print(f"{a is not None} {b is not None}")
+    if a is not None:
+        io.print(f"{a is None}")

@@ -1,0 +1,8 @@
+# spec: 14.1
+# rows: R793
+# milestone: M1b
+# note: the primary span is the union; the fix suggests Option[int | None]
+# expect: E276 at 7:10
+
+def f(x: int | None | None) -> int:
+    return 0
