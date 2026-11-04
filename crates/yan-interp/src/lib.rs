@@ -22,6 +22,7 @@ mod collections;
 mod compile;
 mod encoding;
 mod env;
+mod fault;
 mod iter;
 mod keyed;
 mod log;
@@ -36,6 +37,7 @@ mod regex;
 mod std_parity;
 #[cfg(test)]
 mod std_selftest;
+mod sync;
 mod time;
 mod vm;
 

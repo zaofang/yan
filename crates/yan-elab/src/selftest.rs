@@ -210,7 +210,12 @@ fn a_failed_assert_reports_its_line_and_sides() {
 #[test]
 fn str_advice_names_the_receiver() {
     let src = "def first(name: str) -> str:\n    return name[0]\n";
-    let (_, d) = lower(src);
+    let (m, _) = yan_yag::parse("t.yag", src, true);
+    let strict = Options {
+        strict: true,
+        ..Options::default()
+    };
+    let (_, d) = elaborate("t.yag", src, &m.expect("parses"), strict).expect("supported");
     assert_eq!(
         d[0].message, "`str` has no indexing; use `name.chars()`",
         "{d:?}"

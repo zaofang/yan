@@ -99,6 +99,7 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
             "layout" if g.layout_c.contains(&item) => {}
             "layout" => return unsupported("`@layout` other than `@layout(c)` on a record"),
             "deprecated" | "inline" | "limit" | "test_support" => {}
+            "capability" if matches!(it.kind, j::ItemKind::Trait(_)) => {}
             // Read with `@derive(Cli)` (RFC 0019 D14).
             "help" if g.clis.contains_key(&item) => {}
             "help" => cx.err(

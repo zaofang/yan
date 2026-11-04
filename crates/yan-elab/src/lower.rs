@@ -13,7 +13,7 @@ use yan_diag::{Applicability, Span};
 use yan_hir as j;
 
 use crate::bounds::{self, Site};
-use crate::{Cx, Globals, R, Sig, Ty, cap_type, ffi, unsupported};
+use crate::{Cx, Globals, R, Sig, Ty, ffi, unsupported};
 
 /// List and dict methods whose receiver is `var` (R421).
 const MUTATING: [&str; 11] = [
@@ -89,6 +89,9 @@ struct Lower<'a, 'c, 's> {
     posts: Vec<j::Expr>,
     /// Each `var` parameter `old(p)` reads, with the local holding its entry value.
     olds: Vec<(String, String)>,
+    /// The parameters written as `View[T]`, and whether the function returns a view.
+    views: Vec<String>,
+    returns_view: bool,
 }
 
 /// A stage-0 value the elaborator folds itself.
@@ -712,7 +715,7 @@ fn function_body(
         dict_places: Vec::new(),
         uses: HashMap::new(),
         use_paths: HashMap::new(),
-        ghosts: HashSet::new(),
+        ghosts: sig.ghosts.iter().map(|(_, n)| n.clone()).collect(),
         inferred: None,
         bound: Vec::new(),
         sites: HashMap::new(),
@@ -729,6 +732,19 @@ fn function_body(
         narrow: Vec::new(),
         posts: Vec::new(),
         olds: Vec::new(),
+        views: f
+            .params
+            .iter()
+            .filter_map(|p| match p {
+                j::Param::Value { name, ty, .. } if is_view(ty) => Some(name.clone()),
+                _ => None,
+            })
+            .collect(),
+        returns_view: f
+            .ret
+            .as_ref()
+            .and_then(|r| r.ty.as_ref())
+            .is_some_and(is_view),
     };
     names_used(
         &body.stmts,
@@ -744,12 +760,68 @@ fn function_body(
         .map(|c| y::Param::Cap {
             name: c.clone(),
             ty: y::Named {
-                path: vec![cap_type(c)],
+                path: vec![sig.cap_trait(c)],
                 args: Vec::new(),
             },
         })
         .collect();
     for p in &sig.params {
+        if let Ty::Coll("Atomic", ts) = &p.ty
+            && byte_size(g, &ts[0]).is_none_or(|n| n > 16)
+        {
+            let line =
+                l.cx.src
+                    .lines()
+                    .nth(f.name_span.line as usize - 1)
+                    .unwrap_or("");
+            let col = line
+                .find("Atomic[")
+                .map_or(f.name_span.col, |k| k as u32 + 1);
+            let at = Span {
+                line: f.name_span.line,
+                col,
+                end_line: f.name_span.line,
+                end_col: col + 6,
+            };
+            let item = l.item.clone();
+            l.cx.err(
+                "E418",
+                at,
+                &item,
+                format!(
+                    "`{}` has no lock-free form: it is wider than 16 bytes",
+                    l.ty_text(&ts[0])
+                ),
+            );
+        }
+        if let Ty::Coll("Entity", ts) = &p.ty
+            && !hashable(g, &ts[0])
+        {
+            let line =
+                l.cx.src
+                    .lines()
+                    .nth(f.name_span.line as usize - 1)
+                    .unwrap_or("");
+            let col = line
+                .find("Entity[")
+                .map_or(f.name_span.col, |k| k as u32 + 1);
+            let at = Span {
+                line: f.name_span.line,
+                col,
+                end_line: f.name_span.line,
+                end_col: col + 6,
+            };
+            let item = l.item.clone();
+            l.cx.err(
+                "E726",
+                at,
+                &item,
+                format!(
+                    "an entity key must implement `Hash`; `{}` does not",
+                    l.ty_text(&ts[0])
+                ),
+            );
+        }
         l.locals.insert(p.name.clone(), Local { ty: p.ty.clone() });
         params.push(y::Param::Value {
             comptime: false,
@@ -761,7 +833,17 @@ fn function_body(
     let mut contracts = Vec::new();
     let mut pre = Vec::new();
     for c in &body.contracts {
+        let ghostly = |e: &j::Expr| {
+            let mut hit = false;
+            walk(
+                e,
+                &mut |x| hit |= matches!(&x.kind, j::ExprKind::Name(n) if l.ghosts.contains(n)),
+            );
+            hit
+        };
         match c {
+            // A contract on ghost values is a proof obligation only (8.7).
+            j::Contract::Pre(e) | j::Contract::Post(e) if ghostly(e) => {}
             j::Contract::Pre(e) => match l.pure(e)? {
                 Some(x) => contracts.push(y::Contract::Requires(x)),
                 None => pre.push(e),
@@ -889,7 +971,7 @@ fn function_body(
         tparams: tparams(sig),
         params,
         ret: sig.ret.core(),
-        from: Vec::new(),
+        from: sig.from.clone(),
         fail: sig.fail.as_ref().map(Ty::core),
         contracts,
         body: Some(block),
@@ -1466,6 +1548,8 @@ impl Lower<'_, '_, '_> {
                 let a = match e {
                     None => Atom::Lit(Literal::Unit, at),
                     Some(e) => {
+                        self.view_escape(e);
+                        let e = &self.become_in_ctor(e, true);
                         let (a, t) = self.atom(e, Some(&want))?;
                         self.expect(&t, &want, e.span);
                         a
@@ -1576,6 +1660,7 @@ impl Lower<'_, '_, '_> {
                 limit: None,
                 body: j::ParBody::Block(b),
             } => {
+                self.par_waits(b);
                 let mut blocks = Vec::new();
                 let mut called: Vec<String> = Vec::new();
                 for s in b {
@@ -1601,7 +1686,39 @@ impl Lower<'_, '_, '_> {
                     at,
                 );
             }
-            K::Par { .. } => return unsupported("`par for` and `par(limit=...)`"),
+            // A streaming `par for` (unit body) runs its items in order: the body may not fail
+            // (E712) nor take `inout` access outside its iteration, so no result depends on order.
+            K::Par {
+                limit: None,
+                body:
+                    j::ParBody::For {
+                        target,
+                        iter,
+                        contracts,
+                        body,
+                    },
+                ..
+            } => {
+                if let Some(sp) = first_failure(body) {
+                    self.err(
+                        "E712",
+                        sp,
+                        "the body of a streaming `par for` cannot fail; handle the failure in the item".into(),
+                    );
+                }
+                let s = j::Stmt {
+                    kind: K::For {
+                        label: None,
+                        target: target.clone(),
+                        iter: iter.clone(),
+                        contracts: contracts.clone(),
+                        body: body.clone(),
+                    },
+                    span: at,
+                };
+                self.stmt(&s)?;
+            }
+            K::Par { .. } => return unsupported("`par for` with a limit and `par(limit=...)`"),
             K::With {
                 kind: j::WithKind::Bind(name, h),
                 body,
@@ -1622,6 +1739,15 @@ impl Lower<'_, '_, '_> {
                             "`{held}.{op}` attenuates `{held}`; `with {name} = ...` takes an \
                              attenuation of `{name}` or a handler written in Yan"
                         ),
+                    );
+                }
+                let never = matches!(&h.kind, j::ExprKind::Call(f, args)
+                    if args.is_empty() && matches!(&f.kind, j::ExprKind::Name(n) if n == "never"));
+                if name == "fault" && self.cx.release && !never {
+                    self.err(
+                        "E317",
+                        h.span,
+                        "a release build binds `fault` only to `never`".into(),
                     );
                 }
                 let (a, _) = self.atom(h, None)?;
@@ -2906,7 +3032,14 @@ impl Lower<'_, '_, '_> {
                 );
                 self.store_dict_places(stores, target.span);
             }
-            j::ExprKind::Wild => self.emit(StmtKind::Rhs(r), target.span),
+            j::ExprKind::Wild => {
+                // A discarded copy is reported at what it copies (E416).
+                let sp = match &r {
+                    Rhs::Copy(p) => p.root_span,
+                    _ => target.span,
+                };
+                self.emit(StmtKind::Rhs(r), sp);
+            }
             _ => return unsupported("this assignment target"),
         }
         Ok(())
@@ -3369,6 +3502,12 @@ impl Lower<'_, '_, '_> {
                     };
                     let f = f.clone();
                     self.lambda(&[x], &body, Some(&f))?
+                } else if self.sig.caps.contains(n) || self.handlers.contains(n) {
+                    // A capability as a value; the checker rejects returning or storing it (E306).
+                    (
+                        Rhs::Atom(Atom::Name(n.clone(), at)),
+                        Ty::Data(self.sig.cap_trait(n)),
+                    )
                 } else if self.gone.contains(n) {
                     return unsupported("a binding used after the block that made it");
                 } else if self.ghosts.contains(n) {
@@ -3534,6 +3673,17 @@ impl Lower<'_, '_, '_> {
                     Ty::Data(self.g.variant_of[m].clone()),
                 )
             }
+            // A lattice value's `.value` is its read (A8).
+            K::Attr(b, f, _)
+                if f == "value" && matches!(self.ty_of_local(b), Some(Ty::Coll("Max", _))) =>
+            {
+                let c = j::Expr {
+                    kind: K::Call(Box::new(e.clone()), Vec::new()),
+                    span: e.span,
+                    paren: false,
+                };
+                self.rhs(&c, want)?
+            }
             K::Attr(..) => {
                 let (p, t) = self.place(e)?;
                 (Rhs::Proj(p), t)
@@ -3554,6 +3704,25 @@ impl Lower<'_, '_, '_> {
                             at,
                         );
                         (Rhs::Call(c), vt)
+                    }
+                    None if t == Ty::Str && !self.cx.strict => {
+                        let item = self.item.clone();
+                        self.cx.note(
+                            "N12",
+                            at,
+                            &item,
+                            "`s[i]` normalized to `s.char_at(i)`, which costs O(n)".into(),
+                        );
+                        let s = self.tmp(&t, Rhs::Proj(p), b.span);
+                        let (ia, ity) = self.atom(k, Some(&Ty::Int))?;
+                        self.expect(&ity, &Ty::Int, k.span);
+                        let c = call(
+                            "std.text.char_at",
+                            vec![],
+                            vec![let_arg(s), let_arg(ia)],
+                            at,
+                        );
+                        (Rhs::Call(c), Ty::Char)
                     }
                     _ => {
                         let (p, t) = self.place(e)?;
@@ -3609,6 +3778,18 @@ impl Lower<'_, '_, '_> {
                             self.sig.fail.as_ref().and_then(|own| {
                                 self.g.froms.get(&(e.to_string(), own.to_string()))
                             });
+                        let injects =
+                            matches!(&self.sig.fail, Some(Ty::Union(ms)) if ms.contains(&e));
+                        if from.is_some() && injects {
+                            self.err(
+                                "E313",
+                                at,
+                                format!(
+                                    "`?` could inject the `{e}` failure into the union or convert it \
+                                     with `From`; remove the `From` implementation"
+                                ),
+                            );
+                        }
                         let via = match from {
                             Some(f) => Some(vec![f.clone()]),
                             None => into_error
@@ -4111,6 +4292,186 @@ impl Lower<'_, '_, '_> {
         Ok((Rhs::Atom(v), t))
     }
 
+    /// `+` and `-` on quantities of one dimension; other dimensions are E530 (11.4).
+    fn quantity_op(
+        &mut self,
+        op: &str,
+        x: &Atom,
+        tx: &Ty,
+        y_: &Atom,
+        ty: &Ty,
+        at: Span,
+    ) -> Option<R<(Rhs, Ty)>> {
+        let dim = |t: &Ty| match t {
+            Ty::Coll("Quantity", ts) => Some(ts[1].to_string()),
+            _ => None,
+        };
+        let (dx, dy) = (dim(tx), dim(ty));
+        if dx.is_none() && dy.is_none() {
+            return None;
+        }
+        if !matches!(op, "+" | "-") {
+            return Some(unsupported(format!("`{op}` on quantities")));
+        }
+        if dx != dy {
+            let show = |d: Option<String>| d.unwrap_or_else(|| "a plain number".into());
+            self.err(
+                "E530",
+                at,
+                format!("`{op}` mixes dimension {} with {}", show(dx), show(dy)),
+            );
+            return Some(Ok((Rhs::Atom(x.clone()), Ty::Err)));
+        }
+        let p = float_op(op).expect("`+` and `-` on float");
+        let c = call(p, vec![], vec![let_arg(x.clone()), let_arg(y_.clone())], at);
+        Some(Ok((Rhs::Call(c), tx.clone())))
+    }
+
+    /// The waits a plain `par` block may not hold: a branch receiving what a sibling sends
+    /// (E713, R390), and a `Lub` read in a block that writes it (E717, R454).
+    fn par_waits(&mut self, branches: &[j::Stmt]) {
+        let mut ops: Vec<Vec<(String, String, Span)>> = Vec::new();
+        for s in branches {
+            let mut mine = Vec::new();
+            for e in stmt_exprs(s) {
+                walk(e, &mut |e| {
+                    if let j::ExprKind::Call(f, _) = &e.kind
+                        && let j::ExprKind::Attr(b, m, _) = &f.kind
+                        && let j::ExprKind::Name(n) = &b.kind
+                    {
+                        mine.push((n.clone(), m.clone(), b.span));
+                    }
+                });
+            }
+            for b in sub_blocks(s) {
+                let mut inner = Vec::new();
+                for s in b {
+                    for e in stmt_exprs(s) {
+                        walk(e, &mut |e| {
+                            if let j::ExprKind::Call(f, _) = &e.kind
+                                && let j::ExprKind::Attr(b, m, _) = &f.kind
+                                && let j::ExprKind::Name(n) = &b.kind
+                            {
+                                inner.push((n.clone(), m.clone(), b.span));
+                            }
+                        });
+                    }
+                }
+                mine.extend(inner);
+            }
+            ops.push(mine);
+        }
+        let ty = |l: &Self, n: &str| l.locals.get(n).map(|x| x.ty.clone());
+        let sends = ops.iter().enumerate().flat_map(|(k, os)| {
+            os.iter()
+                .filter(|(n, m, _)| {
+                    m == "send" && matches!(ty(self, n), Some(Ty::Coll("Sender", _)))
+                })
+                .map(move |_| k)
+        });
+        let senders: Vec<usize> = sends.collect();
+        let writes: Vec<String> = ops
+            .iter()
+            .flatten()
+            .filter(|(n, m, _)| m == "put" && matches!(ty(self, n), Some(Ty::Coll("Lub", _))))
+            .map(|(n, _, _)| n.clone())
+            .collect();
+        for (k, os) in ops.iter().enumerate() {
+            for (n, m, sp) in os {
+                if m == "recv"
+                    && matches!(ty(self, n), Some(Ty::Coll("Receiver", _)))
+                    && senders.iter().any(|&j| j != k)
+                {
+                    self.err(
+                        "E713",
+                        *sp,
+                        format!("`{n}.recv()` waits on a sibling branch of this `par`; use `par concurrent`"),
+                    );
+                }
+                if m == "get" && writes.contains(n) {
+                    self.err(
+                        "E717",
+                        *sp,
+                        format!("`{n}.get()` in a `par` block that writes `{n}`; read it after the block"),
+                    );
+                }
+            }
+        }
+    }
+
+    /// `n * u` or `u * n` where `u` names a std unit (11.4) and no binding of that name.
+    fn unit_product<'e>(
+        &self,
+        a: &'e j::Expr,
+        b: &'e j::Expr,
+    ) -> Option<(&'e j::Expr, &'static str)> {
+        let unit = |e: &j::Expr| match &e.kind {
+            j::ExprKind::Name(n)
+                if !self.locals.contains_key(n)
+                    && !self.sig.caps.contains(n)
+                    && !self.g.fns.contains_key(n)
+                    && !self.g.consts.contains_key(n) =>
+            {
+                UNITS.iter().find(|(u, ..)| u == n).map(|(u, ..)| *u)
+            }
+            _ => None,
+        };
+        unit(b).map(|u| (a, u)).or_else(|| unit(a).map(|u| (b, u)))
+    }
+
+    /// An `int` times a duration unit is a `Duration`; any other number times a unit is a
+    /// `Quantity` of the unit's dimension, held in SI base units (11.4, 11.6).
+    fn quantity(&mut self, n: &j::Expr, u: &'static str, at: Span) -> R<(Rhs, Ty)> {
+        let &(_, dim, scale, ctor) = UNITS.iter().find(|(v, ..)| *v == u).expect("a unit");
+        let ex = |kind| j::Expr {
+            kind,
+            span: at,
+            paren: false,
+        };
+        let int_n = match &n.kind {
+            j::ExprKind::Lit(j::Lit::Int(_)) => true,
+            j::ExprKind::Lit(_) => false,
+            _ => self.ty_of_local(n) == Some(Ty::Int),
+        };
+        if let Some((ctor, k)) = ctor.filter(|_| int_n) {
+            let mut arg = n.clone();
+            if k != 1 {
+                arg = ex(j::ExprKind::Binary(
+                    "*",
+                    Box::new(arg),
+                    Box::new(ex(j::ExprKind::Lit(j::Lit::Int(k.to_string())))),
+                ));
+            }
+            let f = ex(j::ExprKind::Attr(
+                Box::new(ex(j::ExprKind::Name("Duration".into()))),
+                ctor.into(),
+                at,
+            ));
+            let c = ex(j::ExprKind::Call(
+                Box::new(f),
+                vec![j::Arg {
+                    name: None,
+                    kind: j::ArgKind::Expr(arg),
+                    span: at,
+                }],
+            ));
+            return self.rhs(&c, None);
+        }
+        let scaled = ex(j::ExprKind::Binary(
+            "*",
+            Box::new(n.clone()),
+            Box::new(ex(j::ExprKind::Lit(j::Lit::Float(format!("{scale:e}"))))),
+        ));
+        let (r, t) = self.rhs(&scaled, Some(&Ty::Float))?;
+        if t == Ty::Err {
+            return Ok((r, t));
+        }
+        Ok((
+            r,
+            Ty::Coll("Quantity", vec![Ty::Float, Ty::Data(dim.into())]),
+        ))
+    }
+
     fn arith(
         &mut self,
         op: &str,
@@ -4119,6 +4480,26 @@ impl Lower<'_, '_, '_> {
         at: Span,
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty)> {
+        if op == "*"
+            && let Some((n, u)) = self.unit_product(a, b)
+        {
+            return self.quantity(n, u, at);
+        }
+        // W817: `day` and `week` are exact 24- and 168-hour durations, not calendar days.
+        if op == "+"
+            && self.ty_of_local(a) == Some(Ty::Data("ZonedDateTime".into()))
+            && let j::ExprKind::Binary("*", l, r) = &b.kind
+            && let Some((_, "day" | "week")) = self.unit_product(l, r)
+        {
+            let item = self.item.clone();
+            self.cx.warn(
+                "W817",
+                at,
+                &item,
+                "a `day` or `week` duration is exact hours; add a `Period` for calendar days"
+                    .into(),
+            );
+        }
         let want = want.filter(|w| !matches!(w, Ty::Float) || op != "/");
         // `2 * x`: a literal on the left takes the right operand's type (R656).
         let lit_left = is_int_lit(a) && !is_int_lit(b) && !matches!(op, "<<" | ">>" | "**");
@@ -4163,6 +4544,9 @@ impl Lower<'_, '_, '_> {
             Some(r) => r,
             None => self.atom(b, Some(&tx))?,
         };
+        if let Some(r) = self.quantity_op(op, &x, &tx, &y_, &ty, at) {
+            return r;
+        }
         if op == "+" && matches!(tx, Ty::Str | Ty::List(_)) && self.not_last_use(a, at) {
             let item = self.item.clone();
             self.cx.warn(
@@ -4550,6 +4934,30 @@ impl Lower<'_, '_, '_> {
             {
                 self.cli_call(op, k, args, at)
             }
+            j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Channel" && !self.locals.contains_key(n)) =>
+            {
+                let j::ExprKind::Name(tn) = &k.kind else {
+                    return unsupported("`Channel` of a type that is not a name");
+                };
+                let tn = yan_names::type_name(tn, yan_names::Surface::Yag, yan_names::Surface::Yir)
+                    .unwrap_or(tn);
+                let named = j::Type::Named {
+                    path: vec![tn.to_owned()],
+                    args: Vec::new(),
+                };
+                let t = self.g.ty(&named, self.cx, k.span)?;
+                let Some(xs) = self.positional(args, 1, "Channel", at)? else {
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+                };
+                let (cap, ct) = self.atom(xs[0], Some(&Ty::Int))?;
+                self.expect(&ct, &Ty::Int, xs[0].span);
+                let ret = Ty::Tuple(vec![
+                    Ty::Coll("Sender", vec![t.clone()]),
+                    Ty::Coll("Receiver", vec![t.clone()]),
+                ]);
+                let c = call("std.chan.Channel", vec![t.targ()], vec![let_arg(cap)], at);
+                Ok((Rhs::Call(c), ret, None))
+            }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if self.g.templates.contains_key(n)) =>
             {
                 let j::ExprKind::Name(n) = &b.kind else {
@@ -4665,7 +5073,54 @@ impl Lower<'_, '_, '_> {
                 if let (j::ExprKind::Call(f, fargs), "context") = (&b.kind, m.as_str()) {
                     return self.context(f, fargs, b.span, args, at);
                 }
-                self.method(b, m, *name_at, args, at)
+                let r = self.method(b, m, *name_at, args, at)?;
+                if let (Rhs::Call(c), _, _) = &r
+                    && NONDET_OPS.contains(&c.path.join(".").as_str())
+                    && !self.sig.caps.iter().any(|c| c == "nondet")
+                {
+                    self.err(
+                        "E709",
+                        at,
+                        format!("`{m}` depends on other tasks; declare `uses nondet`"),
+                    );
+                }
+                if let (Rhs::Call(c), _, _) = &r
+                    && c.path.join(".") == "std.actor.share"
+                    && let Some(Ty::Coll("Actor", ts)) = self.ty_of_local(b)
+                {
+                    let state = ts[0].clone();
+                    let mut bad: Vec<&String> = self
+                        .g
+                        .fns
+                        .iter()
+                        .filter(|(_, s)| {
+                            s.params.first().is_some_and(|p| p.ty == state)
+                                && s.params[1..].iter().any(|p| !wire(&p.ty))
+                        })
+                        .map(|(n, _)| n)
+                        .collect();
+                    bad.sort();
+                    if let Some(h) = bad.first() {
+                        let msg = format!(
+                            "a remote actor's handlers take Wire values, but `{h}` takes one that is not"
+                        );
+                        self.err("E720", at, msg);
+                    }
+                }
+                if let (Rhs::Call(c), _, _) = &r
+                    && c.path.join(".") == "std.chan.sender.send"
+                    && c.targs
+                        .iter()
+                        .any(|t| matches!(t, y::TArg::Type(t) if not_send(t)))
+                    && let Some(a) = args.first()
+                {
+                    self.err(
+                        "E415",
+                        a.span,
+                        "this value is not Send (it holds an `Rc`), so it cannot cross to another task".into(),
+                    );
+                }
+                Ok(r)
             }
             _ => {
                 let (a, t) = self.atom(f, None)?;
@@ -4950,6 +5405,25 @@ impl Lower<'_, '_, '_> {
         Ok(())
     }
 
+    /// The caller's binding of capability trait `t`, which the callee binds as `callee`.
+    fn cap_for(&self, t: &str, callee: &str) -> String {
+        if self.handlers.iter().any(|h| h == callee)
+            || self
+                .sig
+                .caps
+                .iter()
+                .any(|c| c == callee && self.sig.cap_trait(c) == t)
+        {
+            return callee.to_owned();
+        }
+        self.sig
+            .caps
+            .iter()
+            .find(|c| self.sig.cap_trait(c) == t)
+            .cloned()
+            .unwrap_or_else(|| callee.to_owned())
+    }
+
     /// A call of `path` with signature `sig`. A generic callee's type arguments are inferred
     /// from the argument types, and each must implement its bounds (E221).
     fn call_sig(
@@ -4960,9 +5434,30 @@ impl Lower<'_, '_, '_> {
         args: &[j::Arg],
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
-        let mut out: Vec<Arg> = sig.caps.iter().map(|c| Arg::Cap(c.clone(), at)).collect();
+        let mut out: Vec<Arg> = sig
+            .caps
+            .iter()
+            .map(|c| Arg::Cap(self.cap_for(&sig.cap_trait(c), c), at))
+            .collect();
         let want = self.want_ret.take().filter(|(_, sp)| *sp == at);
         let outer = mem::take(&mut self.arg_tys);
+        // Arguments for ghost parameters are erased with them.
+        let kept: Vec<j::Arg>;
+        let args = if sig.ghosts.is_empty() {
+            args
+        } else {
+            let first = usize::from(recv.is_some());
+            kept = args
+                .iter()
+                .enumerate()
+                .filter(|(k, a)| match &a.name {
+                    Some(n) => !sig.ghosts.iter().any(|(_, g)| g == n),
+                    None => !sig.ghosts.iter().any(|(i, _)| *i == k + first),
+                })
+                .map(|(_, a)| a.clone())
+                .collect();
+            &kept[..]
+        };
         let vals = self.args(&sig.params, recv, args, at);
         let got = mem::replace(&mut self.arg_tys, outer);
         let Some(vals) = vals? else {
@@ -5121,6 +5616,126 @@ impl Lower<'_, '_, '_> {
         }))
     }
 
+    /// A returned closure may not capture a view (E406), and a returned view must borrow from a
+    /// parameter, not a local (E414, 4.5).
+    fn view_escape(&mut self, e: &j::Expr) {
+        if let j::ExprKind::Lambda(ps, body) = &e.kind {
+            let mut hit = None;
+            walk(body, &mut |x| {
+                if let j::ExprKind::Name(n) = &x.kind
+                    && hit.is_none()
+                    && self.views.contains(n)
+                    && !ps.contains(n)
+                {
+                    hit = Some((n.clone(), x.span));
+                }
+            });
+            if let Some((n, sp)) = hit {
+                self.err(
+                    "E406",
+                    sp,
+                    format!("this closure escapes but captures the view `{n}`"),
+                );
+            }
+            return;
+        }
+        if !self.returns_view {
+            return;
+        }
+        let j::ExprKind::Call(f, args) = &e.kind else {
+            return;
+        };
+        let j::ExprKind::Name(callee) = &f.kind else {
+            return;
+        };
+        let Some(s) = self.g.fns.get(callee) else {
+            return;
+        };
+        for (k, a) in args.iter().enumerate() {
+            let param = match &a.name {
+                Some(n) => Some(n.as_str()),
+                None => s.params.get(k).map(|p| p.name.as_str()),
+            };
+            if let (
+                Some(p),
+                j::ArgKind::Expr(j::Expr {
+                    kind: j::ExprKind::Name(x),
+                    ..
+                }),
+            ) = (param, &a.kind)
+                && s.from.iter().any(|f| f == p)
+                && !self.sig.params.iter().any(|q| q.name == *x)
+            {
+                self.err(
+                    "E414",
+                    e.span,
+                    format!("this view borrows from the local `{x}`, which ends with the function"),
+                );
+            }
+        }
+    }
+
+    /// `return C(..., become f(x))` (R456): `become` is legal as the last argument of a constructor
+    /// in return position, nesting; anywhere else in a constructor it is E143. The call lowers as
+    /// an ordinary call that fills the field, so it does not yet run in constant stack.
+    fn become_in_ctor(&mut self, e: &j::Expr, last: bool) -> j::Expr {
+        let j::ExprKind::Call(f, args) = &e.kind else {
+            return e.clone();
+        };
+        let is_ctor = matches!(&f.kind, j::ExprKind::Name(n)
+            if self.g.records.contains_key(n) || self.g.variant_of.contains_key(n));
+        if !is_ctor {
+            return e.clone();
+        }
+        let n = args.len();
+        // The arguments of a constructor holding a `become` are matched by position (E210 exempt).
+        let fields: Vec<String> = match &f.kind {
+            j::ExprKind::Name(c)
+                if args.iter().any(|a| matches!(a.kind, j::ArgKind::Become(_))) =>
+            {
+                let fs = self.g.records.get(c).or_else(|| {
+                    let s = self.g.sums.get(self.g.variant_of.get(c)?)?;
+                    s.iter().find(|(v, _)| v == c).map(|(_, fs)| fs)
+                });
+                fs.map(|fs| fs.iter().map(|f| f.name.clone()).collect())
+                    .unwrap_or_default()
+            }
+            _ => Vec::new(),
+        };
+        let args = args
+            .iter()
+            .enumerate()
+            .map(|(k, a)| {
+                let name = a.name.clone().or_else(|| fields.get(k).cloned());
+                let tail = last && k + 1 == n;
+                let kind = match &a.kind {
+                    j::ArgKind::Become(x) => {
+                        if !tail {
+                            self.err(
+                                "E143",
+                                a.span,
+                                "`become` in a constructor must be its last-evaluated argument"
+                                    .into(),
+                            );
+                        }
+                        j::ArgKind::Expr(x.clone())
+                    }
+                    j::ArgKind::Expr(x) => j::ArgKind::Expr(self.become_in_ctor(x, tail)),
+                    k => k.clone(),
+                };
+                j::Arg {
+                    name,
+                    kind,
+                    span: a.span,
+                }
+            })
+            .collect();
+        j::Expr {
+            kind: j::ExprKind::Call(f.clone(), args),
+            ..e.clone()
+        }
+    }
+
     /// Match arguments to parameters (14.1 Calls) and lower them in parameter order.
     /// `None` when an arity error was reported.
     fn args(
@@ -5199,6 +5814,7 @@ impl Lower<'_, '_, '_> {
             }
         }
         let mut elems: Vec<(String, Atom)> = Vec::new();
+        let mut inouts: Vec<(String, Vec<String>, bool)> = Vec::new();
         // Lambdas go last, so their parameter types can come from the other arguments.
         let lambda = |s: &Option<Given>| matches!(s, Some(Given::Expr(e, ..)) if self.fn_value(e));
         let mut order: Vec<usize> = (0..ps.len()).filter(|&k| !lambda(&slots[k])).collect();
@@ -5232,6 +5848,29 @@ impl Lower<'_, '_, '_> {
                     let (pl, t) = self.place(e)?;
                     self.expect(&t, &p.ty, sp);
                     self.arg_tys.push((p.ty.clone(), t.clone(), sp));
+                    // E402: `&q` and `&q.a` overlap, since one place is a prefix of the other.
+                    let fields: Vec<&str> = pl
+                        .projs
+                        .iter()
+                        .map_while(|p| match p {
+                            Proj::Field(f, _) => Some(f.as_str()),
+                            _ => None,
+                        })
+                        .collect();
+                    let key: Vec<String> = fields.iter().map(|f| f.to_string()).collect();
+                    let whole = fields.len() == pl.projs.len();
+                    let overlaps = inouts.iter().any(|(r, fs, w)| {
+                        *r == pl.root
+                            && ((*w && key.starts_with(fs)) || (whole && fs.starts_with(&key)))
+                    });
+                    if overlaps {
+                        self.err(
+                            "E402",
+                            sp,
+                            format!("this place overlaps another part of `{}` passed for mutation in this call", pl.root),
+                        );
+                    }
+                    inouts.push((pl.root.clone(), key, whole));
                     if pl.projs.is_empty() {
                         *out = Some(Arg::Value(
                             Conv::Inout,
@@ -5723,6 +6362,14 @@ impl Lower<'_, '_, '_> {
                 Ok((Rhs::Call(c), Ty::List(Box::new(Ty::Int))))
             }
             "deque" | "heap" | "sorted_dict" | "sorted_set" => self.collection(n, args, at, want),
+            "Max" => {
+                let Some(xs) = self.positional(args, 1, n, at)? else {
+                    return Ok(err);
+                };
+                let (a, t) = self.atom(xs[0], None)?;
+                let c = call("std.lattice.max_of", vec![t.targ()], vec![sink_arg(a)], at);
+                Ok((Rhs::Call(c), Ty::Coll("Max", vec![t])))
+            }
             "Secret" => {
                 let Some(xs) = self.positional(args, 1, n, at)? else {
                     return Ok(err);
@@ -5896,6 +6543,15 @@ impl Lower<'_, '_, '_> {
             return self.bits_call(f, args, at);
         }
         let path = format!("std.{module}.{f}");
+        if let Some(name) = crate::stdlib::decl(&path).and_then(|d| d.preview.as_ref())
+            && !self.cx.previews.contains(name)
+        {
+            self.err(
+                "E001",
+                at,
+                format!("`{module}.{f}` is a preview; add `preview=[\"{name}\"]` to the package"),
+            );
+        }
         if crate::stdlib::decl(&path).is_some_and(|d| d.typed_at_call()) {
             return self.user_call(&path, None, args, at);
         }
@@ -5933,6 +6589,21 @@ impl Lower<'_, '_, '_> {
             }
             p.fail = None;
         }
+        if path == "std.i18n.Locale"
+            && let [
+                j::Arg {
+                    name: None,
+                    kind: j::ArgKind::Expr(e),
+                    ..
+                },
+            ] = args
+            && let j::ExprKind::Lit(j::Lit::Str { value, .. }) = &e.kind
+        {
+            if let Err(reason) = yan_std::locale::canonical(value) {
+                self.err("E550", e.span, format!("malformed locale: {reason}"));
+            }
+            p.fail = None;
+        }
         self.std_call(&path, p, Vec::new(), args, f, at)
     }
 
@@ -5950,6 +6621,26 @@ impl Lower<'_, '_, '_> {
         }
         if cap == "log" && matches!(op, "debug" | "info" | "warn" | "error" | "span") {
             return self.log_call(op, args, at);
+        }
+        // A capability trait of this module: its method takes the binding as `self`.
+        let t = self.sig.cap_trait(cap);
+        if let Some(ms) = self.g.traits.get(&t) {
+            let Some((_, s)) = ms.iter().find(|(n, _)| n == op) else {
+                self.err("E203", at, format!("`{t}` has no operation `{op}`"));
+                return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+            };
+            let map = [("Self".to_owned(), Ty::Data(t.clone()))];
+            let mut s = s.clone();
+            for q in &mut s.params {
+                q.ty = q.ty.subst(&map);
+            }
+            s.ret = s.ret.subst(&map);
+            let recv = j::Expr {
+                kind: j::ExprKind::Name(cap.to_owned()),
+                span: at,
+                paren: false,
+            };
+            return self.call_sig(op, &s, Some(&recv), args, at);
         }
         // `print` takes any `Show` value and prints `show(x)` (R655).
         if path == "std.io.print"
@@ -5998,7 +6689,7 @@ impl Lower<'_, '_, '_> {
                 return unsupported(format!("a reference argument to `log.{op}`"));
             };
             match &a.name {
-                None if msg.is_none() => msg = Some(e.clone()),
+                None if msg.is_none() => msg = Some(self.log_message(e)),
                 None => {
                     self.err(
                         "E202",
@@ -6046,6 +6737,43 @@ impl Lower<'_, '_, '_> {
             .and_then(|d| d.plain())
             .expect("std.log declares the operation");
         self.std_call(&path, p, vec![Arg::Cap("log".into(), at)], &synth, op, at)
+    }
+
+    /// A log message is a `Template` (R452): an interpolating f-string is E233, and a t-string
+    /// interpolating an exposed `Secret` is W803. The template is logged as its rendered text.
+    fn log_message(&mut self, e: &j::Expr) -> j::Expr {
+        let j::ExprKind::FStr { template, pieces } = &e.kind else {
+            return e.clone();
+        };
+        let interpolates = pieces.iter().any(|p| matches!(p, j::FPiece::Expr(..)));
+        if !template && interpolates {
+            self.err(
+                "E233",
+                e.span,
+                "an f-string where a `Template` is expected; write `t\"...\"`".into(),
+            );
+        }
+        for p in pieces {
+            if let j::FPiece::Expr(x, _) = p
+                && let j::ExprKind::Call(f, _) = &x.kind
+                && matches!(&f.kind, j::ExprKind::Attr(_, m, _) if m == "expose")
+            {
+                let item = self.item.clone();
+                self.cx.warn(
+                    "W803",
+                    x.span,
+                    &item,
+                    "an exposed `Secret` flows into `log`".into(),
+                );
+            }
+        }
+        j::Expr {
+            kind: j::ExprKind::FStr {
+                template: false,
+                pieces: pieces.clone(),
+            },
+            ..e.clone()
+        }
     }
 
     /// `cli.parse_args[T](args)` with `T`'s schema, and `cli.parse[T]()` over `env.args()`.
@@ -6363,6 +7091,7 @@ impl Lower<'_, '_, '_> {
             params,
             ret,
             targs,
+            fail,
         }) = d.method(&t)
         else {
             return unsupported(format!("`{path}` on `{t}`", t = self.ty_text(&t)));
@@ -6430,7 +7159,10 @@ impl Lower<'_, '_, '_> {
         }
         let rhs = Rhs::Call(call(&path, targs, out, at));
         if writeback.is_none() && (!inout || stores.is_empty()) {
-            return Ok((rhs, ret, None));
+            return Ok((rhs, ret, fail));
+        }
+        if fail.is_some() {
+            return unsupported(format!("a fallible `{m}` on a field or element"));
         }
         let r = self.tmp(&ret, rhs, at);
         if let Some((place, v)) = writeback {
@@ -6705,6 +7437,50 @@ impl Lower<'_, '_, '_> {
 }
 
 /// Names of functions called anywhere in `stmts`.
+/// The first `fail` or `?` in `stmts`, outside lambdas.
+fn first_failure(stmts: &[j::Stmt]) -> Option<Span> {
+    for s in stmts {
+        if matches!(s.kind, j::StmtKind::Fail(_)) {
+            return Some(s.span);
+        }
+        let mut found = None;
+        for e in stmt_exprs(s) {
+            walk(e, &mut |e| {
+                if found.is_none() && matches!(e.kind, j::ExprKind::Try(_)) {
+                    found = Some(e.span);
+                }
+            });
+        }
+        if found.is_some() {
+            return found;
+        }
+        if let Some(sp) = sub_blocks(s).into_iter().find_map(first_failure) {
+            return Some(sp);
+        }
+    }
+    None
+}
+
+/// Receivers of calls such as `io.print(...)` that name a std capability, with their spans.
+pub(crate) fn cap_uses(stmts: &[j::Stmt], out: &mut Vec<(String, Span)>) {
+    for s in stmts {
+        for e in stmt_exprs(s) {
+            walk(e, &mut |e| {
+                if let j::ExprKind::Call(f, _) = &e.kind
+                    && let j::ExprKind::Attr(b, _, _) = &f.kind
+                    && let j::ExprKind::Name(c) = &b.kind
+                    && crate::stdlib::STD.caps.contains(&crate::cap_type(c))
+                {
+                    out.push((c.clone(), b.span));
+                }
+            });
+        }
+        for b in sub_blocks(s) {
+            cap_uses(b, out);
+        }
+    }
+}
+
 pub(crate) fn callees(stmts: &[j::Stmt], out: &mut HashSet<String>) {
     for s in stmts {
         for e in stmt_exprs(s) {
@@ -6804,4 +7580,112 @@ fn directives(fmt: &str) -> Result<Vec<(String, u8)>, String> {
         i += 1;
     }
     Ok(out)
+}
+
+/// Std units (11.4): name, dimension, scale to the SI base unit, and for a duration the
+/// `Duration` constructor and multiplier an `int` count goes through.
+/// A `Duration` constructor and the multiplier its `int` count takes.
+type DurationCtor = Option<(&'static str, i64)>;
+
+const UNITS: &[(&str, &str, f64, DurationCtor)] = &[
+    ("ns", "time", 1e-9, Some(("nanos", 1))),
+    ("us", "time", 1e-6, Some(("micros", 1))),
+    ("ms", "time", 1e-3, Some(("millis", 1))),
+    ("s", "time", 1.0, Some(("seconds", 1))),
+    ("min", "time", 60.0, Some(("minutes", 1))),
+    ("h", "time", 3600.0, Some(("hours", 1))),
+    ("day", "time", 86400.0, Some(("hours", 24))),
+    ("week", "time", 604800.0, Some(("hours", 168))),
+    ("m", "length", 1.0, None),
+    ("km", "length", 1e3, None),
+    ("cm", "length", 1e-2, None),
+    ("mm", "length", 1e-3, None),
+    ("kg", "mass", 1.0, None),
+    ("g", "mass", 1e-3, None),
+    ("A", "current", 1.0, None),
+    ("K", "temperature", 1.0, None),
+    ("mol", "amount", 1.0, None),
+    ("cd", "luminosity", 1.0, None),
+];
+
+/// Operations whose result depends on other tasks, so they need `uses nondet` (6.5, E709).
+const NONDET_OPS: &[&str] = &[
+    "std.sync.arc.strong_count",
+    "std.chan.sender.share",
+    "std.chan.receiver.share",
+    "std.actor.share",
+];
+
+/// A type holding an `Rc` or `Weak`, whose counts are not atomic (6.4).
+fn not_send(t: &y::Type) -> bool {
+    match t {
+        y::Type::Named(n) => {
+            matches!(n.path.last().map(String::as_str), Some("Rc" | "Weak"))
+                || n.args
+                    .iter()
+                    .any(|a| matches!(a, y::TArg::Type(t) if not_send(t)))
+        }
+        y::Type::Tuple(ts) | y::Type::Union(ts) => ts.iter().any(not_send),
+        _ => false,
+    }
+}
+
+/// The size in bytes of a plain value of `t`, when it has a fixed one (5.1).
+fn byte_size(g: &Globals, t: &Ty) -> Option<usize> {
+    Some(match t {
+        Ty::Int | Ty::Float => 8,
+        Ty::Bool => 1,
+        Ty::Char => 4,
+        Ty::Unit => 0,
+        Ty::Fixed(n) => {
+            n.trim_start_matches(|c: char| c.is_alphabetic())
+                .parse::<usize>()
+                .ok()?
+                / 8
+        }
+        Ty::Tuple(ts) => ts.iter().map(|t| byte_size(g, t)).sum::<Option<usize>>()?,
+        Ty::Data(n) => g
+            .records
+            .get(n)?
+            .iter()
+            .map(|f| byte_size(g, &f.ty))
+            .sum::<Option<usize>>()?,
+        _ => return None,
+    })
+}
+
+/// Whether values of `t` can key a hashed map or an entity (`Hash`; floats have none).
+fn hashable(g: &Globals, t: &Ty) -> bool {
+    match t {
+        Ty::Int | Ty::BigInt | Ty::Bool | Ty::Str | Ty::Char | Ty::Unit | Ty::Err => true,
+        Ty::Fixed(n) => !n.starts_with('f') && !n.starts_with("bf"),
+        Ty::Tuple(ts) => ts.iter().all(|t| hashable(g, t)),
+        Ty::Option(t) | Ty::List(t) => hashable(g, t),
+        Ty::Data(n) => g
+            .records
+            .get(n)
+            .is_none_or(|fs| fs.iter().all(|f| hashable(g, &f.ty))),
+        _ => false,
+    }
+}
+
+/// Whether `t` can cross a node boundary (`Wire`, 9.8): no callables, handles or capabilities.
+fn wire(t: &Ty) -> bool {
+    match t {
+        Ty::Fn(..) | Ty::Foreign(..) => false,
+        Ty::Coll(n, ts) => {
+            !matches!(
+                *n,
+                "Rc" | "Arc" | "Cell" | "Atomic" | "Sender" | "Receiver" | "iter" | "Secret"
+            ) && ts.iter().all(wire)
+        }
+        Ty::List(t) | Ty::Set(t) | Ty::Option(t) => wire(t),
+        Ty::Dict(k, v) | Ty::Result(k, v) => wire(k) && wire(v),
+        Ty::Tuple(ts) | Ty::Union(ts) => ts.iter().all(wire),
+        _ => true,
+    }
+}
+
+fn is_view(t: &j::Type) -> bool {
+    matches!(t, j::Type::Named { path, .. } if path.len() == 1 && path[0] == "View")
 }

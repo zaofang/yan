@@ -1,0 +1,10 @@
+"""Rc: shared ownership within one task (6.2). `share` is the only way to a second handle; `copy`
+is E416. An `Rc` is not Send (E415)."""
+
+@intrinsic
+@since("1.0")
+pub def share[T](self: Rc[T]) -> Rc[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def strong_count[T](self: Rc[T]) -> int: ...

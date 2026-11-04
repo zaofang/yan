@@ -41,6 +41,12 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_TEXT_REPEAT, |a| { [Str(x), Int(n)] => s(x.repeat(count(*n)?)) }),
     f!(STD_TEXT_BYTE_LEN, |a| { [Str(x)] => Int(x.len() as i128) }),
     f!(STD_TEXT_CHAR_COUNT, |a| { [Str(x)] => Int(x.chars().count() as i128) }),
+    f!(STD_TEXT_CHAR_AT, |a| {
+        [Str(x), Int(i)] => match usize::try_from(*i).ok().and_then(|i| x.chars().nth(i)) {
+            Some(c) => Char(c),
+            None => return panic("bounds"),
+        }
+    }),
     f!(STD_TEXT_GRAPHEME_COUNT, |a| { [Str(x)] => Int(text::grapheme_count(x) as i128) }),
     f!(STD_TEXT_UPPER, |a| { [Str(x)] => s(x.to_uppercase()) }),
     f!(STD_TEXT_LOWER, |a| { [Str(x)] => s(x.to_lowercase()) }),

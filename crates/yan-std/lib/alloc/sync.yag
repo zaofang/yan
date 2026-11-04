@@ -1,0 +1,1 @@
+"""Shared state across tasks (6.2, 6.3): Arc, Cell and Atomic."""

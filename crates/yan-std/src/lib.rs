@@ -2,6 +2,7 @@
 //! tiers (spec 22.2, R474, R562).
 
 pub mod intrinsics;
+pub mod locale;
 pub mod regex;
 pub mod registry;
 pub mod tiers;

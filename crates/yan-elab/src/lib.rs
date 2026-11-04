@@ -7,6 +7,7 @@
 mod bounds;
 mod cli;
 mod decorators;
+mod desugar;
 mod ffi;
 mod lower;
 mod stage0;
@@ -20,6 +21,7 @@ use yan_core::ast as y;
 use yan_diag::{Applicability, Diagnostic, Span};
 use yan_hir as j;
 
+pub use desugar::{Manifest, manifest};
 pub use stdlib::{StdInfo, StdModule, install_std};
 pub use ty::Ty;
 
@@ -92,6 +94,38 @@ pub(crate) struct Sig {
     pub ret: Ty,
     pub fail: Option<Ty>,
     pub caps: Vec<String>,
+    /// The capability trait of each binding in `caps` that is not named after it (`uses Kv as cache`).
+    pub cap_tys: Vec<(String, String)>,
+    /// The parameters a returned view borrows from (`-> View[T] from xs`, 4.5).
+    pub from: Vec<String>,
+    /// Erased ghost parameters, by position among all written parameters, and name.
+    pub ghosts: Vec<(usize, String)>,
+}
+
+impl Sig {
+    /// The capability trait that binding `c` of `caps` holds: `io` is `Io` unless renamed.
+    pub fn cap_trait(&self, c: &str) -> String {
+        self.cap_tys
+            .iter()
+            .find(|(b, _)| b == c)
+            .map_or_else(|| cap_type(c), |(_, t)| t.clone())
+    }
+}
+
+/// The binding a capability trait gets by default: `UserStore` binds as `user_store`.
+fn cap_binding(t: &str) -> String {
+    let mut out = String::new();
+    for (i, ch) in t.chars().enumerate() {
+        if ch.is_uppercase() {
+            if i > 0 {
+                out.push('_');
+            }
+            out.extend(ch.to_lowercase());
+        } else {
+            out.push(ch);
+        }
+    }
+    out
 }
 
 #[derive(Default)]
@@ -144,6 +178,8 @@ pub(crate) struct Cx<'s> {
     pub yn: bool,
     pub ffi: bool,
     pub untrusted: bool,
+    /// The previews the package opts into (20.6).
+    pub previews: Vec<String>,
     pub diags: Vec<Diagnostic>,
 }
 
@@ -260,6 +296,16 @@ impl Globals {
                 }
                 Ty::Foreign(ffi::FOREIGN[k], a)
             }
+            // A view is a borrowed list: a `let` parameter already borrows, and the escape
+            // rules (E406, E414) are checked from the written types (4.5).
+            j::Type::Named { path, args }
+                if path.len() == 1 && path[0] == "View" && args.len() == 1 =>
+            {
+                let j::TArg::Type(t) = &args[0] else {
+                    return unsupported("value type arguments");
+                };
+                Ty::List(Box::new(self.ty(t, cx, span)?))
+            }
             j::Type::Named { path, args } => {
                 let mut a = Vec::new();
                 for arg in args {
@@ -268,7 +314,13 @@ impl Globals {
                         _ => return unsupported("value or union type arguments"),
                     }
                 }
-                let name = path.join(".");
+                let mut name = path.join(".");
+                // A std type named through its module, as `i18n.Locale`.
+                if let [_, last] = path.as_slice()
+                    && ty::collection(last).is_some()
+                {
+                    name = last.clone();
+                }
                 if let Some(t) = ty::builtin(&name, &a) {
                     return Ok(t);
                 }
@@ -292,6 +344,7 @@ impl Globals {
                             Ty::Union(ms)
                         }
                     },
+                    (n, []) if stdlib::STD.caps.contains(n) => Ty::Data(n.to_owned()),
                     (n, _)
                         if n.contains('.') || n.chars().next().is_some_and(char::is_uppercase) =>
                     {
@@ -315,6 +368,18 @@ pub fn elaborate(
     m: &j::Module,
     opts: Options,
 ) -> Result<(y::Module, Vec<Diagnostic>), Unsupported> {
+    elaborate_in(file, src, m, opts, None)
+}
+
+/// [`elaborate`] for a module of the package whose manifest is `manifest`; a script-form module
+/// declares its own (19.1).
+pub fn elaborate_in(
+    file: &str,
+    src: &str,
+    m: &j::Module,
+    opts: Options,
+    manifest: Option<Manifest>,
+) -> Result<(y::Module, Vec<Diagnostic>), Unsupported> {
     let mut cx = Cx {
         file,
         src,
@@ -323,8 +388,17 @@ pub fn elaborate(
         yn: opts.yn,
         ffi: opts.ffi,
         untrusted: opts.untrusted,
+        previews: Vec::new(),
         diags: Vec::new(),
     };
+    let manifest = manifest.or_else(|| desugar::manifest(m));
+    let mut m = desugar::module(m, &mut cx);
+    desugar::without_manifest(&mut m);
+    if let Some(caps) = manifest.as_ref().and_then(|p| p.capabilities.as_ref()) {
+        desugar::ceiling(&m, caps, &mut cx);
+    }
+    cx.previews = manifest.map(|p| p.previews).unwrap_or_default();
+    let m = &m;
     let mut g = Globals::default();
     let std_sums = stdlib::sums(&mut g, m);
     let std_classes = stdlib::classes(&mut g, m)?;
@@ -592,6 +666,17 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     }
     let mut impls = HashMap::new();
     for it in &m.items {
+        if let j::ItemKind::Impl(i) = &it.kind
+            && let Some((from, f)) = from_impl(i)
+        {
+            let a = g.ty(from, cx, it.span)?;
+            let for_ty = g.ty(&i.for_ty, cx, it.span)?;
+            let name = from_fn_name(i);
+            let s = sig(g, f, cx)?;
+            g.fns.insert(name.clone(), s);
+            g.froms.insert((a.to_string(), for_ty.to_string()), name);
+            continue;
+        }
         if let j::ItemKind::Impl(i) = &it.kind {
             let (Some(tr), true, true) = (impl_trait(i), i.args.is_empty(), i.assoc.is_empty())
             else {
@@ -628,6 +713,23 @@ fn f_span(t: &j::Trait, n: &str) -> Span {
         .find(|(_, f)| f.name == n)
         .map(|(_, f)| f.name_span)
         .expect("a method of the trait")
+}
+
+/// `impl From[E] for T` with its one `convert` function; it lowers to a free function that `?`
+/// calls to convert an `E` failure into `T` (8.1).
+fn from_impl(i: &j::Impl) -> Option<(&j::Type, &j::FuncDef)> {
+    match (i.trait_.as_slice(), i.args.as_slice(), i.fns.as_slice()) {
+        ([t], [a], [f]) if t == "From" && i.assoc.is_empty() && f.name == "convert" => Some((a, f)),
+        _ => None,
+    }
+}
+
+fn from_fn_name(i: &j::Impl) -> String {
+    let text = |t: &j::Type| match t {
+        j::Type::Named { path, .. } => path.join("_"),
+        _ => "t".into(),
+    };
+    format!("{}__from_{}", text(&i.for_ty), text(&i.args[0]))
 }
 
 fn impl_trait(i: &j::Impl) -> Option<String> {
@@ -670,10 +772,17 @@ fn sig_body(
     cx: &mut Cx,
 ) -> R<Sig> {
     let mut params = Vec::new();
+    let mut ghosts = Vec::new();
     let mut positional = f.params.iter().any(|p| matches!(p, j::Param::Slash));
     for p in &f.params {
         match p {
             j::Param::Slash => positional = false,
+            // A ghost parameter exists only in proofs: erased here and at every call (8.7).
+            j::Param::Value {
+                conv: Some(j::Conv::Ghost),
+                name,
+                ..
+            } => ghosts.push((params.len() + ghosts.len(), name.clone())),
             j::Param::Pack { .. } => return unsupported("argument packs"),
             j::Param::Value {
                 conv,
@@ -687,7 +796,7 @@ fn sig_body(
                     None => y::Conv::Let,
                     Some(j::Conv::Var) => y::Conv::Inout,
                     Some(j::Conv::Take) => y::Conv::Sink,
-                    Some(j::Conv::Ghost) => return unsupported("ghost parameters"),
+                    Some(j::Conv::Ghost) => unreachable!("ghost parameters are erased above"),
                 },
                 ty: g.ty(ty, cx, *span)?,
                 default: default.clone(),
@@ -699,9 +808,6 @@ fn sig_body(
     let (ret, fail) = match &f.ret {
         None => (Ty::Unit, None),
         Some(r) => {
-            if !r.from.is_empty() {
-                return unsupported("views");
-            }
             let ret = match &r.ty {
                 Some(t) => g.ty(t, cx, f.name_span)?,
                 None => Ty::Unit,
@@ -740,15 +846,26 @@ fn sig_body(
             (ret, fail)
         }
     };
+    let mut cap_tys = Vec::new();
     let caps = match &f.uses {
         None | Some(j::Uses::None) => Vec::new(),
         Some(j::Uses::Caps(cs)) => {
             let mut out = Vec::new();
             for c in cs {
-                if c.alias.is_some() || c.path.len() != 1 {
-                    return unsupported("renamed or qualified capabilities");
+                let [n] = c.path.as_slice() else {
+                    return unsupported("qualified capabilities");
+                };
+                let upper = n.chars().next().is_some_and(char::is_uppercase);
+                let binding = match &c.alias {
+                    Some(a) => a.clone(),
+                    None if upper => cap_binding(n),
+                    None => n.clone(),
+                };
+                let t = if upper { n.clone() } else { cap_type(n) };
+                if t != cap_type(&binding) {
+                    cap_tys.push((binding.clone(), t));
                 }
-                out.push(c.path[0].clone());
+                out.push(binding);
             }
             out
         }
@@ -759,6 +876,9 @@ fn sig_body(
         ret,
         fail,
         caps,
+        cap_tys,
+        from: f.ret.as_ref().map(|r| r.from.clone()).unwrap_or_default(),
+        ghosts,
     })
 }
 
@@ -949,13 +1069,36 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             value: const_val(value)?,
         }),
         j::ItemKind::Lemma(f) => {
-            if matches!(&f.uses, Some(j::Uses::Caps(cs)) if !cs.is_empty()) {
+            let declared = matches!(&f.uses, Some(j::Uses::Caps(cs)) if !cs.is_empty());
+            if declared {
                 cx.err(
                     "E605",
                     f.name_span,
                     &f.name,
                     "a lemma uses no capabilities; drop the `uses` clause".into(),
                 );
+            }
+            let mut uses = Vec::new();
+            if let Some(b) = f.body.as_ref().filter(|_| !declared) {
+                lower::cap_uses(&b.stmts, &mut uses);
+            }
+            let params: Vec<&str> = f
+                .params
+                .iter()
+                .filter_map(|p| match p {
+                    j::Param::Value { name, .. } => Some(name.as_str()),
+                    _ => None,
+                })
+                .collect();
+            for (c, at) in uses {
+                if !params.contains(&c.as_str()) {
+                    cx.err(
+                        "E605",
+                        at,
+                        &f.name,
+                        format!("a lemma uses no capabilities, but this uses `{c}`"),
+                    );
+                }
             }
             return Ok(None);
         }
@@ -1006,6 +1149,14 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                 .collect(),
             derived: None,
         }),
+        j::ItemKind::Impl(i) if let Some((_, f)) = from_impl(i) => {
+            let name = from_fn_name(i);
+            let f = j::FuncDef {
+                name: name.clone(),
+                ..f.clone()
+            };
+            y::ItemKind::Fn(lower::function(g, &f, &g.fns[&name], false, cx)?)
+        }
         j::ItemKind::Impl(i) => {
             let tr = impl_trait(i).expect("checked in collect");
             let for_ty = g.ty(&i.for_ty, cx, it.span)?;

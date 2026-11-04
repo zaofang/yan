@@ -368,8 +368,11 @@ def _judge_patch(case: Case, ex: Executor) -> Result:
     patch = found[0]
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
+        # The expected result stays out of the work directory: m.yag is the only module there.
+        result = case.meta.get("result")
         for f in case.path.iterdir():
-            shutil.copy(f, work / f.name)
+            if f.name != result:
+                shutil.copy(f, work / f.name)
         records, code = ex.patch(work, work / patch.name, case.flags)
         after = (work / "m.yag").read_text(encoding="utf-8")
     before = (case.path / "m.yag").read_text(encoding="utf-8")

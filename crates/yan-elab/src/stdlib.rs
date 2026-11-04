@@ -16,6 +16,8 @@ pub(crate) struct Decl {
     /// An operation of a capability trait.
     pub cap: bool,
     pub def: j::FuncDef,
+    /// `@preview("name")`: using it needs `preview = ["name"]` (20.6, E001).
+    pub preview: Option<String>,
 }
 
 pub(crate) struct Class {
@@ -25,12 +27,12 @@ pub(crate) struct Class {
 }
 
 #[derive(Default)]
-struct Std {
+pub(crate) struct Std {
     /// By path, `std.<module>.<name>`; capability operations by `std.<module>.<op>`.
     fns: HashMap<String, Decl>,
     /// By bare name; std class names do not repeat across modules.
     classes: HashMap<String, Class>,
-    caps: HashSet<String>,
+    pub(crate) caps: HashSet<String>,
     /// Sum types by bare name, as classes.
     sums: HashMap<String, (&'static str, j::TypeDef)>,
     /// Constants by path, `std.<module>.<name>`.
@@ -52,7 +54,7 @@ pub fn install_std(load: fn() -> Vec<StdModule>) {
     let _ = LOADER.set(load);
 }
 
-static STD: LazyLock<Std> = LazyLock::new(|| {
+pub(crate) static STD: LazyLock<Std> = LazyLock::new(|| {
     let mut out = Std::default();
     // This crate's tests load std as the driver does.
     #[cfg(test)]
@@ -64,10 +66,24 @@ static STD: LazyLock<Std> = LazyLock::new(|| {
         out.files.insert(module, (file, src));
         for it in m.items {
             let has = |d: &str| it.decorators.iter().any(|x| x.path == [d]);
+            let preview = it
+                .decorators
+                .iter()
+                .find(|x| x.path == ["preview"])
+                .and_then(|x| {
+                    x.args.iter().flatten().find_map(|a| match &a.kind {
+                        j::ArgKind::Expr(j::Expr {
+                            kind: j::ExprKind::Lit(j::Lit::Str { value, .. }),
+                            ..
+                        }) => Some(value.clone()),
+                        _ => None,
+                    })
+                });
             let decl = |def: j::FuncDef, intrinsic, cap| Decl {
                 module,
                 intrinsic,
                 cap,
+                preview: preview.clone(),
                 def,
             };
             match it.kind {
@@ -210,6 +226,8 @@ pub(crate) struct Method {
     pub ret: Ty,
     /// The type arguments, in the declaration's order.
     pub targs: Vec<Ty>,
+    /// The one failure type, if any.
+    pub fail: Option<Ty>,
 }
 
 impl Decl {
@@ -247,11 +265,28 @@ impl Decl {
             .iter()
             .map(|n| b.get(*n).cloned())
             .collect::<Option<_>>()?;
+        let fail = match self
+            .def
+            .ret
+            .as_ref()
+            .map(|r| r.fail.as_slice())
+            .unwrap_or_default()
+        {
+            [p] => Some(subst(
+                &j::Type::Named {
+                    path: p.clone(),
+                    args: Vec::new(),
+                },
+                &b,
+            )?),
+            _ => None,
+        };
         Some(Method {
             inout: conv == Some(j::Conv::Var),
             params,
             ret,
             targs,
+            fail,
         })
     }
 }
@@ -702,6 +737,7 @@ fn std_cx(module: &str) -> Cx<'static> {
         yn: false,
         ffi: false,
         untrusted: false,
+        previews: Vec::new(),
         diags: Vec::new(),
     }
 }

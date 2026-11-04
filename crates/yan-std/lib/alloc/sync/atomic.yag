@@ -1,0 +1,9 @@
+"""Atomic: lock-free shared values of at most 16 bytes (6.2, E418)."""
+
+@intrinsic
+@since("1.0")
+pub def load[T](self: Atomic[T]) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def store[T](self: Atomic[T], take v: T) -> None: ...

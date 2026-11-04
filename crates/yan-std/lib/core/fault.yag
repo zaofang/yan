@@ -1,0 +1,7 @@
+"""The fault capability: named injection points (7.1, 7.3). `never` is the default and the only
+handler a release build may bind (E317); `sim(seed)` decides each point from the seed and name."""
+
+@capability
+@since("1.0")
+pub trait Fault:
+    def maybe(self: Self, name: str) -> bool: ...

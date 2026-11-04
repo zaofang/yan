@@ -63,7 +63,7 @@ enum Command {
         /// Check level (8.5); `release` enables the release-only rules.
         #[arg(long)]
         level: Option<String>,
-        #[arg(required = true)]
+        /// With none, the package in the current directory: `package.yag` and its modules.
         files: Vec<PathBuf>,
     },
     /// Print a module in another surface: Yan Agent or Yan as Yan Core, Yan as Yan Agent.
@@ -518,6 +518,37 @@ fn run(file: &Path, mut db: Database, backend: Backend, jit: Jit, args: Vec<Stri
     }
 }
 
+/// The modules of the package rooted at `root`, its `package.yag` first, as paths below it.
+fn package_files(root: &Path) -> Result<Vec<PathBuf>, String> {
+    if !root.join("package.yag").is_file() {
+        return Err("no files given and no package.yag in the current directory".into());
+    }
+    fn walk(dir: &Path, rel: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
+        let mut entries: Vec<_> = std::fs::read_dir(dir)
+            .map_err(|e| format!("{}: {e}", dir.display()))?
+            .filter_map(Result::ok)
+            .collect();
+        entries.sort_by_key(|e| e.file_name());
+        for e in entries {
+            let name = e.file_name();
+            let (path, rel) = (e.path(), rel.join(&name));
+            if name.to_string_lossy().starts_with('.') {
+                continue;
+            }
+            if path.is_dir() {
+                walk(&path, &rel, out)?;
+            } else if path.extension().is_some_and(|x| x == "yag" || x == "yn") {
+                out.push(rel);
+            }
+        }
+        Ok(())
+    }
+    let mut out = Vec::new();
+    walk(root, Path::new(""), &mut out)?;
+    out.sort_by_key(|p| p != Path::new("package.yag"));
+    Ok(out)
+}
+
 fn check(
     files: &[PathBuf],
     format: Option<Format>,
@@ -527,6 +558,16 @@ fn check(
     use std::io::IsTerminal;
     let mut diags = Vec::new();
     let mut texts = std::collections::HashMap::new();
+    let package;
+    let files = if files.is_empty() {
+        package = match package_files(Path::new(".")) {
+            Ok(fs) => fs,
+            Err(msg) => return tool_failure(&msg),
+        };
+        &package[..]
+    } else {
+        files
+    };
     for file in files {
         let d = db.open(file).and_then(|f| {
             texts.insert(file.display().to_string(), f.text(&db).clone());
