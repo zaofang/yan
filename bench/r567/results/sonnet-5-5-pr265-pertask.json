@@ -1,0 +1,2335 @@
+[
+ {
+  "task": "HumanEval/102",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/102",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/11",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/11",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 4,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "HumanEval/124",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/124",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 4,
+  "codes": [
+   "E201",
+   "P003",
+   "W806"
+  ]
+ },
+ {
+  "task": "HumanEval/157",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/157",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/19",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/19",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/6-impossible",
+  "arm": "py",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/6-impossible",
+  "arm": "yag",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "HumanEval/6",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/6",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "HumanEval/80",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/80",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E017",
+   "E203",
+   "P003"
+  ]
+ },
+ {
+  "task": "HumanEval/96",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/96",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/99",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "HumanEval/99",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/10",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/10",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/105",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/105",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/107",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/107",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/118",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/118",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/130",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/130",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/138",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/138",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/146-impossible",
+  "arm": "py",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 3,
+  "codes": []
+ },
+ {
+  "task": "mbpp/146-impossible",
+  "arm": "yag",
+  "impossible": true,
+  "status": "stopped",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/146",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/146",
+  "arm": "yag",
+  "impossible": false,
+  "status": "stopped",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/167",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/167",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/179",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/179",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "P003",
+   "W806"
+  ]
+ },
+ {
+  "task": "mbpp/184",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/184",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/185",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/185",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/187",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/187",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/204",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/204",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/205",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/205",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/231",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/231",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/233-impossible",
+  "arm": "py",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 3,
+  "codes": []
+ },
+ {
+  "task": "mbpp/233-impossible",
+  "arm": "yag",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 3,
+  "codes": []
+ },
+ {
+  "task": "mbpp/233",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/233",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/241",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/241",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/244",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/244",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/252",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/252",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/289",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/289",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/295",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/295",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/3-impossible",
+  "arm": "py",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": []
+ },
+ {
+  "task": "mbpp/3-impossible",
+  "arm": "yag",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 4,
+  "codes": [
+   "P003",
+   "W806"
+  ]
+ },
+ {
+  "task": "mbpp/3",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/3",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/304",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/304",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/306",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": []
+ },
+ {
+  "task": "mbpp/306",
+  "arm": "yag",
+  "impossible": false,
+  "status": "stopped",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/316",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/316",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 4,
+  "codes": [
+   "E017",
+   "E200",
+   "E241"
+  ]
+ },
+ {
+  "task": "mbpp/335",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/335",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/35-impossible",
+  "arm": "py",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 3,
+  "codes": []
+ },
+ {
+  "task": "mbpp/35-impossible",
+  "arm": "yag",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/35",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/35",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/357",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/357",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/359-impossible",
+  "arm": "py",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/359-impossible",
+  "arm": "yag",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/359",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": []
+ },
+ {
+  "task": "mbpp/359",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/360",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": []
+ },
+ {
+  "task": "mbpp/360",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/370",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/370",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/380",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/380",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/402",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/402",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/403",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/403",
+  "arm": "yag",
+  "impossible": false,
+  "status": "body_failed",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 5,
+  "codes": [
+   "E200",
+   "E201",
+   "E203",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/406",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/406",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/412",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/412",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/429-impossible",
+  "arm": "py",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 3,
+  "codes": []
+ },
+ {
+  "task": "mbpp/429-impossible",
+  "arm": "yag",
+  "impossible": true,
+  "status": "stopped",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 3,
+  "codes": []
+ },
+ {
+  "task": "mbpp/429",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/429",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E100"
+  ]
+ },
+ {
+  "task": "mbpp/432",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/432",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/447",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/447",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/455",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/455",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/456",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/456",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/48",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/48",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/49",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/49",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E241"
+  ]
+ },
+ {
+  "task": "mbpp/496",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/496",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E312",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/500",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/500",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/503",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/503",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/512",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/512",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/52",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/52",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/524-impossible",
+  "arm": "py",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 3,
+  "codes": []
+ },
+ {
+  "task": "mbpp/524-impossible",
+  "arm": "yag",
+  "impossible": true,
+  "status": "stopped",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 4,
+  "codes": [
+   "E241"
+  ]
+ },
+ {
+  "task": "mbpp/524",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": []
+ },
+ {
+  "task": "mbpp/524",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 4,
+  "codes": [
+   "E017",
+   "E241"
+  ]
+ },
+ {
+  "task": "mbpp/534",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/534",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/541-impossible",
+  "arm": "py",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/541-impossible",
+  "arm": "yag",
+  "impossible": true,
+  "status": "stopped",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/541",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/541",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/542",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/542",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 4,
+  "codes": [
+   "E200",
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/552",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/552",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/584",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/584",
+  "arm": "yag",
+  "impossible": false,
+  "status": "stopped",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/617",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/617",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 3,
+  "codes": [
+   "P003",
+   "W806"
+  ]
+ },
+ {
+  "task": "mbpp/618",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/618",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 4,
+  "codes": [
+   "E017",
+   "E200",
+   "E241",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/638",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": []
+ },
+ {
+  "task": "mbpp/638",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/639",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/639",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/646",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/646",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/659",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/659",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/670",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/670",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/671",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/671",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "P003",
+   "W806"
+  ]
+ },
+ {
+  "task": "mbpp/681",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/681",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/690",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/690",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/706",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/706",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E210"
+  ]
+ },
+ {
+  "task": "mbpp/720",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/720",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/724",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/724",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 4,
+  "codes": [
+   "E017",
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/728",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/728",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/748",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/748",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/75",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/75",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E241"
+  ]
+ },
+ {
+  "task": "mbpp/756",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/756",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/76",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/76",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/764",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/764",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/775",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/775",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/776",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/776",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/780",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/780",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/788",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/788",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/792",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/792",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/817",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/817",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E241"
+  ]
+ },
+ {
+  "task": "mbpp/83",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/83",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 4,
+  "codes": [
+   "E017",
+   "E201",
+   "E315",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/832",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/832",
+  "arm": "yag",
+  "impossible": false,
+  "status": "body_failed",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 5,
+  "codes": [
+   "E201",
+   "E203",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/834",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/834",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/855-impossible",
+  "arm": "py",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/855-impossible",
+  "arm": "yag",
+  "impossible": true,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": false,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/855",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/855",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/865",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/865",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E017",
+   "E200",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/877",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/877",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/878",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/878",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/892",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/892",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/924",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/924",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/940",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/940",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 4,
+  "codes": [
+   "E201",
+   "E210",
+   "E403",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/944",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/944",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 4,
+  "codes": [
+   "E201",
+   "E301",
+   "P003"
+  ]
+ },
+ {
+  "task": "mbpp/965",
+  "arm": "py",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": true,
+  "pass_final": true,
+  "rounds": 2,
+  "codes": []
+ },
+ {
+  "task": "mbpp/965",
+  "arm": "yag",
+  "impossible": false,
+  "status": "green",
+  "pass_at_1": false,
+  "pass_final": true,
+  "rounds": 3,
+  "codes": [
+   "E201",
+   "P003"
+  ]
+ }
+]
