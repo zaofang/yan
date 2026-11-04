@@ -7,15 +7,20 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | Date | Study | Outcome |
 | --- | --- | --- |
 | 2026-11-04 | [Yan Query Language syntax study](../studies/syntax/yan-query-language.md) | Study only; recommends nest, keyed joins, group blocks, two-valued optionals, `rule` and `view` items for RFC 0002 D4 |
+| 2026-11-04 | [Yan Probabilistic syntax and semantics study](../studies/syntax/yan-probabilistic.md) | Study only; recommends typed call-site `given`, index-notation plates, three readings per model |
+| 2026-11-04 | [Yan Protocol (`.ypc`) syntax study](../studies/syntax/yan-protocol.md) | Study only; recommends three layers (protocol, `plays` functions, `play` choreographies), mostly lowering to R633 and R634 |
+| 2026-11-04 | [Plain Yan (`.yn`) syntax study](../studies/syntax/plain-yan.md) | Study only; five proposals and a mix: one-line guards, `for`/`with` as values, trailing block lambdas, one implicit-subject rule, example tables, typed holes, keywords as method names; no rows |
 | 2026-11-04 | [Yan Workflow syntax study](../studies/syntax/workflow.md) | Study only; recommends implicit steps, `first`, `undo`/`commit`, hash-pinned runs |
 | 2026-11-04 | [Yan Shell syntax and semantics study](../studies/syntax/yan-shell.md) | Study only; five proposals and a consolidated mix, D1 to D12 open |
 | 2026-11-04 | [Yan Law syntax study](../studies/syntax/yan-law.md) | Study only; consolidated proposal and items D1 to D9, no rows |
 | 2026-11-04 | [Yan Delegate syntax study](../studies/syntax/yan-delegate.md) | Study only; recommends `want` items, example rows, `like`/`law`/`held`, and ambiguity questions before pinning |
 | 2026-11-04 | [Yan Docs (`.ydoc`) syntax study](../studies/syntax/yan-docs.md) | Study only; proposes D1 to D10 for a later RFC |
-| 2026-11-04 | [Yan Core (`.yir`) syntax study](../studies/syntax/yan-core.md) | Study only; recommends the "ledger cut" mix: convention sigils, dotted intrinsics, explicit `par` outputs, annotated printing as trivia |
+| 2026-11-04 | [Yan Core (`.yir`) syntax study](../studies/syntax/yan-core.md) | Decided (cards): adopt the mix, RFC after M1; conventions as words `borrow`/`inout`/`sink` (no sigils), dotted intrinsics, `par` header outputs, annotated printing as grammar trivia |
 | 2026-11-04 | [Yan Dataflow syntax study](../studies/syntax/yan-dataflow.md) | Study only; five proposals and a mix, no rows |
 | 2026-11-04 | [Yan Agent (`.yag`) syntax study](../studies/syntax/yan-agent.md) | Study only; proposes D1 to D9, no rows |
+| 2026-11-04 | [Yan Infra syntax study](../studies/syntax/yan-infra.md) | Study only; five axis proposals and a mix, no rows |
 | 2026-11-04 | [Should surfaces change semantics?](2026-11-04-surface-semantics.md) | Study only; recommends keeping law 1 for Yan Agent, Yan and Yan Meta |
+| 2026-11-04 | [Yan Prompt (.ypm) syntax study](../studies/syntax/yan-prompt.md) | Study only; recommends trust-typed lanes, header-as-contract, strategy clauses, pinned learned slots |
 | 2026-11-04 | [Yan Spec (`.ysp`) syntax study](../studies/syntax/yan-spec.md) | Study only; five proposals and a mix (state, steps, laws, worlds, links); no rows |
 | 2026-11-03 | [Yan Notation: names and real features](https://claude.ai/artifact/XwShntWVWkEzcMhkxbswiT) | RFC 0029: R776 to R786 |
 | 2026-11-03 | [Yan naming proposal](https://claude.ai/artifact/BHBRo7tdX5b3H4uZbQGs6o) | R774, R775 |

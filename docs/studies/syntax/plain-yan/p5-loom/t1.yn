@@ -1,0 +1,14 @@
+type Quote = { sym: str, px: float }
+
+type PortErr = MissingQuote(sym: str) | Fetch(msg: str)
+
+fetch_quote(sym: str) -> Quote =
+  let body = http.get_text("https://px.example/\(sym)")?
+  let px = json.parse_float(body) else fail Fetch(msg: "bad price: \(sym)")
+  Quote(sym: copy sym, px:)
+
+pub quotes(syms: List[str]) -> List[Quote] fail PortErr | Timeout uses net, time =
+  retry(times: 3, backoff: 100ms) ->
+    with timeout(2s)
+      par (limit: 8) for s in syms
+        fetch_quote(s)?

@@ -1,0 +1,15 @@
+type Account = { id: int, balance: int }
+
+type TransferErr = Insufficient(need: int) | NoAccount(id: int)
+
+pub transfer(var book: Map[int, Account], src: int, dst: int, amt: int) fail TransferErr uses none =
+  pre amt > 0
+  let a = book.get(src) else fail NoAccount(id: src)
+  if a.balance < amt then fail Insufficient(need: amt - a.balance)
+  if dst not in book then fail NoAccount(id: dst)
+  atomically(&book) b ->
+    b[src].balance -= amt
+    b[dst].balance += amt
+
+pay_rent(var book: Map[int, Account]) =
+  transfer(&book, src: 1, dst: 2, amt: 1200)?
