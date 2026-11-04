@@ -22,6 +22,7 @@ mod collections;
 mod compile;
 mod encoding;
 mod env;
+mod fault;
 mod iter;
 mod keyed;
 mod log;

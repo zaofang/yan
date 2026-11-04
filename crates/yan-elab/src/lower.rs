@@ -1648,6 +1648,15 @@ impl Lower<'_, '_, '_> {
                         ),
                     );
                 }
+                let never = matches!(&h.kind, j::ExprKind::Call(f, args)
+                    if args.is_empty() && matches!(&f.kind, j::ExprKind::Name(n) if n == "never"));
+                if name == "fault" && self.cx.release && !never {
+                    self.err(
+                        "E317",
+                        h.span,
+                        "a release build binds `fault` only to `never`".into(),
+                    );
+                }
                 let (a, _) = self.atom(h, None)?;
                 self.handlers.push(name.clone());
                 let b = self.block(&body.stmts);
