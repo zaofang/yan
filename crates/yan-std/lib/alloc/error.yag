@@ -13,3 +13,8 @@ pub def context[T, E: Show](take r: Result[T, E], msg: str) -> T fail Error: ...
 @intrinsic
 @since("1.0")
 pub def wrap[E: Show](take e: E) -> Error: ...
+
+@since("1.0")
+pub class Cancelled:
+    """The failure a blocking operation returns in a cancelled task (9.4)."""
+    pass
