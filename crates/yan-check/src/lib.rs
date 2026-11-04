@@ -561,6 +561,10 @@ impl<'g, 'm> Cx<'g, 'm> {
         };
         let inner = b.tag;
         let write = how == How::Inout;
+        let unsync =
+            b.ty.as_ref()
+                .and_then(base)
+                .is_some_and(|t| matches!(t, "Cell" | "Rc" | "Weak"));
         for &(pid, branch) in &self.par.clone() {
             if inner.is_some_and(|(p, _)| p == pid) {
                 continue;
@@ -569,6 +573,18 @@ impl<'g, 'm> Cx<'g, 'm> {
                 .par_uses
                 .iter()
                 .any(|(m, p, x, w)| m == n && *p == pid && *x != branch && (*w || write));
+            let shared = unsync
+                && self
+                    .par_uses
+                    .iter()
+                    .any(|(m, p, x, _)| m == n && *p == pid && *x != branch);
+            if shared && !clash && self.reported.insert(format!("par:{n}")) {
+                self.err(
+                    "E417",
+                    span,
+                    format!("`{n}` is not Sync, and another branch of this `par` borrows it too"),
+                );
+            }
             if clash && self.reported.insert(format!("par:{n}")) {
                 self.err(
                     "E705",
@@ -978,7 +994,11 @@ impl<'g, 'm> Cx<'g, 'm> {
             Rhs::Copy(p) => {
                 let t = self.place(p, How::Read)?;
                 if let Some(b) = base(&t).filter(|b| SHARE.contains(b)) {
-                    self.err("E416", p.root_span, format!("`copy` of a `{b}`; use `share`"));
+                    self.err(
+                        "E416",
+                        p.root_span,
+                        format!("`copy` of a `{b}`; use `share`"),
+                    );
                 }
                 Some(type_text(&t))
             }

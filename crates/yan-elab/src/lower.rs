@@ -741,6 +741,34 @@ fn function_body(
         })
         .collect();
     for p in &sig.params {
+        if let Ty::Coll("Atomic", ts) = &p.ty
+            && byte_size(g, &ts[0]).is_none_or(|n| n > 16)
+        {
+            let line =
+                l.cx.src
+                    .lines()
+                    .nth(f.name_span.line as usize - 1)
+                    .unwrap_or("");
+            let col = line
+                .find("Atomic[")
+                .map_or(f.name_span.col, |k| k as u32 + 1);
+            let at = Span {
+                line: f.name_span.line,
+                col,
+                end_line: f.name_span.line,
+                end_col: col + 6,
+            };
+            let item = l.item.clone();
+            l.cx.err(
+                "E418",
+                at,
+                &item,
+                format!(
+                    "`{}` has no lock-free form: it is wider than 16 bytes",
+                    l.ty_text(&ts[0])
+                ),
+            );
+        }
         l.locals.insert(p.name.clone(), Local { ty: p.ty.clone() });
         params.push(y::Param::Value {
             comptime: false,
@@ -4182,7 +4210,15 @@ impl Lower<'_, '_, '_> {
     }
 
     /// `+` and `-` on quantities of one dimension; other dimensions are E530 (11.4).
-    fn quantity_op(&mut self, op: &str, x: &Atom, tx: &Ty, y_: &Atom, ty: &Ty, at: Span) -> Option<R<(Rhs, Ty)>> {
+    fn quantity_op(
+        &mut self,
+        op: &str,
+        x: &Atom,
+        tx: &Ty,
+        y_: &Atom,
+        ty: &Ty,
+        at: Span,
+    ) -> Option<R<(Rhs, Ty)>> {
         let dim = |t: &Ty| match t {
             Ty::Coll("Quantity", ts) => Some(ts[1].to_string()),
             _ => None,
@@ -4204,12 +4240,16 @@ impl Lower<'_, '_, '_> {
             return Some(Ok((Rhs::Atom(x.clone()), Ty::Err)));
         }
         let p = float_op(op).expect("`+` and `-` on float");
-        let c = call(&p, vec![], vec![let_arg(x.clone()), let_arg(y_.clone())], at);
+        let c = call(p, vec![], vec![let_arg(x.clone()), let_arg(y_.clone())], at);
         Some(Ok((Rhs::Call(c), tx.clone())))
     }
 
     /// `n * u` or `u * n` where `u` names a std unit (11.4) and no binding of that name.
-    fn unit_product<'e>(&self, a: &'e j::Expr, b: &'e j::Expr) -> Option<(&'e j::Expr, &'static str)> {
+    fn unit_product<'e>(
+        &self,
+        a: &'e j::Expr,
+        b: &'e j::Expr,
+    ) -> Option<(&'e j::Expr, &'static str)> {
         let unit = |e: &j::Expr| match &e.kind {
             j::ExprKind::Name(n)
                 if !self.locals.contains_key(n)
@@ -4271,7 +4311,10 @@ impl Lower<'_, '_, '_> {
         if t == Ty::Err {
             return Ok((r, t));
         }
-        Ok((r, Ty::Coll("Quantity", vec![Ty::Float, Ty::Data(dim.into())])))
+        Ok((
+            r,
+            Ty::Coll("Quantity", vec![Ty::Float, Ty::Data(dim.into())]),
+        ))
     }
 
     fn arith(
@@ -4298,7 +4341,8 @@ impl Lower<'_, '_, '_> {
                 "W817",
                 at,
                 &item,
-                "a `day` or `week` duration is exact hours; add a `Period` for calendar days".into(),
+                "a `day` or `week` duration is exact hours; add a `Period` for calendar days"
+                    .into(),
             );
         }
         let want = want.filter(|w| !matches!(w, Ty::Float) || op != "/");
@@ -4859,6 +4903,19 @@ impl Lower<'_, '_, '_> {
                         "E709",
                         at,
                         format!("`{m}` depends on other tasks; declare `uses nondet`"),
+                    );
+                }
+                if let (Rhs::Call(c), _, _) = &r
+                    && c.path.join(".") == "std.chan.sender.send"
+                    && c.targs
+                        .iter()
+                        .any(|t| matches!(t, y::TArg::Type(t) if not_send(t)))
+                    && let Some(a) = args.first()
+                {
+                    self.err(
+                        "E415",
+                        a.span,
+                        "this value is not Send (it holds an `Rc`), so it cannot cross to another task".into(),
                     );
                 }
                 Ok(r)
@@ -7176,7 +7233,10 @@ fn directives(fmt: &str) -> Result<Vec<(String, u8)>, String> {
 
 /// Std units (11.4): name, dimension, scale to the SI base unit, and for a duration the
 /// `Duration` constructor and multiplier an `int` count goes through.
-const UNITS: &[(&str, &str, f64, Option<(&str, i64)>)] = &[
+/// A `Duration` constructor and the multiplier its `int` count takes.
+type DurationCtor = Option<(&'static str, i64)>;
+
+const UNITS: &[(&str, &str, f64, DurationCtor)] = &[
     ("ns", "time", 1e-9, Some(("nanos", 1))),
     ("us", "time", 1e-6, Some(("micros", 1))),
     ("ms", "time", 1e-3, Some(("millis", 1))),
@@ -7204,3 +7264,41 @@ const NONDET_OPS: &[&str] = &[
     "std.chan.receiver.share",
     "std.actor.share",
 ];
+
+/// A type holding an `Rc` or `Weak`, whose counts are not atomic (6.4).
+fn not_send(t: &y::Type) -> bool {
+    match t {
+        y::Type::Named(n) => {
+            matches!(n.path.last().map(String::as_str), Some("Rc" | "Weak"))
+                || n.args
+                    .iter()
+                    .any(|a| matches!(a, y::TArg::Type(t) if not_send(t)))
+        }
+        y::Type::Tuple(ts) | y::Type::Union(ts) => ts.iter().any(not_send),
+        _ => false,
+    }
+}
+
+/// The size in bytes of a plain value of `t`, when it has a fixed one (5.1).
+fn byte_size(g: &Globals, t: &Ty) -> Option<usize> {
+    Some(match t {
+        Ty::Int | Ty::Float => 8,
+        Ty::Bool => 1,
+        Ty::Char => 4,
+        Ty::Unit => 0,
+        Ty::Fixed(n) => {
+            n.trim_start_matches(|c: char| c.is_alphabetic())
+                .parse::<usize>()
+                .ok()?
+                / 8
+        }
+        Ty::Tuple(ts) => ts.iter().map(|t| byte_size(g, t)).sum::<Option<usize>>()?,
+        Ty::Data(n) => g
+            .records
+            .get(n)?
+            .iter()
+            .map(|f| byte_size(g, &f.ty))
+            .sum::<Option<usize>>()?,
+        _ => return None,
+    })
+}

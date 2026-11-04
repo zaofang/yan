@@ -39,10 +39,12 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_FAULT_MAYBE,
         Bind::Cap(|_, a| match a {
-            [Value::Data { fields, .. }, Value::Str(n)] => Ok(Value::Bool(match fields.as_slice() {
-                [(_, Value::Int(s))] => fires(*s, n),
-                _ => false,
-            })),
+            [Value::Data { fields, .. }, Value::Str(n)] => {
+                Ok(Value::Bool(match fields.as_slice() {
+                    [(_, Value::Int(s))] => fires(*s, n),
+                    _ => false,
+                }))
+            }
             [_, Value::Str(_)] => Ok(Value::Bool(false)),
             _ => bad_args(STD_FAULT_MAYBE),
         }),

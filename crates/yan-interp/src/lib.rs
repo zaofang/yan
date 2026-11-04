@@ -37,6 +37,7 @@ mod regex;
 mod std_parity;
 #[cfg(test)]
 mod std_selftest;
+mod sync;
 mod time;
 mod vm;
 

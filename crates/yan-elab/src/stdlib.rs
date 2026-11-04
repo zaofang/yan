@@ -249,7 +249,13 @@ impl Decl {
             .iter()
             .map(|n| b.get(*n).cloned())
             .collect::<Option<_>>()?;
-        let fail = match self.def.ret.as_ref().map(|r| r.fail.as_slice()).unwrap_or_default() {
+        let fail = match self
+            .def
+            .ret
+            .as_ref()
+            .map(|r| r.fail.as_slice())
+            .unwrap_or_default()
+        {
             [p] => Some(subst(
                 &j::Type::Named {
                     path: p.clone(),
