@@ -5725,8 +5725,23 @@ impl Lower<'_, '_, '_> {
         } else {
             targs
         };
+        // The interpreter cannot see element types, so a float `sum` is its own function: an
+        // empty one is `-0.0` (R382), not an int `0`.
+        let float_sum = (path == "std.iter.ops.sum"
+            || path == "sum" && self.g.std_fns.contains(path))
+            && matches!(map.first(), Some((_, Ty::Float)));
+        let (path, targs) = if float_sum {
+            let float = if path == "sum" {
+                "std.prelude.sum_float".to_owned()
+            } else {
+                format!("{path}_float")
+            };
+            (float, vec![])
+        } else {
+            (path.to_owned(), targs)
+        };
         Ok((
-            Rhs::Call(call(path, targs, out, at)),
+            Rhs::Call(call(&path, targs, out, at)),
             sig.ret.subst(&map),
             sig.fail.as_ref().map(|f| f.subst(&map)),
         ))

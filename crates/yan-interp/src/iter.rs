@@ -369,6 +369,7 @@ impl Vm<'_> {
                         }
                     }
                     (STD_ITER_OPS_SUM, []) => sum(self.drain(&i)?)?,
+                    (STD_ITER_OPS_SUM_FLOAT, []) => sum_float(self.drain(&i)?),
                     (STD_ITER_OPS_DONE, []) => {
                         let x = self.pull(&i)?;
                         let done = x.is_none();
@@ -401,6 +402,11 @@ fn sum(xs: Vec<Value>) -> R<Value> {
             panic("overflow")
         };
     }
+    Ok(sum_float(xs))
+}
+
+/// The float `sum`; unlike [`sum`] it knows from the element type that an empty input is a float.
+pub(crate) fn sum_float(xs: Vec<Value>) -> Value {
     let fs: Vec<f64> = xs
         .iter()
         .map(|x| match x {
@@ -408,7 +414,7 @@ fn sum(xs: Vec<Value>) -> R<Value> {
             _ => 0.0,
         })
         .collect();
-    Ok(Value::Float(yan_rt::num::sum_f64(&fs)))
+    Value::Float(yan_rt::num::sum_f64(&fs))
 }
 
 /// The ids `iter_call` handles.
@@ -444,6 +450,7 @@ pub(crate) const IDS: &[Id] = &[
     STD_ITER_OPS_SKIP,
     STD_ITER_OPS_STEP_BY,
     STD_ITER_OPS_SUM,
+    STD_ITER_OPS_SUM_FLOAT,
     STD_ITER_OPS_TAKE,
     STD_ITER_OPS_TAKE_WHILE,
     STD_ITER_OPS_WINDOWS,

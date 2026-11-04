@@ -156,6 +156,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         },
         [Float(x)] => Float(x.abs()),
     }),
+    f!(STD_PRELUDE_SUM_FLOAT, |a| { [List(xs)] => super::iter::sum_float(xs.clone()) }),
     f!(STD_CMP_EQ, |a| { [x, y] => Bool(x == y) }),
     f!(STD_CMP_NE, |a| { [x, y] => Bool(x != y) }),
     f!(STD_CMP_LT, |a| { [x, y] => Bool(order(x, y) == Some(Ordering::Less)) }),

@@ -211,3 +211,10 @@ fn has_callable(t: &j::Type) -> bool {
         j::Type::None => false,
     }
 }
+
+#[test]
+fn empty_float_sum_is_negative_zero() {
+    let src = "pub def main() uses io:\n    xs: list[float] = []\n    ys: list[int] = []\n\
+               \x20   io.print(f\"{sum(xs)} {xs.iter().sum()} {sum(ys)} {ys.iter().sum()}\")\n";
+    assert_eq!(run(src), "-0.0 -0.0 0 0\n");
+}
