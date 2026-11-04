@@ -664,8 +664,8 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             }
             j::ItemKind::Extern(x) => ffi::collect(g, x, it.span, cx)?,
             j::ItemKind::Trait(t) => {
-                if !t.tparams.is_empty() || !t.assoc.is_empty() {
-                    return unsupported("generic traits and associated types");
+                if !t.tparams.is_empty() {
+                    return unsupported("generic traits");
                 }
                 *g.scope.borrow_mut() = vec!["Self".into()];
                 let mut ms = Vec::new();
@@ -692,9 +692,8 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             continue;
         }
         if let j::ItemKind::Impl(i) = &it.kind {
-            let (Some(tr), true, true) = (impl_trait(i), i.args.is_empty(), i.assoc.is_empty())
-            else {
-                return unsupported("generic impls and associated types");
+            let (Some(tr), true) = (impl_trait(i), i.args.is_empty()) else {
+                return unsupported("generic impls");
             };
             let for_ty = g.ty(&i.for_ty, cx, it.span)?;
             let key = for_ty.to_string();
@@ -1156,7 +1155,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             is_pub: it.is_pub,
             path: vec![t.name.clone()],
             tparams: Vec::new(),
-            assoc: Vec::new(),
+            assoc: t.assoc.clone(),
             sigs: g.traits[&t.name]
                 .iter()
                 .map(|(n, s)| lower::signature(n, s, false, f_span(t, n)))
@@ -1181,6 +1180,10 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                 let s = &g.methods[&(key.clone(), f.name.clone())];
                 fns.push(lower::function(g, f, s, false, cx));
             }
+            let mut assoc = Vec::new();
+            for (n, t) in &i.assoc {
+                assoc.push((n.clone(), g.ty(t, cx, it.span)?.core()));
+            }
             *g.self_ty.borrow_mut() = None;
             y::ItemKind::Impl(y::Impl {
                 is_unsafe: false,
@@ -1189,7 +1192,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                     args: Vec::new(),
                 },
                 for_ty: for_ty.core(),
-                assoc: Vec::new(),
+                assoc,
                 fns: fns.into_iter().collect::<R<_>>()?,
             })
         }
