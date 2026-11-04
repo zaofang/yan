@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-04 | [Yan build system study](../studies/build-system.md) | Study only; one engine over the query database, no build files, content cache with HTTP remote, sandbox only for C via pinned clang; D1 to D10, first milestone B1 in M1b; polyglot builder is a separate product |
 | 2026-11-04 | [R567 benchmark, Sonnet and Haiku](../reports/2026-11-04-r567-sonnet-haiku.md) | Measured; M1 gate not met on either model; lowering candidates and gaps listed |
 | 2026-11-04 | [Yan syntax consolidation](../studies/syntax/consolidation.md) | Study and proposal only; family grammar, glyph ownership rule, conflicts C1 to C17, decisions D1 to D19, questions Q1 to Q8, no rows |
 | 2026-11-04 | [Yan Query Language syntax study](../studies/syntax/yan-query-language.md) | Study only; recommends nest, keyed joins, group blocks, two-valued optionals, `rule` and `view` items for RFC 0002 D4 |
