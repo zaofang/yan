@@ -594,6 +594,17 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     }
     let mut impls = HashMap::new();
     for it in &m.items {
+        if let j::ItemKind::Impl(i) = &it.kind
+            && let Some((from, f)) = from_impl(i)
+        {
+            let a = g.ty(from, cx, it.span)?;
+            let for_ty = g.ty(&i.for_ty, cx, it.span)?;
+            let name = from_fn_name(i);
+            let s = sig(g, f, cx)?;
+            g.fns.insert(name.clone(), s);
+            g.froms.insert((a.to_string(), for_ty.to_string()), name);
+            continue;
+        }
         if let j::ItemKind::Impl(i) = &it.kind {
             let (Some(tr), true, true) = (impl_trait(i), i.args.is_empty(), i.assoc.is_empty())
             else {
@@ -630,6 +641,23 @@ fn f_span(t: &j::Trait, n: &str) -> Span {
         .find(|(_, f)| f.name == n)
         .map(|(_, f)| f.name_span)
         .expect("a method of the trait")
+}
+
+/// `impl From[E] for T` with its one `convert` function; it lowers to a free function that `?`
+/// calls to convert an `E` failure into `T` (8.1).
+fn from_impl(i: &j::Impl) -> Option<(&j::Type, &j::FuncDef)> {
+    match (i.trait_.as_slice(), i.args.as_slice(), i.fns.as_slice()) {
+        ([t], [a], [f]) if t == "From" && i.assoc.is_empty() && f.name == "convert" => Some((a, f)),
+        _ => None,
+    }
+}
+
+fn from_fn_name(i: &j::Impl) -> String {
+    let text = |t: &j::Type| match t {
+        j::Type::Named { path, .. } => path.join("_"),
+        _ => "t".into(),
+    };
+    format!("{}__from_{}", text(&i.for_ty), text(&i.args[0]))
 }
 
 fn impl_trait(i: &j::Impl) -> Option<String> {
@@ -1008,6 +1036,14 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                 .collect(),
             derived: None,
         }),
+        j::ItemKind::Impl(i) if let Some((_, f)) = from_impl(i) => {
+            let name = from_fn_name(i);
+            let f = j::FuncDef {
+                name: name.clone(),
+                ..f.clone()
+            };
+            y::ItemKind::Fn(lower::function(g, &f, &g.fns[&name], false, cx)?)
+        }
         j::ItemKind::Impl(i) => {
             let tr = impl_trait(i).expect("checked in collect");
             let for_ty = g.ty(&i.for_ty, cx, it.span)?;

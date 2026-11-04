@@ -3614,6 +3614,18 @@ impl Lower<'_, '_, '_> {
                             self.sig.fail.as_ref().and_then(|own| {
                                 self.g.froms.get(&(e.to_string(), own.to_string()))
                             });
+                        let injects =
+                            matches!(&self.sig.fail, Some(Ty::Union(ms)) if ms.contains(&e));
+                        if from.is_some() && injects {
+                            self.err(
+                                "E313",
+                                at,
+                                format!(
+                                    "`?` could inject the `{e}` failure into the union or convert it \
+                                     with `From`; remove the `From` implementation"
+                                ),
+                            );
+                        }
                         let via = match from {
                             Some(f) => Some(vec![f.clone()]),
                             None => into_error
