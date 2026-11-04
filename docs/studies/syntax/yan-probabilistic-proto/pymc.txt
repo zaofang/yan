@@ -1,0 +1,7 @@
+with pm.Model(coords={"school": schools}) as m:
+    mu = pm.Normal("mu", 0, 5)
+    tau = pm.HalfCauchy("tau", 5)
+    eta = pm.Normal("eta", 0, 1, dims="school")
+    theta = pm.Deterministic("theta", mu + tau * eta, dims="school")
+    pm.Normal("y", theta, sigma, observed=y, dims="school")
+    idata = pm.sample(chains=4, random_seed=7)
