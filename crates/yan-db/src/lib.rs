@@ -3,6 +3,8 @@
 //! its elaborated Yan Core, its diagnostics and its items. Std's Yan Agent sources are parsed here too,
 //! since the elaborator depends on no surface crate (R560).
 
+mod docs;
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Once;
@@ -235,6 +237,9 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
         Ok((y, mut errs)) => {
             let stop = has_error(&errs);
             errs.extend(diags);
+            if let Some(sf) = surface(path) {
+                errs.extend(docs::lint(&name, file.text(db), m, sf));
+            }
             if stop {
                 Loaded::Stopped(errs)
             } else {
