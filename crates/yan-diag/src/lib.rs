@@ -39,6 +39,17 @@ pub struct Diagnostic {
     /// Secondary spans, each with what happened there (R290).
     #[serde(default)]
     pub labels: Vec<Label>,
+    /// Nested notes (R290), such as the habit behind the diagnostic (R662).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub children: Vec<Child>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Child {
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    pub text: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -68,6 +79,7 @@ impl Diagnostic {
             counterexample: None,
             quote: quote.to_owned(),
             labels: Vec::new(),
+            children: Vec::new(),
         }
     }
 
@@ -144,9 +156,14 @@ impl Diagnostic {
                 out.push_str(&format!(" | {kind}: {old} -> {new}"));
             }
         }
+        for c in &self.children {
+            out.push_str(&format!(" | note: {}", c.text));
+        }
         out.replace('\n', "\\n")
     }
 }
+
+pub mod habit;
 
 const CATALOGUE: &str = include_str!("../../../spec/25-diagnostics-catalogue.md");
 
@@ -245,6 +262,9 @@ impl Diagnostic {
                     out += &format!("{pad}   - {line}\n{pad}   + {new}\n");
                 }
             }
+        }
+        for c in &self.children {
+            out += &format!("{pad} = note: {}\n", c.text);
         }
         out += &format!("{pad} = more: yan explain {}\n", self.code);
         out

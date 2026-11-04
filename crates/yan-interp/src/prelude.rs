@@ -7,7 +7,7 @@ use yan_rt::{fmt, list, num, text};
 use yan_std::registry::{Id, id::*};
 
 use super::bind::{Bind, bad_args};
-use super::{Value, panic, panic_with, slice_out_of_range};
+use super::{R, Value, panic, panic_with, slice_out_of_range};
 use Value::*;
 
 macro_rules! f {
@@ -25,6 +25,11 @@ macro_rules! f {
     };
 }
 
+/// A repetition count: 0 or less is 0; one too large to allocate panics with kind `alloc`.
+fn count(n: i128) -> R<usize> {
+    usize::try_from(n.max(0)).or_else(|_| panic("alloc"))
+}
+
 fn s(x: String) -> Value {
     Str(x.into())
 }
@@ -32,6 +37,8 @@ fn s(x: String) -> Value {
 pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_FMT_SHOW, |a| { [v] => s(show(v, false)) }),
     f!(STD_TEXT_CONCAT, |a| { [Str(x), Str(y)] => s(format!("{x}{y}")) }),
+    // A count of 0 or less repeats nothing (R660).
+    f!(STD_TEXT_REPEAT, |a| { [Str(x), Int(n)] => s(x.repeat(count(*n)?)) }),
     f!(STD_TEXT_BYTE_LEN, |a| { [Str(x)] => Int(x.len() as i128) }),
     f!(STD_TEXT_CHAR_COUNT, |a| { [Str(x)] => Int(x.chars().count() as i128) }),
     f!(STD_TEXT_GRAPHEME_COUNT, |a| { [Str(x)] => Int(text::grapheme_count(x) as i128) }),
@@ -74,6 +81,12 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     }),
     f!(STD_LIST_CONCAT, |a| {
         [List(x), List(y)] => List(x.iter().chain(y.iter()).cloned().collect())
+    }),
+    f!(STD_LIST_REPEAT, |a| {
+        [List(x), Int(n)] => {
+            let n = count(*n)?;
+            List(std::iter::repeat_n(x.iter(), n).flatten().cloned().collect())
+        }
     }),
     f!(STD_LIST_CONTAINS, |a| { [List(xs), v] => Bool(xs.contains(v)) }),
     f!(STD_LIST_INSERT, |a| {

@@ -91,6 +91,14 @@ pub def max[T, K: Ord](self: iter[T], key: Callable[[T], K] | None = None) -> T 
 
 @intrinsic
 @since("1.0")
+pub def min_nonempty[T, K: Ord](self: iter[T], key: Callable[[T], K] | None = None) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def max_nonempty[T, K: Ord](self: iter[T], key: Callable[[T], K] | None = None) -> T: ...
+
+@intrinsic
+@since("1.0")
 pub def sum[T: Num](self: iter[T]) -> T: ...
 
 @intrinsic

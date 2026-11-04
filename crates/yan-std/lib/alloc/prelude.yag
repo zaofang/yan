@@ -2,7 +2,7 @@
 
 @intrinsic
 @since("1.0")
-pub def sorted[T, K: Ord](xs: iter[T], key: Callable[[T], K] | None = None) -> list[T]: ...
+pub def sorted[T, K: Ord](xs: iter[T], key: Callable[[T], K] | None = None, reverse: bool = False) -> list[T]: ...
 
 @intrinsic
 @since("1.0")

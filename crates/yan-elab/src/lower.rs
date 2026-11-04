@@ -167,6 +167,26 @@ pub(crate) fn literal(l: &j::Lit) -> R<Literal> {
     })
 }
 
+/// An integer literal typed as the binary float type `want` when its value is exact there (R656).
+fn float_lit(text: &str, want: &Ty, at: Span) -> Option<Rhs> {
+    let (precision, max) = match want {
+        Ty::Float => (53, None),
+        Ty::Fixed(n) => match *n {
+            "f16" => (11, Some(65504)),
+            "bf16" => (8, None),
+            "f32" => (24, None),
+            "f64" => (53, None),
+            "f128" => (113, None),
+            _ => return None,
+        },
+        _ => return None,
+    };
+    let v = text.parse::<i128>().ok()?.unsigned_abs();
+    let odd = v.checked_shr(v.trailing_zeros()).unwrap_or(0);
+    let exact = u128::BITS - odd.leading_zeros() <= precision && max.is_none_or(|m| v <= m);
+    exact.then(|| Rhs::Atom(Atom::Lit(Literal::Float(format!("{text}.0")), at)))
+}
+
 fn int_text(s: &str) -> R<String> {
     let s = s.replace('_', "");
     let (radix, digits) = match s.get(..2) {
@@ -948,6 +968,15 @@ fn int_op(op: &str) -> Option<(&'static str, Ty)> {
         "^" => ("xor_i64", Ty::Int),
         _ => return None,
     })
+}
+
+/// An integer literal, possibly negated.
+fn is_int_lit(e: &j::Expr) -> bool {
+    match &e.kind {
+        j::ExprKind::Lit(j::Lit::Int(_)) => true,
+        j::ExprKind::Unary(op, x) => *op == "-" && is_int_lit(x),
+        _ => false,
+    }
 }
 
 fn is_integer(t: &Ty) -> bool {
@@ -3216,6 +3245,32 @@ impl Lower<'_, '_, '_> {
                     );
                     let (r, _) = self.lambda(&names, &body, Some(&ty))?;
                     (r, ty)
+                } else if BUILTINS.contains(&n.as_str())
+                    && let Some(f @ Ty::Fn(_, ps, _)) = match want {
+                        Some(Ty::Option(t)) => Some(&**t),
+                        w => w,
+                    }
+                    && ps.len() == 1
+                {
+                    // A one-argument builtin as a value, as `key=len` (R659).
+                    let x = format!("_{n}_0");
+                    let name = |x: &str| j::Expr {
+                        kind: K::Name(x.to_owned()),
+                        span: at,
+                        paren: false,
+                    };
+                    let arg = j::Arg {
+                        name: None,
+                        kind: j::ArgKind::Expr(name(&x)),
+                        span: at,
+                    };
+                    let body = j::Expr {
+                        kind: K::Call(Box::new(name(n)), vec![arg]),
+                        span: at,
+                        paren: false,
+                    };
+                    let f = f.clone();
+                    self.lambda(&[x], &body, Some(&f))?
                 } else if self.gone.contains(n) {
                     return unsupported("a binding used after the block that made it");
                 } else if self.ghosts.contains(n) {
@@ -3250,6 +3305,11 @@ impl Lower<'_, '_, '_> {
                 }
                 if let (j::Lit::Int(s), Some(Ty::BigInt)) = (l, want) {
                     return Ok((self.bigint_lit(&int_text(s)?, at), Ty::BigInt));
+                }
+                if let (j::Lit::Int(s), Some(w)) = (l, want)
+                    && let Some(r) = float_lit(&int_text(s)?, w, at)
+                {
+                    return Ok((r, w.clone()));
                 }
                 let t = match (l, want) {
                     (j::Lit::Int(s), _) => self.int_lit_ty(&int_text(s)?, want, at),
@@ -3466,6 +3526,12 @@ impl Lower<'_, '_, '_> {
                     self.bigint_lit(&format!("-{}", int_text(s)?), at),
                     Ty::BigInt,
                 ),
+                ("-", K::Lit(j::Lit::Int(s)))
+                    if let Some(w) = want
+                        && let Some(r) = float_lit(&format!("-{}", int_text(s)?), w, at) =>
+                {
+                    (r, w.clone())
+                }
                 ("-", K::Lit(j::Lit::Int(s))) => {
                     let text = format!("-{}", int_text(s)?);
                     let t = self.int_lit_ty(&text, want, at);
@@ -3955,7 +4021,20 @@ impl Lower<'_, '_, '_> {
         at: Span,
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty)> {
-        let (x, tx) = self.atom(a, want.filter(|w| !matches!(w, Ty::Float) || op != "/"))?;
+        let want = want.filter(|w| !matches!(w, Ty::Float) || op != "/");
+        // `2 * x`: a literal on the left takes the right operand's type (R656).
+        let lit_left = is_int_lit(a) && !is_int_lit(b) && !matches!(op, "<<" | ">>" | "**");
+        let (x, tx, right) = if lit_left {
+            let (y_, ty) = self.atom(b, want)?;
+            let (x, tx) = self.atom(a, Some(&ty))?;
+            (x, tx, Some((y_, ty)))
+        } else {
+            let (x, tx) = self.atom(a, want)?;
+            (x, tx, None)
+        };
+        if op == "**" && tx == Ty::Float {
+            return self.float_pow(x, b, at);
+        }
         if matches!(op, "<<" | ">>") && is_integer(&tx) {
             // The amount is any integer type; a `bigint` shifts by an `int`.
             let hint = if tx == Ty::BigInt {
@@ -3982,7 +4061,10 @@ impl Lower<'_, '_, '_> {
                 tx,
             ));
         }
-        let (y_, ty) = self.atom(b, Some(&tx))?;
+        let (y_, ty) = match right {
+            Some(r) => r,
+            None => self.atom(b, Some(&tx))?,
+        };
         if op == "+" && matches!(tx, Ty::Str | Ty::List(_)) && self.not_last_use(a, at) {
             let item = self.item.clone();
             self.cx.warn(
@@ -4031,6 +4113,19 @@ impl Lower<'_, '_, '_> {
                 };
                 (format!("std.time.{f}"), tx.clone(), vec![])
             }
+            // `*` between a sequence and an `int`, in either order, repeats it (R660).
+            (Ty::Str, Ty::Int) if op == "*" => ("std.text.repeat".to_owned(), Ty::Str, vec![]),
+            (Ty::List(e), Ty::Int) if op == "*" => {
+                ("std.list.repeat".to_owned(), tx.clone(), vec![e.targ()])
+            }
+            (Ty::Int, Ty::Str | Ty::List(_)) if op == "*" => {
+                let (path, targs) = match &ty {
+                    Ty::List(e) => ("std.list.repeat", vec![e.targ()]),
+                    _ => ("std.text.repeat", vec![]),
+                };
+                let args = args.into_iter().rev().collect();
+                return Ok((Rhs::Call(call(path, targs, args, at)), ty));
+            }
             (Ty::Str, Ty::Str) if op == "+" => ("std.text.concat".to_owned(), Ty::Str, vec![]),
             (Ty::List(e), Ty::List(_)) if op == "+" => {
                 ("std.list.concat".to_owned(), tx.clone(), vec![e.targ()])
@@ -4062,6 +4157,32 @@ impl Lower<'_, '_, '_> {
             }
         };
         Ok((Rhs::Call(call(&path, targs, args, at)), rt))
+    }
+
+    /// `x ** n` for a `float` `x`: `pown` for an `int` `n` (R657), `pow` for a `float` one.
+    fn float_pow(&mut self, x: Atom, b: &j::Expr, at: Span) -> R<(Rhs, Ty)> {
+        let (n, nt) = self.atom(b, Some(&Ty::Int))?;
+        let f = match nt {
+            Ty::Err => return Ok((Rhs::Atom(x), Ty::Err)),
+            Ty::Int => "pown",
+            Ty::Float => "pow",
+            _ if is_integer(&nt) => {
+                return unsupported(format!("`**` with a `{}` exponent", self.ty_text(&nt)));
+            }
+            _ => {
+                let msg = format!("`**` between `float` and `{}`", self.ty_text(&nt));
+                self.err("E201", at, msg);
+                return Ok((Rhs::Atom(x), Ty::Err));
+            }
+        };
+        let path = format!("std.math.{f}");
+        let p = crate::stdlib::decl(&path)
+            .and_then(|d| d.plain())
+            .expect("std.math declares pow and pown");
+        let (_, round) = p.names[2];
+        let (r, _) = self.atom(round.expect("a default rounding"), Some(&p.params[2].1))?;
+        let args = vec![let_arg(x), let_arg(n), let_arg(r)];
+        Ok((Rhs::Call(call(&path, vec![], args, at)), Ty::Float))
     }
 
     /// Lowering `value` with no expected type gives `t`: a literal of its default type, a local,
@@ -4373,6 +4494,13 @@ impl Lower<'_, '_, '_> {
                 self.call_local(n, t, f.span, args, at)
             }
             j::ExprKind::Name(n) if !self.locals.contains_key(n) => {
+                let prelude = !self.g.fns.contains_key(n) || self.g.std_fns.contains(n);
+                if prelude
+                    && matches!(n.as_str(), "min" | "max")
+                    && args.iter().filter(|a| a.name.is_none()).count() == 1
+                {
+                    return self.extreme(n, args, at, want);
+                }
                 if self.g.fns.contains_key(n) {
                     return self.user_call(n, None, args, at);
                 }
@@ -4974,7 +5102,7 @@ impl Lower<'_, '_, '_> {
         }
         let mut elems: Vec<(String, Atom)> = Vec::new();
         // Lambdas go last, so their parameter types can come from the other arguments.
-        let lambda = |s: &Option<Given>| matches!(s, Some(Given::Expr(e, ..)) if matches!(e.kind, j::ExprKind::Lambda(..)));
+        let lambda = |s: &Option<Given>| matches!(s, Some(Given::Expr(e, ..)) if self.fn_value(e));
         let mut order: Vec<usize> = (0..ps.len()).filter(|&k| !lambda(&slots[k])).collect();
         order.extend((0..ps.len()).filter(|&k| lambda(&slots[k])));
         let mut done: Vec<Option<Arg>> = (0..ps.len()).map(|_| None).collect();
@@ -5059,7 +5187,7 @@ impl Lower<'_, '_, '_> {
                     let w = p.ty.subst(&map);
                     // An unbound type parameter is no expectation: `first(["a"])` must bind `T`
                     // from the literal, not type the literal by `T`. Lambdas still need it.
-                    let lambda = matches!(e.kind, j::ExprKind::Lambda(..));
+                    let lambda = self.fn_value(e);
                     let w = (!matches!(w, Ty::Coll("iter", _))
                         && (lambda || !self.unbound_param(&w)))
                     .then_some(w);
@@ -5127,6 +5255,86 @@ impl Lower<'_, '_, '_> {
             paren: false,
         };
         self.atom(&call, None)
+    }
+
+    /// A lambda, or a builtin named as a value (`key=len`): its type comes from the parameter.
+    fn fn_value(&self, e: &j::Expr) -> bool {
+        match &e.kind {
+            j::ExprKind::Lambda(..) => true,
+            j::ExprKind::Name(n) => {
+                BUILTINS.contains(&n.as_str())
+                    && !self.locals.contains_key(n)
+                    && !self.g.fns.contains_key(n)
+            }
+            _ => false,
+        }
+    }
+
+    /// `max(xs, key=None, default=...)` over one iterable (R658): the iterator's `max`, with
+    /// `default` when it is empty, and a `value` panic when it is empty with no `default`.
+    fn extreme(
+        &mut self,
+        n: &str,
+        args: &[j::Arg],
+        at: Span,
+        want: Option<&Ty>,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let ex = |kind| j::Expr {
+            kind,
+            span: at,
+            paren: false,
+        };
+        let (mut xs, mut key, mut default) = (None, None, None);
+        for a in args {
+            let j::ArgKind::Expr(e) = &a.kind else {
+                return unsupported(format!("a reference argument to `{n}`"));
+            };
+            match a.name.as_deref() {
+                None => xs = Some(e),
+                Some("key") => key = Some(a.clone()),
+                Some("default") => default = Some(e.clone()),
+                Some(k) => {
+                    self.err("E202", a.span, format!("`{n}` has no parameter `{k}`"));
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+                }
+            }
+        }
+        let xs = xs.expect("one positional argument");
+        let (a, t) = self.atom(xs, None)?;
+        let Atom::Name(v, _) = a else {
+            return unsupported(format!("`{n}` of a literal"));
+        };
+        let recv = j::Expr {
+            kind: j::ExprKind::Name(v),
+            span: xs.span,
+            paren: false,
+        };
+        let it = match t {
+            Ty::Err => return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None)),
+            Ty::Coll("iter", _) => recv,
+            _ => ex(j::ExprKind::Call(
+                Box::new(ex(j::ExprKind::Attr(Box::new(recv), "iter".into(), at))),
+                Vec::new(),
+            )),
+        };
+        let m = if default.is_some() {
+            n.to_owned()
+        } else {
+            format!("{n}_nonempty")
+        };
+        let c = ex(j::ExprKind::Call(
+            Box::new(ex(j::ExprKind::Attr(Box::new(it), m, at))),
+            key.into_iter().collect(),
+        ));
+        let e = match default {
+            Some(d) => ex(j::ExprKind::Fallback(
+                Box::new(c),
+                Box::new(j::Fallback::Value(d)),
+            )),
+            None => c,
+        };
+        let (r, t) = self.rhs(&e, want)?;
+        Ok((r, t, None))
     }
 
     fn positional<'e>(
@@ -5644,6 +5852,29 @@ impl Lower<'_, '_, '_> {
         }
         if cap == "log" && matches!(op, "debug" | "info" | "warn" | "error" | "span") {
             return self.log_call(op, args, at);
+        }
+        // `print` takes any `Show` value and prints `show(x)` (R655).
+        if path == "std.io.print"
+            && let [
+                j::Arg {
+                    name: None,
+                    kind: j::ArgKind::Expr(e),
+                    ..
+                },
+            ] = args
+        {
+            let (a, t) = self.atom(e, None)?;
+            if t == Ty::Err {
+                return Ok((Rhs::Atom(a), Ty::Err, None));
+            }
+            let s = self.show(a, &t, e.span);
+            let c = call(
+                &path,
+                vec![],
+                vec![Arg::Cap(cap.to_owned(), at), let_arg(s)],
+                at,
+            );
+            return Ok((Rhs::Call(c), Ty::Unit, None));
         }
         let Some(p) = crate::stdlib::decl(&path)
             .filter(|d| d.cap)
@@ -6342,6 +6573,10 @@ pub(crate) fn callees(stmts: &[j::Stmt], out: &mut HashSet<String>) {
                 if let j::ExprKind::Call(f, _) = &e.kind {
                     match &f.kind {
                         j::ExprKind::Name(n) | j::ExprKind::Attr(_, n, _) => {
+                            // `max(xs)` lowers to the iterator's `max_nonempty` (R658).
+                            if n == "min" || n == "max" {
+                                out.insert(format!("{n}_nonempty"));
+                            }
                             out.insert(n.clone());
                         }
                         _ => {}
