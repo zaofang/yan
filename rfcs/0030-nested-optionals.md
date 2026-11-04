@@ -1,6 +1,6 @@
 # 0030: Nested optionals keep two levels
 
-- Status: draft
+- Status: accepted (decisions only; rows pending)
 - Research: none; source reading of `crates/yan-elab/src/lower.rs` (`inject`) and `crates/yan-elab/src/ty.rs` (`fits`)
 - Rows: filled in when accepted
 
@@ -32,7 +32,7 @@ Options weighed:
 Recommendation: keep two levels. Substituting an optional type for a type parameter or alias never
 flattens, so `get` on `dict[str, int | None]` returns `Option[int | None]`.
 
-- Decision: (lead's answer, date)
+- Decision: two levels, no collapse (lead, 2026-11-04)
 - Row: (R number once accepted)
 
 ### D2: spelling
@@ -42,7 +42,7 @@ in plain Yan, is rejected with a diagnostic that suggests `Option[T | None]`, be
 `None` once and one type has one spelling (R425). Yan Core text spells the inner value
 `Some { value: None }` (R476).
 
-- Decision:
+- Decision: `Option[T | None]`; flat form rejected (lead, 2026-11-04)
 - Row:
 
 ### D3: injection adds one level
@@ -53,7 +53,7 @@ expected type, so it is the outer `None`; the inner one is written `Some(None)`.
 `Option[Option[T]]` is expected is a type error with the fix `Some(v)`; injection never adds two
 levels. `Ty::fits` stops accepting `Option[V]` for `Option[Option[V]]` without that wrap.
 
-- Decision:
+- Decision: wrap once; fix `inject` and `Ty::fits` (lead, 2026-11-04)
 - Row:
 
 ### D4: tests and operators work one level at a time
@@ -63,7 +63,7 @@ on `Option[Option[T]]` gives `Option[T]`. The lenient reader does not apply N15 
 Python's `if d.get(k):` is false for both a missing key and a stored `None`, so no single explicit test
 preserves the author's meaning, and strict mode reports E201 as it does for any truthiness test.
 
-- Decision:
+- Decision: outer level only; N15 excludes nested optionals (lead, 2026-11-04)
 - Row:
 
 ### D5: conformance (proposed, separate PR)
@@ -72,7 +72,7 @@ Cases to add only with the lead's go, in a PR of their own: `get` on `dict[str, 
 distinguishes a missing key from a stored `None`; `int | None | None` is rejected; a `V | None` value
 returned as `Option[V | None]` arrives as `Some`; `if d.get(k):` on a nested optional is not rewritten.
 
-- Decision:
+- Decision: yes, conformance cases in a separate PR (lead, 2026-11-04)
 - Row:
 
 ## Spec changes
