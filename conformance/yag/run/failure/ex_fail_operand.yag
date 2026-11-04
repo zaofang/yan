@@ -1,0 +1,16 @@
+# spec: 14.1
+# rows: R809
+# note: ex f(x) == v means Ok(v); fail e as an operand is Err(e)
+# stdout:
+# ok
+
+def f(s: str) -> int fail str:
+    ex f("") == fail "empty"
+    ex f("1") == 7
+    n = len(s)
+    if n == 0:
+        fail "empty"
+    return n + 6
+
+pub def main() uses io:
+    io.print("ok")

@@ -1,0 +1,8 @@
+# spec: 14.1, 17.2
+# rows: R810
+# note: an iter is not indexable; the message names .collect()
+# expect: E201 at 8:12
+
+def f(it: iter[int]) -> int:
+    xs = it
+    return xs[0]

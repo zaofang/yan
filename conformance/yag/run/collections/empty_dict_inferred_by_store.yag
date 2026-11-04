@@ -1,0 +1,14 @@
+# spec: 14.1
+# rows: R808
+# note: d = {} takes its key and value types from the later d[k] = v, and is returned
+# stdout:
+# 2
+
+def count(ws: list[str]) -> dict[str, int]:
+    d = {}
+    for w in ws:
+        d[w] = 1
+    return d
+
+pub def main() uses io:
+    io.print(f"{len(count(['a', 'b']))}")

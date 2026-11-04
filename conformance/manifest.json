@@ -1200,6 +1200,83 @@
    ]
   },
   {
+   "path": "yag/fail/infer/e201_for_over_mixed_tuple.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R810"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 7,
+     "col": 14
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/infer/e201_index_iter.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1",
+    "17.2"
+   ],
+   "rows": [
+    "R810"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/infer/e203_len_iter.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [
+    "R810"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E203",
+     "line": 8,
+     "col": 15
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/infer/e241_empty_list_unused.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R808"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E241",
+     "line": 7,
+     "col": 10
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lenient/n01_import.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3622,6 +3699,36 @@
    "exit": 0
   },
   {
+   "path": "yag/run/collections/empty_dict_inferred_by_store.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R808"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/collections/empty_list_inferred_by_append.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R808"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[0, 1, 2]\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/collections/list_show.yag",
    "kind": "run",
    "milestone": "M1",
@@ -3735,6 +3842,21 @@
    "flags": [],
    "expect": [],
    "stdout": "-40 5\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/failure/ex_fail_operand.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R809"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "ok\n",
    "exit": 0
   },
   {
@@ -5434,6 +5556,21 @@
    "flags": [],
    "expect": [],
    "stdout": "2 1 1 4 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/tuples/for_over_tuple.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R810"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "6\n",
    "exit": 0
   },
   {
