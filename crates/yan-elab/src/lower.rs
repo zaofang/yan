@@ -1593,7 +1593,39 @@ impl Lower<'_, '_, '_> {
                     at,
                 );
             }
-            K::Par { .. } => return unsupported("`par for` and `par(limit=...)`"),
+            // A streaming `par for` (unit body) runs its items in order: the body may not fail
+            // (E712) nor take `inout` access outside its iteration, so no result depends on order.
+            K::Par {
+                limit: None,
+                body:
+                    j::ParBody::For {
+                        target,
+                        iter,
+                        contracts,
+                        body,
+                    },
+                ..
+            } => {
+                if let Some(sp) = first_failure(body) {
+                    self.err(
+                        "E712",
+                        sp,
+                        "the body of a streaming `par for` cannot fail; handle the failure in the item".into(),
+                    );
+                }
+                let s = j::Stmt {
+                    kind: K::For {
+                        label: None,
+                        target: target.clone(),
+                        iter: iter.clone(),
+                        contracts: contracts.clone(),
+                        body: body.clone(),
+                    },
+                    span: at,
+                };
+                self.stmt(&s)?;
+            }
+            K::Par { .. } => return unsupported("`par for` with a limit and `par(limit=...)`"),
             K::With {
                 kind: j::WithKind::Bind(name, h),
                 body,
@@ -6973,6 +7005,30 @@ impl Lower<'_, '_, '_> {
 }
 
 /// Names of functions called anywhere in `stmts`.
+/// The first `fail` or `?` in `stmts`, outside lambdas.
+fn first_failure(stmts: &[j::Stmt]) -> Option<Span> {
+    for s in stmts {
+        if matches!(s.kind, j::StmtKind::Fail(_)) {
+            return Some(s.span);
+        }
+        let mut found = None;
+        for e in stmt_exprs(s) {
+            walk(e, &mut |e| {
+                if found.is_none() && matches!(e.kind, j::ExprKind::Try(_)) {
+                    found = Some(e.span);
+                }
+            });
+        }
+        if found.is_some() {
+            return found;
+        }
+        if let Some(sp) = sub_blocks(s).into_iter().find_map(first_failure) {
+            return Some(sp);
+        }
+    }
+    None
+}
+
 /// Receivers of calls such as `io.print(...)` that name a std capability, with their spans.
 pub(crate) fn cap_uses(stmts: &[j::Stmt], out: &mut Vec<(String, Span)>) {
     for s in stmts {
