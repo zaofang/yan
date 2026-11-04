@@ -2,6 +2,7 @@
 
 pub use yan_hir as ast;
 mod lexer;
+mod nested;
 mod parser;
 mod printer;
 mod resugar;

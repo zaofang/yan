@@ -6,6 +6,10 @@ pub def concat(self: str, other: str) -> str: ...
 
 @intrinsic
 @since("1.0")
+pub def repeat(self: str, n: int) -> str: ...
+
+@intrinsic
+@since("1.0")
 pub def byte_len(self: str) -> int: ...
 
 @intrinsic

@@ -88,6 +88,10 @@ pub fn parse(src: &str, strict: bool) -> (Option<Module>, Vec<Issue>) {
         return (None, p.issues);
     }
     p.check_names();
+    if !strict {
+        let notes = crate::nested::lift(&mut p.toks);
+        p.issues.extend(notes);
+    }
     let header = src
         .lines()
         .take_while(|l| l.starts_with('#'))

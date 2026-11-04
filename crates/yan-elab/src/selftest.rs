@@ -468,3 +468,65 @@ fn consumption_is_written() {
     }
     assert_eq!(run(src), "1\n1\n1\n");
 }
+
+#[test]
+fn print_takes_any_show_value() {
+    let src = "pub def main() uses io:\n    print(42)\n    print([1, 2])\n    print(\"hi\")\n";
+    assert_eq!(run(src), "42\n[1, 2]\nhi\n");
+}
+
+#[test]
+fn exact_int_literals_type_as_floats() {
+    let src = "def half(x: float) -> float:\n    return x / 2\n\n\
+               pub def main() uses io:\n    x = 1.5 * 2\n    y = 2 * x\n\
+               \x20   io.print(f\"{x} {y} {half(3)} {x ** 2} {2.0 ** -1} {x == 3}\")\n";
+    assert_eq!(run(src), "3.0 6.0 1.5 9.0 0.5 True\n");
+    let (_, d) = lower("pub def main() uses io:\n    x = 9007199254740993 * 1.0\n    print(x)\n");
+    assert_eq!(
+        d.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
+        ["E201"]
+    );
+}
+
+#[test]
+fn python_idioms_min_max_sorted_repetition() {
+    let src = "pub def main() uses io:\n    xs = [3, 1, 2]\n    e: list[int] = []\n\
+               \x20   ws = [[1, 1], [2], [3, 3]]\n\
+               \x20   io.print(f\"{max(xs)} {min(xs, key=lambda x: -x)} {max(e, default=0)} {max(4, 5)}\")\n\
+               \x20   io.print(f\"{sorted(ws, key=len, reverse=True)} {sorted(xs, reverse=True)}\")\n\
+               \x20   ws.sort(key=len)\n    d = \"-\"\n    z = \"x\"\n\
+               \x20   io.print(f\"{ws} {d * 3} {2 * [0]} {z * -1}|\")\n";
+    assert_eq!(
+        run(src),
+        "3 3 0 5\n[[1, 1], [3, 3], [2]] [3, 2, 1]\n[[2], [1, 1], [3, 3]] --- [0, 0] |\n"
+    );
+}
+
+#[test]
+fn union_aliases_expand_after_fail() {
+    let src = "class FsError:\n    msg: str\n\nclass Timeout:\n    secs: int\n\n\
+               type IoErr = FsError | Timeout\n\n\
+               def f(n: int) -> int fail IoErr:\n    if n > 0:\n        fail Timeout(secs=n)\n    return n\n\n\
+               def g(n: int) -> int fail IoErr | FsError:\n    return f(n)?\n\n\
+               pub def main() uses io:\n    r: Result[int, IoErr] = g(1)\n    io.print(f\"{r.is_ok()} {g(0) else 7}\")\n";
+    assert_eq!(run(src), "False 0\n");
+}
+
+#[test]
+fn nested_def_without_captures_is_lifted() {
+    let src = "def helper() -> int:\n    return 1\n\n\
+               pub def main() uses io:\n    def sq(x: int) -> int:\n        return x * x\n\
+               \x20   def helper(s: str) -> str:\n        return s + \"!\"\n\
+               \x20   s = \"a\"\n    io.print(f\"{sq(3)} {helper(s)} {other()}\")\n\n\
+               def other() -> int:\n    return helper()\n";
+    assert_eq!(run(src), "9 a! 1\n");
+    let (_, d) = yan_yag::parse(
+        "t.yag",
+        "def f(n: int) -> int:\n    def g() -> int:\n        return n\n    return g()\n",
+        false,
+    );
+    assert_eq!(
+        d.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
+        ["E100"]
+    );
+}

@@ -888,12 +888,18 @@ impl<'g, 'm> Cx<'g, 'm> {
             Rhs::Call(c) => self.call(c).0,
             Rhs::Propagate { call, via } => {
                 let (ret, callee) = self.call(call);
-                let callee_fail = callee.and_then(|f| f.fail.as_ref()).map(type_text);
-                if let (None, Some(cf), Some(own)) = (via, callee_fail, self.def.fail.as_ref()) {
-                    let injects = match own {
-                        Type::Union(ts) => ts.iter().any(|t| type_text(t) == cf),
-                        t => type_text(t) == cf,
+                let callee_fail = callee.and_then(|f| f.fail.as_ref());
+                if let (None, Some(cft), Some(own)) = (via, callee_fail, self.def.fail.as_ref()) {
+                    let cf = type_text(cft);
+                    let member = |c: &Type| match own {
+                        Type::Union(ts) => ts.iter().any(|t| type_text(t) == type_text(c)),
+                        t => type_text(t) == type_text(c),
                     };
+                    let injects = type_text(own) == cf
+                        || match cft {
+                            Type::Union(cs) => cs.iter().all(member),
+                            c => member(c),
+                        };
                     if !injects {
                         let own = type_text(own);
                         self.err(

@@ -16,6 +16,7 @@ pub use yan_db::Database;
 pub fn diagnostics(db: &dyn Db, file: SourceFile) -> Result<Vec<Diagnostic>, String> {
     let mut diags = yan_db::diagnostics(db, file).clone()?;
     verify_fixes(db, file, &mut diags);
+    yan_diag::habit::annotate(file.text(db), &mut diags);
     unique_quotes(db, file, &mut diags);
     Ok(diags)
 }

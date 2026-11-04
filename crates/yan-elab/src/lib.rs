@@ -97,8 +97,11 @@ pub(crate) struct Globals {
     pub records: HashMap<String, Vec<Field>>,
     pub sums: HashMap<String, Vec<(String, Vec<Field>)>>,
     pub variant_of: HashMap<String, String>,
-    pub aliases: HashMap<String, j::Type>,
+    /// Each alias's alternatives: one for `type X = T`, two or more for a union alias.
+    pub aliases: HashMap<String, Vec<j::Type>>,
     pub fns: HashMap<String, Sig>,
+    /// The entries of `fns` that are std functions rather than the module's own.
+    pub std_fns: HashSet<String>,
     /// `@derive(From)` conversions (R432): (from type, sum) to the generated function.
     pub froms: HashMap<(String, String), String>,
     /// Functions with a stage-0 (`Nat`) parameter, and its name: lowered per instance (10.4).
@@ -276,10 +279,16 @@ impl Globals {
                     (n, []) if self.scope.borrow().iter().any(|p| p == n) => {
                         Ty::Param(n.to_owned())
                     }
-                    (n, []) if self.aliases.contains_key(n) => {
-                        let t = self.aliases[n].clone();
-                        self.ty(&t, cx, span)?
-                    }
+                    (n, []) if self.aliases.contains_key(n) => match self.aliases[n].as_slice() {
+                        [t] => self.ty(t, cx, span)?,
+                        ts => {
+                            let mut ms = Vec::new();
+                            for t in ts {
+                                union_add(&mut ms, self.ty(t, cx, span)?);
+                            }
+                            Ty::Union(ms)
+                        }
+                    },
                     (n, _)
                         if n.contains('.') || n.chars().next().is_some_and(char::is_uppercase) =>
                     {
@@ -435,12 +444,11 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                     }
                     g.sums.insert(t.name.clone(), Vec::new());
                 }
-                j::TypeRhs::Alias(ts) if ts.len() == 1 => {
-                    g.aliases.insert(t.name.clone(), ts[0].clone());
+                j::TypeRhs::Alias(ts) => {
+                    g.aliases.insert(t.name.clone(), ts.clone());
                 }
                 _ => {
-                    return unsupported("union aliases, newtypes and capability sets")
-                        .map_err(|u| u.at(it.span));
+                    return unsupported("newtypes and capability sets").map_err(|u| u.at(it.span));
                 }
             },
             j::ItemKind::Record(c) if !c.tparams.is_empty() => {
@@ -707,9 +715,7 @@ fn sig_body(
                     cx,
                     f.name_span,
                 )?;
-                if !members.contains(&t) {
-                    members.push(t);
-                }
+                union_add(&mut members, t);
             }
             if members.len() > 8 {
                 cx.warn(
@@ -750,6 +756,19 @@ fn sig_body(
         fail,
         caps,
     })
+}
+
+/// Adds `t` to an error union's members, flattening a union alias and skipping repeats.
+fn union_add(ms: &mut Vec<Ty>, t: Ty) {
+    let ts = match t {
+        Ty::Union(ts) => ts,
+        t => vec![t],
+    };
+    for t in ts {
+        if !ms.contains(&t) {
+            ms.push(t);
+        }
+    }
 }
 
 /// The error type after `fail` on the header line of the function named at `name`.

@@ -313,7 +313,13 @@ impl Vm<'_> {
                         }
                     },
                     // The first of equal extremes, as Python's.
-                    (STD_ITER_OPS_MIN | STD_ITER_OPS_MAX, [key]) => {
+                    (
+                        STD_ITER_OPS_MIN
+                        | STD_ITER_OPS_MAX
+                        | STD_ITER_OPS_MIN_NONEMPTY
+                        | STD_ITER_OPS_MAX_NONEMPTY,
+                        [key],
+                    ) => {
                         let key = key.clone();
                         let mut best: Option<(Value, Value)> = None;
                         while let Some(x) = self.pull(&i)? {
@@ -321,14 +327,39 @@ impl Vm<'_> {
                             let o = best.as_ref().map(|(b, _)| cmp(&k, b));
                             let wins = match o {
                                 None => true,
-                                Some(o) if id == STD_ITER_OPS_MIN => o.is_lt(),
+                                Some(o)
+                                    if matches!(
+                                        id,
+                                        STD_ITER_OPS_MIN | STD_ITER_OPS_MIN_NONEMPTY
+                                    ) =>
+                                {
+                                    o.is_lt()
+                                }
                                 Some(o) => o.is_gt(),
                             };
                             if wins {
                                 best = Some((k, x));
                             }
                         }
-                        opt(best.map(|(_, x)| x))
+                        match best {
+                            // R658: an empty iterable with no `default`, as Python's `ValueError`.
+                            None if matches!(
+                                id,
+                                STD_ITER_OPS_MIN_NONEMPTY | STD_ITER_OPS_MAX_NONEMPTY
+                            ) =>
+                            {
+                                return panic("value");
+                            }
+                            Some((_, x))
+                                if matches!(
+                                    id,
+                                    STD_ITER_OPS_MIN_NONEMPTY | STD_ITER_OPS_MAX_NONEMPTY
+                                ) =>
+                            {
+                                x
+                            }
+                            b => opt(b.map(|(_, x)| x)),
+                        }
                     }
                     (STD_ITER_OPS_SUM, []) => sum(self.drain(&i)?)?,
                     (STD_ITER_OPS_DONE, []) => {
@@ -398,7 +429,9 @@ pub(crate) const IDS: &[Id] = &[
     STD_ITER_OPS_FOLD,
     STD_ITER_OPS_MAP,
     STD_ITER_OPS_MAX,
+    STD_ITER_OPS_MAX_NONEMPTY,
     STD_ITER_OPS_MIN,
+    STD_ITER_OPS_MIN_NONEMPTY,
     STD_ITER_OPS_NEXT,
     STD_ITER_OPS_SKIP,
     STD_ITER_OPS_STEP_BY,

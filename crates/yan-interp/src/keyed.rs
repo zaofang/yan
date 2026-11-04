@@ -35,7 +35,14 @@ impl Vm<'_> {
     }
 
     /// Sorted by key, calling `key` once per element.
-    fn sort_by_key(&mut self, xs: Vec<Value>, key: &Value, stable: bool) -> R<Vec<Value>> {
+    /// `reverse` sorts descending and keeps equal keys in their input order, as Python's.
+    fn sort_by_key(
+        &mut self,
+        xs: Vec<Value>,
+        key: &Value,
+        stable: bool,
+        reverse: bool,
+    ) -> R<Vec<Value>> {
         // Equal primitive keys cannot be told apart, so stable and unstable agree here.
         if !self.has_key(key)
             && let Some(mut ks) = xs
@@ -47,6 +54,9 @@ impl Vm<'_> {
                 .collect::<Option<Vec<i64>>>()
         {
             yan_rt::sort::sort_unstable_i64(&mut ks);
+            if reverse {
+                ks.reverse();
+            }
             return Ok(ks.into_iter().map(|k| Value::Int(k.into())).collect());
         }
         let mut ks = Vec::with_capacity(xs.len());
@@ -54,10 +64,14 @@ impl Vm<'_> {
             ks.push(self.key(key, x)?);
         }
         let mut ix: Vec<usize> = (0..xs.len()).collect();
+        let order = |a: &usize, b: &usize| {
+            let o = cmp(&ks[*a], &ks[*b]);
+            if reverse { o.reverse() } else { o }
+        };
         if stable {
-            ix.sort_by(|a, b| cmp(&ks[*a], &ks[*b]));
+            ix.sort_by(order);
         } else {
-            ix.sort_unstable_by(|a, b| cmp(&ks[*a], &ks[*b]));
+            ix.sort_unstable_by(order);
         }
         let mut xs: Vec<Option<Value>> = xs.into_iter().map(Some).collect();
         Ok(ix.into_iter().filter_map(|i| xs[i].take()).collect())
@@ -81,18 +95,24 @@ impl Vm<'_> {
     /// `args` are the call's arguments in place; `var` ones are written back by the caller.
     pub(crate) fn keyed_call(&mut self, id: Id, args: &mut [Value]) -> R<Value> {
         use Value::*;
+        // `sort` and `sorted` take `reverse` after `key` (R659).
+        let (reverse, args) = match (id, args) {
+            (STD_LIST_SORT | STD_PRELUDE_SORTED, [args @ .., Bool(r)]) => (*r, args),
+            (_, args) => (false, args),
+        };
         let Some((key, args)) = args.split_last_mut() else {
             return bad_args(id);
         };
         let key = key.clone();
         Ok(match (id, args) {
             (STD_LIST_SORT | STD_LIST_SORT_UNSTABLE, [List(xs)]) => {
-                *xs = self.sort_by_key(std::mem::take(xs), &key, id == STD_LIST_SORT)?;
+                let stable = id == STD_LIST_SORT;
+                *xs = self.sort_by_key(std::mem::take(xs), &key, stable, reverse)?;
                 Unit
             }
             (STD_PRELUDE_SORTED, [Iter(i)]) => {
                 let xs = self.drain(&i.clone())?;
-                List(self.sort_by_key(xs, &key, true)?)
+                List(self.sort_by_key(xs, &key, true, reverse)?)
             }
             (STD_LIST_BISECT_LEFT | STD_LIST_BISECT_RIGHT, [List(xs), x]) => {
                 Int(self.bisect(xs, x, &key, id == STD_LIST_BISECT_RIGHT)? as i128)

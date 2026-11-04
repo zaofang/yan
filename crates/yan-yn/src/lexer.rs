@@ -758,6 +758,9 @@ impl<'a> Lexer<'a> {
                     }
                 }
                 _ => {
+                    if c == '$' && matches!(kind, StrKind::Plain | StrKind::C) {
+                        self.dollar_brace();
+                    }
                     self.bump();
                     text.push(c);
                 }
@@ -767,6 +770,47 @@ impl<'a> Lexer<'a> {
             parts.push(LexPart::Text(text));
         }
         Tok::Str(LexStr { kind, parts })
+    }
+
+    /// W854 (R663): at `$` in a string, a TypeScript `${expr}` that Yan prints literally.
+    fn dollar_brace(&mut self) {
+        let rest = self.rest();
+        let Some(inner) = rest.strip_prefix("${").and_then(|r| r.split('}').next()) else {
+            return;
+        };
+        let names_something = inner
+            .trim_start()
+            .starts_with(|c: char| c.is_alphanumeric() || c == '_' || c == '(');
+        if !names_something
+            || inner.contains(['"', '\n', '{'])
+            || !rest[2 + inner.len()..].starts_with('}')
+        {
+            return;
+        }
+        let (line, col) = self.here();
+        let old = &rest[..inner.len() + 3];
+        let span = Span {
+            line,
+            col,
+            end_line: line,
+            end_col: col + old.chars().count() as u32,
+        };
+        let mut d = Diagnostic::error(
+            "W854",
+            self.file,
+            span,
+            old,
+            "Yan prints `${...}` literally; interpolate with `\\(...)`",
+        )
+        .with_fix(
+            yan_diag::Applicability::Auto,
+            "interpolate",
+            span,
+            old,
+            &format!("\\({inner})"),
+        );
+        d.severity = yan_diag::Severity::Warning;
+        self.diags.push(d);
     }
 
     /// At `\(` (or `{` in a template): lex the expression up to the matching close and an

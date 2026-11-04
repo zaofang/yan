@@ -34,6 +34,10 @@ pub def concat[T](self: list[T], other: list[T]) -> list[T]: ...
 
 @intrinsic
 @since("1.0")
+pub def repeat[T](self: list[T], n: int) -> list[T]: ...
+
+@intrinsic
+@since("1.0")
 pub def contains[T: Eq](self: list[T], x: T) -> bool: ...
 
 @intrinsic
@@ -42,7 +46,7 @@ pub def insert[T](var self: list[T], i: int, take x: T) -> None: ...
 
 @intrinsic
 @since("1.0")
-pub def sort[T, K: Ord](var self: list[T], key: Callable[[T], K] | None = None) -> None: ...
+pub def sort[T, K: Ord](var self: list[T], key: Callable[[T], K] | None = None, reverse: bool = False) -> None: ...
 
 @intrinsic
 @since("1.0")

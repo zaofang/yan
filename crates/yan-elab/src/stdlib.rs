@@ -402,14 +402,20 @@ fn raw_words(m: &j::Module) -> HashSet<String> {
             j::ItemKind::Type(_) | j::ItemKind::Const { .. } | j::ItemKind::Extern(_) => {}
         }
     }
-    // HIR's Debug text quotes every name, path segment and literal, and nothing else.
-    format!("{m:?}")
+    // HIR's Debug text quotes every name, path segment, operator and literal, and nothing else.
+    let text = format!("{m:?}");
+    let mut w: HashSet<String> = text
         .split('"')
         .skip(1)
         .step_by(2)
         .flat_map(|s| s.split(|c: char| !c.is_alphanumeric() && c != '_'))
         .map(str::to_owned)
-        .collect()
+        .collect();
+    // `x ** n` on floats is `std.math.pown`, whose rounding default is a `std.math` sum (R657).
+    if text.contains("\"**\"") {
+        w.insert("math".into());
+    }
+    w
 }
 
 /// The std classes `m` may meet, registered in `g`: those whose name or module (a capability
@@ -657,6 +663,7 @@ pub(crate) fn collect(g: &mut Globals, m: &j::Module) -> R<Vec<Body>> {
         let mut cx = std_cx(b.module);
         let s = crate::sig(g, &b.def, &mut cx)?;
         g.fns.insert(b.def.name.clone(), s);
+        g.std_fns.insert(b.def.name.clone());
     }
     Ok(bs)
 }
