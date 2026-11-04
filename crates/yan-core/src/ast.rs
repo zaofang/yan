@@ -38,6 +38,8 @@ pub struct AttrArg {
 pub enum ItemKind {
     Fn(FnDef),
     Gen(FnDef),
+    /// Optimized Yan Core only (R772).
+    Inst(Inst),
     Record(Record),
     Sum(Sum),
     Newtype(Newtype),
@@ -63,6 +65,14 @@ pub struct FnDef {
     pub fail: Option<Type>,
     pub contracts: Vec<Contract>,
     pub body: Option<Block>,
+}
+
+/// `inst fn id[i64](...)`: a generic `fn` specialized to concrete arguments. `def` has no type
+/// parameters.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Inst {
+    pub args: Vec<TArg>,
+    pub def: FnDef,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

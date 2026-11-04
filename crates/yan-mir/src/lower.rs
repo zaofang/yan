@@ -1,4 +1,4 @@
-//! Checked Yan Core to MIR.
+//! Optimized Yan Core (`yan-opt`'s output, R771) to MIR.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -126,33 +126,27 @@ struct Types<'m> {
     sums: HashMap<&'m str, &'m y::Sum>,
 }
 
-type Env = HashMap<String, Shape>;
-
 impl Types<'_> {
-    /// `t` with the type parameters in `env` replaced.
-    fn shape(&self, t: &y::Type, env: &Env) -> R<Shape> {
-        self.shape_in(t, &mut Vec::new(), env)
+    fn shape(&self, t: &y::Type) -> R<Shape> {
+        self.shape_in(t, &mut Vec::new())
     }
 
-    fn shape_in(&self, t: &y::Type, stack: &mut Vec<String>, env: &Env) -> R<Shape> {
+    fn shape_in(&self, t: &y::Type, stack: &mut Vec<String>) -> R<Shape> {
         match t {
             y::Type::Tuple(ts) => Ok(Shape::Tuple(
                 ts.iter()
-                    .map(|t| self.shape_in(t, stack, env))
+                    .map(|t| self.shape_in(t, stack))
                     .collect::<R<_>>()?,
             )),
             y::Type::Named(n) if n.path.len() == 1 => {
                 let name = n.path[0].as_str();
-                if let (Some(s), []) = (env.get(name), n.args.as_slice()) {
-                    return Ok(s.clone());
-                }
                 match (name, n.args.as_slice()) {
                     ("Str", []) => return Ok(Shape::Str),
                     ("List", [y::TArg::Type(e)]) => {
-                        return Ok(Shape::List(Box::new(self.shape_in(e, stack, env)?)));
+                        return Ok(Shape::List(Box::new(self.shape_in(e, stack)?)));
                     }
                     ("Option", [y::TArg::Type(t)]) => {
-                        let t = self.shape_in(t, stack, env)?;
+                        let t = self.shape_in(t, stack)?;
                         return Ok(Shape::Sum(
                             "Option".into(),
                             vec![
@@ -162,10 +156,7 @@ impl Types<'_> {
                         ));
                     }
                     ("Result", [y::TArg::Type(t), y::TArg::Type(e)]) => {
-                        return Ok(result(
-                            self.shape_in(t, stack, env)?,
-                            self.shape_in(e, stack, env)?,
-                        ));
+                        return Ok(result(self.shape_in(t, stack)?, self.shape_in(e, stack)?));
                     }
                     (_, []) => {}
                     _ => return unsupported(format!("type `{name}[..]`")),
@@ -179,7 +170,7 @@ impl Types<'_> {
                 stack.push(name.to_owned());
                 let fields = |fs: &[y::Field], stack: &mut Vec<String>| {
                     fs.iter()
-                        .map(|f| Ok((f.name.clone(), self.shape_in(&f.ty, stack, env)?)))
+                        .map(|f| Ok((f.name.clone(), self.shape_in(&f.ty, stack)?)))
                         .collect::<R<Vec<_>>>()
                 };
                 let s = if let Some(r) = self.recs.get(name).filter(|r| r.tparams.is_empty()) {
@@ -207,11 +198,11 @@ impl Types<'_> {
                 let ps = ft
                     .params
                     .iter()
-                    .map(|(_, t)| self.shape_in(t, stack, env))
+                    .map(|(_, t)| self.shape_in(t, stack))
                     .collect::<R<_>>()?;
-                let ok = self.shape_in(&ft.ret, stack, env)?;
+                let ok = self.shape_in(&ft.ret, stack)?;
                 let ret = match &ft.fail {
-                    Some(e) => result(ok, self.shape_in(e, stack, env)?),
+                    Some(e) => result(ok, self.shape_in(e, stack)?),
                     None => ok,
                 };
                 Ok(Shape::Fn(ps, Box::new(ret)))
@@ -258,24 +249,34 @@ pub fn lower(m: &y::Module) -> R<Program> {
         sums: HashMap::new(),
     };
     let mut defs = Vec::new();
+    let mut by_name = HashMap::new();
     for i in &m.items {
-        match &i.kind {
-            y::ItemKind::Fn(f) if f.body.is_some() => defs.push(f),
-            y::ItemKind::Fn(_) => {}
+        let (f, args) = match &i.kind {
+            y::ItemKind::Fn(f) => (f, &[][..]),
+            y::ItemKind::Inst(i) => (&i.def, &i.args[..]),
             y::ItemKind::Record(r) => {
                 types.recs.insert(r.path.last().expect("named"), r);
+                continue;
             }
             y::ItemKind::Sum(s) => {
                 types.sums.insert(s.path.last().expect("named"), s);
+                continue;
             }
             _ => return unsupported(format!("item at line {}", i.span.line)),
+        };
+        if f.body.is_none() {
+            continue;
         }
+        if let Some(t) = f.tparams.first() {
+            return Err(format!(
+                "internal error: type parameter `{}` of `{}` reached yan-mir",
+                t.name,
+                f.path.join(".")
+            ));
+        }
+        by_name.insert(key(&f.path, args), defs.len());
+        defs.push(f);
     }
-    let by_name: HashMap<String, usize> = defs
-        .iter()
-        .enumerate()
-        .map(|(i, f)| (f.path.join("."), i))
-        .collect();
     let main = *by_name.get("main").ok_or("no `fn main` in the module")?;
     let mono = RefCell::new(Mono {
         defs,
@@ -284,7 +285,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
         sigs: Vec::new(),
         todo: Vec::new(),
     });
-    let main = mono.borrow_mut().instance(&types, main, Vec::new())?;
+    let main = mono.borrow_mut().instance(&types, main)?;
     let mut prog = Program {
         funcs: Vec::new(),
         main,
@@ -296,12 +297,12 @@ pub fn lower(m: &y::Module) -> R<Program> {
         let me = prog.funcs.len();
         let todo = mono.borrow().todo[me].clone();
         let func = match todo {
-            Todo::Def(def, env) => {
+            Todo::Def(def) => {
                 let f: &y::FnDef = mono.borrow().defs[def];
-                Fn::new(&mono, &types, &mut prog.strings, me, env).func(f)?
+                Fn::new(&mono, &types, &mut prog.strings, me).func(f)?
             }
-            Todo::Closure(c, env, caps) => {
-                Fn::new(&mono, &types, &mut prog.strings, me, env).closure(c, caps)?
+            Todo::Closure(c, caps) => {
+                Fn::new(&mono, &types, &mut prog.strings, me).closure(c, caps)?
             }
         };
         prog.funcs.push(func);
@@ -309,11 +310,28 @@ pub fn lower(m: &y::Module) -> R<Program> {
     Ok(prog)
 }
 
-/// Monomorphization: one MIR function per definition and list of type arguments.
+/// How a call names a definition: its path, then an instance's arguments (R772).
+fn key(path: &[String], args: &[y::TArg]) -> String {
+    let mut k = path.join(".");
+    if !args.is_empty() {
+        let args: Vec<String> = args
+            .iter()
+            .map(|a| match a {
+                y::TArg::Type(t) => yan_core::type_text(t),
+                y::TArg::Nat(n) => n.clone(),
+            })
+            .collect();
+        k += &format!("[{}]", args.join(", "));
+    }
+    k
+}
+
+/// The worklist that lowers each reached definition once, in order. `yan-opt` has already
+/// replaced generic definitions by instances.
 struct Mono<'m> {
     defs: Vec<&'m y::FnDef>,
     by_name: HashMap<String, usize>,
-    insts: HashMap<(usize, Vec<Shape>), FuncId>,
+    insts: HashMap<usize, FuncId>,
     sigs: Vec<Sig>,
     /// What each instance lowers, in id order.
     todo: Vec<Todo<'m>>,
@@ -321,45 +339,26 @@ struct Mono<'m> {
 
 #[derive(Clone)]
 enum Todo<'m> {
-    /// A definition and its type arguments.
-    Def(usize, Env),
+    Def(usize),
     /// A closure body with its captures' names and types, read from the block in its first
     /// parameter.
-    Closure(&'m y::Closure, Env, Vec<(String, Shape)>),
+    Closure(&'m y::Closure, Vec<(String, Shape)>),
 }
 
 impl Mono<'_> {
-    fn instance(&mut self, types: &Types, def: usize, targs: Vec<Shape>) -> R<FuncId> {
-        if let Some(&id) = self.insts.get(&(def, targs.clone())) {
+    fn instance(&mut self, types: &Types, def: usize) -> R<FuncId> {
+        if let Some(&id) = self.insts.get(&def) {
             return Ok(id);
         }
         let f = self.defs[def];
-        if f.tparams
-            .iter()
-            .any(|t| t.comptime || !matches!(t.kind, y::Kind::Type))
-        {
-            return unsupported("a comptime type parameter");
-        }
-        if f.tparams.len() != targs.len() {
-            return unsupported(format!(
-                "call of `{}` without its type arguments",
-                f.path.join(".")
-            ));
-        }
-        let env: Env = f
-            .tparams
-            .iter()
-            .map(|t| t.name.clone())
-            .zip(targs.iter().cloned())
-            .collect();
-        let ok = types.shape(&f.ret, &env)?;
+        let ok = types.shape(&f.ret)?;
         let sig = Sig {
             params: params(f)?
                 .into_iter()
-                .map(|(_, c, t)| Ok((c, types.shape(t, &env)?)))
+                .map(|(_, c, t)| Ok((c, types.shape(t)?)))
                 .collect::<R<_>>()?,
             ret: match &f.fail {
-                Some(e) => result(ok.clone(), types.shape(e, &env)?),
+                Some(e) => result(ok.clone(), types.shape(e)?),
                 None => ok.clone(),
             },
             ok,
@@ -367,8 +366,8 @@ impl Mono<'_> {
         };
         let id = self.sigs.len() as FuncId;
         self.sigs.push(sig);
-        self.todo.push(Todo::Def(def, env));
-        self.insts.insert((def, targs), id);
+        self.todo.push(Todo::Def(def));
+        self.insts.insert(def, id);
         Ok(id)
     }
 }
@@ -573,7 +572,6 @@ enum Scope {
 struct Fn<'a, 'm> {
     mono: &'a RefCell<Mono<'m>>,
     types: &'a Types<'m>,
-    env: Env,
     strings: &'a mut Vec<String>,
     me: usize,
     locals: Vec<Ty>,
@@ -592,12 +590,10 @@ impl<'a, 'm> Fn<'a, 'm> {
         types: &'a Types<'m>,
         strings: &'a mut Vec<String>,
         me: usize,
-        env: Env,
     ) -> Self {
         Fn {
             mono,
             types,
-            env,
             strings,
             me,
             locals: Vec::new(),
@@ -615,26 +611,15 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     fn shape(&self, t: &y::Type) -> R<Shape> {
-        self.types.shape(t, &self.env)
+        self.types.shape(t)
     }
 
     /// The instance a call names, if it names a function of this module.
     fn callee(&self, c: &y::Call) -> R<Option<FuncId>> {
-        let Some(&def) = self.mono.borrow().by_name.get(&c.path.join(".")) else {
+        let Some(&def) = self.mono.borrow().by_name.get(&key(&c.path, &c.targs)) else {
             return Ok(None);
         };
-        let targs = c
-            .targs
-            .iter()
-            .map(|t| match t {
-                y::TArg::Type(t) => self.shape(t),
-                y::TArg::Nat(_) => unsupported("a Nat type argument"),
-            })
-            .collect::<R<Vec<_>>>()?;
-        self.mono
-            .borrow_mut()
-            .instance(self.types, def, targs)
-            .map(Some)
+        self.mono.borrow_mut().instance(self.types, def).map(Some)
     }
 
     fn func(self, f: &'m y::FnDef) -> R<Func> {
@@ -1376,7 +1361,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 ret: (**ret).clone(),
                 fails: c.fail.is_some(),
             });
-            m.todo.push(Todo::Closure(c, self.env.clone(), caps));
+            m.todo.push(Todo::Closure(c, caps));
             id
         };
         let block = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(vals.len() as i128)]);
@@ -2034,6 +2019,16 @@ mod selftest {
                 .unwrap_err()
                 .contains("recursive type `T`")
         );
+    }
+
+    #[test]
+    fn rejects_a_type_parameter() {
+        let src = "module t\nfn id[T: Type](let x: T) -> T {\n ret x\n}\nfn main() -> Unit {\n ret ()\n}\n";
+        let (m, _) = yan_core::parse("t.yir", src);
+        let Err(e) = lower(&m.unwrap()) else {
+            panic!("lowered a generic fn")
+        };
+        assert!(e.starts_with("internal error: type parameter `T`"), "{e}");
     }
 
     #[test]
