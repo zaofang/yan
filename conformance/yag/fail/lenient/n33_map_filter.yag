@@ -1,0 +1,10 @@
+# spec: 14.4, 17.3
+# rows: R804
+# expect: N33 at 7:17
+# expect: N33 at 10:17
+
+def inc(xs: list[int]) -> list[int]:
+    return list(map(lambda x: x + 1, xs))
+
+def evens(xs: list[int]) -> list[int]:
+    return list(filter(lambda x: x % 2 == 0, xs))

@@ -1,0 +1,25 @@
+# spec: 14.4, 17.2
+# rows: R806
+# expect: N35 at 10:12
+# expect: N35 at 13:12
+# expect: N35 at 16:12
+# expect: N35 at 19:12
+# expect: N35 at 22:12
+
+def m(s: str) -> Match | None:
+    return re.match("a+", s)
+
+def f(s: str) -> Match | None:
+    return re.search("b", s)
+
+def r(s: str) -> str:
+    return re.sub("a", "b", s)
+
+def a(s: str) -> list[Match]:
+    return re.findall("a", s)
+
+def p(s: str) -> list[str]:
+    return re.split(",", s)
+
+def c() -> Regex:
+    return re.compile("a+")
