@@ -368,7 +368,7 @@ def _judge_patch(case: Case, ex: Executor) -> Result:
     patch = found[0]
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
-        # The expected result stays out of the work directory, so the module beside the patch is m.yag.
+        # The expected result stays out of the work directory: m.yag is the only module there.
         result = case.meta.get("result")
         for f in case.path.iterdir():
             if f.name != result:
