@@ -210,6 +210,8 @@ pub(crate) struct Method {
     pub ret: Ty,
     /// The type arguments, in the declaration's order.
     pub targs: Vec<Ty>,
+    /// The one failure type, if any.
+    pub fail: Option<Ty>,
 }
 
 impl Decl {
@@ -247,11 +249,22 @@ impl Decl {
             .iter()
             .map(|n| b.get(*n).cloned())
             .collect::<Option<_>>()?;
+        let fail = match self.def.ret.as_ref().map(|r| r.fail.as_slice()).unwrap_or_default() {
+            [p] => Some(subst(
+                &j::Type::Named {
+                    path: p.clone(),
+                    args: Vec::new(),
+                },
+                &b,
+            )?),
+            _ => None,
+        };
         Some(Method {
             inout: conv == Some(j::Conv::Var),
             params,
             ret,
             targs,
+            fail,
         })
     }
 }

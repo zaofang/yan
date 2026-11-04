@@ -1,0 +1,5 @@
+"""Actors (9.6, 17.3): `Actor[S]` owns state `S`; a handle reaches other nodes as `Remote`."""
+
+@intrinsic
+@since("1.0")
+pub def share[S](self: Actor[S]) -> Remote[Actor[S]]: ...

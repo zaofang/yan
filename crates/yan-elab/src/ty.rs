@@ -39,7 +39,7 @@ pub enum Ty {
 }
 
 /// Each std.collections type, by its Yan Agent name; its Yan Core name is in the projection table.
-pub const COLLECTIONS: [&str; 19] = [
+pub const COLLECTIONS: [&str; 29] = [
     "deque",
     "iter",
     "heap",
@@ -59,6 +59,16 @@ pub const COLLECTIONS: [&str; 19] = [
     "PlainDateTime",
     "Period",
     "TimeZone",
+    "Rc",
+    "Arc",
+    "Cell",
+    "Atomic",
+    "Sender",
+    "Receiver",
+    "Actor",
+    "Remote",
+    "Lub",
+    "Max",
 ];
 
 /// `name` as a std.collections type, with its `&'static` spelling and arity.
@@ -225,6 +235,15 @@ impl Ty {
             Ty::Coll("PlainDateTime", _) => Some("time.plain_date_time"),
             Ty::Coll("Period", _) => Some("time.period"),
             Ty::Coll("TimeZone", _) => Some("time.zone"),
+            Ty::Coll("Rc", _) => Some("rc"),
+            Ty::Coll("Arc", _) => Some("sync.arc"),
+            Ty::Coll("Cell", _) => Some("sync.cell"),
+            Ty::Coll("Atomic", _) => Some("sync.atomic"),
+            Ty::Coll("Sender", _) => Some("chan.sender"),
+            Ty::Coll("Receiver", _) => Some("chan.receiver"),
+            Ty::Coll("Actor", _) => Some("actor"),
+            Ty::Coll("Lub", _) => Some("lattice"),
+            Ty::Coll("Max", _) => Some("lattice.max"),
             Ty::Coll(_, _) => Some("collections.sorted_set"),
             Ty::Int | Ty::Float | Ty::BigInt | Ty::Bool | Ty::Fixed(_) => Some("num"),
             Ty::Option(_) | Ty::Result(..) => Some("result"),

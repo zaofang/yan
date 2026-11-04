@@ -4850,7 +4850,18 @@ impl Lower<'_, '_, '_> {
                 if let (j::ExprKind::Call(f, fargs), "context") = (&b.kind, m.as_str()) {
                     return self.context(f, fargs, b.span, args, at);
                 }
-                self.method(b, m, *name_at, args, at)
+                let r = self.method(b, m, *name_at, args, at)?;
+                if let (Rhs::Call(c), _, _) = &r
+                    && NONDET_OPS.contains(&c.path.join(".").as_str())
+                    && !self.sig.caps.iter().any(|c| c == "nondet")
+                {
+                    self.err(
+                        "E709",
+                        at,
+                        format!("`{m}` depends on other tasks; declare `uses nondet`"),
+                    );
+                }
+                Ok(r)
             }
             _ => {
                 let (a, t) = self.atom(f, None)?;
@@ -6713,6 +6724,7 @@ impl Lower<'_, '_, '_> {
             params,
             ret,
             targs,
+            fail,
         }) = d.method(&t)
         else {
             return unsupported(format!("`{path}` on `{t}`", t = self.ty_text(&t)));
@@ -6780,7 +6792,10 @@ impl Lower<'_, '_, '_> {
         }
         let rhs = Rhs::Call(call(&path, targs, out, at));
         if writeback.is_none() && (!inout || stores.is_empty()) {
-            return Ok((rhs, ret, None));
+            return Ok((rhs, ret, fail));
+        }
+        if fail.is_some() {
+            return unsupported(format!("a fallible `{m}` on a field or element"));
         }
         let r = self.tmp(&ret, rhs, at);
         if let Some((place, v)) = writeback {
@@ -7180,4 +7195,12 @@ const UNITS: &[(&str, &str, f64, Option<(&str, i64)>)] = &[
     ("K", "temperature", 1.0, None),
     ("mol", "amount", 1.0, None),
     ("cd", "luminosity", 1.0, None),
+];
+
+/// Operations whose result depends on other tasks, so they need `uses nondet` (6.5, E709).
+const NONDET_OPS: &[&str] = &[
+    "std.sync.arc.strong_count",
+    "std.chan.sender.share",
+    "std.chan.receiver.share",
+    "std.actor.share",
 ];

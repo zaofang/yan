@@ -1,0 +1,10 @@
+"""Cell: interior mutability within one task (6.2); not Sync, so two `par` branches may not
+borrow one (E417)."""
+
+@intrinsic
+@since("1.0")
+pub def get[T](self: Cell[T]) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def set[T](self: Cell[T], take v: T) -> None: ...

@@ -1,0 +1,10 @@
+"""Arc: shared ownership across tasks (6.2). Its counts can change under another task, so
+`strong_count` needs `uses nondet` (E709)."""
+
+@intrinsic
+@since("1.0")
+pub def share[T](self: Arc[T]) -> Arc[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def strong_count[T](self: Arc[T]) -> int: ...

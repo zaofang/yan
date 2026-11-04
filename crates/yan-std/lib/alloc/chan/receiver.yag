@@ -1,0 +1,9 @@
+"""The receiving end of a channel."""
+
+@intrinsic
+@since("1.0")
+pub def recv[T](var self: Receiver[T]) -> T fail Cancelled: ...
+
+@intrinsic
+@since("1.0")
+pub def share[T](self: Receiver[T]) -> Receiver[T]: ...

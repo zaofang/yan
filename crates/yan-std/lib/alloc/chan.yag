@@ -1,0 +1,5 @@
+"""Channels (17.3, 6.5): `Channel[T](capacity)` returns a `Sender` and a `Receiver`."""
+
+@intrinsic
+@since("1.0")
+pub def Channel[T](capacity: int) -> tuple[Sender[T], Receiver[T]]: ...
