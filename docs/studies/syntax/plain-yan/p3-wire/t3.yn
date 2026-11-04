@@ -1,0 +1,16 @@
+type Expr = Num(v: float) | Var(name: str) | Add(a: Expr, b: Expr) | Div(a: Expr, b: Expr)
+
+type EvalErr = DivZero() | Unbound(name: str)
+
+pub fn eval(e: Expr, env: Map[str, float]) -> float fail EvalErr uses none =
+  ex eval(Add(a: Num(v: 1.0), b: Var(name: "x")), {"x": 2.0}) == 3.0
+  decreases e
+  match e
+    Num(v:) -> return v
+    Var(name:) -> return env.get(name) else fail Unbound(name: copy name)
+    Add(a:, b:) -> return eval(a, env)? + eval(b, env)?
+    Div(a:, b:) ->
+      let d = eval(b, env)?
+      if d == 0.0
+        fail DivZero()
+      return eval(a, env)? / d

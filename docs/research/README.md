@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-04 | [Plain Yan (`.yn`) syntax study](../studies/syntax/plain-yan.md) | Study only; five proposals and a mix: one-line guards, `for`/`with` as values, trailing block lambdas, one implicit-subject rule, example tables, typed holes, keywords as method names; no rows |
 | 2026-11-04 | [Yan Core (`.yir`) syntax study](../studies/syntax/yan-core.md) | Study only; recommends the "ledger cut" mix: convention sigils, dotted intrinsics, explicit `par` outputs, annotated printing as trivia |
 | 2026-11-04 | [Should surfaces change semantics?](2026-11-04-surface-semantics.md) | Study only; recommends keeping law 1 for Yan Agent, Yan and Yan Meta |
 | 2026-11-04 | [Yan Spec (`.ysp`) syntax study](../studies/syntax/yan-spec.md) | Study only; five proposals and a mix (state, steps, laws, worlds, links); no rows |
