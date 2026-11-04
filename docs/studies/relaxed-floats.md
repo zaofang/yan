@@ -177,3 +177,14 @@ do not (D5).
 If the lead accepts D1 and D2, an RFC from `rfcs/0000-template.md` states 4.1 and 4.2 as normative
 text; D2 alone is worth taking first, because it closes the undefined meaning of the existing
 attribute.
+
+## 7. Decisions (Antonio, cards, 2026-11-04)
+
+D1, D2, D3, D6, D8, D10 and D11 accepted as recommended. Four answers differ from the recommendation:
+
+- D4: approximate libm (`afn`) is in the relaxed set. The RFC must name which functions and bound their
+  error, since results then vary by platform and library.
+- D5: the Yan Core form is always a `relaxed { ... }` statement, not a per-op flag.
+- D7: a `with strict:` escape is allowed inside a relaxed scope. The RFC must define nesting and
+  whether the D8 nested-block warning excludes it.
+- D9: a block form for `@unordered` is added in this work.
