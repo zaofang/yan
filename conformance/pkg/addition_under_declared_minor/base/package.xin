@@ -1,1 +1,0 @@
-package: Package = Package(name="@conf/lib", version="1.2.0", yong="1.x", platform="cli", capabilities=["io"])

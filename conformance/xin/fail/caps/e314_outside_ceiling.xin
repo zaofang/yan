@@ -1,8 +1,0 @@
-# spec: 7.4, 19.2
-# note: script form (19.1); manifest field spellings are assumption A4
-# expect: E314 at 7:25
-
-package: Package = Package(name="@conf/ceiling", version="0.1.0", yong="1.x", platform="cli", capabilities=["io"])
-
-pub def main() uses io, net:
-    io.print("hi")

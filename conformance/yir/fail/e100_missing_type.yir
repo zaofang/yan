@@ -1,0 +1,10 @@
+-- spec: 3.5
+-- note: Yan performs no inference: every let carries its type
+-- expect: E100 at 8:11
+
+module conf.e100
+
+fn f() -> i64 {
+    let x = 1
+    ret x
+}

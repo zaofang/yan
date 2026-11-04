@@ -2,7 +2,7 @@
  "schema": 1,
  "cases": [
   {
-   "path": "xin/pass/bounds/proven_by_guard.xin",
+   "path": "yag/pass/bounds/proven_by_guard.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -15,7 +15,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/caps/renamed_user_capability.xin",
+   "path": "yag/pass/caps/renamed_user_capability.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -29,7 +29,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/caps/uses_and_with.xin",
+   "path": "yag/pass/caps/uses_and_with.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -41,7 +41,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/concurrency/par_callable.xin",
+   "path": "yag/pass/concurrency/par_callable.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -54,7 +54,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/concurrency/par_forms.xin",
+   "path": "yag/pass/concurrency/par_forms.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -68,7 +68,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/contracts/clauses.xin",
+   "path": "yag/pass/contracts/clauses.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -79,7 +79,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/contracts/decreases.xin",
+   "path": "yag/pass/contracts/decreases.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -90,7 +90,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/dist/remote_share.xin",
+   "path": "yag/pass/dist/remote_share.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -104,7 +104,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/failure/from_conversion.xin",
+   "path": "yag/pass/failure/from_conversion.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -115,7 +115,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/failure/propagation.xin",
+   "path": "yag/pass/failure/propagation.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -128,7 +128,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/i18n/messages.xin",
+   "path": "yag/pass/i18n/messages.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -141,7 +141,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/ownership/distinct_indices.xin",
+   "path": "yag/pass/ownership/distinct_indices.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -152,7 +152,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/ownership/explicit_copy.xin",
+   "path": "yag/pass/ownership/explicit_copy.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -165,7 +165,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/ownership/inferred_mutability.xin",
+   "path": "yag/pass/ownership/inferred_mutability.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -179,7 +179,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/ownership/last_use_moves.xin",
+   "path": "yag/pass/ownership/last_use_moves.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -192,7 +192,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/ownership/share.xin",
+   "path": "yag/pass/ownership/share.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -203,7 +203,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/ownership/views_from.xin",
+   "path": "yag/pass/ownership/views_from.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -216,7 +216,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/proof/lemma_and_ghost.xin",
+   "path": "yag/pass/proof/lemma_and_ghost.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -232,7 +232,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/std/regex_literal_infallible.xin",
+   "path": "yag/pass/std/regex_literal_infallible.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -245,7 +245,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/syntax/become_constructor.xin",
+   "path": "yag/pass/syntax/become_constructor.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -258,7 +258,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/syntax/every_production.xin",
+   "path": "yag/pass/syntax/every_production.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -274,7 +274,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/syntax/soft_keyword_next_token.xin",
+   "path": "yag/pass/syntax/soft_keyword_next_token.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -288,7 +288,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/types/alias_and_newtype.xin",
+   "path": "yag/pass/types/alias_and_newtype.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -302,7 +302,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/types/generics_and_traits.xin",
+   "path": "yag/pass/types/generics_and_traits.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -314,7 +314,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/types/keyword_exemptions.xin",
+   "path": "yag/pass/types/keyword_exemptions.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -325,7 +325,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/types/narrowing.xin",
+   "path": "yag/pass/types/narrowing.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -338,7 +338,7 @@
    "expect": []
   },
   {
-   "path": "xin/pass/types/records_and_sums.xin",
+   "path": "yag/pass/types/records_and_sums.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
@@ -349,7 +349,7 @@
    "expect": []
   },
   {
-   "path": "xin/fail/arrays/e520_positional_broadcast.xin",
+   "path": "yag/fail/arrays/e520_positional_broadcast.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -366,7 +366,7 @@
    ]
   },
   {
-   "path": "xin/fail/bounds/e501_after_guard.xin",
+   "path": "yag/fail/bounds/e501_after_guard.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -385,7 +385,7 @@
    ]
   },
   {
-   "path": "xin/fail/bounds/e501_constant_index.xin",
+   "path": "yag/fail/bounds/e501_constant_index.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -407,7 +407,7 @@
    ]
   },
   {
-   "path": "xin/fail/bounds/w807_constant_slice.xin",
+   "path": "yag/fail/bounds/w807_constant_slice.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -426,7 +426,7 @@
    ]
   },
   {
-   "path": "xin/fail/bounds/w820_unknown_index.xin",
+   "path": "yag/fail/bounds/w820_unknown_index.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -446,7 +446,7 @@
    ]
   },
   {
-   "path": "xin/fail/bounds/w820_unknown_key.xin",
+   "path": "yag/fail/bounds/w820_unknown_key.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -467,7 +467,7 @@
    ]
   },
   {
-   "path": "xin/fail/caps/e301_callee_needs_capability.xin",
+   "path": "yag/fail/caps/e301_callee_needs_capability.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -484,7 +484,7 @@
    ]
   },
   {
-   "path": "xin/fail/caps/e301_missing_capability.xin",
+   "path": "yag/fail/caps/e301_missing_capability.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -501,7 +501,7 @@
    ]
   },
   {
-   "path": "xin/fail/caps/e306_capability_captured.xin",
+   "path": "yag/fail/caps/e306_capability_captured.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -519,7 +519,7 @@
    ]
   },
   {
-   "path": "xin/fail/caps/e306_capability_escapes_through_if.xin",
+   "path": "yag/fail/caps/e306_capability_escapes_through_if.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -536,7 +536,7 @@
    ]
   },
   {
-   "path": "xin/fail/caps/e306_capability_returned.xin",
+   "path": "yag/fail/caps/e306_capability_returned.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -553,7 +553,7 @@
    ]
   },
   {
-   "path": "xin/fail/caps/e314_outside_ceiling.xin",
+   "path": "yag/fail/caps/e314_outside_ceiling.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -571,7 +571,7 @@
    ]
   },
   {
-   "path": "xin/fail/caps/e317_release_fault_handler.xin",
+   "path": "yag/fail/caps/e317_release_fault_handler.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -591,7 +591,7 @@
    ]
   },
   {
-   "path": "xin/fail/concurrency/e705_branch_reads_sibling.xin",
+   "path": "yag/fail/concurrency/e705_branch_reads_sibling.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -610,7 +610,7 @@
    ]
   },
   {
-   "path": "xin/fail/concurrency/e705_branch_reads_written_place.xin",
+   "path": "yag/fail/concurrency/e705_branch_reads_written_place.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -627,7 +627,7 @@
    ]
   },
   {
-   "path": "xin/fail/concurrency/e709_arc_count.xin",
+   "path": "yag/fail/concurrency/e709_arc_count.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -646,7 +646,7 @@
    ]
   },
   {
-   "path": "xin/fail/concurrency/e709_share_sender.xin",
+   "path": "yag/fail/concurrency/e709_share_sender.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -666,7 +666,7 @@
    ]
   },
   {
-   "path": "xin/fail/concurrency/e712_streaming_par_for_fails.xin",
+   "path": "yag/fail/concurrency/e712_streaming_par_for_fails.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -686,7 +686,7 @@
    ]
   },
   {
-   "path": "xin/fail/concurrency/e713_sibling_wait.xin",
+   "path": "yag/fail/concurrency/e713_sibling_wait.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -705,7 +705,7 @@
    ]
   },
   {
-   "path": "xin/fail/concurrency/e715_reentrant_reads_state.xin",
+   "path": "yag/fail/concurrency/e715_reentrant_reads_state.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -725,7 +725,7 @@
    ]
   },
   {
-   "path": "xin/fail/concurrency/e716_fn_param_two_branches.xin",
+   "path": "yag/fail/concurrency/e716_fn_param_two_branches.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -744,7 +744,7 @@
    ]
   },
   {
-   "path": "xin/fail/concurrency/e717_lub_get_in_par.xin",
+   "path": "yag/fail/concurrency/e717_lub_get_in_par.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -763,7 +763,7 @@
    ]
   },
   {
-   "path": "xin/fail/concurrency/w818_discards_cancelled.xin",
+   "path": "yag/fail/concurrency/w818_discards_cancelled.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -782,7 +782,7 @@
    ]
   },
   {
-   "path": "xin/fail/contracts/e601_pub_without_ex.xin",
+   "path": "yag/fail/contracts/e601_pub_without_ex.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -804,7 +804,7 @@
    ]
   },
   {
-   "path": "xin/fail/contracts/e602_missing_decreases.xin",
+   "path": "yag/fail/contracts/e602_missing_decreases.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -821,7 +821,7 @@
    ]
   },
   {
-   "path": "xin/fail/contracts/n05_inferred_decreases.xin",
+   "path": "yag/fail/contracts/n05_inferred_decreases.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -838,7 +838,7 @@
    ]
   },
   {
-   "path": "xin/fail/derives/e269_auto_trait.xin",
+   "path": "yag/fail/derives/e269_auto_trait.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -856,7 +856,7 @@
    ]
   },
   {
-   "path": "xin/fail/derives/e269_no_derived_body.xin",
+   "path": "yag/fail/derives/e269_no_derived_body.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -873,7 +873,7 @@
    ]
   },
   {
-   "path": "xin/fail/dist/e720_non_wire_handler.xin",
+   "path": "yag/fail/dist/e720_non_wire_handler.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -892,7 +892,7 @@
    ]
   },
   {
-   "path": "xin/fail/dist/e726_entity_key_not_hash.xin",
+   "path": "yag/fail/dist/e726_entity_key_not_hash.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -911,7 +911,7 @@
    ]
   },
   {
-   "path": "xin/fail/docs/w831_dead_link.xin",
+   "path": "yag/fail/docs/w831_dead_link.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -930,7 +930,7 @@
    ]
   },
   {
-   "path": "xin/fail/docs/w832_uses_section_disagrees.xin",
+   "path": "yag/fail/docs/w832_uses_section_disagrees.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -949,7 +949,7 @@
    ]
   },
   {
-   "path": "xin/fail/docs/w833_text_fence_is_code.xin",
+   "path": "yag/fail/docs/w833_text_fence_is_code.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -968,7 +968,7 @@
    ]
   },
   {
-   "path": "xin/fail/failure/e310_missing_from.xin",
+   "path": "yag/fail/failure/e310_missing_from.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -985,7 +985,7 @@
    ]
   },
   {
-   "path": "xin/fail/failure/e312_discarded_result.xin",
+   "path": "yag/fail/failure/e312_discarded_result.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1002,7 +1002,7 @@
    ]
   },
   {
-   "path": "xin/fail/failure/e313_injection_and_from.xin",
+   "path": "yag/fail/failure/e313_injection_and_from.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1019,7 +1019,7 @@
    ]
   },
   {
-   "path": "xin/fail/failure/e315_in_argument.xin",
+   "path": "yag/fail/failure/e315_in_argument.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1038,7 +1038,7 @@
    ]
   },
   {
-   "path": "xin/fail/failure/e315_unreified_call.xin",
+   "path": "yag/fail/failure/e315_unreified_call.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1057,7 +1057,7 @@
    ]
   },
   {
-   "path": "xin/fail/holes/e702_hole_in_release.xin",
+   "path": "yag/fail/holes/e702_hole_in_release.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1079,7 +1079,7 @@
    ]
   },
   {
-   "path": "xin/fail/holes/h701_typed_hole.xin",
+   "path": "yag/fail/holes/h701_typed_hole.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1098,7 +1098,7 @@
    ]
   },
   {
-   "path": "xin/fail/i18n/e550_malformed_locale.xin",
+   "path": "yag/fail/i18n/e550_malformed_locale.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1117,7 +1117,7 @@
    ]
   },
   {
-   "path": "xin/fail/i18n/e551_malformed_message.xin",
+   "path": "yag/fail/i18n/e551_malformed_message.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1136,7 +1136,7 @@
    ]
   },
   {
-   "path": "xin/fail/i18n/e554_plural_missing_other.xin",
+   "path": "yag/fail/i18n/e554_plural_missing_other.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1155,7 +1155,7 @@
    ]
   },
   {
-   "path": "xin/fail/i18n/e555_unbalanced_markup.xin",
+   "path": "yag/fail/i18n/e555_unbalanced_markup.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1174,7 +1174,7 @@
    ]
   },
   {
-   "path": "xin/fail/lenient/n01_import.xin",
+   "path": "yag/fail/lenient/n01_import.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1191,7 +1191,7 @@
    ]
   },
   {
-   "path": "xin/fail/lenient/n03_single_quotes.xin",
+   "path": "yag/fail/lenient/n03_single_quotes.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1208,7 +1208,7 @@
    ]
   },
   {
-   "path": "xin/fail/lenient/n04_typing_names.xin",
+   "path": "yag/fail/lenient/n04_typing_names.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1225,7 +1225,7 @@
    ]
   },
   {
-   "path": "xin/fail/lenient/n06_mix.xin",
+   "path": "yag/fail/lenient/n06_mix.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1242,7 +1242,7 @@
    ]
   },
   {
-   "path": "xin/fail/lenient/n10_eq_none.xin",
+   "path": "yag/fail/lenient/n10_eq_none.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1259,7 +1259,7 @@
    ]
   },
   {
-   "path": "xin/fail/lenient/n14_var_local.xin",
+   "path": "yag/fail/lenient/n14_var_local.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1276,7 +1276,7 @@
    ]
   },
   {
-   "path": "xin/fail/lenient/n16_negative_index.xin",
+   "path": "yag/fail/lenient/n16_negative_index.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1300,7 +1300,7 @@
    ]
   },
   {
-   "path": "xin/fail/lenient/n17_get_default.xin",
+   "path": "yag/fail/lenient/n17_get_default.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1317,7 +1317,7 @@
    ]
   },
   {
-   "path": "xin/fail/lenient/n22_chained_compare.xin",
+   "path": "yag/fail/lenient/n22_chained_compare.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1334,7 +1334,7 @@
    ]
   },
   {
-   "path": "xin/fail/lenient/n23_result_return.xin",
+   "path": "yag/fail/lenient/n23_result_return.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1351,7 +1351,7 @@
    ]
   },
   {
-   "path": "xin/fail/lenient/n26_return_ok.xin",
+   "path": "yag/fail/lenient/n26_return_ok.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1370,7 +1370,7 @@
    ]
   },
   {
-   "path": "xin/fail/lenient/n27_int64.xin",
+   "path": "yag/fail/lenient/n27_int64.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1389,7 +1389,7 @@
    ]
   },
   {
-   "path": "xin/fail/lenient/n28_not_in.xin",
+   "path": "yag/fail/lenient/n28_not_in.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1408,7 +1408,7 @@
    ]
   },
   {
-   "path": "xin/fail/lex/e105_bidi_in_comment.xin",
+   "path": "yag/fail/lex/e105_bidi_in_comment.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1425,7 +1425,7 @@
    ]
   },
   {
-   "path": "xin/fail/lex/e105_zero_width.xin",
+   "path": "yag/fail/lex/e105_zero_width.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1442,7 +1442,7 @@
    ]
   },
   {
-   "path": "xin/fail/lex/e110_camel_case.xin",
+   "path": "yag/fail/lex/e110_camel_case.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1459,7 +1459,7 @@
    ]
   },
   {
-   "path": "xin/fail/lex/e110_double_underscore.xin",
+   "path": "yag/fail/lex/e110_double_underscore.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1476,7 +1476,7 @@
    ]
   },
   {
-   "path": "xin/fail/lex/e112_consecutive_capitals.xin",
+   "path": "yag/fail/lex/e112_consecutive_capitals.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1495,7 +1495,7 @@
    ]
   },
   {
-   "path": "xin/fail/lex/e140_interior_nul.xin",
+   "path": "yag/fail/lex/e140_interior_nul.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1513,7 +1513,7 @@
    ]
   },
   {
-   "path": "xin/fail/lex/n07_consecutive_capitals.xin",
+   "path": "yag/fail/lex/n07_consecutive_capitals.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1530,7 +1530,7 @@
    ]
   },
   {
-   "path": "xin/fail/lex/w111_long_name.xin",
+   "path": "yag/fail/lex/w111_long_name.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1547,7 +1547,7 @@
    ]
   },
   {
-   "path": "xin/fail/lints/w803_secret_into_log.xin",
+   "path": "yag/fail/lints/w803_secret_into_log.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1564,7 +1564,7 @@
    ]
   },
   {
-   "path": "xin/fail/lints/w805_large_union.xin",
+   "path": "yag/fail/lints/w805_large_union.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1581,7 +1581,7 @@
    ]
   },
   {
-   "path": "xin/fail/lints/w806_special_cases_ex.xin",
+   "path": "yag/fail/lints/w806_special_cases_ex.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1598,7 +1598,7 @@
    ]
   },
   {
-   "path": "xin/fail/lints/w810_expect_suppressed_nothing.xin",
+   "path": "yag/fail/lints/w810_expect_suppressed_nothing.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1615,7 +1615,7 @@
    ]
   },
   {
-   "path": "xin/fail/lints/w812_unused_binding.xin",
+   "path": "yag/fail/lints/w812_unused_binding.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1634,7 +1634,7 @@
    ]
   },
   {
-   "path": "xin/fail/lints/w812_unused_parameter.xin",
+   "path": "yag/fail/lints/w812_unused_parameter.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1653,7 +1653,7 @@
    ]
   },
   {
-   "path": "xin/fail/lints/w815_deprecated_use.xin",
+   "path": "yag/fail/lints/w815_deprecated_use.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1670,7 +1670,7 @@
    ]
   },
   {
-   "path": "xin/fail/lints/w819_hides_later_step.xin",
+   "path": "yag/fail/lints/w819_hides_later_step.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1689,7 +1689,7 @@
    ]
   },
   {
-   "path": "xin/fail/lints/w822_concat_not_last_use.xin",
+   "path": "yag/fail/lints/w822_concat_not_last_use.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1708,7 +1708,7 @@
    ]
   },
   {
-   "path": "xin/fail/lints/w823_redundant_annotation.xin",
+   "path": "yag/fail/lints/w823_redundant_annotation.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1727,7 +1727,7 @@
    ]
   },
   {
-   "path": "xin/fail/lints/w824_guard_after_binding.xin",
+   "path": "yag/fail/lints/w824_guard_after_binding.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1746,7 +1746,7 @@
    ]
   },
   {
-   "path": "xin/fail/lints/w830_pub_without_doc.xin",
+   "path": "yag/fail/lints/w830_pub_without_doc.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1765,7 +1765,7 @@
    ]
   },
   {
-   "path": "xin/fail/lints/w840_non_nfc_literal.xin",
+   "path": "yag/fail/lints/w840_non_nfc_literal.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1784,7 +1784,7 @@
    ]
   },
   {
-   "path": "xin/fail/match/e502_wildcard_on_sum.xin",
+   "path": "yag/fail/match/e502_wildcard_on_sum.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1801,7 +1801,7 @@
    ]
   },
   {
-   "path": "xin/fail/match/e503_missing_variant.xin",
+   "path": "yag/fail/match/e503_missing_variant.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1818,7 +1818,7 @@
    ]
   },
   {
-   "path": "xin/fail/match/e503_scalar_without_wildcard.xin",
+   "path": "yag/fail/match/e503_scalar_without_wildcard.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1837,7 +1837,7 @@
    ]
   },
   {
-   "path": "xin/fail/names/e250_duplicate_function.xin",
+   "path": "yag/fail/names/e250_duplicate_function.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1854,7 +1854,7 @@
    ]
   },
   {
-   "path": "xin/fail/numbers/e530_unit_mismatch.xin",
+   "path": "yag/fail/numbers/e530_unit_mismatch.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1871,7 +1871,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e402_overlapping_fields.xin",
+   "path": "yag/fail/ownership/e402_overlapping_fields.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1888,7 +1888,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e402_same_place_twice.xin",
+   "path": "yag/fail/ownership/e402_same_place_twice.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1905,7 +1905,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e403_assign_field_of_let_param.xin",
+   "path": "yag/fail/ownership/e403_assign_field_of_let_param.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1922,7 +1922,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e403_assign_let_param.xin",
+   "path": "yag/fail/ownership/e403_assign_let_param.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1939,7 +1939,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e404_missing_ampersand.xin",
+   "path": "yag/fail/ownership/e404_missing_ampersand.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1956,7 +1956,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e405_extra_ampersand.xin",
+   "path": "yag/fail/ownership/e405_extra_ampersand.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1973,7 +1973,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e406_escaping_captures_inout.xin",
+   "path": "yag/fail/ownership/e406_escaping_captures_inout.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -1990,7 +1990,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e406_escaping_captures_view.xin",
+   "path": "yag/fail/ownership/e406_escaping_captures_view.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2010,7 +2010,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e413_bind_new_name.xin",
+   "path": "yag/fail/ownership/e413_bind_new_name.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2029,7 +2029,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e413_implicit_copy_to_sink.xin",
+   "path": "yag/fail/ownership/e413_implicit_copy_to_sink.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2048,7 +2048,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e413_store_in_record.xin",
+   "path": "yag/fail/ownership/e413_store_in_record.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2067,7 +2067,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e414_view_escapes.xin",
+   "path": "yag/fail/ownership/e414_view_escapes.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2086,7 +2086,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e415_rc_over_channel.xin",
+   "path": "yag/fail/ownership/e415_rc_over_channel.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2103,7 +2103,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e416_copy_of_share.xin",
+   "path": "yag/fail/ownership/e416_copy_of_share.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2120,7 +2120,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e417_cell_in_two_branches.xin",
+   "path": "yag/fail/ownership/e417_cell_in_two_branches.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2138,7 +2138,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e418_atomic_too_wide.xin",
+   "path": "yag/fail/ownership/e418_atomic_too_wide.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2155,7 +2155,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e420_become_borrows_local.xin",
+   "path": "yag/fail/ownership/e420_become_borrows_local.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2174,7 +2174,7 @@
    ]
   },
   {
-   "path": "xin/fail/ownership/e421_drop_uses_capability.xin",
+   "path": "yag/fail/ownership/e421_drop_uses_capability.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2193,7 +2193,7 @@
    ]
   },
   {
-   "path": "xin/fail/proof/e604_ghost_read.xin",
+   "path": "yag/fail/proof/e604_ghost_read.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2214,7 +2214,7 @@
    ]
   },
   {
-   "path": "xin/fail/proof/e605_lemma_uses_capability.xin",
+   "path": "yag/fail/proof/e605_lemma_uses_capability.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2235,7 +2235,7 @@
    ]
   },
   {
-   "path": "xin/fail/std/bits_bigint_rotate.xin",
+   "path": "yag/fail/std/bits_bigint_rotate.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2254,7 +2254,7 @@
    ]
   },
   {
-   "path": "xin/fail/std/bits_shift_by_float.xin",
+   "path": "yag/fail/std/bits_shift_by_float.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2273,7 +2273,7 @@
    ]
   },
   {
-   "path": "xin/fail/std/cli_help_unknown_key.xin",
+   "path": "yag/fail/std/cli_help_unknown_key.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2292,7 +2292,7 @@
    ]
   },
   {
-   "path": "xin/fail/std/cli_help_without_derive.xin",
+   "path": "yag/fail/std/cli_help_without_derive.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2311,7 +2311,7 @@
    ]
   },
   {
-   "path": "xin/fail/std/cli_not_derived.xin",
+   "path": "yag/fail/std/cli_not_derived.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2330,7 +2330,7 @@
    ]
   },
   {
-   "path": "xin/fail/std/cli_unsupported_field.xin",
+   "path": "yag/fail/std/cli_unsupported_field.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2349,7 +2349,7 @@
    ]
   },
   {
-   "path": "xin/fail/std/e545_backreference.xin",
+   "path": "yag/fail/std/e545_backreference.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2368,7 +2368,7 @@
    ]
   },
   {
-   "path": "xin/fail/std/e545_bad_literal.xin",
+   "path": "yag/fail/std/e545_bad_literal.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2387,7 +2387,7 @@
    ]
   },
   {
-   "path": "xin/fail/std/e545_lookaround.xin",
+   "path": "yag/fail/std/e545_lookaround.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2406,7 +2406,7 @@
    ]
   },
   {
-   "path": "xin/fail/std/encoding_bytearray_not_hash.xin",
+   "path": "yag/fail/std/encoding_bytearray_not_hash.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2425,7 +2425,7 @@
    ]
   },
   {
-   "path": "xin/fail/std/encoding_bytes_immutable.xin",
+   "path": "yag/fail/std/encoding_bytes_immutable.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2444,7 +2444,7 @@
    ]
   },
   {
-   "path": "xin/fail/std/heap_not_iterable.xin",
+   "path": "yag/fail/std/heap_not_iterable.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2463,7 +2463,7 @@
    ]
   },
   {
-   "path": "xin/fail/strings/e504_index_str.xin",
+   "path": "yag/fail/strings/e504_index_str.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2482,7 +2482,7 @@
    ]
   },
   {
-   "path": "xin/fail/strings/e504_len_str.xin",
+   "path": "yag/fail/strings/e504_len_str.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2501,7 +2501,7 @@
    ]
   },
   {
-   "path": "xin/fail/strings/n12_index_str.xin",
+   "path": "yag/fail/strings/n12_index_str.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2518,7 +2518,7 @@
    ]
   },
   {
-   "path": "xin/fail/strings/n21_len_str.xin",
+   "path": "yag/fail/strings/n21_len_str.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2535,7 +2535,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e100_unexpected_token.xin",
+   "path": "yag/fail/syntax/e100_unexpected_token.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2555,7 +2555,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e101_and_or_mix.xin",
+   "path": "yag/fail/syntax/e101_and_or_mix.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2574,7 +2574,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e101_bitwise_compare.xin",
+   "path": "yag/fail/syntax/e101_bitwise_compare.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2593,7 +2593,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e101_fallback_arith.xin",
+   "path": "yag/fail/syntax/e101_fallback_arith.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2614,7 +2614,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e101_mod_mul.xin",
+   "path": "yag/fail/syntax/e101_mod_mul.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2633,7 +2633,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e101_neg_pow.xin",
+   "path": "yag/fail/syntax/e101_neg_pow.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2652,7 +2652,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e102_unclosed_bracket.xin",
+   "path": "yag/fail/syntax/e102_unclosed_bracket.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2672,7 +2672,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e102_unclosed_string.xin",
+   "path": "yag/fail/syntax/e102_unclosed_string.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2692,7 +2692,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e103_backslash.xin",
+   "path": "yag/fail/syntax/e103_backslash.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2709,7 +2709,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e103_semicolon.xin",
+   "path": "yag/fail/syntax/e103_semicolon.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2726,7 +2726,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e104_chained_call.xin",
+   "path": "yag/fail/syntax/e104_chained_call.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2743,7 +2743,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e104_chained_strict.xin",
+   "path": "yag/fail/syntax/e104_chained_strict.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2762,7 +2762,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e106_late_contract.xin",
+   "path": "yag/fail/syntax/e106_late_contract.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2782,7 +2782,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e107_two_for_clauses.xin",
+   "path": "yag/fail/syntax/e107_two_for_clauses.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2799,7 +2799,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e120_raise.xin",
+   "path": "yag/fail/syntax/e120_raise.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2816,7 +2816,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e120_try.xin",
+   "path": "yag/fail/syntax/e120_try.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2833,7 +2833,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e121_global.xin",
+   "path": "yag/fail/syntax/e121_global.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2850,7 +2850,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e121_yield.xin",
+   "path": "yag/fail/syntax/e121_yield.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2868,7 +2868,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e143_become_not_last.xin",
+   "path": "yag/fail/syntax/e143_become_not_last.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2887,7 +2887,7 @@
    ]
   },
   {
-   "path": "xin/fail/syntax/e233_fstring_for_template.xin",
+   "path": "yag/fail/syntax/e233_fstring_for_template.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2906,7 +2906,7 @@
    ]
   },
   {
-   "path": "xin/fail/time/e540_impossible_date.xin",
+   "path": "yag/fail/time/e540_impossible_date.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2923,7 +2923,7 @@
    ]
   },
   {
-   "path": "xin/fail/time/e542_pattern_type.xin",
+   "path": "yag/fail/time/e542_pattern_type.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2940,7 +2940,7 @@
    ]
   },
   {
-   "path": "xin/fail/time/w817_day_on_zoned.xin",
+   "path": "yag/fail/time/w817_day_on_zoned.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2957,7 +2957,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e200_unresolved.xin",
+   "path": "yag/fail/types/e200_unresolved.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2975,7 +2975,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e201_bool_not_number.xin",
+   "path": "yag/fail/types/e201_bool_not_number.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -2992,7 +2992,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e201_no_implicit_widening.xin",
+   "path": "yag/fail/types/e201_no_implicit_widening.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3009,7 +3009,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e201_rebind_changes_type.xin",
+   "path": "yag/fail/types/e201_rebind_changes_type.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3028,7 +3028,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e201_return_mismatch.xin",
+   "path": "yag/fail/types/e201_return_mismatch.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3048,7 +3048,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e202_arg_count.xin",
+   "path": "yag/fail/types/e202_arg_count.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3068,7 +3068,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e202_unknown_keyword.xin",
+   "path": "yag/fail/types/e202_unknown_keyword.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3085,7 +3085,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e203_no_such_field.xin",
+   "path": "yag/fail/types/e203_no_such_field.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3105,7 +3105,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e203_no_such_method.xin",
+   "path": "yag/fail/types/e203_no_such_method.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3122,7 +3122,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e210_keyword_required.xin",
+   "path": "yag/fail/types/e210_keyword_required.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3139,7 +3139,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e210_record_keyword_required.xin",
+   "path": "yag/fail/types/e210_record_keyword_required.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3156,7 +3156,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e220_overlapping_impls.xin",
+   "path": "yag/fail/types/e220_overlapping_impls.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3173,7 +3173,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e221_missing_trait.xin",
+   "path": "yag/fail/types/e221_missing_trait.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3193,7 +3193,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e230_out_parameter.xin",
+   "path": "yag/fail/types/e230_out_parameter.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3213,7 +3213,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e232_mixed_alternatives.xin",
+   "path": "yag/fail/types/e232_mixed_alternatives.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3232,7 +3232,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e232_none_variant.xin",
+   "path": "yag/fail/types/e232_none_variant.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3251,7 +3251,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e240_unannotated_param.xin",
+   "path": "yag/fail/types/e240_unannotated_param.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3268,7 +3268,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e241_empty_list.xin",
+   "path": "yag/fail/types/e241_empty_list.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3287,7 +3287,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e251_cap_set_cycle.xin",
+   "path": "yag/fail/types/e251_cap_set_cycle.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3306,7 +3306,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e271_become_signature.xin",
+   "path": "yag/fail/types/e271_become_signature.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3325,7 +3325,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e273_become_closure.xin",
+   "path": "yag/fail/types/e273_become_closure.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3344,7 +3344,7 @@
    ]
   },
   {
-   "path": "xin/fail/types/e273_become_in_par.xin",
+   "path": "yag/fail/types/e273_become_in_par.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -3363,7 +3363,7 @@
    ]
   },
   {
-   "path": "xin/run/bounds/runtime_check_panics.xin",
+   "path": "yag/run/bounds/runtime_check_panics.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3379,7 +3379,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/collections/dict_insertion_order.xin",
+   "path": "yag/run/collections/dict_insertion_order.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3393,7 +3393,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/collections/list_show.xin",
+   "path": "yag/run/collections/list_show.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3408,7 +3408,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/concurrency/lowest_index_failure.xin",
+   "path": "yag/run/concurrency/lowest_index_failure.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3423,7 +3423,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/concurrency/par_source_order.xin",
+   "path": "yag/run/concurrency/par_source_order.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3440,7 +3440,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/contracts/assert_panics.xin",
+   "path": "yag/run/contracts/assert_panics.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3453,7 +3453,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/contracts/pre_violation_panics.xin",
+   "path": "yag/run/contracts/pre_violation_panics.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3468,7 +3468,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/contracts/unreachable_panics.xin",
+   "path": "yag/run/contracts/unreachable_panics.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3481,7 +3481,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/failure/context.xin",
+   "path": "yag/run/failure/context.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3496,7 +3496,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/failure/else_binds_error.xin",
+   "path": "yag/run/failure/else_binds_error.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3509,7 +3509,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/failure/main_fails.xin",
+   "path": "yag/run/failure/main_fails.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3524,7 +3524,7 @@
    "exit": 1
   },
   {
-   "path": "xin/run/match/records_show.xin",
+   "path": "yag/run/match/records_show.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3540,7 +3540,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/match/sums.xin",
+   "path": "yag/run/match/sums.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3555,7 +3555,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/numbers/bigint.xin",
+   "path": "yag/run/numbers/bigint.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3568,7 +3568,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/numbers/div_zero_panics.xin",
+   "path": "yag/run/numbers/div_zero_panics.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3582,7 +3582,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/numbers/float_div_zero.xin",
+   "path": "yag/run/numbers/float_div_zero.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3595,7 +3595,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/numbers/float_equality.xin",
+   "path": "yag/run/numbers/float_equality.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3610,7 +3610,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/numbers/floor_division.xin",
+   "path": "yag/run/numbers/floor_division.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3625,7 +3625,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/numbers/int_division_is_float.xin",
+   "path": "yag/run/numbers/int_division_is_float.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3640,7 +3640,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/numbers/int_truncates.xin",
+   "path": "yag/run/numbers/int_truncates.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3653,7 +3653,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/numbers/overflow_panics.xin",
+   "path": "yag/run/numbers/overflow_panics.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3670,7 +3670,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/numbers/round_half_even.xin",
+   "path": "yag/run/numbers/round_half_even.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3683,7 +3683,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/ownership/exclusivity_panic.xin",
+   "path": "yag/run/ownership/exclusivity_panic.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3696,7 +3696,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/ownership/inout.xin",
+   "path": "yag/run/ownership/inout.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3709,7 +3709,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/ownership/value_semantics.xin",
+   "path": "yag/run/ownership/value_semantics.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3724,7 +3724,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/bisect_key.xin",
+   "path": "yag/run/std/bisect_key.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3740,7 +3740,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/bits_bigint.xin",
+   "path": "yag/run/std/bits_bigint.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3756,7 +3756,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/bits_functions.xin",
+   "path": "yag/run/std/bits_functions.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3771,7 +3771,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/bits_operators.xin",
+   "path": "yag/run/std/bits_operators.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3787,7 +3787,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/bits_shift_amount.xin",
+   "path": "yag/run/std/bits_shift_amount.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3802,7 +3802,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/std/bits_shl_overflow.xin",
+   "path": "yag/run/std/bits_shl_overflow.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3818,7 +3818,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/std/cli_errors.xin",
+   "path": "yag/run/std/cli_errors.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3833,7 +3833,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/cli_help.xin",
+   "path": "yag/run/std/cli_help.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3849,7 +3849,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/cli_parse.xin",
+   "path": "yag/run/std/cli_parse.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3865,7 +3865,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/cli_parse_env.xin",
+   "path": "yag/run/std/cli_parse_env.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3880,7 +3880,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/cli_subcommands.xin",
+   "path": "yag/run/std/cli_subcommands.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3895,7 +3895,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/deque_empty_pop.xin",
+   "path": "yag/run/std/deque_empty_pop.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3910,7 +3910,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/std/deque_ends.xin",
+   "path": "yag/run/std/deque_ends.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3927,7 +3927,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/deque_maxlen_rotate.xin",
+   "path": "yag/run/std/deque_maxlen_rotate.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3943,7 +3943,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/encoding_base64.xin",
+   "path": "yag/run/std/encoding_base64.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3958,7 +3958,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/encoding_bytearray.xin",
+   "path": "yag/run/std/encoding_bytearray.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3973,7 +3973,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/encoding_bytearray_pop_empty.xin",
+   "path": "yag/run/std/encoding_bytearray_pop_empty.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -3988,7 +3988,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/std/encoding_bytes_basic.xin",
+   "path": "yag/run/std/encoding_bytes_basic.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4003,7 +4003,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/encoding_bytes_eq_ord_hash.xin",
+   "path": "yag/run/std/encoding_bytes_eq_ord_hash.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4018,7 +4018,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/encoding_bytes_index_bounds.xin",
+   "path": "yag/run/std/encoding_bytes_index_bounds.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4033,7 +4033,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/std/encoding_bytes_show.xin",
+   "path": "yag/run/std/encoding_bytes_show.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4048,7 +4048,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/encoding_error.xin",
+   "path": "yag/run/std/encoding_error.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4063,7 +4063,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/encoding_hex.xin",
+   "path": "yag/run/std/encoding_hex.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4078,7 +4078,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/encoding_utf8.xin",
+   "path": "yag/run/std/encoding_utf8.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4089,11 +4089,11 @@
    ],
    "flags": [],
    "expect": [],
-   "stdout": "10 h\u00e9llo \u6c38 h\u00e9llo \u6c38\n1\n0\n2\na\ufffdb\ufffd\n\ud83d\ude00\n",
+   "stdout": "10 h\u00e9llo \u8a00 h\u00e9llo \u8a00\n1\n0\n2\na\ufffdb\ufffd\n\ud83d\ude00\n",
    "exit": 0
   },
   {
-   "path": "xin/run/std/env_fake.xin",
+   "path": "yag/run/std/env_fake.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4109,7 +4109,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/env_secret.xin",
+   "path": "yag/run/std/env_secret.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4124,7 +4124,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/heap_empty_pop.xin",
+   "path": "yag/run/std/heap_empty_pop.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4139,7 +4139,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/std/heap_order.xin",
+   "path": "yag/run/std/heap_order.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4157,7 +4157,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/iter_adapters.xin",
+   "path": "yag/run/std/iter_adapters.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4172,7 +4172,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/iter_consumers.xin",
+   "path": "yag/run/std/iter_consumers.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4187,7 +4187,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/iter_for_loop.xin",
+   "path": "yag/run/std/iter_for_loop.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4203,7 +4203,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/iter_into_collections.xin",
+   "path": "yag/run/std/iter_into_collections.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4218,7 +4218,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/iter_lazy_infinite.xin",
+   "path": "yag/run/std/iter_lazy_infinite.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4235,7 +4235,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/iter_list_eager.xin",
+   "path": "yag/run/std/iter_list_eager.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4250,7 +4250,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/iter_single_pass.xin",
+   "path": "yag/run/std/iter_single_pass.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4267,7 +4267,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/iter_sources.xin",
+   "path": "yag/run/std/iter_sources.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4282,7 +4282,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/iter_windows_chunks.xin",
+   "path": "yag/run/std/iter_windows_chunks.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4297,7 +4297,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/list_bisect.xin",
+   "path": "yag/run/std/list_bisect.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4312,7 +4312,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/list_insert_clamp.xin",
+   "path": "yag/run/std/list_insert_clamp.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4327,7 +4327,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/list_slice_exact.xin",
+   "path": "yag/run/std/list_slice_exact.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4342,7 +4342,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/std/list_sort.xin",
+   "path": "yag/run/std/list_sort.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4358,7 +4358,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/list_sort_key.xin",
+   "path": "yag/run/std/list_sort_key.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4373,7 +4373,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/log_events.xin",
+   "path": "yag/run/std/log_events.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4390,7 +4390,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/math_constants.xin",
+   "path": "yag/run/std/math_constants.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4406,7 +4406,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/math_domain.xin",
+   "path": "yag/run/std/math_domain.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4421,7 +4421,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/math_dot_exact_lengths.xin",
+   "path": "yag/run/std/math_dot_exact_lengths.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4436,7 +4436,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/std/math_exact_ops.xin",
+   "path": "yag/run/std/math_exact_ops.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4452,7 +4452,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/math_functions.xin",
+   "path": "yag/run/std/math_functions.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4469,7 +4469,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/math_hard_cases.xin",
+   "path": "yag/run/std/math_hard_cases.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4485,7 +4485,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/math_round_modes.xin",
+   "path": "yag/run/std/math_round_modes.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4500,7 +4500,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/math_sum_exact.xin",
+   "path": "yag/run/std/math_sum_exact.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4515,7 +4515,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/min_max_key.xin",
+   "path": "yag/run/std/min_max_key.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4531,7 +4531,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/path_construct.xin",
+   "path": "yag/run/std/path_construct.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4547,7 +4547,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/path_eq_ord_hash.xin",
+   "path": "yag/run/std/path_eq_ord_hash.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4562,7 +4562,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/path_join_relative.xin",
+   "path": "yag/run/std/path_join_relative.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4578,7 +4578,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/path_names.xin",
+   "path": "yag/run/std/path_names.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4593,7 +4593,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/path_normalize.xin",
+   "path": "yag/run/std/path_normalize.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4608,7 +4608,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/path_windows.xin",
+   "path": "yag/run/std/path_windows.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4623,7 +4623,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/path_with_name_invalid.xin",
+   "path": "yag/run/std/path_with_name_invalid.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4638,7 +4638,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/std/proc_fake.xin",
+   "path": "yag/run/std/proc_fake.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4654,7 +4654,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/rand_below_zero.xin",
+   "path": "yag/run/std/rand_below_zero.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4669,7 +4669,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/std/rand_choice_empty.xin",
+   "path": "yag/run/std/rand_choice_empty.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4684,7 +4684,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/std/rand_derived.xin",
+   "path": "yag/run/std/rand_derived.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4700,7 +4700,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/rand_par_split.xin",
+   "path": "yag/run/std/rand_par_split.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4716,7 +4716,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/rand_seeded_streams.xin",
+   "path": "yag/run/std/rand_seeded_streams.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4732,7 +4732,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/regex_anchors.xin",
+   "path": "yag/run/std/regex_anchors.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4747,7 +4747,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/regex_escape.xin",
+   "path": "yag/run/std/regex_escape.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4762,7 +4762,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/regex_find_all.xin",
+   "path": "yag/run/std/regex_find_all.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4777,7 +4777,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/regex_runtime_error.xin",
+   "path": "yag/run/std/regex_runtime_error.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4792,7 +4792,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/regex_search_groups.xin",
+   "path": "yag/run/std/regex_search_groups.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4808,7 +4808,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/regex_split_sub.xin",
+   "path": "yag/run/std/regex_split_sub.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4823,7 +4823,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/regex_unicode.xin",
+   "path": "yag/run/std/regex_unicode.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4834,11 +4834,11 @@
    ],
    "flags": [],
    "expect": [],
-   "stdout": "h\u00e9llo 2 7\n\u6c38 1 2\nABC\n",
+   "stdout": "h\u00e9llo 2 7\n\u8a00 1 2\nABC\n",
    "exit": 0
   },
   {
-   "path": "xin/run/std/sorted_dict_basic.xin",
+   "path": "yag/run/std/sorted_dict_basic.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4854,7 +4854,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/sorted_dict_queries.xin",
+   "path": "yag/run/std/sorted_dict_queries.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4870,7 +4870,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/sorted_set_basic.xin",
+   "path": "yag/run/std/sorted_set_basic.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4888,7 +4888,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/str_iter.xin",
+   "path": "yag/run/std/str_iter.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4903,7 +4903,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/text_and_list_additions.xin",
+   "path": "yag/run/std/text_and_list_additions.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4918,7 +4918,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/time_civil_dates.xin",
+   "path": "yag/run/std/time_civil_dates.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4934,7 +4934,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/time_civil_parse.xin",
+   "path": "yag/run/std/time_civil_parse.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4950,7 +4950,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/time_civil_zones.xin",
+   "path": "yag/run/std/time_civil_zones.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4966,7 +4966,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/time_duration_arith.xin",
+   "path": "yag/run/std/time_duration_arith.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4981,7 +4981,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/time_duration_checked.xin",
+   "path": "yag/run/std/time_duration_checked.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4996,7 +4996,7 @@
    "exit": 101
   },
   {
-   "path": "xin/run/std/time_duration_show.xin",
+   "path": "yag/run/std/time_duration_show.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -5011,7 +5011,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/time_instant_basic.xin",
+   "path": "yag/run/std/time_instant_basic.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -5026,7 +5026,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/time_instant_parse.xin",
+   "path": "yag/run/std/time_instant_parse.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -5042,7 +5042,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/time_mono_and_handlers.xin",
+   "path": "yag/run/std/time_mono_and_handlers.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -5057,7 +5057,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/time_strftime.xin",
+   "path": "yag/run/std/time_strftime.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -5072,7 +5072,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/std/time_zoned_parse.xin",
+   "path": "yag/run/std/time_zoned_parse.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -5088,7 +5088,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/strings/concat.xin",
+   "path": "yag/run/strings/concat.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -5104,7 +5104,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/strings/counts.xin",
+   "path": "yag/run/strings/counts.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -5117,7 +5117,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/tail/become_constant_stack.xin",
+   "path": "yag/run/tail/become_constant_stack.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -5132,7 +5132,7 @@
    "exit": 0
   },
   {
-   "path": "xin/run/tuples/assign_return_swap.xin",
+   "path": "yag/run/tuples/assign_return_swap.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -5148,7 +5148,7 @@
    "exit": 0
   },
   {
-   "path": "wen/pass/caps/renamed_user_capability.wen",
+   "path": "yn/pass/caps/renamed_user_capability.yn",
    "kind": "pass",
    "milestone": "M3",
    "spec": [
@@ -5162,7 +5162,7 @@
    "expect": []
   },
   {
-   "path": "wen/pass/failure/derive_from_and_error.wen",
+   "path": "yn/pass/failure/derive_from_and_error.yn",
    "kind": "pass",
    "milestone": "M3",
    "spec": [
@@ -5175,7 +5175,7 @@
    "expect": []
   },
   {
-   "path": "wen/pass/ffi/callbacks_and_ownership.wen",
+   "path": "yn/pass/ffi/callbacks_and_ownership.yn",
    "kind": "pass",
    "milestone": "M3",
    "spec": [
@@ -5187,7 +5187,7 @@
    "expect": []
   },
   {
-   "path": "wen/pass/ownership/for_var.wen",
+   "path": "yn/pass/ownership/for_var.yn",
    "kind": "pass",
    "milestone": "M3",
    "spec": [
@@ -5200,7 +5200,7 @@
    "expect": []
   },
   {
-   "path": "wen/pass/ownership/map_places.wen",
+   "path": "yn/pass/ownership/map_places.yn",
    "kind": "pass",
    "milestone": "M3",
    "spec": [
@@ -5213,7 +5213,7 @@
    "expect": []
   },
   {
-   "path": "wen/pass/proof/lemma_and_ghost.wen",
+   "path": "yn/pass/proof/lemma_and_ghost.yn",
    "kind": "pass",
    "milestone": "M3",
    "spec": [
@@ -5228,7 +5228,7 @@
    "expect": []
   },
   {
-   "path": "wen/pass/stage0/for_unrolls.wen",
+   "path": "yn/pass/stage0/for_unrolls.yn",
    "kind": "pass",
    "milestone": "M3",
    "spec": [
@@ -5239,7 +5239,7 @@
    "expect": []
   },
   {
-   "path": "wen/pass/stage0/limit_raises_depth.wen",
+   "path": "yn/pass/stage0/limit_raises_depth.yn",
    "kind": "pass",
    "milestone": "M3",
    "spec": [
@@ -5250,7 +5250,7 @@
    "expect": []
   },
   {
-   "path": "wen/pass/stage0/taken_branch_only.wen",
+   "path": "yn/pass/stage0/taken_branch_only.yn",
    "kind": "pass",
    "milestone": "M3",
    "spec": [
@@ -5263,7 +5263,7 @@
    "expect": []
   },
   {
-   "path": "wen/pass/subscripts/index_read_and_write.wen",
+   "path": "yn/pass/subscripts/index_read_and_write.yn",
    "kind": "pass",
    "milestone": "M3",
    "spec": [
@@ -5277,7 +5277,7 @@
    "expect": []
   },
   {
-   "path": "wen/pass/syntax/every_production.wen",
+   "path": "yn/pass/syntax/every_production.yn",
    "kind": "pass",
    "milestone": "M3",
    "spec": [
@@ -5295,7 +5295,7 @@
    "expect": []
   },
   {
-   "path": "wen/pass/types/records_sums_aliases.wen",
+   "path": "yn/pass/types/records_sums_aliases.yn",
    "kind": "pass",
    "milestone": "M3",
    "spec": [
@@ -5309,7 +5309,7 @@
    "expect": []
   },
   {
-   "path": "wen/fail/bounds/e501_refuted.wen",
+   "path": "yn/fail/bounds/e501_refuted.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5328,7 +5328,7 @@
    ]
   },
   {
-   "path": "wen/fail/caps/e301_pub_missing_uses.wen",
+   "path": "yn/fail/caps/e301_pub_missing_uses.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5350,7 +5350,7 @@
    ]
   },
   {
-   "path": "wen/fail/caps/e307_dynamic_rand.wen",
+   "path": "yn/fail/caps/e307_dynamic_rand.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5367,7 +5367,7 @@
    ]
   },
   {
-   "path": "wen/fail/concurrency/e705_branch_reads_sibling.wen",
+   "path": "yn/fail/concurrency/e705_branch_reads_sibling.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5384,7 +5384,7 @@
    ]
   },
   {
-   "path": "wen/fail/concurrency/e709_select_without_nondet.wen",
+   "path": "yn/fail/concurrency/e709_select_without_nondet.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5404,7 +5404,7 @@
    ]
   },
   {
-   "path": "wen/fail/concurrency/e711_bad_select_arm.wen",
+   "path": "yn/fail/concurrency/e711_bad_select_arm.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5421,7 +5421,7 @@
    ]
   },
   {
-   "path": "wen/fail/concurrency/e716_fn_param_two_branches.wen",
+   "path": "yn/fail/concurrency/e716_fn_param_two_branches.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5440,7 +5440,7 @@
    ]
   },
   {
-   "path": "wen/fail/contracts/e602_missing_decreases.wen",
+   "path": "yn/fail/contracts/e602_missing_decreases.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5457,7 +5457,7 @@
    ]
   },
   {
-   "path": "wen/fail/contracts/w813_pub_without_ex.wen",
+   "path": "yn/fail/contracts/w813_pub_without_ex.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5474,7 +5474,7 @@
    ]
   },
   {
-   "path": "wen/fail/failure/e310_missing_from.wen",
+   "path": "yn/fail/failure/e310_missing_from.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5491,7 +5491,7 @@
    ]
   },
   {
-   "path": "wen/fail/failure/e311_try_never_inspected.wen",
+   "path": "yn/fail/failure/e311_try_never_inspected.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5508,7 +5508,7 @@
    ]
   },
   {
-   "path": "wen/fail/failure/e312_discarded_call.wen",
+   "path": "yn/fail/failure/e312_discarded_call.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5527,7 +5527,7 @@
    ]
   },
   {
-   "path": "wen/fail/failure/e312_unit_body_value.wen",
+   "path": "yn/fail/failure/e312_unit_body_value.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5544,7 +5544,7 @@
    ]
   },
   {
-   "path": "wen/fail/ffi/e903_unsafe_call_outside_block.wen",
+   "path": "yn/fail/ffi/e903_unsafe_call_outside_block.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5561,7 +5561,7 @@
    ]
   },
   {
-   "path": "wen/fail/ffi/e904_non_c_type.wen",
+   "path": "yn/fail/ffi/e904_non_c_type.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5578,7 +5578,7 @@
    ]
   },
   {
-   "path": "wen/fail/ffi/e905_variadic_promotion.wen",
+   "path": "yn/fail/ffi/e905_variadic_promotion.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5595,7 +5595,7 @@
    ]
   },
   {
-   "path": "wen/fail/ffi/e906_returns_twice.wen",
+   "path": "yn/fail/ffi/e906_returns_twice.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5612,7 +5612,7 @@
    ]
   },
   {
-   "path": "wen/fail/ffi/e907_export_non_profile.wen",
+   "path": "yn/fail/ffi/e907_export_non_profile.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5629,7 +5629,7 @@
    ]
   },
   {
-   "path": "wen/fail/ffi/e910_asm_operand_type.wen",
+   "path": "yn/fail/ffi/e910_asm_operand_type.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5646,7 +5646,7 @@
    ]
   },
   {
-   "path": "wen/fail/ffi/e911_asm_register.wen",
+   "path": "yn/fail/ffi/e911_asm_register.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5663,7 +5663,7 @@
    ]
   },
   {
-   "path": "wen/fail/holes/h701_typed_hole.wen",
+   "path": "yn/fail/holes/h701_typed_hole.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5682,7 +5682,7 @@
    ]
   },
   {
-   "path": "wen/fail/lex/e105_bidi.wen",
+   "path": "yn/fail/lex/e105_bidi.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5699,7 +5699,7 @@
    ]
   },
   {
-   "path": "wen/fail/lex/e110_malformed_name.wen",
+   "path": "yn/fail/lex/e110_malformed_name.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5716,7 +5716,7 @@
    ]
   },
   {
-   "path": "wen/fail/lex/e112_consecutive_capitals.wen",
+   "path": "yn/fail/lex/e112_consecutive_capitals.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5733,7 +5733,7 @@
    ]
   },
   {
-   "path": "wen/fail/lex/e132_comment_without_space.wen",
+   "path": "yn/fail/lex/e132_comment_without_space.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5750,7 +5750,7 @@
    ]
   },
   {
-   "path": "wen/fail/lex/e133_tab_indent.wen",
+   "path": "yn/fail/lex/e133_tab_indent.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5767,7 +5767,7 @@
    ]
   },
   {
-   "path": "wen/fail/lex/e134_binary_minus_in_grid.wen",
+   "path": "yn/fail/lex/e134_binary_minus_in_grid.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5784,7 +5784,7 @@
    ]
   },
   {
-   "path": "wen/fail/lints/w812_unused_binding.wen",
+   "path": "yn/fail/lints/w812_unused_binding.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5803,7 +5803,7 @@
    ]
   },
   {
-   "path": "wen/fail/match/e503_missing_variant.wen",
+   "path": "yn/fail/match/e503_missing_variant.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5820,7 +5820,7 @@
    ]
   },
   {
-   "path": "wen/fail/match/w811_wildcard_on_sum.wen",
+   "path": "yn/fail/match/w811_wildcard_on_sum.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5837,7 +5837,7 @@
    ]
   },
   {
-   "path": "wen/fail/names/e250_duplicate_function.wen",
+   "path": "yn/fail/names/e250_duplicate_function.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5854,7 +5854,7 @@
    ]
   },
   {
-   "path": "wen/fail/numbers/e530_unit_mismatch.wen",
+   "path": "yn/fail/numbers/e530_unit_mismatch.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5872,7 +5872,7 @@
    ]
   },
   {
-   "path": "wen/fail/ownership/e402_for_var_touches_list.wen",
+   "path": "yn/fail/ownership/e402_for_var_touches_list.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5891,7 +5891,7 @@
    ]
   },
   {
-   "path": "wen/fail/ownership/e402_same_place_twice.wen",
+   "path": "yn/fail/ownership/e402_same_place_twice.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5908,7 +5908,7 @@
    ]
   },
   {
-   "path": "wen/fail/ownership/e403_assign_let.wen",
+   "path": "yn/fail/ownership/e403_assign_let.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5925,7 +5925,7 @@
    ]
   },
   {
-   "path": "wen/fail/ownership/e404_missing_ampersand.wen",
+   "path": "yn/fail/ownership/e404_missing_ampersand.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5942,7 +5942,7 @@
    ]
   },
   {
-   "path": "wen/fail/ownership/e405_extra_ampersand.wen",
+   "path": "yn/fail/ownership/e405_extra_ampersand.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5959,7 +5959,7 @@
    ]
   },
   {
-   "path": "wen/fail/ownership/e406_escaping_captures_var.wen",
+   "path": "yn/fail/ownership/e406_escaping_captures_var.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5976,7 +5976,7 @@
    ]
   },
   {
-   "path": "wen/fail/ownership/e412_linear_not_consumed.wen",
+   "path": "yn/fail/ownership/e412_linear_not_consumed.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -5996,7 +5996,7 @@
    ]
   },
   {
-   "path": "wen/fail/ownership/e413_implicit_copy.wen",
+   "path": "yn/fail/ownership/e413_implicit_copy.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6015,7 +6015,7 @@
    ]
   },
   {
-   "path": "wen/fail/ownership/e414_ref_escapes_arena.wen",
+   "path": "yn/fail/ownership/e414_ref_escapes_arena.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6035,7 +6035,7 @@
    ]
   },
   {
-   "path": "wen/fail/ownership/e416_copy_of_share.wen",
+   "path": "yn/fail/ownership/e416_copy_of_share.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6052,7 +6052,7 @@
    ]
   },
   {
-   "path": "wen/fail/ownership/e417_cell_in_two_branches.wen",
+   "path": "yn/fail/ownership/e417_cell_in_two_branches.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6069,7 +6069,7 @@
    ]
   },
   {
-   "path": "wen/fail/ownership/e421_linear_with_drop.wen",
+   "path": "yn/fail/ownership/e421_linear_with_drop.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6088,7 +6088,7 @@
    ]
   },
   {
-   "path": "wen/fail/proof/e604_ghost_read.wen",
+   "path": "yn/fail/proof/e604_ghost_read.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6108,7 +6108,7 @@
    ]
   },
   {
-   "path": "wen/fail/proof/e605_lemma_uses_capability.wen",
+   "path": "yn/fail/proof/e605_lemma_uses_capability.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6128,7 +6128,7 @@
    ]
   },
   {
-   "path": "wen/fail/stage0/e260_panic.wen",
+   "path": "yn/fail/stage0/e260_panic.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6145,7 +6145,7 @@
    ]
   },
   {
-   "path": "wen/fail/stage0/e261_depth.wen",
+   "path": "yn/fail/stage0/e261_depth.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6162,7 +6162,7 @@
    ]
   },
   {
-   "path": "wen/fail/stage0/e262_function_value.wen",
+   "path": "yn/fail/stage0/e262_function_value.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6179,7 +6179,7 @@
    ]
   },
   {
-   "path": "wen/fail/stage0/e267_embed_outside_root.wen",
+   "path": "yn/fail/stage0/e267_embed_outside_root.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6196,7 +6196,7 @@
    ]
   },
   {
-   "path": "wen/fail/stage0/e270_compile_error.wen",
+   "path": "yn/fail/stage0/e270_compile_error.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6213,7 +6213,7 @@
    ]
   },
   {
-   "path": "wen/fail/stage0/e272_instantiation_error.wen",
+   "path": "yn/fail/stage0/e272_instantiation_error.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6232,7 +6232,7 @@
    ]
   },
   {
-   "path": "wen/fail/stage0/w816_compile_warn.wen",
+   "path": "yn/fail/stage0/w816_compile_warn.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6249,7 +6249,7 @@
    ]
   },
   {
-   "path": "wen/fail/strings/e504_len_str.wen",
+   "path": "yn/fail/strings/e504_len_str.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6266,7 +6266,7 @@
    ]
   },
   {
-   "path": "wen/fail/subscripts/e422_no_yield_on_a_path.wen",
+   "path": "yn/fail/subscripts/e422_no_yield_on_a_path.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6285,7 +6285,7 @@
    ]
   },
   {
-   "path": "wen/fail/subscripts/e422_two_yields.wen",
+   "path": "yn/fail/subscripts/e422_two_yields.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6304,7 +6304,7 @@
    ]
   },
   {
-   "path": "wen/fail/subscripts/e423_inout_through_view.wen",
+   "path": "yn/fail/subscripts/e423_inout_through_view.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6324,7 +6324,7 @@
    ]
   },
   {
-   "path": "wen/fail/syntax/e100_unexpected_token.wen",
+   "path": "yn/fail/syntax/e100_unexpected_token.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6343,7 +6343,7 @@
    ]
   },
   {
-   "path": "wen/fail/syntax/e101_and_or_mix.wen",
+   "path": "yn/fail/syntax/e101_and_or_mix.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6360,7 +6360,7 @@
    ]
   },
   {
-   "path": "wen/fail/syntax/e104_chained_comparison.wen",
+   "path": "yn/fail/syntax/e104_chained_comparison.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6377,7 +6377,7 @@
    ]
   },
   {
-   "path": "wen/fail/syntax/e135_nested_subject.wen",
+   "path": "yn/fail/syntax/e135_nested_subject.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6394,7 +6394,7 @@
    ]
   },
   {
-   "path": "wen/fail/syntax/e141_yield_outside_gen.wen",
+   "path": "yn/fail/syntax/e141_yield_outside_gen.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6411,7 +6411,7 @@
    ]
   },
   {
-   "path": "wen/fail/syntax/e143_become_not_last.wen",
+   "path": "yn/fail/syntax/e143_become_not_last.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6430,7 +6430,7 @@
    ]
   },
   {
-   "path": "wen/fail/time/e540_impossible_date.wen",
+   "path": "yn/fail/time/e540_impossible_date.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6448,7 +6448,7 @@
    ]
   },
   {
-   "path": "wen/fail/time/e541_unresolved_fold.wen",
+   "path": "yn/fail/time/e541_unresolved_fold.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6466,7 +6466,7 @@
    ]
   },
   {
-   "path": "wen/fail/time/e541_zoned_in_gap.wen",
+   "path": "yn/fail/time/e541_zoned_in_gap.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6484,7 +6484,7 @@
    ]
   },
   {
-   "path": "wen/fail/types/e200_unresolved.wen",
+   "path": "yn/fail/types/e200_unresolved.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6501,7 +6501,7 @@
    ]
   },
   {
-   "path": "wen/fail/types/e201_mismatch.wen",
+   "path": "yn/fail/types/e201_mismatch.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6520,7 +6520,7 @@
    ]
   },
   {
-   "path": "wen/fail/types/e202_unknown_label.wen",
+   "path": "yn/fail/types/e202_unknown_label.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6537,7 +6537,7 @@
    ]
   },
   {
-   "path": "wen/fail/types/e210_label_required.wen",
+   "path": "yn/fail/types/e210_label_required.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6554,7 +6554,7 @@
    ]
   },
   {
-   "path": "wen/fail/types/e230_shadowing.wen",
+   "path": "yn/fail/types/e230_shadowing.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6571,7 +6571,7 @@
    ]
   },
   {
-   "path": "wen/fail/types/e240_unannotated_param.wen",
+   "path": "yn/fail/types/e240_unannotated_param.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6588,7 +6588,7 @@
    ]
   },
   {
-   "path": "wen/fail/types/e251_cap_set_cycle.wen",
+   "path": "yn/fail/types/e251_cap_set_cycle.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6607,7 +6607,7 @@
    ]
   },
   {
-   "path": "wen/fail/unsafe/e900_forbid_alloc.wen",
+   "path": "yn/fail/unsafe/e900_forbid_alloc.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6626,7 +6626,7 @@
    ]
   },
   {
-   "path": "wen/fail/unsafe/e901_unsafe_outside_ffi.wen",
+   "path": "yn/fail/unsafe/e901_unsafe_outside_ffi.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6644,7 +6644,7 @@
    ]
   },
   {
-   "path": "wen/fail/unsafe/e902_extern_outside_ffi.wen",
+   "path": "yn/fail/unsafe/e902_extern_outside_ffi.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
@@ -6662,7 +6662,7 @@
    ]
   },
   {
-   "path": "wen/run/clause_form.wen",
+   "path": "yn/run/clause_form.yn",
    "kind": "run",
    "milestone": "M3",
    "spec": [
@@ -6678,7 +6678,7 @@
    "exit": 0
   },
   {
-   "path": "wen/run/collections/map_default_insert.wen",
+   "path": "yn/run/collections/map_default_insert.yn",
    "kind": "run",
    "milestone": "M3",
    "spec": [
@@ -6693,7 +6693,7 @@
    "exit": 0
   },
   {
-   "path": "wen/run/concurrency/par_source_order.wen",
+   "path": "yn/run/concurrency/par_source_order.yn",
    "kind": "run",
    "milestone": "M3",
    "spec": [
@@ -6706,7 +6706,7 @@
    "exit": 0
   },
   {
-   "path": "wen/run/failure/fallback_block.wen",
+   "path": "yn/run/failure/fallback_block.yn",
    "kind": "run",
    "milestone": "M3",
    "spec": [
@@ -6721,7 +6721,7 @@
    "exit": 0
   },
   {
-   "path": "wen/run/failure/main_exit_code.wen",
+   "path": "yn/run/failure/main_exit_code.yn",
    "kind": "run",
    "milestone": "M3",
    "spec": [
@@ -6736,7 +6736,7 @@
    "exit": 3
   },
   {
-   "path": "wen/run/hello.wen",
+   "path": "yn/run/hello.yn",
    "kind": "run",
    "milestone": "M3",
    "spec": [
@@ -6751,7 +6751,7 @@
    "exit": 0
   },
   {
-   "path": "wen/run/numbers/checked_cast.wen",
+   "path": "yn/run/numbers/checked_cast.yn",
    "kind": "run",
    "milestone": "M3",
    "spec": [
@@ -6764,7 +6764,7 @@
    "exit": 101
   },
   {
-   "path": "wen/run/numbers/explicit_conversions.wen",
+   "path": "yn/run/numbers/explicit_conversions.yn",
    "kind": "run",
    "milestone": "M3",
    "spec": [
@@ -6777,7 +6777,7 @@
    "exit": 0
   },
   {
-   "path": "wen/run/numbers/floor_division.wen",
+   "path": "yn/run/numbers/floor_division.yn",
    "kind": "run",
    "milestone": "M3",
    "spec": [
@@ -6793,7 +6793,7 @@
    "exit": 0
   },
   {
-   "path": "wen/run/stage0/folded_constant.wen",
+   "path": "yn/run/stage0/folded_constant.yn",
    "kind": "run",
    "milestone": "M3",
    "spec": [
@@ -6806,7 +6806,7 @@
    "exit": 0
   },
   {
-   "path": "yong/pass/calls_and_values.yong",
+   "path": "yir/pass/calls_and_values.yir",
    "kind": "pass",
    "milestone": "M0",
    "spec": [
@@ -6819,7 +6819,7 @@
    "expect": []
   },
   {
-   "path": "yong/pass/concurrency.yong",
+   "path": "yir/pass/concurrency.yir",
    "kind": "pass",
    "milestone": "M0",
    "spec": [
@@ -6833,7 +6833,7 @@
    "expect": []
   },
   {
-   "path": "yong/pass/contracts.yong",
+   "path": "yir/pass/contracts.yir",
    "kind": "pass",
    "milestone": "M0",
    "spec": [
@@ -6845,7 +6845,7 @@
    "expect": []
   },
   {
-   "path": "yong/pass/control_flow.yong",
+   "path": "yir/pass/control_flow.yir",
    "kind": "pass",
    "milestone": "M0",
    "spec": [
@@ -6858,7 +6858,7 @@
    "expect": []
   },
   {
-   "path": "yong/pass/generators_and_stage0.yong",
+   "path": "yir/pass/generators_and_stage0.yir",
    "kind": "pass",
    "milestone": "M0",
    "spec": [
@@ -6873,7 +6873,7 @@
    "expect": []
   },
   {
-   "path": "yong/pass/items.yong",
+   "path": "yir/pass/items.yir",
    "kind": "pass",
    "milestone": "M0",
    "spec": [
@@ -6886,7 +6886,7 @@
    "expect": []
   },
   {
-   "path": "yong/pass/types.yong",
+   "path": "yir/pass/types.yir",
    "kind": "pass",
    "milestone": "M0",
    "spec": [
@@ -6897,7 +6897,7 @@
    "expect": []
   },
   {
-   "path": "yong/fail/e100_missing_type.yong",
+   "path": "yir/fail/e100_missing_type.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -6914,7 +6914,7 @@
    ]
   },
   {
-   "path": "yong/fail/e141_yield_in_fn.yong",
+   "path": "yir/fail/e141_yield_in_fn.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -6931,7 +6931,7 @@
    ]
   },
   {
-   "path": "yong/fail/e200_unresolved.yong",
+   "path": "yir/fail/e200_unresolved.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -6948,7 +6948,7 @@
    ]
   },
   {
-   "path": "yong/fail/e201_mismatch.yong",
+   "path": "yir/fail/e201_mismatch.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -6965,7 +6965,7 @@
    ]
   },
   {
-   "path": "yong/fail/e202_arg_count.yong",
+   "path": "yir/fail/e202_arg_count.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -6982,7 +6982,7 @@
    ]
   },
   {
-   "path": "yong/fail/e203_no_such_field.yong",
+   "path": "yir/fail/e203_no_such_field.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -6999,7 +6999,7 @@
    ]
   },
   {
-   "path": "yong/fail/e271_become_signature.yong",
+   "path": "yir/fail/e271_become_signature.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7018,7 +7018,7 @@
    ]
   },
   {
-   "path": "yong/fail/e273_become_in_par.yong",
+   "path": "yir/fail/e273_become_in_par.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7037,7 +7037,7 @@
    ]
   },
   {
-   "path": "yong/fail/e301_capability_not_in_scope.yong",
+   "path": "yir/fail/e301_capability_not_in_scope.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7054,7 +7054,7 @@
    ]
   },
   {
-   "path": "yong/fail/e306_capability_returned.yong",
+   "path": "yir/fail/e306_capability_returned.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7071,7 +7071,7 @@
    ]
   },
   {
-   "path": "yong/fail/e310_missing_from.yong",
+   "path": "yir/fail/e310_missing_from.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7088,7 +7088,7 @@
    ]
   },
   {
-   "path": "yong/fail/e311_try_not_inspected.yong",
+   "path": "yir/fail/e311_try_not_inspected.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7105,7 +7105,7 @@
    ]
   },
   {
-   "path": "yong/fail/e312_discarded.yong",
+   "path": "yir/fail/e312_discarded.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7122,7 +7122,7 @@
    ]
   },
   {
-   "path": "yong/fail/e401_use_after_move.yong",
+   "path": "yir/fail/e401_use_after_move.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7142,7 +7142,7 @@
    ]
   },
   {
-   "path": "yong/fail/e402_same_place_twice.yong",
+   "path": "yir/fail/e402_same_place_twice.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7159,7 +7159,7 @@
    ]
   },
   {
-   "path": "yong/fail/e403_assign_let.yong",
+   "path": "yir/fail/e403_assign_let.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7176,7 +7176,7 @@
    ]
   },
   {
-   "path": "yong/fail/e406_escaping_closure_inout.yong",
+   "path": "yir/fail/e406_escaping_closure_inout.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7193,7 +7193,7 @@
    ]
   },
   {
-   "path": "yong/fail/e412_linear_not_consumed.yong",
+   "path": "yir/fail/e412_linear_not_consumed.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7213,7 +7213,7 @@
    ]
   },
   {
-   "path": "yong/fail/e416_copy_of_rc.yong",
+   "path": "yir/fail/e416_copy_of_rc.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7230,7 +7230,7 @@
    ]
   },
   {
-   "path": "yong/fail/e420_become_borrows_local.yong",
+   "path": "yir/fail/e420_become_borrows_local.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7249,7 +7249,7 @@
    ]
   },
   {
-   "path": "yong/fail/e421_drop_uses_capability.yong",
+   "path": "yir/fail/e421_drop_uses_capability.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7268,7 +7268,7 @@
    ]
   },
   {
-   "path": "yong/fail/e503_missing_variant.yong",
+   "path": "yir/fail/e503_missing_variant.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7285,7 +7285,7 @@
    ]
   },
   {
-   "path": "yong/fail/e602_missing_decreases.yong",
+   "path": "yir/fail/e602_missing_decreases.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7302,7 +7302,7 @@
    ]
   },
   {
-   "path": "yong/fail/e705_branch_reads_sibling.yong",
+   "path": "yir/fail/e705_branch_reads_sibling.yir",
    "kind": "fail",
    "milestone": "M0",
    "spec": [
@@ -7319,7 +7319,7 @@
    ]
   },
   {
-   "path": "yong/run/assert_fails.yong",
+   "path": "yir/run/assert_fails.yir",
    "kind": "run",
    "milestone": "M0",
    "spec": [
@@ -7332,7 +7332,7 @@
    "exit": 101
   },
   {
-   "path": "yong/run/become_constant_stack.yong",
+   "path": "yir/run/become_constant_stack.yir",
    "kind": "run",
    "milestone": "M0",
    "spec": [
@@ -7347,7 +7347,7 @@
    "exit": 0
   },
   {
-   "path": "yong/run/div_zero.yong",
+   "path": "yir/run/div_zero.yir",
    "kind": "run",
    "milestone": "M0",
    "spec": [
@@ -7361,7 +7361,7 @@
    "exit": 101
   },
   {
-   "path": "yong/run/exclusive_check.yong",
+   "path": "yir/run/exclusive_check.yir",
    "kind": "run",
    "milestone": "M0",
    "spec": [
@@ -7376,7 +7376,7 @@
    "exit": 101
   },
   {
-   "path": "yong/run/failure_propagation.yong",
+   "path": "yir/run/failure_propagation.yir",
    "kind": "run",
    "milestone": "M0",
    "spec": [
@@ -7389,7 +7389,7 @@
    "exit": 0
   },
   {
-   "path": "yong/run/floor_division.yong",
+   "path": "yir/run/floor_division.yir",
    "kind": "run",
    "milestone": "M0",
    "spec": [
@@ -7404,7 +7404,7 @@
    "exit": 0
   },
   {
-   "path": "yong/run/hello.yong",
+   "path": "yir/run/hello.yir",
    "kind": "run",
    "milestone": "M0",
    "spec": [
@@ -7417,7 +7417,7 @@
    "exit": 0
   },
   {
-   "path": "yong/run/join_points_and_match.yong",
+   "path": "yir/run/join_points_and_match.yir",
    "kind": "run",
    "milestone": "M0",
    "spec": [
@@ -7432,7 +7432,7 @@
    "exit": 0
   },
   {
-   "path": "yong/run/overflow.yong",
+   "path": "yir/run/overflow.yir",
    "kind": "run",
    "milestone": "M0",
    "spec": [
@@ -7449,7 +7449,7 @@
    "exit": 101
   },
   {
-   "path": "yong/run/par_join.yong",
+   "path": "yir/run/par_join.yir",
    "kind": "run",
    "milestone": "M0",
    "spec": [
@@ -7462,7 +7462,7 @@
    "exit": 0
   },
   {
-   "path": "yong/run/requires_fails.yong",
+   "path": "yir/run/requires_fails.yir",
    "kind": "run",
    "milestone": "M0",
    "spec": [
@@ -7477,7 +7477,7 @@
    "exit": 101
   },
   {
-   "path": "yong/run/unreachable.yong",
+   "path": "yir/run/unreachable.yir",
    "kind": "run",
    "milestone": "M0",
    "spec": [
@@ -7490,7 +7490,7 @@
    "exit": 101
   },
   {
-   "path": "golden/g1_hello.xin",
+   "path": "golden/g1_hello.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -7503,7 +7503,7 @@
    "exit": 0
   },
   {
-   "path": "golden/g2_vwap.xin",
+   "path": "golden/g2_vwap.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -7516,7 +7516,7 @@
    "exit": 0
   },
   {
-   "path": "golden/g4_word_count.xin",
+   "path": "golden/g4_word_count.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -7529,7 +7529,21 @@
    "exit": 0
   },
   {
-   "path": "golden/g5_tally.wen",
+   "path": "golden/g5_tally.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "24.3",
+    "16.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 approved A86\n2 approved A82\n3 declined luhn\n4 declined limit\n5 approved A22\n6 declined amount\n7 declined issuer\n8 approved A75\ncorner-shop gross=5249 fees=77 net=5172\nair-lines gross=48000 fees=1200 net=46800\nbookstore gross=2500 fees=72 net=2428\n",
+   "exit": 0
+  },
+  {
+   "path": "golden/g5_tally.yn",
    "kind": "run",
    "milestone": "M3",
    "spec": [
@@ -7543,21 +7557,7 @@
    "exit": 0
   },
   {
-   "path": "golden/g5_tally.xin",
-   "kind": "run",
-   "milestone": "M1",
-   "spec": [
-    "24.3",
-    "16.5"
-   ],
-   "rows": [],
-   "flags": [],
-   "expect": [],
-   "stdout": "1 approved A86\n2 approved A82\n3 declined luhn\n4 declined limit\n5 approved A22\n6 declined amount\n7 declined issuer\n8 approved A75\ncorner-shop gross=5249 fees=77 net=5172\nair-lines gross=48000 fees=1200 net=46800\nbookstore gross=2500 fees=72 net=2428\n",
-   "exit": 0
-  },
-  {
-   "path": "solver/append_adds_one.xin",
+   "path": "solver/append_adds_one.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7570,7 +7570,7 @@
    "expect": []
   },
   {
-   "path": "solver/assert_dominates.xin",
+   "path": "solver/assert_dominates.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7584,7 +7584,7 @@
    "expect": []
   },
   {
-   "path": "solver/assignment_kills_facts.xin",
+   "path": "solver/assignment_kills_facts.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7603,7 +7603,7 @@
    ]
   },
   {
-   "path": "solver/binary_search_invariant.xin",
+   "path": "solver/binary_search_invariant.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7623,7 +7623,7 @@
    "expect": []
   },
   {
-   "path": "solver/constant_multiple.xin",
+   "path": "solver/constant_multiple.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7636,7 +7636,7 @@
    "expect": []
   },
   {
-   "path": "solver/dict_inout_kills_key.xin",
+   "path": "solver/dict_inout_kills_key.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7656,7 +7656,7 @@
    ]
   },
   {
-   "path": "solver/dict_key_facts.xin",
+   "path": "solver/dict_key_facts.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7670,7 +7670,7 @@
    "expect": []
   },
   {
-   "path": "solver/disjunction_guard.xin",
+   "path": "solver/disjunction_guard.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7683,7 +7683,7 @@
    "expect": []
   },
   {
-   "path": "solver/enumerate_proven.xin",
+   "path": "solver/enumerate_proven.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7696,7 +7696,7 @@
    "expect": []
   },
   {
-   "path": "solver/inout_use_kills_facts.xin",
+   "path": "solver/inout_use_kills_facts.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7715,7 +7715,7 @@
    ]
   },
   {
-   "path": "solver/invariant_trusted_in_check.xin",
+   "path": "solver/invariant_trusted_in_check.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7729,7 +7729,7 @@
    "expect": []
   },
   {
-   "path": "solver/invariant_untrusted_in_release.xin",
+   "path": "solver/invariant_untrusted_in_release.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7753,7 +7753,7 @@
    ]
   },
   {
-   "path": "solver/list_literal_length_proven.xin",
+   "path": "solver/list_literal_length_proven.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7766,7 +7766,7 @@
    "expect": []
   },
   {
-   "path": "solver/list_literal_length_refuted.xin",
+   "path": "solver/list_literal_length_refuted.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7785,7 +7785,7 @@
    ]
   },
   {
-   "path": "solver/mask_proven.xin",
+   "path": "solver/mask_proven.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7799,7 +7799,7 @@
    "expect": []
   },
   {
-   "path": "solver/mask_too_wide_unknown.xin",
+   "path": "solver/mask_too_wide_unknown.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7819,7 +7819,7 @@
    ]
   },
   {
-   "path": "solver/modulo_constant_proven.xin",
+   "path": "solver/modulo_constant_proven.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7833,7 +7833,7 @@
    "expect": []
   },
   {
-   "path": "solver/modulo_variable_unknown.xin",
+   "path": "solver/modulo_variable_unknown.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7853,7 +7853,7 @@
    ]
   },
   {
-   "path": "solver/nonlinear_unknown.xin",
+   "path": "solver/nonlinear_unknown.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7872,7 +7872,7 @@
    ]
   },
   {
-   "path": "solver/pop_removes_one.xin",
+   "path": "solver/pop_removes_one.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7891,7 +7891,7 @@
    ]
   },
   {
-   "path": "solver/range_loop_proven.xin",
+   "path": "solver/range_loop_proven.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7904,7 +7904,7 @@
    "expect": []
   },
   {
-   "path": "solver/range_loop_start_unknown.xin",
+   "path": "solver/range_loop_start_unknown.yag",
    "kind": "fail",
    "milestone": "M1",
    "spec": [
@@ -7923,7 +7923,7 @@
    ]
   },
   {
-   "path": "ub/data_race.wen",
+   "path": "ub/data_race.yn",
    "kind": "ub",
    "milestone": "M3",
    "spec": [
@@ -7936,7 +7936,7 @@
    "ub": "1"
   },
   {
-   "path": "ub/dead_allocation.wen",
+   "path": "ub/dead_allocation.yn",
    "kind": "ub",
    "milestone": "M3",
    "spec": [
@@ -7949,7 +7949,7 @@
    "ub": "2"
   },
   {
-   "path": "ub/invalid_bool.wen",
+   "path": "ub/invalid_bool.yn",
    "kind": "ub",
    "milestone": "M3",
    "spec": [
@@ -7962,7 +7962,7 @@
    "ub": "6"
   },
   {
-   "path": "ub/offset_outside_allocation.wen",
+   "path": "ub/offset_outside_allocation.yn",
    "kind": "ub",
    "milestone": "M3",
    "spec": [
@@ -7975,7 +7975,7 @@
    "ub": "3"
   },
   {
-   "path": "ub/one_past_end_is_defined.wen",
+   "path": "ub/one_past_end_is_defined.yn",
    "kind": "ub",
    "milestone": "M3",
    "spec": [
@@ -8315,7 +8315,7 @@
    "expect": [],
    "expect_toml": {
     "spec": "18.3",
-    "result": "result.xin"
+    "result": "result.yag"
    }
   },
   {
@@ -8330,7 +8330,7 @@
    "expect": [],
    "expect_toml": {
     "spec": "18.3",
-    "result": "result.xin"
+    "result": "result.yag"
    }
   },
   {
@@ -8345,7 +8345,7 @@
    "expect": [],
    "expect_toml": {
     "spec": "18.3",
-    "result": "result.xin"
+    "result": "result.yag"
    }
   },
   {
@@ -8520,7 +8520,7 @@
    "expect_toml": {
     "spec": "18.3",
     "note": "each item replaces the item of its name or is added",
-    "result": "result.xin"
+    "result": "result.yag"
    }
   },
   {
@@ -8535,7 +8535,7 @@
    "expect": [],
    "expect_toml": {
     "spec": "18.3",
-    "result": "result.xin"
+    "result": "result.yag"
    }
   },
   {
@@ -8575,7 +8575,7 @@
      "check"
     ],
     "code": "E001",
-    "at": "src/app.xin:2:18"
+    "at": "src/app.yag:2:18"
    }
   },
   {
