@@ -488,7 +488,7 @@ fn run(file: &Path, mut db: Database, backend: Backend, jit: Jit, args: Vec<Stri
         Err(msg) => return tool_failure(msg),
     };
     if backend == Backend::Cranelift {
-        return native(module, jit);
+        return native(&file.display().to_string(), module, jit);
     }
     let mut out = std::io::stdout().lock();
     match yan_interp::run_with(module, &mut out, args) {
@@ -573,12 +573,22 @@ fn apply_patch(file: &Path, module: Option<&str>, check: bool, format: Format) -
 }
 
 /// Run `m` as native code. A panic exits from inside the program.
-fn native(m: &yan_core::ast::Module, jit: Jit) -> ExitCode {
+fn native(file: &str, m: &yan_core::ast::Module, jit: Jit) -> ExitCode {
     let jit = match jit {
         Jit::Lazy => yan_cg_cranelift::Jit::Lazy,
         Jit::Eager => yan_cg_cranelift::Jit::Eager,
     };
-    let compiled = yan_mir::lower(m).and_then(|p| yan_cg_cranelift::compile_with(&p, jit));
+    let m = match yan_opt::optimize(file, m) {
+        Ok(m) => m,
+        Err(yan_opt::Error::Diag(d)) => {
+            print_diags(&[*d]);
+            return ExitCode::FAILURE;
+        }
+        Err(yan_opt::Error::Unsupported(what)) => {
+            return tool_failure(&format!("not supported yet: {what} in native code"));
+        }
+    };
+    let compiled = yan_mir::lower(&m).and_then(|p| yan_cg_cranelift::compile_with(&p, jit));
     match compiled {
         Ok(c) => {
             c.run();

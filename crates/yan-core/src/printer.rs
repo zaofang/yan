@@ -360,8 +360,9 @@ impl Printer {
         }
         let vis = |is_pub: bool| if is_pub { "pub " } else { "" };
         match &item.kind {
-            ItemKind::Fn(f) => self.function(f, "fn"),
-            ItemKind::Gen(f) => self.function(f, "gen"),
+            ItemKind::Fn(f) => self.function(f, "fn", &tparams(&f.tparams)),
+            ItemKind::Gen(f) => self.function(f, "gen", &tparams(&f.tparams)),
+            ItemKind::Inst(i) => self.function(&i.def, "inst fn", &targs(&i.args)),
             ItemKind::Record(r) => self.line(&format!(
                 "{}record {}{} {}",
                 vis(r.is_pub),
@@ -406,7 +407,7 @@ impl Printer {
                     self.line(&format!("type {a}"));
                 }
                 for s in &t.sigs {
-                    self.function(s, "fn");
+                    self.function(s, "fn", &tparams(&s.tparams));
                 }
                 if let Some(d) = &t.derived {
                     self.block("derived ", d);
@@ -426,7 +427,7 @@ impl Printer {
                     self.line(&format!("type {n} = {}", ty(t)));
                 }
                 for f in &i.fns {
-                    self.function(f, "fn");
+                    self.function(f, "fn", &tparams(&f.tparams));
                 }
                 self.indent -= 1;
                 self.line("}");
@@ -509,7 +510,8 @@ impl Printer {
         }
     }
 
-    fn function(&mut self, f: &FnDef, keyword: &str) {
+    /// `brackets` is the type parameters, or an instance's arguments.
+    fn function(&mut self, f: &FnDef, keyword: &str, brackets: &str) {
         let mut head = String::new();
         if f.is_pub {
             head.push_str("pub ");
@@ -519,9 +521,8 @@ impl Printer {
         }
         write!(
             head,
-            "{keyword} {}{}({}) -> {}",
+            "{keyword} {}{brackets}({}) -> {}",
             path(&f.path),
-            tparams(&f.tparams),
             comma(&f.params, param),
             ty(&f.ret)
         )
