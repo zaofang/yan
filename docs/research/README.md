@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-04 | [Extractors: user-defined match patterns](../studies/extractors.md) | Study only; forums item F8; recommends `@pattern` functions of one `let` parameter, `Option` result partial (covers nothing), other results total, sum results checked exhaustive as a group, no capability but `alloc`, at most one call per scrutinee place per match, lowers to call plus match with no new Core form; D1 to D11 open; no rows |
 | 2026-11-04 | [Call-once function values](../studies/call-once.md) | Study only; forums item F6; recommends a `once` marker on function types (call consumes the value, checked by ownership only, no runtime flag), closure kind inferred from the body, `par` to plain to `once` coercion, closures with `@linear` captures are exactly-once, capability rules unchanged; D1 to D11 open; no rows |
 | 2026-11-04 | [One-way actor send](../studies/actor-send.md) | Study only; forums item F4; recommends std view `actor.send(h).f(args)` for unit, infallible handlers, returns at admission, shares the per-pair FIFO with `call`, detached after admission, needs no capability; finds lossy overflow policies need `uses nondet` (D8); D1 to D11 open; no rows |
 | 2026-11-04 | [Shielded sections for cancel scopes](../studies/shield.md) | Study only; forums item F5; recommends bounded `with shield(d):` (fresh deadline, held cancel delivered after the block, clamped under drain, no capability), D1 to D11 open; no rows |
