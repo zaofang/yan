@@ -18,6 +18,9 @@ AI-assisted work is welcome when a human has read it, run it and takes responsib
 - Project agents may draft, research, implement and review. They never accept RFCs, approve tests, merge,
   publish, or edit `tests/` or `conformance/`. CODEOWNERS and the CI path guard enforce this. Agents may open PRs
   that edit `spec/` or `rfcs/` for rows the lead accepted; the lead merges them.
+- These rules are mechanical (trailers, path guards, CODEOWNERS) on purpose. Rust's AI-contribution
+  policy, RFC 3950, was closed because it could not be enforced fairly; a rule a tool checks does not
+  depend on judging intent.
 
 ## What needs an RFC
 
