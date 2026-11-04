@@ -95,7 +95,7 @@ naming one of these. Each is a proposed answer; change the cases if the spec dec
 | A16 | `yan publish --dry-run` runs every publish check (20.6, 19.2) and uploads nothing. |
 | Y1 | Yan Core text: the entry point is `fn main` of the file's module; a capability operation is a call such as `std.io.print(cap io, let s)`. |
 | Y2 | Yan Core text: `ret` of a `sink` parameter or local consumes it. |
-| Y3 | Yan Core text: std functions are called by full path (`std.list.len[i64](let xs)`, `std.list.new`, `std.list.push`, `std.result.is_ok`). |
+| Y3 | Yan Core text: std functions are called by full path (`std.list.len[i64](let xs)`, `std.list.new`, `std.list.append`, `std.result.is_ok`). |
 | Y4 | Yan Core text: intrinsics are `<op>_<scalar>` (`add_checked_i64`, `floordiv_i64`, `mod_i64`, `div_i64` returning `f64`, `eq_f64`), and `exclusive_check(let i, let j)` is a statement. |
 | Y5 | Yan Core text: `Result` matches as `Ok { value: v }` and `Err { error: e }`. |
 
