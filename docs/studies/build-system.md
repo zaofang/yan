@@ -197,6 +197,20 @@ binaries; `--verify` passes on G1 to G4; a no-op rebuild of G1 to G4 touches no 
 - Q3. The global store's eviction: none until measured, or a size cap with least-recently-used
   eviction like uv's `cache prune`.
 
+## 10. Decisions (Antonio, cards, 2026-11-04)
+
+D1, D2, D3, D4, D5, D6, D8, D9 and D10 accepted as recommended. Two answers differ from the
+recommendation:
+
+- D7: `yan.lock` is TOML, not a Yan literal. The toolchain carries a TOML reader and writer for the
+  lock; the lock stays machine-written and canonical (sorted tables, one package per table).
+- Q1: the remote cache holds front-end snapshots (elaborated modules) as well as objects from the
+  start, so the snapshot format needs a version field and a key like D3's.
+
+Q2: linkable archives only through `yan bind`. Q3: no store eviction until measured.
+
+These are design decisions for a later RFC; the spec is unchanged until rows are accepted.
+
 ## Sources
 
 - Spec 1, 3.6, 10.4, 12.8, 18.1, 18.4, 19.1 to 19.6, 22.2, 23 (M1, M1b).
