@@ -1015,8 +1015,8 @@ mod selftest {
             record P { pub s: S, pub t: Tuple(f64, Str) }\n\
             fn bump(inout n: i64, let by: i64) -> Unit {\n n = add_checked_i64(let n, let by)\n ret ()\n}\n\
             fn main() -> Unit {\n var xs: List[S] = std.list.new[S]()\n let a: S = A { x: 7 }\n\
-            std.list.push[S](inout xs, sink a)\n std.list.push[S](inout xs, sink C)\n\
-            let b: S = B { w: 2, h: true }\n std.list.push[S](inout xs, sink b)\n\
+            std.list.append[S](inout xs, sink a)\n std.list.append[S](inout xs, sink C)\n\
+            let b: S = B { w: 2, h: true }\n std.list.append[S](inout xs, sink b)\n\
             var n: i64 = 0\n let e: S = xs[2]\n\
             match e {\n B { w: w, h: true } => { bump(inout n, let w) }\n _ => { unreachable }\n }\n\
             bump(inout n, let 1)\n assert eq_i64(let n, let 3)\n\

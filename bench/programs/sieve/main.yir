@@ -6,7 +6,7 @@ fn main() -> Unit {
     loop 'fill {
         let done: bool = gt_i64(let i, let 500000)
         if done { break 'fill }
-        std.list.push[bool](inout xs, let true)
+        std.list.append[bool](inout xs, let true)
         i = add_checked_i64(let i, let 1)
     }
     var count: i64 = 0
