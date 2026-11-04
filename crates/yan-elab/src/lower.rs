@@ -4571,6 +4571,20 @@ impl Lower<'_, '_, '_> {
                 "`+` in a loop copies its left operand, which is not at its last use (R388)".into(),
             );
         }
+        if let (Ty::Array(sa, _), Ty::Array(sb, _)) = (&tx, &ty)
+            && sa != sb
+            && sa
+                .iter()
+                .chain(sb)
+                .all(|d| d.chars().all(|c| c.is_ascii_digit()))
+        {
+            self.err(
+                "E520",
+                at,
+                "positional axes broadcast only against scalars".into(),
+            );
+            return Ok((Rhs::Atom(x), Ty::Err));
+        }
         let args = vec![let_arg(x.clone()), let_arg(y_)];
         let (path, rt, targs) = match (&tx, &ty) {
             (Ty::Err, _) | (_, Ty::Err) => return Ok((Rhs::Atom(x), Ty::Err)),

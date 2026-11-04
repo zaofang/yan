@@ -34,6 +34,8 @@ pub enum Ty {
     Fn(bool, Vec<Ty>, Box<Ty>),
     /// A `core.ffi` type in an ffi module (12.3, 12.5): `Ptr[T]`, `CStr`, `View[T]` and so on.
     Foreign(&'static str, Vec<Ty>),
+    /// `Array[a1, ..., an, T]` (11.2): each axis as written, a literal size or a label type.
+    Array(Vec<String>, Box<Ty>),
     /// Produced after an error was reported; compatible with every type.
     Err,
 }
@@ -138,6 +140,7 @@ impl Ty {
             Ty::Union(ts) => y::Type::Union(ts.iter().map(Ty::core).collect()),
             Ty::Data(n) | Ty::Param(n) => named(n, vec![]),
             Ty::Foreign(n, ts) => named(n, ts.iter().map(Ty::core).collect()),
+            Ty::Array(_, t) => named("Array", vec![t.core()]),
             Ty::Fn(_, ps, r) => y::Type::Fn(y::FnType {
                 params: ps.iter().map(|t| (y::Conv::Let, t.core())).collect(),
                 ret: Box::new(r.core()),
@@ -359,6 +362,7 @@ impl Ty {
 impl std::fmt::Display for Ty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Ty::Array(axes, t) => write!(f, "Array[{}, {t}]", axes.join(", ")),
             Ty::Int => write!(f, "int"),
             Ty::Float => write!(f, "float"),
             Ty::BigInt => write!(f, "bigint"),
