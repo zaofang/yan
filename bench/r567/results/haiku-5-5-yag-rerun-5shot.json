@@ -1,0 +1,68 @@
+{
+ "meta": {
+  "models": [
+   "claude:claude-haiku-5-5"
+  ],
+  "decoding": [
+   "free"
+  ],
+  "shots": [
+   5
+  ],
+  "tokenizer": [
+   "provider"
+  ],
+  "toolchain": [
+   "{'hash': 'blake3:585201473f3d1e92fd40c3ad3ae902c01007b6f05068b48fbb91a1b8b7b53104', 'version': '0.0.0'}"
+  ]
+ },
+ "arms": {
+  "yag": {
+   "tasks": 100,
+   "pass_at_1": 38,
+   "pass_after_repair": 58,
+   "own_tests_green": 79,
+   "spec_failed": 1,
+   "stopped": 4,
+   "repair_rounds": 52,
+   "impossible_runs": 10,
+   "cheated": 0,
+   "spec_in": 757137,
+   "spec_in_per_solved": 13054.1,
+   "spec_out": 109848,
+   "spec_out_per_solved": 1893.9,
+   "spec_reasoning": 85242,
+   "spec_reasoning_per_solved": 1469.7,
+   "spec_out_bytes": 51794,
+   "spec_out_bytes_per_solved": 893.0,
+   "body_in": 1169779,
+   "body_in_per_solved": 20168.6,
+   "body_out": 125706,
+   "body_out_per_solved": 2167.3,
+   "body_reasoning": 81774,
+   "body_reasoning_per_solved": 1409.9,
+   "body_out_bytes": 98968,
+   "body_out_bytes_per_solved": 1706.3,
+   "checker_codes_before_repair": {
+    "P003": 47,
+    "E201": 30,
+    "E017": 17,
+    "E241": 12,
+    "E200": 8,
+    "E210": 4,
+    "E203": 4,
+    "E315": 2,
+    "W806": 2,
+    "N21": 1,
+    "E104": 1,
+    "E202": 1,
+    "E100": 1,
+    "E619": 1,
+    "E301": 1,
+    "E413": 1
+   }
+  }
+ },
+ "paired": null,
+ "gate": {}
+}
