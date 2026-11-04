@@ -114,6 +114,8 @@ impl Ty {
             Ty::List(t) => named("List", vec![t.core()]),
             Ty::Dict(k, v) => named("Map", vec![k.core(), v.core()]),
             Ty::Set(t) => named("Set", vec![t.core()]),
+            // Dimensions are checked during elaboration; Yan Core holds the number (11.4).
+            Ty::Coll("Quantity", ts) => ts[0].core(),
             Ty::Coll(n, ts) => {
                 let y = type_name(n, Surface::Yag, Surface::Yir).expect("a collection");
                 named(y, ts.iter().map(Ty::core).collect())
@@ -148,6 +150,7 @@ impl Ty {
             | Ty::Never
             | Ty::Err => true,
             Ty::Tuple(ts) => ts.iter().all(Ty::is_copy),
+            Ty::Coll("Quantity", ts) => ts[0].is_copy(),
             _ => false,
         }
     }

@@ -4140,6 +4140,99 @@ impl Lower<'_, '_, '_> {
         Ok((Rhs::Atom(v), t))
     }
 
+    /// `+` and `-` on quantities of one dimension; other dimensions are E530 (11.4).
+    fn quantity_op(&mut self, op: &str, x: &Atom, tx: &Ty, y_: &Atom, ty: &Ty, at: Span) -> Option<R<(Rhs, Ty)>> {
+        let dim = |t: &Ty| match t {
+            Ty::Coll("Quantity", ts) => Some(ts[1].to_string()),
+            _ => None,
+        };
+        let (dx, dy) = (dim(tx), dim(ty));
+        if dx.is_none() && dy.is_none() {
+            return None;
+        }
+        if !matches!(op, "+" | "-") {
+            return Some(unsupported(format!("`{op}` on quantities")));
+        }
+        if dx != dy {
+            let show = |d: Option<String>| d.unwrap_or_else(|| "a plain number".into());
+            self.err(
+                "E530",
+                at,
+                format!("`{op}` mixes dimension {} with {}", show(dx), show(dy)),
+            );
+            return Some(Ok((Rhs::Atom(x.clone()), Ty::Err)));
+        }
+        let p = float_op(op).expect("`+` and `-` on float");
+        let c = call(&p, vec![], vec![let_arg(x.clone()), let_arg(y_.clone())], at);
+        Some(Ok((Rhs::Call(c), tx.clone())))
+    }
+
+    /// `n * u` or `u * n` where `u` names a std unit (11.4) and no binding of that name.
+    fn unit_product<'e>(&self, a: &'e j::Expr, b: &'e j::Expr) -> Option<(&'e j::Expr, &'static str)> {
+        let unit = |e: &j::Expr| match &e.kind {
+            j::ExprKind::Name(n)
+                if !self.locals.contains_key(n)
+                    && !self.sig.caps.contains(n)
+                    && !self.g.fns.contains_key(n)
+                    && !self.g.consts.contains_key(n) =>
+            {
+                UNITS.iter().find(|(u, ..)| u == n).map(|(u, ..)| *u)
+            }
+            _ => None,
+        };
+        unit(b).map(|u| (a, u)).or_else(|| unit(a).map(|u| (b, u)))
+    }
+
+    /// An `int` times a duration unit is a `Duration`; any other number times a unit is a
+    /// `Quantity` of the unit's dimension, held in SI base units (11.4, 11.6).
+    fn quantity(&mut self, n: &j::Expr, u: &'static str, at: Span) -> R<(Rhs, Ty)> {
+        let &(_, dim, scale, ctor) = UNITS.iter().find(|(v, ..)| *v == u).expect("a unit");
+        let ex = |kind| j::Expr {
+            kind,
+            span: at,
+            paren: false,
+        };
+        let int_n = match &n.kind {
+            j::ExprKind::Lit(j::Lit::Int(_)) => true,
+            j::ExprKind::Lit(_) => false,
+            _ => self.ty_of_local(n) == Some(Ty::Int),
+        };
+        if let Some((ctor, k)) = ctor.filter(|_| int_n) {
+            let mut arg = n.clone();
+            if k != 1 {
+                arg = ex(j::ExprKind::Binary(
+                    "*",
+                    Box::new(arg),
+                    Box::new(ex(j::ExprKind::Lit(j::Lit::Int(k.to_string())))),
+                ));
+            }
+            let f = ex(j::ExprKind::Attr(
+                Box::new(ex(j::ExprKind::Name("Duration".into()))),
+                ctor.into(),
+                at,
+            ));
+            let c = ex(j::ExprKind::Call(
+                Box::new(f),
+                vec![j::Arg {
+                    name: None,
+                    kind: j::ArgKind::Expr(arg),
+                    span: at,
+                }],
+            ));
+            return self.rhs(&c, None);
+        }
+        let scaled = ex(j::ExprKind::Binary(
+            "*",
+            Box::new(n.clone()),
+            Box::new(ex(j::ExprKind::Lit(j::Lit::Float(format!("{scale:e}"))))),
+        ));
+        let (r, t) = self.rhs(&scaled, Some(&Ty::Float))?;
+        if t == Ty::Err {
+            return Ok((r, t));
+        }
+        Ok((r, Ty::Coll("Quantity", vec![Ty::Float, Ty::Data(dim.into())])))
+    }
+
     fn arith(
         &mut self,
         op: &str,
@@ -4148,6 +4241,25 @@ impl Lower<'_, '_, '_> {
         at: Span,
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty)> {
+        if op == "*"
+            && let Some((n, u)) = self.unit_product(a, b)
+        {
+            return self.quantity(n, u, at);
+        }
+        // W817: `day` and `week` are exact 24- and 168-hour durations, not calendar days.
+        if op == "+"
+            && self.ty_of_local(a) == Some(Ty::Data("ZonedDateTime".into()))
+            && let j::ExprKind::Binary("*", l, r) = &b.kind
+            && let Some((_, "day" | "week")) = self.unit_product(l, r)
+        {
+            let item = self.item.clone();
+            self.cx.warn(
+                "W817",
+                at,
+                &item,
+                "a `day` or `week` duration is exact hours; add a `Period` for calendar days".into(),
+            );
+        }
         let want = want.filter(|w| !matches!(w, Ty::Float) || op != "/");
         // `2 * x`: a literal on the left takes the right operand's type (R656).
         let lit_left = is_int_lit(a) && !is_int_lit(b) && !matches!(op, "<<" | ">>" | "**");
@@ -4192,6 +4304,9 @@ impl Lower<'_, '_, '_> {
             Some(r) => r,
             None => self.atom(b, Some(&tx))?,
         };
+        if let Some(r) = self.quantity_op(op, &x, &tx, &y_, &ty, at) {
+            return r;
+        }
         if op == "+" && matches!(tx, Ty::Str | Ty::List(_)) && self.not_last_use(a, at) {
             let item = self.item.clone();
             self.cx.warn(
@@ -6978,3 +7093,26 @@ fn directives(fmt: &str) -> Result<Vec<(String, u8)>, String> {
     }
     Ok(out)
 }
+
+/// Std units (11.4): name, dimension, scale to the SI base unit, and for a duration the
+/// `Duration` constructor and multiplier an `int` count goes through.
+const UNITS: &[(&str, &str, f64, Option<(&str, i64)>)] = &[
+    ("ns", "time", 1e-9, Some(("nanos", 1))),
+    ("us", "time", 1e-6, Some(("micros", 1))),
+    ("ms", "time", 1e-3, Some(("millis", 1))),
+    ("s", "time", 1.0, Some(("seconds", 1))),
+    ("min", "time", 60.0, Some(("minutes", 1))),
+    ("h", "time", 3600.0, Some(("hours", 1))),
+    ("day", "time", 86400.0, Some(("hours", 24))),
+    ("week", "time", 604800.0, Some(("hours", 168))),
+    ("m", "length", 1.0, None),
+    ("km", "length", 1e3, None),
+    ("cm", "length", 1e-2, None),
+    ("mm", "length", 1e-3, None),
+    ("kg", "mass", 1.0, None),
+    ("g", "mass", 1e-3, None),
+    ("A", "current", 1.0, None),
+    ("K", "temperature", 1.0, None),
+    ("mol", "amount", 1.0, None),
+    ("cd", "luminosity", 1.0, None),
+];
