@@ -183,3 +183,14 @@ types), the 9.6 amendments (shared FIFO, stopped-actor drop, D8 nondet on lossy 
 diagnostic for D2. Conformance cases to propose separately: send then call barrier, full mailbox under
 `block` with deadline expiry, cancel while blocked leaves nothing queued, send inside a shield, send to
 a stopped actor, `drop_new` spawn without `uses nondet` rejected, Kahn determinism under `pool`.
+
+## 10. Decisions (Antonio, cards, 2026-11-04)
+
+D1, D2, D3, D4, D7, D8, D10 and D11 accepted as recommended. Three answers differ from the
+recommendation:
+
+- D5: on failure the payload is returned to the sender (Tokio-style `SendError(T)`), so a failed send
+  can be retried with the same value. The fail type of `send` is generic in the payload type.
+- D6: the overflow policy is part of the handle type (`Actor[S, block]`). Sends to `drop_*` actors then
+  drop `Full` from their fail type, at the cost of a second type parameter on actor handles.
+- D9: an owned send-only handle is added, for least authority (for example untrusted plugins).
