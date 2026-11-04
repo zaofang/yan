@@ -361,6 +361,8 @@ struct Cx<'g, 'm> {
     reported: HashSet<Name>,
     par: Vec<(usize, usize)>,
     next_par: usize,
+    /// Accesses inside `par` branches to places bound outside them: name, par, branch, written.
+    par_uses: Vec<(Name, usize, usize, bool)>,
     with_depth: usize,
     callees: HashSet<String>,
     /// Each join point's parameter names, so a jump's arguments carry their captures in.
@@ -425,6 +427,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             reported: HashSet::new(),
             par: Vec::new(),
             next_par: 0,
+            par_uses: Vec::new(),
             with_depth: 0,
             callees: HashSet::new(),
             jps: HashMap::new(),
@@ -547,7 +550,34 @@ impl<'g, 'm> Cx<'g, 'm> {
             );
             self.diags.push(d.with_label(b.span, "bound"));
         }
+        self.par_conflict(n, span, how);
         self.uses.entry(n.clone()).or_default().push(how);
+    }
+
+    /// E705: one `par` branch writes a place that another branch reads or writes.
+    fn par_conflict(&mut self, n: &Name, span: Span, how: How) {
+        let Some(b) = self.env.get(n) else {
+            return;
+        };
+        let inner = b.tag;
+        let write = how == How::Inout;
+        for &(pid, branch) in &self.par.clone() {
+            if inner.is_some_and(|(p, _)| p == pid) {
+                continue;
+            }
+            let clash = self
+                .par_uses
+                .iter()
+                .any(|(m, p, x, w)| m == n && *p == pid && *x != branch && (*w || write));
+            if clash && self.reported.insert(format!("par:{n}")) {
+                self.err(
+                    "E705",
+                    span,
+                    format!("`{n}` is written in one branch of this `par` and accessed in another"),
+                );
+            }
+            self.par_uses.push((n.clone(), pid, branch, write));
+        }
     }
 
     fn atom(&mut self, a: &Atom, how: How) -> Option<String> {
