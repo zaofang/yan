@@ -68,6 +68,7 @@ E271 = { section = "3.5", status = "active", meaning = "become callee signature 
 E232 = { section = "14.1", status = "active", meaning = "a type that mixes inline variants with other alternatives, or lists None among variants (retargeted by R423)" }
 E272 = { section = "10.4", status = "active", meaning = "error in a stage-0-dependent body, found at an instantiation; carries the instantiation site and stage-0 backtrace" }
 E273 = { section = "3.5", status = "active", meaning = "become outside tail position, inside par, with or a generator, or calling a closure or dyn method" }
+E276 = { section = "14.1", status = "active", meaning = "a union lists None twice; write Option[T | None] for a nested optional (R793)" }
 E233 = { section = "13.1", status = "active", meaning = "str or f-string where a Template is expected (R452)" }
 E301 = { section = "7.2", status = "active", meaning = "missing capability (fix inserts uses)" }
 E306 = { section = "7.2", status = "active", meaning = "capability stored, returned or captured by an escaping closure" }

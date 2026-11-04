@@ -1,0 +1,21 @@
+# spec: 14.1
+# rows: R793, R795
+# note: get on dict[str, int | None] returns Option[int | None]; the outer None is a missing key
+# stdout:
+# 1
+# stored None
+# missing
+
+def describe(d: dict[str, int | None], k: str) -> str:
+    r = d.get(k)
+    if r is None:
+        return "missing"
+    if r is None:
+        return "stored None"
+    return f"{r}"
+
+pub def main() uses io:
+    d: dict[str, int | None] = {"a": 1, "b": None}
+    io.print(describe(d, "a"))
+    io.print(describe(d, "b"))
+    io.print(describe(d, "c"))
