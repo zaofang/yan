@@ -1,0 +1,6 @@
+# spec: 3.4
+# rows: R802
+# expect: E201 at 6:12
+
+def f(s: str, cs: list[char]) -> bool:
+    return s in cs
