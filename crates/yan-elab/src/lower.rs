@@ -7929,7 +7929,15 @@ fn wire(t: &Ty) -> bool {
         Ty::Coll(n, ts) => {
             !matches!(
                 *n,
-                "Rc" | "Arc" | "Cell" | "Atomic" | "Sender" | "Receiver" | "iter" | "Secret"
+                "Rc" | "Arc"
+                    | "Cell"
+                    | "Atomic"
+                    | "Sender"
+                    | "Receiver"
+                    | "iter"
+                    | "Secret"
+                    | "TcpListener"
+                    | "TcpStream"
             ) && ts.iter().all(wire)
         }
         Ty::List(t) | Ty::Set(t) | Ty::Option(t) => wire(t),

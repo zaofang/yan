@@ -1,0 +1,9 @@
+"""A bound TCP listener."""
+
+@intrinsic
+@since("1.0")
+pub def accept(var self: TcpListener) -> TcpStream fail NetError | Timeout: ...
+
+@intrinsic
+@since("1.0")
+pub def addr(self: TcpListener) -> str: ...
