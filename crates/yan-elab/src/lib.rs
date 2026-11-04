@@ -93,6 +93,34 @@ pub(crate) struct Sig {
     pub ret: Ty,
     pub fail: Option<Ty>,
     pub caps: Vec<String>,
+    /// The capability trait of each binding in `caps` that is not named after it (`uses Kv as cache`).
+    pub cap_tys: Vec<(String, String)>,
+}
+
+impl Sig {
+    /// The capability trait that binding `c` of `caps` holds: `io` is `Io` unless renamed.
+    pub fn cap_trait(&self, c: &str) -> String {
+        self.cap_tys
+            .iter()
+            .find(|(b, _)| b == c)
+            .map_or_else(|| cap_type(c), |(_, t)| t.clone())
+    }
+}
+
+/// The binding a capability trait gets by default: `UserStore` binds as `user_store`.
+fn cap_binding(t: &str) -> String {
+    let mut out = String::new();
+    for (i, ch) in t.chars().enumerate() {
+        if ch.is_uppercase() {
+            if i > 0 {
+                out.push('_');
+            }
+            out.extend(ch.to_lowercase());
+        } else {
+            out.push(ch);
+        }
+    }
+    out
 }
 
 #[derive(Default)]
@@ -771,15 +799,26 @@ fn sig_body(
             (ret, fail)
         }
     };
+    let mut cap_tys = Vec::new();
     let caps = match &f.uses {
         None | Some(j::Uses::None) => Vec::new(),
         Some(j::Uses::Caps(cs)) => {
             let mut out = Vec::new();
             for c in cs {
-                if c.alias.is_some() || c.path.len() != 1 {
-                    return unsupported("renamed or qualified capabilities");
+                let [n] = c.path.as_slice() else {
+                    return unsupported("qualified capabilities");
+                };
+                let upper = n.chars().next().is_some_and(char::is_uppercase);
+                let binding = match &c.alias {
+                    Some(a) => a.clone(),
+                    None if upper => cap_binding(n),
+                    None => n.clone(),
+                };
+                let t = if upper { n.clone() } else { cap_type(n) };
+                if t != cap_type(&binding) {
+                    cap_tys.push((binding.clone(), t));
                 }
-                out.push(c.path[0].clone());
+                out.push(binding);
             }
             out
         }
@@ -790,6 +829,7 @@ fn sig_body(
         ret,
         fail,
         caps,
+        cap_tys,
     })
 }
 

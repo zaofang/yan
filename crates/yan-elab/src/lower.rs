@@ -13,7 +13,7 @@ use yan_diag::{Applicability, Span};
 use yan_hir as j;
 
 use crate::bounds::{self, Site};
-use crate::{Cx, Globals, R, Sig, Ty, cap_type, ffi, unsupported};
+use crate::{Cx, Globals, R, Sig, Ty, ffi, unsupported};
 
 /// List and dict methods whose receiver is `var` (R421).
 const MUTATING: [&str; 11] = [
@@ -735,7 +735,7 @@ fn function_body(
         .map(|c| y::Param::Cap {
             name: c.clone(),
             ty: y::Named {
-                path: vec![cap_type(c)],
+                path: vec![sig.cap_trait(c)],
                 args: Vec::new(),
             },
         })
@@ -3363,7 +3363,7 @@ impl Lower<'_, '_, '_> {
                     self.lambda(&[x], &body, Some(&f))?
                 } else if self.sig.caps.contains(n) || self.handlers.contains(n) {
                     // A capability as a value; the checker rejects returning or storing it (E306).
-                    (Rhs::Atom(Atom::Name(n.clone(), at)), Ty::Data(crate::cap_type(n)))
+                    (Rhs::Atom(Atom::Name(n.clone(), at)), Ty::Data(self.sig.cap_trait(n)))
                 } else if self.gone.contains(n) {
                     return unsupported("a binding used after the block that made it");
                 } else if self.ghosts.contains(n) {
@@ -4971,6 +4971,19 @@ impl Lower<'_, '_, '_> {
         Ok(())
     }
 
+    /// The caller's binding of capability trait `t`, which the callee binds as `callee`.
+    fn cap_for(&self, t: &str, callee: &str) -> String {
+        if self.handlers.iter().any(|h| h == callee) || self.sig.caps.iter().any(|c| c == callee && self.sig.cap_trait(c) == t) {
+            return callee.to_owned();
+        }
+        self.sig
+            .caps
+            .iter()
+            .find(|c| self.sig.cap_trait(c) == t)
+            .cloned()
+            .unwrap_or_else(|| callee.to_owned())
+    }
+
     /// A call of `path` with signature `sig`. A generic callee's type arguments are inferred
     /// from the argument types, and each must implement its bounds (E221).
     fn call_sig(
@@ -4981,7 +4994,11 @@ impl Lower<'_, '_, '_> {
         args: &[j::Arg],
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
-        let mut out: Vec<Arg> = sig.caps.iter().map(|c| Arg::Cap(c.clone(), at)).collect();
+        let mut out: Vec<Arg> = sig
+            .caps
+            .iter()
+            .map(|c| Arg::Cap(self.cap_for(&sig.cap_trait(c), c), at))
+            .collect();
         let want = self.want_ret.take().filter(|(_, sp)| *sp == at);
         let outer = mem::take(&mut self.arg_tys);
         let vals = self.args(&sig.params, recv, args, at);
@@ -6051,6 +6068,26 @@ impl Lower<'_, '_, '_> {
         }
         if cap == "log" && matches!(op, "debug" | "info" | "warn" | "error" | "span") {
             return self.log_call(op, args, at);
+        }
+        // A capability trait of this module: its method takes the binding as `self`.
+        let t = self.sig.cap_trait(cap);
+        if let Some(ms) = self.g.traits.get(&t) {
+            let Some((_, s)) = ms.iter().find(|(n, _)| n == op) else {
+                self.err("E203", at, format!("`{t}` has no operation `{op}`"));
+                return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+            };
+            let map = [("Self".to_owned(), Ty::Data(t.clone()))];
+            let mut s = s.clone();
+            for q in &mut s.params {
+                q.ty = q.ty.subst(&map);
+            }
+            s.ret = s.ret.subst(&map);
+            let recv = j::Expr {
+                kind: j::ExprKind::Name(cap.to_owned()),
+                span: at,
+                paren: false,
+            };
+            return self.call_sig(op, &s, Some(&recv), args, at);
         }
         // `print` takes any `Show` value and prints `show(x)` (R655).
         if path == "std.io.print"

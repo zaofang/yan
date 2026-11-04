@@ -143,6 +143,7 @@ pub(crate) fn collect(g: &mut Globals, x: &j::Extern, at: Span, cx: &mut Cx) -> 
                 ret,
                 fail: None,
                 caps: Vec::new(),
+                cap_tys: Vec::new(),
             },
         );
     }
