@@ -1,6 +1,6 @@
 # Architecture overview
 
-Read against main `5bfd39c` (2026-11-04). Spec sections are cited as numbers (for example 3.6), change
+Read against main `1f2571a` (2026-11-04). Spec sections are cited as numbers (for example 3.6), change
 rows as R numbers. This describes what is built; where the spec plans more, the gap is named.
 
 ## 1. The shape: one core, many surfaces
@@ -163,7 +163,7 @@ ask it for a module's front end, elaborated core, diagnostics and items, keyed b
 
 - **The developer owns the gates.** Agents never edit `tests/` or `conformance/`; `tools/guard.py`
   rejects such PRs in CI. Conformance changes ship in Antonio's own PRs.
-- **Suite** (section 24): 528 cases in `conformance/` by surface and tool (`yir`, `yag`, `yn`,
+- **Suite** (section 24): 544 cases in `conformance/` by surface and tool (`yir`, `yag`, `yn`,
   `solver`, `patch`, `pkg`, `semver`, `ub`, `golden`). Each file carries headers: spec, rows,
   milestone, flags, expect (code at line:col), stdout, exit. `tools/conform.py` is independent of the
   implementation and treats a tool crash as a failure.
@@ -224,7 +224,7 @@ Recurring difficulties:
   proxy cannot delete.
 - **Agents cannot touch the gates.** This is deliberate, but every conformance change waits for
   Antonio, so features can merge with their suite still failing.
-- **Counts can lie.** Unsupported constructs once counted as passes; law 1 now exposes 63 failures
+- **Counts can lie.** Unsupported constructs once counted as passes; law 1 now exposes 72 failures
   that plain conformance does not.
 - **One model family.** R566 asks for two; OpenAI is off for now, so the gate evidence is thin.
 
@@ -235,9 +235,9 @@ Baseline: `spec/archive/v0.3.md`, the frozen v0.3 draft of 2026-10-30.
 | Measure | v0.3 | Now | Change |
 | --- | --- | --- | --- |
 | Spec size (bytes, section files only) | 229,412 | 465,808 | +103% |
-| Highest change row | R259 | R787 | +528 numbers |
-| Rows registered in `rows.toml` | (219 of v0.3's survive) | 665 | 446 rows newer than v0.3 |
-| RFCs | 0 | 29 accepted | |
+| Highest change row | R259 | R810 | +551 numbers |
+| Rows registered in `rows.toml` | (219 of v0.3's survive) | 665 at the time of the baseline | 446 rows newer than v0.3 |
+| RFCs | 0 | 32 | |
 | Named surfaces | 3 (Wen, Jian, Yong) | 2 built, 1 research, 17 named niche "Yan &lt;job>" | |
 
 Text overlap (measured with a crude method, so an estimate of meaning): sentences over 40 characters
