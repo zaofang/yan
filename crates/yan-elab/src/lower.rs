@@ -1135,6 +1135,14 @@ fn int_op(op: &str) -> Option<(&'static str, Ty)> {
     })
 }
 
+/// `p as name` at the top of a case: the pattern and the name bound to the whole scrutinee.
+fn split_as(p: &j::Pat) -> (&j::Pat, Option<&str>) {
+    match p {
+        j::Pat::As(inner, n) => (inner, Some(n)),
+        p => (p, None),
+    }
+}
+
 /// An integer literal, possibly negated.
 fn is_int_lit(e: &j::Expr) -> bool {
     match &e.kind {
@@ -2553,10 +2561,14 @@ impl Lower<'_, '_, '_> {
         for c in cases {
             let mut pat = y::Pat::Wild;
             let b = self.block_with(|l| {
-                let (p, binds) = l.pat(&c.pat, &t, at)?;
+                let (inner, alias) = split_as(&c.pat);
+                let (p, binds) = l.pat(inner, &t, at)?;
                 pat = p;
                 for (n, ty) in binds {
                     l.declare(&n, ty);
+                }
+                if let Some(n) = alias {
+                    l.bind(n, false, &t, Rhs::Atom(a.clone()), c.span, at);
                 }
                 l.stmts(&c.body.stmts)
             })?;
@@ -2581,10 +2593,14 @@ impl Lower<'_, '_, '_> {
             for c in cases {
                 let mut pat = y::Pat::Wild;
                 let arm = l.block_with(|l| {
-                    let (p, binds) = l.pat(&c.pat, t, at)?;
+                    let (inner, alias) = split_as(&c.pat);
+                    let (p, binds) = l.pat(inner, t, at)?;
                     pat = p;
                     for (n, ty) in binds {
                         l.declare(&n, ty);
+                    }
+                    if let Some(n) = alias {
+                        l.bind(n, false, t, Rhs::Atom(a.clone()), c.span, at);
                     }
                     let body = l.block_with(|l| {
                         l.stmts(&c.body.stmts)?;
