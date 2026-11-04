@@ -1692,7 +1692,7 @@ impl Lower<'_, '_, '_> {
             // A streaming `par for` (unit body) runs its items in order: the body may not fail
             // (E712) nor take `inout` access outside its iteration, so no result depends on order.
             K::Par {
-                limit: None,
+                limit,
                 body:
                     j::ParBody::For {
                         target,
@@ -1702,6 +1702,11 @@ impl Lower<'_, '_, '_> {
                     },
                 ..
             } => {
+                // The limit only bounds concurrency; the in-order run already respects it.
+                if let Some(l) = limit {
+                    let (_, lt) = self.atom(l, Some(&Ty::Int))?;
+                    self.expect(&lt, &Ty::Int, l.span);
+                }
                 if let Some(sp) = first_failure(body) {
                     self.err(
                         "E712",
