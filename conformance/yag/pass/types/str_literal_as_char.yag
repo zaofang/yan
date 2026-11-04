@@ -1,0 +1,12 @@
+# spec: 3.4
+# rows: R802
+# note: a one-character str literal takes type char where char is expected
+
+def is_digit(c: char) -> bool:
+    return c >= "0" and c <= "9"
+
+def is_a(c: char) -> bool:
+    return "a" <= c
+
+def vowel(c: char, vs: list[char]) -> bool:
+    return "a" in vs or c in vs

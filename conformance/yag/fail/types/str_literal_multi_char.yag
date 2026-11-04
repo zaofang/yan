@@ -1,0 +1,6 @@
+# spec: 3.4
+# rows: R802
+# expect: E201 at 6:17
+
+def f(c: char) -> bool:
+    return c == "ab"

@@ -349,6 +349,19 @@
    "expect": []
   },
   {
+   "path": "yag/pass/types/str_literal_as_char.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R802"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yag/pass/types/two_param_positional.yag",
    "kind": "pass",
    "milestone": "M1",
@@ -3432,6 +3445,44 @@
      "code": "E202",
      "line": 6,
      "col": 16
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/types/str_literal_multi_char.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R802"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 6,
+     "col": 17
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/types/str_var_in_char_list.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R802"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 6,
+     "col": 12
     }
    ]
   },
