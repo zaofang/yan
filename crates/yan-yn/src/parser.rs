@@ -1863,6 +1863,10 @@ impl<'a> Parser<'a> {
                             self.bump();
                             self.mk(start, ExprKind::Field(Box::new(e), n.clone()))
                         }
+                        Tok::Kw(k) => {
+                            self.bump();
+                            self.mk(start, ExprKind::Field(Box::new(e), k.to_string()))
+                        }
                         Tok::TypeName(n) => {
                             self.bump();
                             self.mk(start, ExprKind::TypeField(Box::new(e), n.clone()))
