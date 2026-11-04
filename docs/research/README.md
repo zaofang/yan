@@ -22,6 +22,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-04 | [Yan Infra syntax study](../studies/syntax/yan-infra.md) | Study only; five axis proposals and a mix, no rows |
 | 2026-11-04 | [Yan Schema syntax study](../studies/syntax/yan-schema.md) | Study only; brainstorm of five syntax directions and a consolidated mock, no rows |
 | 2026-11-04 | [Should surfaces change semantics?](2026-11-04-surface-semantics.md) | Study only; recommends keeping law 1 for Yan Agent, Yan and Yan Meta |
+| 2026-11-04 | [Yan Binary Format syntax study](../studies/syntax/yan-binary-format.md) | Study only; five proposals and a consolidated syntax, no rows |
 | 2026-11-04 | [Yan Prompt (.ypm) syntax study](../studies/syntax/yan-prompt.md) | Study only; recommends trust-typed lanes, header-as-contract, strategy clauses, pinned learned slots |
 | 2026-11-04 | [Yan Spec (`.ysp`) syntax study](../studies/syntax/yan-spec.md) | Study only; five proposals and a mix (state, steps, laws, worlds, links); no rows |
 | 2026-11-03 | [Yan Notation: names and real features](https://claude.ai/artifact/XwShntWVWkEzcMhkxbswiT) | RFC 0029: R776 to R786 |
