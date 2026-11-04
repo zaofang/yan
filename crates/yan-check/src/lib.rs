@@ -994,11 +994,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             Rhs::Copy(p) => {
                 let t = self.place(p, How::Read)?;
                 if let Some(b) = base(&t).filter(|b| SHARE.contains(b)) {
-                    self.err(
-                        "E416",
-                        p.root_span,
-                        format!("`copy` of a `{b}`; use `share`"),
-                    );
+                    self.err("E416", at, format!("`copy` of a `{b}`; use `share`"));
                 }
                 Some(type_text(&t))
             }

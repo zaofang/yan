@@ -2869,6 +2869,10 @@ impl Lower<'_, '_, '_> {
         match &target.kind {
             j::ExprKind::Name(n) if n == "_" => {
                 if !matches!(r, Rhs::Atom(_)) {
+                    let rhs_span = match &r {
+                        Rhs::Copy(p) => p.root_span,
+                        _ => at,
+                    };
                     self.emit(
                         StmtKind::Let {
                             mutable: false,
@@ -2876,7 +2880,7 @@ impl Lower<'_, '_, '_> {
                             pat_span: target.span,
                             ty: t.core(),
                             rhs: r,
-                            rhs_span: at,
+                            rhs_span,
                         },
                         target.span,
                     );
