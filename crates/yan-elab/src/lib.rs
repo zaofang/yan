@@ -306,6 +306,20 @@ impl Globals {
                 };
                 Ty::List(Box::new(self.ty(t, cx, span)?))
             }
+            j::Type::Named { path, args } if path.len() == 1 && path[0] == "Array" => {
+                let Some((j::TArg::Type(elem), axes)) = args.split_last() else {
+                    return unsupported("`Array` without an element type");
+                };
+                let mut shape = Vec::new();
+                for axis in axes {
+                    match axis {
+                        j::TArg::Int(n) => shape.push(n.clone()),
+                        j::TArg::Type(t) => shape.push(format!("{t:?}")),
+                        j::TArg::Text(_) => return unsupported("`Array` axis"),
+                    }
+                }
+                Ty::Array(shape, Box::new(self.ty(elem, cx, span)?))
+            }
             j::Type::Named { path, args } => {
                 let mut a = Vec::new();
                 for arg in args {
