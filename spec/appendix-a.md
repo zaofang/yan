@@ -156,6 +156,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R789 to R792 | A first `std.net` slice and `mem_net` (RFC 0032), decided by the owner: `Net` with `tcp_listen`, `tcp_connect` and `only` on `host:port` strings, built-in `TcpListener` and `TcpStream` handles, `NetError` and `NetReason` (R789); `std.test.mem_net()`, one deterministic in-memory network per handler value (R790); `net.only` patterns `host:port` and `host:*`, `NotGranted` (R791); the test handler set keeps no `net`, tests bind `mem_net()` explicitly (R792) | 7.1, 7.3, 17.3 |
 | R800 | E210 relaxed: a callee with exactly two parameters takes them positionally even when they share a type; E210 applies to callees with three or more parameters (R800) | 14.1, 15.3 |
 | R801 | Free prelude functions `ord(c) -> int`, `chr(n) -> char fail EncodingError` (new reason `Scalar()`), `divmod(a, b)` as `(a // b, a % b)` and `pow(a, b)` as `a ** b` (R801) | 17.2 |
+| R802 | A one-character `str` literal (no prefix or `r`) takes type `char` where `char` is expected: the other side of a comparison, an `in` left operand over a `char` element type, an argument or assignment; a variable never converts, and `in` checks its left operand against the element type (E201) (R802) | 3.4 |
 
 <!-- /rows -->
 

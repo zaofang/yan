@@ -744,3 +744,8 @@ sections = "14.1, 15.3"
 rows = "R801"
 topic = "Free prelude functions `ord(c) -> int`, `chr(n) -> char fail EncodingError` (new reason `Scalar()`), `divmod(a, b)` as `(a // b, a % b)` and `pow(a, b)` as `a ** b` (R801)"
 sections = "17.2"
+
+[[entry]]
+rows = "R802"
+topic = "A one-character `str` literal (no prefix or `r`) takes type `char` where `char` is expected: the other side of a comparison, an `in` left operand over a `char` element type, an argument or assignment; a variable never converts, and `in` checks its left operand against the element type (E201) (R802)"
+sections = "3.4"
