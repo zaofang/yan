@@ -449,3 +449,22 @@ fn a_method_on_a_literal_lowers() {
     let src = "pub def main() uses io:\n    io.print(\"-\".join([\"a\", \"b\"]))\n";
     assert_eq!(run(src), "a-b\n");
 }
+
+#[test]
+fn consumption_is_written() {
+    let src = "def f(xs: list[int], c: bool) -> list[int] uses io:\n    ys = xs\n    if c:\n        return ys\n\
+               \x20   zs = [1]\n    ws = zs\n    a, b = ws, [2]\n    a, b = b, a\n    for i in range(2):\n        v = a\n        io.print(f\"{len(v)}\")\n\
+               \x20   return b\n\n\
+               pub def main() uses io:\n    io.print(f\"{len(f([3], False))}\")\n";
+    let text = yan_core::print(&lower(src).0);
+    for line in [
+        "let ys: List[i64] = copy xs",
+        "let ws: List[i64] = move zs",
+        "let _t5: List[i64] = move b",
+        "let _t6: List[i64] = move a",
+        "let v: List[i64] = copy a",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    assert_eq!(run(src), "1\n1\n1\n");
+}

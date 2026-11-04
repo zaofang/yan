@@ -1092,8 +1092,10 @@ impl Lower<'_, '_, '_> {
     }
 
     fn tmp(&mut self, ty: &Ty, rhs: Rhs, at: Span) -> Atom {
-        if let Rhs::Atom(a) = rhs {
-            return a;
+        match rhs {
+            Rhs::Atom(a) => return a,
+            Rhs::Proj(p) if p.projs.is_empty() => return Atom::Name(p.root, p.root_span),
+            _ => {}
         }
         let n = self.fresh("t");
         self.bind(&n, false, ty, rhs, at, at);
@@ -2512,9 +2514,23 @@ impl Lower<'_, '_, '_> {
                         for v in vs {
                             let (a, t) = self.atom(v, None)?;
                             let a = match a {
-                                Atom::Name(..) => {
+                                Atom::Name(ref x, sp) => {
                                     let n = self.fresh("t");
-                                    self.bind(&n, false, &t, Rhs::Atom(a), v.span, v.span);
+                                    // A name this statement assigns is overwritten, so it moves.
+                                    let overwritten = !t.is_copy()
+                                        && ts.iter().any(
+                                            |e| matches!(&e.kind, j::ExprKind::Name(m) if m == x),
+                                        );
+                                    let r = if overwritten {
+                                        Rhs::Move(Place {
+                                            root: x.clone(),
+                                            root_span: sp,
+                                            projs: Vec::new(),
+                                        })
+                                    } else {
+                                        self.consume(Rhs::Atom(a), &t, v.span)
+                                    };
+                                    self.bind(&n, false, &t, r, v.span, v.span);
                                     Atom::Name(n, v.span)
                                 }
                                 lit => lit,
@@ -2658,6 +2674,10 @@ impl Lower<'_, '_, '_> {
                 .fix(Applicability::Auto, "copy", at, &format!("{x}.copy()"));
             self.cx.label(later, "used again");
         }
+        let r = match &target.kind {
+            j::ExprKind::Name(n) if n != "_" => self.consume(r, &t, at),
+            _ => r,
+        };
         match &target.kind {
             j::ExprKind::Name(n) if n == "_" => {
                 if !matches!(r, Rhs::Atom(_)) {
@@ -4078,6 +4098,35 @@ impl Lower<'_, '_, '_> {
             end_col: end,
             end_line: name.line,
             ..name
+        }
+    }
+
+    /// R769: a non-copy local bound or assigned to a name leaves by `move` at its last use and
+    /// by `copy` otherwise, or when it is a borrowed parameter.
+    fn consume(&self, r: Rhs, t: &Ty, at: Span) -> Rhs {
+        let (x, sp) = match &r {
+            Rhs::Atom(Atom::Name(x, sp)) => (x, sp),
+            Rhs::Proj(p) if p.projs.is_empty() => (&p.root, &p.root_span),
+            _ => return r,
+        };
+        if t.is_copy() || !self.locals.contains_key(x) {
+            return r;
+        }
+        let place = Place {
+            root: x.clone(),
+            root_span: *sp,
+            projs: Vec::new(),
+        };
+        let borrowed = self
+            .sig
+            .params
+            .iter()
+            .any(|p| p.name == *x && p.conv != Conv::Sink);
+        let looped = self.loop_outer.last().is_some_and(|o| o.contains(x));
+        if borrowed || looped || self.used_after(x, at) {
+            Rhs::Copy(place)
+        } else {
+            Rhs::Move(place)
         }
     }
 
