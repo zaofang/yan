@@ -6431,6 +6431,15 @@ impl Lower<'_, '_, '_> {
             return self.bits_call(f, args, at);
         }
         let path = format!("std.{module}.{f}");
+        if let Some(name) = crate::stdlib::decl(&path).and_then(|d| d.preview.as_ref())
+            && !self.cx.previews.contains(name)
+        {
+            self.err(
+                "E001",
+                at,
+                format!("`{module}.{f}` is a preview; add `preview=[\"{name}\"]` to the package"),
+            );
+        }
         if crate::stdlib::decl(&path).is_some_and(|d| d.typed_at_call()) {
             return self.user_call(&path, None, args, at);
         }

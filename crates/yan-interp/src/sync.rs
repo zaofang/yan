@@ -79,4 +79,8 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_LATTICE_PUT,
         Bind::Plain(|_| unsupported("`std.lattice.put` in the interpreter")),
     ),
+    (
+        STD_EVENTED_SCHED,
+        Bind::Plain(|_| unsupported("`std.evented.sched` in the interpreter")),
+    ),
 ];

@@ -1,0 +1,6 @@
+"""The sched capability: the handler `par`, `par for` and `par concurrent` lower to (9.1)."""
+
+@capability
+@since("1.0")
+pub trait Sched:
+    def width(self: Self) -> int: ...

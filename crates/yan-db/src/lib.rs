@@ -232,7 +232,7 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
         untrusted: settings.untrusted(db),
     };
     let name = path.display().to_string();
-    match yan_elab::elaborate(&name, file.text(db), m, opts) {
+    match yan_elab::elaborate_in(&name, file.text(db), m, opts, package_manifest(path)) {
         Err(u) => Loaded::Stopped(unsupported(&name, file.text(db), &u.what, u.at, diags)),
         Ok((y, mut errs)) => {
             let stop = has_error(&errs);
@@ -247,6 +247,22 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
             }
         }
     }
+}
+
+/// The manifest in the `package.yag` of the nearest directory above `path` that has one (19.1).
+/// A `package.yag` itself, and a script outside any package, carry their own.
+fn package_manifest(path: &Path) -> Option<yan_elab::Manifest> {
+    if path.file_name().is_some_and(|n| n == "package.yag") {
+        return None;
+    }
+    let dir = path.parent()?;
+    let file = dir
+        .ancestors()
+        .map(|d| d.join("package.yag"))
+        .find(|f| f.is_file())?;
+    let src = std::fs::read_to_string(&file).ok()?;
+    let (m, _) = yan_yag::parse(&file.display().to_string(), &src, false);
+    yan_elab::manifest(&m?)
 }
 
 /// 12: a module under the package's `ffi/` directory. The package root is the nearest

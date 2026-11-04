@@ -21,6 +21,7 @@ use yan_core::ast as y;
 use yan_diag::{Applicability, Diagnostic, Span};
 use yan_hir as j;
 
+pub use desugar::{Manifest, manifest};
 pub use stdlib::{StdInfo, StdModule, install_std};
 pub use ty::Ty;
 
@@ -173,6 +174,8 @@ pub(crate) struct Cx<'s> {
     pub yn: bool,
     pub ffi: bool,
     pub untrusted: bool,
+    /// The previews the package opts into (20.6).
+    pub previews: Vec<String>,
     pub diags: Vec<Diagnostic>,
 }
 
@@ -345,6 +348,18 @@ pub fn elaborate(
     m: &j::Module,
     opts: Options,
 ) -> Result<(y::Module, Vec<Diagnostic>), Unsupported> {
+    elaborate_in(file, src, m, opts, None)
+}
+
+/// [`elaborate`] for a module of the package whose manifest is `manifest`; a script-form module
+/// declares its own (19.1).
+pub fn elaborate_in(
+    file: &str,
+    src: &str,
+    m: &j::Module,
+    opts: Options,
+    manifest: Option<Manifest>,
+) -> Result<(y::Module, Vec<Diagnostic>), Unsupported> {
     let mut cx = Cx {
         file,
         src,
@@ -353,9 +368,17 @@ pub fn elaborate(
         yn: opts.yn,
         ffi: opts.ffi,
         untrusted: opts.untrusted,
+        previews: Vec::new(),
         diags: Vec::new(),
     };
-    let m = &desugar::module(m, &mut cx);
+    let manifest = manifest.or_else(|| desugar::manifest(m));
+    let mut m = desugar::module(m, &mut cx);
+    desugar::without_manifest(&mut m);
+    if let Some(caps) = manifest.as_ref().and_then(|p| p.capabilities.as_ref()) {
+        desugar::ceiling(&m, caps, &mut cx);
+    }
+    cx.previews = manifest.map(|p| p.previews).unwrap_or_default();
+    let m = &m;
     let mut g = Globals::default();
     let std_sums = stdlib::sums(&mut g, m);
     let std_classes = stdlib::classes(&mut g, m)?;

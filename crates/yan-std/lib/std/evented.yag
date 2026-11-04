@@ -1,0 +1,7 @@
+"""Evented handlers (9.7): carriers on stackful coroutines over io_uring, epoll, kqueue or IOCP.
+Previews until M4 (20.6)."""
+
+@intrinsic
+@preview("evented")
+@since("1.0")
+pub def sched() -> std.sched.Sched: ...

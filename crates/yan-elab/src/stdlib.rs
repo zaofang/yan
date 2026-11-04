@@ -16,6 +16,8 @@ pub(crate) struct Decl {
     /// An operation of a capability trait.
     pub cap: bool,
     pub def: j::FuncDef,
+    /// `@preview("name")`: using it needs `preview = ["name"]` (20.6, E001).
+    pub preview: Option<String>,
 }
 
 pub(crate) struct Class {
@@ -64,10 +66,24 @@ pub(crate) static STD: LazyLock<Std> = LazyLock::new(|| {
         out.files.insert(module, (file, src));
         for it in m.items {
             let has = |d: &str| it.decorators.iter().any(|x| x.path == [d]);
+            let preview = it
+                .decorators
+                .iter()
+                .find(|x| x.path == ["preview"])
+                .and_then(|x| {
+                    x.args.iter().flatten().find_map(|a| match &a.kind {
+                        j::ArgKind::Expr(j::Expr {
+                            kind: j::ExprKind::Lit(j::Lit::Str { value, .. }),
+                            ..
+                        }) => Some(value.clone()),
+                        _ => None,
+                    })
+                });
             let decl = |def: j::FuncDef, intrinsic, cap| Decl {
                 module,
                 intrinsic,
                 cap,
+                preview: preview.clone(),
                 def,
             };
             match it.kind {
@@ -721,6 +737,7 @@ fn std_cx(module: &str) -> Cx<'static> {
         yn: false,
         ffi: false,
         untrusted: false,
+        previews: Vec::new(),
         diags: Vec::new(),
     }
 }
