@@ -290,4 +290,33 @@ frame() =
             .collect();
         assert_eq!(code_lines(&printed), want);
     }
+
+    #[test]
+    fn keywords_name_methods_after_a_dot() {
+        let src = "f(xs: List[int]) -> List[int] = xs.take(2)\n";
+        assert_eq!(reprint(src), src);
+    }
+
+    #[test]
+    fn fail_is_inferred_on_non_pub_functions() {
+        let src = "type E = { msg: str }\n\n\
+            parse(s: str) -> int fail E = s.parse_int() else fail E(msg: copy s)\n\n\
+            mid(s: str) -> int = parse(s)?\n\n\
+            top(s: str) -> int = mid(s)?\n\n\
+            pub run(s: str) -> int = mid(s)?\n";
+        let (m, diags) = super::parse("t.yn", src);
+        assert!(diags.is_empty());
+        let (h, _) = super::lower("t.yn", src, &m).unwrap();
+        let fail = |name: &str| {
+            h.items.iter().find_map(|i| match &i.kind {
+                yan_hir::ItemKind::Func(f) if f.name == name => {
+                    Some(f.ret.as_ref().map(|r| r.fail.clone()).unwrap_or_default())
+                }
+                _ => None,
+            })
+        };
+        assert_eq!(fail("mid"), Some(vec![vec!["E".to_owned()]]));
+        assert_eq!(fail("top"), Some(vec![vec!["E".to_owned()]]));
+        assert_eq!(fail("run"), Some(vec![]));
+    }
 }

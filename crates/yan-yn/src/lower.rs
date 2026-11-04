@@ -41,11 +41,13 @@ const CAPS: [&str; 9] = [
 
 pub fn lower(file: &str, src: &str, m: &Module) -> R<(h::Module, Vec<Diagnostic>)> {
     let inferred = infer_caps(m);
+    let inferred_fail = infer_fails(m);
     let mut l = Lower {
         file,
         src,
         diags: Vec::new(),
         inferred,
+        inferred_fail,
         docs: m.docs.iter().cloned().collect(),
         doc: None,
         self_ty: named(&["Self"], Vec::new()),
@@ -77,6 +79,7 @@ struct Lower<'a> {
     src: &'a str,
     diags: Vec<Diagnostic>,
     inferred: HashMap<String, Vec<String>>,
+    inferred_fail: HashMap<String, Vec<String>>,
     /// `---` lines by line number.
     docs: HashMap<u32, String>,
     /// The doc comment above the item being lowered.
@@ -592,7 +595,15 @@ impl Lower<'_> {
                 }
             });
         }
-        let ret = if s.ret.is_some() || s.fail.is_some() {
+        let inferred_fail: Vec<h::Path> = match &s.fail {
+            None if infer => self
+                .inferred_fail
+                .get(&s.name)
+                .map(|ns| ns.iter().map(|n| vec![n.clone()]).collect())
+                .unwrap_or_default(),
+            _ => Vec::new(),
+        };
+        let ret = if s.ret.is_some() || s.fail.is_some() || !inferred_fail.is_empty() {
             Some(h::RetType {
                 ty: match &s.ret {
                     Some(t) if !matches!(t.kind, TypeKind::Unit) => Some(self.ty(t)?),
@@ -600,7 +611,7 @@ impl Lower<'_> {
                 },
                 fail: match &s.fail {
                     Some(t) => self.fail_paths(t)?,
-                    None => Vec::new(),
+                    None => inferred_fail,
                 },
                 from: s.from.clone(),
             })
@@ -1836,7 +1847,118 @@ fn infer_caps(m: &Module) -> HashMap<String, Vec<String>> {
 }
 
 /// Each free name a body reads, at its first use.
-type Names = HashMap<String, Span>;
+#[derive(Default)]
+struct Names {
+    seen: HashMap<String, Span>,
+    /// Failure types named by `fail` statements.
+    fails: HashSet<String>,
+    /// Functions called under `?`.
+    tried: HashSet<String>,
+}
+
+impl Names {
+    fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl std::ops::Deref for Names {
+    type Target = HashMap<String, Span>;
+    fn deref(&self) -> &Self::Target {
+        &self.seen
+    }
+}
+
+impl std::ops::DerefMut for Names {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.seen
+    }
+}
+
+/// The type a `fail` expression constructs, when it is a constructor call.
+fn failed_type(e: &Expr) -> Option<String> {
+    match &e.kind {
+        ExprKind::Paren(x) => failed_type(x),
+        ExprKind::TypeName(n) => Some(n.clone()),
+        ExprKind::TypeField(x, _) => failed_type(x),
+        ExprKind::Call(f, _) => failed_type(f),
+        _ => None,
+    }
+}
+
+fn type_names(t: &Type) -> Vec<String> {
+    match &t.kind {
+        TypeKind::Path { path, args } if args.is_empty() && path.len() == 1 => path.clone(),
+        TypeKind::Union(ts) => ts.iter().flat_map(type_names).collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// Failure types of non-`pub` functions that omit `fail`, per strongly connected component (15.3):
+/// what their `fail` statements construct plus what the local functions they call under `?` fail with.
+fn infer_fails(m: &Module) -> HashMap<String, Vec<String>> {
+    let fns: HashMap<&str, (&FnDef, bool)> = m
+        .items
+        .iter()
+        .filter_map(|i| match &i.kind {
+            ItemKind::Fn(f) => Some((f.sig.name.as_str(), (f, i.public))),
+            _ => None,
+        })
+        .collect();
+    let mut fails: HashMap<String, HashSet<String>> = HashMap::new();
+    let mut tried: HashMap<String, HashSet<String>> = HashMap::new();
+    for (name, (f, public)) in &fns {
+        if let Some(t) = &f.sig.fail {
+            fails.insert((*name).to_owned(), type_names(t).into_iter().collect());
+            continue;
+        }
+        if *public {
+            fails.insert((*name).to_owned(), HashSet::new());
+            continue;
+        }
+        let mut names = Names::new();
+        let mut bound = HashSet::new();
+        for p in &f.sig.params {
+            if let Param::Value { name, .. } = p {
+                bound.insert(name.clone());
+            }
+        }
+        body_names(&f.body, &mut names, &mut bound);
+        fails.insert((*name).to_owned(), names.fails);
+        tried.insert(
+            (*name).to_owned(),
+            names
+                .tried
+                .into_iter()
+                .filter(|c| fns.contains_key(c.as_str()))
+                .collect(),
+        );
+    }
+    loop {
+        let mut changed = false;
+        for (name, callees) in &tried {
+            let extra: HashSet<String> = callees
+                .iter()
+                .flat_map(|c| fails[c].iter().cloned())
+                .collect();
+            let own = fails.get_mut(name).expect("every fn has an entry");
+            for c in extra {
+                changed |= own.insert(c);
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    fails
+        .into_iter()
+        .map(|(k, v)| {
+            let mut v: Vec<_> = v.into_iter().collect();
+            v.sort();
+            (k, v)
+        })
+        .collect()
+}
 
 fn body_names(b: &Body, names: &mut Names, bound: &mut HashSet<String>) {
     match b {
@@ -1915,8 +2037,11 @@ fn stmt_names(s: &Stmt, names: &mut Names, bound: &mut HashSet<String>) {
         ss.iter().for_each(|s| stmt_names(s, names, bound))
     };
     match &s.kind {
+        StmtKind::Fail(x) => {
+            names.fails.extend(failed_type(x));
+            e(x, names, bound)
+        }
         StmtKind::Expr(x)
-        | StmtKind::Fail(x)
         | StmtKind::Yield(x)
         | StmtKind::Assert(x)
         | StmtKind::Become(x)
@@ -2039,9 +2164,16 @@ fn expr_names(e: &Expr, names: &mut Names, bound: &mut HashSet<String>) {
         | ExprKind::Field(x, _)
         | ExprKind::TypeField(x, _)
         | ExprKind::Reflect(x, _)
-        | ExprKind::Question(x)
         | ExprKind::Cast(x, _)
         | ExprKind::Unary(_, x) => go(x),
+        ExprKind::Question(x) => {
+            if let ExprKind::Call(f, _) = &x.kind
+                && let ExprKind::Name(n) = &f.kind
+            {
+                names.tried.insert(n.clone());
+            }
+            expr_names(x, names, bound)
+        }
         ExprKind::Tuple(xs) | ExprKind::List(xs) | ExprKind::Set(xs) => xs.iter().for_each(go),
         ExprKind::Grid(rows) => rows.iter().flatten().for_each(go),
         ExprKind::Map(kvs) => kvs.iter().for_each(|(k, v)| {
