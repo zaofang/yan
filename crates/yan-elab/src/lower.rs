@@ -5274,6 +5274,7 @@ impl Lower<'_, '_, '_> {
             }
         }
         let mut elems: Vec<(String, Atom)> = Vec::new();
+        let mut inouts: Vec<(String, Vec<String>, bool)> = Vec::new();
         // Lambdas go last, so their parameter types can come from the other arguments.
         let lambda = |s: &Option<Given>| matches!(s, Some(Given::Expr(e, ..)) if self.fn_value(e));
         let mut order: Vec<usize> = (0..ps.len()).filter(|&k| !lambda(&slots[k])).collect();
@@ -5307,6 +5308,28 @@ impl Lower<'_, '_, '_> {
                     let (pl, t) = self.place(e)?;
                     self.expect(&t, &p.ty, sp);
                     self.arg_tys.push((p.ty.clone(), t.clone(), sp));
+                    // E402: `&q` and `&q.a` overlap, since one place is a prefix of the other.
+                    let fields: Vec<&str> = pl
+                        .projs
+                        .iter()
+                        .map_while(|p| match p {
+                            Proj::Field(f, _) => Some(f.as_str()),
+                            _ => None,
+                        })
+                        .collect();
+                    let key: Vec<String> = fields.iter().map(|f| f.to_string()).collect();
+                    let whole = fields.len() == pl.projs.len();
+                    let overlaps = inouts.iter().any(|(r, fs, w)| {
+                        *r == pl.root && ((*w && key.starts_with(fs)) || (whole && fs.starts_with(&key)))
+                    });
+                    if overlaps {
+                        self.err(
+                            "E402",
+                            sp,
+                            format!("this place overlaps another part of `{}` passed for mutation in this call", pl.root),
+                        );
+                    }
+                    inouts.push((pl.root.clone(), key, whole));
                     if pl.projs.is_empty() {
                         *out = Some(Arg::Value(
                             Conv::Inout,
