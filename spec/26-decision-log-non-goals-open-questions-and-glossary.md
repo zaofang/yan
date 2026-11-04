@@ -51,6 +51,7 @@
 - No generic associated types.
 - No stable Yan Core-to-Yan ABI, no direct C++ interop, no dylib plugins passing Yan Core types in 1.0.
 - No `Condvar` in 1.0.
+- No user-written lint analyzers in 1.0 (R820).
 - No variant names resolved from the expected type in Yan or Yan Agent; a variant is written with its type name, as in `Color.Red` (R799). Other surfaces may offer it where it lowers to the qualified name.
 
 These are non-goals for Yan Core. Yan Meta (16.6) may spell some of them as sugar over the core, such as `null` for `None`, lossless widening written out in Yan Core, `extends` as delegation and `async`/`await` as branch and join; the Yan Core it elaborates to keeps every non-goal above.

@@ -11,7 +11,7 @@ Effects are capabilities: second-class values passed as explicit parameters in Y
 | `tmp` | `Tmp` | a scoped scratch directory removed at scope exit |
 | `net` | `Net` | `tcp_connect`, `tcp_listen`, `udp_bind`, `resolve`; completion-shaped with deadlines (9.7); attenuated by `net.only` (17.6); the TCP slice and `mem_net` are R789 to R791 |
 | `time` | `Time` | clock reads only: `now`, `monotonic` (returns `MonoInstant`, includes suspended time), `sleep`, `sleep_until(MonoInstant)` |
-| `rand` | `Rand` | `next_u64`, `next_f64`; handlers `seeded(seed, algorithm=ChaCha8())` (default in tests with seed 0; the streams are R683, the split R685; `seeded(seed, Pcg64Dxsm())` is not splittable, so using it in two branches is E402; R377) and `os` |
+| `rand` | `Rand` | `next_u64`, `next_f64`, `state() -> Option[RandState]` (R823); handlers `seeded(seed, algorithm=ChaCha8())` (default in tests with seed 0; the streams are R683, the split R685; `seeded(seed, Pcg64Dxsm())` is not splittable, so using it in two branches is E402; R377) and `os` |
 | `crypto_rand` | `CryptoRand` | `fill_bytes`; a CSPRNG that tests may replace and release builds may not |
 | `log` | `Log` | structured key-value events at `debug`, `info`, `warn`, `error` over one `event(level, msg, fields)` operation, plus spans as child handlers (R688, R689); `@splittable` |
 | `metrics` | `Metrics` | counters, gauges, histograms; `@splittable` |
@@ -22,6 +22,7 @@ Effects are capabilities: second-class values passed as explicit parameters in Y
 | `fault` | `Fault` | `maybe(name) -> bool`; handlers `never` (default, compiles away) and `sim` (seeded) |
 | `toolchain` | `Toolchain` | read-only queries over the query database (section 21.4); never bound in release builds (E318) |
 | `nondet` | none | marks scheduler-visible nondeterminism, shared mutable state across tasks, `@unordered`, `@fast_math` and observing hash values |
+| `shield` | none | marks code that opens a `shield` block (9.4, R812); like `nondet`, a marker with no operations |
 | `alloc` | `Alloc` | `alloc`, `realloc`, `free`; ambient (5.5) |
 | `sched` | `Sched` | task placement for `par`, `par for`, `par_fold` and actors |
 | `cluster` | `Cluster` | remote spawn and calls between nodes (9.6.1, R400) |
@@ -86,8 +87,10 @@ std MUST provide a recording handler and a replay handler for every built-in cap
 - `par` branches share no mutable state (section 4), and their results are joined in source order. Shared mutable state needs `nondet` (6.5).
 - `par for` returns results in input order. `par_fold` reduces in the fixed tree of section 9.3, determined only by the input length.
 - Floating point is IEEE 754 strict: no fused multiply-add contraction, no reassociation, no flush-to-zero, unless the function uses `nondet` via `@fast_math` or `@unordered`.
+- **Relaxed floats (R821).** `with fast_math:` is a lexical block, and `@fast_math` on an item means its whole body is one such block; both need `uses nondet`. Inside the block the float operators written there may be contracted into FMA, reassociated, treated as if the sign of zero did not matter, and `a / b` taken as `a * (1 / b)`; tier-F approximate math functions (11.1) may stand in for their correctly rounded counterparts. NaN and infinity keep their IEEE meaning and subnormals are kept: safe code never assumes values are finite. The scope is lexical: a called function is not relaxed and inlining never carries the relaxation into or out of the block. `fma(a, b, c)` stays strict. Flush-to-zero is outside the set on CPUs. `with unordered:` is the block form of `@unordered` with the same scope rule (R822).
+- **Strict escape and lowering (R822).** Inside a relaxed scope, `with strict:` restores the strict meaning for its block. Yan Core has the statement `relaxed { ... }`, which carries the relaxation as a block, never a per-operation flag. `yan view` shades relaxed spans and `yan audit` lists them. W858 reports a relaxed block with no float operator and W859 a `with fast_math:` nested in a relaxed scope; a `with strict:` is not reported.
 - Iteration order of `Map` and `Set` is insertion order, never hash order.
-- Seeded randomness across tasks is counter-based ChaCha8 with key = seed and nonce = stable hash of the task path (SQ18).
+- Seeded randomness across tasks follows the task path: a branch's seed derives from its parent's seed, the parent's split counter and the branch index, so consecutive `par` blocks draw independent streams (R824, 17.3).
 - Query results do not depend on thread count, ISA or memory budget (section 11.9).
 
 **Scope of the strong guarantee (R342).** The bit-identical promise of law 7 holds when no stateful handler of a shared capability (7.1) is used by tasks that may run at once. When one is, results remain a deterministic function of the values its operations return, which `yan replay` reproduces, but they may differ between schedules. Buffered output of a split capability in a `par` branch cancelled by another branch's failure is dropped, never committed (9.2). Under a bounded alloc handler, try\_ results in tasks that may run at once also fall in this tier (R398).

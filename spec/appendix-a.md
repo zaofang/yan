@@ -165,6 +165,21 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R808 | Empty `[]` and `{}` bindings take their type from the first `append`, `extend`, key store or `return` that fixes it, else E241 (R808) | 14.1 |
 | R809 | `ex f(x) == v` means `Ok(v)` and `fail e` as an operand is `Err(e)`, so `ex f(x) == fail E` states a failure (R809) | 14.1 |
 | R810 | A tuple of one element type is iterable in `for`; indexing or `len` on an `iter` names `.collect()` and `.count()` (R810) | 14.1, 17.2 |
+| R811 | `with shield(d):` holds enclosing cancellation for a bounded block with its own deadline; Core `shield at { ... }` (R811) | 9.4 |
+| R812 | Opening a shield needs the marker capability `uses shield`; expiry is `fail ShieldTimeout`, separate from `Timeout`; lints W855, W856 (R812) | 7.1, 9.4 |
+| R813 | One-way `actor.send(h).f(args)`: admission semantics, shared FIFO with `call`, detachment, stopped-actor drop (R813) | 9.6 |
+| R814 | Mailbox overflow policy in the handle type `Actor[S, P]`, failed send returns its payload, owned send-only handle, lossy policies need `uses nondet`, lint W857 (R814) | 9.6 |
+| R815 | `once` function types: a call consumes the value; `par` below plain below `once` by subtyping; E328 (R815) | 4.6 |
+| R816 | `once` closure literals are marked explicitly (E327), `@linear` captures, single-use capabilities, `par once`, definite initialization, std widenings (R816) | 4.6 |
+| R817 | `@pattern` extractors and view patterns `(f -> p)` with `Option`, `bool` and sum results; unspecified order and count; E329 (R817) | 8.6, 15.3 |
+| R818 | Extractors take constant arguments, may be trait methods, contribute `post` facts, and `Box`, `Rc`, `Str` have deref patterns (R818) | 8.6, 15.3 |
+| R819 | Manifest `lints=Lints(strict, deny, forbid)` that only strengthens, with std lint groups, explicit workspace opt-in, `yan test` gate, protected weakening (R819) | 18.2, 18.3, 19.1 |
+| R820 | `@@deny` and `@@forbid` on a module; user-written lint analyzers are a 1.0 non-goal (R820) | 10.6, 18.2, 26.2 |
+| R821 | `with fast_math:` block and the relaxed set (contraction, reassociation, sign of zero, reciprocal, approximate math), never NaN or infinity assumptions (R821) | 7.7, 10.6 |
+| R822 | `with strict:` escape, `with unordered:` block, Core `relaxed { ... }`, lints W858, W859 (R822) | 7.7, 10.6 |
+| R823 | `rand.state() -> Option[RandState]` with opaque `RandState` bytes, `seeded(state)` and byte-position `at=` restore (R823) | 7.1, 17.3 |
+| R824 | Split rule: a branch seed depends on the task path through a per-task split counter, fixing 17.3 and R685 to match 7.7 (R824) | 7.7, 17.3 |
+| R825 | `tls.Profile` enum `compatible` and `modern`, narrowing-only `.only`, no raw config, server default `modern`, audit facts, R404 wording (R825) | 9.6.1, 17.6, 18.3 |
 
 <!-- /rows -->
 
