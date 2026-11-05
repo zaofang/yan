@@ -83,7 +83,7 @@ fn raised(src: &str) -> String {
 }
 
 /// `src` through elaboration and raise with the marks elaboration wrote.
-fn raised_marked(src: &str) -> (String, Vec<String>) {
+fn raised_marked(src: &str) -> (String, Vec<yan_hir::raise::Unused>) {
     let (m, _) = yan_yag::parse("t.yag", src, false);
     let (y, table, d) = elaborate_in("t.yag", src, &m.expect("parses"), Options::default(), None)
         .expect("supported");
