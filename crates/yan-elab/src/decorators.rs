@@ -46,11 +46,6 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
                             cx.err("E269", a.span, &item, msg);
                         }
                         continue;
-                    } else if t == "Wire" {
-                        if let Err(msg) = crate::wire::schemas(g, &item) {
-                            cx.err("E269", a.span, &item, msg);
-                        }
-                        continue;
                     } else if DERIVABLE.contains(&t.as_str()) {
                         continue;
                     } else {

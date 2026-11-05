@@ -51,7 +51,11 @@ fn schema(
     })
 }
 
+/// Not called yet: the std codecs (json, csv) read it, and the diagnostic for a field that is
+/// not `Wire` waits on a spec row for its code.
+///
 /// The schemas reachable from record or sum `name`, or why it cannot derive `Wire`.
+#[allow(dead_code)]
 pub(crate) fn schemas(g: &Globals, name: &str) -> Result<Schemas, String> {
     let mut defs = HashMap::new();
     let mut todo = vec![name.to_owned()];

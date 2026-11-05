@@ -757,23 +757,3 @@ pub def main() uses io:
 ";
     assert_eq!(codes(src), Vec::<String>::new());
 }
-
-#[test]
-fn derive_wire_rejects_fields_that_are_not_wire() {
-    let src = "\
-class Plain:
-    n: int
-
-@derive(Wire)
-class A:
-    f: Callable[[int], int]
-
-@derive(Wire)
-class B:
-    p: Plain
-
-pub def main() uses io:
-    io.print(\"hi\")
-";
-    assert_eq!(codes(src), ["E269", "E269"]);
-}
