@@ -6,6 +6,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 
 mod agent;
 mod examples;
+mod export;
 mod mcp;
 mod patch;
 mod review;
@@ -85,6 +86,12 @@ enum Command {
         check: bool,
         #[arg(required = true)]
         files: Vec<PathBuf>,
+    },
+    /// Export a module as typed Python 3.12 (17.8): the program text on stdout.
+    Export {
+        #[arg(long, required = true)]
+        python: bool,
+        file: PathBuf,
     },
     /// Print the item hashes (3.6): key, salted hash and identity hash, one item per line.
     Hash {
@@ -240,6 +247,7 @@ fn main() -> ExitCode {
             strict,
             bare,
         } => view(&as_, &file, yan_ide::Marks { strict, bare }),
+        Command::Export { file, .. } => export::run(&file),
         Command::Fmt { check, files } => fmt(&files, check),
         Command::Hash {
             format,

@@ -1352,6 +1352,7 @@ dependencies = [
  "yan-core",
  "yan-db",
  "yan-diag",
+ "yan-elab",
  "yan-hir",
  "yan-ide",
  "yan-interp",
