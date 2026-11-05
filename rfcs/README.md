@@ -55,3 +55,4 @@ research index links their studies and rows.
 | [0032](0032-std-net-and-mem-net.md) | A first `std.net` slice and the `mem_net` test handler | accepted | R789 to R792 |
 | [0033](0033-data-profile.md) | The data profile, a typed literal file in place of TOML | accepted | R826 to R829 |
 | [0034](0034-spelling-marks.md) | Spelling marks from lowering to raise, so law 1 keeps written choices | accepted | R837 to R843 |
+| [0035](0035-more-spelling-marks.md) | More spelling marks so the remaining law 1 cases keep written choices | draft | |
