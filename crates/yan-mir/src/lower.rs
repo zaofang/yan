@@ -19,11 +19,11 @@ const I64: Ty = Ty::Int(IntTy {
     signed: true,
 });
 
-type Fields = Vec<(String, Shape)>;
+pub(crate) type Fields = Vec<(String, Shape)>;
 
 /// A Yan Core type as scalar slots.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-enum Shape {
+pub enum Shape {
     Scalar(Ty),
     Str,
     List(Box<Shape>),
