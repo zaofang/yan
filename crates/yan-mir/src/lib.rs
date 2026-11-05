@@ -7,9 +7,11 @@
 //! come back as extra results. `Str` and `List` are pointers to yan-rt blocks, which are not
 //! freed yet. Anything else is reported as unsupported.
 
+mod layout;
 mod lower;
 
-pub use lower::lower;
+pub use layout::{Layout, SumLayout, layout};
+pub use lower::{Shape, lower};
 use yan_std::registry::Id;
 
 pub type Local = u32;
