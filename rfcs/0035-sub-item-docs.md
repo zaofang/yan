@@ -1,6 +1,6 @@
 # 0035: Docs on parameters, fields, variants, dict entries and tuple positions
 
-- Status: draft
+- Status: accepted
 - Research: `docstrings-survey.md` (project studies folder, 2026-11-05); a read of 13, 15, 16.5 and the doc
   model of 18.9
 - Rows: filled in when accepted
@@ -37,7 +37,7 @@ shows that adding or removing a doc at any position leaves every item hash uncha
 
 Recommendation: reuse the one trivia kind and the one walker.
 
-- Decision: (lead, date)
+- Decision: accepted as recommended (lead, 2026-11-05)
 - Row: (R number once accepted)
 
 ### D2: Yan Agent writes sub-item docs as `#:` lines; Yan writes `---`
