@@ -106,6 +106,12 @@ fn signatures(m: &y::Module) -> HashMap<String, Vec<String>> {
         .collect()
 }
 
+thread_local! {
+    /// Atoms that were `out` in a `post`: they are not uses of the local they name, so
+    /// the use counts leave them out.
+    static OUT_ATOMS: RefCell<HashSet<*const y::Atom>> = RefCell::default();
+}
+
 /// An argument's `Keyword` or `Positional` mark and its path.
 type ArgMark = Option<(Mark, Vec<u32>)>;
 
@@ -119,6 +125,7 @@ struct Marks<'a> {
     fields: HashMap<(*const y::Ctor, usize), Vec<u32>>,
     stmts: HashMap<*const y::Stmt, Vec<u32>>,
     lits: HashMap<*const y::Literal, Vec<u32>>,
+    atoms: HashMap<*const y::Atom, Vec<u32>>,
     fns: &'a HashMap<String, Vec<String>>,
     seen: RefCell<HashSet<Vec<u32>>>,
     rejected: RefCell<HashSet<Vec<u32>>>,
@@ -135,6 +142,7 @@ impl<'a> Marks<'a> {
         let mut fields = HashMap::new();
         let mut stmts = HashMap::new();
         let mut lits = HashMap::new();
+        let mut atoms = HashMap::new();
         yan_core::path::walk(it, &mut |p, n| match n {
             yan_core::path::Node::Stmt(s) => {
                 stmts.insert(s as *const y::Stmt, p.to_vec());
@@ -144,11 +152,31 @@ impl<'a> Marks<'a> {
             }
             yan_core::path::Node::Field(c, k) => {
                 fields.insert((c as *const y::Ctor, k), p.to_vec());
+                if let y::Ctor::Named { fields, .. } = c {
+                    atoms.insert(&fields[k].1 as *const y::Atom, p.to_vec());
+                }
+            }
+            yan_core::path::Node::Arg(y::Arg::Value(_, a, _)) => {
+                atoms.insert(a as *const y::Atom, p.to_vec());
             }
             yan_core::path::Node::Literal(l, _) => {
                 lits.insert(l as *const y::Literal, p.to_vec());
             }
             _ => {}
+        });
+        let sourced = trivia.has_names(&key);
+        OUT_ATOMS.with(|o| {
+            *o.borrow_mut() = atoms
+                .iter()
+                .filter(|(_, p)| {
+                    sourced
+                        && trivia
+                            .at(&key, p)
+                            .iter()
+                            .any(|t| matches!(t, Trivia::Mark(Mark::Out)))
+                })
+                .map(|(a, _)| *a)
+                .collect();
         });
         Marks {
             sourced: trivia.has_names(&key),
@@ -158,6 +186,7 @@ impl<'a> Marks<'a> {
             fields,
             stmts,
             lits,
+            atoms,
             fns,
             seen: RefCell::default(),
             rejected: RefCell::default(),
@@ -229,6 +258,46 @@ impl<'a> Marks<'a> {
             self.seen.borrow_mut().insert(p.clone());
         }
         Some(here)
+    }
+
+    /// Whether atom `a` was `out` in a `post`, consumed.
+    fn is_out(&self, a: &y::Atom) -> bool {
+        let Some(p) = self
+            .atoms
+            .get(&(a as *const y::Atom))
+            .filter(|_| self.sourced)
+        else {
+            return false;
+        };
+        let here = self
+            .trivia
+            .at(&self.key, p)
+            .iter()
+            .any(|t| matches!(t, Trivia::Mark(Mark::Out)));
+        if here {
+            self.seen.borrow_mut().insert(p.clone());
+        }
+        here
+    }
+
+    /// Whether `s` carries `FromPost`, consumed.
+    fn marked_post(&self, s: &y::Stmt) -> bool {
+        let Some(p) = self
+            .stmts
+            .get(&(s as *const y::Stmt))
+            .filter(|_| self.sourced)
+        else {
+            return false;
+        };
+        let here = self
+            .trivia
+            .at(&self.key, p)
+            .iter()
+            .any(|t| matches!(t, Trivia::Mark(Mark::FromPost)));
+        if here {
+            self.seen.borrow_mut().insert(p.clone());
+        }
+        here
     }
 
     /// Whether `s` carries `FromPre`, consumed. False when the item has no marks to go by (D3).
@@ -559,6 +628,7 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
             let mut b = Fold::new(std, marks, locals, &blk.stmts);
             let mut stmts = b.stmts(&blk.stmts)?;
             contracts.extend(b.pre.drain(..).map(Contract::Pre));
+            contracts.extend(b.post.drain(..).map(Contract::Post));
             if let Some(t) = b.pending.keys().find(|t| !b.pure.contains(*t)) {
                 return no(format!("a temporary used out of order: `{t}`"));
             }
@@ -626,6 +696,8 @@ struct Fold<'a> {
     loops: Vec<String>,
     /// Leading `assert`s elaborated from `pre`, moved back to the contract list.
     pre: Vec<Expr>,
+    /// The `post`s of the `assert`s elaborated from them, once each.
+    post: Vec<Expr>,
 }
 
 const BUILDERS: [&str; 3] = ["std.list.append", "std.set.add", "std.dict.insert"];
@@ -648,6 +720,7 @@ impl<'a> Fold<'a> {
             pure: Default::default(),
             loops: Vec::new(),
             pre: Vec::new(),
+            post: Vec::new(),
         }
     }
 
@@ -656,6 +729,9 @@ impl<'a> Fold<'a> {
     }
 
     fn atom(&mut self, a: &y::Atom) -> R<Expr> {
+        if self.marks.is_out(a) {
+            return Ok(name("out"));
+        }
         Ok(match a {
             y::Atom::Name(n, _) => match self.pending.remove(n) {
                 Some(Pending::Expr(x)) => x,
@@ -1536,6 +1612,10 @@ impl<'a> Fold<'a> {
                 let x = self.pure(x)?;
                 if out.is_empty() && self.marks.marked_pre(s) {
                     self.pre.push(x);
+                } else if self.marks.marked_post(s) {
+                    if !self.post.contains(&x) {
+                        self.post.push(x);
+                    }
                 } else {
                     out.push(stmt(StmtKind::Assert(x)));
                 }
@@ -2427,7 +2507,9 @@ fn count_builds(n: &str, ss: &[y::Stmt]) -> usize {
 }
 
 fn count_atom(a: &y::Atom, uses: &mut HashMap<String, usize>) {
-    if let y::Atom::Name(n, _) = a {
+    if let y::Atom::Name(n, _) = a
+        && !OUT_ATOMS.with(|o| o.borrow().contains(&(a as *const y::Atom)))
+    {
         *uses.entry(n.clone()).or_default() += 1;
     }
 }
