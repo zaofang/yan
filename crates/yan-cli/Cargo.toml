@@ -27,6 +27,7 @@ yan-opt.workspace = true
 yan-cg-cranelift.workspace = true
 yan-yag.workspace = true
 yan-hir.workspace = true
+yan-elab.workspace = true
 yan-names.workspace = true
 
 [lints]
