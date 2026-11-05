@@ -21,6 +21,8 @@ pub enum Kind {
     Arg,
     /// Field `k` of a constructor, joined by the span of its atom.
     Field(usize),
+    /// A literal, joined by its span.
+    Lit,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -64,7 +66,7 @@ pub fn place(
                     lit_claimed[i] = true;
                     table.add(key, path.to_vec(), Trivia::Literal(lits[i].1.clone()));
                 }
-                return;
+                cands.push((Kind::Lit, span));
             }
             Node::Field(..) => return,
             Node::Item(i) => cands.push((Kind::Item, i.span)),

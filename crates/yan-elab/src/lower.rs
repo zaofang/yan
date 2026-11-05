@@ -4409,7 +4409,19 @@ impl Lower<'_, '_, '_> {
                     && !self.locals.contains_key(module)
                     && let Some(v) = crate::stdlib::konst(&format!("std.{module}.{m}")) =>
             {
-                self.rhs(v, want)?
+                let (r, t) = self.rhs(v, want)?;
+                let (span, kind) = match &r {
+                    Rhs::Atom(Atom::Lit(_, sp)) => (*sp, crate::marks::Kind::Lit),
+                    Rhs::Call(c) => (c.span, crate::marks::Kind::Call),
+                    _ => (at, crate::marks::Kind::Stmt),
+                };
+                self.cx.marks.push(crate::marks::Pending {
+                    span,
+                    kind,
+                    call: None,
+                    mark: yan_surface::Mark::Const,
+                });
+                (r, t)
             }
             K::Attr(b, m, _)
                 if let K::Name(module) = &b.kind
@@ -4581,15 +4593,18 @@ impl Lower<'_, '_, '_> {
                             vec![let_arg(Atom::Lit(Literal::Int("0".into()), at)), let_arg(a)],
                             at,
                         ),
-                        Ty::Float => call(
-                            "mul_f64",
-                            vec![],
-                            vec![
-                                let_arg(Atom::Lit(Literal::Float("-1.0".into()), at)),
-                                let_arg(a),
-                            ],
-                            at,
-                        ),
+                        Ty::Float => {
+                            self.mark_call(at, yan_surface::Mark::Negated);
+                            call(
+                                "mul_f64",
+                                vec![],
+                                vec![
+                                    let_arg(Atom::Lit(Literal::Float("-1.0".into()), at)),
+                                    let_arg(a),
+                                ],
+                                at,
+                            )
+                        }
                         Ty::BigInt => {
                             let z = self.bigint_lit("0", at);
                             let z = self.tmp(&Ty::BigInt, z, at);
@@ -6031,7 +6046,9 @@ impl Lower<'_, '_, '_> {
                         &format!("`math.{m}` normalized to `int(math.{m}(...))`"),
                     );
                     let a = self.tmp(&Ty::Float, r, at);
-                    let c = call("std.prelude.int", vec![], vec![let_arg(a)], at);
+                    // The conversion has its own span so the mark joins it, not the inner call.
+                    let c = call("std.prelude.int", vec![], vec![let_arg(a)], *name_at);
+                    self.mark_call(*name_at, yan_surface::Mark::Lenient("N39".into()));
                     return Ok((Rhs::Call(c), Ty::Int, None));
                 }
                 if let j::ExprKind::Name(module) = &b.kind
@@ -6041,6 +6058,7 @@ impl Lower<'_, '_, '_> {
                     && let Some((e, to)) = math_alias(m, b, *name_at, args, at)
                 {
                     self.lenient("N39", at, &format!("`math.{m}` normalized to `{to}`"));
+                    self.mark_call(at, yan_surface::Mark::Lenient("N39".into()));
                     return match &e.kind {
                         j::ExprKind::Call(f, args) => self.call_expr(f, args, at, want),
                         _ => {
@@ -6929,6 +6947,14 @@ impl Lower<'_, '_, '_> {
             let out = &mut done[k];
             let (e, is_ref, sp) = match slot {
                 Some(Given::Expr(e, r, sp, keyword)) => {
+                    if self.qualified_variant(e) {
+                        self.cx.marks.push(crate::marks::Pending {
+                            span: sp,
+                            kind: crate::marks::Kind::Arg,
+                            call: Some(at),
+                            mark: yan_surface::Mark::Qualified,
+                        });
+                    }
                     if keyword || !p.positional {
                         self.cx.marks.push(crate::marks::Pending {
                             span: sp,
@@ -8069,6 +8095,17 @@ impl Lower<'_, '_, '_> {
     }
 
     /// `module.v` names variant `v` of a std sum type declared in `module`, as `math.Up`.
+    /// Whether `e` writes a std variant with its module: `math.Up()` or `math.Up`.
+    fn qualified_variant(&self, e: &j::Expr) -> bool {
+        let callee = match &e.kind {
+            j::ExprKind::Call(f, args) if args.is_empty() => &f.kind,
+            k => k,
+        };
+        matches!(callee, j::ExprKind::Attr(b, m, _)
+            if matches!(&b.kind, j::ExprKind::Name(module)
+                if !self.locals.contains_key(module) && self.std_variant(module, m)))
+    }
+
     fn std_variant(&self, module: &str, v: &str) -> bool {
         self.g
             .variant_of
@@ -8109,6 +8146,14 @@ impl Lower<'_, '_, '_> {
             if i >= names.len() || out[i].is_some() {
                 self.err("E202", a.span, format!("too many arguments to `{what}`"));
                 return Ok(None);
+            }
+            if self.qualified_variant(e) {
+                self.cx.marks.push(crate::marks::Pending {
+                    span: e.span,
+                    kind: crate::marks::Kind::Arg,
+                    call: Some(at),
+                    mark: yan_surface::Mark::Qualified,
+                });
             }
             if a.name.is_some() || i >= positional {
                 self.cx.marks.push(crate::marks::Pending {
@@ -8775,6 +8820,11 @@ fn math_alias(
             args,
         ))
     };
+    // The operands get the name's span, so a mark joins the division, which has `at`.
+    let math_at = |f: &str, args: Vec<j::Arg>| j::Expr {
+        span: name_at,
+        ..math(f, args)
+    };
     let free = |f: &str, args: Vec<j::Arg>| {
         ex(j::ExprKind::Call(
             Box::new(ex(j::ExprKind::Name(f.to_owned()))),
@@ -8790,8 +8840,8 @@ fn math_alias(
         "log" if args.len() == 2 && args.iter().all(|a| a.name.is_none()) => (
             ex(j::ExprKind::Binary(
                 "/",
-                Box::new(math("log", vec![args[0].clone()])),
-                Box::new(math("log", vec![args[1].clone()])),
+                Box::new(math_at("log", vec![args[0].clone()])),
+                Box::new(math_at("log", vec![args[1].clone()])),
             )),
             "math.log(x) / math.log(base)".into(),
         ),

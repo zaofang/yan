@@ -393,6 +393,61 @@ impl<'a> Marks<'a> {
         }
     }
 
+    /// The path of call `c` when it carries mark `want`.
+    fn call_mark(&self, c: &y::Call, want: &Mark) -> Option<Vec<u32>> {
+        let p = self
+            .paths
+            .get(&(c as *const y::Call))
+            .filter(|_| self.sourced)?;
+        self.trivia
+            .at(&self.key, p)
+            .iter()
+            .any(|t| matches!(t, Trivia::Mark(m) if m == want))
+            .then(|| p.clone())
+    }
+
+    /// The path of literal `l` when it carries mark `want`.
+    fn lit_mark(&self, l: &y::Literal, want: &Mark) -> Option<Vec<u32>> {
+        let p = self
+            .lits
+            .get(&(l as *const y::Literal))
+            .filter(|_| self.sourced)?;
+        self.trivia
+            .at(&self.key, p)
+            .iter()
+            .any(|t| matches!(t, Trivia::Mark(m) if m == want))
+            .then(|| p.clone())
+    }
+
+    /// The `Qualified` mark path of each value argument of `c`, in order.
+    fn qualified(&self, c: &y::Call) -> Vec<Option<Vec<u32>>> {
+        let at = self.paths.get(&(c as *const y::Call));
+        let mut out = Vec::new();
+        for (k, a) in c.args.iter().enumerate() {
+            if !matches!(a, y::Arg::Value(..)) {
+                continue;
+            }
+            out.push(at.filter(|_| self.sourced).and_then(|p| {
+                let mut p = p.clone();
+                p.push(k as u32);
+                self.trivia
+                    .at(&self.key, &p)
+                    .iter()
+                    .any(|t| matches!(t, Trivia::Mark(Mark::Qualified)))
+                    .then_some(p)
+            }));
+        }
+        out
+    }
+
+    fn accept(&self, p: Vec<u32>) {
+        self.seen.borrow_mut().insert(p);
+    }
+
+    fn refuse(&self, p: Vec<u32>) {
+        self.rejected.borrow_mut().insert(p);
+    }
+
     fn finish(self) -> Vec<Consumed> {
         let rejected = self.rejected.into_inner();
         self.seen
@@ -724,6 +779,28 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
 }
 
 /// A nullary variant's name, which Yan Core spells without parentheses: `CamelCase`, not `None`.
+/// The `math` constant whose value `text` is.
+fn std_const(text: &str) -> Option<&'static str> {
+    match text.replace('_', "").parse::<f64>().ok()? {
+        v if v == std::f64::consts::PI => Some("pi"),
+        v if v == std::f64::consts::E => Some("e"),
+        v if v == f64::INFINITY => Some("inf"),
+        _ => None,
+    }
+}
+
+/// Whether std module `module` declares a sum type with variant `v`.
+fn std_sum_variant(module: &str, v: &str) -> bool {
+    yan_std::SOURCES
+        .iter()
+        .filter(|(m, _)| *m == module)
+        .flat_map(|(_, src)| src.lines())
+        .any(|l| {
+            l.starts_with("pub type ")
+                && (l.contains(&format!("= {v}(")) || l.contains(&format!("| {v}(")))
+        })
+}
+
 fn variant(n: &str) -> bool {
     n != "None"
         && n.starts_with(|c: char| c.is_ascii_uppercase())
@@ -806,6 +883,20 @@ impl<'a> Fold<'a> {
                 None if variant(n) => call(name(n), Vec::new()),
                 None => name(n),
             },
+            y::Atom::Lit(l @ y::Literal::Float(s), _)
+                if let Some(p) = self.marks.lit_mark(l, &Mark::Const) =>
+            {
+                match std_const(s) {
+                    Some(k) => {
+                        self.marks.accept(p);
+                        attr(name("math"), k)
+                    }
+                    None => {
+                        self.marks.refuse(p);
+                        e(ExprKind::Lit(Lit::Float(s.clone())))
+                    }
+                }
+            }
             y::Atom::Lit(l, _) => e(ExprKind::Lit(match l {
                 y::Literal::Int(s) => {
                     Lit::Int(self.marks.spelled(l, s).unwrap_or_else(|| s.clone()))
@@ -975,7 +1066,91 @@ impl<'a> Fold<'a> {
         Ok(x)
     }
 
+    /// The printed expression bound to `a`, if it is a pending temporary.
+    fn peek(&self, a: &y::Atom) -> Option<&Expr> {
+        let y::Atom::Name(n, _) = a else { return None };
+        match self.pending.get(n) {
+            Some(Pending::Expr(x)) => Some(x),
+            _ => None,
+        }
+    }
+
+    /// A call carrying `Const`, `Negated` or `Lenient`: the spelling the mark records when the
+    /// node still has the shape the elaboration produced, else `None` and the default prints.
+    fn marked_math(&mut self, c: &y::Call) -> R<Option<Expr>> {
+        let p = c.path.join(".");
+        let vals = self.values(c);
+        let is_math_call = |x: &Expr, fs: &[&str]| {
+            matches!(&x.kind, ExprKind::Call(f, xs)
+                if matches!(&f.kind, ExprKind::Attr(m, f, _)
+                    if fs.contains(&f.as_str()) && matches!(&m.kind, ExprKind::Name(n) if n == "math"))
+                    && !xs.is_empty())
+        };
+        if let Some(m) = self.marks.call_mark(c, &Mark::Const) {
+            let inf =
+                |a: &y::Atom| matches!(a, y::Atom::Lit(y::Literal::Float(s), _) if s == "1e999");
+            if p == "sub_f64" && matches!(vals.as_slice(), [a, b] if inf(a) && inf(b)) {
+                self.marks.accept(m);
+                return Ok(Some(attr(name("math"), "nan")));
+            }
+            self.marks.refuse(m);
+        }
+        if let Some(m) = self.marks.call_mark(c, &Mark::Negated) {
+            if let ("mul_f64", [y::Atom::Lit(y::Literal::Float(n), _), x]) =
+                (p.as_str(), vals.as_slice())
+                && n == "-1.0"
+            {
+                self.marks.accept(m);
+                let x = self.atom(x)?;
+                return Ok(Some(e(ExprKind::Unary("-", Box::new(x)))));
+            }
+            self.marks.refuse(m);
+        }
+        if let Some(m) = self.marks.call_mark(c, &Mark::Lenient("N39".into())) {
+            match (p.as_str(), vals.as_slice()) {
+                ("std.prelude.abs", [x]) => {
+                    self.marks.accept(m);
+                    let x = self.atom(x)?;
+                    return Ok(Some(call(attr(name("math"), "abs"), vec![arg(x)])));
+                }
+                ("std.math.is_nan" | "std.math.is_inf" | "std.math.is_finite", [x]) => {
+                    self.marks.accept(m);
+                    let f = format!("is{}", &p["std.math.is_".len()..]);
+                    let x = self.atom(x)?;
+                    return Ok(Some(call(attr(name("math"), &f), vec![arg(x)])));
+                }
+                ("std.prelude.int", [x])
+                    if self
+                        .peek(x)
+                        .is_some_and(|x| is_math_call(x, &["floor", "ceil", "trunc"])) =>
+                {
+                    self.marks.accept(m);
+                    return Ok(Some(self.atom(x)?));
+                }
+                ("div_f64", [a, b])
+                    if let (Some(a), Some(b)) = (self.peek(a), self.peek(b))
+                        && is_math_call(a, &["log"])
+                        && is_math_call(b, &["log"]) =>
+                {
+                    self.marks.accept(m);
+                    let (a, b) = (self.atom(vals[0])?, self.atom(vals[1])?);
+                    let (ExprKind::Call(_, mut xa), ExprKind::Call(_, xb)) = (a.kind, b.kind)
+                    else {
+                        unreachable!("checked above")
+                    };
+                    xa.extend(xb);
+                    return Ok(Some(call(attr(name("math"), "log"), xa)));
+                }
+                _ => self.marks.refuse(m),
+            }
+        }
+        Ok(None)
+    }
+
     fn call_marked(&mut self, c: &y::Call) -> R<Expr> {
+        if let Some(x) = self.marked_math(c)? {
+            return Ok(x);
+        }
         let p = c.path.join(".");
         let vals = self.values(c);
         if let ([a, b], Some(op)) = (vals.as_slice(), binary(&p)) {
@@ -1208,6 +1383,25 @@ impl<'a> Fold<'a> {
     fn std_args(&mut self, c: &y::Call, path: &str, skip: usize) -> R<Vec<Arg>> {
         let mut args = self.args(&c.args)?;
         let marks = self.marks.args(c);
+        let module = match c.path.as_slice() {
+            [_, m, _] => Some(m.as_str()),
+            _ => None,
+        };
+        for (a, q) in args.iter_mut().zip(self.marks.qualified(c)) {
+            let Some(q) = q else { continue };
+            if let (ArgKind::Expr(x), Some(module)) = (&mut a.kind, module)
+                && let ExprKind::Call(f, xs) = &x.kind
+                && xs.is_empty()
+                && let ExprKind::Name(v) = &f.kind
+                && variant(v)
+                && std_sum_variant(module, v)
+            {
+                *x = call(attr(name(module), v), Vec::new());
+                self.marks.accept(q);
+            } else {
+                self.marks.refuse(q);
+            }
+        }
         let Some(params) = self.std.params(path) else {
             return Ok(args.split_off(skip.min(args.len())));
         };
