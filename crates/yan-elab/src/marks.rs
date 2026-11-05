@@ -31,8 +31,15 @@ pub struct Pending {
 
 /// The pending marks of `item`'s elaboration written into `table` under `key`. Returns the
 /// marks no node claimed.
-pub fn place(key: &str, item: &Item, pending: &[Pending], table: &mut TriviaTable) -> Vec<Pending> {
+pub fn place(
+    key: &str,
+    item: &Item,
+    pending: &[Pending],
+    lits: &[(Span, String)],
+    table: &mut TriviaTable,
+) -> Vec<Pending> {
     let mut claimed = vec![false; pending.len()];
+    let mut lit_claimed = vec![false; lits.len()];
     let mut call = None;
     walk(item, &mut |path, node| {
         let (kind, span) = match node {
@@ -43,6 +50,13 @@ pub fn place(key: &str, item: &Item, pending: &[Pending], table: &mut TriviaTabl
             Node::Field(Ctor::Named { fields, .. }, k) => match &fields[k].1 {
                 Atom::Name(_, sp) | Atom::Lit(_, sp) => (Kind::Field(k), *sp),
             },
+            Node::Literal(_, span) => {
+                if let Some(i) = (0..lits.len()).find(|&i| !lit_claimed[i] && lits[i].0 == span) {
+                    lit_claimed[i] = true;
+                    table.add(key, path.to_vec(), Trivia::Literal(lits[i].1.clone()));
+                }
+                return;
+            }
             Node::Field(..) => return,
             Node::Call(c) => {
                 call = Some(c.span);
@@ -114,7 +128,7 @@ mod selftest {
             },
         ];
         let mut t = TriviaTable::default();
-        let left = place("h", item, &pending, &mut t);
+        let left = place("h", item, &pending, &[], &mut t);
         let at = t.at("h", &[2, 0, 0]);
         // Both call marks share a span and kind, so both land on the first such node.
         assert_eq!(at.len(), 2);
@@ -131,7 +145,7 @@ mod selftest {
             mark: Mark::Keyword,
         }];
         let mut t = TriviaTable::default();
-        assert_eq!(place("h", &m.items[0], &pending, &mut t).len(), 1);
+        assert_eq!(place("h", &m.items[0], &pending, &[], &mut t).len(), 1);
         assert_eq!(t.entries().count(), 0);
     }
 }

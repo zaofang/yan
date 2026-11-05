@@ -185,6 +185,8 @@ pub(crate) struct Cx<'s> {
     pub diags: Vec<Diagnostic>,
     /// Spelling marks waiting for their node's path (RFC 0034 D1).
     pub marks: Vec<marks::Pending>,
+    /// Integer literals written other than in decimal: atom span and source text (RFC 0034 step 6).
+    pub lits: Vec<(Span, String)>,
 }
 
 impl<'s> Cx<'s> {
@@ -422,6 +424,7 @@ pub fn elaborate_in(
         previews: Vec::new(),
         diags: Vec::new(),
         marks: Vec::new(),
+        lits: Vec::new(),
     };
     let manifest = manifest.or_else(|| desugar::manifest(m));
     let mut m = desugar::module(m, &mut cx);
@@ -544,8 +547,8 @@ pub fn elaborate_in(
     {
         let key = h.identity.to_string();
         table.set_names(&key, h.names);
-        if !cx.marks.is_empty() {
-            marks::place(&key, it, &cx.marks, &mut table);
+        if !cx.marks.is_empty() || !cx.lits.is_empty() {
+            marks::place(&key, it, &cx.marks, &cx.lits, &mut table);
         }
     }
     Ok((module, table, cx.diags))

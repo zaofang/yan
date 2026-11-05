@@ -9,6 +9,7 @@
 //! plus `0, k`. Closure bodies are not walked.
 
 use crate::ast::*;
+use yan_diag::Span;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Node<'a> {
@@ -18,7 +19,8 @@ pub enum Node<'a> {
     Stmt(&'a Stmt),
     Call(&'a Call),
     Arg(&'a Arg),
-    Literal(&'a Literal),
+    /// A literal atom, with the span of the atom.
+    Literal(&'a Literal, Span),
     /// Field `k` of a named constructor.
     Field(&'a Ctor, usize),
 }
@@ -130,7 +132,7 @@ impl<'a, F: FnMut(&[u32], Node<'a>)> Walker<'_, F> {
 
     fn rhs(&mut self, rhs: &'a Rhs) {
         match rhs {
-            Rhs::Atom(Atom::Lit(l, _)) => self.child(0, |w| w.visit(Node::Literal(l))),
+            Rhs::Atom(Atom::Lit(l, sp)) => self.child(0, |w| w.visit(Node::Literal(l, *sp))),
             Rhs::Call(c) | Rhs::Propagate { call: c, .. } | Rhs::Try(c) => self.call(c),
             Rhs::Ctor(c @ Ctor::Named { fields, .. }) => self.child(0, |w| {
                 for k in 0..fields.len() {
@@ -147,8 +149,8 @@ impl<'a, F: FnMut(&[u32], Node<'a>)> Walker<'_, F> {
             for (k, a) in c.args.iter().enumerate() {
                 w.child(k, |w| {
                     w.visit(Node::Arg(a));
-                    if let Arg::Value(_, Atom::Lit(l, _), _) = a {
-                        w.child(0, |w| w.visit(Node::Literal(l)));
+                    if let Arg::Value(_, Atom::Lit(l, sp), _) = a {
+                        w.child(0, |w| w.visit(Node::Literal(l, *sp)));
                     }
                 });
             }
@@ -187,7 +189,7 @@ fn f(let a: i64, let b: i64) -> i64
                 Node::Stmt(_) => "stmt",
                 Node::Call(_) => "call",
                 Node::Arg(_) => "arg",
-                Node::Literal(_) => "lit",
+                Node::Literal(..) => "lit",
                 Node::Field(..) => "field",
             };
             out.push((p.to_vec(), k));

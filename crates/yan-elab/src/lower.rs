@@ -4247,6 +4247,11 @@ impl Lower<'_, '_, '_> {
                 return self.rhs_inner(&call, want);
             }
             K::Lit(l) => {
+                if let j::Lit::Int(s) = l
+                    && int_text(s).is_ok_and(|d| d != *s)
+                {
+                    self.cx.lits.push((at, s.clone()));
+                }
                 if let j::Lit::Str { value, .. } = l
                     && !unicode_normalization::is_nfc(value)
                 {
