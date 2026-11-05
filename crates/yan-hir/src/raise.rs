@@ -375,6 +375,19 @@ impl<'a> Marks<'a> {
         }
     }
 
+    /// The path of statement `s` when it carries mark `want`.
+    fn stmt_mark(&self, s: &y::Stmt, want: &Mark) -> Option<Vec<u32>> {
+        let p = self
+            .stmts
+            .get(&(s as *const y::Stmt))
+            .filter(|_| self.sourced)?;
+        self.trivia
+            .at(&self.key, p)
+            .iter()
+            .any(|t| matches!(t, Trivia::Mark(m) if m == want))
+            .then(|| p.clone())
+    }
+
     /// An `Annotated` mark that fails its check: the default prints.
     fn reject_stmt(&self, s: &y::Stmt) {
         if let Some(p) = self.stmts.get(&(s as *const y::Stmt)) {
@@ -908,6 +921,24 @@ impl<'a> Fold<'a> {
                     }
                 }
             }
+            y::Atom::Lit(l @ y::Literal::Str(s), _)
+                if let Some(p) = self.marks.lit_mark(l, &Mark::Lenient("N36".into())) =>
+            {
+                let mut cs = s.chars();
+                match (cs.next(), cs.next()) {
+                    (Some(c), None) => {
+                        self.marks.accept(p);
+                        e(ExprKind::Lit(Lit::Char(c)))
+                    }
+                    _ => {
+                        self.marks.refuse(p);
+                        e(ExprKind::Lit(Lit::Str {
+                            prefix: String::new(),
+                            value: s.clone(),
+                        }))
+                    }
+                }
+            }
             y::Atom::Lit(l, _) => e(ExprKind::Lit(match l {
                 y::Literal::Int(s) => {
                     Lit::Int(self.marks.spelled(l, s).unwrap_or_else(|| s.clone()))
@@ -1161,6 +1192,17 @@ impl<'a> Fold<'a> {
     }
 
     fn call_marked(&mut self, c: &y::Call) -> R<Expr> {
+        if let Some(m) = self.marks.call_mark(c, &Mark::Prelude) {
+            let vals = self.values(c);
+            if let ("int_pow" | "bigint_pow" | "std.math.pow" | "std.math.pown", [a, b, ..]) =
+                (c.path.join(".").as_str(), vals.as_slice())
+            {
+                self.marks.accept(m);
+                let args = vec![arg(self.atom(a)?), arg(self.atom(b)?)];
+                return Ok(call(name("pow"), args));
+            }
+            self.marks.refuse(m);
+        }
         if let ("std.prelude.float" | "std.prelude.bigint", [x]) =
             (c.path.join(".").as_str(), self.values(c).as_slice())
             && self.marks.call_origin(c) == Some(Inserted::Conversion)
@@ -1186,6 +1228,9 @@ impl<'a> Fold<'a> {
             mark.into_iter().for_each(|m| self.marks.accept(m));
             let (a, b) = (self.atom(vals[0])?, self.atom(vals[1])?);
             return Ok(e(ExprKind::Binary("**", Box::new(a), Box::new(b))));
+        }
+        if p == "std.text.concat" {
+            return self.concat(c);
         }
         if let Some(m) = mark {
             self.marks.refuse(m);
@@ -1230,6 +1275,13 @@ impl<'a> Fold<'a> {
         if p == "std.text.concat" {
             return self.concat(c);
         }
+        if let Some(m) = self.marks.call_mark(c, &Mark::Lenient("N36".into())) {
+            if p == "std.fmt.show" && vals.len() == 1 {
+                self.marks.accept(m);
+                return self.atom(vals[0]);
+            }
+            self.marks.refuse(m);
+        }
         // `str(x)` lowers the same way; the f-string is the more common spelling.
         if p == "std.fmt.show" && vals.len() == 1 {
             let x = self.atom(vals[0])?;
@@ -1271,6 +1323,7 @@ impl<'a> Fold<'a> {
         let [a, b] = vals.as_slice() else {
             return no("`std.text.concat` with other than two arguments");
         };
+        let mark = self.marks.call_mark(c, &Mark::Operator);
         let mut parts = Vec::new();
         let mut shown = false;
         for x in [a, b] {
@@ -1291,7 +1344,20 @@ impl<'a> Fold<'a> {
         }
         let lits = parts.iter().filter(|p| matches!(p, FPiece::Lit(_))).count();
         let fmt = shown || (lits > 0 && lits < parts.len());
-        if fmt {
+        // Written with `+`: every part is a `str` operand, none a shown value or format spec.
+        let plus = mark.is_some()
+            && !shown
+            && parts
+                .iter()
+                .all(|p| matches!(p, FPiece::Lit(_) | FPiece::Expr(_, None)));
+        if let Some(m) = mark {
+            if plus {
+                self.marks.accept(m)
+            } else {
+                self.marks.refuse(m)
+            }
+        }
+        if fmt && !plus {
             let mut merged: Vec<FPiece> = Vec::new();
             for p in parts {
                 match (merged.last_mut(), p) {
@@ -1574,6 +1640,312 @@ impl<'a> Fold<'a> {
 
     /// Raises the statement at the head of `ss` into `out`; returns how many it consumed.
     fn stmt(&mut self, ss: &[y::Stmt], out: &mut Vec<Stmt>) -> R<usize> {
+        if let Some(p) = self.marks.stmt_mark(&ss[0], &Mark::Lenient("N36".into()))
+            && let y::StmtKind::Let {
+                pat: y::Pat::Bind(n),
+                rhs: y::Rhs::Call(c),
+                ..
+            } = &ss[0].kind
+            && c.path.join(".") == "std.list.new"
+        {
+            // N36's `list[char]` rewrite: the new list and the loop that shows each element.
+            let mut raised = Vec::new();
+            let mut k = self.stmt_inner(ss, &mut raised)?;
+            while raised.len() < 2 && k < ss.len() {
+                k += self.stmt_inner(&ss[k..], &mut raised)?;
+            }
+            if let [
+                Stmt {
+                    kind: StmtKind::Assign { target, value, .. },
+                    ..
+                },
+                Stmt {
+                    kind:
+                        StmtKind::For {
+                            target: v,
+                            iter,
+                            body,
+                            ..
+                        },
+                    ..
+                },
+            ] = raised.as_slice()
+                && matches!(&target.kind, ExprKind::Name(t) if t == n)
+                && matches!(&value.kind, ExprKind::List(xs) if xs.is_empty())
+                && let [v] = v.as_slice()
+                && let [
+                    Stmt {
+                        kind:
+                            StmtKind::Expr(Expr {
+                                kind: ExprKind::Call(f, args),
+                                ..
+                            }),
+                        ..
+                    },
+                ] = body.as_slice()
+                && let ExprKind::Attr(recv, m, _) = &f.kind
+                && m == "append"
+                && matches!(&recv.kind, ExprKind::Name(t) if t == n)
+                && let [
+                    Arg {
+                        kind: ArgKind::Expr(a),
+                        ..
+                    },
+                ] = args.as_slice()
+                && match &a.kind {
+                    ExprKind::Name(x) => x == v,
+                    ExprKind::FStr { pieces, .. } => matches!(pieces.as_slice(),
+                        [FPiece::Expr(Expr { kind: ExprKind::Name(x), .. }, None)] if x == v),
+                    _ => false,
+                }
+            {
+                self.marks.accept(p);
+                self.bind_pending(n, Pending::Expr(iter.clone()));
+                return Ok(k);
+            }
+            self.marks.refuse(p);
+            out.extend(raised);
+            return Ok(k);
+        }
+        // An operand temporary of a marked `divmod` is read by both halves, and folds into the call.
+        if let y::StmtKind::Let {
+            pat: y::Pat::Bind(n),
+            rhs,
+            ..
+        } = &ss[0].kind
+            && generated(n)
+            && self.uses(n) == 2
+            && ss
+                .iter()
+                .take(3)
+                .skip(1)
+                .any(|s| self.marks.stmt_mark(s, &Mark::Prelude).is_some())
+        {
+            let x = self.rhs(rhs)?;
+            self.bind_pending(n, Pending::Expr(x));
+            return Ok(1);
+        }
+        if let Some(m) = self.marks.stmt_mark(&ss[0], &Mark::Prelude) {
+            match self.divmod(ss) {
+                Some((t, x, k)) => {
+                    self.marks.accept(m);
+                    let (names, more) = destructured(&t, &ss[k..]);
+                    if !names.is_empty() && self.uses(&t) == names.len() {
+                        for (i, b) in names.iter().enumerate() {
+                            if let y::StmtKind::Let { ty, .. } = &ss[k + names.len() + i].kind {
+                                self.types.insert(b.clone(), ty.clone());
+                            }
+                        }
+                        out.push(stmt(StmtKind::Assign {
+                            target: e(ExprKind::Tuple(names.iter().map(|b| name(b)).collect())),
+                            ty: None,
+                            value: x,
+                        }));
+                        return Ok(k + more);
+                    }
+                    self.bind_pending(&t, Pending::Expr(x));
+                    return Ok(k);
+                }
+                None => self.marks.refuse(m),
+            }
+        }
+        let head = match &ss[0].kind {
+            y::StmtKind::Let {
+                pat: y::Pat::Bind(n),
+                ..
+            } => generated(n),
+            _ => false,
+        } || self.marks.stmt_mark(&ss[0], &Mark::Parallel).is_some();
+        if head && let Some(k) = self.parallel(ss, out)? {
+            return Ok(k);
+        }
+        self.stmt_inner(ss, out)
+    }
+
+    /// The prelude `divmod(a, b)` (R801): `a // b`, `a % b` and their pair, with the operands
+    /// the same atoms. Returns the pair's temporary, the call, and the statements consumed.
+    fn divmod(&mut self, ss: &[y::Stmt]) -> Option<(String, Expr, usize)> {
+        use y::StmtKind as K;
+        let op = |s: &y::Stmt, f: &str| match &s.kind {
+            K::Let {
+                pat: y::Pat::Bind(t),
+                rhs: y::Rhs::Call(c),
+                ..
+            } if c.path.len() == 1 && c.path[0].starts_with(f) => match self.values(c).as_slice() {
+                [a, b] => Some((
+                    t.clone(),
+                    (*a).clone(),
+                    (*b).clone(),
+                    c.path[0][f.len()..].to_owned(),
+                )),
+                _ => None,
+            },
+            _ => None,
+        };
+        let (q, a, b, ty) = op(ss.first()?, "floordiv_")?;
+        let (r, a2, b2, ty2) = op(ss.get(1)?, "mod_")?;
+        let K::Let {
+            pat: y::Pat::Bind(t),
+            rhs: y::Rhs::Ctor(ctor),
+            ..
+        } = &ss.get(2)?.kind
+        else {
+            return None;
+        };
+        let atoms = |x: &y::Atom, y_: &y::Atom| match (x, y_) {
+            (y::Atom::Name(m, _), y::Atom::Name(n, _)) => m == n,
+            (y::Atom::Lit(l, _), y::Atom::Lit(k, _)) => l == k,
+            _ => false,
+        };
+        let y::Ctor::Tuple(items) = ctor else {
+            return None;
+        };
+        let named = |x: &y::Atom, n: &String| matches!(x, y::Atom::Name(m, _) if m == n);
+        if ty != ty2
+            || !atoms(&a, &a2)
+            || !atoms(&b, &b2)
+            || !matches!(items.as_slice(), [x, y_] if named(x, &q) && named(y_, &r))
+        {
+            return None;
+        }
+        let (a, b) = (self.atom(&a).ok()?, self.atom(&b).ok()?);
+        Some((t.clone(), call(name("divmod"), vec![arg(a), arg(b)]), 3))
+    }
+
+    /// A tuple assignment (R216): temporaries holding every right-hand value, then one store
+    /// per target. The `Parallel` mark sits on its first statement and on its last store; with
+    /// it the group prints as one statement. Without it the snapshots stay, since inlining
+    /// them would make the stores sequential.
+    fn parallel(&mut self, ss: &[y::Stmt], out: &mut Vec<Stmt>) -> R<Option<usize>> {
+        use y::StmtKind as K;
+        let mut temps = HashSet::new();
+        let mut p = 0;
+        while let Some(K::Let {
+            pat: y::Pat::Bind(n),
+            ..
+        }) = ss.get(p).map(|s| &s.kind)
+            && generated(n)
+        {
+            temps.insert(n.as_str());
+            p += 1;
+        }
+        // A tuple unpacked into names binds projections of one temporary: not a snapshot.
+        if ss[..p]
+            .iter()
+            .any(|s| matches!(&s.kind, K::Let { rhs: y::Rhs::Proj(pl), .. } if generated(&pl.root)))
+        {
+            return Ok(None);
+        }
+        let mark = |i: usize| {
+            ss.get(i)
+                .and_then(|s| self.marks.stmt_mark(s, &Mark::Parallel))
+        };
+        // A store of a temporary, or of a literal when the group is marked.
+        let store = |s: &y::Stmt, literals: bool| match &s.kind {
+            K::Let {
+                pat: y::Pat::Bind(_),
+                rhs: y::Rhs::Atom(a),
+                ..
+            }
+            | K::Assign {
+                rhs: y::Rhs::Atom(a),
+                ..
+            } => match a {
+                y::Atom::Name(t, _) if temps.contains(t.as_str()) => Some(Some(t.clone())),
+                y::Atom::Lit(..) if literals => Some(None),
+                _ => None,
+            },
+            _ => None,
+        };
+        let head = (0..=p).find(|&i| mark(i).is_some());
+        let last = head.and_then(|h| (h + 1..ss.len()).find(|&i| mark(i).is_some()));
+        let (end, marks) = match (head, last) {
+            (Some(h), Some(l)) => (l + 1, vec![mark(h), mark(l)]),
+            _ => {
+                let stores: Vec<_> = ss[p..].iter().map_while(|s| store(s, false)).collect();
+                (p + stores.len(), Vec::new())
+            }
+        };
+        let stores: Vec<_> = ss[p.min(end)..end]
+            .iter()
+            .map_while(|s| store(s, !marks.is_empty()))
+            .collect();
+        let k = end.saturating_sub(p);
+        let temp_stores: Vec<_> = stores.iter().flatten().collect();
+        if k < 2
+            || stores.len() != k
+            || temp_stores.iter().collect::<HashSet<_>>().len() != temp_stores.len()
+        {
+            marks
+                .into_iter()
+                .flatten()
+                .for_each(|m| self.marks.refuse(m));
+            return Ok(None);
+        }
+        if marks.is_empty() {
+            for s in &ss[..p] {
+                let K::Let {
+                    pat: y::Pat::Bind(n),
+                    rhs,
+                    ty,
+                    ..
+                } = &s.kind
+                else {
+                    unreachable!("matched above")
+                };
+                self.types.insert(n.clone(), ty.clone());
+                let value = self.rhs(rhs)?;
+                out.push(stmt(StmtKind::Assign {
+                    target: name(n),
+                    ty: None,
+                    value,
+                }));
+            }
+            let mut i = p;
+            while i < end {
+                i += self.stmt_inner(&ss[i..], out)?;
+            }
+            return Ok(Some(end));
+        }
+        let mut raised = Vec::new();
+        let mut i = 0;
+        while i < end {
+            i += self.stmt_inner(&ss[i..], &mut raised)?;
+        }
+        let mut targets = Vec::new();
+        let mut values = Vec::new();
+        for r in &raised {
+            if let StmtKind::Assign {
+                target,
+                ty: None,
+                value,
+            } = &r.kind
+            {
+                targets.push(target.clone());
+                values.push(value.clone());
+            }
+        }
+        if i == end && targets.len() == k && raised.len() == k {
+            marks
+                .into_iter()
+                .flatten()
+                .for_each(|m| self.marks.accept(m));
+            out.push(stmt(StmtKind::Assign {
+                target: e(ExprKind::Tuple(targets)),
+                ty: None,
+                value: e(ExprKind::Tuple(values)),
+            }));
+            return Ok(Some(i));
+        }
+        marks
+            .into_iter()
+            .flatten()
+            .for_each(|m| self.marks.refuse(m));
+        out.extend(raised);
+        Ok(Some(i))
+    }
+
+    fn stmt_inner(&mut self, ss: &[y::Stmt], out: &mut Vec<Stmt>) -> R<usize> {
         use y::StmtKind as K;
         let s = &ss[0];
         if let K::Let { rhs, .. } | K::Assign { rhs, .. } | K::Rhs(rhs) = &s.kind
@@ -1592,7 +1964,7 @@ impl<'a> Fold<'a> {
                 self.types.insert(n.clone(), t.clone());
                 if *mutable
                     && generated(n)
-                    && let Some(k) = self.for_loop(n, rhs, &ss[1..], out)?
+                    && let Some(k) = self.for_loop(s, n, rhs, &ss[1..], out)?
                 {
                     return Ok(1 + k);
                 }
@@ -1725,6 +2097,10 @@ impl<'a> Fold<'a> {
                     if !place.projs.is_empty() {
                         self.pending.remove(an);
                     }
+                    self.marks
+                        .call_mark(c, &Mark::Operator)
+                        .into_iter()
+                        .for_each(|m| self.marks.accept(m));
                     let value = self.atom(b)?;
                     out.push(stmt(StmtKind::AugAssign {
                         target,
@@ -1967,6 +2343,7 @@ impl<'a> Fold<'a> {
     /// breaks when `i >= stop`, binds the target, and steps `i`.
     fn for_loop(
         &mut self,
+        head: &y::Stmt,
         i: &str,
         start: &y::Rhs,
         rest: &[y::Stmt],
@@ -2126,7 +2503,15 @@ impl<'a> Fold<'a> {
                 let mut args = Vec::new();
                 let zero = matches!(start, y::Atom::Lit(y::Literal::Int(z), _) if z == "0");
                 let one = matches!(step, y::Atom::Lit(y::Literal::Int(o), _) if o == "1");
-                if !zero || !one {
+                let written = self.marks.stmt_mark(head, &Mark::Explicit);
+                if let Some(p) = written.clone() {
+                    if zero {
+                        self.marks.accept(p)
+                    } else {
+                        self.marks.refuse(p)
+                    }
+                }
+                if !zero || !one || written.is_some() {
                     args.push(arg(self.atom(start)?));
                 }
                 args.push(arg(self.atom(stop)?));

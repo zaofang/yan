@@ -103,7 +103,9 @@ pub fn place(
                     && p.span == span
                     && (kind != Kind::Arg || p.call == call)
                     && !here.contains(&&p.mark)
-                    && (p.mark != Mark::Operator || is_pow(&callee))
+                    && (!matches!(p.mark, Mark::Operator | Mark::Prelude)
+                        || kind != Kind::Call
+                        || is_pow(&callee))
                 {
                     claimed[i] = true;
                     here.push(&p.mark);
@@ -120,11 +122,11 @@ pub fn place(
         .collect()
 }
 
-/// A callee that a `**` lowers to.
+/// A callee that `**` or a `str` `+` lowers to.
 fn is_pow(callee: &str) -> bool {
     matches!(
         callee,
-        "int_pow" | "bigint_pow" | "std.math.pow" | "std.math.pown"
+        "int_pow" | "bigint_pow" | "std.math.pow" | "std.math.pown" | "std.text.concat"
     )
 }
 
