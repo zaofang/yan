@@ -195,6 +195,12 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R847 | Variant docs are a `Variants:` section in the type doc, `Name:` and `Name.field:` entries; no grammar change (R847) | 18.9 |
 | R848 | `yan doc` shows sub-item docs and counts them in `--coverage`; W860 for a section entry matching nothing, W861 opt-in for missing sub-item docs (R848) | 18.9, 25.10 |
 | R849 | Lenient reader: N41 PEP 257 attribute strings and `Attributes:`, N42 reST, Google and NumPy parameter styles, N43 enum member docs; a disagreeing written type is E281 (R849) | 14.4, 25.4 |
+| R850 | `Const` mark: an inlined std constant written by name; raise re-evaluates the constant and drops the mark on a mismatch (R850) | 16.5 |
+| R851 | `Negated` mark: float unary minus lowered to `-1.0 * x`; raise needs the literal `-1.0` on the left (R851) | 16.5 |
+| R852 | `Qualified` mark: a std variant written module-qualified; an unmarked variant prints bare (R852) | 16.5 |
+| R853 | `Lenient(code)` mark: the N-code of the lenient rewrite that produced a call; raise reprints the alias only if the rewrite reproduces the node (R853) | 14.4, 16.5 |
+| R854 | Raise removes widening conversions that carry an origin mark; no new mark kind (R854) | 16.5 |
+| R855 | Literal trivia covers float, string and char literal forms, validated by parsing back to the node's value (R855) | 16.5, 18.5 |
 
 <!-- /rows -->
 
