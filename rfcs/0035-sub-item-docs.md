@@ -3,7 +3,7 @@
 - Status: accepted
 - Research: `docstrings-survey.md` (project studies folder, 2026-11-05); a read of 13, 15, 16.5 and the doc
   model of 18.9
-- Rows: filled in when accepted
+- Rows: R844 to R849; codes E280, E281, W860, W861, N41 to N43
 
 ## Summary
 
@@ -38,7 +38,7 @@ shows that adding or removing a doc at any position leaves every item hash uncha
 Recommendation: reuse the one trivia kind and the one walker.
 
 - Decision: accepted as recommended (lead, 2026-11-05)
-- Row: (R number once accepted)
+- Row: R844
 
 ### D2: Yan Agent writes sub-item docs as `#:` lines; Yan writes `---`
 
@@ -59,7 +59,7 @@ for fields and a comment for the rest (two spellings, and a string statement in 
 expression the printer can place for entries). Recommendation: `#:`.
 
 - Decision: leading `#:` comment (lead, 2026-11-05)
-- Row: (R number once accepted)
+- Row: R845
 
 ### D3: parameter docs come in two spellings, and the choice is kept
 
@@ -76,7 +76,7 @@ dashes (NumPy), including a type written there, and canonicalizes them to A. A w
 with the signature is dropped; one that disagrees is a diagnostic, never a silent drop.
 
 - Decision: both spellings, the choice preserved (lead, 2026-11-05)
-- Row: (R number once accepted)
+- Row: R846 (E280)
 
 ### D4: variant docs are a `Variants:` section in the type doc
 
@@ -90,7 +90,7 @@ Options weighed: a multi-line variant layout with a doc above each variant (docs
 the grammar changes in both surfaces); both. Recommendation was both; the lead chose the section alone.
 
 - Decision: `Variants:` section in the type doc (lead, 2026-11-05)
-- Row: (R number once accepted)
+- Row: R847
 
 ### D5: tooling
 
@@ -102,7 +102,7 @@ The warning for a public item without a doc is unchanged. A second lint, off by 
 `yan.toml`, warns for each public parameter, field and variant without a doc.
 
 - Decision: opt-in lint for missing sub-item docs (lead, 2026-11-05)
-- Row: (R number once accepted)
+- Row: R848
 
 ## Not proposed
 

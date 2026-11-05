@@ -189,6 +189,12 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R835 | N40 on `re` calls: a compiled pattern calls its method, Python flags become inline flags, a `str` literal where `Regex` is expected is compiled, and `else` on a literal `regex.compile` is removed (R835) | 14.4, 17.2 |
 | R836 | `bigint ** int` with a non-negative exponent is a `bigint` (R836) | 11.1 |
 | R837 to R843 | Spelling marks from elaboration to raise (RFC 0034, accepted by the owner): the node path and its one walker (R837); the closed set of marks, written only by elaboration (R838); an item with a name-table entry is authoritative (R839); raise validates each mark and drops a failing one (R840); `yan view --strict` fails on marks raise did not use, E279 (R841); the bare companion of law 1 (R842); marks live in memory within one load (R843) | 16.5, 18.1, 25.4 |
+| R844 | A doc on a parameter, field, variant, associated type or dict, list or tuple entry is a hash-neutral `Doc` trivia node at a node path of the one walker; new paths for fields, variants, associated types and entries (RFC 0035, R844) | 16.5 |
+| R845 | Sub-item docs are `#:` lines in Yan Agent and `---` lines in Yan above the node; a literal with a documented entry is printed one entry per line (R845) | 13.1, 15.1, 15.3 |
+| R846 | Parameter docs in an `Args:` section or above the parameter, both kept; the `DocAbove` spelling mark; both for one parameter is E280 (R846) | 16.5, 18.9, 25.4 |
+| R847 | Variant docs are a `Variants:` section in the type doc, `Name:` and `Name.field:` entries; no grammar change (R847) | 18.9 |
+| R848 | `yan doc` shows sub-item docs and counts them in `--coverage`; W860 for a section entry matching nothing, W861 opt-in for missing sub-item docs (R848) | 18.9, 25.10 |
+| R849 | Lenient reader: N41 PEP 257 attribute strings and `Attributes:`, N42 reST, Google and NumPy parameter styles, N43 enum member docs; a disagreeing written type is E281 (R849) | 14.4, 25.4 |
 
 <!-- /rows -->
 
