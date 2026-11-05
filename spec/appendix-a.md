@@ -188,6 +188,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R834 | N39 maps Python `math` names: `abs`, `fabs`, `isnan`, `isinf`, `isfinite`, int-typed `floor`, `ceil`, `trunc`, two-argument `log`; `std.math` adds `gcd lcm isqrt factorial comb perm` on `int` (R834) | 14.4, 17.2 |
 | R835 | N40 on `re` calls: a compiled pattern calls its method, Python flags become inline flags, a `str` literal where `Regex` is expected is compiled, and `else` on a literal `regex.compile` is removed (R835) | 14.4, 17.2 |
 | R836 | `bigint ** int` with a non-negative exponent is a `bigint` (R836) | 11.1 |
+| R837 to R843 | Spelling marks from elaboration to raise (RFC 0034, accepted by the owner): the node path and its one walker (R837); the closed set of marks, written only by elaboration (R838); an item with a name-table entry is authoritative (R839); raise validates each mark and drops a failing one (R840); `yan view --strict` fails on marks raise did not use, E279 (R841); the bare companion of law 1 (R842); marks live in memory within one load (R843) | 16.5, 18.1, 25.4 |
 
 <!-- /rows -->
 

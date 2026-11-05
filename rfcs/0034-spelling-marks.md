@@ -1,9 +1,9 @@
 # 0034: Spelling marks from lowering to raise
 
-- Status: draft
+- Status: accepted
 - Research: none; a read of `crates/yan-surface/src/lib.rs`, `crates/yan-elab/src/lower.rs`,
   `crates/yan-hir/src/raise.rs`, 16.5, and a local `tools/conform.py --laws` run on 2026-11-05
-- Rows: filled in when accepted
+- Rows: R837 to R843
 
 ## Summary
 
@@ -54,8 +54,8 @@ stored.
 
 Recommendation: the path, with spans as the transient join key.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-05)
+- Row: R837
 
 ### D2: marks are a closed, typed set
 
@@ -84,8 +84,8 @@ cost a few entries per call and keep elaboration independent of `raise`.
 
 Recommendation: a closed enum of facts; adding a variant is a row.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-05)
+- Row: R838
 
 ### D3: an item with marks is authoritative
 
@@ -97,8 +97,8 @@ unmarked Yan Core.
 
 Recommendation: presence of the name-table entry decides.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-05)
+- Row: R839
 
 ### D4: elaboration is the only writer; the HIR already holds the choices
 
@@ -113,8 +113,8 @@ below does.
 
 Recommendation: write marks in `yan-elab` only.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-05)
+- Row: R838
 
 ### D5: raise consumes marks and validates each one
 
@@ -127,8 +127,8 @@ default prints, as 16.5 says for a stale note. `raise` returns the set of marks 
 `raise` also stops stamping new HIR nodes with the dummy `AT` span where a Yan Core span exists, so a
 strict-mode report points at source.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-05)
+- Row: R840
 
 ### D6: strict mode fails on marks raise did not use
 
@@ -142,8 +142,8 @@ reusing it would make the R567 inner-code tables ambiguous.
 
 Recommendation: strict mode as above, new code.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-05)
+- Row: R841
 
 ### D7: law 1 keeps testing raise
 
@@ -158,16 +158,16 @@ node. Two checks keep law 1 meaningful:
 A case that passes 1 and fails 2 shows a mark covering for a raise bug, and is reported as a failure of
 law 1.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-05)
+- Row: R842
 
 ### D8: in memory only for now
 
 Marks live from `elaborate` to `raise` inside one load. Storing a table beside `.yir` text, and keeping
 marks across an edit (16.5's "dropped after an edit"), wait until a stored Yan Core form needs them.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-05)
+- Row: R843
 
 ## Staged plan
 

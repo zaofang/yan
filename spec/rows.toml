@@ -904,3 +904,8 @@ sections = "14.4, 17.2"
 rows = "R836"
 topic = "`bigint ** int` with a non-negative exponent is a `bigint` (R836)"
 sections = "11.1"
+
+[[entry]]
+rows = "R837 to R843"
+topic = "Spelling marks from elaboration to raise (RFC 0034, accepted by the owner): the node path and its one walker (R837); the closed set of marks, written only by elaboration (R838); an item with a name-table entry is authoritative (R839); raise validates each mark and drops a failing one (R840); `yan view --strict` fails on marks raise did not use, E279 (R841); the bare companion of law 1 (R842); marks live in memory within one load (R843)"
+sections = "16.5, 18.1, 25.4"

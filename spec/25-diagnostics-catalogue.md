@@ -108,6 +108,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E276 | a union lists `None` twice; write `Option[T \| None]` for a nested optional (R793) *new* | 14.1 |
 | E277 | `@expect` of a code that an enclosing `@deny` item denies (R797) *new* | 18.2 |
 | E278 | `@deny` names a code that is not a W8xx lint (R797) *new* | 18.2 |
+| E279 | `yan view --strict`: a spelling mark that raise did not use, or dropped as invalid (RFC 0034, R841) *new* | 16.5 |
 | E233 | str or f-string where a Template is expected (R452) new | 13.1 |
 
 ### 25.5 Capabilities, handlers and failure
