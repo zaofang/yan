@@ -329,3 +329,21 @@ study blocks it. The order after M1:
   must key on it, or replay on a newer GPU silently diverges.
 - **Formula and encoding DSLs.** Stage-0 checking of strings needs good spans inside the string, or
   errors there will be worse than Python's run-time `KeyError`.
+
+## 8. Decisions (Antonio, cards, 2026-11-05)
+
+D2, D3, D4, D6, D8, D10, D11, D12 and D13 accepted as recommended. Four answers differ from the
+recommendation:
+
+- D1: `DynArray` and `Table[Dyn]` are not in std. They live in a first-party package; std stays fully
+  typed. The RFC must say which package, and how DLPack (D11) and the `py` bridge load untyped data
+  without a std dynamic type.
+- D5: the descriptive statistics set ships in `@yan/stats`, not `std.stats`. Definitions are pinned
+  there; the M2 std list loses `std.stats`.
+- D7: distributions (densities, CDFs, quantile functions, fitting) stay in `@yan/rand_distr`, one
+  package for sampling and analysis. `@yan/stats` does not own them.
+- D9: the estimator protocol uses Yan's own naming, not scikit-learn names. The RFC must still map
+  scikit-learn spellings for the lenient reader (D12).
+
+Open points for the RFCs: D1 changes the targets D12 and D9 assumed; D8 still lists `@yan/stats`, which
+now holds the D5 set but not distributions.
