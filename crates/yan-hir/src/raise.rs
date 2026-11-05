@@ -1275,6 +1275,13 @@ impl<'a> Fold<'a> {
         if p == "std.text.concat" {
             return self.concat(c);
         }
+        if let Some(m) = self.marks.call_mark(c, &Mark::Lenient("N37".into())) {
+            if p == "std.iter.ops.collect" && vals.len() == 1 {
+                self.marks.accept(m);
+                return self.atom(vals[0]);
+            }
+            self.marks.refuse(m);
+        }
         if let Some(m) = self.marks.call_mark(c, &Mark::Lenient("N36".into())) {
             if p == "std.fmt.show" && vals.len() == 1 {
                 self.marks.accept(m);
@@ -2680,13 +2687,19 @@ impl<'a> Fold<'a> {
         let mut other = None;
         let mut bound = None;
         let mut some = false;
+        let mut test = None;
         for (p, b) in arms {
             match p {
-                y::Pat::Ctor { path, .. } if path == &["Some"] || path == &["Ok"] => {
+                y::Pat::Ctor { path, fields } if path == &["Some"] || path == &["Ok"] => {
                     if !jump(k, b).is_some_and(|(pre, _)| pre.is_empty()) {
                         return Ok(None);
                     }
                     some = true;
+                    if path == &["Some"]
+                        && matches!(fields, Some((fs, _)) if matches!(fs.as_slice(), [(_, y::Pat::Wild)]))
+                    {
+                        test = Some(b);
+                    }
                 }
                 y::Pat::Ctor { path, fields: None } if path == &["None"] => other = Some(b),
                 y::Pat::Bind(n) if n == "None" => other = Some(b),
@@ -2705,6 +2718,22 @@ impl<'a> Fold<'a> {
         let (true, Some(b)) = (some, other) else {
             return Ok(None);
         };
+        // `Some(_)` and `None` jumping to `true` and `false` is how `x is not None` elaborates.
+        let flag = |b: &y::Block| match jump(k, b) {
+            Some((_, y::Atom::Lit(y::Literal::Bool(v), _))) => Some(v),
+            _ => None,
+        };
+        if let Some(t) = test
+            && bound.is_none()
+            && (flag(t), flag(b)) == (Some(true), Some(false))
+        {
+            let x = self.atom(&y::Atom::Name(s.clone(), AT))?;
+            return Ok(Some(e(ExprKind::Compare(
+                "is not",
+                Box::new(x),
+                Box::new(e(ExprKind::Lit(Lit::None))),
+            ))));
+        }
         if let Some(n) = &bound
             && let Some((pre, v)) = jump(k, b)
         {

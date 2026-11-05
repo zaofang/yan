@@ -4134,7 +4134,9 @@ impl Lower<'_, '_, '_> {
 
     fn collect(&mut self, r: Rhs, t: &Ty, at: Span) -> R<(Rhs, Ty)> {
         let a = self.tmp(t, r, at);
-        self.method_on(a, t, "collect", at)
+        let out = self.method_on(a, t, "collect", at)?;
+        self.mark_call(at, yan_surface::Mark::Lenient("N37".into()));
+        Ok(out)
     }
 
     /// `a.m()` for an already lowered receiver.

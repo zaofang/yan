@@ -106,6 +106,10 @@ pub fn place(
                     && (!matches!(p.mark, Mark::Operator | Mark::Prelude)
                         || kind != Kind::Call
                         || is_pow(&callee))
+                    // The collect call shares its span with the iterator expression it wraps.
+                    && (p.mark != Mark::Lenient("N37".into())
+                        || kind != Kind::Call
+                        || callee == "std.iter.ops.collect")
                 {
                     claimed[i] = true;
                     here.push(&p.mark);
