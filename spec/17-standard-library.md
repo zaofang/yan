@@ -46,7 +46,7 @@ A module belongs in std only if it is shared vocabulary, a capability handler or
 
 **Optional values in Yan Core text (R476).** `T | None` is `Option[T]`, whose variants are spelled `Some { value: v }` and `None` in Yan Core text, as `Result`'s are `Ok { value: v }` and `Err { error: e }`. A nested optional spells the inner value `Some { value: None }` (R793).
 
-**Numeric prelude functions (R801).** The prelude has `ord(c: char) -> int`, the scalar value of `c`, and `chr(n: int) -> char fail EncodingError`, which fails with reason `Scalar()` and `at: 0` when `n` is negative, a surrogate or above `0x10FFFF`. `divmod(a, b)` is `(a // b, a % b)` and `pow(a, b)` is `a ** b`, for the operand types those operators accept and with their result types and panics. All four are free functions and positional-only.
+**Numeric prelude functions (R801).** The prelude has `ord(c: char) -> int`, the scalar value of `c`, and `chr(n: int) -> char fail EncodingError`, which fails with reason `Scalar()` and `at: 0` when `n` is negative, a surrogate or above `0x10FFFF`. `divmod(a, b)` is `(a // b, a % b)` and `pow(a, b)` is `a ** b`, for the operand types those operators accept and with their result types and panics. All four are free functions and positional-only. The expansion of `divmod` or `pow` carries the `Prelude` spelling mark (16.5, R861).
 
 **List append (R477).** The one operation that adds an element at the end of a list is `append`: Yan Agent and Yan write `xs.append(v)`, and Yan Core text calls `std.list.append[T](inout xs, sink v)`. std has no `push`.
 
