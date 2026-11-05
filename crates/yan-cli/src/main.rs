@@ -70,6 +70,12 @@ enum Command {
     View {
         #[arg(long = "as")]
         as_: String,
+        /// Fail on spelling marks that raise did not use (RFC 0034).
+        #[arg(long)]
+        strict: bool,
+        /// Raise without spelling marks (the bare check of RFC 0034 D7).
+        #[arg(long)]
+        bare: bool,
         file: PathBuf,
     },
     /// Rewrite files in canonical form (18.4): print(parse(F)) (R559).
@@ -228,7 +234,12 @@ fn main() -> ExitCode {
             no_cache,
         } => run_tests(format, gate, only.as_deref(), no_cache),
         Command::Review { range, format } => review(&range, format),
-        Command::View { as_, file } => view(&as_, &file),
+        Command::View {
+            as_,
+            file,
+            strict,
+            bare,
+        } => view(&as_, &file, yan_ide::Marks { strict, bare }),
         Command::Fmt { check, files } => fmt(&files, check),
         Command::Hash {
             format,
@@ -374,7 +385,7 @@ fn print_diags(diags: &[Diagnostic]) {
         .for_each(|d| eprintln!("{}", d.render_line(None)));
 }
 
-fn view(as_: &str, file: &Path) -> ExitCode {
+fn view(as_: &str, file: &Path, marks: yan_ide::Marks) -> ExitCode {
     let as_ = match as_ {
         "yir" => yan_names::Surface::Yir,
         "yag" => yan_names::Surface::Yag,
@@ -386,7 +397,7 @@ fn view(as_: &str, file: &Path) -> ExitCode {
         Ok(f) => f,
         Err(msg) => return tool_failure(&msg),
     };
-    match yan_ide::view(&db, f, as_) {
+    match yan_ide::view(&db, f, as_, marks) {
         Ok(text) => {
             print!("{text}");
             ExitCode::SUCCESS
@@ -445,9 +456,9 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
         Err(msg) => return tool_failure(&msg),
     };
     let hashes = match yan_db::load(&db, f) {
-        Ok(Loaded::Ready(m, _)) if !reverse => yan_core::hash::hash_module(m),
+        Ok(Loaded::Ready(m, _, _)) if !reverse => yan_core::hash::hash_module(m),
         Ok(Loaded::Ready(..)) => match yan_db::load_reversed(&db, f) {
-            Ok(Loaded::Ready(m, _)) => yan_core::hash::hash_module(&m),
+            Ok(Loaded::Ready(m, _, _)) => yan_core::hash::hash_module(&m),
             _ => return tool_failure("the reversed module does not elaborate"),
         },
         Ok(Loaded::Stopped(d)) => {
@@ -485,7 +496,7 @@ fn run(file: &Path, mut db: Database, backend: Backend, jit: Jit, args: Vec<Stri
         Err(msg) => return tool_failure(&msg),
     };
     let module = match yan_db::load(&db, f) {
-        Ok(Loaded::Ready(m, _)) => {
+        Ok(Loaded::Ready(m, _, _)) => {
             let diags = yan_ide::diagnostics(&db, f).expect("a ready module checks");
             let diags = finish(diags, DEFAULT_MAX_ERRORS);
             if diags.iter().any(|d| d.severity == Severity::Error) {

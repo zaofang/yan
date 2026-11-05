@@ -76,7 +76,9 @@ fn raised(src: &str) -> String {
         d.iter().all(|d| d.severity != yan_diag::Severity::Error),
         "{d:?}"
     );
-    let h = yan_hir::raise::raise(&y, &StdInfo).expect("raises");
+    let h = yan_hir::raise::raise(&y, &yan_surface::TriviaTable::default(), &StdInfo)
+        .expect("raises")
+        .module;
     yan_yag::print(&yan_yag::resugar(h).expect("in the Yan Agent subset"))
 }
 

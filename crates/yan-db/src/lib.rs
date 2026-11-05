@@ -12,6 +12,7 @@ use std::sync::Once;
 use yan_core::ast as y;
 use yan_core::hash::Hashed;
 use yan_diag::{Diagnostic, Severity, Span};
+use yan_surface::TriviaTable;
 
 /// Each std module: its path below `std.`, its file name, its source and its HIR.
 pub fn std_modules() -> Vec<(&'static str, String, &'static str, yan_hir::Module)> {
@@ -122,7 +123,7 @@ pub enum Front {
 /// A module ready to check or run: parsed and, for Yan Agent and Yan, elaborated to Yan Core.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Loaded {
-    Ready(y::Module, Vec<Diagnostic>),
+    Ready(y::Module, TriviaTable, Vec<Diagnostic>),
     /// Front-end diagnostics that stop before the Yan Core checker, E017 among them (R649).
     Stopped(Vec<Diagnostic>),
 }
@@ -206,7 +207,7 @@ fn load_ordered(db: &dyn Db, file: SourceFile, reverse: bool) -> Result<Loaded, 
             if reverse {
                 m.items.reverse();
             }
-            Loaded::Ready(m, Vec::new())
+            Loaded::Ready(m, TriviaTable::default(), Vec::new())
         }
         Front::Hir(mut h, diags) => {
             if reverse {
@@ -234,7 +235,7 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
     let name = path.display().to_string();
     match yan_elab::elaborate_in(&name, file.text(db), m, opts, package_manifest(path)) {
         Err(u) => Loaded::Stopped(unsupported(&name, file.text(db), &u.what, u.at, diags)),
-        Ok((y, mut errs)) => {
+        Ok((y, table, mut errs)) => {
             let stop = has_error(&errs);
             errs.extend(diags);
             if let Some(sf) = surface(path) {
@@ -243,7 +244,7 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
             if stop {
                 Loaded::Stopped(errs)
             } else {
-                Loaded::Ready(y, errs)
+                Loaded::Ready(y, table, errs)
             }
         }
     }
@@ -286,7 +287,7 @@ fn is_ffi(path: &Path) -> bool {
 #[salsa::tracked(returns(ref))]
 pub fn diagnostics(db: &dyn Db, file: SourceFile) -> Result<Vec<Diagnostic>, String> {
     Ok(match load(db, file).clone()? {
-        Loaded::Ready(m, mut d) => {
+        Loaded::Ready(m, _, mut d) => {
             let path = file.path(db).display().to_string();
             d.extend(yan_check::check(&path, file.text(db), &m));
             d
@@ -336,7 +337,7 @@ fn unsupported(
 #[salsa::tracked(returns(ref))]
 pub fn hashes(db: &dyn Db, file: SourceFile) -> Option<Vec<Hashed>> {
     match load(db, file) {
-        Ok(Loaded::Ready(m, _)) => Some(yan_core::hash::hash_module(m)),
+        Ok(Loaded::Ready(m, _, _)) => Some(yan_core::hash::hash_module(m)),
         _ => None,
     }
 }

@@ -16,6 +16,7 @@ yan-hir.workspace = true
 yan-interp.workspace = true
 yan-names.workspace = true
 yan-std.workspace = true
+yan-surface.workspace = true
 
 [lints]
 workspace = true

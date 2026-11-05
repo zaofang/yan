@@ -301,7 +301,7 @@ fn spec_check(
         return Ok(diags);
     }
     let m = match yan_db::load(&db, f) {
-        Ok(Loaded::Ready(m, _)) => m.clone(),
+        Ok(Loaded::Ready(m, _, _)) => m.clone(),
         Ok(Loaded::Stopped(d)) => return Ok(examples::remap(d.clone(), &exs)),
         Err(msg) => return Err(msg.clone()),
     };
