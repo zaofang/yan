@@ -4342,6 +4342,11 @@ impl Lower<'_, '_, '_> {
                 {
                     self.cx.lits.push((at, s.clone()));
                 }
+                if let j::Lit::Str { prefix, value } = l
+                    && prefix == "r"
+                {
+                    self.cx.lits.push((at, format!("r{value}")));
+                }
                 if let j::Lit::Str { value, .. } = l
                     && !unicode_normalization::is_nfc(value)
                 {

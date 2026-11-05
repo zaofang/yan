@@ -375,6 +375,33 @@ impl<'a> Marks<'a> {
         }
     }
 
+    /// Whether string literal `l` was written raw, consumed when the note matches its value.
+    fn raw(&self, l: &y::Literal, value: &str) -> bool {
+        let Some(p) = self
+            .lits
+            .get(&(l as *const y::Literal))
+            .filter(|_| self.sourced)
+        else {
+            return false;
+        };
+        let raw = self
+            .trivia
+            .at(&self.key, p)
+            .iter()
+            .any(|t| matches!(t, Trivia::Literal(s) if s.strip_prefix('r') == Some(value)));
+        if raw {
+            self.seen.borrow_mut().insert(p.clone());
+        } else if self
+            .trivia
+            .at(&self.key, p)
+            .iter()
+            .any(|t| matches!(t, Trivia::Literal(_)))
+        {
+            self.rejected.borrow_mut().insert(p.clone());
+        }
+        raw
+    }
+
     /// The path of statement `s` when it carries mark `want`.
     fn stmt_mark(&self, s: &y::Stmt, want: &Mark) -> Option<Vec<u32>> {
         let p = self
@@ -945,7 +972,7 @@ impl<'a> Fold<'a> {
                 }
                 y::Literal::Float(s) => Lit::Float(s.clone()),
                 y::Literal::Str(s) => Lit::Str {
-                    prefix: String::new(),
+                    prefix: if self.marks.raw(l, s) { "r" } else { "" }.into(),
                     value: s.clone(),
                 },
                 y::Literal::Char(c) => Lit::Char(*c),
@@ -2019,7 +2046,7 @@ impl<'a> Fold<'a> {
                     }
                     // yan-elab leaves unused temporaries where it lowers an expression twice;
                     // a std call without capabilities or `inout` arguments has no effect.
-                    let pure = matches!(rhs, y::Rhs::Closure(_))
+                    let pure = matches!(rhs, y::Rhs::Closure(_) | y::Rhs::Atom(y::Atom::Lit(..)))
                         || matches!(rhs, y::Rhs::Call(c)
                             if c.path.first().is_some_and(|p| p == "std")
                                 && c.args.iter().all(|a| matches!(a, y::Arg::Value(y::Conv::Let, ..))));
