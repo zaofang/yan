@@ -20,6 +20,7 @@ mod civil;
 mod cli;
 mod collections;
 mod compile;
+mod crypto_rand;
 mod encoding;
 mod env;
 mod fault;
