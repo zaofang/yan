@@ -6868,7 +6868,21 @@ impl Lower<'_, '_, '_> {
             let (p, slot) = (&ps[k], slots[k].take());
             let out = &mut done[k];
             let (e, is_ref, sp) = match slot {
-                Some(Given::Expr(e, r, sp, _)) => (e, r, sp),
+                Some(Given::Expr(e, r, sp, keyword)) => {
+                    if keyword || !p.positional {
+                        self.cx.marks.push(crate::marks::Pending {
+                            span: sp,
+                            kind: crate::marks::Kind::Arg,
+                            call: Some(at),
+                            mark: if keyword {
+                                yan_surface::Mark::Keyword
+                            } else {
+                                yan_surface::Mark::Positional
+                            },
+                        });
+                    }
+                    (e, r, sp)
+                }
                 Some(Given::Recv(e)) => (e, p.conv == Conv::Inout, e.span),
                 None => match &p.default {
                     Some(d) => {
@@ -8022,6 +8036,18 @@ impl Lower<'_, '_, '_> {
             if i >= names.len() || out[i].is_some() {
                 self.err("E202", a.span, format!("too many arguments to `{what}`"));
                 return Ok(None);
+            }
+            if a.name.is_some() || i >= positional {
+                self.cx.marks.push(crate::marks::Pending {
+                    span: e.span,
+                    kind: crate::marks::Kind::Arg,
+                    call: Some(at),
+                    mark: if a.name.is_some() {
+                        yan_surface::Mark::Keyword
+                    } else {
+                        yan_surface::Mark::Positional
+                    },
+                });
             }
             out[i] = Some(e);
             next = i + 1;

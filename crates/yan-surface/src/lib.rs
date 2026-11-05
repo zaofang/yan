@@ -118,6 +118,11 @@ impl TriviaTable {
         self.names.insert(item.to_owned(), names);
     }
 
+    /// Whether elaboration wrote a name table for `item`, so the item came from source.
+    pub fn has_names(&self, item: &str) -> bool {
+        self.names.contains_key(item)
+    }
+
     /// The written name of local `k` of `item`.
     pub fn name(&self, item: &str, k: usize) -> Option<&str> {
         self.names.get(item)?.get(k).map(String::as_str)

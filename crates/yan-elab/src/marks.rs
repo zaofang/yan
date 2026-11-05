@@ -19,6 +19,9 @@ pub enum Kind {
 pub struct Pending {
     pub span: Span,
     pub kind: Kind,
+    /// For an argument, the span of its call: a helper call elaboration builds around the same
+    /// expression can reuse the argument's span.
+    pub call: Option<Span>,
     pub mark: Mark,
 }
 
@@ -26,16 +29,29 @@ pub struct Pending {
 /// marks no node claimed.
 pub fn place(key: &str, item: &Item, pending: &[Pending], table: &mut TriviaTable) -> Vec<Pending> {
     let mut claimed = vec![false; pending.len()];
+    let mut call = None;
     walk(item, &mut |path, node| {
         let (kind, span) = match node {
             Node::Stmt(s) => (Kind::Stmt, s.span),
-            Node::Call(c) => (Kind::Call, c.span),
+            Node::Call(c) => {
+                call = Some(c.span);
+                (Kind::Call, c.span)
+            }
             Node::Arg(Arg::Value(_, _, s) | Arg::Cap(_, s)) => (Kind::Arg, *s),
             _ => return,
         };
+        // A call lowered twice leaves two nodes with one span and the same marks: each node
+        // takes one copy of a mark, so the later copy reaches the later node.
+        let mut here: Vec<&Mark> = Vec::new();
         for (i, p) in pending.iter().enumerate() {
-            if !claimed[i] && p.kind == kind && p.span == span {
+            if !claimed[i]
+                && p.kind == kind
+                && p.span == span
+                && (kind != Kind::Arg || p.call == call)
+                && !here.contains(&&p.mark)
+            {
                 claimed[i] = true;
+                here.push(&p.mark);
                 table.add(key, path.to_vec(), Trivia::Mark(p.mark.clone()));
             }
         }
@@ -70,16 +86,19 @@ mod selftest {
             Pending {
                 span,
                 kind: Kind::Call,
+                call: None,
                 mark: Mark::Method,
             },
             Pending {
                 span,
                 kind: Kind::Call,
+                call: None,
                 mark: Mark::Function,
             },
             Pending {
                 span,
                 kind: Kind::Stmt,
+                call: None,
                 mark: Mark::Annotated,
             },
         ];
@@ -97,6 +116,7 @@ mod selftest {
         let pending = [Pending {
             span: Span::default(),
             kind: Kind::Arg,
+            call: None,
             mark: Mark::Keyword,
         }];
         let mut t = TriviaTable::default();
