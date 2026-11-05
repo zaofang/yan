@@ -90,10 +90,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - uses: Swatinem/rust-cache@v2
-        # Self-hosted runners share ~/.cargo/bin; the post step would delete rustup from it.
-        with:
-          cache-bin: false
+      # No rust-cache here: runners share ~/.cargo, and its restore and cleanup steps delete
+      # registry sources under cargo builds running on the other runners.
       - name: Install Lean at the version formal/lean-toolchain pins
         run: |
           curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
