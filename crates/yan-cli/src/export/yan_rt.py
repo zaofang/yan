@@ -1,11 +1,15 @@
 # yan runtime shim (17.8): what Python lacks for exported Yan Agent programs.
 import math as _m
 import sys
-from bisect import bisect_left, bisect_right, insort
+from bisect import bisect_left, bisect_right, insort  # noqa: F401  (named by std_map.rs)
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
-from itertools import chain as _chain, count as _count, islice as _islice, repeat as _repeat
-from itertools import dropwhile as _dropwhile, takewhile as _takewhile
+from itertools import chain as _chain
+from itertools import count as _count
+from itertools import dropwhile as _dropwhile
+from itertools import islice as _islice
+from itertools import repeat as _repeat
+from itertools import takewhile as _takewhile
 from types import SimpleNamespace
 from typing import NoReturn
 
@@ -157,7 +161,7 @@ class Iter[T]:
         return Iter(enumerate(self._it))
 
     def zip[U](self, other: Iter[U]) -> Iter[tuple[T, U]]:
-        return Iter(zip(self._it, other._it))
+        return Iter(zip(self._it, other._it, strict=False))
 
     def chain(self, other: Iter[T]) -> Iter[T]:
         return Iter(_chain(self._it, other._it))
