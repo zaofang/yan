@@ -3356,6 +3356,14 @@ impl Lower<'_, '_, '_> {
                 );
             }
             j::ExprKind::Name(n) => {
+                if ann.is_some() {
+                    self.cx.marks.push(crate::marks::Pending {
+                        span: target.span,
+                        kind: crate::marks::Kind::Stmt,
+                        call: None,
+                        mark: yan_surface::Mark::Annotated,
+                    });
+                }
                 let (r, ty) = match ann {
                     Some(a) => {
                         let (r, t) = self.widen(r, t, Some(&a), at)?;
