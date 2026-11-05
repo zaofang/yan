@@ -14,6 +14,8 @@ pub enum Kind {
     /// An `assert` statement.
     Assert,
     Call,
+    /// A name atom that was `out`, joined by the span of the atom.
+    Out,
     Arg,
     /// Field `k` of a constructor, joined by the span of its atom.
     Field(usize),
@@ -35,35 +37,48 @@ pub fn place(key: &str, item: &Item, pending: &[Pending], table: &mut TriviaTabl
     let mut claimed = vec![false; pending.len()];
     let mut call = None;
     walk(item, &mut |path, node| {
-        let (kind, span) = match node {
+        let mut cands = Vec::new();
+        match node {
             Node::Stmt(s) if matches!(s.kind, yan_core::ast::StmtKind::Assert(_)) => {
-                (Kind::Assert, s.span)
+                cands.push((Kind::Assert, s.span))
             }
-            Node::Stmt(s) => (Kind::Stmt, s.span),
-            Node::Field(Ctor::Named { fields, .. }, k) => match &fields[k].1 {
-                Atom::Name(_, sp) | Atom::Lit(_, sp) => (Kind::Field(k), *sp),
-            },
+            Node::Stmt(s) => cands.push((Kind::Stmt, s.span)),
+            Node::Field(Ctor::Named { fields, .. }, k) => {
+                let (Atom::Name(_, sp) | Atom::Lit(_, sp)) = &fields[k].1;
+                cands.push((Kind::Field(k), *sp));
+                if matches!(fields[k].1, Atom::Name(..)) {
+                    cands.push((Kind::Out, *sp));
+                }
+            }
             Node::Field(..) => return,
             Node::Call(c) => {
                 call = Some(c.span);
-                (Kind::Call, c.span)
+                cands.push((Kind::Call, c.span))
             }
-            Node::Arg(Arg::Value(_, _, s) | Arg::Cap(_, s)) => (Kind::Arg, *s),
+            Node::Arg(a) => {
+                let (Arg::Value(_, _, s) | Arg::Cap(_, s)) = a;
+                cands.push((Kind::Arg, *s));
+                if let Arg::Value(_, Atom::Name(_, sp), _) = a {
+                    cands.push((Kind::Out, *sp));
+                }
+            }
             _ => return,
         };
         // A call lowered twice leaves two nodes with one span and the same marks: each node
         // takes one copy of a mark, so the later copy reaches the later node.
         let mut here: Vec<&Mark> = Vec::new();
-        for (i, p) in pending.iter().enumerate() {
-            if !claimed[i]
-                && p.kind == kind
-                && p.span == span
-                && (kind != Kind::Arg || p.call == call)
-                && !here.contains(&&p.mark)
-            {
-                claimed[i] = true;
-                here.push(&p.mark);
-                table.add(key, path.to_vec(), Trivia::Mark(p.mark.clone()));
+        for (kind, span) in cands {
+            for (i, p) in pending.iter().enumerate() {
+                if !claimed[i]
+                    && p.kind == kind
+                    && p.span == span
+                    && (kind != Kind::Arg || p.call == call)
+                    && !here.contains(&&p.mark)
+                {
+                    claimed[i] = true;
+                    here.push(&p.mark);
+                    table.add(key, path.to_vec(), Trivia::Mark(p.mark.clone()));
+                }
             }
         }
     });
