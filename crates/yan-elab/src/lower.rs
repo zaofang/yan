@@ -7290,11 +7290,20 @@ impl Lower<'_, '_, '_> {
             span: sp,
             paren: false,
         };
+        // The call's span is one column past the argument's, so the origin joins this call and not
+        // the argument's own construction, which shares the argument's span.
+        let at = Span {
+            end_col: sp.end_col + 1,
+            ..sp
+        };
         let call = j::Expr {
             kind: j::ExprKind::Call(Box::new(f), vec![]),
-            span: sp,
+            span: at,
             paren: false,
         };
+        self.cx
+            .origins
+            .push((at, yan_surface::Inserted::Conversion));
         self.atom(&call, None)
     }
 
