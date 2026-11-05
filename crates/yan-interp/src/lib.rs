@@ -25,6 +25,7 @@ mod encoding;
 mod env;
 mod fault;
 mod iter;
+mod json;
 mod keyed;
 mod log;
 mod math;

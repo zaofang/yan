@@ -161,6 +161,8 @@ pub(crate) struct Globals {
     pub consts: HashMap<String, Ty>,
     /// The records that come from std rather than the module.
     pub std_records: std::collections::HashSet<String>,
+    /// The std sum types in scope.
+    pub std_sums: std::collections::HashSet<String>,
     /// Functions called from a `test_` function (E601).
     pub tested: HashSet<String>,
     /// Each trait's methods, with `Self` as a type parameter.
@@ -438,7 +440,7 @@ pub fn elaborate_in(
     cx.previews = manifest.map(|p| p.previews).unwrap_or_default();
     let m = &m;
     let mut g = Globals::default();
-    let std_sums = stdlib::sums(&mut g, m);
+    let std_sums = stdlib::sums(&mut g, m)?;
     let std_classes = stdlib::classes(&mut g, m)?;
     collect(&mut g, m, &mut cx)?;
     let std_fns = stdlib::collect(&mut g, m)?;
@@ -463,11 +465,17 @@ pub fn elaborate_in(
     for name in std_sums {
         let variants = g.sums[&name]
             .iter()
-            .map(|(v, _)| y::Variant {
-                name: v.clone(),
-                fields: None,
+            .map(|(v, fs)| {
+                Ok(y::Variant {
+                    name: v.clone(),
+                    fields: if fs.is_empty() {
+                        None
+                    } else {
+                        Some(core_fields(fs)?)
+                    },
+                })
             })
-            .collect();
+            .collect::<R<_>>()?;
         items.push(y::Item {
             attrs: Vec::new(),
             kind: y::ItemKind::Sum(y::Sum {

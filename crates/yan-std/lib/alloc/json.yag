@@ -1,0 +1,62 @@
+"""JSON values, a strict RFC 8259 reader and a deterministic writer (17.3, R569 to R575)."""
+
+@since("1.0")
+pub type JsonReason = Syntax(msg: str) | Depth() | Duplicate(key: str) | Range()
+
+@since("1.0")
+pub class JsonError:
+    """A rejected document: `line` and `col` start at 1 and `col` counts chars."""
+    line: int
+    col: int
+    reason: JsonReason
+
+@since("1.0")
+pub type Value = Null() | Bool(b: bool) | Int(i: int) | Float(f: float) | Str(s: str) | Array(items: list[Value]) | Object(fields: dict[str, Value])
+
+@intrinsic
+@since("1.0")
+pub def parse_value(s: str, max_depth: int = 128) -> Value fail JsonError: ...
+
+@intrinsic
+@since("1.0")
+pub def dump_value(v: Value, indent: int | None = None) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def parse_float(s: str) -> float fail JsonError: ...
+
+@intrinsic
+@since("1.0")
+pub def get(self: Value, key: str) -> Value | None: ...
+
+@intrinsic
+@since("1.0")
+pub def at(self: Value, i: int) -> Value | None: ...
+
+@intrinsic
+@since("1.0")
+pub def as_bool(self: Value) -> bool | None: ...
+
+@intrinsic
+@since("1.0")
+pub def as_int(self: Value) -> int | None: ...
+
+@intrinsic
+@since("1.0")
+pub def as_float(self: Value) -> float | None: ...
+
+@intrinsic
+@since("1.0")
+pub def as_str(self: Value) -> str | None: ...
+
+@intrinsic
+@since("1.0")
+pub def as_list(self: Value) -> list[Value] | None: ...
+
+@intrinsic
+@since("1.0")
+pub def as_dict(self: Value) -> dict[str, Value] | None: ...
+
+@intrinsic
+@since("1.0")
+pub def is_null(self: Value) -> bool: ...
