@@ -22,7 +22,7 @@ use std::collections::{HashMap, HashSet};
 use yan_core::ast as y;
 use yan_diag::{Applicability, Diagnostic, Span};
 use yan_hir as j;
-use yan_surface::{Mark, TriviaTable};
+use yan_surface::{Attach, Mark, Trivia, TriviaTable};
 
 pub use desugar::{Manifest, manifest};
 pub use stdlib::{StdInfo, StdModule, install_std};
@@ -496,6 +496,10 @@ pub fn elaborate_in(
         });
     }
     let mut proved = false;
+    // Docstrings are trivia (16.5): an item's own, by index into `items`, and the module's, which
+    // rides on the first item elaboration lowers.
+    let mut docs: Vec<(usize, Attach, String)> = Vec::new();
+    let mut module_doc = m.doc.clone();
     for it in &m.items {
         let start = cx.diags.len();
         let k = match item(&g, it, &mut cx)
@@ -533,6 +537,17 @@ pub fn elaborate_in(
                     call: None,
                     mark,
                 });
+            }
+            let own = match &it.kind {
+                j::ItemKind::Func(f) => f.body.as_ref().and_then(|b| b.doc.clone()),
+                j::ItemKind::Record(r) => r.doc.clone(),
+                _ => None,
+            };
+            if let Some(d) = own {
+                docs.push((items.len(), Attach::Dangling, d));
+            }
+            if let Some(d) = module_doc.take() {
+                docs.push((items.len(), Attach::Leading, d));
             }
             items.push(y::Item {
                 attrs: Vec::new(),
@@ -579,13 +594,21 @@ pub fn elaborate_in(
         items,
     };
     let mut table = TriviaTable::default();
-    for (it, h) in module
+    for (n, (it, h)) in module
         .items
         .iter()
         .zip(yan_core::hash::hash_module(&module))
+        .enumerate()
     {
         let key = h.identity.to_string();
         table.set_names(&key, h.names);
+        for (_, attach, text) in docs.iter().filter(|d| d.0 == n) {
+            let t = Trivia::Comment {
+                text: text.clone(),
+                attach: *attach,
+            };
+            table.add(&key, Vec::new(), t);
+        }
         if !cx.marks.is_empty() || !cx.lits.is_empty() || !cx.origins.is_empty() {
             marks::place(&key, it, &cx.marks, &cx.lits, &cx.origins, &mut table);
         }

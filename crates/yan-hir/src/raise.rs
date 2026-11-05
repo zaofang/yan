@@ -12,7 +12,7 @@ use std::collections::{HashMap, HashSet};
 
 use yan_core::ast as y;
 use yan_diag::Span;
-use yan_surface::{Inserted, Mark, Trivia, TriviaTable};
+use yan_surface::{Attach, Inserted, Mark, Trivia, TriviaTable};
 
 use crate::*;
 
@@ -71,9 +71,13 @@ pub fn raise(m: &y::Module, trivia: &TriviaTable, std: &dyn Std) -> R<Raised> {
     let mut items = Vec::new();
     let mut consumed = Vec::new();
     let mut attrs = Vec::new();
+    let mut doc = None;
     for (it, h) in m.items.iter().zip(yan_core::hash::hash_module(m)) {
         let marks = Marks::new(trivia, h.identity.to_string(), it, &fns);
-        if let Some(i) = item(it, std, &marks)? {
+        if let Some(mut i) = item(it, std, &marks)? {
+            let (module_doc, item_doc) = marks.docs();
+            doc = doc.or(module_doc);
+            set_doc(&mut i, item_doc);
             items.push(i);
         }
         if !marks
@@ -92,7 +96,7 @@ pub fn raise(m: &y::Module, trivia: &TriviaTable, std: &dyn Std) -> R<Raised> {
         module: Module {
             header: Vec::new(),
             attrs,
-            doc: None,
+            doc,
             items,
         },
         consumed,
@@ -225,6 +229,21 @@ impl<'a> Marks<'a> {
             self.seen.borrow_mut().insert(Vec::new());
         }
         found
+    }
+
+    /// The docstring trivia at the item's root: the module's, which rides on the first item
+    /// (leading), and the item's own (dangling).
+    fn docs(&self) -> (Option<String>, Option<String>) {
+        let at = |want: Attach| {
+            self.trivia.at(&self.key, &[]).iter().find_map(|t| match t {
+                Trivia::Comment { text, attach } if *attach == want => Some(text.clone()),
+                _ => None,
+            })
+        };
+        if !self.sourced {
+            return (None, None);
+        }
+        (at(Attach::Leading), at(Attach::Dangling))
     }
 
     /// The mark of each value argument of `c`, in order.
@@ -607,6 +626,18 @@ fn stmt(kind: StmtKind) -> Stmt {
 
 fn last(p: &[y::Name]) -> String {
     p.last().cloned().unwrap_or_default()
+}
+
+fn set_doc(i: &mut Item, doc: Option<String>) {
+    match &mut i.kind {
+        ItemKind::Func(f) => {
+            if let Some(b) = &mut f.body {
+                b.doc = doc;
+            }
+        }
+        ItemKind::Record(r) => r.doc = doc,
+        _ => {}
+    }
 }
 
 fn item(it: &y::Item, std: &dyn Std, marks: &Marks) -> R<Option<Item>> {
@@ -1457,6 +1488,12 @@ impl<'a> Fold<'a> {
         {
             return self.atom(x);
         }
+        // An `.iter()` elaboration added to a collection passed as an `iter` argument (R511).
+        if let (Some("iter"), [x]) = (c.path.last().map(String::as_str), self.values(c).as_slice())
+            && self.marks.call_origin(c) == Some(Inserted::Conversion)
+        {
+            return self.atom(x);
+        }
         if let Some(x) = self.marked_math(c)? {
             return Ok(x);
         }
@@ -1783,13 +1820,15 @@ impl<'a> Fold<'a> {
             };
             // yan-elab passes a list or a `str` to an `iter` parameter as `x.iter()`.
             let a = match &x.kind {
-                ExprKind::Call(f, xs) if p.iter && xs.is_empty() => match &f.kind {
-                    ExprKind::Attr(r, m, _) if m == "iter" => Arg {
-                        kind: ArgKind::Expr((**r).clone()),
-                        ..a
-                    },
-                    _ => a,
-                },
+                ExprKind::Call(f, xs) if p.iter && xs.is_empty() && !self.marks.sourced => {
+                    match &f.kind {
+                        ExprKind::Attr(r, m, _) if m == "iter" => Arg {
+                            kind: ArgKind::Expr((**r).clone()),
+                            ..a
+                        },
+                        _ => a,
+                    }
+                }
                 _ => a,
             };
             let ArgKind::Expr(x) = &a.kind else {
