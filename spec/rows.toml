@@ -947,7 +947,7 @@ sections = "16.5"
 
 [[entry]]
 rows = "R851"
-topic = "`Negated` mark: float unary minus lowered to `-1.0 * x`; raise needs the literal `-1.0` on the left (R851)"
+topic = "`Negated` mark: unary minus lowered to `-1.0 * x` on a float or to `0 - x` on an int; raise needs the literal `-1.0` or `0` on the left (R851)"
 sections = "16.5"
 
 [[entry]]
@@ -999,3 +999,8 @@ sections = "16.5"
 rows = "R861"
 topic = "`Prelude` mark: the expansion of a prelude `divmod` or `pow` call; raise re-expands the call to validate (R861)"
 sections = "16.5, 17.2"
+
+[[entry]]
+rows = "R862"
+topic = "The node-path walk enters closure bodies: statement s of a closure is its statement's path plus `0, s`, so marks inside a lambda place and read (R862)"
+sections = "16.5"
