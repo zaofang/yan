@@ -10,6 +10,8 @@ use yan_surface::{Mark, Trivia, TriviaTable};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
+    /// The item itself, joined by its span.
+    Item,
     Stmt,
     /// An `assert` statement.
     Assert,
@@ -65,6 +67,7 @@ pub fn place(
                 return;
             }
             Node::Field(..) => return,
+            Node::Item(i) => cands.push((Kind::Item, i.span)),
             Node::Call(c) => {
                 call = Some(c.span);
                 cands.push((Kind::Call, c.span))

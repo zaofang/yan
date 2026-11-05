@@ -21,7 +21,7 @@ use std::collections::{HashMap, HashSet};
 use yan_core::ast as y;
 use yan_diag::{Applicability, Diagnostic, Span};
 use yan_hir as j;
-use yan_surface::TriviaTable;
+use yan_surface::{Mark, TriviaTable};
 
 pub use desugar::{Manifest, manifest};
 pub use stdlib::{StdInfo, StdModule, install_std};
@@ -481,6 +481,7 @@ pub fn elaborate_in(
             },
         });
     }
+    let mut proved = false;
     for it in &m.items {
         let start = cx.diags.len();
         let k = match item(&g, it, &mut cx)
@@ -495,6 +496,30 @@ pub fn elaborate_in(
             }
         };
         if let Some(k) = k {
+            let derived = it
+                .decorators
+                .iter()
+                .filter(|d| d.path == ["derive"])
+                .flat_map(|d| d.args.as_deref().unwrap_or_default())
+                .filter_map(|a| match &a.kind {
+                    j::ArgKind::Expr(j::Expr {
+                        kind: j::ExprKind::Name(t),
+                        ..
+                    }) => Some(Mark::Derived(t.clone())),
+                    _ => None,
+                });
+            // `@@prove` has no node of its own: it rides on the first item elaboration lowers.
+            let prove =
+                (!proved && m.attrs.iter().any(|d| d.path == ["prove"])).then_some(Mark::Prove);
+            proved |= prove.is_some();
+            for mark in derived.chain(prove) {
+                cx.marks.push(marks::Pending {
+                    span: it.span,
+                    kind: marks::Kind::Item,
+                    call: None,
+                    mark,
+                });
+            }
             items.push(y::Item {
                 attrs: Vec::new(),
                 kind: k,
