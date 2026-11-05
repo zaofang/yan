@@ -517,6 +517,7 @@ impl Printer {
         match &it.kind {
             ItemKind::Func(f) => self.func(f, pubs, "def", 0),
             ItemKind::Lemma(f) => self.func(f, pubs, "lemma", 0),
+            ItemKind::Verbatim(t) => t.lines().for_each(|l| self.line(0, l)),
             ItemKind::Extern(_) => unreachable!("Yan Agent has no extern blocks"),
             ItemKind::Record(c) => {
                 self.line(
