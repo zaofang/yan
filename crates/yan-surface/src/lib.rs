@@ -50,6 +50,14 @@ pub enum Mark {
     Derived(String),
     /// A module with `@@prove`.
     Prove,
+    /// An inlined std constant written by name (R850).
+    Const,
+    /// A float unary minus lowered to `-1.0 * x` (R851).
+    Negated,
+    /// A std variant written module-qualified (R852).
+    Qualified,
+    /// The N-code of the lenient rewrite that produced the node (R853).
+    Lenient(String),
 }
 
 /// One trivia entry at a node. Local names, the sixth kind, are kept per item by binding order
