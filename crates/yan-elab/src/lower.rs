@@ -3794,6 +3794,15 @@ impl Lower<'_, '_, '_> {
         } else {
             head
         });
+        if rest.is_empty() && !neg {
+            // One piece is the plain conversion `bigint(n)`, bound like one the author wrote.
+            let d = first.trim_start_matches('0');
+            let lit = Atom::Lit(Literal::Int(if d.is_empty() { "0" } else { d }.into()), at);
+            self.cx
+                .origins
+                .push((at, yan_surface::Inserted::Conversion));
+            return Rhs::Call(call("std.prelude.bigint", vec![], vec![let_arg(lit)], at));
+        }
         let mut acc = piece(self, first);
         if !rest.is_empty() {
             let base = piece(self, "1000000000000000000");
@@ -3947,6 +3956,9 @@ impl Lower<'_, '_, '_> {
     fn int_float(&mut self, r: Rhs, at: Span) -> R<(Rhs, Ty)> {
         let a = self.tmp(&Ty::Int, r, at);
         let c = call("std.prelude.float", vec![], vec![let_arg(a)], at);
+        self.cx
+            .origins
+            .push((at, yan_surface::Inserted::Conversion));
         Ok((Rhs::Call(c), Ty::Float))
     }
 
