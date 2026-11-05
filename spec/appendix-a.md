@@ -183,6 +183,11 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R826 to R829 | The data profile (RFC 0033), decided by the owner: a profile of Yan Agent, not a surface (R826); literal-only `NAME: Type = expr` constants, checked syntactically, E144 (R827); `std.data.parse` and `dump` over `Wire`, `DataError` (R828); `package.yag` and `Lints(...)` are data files (R829) | 17.3, 19.1, 25 |
 | R830 | N36 takes a `char` where `str` is expected as its one-character `str`: arguments, assignments, `return`, list and set elements, `list[char]` as `list[str]`, comparison with a non-literal `str`, and `+` with a `char` (R830) | 3.4, 14.4 |
 | R831 | N37 collects an `iter` where a `list` is expected, an `iter` call result indexed directly, and a name bound to an `iter` call result that the body indexes, slices or measures (R831) | 14.4, 17.2 |
+| R832 | A name first bound on every path through an `if` with an `else`, or in a `with` body, is visible after the statement; the elaborator declares it before at its type's zero (R832) | 14.1 |
+| R833 | N38 takes an `int` variable where `float` is expected, or mixed with a `float` in arithmetic, a comparison or `**`, as `float(x)`; integer literals keep R656 (R833) | 3.4, 14.4 |
+| R834 | N39 maps Python `math` names: `abs`, `fabs`, `isnan`, `isinf`, `isfinite`, int-typed `floor`, `ceil`, `trunc`, two-argument `log`; `std.math` adds `gcd lcm isqrt factorial comb perm` on `int` (R834) | 14.4, 17.2 |
+| R835 | N40 on `re` calls: a compiled pattern calls its method, Python flags become inline flags, a `str` literal where `Regex` is expected is compiled, and `else` on a literal `regex.compile` is removed (R835) | 14.4, 17.2 |
+| R836 | `bigint ** int` with a non-negative exponent is a `bigint` (R836) | 11.1 |
 
 <!-- /rows -->
 

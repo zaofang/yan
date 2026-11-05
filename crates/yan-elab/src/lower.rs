@@ -43,7 +43,7 @@ struct Lower<'a, 'c, 's> {
     scopes: Vec<Vec<(String, Option<Local>)>>,
     locals: HashMap<String, Local>,
     /// Names whose block has ended; a later use needs function-level scope.
-    gone: HashSet<String>,
+    gone: HashMap<String, Ty>,
     mutable: HashSet<String>,
     /// Each enclosing loop's label, with the name the source gave it.
     loops: Vec<(String, Option<String>)>,
@@ -98,6 +98,9 @@ struct Lower<'a, 'c, 's> {
     returns_view: bool,
     /// Types learned for empty `[]` and `{}` bindings, by the span of the literal (R808).
     hints: Rc<RefCell<HashMap<Span, Ty>>>,
+    /// Names read after the block that bound them, with their types: the next lowering
+    /// declares each before a statement that binds it on every path (R832).
+    hoists: Rc<RefCell<HashMap<String, Ty>>>,
     /// Locals bound to an empty literal with no type yet, and that literal's span.
     open: HashMap<String, Span>,
 }
@@ -718,6 +721,9 @@ pub(crate) fn function(
     r
 }
 
+type Hints = Rc<RefCell<HashMap<Span, Ty>>>;
+type Hoists = Rc<RefCell<HashMap<String, Ty>>>;
+
 /// Lowers `f`; when it binds empty `[]` or `{}` and a later use types them, lowers again with
 /// those types, so `xs = []` then `xs.append(1)` needs no annotation.
 fn function_body(
@@ -730,12 +736,18 @@ fn function_body(
 ) -> R<y::FnDef> {
     let first = cx.diags.len();
     let hints = Rc::default();
-    let r = function_body_with(g, f, sig, is_pub, stage.clone(), cx, &hints);
-    if hints.borrow().is_empty() {
-        return r;
+    let hoists: Hoists = Rc::default();
+    let mut r = function_body_with(g, f, sig, is_pub, stage.clone(), cx, (&hints, &hoists));
+    let mut seen = (0, 0);
+    loop {
+        let now = (hints.borrow().len(), hoists.borrow().len());
+        if now == seen || now == (0, 0) {
+            return r;
+        }
+        seen = now;
+        cx.diags.truncate(first);
+        r = function_body_with(g, f, sig, is_pub, stage.clone(), cx, (&hints, &hoists));
     }
-    cx.diags.truncate(first);
-    function_body_with(g, f, sig, is_pub, stage, cx, &hints)
 }
 
 fn function_body_with(
@@ -745,7 +757,7 @@ fn function_body_with(
     is_pub: bool,
     stage: Vec<(String, Sv)>,
     cx: &mut Cx,
-    hints: &Rc<RefCell<HashMap<Span, Ty>>>,
+    (hints, hoists): (&Hints, &Hoists),
 ) -> R<y::FnDef> {
     let Some(body) = &f.body else {
         return unsupported("functions without bodies");
@@ -768,7 +780,7 @@ fn function_body_with(
         joins: Vec::new(),
         scopes: Vec::new(),
         locals: HashMap::new(),
-        gone: HashSet::new(),
+        gone: HashMap::new(),
         mutable,
         loops: Vec::new(),
         n: 0,
@@ -808,6 +820,7 @@ fn function_body_with(
             .and_then(|r| r.ty.as_ref())
             .is_some_and(is_view),
         hints: Rc::clone(hints),
+        hoists: Rc::clone(hoists),
         open: HashMap::new(),
     };
     names_used(
@@ -1174,6 +1187,47 @@ fn time_op(c: &str, b: &Ty, op: &str) -> Option<(String, Ty)> {
     Some((format!("std.time.{module}.{f}"), rt))
 }
 
+/// A value of `t` to declare a hoisted binding with; it is never read (R832).
+fn zero(t: &Ty) -> Option<j::ExprKind> {
+    use j::ExprKind as K;
+    Some(match t {
+        Ty::Int | Ty::Fixed(_) => K::Lit(j::Lit::Int("0".into())),
+        Ty::Float => K::Lit(j::Lit::Float("0.0".into())),
+        Ty::Bool => K::Lit(j::Lit::Bool(false)),
+        Ty::Str => K::Lit(j::Lit::Str {
+            prefix: String::new(),
+            value: String::new(),
+        }),
+        Ty::Option(_) => K::Lit(j::Lit::None),
+        Ty::List(_) => K::List(Vec::new()),
+        Ty::Dict(..) => K::Dict(Vec::new()),
+        _ => return None,
+    })
+}
+
+/// Whether every path through `stmts` binds `n` or leaves the block.
+fn binds_all(stmts: &[j::Stmt], n: &str) -> bool {
+    use j::StmtKind as K;
+    let named = |e: &j::Expr| match &e.kind {
+        j::ExprKind::Name(m) => m == n,
+        j::ExprKind::Tuple(ts) => ts
+            .iter()
+            .any(|t| matches!(&t.kind, j::ExprKind::Name(m) if m == n)),
+        _ => false,
+    };
+    stmts.iter().any(|s| match &s.kind {
+        K::Assign { target, .. } => named(target),
+        K::Bind { target, .. } => target == n,
+        K::Return(_) | K::Fail(_) | K::Become(_) | K::Unreachable | K::Break | K::Continue => true,
+        K::If {
+            arms,
+            els: Some(els),
+        } => arms.iter().all(|(_, b)| binds_all(&b.stmts, n)) && binds_all(&els.stmts, n),
+        K::With { body, .. } => binds_all(&body.stmts, n),
+        _ => false,
+    })
+}
+
 fn is_empty_literal(e: &j::Expr) -> bool {
     match &e.kind {
         j::ExprKind::List(xs) => xs.is_empty(),
@@ -1404,6 +1458,33 @@ impl Lower<'_, '_, '_> {
         Atom::Name(n, at)
     }
 
+    /// Declare each name `s` binds on every path and a later statement reads, at its type's
+    /// zero, so the branches assign it (R832).
+    fn hoist(&mut self, s: &j::Stmt) -> R<()> {
+        if !matches!(s.kind, j::StmtKind::If { .. } | j::StmtKind::With { .. }) {
+            return Ok(());
+        }
+        let hs: Vec<(String, Ty)> = self
+            .hoists
+            .borrow()
+            .iter()
+            .filter(|(n, _)| !self.locals.contains_key(*n) && binds_all(std::slice::from_ref(s), n))
+            .map(|(n, t)| (n.clone(), t.clone()))
+            .collect();
+        for (n, t) in hs {
+            let e = zero(&t).expect("hoisted types have a zero");
+            let e = j::Expr {
+                kind: e,
+                span: s.span,
+                paren: false,
+            };
+            let (r, t) = self.rhs(&e, Some(&t))?;
+            self.mutable.insert(n.clone());
+            self.bind(&n, true, &t, r, s.span, s.span);
+        }
+        Ok(())
+    }
+
     fn block_with(&mut self, f: impl FnOnce(&mut Self) -> R<()>) -> R<y::Block> {
         self.block_scoped(f, false)
     }
@@ -1444,8 +1525,9 @@ impl Lower<'_, '_, '_> {
                     self.locals.insert(name, p);
                 }
                 None => {
-                    self.locals.remove(&name);
-                    self.gone.insert(name);
+                    if let Some(l) = self.locals.remove(&name) {
+                        self.gone.insert(name, l.ty);
+                    }
                 }
             }
         }
@@ -1529,6 +1611,7 @@ impl Lower<'_, '_, '_> {
                     format!("this guard on `{v}` is a fallback; write `{v} = ... else ...` (R429)"),
                 );
             }
+            self.hoist(s)?;
             let start = self.writeback.len();
             self.stmt(s)?;
             if self.writeback.len() > start {
@@ -3781,6 +3864,39 @@ impl Lower<'_, '_, '_> {
                 let (r, t) = self.collect(r, &t, at)?;
                 self.widen(r, t, want, at)
             }
+            // An integer literal that is not exact as a float stays E201 (R656).
+            (Ty::Int, Ty::Float) if !matches!(r, Rhs::Atom(Atom::Lit(..))) => {
+                self.lenient(
+                    "N38",
+                    at,
+                    "an `int` where `float` is expected normalized to `float(...)`",
+                );
+                self.int_float(r, at)
+            }
+            (Ty::Str, Ty::Data(w)) if w == "Regex" => {
+                let Rhs::Atom(Atom::Lit(Literal::Str(value), sp)) = r else {
+                    return Ok((r, t));
+                };
+                self.lenient(
+                    "N40",
+                    at,
+                    "a pattern `str` where `Regex` is expected normalized to `regex.compile(...)`",
+                );
+                let lit = j::Arg {
+                    name: None,
+                    kind: j::ArgKind::Expr(j::Expr {
+                        kind: j::ExprKind::Lit(j::Lit::Str {
+                            prefix: String::new(),
+                            value,
+                        }),
+                        span: sp,
+                        paren: false,
+                    }),
+                    span: sp,
+                };
+                let (r, t, _) = self.module_call("regex", "compile", &[lit], at)?;
+                Ok((r, t))
+            }
             (Ty::List(e), Ty::List(we)) if **e == Ty::Char && **we == Ty::Str => {
                 let xs = self.tmp(&t, r, at);
                 let Atom::Name(xs, _) = xs else {
@@ -3807,13 +3923,97 @@ impl Lower<'_, '_, '_> {
         }
     }
 
-    /// N36 on an operand whose other side is a `str`.
+    /// `float(x)` of an `int`.
+    fn int_float(&mut self, r: Rhs, at: Span) -> R<(Rhs, Ty)> {
+        let a = self.tmp(&Ty::Int, r, at);
+        let c = call("std.prelude.float", vec![], vec![let_arg(a)], at);
+        Ok((Rhs::Call(c), Ty::Float))
+    }
+
+    /// N36 on an operand whose other side is a `str`, N38 on one whose other side is a `float`.
     fn widen_atom(&mut self, a: Atom, t: Ty, other: &Ty, at: Span) -> R<(Atom, Ty)> {
-        if t != Ty::Char || *other != Ty::Str {
+        if !matches!((&t, other), (Ty::Char, Ty::Str) | (Ty::Int, Ty::Float))
+            || (t == Ty::Int && matches!(a, Atom::Lit(..)))
+        {
             return Ok((a, t));
         }
         let (r, t) = self.widen(Rhs::Atom(a), t, Some(other), at)?;
         Ok((self.tmp(&t, r, at), t))
+    }
+
+    /// N40: Python's `re` flags (`re.I`, `flags=re.IGNORECASE | re.S`) on `re.m(...)` become
+    /// inline flags at the front of the pattern; `None` when there are none.
+    fn re_flags(&mut self, m: &str, args: &[j::Arg]) -> Option<Vec<j::Arg>> {
+        fn flags(e: &j::Expr, out: &mut String) -> bool {
+            match &e.kind {
+                j::ExprKind::Binary("|", a, b) => flags(a, out) && flags(b, out),
+                j::ExprKind::Attr(r, f, _) if matches!(&r.kind, j::ExprKind::Name(n) if n == "re") =>
+                {
+                    let c = match f.to_ascii_lowercase().as_str() {
+                        "i" | "ignorecase" => 'i',
+                        "m" | "multiline" => 'm',
+                        "s" | "dotall" => 's',
+                        "x" | "verbose" => 'x',
+                        _ => return false,
+                    };
+                    if !out.contains(c) {
+                        out.push(c);
+                    }
+                    true
+                }
+                _ => false,
+            }
+        }
+        let pos = match m {
+            "compile" => 1,
+            "match" | "search" | "fullmatch" | "findall" | "find_all" => 2,
+            _ => usize::MAX,
+        };
+        let mut fs = String::new();
+        let k = args.iter().enumerate().position(|(k, a)| {
+            (a.name.as_deref() == Some("flags") || (a.name.is_none() && k == pos))
+                && matches!(&a.kind, j::ArgKind::Expr(e) if flags(e, &mut fs))
+        })?;
+        let mut out = args.to_vec();
+        out.remove(k);
+        let j::ArgKind::Expr(p) = &out.first()?.kind else {
+            return None;
+        };
+        let at = p.span;
+        let lead = j::Lit::Str {
+            prefix: String::new(),
+            value: format!("(?{fs})"),
+        };
+        let kind = match &p.kind {
+            j::ExprKind::Lit(j::Lit::Str { prefix, value })
+                if matches!(prefix.as_str(), "" | "r") =>
+            {
+                j::ExprKind::Lit(j::Lit::Str {
+                    prefix: prefix.clone(),
+                    value: format!("(?{fs}){value}"),
+                })
+            }
+            _ => j::ExprKind::Binary(
+                "+",
+                Box::new(j::Expr {
+                    kind: j::ExprKind::Lit(lead),
+                    span: at,
+                    paren: false,
+                }),
+                Box::new(p.clone()),
+            ),
+        };
+        out[0].kind = j::ArgKind::Expr(j::Expr {
+            kind,
+            span: at,
+            paren: false,
+        });
+        self.lenient(
+            "N40",
+            at,
+            &format!("`re` flags normalized to the inline flags `(?{fs})` in the pattern"),
+        );
+        Some(out)
     }
 
     fn lenient(&mut self, code: &str, at: Span, msg: &str) {
@@ -3981,7 +4181,13 @@ impl Lower<'_, '_, '_> {
                         Rhs::Atom(Atom::Name(n.clone(), at)),
                         Ty::Data(self.sig.cap_trait(n)),
                     )
-                } else if self.gone.contains(n) {
+                } else if let Some(t) = self.gone.get(n) {
+                    if zero(t).is_some() {
+                        self.hoists
+                            .borrow_mut()
+                            .entry(n.clone())
+                            .or_insert(t.clone());
+                    }
                     return unsupported("a binding used after the block that made it");
                 } else if self.ghosts.contains(n) {
                     self.err(
@@ -4687,6 +4893,14 @@ impl Lower<'_, '_, '_> {
                             *inner,
                             None,
                         ),
+                        Ty::Data(n) if n == "Regex" && !self.cx.strict => {
+                            self.lenient(
+                                "N40",
+                                at,
+                                "`else` on `regex.compile` of a literal, which cannot fail, removed",
+                            );
+                            return Ok((r, Ty::Data(n)));
+                        }
                         t => {
                             self.err(
                                 "E201",
@@ -5045,17 +5259,35 @@ impl Lower<'_, '_, '_> {
             (x, tx, None)
         };
         if op == "**" && tx == Ty::Float {
-            return self.float_pow(x, b, at);
-        }
-        if op == "**" && tx == Ty::Int {
             let (n, nt) = self.atom(b, Some(&Ty::Int))?;
+            return self.float_pow(x, n, nt, at);
+        }
+        if op == "**" && matches!(tx, Ty::Int | Ty::BigInt) {
+            let (n, nt) = self.atom(b, Some(&Ty::Int))?;
+            let f = if tx == Ty::Int {
+                "int_pow"
+            } else {
+                "bigint_pow"
+            };
             return match nt {
                 Ty::Err => Ok((Rhs::Atom(x), Ty::Err)),
                 Ty::Int => Ok((
-                    Rhs::Call(call("int_pow", vec![], vec![let_arg(x), let_arg(n)], at)),
-                    Ty::Int,
+                    Rhs::Call(call(f, vec![], vec![let_arg(x), let_arg(n)], at)),
+                    tx,
                 )),
-                _ => unsupported(format!("`**` between `int` and `{}`", self.ty_text(&nt))),
+                Ty::Float if tx == Ty::Int && !self.cx.strict => {
+                    let (x, _) = self.widen_atom(x, tx, &Ty::Float, a.span)?;
+                    self.float_pow(x, n, nt, at)
+                }
+                _ => {
+                    let msg = format!(
+                        "`**` between `{}` and `{}`",
+                        self.ty_text(&tx),
+                        self.ty_text(&nt)
+                    );
+                    self.err("E201", at, msg);
+                    Ok((Rhs::Atom(x), Ty::Err))
+                }
             };
         }
         if matches!(op, "<<" | ">>") && is_integer(&tx) {
@@ -5101,6 +5333,8 @@ impl Lower<'_, '_, '_> {
         } else {
             (x, tx, y_, ty)
         };
+        let (x, tx) = self.widen_atom(x, tx, &ty, a.span)?;
+        let (y_, ty) = self.widen_atom(y_, ty, &tx, b.span)?;
         if let Some(r) = self.quantity_op(op, &x, &tx, &y_, &ty, at) {
             return r;
         }
@@ -5213,8 +5447,7 @@ impl Lower<'_, '_, '_> {
     }
 
     /// `x ** n` for a `float` `x`: `pown` for an `int` `n` (R657), `pow` for a `float` one.
-    fn float_pow(&mut self, x: Atom, b: &j::Expr, at: Span) -> R<(Rhs, Ty)> {
-        let (n, nt) = self.atom(b, Some(&Ty::Int))?;
+    fn float_pow(&mut self, x: Atom, n: Atom, nt: Ty, at: Span) -> R<(Rhs, Ty)> {
         let f = match nt {
             Ty::Err => return Ok((Rhs::Atom(x), Ty::Err)),
             Ty::Int => "pown",
@@ -5747,6 +5980,54 @@ impl Lower<'_, '_, '_> {
                     };
                     return self.call_expr(&f, args, at, want);
                 }
+                if let j::ExprKind::Name(module) = &b.kind
+                    && module == "math"
+                    && !self.locals.contains_key(module)
+                    && !self.cx.strict
+                    && matches!(m.as_str(), "floor" | "ceil" | "trunc")
+                    && want == Some(&Ty::Int)
+                {
+                    // Python's `floor`, `ceil` and `trunc` return an `int`.
+                    let (r, t, fail) = self.call_expr(f, args, at, Some(&Ty::Float))?;
+                    if t != Ty::Float || fail.is_some() {
+                        return Ok((r, t, fail));
+                    }
+                    self.lenient(
+                        "N39",
+                        at,
+                        &format!("`math.{m}` normalized to `int(math.{m}(...))`"),
+                    );
+                    let a = self.tmp(&Ty::Float, r, at);
+                    let c = call("std.prelude.int", vec![], vec![let_arg(a)], at);
+                    return Ok((Rhs::Call(c), Ty::Int, None));
+                }
+                if let j::ExprKind::Name(module) = &b.kind
+                    && module == "math"
+                    && !self.locals.contains_key(module)
+                    && !self.cx.strict
+                    && let Some((e, to)) = math_alias(m, b, *name_at, args, at)
+                {
+                    self.lenient("N39", at, &format!("`math.{m}` normalized to `{to}`"));
+                    return match &e.kind {
+                        j::ExprKind::Call(f, args) => self.call_expr(f, args, at, want),
+                        _ => {
+                            let (r, t) = self.rhs(&e, want)?;
+                            Ok((r, t, None))
+                        }
+                    };
+                }
+                let flagged;
+                let args = if let j::ExprKind::Name(module) = &b.kind
+                    && module == "re"
+                    && !self.locals.contains_key(module)
+                    && !self.cx.strict
+                    && let Some(a) = self.re_flags(m, args)
+                {
+                    flagged = a;
+                    &flagged[..]
+                } else {
+                    args
+                };
                 // Python's `re.search(pattern, s)`: compile the pattern, then call the method.
                 if let j::ExprKind::Name(module) = &b.kind
                     && module == "re"
@@ -5754,13 +6035,26 @@ impl Lower<'_, '_, '_> {
                     && !self.cx.strict
                     && let Some(meth) = match m.as_str() {
                         "match" | "search" | "fullmatch" | "split" | "sub" => Some(m.as_str()),
-                        "findall" => Some("find_all"),
+                        "findall" | "find_all" => Some("find_all"),
                         _ => None,
                     }
                     && let [pat, rest @ ..] = args
                     && pat.name.is_none()
                     && !rest.is_empty()
                 {
+                    if let j::ArgKind::Expr(p) = &pat.kind
+                        && let Some(Ty::Data(t)) = self.ty_of_local(p)
+                        && t == "Regex"
+                    {
+                        self.lenient(
+                            "N40",
+                            at,
+                            &format!(
+                                "`re.{m}(compiled, ...)` normalized to `compiled.{meth}(...)`"
+                            ),
+                        );
+                        return self.method(p, meth, *name_at, rest, at);
+                    }
                     let item = self.item.clone();
                     self.cx.note(
                         "N35",
@@ -8355,6 +8649,53 @@ pub(crate) fn callees(stmts: &[j::Stmt], out: &mut HashSet<String>) {
     }
 }
 
+/// N39: a Python `math` name that Yan spells another way, as the expression it stands for.
+fn math_alias(
+    m: &str,
+    module: &j::Expr,
+    name_at: Span,
+    args: &[j::Arg],
+    at: Span,
+) -> Option<(j::Expr, String)> {
+    let ex = |kind| j::Expr {
+        kind,
+        span: at,
+        paren: false,
+    };
+    let math = |f: &str, args: Vec<j::Arg>| {
+        ex(j::ExprKind::Call(
+            Box::new(ex(j::ExprKind::Attr(
+                Box::new(module.clone()),
+                f.to_owned(),
+                name_at,
+            ))),
+            args,
+        ))
+    };
+    let free = |f: &str, args: Vec<j::Arg>| {
+        ex(j::ExprKind::Call(
+            Box::new(ex(j::ExprKind::Name(f.to_owned()))),
+            args,
+        ))
+    };
+    Some(match m {
+        "abs" | "fabs" => (free("abs", args.to_vec()), "abs(...)".into()),
+        "isnan" | "isinf" | "isfinite" => {
+            let f = format!("is_{}", &m[2..]);
+            (math(&f, args.to_vec()), format!("math.{f}(...)"))
+        }
+        "log" if args.len() == 2 && args.iter().all(|a| a.name.is_none()) => (
+            ex(j::ExprKind::Binary(
+                "/",
+                Box::new(math("log", vec![args[0].clone()])),
+                Box::new(math("log", vec![args[1].clone()])),
+            )),
+            "math.log(x) / math.log(base)".into(),
+        ),
+        _ => return None,
+    })
+}
+
 /// The callees of a body, contracts included: a `post all(...)` calls `all` too.
 pub(crate) fn body_callees(b: &j::Body, out: &mut HashSet<String>) {
     callees(&b.stmts, out);
@@ -8379,6 +8720,7 @@ fn expr_callees(e: &j::Expr, out: &mut HashSet<String>) {
             || matches!(&e.kind, j::ExprKind::Call(f, _) if matches!(&f.kind, j::ExprKind::Name(n) if n == "pow"))
         {
             out.insert("int_pow".into());
+            out.insert("bigint_pow".into());
         }
         if let j::ExprKind::FStr { pieces, .. } = &e.kind
             && pieces

@@ -879,3 +879,28 @@ sections = "3.4, 14.4"
 rows = "R831"
 topic = "N37 collects an `iter` where a `list` is expected, an `iter` call result indexed directly, and a name bound to an `iter` call result that the body indexes, slices or measures (R831)"
 sections = "14.4, 17.2"
+
+[[entry]]
+rows = "R832"
+topic = "A name first bound on every path through an `if` with an `else`, or in a `with` body, is visible after the statement; the elaborator declares it before at its type's zero (R832)"
+sections = "14.1"
+
+[[entry]]
+rows = "R833"
+topic = "N38 takes an `int` variable where `float` is expected, or mixed with a `float` in arithmetic, a comparison or `**`, as `float(x)`; integer literals keep R656 (R833)"
+sections = "3.4, 14.4"
+
+[[entry]]
+rows = "R834"
+topic = "N39 maps Python `math` names: `abs`, `fabs`, `isnan`, `isinf`, `isfinite`, int-typed `floor`, `ceil`, `trunc`, two-argument `log`; `std.math` adds `gcd lcm isqrt factorial comb perm` on `int` (R834)"
+sections = "14.4, 17.2"
+
+[[entry]]
+rows = "R835"
+topic = "N40 on `re` calls: a compiled pattern calls its method, Python flags become inline flags, a `str` literal where `Regex` is expected is compiled, and `else` on a literal `regex.compile` is removed (R835)"
+sections = "14.4, 17.2"
+
+[[entry]]
+rows = "R836"
+topic = "`bigint ** int` with a non-negative exponent is a `bigint` (R836)"
+sections = "11.1"
