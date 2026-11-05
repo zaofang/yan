@@ -42,6 +42,8 @@ pub trait Std {
     fn type_module(&self, name: &str) -> Option<String>;
     /// A std function's parameters by path, receiver first.
     fn params(&self, path: &str) -> Option<Vec<StdParam>>;
+    /// Whether a std function returns a value, so calling it as a statement discards one (E312).
+    fn returns_value(&self, path: &str) -> bool;
 }
 
 pub struct StdParam {
@@ -994,7 +996,9 @@ impl<'a> Fold<'a> {
                         .map(|(k, (n, a))| {
                             let mark = self.marks.field(c, k);
                             self.marks.consume(std::slice::from_ref(&mark));
-                            let positional = matches!(mark, Some((Mark::Positional, _)));
+                            // `Ok`, `Err` and `Some` take their one payload positionally only.
+                            let positional = matches!(mark, Some((Mark::Positional, _)))
+                                || matches!(path.as_slice(), [s] if matches!(s.as_str(), "Ok" | "Err" | "Some"));
                             Ok(Arg {
                                 name: (!positional).then(|| n.clone()),
                                 kind: ArgKind::Expr(self.atom(a)?),
@@ -1325,6 +1329,16 @@ impl<'a> Fold<'a> {
                 let args = self.args(&c.args[1..])?;
                 return Ok(call(attr(recv, f), args));
             }
+            ("list", "concat", 2) if self.marks.spelling(c) != Some(Mark::Method) => {
+                let (a, b) = (self.atom(vals[0])?, self.atom(vals[1])?);
+                return Ok(e(ExprKind::Binary("+", Box::new(a), Box::new(b))));
+            }
+            ("dict" | "collections.sorted_dict", "index", 2)
+                if self.marks.spelling(c) != Some(Mark::Method) =>
+            {
+                let (d, k) = (self.atom(vals[0])?, self.atom(vals[1])?);
+                return Ok(e(ExprKind::Index(Box::new(d), Box::new(k))));
+            }
             (m, "contains" | "contains_key", 2) if TYPE_MODULES.contains(&m) => {
                 let (coll, x) = (self.atom(vals[0])?, self.atom(vals[1])?);
                 return Ok(e(ExprKind::Compare("in", Box::new(x), Box::new(coll))));
@@ -1654,16 +1668,22 @@ impl<'a> Fold<'a> {
             K::Assign { place, rhs, .. } => {
                 let target = self.place(place)?;
                 let concat = |c: &y::Call| (c.path.join(".") == "std.text.concat").then_some("+");
-                if place.projs.is_empty()
-                    && let y::Rhs::Call(c) = rhs
+                if let y::Rhs::Call(c) = rhs
                     && let Some(op) = binary(&c.path.join(".")).or_else(|| concat(c))
                     && !COMPARE.contains(&op)
                     && let [
-                        y::Arg::Value(_, y::Atom::Name(a, _), _),
+                        y::Arg::Value(_, a @ y::Atom::Name(an, _), _),
                         y::Arg::Value(_, b, _),
                     ] = c.args.as_slice()
-                    && *a == place.root
+                    && if place.projs.is_empty() {
+                        *an == place.root
+                    } else {
+                        self.peek(a).is_some_and(|x| same(x, &target))
+                    }
                 {
+                    if !place.projs.is_empty() {
+                        self.pending.remove(an);
+                    }
                     let value = self.atom(b)?;
                     out.push(stmt(StmtKind::AugAssign {
                         target,
@@ -1699,10 +1719,10 @@ impl<'a> Fold<'a> {
             K::Rhs(y::Rhs::Call(c))
                 if matches!(
                     c.path.join(".").as_str(),
-                    "std.dict.insert" | "std.collections.sorted_dict.insert"
+                    "std.dict.insert" | "std.collections.sorted_dict.insert" // `m[k] = v` passes the key by `let`; the method takes it by `sink`.
                 ) && let [
                     y::Arg::Value(y::Conv::Inout, d, _),
-                    y::Arg::Value(_, k, _),
+                    y::Arg::Value(y::Conv::Let, k, _),
                     y::Arg::Value(_, v, _),
                 ] = c.args.as_slice() =>
             {
@@ -1716,8 +1736,18 @@ impl<'a> Fold<'a> {
                 }));
             }
             K::Rhs(r) => {
+                let discards =
+                    matches!(r, y::Rhs::Call(c) if self.std.returns_value(&c.path.join(".")));
                 let x = self.rhs(r)?;
-                out.push(stmt(StmtKind::Expr(x)));
+                out.push(stmt(if discards {
+                    StmtKind::Assign {
+                        target: name("_"),
+                        ty: None,
+                        value: x,
+                    }
+                } else {
+                    StmtKind::Expr(x)
+                }));
             }
             K::If { cond, then, els } => {
                 let c = self.atom(cond)?;
@@ -2046,7 +2076,7 @@ impl<'a> Fold<'a> {
                         else {
                             unreachable!("matched")
                         };
-                        value
+                        keys_iterated(value)
                     }
                     _ => self.atom(&y::Atom::Name(xs.clone(), AT))?,
                 }
@@ -2336,6 +2366,20 @@ fn negative_index(x: &Expr, i: Expr) -> Expr {
     i
 }
 
+/// `for k in m` iterates the keys of a dict, which elaboration spells `m.keys()`.
+fn keys_iterated(x: Expr) -> Expr {
+    match x.kind {
+        ExprKind::Call(f, args) if args.is_empty() => match f.kind {
+            ExprKind::Attr(m, k, _) if k == "keys" => *m,
+            kind => Expr {
+                kind: ExprKind::Call(Box::new(Expr { kind, ..*f }), args),
+                ..x
+            },
+        },
+        _ => x,
+    }
+}
+
 /// Two simple expressions, a literal or a name, are the same up to spans.
 fn same(a: &Expr, b: &Expr) -> bool {
     match (&a.kind, &b.kind) {
@@ -2498,24 +2542,28 @@ fn first_fix(
 }
 
 fn annotation(value: &Expr, t: &y::Type) -> R<Option<Type>> {
-    let empty = match &value.kind {
-        ExprKind::List(xs) | ExprKind::Set(xs) => xs.is_empty(),
-        ExprKind::Dict(kvs) => kvs.is_empty(),
-        ExprKind::Lit(Lit::None) => true,
-        ExprKind::Call(f, args) => {
-            args.is_empty()
-                && matches!(&f.kind, ExprKind::Name(n) if COLLECTIONS.contains(&n.as_str()))
-        }
-        // A literal of a fixed-width type keeps its annotation.
-        ExprKind::Lit(Lit::Int(_) | Lit::Float(_)) | ExprKind::Unary("-", _) => matches!(
-            t,
-            y::Type::Named(n) if n.path.len() == 1
-                && !matches!(n.path[0].as_str(), "i64" | "f64" | "BigInt")
-                && yan_std::intrinsics::INTS.iter().chain(&yan_std::intrinsics::FLOATS)
-                    .any(|s| *s == n.path[0])
-        ),
-        _ => false,
-    };
+    // A `Result` binding of a call needs its type, or the failure is unhandled (E315).
+    let reified = matches!(&value.kind, ExprKind::Call(..))
+        && matches!(t, y::Type::Named(n) if n.path == ["Result"]);
+    let empty = reified
+        || match &value.kind {
+            ExprKind::List(xs) | ExprKind::Set(xs) => xs.is_empty(),
+            ExprKind::Dict(kvs) => kvs.is_empty(),
+            ExprKind::Lit(Lit::None) => true,
+            ExprKind::Call(f, args) => {
+                args.is_empty()
+                    && matches!(&f.kind, ExprKind::Name(n) if COLLECTIONS.contains(&n.as_str()))
+            }
+            // A literal of a fixed-width type keeps its annotation.
+            ExprKind::Lit(Lit::Int(_) | Lit::Float(_)) | ExprKind::Unary("-", _) => matches!(
+                t,
+                y::Type::Named(n) if n.path.len() == 1
+                    && !matches!(n.path[0].as_str(), "i64" | "f64" | "BigInt")
+                    && yan_std::intrinsics::INTS.iter().chain(&yan_std::intrinsics::FLOATS)
+                        .any(|s| *s == n.path[0])
+            ),
+            _ => false,
+        };
     empty.then(|| ty(t)).transpose()
 }
 
