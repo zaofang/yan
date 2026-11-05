@@ -59,3 +59,4 @@ research index links their studies and rows.
 | [0036](0036-more-spelling-marks.md) | More spelling marks so the remaining law 1 cases keep written choices | accepted | R850 to R855 |
 | [0037](0037-remaining-spelling-marks.md) | Spelling marks for the last eight law 1 cases: `+` on strings, N36, `range(0, n)`, tuple assignment, `divmod` and `pow`, `**` | accepted | R857 to R861 |
 | [0038](0038-t09-spelling-marks.md) | Spelling marks for the four T09 law 1 cases: hoisted declaration, `View`, cli schema, comprehension, `ex`, tuple parentheses | accepted | R863 to R868 |
+| [0039](0039-drops-on-the-failing-edge.md) | Drops on the failing edge of `?`: a drop list on the `?` form in optimized Core | accepted | R871 |

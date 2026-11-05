@@ -953,7 +953,14 @@ impl<'g, 'm> Cx<'g, 'm> {
         match rhs {
             Rhs::Atom(a) => self.atom(a, How::Read),
             Rhs::Call(c) => self.call(c).0,
-            Rhs::Propagate { call, via } => {
+            Rhs::Propagate { call, via, drops } => {
+                if !drops.is_empty() {
+                    self.err(
+                        "I001",
+                        at,
+                        "a `?` drop list appears only in optimized Yan Core (R770)".into(),
+                    );
+                }
                 let (ret, callee) = self.call(call);
                 let callee_fail = callee.and_then(|f| f.fail.as_ref());
                 if let (None, Some(cft), Some(own)) = (via, callee_fail, self.def.fail.as_ref()) {

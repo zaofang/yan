@@ -1171,9 +1171,9 @@ impl<'a> Fold<'a> {
         match r {
             y::Rhs::Atom(a) => self.atom(a),
             y::Rhs::Call(c) | y::Rhs::Try(c) => self.call(c),
-            y::Rhs::Propagate { call, via: None } => {
-                Ok(e(ExprKind::Try(Box::new(self.call(call)?))))
-            }
+            y::Rhs::Propagate {
+                call, via: None, ..
+            } => Ok(e(ExprKind::Try(Box::new(self.call(call)?)))),
             y::Rhs::Propagate { .. } => no("`?` with a conversion"),
             y::Rhs::Proj(p) | y::Rhs::Move(p) => self.place(p),
             y::Rhs::Copy(p) => {

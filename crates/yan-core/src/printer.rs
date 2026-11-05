@@ -565,11 +565,20 @@ impl Printer {
         Some(match r {
             Rhs::Atom(a) => atom(a),
             Rhs::Call(c) => call(c),
-            Rhs::Propagate { call: c, via: None } => format!("{}?", call(c)),
             Rhs::Propagate {
                 call: c,
-                via: Some(v),
-            } => format!("{}? via {}", call(c), path(v)),
+                via,
+                drops,
+            } => {
+                let mut s = format!("{}?", call(c));
+                if let Some(v) = via {
+                    s += &format!(" via {}", path(v));
+                }
+                if !drops.is_empty() {
+                    s += &format!(" drop {}", drops.join(", "));
+                }
+                s
+            }
             Rhs::Try(c) => format!("try {}", call(c)),
             Rhs::Ctor(c) => ctor(c),
             Rhs::Proj(p) => place(p),

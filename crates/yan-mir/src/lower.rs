@@ -1392,14 +1392,25 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.call(c, Some(v))?;
                 Ok(ops)
             }
-            y::Rhs::Propagate { call, via: None } => self.propagate(call, want),
+            y::Rhs::Propagate {
+                call,
+                via: None,
+                drops,
+            } => self.propagate(call, drops, want),
             y::Rhs::Propagate { .. } => unsupported("`?` through a conversion"),
             y::Rhs::Closure(c) => self.make_closure(c, want),
         }
     }
 
     /// `c?`: its `Ok` value, or return its error from this function.
-    fn propagate(&mut self, c: &y::Call, want: &Shape) -> R<Vec<Operand>> {
+    fn drop_name(&mut self, n: &str) {
+        if let Some(v) = self.names.get(n).cloned() {
+            let ops: Vec<Operand> = v.locals.iter().map(|l| Operand::Local(*l)).collect();
+            self.glue(&v.shape, &ops);
+        }
+    }
+
+    fn propagate(&mut self, c: &y::Call, drops: &[y::Name], want: &Shape) -> R<Vec<Operand>> {
         let Some(func) = self.callee(c)? else {
             return unsupported(format!("`?` on `{}`", c.path.join(".")));
         };
@@ -1423,6 +1434,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         let (ok, err) = self.branch(is_ok);
         self.cur = err;
         let ev = v[err_at..err_at + e.width()].to_vec();
+        for n in drops {
+            self.drop_name(n);
+        }
         self.ret(Self::variant_value(&mine, "Err", ev));
         self.cur = ok;
         Ok(v[ok_at..ok_at + want.width()].to_vec())
@@ -2080,10 +2094,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             K::Unsafe(b) => self.block(b),
             K::Drop(n) => {
-                if let Some(v) = self.names.get(n.as_str()).cloned() {
-                    let ops: Vec<Operand> = v.locals.iter().map(|l| Operand::Local(*l)).collect();
-                    self.glue(&v.shape, &ops);
-                }
+                self.drop_name(n);
                 Ok(())
             }
             K::Rhs(y::Rhs::Call(c)) => self.call(c, None),

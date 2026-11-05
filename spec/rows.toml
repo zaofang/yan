@@ -1044,3 +1044,8 @@ sections = "14.4, 16.5"
 rows = "R870"
 topic = "`Lemma`, `GhostParam`, `GhostStmt` and `GhostContract` marks keep the text of what a proof erases (a lemma, a ghost parameter, a top-level ghost statement, a `pre` or `post` over ghost values); raise prints each as written at its position, a lemma before the item it rides on; hash-neutral (R870)"
 sections = "8.7, 16.5"
+
+[[entry]]
+rows = "R871"
+topic = "The `?` form of optimized Yan Core carries a drop list, `f(x)? drop a, b`: the owned locals still live on the failing edge, dropped in that order before the function returns, a flagged local under its flag; checked Yan Core has none (RFC 0039, R871)"
+sections = "3.5, 5.3"

@@ -383,10 +383,12 @@ pub enum StmtKind {
 pub enum Rhs {
     Atom(Atom),
     Call(Call),
-    /// `Call?`, optionally `via` a `From` conversion.
+    /// `Call?`, optionally `via` a `From` conversion. `drops` are dropped on the failing edge
+    /// before the function returns; only optimized Yan Core has any.
     Propagate {
         call: Call,
         via: Option<Path>,
+        drops: Vec<Name>,
     },
     Try(Call),
     Ctor(Ctor),

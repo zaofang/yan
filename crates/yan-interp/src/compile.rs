@@ -1183,7 +1183,7 @@ impl<'g, 'm> FnC<'g, 'm> {
             }
             Rhs::Call(c) => self.call(c, Mode::Plain, dst),
             Rhs::Try(c) => self.call(c, Mode::Try, dst),
-            Rhs::Propagate { call, via } => {
+            Rhs::Propagate { call, via, .. } => {
                 let via = match via {
                     None => Via::None,
                     Some(p) => {
