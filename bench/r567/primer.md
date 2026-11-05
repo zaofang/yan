@@ -12,3 +12,5 @@ You write Yan Agent, a typed Python 3.12 dialect. Differences from Python:
 - Concurrency: `par [f(x)? for x in xs]` runs the calls in parallel.
 - When two parameters share a type, callers pass those arguments by keyword unless they are literals or names equal to the parameter.
 - `pre`, `post` and `ex` lines come first in the body, after the docstring, indented: `ex f(1) == 2`. In `post`, `out` is the result.
+- A `T | None` value (from `.get`, `.parse_int()`, `.parse_float()`) cannot be used in arithmetic or comparisons directly. Unwrap it first: `x else default`, `x else return`, `x else fail E(...)`, or `x?` in a function that fails.
+- Calling a function whose parameters share a type with positional arguments is error E210. Write `f(a=x, b=y)`; this applies even to variables whose names differ from the parameters.
