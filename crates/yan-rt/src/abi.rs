@@ -13,6 +13,7 @@ unsafe fn text<'a>(ptr: *const u8, len: usize) -> &'a str {
 ///
 /// # Safety
 /// `ptr` points to `len` bytes of UTF-8.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_print(ptr: *const u8, len: usize) {
     // SAFETY: forwarded.
     let s = unsafe { text(ptr, len) };
@@ -26,6 +27,7 @@ pub unsafe extern "C" fn yan_rt_print(ptr: *const u8, len: usize) {
 ///
 /// # Safety
 /// `ptr` points to `len` bytes of UTF-8.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_panic(ptr: *const u8, len: usize) -> ! {
     // SAFETY: forwarded.
     let kind = unsafe { text(ptr, len) };
@@ -77,6 +79,7 @@ pub fn str_block(s: &str) -> *mut String {
 
 /// # Safety
 /// `s` is a `Str` block.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_print_str(s: *const String) {
     // SAFETY: the caller's contract.
     let s = unsafe { &*s };
@@ -86,38 +89,46 @@ pub unsafe extern "C" fn yan_rt_print_str(s: *const String) {
 
 /// # Safety
 /// `a` and `b` are `Str` blocks.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_concat(a: *const String, b: *const String) -> *mut String {
     // SAFETY: the caller's contract.
     let (a, b) = unsafe { (&*a, &*b) };
     leak(format!("{a}{b}"))
 }
 
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_show_i64(x: i64) -> *mut String {
     leak(x.to_string())
 }
 
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_show_u64(x: u64) -> *mut String {
     leak(x.to_string())
 }
 
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_show_f64(x: f64) -> *mut String {
     leak(crate::fmt::float_repr(x))
 }
 
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_div_i64(a: i64, b: i64) -> f64 {
     crate::num::div_i128(a.into(), b.into())
 }
 
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_div_u64(a: u64, b: u64) -> f64 {
     crate::num::div_i128(a.into(), b.into())
 }
 
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_show_bool(x: u8) -> *mut String {
     leak(if x != 0 { "True" } else { "False" }.to_owned())
 }
 
 /// # Safety
 /// `s` is a `Str` block.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_repr(s: *const String) -> *mut String {
     // SAFETY: the caller's contract.
     leak(crate::fmt::repr(unsafe { &*s }))
@@ -125,11 +136,13 @@ pub unsafe extern "C" fn yan_rt_repr(s: *const String) -> *mut String {
 
 /// # Safety
 /// `a` and `b` are `Str` blocks.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_str_eq(a: *const String, b: *const String) -> u8 {
     // SAFETY: the caller's contract.
     u8::from(unsafe { *a == *b })
 }
 
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_list_new(words: u64) -> *mut List {
     leak(List {
         words: words as usize,
@@ -141,6 +154,7 @@ pub extern "C" fn yan_rt_list_new(words: u64) -> *mut List {
 ///
 /// # Safety
 /// `l` is a `List` block that nothing else borrows.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_list_push(l: *mut List) -> *mut u64 {
     // SAFETY: the caller's contract.
     let l = unsafe { &mut *l };
@@ -151,6 +165,7 @@ pub unsafe extern "C" fn yan_rt_list_push(l: *mut List) -> *mut u64 {
 
 /// # Safety
 /// `l` is a `List` block.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_list_len(l: *const List) -> i64 {
     // SAFETY: the caller's contract.
     let l = unsafe { &*l };
@@ -161,6 +176,7 @@ pub unsafe extern "C" fn yan_rt_list_len(l: *const List) -> i64 {
 ///
 /// # Safety
 /// `l` is a `List` block.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_list_at(l: *mut List, i: i64) -> *mut u64 {
     // SAFETY: the caller's contract.
     let n = unsafe { yan_rt_list_len(l) };
@@ -174,6 +190,7 @@ pub unsafe extern "C" fn yan_rt_list_at(l: *mut List, i: i64) -> *mut u64 {
 
 /// # Safety
 /// `l` is a `List` block.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_list_copy(l: *const List) -> *mut List {
     // SAFETY: the caller's contract.
     let l = unsafe { &*l };
@@ -184,12 +201,14 @@ pub unsafe extern "C" fn yan_rt_list_copy(l: *const List) -> *mut List {
 }
 
 /// End the program with `code` once stdout is flushed: `main` failed (8.1).
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_exit(code: i64) -> ! {
     let _ = std::io::stdout().flush();
     std::process::exit(code as i32)
 }
 
 /// `words` zeroed words: a closure's captures.
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_alloc(words: u64) -> *mut u64 {
     crate::heap::block_taken();
     Box::leak(vec![0u64; words as usize].into_boxed_slice()).as_mut_ptr()

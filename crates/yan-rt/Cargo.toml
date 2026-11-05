@@ -28,3 +28,6 @@ all = { level = "warn", priority = -1 }
 rand_chacha = "0.9"
 rand_core = "0.9"
 rand_pcg = "0.9"
+
+[lib]
+crate-type = ["rlib", "staticlib"]
