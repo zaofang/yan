@@ -6015,7 +6015,27 @@ impl Lower<'_, '_, '_> {
                     && matches!(&m.kind, j::ExprKind::Name(c) if c == "cli" && !self.locals.contains_key(c))
                     && matches!(op.as_str(), "parse" | "parse_args") =>
             {
-                self.cli_call(op, k, args, at)
+                self.cli_call(op, k, args, at, None)
+            }
+            // The schema written out: `cli.parse_args(xs, "{..}")`, what raise prints with no marks.
+            j::ExprKind::Attr(m, op, _)
+                if op == "parse_args"
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "cli" && !self.locals.contains_key(c))
+                    && let [xs, schema] = args
+                    && let j::ArgKind::Expr(j::Expr {
+                        kind: j::ExprKind::Lit(j::Lit::Str { value, .. }),
+                        ..
+                    }) = &schema.kind
+                    && let Some(i) = value.rfind("\"name\":\"")
+                    && let Some(n) = value[i + 8..].split('"').next()
+                    && self.g.records.contains_key(n) =>
+            {
+                let t = j::Expr {
+                    kind: j::ExprKind::Name(n.to_owned()),
+                    span: f.span,
+                    paren: false,
+                };
+                self.cli_call("parse_args", &t, std::slice::from_ref(xs), at, Some(value))
             }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Channel" && !self.locals.contains_key(n)) =>
             {
@@ -8135,13 +8155,16 @@ impl Lower<'_, '_, '_> {
         t: &j::Expr,
         args: &[j::Arg],
         at: Span,
+        written: Option<&str>,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
         let j::ExprKind::Name(n) = &t.kind else {
             return unsupported(format!("`cli.{op}` of a type that is not a name"));
         };
         // After an error the call is still lowered, so what follows it checks.
-        let schema = if self.g.clis.contains_key(n) {
+        let schema = if let Some(w) = written {
+            w.to_owned()
+        } else if self.g.clis.contains_key(n) {
             // An error here was reported at the derive.
             crate::cli::schema(self.g, n).unwrap_or_default()
         } else {

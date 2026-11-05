@@ -824,6 +824,16 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
         })
     });
     let mut contracts = Vec::new();
+    // The printed name stands for the `ex` text as written: Yan Agent prints a name verbatim.
+    for text in marks.root(|m| match m {
+        Mark::Example(t) => Some(t.clone()),
+        _ => None,
+    }) {
+        contracts.push(Contract::Ex {
+            expr: name(&text),
+            with: Vec::new(),
+        });
+    }
     for c in &f.contracts {
         let mut b = Fold::new(std, marks, locals.clone(), &[]);
         contracts.push(match c {
@@ -1931,11 +1941,21 @@ impl<'a> Fold<'a> {
             }
             self.marks.refuse(m);
         }
-        if let Some(p) = self.marks.stmt_mark(&ss[0], &Mark::Comprehension)
-            && let y::StmtKind::Let {
-                pat: y::Pat::Bind(n),
-                ..
-            } = &ss[0].kind
+        if let y::StmtKind::Let {
+            pat: y::Pat::Bind(n),
+            rhs: y::Rhs::Call(c),
+            ..
+        } = &ss[0].kind
+            && generated(n)
+            && n.starts_with("_c")
+            && self
+                .marks
+                .stmt_mark(&ss[0], &Mark::Lenient("N36".into()))
+                .is_none()
+            && matches!(
+                c.path.join(".").as_str(),
+                "std.list.new" | "std.set.new" | "std.dict.new"
+            )
         {
             // A comprehension lowered to a binding and an appending loop (R866): printed as the
             // comprehension only when the loop has the lowered shape and the binding is read once.
@@ -1948,13 +1968,17 @@ impl<'a> Fold<'a> {
             {
                 k += self.stmt(&ss[k..], &mut raised)?;
             }
+            // The accumulator's name is one a program cannot write, so the shape alone says the
+            // loop was a comprehension (the bare check of RFC 0034 D7 needs it); the mark, when
+            // present, is consumed.
+            let mark = self.marks.stmt_mark(&ss[0], &Mark::Comprehension);
             match comprehension(n, &raised) {
                 Some(x) if self.uses(n) == 2 => {
-                    self.marks.accept(p);
+                    mark.into_iter().for_each(|p| self.marks.accept(p));
                     self.bind_pending(n, Pending::Expr(x));
                 }
                 _ => {
-                    self.marks.refuse(p);
+                    mark.into_iter().for_each(|p| self.marks.refuse(p));
                     out.extend(raised);
                 }
             }

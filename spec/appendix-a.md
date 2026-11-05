@@ -210,9 +210,9 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R862 | The node-path walk enters closure bodies: statement s of a closure is its statement's path plus `0, s`, so marks inside a lambda place and read (R862) | 16.5 |
 | R863 | `Hoisted` mark: a declaration elaboration inserted before an `if` or `with` for a name bound on every path; raise drops it only if the next statement binds the name on every path (RFC 0038, R863) | 14.1, 16.5 |
 | R864 | `View` mark: a view type written in a signature; raise prints `View[T]` only if the node is the owned collection the view stands for (R864) | 4.5, 16.5 |
-| R865 | `Schema(type)` mark on `cli.parse_args[T]` and `cli.parse[T]()`; raise prints `[T]` only if the type exists in the module and the schema literal's `name` equals it (R865) | 16.5, 17.3 |
+| R865 | `Schema(type)` mark on `cli.parse_args[T]` and `cli.parse[T]()`; raise prints `[T]` only if the type exists in the module and the schema literal's `name` equals it; elaboration also reads `cli.parse_args(xs, schema)` with the schema literal written out, so a raise without marks loads (R865) | 16.5, 17.3 |
 | R866 | `Comprehension` mark: a comprehension lowered to a binding and an appending loop; raise prints it only if the loop has the lowered shape exactly (R866) | 16.5 |
-| R867 | An `ex` example survives elaboration as a `Contract::Example` raise prints (R867) | 8.4, 16.5 |
+| R867 | An `ex` line of a Yan Agent function survives elaboration as its text in an `Example` trivia mark at the item, which raise prints verbatim; hashes do not change (R867) | 8.4, 16.5 |
 | R868 | `Parenthesized` mark: a tuple written in parentheses; raise validates the node is a tuple (R868) | 16.5 |
 | R869 | Spelling marks `FlagsKeyword` and `FlagsPositional` record how Python `re` flags were written on a `re` call; raise prints `re.f(pattern, ..)` from N35 and N40 marks on the method call and the literal from N40 on a lifted `regex.compile` (R869) | 14.4, 16.5 |
 

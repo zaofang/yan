@@ -1017,7 +1017,7 @@ sections = "4.5, 16.5"
 
 [[entry]]
 rows = "R865"
-topic = "`Schema(type)` mark on `cli.parse_args[T]` and `cli.parse[T]()`; raise prints `[T]` only if the type exists in the module and the schema literal's `name` equals it (R865)"
+topic = "`Schema(type)` mark on `cli.parse_args[T]` and `cli.parse[T]()`; raise prints `[T]` only if the type exists in the module and the schema literal's `name` equals it; elaboration also reads `cli.parse_args(xs, schema)` with the schema literal written out, so a raise without marks loads (R865)"
 sections = "16.5, 17.3"
 
 [[entry]]
@@ -1027,7 +1027,7 @@ sections = "16.5"
 
 [[entry]]
 rows = "R867"
-topic = "An `ex` example survives elaboration as a `Contract::Example` raise prints (R867)"
+topic = "An `ex` line of a Yan Agent function survives elaboration as its text in an `Example` trivia mark at the item, which raise prints verbatim; hashes do not change (R867)"
 sections = "8.4, 16.5"
 
 [[entry]]
