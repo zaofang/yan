@@ -263,8 +263,9 @@ Consequences for the sections above:
   Lean model (R680) on Yan-K.
 - D7 and D9 interact. Once the Rust tree is retired, DDC (section 7) has no independent compiler: the
   partner becomes the previous Yan release, which shares ancestry. The Lean model stays independent
-  only for Yan-K. Open follow-up: keep a frozen Rust stage0 buildable for DDC only, or accept the
-  weaker check after retirement.
+  only for Yan-K. Follow-up (card, 2026-11-04): deferred to stage E. Whether to keep a frozen Rust
+  stage0 buildable for DDC only, or accept the weaker check after retirement, is decided when the
+  fixed point and DDC checks join CI.
 - Stage B grows from about 5 to about 13 thousand Rust lines (`yan-yag` plus `yan-yn`), and stage C
   adds a query engine; the effort estimate in section 10 rises accordingly.
 
