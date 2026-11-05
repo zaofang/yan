@@ -9,6 +9,7 @@ pub mod crypto_rand;
 pub mod fmt;
 #[allow(unsafe_code)]
 pub mod heap;
+pub mod json;
 pub mod list;
 pub mod math;
 pub mod num;
