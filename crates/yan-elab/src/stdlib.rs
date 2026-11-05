@@ -491,9 +491,8 @@ pub(crate) fn classes(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
     Ok(out.into_iter().map(|(n, _)| n.clone()).collect())
 }
 
-/// The std sum types `m` may meet, registered in `g` as [`classes`] registers classes. Their
-/// variants have no fields.
-pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> Vec<String> {
+/// The std sum types `m` may meet, registered in `g` as [`classes`] registers classes.
+pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
     let own: HashSet<&str> = m.items.iter().map(|it| it.kind.name()).collect();
     let words = words(m);
     let mut out = Vec::new();
@@ -512,13 +511,40 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> Vec<String> {
             for v in vs {
                 g.variant_of.insert(v.name.clone(), name.clone());
             }
-            let vs = vs.iter().map(|v| (v.name.clone(), Vec::new())).collect();
-            g.sums.insert(name.clone(), vs);
+            // Registered empty first: a variant's field may name its own sum.
+            g.sums.insert(name.clone(), Vec::new());
+            g.std_sums.insert(name.clone());
             out.push(name.clone());
         }
     }
     out.sort();
-    out
+    let span = Span {
+        line: 1,
+        col: 1,
+        end_line: 1,
+        end_col: 1,
+    };
+    for name in &out {
+        let (module, t) = &STD.sums[name];
+        let j::TypeRhs::Sum(vs) = &t.rhs else {
+            unreachable!("a std sum")
+        };
+        let mut cx = std_cx(module);
+        let mut variants = Vec::new();
+        for v in vs {
+            let mut fs = Vec::new();
+            for f in &v.fields {
+                fs.push(crate::Field {
+                    name: f.name.clone(),
+                    ty: g.ty(&f.ty, &mut cx, span)?,
+                    default: f.default.clone(),
+                });
+            }
+            variants.push((v.name.clone(), fs));
+        }
+        g.sums.insert(name.clone(), variants);
+    }
+    Ok(out)
 }
 
 fn mentions(t: &j::Type, n: &str) -> bool {

@@ -8284,6 +8284,7 @@ impl Lower<'_, '_, '_> {
         }
         let std_class = match &t {
             Ty::Data(n) if self.g.std_records.contains(n) => crate::stdlib::class_module(n),
+            Ty::Data(n) if self.g.std_sums.contains(n) => crate::stdlib::sum_module(n),
             _ => None,
         };
         let Some(module) = t.module().or(std_class) else {
