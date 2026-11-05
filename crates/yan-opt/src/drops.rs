@@ -356,6 +356,22 @@ impl Elab<'_> {
         }
     }
 
+    /// What a function exit drops, in order: the `?` drop list. A flagged local is listed too and
+    /// is dropped under its flag.
+    fn exit_names(&self, skip: &[Name]) -> Vec<Name> {
+        let mut out = Vec::new();
+        for scope in self.cx.scopes.iter().rev() {
+            for l in scope.iter().rev() {
+                let owned =
+                    self.flags.contains_key(&l.name) || self.cx.live.get(&l.name) == Some(&true);
+                if owned && !skip.contains(&l.name) {
+                    out.push(l.name.clone());
+                }
+            }
+        }
+        out
+    }
+
     /// Mark the owned locals `s` consumes and return the flagged ones.
     fn consume(&mut self, s: &StmtKind) -> Vec<Name> {
         let mut flagged = Vec::new();
@@ -479,9 +495,13 @@ impl Elab<'_> {
     fn stmt(&mut self, s: &Stmt, out: &mut Vec<Stmt>) -> Flow {
         let at = s.span;
         let mut new = s.clone();
+        let skip: Vec<Name> = own::consumed(&s.kind).into_iter().cloned().collect();
         match &mut new.kind {
             StmtKind::Let { rhs, .. } | StmtKind::Assign { rhs, .. } | StmtKind::Rhs(rhs) => {
-                self.closure(rhs)
+                self.closure(rhs);
+                if let Rhs::Propagate { drops, .. } = rhs {
+                    *drops = self.exit_names(&skip);
+                }
             }
             _ => {}
         }
@@ -891,6 +911,17 @@ mod tests {
                 "ret ()",
             ],
         );
+    }
+
+    #[test]
+    fn propagation_lists_the_owned_locals_for_its_failing_edge() {
+        let t = elab(
+            "module t\nrecord E { n: i64 }\nfn g(let a: Str) -> i64 fail E {\n ret 1\n}\n\
+             fn f(let c: bool) -> i64 fail E {\n let s: Str = \"a\"\n let u: Str = \"b\"\n\
+             let x: i64 = g(let s)?\n ret x\n}\n",
+        );
+        has(&t, &["let x: i64 = g(let s)? drop u, s"]);
+        has(&t, &["drop u", "drop s", "ret x"]);
     }
 
     #[test]

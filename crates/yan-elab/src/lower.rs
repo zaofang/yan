@@ -4673,7 +4673,14 @@ impl Lower<'_, '_, '_> {
                             None => into_error
                                 .then(|| vec!["std".into(), "error".into(), "wrap".into()]),
                         };
-                        (Rhs::Propagate { call: c, via }, t)
+                        (
+                            Rhs::Propagate {
+                                call: c,
+                                via,
+                                drops: Vec::new(),
+                            },
+                            t,
+                        )
                     }
                     _ => return unsupported("`?` on an optional or on a call that cannot fail"),
                 }

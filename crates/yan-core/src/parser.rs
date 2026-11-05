@@ -1223,7 +1223,14 @@ impl Parser<'_> {
                 } else {
                     None
                 };
-                return Ok(Rhs::Propagate { call, via });
+                let mut drops = Vec::new();
+                if self.eat_kw("drop") {
+                    drops.push(self.name()?);
+                    while self.eat_punct(",") {
+                        drops.push(self.name()?);
+                    }
+                }
+                return Ok(Rhs::Propagate { call, via, drops });
             }
             return Ok(Rhs::Call(call));
         }

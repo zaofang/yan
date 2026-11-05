@@ -213,6 +213,38 @@ impl V {
         }
     }
 
+    /// The failing edge of `?`: sink arguments are consumed by the call, the drop list drops the
+    /// rest (a flagged local under its flag), and nothing may stay owned.
+    fn failing_edge(&mut self, r: &Rhs, k: &StmtKind, at: Span) {
+        let Rhs::Propagate { drops, .. } = r else {
+            return;
+        };
+        let Some(mut st) = self.st.clone() else {
+            return;
+        };
+        for n in own::consumed(k) {
+            if let Some(s) = st.get_mut(n) {
+                *s = S::Gone;
+            }
+        }
+        for n in drops {
+            match st.get(n).copied() {
+                None => self.err(
+                    at,
+                    format!("`{n}` in the `?` drop list is not an owned local"),
+                ),
+                Some(S::Live) => {
+                    st.insert(n.clone(), S::Gone);
+                }
+                Some(_) if self.flag_of(n).is_some() => {}
+                Some(_) => self.err(at, format!("`{n}` was already consumed or dropped")),
+            }
+        }
+        let saved = self.st.replace(st);
+        self.require_gone((0, 0), at, "on the failing edge of `?`");
+        self.st = saved;
+    }
+
     fn consume(&mut self, k: &StmtKind, next: Option<&Stmt>, at: Span, exits: bool) {
         for n in own::consumed(k) {
             let Some(s) = self.st.as_ref().and_then(|st| st.get(n)).copied() else {
@@ -283,6 +315,11 @@ impl V {
     fn stmt(&mut self, s: &Stmt, next: Option<&Stmt>) {
         let at = s.span;
         let decl = self.last_decl.take();
+        if let StmtKind::Let { rhs, .. } | StmtKind::Assign { rhs, .. } | StmtKind::Rhs(rhs) =
+            &s.kind
+        {
+            self.failing_edge(rhs, &s.kind, at);
+        }
         match &s.kind {
             StmtKind::Let { pat, ty, rhs, .. } => {
                 if let (Some(f), Some(x)) = (is_flag_init(s), decl) {

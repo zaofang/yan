@@ -583,11 +583,12 @@ impl Cx<'_> {
         match r {
             Rhs::Atom(a) => self.atom(a),
             Rhs::Call(c) | Rhs::Try(c) => self.call(c),
-            Rhs::Propagate { call, via } => {
+            Rhs::Propagate { call, via, drops } => {
                 self.call(call);
                 if let Some(p) = via {
                     self.path(p);
                 }
+                drops.iter_mut().for_each(|n| self.name(n));
             }
             Rhs::Ctor(c) => self.ctor(c),
             Rhs::Proj(p) | Rhs::Copy(p) | Rhs::Move(p) => self.place(p),
