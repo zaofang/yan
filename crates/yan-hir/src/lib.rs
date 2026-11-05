@@ -37,6 +37,8 @@ pub struct Item {
 pub enum ItemKind {
     Func(FuncDef),
     Lemma(FuncDef),
+    /// Source lines raise prints as they are: an erased lemma (R870).
+    Verbatim(String),
     Record(Record),
     Type(TypeDef),
     Trait(Trait),
@@ -104,6 +106,7 @@ impl ItemKind {
             ItemKind::Type(t) => &t.name,
             ItemKind::Trait(t) => &t.name,
             ItemKind::Impl(_) => "impl",
+            ItemKind::Verbatim(_) => "lemma",
             ItemKind::Const { name, .. } => name,
             ItemKind::Extern(x) => &x.lib,
         }

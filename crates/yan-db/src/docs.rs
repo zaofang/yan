@@ -154,7 +154,7 @@ fn item_names(m: &j::Module) -> HashSet<String> {
             j::ItemKind::Const { name, .. } => {
                 out.insert(name.clone());
             }
-            j::ItemKind::Impl(_) | j::ItemKind::Extern(_) => {}
+            j::ItemKind::Impl(_) | j::ItemKind::Extern(_) | j::ItemKind::Verbatim(_) => {}
         }
     }
     out

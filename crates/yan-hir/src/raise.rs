@@ -74,7 +74,20 @@ pub fn raise(m: &y::Module, trivia: &TriviaTable, std: &dyn Std) -> R<Raised> {
     let mut doc = None;
     for (it, h) in m.items.iter().zip(yan_core::hash::hash_module(m)) {
         let marks = Marks::new(trivia, h.identity.to_string(), it, &fns);
+        let lemmas = marks.root(|m| match m {
+            Mark::Lemma(t) => Some(t.clone()),
+            _ => None,
+        });
         if let Some(mut i) = item(it, std, &marks)? {
+            for text in lemmas {
+                items.push(Item {
+                    decorators: Vec::new(),
+                    is_pub: false,
+                    kind: ItemKind::Verbatim(text),
+                    span: AT,
+                    name_span: AT,
+                });
+            }
             let (module_doc, item_doc) = marks.docs();
             doc = doc.or(module_doc);
             set_doc(&mut i, item_doc);
@@ -836,6 +849,27 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
             }),
         }
     }
+    // Ghost parameters were erased (R870).
+    for (k, text) in marks.root(|m| match m {
+        Mark::GhostParam(k, t) => Some((*k, t.clone())),
+        _ => None,
+    }) {
+        if let Some((n, t)) = text.strip_prefix("ghost ").and_then(|r| r.split_once(':')) {
+            params.insert(
+                k.min(params.len()),
+                Param::Value {
+                    conv: Some(Conv::Ghost),
+                    name: n.trim().to_owned(),
+                    span: AT,
+                    ty: Type::Named {
+                        path: vec![t.trim().to_owned()],
+                        args: Vec::new(),
+                    },
+                    default: None,
+                },
+            );
+        }
+    }
     let unit = matches!(&f.ret, y::Type::Named(n) if n.path == ["Unit"]);
     let fail = f
         .fail
@@ -877,6 +911,18 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
             y::Contract::Decreases(_) => return no("`decreases`"),
         });
     }
+    let examples = contracts.len();
+    for (k, text) in marks.root(|m| match m {
+        Mark::GhostContract(k, t) => Some((*k, t.clone())),
+        _ => None,
+    }) {
+        let c = match text.split_once(' ') {
+            Some(("pre", t)) => Contract::Pre(name(t)),
+            Some(("post", t)) => Contract::Post(name(t)),
+            _ => continue,
+        };
+        contracts.insert((examples + k).min(contracts.len()), c);
+    }
     let body = match &f.body {
         None => None,
         Some(blk) => {
@@ -893,6 +939,12 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
             }
             if unit && matches!(stmts.last().map(|s| &s.kind), Some(StmtKind::Return(None))) {
                 stmts.pop();
+            }
+            for (k, text) in marks.root(|m| match m {
+                Mark::GhostStmt(k, t) => Some((*k, t.clone())),
+                _ => None,
+            }) {
+                stmts.insert(k.min(stmts.len()), stmt(StmtKind::Expr(name(&text))));
             }
             if stmts.is_empty() {
                 stmts.push(stmt(StmtKind::Pass));
