@@ -1,9 +1,9 @@
 # 0036: More spelling marks for law 1
 
-- Status: draft
+- Status: accepted
 - Research: none; `docs/reports/2026-11-05-law1-ledger.md` and a read of `crates/yan-elab/src/lower.rs`,
   `crates/yan-hir/src/raise.rs` on 2026-11-05
-- Rows: filled in when accepted
+- Rows: R850 to R855
 
 ## Summary
 
@@ -25,16 +25,16 @@ drops the mark on mismatch (as for literal spelling). Options: (a) a mark, (b) e
 `math.pi` text (rejected: nan is an expression, and trivia stores source text, which D2 of RFC 0034 forbids).
 Recommend (a).
 
-- Decision:
-- Row:
+- Decision: Add `Const` (Antonio, 2026-11-05)
+- Row: R850
 
 ### D2: a `Negated` mark for unary minus
 
 Unary `-x` on a float lowers to `-1.0 * x`. Add `Negated` on the multiplication. Raise validates that the
 left operand is the literal `-1.0`. Recommend adding.
 
-- Decision:
-- Row:
+- Decision: Add `Negated` (Antonio, 2026-11-05)
+- Row: R851
 
 ### D3: a `Qualified` mark for module-qualified constructors
 
@@ -42,8 +42,8 @@ left operand is the literal `-1.0`. Recommend adding.
 belongs to a std sum type with a module. An alternative, always printing the qualified form for std
 variants, would break sources that import the bare name. Recommend the mark.
 
-- Decision:
-- Row:
+- Decision: Add `Qualified` (Antonio, 2026-11-05)
+- Row: R852
 
 ### D4: a `Lenient` mark for N-code aliases
 
@@ -52,8 +52,8 @@ N39 and the other lenient readers rewrite a Python spelling (`math.abs`, `math.i
 one variant carrying the N-code, never source text. Raise prints the alias only if the code's rewrite applied
 to the alias reproduces the node. Recommend adding. It also serves the n36, n37, n38 and n40 cases.
 
-- Decision:
-- Row:
+- Decision: Add `Lenient(code)` (Antonio, 2026-11-05)
+- Row: R853
 
 ### D5: a `Converted` mark for inserted conversions
 
@@ -62,16 +62,16 @@ mark for inserted nodes (R565) but raise removes it only for kinds it recognizes
 removal to widening conversions, (b) a new `Converted` mark. Recommend (a), since origin marks already mean
 "inserted, not written"; this needs no new mark kind.
 
-- Decision:
-- Row:
+- Decision: Extend origin removal, no new mark kind (Antonio, 2026-11-05)
+- Row: R854
 
 ### D6: raw and char literal forms
 
 `r"\2/\g<a>"` and `c'a'.to_str()` lose their form in `literal`. Extend the existing literal trivia (18.5)
 to non-integer literals, validated by parsing back to the node's value. No new mark kind. Recommend.
 
-- Decision:
-- Row:
+- Decision: Extend literal trivia (Antonio, 2026-11-05)
+- Row: R855
 
 ## Spec changes
 

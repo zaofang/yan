@@ -939,3 +939,33 @@ sections = "18.9, 25.10"
 rows = "R849"
 topic = "Lenient reader: N41 PEP 257 attribute strings and `Attributes:`, N42 reST, Google and NumPy parameter styles, N43 enum member docs; a disagreeing written type is E281 (R849)"
 sections = "14.4, 25.4"
+
+[[entry]]
+rows = "R850"
+topic = "`Const` mark: an inlined std constant written by name; raise re-evaluates the constant and drops the mark on a mismatch (R850)"
+sections = "16.5"
+
+[[entry]]
+rows = "R851"
+topic = "`Negated` mark: float unary minus lowered to `-1.0 * x`; raise needs the literal `-1.0` on the left (R851)"
+sections = "16.5"
+
+[[entry]]
+rows = "R852"
+topic = "`Qualified` mark: a std variant written module-qualified; an unmarked variant prints bare (R852)"
+sections = "16.5"
+
+[[entry]]
+rows = "R853"
+topic = "`Lenient(code)` mark: the N-code of the lenient rewrite that produced a call; raise reprints the alias only if the rewrite reproduces the node (R853)"
+sections = "14.4, 16.5"
+
+[[entry]]
+rows = "R854"
+topic = "Raise removes widening conversions that carry an origin mark; no new mark kind (R854)"
+sections = "16.5"
+
+[[entry]]
+rows = "R855"
+topic = "Literal trivia covers float, string and char literal forms, validated by parsing back to the node's value (R855)"
+sections = "16.5, 18.5"
