@@ -7,11 +7,12 @@
 //! local is inserted when its name is one elaboration generates (`_t1`, `_i3`), and a form is
 //! recognised only in the shape elaboration emits.
 
-use std::collections::HashMap;
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
 
 use yan_core::ast as y;
 use yan_diag::Span;
-use yan_surface::{Trivia, TriviaTable};
+use yan_surface::{Mark, Trivia, TriviaTable};
 
 use crate::*;
 
@@ -62,13 +63,17 @@ pub struct Raised {
 }
 
 /// `m` as HIR, reading spelling marks from `trivia` (RFC 0034). Items elaboration copied in from
-/// std are left out. No mark is consumed yet.
-pub fn raise(m: &y::Module, _trivia: &TriviaTable, std: &dyn Std) -> R<Raised> {
+/// std are left out.
+pub fn raise(m: &y::Module, trivia: &TriviaTable, std: &dyn Std) -> R<Raised> {
+    let fns = signatures(m);
     let mut items = Vec::new();
-    for it in &m.items {
-        if let Some(i) = item(it, std)? {
+    let mut consumed = Vec::new();
+    for (it, h) in m.items.iter().zip(yan_core::hash::hash_module(m)) {
+        let marks = Marks::new(trivia, h.identity.to_string(), it, &fns);
+        if let Some(i) = item(it, std, &marks)? {
             items.push(i);
         }
+        consumed.extend(marks.finish());
     }
     Ok(Raised {
         module: Module {
@@ -77,8 +82,112 @@ pub fn raise(m: &y::Module, _trivia: &TriviaTable, std: &dyn Std) -> R<Raised> {
             doc: None,
             items,
         },
-        consumed: Vec::new(),
+        consumed,
     })
+}
+
+/// The value parameter names of each function of `m`, by call path.
+fn signatures(m: &y::Module) -> HashMap<String, Vec<String>> {
+    m.items
+        .iter()
+        .filter_map(|it| match &it.kind {
+            y::ItemKind::Fn(f) => Some((
+                f.path.join("."),
+                f.params
+                    .iter()
+                    .filter_map(|p| match p {
+                        y::Param::Value { name, .. } => Some(name.clone()),
+                        y::Param::Cap { .. } => None,
+                    })
+                    .collect(),
+            )),
+            _ => None,
+        })
+        .collect()
+}
+
+/// An argument's `Keyword` or `Positional` mark and its path.
+type ArgMark = Option<(Mark, Vec<u32>)>;
+
+/// The marks of one item (RFC 0034 D3, D5): where its calls are, and which marks `raise` has used.
+struct Marks<'a> {
+    trivia: &'a TriviaTable,
+    key: String,
+    /// Whether the item has a name-table entry, which makes its marks authoritative (D3).
+    sourced: bool,
+    paths: HashMap<*const y::Call, Vec<u32>>,
+    fns: &'a HashMap<String, Vec<String>>,
+    seen: RefCell<HashSet<Vec<u32>>>,
+    rejected: RefCell<HashSet<Vec<u32>>>,
+}
+
+impl<'a> Marks<'a> {
+    fn new(
+        trivia: &'a TriviaTable,
+        key: String,
+        it: &y::Item,
+        fns: &'a HashMap<String, Vec<String>>,
+    ) -> Marks<'a> {
+        let mut paths = HashMap::new();
+        yan_core::path::walk(it, &mut |p, n| {
+            if let yan_core::path::Node::Call(c) = n {
+                paths.insert(c as *const y::Call, p.to_vec());
+            }
+        });
+        Marks {
+            sourced: trivia.has_names(&key),
+            trivia,
+            key,
+            paths,
+            fns,
+            seen: RefCell::default(),
+            rejected: RefCell::default(),
+        }
+    }
+
+    /// The mark of each value argument of `c`, in order.
+    fn args(&self, c: &y::Call) -> Vec<ArgMark> {
+        let at = self.paths.get(&(c as *const y::Call));
+        let mut out = Vec::new();
+        for (k, a) in c.args.iter().enumerate() {
+            if !matches!(a, y::Arg::Value(..)) {
+                continue;
+            }
+            out.push(at.filter(|_| self.sourced).and_then(|p| {
+                let mut p = p.clone();
+                p.push(k as u32);
+                let m = self.trivia.at(&self.key, &p).iter().find_map(|t| match t {
+                    Trivia::Mark(m @ (Mark::Keyword | Mark::Positional)) => Some(m.clone()),
+                    _ => None,
+                })?;
+                Some((m, p))
+            }));
+        }
+        out
+    }
+
+    fn consume(&self, marks: &[ArgMark]) {
+        self.seen
+            .borrow_mut()
+            .extend(marks.iter().flatten().map(|(_, p)| p.clone()));
+    }
+
+    /// A mark that fails its check: the default prints, and strict mode reports the mark.
+    fn reject(&self, m: &ArgMark) {
+        if let Some((_, p)) = m {
+            self.rejected.borrow_mut().insert(p.clone());
+        }
+    }
+
+    fn finish(self) -> Vec<Consumed> {
+        let rejected = self.rejected.into_inner();
+        self.seen
+            .into_inner()
+            .into_iter()
+            .filter(|p| !rejected.contains(p))
+            .map(|p| (self.key.clone(), p))
+            .collect()
+    }
 }
 
 /// The marks of `trivia` that `raised` did not consume, as `(item, path, mark)` lines.
@@ -114,10 +223,10 @@ fn last(p: &[y::Name]) -> String {
     p.last().cloned().unwrap_or_default()
 }
 
-fn item(it: &y::Item, std: &dyn Std) -> R<Option<Item>> {
+fn item(it: &y::Item, std: &dyn Std, marks: &Marks) -> R<Option<Item>> {
     let (is_pub, kind) = match &it.kind {
         y::ItemKind::Fn(f) if std.inserted(&f.path.join(".")) => return Ok(None),
-        y::ItemKind::Fn(f) => (f.is_pub, ItemKind::Func(func(f, std)?)),
+        y::ItemKind::Fn(f) => (f.is_pub, ItemKind::Func(func(f, std, marks)?)),
         y::ItemKind::Record(r) if std.inserted(&last(&r.path)) => return Ok(None),
         y::ItemKind::Sum(s) if std.inserted(&last(&s.path)) => return Ok(None),
         y::ItemKind::Record(r) => (
@@ -257,7 +366,7 @@ fn fail_paths(t: &y::Type) -> R<Vec<Path>> {
     }
 }
 
-fn func(f: &y::FnDef, std: &dyn Std) -> R<FuncDef> {
+fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
     let mut params = Vec::new();
     let mut caps = Vec::new();
     let mut locals = HashMap::new();
@@ -305,7 +414,7 @@ fn func(f: &y::FnDef, std: &dyn Std) -> R<FuncDef> {
     });
     let mut contracts = Vec::new();
     for c in &f.contracts {
-        let mut b = Fold::new(std, locals.clone(), &[]);
+        let mut b = Fold::new(std, marks, locals.clone(), &[]);
         contracts.push(match c {
             y::Contract::Requires(x) => Contract::Pre(b.pure(x)?),
             y::Contract::Ensures(x) => Contract::Post(b.pure(x)?),
@@ -319,7 +428,7 @@ fn func(f: &y::FnDef, std: &dyn Std) -> R<FuncDef> {
     let body = match &f.body {
         None => None,
         Some(blk) => {
-            let mut b = Fold::new(std, locals, &blk.stmts);
+            let mut b = Fold::new(std, marks, locals, &blk.stmts);
             let mut stmts = b.stmts(&blk.stmts)?;
             if let Some(t) = b.pending.keys().find(|t| !b.pure.contains(*t)) {
                 return no(format!("a temporary used out of order: `{t}`"));
@@ -376,6 +485,7 @@ enum Pending {
 
 struct Fold<'a> {
     std: &'a dyn Std,
+    marks: &'a Marks<'a>,
     types: HashMap<String, y::Type>,
     uses: HashMap<String, usize>,
     pending: HashMap<String, Pending>,
@@ -388,11 +498,17 @@ struct Fold<'a> {
 const BUILDERS: [&str; 3] = ["std.list.append", "std.set.add", "std.dict.insert"];
 
 impl<'a> Fold<'a> {
-    fn new(std: &'a dyn Std, types: HashMap<String, y::Type>, stmts: &[y::Stmt]) -> Fold<'a> {
+    fn new(
+        std: &'a dyn Std,
+        marks: &'a Marks<'a>,
+        types: HashMap<String, y::Type>,
+        stmts: &[y::Stmt],
+    ) -> Fold<'a> {
         let mut uses = HashMap::new();
         count_stmts(stmts, &mut uses);
         Fold {
             std,
+            marks,
             types,
             uses,
             pending: HashMap::new(),
@@ -572,6 +688,12 @@ impl<'a> Fold<'a> {
     }
 
     fn call(&mut self, c: &y::Call) -> R<Expr> {
+        let x = self.call_marked(c)?;
+        self.marks.consume(&self.marks.args(c));
+        Ok(x)
+    }
+
+    fn call_marked(&mut self, c: &y::Call) -> R<Expr> {
         let p = c.path.join(".");
         let vals = self.values(c);
         if let ([a, b], Some(op)) = (vals.as_slice(), binary(&p)) {
@@ -635,7 +757,16 @@ impl<'a> Fold<'a> {
             }
             return self.std_call(c, m, f);
         }
-        let args = self.args(&c.args)?;
+        let mut args = self.args(&c.args)?;
+        let marks = self.marks.args(c);
+        let names = self.marks.fns.get(&p);
+        for (i, a) in args.iter_mut().enumerate() {
+            match (marks.get(i), names.and_then(|n| n.get(i))) {
+                (Some(Some((Mark::Keyword, _))), Some(n)) => a.name = Some(n.clone()),
+                (Some(m @ Some((Mark::Keyword, _))), None) => self.marks.reject(m),
+                _ => {}
+            }
+        }
         Ok(call(path_expr(&c.path), args))
     }
 
@@ -786,6 +917,7 @@ impl<'a> Fold<'a> {
     /// are dropped, and later ones are named, as Yan Agent writes them (13.3).
     fn std_args(&mut self, c: &y::Call, path: &str, skip: usize) -> R<Vec<Arg>> {
         let mut args = self.args(&c.args)?;
+        let marks = self.marks.args(c);
         let Some(params) = self.std.params(path) else {
             return Ok(args.split_off(skip.min(args.len())));
         };
@@ -811,9 +943,20 @@ impl<'a> Fold<'a> {
             let ArgKind::Expr(x) = &a.kind else {
                 unreachable!("an expression argument")
             };
-            match &p.default {
-                Some(d) if same(x, d) => {}
-                Some(_) if i > skip && !p.positional => out.push(Arg {
+            let mark = marks.get(i).and_then(Option::as_ref).map(|(m, _)| m);
+            match (mark, &p.default) {
+                // A marked argument was written, even if it equals the default.
+                (Some(Mark::Keyword), _) if !p.positional => out.push(Arg {
+                    name: Some(p.name.clone()),
+                    ..a
+                }),
+                (Some(Mark::Keyword), _) => {
+                    self.marks.reject(&marks[i]);
+                    out.push(a)
+                }
+                (Some(_), _) => out.push(a),
+                (None, Some(d)) if same(x, d) => {}
+                (None, Some(_)) if i > skip && !p.positional => out.push(Arg {
                     name: Some(p.name.clone()),
                     ..a
                 }),
@@ -902,6 +1045,11 @@ impl<'a> Fold<'a> {
     fn stmt(&mut self, ss: &[y::Stmt], out: &mut Vec<Stmt>) -> R<usize> {
         use y::StmtKind as K;
         let s = &ss[0];
+        if let K::Let { rhs, .. } | K::Assign { rhs, .. } | K::Rhs(rhs) = &s.kind
+            && let y::Rhs::Call(c) | y::Rhs::Try(c) | y::Rhs::Propagate { call: c, .. } = rhs
+        {
+            self.marks.consume(&self.marks.args(c));
+        }
         match &s.kind {
             K::Let {
                 pat: y::Pat::Bind(n),
@@ -1555,7 +1703,7 @@ impl<'a> Fold<'a> {
             return Ok(None);
         };
         // An arm that jumps to `k`, after temporaries for the argument.
-        let jump = |b: &'_ y::Block| -> Option<(Vec<y::Stmt>, y::Atom)> {
+        fn jump<'b>(k: &str, b: &'b y::Block) -> Option<(&'b [y::Stmt], y::Atom)> {
             let (last, pre) = b.stmts.split_last()?;
             match &last.kind {
                 y::StmtKind::Jump { name, args }
@@ -1566,18 +1714,18 @@ impl<'a> Fold<'a> {
                             y::StmtKind::Let { pat: y::Pat::Bind(t), .. } if generated(t))
                         }) =>
                 {
-                    Some((pre.to_vec(), args[0].clone()))
+                    Some((pre, args[0].clone()))
                 }
                 _ => None,
             }
-        };
+        }
         let mut other = None;
         let mut bound = None;
         let mut some = false;
         for (p, b) in arms {
             match p {
                 y::Pat::Ctor { path, .. } if path == &["Some"] || path == &["Ok"] => {
-                    if !jump(b).is_some_and(|(pre, _)| pre.is_empty()) {
+                    if !jump(k, b).is_some_and(|(pre, _)| pre.is_empty()) {
                         return Ok(None);
                     }
                     some = true;
@@ -1600,18 +1748,18 @@ impl<'a> Fold<'a> {
             return Ok(None);
         };
         if let Some(n) = &bound
-            && let Some((pre, v)) = jump(b)
+            && let Some((pre, v)) = jump(k, b)
         {
             let x = self.atom(&y::Atom::Name(s.clone(), AT))?;
-            let v = self.arm_value(&pre, &v)?;
+            let v = self.arm_value(pre, &v)?;
             return Ok(Some(e(ExprKind::Fallback(
                 Box::new(x),
                 Box::new(Fallback::Bind(n.clone(), v)),
             ))));
         }
         let x = self.atom(&y::Atom::Name(s.clone(), AT))?;
-        let fb = match jump(b) {
-            Some((pre, v)) => Fallback::Value(self.arm_value(&pre, &v)?),
+        let fb = match jump(k, b) {
+            Some((pre, v)) => Fallback::Value(self.arm_value(pre, &v)?),
             None => {
                 let mut ss = self.stmts(&b.stmts)?;
                 let (Some(last), true) = (ss.pop(), ss.is_empty()) else {

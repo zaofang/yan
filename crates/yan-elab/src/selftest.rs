@@ -82,6 +82,36 @@ fn raised(src: &str) -> String {
     yan_yag::print(&yan_yag::resugar(h).expect("in the Yan Agent subset"))
 }
 
+/// `src` through elaboration and raise with the marks elaboration wrote.
+fn raised_marked(src: &str) -> (String, Vec<String>) {
+    let (m, _) = yan_yag::parse("t.yag", src, false);
+    let (y, table, d) = elaborate_in("t.yag", src, &m.expect("parses"), Options::default(), None)
+        .expect("supported");
+    assert!(
+        d.iter().all(|d| d.severity != yan_diag::Severity::Error),
+        "{d:?}"
+    );
+    let r = yan_hir::raise::raise(&y, &table, &StdInfo).expect("raises");
+    let unused = yan_hir::raise::unconsumed(&table, &r);
+    (
+        yan_yag::print(&yan_yag::resugar(r.module).expect("in the Yan Agent subset")),
+        unused,
+    )
+}
+
+#[test]
+fn keyword_marks_restore_the_written_argument_spelling() {
+    // `step` is keyword-capable, and `raise` alone would name it; `start` would print positionally.
+    let src = "\
+pub def main() uses io:
+    io.print(f\"{iter.count(start=5, step=2).take(2).collect()}\")
+    io.print(f\"{iter.count(5, 2).take(2).collect()}\")
+";
+    let (text, unused) = raised_marked(src);
+    assert_eq!(text, src);
+    assert!(unused.is_empty(), "{unused:?}");
+}
+
 #[test]
 fn raise_restores_loops_fallbacks_and_fstrings() {
     let src = "\
