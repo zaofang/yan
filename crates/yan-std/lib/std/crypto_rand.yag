@@ -1,0 +1,7 @@
+"""The crypto_rand capability: bytes from the OS CSPRNG (17.3, 7.1). Tests may replace the handler
+with `fake_crypto_rand`; a release run ignores the replacement."""
+
+@capability
+@since("1.0")
+pub trait CryptoRand:
+    def fill_bytes(self: Self, n: int) -> bytes: ...

@@ -5,9 +5,12 @@
 #[allow(unsafe_code)]
 pub mod abi;
 pub mod collections;
+pub mod crypto_rand;
+pub mod csv;
 pub mod fmt;
 #[allow(unsafe_code)]
 pub mod heap;
+pub mod json;
 pub mod list;
 pub mod math;
 pub mod num;
@@ -15,3 +18,4 @@ pub mod rand;
 pub mod regex;
 pub mod sort;
 pub mod text;
+pub mod wire;

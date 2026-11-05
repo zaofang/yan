@@ -14,6 +14,7 @@ pub mod marks;
 mod stage0;
 mod stdlib;
 mod ty;
+mod wire;
 
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -153,6 +154,8 @@ pub(crate) struct Globals {
     pub layout_c: HashSet<String>,
     /// Records marked `@derive(Cli)`, with their `@help` texts (RFC 0019 D14).
     pub clis: HashMap<String, HashMap<String, String>>,
+    /// Records and sums marked `@derive(Wire)` (17.4).
+    pub wires: HashSet<String>,
     /// Functions marked `@deprecated`, for W815.
     pub deprecated: HashSet<String>,
     pub consts: HashMap<String, Ty>,
@@ -581,6 +584,9 @@ pub fn elaborate_in(
 
 fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     for it in &m.items {
+        if decorators::derives(it, "Wire") {
+            g.wires.insert(it.kind.name().to_owned());
+        }
         match &it.kind {
             j::ItemKind::Type(t) if !t.tparams.is_empty() => {
                 return unsupported("generic types").map_err(|u| u.at(it.span));

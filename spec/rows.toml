@@ -909,3 +909,33 @@ sections = "11.1"
 rows = "R837 to R843"
 topic = "Spelling marks from elaboration to raise (RFC 0034, accepted by the owner): the node path and its one walker (R837); the closed set of marks, written only by elaboration (R838); an item with a name-table entry is authoritative (R839); raise validates each mark and drops a failing one (R840); `yan view --strict` fails on marks raise did not use, E279 (R841); the bare companion of law 1 (R842); marks live in memory within one load (R843)"
 sections = "16.5, 18.1, 25.4"
+
+[[entry]]
+rows = "R844"
+topic = "A doc on a parameter, field, variant, associated type or dict, list or tuple entry is a hash-neutral `Doc` trivia node at a node path of the one walker; new paths for fields, variants, associated types and entries (RFC 0035, R844)"
+sections = "16.5"
+
+[[entry]]
+rows = "R845"
+topic = "Sub-item docs are `#:` lines in Yan Agent and `---` lines in Yan above the node; a literal with a documented entry is printed one entry per line (R845)"
+sections = "13.1, 15.1, 15.3"
+
+[[entry]]
+rows = "R846"
+topic = "Parameter docs in an `Args:` section or above the parameter, both kept; the `DocAbove` spelling mark; both for one parameter is E280 (R846)"
+sections = "16.5, 18.9, 25.4"
+
+[[entry]]
+rows = "R847"
+topic = "Variant docs are a `Variants:` section in the type doc, `Name:` and `Name.field:` entries; no grammar change (R847)"
+sections = "18.9"
+
+[[entry]]
+rows = "R848"
+topic = "`yan doc` shows sub-item docs and counts them in `--coverage`; W860 for a section entry matching nothing, W861 opt-in for missing sub-item docs (R848)"
+sections = "18.9, 25.10"
+
+[[entry]]
+rows = "R849"
+topic = "Lenient reader: N41 PEP 257 attribute strings and `Attributes:`, N42 reST, Google and NumPy parameter styles, N43 enum member docs; a disagreeing written type is E281 (R849)"
+sections = "14.4, 25.4"
