@@ -201,6 +201,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R853 | `Lenient(code)` mark: the N-code of the lenient rewrite that produced a call; raise reprints the alias only if the rewrite reproduces the node (R853) | 14.4, 16.5 |
 | R854 | Raise removes widening conversions that carry an origin mark; no new mark kind (R854) | 16.5 |
 | R855 | Literal trivia covers float, string and char literal forms, validated by parsing back to the node's value (R855) | 16.5, 18.5 |
+| R856 | `Operator` mark: a power written with `**`; raise reprints the operator only if the call is still `int_pow`, `bigint_pow` or `std.math.pow`/`pown` (R856) | 16.5 |
 
 <!-- /rows -->
 

@@ -58,6 +58,8 @@ pub enum Mark {
     Qualified,
     /// The N-code of the lenient rewrite that produced the node (R853).
     Lenient(String),
+    /// A power written with the `**` operator (R856).
+    Operator,
 }
 
 /// One trivia entry at a node. Local names, the sixth kind, are kept per item by binding order
