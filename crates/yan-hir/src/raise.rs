@@ -1570,6 +1570,14 @@ impl<'a> Fold<'a> {
                 {
                     return Ok(1 + k);
                 }
+                if generated(n)
+                    && let y::Rhs::Ctor(_) = rhs
+                    && let Some((list, k)) = tuple_iterated(n, &ss[1..])
+                {
+                    let value = self.rhs(rhs)?;
+                    self.bind_pending(&list, Pending::Expr(value));
+                    return Ok(1 + k);
+                }
                 if generated(n) {
                     let (names, k) = destructured(n, &ss[1..]);
                     if !names.is_empty() && self.uses(n) == names.len() {
@@ -2334,9 +2342,13 @@ fn destructured(v: &str, ss: &[y::Stmt]) -> (Vec<String>, usize) {
         .map(|(t, s)| match &s.kind {
             y::StmtKind::Let {
                 pat: y::Pat::Bind(b),
-                rhs: y::Rhs::Atom(y::Atom::Name(a, _)),
+                rhs,
                 ..
-            } if a == t => Some(b.clone()),
+            } => match rhs {
+                y::Rhs::Atom(y::Atom::Name(a, _)) if a == t => Some(b.clone()),
+                y::Rhs::Move(p) if p.root == *t && p.projs.is_empty() => Some(b.clone()),
+                _ => None,
+            },
             _ => None,
         })
         .collect();
@@ -2344,6 +2356,52 @@ fn destructured(v: &str, ss: &[y::Stmt]) -> (Vec<String>, usize) {
         Some(ns) if n > 0 && ns.len() == n => (ns, 2 * n),
         _ => (Vec::new(), 0),
     }
+}
+
+/// `for x in t` over a tuple `t`, as yan-elab expands it: a list built from copies of each
+/// field of the tuple temporary `t`. Returns the list's temporary and the statements it took.
+fn tuple_iterated(t: &str, ss: &[y::Stmt]) -> Option<(String, usize)> {
+    use y::StmtKind as K;
+    let [
+        K::Let {
+            pat: y::Pat::Bind(list),
+            rhs: y::Rhs::Call(new),
+            ..
+        },
+        ..,
+    ] = ss.iter().map(|s| &s.kind).collect::<Vec<_>>().as_slice()
+    else {
+        return None;
+    };
+    if !generated(list) || new.path.join(".") != "std.list.new" {
+        return None;
+    }
+    let mut k = 1;
+    let mut field = 0;
+    while let [
+        K::Let {
+            pat: y::Pat::Bind(x),
+            rhs: y::Rhs::Copy(p),
+            ..
+        },
+        K::Rhs(y::Rhs::Call(add)),
+        ..,
+    ] = &ss[k..].iter().map(|s| &s.kind).collect::<Vec<_>>()[..]
+    {
+        let copies_field = p.root == t
+            && matches!(p.projs.as_slice(), [y::Proj::Field(f, _)] if *f == format!("_{field}"));
+        let appends = add.path.join(".") == "std.list.append"
+            && matches!(add.args.as_slice(), [
+                y::Arg::Value(y::Conv::Inout, y::Atom::Name(l, _), _),
+                y::Arg::Value(_, y::Atom::Name(v, _), _),
+            ] if l == list && v == x);
+        if !(copies_field && appends) {
+            break;
+        }
+        k += 2;
+        field += 1;
+    }
+    (field > 0).then(|| (list.clone(), k))
 }
 
 /// `x[len(x) + -k]` is how yan-elab normalizes `x[-k]`.
