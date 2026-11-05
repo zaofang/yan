@@ -17,10 +17,10 @@ concurrency:
   group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: true
 
-# Hosted runners take the light jobs; the self-hosted Mac runs only the cargo builds.
+# Every job runs on the self-hosted Mac runners (the repo is private, so no fork PRs reach them).
 jobs:
   changes:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       code: ${{ steps.diff.outputs.code }}
     steps:
@@ -44,7 +44,7 @@ jobs:
 
   guard:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
         with:
@@ -63,7 +63,7 @@ jobs:
             | python3 tools/guard.py --branch "$BRANCH" --author-type "$AUTHOR_TYPE"
 
   canary:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -77,7 +77,7 @@ jobs:
           fi
 
   check:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -92,7 +92,7 @@ jobs:
   formal:
     needs: changes
     if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
