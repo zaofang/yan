@@ -96,7 +96,8 @@ fn objects_link_and_match_the_interpreter() {
         let syms = String::from_utf8_lossy(&syms.stdout);
         assert!(
             syms.lines()
-                .any(|l| l.contains(".text") && l.ends_with(" main")),
+                // Mach-O prefixes symbols with an underscore and names the section `__text`.
+                .any(|l| l.contains("text") && (l.ends_with(" main") || l.ends_with(" _main"))),
             "{name}: no defined main\n{syms}"
         );
         assert!(
