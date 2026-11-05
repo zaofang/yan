@@ -49,6 +49,7 @@ pub fn place(
     let mut lit_claimed = vec![false; lits.len()];
     let mut origin_claimed = vec![false; origins.len()];
     let mut call = None;
+    let mut callee = String::new();
     walk(item, &mut |path, node| {
         let mut cands = Vec::new();
         match node {
@@ -74,6 +75,7 @@ pub fn place(
             Node::Item(i) => cands.push((Kind::Item, i.span)),
             Node::Call(c) => {
                 call = Some(c.span);
+                callee = c.path.join(".");
                 if let Some(i) =
                     (0..origins.len()).find(|&i| !origin_claimed[i] && origins[i].0 == c.span)
                 {
@@ -101,6 +103,7 @@ pub fn place(
                     && p.span == span
                     && (kind != Kind::Arg || p.call == call)
                     && !here.contains(&&p.mark)
+                    && (p.mark != Mark::Operator || is_pow(&callee))
                 {
                     claimed[i] = true;
                     here.push(&p.mark);
@@ -115,6 +118,14 @@ pub fn place(
         .filter(|(_, c)| !c)
         .map(|(p, _)| p.clone())
         .collect()
+}
+
+/// A callee that a `**` lowers to.
+fn is_pow(callee: &str) -> bool {
+    matches!(
+        callee,
+        "int_pow" | "bigint_pow" | "std.math.pow" | "std.math.pown"
+    )
 }
 
 #[cfg(test)]

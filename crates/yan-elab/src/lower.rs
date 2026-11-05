@@ -4701,7 +4701,13 @@ impl Lower<'_, '_, '_> {
                 })?;
                 (Rhs::Atom(v), t)
             }
-            K::Binary(op, a, b) => self.arith(op, a, b, at, want)?,
+            K::Binary(op, a, b) => {
+                let r = self.arith(op, a, b, at, want)?;
+                if *op == "**" && matches!(r.0, Rhs::Call(_)) {
+                    self.mark_call(at, yan_surface::Mark::Operator);
+                }
+                r
+            }
             K::Compare(op, a, b) => self.compare(op, a, b, at)?,
             K::Cond { then, cond, els } => {
                 let c = self.cond(cond)?;
