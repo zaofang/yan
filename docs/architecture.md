@@ -143,6 +143,10 @@ ask it for a module's front end, elaborated core, diagnostics and items, keyed b
   blocks that are never freed yet.
 - **Cranelift** (`yan-cg-cranelift`): JIT with lazy stubs (a function compiles on first call, #117).
   No AOT object output or linking yet.
+- **Leak counter**: `yan run --report-live` prints `live: N` to stderr at exit, N being the
+  `yan-rt` blocks (`Str`, `List`, closure captures) native code took and has not freed
+  (`yan_rt::heap::live_blocks`). Stdout is unchanged. The interpreter always reports `live: 0`
+  (Rust owns its values). Not printed when the program panics or exits from inside native code.
 
 ## 8. Agent toolchain
 

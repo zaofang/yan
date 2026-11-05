@@ -435,6 +435,8 @@ mod tests {
     fn embed_does_not_follow_a_symlink_out_of_the_root() {
         let dir = std::env::temp_dir().join(format!("yan-embed-{}", std::process::id()));
         let root = dir.join("pkg");
+        // A directory left by an earlier run whose pid was reused would make `symlink` fail.
+        let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&root).unwrap();
         std::fs::write(root.join("yan.toml"), "").unwrap();
         std::fs::write(dir.join("secret.txt"), "s").unwrap();

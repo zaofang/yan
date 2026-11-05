@@ -5,11 +5,26 @@ use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
 
 static LIVE: AtomicUsize = AtomicUsize::new(0);
+static BLOCKS: AtomicUsize = AtomicUsize::new(0);
 
 pub struct Counting;
 
 pub fn live() -> usize {
     LIVE.load(Relaxed)
+}
+
+/// Blocks handed to native code by the runtime ABI and not yet freed. Independent of
+/// [`Counting`]: the interpreter never takes blocks, so this stays 0 there.
+pub fn live_blocks() -> usize {
+    BLOCKS.load(Relaxed)
+}
+
+pub fn block_taken() {
+    BLOCKS.fetch_add(1, Relaxed);
+}
+
+pub fn block_freed() {
+    BLOCKS.fetch_sub(1, Relaxed);
 }
 
 unsafe impl GlobalAlloc for Counting {
@@ -41,5 +56,17 @@ unsafe impl GlobalAlloc for Counting {
             LIVE.fetch_sub(l.size(), Relaxed);
         }
         q
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn blocks_count_up_and_down() {
+        let n = super::live_blocks();
+        super::block_taken();
+        assert_eq!(super::live_blocks(), n + 1);
+        super::block_freed();
+        assert_eq!(super::live_blocks(), n);
     }
 }
