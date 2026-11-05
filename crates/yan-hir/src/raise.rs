@@ -1667,6 +1667,37 @@ impl<'a> Fold<'a> {
 
     /// Raises the statement at the head of `ss` into `out`; returns how many it consumed.
     fn stmt(&mut self, ss: &[y::Stmt], out: &mut Vec<Stmt>) -> R<usize> {
+        if let Some(m) = self.marks.stmt_mark(&ss[0], &Mark::Hoisted)
+            && matches!(
+                ss[0].kind,
+                y::StmtKind::Let {
+                    pat: y::Pat::Bind(_),
+                    ..
+                }
+            )
+        {
+            // The declaration elaboration inserted before an `if` or `with` (R862): dropped only
+            // when that statement follows.
+            let mut decl = Vec::new();
+            let k = self.stmt_inner(ss, &mut decl)?;
+            let mut rest = Vec::new();
+            let mut more = 0;
+            while rest.is_empty() && k + more < ss.len() {
+                more += self.stmt(&ss[k + more..], &mut rest)?;
+            }
+            let follows = matches!(
+                rest.first().map(|s| &s.kind),
+                Some(StmtKind::If { els: Some(_), .. } | StmtKind::With { .. })
+            );
+            if follows {
+                self.marks.accept(m);
+            } else {
+                self.marks.refuse(m);
+                out.extend(decl);
+            }
+            out.extend(rest);
+            return Ok(k + more);
+        }
         if let Some(p) = self.marks.stmt_mark(&ss[0], &Mark::Lenient("N36".into()))
             && let y::StmtKind::Let {
                 pat: y::Pat::Bind(n),

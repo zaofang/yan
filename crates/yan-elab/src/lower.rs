@@ -1487,6 +1487,12 @@ impl Lower<'_, '_, '_> {
             let (r, t) = self.rhs(&e, Some(&t))?;
             self.mutable.insert(n.clone());
             self.bind(&n, true, &t, r, s.span, s.span);
+            self.cx.marks.push(crate::marks::Pending {
+                span: s.span,
+                kind: crate::marks::Kind::Stmt,
+                call: None,
+                mark: yan_surface::Mark::Hoisted,
+            });
         }
         Ok(())
     }
