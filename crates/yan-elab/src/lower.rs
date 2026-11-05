@@ -954,6 +954,12 @@ fn function_body_with(
     let block = l.block_with(|l| {
         for e in pre {
             let a = l.cond(e)?;
+            l.cx.marks.push(crate::marks::Pending {
+                span: e.span,
+                kind: crate::marks::Kind::Assert,
+                call: None,
+                mark: yan_surface::Mark::FromPre,
+            });
             l.emit(StmtKind::Assert(y::Expr::Atom(a)), e.span);
         }
         for p in olds(&l.posts) {
