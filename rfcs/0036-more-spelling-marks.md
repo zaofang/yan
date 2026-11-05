@@ -1,4 +1,4 @@
-# 0035: More spelling marks for law 1
+# 0036: More spelling marks for law 1
 
 - Status: draft
 - Research: none; `docs/reports/2026-11-05-law1-ledger.md` and a read of `crates/yan-elab/src/lower.rs`,
