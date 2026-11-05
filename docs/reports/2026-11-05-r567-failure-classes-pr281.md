@@ -65,8 +65,9 @@ moves (Sonnet 83, Haiku 61 now).
 7. **Not fixable in Yan:** the 24 shared no-diagnostic failures, the 6 interpretation divergences, W806
    (models hard-coding `ex` outputs; the guard is working).
 
-Upper bound if 1 to 6 all worked: Sonnet 83 to about 89, Haiku 61 to about 71. The Python arm sits at 92 and
-74, so the gate is reachable for Sonnet and not for Haiku on this list alone.
+Items overlap (task 99 is in 2 and 3). Upper bound if every P003 and STOP task above were fixed: Sonnet
+83 to 92 (6 + 3), Haiku 61 to 72 (10 + 1). The Python arm sits at 92 and 74, so the gate is reachable for
+Sonnet; Haiku also needs its 4 Yan-only no-diagnostic divergences or the malformed reply fixed.
 
 ## Caveats
 
