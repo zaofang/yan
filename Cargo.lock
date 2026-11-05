@@ -1496,6 +1496,7 @@ name = "yan-rt"
 version = "0.0.0"
 dependencies = [
  "core-math",
+ "getrandom 0.4.3",
  "libm",
  "num-bigint",
  "num-traits",
