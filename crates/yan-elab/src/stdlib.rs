@@ -398,6 +398,10 @@ fn words(m: &j::Module) -> HashSet<String> {
     if w.contains("bytes") || w.contains("bytearray") {
         w.insert("encoding".into());
     }
+    // Python's `re` module names `std.regex` (N35).
+    if w.contains("re") {
+        w.insert("regex".into());
+    }
     // Civil values reach `ZonedDateTime`, `Disambiguation` and `TimeError` (R601).
     const TIME: [&str; 8] = [
         "Duration",

@@ -267,3 +267,76 @@ pub def is_inf(x: float) -> bool: ...
 @intrinsic
 @since("1.0")
 pub def is_finite(x: float) -> bool: ...
+
+@since("1.0")
+pub def gcd(a: int, b: int) -> int:
+    """The greatest common divisor of `a` and `b`, never negative; `gcd(0, 0)` is 0."""
+    x = a if a >= 0 else -a
+    y = b if b >= 0 else -b
+    while y != 0:
+        x, y = y, x % y
+    return x
+
+@since("1.0")
+pub def lcm(a: int, b: int) -> int:
+    """The least common multiple of `a` and `b`, never negative; 0 when either is 0."""
+    x = a if a >= 0 else -a
+    y = b if b >= 0 else -b
+    if x == 0 or y == 0:
+        return 0
+    p = x
+    q = y
+    while q != 0:
+        p, q = q, p % q
+    return x // p * y
+
+@since("1.0")
+pub def isqrt(n: int) -> int:
+    """The largest integer whose square is at most `n`."""
+    pre n >= 0
+    if n < 2:
+        return n
+    x = n
+    y = n // 2 + 1
+    while y < x:
+        x = y
+        y = (x + n // x) // 2
+    return x
+
+@since("1.0")
+pub def factorial(n: int) -> int:
+    """`n!`; overflow panics."""
+    pre n >= 0
+    r = 1
+    k = 2
+    while k <= n:
+        r *= k
+        k += 1
+    return r
+
+@since("1.0")
+pub def comb(n: int, k: int) -> int:
+    """The number of ways to choose `k` of `n` items without order; 0 when `k > n`."""
+    pre n >= 0 and k >= 0
+    if k > n:
+        return 0
+    j = k if k <= n - k else n - k
+    r = 1
+    i = 1
+    while i <= j:
+        r = r * (n - j + i) // i
+        i += 1
+    return r
+
+@since("1.0")
+pub def perm(n: int, k: int) -> int:
+    """The number of ordered arrangements of `k` of `n` items; 0 when `k > n`."""
+    pre n >= 0 and k >= 0
+    if k > n:
+        return 0
+    r = 1
+    i = n - k + 1
+    while i <= n:
+        r *= i
+        i += 1
+    return r
