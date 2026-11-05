@@ -13,6 +13,8 @@ pub enum Kind {
     /// The item itself, joined by its span.
     Item,
     Stmt,
+    /// Parameter `k` of the item.
+    Param(usize),
     /// An `assert` statement.
     Assert,
     Call,
@@ -57,6 +59,7 @@ pub fn place(
                 cands.push((Kind::Assert, s.span))
             }
             Node::Stmt(s) => cands.push((Kind::Stmt, s.span)),
+            Node::Param(_) => cands.push((Kind::Param(path[1] as usize), item.span)),
             Node::Field(Ctor::Named { fields, .. }, k) => {
                 let (Atom::Name(_, sp) | Atom::Lit(_, sp)) = &fields[k].1;
                 cands.push((Kind::Field(k), *sp));
@@ -106,6 +109,10 @@ pub fn place(
                     && (!matches!(p.mark, Mark::Operator | Mark::Prelude)
                         || kind != Kind::Call
                         || is_pow(&callee))
+                    // The schema mark is for the call that takes the schema, not the `env.args()` before it.
+                    && (!matches!(p.mark, Mark::Schema(_))
+                        || kind != Kind::Call
+                        || callee == "std.cli.parse_args")
                     // The collect call shares its span with the iterator expression it wraps.
                     && (p.mark != Mark::Lenient("N37".into())
                         || kind != Kind::Call

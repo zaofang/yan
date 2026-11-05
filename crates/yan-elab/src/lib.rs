@@ -1221,6 +1221,28 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                     );
                 }
             }
+            for (k, p) in f.params.iter().enumerate() {
+                if matches!(p, j::Param::Value { ty, .. } if lower::is_view(ty)) {
+                    cx.marks.push(marks::Pending {
+                        span: it.span,
+                        kind: marks::Kind::Param(k),
+                        call: None,
+                        mark: Mark::View,
+                    });
+                }
+            }
+            if f.ret
+                .as_ref()
+                .and_then(|r| r.ty.as_ref())
+                .is_some_and(lower::is_view)
+            {
+                cx.marks.push(marks::Pending {
+                    span: it.span,
+                    kind: marks::Kind::Item,
+                    call: None,
+                    mark: Mark::View,
+                });
+            }
             y::ItemKind::Fn(lower::function(g, f, &g.fns[&f.name], it.is_pub, cx)?)
         }
         j::ItemKind::Extern(x) => y::ItemKind::Extern(ffi::lower(g, x, cx)?),

@@ -2833,6 +2833,12 @@ impl Lower<'_, '_, '_> {
             at,
         );
         let slot = self.out.len() - 1;
+        self.cx.marks.push(crate::marks::Pending {
+            span: at,
+            kind: crate::marks::Kind::Stmt,
+            call: None,
+            mark: yan_surface::Mark::Comprehension,
+        });
         let mut found: Option<(Ty, Option<Ty>)> = None;
         let acc_arg = Arg::Value(Conv::Inout, Atom::Name(acc.clone(), at), at);
         self.for_(None, target, iter, at, |l| {
@@ -3178,6 +3184,14 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<()> {
         let ann = ann.map(|t| self.g.ty(t, self.cx, at)).transpose()?;
+        if value.paren && matches!(&value.kind, j::ExprKind::Tuple(vs) if vs.len() > 1) {
+            self.cx.marks.push(crate::marks::Pending {
+                span: value.span,
+                kind: crate::marks::Kind::Stmt,
+                call: None,
+                mark: yan_surface::Mark::Parenthesized,
+            });
+        }
         match &target.kind {
             j::ExprKind::Tuple(ts) => {
                 let mut vals = Vec::new();
@@ -4010,14 +4024,16 @@ impl Lower<'_, '_, '_> {
                 });
                 let before = self.cx.marks.len();
                 let out = self.rhs_inner(&comp, want);
-                // The element's own `show` shares the span of `list.new`; the statement mark
-                // stands for the whole rewrite.
+                // The element's own `show` shares the span of `list.new`, and the loop is not a
+                // written comprehension; the statement mark stands for the whole rewrite.
                 let mut at_k = 0;
                 self.cx.marks.retain(|m| {
                     at_k += 1;
                     at_k <= before
-                        || m.kind != crate::marks::Kind::Call
-                        || m.mark != yan_surface::Mark::Lenient("N36".into())
+                        || !(m.kind == crate::marks::Kind::Call
+                            && m.mark == yan_surface::Mark::Lenient("N36".into())
+                            || m.kind == crate::marks::Kind::Stmt
+                                && m.mark == yan_surface::Mark::Comprehension)
                 });
                 out
             }
@@ -8153,6 +8169,12 @@ impl Lower<'_, '_, '_> {
             a
         };
         let rt = Ty::Data(n.clone());
+        self.cx.marks.push(crate::marks::Pending {
+            span: at,
+            kind: crate::marks::Kind::Call,
+            call: None,
+            mark: yan_surface::Mark::Schema(n.clone()),
+        });
         let c = call(
             "std.cli.parse_args",
             vec![rt.targ()],
@@ -9242,7 +9264,7 @@ fn wire(t: &Ty) -> bool {
     }
 }
 
-fn is_view(t: &j::Type) -> bool {
+pub(crate) fn is_view(t: &j::Type) -> bool {
     matches!(t, j::Type::Named { path, .. } if path.len() == 1 && path[0] == "View")
 }
 
