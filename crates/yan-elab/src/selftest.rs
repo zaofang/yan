@@ -680,3 +680,28 @@ pub def main() uses io:
     assert_eq!(text, src);
     assert!(unused.is_empty(), "{unused:?}");
 }
+
+#[test]
+fn post_marks_restore_contracts_and_out() {
+    let src = "\
+def f(x: int) -> int:
+    post out > x
+    return x + 1
+
+def g(x: int, lo: int) -> int:
+    post out >= lo
+    if x < lo:
+        return lo
+    return x
+
+def h(x: int) -> int:
+    post out >= 0
+    return 5
+
+pub def main() uses io:
+    io.print(f\"{f(1)} {g(0, 2)} {h(1)}\")
+";
+    let (text, unused) = raised_marked(src);
+    assert_eq!(text, src);
+    assert!(unused.is_empty(), "{unused:?}");
+}

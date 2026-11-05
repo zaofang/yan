@@ -2230,6 +2230,12 @@ impl Lower<'_, '_, '_> {
         self.narrow.push(("out".into(), out.clone(), depth));
         for p in self.posts.clone() {
             let c = self.cond(&p)?;
+            self.cx.marks.push(crate::marks::Pending {
+                span: p.span,
+                kind: crate::marks::Kind::Assert,
+                call: None,
+                mark: yan_surface::Mark::FromPost,
+            });
             self.emit(StmtKind::Assert(y::Expr::Atom(c)), p.span);
         }
         self.narrow.retain(|m| m.1 != out || m.0 != "out");
@@ -4117,6 +4123,14 @@ impl Lower<'_, '_, '_> {
                 let m = self.narrowed(n).expect("checked").to_owned();
                 self.uses.entry(n.clone()).or_default().push(at);
                 let t = self.locals[&m].ty.clone();
+                if n == "out" {
+                    self.cx.marks.push(crate::marks::Pending {
+                        span: at,
+                        kind: crate::marks::Kind::Out,
+                        call: None,
+                        mark: yan_surface::Mark::Out,
+                    });
+                }
                 (Rhs::Atom(Atom::Name(m, at)), t)
             }
             K::Name(n) => {
