@@ -146,6 +146,16 @@ impl yan_hir::raise::Std for StdInfo {
             .map(str::to_owned)
     }
 
+    fn returns_value(&self, path: &str) -> bool {
+        STD.fns.get(path).is_some_and(|d| {
+            d.def
+                .ret
+                .as_ref()
+                .and_then(|r| r.ty.as_ref())
+                .is_some_and(|t| !matches!(t, j::Type::Named { path, .. } if path == &["Unit"]))
+        })
+    }
+
     fn params(&self, path: &str) -> Option<Vec<yan_hir::raise::StdParam>> {
         let d = STD.fns.get(path)?;
         let slash = d

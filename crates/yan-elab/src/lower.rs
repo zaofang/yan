@@ -8370,7 +8370,12 @@ impl Lower<'_, '_, '_> {
             );
             return Ok((Rhs::Proj(p), e(), None));
         };
-        if m == "len" {
+        if m == "len"
+            || matches!(
+                path.as_str(),
+                "std.dict.index" | "std.collections.sorted_dict.index" | "std.list.concat"
+            )
+        {
             self.mark_call(at, yan_surface::Mark::Method);
         }
         if !d.intrinsic || d.typed_at_call() {
