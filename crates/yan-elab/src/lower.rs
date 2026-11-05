@@ -3604,141 +3604,8 @@ impl Lower<'_, '_, '_> {
                 Ok((p, ft))
             }
             j::ExprKind::Index(b, i) => {
-                let (p, t) = self.place(b)?;
-                // N37: an `iter` that no name holds is collected before it is indexed.
-                let (mut p, t) = match t {
-                    Ty::Coll("iter", _)
-                        if !self.cx.strict
-                            && self.can_collect()
-                            && !matches!(b.kind, j::ExprKind::Name(_)) =>
-                    {
-                        self.lenient(
-                            "N37",
-                            b.span,
-                            "an indexed `iter` normalized to `.collect()`",
-                        );
-                        let (r, lt) = self.collect(Rhs::Proj(p), &t, b.span)?;
-                        let Atom::Name(root, root_span) = self.tmp(&lt, r, b.span) else {
-                            unreachable!("a call result is bound")
-                        };
-                        let p = Place {
-                            root,
-                            root_span,
-                            projs: Vec::new(),
-                        };
-                        (p, lt)
-                    }
-                    t => (p, t),
-                };
-                match &t {
-                    Ty::List(_) | Ty::Coll("deque" | "bytes" | "bytearray", _) => {
-                        let et = match t {
-                            Ty::Coll("bytes" | "bytearray", _) => Ty::Fixed("u8"),
-                            _ => t.elem().cloned().expect("an element type"),
-                        };
-                        self.sites.insert(e.span, Site::List);
-                        // N16: the parser kept `xs[-k]`; it means `xs[len(xs) - k]`.
-                        let from_end;
-                        let i = match &i.kind {
-                            j::ExprKind::Lit(j::Lit::Int(s)) if s.starts_with('-') => {
-                                let x = |kind| j::Expr {
-                                    kind,
-                                    span: i.span,
-                                    paren: false,
-                                };
-                                let len = x(j::ExprKind::Call(
-                                    Box::new(x(j::ExprKind::Name("len".into()))),
-                                    vec![j::Arg {
-                                        name: None,
-                                        kind: j::ArgKind::Expr((**b).clone()),
-                                        span: b.span,
-                                    }],
-                                ));
-                                from_end = x(j::ExprKind::Binary("+", Box::new(len), i.clone()));
-                                &from_end
-                            }
-                            _ => &**i,
-                        };
-                        let (ia, it) = self.atom(i, Some(&Ty::Int))?;
-                        self.expect(&it, &Ty::Int, i.span);
-                        p.projs.push(Proj::Index(ia));
-                        Ok((p, et))
-                    }
-                    Ty::Tuple(ts) => {
-                        let k = match &i.kind {
-                            j::ExprKind::Lit(j::Lit::Int(s)) => s.parse::<usize>().ok(),
-                            _ => None,
-                        };
-                        match k.and_then(|k| ts.get(k).map(|t| (k, t.clone()))) {
-                            Some((k, t)) => {
-                                p.projs.push(Proj::Field(format!("_{k}"), i.span));
-                                Ok((p, t))
-                            }
-                            None => {
-                                self.err(
-                                    "E201",
-                                    i.span,
-                                    format!(
-                                        "a `{t}` is indexed by a literal below {}",
-                                        ts.len(),
-                                        t = self.ty_text(&t)
-                                    ),
-                                );
-                                Ok((p, Ty::Err))
-                            }
-                        }
-                    }
-                    Ty::Str => {
-                        let s = self.cx.text(e.span);
-                        self.err(
-                            "E504",
-                            e.span,
-                            format!("`str` has no indexing; use `{s}.chars()`"),
-                        );
-                        Ok((p, Ty::Err))
-                    }
-                    Ty::Err => Ok((p, Ty::Err)),
-                    t if p.projs.is_empty() && map_kv(t).is_some() => {
-                        let (kt, vt) = map_kv(t).expect("matched");
-                        self.sites.insert(e.span, Site::Dict);
-                        let (ka, kty) = self.atom(i, Some(&kt))?;
-                        self.expect(&kty, &kt, i.span);
-                        let path = format!("std.{}.index", t.module().expect("a map"));
-                        let root = Atom::Name(p.root.clone(), p.root_span);
-                        let c = call(
-                            &path,
-                            vec![kt.targ(), vt.targ()],
-                            vec![let_arg(root), let_arg(ka.clone())],
-                            e.span,
-                        );
-                        let v = self.fresh("t");
-                        self.bind(&v, true, &vt, Rhs::Call(c), e.span, e.span);
-                        self.dict_places.push(DictPlace {
-                            map: t.clone(),
-                            root: p.root,
-                            root_span: p.root_span,
-                            key: ka,
-                            value: v.clone(),
-                        });
-                        let place = Place {
-                            root: v,
-                            root_span: e.span,
-                            projs: Vec::new(),
-                        };
-                        Ok((place, vt))
-                    }
-                    Ty::Coll("iter", _) => {
-                        self.err(
-                            "E201",
-                            e.span,
-                            "an `iter` is single-pass and cannot be indexed; \
-                             `.collect()` it to a list first"
-                                .into(),
-                        );
-                        Ok((p, Ty::Err))
-                    }
-                    t => unsupported(format!("indexing a `{t}` as a place", t = self.ty_text(t))),
-                }
+                let pt = self.place(b)?;
+                self.index_place(e, b, i, pt)
             }
             _ => {
                 let (a, t) = self.atom(e, None)?;
@@ -3763,6 +3630,150 @@ impl Lower<'_, '_, '_> {
                     }
                 }
             }
+        }
+    }
+
+    /// `b[i]` as a place, once `b` is lowered to `p` of type `t`.
+    fn index_place(
+        &mut self,
+        e: &j::Expr,
+        b: &j::Expr,
+        i: &j::Expr,
+        (p, t): (Place, Ty),
+    ) -> R<(Place, Ty)> {
+        // N37: an `iter` that no name holds is collected before it is indexed.
+        let (mut p, t) = match t {
+            Ty::Coll("iter", _)
+                if !self.cx.strict
+                    && self.can_collect()
+                    && !matches!(b.kind, j::ExprKind::Name(_)) =>
+            {
+                self.lenient(
+                    "N37",
+                    b.span,
+                    "an indexed `iter` normalized to `.collect()`",
+                );
+                let (r, lt) = self.collect(Rhs::Proj(p), &t, b.span)?;
+                let Atom::Name(root, root_span) = self.tmp(&lt, r, b.span) else {
+                    unreachable!("a call result is bound")
+                };
+                let p = Place {
+                    root,
+                    root_span,
+                    projs: Vec::new(),
+                };
+                (p, lt)
+            }
+            t => (p, t),
+        };
+        match &t {
+            Ty::List(_) | Ty::Coll("deque" | "bytes" | "bytearray", _) => {
+                let et = match t {
+                    Ty::Coll("bytes" | "bytearray", _) => Ty::Fixed("u8"),
+                    _ => t.elem().cloned().expect("an element type"),
+                };
+                self.sites.insert(e.span, Site::List);
+                // N16: the parser kept `xs[-k]`; it means `xs[len(xs) - k]`.
+                let from_end;
+                let i = match &i.kind {
+                    j::ExprKind::Lit(j::Lit::Int(s)) if s.starts_with('-') => {
+                        let x = |kind| j::Expr {
+                            kind,
+                            span: i.span,
+                            paren: false,
+                        };
+                        let len = x(j::ExprKind::Call(
+                            Box::new(x(j::ExprKind::Name("len".into()))),
+                            vec![j::Arg {
+                                name: None,
+                                kind: j::ArgKind::Expr(b.clone()),
+                                span: b.span,
+                            }],
+                        ));
+                        from_end = x(j::ExprKind::Binary("+", Box::new(len), Box::new(i.clone())));
+                        &from_end
+                    }
+                    _ => i,
+                };
+                let (ia, it) = self.atom(i, Some(&Ty::Int))?;
+                self.expect(&it, &Ty::Int, i.span);
+                p.projs.push(Proj::Index(ia));
+                Ok((p, et))
+            }
+            Ty::Tuple(ts) => {
+                let k = match &i.kind {
+                    j::ExprKind::Lit(j::Lit::Int(s)) => s.parse::<usize>().ok(),
+                    _ => None,
+                };
+                match k.and_then(|k| ts.get(k).map(|t| (k, t.clone()))) {
+                    Some((k, t)) => {
+                        p.projs.push(Proj::Field(format!("_{k}"), i.span));
+                        Ok((p, t))
+                    }
+                    None => {
+                        self.err(
+                            "E201",
+                            i.span,
+                            format!(
+                                "a `{t}` is indexed by a literal below {}",
+                                ts.len(),
+                                t = self.ty_text(&t)
+                            ),
+                        );
+                        Ok((p, Ty::Err))
+                    }
+                }
+            }
+            Ty::Str => {
+                let s = self.cx.text(e.span);
+                self.err(
+                    "E504",
+                    e.span,
+                    format!("`str` has no indexing; use `{s}.chars()`"),
+                );
+                Ok((p, Ty::Err))
+            }
+            Ty::Err => Ok((p, Ty::Err)),
+            t if p.projs.is_empty() && map_kv(t).is_some() => {
+                let (kt, vt) = map_kv(t).expect("matched");
+                self.sites.insert(e.span, Site::Dict);
+                let (ka, kty) = self.atom(i, Some(&kt))?;
+                self.expect(&kty, &kt, i.span);
+                let path = format!("std.{}.index", t.module().expect("a map"));
+                let root = Atom::Name(p.root.clone(), p.root_span);
+                let c = call(
+                    &path,
+                    vec![kt.targ(), vt.targ()],
+                    vec![let_arg(root), let_arg(ka.clone())],
+                    e.span,
+                );
+                let v = self.fresh("t");
+                self.bind(&v, true, &vt, Rhs::Call(c), e.span, e.span);
+                self.dict_places.push(DictPlace {
+                    map: t.clone(),
+                    root: p.root,
+                    root_span: p.root_span,
+                    key: ka,
+                    value: v.clone(),
+                });
+                let place = Place {
+                    root: v,
+                    root_span: e.span,
+                    projs: Vec::new(),
+                };
+                Ok((place, vt))
+            }
+            Ty::Coll("iter", _) => {
+                self.err(
+                    "E201",
+                    e.span,
+                    "an `iter` is single-pass and cannot be indexed; \
+                     `.collect()` it to a list first"
+                        .into(),
+                );
+                Ok((p, Ty::Err))
+            }
+            t => unsupported(format!("indexing a `{t}` as a place", t = self.ty_text(t))),
         }
     }
 
@@ -4568,7 +4579,7 @@ impl Lower<'_, '_, '_> {
                         (Rhs::Call(c), Ty::Char)
                     }
                     _ => {
-                        let (p, t) = self.place(e)?;
+                        let (p, t) = self.index_place(e, b, k, (p, t))?;
                         (Rhs::Proj(p), t)
                     }
                 }
@@ -8481,6 +8492,21 @@ impl Lower<'_, '_, '_> {
             self.mark_call(at, yan_surface::Mark::Method);
         }
         if !d.intrinsic || d.typed_at_call() {
+            // A receiver that is not a place was lowered into `p.root` above; naming it keeps
+            // `user_call` from lowering it a second time.
+            if p.projs.is_empty()
+                && !matches!(
+                    b.kind,
+                    j::ExprKind::Name(_) | j::ExprKind::Attr(..) | j::ExprKind::Index(..)
+                )
+            {
+                let recv = j::Expr {
+                    kind: j::ExprKind::Name(p.root),
+                    span: b.span,
+                    paren: false,
+                };
+                return self.user_call(&path, Some(&recv), args, at);
+            }
             return self.user_call(&path, Some(b), args, at);
         }
         // A fallible method (`b.decode_utf8()`) is typed as its plain signature, which carries
