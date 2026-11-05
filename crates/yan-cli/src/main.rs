@@ -188,6 +188,9 @@ enum Command {
         /// Print `live: N` to stderr at exit: runtime blocks (Str, List, closure captures) of native code not freed.
         #[arg(long)]
         report_live: bool,
+        /// Interpret optimized Yan Core (R771).
+        #[arg(long)]
+        opt: bool,
         file: PathBuf,
         /// The program's arguments, after `--`.
         #[arg(last = true)]
@@ -230,6 +233,7 @@ fn main() -> ExitCode {
             strict,
             level,
             report_live,
+            opt,
             args,
         } => run(
             &file,
@@ -238,6 +242,7 @@ fn main() -> ExitCode {
             cli.jit,
             args,
             report_live,
+            opt,
         ),
         Command::Test {
             format,
@@ -510,8 +515,9 @@ fn run(
     jit: Jit,
     args: Vec<String>,
     report_live: bool,
+    opt: bool,
 ) -> ExitCode {
-    let code = run_program(file, db, backend, jit, args);
+    let code = run_program(file, db, backend, jit, args, opt);
     if report_live {
         eprintln!("live: {}", yan_rt::heap::live_blocks());
     }
@@ -524,6 +530,7 @@ fn run_program(
     backend: Backend,
     jit: Jit,
     args: Vec<String>,
+    opt: bool,
 ) -> ExitCode {
     let f = match db.open(file) {
         Ok(f) => f,
@@ -551,6 +558,24 @@ fn run_program(
     if backend == Backend::Cranelift {
         return native(&file.display().to_string(), module, jit);
     }
+    let optimized;
+    let module = if opt {
+        match yan_opt::optimize(&file.display().to_string(), module) {
+            Ok(m) => {
+                optimized = m;
+                &optimized
+            }
+            Err(yan_opt::Error::Diag(d)) => {
+                print_diags(&[*d]);
+                return ExitCode::FAILURE;
+            }
+            Err(yan_opt::Error::Unsupported(what)) => {
+                return tool_failure(&format!("not supported yet: {what} in optimized Yan Core"));
+            }
+        }
+    } else {
+        module
+    };
     let mut out = std::io::stdout().lock();
     match yan_interp::run_with(module, &mut out, args) {
         Ok(status) => ExitCode::from(status as u8),
