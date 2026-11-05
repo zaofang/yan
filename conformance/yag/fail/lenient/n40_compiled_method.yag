@@ -1,0 +1,6 @@
+# spec: 14.4, 17.2
+# rows: R835
+# expect: N40 at 6:12
+
+def first(p: Regex, s: str) -> bool:
+    return re.search(p, s) is not None

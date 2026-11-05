@@ -1,0 +1,31 @@
+# spec: 14.4, 17.2
+# rows: R834
+# note: N39 maps Python math names; std.math adds gcd lcm isqrt factorial comb perm on int
+# stdout:
+# 2.5 False 2 3.0
+# 6 38 5
+
+def a(x: float) -> float:
+    return math.abs(x)
+
+def nan(x: float) -> bool:
+    return math.isnan(x)
+
+def fl(x: float) -> int:
+    return math.floor(x)
+
+def lg(x: float, b: float) -> float:
+    return math.log(x, b)
+
+def ab(x: int) -> int:
+    return math.gcd(x, 12)
+
+def g(p: int, q: int) -> int:
+    return math.lcm(p, q) + math.isqrt(p) + math.factorial(3) + math.comb(4, 2) + math.perm(4, 2)
+
+def fl2(x: float) -> int:
+    return math.trunc(x) + math.ceil(x)
+
+pub def main() uses io:
+    io.print(f"{a(-2.5)} {nan(1.0)} {fl(2.7)} {lg(8.0, 2.0)}")
+    io.print(f"{ab(18)} {g(4, 6)} {fl2(2.5)}")

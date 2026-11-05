@@ -1,0 +1,8 @@
+# spec: 11.1
+# rows: R836
+# stdout:
+# 1180591620717411303424
+
+pub def main() uses io:
+    b: bigint = 2
+    io.print(f"{b ** 70}")

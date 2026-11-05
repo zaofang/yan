@@ -392,6 +392,44 @@
    ]
   },
   {
+   "path": "yag/fail/bindings/r832_if_without_else.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R832"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E017",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/bindings/r832_loop_after.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R832"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E017",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/bounds/e501_after_guard.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -1718,6 +1756,177 @@
      "code": "E201",
      "line": 8,
      "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n38_int_as_float_notes.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.4"
+   ],
+   "rows": [
+    "R833"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N38",
+     "line": 11,
+     "col": 17
+    },
+    {
+     "code": "N38",
+     "line": 14,
+     "col": 12
+    },
+    {
+     "code": "N38",
+     "line": 17,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n38_strict_int_as_float.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.4"
+   ],
+   "rows": [
+    "R833"
+   ],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 11,
+     "col": 17
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n39_math_names.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.2"
+   ],
+   "rows": [
+    "R834"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N39",
+     "line": 9,
+     "col": 12
+    },
+    {
+     "code": "N39",
+     "line": 12,
+     "col": 12
+    },
+    {
+     "code": "N39",
+     "line": 15,
+     "col": 12
+    },
+    {
+     "code": "N39",
+     "line": 18,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n39_strict_math_abs.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.2"
+   ],
+   "rows": [
+    "R834"
+   ],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n40_compiled_method.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.2"
+   ],
+   "rows": [
+    "R835"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N40",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n40_str_pattern.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.2"
+   ],
+   "rows": [
+    "R835"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N40",
+     "line": 9,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n40_strict_re_flag.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.2"
+   ],
+   "rows": [
+    "R835"
+   ],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E202",
+     "line": 8,
+     "col": 32
     }
    ]
   },
@@ -3755,6 +3964,21 @@
    ]
   },
   {
+   "path": "yag/run/bindings/r832_if_else.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R832"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "neg pos\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/bounds/runtime_check_panics.yag",
    "kind": "run",
    "milestone": "M1",
@@ -3993,6 +4217,54 @@
    "exit": 0
   },
   {
+   "path": "yag/run/lenient/n38_int_as_float.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.4"
+   ],
+   "rows": [
+    "R833"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1.5 1.5 True 2.25 2.0\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n39_math_names.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.2"
+   ],
+   "rows": [
+    "R834"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2.5 False 2 3.0\n6 38 5\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n40_regex_method_flags.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.2"
+   ],
+   "rows": [
+    "R835"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "True True True\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/match/records_show.yag",
    "kind": "run",
    "milestone": "M1",
@@ -4034,6 +4306,21 @@
    "flags": [],
    "expect": [],
    "stdout": "9223372036854775808\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/numbers/bigint_pow_int.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "11.1"
+   ],
+   "rows": [
+    "R836"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1180591620717411303424\n",
    "exit": 0
   },
   {
@@ -7114,6 +7401,26 @@
      "code": "E201",
      "line": 6,
      "col": 25
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/types/e201_int_for_float.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "3.4",
+    "25.4"
+   ],
+   "rows": [
+    "R833"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 8,
+     "col": 31
     }
    ]
   },

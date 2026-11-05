@@ -1,0 +1,8 @@
+# spec: 14.1
+# rows: R832
+# expect: E017 at 8:12
+
+def f(x: int) -> int:
+    if x > 0:
+        y = x
+    return y

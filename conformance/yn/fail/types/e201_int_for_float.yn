@@ -1,0 +1,8 @@
+-- spec: 3.4, 25.4
+-- rows: R833
+-- note: plain Yan does not widen an int to float
+-- expect: E201 at 8:31
+
+half(x: float) -> float = x / 2.0
+
+scale(n: int) -> float = half(n)

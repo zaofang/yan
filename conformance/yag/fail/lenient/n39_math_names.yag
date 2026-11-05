@@ -1,0 +1,18 @@
+# spec: 14.4, 17.2
+# rows: R834
+# expect: N39 at 9:12
+# expect: N39 at 12:12
+# expect: N39 at 15:12
+# expect: N39 at 18:12
+
+def a(x: float) -> float:
+    return math.abs(x)
+
+def nan(x: float) -> bool:
+    return math.isnan(x)
+
+def fl(x: float) -> int:
+    return math.floor(x)
+
+def lg(x: float, b: float) -> float:
+    return math.log(x, b)

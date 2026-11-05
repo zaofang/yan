@@ -1,0 +1,8 @@
+# spec: 14.4, 17.2
+# rows: R835
+# flags: --strict
+# note: --strict has no re flag argument; the call stays E202
+# expect: E202 at 8:32
+
+def ci(s: str) -> bool:
+    return re.search("abc", s, re.I) is not None

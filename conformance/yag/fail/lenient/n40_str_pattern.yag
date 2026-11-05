@@ -1,0 +1,9 @@
+# spec: 14.4, 17.2
+# rows: R835
+# expect: N40 at 9:18
+
+def first(p: Regex, s: str) -> bool:
+    return p.search(s) is not None
+
+def lit(s: str) -> bool:
+    return first("a+", s)
