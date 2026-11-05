@@ -185,6 +185,9 @@ enum Command {
         strict: bool,
         #[arg(long)]
         level: Option<String>,
+        /// Print `live: N` to stderr at exit: runtime blocks (Str, List, closure captures) of native code not freed.
+        #[arg(long)]
+        report_live: bool,
         file: PathBuf,
         /// The program's arguments, after `--`.
         #[arg(last = true)]
@@ -226,6 +229,7 @@ fn main() -> ExitCode {
             file,
             strict,
             level,
+            report_live,
             args,
         } => run(
             &file,
@@ -233,6 +237,7 @@ fn main() -> ExitCode {
             cli.backend,
             cli.jit,
             args,
+            report_live,
         ),
         Command::Test {
             format,
@@ -498,7 +503,28 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn run(file: &Path, mut db: Database, backend: Backend, jit: Jit, args: Vec<String>) -> ExitCode {
+fn run(
+    file: &Path,
+    db: Database,
+    backend: Backend,
+    jit: Jit,
+    args: Vec<String>,
+    report_live: bool,
+) -> ExitCode {
+    let code = run_program(file, db, backend, jit, args);
+    if report_live {
+        eprintln!("live: {}", yan_rt::heap::live_blocks());
+    }
+    code
+}
+
+fn run_program(
+    file: &Path,
+    mut db: Database,
+    backend: Backend,
+    jit: Jit,
+    args: Vec<String>,
+) -> ExitCode {
     let f = match db.open(file) {
         Ok(f) => f,
         Err(msg) => return tool_failure(&msg),

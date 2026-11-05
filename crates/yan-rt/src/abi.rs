@@ -61,6 +61,7 @@ pub struct List {
 }
 
 fn leak<T>(x: T) -> *mut T {
+    crate::heap::block_taken();
     Box::into_raw(Box::new(x))
 }
 
@@ -190,5 +191,6 @@ pub extern "C" fn yan_rt_exit(code: i64) -> ! {
 
 /// `words` zeroed words: a closure's captures.
 pub extern "C" fn yan_rt_alloc(words: u64) -> *mut u64 {
+    crate::heap::block_taken();
     Box::leak(vec![0u64; words as usize].into_boxed_slice()).as_mut_ptr()
 }
