@@ -196,7 +196,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R848 | `yan doc` shows sub-item docs and counts them in `--coverage`; W860 for a section entry matching nothing, W861 opt-in for missing sub-item docs (R848) | 18.9, 25.10 |
 | R849 | Lenient reader: N41 PEP 257 attribute strings and `Attributes:`, N42 reST, Google and NumPy parameter styles, N43 enum member docs; a disagreeing written type is E281 (R849) | 14.4, 25.4 |
 | R850 | `Const` mark: an inlined std constant written by name; raise re-evaluates the constant and drops the mark on a mismatch (R850) | 16.5 |
-| R851 | `Negated` mark: float unary minus lowered to `-1.0 * x`; raise needs the literal `-1.0` on the left (R851) | 16.5 |
+| R851 | `Negated` mark: unary minus lowered to `-1.0 * x` on a float or to `0 - x` on an int; raise needs the literal `-1.0` or `0` on the left (R851) | 16.5 |
 | R852 | `Qualified` mark: a std variant written module-qualified; an unmarked variant prints bare (R852) | 16.5 |
 | R853 | `Lenient(code)` mark: the N-code of the lenient rewrite that produced a call; raise reprints the alias only if the rewrite reproduces the node (R853) | 14.4, 16.5 |
 | R854 | Raise removes widening conversions that carry an origin mark; no new mark kind (R854) | 16.5 |
@@ -207,12 +207,13 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R859 | `Explicit` mark: an argument equal to the parameter's default was written, as `range(0, n)`; raise needs the literal start `0` (R859) | 16.5 |
 | R860 | `Parallel` mark: a tuple assignment's snapshot bindings; raise prints `a, b = e1, e2` and, without the mark, keeps the snapshots (R860) | 16.5 |
 | R861 | `Prelude` mark: the expansion of a prelude `divmod` or `pow` call; raise re-expands the call to validate (R861) | 16.5, 17.2 |
-| R862 | `Hoisted` mark: a declaration elaboration inserted before an `if` or `with` for a name bound on every path; raise drops it only if the next statement binds the name on every path (RFC 0038, R862) | 14.1, 16.5 |
-| R863 | `View` mark: a view type written in a signature; raise prints `View[T]` only if the node is the owned collection the view stands for (R863) | 4.5, 16.5 |
-| R864 | `Schema(type)` mark on `cli.parse_args[T]` and `cli.parse[T]()`; raise prints `[T]` only if the type exists in the module and the schema literal's `name` equals it (R864) | 16.5, 17.3 |
-| R865 | `Comprehension` mark: a comprehension lowered to a binding and an appending loop; raise prints it only if the loop has the lowered shape exactly (R865) | 16.5 |
-| R866 | An `ex` example survives elaboration as a `Contract::Example` raise prints (R866) | 8.4, 16.5 |
-| R867 | `Parenthesized` mark: a tuple written in parentheses; raise validates the node is a tuple (R867) | 16.5 |
+| R862 | The node-path walk enters closure bodies: statement s of a closure is its statement's path plus `0, s`, so marks inside a lambda place and read (R862) | 16.5 |
+| R863 | `Hoisted` mark: a declaration elaboration inserted before an `if` or `with` for a name bound on every path; raise drops it only if the next statement binds the name on every path (RFC 0038, R863) | 14.1, 16.5 |
+| R864 | `View` mark: a view type written in a signature; raise prints `View[T]` only if the node is the owned collection the view stands for (R864) | 4.5, 16.5 |
+| R865 | `Schema(type)` mark on `cli.parse_args[T]` and `cli.parse[T]()`; raise prints `[T]` only if the type exists in the module and the schema literal's `name` equals it (R865) | 16.5, 17.3 |
+| R866 | `Comprehension` mark: a comprehension lowered to a binding and an appending loop; raise prints it only if the loop has the lowered shape exactly (R866) | 16.5 |
+| R867 | An `ex` example survives elaboration as a `Contract::Example` raise prints (R867) | 8.4, 16.5 |
+| R868 | `Parenthesized` mark: a tuple written in parentheses; raise validates the node is a tuple (R868) | 16.5 |
 
 <!-- /rows -->
 

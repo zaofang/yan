@@ -3,7 +3,7 @@
 - Status: accepted
 - Research: none; `docs/reports/2026-11-05-law1-ledger.md` (Miscellaneous class) and `yan view --as yag --strict`
   on each case, 2026-11-05
-- Rows: R862 to R867
+- Rows: R863 to R868
 
 ## Summary
 
@@ -27,7 +27,7 @@ every path, else keeps it. Options: (a) the mark; (b) extend `Inserted` with a h
 visibility after the statement, so the printed form is the case; not a sane drop). Recommend (a).
 
 - Decision: Accepted as recommended (Antonio, 2026-11-05)
-- Row: R862
+- Row: R863
 
 ### D2: a `View` mark for a view type written in a signature
 
@@ -38,7 +38,7 @@ is also legal, so the inference prints the wrong program); (c) drop views_from (
 `View` in a signature, so no law 1 coverage remains). Recommend (a).
 
 - Decision: Accepted as recommended (Antonio, 2026-11-05)
-- Row: R863
+- Row: R864
 
 ### D3: a `Schema` mark for `cli.parse_args[T]`
 
@@ -51,7 +51,7 @@ globals); (c) drop cli_subcommands (the only run case for sum-of-records subcomm
 Recommend (a).
 
 - Decision: Accepted as recommended (Antonio, 2026-11-05)
-- Row: R864
+- Row: R865
 
 ### D4: a `Comprehension` mark for a comprehension lowered to a loop
 
@@ -63,7 +63,7 @@ the comprehension cases from law 1 by making `yan fmt` print the loop (rewrites 
 so churn in diffs, not a sane drop). Recommend (a).
 
 - Decision: Accepted as recommended (Antonio, 2026-11-05)
-- Row: R865
+- Row: R866
 
 ### D5: carry `ex` examples and tuple parentheses
 
@@ -75,7 +75,7 @@ validates against the node being a tuple. Options: (a) both; (b) only the tuple 
 remove `ex` (not allowed: agents do not edit conformance); (c) drop g2_vwap. Recommend (a).
 
 - Decision: Accepted as recommended (Antonio, 2026-11-05)
-- Row: R866 and R867
+- Row: R867 and R868
 
 ## Spec changes
 
