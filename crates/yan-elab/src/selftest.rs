@@ -636,3 +636,19 @@ fn a_deadline_stops_a_host_process() {
     assert_eq!(run(src), "-1\n");
     assert!(t.elapsed() < std::time::Duration::from_secs(2));
 }
+
+#[test]
+fn annotation_marks_restore_written_and_omitted_binding_types() {
+    let src = "\
+pub def main() uses io:
+    a: int = 1
+    b = 2
+    xs: list[int] = []
+    ys = []
+    ys.append(a)
+    io.print(f\"{a} {b} {xs} {ys}\")
+";
+    let (text, unused) = raised_marked(src);
+    assert_eq!(text, src);
+    assert!(unused.is_empty(), "{unused:?}");
+}

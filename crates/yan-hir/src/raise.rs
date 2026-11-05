@@ -117,6 +117,7 @@ struct Marks<'a> {
     sourced: bool,
     paths: HashMap<*const y::Call, Vec<u32>>,
     fields: HashMap<(*const y::Ctor, usize), Vec<u32>>,
+    stmts: HashMap<*const y::Stmt, Vec<u32>>,
     fns: &'a HashMap<String, Vec<String>>,
     seen: RefCell<HashSet<Vec<u32>>>,
     rejected: RefCell<HashSet<Vec<u32>>>,
@@ -131,7 +132,11 @@ impl<'a> Marks<'a> {
     ) -> Marks<'a> {
         let mut paths = HashMap::new();
         let mut fields = HashMap::new();
+        let mut stmts = HashMap::new();
         yan_core::path::walk(it, &mut |p, n| match n {
+            yan_core::path::Node::Stmt(s) => {
+                stmts.insert(s as *const y::Stmt, p.to_vec());
+            }
             yan_core::path::Node::Call(c) => {
                 paths.insert(c as *const y::Call, p.to_vec());
             }
@@ -146,6 +151,7 @@ impl<'a> Marks<'a> {
             key,
             paths,
             fields,
+            stmts,
             fns,
             seen: RefCell::default(),
             rejected: RefCell::default(),
@@ -184,6 +190,31 @@ impl<'a> Marks<'a> {
             _ => None,
         })?;
         Some((m, p.clone()))
+    }
+
+    /// Whether the source wrote a type on the `let` `s`: `None` when the item has no marks to
+    /// go by (D3), else the `Annotated` mark's presence. A `let` is consumed either way.
+    fn annotated(&self, s: &y::Stmt) -> Option<bool> {
+        let p = self
+            .stmts
+            .get(&(s as *const y::Stmt))
+            .filter(|_| self.sourced)?;
+        let here = self
+            .trivia
+            .at(&self.key, p)
+            .iter()
+            .any(|t| matches!(t, Trivia::Mark(Mark::Annotated)));
+        if here {
+            self.seen.borrow_mut().insert(p.clone());
+        }
+        Some(here)
+    }
+
+    /// An `Annotated` mark that fails its check: the default prints.
+    fn reject_stmt(&self, s: &y::Stmt) {
+        if let Some(p) = self.stmts.get(&(s as *const y::Stmt)) {
+            self.rejected.borrow_mut().insert(p.clone());
+        }
     }
 
     fn consume(&self, marks: &[ArgMark]) {
@@ -454,7 +485,9 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
                 return no(format!("a temporary used out of order: `{t}`"));
             }
             let r = if unit { None } else { Some(ty(&f.ret)?) };
-            drop_inferred(&mut stmts, r.as_ref(), &b.types);
+            if !marks.sourced {
+                drop_inferred(&mut stmts, r.as_ref(), &b.types);
+            }
             if unit && matches!(stmts.last().map(|s| &s.kind), Some(StmtKind::Return(None))) {
                 stmts.pop();
             }
@@ -1157,7 +1190,17 @@ impl<'a> Fold<'a> {
                     }
                 }
                 let value = self.rhs(rhs)?;
-                let ty = annotation(&value, t)?;
+                let ty = match self.marks.annotated(s) {
+                    Some(true) => match ty(t) {
+                        Ok(t) => Some(t),
+                        Err(_) => {
+                            self.marks.reject_stmt(s);
+                            annotation(&value, t)?
+                        }
+                    },
+                    Some(false) => None,
+                    None => annotation(&value, t)?,
+                };
                 out.push(stmt(StmtKind::Assign {
                     target: name(n),
                     ty,
