@@ -974,3 +974,28 @@ sections = "16.5, 18.5"
 rows = "R856"
 topic = "`Operator` mark: a power written with `**`; raise reprints the operator only if the call is still `int_pow`, `bigint_pow` or `std.math.pow`/`pown` (R856)"
 sections = "16.5"
+
+[[entry]]
+rows = "R857"
+topic = "`Operator` mark also on the first `std.text.concat` of a chain written with `+`; raise needs every part a `str` operand with no format spec, else prints the f-string (RFC 0037, R857)"
+sections = "16.5"
+
+[[entry]]
+rows = "R858"
+topic = "`Lenient(code)` may sit on an atom or on the first statement of a rewrite, as N36's char literal and `list[char]` loop; raise reprints the alias only if the rewrite reproduces the statements (R858)"
+sections = "16.5"
+
+[[entry]]
+rows = "R859"
+topic = "`Explicit` mark: an argument equal to the parameter's default was written, as `range(0, n)`; raise needs the literal start `0` (R859)"
+sections = "16.5"
+
+[[entry]]
+rows = "R860"
+topic = "`Parallel` mark: a tuple assignment's snapshot bindings; raise prints `a, b = e1, e2` and, without the mark, keeps the snapshots (R860)"
+sections = "16.5"
+
+[[entry]]
+rows = "R861"
+topic = "`Prelude` mark: the expansion of a prelude `divmod` or `pow` call; raise re-expands the call to validate (R861)"
+sections = "16.5, 17.2"

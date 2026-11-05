@@ -1,10 +1,10 @@
 # 0037: Remaining spelling marks for law 1
 
-- Status: draft
+- Status: accepted
 - Research: none; `docs/reports/2026-11-05-law1-ledger.md`, `yan view --as yag --strict` on main at 5abf3e2
   for each case below, and a read of `crates/yan-elab/src/lower.rs` (`for_`, `assign`, `builtin`, `arith`)
   on 2026-11-05
-- Rows: filled in when accepted
+- Rows: R857 to R861
 
 ## Summary
 
@@ -29,6 +29,10 @@ into an f-string, so the two cases stop being canonical (contradicts 14.5 and re
 output, so not a sane drop); (c) edit `strings/concat` to use an f-string (loses the only run case for str
 `+`). Recommend (a). Cases: strings/concat, and the `shout`, `join` and `pair` lines of n36_char_as_str.
 
+- Decision: Add `Infix` (Antonio, 2026-11-05). R856 (#320) had meanwhile added `Operator` for `**`, the
+  same fact; the row extends `Operator` to concat chains instead of adding a second kind
+- Row: R857
+
 ### D2: `Lenient(code)` on statements and atoms
 
 R853 puts `Lenient(code)` on a call. N36 also rewrites a `char` literal into a one-character `str` literal
@@ -41,6 +45,9 @@ lenient case, so its text is by design not what canonical output looks like; but
 are exactly what models write, and law 1 is the check that they survive a view). Recommend (a). Case:
 n36_char_as_str, with D1.
 
+- Decision: Extend R853, no new mark kind (Antonio, 2026-11-05)
+- Row: R858
+
 ### D3: an `Explicit` mark for a written default argument
 
 `range(0, n)` and `range(n)` lower to the same counting loop (`for_`, lower.rs:2554). Add `Explicit` on the
@@ -52,6 +59,9 @@ parameter's default was written", so later defaults can reuse it. Options: (a) t
 rewrite would show up as churn in their diffs); (c) edit proven_by_guard to `range(len(xs))` (sane: the
 case tests a bounds proof, not the spelling, but the spelling then has no law 1 coverage). Recommend (a).
 Case: proven_by_guard.
+
+- Decision: Add `Explicit` (Antonio, 2026-11-05)
+- Row: R859
 
 ### D4: a `Parallel` mark for tuple assignment
 
@@ -66,6 +76,9 @@ the Yan Core of every tuple assignment and its item hashes, and relies on the op
 tuple); (c) drop assign_return_swap (not sane: tuple assignment is the case's subject). Recommend (a).
 Case: assign_return_swap.
 
+- Decision: Add `Parallel`, and raise keeps snapshots without it (Antonio, 2026-11-05)
+- Row: R860
+
 ### D5: a `Prelude` mark for `divmod` and `pow`
 
 The prelude `divmod(a, b)` expands to `(a // b, a % b)` with each operand bound once, and `pow(a, b)` to
@@ -76,6 +89,9 @@ mark (needs a trait over the operand types `//`, `%` and `**` accept, and change
 the two cases (not sane: `divmod` and `pow` are their subject, and `yan fmt` cannot rewrite
 `divmod(next(8), 4)` to a tuple without a temporary). Recommend (a). Cases: prelude_divmod_zero, and
 prelude_divmod_pow with D6.
+
+- Decision: Add `Prelude` (Antonio, 2026-11-05)
+- Row: R861
 
 ### D6: the `**` operator
 
@@ -88,9 +104,12 @@ it would gain a second meaning); (c) drop bigint_pow_int and n38 (not sane: `**`
 canonical code would fail law 1 everywhere). Recommend (a). Cases: bigint_pow_int, n38_int_as_float, and
 the `pow` line of prelude_divmod_pow with D5.
 
+- Decision: `Infix` on the power call (Antonio, 2026-11-05); already specified as `Operator` by R856 (#320)
+- Row: R856 (no new row)
+
 ## Spec changes
 
-16.5: the mark table gains each accepted kind (`Infix`, `Explicit`, `Parallel`, `Prelude`) and the
-`Lenient(code)` row covers atoms and statements if D2 is accepted. 14.4: the N36 row notes the mark. 17
+16.5: `Operator` covers concat chains (R857), `Lenient(code)` covers atoms and statements (R858), the table
+gains `Explicit`, `Parallel` and `Prelude` (R859 to R861), and the validation list gains their checks. 17.2
 (R801): `divmod` and `pow` record `Prelude`. The RFC 0034 plan gains one step per accepted item, one thread
 each.

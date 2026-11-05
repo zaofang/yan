@@ -57,4 +57,4 @@ research index links their studies and rows.
 | [0034](0034-spelling-marks.md) | Spelling marks from lowering to raise, so law 1 keeps written choices | accepted | R837 to R843 |
 | [0035](0035-sub-item-docs.md) | Docs on parameters, fields, variants, dict entries and tuple positions | accepted | |
 | [0036](0036-more-spelling-marks.md) | More spelling marks so the remaining law 1 cases keep written choices | accepted | R850 to R855 |
-| [0037](0037-remaining-spelling-marks.md) | Spelling marks for the last eight law 1 cases: `+` on strings, N36, `range(0, n)`, tuple assignment, `divmod` and `pow`, `**` | draft | |
+| [0037](0037-remaining-spelling-marks.md) | Spelling marks for the last eight law 1 cases: `+` on strings, N36, `range(0, n)`, tuple assignment, `divmod` and `pow`, `**` | accepted | R857 to R861 |
