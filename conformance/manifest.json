@@ -1636,6 +1636,92 @@
    ]
   },
   {
+   "path": "yag/fail/lenient/n36_multichar_literal.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.4"
+   ],
+   "rows": [
+    "R802",
+    "R830"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 7,
+     "col": 17
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n36_strict_char_as_str.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.4"
+   ],
+   "rows": [
+    "R830"
+   ],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n37_iter_param_indexed.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.2"
+   ],
+   "rows": [
+    "R810",
+    "R831"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n37_strict_iter_indexed.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.2"
+   ],
+   "rows": [
+    "R831"
+   ],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lex/e105_bidi_in_comment.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3873,6 +3959,38 @@
    "expect": [],
    "stdout": "start\n",
    "exit": 1
+  },
+  {
+   "path": "yag/run/lenient/n36_char_as_str.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.4"
+   ],
+   "rows": [
+    "R830"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a! b! x\n['a', 'b']\nTrue ab a-b\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n37_iter_collected.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.2"
+   ],
+   "rows": [
+    "R831"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[('a', 'x'), ('b', 'y')]\na 3 c\n",
+   "exit": 0
   },
   {
    "path": "yag/run/match/records_show.yag",
@@ -6956,6 +7074,46 @@
      "code": "E200",
      "line": 4,
      "col": 14
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/types/e201_char_for_str.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "3.4",
+    "25.4"
+   ],
+   "rows": [
+    "R830"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 6,
+     "col": 26
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/types/e201_index_iter_call.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "14.4",
+    "17.2"
+   ],
+   "rows": [
+    "R831"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 6,
+     "col": 25
     }
    ]
   },

@@ -1,0 +1,7 @@
+# spec: 3.4, 14.4
+# rows: R802, R830
+# note: a multi-character literal compared with a char stays E201 under N36
+# expect: E201 at 7:17
+
+def same(c: char) -> bool:
+    return c == "ab"

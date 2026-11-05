@@ -1,0 +1,6 @@
+-- spec: 14.4, 17.2
+-- rows: R831
+-- note: plain Yan does not collect an iter; indexing a call result is E201
+-- expect: E201 at 6:25
+
+first(s: str) -> char = s.chars()[0]

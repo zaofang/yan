@@ -1,0 +1,8 @@
+# spec: 14.4, 17.2
+# rows: R831
+# flags: --strict
+# note: --strict keeps E201 for an iter call result indexed directly
+# expect: E201 at 8:12
+
+def first(s: str) -> char:
+    return s.chars()[0]

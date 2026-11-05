@@ -1,0 +1,20 @@
+# spec: 14.4, 17.2
+# rows: R831
+# note: N37 collects an iter where a list is expected, indexed directly, or bound then indexed or measured
+# stdout:
+# [('a', 'x'), ('b', 'y')]
+# a 3 c
+
+def pairs(a: str, b: str) -> list[tuple[char, char]]:
+    return zip(a.chars(), b.chars())
+
+def first(s: str) -> char:
+    return s.chars()[0]
+
+def size_and_last(s: str) -> str:
+    cs = s.chars()
+    return f"{len(cs)} {cs[2]}"
+
+pub def main() uses io:
+    io.print(f"{pairs('ab', 'xy')}")
+    io.print(f"{first('abc')} {size_and_last('abc')}")
