@@ -68,17 +68,28 @@ pub fn raise(m: &y::Module, trivia: &TriviaTable, std: &dyn Std) -> R<Raised> {
     let fns = signatures(m);
     let mut items = Vec::new();
     let mut consumed = Vec::new();
+    let mut attrs = Vec::new();
     for (it, h) in m.items.iter().zip(yan_core::hash::hash_module(m)) {
         let marks = Marks::new(trivia, h.identity.to_string(), it, &fns);
         if let Some(i) = item(it, std, &marks)? {
             items.push(i);
+        }
+        if !marks
+            .root(|m| matches!(m, Mark::Prove).then_some(()))
+            .is_empty()
+            && attrs.is_empty()
+        {
+            attrs.push(Decorator {
+                path: vec!["prove".into()],
+                args: None,
+            });
         }
         consumed.extend(marks.finish());
     }
     Ok(Raised {
         module: Module {
             header: Vec::new(),
-            attrs: Vec::new(),
+            attrs,
             doc: None,
             items,
         },
@@ -191,6 +202,27 @@ impl<'a> Marks<'a> {
             seen: RefCell::default(),
             rejected: RefCell::default(),
         }
+    }
+
+    /// The marks at the item's root that `pick` accepts, consumed. None when the item has no
+    /// marks to go by (D3).
+    fn root<T>(&self, pick: impl Fn(&Mark) -> Option<T>) -> Vec<T> {
+        if !self.sourced {
+            return Vec::new();
+        }
+        let found: Vec<T> = self
+            .trivia
+            .at(&self.key, &[])
+            .iter()
+            .filter_map(|t| match t {
+                Trivia::Mark(m) => pick(m),
+                _ => None,
+            })
+            .collect();
+        if !found.is_empty() {
+            self.seen.borrow_mut().insert(Vec::new());
+        }
+        found
     }
 
     /// The mark of each value argument of `c`, in order.
@@ -463,17 +495,38 @@ fn item(it: &y::Item, std: &dyn Std, marks: &Marks) -> R<Option<Item>> {
         y::ItemKind::Extern(_) => return no("extern blocks"),
         y::ItemKind::Inst(_) => return no("instances, which only optimized Yan Core has"),
     };
-    let decorators = it
-        .attrs
-        .iter()
-        .filter(|a| a.name != "doc")
-        .map(|a| match a.args {
-            None => Ok(Decorator {
-                path: vec![a.name.clone()],
-                args: None,
-            }),
-            Some(_) => no("attributes with arguments"),
-        })
+    let traits = marks.root(|m| match m {
+        Mark::Derived(t) => Some(t.clone()),
+        _ => None,
+    });
+    let derive = (!traits.is_empty()).then(|| Decorator {
+        path: vec!["derive".into()],
+        args: Some(
+            traits
+                .iter()
+                .map(|t| Arg {
+                    name: None,
+                    kind: ArgKind::Expr(name(t)),
+                    span: AT,
+                })
+                .collect(),
+        ),
+    });
+    let decorators = derive
+        .into_iter()
+        .map(Ok)
+        .chain(
+            it.attrs
+                .iter()
+                .filter(|a| a.name != "doc")
+                .map(|a| match a.args {
+                    None => Ok(Decorator {
+                        path: vec![a.name.clone()],
+                        args: None,
+                    }),
+                    Some(_) => no("attributes with arguments"),
+                }),
+        )
         .collect::<R<_>>()?;
     Ok(Some(Item {
         decorators,

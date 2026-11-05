@@ -695,6 +695,23 @@ pub def main() uses io:
 }
 
 #[test]
+fn decorator_marks_restore_derive_and_prove() {
+    let src = "\
+@@prove
+
+@derive(Eq, Hash)
+class P:
+    x: int
+
+pub def main() uses io:
+    io.print(\"hi\")
+";
+    let (text, unused) = raised_marked(src);
+    assert_eq!(text, src);
+    assert!(unused.is_empty(), "{unused:?}");
+}
+
+#[test]
 fn post_marks_restore_contracts_and_out() {
     let src = "\
 def f(x: int) -> int:
