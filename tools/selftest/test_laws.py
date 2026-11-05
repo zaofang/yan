@@ -13,6 +13,7 @@ class FakeLaws:
     name: str = "fake"
     order_matters: bool = False
     yag: str | None = "x = 1\n"
+    bare: str | None = None
     seen: list[str] = field(default_factory=list)
 
     def hash(self, path: Path, reverse: bool = False) -> Hashes | None:
@@ -27,7 +28,9 @@ class FakeLaws:
         self.seen.append(path.suffix)
         return sorted((ln.split()[0], ln) for ln in lines)
 
-    def view(self, path: Path, surface: str) -> str | None:
+    def view(self, path: Path, surface: str, flags: list[str] | None = None) -> str | None:
+        if "--bare" in (flags or []) and self.bare is not None:
+            return self.bare
         return self.yag
 
     def canonical(self, path: Path) -> bool:
@@ -84,3 +87,11 @@ def test_law1_compares_without_comments(tmp_path: Path) -> None:
     r = law1(c, FakeLaws(yag="x = 2\n"))
     assert r.status == "fail"
     assert "line 1" in r.detail
+
+
+def test_law1_bare_check_catches_a_mark_covering_for_raise(tmp_path: Path) -> None:
+    c = case(tmp_path, "m.yag", "x = 1\n")
+    assert law1(c, FakeLaws(bare="x = 1\n")).status == "pass"
+    r = law1(c, FakeLaws(bare="x = 2\n"))
+    assert r.status == "fail"
+    assert r.detail.startswith("bare:")
