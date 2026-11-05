@@ -2588,7 +2588,27 @@ impl Lower<'_, '_, '_> {
                     return Ok(());
                 }
             };
-            self.bind(&i, true, &Ty::Int, Rhs::Atom(start), at, at);
+            // A written `0` start gets its own span, which the `Explicit` mark joins.
+            let written = match (&start, args.len()) {
+                (Atom::Lit(Literal::Int(z), sp), 2) if z == "0" => Some(*sp),
+                _ => None,
+            };
+            if let Some(sp) = written {
+                self.cx.marks.push(crate::marks::Pending {
+                    span: sp,
+                    kind: crate::marks::Kind::Stmt,
+                    call: None,
+                    mark: yan_surface::Mark::Explicit,
+                });
+            }
+            self.bind(
+                &i,
+                true,
+                &Ty::Int,
+                Rhs::Atom(start),
+                written.unwrap_or(at),
+                at,
+            );
             (None, stop, step)
         } else {
             let (mut xs, t) = self.atom(iter, None)?;
@@ -3155,6 +3175,7 @@ impl Lower<'_, '_, '_> {
         match &target.kind {
             j::ExprKind::Tuple(ts) => {
                 let mut vals = Vec::new();
+                let first = self.out.len();
                 match &value.kind {
                     j::ExprKind::Tuple(vs) if vs.len() == ts.len() => {
                         // R216: snapshot names too, so `a, b = b, a` swaps.
@@ -3225,6 +3246,23 @@ impl Lower<'_, '_, '_> {
                             let a = self.tmp(ty, p, value.span);
                             vals.push((a, ty.clone(), value.span));
                         }
+                    }
+                }
+                let snapshots = self.out.len() > first;
+                if ts.len() > 1 && matches!(value.kind, j::ExprKind::Tuple(_)) {
+                    // The first statement and the last store: a group's ends (R860).
+                    let head = if snapshots {
+                        self.out[first].span
+                    } else {
+                        ts[0].span
+                    };
+                    for span in [head, ts[ts.len() - 1].span] {
+                        self.cx.marks.push(crate::marks::Pending {
+                            span,
+                            kind: crate::marks::Kind::Stmt,
+                            call: None,
+                            mark: yan_surface::Mark::Parallel,
+                        });
                     }
                 }
                 for (t, (a, ty, sp)) in ts.iter().zip(vals) {
@@ -3931,6 +3969,12 @@ impl Lower<'_, '_, '_> {
                 let Atom::Name(xs, _) = xs else {
                     return Ok((Rhs::Atom(xs), t));
                 };
+                self.cx.marks.push(crate::marks::Pending {
+                    span: at,
+                    kind: crate::marks::Kind::Stmt,
+                    call: None,
+                    mark: yan_surface::Mark::Lenient("N36".into()),
+                });
                 let v = self.fresh("c");
                 let ex = |kind| j::Expr {
                     kind,
@@ -3946,7 +3990,18 @@ impl Lower<'_, '_, '_> {
                     iter: Box::new(ex(j::ExprKind::Name(xs))),
                     cond: None,
                 });
-                self.rhs_inner(&comp, want)
+                let before = self.cx.marks.len();
+                let out = self.rhs_inner(&comp, want);
+                // The element's own `show` shares the span of `list.new`; the statement mark
+                // stands for the whole rewrite.
+                let mut at_k = 0;
+                self.cx.marks.retain(|m| {
+                    at_k += 1;
+                    at_k <= before
+                        || m.kind != crate::marks::Kind::Call
+                        || m.mark != yan_surface::Mark::Lenient("N36".into())
+                });
+                out
             }
             _ => Ok((r, t)),
         }
@@ -4057,9 +4112,18 @@ impl Lower<'_, '_, '_> {
     fn char_str(&mut self, r: Rhs, at: Span) -> R<(Rhs, Ty)> {
         match self.tmp(&Ty::Char, r, at) {
             Atom::Lit(Literal::Char(c), sp) => {
+                self.cx.marks.push(crate::marks::Pending {
+                    span: sp,
+                    kind: crate::marks::Kind::Lit,
+                    call: None,
+                    mark: yan_surface::Mark::Lenient("N36".into()),
+                });
                 Ok((Rhs::Atom(Atom::Lit(Literal::Str(c.into()), sp)), Ty::Str))
             }
-            a => Ok((Rhs::Atom(self.show(a, &Ty::Char, at)), Ty::Str)),
+            a => {
+                self.mark_call(at, yan_surface::Mark::Lenient("N36".into()));
+                Ok((Rhs::Atom(self.show(a, &Ty::Char, at)), Ty::Str))
+            }
         }
     }
 
@@ -4703,7 +4767,7 @@ impl Lower<'_, '_, '_> {
             }
             K::Binary(op, a, b) => {
                 let r = self.arith(op, a, b, at, want)?;
-                if *op == "**" && matches!(r.0, Rhs::Call(_)) {
+                if matches!(*op, "**" | "+") && matches!(r.0, Rhs::Call(_)) {
                     self.mark_call(at, yan_surface::Mark::Operator);
                 }
                 r
@@ -7456,7 +7520,11 @@ impl Lower<'_, '_, '_> {
                 let Some(xs) = self.positional(args, 2, n, at)? else {
                     return Ok(err);
                 };
-                self.arith("**", xs[0], xs[1], at, want)
+                let r = self.arith("**", xs[0], xs[1], at, want)?;
+                if matches!(r.0, Rhs::Call(_)) {
+                    self.mark_call(at, yan_surface::Mark::Prelude);
+                }
+                Ok(r)
             }
             // `(a // b, a % b)`, each operand evaluated once (R801).
             "divmod" => {
@@ -7477,6 +7545,12 @@ impl Lower<'_, '_, '_> {
                         Box::new(b.clone()),
                     ))
                 };
+                self.cx.marks.push(crate::marks::Pending {
+                    span: at,
+                    kind: crate::marks::Kind::Stmt,
+                    call: None,
+                    mark: yan_surface::Mark::Prelude,
+                });
                 self.rhs(&ex(j::ExprKind::Tuple(vec![op("//"), op("%")])), want)
             }
             "print" => {

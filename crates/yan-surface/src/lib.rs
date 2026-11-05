@@ -60,6 +60,12 @@ pub enum Mark {
     Lenient(String),
     /// A power written with the `**` operator (R856).
     Operator,
+    /// An argument equal to the parameter's default was written, as `range(0, n)` (R859).
+    Explicit,
+    /// A tuple assignment's snapshot bindings (R860).
+    Parallel,
+    /// The expansion of a prelude `divmod` or `pow` call (R861).
+    Prelude,
 }
 
 /// One trivia entry at a node. Local names, the sixth kind, are kept per item by binding order
