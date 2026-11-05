@@ -1172,6 +1172,24 @@ impl<'a> Fold<'a> {
         }
         let p = c.path.join(".");
         let vals = self.values(c);
+        // `int_pow` and `bigint_pow` have no call form in Yan Agent; `math.pow` does, so it needs
+        // the mark; without name-table facts, the module carrying `int_pow` is the sign of a `**`.
+        let mark = self.marks.call_mark(c, &Mark::Operator);
+        let pow = match (p.as_str(), vals.len()) {
+            ("int_pow" | "bigint_pow", 2) => true,
+            ("std.math.pow" | "std.math.pown", 3) => {
+                mark.is_some() || (!self.marks.sourced && self.marks.fns.contains_key("int_pow"))
+            }
+            _ => false,
+        };
+        if pow {
+            mark.into_iter().for_each(|m| self.marks.accept(m));
+            let (a, b) = (self.atom(vals[0])?, self.atom(vals[1])?);
+            return Ok(e(ExprKind::Binary("**", Box::new(a), Box::new(b))));
+        }
+        if let Some(m) = mark {
+            self.marks.refuse(m);
+        }
         if let ([a, b], Some(op)) = (vals.as_slice(), binary(&p)) {
             let (a, b) = (self.atom(a)?, self.atom(b)?);
             return Ok(e(if COMPARE.contains(&op) {
