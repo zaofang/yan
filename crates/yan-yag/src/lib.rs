@@ -7,7 +7,7 @@ mod parser;
 mod printer;
 mod resugar;
 
-pub use printer::{expr as print_expr, print};
+pub use printer::{expr as print_expr, print, ty as print_type};
 pub use resugar::resugar;
 use yan_diag::{Diagnostic, Severity};
 
