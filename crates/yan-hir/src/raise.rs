@@ -124,6 +124,7 @@ struct Marks<'a> {
     paths: HashMap<*const y::Call, Vec<u32>>,
     fields: HashMap<(*const y::Ctor, usize), Vec<u32>>,
     stmts: HashMap<*const y::Stmt, Vec<u32>>,
+    lits: HashMap<*const y::Literal, Vec<u32>>,
     atoms: HashMap<*const y::Atom, Vec<u32>>,
     fns: &'a HashMap<String, Vec<String>>,
     seen: RefCell<HashSet<Vec<u32>>>,
@@ -140,6 +141,7 @@ impl<'a> Marks<'a> {
         let mut paths = HashMap::new();
         let mut fields = HashMap::new();
         let mut stmts = HashMap::new();
+        let mut lits = HashMap::new();
         let mut atoms = HashMap::new();
         yan_core::path::walk(it, &mut |p, n| match n {
             yan_core::path::Node::Stmt(s) => {
@@ -156,6 +158,9 @@ impl<'a> Marks<'a> {
             }
             yan_core::path::Node::Arg(y::Arg::Value(_, a, _)) => {
                 atoms.insert(a as *const y::Atom, p.to_vec());
+            }
+            yan_core::path::Node::Literal(l, _) => {
+                lits.insert(l as *const y::Literal, p.to_vec());
             }
             _ => {}
         });
@@ -180,6 +185,7 @@ impl<'a> Marks<'a> {
             paths,
             fields,
             stmts,
+            lits,
             atoms,
             fns,
             seen: RefCell::default(),
@@ -314,6 +320,27 @@ impl<'a> Marks<'a> {
         here
     }
 
+    /// The spelling of integer literal `l` (canonical text `canon`) as the source wrote it,
+    /// consumed when it denotes the same value. A note that disagrees with the value is rejected
+    /// and the decimal form prints (16.5).
+    fn spelled(&self, l: &y::Literal, canon: &str) -> Option<String> {
+        let p = self
+            .lits
+            .get(&(l as *const y::Literal))
+            .filter(|_| self.sourced)?;
+        let text = self.trivia.at(&self.key, p).iter().find_map(|t| match t {
+            Trivia::Literal(s) => Some(s),
+            _ => None,
+        })?;
+        if int_value(text).is_some_and(|v| v.to_string() == canon) {
+            self.seen.borrow_mut().insert(p.clone());
+            Some(text.clone())
+        } else {
+            self.rejected.borrow_mut().insert(p.clone());
+            None
+        }
+    }
+
     /// An `Annotated` mark that fails its check: the default prints.
     fn reject_stmt(&self, s: &y::Stmt) {
         if let Some(p) = self.stmts.get(&(s as *const y::Stmt)) {
@@ -350,12 +377,27 @@ pub fn unconsumed(trivia: &TriviaTable, raised: &Raised) -> Vec<String> {
     trivia
         .entries()
         .filter_map(|(i, p, t)| match t {
+            Trivia::Literal(_) if !raised.consumed.iter().any(|(ci, cp)| ci == i && cp == p) => {
+                Some(format!("literal spelling at {i} {p:?}"))
+            }
             Trivia::Mark(mk) if !raised.consumed.iter().any(|(ci, cp)| ci == i && cp == p) => {
                 Some(format!("{mk:?} at {i} {p:?}"))
             }
             _ => None,
         })
         .collect()
+}
+
+/// The value of an integer literal written in decimal, hex, octal or binary, with underscores.
+fn int_value(s: &str) -> Option<i128> {
+    let s = s.replace('_', "");
+    let (radix, digits) = match s.get(..2) {
+        Some("0x" | "0X") => (16, &s[2..]),
+        Some("0o" | "0O") => (8, &s[2..]),
+        Some("0b" | "0B") => (2, &s[2..]),
+        _ => (10, &s[..]),
+    };
+    i128::from_str_radix(digits, radix).ok()
 }
 
 fn e(kind: ExprKind) -> Expr {
@@ -702,7 +744,9 @@ impl<'a> Fold<'a> {
                 None => name(n),
             },
             y::Atom::Lit(l, _) => e(ExprKind::Lit(match l {
-                y::Literal::Int(s) => Lit::Int(s.clone()),
+                y::Literal::Int(s) => {
+                    Lit::Int(self.marks.spelled(l, s).unwrap_or_else(|| s.clone()))
+                }
                 y::Literal::Float(s) => Lit::Float(s.clone()),
                 y::Literal::Str(s) => Lit::Str {
                     prefix: String::new(),
@@ -1384,7 +1428,7 @@ impl<'a> Fold<'a> {
                         c.args.first()
                     && self.pending.contains_key(t) =>
             {
-                let vals: Vec<y::Atom> = self.values(c).into_iter().cloned().collect();
+                let vals = self.values(c);
                 let xs = vals[1..]
                     .iter()
                     .map(|a| self.atom(a))

@@ -682,6 +682,19 @@ pub def main() uses io:
 }
 
 #[test]
+fn literal_spellings_restore_non_decimal_integers() {
+    let src = "\
+pub def main() uses io:
+    io.print(f\"{bytes.from_list([0xfb, 0b11, 1_0])}\")
+    x = 0o17
+    io.print(f\"{x}\")
+";
+    let (text, unused) = raised_marked(src);
+    assert_eq!(text, src);
+    assert!(unused.is_empty(), "{unused:?}");
+}
+
+#[test]
 fn post_marks_restore_contracts_and_out() {
     let src = "\
 def f(x: int) -> int:

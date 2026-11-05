@@ -747,6 +747,7 @@ fn std_cx(module: &str) -> Cx<'static> {
         previews: Vec::new(),
         diags: Vec::new(),
         marks: Vec::new(),
+        lits: Vec::new(),
     }
 }
 
