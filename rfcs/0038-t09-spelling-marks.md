@@ -1,9 +1,9 @@
 # 0038: Spelling marks for the T09 law 1 cases
 
-- Status: draft
+- Status: accepted
 - Research: none; `docs/reports/2026-11-05-law1-ledger.md` (Miscellaneous class) and `yan view --as yag --strict`
   on each case, 2026-11-05
-- Rows: filled in when accepted
+- Rows: R862 to R867
 
 ## Summary
 
@@ -26,8 +26,8 @@ every path, else keeps it. Options: (a) the mark; (b) extend `Inserted` with a h
 `Inserted` marks are consumed by trivia readers elsewhere); (c) drop r832_if_else from law 1 (it tests
 visibility after the statement, so the printed form is the case; not a sane drop). Recommend (a).
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: Accepted as recommended (Antonio, 2026-11-05)
+- Row: R862
 
 ### D2: a `View` mark for a view type written in a signature
 
@@ -37,8 +37,8 @@ Options: (a) the mark; (b) infer the view from a `from` clause (rejected: `from 
 is also legal, so the inference prints the wrong program); (c) drop views_from (it is the only case for
 `View` in a signature, so no law 1 coverage remains). Recommend (a).
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: Accepted as recommended (Antonio, 2026-11-05)
+- Row: R863
 
 ### D3: a `Schema` mark for `cli.parse_args[T]`
 
@@ -50,8 +50,8 @@ schema builder out of `yan-elab` so raise can recompute it (larger, and the buil
 globals); (c) drop cli_subcommands (the only run case for sum-of-records subcommands, so not a sane drop).
 Recommend (a).
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: Accepted as recommended (Antonio, 2026-11-05)
+- Row: R864
 
 ### D4: a `Comprehension` mark for a comprehension lowered to a loop
 
@@ -62,8 +62,8 @@ other statement, the binding read once afterwards), else prints the loop. Option
 the comprehension cases from law 1 by making `yan fmt` print the loop (rewrites every model comprehension,
 so churn in diffs, not a sane drop). Recommend (a).
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: Accepted as recommended (Antonio, 2026-11-05)
+- Row: R865
 
 ### D5: carry `ex` examples and tuple parentheses
 
@@ -74,8 +74,8 @@ an assignment prints bare because tuple parentheses are not recorded; add a `Par
 validates against the node being a tuple. Options: (a) both; (b) only the tuple mark and edit g2_vwap to
 remove `ex` (not allowed: agents do not edit conformance); (c) drop g2_vwap. Recommend (a).
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: Accepted as recommended (Antonio, 2026-11-05)
+- Row: R866 and R867
 
 ## Spec changes
 
