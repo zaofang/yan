@@ -116,6 +116,7 @@ struct Marks<'a> {
     /// Whether the item has a name-table entry, which makes its marks authoritative (D3).
     sourced: bool,
     paths: HashMap<*const y::Call, Vec<u32>>,
+    fields: HashMap<(*const y::Ctor, usize), Vec<u32>>,
     fns: &'a HashMap<String, Vec<String>>,
     seen: RefCell<HashSet<Vec<u32>>>,
     rejected: RefCell<HashSet<Vec<u32>>>,
@@ -129,16 +130,22 @@ impl<'a> Marks<'a> {
         fns: &'a HashMap<String, Vec<String>>,
     ) -> Marks<'a> {
         let mut paths = HashMap::new();
-        yan_core::path::walk(it, &mut |p, n| {
-            if let yan_core::path::Node::Call(c) = n {
+        let mut fields = HashMap::new();
+        yan_core::path::walk(it, &mut |p, n| match n {
+            yan_core::path::Node::Call(c) => {
                 paths.insert(c as *const y::Call, p.to_vec());
             }
+            yan_core::path::Node::Field(c, k) => {
+                fields.insert((c as *const y::Ctor, k), p.to_vec());
+            }
+            _ => {}
         });
         Marks {
             sourced: trivia.has_names(&key),
             trivia,
             key,
             paths,
+            fields,
             fns,
             seen: RefCell::default(),
             rejected: RefCell::default(),
@@ -164,6 +171,19 @@ impl<'a> Marks<'a> {
             }));
         }
         out
+    }
+
+    /// The mark of field `k` of constructor `c`.
+    fn field(&self, c: &y::Ctor, k: usize) -> ArgMark {
+        let p = self
+            .fields
+            .get(&(c as *const y::Ctor, k))
+            .filter(|_| self.sourced)?;
+        let m = self.trivia.at(&self.key, p).iter().find_map(|t| match t {
+            Trivia::Mark(m @ (Mark::Keyword | Mark::Positional)) => Some(m.clone()),
+            _ => None,
+        })?;
+        Some((m, p.clone()))
     }
 
     fn consume(&self, marks: &[ArgMark]) {
@@ -615,15 +635,22 @@ impl<'a> Fold<'a> {
                 xs.iter().map(|a| self.atom(a)).collect::<R<_>>()?,
             ))),
             y::Ctor::Named { path, fields, .. } => match (path.as_slice(), fields.as_slice()) {
-                ([s], [(v, a)]) if s == "Some" && v == "value" => self.atom(a),
+                ([s], [(v, a)]) if s == "Some" && v == "value" => {
+                    self.marks.consume(&[self.marks.field(c, 0)]);
+                    self.atom(a)
+                }
                 ([n], []) if n == "None" => Ok(e(ExprKind::Lit(Lit::None))),
                 _ => {
                     let f = path_expr(path);
                     let args = fields
                         .iter()
-                        .map(|(n, a)| {
+                        .enumerate()
+                        .map(|(k, (n, a))| {
+                            let mark = self.marks.field(c, k);
+                            self.marks.consume(std::slice::from_ref(&mark));
+                            let positional = matches!(mark, Some((Mark::Positional, _)));
                             Ok(Arg {
-                                name: Some(n.clone()),
+                                name: (!positional).then(|| n.clone()),
                                 kind: ArgKind::Expr(self.atom(a)?),
                                 span: AT,
                             })

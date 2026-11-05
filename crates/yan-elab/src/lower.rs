@@ -6641,9 +6641,36 @@ impl Lower<'_, '_, '_> {
     }
 
     fn ctor(&mut self, name: &str, ps: &[crate::P], args: &[j::Arg], at: Span) -> R<Rhs> {
+        let before = self.cx.marks.len();
         let Some(vals) = self.args(ps, None, args, at)? else {
             return Ok(Rhs::Atom(Atom::Lit(Literal::Unit, at)));
         };
+        // A constructor has no argument nodes: the marks go on its fields, joined by atom span.
+        self.cx.marks.truncate(before);
+        let mut next = 0;
+        for a in args {
+            let k = match &a.name {
+                None => {
+                    next += 1;
+                    next - 1
+                }
+                Some(n) => ps.iter().position(|p| p.name == *n).unwrap_or(0),
+            };
+            if let Some(Arg::Value(_, Atom::Name(_, sp) | Atom::Lit(_, sp), _)) = vals.get(k)
+                && (a.name.is_some() || !ps[k].positional)
+            {
+                self.cx.marks.push(crate::marks::Pending {
+                    span: *sp,
+                    kind: crate::marks::Kind::Field(k),
+                    call: None,
+                    mark: if a.name.is_some() {
+                        yan_surface::Mark::Keyword
+                    } else {
+                        yan_surface::Mark::Positional
+                    },
+                });
+            }
+        }
         let fields = ps
             .iter()
             .zip(vals)
