@@ -3979,6 +3979,7 @@ impl Lower<'_, '_, '_> {
                     span: sp,
                 };
                 let (r, t, _) = self.module_call("regex", "compile", &[lit], at)?;
+                self.mark_call(at, yan_surface::Mark::Lenient("N40".into()));
                 Ok((r, t))
             }
             (Ty::List(e), Ty::List(we)) if **e == Ty::Char && **we == Ty::Str => {
@@ -4047,7 +4048,7 @@ impl Lower<'_, '_, '_> {
 
     /// N40: Python's `re` flags (`re.I`, `flags=re.IGNORECASE | re.S`) on `re.m(...)` become
     /// inline flags at the front of the pattern; `None` when there are none.
-    fn re_flags(&mut self, m: &str, args: &[j::Arg]) -> Option<Vec<j::Arg>> {
+    fn re_flags(&mut self, m: &str, args: &[j::Arg]) -> Option<(Vec<j::Arg>, bool)> {
         fn flags(e: &j::Expr, out: &mut String) -> bool {
             match &e.kind {
                 j::ExprKind::Binary("|", a, b) => flags(a, out) && flags(b, out),
@@ -4078,6 +4079,7 @@ impl Lower<'_, '_, '_> {
             (a.name.as_deref() == Some("flags") || (a.name.is_none() && k == pos))
                 && matches!(&a.kind, j::ArgKind::Expr(e) if flags(e, &mut fs))
         })?;
+        let keyword = args[k].name.is_some();
         let mut out = args.to_vec();
         out.remove(k);
         let j::ArgKind::Expr(p) = &out.first()?.kind else {
@@ -4117,7 +4119,7 @@ impl Lower<'_, '_, '_> {
             at,
             &format!("`re` flags normalized to the inline flags `(?{fs})` in the pattern"),
         );
-        Some(out)
+        Some((out, keyword))
     }
 
     fn lenient(&mut self, code: &str, at: Span, msg: &str) {
@@ -6177,12 +6179,18 @@ impl Lower<'_, '_, '_> {
                     };
                 }
                 let flagged;
+                let mut flag_mark = None;
                 let args = if let j::ExprKind::Name(module) = &b.kind
                     && module == "re"
                     && !self.locals.contains_key(module)
                     && !self.cx.strict
-                    && let Some(a) = self.re_flags(m, args)
+                    && let Some((a, keyword)) = self.re_flags(m, args)
                 {
+                    flag_mark = Some(if keyword {
+                        yan_surface::Mark::FlagsKeyword
+                    } else {
+                        yan_surface::Mark::FlagsPositional
+                    });
                     flagged = a;
                     &flagged[..]
                 } else {
@@ -6213,6 +6221,7 @@ impl Lower<'_, '_, '_> {
                                 "`re.{m}(compiled, ...)` normalized to `compiled.{meth}(...)`"
                             ),
                         );
+                        self.mark_call(at, yan_surface::Mark::Lenient("N40".into()));
                         return self.method(p, meth, *name_at, rest, at);
                     }
                     let item = self.item.clone();
@@ -6241,6 +6250,10 @@ impl Lower<'_, '_, '_> {
                         span: b.span,
                         paren: false,
                     };
+                    self.mark_call(at, yan_surface::Mark::Lenient("N35".into()));
+                    if let Some(m) = flag_mark {
+                        self.mark_call(at, m);
+                    }
                     return self.method(&compiled, meth, *name_at, rest, at);
                 }
                 // `bytes.from_list` and `bytearray.from_bytes` name their type's declaring module.

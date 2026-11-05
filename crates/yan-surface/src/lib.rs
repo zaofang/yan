@@ -58,6 +58,10 @@ pub enum Mark {
     Qualified,
     /// The N-code of the lenient rewrite that produced the node (R853).
     Lenient(String),
+    /// `re` flags written as `flags=re.I` on a `re` call lifted to `regex.compile(..)` (N40).
+    FlagsKeyword,
+    /// `re` flags written by position, as `re.search(p, s, re.I)` (N40).
+    FlagsPositional,
     /// A power written with the `**` operator (R856).
     Operator,
     /// An argument equal to the parameter's default was written, as `range(0, n)` (R859).

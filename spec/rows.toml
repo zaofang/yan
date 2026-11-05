@@ -1034,3 +1034,8 @@ sections = "8.4, 16.5"
 rows = "R868"
 topic = "`Parenthesized` mark: a tuple written in parentheses; raise validates the node is a tuple (R868)"
 sections = "16.5"
+
+[[entry]]
+rows = "R869"
+topic = "Spelling marks `FlagsKeyword` and `FlagsPositional` record how Python `re` flags were written on a `re` call; raise prints `re.f(pattern, ..)` from N35 and N40 marks on the method call and the literal from N40 on a lifted `regex.compile` (R869)"
+sections = "14.4, 16.5"
