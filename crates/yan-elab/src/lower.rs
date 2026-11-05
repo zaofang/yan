@@ -2833,6 +2833,12 @@ impl Lower<'_, '_, '_> {
             at,
         );
         let slot = self.out.len() - 1;
+        self.cx.marks.push(crate::marks::Pending {
+            span: at,
+            kind: crate::marks::Kind::Stmt,
+            call: None,
+            mark: yan_surface::Mark::Comprehension,
+        });
         let mut found: Option<(Ty, Option<Ty>)> = None;
         let acc_arg = Arg::Value(Conv::Inout, Atom::Name(acc.clone(), at), at);
         self.for_(None, target, iter, at, |l| {
@@ -3178,6 +3184,14 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<()> {
         let ann = ann.map(|t| self.g.ty(t, self.cx, at)).transpose()?;
+        if value.paren && matches!(&value.kind, j::ExprKind::Tuple(vs) if vs.len() > 1) {
+            self.cx.marks.push(crate::marks::Pending {
+                span: value.span,
+                kind: crate::marks::Kind::Stmt,
+                call: None,
+                mark: yan_surface::Mark::Parenthesized,
+            });
+        }
         match &target.kind {
             j::ExprKind::Tuple(ts) => {
                 let mut vals = Vec::new();
@@ -4010,14 +4024,16 @@ impl Lower<'_, '_, '_> {
                 });
                 let before = self.cx.marks.len();
                 let out = self.rhs_inner(&comp, want);
-                // The element's own `show` shares the span of `list.new`; the statement mark
-                // stands for the whole rewrite.
+                // The element's own `show` shares the span of `list.new`, and the loop is not a
+                // written comprehension; the statement mark stands for the whole rewrite.
                 let mut at_k = 0;
                 self.cx.marks.retain(|m| {
                     at_k += 1;
                     at_k <= before
-                        || m.kind != crate::marks::Kind::Call
-                        || m.mark != yan_surface::Mark::Lenient("N36".into())
+                        || !(m.kind == crate::marks::Kind::Call
+                            && m.mark == yan_surface::Mark::Lenient("N36".into())
+                            || m.kind == crate::marks::Kind::Stmt
+                                && m.mark == yan_surface::Mark::Comprehension)
                 });
                 out
             }
@@ -5999,7 +6015,27 @@ impl Lower<'_, '_, '_> {
                     && matches!(&m.kind, j::ExprKind::Name(c) if c == "cli" && !self.locals.contains_key(c))
                     && matches!(op.as_str(), "parse" | "parse_args") =>
             {
-                self.cli_call(op, k, args, at)
+                self.cli_call(op, k, args, at, None)
+            }
+            // The schema written out: `cli.parse_args(xs, "{..}")`, what raise prints with no marks.
+            j::ExprKind::Attr(m, op, _)
+                if op == "parse_args"
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "cli" && !self.locals.contains_key(c))
+                    && let [xs, schema] = args
+                    && let j::ArgKind::Expr(j::Expr {
+                        kind: j::ExprKind::Lit(j::Lit::Str { value, .. }),
+                        ..
+                    }) = &schema.kind
+                    && let Some(i) = value.rfind("\"name\":\"")
+                    && let Some(n) = value[i + 8..].split('"').next()
+                    && self.g.records.contains_key(n) =>
+            {
+                let t = j::Expr {
+                    kind: j::ExprKind::Name(n.to_owned()),
+                    span: f.span,
+                    paren: false,
+                };
+                self.cli_call("parse_args", &t, std::slice::from_ref(xs), at, Some(value))
             }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Channel" && !self.locals.contains_key(n)) =>
             {
@@ -8119,13 +8155,16 @@ impl Lower<'_, '_, '_> {
         t: &j::Expr,
         args: &[j::Arg],
         at: Span,
+        written: Option<&str>,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
         let j::ExprKind::Name(n) = &t.kind else {
             return unsupported(format!("`cli.{op}` of a type that is not a name"));
         };
         // After an error the call is still lowered, so what follows it checks.
-        let schema = if self.g.clis.contains_key(n) {
+        let schema = if let Some(w) = written {
+            w.to_owned()
+        } else if self.g.clis.contains_key(n) {
             // An error here was reported at the derive.
             crate::cli::schema(self.g, n).unwrap_or_default()
         } else {
@@ -8153,6 +8192,12 @@ impl Lower<'_, '_, '_> {
             a
         };
         let rt = Ty::Data(n.clone());
+        self.cx.marks.push(crate::marks::Pending {
+            span: at,
+            kind: crate::marks::Kind::Call,
+            call: None,
+            mark: yan_surface::Mark::Schema(n.clone()),
+        });
         let c = call(
             "std.cli.parse_args",
             vec![rt.targ()],
@@ -9242,7 +9287,7 @@ fn wire(t: &Ty) -> bool {
     }
 }
 
-fn is_view(t: &j::Type) -> bool {
+pub(crate) fn is_view(t: &j::Type) -> bool {
     matches!(t, j::Type::Named { path, .. } if path.len() == 1 && path[0] == "View")
 }
 

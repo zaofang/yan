@@ -80,6 +80,8 @@ pub enum Mark {
     Comprehension,
     /// A tuple written in parentheses (R868).
     Parenthesized,
+    /// An `ex` line of a Yan Agent function, as written (R867).
+    Example(String),
 }
 
 /// One trivia entry at a node. Local names, the sixth kind, are kept per item by binding order

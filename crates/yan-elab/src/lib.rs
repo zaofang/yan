@@ -1221,6 +1221,45 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                     );
                 }
             }
+            if !cx.yn
+                && let Some(b) = &f.body
+            {
+                for c in &b.contracts {
+                    if let j::Contract::Ex { expr, with } = c
+                        && with.is_empty()
+                        && let Some(text) = source_text(cx.src, expr.span)
+                    {
+                        cx.marks.push(marks::Pending {
+                            span: it.span,
+                            kind: marks::Kind::Item,
+                            call: None,
+                            mark: Mark::Example(text),
+                        });
+                    }
+                }
+            }
+            for (k, p) in f.params.iter().enumerate() {
+                if matches!(p, j::Param::Value { ty, .. } if lower::is_view(ty)) {
+                    cx.marks.push(marks::Pending {
+                        span: it.span,
+                        kind: marks::Kind::Param(k),
+                        call: None,
+                        mark: Mark::View,
+                    });
+                }
+            }
+            if f.ret
+                .as_ref()
+                .and_then(|r| r.ty.as_ref())
+                .is_some_and(lower::is_view)
+            {
+                cx.marks.push(marks::Pending {
+                    span: it.span,
+                    kind: marks::Kind::Item,
+                    call: None,
+                    mark: Mark::View,
+                });
+            }
             y::ItemKind::Fn(lower::function(g, f, &g.fns[&f.name], it.is_pub, cx)?)
         }
         j::ItemKind::Extern(x) => y::ItemKind::Extern(ffi::lower(g, x, cx)?),
@@ -1277,3 +1316,10 @@ mod selftest;
 
 #[cfg(test)]
 mod stdlib_selftest;
+
+/// The rest of the line from the start of `span`: an `ex` expression runs to the end of its line.
+fn source_text(src: &str, span: yan_diag::Span) -> Option<String> {
+    let line = src.lines().nth(span.line as usize - 1)?;
+    line.get(span.col as usize - 1..)
+        .map(|t| t.trim_end().to_owned())
+}

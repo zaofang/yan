@@ -415,6 +415,35 @@ impl<'a> Marks<'a> {
             .then(|| p.clone())
     }
 
+    /// Whether the node at `p` carries `want`, consumed.
+    fn has_mark(&self, p: &[u32], want: &Mark) -> bool {
+        let hit = self.sourced
+            && self
+                .trivia
+                .at(&self.key, p)
+                .iter()
+                .any(|t| matches!(t, Trivia::Mark(m) if m == want));
+        if hit {
+            self.seen.borrow_mut().insert(p.to_vec());
+        }
+        hit
+    }
+
+    /// `t` as written when the node at `p` is marked `View`: the owned list prints as `View[T]`.
+    fn view(&self, p: &[u32], t: &y::Type, printed: Type) -> Type {
+        match (&printed, t) {
+            (Type::Named { path, args }, y::Type::Named(n))
+                if n.path == ["List"] && args.len() == 1 && self.has_mark(p, &Mark::View) =>
+            {
+                Type::Named {
+                    path: vec!["View".into()],
+                    args: args.clone(),
+                }
+            }
+            _ => printed,
+        }
+    }
+
     /// An `Annotated` mark that fails its check: the default prints.
     fn reject_stmt(&self, s: &y::Stmt) {
         if let Some(p) = self.stmts.get(&(s as *const y::Stmt)) {
@@ -446,6 +475,18 @@ impl<'a> Marks<'a> {
             .iter()
             .any(|t| matches!(t, Trivia::Mark(m) if m == want))
             .then(|| p.clone())
+    }
+
+    /// The path of call `c` and the name of its `Schema` mark.
+    fn call_schema(&self, c: &y::Call) -> Option<(Vec<u32>, String)> {
+        let p = self
+            .paths
+            .get(&(c as *const y::Call))
+            .filter(|_| self.sourced)?;
+        self.trivia.at(&self.key, p).iter().find_map(|t| match t {
+            Trivia::Mark(Mark::Schema(n)) => Some((p.clone(), n.clone())),
+            _ => None,
+        })
     }
 
     /// The origin elaboration recorded at call `c`.
@@ -736,7 +777,7 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
     let mut params = Vec::new();
     let mut caps = Vec::new();
     let mut locals = HashMap::new();
-    for p in &f.params {
+    for (k, p) in f.params.iter().enumerate() {
         match p {
             y::Param::Value {
                 comptime: false,
@@ -753,7 +794,7 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
                     },
                     name: name.clone(),
                     span: AT,
-                    ty: ty(t)?,
+                    ty: marks.view(&[0, k as u32], t, ty(t)?),
                     default: None,
                 })
             }
@@ -773,12 +814,26 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
         .unwrap_or_default();
     let ret = (!unit || !fail.is_empty()).then(|| -> R<RetType> {
         Ok(RetType {
-            ty: if unit { None } else { Some(ty(&f.ret)?) },
+            ty: if unit {
+                None
+            } else {
+                Some(marks.view(&[], &f.ret, ty(&f.ret)?))
+            },
             fail,
             from: f.from.clone(),
         })
     });
     let mut contracts = Vec::new();
+    // The printed name stands for the `ex` text as written: Yan Agent prints a name verbatim.
+    for text in marks.root(|m| match m {
+        Mark::Example(t) => Some(t.clone()),
+        _ => None,
+    }) {
+        contracts.push(Contract::Ex {
+            expr: name(&text),
+            with: Vec::new(),
+        });
+    }
     for c in &f.contracts {
         let mut b = Fold::new(std, marks, locals.clone(), &[]);
         contracts.push(match c {
@@ -880,6 +935,8 @@ struct Fold<'a> {
     marks: &'a Marks<'a>,
     types: HashMap<String, y::Type>,
     uses: HashMap<String, usize>,
+    /// The next tuple raised was written in parentheses (R868).
+    paren_tuple: bool,
     pending: HashMap<String, Pending>,
     /// Pending temporaries bound by a std call without effects, which may go unused.
     pure: std::collections::HashSet<String>,
@@ -907,6 +964,7 @@ impl<'a> Fold<'a> {
             marks,
             types,
             uses,
+            paren_tuple: false,
             pending: HashMap::new(),
             pure: Default::default(),
             loops: Vec::new(),
@@ -1046,9 +1104,14 @@ impl<'a> Fold<'a> {
 
     fn ctor(&mut self, c: &y::Ctor) -> R<Expr> {
         match c {
-            y::Ctor::Tuple(xs) => Ok(e(ExprKind::Tuple(
-                xs.iter().map(|a| self.atom(a)).collect::<R<_>>()?,
-            ))),
+            y::Ctor::Tuple(xs) => {
+                let paren = std::mem::take(&mut self.paren_tuple);
+                let mut t = e(ExprKind::Tuple(
+                    xs.iter().map(|a| self.atom(a)).collect::<R<_>>()?,
+                ));
+                t.paren = paren;
+                Ok(t)
+            }
             y::Ctor::Named { path, fields, .. } => match (path.as_slice(), fields.as_slice()) {
                 ([s], [(v, a)]) if s == "Some" && v == "value" => {
                     self.marks.consume(&[self.marks.field(c, 0)]);
@@ -1226,6 +1289,52 @@ impl<'a> Fold<'a> {
         Ok(None)
     }
 
+    /// `cli.parse_args[T](xs)` and `cli.parse[T]()` from a `Schema` mark, when the type argument
+    /// names the type the schema literal describes.
+    fn marked_schema(&mut self, c: &y::Call) -> R<Option<Expr>> {
+        if c.path.join(".") != "std.cli.parse_args" {
+            return Ok(None);
+        }
+        let Some((m, ty_name)) = self.marks.call_schema(c) else {
+            return Ok(None);
+        };
+        let vals = self.values(c);
+        let described = |s: &str| {
+            s.rfind("\"name\":\"")
+                .is_some_and(|i| s[i + 8..].starts_with(&format!("{ty_name}\",\"prog\":")))
+        };
+        match (c.targs.as_slice(), vals.as_slice()) {
+            ([y::TArg::Type(y::Type::Named(n))], [xs, y::Atom::Lit(y::Literal::Str(s), _)])
+                if n.path == [ty_name.as_str()] && n.args.is_empty() && described(s) =>
+            {
+                self.marks.accept(m);
+                let f = e(ExprKind::Index(
+                    Box::new(attr(name("cli"), "parse_args")),
+                    Box::new(name(&ty_name)),
+                ));
+                let is_args = |x: &Expr| {
+                    matches!(&x.kind, ExprKind::Call(f, a) if a.is_empty()
+                        && matches!(&f.kind, ExprKind::Attr(r, m, _)
+                            if m == "args" && matches!(&r.kind, ExprKind::Name(n) if n == "env")))
+                };
+                if self.peek(xs).is_some_and(is_args) {
+                    self.atom(xs)?;
+                    let f = e(ExprKind::Index(
+                        Box::new(attr(name("cli"), "parse")),
+                        Box::new(name(&ty_name)),
+                    ));
+                    return Ok(Some(call(f, Vec::new())));
+                }
+                let xs = arg(self.atom(xs)?);
+                Ok(Some(call(f, vec![xs])))
+            }
+            _ => {
+                self.marks.refuse(m);
+                Ok(None)
+            }
+        }
+    }
+
     /// N35 and N40 on `std.regex` calls: the Python `re.f(pattern, ..)` spelling, with the flags
     /// the `Flags` marks record, or the literal a `Regex` was lifted from.
     fn marked_re(&mut self, c: &y::Call) -> R<Option<Expr>> {
@@ -1352,6 +1461,9 @@ impl<'a> Fold<'a> {
             return Ok(x);
         }
         if let Some(x) = self.marked_re(c)? {
+            return Ok(x);
+        }
+        if let Some(x) = self.marked_schema(c)? {
             return Ok(x);
         }
         let p = c.path.join(".");
@@ -1813,6 +1925,64 @@ impl<'a> Fold<'a> {
             }
             out.extend(rest);
             return Ok(k + more);
+        }
+        if let Some(m) = self.marks.stmt_mark(&ss[0], &Mark::Parenthesized) {
+            // A tuple written in parentheses (R868): the next tuple raised keeps them, and the
+            // mark fails if the statement does not bind one.
+            if matches!(
+                &ss[0].kind,
+                y::StmtKind::Let { rhs: y::Rhs::Ctor(y::Ctor::Tuple(xs)), .. } if xs.len() > 1
+            ) {
+                self.marks.accept(m);
+                self.paren_tuple = true;
+                let k = self.stmt_inner(ss, out);
+                self.paren_tuple = false;
+                return k;
+            }
+            self.marks.refuse(m);
+        }
+        if let y::StmtKind::Let {
+            pat: y::Pat::Bind(n),
+            rhs: y::Rhs::Call(c),
+            ..
+        } = &ss[0].kind
+            && generated(n)
+            && n.starts_with("_c")
+            && self
+                .marks
+                .stmt_mark(&ss[0], &Mark::Lenient("N36".into()))
+                .is_none()
+            && matches!(
+                c.path.join(".").as_str(),
+                "std.list.new" | "std.set.new" | "std.dict.new"
+            )
+        {
+            // A comprehension lowered to a binding and an appending loop (R866): printed as the
+            // comprehension only when the loop has the lowered shape and the binding is read once.
+            let mut raised = Vec::new();
+            let mut k = self.stmt_inner(ss, &mut raised)?;
+            while !raised
+                .iter()
+                .any(|s| matches!(s.kind, StmtKind::For { .. }))
+                && k < ss.len()
+            {
+                k += self.stmt(&ss[k..], &mut raised)?;
+            }
+            // The accumulator's name is one a program cannot write, so the shape alone says the
+            // loop was a comprehension (the bare check of RFC 0034 D7 needs it); the mark, when
+            // present, is consumed.
+            let mark = self.marks.stmt_mark(&ss[0], &Mark::Comprehension);
+            match comprehension(n, &raised) {
+                Some(x) if self.uses(n) == 2 => {
+                    mark.into_iter().for_each(|p| self.marks.accept(p));
+                    self.bind_pending(n, Pending::Expr(x));
+                }
+                _ => {
+                    mark.into_iter().for_each(|p| self.marks.refuse(p));
+                    out.extend(raised);
+                }
+            }
+            return Ok(k);
         }
         if let Some(p) = self.marks.stmt_mark(&ss[0], &Mark::Lenient("N36".into()))
             && let y::StmtKind::Let {
@@ -3601,4 +3771,93 @@ fn count_stmts(ss: &[y::Stmt], uses: &mut HashMap<String, usize>) {
             K::Break { value: None, .. } | K::Continue { .. } | K::Unreachable | K::Asm { .. } => {}
         }
     }
+}
+
+/// The comprehension that `acc = <empty>` followed by a `for` loop that fills `acc` stands for.
+fn comprehension(acc: &str, raised: &[Stmt]) -> Option<Expr> {
+    let [first, second] = raised else { return None };
+    let StmtKind::Assign { target, value, .. } = &first.kind else {
+        return None;
+    };
+    let StmtKind::For {
+        label: None,
+        target: vars,
+        iter,
+        contracts,
+        body,
+    } = &second.kind
+    else {
+        return None;
+    };
+    let is_acc = |x: &Expr| matches!(&x.kind, ExprKind::Name(t) if t == acc);
+    let kind = match &value.kind {
+        ExprKind::List(xs) if xs.is_empty() => CompKind::List,
+        ExprKind::Dict(kvs) if kvs.is_empty() => CompKind::Dict,
+        ExprKind::Call(f, xs)
+            if xs.is_empty() && matches!(&f.kind, ExprKind::Name(n) if n == "set") =>
+        {
+            CompKind::Set
+        }
+        _ => return None,
+    };
+    if !is_acc(target) || !contracts.is_empty() {
+        return None;
+    }
+    let (cond, inner) = match body.as_slice() {
+        [
+            Stmt {
+                kind: StmtKind::If { arms, els: None },
+                ..
+            },
+        ] if let [(c, b)] = arms.as_slice() => (Some(c), b.stmts.as_slice()),
+        b => (None, b),
+    };
+    let [one] = inner else { return None };
+    let (elem, val) = match (&one.kind, kind) {
+        (
+            StmtKind::Expr(Expr {
+                kind: ExprKind::Call(f, args),
+                ..
+            }),
+            CompKind::List | CompKind::Set,
+        ) if let ExprKind::Attr(recv, m, _) = &f.kind
+            && is_acc(recv)
+            && m == if kind == CompKind::List {
+                "append"
+            } else {
+                "add"
+            }
+            && let [
+                Arg {
+                    name: None,
+                    kind: ArgKind::Expr(a),
+                    ..
+                },
+            ] = args.as_slice() =>
+        {
+            (a.clone(), None)
+        }
+        (
+            StmtKind::Assign {
+                target:
+                    Expr {
+                        kind: ExprKind::Index(recv, k),
+                        ..
+                    },
+                value,
+                ..
+            },
+            CompKind::Dict,
+        ) if is_acc(recv) => ((**k).clone(), Some(Box::new(value.clone()))),
+        _ => return None,
+    };
+    Some(e(ExprKind::Comp {
+        kind,
+        par: None,
+        elem: Box::new(elem),
+        value: val,
+        target: vars.clone(),
+        iter: Box::new(iter.clone()),
+        cond: cond.cloned().map(Box::new),
+    }))
 }
