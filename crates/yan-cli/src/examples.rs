@@ -153,10 +153,25 @@ fn bindings(
         };
         *given.get_mut(k)? = Some(text(e));
     }
+    // An empty literal has no type of its own as a local; the parameter's type gives it one.
+    let types = f.params.iter().filter_map(|p| match p {
+        Param::Value { ty, .. } => Some(yan_yag::print_type(ty)),
+        _ => None,
+    });
     params
         .iter()
         .zip(given)
-        .map(|((n, d), g)| Some(((*n).to_owned(), g.or_else(|| d.map(text))?)))
+        .zip(types)
+        .map(|(((n, d), g), t)| {
+            let v = g.or_else(|| d.map(text))?;
+            let empty = matches!(v.as_str(), "[]" | "{}") && f.tparams.is_empty();
+            let n = if empty {
+                format!("{n}: {t}")
+            } else {
+                (*n).to_owned()
+            };
+            Some((n, v))
+        })
         .collect()
 }
 
@@ -189,7 +204,15 @@ pub fn remap(diags: Vec<Diagnostic>, found: &[Example]) -> Vec<Diagnostic> {
 
 #[cfg(test)]
 mod tests {
+    use super::augment;
     use crate::test;
+
+    #[test]
+    fn pre_check_types_empty_literals_by_parameter() {
+        let src = "def f(xs: list[int], d: dict[str, int]) -> int:\n    pre len(xs) >= 0\n    ex f([], {}) == 0\n    return 0\n";
+        let (text, _) = augment("m.yag", src, true);
+        assert!(text.contains("    xs: list[int] = []\n    d: dict[str, int] = {}\n"));
+    }
 
     #[test]
     fn ex_lines_run_and_compare_outcomes() {
