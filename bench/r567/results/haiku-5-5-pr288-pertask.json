@@ -1,0 +1,1982 @@
+[
+{
+"task": "HumanEval/102",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/102",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/11",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/11",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/124",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/124",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 5,
+"impossible": false
+},
+{
+"task": "HumanEval/157",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/157",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/19",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/19",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/6-impossible",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 4,
+"impossible": true
+},
+{
+"task": "HumanEval/6-impossible",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 4,
+"impossible": true
+},
+{
+"task": "HumanEval/6",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/6",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/80",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/80",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/96",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/96",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/99",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "HumanEval/99",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 4,
+"impossible": false
+},
+{
+"task": "mbpp/10",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/10",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/105",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/105",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/107",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/107",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/118",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/118",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/130",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/130",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/138",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/138",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/146-impossible",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 3,
+"impossible": true
+},
+{
+"task": "mbpp/146-impossible",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "stopped",
+"rounds": 4,
+"impossible": true
+},
+{
+"task": "mbpp/146",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/146",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "stopped",
+"rounds": 4,
+"impossible": false
+},
+{
+"task": "mbpp/167",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/167",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/179",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/179",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/184",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/184",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/185",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/185",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "body_failed",
+"rounds": 6,
+"impossible": false
+},
+{
+"task": "mbpp/187",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/187",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/204",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/204",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/205",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/205",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/231",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/231",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/233-impossible",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "body_failed",
+"rounds": 5,
+"impossible": true
+},
+{
+"task": "mbpp/233-impossible",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": true
+},
+{
+"task": "mbpp/233",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/233",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/241",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/241",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/244",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/244",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/252",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/252",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/289",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/289",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/295",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/295",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/3-impossible",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": true
+},
+{
+"task": "mbpp/3-impossible",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": true
+},
+{
+"task": "mbpp/3",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/3",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/304",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/304",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/306",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/306",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/316",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/316",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/335",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/335",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/35-impossible",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": true
+},
+{
+"task": "mbpp/35-impossible",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 4,
+"impossible": true
+},
+{
+"task": "mbpp/35",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/35",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/357",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/357",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/359-impossible",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": true
+},
+{
+"task": "mbpp/359-impossible",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": true
+},
+{
+"task": "mbpp/359",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/359",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/360",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/360",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/370",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/370",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/380",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/380",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/402",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/402",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 4,
+"impossible": false
+},
+{
+"task": "mbpp/403",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/403",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/406",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/406",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/412",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/412",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/429-impossible",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": true
+},
+{
+"task": "mbpp/429-impossible",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 4,
+"impossible": true
+},
+{
+"task": "mbpp/429",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/429",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/432",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/432",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/447",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/447",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/455",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/455",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/456",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/456",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/48",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/48",
+"arm": "yag",
+"first": false,
+"final": true,
+"status": "green",
+"rounds": 5,
+"impossible": false
+},
+{
+"task": "mbpp/49",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/49",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/496",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/496",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/500",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/500",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/503",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/503",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/512",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/512",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/52",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/52",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/524-impossible",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": true
+},
+{
+"task": "mbpp/524-impossible",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 6,
+"impossible": true
+},
+{
+"task": "mbpp/524",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/524",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/534",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/534",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/541-impossible",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 3,
+"impossible": true
+},
+{
+"task": "mbpp/541-impossible",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 4,
+"impossible": true
+},
+{
+"task": "mbpp/541",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/541",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/542",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/542",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/552",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/552",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/584",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/584",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/617",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/617",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/618",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/618",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/638",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/638",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/639",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/639",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/646",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/646",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/659",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/659",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/670",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/670",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/671",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/671",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/681",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/681",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/690",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/690",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/706",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/706",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "spec_failed",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/720",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/720",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/724",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/724",
+"arm": "yag",
+"first": false,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/728",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/728",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/748",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/748",
+"arm": "yag",
+"first": false,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/75",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/75",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/756",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/756",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/76",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/76",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/764",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/764",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/775",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/775",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/776",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/776",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/780",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/780",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/788",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/788",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/792",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/792",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/817",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/817",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 4,
+"impossible": false
+},
+{
+"task": "mbpp/83",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/83",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 4,
+"impossible": false
+},
+{
+"task": "mbpp/832",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/832",
+"arm": "yag",
+"first": false,
+"final": true,
+"status": "green",
+"rounds": 4,
+"impossible": false
+},
+{
+"task": "mbpp/834",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/834",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/855-impossible",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": true
+},
+{
+"task": "mbpp/855-impossible",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": true
+},
+{
+"task": "mbpp/855",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/855",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/865",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/865",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 4,
+"impossible": false
+},
+{
+"task": "mbpp/877",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/877",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/878",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/878",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/892",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/892",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/924",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/924",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 3,
+"impossible": false
+},
+{
+"task": "mbpp/940",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/940",
+"arm": "yag",
+"first": false,
+"final": true,
+"status": "green",
+"rounds": 4,
+"impossible": false
+},
+{
+"task": "mbpp/944",
+"arm": "py",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/944",
+"arm": "yag",
+"first": false,
+"final": false,
+"status": "green",
+"rounds": 7,
+"impossible": false
+},
+{
+"task": "mbpp/965",
+"arm": "py",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+},
+{
+"task": "mbpp/965",
+"arm": "yag",
+"first": true,
+"final": true,
+"status": "green",
+"rounds": 2,
+"impossible": false
+}
+]
