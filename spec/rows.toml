@@ -1004,3 +1004,33 @@ sections = "16.5, 17.2"
 rows = "R862"
 topic = "The node-path walk enters closure bodies: statement s of a closure is its statement's path plus `0, s`, so marks inside a lambda place and read (R862)"
 sections = "16.5"
+
+[[entry]]
+rows = "R863"
+topic = "`Hoisted` mark: a declaration elaboration inserted before an `if` or `with` for a name bound on every path; raise drops it only if the next statement binds the name on every path (RFC 0038, R863)"
+sections = "14.1, 16.5"
+
+[[entry]]
+rows = "R864"
+topic = "`View` mark: a view type written in a signature; raise prints `View[T]` only if the node is the owned collection the view stands for (R864)"
+sections = "4.5, 16.5"
+
+[[entry]]
+rows = "R865"
+topic = "`Schema(type)` mark on `cli.parse_args[T]` and `cli.parse[T]()`; raise prints `[T]` only if the type exists in the module and the schema literal's `name` equals it (R865)"
+sections = "16.5, 17.3"
+
+[[entry]]
+rows = "R866"
+topic = "`Comprehension` mark: a comprehension lowered to a binding and an appending loop; raise prints it only if the loop has the lowered shape exactly (R866)"
+sections = "16.5"
+
+[[entry]]
+rows = "R867"
+topic = "An `ex` example survives elaboration as a `Contract::Example` raise prints (R867)"
+sections = "8.4, 16.5"
+
+[[entry]]
+rows = "R868"
+topic = "`Parenthesized` mark: a tuple written in parentheses; raise validates the node is a tuple (R868)"
+sections = "16.5"

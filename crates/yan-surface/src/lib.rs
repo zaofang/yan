@@ -66,6 +66,16 @@ pub enum Mark {
     Parallel,
     /// The expansion of a prelude `divmod` or `pow` call (R861).
     Prelude,
+    /// A declaration elaboration inserted before an `if` or `with` (R863).
+    Hoisted,
+    /// A view type written in a signature (R864).
+    View,
+    /// `cli.parse_args[T]` or `cli.parse[T]()` written; the type's name (R865).
+    Schema(String),
+    /// A comprehension lowered to an empty collection and an appending loop (R866).
+    Comprehension,
+    /// A tuple written in parentheses (R868).
+    Parenthesized,
 }
 
 /// One trivia entry at a node. Local names, the sixth kind, are kept per item by binding order
