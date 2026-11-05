@@ -869,3 +869,13 @@ sections = "9.6.1, 17.6, 18.3"
 rows = "R826 to R829"
 topic = "The data profile (RFC 0033), decided by the owner: a profile of Yan Agent, not a surface (R826); literal-only `NAME: Type = expr` constants, checked syntactically, E144 (R827); `std.data.parse` and `dump` over `Wire`, `DataError` (R828); `package.yag` and `Lints(...)` are data files (R829)"
 sections = "17.3, 19.1, 25"
+
+[[entry]]
+rows = "R830"
+topic = "N36 takes a `char` where `str` is expected as its one-character `str`: arguments, assignments, `return`, list and set elements, `list[char]` as `list[str]`, comparison with a non-literal `str`, and `+` with a `char` (R830)"
+sections = "3.4, 14.4"
+
+[[entry]]
+rows = "R831"
+topic = "N37 collects an `iter` where a `list` is expected, an `iter` call result indexed directly, and a name bound to an `iter` call result that the body indexes, slices or measures (R831)"
+sections = "14.4, 17.2"
