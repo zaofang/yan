@@ -1067,7 +1067,15 @@ impl<'a, 'm> Fn<'a, 'm> {
     fn concat(&mut self, parts: Vec<Operand>) -> Operand {
         let mut it = parts.into_iter();
         let first = it.next().expect("at least one part");
-        it.fold(first, |acc, p| self.rt(RtFn::Concat, Ty::Ptr, vec![acc, p]))
+        it.fold(first, |acc, p| self.concat2(acc, p))
+    }
+
+    /// `a` and `b` are fresh blocks or literals, so the result replaces both.
+    fn concat2(&mut self, a: Operand, b: Operand) -> Operand {
+        let r = self.rt(RtFn::Concat, Ty::Ptr, vec![a.clone(), b.clone()]);
+        self.free(RtFn::StrFree, a);
+        self.free(RtFn::StrFree, b);
+        r
     }
 
     /// CPython's `str` of a value, or its `repr` inside a container (SQ20).
@@ -1087,7 +1095,10 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(Ty::Ptr) => unreachable!("not a Yan Core type"),
             Shape::Fn(..) => self.lit("<function>"),
             Shape::Str if nested => self.rt(RtFn::Repr, Ty::Ptr, vec![v[0].clone()]),
-            Shape::Str => v[0].clone(),
+            Shape::Str => {
+                let empty = self.lit("");
+                self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])
+            }
             Shape::Rec(name, fs) => self.show_fields(name, v, fs)?,
             Shape::Tuple(ss) => {
                 let mut parts = vec![self.lit("(")];
@@ -1152,13 +1163,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let (skip, sep) = self.branch(first);
                 self.cur = sep;
                 let comma = self.lit(", ");
-                let r = self.rt(RtFn::Concat, Ty::Ptr, vec![Operand::Local(out), comma]);
+                let r = self.concat2(Operand::Local(out), comma);
                 self.emit(Inst::Copy { dst: out, src: r });
                 self.goto(skip);
                 let at = self.rt(RtFn::ListAt, Ty::Ptr, vec![list, Operand::Local(i)]);
                 let ev = self.read(&At::Mem(at, 0), e);
                 let es = self.show(&ev, e, true)?;
-                let r = self.rt(RtFn::Concat, Ty::Ptr, vec![Operand::Local(out), es]);
+                let r = self.concat2(Operand::Local(out), es);
                 self.emit(Inst::Copy { dst: out, src: r });
                 let next = self.scalar_op(
                     ScalarOp::AddChecked,
@@ -1169,7 +1180,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.finish(Term::Jump(head));
                 self.cur = exit;
                 let close = self.lit("]");
-                let r = self.rt(RtFn::Concat, Ty::Ptr, vec![Operand::Local(out), close]);
+                let r = self.concat2(Operand::Local(out), close);
                 self.emit(Inst::Copy { dst: out, src: r });
                 Operand::Local(out)
             }
@@ -1227,8 +1238,8 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     fn has_heap(s: &Shape) -> bool {
         match s {
-            Shape::Scalar(_) | Shape::Fn(..) => false,
-            Shape::Str | Shape::List(_) => true,
+            Shape::Scalar(_) => false,
+            Shape::Str | Shape::List(_) | Shape::Fn(..) => true,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_heap(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_heap),
             Shape::Sum(_, vs) => vs
@@ -1239,13 +1250,14 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     /// Drop glue (5.4): free the blocks of the value `v` of shape `s`, fields in declaration
-    /// order. Closure captures are not freed yet.
+    /// order. A closure's captures block is freed, not the values it captured.
     fn glue(&mut self, s: &Shape, v: &[Operand]) {
         if !Self::has_heap(s) {
             return;
         }
         match s {
-            Shape::Scalar(_) | Shape::Fn(..) => {}
+            Shape::Scalar(_) => {}
+            Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str => self.free(RtFn::StrFree, v[0].clone()),
             Shape::List(e) => {
                 if Self::has_heap(e) {

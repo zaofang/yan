@@ -409,6 +409,7 @@ const RT: &[RtFn] = &[
     RtFn::Alloc,
     RtFn::StrFree,
     RtFn::ListFree,
+    RtFn::EnvFree,
 ];
 
 /// Symbol, address, parameter types and result type.
@@ -521,6 +522,12 @@ fn rt_fn(
         RtFn::ListFree => (
             "yan_rt_list_free",
             abi::yan_rt_list_free as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::EnvFree => (
+            "yan_rt_free_env",
+            abi::yan_rt_free_env as *const u8,
             &[I64],
             None,
         ),

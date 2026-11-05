@@ -250,9 +250,30 @@ pub extern "C" fn yan_rt_exit(code: i64) -> ! {
     std::process::exit(code as i32)
 }
 
-/// `words` zeroed words: a closure's captures.
+/// `words` zeroed words: a closure's captures. A header word before them holds the count.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_alloc(words: u64) -> *mut u64 {
     crate::heap::block_taken();
-    Box::leak(vec![0u64; words as usize].into_boxed_slice()).as_mut_ptr()
+    let mut b = vec![0u64; words as usize + 1];
+    b[0] = words;
+    // SAFETY: the block has the header word.
+    unsafe { Box::leak(b.into_boxed_slice()).as_mut_ptr().add(1) }
+}
+
+/// Free a block from [`yan_rt_alloc`]; null (a closure without captures) is ignored.
+///
+/// # Safety
+/// `p` is null or from `yan_rt_alloc`, and nothing uses it afterwards.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_free_env(p: *mut u64) {
+    if p.is_null() {
+        return;
+    }
+    crate::heap::block_freed();
+    // SAFETY: the caller's contract; the header is one word before.
+    unsafe {
+        let head = p.sub(1);
+        let n = *head as usize + 1;
+        drop(Box::from_raw(std::ptr::slice_from_raw_parts_mut(head, n)));
+    }
 }
