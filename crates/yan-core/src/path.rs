@@ -6,7 +6,7 @@
 //! `0`, argument k of a call is the call's path plus `k`. A literal atom is the path of its
 //! parent (an argument, or the statement for a right-hand side) plus `0`. For an `impl`, function
 //! f is walked under the prefix `[3, f]`. Field k of a named constructor is its statement's path
-//! plus `0, k`. Closure bodies are not walked.
+//! plus `0, k`. A closure's statement s is its statement's path plus `0, s`.
 
 use crate::ast::*;
 use yan_diag::Span;
@@ -139,6 +139,7 @@ impl<'a, F: FnMut(&[u32], Node<'a>)> Walker<'_, F> {
                     w.child(k, |w| w.visit(Node::Field(c, k)));
                 }
             }),
+            Rhs::Closure(c) => self.child(0, |w| w.stmts(&c.body)),
             _ => {}
         }
     }

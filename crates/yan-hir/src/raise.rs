@@ -1148,6 +1148,14 @@ impl<'a> Fold<'a> {
                 let x = self.atom(x)?;
                 return Ok(Some(e(ExprKind::Unary("-", Box::new(x)))));
             }
+            if let ("sub_checked_i64", [y::Atom::Lit(y::Literal::Int(z), _), x]) =
+                (p.as_str(), vals.as_slice())
+                && z == "0"
+            {
+                self.marks.accept(m);
+                let x = self.atom(x)?;
+                return Ok(Some(e(ExprKind::Unary("-", Box::new(x)))));
+            }
             self.marks.refuse(m);
         }
         if let Some(m) = self.marks.call_mark(c, &Mark::Lenient("N39".into())) {

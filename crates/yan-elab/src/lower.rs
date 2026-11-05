@@ -4665,12 +4665,15 @@ impl Lower<'_, '_, '_> {
                 ("-", _) => {
                     let (a, t) = self.atom(x, want)?;
                     let c = match t {
-                        Ty::Int => call(
-                            "sub_checked_i64",
-                            vec![],
-                            vec![let_arg(Atom::Lit(Literal::Int("0".into()), at)), let_arg(a)],
-                            at,
-                        ),
+                        Ty::Int => {
+                            self.mark_call(at, yan_surface::Mark::Negated);
+                            call(
+                                "sub_checked_i64",
+                                vec![],
+                                vec![let_arg(Atom::Lit(Literal::Int("0".into()), at)), let_arg(a)],
+                                at,
+                            )
+                        }
                         Ty::Float => {
                             self.mark_call(at, yan_surface::Mark::Negated);
                             call(
