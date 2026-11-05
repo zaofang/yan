@@ -12,6 +12,16 @@ fn static_lib() -> PathBuf {
 #[test]
 fn c_program_links_and_runs() {
     let lib = static_lib();
+    if !lib.exists() {
+        // `cargo test` builds only the rlib; produce the archive beside it.
+        let release = lib.parent().unwrap().file_name().unwrap() == "release";
+        let mut build = Command::new(env!("CARGO"));
+        build.args(["build", "-q", "-p", "yan-rt"]);
+        if release {
+            build.arg("--release");
+        }
+        assert!(build.status().unwrap().success());
+    }
     assert!(lib.exists(), "missing {}", lib.display());
     let dir = std::env::temp_dir().join(format!("yan-rt-link-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
