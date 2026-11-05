@@ -6,7 +6,7 @@
 use yan_core::ast::{Arg, Atom, Ctor, Item};
 use yan_core::path::{Node, walk};
 use yan_diag::Span;
-use yan_surface::{Mark, Trivia, TriviaTable};
+use yan_surface::{Inserted, Mark, Trivia, TriviaTable};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
@@ -42,10 +42,12 @@ pub fn place(
     item: &Item,
     pending: &[Pending],
     lits: &[(Span, String)],
+    origins: &[(Span, Inserted)],
     table: &mut TriviaTable,
 ) -> Vec<Pending> {
     let mut claimed = vec![false; pending.len()];
     let mut lit_claimed = vec![false; lits.len()];
+    let mut origin_claimed = vec![false; origins.len()];
     let mut call = None;
     walk(item, &mut |path, node| {
         let mut cands = Vec::new();
@@ -72,6 +74,12 @@ pub fn place(
             Node::Item(i) => cands.push((Kind::Item, i.span)),
             Node::Call(c) => {
                 call = Some(c.span);
+                if let Some(i) =
+                    (0..origins.len()).find(|&i| !origin_claimed[i] && origins[i].0 == c.span)
+                {
+                    origin_claimed[i] = true;
+                    table.add(key, path.to_vec(), Trivia::Origin(origins[i].1));
+                }
                 cands.push((Kind::Call, c.span))
             }
             Node::Arg(a) => {
@@ -148,7 +156,7 @@ mod selftest {
             },
         ];
         let mut t = TriviaTable::default();
-        let left = place("h", item, &pending, &[], &mut t);
+        let left = place("h", item, &pending, &[], &[], &mut t);
         let at = t.at("h", &[2, 0, 0]);
         // Both call marks share a span and kind, so both land on the first such node.
         assert_eq!(at.len(), 2);
@@ -165,7 +173,7 @@ mod selftest {
             mark: Mark::Keyword,
         }];
         let mut t = TriviaTable::default();
-        assert_eq!(place("h", &m.items[0], &pending, &[], &mut t).len(), 1);
+        assert_eq!(place("h", &m.items[0], &pending, &[], &[], &mut t).len(), 1);
         assert_eq!(t.entries().count(), 0);
     }
 }

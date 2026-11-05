@@ -784,6 +784,7 @@ fn std_cx(module: &str) -> Cx<'static> {
         diags: Vec::new(),
         marks: Vec::new(),
         lits: Vec::new(),
+        origins: Vec::new(),
     }
 }
 

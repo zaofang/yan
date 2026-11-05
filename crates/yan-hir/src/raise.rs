@@ -12,7 +12,7 @@ use std::collections::{HashMap, HashSet};
 
 use yan_core::ast as y;
 use yan_diag::Span;
-use yan_surface::{Mark, Trivia, TriviaTable};
+use yan_surface::{Inserted, Mark, Trivia, TriviaTable};
 
 use crate::*;
 
@@ -406,6 +406,15 @@ impl<'a> Marks<'a> {
             .iter()
             .any(|t| matches!(t, Trivia::Mark(m) if m == want))
             .then(|| p.clone())
+    }
+
+    /// The origin elaboration recorded at call `c`.
+    fn call_origin(&self, c: &y::Call) -> Option<Inserted> {
+        let p = self
+            .paths
+            .get(&(c as *const y::Call))
+            .filter(|_| self.sourced)?;
+        self.trivia.origin(&self.key, p)
     }
 
     /// The path of literal `l` when it carries mark `want`.
@@ -1152,6 +1161,12 @@ impl<'a> Fold<'a> {
     }
 
     fn call_marked(&mut self, c: &y::Call) -> R<Expr> {
+        if let ("std.prelude.float" | "std.prelude.bigint", [x]) =
+            (c.path.join(".").as_str(), self.values(c).as_slice())
+            && self.marks.call_origin(c) == Some(Inserted::Conversion)
+        {
+            return self.atom(x);
+        }
         if let Some(x) = self.marked_math(c)? {
             return Ok(x);
         }
