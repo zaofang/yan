@@ -1,0 +1,20 @@
+# spec: 14.4, 17.2
+# rows: R835
+# note: N40 calls the method on a compiled pattern, turns re flags into inline flags, and compiles a str literal where Regex is expected
+# stdout:
+# True True True
+
+def first(p: Regex, s: str) -> bool:
+    return re.search(p, s) is not None
+
+def lit(s: str) -> bool:
+    return first("a+", s)
+
+def ci(s: str) -> bool:
+    return re.search("abc", s, re.I) is not None
+
+def fl(s: str) -> bool:
+    return re.search("abc", s, flags=re.I | re.M) is not None
+
+pub def main() uses io:
+    io.print(f"{lit('aa')} {ci('ABC')} {fl('xABC')}")

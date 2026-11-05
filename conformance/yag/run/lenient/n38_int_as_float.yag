@@ -1,0 +1,27 @@
+# spec: 3.4, 14.4
+# rows: R833
+# note: N38 widens an int where float is expected, and in mixed arithmetic, comparison and **
+# stdout:
+# 1.5 1.5 True 2.25 2.0
+
+def half(x: float) -> float:
+    return x / 2.0
+
+def scale(n: int) -> float:
+    return half(n)
+
+def mixed(n: int, f: float) -> float:
+    return n * f
+
+def bigger(n: int, f: float) -> bool:
+    return n < f
+
+def power(n: int, f: float) -> float:
+    return f ** n
+
+def root(n: int) -> float:
+    return n ** 0.5
+
+pub def main() uses io:
+    n = 3
+    io.print(f"{scale(n)} {mixed(n, 0.5)} {bigger(n, 3.5)} {power(2, 1.5)} {root(4)}")

@@ -1,0 +1,15 @@
+# spec: 14.1
+# rows: R832
+# note: a name bound on every path of an if/else is visible after the statement
+# stdout:
+# neg pos
+
+def sign(x: int) -> str:
+    if x < 0:
+        s = "neg"
+    else:
+        s = "pos"
+    return s
+
+pub def main() uses io:
+    io.print(f"{sign(-1)} {sign(1)}")

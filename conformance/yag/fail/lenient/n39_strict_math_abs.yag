@@ -1,0 +1,8 @@
+# spec: 14.4, 17.2
+# rows: R834
+# flags: --strict
+# note: --strict has no math.abs; the Python name stays E200
+# expect: E200 at 8:12
+
+def a(x: float) -> float:
+    return math.abs(x)

@@ -1,0 +1,11 @@
+# spec: 3.4, 14.4
+# rows: R833
+# flags: --strict
+# note: --strict keeps E201 for an int argument where float is expected
+# expect: E201 at 11:17
+
+def half(x: float) -> float:
+    return x / 2.0
+
+def scale(n: int) -> float:
+    return half(n)
