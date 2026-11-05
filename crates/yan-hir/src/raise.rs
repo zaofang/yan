@@ -1226,6 +1226,110 @@ impl<'a> Fold<'a> {
         Ok(None)
     }
 
+    /// N35 and N40 on `std.regex` calls: the Python `re.f(pattern, ..)` spelling, with the flags
+    /// the `Flags` marks record, or the literal a `Regex` was lifted from.
+    fn marked_re(&mut self, c: &y::Call) -> R<Option<Expr>> {
+        let p = c.path.join(".");
+        let vals = self.values(c);
+        let n40 = Mark::Lenient("N40".into());
+        if p == "std.regex.compile"
+            && let Some(m) = self.marks.call_mark(c, &n40)
+        {
+            if let [a] = vals.as_slice() {
+                self.marks.accept(m);
+                let mut x = self.atom(a)?;
+                raw_if_backslash(&mut x);
+                return Ok(Some(x));
+            }
+            self.marks.refuse(m);
+        }
+        let Some(f) = p.strip_prefix("std.regex.") else {
+            return Ok(None);
+        };
+        let n35 = Mark::Lenient("N35".into());
+        let (m, lifted) = match (self.marks.call_mark(c, &n35), self.marks.call_mark(c, &n40)) {
+            (Some(m), _) => (m, true),
+            (None, Some(m)) => (m, false),
+            _ => return Ok(None),
+        };
+        let flags = [(Mark::FlagsKeyword, true), (Mark::FlagsPositional, false)]
+            .into_iter()
+            .find_map(|(k, kw)| self.marks.call_mark(c, &k).map(|p| (p, kw)));
+        let f = if f == "find_all" { "findall" } else { f };
+        let Some(recv) = vals.first() else {
+            self.marks.refuse(m);
+            return Ok(None);
+        };
+        let mut head = if lifted {
+            let is_compile = |x: &Expr| {
+                matches!(&x.kind, ExprKind::Call(g, xs) if xs.len() == 1
+                    && matches!(&g.kind, ExprKind::Attr(r, c, _)
+                        if c == "compile" && matches!(&r.kind, ExprKind::Name(n) if n == "regex")))
+            };
+            if !self.peek(recv).is_some_and(is_compile) {
+                self.marks.refuse(m);
+                return Ok(None);
+            }
+            let ExprKind::Call(_, mut xs) = self.atom(recv)?.kind else {
+                unreachable!("checked above")
+            };
+            match xs.remove(0).kind {
+                ArgKind::Expr(x) => x,
+                _ => unreachable!("a positional pattern"),
+            }
+        } else {
+            self.atom(recv)?
+        };
+        let mut rest = self.std_args(c, &p, 1)?;
+        if let Some((fm, keyword)) = flags {
+            let letters = match &mut head.kind {
+                ExprKind::Lit(Lit::Str { value, .. }) if value.starts_with("(?") => {
+                    value.find(')').map(|k| {
+                        let l = value[2..k].to_owned();
+                        value.replace_range(..=k, "");
+                        l
+                    })
+                }
+                _ => None,
+            };
+            let ok = letters.as_deref().filter(|l| {
+                !l.is_empty()
+                    && l.chars().all(|c| "imsx".contains(c))
+                    && (keyword || rest.len() == 1)
+            });
+            let Some(l) = ok else {
+                self.marks.refuse(m);
+                self.marks.refuse(fm);
+                return Ok(None);
+            };
+            let flag = |c: char| {
+                let n = match c {
+                    'i' => "I",
+                    'm' => "M",
+                    's' => "S",
+                    _ => "X",
+                };
+                attr(name("re"), n)
+            };
+            let mut it = l.chars();
+            let first = flag(it.next().expect("non-empty"));
+            let x = it.fold(first, |a, c| {
+                e(ExprKind::Binary("|", Box::new(a), Box::new(flag(c))))
+            });
+            let mut a = arg(x);
+            if keyword {
+                a.name = Some("flags".into());
+            }
+            rest.push(a);
+            self.marks.accept(fm);
+        }
+        raw_if_backslash(&mut head);
+        self.marks.accept(m);
+        let mut args = vec![arg(head)];
+        args.extend(rest);
+        Ok(Some(call(attr(name("re"), f), args)))
+    }
+
     fn call_marked(&mut self, c: &y::Call) -> R<Expr> {
         if let Some(m) = self.marks.call_mark(c, &Mark::Prelude) {
             let vals = self.values(c);
@@ -1245,6 +1349,9 @@ impl<'a> Fold<'a> {
             return self.atom(x);
         }
         if let Some(x) = self.marked_math(c)? {
+            return Ok(x);
+        }
+        if let Some(x) = self.marked_re(c)? {
             return Ok(x);
         }
         let p = c.path.join(".");
@@ -1456,13 +1563,7 @@ impl<'a> Fold<'a> {
             // A pattern with a backslash is written raw.
             ("regex", "compile", 1) => {
                 let mut x = self.atom(vals[0])?;
-                if let ExprKind::Lit(Lit::Str { prefix, value }) = &mut x.kind
-                    && value.contains('\\')
-                    && !value.ends_with('\\')
-                    && !value.contains(['"', '\n', '\r'])
-                {
-                    *prefix = "r".into();
-                }
+                raw_if_backslash(&mut x);
                 return Ok(call(attr(name("regex"), f), vec![arg(x)]));
             }
             ("error", "context", 2) => {
@@ -3306,6 +3407,17 @@ fn kind_name(k: &y::StmtKind) -> &'static str {
         K::Reuse { .. } => "reuse",
         K::Jump { .. } => "jump",
         _ => "this statement",
+    }
+}
+
+/// A pattern with a backslash is written raw.
+fn raw_if_backslash(x: &mut Expr) {
+    if let ExprKind::Lit(Lit::Str { prefix, value }) = &mut x.kind
+        && value.contains('\\')
+        && !value.ends_with('\\')
+        && !value.contains(['"', '\n', '\r'])
+    {
+        *prefix = "r".into();
     }
 }
 

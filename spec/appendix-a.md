@@ -214,6 +214,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R866 | `Comprehension` mark: a comprehension lowered to a binding and an appending loop; raise prints it only if the loop has the lowered shape exactly (R866) | 16.5 |
 | R867 | An `ex` example survives elaboration as a `Contract::Example` raise prints (R867) | 8.4, 16.5 |
 | R868 | `Parenthesized` mark: a tuple written in parentheses; raise validates the node is a tuple (R868) | 16.5 |
+| R869 | Spelling marks `FlagsKeyword` and `FlagsPositional` record how Python `re` flags were written on a `re` call; raise prints `re.f(pattern, ..)` from N35 and N40 marks on the method call and the literal from N40 on a lifted `regex.compile` (R869) | 14.4, 16.5 |
 
 <!-- /rows -->
 

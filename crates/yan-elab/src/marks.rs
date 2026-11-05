@@ -110,6 +110,11 @@ pub fn place(
                     && (p.mark != Mark::Lenient("N37".into())
                         || kind != Kind::Call
                         || callee == "std.iter.ops.collect")
+                    // The lifted `regex.compile` shares its span with the method call it feeds.
+                    && (!(p.mark == Mark::Lenient("N35".into())
+                        || matches!(p.mark, Mark::FlagsKeyword | Mark::FlagsPositional))
+                        || kind != Kind::Call
+                        || (callee.starts_with("std.regex.") && callee != "std.regex.compile"))
                 {
                     claimed[i] = true;
                     here.push(&p.mark);
