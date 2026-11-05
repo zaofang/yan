@@ -1,0 +1,37 @@
+# spec: 3.4, 14.4
+# rows: R830
+# note: N36 takes a char where str is expected as its one-character str
+# stdout:
+# a! b! x
+# ['a', 'b']
+# True ab a-b
+
+def shout(s: str) -> str:
+    return s + "!"
+
+def as_str(c: char) -> str:
+    return c
+
+def letters(s: str) -> list[str]:
+    out: list[str] = []
+    for c in s.chars():
+        out.append(c)
+    return out
+
+def as_strs(cs: list[char]) -> list[str]:
+    return cs
+
+def same(c: char, t: str) -> bool:
+    return c == t
+
+def join(c: char, t: str) -> str:
+    return c + t
+
+def pair(a: char, b: char) -> str:
+    return a + "-" + b
+
+pub def main() uses io:
+    x: str = c'x'
+    io.print(f"{shout(c'a')} {shout(as_str(c'b'))} {x}")
+    io.print(f"{letters('ab')}")
+    io.print(f"{same(c'a', 'a')} {join(c'a', 'b')} {pair(c'a', c'b')}")

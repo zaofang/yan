@@ -1,0 +1,6 @@
+-- spec: 3.4, 25.4
+-- rows: R830
+-- note: plain Yan does not widen a char to str
+-- expect: E201 at 6:26
+
+as_str(c: char) -> str = c

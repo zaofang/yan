@@ -1,0 +1,7 @@
+# spec: 14.4, 17.2
+# rows: R810, R831
+# note: N37 does not collect a parameter; indexing it stays E201
+# expect: E201 at 7:12
+
+def f(it: iter[int]) -> int:
+    return it[0]

@@ -1,0 +1,8 @@
+# spec: 3.4, 14.4
+# rows: R830
+# flags: --strict
+# note: --strict keeps E201 for a char where str is expected
+# expect: E201 at 8:12
+
+def as_str(c: char) -> str:
+    return c
