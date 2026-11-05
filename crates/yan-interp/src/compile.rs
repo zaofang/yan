@@ -377,7 +377,8 @@ pub(crate) fn compile(m: &Module) -> Program {
     };
     for item in &m.items {
         match &item.kind {
-            ItemKind::Fn(f) => {
+            // The interpreter erases types, so an instance runs as its generic function.
+            ItemKind::Fn(f) | ItemKind::Inst(Inst { def: f, .. }) => {
                 let id = g.codes.len();
                 g.codes.push(None);
                 g.fns.insert(f.path.join("."), id);

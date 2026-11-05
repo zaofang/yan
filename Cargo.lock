@@ -1477,6 +1477,7 @@ version = "0.0.0"
 name = "yan-opt"
 version = "0.0.0"
 dependencies = [
+ "yan-check",
  "yan-core",
  "yan-diag",
 ]

@@ -3,6 +3,11 @@
 //! It reports only what it can prove from the module alone. A type it cannot work out, such as
 //! a std result or a generic instance, is unknown and never produces a mismatch.
 
+pub mod own;
+mod post;
+
+pub use post::check_optimized;
+
 use std::collections::{HashMap, HashSet};
 use std::mem;
 
@@ -833,8 +838,20 @@ impl<'g, 'm> Cx<'g, 'm> {
             }
             StmtKind::Assert(e) => self.expr(e),
             StmtKind::Unsafe(b) => self.block(b),
-            StmtKind::Drop(n) => self.use_name(n, s.span, How::Drop),
+            StmtKind::Drop(n) => {
+                self.err(
+                    "I001",
+                    s.span,
+                    "`drop` appears only in optimized Yan Core (R770)".into(),
+                );
+                self.use_name(n, s.span, How::Drop);
+            }
             StmtKind::Reuse { name, ctor } => {
+                self.err(
+                    "I001",
+                    s.span,
+                    "`reuse` appears only in optimized Yan Core (R770)".into(),
+                );
                 self.use_name(name, s.span, How::Move);
                 self.rhs(&Rhs::Ctor(ctor.clone()), s.span);
             }
