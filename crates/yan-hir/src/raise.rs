@@ -404,18 +404,28 @@ impl<'a> Marks<'a> {
     }
 }
 
-/// The marks of `trivia` that `raised` did not consume, as `(item, path, mark)` lines.
-pub fn unconsumed(trivia: &TriviaTable, raised: &Raised) -> Vec<String> {
+/// A spelling of `trivia` that `raised` did not consume: its item, and what it is with its path.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Unused {
+    pub item: String,
+    pub what: String,
+}
+
+/// The spellings of `trivia` that `raised` did not consume.
+pub fn unconsumed(trivia: &TriviaTable, raised: &Raised) -> Vec<Unused> {
     trivia
         .entries()
-        .filter_map(|(i, p, t)| match t {
-            Trivia::Literal(_) if !raised.consumed.iter().any(|(ci, cp)| ci == i && cp == p) => {
-                Some(format!("literal spelling at {i} {p:?}"))
-            }
-            Trivia::Mark(mk) if !raised.consumed.iter().any(|(ci, cp)| ci == i && cp == p) => {
-                Some(format!("{mk:?} at {i} {p:?}"))
-            }
-            _ => None,
+        .filter_map(|(i, p, t)| {
+            let used = raised.consumed.iter().any(|(ci, cp)| ci == i && cp == p);
+            let what = match t {
+                Trivia::Literal(_) if !used => format!("literal spelling at {i} {p:?}"),
+                Trivia::Mark(mk) if !used => format!("{mk:?} at {i} {p:?}"),
+                _ => return None,
+            };
+            Some(Unused {
+                item: i.to_owned(),
+                what,
+            })
         })
         .collect()
 }

@@ -1,6 +1,7 @@
 //! The analysis API (22.2, R560) over the query database: diagnostics, hover, inlay hints and
 //! view-as. `yan-cli` and `yan mcp` use it, and the language server will.
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use serde::Serialize;
@@ -325,9 +326,10 @@ pub fn view(
                 )?;
                 let unused = yan_hir::raise::unconsumed(trivia, &raised);
                 if marks.strict && !unused.is_empty() {
-                    return Err(ViewError::Tool(format!(
-                        "unconsumed spelling marks: {}",
-                        unused.join("; ")
+                    return Err(ViewError::Diagnostics(unused_spellings(
+                        file.path(db),
+                        m,
+                        &unused,
                     )));
                 }
                 yan_yag::resugar(raised.module)
@@ -341,6 +343,35 @@ pub fn view(
             surface_name(as_)
         ))),
     }
+}
+
+/// E279 for each spelling that `raise` did not use (16.5, RFC 0034 D6), at its item.
+fn unused_spellings(
+    path: &Path,
+    m: &y::Module,
+    unused: &[yan_hir::raise::Unused],
+) -> Vec<Diagnostic> {
+    let spans: HashMap<String, Span> = m
+        .items
+        .iter()
+        .zip(yan_core::hash::hash_module(m))
+        .map(|(it, h)| (h.identity.to_string(), it.span))
+        .collect();
+    let file = path.display().to_string();
+    unused
+        .iter()
+        .map(|u| {
+            let at = spans.get(&u.item).copied().unwrap_or_default();
+            Diagnostic::error(
+                "E279",
+                &file,
+                at,
+                "",
+                format!("spelling not used by raise: {}", u.what),
+            )
+            .with_item(&u.item)
+        })
+        .collect()
 }
 
 /// `src` in canonical form (18.4): print(parse(src)), for the surfaces with a printer.
@@ -552,6 +583,24 @@ mod tests {
     use super::*;
 
     const SRC: &str = "def f(x: int) -> int:\n    y = x + 1\n    z: int = y\n    return z\n";
+
+    #[test]
+    fn unused_spelling_is_e279_at_its_item() {
+        let m = y::Module {
+            header: Vec::new(),
+            path: y::Path::default(),
+            items: Vec::new(),
+        };
+        let unused = [yan_hir::raise::Unused {
+            item: "h".to_owned(),
+            what: "Out at h [0]".to_owned(),
+        }];
+        let d = unused_spellings(Path::new("t.yag"), &m, &unused);
+        assert_eq!(d.len(), 1);
+        assert_eq!(d[0].code, "E279");
+        assert_eq!(d[0].file, "t.yag");
+        assert_eq!(d[0].message, "spelling not used by raise: Out at h [0]");
+    }
 
     #[test]
     fn only_verified_fixes_are_reported() {
