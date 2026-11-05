@@ -168,6 +168,10 @@ pub enum RtFn {
     ListCopy,
     /// `(words) -> Ptr` to that many zeroed words.
     Alloc,
+    /// `(Str)`: free the block; a literal's block is left alone.
+    StrFree,
+    /// `(List)`: free the block, not its elements.
+    ListFree,
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -258,7 +258,11 @@ pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
             ids,
             rt_ids,
             panic,
-            strings: p.strings.iter().map(|s| abi::str_block(s) as i64).collect(),
+            strings: p
+                .strings
+                .iter()
+                .map(|s| abi::static_str_block(s) as i64)
+                .collect(),
             fctx: FunctionBuilderContext::new(),
             ctx,
         }),
@@ -403,6 +407,8 @@ const RT: &[RtFn] = &[
     RtFn::ListAt,
     RtFn::ListCopy,
     RtFn::Alloc,
+    RtFn::StrFree,
+    RtFn::ListFree,
 ];
 
 /// Symbol, address, parameter types and result type.
@@ -505,6 +511,18 @@ fn rt_fn(
             abi::yan_rt_alloc as *const u8,
             &[I64],
             Some(I64),
+        ),
+        RtFn::StrFree => (
+            "yan_rt_str_free",
+            abi::yan_rt_str_free as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ListFree => (
+            "yan_rt_list_free",
+            abi::yan_rt_list_free as *const u8,
+            &[I64],
+            None,
         ),
         RtFn::ListCopy => (
             "yan_rt_list_copy",

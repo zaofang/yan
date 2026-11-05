@@ -1225,6 +1225,94 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok((at, shape))
     }
 
+    fn has_heap(s: &Shape) -> bool {
+        match s {
+            Shape::Scalar(_) | Shape::Fn(..) => false,
+            Shape::Str | Shape::List(_) => true,
+            Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_heap(s)),
+            Shape::Tuple(ss) => ss.iter().any(Self::has_heap),
+            Shape::Sum(_, vs) => vs
+                .iter()
+                .flat_map(|(_, fs)| fs)
+                .any(|(_, s)| Self::has_heap(s)),
+        }
+    }
+
+    /// Drop glue (5.4): free the blocks of the value `v` of shape `s`, fields in declaration
+    /// order. Closure captures are not freed yet.
+    fn glue(&mut self, s: &Shape, v: &[Operand]) {
+        if !Self::has_heap(s) {
+            return;
+        }
+        match s {
+            Shape::Scalar(_) | Shape::Fn(..) => {}
+            Shape::Str => self.free(RtFn::StrFree, v[0].clone()),
+            Shape::List(e) => {
+                if Self::has_heap(e) {
+                    let list = v[0].clone();
+                    let n = self.rt(RtFn::ListLen, I64, vec![list.clone()]);
+                    let i = self.local(I64);
+                    self.emit(Inst::Copy {
+                        dst: i,
+                        src: Operand::Int(0),
+                    });
+                    let head = self.block_new();
+                    self.goto(head);
+                    let done = self.scalar_op(ScalarOp::Ge, I64, vec![Operand::Local(i), n]);
+                    let (exit, body) = self.branch(done);
+                    self.cur = body;
+                    let at = self.rt(RtFn::ListAt, Ty::Ptr, vec![list, Operand::Local(i)]);
+                    let ev = self.read(&At::Mem(at, 0), e);
+                    self.glue(e, &ev);
+                    let next = self.scalar_op(
+                        ScalarOp::AddChecked,
+                        I64,
+                        vec![Operand::Local(i), Operand::Int(1)],
+                    );
+                    self.emit(Inst::Copy { dst: i, src: next });
+                    self.finish(Term::Jump(head));
+                    self.cur = exit;
+                }
+                self.free(RtFn::ListFree, v[0].clone());
+            }
+            Shape::Rec(..) | Shape::Tuple(_) => {
+                for (_, at, fs) in s.fields().expect("an aggregate") {
+                    self.glue(fs, &v[at..at + fs.width()]);
+                }
+            }
+            Shape::Sum(_, vs) => {
+                let Operand::Local(tag) = v[0] else {
+                    unreachable!("a sum's tag is a local")
+                };
+                let join = self.block_new();
+                let arms: Vec<BlockId> = vs.iter().map(|_| self.block_new()).collect();
+                self.finish(Term::Switch {
+                    on: tag,
+                    targets: arms.clone(),
+                });
+                let mut at = 1;
+                for (arm, (_, fs)) in arms.into_iter().zip(vs) {
+                    self.cur = arm;
+                    for (_, fs) in fs {
+                        let w = fs.width();
+                        self.glue(fs, &v[at..at + w]);
+                        at += w;
+                    }
+                    self.finish(Term::Jump(join));
+                }
+                self.cur = join;
+            }
+        }
+    }
+
+    fn free(&mut self, f: RtFn, block: Operand) {
+        self.emit(Inst::Rt {
+            dst: None,
+            f,
+            args: vec![block],
+        });
+    }
+
     fn read(&mut self, at: &At, s: &Shape) -> Vec<Operand> {
         match at {
             At::Reg(ls) => ls.iter().map(|l| Operand::Local(*l)).collect(),
@@ -1979,7 +2067,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Ok(())
             }
             K::Unsafe(b) => self.block(b),
-            K::Drop(_) => Ok(()),
+            K::Drop(n) => {
+                if let Some(v) = self.names.get(n.as_str()).cloned() {
+                    let ops: Vec<Operand> = v.locals.iter().map(|l| Operand::Local(*l)).collect();
+                    self.glue(&v.shape, &ops);
+                }
+                Ok(())
+            }
             K::Rhs(y::Rhs::Call(c)) => self.call(c, None),
             K::Rhs(_) => Ok(()),
             K::Yield(_) => unsupported("generators"),

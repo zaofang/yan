@@ -1,6 +1,8 @@
 //! The C-ABI entry points native code calls (R561).
 
+use std::collections::HashSet;
 use std::io::Write;
+use std::sync::{Mutex, OnceLock};
 
 /// # Safety
 /// `ptr` points to `len` bytes of UTF-8.
@@ -53,8 +55,7 @@ pub fn panic_message(kind: &str) -> &'static str {
     }
 }
 
-// `Str` and `List` values in native code are pointers to these leaked blocks; drops are not
-// elaborated yet (5.3).
+// `Str` and `List` values in native code are pointers to these blocks; `drop` (5.4) frees them.
 
 /// A list of `words`-slot elements.
 pub struct List {
@@ -75,6 +76,48 @@ fn panic(kind: &str) -> ! {
 /// A `Str` block for `s`, owned by the program from now on.
 pub fn str_block(s: &str) -> *mut String {
     leak(s.to_owned())
+}
+
+fn statics() -> &'static Mutex<HashSet<usize>> {
+    static STATICS: OnceLock<Mutex<HashSet<usize>>> = OnceLock::new();
+    STATICS.get_or_init(Mutex::default)
+}
+
+/// A `Str` block for a literal. It lives for the whole run, is not counted as live, and
+/// [`yan_rt_str_free`] ignores it, so every use of the literal may drop it.
+pub fn static_str_block(s: &str) -> *mut String {
+    let p = Box::into_raw(Box::new(s.to_owned()));
+    statics().lock().expect("not poisoned").insert(p as usize);
+    p
+}
+
+/// Free a `Str` block, unless it is a literal's.
+///
+/// # Safety
+/// `s` is a `Str` block that nothing uses afterwards.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_free(s: *mut String) {
+    if statics()
+        .lock()
+        .expect("not poisoned")
+        .contains(&(s as usize))
+    {
+        return;
+    }
+    crate::heap::block_freed();
+    // SAFETY: the caller's contract; the block came from `leak`.
+    drop(unsafe { Box::from_raw(s) });
+}
+
+/// Free a `List` block, not its elements' blocks.
+///
+/// # Safety
+/// `l` is a `List` block that nothing uses afterwards.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_list_free(l: *mut List) {
+    crate::heap::block_freed();
+    // SAFETY: the caller's contract; the block came from `leak`.
+    drop(unsafe { Box::from_raw(l) });
 }
 
 /// # Safety
