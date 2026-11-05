@@ -11,6 +11,8 @@ use yan_surface::{Mark, Trivia, TriviaTable};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
     Stmt,
+    /// An `assert` statement.
+    Assert,
     Call,
     Arg,
     /// Field `k` of a constructor, joined by the span of its atom.
@@ -34,6 +36,9 @@ pub fn place(key: &str, item: &Item, pending: &[Pending], table: &mut TriviaTabl
     let mut call = None;
     walk(item, &mut |path, node| {
         let (kind, span) = match node {
+            Node::Stmt(s) if matches!(s.kind, yan_core::ast::StmtKind::Assert(_)) => {
+                (Kind::Assert, s.span)
+            }
             Node::Stmt(s) => (Kind::Stmt, s.span),
             Node::Field(Ctor::Named { fields, .. }, k) => match &fields[k].1 {
                 Atom::Name(_, sp) | Atom::Lit(_, sp) => (Kind::Field(k), *sp),

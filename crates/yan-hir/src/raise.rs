@@ -225,6 +225,26 @@ impl<'a> Marks<'a> {
         Some(here)
     }
 
+    /// Whether `s` carries `FromPre`, consumed. False when the item has no marks to go by (D3).
+    fn marked_pre(&self, s: &y::Stmt) -> bool {
+        let Some(p) = self
+            .stmts
+            .get(&(s as *const y::Stmt))
+            .filter(|_| self.sourced)
+        else {
+            return false;
+        };
+        let here = self
+            .trivia
+            .at(&self.key, p)
+            .iter()
+            .any(|t| matches!(t, Trivia::Mark(Mark::FromPre)));
+        if here {
+            self.seen.borrow_mut().insert(p.clone());
+        }
+        here
+    }
+
     /// An `Annotated` mark that fails its check: the default prints.
     fn reject_stmt(&self, s: &y::Stmt) {
         if let Some(p) = self.stmts.get(&(s as *const y::Stmt)) {
@@ -496,6 +516,7 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
         Some(blk) => {
             let mut b = Fold::new(std, marks, locals, &blk.stmts);
             let mut stmts = b.stmts(&blk.stmts)?;
+            contracts.extend(b.pre.drain(..).map(Contract::Pre));
             if let Some(t) = b.pending.keys().find(|t| !b.pure.contains(*t)) {
                 return no(format!("a temporary used out of order: `{t}`"));
             }
@@ -561,6 +582,8 @@ struct Fold<'a> {
     pure: std::collections::HashSet<String>,
     /// Labels of the enclosing loops, innermost last.
     loops: Vec<String>,
+    /// Leading `assert`s elaborated from `pre`, moved back to the contract list.
+    pre: Vec<Expr>,
 }
 
 const BUILDERS: [&str; 3] = ["std.list.append", "std.set.add", "std.dict.insert"];
@@ -582,6 +605,7 @@ impl<'a> Fold<'a> {
             pending: HashMap::new(),
             pure: Default::default(),
             loops: Vec::new(),
+            pre: Vec::new(),
         }
     }
 
@@ -1466,7 +1490,11 @@ impl<'a> Fold<'a> {
             }
             K::Assert(x) => {
                 let x = self.pure(x)?;
-                out.push(stmt(StmtKind::Assert(x)));
+                if out.is_empty() && self.marks.marked_pre(s) {
+                    self.pre.push(x);
+                } else {
+                    out.push(stmt(StmtKind::Assert(x)));
+                }
             }
             K::Unreachable => out.push(stmt(StmtKind::Unreachable)),
             K::Drop(_) => {}

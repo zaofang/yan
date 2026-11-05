@@ -665,3 +665,18 @@ pub def main() uses io:
     assert_eq!(text, src);
     assert!(unused.is_empty(), "{unused:?}");
 }
+
+#[test]
+fn pre_marks_restore_contracts_from_asserts() {
+    let src = "\
+def half(x: int) -> int:
+    pre x % 2 == 0
+    return x // 2
+
+pub def main() uses io:
+    io.print(f\"{half(4)}\")
+";
+    let (text, unused) = raised_marked(src);
+    assert_eq!(text, src);
+    assert!(unused.is_empty(), "{unused:?}");
+}
