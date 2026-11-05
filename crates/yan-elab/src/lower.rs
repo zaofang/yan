@@ -54,6 +54,8 @@ struct Lower<'a, 'c, 's> {
     dict_places: Vec<DictPlace>,
     /// Every read of each name, for last-use moves (E413).
     uses: HashMap<String, Vec<Span>>,
+    /// Names the body indexes or measures, which N37 collects when bound to an `iter`.
+    indexed: HashSet<String>,
     /// Where each read sits: the branch groups enclosing it, for E413 reachability.
     use_paths: HashMap<Span, Vec<Branch>>,
     ghosts: HashSet<String>,
@@ -351,6 +353,35 @@ pub(crate) fn sub_blocks(s: &j::Stmt) -> Vec<&[j::Stmt]> {
             j::ParBody::For { body, .. } => vec![body],
         },
         _ => Vec::new(),
+    }
+}
+
+/// Names used as `n[i]`, `n[a:b]`, `len(n)` or `n.len()`.
+fn indexed_names(stmts: &[j::Stmt], out: &mut HashSet<String>) {
+    use j::ExprKind as K;
+    for s in stmts {
+        for e in stmt_exprs(s) {
+            walk(e, &mut |e| {
+                let b = match &e.kind {
+                    K::Index(b, _) | K::Slice(b, ..) => b,
+                    K::Call(f, args) => match (&f.kind, args.as_slice()) {
+                        (K::Name(n), [a]) if n == "len" => match &a.kind {
+                            j::ArgKind::Expr(x) => x,
+                            _ => return,
+                        },
+                        (K::Attr(b, m, _), []) if m == "len" => b,
+                        _ => return,
+                    },
+                    _ => return,
+                };
+                if let K::Name(n) = &b.kind {
+                    out.insert(n.clone());
+                }
+            });
+        }
+        for b in sub_blocks(s) {
+            indexed_names(b, out);
+        }
     }
 }
 
@@ -744,6 +775,7 @@ fn function_body_with(
         in_become: false,
         dict_places: Vec::new(),
         uses: HashMap::new(),
+        indexed: HashSet::new(),
         use_paths: HashMap::new(),
         ghosts: sig.ghosts.iter().map(|(_, n)| n.clone()).collect(),
         inferred: None,
@@ -785,6 +817,7 @@ fn function_body_with(
         &mut Vec::new(),
         &mut 0,
     );
+    indexed_names(&body.stmts, &mut l.indexed);
     l.infer_decreases(f, &body.stmts);
     let mut params: Vec<y::Param> = sig
         .caps
@@ -2644,7 +2677,7 @@ impl Lower<'_, '_, '_> {
     /// A loop that fills a fresh collection. Its element type is known only once the element
     /// is lowered inside the loop, so the collection's `let` is patched afterwards.
     /// `par` comprehensions run in source order, which is what their results observe (12.2).
-    fn comprehension(&mut self, e: &j::Expr) -> R<(Rhs, Ty)> {
+    fn comprehension(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Rhs, Ty)> {
         let j::ExprKind::Comp {
             kind,
             elem,
@@ -2658,6 +2691,12 @@ impl Lower<'_, '_, '_> {
             unreachable!("called on a comprehension")
         };
         let (kind, value, cond, at) = (*kind, value.as_deref(), cond.as_deref(), e.span);
+        let elem_want = match (kind, want) {
+            (j::CompKind::List, Some(Ty::List(t))) | (j::CompKind::Set, Some(Ty::Set(t))) => {
+                (**t).clone()
+            }
+            _ => Ty::Err,
+        };
         let acc = self.fresh("c");
         let new = match kind {
             j::CompKind::List => "std.list.new",
@@ -2678,6 +2717,7 @@ impl Lower<'_, '_, '_> {
         self.for_(None, target, iter, at, |l| {
             let mut push = |l: &mut Self| -> R<()> {
                 let (x, xt) = l.atom(elem, None)?;
+                let (x, xt) = l.widen_atom(x, xt, &elem_want, elem.span)?;
                 let (path, mut args, mut targs) = match kind {
                     j::CompKind::List => {
                         ("std.list.append", vec![acc_arg.clone()], vec![xt.targ()])
@@ -3216,6 +3256,7 @@ impl Lower<'_, '_, '_> {
             j::ExprKind::Name(n) if ann.is_none() && self.locals.contains_key(n) => {
                 self.narrow.retain(|m| m.0 != *n);
                 let want = self.locals[n].ty.clone();
+                let (r, t) = self.widen(r, t, Some(&want), at)?;
                 let (r, t) = self.inject(r, t, Some(&want), at);
                 self.expect(&t, &want, at);
                 self.emit(
@@ -3234,9 +3275,23 @@ impl Lower<'_, '_, '_> {
             j::ExprKind::Name(n) => {
                 let (r, ty) = match ann {
                     Some(a) => {
+                        let (r, t) = self.widen(r, t, Some(&a), at)?;
                         let (r, t) = self.inject(r, t, Some(&a), at);
                         self.expect(&t, &a, at);
                         (r, a)
+                    }
+                    None if matches!(t, Ty::Coll("iter", _))
+                        && !self.cx.strict
+                        && self.can_collect()
+                        && !matches!(r, Rhs::Atom(Atom::Name(..)) | Rhs::Proj(_))
+                        && self.indexed.contains(n) =>
+                    {
+                        self.lenient(
+                            "N37",
+                            at,
+                            "an `iter` bound to a name that is indexed or measured normalized to `.collect()`",
+                        );
+                        self.collect(r, &t, at)?
                     }
                     None => (r, t),
                 };
@@ -3408,7 +3463,32 @@ impl Lower<'_, '_, '_> {
                 Ok((p, ft))
             }
             j::ExprKind::Index(b, i) => {
-                let (mut p, t) = self.place(b)?;
+                let (p, t) = self.place(b)?;
+                // N37: an `iter` that no name holds is collected before it is indexed.
+                let (mut p, t) = match t {
+                    Ty::Coll("iter", _)
+                        if !self.cx.strict
+                            && self.can_collect()
+                            && !matches!(b.kind, j::ExprKind::Name(_)) =>
+                    {
+                        self.lenient(
+                            "N37",
+                            b.span,
+                            "an indexed `iter` normalized to `.collect()`",
+                        );
+                        let (r, lt) = self.collect(Rhs::Proj(p), &t, b.span)?;
+                        let Atom::Name(root, root_span) = self.tmp(&lt, r, b.span) else {
+                            unreachable!("a call result is bound")
+                        };
+                        let p = Place {
+                            root,
+                            root_span,
+                            projs: Vec::new(),
+                        };
+                        (p, lt)
+                    }
+                    t => (p, t),
+                };
                 match &t {
                     Ty::List(_) | Ty::Coll("deque" | "bytes" | "bytearray", _) => {
                         let et = match t {
@@ -3565,6 +3645,7 @@ impl Lower<'_, '_, '_> {
 
     fn atom(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Atom, Ty)> {
         let (r, t) = self.rhs(e, want)?;
+        let (r, t) = self.widen(r, t, want, e.span)?;
         let (r, t) = self.inject(r, t, want, e.span);
         Ok((self.tmp(&t, r, e.span), t))
     }
@@ -3673,6 +3754,105 @@ impl Lower<'_, '_, '_> {
             fields: vec![("value".into(), a)],
         };
         (Rhs::Ctor(ctor), Ty::Option(Box::new(t)))
+    }
+
+    /// The lenient reader's widenings (14.4): N36 takes a `char` where `str` is expected as its
+    /// one-character string, a `list[char]` element by element; N37 collects an `iter` where a
+    /// `list` is expected.
+    fn widen(&mut self, r: Rhs, t: Ty, want: Option<&Ty>, at: Span) -> R<(Rhs, Ty)> {
+        let Some(w) = want.filter(|_| !self.cx.strict) else {
+            return Ok((r, t));
+        };
+        match (&t, w) {
+            (Ty::Char, Ty::Str) => {
+                self.lenient(
+                    "N36",
+                    at,
+                    "a `char` where `str` is expected normalized to `.to_str()`",
+                );
+                self.char_str(r, at)
+            }
+            (Ty::Coll("iter", _), Ty::List(_)) if self.can_collect() => {
+                self.lenient(
+                    "N37",
+                    at,
+                    "an `iter` where a `list` is expected normalized to `.collect()`",
+                );
+                let (r, t) = self.collect(r, &t, at)?;
+                self.widen(r, t, want, at)
+            }
+            (Ty::List(e), Ty::List(we)) if **e == Ty::Char && **we == Ty::Str => {
+                let xs = self.tmp(&t, r, at);
+                let Atom::Name(xs, _) = xs else {
+                    return Ok((Rhs::Atom(xs), t));
+                };
+                let v = self.fresh("c");
+                let ex = |kind| j::Expr {
+                    kind,
+                    span: at,
+                    paren: false,
+                };
+                let comp = ex(j::ExprKind::Comp {
+                    kind: j::CompKind::List,
+                    par: None,
+                    elem: Box::new(ex(j::ExprKind::Name(v.clone()))),
+                    value: None,
+                    target: vec![v],
+                    iter: Box::new(ex(j::ExprKind::Name(xs))),
+                    cond: None,
+                });
+                self.rhs_inner(&comp, want)
+            }
+            _ => Ok((r, t)),
+        }
+    }
+
+    /// N36 on an operand whose other side is a `str`.
+    fn widen_atom(&mut self, a: Atom, t: Ty, other: &Ty, at: Span) -> R<(Atom, Ty)> {
+        if t != Ty::Char || *other != Ty::Str {
+            return Ok((a, t));
+        }
+        let (r, t) = self.widen(Rhs::Atom(a), t, Some(other), at)?;
+        Ok((self.tmp(&t, r, at), t))
+    }
+
+    fn lenient(&mut self, code: &str, at: Span, msg: &str) {
+        let item = self.item.clone();
+        self.cx.note(code, at, &item, msg.into());
+    }
+
+    /// `c.to_str()`, or the one-character literal when `c` is one.
+    fn char_str(&mut self, r: Rhs, at: Span) -> R<(Rhs, Ty)> {
+        match self.tmp(&Ty::Char, r, at) {
+            Atom::Lit(Literal::Char(c), sp) => {
+                Ok((Rhs::Atom(Atom::Lit(Literal::Str(c.into()), sp)), Ty::Str))
+            }
+            a => Ok((Rhs::Atom(self.show(a, &Ty::Char, at)), Ty::Str)),
+        }
+    }
+
+    /// Whether std's `collect` is loaded, which it is when the module names an `iter` source.
+    fn can_collect(&self) -> bool {
+        self.g.fns.contains_key("std.iter.ops.collect")
+    }
+
+    fn collect(&mut self, r: Rhs, t: &Ty, at: Span) -> R<(Rhs, Ty)> {
+        let a = self.tmp(t, r, at);
+        self.method_on(a, t, "collect", at)
+    }
+
+    /// `a.m()` for an already lowered receiver.
+    fn method_on(&mut self, a: Atom, t: &Ty, m: &str, at: Span) -> R<(Rhs, Ty)> {
+        let Atom::Name(n, _) = a else {
+            return unsupported(format!("`.{m}()` on a literal `{}`", self.ty_text(t)));
+        };
+        let recv = j::Expr {
+            kind: j::ExprKind::Name(n),
+            span: at,
+            paren: false,
+        };
+        let (r, t, _) = self.method(&recv, m, at, &[], at)?;
+        Ok((r, t))
     }
 
     fn rhs(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Rhs, Ty)> {
@@ -4279,7 +4459,7 @@ impl Lower<'_, '_, '_> {
             K::Fallback(x, fb) => self.fallback(x, fb, at, want)?,
             K::FStr { .. } => return unsupported("t-strings"),
             K::Hole => return unsupported("typed holes"),
-            K::Comp { .. } => self.comprehension(e)?,
+            K::Comp { .. } => self.comprehension(e, want)?,
             K::Slice(b, bounds, _) => {
                 let (xs, t) = self.atom(b, None)?;
                 let et = match &t {
@@ -4908,6 +5088,19 @@ impl Lower<'_, '_, '_> {
             Some(r) => r,
             None => self.atom(b, Some(&tx))?,
         };
+        // N36: `+` with a `char` and a `str`, or two `char`s, concatenates their text.
+        let (x, tx, y_, ty) = if op == "+"
+            && !self.cx.strict
+            && matches!(
+                (&tx, &ty),
+                (Ty::Char, Ty::Str | Ty::Char) | (Ty::Str, Ty::Char)
+            ) {
+            let (x, tx) = self.widen_atom(x, tx, &Ty::Str, a.span)?;
+            let (y_, ty) = self.widen_atom(y_, ty, &Ty::Str, b.span)?;
+            (x, tx, y_, ty)
+        } else {
+            (x, tx, y_, ty)
+        };
         if let Some(r) = self.quantity_op(op, &x, &tx, &y_, &ty, at) {
             return r;
         }
@@ -5310,6 +5503,18 @@ impl Lower<'_, '_, '_> {
         if matches!(tx, Ty::Err) || matches!(ty, Ty::Err) {
             return Ok((Rhs::Atom(x), Ty::Bool));
         }
+        // A multi-character literal never equals a `char`, so it stays E201 (R802).
+        let lit = |e: &j::Expr| matches!(e.kind, j::ExprKind::Lit(_));
+        let (x, tx) = if lit(b) {
+            (x, tx)
+        } else {
+            self.widen_atom(x, tx, &ty, a.span)?
+        };
+        let (y_, ty) = if lit(a) {
+            (y_, ty)
+        } else {
+            self.widen_atom(y_, ty, &tx, b.span)?
+        };
         if !ty.fits(&tx) && !tx.fits(&ty) {
             self.err(
                 "E201",
@@ -6475,6 +6680,8 @@ impl Lower<'_, '_, '_> {
                     .then_some(w);
                     let (a, t) = self.atom(e, w.as_ref())?;
                     let (a, t) = self.as_iter(&p.ty, a, t, sp)?;
+                    let (r, t) = self.widen(Rhs::Atom(a), t, Some(&p.ty), sp)?;
+                    let a = self.tmp(&t, r, sp);
                     self.expect(&t, &p.ty, sp);
                     self.arg_tys.push((p.ty.clone(), t.clone(), sp));
                     if let (Conv::Sink, Atom::Name(n, _)) = (conv, &a)
@@ -8186,6 +8393,10 @@ fn expr_callees(e: &j::Expr, out: &mut HashSet<String>) {
                     // `max(xs)` lowers to the iterator's `max_nonempty` (R658).
                     if n == "min" || n == "max" {
                         out.insert(format!("{n}_nonempty"));
+                    }
+                    // N37 may collect an `iter` from a source.
+                    if matches!(n.as_str(), "chars" | "iter" | "graphemes") {
+                        out.insert("collect".into());
                     }
                     out.insert(n.clone());
                 }

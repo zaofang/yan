@@ -181,6 +181,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R824 | Split rule: a branch seed depends on the task path through a per-task split counter, fixing 17.3 and R685 to match 7.7 (R824) | 7.7, 17.3 |
 | R825 | `tls.Profile` enum `compatible` and `modern`, narrowing-only `.only`, no raw config, server default `modern`, audit facts, R404 wording (R825) | 9.6.1, 17.6, 18.3 |
 | R826 to R829 | The data profile (RFC 0033), decided by the owner: a profile of Yan Agent, not a surface (R826); literal-only `NAME: Type = expr` constants, checked syntactically, E144 (R827); `std.data.parse` and `dump` over `Wire`, `DataError` (R828); `package.yag` and `Lints(...)` are data files (R829) | 17.3, 19.1, 25 |
+| R830 | N36 takes a `char` where `str` is expected as its one-character `str`: arguments, assignments, `return`, list and set elements, `list[char]` as `list[str]`, comparison with a non-literal `str`, and `+` with a `char` (R830) | 3.4, 14.4 |
+| R831 | N37 collects an `iter` where a `list` is expected, an `iter` call result indexed directly, and a name bound to an `iter` call result that the body indexes, slices or measures (R831) | 14.4, 17.2 |
 
 <!-- /rows -->
 
