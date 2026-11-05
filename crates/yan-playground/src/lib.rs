@@ -39,7 +39,7 @@ pub fn view(surface: &str, src: &str) -> Value {
                 let text = if name == surface && s != Surface::Yir {
                     yan_ide::canonical(Path::new(&path), src)
                 } else {
-                    yan_ide::view(db, f, s)
+                    yan_ide::view(db, f, s, Default::default())
                 };
                 (name.to_owned(), printed(text))
             })
@@ -62,7 +62,7 @@ pub fn run(surface: &str, src: &str) -> Value {
     DB.with_borrow_mut(|db| {
         let f = db.file(Path::new(&path(surface)), src);
         let module = match yan_db::load(db, f) {
-            Ok(Loaded::Ready(m, _)) => {
+            Ok(Loaded::Ready(m, _, _)) => {
                 let diags = finish(
                     yan_ide::diagnostics(db, f).unwrap_or_default(),
                     DEFAULT_MAX_ERRORS,

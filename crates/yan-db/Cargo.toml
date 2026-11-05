@@ -17,6 +17,7 @@ yan-elab.workspace = true
 yan-hir.workspace = true
 yan-names.workspace = true
 yan-std.workspace = true
+yan-surface.workspace = true
 yan-yn.workspace = true
 yan-yag.workspace = true
 

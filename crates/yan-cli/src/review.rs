@@ -311,7 +311,7 @@ fn facts(root: &Path) -> Result<(BTreeMap<String, Facts>, Vec<String>), String> 
         let mut db = Database::new(false, false);
         let f = db.open(&file)?;
         let m = match yan_db::load(&db, f) {
-            Ok(Loaded::Ready(m, _)) => m.clone(),
+            Ok(Loaded::Ready(m, _, _)) => m.clone(),
             _ => {
                 broken.push(name);
                 continue;

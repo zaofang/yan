@@ -11,6 +11,7 @@ publish.workspace = true
 yan-core.workspace = true
 yan-diag.workspace = true
 yan-std.workspace = true
+yan-surface.workspace = true
 
 [lints]
 workspace = true

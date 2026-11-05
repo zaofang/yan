@@ -389,7 +389,7 @@ pub fn run(
         let (text, exs) = examples::augment(&shown, &src, false);
         let f = db.file(&file, &text);
         let m = match yan_db::load(&db, f) {
-            Ok(Loaded::Ready(m, _)) => {
+            Ok(Loaded::Ready(m, _, _)) => {
                 let d = examples::remap(yan_ide::diagnostics(&db, f)?, &exs);
                 let errors = d.iter().any(|d| d.severity == Severity::Error);
                 diags.extend(d.into_iter().filter(|d| d.severity == Severity::Error));

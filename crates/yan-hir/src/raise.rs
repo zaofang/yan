@@ -11,6 +11,7 @@ use std::collections::HashMap;
 
 use yan_core::ast as y;
 use yan_diag::Span;
+use yan_surface::{Trivia, TriviaTable};
 
 use crate::*;
 
@@ -51,20 +52,46 @@ pub struct StdParam {
     pub iter: bool,
 }
 
-/// `m` as HIR. Items elaboration copied in from std are left out.
-pub fn raise(m: &y::Module, std: &dyn Std) -> R<Module> {
+/// A mark `raise` used: its item key (the identity hash) and node path.
+pub type Consumed = (String, Vec<u32>);
+
+/// What [`raise`] produced and which marks of the trivia table it used.
+pub struct Raised {
+    pub module: Module,
+    pub consumed: Vec<Consumed>,
+}
+
+/// `m` as HIR, reading spelling marks from `trivia` (RFC 0034). Items elaboration copied in from
+/// std are left out. No mark is consumed yet.
+pub fn raise(m: &y::Module, _trivia: &TriviaTable, std: &dyn Std) -> R<Raised> {
     let mut items = Vec::new();
     for it in &m.items {
         if let Some(i) = item(it, std)? {
             items.push(i);
         }
     }
-    Ok(Module {
-        header: Vec::new(),
-        attrs: Vec::new(),
-        doc: None,
-        items,
+    Ok(Raised {
+        module: Module {
+            header: Vec::new(),
+            attrs: Vec::new(),
+            doc: None,
+            items,
+        },
+        consumed: Vec::new(),
     })
+}
+
+/// The marks of `trivia` that `raised` did not consume, as `(item, path, mark)` lines.
+pub fn unconsumed(trivia: &TriviaTable, raised: &Raised) -> Vec<String> {
+    trivia
+        .entries()
+        .filter_map(|(i, p, t)| match t {
+            Trivia::Mark(mk) if !raised.consumed.iter().any(|(ci, cp)| ci == i && cp == p) => {
+                Some(format!("{mk:?} at {i} {p:?}"))
+            }
+            _ => None,
+        })
+        .collect()
 }
 
 fn e(kind: ExprKind) -> Expr {

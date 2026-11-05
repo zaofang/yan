@@ -10,6 +10,7 @@ mod decorators;
 mod desugar;
 mod ffi;
 mod lower;
+pub mod marks;
 mod stage0;
 mod stdlib;
 mod ty;
@@ -20,6 +21,7 @@ use std::collections::{HashMap, HashSet};
 use yan_core::ast as y;
 use yan_diag::{Applicability, Diagnostic, Span};
 use yan_hir as j;
+use yan_surface::TriviaTable;
 
 pub use desugar::{Manifest, manifest};
 pub use stdlib::{StdInfo, StdModule, install_std};
@@ -181,6 +183,8 @@ pub(crate) struct Cx<'s> {
     /// The previews the package opts into (20.6).
     pub previews: Vec<String>,
     pub diags: Vec<Diagnostic>,
+    /// Spelling marks waiting for their node's path (RFC 0034 D1).
+    pub marks: Vec<marks::Pending>,
 }
 
 impl<'s> Cx<'s> {
@@ -394,18 +398,19 @@ pub fn elaborate(
     m: &j::Module,
     opts: Options,
 ) -> Result<(y::Module, Vec<Diagnostic>), Unsupported> {
-    elaborate_in(file, src, m, opts, None)
+    elaborate_in(file, src, m, opts, None).map(|(y, _, d)| (y, d))
 }
 
 /// [`elaborate`] for a module of the package whose manifest is `manifest`; a script-form module
-/// declares its own (19.1).
+/// declares its own (19.1). The table holds the spelling marks and name tables `raise` reads back
+/// (RFC 0034); an item with a name-table entry came from source.
 pub fn elaborate_in(
     file: &str,
     src: &str,
     m: &j::Module,
     opts: Options,
     manifest: Option<Manifest>,
-) -> Result<(y::Module, Vec<Diagnostic>), Unsupported> {
+) -> Result<(y::Module, TriviaTable, Vec<Diagnostic>), Unsupported> {
     let mut cx = Cx {
         file,
         src,
@@ -416,6 +421,7 @@ pub fn elaborate_in(
         untrusted: opts.untrusted,
         previews: Vec::new(),
         diags: Vec::new(),
+        marks: Vec::new(),
     };
     let manifest = manifest.or_else(|| desugar::manifest(m));
     let mut m = desugar::module(m, &mut cx);
@@ -525,14 +531,24 @@ pub fn elaborate_in(
         .and_then(|s| s.to_str())
         .unwrap_or("main")
         .to_owned();
-    Ok((
-        y::Module {
-            header: Vec::new(),
-            path: vec![stem],
-            items,
-        },
-        cx.diags,
-    ))
+    let module = y::Module {
+        header: Vec::new(),
+        path: vec![stem],
+        items,
+    };
+    let mut table = TriviaTable::default();
+    for (it, h) in module
+        .items
+        .iter()
+        .zip(yan_core::hash::hash_module(&module))
+    {
+        let key = h.identity.to_string();
+        table.set_names(&key, h.names);
+        if !cx.marks.is_empty() {
+            marks::place(&key, it, &cx.marks, &mut table);
+        }
+    }
+    Ok((module, table, cx.diags))
 }
 
 fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {

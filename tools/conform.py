@@ -188,9 +188,11 @@ class CommandExecutor:
             return None
         return sorted((str(h["key"]), str(h["hash"])) for h in json.loads(out.stdout))
 
-    def view(self, path: Path, surface: str) -> str | None:
+    def view(self, path: Path, surface: str, flags: list[str] | None = None) -> str | None:
         out = subprocess.run(
-            [*self.argv, "view", "--as", surface, str(path)], capture_output=True, text=True
+            [*self.argv, "view", "--as", surface, *(flags or []), str(path)],
+            capture_output=True,
+            text=True,
         )
         if out.returncode >= TOOL_FAILURE:
             raise ToolFailure(out.stderr.strip())
@@ -209,7 +211,7 @@ class LawExecutor(Protocol):
 
     def hash(self, path: Path, reverse: bool = False) -> list[tuple[str, str]] | None: ...
 
-    def view(self, path: Path, surface: str) -> str | None: ...
+    def view(self, path: Path, surface: str, flags: list[str] | None = None) -> str | None: ...
 
     def canonical(self, path: Path) -> bool: ...
 
@@ -503,12 +505,32 @@ def law1(case: Case, ex: LawExecutor) -> Result:
         return Result(name, ex.name, "skip", "not Yan Agent")
     if not ex.canonical(case.path):
         return Result(name, ex.name, "skip", "not canonical")
-    got = ex.view(case.path, "yag")
+    # Strict: a spelling mark that raise did not use fails the case (RFC 0034 D6).
+    got = ex.view(case.path, "yag", ["--strict"])
     if got is None:
         return Result(name, ex.name, "skip", "does not load or is outside the Yan Agent subset")
     want = _without_comments(case.path.read_text(encoding="utf-8"), "#").lstrip("\n")
     if got != want:
         return Result(name, ex.name, "fail", _first_difference(want, got))
+    return _bare(case, ex)
+
+
+def _bare(case: Case, ex: LawExecutor) -> Result:
+    """The bare companion of law 1 (RFC 0034 D7): raise without marks must elaborate to the same
+    item hashes, so a mark cannot cover for a raise bug."""
+    name = str(case.path)
+    base = ex.hash(case.path)
+    bare = ex.view(case.path, "yag", ["--bare"])
+    if base is None or bare is None:
+        return Result(name, ex.name, "fail", "bare: no longer loads")
+    with tempfile.TemporaryDirectory() as tmp:
+        p = Path(tmp) / case.path.name
+        p.write_text(bare, encoding="utf-8")
+        got = ex.hash(p)
+    if got is None:
+        return Result(name, ex.name, "fail", "bare: the raised module does not load")
+    if got != base:
+        return Result(name, ex.name, "fail", f"bare: {_hash_diff(base, got)}")
     return Result(name, ex.name, "pass")
 
 

@@ -1,0 +1,106 @@
+//! Spelling marks (RFC 0034 D1, D4). Lowering knows a node by its HIR span and kind, not yet by its
+//! final path, because later passes rewrite statements. It records a [`Pending`] mark, and
+//! [`place`] moves each one, once the item is built, to the first node in walk order with that
+//! span and kind. The span is only this join key inside one elaboration; it is never stored.
+
+use yan_core::ast::{Arg, Item};
+use yan_core::path::{Node, walk};
+use yan_diag::Span;
+use yan_surface::{Mark, Trivia, TriviaTable};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Kind {
+    Stmt,
+    Call,
+    Arg,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Pending {
+    pub span: Span,
+    pub kind: Kind,
+    pub mark: Mark,
+}
+
+/// The pending marks of `item`'s elaboration written into `table` under `key`. Returns the
+/// marks no node claimed.
+pub fn place(key: &str, item: &Item, pending: &[Pending], table: &mut TriviaTable) -> Vec<Pending> {
+    let mut claimed = vec![false; pending.len()];
+    walk(item, &mut |path, node| {
+        let (kind, span) = match node {
+            Node::Stmt(s) => (Kind::Stmt, s.span),
+            Node::Call(c) => (Kind::Call, c.span),
+            Node::Arg(Arg::Value(_, _, s) | Arg::Cap(_, s)) => (Kind::Arg, *s),
+            _ => return,
+        };
+        for (i, p) in pending.iter().enumerate() {
+            if !claimed[i] && p.kind == kind && p.span == span {
+                claimed[i] = true;
+                table.add(key, path.to_vec(), Trivia::Mark(p.mark.clone()));
+            }
+        }
+    });
+    pending
+        .iter()
+        .zip(claimed)
+        .filter(|(_, c)| !c)
+        .map(|(p, _)| p.clone())
+        .collect()
+}
+
+#[cfg(test)]
+mod selftest {
+    use super::*;
+
+    const SRC: &str = "module m\n\nfn f(let a: i64) -> i64 {\n    let x: i64 = add_checked_i64(let a, let 1)\n    ret x\n}\n";
+
+    #[test]
+    fn marks_sharing_a_span_and_kind_land_on_the_first_node() {
+        let m = yan_core::parse("m.yir", SRC).0.expect("parses");
+        let item = &m.items[0];
+        let mut call_span = None;
+        walk(item, &mut |_, n| {
+            if let Node::Call(c) = n {
+                call_span = Some(c.span);
+            }
+        });
+        // A statement and its call may share a span; kinds keep them apart.
+        let span = call_span.unwrap();
+        let pending = [
+            Pending {
+                span,
+                kind: Kind::Call,
+                mark: Mark::Method,
+            },
+            Pending {
+                span,
+                kind: Kind::Call,
+                mark: Mark::Function,
+            },
+            Pending {
+                span,
+                kind: Kind::Stmt,
+                mark: Mark::Annotated,
+            },
+        ];
+        let mut t = TriviaTable::default();
+        let left = place("h", item, &pending, &mut t);
+        let at = t.at("h", &[2, 0, 0]);
+        // Both call marks share a span and kind, so both land on the first such node.
+        assert_eq!(at.len(), 2);
+        assert!(left.len() <= 1);
+    }
+
+    #[test]
+    fn unclaimed_marks_are_returned() {
+        let m = yan_core::parse("m.yir", SRC).0.expect("parses");
+        let pending = [Pending {
+            span: Span::default(),
+            kind: Kind::Arg,
+            mark: Mark::Keyword,
+        }];
+        let mut t = TriviaTable::default();
+        assert_eq!(place("h", &m.items[0], &pending, &mut t).len(), 1);
+        assert_eq!(t.entries().count(), 0);
+    }
+}

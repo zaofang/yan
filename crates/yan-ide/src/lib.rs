@@ -132,7 +132,7 @@ pub struct Hover {
 /// What is at 1-based `line` and `col`: a local binding's type, or an item's signature.
 pub fn hover(db: &dyn Db, file: SourceFile, line: u32, col: u32) -> Option<Hover> {
     let s = yan_db::surface(file.path(db))?;
-    if let Ok(Loaded::Ready(m, _)) = yan_db::load(db, file) {
+    if let Ok(Loaded::Ready(m, _, _)) = yan_db::load(db, file) {
         let mut found = None;
         for_each_let(m, &mut |name, at, ty| {
             if contains(at, line, col) {
@@ -200,7 +200,7 @@ pub fn inlays(db: &dyn Db, file: SourceFile) -> Vec<Inlay> {
     let Some(s) = yan_db::surface(file.path(db)) else {
         return Vec::new();
     };
-    let Ok(Loaded::Ready(m, _)) = yan_db::load(db, file) else {
+    let Ok(Loaded::Ready(m, _, _)) = yan_db::load(db, file) else {
         return Vec::new();
     };
     let src = file.text(db);
@@ -282,10 +282,24 @@ pub enum ViewError {
 }
 
 /// The module printed in another surface (16.4): any input as Yan Core, Yan as Yan Agent.
-pub fn view(db: &dyn Db, file: SourceFile, as_: Surface) -> Result<String, ViewError> {
+/// How [`view`] uses the spelling marks of elaboration (RFC 0034).
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Marks {
+    /// A mark that raise did not use is an error (D6).
+    pub strict: bool,
+    /// Raise with an empty table: the bare check of D7.
+    pub bare: bool,
+}
+
+pub fn view(
+    db: &dyn Db,
+    file: SourceFile,
+    as_: Surface,
+    marks: Marks,
+) -> Result<String, ViewError> {
     match (as_, yan_db::surface(file.path(db))) {
         (Surface::Yir, _) => match yan_db::load(db, file).as_ref().map_err(|m| tool(m))? {
-            Loaded::Ready(m, _) => Ok(yan_core::print(m)),
+            Loaded::Ready(m, _, _) => Ok(yan_core::print(m)),
             Loaded::Stopped(d) => Err(ViewError::Diagnostics(d.clone())),
         },
         // Yan's HIR printed by the Yan Agent printer: the Yan Agent projection of law 3 (16.5).
@@ -300,11 +314,23 @@ pub fn view(db: &dyn Db, file: SourceFile, as_: Surface) -> Result<String, ViewE
         }
         // print(resugar(raise(elaborate(X)))) (16.4, R559).
         (Surface::Yag, _) => match yan_db::load(db, file).as_ref().map_err(|m| tool(m))? {
-            Loaded::Ready(m, _) => {
-                let h = yan_hir::raise::raise(m, &yan_elab::StdInfo).map_err(
+            Loaded::Ready(m, trivia, _) => {
+                let trivia = &if marks.bare {
+                    Default::default()
+                } else {
+                    trivia.clone()
+                };
+                let raised = yan_hir::raise::raise(m, trivia, &yan_elab::StdInfo).map_err(
                     |yan_hir::raise::Unraised(what)| unsupported(&format!("raising {what}")),
                 )?;
-                yan_yag::resugar(h)
+                let unused = yan_hir::raise::unconsumed(trivia, &raised);
+                if marks.strict && !unused.is_empty() {
+                    return Err(ViewError::Tool(format!(
+                        "unconsumed spelling marks: {}",
+                        unused.join("; ")
+                    )));
+                }
+                yan_yag::resugar(raised.module)
                     .map(|x| yan_yag::print(&x))
                     .map_err(|what| ViewError::Outside(what.to_owned()))
             }

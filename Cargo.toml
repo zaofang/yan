@@ -41,6 +41,7 @@ yan-names = { path = "crates/yan-names" }
 yan-opt = { path = "crates/yan-opt" }
 yan-db = { path = "crates/yan-db" }
 yan-ide = { path = "crates/yan-ide" }
+yan-surface = { path = "crates/yan-surface" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
