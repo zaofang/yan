@@ -3,7 +3,7 @@
 //! [`place`] moves each one, once the item is built, to the first node in walk order with that
 //! span and kind. The span is only this join key inside one elaboration; it is never stored.
 
-use yan_core::ast::{Arg, Item};
+use yan_core::ast::{Arg, Atom, Ctor, Item};
 use yan_core::path::{Node, walk};
 use yan_diag::Span;
 use yan_surface::{Mark, Trivia, TriviaTable};
@@ -13,6 +13,8 @@ pub enum Kind {
     Stmt,
     Call,
     Arg,
+    /// Field `k` of a constructor, joined by the span of its atom.
+    Field(usize),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -33,6 +35,10 @@ pub fn place(key: &str, item: &Item, pending: &[Pending], table: &mut TriviaTabl
     walk(item, &mut |path, node| {
         let (kind, span) = match node {
             Node::Stmt(s) => (Kind::Stmt, s.span),
+            Node::Field(Ctor::Named { fields, .. }, k) => match &fields[k].1 {
+                Atom::Name(_, sp) | Atom::Lit(_, sp) => (Kind::Field(k), *sp),
+            },
+            Node::Field(..) => return,
             Node::Call(c) => {
                 call = Some(c.span);
                 (Kind::Call, c.span)

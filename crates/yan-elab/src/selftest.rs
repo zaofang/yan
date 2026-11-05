@@ -113,6 +113,23 @@ pub def main() uses io:
 }
 
 #[test]
+fn constructor_field_marks_restore_positional_and_keyword_fields() {
+    let src = "\
+class P:
+    x: int
+    y: int
+
+pub def main() uses io:
+    a = P(1, y=2)
+    b = P(x=1, y=2)
+    io.print(f\"{a.x} {b.y}\")
+";
+    let (text, unused) = raised_marked(src);
+    assert_eq!(text, src);
+    assert!(unused.is_empty(), "{unused:?}");
+}
+
+#[test]
 fn raise_restores_loops_fallbacks_and_fstrings() {
     let src = "\
 pub def count_words(text: str) -> dict[str, int]:

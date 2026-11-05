@@ -5,7 +5,8 @@
 //! the b-th nested block of a statement, `[2, s, b, s']`. The call of a statement is its path plus
 //! `0`, argument k of a call is the call's path plus `k`. A literal atom is the path of its
 //! parent (an argument, or the statement for a right-hand side) plus `0`. For an `impl`, function
-//! f is walked under the prefix `[3, f]`. Closure bodies are not walked.
+//! f is walked under the prefix `[3, f]`. Field k of a named constructor is its statement's path
+//! plus `0, k`. Closure bodies are not walked.
 
 use crate::ast::*;
 
@@ -18,6 +19,8 @@ pub enum Node<'a> {
     Call(&'a Call),
     Arg(&'a Arg),
     Literal(&'a Literal),
+    /// Field `k` of a named constructor.
+    Field(&'a Ctor, usize),
 }
 
 /// Calls `f` with the path and node of every markable node of `item`, parents first.
@@ -129,6 +132,11 @@ impl<'a, F: FnMut(&[u32], Node<'a>)> Walker<'_, F> {
         match rhs {
             Rhs::Atom(Atom::Lit(l, _)) => self.child(0, |w| w.visit(Node::Literal(l))),
             Rhs::Call(c) | Rhs::Propagate { call: c, .. } | Rhs::Try(c) => self.call(c),
+            Rhs::Ctor(c @ Ctor::Named { fields, .. }) => self.child(0, |w| {
+                for k in 0..fields.len() {
+                    w.child(k, |w| w.visit(Node::Field(c, k)));
+                }
+            }),
             _ => {}
         }
     }
@@ -180,6 +188,7 @@ fn f(let a: i64, let b: i64) -> i64
                 Node::Call(_) => "call",
                 Node::Arg(_) => "arg",
                 Node::Literal(_) => "lit",
+                Node::Field(..) => "field",
             };
             out.push((p.to_vec(), k));
         });
