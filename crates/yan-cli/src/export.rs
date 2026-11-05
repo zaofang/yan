@@ -435,7 +435,7 @@ impl Emitter {
         match &it.kind {
             ItemKind::Func(f) => self.func(f),
             // Lemmas are proof-only (6.4) and never compiled.
-            ItemKind::Lemma(_) => {
+            ItemKind::Lemma(_) | ItemKind::Verbatim(_) => {
                 self.out.truncate(self.out.len() - 2);
                 Ok(())
             }

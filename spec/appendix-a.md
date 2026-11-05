@@ -215,6 +215,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R867 | An `ex` line of a Yan Agent function survives elaboration as its text in an `Example` trivia mark at the item, which raise prints verbatim; hashes do not change (R867) | 8.4, 16.5 |
 | R868 | `Parenthesized` mark: a tuple written in parentheses; raise validates the node is a tuple (R868) | 16.5 |
 | R869 | Spelling marks `FlagsKeyword` and `FlagsPositional` record how Python `re` flags were written on a `re` call; raise prints `re.f(pattern, ..)` from N35 and N40 marks on the method call and the literal from N40 on a lifted `regex.compile` (R869) | 14.4, 16.5 |
+| R870 | `Lemma`, `GhostParam`, `GhostStmt` and `GhostContract` marks keep the text of what a proof erases (a lemma, a ghost parameter, a top-level ghost statement, a `pre` or `post` over ghost values); raise prints each as written at its position, a lemma before the item it rides on; hash-neutral (R870) | 8.7, 16.5 |
 
 <!-- /rows -->
 

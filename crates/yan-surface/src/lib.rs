@@ -82,6 +82,15 @@ pub enum Mark {
     Parenthesized,
     /// An `ex` line of a Yan Agent function, as written (R867).
     Example(String),
+    /// A lemma, erased from Yan Core, as written; it rides on the next item (R870).
+    Lemma(String),
+    /// A ghost parameter, as written, with its position among the written parameters (R870).
+    GhostParam(usize, String),
+    /// A top-level ghost statement, as written, with its position among the statements (R870).
+    GhostStmt(usize, String),
+    /// A `pre` or `post` over ghost values, as written, with its position among the contracts
+    /// other than `ex` lines (R870).
+    GhostContract(usize, String),
 }
 
 /// One trivia entry at a node. Local names, the sixth kind, are kept per item by binding order

@@ -496,6 +496,7 @@ pub fn elaborate_in(
         });
     }
     let mut proved = false;
+    let mut lemmas: Vec<String> = Vec::new();
     // Docstrings are trivia (16.5): an item's own, by index into `items`, and the module's, which
     // rides on the first item elaboration lowers.
     let mut docs: Vec<(usize, Attach, String)> = Vec::new();
@@ -513,7 +514,18 @@ pub fn elaborate_in(
                 continue;
             }
         };
+        if k.is_none() && matches!(it.kind, j::ItemKind::Lemma(_)) && !cx.yn {
+            lemmas.push(lines_text(cx.src, it.span));
+        }
         if let Some(k) = k {
+            for text in lemmas.drain(..) {
+                cx.marks.push(marks::Pending {
+                    span: it.span,
+                    kind: marks::Kind::Item,
+                    call: None,
+                    mark: Mark::Lemma(text),
+                });
+            }
             let derived = it
                 .decorators
                 .iter()
@@ -1135,6 +1147,7 @@ fn core_fields(fs: &[Field]) -> R<Vec<y::Field>> {
 
 fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
     Ok(Some(match &it.kind {
+        j::ItemKind::Verbatim(_) => return Ok(None),
         j::ItemKind::Record(c) => y::ItemKind::Record(y::Record {
             is_pub: it.is_pub,
             path: vec![c.name.clone()],
@@ -1261,6 +1274,9 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                     }
                 }
             }
+            if !cx.yn {
+                ghost_marks(g, f, it.span, cx);
+            }
             for (k, p) in f.params.iter().enumerate() {
                 if matches!(p, j::Param::Value { ty, .. } if lower::is_view(ty)) {
                     cx.marks.push(marks::Pending {
@@ -1345,4 +1361,104 @@ fn source_text(src: &str, span: yan_diag::Span) -> Option<String> {
     let line = src.lines().nth(span.line as usize - 1)?;
     line.get(span.col as usize - 1..)
         .map(|t| t.trim_end().to_owned())
+}
+
+/// The item starting at `span` as written: its line and the indented lines after it. A lemma's
+/// span ends at its header.
+fn lines_text(src: &str, span: yan_diag::Span) -> String {
+    let mut lines: Vec<&str> = src.lines().skip(span.line as usize - 1).collect();
+    let head = lines.first().map_or(0, |_| 1);
+    let body = lines[head..]
+        .iter()
+        .take_while(|l| l.trim().is_empty() || l.starts_with([' ', '\t']))
+        .count();
+    lines.truncate(head + body);
+    while lines.last().is_some_and(|l| l.trim().is_empty()) {
+        lines.pop();
+    }
+    lines.join("\n")
+}
+
+/// A parameter's text from `span` to the comma or bracket that ends it.
+fn param_text(src: &str, span: yan_diag::Span) -> Option<String> {
+    let rest = src
+        .lines()
+        .nth(span.line as usize - 1)?
+        .get(span.col as usize - 1..)?;
+    let mut depth = 0i32;
+    let end = rest
+        .char_indices()
+        .find(|&(_, c)| {
+            match c {
+                '(' | '[' | '{' => depth += 1,
+                ')' | ']' | '}' => depth -= 1,
+                _ => {}
+            }
+            depth < 0 || (depth == 0 && c == ',')
+        })
+        .map_or(rest.len(), |(i, _)| i);
+    Some(rest[..end].trim_end().to_owned())
+}
+
+/// Marks for what elaboration erases from a function in a proof: ghost parameters, top-level
+/// ghost statements and the contracts over ghost values (R870).
+fn ghost_marks(g: &Globals, f: &j::FuncDef, at: yan_diag::Span, cx: &mut Cx) {
+    let mut push = |mark| {
+        cx.marks.push(marks::Pending {
+            span: at,
+            kind: marks::Kind::Item,
+            call: None,
+            mark,
+        })
+    };
+    let mut ghosts: HashSet<String> = g.fns[&f.name]
+        .ghosts
+        .iter()
+        .map(|(_, n)| n.clone())
+        .collect();
+    for (k, p) in f.params.iter().enumerate() {
+        if let j::Param::Value {
+            conv: Some(j::Conv::Ghost),
+            span,
+            ..
+        } = p
+            && let Some(t) = param_text(cx.src, *span)
+        {
+            let t = if t.starts_with("ghost ") {
+                t
+            } else {
+                format!("ghost {t}")
+            };
+            push(Mark::GhostParam(k, t));
+        }
+    }
+    let Some(b) = &f.body else { return };
+    for (k, s) in b.stmts.iter().enumerate() {
+        if let j::StmtKind::Ghost { name, .. } = &s.kind
+            && let Some(t) = source_text(cx.src, s.span)
+        {
+            ghosts.insert(name.clone());
+            push(Mark::GhostStmt(k, t));
+        }
+    }
+    let mut k = 0;
+    for c in &b.contracts {
+        let (word, e) = match c {
+            j::Contract::Pre(e) => ("pre", e),
+            j::Contract::Post(e) => ("post", e),
+            j::Contract::Ex { .. } => continue,
+            j::Contract::Decreases(_) => {
+                k += 1;
+                continue;
+            }
+        };
+        let mut hit = false;
+        lower::walk(e, &mut |x| {
+            hit |= matches!(&x.kind, j::ExprKind::Name(n) if ghosts.contains(n))
+        });
+        if hit && let Some(t) = source_text(cx.src, e.span) {
+            push(Mark::GhostContract(k, format!("{word} {t}")));
+        }
+        k += 1;
+    }
 }
