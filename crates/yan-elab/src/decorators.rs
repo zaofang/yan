@@ -14,6 +14,16 @@ const DERIVABLE: [&str; 9] = [
 /// The compiler derives these itself (6.2).
 const AUTO: [&str; 3] = ["Send", "Sync", "Freeze"];
 
+/// Whether `it` has `@derive(name)`.
+pub(crate) fn derives(it: &j::Item, name: &str) -> bool {
+    it.decorators.iter().any(|d| {
+        d.path == ["derive"]
+            && d.args.as_deref().unwrap_or_default().iter().any(|a| {
+                matches!(&a.kind, j::ArgKind::Expr(j::Expr { kind: j::ExprKind::Name(n), .. }) if n == name)
+            })
+    })
+}
+
 /// Checks `it`'s decorators after the item was lowered; its diagnostics start at `start`.
 pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<()> {
     let item = it.kind.name().to_owned();
@@ -33,6 +43,11 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
                         "is an auto trait; the compiler derives it"
                     } else if t == "Cli" {
                         if let Err(msg) = crate::cli::schema(g, &item) {
+                            cx.err("E269", a.span, &item, msg);
+                        }
+                        continue;
+                    } else if t == "Wire" {
+                        if let Err(msg) = crate::wire::schemas(g, &item) {
                             cx.err("E269", a.span, &item, msg);
                         }
                         continue;

@@ -1410,6 +1410,7 @@ dependencies = [
  "yan-hir",
  "yan-interp",
  "yan-names",
+ "yan-rt",
  "yan-std",
  "yan-surface",
  "yan-yag",
