@@ -36,6 +36,11 @@ unchanged and replace each `...` body with the implementation. Reply with the wh
 ```yag code block only. If a frozen ex line or test is wrong, reply with one line \
 `STOP: <reason>` instead.";
 
+const RESPEC_ASK: &str = "Task: {prompt}\n\nYour phase 2 reply said the frozen spec is wrong: \
+{why}\n\nPhase 1 again, the spec. Write the corrected declarations, with each function's def line, \
+docstring, any pre and post lines and at least one ex line, with `...` as the rest of each body. \
+Reply with one ```yag code block only.";
+
 const REPAIR_ASK: &str = "{tool} reported:\n{report}\n\nReply with the whole corrected file in \
 one ```yag code block only.";
 
@@ -326,76 +331,92 @@ pub fn run(o: &Options) -> Result<(Value, bool), String> {
         Ok((r.text, r.usage))
     };
 
-    // Phase 1: the spec.
-    let mut content = SPEC_ASK.replace("{prompt}", prompt);
-    let mut spec = None;
-    for n in 0..=o.spec_repairs {
-        let (text, usage) = ask(&mut model, &mut msgs, &mut totals, "spec", content)?;
-        let code = extract(&text);
-        let r = match mcp.call("spec_check", json!({"module": o.module, "text": code})) {
-            Err(e) if e.contains(UNSUPPORTED) => {
-                rounds.push(round("spec", n, usage, &mut mcp, Some(&e), None));
-                let mut rec = record(&id, &model_id, "spec_failed", None, &rounds, &totals);
-                rec["unsupported"] = json!(e);
-                return Ok((finish(rec, &system, &msgs, None, None), false));
-            }
-            r => r?,
-        };
-        let ok = !r.errors();
-        let report = (!ok).then_some(r.text.as_str());
-        rounds.push(round("spec", n, usage, &mut mcp, report, None));
-        if ok {
-            spec = Some(code);
-            break;
-        }
-        content = REPAIR_ASK
-            .replace("{tool}", "spec_check")
-            .replace("{report}", &r.text);
-    }
-    let Some(spec) = spec else {
-        let rec = record(&id, &model_id, "spec_failed", None, &rounds, &totals);
-        return Ok((finish(rec, &system, &msgs, None, None), false));
-    };
-    // The spec is accepted here and frozen for phase 2; a person accepts it outside the harness.
     let target = patch::module_path(&dir, &o.module)?;
-    std::fs::write(&target, &spec).map_err(|e| format!("{}: {e}", target.display()))?;
-    let frozen = patch::parse(&target.display().to_string(), &spec)?;
-
-    // Phase 2: the bodies.
-    let mut content = BODY_ASK.to_owned();
-    let mut status = "body_failed";
-    let mut green_at = None;
-    let mut unsupported = None;
-    for n in 0..=o.body_repairs {
-        let (text, usage) = ask(&mut model, &mut msgs, &mut totals, "body", content)?;
-        if let Some(why) = text.lines().find_map(|l| l.trim().strip_prefix("STOP:")) {
-            rounds.push(round("body", n, usage, &mut mcp, None, Some(why.trim())));
-            status = "stopped";
-            break;
-        }
-        let code = extract(&text);
-        let (tool, report) = match frozen_changes(&frozen, &code, &target) {
-            Some(report) => ("the spec gate", Some(report)),
-            None => match body_round(&mut mcp, &o.module, &code) {
-                // The toolchain cannot judge this body yet: a run result, not a harness failure.
+    let mut respec: Option<String> = None;
+    let (spec, status, green_at, unsupported) = loop {
+        // Phase 1: the spec.
+        let mut content = match &respec {
+            Some(why) => RESPEC_ASK.replace("{prompt}", prompt).replace("{why}", why),
+            None => SPEC_ASK.replace("{prompt}", prompt),
+        };
+        let mut spec = None;
+        for n in 0..=o.spec_repairs {
+            let (text, usage) = ask(&mut model, &mut msgs, &mut totals, "spec", content)?;
+            let code = extract(&text);
+            let r = match mcp.call("spec_check", json!({"module": o.module, "text": code})) {
                 Err(e) if e.contains(UNSUPPORTED) => {
-                    rounds.push(round("body", n, usage, &mut mcp, Some(&e), None));
-                    unsupported = Some(e);
-                    break;
+                    rounds.push(round("spec", n, usage, &mut mcp, Some(&e), None));
+                    let mut rec = record(&id, &model_id, "spec_failed", None, &rounds, &totals);
+                    rec["unsupported"] = json!(e);
+                    return Ok((finish(rec, &system, &msgs, None, None), false));
                 }
                 r => r?,
-            },
+            };
+            let ok = !r.errors();
+            let report = (!ok).then_some(r.text.as_str());
+            rounds.push(round("spec", n, usage, &mut mcp, report, None));
+            if ok {
+                spec = Some(code);
+                break;
+            }
+            content = REPAIR_ASK
+                .replace("{tool}", "spec_check")
+                .replace("{report}", &r.text);
+        }
+        let Some(spec) = spec else {
+            let rec = record(&id, &model_id, "spec_failed", None, &rounds, &totals);
+            return Ok((finish(rec, &system, &msgs, None, None), false));
         };
-        rounds.push(round("body", n, usage, &mut mcp, report.as_deref(), None));
-        let Some(report) = report else {
-            status = "green";
-            green_at = Some(n + 1);
-            break;
-        };
-        content = REPAIR_ASK
-            .replace("{tool}", tool)
-            .replace("{report}", &report);
-    }
+        // The spec is accepted here and frozen for phase 2; a person accepts it outside the harness.
+        std::fs::write(&target, &spec).map_err(|e| format!("{}: {e}", target.display()))?;
+        let frozen = patch::parse(&target.display().to_string(), &spec)?;
+
+        // Phase 2: the bodies.
+        let mut content = BODY_ASK.to_owned();
+        let mut status = "body_failed";
+        let mut green_at = None;
+        let mut unsupported = None;
+        let mut restart = false;
+        for n in 0..=o.body_repairs {
+            let (text, usage) = ask(&mut model, &mut msgs, &mut totals, "body", content)?;
+            if let Some(why) = text.lines().find_map(|l| l.trim().strip_prefix("STOP:")) {
+                rounds.push(round("body", n, usage, &mut mcp, None, Some(why.trim())));
+                if respec.is_none() {
+                    respec = Some(why.trim().to_owned());
+                    restart = true;
+                } else {
+                    status = "stopped";
+                }
+                break;
+            }
+            let code = extract(&text);
+            let (tool, report) = match frozen_changes(&frozen, &code, &target) {
+                Some(report) => ("the spec gate", Some(report)),
+                None => match body_round(&mut mcp, &o.module, &code) {
+                    // The toolchain cannot judge this body yet: a run result, not a harness failure.
+                    Err(e) if e.contains(UNSUPPORTED) => {
+                        rounds.push(round("body", n, usage, &mut mcp, Some(&e), None));
+                        unsupported = Some(e);
+                        break;
+                    }
+                    r => r?,
+                },
+            };
+            rounds.push(round("body", n, usage, &mut mcp, report.as_deref(), None));
+            let Some(report) = report else {
+                status = "green";
+                green_at = Some(n + 1);
+                break;
+            };
+            content = REPAIR_ASK
+                .replace("{tool}", tool)
+                .replace("{report}", &report);
+        }
+        if restart {
+            continue;
+        }
+        break (spec, status, green_at, unsupported);
+    };
     let mut rec = record(&id, &model_id, status, green_at, &rounds, &totals);
     if let Some(e) = unsupported {
         rec["unsupported"] = json!(e);
@@ -645,14 +666,36 @@ mod tests {
     }
 
     #[test]
-    fn stop_ends_the_run() {
-        let (rec, green) = go(
-            "stop",
-            vec![json!(SPEC), json!("STOP: the ex line is wrong")],
-        );
+    fn a_second_stop_ends_the_run() {
+        let stop = json!("STOP: the ex line is wrong");
+        let (rec, green) = go("stop", vec![json!(SPEC), stop.clone(), json!(SPEC), stop]);
         assert!(!green);
         assert_eq!(rec["status"], "stopped");
         assert_eq!(rec["rounds"][1]["stop"], "the ex line is wrong");
+        assert_eq!(rec["rounds"].as_array().unwrap().len(), 4);
+    }
+
+    #[test]
+    fn stop_reruns_the_spec_phase_once() {
+        let fixed = "    out: list[int] = []\n    for x in xs:\n        out.append(min(max(x, lo), hi))\n    return out\n";
+        let (rec, green) = go(
+            "respec",
+            vec![
+                json!(SPEC),
+                json!("STOP: the ex line is wrong"),
+                json!(SPEC),
+                json!(body(fixed)),
+            ],
+        );
+        assert!(green);
+        assert_eq!(rec["status"], "green");
+        let msgs = rec["messages"].as_array().unwrap();
+        assert!(
+            msgs[4]["content"]
+                .as_str()
+                .unwrap()
+                .contains("the ex line is wrong")
+        );
     }
 
     #[test]
