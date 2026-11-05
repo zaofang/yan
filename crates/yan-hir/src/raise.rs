@@ -179,6 +179,21 @@ impl<'a> Marks<'a> {
         out
     }
 
+    /// How the source spelled call `c`: its `Method` or `Function` mark, consumed. `None` when
+    /// the item has no marks to go by (D3) or the call has none.
+    fn spelling(&self, c: &y::Call) -> Option<Mark> {
+        let p = self
+            .paths
+            .get(&(c as *const y::Call))
+            .filter(|_| self.sourced)?;
+        let m = self.trivia.at(&self.key, p).iter().find_map(|t| match t {
+            Trivia::Mark(m @ (Mark::Method | Mark::Function)) => Some(m.clone()),
+            _ => None,
+        })?;
+        self.seen.borrow_mut().insert(p.clone());
+        Some(m)
+    }
+
     /// The mark of field `k` of constructor `c`.
     fn field(&self, c: &y::Ctor, k: usize) -> ArgMark {
         let p = self
@@ -891,6 +906,14 @@ impl<'a> Fold<'a> {
             ("dict", "new", 0) => return Ok(e(ExprKind::Dict(Vec::new()))),
             ("set", "new", 0) => return Ok(call(name("set"), Vec::new())),
             (m, "len", 1) if TYPE_MODULES.contains(&m) => {
+                let x = self.atom(vals[0])?;
+                return Ok(match self.marks.spelling(c) {
+                    Some(Mark::Method) => call(attr(x, "len"), Vec::new()),
+                    _ => call(name("len"), vec![arg(x)]),
+                });
+            }
+            // `len(s)` on a `str` elaborates to `char_count` (N21).
+            ("text", "char_count", 1) if self.marks.spelling(c) == Some(Mark::Function) => {
                 let x = self.atom(vals[0])?;
                 return Ok(call(name("len"), vec![arg(x)]));
             }

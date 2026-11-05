@@ -652,3 +652,16 @@ pub def main() uses io:
     assert_eq!(text, src);
     assert!(unused.is_empty(), "{unused:?}");
 }
+
+#[test]
+fn call_marks_restore_method_and_function_spellings() {
+    let src = "\
+pub def main() uses io:
+    xs = [1, 2]
+    s = \"ab\"
+    io.print(f\"{len(xs)} {xs.len()} {len(s)} {s.char_count()}\")
+";
+    let (text, unused) = raised_marked(src);
+    assert_eq!(text, src);
+    assert!(unused.is_empty(), "{unused:?}");
+}

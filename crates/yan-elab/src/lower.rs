@@ -7291,6 +7291,16 @@ impl Lower<'_, '_, '_> {
         })
     }
 
+    /// Records how the source spelled the call at `at`: `x.f()` or `f(x)` (RFC 0034 step 4).
+    fn mark_call(&mut self, at: Span, mark: yan_surface::Mark) {
+        self.cx.marks.push(crate::marks::Pending {
+            span: at,
+            kind: crate::marks::Kind::Call,
+            call: None,
+            mark,
+        });
+    }
+
     fn builtin(&mut self, n: &str, args: &[j::Arg], at: Span, want: Option<&Ty>) -> R<(Rhs, Ty)> {
         let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err);
         match n {
@@ -7298,6 +7308,9 @@ impl Lower<'_, '_, '_> {
                 let Some(xs) = self.positional(args, 1, n, at)? else {
                     return Ok(err);
                 };
+                if n == "len" {
+                    self.mark_call(at, yan_surface::Mark::Function);
+                }
                 let (a, t) = self.atom(xs[0], None)?;
                 let (path, targs, ret) = match (n, &t) {
                     (_, Ty::Err) => return Ok((Rhs::Atom(a), Ty::Err)),
@@ -8286,6 +8299,9 @@ impl Lower<'_, '_, '_> {
             );
             return Ok((Rhs::Proj(p), e(), None));
         };
+        if m == "len" {
+            self.mark_call(at, yan_surface::Mark::Method);
+        }
         if !d.intrinsic || d.typed_at_call() {
             return self.user_call(&path, Some(b), args, at);
         }
