@@ -91,6 +91,17 @@ pub fn static_str_block(s: &str) -> *mut String {
     p
 }
 
+/// A literal's `Str` block, built from its `len` bytes of UTF-8 at `ptr` by the entry point of a
+/// native object.
+///
+/// # Safety
+/// `ptr` points to `len` bytes of UTF-8.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_static_str(ptr: *const u8, len: usize) -> *mut String {
+    // SAFETY: forwarded.
+    static_str_block(unsafe { text(ptr, len) })
+}
+
 /// Free a `Str` block, unless it is a literal's.
 ///
 /// # Safety

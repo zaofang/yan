@@ -13,12 +13,16 @@ cranelift-frontend = "0.137"
 cranelift-jit = "0.137"
 cranelift-module = "0.137"
 cranelift-native = "0.137"
+cranelift-object = "0.137"
 yan-mir.workspace = true
 yan-rt.workspace = true
 yan-std.workspace = true
 
 [dev-dependencies]
 yan-core.workspace = true
+yan-db.workspace = true
+yan-ide.workspace = true
+yan-interp.workspace = true
 yan-opt.workspace = true
 
 # The workspace forbids unsafe code; this crate denies it and allows it only where native code

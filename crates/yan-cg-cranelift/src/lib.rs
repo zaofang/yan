@@ -7,14 +7,17 @@ use std::collections::HashMap;
 
 use cranelift_codegen::ir::condcodes::{FloatCC, IntCC};
 use cranelift_codegen::ir::{
-    AbiParam, Block as CBlock, FuncRef, InstBuilder, MemFlagsData, Signature, TrapCode, Value,
-    types,
+    AbiParam, Block as CBlock, FuncRef, GlobalValue, InstBuilder, MemFlagsData, Signature,
+    TrapCode, Value, types,
 };
 use cranelift_codegen::isa::CallConv;
 use cranelift_codegen::settings::{self, Configurable};
 use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext, Switch, Variable};
 use cranelift_jit::{JITBuilder, JITModule};
-use cranelift_module::{FuncId as CFuncId, Linkage, Module, default_libcall_names};
+use cranelift_module::{
+    DataDescription, DataId, FuncId as CFuncId, Linkage, Module, default_libcall_names,
+};
+use cranelift_object::{ObjectBuilder, ObjectModule};
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::abi;
 
@@ -57,23 +60,43 @@ pub enum Jit {
     Lazy,
 }
 
+/// Where generated code finds the program's string literals.
+enum Strings {
+    /// Blocks already built in this process (JIT): their addresses are constants.
+    Addr(Vec<i64>),
+    /// Object files: data slots that the entry point fills with literal blocks before `main`
+    /// runs, and the bytes of each panic kind.
+    Slots {
+        lits: Vec<DataId>,
+        kinds: HashMap<&'static str, DataId>,
+    },
+}
+
+/// [`Strings`] as seen from inside one function.
+enum Strs<'a> {
+    Addr(&'a [i64]),
+    Slots {
+        lits: Vec<GlobalValue>,
+        kinds: HashMap<&'static str, GlobalValue>,
+    },
+}
+
 /// The module and what it takes to define more functions in it.
-struct State {
-    module: JITModule,
+struct State<M: Module> {
+    module: M,
     program: Program,
     sigs: Vec<Signature>,
     ids: Vec<CFuncId>,
     rt_ids: Vec<CFuncId>,
     panic: CFuncId,
-    /// Owned by the program: the JIT code refers to them by address.
-    strings: Vec<i64>,
+    strings: Strings,
     fctx: FunctionBuilderContext,
     ctx: cranelift_codegen::Context,
 }
 
 /// Owns the module; its address is baked into the stubs, so it is boxed.
 struct Lazy {
-    state: RefCell<State>,
+    state: RefCell<State<JITModule>>,
     /// The jump table, read by the JIT code at its address. Empty for [`Jit::Eager`].
     table: Box<[Cell<usize>]>,
     done: RefCell<Vec<bool>>,
@@ -89,7 +112,7 @@ enum Calls {
     },
 }
 
-impl State {
+impl<M: Module> State<M> {
     /// Define function `i`, calling the others directly or through the jump table at `table`.
     fn define(&mut self, i: usize, table: Option<i64>) -> R<()> {
         let State {
@@ -124,6 +147,19 @@ impl State {
                 .collect(),
             panic: module.declare_func_in_func(*panic, b.func),
             ptr,
+        };
+        let strings = match strings {
+            Strings::Addr(a) => Strs::Addr(a),
+            Strings::Slots { lits, kinds } => Strs::Slots {
+                lits: lits
+                    .iter()
+                    .map(|d| module.declare_data_in_func(*d, b.func))
+                    .collect(),
+                kinds: kinds
+                    .iter()
+                    .map(|(k, d)| (*k, module.declare_data_in_func(*d, b.func)))
+                    .collect(),
+            },
         };
         Gen {
             b: &mut b,
@@ -182,16 +218,148 @@ pub fn compile(p: &Program) -> R<Compiled> {
     compile_with(p, Jit::Eager)
 }
 
-/// Compile `p` for the host.
-pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
+/// Panics that the code generator raises itself.
+const PANIC_KINDS: [&str; 4] = ["div_zero", "exclusivity", "overflow", "unreachable"];
+
+fn host_isa(pic: bool) -> R<std::sync::Arc<dyn cranelift_codegen::isa::TargetIsa>> {
     let mut flags = settings::builder();
     flags.set("opt_level", "none").map_err(err)?;
     // Cranelift's tail calls need frame pointers.
     flags.set("preserve_frame_pointers", "true").map_err(err)?;
-    let isa = cranelift_native::builder()
+    flags
+        .set("is_pic", if pic { "true" } else { "false" })
+        .map_err(err)?;
+    cranelift_native::builder()
         .map_err(err)?
         .finish(settings::Flags::new(flags))
+        .map_err(err)
+}
+
+/// Compile `p` to a relocatable object for the host, with every function defined and no lazy
+/// stubs. The object exports C `main`, which builds the string literals, runs the program's
+/// `main` and exits through `yan_rt_exit`; link it with `libyan_rt.a`.
+pub fn compile_object(p: &Program) -> R<Vec<u8>> {
+    let builder =
+        ObjectBuilder::new(host_isa(true)?, "yan", default_libcall_names()).map_err(err)?;
+    let mut module = ObjectModule::new(builder);
+    let ptr = module.target_config().pointer_type();
+    let (panic, exit, rt_ids) = declare_rt(&mut module)?;
+    let (sigs, ids) = declare_funcs(&mut module, p)?;
+
+    // Each literal is its bytes plus a zeroed slot that `main` fills with the block address.
+    let mut lits = Vec::new();
+    for (i, s) in p.strings.iter().enumerate() {
+        let bytes = module
+            .declare_data(&format!("yan.str.{i}.bytes"), Linkage::Local, false, false)
+            .map_err(err)?;
+        let mut d = DataDescription::new();
+        d.define(s.as_bytes().to_vec().into_boxed_slice());
+        module.define_data(bytes, &d).map_err(err)?;
+        let slot = module
+            .declare_data(&format!("yan.str.{i}"), Linkage::Local, true, false)
+            .map_err(err)?;
+        let mut d = DataDescription::new();
+        d.define_zeroinit(8);
+        module.define_data(slot, &d).map_err(err)?;
+        lits.push((bytes, slot, s.len()));
+    }
+    let mut kinds = HashMap::new();
+    let used = p
+        .funcs
+        .iter()
+        .flat_map(|f| &f.blocks)
+        .filter_map(|b| match b.term {
+            Term::Panic(k) => Some(k),
+            _ => None,
+        });
+    for (i, k) in PANIC_KINDS.iter().copied().chain(used).enumerate() {
+        if kinds.contains_key(k) {
+            continue;
+        }
+        let id = module
+            .declare_data(&format!("yan.panic.{i}"), Linkage::Local, false, false)
+            .map_err(err)?;
+        let mut d = DataDescription::new();
+        d.define(k.as_bytes().to_vec().into_boxed_slice());
+        module.define_data(id, &d).map_err(err)?;
+        kinds.insert(k, id);
+    }
+    let mut st = State {
+        module,
+        program: p.clone(),
+        sigs,
+        ids,
+        rt_ids,
+        panic,
+        strings: Strings::Slots {
+            lits: lits.iter().map(|l| l.1).collect(),
+            kinds,
+        },
+        fctx: FunctionBuilderContext::new(),
+        ctx: cranelift_codegen::Context::new(),
+    };
+    for i in 0..p.funcs.len() {
+        st.define(i, None)?;
+    }
+
+    let State {
+        mut module,
+        mut fctx,
+        mut ctx,
+        ids,
+        ..
+    } = st;
+    let mut lit_sig = module.make_signature();
+    lit_sig
+        .params
+        .extend([AbiParam::new(ptr), AbiParam::new(types::I64)]);
+    lit_sig.returns.push(AbiParam::new(types::I64));
+    let lit = module
+        .declare_function("yan_rt_static_str", Linkage::Import, &lit_sig)
         .map_err(err)?;
+    let mut entry_sig = module.make_signature();
+    entry_sig.returns.push(AbiParam::new(types::I32));
+    let entry = module
+        .declare_function("main", Linkage::Export, &entry_sig)
+        .map_err(err)?;
+    ctx.func.signature = entry_sig;
+    {
+        let mut b = FunctionBuilder::new(&mut ctx.func, &mut fctx);
+        let blk = b.create_block();
+        b.switch_to_block(blk);
+        b.seal_block(blk);
+        let lit = module.declare_func_in_func(lit, b.func);
+        for (bytes, slot, len) in &lits {
+            let bytes = module.declare_data_in_func(*bytes, b.func);
+            let bytes = b.ins().symbol_value(ptr, bytes);
+            let len = b.ins().iconst(types::I64, *len as i64);
+            let c = b.ins().call(lit, &[bytes, len]);
+            let block = b.inst_results(c)[0];
+            let slot = module.declare_data_in_func(*slot, b.func);
+            let slot = b.ins().symbol_value(ptr, slot);
+            b.ins().store(MemFlagsData::trusted(), block, slot, 0);
+        }
+        let main = module.declare_func_in_func(ids[p.main as usize], b.func);
+        let c = b.ins().call(main, &[]);
+        let code = if p.main_fails {
+            let tag = b.inst_results(c)[0];
+            let (one, zero) = (b.ins().iconst(types::I64, 1), b.ins().iconst(types::I64, 0));
+            b.ins().select(tag, one, zero)
+        } else {
+            b.ins().iconst(types::I64, 0)
+        };
+        let exit = module.declare_func_in_func(exit, b.func);
+        b.ins().call(exit, &[code]);
+        b.ins().trap(TrapCode::unwrap_user(1));
+        b.finalize(module.target_config());
+    }
+    module.define_function(entry, &mut ctx).map_err(err)?;
+    module.finish().emit().map_err(err)
+}
+
+/// Compile `p` for the host.
+pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
+    let isa = host_isa(false)?;
     let mut jb = JITBuilder::with_isa(isa, default_libcall_names());
     jb.symbol("yan_rt_panic", abi::yan_rt_panic as *const u8);
     jb.symbol("yan_rt_exit", abi::yan_rt_exit as *const u8);
@@ -203,18 +371,7 @@ pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
     let mut module = JITModule::new(jb);
     let ptr = module.target_config().pointer_type();
 
-    let mut panic_sig = module.make_signature();
-    panic_sig
-        .params
-        .extend([AbiParam::new(ptr), AbiParam::new(ptr)]);
-    let panic = module
-        .declare_function("yan_rt_panic", Linkage::Import, &panic_sig)
-        .map_err(err)?;
-    let mut exit_sig = module.make_signature();
-    exit_sig.params.push(AbiParam::new(types::I64));
-    let exit = module
-        .declare_function("yan_rt_exit", Linkage::Import, &exit_sig)
-        .map_err(err)?;
+    let (panic, exit, rt_ids) = declare_rt(&mut module)?;
     let mut resolve_sig = module.make_signature();
     resolve_sig
         .params
@@ -223,31 +380,7 @@ pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
     let resolve = module
         .declare_function("yan_jit_resolve", Linkage::Import, &resolve_sig)
         .map_err(err)?;
-    let rt_ids = RT
-        .iter()
-        .map(|f| {
-            let (name, _, params, ret) = rt_fn(*f);
-            let mut sig = module.make_signature();
-            sig.params.extend(params.iter().map(|t| AbiParam::new(*t)));
-            sig.returns.extend(ret.map(AbiParam::new));
-            module
-                .declare_function(name, Linkage::Import, &sig)
-                .map_err(err)
-        })
-        .collect::<R<Vec<_>>>()?;
-
-    let sigs: Vec<Signature> = p.funcs.iter().map(|f| signature(f, &module)).collect();
-    let ids: Vec<CFuncId> = p
-        .funcs
-        .iter()
-        .zip(&sigs)
-        .enumerate()
-        .map(|(i, (f, s))| {
-            module
-                .declare_function(&format!("yan.{i}.{}", f.name), Linkage::Local, s)
-                .map_err(err)
-        })
-        .collect::<R<_>>()?;
+    let (sigs, ids) = declare_funcs(&mut module, p)?;
     let ctx = module.make_context();
     let n = p.funcs.len();
     let lazy = Box::new(Lazy {
@@ -258,11 +391,12 @@ pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
             ids,
             rt_ids,
             panic,
-            strings: p
-                .strings
-                .iter()
-                .map(|s| abi::static_str_block(s) as i64)
-                .collect(),
+            strings: Strings::Addr(
+                p.strings
+                    .iter()
+                    .map(|s| abi::static_str_block(s) as i64)
+                    .collect(),
+            ),
             fctx: FunctionBuilderContext::new(),
             ctx,
         }),
@@ -294,9 +428,55 @@ pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
     Ok(Compiled { _lazy: lazy, entry })
 }
 
+/// Declare the runtime's symbols; returns the ids of panic, exit and the [`RT`] functions.
+fn declare_rt<M: Module>(module: &mut M) -> R<(CFuncId, CFuncId, Vec<CFuncId>)> {
+    let ptr = module.target_config().pointer_type();
+    let mut panic_sig = module.make_signature();
+    panic_sig
+        .params
+        .extend([AbiParam::new(ptr), AbiParam::new(ptr)]);
+    let panic = module
+        .declare_function("yan_rt_panic", Linkage::Import, &panic_sig)
+        .map_err(err)?;
+    let mut exit_sig = module.make_signature();
+    exit_sig.params.push(AbiParam::new(types::I64));
+    let exit = module
+        .declare_function("yan_rt_exit", Linkage::Import, &exit_sig)
+        .map_err(err)?;
+    let rt_ids = RT
+        .iter()
+        .map(|f| {
+            let (name, _, params, ret) = rt_fn(*f);
+            let mut sig = module.make_signature();
+            sig.params.extend(params.iter().map(|t| AbiParam::new(*t)));
+            sig.returns.extend(ret.map(AbiParam::new));
+            module
+                .declare_function(name, Linkage::Import, &sig)
+                .map_err(err)
+        })
+        .collect::<R<Vec<_>>>()?;
+    Ok((panic, exit, rt_ids))
+}
+
+fn declare_funcs<M: Module>(module: &mut M, p: &Program) -> R<(Vec<Signature>, Vec<CFuncId>)> {
+    let sigs: Vec<Signature> = p.funcs.iter().map(|f| signature(f, module)).collect();
+    let ids = p
+        .funcs
+        .iter()
+        .zip(&sigs)
+        .enumerate()
+        .map(|(i, (f, s))| {
+            module
+                .declare_function(&format!("yan.{i}.{}", f.name), Linkage::Local, s)
+                .map_err(err)
+        })
+        .collect::<R<_>>()?;
+    Ok((sigs, ids))
+}
+
 /// One stub per function, with its signature: resolve the function, then tail-call it with
 /// the same arguments.
-fn stubs(st: &mut State, lazy: &Lazy, resolve: CFuncId) -> R<Vec<CFuncId>> {
+fn stubs(st: &mut State<JITModule>, lazy: &Lazy, resolve: CFuncId) -> R<Vec<CFuncId>> {
     let me = std::ptr::from_ref(lazy) as i64;
     let mut out = Vec::new();
     for i in 0..st.sigs.len() {
@@ -335,7 +515,12 @@ fn stubs(st: &mut State, lazy: &Lazy, resolve: CFuncId) -> R<Vec<CFuncId>> {
 
 /// Define the C-ABI trampoline the host calls, which calls the tail-convention `main`, and
 /// finalize the module.
-fn entry_point(st: &mut State, main: CFuncId, fails: bool, exit: CFuncId) -> R<extern "C" fn()> {
+fn entry_point(
+    st: &mut State<JITModule>,
+    main: CFuncId,
+    fails: bool,
+    exit: CFuncId,
+) -> R<extern "C" fn()> {
     let State {
         module, fctx, ctx, ..
     } = st;
@@ -377,7 +562,7 @@ fn entry_point(st: &mut State, main: CFuncId, fails: bool, exit: CFuncId) -> R<e
     Ok(entry)
 }
 
-fn signature(f: &Func, m: &JITModule) -> Signature {
+fn signature(f: &Func, m: &impl Module) -> Signature {
     let mut s = m.make_signature();
     s.call_conv = CallConv::Tail;
     for t in &f.locals[..f.params as usize] {
@@ -554,7 +739,7 @@ struct Gen<'a, 'b> {
     blocks: Vec<CBlock>,
     calls: Calls,
     rt: Rt,
-    strings: &'a [i64],
+    strings: Strs<'a>,
     /// One panic block per kind.
     kinds: HashMap<&'static str, CBlock>,
 }
@@ -602,7 +787,13 @@ impl Gen<'_, '_> {
     }
 
     fn call_panic(&mut self, kind: &'static str) {
-        let ptr = self.b.ins().iconst(self.rt.ptr, kind.as_ptr() as i64);
+        let ptr = match &self.strings {
+            Strs::Addr(_) => self.b.ins().iconst(self.rt.ptr, kind.as_ptr() as i64),
+            Strs::Slots { kinds, .. } => {
+                let gv = kinds[kind];
+                self.b.ins().symbol_value(self.rt.ptr, gv)
+            }
+        };
         let len = self.b.ins().iconst(self.rt.ptr, kind.len() as i64);
         self.b.ins().call(self.rt.panic, &[ptr, len]);
         self.b.ins().trap(TrapCode::unwrap_user(1));
@@ -631,7 +822,19 @@ impl Gen<'_, '_> {
             Operand::F64(x) => self.b.ins().f64const(*x),
             Operand::Bool(x) => self.b.ins().iconst(types::I8, i64::from(*x)),
             Operand::Unit => return None,
-            Operand::Str(s) => self.b.ins().iconst(types::I64, self.strings[*s as usize]),
+            Operand::Str(s) => match &self.strings {
+                Strs::Addr(a) => {
+                    let addr = a[*s as usize];
+                    self.b.ins().iconst(types::I64, addr)
+                }
+                Strs::Slots { lits, .. } => {
+                    let gv = lits[*s as usize];
+                    let slot = self.b.ins().symbol_value(types::I64, gv);
+                    self.b
+                        .ins()
+                        .load(types::I64, MemFlagsData::trusted(), slot, 0)
+                }
+            },
             Operand::Func(f) => match &self.calls {
                 Calls::Direct(fs) => self.b.ins().func_addr(types::I64, fs[*f as usize]),
                 Calls::Table { table, .. } => self.slot(*table, *f),
