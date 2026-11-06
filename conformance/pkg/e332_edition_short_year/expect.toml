@@ -1,0 +1,6 @@
+spec = "20.4"
+rows = "R888"
+note = "edition is next or a four-digit year of 2026 or later; the span is the string literal"
+command = ["check"]
+code = "E332"
+at = "package.yag:7:13"
