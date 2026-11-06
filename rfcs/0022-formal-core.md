@@ -1,6 +1,6 @@
 # 0022: A formal model of Yan's core in Lean 4
 
-- Status: accepted (D1, D3, D4); D2 open
+- Status: accepted (D1, D2, D3, D4)
 - Research: [Formal core study](https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y)
 - Rows: R680, R764, R765
 
@@ -36,8 +36,9 @@ bug (6.1). The Lean model adds a third definition. Recommendation: the prose sta
 the core; the interpreter and the model are both checked against it, and any disagreement among
 the three is a spec bug to file, not a tie to break.
 
-- Decision: open
-- Row: none yet
+- Decision: accepted as recommended by the lead on 2026-11-06 (card, issue #424): the spec text is
+  normative for the core
+- Row: none; the decision is recorded here and the sections it touches (6.1, 22.1) are unchanged
 
 ### D3: Join point fall-through
 
