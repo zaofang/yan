@@ -18,6 +18,7 @@ pub fn parse(file: &str, src: &str) -> (ast::Module, Vec<Diagnostic>) {
     let mut p = parser::Parser::new(&lexed.tokens, file, src);
     let mut module = p.module();
     module.docs = lexed.docs;
+    module.trivia = lexed.trivia;
     diags.append(&mut p.diags);
     (module, diags)
 }
@@ -96,6 +97,7 @@ mod selftest {
     fn code_lines(src: &str) -> Vec<&str> {
         src.lines()
             .filter(|l| !l.trim().is_empty() && !l.trim_start().starts_with("--"))
+            .map(|l| l.split(" --").next().unwrap().trim_end())
             .collect()
     }
 
@@ -284,11 +286,70 @@ frame() =
   let w = [0.6 0.4]
 "#;
         let printed = reprint(src);
-        let want: Vec<_> = code_lines(src)
-            .into_iter()
-            .map(|l| l.split("    --").next().unwrap())
-            .collect();
-        assert_eq!(code_lines(&printed), want);
+        assert_eq!(code_lines(&printed), code_lines(src));
+    }
+
+    #[test]
+    fn comments_and_author_blank_lines_survive_in_bodies() {
+        let src = "-- top
+f(x: int) -> int =
+  -- lead
+
+  let y = x + 1  -- trail
+
+
+  let z = y * 2
+  if z > 1
+    z
+    -- inner
+  -- outer
+  z
+-- tail
+";
+        let want = "-- top
+f(x: int) -> int =
+  -- lead
+
+  let y = x + 1  -- trail
+
+  let z = y * 2
+  if z > 1
+    z
+    -- inner
+  -- outer
+  z
+
+-- tail
+";
+        let printed = reprint(src);
+        assert_eq!(printed, want);
+        assert_eq!(reprint(&printed), printed);
+    }
+
+    #[test]
+    fn long_lines_wrap_inside_brackets_and_chains() {
+        let src = "f(xs: List[int]) -> int =
+  let a = compute_the_total_of_items(xs, another_long_argument_name, yet_another_argument_name_here, more)
+  let b = xs.map(first_transformation).filter(second_predicate_function).take(10).collect_into_list()
+  a
+";
+        let want = "f(xs: List[int]) -> int =
+  let a = compute_the_total_of_items(
+      xs,
+      another_long_argument_name,
+      yet_another_argument_name_here,
+      more,
+  )
+  let b = xs
+      .map(first_transformation)
+      .filter(second_predicate_function)
+      .take(10)
+      .collect_into_list()
+  a
+";
+        let printed = reprint(src);
+        assert_eq!(printed, want);
+        assert_eq!(reprint(&printed), printed);
     }
 
     #[test]

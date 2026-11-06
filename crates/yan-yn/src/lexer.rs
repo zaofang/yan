@@ -6,7 +6,7 @@
 
 use std::collections::HashSet;
 
-use yan_diag::{Diagnostic, Span};
+use yan_diag::{Diagnostic, Span, Trivia};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Tok {
@@ -83,6 +83,7 @@ pub struct Lexed {
     pub tokens: Vec<Token>,
     /// `---` doc comments: line and text.
     pub docs: Vec<(u32, String)>,
+    pub trivia: Trivia,
 }
 
 pub const RESERVED: [&str; 41] = [
@@ -171,6 +172,7 @@ struct Lexer<'a> {
     brackets: Vec<(char, Span)>,
     raws: Vec<Raw>,
     docs: Vec<(u32, String)>,
+    comments: Vec<(u32, u32, String)>,
     diags: Vec<Diagnostic>,
     bad_names: HashSet<String>,
 }
@@ -307,6 +309,10 @@ impl<'a> Lexer<'a> {
         if doc && ok {
             let text = self.src[lo + 3..self.pos].trim().to_owned();
             self.docs.push((start.0, text));
+        }
+        if ok {
+            let text = self.src[lo..self.pos].trim_end().to_owned();
+            self.comments.push((start.0, start.1, text));
         }
     }
 
@@ -875,6 +881,7 @@ impl<'a> Lexer<'a> {
             brackets: vec![('v', self.span_from(start))],
             raws: Vec::new(),
             docs: Vec::new(),
+            comments: Vec::new(),
             diags: Vec::new(),
             bad_names: std::mem::take(&mut self.bad_names),
         };
@@ -1051,6 +1058,7 @@ pub fn lex(file: &str, src: &str) -> (Lexed, Vec<Diagnostic>) {
         brackets: Vec::new(),
         raws: Vec::new(),
         docs: Vec::new(),
+        comments: Vec::new(),
         diags: Vec::new(),
         bad_names: HashSet::new(),
     };
@@ -1068,10 +1076,16 @@ pub fn lex(file: &str, src: &str) -> (Lexed, Vec<Diagnostic>) {
     lx.run();
     let mut diags = lx.diags;
     let tokens = layout(lx.raws, file, &mut diags);
+    let code: Vec<_> = tokens
+        .iter()
+        .filter(|t| !matches!(t.tok, Tok::Newline | Tok::Indent | Tok::Dedent | Tok::Eof))
+        .map(|t| (t.span.line, t.span.col))
+        .collect();
     (
         Lexed {
             tokens,
             docs: lx.docs,
+            trivia: Trivia::new(src, &lx.comments, &code),
         },
         diags,
     )

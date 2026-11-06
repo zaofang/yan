@@ -12,6 +12,8 @@ pub struct Module {
     pub items: Vec<Item>,
     /// `---` doc comments: line and text.
     pub docs: Vec<(u32, String)>,
+    /// Comments and blank lines, for the printer; never compared.
+    pub trivia: yan_diag::Trivia,
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -10,6 +10,11 @@ mod resugar;
 
 pub use grammar::{Expr as GrammarExpr, Grammar, Term as GrammarTerm};
 pub use printer::{expr as print_expr, print, ty as print_type};
+
+/// `print` with the comments and blank lines of `src`, the text `m` was read from (R376).
+pub fn print_source(m: &ast::Module, src: &str) -> String {
+    printer::print_with(m, lexer::lex(src).trivia)
+}
 pub use resugar::resugar;
 use yan_diag::{Diagnostic, Severity};
 
@@ -150,6 +155,67 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
         let printed = roundtrip(SAMPLE);
         assert!(printed.starts_with("# header\n\n\"\"\"Module doc.\"\"\"\n"));
         assert_eq!(roundtrip(&printed), printed);
+    }
+
+    fn reprint(src: &str) -> String {
+        let (m, d) = parse("t.yag", src, false);
+        assert!(d.is_empty(), "{d:?}");
+        print_source(&m.expect("parses"), src)
+    }
+
+    #[test]
+    fn comments_and_author_blank_lines_survive_in_bodies() {
+        let src = "def f(x: int) -> int:
+    # lead
+
+    y = x + 1  # trail
+
+
+    z = y * 2
+    if z > 1:
+        z
+        # inner
+    # outer
+    return z
+# tail
+";
+        let want = "def f(x: int) -> int:
+    # lead
+
+    y = x + 1  # trail
+
+    z = y * 2
+    if z > 1:
+        z
+        # inner
+    # outer
+    return z
+
+# tail
+";
+        let printed = reprint(src);
+        assert_eq!(printed, want);
+        assert_eq!(reprint(&printed), printed);
+    }
+
+    #[test]
+    fn long_lines_wrap_inside_brackets() {
+        let src = "def f(xs: list[int]) -> int:
+    a = compute_the_total_of_items(xs, another_long_argument_name, yet_another_argument_name_here, more)
+    return a
+";
+        let want = "def f(xs: list[int]) -> int:
+    a = compute_the_total_of_items(
+        xs,
+        another_long_argument_name,
+        yet_another_argument_name_here,
+        more,
+    )
+    return a
+";
+        let printed = reprint(src);
+        assert_eq!(printed, want);
+        assert_eq!(reprint(&printed), printed);
     }
 
     fn codes(src: &str, strict: bool) -> Vec<(String, u32, u32)> {

@@ -3,10 +3,22 @@
 use std::cell::Cell;
 
 use crate::ast::*;
+use yan_diag::wrap::wrap as wrap_line;
+use yan_diag::{Lead, Trivia};
+
+const WIDTH: usize = 100;
 use yan_names::{Surface, type_row};
 
 pub fn print(m: &Module) -> String {
-    let mut p = Printer { out: String::new() };
+    print_with(m, Trivia::default())
+}
+
+pub(crate) fn print_with(m: &Module, trivia: Trivia) -> String {
+    let mut p = Printer {
+        out: String::new(),
+        trivia,
+        pending: None,
+    };
     for h in &m.header {
         p.out.push_str(h);
         p.out.push('\n');
@@ -21,17 +33,30 @@ pub fn print(m: &Module) -> String {
         p.out.push_str(&docstring(d));
         p.out.push('\n');
     }
+    let mut end = None;
     for (i, it) in m.items.iter().enumerate() {
         if i > 0 || !m.attrs.is_empty() || m.doc.is_some() {
             p.out.push('\n');
         }
+        let (lead, blank) = p.trivia.leading(None, it.span.line);
+        p.comments(0, &lead, blank);
+        p.pending = p.trivia.trailing(it.span.line);
         p.item(it);
+        end = Some(it.span.end_line);
     }
+    let rest = p.trivia.rest(end);
+    if rest.first().is_some_and(|(gap, _)| !gap) {
+        p.out.push('\n');
+    }
+    p.comments(0, &rest, false);
     p.out
 }
 
 struct Printer {
     out: String,
+    trivia: Trivia,
+    /// A trailing comment for the next line printed.
+    pending: Option<String>,
 }
 
 fn comma<T>(xs: &[T], f: impl Fn(&T) -> String) -> String {
@@ -502,11 +527,37 @@ fn pat(p: &Pat) -> String {
 
 impl Printer {
     fn line(&mut self, depth: usize, s: &str) {
-        for _ in 0..depth {
-            self.out.push_str("    ");
+        let comment = self.pending.take();
+        let room = WIDTH.saturating_sub(4 * depth);
+        for (i, (rel, text)) in wrap_line(s, room, 4, false).iter().enumerate() {
+            self.out.push_str(&" ".repeat(4 * depth + rel));
+            self.out.push_str(text);
+            if let (0, Some(c)) = (i, &comment) {
+                self.out.push_str("  ");
+                self.out.push_str(c);
+            }
+            self.out.push('\n');
         }
+    }
+
+    /// A comment or source text kept as written.
+    fn raw(&mut self, depth: usize, s: &str) {
+        self.out.push_str(&"    ".repeat(depth));
         self.out.push_str(s);
         self.out.push('\n');
+    }
+
+    /// Own-line comments, then a blank line when `blank` or the author left one before a comment.
+    fn comments(&mut self, depth: usize, lead: &[Lead], blank: bool) {
+        for (gap, text) in lead {
+            if *gap {
+                self.out.push('\n');
+            }
+            self.raw(depth, text);
+        }
+        if blank {
+            self.out.push('\n');
+        }
     }
 
     fn item(&mut self, it: &Item) {
@@ -517,7 +568,7 @@ impl Printer {
         match &it.kind {
             ItemKind::Func(f) => self.func(f, pubs, "def", 0),
             ItemKind::Lemma(f) => self.func(f, pubs, "lemma", 0),
-            ItemKind::Verbatim(t) => t.lines().for_each(|l| self.line(0, l)),
+            ItemKind::Verbatim(t) => t.lines().for_each(|l| self.raw(0, l)),
             ItemKind::Extern(_) => unreachable!("Yan Agent has no extern blocks"),
             ItemKind::Record(c) => {
                 self.line(
@@ -642,8 +693,17 @@ impl Printer {
     }
 
     fn stmts(&mut self, ss: &[Stmt], d: usize) {
+        let mut prev = None;
         for s in ss {
+            let (lead, blank) = self.trivia.leading(prev, s.span.line);
+            self.comments(d, &lead, blank);
+            self.pending = self.trivia.trailing(s.span.line);
             self.stmt(s, d);
+            prev = Some(s.span.end_line);
+        }
+        if let (Some(end), Some(first)) = (prev, ss.first()) {
+            let dangling = self.trivia.dangling(end, first.span.col);
+            self.comments(d, &dangling, false);
         }
     }
 
