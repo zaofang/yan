@@ -231,6 +231,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R883 | A `contract` or `assert` panic carries the numeric free variables of the predicate by written name in first-use order; free variables of other types are left out (RFC 0042, R883) | 8.3 |
 | R884 | A `bounds` panic for a missing dict key carries the first 64 bits of BLAKE3 over the key's canonical encoding as an unsigned integer, with the key type's name (RFC 0042, R884) | 8.3 |
 | R885 | `shape` leaves the kinds that carry operand fields until a runtime shape check exists; the RFC that adds one defines its fields (RFC 0042, R885) | 8.3 |
+| R886 | `@wire(names: {a: "x"})` on a record or sum renames its fields and variants on the wire: keys are field or variant names, values are wire names; an unknown key, a name renamed twice, a key that is both a variant and a field, or two fields or variants with one wire name is E331; Yan Agent writes renames only this way, with no attribute on a nested item; a field-less variant in a csv cell is written by the same map (#501) | 15.3, 17.3, 17.4, 25.5 |
+| R887 | `@wire(tag: "kind")` and `@wire(unknown: "ignore")` are read on the item for json and csv: `tag` renames a sum's tag key and tag column (a variant field with that wire name is E330) and `unknown: "ignore"` on a record or sum skips unknown members and columns instead of failing, `"reject"` being the default; any other `@wire` key or value is E331 (R874, R876, #603) | 17.3, 17.4, 25.5 |
 
 <!-- /rows -->
 

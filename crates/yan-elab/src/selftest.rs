@@ -865,3 +865,62 @@ fn wire_names_rename_json_keys_csv_columns_and_tags() {
          user-id,name\n1,a\n\n{\"tag\":\"circle\",\"radius\":2.0}\n0\n"
     );
 }
+
+#[test]
+fn item_level_wire_names_tag_and_unknown() {
+    let src = r#"@derive(Wire, Show, Eq)
+@wire(names={"id": "user-id"}, unknown="ignore")
+class R:
+    id: int
+    name: str
+
+@derive(Wire, Show, Eq)
+@wire(names={"Circle": "circle", "r": "radius"}, tag="kind")
+type S = Circle(r: float) | Unit()
+
+@derive(Wire, Show, Eq)
+@wire(names={"Red": "r", "Green": "g"})
+type C = Red() | Green()
+
+@derive(Wire, Show, Eq)
+class P:
+    c: C
+
+pub def main() uses io:
+    io.print(json.dump[R](R(id=1, name="a")))
+    io.print(json.dump[S](Circle(r=1.5)))
+    io.print(csv.dump[R]([R(id=1, name="a")]))
+    io.print(csv.dump[P]([P(c=Green())]))
+    s = json.parse[S]("{\"kind\":\"circle\",\"radius\":2}") else e -> Unit()
+    io.print(json.dump[S](s))
+    r = json.parse[R]("{\"user-id\":3,\"name\":\"b\",\"x\":0}") else e -> R(id=0, name="")
+    io.print(f"{r.id}")
+    rs = csv.parse[R]("user-id,name,extra\n4,c,z\n") else e -> []
+    for x in rs:
+        io.print(f"{x.id}")
+    ps = csv.parse[P]("c\nr\n") else e -> []
+    for x in ps:
+        io.print(f"{x.c}")
+"#;
+    assert_eq!(
+        run(src),
+        "{\"user-id\":1,\"name\":\"a\"}\n{\"kind\":\"circle\",\"radius\":1.5}\n\
+         user-id,name\n1,a\n\nc\ng\n\n{\"kind\":\"circle\",\"radius\":2.0}\n3\n4\nRed()\n"
+    );
+}
+
+#[test]
+fn item_level_wire_errors() {
+    let diags = |src: &str| {
+        let (_, d) = lower(src);
+        d.iter().map(|d| d.code.clone()).collect::<Vec<_>>()
+    };
+    let rec = |w: &str| format!("@derive(Wire)\n@wire({w})\nclass R:\n    a: int\n    b: int\n");
+    assert_eq!(diags(&rec("names={\"c\": \"x\"}")), ["E331"]);
+    assert_eq!(diags(&rec("names={\"a\": \"x\", \"b\": \"x\"}")), ["E331"]);
+    assert_eq!(diags(&rec("tag=\"k\"")), ["E331"]);
+    assert_eq!(diags(&rec("unknown=\"maybe\"")), ["E331"]);
+    let sum = "@derive(Wire)\n@wire(tag=\"k\")\ntype S = A(k: int) | B()\n";
+    assert_eq!(diags(sum), ["E330"]);
+    assert!(diags(&rec("names={\"a\": \"x\"}")).is_empty());
+}

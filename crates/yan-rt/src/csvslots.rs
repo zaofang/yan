@@ -6,10 +6,9 @@
 use crate::abi::List;
 use crate::csv::{self, Cell, Reason as Kernel};
 use crate::json::{self, Json};
-use crate::jsonslots::{Slot, get, items, text, wire, word};
+use crate::jsonslots::{Slot, get, items, wire, word};
 use crate::wire::Limits;
 
-const TAG: &str = "tag";
 /// Slots of a `CsvError`: line, col, row, column, then the reason's tag and every variant's fields.
 pub const ERROR_WIDTH: usize = 12;
 
@@ -54,17 +53,7 @@ fn expected(t: &Json) -> String {
         Json::Str(s) => s.clone(),
         Json::Object(o) => match o.first() {
             Some((k, v)) if k == "opt" => expected(v),
-            Some((_, v)) => items(v)
-                .iter()
-                .filter_map(|x| {
-                    if let Json::Str(s) = x {
-                        Some(s.as_str())
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join("|"),
+            Some((_, v)) => items(v).iter().map(wire).collect::<Vec<_>>().join("|"),
             None => String::new(),
         },
         _ => String::new(),
@@ -108,6 +97,19 @@ struct Cx<'a> {
 }
 
 impl Cx<'_> {
+    /// The tag column of a sum, `@wire(tag: ...)` or `tag` (R886).
+    fn tag(&self) -> &str {
+        match get(self.def, "tag") {
+            Some(Json::Str(s)) => s,
+            _ => "tag",
+        }
+    }
+
+    /// Whether the type has `@wire(unknown: "ignore")` (R886).
+    fn ignores(&self) -> bool {
+        matches!(get(self.def, "unk"), Some(Json::Bool(true)))
+    }
+
     fn sum(&self) -> Option<&[Json]> {
         get(self.def, "sum").map(items)
     }
@@ -134,7 +136,7 @@ impl Cx<'_> {
     fn columns(&self) -> Vec<String> {
         let mut out = Vec::new();
         if let Some(vs) = self.sum() {
-            out.push(TAG.to_owned());
+            out.push(self.tag().to_owned());
             for f in vs
                 .iter()
                 .flat_map(|v| items(get(v, "fs").unwrap_or(&Json::Null)))
@@ -188,9 +190,7 @@ impl Cx<'_> {
                         self.cell(v, c, row, column, out)?;
                     }
                 } else {
-                    let at = items(v)
-                        .iter()
-                        .position(|x| matches!(x, Json::Str(s) if *s == c.text));
+                    let at = items(v).iter().position(|x| wire(x) == c.text);
                     match at {
                         Some(i) => out.push(word(i)),
                         None => return Err(fail(Why::Mismatch(expected(t), c.text.clone()))),
@@ -261,7 +261,7 @@ impl Cx<'_> {
         };
         let i = cols
             .iter()
-            .find(|(c, _)| c == TAG)
+            .find(|(c, _)| c == self.tag())
             .and_then(|(_, i)| *i)
             .expect("a tag column");
         let tag = &cells[i];
@@ -270,7 +270,7 @@ impl Cx<'_> {
             return Err(Fail {
                 at: tag.at,
                 row,
-                column: TAG.into(),
+                column: self.tag().into(),
                 why: Why::Mismatch(names, tag.text.clone()),
             });
         };
@@ -278,7 +278,7 @@ impl Cx<'_> {
         let decl = get(v, "fs").unwrap_or(&Json::Null);
         for (c, i) in cols {
             if let Some(i) = i
-                && c != TAG
+                && c != self.tag()
                 && !items(decl).iter().any(|f| wire(f) == c)
                 && !cells[*i].text.is_empty()
             {
@@ -314,6 +314,9 @@ impl Cx<'_> {
                 why,
             };
             let Some(slot) = cols.iter_mut().find(|(n, _)| *n == h.text) else {
+                if self.ignores() {
+                    continue;
+                }
                 return Err(fail(Why::Unknown(h.text.clone())));
             };
             if slot.1.replace(i).is_some() {
@@ -338,8 +341,8 @@ impl Cx<'_> {
             return Err(Fail {
                 at,
                 row: 0,
-                column: TAG.into(),
-                why: Why::Missing(TAG.into()),
+                column: self.tag().into(),
+                why: Why::Missing(self.tag().into()),
             });
         }
         let mut out = Vec::new();
@@ -379,7 +382,10 @@ impl Cx<'_> {
                         unsafe { self.encode_cell(t, &w[1..])? }
                     }
                 } else {
-                    (text(items(t).get(w[0] as usize)).to_owned(), false)
+                    (
+                        wire(items(t).get(w[0] as usize).ok_or(())?).to_owned(),
+                        false,
+                    )
                 }
             }
             _ => return Err(()),
@@ -409,7 +415,7 @@ impl Cx<'_> {
         }
         let mut cells = Vec::new();
         for c in columns {
-            let cell = if c == TAG && self.sum().is_some() {
+            let cell = if c == self.tag() && self.sum().is_some() {
                 (tag.to_owned(), false)
             } else {
                 match items(decl).iter().position(|f| wire(f) == c) {
@@ -627,5 +633,17 @@ mod tests {
         // SAFETY: reclaimed once.
         drop(unsafe { Box::from_raw(name) });
         assert_eq!(out.as_deref(), Some("a,b\n5,hi\n6,\n"));
+    }
+
+    #[test]
+    fn a_type_can_ignore_unknown_columns_and_rename_enum_cells() {
+        let schema = r#"{"root":"P","def":{"rec":[{"n":"c","t":{"enum":[{"n":"Red","w":"r"},{"n":"Green"}]}}],"unk":true}}"#;
+        let r = parse("c,z\nr,1\nGreen,2\n", ",", schema);
+        assert!(matches!(r[0], Slot::Word(0)));
+        let Slot::List(1, elems) = &r[1] else {
+            panic!("a list of 1-slot rows");
+        };
+        assert!(matches!(elems[..], [Slot::Word(0), Slot::Word(1)]));
+        assert!(matches!(parse("c\nRed\n", ",", schema)[0], Slot::Word(1)));
     }
 }

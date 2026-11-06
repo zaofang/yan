@@ -9,7 +9,15 @@ use super::native::opt;
 use super::{Key, Value, panic};
 use Value::*;
 
-const TAG: &str = "tag";
+/// The tag key of a sum's object, `@wire(tag: ...)` or `tag` (R886).
+fn tag(def: &S) -> &str {
+    def["tag"].as_str().unwrap_or("tag")
+}
+
+/// Whether the type has `@wire(unknown: "ignore")` (R886).
+fn ignores(def: &S) -> bool {
+    def["unk"].as_bool().unwrap_or(false)
+}
 
 type Fail = (usize, Reason);
 type D<T> = Result<T, Fail>;
@@ -208,20 +216,21 @@ impl Cx<'_> {
         };
         let def = self.def(n);
         if let Some(rec) = def.get("rec") {
-            return Ok(data(n, self.fields(rec, fs, p, path, None)?));
+            return Ok(data(n, self.fields(rec, fs, p, path, None, ignores(def))?));
         }
         let vs = def["sum"].as_array().expect("a schema");
         let names = || vs.iter().map(wire).collect::<Vec<_>>().join("|");
-        let Some(i) = fs.iter().position(|(k, _)| k == TAG) else {
+        let key = tag(def);
+        let Some(i) = fs.iter().position(|(k, _)| k == key) else {
             return Err((
                 p.at,
                 Reason::Missing {
                     path: path.into(),
-                    field: TAG.into(),
+                    field: key.into(),
                 },
             ));
         };
-        let tag_path = format!("{path}.{TAG}");
+        let tag_path = format!("{path}.{key}");
         let Json::Str(tag) = &fs[i].1 else {
             return Err((
                 kid(p, i).at,
@@ -243,7 +252,10 @@ impl Cx<'_> {
             ));
         };
         let name = v["n"].as_str().unwrap_or("");
-        Ok(data(name, self.fields(&v["fs"], fs, p, path, Some(i))?))
+        Ok(data(
+            name,
+            self.fields(&v["fs"], fs, p, path, Some(i), ignores(def))?,
+        ))
     }
 
     /// The members of `fs` against the declared fields `decl`; `skip` is the tag member.
@@ -254,10 +266,11 @@ impl Cx<'_> {
         p: &Pos,
         path: &str,
         skip: Option<usize>,
+        ignore: bool,
     ) -> D<Vec<(String, Value)>> {
         let decl = decl.as_array().expect("a schema");
         for (i, (k, _)) in fs.iter().enumerate() {
-            if Some(i) != skip && !decl.iter().any(|f| wire(f) == k.as_str()) {
+            if !ignore && Some(i) != skip && !decl.iter().any(|f| wire(f) == k.as_str()) {
                 return Err((
                     kid(p, i).at,
                     Reason::Unknown {
@@ -362,7 +375,7 @@ impl Cx<'_> {
                         } else {
                             let vs = def["sum"].as_array().expect("a schema");
                             let v = vs.iter().find(|v| v["n"] == name.as_str()).ok_or(())?;
-                            out.push((TAG.to_owned(), Json::Str(wire(v).into())));
+                            out.push((tag(def).to_owned(), Json::Str(wire(v).into())));
                             &v["fs"]
                         };
                         for (f, (_, x)) in decl.as_array().expect("a schema").iter().zip(fields) {

@@ -11,8 +11,6 @@ use super::native::opt;
 use super::{Value, panic};
 use Value::*;
 
-const TAG: &str = "tag";
-
 enum Why {
     Syntax(String),
     Header(String),
@@ -76,12 +74,7 @@ fn expected(t: &S) -> String {
             Some((k, v)) if k == "opt" => expected(v),
             Some((_, v)) => v
                 .as_array()
-                .map(|vs| {
-                    vs.iter()
-                        .filter_map(S::as_str)
-                        .collect::<Vec<_>>()
-                        .join("|")
-                })
+                .map(|vs| vs.iter().map(name).collect::<Vec<_>>().join("|"))
                 .unwrap_or_default(),
             None => String::new(),
         },
@@ -94,6 +87,16 @@ struct Cx<'a> {
 }
 
 impl Cx<'_> {
+    /// The tag column of a sum, `@wire(tag: ...)` or `tag` (R886).
+    fn tag(&self) -> &str {
+        self.def["tag"].as_str().unwrap_or("tag")
+    }
+
+    /// Whether the type has `@wire(unknown: "ignore")` (R886).
+    fn ignores(&self) -> bool {
+        self.def["unk"].as_bool().unwrap_or(false)
+    }
+
     fn sum(&self) -> Option<&Vec<S>> {
         self.def["sum"].as_array()
     }
@@ -103,7 +106,7 @@ impl Cx<'_> {
     fn columns(&self) -> Vec<(String, Option<&S>)> {
         let mut out = Vec::new();
         if let Some(vs) = self.sum() {
-            out.push((TAG.to_owned(), None));
+            out.push((self.tag().to_owned(), None));
             for f in vs
                 .iter()
                 .flat_map(|v| v["fs"].as_array().into_iter().flatten())
@@ -153,8 +156,8 @@ impl Cx<'_> {
                 (k, t) if k == "opt" => opt(Some(self.cell(t, c, row, column)?)),
                 (_, vs) => {
                     let vs = vs.as_array().expect("a schema");
-                    match vs.iter().find(|v| **v == c.text.as_str()) {
-                        Some(v) => data(v.as_str().unwrap_or(""), vec![]),
+                    match vs.iter().find(|v| name(v) == c.text) {
+                        Some(v) => data(own(v), vec![]),
                         None => {
                             return Err(fail(Why::Mismatch(expected(t), c.text.clone())));
                         }
@@ -221,7 +224,7 @@ impl Cx<'_> {
         };
         let i = cols
             .iter()
-            .find(|(c, _)| c == TAG)
+            .find(|(c, _)| c == self.tag())
             .and_then(|(_, i)| *i)
             .expect("a tag column");
         let tag = &cells[i];
@@ -230,14 +233,14 @@ impl Cx<'_> {
             return Err(Fail {
                 at: tag.at,
                 row,
-                column: TAG.into(),
+                column: self.tag().into(),
                 why: Why::Mismatch(names, tag.text.clone()),
             });
         };
         let decl = v["fs"].as_array().expect("a schema");
         for (c, i) in cols {
             if let Some(i) = i
-                && c != TAG
+                && c != self.tag()
                 && !decl.iter().any(|f| name(f) == c)
                 && !cells[*i].text.is_empty()
             {
@@ -265,6 +268,9 @@ impl Cx<'_> {
                 why,
             };
             let Some(slot) = cols.iter_mut().find(|(n, _)| *n == h.text) else {
+                if self.ignores() {
+                    continue;
+                }
                 return Err(fail(Why::Unknown(h.text.clone())));
             };
             if slot.1.replace(i).is_some() {
@@ -288,8 +294,8 @@ impl Cx<'_> {
             return Err(Fail {
                 at,
                 row: 0,
-                column: TAG.into(),
-                why: Why::Missing(TAG.into()),
+                column: self.tag().into(),
+                why: Why::Missing(self.tag().into()),
             });
         }
         let mut out = Vec::new();
@@ -333,7 +339,7 @@ impl Cx<'_> {
             };
             let mut cells = Vec::new();
             for (c, _) in &columns {
-                let cell = if c == TAG && self.sum().is_some() {
+                let cell = if c == self.tag() && self.sum().is_some() {
                     (tag.to_owned(), false)
                 } else {
                     match decl.iter().position(|f| name(f) == c) {
@@ -365,7 +371,11 @@ impl Cx<'_> {
                 match (k.as_str(), n.as_str(), fields.as_slice()) {
                     ("opt", "None", _) => (String::new(), false),
                     ("opt", _, [(_, x)]) => self.encode_cell(t, x)?,
-                    ("enum", n, []) => (n.to_owned(), false),
+                    ("enum", n, []) => {
+                        let vs = t.as_array().expect("a schema");
+                        let v = vs.iter().find(|v| own(v) == n).ok_or(())?;
+                        (name(v).to_owned(), false)
+                    }
                     _ => return Err(()),
                 }
             }
