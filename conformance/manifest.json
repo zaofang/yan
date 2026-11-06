@@ -8440,6 +8440,21 @@
    "exit": 0
   },
   {
+   "path": "golden/g3_portfolio.yag",
+   "kind": "run",
+   "milestone": "M2b",
+   "spec": [
+    "24.3",
+    "14.5",
+    "17.7"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "portfolio value: 32500.0\n",
+   "exit": 0
+  },
+  {
    "path": "golden/g4_word_count.yag",
    "kind": "run",
    "milestone": "M1",
