@@ -5002,11 +5002,12 @@ impl Lower<'_, '_, '_> {
     }
 
     fn fstr(&mut self, pieces: &[j::FPiece], at: Span) -> R<(Rhs, Ty)> {
-        let mut parts = Vec::new();
+        // Each piece joins the accumulator as it is shown, the order of the `+` chain it equals.
+        let mut acc: Option<Atom> = None;
         for p in pieces {
-            match p {
-                j::FPiece::Lit(s) if s.is_empty() => {}
-                j::FPiece::Lit(s) => parts.push(Atom::Lit(Literal::Str(s.clone()), at)),
+            let part = match p {
+                j::FPiece::Lit(s) if s.is_empty() => continue,
+                j::FPiece::Lit(s) => Atom::Lit(Literal::Str(s.clone()), at),
                 j::FPiece::Expr(e, Some(spec)) => {
                     let (a, t) = self.atom(e, None)?;
                     let (fill, align, width) = pad_spec(spec, &t)?;
@@ -5018,30 +5019,27 @@ impl Lower<'_, '_, '_> {
                         let_arg(Atom::Lit(Literal::Str(fill.to_string()), e.span)),
                     ];
                     let c = call("fmt_pad", vec![], args, e.span);
-                    parts.push(self.tmp(&Ty::Str, Rhs::Call(c), e.span));
+                    self.tmp(&Ty::Str, Rhs::Call(c), e.span)
                 }
                 j::FPiece::Expr(e, None) => {
                     let (a, t) = self.atom(e, None)?;
-                    parts.push(self.show(a, &t, e.span));
+                    self.show(a, &t, e.span)
                 }
-            }
+            };
+            acc = Some(match acc {
+                None => part,
+                Some(prev) => {
+                    let c = call(
+                        "std.text.concat",
+                        vec![],
+                        vec![let_arg(prev), let_arg(part)],
+                        at,
+                    );
+                    self.tmp(&Ty::Str, Rhs::Call(c), at)
+                }
+            });
         }
-        let mut it = parts.into_iter();
-        let Some(mut acc) = it.next() else {
-            return Ok((
-                Rhs::Atom(Atom::Lit(Literal::Str(String::new()), at)),
-                Ty::Str,
-            ));
-        };
-        for x in it {
-            let c = call(
-                "std.text.concat",
-                vec![],
-                vec![let_arg(acc), let_arg(x)],
-                at,
-            );
-            acc = self.tmp(&Ty::Str, Rhs::Call(c), at);
-        }
+        let acc = acc.unwrap_or(Atom::Lit(Literal::Str(String::new()), at));
         Ok((Rhs::Atom(acc), Ty::Str))
     }
 
