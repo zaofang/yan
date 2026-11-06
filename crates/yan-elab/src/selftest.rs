@@ -801,3 +801,12 @@ pub def main() uses io:
     assert_eq!(d[0].code, "E282");
     assert_eq!(d[0].notes, ["capabilities are never `Wire` (17.4)"]);
 }
+
+#[test]
+fn nested_optional_levels_are_not_added_inside_containers() {
+    let codes = |src: &str| -> Vec<String> { lower(src).1.into_iter().map(|d| d.code).collect() };
+    let src = "type M = int | None\n\ndef f(xs: list[int | None]) -> int:\n    ys: list[M | None] = xs\n    return len(ys)\n";
+    assert!(codes(src).contains(&"E201".to_string()));
+    let ok = "type M = int | None\n\ndef f(x: int | None) -> int:\n    y: M | None = x\n    if y is None:\n        return 0\n    return 1\n";
+    assert!(!codes(ok).contains(&"E201".to_string()));
+}

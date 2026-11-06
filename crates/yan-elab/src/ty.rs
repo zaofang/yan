@@ -172,15 +172,23 @@ impl Ty {
         }
     }
 
+    /// How many `Option` levels wrap the type.
+    pub fn option_depth(&self) -> usize {
+        match self {
+            Ty::Option(t) => 1 + t.option_depth(),
+            _ => 0,
+        }
+    }
+
     /// `self` can stand where `want` is expected.
     pub fn fits(&self, want: &Ty) -> bool {
         match (self, want) {
             (Ty::Err | Ty::Never, _) | (_, Ty::Err) => true,
             // Checked when the call's type arguments are inferred.
             (_, Ty::Param(_)) => true,
-            (Ty::List(a), Ty::List(b))
-            | (Ty::Set(a), Ty::Set(b))
-            | (Ty::Option(a), Ty::Option(b)) => a.fits(b),
+            (Ty::List(a), Ty::List(b)) | (Ty::Set(a), Ty::Set(b)) => a.fits(b),
+            // A level is never added or dropped without `Some` (R794); `inject` adds it.
+            (Ty::Option(a), Ty::Option(b)) => a.option_depth() == b.option_depth() && a.fits(b),
             (Ty::Dict(a, b), Ty::Dict(c, d)) | (Ty::Result(a, b), Ty::Result(c, d)) => {
                 a.fits(c) && b.fits(d)
             }
@@ -198,7 +206,7 @@ impl Ty {
             }
             // A list passes as a view of its elements (12.5).
             (Ty::List(a), Ty::Foreign("View" | "MutView", b)) => b.len() == 1 && a.fits(&b[0]),
-            (a, Ty::Option(b)) => a.fits(b),
+            (a, Ty::Option(b)) => a.option_depth() == b.option_depth() && a.fits(b),
             (Ty::Union(xs), Ty::Union(ys)) => xs.iter().all(|x| ys.contains(x)),
             (a, Ty::Union(ms)) => ms.contains(a),
             (a, b) => a == b,
