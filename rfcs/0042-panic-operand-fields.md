@@ -1,4 +1,4 @@
-# 0041: Panic operand fields that the spec names but does not define
+# 0042: Panic operand fields that the spec names but does not define
 
 - Status: draft
 - Research: none; the gap is spec section 8.3 (operand fields) against the interpreter after the numeric operand work
