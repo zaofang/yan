@@ -1,0 +1,8 @@
+package: Package = Package(
+    name="@conf/e332_edition_five_digits",
+    version="0.1.0",
+    yan="1.x",
+    platform="cli",
+    capabilities=["io"],
+    edition="20270",
+)

@@ -10447,6 +10447,210 @@
    }
   },
   {
+   "path": "pkg/e332_edition_before_2026",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "20.4"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "8",
+    "8"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.4",
+    "rows": "R888",
+    "note": "edition is next or a four-digit year of 2026 or later; the span is the string literal",
+    "command": [
+     "check"
+    ],
+    "code": "E332",
+    "at": "package.yag:7:13"
+   }
+  },
+  {
+   "path": "pkg/e332_edition_capital_next",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "20.4"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "8",
+    "8"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.4",
+    "rows": "R888",
+    "note": "edition is next or a four-digit year of 2026 or later; the span is the string literal",
+    "command": [
+     "check"
+    ],
+    "code": "E332",
+    "at": "package.yag:7:13"
+   }
+  },
+  {
+   "path": "pkg/e332_edition_empty",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "20.4"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "8",
+    "8"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.4",
+    "rows": "R888",
+    "note": "edition is next or a four-digit year of 2026 or later; the span is the string literal",
+    "command": [
+     "check"
+    ],
+    "code": "E332",
+    "at": "package.yag:7:13"
+   }
+  },
+  {
+   "path": "pkg/e332_edition_five_digits",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "20.4"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "8",
+    "8"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.4",
+    "rows": "R888",
+    "note": "edition is next or a four-digit year of 2026 or later; the span is the string literal",
+    "command": [
+     "check"
+    ],
+    "code": "E332",
+    "at": "package.yag:7:13"
+   }
+  },
+  {
+   "path": "pkg/e332_edition_short_year",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "20.4"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "8",
+    "8"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.4",
+    "rows": "R888",
+    "note": "edition is next or a four-digit year of 2026 or later; the span is the string literal",
+    "command": [
+     "check"
+    ],
+    "code": "E332",
+    "at": "package.yag:7:13"
+   }
+  },
+  {
+   "path": "pkg/e332_edition_v_prefix",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "20.4"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "8",
+    "8"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.4",
+    "rows": "R888",
+    "note": "edition is next or a four-digit year of 2026 or later; the span is the string literal",
+    "command": [
+     "check"
+    ],
+    "code": "E332",
+    "at": "package.yag:7:13"
+   }
+  },
+  {
+   "path": "pkg/edition_named_year",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "20.4"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "8",
+    "8"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.4",
+    "rows": "R888",
+    "note": "edition is next or a four-digit year of 2026 or later",
+    "command": [
+     "check"
+    ]
+   }
+  },
+  {
+   "path": "pkg/edition_next",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "20.4"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "8",
+    "8"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.4",
+    "rows": "R888",
+    "note": "edition is next or a four-digit year of 2026 or later",
+    "command": [
+     "check"
+    ]
+   }
+  },
+  {
    "path": "pkg/major_bump_meets_minimum",
    "kind": "pkg",
    "milestone": "M2a",

@@ -92,6 +92,7 @@ E323 = { section = "17.1", status = "active", meaning = "lock (Resource, CsMutex
 E325 = { section = "17.4 (R451)", status = "active", meaning = "Untrusted value passed to a @trusted parameter (R451)" }
 E330 = { section = "17.4", status = "active", meaning = "a Wire field type a codec cannot represent, or a variant field named like its sum's tag (R879, R887, RFC 0041)" }
 E331 = { section = "17.4", status = "active", meaning = "malformed item-level @wire: bad names, tag or unknown key or value, or a wire-name collision (R886, R887)" }
+E332 = { section = "20.4", status = "active", meaning = "a manifest edition that is neither \"next\" nor a four-digit year of 2026 or later (R888)" }
 E401 = { section = "4.1", status = "active", meaning = "use after move" }
 E402 = { section = "4.3", status = "active", meaning = "exclusivity violation" }
 E403 = { section = "4.1", status = "active", meaning = "assignment to an immutable binding" }

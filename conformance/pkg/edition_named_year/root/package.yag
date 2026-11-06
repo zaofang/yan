@@ -1,0 +1,8 @@
+package: Package = Package(
+    name="@conf/edition_named_year",
+    version="0.1.0",
+    yan="1.x",
+    platform="cli",
+    capabilities=["io"],
+    edition="2027",
+)
