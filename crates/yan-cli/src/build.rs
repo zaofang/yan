@@ -16,7 +16,8 @@ pub fn run(file: &Path, output: &Path, mut db: Database) -> ExitCode {
         Ok(p) => p,
         Err(code) => return code,
     };
-    let object = match yan_cg_cranelift::compile_object(&program) {
+    let source = std::path::absolute(file).unwrap_or_else(|_| file.to_path_buf());
+    let object = match yan_cg_cranelift::compile_object_debug(&program, &source) {
         Ok(o) => o,
         Err(what) => return tool_failure(&format!("not supported yet: {what}")),
     };

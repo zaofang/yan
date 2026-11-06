@@ -582,6 +582,8 @@ struct Fn<'a, 'm> {
     done: Vec<bool>,
     cur: BlockId,
     scopes: Vec<Scope>,
+    /// The line of the statement being lowered.
+    line: u32,
 }
 
 impl<'a, 'm> Fn<'a, 'm> {
@@ -603,6 +605,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             done: Vec::new(),
             cur: 0,
             scopes: Vec::new(),
+            line: 0,
         }
     }
 
@@ -622,7 +625,8 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.mono.borrow_mut().instance(self.types, def).map(Some)
     }
 
-    fn func(self, f: &'m y::FnDef) -> R<Func> {
+    fn func(mut self, f: &'m y::FnDef) -> R<Func> {
+        self.line = f.name_span.line;
         let names: Vec<&str> = params(f)?.into_iter().map(|(n, ..)| n).collect();
         let body = f.body.as_ref().expect("filtered on body");
         self.body(&f.path.join("."), &names, &f.contracts, body, Vec::new())
@@ -705,6 +709,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     fn block_new(&mut self) -> BlockId {
         self.blocks.push(Block {
             insts: Vec::new(),
+            lines: Vec::new(),
             term: Term::Panic("unreachable"),
         });
         self.done.push(false);
@@ -712,7 +717,9 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     fn emit(&mut self, i: Inst) {
-        self.blocks[self.cur as usize].insts.push(i);
+        let b = &mut self.blocks[self.cur as usize];
+        b.insts.push(i);
+        b.lines.push(self.line);
     }
 
     /// End the current block with `t` unless it already ended.
@@ -1963,6 +1970,7 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     fn stmt(&mut self, s: &'m y::Stmt) -> R<()> {
         use y::StmtKind as K;
+        self.line = s.span.line;
         match &s.kind {
             K::Let { pat, ty, rhs, .. } => {
                 let shape = self.shape(ty)?;

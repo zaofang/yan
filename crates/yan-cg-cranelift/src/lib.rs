@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use cranelift_codegen::ir::condcodes::{FloatCC, IntCC};
 use cranelift_codegen::ir::{
     AbiParam, Block as CBlock, FuncRef, GlobalValue, InstBuilder, MemFlagsData, Signature,
-    TrapCode, Value, types,
+    SourceLoc, TrapCode, Value, types,
 };
 use cranelift_codegen::isa::CallConv;
 use cranelift_codegen::settings::{self, Configurable};
@@ -18,6 +18,8 @@ use cranelift_module::{
     DataDescription, DataId, FuncId as CFuncId, Linkage, Module, default_libcall_names,
 };
 use cranelift_object::{ObjectBuilder, ObjectModule};
+
+mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::abi;
 
@@ -92,6 +94,8 @@ struct State<M: Module> {
     strings: Strings,
     fctx: FunctionBuilderContext,
     ctx: cranelift_codegen::Context,
+    /// Each defined function's code size and `(offset, line)` rows, in definition order.
+    lines: Vec<(u64, Vec<(u32, u32)>)>,
 }
 
 /// Owns the module; its address is baked into the stubs, so it is boxed.
@@ -125,6 +129,7 @@ impl<M: Module> State<M> {
             strings,
             fctx,
             ctx,
+            lines,
         } = self;
         let ptr = module.target_config().pointer_type();
         ctx.func.signature = sigs[i].clone();
@@ -174,6 +179,16 @@ impl<M: Module> State<M> {
         .func();
         b.finalize(module.target_config());
         module.define_function(ids[i], ctx).map_err(err)?;
+        if let Some(code) = ctx.compiled_code() {
+            let base = ctx.func.params.base_srcloc();
+            let rows = code
+                .buffer
+                .get_srclocs_sorted()
+                .iter()
+                .map(|l| (l.start, line_of(l.loc, base)))
+                .collect();
+            lines.push((u64::from(code.code_info().total_size), rows));
+        }
         module.clear_context(ctx);
         Ok(())
     }
@@ -221,6 +236,16 @@ pub fn compile(p: &Program) -> R<Compiled> {
 /// Panics that the code generator raises itself.
 const PANIC_KINDS: [&str; 4] = ["div_zero", "exclusivity", "overflow", "unreachable"];
 
+/// The source line of a machine-code region (0: none).
+fn line_of(loc: cranelift_codegen::ir::MaybeRelSourceLoc, base: SourceLoc) -> u32 {
+    let loc = if loc.is_rel() {
+        loc.relocate(base)
+    } else {
+        loc.as_abs()
+    };
+    if loc.is_default() { 0 } else { loc.bits() }
+}
+
 fn host_isa(pic: bool) -> R<std::sync::Arc<dyn cranelift_codegen::isa::TargetIsa>> {
     let mut flags = settings::builder();
     flags.set("opt_level", "none").map_err(err)?;
@@ -239,6 +264,15 @@ fn host_isa(pic: bool) -> R<std::sync::Arc<dyn cranelift_codegen::isa::TargetIsa
 /// stubs. The object exports C `main`, which builds the string literals, runs the program's
 /// `main` and exits through `yan_rt_exit`; link it with `libyan_rt.a`.
 pub fn compile_object(p: &Program) -> R<Vec<u8>> {
+    object(p, None)
+}
+
+/// As [`compile_object`], with DWARF line tables that map the code to lines of `source`.
+pub fn compile_object_debug(p: &Program, source: &std::path::Path) -> R<Vec<u8>> {
+    object(p, Some(source))
+}
+
+fn object(p: &Program, source: Option<&std::path::Path>) -> R<Vec<u8>> {
     let builder =
         ObjectBuilder::new(host_isa(true)?, "yan", default_libcall_names()).map_err(err)?;
     let mut module = ObjectModule::new(builder);
@@ -297,6 +331,7 @@ pub fn compile_object(p: &Program) -> R<Vec<u8>> {
         },
         fctx: FunctionBuilderContext::new(),
         ctx: cranelift_codegen::Context::new(),
+        lines: Vec::new(),
     };
     for i in 0..p.funcs.len() {
         st.define(i, None)?;
@@ -307,6 +342,7 @@ pub fn compile_object(p: &Program) -> R<Vec<u8>> {
         mut fctx,
         mut ctx,
         ids,
+        lines,
         ..
     } = st;
     let mut lit_sig = module.make_signature();
@@ -354,7 +390,22 @@ pub fn compile_object(p: &Program) -> R<Vec<u8>> {
         b.finalize(module.target_config());
     }
     module.define_function(entry, &mut ctx).map_err(err)?;
-    module.finish().emit().map_err(err)
+    let mut product = module.finish();
+    if let Some(source) = source {
+        let funcs: Vec<_> = lines
+            .into_iter()
+            .zip(&p.funcs)
+            .zip(&ids)
+            .map(|(((size, rows), f), id)| debug::Func {
+                symbol: product.function_symbol(*id),
+                name: f.name.clone(),
+                size,
+                rows,
+            })
+            .collect();
+        debug::add(&mut product.object, source, &funcs)?;
+    }
+    product.emit().map_err(err)
 }
 
 /// Compile `p` for the host.
@@ -399,6 +450,7 @@ pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
             ),
             fctx: FunctionBuilderContext::new(),
             ctx,
+            lines: Vec::new(),
         }),
         table: (0..if jit == Jit::Lazy { n } else { 0 })
             .map(|_| Cell::new(0))
@@ -773,10 +825,12 @@ impl Gen<'_, '_> {
             if i > 0 {
                 self.b.switch_to_block(self.blocks[i]);
             }
-            for inst in &blk.insts {
+            for (inst, line) in blk.insts.iter().zip(&blk.lines) {
+                self.b.set_srcloc(SourceLoc::new(*line));
                 self.inst(inst);
             }
             self.term(&blk.term);
+            self.b.set_srcloc(SourceLoc::default());
         }
         let kinds: Vec<(&'static str, CBlock)> = self.kinds.drain().collect();
         for (kind, blk) in kinds {

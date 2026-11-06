@@ -14,6 +14,8 @@ cranelift-jit = "0.137"
 cranelift-module = "0.137"
 cranelift-native = "0.137"
 cranelift-object = "0.137"
+gimli = { version = "0.33", default-features = false, features = ["write"] }
+object = { version = "0.40", default-features = false, features = ["write"] }
 yan-mir.workspace = true
 yan-rt.workspace = true
 yan-std.workspace = true

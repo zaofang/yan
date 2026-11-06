@@ -201,6 +201,8 @@ pub enum Term {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Block {
     pub insts: Vec<Inst>,
+    /// The source line of each instruction (0: none); same length as `insts`.
+    pub lines: Vec<u32>,
     pub term: Term,
 }
 
