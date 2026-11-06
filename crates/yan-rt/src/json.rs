@@ -20,6 +20,31 @@ pub enum Reason {
     Depth,
     Duplicate(String),
     Range,
+    /// Typed decoding (R877): `path` is `$` then `.name` and `[i]` steps.
+    Mismatch {
+        path: String,
+        expected: String,
+        found: String,
+    },
+    Missing {
+        path: String,
+        field: String,
+    },
+    Unknown {
+        path: String,
+        field: String,
+    },
+    Invalid {
+        path: String,
+        msg: String,
+    },
+}
+
+/// Where each value of a parsed document starts (a byte offset), shaped like the value.
+#[derive(Clone, Debug, Default)]
+pub struct Pos {
+    pub at: usize,
+    pub kids: Vec<Pos>,
 }
 
 /// `line` and `col` start at 1 and `col` counts chars (R573).
@@ -34,6 +59,7 @@ struct P<'a> {
     s: &'a str,
     at: usize,
     max_depth: usize,
+    last: Pos,
 }
 
 type R<T> = Result<T, (usize, Reason)>;
@@ -70,6 +96,15 @@ impl P<'_> {
 
     fn value(&mut self, depth: usize) -> R<Json> {
         self.ws();
+        let at = self.at;
+        let v = self.value_at(depth)?;
+        if !matches!(v, Json::Array(_) | Json::Object(_)) {
+            self.last = Pos { at, kids: vec![] };
+        }
+        Ok(v)
+    }
+
+    fn value_at(&mut self, depth: usize) -> R<Json> {
         match self.peek() {
             None => syntax(self.at, "unexpected end of input"),
             Some('n') => self.expect("null").map(|()| Json::Null),
@@ -87,20 +122,25 @@ impl P<'_> {
         if depth > self.max_depth {
             return Err((self.at, Reason::Depth));
         }
+        let start = self.at;
         self.at += 1;
         let mut xs = Vec::new();
+        let mut kids = Vec::new();
         self.ws();
         if self.peek() == Some(']') {
             self.at += 1;
+            self.last = Pos { at: start, kids };
             return Ok(Json::Array(xs));
         }
         loop {
             xs.push(self.value(depth)?);
+            kids.push(std::mem::take(&mut self.last));
             self.ws();
             match self.peek() {
                 Some(',') => self.at += 1,
                 Some(']') => {
                     self.at += 1;
+                    self.last = Pos { at: start, kids };
                     return Ok(Json::Array(xs));
                 }
                 _ => return syntax(self.at, "expected `,` or `]`"),
@@ -112,11 +152,14 @@ impl P<'_> {
         if depth > self.max_depth {
             return Err((self.at, Reason::Depth));
         }
+        let start = self.at;
         self.at += 1;
         let mut fs: Vec<(String, Json)> = Vec::new();
+        let mut kids = Vec::new();
         self.ws();
         if self.peek() == Some('}') {
             self.at += 1;
+            self.last = Pos { at: start, kids };
             return Ok(Json::Object(fs));
         }
         loop {
@@ -135,11 +178,13 @@ impl P<'_> {
             }
             self.at += 1;
             fs.push((k, self.value(depth)?));
+            kids.push(std::mem::take(&mut self.last));
             self.ws();
             match self.peek() {
                 Some(',') => self.at += 1,
                 Some('}') => {
                     self.at += 1;
+                    self.last = Pos { at: start, kids };
                     return Ok(Json::Object(fs));
                 }
                 _ => return syntax(self.at, "expected `,` or `}`"),
@@ -277,6 +322,7 @@ fn run<T>(s: &str, max_depth: usize, f: impl FnOnce(&mut P) -> R<T>) -> Result<T
         s,
         at: 0,
         max_depth,
+        last: Pos::default(),
     };
     let v = f(&mut p).and_then(|v| {
         p.ws();
@@ -287,6 +333,23 @@ fn run<T>(s: &str, max_depth: usize, f: impl FnOnce(&mut P) -> R<T>) -> Result<T
         }
     });
     v.map_err(|(at, r)| locate(s, at, r))
+}
+
+/// `line` and `col` of byte offset `at` in `s`.
+pub fn line_col(s: &str, at: usize) -> (usize, usize) {
+    let e = locate(s, at, Reason::Range);
+    (e.line, e.col)
+}
+
+/// [`parse`] with the start of every value, for typed decoding (R877).
+pub fn parse_pos(s: &str, max_depth: usize) -> Result<(Json, Pos), JsonError> {
+    let mut pos = Pos::default();
+    let v = run(s, max_depth, |p| {
+        let v = p.value(0)?;
+        pos = std::mem::take(&mut p.last);
+        Ok(v)
+    })?;
+    Ok((v, pos))
 }
 
 /// `parse_value(s, max_depth)` (R571).

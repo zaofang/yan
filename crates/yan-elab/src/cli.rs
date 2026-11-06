@@ -26,7 +26,7 @@ pub(crate) fn kebab(s: &str) -> String {
     out
 }
 
-fn literal(e: &j::Expr) -> Option<J> {
+pub(crate) fn literal(e: &j::Expr) -> Option<J> {
     Some(match &e.kind {
         j::ExprKind::Lit(j::Lit::Int(s)) => json!(s.replace('_', "").parse::<i64>().ok()?),
         j::ExprKind::Lit(j::Lit::Float(s)) => json!(s.replace('_', "").parse::<f64>().ok()?),

@@ -1,7 +1,7 @@
 """JSON values, a strict RFC 8259 reader and a deterministic writer (17.3, R569 to R575)."""
 
 @since("1.0")
-pub type JsonReason = Syntax(msg: str) | Depth() | Duplicate(key: str) | Range()
+pub type JsonReason = Syntax(msg: str) | Depth() | Duplicate(key: str) | Range() | Mismatch(path: str, expected: str, found: str) | Missing(path: str, field: str) | Unknown(path: str, field: str) | Invalid(path: str, msg: str)
 
 @since("1.0")
 pub class JsonError:
@@ -60,3 +60,11 @@ pub def as_dict(self: Value) -> dict[str, Value] | None: ...
 @intrinsic
 @since("1.0")
 pub def is_null(self: Value) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def parse[T](s: str, schema: str, /) -> T fail JsonError: ...
+
+@intrinsic
+@since("1.0")
+pub def dump[T](x: T, schema: str, /) -> str: ...
