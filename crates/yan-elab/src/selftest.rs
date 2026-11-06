@@ -939,3 +939,25 @@ fn sibling_channel_waits_are_e713_only_in_plain_par() {
     assert_eq!(codes("par"), ["E713"]);
     assert!(codes("par concurrent").is_empty());
 }
+
+fn edition_codes(value: &str) -> Vec<String> {
+    let src = format!("package: Package = Package(name=\"@a/b\", edition=\"{value}\")\n");
+    let (m, _) = yan_yag::parse("package.yag", &src, false);
+    let (_, d) =
+        elaborate("package.yag", &src, &m.expect("parses"), Options::default()).expect("supported");
+    d.into_iter().map(|d| d.code).collect()
+}
+
+#[test]
+fn named_editions_are_accepted() {
+    for ok in ["next", "2026", "2027", "2031"] {
+        assert!(edition_codes(ok).is_empty(), "{ok}");
+    }
+}
+
+#[test]
+fn malformed_editions_are_e332() {
+    for bad in ["", "27", "2025", "20270", "v2027", "Next", "2027a"] {
+        assert_eq!(edition_codes(bad), ["E332"], "{bad:?}");
+    }
+}

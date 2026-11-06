@@ -498,6 +498,7 @@ pub fn elaborate_in(
         origins: Vec::new(),
     };
     let manifest = manifest.or_else(|| desugar::manifest(m));
+    desugar::edition(m, &mut cx);
     let mut m = desugar::module(m, &mut cx);
     desugar::without_manifest(&mut m);
     if let Some(caps) = manifest.as_ref().and_then(|p| p.capabilities.as_ref()) {

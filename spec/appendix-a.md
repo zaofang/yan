@@ -233,6 +233,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R885 | `shape` leaves the kinds that carry operand fields until a runtime shape check exists; the RFC that adds one defines its fields (RFC 0042, R885) | 8.3 |
 | R886 | `@wire(names: {a: "x"})` on a record or sum renames its fields and variants on the wire: keys are field or variant names, values are wire names; an unknown key, a name renamed twice, a key that is both a variant and a field, or two fields or variants with one wire name is E331; Yan Agent writes renames only this way, with no attribute on a nested item; a field-less variant in a csv cell is written by the same map (#501) | 15.3, 17.3, 17.4, 25.5 |
 | R887 | `@wire(tag: "kind")` and `@wire(unknown: "ignore")` are read on the item for json and csv: `tag` renames a sum's tag key and tag column (a variant field with that wire name is E330) and `unknown: "ignore"` on a record or sum skips unknown members and columns instead of failing, `"reject"` being the default; any other `@wire` key or value is E331 (R874, R876, #603) | 17.3, 17.4, 25.5 |
+| R888 | `edition` in `package.yag` is `"next"` or a four-digit year of 2026 or later, so named editions such as `"2027"` are accepted before RC; any other value is E332; the one-per-three-years limit binds the toolchain's edition table, not a manifest (#622, #630) | 19.1, 20.4, 25.5 |
 
 <!-- /rows -->
 
