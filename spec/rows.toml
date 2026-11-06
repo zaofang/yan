@@ -1049,3 +1049,13 @@ sections = "8.7, 16.5"
 rows = "R871"
 topic = "The `?` form of optimized Yan Core carries a drop list, `f(x)? drop a, b`: the owned locals still live on the failing edge, dropped in that order before the function returns, a flagged local under its flag; checked Yan Core has none (RFC 0039, R871)"
 sections = "3.5, 5.3"
+
+[[entry]]
+rows = "R872"
+topic = "A derived trait whose field type does not implement it is E282, for `Eq`, `Ord`, `Hash`, `Show` and `Wire` alike; the derive is rejected at compile time instead of failing at a use site (E221) or in a codec (RFC 0040, R872)"
+sections = "10.4, 17.4, 25.4"
+
+[[entry]]
+rows = "R873"
+topic = "E282 is reported once per offending field, at the field's type annotation; a field of a user class says it does not derive the trait, and a capability field under `Wire` adds a note that capabilities are never `Wire` (RFC 0040, R873)"
+sections = "10.4, 17.4, 25.4"

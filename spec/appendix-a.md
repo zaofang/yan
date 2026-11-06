@@ -217,6 +217,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R869 | Spelling marks `FlagsKeyword` and `FlagsPositional` record how Python `re` flags were written on a `re` call; raise prints `re.f(pattern, ..)` from N35 and N40 marks on the method call and the literal from N40 on a lifted `regex.compile` (R869) | 14.4, 16.5 |
 | R870 | `Lemma`, `GhostParam`, `GhostStmt` and `GhostContract` marks keep the text of what a proof erases (a lemma, a ghost parameter, a top-level ghost statement, a `pre` or `post` over ghost values); raise prints each as written at its position, a lemma before the item it rides on; hash-neutral (R870) | 8.7, 16.5 |
 | R871 | The `?` form of optimized Yan Core carries a drop list, `f(x)? drop a, b`: the owned locals still live on the failing edge, dropped in that order before the function returns, a flagged local under its flag; checked Yan Core has none (RFC 0039, R871) | 3.5, 5.3 |
+| R872 | A derived trait whose field type does not implement it is E282, for `Eq`, `Ord`, `Hash`, `Show` and `Wire` alike; the derive is rejected at compile time instead of failing at a use site (E221) or in a codec (RFC 0040, R872) | 10.4, 17.4, 25.4 |
+| R873 | E282 is reported once per offending field, at the field's type annotation; a field of a user class says it does not derive the trait, and a capability field under `Wire` adds a note that capabilities are never `Wire` (RFC 0040, R873) | 10.4, 17.4, 25.4 |
 
 <!-- /rows -->
 
