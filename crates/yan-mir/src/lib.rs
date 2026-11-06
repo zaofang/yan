@@ -208,6 +208,12 @@ pub enum Term {
     },
     /// A panic of this kind (8.3).
     Panic(&'static str),
+    /// A panic of this kind with named scalar operands (R796): each field is a name (a `Str`
+    /// literal) and its value.
+    PanicFields {
+        kind: &'static str,
+        fields: Vec<(Operand, Operand)>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

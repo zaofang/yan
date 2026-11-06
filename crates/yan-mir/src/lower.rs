@@ -576,6 +576,8 @@ struct Fn<'a, 'm> {
     me: usize,
     locals: Vec<Ty>,
     names: HashMap<String, Var>,
+    /// The sides of each comparison result bound by `let`, for `assert` panics (R796).
+    cmps: HashMap<String, [y::Atom; 2]>,
     /// The `inout` parameters' slots, returned with every result.
     inout: Vec<Local>,
     blocks: Vec<Block>,
@@ -600,6 +602,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             me,
             locals: Vec::new(),
             names: HashMap::new(),
+            cmps: HashMap::new(),
             inout: Vec::new(),
             blocks: Vec::new(),
             done: Vec::new(),
@@ -757,6 +760,24 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.cur = bad;
         self.finish(Term::Panic(kind));
         self.cur = ok;
+    }
+
+    /// `cond` or a panic of `kind` carrying `fields`.
+    fn check_fields(&mut self, cond: Operand, kind: &'static str, fields: Vec<(Operand, Operand)>) {
+        let (ok, bad) = self.branch(cond);
+        self.cur = bad;
+        self.finish(Term::PanicFields { kind, fields });
+        self.cur = ok;
+    }
+
+    /// An integer, float or bool atom's value; other types are left out of a panic (R796).
+    fn scalar_field(&mut self, a: &y::Atom) -> Option<Operand> {
+        match self.atom_any(a).ok()? {
+            (v, Shape::Scalar(Ty::Int(_) | Ty::F64 | Ty::Bool)) if v.len() == 1 => {
+                v.into_iter().next()
+            }
+            _ => None,
+        }
     }
 
     fn copy_to(&mut self, dst: &[Local], src: Vec<Operand>) {
@@ -2054,6 +2075,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let v = self.value(rhs, &shape)?;
                 match pat {
                     y::Pat::Bind(n) => {
+                        match comparison(rhs) {
+                            Some(sides) => self.cmps.insert(n.clone(), sides),
+                            None => self.cmps.remove(n),
+                        };
                         let var = self.var(shape);
                         self.copy_to(&var.locals.clone(), v);
                         self.names.insert(n.clone(), var);
@@ -2169,8 +2194,33 @@ impl<'a, 'm> Fn<'a, 'm> {
             // Names bound in a `par` child are read after the block.
             K::Par { blocks, .. } => blocks.iter().try_for_each(|b| self.block_in(b)),
             K::Assert(e) => {
+                let sides = match e {
+                    y::Expr::Atom(y::Atom::Name(n, _)) => self.cmps.get(n).cloned(),
+                    _ => None,
+                };
                 let t = self.expr(e)?;
-                self.check(t, "assert");
+                let mut fields = Vec::new();
+                for (name, a) in [("left", 0), ("right", 1)]
+                    .into_iter()
+                    .filter_map(|(n, i)| sides.as_ref().map(|s| (n, s[i].clone())))
+                {
+                    if let Some(v) = self.scalar_field(&a) {
+                        fields.push((name.to_owned(), v));
+                    }
+                }
+                let mut seen = Vec::new();
+                for a in sides.iter().flatten() {
+                    if let y::Atom::Name(n, _) = a
+                        && !seen.contains(n)
+                    {
+                        seen.push(n.clone());
+                        if let Some(v) = self.scalar_field(a) {
+                            fields.push((n.clone(), v));
+                        }
+                    }
+                }
+                let fields = fields.into_iter().map(|(n, v)| (self.lit(&n), v)).collect();
+                self.check_fields(t, "assert", fields);
                 Ok(())
             }
             K::Unreachable => {
@@ -2191,6 +2241,19 @@ impl<'a, 'm> Fn<'a, 'm> {
             K::Asm { .. } => unsupported("`asm`"),
             K::Reuse { .. } => unsupported("`reuse`"),
         }
+    }
+}
+
+/// The two sides of a comparison call like `gt_i64(let n, let m)`.
+fn comparison(rhs: &y::Rhs) -> Option<[y::Atom; 2]> {
+    let y::Rhs::Call(c) = rhs else { return None };
+    let f = c.path.last()?;
+    let cmp = ["eq", "ne", "lt", "le", "gt", "ge"]
+        .iter()
+        .any(|p| f == p || f.strip_prefix(p).is_some_and(|r| r.starts_with('_')));
+    match c.args.as_slice() {
+        [y::Arg::Value(_, a, _), y::Arg::Value(_, b, _)] if cmp => Some([a.clone(), b.clone()]),
+        _ => None,
     }
 }
 
@@ -2222,6 +2285,34 @@ mod selftest {
                 .unwrap_err()
                 .contains("recursive type `T`")
         );
+    }
+
+    #[test]
+    fn assert_panics_carry_sides_and_free_variables() {
+        let src = "module t\nfn main() -> Unit {\n let n: i64 = 3\n let m: i64 = 4\n let c: bool = gt_i64(let n, let m)\n assert c\n ret ()\n}\n";
+        let (m, d) = yan_core::parse("t.yir", src);
+        assert!(d.is_empty());
+        let p = lower(&m.unwrap()).expect("lowers");
+        let f = &p.funcs[p.main as usize];
+        let fields = f
+            .blocks
+            .iter()
+            .find_map(|b| match &b.term {
+                Term::PanicFields {
+                    kind: "assert",
+                    fields,
+                } => Some(fields.clone()),
+                _ => None,
+            })
+            .expect("an assert panic with fields");
+        let names: Vec<_> = fields
+            .iter()
+            .map(|(n, _)| match n {
+                Operand::Str(i) => p.strings[*i as usize].as_str(),
+                _ => panic!("a name"),
+            })
+            .collect();
+        assert_eq!(names, ["left", "right", "n", "m"]);
     }
 
     #[test]

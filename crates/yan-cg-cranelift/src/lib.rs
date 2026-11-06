@@ -98,8 +98,8 @@ struct State<M: Module> {
     sigs: Vec<Signature>,
     ids: Vec<CFuncId>,
     rt_ids: Vec<CFuncId>,
-    /// `yan_rt_panic` and `yan_rt_panic_ops`.
-    panic: [CFuncId; 2],
+    /// `yan_rt_panic`, `yan_rt_panic_ops` and `yan_rt_panic_fields`.
+    panic: [CFuncId; 3],
     strings: Strings,
     fctx: FunctionBuilderContext,
     ctx: cranelift_codegen::Context,
@@ -314,7 +314,7 @@ fn object(p: &Program, source: Option<&std::path::Path>) -> R<Vec<u8>> {
         .iter()
         .flat_map(|f| &f.blocks)
         .filter_map(|b| match b.term {
-            Term::Panic(k) => Some(k),
+            Term::Panic(k) | Term::PanicFields { kind: k, .. } => Some(k),
             _ => None,
         });
     for (i, k) in PANIC_KINDS.iter().copied().chain(used).enumerate() {
@@ -425,6 +425,7 @@ pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
     let mut jb = JITBuilder::with_isa(isa, default_libcall_names());
     jb.symbol("yan_rt_panic", abi::yan_rt_panic as *const u8);
     jb.symbol("yan_rt_panic_ops", abi::yan_rt_panic_ops as *const u8);
+    jb.symbol("yan_rt_panic_fields", abi::yan_rt_panic_fields as *const u8);
     jb.symbol("yan_rt_exit", abi::yan_rt_exit as *const u8);
     jb.symbol("yan_jit_resolve", yan_jit_resolve as *const u8);
     for f in RT {
@@ -493,7 +494,7 @@ pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
 }
 
 /// Declare the runtime's symbols; returns the ids of panic, exit and the [`RT`] functions.
-fn declare_rt<M: Module>(module: &mut M) -> R<([CFuncId; 2], CFuncId, Vec<CFuncId>)> {
+fn declare_rt<M: Module>(module: &mut M) -> R<([CFuncId; 3], CFuncId, Vec<CFuncId>)> {
     let ptr = module.target_config().pointer_type();
     let mut panic_sig = module.make_signature();
     panic_sig
@@ -509,6 +510,16 @@ fn declare_rt<M: Module>(module: &mut M) -> R<([CFuncId; 2], CFuncId, Vec<CFuncI
     ops_sig.params.extend([AbiParam::new(types::I64); 4]);
     let panic_ops = module
         .declare_function("yan_rt_panic_ops", Linkage::Import, &ops_sig)
+        .map_err(err)?;
+    let mut fields_sig = module.make_signature();
+    fields_sig.params.extend([
+        AbiParam::new(ptr),
+        AbiParam::new(ptr),
+        AbiParam::new(types::I64),
+        AbiParam::new(ptr),
+    ]);
+    let panic_fields = module
+        .declare_function("yan_rt_panic_fields", Linkage::Import, &fields_sig)
         .map_err(err)?;
     let mut exit_sig = module.make_signature();
     exit_sig.params.push(AbiParam::new(types::I64));
@@ -527,7 +538,7 @@ fn declare_rt<M: Module>(module: &mut M) -> R<([CFuncId; 2], CFuncId, Vec<CFuncI
                 .map_err(err)
         })
         .collect::<R<Vec<_>>>()?;
-    Ok(([panic, panic_ops], exit, rt_ids))
+    Ok(([panic, panic_ops, panic_fields], exit, rt_ids))
 }
 
 fn declare_funcs<M: Module>(module: &mut M, p: &Program) -> R<(Vec<Signature>, Vec<CFuncId>)> {
@@ -847,7 +858,7 @@ fn rt_fn(
 struct Rt {
     /// In the order of [`RT`].
     fns: Vec<FuncRef>,
-    panic: [FuncRef; 2],
+    panic: [FuncRef; 3],
     ptr: types::Type,
 }
 
@@ -916,6 +927,46 @@ impl Gen<'_, '_> {
     fn call_panic(&mut self, kind: &'static str) {
         let (ptr, len) = self.kind_str(kind);
         self.b.ins().call(self.rt.panic[0], &[ptr, len]);
+        self.b.ins().trap(TrapCode::unwrap_user(1));
+    }
+
+    fn call_panic_fields(&mut self, kind: &'static str, fields: &[(Operand, Operand)]) {
+        let (ptr, len) = self.kind_str(kind);
+        let n = self.b.ins().iconst(types::I64, fields.len() as i64);
+        let slot = self.b.create_sized_stack_slot(StackSlotData::new(
+            StackSlotKind::ExplicitSlot,
+            (fields.len() * 24).max(8) as u32,
+            3,
+        ));
+        for (i, (name, val)) in fields.iter().enumerate() {
+            let tag = match val {
+                Operand::Local(l) => match self.f.locals[*l as usize] {
+                    Ty::Int(t) => i64::from(!t.signed),
+                    Ty::F64 => 2,
+                    _ => 3,
+                },
+                Operand::F64(_) => 2,
+                Operand::Bool(_) => 3,
+                _ => 0,
+            };
+            let name = self.val(name).expect("a name is a Str");
+            let v = self.val(val).expect("a scalar field");
+            let v = match self.b.func.dfg.value_type(v) {
+                types::F64 => self.b.ins().bitcast(types::I64, MemFlagsData::trusted(), v),
+                types::I64 => v,
+                _ => self.b.ins().uextend(types::I64, v),
+            };
+            let tag = self.b.ins().iconst(types::I64, tag);
+            for (j, w) in [name, tag, v].into_iter().enumerate() {
+                let at = self
+                    .b
+                    .ins()
+                    .stack_addr(self.rt.ptr, slot, (i * 24 + j * 8) as i32);
+                self.b.ins().store(MemFlagsData::trusted(), w, at, 0);
+            }
+        }
+        let rec = self.b.ins().stack_addr(self.rt.ptr, slot, 0);
+        self.b.ins().call(self.rt.panic[2], &[ptr, len, n, rec]);
         self.b.ins().trap(TrapCode::unwrap_user(1));
     }
 
@@ -1169,6 +1220,7 @@ impl Gen<'_, '_> {
                 }
             }
             Term::Panic(kind) => self.call_panic(kind),
+            Term::PanicFields { kind, fields } => self.call_panic_fields(kind, fields),
         }
     }
 
