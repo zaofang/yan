@@ -1,0 +1,9 @@
+# Narrative spec sections with no testable behaviour; `conform.py --coverage` leaves them out.
+# Decision: GitHub issue #420.
+sections = [
+  "22.1", "22.2", "22.3", "22.4", "22.5", "22.6",
+  "24.1", "24.2",
+  "25.1", "25.2",
+  "25.5", "25.6", "25.7", "25.8", "25.9", "25.10", "25.11", "25.12",
+  "26.1", "26.2", "26.3", "26.4", "26.5",
+]

@@ -590,6 +590,9 @@ def _surface(case: Case) -> str:
     )
 
 
+EXEMPT_FILE = Path(__file__).with_name("coverage_exempt.toml")
+
+
 def coverage(cases: list[Case], catalogue: dict[str, dict[str, dict[str, str]]]) -> str:
     by_code: dict[str, set[str]] = defaultdict(set)
     by_section: dict[str, set[str]] = defaultdict(set)
@@ -607,7 +610,8 @@ def coverage(cases: list[Case], catalogue: dict[str, dict[str, dict[str, str]]])
     active = {k: v for k, v in codes.items() if v["status"] == "active"}
     covered = [k for k in active if k in by_code]
     unknown = sorted(set(by_code) - set(codes) - {k for k in by_code if k[0] == "N"})
-    sections = catalogue["sections"]
+    exempt = set(tomllib.loads(EXEMPT_FILE.read_text(encoding="utf-8"))["sections"])
+    sections = {k: v for k, v in catalogue["sections"].items() if k not in exempt}
     out = [
         "# Conformance coverage",
         "",
