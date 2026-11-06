@@ -7,8 +7,8 @@ use std::collections::HashMap;
 
 use cranelift_codegen::ir::condcodes::{FloatCC, IntCC};
 use cranelift_codegen::ir::{
-    AbiParam, Block as CBlock, FuncRef, GlobalValue, InstBuilder, MemFlagsData, Signature,
-    SourceLoc, TrapCode, Value, types,
+    AbiParam, Block as CBlock, FuncRef, GlobalValue, Inst as CInst, InstBuilder, MemFlagsData,
+    Signature, SourceLoc, StackSlotData, StackSlotKind, TrapCode, Value, types,
 };
 use cranelift_codegen::isa::CallConv;
 use cranelift_codegen::settings::{self, Configurable};
@@ -36,6 +36,14 @@ fn clif(t: Ty) -> Option<types::Type> {
         Ty::Bool => Some(types::I8),
         Ty::Unit => None,
     }
+}
+
+/// Results beyond this many come back through a caller-provided return area: the tail
+/// convention has only a few result registers and aarch64 rejects more.
+const MAX_REG_RETS: usize = 4;
+
+fn returns_by_area(ret: &[Ty]) -> bool {
+    ret.iter().filter(|t| clif(**t).is_some()).count() > MAX_REG_RETS
 }
 
 /// A compiled program, ready to run.
@@ -169,6 +177,8 @@ impl<M: Module> State<M> {
         Gen {
             b: &mut b,
             f: &program.funcs[i],
+            program,
+            ret_area: None,
             vars: Vec::new(),
             blocks: Vec::new(),
             calls,
@@ -617,13 +627,18 @@ fn entry_point(
 fn signature(f: &Func, m: &impl Module) -> Signature {
     let mut s = m.make_signature();
     s.call_conv = CallConv::Tail;
+    if returns_by_area(&f.ret) {
+        s.params
+            .push(AbiParam::new(m.target_config().pointer_type()));
+    } else {
+        s.returns
+            .extend(f.ret.iter().filter_map(|t| clif(*t)).map(AbiParam::new));
+    }
     for t in &f.locals[..f.params as usize] {
         if let Some(t) = clif(*t) {
             s.params.push(AbiParam::new(t));
         }
     }
-    s.returns
-        .extend(f.ret.iter().filter_map(|t| clif(*t)).map(AbiParam::new));
     s
 }
 
@@ -829,6 +844,9 @@ struct Rt {
 struct Gen<'a, 'b> {
     b: &'a mut FunctionBuilder<'b>,
     f: &'a Func,
+    program: &'a Program,
+    /// The return area pointer, when this function's results do not fit in registers.
+    ret_area: Option<Value>,
     vars: Vec<Option<Variable>>,
     blocks: Vec<CBlock>,
     calls: Calls,
@@ -857,6 +875,9 @@ impl Gen<'_, '_> {
         self.b.switch_to_block(entry);
         let params = self.b.block_params(entry).to_vec();
         let mut it = params.into_iter();
+        if returns_by_area(&self.f.ret) {
+            self.ret_area = it.next();
+        }
         for l in 0..self.f.params as usize {
             if let Some(v) = self.vars[l] {
                 let p = it.next().expect("one block param per non-Unit parameter");
@@ -965,7 +986,10 @@ impl Gen<'_, '_> {
                 self.set(Some(*dst), v);
             }
             Inst::Call { dst, func, args } => {
-                let args = self.vals(args);
+                let mut args = self.vals(args);
+                let ret = &self.program.funcs[*func as usize].ret;
+                let area = self.alloc_area(ret);
+                args.splice(0..0, area.map(|(a, _)| a));
                 let c = match &self.calls {
                     Calls::Direct(fs) => self.b.ins().call(fs[*func as usize], &args),
                     Calls::Table { table, sigs } => {
@@ -974,7 +998,7 @@ impl Gen<'_, '_> {
                         self.b.ins().call_indirect(sig, code, &args)
                     }
                 };
-                let rs = self.b.inst_results(c).to_vec();
+                let rs = self.results(c, area, ret);
                 // Unit slots have neither a variable nor a result.
                 let ds = dst.iter().filter(|d| self.vars[**d as usize].is_some());
                 for (d, r) in ds.copied().collect::<Vec<_>>().into_iter().zip(rs) {
@@ -989,15 +1013,21 @@ impl Gen<'_, '_> {
                 ret,
             } => {
                 let mut sig = Signature::new(CallConv::Tail);
+                let area = self.alloc_area(ret);
+                if area.is_some() {
+                    sig.params.push(AbiParam::new(self.rt.ptr));
+                } else {
+                    sig.returns
+                        .extend(ret.iter().filter_map(|t| clif(*t)).map(AbiParam::new));
+                }
                 sig.params
                     .extend(params.iter().filter_map(|t| clif(*t)).map(AbiParam::new));
-                sig.returns
-                    .extend(ret.iter().filter_map(|t| clif(*t)).map(AbiParam::new));
                 let sig = self.b.import_signature(sig);
                 let code = self.val(code).expect("a code address");
-                let args = self.vals(args);
+                let mut args = self.vals(args);
+                args.splice(0..0, area.map(|(a, _)| a));
                 let c = self.b.ins().call_indirect(sig, code, &args);
-                let rs = self.b.inst_results(c).to_vec();
+                let rs = self.results(c, area, ret);
                 let ds = dst.iter().filter(|d| self.vars[**d as usize].is_some());
                 for (d, r) in ds.copied().collect::<Vec<_>>().into_iter().zip(rs) {
                     self.set(Some(d), Some(r));
@@ -1080,10 +1110,21 @@ impl Gen<'_, '_> {
             }
             Term::Return(os) => {
                 let v = self.vals(os);
-                self.b.ins().return_(&v);
+                if let Some(area) = self.ret_area {
+                    for (i, v) in v.into_iter().enumerate() {
+                        self.b
+                            .ins()
+                            .store(MemFlagsData::new(), v, area, 8 * i as i32);
+                    }
+                    self.b.ins().return_(&[]);
+                } else {
+                    self.b.ins().return_(&v);
+                }
             }
             Term::TailCall { func, args } => {
-                let args = self.vals(args);
+                let mut args = self.vals(args);
+                // The callee returns what this function returns, into the same area.
+                args.splice(0..0, self.ret_area);
                 match &self.calls {
                     Calls::Direct(fs) => {
                         self.b.ins().return_call(fs[*func as usize], &args);
@@ -1097,6 +1138,36 @@ impl Gen<'_, '_> {
             }
             Term::Panic(kind) => self.call_panic(kind),
         }
+    }
+
+    /// A stack return area for a call whose results do not fit in registers.
+    fn alloc_area(&mut self, ret: &[Ty]) -> Option<(Value, usize)> {
+        if !returns_by_area(ret) {
+            return None;
+        }
+        let n = ret.iter().filter(|t| clif(**t).is_some()).count();
+        let slot = self.b.create_sized_stack_slot(StackSlotData::new(
+            StackSlotKind::ExplicitSlot,
+            8 * n as u32,
+            3,
+        ));
+        Some((self.b.ins().stack_addr(self.rt.ptr, slot, 0), n))
+    }
+
+    /// The call's results, read back from its return area when it has one.
+    fn results(&mut self, c: CInst, area: Option<(Value, usize)>, ret: &[Ty]) -> Vec<Value> {
+        let Some((area, _)) = area else {
+            return self.b.inst_results(c).to_vec();
+        };
+        ret.iter()
+            .filter_map(|t| clif(*t))
+            .enumerate()
+            .map(|(i, t)| {
+                self.b
+                    .ins()
+                    .load(t, MemFlagsData::new(), area, 8 * i as i32)
+            })
+            .collect()
     }
 
     fn scalar(&mut self, op: ScalarOp, ty: Ty, a: &[Value]) -> Option<Value> {
@@ -1303,6 +1374,22 @@ mod selftest {
             match o {\n Ok { value: 8 } => {}\n _ => { unreachable }\n }\n\
             let s: Option[i64] = Some { value: 2 }\n let t: Str = std.fmt.show[Option[i64]](let s)\n\
             match t {\n \"2\" => {}\n _ => { unreachable }\n }\n ret ()\n}\n";
+        let (m, d) = yan_core::parse("t.yir", src);
+        assert!(d.is_empty(), "{d:?}");
+        let p = yan_mir::lower(&m.unwrap()).expect("lowers");
+        run_both(&p);
+    }
+
+    /// Nine result slots exceed what aarch64's tail convention returns in registers: they
+    /// come back through a return area, directly, indirectly and through `become`.
+    #[test]
+    fn returns_wide_records_through_an_area() {
+        let src = "module t\nrecord W { pub a: i64, pub b: i64, pub c: i64, pub d: i64, pub e: i64, pub f: i64, pub g: i64, pub h: i64, pub i: i64 }\n\
+            fn mk(let x: i64) -> W {\n let w: W = W { a: x, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8, i: 9 }\n ret w\n}\n\
+            fn fwd(let x: i64) -> W {\n become mk(let x)\n}\n\
+            fn main() -> Unit {\n let w: W = mk(let 1)\n let a: i64 = w.a\n assert eq_i64(let a, let 1)\n\
+            let i: i64 = w.i\n assert eq_i64(let i, let 9)\n\
+            let v: W = fwd(let 7)\n let b: i64 = v.a\n assert eq_i64(let b, let 7)\n let h: i64 = v.h\n assert eq_i64(let h, let 8)\n ret ()\n}\n";
         let (m, d) = yan_core::parse("t.yir", src);
         assert!(d.is_empty(), "{d:?}");
         let p = yan_mir::lower(&m.unwrap()).expect("lowers");
