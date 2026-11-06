@@ -937,6 +937,49 @@
    ]
   },
   {
+   "path": "yag/fail/derives/e282_field_not_derived.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "10.4",
+    "17.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E282",
+     "line": 14,
+     "col": 8
+    },
+    {
+     "code": "E282",
+     "line": 18,
+     "col": 8
+    },
+    {
+     "code": "E282",
+     "line": 22,
+     "col": 8
+    },
+    {
+     "code": "E282",
+     "line": 26,
+     "col": 8
+    },
+    {
+     "code": "E282",
+     "line": 30,
+     "col": 8
+    },
+    {
+     "code": "E282",
+     "line": 34,
+     "col": 8
+    }
+   ]
+  },
+  {
    "path": "yag/fail/dist/e720_non_wire_handler.yag",
    "kind": "fail",
    "milestone": "M1",
