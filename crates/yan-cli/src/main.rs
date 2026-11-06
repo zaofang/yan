@@ -11,6 +11,7 @@ mod export;
 mod fix;
 mod mcp;
 mod patch;
+mod pyimport;
 mod review;
 mod test;
 mod trust;
@@ -103,6 +104,12 @@ enum Command {
     },
     /// Export a module as typed Python 3.12 (17.8): the program text on stdout.
     Export {
+        #[arg(long, required = true)]
+        python: bool,
+        file: PathBuf,
+    },
+    /// Import typed Python 3.12 as Yan Agent (17.8): the program text on stdout.
+    Import {
         #[arg(long, required = true)]
         python: bool,
         file: PathBuf,
@@ -303,6 +310,7 @@ fn main() -> ExitCode {
             bare,
         } => view(&as_, &file, yan_ide::Marks { strict, bare }),
         Command::Export { file, .. } => export::run(&file),
+        Command::Import { file, .. } => pyimport::run(&file),
         Command::Grammar { format } => {
             let g = yan_yag::Grammar::yag();
             match format {

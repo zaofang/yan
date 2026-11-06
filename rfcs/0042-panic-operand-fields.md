@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Research: none; the gap is spec section 8.3 (operand fields) against the interpreter after the numeric operand work
-- Rows: R874 to R877
+- Rows: R882 to R885
 
 ## Summary
 
@@ -26,7 +26,7 @@ buffer that is replayed on other machines; a clause hash is larger and adds noth
 position does not.
 
 - Decision: Item hash plus clause position (recommended option); Antonio, 2026-11-06
-- Row: R874
+- Row: R882
 
 ### D2: free variables of a contract or assert predicate
 
@@ -40,7 +40,7 @@ A variable of a non-numeric type is omitted, as for every other field. The inter
 compile time and reads them only when the check fails.
 
 - Decision: Numeric variables, written names (recommended option); Antonio, 2026-11-06
-- Row: R875
+- Row: R883
 
 ### D3: key hash with key type for a missing dict key
 
@@ -55,7 +55,7 @@ replay. For a numeric key the hash is still given, and the key itself is already
 operand where the dict is indexed by an integer.
 
 - Decision: 64-bit BLAKE3 hash plus key type (recommended option); Antonio, 2026-11-06
-- Row: R876
+- Row: R884
 
 ### D4: the `shape` panic kind
 
@@ -68,7 +68,7 @@ Recommendation: (a), and add it back with its fields in the RFC that introduces 
 Listing a kind with no source and no fields invites a divergent payload.
 
 - Decision: Remove `shape` until a runtime check exists (recommended option); Antonio, 2026-11-06
-- Row: R877
+- Row: R885
 
 ## Spec changes
 

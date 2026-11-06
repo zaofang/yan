@@ -219,10 +219,18 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R871 | The `?` form of optimized Yan Core carries a drop list, `f(x)? drop a, b`: the owned locals still live on the failing edge, dropped in that order before the function returns, a flagged local under its flag; checked Yan Core has none (RFC 0039, R871) | 3.5, 5.3 |
 | R872 | A derived trait whose field type does not implement it is E282, for `Eq`, `Ord`, `Hash`, `Show` and `Wire` alike; the derive is rejected at compile time instead of failing at a use site (E221) or in a codec (RFC 0040, R872) | 10.4, 17.4, 25.4 |
 | R873 | E282 is reported once per offending field, at the field's type annotation; a field of a user class says it does not derive the trait, and a capability field under `Wire` adds a note that capabilities are never `Wire` (RFC 0040, R873) | 10.4, 17.4, 25.4 |
-| R874 | A `contract` panic names its clause by the item hash and the clause's zero-based position among the item's `requires` and `ensures` clauses in source order (RFC 0042, R874) | 8.3 |
-| R875 | A `contract` or `assert` panic carries the numeric free variables of the predicate by written name in first-use order; free variables of other types are left out (RFC 0042, R875) | 8.3 |
-| R876 | A `bounds` panic for a missing dict key carries the first 64 bits of BLAKE3 over the key's canonical encoding as an unsigned integer, with the key type's name (RFC 0042, R876) | 8.3 |
-| R877 | `shape` leaves the kinds that carry operand fields until a runtime shape check exists; the RFC that adds one defines its fields (RFC 0042, R877) | 8.3 |
+| R874 | A sum type is written in json as one object with an internal tag: key `tag`, renamed by `@wire(tag: ...)` on the sum, value the variant name or its `@wire(name: ...)`; decoding checks the tag against the declared variants only (RFC 0041, D1) | 17.3, 17.4 |
+| R875 | Typed json shapes: a record is an object in declaration order; `T | None` is `null` or an absent field; `int` rejects `1.0`; `float` widens an integer literal exactly; collections, tuples and sets are arrays; `dict[str, V]` is an object and other keys are `[key, value]` pairs; `bytes` is base64; a newtype is its inner encoding; a non-finite float panics with `value` on dump (RFC 0041, D2) | 17.3, 17.4 |
+| R876 | Unknown fields in typed json are rejected unless the record has `@wire(unknown: "ignore")`; duplicate keys always fail (RFC 0041, D3) | 17.3, 17.4 |
+| R877 | `JsonReason` gains `Mismatch(path, expected, found)`, `Missing(path, field)`, `Unknown(path, field)` and `Invalid(path, msg)`; `path` is `$` plus `.name` and `[i]` steps (RFC 0041, D4) | 17.3, 17.4 |
+| R878 | `csv.parse[T: Wire](s, delimiter=",") -> list[T] fail CsvError` and `csv.dump[T: Wire](rows, delimiter=",") -> str`: required header, columns matched by name in any order, RFC 4180 input, LF output with quoting only where needed (RFC 0041, D5) | 17.3, 17.4 |
+| R879 | A csv cell is a bool, int, float, str, `T | None` of those, a newtype over them, or a sum whose variants have no fields; `None` is an unquoted empty cell and `Some("")` a quoted one; a row type may be a sum, with a `tag` column and the union of the variants' fields; any other field type is E330 (RFC 0041, D6) | 17.3, 17.4, 25.5 |
+| R880 | `type CsvError = { line, col, row, column, reason: CsvReason }` with `CsvReason = Syntax | Header | Mismatch | Missing | Unknown | Invalid | Limit` (RFC 0041, D7) | 17.3, 17.4 |
+| R881 | Typed json and csv are accepted by round-trip cases of a record, optional and defaulted fields and a sum on both backends, plus the error paths; `std.toml` follows later over the same mapping (RFC 0041, D8) | 17.3, 17.4 |
+| R882 | A `contract` panic names its clause by the item hash and the clause's zero-based position among the item's `requires` and `ensures` clauses in source order (RFC 0042, R882) | 8.3 |
+| R883 | A `contract` or `assert` panic carries the numeric free variables of the predicate by written name in first-use order; free variables of other types are left out (RFC 0042, R883) | 8.3 |
+| R884 | A `bounds` panic for a missing dict key carries the first 64 bits of BLAKE3 over the key's canonical encoding as an unsigned integer, with the key type's name (RFC 0042, R884) | 8.3 |
+| R885 | `shape` leaves the kinds that carry operand fields until a runtime shape check exists; the RFC that adds one defines its fields (RFC 0042, R885) | 8.3 |
 
 <!-- /rows -->
 
