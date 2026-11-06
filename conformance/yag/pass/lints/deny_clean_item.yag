@@ -1,0 +1,8 @@
+# spec: 18.2
+# rows: R797
+# milestone: M1b
+# note: @deny takes no reason and an item with nothing to report passes
+
+@deny(W812)
+def f(x: int) -> int:
+    return x

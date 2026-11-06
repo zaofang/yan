@@ -1,0 +1,11 @@
+# spec: 18.2
+# rows: R797, R820
+# milestone: M1b
+# note: an @expect of a code that an enclosing @deny denies is E277; Yan Agent has no attribute on a nested item, so the enclosing @deny is the module's @@deny (18.2); the primary span is the @expect
+# expect: E277 at 9:1
+
+@@deny(W812)
+
+@expect(W812, reason="denial cannot be undone further in")
+def f(x: int) -> int:
+    return x

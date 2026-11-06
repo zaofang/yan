@@ -1,0 +1,9 @@
+# spec: 18.2
+# rows: R797
+# milestone: M1b
+# note: @deny names a W8xx lint only; E201 is an error code, so the @deny is E278
+# expect: E278 at 7:1
+
+@deny(E201)
+def f(x: int) -> int:
+    return x
