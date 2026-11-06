@@ -7,8 +7,9 @@
 //! still owned; if its type has a custom `Drop` or is `@linear`, an edge drop could run earlier
 //! than 5.4 allows, so the pass writes a drop flag `var _dN: bool` instead (D2.3).
 //!
-//! Not covered yet: overwriting a field or an `inout` place, bindings made by patterns of
-//! `match`, and moving a field out of a local.
+//! A name bound by a `match` pattern views its scrutinee: moving it moves the scrutinee.
+//!
+//! Not covered yet: overwriting a field or an `inout` place, and moving a field out of a local.
 
 use std::collections::{HashMap, HashSet};
 use std::mem;
@@ -186,6 +187,8 @@ struct Cx {
     live: Live,
     loops: Vec<Loop>,
     jps: HashMap<Name, Jp>,
+    /// Names bound by `match` patterns, to the scrutinee local they view.
+    views: HashMap<Name, Name>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -372,10 +375,19 @@ impl Elab<'_> {
         out
     }
 
+    /// What `s` consumes, with a name bound by a `match` pattern standing for the scrutinee it
+    /// views: moving the payload out moves the scrutinee.
+    fn consumed(&self, s: &StmtKind) -> Vec<Name> {
+        own::consumed(s)
+            .into_iter()
+            .map(|n| self.cx.views.get(n).unwrap_or(n).clone())
+            .collect()
+    }
+
     /// Mark the owned locals `s` consumes and return the flagged ones.
     fn consume(&mut self, s: &StmtKind) -> Vec<Name> {
         let mut flagged = Vec::new();
-        for n in own::consumed(s) {
+        for n in &self.consumed(s) {
             if let Some(v) = self.cx.live.get_mut(n) {
                 *v = false;
                 if self.flags.contains_key(n) {
@@ -495,7 +507,7 @@ impl Elab<'_> {
     fn stmt(&mut self, s: &Stmt, out: &mut Vec<Stmt>) -> Flow {
         let at = s.span;
         let mut new = s.clone();
-        let skip: Vec<Name> = own::consumed(&s.kind).into_iter().cloned().collect();
+        let skip = self.consumed(&s.kind);
         match &mut new.kind {
             StmtKind::Let { rhs, .. } | StmtKind::Assign { rhs, .. } | StmtKind::Rhs(rhs) => {
                 self.closure(rhs);
@@ -598,7 +610,22 @@ impl Elab<'_> {
             }
             StmtKind::Match { scrutinee, arms } => {
                 let pre = self.cx.live.clone();
+                let mut bound = Vec::new();
+                if let Atom::Name(x, _) = scrutinee {
+                    let root = self.cx.views.get(x).unwrap_or(x).clone();
+                    if pre.contains_key(&root) {
+                        for (p, _) in arms {
+                            own::pat_binders(p, &mut bound);
+                        }
+                        for n in &bound {
+                            self.cx.views.insert(n.clone(), root.clone());
+                        }
+                    }
+                }
                 let mut bs = self.run_branches(arms.iter().map(|(_, b)| Some(b)).collect(), &pre);
+                for n in &bound {
+                    self.cx.views.remove(n);
+                }
                 let flow = self.join(&mut bs, &pre, at);
                 let arms = arms
                     .iter()
@@ -678,7 +705,7 @@ impl Elab<'_> {
                 Flow::Normal
             }
             StmtKind::Break { label, .. } | StmtKind::Continue { label } => {
-                let skip: Vec<Name> = own::consumed(&s.kind).into_iter().cloned().collect();
+                let skip = self.consumed(&s.kind);
                 let Some(i) = self
                     .cx
                     .loops
@@ -731,19 +758,20 @@ impl Elab<'_> {
                 Flow::Normal
             }
             StmtKind::Jump { name, .. } => {
-                let skip: Vec<Name> = own::consumed(&s.kind).into_iter().cloned().collect();
+                let skip = self.consumed(&s.kind);
                 let (pos, def) = match self.cx.jps.get(name) {
                     Some(j) => (j.pos, j.def.clone()),
                     None => ((0, 0), Live::new()),
                 };
                 self.exit_drops(pos, &skip, at, out);
-                self.consume(&s.kind);
+                let flagged = self.consume(&s.kind);
                 self.reconcile(&def, at, out);
+                self.clear_flags(flagged, at, out);
                 out.push(new);
                 Flow::Diverged
             }
             StmtKind::Ret(_) | StmtKind::Fail(_) | StmtKind::Become(_) => {
-                let skip: Vec<Name> = own::consumed(&s.kind).into_iter().cloned().collect();
+                let skip = self.consumed(&s.kind);
                 self.exit_drops((0, 0), &skip, at, out);
                 self.consume(&s.kind);
                 out.push(new);
@@ -922,6 +950,37 @@ mod tests {
         );
         has(&t, &["let x: i64 = g(let s)? drop u, s"]);
         has(&t, &["drop u", "drop s", "ret x"]);
+    }
+
+    #[test]
+    fn a_result_payload_bound_by_match_is_not_dropped_twice() {
+        let t = elab(
+            "module t\nrecord Bad { pub code: i64 }\nfn mk(let x: i64) -> Str fail Bad {\n let s: Str = \"a\"\n ret s\n}\n\
+             fn f() -> Str {\n let r: Result[Str, Bad] = try mk(let 1)\n\
+             match r {\n Ok { value: v } => {\n  ret v\n }\n Err { error: e } => {\n  let z: Str = \"e\"\n  ret z\n }\n }\n}\n",
+        );
+        has(&t, &["Ok { value: v } => {", "ret v"]);
+        has(
+            &t,
+            &[
+                "Err { error: e } => {",
+                "let z: Str = \"e\"",
+                "drop r",
+                "ret z",
+            ],
+        );
+        assert_eq!(t.matches("drop r").count(), 1, "{t}");
+    }
+
+    #[test]
+    fn a_jump_out_of_a_result_match_clears_the_scrutinee_flag() {
+        let t = elab(
+            "module t\nrecord Bad { pub code: i64 }\nfn mk(let x: i64) -> Str fail Bad {\n let s: Str = \"a\"\n ret s\n}\n\
+             fn f() -> Unit {\n let r: Result[Str, Bad] = try mk(let 1)\n\
+             jp k(let v: Str) {\n  let a: Str = move v\n  ret ()\n }\n\
+             match r {\n Ok { value: o } => {\n  jump k(o)\n }\n Err { error: e } => {\n  let z: Str = \"e\"\n  jump k(z)\n }\n }\n}\n",
+        );
+        has(&t, &["Ok { value: o } => {", "_d0 = false", "jump k(o)"]);
     }
 
     #[test]
