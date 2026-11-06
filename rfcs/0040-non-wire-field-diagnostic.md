@@ -42,7 +42,7 @@ schema builder already writes) or only "not `Wire`", and whether a capability va
 note: one diagnostic per field means one fix per diagnostic, and the span is where the change is made.
 
 - Decision: option (b), one diagnostic per offending field at its type annotation, chosen by the lead on 2026-11-06.
-- Open within D2: the message form for a user-class field ("does not derive `Wire`" or "not `Wire`") and whether a capability value gets its own note. Not decided.
+- Decided 2026-11-06: a field whose type is a user class gets "does not derive `Wire`". A field whose type is a capability value also gets a note that capabilities are never `Wire` (section 17.4).
 - Row: (R number once accepted)
 
 ## Spec changes
