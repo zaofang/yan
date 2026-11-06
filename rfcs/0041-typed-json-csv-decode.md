@@ -30,7 +30,7 @@ A variant with a field of that name is a compile error at the derive, so a clash
 time. The tag value is the variant name, or its `@wire(name: ...)`. Decoding checks the tag against
 the declared variants only; an unknown tag fails and never selects a type.
 
-- Decision: (lead's answer, date)
+- Decision: accepted, internal tag, 2026-11-06
 - Row: (R number once accepted)
 
 ### D2: Other `Wire` shapes in json
