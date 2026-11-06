@@ -1935,7 +1935,7 @@ impl Lower<'_, '_, '_> {
                 limit: None,
                 body: j::ParBody::Block(b),
             } => {
-                self.par_waits(b);
+                self.par_waits(b, *concurrent);
                 let mut blocks = Vec::new();
                 let mut called: Vec<String> = Vec::new();
                 for s in b {
@@ -5263,9 +5263,9 @@ impl Lower<'_, '_, '_> {
         Some(Ok((Rhs::Call(c), tx.clone())))
     }
 
-    /// The waits a plain `par` block may not hold: a branch receiving what a sibling sends
+    /// The waits a `par` block may not hold: in a plain one a branch receiving what a sibling sends
     /// (E713, R390), and a `Lub` read in a block that writes it (E717, R454).
-    fn par_waits(&mut self, branches: &[j::Stmt]) {
+    fn par_waits(&mut self, branches: &[j::Stmt], concurrent: bool) {
         let mut ops: Vec<Vec<(String, String, Span)>> = Vec::new();
         for s in branches {
             let mut mine = Vec::new();
@@ -5316,6 +5316,7 @@ impl Lower<'_, '_, '_> {
             for (n, m, sp) in os {
                 if m == "recv"
                     && matches!(ty(self, n), Some(Ty::Coll("Receiver", _)))
+                    && !concurrent
                     && senders.iter().any(|&j| j != k)
                 {
                     self.err(

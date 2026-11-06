@@ -924,3 +924,18 @@ fn item_level_wire_errors() {
     assert_eq!(diags(sum), ["E330"]);
     assert!(diags(&rec("names={\"a\": \"x\"}")).is_empty());
 }
+
+#[test]
+fn sibling_channel_waits_are_e713_only_in_plain_par() {
+    let codes = |kw: &str| {
+        let src = format!(
+            "pub def main() uses io:\n    tx, rx = Channel[int](0)\n    {kw}:\n        \
+             tx.send(1) else e -> io.print(\"x\")\n        \
+             v = rx.recv() else e -> -1\n        io.print(f\"{{v}}\")\n"
+        );
+        let (_, d) = lower(&src);
+        d.iter().map(|d| d.code.clone()).collect::<Vec<_>>()
+    };
+    assert_eq!(codes("par"), ["E713"]);
+    assert!(codes("par concurrent").is_empty());
+}
