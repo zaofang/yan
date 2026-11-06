@@ -1,6 +1,6 @@
 # 0030: Nested optionals keep two levels
 
-- Status: accepted (decisions only; rows pending)
+- Status: accepted (rows R793 to R795 and E276 written; D5 conformance pending in a separate PR)
 - Research: none; source reading of `crates/yan-elab/src/lower.rs` (`inject`) and `crates/yan-elab/src/ty.rs` (`fits`)
 - Rows: see Decisions
 
