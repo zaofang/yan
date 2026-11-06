@@ -1,0 +1,21 @@
+"""Typed CSV over derive(Wire): an RFC 4180 reader and a deterministic writer (17.3, R878 to R881)."""
+
+@since("1.0")
+pub type CsvReason = Syntax(msg: str) | Header(msg: str) | Mismatch(expected: str, found: str) | Missing(field: str) | Unknown(field: str) | Invalid(msg: str) | Limit()
+
+@since("1.0")
+pub class CsvError:
+    """A rejected document: `line` and `col` start at 1 and `col` counts chars; `row` 1 is the first data row and 0 the header."""
+    line: int
+    col: int
+    row: int
+    column: str
+    reason: CsvReason
+
+@intrinsic
+@since("1.0")
+pub def parse[T](s: str, delimiter: str, schema: str, /) -> list[T] fail CsvError: ...
+
+@intrinsic
+@since("1.0")
+pub def dump[T](rows: list[T], delimiter: str, schema: str, /) -> str: ...

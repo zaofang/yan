@@ -272,6 +272,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Data { name, fields } if name == "None" && fields.is_empty() => "None".into(),
         Data { name, fields } if name == "EncodingError" => super::encoding::show_error(fields),
         Data { name, fields } if name == "JsonError" => super::json::show_error(fields),
+        Data { name, fields } if name == "CsvError" => super::csvwire::show_error(fields),
         Data { name, fields } if name == "TimeError" => super::time::show_error(fields),
         Data { name, fields } if name == "ProcError" => super::proc::show_error(fields),
         Data { name, fields } if name == "NetError" => super::net::show_error(fields),

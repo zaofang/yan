@@ -6,6 +6,7 @@
 
 mod bounds;
 mod cli;
+mod csvwire;
 mod decorators;
 mod desugar;
 mod ffi;

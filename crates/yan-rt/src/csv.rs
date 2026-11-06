@@ -13,42 +13,85 @@ pub enum Reason {
     Delimiter,
 }
 
-/// `line` and `col` start at 1 and `col` counts chars.
+/// `line` and `col` start at 1 and `col` counts chars; `row` is the index of the record the
+/// failure is in, 0 for the first.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CsvError {
     pub line: usize,
     pub col: usize,
+    pub row: usize,
+    /// The byte offset of the failure.
+    pub at: usize,
     pub reason: Reason,
 }
 
 type R<T> = Result<T, (usize, Reason)>;
 
-fn locate(s: &str, at: usize, reason: Reason) -> CsvError {
+fn locate(s: &str, at: usize, row: usize, reason: Reason) -> CsvError {
     let before = &s[..at];
     CsvError {
+        row,
+        at,
         line: before.matches('\n').count() + 1,
         col: before.rsplit('\n').next().map_or(0, |l| l.chars().count()) + 1,
         reason,
     }
 }
 
+/// One field: its text, whether it was written in quotes, and the byte offset where it starts.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Cell {
+    pub text: String,
+    pub quoted: bool,
+    pub at: usize,
+}
+
 /// Every record of `s`, all as wide as the first. An empty input has no records, and one final
 /// line break is not a record. A blank line is a record of one empty field.
 pub fn parse(s: &str, delim: char) -> Result<Vec<Vec<String>>, CsvError> {
-    if matches!(delim, '"' | '\r' | '\n') {
-        return Err(locate(s, 0, Reason::Delimiter));
-    }
-    rows(s, delim).map_err(|(at, r)| locate(s, at, r))
+    let rows = parse_cells(s, delim)?;
+    Ok(rows
+        .into_iter()
+        .map(|r| r.into_iter().map(|c| c.text).collect())
+        .collect())
 }
 
-fn rows(s: &str, delim: char) -> R<Vec<Vec<String>>> {
-    let mut out: Vec<Vec<String>> = Vec::new();
+/// [`parse`] keeping, for each field, whether it was quoted and where it starts.
+pub fn parse_cells(s: &str, delim: char) -> Result<Vec<Vec<Cell>>, CsvError> {
+    if matches!(delim, '"' | '\r' | '\n') {
+        return Err(locate(s, 0, 0, Reason::Delimiter));
+    }
+    let mut out = Vec::new();
+    match rows(s, delim, &mut out) {
+        Ok(()) => Ok(out),
+        Err((at, r)) => Err(locate(s, at, out.len(), r)),
+    }
+}
+
+/// `line` and `col` of byte offset `at` in `s`.
+pub fn line_col(s: &str, at: usize) -> (usize, usize) {
+    let e = locate(s, at, 0, Reason::Delimiter);
+    (e.line, e.col)
+}
+
+fn rows(s: &str, delim: char, out: &mut Vec<Vec<Cell>>) -> R<()> {
     let mut it = s.char_indices().peekable();
-    let mut row: Vec<String> = Vec::new();
+    let mut row: Vec<Cell> = Vec::new();
     let mut field = String::new();
+    let mut quoted = false;
+    let mut field_at = 0;
     let mut row_at = 0;
-    let finish_row = |row: &mut Vec<String>, field: &mut String, out: &mut Vec<Vec<String>>, at| {
-        row.push(std::mem::take(field));
+    let finish_row = |row: &mut Vec<Cell>,
+                      field: &mut String,
+                      quoted: &mut bool,
+                      field_at: usize,
+                      out: &mut Vec<Vec<Cell>>,
+                      at| {
+        row.push(Cell {
+            text: std::mem::take(field),
+            quoted: std::mem::take(quoted),
+            at: field_at,
+        });
         if let Some(first) = out.first()
             && first.len() != row.len()
         {
@@ -66,6 +109,7 @@ fn rows(s: &str, delim: char) -> R<Vec<Vec<String>>> {
     while let Some(&(at, c)) = it.peek() {
         if field.is_empty() && c == '"' {
             it.next();
+            quoted = true;
             loop {
                 match it.next() {
                     None => return Err((s.len(), Reason::Syntax("unterminated quoted field"))),
@@ -84,35 +128,44 @@ fn rows(s: &str, delim: char) -> R<Vec<Vec<String>>> {
                 Some(&(at, _)) => return Err((at, Reason::Syntax("text after a closing quote"))),
             }
             if it.peek().is_none() {
-                finish_row(&mut row, &mut field, &mut out, row_at)?;
+                finish_row(&mut row, &mut field, &mut quoted, field_at, out, row_at)?;
             }
             continue;
         }
         it.next();
         match c {
-            c if c == delim => row.push(std::mem::take(&mut field)),
+            c if c == delim => {
+                row.push(Cell {
+                    text: std::mem::take(&mut field),
+                    quoted: std::mem::take(&mut quoted),
+                    at: field_at,
+                });
+                field_at = it.peek().map_or(s.len(), |&(i, _)| i);
+            }
             '"' => return Err((at, Reason::Syntax("quote inside an unquoted field"))),
             '\r' if it.peek().is_some_and(|&(_, c)| c == '\n') => {
                 it.next();
-                finish_row(&mut row, &mut field, &mut out, row_at)?;
+                finish_row(&mut row, &mut field, &mut quoted, field_at, out, row_at)?;
                 row_at = it.peek().map_or(s.len(), |&(i, _)| i);
+                field_at = row_at;
             }
             '\r' => return Err((at, Reason::Syntax("bare CR"))),
             '\n' => {
-                finish_row(&mut row, &mut field, &mut out, row_at)?;
+                finish_row(&mut row, &mut field, &mut quoted, field_at, out, row_at)?;
                 row_at = it.peek().map_or(s.len(), |&(i, _)| i);
+                field_at = row_at;
             }
             '\u{feff}' if at == 0 => return Err((at, Reason::Syntax("byte order mark"))),
             c => field.push(c),
         }
         if it.peek().is_none() && !(field.is_empty() && row.is_empty()) {
-            finish_row(&mut row, &mut field, &mut out, row_at)?;
+            finish_row(&mut row, &mut field, &mut quoted, field_at, out, row_at)?;
         }
     }
-    Ok(out)
+    Ok(())
 }
 
-fn quote(f: &str, delim: char, lone: bool, out: &mut String) {
+pub fn quote(f: &str, delim: char, lone: bool, out: &mut String) {
     let needs = f.is_empty() && lone
         || f.chars()
             .any(|c| c == delim || matches!(c, '"' | '\r' | '\n'));
@@ -316,5 +369,22 @@ mod tests {
         let lone = t(&[&[""], &["x"], &[""]]);
         assert_eq!(p(&write(&lone, ',').unwrap()), lone);
         assert_eq!(parse(&write(&rows, ';').unwrap(), ';').unwrap(), rows);
+    }
+
+    #[test]
+    fn cells_keep_quoting_and_offsets() {
+        let cs = parse_cells("a,b,c\n\"\",,x\n", ',').unwrap();
+        let row = &cs[1];
+        assert_eq!(
+            row.iter().map(|c| (c.quoted, c.at)).collect::<Vec<_>>(),
+            [(true, 6), (false, 9), (false, 10)]
+        );
+        assert_eq!(cs[0][1].at, 2);
+    }
+
+    #[test]
+    fn errors_know_their_record() {
+        assert_eq!(parse_cells("a,b\n1,2\n3\n", ',').unwrap_err().row, 2);
+        assert_eq!(parse_cells("a\n\"b\"c\n", ',').unwrap_err().row, 1);
     }
 }
