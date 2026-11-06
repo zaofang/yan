@@ -27,7 +27,8 @@ would also serve `Eq`, `Ord`, `Hash` and `Show` if their derives report field fa
 dedicated code is cheap to document and test now, and (c) can replace it later if the other derives show the
 same gap.
 
-- Decision: (lead's answer, date)
+- Decision: option (c), a family-wide code for "derived trait has a field that does not implement it", chosen by the lead on 2026-11-06. The code sits in the derive-misuse family (section 25).
+- Decided 2026-11-06: the same check applies to `Eq`, `Ord`, `Hash` and `Show` derives. Today the elaborator has no field check for them; the failure appears only at a use site (E221). The writing PR adds the check to each of these derives under the same code.
 - Row: (R number once accepted)
 
 ### D2: span and text
@@ -40,7 +41,8 @@ schema builder already writes) or only "not `Wire`", and whether a capability va
 `Wire`, since section 17.4 says so. Recommend (b) with the two existing message forms plus the capability
 note: one diagnostic per field means one fix per diagnostic, and the span is where the change is made.
 
-- Decision: (lead's answer, date)
+- Decision: option (b), one diagnostic per offending field at its type annotation, chosen by the lead on 2026-11-06.
+- Open within D2: the message form for a user-class field ("does not derive `Wire`" or "not `Wire`") and whether a capability value gets its own note. Not decided.
 - Row: (R number once accepted)
 
 ## Spec changes
