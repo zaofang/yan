@@ -1,0 +1,34 @@
+# spec: 10.4, 17.4
+# expect: E282 at 14:8
+# expect: E282 at 18:8
+# expect: E282 at 22:8
+# expect: E282 at 26:8
+# expect: E282 at 30:8
+# expect: E282 at 34:8
+
+class Plain:
+    n: int
+
+@derive(Eq)
+class A:
+    p: Plain
+
+@derive(Ord)
+class B:
+    p: Plain
+
+@derive(Hash)
+class C:
+    p: Plain
+
+@derive(Show)
+class D:
+    p: Plain
+
+@derive(Wire)
+class E:
+    p: Plain
+
+@derive(Wire)
+class F:
+    c: Io
