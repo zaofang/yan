@@ -1,0 +1,8 @@
+def f(xs: list[int]) -> int:
+    a = compute_the_total_of_items(
+        xs,
+        another_long_argument_name,
+        yet_another_argument_name_here,
+        more,
+    )
+    return a

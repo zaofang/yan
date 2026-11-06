@@ -1,0 +1,7 @@
+def f(x: int) -> int:
+    y = x + 1
+
+
+
+    z = y * 2
+    return z
