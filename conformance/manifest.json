@@ -4387,6 +4387,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/par_concurrent_channel_progress.yag",
+   "kind": "run",
+   "milestone": "M2a",
+   "spec": [
+    "9.1",
+    "9.2"
+   ],
+   "rows": [
+    "R390"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0\n1\n2\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/par_source_order.yag",
    "kind": "run",
    "milestone": "M1",
