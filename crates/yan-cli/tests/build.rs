@@ -70,3 +70,39 @@ fn built_programs_match_the_interpreter() {
     eprintln!("built {built}, not yet native {skipped}");
     assert!(built >= 20, "only {built} run cases build");
 }
+
+#[test]
+fn a_matched_result_payload_is_freed_once() {
+    let dir = std::env::temp_dir().join(format!("yan-result-match-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let src = dir.join("r.yag");
+    std::fs::write(
+        &src,
+        "class Bad:\n    code: int\n\n\
+         def mk(x: int) -> str fail Bad:\n    if x < 0:\n        fail Bad(code=x)\n    return f\"v{x}\"\n\n\
+         pub def main() uses io:\n    a = mk(5) else err -> \"e\"\n    io.print(a)\n\
+         \x20   b = mk(-1) else err -> \"e\"\n    io.print(b)\n",
+    )
+    .unwrap();
+    let exe = dir.join("r");
+    let build = Command::new(YAN)
+        .arg("build")
+        .arg(&src)
+        .arg("-o")
+        .arg(&exe)
+        .output()
+        .unwrap();
+    assert!(
+        build.status.success(),
+        "{}",
+        String::from_utf8_lossy(&build.stderr)
+    );
+    let run = Command::new(&exe)
+        .env("YAN_REPORT_LIVE", "1")
+        .output()
+        .unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    assert!(run.status.success(), "{:?}", run.status);
+    assert_eq!(String::from_utf8_lossy(&run.stdout), "v5\ne\n");
+    assert!(String::from_utf8_lossy(&run.stderr).contains("live: 0\n"));
+}
