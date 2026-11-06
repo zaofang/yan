@@ -1,0 +1,22 @@
+# spec: 17.3, 17.4
+# rows: R875, R881
+# note: a record is an object in declaration order; dump then parse gives back an equal value
+# stdout:
+# {"name":"ada","age":36,"admin":true,"score":1.5}
+# {"name":"ada","age":36,"admin":true,"score":1.5}
+# True
+
+@derive(Wire, Show, Eq)
+class User:
+    name: str
+    age: int
+    admin: bool
+    score: float
+
+pub def main() uses io:
+    u = User(name="ada", age=36, admin=True, score=1.5)
+    s = json.dump[User](u)
+    io.print(s)
+    back = json.parse[User](s) else err -> User(name="", age=0, admin=False, score=0.0)
+    io.print(json.dump[User](back))
+    io.print(f"{back == u}")

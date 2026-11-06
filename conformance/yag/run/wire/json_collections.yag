@@ -1,0 +1,20 @@
+# spec: 17.3, 17.4
+# rows: R875, R881
+# note: list, tuple and dict[str, V] map to array, array and object; a tuple of the wrong length is a mismatch; a float field widens an integer literal
+# stdout:
+# {"tags":["a","b"],"pair":[1,"x"],"byk":{"k":1,"j":2},"f":2.0}
+# wrong tuple length rejected
+
+@derive(Wire, Show)
+class C:
+    tags: list[str]
+    pair: tuple[int, str]
+    byk: dict[str, int]
+    f: float
+
+pub def main() uses io:
+    c = json.parse[C]("{\"tags\":[\"a\",\"b\"],\"pair\":[1,\"x\"],\"byk\":{\"k\":1,\"j\":2},\"f\":2}") else err -> C(tags=[], pair=(0, ""), byk={}, f=0.0)
+    io.print(json.dump[C](c))
+    d = json.parse[C]("{\"tags\":[],\"pair\":[1],\"byk\":{},\"f\":0}") else err -> C(tags=[], pair=(0, ""), byk={}, f=-1.0)
+    if d.f < 0.0:
+        io.print("wrong tuple length rejected")

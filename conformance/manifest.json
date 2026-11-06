@@ -4007,6 +4007,27 @@
    ]
   },
   {
+   "path": "yag/fail/wire/e330_variant_field_named_tag.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.4",
+    "25.5"
+   ],
+   "rows": [
+    "R874",
+    "R879"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E330",
+     "line": 7,
+     "col": 26
+    }
+   ]
+  },
+  {
    "path": "yag/run/bindings/r832_if_else.yag",
    "kind": "run",
    "milestone": "M1",
@@ -6052,6 +6073,109 @@
    "flags": [],
    "expect": [],
    "stdout": "True True\nTrue\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_collections.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "17.4"
+   ],
+   "rows": [
+    "R875",
+    "R881"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "{\"tags\":[\"a\",\"b\"],\"pair\":[1,\"x\"],\"byk\":{\"k\":1,\"j\":2},\"f\":2.0}\nwrong tuple length rejected\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_optional_default.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "17.4"
+   ],
+   "rows": [
+    "R875",
+    "R881"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "{\"name\":\"a\",\"age\":3,\"nick\":null}\n{\"name\":\"a\",\"age\":3,\"nick\":null}\n{\"name\":\"a\",\"age\":9,\"nick\":\"x\"}\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_record_roundtrip.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "17.4"
+   ],
+   "rows": [
+    "R875",
+    "R881"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "{\"name\":\"ada\",\"age\":36,\"admin\":true,\"score\":1.5}\n{\"name\":\"ada\",\"age\":36,\"admin\":true,\"score\":1.5}\nTrue\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_sum_roundtrip.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "17.4"
+   ],
+   "rows": [
+    "R874",
+    "R881"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "{\"tag\":\"Circle\",\"r\":1.5}\n{\"tag\":\"Unit\"}\n[{\"tag\":\"Circle\",\"r\":2.0},{\"tag\":\"Unit\"}]\nTrue\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_syntax_and_duplicate.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "17.4"
+   ],
+   "rows": [
+    "R876",
+    "R881"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "duplicate rejected\nsyntax rejected\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_typed_errors.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "17.4"
+   ],
+   "rows": [
+    "R876",
+    "R877",
+    "R881"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "line 1, col 9: $.name: expected str, found int\nline 1, col 1: $: missing field \"name\"\nline 1, col 17: $: unknown field \"x\"\nline 1, col 19: $.age: expected int, found float\nline 1, col 13: $.items[1]: expected int, found str\nunknown tag rejected\n",
    "exit": 0
   },
   {

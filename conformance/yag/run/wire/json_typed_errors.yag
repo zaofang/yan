@@ -1,0 +1,42 @@
+# spec: 17.3, 17.4
+# rows: R876, R877, R881
+# note: Mismatch, Missing, Unknown failures carry a path; an unknown tag is rejected (the wording of its Mismatch is not pinned); line and col point at the start of the offending value; an int field rejects 1.0
+# stdout:
+# line 1, col 9: $.name: expected str, found int
+# line 1, col 1: $: missing field "name"
+# line 1, col 17: $: unknown field "x"
+# line 1, col 19: $.age: expected int, found float
+# line 1, col 13: $.items[1]: expected int, found str
+# unknown tag rejected
+
+@derive(Wire, Show)
+class P:
+    name: str
+    age: int = 3
+
+@derive(Wire, Show)
+class L:
+    items: list[int]
+    note: str = ""
+
+@derive(Wire, Show)
+type Shape = Circle(r: float) | Unit()
+
+@derive(Wire, Show)
+class H:
+    s: Shape
+    note: str = ""
+
+def p_err(s: str) -> str:
+    p = json.parse[P](s) else err -> P(name=f"{err}", age=-1)
+    return p.name
+
+pub def main() uses io:
+    io.print(p_err("{\"name\":1}"))
+    io.print(p_err("{}"))
+    io.print(p_err("{\"name\":\"a\",\"x\":1}"))
+    io.print(p_err("{\"name\":\"a\",\"age\":1.0}"))
+    l = json.parse[L]("{\"items\":[1,\"b\"]}") else err -> L(items=[], note=f"{err}")
+    io.print(l.note)
+    h = json.parse[H]("{\"s\":{\"tag\":\"Z\"}}") else err -> H(s=Unit(), note="unknown tag rejected")
+    io.print(h.note)

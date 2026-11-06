@@ -1,0 +1,22 @@
+# spec: 17.3, 17.4
+# rows: R875, R881
+# note: an optional field may be absent or null and reads as None; a defaulted field may be absent; dump writes every field
+# stdout:
+# {"name":"a","age":3,"nick":null}
+# {"name":"a","age":3,"nick":null}
+# {"name":"a","age":9,"nick":"x"}
+
+@derive(Wire, Show)
+class P:
+    name: str
+    age: int = 3
+    nick: str | None
+
+def load(s: str) -> str:
+    p = json.parse[P](s) else err -> P(name=f"{err}", age=-1, nick=None)
+    return json.dump[P](p)
+
+pub def main() uses io:
+    io.print(load("{\"name\":\"a\"}"))
+    io.print(load("{\"name\":\"a\",\"nick\":null}"))
+    io.print(load("{\"name\":\"a\",\"age\":9,\"nick\":\"x\"}"))

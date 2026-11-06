@@ -1,0 +1,7 @@
+# spec: 17.4, 25.5
+# rows: R874, R879
+# note: a variant field named like the json tag of its sum is a compile error at the derive, so the clash never reaches run time
+# expect: E330 at 7:26
+
+@derive(Wire)
+type Shape = Circle(tag: int) | Unit()
