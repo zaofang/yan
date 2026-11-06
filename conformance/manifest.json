@@ -141,6 +141,19 @@
    "expect": []
   },
   {
+   "path": "yag/pass/lints/deny_clean_item.yag",
+   "kind": "pass",
+   "milestone": "M1b",
+   "spec": [
+    "18.2"
+   ],
+   "rows": [
+    "R797"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yag/pass/ownership/distinct_indices.yag",
    "kind": "pass",
    "milestone": "M1",
@@ -2109,6 +2122,45 @@
      "code": "W111",
      "line": 5,
      "col": 5
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lints/e277_expect_inside_deny.yag",
+   "kind": "fail",
+   "milestone": "M1b",
+   "spec": [
+    "18.2"
+   ],
+   "rows": [
+    "R797",
+    "R820"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E277",
+     "line": 9,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lints/e278_deny_non_lint.yag",
+   "kind": "fail",
+   "milestone": "M1b",
+   "spec": [
+    "18.2"
+   ],
+   "rows": [
+    "R797"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E278",
+     "line": 7,
+     "col": 1
     }
    ]
   },
