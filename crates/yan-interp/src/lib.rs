@@ -895,6 +895,12 @@ mod selftest {
         assert_eq!(names, ["clause", "item", "n"]);
         assert_eq!(c[0].1, Operand::Int(0));
         assert_eq!(c[2].1, Operand::Int(3));
+        let a = fields(
+            "fn main() -> Unit {\n let n: i64 = 3\n let m: i64 = 4\n let t: Text = \"a\"\n\
+             let c: Bool = gt_i64(let n, let m)\n assert c\n ret ()\n}\n",
+        );
+        let names: Vec<_> = a.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(names, ["left", "right", "n", "m"]);
         let k = missing_key(&Value::Int(7));
         assert_eq!(k[1], ("key_type", Operand::Type("int")));
         assert_eq!(k, missing_key(&Value::Int(7)));
