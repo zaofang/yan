@@ -278,6 +278,37 @@ pub struct Panic {
     pub kind: String,
     pub message: String,
     pub trace: Vec<Frame>,
+    /// Named operands (R796); never text, collections, `Secret` or `Untrusted`.
+    pub fields: Vec<(&'static str, Operand)>,
+}
+
+/// A panic operand: a number, bool or unit-carrying value, else only its type name (R796).
+#[derive(Debug, Clone, PartialEq)]
+pub enum Operand {
+    Int(i128),
+    Float(f64),
+    Bool(bool),
+    /// Nanoseconds of a duration, instant or monotonic reading.
+    Nanos(i128),
+    Type(&'static str),
+}
+
+impl Operand {
+    pub(crate) fn of(v: &Value) -> Operand {
+        match v {
+            Value::Int(n) => Operand::Int(*n),
+            Value::Float(x) => Operand::Float(*x),
+            Value::Bool(b) => Operand::Bool(*b),
+            Value::Duration(n) | Value::Instant(n) | Value::Mono(n) => Operand::Nanos(*n),
+            Value::Unit => Operand::Type("Unit"),
+            Value::Secret(_) => Operand::Type("Secret"),
+            Value::Str(_) | Value::Char(_) => Operand::Type("Text"),
+            Value::List(_) | Value::Tuple(_) | Value::Dict(_) | Value::Set(_) => {
+                Operand::Type("Collection")
+            }
+            _ => Operand::Type("Value"),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -326,13 +357,31 @@ pub(crate) fn panic_with<T>(kind: &str, message: impl Into<String>) -> R<T> {
         kind: kind.to_owned(),
         message: message.into(),
         trace: Vec::new(),
+        fields: Vec::new(),
+    })))
+}
+
+pub(crate) fn panic_fields<T>(
+    kind: &str,
+    message: impl Into<String>,
+    fields: Vec<(&'static str, Operand)>,
+) -> R<T> {
+    Err(Stop::Panic(Box::new(Panic {
+        kind: kind.to_owned(),
+        message: message.into(),
+        trace: Vec::new(),
+        fields,
     })))
 }
 
 pub(crate) fn out_of_range<T>(i: i128, len: usize) -> R<T> {
-    panic_with(
+    panic_fields(
         "bounds",
         format!("index {i} is out of range for length {len}"),
+        vec![
+            ("index", Operand::Int(i)),
+            ("length", Operand::Int(len as i128)),
+        ],
     )
 }
 
@@ -501,8 +550,20 @@ fn checked(v: Option<i128>, ty: &str) -> R<Value> {
     let (lo, hi) = int_range(ty).expect("caller checked the type");
     match v {
         Some(v) if (lo..=hi).contains(&v) => Ok(Value::Int(v)),
-        _ => panic("overflow"),
+        _ => panic_fields(
+            "overflow",
+            yan_rt::abi::panic_message("overflow"),
+            vec![("type", Operand::Type(ty_static(ty)))],
+        ),
     }
+}
+
+/// The interned name of a fixed-width integer type.
+fn ty_static(ty: &str) -> &'static str {
+    const NAMES: &[&str] = &[
+        "i8", "i16", "i32", "i64", "i128", "u8", "u16", "u32", "u64", "u128", "int",
+    ];
+    NAMES.iter().find(|n| **n == ty).copied().unwrap_or("int")
 }
 
 /// `<op>_<scalar>` intrinsics (assumption Y4). `None` when `name` is not an intrinsic.
@@ -531,7 +592,11 @@ pub(crate) fn intrinsic(name: &str, args: &[Value]) -> Option<R<Value>> {
                 "add_checked" => checked(a.checked_add(b), ty),
                 "sub_checked" => checked(a.checked_sub(b), ty),
                 "mul_checked" => checked(a.checked_mul(b), ty),
-                "floordiv" | "mod" if b == 0 => panic("div_zero"),
+                "floordiv" | "mod" if b == 0 => panic_fields(
+                    "div_zero",
+                    yan_rt::abi::panic_message("div_zero"),
+                    vec![("dividend", Operand::Int(a)), ("divisor", Operand::Int(0))],
+                ),
                 "floordiv" => checked(
                     Some(a.div_euclid(b) - i128::from(a.rem_euclid(b) != 0 && b < 0)),
                     ty,
