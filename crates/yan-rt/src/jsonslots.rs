@@ -18,21 +18,21 @@ pub enum Slot {
 type Fail = (usize, Reason);
 type D = Result<(), Fail>;
 
-fn get<'a>(o: &'a Json, k: &str) -> Option<&'a Json> {
+pub(crate) fn get<'a>(o: &'a Json, k: &str) -> Option<&'a Json> {
     match o {
         Json::Object(fs) => fs.iter().find(|(n, _)| n == k).map(|(_, v)| v),
         _ => None,
     }
 }
 
-fn items(j: &Json) -> &[Json] {
+pub(crate) fn items(j: &Json) -> &[Json] {
     match j {
         Json::Array(xs) => xs,
         _ => &[],
     }
 }
 
-fn text(j: Option<&Json>) -> &str {
+pub(crate) fn text(j: Option<&Json>) -> &str {
     match j {
         Some(Json::Str(s)) => s,
         _ => "",
@@ -40,7 +40,7 @@ fn text(j: Option<&Json>) -> &str {
 }
 
 /// The key or tag value a field or variant has on the wire.
-fn wire(d: &Json) -> &str {
+pub(crate) fn wire(d: &Json) -> &str {
     match get(d, "w") {
         Some(Json::Str(s)) => s,
         _ => text(get(d, "n")),
@@ -385,7 +385,7 @@ impl Cx<'_> {
     }
 }
 
-fn word(x: usize) -> Slot {
+pub(crate) fn word(x: usize) -> Slot {
     Slot::Word(x as u64)
 }
 
