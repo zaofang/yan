@@ -102,6 +102,10 @@ pub(crate) enum Op {
     },
     Clear(Reg),
     Jmp(u32),
+    /// Run the branches of `pars[idx]` as cooperative tasks, then continue at its join.
+    Par(u32),
+    /// A task's branch is done.
+    TaskEnd,
     JmpIfNot {
         cond: Opnd,
         to: u32,
@@ -326,6 +330,8 @@ pub(crate) struct Code {
     pub spans: Vec<Span>,
     pub asserts: Vec<AssertC>,
     pub contracts: Vec<ContractC>,
+    /// The branch entry pcs and the join pc of each `par concurrent`.
+    pub pars: Vec<(Vec<u32>, u32)>,
 }
 
 /// A checked `requires` clause: its item's identity hash, its position among the item's
@@ -982,7 +988,7 @@ impl<'g, 'm> FnC<'g, 'm> {
                     self.emit(Op::Become { site });
                 }
             }
-            StmtKind::Par { blocks, .. } => self.par(blocks),
+            StmtKind::Par { blocks, concurrent } => self.par(blocks, *concurrent),
             StmtKind::Assert(e) => {
                 let t = self.temp();
                 self.expr(e, t);
@@ -1064,8 +1070,11 @@ impl<'g, 'm> FnC<'g, 'm> {
 
     /// The branches of a `par` in source order. With `rand` in scope, branch `k` runs under
     /// `rand.split(k)`, so its stream depends on its task path only (RFC 0019 D5).
-    fn par(&mut self, blocks: &[Block]) {
+    fn par(&mut self, blocks: &[Block], concurrent: bool) {
         let Some(reg) = self.regs.get("rand").copied() else {
+            if concurrent && blocks.len() > 1 {
+                return self.par_tasks(blocks);
+            }
             return blocks.iter().for_each(|b| self.block(b));
         };
         let saved = self.temp();
@@ -1092,6 +1101,47 @@ impl<'g, 'm> FnC<'g, 'm> {
             dst: reg,
             src: saved,
         });
+    }
+
+    /// The branches of a `par concurrent` as tasks over this frame. A name bound in more than one
+    /// branch gets a register per branch, so interleaved branches do not share it.
+    fn par_tasks(&mut self, blocks: &[Block]) {
+        let bound: Vec<Vec<Name>> = blocks
+            .iter()
+            .map(|b| {
+                let mut v = Vec::new();
+                binds(b, &self.g.nullary, &mut v);
+                v.sort();
+                v.dedup();
+                v
+            })
+            .collect();
+        let at = self.code.ops.len();
+        self.emit(Op::Par(0));
+        let mut entries = Vec::new();
+        for (k, b) in blocks.iter().enumerate() {
+            entries.push(self.code.ops.len() as u32);
+            let mut saved = Vec::new();
+            for n in &bound[k] {
+                let shared = bound
+                    .iter()
+                    .enumerate()
+                    .any(|(j, o)| j != k && o.contains(n));
+                if shared && let Some(old) = self.regs.get(n).copied() {
+                    let fresh = self.temp();
+                    self.regs.insert(n.clone(), fresh);
+                    saved.push((n.clone(), old));
+                }
+            }
+            self.block(b);
+            self.emit(Op::TaskEnd);
+            for (n, old) in saved {
+                self.regs.insert(n, old);
+            }
+        }
+        let join = self.code.ops.len() as u32;
+        self.code.pars.push((entries, join));
+        self.code.ops[at] = Op::Par(self.code.pars.len() as u32 - 1);
     }
 
     /// Restore the `with` names between the top scope and scope `to`, exclusive.

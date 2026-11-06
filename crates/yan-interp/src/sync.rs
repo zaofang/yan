@@ -26,9 +26,14 @@ fn chan(v: &Value) -> usize {
     }
 }
 
-/// Branches run one after another here, so a wait that nothing has ended yet never ends: under
-/// a deadline it fails with `Timeout` at the deadline (9.4), and otherwise the run stops.
-fn blocked(it: &mut Interp, op: &str) -> R<Result<Value, Value>> {
+/// A branch of a `par concurrent` at task level parks and the VM switches to another task (R390).
+/// Elsewhere nothing can end the wait: under a deadline it fails with `Timeout` at the deadline
+/// (9.4), and otherwise the run stops.
+fn blocked(it: &mut Interp, op: &str, chan: usize) -> R<Result<Value, Value>> {
+    if it.park_ok && !it.force {
+        it.park = Some((op == "recv", chan));
+        return Ok(Ok(Value::Unit));
+    }
     match wait_out(it) {
         Some(t) => Ok(Err(t)),
         None => unsupported(format!(
@@ -55,9 +60,15 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_CHAN_RECEIVER_RECV,
-        Bind::CapFallible(|it, a| match it.chans[chan(&a[0])].1.pop_front() {
-            Some(v) => Ok(Ok(v)),
-            None => blocked(it, "recv"),
+        Bind::CapFallible(|it, a| {
+            let c = chan(&a[0]);
+            match it.chans[c].1.pop_front() {
+                Some(v) => {
+                    it.progress += 1;
+                    Ok(Ok(v))
+                }
+                None => blocked(it, "recv", c),
+            }
         }),
     ),
     (
@@ -67,12 +78,21 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_CHAN_SENDER_SEND,
         Bind::CapFallible(|it, a| {
-            let (cap, q) = &mut it.chans[chan(&a[0])];
-            if q.len() < *cap {
+            let c = chan(&a[0]);
+            let (cap, q) = &mut it.chans[c];
+            // A rendezvous channel hands over only to a receiver already waiting.
+            let room = if *cap == 0 {
+                let waiting = it.waiting_recv.iter().filter(|w| **w == c).count();
+                q.len() < waiting
+            } else {
+                q.len() < *cap
+            };
+            if room {
                 q.push_back(std::mem::take(&mut a[1]));
+                it.progress += 1;
                 Ok(Ok(Value::Unit))
             } else {
-                blocked(it, "send")
+                blocked(it, "send", c)
             }
         }),
     ),
