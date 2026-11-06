@@ -2,6 +2,7 @@
 //! and the text emitters for constrained decoding (21.3): GBNF, XGrammar EBNF and llguidance Lark.
 
 use crate::lexer::{Tok, lex};
+use crate::parser::AUGOPS;
 use std::collections::{HashMap, HashSet};
 
 const SOURCE: &str = include_str!("../grammar/yag.ebnf");
@@ -395,6 +396,7 @@ impl Recognizer {
             .map(|t| &t.tok)
             .take_while(|t| !matches!(t, Tok::Eof))
             .collect();
+        let keyword = contract_keywords(&toks);
         type Item = (usize, usize, usize);
         let mut sets: Vec<Vec<Item>> = Vec::with_capacity(toks.len() + 1);
         let mut seen: Vec<HashSet<Item>> = Vec::new();
@@ -424,7 +426,7 @@ impl Recognizer {
                     }
                     Some(sym) => {
                         if let Some(t) = toks.get(k)
-                            && matches(sym, t)
+                            && matches(sym, t, keyword[k])
                         {
                             if sets.len() == k + 1 {
                                 sets.push(Vec::new());
@@ -520,11 +522,11 @@ fn is_typename(s: &str) -> bool {
     s.starts_with(|c: char| c.is_ascii_uppercase()) && !matches!(s, "True" | "False" | "None")
 }
 
-fn matches(sym: &Sym, tok: &Tok) -> bool {
+fn matches(sym: &Sym, tok: &Tok, keyword: bool) -> bool {
     match (sym, tok) {
         (Sym::Lit(l), Tok::Op(o)) => l == o,
         (Sym::Lit(l), Tok::Name(n)) => l == n,
-        (Sym::T(Term::Name), Tok::Name(n)) => is_name(n),
+        (Sym::T(Term::Name), Tok::Name(n)) => is_name(n) && !keyword,
         (Sym::T(Term::TypeName), Tok::Name(n)) => is_typename(n),
         (Sym::T(Term::Int), Tok::Int(_)) => true,
         (Sym::T(Term::Float), Tok::Float(_)) => true,
@@ -538,6 +540,61 @@ fn matches(sym: &Sym, tok: &Tok) -> bool {
         (Sym::T(Term::Dedent), Tok::Dedent) => true,
         _ => false,
     }
+}
+
+/// Marks the contract words that 13.1 makes keywords: those opening a line of a body's contract region
+/// (the lines before its first other statement) unless `=` or an augmented assignment follows (R462).
+/// A context-free rule cannot say that a name is excluded there, so the recognizer does.
+fn contract_keywords(toks: &[&Tok]) -> Vec<bool> {
+    let mut out = vec![false; toks.len()];
+    let (mut head, mut last_head): (Option<&str>, Option<&str>) = (None, None);
+    let mut region: &[&str] = &[];
+    let mut bol = true;
+    for (i, t) in toks.iter().enumerate() {
+        match t {
+            Tok::Newline => {
+                last_head = head.take();
+                bol = true;
+                continue;
+            }
+            Tok::Indent => {
+                region = match last_head {
+                    Some("def" | "lemma") => &["pre", "post", "ex", "decreases"],
+                    Some("while" | "for") => &["invariant", "decreases"],
+                    _ => &[],
+                };
+                continue;
+            }
+            Tok::Dedent => {
+                region = &[];
+                bol = true;
+                continue;
+            }
+            _ => {}
+        }
+        if head.is_none() && !matches!(t, Tok::Name(n) if n == "pub") {
+            head = Some(match t {
+                Tok::Name(n) => n,
+                _ => "",
+            });
+        }
+        if bol && !region.is_empty() {
+            let word = match t {
+                Tok::Name(n) => Some(n.as_str()),
+                _ => None,
+            };
+            let assigned =
+                matches!(toks.get(i + 1), Some(Tok::Op(o)) if *o == "=" || AUGOPS.contains(o));
+            match word {
+                Some(w) if region.contains(&w) && !assigned => out[i] = true,
+                _ if matches!(t, Tok::Str { .. })
+                    && matches!(toks.get(i + 1), Some(Tok::Newline)) => {}
+                _ => region = &[],
+            }
+        }
+        bol = false;
+    }
+    out
 }
 
 // ---- GBNF ----

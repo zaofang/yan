@@ -47,7 +47,7 @@ const RESERVED: [&str; 34] = [
 ];
 const REJECTED_E120: [&str; 4] = ["try", "except", "finally", "raise"];
 const REJECTED_E121: [&str; 6] = ["global", "nonlocal", "del", "yield", "async", "await"];
-const AUGOPS: [&str; 12] = [
+pub(crate) const AUGOPS: [&str; 12] = [
     "+=", "-=", "*=", "/=", "//=", "%=", "**=", "&=", "|=", "^=", "<<=", ">>=",
 ];
 const CONTRACT_WORDS: [&str; 4] = ["pre", "post", "ex", "decreases"];
