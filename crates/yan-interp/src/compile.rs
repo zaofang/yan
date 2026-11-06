@@ -166,7 +166,7 @@ pub(crate) enum Op {
     /// Panic with `kind` unless `src` is `true`.
     Check {
         src: Reg,
-        kind: &'static str,
+        info: u32,
     },
     /// An `assert` of `src`, described by `code.asserts[info]`.
     Assert {
@@ -325,6 +325,16 @@ pub(crate) struct Code {
     /// The statement each op came from, by pc.
     pub spans: Vec<Span>,
     pub asserts: Vec<AssertC>,
+    pub contracts: Vec<ContractC>,
+}
+
+/// A checked `requires` clause: its item's identity hash, its position among the item's
+/// `requires` and `ensures` clauses (R874), and the free variables the predicate reads (R875).
+#[derive(Debug)]
+pub(crate) struct ContractC {
+    pub item: Option<[u8; 32]>,
+    pub clause: u32,
+    pub vars: Vec<(Name, Reg)>,
 }
 
 /// Where an `assert` is, and the operands of the comparison it tests, if any.
@@ -347,7 +357,8 @@ struct Globals<'m> {
     /// Module constants with literal or materialized (stage-0) values.
     consts: Map<Name, Value>,
     codes: Vec<Option<Code>>,
-    pending: Vec<(usize, Name, &'m FnDef)>,
+    pending: Vec<(usize, Name, &'m FnDef, Option<[u8; 32]>)>,
+    hashes: Option<Vec<yan_core::hash::Hashed>>,
 }
 
 fn const_value(c: &ConstVal) -> Option<Value> {
@@ -374,15 +385,21 @@ pub(crate) fn compile(m: &Module) -> Program {
         consts: Map::default(),
         codes: Vec::new(),
         pending: Vec::new(),
+        hashes: m
+            .items
+            .iter()
+            .any(|i| matches!(&i.kind, ItemKind::Fn(f) | ItemKind::Inst(Inst { def: f, .. }) if has_requires(f)) || matches!(&i.kind, ItemKind::Impl(i) if i.fns.iter().any(has_requires)))
+            .then(|| yan_core::hash::hash_module(m)),
     };
-    for item in &m.items {
+    for (ix, item) in m.items.iter().enumerate() {
+        let ih = g.hashes.as_ref().map(|h| *h[ix].identity.group.as_bytes());
         match &item.kind {
             // The interpreter erases types, so an instance runs as its generic function.
             ItemKind::Fn(f) | ItemKind::Inst(Inst { def: f, .. }) => {
                 let id = g.codes.len();
                 g.codes.push(None);
                 g.fns.insert(f.path.join("."), id);
-                g.pending.push((id, f.path.join("."), f));
+                g.pending.push((id, f.path.join("."), f, ih));
             }
             ItemKind::Impl(i) => {
                 let ty = yan_core::type_text(&i.for_ty);
@@ -391,7 +408,7 @@ pub(crate) fn compile(m: &Module) -> Program {
                     g.codes.push(None);
                     let name = format!("{ty}.{}", f.path.join("."));
                     g.methods.insert(name.clone(), id);
-                    g.pending.push((id, name, f));
+                    g.pending.push((id, name, f, ih));
                 }
             }
             ItemKind::Sum(s) => {
@@ -412,9 +429,9 @@ pub(crate) fn compile(m: &Module) -> Program {
     }
     // A later item of the same name replaces an earlier one; compile only the live ones.
     let live: HashSet<usize> = g.fns.values().chain(g.methods.values()).copied().collect();
-    for (id, name, f) in std::mem::take(&mut g.pending) {
+    for (id, name, f, ih) in std::mem::take(&mut g.pending) {
         if live.contains(&id) {
-            let code = FnC::item(&mut g, name, f);
+            let code = FnC::item(&mut g, name, f, ih);
             g.codes[id] = Some(code);
         }
     }
@@ -426,6 +443,36 @@ pub(crate) fn compile(m: &Module) -> Program {
             .collect(),
         fns: g.fns,
     }
+}
+
+fn has_requires(f: &FnDef) -> bool {
+    f.contracts
+        .iter()
+        .any(|k| matches!(k, Contract::Requires(_)))
+}
+
+/// The names a predicate reads, in first-use order.
+fn free_vars(e: &Expr) -> Vec<Name> {
+    let atoms: Vec<&Atom> = match e {
+        Expr::Atom(a) => vec![a],
+        Expr::Call(c) => c
+            .args
+            .iter()
+            .filter_map(|a| match a {
+                Arg::Value(_, a, _) => Some(a),
+                Arg::Cap(..) => None,
+            })
+            .collect(),
+    };
+    let mut out: Vec<Name> = Vec::new();
+    for a in atoms {
+        if let Atom::Name(n, _) = a
+            && !out.contains(n)
+        {
+            out.push(n.clone());
+        }
+    }
+    out
 }
 
 fn param_name(p: &Param) -> &Name {
@@ -577,18 +624,27 @@ impl<'g, 'm> FnC<'g, 'm> {
         c
     }
 
-    fn item(g: &'g mut Globals<'m>, name: Name, f: &FnDef) -> Code {
+    fn item(g: &'g mut Globals<'m>, name: Name, f: &FnDef, item: Option<[u8; 32]>) -> Code {
         let mut c = FnC::new(g, &f.params, f.body.as_ref(), &[]);
         c.code.name = name;
         c.at = f.name_span;
+        let mut clause = 0;
         for k in &f.contracts {
-            if let Contract::Requires(e) = k {
-                let t = c.temp();
-                c.expr(e, t);
-                c.emit(Op::Check {
-                    src: t,
-                    kind: "contract",
-                });
+            match k {
+                Contract::Requires(e) => {
+                    let t = c.temp();
+                    c.expr(e, t);
+                    let info = c.code.contracts.len() as u32;
+                    let vars = free_vars(e)
+                        .into_iter()
+                        .filter_map(|n| c.regs.get(&n).map(|r| (n, *r)))
+                        .collect();
+                    c.code.contracts.push(ContractC { item, clause, vars });
+                    c.emit(Op::Check { src: t, info });
+                    clause += 1;
+                }
+                Contract::Ensures(_) => clause += 1,
+                _ => {}
             }
         }
         match &f.body {

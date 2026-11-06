@@ -585,9 +585,24 @@ impl<'o> Vm<'o> {
                     };
                     self.stack[base + dst as usize] = v;
                 }
-                Op::Check { src, kind } => {
+                Op::Check { src, info } => {
                     if !matches!(self.stack[base + src as usize], Value::Bool(true)) {
-                        return panic(kind);
+                        let c = &code.contracts[info as usize];
+                        let mut fields = vec![("clause".to_owned(), Operand::Int(c.clause.into()))];
+                        if let Some(h) = c.item {
+                            fields.push(("item".to_owned(), Operand::Hash(h)));
+                        }
+                        for (n, r) in &c.vars {
+                            let o = Operand::of(&self.stack[base + *r as usize]);
+                            if !matches!(o, Operand::Type(_)) {
+                                fields.push((n.clone(), o));
+                            }
+                        }
+                        return panic_fields(
+                            "contract",
+                            yan_rt::abi::panic_message("contract"),
+                            fields,
+                        );
                     }
                 }
                 Op::Assert { src, info } => {
