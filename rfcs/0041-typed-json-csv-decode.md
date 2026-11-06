@@ -1,8 +1,8 @@
 # 0041: Typed json and csv over Wire
 
-- Status: draft
+- Status: accepted (the lead chose D1 internal tag on 2026-11-06 and accepted D2 to D8 as recommended on 2026-11-06)
 - Research: none; this RFC is the proposal (issue #352, T12b3)
-- Rows: filled in when accepted
+- Rows: R874 to R881
 
 ## Summary
 
@@ -31,7 +31,7 @@ time. The tag value is the variant name, or its `@wire(name: ...)`. Decoding che
 the declared variants only; an unknown tag fails and never selects a type.
 
 - Decision: accepted, internal tag, 2026-11-06
-- Row: (R number once accepted)
+- Row: R874
 
 ### D2: Other `Wire` shapes in json
 
@@ -52,8 +52,8 @@ the declared variants only; an unknown tag fails and never selects a type.
 - newtype `N` over `T`: the encoding of `T`; refinements and invariants run after construction.
 - `json.Value`: itself, as the std.json rows say.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: accepted as recommended, 2026-11-06
+- Row: R875
 
 ### D3: Unknown fields
 
@@ -61,8 +61,8 @@ Rejected by default, as 17.4 requires. `@wire(unknown: "ignore")` on a record op
 them. There is no mode that collects them; a program that needs the rest reads `json.Value`.
 Duplicate keys always fail.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: accepted as recommended, 2026-11-06
+- Row: R876
 
 ### D4: Errors carry a path
 
@@ -79,8 +79,8 @@ Invalid(path: str, msg: str)     // validation or invariant failure after constr
 point at the start of the offending value. Unknown tags are `Mismatch` with `expected` listing the
 declared variants. Syntax-level reasons are unchanged and the type is still the module's only error.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: accepted as recommended, 2026-11-06
+- Row: R877
 
 ### D5: csv API and file rules
 
@@ -102,8 +102,8 @@ Options weighed: a streaming row iterator, a `header=False` mode that maps by po
 untyped rows. All three are left out of the first cut; the table engine's `read_csv` stays the path
 for untyped and large files.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: accepted as recommended, 2026-11-06
+- Row: R878
 
 ### D6: What a csv cell may hold, and sums in csv
 
@@ -122,8 +122,8 @@ variants.
 Options for sums: only field-less sums inside cells (no row-level sums), or both (recommended). The
 acceptance case needs a sum with payloads through csv, so the recommendation keeps it.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: accepted as recommended, 2026-11-06
+- Row: R879
 
 ### D7: `CsvError`
 
@@ -138,8 +138,8 @@ header name or empty. `Show` prints `line L, col C: <reason>`. It derives `Show`
 Total size, row count and field length are limited like every `Wire` decoder; the limits are the
 `Wire` defaults.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: accepted as recommended, 2026-11-06
+- Row: R880
 
 ### D8: Acceptance and scope
 
@@ -148,8 +148,8 @@ compiled backend: a record, a record with optional and defaulted fields, a sum w
 payload, and the error paths of D4 and D7. `std.toml` is out of scope and follows later over the same
 mapping. Implementation waits on `derive(Wire)` codegen.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: accepted as recommended, 2026-11-06
+- Row: R881
 
 ## Spec changes
 
