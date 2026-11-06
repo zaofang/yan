@@ -254,10 +254,14 @@ pub unsafe extern "C" fn yan_rt_list_copy(l: *const List) -> *mut List {
     })
 }
 
-/// End the program with `code` once stdout is flushed: `main` failed (8.1).
+/// End the program with `code` once stdout is flushed: `main` returned or failed (8.1). With
+/// `YAN_REPORT_LIVE` set, `live: N` goes to stderr first, as `yan run --report-live` prints it.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_exit(code: i64) -> ! {
     let _ = std::io::stdout().flush();
+    if std::env::var_os("YAN_REPORT_LIVE").is_some() {
+        eprintln!("live: {}", crate::heap::live_blocks());
+    }
     std::process::exit(code as i32)
 }
 
