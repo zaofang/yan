@@ -65,3 +65,20 @@ pub fn consumed(k: &StmtKind) -> Vec<&Name> {
         _ => Vec::new(),
     }
 }
+
+/// Names a pattern binds. They view the scrutinee: moving one moves the scrutinee.
+pub fn pat_binders(p: &Pat, out: &mut Vec<Name>) {
+    match p {
+        Pat::Bind(n) => out.push(n.clone()),
+        Pat::Ctor {
+            fields: Some((fs, _)),
+            ..
+        } => fs.iter().for_each(|(_, p)| pat_binders(p, out)),
+        Pat::Tuple(ps) | Pat::Or(ps) => ps.iter().for_each(|p| pat_binders(p, out)),
+        Pat::Slice { elems, rest } => {
+            elems.iter().for_each(|p| pat_binders(p, out));
+            out.extend(rest.iter().flatten().cloned());
+        }
+        _ => {}
+    }
+}

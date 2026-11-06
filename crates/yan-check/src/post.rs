@@ -49,6 +49,8 @@ struct V {
     loops: Vec<Loop>,
     jps: HashMap<Name, (Pos, St)>,
     last_decl: Option<Name>,
+    /// Names bound by `match` patterns, to the scrutinee local they view.
+    views: HashMap<Name, Name>,
     diags: Vec<Diagnostic>,
     file: String,
     item: String,
@@ -139,6 +141,13 @@ impl V {
         *self = V { diags, ..saved };
     }
 
+    fn consumed(&self, k: &StmtKind) -> Vec<Name> {
+        own::consumed(k)
+            .into_iter()
+            .map(|n| self.views.get(n).unwrap_or(n).clone())
+            .collect()
+    }
+
     fn flag_of(&self, x: &str) -> Option<Name> {
         self.scopes
             .iter()
@@ -222,7 +231,7 @@ impl V {
         let Some(mut st) = self.st.clone() else {
             return;
         };
-        for n in own::consumed(k) {
+        for n in &self.consumed(k) {
             if let Some(s) = st.get_mut(n) {
                 *s = S::Gone;
             }
@@ -246,7 +255,7 @@ impl V {
     }
 
     fn consume(&mut self, k: &StmtKind, next: Option<&Stmt>, at: Span, exits: bool) {
-        for n in own::consumed(k) {
+        for n in &self.consumed(k) {
             let Some(s) = self.st.as_ref().and_then(|st| st.get(n)).copied() else {
                 continue;
             };
@@ -387,7 +396,24 @@ impl V {
             StmtKind::If { then, els, .. } | StmtKind::ComptimeIf { then, els, .. } => {
                 self.branches([Some(then), els.as_ref()]);
             }
-            StmtKind::Match { arms, .. } => self.branches(arms.iter().map(|(_, b)| Some(b))),
+            StmtKind::Match { scrutinee, arms } => {
+                let mut bound = Vec::new();
+                if let Atom::Name(x, _) = scrutinee {
+                    let root = self.views.get(x).unwrap_or(x).clone();
+                    if self.st.as_ref().is_some_and(|st| st.contains_key(&root)) {
+                        for (p, _) in arms {
+                            own::pat_binders(p, &mut bound);
+                        }
+                        for n in &bound {
+                            self.views.insert(n.clone(), root.clone());
+                        }
+                    }
+                }
+                self.branches(arms.iter().map(|(_, b)| Some(b)));
+                for n in &bound {
+                    self.views.remove(n);
+                }
+            }
             StmtKind::Loop { label, body, .. } => {
                 let entry = self.st.clone().expect("reachable");
                 self.loops.push(Loop {
