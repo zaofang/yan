@@ -27,6 +27,8 @@ class Fake:
     bump: str = "patch"
     tool_result: tuple[list[dict[str, object]], int] = ([], 0)
     seen_args: list[list[str]] = field(default_factory=list)
+    formatted: str | None = None
+    fmt_exit: int = 0
 
     def check(self, path: Path, flags: list[str]) -> list[dict[str, object]]:
         self.seen_flags.append(flags)
@@ -48,6 +50,11 @@ class Fake:
 
     def semver(self, old: Path, new: Path) -> str:
         return self.bump
+
+    def fmt(self, path: Path) -> int:
+        if self.formatted is not None:
+            path.write_text(self.formatted)
+        return self.fmt_exit
 
     def tool(self, workdir: Path, args: list[str]) -> tuple[list[dict[str, object]], int]:
         assert (workdir / "package.yag").is_file()
@@ -280,3 +287,30 @@ def test_pkg_ok(tmp_path: Path) -> None:
     [case] = discover(tmp_path)
     assert judge(case, Fake(tool_result=([diag("W815", 1, 1, "warning")], 0))).status == "pass"
     assert judge(case, Fake(tool_result=([diag("E014", 1, 1)], 1))).status == "fail"
+
+
+def _fmt(tmp_path: Path, out: str = "b\n") -> None:
+    case = tmp_path / "fmt" / "f1"
+    case.mkdir(parents=True)
+    (case / "in.yag").write_text("a\n")
+    (case / "out.yag").write_text(out)
+    (case / "expect.toml").write_text('spec = "18.5"\n')
+
+
+def test_fmt_compares_bytes(tmp_path: Path) -> None:
+    _fmt(tmp_path)
+    [case] = discover(tmp_path)
+    assert case.kind == "fmt"
+    assert case.milestone == "M1"
+    assert judge(case, Fake(formatted="b\n")).status == "pass"
+    assert judge(case, Fake(formatted="b \n")).status == "fail"
+    assert judge(case, Fake()).status == "fail"
+    assert judge(case, Fake(formatted="b\n", fmt_exit=1)).status == "fail"
+    assert (tmp_path / "fmt" / "f1" / "in.yag").read_text() == "a\n"
+
+
+def test_fmt_needs_a_pair(tmp_path: Path) -> None:
+    _fmt(tmp_path)
+    (tmp_path / "fmt" / "f1" / "out.yag").unlink()
+    [case] = discover(tmp_path)
+    assert judge(case, Fake(formatted="b\n")).status == "fail"
