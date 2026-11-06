@@ -1059,3 +1059,43 @@ sections = "10.4, 17.4, 25.4"
 rows = "R873"
 topic = "E282 is reported once per offending field, at the field's type annotation; a field of a user class says it does not derive the trait, and a capability field under `Wire` adds a note that capabilities are never `Wire` (RFC 0040, R873)"
 sections = "10.4, 17.4, 25.4"
+
+[[entry]]
+rows = "R874"
+topic = "A sum type is written in json as one object with an internal tag: key `tag`, renamed by `@wire(tag: ...)` on the sum, value the variant name or its `@wire(name: ...)`; decoding checks the tag against the declared variants only (RFC 0041, D1)"
+sections = "17.3, 17.4"
+
+[[entry]]
+rows = "R875"
+topic = "Typed json shapes: a record is an object in declaration order; `T | None` is `null` or an absent field; `int` rejects `1.0`; `float` widens an integer literal exactly; collections, tuples and sets are arrays; `dict[str, V]` is an object and other keys are `[key, value]` pairs; `bytes` is base64; a newtype is its inner encoding; a non-finite float panics with `value` on dump (RFC 0041, D2)"
+sections = "17.3, 17.4"
+
+[[entry]]
+rows = "R876"
+topic = "Unknown fields in typed json are rejected unless the record has `@wire(unknown: \"ignore\")`; duplicate keys always fail (RFC 0041, D3)"
+sections = "17.3, 17.4"
+
+[[entry]]
+rows = "R877"
+topic = "`JsonReason` gains `Mismatch(path, expected, found)`, `Missing(path, field)`, `Unknown(path, field)` and `Invalid(path, msg)`; `path` is `$` plus `.name` and `[i]` steps (RFC 0041, D4)"
+sections = "17.3, 17.4"
+
+[[entry]]
+rows = "R878"
+topic = "`csv.parse[T: Wire](s, delimiter=\",\") -> list[T] fail CsvError` and `csv.dump[T: Wire](rows, delimiter=\",\") -> str`: required header, columns matched by name in any order, RFC 4180 input, LF output with quoting only where needed (RFC 0041, D5)"
+sections = "17.3, 17.4"
+
+[[entry]]
+rows = "R879"
+topic = "A csv cell is a bool, int, float, str, `T | None` of those, a newtype over them, or a sum whose variants have no fields; `None` is an unquoted empty cell and `Some(\"\")` a quoted one; a row type may be a sum, with a `tag` column and the union of the variants' fields; any other field type is E330 (RFC 0041, D6)"
+sections = "17.3, 17.4, 25.5"
+
+[[entry]]
+rows = "R880"
+topic = "`type CsvError = { line, col, row, column, reason: CsvReason }` with `CsvReason = Syntax | Header | Mismatch | Missing | Unknown | Invalid | Limit` (RFC 0041, D7)"
+sections = "17.3, 17.4"
+
+[[entry]]
+rows = "R881"
+topic = "Typed json and csv are accepted by round-trip cases of a record, optional and defaulted fields and a sum on both backends, plus the error paths; `std.toml` follows later over the same mapping (RFC 0041, D8)"
+sections = "17.3, 17.4"
