@@ -7,7 +7,8 @@
 //! still owned; if its type has a custom `Drop` or is `@linear`, an edge drop could run earlier
 //! than 5.4 allows, so the pass writes a drop flag `var _dN: bool` instead (D2.3).
 //!
-//! A name bound by a `match` pattern views its scrutinee: moving it moves the scrutinee.
+//! A name bound by a `match` pattern or a non-copy projection views its source: moving it moves
+//! the source (the rest of the source leaks).
 //!
 //! Not covered yet: overwriting a field or an `inout` place, and moving a field out of a local.
 
@@ -527,6 +528,14 @@ impl Elab<'_> {
                 let flagged = self.consume(&s.kind);
                 out.push(new);
                 self.clear_flags(flagged, at, out);
+                if let (Rhs::Proj(p), Pat::Bind(x)) = (rhs, pat)
+                    && !own::is_copy(ty)
+                {
+                    let root = self.cx.views.get(&p.root).unwrap_or(&p.root).clone();
+                    self.cx.views.insert(x.clone(), root);
+                } else if let Pat::Bind(x) = pat {
+                    self.cx.views.remove(x);
+                }
                 if !matches!(rhs, Rhs::Proj(_)) {
                     self.declare_pat(pat, ty, at, out);
                 }

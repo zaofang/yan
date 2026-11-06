@@ -106,3 +106,40 @@ fn a_matched_result_payload_is_freed_once() {
     assert_eq!(String::from_utf8_lossy(&run.stdout), "v5\ne\n");
     assert!(String::from_utf8_lossy(&run.stderr).contains("live: 0\n"));
 }
+
+#[test]
+fn a_field_read_out_of_a_dropped_owner_is_not_freed() {
+    let dir = std::env::temp_dir().join(format!("yan-field-move-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let src = dir.join("r.yag");
+    std::fs::write(
+        &src,
+        "class E:\n    line: int\n    why: str\n\n\
+         class P:\n    name: str\n\n\
+         def mk(bad: bool) -> P fail E:\n    if bad:\n        fail E(line=1, why=\"p\" + \"q\")\n    return P(name=\"ok\")\n\n\
+         def f(bad: bool) -> str:\n    p = mk(bad) else err -> P(name=f\"{err.why}\")\n    return p.name\n\n\
+         pub def main() uses io:\n    io.print(f(True))\n    io.print(f(False))\n",
+    )
+    .unwrap();
+    let exe = dir.join("r");
+    let build = Command::new(YAN)
+        .arg("build")
+        .arg(&src)
+        .arg("-o")
+        .arg(&exe)
+        .output()
+        .unwrap();
+    assert!(
+        build.status.success(),
+        "{}",
+        String::from_utf8_lossy(&build.stderr)
+    );
+    let run = Command::new(&exe)
+        .env("YAN_REPORT_LIVE", "1")
+        .output()
+        .unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    assert!(run.status.success(), "{:?}", run.status);
+    assert_eq!(String::from_utf8_lossy(&run.stdout), "pq\nok\n");
+    assert!(String::from_utf8_lossy(&run.stderr).contains("live: 0\n"));
+}
