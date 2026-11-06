@@ -2421,7 +2421,16 @@ impl<'a> Fold<'a> {
                 if generated(n) {
                     let (names, k) = destructured(n, &ss[1..]);
                     if !names.is_empty() && self.uses(n) == names.len() {
-                        let value = self.rhs(rhs)?;
+                        let mut value = self.rhs(rhs)?;
+                        // `a, b = x, y` elaborates as a parallel assignment, not through a tuple.
+                        if matches!(rhs, y::Rhs::Ctor(y::Ctor::Tuple(_))) {
+                            out.push(stmt(StmtKind::Assign {
+                                target: name(n),
+                                ty: None,
+                                value,
+                            }));
+                            value = name(n);
+                        }
                         for (i, b) in names.iter().enumerate() {
                             if let K::Let { ty, .. } = &ss[1 + names.len() + i].kind {
                                 self.types.insert(b.clone(), ty.clone());
