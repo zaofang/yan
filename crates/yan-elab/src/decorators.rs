@@ -31,6 +31,7 @@ pub(crate) fn derives(it: &j::Item, name: &str) -> bool {
 /// Checks `it`'s decorators after the item was lowered; its diagnostics start at `start`.
 pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<()> {
     let item = it.kind.name().to_owned();
+    deny(it, &item, start, cx);
     for (k, d) in it.decorators.iter().enumerate() {
         let args = d.args.as_deref().unwrap_or_default();
         match d.path.join(".").as_str() {
@@ -116,6 +117,7 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
             "layout" if g.layout_c.contains(&item) => {}
             "layout" => return unsupported("`@layout` other than `@layout(c)` on a record"),
             "reentrant" => reentrant(it, cx),
+            "deny" => {}
             "deprecated" | "inline" | "limit" | "test_support" => {}
             "capability" if matches!(it.kind, j::ItemKind::Trait(_)) => {}
             // Read with `@derive(Cli)` (RFC 0019 D14).
@@ -130,6 +132,73 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
         }
     }
     Ok(())
+}
+
+/// The code named by decorator argument `a`, if it is a bare name.
+fn code_of(a: &j::Arg) -> Option<&str> {
+    match &a.kind {
+        j::ArgKind::Expr(j::Expr {
+            kind: j::ExprKind::Name(n),
+            ..
+        }) => Some(n),
+        _ => None,
+    }
+}
+
+/// Whether `code` is a W8xx lint code.
+fn is_lint(code: &str) -> bool {
+    code.len() == 4 && code.starts_with("W8") && code[2..].bytes().all(|b| b.is_ascii_digit())
+}
+
+/// `@deny(code)` (18.2, R797): the lint is an error in the item; E277 for an `@expect` of the
+/// same code, E278 for a code that is not a W8xx lint.
+fn deny(it: &j::Item, item: &str, start: usize, cx: &mut Cx) {
+    for (k, d) in it.decorators.iter().enumerate() {
+        if d.path != ["deny"] {
+            continue;
+        }
+        for code in d
+            .args
+            .as_deref()
+            .unwrap_or_default()
+            .iter()
+            .filter_map(code_of)
+        {
+            if !is_lint(code) {
+                let at = decorator_span(it, k);
+                cx.err(
+                    "E278",
+                    at,
+                    item,
+                    format!("`@deny({code})` names a code that is not a W8xx lint"),
+                );
+                continue;
+            }
+            for (j, e) in it.decorators.iter().enumerate() {
+                let expects = e.path == ["expect"]
+                    && e.args
+                        .as_deref()
+                        .unwrap_or_default()
+                        .first()
+                        .and_then(code_of)
+                        == Some(code);
+                if expects {
+                    let at = decorator_span(it, j);
+                    cx.err(
+                        "E277",
+                        at,
+                        item,
+                        format!("`@expect({code})` inside an item that `@deny({code})`"),
+                    );
+                }
+            }
+            for dg in cx.diags.iter_mut().skip(start) {
+                if dg.code == code && dg.severity == yan_diag::Severity::Warning {
+                    dg.severity = yan_diag::Severity::Error;
+                }
+            }
+        }
+    }
 }
 
 /// E900: every expression that allocates in a function marked `@forbid(alloc)` (5.7, R447).
