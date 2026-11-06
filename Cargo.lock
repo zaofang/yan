@@ -1784,6 +1784,8 @@ dependencies = [
  "cranelift-module",
  "cranelift-native",
  "cranelift-object",
+ "gimli",
+ "object",
  "yan-core",
  "yan-db",
  "yan-ide",
