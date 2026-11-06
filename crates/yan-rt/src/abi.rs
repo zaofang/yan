@@ -59,8 +59,8 @@ pub fn panic_message(kind: &str) -> &'static str {
 
 /// A list of `words`-slot elements.
 pub struct List {
-    words: usize,
-    data: Vec<u64>,
+    pub(crate) words: usize,
+    pub(crate) data: Vec<u64>,
 }
 
 fn leak<T>(x: T) -> *mut T {
@@ -291,4 +291,71 @@ pub unsafe extern "C" fn yan_rt_free_env(p: *mut u64) {
         let n = *head as usize + 1;
         drop(Box::from_raw(std::ptr::slice_from_raw_parts_mut(head, n)));
     }
+}
+
+/// Slots into words at `out`, with `Str` and `List` blocks built for them.
+///
+/// # Safety
+/// `out` has room for the slots.
+unsafe fn store_slots(out: *mut u64, slots: Vec<crate::jsonslots::Slot>) {
+    use crate::jsonslots::Slot;
+    fn flat(slots: Vec<Slot>) -> Vec<u64> {
+        slots
+            .into_iter()
+            .map(|s| match s {
+                Slot::Word(w) => w,
+                Slot::Str(s) => str_block(&s) as u64,
+                Slot::List(words, xs) => leak(List {
+                    words,
+                    data: flat(xs),
+                }) as u64,
+            })
+            .collect()
+    }
+    for (i, w) in flat(slots).into_iter().enumerate() {
+        // SAFETY: the caller's contract.
+        unsafe { out.add(i).write(w) };
+    }
+}
+
+/// `std.json.parse`: the slots of the `Result` into `out`.
+///
+/// # Safety
+/// `src` and `schema` are `Str` blocks; `out` has room for the result's slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_json_parse(
+    out: *mut u64,
+    src: *const String,
+    schema: *const String,
+) {
+    // SAFETY: the caller's contract.
+    unsafe { store_slots(out, crate::jsonslots::parse(&*src, &*schema)) }
+}
+
+/// `std.json.dump`: the json text of the value in `v`.
+///
+/// # Safety
+/// `v` holds the schema's root type; `schema` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_json_dump(v: *const u64, schema: *const String) -> *mut String {
+    // SAFETY: the caller's contract.
+    let schema = unsafe { &*schema };
+    let w = unsafe { std::slice::from_raw_parts(v, crate::jsonslots::root_width(schema)) };
+    // SAFETY: as above.
+    match unsafe { crate::jsonslots::dump(w, schema) } {
+        Some(s) => str_block(&s),
+        None => panic("value"),
+    }
+}
+
+/// The text of a `JsonError`.
+///
+/// # Safety
+/// `v` holds a `JsonError`'s slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_json_error_show(v: *const u64) -> *mut String {
+    // SAFETY: the caller's contract.
+    let w = unsafe { std::slice::from_raw_parts(v, 14) };
+    // SAFETY: as above.
+    str_block(&unsafe { crate::jsonslots::show_error(w) })
 }
