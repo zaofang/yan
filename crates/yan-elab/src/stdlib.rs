@@ -494,6 +494,7 @@ pub(crate) fn classes(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
             fs.push(crate::Field {
                 name: f.name.clone(),
                 ty: g.ty(&f.ty, &mut cx, c.span)?,
+                ty_span: f.ty_span,
                 default: f.default.clone(),
             });
         }
@@ -548,6 +549,7 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
                 fs.push(crate::Field {
                     name: f.name.clone(),
                     ty: g.ty(&f.ty, &mut cx, span)?,
+                    ty_span: f.ty_span,
                     default: f.default.clone(),
                 });
             }

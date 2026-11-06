@@ -206,6 +206,8 @@ pub struct Record {
 pub struct Field {
     pub name: Name,
     pub ty: Type,
+    /// The type annotation as written; the default span when the field has no source.
+    pub ty_span: Span,
     pub default: Option<Expr>,
 }
 

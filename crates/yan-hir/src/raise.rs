@@ -745,6 +745,7 @@ fn field(f: &y::Field) -> R<Field> {
     Ok(Field {
         name: f.name.clone(),
         ty: ty(&f.ty)?,
+        ty_span: Span::default(),
         default: None,
     })
 }

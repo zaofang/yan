@@ -5,12 +5,16 @@
 use yan_diag::Span;
 use yan_hir as j;
 
+use crate::stdlib::STD;
+use crate::ty::Ty;
 use crate::{Cx, Globals, R, ffi, lower, unsupported};
 
 /// std traits with a `derived` body (10.4); `From` derives on sums (R432).
 const DERIVABLE: [&str; 9] = [
     "Eq", "Ord", "Hash", "Show", "Default", "Wire", "Num", "From", "Cli",
 ];
+/// Derives whose fields must implement the trait too (E282).
+pub(crate) const FIELD_TRAITS: [&str; 5] = ["Eq", "Ord", "Hash", "Show", "Wire"];
 /// The compiler derives these itself (6.2).
 const AUTO: [&str; 3] = ["Send", "Sync", "Freeze"];
 
@@ -47,6 +51,9 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
                         }
                         continue;
                     } else if DERIVABLE.contains(&t.as_str()) {
+                        if FIELD_TRAITS.contains(&t.as_str()) {
+                            fields(g, it, &item, t, cx);
+                        }
                         continue;
                     } else {
                         "has no `derived` body"
@@ -294,4 +301,87 @@ fn name_of(t: &str) -> String {
         .next()
         .unwrap_or("")
         .to_owned()
+}
+
+/// E282 once per field of `it` whose type does not implement the derived trait `tr`, at the
+/// field's type annotation (R872, R873).
+fn fields(g: &Globals, it: &j::Item, item: &str, tr: &str, cx: &mut Cx) {
+    let owned: Vec<(String, &[crate::Field])> = match &it.kind {
+        j::ItemKind::Record(c) => g
+            .records
+            .get(&c.name)
+            .map(|fs| vec![(c.name.clone(), fs.as_slice())])
+            .unwrap_or_default(),
+        j::ItemKind::Type(t) => g
+            .sums
+            .get(&t.name)
+            .map(|vs| {
+                vs.iter()
+                    .map(|(v, fs)| (v.clone(), fs.as_slice()))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        _ => return,
+    };
+    for (owner, fs) in owned {
+        for f in fs {
+            let Err(msg) = field_ok(g, &owner, f, tr) else {
+                continue;
+            };
+            cx.err("E282", f.ty_span, item, msg);
+            if tr == "Wire"
+                && has_capability(&f.ty)
+                && let Some(d) = cx.diags.last_mut()
+            {
+                d.notes.push("capabilities are never `Wire` (17.4)".into());
+            }
+        }
+    }
+}
+
+fn field_ok(g: &Globals, owner: &str, f: &crate::Field, tr: &str) -> Result<(), String> {
+    if tr == "Wire" {
+        return crate::wire::schema(g, owner, f, &f.ty, &mut Vec::new()).map(|_| ());
+    }
+    match offender(g, &f.ty, tr) {
+        None => Ok(()),
+        Some(t) => Err(format!(
+            "`{owner}.{}` has type `{t}`, which does not {} `{tr}`",
+            f.name,
+            if matches!(t, Ty::Data(n) if !STD.caps.contains(n)) {
+                "derive"
+            } else {
+                "implement"
+            }
+        )),
+    }
+}
+
+/// The first type inside `t` that cannot implement `tr`. Std types not listed here are assumed to.
+fn offender<'a>(g: &Globals, t: &'a Ty, tr: &str) -> Option<&'a Ty> {
+    let all = |ts: &'a [Ty]| ts.iter().find_map(|t| offender(g, t, tr));
+    match t {
+        Ty::Fn(..) => Some(t),
+        Ty::Data(n) if STD.caps.contains(n) => Some(t),
+        Ty::Data(n) if g.std_records.contains(n) || g.std_sums.contains(n) => None,
+        Ty::Data(n) => (!g.derived.contains(&(tr.to_owned(), n.clone()))
+            && !g.impls.contains(&(tr.to_owned(), n.clone())))
+        .then_some(t),
+        Ty::Float | Ty::Fixed("f32" | "f64") if tr == "Hash" => Some(t),
+        Ty::Set(_) | Ty::Dict(..) if matches!(tr, "Ord" | "Hash") => Some(t),
+        Ty::List(e) | Ty::Set(e) | Ty::Option(e) => offender(g, e, tr),
+        Ty::Dict(k, v) => offender(g, k, tr).or_else(|| offender(g, v, tr)),
+        Ty::Tuple(ts) => all(ts),
+        _ => None,
+    }
+}
+
+fn has_capability(t: &Ty) -> bool {
+    match t {
+        Ty::Data(n) => STD.caps.contains(n),
+        Ty::List(e) | Ty::Set(e) | Ty::Option(e) => has_capability(e),
+        Ty::Dict(k, v) => has_capability(k) || has_capability(v),
+        Ty::Tuple(ts) => ts.iter().any(has_capability),
+        _ => false,
+    }
 }
