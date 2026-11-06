@@ -1,24 +1,39 @@
 //! The canonical Yan printer (spec 15.4): 2-space blocks, minimal parentheses plus those E101
 //! requires, signature layout of 15.3.
 //!
-//! Not yet: comments, author blank lines inside bodies, and wrapping of long lines inside
-//! brackets.
+//! Comments and author blank lines come back from the module's trivia (18.5, R376).
+
+use yan_diag::wrap::wrap;
+use yan_diag::{Lead, Trivia};
 
 use crate::ast::*;
 
 const WIDTH: usize = 100;
 
 pub fn print(m: &Module) -> String {
-    let mut p = Printer::default();
+    let mut p = Printer {
+        trivia: m.trivia.clone(),
+        ..Printer::default()
+    };
     for a in &m.attrs {
         p.line(&format!("@{}", attr(a)));
     }
+    let mut end = None;
     for (i, item) in m.items.iter().enumerate() {
         if i > 0 || !m.attrs.is_empty() {
             p.out.push('\n');
         }
+        let (lead, blank) = p.trivia.leading(None, item.span.line);
+        p.comments(&lead, blank);
+        p.pending = p.trivia.trailing(item.span.line);
         p.item(item);
+        end = Some(item.span.end_line);
     }
+    let rest = p.trivia.rest(end);
+    if rest.first().is_some_and(|(gap, _)| !gap) {
+        p.out.push('\n');
+    }
+    p.comments(&rest, false);
     p.out
 }
 
@@ -26,6 +41,9 @@ pub fn print(m: &Module) -> String {
 struct Printer {
     out: String,
     indent: usize,
+    trivia: Trivia,
+    /// A trailing comment for the next line printed.
+    pending: Option<String>,
 }
 
 fn attr(a: &Attr) -> String {
@@ -42,9 +60,34 @@ fn comma<T>(xs: &[T], f: impl Fn(&T) -> String) -> String {
 
 impl Printer {
     fn line(&mut self, s: &str) {
-        self.out.push_str(&" ".repeat(self.indent));
-        self.out.push_str(s);
-        self.out.push('\n');
+        let comment = self.pending.take();
+        for (i, (rel, text)) in wrap(s, WIDTH.saturating_sub(self.indent), 4, true)
+            .iter()
+            .enumerate()
+        {
+            self.out.push_str(&" ".repeat(self.indent + rel));
+            self.out.push_str(text);
+            if let (0, Some(c)) = (i, &comment) {
+                self.out.push_str("  ");
+                self.out.push_str(c);
+            }
+            self.out.push('\n');
+        }
+    }
+
+    /// Own-line comments, then one blank line when `blank` or the author left one before a comment.
+    fn comments(&mut self, lead: &[Lead], blank: bool) {
+        for (gap, text) in lead {
+            if *gap {
+                self.out.push('\n');
+            }
+            self.out.push_str(&" ".repeat(self.indent));
+            self.out.push_str(text);
+            self.out.push('\n');
+        }
+        if blank {
+            self.out.push('\n');
+        }
     }
 
     fn nested(&mut self, f: impl FnOnce(&mut Self)) {
@@ -293,7 +336,18 @@ impl Printer {
     }
 
     fn stmts(&mut self, stmts: &[Stmt]) {
-        stmts.iter().for_each(|s| self.stmt(s));
+        let mut prev = None;
+        for s in stmts {
+            let (lead, blank) = self.trivia.leading(prev, s.span.line);
+            self.comments(&lead, blank);
+            self.pending = self.trivia.trailing(s.span.line);
+            self.stmt(s);
+            prev = Some(s.span.end_line);
+        }
+        if let (Some(end), Some(first)) = (prev, stmts.first()) {
+            let dangling = self.trivia.dangling(end, first.span.col);
+            self.comments(&dangling, false);
+        }
     }
 
     fn block(&mut self, head: &str, stmts: &[Stmt]) {

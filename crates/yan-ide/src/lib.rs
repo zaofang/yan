@@ -382,7 +382,7 @@ pub fn canonical(path: &Path, src: &str) -> Result<String, ViewError> {
             let (m, d) = yan_yag::parse(&name, src, false);
             let text = m
                 .filter(|_| !yan_db::has_error(&d))
-                .map(|m| yan_yag::print(&m));
+                .map(|m| yan_yag::print_source(&m, src));
             (text, d)
         }
         Some(Surface::Yn) => {

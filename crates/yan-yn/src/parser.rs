@@ -350,6 +350,7 @@ impl<'a> Parser<'a> {
             attrs,
             items,
             docs: Vec::new(),
+            trivia: Default::default(),
         }
     }
 

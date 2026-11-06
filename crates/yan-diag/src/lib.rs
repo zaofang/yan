@@ -164,6 +164,9 @@ impl Diagnostic {
 }
 
 pub mod habit;
+pub mod trivia;
+pub mod wrap;
+pub use trivia::{Lead, Trivia};
 
 const CATALOGUE: &str = include_str!("../../../spec/25-diagnostics-catalogue.md");
 
