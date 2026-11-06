@@ -141,18 +141,33 @@ pub struct Manifest {
     pub previews: Vec<String>,
 }
 
+/// E332: a manifest `edition` that is neither `next` nor a year of 2026 or later (20.4).
+pub(crate) fn edition(m: &j::Module, cx: &mut Cx) {
+    let Some(args) = package_args(m) else {
+        return;
+    };
+    for a in args {
+        let (Some(n), j::ArgKind::Expr(e)) = (&a.name, &a.kind) else {
+            continue;
+        };
+        let j::ExprKind::Lit(j::Lit::Str { value, .. }) = &e.kind else {
+            continue;
+        };
+        let year = value.len() == 4 && value.bytes().all(|b| b.is_ascii_digit());
+        if n == "edition" && value != "next" && !(year && value.as_str() >= "2026") {
+            cx.err(
+                "E332",
+                e.span,
+                "package",
+                format!("`{value}` is not `next` or an edition year of 2026 or later"),
+            );
+        }
+    }
+}
+
 /// The manifest a module declares at top level, as `package.yag` and script-form files do.
 pub fn manifest(m: &j::Module) -> Option<Manifest> {
-    let value = m.items.iter().find_map(|it| match &it.kind {
-        j::ItemKind::Const { name, value, .. } if name == "package" => Some(value),
-        _ => None,
-    })?;
-    let j::ExprKind::Call(f, args) = &value.kind else {
-        return None;
-    };
-    if !matches!(&f.kind, j::ExprKind::Name(n) if n == "Package") {
-        return None;
-    }
+    let args = package_args(m)?;
     let strs = |name: &str| {
         args.iter().find_map(|a| match (&a.name, &a.kind) {
             (
@@ -176,6 +191,21 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
         capabilities: strs("capabilities"),
         previews: strs("preview").unwrap_or_default(),
     })
+}
+
+/// The arguments of the `Package(...)` constant a module declares.
+fn package_args(m: &j::Module) -> Option<&[j::Arg]> {
+    let value = m.items.iter().find_map(|it| match &it.kind {
+        j::ItemKind::Const { name, value, .. } if name == "package" => Some(value),
+        _ => None,
+    })?;
+    let j::ExprKind::Call(f, args) = &value.kind else {
+        return None;
+    };
+    if !matches!(&f.kind, j::ExprKind::Name(n) if n == "Package") {
+        return None;
+    }
+    Some(args)
 }
 
 /// The module without its manifest constant, which is package data rather than an item.

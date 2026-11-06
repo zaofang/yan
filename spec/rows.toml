@@ -1129,3 +1129,8 @@ sections = "15.3, 17.3, 17.4, 25.5"
 rows = "R887"
 topic = "`@wire(tag: \"kind\")` and `@wire(unknown: \"ignore\")` are read on the item for json and csv: `tag` renames a sum's tag key and tag column (a variant field with that wire name is E330) and `unknown: \"ignore\"` on a record or sum skips unknown members and columns instead of failing, `\"reject\"` being the default; any other `@wire` key or value is E331 (R874, R876, #603)"
 sections = "17.3, 17.4, 25.5"
+
+[[entry]]
+rows = "R888"
+topic = "`edition` in `package.yag` is `\"next\"` or a four-digit year of 2026 or later, so named editions such as `\"2027\"` are accepted before RC; any other value is E332; the one-per-three-years limit binds the toolchain's edition table, not a manifest (#622, #630)"
+sections = "19.1, 20.4, 25.5"
