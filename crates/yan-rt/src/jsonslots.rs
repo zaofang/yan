@@ -261,6 +261,7 @@ impl Cx<'_> {
     }
 
     /// The members of `fs` against the declared fields `decl`; `skip` is the tag member.
+    #[allow(clippy::too_many_arguments)]
     fn fields(
         &self,
         decl: &Json,
