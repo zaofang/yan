@@ -1,0 +1,32 @@
+# spec: 17.4
+# rows: R887, R878, R880
+# note: an extra column fails by default and with "reject"; "ignore" skips it
+# stdout:
+# 1
+# unknown column rejected
+# unknown column rejected
+
+@derive(Wire, Show, Eq)
+@wire(unknown="ignore")
+class Lenient:
+    a: int
+
+@derive(Wire, Show, Eq)
+@wire(unknown="reject")
+class Strict:
+    a: int
+
+@derive(Wire, Show, Eq)
+class Default:
+    a: int
+
+pub def main() uses io:
+    l = csv.parse[Lenient]("a,x\n1,zzz\n") else err -> []
+    for r in l:
+        io.print(f"{r.a}")
+    s = csv.parse[Strict]("a,x\n1,zzz\n") else err -> []
+    if len(s) == 0:
+        io.print("unknown column rejected")
+    d = csv.parse[Default]("a,x\n1,zzz\n") else err -> []
+    if len(d) == 0:
+        io.print("unknown column rejected")

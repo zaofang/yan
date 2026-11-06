@@ -1,0 +1,10 @@
+# spec: 17.3, 25.5
+# rows: R886
+# note: a wire name equal to another field's unrenamed name is the same clash
+# expect: E331 at 8:1
+
+@derive(Wire)
+@wire(names={"a": "b"})
+class R:
+    a: int
+    b: int

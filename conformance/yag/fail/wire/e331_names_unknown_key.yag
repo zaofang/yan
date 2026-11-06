@@ -1,0 +1,10 @@
+# spec: 17.3, 25.5
+# rows: R886
+# note: a names key that is neither a field nor a variant is E331
+# expect: E331 at 7:7
+
+@derive(Wire)
+@wire(names={"c": "x"})
+class R:
+    a: int
+    b: int

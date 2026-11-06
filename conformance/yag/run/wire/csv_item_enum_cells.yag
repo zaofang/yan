@@ -1,0 +1,32 @@
+# spec: 17.4
+# rows: R886, R879
+# note: a field-less variant in a csv cell is written by the item-level names map; the declared variant name is not accepted
+# stdout:
+# n,c
+# a,r
+# b,g
+#
+# n,c
+# a,r
+# b,g
+#
+# declared name rejected
+
+@derive(Wire, Show, Eq)
+@wire(names={"Red": "r", "Green": "g"})
+type C = Red() | Green()
+
+@derive(Wire, Show, Eq)
+class P:
+    n: str
+    c: C
+
+pub def main() uses io:
+    ps = [P(n="a", c=Red()), P(n="b", c=Green())]
+    out = csv.dump[P](ps)
+    io.print(out)
+    back = csv.parse[P](out) else err -> []
+    io.print(csv.dump[P](back))
+    bad = csv.parse[P]("n,c\na,Red\n") else err -> []
+    if len(bad) == 0:
+        io.print("declared name rejected")

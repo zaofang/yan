@@ -1,0 +1,20 @@
+# spec: 17.3
+# rows: R886, R887, R874
+# note: tag renames the tag key; names renames variants (a parse failure is the Circle(r=-1.0) fallback) (their tag value) and, by field name, the fields of every variant that has one
+# stdout:
+# {"kind":"circle","radius":1.5}
+# {"kind":"unit"}
+# {"kind":"square","radius":2.0}
+# {"kind":"circle","radius":-1.0}
+
+@derive(Wire, Show, Eq)
+@wire(names={"Circle": "circle", "Unit": "unit", "Square": "square", "r": "radius"}, tag="kind")
+type Shape = Circle(r: float) | Unit() | Square(r: float)
+
+pub def main() uses io:
+    io.print(json.dump[Shape](Circle(r=1.5)))
+    io.print(json.dump[Shape](Unit()))
+    s = json.parse[Shape]("{\"radius\":2,\"kind\":\"square\"}") else err -> Circle(r=-1.0)
+    io.print(json.dump[Shape](s))
+    bad = json.parse[Shape]("{\"tag\":\"Unit\"}") else err -> Circle(r=-1.0)
+    io.print(json.dump[Shape](bad))

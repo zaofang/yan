@@ -1,0 +1,24 @@
+# spec: 15.3, 17.3
+# rows: R886, R876
+# note: item-level names renames a record's fields on the wire, both ways; the declared name is no longer accepted as a key (it is a missing field and an unknown one)
+# stdout:
+# {"user-id":1,"name":"ada"}
+# 7 ada
+# declared name rejected
+
+@derive(Wire, Show, Eq)
+@wire(names={"id": "user-id"})
+class R:
+    id: int
+    name: str
+
+def rejected(s: str) -> bool:
+    r = json.parse[R](s) else err -> R(id=-1, name="")
+    return r.id == -1
+
+pub def main() uses io:
+    io.print(json.dump[R](R(id=1, name="ada")))
+    r = json.parse[R]("{\"user-id\":7,\"name\":\"ada\"}") else err -> R(id=0, name="")
+    io.print(f"{r.id} {r.name}")
+    if rejected("{\"id\":7,\"name\":\"ada\"}"):
+        io.print("declared name rejected")

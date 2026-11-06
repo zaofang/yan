@@ -1,0 +1,25 @@
+# spec: 17.4
+# rows: R886, R887, R879
+# note: a sum row type writes the tag column first (renamed by tag), then the union of the variants' fields by wire name; a cell for a field the variant lacks is empty
+# stdout:
+# kind,radius,w
+# circle,1.5,
+# unit,,
+# rect,,3
+#
+# kind,radius,w
+# circle,1.5,
+# unit,,
+# rect,,3
+#
+
+@derive(Wire, Show, Eq)
+@wire(names={"Circle": "circle", "Unit": "unit", "Rect": "rect", "r": "radius"}, tag="kind")
+type Shape = Circle(r: float) | Unit() | Rect(w: int)
+
+pub def main() uses io:
+    xs = [Circle(r=1.5), Unit(), Rect(w=3)]
+    out = csv.dump[Shape](xs)
+    io.print(out)
+    back = csv.parse[Shape](out) else err -> []
+    io.print(csv.dump[Shape](back))

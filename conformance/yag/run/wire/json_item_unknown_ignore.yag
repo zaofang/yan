@@ -1,0 +1,34 @@
+# spec: 17.3
+# rows: R887, R876
+# note: unknown "ignore" on the item skips unknown members; the default, "reject", fails
+# stdout:
+# 3
+# rejected
+# 4
+# rejected
+
+@derive(Wire, Show, Eq)
+@wire(unknown="ignore")
+class Lenient:
+    a: int
+
+@derive(Wire, Show, Eq)
+@wire(unknown="reject")
+class Strict:
+    a: int
+
+@derive(Wire, Show, Eq)
+class Default:
+    a: int
+
+pub def main() uses io:
+    l = json.parse[Lenient]("{\"a\":3,\"x\":[1,2,{\"y\":null}]}") else err -> Lenient(a=-1)
+    io.print(f"{l.a}")
+    s = json.parse[Strict]("{\"a\":3,\"x\":1}") else err -> Strict(a=-1)
+    if s.a == -1:
+        io.print("rejected")
+    l2 = json.parse[Lenient]("{\"x\":0,\"a\":4}") else err -> Lenient(a=-1)
+    io.print(f"{l2.a}")
+    d = json.parse[Default]("{\"a\":3,\"x\":1}") else err -> Default(a=-1)
+    if d.a == -1:
+        io.print("rejected")

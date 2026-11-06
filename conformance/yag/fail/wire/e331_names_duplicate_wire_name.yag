@@ -1,0 +1,10 @@
+# spec: 17.3, 25.5
+# rows: R886
+# note: two fields with one wire name are E331
+# expect: E331 at 8:1
+
+@derive(Wire)
+@wire(names={"a": "x", "b": "x"})
+class R:
+    a: int
+    b: int

@@ -4059,6 +4059,28 @@
    ]
   },
   {
+   "path": "yag/fail/wire/e330_item_tag_clashes_with_variant_field.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "17.4",
+    "25.5"
+   ],
+   "rows": [
+    "R887",
+    "R874"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E330",
+     "line": 8,
+     "col": 15
+    }
+   ]
+  },
+  {
    "path": "yag/fail/wire/e330_variant_field_named_tag.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -4076,6 +4098,186 @@
      "code": "E330",
      "line": 7,
      "col": 26
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/wire/e331_names_duplicate_wire_name.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "25.5"
+   ],
+   "rows": [
+    "R886"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E331",
+     "line": 8,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/wire/e331_names_renamed_twice.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "25.5"
+   ],
+   "rows": [
+    "R886"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E331",
+     "line": 7,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/wire/e331_names_unknown_key.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "25.5"
+   ],
+   "rows": [
+    "R886"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E331",
+     "line": 7,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/wire/e331_names_variant_and_field.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "25.5"
+   ],
+   "rows": [
+    "R886"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E331",
+     "line": 7,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/wire/e331_names_variants_share_wire_name.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "25.5"
+   ],
+   "rows": [
+    "R886"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E331",
+     "line": 8,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/wire/e331_names_wire_name_collides_with_field.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "25.5"
+   ],
+   "rows": [
+    "R886"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E331",
+     "line": 8,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/wire/e331_tag_on_record.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "25.5"
+   ],
+   "rows": [
+    "R887"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E331",
+     "line": 7,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/wire/e331_unknown_bad_value.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "25.5"
+   ],
+   "rows": [
+    "R887"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E331",
+     "line": 7,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/wire/e331_unknown_wire_key.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3",
+    "25.5"
+   ],
+   "rows": [
+    "R887"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E331",
+     "line": 7,
+     "col": 7
     }
    ]
   },
@@ -6128,6 +6330,72 @@
    "exit": 0
   },
   {
+   "path": "yag/run/wire/csv_item_enum_cells.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.4"
+   ],
+   "rows": [
+    "R886",
+    "R879"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "n,c\na,r\nb,g\n\nn,c\na,r\nb,g\n\ndeclared name rejected\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/csv_item_names_record.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.4"
+   ],
+   "rows": [
+    "R886",
+    "R878"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "user-id,full name\n1,ada\n2,\"grace, h\"\n\n9 ada\n5 bo\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/csv_item_sum_tag_column.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.4"
+   ],
+   "rows": [
+    "R886",
+    "R887",
+    "R879"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "kind,radius,w\ncircle,1.5,\nunit,,\nrect,,3\n\nkind,radius,w\ncircle,1.5,\nunit,,\nrect,,3\n\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/csv_item_unknown_column.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.4"
+   ],
+   "rows": [
+    "R887",
+    "R878",
+    "R880"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\nunknown column rejected\nunknown column rejected\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/wire/json_collections.yag",
    "kind": "run",
    "milestone": "M1",
@@ -6142,6 +6410,72 @@
    "flags": [],
    "expect": [],
    "stdout": "{\"tags\":[\"a\",\"b\"],\"pair\":[1,\"x\"],\"byk\":{\"k\":1,\"j\":2},\"f\":2.0}\nwrong tuple length rejected\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_item_names_record.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "15.3",
+    "17.3"
+   ],
+   "rows": [
+    "R886",
+    "R876"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "{\"user-id\":1,\"name\":\"ada\"}\n7 ada\ndeclared name rejected\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_item_tag_and_names_sum.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R886",
+    "R887",
+    "R874"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "{\"kind\":\"circle\",\"radius\":1.5}\n{\"kind\":\"unit\"}\n{\"kind\":\"square\",\"radius\":2.0}\n{\"kind\":\"circle\",\"radius\":-1.0}\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_item_unknown_ignore.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R887",
+    "R876"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3\nrejected\n4\nrejected\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_item_unknown_ignore_sum.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R887",
+    "R876"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "{\"tag\":\"Circle\",\"r\":1.5}\n{\"tag\":\"Unit\"}\n",
    "exit": 0
   },
   {
