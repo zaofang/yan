@@ -6044,6 +6044,19 @@ impl Lower<'_, '_, '_> {
             {
                 self.json_call(op, None, args, at)
             }
+            j::ExprKind::Index(b, k)
+                if let j::ExprKind::Attr(m, op, _) = &b.kind
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "csv" && !self.locals.contains_key(c))
+                    && matches!(op.as_str(), "parse" | "dump") =>
+            {
+                self.csv_call(op, Some(k), args, at)
+            }
+            j::ExprKind::Attr(m, op, _)
+                if op == "dump"
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "csv" && !self.locals.contains_key(c)) =>
+            {
+                self.csv_call(op, None, args, at)
+            }
             // The schema written out: `cli.parse_args(xs, "{..}")`, what raise prints with no marks.
             j::ExprKind::Attr(m, op, _)
                 if op == "parse_args"
@@ -8264,6 +8277,77 @@ impl Lower<'_, '_, '_> {
         );
         if op == "parse" {
             Ok((Rhs::Call(c), rt, Some(Ty::Data("JsonError".into()))))
+        } else {
+            Ok((Rhs::Call(c), Ty::Str, None))
+        }
+    }
+
+    /// `csv.parse[T](s, delimiter=",")` and `csv.dump[T](rows, delimiter=",")` over `derive(Wire)`
+    /// row types (R878 to R880).
+    fn csv_call(
+        &mut self,
+        op: &str,
+        t: Option<&j::Expr>,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let unit = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        let n = if args.len() == 2 { 2 } else { 1 };
+        let Some(xs) = self.positional(args, n, op, at)? else {
+            return Ok(unit);
+        };
+        let first = (op == "parse").then_some(Ty::Str);
+        let (a, ta) = self.atom(xs[0], first.as_ref())?;
+        let delim = match xs.get(1) {
+            Some(d) => {
+                let (d, td) = self.atom(d, Some(&Ty::Str))?;
+                self.expect(&td, &Ty::Str, xs[1].span);
+                d
+            }
+            None => Atom::Lit(Literal::Str(",".into()), at),
+        };
+        let rt = match (t, &ta) {
+            (Some(t), _) => self.written_ty(t),
+            (None, Ty::List(e)) if op == "dump" => Some((**e).clone()),
+            _ => return unsupported("`csv.parse` without a type"),
+        };
+        let Some(rt) = rt else {
+            return unsupported("a type that is not a name");
+        };
+        if op == "parse" {
+            self.expect(&ta, &Ty::Str, xs[0].span);
+        } else {
+            self.expect(&ta, &Ty::List(Box::new(rt.clone())), xs[0].span);
+        }
+        if let Ty::Data(n) = &rt
+            && !self.g.wires.contains(n)
+        {
+            self.err("E201", at, format!("`{n}` does not derive `Wire`"));
+            return Ok(unit);
+        }
+        let schema = match crate::csvwire::schema(self.g, &rt) {
+            Ok(s) => s,
+            Err(m) => {
+                self.err("E330", at, m);
+                return Ok(unit);
+            }
+        };
+        let c = call(
+            &format!("std.csv.{op}"),
+            vec![rt.targ()],
+            vec![
+                let_arg(a),
+                let_arg(delim),
+                let_arg(Atom::Lit(Literal::Str(schema), at)),
+            ],
+            at,
+        );
+        if op == "parse" {
+            Ok((
+                Rhs::Call(c),
+                Ty::List(Box::new(rt)),
+                Some(Ty::Data("CsvError".into())),
+            ))
         } else {
             Ok((Rhs::Call(c), Ty::Str, None))
         }
