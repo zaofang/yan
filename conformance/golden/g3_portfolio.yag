@@ -1,0 +1,43 @@
+# spec: 24.3, 14.5, 17.7
+# milestone: M2b
+# note: the program of 14.5 under std.sim; sim_net(seed=7, answers) is the std.sim net handler with fixed answers, so the output is seed independent. http.get_text, json.parse_float and sim_net are M2b library surface; the sim_net signature is assumption A8
+# stdout:
+# portfolio value: 32500.0
+
+"""Fetch quotes concurrently and value a portfolio."""
+
+class Position:
+    sym: str
+    qty: int
+
+class Quote:
+    sym: str
+    px: float
+
+type PortErr = MissingQuote(sym: str) | Fetch(msg: str)
+
+impl From[http.HttpError] for PortErr:
+    def convert(e: http.HttpError) -> PortErr:
+        return Fetch(msg=e.msg.copy())
+
+def fetch_quote(sym: str) -> Quote fail PortErr uses net:
+    body = http.get_text(f"https://px.example/{sym}")?
+    px = json.parse_float(body) else fail Fetch(msg=f"bad price: {sym}")
+    return Quote(sym=sym.copy(), px=px)
+
+pub def value(ps: list[Position], qs: dict[str, Quote]) -> float fail PortErr:
+    pre len(ps) > 0
+    ex value([Position(sym="A", qty=2)], {"A": Quote(sym="A", px=10.0)}) == Ok(20.0)
+    total = 0.0
+    for p in ps:
+        q = qs.get(p.sym) else fail MissingQuote(sym=p.sym.copy())
+        total += float(p.qty) * q.px
+    return total
+
+pub def main() -> fail PortErr uses io, net:
+    ps = [Position(sym="SPX", qty=10), Position(sym="NDX", qty=5)]
+    with net = sim_net(seed=7, answers={"https://px.example/SPX": "2000.0", "https://px.example/NDX": "2500.0"}):
+        quotes = par [fetch_quote(p.sym)? for p in ps]
+        qs = {q.sym.copy(): q for q in quotes}
+        total = value(ps, qs)?
+        io.print(f"portfolio value: {total}")
