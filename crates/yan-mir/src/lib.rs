@@ -172,6 +172,12 @@ pub enum RtFn {
     JsonDump,
     /// `(Ptr slots) -> Str`: the text of a `JsonError`.
     JsonErrorShow,
+    /// `(Ptr out, Str, Str, Str)`: the slots of `Result[list[T], CsvError]` into `out`.
+    CsvParse,
+    /// `(List rows, Str delimiter, Str schema) -> Str`
+    CsvDump,
+    /// `(Ptr slots) -> Str`: the text of a `CsvError`.
+    CsvErrorShow,
     /// `(words) -> Ptr` to that many zeroed words.
     Alloc,
     /// `(Str)`: free the block; a literal's block is left alone.

@@ -359,3 +359,47 @@ pub unsafe extern "C" fn yan_rt_json_error_show(v: *const u64) -> *mut String {
     // SAFETY: as above.
     str_block(&unsafe { crate::jsonslots::show_error(w) })
 }
+
+/// `std.csv.parse`: the slots of the `Result` into `out`.
+///
+/// # Safety
+/// `src`, `delim` and `schema` are `Str` blocks; `out` has room for the result's slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_csv_parse(
+    out: *mut u64,
+    src: *const String,
+    delim: *const String,
+    schema: *const String,
+) {
+    // SAFETY: the caller's contract.
+    unsafe { store_slots(out, crate::csvslots::parse(&*src, &*delim, &*schema)) }
+}
+
+/// `std.csv.dump`: the csv text of the rows in `rows`.
+///
+/// # Safety
+/// `rows` is a `List` of the schema's row type; `delim` and `schema` are `Str` blocks.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_csv_dump(
+    rows: *const List,
+    delim: *const String,
+    schema: *const String,
+) -> *mut String {
+    // SAFETY: the caller's contract.
+    match unsafe { crate::csvslots::dump(&*rows, &*delim, &*schema) } {
+        Some(s) => str_block(&s),
+        None => panic("value"),
+    }
+}
+
+/// The text of a `CsvError`.
+///
+/// # Safety
+/// `v` holds a `CsvError`'s slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_csv_error_show(v: *const u64) -> *mut String {
+    // SAFETY: the caller's contract.
+    let w = unsafe { std::slice::from_raw_parts(v, crate::csvslots::ERROR_WIDTH) };
+    // SAFETY: as above.
+    str_block(&unsafe { crate::csvslots::show_error(w) })
+}

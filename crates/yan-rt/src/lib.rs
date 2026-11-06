@@ -7,6 +7,8 @@ pub mod abi;
 pub mod collections;
 pub mod crypto_rand;
 pub mod csv;
+#[allow(unsafe_code)]
+pub mod csvslots;
 pub mod fmt;
 #[allow(unsafe_code)]
 pub mod heap;

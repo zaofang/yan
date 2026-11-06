@@ -1072,6 +1072,38 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.copy_to(&dst.locals, v);
                 self.free(RtFn::EnvFree, buf);
             }
+            (id::STD_CSV_DUMP, [(_, rows), (_, delim), (_, schema)]) => {
+                let (rows, delim, schema) = (
+                    self.scalar1(rows)?,
+                    self.scalar1(delim)?,
+                    self.scalar1(schema)?,
+                );
+                let r = self.rt(RtFn::CsvDump, Ty::Ptr, vec![rows, delim, schema]);
+                set(self, r);
+            }
+            (id::STD_CSV_PARSE, [(_, a), (_, delim), (_, schema)]) => {
+                let Some(dst) = dst else {
+                    return unsupported("`csv.parse` without a result");
+                };
+                let (src, delim, schema) = (
+                    self.scalar1(a)?,
+                    self.scalar1(delim)?,
+                    self.scalar1(schema)?,
+                );
+                let buf = self.rt(
+                    RtFn::Alloc,
+                    Ty::Ptr,
+                    vec![Operand::Int(dst.locals.len() as i128)],
+                );
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::CsvParse,
+                    args: vec![buf.clone(), src, delim, schema],
+                });
+                let v = self.read(&At::Mem(buf.clone(), 0), &dst.shape);
+                self.copy_to(&dst.locals, v);
+                self.free(RtFn::EnvFree, buf);
+            }
             (id::STD_LIST_NEW, []) => {
                 let Some(e) = self.targ(c)? else {
                     return unsupported("`std.list.new` without its element type");
@@ -1141,6 +1173,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let buf = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(v.len() as i128)]);
                 self.write(&At::Mem(buf.clone(), 0), v.to_vec());
                 let r = self.rt(RtFn::JsonErrorShow, Ty::Ptr, vec![buf.clone()]);
+                self.free(RtFn::EnvFree, buf);
+                r
+            }
+            Shape::Rec(name, _) if name == "CsvError" => {
+                let buf = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(v.len() as i128)]);
+                self.write(&At::Mem(buf.clone(), 0), v.to_vec());
+                let r = self.rt(RtFn::CsvErrorShow, Ty::Ptr, vec![buf.clone()]);
                 self.free(RtFn::EnvFree, buf);
                 r
             }
