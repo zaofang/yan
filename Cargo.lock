@@ -1880,6 +1880,7 @@ dependencies = [
  "yan-std",
  "yan-surface",
  "yan-yag",
+ "yan-yn",
 ]
 
 [[package]]

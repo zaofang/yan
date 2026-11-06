@@ -25,6 +25,11 @@ fn data(name: &str, fields: Vec<(String, Value)>) -> Value {
     }
 }
 
+/// The key or tag value a field or variant has on the wire.
+fn wire(d: &S) -> &str {
+    d["w"].as_str().or_else(|| d["n"].as_str()).unwrap_or("")
+}
+
 fn kind(j: &Json) -> &'static str {
     match j {
         Json::Null => "null",
@@ -206,12 +211,7 @@ impl Cx<'_> {
             return Ok(data(n, self.fields(rec, fs, p, path, None)?));
         }
         let vs = def["sum"].as_array().expect("a schema");
-        let names = || {
-            vs.iter()
-                .map(|v| v["n"].as_str().unwrap_or(""))
-                .collect::<Vec<_>>()
-                .join("|")
-        };
+        let names = || vs.iter().map(wire).collect::<Vec<_>>().join("|");
         let Some(i) = fs.iter().position(|(k, _)| k == TAG) else {
             return Err((
                 p.at,
@@ -232,7 +232,7 @@ impl Cx<'_> {
                 },
             ));
         };
-        let Some(v) = vs.iter().find(|v| v["n"] == tag.as_str()) else {
+        let Some(v) = vs.iter().find(|v| wire(v) == tag.as_str()) else {
             return Err((
                 kid(p, i).at,
                 Reason::Mismatch {
@@ -257,7 +257,7 @@ impl Cx<'_> {
     ) -> D<Vec<(String, Value)>> {
         let decl = decl.as_array().expect("a schema");
         for (i, (k, _)) in fs.iter().enumerate() {
-            if Some(i) != skip && !decl.iter().any(|f| f["n"] == k.as_str()) {
+            if Some(i) != skip && !decl.iter().any(|f| wire(f) == k.as_str()) {
                 return Err((
                     kid(p, i).at,
                     Reason::Unknown {
@@ -270,8 +270,9 @@ impl Cx<'_> {
         let mut out = Vec::new();
         for f in decl {
             let name = f["n"].as_str().unwrap_or("");
-            let here = format!("{path}.{name}");
-            let v = match fs.iter().position(|(k, _)| k == name) {
+            let key = wire(f);
+            let here = format!("{path}.{key}");
+            let v = match fs.iter().position(|(k, _)| k == key) {
                 Some(i) => self.decode(&f["t"], &fs[i].1, kid(p, i), &here)?,
                 None if f.get("d").is_some() => self.decode(
                     &f["t"],
@@ -288,7 +289,7 @@ impl Cx<'_> {
                         p.at,
                         Reason::Missing {
                             path: path.into(),
-                            field: name.into(),
+                            field: key.into(),
                         },
                     ));
                 }
@@ -359,15 +360,13 @@ impl Cx<'_> {
                         let decl = if let Some(rec) = def.get("rec") {
                             rec
                         } else {
-                            out.push((TAG.to_owned(), Json::Str(name.to_string())));
                             let vs = def["sum"].as_array().expect("a schema");
-                            &vs.iter().find(|v| v["n"] == name.as_str()).ok_or(())?["fs"]
+                            let v = vs.iter().find(|v| v["n"] == name.as_str()).ok_or(())?;
+                            out.push((TAG.to_owned(), Json::Str(wire(v).into())));
+                            &v["fs"]
                         };
                         for (f, (_, x)) in decl.as_array().expect("a schema").iter().zip(fields) {
-                            out.push((
-                                f["n"].as_str().unwrap_or("").to_owned(),
-                                self.encode(&f["t"], x)?,
-                            ));
+                            out.push((wire(f).to_owned(), self.encode(&f["t"], x)?));
                         }
                         Json::Object(out)
                     }

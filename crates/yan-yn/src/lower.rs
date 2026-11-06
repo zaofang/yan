@@ -397,6 +397,7 @@ impl Lower<'_> {
                 vs.iter()
                     .map(|v| {
                         Ok(h::Variant {
+                            decorators: v.attrs.iter().map(|a| self.attr(a)).collect::<R<_>>()?,
                             name: v.name.clone(),
                             fields: v.fields.iter().map(|f| self.field(f)).collect::<R<_>>()?,
                         })
@@ -420,6 +421,7 @@ impl Lower<'_> {
 
     fn field(&mut self, f: &Field) -> R<h::Field> {
         Ok(h::Field {
+            decorators: f.attrs.iter().map(|a| self.attr(a)).collect::<R<_>>()?,
             name: f.name.clone(),
             ty: self.ty(&f.ty)?,
             ty_span: f.ty.span,

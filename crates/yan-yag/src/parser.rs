@@ -1028,6 +1028,7 @@ impl Parser {
             None
         };
         Ok(Field {
+            decorators: Vec::new(),
             name,
             ty,
             ty_span,
@@ -1065,6 +1066,7 @@ impl Parser {
                     }
                     self.expect_op(")")?;
                     variants.push(Variant {
+                        decorators: Vec::new(),
                         name: vname,
                         fields,
                     });

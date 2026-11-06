@@ -678,6 +678,7 @@ fn item(it: &y::Item, std: &dyn Std, marks: &Marks) -> R<Option<Item>> {
                         .iter()
                         .map(|v| {
                             Ok(Variant {
+                                decorators: Vec::new(),
                                 name: v.name.clone(),
                                 fields: v.fields.iter().flatten().map(field).collect::<R<_>>()?,
                             })
@@ -743,6 +744,7 @@ fn field(f: &y::Field) -> R<Field> {
         return no("field defaults");
     }
     Ok(Field {
+        decorators: Vec::new(),
         name: f.name.clone(),
         ty: ty(&f.ty)?,
         ty_span: Span::default(),

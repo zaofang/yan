@@ -836,3 +836,32 @@ fn deny_promotes_lint_and_checks_codes() {
     assert!(c(&format!("@deny(W820)\n@expect(W820, reason=\"x\")\n{body}")).contains("E277"));
     assert!(c(&format!("@deny(E501)\n{body}")).contains("E278"));
 }
+
+#[test]
+fn wire_names_rename_json_keys_csv_columns_and_tags() {
+    let src = "@derive(Wire, Show, Eq)\n\
+               type R = { @wire(name: \"user-id\") id: int, name: str }\n\n\
+               @derive(Wire, Show, Eq)\n\
+               type S = @wire(name: \"circle\") Circle(@wire(name: \"radius\") r: float) | Unit()\n\n\
+               main() uses io =\n\
+               \x20 io.print(json.dump[R](R(id: 1, name: \"a\")))\n\
+               \x20 io.print(json.dump[S](Circle(r: 1.5)))\n\
+               \x20 io.print(csv.dump[R]([R(id: 1, name: \"a\")]))\n\
+               \x20 s = json.parse[S](\"\\{\\\"tag\\\":\\\"circle\\\",\\\"radius\\\":2}\") else e -> Unit()\n\
+               \x20 io.print(json.dump[S](s))\n\
+               \x20 old = json.parse[R](\"\\{\\\"id\\\":1,\\\"name\\\":\\\"a\\\"}\") else e -> R(id: 0, name: \"\")\n\
+               \x20 io.print(\"\\(old.id)\")\n";
+    let (ast, d) = yan_yn::parse("t.yn", src);
+    assert!(d.is_empty(), "{d:?}");
+    let (h, d) = yan_yn::lower("t.yn", src, &ast).expect("lowers");
+    assert!(d.is_empty(), "{d:?}");
+    let (m, d) = elaborate("t.yn", src, &h, Options::default()).expect("supported");
+    assert!(d.is_empty(), "{d:?}");
+    let mut out = Vec::new();
+    yan_interp::run(&m, &mut out).expect("runs");
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        "{\"user-id\":1,\"name\":\"a\"}\n{\"tag\":\"circle\",\"radius\":1.5}\n\
+         user-id,name\n1,a\n\n{\"tag\":\"circle\",\"radius\":2.0}\n0\n"
+    );
+}
