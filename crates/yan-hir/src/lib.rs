@@ -204,6 +204,7 @@ pub struct Record {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Field {
+    pub decorators: Vec<Decorator>,
     pub name: Name,
     pub ty: Type,
     /// The type annotation as written; the default span when the field has no source.
@@ -229,6 +230,7 @@ pub enum TypeRhs {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Variant {
+    pub decorators: Vec<Decorator>,
     pub name: Name,
     pub fields: Vec<Field>,
 }

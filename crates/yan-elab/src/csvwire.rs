@@ -28,6 +28,9 @@ fn cell(g: &Globals, t: &Ty) -> Result<J, String> {
 fn field(g: &Globals, owner: &str, f: &Field) -> Result<J, String> {
     let t = cell(g, &f.ty).map_err(|m| format!("`{owner}.{}`: {m}", f.name))?;
     let mut out = json!({"n": f.name, "t": t});
+    if let Some(w) = &f.wire {
+        out["w"] = json!(w);
+    }
     // A default that is not a literal makes the field required on input.
     if let Some(d) = f.default.as_ref().and_then(cli::literal) {
         out["d"] = d;
@@ -52,7 +55,7 @@ pub(crate) fn schema(g: &Globals, root: &Ty) -> Result<String, String> {
         let mut out = Vec::new();
         for (v, fs) in vs {
             for f in fs {
-                match seen.iter().find(|(k, _)| *k == f.name) {
+                match seen.iter().find(|(k, _)| *k == f.wire_name()) {
                     Some((_, t)) if **t != f.ty => {
                         return Err(format!(
                             "field `{}` has different types in the variants of `{n}`",
@@ -60,10 +63,14 @@ pub(crate) fn schema(g: &Globals, root: &Ty) -> Result<String, String> {
                         ));
                     }
                     Some(_) => {}
-                    None => seen.push((&f.name, &f.ty)),
+                    None => seen.push((f.wire_name(), &f.ty)),
                 }
             }
-            out.push(json!({"n": v, "fs": fields(v, fs)?}));
+            let mut out_v = json!({"n": v, "fs": fields(v, fs)?});
+            if let Some(w) = g.variant_wire.get(v) {
+                out_v["w"] = json!(w);
+            }
+            out.push(out_v);
         }
         json!({"sum": out})
     } else {

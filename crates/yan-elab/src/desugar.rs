@@ -57,6 +57,7 @@ pub(crate) fn module(m: &j::Module, cx: &mut Cx) -> j::Module {
                         tparams: Vec::new(),
                         doc: None,
                         fields: vec![j::Field {
+                            decorators: Vec::new(),
                             name: "value".into(),
                             ty: ty.clone(),
                             ty_span: Span::default(),

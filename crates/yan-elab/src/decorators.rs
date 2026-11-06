@@ -28,6 +28,38 @@ pub(crate) fn derives(it: &j::Item, name: &str) -> bool {
     })
 }
 
+/// The name in `@wire(name: "...")` among a field's or variant's decorators (R874, R878); any
+/// other decorator there is not supported yet.
+pub(crate) fn wire_name(ds: &[j::Decorator]) -> R<Option<String>> {
+    let mut out = None;
+    for d in ds {
+        if d.path != ["wire"] {
+            return unsupported(format!(
+                "decorator `@{}` on a field or variant",
+                d.path.join(".")
+            ));
+        }
+        let args = d.args.as_deref().unwrap_or_default();
+        out = match args {
+            [
+                j::Arg {
+                    name: Some(n),
+                    kind:
+                        j::ArgKind::Expr(j::Expr {
+                            kind: j::ExprKind::Lit(j::Lit::Str { value, .. }),
+                            ..
+                        }),
+                    ..
+                },
+            ] if n == "name" => Some(value.clone()),
+            _ => {
+                return unsupported("a field or variant `@wire` other than `@wire(name: \"...\")`");
+            }
+        };
+    }
+    Ok(out)
+}
+
 /// Checks `it`'s decorators after the item was lowered; its diagnostics start at `start`.
 pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<()> {
     let item = it.kind.name().to_owned();
@@ -405,7 +437,7 @@ fn fields(g: &Globals, it: &j::Item, item: &str, tr: &str, cx: &mut Cx) {
                             f.name
                         ),
                     );
-                } else if f.name == "tag" && matches!(&it.kind, j::ItemKind::Type(_)) {
+                } else if f.wire_name() == "tag" && matches!(&it.kind, j::ItemKind::Type(_)) {
                     cx.err(
                         "E330",
                         f.ty_span,

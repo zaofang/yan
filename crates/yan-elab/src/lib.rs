@@ -80,6 +80,14 @@ pub(crate) struct Field {
     pub ty: Ty,
     pub ty_span: Span,
     pub default: Option<j::Expr>,
+    /// `@wire(name: ...)`: the key or column the field has in json and csv (R874, R878).
+    pub wire: Option<String>,
+}
+
+impl Field {
+    pub(crate) fn wire_name(&self) -> &str {
+        self.wire.as_deref().unwrap_or(&self.name)
+    }
 }
 
 #[derive(Clone)]
@@ -139,6 +147,8 @@ pub(crate) struct Globals {
     pub records: HashMap<String, Vec<Field>>,
     pub sums: HashMap<String, Vec<(String, Vec<Field>)>>,
     pub variant_of: HashMap<String, String>,
+    /// Variants with `@wire(name: ...)`, by variant name: the tag value in json and csv.
+    pub variant_wire: HashMap<String, String>,
     /// Each alias's alternatives: one for `type X = T`, two or more for a union alias.
     pub aliases: HashMap<String, Vec<j::Type>>,
     pub fns: HashMap<String, Sig>,
@@ -707,6 +717,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                     ty: g.ty(&f.ty, cx, at)?,
                     ty_span: f.ty_span,
                     default: f.default.clone(),
+                    wire: decorators::wire_name(&f.decorators).map_err(|u| u.at(at))?,
                 })
             })
             .collect()
@@ -725,6 +736,11 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 let mut out = Vec::new();
                 for v in vs {
                     out.push((v.name.clone(), fields(g, &v.fields, cx, it.span)?));
+                    if let Some(w) =
+                        decorators::wire_name(&v.decorators).map_err(|u| u.at(it.span))?
+                    {
+                        g.variant_wire.insert(v.name.clone(), w);
+                    }
                 }
                 g.sums.insert(name.clone(), out);
             }
