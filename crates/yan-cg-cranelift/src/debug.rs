@@ -3,14 +3,16 @@
 use std::path::Path;
 
 use gimli::write::{
-    Address, AttributeValue, DwarfUnit, EndianVec, LineProgram, LineString, RelocateWriter,
-    Relocation, RelocationTarget, Sections,
+    Address, AttributeValue, DwarfUnit, EndianVec, LineProgram, LineString, Range, RangeList,
+    RelocateWriter, Relocation, RelocationTarget, Sections,
 };
 use gimli::{Encoding, Format, LineEncoding, RunTimeEndian, constants};
 use object::SectionKind;
 use object::write::StandardSegment;
-use object::write::{Object, Relocation as ObjRelocation, SymbolId};
+use object::write::SymbolSection;
+use object::write::{Object, Relocation as ObjRelocation, SectionId, SymbolId};
 use object::{BinaryFormat, RelocationEncoding, RelocationFlags, RelocationKind};
+use object::{Object as _, ObjectSection as _};
 
 /// One compiled function: its symbol, extent and `(offset, line)` rows.
 pub struct Func {
@@ -134,6 +136,25 @@ pub fn add(obj: &mut Object, file: &Path, funcs: &[Func]) -> Result<(), String> 
     }
     dw.unit.line_program = lp;
 
+    // The unit's extent lets debuggers map an address back to it.
+    let ranges = funcs
+        .iter()
+        .enumerate()
+        .filter(|(_, f)| !f.rows.is_empty())
+        .map(|(i, f)| Range::StartLength {
+            begin: Address::Symbol {
+                symbol: i,
+                addend: 0,
+            },
+            length: f.size,
+        })
+        .collect();
+    let ranges = dw.unit.ranges.add(RangeList(ranges));
+    dw.unit.get_mut(root).set(
+        constants::DW_AT_ranges,
+        AttributeValue::RangeListRef(ranges),
+    );
+
     let blank = Section {
         data: EndianVec::new(endian),
         relocs: Vec::new(),
@@ -158,22 +179,58 @@ pub fn add(obj: &mut Object, file: &Path, funcs: &[Func]) -> Result<(), String> 
                 (Vec::new(), n.as_bytes().to_vec())
             };
             let sec = obj.add_section(segment, name, SectionKind::Debug);
-            obj.set_section_data(sec, s.data.slice().to_vec(), 1);
-            added.push((id, sec, s.relocs.clone()));
+            let mut data = s.data.slice().to_vec();
+            let mut relocs = s.relocs.clone();
+            if macho {
+                // ld64 reads section offsets in object DWARF verbatim; relocating them
+                // against section symbols corrupts them and drops the debug map.
+                relocs.retain(|r| {
+                    if !matches!(r.target, RelocationTarget::Section(_)) {
+                        return true;
+                    }
+                    let le = r.addend.to_le_bytes();
+                    let be = r.addend.to_be_bytes();
+                    let n = usize::from(r.size);
+                    match endian {
+                        RunTimeEndian::Little => {
+                            data[r.offset..r.offset + n].copy_from_slice(&le[..n])
+                        }
+                        RunTimeEndian::Big => {
+                            data[r.offset..r.offset + n].copy_from_slice(&be[8 - n..])
+                        }
+                    }
+                    false
+                });
+            }
+            obj.set_section_data(sec, data, 1);
+            added.push((id, sec, relocs));
             Ok(())
         })
         .map_err(|e| e.to_string())?;
 
+    // lldb reads object DWARF through the linker's debug map and expects each in-place address
+    // to be the function's address in the object file, so symbol relocations become
+    // section-relative ones whose addend is that address.
+    let object_addrs = if macho {
+        macho_function_addresses(obj, funcs)?
+    } else {
+        Vec::new()
+    };
+
     for (_, sec, relocs) in &added {
         for r in relocs {
-            let symbol = match r.target {
-                RelocationTarget::Symbol(i) => funcs[i].symbol,
+            let (symbol, addend) = match r.target {
+                RelocationTarget::Symbol(i) if macho => {
+                    let (section, addr) = object_addrs[i];
+                    (obj.section_symbol(section), (addr as i64) + r.addend)
+                }
+                RelocationTarget::Symbol(i) => (funcs[i].symbol, r.addend),
                 RelocationTarget::Section(target) => {
                     let (_, t, _) = added
                         .iter()
                         .find(|(id, ..)| *id == target)
                         .ok_or("relocation to an empty section")?;
-                    obj.section_symbol(*t)
+                    (obj.section_symbol(*t), r.addend)
                 }
             };
             obj.add_relocation(
@@ -181,7 +238,7 @@ pub fn add(obj: &mut Object, file: &Path, funcs: &[Func]) -> Result<(), String> 
                 ObjRelocation {
                     offset: r.offset as u64,
                     symbol,
-                    addend: r.addend,
+                    addend,
                     flags: RelocationFlags::Generic {
                         kind: RelocationKind::Absolute,
                         encoding: RelocationEncoding::Generic,
@@ -193,4 +250,26 @@ pub fn add(obj: &mut Object, file: &Path, funcs: &[Func]) -> Result<(), String> 
         }
     }
     Ok(())
+}
+
+/// Section and in-object address of each function, found by laying the object out once.
+fn macho_function_addresses(obj: &Object, funcs: &[Func]) -> Result<Vec<(SectionId, u64)>, String> {
+    let bytes = obj.write().map_err(|e| e.to_string())?;
+    let file = object::read::File::parse(&*bytes).map_err(|e| e.to_string())?;
+    funcs
+        .iter()
+        .map(|f| {
+            let sym = obj.symbol(f.symbol);
+            let SymbolSection::Section(id) = sym.section else {
+                return Err("function symbol is not in a section".to_string());
+            };
+            let name = obj.section(id).name().ok_or("unnamed section")?;
+            let base = file
+                .sections()
+                .find(|s| s.name() == Ok(name))
+                .ok_or("section missing from written object")?
+                .address();
+            Ok((id, base + sym.value))
+        })
+        .collect()
 }
