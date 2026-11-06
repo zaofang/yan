@@ -23,6 +23,8 @@ pub(crate) struct Vm<'o> {
     /// Budgets, with the current depth, the steps taken and the live heap bytes at the
     /// start; none at run time.
     limits: Option<(crate::Limits, usize, u64, usize)>,
+    /// The frame whose `par concurrent` tasks are running: only its own calls may park.
+    task_base: Option<usize>,
 }
 
 /// The type name a value's `impl` is keyed by, where the value tells it.
@@ -272,6 +274,7 @@ impl<'o> Vm<'o> {
             stack: Vec::with_capacity(1 << 12),
             it,
             limits: None,
+            task_base: None,
         }
     }
 
@@ -348,6 +351,95 @@ impl<'o> Vm<'o> {
                 }
             }
         }
+    }
+
+    /// Run the branches at `entries` of `code` as cooperative tasks over the frame at `base`.
+    /// A task that parks yields to the lowest-index task that can progress; a task that fails
+    /// or returns ends the block with that outcome and drops the rest (R390, R394).
+    fn run_tasks(
+        &mut self,
+        code: &mut Rc<Code>,
+        base: usize,
+        entries: &[u32],
+    ) -> R<Option<Result<Value, Value>>> {
+        struct Task {
+            pc: usize,
+            done: bool,
+            park: Option<(bool, usize)>,
+            seen: Option<u64>,
+        }
+        let mut tasks: Vec<Task> = entries
+            .iter()
+            .map(|e| Task {
+                pc: *e as usize,
+                done: false,
+                park: None,
+                seen: None,
+            })
+            .collect();
+        let outer = self.task_base.replace(base);
+        let out = loop {
+            let progress = self.it.progress;
+            let next = tasks
+                .iter()
+                .position(|t| !t.done && t.seen.is_none_or(|s| s != progress));
+            let (i, forced) = match next {
+                Some(i) => (i, false),
+                None => match tasks.iter().position(|t| !t.done) {
+                    Some(i) => (i, true),
+                    None => break Ok(None),
+                },
+            };
+            self.it.force = forced;
+            self.it.park = None;
+            self.it.task_done = false;
+            let mut pc = tasks[i].pc;
+            let r = self.exec_from(code, &mut pc, base);
+            self.it.force = false;
+            let t = &mut tasks[i];
+            let prev = t.park.take();
+            let r = match r {
+                Ok(r) => r,
+                Err(e) => break Err(e),
+            };
+            if let Some(now) = self.it.park.take() {
+                if prev != Some(now) {
+                    if let Some((true, c)) = prev
+                        && let Some(k) = self.it.waiting_recv.iter().position(|w| *w == c)
+                    {
+                        self.it.waiting_recv.swap_remove(k);
+                    }
+                    if now.0 {
+                        self.it.waiting_recv.push(now.1);
+                    }
+                    self.it.progress += 1;
+                }
+                t.pc = pc;
+                t.park = Some(now);
+                t.seen = Some(self.it.progress);
+                continue;
+            }
+            if let Some((true, c)) = prev
+                && let Some(k) = self.it.waiting_recv.iter().position(|w| *w == c)
+            {
+                self.it.waiting_recv.swap_remove(k);
+                self.it.progress += 1;
+            }
+            if self.it.task_done {
+                t.done = true;
+            } else {
+                break Ok(Some(r));
+            }
+        };
+        for t in &tasks {
+            if let Some((true, c)) = t.park
+                && let Some(k) = self.it.waiting_recv.iter().position(|w| *w == c)
+            {
+                self.it.waiting_recv.swap_remove(k);
+            }
+        }
+        self.task_base = outer;
+        out
     }
 
     fn val<'a>(&'a self, code: &'a Code, base: usize, o: Opnd) -> &'a Value {
@@ -483,9 +575,28 @@ impl<'o> Vm<'o> {
                 },
                 Op::Ret(o) => return Ok(Ok(dup(self.val(code, base, o)))),
                 Op::Fail(o) => return Ok(Err(dup(self.val(code, base, o)))),
+                Op::Par(i) => {
+                    let (entries, join) = code.pars[i as usize].clone();
+                    if let Some(r) = self.run_tasks(code, base, &entries)? {
+                        return Ok(r);
+                    }
+                    *pc = join as usize;
+                }
+                Op::TaskEnd => {
+                    self.it.task_done = true;
+                    return Ok(Ok(Value::Unit));
+                }
                 Op::Call { site, dst } => {
                     let s = &code.sites[site as usize];
-                    let r = self.call_site(code, base, s)?;
+                    self.it.park_ok = self.task_base == Some(base);
+                    let r = self.call_site(code, base, s);
+                    self.it.park_ok = false;
+                    let r = r?;
+                    if self.it.park.is_some() {
+                        // Run this call again when the task resumes.
+                        *pc -= 1;
+                        return Ok(Ok(Value::Unit));
+                    }
                     let v = match (r, &s.mode) {
                         (Ok(v), Mode::Try) => data("Ok", "value", v),
                         (Err(e), Mode::Try) => data("Err", "error", e),

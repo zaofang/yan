@@ -233,6 +233,12 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             chans: Vec::new(),
             net: Default::default(),
             test: false,
+            progress: 0,
+            waiting_recv: Vec::new(),
+            park_ok: false,
+            park: None,
+            force: false,
+            task_done: false,
         },
     );
     vm.limit(limits);
@@ -350,6 +356,18 @@ pub(crate) struct Interp<'o> {
     net: net::Nets,
     /// Running under `yan test`, which picks the default handlers (7.3).
     test: bool,
+    /// Counts channel progress: a transfer, or a task starting to wait for a receive.
+    progress: u64,
+    /// The channels tasks of a `par concurrent` are parked receiving on.
+    waiting_recv: Vec<usize>,
+    /// A blocking operation may park its task: set by the VM for calls made at task level.
+    park_ok: bool,
+    /// Set by a blocking operation that parked: (is a receive, channel).
+    park: Option<(bool, usize)>,
+    /// Every task is parked: fail the next blocking operation as a plain wait would.
+    force: bool,
+    /// Set when a task's branch ends.
+    task_done: bool,
 }
 
 pub(crate) fn panic<T>(kind: &str) -> R<T> {
@@ -549,6 +567,12 @@ fn entry(
         chans: Vec::new(),
         net: Default::default(),
         test: limits.is_some(),
+        progress: 0,
+        waiting_recv: Vec::new(),
+        park_ok: false,
+        park: None,
+        force: false,
+        task_done: false,
     };
     // The test handler set (7.3): `rand = seeded(0)`, `env = fake_env()`, `proc = fake_proc()`.
     let args = args
