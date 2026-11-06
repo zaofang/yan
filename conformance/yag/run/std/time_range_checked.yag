@@ -1,0 +1,14 @@
+# spec: 11.6, 17.5
+# rows: R593
+# note: every time type covers years -9999 to 9999; the checked_ forms return None on leaving the range
+# stdout:
+# 9999-12-31T23:59:59Z -009999-01-01T00:00:00Z
+# True True
+# True True
+
+pub def main() uses io:
+    top = Instant.from_unix_seconds(253402300799)
+    bot = Instant.from_unix_seconds(-377705116800)
+    io.print(f"{top} {bot}")
+    io.print(f"{top.checked_add(Duration.seconds(0)) is not None} {top.checked_add(Duration.seconds(1)) is None}")
+    io.print(f"{bot.checked_sub(Duration.nanos(1)) is None} {bot.checked_sub(Duration.seconds(0)) is not None}")

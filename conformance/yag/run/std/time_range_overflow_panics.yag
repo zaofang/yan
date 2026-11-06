@@ -1,0 +1,12 @@
+# spec: 11.6, 8.3
+# rows: R593
+# note: leaving the year range through an operator is overflow and panics with kind overflow
+# stdout:
+# before
+# exit: 101
+
+pub def main() uses io:
+    top = Instant.from_unix_seconds(253402300799)
+    io.print("before")
+    c = top + Duration.seconds(1)
+    io.print(f"{c}")

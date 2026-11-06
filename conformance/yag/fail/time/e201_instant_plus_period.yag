@@ -1,0 +1,7 @@
+# spec: 11.6
+# rows: R593
+# note: Instant + Period is a type error
+# expect: E201 at 7:12
+
+def f(i: Instant, p: Period) -> Instant:
+    return i + p

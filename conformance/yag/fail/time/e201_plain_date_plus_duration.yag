@@ -1,0 +1,7 @@
+# spec: 11.6
+# rows: R593
+# note: PlainDate + Duration is a type error
+# expect: E201 at 7:12
+
+def f(d: PlainDate, x: Duration) -> PlainDate:
+    return d + x

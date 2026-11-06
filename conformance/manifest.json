@@ -3524,6 +3524,63 @@
    ]
   },
   {
+   "path": "yag/fail/time/e201_instant_plus_period.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "11.6"
+   ],
+   "rows": [
+    "R593"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/time/e201_plain_date_plus_duration.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "11.6"
+   ],
+   "rows": [
+    "R593"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/time/e221_zoned_date_time_ordering.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "11.6"
+   ],
+   "rows": [
+    "R593"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E221",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/time/e540_impossible_date.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -6189,6 +6246,38 @@
    "expect": [],
    "stdout": "2000-01-01T00:00:00Z PT5S MonoInstant(5000000000)\n2000-01-01T00:03:00Z PT3M\n",
    "exit": 0
+  },
+  {
+   "path": "yag/run/std/time_range_checked.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "11.6",
+    "17.5"
+   ],
+   "rows": [
+    "R593"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "9999-12-31T23:59:59Z -009999-01-01T00:00:00Z\nTrue True\nTrue True\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/time_range_overflow_panics.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "11.6",
+    "8.3"
+   ],
+   "rows": [
+    "R593"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before\n",
+   "exit": 101
   },
   {
    "path": "yag/run/std/time_strftime.yag",
