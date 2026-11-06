@@ -1,12 +1,14 @@
 //! Yan Agent: lexer (INDENT/DEDENT), parser, syntactic lenient normalizations and canonical printer.
 
 pub use yan_hir as ast;
+mod grammar;
 mod lexer;
 mod nested;
 mod parser;
 mod printer;
 mod resugar;
 
+pub use grammar::{Expr as GrammarExpr, Grammar, Term as GrammarTerm};
 pub use printer::{expr as print_expr, print, ty as print_type};
 pub use resugar::resugar;
 use yan_diag::{Diagnostic, Severity};

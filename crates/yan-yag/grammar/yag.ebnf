@@ -1,0 +1,118 @@
+# Yan Agent grammar, the notation of spec 13.2 made machine-readable.
+# {x} zero or more, [x] optional, (a | b) group, "x" literal token, rules end with ';'.
+# UPPERCASE words are terminals. BOL marks the start of a physical line (indentation in text
+# grammars, ignored by the recognizer). Words such as "list" "[" are separate tokens.
+
+module    = {modattr} [docstring] {item} ;
+modattr   = BOL "@@" path ["(" [args] ")"] NEWLINE ;
+item      = {decorator} (BOL ["pub"] (funcdef | classdef | typedef | traitdef | impldef | constdef | lemmadef)) ;
+decorator = BOL "@" path ["(" [args] ")"] NEWLINE ;
+docstring = BOL STRING NEWLINE ;
+
+funcdef   = "def" NAME [tparams] "(" [params] ")" ["->" rettype] [uses] ":" fbody ;
+rettype   = (type ["fail" errtype] | "fail" errtype) ["from" NAME {"," NAME}] ;
+uses      = "uses" ("none" | capref {"," capref}) ;
+capref    = path ["as" NAME] ;
+tparams   = "[" tparam {"," tparam} "]" ;
+tparam    = TYPENAME [":" bound {"+" bound}]
+          | NAME ":" type ;
+bound     = path ["[" type {"," type} "]"] | "Nat" ;
+params    = param {"," param} [","] ;
+param     = ["var" | "take" | "ghost"] (NAME | "_") ":" type ["=" expr] | "/" | "**" NAME ":" type ;
+fbody     = NEWLINE INDENT [docstring] {contract} {stmt} DEDENT ;
+contract  = BOL ("pre" | "post" | "decreases") expr NEWLINE
+          | BOL "cost" costbound {"," costbound} NEWLINE
+          | BOL "ex" expr ["with" NAME "=" expr {"," NAME "=" expr}] NEWLINE ;
+costbound = ("steps" | "alloc") "<=" expr ;
+lemmadef  = "lemma" NAME [tparams] "(" [params] ")" ":" fbody ;
+
+classdef  = "class" TYPENAME [tparams] ":" NEWLINE INDENT [docstring]
+            (field {field} | BOL "pass" NEWLINE) DEDENT ;
+field     = BOL NAME ":" type ["=" expr] NEWLINE ;
+typedef   = "type" TYPENAME [tparams] "=" (variant {"|" variant} | base {"|" base} | "uses" capref {"," capref} | "newtype" "[" type "]") ["where" expr] NEWLINE ;
+variant   = TYPENAME "(" [ifield {"," ifield}] ")" ;
+ifield    = NAME ":" type ["=" expr] ;
+traitdef  = "trait" TYPENAME [tparams] ":" NEWLINE INDENT [docstring] {assoc} {decorator} sigdef
+            {{decorator} sigdef} DEDENT ;
+assoc     = BOL "type" TYPENAME NEWLINE ;
+sigdef    = BOL "def" NAME [tparams] "(" [params] ")" ["->" rettype] [uses] ":" ("..." NEWLINE | fbody) ;
+impldef   = "impl" path ["[" type {"," type} "]"] "for" type ":" NEWLINE INDENT
+            {BOL "type" TYPENAME "=" type NEWLINE} BOL funcdef {BOL funcdef} DEDENT ;
+constdef  = NAME ":" type "=" expr NEWLINE ;
+
+stmt      = BOL simple NEWLINE | BOL compound ;
+simple    = exprs [[":" type] "=" exprs | augop expr]
+          | "ghost" tname [":" type] "=" expr
+          | "return" [exprs] | "become" postfix | "fail" expr | "break" | "continue" | "pass"
+          | "assert" expr | "unreachable" | "reveal" path ;
+exprs     = expr {"," expr} ;
+augop     = "+=" | "-=" | "*=" | "/=" | "//=" | "%=" | "**=" | "&=" | "|=" | "^=" | "<<=" | ">>=" ;
+target    = tname | tname "," tname {"," tname} ;
+tname     = NAME | "_" ;
+compound  = ifstmt | whilestmt | forstmt | matchstmt | withstmt | parstmt ;
+ifstmt    = "if" expr ":" block {BOL "elif" expr ":" block} [BOL "else" ":" block] ;
+whilestmt = "while" expr ":" lbody ;
+forstmt   = "for" target "in" expr ":" lbody ;
+lbody     = NEWLINE INDENT {BOL ("invariant" | "decreases") expr NEWLINE} stmt {stmt} DEDENT ;
+matchstmt = "match" expr ":" NEWLINE INDENT case {case} DEDENT ;
+case      = BOL "case" pattern ["if" expr] ":" block ;
+withstmt  = "with" (NAME "=" expr | "deadline" "(" expr ")" | "timeout" "(" expr ")") ":" block ;
+parstmt   = "par" ["concurrent"] ["(" "limit" "=" expr ")"] (":" NEWLINE INDENT stmt {stmt} DEDENT | "for" target "in" expr ":" lbody) ;
+block     = simple NEWLINE | NEWLINE INDENT stmt {stmt} DEDENT ;
+
+pattern   = patone {"as" NAME} ;
+patone    = "_" | literal | path ["(" [parg {"," parg}] ")"]
+          | "(" pattern "," pattern {"," pattern} ")" ;
+parg      = pattern | NAME "=" pattern ;
+
+expr      = lambda | fallback ;
+lambda    = "lambda" [NAME {"," NAME}] ":" expr ;
+fallback  = cond ["else" (NAME "->" cond | cond | "return" [cond] | "fail" cond | "break" | "continue")] ;
+cond      = disj ["if" disj "else" cond] ;
+disj      = conj {"or" conj} ;
+conj      = neg {"and" neg} ;
+neg       = "not" neg | comp ;
+comp      = bitor [compop bitor] ;
+compop    = "==" | "!=" | "<" | "<=" | ">" | ">=" | "in" | "not" "in" | "is" ["not"] ;
+bitor     = bitxor {"|" bitxor} ;
+bitxor    = bitand {"^" bitand} ;
+bitand    = shift {"&" shift} ;
+shift     = arith {("<<" | ">>") arith} ;
+arith     = term {("+" | "-") term} ;
+term      = unary {("*" | "/" | "//" | "%" | "@") unary} ;
+unary     = ("-" | "+" | "~") unary | power ;
+power     = postfix ["**" unary] ;
+postfix   = atom {"." (NAME | TYPENAME) | "(" [args] ")" | "[" (expr | slice) "]" | "?"} ;
+args      = arg {"," arg} [","] ;
+arg       = expr | "&" place | "become" postfix
+          | (NAME | TYPENAME) "=" ("&" place | "become" postfix | expr) ;
+place     = NAME {"." NAME | "[" expr "]"} ;
+atom      = literal | fstring | NAME | TYPENAME | "_" | "..." | "(" expr ")" | "(" expr "," [expr {"," expr} [","]] ")"
+          | "[" [expr {"," expr} [","]] "]" | "{" [kv {"," kv} [","]] "}" | "{" expr {"," expr} [","] "}"
+          | comprehension | "par" ["concurrent"] comprehension | "fail" unary ;
+comprehension = "[" expr "for" target "in" disj ["if" disj] "]"
+          | "{" kv "for" target "in" disj ["if" disj] "}" | "{" expr "for" target "in" disj ["if" disj] "}" ;
+kv        = expr ":" expr ;
+slice     = [expr] ":" [expr] [":" [expr]] ;
+literal   = INT | FLOAT | STRING | BYTES | CHAR | "True" | "False" | "None" ;
+fstring   = FSTRING | TSTRING ;
+
+type      = base ["|" "None"] ;
+base      = scalar | "str" | "bytes" | "char" | "bigint" | "decimal" | "None"
+          | "list" "[" type "]" | "dict" "[" type "," type "]" | "set" "[" type "]"
+          | "deque" "[" type "]" | "heap" "[" type "]" | "sorted_dict" "[" type "," type "]" | "sorted_set" "[" type "]"
+          | "soa" "[" type "]" | "tuple" "[" type {"," type} "]" | "Result" "[" type "," errtype "]"
+          | "View" "[" type "]" | "MutView" "[" type "]" | "StrView"
+          | "Array" "[" atarg {"," atarg} "]" | "Table" "[" type "]" | "Quantity" "[" type "," dim "]"
+          | ["par"] "Callable" "[" "[" [type {"," type}] "]" "," type [callsfx] "]"
+          | path ["[" (type | INT) {"," (type | INT)} "]"] ;
+scalar    = "int" | "float" | "bool"
+          | "int8" | "int16" | "int32" | "int128"
+          | "uint8" | "uint16" | "uint32" | "uint64" | "uint128"
+          | "float16" | "bfloat16" | "float32" | "float128" ;
+errtype   = path {"|" path} ;
+callsfx   = "," ("fail" "(" errtype ")" ["," "uses" "(" NAME {"," NAME} ")"] | "uses" "(" NAME {"," NAME} ")") ;
+atarg     = INT | type ;
+path      = NAME [ptail] | TYPENAME ;
+ptail     = "." (NAME [ptail] | TYPENAME) ;
+dim       = NAME {("*" | "/") NAME} ["**" INT] ;

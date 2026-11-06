@@ -40,6 +40,11 @@ struct Cli {
 }
 
 #[derive(Clone, Copy, PartialEq, ValueEnum)]
+enum GrammarFormat {
+    Gbnf,
+}
+
+#[derive(Clone, Copy, PartialEq, ValueEnum)]
 enum Backend {
     Interp,
     Cranelift,
@@ -53,6 +58,11 @@ enum Jit {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Print the Yan Agent grammar for constrained decoding (21.3).
+    Grammar {
+        #[arg(long, value_enum)]
+        format: GrammarFormat,
+    },
     /// Check files and report diagnostics.
     Check {
         /// `prose` when output is a terminal, `line` otherwise (18.2).
@@ -291,6 +301,13 @@ fn main() -> ExitCode {
             bare,
         } => view(&as_, &file, yan_ide::Marks { strict, bare }),
         Command::Export { file, .. } => export::run(&file),
+        Command::Grammar { format } => {
+            let g = yan_yag::Grammar::yag();
+            match format {
+                GrammarFormat::Gbnf => print!("{}", g.gbnf()),
+            }
+            ExitCode::SUCCESS
+        }
         Command::Fmt { check, files } => fmt(&files, check),
         Command::Fix {
             dry_run,
