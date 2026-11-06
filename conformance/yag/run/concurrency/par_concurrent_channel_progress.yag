@@ -1,0 +1,17 @@
+# spec: 9.1, 9.2
+# rows: R390
+# milestone: M2a
+# note: the two ends of a channel need par concurrent; every handler gives it concurrent progress, so a rendezvous channel (capacity 0) between two branches completes and the receiver sees the values in send order
+# stdout:
+# 0
+# 1
+# 2
+
+pub def main() uses io:
+    tx, rx = Channel[int](0)
+    par concurrent:
+        for i in range(3):
+            tx.send(i) else e -> io.print("send cancelled")
+        for j in range(3):
+            v = rx.recv() else e -> -1
+            io.print(f"{v}")
