@@ -937,6 +937,49 @@
    ]
   },
   {
+   "path": "yag/fail/derives/e282_field_not_derived.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "10.4",
+    "17.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E282",
+     "line": 14,
+     "col": 8
+    },
+    {
+     "code": "E282",
+     "line": 18,
+     "col": 8
+    },
+    {
+     "code": "E282",
+     "line": 22,
+     "col": 8
+    },
+    {
+     "code": "E282",
+     "line": 26,
+     "col": 8
+    },
+    {
+     "code": "E282",
+     "line": 30,
+     "col": 8
+    },
+    {
+     "code": "E282",
+     "line": 34,
+     "col": 8
+    }
+   ]
+  },
+  {
    "path": "yag/fail/dist/e720_non_wire_handler.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -8437,6 +8480,21 @@
    "flags": [],
    "expect": [],
    "stdout": "A 17.5\nB 5.0\n",
+   "exit": 0
+  },
+  {
+   "path": "golden/g3_portfolio.yag",
+   "kind": "run",
+   "milestone": "M2b",
+   "spec": [
+    "24.3",
+    "14.5",
+    "17.7"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "portfolio value: 32500.0\n",
    "exit": 0
   },
   {

@@ -10,7 +10,7 @@ read-only to agents (22.6).
 | `yag/pass/`, `yn/pass/`, `yir/pass/` | pass | `check` reports no errors (warnings and notes allowed) |
 | `yag/fail/`, `yn/fail/`, `yir/fail/` | fail | `check` reports exactly the `expect` lines, all severities, and nothing else |
 | `yag/run/`, `yn/run/`, `yir/run/` | run | `run` prints exactly the `stdout` block and exits with `exit` (default 0) |
-| `golden/` | run | as run; G1, G2 and G4 of 24.3, and the proposed G5 (the Tally slice, in Yan Agent and Yan) |
+| `golden/` | run | as run; G1 to G4 of 24.3, and the proposed G5 (the Tally slice, in Yan Agent and Yan) |
 | `solver/` | fail | as fail; no `expect` line means no diagnostics at all (8.6 boundaries) |
 | `ub/` | ub | `run --ub` reports `ub(N)` for the case's `ub: N` header (the 6.7 item number), or runs clean for `ub: none` |
 | `patch/<case>/` | patch | `patch` applied to `m.yag` gives `result.yag`, or is refused with the `code` of `expect.toml` and leaves `m.yag` unchanged |
