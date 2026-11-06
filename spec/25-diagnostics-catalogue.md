@@ -111,6 +111,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E279 | `yan view --strict`: a spelling mark that raise did not use, or dropped as invalid (RFC 0034, R841) *new* | 16.5 |
 | E280 | one parameter documented both in an `Args:` section and above the parameter (R846) *new* | 18.9 |
 | E281 | a type written in a parameter doc disagrees with the signature (R849) *new* | 14.4 |
+| E282 | a derived trait (`Eq`, `Ord`, `Hash`, `Show`, `Wire`) has a field whose type does not implement it; one diagnostic per field, at the field's type annotation (RFC 0040, R872, R873) *new* | 10.4, 17.4 |
 | E233 | str or f-string where a Template is expected (R452) new | 13.1 |
 
 ### 25.5 Capabilities, handlers and failure
