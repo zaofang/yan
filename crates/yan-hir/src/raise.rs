@@ -3495,7 +3495,10 @@ fn annotation(value: &Expr, t: &y::Type) -> R<Option<Type>> {
             ExprKind::Lit(Lit::None) => true,
             ExprKind::Call(f, args) => {
                 args.is_empty()
-                    && matches!(&f.kind, ExprKind::Name(n) if COLLECTIONS.contains(&n.as_str()))
+                    && (matches!(&f.kind, ExprKind::Name(n) if COLLECTIONS.contains(&n.as_str()))
+                        // The element type only the annotation names.
+                        || matches!(&f.kind, ExprKind::Attr(m, e, _) if e == "empty"
+                            && matches!(&m.kind, ExprKind::Name(n) if n == "iter")))
             }
             // A literal of a fixed-width type keeps its annotation.
             ExprKind::Lit(Lit::Int(_) | Lit::Float(_)) | ExprKind::Unary("-", _) => matches!(
