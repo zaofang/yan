@@ -1,0 +1,8 @@
+# spec: 17.3, 17.4, 25.5
+# rows: R887, R874
+# note: a variant field whose wire name is the item-level tag is E330
+# expect: E330 at 8:15
+
+@derive(Wire)
+@wire(names={"r": "kind"}, tag="kind")
+type S = A(r: int) | B()

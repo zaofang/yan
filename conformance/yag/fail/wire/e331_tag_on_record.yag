@@ -1,0 +1,9 @@
+# spec: 17.3, 25.5
+# rows: R887
+# note: tag applies to a sum only; on a record it is E331
+# expect: E331 at 7:7
+
+@derive(Wire)
+@wire(tag="k")
+class R:
+    a: int

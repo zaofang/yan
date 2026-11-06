@@ -1,0 +1,9 @@
+# spec: 17.3, 25.5
+# rows: R887
+# note: unknown takes "ignore" or "reject" only
+# expect: E331 at 7:7
+
+@derive(Wire)
+@wire(unknown="maybe")
+class R:
+    a: int

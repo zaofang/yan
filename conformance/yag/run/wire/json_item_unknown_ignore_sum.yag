@@ -1,0 +1,16 @@
+# spec: 17.3
+# rows: R887, R876
+# note: unknown "ignore" on a sum skips unknown members of every variant
+# stdout:
+# {"tag":"Circle","r":1.5}
+# {"tag":"Unit"}
+
+@derive(Wire, Show, Eq)
+@wire(unknown="ignore")
+type Shape = Circle(r: float) | Unit()
+
+pub def main() uses io:
+    a = json.parse[Shape]("{\"tag\":\"Circle\",\"r\":1.5,\"z\":true}") else err -> Circle(r=-1.0)
+    io.print(json.dump[Shape](a))
+    b = json.parse[Shape]("{\"extra\":{},\"tag\":\"Unit\"}") else err -> Circle(r=-1.0)
+    io.print(json.dump[Shape](b))

@@ -1,0 +1,9 @@
+# spec: 17.3, 25.5
+# rows: R886
+# note: a name renamed twice is E331
+# expect: E331 at 7:7
+
+@derive(Wire)
+@wire(names={"a": "x", "a": "y"})
+class R:
+    a: int

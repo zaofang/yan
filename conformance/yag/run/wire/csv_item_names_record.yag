@@ -1,0 +1,25 @@
+# spec: 17.4
+# rows: R886, R878
+# note: item-level names renames csv columns; columns match by wire name in any order
+# stdout:
+# user-id,full name
+# 1,ada
+# 2,"grace, h"
+#
+# 9 ada
+# 5 bo
+
+@derive(Wire, Show, Eq)
+@wire(names={"id": "user-id", "name": "full name"})
+class R:
+    id: int
+    name: str
+
+pub def main() uses io:
+    io.print(csv.dump[R]([R(id=1, name="ada"), R(id=2, name="grace, h")]))
+    rs = csv.parse[R]("full name,user-id\nada,9\n") else err -> []
+    for r in rs:
+        io.print(f"{r.id} {r.name}")
+    qs = csv.parse[R]("user-id,full name\r\n5,bo\r\n") else err -> []
+    for q in qs:
+        io.print(f"{q.id} {q.name}")

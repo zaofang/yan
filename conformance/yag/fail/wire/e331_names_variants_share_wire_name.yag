@@ -1,0 +1,8 @@
+# spec: 17.3, 25.5
+# rows: R886
+# note: two variants with one wire name are E331
+# expect: E331 at 8:1
+
+@derive(Wire)
+@wire(names={"A": "x", "B": "x"})
+type S = A() | B()
