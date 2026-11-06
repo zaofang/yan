@@ -98,7 +98,8 @@ struct State<M: Module> {
     sigs: Vec<Signature>,
     ids: Vec<CFuncId>,
     rt_ids: Vec<CFuncId>,
-    panic: CFuncId,
+    /// `yan_rt_panic` and `yan_rt_panic_ops`.
+    panic: [CFuncId; 2],
     strings: Strings,
     fctx: FunctionBuilderContext,
     ctx: cranelift_codegen::Context,
@@ -158,7 +159,7 @@ impl<M: Module> State<M> {
                 .iter()
                 .map(|id| module.declare_func_in_func(*id, b.func))
                 .collect(),
-            panic: module.declare_func_in_func(*panic, b.func),
+            panic: panic.map(|id| module.declare_func_in_func(id, b.func)),
             ptr,
         };
         let strings = match strings {
@@ -423,6 +424,7 @@ pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
     let isa = host_isa(false)?;
     let mut jb = JITBuilder::with_isa(isa, default_libcall_names());
     jb.symbol("yan_rt_panic", abi::yan_rt_panic as *const u8);
+    jb.symbol("yan_rt_panic_ops", abi::yan_rt_panic_ops as *const u8);
     jb.symbol("yan_rt_exit", abi::yan_rt_exit as *const u8);
     jb.symbol("yan_jit_resolve", yan_jit_resolve as *const u8);
     for f in RT {
@@ -491,7 +493,7 @@ pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
 }
 
 /// Declare the runtime's symbols; returns the ids of panic, exit and the [`RT`] functions.
-fn declare_rt<M: Module>(module: &mut M) -> R<(CFuncId, CFuncId, Vec<CFuncId>)> {
+fn declare_rt<M: Module>(module: &mut M) -> R<([CFuncId; 2], CFuncId, Vec<CFuncId>)> {
     let ptr = module.target_config().pointer_type();
     let mut panic_sig = module.make_signature();
     panic_sig
@@ -499,6 +501,14 @@ fn declare_rt<M: Module>(module: &mut M) -> R<(CFuncId, CFuncId, Vec<CFuncId>)> 
         .extend([AbiParam::new(ptr), AbiParam::new(ptr)]);
     let panic = module
         .declare_function("yan_rt_panic", Linkage::Import, &panic_sig)
+        .map_err(err)?;
+    let mut ops_sig = module.make_signature();
+    ops_sig
+        .params
+        .extend([AbiParam::new(ptr), AbiParam::new(ptr)]);
+    ops_sig.params.extend([AbiParam::new(types::I64); 4]);
+    let panic_ops = module
+        .declare_function("yan_rt_panic_ops", Linkage::Import, &ops_sig)
         .map_err(err)?;
     let mut exit_sig = module.make_signature();
     exit_sig.params.push(AbiParam::new(types::I64));
@@ -517,7 +527,7 @@ fn declare_rt<M: Module>(module: &mut M) -> R<(CFuncId, CFuncId, Vec<CFuncId>)> 
                 .map_err(err)
         })
         .collect::<R<Vec<_>>>()?;
-    Ok((panic, exit, rt_ids))
+    Ok(([panic, panic_ops], exit, rt_ids))
 }
 
 fn declare_funcs<M: Module>(module: &mut M, p: &Program) -> R<(Vec<Signature>, Vec<CFuncId>)> {
@@ -837,7 +847,7 @@ fn rt_fn(
 struct Rt {
     /// In the order of [`RT`].
     fns: Vec<FuncRef>,
-    panic: FuncRef,
+    panic: [FuncRef; 2],
     ptr: types::Type,
 }
 
@@ -904,6 +914,13 @@ impl Gen<'_, '_> {
     }
 
     fn call_panic(&mut self, kind: &'static str) {
+        let (ptr, len) = self.kind_str(kind);
+        self.b.ins().call(self.rt.panic[0], &[ptr, len]);
+        self.b.ins().trap(TrapCode::unwrap_user(1));
+    }
+
+    /// The kind's bytes as pointer and length.
+    fn kind_str(&mut self, kind: &'static str) -> (Value, Value) {
         let ptr = match &self.strings {
             Strs::Addr(_) => self.b.ins().iconst(self.rt.ptr, kind.as_ptr() as i64),
             Strs::Slots { kinds, .. } => {
@@ -912,8 +929,23 @@ impl Gen<'_, '_> {
             }
         };
         let len = self.b.ins().iconst(self.rt.ptr, kind.len() as i64);
-        self.b.ins().call(self.rt.panic, &[ptr, len]);
+        (ptr, len)
+    }
+
+    /// Like [`Self::guard`], but the panic carries the integer type and operands (R796).
+    fn guard_ops(&mut self, ok: Value, kind: &'static str, t: IntTy, x: Value, y: Value) {
+        let bad = self.b.create_block();
+        let next = self.b.create_block();
+        self.b.ins().brif(ok, next, &[], bad, &[]);
+        self.b.switch_to_block(bad);
+        let (ptr, len) = self.kind_str(kind);
+        let bits = self.b.ins().iconst(types::I64, i64::from(t.bits));
+        let signed = self.b.ins().iconst(types::I64, i64::from(t.signed));
+        self.b
+            .ins()
+            .call(self.rt.panic[1], &[ptr, len, bits, signed, x, y]);
         self.b.ins().trap(TrapCode::unwrap_user(1));
+        self.b.switch_to_block(next);
     }
 
     fn panic_block(&mut self, kind: &'static str) -> CBlock {
@@ -1266,7 +1298,7 @@ impl Gen<'_, '_> {
                 _ => self.b.ins().umul_overflow(x, y),
             };
             let ok = self.b.ins().icmp_imm_s(IntCC::Equal, of, 0);
-            self.guard(ok, "overflow");
+            self.guard_ops(ok, "overflow", t, x, y);
             return r;
         }
         // Narrower operands are exact in i64, or wrap to a negative value that is out of range.
@@ -1275,11 +1307,11 @@ impl Gen<'_, '_> {
             SubChecked => self.b.ins().isub(x, y),
             _ => self.b.ins().imul(x, y),
         };
-        self.in_range(r, t);
+        self.in_range(r, t, x, y);
         r
     }
 
-    fn in_range(&mut self, r: Value, t: IntTy) {
+    fn in_range(&mut self, r: Value, t: IntTy, x: Value, y: Value) {
         let (lo, hi) = t.range();
         let ge = self
             .b
@@ -1290,13 +1322,13 @@ impl Gen<'_, '_> {
             .ins()
             .icmp_imm_s(IntCC::SignedLessThanOrEqual, r, hi as i64);
         let ok = self.b.ins().band(ge, le);
-        self.guard(ok, "overflow");
+        self.guard_ops(ok, "overflow", t, x, y);
     }
 
     /// Division and remainder rounding toward negative infinity.
     fn floor(&mut self, op: ScalarOp, t: IntTy, x: Value, y: Value) -> Value {
         let nonzero = self.b.ins().icmp_imm_s(IntCC::NotEqual, y, 0);
-        self.guard(nonzero, "div_zero");
+        self.guard_ops(nonzero, "div_zero", t, x, y);
         if !t.signed {
             return if op == ScalarOp::FloorDiv {
                 self.b.ins().udiv(x, y)
@@ -1324,10 +1356,10 @@ impl Gen<'_, '_> {
         let (negx, of) = self.b.ins().ssub_overflow(zero, x);
         let bad = self.b.ins().band(minus_one, of);
         let ok = self.b.ins().icmp_imm_s(IntCC::Equal, bad, 0);
-        self.guard(ok, "overflow");
+        self.guard_ops(ok, "overflow", t, x, y);
         let q = self.b.ins().select(minus_one, negx, q);
         if t.bits < 64 {
-            self.in_range(q, t);
+            self.in_range(q, t, x, y);
         }
         q
     }

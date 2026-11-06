@@ -38,6 +38,74 @@ pub unsafe extern "C" fn yan_rt_panic(ptr: *const u8, len: usize) -> ! {
     std::process::exit(101)
 }
 
+/// A panic operand, as in the interpreter's `Operand`: an integer or a type name.
+#[derive(Debug, Clone, PartialEq)]
+pub enum PanicOperand {
+    Int(i128),
+    Type(String),
+}
+
+static PANIC_FIELDS: Mutex<Vec<(&'static str, PanicOperand)>> = Mutex::new(Vec::new());
+
+/// The operand fields of the panic being reported (R796, R883), valid until the process exits.
+pub fn panic_fields() -> Vec<(&'static str, PanicOperand)> {
+    PANIC_FIELDS.lock().expect("not poisoned").clone()
+}
+
+fn ops_fields(
+    kind: &str,
+    bits: u64,
+    signed: u64,
+    a: i64,
+    b: i64,
+) -> Vec<(&'static str, PanicOperand)> {
+    let wide = |x: i64| {
+        if signed == 0 && bits == 64 {
+            i128::from(x as u64)
+        } else {
+            i128::from(x)
+        }
+    };
+    let mut f = Vec::new();
+    match kind {
+        "overflow" => {
+            let ty = format!("{}{bits}", if signed != 0 { 'i' } else { 'u' });
+            f.push(("type", PanicOperand::Type(ty)));
+            f.push(("left", PanicOperand::Int(wide(a))));
+            f.push(("right", PanicOperand::Int(wide(b))));
+        }
+        "div_zero" => {
+            f.push(("dividend", PanicOperand::Int(wide(a))));
+            f.push(("divisor", PanicOperand::Int(wide(b))));
+        }
+        _ => {}
+    }
+    f
+}
+
+/// A panic of kind `ptr[..len]` with integer operands `a` and `b` of the integer type of `bits`
+/// width and signedness `signed`: `overflow` carries `type`, `left`, `right`; `div_zero` carries
+/// `dividend`, `divisor`; the rest carry none. Reported as [`yan_rt_panic`].
+///
+/// # Safety
+/// `ptr` points to `len` bytes of UTF-8.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_panic_ops(
+    ptr: *const u8,
+    len: usize,
+    bits: u64,
+    signed: u64,
+    a: i64,
+    b: i64,
+) -> ! {
+    // SAFETY: forwarded.
+    let kind = unsafe { text(ptr, len) };
+    let f = ops_fields(kind, bits, signed, a, b);
+    *PANIC_FIELDS.lock().expect("not poisoned") = f;
+    // SAFETY: forwarded.
+    unsafe { yan_rt_panic(ptr, len) }
+}
+
 /// The message a panic of `kind` prints when its site gives no specific one.
 pub fn panic_message(kind: &str) -> &'static str {
     match kind {
@@ -402,4 +470,19 @@ pub unsafe extern "C" fn yan_rt_csv_error_show(v: *const u64) -> *mut String {
     let w = unsafe { std::slice::from_raw_parts(v, crate::csvslots::ERROR_WIDTH) };
     // SAFETY: as above.
     str_block(&unsafe { crate::csvslots::show_error(w) })
+}
+
+#[cfg(test)]
+mod panic_ops_tests {
+    use super::*;
+
+    #[test]
+    fn ops_fields_match_the_interpreter() {
+        let f = ops_fields("overflow", 8, 0, 200, 100);
+        assert_eq!(f[0], ("type", PanicOperand::Type("u8".into())));
+        assert_eq!(f[1], ("left", PanicOperand::Int(200)));
+        let f = ops_fields("div_zero", 64, 0, -1, 0);
+        assert_eq!(f[0], ("dividend", PanicOperand::Int(u64::MAX.into())));
+        assert_eq!(f[1], ("divisor", PanicOperand::Int(0)));
+    }
 }
