@@ -546,14 +546,18 @@ pub(crate) fn literal(l: &Literal) -> R<Value> {
     })
 }
 
-fn checked(v: Option<i128>, ty: &str) -> R<Value> {
+fn checked(v: Option<i128>, ty: &str, a: i128, b: i128) -> R<Value> {
     let (lo, hi) = int_range(ty).expect("caller checked the type");
     match v {
         Some(v) if (lo..=hi).contains(&v) => Ok(Value::Int(v)),
         _ => panic_fields(
             "overflow",
             yan_rt::abi::panic_message("overflow"),
-            vec![("type", Operand::Type(ty_static(ty)))],
+            vec![
+                ("type", Operand::Type(ty_static(ty))),
+                ("left", Operand::Int(a)),
+                ("right", Operand::Int(b)),
+            ],
         ),
     }
 }
@@ -589,21 +593,23 @@ pub(crate) fn intrinsic(name: &str, args: &[Value]) -> Option<R<Value>> {
         ([Value::Int(a), Value::Int(b)], Some(_)) => {
             let (a, b) = (*a, *b);
             match op {
-                "add_checked" => checked(a.checked_add(b), ty),
-                "sub_checked" => checked(a.checked_sub(b), ty),
-                "mul_checked" => checked(a.checked_mul(b), ty),
+                "add_checked" => checked(a.checked_add(b), ty, a, b),
+                "sub_checked" => checked(a.checked_sub(b), ty, a, b),
+                "mul_checked" => checked(a.checked_mul(b), ty, a, b),
                 "floordiv" | "mod" if b == 0 => panic_fields(
                     "div_zero",
                     yan_rt::abi::panic_message("div_zero"),
-                    vec![("dividend", Operand::Int(a)), ("divisor", Operand::Int(0))],
+                    vec![("dividend", Operand::Int(a)), ("divisor", Operand::Int(b))],
                 ),
                 "floordiv" => checked(
                     Some(a.div_euclid(b) - i128::from(a.rem_euclid(b) != 0 && b < 0)),
                     ty,
+                    a,
+                    b,
                 ),
                 "mod" => {
                     let r = a.rem_euclid(b);
-                    checked(Some(if r != 0 && b < 0 { r + b } else { r }), ty)
+                    checked(Some(if r != 0 && b < 0 { r + b } else { r }), ty, a, b)
                 }
                 "div" => Ok(Value::Float(yan_rt::num::div_i128(a, b))),
                 "and" => Ok(Value::Int(a & b)),
@@ -731,6 +737,36 @@ mod selftest {
         assert_eq!(
             p.render("t.yir"),
             "panic(div_zero): floor division of 7 by zero\n  at half t.yir:3:2\n  at main t.yir:8:2"
+        );
+    }
+
+    #[test]
+    fn overflow_and_div_zero_carry_operands() {
+        let panic_of = |body: &str| {
+            let (m, d) = yan_core::parse("t.yir", &format!("module t\n{body}"));
+            assert!(d.is_empty());
+            let Err(Stop::Panic(p)) = run(&m.unwrap(), &mut Vec::new()) else {
+                panic!("expected a panic")
+            };
+            p.fields
+        };
+        let ops = |f: &str| {
+            format!(
+                "fn main() -> Unit {{\n let a: i8 = 100\n let b: i8 = 100\n let r: i8 = {f}(let a, let b)\n ret ()\n}}\n"
+            )
+        };
+        assert_eq!(
+            panic_of(&ops("add_checked_i8")),
+            vec![
+                ("type", Operand::Type("i8")),
+                ("left", Operand::Int(100)),
+                ("right", Operand::Int(100)),
+            ]
+        );
+        let div = "fn main() -> Unit {\n let a: i64 = 7\n let b: i64 = 0\n let r: i64 = floordiv_i64(let a, let b)\n ret ()\n}\n";
+        assert_eq!(
+            panic_of(div),
+            vec![("dividend", Operand::Int(7)), ("divisor", Operand::Int(0))]
         );
     }
 

@@ -7,7 +7,7 @@ use crate::bind::{self, Bind};
 use crate::compile::*;
 use crate::{
     Frame, Interp, Operand, R, Stop, Value, data, intrinsic, out_of_range, panic, panic_fields,
-    panic_with, unsupported,
+    unsupported,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -138,8 +138,20 @@ fn int_panic<T>(kind: &str, op: IntOp, ty: u8, a: i128, b: i128) -> R<T> {
         _ => format!("{a} modulo zero"),
     };
     match kind {
-        "overflow" => panic_with(kind, format!("{what} overflows {ty}")),
-        _ => panic_with(kind, what),
+        "overflow" => panic_fields(
+            kind,
+            format!("{what} overflows {ty}"),
+            vec![
+                ("type", Operand::Type(ty)),
+                ("left", Operand::Int(a)),
+                ("right", Operand::Int(b)),
+            ],
+        ),
+        _ => panic_fields(
+            kind,
+            what,
+            vec![("dividend", Operand::Int(a)), ("divisor", Operand::Int(b))],
+        ),
     }
 }
 
