@@ -5,6 +5,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand, ValueEnum};
 
 mod agent;
+mod build;
 mod examples;
 mod export;
 mod mcp;
@@ -179,6 +180,17 @@ enum Command {
         #[arg(long, value_enum, default_value_t = ReviewFormat::Line)]
         format: ReviewFormat,
     },
+    /// Compile a program to an executable with the system linker (`cc`).
+    Build {
+        #[arg(long)]
+        strict: bool,
+        #[arg(long)]
+        level: Option<String>,
+        /// The executable to write.
+        #[arg(short, long)]
+        output: PathBuf,
+        file: PathBuf,
+    },
     /// Run a program.
     Run {
         #[arg(long)]
@@ -243,6 +255,16 @@ fn main() -> ExitCode {
             args,
             report_live,
             opt,
+        ),
+        Command::Build {
+            file,
+            strict,
+            level,
+            output,
+        } => build::run(
+            &file,
+            &output,
+            Database::new(strict, level.as_deref() == Some("release")),
         ),
         Command::Test {
             format,
@@ -524,6 +546,35 @@ fn run(
     code
 }
 
+/// The module of `file` once it loads and checks clean; otherwise the failure is reported and
+/// its exit code returned.
+fn checked<'a>(db: &'a mut Database, file: &Path) -> Result<&'a yan_core::ast::Module, ExitCode> {
+    let f = match db.open(file) {
+        Ok(f) => f,
+        Err(msg) => return Err(tool_failure(&msg)),
+    };
+    let module = match yan_db::load(db, f) {
+        Ok(Loaded::Ready(m, _, _)) => {
+            let diags = yan_ide::diagnostics(db, f).expect("a ready module checks");
+            let diags = finish(diags, DEFAULT_MAX_ERRORS);
+            if diags.iter().any(|d| d.severity == Severity::Error) {
+                print_diags(&diags);
+                return Err(ExitCode::FAILURE);
+            }
+            m
+        }
+        Ok(Loaded::Stopped(d)) if yan_db::has_error(d) => {
+            print_diags(&finish(d.clone(), DEFAULT_MAX_ERRORS));
+            return Err(ExitCode::FAILURE);
+        }
+        Ok(Loaded::Stopped(_)) => {
+            return Err(tool_failure(&format!("{} does not parse", file.display())));
+        }
+        Err(msg) => return Err(tool_failure(msg)),
+    };
+    Ok(module)
+}
+
 fn run_program(
     file: &Path,
     mut db: Database,
@@ -532,28 +583,9 @@ fn run_program(
     args: Vec<String>,
     opt: bool,
 ) -> ExitCode {
-    let f = match db.open(file) {
-        Ok(f) => f,
-        Err(msg) => return tool_failure(&msg),
-    };
-    let module = match yan_db::load(&db, f) {
-        Ok(Loaded::Ready(m, _, _)) => {
-            let diags = yan_ide::diagnostics(&db, f).expect("a ready module checks");
-            let diags = finish(diags, DEFAULT_MAX_ERRORS);
-            if diags.iter().any(|d| d.severity == Severity::Error) {
-                print_diags(&diags);
-                return ExitCode::FAILURE;
-            }
-            m
-        }
-        Ok(Loaded::Stopped(d)) if yan_db::has_error(d) => {
-            print_diags(&finish(d.clone(), DEFAULT_MAX_ERRORS));
-            return ExitCode::FAILURE;
-        }
-        Ok(Loaded::Stopped(_)) => {
-            return tool_failure(&format!("{} does not parse", file.display()));
-        }
-        Err(msg) => return tool_failure(msg),
+    let module = match checked(&mut db, file) {
+        Ok(m) => m,
+        Err(code) => return code,
     };
     if backend == Backend::Cranelift {
         return native(&file.display().to_string(), module, jit);
@@ -700,22 +732,33 @@ fn apply_patch(file: &Path, module: Option<&str>, check: bool, format: Format) -
 }
 
 /// Run `m` as native code. A panic exits from inside the program.
+/// Optimized Yan Core of `m` lowered for the native backends; failures are reported.
+fn lower_native(file: &str, m: &yan_core::ast::Module) -> Result<yan_mir::Program, ExitCode> {
+    let m = match yan_opt::optimize(file, m) {
+        Ok(m) => m,
+        Err(yan_opt::Error::Diag(d)) => {
+            print_diags(&[*d]);
+            return Err(ExitCode::FAILURE);
+        }
+        Err(yan_opt::Error::Unsupported(what)) => {
+            return Err(tool_failure(&format!(
+                "not supported yet: {what} in native code"
+            )));
+        }
+    };
+    yan_mir::lower(&m).map_err(|what| tool_failure(&format!("not supported yet: {what}")))
+}
+
 fn native(file: &str, m: &yan_core::ast::Module, jit: Jit) -> ExitCode {
     let jit = match jit {
         Jit::Lazy => yan_cg_cranelift::Jit::Lazy,
         Jit::Eager => yan_cg_cranelift::Jit::Eager,
     };
-    let m = match yan_opt::optimize(file, m) {
-        Ok(m) => m,
-        Err(yan_opt::Error::Diag(d)) => {
-            print_diags(&[*d]);
-            return ExitCode::FAILURE;
-        }
-        Err(yan_opt::Error::Unsupported(what)) => {
-            return tool_failure(&format!("not supported yet: {what} in native code"));
-        }
+    let program = match lower_native(file, m) {
+        Ok(p) => p,
+        Err(code) => return code,
     };
-    let compiled = yan_mir::lower(&m).and_then(|p| yan_cg_cranelift::compile_with(&p, jit));
+    let compiled = yan_cg_cranelift::compile_with(&program, jit);
     match compiled {
         Ok(c) => {
             c.run();
