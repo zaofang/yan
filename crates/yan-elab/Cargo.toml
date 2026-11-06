@@ -26,3 +26,4 @@ workspace = true
 yan-db.workspace = true
 yan-check.workspace = true
 yan-yag.workspace = true
+yan-yn.workspace = true

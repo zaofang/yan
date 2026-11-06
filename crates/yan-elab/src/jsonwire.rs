@@ -29,6 +29,9 @@ fn ty(g: &Globals, t: &Ty, todo: &mut Vec<String>) -> Option<J> {
 
 fn field(g: &Globals, f: &Field, todo: &mut Vec<String>) -> Option<J> {
     let mut out = json!({"n": f.name, "t": ty(g, &f.ty, todo)?});
+    if let Some(w) = &f.wire {
+        out["w"] = json!(w);
+    }
     // A default that is not a literal makes the field required on input.
     if let Some(d) = f.default.as_ref().and_then(cli::literal) {
         out["d"] = d;
@@ -55,7 +58,11 @@ pub(crate) fn schema(g: &Globals, root: &Ty) -> Option<String> {
                     .iter()
                     .map(|f| field(g, f, &mut todo))
                     .collect::<Option<Vec<_>>>()?;
-                out.push(json!({"n": v, "fs": fs}));
+                let mut out_v = json!({"n": v, "fs": fs});
+                if let Some(w) = g.variant_wire.get(v) {
+                    out_v["w"] = json!(w);
+                }
+                out.push(out_v);
             }
             json!({"sum": out})
         };

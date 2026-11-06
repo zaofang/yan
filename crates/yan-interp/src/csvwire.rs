@@ -44,7 +44,13 @@ fn text(s: &str) -> Value {
     Str(s.into())
 }
 
+/// The column or tag value a field or variant has on the wire.
 fn name(f: &S) -> &str {
+    f["w"].as_str().or_else(|| f["n"].as_str()).unwrap_or("")
+}
+
+/// The name a field or variant has in Yan.
+fn own(f: &S) -> &str {
     f["n"].as_str().unwrap_or("")
 }
 
@@ -201,7 +207,7 @@ impl Cx<'_> {
                     });
                 }
             };
-            out.push((n.to_owned(), v));
+            out.push((own(f).to_owned(), v));
         }
         Ok(out)
     }
@@ -219,10 +225,7 @@ impl Cx<'_> {
             .and_then(|(_, i)| *i)
             .expect("a tag column");
         let tag = &cells[i];
-        let Some(v) = vs
-            .iter()
-            .find(|v| *v["n"].as_str().unwrap_or("") == *tag.text)
-        else {
+        let Some(v) = vs.iter().find(|v| name(v) == tag.text) else {
             let names = vs.iter().map(name).collect::<Vec<_>>().join("|");
             return Err(Fail {
                 at: tag.at,
@@ -246,10 +249,7 @@ impl Cx<'_> {
                 });
             }
         }
-        Ok(data_owned(
-            name(v),
-            self.fields(decl, cells, cols, row, at)?,
-        ))
+        Ok(data_owned(own(v), self.fields(decl, cells, cols, row, at)?))
     }
 
     fn decode(&self, rows: &[Vec<Cell>]) -> D<Value> {
@@ -324,16 +324,17 @@ impl Cx<'_> {
             else {
                 return Err(());
             };
-            let decl = match self.sum() {
-                Some(vs) => vs.iter().find(|v| name(v) == variant.as_str()).ok_or(())?["fs"]
-                    .as_array()
-                    .expect("a schema"),
-                None => self.def["rec"].as_array().expect("a schema"),
+            let (tag, decl) = match self.sum() {
+                Some(vs) => {
+                    let v = vs.iter().find(|v| own(v) == variant.as_str()).ok_or(())?;
+                    (name(v), v["fs"].as_array().expect("a schema"))
+                }
+                None => ("", self.def["rec"].as_array().expect("a schema")),
             };
             let mut cells = Vec::new();
             for (c, _) in &columns {
                 let cell = if c == TAG && self.sum().is_some() {
-                    (variant.to_string(), false)
+                    (tag.to_owned(), false)
                 } else {
                     match decl.iter().position(|f| name(f) == c) {
                         Some(i) => self.encode_cell(&decl[i]["t"], &fields.get(i).ok_or(())?.1)?,
