@@ -28,7 +28,7 @@ dedicated code is cheap to document and test now, and (c) can replace it later i
 same gap.
 
 - Decision: option (c), a family-wide code for "derived trait has a field that does not implement it", chosen by the lead on 2026-11-06. The code sits in the derive-misuse family (section 25).
-- Open within D1: the elaborator has no field check today for `Eq`, `Ord`, `Hash` or `Show`; the failure appears only at a use site (E221). Whether their derives gain the same check in the writing PR is not decided.
+- Decided 2026-11-06: the same check applies to `Eq`, `Ord`, `Hash` and `Show` derives. Today the elaborator has no field check for them; the failure appears only at a use site (E221). The writing PR adds the check to each of these derives under the same code.
 - Row: (R number once accepted)
 
 ### D2: span and text
