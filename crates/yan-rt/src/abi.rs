@@ -42,6 +42,8 @@ pub unsafe extern "C" fn yan_rt_panic(ptr: *const u8, len: usize) -> ! {
 #[derive(Debug, Clone, PartialEq)]
 pub enum PanicOperand {
     Int(i128),
+    Float(f64),
+    Bool(bool),
     Type(String),
 }
 
@@ -101,6 +103,51 @@ pub unsafe extern "C" fn yan_rt_panic_ops(
     // SAFETY: forwarded.
     let kind = unsafe { text(ptr, len) };
     let f = ops_fields(kind, bits, signed, a, b);
+    *PANIC_FIELDS.lock().expect("not poisoned") = f;
+    // SAFETY: forwarded.
+    unsafe { yan_rt_panic(ptr, len) }
+}
+
+/// # Safety
+/// `rec` points to `3 * n` words as for [`yan_rt_panic_fields`].
+unsafe fn decode_fields(n: u64, rec: *const u64) -> Vec<(&'static str, PanicOperand)> {
+    // SAFETY: the caller's contract.
+    let words = unsafe { std::slice::from_raw_parts(rec, 3 * n as usize) };
+    words
+        .chunks(3)
+        .map(|w| {
+            // SAFETY: a name is a live `Str` block, which lives for the whole run.
+            let name: &'static str = Box::leak(
+                unsafe { &*(w[0] as *const String) }
+                    .clone()
+                    .into_boxed_str(),
+            );
+            let v = match w[1] {
+                0 => PanicOperand::Int(i128::from(w[2] as i64)),
+                1 => PanicOperand::Int(i128::from(w[2])),
+                2 => PanicOperand::Float(f64::from_bits(w[2])),
+                _ => PanicOperand::Bool(w[2] != 0),
+            };
+            (name, v)
+        })
+        .collect()
+}
+
+/// A panic of kind `ptr[..len]` with `n` named scalar operands: `rec` holds `n` triples of a
+/// `Str` block (the name), a tag (0 signed, 1 unsigned, 2 float bits, 3 bool) and the value.
+///
+/// # Safety
+/// `ptr` points to `len` bytes of UTF-8; `rec` to `3 * n` words whose first of each triple is a
+/// live `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_panic_fields(
+    ptr: *const u8,
+    len: usize,
+    n: u64,
+    rec: *const u64,
+) -> ! {
+    // SAFETY: the caller's contract.
+    let f = unsafe { decode_fields(n, rec) };
     *PANIC_FIELDS.lock().expect("not poisoned") = f;
     // SAFETY: forwarded.
     unsafe { yan_rt_panic(ptr, len) }
@@ -475,6 +522,16 @@ pub unsafe extern "C" fn yan_rt_csv_error_show(v: *const u64) -> *mut String {
 #[cfg(test)]
 mod panic_ops_tests {
     use super::*;
+
+    #[test]
+    fn fields_decode_by_tag() {
+        let name = Box::into_raw(Box::new("n".to_owned()));
+        let rec = [name as u64, 0, (-3i64) as u64, name as u64, 3, 1];
+        // SAFETY: two triples whose names are live `Str` blocks.
+        let f = unsafe { decode_fields(2, rec.as_ptr()) };
+        assert_eq!(f[0], ("n", PanicOperand::Int(-3)));
+        assert_eq!(f[1], ("n", PanicOperand::Bool(true)));
+    }
 
     #[test]
     fn ops_fields_match_the_interpreter() {
