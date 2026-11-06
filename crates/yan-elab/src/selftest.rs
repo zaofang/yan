@@ -801,3 +801,29 @@ pub def main() uses io:
     assert_eq!(d[0].code, "E282");
     assert_eq!(d[0].notes, ["capabilities are never `Wire` (17.4)"]);
 }
+
+#[test]
+fn deny_promotes_lint_and_checks_codes() {
+    let body =
+        "def f(xs: list[int]) -> int:\n    if len(xs) == 1:\n        return 0\n    return xs[0]\n";
+    let sev = |src: &str| {
+        let (_, d) = lower(src);
+        d.iter()
+            .map(|d| (d.code.clone(), d.severity))
+            .collect::<Vec<_>>()
+    };
+    use yan_diag::Severity::{Error, Warning};
+    assert_eq!(sev(body), [("W820".to_owned(), Warning)]);
+    assert_eq!(
+        sev(&format!("@deny(W820)\n{body}")),
+        [("W820".to_owned(), Error)]
+    );
+    let c = |src: &str| {
+        sev(src)
+            .into_iter()
+            .map(|(c, _)| c)
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    assert!(c(&format!("@deny(W820)\n@expect(W820, reason=\"x\")\n{body}")).contains("E277"));
+    assert!(c(&format!("@deny(E501)\n{body}")).contains("E278"));
+}
