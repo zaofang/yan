@@ -279,7 +279,7 @@ pub struct Panic {
     pub message: String,
     pub trace: Vec<Frame>,
     /// Named operands (R796); never text, collections, `Secret` or `Untrusted`.
-    pub fields: Vec<(&'static str, Operand)>,
+    pub fields: Vec<(String, Operand)>,
 }
 
 /// A panic operand: a number, bool or unit-carrying value, else only its type name (R796).
@@ -291,6 +291,8 @@ pub enum Operand {
     /// Nanoseconds of a duration, instant or monotonic reading.
     Nanos(i128),
     Type(&'static str),
+    /// An item identity hash (R874).
+    Hash([u8; 32]),
 }
 
 impl Operand {
@@ -364,14 +366,87 @@ pub(crate) fn panic_with<T>(kind: &str, message: impl Into<String>) -> R<T> {
 pub(crate) fn panic_fields<T>(
     kind: &str,
     message: impl Into<String>,
-    fields: Vec<(&'static str, Operand)>,
+    fields: Vec<(impl Into<String>, Operand)>,
 ) -> R<T> {
     Err(Stop::Panic(Box::new(Panic {
         kind: kind.to_owned(),
         message: message.into(),
         trace: Vec::new(),
-        fields,
+        fields: fields.into_iter().map(|(n, o)| (n.into(), o)).collect(),
     })))
+}
+
+/// A missing key as panic operands: the first 64 bits of BLAKE3 over its canonical encoding and
+/// its type name (R876).
+pub(crate) fn missing_key(k: &Value) -> Vec<(&'static str, Operand)> {
+    fn enc(v: &Value, out: &mut Vec<u8>) {
+        match v {
+            Value::Unit => out.push(0),
+            Value::Bool(b) => out.extend([1, u8::from(*b)]),
+            Value::Int(n) => {
+                out.push(2);
+                out.extend(n.to_le_bytes());
+            }
+            Value::Float(x) => {
+                out.push(3);
+                out.extend(
+                    (if *x == 0.0 { 0.0f64 } else { *x })
+                        .to_bits()
+                        .to_le_bytes(),
+                );
+            }
+            Value::Char(c) => {
+                out.push(4);
+                out.extend(u32::from(*c).to_le_bytes());
+            }
+            Value::Str(s) | Value::Path(s) => {
+                out.push(5);
+                out.extend((s.len() as u64).to_le_bytes());
+                out.extend(s.as_bytes());
+            }
+            Value::Bytes(b) => {
+                out.push(6);
+                out.extend((b.len() as u64).to_le_bytes());
+                out.extend(b.iter());
+            }
+            Value::Duration(n) | Value::Instant(n) | Value::Mono(n) => {
+                out.push(7);
+                out.extend(n.to_le_bytes());
+            }
+            Value::Tuple(xs) | Value::List(xs) => {
+                out.push(8);
+                out.extend((xs.len() as u64).to_le_bytes());
+                xs.iter().for_each(|x| enc(x, out));
+            }
+            Value::Data { name, fields } => {
+                out.push(9);
+                out.extend((name.len() as u64).to_le_bytes());
+                out.extend(name.as_bytes());
+                fields.iter().for_each(|(_, x)| enc(x, out));
+            }
+            // Other key types have no stable encoding yet; their type tag still separates them.
+            _ => out.push(255),
+        }
+    }
+    let mut buf = Vec::new();
+    enc(k, &mut buf);
+    let h = blake3::hash(&buf);
+    let head = u64::from_le_bytes(h.as_bytes()[..8].try_into().expect("8 bytes"));
+    let ty = match k {
+        Value::Int(_) => "int",
+        Value::Float(_) => "float",
+        Value::Bool(_) => "bool",
+        Value::Char(_) => "char",
+        Value::Str(_) => "text",
+        Value::Bytes(_) => "bytes",
+        Value::Tuple(_) => "tuple",
+        Value::Data { .. } => "record",
+        _ => "value",
+    };
+    vec![
+        ("key_hash", Operand::Int(i128::from(head))),
+        ("key_type", Operand::Type(ty)),
+    ]
 }
 
 pub(crate) fn out_of_range<T>(i: i128, len: usize) -> R<T> {
@@ -546,14 +621,18 @@ pub(crate) fn literal(l: &Literal) -> R<Value> {
     })
 }
 
-fn checked(v: Option<i128>, ty: &str) -> R<Value> {
+fn checked(v: Option<i128>, ty: &str, a: i128, b: i128) -> R<Value> {
     let (lo, hi) = int_range(ty).expect("caller checked the type");
     match v {
         Some(v) if (lo..=hi).contains(&v) => Ok(Value::Int(v)),
         _ => panic_fields(
             "overflow",
             yan_rt::abi::panic_message("overflow"),
-            vec![("type", Operand::Type(ty_static(ty)))],
+            vec![
+                ("type", Operand::Type(ty_static(ty))),
+                ("left", Operand::Int(a)),
+                ("right", Operand::Int(b)),
+            ],
         ),
     }
 }
@@ -589,21 +668,23 @@ pub(crate) fn intrinsic(name: &str, args: &[Value]) -> Option<R<Value>> {
         ([Value::Int(a), Value::Int(b)], Some(_)) => {
             let (a, b) = (*a, *b);
             match op {
-                "add_checked" => checked(a.checked_add(b), ty),
-                "sub_checked" => checked(a.checked_sub(b), ty),
-                "mul_checked" => checked(a.checked_mul(b), ty),
+                "add_checked" => checked(a.checked_add(b), ty, a, b),
+                "sub_checked" => checked(a.checked_sub(b), ty, a, b),
+                "mul_checked" => checked(a.checked_mul(b), ty, a, b),
                 "floordiv" | "mod" if b == 0 => panic_fields(
                     "div_zero",
                     yan_rt::abi::panic_message("div_zero"),
-                    vec![("dividend", Operand::Int(a)), ("divisor", Operand::Int(0))],
+                    vec![("dividend", Operand::Int(a)), ("divisor", Operand::Int(b))],
                 ),
                 "floordiv" => checked(
                     Some(a.div_euclid(b) - i128::from(a.rem_euclid(b) != 0 && b < 0)),
                     ty,
+                    a,
+                    b,
                 ),
                 "mod" => {
                     let r = a.rem_euclid(b);
-                    checked(Some(if r != 0 && b < 0 { r + b } else { r }), ty)
+                    checked(Some(if r != 0 && b < 0 { r + b } else { r }), ty, a, b)
                 }
                 "div" => Ok(Value::Float(yan_rt::num::div_i128(a, b))),
                 "and" => Ok(Value::Int(a & b)),
@@ -732,6 +813,66 @@ mod selftest {
             p.render("t.yir"),
             "panic(div_zero): floor division of 7 by zero\n  at half t.yir:3:2\n  at main t.yir:8:2"
         );
+    }
+
+    #[test]
+    fn overflow_and_div_zero_carry_operands() {
+        let panic_of = |body: &str| {
+            let (m, d) = yan_core::parse("t.yir", &format!("module t\n{body}"));
+            assert!(d.is_empty());
+            let Err(Stop::Panic(p)) = run(&m.unwrap(), &mut Vec::new()) else {
+                panic!("expected a panic")
+            };
+            p.fields
+        };
+        let own = |v: Vec<(&str, Operand)>| -> Vec<(String, Operand)> {
+            v.into_iter().map(|(n, o)| (n.to_owned(), o)).collect()
+        };
+        let ops = |f: &str| {
+            format!(
+                "fn main() -> Unit {{\n let a: i8 = 100\n let b: i8 = 100\n let r: i8 = {f}(let a, let b)\n ret ()\n}}\n"
+            )
+        };
+        assert_eq!(
+            panic_of(&ops("add_checked_i8")),
+            own(vec![
+                ("type", Operand::Type("i8")),
+                ("left", Operand::Int(100)),
+                ("right", Operand::Int(100)),
+            ])
+        );
+        let div = "fn main() -> Unit {\n let a: i64 = 7\n let b: i64 = 0\n let r: i64 = floordiv_i64(let a, let b)\n ret ()\n}\n";
+        assert_eq!(
+            panic_of(div),
+            own(vec![
+                ("dividend", Operand::Int(7)),
+                ("divisor", Operand::Int(0))
+            ])
+        );
+    }
+
+    #[test]
+    fn contract_and_dict_key_panics_carry_operands() {
+        let fields = |body: &str| {
+            let (m, d) = yan_core::parse("t.yir", &format!("module t\n{body}"));
+            assert!(d.is_empty());
+            let Err(Stop::Panic(p)) = run(&m.unwrap(), &mut Vec::new()) else {
+                panic!("expected a panic")
+            };
+            p.fields
+        };
+        let c = fields(
+            "fn f(let n: i64, let t: Text) -> Unit requires gt_i64(let n, let 5) {\n ret ()\n}\n\
+             fn main() -> Unit {\n f(let 3, let \"a\")\n ret ()\n}\n",
+        );
+        let names: Vec<_> = c.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(names, ["clause", "item", "n"]);
+        assert_eq!(c[0].1, Operand::Int(0));
+        assert_eq!(c[2].1, Operand::Int(3));
+        let k = missing_key(&Value::Int(7));
+        assert_eq!(k[1], ("key_type", Operand::Type("int")));
+        assert_eq!(k, missing_key(&Value::Int(7)));
+        assert_ne!(k[0].1, missing_key(&Value::Int(8))[0].1);
     }
 
     #[test]

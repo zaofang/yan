@@ -61,4 +61,5 @@ research index links their studies and rows.
 | [0038](0038-t09-spelling-marks.md) | Spelling marks for the four T09 law 1 cases: hoisted declaration, `View`, cli schema, comprehension, `ex`, tuple parentheses | accepted | R863 to R868 |
 | [0039](0039-drops-on-the-failing-edge.md) | Drops on the failing edge of `?`: a drop list on the `?` form in optimized Core | accepted | R871 |
 | [0040](0040-non-wire-field-diagnostic.md) | Code, span and text of the diagnostic for a `derive(Wire)` field that is not `Wire` | draft | |
-| [0041](0041-typed-json-csv-decode.md) | Typed json and csv over Wire: tags, shapes, errors, csv rules | accepted | R874 to R881 |
+| [0041](0041-typed-json-csv-decode.md) | Typed json and csv over Wire: tags, shapes, errors, csv rules | accepted | R882 to R881 |
+| [0042](0042-panic-operand-fields.md) | Panic operand fields the spec names but does not define | accepted | R882 to R885 |

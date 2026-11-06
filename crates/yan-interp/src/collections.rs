@@ -13,7 +13,7 @@ use super::bind::{Bind, bad_args};
 use super::native::opt;
 use super::prelude::cmp;
 use super::prelude::show;
-use super::{Value, panic_with};
+use super::{Value, panic_fields, panic_with};
 use Value::*;
 
 fn take(v: &mut Value) -> Value {
@@ -205,7 +205,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_COLLECTIONS_SORTED_DICT_INDEX, |a| {
         [SortedMap(m), k] => match find_key(m, k) {
             Ok(i) => m[i].1.clone(),
-            Err(_) => return panic_with("bounds", format!("key {} is not in the sorted dict", show(k, true))),
+            Err(_) => return panic_fields("bounds", format!("key {} is not in the sorted dict", show(k, true)), crate::missing_key(k)),
         },
     }),
     f!(STD_COLLECTIONS_SORTED_DICT_GET, |a| {

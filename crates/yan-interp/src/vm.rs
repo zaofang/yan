@@ -7,7 +7,7 @@ use crate::bind::{self, Bind};
 use crate::compile::*;
 use crate::{
     Frame, Interp, Operand, R, Stop, Value, data, intrinsic, out_of_range, panic, panic_fields,
-    panic_with, unsupported,
+    unsupported,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -138,8 +138,20 @@ fn int_panic<T>(kind: &str, op: IntOp, ty: u8, a: i128, b: i128) -> R<T> {
         _ => format!("{a} modulo zero"),
     };
     match kind {
-        "overflow" => panic_with(kind, format!("{what} overflows {ty}")),
-        _ => panic_with(kind, what),
+        "overflow" => panic_fields(
+            kind,
+            format!("{what} overflows {ty}"),
+            vec![
+                ("type", Operand::Type(ty)),
+                ("left", Operand::Int(a)),
+                ("right", Operand::Int(b)),
+            ],
+        ),
+        _ => panic_fields(
+            kind,
+            what,
+            vec![("dividend", Operand::Int(a)), ("divisor", Operand::Int(b))],
+        ),
     }
 }
 
@@ -573,9 +585,24 @@ impl<'o> Vm<'o> {
                     };
                     self.stack[base + dst as usize] = v;
                 }
-                Op::Check { src, kind } => {
+                Op::Check { src, info } => {
                     if !matches!(self.stack[base + src as usize], Value::Bool(true)) {
-                        return panic(kind);
+                        let c = &code.contracts[info as usize];
+                        let mut fields = vec![("clause".to_owned(), Operand::Int(c.clause.into()))];
+                        if let Some(h) = c.item {
+                            fields.push(("item".to_owned(), Operand::Hash(h)));
+                        }
+                        for (n, r) in &c.vars {
+                            let o = Operand::of(&self.stack[base + *r as usize]);
+                            if !matches!(o, Operand::Type(_)) {
+                                fields.push((n.clone(), o));
+                            }
+                        }
+                        return panic_fields(
+                            "contract",
+                            yan_rt::abi::panic_message("contract"),
+                            fields,
+                        );
                     }
                 }
                 Op::Assert { src, info } => {

@@ -227,6 +227,10 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R879 | A csv cell is a bool, int, float, str, `T | None` of those, a newtype over them, or a sum whose variants have no fields; `None` is an unquoted empty cell and `Some("")` a quoted one; a row type may be a sum, with a `tag` column and the union of the variants' fields; any other field type is E330 (RFC 0041, D6) | 17.3, 17.4, 25.5 |
 | R880 | `type CsvError = { line, col, row, column, reason: CsvReason }` with `CsvReason = Syntax | Header | Mismatch | Missing | Unknown | Invalid | Limit` (RFC 0041, D7) | 17.3, 17.4 |
 | R881 | Typed json and csv are accepted by round-trip cases of a record, optional and defaulted fields and a sum on both backends, plus the error paths; `std.toml` follows later over the same mapping (RFC 0041, D8) | 17.3, 17.4 |
+| R882 | A `contract` panic names its clause by the item hash and the clause's zero-based position among the item's `requires` and `ensures` clauses in source order (RFC 0042, R882) | 8.3 |
+| R883 | A `contract` or `assert` panic carries the numeric free variables of the predicate by written name in first-use order; free variables of other types are left out (RFC 0042, R883) | 8.3 |
+| R884 | A `bounds` panic for a missing dict key carries the first 64 bits of BLAKE3 over the key's canonical encoding as an unsigned integer, with the key type's name (RFC 0042, R884) | 8.3 |
+| R885 | `shape` leaves the kinds that carry operand fields until a runtime shape check exists; the RFC that adds one defines its fields (RFC 0042, R885) | 8.3 |
 
 <!-- /rows -->
 

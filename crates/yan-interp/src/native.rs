@@ -10,7 +10,7 @@ use yan_std::registry::id::*;
 
 use super::bind::{Bind, bad_args};
 use super::prelude::show;
-use super::{Key, R, Value, data, panic, panic_with};
+use super::{Key, R, Value, data, panic, panic_fields};
 use Value::*;
 
 fn some(v: Value) -> Value {
@@ -130,7 +130,7 @@ pub(super) static BINDS: &[(yan_std::registry::Id, Bind)] = &[
     plain!(STD_DICT_INDEX, |a| {
         [Dict(d), k] => match d.get(&Key(k.clone())) {
             Some(v) => v.clone(),
-            None => return panic_with("bounds", format!("key {} is not in the dict", show(k, true))),
+            None => return panic_fields("bounds", format!("key {} is not in the dict", show(k, true)), crate::missing_key(k)),
         }
     }),
     plain!(STD_DICT_GET, |a| { [Dict(d), k] => opt(d.get(&Key(k.clone())).cloned()) }),
