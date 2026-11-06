@@ -1,0 +1,8 @@
+def f(x: int) -> int:
+    # lead
+    y = x + 1  # trail
+    if y > 1:
+        y
+        # inner
+    # outer
+    return y

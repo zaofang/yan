@@ -16,6 +16,7 @@ read-only to agents (22.6).
 | `patch/<case>/` | patch | `patch` applied to `m.yag` gives `result.yag`, or is refused with the `code` of `expect.toml` and leaves `m.yag` unchanged |
 | `semver/<case>/` | semver | `semver` on `old/` and `new/` computes the `bump` of `expect.toml` (one pair per row of the 20.6 table) |
 | `pkg/<case>/` | pkg | the `command` of `expect.toml`, run in `root/`, reports `code` (at `at` when given) and exits nonzero, or exits 0 with no errors when there is no `code` |
+| `fmt/<case>/` | fmt | `fmt` run on a copy of `in.<ext>` rewrites it to exactly the bytes of `out.<ext>` and exits 0 |
 | `roundtrip/`, `sim/` | | not populated yet |
 
 `yir/run/` is not in the 24.1 tree; M0 needs it because its interpreter runs Yan Core text before any
@@ -30,13 +31,15 @@ plain-file form), and `expect.toml` with `spec`, optional `flags` (such as `["--
 and `expect.toml` with `spec` and `bump`. A `pkg/` case holds a package tree in `root/`, an optional
 `base/` (an earlier version for `--base ../base`), and `expect.toml` with `spec`, optional `rows`,
 `command` (the arguments after `CMD`), and optionally `code` and `at` (`file:line:col`, the file
-relative to `root/`). The runner copies the case and runs the command in the copy's `root/`. The
-runner adds these commands to the executor contract:
+relative to `root/`). The runner copies the case and runs the command in the copy's `root/`. A `fmt/` case holds `in.<ext>`
+and `out.<ext>` with the same suffix (`yag`, `yn` or `yir`) and an optional `expect.toml` with `spec`,
+`rows` and `milestone`; an idempotence case has `out` equal to `in`. The runner adds these commands to the executor contract:
 
 ```
 CMD run --ub [FLAGS] FILE                exit status; a UB report names ub(N) on stderr
 CMD patch --format json [FLAGS] PATCH    run in the case's copied directory; JSON records on refusal
 CMD semver --format json --base OLD NEW  a JSON object with "bump"
+CMD fmt FILE                             rewrites FILE in place; exit 1 if it does not load
 CMD ARGS... --format json                a pkg/ case's command, run in root/; JSON records
 ```
 

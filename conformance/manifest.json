@@ -10526,6 +10526,86 @@
      "--gate"
     ]
    }
+  },
+  {
+   "path": "fmt/blank_lines",
+   "kind": "fmt",
+   "milestone": "M1",
+   "spec": [
+    "14.3"
+   ],
+   "rows": [
+    "R376"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "14.3",
+    "rows": [
+     "R376"
+    ]
+   }
+  },
+  {
+   "path": "fmt/canonical",
+   "kind": "fmt",
+   "milestone": "M1",
+   "spec": [
+    "14.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "14.3"
+   }
+  },
+  {
+   "path": "fmt/comments_in_bodies",
+   "kind": "fmt",
+   "milestone": "M1",
+   "spec": [
+    "14.3"
+   ],
+   "rows": [
+    "R376"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "14.3",
+    "rows": [
+     "R376"
+    ]
+   }
+  },
+  {
+   "path": "fmt/idempotent",
+   "kind": "fmt",
+   "milestone": "M1",
+   "spec": [
+    "14.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "14.3"
+   }
+  },
+  {
+   "path": "fmt/wrap_100",
+   "kind": "fmt",
+   "milestone": "M1",
+   "spec": [
+    "14.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "14.3"
+   }
   }
  ]
 }

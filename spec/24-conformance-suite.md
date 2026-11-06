@@ -11,6 +11,7 @@ conformance/
   yir/pass/   yir/fail/   yir/run/      -- yir/run/ for M0 (R468)
   ub/          semver/      sim/
   patch/       roundtrip/   golden/
+  fmt/                                     -- canonical-form rewrites
   solver/                                  -- 8.6 solver goals (R378)
   pkg/                                     -- package and toolchain diagnostics (R479)
 ```
@@ -21,6 +22,7 @@ conformance/
 - `ub/` files must be flagged under `--ub` with the named item of 6.7, or run clean.
 - `semver/` holds one old/new package pair per row of the API evolution table (20.6) with the expected bump. pkg/ holds one package tree per case, with an optional earlier version, the toolchain command to run and the expected diagnostic, for the codes of sections 18 to 20 that need a whole package (R479).
 - `patch/` cases contain a module, a patch and the expected result or P-code.
+- `fmt/` cases hold `in.<ext>` and `out.<ext>`; `fmt` run on a copy of the input must produce exactly the bytes of the output.
 
 ### 24.2 Required coverage
 
