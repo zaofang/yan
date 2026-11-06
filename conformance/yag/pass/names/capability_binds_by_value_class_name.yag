@@ -1,0 +1,9 @@
+# spec: 16.1, 7.1
+# note: a capability trait HttpClient binds in uses under its value-class name http_client
+
+@capability
+trait HttpClient:
+    def get(self: Self, url: str) -> str: ...
+
+def fetch(url: str) -> str uses http_client:
+    return http_client.get(url)
