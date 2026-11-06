@@ -44,6 +44,8 @@ pub enum PanicOperand {
     Int(i128),
     Float(f64),
     Bool(bool),
+    /// An item identity hash (R882).
+    Hash([u8; 32]),
     Type(String),
 }
 
@@ -126,6 +128,8 @@ unsafe fn decode_fields(n: u64, rec: *const u64) -> Vec<(&'static str, PanicOper
                 0 => PanicOperand::Int(i128::from(w[2] as i64)),
                 1 => PanicOperand::Int(i128::from(w[2])),
                 2 => PanicOperand::Float(f64::from_bits(w[2])),
+                // SAFETY: a `Str` block of 64 hex digits.
+                4 => PanicOperand::Hash(unhex(unsafe { &*(w[2] as *const String) })),
                 _ => PanicOperand::Bool(w[2] != 0),
             };
             (name, v)
@@ -133,8 +137,16 @@ unsafe fn decode_fields(n: u64, rec: *const u64) -> Vec<(&'static str, PanicOper
         .collect()
 }
 
+fn unhex(s: &str) -> [u8; 32] {
+    let mut out = [0u8; 32];
+    for (o, p) in out.iter_mut().zip(s.as_bytes().chunks(2)) {
+        *o = u8::from_str_radix(std::str::from_utf8(p).unwrap_or("0"), 16).unwrap_or(0);
+    }
+    out
+}
+
 /// A panic of kind `ptr[..len]` with `n` named scalar operands: `rec` holds `n` triples of a
-/// `Str` block (the name), a tag (0 signed, 1 unsigned, 2 float bits, 3 bool) and the value.
+/// `Str` block (the name), a tag (0 signed, 1 unsigned, 2 float bits, 3 bool, 4 hex hash `Str` block) and the value.
 ///
 /// # Safety
 /// `ptr` points to `len` bytes of UTF-8; `rec` to `3 * n` words whose first of each triple is a
@@ -531,6 +543,7 @@ mod panic_ops_tests {
         let f = unsafe { decode_fields(2, rec.as_ptr()) };
         assert_eq!(f[0], ("n", PanicOperand::Int(-3)));
         assert_eq!(f[1], ("n", PanicOperand::Bool(true)));
+        assert_eq!(unhex(&"0a".repeat(32)), [10; 32]);
     }
 
     #[test]
