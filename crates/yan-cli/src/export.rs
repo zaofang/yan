@@ -8,6 +8,9 @@ use std::process::ExitCode;
 use yan_db::{Database, Loaded};
 use yan_hir::*;
 
+mod std_map;
+use std_map::Method;
+
 const SHIM: &str = include_str!("export/yan_rt.py");
 
 type R<T> = Result<T, String>;
@@ -221,20 +224,33 @@ fn comp_clause(target: &[Name], iter: &Expr, cond: &Option<Box<Expr>>) -> R<Stri
     Ok(s)
 }
 
+/// Rejects a reference to std that has no Python mapping.
+fn std_ref(base: &Expr, member: Option<&str>) -> R<()> {
+    match &base.kind {
+        ExprKind::Name(n) => match std_map::reject_name(n, member) {
+            Some(what) => no(&what),
+            None => Ok(()),
+        },
+        _ => Ok(()),
+    }
+}
+
 /// Methods and functions of std with a Python spelling that differs from the Yan one.
 fn call(f: &Expr, a: &[Arg]) -> R<String> {
     if let ExprKind::Attr(recv, name, _) = &f.kind {
+        std_ref(recv, Some(name))?;
         let r = expr(recv)?;
         let rest = args(a)?;
         let with_recv = |func: &str| {
             let sep = if rest.is_empty() { "" } else { ", " };
             format!("{func}({r}{sep}{rest})")
         };
-        match name.as_str() {
-            "copy" if a.is_empty() => return Ok(with_recv("copy")),
-            "parse_int" | "parse_float" if a.is_empty() => return Ok(with_recv(name)),
-            _ => return Ok(format!("{r}.{}({rest})", ident(name))),
-        }
+        return Ok(match std_map::method(name) {
+            Some(Method::Rename(py)) => format!("{r}.{py}({rest})"),
+            Some(Method::Shim(func)) => with_recv(func),
+            Some(Method::No(why)) => return no(&format!("{name} ({why})")),
+            None => format!("{r}.{}({rest})", ident(name)),
+        });
     }
     if let ExprKind::Name(n) = &f.kind {
         match (n.as_str(), a) {
@@ -256,7 +272,10 @@ fn call(f: &Expr, a: &[Arg]) -> R<String> {
 
 fn expr(x: &Expr) -> R<String> {
     Ok(match &x.kind {
-        ExprKind::Name(n) => ident(n),
+        ExprKind::Name(n) => {
+            std_ref(x, None)?;
+            ident(n)
+        }
         ExprKind::Lit(l) => lit(l)?,
         ExprKind::FStr { template, pieces } => {
             if *template {
@@ -322,7 +341,10 @@ fn expr(x: &Expr) -> R<String> {
                 (CompKind::Dict, None) => return no("dict comprehension without a value"),
             }
         }
-        ExprKind::Attr(e, n, _) => format!("{}.{}", expr(e)?, ident(n)),
+        ExprKind::Attr(e, n, _) => {
+            std_ref(e, Some(n))?;
+            format!("{}.{}", expr(e)?, ident(n))
+        }
         ExprKind::Call(f, a) => call(f, a)?,
         ExprKind::Index(a, i) => format!("{}[{}]", expr(a)?, expr(i)?),
         ExprKind::Slice(a, [lo, hi, step], inclusive) => {
@@ -825,8 +847,11 @@ mod tests {
     /// The golden program exported, run under python3, prints what the header says and its
     /// `ex` tests pass.
     fn check(name: &str) {
-        let path = golden(name);
-        let py = render(&path).unwrap_or_else(|_| panic!("export of {name} failed"));
+        check_path(name, &golden(name), true);
+    }
+
+    fn check_path(name: &str, path: &Path, run_tests: bool) {
+        let py = render(path).unwrap_or_else(|_| panic!("export of {name} failed"));
         let dir = std::env::temp_dir().join(format!("yan-export-{name}-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let file = dir.join("prog.py");
@@ -834,10 +859,18 @@ mod tests {
         let out = Command::new("python3").arg(&file).output().unwrap();
         assert!(
             out.status.success(),
-            "{}",
+            "{name}: {}",
             String::from_utf8_lossy(&out.stderr)
         );
-        assert_eq!(String::from_utf8_lossy(&out.stdout), expected(&path));
+        assert_eq!(
+            String::from_utf8_lossy(&out.stdout),
+            expected(path),
+            "{name}"
+        );
+        if !run_tests {
+            std::fs::remove_dir_all(dir).unwrap();
+            return;
+        }
         let harness = "import importlib.util, sys\n\
             sp = importlib.util.spec_from_file_location('m', sys.argv[1])\n\
             m = importlib.util.module_from_spec(sp); sys.modules['m'] = m; sp.loader.exec_module(m)\n\
@@ -864,5 +897,37 @@ mod tests {
     #[test]
     fn g4_word_count() {
         check("g4_word_count");
+    }
+
+    /// Sampled `conformance/yag/run` cases covering the std mapping: text, list, math, iter.
+    #[test]
+    fn sampled_run_cases() {
+        let cases = [
+            "collections/dict_insertion_order",
+            "collections/list_show",
+            "strings/concat",
+            "lenient/n36_char_as_str",
+            "std/list_sort",
+            "std/list_sort_key",
+            "std/list_bisect",
+            "std/bisect_key",
+            "std/list_insert_clamp",
+            "std/text_count_char_predicates",
+            "std/text_and_list_additions",
+            "std/math_constants",
+            "std/math_domain",
+            "std/math_exact_ops",
+            "std/min_max_key",
+            "std/str_iter",
+            "std/iter_for_loop",
+            "std/iter_adapters",
+            "std/iter_consumers",
+            "std/iter_single_pass",
+        ];
+        for c in cases {
+            let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join(format!("../../conformance/yag/run/{c}.yag"));
+            check_path(c, &path, false);
+        }
     }
 }
