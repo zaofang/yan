@@ -66,7 +66,7 @@ pub(crate) fn schema(g: &Globals, root: &Ty) -> Option<String> {
             }
             json!({"sum": out})
         };
-        defs.insert(n, def);
+        defs.insert(n.clone(), g.with_wire_opts(&n, def));
     }
     Some(json!({"root": root, "defs": defs}).to_string())
 }

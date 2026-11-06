@@ -84,6 +84,51 @@ pub(crate) struct Field {
     pub wire: Option<String>,
 }
 
+/// E331 when two of `fs` have the same wire name.
+fn check_wire_names(owner: &str, fs: &[Field], at: Span, cx: &mut Cx) {
+    let mut seen = HashSet::new();
+    for f in fs {
+        if !seen.insert(f.wire_name()) {
+            cx.err(
+                "E331",
+                at,
+                owner,
+                format!(
+                    "two fields of `{owner}` are written `{}` on the wire",
+                    f.wire_name()
+                ),
+            );
+        }
+    }
+}
+
+impl Globals {
+    /// The json tag key of sum `name`.
+    pub(crate) fn tag_of(&self, name: &str) -> &str {
+        self.wire_opts
+            .get(name)
+            .and_then(|(t, _)| t.as_deref())
+            .unwrap_or("tag")
+    }
+
+    /// `def`, the schema of `name`, with its json tag key and `unknown: "ignore"` (R886).
+    pub(crate) fn with_wire_opts(
+        &self,
+        name: &str,
+        mut def: serde_json::Value,
+    ) -> serde_json::Value {
+        if let Some((tag, ignore)) = self.wire_opts.get(name) {
+            if let Some(t) = tag {
+                def["tag"] = t.clone().into();
+            }
+            if *ignore {
+                def["unk"] = true.into();
+            }
+        }
+        def
+    }
+}
+
 impl Field {
     pub(crate) fn wire_name(&self) -> &str {
         self.wire.as_deref().unwrap_or(&self.name)
@@ -149,6 +194,9 @@ pub(crate) struct Globals {
     pub variant_of: HashMap<String, String>,
     /// Variants with `@wire(name: ...)`, by variant name: the tag value in json and csv.
     pub variant_wire: HashMap<String, String>,
+    /// Types with an item-level `@wire`: the json tag key of a sum and whether unknown members
+    /// are ignored (R886).
+    pub wire_opts: HashMap<String, (Option<String>, bool)>,
     /// Each alias's alternatives: one for `type X = T`, two or more for a union alias.
     pub aliases: HashMap<String, Vec<j::Type>>,
     pub fns: HashMap<String, Sig>,
@@ -725,7 +773,24 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     for it in &m.items {
         match &it.kind {
             j::ItemKind::Record(c) => {
-                let fs = fields(g, &c.fields, cx, it.span)?;
+                let mut fs = fields(g, &c.fields, cx, it.span)?;
+                let w = decorators::item_wire(it, &c.name, cx);
+                for (key, wire, at) in &w.names {
+                    match fs.iter_mut().find(|f| f.name == *key) {
+                        Some(f) if f.wire.is_none() => f.wire = Some(wire.clone()),
+                        Some(_) => {
+                            cx.err("E331", *at, &c.name, format!("`{key}` is renamed twice"))
+                        }
+                        None => cx.err(
+                            "E331",
+                            *at,
+                            &c.name,
+                            format!("`{}` has no field `{key}`", c.name),
+                        ),
+                    }
+                }
+                check_wire_names(&c.name, &fs, it.span, cx);
+                g.wire_opts.insert(c.name.clone(), (None, w.ignore));
                 g.records.insert(c.name.clone(), fs);
             }
             j::ItemKind::Type(j::TypeDef {
@@ -742,6 +807,50 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                         g.variant_wire.insert(v.name.clone(), w);
                     }
                 }
+                let w = decorators::item_wire(it, name, cx);
+                for (key, wire, at) in &w.names {
+                    let variant = out.iter().any(|(v, _)| v == key);
+                    let field = out.iter().any(|(_, fs)| fs.iter().any(|f| f.name == *key));
+                    let again = if variant {
+                        g.variant_wire.contains_key(key)
+                    } else {
+                        out.iter()
+                            .flat_map(|(_, fs)| fs)
+                            .any(|f| f.name == *key && f.wire.is_some())
+                    };
+                    if variant == field {
+                        let why = if variant {
+                            format!("`{key}` is both a variant and a field of `{name}`")
+                        } else {
+                            format!("`{name}` has no variant or field `{key}`")
+                        };
+                        cx.err("E331", *at, name, why);
+                    } else if again {
+                        cx.err("E331", *at, name, format!("`{key}` is renamed twice"));
+                    } else if variant {
+                        g.variant_wire.insert(key.clone(), wire.clone());
+                    } else {
+                        for f in out.iter_mut().flat_map(|(_, fs)| fs.iter_mut()) {
+                            if f.name == *key {
+                                f.wire = Some(wire.clone());
+                            }
+                        }
+                    }
+                }
+                let mut seen = HashSet::new();
+                for (v, fs) in &out {
+                    let w = g.variant_wire.get(v).unwrap_or(v);
+                    if !seen.insert(w.clone()) {
+                        cx.err(
+                            "E331",
+                            it.span,
+                            name,
+                            format!("two variants of `{name}` are written `{w}` on the wire"),
+                        );
+                    }
+                    check_wire_names(v, fs, it.span, cx);
+                }
+                g.wire_opts.insert(name.clone(), (w.tag, w.ignore));
                 g.sums.insert(name.clone(), out);
             }
             _ => {}

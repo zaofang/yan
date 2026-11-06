@@ -60,6 +60,85 @@ pub(crate) fn wire_name(ds: &[j::Decorator]) -> R<Option<String>> {
     Ok(out)
 }
 
+/// What `@wire(...)` on a record or sum sets (R886): the rename map, the json tag key of a sum
+/// and whether unknown members are ignored.
+#[derive(Default)]
+pub(crate) struct ItemWire {
+    pub names: Vec<(String, String, Span)>,
+    pub tag: Option<String>,
+    pub ignore: bool,
+}
+
+fn str_lit(e: &j::Expr) -> Option<&str> {
+    match &e.kind {
+        j::ExprKind::Lit(j::Lit::Str { value, .. }) => Some(value),
+        _ => None,
+    }
+}
+
+/// Reads the item-level `@wire(names: {...}, tag: "...", unknown: "ignore")` of record or sum
+/// `it` (R886); E331 for a malformed one.
+pub(crate) fn item_wire(it: &j::Item, item: &str, cx: &mut Cx) -> ItemWire {
+    let is_sum = matches!(it.kind, j::ItemKind::Type(_));
+    let mut out = ItemWire::default();
+    for d in it.decorators.iter().filter(|d| d.path == ["wire"]) {
+        for a in d.args.as_deref().unwrap_or_default() {
+            let j::ArgKind::Expr(e) = &a.kind else {
+                cx.err(
+                    "E331",
+                    a.span,
+                    item,
+                    "`@wire` takes `names`, `tag` and `unknown`".into(),
+                );
+                continue;
+            };
+            match (a.name.as_deref(), &e.kind) {
+                (Some("names"), j::ExprKind::Dict(entries)) => {
+                    for (k, v) in entries {
+                        let key = match &k.kind {
+                            j::ExprKind::Name(n) => Some(n.as_str()),
+                            _ => str_lit(k),
+                        };
+                        match (key, str_lit(v)) {
+                            (Some(k), Some(v)) => out.names.push((k.into(), v.into(), a.span)),
+                            _ => cx.err(
+                                "E331",
+                                a.span,
+                                item,
+                                "`names` maps a field or variant name to a string".into(),
+                            ),
+                        }
+                    }
+                }
+                (Some("tag"), _) if !is_sum => {
+                    cx.err("E331", a.span, item, "`@wire(tag: ...)` needs a sum".into())
+                }
+                (Some("tag"), _) => match str_lit(e) {
+                    Some(t) => out.tag = Some(t.into()),
+                    None => cx.err("E331", a.span, item, "`tag` is a string".into()),
+                },
+                (Some("unknown"), _) => match str_lit(e) {
+                    Some("ignore") => out.ignore = true,
+                    Some("reject") => out.ignore = false,
+                    _ => cx.err(
+                        "E331",
+                        a.span,
+                        item,
+                        "`unknown` is \"ignore\" or \"reject\"".into(),
+                    ),
+                },
+                _ => cx.err(
+                    "E331",
+                    a.span,
+                    item,
+                    "`@wire` takes `names`, `tag` and `unknown`".into(),
+                ),
+            }
+        }
+    }
+    out
+}
+
 /// Checks `it`'s decorators after the item was lowered; its diagnostics start at `start`.
 pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<()> {
     let item = it.kind.name().to_owned();
@@ -150,6 +229,8 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
             "layout" => return unsupported("`@layout` other than `@layout(c)` on a record"),
             "reentrant" => reentrant(it, cx),
             "deny" => {}
+            // Read when the type is declared (`item_wire`).
+            "wire" => {}
             "deprecated" | "inline" | "limit" | "test_support" => {}
             "capability" if matches!(it.kind, j::ItemKind::Trait(_)) => {}
             // Read with `@derive(Cli)` (RFC 0019 D14).
@@ -437,12 +518,18 @@ fn fields(g: &Globals, it: &j::Item, item: &str, tr: &str, cx: &mut Cx) {
                             f.name
                         ),
                     );
-                } else if f.wire_name() == "tag" && matches!(&it.kind, j::ItemKind::Type(_)) {
+                } else if matches!(&it.kind, j::ItemKind::Type(_))
+                    && f.wire_name() == g.tag_of(item)
+                {
                     cx.err(
                         "E330",
                         f.ty_span,
                         item,
-                        format!("`{owner}.tag` clashes with the json tag of `{item}`"),
+                        format!(
+                            "`{owner}.{}` clashes with the json tag `{}` of `{item}`",
+                            f.name,
+                            g.tag_of(item)
+                        ),
                     );
                 }
             }

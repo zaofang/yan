@@ -5,7 +5,18 @@
 
 use crate::json::{self, Json, Pos, Reason};
 
-const TAG: &str = "tag";
+/// The tag key of a sum's object, `@wire(tag: ...)` or `tag` (R886).
+fn tag(def: &Json) -> &str {
+    match get(def, "tag") {
+        Some(Json::Str(s)) => s,
+        _ => "tag",
+    }
+}
+
+/// Whether the type has `@wire(unknown: "ignore")` (R886).
+fn ignores(def: &Json) -> bool {
+    matches!(get(def, "unk"), Some(Json::Bool(true)))
+}
 
 /// A slot before its blocks exist, so a failed decode leaks nothing.
 pub enum Slot {
@@ -202,20 +213,21 @@ impl Cx<'_> {
         };
         let def = self.def(n);
         if let Some(rec) = get(def, "rec") {
-            return self.fields(rec, fs, p, path, None, out);
+            return self.fields(rec, fs, p, path, None, ignores(def), out);
         }
         let vs = get(def, "sum").map_or(&[][..], items);
         let names = || vs.iter().map(wire).collect::<Vec<_>>().join("|");
-        let Some(i) = fs.iter().position(|(k, _)| k == TAG) else {
+        let key = tag(def);
+        let Some(i) = fs.iter().position(|(k, _)| k == key) else {
             return Err((
                 p.at,
                 Reason::Missing {
                     path: path.into(),
-                    field: TAG.into(),
+                    field: key.into(),
                 },
             ));
         };
-        let tag_path = format!("{path}.{TAG}");
+        let tag_path = format!("{path}.{key}");
         let Json::Str(tag) = &fs[i].1 else {
             return Err((
                 kid(p, i).at,
@@ -240,7 +252,7 @@ impl Cx<'_> {
         for (k, v) in vs.iter().enumerate() {
             let decl = get(v, "fs").unwrap_or(&Json::Null);
             if k == chosen {
-                self.fields(decl, fs, p, path, Some(i), out)?;
+                self.fields(decl, fs, p, path, Some(i), ignores(def), out)?;
             } else {
                 out.extend((0..self.fields_width(decl)).map(|_| Slot::Word(0)));
             }
@@ -256,11 +268,12 @@ impl Cx<'_> {
         p: &Pos,
         path: &str,
         skip: Option<usize>,
+        ignore: bool,
         out: &mut Vec<Slot>,
     ) -> D {
         let decl = items(decl);
         for (i, (k, _)) in fs.iter().enumerate() {
-            if Some(i) != skip && !decl.iter().any(|f| wire(f) == k.as_str()) {
+            if !ignore && Some(i) != skip && !decl.iter().any(|f| wire(f) == k.as_str()) {
                 return Err((
                     kid(p, i).at,
                     Reason::Unknown {
@@ -363,7 +376,7 @@ impl Cx<'_> {
                                 at += self.fields_width(get(v, "fs").unwrap_or(&Json::Null));
                             }
                             let v = vs.get(chosen).ok_or(())?;
-                            out.push((TAG.to_owned(), Json::Str(wire(v).into())));
+                            out.push((tag(def).to_owned(), Json::Str(wire(v).into())));
                             (get(v, "fs").unwrap_or(&Json::Null), at)
                         };
                         for f in items(decl) {
@@ -542,5 +555,14 @@ mod tests {
         // SAFETY: reclaimed once.
         drop(unsafe { Box::from_raw(name) });
         assert_eq!(out.as_deref(), Some(r#"{"a":5,"b":"hi"}"#));
+    }
+
+    #[test]
+    fn a_sum_reads_its_tag_key_and_the_type_can_ignore_unknown_members() {
+        let schema = r#"{"root":{"named":"S"},"defs":{"S":{"sum":[{"n":"A","w":"a","fs":[{"n":"x","t":"int"}]}],"tag":"kind","unk":true}}}"#;
+        let r = parse(r#"{"kind":"a","x":1,"y":2}"#, schema);
+        assert!(matches!(r[0], Slot::Word(0)), "{}", r.len());
+        let r = parse(r#"{"tag":"a","x":1}"#, schema);
+        assert!(matches!(r[0], Slot::Word(1)));
     }
 }

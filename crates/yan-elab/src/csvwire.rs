@@ -19,7 +19,10 @@ fn cell(g: &Globals, t: &Ty) -> Result<J, String> {
                 .is_some_and(|vs| vs.iter().all(|(_, fs)| fs.is_empty())) =>
         {
             let vs = &g.sums[n];
-            json!({"enum": vs.iter().map(|(v, _)| v.as_str()).collect::<Vec<_>>()})
+            json!({"enum": vs.iter().map(|(v, _)| match g.variant_wire.get(v) {
+                Some(w) => json!({"n": v, "w": w}),
+                None => json!({"n": v}),
+            }).collect::<Vec<_>>()})
         }
         t => return Err(format!("`{t}` is not a csv cell")),
     })
@@ -76,5 +79,5 @@ pub(crate) fn schema(g: &Globals, root: &Ty) -> Result<String, String> {
     } else {
         return Err(format!("the row type `{n}` is not a record or a sum"));
     };
-    Ok(json!({"root": n, "def": def}).to_string())
+    Ok(json!({"root": n, "def": g.with_wire_opts(n, def)}).to_string())
 }
