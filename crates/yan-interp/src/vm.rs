@@ -6,7 +6,8 @@ use std::rc::Rc;
 use crate::bind::{self, Bind};
 use crate::compile::*;
 use crate::{
-    Frame, Interp, R, Stop, Value, data, intrinsic, out_of_range, panic, panic_with, unsupported,
+    Frame, Interp, Operand, R, Stop, Value, data, intrinsic, out_of_range, panic, panic_fields,
+    panic_with, unsupported,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -581,11 +582,14 @@ impl<'o> Vm<'o> {
                     if !matches!(self.stack[base + src as usize], Value::Bool(true)) {
                         let a = &code.asserts[info as usize];
                         let mut msg = format!("line {}", a.line);
+                        let mut fields = Vec::new();
                         if let [l, r] = a.sides[..] {
                             let show = |o| crate::prelude::show(self.val(code, base, o), true);
                             msg += &format!(": left is {}, right is {}", show(l), show(r));
+                            fields.push(("left", Operand::of(self.val(code, base, l))));
+                            fields.push(("right", Operand::of(self.val(code, base, r))));
                         }
-                        return panic_with("assert", msg);
+                        return panic_fields("assert", msg, fields);
                     }
                 }
                 Op::Panic(kind) => return panic(kind),

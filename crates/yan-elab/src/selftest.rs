@@ -810,3 +810,29 @@ fn nested_optional_levels_are_not_added_inside_containers() {
     let ok = "type M = int | None\n\ndef f(x: int | None) -> int:\n    y: M | None = x\n    if y is None:\n        return 0\n    return 1\n";
     assert!(!codes(ok).contains(&"E201".to_string()));
 }
+
+#[test]
+fn deny_promotes_lint_and_checks_codes() {
+    let body =
+        "def f(xs: list[int]) -> int:\n    if len(xs) == 1:\n        return 0\n    return xs[0]\n";
+    let sev = |src: &str| {
+        let (_, d) = lower(src);
+        d.iter()
+            .map(|d| (d.code.clone(), d.severity))
+            .collect::<Vec<_>>()
+    };
+    use yan_diag::Severity::{Error, Warning};
+    assert_eq!(sev(body), [("W820".to_owned(), Warning)]);
+    assert_eq!(
+        sev(&format!("@deny(W820)\n{body}")),
+        [("W820".to_owned(), Error)]
+    );
+    let c = |src: &str| {
+        sev(src)
+            .into_iter()
+            .map(|(c, _)| c)
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    assert!(c(&format!("@deny(W820)\n@expect(W820, reason=\"x\")\n{body}")).contains("E277"));
+    assert!(c(&format!("@deny(E501)\n{body}")).contains("E278"));
+}
