@@ -85,7 +85,10 @@ pub def luhn(pan: str) -> bool uses none:
 
 pub def authorize[A: Acquirer](acq: A, a: Auth) -> Decision uses none:
     """Rejects bad card numbers and amounts locally, then asks the acquirer."""
-    ex authorize(FakeAcquirer(limit=10), Auth(id=1, merchant="m", pan="4242424242424241", minor=5, mcc=Grocery())) == Declined(reason="luhn")
+    ex authorize(
+        FakeAcquirer(limit=10),
+        Auth(id=1, merchant="m", pan="4242424242424241", minor=5, mcc=Grocery()),
+    ) == Declined(reason="luhn")
     if a.minor <= 0:
         return Declined(reason="amount")
     if not luhn(a.pan):
@@ -108,7 +111,12 @@ pub def settle(auths: list[Auth], ds: list[Decision]) -> list[Settled] uses none
         if approved(d):
             s = acc.get(a.merchant) else Settled(merchant=a.merchant.copy(), gross=0, fees=0, net=0)
             f = fee(a.minor, a.mcc)
-            acc[a.merchant.copy()] = Settled(merchant=a.merchant.copy(), gross=s.gross + a.minor, fees=s.fees + f, net=s.net + a.minor - f)
+            acc[a.merchant.copy()] = Settled(
+                merchant=a.merchant.copy(),
+                gross=s.gross + a.minor,
+                fees=s.fees + f,
+                net=s.net + a.minor - f,
+            )
     return acc.values()
 
 pub def main() uses io:
