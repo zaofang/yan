@@ -51,7 +51,7 @@ research index links their studies and rows.
 | [0028](0028-drops-and-yan-opt.md) | Ownership facts, drop elaboration and the `yan-opt` contract | accepted | R769 to R773 |
 | [0029](0029-yan-meta.md) | Yan Meta, the lab and canary surface | accepted | R776 to R786 |
 | [0030](0030-nested-optionals.md) | Nested optionals keep two levels | draft | |
-| [0031](0031-forum-batch.md) | Numeric panic operands, item-level deny, 7-day cool-off, target-typed variants as a non-goal | draft | |
+| [0031](0031-forum-batch.md) | Numeric panic operands, item-level deny, 7-day cool-off, target-typed variants as a non-goal | accepted | R796 to R799 |
 | [0032](0032-std-net-and-mem-net.md) | A first `std.net` slice and the `mem_net` test handler | accepted | R789 to R792 |
 | [0033](0033-data-profile.md) | The data profile, a typed literal file in place of TOML | accepted | R826 to R829 |
 | [0034](0034-spelling-marks.md) | Spelling marks from lowering to raise, so law 1 keeps written choices | accepted | R837 to R843 |
