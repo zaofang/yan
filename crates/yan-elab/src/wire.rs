@@ -7,7 +7,7 @@ use yan_rt::wire::{Def, Schema, Schemas};
 
 use crate::{Field, Globals, ty::Ty};
 
-fn schema(
+pub(crate) fn schema(
     g: &Globals,
     owner: &str,
     f: &Field,

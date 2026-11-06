@@ -76,6 +76,7 @@ pub fn unsupported_message(what: &str) -> String {
 pub(crate) struct Field {
     pub name: String,
     pub ty: Ty,
+    pub ty_span: Span,
     pub default: Option<j::Expr>,
 }
 
@@ -156,6 +157,8 @@ pub(crate) struct Globals {
     pub clis: HashMap<String, HashMap<String, String>>,
     /// Records and sums marked `@derive(Wire)` (17.4).
     pub wires: HashSet<String>,
+    /// `(trait, type)` for each `@derive` on a record or sum.
+    pub derived: HashSet<(String, String)>,
     /// Functions marked `@deprecated`, for W815.
     pub deprecated: HashSet<String>,
     pub consts: HashMap<String, Ty>,
@@ -633,6 +636,11 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
         if decorators::derives(it, "Wire") {
             g.wires.insert(it.kind.name().to_owned());
         }
+        for t in decorators::FIELD_TRAITS {
+            if decorators::derives(it, t) {
+                g.derived.insert((t.to_owned(), it.kind.name().to_owned()));
+            }
+        }
         match &it.kind {
             j::ItemKind::Type(t) if !t.tparams.is_empty() => {
                 return unsupported("generic types").map_err(|u| u.at(it.span));
@@ -695,6 +703,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 Ok(Field {
                     name: f.name.clone(),
                     ty: g.ty(&f.ty, cx, at)?,
+                    ty_span: f.ty_span,
                     default: f.default.clone(),
                 })
             })

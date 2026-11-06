@@ -1015,13 +1015,24 @@ impl Parser {
     fn field(&mut self) -> P<Field> {
         let name = self.name()?;
         self.expect_op(":")?;
+        let start = self.span();
         let ty = self.ty()?;
+        let ty_span = Span {
+            end_line: self.toks[self.pos - 1].span.end_line,
+            end_col: self.toks[self.pos - 1].span.end_col,
+            ..start
+        };
         let default = if self.eat_op("=") {
             Some(self.expr()?)
         } else {
             None
         };
-        Ok(Field { name, ty, default })
+        Ok(Field {
+            name,
+            ty,
+            ty_span,
+            default,
+        })
     }
 
     fn typedef_rest(&mut self) -> P<TypeDef> {

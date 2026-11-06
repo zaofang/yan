@@ -757,3 +757,47 @@ pub def main() uses io:
 ";
     assert_eq!(codes(src), Vec::<String>::new());
 }
+
+#[test]
+fn derive_rejects_fields_that_do_not_implement_the_trait() {
+    let src = "\
+class Plain:
+    n: int
+
+@derive(Wire)
+class A:
+    f: Callable[[int], int]
+
+@derive(Wire)
+class B:
+    p: Plain
+
+@derive(Eq)
+class C:
+    p: Plain
+
+@derive(Hash)
+class D:
+    x: float
+
+pub def main() uses io:
+    io.print(\"hi\")
+";
+    assert_eq!(codes(src), ["E282", "E282", "E282", "E282"]);
+}
+
+#[test]
+fn derive_wire_capability_field_adds_a_note() {
+    let src = "\
+@derive(Wire)
+class A:
+    c: Io
+
+pub def main() uses io:
+    io.print(\"hi\")
+";
+    let d = lower(src).1;
+    assert_eq!(d.len(), 1, "{d:?}");
+    assert_eq!(d[0].code, "E282");
+    assert_eq!(d[0].notes, ["capabilities are never `Wire` (17.4)"]);
+}

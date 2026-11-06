@@ -422,6 +422,7 @@ impl Lower<'_> {
         Ok(h::Field {
             name: f.name.clone(),
             ty: self.ty(&f.ty)?,
+            ty_span: f.ty.span,
             default: f.default.as_ref().map(|e| self.expr(e)).transpose()?,
         })
     }
