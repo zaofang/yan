@@ -343,6 +343,14 @@ impl V {
                 }
                 self.closure(rhs);
                 self.consume(&s.kind, next, at, false);
+                if let (Rhs::Proj(p), Pat::Bind(x)) = (rhs, pat)
+                    && !own::is_copy(ty)
+                {
+                    let root = self.views.get(&p.root).unwrap_or(&p.root).clone();
+                    self.views.insert(x.clone(), root);
+                } else if let Pat::Bind(x) = pat {
+                    self.views.remove(x);
+                }
                 if !matches!(rhs, Rhs::Proj(_)) {
                     self.declare_pat(pat, ty);
                 }
