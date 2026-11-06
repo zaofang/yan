@@ -10290,6 +10290,105 @@
    }
   },
   {
+   "path": "pkg/e144_manifest_call",
+   "kind": "pkg",
+   "milestone": "M2b",
+   "spec": [
+    "19.1",
+    "17.3"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "2",
+    "7",
+    ",",
+    " ",
+    "R",
+    "8",
+    "2",
+    "9"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1, 17.3",
+    "rows": "R827, R829",
+    "milestone": "M2b",
+    "note": "package.yag is a data file: a function call in a value is E144 (R827)",
+    "command": [
+     "check"
+    ],
+    "code": "E144"
+   }
+  },
+  {
+   "path": "pkg/e144_manifest_extra_item",
+   "kind": "pkg",
+   "milestone": "M2b",
+   "spec": [
+    "19.1",
+    "17.3"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "2",
+    "7",
+    ",",
+    " ",
+    "R",
+    "8",
+    "2",
+    "9"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1, 17.3",
+    "rows": "R827, R829",
+    "milestone": "M2b",
+    "note": "package.yag holds one constant and nothing else; a function item is outside the data profile (E144, R827)",
+    "command": [
+     "check"
+    ],
+    "code": "E144"
+   }
+  },
+  {
+   "path": "pkg/e144_manifest_operator",
+   "kind": "pkg",
+   "milestone": "M2b",
+   "spec": [
+    "19.1",
+    "17.3"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "2",
+    "7",
+    ",",
+    " ",
+    "R",
+    "8",
+    "2",
+    "9"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1, 17.3",
+    "rows": "R827, R829",
+    "milestone": "M2b",
+    "note": "package.yag is a data file: an operator in a value is E144 (R827)",
+    "command": [
+     "check"
+    ],
+    "code": "E144"
+   }
+  },
+  {
    "path": "pkg/major_bump_meets_minimum",
    "kind": "pkg",
    "milestone": "M2a",

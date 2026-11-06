@@ -1,0 +1,6 @@
+spec = "19.1, 17.3"
+rows = "R827, R829"
+milestone = "M2b"
+note = "package.yag is a data file: a function call in a value is E144 (R827)"
+command = ["check"]
+code = "E144"
