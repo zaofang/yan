@@ -643,6 +643,8 @@ const RT: &[RtFn] = &[
     RtFn::ListLen,
     RtFn::ListAt,
     RtFn::ListCopy,
+    RtFn::JsonParse,
+    RtFn::JsonDump,
     RtFn::Alloc,
     RtFn::StrFree,
     RtFn::ListFree,
@@ -741,6 +743,18 @@ fn rt_fn(
         RtFn::ListAt => (
             "yan_rt_list_at",
             abi::yan_rt_list_at as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::JsonParse => (
+            "yan_rt_json_parse",
+            abi::yan_rt_json_parse as *const u8,
+            &[I64, I64, I64],
+            None,
+        ),
+        RtFn::JsonDump => (
+            "yan_rt_json_dump",
+            abi::yan_rt_json_dump as *const u8,
             &[I64, I64],
             Some(I64),
         ),

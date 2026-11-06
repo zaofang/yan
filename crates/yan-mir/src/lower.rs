@@ -1041,6 +1041,37 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.show(&v, &s, false)?;
                 set(self, r);
             }
+            (id::STD_JSON_DUMP, [(_, a), (_, schema)]) => {
+                let Some(shape) = self.targ(c)? else {
+                    return unsupported("`json.dump` without its type");
+                };
+                let v = self.atom(a, &shape)?;
+                let schema = self.scalar1(schema)?;
+                let buf = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(v.len() as i128)]);
+                self.write(&At::Mem(buf.clone(), 0), v);
+                let r = self.rt(RtFn::JsonDump, Ty::Ptr, vec![buf.clone(), schema]);
+                self.free(RtFn::EnvFree, buf);
+                set(self, r);
+            }
+            (id::STD_JSON_PARSE, [(_, a), (_, schema)]) => {
+                let Some(dst) = dst else {
+                    return unsupported("`json.parse` without a result");
+                };
+                let (src, schema) = (self.scalar1(a)?, self.scalar1(schema)?);
+                let buf = self.rt(
+                    RtFn::Alloc,
+                    Ty::Ptr,
+                    vec![Operand::Int(dst.locals.len() as i128)],
+                );
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::JsonParse,
+                    args: vec![buf.clone(), src, schema],
+                });
+                let v = self.read(&At::Mem(buf.clone(), 0), &dst.shape);
+                self.copy_to(&dst.locals, v);
+                self.free(RtFn::EnvFree, buf);
+            }
             (id::STD_LIST_NEW, []) => {
                 let Some(e) = self.targ(c)? else {
                     return unsupported("`std.list.new` without its element type");

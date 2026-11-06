@@ -166,6 +166,10 @@ pub enum RtFn {
     ListAt,
     /// `(List) -> List`, a copy of the slots.
     ListCopy,
+    /// `(Ptr out, Str, Str)`: the slots of `Result[T, JsonError]` into `out`.
+    JsonParse,
+    /// `(Ptr value, Str schema) -> Str`
+    JsonDump,
     /// `(words) -> Ptr` to that many zeroed words.
     Alloc,
     /// `(Str)`: free the block; a literal's block is left alone.
