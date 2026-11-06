@@ -1,0 +1,20 @@
+# spec: 17.3, 17.4
+# rows: R874, R881
+# note: a sum is one object with an internal "tag" key; a variant with no fields is {"tag": name}
+# stdout:
+# {"tag":"Circle","r":1.5}
+# {"tag":"Unit"}
+# [{"tag":"Circle","r":2.0},{"tag":"Unit"}]
+# True
+
+@derive(Wire, Show, Eq)
+type Shape = Circle(r: float) | Unit()
+
+pub def main() uses io:
+    c = Circle(r=1.5)
+    io.print(json.dump[Shape](c))
+    io.print(json.dump[Shape](Unit()))
+    xs = json.parse[list[Shape]]("[{\"tag\":\"Circle\",\"r\":2},{\"tag\":\"Unit\"}]") else err -> []
+    io.print(json.dump[list[Shape]](xs))
+    back = json.parse[Shape](json.dump[Shape](c)) else err -> Unit()
+    io.print(f"{back == c}")

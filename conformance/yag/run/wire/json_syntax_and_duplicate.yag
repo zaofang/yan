@@ -1,0 +1,16 @@
+# spec: 17.3, 17.4
+# rows: R876, R881
+# note: a duplicate key always fails, with or without a typed target; syntax errors are not retyped
+# stdout:
+# duplicate rejected
+# syntax rejected
+
+@derive(Wire, Show)
+class P:
+    name: str
+
+pub def main() uses io:
+    p = json.parse[P]("{\"name\":\"a\",\"name\":\"b\"}") else err -> P(name="duplicate rejected")
+    io.print(p.name)
+    q = json.parse[P]("{\"name\":\"a\",}") else err -> P(name="syntax rejected")
+    io.print(q.name)
