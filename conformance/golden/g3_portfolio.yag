@@ -36,7 +36,10 @@ pub def value(ps: list[Position], qs: dict[str, Quote]) -> float fail PortErr:
 
 pub def main() -> fail PortErr uses io, net:
     ps = [Position(sym="SPX", qty=10), Position(sym="NDX", qty=5)]
-    with net = sim_net(seed=7, answers={"https://px.example/SPX": "2000.0", "https://px.example/NDX": "2500.0"}):
+    with net = sim_net(
+        seed=7,
+        answers={"https://px.example/SPX": "2000.0", "https://px.example/NDX": "2500.0"},
+    ):
         quotes = par [fetch_quote(p.sym)? for p in ps]
         qs = {q.sym.copy(): q for q in quotes}
         total = value(ps, qs)?
