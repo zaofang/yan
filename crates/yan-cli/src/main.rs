@@ -7,6 +7,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 mod agent;
 mod examples;
 mod export;
+mod fix;
 mod mcp;
 mod patch;
 mod review;
@@ -92,6 +93,16 @@ enum Command {
         #[arg(long, required = true)]
         python: bool,
         file: PathBuf,
+    },
+    /// Apply the `auto` fixes of the diagnostics to files (18.2, R292).
+    Fix {
+        /// Change nothing; report what would change.
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        json: bool,
+        #[arg(required = true)]
+        files: Vec<PathBuf>,
     },
     /// Print the item hashes (3.6): key, salted hash and identity hash, one item per line.
     Hash {
@@ -259,6 +270,11 @@ fn main() -> ExitCode {
         } => view(&as_, &file, yan_ide::Marks { strict, bare }),
         Command::Export { file, .. } => export::run(&file),
         Command::Fmt { check, files } => fmt(&files, check),
+        Command::Fix {
+            dry_run,
+            json,
+            files,
+        } => fix(&files, dry_run, json),
         Command::Hash {
             format,
             reverse_items,
@@ -672,6 +688,34 @@ fn check(
     } else {
         ExitCode::SUCCESS
     }
+}
+
+fn fix(files: &[PathBuf], dry_run: bool, json: bool) -> ExitCode {
+    let db = RefCell::new(Database::new(false, false));
+    let diagnose = |p: &Path, src: &str| {
+        let mut db = db.borrow_mut();
+        let f = db.file(p, src);
+        yan_ide::diagnostics(&*db, f)
+    };
+    let mut report = Vec::new();
+    for file in files {
+        match fix::run(file, dry_run, &diagnose) {
+            Ok(r) => report.push((file, r)),
+            Err(msg) => return tool_failure(&msg),
+        }
+    }
+    if json {
+        let rows: Vec<_> = report
+            .iter()
+            .map(|(f, r)| serde_json::json!({"file": f.display().to_string(), "fixes": r.applied}))
+            .collect();
+        println!("{}", serde_json::Value::Array(rows));
+    } else {
+        for (f, r) in report.iter().filter(|(_, r)| r.applied > 0) {
+            println!("{}: {} fixes", f.display(), r.applied);
+        }
+    }
+    ExitCode::SUCCESS
 }
 
 fn apply_patch(file: &Path, module: Option<&str>, check: bool, format: Format) -> ExitCode {
