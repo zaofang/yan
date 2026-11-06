@@ -6031,6 +6031,19 @@ impl Lower<'_, '_, '_> {
             {
                 self.cli_call(op, k, args, at, None)
             }
+            j::ExprKind::Index(b, k)
+                if let j::ExprKind::Attr(m, op, _) = &b.kind
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "json" && !self.locals.contains_key(c))
+                    && matches!(op.as_str(), "parse" | "dump") =>
+            {
+                self.json_call(op, Some(k), args, at)
+            }
+            j::ExprKind::Attr(m, op, _)
+                if op == "dump"
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "json" && !self.locals.contains_key(c)) =>
+            {
+                self.json_call(op, None, args, at)
+            }
             // The schema written out: `cli.parse_args(xs, "{..}")`, what raise prints with no marks.
             j::ExprKind::Attr(m, op, _)
                 if op == "parse_args"
@@ -8168,6 +8181,91 @@ impl Lower<'_, '_, '_> {
                 pieces: pieces.clone(),
             },
             ..e.clone()
+        }
+    }
+
+    /// A type written as an argument to `json.parse[T]`: a name, or `list`, `set`, `dict`,
+    /// `Option` and `tuple` of those.
+    fn written_ty(&self, e: &j::Expr) -> Option<Ty> {
+        Some(match &e.kind {
+            j::ExprKind::Name(n) => match n.as_str() {
+                "bool" => Ty::Bool,
+                "int" => Ty::Int,
+                "float" => Ty::Float,
+                "str" => Ty::Str,
+                "char" => Ty::Char,
+                n => Ty::Data(n.to_owned()),
+            },
+            j::ExprKind::Index(b, k) if let j::ExprKind::Name(c) = &b.kind => {
+                let ks: Vec<&j::Expr> = match &k.kind {
+                    j::ExprKind::Tuple(xs) => xs.iter().collect(),
+                    _ => vec![k],
+                };
+                let mut ts = ks
+                    .iter()
+                    .map(|x| self.written_ty(x))
+                    .collect::<Option<Vec<_>>>()?;
+                match (c.as_str(), ts.len()) {
+                    ("list", 1) => Ty::List(Box::new(ts.remove(0))),
+                    ("set", 1) => Ty::Set(Box::new(ts.remove(0))),
+                    ("Option", 1) => Ty::Option(Box::new(ts.remove(0))),
+                    ("dict", 2) => {
+                        let v = ts.remove(1);
+                        Ty::Dict(Box::new(ts.remove(0)), Box::new(v))
+                    }
+                    _ => return None,
+                }
+            }
+            _ => return None,
+        })
+    }
+
+    /// `json.parse[T](s)` and `json.dump[T](x)` over `derive(Wire)` types (R874 to R877).
+    fn json_call(
+        &mut self,
+        op: &str,
+        t: Option<&j::Expr>,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let Some(xs) = self.positional(args, 1, op, at)? else {
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        };
+        let want = if op == "parse" { Some(Ty::Str) } else { None };
+        let (a, ta) = self.atom(xs[0], want.as_ref())?;
+        let rt = match (op, t) {
+            ("parse", None) => return unsupported("`json.parse` without a type"),
+            ("parse", Some(t)) => self.written_ty(t),
+            (_, Some(t)) => self.written_ty(t),
+            _ => Some(ta.clone()),
+        };
+        let Some(rt) = rt else {
+            return unsupported("a type that is not a name or a collection of names");
+        };
+        if op == "parse" {
+            self.expect(&ta, &Ty::Str, xs[0].span);
+        } else {
+            self.expect(&ta, &rt, xs[0].span);
+        }
+        if let Ty::Data(n) = &rt
+            && !self.g.wires.contains(n)
+        {
+            self.err("E201", at, format!("`{n}` does not derive `Wire`"));
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        }
+        let Some(schema) = crate::jsonwire::schema(self.g, &rt) else {
+            return unsupported(format!("`json.{op}` of `{rt}`"));
+        };
+        let c = call(
+            &format!("std.json.{op}"),
+            vec![rt.targ()],
+            vec![let_arg(a), let_arg(Atom::Lit(Literal::Str(schema), at))],
+            at,
+        );
+        if op == "parse" {
+            Ok((Rhs::Call(c), rt, Some(Ty::Data("JsonError".into()))))
+        } else {
+            Ok((Rhs::Call(c), Ty::Str, None))
         }
     }
 

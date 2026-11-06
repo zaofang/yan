@@ -9,6 +9,7 @@ mod cli;
 mod decorators;
 mod desugar;
 mod ffi;
+mod jsonwire;
 mod lower;
 pub mod marks;
 mod stage0;

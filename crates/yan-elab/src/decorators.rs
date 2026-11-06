@@ -394,6 +394,26 @@ fn fields(g: &Globals, it: &j::Item, item: &str, tr: &str, cx: &mut Cx) {
     };
     for (owner, fs) in owned {
         for f in fs {
+            if tr == "Wire" {
+                if matches!(&f.ty, Ty::Option(e) if matches!(**e, Ty::Option(_))) {
+                    cx.err(
+                        "E330",
+                        f.ty_span,
+                        item,
+                        format!(
+                            "`{owner}.{}` is a nested optional, which json cannot represent",
+                            f.name
+                        ),
+                    );
+                } else if f.name == "tag" && matches!(&it.kind, j::ItemKind::Type(_)) {
+                    cx.err(
+                        "E330",
+                        f.ty_span,
+                        item,
+                        format!("`{owner}.tag` clashes with the json tag of `{item}`"),
+                    );
+                }
+            }
             let Err(msg) = field_ok(g, &owner, f, tr) else {
                 continue;
             };

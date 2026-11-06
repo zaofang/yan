@@ -68,12 +68,13 @@ fn from_value(v: &Value) -> Option<Json> {
     })
 }
 
-fn error(e: JsonError) -> Value {
+pub(super) fn error(e: JsonError) -> Value {
     let reason = match e.reason {
         Reason::Syntax(msg) => data("Syntax", vec![("msg", Str(msg.into()))]),
         Reason::Depth => data("Depth", vec![]),
         Reason::Duplicate(key) => data("Duplicate", vec![("key", Str(key.into()))]),
         Reason::Range => data("Range", vec![]),
+        _ => unreachable!("typed reasons come from jsonwire"),
     };
     data(
         "JsonError",
@@ -99,6 +100,12 @@ pub(super) fn show_error(fields: &[(super::Name, Value)]) -> String {
         ("Syntax", [(_, Str(msg))]) => msg.to_string(),
         ("Duplicate", [(_, Str(key))]) => format!("duplicate key {key:?}"),
         ("Depth", _) => "nesting too deep".into(),
+        ("Mismatch", [(_, Str(p)), (_, Str(e)), (_, Str(f))]) => {
+            format!("{p}: expected {e}, found {f}")
+        }
+        ("Missing", [(_, Str(p)), (_, Str(f))]) => format!("{p}: missing field {f:?}"),
+        ("Unknown", [(_, Str(p)), (_, Str(f))]) => format!("{p}: unknown field {f:?}"),
+        ("Invalid", [(_, Str(p)), (_, Str(m))]) => format!("{p}: {m}"),
         _ => "integer out of range".into(),
     };
     format!("line {line}, col {col}: {reason}")

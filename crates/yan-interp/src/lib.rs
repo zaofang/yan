@@ -26,6 +26,7 @@ mod env;
 mod fault;
 mod iter;
 mod json;
+mod jsonwire;
 mod keyed;
 mod log;
 mod math;
