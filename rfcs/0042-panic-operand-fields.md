@@ -1,8 +1,8 @@
 # 0042: Panic operand fields that the spec names but does not define
 
-- Status: draft
+- Status: accepted
 - Research: none; the gap is spec section 8.3 (operand fields) against the interpreter after the numeric operand work
-- Rows: filled in when accepted
+- Rows: R874 to R877
 
 ## Summary
 
@@ -25,8 +25,8 @@ stable), cheap on the panic path, and needs no text in the payload. A span would
 buffer that is replayed on other machines; a clause hash is larger and adds nothing the item hash plus
 position does not.
 
-- Decision:
-- Row:
+- Decision: Item hash plus clause position (recommended option); Antonio, 2026-11-06
+- Row: R874
 
 ### D2: free variables of a contract or assert predicate
 
@@ -39,8 +39,8 @@ the name table already exists per item (positional locals), so the lookup costs 
 A variable of a non-numeric type is omitted, as for every other field. The interpreter collects the names at
 compile time and reads them only when the check fails.
 
-- Decision:
-- Row:
+- Decision: Numeric variables, written names (recommended option); Antonio, 2026-11-06
+- Row: R875
 
 ### D3: key hash with key type for a missing dict key
 
@@ -54,8 +54,8 @@ and the canonical encoding makes it identical on every target and run (determini
 replay. For a numeric key the hash is still given, and the key itself is already available as the `index`-like
 operand where the dict is indexed by an integer.
 
-- Decision:
-- Row:
+- Decision: 64-bit BLAKE3 hash plus key type (recommended option); Antonio, 2026-11-06
+- Row: R876
 
 ### D4: the `shape` panic kind
 
@@ -67,8 +67,8 @@ undefined.
 Recommendation: (a), and add it back with its fields in the RFC that introduces a runtime shape check.
 Listing a kind with no source and no fields invites a divergent payload.
 
-- Decision:
-- Row:
+- Decision: Remove `shape` until a runtime check exists (recommended option); Antonio, 2026-11-06
+- Row: R877
 
 ## Spec changes
 

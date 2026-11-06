@@ -219,6 +219,10 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R871 | The `?` form of optimized Yan Core carries a drop list, `f(x)? drop a, b`: the owned locals still live on the failing edge, dropped in that order before the function returns, a flagged local under its flag; checked Yan Core has none (RFC 0039, R871) | 3.5, 5.3 |
 | R872 | A derived trait whose field type does not implement it is E282, for `Eq`, `Ord`, `Hash`, `Show` and `Wire` alike; the derive is rejected at compile time instead of failing at a use site (E221) or in a codec (RFC 0040, R872) | 10.4, 17.4, 25.4 |
 | R873 | E282 is reported once per offending field, at the field's type annotation; a field of a user class says it does not derive the trait, and a capability field under `Wire` adds a note that capabilities are never `Wire` (RFC 0040, R873) | 10.4, 17.4, 25.4 |
+| R874 | A `contract` panic names its clause by the item hash and the clause's zero-based position among the item's `requires` and `ensures` clauses in source order (RFC 0042, R874) | 8.3 |
+| R875 | A `contract` or `assert` panic carries the numeric free variables of the predicate by written name in first-use order; free variables of other types are left out (RFC 0042, R875) | 8.3 |
+| R876 | A `bounds` panic for a missing dict key carries the first 64 bits of BLAKE3 over the key's canonical encoding as an unsigned integer, with the key type's name (RFC 0042, R876) | 8.3 |
+| R877 | `shape` leaves the kinds that carry operand fields until a runtime shape check exists; the RFC that adds one defines its fields (RFC 0042, R877) | 8.3 |
 
 <!-- /rows -->
 
