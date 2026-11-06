@@ -348,6 +348,7 @@ pub(crate) struct ContractC {
 pub(crate) struct AssertC {
     pub line: u32,
     pub sides: Vec<Opnd>,
+    pub vars: Vec<(Name, Reg)>,
 }
 
 pub(crate) struct Program {
@@ -996,12 +997,22 @@ impl<'g, 'm> FnC<'g, 'm> {
                     Expr::Atom(Atom::Name(n, _)) => self.cmps.get(n).cloned(),
                     _ => None,
                 };
+                let mut vars: Vec<(Name, Reg)> = Vec::new();
+                for a in sides.iter().flatten() {
+                    if let Atom::Name(n, _) = a
+                        && !vars.iter().any(|(v, _)| v == n)
+                        && let Some(r) = self.regs.get(n)
+                    {
+                        vars.push((n.clone(), *r));
+                    }
+                }
                 let sides = sides
                     .and_then(|[a, b]| Some(vec![self.atom(&a).ok()?, self.atom(&b).ok()?]))
                     .unwrap_or_default();
                 self.code.asserts.push(AssertC {
                     line: s.span.line,
                     sides,
+                    vars,
                 });
                 let info = self.code.asserts.len() as u32 - 1;
                 self.emit(Op::Assert { src: t, info });

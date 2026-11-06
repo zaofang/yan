@@ -727,6 +727,12 @@ impl<'o> Vm<'o> {
                             fields.push(("left", Operand::of(self.val(code, base, l))));
                             fields.push(("right", Operand::of(self.val(code, base, r))));
                         }
+                        for (n, r) in &a.vars {
+                            let o = Operand::of(&self.stack[base + *r as usize]);
+                            if !matches!(o, Operand::Type(_)) {
+                                fields.push((n.as_str(), o));
+                            }
+                        }
                         return panic_fields("assert", msg, fields);
                     }
                 }
