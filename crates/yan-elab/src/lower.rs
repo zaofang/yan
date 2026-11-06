@@ -3907,12 +3907,21 @@ impl Lower<'_, '_, '_> {
             return (r, t);
         };
         if matches!(t, Ty::Err | Ty::Never)
-            || option_depth(&t) >= option_depth(want.expect("matched"))
-            || !t.fits(inner)
+            || t.option_depth() >= (want.expect("matched")).option_depth()
         {
             return (r, t);
         }
-        if option_depth(&t) < option_depth(inner) {
+        let mut level = &**inner;
+        while let Ty::Option(x) = level {
+            if level.option_depth() <= t.option_depth() {
+                break;
+            }
+            level = x;
+        }
+        if !t.fits(level) {
+            return (r, t);
+        }
+        if t.option_depth() < inner.option_depth() {
             let wanted = self.ty_text(want.expect("matched"));
             self.err(
                 "E201",
@@ -9303,14 +9312,6 @@ fn wire(t: &Ty) -> bool {
 
 pub(crate) fn is_view(t: &j::Type) -> bool {
     matches!(t, j::Type::Named { path, .. } if path.len() == 1 && path[0] == "View")
-}
-
-/// How many `Option` levels `t` has at the top.
-fn option_depth(t: &Ty) -> usize {
-    match t {
-        Ty::Option(t) => 1 + option_depth(t),
-        _ => 0,
-    }
 }
 
 /// The source text a one-line span covers.
