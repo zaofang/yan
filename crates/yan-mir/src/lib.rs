@@ -170,6 +170,8 @@ pub enum RtFn {
     JsonParse,
     /// `(Ptr value, Str schema) -> Str`
     JsonDump,
+    /// `(Ptr slots) -> Str`: the text of a `JsonError`.
+    JsonErrorShow,
     /// `(words) -> Ptr` to that many zeroed words.
     Alloc,
     /// `(Str)`: free the block; a literal's block is left alone.

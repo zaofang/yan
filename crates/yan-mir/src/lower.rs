@@ -1137,6 +1137,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let empty = self.lit("");
                 self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])
             }
+            Shape::Rec(name, _) if name == "JsonError" => {
+                let buf = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(v.len() as i128)]);
+                self.write(&At::Mem(buf.clone(), 0), v.to_vec());
+                let r = self.rt(RtFn::JsonErrorShow, Ty::Ptr, vec![buf.clone()]);
+                self.free(RtFn::EnvFree, buf);
+                r
+            }
             Shape::Rec(name, fs) => self.show_fields(name, v, fs)?,
             Shape::Tuple(ss) => {
                 let mut parts = vec![self.lit("(")];

@@ -645,6 +645,7 @@ const RT: &[RtFn] = &[
     RtFn::ListCopy,
     RtFn::JsonParse,
     RtFn::JsonDump,
+    RtFn::JsonErrorShow,
     RtFn::Alloc,
     RtFn::StrFree,
     RtFn::ListFree,
@@ -756,6 +757,12 @@ fn rt_fn(
             "yan_rt_json_dump",
             abi::yan_rt_json_dump as *const u8,
             &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::JsonErrorShow => (
+            "yan_rt_json_error_show",
+            abi::yan_rt_json_error_show as *const u8,
+            &[I64],
             Some(I64),
         ),
         RtFn::Alloc => (

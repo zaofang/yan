@@ -489,6 +489,26 @@ pub fn root_width(schema: &str) -> usize {
     cx.width(get(&sc, "root").unwrap_or(&Json::Null))
 }
 
+/// `line L, col C: reason` (R573) for the 14 slots of a `JsonError`.
+///
+/// # Safety
+/// The `Str` slots of the chosen variant point to live blocks.
+pub unsafe fn show_error(w: &[u64]) -> String {
+    // SAFETY: the caller's contract.
+    let st = |i: usize| unsafe { &*(w[i] as *const String) };
+    let reason = match w[2] {
+        0 => st(3).clone(),
+        1 => "nesting too deep".into(),
+        2 => format!("duplicate key {:?}", st(4)),
+        4 => format!("{}: expected {}, found {}", st(5), st(6), st(7)),
+        5 => format!("{}: missing field {:?}", st(8), st(9)),
+        6 => format!("{}: unknown field {:?}", st(10), st(11)),
+        7 => format!("{}: {}", st(12), st(13)),
+        _ => "integer out of range".into(),
+    };
+    format!("line {}, col {}: {reason}", w[0] as i64, w[1] as i64)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

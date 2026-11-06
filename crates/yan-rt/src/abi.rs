@@ -347,3 +347,15 @@ pub unsafe extern "C" fn yan_rt_json_dump(v: *const u64, schema: *const String) 
         None => panic("value"),
     }
 }
+
+/// The text of a `JsonError`.
+///
+/// # Safety
+/// `v` holds a `JsonError`'s slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_json_error_show(v: *const u64) -> *mut String {
+    // SAFETY: the caller's contract.
+    let w = unsafe { std::slice::from_raw_parts(v, 14) };
+    // SAFETY: as above.
+    str_block(&unsafe { crate::jsonslots::show_error(w) })
+}
