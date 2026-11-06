@@ -1,0 +1,7 @@
+# spec: 16.1, 13.1
+# flags: --strict
+# note: a type name is split into words at each capital letter, so consecutive capitals have no word split
+# expect: E112 at 6:7
+
+class HTTPServer:
+    port: int

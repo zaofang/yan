@@ -1,0 +1,8 @@
+# spec: 16.1
+# note: digits attach to the preceding word, so Http2Server is the words http2 and server and has no consecutive capitals
+
+class Http2Server:
+    port: int
+
+def make() -> Http2Server:
+    return Http2Server(port=80)

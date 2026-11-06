@@ -154,6 +154,29 @@
    "expect": []
   },
   {
+   "path": "yag/pass/names/capability_binds_by_value_class_name.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "16.1",
+    "7.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yag/pass/names/digits_attach_to_preceding_word.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "16.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yag/pass/ownership/distinct_indices.yag",
    "kind": "pass",
    "milestone": "M1",
@@ -2451,6 +2474,26 @@
      "code": "E503",
      "line": 6,
      "col": 5
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/names/e112_type_name_words.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "16.1",
+    "13.1"
+   ],
+   "rows": [],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E112",
+     "line": 6,
+     "col": 7
     }
    ]
   },
@@ -5253,6 +5296,21 @@
    "flags": [],
    "expect": [],
    "stdout": "['a', 'b'] /h None {'A': '1', 'HOME': '/h'} Europe/Lisbon\n[] UTC\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/env_only_attenuates.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.6"
+   ],
+   "rows": [
+    "R674"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 2 3\n1 None 2\n",
    "exit": 0
   },
   {

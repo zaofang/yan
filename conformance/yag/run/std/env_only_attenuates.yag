@@ -1,0 +1,15 @@
+# spec: 17.6
+# rows: R674
+# note: env.only(vars=...) limits env to the named variables; a variable outside the grant reads as unset and vars() lists only the granted ones
+# stdout:
+# 1 2 3
+# 1 None 2
+
+def report() -> str uses env:
+    return f"{env.var('A')} {env.var('B')} {len(env.vars())}"
+
+pub def main() uses io, env:
+    with env = fake_env(vars={"A": "1", "B": "2", "HOME": "/h"}):
+        io.print(f"{env.var('A')} {env.var('B')} {len(env.vars())}")
+        with env = env.only(vars=["A", "HOME"]):
+            io.print(report())
