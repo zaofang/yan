@@ -42,6 +42,8 @@ struct Cli {
 #[derive(Clone, Copy, PartialEq, ValueEnum)]
 enum GrammarFormat {
     Gbnf,
+    Xgrammar,
+    Llguidance,
 }
 
 #[derive(Clone, Copy, PartialEq, ValueEnum)]
@@ -305,6 +307,8 @@ fn main() -> ExitCode {
             let g = yan_yag::Grammar::yag();
             match format {
                 GrammarFormat::Gbnf => print!("{}", g.gbnf()),
+                GrammarFormat::Xgrammar => print!("{}", g.xgrammar()),
+                GrammarFormat::Llguidance => print!("{}", g.llguidance()),
             }
             ExitCode::SUCCESS
         }
