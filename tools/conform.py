@@ -7,6 +7,7 @@ An executor is any command that implements:
     CMD patch --format json [FLAGS] PATCH -> applies PATCH in its directory; JSON records on refusal
     CMD semver --format json --base OLD NEW -> JSON object with "bump"
     CMD ARGS... --format json             -> run in a pkg/ case's copied root; JSON records
+    CMD fmt FILE                          -> rewrites FILE in place; exit 1 if it does not load
 Exit status 2 or above from either command is a failure of the tool, never a verdict.
 The same suite drives the interpreter and every code generator (spec 22.1, 24.1).
 
@@ -45,6 +46,7 @@ TOP_KINDS = {
     "semver": "semver",
     "patch": "patch",
     "pkg": "pkg",
+    "fmt": "fmt",
     "roundtrip": "roundtrip",
     "sim": "sim",
 }
@@ -111,6 +113,8 @@ class Executor(Protocol):
 
     def tool(self, workdir: Path, args: list[str]) -> tuple[list[dict[str, object]], int]: ...
 
+    def fmt(self, path: Path) -> int: ...
+
 
 @dataclass(frozen=True)
 class CommandExecutor:
@@ -174,6 +178,12 @@ class CommandExecutor:
             raise ToolFailure(out.stderr.strip())
         records: list[dict[str, object]] = json.loads(out.stdout or "[]")
         return records, out.returncode
+
+    def fmt(self, path: Path) -> int:
+        out = subprocess.run([*self.argv, "fmt", str(path)], capture_output=True, text=True)
+        if out.returncode >= TOOL_FAILURE:
+            raise ToolFailure(out.stderr.strip())
+        return out.returncode
 
     def hash(self, path: Path, reverse: bool = False) -> list[tuple[str, str]] | None:
         flags = ["--reverse-items"] if reverse else []
@@ -278,7 +288,7 @@ def discover(root: Path) -> list[Case]:
         base = root / top
         if not base.is_dir():
             continue
-        if kind in ("patch", "semver", "pkg"):
+        if kind in ("patch", "semver", "pkg", "fmt"):
             cases += [_dir_case(kind, p) for p in sorted(base.iterdir()) if p.is_dir()]
             continue
         for p in _files(base):
@@ -351,6 +361,8 @@ def _judge(case: Case, ex: Executor) -> Result:
             return _judge_patch(case, ex)
         case "pkg":
             return _judge_pkg(case, ex)
+        case "fmt":
+            return _judge_fmt(case, ex)
         case "semver":
             bump = ex.semver(case.path / "old", case.path / "new")
             if bump != case.meta.get("bump"):
@@ -387,6 +399,22 @@ def _judge_patch(case: Case, ex: Executor) -> Result:
     want = (case.path / str(case.meta["result"])).read_text(encoding="utf-8")
     if code != 0 or after != want:
         return Result(name, ex.name, "fail", f"exit {code}, module {after!r}")
+    return Result(name, ex.name, "pass")
+
+
+def _judge_fmt(case: Case, ex: Executor) -> Result:
+    name = str(case.path)
+    src = next((p for p in sorted(case.path.glob("in.*")) if p.suffix in COMMENT), None)
+    want_file = None if src is None else case.path / f"out{src.suffix}"
+    if src is None or want_file is None or not want_file.is_file():
+        return Result(name, ex.name, "fail", "no in.<ext> and out.<ext> pair")
+    with tempfile.TemporaryDirectory() as tmp:
+        work = Path(tmp) / src.name
+        shutil.copy(src, work)
+        code = ex.fmt(work)
+        got = work.read_bytes()
+    if code != 0 or got != want_file.read_bytes():
+        return Result(name, ex.name, "fail", f"exit {code}, output {got!r}")
     return Result(name, ex.name, "pass")
 
 
