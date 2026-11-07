@@ -1174,3 +1174,8 @@ sections = "19.3, 25.2"
 rows = "R896"
 topic = "only `add`, `remove`, `update`, `approve`, `vendor` and `yan lock` write `yan.lock`; `build`, `check` and `test` never do, and under `--locked` a missing or mismatched lock or absent offline archive is E020 (RFC 0044)"
 sections = "18.1, 19.1, 25.2"
+
+[[entry]]
+rows = "R897"
+topic = "`crypto_rand.fill_bytes(&buf)` fills a `bytearray` in place and `crypto_rand.random_bytes(n) -> bytes` wraps it; the owner chose both forms (#396)"
+sections = "7.1, 17.3"

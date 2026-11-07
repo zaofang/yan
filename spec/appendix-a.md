@@ -242,6 +242,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R894 | the resolver reads each version's `.info` requirements, applies overrides, then dependencies, dev dependencies and tools as three subgraphs of one lock, then the Python environment; `yan add` writes the newest version outside the cool-off as the minimum (RFC 0044) | 19.1 |
 | R895 | `.info` is JSON with archive digest, publisher identity, capability set, requirements, yank state and publish time; namespaces map to indexes in the `registries` table of `.yan/config.yag`, never in a manifest; an unmapped namespace is E021 (RFC 0044) | 19.3, 25.2 |
 | R896 | only `add`, `remove`, `update`, `approve`, `vendor` and `yan lock` write `yan.lock`; `build`, `check` and `test` never do, and under `--locked` a missing or mismatched lock or absent offline archive is E020 (RFC 0044) | 18.1, 19.1, 25.2 |
+| R897 | `crypto_rand.fill_bytes(&buf)` fills a `bytearray` in place and `crypto_rand.random_bytes(n) -> bytes` wraps it; the owner chose both forms (#396) | 7.1, 17.3 |
 
 <!-- /rows -->
 

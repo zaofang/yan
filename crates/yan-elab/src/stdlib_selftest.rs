@@ -84,6 +84,15 @@ fn fake_fs_reads_and_fails_with_fs_error() {
 }
 
 #[test]
+fn crypto_rand_fills_in_place_and_returns_bytes() {
+    let src = "pub def main() uses crypto_rand, io:\n    \
+               buf = bytearray.from_bytes(bytes.from_list([0] * 64))\n    \
+               crypto_rand.fill_bytes(&buf)\n    \
+               io.print(f\"{len(buf)} {len(crypto_rand.random_bytes(5))}\")\n";
+    assert_eq!(run(src), "64 5\n");
+}
+
+#[test]
 fn failures_inject_into_error_with_context() {
     let src = "class Bad:\n    msg: str\n\n\
                def inner() -> int fail Bad:\n    fail Bad(msg=\"inner\")\n\n\
