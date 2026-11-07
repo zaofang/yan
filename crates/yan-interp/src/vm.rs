@@ -378,6 +378,7 @@ impl<'o> Vm<'o> {
             })
             .collect();
         let outer = self.task_base.replace(base);
+        self.it.in_par += 1;
         let out = loop {
             let progress = self.it.progress;
             let next = tasks
@@ -439,6 +440,7 @@ impl<'o> Vm<'o> {
             }
         }
         self.task_base = outer;
+        self.it.in_par -= 1;
         out
     }
 
