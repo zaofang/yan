@@ -1200,7 +1200,7 @@ impl Parser {
                     "E276",
                     span,
                     format!(
-                        "the union lists `None` twice; write `Option[{} | None]`",
+                        "the union lists `None` twice; name the inner optional with `type A = {} | None` and write `A | None`",
                         crate::printer::ty(&base)
                     ),
                 );
