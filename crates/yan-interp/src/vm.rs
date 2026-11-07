@@ -783,11 +783,10 @@ impl<'o> Vm<'o> {
                     };
                 }
                 Op::Clear(r) => self.stack[base + r as usize] = Value::Unit,
-                Op::Jmp(to) => {
-                    // A backward jump is a loop iteration, one step (R487).
-                    if (to as usize) < *pc {
-                        self.tick()?;
-                    }
+                Op::Jmp(to) => *pc = to as usize,
+                // A loop iteration is one step (R487).
+                Op::Loop(to) => {
+                    self.tick()?;
                     *pc = to as usize;
                 }
                 Op::JmpIf { cond, to } => match self.val(code, base, cond) {
@@ -881,6 +880,8 @@ impl<'o> Vm<'o> {
                             return unsupported("`become` of a std function or intrinsic");
                         }
                     };
+                    // A tail call is still a call (R487); the frame's `cost` counters run on.
+                    self.tick()?;
                     let nargs = self.stack.len() - new_base;
                     // Move the arguments down over the old frame.
                     if nargs <= new_base - base {

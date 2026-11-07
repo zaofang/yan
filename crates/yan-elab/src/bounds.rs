@@ -23,27 +23,27 @@ pub(crate) struct Finding {
 
 /// `sum(coef * term) + k >= 0`, or as a value, `sum(coef * term) + k`.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-struct Lin {
-    terms: BTreeMap<String, i128>,
-    k: i128,
+pub(crate) struct Lin {
+    pub(crate) terms: BTreeMap<String, i128>,
+    pub(crate) k: i128,
 }
 
 impl Lin {
-    fn konst(k: i128) -> Lin {
+    pub(crate) fn konst(k: i128) -> Lin {
         Lin {
             terms: BTreeMap::new(),
             k,
         }
     }
 
-    fn term(t: String) -> Lin {
+    pub(crate) fn term(t: String) -> Lin {
         Lin {
             terms: BTreeMap::from([(t, 1)]),
             k: 0,
         }
     }
 
-    fn scale(&self, c: i128) -> Lin {
+    pub(crate) fn scale(&self, c: i128) -> Lin {
         let mut terms = BTreeMap::new();
         if c != 0 {
             for (t, a) in &self.terms {
@@ -56,7 +56,7 @@ impl Lin {
         }
     }
 
-    fn add(&self, o: &Lin) -> Lin {
+    pub(crate) fn add(&self, o: &Lin) -> Lin {
         let mut r = self.clone();
         for (t, a) in &o.terms {
             let e = r.terms.entry(t.clone()).or_insert(0);
@@ -69,7 +69,7 @@ impl Lin {
         r
     }
 
-    fn sub(&self, o: &Lin) -> Lin {
+    pub(crate) fn sub(&self, o: &Lin) -> Lin {
         self.add(&o.scale(-1))
     }
 
@@ -107,7 +107,7 @@ fn gcd(a: i128, b: i128) -> i128 {
 }
 
 /// The conjunction of `cs` has no integer solution, as far as elimination can tell.
-fn unsat(cs: &[Lin]) -> bool {
+pub(crate) fn unsat(cs: &[Lin]) -> bool {
     const LIMIT: usize = 4000;
     let mut cs: Vec<Lin> = cs.iter().cloned().map(Lin::tighten).collect();
     loop {
@@ -251,7 +251,7 @@ fn project(cs: Vec<Lin>, t: &str) -> Vec<Lin> {
 }
 
 /// `cs` with every list length that they or `extra` mention known non-negative.
-fn with_lens(cs: &[Lin], extra: &Lin) -> Vec<Lin> {
+pub(crate) fn with_lens(cs: &[Lin], extra: &Lin) -> Vec<Lin> {
     let mut out = cs.to_vec();
     for c in cs.iter().chain([extra]) {
         for t in c.terms.keys().filter(|t| t.starts_with("len:")) {
@@ -261,11 +261,11 @@ fn with_lens(cs: &[Lin], extra: &Lin) -> Vec<Lin> {
     out
 }
 
-fn var(n: &str) -> String {
+pub(crate) fn var(n: &str) -> String {
     format!("v:{n}")
 }
 
-fn len(n: &str) -> String {
+pub(crate) fn len(n: &str) -> String {
     format!("len:{n}")
 }
 

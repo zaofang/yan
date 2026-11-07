@@ -2456,7 +2456,23 @@ impl<'a, 'm> Fn<'a, 'm> {
                     return unsupported("`become` across failure types");
                 }
                 let (args, _) = self.user_args(func, c)?;
-                self.end_costs();
+                if !self.cost_tokens.is_empty() {
+                    // The callee's work counts against this frame's bounds, so the frame stays.
+                    let dst: Vec<Local> = self
+                        .sig(func)
+                        .ret
+                        .tys()
+                        .into_iter()
+                        .map(|t| self.local(t))
+                        .collect();
+                    self.emit(Inst::Call {
+                        dst: dst.clone(),
+                        func,
+                        args,
+                    });
+                    self.ret(dst.into_iter().map(Operand::Local).collect());
+                    return Ok(());
+                }
                 if self.costing {
                     self.count(0);
                 }

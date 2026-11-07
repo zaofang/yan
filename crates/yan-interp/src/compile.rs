@@ -102,6 +102,8 @@ pub(crate) enum Op {
     },
     Clear(Reg),
     Jmp(u32),
+    /// A loop's jump back to its start: one step (R487), unlike a jump to a join point.
+    Loop(u32),
     /// Run the branches of `pars[idx]` as cooperative tasks, then continue at its join.
     Par(u32),
     /// A task's branch is done.
@@ -773,6 +775,7 @@ impl<'g, 'm> FnC<'g, 'm> {
     fn patch(&mut self, at: usize, to: u32) {
         match &mut self.code.ops[at] {
             Op::Jmp(t)
+            | Op::Loop(t)
             | Op::JmpIfNot { to: t, .. }
             | Op::JmpIf { to: t, .. }
             | Op::CmpJmp { to: t, .. }
@@ -990,7 +993,7 @@ impl<'g, 'm> FnC<'g, 'm> {
                     breaks: Vec::new(),
                 });
                 self.block(body);
-                self.emit(Op::Jmp(start));
+                self.emit(Op::Loop(start));
                 let Some(Scope::Loop { breaks, .. }) = self.scopes.pop() else {
                     unreachable!()
                 };
@@ -1242,7 +1245,7 @@ impl<'g, 'm> FnC<'g, 'm> {
             return self.unsupported(format!("label `'{label}` outside its loop"));
         };
         self.unwind(i);
-        let at = self.emit(Op::Jmp(0));
+        let at = self.emit(if brk { Op::Jmp(0) } else { Op::Loop(0) });
         let Scope::Loop { start, breaks, .. } = &mut self.scopes[i] else {
             unreachable!()
         };
