@@ -50,6 +50,8 @@ struct Lower<'a, 'c, 's> {
     n: usize,
     /// Lowering a `become` call, whose arguments are exempt from E210 (SPEC_QUESTIONS).
     in_become: bool,
+    /// The first parameter index whose argument N44 turned into a keyword one.
+    keyworded_from: Option<usize>,
     /// Dict elements that `place` copied out; a mutating caller stores them back.
     dict_places: Vec<DictPlace>,
     /// Every read of each name, for last-use moves (E413).
@@ -785,6 +787,7 @@ fn function_body_with(
         loops: Vec::new(),
         n: 0,
         in_become: false,
+        keyworded_from: None,
         dict_places: Vec::new(),
         uses: HashMap::new(),
         indexed: HashSet::new(),
@@ -6985,14 +6988,15 @@ impl Lower<'_, '_, '_> {
                 }
                 Some(n) => ps.iter().position(|p| p.name == *n).unwrap_or(0),
             };
+            let keyword = a.name.is_some() || self.keyworded_from.is_some_and(|f| k >= f);
             if let Some(Arg::Value(_, Atom::Name(_, sp) | Atom::Lit(_, sp), _)) = vals.get(k)
-                && (a.name.is_some() || !ps[k].positional)
+                && (keyword || !ps[k].positional)
             {
                 self.cx.marks.push(crate::marks::Pending {
                     span: *sp,
                     kind: crate::marks::Kind::Field(k),
                     call: None,
-                    mark: if a.name.is_some() {
+                    mark: if keyword {
                         yan_surface::Mark::Keyword
                     } else {
                         yan_surface::Mark::Positional
@@ -7189,9 +7193,11 @@ impl Lower<'_, '_, '_> {
             slots[k] = Some(Given::Expr(e, is_ref, sp, a.name.is_some()));
         }
         // E210: parameters that share a type take keyword arguments, in a callee with three or
-        // more parameters (R800).
+        // more parameters (R800). The lenient reader takes them by position and reads them as
+        // keywords (N44).
+        let mut unkeyed: Vec<usize> = Vec::new();
         for (k, slot) in slots.iter().enumerate().filter(|_| ps.len() > 2) {
-            let Some(Given::Expr(e, _, sp, keyword)) = slot else {
+            let Some(Given::Expr(e, _, _, keyword)) = slot else {
                 continue;
             };
             let p = &ps[k];
@@ -7202,15 +7208,40 @@ impl Lower<'_, '_, '_> {
                 || matches!(&e.kind, j::ExprKind::Unary("-", x) if matches!(x.kind, j::ExprKind::Lit(_)))
                 || matches!(&e.kind, j::ExprKind::Name(n) if *n == p.name);
             if shared && !*keyword && !exempt && !p.positional && !self.in_become {
+                unkeyed.push(k);
+            }
+        }
+        self.keyworded_from = None;
+        if let Some(&first) = unkeyed.first() {
+            let sp = match &slots[first] {
+                Some(Given::Expr(_, _, sp, _)) => *sp,
+                _ => at,
+            };
+            if self.cx.strict || self.cx.yn {
                 self.err(
                     "E210",
-                    *sp,
+                    sp,
                     format!(
                         "pass `{}` by keyword: another parameter has type `{}`",
-                        p.name, p.ty
+                        ps[first].name, ps[first].ty
                     ),
                 );
-                break;
+            } else {
+                self.lenient(
+                    "N44",
+                    sp,
+                    "positional arguments for parameters that share a type normalized to keywords",
+                );
+                // A positional argument cannot follow a keyword one, so every later one is
+                // named too.
+                for (k, slot) in slots.iter_mut().enumerate().skip(first) {
+                    if let Some(Given::Expr(.., keyword)) = slot
+                        && !ps[k].positional
+                    {
+                        *keyword = true;
+                    }
+                }
+                self.keyworded_from = Some(first);
             }
         }
         let mut elems: Vec<(String, Atom)> = Vec::new();

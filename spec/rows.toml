@@ -1339,3 +1339,8 @@ sections = "14.4"
 rows = "R929"
 topic = "E201 on arithmetic with an `int`, `float` or `str` optional carries a `choice` fix wrapping the operand as `(x else 0)`, `(x else 0.0)` or `(x else \"\")` (RFC 0048)"
 sections = "25"
+
+[[entry]]
+rows = "R930"
+topic = "N44: the lenient reader accepts positional arguments where E210 is the only fault and reads them as keywords from the first one on; `--strict` and Yan keep E210 (RFC 0049)"
+sections = "14.1, 14.4, 25"

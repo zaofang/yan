@@ -18,7 +18,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | W8xx | lints |
 | E9xx | unsafe, FFI, layout, linking and inline assembly |
 | P0xx | patches |
-| N01 to N43 | lenient-reader notes (14.4) |
+| N01 to N44 | lenient-reader notes (14.4) |
 | I001 to I999 | internal errors |
 
 ### 25.2 Packages, registry and stability
@@ -83,7 +83,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E201 | type mismatch, with the differing parts of the two types marked; arithmetic on an `int`, `float` or `str` optional adds the `choice` fix `(x else 0)`, `(x else 0.0)` or `(x else "")` (R929)* new* | 10.1, 14.1 |
 | E202 | wrong number of arguments, or unknown keyword or label argument* new* | 14.1, 15.3 |
 | E203 | no such field or method; nearest names suggested* new* | 10.2, 17.2 |
-| E210 | keyword or label arguments required (two parameters of a callee with three or more share a type) | 14.1, 15.3 |
+| E210 | keyword or label arguments required (two parameters of a callee with three or more share a type); under the lenient reader this is note N44 | 14.1, 15.3 |
 | E220 | overlapping impls | 10.2 |
 | E221 | type does not implement a required trait; the trait's @diagnostic hint is shown when present* new* | 10.2 |
 | E230 | rebinding a name (no shadowing) | 14.1, 15.3 |
@@ -320,7 +320,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | P004 | replaced or deleted item missing |
 | P005 | added item already exists |
 | P006 | patch touches a protected target without a human confirmation token |
-| N01 to N43 | lenient-reader normalizations (14.4) |
+| N01 to N44 | lenient-reader normalizations (14.4) |
 | I001 to I999 | internal errors, including Yan validator failures |
 
 Panic kinds, reported as `panic(kind): message` with exit status 101: `overflow`, `div_zero`, `contract`, `exclusivity`, `bounds`, `shape`, `unreachable`, `assert`, `deadlock`. Undefined-behavior reports from `--ub` name the item number of 6.7.

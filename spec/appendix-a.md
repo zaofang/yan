@@ -275,6 +275,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R927 | `parse_int` and `parse_float` on `char`: methods of `std.text` that apply to the one-scalar `str`, returning `int | None` and `float | None` (RFC 0048) | 17 |
 | R928 | N35 and N34 accept `re.finditer` and `Regex.finditer` as `find_all` (RFC 0048) | 14.4 |
 | R929 | E201 on arithmetic with an `int`, `float` or `str` optional carries a `choice` fix wrapping the operand as `(x else 0)`, `(x else 0.0)` or `(x else "")` (RFC 0048) | 25 |
+| R930 | N44: the lenient reader accepts positional arguments where E210 is the only fault and reads them as keywords from the first one on; `--strict` and Yan keep E210 (RFC 0049) | 14.1, 14.4, 25 |
 
 <!-- /rows -->
 
