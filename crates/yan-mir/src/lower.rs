@@ -315,6 +315,11 @@ pub fn lower(m: &y::Module) -> R<Program> {
         defs.push(f);
     }
     let main = *by_name.get("main").ok_or("no `fn main` in the module")?;
+    let costing = defs.iter().any(|f| {
+        f.contracts
+            .iter()
+            .any(|k| matches!(k, y::Contract::Cost { .. }))
+    });
     let mono = RefCell::new(Mono {
         defs,
         item_hashes,
@@ -322,6 +327,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
         insts: HashMap::new(),
         sigs: Vec::new(),
         todo: Vec::new(),
+        costing,
     });
     let main = mono.borrow_mut().instance(&types, main)?;
     let mut prog = Program {
@@ -377,6 +383,8 @@ struct Mono<'m> {
     sigs: Vec<Sig>,
     /// What each instance lowers, in id order.
     todo: Vec<Todo<'m>>,
+    /// Some function has a `cost` bound, so every function counts steps and allocations.
+    costing: bool,
 }
 
 #[derive(Clone)]
@@ -632,6 +640,10 @@ struct Fn<'a, 'm> {
     line: u32,
     /// How many `par concurrent` branches enclose the code being lowered.
     tasks: u32,
+    /// Whether the program counts steps and allocations for `cost` bounds (R610).
+    costing: bool,
+    /// The tokens of this function's `cost` counters, ended on every exit.
+    cost_tokens: Vec<Operand>,
 }
 
 impl<'a, 'm> Fn<'a, 'm> {
@@ -657,6 +669,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             scopes: Vec::new(),
             line: 0,
             tasks: 0,
+            costing: mono.borrow().costing,
+            cost_tokens: Vec::new(),
         }
     }
 
@@ -752,6 +766,24 @@ impl<'a, 'm> Fn<'a, 'm> {
                     clause += 1;
                 }
                 y::Contract::Ensures(_) => clause += 1,
+                y::Contract::Cost { steps, alloc } => {
+                    // Both bounds are evaluated before either counter starts.
+                    let mut begins = Vec::new();
+                    for (r, e) in [(0, steps), (1, alloc)] {
+                        if let Some(e) = e {
+                            begins.push((r, self.expr_of(e, I64)?));
+                        }
+                    }
+                    for (r, b) in begins {
+                        let t = self.rt(
+                            RtFn::CostBegin,
+                            I64,
+                            vec![Operand::Int(r), b, Operand::Int(clause)],
+                        );
+                        self.cost_tokens.push(t);
+                    }
+                    clause += 1;
+                }
                 _ => {}
             }
         }
@@ -787,9 +819,49 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     fn emit(&mut self, i: Inst) {
+        // A call is a step and a fresh or grown block an `alloc` (R487, R925).
+        let step = self.costing && matches!(i, Inst::Call { .. } | Inst::CallIndirect { .. });
+        let alloc = self.costing && matches!(&i, Inst::Rt { f, .. } if f.allocates());
+        if step {
+            self.count(0);
+        }
+        self.push(i);
+        if alloc {
+            self.count(1);
+        }
+    }
+
+    fn push(&mut self, i: Inst) {
         let b = &mut self.blocks[self.cur as usize];
         b.insts.push(i);
         b.lines.push(self.line);
+    }
+
+    /// One more of `resource` (0 steps, 1 alloc) against the running `cost` bounds.
+    fn count(&mut self, resource: i128) {
+        self.push(Inst::Rt {
+            dst: None,
+            f: RtFn::CostCount,
+            args: vec![Operand::Int(resource), Operand::Int(1)],
+        });
+    }
+
+    /// A loop back edge is a step (R487).
+    fn back_edge(&mut self) {
+        if self.costing {
+            self.count(0);
+        }
+    }
+
+    /// End this function's `cost` counters before it leaves.
+    fn end_costs(&mut self) {
+        if let Some(t) = self.cost_tokens.first().cloned() {
+            self.push(Inst::Rt {
+                dst: None,
+                f: RtFn::CostEnd,
+                args: vec![t],
+            });
+        }
     }
 
     /// End the current block with `t` unless it already ended.
@@ -897,6 +969,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     /// Return `v` with the final `inout` slots.
     fn ret(&mut self, mut v: Vec<Operand>) {
         v.extend(self.inout.iter().map(|l| Operand::Local(*l)));
+        self.end_costs();
         self.end(Term::Return(v));
     }
 
@@ -1004,16 +1077,21 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
     }
 
+    /// A predicate's value.
     fn expr(&mut self, e: &y::Expr) -> R<Operand> {
+        self.expr_of(e, Ty::Bool)
+    }
+
+    fn expr_of(&mut self, e: &y::Expr, ty: Ty) -> R<Operand> {
         match e {
             y::Expr::Atom(a) => self.scalar1(a),
             y::Expr::Call(c) => {
-                let t = self.local(Ty::Bool);
+                let t = self.local(ty);
                 self.call(
                     c,
                     Some(Var {
                         locals: vec![t],
-                        shape: Shape::Scalar(Ty::Bool),
+                        shape: Shape::Scalar(ty),
                     }),
                 )?;
                 Ok(Operand::Local(t))
@@ -1765,6 +1843,9 @@ impl<'a, 'm> Fn<'a, 'm> {
             m.todo.push(Todo::Closure(c, caps));
             id
         };
+        if self.costing && !vals.is_empty() {
+            self.count(1);
+        }
         let block = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(vals.len() as i128)]);
         self.write(&At::Mem(block.clone(), 0), vals);
         Ok(vec![Operand::Func(id), block])
@@ -2241,6 +2322,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         });
         match to {
             Some(b) => {
+                if !brk {
+                    self.back_edge();
+                }
                 self.end(Term::Jump(b));
                 Ok(())
             }
@@ -2327,6 +2411,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 });
                 self.block(body)?;
                 self.scopes.pop();
+                self.back_edge();
                 self.goto(head);
                 self.cur = exit;
                 Ok(())
@@ -2371,6 +2456,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                     return unsupported("`become` across failure types");
                 }
                 let (args, _) = self.user_args(func, c)?;
+                self.end_costs();
+                if self.costing {
+                    self.count(0);
+                }
                 self.end(Term::TailCall { func, args });
                 Ok(())
             }

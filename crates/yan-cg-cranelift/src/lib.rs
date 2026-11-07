@@ -699,6 +699,9 @@ const RT: &[RtFn] = &[
     RtFn::ParExitKind,
     RtFn::ParCancel,
     RtFn::ParEnd,
+    RtFn::CostBegin,
+    RtFn::CostEnd,
+    RtFn::CostCount,
 ];
 
 /// Symbol, address, parameter types and result type.
@@ -920,6 +923,24 @@ fn rt_fn(
             "yan_rt_par_end",
             sched::yan_rt_par_end as *const u8,
             &[I64],
+            None,
+        ),
+        RtFn::CostBegin => (
+            "yan_rt_cost_begin",
+            abi::yan_rt_cost_begin as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::CostEnd => (
+            "yan_rt_cost_end",
+            abi::yan_rt_cost_end as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::CostCount => (
+            "yan_rt_cost_count",
+            abi::yan_rt_cost_count as *const u8,
+            &[I64, I64],
             None,
         ),
     }
@@ -1512,6 +1533,22 @@ mod selftest {
             assert eq_i64(let n, let 13)\n let r: i64 = count(let 1000000, let 0)\n assert eq_i64(let r, let 1000000)\n\
             let q: i64 = floordiv_i64(let -7, let 2)\n assert eq_i64(let q, let -4)\n\
             let w: u8 = mod_u8(let 7, let 3)\n assert eq_u8(let w, let 1)\n ret ()\n}\n";
+        let (m, d) = yan_core::parse("t.yir", src);
+        assert!(d.is_empty(), "{d:?}");
+        let p = yan_mir::lower(&m.unwrap()).expect("lowers");
+        run_both(&p);
+    }
+
+    /// Bounds that hold exactly: 50 loop back edges, and a new list plus 50 appends (R925).
+    #[test]
+    fn runs_cost_counters_that_hold() {
+        let src = "module t\n\
+            fn spin(let n: i64) -> i64\n cost steps <= n, alloc <= add_checked_i64(let n, let 1)\n{\n\
+            var ys: List[i64] = std.list.new[i64]()\n var i: i64 = 0\n\
+            loop 'l {\n let d: bool = ge_i64(let i, let n)\n if d { break 'l }\n\
+            i = add_checked_i64(let i, let 1)\n std.list.append[i64](inout ys, sink i)\n }\n\
+            let k: i64 = std.list.len[i64](let ys)\n ret k\n}\n\
+            fn main() -> Unit {\n let r: i64 = spin(let 50)\n assert eq_i64(let r, let 50)\n ret ()\n}\n";
         let (m, d) = yan_core::parse("t.yir", src);
         assert!(d.is_empty(), "{d:?}");
         let p = yan_mir::lower(&m.unwrap()).expect("lowers");

@@ -214,6 +214,34 @@ pub enum RtFn {
     ParCancel,
     /// `(handle)`: leave the block.
     ParEnd,
+    /// `(resource, bound, clause) -> token`: start a `cost` counter (R610); 0 steps, 1 alloc.
+    CostBegin,
+    /// `(token)`: end the counters started since `token`.
+    CostEnd,
+    /// `(resource, n)`: count `n`; panics `contract` past a running bound.
+    CostCount,
+}
+
+impl RtFn {
+    /// Whether the call makes one `alloc` (R925): a fresh `Str` or `List`, or a `List` grown.
+    pub fn allocates(self) -> bool {
+        matches!(
+            self,
+            RtFn::Concat
+                | RtFn::ShowI64
+                | RtFn::ShowU64
+                | RtFn::ShowF64
+                | RtFn::ShowBool
+                | RtFn::Repr
+                | RtFn::ListNew
+                | RtFn::ListPush
+                | RtFn::ListCopy
+                | RtFn::JsonDump
+                | RtFn::JsonErrorShow
+                | RtFn::CsvDump
+                | RtFn::CsvErrorShow
+        )
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
