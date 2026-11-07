@@ -1134,3 +1134,8 @@ sections = "17.3, 17.4, 25.5"
 rows = "R888"
 topic = "`edition` in `package.yag` is `\"next\"` or a four-digit year of 2026 or later, so named editions such as `\"2027\"` are accepted before RC; any other value is E332; the one-per-three-years limit binds the toolchain's edition table, not a manifest (#622, #630)"
 sections = "19.1, 20.4, 25.5"
+
+[[entry]]
+rows = "R889"
+topic = "`crypto_rand.fill_bytes(&buf)` fills a `bytearray` in place and `crypto_rand.random_bytes(n) -> bytes` wraps it; the owner chose both forms (#396)"
+sections = "7.1, 17.3"

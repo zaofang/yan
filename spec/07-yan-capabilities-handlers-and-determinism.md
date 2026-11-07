@@ -12,7 +12,7 @@ Effects are capabilities: second-class values passed as explicit parameters in Y
 | `net` | `Net` | `tcp_connect`, `tcp_listen`, `udp_bind`, `resolve`; completion-shaped with deadlines (9.7); attenuated by `net.only` (17.6); the TCP slice and `mem_net` are R789 to R791 |
 | `time` | `Time` | clock reads only: `now`, `monotonic` (returns `MonoInstant`, includes suspended time), `sleep`, `sleep_until(MonoInstant)` |
 | `rand` | `Rand` | `next_u64`, `next_f64`, `state() -> Option[RandState]` (R823); handlers `seeded(seed, algorithm=ChaCha8())` (default in tests with seed 0; the streams are R683, the split R685; `seeded(seed, Pcg64Dxsm())` is not splittable, so using it in two branches is E402; R377) and `os` |
-| `crypto_rand` | `CryptoRand` | `fill_bytes`; a CSPRNG that tests may replace and release builds may not |
+| `crypto_rand` | `CryptoRand` | `fill_bytes` (in place), `random_bytes`; a CSPRNG that tests may replace and release builds may not |
 | `log` | `Log` | structured key-value events at `debug`, `info`, `warn`, `error` over one `event(level, msg, fields)` operation, plus spans as child handlers (R688, R689); `@splittable` |
 | `metrics` | `Metrics` | counters, gauges, histograms; `@splittable` |
 | `env` | `Env` | `args`, `var`, `vars`, `secret` (returns `Secret[str] \| None`), `local_zone`, `system_tzdb`; no `set_var` (R686); attenuated by `env.only` (R674) |
