@@ -607,3 +607,90 @@ mod panic_ops_tests {
         assert_eq!(f[1], ("key_type", PanicOperand::Type("int".into())));
     }
 }
+
+/// The running `cost` counters of native code (R610, R925): the count of each resource (0 steps,
+/// 1 allocations), and a stack of (resource, deadline, bound, clause), outermost first.
+struct Costs {
+    counts: [u64; 2],
+    stack: Vec<(usize, u64, i64, i64)>,
+    next: [u64; 2],
+}
+
+thread_local! {
+    static COSTS: std::cell::RefCell<Costs> = const {
+        std::cell::RefCell::new(Costs {
+            counts: [0; 2],
+            stack: Vec::new(),
+            next: [u64::MAX; 2],
+        })
+    };
+}
+
+const RESOURCES: [&str; 2] = ["steps", "alloc"];
+
+fn cost_panic(resource: usize, bound: i64, clause: i64) -> ! {
+    *PANIC_FIELDS.lock().expect("not poisoned") = vec![
+        ("clause", PanicOperand::Int(clause.into())),
+        (RESOURCES[resource], PanicOperand::Int(bound.into())),
+    ];
+    let _ = std::io::stdout().flush();
+    eprintln!(
+        "panic(contract): a function exceeded its `cost {} <= {bound}`",
+        RESOURCES[resource]
+    );
+    std::process::exit(101)
+}
+
+/// Start a `cost <resource> <= bound` counter for the calling frame; the token ends it.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_cost_begin(resource: u64, bound: i64, clause: i64) -> u64 {
+    let r = resource as usize;
+    if bound < 0 {
+        cost_panic(r, bound, clause);
+    }
+    COSTS.with_borrow_mut(|c| {
+        let token = c.stack.len() as u64;
+        let deadline = c.counts[r].saturating_add(bound as u64);
+        c.stack.push((r, deadline, bound, clause));
+        c.next[r] = c.next[r].min(deadline);
+        token
+    })
+}
+
+/// End the counters started since `token` was returned: the frame is leaving.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_cost_end(token: u64) {
+    COSTS.with_borrow_mut(|c| {
+        c.stack.truncate(token as usize);
+        for r in 0..2 {
+            c.next[r] = c
+                .stack
+                .iter()
+                .filter(|e| e.0 == r)
+                .map(|e| e.1)
+                .min()
+                .unwrap_or(u64::MAX);
+        }
+    });
+}
+
+/// Count `n` of `resource`; past the tightest bound on it, a `contract` panic.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_cost_count(resource: u64, n: u64) {
+    let r = resource as usize;
+    let hit = COSTS.with_borrow_mut(|c| {
+        c.counts[r] += n;
+        (c.counts[r] > c.next[r]).then(|| {
+            let e = c
+                .stack
+                .iter()
+                .filter(|e| e.0 == r)
+                .min_by_key(|e| e.1)
+                .expect("a counter");
+            (e.2, e.3)
+        })
+    });
+    if let Some((bound, clause)) = hit {
+        cost_panic(r, bound, clause);
+    }
+}
