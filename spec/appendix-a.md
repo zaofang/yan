@@ -235,7 +235,14 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R887 | `@wire(tag: "kind")` and `@wire(unknown: "ignore")` are read on the item for json and csv: `tag` renames a sum's tag key and tag column (a variant field with that wire name is E330) and `unknown: "ignore"` on a record or sum skips unknown members and columns instead of failing, `"reject"` being the default; any other `@wire` key or value is E331 (R874, R876, #603) | 17.3, 17.4, 25.5 |
 | R888 | `edition` in `package.yag` is `"next"` or a four-digit year of 2026 or later, so named editions such as `"2027"` are accepted before RC; any other value is E332; the one-per-three-years limit binds the toolchain's edition table, not a manifest (#622, #630) | 19.1, 20.4, 25.5 |
 | R889 | `yan schema gen <file>` keeps its meaning (table row types, 11.9); the JSON Schema of each `yan mcp` tool's input is printed by `yan mcp schema`, not by `yan schema gen` (#357) | 18.1, 23 |
-| R890 | `crypto_rand.fill_bytes(&buf)` fills a `bytearray` in place and `crypto_rand.random_bytes(n) -> bytes` wraps it; the owner chose both forms (#396) | 7.1, 17.3 |
+| R890 | the manifest is `package.yag`; no other file name is read (RFC 0044) | 19.1 |
+| R891 | `package.yag` rejects fields outside the table and requires `name`, `version`, `edition` and `yan` for a published or depended-on package, waived for a members-only root and a single-file script; violations are E018 (RFC 0044) | 19.1, 25.2 |
+| R892 | `yan.lock` is TOML in a canonical print: `format` first, pinned-data tables, then `[[package]]` sorted by (name, major), fixed field order, one field per line (RFC 0044) | 19.1 |
+| R893 | the lock's `format` is an integer; newer toolchains read older formats, reading never writes, a toolchain writes its own format only when it changes the lock anyway, and a newer format is E019 (RFC 0044) | 19.1, 25.2 |
+| R894 | the resolver reads each version's `.info` requirements, applies overrides, then dependencies, dev dependencies and tools as three subgraphs of one lock, then the Python environment; `yan add` writes the newest version outside the cool-off as the minimum (RFC 0044) | 19.1 |
+| R895 | `.info` is JSON with archive digest, publisher identity, capability set, requirements, yank state and publish time; namespaces map to indexes in the `registries` table of `.yan/config.yag`, never in a manifest; an unmapped namespace is E021 (RFC 0044) | 19.3, 25.2 |
+| R896 | only `add`, `remove`, `update`, `approve`, `vendor` and `yan lock` write `yan.lock`; `build`, `check` and `test` never do, and under `--locked` a missing or mismatched lock or absent offline archive is E020 (RFC 0044) | 18.1, 19.1, 25.2 |
+| R897 | `crypto_rand.fill_bytes(&buf)` fills a `bytearray` in place and `crypto_rand.random_bytes(n) -> bytes` wraps it; the owner chose both forms (#396) | 7.1, 17.3 |
 
 <!-- /rows -->
 
