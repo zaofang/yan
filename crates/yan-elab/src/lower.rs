@@ -2981,6 +2981,11 @@ impl Lower<'_, '_, '_> {
                     &item,
                     "this arm can match no value left by the arms before it; remove it".to_owned(),
                 );
+                self.cx.fix_remove_block(
+                    yan_diag::Applicability::Auto,
+                    "remove the arm",
+                    c.span.line,
+                );
             }
             if c.guard.is_none() {
                 closed |= catch_all(&c.pat);

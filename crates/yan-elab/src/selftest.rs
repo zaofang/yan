@@ -1061,3 +1061,26 @@ fn constant_time_rejects_secret_dependent_control_flow() {
     let ok = body("    let m = k + 1\n    let n = m * 2\n");
     assert!(!codes(&ok).contains(&"E424".to_owned()), "{:?}", codes(&ok));
 }
+
+#[test]
+fn w853_offers_to_remove_the_whole_arm() {
+    let src = "\
+pub def f(n: int) -> int:
+    \"doc\"
+    match n:
+        case _:
+            return 0
+        case 1:
+            let a = 1
+            return a
+    return 2
+";
+    let d = lower(src).1;
+    let w = d.iter().find(|d| d.code == "W853").expect("W853");
+    let edit = &w.fixes[0]["edits"][0];
+    assert_eq!(
+        edit["search"],
+        "        case 1:\n            let a = 1\n            return a\n"
+    );
+    assert_eq!(edit["text"], "");
+}
