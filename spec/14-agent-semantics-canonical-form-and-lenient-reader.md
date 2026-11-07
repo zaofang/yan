@@ -117,6 +117,11 @@ The lenient reader accepts these deviations and normalizes them, reporting a not
 | N41 | a PEP 257 string statement on its own line directly after a field; the `Attributes:` section of a class docstring, Google or NumPy form | a `#:` doc above the field (a `---` doc in Yan), each entry moved to its field (R849) |
 | N42 | reST `:param name:` and `:type name:`, Google `Args:` and `Arguments:`, NumPy `Parameters` with dashes, a type written in the entry | an `Args:` section in parameter order; a written type that agrees with the signature is dropped, one that disagrees is E281 (R849) |
 | N43 | a PEP 257 string after a variant of a Python-style enum; the `Members:` section of an enum docstring | a `Variants:` section in the type doc (R849) |
+| N44 | `else` on a `for` or `while`, which runs when the loop ends without `break` | a fresh flag `broke = False` before the loop, `broke = True` before each `break` of that loop, and `if not broke:` with the `else` body after it (R930) |
+| N45 | a comprehension with more than one `for` clause, or a comprehension inside a comprehension's iterable | the nested `for` statements with `append`, bound to the comprehension's name or to a fresh name at its use; the first statement of the rewrite carries the mark (R930) |
+| N46 | `a = b = e` | `a = e` and then `b = a`, so `e` is evaluated once, left target first as in Python (R930) |
+| N47 | `a, *rest = xs` and `*init, last = xs` on a list | `a = xs[0]`, `rest = xs[1:]`; `last = xs[len(xs) - 1]`, `init = xs[:len(xs) - 1]`; a list shorter than the fixed targets panics as `xs[i]` does (R930) |
+| N48 | `x: T` with no value | removed; the annotation moves to the first assignment of `x` in the same block (R930) |
 
 **Python names (R807).** A Python builtin or method that models reach for and Yan Agent lacks is either a real std function, when it fits determinism and the capability rules, or an N-code normalization with a note. It is never a bare E200 or E203. A name left out needs a recorded reason in the decision log.
 
