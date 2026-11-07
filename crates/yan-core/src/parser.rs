@@ -476,6 +476,23 @@ impl Parser<'_> {
                 Contract::Decreases(self.exprs()?)
             } else if self.eat_kw("example") {
                 Contract::Example(self.expr()?)
+            } else if self.eat_kw("cost") {
+                let (mut steps, mut alloc) = (None, None);
+                loop {
+                    let slot = if self.eat_kw("steps") {
+                        &mut steps
+                    } else if self.eat_kw("alloc") {
+                        &mut alloc
+                    } else {
+                        return self.unexpected("`steps` or `alloc`");
+                    };
+                    self.expect_punct("<=")?;
+                    *slot = Some(self.expr()?);
+                    if !self.eat_punct(",") {
+                        break;
+                    }
+                }
+                Contract::Cost { steps, alloc }
             } else {
                 break;
             });

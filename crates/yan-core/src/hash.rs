@@ -455,6 +455,9 @@ impl Cx<'_> {
                         cx.expr(e)
                     }
                     Contract::Decreases(es) => es.iter_mut().for_each(|e| cx.expr(e)),
+                    Contract::Cost { steps, alloc } => {
+                        steps.iter_mut().chain(alloc).for_each(|e| cx.expr(e))
+                    }
                 }
             }
             if let Some(b) = &mut f.body {

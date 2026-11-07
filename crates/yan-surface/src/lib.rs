@@ -82,6 +82,8 @@ pub enum Mark {
     Parenthesized,
     /// An `ex` line of a Yan Agent function, as written (R867).
     Example(String),
+    /// The `steps` and `alloc` bounds of a Yan Agent `cost` line, as written (R610).
+    Cost(Option<String>, Option<String>),
     /// A lemma, erased from Yan Core, as written; it rides on the next item (R870).
     Lemma(String),
     /// A ghost parameter, as written, with its position among the written parameters (R870).

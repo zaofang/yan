@@ -24,6 +24,7 @@ pub fn value[T: Type is Eq + Show, comptime N: Nat](let xs: List[i64], inout acc
     requires lt_i64(let acc, let 10)
     ensures true
     decreases acc, xs
+    cost steps <= len(let xs), alloc <= acc
 {
     let x: i64 = add_checked_i64(let acc, let 1)
     var y: Tuple(i64, bool) = (x, true)

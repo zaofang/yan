@@ -555,6 +555,13 @@ impl Printer {
                 Contract::Ensures(e) => format!("ensures {}", expr(e)),
                 Contract::Decreases(es) => format!("decreases {}", comma(es, expr)),
                 Contract::Example(e) => format!("example {}", expr(e)),
+                Contract::Cost { steps, alloc } => {
+                    let bounds: Vec<String> = [("steps", steps), ("alloc", alloc)]
+                        .into_iter()
+                        .filter_map(|(w, e)| e.as_ref().map(|e| format!("{w} <= {}", expr(e))))
+                        .collect();
+                    format!("cost {}", bounds.join(", "))
+                }
             };
             self.line(&s);
         }

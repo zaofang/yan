@@ -129,6 +129,7 @@ pub struct StdInfo;
 impl yan_hir::raise::Std for StdInfo {
     fn inserted(&self, path: &str) -> bool {
         path.starts_with("std.")
+            || path.starts_with("__cost_")
             || STD.classes.contains_key(path)
             || STD.sums.contains_key(path)
             || STD.fns.contains_key(&format!("std.prelude.{path}"))

@@ -183,6 +183,9 @@ impl<'a> Walk<'a> {
             match c {
                 Contract::Requires(e) | Contract::Ensures(e) | Contract::Example(e) => self.expr(e),
                 Contract::Decreases(es) => es.iter_mut().for_each(|e| self.expr(e)),
+                Contract::Cost { steps, alloc } => {
+                    steps.iter_mut().chain(alloc).for_each(|e| self.expr(e))
+                }
             }
         }
         if let Some(b) = &mut f.body {

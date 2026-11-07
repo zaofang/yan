@@ -102,6 +102,11 @@ pub enum Contract {
     Ensures(Expr),
     Decreases(Vec<Expr>),
     Example(Expr),
+    /// `cost steps <= a, alloc <= b` (R610); either bound may be left out.
+    Cost {
+        steps: Option<Expr>,
+        alloc: Option<Expr>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

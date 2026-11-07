@@ -7,6 +7,7 @@
 mod bounds;
 mod cli;
 mod consttime;
+mod cost;
 mod coverage;
 mod csvwire;
 mod decorators;
@@ -280,6 +281,18 @@ impl<'s> Cx<'s> {
         let quote = self.text(span);
         self.diags
             .push(Diagnostic::error(code, self.file, span, quote, message).with_item(item));
+    }
+
+    /// How many spelling marks, literals and origins are recorded, for [`Cx::restore_spelling`].
+    pub(crate) fn spelling(&self) -> (usize, usize, usize) {
+        (self.marks.len(), self.lits.len(), self.origins.len())
+    }
+
+    /// Drops what was recorded since [`Cx::spelling`] returned `kept`: generated code has none.
+    pub(crate) fn restore_spelling(&mut self, (m, l, o): (usize, usize, usize)) {
+        self.marks.truncate(m);
+        self.lits.truncate(l);
+        self.origins.truncate(o);
     }
 
     /// The source text of `span`, cut at the end of its first line.
@@ -695,6 +708,7 @@ pub fn elaborate_in(
             });
         }
     }
+    cost::check(&g, m, &items, &mut cx);
     let stem = std::path::Path::new(file)
         .file_stem()
         .and_then(|s| s.to_str())
@@ -1445,6 +1459,18 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                             mark: Mark::Example(text),
                         });
                     }
+                    if let j::Contract::Cost { steps, alloc } = c {
+                        let text = |e: &Option<j::Expr>| {
+                            e.as_ref().and_then(|e| bound_text(cx.src, e.span))
+                        };
+                        let mark = Mark::Cost(text(steps), text(alloc));
+                        cx.marks.push(marks::Pending {
+                            span: it.span,
+                            kind: marks::Kind::Item,
+                            call: None,
+                            mark,
+                        });
+                    }
                 }
             }
             if !cx.yn {
@@ -1534,6 +1560,25 @@ fn source_text(src: &str, span: yan_diag::Span) -> Option<String> {
     let line = src.lines().nth(span.line as usize - 1)?;
     line.get(span.col as usize - 1..)
         .map(|t| t.trim_end().to_owned())
+}
+
+/// A `cost` bound as written: from its start to the next `,` outside brackets, a comment or the
+/// end of the line.
+fn bound_text(src: &str, span: yan_diag::Span) -> Option<String> {
+    let rest = source_text(src, span)?;
+    let mut depth = 0;
+    let end = rest
+        .char_indices()
+        .find(|&(_, c)| {
+            match c {
+                '(' | '[' | '{' => depth += 1,
+                ')' | ']' | '}' => depth -= 1,
+                _ => {}
+            }
+            depth == 0 && (c == ',' || c == '#')
+        })
+        .map_or(rest.len(), |(k, _)| k);
+    Some(rest[..end].trim_end().to_owned())
 }
 
 /// The item starting at `span` as written: its line and the indented lines after it. A lemma's
