@@ -1134,3 +1134,8 @@ sections = "17.3, 17.4, 25.5"
 rows = "R888"
 topic = "`edition` in `package.yag` is `\"next\"` or a four-digit year of 2026 or later, so named editions such as `\"2027\"` are accepted before RC; any other value is E332; the one-per-three-years limit binds the toolchain's edition table, not a manifest (#622, #630)"
 sections = "19.1, 20.4, 25.5"
+
+[[entry]]
+rows = "R889"
+topic = "`yan schema gen <file>` keeps its meaning (table row types, 11.9); the JSON Schema of each `yan mcp` tool's input is printed by `yan mcp schema`, not by `yan schema gen` (#357)"
+sections = "18.1, 23"

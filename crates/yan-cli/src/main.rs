@@ -66,9 +66,9 @@ enum OpCommand {
 }
 
 #[derive(Subcommand)]
-enum SchemaCommand {
-    /// Print the JSON Schema of every `yan mcp` tool's input.
-    Gen,
+enum McpCommand {
+    /// Print the JSON Schema of every tool's input.
+    Schema,
 }
 
 /// The agent skill file; committed as golden text.
@@ -173,13 +173,11 @@ enum Command {
     },
     /// Print the agent skill file: the Yan Agent primer and its canonical examples (21.3).
     Skill,
-    /// Schemas (18.1).
-    Schema {
-        #[command(subcommand)]
-        command: SchemaCommand,
-    },
     /// Serve the agent tools over MCP on stdio (21.4), for the modules under the current directory.
-    Mcp,
+    Mcp {
+        #[command(subcommand)]
+        command: Option<McpCommand>,
+    },
     /// Trust a directory, so `yan mcp` runs its tests and stage 0 there (21.4, R676).
     Trust {
         #[arg(default_value = ".")]
@@ -434,13 +432,13 @@ fn main() -> ExitCode {
             print!("{SKILL}");
             ExitCode::SUCCESS
         }
-        Command::Schema {
-            command: SchemaCommand::Gen,
+        Command::Mcp {
+            command: Some(McpCommand::Schema),
         } => {
             println!("{}", mcp::input_schemas());
             ExitCode::SUCCESS
         }
-        Command::Mcp => match mcp::serve(Path::new(".")) {
+        Command::Mcp { command: None } => match mcp::serve(Path::new(".")) {
             Ok(()) => ExitCode::SUCCESS,
             Err(msg) => tool_failure(&msg),
         },
