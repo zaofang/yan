@@ -1008,3 +1008,37 @@ pub def f(n: int) -> int:
 ";
     assert!(codes(src).contains(&"W853".to_owned()), "{:?}", codes(src));
 }
+
+#[test]
+fn guards_that_cover_int_make_a_catch_all_unnecessary_and_a_later_arm_dead() {
+    let ok = "\
+pub def f(n: int) -> int:
+    \"doc\"
+    match n:
+        case x if x < 0:
+            return 0
+        case x if x >= 0:
+            return 1
+";
+    assert_eq!(codes(ok), Vec::<String>::new());
+    let dead = "\
+pub def f(n: int) -> int:
+    \"doc\"
+    match n:
+        case x if x < 0:
+            return 0
+        case x if x >= 0:
+            return 1
+        case 5:
+            return 2
+";
+    assert_eq!(codes(dead), ["W853"]);
+    let partial = "\
+pub def f(n: int) -> int:
+    \"doc\"
+    match n:
+        case x if x < 0:
+            return 0
+";
+    assert_eq!(codes(partial), ["E503"]);
+}

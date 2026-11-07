@@ -2952,8 +2952,14 @@ impl Lower<'_, '_, '_> {
                 matches!(&c.pat, j::Pat::Lit(e) if matches!(e.kind, j::ExprKind::Lit(j::Lit::Bool(x)) if x == b))
             })
         };
+        let int_cov = if matches!(t, Ty::Int) {
+            crate::coverage::int_match(scrutinee, cases, |n| self.g.variant_of.contains_key(n))
+        } else {
+            None
+        };
         let covered = cases.iter().any(|c| c.guard.is_none() && catch_all(&c.pat))
-            || (matches!(t, Ty::Bool) && bools(true) && bools(false));
+            || (matches!(t, Ty::Bool) && bools(true) && bools(false))
+            || int_cov.as_ref().is_some_and(|(_, all)| *all);
         if (scalar || matches!(t, Ty::Bool)) && !covered {
             self.err(
                 "E503",
@@ -2963,10 +2969,11 @@ impl Lower<'_, '_, '_> {
         }
         let mut seen_variants: Vec<&str> = Vec::new();
         let mut closed = false;
-        for c in cases {
+        for (i, c) in cases.iter().enumerate() {
             let dup = matches!(&c.pat, j::Pat::Path { path, args: None }
                 if path.len() == 1 && seen_variants.contains(&path[0].as_str()));
-            if closed || dup {
+            let empty = int_cov.as_ref().is_some_and(|(dead, _)| dead[i]);
+            if closed || dup || empty {
                 let item = self.item.clone();
                 self.cx.warn(
                     "W853",
