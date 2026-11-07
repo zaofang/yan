@@ -259,7 +259,7 @@ fn fns(k: &ItemKind) -> BTreeMap<String, FnFacts> {
     }
 }
 
-const SURFACE_CONTRACTS: [&str; 5] = ["pre ", "post ", "ex ", "invariant ", "decreases "];
+const SURFACE_CONTRACTS: [&str; 6] = ["pre ", "post ", "ex ", "invariant ", "decreases ", "cost "];
 const YAN_CONTRACTS: [&str; 3] = ["requires ", "ensures ", "decreases "];
 
 fn contract_lines(text: &str, keywords: &[&str]) -> Vec<String> {

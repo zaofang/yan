@@ -559,7 +559,7 @@ fn contract_keywords(toks: &[&Tok]) -> Vec<bool> {
             }
             Tok::Indent => {
                 region = match last_head {
-                    Some("def" | "lemma") => &["pre", "post", "ex", "decreases"],
+                    Some("def" | "lemma") => &["pre", "post", "ex", "decreases", "cost"],
                     Some("while" | "for") => &["invariant", "decreases"],
                     _ => &[],
                 };

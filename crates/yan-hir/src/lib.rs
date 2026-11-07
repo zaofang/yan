@@ -191,7 +191,15 @@ pub enum Contract {
     Pre(Expr),
     Post(Expr),
     Decreases(Expr),
-    Ex { expr: Expr, with: Vec<(Name, Expr)> },
+    /// `cost steps <= A, alloc <= B` (R610); either bound may be left out.
+    Cost {
+        steps: Option<Expr>,
+        alloc: Option<Expr>,
+    },
+    Ex {
+        expr: Expr,
+        with: Vec<(Name, Expr)>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

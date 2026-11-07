@@ -932,6 +932,7 @@ fn function_body_with(
             },
             j::Contract::Post(e) => l.posts.push(e.clone()),
             j::Contract::Ex { .. } => {}
+            j::Contract::Cost { .. } => return unsupported("a `cost` clause"),
         }
     }
     if let Some(p) = l.inferred.clone() {
@@ -9343,6 +9344,11 @@ pub(crate) fn body_callees(b: &j::Body, out: &mut HashSet<String>) {
         match c {
             j::Contract::Pre(e) | j::Contract::Post(e) | j::Contract::Decreases(e) => {
                 expr_callees(e, out);
+            }
+            j::Contract::Cost { steps, alloc } => {
+                for e in steps.iter().chain(alloc) {
+                    expr_callees(e, out);
+                }
             }
             j::Contract::Ex { expr, with } => {
                 expr_callees(expr, out);

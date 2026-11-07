@@ -107,6 +107,11 @@ impl Walk<'_> {
         for c in &mut b.contracts {
             match c {
                 Contract::Pre(e) | Contract::Post(e) | Contract::Decreases(e) => self.expr(e)?,
+                Contract::Cost { steps, alloc } => {
+                    for e in steps.iter_mut().chain(alloc.iter_mut()) {
+                        self.expr(e)?;
+                    }
+                }
                 Contract::Ex { expr: e, with } => {
                     self.expr(e)?;
                     with.iter_mut().try_for_each(|(_, e)| self.expr(e))?;

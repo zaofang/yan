@@ -323,13 +323,36 @@ impl Printer {
     }
 
     fn contracts(&mut self, cs: &[Contract]) {
-        for c in cs {
+        let mut i = 0;
+        while i < cs.len() {
+            let c = &cs[i];
+            i += 1;
             let kw = match c.kind {
                 ContractKind::Pre => "pre",
                 ContractKind::Post => "post",
                 ContractKind::Ex => "ex",
                 ContractKind::Decreases => "decreases",
                 ContractKind::Invariant => "invariant",
+                ContractKind::CostSteps | ContractKind::CostAlloc => {
+                    let word = |k| {
+                        if k == ContractKind::CostSteps {
+                            "steps"
+                        } else {
+                            "alloc"
+                        }
+                    };
+                    let mut line = format!("cost {} <= {}", word(c.kind), expr(&c.expr));
+                    if let Some(n) = cs.get(i)
+                        && n.kind != c.kind
+                        && matches!(n.kind, ContractKind::CostSteps | ContractKind::CostAlloc)
+                        && n.span.line == c.span.line
+                    {
+                        i += 1;
+                        line.push_str(&format!(", {} <= {}", word(n.kind), expr(&n.expr)));
+                    }
+                    self.line(&line);
+                    continue;
+                }
             };
             self.line(&format!("{kw} {}", expr(&c.expr)));
         }
