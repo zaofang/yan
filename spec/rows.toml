@@ -1339,3 +1339,13 @@ sections = "14.4"
 rows = "R929"
 topic = "E201 on arithmetic with an `int`, `float` or `str` optional carries a `choice` fix wrapping the operand as `(x else 0)`, `(x else 0.0)` or `(x else \"\")` (RFC 0048)"
 sections = "25"
+
+[[entry]]
+rows = "R930"
+topic = "Lenient reader: N44 loop `else`, N45 nested comprehension, N46 chained assignment, N47 starred unpacking, N48 bare annotation (R930)"
+sections = "14.4, 25"
+
+[[entry]]
+rows = "R931"
+topic = "`yan import --python` applies the Python-side N-codes and lists them as notes; constructs without one are errors naming the line and the Yan Agent form (R931)"
+sections = "17.8"
