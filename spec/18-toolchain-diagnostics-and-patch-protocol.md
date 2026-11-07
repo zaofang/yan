@@ -16,7 +16,7 @@ One binary, `yan`, provides every tool. All subcommands share the query database
 | `yan explain <code>` | long-form explanation of a diagnostic, with a broken and a fixed example | M1 |
 | `yan fix [--edition]` | apply machine-applicable fixes, edition migrations and deprecation inlining as patches (20.4, 20.5) | M1 |
 | `yan export --python`, `yan import --python` | Python source bridge (17.8) | M1 |
-| `yan mcp` | agent server (21.4) | M1 |
+| `yan mcp`, `yan mcp schema` | agent server (21.4); print the JSON Schema of each tool's input (R889) | M1 |
 | `yan agent <task.json> --model stub:FILE\|cmd:PROGRAM [--primer f] [--shots dir] [--dir d] [--module m] [--spec-repairs n] [--body-repairs n] [--out f]` | the reference agent loop: one task through both phases of the spec gate over the `yan mcp` tools, writing a run record (21.1, 21.6, R616) | M1 |
 | `yan review [BASE[..HEAD]] [--format line\|json\|md]` | review report for a change (21.5): items added, edited and removed on elaborated Yan Core with their headers; authority gains and losses; contract, test and `tests.lock` changes, approval judged by BASE; verdicts of the tests that reach a change; exit 1 when a finding needs a human (R665 to R671) | M1 |
 | `yan add`, `remove`, `update`, `lock`, `tree`, `why`, `vendor` | dependency management (section 19); `yan lock` writes `yan.lock` from the manifest without changing a locked version (R896); `yan why <item> <fact>` explains an item's capability, `fail` member or panic kind (R612) | M1 |

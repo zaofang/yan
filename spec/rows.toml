@@ -1136,6 +1136,10 @@ topic = "`edition` in `package.yag` is `\"next\"` or a four-digit year of 2026 o
 sections = "19.1, 20.4, 25.5"
 
 [[entry]]
+rows = "R889"
+topic = "`yan schema gen <file>` keeps its meaning (table row types, 11.9); the JSON Schema of each `yan mcp` tool's input is printed by `yan mcp schema`, not by `yan schema gen` (#357)"
+sections = "18.1, 23"
+
 rows = "R890"
 topic = "the manifest is `package.yag`; no other file name is read (RFC 0044)"
 sections = "19.1"
