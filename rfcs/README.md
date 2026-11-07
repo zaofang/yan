@@ -43,25 +43,24 @@ research index links their studies and rows.
 | [0020](0020-packaging-and-ecosystem.md) | Packaging and ecosystem | accepted | R635 to R647 |
 | [0022](0022-formal-core.md) | A formal model of the core in Lean 4 | accepted (D1, D3, D4); D2 open | R680, R764, R765 |
 | [0026](0026-security-model.md) | Security model: unforgeable handlers, unconfined capabilities, agent confinement | accepted | R672 to R677 |
-| [0022](0022-formal-core.md) | A formal model of the core in Lean 4 | accepted (D1, D3, D4); D2 open | R680, R764, R765 |
 | [0024](0024-learnability.md) | Learnability for Python and TypeScript developers | accepted | R655 to R664 |
 | [0027](0027-loop-invariants.md) | Inferred loop invariants for the bounds solver | accepted | R760 to R763 |
 | [0021](0021-error-messages.md) | Error messages: E545, E017 for unsupported constructs, line format, near names | accepted | R648 to R651 |
 | [0023](0023-yan-review.md) | `yan review`, a report for agent PRs | accepted | R665 to R671 |
 | [0028](0028-drops-and-yan-opt.md) | Ownership facts, drop elaboration and the `yan-opt` contract | accepted | R769 to R773 |
 | [0029](0029-yan-meta.md) | Yan Meta, the lab and canary surface | accepted | R776 to R786 |
-| [0030](0030-nested-optionals.md) | Nested optionals keep two levels | draft | |
+| [0030](0030-nested-optionals.md) | Nested optionals keep two levels | accepted | R793 to R795 |
 | [0031](0031-forum-batch.md) | Numeric panic operands, item-level deny, 7-day cool-off, target-typed variants as a non-goal | accepted | R796 to R799 |
 | [0032](0032-std-net-and-mem-net.md) | A first `std.net` slice and the `mem_net` test handler | accepted | R789 to R792 |
 | [0033](0033-data-profile.md) | The data profile, a typed literal file in place of TOML | accepted | R826 to R829 |
 | [0034](0034-spelling-marks.md) | Spelling marks from lowering to raise, so law 1 keeps written choices | accepted | R837 to R843 |
-| [0035](0035-sub-item-docs.md) | Docs on parameters, fields, variants, dict entries and tuple positions | accepted | |
+| [0035](0035-sub-item-docs.md) | Docs on parameters, fields, variants, dict entries and tuple positions | accepted | R844 to R849 |
 | [0036](0036-more-spelling-marks.md) | More spelling marks so the remaining law 1 cases keep written choices | accepted | R850 to R855 |
 | [0037](0037-remaining-spelling-marks.md) | Spelling marks for the last eight law 1 cases: `+` on strings, N36, `range(0, n)`, tuple assignment, `divmod` and `pow`, `**` | accepted | R857 to R861 |
 | [0038](0038-t09-spelling-marks.md) | Spelling marks for the four T09 law 1 cases: hoisted declaration, `View`, cli schema, comprehension, `ex`, tuple parentheses | accepted | R863 to R868 |
 | [0039](0039-drops-on-the-failing-edge.md) | Drops on the failing edge of `?`: a drop list on the `?` form in optimized Core | accepted | R871 |
 | [0040](0040-non-wire-field-diagnostic.md) | Code, span and text of the diagnostic for a `derive(Wire)` field that is not `Wire` | draft | |
-| [0041](0041-typed-json-csv-decode.md) | Typed json and csv over Wire: tags, shapes, errors, csv rules | accepted | R882 to R881 |
+| [0041](0041-typed-json-csv-decode.md) | Typed json and csv over Wire: tags, shapes, errors, csv rules | accepted | R874 to R881 |
 | [0042](0042-panic-operand-fields.md) | Panic operand fields the spec names but does not define | accepted | R882 to R885 |
 | [0043](0043-native-par-concurrent.md) | Native `par concurrent`: branches and blocking callees as resumable tasks | accepted | none |
 | [0044](0044-manifest-and-lock.md) | Package manifest and yan.lock | accepted | R890 to R896 |
