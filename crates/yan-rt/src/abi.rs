@@ -44,6 +44,8 @@ pub enum PanicOperand {
     Int(i128),
     Float(f64),
     Bool(bool),
+    /// An item identity hash (R882).
+    Hash([u8; 32]),
     Type(String),
 }
 
@@ -80,6 +82,10 @@ fn ops_fields(
             f.push(("dividend", PanicOperand::Int(wide(a))));
             f.push(("divisor", PanicOperand::Int(wide(b))));
         }
+        "bounds" => {
+            f.push(("index", PanicOperand::Int(wide(a))));
+            f.push(("length", PanicOperand::Int(wide(b))));
+        }
         _ => {}
     }
     f
@@ -87,7 +93,7 @@ fn ops_fields(
 
 /// A panic of kind `ptr[..len]` with integer operands `a` and `b` of the integer type of `bits`
 /// width and signedness `signed`: `overflow` carries `type`, `left`, `right`; `div_zero` carries
-/// `dividend`, `divisor`; the rest carry none. Reported as [`yan_rt_panic`].
+/// `dividend`, `divisor`; `bounds` carries `index`, `length`; the rest carry none. Reported as [`yan_rt_panic`].
 ///
 /// # Safety
 /// `ptr` points to `len` bytes of UTF-8.
@@ -126,6 +132,8 @@ unsafe fn decode_fields(n: u64, rec: *const u64) -> Vec<(&'static str, PanicOper
                 0 => PanicOperand::Int(i128::from(w[2] as i64)),
                 1 => PanicOperand::Int(i128::from(w[2])),
                 2 => PanicOperand::Float(f64::from_bits(w[2])),
+                // SAFETY: a `Str` block of 64 hex digits.
+                4 => PanicOperand::Hash(unhex(unsafe { &*(w[2] as *const String) })),
                 _ => PanicOperand::Bool(w[2] != 0),
             };
             (name, v)
@@ -133,8 +141,16 @@ unsafe fn decode_fields(n: u64, rec: *const u64) -> Vec<(&'static str, PanicOper
         .collect()
 }
 
+fn unhex(s: &str) -> [u8; 32] {
+    let mut out = [0u8; 32];
+    for (o, p) in out.iter_mut().zip(s.as_bytes().chunks(2)) {
+        *o = u8::from_str_radix(std::str::from_utf8(p).unwrap_or("0"), 16).unwrap_or(0);
+    }
+    out
+}
+
 /// A panic of kind `ptr[..len]` with `n` named scalar operands: `rec` holds `n` triples of a
-/// `Str` block (the name), a tag (0 signed, 1 unsigned, 2 float bits, 3 bool) and the value.
+/// `Str` block (the name), a tag (0 signed, 1 unsigned, 2 float bits, 3 bool, 4 hex hash `Str` block) and the value.
 ///
 /// # Safety
 /// `ptr` points to `len` bytes of UTF-8; `rec` to `3 * n` words whose first of each triple is a
@@ -350,7 +366,9 @@ pub unsafe extern "C" fn yan_rt_list_at(l: *mut List, i: i64) -> *mut u64 {
     // SAFETY: the caller's contract.
     let n = unsafe { yan_rt_list_len(l) };
     if !(0..n).contains(&i) {
-        panic("bounds");
+        let kind = "bounds";
+        // SAFETY: a str is valid UTF-8.
+        unsafe { yan_rt_panic_ops(kind.as_ptr(), kind.len(), 64, 1, i, n) }
     }
     // SAFETY: as above; `i` is in bounds.
     let l = unsafe { &mut *l };
@@ -531,6 +549,7 @@ mod panic_ops_tests {
         let f = unsafe { decode_fields(2, rec.as_ptr()) };
         assert_eq!(f[0], ("n", PanicOperand::Int(-3)));
         assert_eq!(f[1], ("n", PanicOperand::Bool(true)));
+        assert_eq!(unhex(&"0a".repeat(32)), [10; 32]);
     }
 
     #[test]
@@ -538,6 +557,9 @@ mod panic_ops_tests {
         let f = ops_fields("overflow", 8, 0, 200, 100);
         assert_eq!(f[0], ("type", PanicOperand::Type("u8".into())));
         assert_eq!(f[1], ("left", PanicOperand::Int(200)));
+        let f = ops_fields("bounds", 64, 1, 5, 3);
+        assert_eq!(f[0], ("index", PanicOperand::Int(5)));
+        assert_eq!(f[1], ("length", PanicOperand::Int(3)));
         let f = ops_fields("div_zero", 64, 0, -1, 0);
         assert_eq!(f[0], ("dividend", PanicOperand::Int(u64::MAX.into())));
         assert_eq!(f[1], ("divisor", PanicOperand::Int(0)));

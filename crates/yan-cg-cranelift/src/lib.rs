@@ -947,6 +947,7 @@ impl Gen<'_, '_> {
                 },
                 Operand::F64(_) => 2,
                 Operand::Bool(_) => 3,
+                Operand::Str(_) => 4,
                 _ => 0,
             };
             let name = self.val(name).expect("a name is a Str");

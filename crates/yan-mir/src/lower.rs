@@ -250,7 +250,19 @@ pub fn lower(m: &y::Module) -> R<Program> {
     };
     let mut defs = Vec::new();
     let mut by_name = HashMap::new();
-    for i in &m.items {
+    let hashes = m
+        .items
+        .iter()
+        .any(|i| match &i.kind {
+            y::ItemKind::Fn(f) | y::ItemKind::Inst(y::Inst { def: f, .. }) => f
+                .contracts
+                .iter()
+                .any(|k| matches!(k, y::Contract::Requires(_))),
+            _ => false,
+        })
+        .then(|| yan_core::hash::hash_module(m));
+    let mut item_hashes = Vec::new();
+    for (ix, i) in m.items.iter().enumerate() {
         let (f, args) = match &i.kind {
             y::ItemKind::Fn(f) => (f, &[][..]),
             y::ItemKind::Inst(i) => (&i.def, &i.args[..]),
@@ -275,11 +287,17 @@ pub fn lower(m: &y::Module) -> R<Program> {
             ));
         }
         by_name.insert(key(&f.path, args), defs.len());
+        item_hashes.push(
+            hashes
+                .as_ref()
+                .map(|h| h[ix].identity.group.to_hex().to_string()),
+        );
         defs.push(f);
     }
     let main = *by_name.get("main").ok_or("no `fn main` in the module")?;
     let mono = RefCell::new(Mono {
         defs,
+        item_hashes,
         by_name,
         insts: HashMap::new(),
         sigs: Vec::new(),
@@ -299,7 +317,8 @@ pub fn lower(m: &y::Module) -> R<Program> {
         let func = match todo {
             Todo::Def(def) => {
                 let f: &y::FnDef = mono.borrow().defs[def];
-                Fn::new(&mono, &types, &mut prog.strings, me).func(f)?
+                let item = mono.borrow().item_hashes[def].clone();
+                Fn::new(&mono, &types, &mut prog.strings, me).func(f, item)?
             }
             Todo::Closure(c, caps) => {
                 Fn::new(&mono, &types, &mut prog.strings, me).closure(c, caps)?
@@ -330,6 +349,8 @@ fn key(path: &[String], args: &[y::TArg]) -> String {
 /// replaced generic definitions by instances.
 struct Mono<'m> {
     defs: Vec<&'m y::FnDef>,
+    /// The identity hash of each definition's item, in hex, when a contract needs it (R882).
+    item_hashes: Vec<Option<String>>,
     by_name: HashMap<String, usize>,
     insts: HashMap<usize, FuncId>,
     sigs: Vec<Sig>,
@@ -578,6 +599,8 @@ struct Fn<'a, 'm> {
     names: HashMap<String, Var>,
     /// The sides of each comparison result bound by `let`, for `assert` panics (R796).
     cmps: HashMap<String, [y::Atom; 2]>,
+    /// The hex identity hash of the function's item, for `contract` panics.
+    item: Option<String>,
     /// The `inout` parameters' slots, returned with every result.
     inout: Vec<Local>,
     blocks: Vec<Block>,
@@ -603,6 +626,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             locals: Vec::new(),
             names: HashMap::new(),
             cmps: HashMap::new(),
+            item: None,
             inout: Vec::new(),
             blocks: Vec::new(),
             done: Vec::new(),
@@ -628,8 +652,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.mono.borrow_mut().instance(self.types, def).map(Some)
     }
 
-    fn func(mut self, f: &'m y::FnDef) -> R<Func> {
+    fn func(mut self, f: &'m y::FnDef, item: Option<String>) -> R<Func> {
         self.line = f.name_span.line;
+        self.item = item;
         let names: Vec<&str> = params(f)?.into_iter().map(|(n, ..)| n).collect();
         let body = f.body.as_ref().expect("filtered on body");
         self.body(&f.path.join("."), &names, &f.contracts, body, Vec::new())
@@ -682,10 +707,28 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.names.insert(n, var);
             }
         }
+        let mut clause = 0;
         for c in contracts {
-            if let y::Contract::Requires(e) = c {
-                let t = self.expr(e)?;
-                self.check(t, "contract");
+            match c {
+                y::Contract::Requires(e) => {
+                    let t = self.expr(e)?;
+                    let mut fields = vec![("clause".to_owned(), Operand::Int(clause))];
+                    if let Some(h) = self.item.clone() {
+                        fields.push(("item".to_owned(), self.lit(&h)));
+                    }
+                    for n in free_names(e) {
+                        if let Some(v) =
+                            self.scalar_field(&y::Atom::Name(n.clone(), Default::default()))
+                        {
+                            fields.push((n, v));
+                        }
+                    }
+                    let fields = fields.into_iter().map(|(n, v)| (self.lit(&n), v)).collect();
+                    self.check_fields(t, "contract", fields);
+                    clause += 1;
+                }
+                y::Contract::Ensures(_) => clause += 1,
+                _ => {}
             }
         }
         self.block(body)?;
@@ -753,13 +796,6 @@ impl<'a, 'm> Fn<'a, 'm> {
             els: e,
         });
         (t, e)
-    }
-
-    fn check(&mut self, cond: Operand, kind: &'static str) {
-        let (ok, bad) = self.branch(cond);
-        self.cur = bad;
-        self.finish(Term::Panic(kind));
-        self.cur = ok;
     }
 
     /// `cond` or a panic of `kind` carrying `fields`.
@@ -2244,6 +2280,30 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 }
 
+/// The names a contract predicate reads, in first-use order.
+fn free_names(e: &y::Expr) -> Vec<String> {
+    let atoms: Vec<&y::Atom> = match e {
+        y::Expr::Atom(a) => vec![a],
+        y::Expr::Call(c) => c
+            .args
+            .iter()
+            .filter_map(|a| match a {
+                y::Arg::Value(_, a, _) => Some(a),
+                y::Arg::Cap(..) => None,
+            })
+            .collect(),
+    };
+    let mut out: Vec<String> = Vec::new();
+    for a in atoms {
+        if let y::Atom::Name(n, _) = a
+            && !out.contains(n)
+        {
+            out.push(n.clone());
+        }
+    }
+    out
+}
+
 /// The two sides of a comparison call like `gt_i64(let n, let m)`.
 fn comparison(rhs: &y::Rhs) -> Option<[y::Atom; 2]> {
     let y::Rhs::Call(c) = rhs else { return None };
@@ -2313,6 +2373,36 @@ mod selftest {
             })
             .collect();
         assert_eq!(names, ["left", "right", "n", "m"]);
+    }
+
+    #[test]
+    fn contract_panics_carry_clause_item_and_free_variables() {
+        let src = "module t\nfn f(let a: i64, let b: i64) -> i64 requires gt_i64(let a, let b) {\n ret a\n}\n\
+                   fn main() -> Unit {\n let r: i64 = f(let 2, let 1)\n ret ()\n}\n";
+        let (m, d) = yan_core::parse("t.yir", src);
+        assert!(d.is_empty(), "{d:?}");
+        let p = lower(&m.unwrap()).expect("lowers");
+        let fields = p
+            .funcs
+            .iter()
+            .flat_map(|f| &f.blocks)
+            .find_map(|b| match &b.term {
+                Term::PanicFields {
+                    kind: "contract",
+                    fields,
+                } => Some(fields.clone()),
+                _ => None,
+            })
+            .expect("a contract panic with fields");
+        let names: Vec<_> = fields
+            .iter()
+            .map(|(n, _)| match n {
+                Operand::Str(i) => p.strings[*i as usize].as_str(),
+                _ => panic!("a name"),
+            })
+            .collect();
+        assert_eq!(names, ["clause", "item", "a", "b"]);
+        assert_eq!(fields[0].1, Operand::Int(0));
     }
 
     #[test]
