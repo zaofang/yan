@@ -2437,6 +2437,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Ok(())
             }
             K::Rhs(y::Rhs::Call(c)) => self.call(c, None),
+            K::Rhs(r @ y::Rhs::Propagate { .. }) => {
+                self.value(r, &Shape::Scalar(Ty::Unit))?;
+                Ok(())
+            }
             K::Rhs(_) => Ok(()),
             K::Yield(_) => unsupported("generators"),
             K::With { .. } => unsupported("`with`"),
