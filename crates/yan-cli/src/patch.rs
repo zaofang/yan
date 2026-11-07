@@ -372,18 +372,99 @@ fn whole() -> Span {
     }
 }
 
+const OPLOG: &str = ".yan/oplog.jsonl";
+
 /// 18.3 rule 7: every applied patch is appended to `.yan/oplog.jsonl`.
 fn oplog(dir: &Path, file: &str, before: &str, after: &str) -> Result<(), String> {
     use std::io::Write;
-    let log = dir.join(".yir");
-    std::fs::create_dir_all(&log).map_err(|e| format!("{}: {e}", log.display()))?;
+    let log = dir.join(OPLOG);
+    std::fs::create_dir_all(log.parent().expect("the log has a directory"))
+        .map_err(|e| format!("{}: {e}", log.display()))?;
     let line = serde_json::json!({"file": file, "before": before, "after": after});
     std::fs::OpenOptions::new()
         .create(true)
         .append(true)
-        .open(log.join("oplog.jsonl"))
+        .open(&log)
         .and_then(|mut f| writeln!(f, "{line}"))
         .map_err(|e| format!("oplog: {e}"))
+}
+
+/// One logged operation.
+pub struct Op {
+    pub file: String,
+    pub before: String,
+    pub after: String,
+}
+
+impl Op {
+    pub fn hashes(&self) -> (String, String) {
+        (text_hash(&self.before), text_hash(&self.after))
+    }
+}
+
+fn text_hash(text: &str) -> String {
+    format!("b3:{}", blake3::hash(text.as_bytes()).to_hex())
+}
+
+/// The logged operations under `dir`, oldest first.
+pub fn log(dir: &Path) -> Result<Vec<Op>, String> {
+    let path = dir.join(OPLOG);
+    let text = match std::fs::read_to_string(&path) {
+        Ok(t) => t,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(format!("{}: {e}", path.display())),
+    };
+    text.lines()
+        .map(|l| {
+            let v: serde_json::Value =
+                serde_json::from_str(l).map_err(|e| format!("{}: {e}", path.display()))?;
+            let field = |k: &str| {
+                v[k].as_str()
+                    .map(str::to_owned)
+                    .ok_or(format!("{}: entry without `{k}`", path.display()))
+            };
+            Ok(Op {
+                file: field("file")?,
+                before: field("before")?,
+                after: field("after")?,
+            })
+        })
+        .collect()
+}
+
+/// Reverts the last `n` operations, newest first, and drops them from the log. Refuses, changing
+/// nothing, when a file no longer holds what the operation wrote.
+pub fn undo(dir: &Path, n: usize) -> Result<Vec<Op>, String> {
+    let mut ops = log(dir)?;
+    if n == 0 || n > ops.len() {
+        return Err(format!("cannot undo {n}: the log holds {}", ops.len()));
+    }
+    let undone = ops.split_off(ops.len() - n);
+    let mut state: Vec<(PathBuf, String)> = Vec::new();
+    for op in undone.iter().rev() {
+        let path = PathBuf::from(&op.file);
+        let now = match state.iter().find(|(p, _)| *p == path) {
+            Some((_, t)) => t.clone(),
+            None => read(&path)?,
+        };
+        if now != op.after {
+            return Err(format!("{}: changed since the operation", op.file));
+        }
+        state.retain(|(p, _)| *p != path);
+        state.push((path, op.before.clone()));
+    }
+    for (path, text) in &state {
+        std::fs::write(path, text).map_err(|e| format!("{}: {e}", path.display()))?;
+    }
+    let kept: String = ops
+        .iter()
+        .map(|o| {
+            let line = serde_json::json!({"file": o.file, "before": o.before, "after": o.after});
+            format!("{line}\n")
+        })
+        .collect();
+    std::fs::write(dir.join(OPLOG), kept).map_err(|e| format!("oplog: {e}"))?;
+    Ok(undone)
 }
 
 #[cfg(test)]

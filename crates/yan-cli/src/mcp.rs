@@ -223,6 +223,25 @@ fn call(server: &Server, tool: &str, args: &Value) -> Result<Value, String> {
                 }
             }
         }
+        "undo" => {
+            let n = match args.get("count") {
+                None => 1,
+                Some(v) => v.as_u64().ok_or("`count` is not a number")? as usize,
+            };
+            let ops = patch::undo(root, n)?;
+            let reverted: Vec<Value> = ops
+                .iter()
+                .rev()
+                .map(|o| {
+                    let (before, after) = o.hashes();
+                    json!({"file": o.file, "from": after, "to": before})
+                })
+                .collect();
+            Ok(json!({
+                "content": [{"type": "text", "text": format!("reverted {} operation(s)", ops.len())}],
+                "structuredContent": {"ok": true, "reverted": reverted},
+            }))
+        }
         "autofix" => {
             let name = str_arg(args, "name")?;
             let (module, item) = split(root, name);
@@ -451,6 +470,22 @@ fn read(p: &PathBuf) -> Result<String, String> {
     std::fs::read_to_string(p).map_err(|e| format!("{}: {e}", p.display()))
 }
 
+/// The JSON Schema of each tool's input, by tool name (`yan schema gen`).
+pub fn input_schemas() -> Value {
+    let map: serde_json::Map<String, Value> = tools()
+        .as_array()
+        .expect("tools is a list")
+        .iter()
+        .map(|t| {
+            (
+                t["name"].as_str().expect("a name").to_owned(),
+                t["inputSchema"].clone(),
+            )
+        })
+        .collect();
+    Value::Object(map)
+}
+
 fn tools() -> Value {
     let diags_out = json!({
         "type": "object",
@@ -496,6 +531,18 @@ fn tools() -> Value {
             "description": "As check_patch, then write the module.",
             "inputSchema": patch_in,
             "outputSchema": patch_out,
+        },
+        {
+            "name": "undo",
+            "description": "Revert the last operations from the oplog, newest first; default 1.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"count": {"type": "integer"}},
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {"ok": {"type": "boolean"}, "reverted": {"type": "array"}},
+            },
         },
         {
             "name": "autofix",
@@ -560,7 +607,27 @@ mod tests {
         assert!(respond(&d, &note).is_none());
         let list = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list"});
         let r = respond(&d, &list).unwrap();
-        assert_eq!(r["result"]["tools"].as_array().unwrap().len(), 7);
+        assert_eq!(r["result"]["tools"].as_array().unwrap().len(), 8);
+    }
+
+    #[test]
+    fn undo_restores_the_file() {
+        let dir = package("undo", "def f() -> int:\n    return 1\n");
+        let before = std::fs::read_to_string(dir.join("m.yag")).unwrap();
+        let s = Server::new(&dir, true);
+        let patch = json!({"module": "m", "edits": [{"item": "f", "search": "1", "replace": "2"}]});
+        let r = tool(&s, "apply_patch", json!({"patch": patch}));
+        assert_eq!(r["structuredContent"]["written"], true, "{r}");
+        assert_ne!(std::fs::read_to_string(dir.join("m.yag")).unwrap(), before);
+        let r = tool(&s, "undo", json!({}));
+        assert_eq!(
+            r["structuredContent"]["reverted"].as_array().unwrap().len(),
+            1
+        );
+        assert_eq!(std::fs::read_to_string(dir.join("m.yag")).unwrap(), before);
+        assert!(dir.join(".yan/oplog.jsonl").exists());
+        assert!(!dir.join(".yir").exists());
+        assert_eq!(tool(&s, "undo", json!({}))["isError"], true);
     }
 
     #[test]
@@ -584,7 +651,29 @@ mod tests {
         }
     }
 
+    /// Whether `v` satisfies the subset of JSON Schema the tool inputs use.
+    fn valid(schema: &Value, v: &Value) -> bool {
+        let typed = match schema["type"].as_str() {
+            Some("string") => v.is_string(),
+            Some("integer") => v.is_i64() || v.is_u64(),
+            Some("boolean") => v.is_boolean(),
+            Some("object") => v.is_object(),
+            _ => true,
+        };
+        let required = schema["required"].as_array().into_iter().flatten();
+        let has = required
+            .into_iter()
+            .all(|k| v.get(k.as_str().unwrap()).is_some());
+        let props = schema["properties"].as_object().into_iter().flatten();
+        typed
+            && has
+            && props
+                .into_iter()
+                .all(|(k, sub)| v.get(k).is_none_or(|x| valid(sub, x)))
+    }
+
     fn tool(s: &Server, name: &str, args: Value) -> Value {
+        assert!(valid(&input_schemas()[name], &args), "{name}: {args}");
         let req = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
             "params": {"name": name, "arguments": args}});
         respond(s, &req).unwrap()["result"].clone()
