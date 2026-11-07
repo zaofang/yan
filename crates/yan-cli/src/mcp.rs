@@ -337,8 +337,93 @@ fn call(server: &Server, tool: &str, args: &Value) -> Result<Value, String> {
                 "structuredContent": {"ok": !failed, "results": r.json()},
             }))
         }
+        "query" => {
+            server.require_trust(tool)?;
+            let given = server.call_budget();
+            let mut left = given;
+            let r = query(root, str_arg(args, "body")?, args, &mut left);
+            server.settle(given, left);
+            r
+        }
         t => Err(format!("no tool `{t}`")),
     }
+}
+
+/// Answers `toolchain` queries by calling the tools of the same name on a fresh server over
+/// `root`: the interpreter runs on its own thread, which a `Server` cannot cross.
+struct Toolchain(PathBuf);
+
+impl yan_interp::Host for Toolchain {
+    fn toolchain(&self, op: &str, arg: &str) -> Result<String, String> {
+        let key = match op {
+            "check" => "name",
+            "sig" => "module",
+            "search_type" => "type",
+            _ => return Err(format!("no toolchain query `{op}`")),
+        };
+        let r = call(&Server::new(&self.0, false), op, &json!({ key: arg }))?;
+        Ok(r["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .to_owned())
+    }
+}
+
+/// `query` (21.4): `body` defines `query()`, which uses only `toolchain`; its return value comes
+/// back as JSON, or the diagnostics that stop it from running.
+fn query(root: &Path, body: &str, args: &Value, budget: &mut Budget) -> Result<Value, String> {
+    let path = root.join("query.yag");
+    let mut db = session_db(true);
+    let f = db.file(&path, body);
+    let diags = yan_ide::diagnostics(&db, f)?;
+    if diags.iter().any(|d| d.severity == Severity::Error) {
+        return Ok(diagnostics(
+            finish(diags, DEFAULT_MAX_ERRORS),
+            max_tokens(args),
+        ));
+    }
+    let m = match yan_db::load(&db, f) {
+        Ok(Loaded::Ready(m, _, _)) => m.clone(),
+        Ok(Loaded::Stopped(d)) => return Ok(diagnostics(d.clone(), max_tokens(args))),
+        Err(msg) => return Err(msg.clone()),
+    };
+    let mut limits = budget.limits(Limits::default());
+    if let Some(n) = args["steps"].as_u64() {
+        limits.steps = limits.steps.min(n);
+    }
+    let (start, mut steps) = (Instant::now(), 0);
+    let r = yan_interp::query(
+        &m,
+        "query",
+        limits,
+        &mut std::io::sink(),
+        &Toolchain(root.to_path_buf()),
+        &mut steps,
+    );
+    budget.spend(steps, start.elapsed());
+    let value = match r {
+        Ok(Ok(v)) => v,
+        Ok(Err(failure)) => return Err(format!("`query` failed: {failure}")),
+        Err(Stop::Limit(what)) => return Err(format!("`query` ran out of its {what} budget")),
+        Err(Stop::Panic(p)) => return Err(format!("`query` panicked: {}", p.message)),
+        Err(Stop::Unsupported(what)) => return Err(what),
+    };
+    let mut text = value.to_string();
+    if let Some(n) = max_tokens(args) {
+        let keep = n.saturating_mul(4);
+        if text.len() > keep {
+            let cut = (0..=keep)
+                .rev()
+                .find(|&i| text.is_char_boundary(i))
+                .unwrap_or(0);
+            text.truncate(cut);
+            text.push_str("...(held back by max_tokens)");
+        }
+    }
+    Ok(json!({
+        "content": [{"type": "text", "text": text}],
+        "structuredContent": {"ok": true, "value": value},
+    }))
 }
 
 /// Phase 1 of the spec gate (21.1) for items whose bodies are `...`: their types resolve, each
@@ -623,6 +708,20 @@ fn tools() -> Value {
             },
         },
         {
+            "name": "query",
+            "description": "Runs `def query()`, a body that uses only the `toolchain` capability (check, sig, search_type; each returns JSON text), and returns its value as JSON. Refused in an untrusted root.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "body": {"type": "string", "description": "Yan Agent source defining `def query() -> ... uses toolchain`"},
+                    "steps": {"type": "integer"},
+                    "max_tokens": {"type": "integer"},
+                },
+                "required": ["body"],
+            },
+            "outputSchema": {"type": "object", "properties": {"ok": {"type": "boolean"}, "value": {}}},
+        },
+        {
             "name": "spec_check",
             "description": "Phase 1 of the spec gate: items whose bodies are `...`; their types, their ex lines and pre for each ex line. Writes nothing.",
             "inputSchema": {
@@ -675,7 +774,7 @@ mod tests {
         assert!(respond(&d, &note).is_none());
         let list = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list"});
         let r = respond(&d, &list).unwrap();
-        assert_eq!(r["result"]["tools"].as_array().unwrap().len(), 10);
+        assert_eq!(r["result"]["tools"].as_array().unwrap().len(), 11);
     }
 
     #[test]
@@ -795,6 +894,36 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("m.yag"), src).unwrap();
         dir
+    }
+
+    #[test]
+    fn query_runs_a_body_over_the_toolchain() {
+        let dir = package("query", "def f(x: int) -> int:\n    return x + 1\n");
+        let body = "def query() -> str uses toolchain:\n    return toolchain.sig(\"m\")\n";
+        let r = tool(&Server::new(&dir, true), "query", json!({"body": body}));
+        assert_ne!(r["isError"], true, "{r}");
+        assert!(
+            r["structuredContent"]["value"]
+                .as_str()
+                .unwrap()
+                .contains("f")
+        );
+        let r = tool(&Server::new(&dir, false), "query", json!({"body": body}));
+        assert_eq!(r["isError"], true);
+    }
+
+    #[test]
+    fn query_binds_no_other_capability() {
+        let dir = package("query-env", "def f() -> int:\n    return 1\n");
+        let body = "def query() -> str uses env:\n    return \"x\"\n";
+        let r = tool(&Server::new(&dir, true), "query", json!({"body": body}));
+        assert_eq!(r["isError"], true);
+        assert!(
+            r["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("toolchain")
+        );
     }
 
     #[test]
