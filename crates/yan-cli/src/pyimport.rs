@@ -31,7 +31,15 @@ pub fn run(file: &Path) -> ExitCode {
 pub fn convert(src: &str) -> R<(String, Vec<String>)> {
     let suite = ast::Suite::parse(src, "<python>").map_err(|e| e.to_string())?;
     let mut cx = Cx::new(src);
-    let (tests, defs): (Vec<_>, Vec<_>) = suite.iter().partition(|s| is_test(s));
+    let mut body = Vec::new();
+    for s in &suite {
+        match s {
+            ast::Stmt::Import(i) => cx.import(i)?,
+            ast::Stmt::ImportFrom(i) => cx.import_from(i)?,
+            s => body.push(s),
+        }
+    }
+    let (tests, defs): (Vec<_>, Vec<_>) = body.into_iter().partition(|s| is_test(s));
     for s in &defs {
         if let ast::Stmt::FunctionDef(f) = s {
             cx.sigs
@@ -97,6 +105,8 @@ struct Cx<'a> {
     /// Bare annotations waiting for the first assignment of their name (N48).
     pending: HashMap<String, String>,
     ret: String,
+    /// Imported local names and what they stand for (N01).
+    imports: HashMap<String, String>,
 }
 
 impl<'a> Cx<'a> {
@@ -110,6 +120,7 @@ impl<'a> Cx<'a> {
             flags: 0,
             pending: HashMap::new(),
             ret: String::new(),
+            imports: HashMap::new(),
         }
     }
 
@@ -122,6 +133,39 @@ impl<'a> Cx<'a> {
             "line {}: {what} is outside the typed subset",
             self.line_of(offset)
         )
+    }
+
+    /// N01: the import line goes; uses of an imported name become qualified.
+    fn import(&mut self, i: &ast::StmtImport) -> R<()> {
+        self.note(i.range.start().to_usize(), "N01", "import removed");
+        for a in &i.names {
+            if let Some(alias) = &a.asname {
+                self.imports.insert(alias.to_string(), a.name.to_string());
+            }
+        }
+        Ok(())
+    }
+
+    fn import_from(&mut self, i: &ast::StmtImportFrom) -> R<()> {
+        let at = i.range.start().to_usize();
+        let module = match (&i.module, i.level.map(|l| l.to_u32()).unwrap_or(0)) {
+            (Some(m), 0) => m.to_string(),
+            _ => return Err(self.unsupported(at, "a relative import")),
+        };
+        self.note(at, "N01", "import removed");
+        // Typing and dataclass names are handled by the type and class rewrites.
+        if matches!(module.as_str(), "__future__" | "typing" | "dataclasses") {
+            return Ok(());
+        }
+        for a in &i.names {
+            if a.name.as_str() == "*" {
+                return Err(self.unsupported(at, "a star import"));
+            }
+            let local = a.asname.as_ref().unwrap_or(&a.name);
+            self.imports
+                .insert(local.to_string(), format!("{module}.{}", a.name));
+        }
+        Ok(())
     }
 
     fn note(&self, offset: usize, code: &str, what: &str) {
@@ -151,6 +195,9 @@ impl<'a> Cx<'a> {
         }
         let mut ps = Vec::new();
         for p in &a.args {
+            if self.imports.contains_key(p.def.arg.as_str()) {
+                return Err(self.unsupported(at, "a parameter named like an import"));
+            }
             let Some(t) = &p.def.annotation else {
                 return Err(self.unsupported(at, "an unannotated parameter"));
             };
@@ -574,7 +621,11 @@ impl<'a> Cx<'a> {
     fn expr(&self, e: &ast::Expr) -> R<String> {
         let at = e.range().start().to_usize();
         Ok(match e {
-            ast::Expr::Name(n) => n.id.to_string(),
+            ast::Expr::Name(n) => self
+                .imports
+                .get(n.id.as_str())
+                .cloned()
+                .unwrap_or_else(|| n.id.to_string()),
             ast::Expr::Constant(c) => match &c.value {
                 ast::Constant::None => "None".into(),
                 ast::Constant::Bool(b) => if *b { "True" } else { "False" }.into(),
@@ -793,7 +844,7 @@ mod tests {
 
     #[test]
     fn unsupported_constructs_name_their_line() {
-        let err = convert("import os\n").unwrap_err();
+        let err = convert("x = 1\n").unwrap_err();
         assert!(err.starts_with("line 1:"), "{err}");
         let err = convert("def f(x) -> int:\n    return 1\n").unwrap_err();
         assert!(err.contains("unannotated"), "{err}");
@@ -886,5 +937,18 @@ mod tests {
         assert!(notes[0].contains("N22"), "{notes:?}");
         let err = convert("def f(xs: list[int]) -> int:\n    if 0 < len(xs) < 3:\n        return 1\n    return 0\n").unwrap_err();
         assert!(err.contains("computed middle"), "{err}");
+    }
+
+    #[test]
+    fn imports_are_removed_and_uses_qualified() {
+        let src = "import math\nimport numpy as np\nfrom re import match as m\nfrom typing import List\n\ndef f(x: float) -> float:\n    y = np.sqrt(x)\n    return math.floor(y) + m(x)\n";
+        let (out, notes) = convert(src).unwrap();
+        assert_eq!(
+            out,
+            "def f(x: float) -> float:\n    y = numpy.sqrt(x)\n    return math.floor(y) + re.match(x)\n"
+        );
+        assert_eq!(notes.iter().filter(|n| n.contains("N01")).count(), 4);
+        assert!(convert("from m import *\n").is_err());
+        assert!(convert("from . import a\n").is_err());
     }
 }
