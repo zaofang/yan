@@ -1,7 +1,8 @@
 # spec: 14.1
 # rows: R800
 # note: one diagnostic per call, at the first argument that needs a keyword
-# expect: E210 at 12:16
+# flags: --strict
+# expect: E210 at 13:16
 
 class Box:
     w: int
