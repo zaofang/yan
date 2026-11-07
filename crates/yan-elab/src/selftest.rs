@@ -961,3 +961,37 @@ fn malformed_editions_are_e332() {
         assert_eq!(edition_codes(bad), ["E332"], "{bad:?}");
     }
 }
+
+// Fail-transparent closures (spec 4.6): a failure inside a non-escaping closure argument is the caller's.
+const FAILING_CALLBACK: &str = "class Bad:\n    code: int\n\nclass Other:\n    n: int\n\n\
+    def check(x: int) -> int fail Bad:\n    if x < 0:\n        fail Bad(code=x)\n    return x\n\n\
+    def apply(f: Callable[[int], int], x: int) -> int:\n    return f(x)\n\n";
+
+#[test]
+fn failing_closure_is_accepted_by_a_failing_caller() {
+    let src = format!(
+        "{FAILING_CALLBACK}def go(x: int) -> int fail Bad:\n    return apply(lambda v: check(v)?, x)\n\n\
+         pub def main() uses io:\n    a = go(4) else err -> err.code\n    b = go(-2) else err -> err.code\n    io.print(f\"{{a}} {{b}}\")\n"
+    );
+    assert_eq!(run(&src), "4 -2\n");
+}
+
+#[test]
+fn failing_closure_is_rejected_by_a_non_failing_caller() {
+    let src = format!(
+        "{FAILING_CALLBACK}def go(x: int) -> int:\n    return apply(lambda v: check(v)?, x)\n\npub def main() uses io:\n    io.print(f\"{{go(1)}}\")\n"
+    );
+    let (_, d) = lower(&src);
+    assert!(d.iter().any(|d| d.code == "E310"), "{d:?}");
+}
+
+#[test]
+fn failing_closure_is_rejected_by_a_caller_with_another_failure_type() {
+    let src = format!(
+        "{FAILING_CALLBACK}def go(x: int) -> int fail Other:\n    return apply(lambda v: check(v)?, x)\n\npub def main() uses io:\n    io.print(\"x\")\n"
+    );
+    let (m, d) = lower(&src);
+    assert!(d.is_empty(), "{d:?}");
+    let checked = yan_check::check("t.yag", &src, &m);
+    assert!(checked.iter().any(|d| d.code == "E310"), "{checked:?}");
+}
