@@ -382,6 +382,8 @@ impl<'o> Vm<'o> {
         self.it.in_par += 1;
         self.it.cancel.push(false);
         let mut first = None;
+        // Per task index: the failure it left the block with, if any.
+        let mut failed: Vec<Option<Value>> = vec![None; tasks.len()];
         let out = loop {
             let progress = self.it.progress;
             let cancelled = self.it.cancel.last() == Some(&true);
@@ -392,7 +394,14 @@ impl<'o> Vm<'o> {
                 Some(i) => (i, false),
                 None => match tasks.iter().position(|t| !t.done) {
                     Some(i) => (i, true),
-                    None => break Ok(first),
+                    None => {
+                        // R394: the lowest-index failure that is not `Cancelled` wins.
+                        let lowest = failed.iter().flatten().find(|v| !is_cancelled(v));
+                        break Ok(match lowest {
+                            Some(v) => Some(Err(v.clone())),
+                            None => first,
+                        });
+                    }
                 },
             };
             self.it.force = forced;
@@ -431,6 +440,11 @@ impl<'o> Vm<'o> {
                 self.it.progress += 1;
             }
             t.done = true;
+            if !self.it.task_done
+                && let Err(v) = &r
+            {
+                failed[i] = Some(v.clone());
+            }
             if !self.it.task_done && first.is_none() {
                 first = Some(r);
                 *self.it.cancel.last_mut().expect("this block") = true;
@@ -1104,4 +1118,8 @@ mod tests {
             }
         }
     }
+}
+
+fn is_cancelled(v: &Value) -> bool {
+    matches!(v, Value::Data { name, .. } if &**name == "Cancelled")
 }
