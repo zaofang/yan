@@ -2961,6 +2961,30 @@ impl Lower<'_, '_, '_> {
                 format!("this `match` on `{t}` needs `case _`", t = self.ty_text(&t)),
             );
         }
+        let mut seen_variants: Vec<&str> = Vec::new();
+        let mut closed = false;
+        for c in cases {
+            let dup = matches!(&c.pat, j::Pat::Path { path, args: None }
+                if path.len() == 1 && seen_variants.contains(&path[0].as_str()));
+            if closed || dup {
+                let item = self.item.clone();
+                self.cx.warn(
+                    "W853",
+                    c.span,
+                    &item,
+                    "this arm can match no value left by the arms before it; remove it".to_owned(),
+                );
+            }
+            if c.guard.is_none() {
+                closed |= catch_all(&c.pat);
+                if let j::Pat::Path { path, args: None } = &c.pat
+                    && path.len() == 1
+                    && self.g.variant_of.contains_key(&path[0])
+                {
+                    seen_variants.push(path[0].as_str());
+                }
+            }
+        }
         if cases.iter().any(|c| c.guard.is_some()) {
             return self.guarded_match(a, &t, cases, at);
         }

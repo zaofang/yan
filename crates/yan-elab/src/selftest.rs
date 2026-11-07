@@ -995,3 +995,16 @@ fn failing_closure_is_rejected_by_a_caller_with_another_failure_type() {
     let checked = yan_check::check("t.yag", &src, &m);
     assert!(checked.iter().any(|d| d.code == "E310"), "{checked:?}");
 }
+
+#[test]
+fn an_arm_after_a_catch_all_is_w853() {
+    let src = "\
+pub def f(n: int) -> int:
+    match n:
+        case _:
+            return 0
+        case 1:
+            return 1
+";
+    assert!(codes(src).contains(&"W853".to_owned()), "{:?}", codes(src));
+}
