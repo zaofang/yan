@@ -1,0 +1,100 @@
+{
+ "meta": {
+  "models": [
+   "claude:claude-sonnet-5-5"
+  ],
+  "decoding": [
+   "free"
+  ],
+  "shots": [
+   5
+  ],
+  "tokenizer": [
+   "provider"
+  ],
+  "toolchain": [
+   "{'hash': 'blake3:76d77b0d23932ce8cb3c2920e56ef6e307eb97782aaaf954929f06be556c5502', 'version': '0.0.0'}"
+  ]
+ },
+ "arms": {
+  "py": {
+   "tasks": 100,
+   "pass_at_1": 96,
+   "pass_after_repair": 96,
+   "own_tests_green": 100,
+   "spec_failed": 0,
+   "stopped": 0,
+   "repair_rounds": 7,
+   "impossible_runs": 10,
+   "cheated": 0,
+   "spec_in": 506251,
+   "spec_in_per_solved": 5273.4,
+   "spec_out": 70488,
+   "spec_out_per_solved": 734.2,
+   "spec_reasoning": 9241,
+   "spec_reasoning_per_solved": 96.3,
+   "spec_out_bytes": 134859,
+   "spec_out_bytes_per_solved": 1404.8,
+   "body_in": 633613,
+   "body_in_per_solved": 6600.1,
+   "body_out": 77956,
+   "body_out_per_solved": 812.0,
+   "body_reasoning": 6062,
+   "body_reasoning_per_solved": 63.1,
+   "body_out_bytes": 159358,
+   "body_out_bytes_per_solved": 1660.0,
+   "checker_codes_before_repair": {}
+  },
+  "yag": {
+   "tasks": 100,
+   "pass_at_1": 86,
+   "pass_after_repair": 93,
+   "own_tests_green": 99,
+   "spec_failed": 0,
+   "stopped": 0,
+   "repair_rounds": 14,
+   "impossible_runs": 10,
+   "cheated": 0,
+   "spec_in": 630304,
+   "spec_in_per_solved": 6777.5,
+   "spec_out": 41682,
+   "spec_out_per_solved": 448.2,
+   "spec_reasoning": 17915,
+   "spec_reasoning_per_solved": 192.6,
+   "spec_out_bytes": 49794,
+   "spec_out_bytes_per_solved": 535.4,
+   "body_in": 737248,
+   "body_in_per_solved": 7927.4,
+   "body_out": 51681,
+   "body_out_per_solved": 555.7,
+   "body_reasoning": 19252,
+   "body_reasoning_per_solved": 207.0,
+   "body_out_bytes": 70514,
+   "body_out_bytes_per_solved": 758.2,
+   "checker_codes_before_repair": {
+    "P003": 12,
+    "E200": 4,
+    "E201": 3,
+    "W806": 3,
+    "E203": 3,
+    "E017": 2,
+    "E602": 1,
+    "E100": 1,
+    "E210": 1,
+    "E202": 1
+   }
+  }
+ },
+ "paired": {
+  "jointly_solved": 93,
+  "spec_out_ratio_yag_over_py": 0.601,
+  "spec_out_bytes_ratio_yag_over_py": 0.375,
+  "body_out_ratio_yag_over_py": 0.65,
+  "body_out_bytes_ratio_yag_over_py": 0.437
+ },
+ "gate": {
+  "pass_at_1_not_below_python": false,
+  "body_out_per_solved_lower": true,
+  "spec_out_per_solved_lower": true
+ }
+}
