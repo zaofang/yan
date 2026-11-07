@@ -103,6 +103,7 @@ pub def f[T: Eq + Hash, n: int](xs: list[int], var acc: int, take s: str, /, **k
     post out >= 0
     ex f([1], &a, "s") == Ok(1) with io = fake_io()
     decreases len(xs)
+    cost steps <= 2 * len(xs) + 1, alloc <= len(xs)
     a, b = 1, 2
     total: dict[str, tuple[float, int]] = {}
     acc += -x ** 2 if a else (b if c else d)

@@ -563,7 +563,7 @@ fn header(item: &str) -> String {
     let mut in_doc = false;
     for l in lines {
         let t = l.trim_start();
-        let contract = ["pre ", "post ", "ex ", "decreases "]
+        let contract = ["pre ", "post ", "ex ", "decreases ", "cost "]
             .iter()
             .any(|k| t.starts_with(k));
         if in_doc || t.starts_with("\"\"\"") {

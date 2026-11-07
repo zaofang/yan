@@ -1619,7 +1619,7 @@ fn ghost_marks(g: &Globals, f: &j::FuncDef, at: yan_diag::Span, cx: &mut Cx) {
         let (word, e) = match c {
             j::Contract::Pre(e) => ("pre", e),
             j::Contract::Post(e) => ("post", e),
-            j::Contract::Ex { .. } => continue,
+            j::Contract::Ex { .. } | j::Contract::Cost { .. } => continue,
             j::Contract::Decreases(_) => {
                 k += 1;
                 continue;

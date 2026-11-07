@@ -50,7 +50,7 @@ const REJECTED_E121: [&str; 6] = ["global", "nonlocal", "del", "yield", "async",
 pub(crate) const AUGOPS: [&str; 12] = [
     "+=", "-=", "*=", "/=", "//=", "%=", "**=", "&=", "|=", "^=", "<<=", ">>=",
 ];
-const CONTRACT_WORDS: [&str; 4] = ["pre", "post", "ex", "decreases"];
+const CONTRACT_WORDS: [&str; 5] = ["pre", "post", "ex", "decreases", "cost"];
 const BITWISE: [&str; 5] = ["|", "^", "&", "<<", ">>"];
 const ARITH: [&str; 7] = ["+", "-", "*", "/", "//", "%", "@"];
 
@@ -858,7 +858,10 @@ impl Parser {
         self.expect_newline_then_indent()?;
         let doc = self.docstring();
         let mut contracts = Vec::new();
-        while CONTRACT_WORDS.iter().any(|w| self.soft(w)) {
+        while CONTRACT_WORDS
+            .iter()
+            .any(|w| self.soft(w) && (*w != "cost" || self.cost_bound_at(1)))
+        {
             contracts.push(self.contract()?);
         }
         let stmts = self.stmts_until_dedent()?;
@@ -886,6 +889,9 @@ impl Parser {
         let Tok::Name(w) = self.bump() else {
             unreachable!("caller checked a contract word")
         };
+        if w == "cost" {
+            return self.cost();
+        }
         let e = self.expr()?;
         let c = match w.as_str() {
             "pre" => Contract::Pre(e),
@@ -908,6 +914,32 @@ impl Parser {
         };
         self.expect_newline()?;
         Ok(c)
+    }
+
+    fn cost_bound_at(&self, n: usize) -> bool {
+        matches!(self.tok_at(n), Tok::Name(w) if w == "steps" || w == "alloc")
+    }
+
+    /// `cost steps <= A, alloc <= B`, after the `cost` word.
+    fn cost(&mut self) -> P<Contract> {
+        let (mut steps, mut alloc) = (None, None);
+        loop {
+            if !self.cost_bound_at(0) {
+                return self.unexpected("`steps` or `alloc`");
+            }
+            let w = self.name()?;
+            self.expect_op("<=")?;
+            let e = self.expr()?;
+            let slot = if w == "steps" { &mut steps } else { &mut alloc };
+            if slot.replace(e).is_some() {
+                return self.err("E106", format!("`cost` bounds `{w}` twice"));
+            }
+            if !self.eat_op(",") {
+                break;
+            }
+        }
+        self.expect_newline()?;
+        Ok(Contract::Cost { steps, alloc })
     }
 
     fn expect_newline_then_indent(&mut self) -> P<()> {

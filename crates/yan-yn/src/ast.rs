@@ -92,6 +92,10 @@ pub enum ContractKind {
     Ex,
     Decreases,
     Invariant,
+    /// One `steps <= e` bound of a `cost` line (R610).
+    CostSteps,
+    /// One `alloc <= e` bound of a `cost` line.
+    CostAlloc,
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -1025,7 +1025,7 @@ impl<'a> Parser<'a> {
             return Ok(Body::Expr(e));
         }
         self.open_block()?;
-        let contracts = self.contracts(&["pre", "post", "ex", "decreases"])?;
+        let contracts = self.contracts(&["pre", "post", "ex", "decreases", "cost"])?;
         let clause = allow_clauses
             && self.line_has_arrow()
             && matches!(
@@ -1054,8 +1054,18 @@ impl<'a> Parser<'a> {
     fn contracts(&mut self, words: &[&str]) -> P<Vec<Contract>> {
         let mut out = Vec::new();
         loop {
+            if matches!(self.peek(), Tok::Name(w) if w == "cost" && words.contains(&"cost"))
+                && matches!(self.peek_n(1), Tok::Name(b) if b == "steps" || b == "alloc")
+            {
+                self.cost(&mut out)?;
+                continue;
+            }
             let kind = match self.peek() {
-                Tok::Name(w) if words.contains(&w.as_str()) && !is_assign_op(self.peek_n(1)) => {
+                Tok::Name(w)
+                    if words.contains(&w.as_str())
+                        && w != "cost"
+                        && !is_assign_op(self.peek_n(1)) =>
+                {
                     match w.as_str() {
                         "pre" => ContractKind::Pre,
                         "post" => ContractKind::Post,
@@ -1075,6 +1085,31 @@ impl<'a> Parser<'a> {
                 span: self.since(start),
             });
         }
+    }
+
+    /// `cost steps <= A, alloc <= B`: one contract per bound.
+    fn cost(&mut self, out: &mut Vec<Contract>) -> P<()> {
+        self.bump();
+        loop {
+            let start = self.span();
+            let kind = match self.peek() {
+                Tok::Name(w) if w == "steps" => ContractKind::CostSteps,
+                Tok::Name(w) if w == "alloc" => ContractKind::CostAlloc,
+                _ => return self.expect_word("steps").map(|_| ()),
+            };
+            self.bump();
+            self.expect_p("<=")?;
+            let expr = self.expr()?;
+            out.push(Contract {
+                kind,
+                expr,
+                span: self.since(start),
+            });
+            if !self.eat_p(",") {
+                break;
+            }
+        }
+        self.newline()
     }
 
     /// The statements of an opened block, through its DEDENT.

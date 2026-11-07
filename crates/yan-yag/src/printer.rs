@@ -667,6 +667,7 @@ impl Printer {
             Contract::Post(_) => 1,
             Contract::Ex { .. } => 2,
             Contract::Decreases(_) => 3,
+            Contract::Cost { .. } => 4,
         };
         let mut cs: Vec<&Contract> = b.contracts.iter().collect();
         cs.sort_by_key(|c| order(c));
@@ -675,6 +676,13 @@ impl Printer {
                 Contract::Pre(e) => format!("pre {}", expr(e, 0)),
                 Contract::Post(e) => format!("post {}", expr(e, 0)),
                 Contract::Decreases(e) => format!("decreases {}", expr(e, 0)),
+                Contract::Cost { steps, alloc } => {
+                    let bounds: Vec<String> = [("steps", steps), ("alloc", alloc)]
+                        .into_iter()
+                        .filter_map(|(w, e)| Some(format!("{w} <= {}", expr(e.as_ref()?, 0))))
+                        .collect();
+                    format!("cost {}", bounds.join(", "))
+                }
                 Contract::Ex { expr: e, with } if with.is_empty() => format!("ex {}", expr(e, 0)),
                 Contract::Ex { expr: e, with } => {
                     format!(

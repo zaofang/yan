@@ -1084,3 +1084,14 @@ pub def f(n: int) -> int:
     );
     assert_eq!(edit["text"], "");
 }
+
+#[test]
+fn a_cost_clause_parses_and_is_unsupported_until_it_is_checked() {
+    let src = "\
+pub def f(xs: list[int]) -> int:
+    \"doc\"
+    cost steps <= len(xs), alloc <= 0
+    return 0
+";
+    assert_eq!(codes(src), ["E017"]);
+}

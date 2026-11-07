@@ -299,7 +299,7 @@ fn contract_lines(it: &Item) -> Vec<String> {
         .lines()
         .map(str::trim)
         .filter(|l| {
-            ["pre ", "post ", "ex ", "invariant ", "decreases "]
+            ["pre ", "post ", "ex ", "invariant ", "decreases ", "cost "]
                 .iter()
                 .any(|k| l.starts_with(k))
         })

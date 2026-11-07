@@ -246,6 +246,14 @@ mod selftest {
     }
 
     #[test]
+    fn cost_bounds_round_trip_on_one_line() {
+        let src = "f(xs: List[int]) -> int =\n  pre len(xs) > 0\n  cost steps <= 2 * len(xs), alloc <= len(xs)\n  0\n";
+        assert_eq!(reprint(src), src);
+        let src = "f(xs: List[int]) -> int =\n  cost alloc <= 3\n  0\n";
+        assert_eq!(reprint(src), src);
+    }
+
+    #[test]
     fn spec_example_15_6() {
         let src = r#"--- Fetch quotes concurrently and value a portfolio.
 

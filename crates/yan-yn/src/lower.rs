@@ -722,21 +722,44 @@ impl Lower<'_> {
     }
 
     fn contracts(&mut self, cs: &[Contract]) -> R<Vec<h::Contract>> {
-        cs.iter()
-            .map(|c| {
-                let e = self.expr(&c.expr)?;
-                Ok(match c.kind {
-                    ContractKind::Pre => h::Contract::Pre(e),
-                    ContractKind::Post => h::Contract::Post(e),
-                    ContractKind::Ex => h::Contract::Ex {
-                        expr: e,
-                        with: Vec::new(),
-                    },
-                    ContractKind::Decreases => h::Contract::Decreases(e),
-                    ContractKind::Invariant => return unsupported("`invariant` outside a loop"),
-                })
-            })
-            .collect()
+        let mut out = Vec::new();
+        let mut i = 0;
+        while i < cs.len() {
+            let c = &cs[i];
+            i += 1;
+            let e = self.expr(&c.expr)?;
+            out.push(match c.kind {
+                ContractKind::Pre => h::Contract::Pre(e),
+                ContractKind::Post => h::Contract::Post(e),
+                ContractKind::Ex => h::Contract::Ex {
+                    expr: e,
+                    with: Vec::new(),
+                },
+                ContractKind::Decreases => h::Contract::Decreases(e),
+                ContractKind::Invariant => return unsupported("`invariant` outside a loop"),
+                ContractKind::CostSteps => {
+                    // The `alloc` bound of the same line joins its `steps` bound.
+                    let alloc = match cs.get(i) {
+                        Some(n)
+                            if n.kind == ContractKind::CostAlloc && n.span.line == c.span.line =>
+                        {
+                            i += 1;
+                            Some(self.expr(&n.expr)?)
+                        }
+                        _ => None,
+                    };
+                    h::Contract::Cost {
+                        steps: Some(e),
+                        alloc,
+                    }
+                }
+                ContractKind::CostAlloc => h::Contract::Cost {
+                    steps: None,
+                    alloc: Some(e),
+                },
+            });
+        }
+        Ok(out)
     }
 
     fn loop_contracts(&mut self, cs: &[Contract]) -> R<Vec<h::LoopContract>> {
