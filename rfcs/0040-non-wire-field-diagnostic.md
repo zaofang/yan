@@ -1,8 +1,8 @@
 # 0040: Diagnostic for a field that is not `Wire`
 
-- Status: draft
+- Status: accepted
 - Research: none; the gap is the check dropped from `crates/yan-elab/src/decorators.rs` in commit de6e6c1, 2026-11-06
-- Rows: filled in when accepted
+- Rows: R872, R873; E282
 
 ## Summary
 
@@ -29,7 +29,7 @@ same gap.
 
 - Decision: option (c), a family-wide code for "derived trait has a field that does not implement it", chosen by the lead on 2026-11-06. The code sits in the derive-misuse family (section 25).
 - Decided 2026-11-06: the same check applies to `Eq`, `Ord`, `Hash` and `Show` derives. Today the elaborator has no field check for them; the failure appears only at a use site (E221). The writing PR adds the check to each of these derives under the same code.
-- Row: (R number once accepted)
+- Row: R872; E282
 
 ### D2: span and text
 
@@ -43,7 +43,7 @@ note: one diagnostic per field means one fix per diagnostic, and the span is whe
 
 - Decision: option (b), one diagnostic per offending field at its type annotation, chosen by the lead on 2026-11-06.
 - Decided 2026-11-06: a field whose type is a user class gets "does not derive `Wire`". A field whose type is a capability value also gets a note that capabilities are never `Wire` (section 17.4).
-- Row: (R number once accepted)
+- Row: R873
 
 ## Spec changes
 
