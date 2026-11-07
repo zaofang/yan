@@ -1018,4 +1018,21 @@ mod tests {
                 .is_empty()
         );
     }
+
+    #[test]
+    fn the_check_takes_each_field_of_a_destructured_tuple_once() {
+        let bad = |body: &str| {
+            let src = format!(
+                "module t\nfn f(sink p: Tuple(Str, Str)) -> Unit {{\n let a: Str = p._0\n let b: Str = p._1\n{body} ret ()\n}}\n"
+            );
+            let (m, d) = yan_core::parse("t.yir", &src);
+            assert!(d.is_empty(), "{d:?}");
+            yan_check::check_optimized("t.yir", &m.expect("parses"))
+        };
+        assert!(bad(" var x: Str = move a\n var y: Str = move b\n drop y\n drop x\n").is_empty());
+        let twice = bad(" var x: Str = move a\n var y: Str = move a\n drop y\n drop x\n");
+        assert_eq!(twice.len(), 1, "{twice:?}");
+        let whole = bad(" var x: Str = move a\n drop p\n drop x\n");
+        assert_eq!(whole.len(), 1, "{whole:?}");
+    }
 }

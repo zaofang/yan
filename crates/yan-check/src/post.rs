@@ -51,6 +51,9 @@ struct V {
     last_decl: Option<Name>,
     /// Names bound by `match` patterns, to the scrutinee local they view.
     views: HashMap<Name, Name>,
+    /// Names bound to one field of a local (`let x = t._0`), to the key `t._0` that tracks the
+    /// field in the state, so moving each field of a destructured tuple once is not a repeat.
+    fields: HashMap<Name, Name>,
     diags: Vec<Diagnostic>,
     file: String,
     item: String,
@@ -144,7 +147,13 @@ impl V {
     fn consumed(&self, k: &StmtKind) -> Vec<Name> {
         own::consumed(k)
             .into_iter()
-            .map(|n| self.views.get(n).unwrap_or(n).clone())
+            .map(|n| {
+                self.fields
+                    .get(n)
+                    .or_else(|| self.views.get(n))
+                    .unwrap_or(n)
+                    .clone()
+            })
             .collect()
     }
 
@@ -195,6 +204,8 @@ impl V {
         for l in self.scopes.pop().unwrap_or_default() {
             if let Some(st) = &mut self.st {
                 st.remove(&l.name);
+                let prefix = format!("{}.", l.name);
+                st.retain(|k, _| !k.starts_with(&prefix));
             }
         }
     }
@@ -274,6 +285,31 @@ impl V {
             if let Some(st) = &mut self.st {
                 st.insert(n.clone(), S::Gone);
             }
+            if let Some((root, _)) = n.split_once('.')
+                && s == S::Live
+            {
+                self.move_field_root(root, n, at);
+            }
+        }
+    }
+
+    /// Moving a field moves its root, whose other fields leak (as in drop elaboration); moving
+    /// another field of a root already moved through a field is not a repeat.
+    fn move_field_root(&mut self, root: &str, key: &str, at: Span) {
+        let Some(st) = &mut self.st else { return };
+        let Some(s) = st.get(root).copied() else {
+            return;
+        };
+        let prefix = format!("{root}.");
+        let by_field = st
+            .iter()
+            .any(|(k, v)| k != key && k.starts_with(&prefix) && *v != S::Live);
+        if s != S::Live && !by_field {
+            let how = if s == S::Gone { "was" } else { "may have been" };
+            self.err(at, format!("`{root}` {how} already consumed or dropped"));
+        }
+        if let Some(st) = &mut self.st {
+            st.insert(root.to_owned(), S::Gone);
         }
     }
 
@@ -343,10 +379,22 @@ impl V {
                 }
                 self.closure(rhs);
                 self.consume(&s.kind, next, at, false);
+                if let Pat::Bind(x) = pat {
+                    self.fields.remove(x);
+                }
                 if let (Rhs::Proj(p), Pat::Bind(x)) = (rhs, pat)
                     && !own::is_copy(ty)
                 {
                     let root = self.views.get(&p.root).unwrap_or(&p.root).clone();
+                    if let [Proj::Field(f, _)] = p.projs.as_slice()
+                        && root == p.root
+                        && let Some(st) = &mut self.st
+                        && st.contains_key(&root)
+                    {
+                        let key = format!("{root}.{f}");
+                        st.entry(key.clone()).or_insert(S::Live);
+                        self.fields.insert(x.clone(), key);
+                    }
                     self.views.insert(x.clone(), root);
                 } else if let Pat::Bind(x) = pat {
                     self.views.remove(x);
