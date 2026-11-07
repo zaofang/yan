@@ -134,7 +134,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_JSON_PARSE_FLOAT,
         Bind::Fallible(|a| match a {
-            [Str(s)] => Ok(json::parse_float(s, 128).map(Float).map_err(error)),
+            [Str(s), Int(n)] => Ok(json::parse_float(s, depth(n)).map(Float).map_err(error)),
             _ => bad_args(STD_JSON_PARSE_FLOAT),
         }),
     ),
