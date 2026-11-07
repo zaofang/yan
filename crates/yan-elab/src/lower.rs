@@ -8041,6 +8041,9 @@ impl Lower<'_, '_, '_> {
         if path == "std.rand.choice" || path == "std.rand.shuffle" {
             return self.rand_list_op(cap, op, args, at);
         }
+        if path == "std.crypto_rand.fill_bytes" {
+            return self.fill_bytes_call(cap, args, at);
+        }
         if cap == "log" && matches!(op, "debug" | "info" | "warn" | "error" | "span") {
             return self.log_call(op, args, at);
         }
@@ -8475,6 +8478,51 @@ impl Lower<'_, '_, '_> {
         };
         let targs = vec![el.targ()];
         Ok((Rhs::Call(call(&path, targs, out, at)), ret, None))
+    }
+
+    /// `crypto_rand.fill_bytes(&buf)`: fills the whole `bytearray` in place.
+    fn fill_bytes_call(
+        &mut self,
+        cap: &str,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        let [
+            j::Arg {
+                kind: j::ArgKind::Ref(e),
+                span,
+                ..
+            },
+        ] = args
+        else {
+            self.err(
+                "E404",
+                at,
+                "`crypto_rand.fill_bytes` takes `&bytearray`".into(),
+            );
+            return Ok(err);
+        };
+        let (pl, t) = self.place(e)?;
+        if !pl.projs.is_empty() {
+            return unsupported("`crypto_rand.fill_bytes` of a projection");
+        }
+        if t != Ty::Coll("bytearray", vec![]) {
+            if t != Ty::Err {
+                self.err(
+                    "E201",
+                    *span,
+                    format!("`crypto_rand.fill_bytes` takes a bytearray, not `{t}`"),
+                );
+            }
+            return Ok(err);
+        }
+        let out = vec![
+            Arg::Cap(cap.to_owned(), at),
+            Arg::Value(Conv::Inout, Atom::Name(pl.root, pl.root_span), *span),
+        ];
+        let c = call("std.crypto_rand.fill_bytes", vec![], out, at);
+        Ok((Rhs::Call(c), Ty::Unit, None))
     }
 
     /// `module.v` names variant `v` of a std sum type declared in `module`, as `math.Up`.
