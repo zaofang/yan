@@ -12,7 +12,6 @@ serde_json.workspace = true
 yan-std.workspace = true
 yan-rt.workspace = true
 yan-core.workspace = true
-blake3.workspace = true
 yan-diag.workspace = true
 indexmap.workspace = true
 jiff.workspace = true

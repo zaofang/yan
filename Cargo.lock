@@ -1913,7 +1913,6 @@ dependencies = [
 name = "yan-interp"
 version = "0.0.0"
 dependencies = [
- "blake3",
  "getrandom 0.4.3",
  "indexmap",
  "jiff",
@@ -1965,6 +1964,7 @@ dependencies = [
 name = "yan-rt"
 version = "0.0.0"
 dependencies = [
+ "blake3",
  "core-math",
  "getrandom 0.4.3",
  "libm",

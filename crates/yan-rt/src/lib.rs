@@ -15,6 +15,7 @@ pub mod heap;
 pub mod json;
 #[allow(unsafe_code)]
 pub mod jsonslots;
+pub mod keyhash;
 pub mod list;
 pub mod math;
 pub mod num;
