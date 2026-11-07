@@ -1072,6 +1072,10 @@ fn walk_mut<'v, 's>(
     Ok(slot)
 }
 
+fn is_cancelled(v: &Value) -> bool {
+    matches!(v, Value::Data { name, .. } if &**name == "Cancelled")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1118,8 +1122,4 @@ mod tests {
             }
         }
     }
-}
-
-fn is_cancelled(v: &Value) -> bool {
-    matches!(v, Value::Data { name, .. } if &**name == "Cancelled")
 }
