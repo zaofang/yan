@@ -1,6 +1,6 @@
-# 0043: Native `par concurrent`: branches as resumable tasks over the enclosing frame
+# 0043: Native `par concurrent`: branches and blocking callees as resumable tasks
 
-- Status: draft
+- Status: accepted
 - Research: none; the gap is issue #615 against the interpreter of PR #628
 - Rows: none expected; the behaviour is already 9.1 and R390, this note fixes how native code gets it
 
@@ -22,20 +22,17 @@ no `par` hits the same diagnostic.
 
 ### D1: where task state lives
 
-Options: (a) every task runs over the frame of the function that holds the `par`; a resume point is a block
-of that function's CFG, and a blocking operation can suspend only at task level, as in the interpreter; (b)
-Rust-style coroutines: any function that may block becomes a state machine over a heap frame, so a wait
-inside a nested call also suspends.
+Options: (a) every task runs over the frame of the function that holds the `par`, and a blocking operation
+suspends only at task level, as in the interpreter; (b) Rust-style coroutines: the branches still run over
+the enclosing frame, and every function that may block, called from a task, also gets a resumable variant
+over a heap frame, so a wait inside a nested call suspends its task.
 
-Recommendation: (a). A `par` is block-structured: the function does not return until every branch ends, so
-the frame outlives the tasks and nothing has to move to the heap. Values live across a suspension are the
-function's own locals; MIR lowering already gives every binding a fresh local (`lower.rs`, one local per
-slot per bind), so branches never share one, and the transform asserts it. Cranelift's SSA construction
-joins those locals through the dispatcher like any other loop. (b) changes the calling convention of every
-function that can reach a channel, needs frame layout and drop of half-run frames, and buys only the nested
-wait the interpreter does not support either. It stays a later RFC.
+(a) is smaller, but it keeps the interpreter's "a wait inside a nested call" limit, which ordinary programs
+hit as soon as a branch calls a helper that sends. (b) removes it and gives the frames that cancel-all (R394)
+needs to drop half-run work. It costs a may-suspend analysis, a second variant of each such function, and a
+frame layout.
 
-- Decision:
+- Decision: (b), the long-term option; Antonio, 2026-11-07
 
 ### D2: where the scheduling policy lives
 
@@ -49,16 +46,16 @@ send checks, and the bookkeeping done at step boundaries (a receive that succeed
 waiting list until its task's step ends). Rust code in yan-rt can be ported line for line and unit-tested
 against recorded interpreter traces; MIR blocks cannot. The cost is one runtime call per switch.
 
-- Decision:
+- Decision: (a); Antonio, 2026-11-07
 
 ### D3: every task parked
 
 The interpreter fails the lowest-index task's operation as a plain wait would: `Timeout` under a deadline,
 otherwise it stops as unsupported. Native has no deadlines yet, and 9.6 and R396 say a global deadlock panics
-with kind `deadlock`. Recommendation: native panics `deadlock` (8.3), and the interpreter follows in a small
-separate PR, so the backends agree again.
+with kind `deadlock`. Recommendation: native panics `deadlock` (8.3) when every task at every level is parked, and the
+interpreter follows in a small separate PR, so the backends agree again.
 
-- Decision:
+- Decision: native panics `deadlock`; Antonio, 2026-11-07
 
 ## Design
 
@@ -90,13 +87,38 @@ Per `Par` region, with `n` tasks:
   itself was recorded by the runtime inside the failed operation.
 - `TaskEnd` in task `k`: `ParTaskEnd(h, k)`, then a jump to the dispatcher.
 - `Return` or a failing exit inside a task: `ParEnd(h)` first. This is the interpreter's "a branch that fails
-  or returns ends the block"; the other tasks' owned locals are leaked for now (see Limits).
+  or returns ends the block"; the other tasks are dropped by state (see Waits in nested calls).
 
 Nested `par concurrent` inside a branch is a nested region with its own handle; the runtime keeps a stack of
 schedulers, so the inner block runs to completion within one step of the outer task, as in the interpreter.
 
 Loops need nothing special. A resume point is the block of the blocked operation, so a loop that blocks
 resumes at that operation with its counters intact in the frame, and the loop's back edge is untouched.
+
+### Waits in nested calls (D1 b)
+
+- **May-suspend analysis.** A fixpoint over the MIR call graph: a function may suspend when it holds a
+  blocking channel operation or a direct `Call` or `TailCall` of a function that may suspend. A function
+  that holds a `par concurrent` does not by holding it; it may suspend only through its own task-level code
+  outside the block.
+- **Two variants.** A may-suspend function `g` keeps its plain variant, used outside any task, where a
+  blocked operation is the D3 case. It also gets `g$co(frame: Ptr) -> status`, made by the same split as a
+  branch: each blocking operation and each call of a may-suspend function is a resume point, and `state` is
+  word 0 of the frame.
+- **Frame.** Word 0 is the state, then the parameters, then one word per scalar local live across some resume
+  point (liveness on the MIR CFG; locals are scalars, so the frame is flat words), then a child-frame slot and
+  the result slots. Locals stay in registers within a run; the transform stores the live set before a
+  suspension and loads it on the resume edge.
+- **Calls.** A task (or `g$co`) calling `h` that may suspend allocates `h`'s frame, stores the arguments, and
+  loops on `st = h$co(frame)`: `SUSPENDED` suspends the caller with the same call as its resume point, the
+  child frame kept in a live local; `DONE` loads the results and frees the frame. A resume therefore re-enters
+  from the task down the chain of frames, as in Rust.
+- **Nested `par`.** A `par concurrent` inside a function running as a coroutine, whose tasks are all parked,
+  suspends the enclosing task instead of failing, so an outer sibling can unblock it. Deadlock is global: only
+  the outermost scheduler panics `deadlock`.
+- **Drop of a half-run frame.** Each `g$co` gets `g$drop(frame)`, which switches on the state and drops the
+  owned locals the drop pass marks live at that point, then the child frame. `ParEnd` on an early exit drops
+  the other tasks this way (R394). The branches over the enclosing frame get the same per-state drop blocks.
 
 ### yan-rt `std.chan`
 
@@ -124,10 +146,11 @@ that were not moved. This is independent of `par` and lands first.
 
 ## Limits
 
-- A blocking operation inside a function called from a branch does not suspend (D1); it is the D3 case.
-- A branch that returns or fails leaks the other tasks' live owned values, and a channel freed with elements
-  queued leaks them. Cancel-all (R394) and drops of half-run tasks are follow-ups.
+- An indirect call (a closure or function value) does not suspend: a function value carries the plain
+  variant only. Carrying the `$co` entry in function values changes their layout and is a follow-up.
 - No deadlines on native, so no `Timeout` from a wait.
+- The interpreter keeps its nested-call limit until it gets the same model; a program the interpreter stops
+  on can run natively, but where both run the output is the same.
 
 ## PR split
 
@@ -136,9 +159,12 @@ that were not moved. This is independent of `par` and lands first.
 2. `std.chan` in yan-rt, `Sender`/`Receiver` shapes and `Channel`, `send`, `recv` lowering outside `par`,
    with the Cranelift calls. Done when a buffered channel used by one task runs natively with the
    interpreter's output.
-3. `Par`, `Suspend`, `TaskEnd`, the transform, the scheduler and its trace tests against the interpreter.
-   Done when `par_concurrent_channel_progress.yag` prints `0 1 2` under `--backend cranelift`.
-4. The interpreter's all-parked case panics `deadlock` (D3), if accepted.
+3. `Par`, `Suspend`, `TaskEnd`, the task-level transform, the scheduler and its trace tests against the
+   interpreter. Done when `par_concurrent_channel_progress.yag` prints `0 1 2` under `--backend cranelift`.
+4. Coroutine variants: may-suspend analysis, frames with liveness spills, `$co` calls. Done when a branch that
+   sends through a helper function makes progress natively.
+5. Half-run drops (`$drop`, cancel-all on early exit) and nested `par` suspending its outer task.
+6. The interpreter's all-parked case panics `deadlock` (D3).
 
 ## Spec changes
 
