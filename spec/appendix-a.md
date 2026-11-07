@@ -243,6 +243,33 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R895 | `.info` is JSON with archive digest, publisher identity, capability set, requirements, yank state and publish time; namespaces map to indexes in the `registries` table of `.yan/config.yag`, never in a manifest; an unmapped namespace is E021 (RFC 0044) | 19.3, 25.2 |
 | R896 | only `add`, `remove`, `update`, `approve`, `vendor` and `yan lock` write `yan.lock`; `build`, `check` and `test` never do, and under `--locked` a missing or mismatched lock or absent offline archive is E020 (RFC 0044) | 18.1, 19.1, 25.2 |
 | R897 | `crypto_rand.fill_bytes(&buf)` fills a `bytearray` in place and `crypto_rand.random_bytes(n) -> bytes` wraps it; the owner chose both forms (#396) | 7.1, 17.3 |
+| R898 | Yan Core text lexical rules: names, numeric and string literals, labels, 1-based UTF-8 byte-offset columns, no type suffixes (RFC 0045) | 3.5 |
+| R899 | canonical layout: four-space indent, one statement per line, contracts before the body, one blank line between items, only leading comments kept (RFC 0045) | 3.5, 16 |
+| R900 | a comma continues a `uses` capability set inside a list unless the next name is followed by `:`, `[` or `.` (RFC 0045) | 15.2 |
+| R901 | checker readings: scalars copy, E602 recursion edges, flow-sensitive E401, unknown types never E201, `yan run` checks first (RFC 0045) | 4.2, 8.1, 25.2 |
+| R902 | E210 exempts `become` arguments; bitwise `&`, `|`, `^` lower to non-overflowing intrinsics; shifts stay unsupported (RFC 0045) | 14.1 |
+| R903 | `par` order and lowest-index failure, `&` element copy-back with `exclusive_check`, lambda typing and capture rules (RFC 0045) | 4.3, 9.2, 14.1 |
+| R904 | Yan signature continuation, grid sign errors, time literals, stage-0 postfix chains, extra grammar forms, E112, strict checking, `len` and `self` readings (RFC 0045) | 15.1, 15.2 |
+| R905 | stage-0 readings: constant `let`, template instances, E272 notes, `embed` resolves against the module directory with the package root at `package.yag` (RFC 0045) | 10.4 |
+| R906 | `T` to `T | None` injection, `is None` narrowing and N15 truth tests (RFC 0045) | 8.1, 14.1 |
+| R907 | slices, bigint literals, error unions, `post` and `old`, literal range E201, `Ord` for ordering (RFC 0045) | 8.4, 14.1, 14.4 |
+| R908 | missing dict key panics with kind `bounds`; bigint intrinsics are `<op>_bigint`; floor division and modulo (RFC 0046) | 8.3, 11 |
+| R909 | `str.parse_int`, `parse_float` and `splitlines` accepted forms (RFC 0046) | 17.3 |
+| R910 | std.regex: `split` keeps groups, error text is the engine's, group panics are `bounds`, free functions need no import (RFC 0046) | 17.3 |
+| R911 | std.collections: one submodule per type, sorted iteration, constructors take list or dict, `op=` inserts `Default` (RFC 0046) | 17.2, 17.3 |
+| R912 | `FsError`, `fake_fs`, `std.test` in scope without import, std classes lowered into the referring module (RFC 0046) | 17.3 |
+| R913 | `Error` is a message and a context list; `?` converts through `std.error.wrap`; downcast deferred (RFC 0046) | 17.3 |
+| R914 | intrinsic registry generated from declarations; ids are build-local and resolved at call-site compile (RFC 0046) | 22.1 |
+| R915 | conformance header layout: leading comment lines, `stdout:` blocks, `patch/` case format left to the conformance PR (RFC 0047) | 24.1 |
+| R916 | patch module addressing, `--module`, `b3:` item hash, edits match canonical text (RFC 0047) | 18.3 |
+| R917 | P006 protection set, P003 `--check`, whole-text oplog lines (RFC 0047) | 18.3, 25.2 |
+| R918 | `yan mcp` module serving, token budget, `autofix`, `sig` and patch tools (RFC 0047) | 21.4 |
+| R919 | ffi module by directory, `core.ffi` names with LP64 sizes, `MutView` and `View` argument forms (RFC 0047) | 12 |
+| R920 | FFI diagnostics E905, E906, E907, E911, `@forbid(alloc)`; interior NUL and `@forbid(rc, copy, panic)` owed (RFC 0047) | 12, 25.2 |
+| R921 | native code starts in M1b before the M1 gate, interpreter stays the oracle, Cranelift in-process first (RFC 0047) | 22.1, 22.6 |
+| R922 | interim native layout and no drops until drop elaboration (RFC 0047) | 5.2, 5.3, 22.2 |
+| R923 | unsafe confined to `yan-rt` and `yan-cg-cranelift` entry points, lazy JIT, primitive integer sorts (RFC 0047) | 22.3, 22.4 |
+| R924 | `yan test` package, ids, budgets, test hash, `--gate` and output formats (RFC 0047) | 18.4 |
 
 <!-- /rows -->
 
