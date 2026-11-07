@@ -1042,3 +1042,22 @@ pub def f(n: int) -> int:
 ";
     assert_eq!(codes(partial), ["E503"]);
 }
+
+#[test]
+fn constant_time_rejects_secret_dependent_control_flow() {
+    let body = |stmt: &str| {
+        format!(
+            "@constant_time\npub def f(s: Secret[int], t: list[int]) -> int:\n    \"doc\"\n    let k = s.expose()\n{stmt}    return 0\n"
+        )
+    };
+    for bad in [
+        "    if k > 0:\n        return 1\n",
+        "    return t[k]\n",
+        "    return 10 % k\n",
+        "    let m = k + 1\n    while m > 0:\n        m -= 1\n",
+    ] {
+        assert!(codes(&body(bad)).contains(&"E424".to_owned()), "{bad}");
+    }
+    let ok = body("    let m = k + 1\n    let n = m * 2\n");
+    assert!(!codes(&ok).contains(&"E424".to_owned()), "{:?}", codes(&ok));
+}
