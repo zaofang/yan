@@ -31,6 +31,20 @@ pub(crate) struct Vm<'o> {
     /// Nested blocks whose tasks were all parked, so they yielded to their enclosing task,
     /// by that task's path and the block's first entry.
     suspended: HashMap<(Vec<usize>, u32), Suspended>,
+    /// Whether every frame from the running task down is a plain call, so a wait may park the
+    /// task. A call from a std function (a closure in `map`) is not: its Rust frames cannot
+    /// be saved.
+    chain: bool,
+    /// The called frames of a parking task, innermost first, while the park unwinds.
+    unwinding: Vec<Saved>,
+}
+
+/// A called frame that a task parked in, resumed at `pc` once the task runs again.
+struct Saved {
+    code: Rc<Code>,
+    pc: usize,
+    base: usize,
+    deadline: Option<i128>,
 }
 
 struct Task {
@@ -38,6 +52,10 @@ struct Task {
     done: bool,
     park: Option<(bool, usize)>,
     seen: Option<u64>,
+    /// Frames called from the task's own, outermost first, with their stack from `height` up.
+    chain: Vec<Saved>,
+    seg: Vec<Value>,
+    height: usize,
 }
 
 /// A `par concurrent` block that yielded mid-run.
@@ -307,6 +325,8 @@ impl<'o> Vm<'o> {
             task_base: None,
             task_path: Vec::new(),
             suspended: HashMap::new(),
+            chain: false,
+            unwinding: Vec::new(),
         }
     }
 
@@ -349,7 +369,10 @@ impl<'o> Vm<'o> {
         let n = args.len();
         self.stack.extend(args);
         self.enter(f, None, base, n);
-        let r = self.exec(f, base)?;
+        let chain = mem::replace(&mut self.chain, false);
+        let r = self.exec(f, base);
+        self.chain = chain;
+        let r = r?;
         let finals = self.stack.drain(base..).take(n).collect();
         Ok((r, finals))
     }
@@ -360,7 +383,10 @@ impl<'o> Vm<'o> {
         let n = args.len();
         self.stack.extend(args);
         self.enter(c.code, Some(c), base, n);
-        let r = self.exec(c.code, base)?;
+        let chain = mem::replace(&mut self.chain, false);
+        let r = self.exec(c.code, base);
+        self.chain = chain;
+        let r = r?;
         release(&mut self.stack, base);
         match r {
             Ok(v) => Ok(v),
@@ -401,6 +427,9 @@ impl<'o> Vm<'o> {
                         done: false,
                         park: None,
                         seen: None,
+                        chain: Vec::new(),
+                        seg: Vec::new(),
+                        height: 0,
                     })
                     .collect(),
                 None,
@@ -442,8 +471,19 @@ impl<'o> Vm<'o> {
             self.it.park = None;
             self.it.task_done = false;
             let mut pc = tasks[i].pc;
+            let chain = mem::take(&mut tasks[i].chain);
+            let height = if chain.is_empty() {
+                self.stack.len()
+            } else {
+                debug_assert_eq!(self.stack.len(), tasks[i].height);
+                self.stack.append(&mut tasks[i].seg);
+                tasks[i].height
+            };
+            self.unwinding.clear();
             self.task_path.push(i);
-            let r = self.exec_from(code, &mut pc, base);
+            let prev_chain = mem::replace(&mut self.chain, true);
+            let r = self.resume_into(code, &mut pc, base, &chain);
+            self.chain = prev_chain;
             self.task_path.pop();
             self.it.force = false;
             let t = &mut tasks[i];
@@ -453,6 +493,12 @@ impl<'o> Vm<'o> {
                 Err(e) => break Err(e),
             };
             if let Some(now) = self.it.park.take() {
+                if !self.unwinding.is_empty() {
+                    // Parked in a called function: keep its frames and stack for the next run.
+                    t.chain = self.unwinding.drain(..).rev().collect();
+                    t.seg = self.stack.split_off(height);
+                    t.height = height;
+                }
                 if prev != Some(now) {
                     if let Some((true, c)) = prev
                         && let Some(k) = self.it.waiting_recv.iter().position(|w| *w == c)
@@ -528,11 +574,32 @@ impl<'o> Vm<'o> {
 
     fn exec(&mut self, f: usize, base: usize) -> R<Result<Value, Value>> {
         let mut code = self.codes[f].clone();
-        let mut pc = 0usize;
+        let deadline = self.it.deadline;
+        self.run_framed(&mut code, 0, base, deadline, &[])
+    }
+
+    /// Run a called frame from `pc`, with the frames it had called when it parked in `callee`
+    /// (outermost first). A park leaves the frame in `unwinding`.
+    fn run_framed(
+        &mut self,
+        code: &mut Rc<Code>,
+        mut pc: usize,
+        base: usize,
+        deadline: Option<i128>,
+        callee: &[Saved],
+    ) -> R<Result<Value, Value>> {
         // A deadline scope ends with its function, however that returns.
-        let outer = self.it.deadline;
-        let r = self.exec_from(&mut code, &mut pc, base);
-        self.it.deadline = outer;
+        let outer = mem::replace(&mut self.it.deadline, deadline);
+        let r = self.resume_into(code, &mut pc, base, callee);
+        let inner = mem::replace(&mut self.it.deadline, outer);
+        if self.it.park.is_some() {
+            self.unwinding.push(Saved {
+                code: code.clone(),
+                pc,
+                base,
+                deadline: inner,
+            });
+        }
         match r {
             Err(Stop::Panic(mut p)) => {
                 p.trace.push(Frame {
@@ -543,6 +610,38 @@ impl<'o> Vm<'o> {
             }
             r => r,
         }
+    }
+
+    /// Run `code` from `pc`, first finishing the call at `pc - 1` that `callee` was parked in.
+    fn resume_into(
+        &mut self,
+        code: &mut Rc<Code>,
+        pc: &mut usize,
+        base: usize,
+        callee: &[Saved],
+    ) -> R<Result<Value, Value>> {
+        if let Some((c, rest)) = callee.split_first() {
+            if let Some((_, depth, ..)) = &mut self.limits {
+                *depth += 1;
+            }
+            let mut cc = c.code.clone();
+            let r = self.run_framed(&mut cc, c.pc, c.base, c.deadline, rest)?;
+            if self.it.park.is_some() {
+                if let Some((_, depth, ..)) = &mut self.limits {
+                    *depth -= 1;
+                }
+                return Ok(Ok(Value::Unit));
+            }
+            let Op::Call { site, dst } = code.ops[*pc - 1] else {
+                unreachable!("a parked callee is called by a call op");
+            };
+            let s = &code.sites[site as usize];
+            let r = self.finish_code_call(base, s, c.base, r);
+            if let Some(ret) = self.call_outcome(base, s, dst, r)? {
+                return Ok(ret);
+            }
+        }
+        self.exec_from(code, pc, base)
     }
 
     /// Runs `code` from `pc`, leaving both at the op that stopped it.
@@ -670,27 +769,21 @@ impl<'o> Vm<'o> {
                 }
                 Op::Call { site, dst } => {
                     let s = &code.sites[site as usize];
-                    self.it.park_ok = self.task_base == Some(base);
+                    self.it.park_ok = self.chain && self.task_base.is_some();
                     let r = self.call_site(code, base, s);
                     self.it.park_ok = false;
                     let r = r?;
                     if self.it.park.is_some() {
-                        // Run this call again when the task resumes.
-                        *pc -= 1;
+                        // Run this call again when the task resumes, unless a callee parked
+                        // and resumes first.
+                        if self.unwinding.is_empty() {
+                            *pc -= 1;
+                        }
                         return Ok(Ok(Value::Unit));
                     }
-                    let v = match (r, &s.mode) {
-                        (Ok(v), Mode::Try) => data("Ok", "value", v),
-                        (Err(e), Mode::Try) => data("Err", "error", e),
-                        (Ok(v), _) => v,
-                        (Err(e), Mode::Plain) => return Ok(Err(e)),
-                        (Err(e), Mode::Propagate(via)) => return self.via(via, e).map(Err),
-                        (Err(_), Mode::Contract) => {
-                            return unsupported("a failing call in a contract or assertion");
-                        }
-                        (Err(_), Mode::Become) => unreachable!("become is its own op"),
-                    };
-                    self.stack[base + dst as usize] = v;
+                    if let Some(ret) = self.call_outcome(base, s, dst, r)? {
+                        return Ok(ret);
+                    }
                 }
                 Op::Become { site } => {
                     let s = &code.sites[site as usize];
@@ -926,6 +1019,54 @@ impl<'o> Vm<'o> {
     }
 
     /// Call `s` and write its `inout` arguments back. `Err` is the callee's failure value.
+    /// Store a finished call's result in `dst`, or the outcome that ends the frame.
+    fn call_outcome(
+        &mut self,
+        base: usize,
+        s: &Site,
+        dst: u32,
+        r: Result<Value, Value>,
+    ) -> R<Option<Result<Value, Value>>> {
+        let v = match (r, &s.mode) {
+            (Ok(v), Mode::Try) => data("Ok", "value", v),
+            (Err(e), Mode::Try) => data("Err", "error", e),
+            (Ok(v), _) => v,
+            (Err(e), Mode::Plain) => return Ok(Some(Err(e))),
+            (Err(e), Mode::Propagate(via)) => return self.via(via, e).map(|e| Some(Err(e))),
+            (Err(_), Mode::Contract) => {
+                return unsupported("a failing call in a contract or assertion");
+            }
+            (Err(_), Mode::Become) => unreachable!("become is its own op"),
+        };
+        self.stack[base + dst as usize] = v;
+        Ok(None)
+    }
+
+    /// The end of a call to code: copy the `inout` arguments back and drop the callee's frame.
+    fn finish_code_call(
+        &mut self,
+        base: usize,
+        s: &Site,
+        new_base: usize,
+        r: Result<Value, Value>,
+    ) -> Result<Value, Value> {
+        if let Some((_, depth, ..)) = &mut self.limits {
+            *depth -= 1;
+        }
+        for (i, a) in s.args.iter().enumerate() {
+            if let ArgC::Inout(r) = a {
+                let v = self
+                    .stack
+                    .get_mut(new_base + i)
+                    .map(mem::take)
+                    .unwrap_or(Value::Unit);
+                self.stack[base + *r as usize] = v;
+            }
+        }
+        release(&mut self.stack, new_base);
+        r
+    }
+
     fn call_site(&mut self, code: &Code, base: usize, s: &Site) -> R<Result<Value, Value>> {
         let new_base = self.stack.len();
         self.push_args(code, base, s);
@@ -941,20 +1082,14 @@ impl<'o> Vm<'o> {
                 self.tick()?;
                 self.enter(f, clo.as_deref(), new_base, nargs);
                 let r = self.exec(f, new_base)?;
-                if let Some((_, depth, ..)) = &mut self.limits {
-                    *depth -= 1;
-                }
-                for (i, a) in s.args.iter().enumerate() {
-                    if let ArgC::Inout(r) = a {
-                        let v = self
-                            .stack
-                            .get_mut(new_base + i)
-                            .map(mem::take)
-                            .unwrap_or(Value::Unit);
-                        self.stack[base + *r as usize] = v;
+                if self.it.park.is_some() {
+                    // The callee's frame stays on the stack; it is saved with the task.
+                    if let Some((_, depth, ..)) = &mut self.limits {
+                        *depth -= 1;
                     }
+                    return Ok(Ok(Value::Unit));
                 }
-                r
+                return Ok(self.finish_code_call(base, s, new_base, r));
             }
             Target::Native
                 if let Some((id, b)) = s.id.and_then(|id| Some((id, bind::get(id)?))) =>
@@ -968,7 +1103,10 @@ impl<'o> Vm<'o> {
                         // Taken off the stack: closures the function calls run on it.
                         let mut args: Vec<Value> =
                             self.stack[new_base..].iter_mut().map(mem::take).collect();
-                        let r = f(self, id, &mut args)?;
+                        let chain = mem::replace(&mut self.chain, false);
+                        let r = f(self, id, &mut args);
+                        self.chain = chain;
+                        let r = r?;
                         for (i, v) in args.into_iter().enumerate() {
                             self.stack[new_base + i] = v;
                         }
