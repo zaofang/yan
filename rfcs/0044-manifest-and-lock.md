@@ -1,8 +1,8 @@
 # 0044: Package manifest and yan.lock
 
-- Status: draft
+- Status: accepted
 - Research: none; starts from spec 19.1, 19.3 and RFC 0020, and from issue #362
-- Rows: filled in when accepted
+- Rows: R890 to R896; E018 to E021
 
 ## Summary
 
@@ -25,8 +25,8 @@ Recommendation: (a). It is implemented, the data-file profile already checks it,
 doubles every tool's discovery rules. A `.yn` twin can come later without a format change, since the
 surface only changes the spelling of the same constant.
 
-- Decision:
-- Row:
+- Decision: as recommended, taken under the lead's standing rule for choices not worth a card (the most complete option); Antonio, 2026-11-07
+- Row: R890
 
 ### D2: manifest schema rules
 
@@ -40,8 +40,8 @@ after, and a silently ignored `capabilities` typo is a security hole; the `yan` 
 toolchain may read it. Required fields (a), with `name` and `version` waived only for a root that sets
 `members` and publishes nothing.
 
-- Decision:
-- Row:
+- Decision: as recommended, taken under the lead's standing rule for choices not worth a card (the most complete option); Antonio, 2026-11-07
+- Row: R891, E018
 
 ### D3: lock file encoding
 
@@ -53,9 +53,8 @@ one field per line, trailing commas. One reader and one canonical printer are al
 files, merge conflicts are line-local, and no second parser enters the trusted base. TOML would reuse
 `std.toml` but adds a format `yan` otherwise needs only for interop.
 
-- Decision: TOML, as Cargo and uv do (not the recommendation); Antonio, 2026-11-07. Written with the same canonical
-  rules: records sorted by (name, major), fields in fixed order, one field per line.
-- Row:
+- Decision: TOML, as Cargo and uv do (not the recommendation); Antonio, 2026-11-07. Canonical rules as recommended: records sorted by (name, major), fields in fixed order, one field per line.
+- Row: R892
 
 ### D4: lock format version
 
@@ -69,8 +68,8 @@ newer lock read by an older toolchain fails with a message naming the needed ver
 versions (tzdb, Unicode, CLDR, ISO 4217, `math_edition`) and header hashes live in named top-level
 fields, not in the format number.
 
-- Decision:
-- Row:
+- Decision: as recommended, taken under the lead's standing rule for choices not worth a card (the most complete option); Antonio, 2026-11-07; written as a top-level `format` integer of the TOML file
+- Row: R893, E019
 
 ### D5: resolver procedure
 
@@ -88,7 +87,7 @@ resolve order is fixed: overrides first, then dependencies, dev dependencies and
 subgraphs of one lock, then the Python environment. A conflict names both requirers.
 
 - Decision: as recommended; Antonio, 2026-11-07
-- Row:
+- Row: R894
 
 ### D6: static index contents and discovery
 
@@ -104,8 +103,8 @@ out of the manifest so a dependency cannot redirect a namespace. Publish time is
 because the cool-off needs it before any log exists. Until M2b the default namespace maps to nothing:
 `yan add` on an unmapped namespace fails with a message naming the config key.
 
-- Decision:
-- Row:
+- Decision: as recommended, taken under the lead's standing rule for choices not worth a card (the most complete option); Antonio, 2026-11-07
+- Row: R895, E021
 
 ### D7: when the lock is written
 
@@ -118,13 +117,12 @@ protocol protects would be a surprise to agents and to reviewers. A missing lock
 dependencies is a resolve from the manifest's minimums, written only by `yan lock`. `--offline --locked`
 fails if any pinned archive is absent from `.yan/` or the vendor directory.
 
-- Decision:
-- Row:
+- Decision: as recommended; Antonio, 2026-11-07
+- Row: R896, E020
 
 ## Spec changes
 
-On acceptance: 19.1 gains the schema rules (D1, D2), the lock encoding and version (D3, D4) and the
+19.1 gains the schema rules (D1, D2), the lock encoding and version (D3, D4) and the
 write rules (D7); 19.3 gains the `.info` fields and discovery (D6); 19.4 gains the resolve procedure
-(D5); 18.1 gets `yan lock` if D7 is accepted. New diagnostics, if any, take the next free code in their
-section 25 family. The pkg and solver conformance cases for each accepted item are proposed in a
+(D5); 18.1 gets `yan lock` if D7 is accepted. New diagnostics E018 to E021 are in section 25. The pkg and solver conformance cases for each accepted item are proposed in a
 separate PR.

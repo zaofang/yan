@@ -19,7 +19,7 @@ One binary, `yan`, provides every tool. All subcommands share the query database
 | `yan mcp` | agent server (21.4) | M1 |
 | `yan agent <task.json> --model stub:FILE\|cmd:PROGRAM [--primer f] [--shots dir] [--dir d] [--module m] [--spec-repairs n] [--body-repairs n] [--out f]` | the reference agent loop: one task through both phases of the spec gate over the `yan mcp` tools, writing a run record (21.1, 21.6, R616) | M1 |
 | `yan review [BASE[..HEAD]] [--format line\|json\|md]` | review report for a change (21.5): items added, edited and removed on elaborated Yan Core with their headers; authority gains and losses; contract, test and `tests.lock` changes, approval judged by BASE; verdicts of the tests that reach a change; exit 1 when a finding needs a human (R665 to R671) | M1 |
-| `yan add`, `remove`, `update`, `tree`, `why`, `vendor` | dependency management (section 19); `yan why <item> <fact>` explains an item's capability, `fail` member or panic kind (R612) | M1 |
+| `yan add`, `remove`, `update`, `lock`, `tree`, `why`, `vendor` | dependency management (section 19); `yan lock` writes `yan.lock` from the manifest without changing a locked version (R896); `yan why <item> <fact>` explains an item's capability, `fail` member or panic kind (R612) | M1 |
 | `yan x <pkg> <tool>` | run a package's tool under its ceiling | M1 |
 | `yan schema gen <file>` | write table row types from data files (11.9) | M1 |
 | `yan toolchain`, `yan self update` | fetch and verify toolchains (20.3, 19.6) | M1 |
