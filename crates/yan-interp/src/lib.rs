@@ -22,6 +22,7 @@ mod collections;
 mod compile;
 mod crypto_rand;
 mod csvwire;
+mod ct;
 mod encoding;
 mod env;
 mod fault;

@@ -1,0 +1,14 @@
+"""Selection and comparison that do not branch on their operands (17.4, R611). Use them on
+secret-derived values in a `@constant_time` function, where a branch is E424."""
+
+@intrinsic
+@since("1.0")
+pub def ct_select(cond: bool, a: int, b: int) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def ct_eq(a: int, b: int) -> bool: ...
+
+@intrinsic
+@since("1.0")
+pub def ct_lt(a: int, b: int) -> bool: ...
