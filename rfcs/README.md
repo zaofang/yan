@@ -67,3 +67,4 @@ research index links their studies and rows.
 | [0045](0045-language-readings.md) | Language readings assumed by the implementation | accepted | R898 to R907 |
 | [0046](0046-std-readings.md) | Std readings assumed by the implementation | accepted | R908 to R914 |
 | [0047](0047-toolchain-readings.md) | Toolchain readings assumed by the implementation | accepted | R915 to R924 |
+| [0048](0048-residual-wrapped-rejections.md) | Residual wrapped rejections from the R567 failure-mix study | accepted | R927 to R929 |

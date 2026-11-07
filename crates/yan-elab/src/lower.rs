@@ -4146,7 +4146,7 @@ impl Lower<'_, '_, '_> {
         }
         let pos = match m {
             "compile" => 1,
-            "match" | "search" | "fullmatch" | "findall" | "find_all" => 2,
+            "match" | "search" | "fullmatch" | "findall" | "finditer" | "find_all" => 2,
             _ => usize::MAX,
         };
         let mut fs = String::new();
@@ -5660,16 +5660,30 @@ impl Lower<'_, '_, '_> {
                 ("std.list.concat".to_owned(), tx.clone(), vec![e.targ()])
             }
             (Ty::Option(_), _) | (_, Ty::Option(_)) => {
-                let t = if matches!(tx, Ty::Option(_)) {
-                    &tx
+                let (t, sp) = if matches!(tx, Ty::Option(_)) {
+                    (&tx, a.span)
                 } else {
-                    &ty
+                    (&ty, b.span)
+                };
+                let default = match t {
+                    Ty::Option(i) => match **i {
+                        Ty::Int => Some("0"),
+                        Ty::Float => Some("0.0"),
+                        Ty::Str => Some("\"\""),
+                        _ => None,
+                    },
+                    _ => None,
                 };
                 self.err(
                     "E201",
                     at,
                     format!("`{op}` on a `{t}`, which may be `None`; unwrap it first with `else`"),
                 );
+                if let Some(d) = default {
+                    let fixed = format!("({} else {d})", self.cx.text(sp));
+                    self.cx
+                        .fix(Applicability::Choice, "unwrap with a default", sp, &fixed);
+                }
                 return Ok((Rhs::Atom(x), Ty::Err));
             }
             _ => {
@@ -6345,7 +6359,7 @@ impl Lower<'_, '_, '_> {
                     && !self.cx.strict
                     && let Some(meth) = match m.as_str() {
                         "match" | "search" | "fullmatch" | "split" | "sub" => Some(m.as_str()),
-                        "findall" | "find_all" => Some("find_all"),
+                        "findall" | "finditer" | "find_all" => Some("find_all"),
                         _ => None,
                     }
                     && let [pat, rest @ ..] = args
@@ -8773,7 +8787,7 @@ impl Lower<'_, '_, '_> {
             (Ty::Str, "is_upper") => "isupper",
             (Ty::Str, "is_lower") => "islower",
             (Ty::Str, "is_space") => "isspace",
-            (Ty::Data(n), "findall") if n == "Regex" => "find_all",
+            (Ty::Data(n), "findall" | "finditer") if n == "Regex" => "find_all",
             _ => m,
         };
         if canon != m && !self.cx.strict {
@@ -8811,8 +8825,11 @@ impl Lower<'_, '_, '_> {
             }
             _ => args,
         };
-        // `std.text` declares `upper` and `lower` on `str` only; a `char` goes through its text.
-        if t == Ty::Char && matches!(m, "upper" | "lower") && args.is_empty() {
+        // `std.text` declares these on `str` only; a `char` goes through its text.
+        if t == Ty::Char
+            && matches!(m, "upper" | "lower" | "parse_int" | "parse_float")
+            && args.is_empty()
+        {
             let c = if p.projs.is_empty() {
                 Atom::Name(p.root, p.root_span)
             } else {
@@ -8821,7 +8838,12 @@ impl Lower<'_, '_, '_> {
             let text = call("std.fmt.show", vec![t.targ()], vec![let_arg(c)], b.span);
             let s = self.tmp(&Ty::Str, Rhs::Call(text), b.span);
             let c = call(&format!("std.text.{m}"), vec![], vec![let_arg(s)], at);
-            return Ok((Rhs::Call(c), Ty::Str, None));
+            let ret = match m {
+                "parse_int" => Ty::Option(Box::new(Ty::Int)),
+                "parse_float" => Ty::Option(Box::new(Ty::Float)),
+                _ => Ty::Str,
+            };
+            return Ok((Rhs::Call(c), ret, None));
         }
         let std_class = match &t {
             Ty::Data(n) if self.g.std_records.contains(n) => crate::stdlib::class_module(n),
