@@ -1,0 +1,28 @@
+# spec: 9.4
+# rows: R394
+# milestone: M2a
+# note: in par concurrent a typed failure cancels every other branch, earlier and later; the block returns the lowest-index failure that is not Cancelled, so the waiting branches at index 0 and 2, which fail Cancelled, never win over the failing branch at index 1; only one branch fails on its own, so the result is deterministic
+# stdout:
+# Bad(n=7)
+
+@derive(Show)
+class Bad:
+    n: int
+
+def wait(var rx: Receiver[int]) -> None fail Cancelled:
+    rx.recv()?
+
+def boom(n: int) -> None fail Bad:
+    fail Bad(n=n)
+
+def only_one_fails() -> str fail Cancelled | Bad:
+    _, rx = Channel[int](0)
+    _, rx2 = Channel[int](0)
+    par concurrent:
+        wait(&rx)?
+        boom(7)?
+        wait(&rx2)?
+    return "ok"
+
+pub def main() uses io:
+    io.print(only_one_fails() else err -> f"{err}")
