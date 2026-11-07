@@ -63,6 +63,7 @@ pub fn convert(src: &str) -> R<(String, Vec<String>)> {
         }
         match s {
             ast::Stmt::FunctionDef(f) => cx.function(&mut out, f, &mut examples)?,
+            ast::Stmt::ClassDef(c) => cx.class(&mut out, c)?,
             other => {
                 return Err(cx.unsupported(other.range().start().to_usize(), "top-level statement"));
             }
@@ -173,6 +174,74 @@ impl<'a> Cx<'a> {
         self.notes
             .borrow_mut()
             .push(format!("line {line}: {code} {what}"));
+    }
+
+    /// A record class: fields only. N08 drops `@dataclass`, N20 drops an `Exception` base.
+    fn class(&mut self, out: &mut String, c: &ast::StmtClassDef) -> R<()> {
+        let at = c.range.start().to_usize();
+        for d in &c.decorator_list {
+            let target = match d {
+                ast::Expr::Call(call) if call.args.is_empty() && call.keywords.is_empty() => {
+                    &*call.func
+                }
+                d => d,
+            };
+            let is_dataclass = match target {
+                ast::Expr::Name(n) => n.id.as_str() == "dataclass",
+                ast::Expr::Attribute(a) => {
+                    a.attr.as_str() == "dataclass"
+                        && matches!(&*a.value, ast::Expr::Name(m) if m.id.as_str() == "dataclasses")
+                }
+                _ => false,
+            };
+            if !is_dataclass {
+                return Err(self.unsupported(at, "a class decorator"));
+            }
+            self.note(at, "N08", "@dataclass removed");
+        }
+        match c.bases.as_slice() {
+            [] => {}
+            [ast::Expr::Name(n)] if n.id.as_str() == "Exception" => {
+                self.note(at, "N20", "Exception base dropped");
+            }
+            _ => return Err(self.unsupported(at, "a class base")),
+        }
+        if !c.keywords.is_empty() {
+            return Err(self.unsupported(at, "a class keyword"));
+        }
+        writeln!(out, "class {}:", c.name).unwrap();
+        let mut body = c.body.as_slice();
+        if let Some(ast::Stmt::Expr(e)) = body.first()
+            && let ast::Expr::Constant(k) = &*e.value
+            && let ast::Constant::Str(doc) = &k.value
+        {
+            writeln!(out, "    \"\"\"{doc}\"\"\"").unwrap();
+            body = &body[1..];
+        }
+        let mut fields = 0;
+        for s in body {
+            let at = s.range().start().to_usize();
+            match s {
+                ast::Stmt::AnnAssign(a) if matches!(&*a.target, ast::Expr::Name(_)) => {
+                    let mut line =
+                        format!("{}: {}", self.expr(&a.target)?, self.ty(&a.annotation)?);
+                    if let Some(v) = &a.value {
+                        write!(line, " = {}", self.expr(v)?).unwrap();
+                    }
+                    Self::line(out, 1, &line);
+                    fields += 1;
+                }
+                ast::Stmt::Pass(_) => {}
+                ast::Stmt::FunctionDef(_) => {
+                    return Err(self.unsupported(at, "a method (N09 is not implemented)"));
+                }
+                _ => return Err(self.unsupported(at, "this class member")),
+            }
+        }
+        if fields == 0 {
+            Self::line(out, 1, "pass");
+        }
+        Ok(())
     }
 
     fn function(
@@ -950,5 +1019,20 @@ mod tests {
         assert_eq!(notes.iter().filter(|n| n.contains("N01")).count(), 4);
         assert!(convert("from m import *\n").is_err());
         assert!(convert("from . import a\n").is_err());
+    }
+
+    #[test]
+    fn record_classes_drop_dataclass_and_exception_base() {
+        let src = "from dataclasses import dataclass\n\n@dataclass\nclass P:\n    \"\"\"A point.\"\"\"\n    x: int\n    y: int = 0\n\nclass E(Exception):\n    pass\n\ndef f(p: P) -> int:\n    return p.x\n";
+        let (out, notes) = convert(src).unwrap();
+        assert_eq!(
+            out,
+            "class P:\n    \"\"\"A point.\"\"\"\n    x: int\n    y: int = 0\n\nclass E:\n    pass\n\ndef f(p: P) -> int:\n    return p.x\n"
+        );
+        assert!(notes.iter().any(|n| n.contains("N08")));
+        assert!(notes.iter().any(|n| n.contains("N20")));
+        let err = convert("class C:\n    def m(self) -> int:\n        return 1\n").unwrap_err();
+        assert!(err.contains("N09"), "{err}");
+        assert!(convert("@dataclass(frozen=True)\nclass C:\n    x: int\n").is_err());
     }
 }
