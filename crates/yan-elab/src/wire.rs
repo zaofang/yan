@@ -51,8 +51,7 @@ pub(crate) fn schema(
     })
 }
 
-/// Not called yet: the std codecs (json, csv) read it, and the diagnostic for a field that is
-/// not `Wire` waits on a spec row for its code.
+/// Not called yet: the std codecs (json, csv) read it.
 ///
 /// The schemas reachable from record or sum `name`, or why it cannot derive `Wire`.
 #[allow(dead_code)]

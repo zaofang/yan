@@ -59,7 +59,7 @@ research index links their studies and rows.
 | [0037](0037-remaining-spelling-marks.md) | Spelling marks for the last eight law 1 cases: `+` on strings, N36, `range(0, n)`, tuple assignment, `divmod` and `pow`, `**` | accepted | R857 to R861 |
 | [0038](0038-t09-spelling-marks.md) | Spelling marks for the four T09 law 1 cases: hoisted declaration, `View`, cli schema, comprehension, `ex`, tuple parentheses | accepted | R863 to R868 |
 | [0039](0039-drops-on-the-failing-edge.md) | Drops on the failing edge of `?`: a drop list on the `?` form in optimized Core | accepted | R871 |
-| [0040](0040-non-wire-field-diagnostic.md) | Code, span and text of the diagnostic for a `derive(Wire)` field that is not `Wire` | draft | |
+| [0040](0040-non-wire-field-diagnostic.md) | Code, span and text of the diagnostic for a `derive(Wire)` field that is not `Wire` | accepted | R872, R873 |
 | [0041](0041-typed-json-csv-decode.md) | Typed json and csv over Wire: tags, shapes, errors, csv rules | accepted | R874 to R881 |
 | [0042](0042-panic-operand-fields.md) | Panic operand fields the spec names but does not define | accepted | R882 to R885 |
 | [0043](0043-native-par-concurrent.md) | Native `par concurrent`: branches and blocking callees as resumable tasks | accepted | none |
