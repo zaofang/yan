@@ -67,6 +67,37 @@ impl Enc {
         self.0.extend(name.as_bytes());
     }
 
+    fn tagged(&mut self, tag: u8, s: &str) {
+        self.0.push(tag);
+        self.0.extend((s.len() as u64).to_le_bytes());
+        self.0.extend(s.as_bytes());
+    }
+
+    /// An arbitrary-precision integer by its decimal text.
+    pub fn bigint(&mut self, decimal: &str) {
+        self.tagged(10, decimal);
+    }
+
+    /// A Windows path by its case-folded text.
+    pub fn win_path(&mut self, folded: &str) {
+        self.tagged(11, folded);
+    }
+
+    /// A plain date, time or date-time by its ISO 8601 text; `kind` is 0, 1 or 2.
+    pub fn civil(&mut self, kind: u8, iso: &str) {
+        self.tagged(12 + kind, iso);
+    }
+
+    /// A calendar period by its ISO 8601 text.
+    pub fn period(&mut self, iso: &str) {
+        self.tagged(15, iso);
+    }
+
+    /// A time zone by its identifier.
+    pub fn zone(&mut self, id: &str) {
+        self.tagged(16, id);
+    }
+
     /// A key type with no stable encoding; its type name still separates it.
     pub fn opaque(&mut self) {
         self.0.push(255);
