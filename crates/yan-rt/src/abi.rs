@@ -82,6 +82,10 @@ fn ops_fields(
             f.push(("dividend", PanicOperand::Int(wide(a))));
             f.push(("divisor", PanicOperand::Int(wide(b))));
         }
+        "bounds" => {
+            f.push(("index", PanicOperand::Int(wide(a))));
+            f.push(("length", PanicOperand::Int(wide(b))));
+        }
         _ => {}
     }
     f
@@ -89,7 +93,7 @@ fn ops_fields(
 
 /// A panic of kind `ptr[..len]` with integer operands `a` and `b` of the integer type of `bits`
 /// width and signedness `signed`: `overflow` carries `type`, `left`, `right`; `div_zero` carries
-/// `dividend`, `divisor`; the rest carry none. Reported as [`yan_rt_panic`].
+/// `dividend`, `divisor`; `bounds` carries `index`, `length`; the rest carry none. Reported as [`yan_rt_panic`].
 ///
 /// # Safety
 /// `ptr` points to `len` bytes of UTF-8.
@@ -362,7 +366,9 @@ pub unsafe extern "C" fn yan_rt_list_at(l: *mut List, i: i64) -> *mut u64 {
     // SAFETY: the caller's contract.
     let n = unsafe { yan_rt_list_len(l) };
     if !(0..n).contains(&i) {
-        panic("bounds");
+        let kind = "bounds";
+        // SAFETY: a str is valid UTF-8.
+        unsafe { yan_rt_panic_ops(kind.as_ptr(), kind.len(), 64, 1, i, n) }
     }
     // SAFETY: as above; `i` is in bounds.
     let l = unsafe { &mut *l };
@@ -551,6 +557,9 @@ mod panic_ops_tests {
         let f = ops_fields("overflow", 8, 0, 200, 100);
         assert_eq!(f[0], ("type", PanicOperand::Type("u8".into())));
         assert_eq!(f[1], ("left", PanicOperand::Int(200)));
+        let f = ops_fields("bounds", 64, 1, 5, 3);
+        assert_eq!(f[0], ("index", PanicOperand::Int(5)));
+        assert_eq!(f[1], ("length", PanicOperand::Int(3)));
         let f = ops_fields("div_zero", 64, 0, -1, 0);
         assert_eq!(f[0], ("dividend", PanicOperand::Int(u64::MAX.into())));
         assert_eq!(f[1], ("divisor", PanicOperand::Int(0)));
