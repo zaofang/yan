@@ -270,6 +270,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R922 | interim native layout and no drops until drop elaboration (RFC 0047) | 5.2, 5.3, 22.2 |
 | R923 | unsafe confined to `yan-rt` and `yan-cg-cranelift` entry points, lazy JIT, primitive integer sorts (RFC 0047) | 22.3, 22.4 |
 | R924 | `yan test` package, ids, budgets, test hash, `--gate` and output formats (RFC 0047) | 18.4 |
+| R925 | `cost` bounds cover the body, the call charged to the caller; one `alloc` is a fresh heap value, an `inout` growth or a capturing closure | 8.4 |
 
 <!-- /rows -->
 

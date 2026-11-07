@@ -37,17 +37,23 @@ pub(crate) struct Vm<'o> {
     chain: bool,
     /// The called frames of a parking task, innermost first, while the park unwinds.
     unwinding: Vec<Saved>,
-    /// Steps taken, counted at run time too, for `cost` counters (R610).
-    ticks: u64,
-    /// The running `cost steps` counters, outermost first.
+    /// Steps taken and allocations made, counted at run time too, for `cost` counters (R610).
+    counts: [u64; 2],
+    /// The running `cost` counters, outermost first.
     costs: Vec<Cost>,
-    /// The least `deadline` in `costs`.
-    cost_next: u64,
+    /// The least `deadline` in `costs` of each resource.
+    cost_next: [u64; 2],
 }
 
-/// A `cost steps <= bound` counter of the frame at `base`: it panics once `ticks` passes
-/// `deadline`.
+/// The resources a `cost` bound limits, by their index in [`Vm::counts`].
+const STEPS: usize = 0;
+const ALLOC: usize = 1;
+const RESOURCE: [&str; 2] = ["steps", "alloc"];
+
+/// A `cost steps <= bound` or `cost alloc <= bound` counter of the frame at `base`: it panics
+/// once the count of `resource` passes `deadline`.
 struct Cost {
+    resource: usize,
     base: usize,
     deadline: u64,
     bound: i128,
@@ -343,9 +349,9 @@ impl<'o> Vm<'o> {
             suspended: HashMap::new(),
             chain: false,
             unwinding: Vec::new(),
-            ticks: 0,
+            counts: [0; 2],
             costs: Vec::new(),
-            cost_next: u64::MAX,
+            cost_next: [u64::MAX; 2],
         }
     }
 
@@ -359,15 +365,7 @@ impl<'o> Vm<'o> {
 
     /// One step against the budgets; the clock is read every 4096 steps.
     fn tick(&mut self) -> R<()> {
-        self.ticks += 1;
-        if self.ticks > self.cost_next {
-            let c = self
-                .costs
-                .iter()
-                .min_by_key(|c| c.deadline)
-                .expect("a counter");
-            return cost_panic(c);
-        }
+        self.count(STEPS, 1)?;
         let Some((l, _, steps, base)) = &mut self.limits else {
             return Ok(());
         };
@@ -385,6 +383,53 @@ impl<'o> Vm<'o> {
             return Err(crate::Stop::Limit("time"));
         }
         Ok(())
+    }
+
+    /// Adds `n` to the count of `resource`, panicking past the tightest `cost` bound on it.
+    fn count(&mut self, resource: usize, n: u64) -> R<()> {
+        self.counts[resource] += n;
+        if self.counts[resource] > self.cost_next[resource] {
+            let c = self
+                .costs
+                .iter()
+                .filter(|c| c.resource == resource)
+                .min_by_key(|c| c.deadline)
+                .expect("a counter");
+            return cost_panic(c);
+        }
+        Ok(())
+    }
+
+    fn counting_allocs(&self) -> bool {
+        self.cost_next[ALLOC] != u64::MAX
+    }
+
+    /// The allocations of a std call (R610): one when it returns a fresh heap value, and one for
+    /// each `inout` collection it grew, from the sizes they had before the call.
+    fn count_allocs(
+        &mut self,
+        s: &Site,
+        new_base: usize,
+        before: &[Option<usize>],
+        r: &Result<Value, Value>,
+    ) -> R<()> {
+        let fresh = matches!(r, Ok(v) if heap(v));
+        let grown = s
+            .args
+            .iter()
+            .enumerate()
+            .zip(before)
+            .filter(|((i, a), b)| {
+                matches!(a, ArgC::Inout(_)) && size(&self.stack[new_base + i]) > **b
+            })
+            .count();
+        self.count(ALLOC, u64::from(fresh) + grown as u64)
+    }
+
+    fn inout_sizes(&self, s: &Site, new_base: usize) -> Vec<Option<usize>> {
+        (0..s.args.len())
+            .map(|i| size(&self.stack[new_base + i]))
+            .collect()
     }
 
     /// Call code `f` with `args`. The outcome, plus the final values of the parameters.
@@ -623,12 +668,15 @@ impl<'o> Vm<'o> {
         // So does its `cost` counter.
         if self.costs.last().is_some_and(|c| c.base >= base) {
             self.costs.retain(|c| c.base < base);
-            self.cost_next = self
-                .costs
-                .iter()
-                .map(|c| c.deadline)
-                .min()
-                .unwrap_or(u64::MAX);
+            for (k, next) in self.cost_next.iter_mut().enumerate() {
+                *next = self
+                    .costs
+                    .iter()
+                    .filter(|c| c.resource == k)
+                    .map(|c| c.deadline)
+                    .min()
+                    .unwrap_or(u64::MAX);
+            }
         }
         if self.it.park.is_some() {
             self.unwinding.push(Saved {
@@ -909,13 +957,16 @@ impl<'o> Vm<'o> {
                     };
                     self.stack[base + dst as usize] = v;
                 }
-                Op::CostBegin { src, info } => {
+                Op::CostBegin { src, info, alloc } => {
                     let Value::Int(bound) = self.stack[base + src as usize] else {
                         return unsupported("a `cost` bound that is not an int");
                     };
+                    let resource = if alloc { ALLOC } else { STEPS };
                     let c = Cost {
+                        resource,
                         base,
-                        deadline: self.ticks.saturating_add(u64::try_from(bound).unwrap_or(0)),
+                        deadline: self.counts[resource]
+                            .saturating_add(u64::try_from(bound).unwrap_or(0)),
                         bound,
                         code: code.clone(),
                         info,
@@ -923,7 +974,7 @@ impl<'o> Vm<'o> {
                     if bound < 0 {
                         return cost_panic(&c);
                     }
-                    self.cost_next = self.cost_next.min(c.deadline);
+                    self.cost_next[resource] = self.cost_next[resource].min(c.deadline);
                     self.costs.push(c);
                 }
                 Op::Check { src, info } => {
@@ -1003,6 +1054,9 @@ impl<'o> Vm<'o> {
                     self.stack[base + dst as usize] = v;
                 }
                 Op::Closure { dst, clo } => {
+                    if !code.clos[clo as usize].captures.is_empty() && self.counting_allocs() {
+                        self.count(ALLOC, 1)?;
+                    }
                     let c = &code.clos[clo as usize];
                     let v = Value::Closure(Rc::new(Clo {
                         code: c.code,
@@ -1149,6 +1203,9 @@ impl<'o> Vm<'o> {
             Target::Native
                 if let Some((id, b)) = s.id.and_then(|id| Some((id, bind::get(id)?))) =>
             {
+                let before = self
+                    .counting_allocs()
+                    .then(|| self.inout_sizes(s, new_base));
                 let r = match b {
                     Bind::Plain(f) => Ok(f(&mut self.stack[new_base..])?),
                     Bind::Cap(f) => Ok(f(&mut self.it, &mut self.stack[new_base..])?),
@@ -1168,6 +1225,9 @@ impl<'o> Vm<'o> {
                         Ok(r)
                     }
                 };
+                if let Some(before) = before {
+                    self.count_allocs(s, new_base, &before, &r)?;
+                }
                 for (i, a) in s.args.iter().enumerate() {
                     if let ArgC::Inout(r) = a {
                         let v = mem::take(&mut self.stack[new_base + i]);
@@ -1177,10 +1237,16 @@ impl<'o> Vm<'o> {
                 r
             }
             Target::Native => {
+                let before = self
+                    .counting_allocs()
+                    .then(|| self.inout_sizes(s, new_base));
                 let r = match intrinsic(&s.name, &self.stack[new_base..]) {
                     Some(r) => Ok(r?),
                     None => return unsupported(format!("call of `{}`", s.name)),
                 };
+                if let Some(before) = before {
+                    self.count_allocs(s, new_base, &before, &r)?;
+                }
                 for (i, a) in s.args.iter().enumerate() {
                     if let ArgC::Inout(r) = a {
                         let v = mem::take(&mut self.stack[new_base + i]);
@@ -1337,15 +1403,44 @@ fn cost_panic<T>(c: &Cost) -> R<T> {
     if let Some(h) = k.item {
         fields.push(("item".to_owned(), Operand::Hash(h)));
     }
-    fields.push(("steps".to_owned(), Operand::Int(c.bound)));
+    let resource = RESOURCE[c.resource];
+    fields.push((resource.to_owned(), Operand::Int(c.bound)));
+    let what = if c.resource == STEPS {
+        "took more steps"
+    } else {
+        "made more allocations"
+    };
     panic_fields(
         "contract",
         format!(
-            "`{}` took more than its `cost steps <= {}`",
+            "`{}` {what} than its `cost {resource} <= {}`",
             c.code.name, c.bound
         ),
         fields,
     )
+}
+
+/// Whether `v` lives on the heap, so making it is an `alloc` (R610).
+fn heap(v: &Value) -> bool {
+    match v {
+        Value::Closure(c) => !c.captured.is_empty(),
+        v => size(v).is_some() || matches!(v, Value::BigInt(_) | Value::Zone(_)),
+    }
+}
+
+/// The element count of a heap collection or text, which grows when an `inout` call adds to it.
+fn size(v: &Value) -> Option<usize> {
+    Some(match v {
+        Value::Str(s) | Value::Path(s) => s.len(),
+        Value::List(xs) | Value::Heap(xs) | Value::SortedSet(xs) => xs.len(),
+        Value::Dict(d) => d.len(),
+        Value::Set(s) => s.len(),
+        Value::Deque(d, _) => d.len(),
+        Value::SortedMap(m) => m.len(),
+        Value::Bytes(b) => b.len(),
+        Value::ByteArray(b) => b.len(),
+        _ => return None,
+    })
 }
 
 #[cfg(test)]

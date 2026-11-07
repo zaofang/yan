@@ -172,6 +172,7 @@ pub(crate) enum Op {
     CostBegin {
         src: Reg,
         info: u32,
+        alloc: bool,
     },
     /// Panic with `kind` unless `src` is `true`.
     Check {
@@ -657,17 +658,27 @@ impl<'g, 'm> FnC<'g, 'm> {
                     clause += 1;
                 }
                 Contract::Ensures(_) => clause += 1,
-                Contract::Cost { steps, .. } => {
-                    if let Some(e) = steps {
+                Contract::Cost { steps, alloc } => {
+                    // Both bounds are evaluated before either counter starts.
+                    let mut begins = Vec::new();
+                    for (e, alloc) in [(steps, false), (alloc, true)] {
+                        let Some(e) = e else { continue };
                         let t = c.temp();
                         c.expr(e, t);
+                        begins.push((t, alloc));
+                    }
+                    for (t, alloc) in begins {
                         let info = c.code.contracts.len() as u32;
                         c.code.contracts.push(ContractC {
                             item,
                             clause,
                             vars: Vec::new(),
                         });
-                        c.emit(Op::CostBegin { src: t, info });
+                        c.emit(Op::CostBegin {
+                            src: t,
+                            info,
+                            alloc,
+                        });
                     }
                     clause += 1;
                 }
