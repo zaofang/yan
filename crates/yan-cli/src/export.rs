@@ -151,6 +151,7 @@ fn ty(t: &Type) -> R<String> {
             let ps = params.iter().map(ty).collect::<R<Vec<_>>>()?;
             return Ok(format!("Callable[[{}], {}]", ps.join(", "), ty(ret)?));
         }
+        Type::Call { .. } => return no("type-function application"),
         Type::Named { path, args } => (path, args),
     };
     let args = args

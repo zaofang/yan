@@ -276,6 +276,12 @@ pub enum Type {
         fail: Vec<Path>,
         uses: Vec<Name>,
     },
+    /// A type function applied in type position, `session.protocol("...")` (10.4): its
+    /// arguments are stage-0 expressions.
+    Call {
+        path: Path,
+        args: Vec<Arg>,
+    },
     None,
 }
 

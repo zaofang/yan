@@ -574,7 +574,7 @@ fn mentions(t: &j::Type, n: &str) -> bool {
         j::Type::Callable { params, ret, .. } => {
             params.iter().any(|p| mentions(p, n)) || mentions(ret, n)
         }
-        j::Type::None => false,
+        j::Type::Call { .. } | j::Type::None => false,
     }
 }
 
@@ -592,7 +592,7 @@ fn unify(pat: &j::Type, t: &Ty, tps: &[&str], b: &mut HashMap<String, Ty>) -> bo
             }
         }
         j::Type::None => *t == Ty::Unit,
-        j::Type::Callable { .. } => false,
+        j::Type::Callable { .. } | j::Type::Call { .. } => false,
         j::Type::Named { path, args } if matches!(t, Ty::Data(_)) => {
             args.is_empty() && matches!(t, Ty::Data(n) if path.as_slice() == [n.as_str()])
         }
@@ -638,7 +638,7 @@ fn shape(t: &Ty) -> Option<(&'static str, Vec<&Ty>)> {
 fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
     Some(match pat {
         j::Type::None => Ty::Unit,
-        j::Type::Callable { .. } => return None,
+        j::Type::Callable { .. } | j::Type::Call { .. } => return None,
         j::Type::Named { path, args } => {
             let a = args
                 .iter()

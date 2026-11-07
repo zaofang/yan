@@ -2746,6 +2746,21 @@ impl<'a> Parser<'a> {
                 TypeKind::Vec { lanes, elem }
             }
             Tok::TypeName(_) => self.path_type()?,
+            Tok::Name(_) if self.at_type_call() => {
+                let mut path = Vec::new();
+                while let Tok::Name(n) = self.peek() {
+                    path.push(n.clone());
+                    self.bump();
+                    if !self.eat_p(".") {
+                        break;
+                    }
+                }
+                self.expect_p("(")?;
+                TypeKind::Call {
+                    path,
+                    args: self.args()?,
+                }
+            }
             Tok::Name(n) if *self.peek_n(1) == Tok::Punct(".") => {
                 let _ = n;
                 self.path_type()?
@@ -2764,6 +2779,21 @@ impl<'a> Parser<'a> {
             kind,
             span: self.since(start),
         })
+    }
+
+    /// At `f(` or `m.f(`: a type function applied in type position.
+    fn at_type_call(&self) -> bool {
+        let mut k = 0;
+        loop {
+            if !matches!(self.peek_n(k), Tok::Name(_)) {
+                return false;
+            }
+            match self.peek_n(k + 1) {
+                Tok::Punct(".") => k += 2,
+                Tok::Punct("(") => return true,
+                _ => return false,
+            }
+        }
     }
 
     fn path_type(&mut self) -> P<TypeKind> {

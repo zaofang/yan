@@ -736,6 +736,7 @@ pub fn type_(t: &Type) -> String {
         TypeKind::Dyn { name, args } if args.is_empty() => format!("dyn {name}"),
         TypeKind::Dyn { name, args } => format!("dyn {name}[{}]", comma(args, type_)),
         TypeKind::Unit => "()".to_owned(),
+        TypeKind::Call { path, args: a } => format!("{}({})", path.join("."), args(a)),
         TypeKind::Tuple(ts) => format!("({})", comma(ts, type_)),
         TypeKind::Ref(t) => format!("Ref[{}]", type_(t)),
         TypeKind::Ptr(t) => format!("Ptr[{}]", type_(t)),

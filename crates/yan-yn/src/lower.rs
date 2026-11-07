@@ -554,6 +554,10 @@ impl Lower<'_> {
                 return unsupported("Ref and Vec types");
             }
             TypeKind::Record(_) => return unsupported("anonymous record types"),
+            TypeKind::Call { path, args } => h::Type::Call {
+                path: path.clone(),
+                args: self.args(args)?,
+            },
         })
     }
 

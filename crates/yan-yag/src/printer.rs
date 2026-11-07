@@ -127,6 +127,7 @@ pub fn ty(t: &Type) -> String {
                 format!("{name}[{}]", comma(args, targ))
             }
         }
+        Type::Call { path: p, args: a } => format!("{}({})", path(p), args(a)),
         Type::Callable {
             par,
             params,
