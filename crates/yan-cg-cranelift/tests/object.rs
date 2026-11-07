@@ -129,3 +129,41 @@ fn objects_link_and_match_the_interpreter() {
         "fewer than {CASES} run cases compile to objects"
     );
 }
+
+/// `f()?` as a statement, with `f` returning `None fail E`, returns the failure (#649).
+#[test]
+fn a_discarded_propagation_returns_the_failure() {
+    let lib = static_lib();
+    let dir = std::env::temp_dir().join(format!("yan-propagate-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let src = dir.join("propagate_none.yag");
+    std::fs::write(
+        &src,
+        "class Bad:\n    n: int\n\n\
+         def boom(n: int) -> None fail Bad:\n    fail Bad(n=n)\n\n\
+         def run() -> int fail Bad:\n    boom(2)?\n    return 5\n\n\
+         pub def main() uses io:\n    r = run() else err -> err.n\n    io.print(f\"{r}\")\n",
+    )
+    .unwrap();
+    let m = load(&src).expect("the program loads clean");
+    let m = yan_opt::optimize("propagate_none", &m).unwrap();
+    let program = yan_mir::lower(&m).unwrap();
+    let o = dir.join("propagate_none.o");
+    std::fs::write(&o, yan_cg_cranelift::compile_object(&program).unwrap()).unwrap();
+    let exe = dir.join("propagate_none");
+    let cc = Command::new("cc")
+        .arg(&o)
+        .arg(&lib)
+        .args(["-lpthread", "-ldl", "-lm", "-o"])
+        .arg(&exe)
+        .output()
+        .unwrap();
+    assert!(
+        cc.status.success(),
+        "{}",
+        String::from_utf8_lossy(&cc.stderr)
+    );
+    let run = Command::new(&exe).output().unwrap();
+    let _ = std::fs::remove_dir_all(dir);
+    assert_eq!(String::from_utf8_lossy(&run.stdout), "2\n");
+}
