@@ -910,6 +910,7 @@ fn function_body_with(
     }
     let mut contracts = Vec::new();
     let mut pre = Vec::new();
+    let mut cost = None;
     for c in &body.contracts {
         let ghostly = |e: &j::Expr| {
             let mut hit = false;
@@ -932,9 +933,21 @@ fn function_body_with(
             },
             j::Contract::Post(e) => l.posts.push(e.clone()),
             j::Contract::Ex { .. } => {}
-            j::Contract::Cost { .. } => return unsupported("a `cost` clause"),
+            j::Contract::Cost { steps, alloc } => {
+                let steps = steps
+                    .as_ref()
+                    .map(|e| l.cost_bound(f, "steps", e))
+                    .transpose()?;
+                let alloc = alloc
+                    .as_ref()
+                    .map(|e| l.cost_bound(f, "alloc", e))
+                    .transpose()?;
+                cost = Some(y::Contract::Cost { steps, alloc });
+            }
         }
     }
+    // After the `requires` clauses, so the counter starts once the inputs are known good.
+    contracts.extend(cost);
     if let Some(p) = l.inferred.clone() {
         contracts.push(y::Contract::Decreases(vec![y::Expr::Atom(Atom::Name(
             p,
@@ -9007,6 +9020,79 @@ impl Lower<'_, '_, '_> {
             vec![let_arg(x), let_arg(y_)],
             e.span,
         ))))
+    }
+
+    /// A `cost` bound (R610) as one Yan Core expression: itself when it is one operation, else a
+    /// call of a generated `__cost_<f>_<which>` over `f`'s value parameters that returns it.
+    fn cost_bound(&mut self, f: &j::FuncDef, which: &str, e: &j::Expr) -> R<y::Expr> {
+        if let Some(x) = self.pure(e)? {
+            return Ok(x);
+        }
+        let params: Vec<j::Param> = f
+            .params
+            .iter()
+            .filter_map(|p| match p {
+                j::Param::Value { name, span, ty, .. } => Some(j::Param::Value {
+                    conv: None,
+                    name: name.clone(),
+                    span: *span,
+                    ty: ty.clone(),
+                    default: None,
+                }),
+                _ => None,
+            })
+            .collect();
+        let args = params
+            .iter()
+            .filter_map(|p| match p {
+                j::Param::Value { name, span, .. } => {
+                    Some(let_arg(Atom::Name(name.clone(), *span)))
+                }
+                _ => None,
+            })
+            .collect();
+        let name = format!("__cost_{}_{which}", f.name);
+        let h = j::FuncDef {
+            name: name.clone(),
+            name_span: e.span,
+            tparams: f.tparams.clone(),
+            params,
+            ret: Some(j::RetType {
+                ty: Some(j::Type::Named {
+                    path: vec!["i64".into()],
+                    args: Vec::new(),
+                }),
+                fail: Vec::new(),
+                from: Vec::new(),
+            }),
+            uses: None,
+            body: Some(j::Body {
+                doc: None,
+                contracts: Vec::new(),
+                stmts: vec![j::Stmt {
+                    kind: j::StmtKind::Return(Some(e.clone())),
+                    span: e.span,
+                }],
+            }),
+        };
+        // The helper has no source of its own, so it leaves no spelling marks.
+        let kept = self.cx.spelling();
+        let sig = crate::sig(self.g, &h, self.cx)?;
+        let fd = function(self.g, &h, &sig, false, self.cx);
+        self.cx.restore_spelling(kept);
+        let fd = fd?;
+        let mut generated = self.g.generated.borrow_mut();
+        if !generated
+            .iter()
+            .any(|it| matches!(&it.kind, y::ItemKind::Fn(d) if d.path == [name.as_str()]))
+        {
+            generated.push(y::Item {
+                attrs: Vec::new(),
+                kind: y::ItemKind::Fn(fd),
+                span: e.span,
+            });
+        }
+        Ok(y::Expr::Call(call(&name, Vec::new(), args, e.span)))
     }
 
     fn pure_atom(&self, e: &j::Expr) -> Option<(Atom, Ty)> {

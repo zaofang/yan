@@ -1085,13 +1085,94 @@ pub def f(n: int) -> int:
     assert_eq!(edit["text"], "");
 }
 
+fn cost_diags(src: &str) -> Vec<Diagnostic> {
+    let (m, d) = yan_yag::parse("t.yag", src, false);
+    assert!(d.is_empty(), "{d:?}");
+    let (_, d) =
+        elaborate("t.yag", src, &m.expect("parses"), Options::default()).expect("supported");
+    d.into_iter().filter(|d| d.code != "W813").collect()
+}
+
 #[test]
-fn a_cost_clause_parses_and_is_unsupported_until_it_is_checked() {
+fn a_cost_bound_no_input_breaks_is_w851() {
     let src = "\
-pub def f(xs: list[int]) -> int:
-    \"doc\"
-    cost steps <= len(xs), alloc <= 0
-    return 0
+def total(xs: list[int], n: int) -> int:
+    cost steps <= len(xs) + n, alloc <= 0
+    t = 0
+    for x in xs:
+        t += x
+    for i in range(n):
+        t += i
+    return t
 ";
-    assert_eq!(codes(src), ["E017"]);
+    let d = cost_diags(src);
+    let codes: Vec<&str> = d.iter().map(|d| d.code.as_str()).collect();
+    assert_eq!(codes, ["W851", "W851"], "{d:?}");
+    assert!(d[0].message.contains("step counter"), "{}", d[0].message);
+    assert!(d[1].message.contains("alloc <= 0"), "{}", d[1].message);
+}
+
+#[test]
+fn a_refuted_cost_bound_is_e618_with_the_smallest_witness() {
+    let src = "\
+def pairs(xs: list[int]) -> int:
+    cost steps <= 2 * len(xs) + 1
+    t = 0
+    for x in xs:
+        for y in xs:
+            t += x * y
+    return t
+";
+    let d = cost_diags(src);
+    assert_eq!(d.len(), 1, "{d:?}");
+    assert_eq!(d[0].code, "E618");
+    assert_eq!(d[0].quote, "2 * len(xs) + 1");
+    assert!(d[0].message.contains("len(xs) = 2"), "{}", d[0].message);
+    assert_eq!(d[0].counterexample, Some(serde_json::json!({"len(xs)": 2})));
+}
+
+#[test]
+fn a_cost_probe_skips_inputs_that_break_pre_and_sees_through_fail() {
+    let src = "\
+class Big:
+    n: int
+
+def count(n: int) -> int fail Big:
+    pre n >= 2
+    cost steps <= 4
+    if n > 100:
+        fail Big(n=n)
+    t = 0
+    for i in range(n):
+        t += i
+    return t
+";
+    let d = cost_diags(src);
+    assert_eq!(d.len(), 1, "{d:?}");
+    assert_eq!(d[0].code, "E618");
+    assert!(d[0].message.contains("n = 5"), "{}", d[0].message);
+}
+
+#[test]
+fn a_cost_counter_panics_with_kind_contract_at_run_time() {
+    let src = "\
+def spin(n: int) -> int:
+    cost steps <= 3
+    t = 0
+    for i in range(n):
+        t += i
+    return t
+
+pub def main() uses io:
+    io.print(f\"{spin(3)}\")
+    io.print(f\"{spin(4)}\")
+";
+    let (m, _) = lower(src);
+    let mut out = Vec::new();
+    let Err(yan_interp::Stop::Panic(p)) = yan_interp::run(&m, &mut out) else {
+        panic!("the counter does not stop `spin(4)`");
+    };
+    assert_eq!(String::from_utf8(out).expect("utf-8"), "3\n");
+    assert_eq!(p.kind, "contract");
+    assert!(p.fields.iter().any(|(n, _)| n == "steps"), "{:?}", p.fields);
 }

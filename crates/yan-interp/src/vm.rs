@@ -37,6 +37,22 @@ pub(crate) struct Vm<'o> {
     chain: bool,
     /// The called frames of a parking task, innermost first, while the park unwinds.
     unwinding: Vec<Saved>,
+    /// Steps taken, counted at run time too, for `cost` counters (R610).
+    ticks: u64,
+    /// The running `cost steps` counters, outermost first.
+    costs: Vec<Cost>,
+    /// The least `deadline` in `costs`.
+    cost_next: u64,
+}
+
+/// A `cost steps <= bound` counter of the frame at `base`: it panics once `ticks` passes
+/// `deadline`.
+struct Cost {
+    base: usize,
+    deadline: u64,
+    bound: i128,
+    code: Rc<Code>,
+    info: u32,
 }
 
 /// A called frame that a task parked in, resumed at `pc` once the task runs again.
@@ -327,6 +343,9 @@ impl<'o> Vm<'o> {
             suspended: HashMap::new(),
             chain: false,
             unwinding: Vec::new(),
+            ticks: 0,
+            costs: Vec::new(),
+            cost_next: u64::MAX,
         }
     }
 
@@ -340,6 +359,15 @@ impl<'o> Vm<'o> {
 
     /// One step against the budgets; the clock is read every 4096 steps.
     fn tick(&mut self) -> R<()> {
+        self.ticks += 1;
+        if self.ticks > self.cost_next {
+            let c = self
+                .costs
+                .iter()
+                .min_by_key(|c| c.deadline)
+                .expect("a counter");
+            return cost_panic(c);
+        }
         let Some((l, _, steps, base)) = &mut self.limits else {
             return Ok(());
         };
@@ -592,6 +620,16 @@ impl<'o> Vm<'o> {
         let outer = mem::replace(&mut self.it.deadline, deadline);
         let r = self.resume_into(code, &mut pc, base, callee);
         let inner = mem::replace(&mut self.it.deadline, outer);
+        // So does its `cost` counter.
+        if self.costs.last().is_some_and(|c| c.base >= base) {
+            self.costs.retain(|c| c.base < base);
+            self.cost_next = self
+                .costs
+                .iter()
+                .map(|c| c.deadline)
+                .min()
+                .unwrap_or(u64::MAX);
+        }
         if self.it.park.is_some() {
             self.unwinding.push(Saved {
                 code: code.clone(),
@@ -870,6 +908,23 @@ impl<'o> Vm<'o> {
                         _ => self.slow(code, base, site)?,
                     };
                     self.stack[base + dst as usize] = v;
+                }
+                Op::CostBegin { src, info } => {
+                    let Value::Int(bound) = self.stack[base + src as usize] else {
+                        return unsupported("a `cost` bound that is not an int");
+                    };
+                    let c = Cost {
+                        base,
+                        deadline: self.ticks.saturating_add(u64::try_from(bound).unwrap_or(0)),
+                        bound,
+                        code: code.clone(),
+                        info,
+                    };
+                    if bound < 0 {
+                        return cost_panic(&c);
+                    }
+                    self.cost_next = self.cost_next.min(c.deadline);
+                    self.costs.push(c);
                 }
                 Op::Check { src, info } => {
                     if !matches!(self.stack[base + src as usize], Value::Bool(true)) {
@@ -1273,6 +1328,24 @@ fn walk_mut<'v, 's>(
 
 fn is_cancelled(v: &Value) -> bool {
     matches!(v, Value::Data { name, .. } if &**name == "Cancelled")
+}
+
+/// A `cost steps` counter ran out: panic kind `contract` (R610, R211).
+fn cost_panic<T>(c: &Cost) -> R<T> {
+    let k = &c.code.contracts[c.info as usize];
+    let mut fields = vec![("clause".to_owned(), Operand::Int(k.clause.into()))];
+    if let Some(h) = k.item {
+        fields.push(("item".to_owned(), Operand::Hash(h)));
+    }
+    fields.push(("steps".to_owned(), Operand::Int(c.bound)));
+    panic_fields(
+        "contract",
+        format!(
+            "`{}` took more than its `cost steps <= {}`",
+            c.code.name, c.bound
+        ),
+        fields,
+    )
 }
 
 #[cfg(test)]

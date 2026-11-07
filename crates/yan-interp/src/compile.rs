@@ -167,6 +167,12 @@ pub(crate) enum Op {
         a: Opnd,
         site: u32,
     },
+    /// Start the `cost steps <= src` counter of this frame (R610), described by
+    /// `code.contracts[info]`.
+    CostBegin {
+        src: Reg,
+        info: u32,
+    },
     /// Panic with `kind` unless `src` is `true`.
     Check {
         src: Reg,
@@ -651,6 +657,20 @@ impl<'g, 'm> FnC<'g, 'm> {
                     clause += 1;
                 }
                 Contract::Ensures(_) => clause += 1,
+                Contract::Cost { steps, .. } => {
+                    if let Some(e) = steps {
+                        let t = c.temp();
+                        c.expr(e, t);
+                        let info = c.code.contracts.len() as u32;
+                        c.code.contracts.push(ContractC {
+                            item,
+                            clause,
+                            vars: Vec::new(),
+                        });
+                        c.emit(Op::CostBegin { src: t, info });
+                    }
+                    clause += 1;
+                }
                 _ => {}
             }
         }

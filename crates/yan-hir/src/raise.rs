@@ -912,6 +912,29 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
                 with: Vec::new(),
             },
             y::Contract::Decreases(_) => return no("`decreases`"),
+            y::Contract::Cost { steps, alloc } => match marks
+                .root(|m| match m {
+                    Mark::Cost(s, a) => Some((s.clone(), a.clone())),
+                    _ => None,
+                })
+                .pop()
+            {
+                Some((s, a)) => Contract::Cost {
+                    steps: s.as_deref().map(name),
+                    alloc: a.as_deref().map(name),
+                },
+                None if steps
+                    .iter()
+                    .chain(alloc)
+                    .any(|x| matches!(x, y::Expr::Call(c) if c.path[0].starts_with("__cost_"))) =>
+                {
+                    return no("a `cost` bound without its source text");
+                }
+                None => Contract::Cost {
+                    steps: steps.as_ref().map(|x| b.pure(x)).transpose()?,
+                    alloc: alloc.as_ref().map(|x| b.pure(x)).transpose()?,
+                },
+            },
         });
     }
     let examples = contracts.len();
