@@ -5681,7 +5681,8 @@ impl Lower<'_, '_, '_> {
                 );
                 if let Some(d) = default {
                     let fixed = format!("({} else {d})", self.cx.text(sp));
-                    self.cx.fix(Applicability::Choice, "unwrap with a default", sp, &fixed);
+                    self.cx
+                        .fix(Applicability::Choice, "unwrap with a default", sp, &fixed);
                 }
                 return Ok((Rhs::Atom(x), Ty::Err));
             }
