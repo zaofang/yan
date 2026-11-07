@@ -1096,22 +1096,65 @@ fn cost_diags(src: &str) -> Vec<Diagnostic> {
 }
 
 #[test]
-fn a_cost_bound_no_input_breaks_is_w851() {
+fn a_cost_bound_outside_the_proof_fragment_that_no_input_breaks_is_w851() {
     let src = "\
-def total(xs: list[int], n: int) -> int:
-    cost steps <= len(xs) + n, alloc <= 0
+def countdown(n: int) -> int:
+    pre n >= 0
+    cost steps <= n
+    t = n
+    while t > 0:
+        t -= 1
+    return t
+";
+    let d = cost_diags(src);
+    let codes: Vec<&str> = d.iter().map(|d| d.code.as_str()).collect();
+    assert_eq!(codes, ["W851"], "{d:?}");
+    assert!(d[0].message.contains("counter"), "{}", d[0].message);
+}
+
+#[test]
+fn linear_cost_bounds_are_proven_and_raise_nothing() {
+    let src = "\
+def total(xs: list[int]) -> int:
+    cost steps <= len(xs), alloc <= 0
     t = 0
     for x in xs:
         t += x
+    return t
+
+def build(n: int) -> list[int]:
+    pre n >= 0
+    cost steps <= n, alloc <= n + 1
+    ys: list[int] = []
+    for i in range(n):
+        ys.append(i)
+    return ys
+
+def twice(xs: list[int]) -> int:
+    cost steps <= 2 * len(xs) + 2
+    return total(xs) + total(xs)
+
+def pick(a: int, b: int) -> int:
+    cost steps <= 0, alloc <= 0
+    return a * b + 1 if a > b else b
+";
+    assert!(cost_diags(src).is_empty(), "{:?}", cost_diags(src));
+}
+
+#[test]
+fn a_negative_bound_is_refuted_at_a_negative_input() {
+    let src = "\
+def upto(n: int) -> int:
+    cost steps <= n
+    t = 0
     for i in range(n):
         t += i
     return t
 ";
     let d = cost_diags(src);
-    let codes: Vec<&str> = d.iter().map(|d| d.code.as_str()).collect();
-    assert_eq!(codes, ["W851", "W851"], "{d:?}");
-    assert!(d[0].message.contains("counter"), "{}", d[0].message);
-    assert!(d[1].message.contains("alloc <= 0"), "{}", d[1].message);
+    assert_eq!(d.len(), 1, "{d:?}");
+    assert_eq!(d[0].code, "E618");
+    assert!(d[0].message.contains("n = -1"), "{}", d[0].message);
 }
 
 #[test]
@@ -1134,9 +1177,10 @@ def pairs(xs: list[int]) -> int:
 }
 
 #[test]
-fn an_alloc_bound_counts_fresh_heap_values_and_growth() {
+fn an_alloc_bound_counts_fresh_heap_values_and_growth_and_is_proven_or_refuted() {
     let src = "\
 def build(n: int) -> list[int]:
+    pre n >= 0
     cost alloc <= n + 1
     ys: list[int] = []
     for i in range(n):
@@ -1152,9 +1196,9 @@ def shown(n: int) -> int:
 ";
     let d = cost_diags(src);
     let codes: Vec<&str> = d.iter().map(|d| d.code.as_str()).collect();
-    assert_eq!(codes, ["W851", "E618"], "{d:?}");
-    assert!(d[1].message.contains("n = 2"), "{}", d[1].message);
-    assert!(d[1].message.contains("allocations"), "{}", d[1].message);
+    assert_eq!(codes, ["E618"], "{d:?}");
+    assert!(d[0].message.contains("n = 2"), "{}", d[0].message);
+    assert!(d[0].message.contains("allocations"), "{}", d[0].message);
 }
 
 #[test]

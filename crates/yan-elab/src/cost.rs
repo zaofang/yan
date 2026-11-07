@@ -1,6 +1,7 @@
 //! `cost` bounds (R610). A bound is refuted (E618) by running the function on concrete inputs of
-//! growing size with its run-time counter on: a counter panic is a witness. Probing only refutes,
-//! so every bound it does not refute is W851 and stays a run-time counter.
+//! growing size with its run-time counter on: a counter panic is a witness. A bound the static
+//! analysis of `cost_proof` proves raises nothing; one neither proven nor refuted is W851 and
+//! stays a run-time counter.
 
 use yan_core::ast as y;
 use yan_diag::{Severity, Span};
@@ -39,8 +40,12 @@ pub(crate) fn check(g: &Globals, m: &j::Module, items: &[y::Item], cx: &mut Cx) 
                 continue;
             };
             let top = matches!(it.kind, j::ItemKind::Func(_));
+            let core = top.then(|| core_fn(items, &f.name)).flatten();
             for (resource, e) in [("steps", steps), ("alloc", alloc)] {
                 let Some(e) = e else { continue };
+                if core.is_some_and(|d| proven(items, d, resource)) {
+                    continue;
+                }
                 let e = &spanned(e, cx.src);
                 // Probing runs code at compile time, which an untrusted repository may not (10.4).
                 let refuted = top && !cx.untrusted && refute(g, f, resource, e, items, cx);
@@ -58,6 +63,27 @@ pub(crate) fn check(g: &Globals, m: &j::Module, items: &[y::Item], cx: &mut Cx) 
             }
         }
     }
+}
+
+/// The Yan Core function `name` elaborated to.
+fn core_fn<'a>(items: &'a [y::Item], name: &str) -> Option<&'a y::FnDef> {
+    items.iter().rev().find_map(|it| match &it.kind {
+        y::ItemKind::Fn(d) if d.path == [name] => Some(d),
+        _ => None,
+    })
+}
+
+fn proven(items: &[y::Item], d: &y::FnDef, resource: &str) -> bool {
+    use crate::cost_proof::Resource;
+    d.contracts.iter().any(|c| match (c, resource) {
+        (y::Contract::Cost { steps: Some(b), .. }, "steps") => {
+            crate::cost_proof::proves(items, d, Resource::Steps, b)
+        }
+        (y::Contract::Cost { alloc: Some(b), .. }, "alloc") => {
+            crate::cost_proof::proves(items, d, Resource::Alloc, b)
+        }
+        _ => false,
+    })
 }
 
 /// One probe input: the argument expressions and the witness text and JSON.
@@ -113,7 +139,17 @@ fn refute(
             it
         })
         .collect();
-    for sizes in combinations(kinds.len()) {
+    // A negative integer first: a bound over it may be negative, which no body meets.
+    let negative: Vec<i128> = kinds
+        .iter()
+        .map(|k| if matches!(k, Kind::Int) { -1 } else { 0 })
+        .collect();
+    let mut all = Vec::new();
+    if negative.contains(&-1) {
+        all.push(negative);
+    }
+    all.extend(combinations(kinds.len()));
+    for sizes in all {
         let input = input(&kinds, &names, &sizes, cx.yn, e.span);
         let Some(module) = probe(g, f, sig, &input, &base, e.span, cx) else {
             return false;
@@ -132,6 +168,20 @@ fn refute(
                 });
                 let text = bound_text(cx.src, e.span).unwrap_or_default();
                 let with = input.shown.join(", ");
+                if let Some(b) = bound.filter(|b| *b < 0) {
+                    let with = input.shown.join(", ");
+                    let text = bound_text(cx.src, e.span).unwrap_or_default();
+                    cx.err(
+                        "E618",
+                        e.span,
+                        &f.name,
+                        format!("`cost {resource} <= {text}` is refuted: with {with} the bound is {b}, below any count"),
+                    );
+                    if let Some(d) = cx.diags.last_mut() {
+                        d.counterexample = Some(serde_json::Value::Object(input.json));
+                    }
+                    return true;
+                }
                 let over = bound.map_or("more".into(), |b| format!("more than {b}"));
                 let what = match resource {
                     "steps" => "takes {over} steps",

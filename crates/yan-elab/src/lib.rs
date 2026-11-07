@@ -8,6 +8,7 @@ mod bounds;
 mod cli;
 mod consttime;
 mod cost;
+mod cost_proof;
 mod coverage;
 mod csvwire;
 mod decorators;
