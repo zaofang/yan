@@ -1,0 +1,14 @@
+# spec: 17
+# rows: R927
+# note: parse_int and parse_float apply to a char as to the one-scalar str, returning int | None and float | None
+# stdout:
+# 7 None 7.0 None
+
+pub def main() uses io:
+    d = '7'
+    z = 'x'
+    a = d.parse_int() else -1
+    b = z.parse_int()
+    c = d.parse_float() else 0.0
+    e = z.parse_float()
+    io.print(f"{a} {b} {c} {e}")

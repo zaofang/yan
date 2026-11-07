@@ -1,0 +1,7 @@
+# spec: 25
+# rows: R929
+# note: arithmetic on an int | None stays E201 (the choice fix wrapping it as (x else 0) is a suggestion, not checked here)
+# expect: E201 at 7:12
+
+def f(x: int | None) -> int:
+    return x + 1
