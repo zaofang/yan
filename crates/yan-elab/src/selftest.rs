@@ -1090,7 +1090,9 @@ fn cost_diags(src: &str) -> Vec<Diagnostic> {
     assert!(d.is_empty(), "{d:?}");
     let (_, d) =
         elaborate("t.yag", src, &m.expect("parses"), Options::default()).expect("supported");
-    d.into_iter().filter(|d| d.code != "W813").collect()
+    d.into_iter()
+        .filter(|d| d.code != "W813" && d.code != "N21")
+        .collect()
 }
 
 #[test]
@@ -1108,7 +1110,7 @@ def total(xs: list[int], n: int) -> int:
     let d = cost_diags(src);
     let codes: Vec<&str> = d.iter().map(|d| d.code.as_str()).collect();
     assert_eq!(codes, ["W851", "W851"], "{d:?}");
-    assert!(d[0].message.contains("step counter"), "{}", d[0].message);
+    assert!(d[0].message.contains("counter"), "{}", d[0].message);
     assert!(d[1].message.contains("alloc <= 0"), "{}", d[1].message);
 }
 
@@ -1129,6 +1131,30 @@ def pairs(xs: list[int]) -> int:
     assert_eq!(d[0].quote, "2 * len(xs) + 1");
     assert!(d[0].message.contains("len(xs) = 2"), "{}", d[0].message);
     assert_eq!(d[0].counterexample, Some(serde_json::json!({"len(xs)": 2})));
+}
+
+#[test]
+fn an_alloc_bound_counts_fresh_heap_values_and_growth() {
+    let src = "\
+def build(n: int) -> list[int]:
+    cost alloc <= n + 1
+    ys: list[int] = []
+    for i in range(n):
+        ys.append(i)
+    return ys
+
+def shown(n: int) -> int:
+    cost alloc <= 1
+    t = 0
+    for i in range(n):
+        t += len(str(i))
+    return t
+";
+    let d = cost_diags(src);
+    let codes: Vec<&str> = d.iter().map(|d| d.code.as_str()).collect();
+    assert_eq!(codes, ["W851", "E618"], "{d:?}");
+    assert!(d[1].message.contains("n = 2"), "{}", d[1].message);
+    assert!(d[1].message.contains("allocations"), "{}", d[1].message);
 }
 
 #[test]

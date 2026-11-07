@@ -1,7 +1,6 @@
-//! `cost` bounds (R610). A `steps` bound is refuted (E618) by running the function on concrete
-//! inputs of growing size with its run-time counter on: a counter panic is a witness. Probing only
-//! refutes, so every bound it does not refute is W851 and stays a run-time counter. `alloc` bounds
-//! are W851 until allocations are counted.
+//! `cost` bounds (R610). A bound is refuted (E618) by running the function on concrete inputs of
+//! growing size with its run-time counter on: a counter panic is a witness. Probing only refutes,
+//! so every bound it does not refute is W851 and stays a run-time counter.
 
 use yan_core::ast as y;
 use yan_diag::{Severity, Span};
@@ -40,10 +39,11 @@ pub(crate) fn check(g: &Globals, m: &j::Module, items: &[y::Item], cx: &mut Cx) 
                 continue;
             };
             let top = matches!(it.kind, j::ItemKind::Func(_));
-            if let Some(e) = steps {
+            for (resource, e) in [("steps", steps), ("alloc", alloc)] {
+                let Some(e) = e else { continue };
                 let e = &spanned(e, cx.src);
                 // Probing runs code at compile time, which an untrusted repository may not (10.4).
-                let refuted = top && !cx.untrusted && refute(g, f, e, items, cx);
+                let refuted = top && !cx.untrusted && refute(g, f, resource, e, items, cx);
                 if !refuted {
                     let text = bound_text(cx.src, e.span).unwrap_or_default();
                     cx.warn(
@@ -51,22 +51,10 @@ pub(crate) fn check(g: &Globals, m: &j::Module, items: &[y::Item], cx: &mut Cx) 
                         e.span,
                         &f.name,
                         format!(
-                            "`cost steps <= {text}` is neither proven nor refuted; it compiles to a step counter that panics with kind `contract` when exceeded"
+                            "`cost {resource} <= {text}` is neither proven nor refuted; it compiles to a counter that panics with kind `contract` when exceeded"
                         ),
                     );
                 }
-            }
-            if let Some(e) = alloc {
-                let e = &spanned(e, cx.src);
-                let text = bound_text(cx.src, e.span).unwrap_or_default();
-                cx.warn(
-                    "W851",
-                    e.span,
-                    &f.name,
-                    format!(
-                        "`cost alloc <= {text}` is neither proven nor refuted; this toolchain does not count allocations yet"
-                    ),
-                );
             }
         }
     }
@@ -79,8 +67,15 @@ struct Input {
     json: serde_json::Map<String, serde_json::Value>,
 }
 
-/// Whether a probe input makes `f` exceed `cost steps <= e`; reports E618 if one does.
-fn refute(g: &Globals, f: &j::FuncDef, e: &j::Expr, items: &[y::Item], cx: &mut Cx) -> bool {
+/// Whether a probe input makes `f` exceed `cost <resource> <= e`; reports E618 if one does.
+fn refute(
+    g: &Globals,
+    f: &j::FuncDef,
+    resource: &str,
+    e: &j::Expr,
+    items: &[y::Item],
+    cx: &mut Cx,
+) -> bool {
     let Some(sig) = g.fns.get(&f.name) else {
         return false;
     };
@@ -96,16 +91,24 @@ fn refute(g: &Globals, f: &j::FuncDef, e: &j::Expr, items: &[y::Item], cx: &mut 
         return false;
     };
     let names: Vec<&str> = sig.params.iter().map(|p| p.name.as_str()).collect();
-    // Each function's own counter only, so a counter panic is this function's.
+    // Only this function's counter of this resource, so a counter panic is its witness.
     let base: Vec<y::Item> = items
         .iter()
         .cloned()
         .map(|mut it| {
-            if let y::ItemKind::Fn(d) = &mut it.kind
-                && d.path != [f.name.as_str()]
-            {
-                d.contracts
-                    .retain(|c| !matches!(c, y::Contract::Cost { .. }));
+            if let y::ItemKind::Fn(d) = &mut it.kind {
+                let own = d.path == [f.name.as_str()];
+                d.contracts.retain_mut(|c| match c {
+                    y::Contract::Cost { steps, alloc } if own => {
+                        match resource {
+                            "steps" => *alloc = None,
+                            _ => *steps = None,
+                        }
+                        true
+                    }
+                    y::Contract::Cost { .. } => false,
+                    _ => true,
+                });
             }
             it
         })
@@ -121,18 +124,22 @@ fn refute(g: &Globals, f: &j::FuncDef, e: &j::Expr, items: &[y::Item], cx: &mut 
         };
         match yan_interp::stage0(&module, PROBE, limits) {
             Err(Stop::Panic(p))
-                if p.kind == "contract" && p.fields.iter().any(|(n, _)| n == "steps") =>
+                if p.kind == "contract" && p.fields.iter().any(|(n, _)| n == resource) =>
             {
                 let bound = p.fields.iter().find_map(|(n, o)| match (n.as_str(), o) {
-                    ("steps", yan_interp::Operand::Int(b)) => Some(*b),
+                    (n, yan_interp::Operand::Int(b)) if n == resource => Some(*b),
                     _ => None,
                 });
                 let text = bound_text(cx.src, e.span).unwrap_or_default();
                 let with = input.shown.join(", ");
                 let over = bound.map_or("more".into(), |b| format!("more than {b}"));
-                let mut message = format!(
-                    "`cost steps <= {text}` is refuted: with {with} the body takes {over} steps"
-                );
+                let what = match resource {
+                    "steps" => "takes {over} steps",
+                    _ => "makes {over} allocations",
+                }
+                .replace("{over}", &over);
+                let mut message =
+                    format!("`cost {resource} <= {text}` is refuted: with {with} the body {what}");
                 if kinds.iter().any(|k| matches!(k, Kind::List(_))) {
                     message += "; each list holds len - 1 down to 0";
                 }

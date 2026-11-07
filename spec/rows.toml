@@ -1314,3 +1314,8 @@ sections = "22.3, 22.4"
 rows = "R924"
 topic = "`yan test` package, ids, budgets, test hash, `--gate` and output formats (RFC 0047)"
 sections = "18.4"
+
+[[entry]]
+rows = "R925"
+topic = "`cost` bounds cover the body, the call charged to the caller; one `alloc` is a fresh heap value, an `inout` growth or a capturing closure"
+sections = "8.4"
