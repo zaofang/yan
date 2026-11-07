@@ -1,0 +1,10 @@
+def count_evens(values: list[int]) -> int:
+    """How many values are even."""
+    ex count_evens([1, 2, 4]) == 2
+    ex count_evens([]) == 0
+    # ---
+    total = 0
+    for v in values:
+        if v % 2 == 0:
+            total += 1
+    return total

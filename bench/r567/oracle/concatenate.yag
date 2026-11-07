@@ -1,0 +1,9 @@
+def concatenate(strings: list[str]) -> str:
+    """Join the strings into one."""
+    ex concatenate([]) == ""
+    ex concatenate(["a", "b", "c"]) == "abc"
+    # ---
+    out = ""
+    for s in strings:
+        out += s
+    return out

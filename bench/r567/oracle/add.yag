@@ -1,0 +1,6 @@
+def add(x: int, y: int) -> int:
+    """Sum of two integers."""
+    ex add(2, 3) == 5
+    ex add(-1, 1) == 0
+    # ---
+    return x + y
