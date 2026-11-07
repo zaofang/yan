@@ -6,6 +6,7 @@
 
 mod bounds;
 mod cli;
+mod consttime;
 mod coverage;
 mod csvwire;
 mod decorators;
