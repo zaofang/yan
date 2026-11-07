@@ -18,9 +18,11 @@ mod ffi;
 mod jsonwire;
 mod lower;
 pub mod marks;
+mod session;
 mod stage0;
 mod stdlib;
 mod ty;
+mod typefn;
 mod wire;
 
 use std::cell::RefCell;
@@ -243,6 +245,10 @@ pub(crate) struct Globals {
     pub scope: RefCell<Vec<String>>,
     /// What `Self` names inside an `impl`.
     pub self_ty: RefCell<Option<Ty>>,
+    /// Each type-function application by its identity (10.4), to the type it gives.
+    pub applied: HashMap<String, Ty>,
+    /// The `session.protocol` types, by name.
+    pub protocols: HashMap<String, session::Protocol>,
 }
 
 pub(crate) struct Cx<'s> {
@@ -384,6 +390,7 @@ impl Globals {
     pub fn ty(&self, t: &j::Type, cx: &mut Cx, span: Span) -> R<Ty> {
         Ok(match t {
             j::Type::None => Ty::Unit,
+            j::Type::Call { path, args } => typefn::applied(self, path, args)?,
             j::Type::Callable {
                 par,
                 params,
@@ -685,6 +692,11 @@ pub fn elaborate_in(
     }
     items.extend(stdlib::lower(&g, &std_fns)?);
     items.extend(g.generated.take());
+    let mut protocols: Vec<_> = g.protocols.values().collect();
+    protocols.sort_by(|a, b| a.name.cmp(&b.name));
+    for p in protocols {
+        items.extend(session::items(p));
+    }
     for it in &m.items {
         if let j::ItemKind::Const {
             name,
@@ -810,6 +822,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             _ => {}
         }
     }
+    typefn::collect(g, m, cx)?;
     let fields = |g: &Globals, fs: &[j::Field], cx: &mut Cx, at: Span| -> R<Vec<Field>> {
         fs.iter()
             .map(|f| {
@@ -1221,7 +1234,7 @@ fn fail_span(src: &str, name: Span) -> Span {
     }
 }
 
-fn const_val(e: &j::Expr) -> R<y::ConstVal> {
+pub(crate) fn const_val(e: &j::Expr) -> R<y::ConstVal> {
     Ok(y::ConstVal::Lit(match &e.kind {
         j::ExprKind::Lit(l) => lower::literal(l)?,
         j::ExprKind::Unary("-", x) => match &x.kind {
@@ -1553,6 +1566,9 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
 
 #[cfg(test)]
 mod selftest;
+
+#[cfg(test)]
+mod session_selftest;
 
 #[cfg(test)]
 mod stdlib_selftest;

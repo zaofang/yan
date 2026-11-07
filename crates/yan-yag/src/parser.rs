@@ -1302,6 +1302,10 @@ impl Parser {
             });
         }
         let mut path = self.path()?;
+        if self.is_op("(") {
+            let args = self.args()?;
+            return Ok(Type::Call { path, args });
+        }
         let mut args = Vec::new();
         if self.eat_op("[") {
             while !self.is_op("]") {

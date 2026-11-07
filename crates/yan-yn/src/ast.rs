@@ -310,6 +310,11 @@ pub enum TypeKind {
         elem: Name,
     },
     Record(Vec<Field>),
+    /// A type function applied to stage-0 arguments, `session.protocol("...")` (10.4).
+    Call {
+        path: Vec<Name>,
+        args: Vec<Arg>,
+    },
     Option(Box<Type>),
     Union(Vec<Type>),
     Fn {

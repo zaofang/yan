@@ -222,7 +222,7 @@ fn has_callable(t: &j::Type) -> bool {
         j::Type::Named { args, .. } => args
             .iter()
             .any(|a| matches!(a, j::TArg::Type(t) if has_callable(t))),
-        j::Type::None => false,
+        j::Type::Call { .. } | j::Type::None => false,
     }
 }
 
