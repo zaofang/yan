@@ -399,59 +399,30 @@ pub(crate) fn panic_fields<T>(
 /// A missing key as panic operands: the first 64 bits of BLAKE3 over its canonical encoding and
 /// its type name (R876).
 pub(crate) fn missing_key(k: &Value) -> Vec<(&'static str, Operand)> {
-    fn enc(v: &Value, out: &mut Vec<u8>) {
+    fn enc(v: &Value, out: &mut yan_rt::keyhash::Enc) {
         match v {
-            Value::Unit => out.push(0),
-            Value::Bool(b) => out.extend([1, u8::from(*b)]),
-            Value::Int(n) => {
-                out.push(2);
-                out.extend(n.to_le_bytes());
-            }
-            Value::Float(x) => {
-                out.push(3);
-                out.extend(
-                    (if *x == 0.0 { 0.0f64 } else { *x })
-                        .to_bits()
-                        .to_le_bytes(),
-                );
-            }
-            Value::Char(c) => {
-                out.push(4);
-                out.extend(u32::from(*c).to_le_bytes());
-            }
-            Value::Str(s) | Value::Path(s) => {
-                out.push(5);
-                out.extend((s.len() as u64).to_le_bytes());
-                out.extend(s.as_bytes());
-            }
-            Value::Bytes(b) => {
-                out.push(6);
-                out.extend((b.len() as u64).to_le_bytes());
-                out.extend(b.iter());
-            }
-            Value::Duration(n) | Value::Instant(n) | Value::Mono(n) => {
-                out.push(7);
-                out.extend(n.to_le_bytes());
-            }
+            Value::Unit => out.unit(),
+            Value::Bool(b) => out.bool(*b),
+            Value::Int(n) => out.int(*n),
+            Value::Float(x) => out.float(*x),
+            Value::Char(c) => out.char(*c),
+            Value::Str(s) | Value::Path(s) => out.text(s),
+            Value::Bytes(b) => out.bytes(b),
+            Value::Duration(n) | Value::Instant(n) | Value::Mono(n) => out.nanos(*n),
             Value::Tuple(xs) | Value::List(xs) => {
-                out.push(8);
-                out.extend((xs.len() as u64).to_le_bytes());
+                out.seq(xs.len());
                 xs.iter().for_each(|x| enc(x, out));
             }
             Value::Data { name, fields } => {
-                out.push(9);
-                out.extend((name.len() as u64).to_le_bytes());
-                out.extend(name.as_bytes());
+                out.data(name);
                 fields.iter().for_each(|(_, x)| enc(x, out));
             }
-            // Other key types have no stable encoding yet; their type tag still separates them.
-            _ => out.push(255),
+            _ => out.opaque(),
         }
     }
-    let mut buf = Vec::new();
+    let mut buf = yan_rt::keyhash::Enc::new();
     enc(k, &mut buf);
-    let h = blake3::hash(&buf);
-    let head = u64::from_le_bytes(h.as_bytes()[..8].try_into().expect("8 bytes"));
+    let head = buf.hash();
     let ty = match k {
         Value::Int(_) => "int",
         Value::Float(_) => "float",
@@ -905,6 +876,13 @@ mod selftest {
         assert_eq!(k[1], ("key_type", Operand::Type("int")));
         assert_eq!(k, missing_key(&Value::Int(7)));
         assert_ne!(k[0].1, missing_key(&Value::Int(8))[0].1);
+        // Native code builds the same bytes with `yan_rt::keyhash::Enc`.
+        let mut e = yan_rt::keyhash::Enc::new();
+        e.seq(2);
+        e.int(1);
+        e.text("a");
+        let t = missing_key(&Value::Tuple(vec![Value::Int(1), Value::Str("a".into())]));
+        assert_eq!(t[0].1, Operand::Int(i128::from(e.hash())));
     }
 
     #[test]

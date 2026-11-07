@@ -114,6 +114,38 @@ pub unsafe extern "C" fn yan_rt_panic_ops(
     unsafe { yan_rt_panic(ptr, len) }
 }
 
+/// A `bounds` panic for a missing dict key: `key_hash` is the hash of the canonical encoding
+/// `enc[..enc_len]` built with [`crate::keyhash::Enc`], `key_type` the type name `ty[..ty_len]` (R884).
+///
+/// # Safety
+/// `ptr`, `ty` point to `len`, `ty_len` bytes of UTF-8; `enc` to `enc_len` bytes.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_panic_key(
+    ptr: *const u8,
+    len: usize,
+    enc: *const u8,
+    enc_len: usize,
+    ty: *const u8,
+    ty_len: usize,
+) -> ! {
+    // SAFETY: the caller's contract.
+    let (encoded, ty) = unsafe { (std::slice::from_raw_parts(enc, enc_len), text(ty, ty_len)) };
+    let f = key_fields(encoded, ty);
+    *PANIC_FIELDS.lock().expect("not poisoned") = f;
+    // SAFETY: forwarded.
+    unsafe { yan_rt_panic(ptr, len) }
+}
+
+fn key_fields(encoded: &[u8], ty: &str) -> Vec<(&'static str, PanicOperand)> {
+    vec![
+        (
+            "key_hash",
+            PanicOperand::Int(i128::from(crate::keyhash::hash(encoded))),
+        ),
+        ("key_type", PanicOperand::Type(ty.to_owned())),
+    ]
+}
+
 /// # Safety
 /// `rec` points to `3 * n` words as for [`yan_rt_panic_fields`].
 unsafe fn decode_fields(n: u64, rec: *const u64) -> Vec<(&'static str, PanicOperand)> {
@@ -563,5 +595,14 @@ mod panic_ops_tests {
         let f = ops_fields("div_zero", 64, 0, -1, 0);
         assert_eq!(f[0], ("dividend", PanicOperand::Int(u64::MAX.into())));
         assert_eq!(f[1], ("divisor", PanicOperand::Int(0)));
+    }
+
+    #[test]
+    fn key_fields_carry_hash_and_type() {
+        let mut e = crate::keyhash::Enc::new();
+        e.int(7);
+        let f = key_fields(e.as_bytes(), "int");
+        assert_eq!(f[0], ("key_hash", PanicOperand::Int(i128::from(e.hash()))));
+        assert_eq!(f[1], ("key_type", PanicOperand::Type("int".into())));
     }
 }
