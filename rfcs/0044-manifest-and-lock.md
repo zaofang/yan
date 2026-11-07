@@ -53,7 +53,8 @@ one field per line, trailing commas. One reader and one canonical printer are al
 files, merge conflicts are line-local, and no second parser enters the trusted base. TOML would reuse
 `std.toml` but adds a format `yan` otherwise needs only for interop.
 
-- Decision:
+- Decision: TOML, as Cargo and uv do (not the recommendation); Antonio, 2026-11-07. Written with the same canonical
+  rules: records sorted by (name, major), fields in fixed order, one field per line.
 - Row:
 
 ### D4: lock format version
