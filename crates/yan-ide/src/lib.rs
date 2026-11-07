@@ -190,6 +190,8 @@ pub enum InlayKind {
     Uses,
     /// A Yan function's inferred `fail` (15.6).
     Fail,
+    /// The inferred `cost` of a function written without one (R610).
+    Cost,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -228,9 +230,40 @@ pub fn inlays(db: &dyn Db, file: SourceFile) -> Vec<Inlay> {
     if s == Surface::Yn {
         yn_signatures(db, file, m, &mut out);
     }
+    costs(src, m, &mut out);
     out.sort_by_key(|i| (i.line, i.col));
     out.dedup();
     out
+}
+
+/// The inferred `cost` of each source function without a `cost` line, at the end of its first
+/// line, in every surface (R610).
+fn costs(src: &str, m: &y::Module, out: &mut Vec<Inlay>) {
+    use yan_hir::raise::Std;
+    for it in &m.items {
+        let y::ItemKind::Fn(d) = &it.kind else {
+            continue;
+        };
+        let path = d.path.join(".");
+        if path.starts_with("__")
+            || yan_elab::StdInfo.inserted(&path)
+            || d.contracts
+                .iter()
+                .any(|c| matches!(c, y::Contract::Cost { .. }))
+        {
+            continue;
+        }
+        let Some(label) = yan_elab::inferred_cost(&m.items, d) else {
+            continue;
+        };
+        let line = d.name_span.line;
+        out.push(Inlay {
+            line,
+            col: source_line(src, line).trim_end().len() as u32 + 1,
+            kind: InlayKind::Cost,
+            label: format!("  {label}"),
+        });
+    }
 }
 
 /// Inferred `uses` and `fail` of Yan functions that do not write them, after the signature.
@@ -641,9 +674,27 @@ mod tests {
         let file = db.file(Path::new("m.yag"), SRC);
         let labels: Vec<_> = inlays(&db, file)
             .into_iter()
+            .filter(|i| i.kind != InlayKind::Cost)
             .map(|i| (i.line, i.col, i.label))
             .collect();
         assert_eq!(labels, [(2, 6, ": int".to_owned())]);
+    }
+
+    #[test]
+    fn inlays_show_inferred_cost_where_none_is_written() {
+        let src = "def total(xs: list[int]) -> int:\n    t = 0\n    for x in xs:\n        t += x\n    return t\n\n\
+                   def kept(xs: list[int]) -> int:\n    cost steps <= len(xs) + 1\n    return total(xs)\n";
+        let mut db = Database::new(false, false);
+        let file = db.file(Path::new("m.yag"), src);
+        let labels: Vec<_> = inlays(&db, file)
+            .into_iter()
+            .filter(|i| i.kind == InlayKind::Cost)
+            .map(|i| (i.line, i.col, i.label))
+            .collect();
+        assert_eq!(
+            labels,
+            [(1, 33, "  cost steps <= len(xs), alloc <= 0".to_owned())]
+        );
     }
 
     #[test]
@@ -653,6 +704,7 @@ mod tests {
         let file = db.file(Path::new("m.yn"), src);
         let labels: Vec<_> = inlays(&db, file)
             .into_iter()
+            .filter(|i| i.kind != InlayKind::Cost)
             .map(|i| (i.line, i.col, i.label))
             .collect();
         assert_eq!(

@@ -27,23 +27,69 @@ const MAX_FORMS: usize = 32;
 /// Whether `f`'s body provably stays within `bound` of `resource` on every input `requires` admits.
 pub(crate) fn proves(items: &[y::Item], f: &y::FnDef, resource: Resource, bound: &y::Expr) -> bool {
     let prog = Prog::new(items);
+    let Some((env, facts, forms)) = envelope(&prog, f, resource) else {
+        return false;
+    };
+    let Some(b) = value_expr(&prog, &env, bound) else {
+        return false;
+    };
+    forms.iter().all(|c| below(&facts, c, &b))
+}
+
+/// The inferred `cost` line of `f` (R610), shown where it has none: each resource's envelope as
+/// its one dominating form, or the `max` of its forms.
+pub fn inferred(items: &[y::Item], f: &y::FnDef) -> Option<String> {
+    let prog = Prog::new(items);
+    let mut parts = Vec::new();
+    for (word, r) in [("steps", Resource::Steps), ("alloc", Resource::Alloc)] {
+        let (_, facts, forms) = envelope(&prog, f, r)?;
+        // A form another one covers drops out; of two that cover each other, the first stays.
+        let top: Vec<&Lin> = forms
+            .iter()
+            .enumerate()
+            .filter(|&(i, c)| {
+                !forms
+                    .iter()
+                    .enumerate()
+                    .any(|(j, d)| j != i && below(&facts, c, d) && (j < i || !below(&facts, d, c)))
+            })
+            .map(|(_, c)| c)
+            .collect();
+        let shown = match top.as_slice() {
+            [one] => show(one),
+            more => format!(
+                "max({})",
+                more.iter().map(|c| show(c)).collect::<Vec<_>>().join(", ")
+            ),
+        };
+        parts.push(format!("{word} <= {shown}"));
+    }
+    Some(format!("cost {}", parts.join(", ")))
+}
+
+/// Whether `c <= b` wherever `facts` hold: `facts, c >= b + 1` has no integer solution.
+fn below(facts: &[Lin], c: &Lin, b: &Lin) -> bool {
+    let over = c.sub(b).add(&Lin::konst(-1));
+    let cs = with_lens(&[facts.to_vec(), vec![over.clone()]].concat(), &over);
+    unsat(&cs)
+}
+
+/// What is known at `f`'s entry, its `requires` facts, and its envelope for `resource`.
+fn envelope(prog: &Prog, f: &y::FnDef, resource: Resource) -> Option<(Env, Vec<Lin>, Vec<Lin>)> {
     let mut a = An {
-        prog: &prog,
+        prog,
         resource,
         stack: vec![f.path.join(".")],
     };
     let mut env = Env::default();
     for p in &f.params {
         if let y::Param::Value { conv, name, ty, .. } = p {
-            env.declare(&prog, name, ty, *conv);
+            env.declare(prog, name, ty, *conv);
             if is_int(ty) {
                 env.vals.insert(name.clone(), Lin::term(var(name)));
             }
         }
     }
-    let Some(b) = value_expr(&prog, &env, bound) else {
-        return false;
-    };
     let facts: Vec<Lin> = f
         .contracts
         .iter()
@@ -53,15 +99,43 @@ pub(crate) fn proves(items: &[y::Item], f: &y::FnDef, resource: Resource, bound:
         })
         .flatten()
         .collect();
-    let Some(body) = &f.body else { return false };
-    let Some(forms) = a.block(&body.stmts, &mut env) else {
-        return false;
-    };
-    forms.iter().all(|c| {
-        let over = c.sub(&b).add(&Lin::konst(-1));
-        let cs = with_lens(&[facts.clone(), vec![over.clone()]].concat(), &over);
-        unsat(&cs)
-    })
+    let entry = env.clone();
+    let forms = a.block(&f.body.as_ref()?.stmts, &mut env)?;
+    Some((entry, facts, forms))
+}
+
+/// `c` in the surfaces' shared spelling: `2 * len(xs) + n + 1`.
+fn show(c: &Lin) -> String {
+    let mut parts: Vec<(bool, String)> = Vec::new();
+    for (t, a) in &c.terms {
+        let name = match t.split_once(':') {
+            Some(("len", n)) => format!("len({n})"),
+            Some((_, n)) => n.to_owned(),
+            None => t.clone(),
+        };
+        let m = a.abs();
+        parts.push((
+            *a < 0,
+            if m == 1 {
+                name
+            } else {
+                format!("{m} * {name}")
+            },
+        ));
+    }
+    if c.k != 0 || parts.is_empty() {
+        parts.push((c.k < 0, c.k.abs().to_string()));
+    }
+    let mut out = String::new();
+    for (k, (neg, p)) in parts.into_iter().enumerate() {
+        match (k, neg) {
+            (0, true) => out += &format!("-{p}"),
+            (0, false) => out += &p,
+            (_, true) => out += &format!(" - {p}"),
+            (_, false) => out += &format!(" + {p}"),
+        }
+    }
+    out
 }
 
 /// The module's functions with bodies, the method names a call may dispatch to, and its

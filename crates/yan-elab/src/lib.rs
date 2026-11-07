@@ -9,6 +9,7 @@ mod cli;
 mod consttime;
 mod cost;
 mod cost_proof;
+pub use cost_proof::inferred as inferred_cost;
 mod coverage;
 mod csvwire;
 mod decorators;
