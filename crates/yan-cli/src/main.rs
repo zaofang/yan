@@ -60,6 +60,21 @@ enum Jit {
 }
 
 #[derive(Subcommand)]
+enum OpCommand {
+    /// List the logged operations, oldest first.
+    Log,
+}
+
+#[derive(Subcommand)]
+enum SchemaCommand {
+    /// Print the JSON Schema of every `yan mcp` tool's input.
+    Gen,
+}
+
+/// The agent skill file; committed as golden text.
+const SKILL: &str = include_str!("../skill.md");
+
+#[derive(Subcommand)]
 enum Command {
     /// Print the Yan Agent grammar for constrained decoding (21.3).
     Grammar {
@@ -144,6 +159,24 @@ enum Command {
         #[arg(long)]
         module: Option<String>,
         patch: PathBuf,
+    },
+    /// Revert the last operations in `.yan/oplog.jsonl` (18.3 rule 7).
+    Undo {
+        /// How many operations to revert.
+        #[arg(default_value_t = 1)]
+        count: usize,
+    },
+    /// Operations (18.1).
+    Op {
+        #[command(subcommand)]
+        command: OpCommand,
+    },
+    /// Print the agent skill file: the Yan Agent primer and its canonical examples (21.3).
+    Skill,
+    /// Schemas (18.1).
+    Schema {
+        #[command(subcommand)]
+        command: SchemaCommand,
     },
     /// Serve the agent tools over MCP on stdio (21.4), for the modules under the current directory.
     Mcp,
@@ -375,6 +408,37 @@ fn main() -> ExitCode {
                 }
                 Err(msg) => tool_failure(&msg),
             }
+        }
+        Command::Undo { count } => match patch::undo(Path::new("."), count) {
+            Ok(ops) => {
+                ops.iter()
+                    .rev()
+                    .for_each(|o| println!("reverted {}", o.file));
+                ExitCode::SUCCESS
+            }
+            Err(msg) => tool_failure(&msg),
+        },
+        Command::Op {
+            command: OpCommand::Log,
+        } => match patch::log(Path::new(".")) {
+            Ok(ops) => {
+                for (i, o) in ops.iter().enumerate() {
+                    let (before, after) = o.hashes();
+                    println!("{} {} {before} -> {after}", i + 1, o.file);
+                }
+                ExitCode::SUCCESS
+            }
+            Err(msg) => tool_failure(&msg),
+        },
+        Command::Skill => {
+            print!("{SKILL}");
+            ExitCode::SUCCESS
+        }
+        Command::Schema {
+            command: SchemaCommand::Gen,
+        } => {
+            println!("{}", mcp::input_schemas());
+            ExitCode::SUCCESS
         }
         Command::Mcp => match mcp::serve(Path::new(".")) {
             Ok(()) => ExitCode::SUCCESS,
@@ -844,4 +908,15 @@ fn native(file: &str, m: &yan_core::ast::Module, jit: Jit) -> ExitCode {
 fn tool_failure(msg: &str) -> ExitCode {
     eprintln!("yan: {msg}");
     ExitCode::from(TOOL_FAILURE)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_skill_is_the_primer_and_its_examples() {
+        assert!(SKILL.starts_with("You write Yan Agent"));
+        assert_eq!(SKILL.matches("```yag").count(), 5);
+    }
 }
