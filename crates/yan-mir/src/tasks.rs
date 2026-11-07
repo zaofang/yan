@@ -17,13 +17,23 @@ struct Region {
     parent: Option<usize>,
 }
 
-/// Remove `Par`, `Suspend` and `TaskEnd` from `f`.
-pub fn split(f: &mut Func) {
-    if !f.blocks.iter().any(|b| matches!(b.term, Term::Par { .. })) {
-        return;
+/// The `par concurrent` regions of `f` and the (region, task) each block runs in: `None`
+/// outside every region, or for a block that is not reachable (`seen` false).
+pub(crate) struct Walk {
+    regions: Vec<Region>,
+    pub owner: Vec<Option<(usize, usize)>>,
+    pub seen: Vec<bool>,
+}
+
+impl Walk {
+    /// Reachable and outside every `par concurrent`.
+    pub fn top(&self, b: usize) -> bool {
+        self.seen[b] && self.owner[b].is_none()
     }
+}
+
+pub(crate) fn walk(f: &Func) -> Walk {
     let mut regions: Vec<Region> = Vec::new();
-    // The (region, task) each reachable block runs in; `None` outside every `par concurrent`.
     let mut owner: Vec<Option<(usize, usize)>> = vec![None; f.blocks.len()];
     let mut seen = vec![false; f.blocks.len()];
     let mut work: Vec<(BlockId, Option<(usize, usize)>)> = vec![(0, None)];
@@ -54,6 +64,29 @@ pub fn split(f: &mut Func) {
             | Term::Panic(_)
             | Term::PanicFields { .. } => {}
         }
+    }
+    Walk {
+        regions,
+        owner,
+        seen,
+    }
+}
+
+/// Remove `Par`, `Suspend` and `TaskEnd` from `f`. A `Suspend` outside every region is left
+/// by an operation that cannot park there, so it is unreachable.
+pub fn split(f: &mut Func) {
+    let Walk {
+        regions,
+        owner,
+        seen,
+    } = walk(f);
+    for (b, blk) in f.blocks.iter_mut().enumerate() {
+        if owner[b].is_none() && matches!(blk.term, Term::Suspend { .. } | Term::TaskEnd) {
+            blk.term = Term::Panic("unreachable");
+        }
+    }
+    if regions.is_empty() {
+        return;
     }
 
     let push = |f: &mut Func, b: BlockId, i: Inst| {

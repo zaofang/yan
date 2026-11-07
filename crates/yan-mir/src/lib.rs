@@ -7,6 +7,7 @@
 //! come back as extra results. `Str` and `List` are pointers to yan-rt blocks, which are not
 //! freed yet. Anything else is reported as unsupported.
 
+mod co;
 mod layout;
 mod lower;
 mod tasks;

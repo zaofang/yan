@@ -346,6 +346,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
         };
         prog.funcs.push(func);
     }
+    crate::co::run(&mut prog);
     Ok(prog)
 }
 
@@ -756,15 +757,13 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
         self.block(body)?;
         self.finish(Term::Panic("unreachable"));
-        let mut f = Func {
+        Ok(Func {
             name: name.to_owned(),
             params: n_params,
             ret,
             locals: self.locals,
             blocks: self.blocks,
-        };
-        crate::tasks::split(&mut f);
-        Ok(f)
+        })
     }
 
     fn local(&mut self, t: Ty) -> Local {
@@ -1519,14 +1518,10 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
     }
 
-    /// A channel operation; inside a task, one that parks suspends the task and runs again when
-    /// it resumes.
+    /// A channel operation; one that parks suspends its task and runs again when the task
+    /// resumes. It can park inside a task, or anywhere in a coroutine variant (`co`).
     fn blocking(&mut self, f: RtFn, mut args: Vec<Operand>) {
         args.push(Operand::Int(i128::from(self.tasks > 0)));
-        if self.tasks == 0 {
-            self.rt(f, I64, args);
-            return;
-        }
         let op = self.block_new();
         self.goto(op);
         let st = self.rt(f, I64, args);

@@ -105,10 +105,10 @@ resumes at that operation with its counters intact in the frame, and the loop's 
   blocked operation is the D3 case. It also gets `g$co(frame: Ptr) -> status`, made by the same split as a
   branch: each blocking operation and each call of a may-suspend function is a resume point, and `state` is
   word 0 of the frame.
-- **Frame.** Word 0 is the state, then the parameters, then one word per scalar local live across some resume
-  point (liveness on the MIR CFG; locals are scalars, so the frame is flat words), then a child-frame slot and
-  the result slots. Locals stay in registers within a run; the transform stores the live set before a
-  suspension and loads it on the resume edge.
+- **Frame.** Word 0 is the state, then the result slots, then one word per scalar local of `g$co`
+  (parameters first; locals are scalars, so the frame is flat words). The child frame of a pending call is
+  an ordinary local. Locals stay in registers within a run; the transform stores the locals live at the
+  resume point (liveness on the MIR CFG) before a suspension and loads them on the resume edge.
 - **Calls.** A task (or `g$co`) calling `h` that may suspend allocates `h`'s frame, stores the arguments, and
   loops on `st = h$co(frame)`: `SUSPENDED` suspends the caller with the same call as its resume point, the
   child frame kept in a live local; `DONE` loads the results and frees the frame. A resume therefore re-enters
