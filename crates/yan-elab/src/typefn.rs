@@ -2,10 +2,12 @@
 //! arguments. Applications are pure and memoized, and the type they give is identified by the
 //! function and the hash of its arguments, so two applications with equal arguments are one type.
 
+use std::collections::{HashMap, HashSet};
+
 use yan_core::ast as y;
-use yan_diag::Span;
 use yan_hir as j;
 
+use crate::session::{self, Endpoint, Protocol};
 use crate::{Cx, Globals, R, Ty, unsupported};
 
 /// The identity of `path(args)`: the function and a stable hash of its stage-0 arguments.
@@ -37,14 +39,38 @@ pub(crate) fn applied(g: &Globals, path: &[String], args: &[j::Arg]) -> R<Ty> {
     }
 }
 
-/// Apply each `type X = f(args)` of the module once, before any type is resolved.
-pub(crate) fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
+/// What applying a module's type functions gives.
+#[derive(Default)]
+pub(crate) struct Expanded {
+    pub applied: HashMap<String, Ty>,
+    pub protocols: HashMap<String, Protocol>,
+    pub endpoints: HashMap<String, Endpoint>,
+    pub broken: Vec<String>,
+}
+
+/// Apply each `type X = f(args)` of `m` once, before any type is resolved. The first alias of
+/// a protocol becomes the protocol's own type, a sum without values, and the items that
+/// implement it join the module (E265 when one of their names is taken).
+pub(crate) fn expand(m: &mut j::Module, cx: &mut Cx) -> R<Expanded> {
+    let mut out = Expanded::default();
+    let mut taken: HashSet<String> = HashSet::new();
     for it in &m.items {
+        taken.insert(it.kind.name().to_owned());
+        if let j::ItemKind::Type(j::TypeDef {
+            rhs: j::TypeRhs::Sum(vs),
+            ..
+        }) = &it.kind
+        {
+            taken.extend(vs.iter().map(|v| v.name.clone()));
+        }
+    }
+    let mut added = Vec::new();
+    for it in &mut m.items {
         let j::ItemKind::Type(j::TypeDef {
             name,
             rhs: j::TypeRhs::Alias(ts),
             ..
-        }) = &it.kind
+        }) = &mut it.kind
         else {
             continue;
         };
@@ -53,7 +79,7 @@ pub(crate) fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
         };
         let vals = values(args).map_err(|u| u.at(it.span))?;
         let k = key(path, &vals);
-        if g.applied.contains_key(&k) {
+        if out.applied.contains_key(&k) {
             continue;
         }
         let t = match path
@@ -62,8 +88,78 @@ pub(crate) fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             .collect::<Vec<_>>()
             .as_slice()
         {
-            ["session", "protocol"] => protocol(g, name, args, &vals, it.span, cx)?,
-            _ if g.fns.contains_key(&path.join(".")) || path.len() == 1 => {
+            ["session", "protocol"] => {
+                let spec = match (args.as_slice(), vals.as_slice()) {
+                    (
+                        [
+                            j::Arg {
+                                kind: j::ArgKind::Expr(e),
+                                ..
+                            },
+                        ],
+                        [y::ConstVal::Lit(y::Literal::Str(s))],
+                    ) => Some((e.span, s.clone())),
+                    _ => None,
+                };
+                match spec {
+                    None => {
+                        cx.err(
+                            "E201",
+                            it.span,
+                            name,
+                            "`session.protocol` takes one string, the protocol".into(),
+                        );
+                        Ty::Err
+                    }
+                    Some((at, spec)) => match session::protocol(name, &spec, at, cx) {
+                        None => {
+                            out.broken.push(name.clone());
+                            Ty::Err
+                        }
+                        Some(p) => {
+                            let items = session::items(&p, it.is_pub, at);
+                            let clash = items
+                                .iter()
+                                .flat_map(|i| {
+                                    let mut ns = vec![i.kind.name().to_owned()];
+                                    if let j::ItemKind::Type(j::TypeDef {
+                                        rhs: j::TypeRhs::Sum(vs),
+                                        ..
+                                    }) = &i.kind
+                                    {
+                                        ns.extend(vs.iter().map(|v| v.name.clone()));
+                                    }
+                                    ns
+                                })
+                                .find(|n| !taken.insert(n.clone()));
+                            if let Some(n) = clash {
+                                cx.err(
+                                    "E265",
+                                    at,
+                                    name,
+                                    format!("protocol `{name}` defines `{n}`, a name already taken; rename the label or the type"),
+                                );
+                                out.broken.push(name.clone());
+                                Ty::Err
+                            } else {
+                                added.extend(items);
+                                out.endpoints.extend(p.endpoints());
+                                // The alias becomes the protocol's type.
+                                it.kind = j::ItemKind::Type(j::TypeDef {
+                                    name: name.clone(),
+                                    tparams: Vec::new(),
+                                    rhs: j::TypeRhs::Sum(Vec::new()),
+                                    where_: None,
+                                });
+                                let t = Ty::Data(p.name.clone());
+                                out.protocols.insert(p.name.clone(), p);
+                                t
+                            }
+                        }
+                    },
+                }
+            }
+            p if p.len() == 1 => {
                 return unsupported(
                     "a user type function: building a type needs reflection (`record_type`, `sum_type`, `newtype`)",
                 )
@@ -80,42 +176,8 @@ pub(crate) fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 Ty::Err
             }
         };
-        g.applied.insert(k, t);
+        out.applied.insert(k, t);
     }
-    Ok(())
-}
-
-fn protocol(
-    g: &mut Globals,
-    name: &str,
-    args: &[j::Arg],
-    vals: &[y::ConstVal],
-    at: Span,
-    cx: &mut Cx,
-) -> R<Ty> {
-    let (span, spec) = match (args, vals) {
-        ([a], [y::ConstVal::Lit(y::Literal::Str(s))]) => (a.span, s.clone()),
-        _ => {
-            cx.err(
-                "E201",
-                at,
-                name,
-                "`session.protocol` takes one string, the protocol".into(),
-            );
-            return Ok(Ty::Err);
-        }
-    };
-    let span = match &args[0].kind {
-        j::ArgKind::Expr(e) => e.span,
-        _ => span,
-    };
-    Ok(match crate::session::protocol(g, name, &spec, span, cx)? {
-        Some(p) => {
-            let t = Ty::Data(p.name.clone());
-            g.sums.insert(p.name.clone(), Vec::new());
-            g.protocols.insert(p.name.clone(), p);
-            t
-        }
-        None => Ty::Err,
-    })
+    m.items.extend(added);
+    Ok(out)
 }

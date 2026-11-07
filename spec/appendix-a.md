@@ -271,6 +271,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R923 | unsafe confined to `yan-rt` and `yan-cg-cranelift` entry points, lazy JIT, primitive integer sorts (RFC 0047) | 22.3, 22.4 |
 | R924 | `yan test` package, ids, budgets, test hash, `--gate` and output formats (RFC 0047) | 18.4 |
 | R925 | `cost` bounds cover the body, the call charged to the caller; one `alloc` is a fresh heap value, an `inout` growth or a capturing closure | 8.4 |
+| R926 | Session details: protocol payloads in the module's surface, `X` or `continue X` repeats, malformed protocols E270; `session.send`, `recv` and `close` results, generated endpoint names collision-checked (E265); E727 covers `recv` and `close` | 9.5, 25 |
 
 <!-- /rows -->
 

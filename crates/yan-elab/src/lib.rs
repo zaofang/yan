@@ -249,6 +249,10 @@ pub(crate) struct Globals {
     pub applied: HashMap<String, Ty>,
     /// The `session.protocol` types, by name.
     pub protocols: HashMap<String, session::Protocol>,
+    /// Each session endpoint type (R634), by name.
+    pub endpoints: HashMap<String, session::Endpoint>,
+    /// Protocols reported as malformed: the types they would generate resolve to `Ty::Err`.
+    pub broken: Vec<String>,
 }
 
 pub(crate) struct Cx<'s> {
@@ -505,6 +509,14 @@ impl Globals {
                         }
                     }
                     (n, []) if stdlib::STD.caps.contains(n) => Ty::Data(n.to_owned()),
+                    (n, [])
+                        if self.broken.iter().any(|p| {
+                            n.strip_prefix(p.as_str())
+                                .is_some_and(|r| r.starts_with('_'))
+                        }) =>
+                    {
+                        Ty::Err
+                    }
                     (n, _)
                         if n.contains('.') || n.chars().next().is_some_and(char::is_uppercase) =>
                     {
@@ -559,12 +571,19 @@ pub fn elaborate_in(
     desugar::edition(m, &mut cx);
     let mut m = desugar::module(m, &mut cx);
     desugar::without_manifest(&mut m);
+    let expanded = typefn::expand(&mut m, &mut cx)?;
     if let Some(caps) = manifest.as_ref().and_then(|p| p.capabilities.as_ref()) {
         desugar::ceiling(&m, caps, &mut cx);
     }
     cx.previews = manifest.map(|p| p.previews).unwrap_or_default();
     let m = &m;
-    let mut g = Globals::default();
+    let mut g = Globals {
+        applied: expanded.applied,
+        protocols: expanded.protocols,
+        endpoints: expanded.endpoints,
+        broken: expanded.broken,
+        ..Globals::default()
+    };
     let std_sums = stdlib::sums(&mut g, m)?;
     let std_classes = stdlib::classes(&mut g, m)?;
     collect(&mut g, m, &mut cx)?;
@@ -683,8 +702,18 @@ pub fn elaborate_in(
             if let Some(d) = module_doc.take() {
                 docs.push((items.len(), Attach::Leading, d));
             }
+            // 5.4: a `@linear` class must be consumed, which the Yan Core checker enforces (E412).
+            let linear = matches!(it.kind, j::ItemKind::Record(_))
+                && it.decorators.iter().any(|d| d.path == ["linear"]);
             items.push(y::Item {
-                attrs: Vec::new(),
+                attrs: if linear {
+                    vec![y::Attr {
+                        name: "linear".into(),
+                        args: None,
+                    }]
+                } else {
+                    Vec::new()
+                },
                 kind: k,
                 span: it.span,
             });
@@ -692,11 +721,6 @@ pub fn elaborate_in(
     }
     items.extend(stdlib::lower(&g, &std_fns)?);
     items.extend(g.generated.take());
-    let mut protocols: Vec<_> = g.protocols.values().collect();
-    protocols.sort_by(|a, b| a.name.cmp(&b.name));
-    for p in protocols {
-        items.extend(session::items(p));
-    }
     for it in &m.items {
         if let j::ItemKind::Const {
             name,
@@ -822,7 +846,6 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             _ => {}
         }
     }
-    typefn::collect(g, m, cx)?;
     let fields = |g: &Globals, fs: &[j::Field], cx: &mut Cx, at: Span| -> R<Vec<Field>> {
         fs.iter()
             .map(|f| {

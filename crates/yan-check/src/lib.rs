@@ -231,6 +231,8 @@ struct Globals<'m> {
     sums: HashMap<String, Vec<String>>,
     /// Variant name to its sum, for sums without type parameters.
     variant_of: HashMap<String, String>,
+    /// Each variant's fields, by sum and variant name.
+    variant_fields: HashMap<(String, String), &'m [Field]>,
     linear: HashSet<String>,
     /// Trait methods and extern functions: callable, but their types are not tracked yet.
     other_fns: HashSet<String>,
@@ -248,6 +250,7 @@ impl<'m> Globals<'m> {
                 ("Result".into(), vec!["Ok".into(), "Err".into()]),
             ]),
             variant_of: HashMap::new(),
+            variant_fields: HashMap::new(),
             linear: HashSet::new(),
             other_fns: HashSet::new(),
         };
@@ -276,6 +279,12 @@ impl<'m> Globals<'m> {
                     if s.tparams.is_empty() {
                         g.variant_of
                             .extend(s.variants.iter().map(|v| (v.name.clone(), name.clone())));
+                        for v in &s.variants {
+                            if let Some(fs) = &v.fields {
+                                g.variant_fields
+                                    .insert((name.clone(), v.name.clone()), fs.as_slice());
+                            }
+                        }
                     }
                     g.sums
                         .insert(name, s.variants.iter().map(|v| v.name.clone()).collect());
@@ -736,10 +745,10 @@ impl<'g, 'm> Cx<'g, 'm> {
                 self.branches(std::iter::once(then).chain(els), els.is_none());
             }
             StmtKind::Match { scrutinee, arms } => {
-                self.atom(scrutinee, How::Read);
+                let t = self.atom(scrutinee, How::Read);
                 self.exhaustive(scrutinee, arms, s.span);
                 for (p, _) in arms {
-                    self.bind_pat(p, s.span);
+                    self.bind_pat_typed(p, t.as_deref(), s.span);
                 }
                 self.branches(arms.iter().map(|(_, b)| b), false);
             }
@@ -870,6 +879,59 @@ impl<'g, 'm> Cx<'g, 'm> {
                     }
                     _ => {}
                 }
+            }
+        }
+    }
+
+    /// Like [`Cx::bind_pat`], giving each binder of a constructor's field the field's type, so a
+    /// `@linear` value taken out of a sum or record must still be consumed (E412).
+    fn bind_pat_typed(&mut self, p: &Pat, scrutinee: Option<&str>, span: Span) {
+        let mut typed = Vec::new();
+        self.field_binders(p, scrutinee, &mut typed);
+        self.bind_pat(p, span);
+        for (n, t) in typed {
+            if let Some(b) = self.env.get_mut(&n) {
+                b.ty = Some(t);
+            }
+        }
+    }
+
+    fn field_binders(&self, p: &Pat, ty: Option<&str>, out: &mut Vec<(Name, Type)>) {
+        let Pat::Ctor {
+            path,
+            fields: Some((ps, _)),
+        } = p
+        else {
+            return;
+        };
+        let name = path.join(".");
+        let fields: &[Field] = match self.g.records.get(&name) {
+            Some(r) => &r.fields,
+            None => {
+                let v = path.last().expect("paths are non-empty");
+                let sum = ty
+                    .filter(|t| {
+                        self.g
+                            .variant_fields
+                            .contains_key(&((*t).to_owned(), v.clone()))
+                    })
+                    .map(str::to_owned)
+                    .or_else(|| self.g.variant_of.get(v).cloned());
+                match sum.and_then(|s| self.g.variant_fields.get(&(s, v.clone()))) {
+                    Some(fs) => fs,
+                    None => return,
+                }
+            }
+        };
+        for (f, sub) in ps {
+            let Some(field) = fields.iter().find(|x| x.name == *f) else {
+                continue;
+            };
+            match sub {
+                Pat::Bind(n) if !self.g.variant_of.contains_key(n) => {
+                    out.push((n.clone(), field.ty.clone()))
+                }
+                _ => self.field_binders(sub, Some(&type_text(&field.ty)), out),
             }
         }
     }

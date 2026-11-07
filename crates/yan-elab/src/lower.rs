@@ -4741,6 +4741,8 @@ impl Lower<'_, '_, '_> {
                             t,
                         )
                     }
+                    // The call was reported; what it fails with is unknown.
+                    (Some(Ty::Err), r) => (r, t),
                     _ => return unsupported("`?` on an optional or on a call that cannot fail"),
                 }
             }
@@ -6074,7 +6076,20 @@ impl Lower<'_, '_, '_> {
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         self.want_ret = want.map(|w| (w.clone(), at));
+        let session = |e: &j::Expr| matches!(&e.kind, j::ExprKind::Name(s) if s == "session" && !self.locals.contains_key(s));
         match &f.kind {
+            j::ExprKind::Index(b, k)
+                if let j::ExprKind::Attr(m, op, _) = &b.kind
+                    && op == "connect"
+                    && session(m) =>
+            {
+                self.session_connect(k, args, at)
+            }
+            j::ExprKind::Attr(m, op, _)
+                if matches!(op.as_str(), "send" | "recv" | "close") && session(m) =>
+            {
+                self.session_op(op, args, at)
+            }
             j::ExprKind::Index(b, k)
                 if let j::ExprKind::Attr(m, op, _) = &b.kind
                     && matches!(&m.kind, j::ExprKind::Name(c) if c == "cli" && !self.locals.contains_key(c))
@@ -9680,4 +9695,136 @@ fn span_text(src: &str, at: Span) -> Option<&str> {
     }
     let line = src.lines().nth(at.line as usize - 1)?;
     line.get(at.col as usize - 1..at.end_col as usize - 1)
+}
+
+/// std.session (9.5, R634): each operation calls the function the protocol generated for the
+/// endpoint's current state, so its type is the state's.
+impl Lower<'_, '_, '_> {
+    fn session_connect(
+        &mut self,
+        k: &j::Expr,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        let j::ExprKind::Name(n) = &k.kind else {
+            return unsupported("`session.connect` of a protocol that is not a name");
+        };
+        let t = self.g.ty(
+            &j::Type::Named {
+                path: vec![n.clone()],
+                args: Vec::new(),
+            },
+            self.cx,
+            k.span,
+        )?;
+        let Ty::Data(p) = &t else {
+            if t != Ty::Err {
+                self.err("E201", k.span, format!("`{n}` is not a session protocol"));
+            }
+            return Ok(err);
+        };
+        let Some(p) = self.g.protocols.get(p) else {
+            self.err("E201", k.span, format!("`{n}` is not a session protocol"));
+            return Ok(err);
+        };
+        let f = p.connect_fn();
+        self.user_call(&f, None, args, at)
+    }
+
+    fn session_op(&mut self, op: &str, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
+        // Failing like the operation would keeps a `?` after it quiet.
+        let err = (
+            Rhs::Atom(Atom::Lit(Literal::Unit, at)),
+            Ty::Err,
+            Some(Ty::Err),
+        );
+        let want = if op == "send" { 2 } else { 1 };
+        let Some(xs) = self.positional(args, want, &format!("session.{op}"), at)? else {
+            return Ok(err);
+        };
+        let ep = xs[0];
+        let t = match &ep.kind {
+            j::ExprKind::Name(n) if self.locals.contains_key(n) => self.locals[n].ty.clone(),
+            // An unknown name: lowering reports it.
+            j::ExprKind::Name(_) => {
+                self.atom(ep, None)?;
+                return Ok(err);
+            }
+            _ => return unsupported(format!("`session.{op}` of an endpoint that is not a local")),
+        };
+        let found = match &t {
+            Ty::Data(d) => self.g.endpoints.get(d).cloned(),
+            _ => None,
+        };
+        let Some(e) = found else {
+            if t != Ty::Err {
+                let shown = self.ty_text(&t);
+                self.err(
+                    "E201",
+                    ep.span,
+                    format!("`session.{op}` takes a session endpoint, not a `{shown}`"),
+                );
+            }
+            return Ok(err);
+        };
+        let p = &self.g.protocols[&e.protocol];
+        let state = &p.states[e.role][e.state];
+        let me = p.state_type(e.role, e.state);
+        let allowed = match state {
+            crate::session::State::Send(bs) => {
+                let ls: Vec<String> = bs.iter().map(|b| format!("`{}`", b.1)).collect();
+                format!("sending {}", ls.join(" or "))
+            }
+            crate::session::State::Recv(from, _) => format!("`recv` from `{}`", p.roles[*from]),
+            crate::session::State::End => "only `close`".to_owned(),
+        };
+        let refuse = |s: &mut Self, what: String| {
+            s.err(
+                "E727",
+                at,
+                format!("{what}, but endpoint state `{me}` allows {allowed}"),
+            );
+            Ok(err.clone())
+        };
+        match (op, state) {
+            ("send", crate::session::State::Send(bs)) => {
+                let (label, payload) = match &xs[1].kind {
+                    j::ExprKind::Call(l, a) if let j::ExprKind::Name(l) = &l.kind => {
+                        (l.clone(), a.clone())
+                    }
+                    j::ExprKind::Name(l) => (l.clone(), Vec::new()),
+                    _ => {
+                        self.err(
+                            "E201",
+                            xs[1].span,
+                            "`session.send` sends a message written `Label(value)`".into(),
+                        );
+                        return Ok(err);
+                    }
+                };
+                let Some(b) = bs.iter().find(|b| b.1 == label) else {
+                    return refuse(self, format!("`session.send` of `{label}`"));
+                };
+                if payload.len() != usize::from(b.2.is_some()) {
+                    let n = usize::from(b.2.is_some());
+                    self.err(
+                        "E201",
+                        xs[1].span,
+                        format!("`{label}` carries {n} value(s), not {}", payload.len()),
+                    );
+                    return Ok(err);
+                }
+                let f = p.op_fn(e.role, e.state, &format!("send_{label}"));
+                let mut call_args = vec![args[0].clone()];
+                call_args.extend(payload);
+                self.user_call(&f, None, &call_args, at)
+            }
+            ("recv", crate::session::State::Recv(..)) | ("close", crate::session::State::End) => {
+                let f = p.op_fn(e.role, e.state, op);
+                self.user_call(&f, None, args, at)
+            }
+            _ => refuse(self, format!("`session.{op}`")),
+        }
+    }
 }

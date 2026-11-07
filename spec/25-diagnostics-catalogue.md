@@ -237,7 +237,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E724 | breaking change to a pinned Wire schema (R406) new | 9.6.1, 20 |
 | E725 | @durable function uses a non-journaling capability, unjournaled nondeterminism, or a view across operations (R416) new | 9.6.1 |
 | E726 | entity key not Wire + Hash, or entity state not Wire (R413) new | 9.6.1 |
-| E727 | session send of a label the endpoint's current state does not allow (R634) new | 9.5 |
+| E727 | session operation the endpoint's current state does not allow: a send of another label, a `recv` or a `close` (R634, R926) new | 9.5 |
 | E728 | session protocol cannot be projected onto a role (R633) new | 9.5 |
 | E717 | Lub get() inside a par block that writes the cell (R454) new | 9.3 (R454) |
 | E718 | reserved (R455, deferred past 1.0) | 9.3 |
