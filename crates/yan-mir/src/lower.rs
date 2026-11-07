@@ -629,6 +629,8 @@ struct Fn<'a, 'm> {
     scopes: Vec<Scope>,
     /// The line of the statement being lowered.
     line: u32,
+    /// How many `par concurrent` branches enclose the code being lowered.
+    tasks: u32,
 }
 
 impl<'a, 'm> Fn<'a, 'm> {
@@ -653,6 +655,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             cur: 0,
             scopes: Vec::new(),
             line: 0,
+            tasks: 0,
         }
     }
 
@@ -753,13 +756,15 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
         self.block(body)?;
         self.finish(Term::Panic("unreachable"));
-        Ok(Func {
+        let mut f = Func {
             name: name.to_owned(),
             params: n_params,
             ret,
             locals: self.locals,
             blocks: self.blocks,
-        })
+        };
+        crate::tasks::split(&mut f);
+        Ok(f)
     }
 
     fn local(&mut self, t: Ty) -> Local {
@@ -1147,11 +1152,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let v = self.atom(a, &e)?;
                 let buf = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(v.len() as i128)]);
                 self.write(&At::Mem(buf.clone(), 0), v);
-                self.emit(Inst::Rt {
-                    dst: None,
-                    f: RtFn::ChanSend,
-                    args: vec![tx, buf.clone()],
-                });
+                self.blocking(RtFn::ChanSend, vec![tx, buf.clone()]);
                 self.free(RtFn::EnvFree, buf);
                 let ok = Self::variant_value(&dst.shape, "Ok", Vec::new());
                 self.copy_to(&dst.locals, ok);
@@ -1162,11 +1163,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 };
                 let rx = self.scalar1(rx)?;
                 let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(e.width() as i128)]);
-                self.emit(Inst::Rt {
-                    dst: None,
-                    f: RtFn::ChanRecv,
-                    args: vec![rx, out.clone()],
-                });
+                self.blocking(RtFn::ChanRecv, vec![rx, out.clone()]);
                 let v = self.read(&At::Mem(out.clone(), 0), &e);
                 self.free(RtFn::EnvFree, out);
                 let ok = Self::variant_value(&dst.shape, "Ok", v);
@@ -1520,6 +1517,24 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.cur = join;
             }
         }
+    }
+
+    /// A channel operation; inside a task, one that parks suspends the task and runs again when
+    /// it resumes.
+    fn blocking(&mut self, f: RtFn, mut args: Vec<Operand>) {
+        args.push(Operand::Int(i128::from(self.tasks > 0)));
+        if self.tasks == 0 {
+            self.rt(f, I64, args);
+            return;
+        }
+        let op = self.block_new();
+        self.goto(op);
+        let st = self.rt(f, I64, args);
+        let parked = self.scalar_op(ScalarOp::Eq, I64, vec![st, Operand::Int(1)]);
+        let (suspend, on) = self.branch(parked);
+        self.cur = suspend;
+        self.finish(Term::Suspend { resume: op });
+        self.cur = on;
     }
 
     fn free(&mut self, f: RtFn, block: Operand) {
@@ -2292,11 +2307,27 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Ok(())
             }
             // Names bound in a `par` child are read after the block.
-            // Branches that wait on each other need the task transform (RFC 0043).
+            // Branches as tasks that switch at blocking channel operations (RFC 0043).
             K::Par {
                 concurrent: true,
                 blocks,
-            } if blocks.len() > 1 => unsupported("`par concurrent`"),
+            } if blocks.len() > 1 => {
+                let tasks: Vec<BlockId> = blocks.iter().map(|_| self.block_new()).collect();
+                let join = self.block_new();
+                self.finish(Term::Par {
+                    tasks: tasks.clone(),
+                    join,
+                });
+                self.tasks += 1;
+                for (b, t) in blocks.iter().zip(tasks) {
+                    self.cur = t;
+                    self.block_in(b)?;
+                    self.finish(Term::TaskEnd);
+                }
+                self.tasks -= 1;
+                self.cur = join;
+                Ok(())
+            }
             K::Par { blocks, .. } => blocks.iter().try_for_each(|b| self.block_in(b)),
             K::Assert(e) => {
                 let sides = match e {

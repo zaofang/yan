@@ -1,6 +1,9 @@
 //! `std.chan` for native code (RFC 0043): a channel is one block shared by its `Sender` and its
-//! `Receiver`, holding a FIFO of element slots, freed with its last end. Without a scheduler a
-//! wait can never end, so an operation that cannot proceed is a global deadlock (R396).
+//! `Receiver`, holding a FIFO of element slots, freed with its last end. An operation that
+//! cannot proceed parks its task (`sched`); outside a task, or with every task parked, nothing
+//! can end the wait, which is a global deadlock (R396).
+
+use crate::sched;
 
 use std::collections::VecDeque;
 
@@ -40,16 +43,27 @@ pub extern "C" fn yan_rt_chan_new(cap: u64, words: u64) -> *mut Chan {
     }))
 }
 
-/// `send`: the element's slots from `buf`. A rendezvous channel (capacity 0) hands over only to
-/// a receiver already waiting, and none waits without a scheduler.
+/// The status of an operation that parked its task: run it again when the task resumes.
+pub const BLOCKED: u64 = 1;
+
+/// `send`: the element's slots from `buf`; 0, or [`BLOCKED`] when `in_task` (nonzero) lets it
+/// park. A rendezvous channel (capacity 0) hands over only to a receiver already waiting.
 ///
 /// # Safety
 /// `ch` is a live channel and `buf` holds its element's slots.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_chan_send(ch: *mut Chan, buf: *const u64) {
+pub unsafe extern "C" fn yan_rt_chan_send(ch: *mut Chan, buf: *const u64, in_task: u64) -> u64 {
     // SAFETY: the caller's contract.
     let c = unsafe { &mut *ch };
-    if c.len() >= c.cap {
+    let room = if c.cap == 0 {
+        sched::waiting(ch as usize)
+    } else {
+        c.cap
+    };
+    if c.len() >= room {
+        if sched::park((false, ch as usize), in_task != 0) {
+            return BLOCKED;
+        }
         deadlock();
     }
     // SAFETY: the caller's contract.
@@ -58,23 +72,30 @@ pub unsafe extern "C" fn yan_rt_chan_send(ch: *mut Chan, buf: *const u64) {
     if c.words == 0 {
         c.q.push_back(0);
     }
+    sched::progressed();
+    0
 }
 
-/// `recv`: the oldest element's slots into `out`.
+/// `recv`: the oldest element's slots into `out`; 0, or [`BLOCKED`] as for `send`.
 ///
 /// # Safety
 /// `ch` is a live channel and `out` has room for its element's slots.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_chan_recv(ch: *mut Chan, out: *mut u64) {
+pub unsafe extern "C" fn yan_rt_chan_recv(ch: *mut Chan, out: *mut u64, in_task: u64) -> u64 {
     // SAFETY: the caller's contract.
     let c = unsafe { &mut *ch };
     if c.len() == 0 {
+        if sched::park((true, ch as usize), in_task != 0) {
+            return BLOCKED;
+        }
         deadlock();
     }
     for (i, w) in c.q.drain(..c.stride()).enumerate().take(c.words) {
         // SAFETY: the caller's contract.
         unsafe { *out.add(i) = w };
     }
+    sched::progressed();
+    0
 }
 
 /// Drop one end; the channel goes with its last. Queued elements are not dropped (RFC 0043).
@@ -103,11 +124,11 @@ mod tests {
         let mut out = [0u64; 2];
         // SAFETY: a live channel and buffers of two words.
         unsafe {
-            yan_rt_chan_send(ch, [1, 2].as_ptr());
-            yan_rt_chan_send(ch, [3, 4].as_ptr());
-            yan_rt_chan_recv(ch, out.as_mut_ptr());
+            yan_rt_chan_send(ch, [1, 2].as_ptr(), 0);
+            yan_rt_chan_send(ch, [3, 4].as_ptr(), 0);
+            yan_rt_chan_recv(ch, out.as_mut_ptr(), 0);
             assert_eq!(out, [1, 2]);
-            yan_rt_chan_recv(ch, out.as_mut_ptr());
+            yan_rt_chan_recv(ch, out.as_mut_ptr(), 0);
             assert_eq!(out, [3, 4]);
             yan_rt_chan_drop(ch);
             yan_rt_chan_drop(ch);

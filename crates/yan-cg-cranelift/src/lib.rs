@@ -21,7 +21,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
-use yan_rt::{abi, chan};
+use yan_rt::{abi, chan, sched};
 
 type R<T> = Result<T, String>;
 
@@ -693,6 +693,10 @@ const RT: &[RtFn] = &[
     RtFn::ChanSend,
     RtFn::ChanRecv,
     RtFn::ChanDrop,
+    RtFn::ParBegin,
+    RtFn::ParNext,
+    RtFn::ParTaskEnd,
+    RtFn::ParEnd,
 ];
 
 /// Symbol, address, parameter types and result type.
@@ -865,19 +869,43 @@ fn rt_fn(
         RtFn::ChanSend => (
             "yan_rt_chan_send",
             chan::yan_rt_chan_send as *const u8,
-            &[I64, I64],
-            None,
+            &[I64, I64, I64],
+            Some(I64),
         ),
         RtFn::ChanRecv => (
             "yan_rt_chan_recv",
             chan::yan_rt_chan_recv as *const u8,
-            &[I64, I64],
-            None,
+            &[I64, I64, I64],
+            Some(I64),
         ),
         RtFn::ChanDrop => (
             "yan_rt_chan_drop",
             chan::yan_rt_chan_drop as *const u8,
             &[I64],
+            None,
+        ),
+        RtFn::ParBegin => (
+            "yan_rt_par_begin",
+            sched::yan_rt_par_begin as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ParNext => (
+            "yan_rt_par_next",
+            sched::yan_rt_par_next as *const u8,
+            &[],
+            Some(I64),
+        ),
+        RtFn::ParTaskEnd => (
+            "yan_rt_par_task_end",
+            sched::yan_rt_par_task_end as *const u8,
+            &[],
+            None,
+        ),
+        RtFn::ParEnd => (
+            "yan_rt_par_end",
+            sched::yan_rt_par_end as *const u8,
+            &[],
             None,
         ),
     }
@@ -1249,6 +1277,9 @@ impl Gen<'_, '_> {
                 }
             }
             Term::Panic(kind) => self.call_panic(kind),
+            Term::Par { .. } | Term::Suspend { .. } | Term::TaskEnd => {
+                unreachable!("removed by the task transform")
+            }
             Term::PanicFields { kind, fields } => self.call_panic_fields(kind, fields),
         }
     }
