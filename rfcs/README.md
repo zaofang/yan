@@ -64,3 +64,6 @@ research index links their studies and rows.
 | [0042](0042-panic-operand-fields.md) | Panic operand fields the spec names but does not define | accepted | R882 to R885 |
 | [0043](0043-native-par-concurrent.md) | Native `par concurrent`: branches and blocking callees as resumable tasks | accepted | none |
 | [0044](0044-manifest-and-lock.md) | Package manifest and yan.lock | accepted | R890 to R896 |
+| [0045](0045-language-readings.md) | Language readings assumed by the implementation | accepted | R898 to R907 |
+| [0046](0046-std-readings.md) | Std readings assumed by the implementation | accepted | R908 to R914 |
+| [0047](0047-toolchain-readings.md) | Toolchain readings assumed by the implementation | accepted | R915 to R924 |
