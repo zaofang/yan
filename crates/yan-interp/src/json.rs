@@ -99,14 +99,14 @@ pub(super) fn show_error(fields: &[(super::Name, Value)]) -> String {
     let reason = match (name.as_str(), rf.as_slice()) {
         ("Syntax", [(_, Str(msg))]) => msg.to_string(),
         ("Duplicate", [(_, Str(key))]) => format!("duplicate key {key:?}"),
-        ("Depth", _) => "nesting too deep".into(),
+        ("Depth", _) => "nesting exceeds max_depth".into(),
         ("Mismatch", [(_, Str(p)), (_, Str(e)), (_, Str(f))]) => {
             format!("{p}: expected {e}, found {f}")
         }
         ("Missing", [(_, Str(p)), (_, Str(f))]) => format!("{p}: missing field {f:?}"),
         ("Unknown", [(_, Str(p)), (_, Str(f))]) => format!("{p}: unknown field {f:?}"),
         ("Invalid", [(_, Str(p)), (_, Str(m))]) => format!("{p}: {m}"),
-        _ => "integer out of range".into(),
+        _ => "number out of range".into(),
     };
     format!("line {line}, col {col}: {reason}")
 }
