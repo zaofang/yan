@@ -64,3 +64,4 @@ research index links their studies and rows.
 | [0041](0041-typed-json-csv-decode.md) | Typed json and csv over Wire: tags, shapes, errors, csv rules | accepted | R882 to R881 |
 | [0042](0042-panic-operand-fields.md) | Panic operand fields the spec names but does not define | accepted | R882 to R885 |
 | [0043](0043-native-par-concurrent.md) | Native `par concurrent`: branches and blocking callees as resumable tasks | accepted | none |
+| [0044](0044-manifest-and-lock.md) | Package manifest and yan.lock | accepted | R890 to R896 |
