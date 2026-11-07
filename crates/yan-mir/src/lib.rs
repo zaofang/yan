@@ -205,8 +205,12 @@ pub enum RtFn {
     ParNext,
     /// `(handle)`: the running task's branch ended.
     ParTaskEnd,
-    /// `(handle) -> i64`: the running task leaves the function and cancels the others; 1 for
-    /// the first to.
+    /// `(kind)`: the task about to leave the function fails (1), or fails `Cancelled` (2).
+    /// Without it, it returns (0).
+    ParExitKind,
+    /// `(handle) -> i64`: the running task leaves the function and cancels the others; 1 if
+    /// its result replaces the one kept so far: the first, or a lower-index failure that is
+    /// not `Cancelled` (R394).
     ParCancel,
     /// `(handle)`: leave the block.
     ParEnd,
