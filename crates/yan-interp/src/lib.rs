@@ -429,6 +429,13 @@ pub(crate) fn missing_key(k: &Value) -> Vec<(&'static str, Operand)> {
                 out.data(name);
                 fields.iter().for_each(|(_, x)| enc(x, out));
             }
+            Value::BigInt(b) => out.bigint(&b.to_string()),
+            Value::WindowsPath(w) => out.win_path(w.folded()),
+            Value::PlainDate(d) => out.civil(0, &d.to_string()),
+            Value::PlainTime(t) => out.civil(1, &t.to_string()),
+            Value::PlainDateTime(dt) => out.civil(2, &dt.to_string()),
+            Value::Period([y, m, w, d]) => out.period(&format!("{y}Y{m}M{w}W{d}D")),
+            Value::Zone(z) => out.zone(z.id()),
             _ => out.opaque(),
         }
     }
@@ -443,7 +450,18 @@ pub(crate) fn missing_key(k: &Value) -> Vec<(&'static str, Operand)> {
         Value::Str(_) => "text",
         Value::Bytes(_) => "bytes",
         Value::Tuple(_) => "tuple",
+        Value::List(_) => "list",
         Value::Data { .. } => "record",
+        Value::BigInt(_) => "bigint",
+        Value::Path(_) | Value::WindowsPath(_) => "path",
+        Value::PlainDate(_) => "date",
+        Value::PlainTime(_) => "time",
+        Value::PlainDateTime(_) => "datetime",
+        Value::Period(_) => "period",
+        Value::Zone(_) => "zone",
+        Value::Duration(_) => "duration",
+        Value::Instant(_) => "instant",
+        Value::Mono(_) => "mono",
         _ => "value",
     };
     vec![
@@ -944,6 +962,21 @@ mod selftest {
         e.text("a");
         let t = missing_key(&Value::Tuple(vec![Value::Int(1), Value::Str("a".into())]));
         assert_eq!(t[0].1, Operand::Int(i128::from(e.hash())));
+        let big = |n: &str| missing_key(&Value::BigInt(n.parse().unwrap()));
+        assert_ne!(big("1")[0].1, big("2")[0].1);
+        assert_eq!(big("1")[1].1, Operand::Type("bigint"));
+        let l = |n| missing_key(&Value::List(vec![Value::Int(n)]));
+        assert_ne!(l(1)[0].1, l(2)[0].1);
+        assert_eq!(l(1)[1].1, Operand::Type("list"));
+        let sum = |v| {
+            missing_key(&Value::Data {
+                name: v,
+                fields: vec![],
+            })
+        };
+        assert_ne!(sum("A".into())[0].1, sum("B".into())[0].1);
+        let p = |n| missing_key(&Value::Period([0, 0, 0, n]));
+        assert_ne!(p(1)[0].1, p(2)[0].1);
     }
 
     #[test]
