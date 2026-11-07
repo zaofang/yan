@@ -696,6 +696,7 @@ const RT: &[RtFn] = &[
     RtFn::ParBegin,
     RtFn::ParNext,
     RtFn::ParTaskEnd,
+    RtFn::ParExitKind,
     RtFn::ParCancel,
     RtFn::ParEnd,
 ];
@@ -900,6 +901,12 @@ fn rt_fn(
         RtFn::ParTaskEnd => (
             "yan_rt_par_task_end",
             sched::yan_rt_par_task_end as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ParExitKind => (
+            "yan_rt_par_exit_kind",
+            sched::yan_rt_par_exit_kind as *const u8,
             &[I64],
             None,
         ),

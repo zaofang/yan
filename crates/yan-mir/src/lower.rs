@@ -856,6 +856,44 @@ impl<'a, 'm> Fn<'a, 'm> {
         Operand::Local(d)
     }
 
+    /// In a task, tell the scheduler that the exit that follows fails with `ev` of shape `e`,
+    /// and whether that is `Cancelled` (R394).
+    fn exit_kind(&mut self, e: &Shape, ev: &[Operand]) {
+        if self.tasks == 0 {
+            return;
+        }
+        let kind = match e {
+            Shape::Rec(n, fs) if n == "Cancelled" && fs.is_empty() => Operand::Int(2),
+            Shape::Sum(_, _) if e.variant("Cancelled").is_some() => {
+                let (tag, _, _) = e.variant("Cancelled").expect("checked");
+                let is = self.scalar_op(ScalarOp::Eq, I64, vec![ev[0].clone(), Operand::Int(tag)]);
+                let k = self.local(I64);
+                self.emit(Inst::Copy {
+                    dst: k,
+                    src: Operand::Int(1),
+                });
+                let (c, o) = self.branch(is);
+                let join = self.block_new();
+                self.cur = c;
+                self.emit(Inst::Copy {
+                    dst: k,
+                    src: Operand::Int(2),
+                });
+                self.goto(join);
+                self.cur = o;
+                self.goto(join);
+                self.cur = join;
+                Operand::Local(k)
+            }
+            _ => Operand::Int(1),
+        };
+        self.emit(Inst::Rt {
+            dst: None,
+            f: RtFn::ParExitKind,
+            args: vec![kind],
+        });
+    }
+
     /// Return `v` with the final `inout` slots.
     fn ret(&mut self, mut v: Vec<Operand>) {
         v.extend(self.inout.iter().map(|l| Operand::Local(*l)));
@@ -1685,6 +1723,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         for n in drops {
             self.drop_name(n);
         }
+        self.exit_kind(&e, &ev);
         self.ret(Self::variant_value(&mine, "Err", ev));
         self.cur = ok;
         Ok(v[ok_at..ok_at + want.width()].to_vec())
@@ -2316,6 +2355,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 };
                 let e = fs[0].1.clone();
                 let v = self.atom(a, &e)?;
+                self.exit_kind(&e, &v);
                 self.ret(Self::variant_value(&ret, "Err", v));
                 Ok(())
             }

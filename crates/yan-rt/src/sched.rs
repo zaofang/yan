@@ -27,10 +27,14 @@ struct Block {
     /// The block whose task was running when this one began.
     parent: Option<usize>,
     cancelled: bool,
+    /// The kept exit: its task and kind (0 returned, 1 failed, 2 failed `Cancelled`).
+    kept: Option<(usize, u64)>,
 }
 
 #[derive(Default)]
 struct State {
+    /// Set by `ParExitKind` for the exit that follows.
+    exit_kind: u64,
     /// The `par concurrent` blocks entered and not left, by handle. A block that yielded
     /// stays while its enclosing task runs others.
     blocks: Vec<Option<Block>>,
@@ -114,6 +118,7 @@ pub extern "C" fn yan_rt_par_begin(n: u64, can_yield: u64) -> u64 {
             can_yield: can_yield != 0,
             parent: st.cur,
             cancelled: false,
+            kept: None,
         };
         match st.blocks.iter().position(Option::is_none) {
             Some(h) => {
@@ -138,15 +143,31 @@ pub extern "C" fn yan_rt_par_task_end(h: u64) {
     });
 }
 
-/// The running task of block `h` leaves the function: it ends and cancels the others. 1 for
-/// the first such task, whose result the block returns, 0 for later ones.
+/// The task about to leave the function failed (1) or failed `Cancelled` (2).
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_par_exit_kind(kind: u64) {
+    with(|st| st.exit_kind = kind);
+}
+
+/// The running task of block `h` leaves the function: it ends and cancels the others. 1 if
+/// its result is the one the block returns: the first exit, or a failure that is not
+/// `Cancelled` with a lower index than the failure kept (R394); 0 otherwise.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_par_cancel(h: u64) -> u64 {
     with(|st| {
+        let kind = std::mem::take(&mut st.exit_kind);
         let b = block(st, h);
         let i = b.running.expect("a running task");
         b.tasks[i].done = true;
-        u64::from(!std::mem::replace(&mut b.cancelled, true))
+        b.cancelled = true;
+        let keep = match b.kept {
+            None => true,
+            Some((j, k)) => kind == 1 && (k != 1 || i < j),
+        };
+        if keep {
+            b.kept = Some((i, kind));
+        }
+        u64::from(keep)
     })
 }
 
