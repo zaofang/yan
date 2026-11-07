@@ -1,8 +1,12 @@
 //! The analysis API (22.2, R560) over the query database: diagnostics, hover, inlay hints and
 //! view-as. `yan-cli` and `yan mcp` use it, and the language server will.
 
+mod context;
+
 use std::collections::HashMap;
 use std::path::Path;
+
+pub use context::{Packed, TypeHit, pack_context, search_type};
 
 use serde::Serialize;
 use yan_core::ast as y;
