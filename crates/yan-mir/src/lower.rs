@@ -1151,10 +1151,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let v = self.atom(a, &e)?;
                 let buf = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(v.len() as i128)]);
                 self.write(&At::Mem(buf.clone(), 0), v);
-                self.blocking(RtFn::ChanSend, vec![tx, buf.clone()]);
+                let st = self.blocking(RtFn::ChanSend, vec![tx, buf.clone()]);
                 self.free(RtFn::EnvFree, buf);
-                let ok = Self::variant_value(&dst.shape, "Ok", Vec::new());
-                self.copy_to(&dst.locals, ok);
+                self.chan_result(&dst, st, |_| Vec::new())?;
             }
             (id::STD_CHAN_RECEIVER_RECV, [(_, rx)]) => {
                 let (Some(e), Some(dst)) = (self.targ(c)?, dst) else {
@@ -1162,11 +1161,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                 };
                 let rx = self.scalar1(rx)?;
                 let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(e.width() as i128)]);
-                self.blocking(RtFn::ChanRecv, vec![rx, out.clone()]);
-                let v = self.read(&At::Mem(out.clone(), 0), &e);
+                let st = self.blocking(RtFn::ChanRecv, vec![rx, out.clone()]);
+                self.chan_result(&dst, st, |me| me.read(&At::Mem(out.clone(), 0), &e))?;
                 self.free(RtFn::EnvFree, out);
-                let ok = Self::variant_value(&dst.shape, "Ok", v);
-                self.copy_to(&dst.locals, ok);
             }
             (id::STD_JSON_PARSE, [(_, a), (_, schema)]) => {
                 let Some(dst) = dst else {
@@ -1520,16 +1517,52 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     /// A channel operation; one that parks suspends its task and runs again when the task
     /// resumes. It can park inside a task, or anywhere in a coroutine variant (`co`).
-    fn blocking(&mut self, f: RtFn, mut args: Vec<Operand>) {
+    /// Its status: 0, or 2 when the task is cancelled (9.4).
+    fn blocking(&mut self, f: RtFn, mut args: Vec<Operand>) -> Operand {
         args.push(Operand::Int(i128::from(self.tasks > 0)));
         let op = self.block_new();
         self.goto(op);
         let st = self.rt(f, I64, args);
-        let parked = self.scalar_op(ScalarOp::Eq, I64, vec![st, Operand::Int(1)]);
+        let parked = self.scalar_op(ScalarOp::Eq, I64, vec![st.clone(), Operand::Int(1)]);
         let (suspend, on) = self.branch(parked);
         self.cur = suspend;
         self.finish(Term::Suspend { resume: op });
         self.cur = on;
+        st
+    }
+
+    /// `dst` of a channel operation with status `st`: `Ok` of what `ok` reads, or
+    /// `Err(Cancelled)`.
+    fn chan_result(
+        &mut self,
+        dst: &Var,
+        st: Operand,
+        ok: impl FnOnce(&mut Self) -> Vec<Operand>,
+    ) -> R<()> {
+        let Some((_, _, efs)) = dst.shape.variant("Err") else {
+            return unsupported("a channel operation without its failure");
+        };
+        let e = &efs[0].1;
+        let err = match e {
+            Shape::Rec(n, fs) if n == "Cancelled" && fs.is_empty() => Vec::new(),
+            Shape::Sum(_, _) if e.variant("Cancelled").is_some() => {
+                Self::variant_value(e, "Cancelled", Vec::new())
+            }
+            _ => return unsupported("a channel failure without `Cancelled`"),
+        };
+        let err = Self::variant_value(&dst.shape, "Err", err);
+        let cancelled = self.scalar_op(ScalarOp::Eq, I64, vec![st, Operand::Int(2)]);
+        let (c, o) = self.branch(cancelled);
+        let join = self.block_new();
+        self.cur = c;
+        self.copy_to(&dst.locals, err);
+        self.goto(join);
+        self.cur = o;
+        let v = ok(self);
+        let v = Self::variant_value(&dst.shape, "Ok", v);
+        self.copy_to(&dst.locals, v);
+        self.goto(join);
+        Ok(())
     }
 
     fn free(&mut self, f: RtFn, block: Operand) {

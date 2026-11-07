@@ -696,6 +696,7 @@ const RT: &[RtFn] = &[
     RtFn::ParBegin,
     RtFn::ParNext,
     RtFn::ParTaskEnd,
+    RtFn::ParCancel,
     RtFn::ParEnd,
 ];
 
@@ -901,6 +902,12 @@ fn rt_fn(
             sched::yan_rt_par_task_end as *const u8,
             &[I64],
             None,
+        ),
+        RtFn::ParCancel => (
+            "yan_rt_par_cancel",
+            sched::yan_rt_par_cancel as *const u8,
+            &[I64],
+            Some(I64),
         ),
         RtFn::ParEnd => (
             "yan_rt_par_end",

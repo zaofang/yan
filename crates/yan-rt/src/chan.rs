@@ -46,6 +46,9 @@ pub extern "C" fn yan_rt_chan_new(cap: u64, words: u64) -> *mut Chan {
 /// The status of an operation that parked its task: run it again when the task resumes.
 pub const BLOCKED: u64 = 1;
 
+/// The status of an operation in a cancelled task: it fails `Cancelled` (9.4).
+pub const CANCELLED: u64 = 2;
+
 /// `send`: the element's slots from `buf`; 0, or [`BLOCKED`] when `in_task` (nonzero) lets it
 /// park. A rendezvous channel (capacity 0) hands over only to a receiver already waiting.
 ///
@@ -53,6 +56,9 @@ pub const BLOCKED: u64 = 1;
 /// `ch` is a live channel and `buf` holds its element's slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_chan_send(ch: *mut Chan, buf: *const u64, in_task: u64) -> u64 {
+    if in_task != 0 && sched::cancelled() {
+        return CANCELLED;
+    }
     // SAFETY: the caller's contract.
     let c = unsafe { &mut *ch };
     let room = if c.cap == 0 {
@@ -82,6 +88,9 @@ pub unsafe extern "C" fn yan_rt_chan_send(ch: *mut Chan, buf: *const u64, in_tas
 /// `ch` is a live channel and `out` has room for its element's slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_chan_recv(ch: *mut Chan, out: *mut u64, in_task: u64) -> u64 {
+    if in_task != 0 && sched::cancelled() {
+        return CANCELLED;
+    }
     // SAFETY: the caller's contract.
     let c = unsafe { &mut *ch };
     if c.len() == 0 {

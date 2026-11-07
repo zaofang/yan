@@ -1,7 +1,8 @@
 //! The cooperative scheduler of `par concurrent` in native code (RFC 0043 D2), a port of the
 //! interpreter's `run_tasks`: a task that parks yields to the lowest-index task that can
 //! progress, and a task is retried only after some channel progress since it parked (R390).
-//! Every task parked is a global deadlock (R396).
+//! Every task parked is a global deadlock (R396). A task that leaves the function cancels the
+//! others, whose blocking operations then fail `Cancelled` until they end (9.4, R394).
 
 use std::cell::RefCell;
 
@@ -23,6 +24,9 @@ struct Block {
     running: Option<usize>,
     /// The block runs in a task that can suspend, so it may yield instead of forcing.
     can_yield: bool,
+    /// The block whose task was running when this one began.
+    parent: Option<usize>,
+    cancelled: bool,
 }
 
 #[derive(Default)]
@@ -39,6 +43,8 @@ struct State {
     /// The block whose tasks are all parked and that runs one anyway: blocking operations
     /// cannot park, and blocks nested in that task cannot yield.
     force: Option<usize>,
+    /// The block whose task is running.
+    cur: Option<usize>,
 }
 
 thread_local! {
@@ -67,6 +73,21 @@ pub(crate) fn progressed() {
     with(|st| st.progress += 1);
 }
 
+/// The running task is cancelled: its block or one around it is.
+pub(crate) fn cancelled() -> bool {
+    with(|st| {
+        let mut at = st.cur;
+        while let Some(h) = at {
+            let b = st.blocks[h].as_ref().expect("a live par block");
+            if b.cancelled {
+                return true;
+            }
+            at = b.parent;
+        }
+        false
+    })
+}
+
 pub(crate) fn waiting(c: usize) -> usize {
     with(|st| st.waiting_recv.iter().filter(|w| **w == c).count())
 }
@@ -91,6 +112,8 @@ pub extern "C" fn yan_rt_par_begin(n: u64, can_yield: u64) -> u64 {
             tasks: (0..n).map(|_| Task::default()).collect(),
             running: None,
             can_yield: can_yield != 0,
+            parent: st.cur,
+            cancelled: false,
         };
         match st.blocks.iter().position(Option::is_none) {
             Some(h) => {
@@ -113,6 +136,18 @@ pub extern "C" fn yan_rt_par_task_end(h: u64) {
         let i = b.running.expect("a running task");
         b.tasks[i].done = true;
     });
+}
+
+/// The running task of block `h` leaves the function: it ends and cancels the others. 1 for
+/// the first such task, whose result the block returns, 0 for later ones.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_par_cancel(h: u64) -> u64 {
+    with(|st| {
+        let b = block(st, h);
+        let i = b.running.expect("a running task");
+        b.tasks[i].done = true;
+        u64::from(!std::mem::replace(&mut b.cancelled, true))
+    })
 }
 
 /// Account for the step of block `h` that just ended, then the task to run next: the task
@@ -149,24 +184,31 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
         let progress = st.progress;
         let inherited = st.force.is_some_and(|f| f != h as usize);
         let b = block(st, h);
+        let parent = b.parent;
         let Some(first) = b.tasks.iter().position(|t| !t.done) else {
-            return b.tasks.len() as u64;
+            let n = b.tasks.len() as u64;
+            st.cur = parent;
+            return n;
         };
+        // A cancelled task runs on to fail its next wait.
+        let cancelled = b.cancelled;
         let pick = b
             .tasks
             .iter()
-            .position(|t| !t.done && t.seen.is_none_or(|s| s != progress));
+            .position(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)));
         let (i, forced) = match pick {
             Some(i) => (i, false),
             None if b.can_yield && !inherited => {
                 let n = b.tasks.len() as u64;
                 st.park = Some(NESTED);
+                st.cur = parent;
                 return n + 1;
             }
             None => (first, true),
         };
         b.running = Some(i);
         st.force = forced.then_some(h as usize);
+        st.cur = Some(h as usize);
         i as u64
     })
 }
@@ -185,6 +227,7 @@ pub extern "C" fn yan_rt_par_end(h: u64) {
             st.force = None;
         }
         st.park = None;
+        st.cur = b.parent;
     });
 }
 

@@ -190,10 +190,11 @@ pub enum RtFn {
     EnvFree,
     /// `(cap, words) -> Ptr`: a channel of `words`-slot elements, shared by both ends.
     ChanNew,
-    /// `(Ptr chan, Ptr slots, in_task) -> i64`: 1 when it parked the task.
+    /// `(Ptr chan, Ptr slots, in_task) -> i64`: 1 when it parked the task, 2 when the task is
+    /// cancelled.
     ChanSend,
-    /// `(Ptr chan, Ptr out, in_task) -> i64`: the oldest element's slots into `out`; 1 when it
-    /// parked the task.
+    /// `(Ptr chan, Ptr out, in_task) -> i64`: the oldest element's slots into `out`; 1 and 2
+    /// as for `ChanSend`.
     ChanRecv,
     /// `(Ptr chan)`: drop one end.
     ChanDrop,
@@ -204,6 +205,9 @@ pub enum RtFn {
     ParNext,
     /// `(handle)`: the running task's branch ended.
     ParTaskEnd,
+    /// `(handle) -> i64`: the running task leaves the function and cancels the others; 1 for
+    /// the first to.
+    ParCancel,
     /// `(handle)`: leave the block.
     ParEnd,
 }

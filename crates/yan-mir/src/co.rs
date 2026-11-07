@@ -51,7 +51,7 @@ pub fn run(p: &mut Program) {
             .collect();
         let ret = f.ret.clone();
         for b in &tasks {
-            cx.untail(f, *b, false, &ret);
+            cx.untail(f, *b, true, &ret);
         }
         cx.co_calls(f, g, tasks);
     }
@@ -69,7 +69,8 @@ pub fn run(p: &mut Program) {
         args[0] = Operand::Int(size as i128);
     }
     for f in &mut p.funcs[..n] {
-        tasks::split(f, false);
+        let ret = f.ret.clone();
+        tasks::split(f, false, &ret);
     }
 }
 
@@ -269,7 +270,7 @@ impl Cx {
         }
         self.co_calls(&mut f, at, reach.iter().map(|b| *b as BlockId).collect());
         // What `Suspend`s remain suspend the variant.
-        tasks::split(&mut f, true);
+        tasks::split(&mut f, true, &g.ret);
 
         let me = self
             .co_id

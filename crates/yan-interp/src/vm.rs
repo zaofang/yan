@@ -354,8 +354,9 @@ impl<'o> Vm<'o> {
     }
 
     /// Run the branches at `entries` of `code` as cooperative tasks over the frame at `base`.
-    /// A task that parks yields to the lowest-index task that can progress; a task that fails
-    /// or returns ends the block with that outcome and drops the rest (R390, R394).
+    /// A task that parks yields to the lowest-index task that can progress. The first task to
+    /// fail or return cancels the rest, which run on to fail their waits with `Cancelled`, and
+    /// the block ends with its outcome (R390, R394, 9.4).
     fn run_tasks(
         &mut self,
         code: &mut Rc<Code>,
@@ -379,16 +380,19 @@ impl<'o> Vm<'o> {
             .collect();
         let outer = self.task_base.replace(base);
         self.it.in_par += 1;
+        self.it.cancel.push(false);
+        let mut first = None;
         let out = loop {
             let progress = self.it.progress;
+            let cancelled = self.it.cancel.last() == Some(&true);
             let next = tasks
                 .iter()
-                .position(|t| !t.done && t.seen.is_none_or(|s| s != progress));
+                .position(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)));
             let (i, forced) = match next {
                 Some(i) => (i, false),
                 None => match tasks.iter().position(|t| !t.done) {
                     Some(i) => (i, true),
-                    None => break Ok(None),
+                    None => break Ok(first),
                 },
             };
             self.it.force = forced;
@@ -426,10 +430,10 @@ impl<'o> Vm<'o> {
                 self.it.waiting_recv.swap_remove(k);
                 self.it.progress += 1;
             }
-            if self.it.task_done {
-                t.done = true;
-            } else {
-                break Ok(Some(r));
+            t.done = true;
+            if !self.it.task_done && first.is_none() {
+                first = Some(r);
+                *self.it.cancel.last_mut().expect("this block") = true;
             }
         };
         for t in &tasks {
@@ -441,6 +445,7 @@ impl<'o> Vm<'o> {
         }
         self.task_base = outer;
         self.it.in_par -= 1;
+        self.it.cancel.pop();
         out
     }
 
