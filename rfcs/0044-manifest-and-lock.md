@@ -87,7 +87,7 @@ so MVS stays deterministic and the cool-off applies to what is written, never to
 resolve order is fixed: overrides first, then dependencies, dev dependencies and tools as three
 subgraphs of one lock, then the Python environment. A conflict names both requirers.
 
-- Decision:
+- Decision: as recommended; Antonio, 2026-11-07
 - Row:
 
 ### D6: static index contents and discovery
