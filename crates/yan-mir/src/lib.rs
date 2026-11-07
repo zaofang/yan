@@ -186,6 +186,14 @@ pub enum RtFn {
     ListFree,
     /// `(Ptr)`: free a closure's captures block; null is ignored.
     EnvFree,
+    /// `(cap, words) -> Ptr`: a channel of `words`-slot elements, shared by both ends.
+    ChanNew,
+    /// `(Ptr chan, Ptr slots)`
+    ChanSend,
+    /// `(Ptr chan, Ptr out)`: the oldest element's slots into `out`.
+    ChanRecv,
+    /// `(Ptr chan)`: drop one end.
+    ChanDrop,
 }
 
 #[derive(Clone, Debug, PartialEq)]

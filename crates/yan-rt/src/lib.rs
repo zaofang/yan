@@ -4,6 +4,8 @@
 
 #[allow(unsafe_code)]
 pub mod abi;
+#[allow(unsafe_code)]
+pub mod chan;
 pub mod collections;
 pub mod crypto_rand;
 pub mod csv;

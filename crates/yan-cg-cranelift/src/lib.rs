@@ -21,7 +21,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
-use yan_rt::abi;
+use yan_rt::{abi, chan};
 
 type R<T> = Result<T, String>;
 
@@ -689,6 +689,10 @@ const RT: &[RtFn] = &[
     RtFn::StrFree,
     RtFn::ListFree,
     RtFn::EnvFree,
+    RtFn::ChanNew,
+    RtFn::ChanSend,
+    RtFn::ChanRecv,
+    RtFn::ChanDrop,
 ];
 
 /// Symbol, address, parameter types and result type.
@@ -851,6 +855,30 @@ fn rt_fn(
             abi::yan_rt_list_copy as *const u8,
             &[I64],
             Some(I64),
+        ),
+        RtFn::ChanNew => (
+            "yan_rt_chan_new",
+            chan::yan_rt_chan_new as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::ChanSend => (
+            "yan_rt_chan_send",
+            chan::yan_rt_chan_send as *const u8,
+            &[I64, I64],
+            None,
+        ),
+        RtFn::ChanRecv => (
+            "yan_rt_chan_recv",
+            chan::yan_rt_chan_recv as *const u8,
+            &[I64, I64],
+            None,
+        ),
+        RtFn::ChanDrop => (
+            "yan_rt_chan_drop",
+            chan::yan_rt_chan_drop as *const u8,
+            &[I64],
+            None,
         ),
     }
 }

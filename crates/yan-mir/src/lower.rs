@@ -33,13 +33,15 @@ pub enum Shape {
     Sum(String, Vec<(String, Vec<(String, Shape)>)>),
     /// A closure: its code and its captures' block. `ret` is a `Result` for `fail E`.
     Fn(Vec<Shape>, Box<Shape>),
+    /// A `Sender[T]` or `Receiver[T]`: the channel both ends share.
+    Chan(Box<Shape>),
 }
 
 impl Shape {
     fn slots(&self, out: &mut Vec<Ty>) {
         match self {
             Shape::Scalar(t) => out.push(*t),
-            Shape::Str | Shape::List(_) => out.push(Ty::Ptr),
+            Shape::Str | Shape::List(_) | Shape::Chan(_) => out.push(Ty::Ptr),
             Shape::Fn(..) => out.extend([Ty::Ptr, Ty::Ptr]),
             Shape::Rec(_, fs) => fs.iter().for_each(|(_, s)| s.slots(out)),
             Shape::Tuple(ss) => ss.iter().for_each(|s| s.slots(out)),
@@ -65,7 +67,7 @@ impl Shape {
     fn has_list(&self) -> bool {
         match self {
             Shape::List(_) => true,
-            Shape::Scalar(_) | Shape::Str | Shape::Fn(..) => false,
+            Shape::Scalar(_) | Shape::Str | Shape::Fn(..) | Shape::Chan(_) => false,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| s.has_list()),
             Shape::Tuple(ss) => ss.iter().any(Shape::has_list),
             Shape::Sum(_, vs) => vs.iter().flat_map(|(_, fs)| fs).any(|(_, s)| s.has_list()),
@@ -158,6 +160,9 @@ impl Types<'_> {
                     ("Result", [y::TArg::Type(t), y::TArg::Type(e)]) => {
                         return Ok(result(self.shape_in(t, stack)?, self.shape_in(e, stack)?));
                     }
+                    ("Sender" | "Receiver", [y::TArg::Type(e)]) => {
+                        return Ok(Shape::Chan(Box::new(self.shape_in(e, stack)?)));
+                    }
                     (_, []) => {}
                     _ => return unsupported(format!("type `{name}[..]`")),
                 }
@@ -185,6 +190,8 @@ impl Types<'_> {
                         })
                         .collect::<R<_>>()?;
                     Shape::Sum(name.to_owned(), vs)
+                } else if STD_FAILURES.contains(&name) {
+                    Shape::Rec(name.to_owned(), Vec::new())
                 } else {
                     return unsupported(format!("type `{name}`"));
                 };
@@ -207,10 +214,23 @@ impl Types<'_> {
                 };
                 Ok(Shape::Fn(ps, Box::new(ret)))
             }
+            // A union is a sum over its members, in the order written.
+            y::Type::Union(ts) => Ok(Shape::Sum(
+                "Union".into(),
+                ts.iter()
+                    .map(|t| {
+                        let s = self.shape_in(t, stack)?;
+                        Ok((yan_core::type_text(t), vec![("value".into(), s)]))
+                    })
+                    .collect::<R<_>>()?,
+            )),
             _ => unsupported("a compound type"),
         }
     }
 }
+
+/// The fieldless failure types of section 9, which std declares.
+const STD_FAILURES: &[&str] = &["Cancelled", "Timeout", "Draining", "Deadlock"];
 
 fn result(ok: Shape, err: Shape) -> Shape {
     Shape::Sum(
@@ -937,7 +957,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     fn scalar1(&mut self, a: &y::Atom) -> R<Operand> {
         let (mut v, s) = self.atom_any(a)?;
         match (s, v.len()) {
-            (Shape::Scalar(_) | Shape::Str | Shape::List(_), 1) => Ok(v.remove(0)),
+            (Shape::Scalar(_) | Shape::Str | Shape::List(_) | Shape::Chan(_), 1) => Ok(v.remove(0)),
             _ => unsupported("an aggregate operand"),
         }
     }
@@ -1110,6 +1130,48 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.free(RtFn::EnvFree, buf);
                 set(self, r);
             }
+            (id::STD_CHAN_CHANNEL, [(_, cap)]) => {
+                let (Some(e), Some(dst)) = (self.targ(c)?, dst) else {
+                    return unsupported("`Channel` without its type or result");
+                };
+                let cap = self.scalar1(cap)?;
+                let words = Operand::Int(e.width() as i128);
+                let ch = self.rt(RtFn::ChanNew, Ty::Ptr, vec![cap, words]);
+                self.copy_to(&dst.locals, vec![ch.clone(), ch]);
+            }
+            (id::STD_CHAN_SENDER_SEND, [(_, tx), (_, a)]) => {
+                let (Some(e), Some(dst)) = (self.targ(c)?, dst) else {
+                    return unsupported("`send` without its type or result");
+                };
+                let tx = self.scalar1(tx)?;
+                let v = self.atom(a, &e)?;
+                let buf = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(v.len() as i128)]);
+                self.write(&At::Mem(buf.clone(), 0), v);
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::ChanSend,
+                    args: vec![tx, buf.clone()],
+                });
+                self.free(RtFn::EnvFree, buf);
+                let ok = Self::variant_value(&dst.shape, "Ok", Vec::new());
+                self.copy_to(&dst.locals, ok);
+            }
+            (id::STD_CHAN_RECEIVER_RECV, [(_, rx)]) => {
+                let (Some(e), Some(dst)) = (self.targ(c)?, dst) else {
+                    return unsupported("`recv` without its type or result");
+                };
+                let rx = self.scalar1(rx)?;
+                let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(e.width() as i128)]);
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::ChanRecv,
+                    args: vec![rx, out.clone()],
+                });
+                let v = self.read(&At::Mem(out.clone(), 0), &e);
+                self.free(RtFn::EnvFree, out);
+                let ok = Self::variant_value(&dst.shape, "Ok", v);
+                self.copy_to(&dst.locals, ok);
+            }
             (id::STD_JSON_PARSE, [(_, a), (_, schema)]) => {
                 let Some(dst) = dst else {
                     return unsupported("`json.parse` without a result");
@@ -1221,6 +1283,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(Ty::Unit) => self.lit("None"),
             Shape::Scalar(Ty::Ptr) => unreachable!("not a Yan Core type"),
             Shape::Fn(..) => self.lit("<function>"),
+            Shape::Chan(_) => return unsupported("`show` of a channel end"),
             Shape::Str if nested => self.rt(RtFn::Repr, Ty::Ptr, vec![v[0].clone()]),
             Shape::Str => {
                 let empty = self.lit("");
@@ -1380,7 +1443,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     fn has_heap(s: &Shape) -> bool {
         match s {
             Shape::Scalar(_) => false,
-            Shape::Str | Shape::List(_) | Shape::Fn(..) => true,
+            Shape::Str | Shape::List(_) | Shape::Fn(..) | Shape::Chan(_) => true,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_heap(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_heap),
             Shape::Sum(_, vs) => vs
@@ -1400,6 +1463,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(_) => {}
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str => self.free(RtFn::StrFree, v[0].clone()),
+            Shape::Chan(_) => self.free(RtFn::ChanDrop, v[0].clone()),
             Shape::List(e) => {
                 if Self::has_heap(e) {
                     let list = v[0].clone();
@@ -2228,6 +2292,11 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Ok(())
             }
             // Names bound in a `par` child are read after the block.
+            // Branches that wait on each other need the task transform (RFC 0043).
+            K::Par {
+                concurrent: true,
+                blocks,
+            } if blocks.len() > 1 => unsupported("`par concurrent`"),
             K::Par { blocks, .. } => blocks.iter().try_for_each(|b| self.block_in(b)),
             K::Assert(e) => {
                 let sides = match e {
