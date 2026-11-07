@@ -27,18 +27,25 @@ def load(d: Path) -> dict[str, dict[str, bool]]:
     return {t: v for t, v in tasks.items() if len(v) == 2}
 
 
+def row(name: str, c: tuple[int, int, int, int]) -> str:
+    both, yag_only, py_only, neither = c
+    return (
+        f"{name}\tn={sum(c)}\tboth={both}\tyag_only={yag_only}\tpy_only={py_only}"
+        f"\tneither={neither}\tp={sign_p(yag_only, py_only):.4f}"
+    )
+
+
 def main() -> None:
-    tot = [0, 0, 0, 0]
+    tot = (0, 0, 0, 0)
     for d in map(Path, sys.argv[1:]):
-        t = load(d)
-        both = sum(v["yag"] and v["py"] for v in t.values())
-        yag_only = sum(v["yag"] and not v["py"] for v in t.values())
-        py_only = sum(v["py"] and not v["yag"] for v in t.values())
-        neither = len(t) - both - yag_only - py_only
-        tot = [x + y for x, y in zip(tot, (both, yag_only, py_only, neither))]
-        print(f"{d.name}\tn={len(t)}\tboth={both}\tyag_only={yag_only}\tpy_only={py_only}\tneither={neither}\tp={sign_p(yag_only, py_only):.4f}")
-    both, yag_only, py_only, neither = tot
-    print(f"pooled\tn={sum(tot)}\tboth={both}\tyag_only={yag_only}\tpy_only={py_only}\tneither={neither}\tp={sign_p(yag_only, py_only):.4f}")
+        t = load(d).values()
+        yag_only = sum(v["yag"] and not v["py"] for v in t)
+        py_only = sum(v["py"] and not v["yag"] for v in t)
+        both = sum(v["yag"] and v["py"] for v in t)
+        c = (both, yag_only, py_only, len(t) - both - yag_only - py_only)
+        tot = tuple(x + y for x, y in zip(tot, c, strict=True))
+        print(row(d.name, c))
+    print(row("pooled", tot))
 
 
 if __name__ == "__main__":
