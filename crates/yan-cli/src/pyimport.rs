@@ -1,5 +1,6 @@
 //! `yan import --python` (17.8): a typed Python subset to Yan Agent text.
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Write;
 use std::path::Path;
@@ -64,7 +65,7 @@ pub fn convert(src: &str) -> R<(String, Vec<String>)> {
             "test refers to `{name}`, which is not defined in this file"
         ));
     }
-    Ok((out, cx.notes))
+    Ok((out, cx.notes.into_inner()))
 }
 
 fn is_test(s: &ast::Stmt) -> bool {
@@ -89,7 +90,7 @@ struct Cx<'a> {
     src: &'a str,
     sigs: HashMap<String, Vec<(String, bool)>>,
     tmp: usize,
-    notes: Vec<String>,
+    notes: RefCell<Vec<String>>,
     /// One entry per enclosing loop: the `else` flag set before each `break` (N44).
     breaks: Vec<Option<String>>,
     flags: usize,
@@ -104,7 +105,7 @@ impl<'a> Cx<'a> {
             src,
             sigs: HashMap::new(),
             tmp: 0,
-            notes: Vec::new(),
+            notes: RefCell::default(),
             breaks: Vec::new(),
             flags: 0,
             pending: HashMap::new(),
@@ -123,9 +124,11 @@ impl<'a> Cx<'a> {
         )
     }
 
-    fn note(&mut self, offset: usize, code: &str, what: &str) {
+    fn note(&self, offset: usize, code: &str, what: &str) {
         let line = self.line_of(offset);
-        self.notes.push(format!("line {line}: {code} {what}"));
+        self.notes
+            .borrow_mut()
+            .push(format!("line {line}: {code} {what}"));
     }
 
     fn function(
@@ -607,11 +610,26 @@ impl<'a> Cx<'a> {
                 vs.join(op)
             }
             ast::Expr::Compare(c) => {
-                let mut s = self.expr(&c.left)?;
-                for (op, r) in c.ops.iter().zip(&c.comparators) {
-                    write!(s, " {} {}", cmpop(op), self.expr(r)?).unwrap();
+                let chained = c.ops.len() > 1;
+                // N22: only a name or literal middle operand may be evaluated twice.
+                let middles = &c.comparators[..c.comparators.len() - 1];
+                if middles
+                    .iter()
+                    .any(|m| !matches!(m, ast::Expr::Name(_) | ast::Expr::Constant(_)))
+                {
+                    return Err(self.unsupported(at, "a chained comparison with a computed middle"));
                 }
-                s
+                if chained {
+                    self.note(at, "N22", "chained comparison split with and");
+                }
+                let mut parts = Vec::new();
+                let mut left = self.expr(&c.left)?;
+                for (op, r) in c.ops.iter().zip(&c.comparators) {
+                    let right = self.expr(r)?;
+                    parts.push(format!("{left} {} {right}", cmpop(op)));
+                    left = right;
+                }
+                parts.join(" and ")
             }
             ast::Expr::IfExp(i) => {
                 format!(
@@ -859,5 +877,14 @@ mod tests {
             out.starts_with("def f(a: int, b: int = 2, s: str = \"x\") -> int:"),
             "{out}"
         );
+    }
+
+    #[test]
+    fn chained_comparison_splits_on_a_simple_middle() {
+        let (out, notes) = body("    n = 5\n    if 0 < n < 10:\n        return 1\n    return 0\n");
+        assert!(out.contains("if 0 < n and n < 10:"), "{out}");
+        assert!(notes[0].contains("N22"), "{notes:?}");
+        let err = convert("def f(xs: list[int]) -> int:\n    if 0 < len(xs) < 3:\n        return 1\n    return 0\n").unwrap_err();
+        assert!(err.contains("computed middle"), "{err}");
     }
 }
