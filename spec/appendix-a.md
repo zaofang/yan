@@ -272,6 +272,9 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R924 | `yan test` package, ids, budgets, test hash, `--gate` and output formats (RFC 0047) | 18.4 |
 | R925 | `cost` bounds cover the body, the call charged to the caller; one `alloc` is a fresh heap value, an `inout` growth or a capturing closure | 8.4 |
 | R926 | Session details: protocol payloads in the module's surface, `X` or `continue X` repeats, malformed protocols E270; `session.send`, `recv` and `close` results, generated endpoint names collision-checked (E265); E727 covers `recv` and `close` | 9.5, 25 |
+| R927 | `parse_int` and `parse_float` on `char`: methods of `std.text` that apply to the one-scalar `str`, returning `int | None` and `float | None` (RFC 0048) | 17 |
+| R928 | N35 and N34 accept `re.finditer` and `Regex.finditer` as `find_all` (RFC 0048) | 14.4 |
+| R929 | E201 on arithmetic with an `int`, `float` or `str` optional carries a `choice` fix wrapping the operand as `(x else 0)`, `(x else 0.0)` or `(x else "")` (RFC 0048) | 25 |
 
 <!-- /rows -->
 

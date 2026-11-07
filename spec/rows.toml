@@ -1324,3 +1324,18 @@ sections = "8.4"
 rows = "R926"
 topic = "Session details: protocol payloads in the module's surface, `X` or `continue X` repeats, malformed protocols E270; `session.send`, `recv` and `close` results, generated endpoint names collision-checked (E265); E727 covers `recv` and `close`"
 sections = "9.5, 25"
+
+[[entry]]
+rows = "R927"
+topic = "`parse_int` and `parse_float` on `char`: methods of `std.text` that apply to the one-scalar `str`, returning `int | None` and `float | None` (RFC 0048)"
+sections = "17"
+
+[[entry]]
+rows = "R928"
+topic = "N35 and N34 accept `re.finditer` and `Regex.finditer` as `find_all` (RFC 0048)"
+sections = "14.4"
+
+[[entry]]
+rows = "R929"
+topic = "E201 on arithmetic with an `int`, `float` or `str` optional carries a `choice` fix wrapping the operand as `(x else 0)`, `(x else 0.0)` or `(x else \"\")` (RFC 0048)"
+sections = "25"
