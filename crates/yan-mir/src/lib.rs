@@ -190,20 +190,25 @@ pub enum RtFn {
     EnvFree,
     /// `(cap, words) -> Ptr`: a channel of `words`-slot elements, shared by both ends.
     ChanNew,
-    /// `(Ptr chan, Ptr slots, in_task) -> i64`: 1 when it parked the task.
+    /// `(Ptr chan, Ptr slots, in_task) -> i64`: 1 when it parked the task, 2 when the task is
+    /// cancelled.
     ChanSend,
-    /// `(Ptr chan, Ptr out, in_task) -> i64`: the oldest element's slots into `out`; 1 when it
-    /// parked the task.
+    /// `(Ptr chan, Ptr out, in_task) -> i64`: the oldest element's slots into `out`; 1 and 2
+    /// as for `ChanSend`.
     ChanRecv,
     /// `(Ptr chan)`: drop one end.
     ChanDrop,
-    /// `(n)`: enter a `par concurrent` of `n` tasks.
+    /// `(n, can_yield) -> handle`: enter a `par concurrent` of `n` tasks.
     ParBegin,
-    /// `() -> i64`: the task to run next, or the task count when all are done.
+    /// `(handle) -> i64`: the task to run next, the task count when all are done, or past it
+    /// when the block yields to its enclosing task.
     ParNext,
-    /// `()`: the running task's branch ended.
+    /// `(handle)`: the running task's branch ended.
     ParTaskEnd,
-    /// `()`: leave the innermost `par concurrent`.
+    /// `(handle) -> i64`: the running task leaves the function and cancels the others; 1 for
+    /// the first to.
+    ParCancel,
+    /// `(handle)`: leave the block.
     ParEnd,
 }
 

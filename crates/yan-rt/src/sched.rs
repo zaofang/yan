@@ -1,12 +1,16 @@
 //! The cooperative scheduler of `par concurrent` in native code (RFC 0043 D2), a port of the
 //! interpreter's `run_tasks`: a task that parks yields to the lowest-index task that can
 //! progress, and a task is retried only after some channel progress since it parked (R390).
-//! Every task parked is a global deadlock (R396).
+//! Every task parked is a global deadlock (R396). A task that leaves the function cancels the
+//! others, whose blocking operations then fail `Cancelled` until they end (9.4, R394).
 
 use std::cell::RefCell;
 
 /// A park: (is a receive, channel).
 pub(crate) type Park = (bool, usize);
+
+/// The park of a task whose nested `par concurrent` yielded: every task in it is parked.
+const NESTED: Park = (false, usize::MAX);
 
 #[derive(Default)]
 struct Task {
@@ -18,20 +22,29 @@ struct Task {
 struct Block {
     tasks: Vec<Task>,
     running: Option<usize>,
+    /// The block runs in a task that can suspend, so it may yield instead of forcing.
+    can_yield: bool,
+    /// The block whose task was running when this one began.
+    parent: Option<usize>,
+    cancelled: bool,
 }
 
 #[derive(Default)]
 struct State {
-    /// The `par concurrent` blocks running, innermost last.
-    blocks: Vec<Block>,
+    /// The `par concurrent` blocks entered and not left, by handle. A block that yielded
+    /// stays while its enclosing task runs others.
+    blocks: Vec<Option<Block>>,
     /// Counts channel progress: a transfer, or a task starting to wait for a receive.
     progress: u64,
     /// The channels tasks are parked receiving on, once per task.
     waiting_recv: Vec<usize>,
     /// Set by a blocking operation that parked.
     park: Option<Park>,
-    /// Every task is parked: the next blocking operation cannot park.
-    force: bool,
+    /// The block whose tasks are all parked and that runs one anyway: blocking operations
+    /// cannot park, and blocks nested in that task cannot yield.
+    force: Option<usize>,
+    /// The block whose task is running.
+    cur: Option<usize>,
 }
 
 thread_local! {
@@ -52,8 +65,27 @@ fn unwait(st: &mut State, c: usize) -> bool {
     }
 }
 
+fn block(st: &mut State, h: u64) -> &mut Block {
+    st.blocks[h as usize].as_mut().expect("a live par block")
+}
+
 pub(crate) fn progressed() {
     with(|st| st.progress += 1);
+}
+
+/// The running task is cancelled: its block or one around it is.
+pub(crate) fn cancelled() -> bool {
+    with(|st| {
+        let mut at = st.cur;
+        while let Some(h) = at {
+            let b = st.blocks[h].as_ref().expect("a live par block");
+            if b.cancelled {
+                return true;
+            }
+            at = b.parent;
+        }
+        false
+    })
 }
 
 pub(crate) fn waiting(c: usize) -> usize {
@@ -63,7 +95,7 @@ pub(crate) fn waiting(c: usize) -> usize {
 /// Park the running task on `p`; false when it cannot park (outside a task, or forced).
 pub(crate) fn park(p: Park, in_task: bool) -> bool {
     with(|st| {
-        if !in_task || st.force || st.blocks.is_empty() {
+        if !in_task || st.force.is_some() || st.blocks.iter().all(Option::is_none) {
             return false;
         }
         st.park = Some(p);
@@ -71,34 +103,61 @@ pub(crate) fn park(p: Park, in_task: bool) -> bool {
     })
 }
 
-/// Enter a `par concurrent` of `n` tasks.
+/// Enter a `par concurrent` of `n` tasks; its handle. `can_yield` (nonzero) when it runs in a
+/// task that can suspend.
 #[unsafe(no_mangle)]
-pub extern "C" fn yan_rt_par_begin(n: u64) {
+pub extern "C" fn yan_rt_par_begin(n: u64, can_yield: u64) -> u64 {
     with(|st| {
-        st.blocks.push(Block {
+        let b = Block {
             tasks: (0..n).map(|_| Task::default()).collect(),
             running: None,
-        })
-    });
+            can_yield: can_yield != 0,
+            parent: st.cur,
+            cancelled: false,
+        };
+        match st.blocks.iter().position(Option::is_none) {
+            Some(h) => {
+                st.blocks[h] = Some(b);
+                h as u64
+            }
+            None => {
+                st.blocks.push(Some(b));
+                st.blocks.len() as u64 - 1
+            }
+        }
+    })
 }
 
-/// The running task's branch ended.
+/// The running task of block `h` ended its branch.
 #[unsafe(no_mangle)]
-pub extern "C" fn yan_rt_par_task_end() {
+pub extern "C" fn yan_rt_par_task_end(h: u64) {
     with(|st| {
-        let b = st.blocks.last_mut().expect("in a par block");
+        let b = block(st, h);
         let i = b.running.expect("a running task");
         b.tasks[i].done = true;
     });
 }
 
-/// Account for the step that just ended, then the task to run next, or the task count when
-/// every task is done.
+/// The running task of block `h` leaves the function: it ends and cancels the others. 1 for
+/// the first such task, whose result the block returns, 0 for later ones.
 #[unsafe(no_mangle)]
-pub extern "C" fn yan_rt_par_next() -> u64 {
-    let next = with(|st| {
+pub extern "C" fn yan_rt_par_cancel(h: u64) -> u64 {
+    with(|st| {
+        let b = block(st, h);
+        let i = b.running.expect("a running task");
+        b.tasks[i].done = true;
+        u64::from(!std::mem::replace(&mut b.cancelled, true))
+    })
+}
+
+/// Account for the step of block `h` that just ended, then the task to run next: the task
+/// count when every task is done, or one past it when every task is parked and the block
+/// yields to its enclosing task.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
+    with(|st| {
         let parked = st.park.take();
-        let b = st.blocks.last_mut().expect("in a par block");
+        let b = block(st, h);
         if let Some(i) = b.running.take() {
             let prev = b.tasks[i].park.take();
             if let Some(now) = parked {
@@ -110,10 +169,12 @@ pub extern "C" fn yan_rt_par_next() -> u64 {
                     if now.0 {
                         st.waiting_recv.push(now.1);
                     }
-                    st.progress += 1;
+                    if now != NESTED {
+                        st.progress += 1;
+                    }
                 }
-                let b = st.blocks.last_mut().expect("in a par block");
-                b.tasks[i].seen = Some(st.progress);
+                let progress = st.progress;
+                block(st, h).tasks[i].seen = Some(progress);
             } else if let Some((true, c)) = prev
                 && unwait(st, c)
             {
@@ -121,40 +182,52 @@ pub extern "C" fn yan_rt_par_next() -> u64 {
             }
         }
         let progress = st.progress;
-        let b = st.blocks.last_mut().expect("in a par block");
+        let inherited = st.force.is_some_and(|f| f != h as usize);
+        let b = block(st, h);
+        let parent = b.parent;
+        let Some(first) = b.tasks.iter().position(|t| !t.done) else {
+            let n = b.tasks.len() as u64;
+            st.cur = parent;
+            return n;
+        };
+        // A cancelled task runs on to fail its next wait.
+        let cancelled = b.cancelled;
         let pick = b
             .tasks
             .iter()
-            .position(|t| !t.done && t.seen.is_none_or(|s| s != progress));
+            .position(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)));
         let (i, forced) = match pick {
             Some(i) => (i, false),
-            None => match b.tasks.iter().position(|t| !t.done) {
-                Some(i) => (i, true),
-                None => return None,
-            },
+            None if b.can_yield && !inherited => {
+                let n = b.tasks.len() as u64;
+                st.park = Some(NESTED);
+                st.cur = parent;
+                return n + 1;
+            }
+            None => (first, true),
         };
         b.running = Some(i);
-        st.force = forced;
-        Some(i as u64)
-    });
-    match next {
-        Some(i) => i,
-        None => with(|st| st.blocks.last().expect("in a par block").tasks.len() as u64),
-    }
+        st.force = forced.then_some(h as usize);
+        st.cur = Some(h as usize);
+        i as u64
+    })
 }
 
-/// Leave the innermost `par concurrent`, normally or through a task's early exit.
+/// Leave block `h`, normally or through a task's early exit.
 #[unsafe(no_mangle)]
-pub extern "C" fn yan_rt_par_end() {
+pub extern "C" fn yan_rt_par_end(h: u64) {
     with(|st| {
-        let b = st.blocks.pop().expect("in a par block");
+        let b = st.blocks[h as usize].take().expect("a live par block");
         for t in &b.tasks {
             if let Some((true, c)) = t.park {
                 unwait(st, c);
             }
         }
-        st.force = false;
+        if st.force == Some(h as usize) {
+            st.force = None;
+        }
         st.park = None;
+        st.cur = b.parent;
     });
 }
 
@@ -170,15 +243,15 @@ mod tests {
         let ch = yan_rt_chan_new(0, 1);
         let mut next = [0u64; 2];
         let mut trace = Vec::new();
-        yan_rt_par_begin(2);
+        let h = yan_rt_par_begin(2, 0);
         loop {
-            let k = yan_rt_par_next() as usize;
+            let k = yan_rt_par_next(h) as usize;
             if k == 2 {
                 break;
             }
             loop {
                 if next[k] == 3 {
-                    yan_rt_par_task_end();
+                    yan_rt_par_task_end(h);
                     break;
                 }
                 let mut w = [next[k]];
@@ -197,7 +270,7 @@ mod tests {
                 next[k] += 1;
             }
         }
-        yan_rt_par_end();
+        yan_rt_par_end(h);
         assert_eq!(trace, [(0, 0), (1, 0), (0, 1), (1, 1), (0, 2), (1, 2)]);
         // SAFETY: both ends, once each.
         unsafe {

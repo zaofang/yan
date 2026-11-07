@@ -44,6 +44,14 @@ fn blocked(it: &mut Interp, op: &str, chan: usize) -> R<Result<Value, Value>> {
     }
 }
 
+/// In a cancelled task a blocking operation fails `Cancelled` (9.4).
+fn cancelled(it: &Interp) -> Option<Value> {
+    it.cancel.iter().any(|c| *c).then(|| Value::Data {
+        name: "Cancelled".into(),
+        fields: Vec::new(),
+    })
+}
+
 pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_ACTOR_SHARE,
@@ -63,6 +71,9 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_CHAN_RECEIVER_RECV,
         Bind::CapFallible(|it, a| {
+            if let Some(e) = cancelled(it) {
+                return Ok(Err(e));
+            }
             let c = chan(&a[0]);
             match it.chans[c].1.pop_front() {
                 Some(v) => {
@@ -80,6 +91,9 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_CHAN_SENDER_SEND,
         Bind::CapFallible(|it, a| {
+            if let Some(e) = cancelled(it) {
+                return Ok(Err(e));
+            }
             let c = chan(&a[0]);
             let (cap, q) = &mut it.chans[c];
             // A rendezvous channel hands over only to a receiver already waiting.

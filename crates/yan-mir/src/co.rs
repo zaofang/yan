@@ -51,10 +51,9 @@ pub fn run(p: &mut Program) {
             .collect();
         let ret = f.ret.clone();
         for b in &tasks {
-            cx.untail(f, *b, false, &ret);
+            cx.untail(f, *b, true, &ret);
         }
-        let mut top = Vec::new();
-        cx.co_calls(f, g, tasks, &mut top);
+        cx.co_calls(f, g, tasks);
     }
     p.funcs.extend(cos);
 
@@ -69,7 +68,10 @@ pub fn run(p: &mut Program) {
         };
         args[0] = Operand::Int(size as i128);
     }
-    p.funcs.iter_mut().for_each(tasks::split);
+    for f in &mut p.funcs[..n] {
+        let ret = f.ret.clone();
+        tasks::split(f, false, &ret);
+    }
 }
 
 fn blocking(i: &Inst) -> bool {
@@ -82,7 +84,8 @@ fn blocking(i: &Inst) -> bool {
     )
 }
 
-/// The functions that may block outside their own `par concurrent` blocks.
+/// The functions that may block, in their own `par concurrent` blocks too: a block whose tasks
+/// are all parked suspends the task it runs in.
 fn may_suspend(p: &Program, walks: &[Walk]) -> Vec<bool> {
     let mut may = vec![false; p.funcs.len()];
     loop {
@@ -92,7 +95,7 @@ fn may_suspend(p: &Program, walks: &[Walk]) -> Vec<bool> {
                 continue;
             }
             let hit = f.blocks.iter().enumerate().any(|(b, blk)| {
-                walks[g].top(b)
+                walks[g].seen[b]
                     && (blk.insts.iter().any(|i| {
                         blocking(i) || matches!(i, Inst::Call { func, .. } if may[*func as usize])
                     }) || matches!(blk.term, Term::TailCall { func, .. } if may[func as usize]))
@@ -148,9 +151,8 @@ impl Cx {
     }
 
     /// Calls in `blocks` (and the blocks split from them) of functions that may suspend become
-    /// calls of their variants, suspending while the callee is suspended. `top` marks the
-    /// blocks outside every region, and grows with the blocks split off.
-    fn co_calls(&mut self, f: &mut Func, me: usize, mut blocks: Vec<BlockId>, top: &mut Vec<bool>) {
+    /// calls of their variants, suspending while the callee is suspended.
+    fn co_calls(&mut self, f: &mut Func, me: usize, mut blocks: Vec<BlockId>) {
         while let Some(b) = blocks.pop() {
             let Some(i) = f.blocks[b as usize].insts.iter().position(
                 |i| matches!(i, Inst::Call { func, .. } if self.co_id[*func as usize].is_some()),
@@ -231,8 +233,6 @@ impl Cx {
                 targets: vec![done, suspend],
             };
             f.blocks[b as usize].term = Term::Jump(call);
-            let t = top.get(b as usize).copied().unwrap_or(false);
-            top.resize(f.blocks.len(), t);
             blocks.push(done);
         }
     }
@@ -268,13 +268,9 @@ impl Cx {
                 }
             }
         }
-        let mut top: Vec<bool> = (0..f.blocks.len()).map(|b| w.top(b)).collect();
-        self.co_calls(
-            &mut f,
-            at,
-            reach.iter().map(|b| *b as BlockId).collect(),
-            &mut top,
-        );
+        self.co_calls(&mut f, at, reach.iter().map(|b| *b as BlockId).collect());
+        // What `Suspend`s remain suspend the variant.
+        tasks::split(&mut f, true, &g.ret);
 
         let me = self
             .co_id
@@ -304,13 +300,10 @@ impl Cx {
         let state = new_local(&mut f, I64);
         let entry = new_block(&mut f, Vec::new(), Term::Panic("unreachable"));
         let mut reloads = vec![(0 as BlockId, entry)];
-        for (b, is_top) in top.iter().enumerate() {
+        for b in 0..f.blocks.len() {
             let Term::Suspend { resume } = f.blocks[b].term else {
                 continue;
             };
-            if !is_top {
-                continue;
-            }
             let idx = reloads.len();
             let blk = &mut f.blocks[b];
             for l in &live[resume as usize] {

@@ -239,6 +239,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             park: None,
             force: false,
             in_par: 0,
+            cancel: Vec::new(),
             task_done: false,
         },
     );
@@ -369,6 +370,9 @@ pub(crate) struct Interp<'o> {
     force: bool,
     /// How many `par concurrent` blocks are running tasks.
     in_par: u32,
+    /// Per running `par concurrent` block, innermost last: a task left it and cancelled the
+    /// rest (9.4).
+    cancel: Vec<bool>,
     /// Set when a task's branch ends.
     task_done: bool,
 }
@@ -547,6 +551,7 @@ fn entry(
         park: None,
         force: false,
         in_par: 0,
+        cancel: Vec::new(),
         task_done: false,
     };
     // The test handler set (7.3): `rand = seeded(0)`, `env = fake_env()`, `proc = fake_proc()`.
