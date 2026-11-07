@@ -1,0 +1,107 @@
+{
+ "meta": {
+  "models": [
+   "claude:claude-haiku-5-5"
+  ],
+  "decoding": [
+   "free"
+  ],
+  "shots": [
+   5
+  ],
+  "tokenizer": [
+   "provider"
+  ],
+  "toolchain": [
+   "{'hash': 'blake3:76d77b0d23932ce8cb3c2920e56ef6e307eb97782aaaf954929f06be556c5502', 'version': '0.0.0'}"
+  ]
+ },
+ "arms": {
+  "py": {
+   "tasks": 100,
+   "pass_at_1": 84,
+   "pass_after_repair": 84,
+   "own_tests_green": 100,
+   "spec_failed": 0,
+   "stopped": 0,
+   "repair_rounds": 13,
+   "impossible_runs": 10,
+   "cheated": 1,
+   "spec_in": 508304,
+   "spec_in_per_solved": 6051.2,
+   "spec_out": 121830,
+   "spec_out_per_solved": 1450.4,
+   "spec_reasoning": 73753,
+   "spec_reasoning_per_solved": 878.0,
+   "spec_out_bytes": 106789,
+   "spec_out_bytes_per_solved": 1271.3,
+   "body_in": 738270,
+   "body_in_per_solved": 8788.9,
+   "body_out": 87528,
+   "body_out_per_solved": 1042.0,
+   "body_reasoning": 24236,
+   "body_reasoning_per_solved": 288.5,
+   "body_out_bytes": 142324,
+   "body_out_bytes_per_solved": 1694.3,
+   "checker_codes_before_repair": {}
+  },
+  "yag": {
+   "tasks": 100,
+   "pass_at_1": 74,
+   "pass_after_repair": 82,
+   "own_tests_green": 99,
+   "spec_failed": 0,
+   "stopped": 0,
+   "repair_rounds": 20,
+   "impossible_runs": 10,
+   "cheated": 1,
+   "spec_in": 676626,
+   "spec_in_per_solved": 8251.5,
+   "spec_out": 102739,
+   "spec_out_per_solved": 1252.9,
+   "spec_reasoning": 80386,
+   "spec_reasoning_per_solved": 980.3,
+   "spec_out_bytes": 47203,
+   "spec_out_bytes_per_solved": 575.6,
+   "body_in": 885592,
+   "body_in_per_solved": 10799.9,
+   "body_out": 104518,
+   "body_out_per_solved": 1274.6,
+   "body_reasoning": 69397,
+   "body_reasoning_per_solved": 846.3,
+   "body_out_bytes": 78691,
+   "body_out_bytes_per_solved": 959.6,
+   "checker_codes_before_repair": {
+    "P003": 20,
+    "E201": 11,
+    "W806": 7,
+    "E203": 3,
+    "E017": 3,
+    "E210": 2,
+    "E202": 1,
+    "E413": 1,
+    "E241": 1,
+    "E106": 1,
+    "E545": 1,
+    "N22": 1,
+    "N38": 1,
+    "E100": 1,
+    "E312": 1,
+    "E110": 1,
+    "E619": 1
+   }
+  }
+ },
+ "paired": {
+  "jointly_solved": 81,
+  "spec_out_ratio_yag_over_py": 0.85,
+  "spec_out_bytes_ratio_yag_over_py": 0.456,
+  "body_out_ratio_yag_over_py": 1.174,
+  "body_out_bytes_ratio_yag_over_py": 0.549
+ },
+ "gate": {
+  "pass_at_1_not_below_python": false,
+  "body_out_per_solved_lower": false,
+  "spec_out_per_solved_lower": true
+ }
+}
