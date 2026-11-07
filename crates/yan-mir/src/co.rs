@@ -357,6 +357,12 @@ impl Cx {
         for b in &mut f.blocks {
             swap_targets(&mut b.term, 0, old);
         }
+        // Frame allocations recorded in the old entry moved with it.
+        for patch in &mut self.patches {
+            if patch.0 == at && patch.1 == 0 {
+                patch.1 = old;
+            }
+        }
         f
     }
 }
