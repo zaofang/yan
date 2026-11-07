@@ -197,13 +197,14 @@ pub enum RtFn {
     ChanRecv,
     /// `(Ptr chan)`: drop one end.
     ChanDrop,
-    /// `(n)`: enter a `par concurrent` of `n` tasks.
+    /// `(n, can_yield) -> handle`: enter a `par concurrent` of `n` tasks.
     ParBegin,
-    /// `() -> i64`: the task to run next, or the task count when all are done.
+    /// `(handle) -> i64`: the task to run next, the task count when all are done, or past it
+    /// when the block yields to its enclosing task.
     ParNext,
-    /// `()`: the running task's branch ended.
+    /// `(handle)`: the running task's branch ended.
     ParTaskEnd,
-    /// `()`: leave the innermost `par concurrent`.
+    /// `(handle)`: leave the block.
     ParEnd,
 }
 

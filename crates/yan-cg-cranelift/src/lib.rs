@@ -887,25 +887,25 @@ fn rt_fn(
         RtFn::ParBegin => (
             "yan_rt_par_begin",
             sched::yan_rt_par_begin as *const u8,
-            &[I64],
-            None,
+            &[I64, I64],
+            Some(I64),
         ),
         RtFn::ParNext => (
             "yan_rt_par_next",
             sched::yan_rt_par_next as *const u8,
-            &[],
+            &[I64],
             Some(I64),
         ),
         RtFn::ParTaskEnd => (
             "yan_rt_par_task_end",
             sched::yan_rt_par_task_end as *const u8,
-            &[],
+            &[I64],
             None,
         ),
         RtFn::ParEnd => (
             "yan_rt_par_end",
             sched::yan_rt_par_end as *const u8,
-            &[],
+            &[I64],
             None,
         ),
     }

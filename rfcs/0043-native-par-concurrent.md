@@ -57,6 +57,26 @@ interpreter follows in a small separate PR, so the backends agree again.
 
 - Decision: native panics `deadlock`; Antonio, 2026-11-07
 
+### D4: a nested block whose tasks are all parked
+
+Options: (a) it yields to the task it runs in, which parks until some channel progress, so an outer sibling
+can unblock it and only the outermost block can force; (b) it forces at once and panics `deadlock`, as the
+interpreter does.
+
+Recommendation: (a). Only (a) makes the deadlock global, as R396 says.
+
+- Decision: (a), native first and the interpreter later; Antonio, 2026-11-07
+
+### D5: the other tasks after a task's early exit
+
+9.4 and R394 fix this: a cancelled task gets `Cancelled` from the operation it is parked on, or the next one
+it reaches, and ends through its own code, so its drops run by ordinary scope exit. The tasks finish in the
+scheduler's order. The alternative weighed first, dropping the half-run tasks by state from the highest
+index down, is not what the spec says.
+
+- Decision: cancellation as in 9.4; Antonio's pick of the drop order (highest index first) is moot under it,
+  2026-11-07
+
 ## Design
 
 ### MIR
@@ -113,12 +133,14 @@ resumes at that operation with its counters intact in the frame, and the loop's 
   loops on `st = h$co(frame)`: `SUSPENDED` suspends the caller with the same call as its resume point, the
   child frame kept in a live local; `DONE` loads the results and frees the frame. A resume therefore re-enters
   from the task down the chain of frames, as in Rust.
-- **Nested `par`.** A `par concurrent` inside a function running as a coroutine, whose tasks are all parked,
-  suspends the enclosing task instead of failing, so an outer sibling can unblock it. Deadlock is global: only
-  the outermost scheduler panics `deadlock`.
-- **Drop of a half-run frame.** Each `g$co` gets `g$drop(frame)`, which switches on the state and drops the
-  owned locals the drop pass marks live at that point, then the child frame. `ParEnd` on an early exit drops
-  the other tasks this way (R394). The branches over the enclosing frame get the same per-state drop blocks.
+- **Nested `par` (D4).** A `par concurrent` nested in a task, in the same function or in a coroutine
+  variant, whose tasks are all parked yields: `ParNext` returns one past the task count and the dispatcher
+  suspends the enclosing task, parked until some channel progress. A function that holds a block whose tasks
+  may block therefore may suspend too. Blocks are scheduler handles, not a stack, since a yielded block stays
+  open while its enclosing block runs other tasks. Deadlock is global: only a block that cannot yield, or one
+  inside a forced task, forces and panics `deadlock`.
+- **Early exit (D5).** The other tasks are cancelled: each runs on, and its blocking operations fail
+  `Cancelled` through the ordinary failure path until it ends.
 
 ### yan-rt `std.chan`
 

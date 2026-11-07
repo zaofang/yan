@@ -25,13 +25,6 @@ pub(crate) struct Walk {
     pub seen: Vec<bool>,
 }
 
-impl Walk {
-    /// Reachable and outside every `par concurrent`.
-    pub fn top(&self, b: usize) -> bool {
-        self.seen[b] && self.owner[b].is_none()
-    }
-}
-
 pub(crate) fn walk(f: &Func) -> Walk {
     let mut regions: Vec<Region> = Vec::new();
     let mut owner: Vec<Option<(usize, usize)>> = vec![None; f.blocks.len()];
@@ -72,16 +65,24 @@ pub(crate) fn walk(f: &Func) -> Walk {
     }
 }
 
-/// Remove `Par`, `Suspend` and `TaskEnd` from `f`. A `Suspend` outside every region is left
-/// by an operation that cannot park there, so it is unreachable.
-pub fn split(f: &mut Func) {
+/// Remove `Par` and `TaskEnd` from `f`, and the `Suspend`s inside regions. In a coroutine
+/// variant (`co`) the `Suspend`s outside every region stay, for `co` to turn into returns,
+/// and a block whose tasks are all parked suspends the variant with one of its own (RFC 0043,
+/// nested par). Elsewhere such a `Suspend` is left by an operation that cannot park, so it is
+/// unreachable.
+pub fn split(f: &mut Func, co: bool) {
     let Walk {
         regions,
-        owner,
-        seen,
+        mut owner,
+        mut seen,
     } = walk(f);
     for (b, blk) in f.blocks.iter_mut().enumerate() {
-        if owner[b].is_none() && matches!(blk.term, Term::Suspend { .. } | Term::TaskEnd) {
+        let stray = match blk.term {
+            Term::Suspend { .. } => !co,
+            Term::TaskEnd => true,
+            _ => false,
+        };
+        if owner[b].is_none() && stray {
             blk.term = Term::Panic("unreachable");
         }
     }
@@ -116,11 +117,14 @@ pub fn split(f: &mut Func) {
     let mut disp = Vec::new();
     let mut states: Vec<Vec<Local>> = Vec::new();
     let mut resumes: Vec<Vec<Vec<BlockId>>> = Vec::new();
+    let mut handles = Vec::new();
     for r in &regions {
         let n = r.tasks.len();
+        let can_yield = co || r.parent.is_some();
+        let h = new_local(f);
         let next = new_local(f);
         let d = new_block(f, Term::Panic("unreachable"));
-        push(f, d, rt(Some(next), RtFn::ParNext, Vec::new()));
+        push(f, d, rt(Some(next), RtFn::ParNext, vec![Operand::Local(h)]));
         let st: Vec<Local> = (0..n).map(|_| new_local(f)).collect();
         for s in &st {
             push(
@@ -135,18 +139,37 @@ pub fn split(f: &mut Func) {
         push(
             f,
             r.par,
-            rt(None, RtFn::ParBegin, vec![Operand::Int(n as i128)]),
+            rt(
+                Some(h),
+                RtFn::ParBegin,
+                vec![Operand::Int(n as i128), Operand::Int(i128::from(can_yield))],
+            ),
         );
         f.blocks[r.par as usize].term = Term::Jump(d);
         let done = new_block(f, Term::Jump(r.join));
-        push(f, done, rt(None, RtFn::ParEnd, Vec::new()));
+        push(f, done, rt(None, RtFn::ParEnd, vec![Operand::Local(h)]));
         // The task blocks get their `Switch` once every resume point is known.
         let mut targets: Vec<BlockId> = (0..n)
             .map(|_| new_block(f, Term::Panic("unreachable")))
             .collect();
         targets.push(done);
+        // Every task parked: suspend the task (or variant) the block runs in, and ask again on
+        // resuming.
+        let yields = new_block(
+            f,
+            if can_yield {
+                Term::Suspend { resume: d }
+            } else {
+                Term::Panic("unreachable")
+            },
+        );
+        targets.push(yields);
+        owner.resize(f.blocks.len(), None);
+        seen.resize(f.blocks.len(), true);
+        owner[yields as usize] = owner[r.par as usize];
         f.blocks[d as usize].term = Term::Switch { on: next, targets };
         disp.push(d);
+        handles.push(h);
         states.push(st);
         resumes.push(r.tasks.iter().map(|t| vec![*t]).collect());
     }
@@ -177,14 +200,22 @@ pub fn split(f: &mut Func) {
                 f.blocks[b as usize].term = Term::Jump(disp[r]);
             }
             Term::TaskEnd => {
-                push(f, b, rt(None, RtFn::ParTaskEnd, Vec::new()));
+                push(
+                    f,
+                    b,
+                    rt(None, RtFn::ParTaskEnd, vec![Operand::Local(handles[r])]),
+                );
                 f.blocks[b as usize].term = Term::Jump(disp[r]);
             }
             // Leaving the function from a task ends every block around it.
             Term::Return(_) | Term::TailCall { .. } => {
                 let mut at = Some(r);
                 while let Some(r) = at {
-                    push(f, b, rt(None, RtFn::ParEnd, Vec::new()));
+                    push(
+                        f,
+                        b,
+                        rt(None, RtFn::ParEnd, vec![Operand::Local(handles[r])]),
+                    );
                     at = regions[r].parent;
                 }
             }
@@ -196,7 +227,7 @@ pub fn split(f: &mut Func) {
         let Term::Switch { targets, .. } = f.blocks[*d as usize].term.clone() else {
             unreachable!("a dispatcher switches")
         };
-        for (k, t) in targets[..targets.len() - 1].iter().enumerate() {
+        for (k, t) in targets[..regions[r].tasks.len()].iter().enumerate() {
             f.blocks[*t as usize].term = Term::Switch {
                 on: states[r][k],
                 targets: resumes[r][k].clone(),
