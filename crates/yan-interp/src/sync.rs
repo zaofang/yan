@@ -7,7 +7,7 @@ use yan_std::registry::{Id, id::*};
 
 use super::bind::{Bind, bad_args};
 use super::time::wait_out;
-use super::{Interp, R, Value, unsupported};
+use super::{Interp, R, Value, panic, unsupported};
 
 fn end(name: &str, chan: usize) -> Value {
     Value::Data {
@@ -28,7 +28,8 @@ fn chan(v: &Value) -> usize {
 
 /// A branch of a `par concurrent` at task level parks and the VM switches to another task (R390).
 /// Elsewhere nothing can end the wait: under a deadline it fails with `Timeout` at the deadline
-/// (9.4), and otherwise the run stops.
+/// (9.4). Without one, every task parked or no task at all is a global deadlock (R396); a wait
+/// in a call nested in a task stops the run.
 fn blocked(it: &mut Interp, op: &str, chan: usize) -> R<Result<Value, Value>> {
     if it.park_ok && !it.force {
         it.park = Some((op == "recv", chan));
@@ -36,6 +37,7 @@ fn blocked(it: &mut Interp, op: &str, chan: usize) -> R<Result<Value, Value>> {
     }
     match wait_out(it) {
         Some(t) => Ok(Err(t)),
+        None if it.force || it.in_par == 0 => panic("deadlock"),
         None => unsupported(format!(
             "a `{op}` that waits on another task, in the interpreter"
         )),

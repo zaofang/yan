@@ -214,6 +214,7 @@ pub fn panic_message(kind: &str) -> &'static str {
         "unreachable" => "reached code marked unreachable",
         "exclusivity" => "two mutable accesses to the same place",
         "conversion" => "the value does not fit the target type",
+        "deadlock" => "every task is blocked",
         _ => "invalid value",
     }
 }

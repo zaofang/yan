@@ -238,6 +238,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             park_ok: false,
             park: None,
             force: false,
+            in_par: 0,
             task_done: false,
         },
     );
@@ -366,6 +367,8 @@ pub(crate) struct Interp<'o> {
     park: Option<(bool, usize)>,
     /// Every task is parked: fail the next blocking operation as a plain wait would.
     force: bool,
+    /// How many `par concurrent` blocks are running tasks.
+    in_par: u32,
     /// Set when a task's branch ends.
     task_done: bool,
 }
@@ -543,6 +546,7 @@ fn entry(
         park_ok: false,
         park: None,
         force: false,
+        in_par: 0,
         task_done: false,
     };
     // The test handler set (7.3): `rand = seeded(0)`, `env = fake_env()`, `proc = fake_proc()`.

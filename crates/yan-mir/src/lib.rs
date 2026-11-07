@@ -7,8 +7,10 @@
 //! come back as extra results. `Str` and `List` are pointers to yan-rt blocks, which are not
 //! freed yet. Anything else is reported as unsupported.
 
+mod co;
 mod layout;
 mod lower;
+mod tasks;
 
 pub use layout::{Layout, SumLayout, layout};
 pub use lower::{Shape, lower};
@@ -186,6 +188,23 @@ pub enum RtFn {
     ListFree,
     /// `(Ptr)`: free a closure's captures block; null is ignored.
     EnvFree,
+    /// `(cap, words) -> Ptr`: a channel of `words`-slot elements, shared by both ends.
+    ChanNew,
+    /// `(Ptr chan, Ptr slots, in_task) -> i64`: 1 when it parked the task.
+    ChanSend,
+    /// `(Ptr chan, Ptr out, in_task) -> i64`: the oldest element's slots into `out`; 1 when it
+    /// parked the task.
+    ChanRecv,
+    /// `(Ptr chan)`: drop one end.
+    ChanDrop,
+    /// `(n)`: enter a `par concurrent` of `n` tasks.
+    ParBegin,
+    /// `() -> i64`: the task to run next, or the task count when all are done.
+    ParNext,
+    /// `()`: the running task's branch ended.
+    ParTaskEnd,
+    /// `()`: leave the innermost `par concurrent`.
+    ParEnd,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -214,6 +233,18 @@ pub enum Term {
         kind: &'static str,
         fields: Vec<(Operand, Operand)>,
     },
+    /// The branches of a `par concurrent` as tasks, then `join`. This and the next two exist
+    /// only between lowering and the task transform (RFC 0043).
+    Par {
+        tasks: Vec<BlockId>,
+        join: BlockId,
+    },
+    /// The running task yields; it continues at `resume`.
+    Suspend {
+        resume: BlockId,
+    },
+    /// The running task's branch ended.
+    TaskEnd,
 }
 
 #[derive(Clone, Debug, PartialEq)]
