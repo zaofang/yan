@@ -258,6 +258,48 @@ fn call(server: &Server, tool: &str, args: &Value) -> Result<Value, String> {
                 "structuredContent": {"module": module, "text": text},
             }))
         }
+        "pack_context" => {
+            let task = str_arg(args, "task")?;
+            let budget = args["budget"].as_u64().map_or(2000, |b| b as usize);
+            let modules: Vec<_> = test::modules(root)?
+                .into_iter()
+                .filter(|(_, p)| p.extension().is_some_and(|e| e == "yag"))
+                .filter_map(|(name, p)| {
+                    let m = patch::parse(&p.display().to_string(), &read(&p).ok()?).ok()?;
+                    Some((name, m))
+                })
+                .collect();
+            let packed = yan_ide::pack_context(&modules, task, budget);
+            let text = packed
+                .iter()
+                .map(|p| p.text.as_str())
+                .collect::<Vec<_>>()
+                .join("\n\n");
+            let items: Vec<Value> = packed
+                .iter()
+                .map(|p| json!({"name": p.name, "distance": p.distance, "text": p.text}))
+                .collect();
+            Ok(json!({
+                "content": [{"type": "text", "text": text}],
+                "structuredContent": {"items": items, "text": text},
+            }))
+        }
+        "search_type" => {
+            let hits = yan_ide::search_type(str_arg(args, "type")?)?;
+            let text = hits
+                .iter()
+                .map(|h| format!("{}: {}", h.name, h.signature))
+                .collect::<Vec<_>>()
+                .join("\n");
+            let matches: Vec<Value> = hits
+                .iter()
+                .map(|h| json!({"name": h.name, "signature": h.signature}))
+                .collect();
+            Ok(json!({
+                "content": [{"type": "text", "text": text}],
+                "structuredContent": {"matches": matches},
+            }))
+        }
         "spec_check" => {
             let module = str_arg(args, "module")?;
             let text = str_arg(args, "text")?;
@@ -555,6 +597,32 @@ fn tools() -> Value {
             "outputSchema": {"type": "object", "properties": {"patch": {"type": "object"}}},
         },
         {
+            "name": "pack_context",
+            "description": "Signatures, contracts and examples of the items a task names and of what they depend on, nearest first, within a token budget (default 2000). Docstrings are fenced as untrusted.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"task": {"type": "string"}, "budget": {"type": "integer"}},
+                "required": ["task"],
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {"items": {"type": "array"}, "text": {"type": "string"}},
+            },
+        },
+        {
+            "name": "search_type",
+            "description": "Std functions matching a type, best first; a Callable type matches a whole signature, any other type a return or parameter type. A single capital letter matches any type.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"type": {"type": "string"}},
+                "required": ["type"],
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {"matches": {"type": "array"}},
+            },
+        },
+        {
             "name": "spec_check",
             "description": "Phase 1 of the spec gate: items whose bodies are `...`; their types, their ex lines and pre for each ex line. Writes nothing.",
             "inputSchema": {
@@ -607,7 +675,49 @@ mod tests {
         assert!(respond(&d, &note).is_none());
         let list = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list"});
         let r = respond(&d, &list).unwrap();
-        assert_eq!(r["result"]["tools"].as_array().unwrap().len(), 8);
+        assert_eq!(r["result"]["tools"].as_array().unwrap().len(), 10);
+    }
+
+    #[test]
+    fn search_type_finds_list_sort() {
+        let s = Server::new(Path::new("."), true);
+        let r = tool(
+            &s,
+            "search_type",
+            json!({"type": "Callable[[list[T]], None]"}),
+        );
+        let names: Vec<_> = r["structuredContent"]["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|m| m["name"].as_str().unwrap())
+            .collect();
+        assert!(names.contains(&"list.sort"), "{names:?}");
+        assert_eq!(
+            tool(&s, "search_type", json!({"type": "((("}))["isError"],
+            true
+        );
+    }
+
+    #[test]
+    fn pack_context_stays_under_the_budget() {
+        let mut src = String::new();
+        for i in 0..30 {
+            src += &format!(
+                "def f{i}() -> int:\n    \"\"\"d\"\"\"\n    return f{}()\n\n",
+                i + 1
+            );
+        }
+        let dir = package("pack", &src);
+        let s = Server::new(&dir, true);
+        let r = tool(&s, "pack_context", json!({"task": "edit f0", "budget": 60}));
+        let items = r["structuredContent"]["items"].as_array().unwrap();
+        assert_eq!(items[0]["name"], "m.f0");
+        let cost: usize = items
+            .iter()
+            .map(|i| i["text"].as_str().unwrap().len() / 4 + 1)
+            .sum();
+        assert!(cost <= 60 && items.len() < 30, "{cost}");
     }
 
     #[test]
