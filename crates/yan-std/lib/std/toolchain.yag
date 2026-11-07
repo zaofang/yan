@@ -1,0 +1,9 @@
+"""The toolchain capability: read-only queries over the query database (21.4). Every result is
+JSON text. Only `query` binds it, and a release build never does."""
+
+@capability
+@since("1.0")
+pub trait Toolchain:
+    def check(self: Self, name: str) -> str: ...
+    def sig(self: Self, module: str) -> str: ...
+    def search_type(self: Self, type: str) -> str: ...

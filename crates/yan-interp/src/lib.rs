@@ -44,6 +44,7 @@ mod std_parity;
 mod std_selftest;
 mod sync;
 mod time;
+mod toolchain;
 mod vm;
 
 pub const EXIT_FAILURE: i32 = 1;
@@ -241,6 +242,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             in_par: 0,
             cancel: Vec::new(),
             task_done: false,
+            host: None,
         },
     );
     vm.limit(limits);
@@ -375,6 +377,8 @@ pub(crate) struct Interp<'o> {
     cancel: Vec<bool>,
     /// Set when a task's branch ends.
     task_done: bool,
+    /// Answers `toolchain` queries; set only by [`query`].
+    host: Option<&'o dyn Host>,
 }
 
 pub(crate) fn panic<T>(kind: &str) -> R<T> {
@@ -470,16 +474,20 @@ pub(crate) fn unsupported<T>(what: impl Into<String>) -> R<T> {
 }
 
 /// Run `fn main` of `m`, writing program output to `out`. Returns the exit status.
+pub use toolchain::Host;
+
 pub fn run(m: &Module, out: &mut dyn Write) -> R<i32> {
     run_with(m, out, Vec::new())
 }
 
 /// [`run`] with the program arguments `env.args()` returns.
 pub fn run_with(m: &Module, out: &mut dyn Write, args: Vec<String>) -> R<i32> {
-    Ok(match entry(m, "main", out, None, args, &mut 0)? {
-        true => 0,
-        false => EXIT_FAILURE,
-    })
+    Ok(
+        match entry(m, "main", out, None, args, &mut 0, None)?.is_ok() {
+            true => 0,
+            false => EXIT_FAILURE,
+        },
+    )
 }
 
 /// Run the test `fn f` of `m` under `limits`, on a thread with room for deep recursion.
@@ -499,11 +507,49 @@ pub fn test_metered(
     std::thread::scope(|s| {
         std::thread::Builder::new()
             .stack_size(1 << 30)
-            .spawn_scoped(s, || entry(m, f, out, Some(limits), Vec::new(), spent))
+            .spawn_scoped(s, || {
+                entry(m, f, out, Some(limits), Vec::new(), spent, None).map(|r| r.is_ok())
+            })
             .expect("spawn the test thread")
             .join()
             .unwrap_or_else(|_| unsupported("the interpreter crashed"))
     })
+}
+
+/// Run the nullary `fn f` of `m`, which may use the `toolchain` capability, under `limits`
+/// (21.4). `Ok` is what it returned as JSON, `Err` its failure value as text.
+pub fn query(
+    m: &Module,
+    f: &str,
+    limits: Limits,
+    out: &mut (dyn Write + Send),
+    host: &(dyn Host + Sync),
+    spent: &mut u64,
+) -> R<Result<serde_json::Value, String>> {
+    std::thread::scope(|s| {
+        std::thread::Builder::new()
+            .stack_size(1 << 30)
+            .spawn_scoped(s, || {
+                entry(m, f, out, Some(limits), Vec::new(), spent, Some(host))
+                    .map(|r| r.map(|v| json_of(&v)).map_err(|v| prelude::show(&v, false)))
+            })
+            .expect("spawn the query thread")
+            .join()
+            .unwrap_or_else(|_| unsupported("the interpreter crashed"))
+    })
+}
+
+fn json_of(v: &Value) -> serde_json::Value {
+    use serde_json::Value as J;
+    match v {
+        Value::Unit => J::Null,
+        Value::Bool(b) => J::Bool(*b),
+        Value::Int(n) => i64::try_from(*n).map_or_else(|_| J::String(n.to_string()), J::from),
+        Value::Float(x) => serde_json::Number::from_f64(*x).map_or(J::Null, J::Number),
+        Value::Str(s) => J::String(s.to_string()),
+        Value::List(xs) | Value::Tuple(xs) => J::Array(xs.iter().map(json_of).collect()),
+        v => J::String(prelude::show(v, false)),
+    }
 }
 
 /// Call `fn f` of `m` with its capabilities bound; `false` when it returns a failure.
@@ -514,7 +560,8 @@ fn entry(
     limits: Option<Limits>,
     argv: Vec<String>,
     spent: &mut u64,
-) -> R<bool> {
+    host: Option<&dyn Host>,
+) -> R<Result<Value, Value>> {
     let program = compile::compile(m);
     let Some(code) = program.fns.get(f).copied() else {
         return unsupported(format!("no `fn {f}` in the module"));
@@ -532,6 +579,9 @@ fn entry(
         .params
         .iter()
         .map(|p| match p {
+            Param::Cap { name, .. } if host.is_some() && name != "toolchain" => unsupported(
+                format!("`{f}` uses `{name}`; a query may use only `toolchain`"),
+            ),
             Param::Cap { name, .. } => Ok(Value::Cap(name.clone())),
             Param::Value { .. } => unsupported(format!("`{f}` with value parameters")),
         })
@@ -553,6 +603,7 @@ fn entry(
         in_par: 0,
         cancel: Vec::new(),
         task_done: false,
+        host,
     };
     // The test handler set (7.3): `rand = seeded(0)`, `env = fake_env()`, `proc = fake_proc()`.
     let args = args
@@ -570,7 +621,7 @@ fn entry(
     }
     let r = vm.call(code, args);
     *spent += vm.steps();
-    Ok(r?.0.is_ok())
+    Ok(r?.0)
 }
 
 pub(crate) fn int_range(ty: &str) -> Option<(i128, i128)> {
