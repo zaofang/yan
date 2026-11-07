@@ -151,10 +151,11 @@ impl<'a> Cx<'a> {
             let Some(t) = &p.def.annotation else {
                 return Err(self.unsupported(at, "an unannotated parameter"));
             };
-            if p.default.is_some() {
-                return Err(self.unsupported(at, "a default value"));
+            let mut text = format!("{}: {}", p.def.arg, self.ty(t)?);
+            if let Some(d) = &p.default {
+                write!(text, " = {}", self.expr(d)?).unwrap();
             }
-            ps.push(format!("{}: {}", p.def.arg, self.ty(t)?));
+            ps.push(text);
         }
         let Some(ret) = &f.returns else {
             return Err(self.unsupported(at, "a missing return annotation"));
@@ -848,5 +849,15 @@ mod tests {
         let (out, notes) = body("    n: int\n    n = 1\n    n = 2\n    return n\n");
         assert_eq!(out, "    n: int = 1\n    n = 2\n    return n\n");
         assert!(notes[0].contains("N48"));
+    }
+
+    #[test]
+    fn default_values_are_kept() {
+        let (out, _) =
+            convert("def f(a: int, b: int = 2, s: str = \"x\") -> int:\n    return a\n").unwrap();
+        assert!(
+            out.starts_with("def f(a: int, b: int = 2, s: str = \"x\") -> int:"),
+            "{out}"
+        );
     }
 }
