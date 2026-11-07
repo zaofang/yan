@@ -26,27 +26,26 @@ fn pass(src: &str, diags: &[Diagnostic]) -> (String, usize) {
         })
         .collect();
     edits.sort_by_key(|(s, ..)| std::cmp::Reverse((s.line, s.col)));
-    let mut lines: Vec<String> = src.split('\n').map(str::to_owned).collect();
+    let mut text = src.to_owned();
+    let starts: Vec<usize> = std::iter::once(0)
+        .chain(src.match_indices('\n').map(|(i, _)| i + 1))
+        .collect();
     let mut count = 0;
-    let mut floor = (u32::MAX, u32::MAX);
-    for (span, search, text) in edits {
-        let Some(line) = lines.get_mut(span.line.saturating_sub(1) as usize) else {
+    let mut floor = usize::MAX;
+    for (span, search, replacement) in edits {
+        let Some(&start) = starts.get(span.line.saturating_sub(1) as usize) else {
             continue;
         };
-        let from = span.col.saturating_sub(1) as usize;
+        let from = start + span.col.saturating_sub(1) as usize;
         let to = from + search.len();
-        let single_line = span.end_line == span.line;
-        if !single_line || (span.line, span.col + search.len() as u32) > floor {
+        if to > floor || src.get(from..to) != Some(search) {
             continue;
         }
-        if line.get(from..to) != Some(search) {
-            continue;
-        }
-        line.replace_range(from..to, text);
-        floor = (span.line, span.col);
+        text.replace_range(from..to, replacement);
+        floor = from;
         count += 1;
     }
-    (lines.join("\n"), count)
+    (text, count)
 }
 
 /// Fixes `file` until stable. Writes (and logs the patch) unless `dry_run`.
@@ -117,5 +116,22 @@ mod tests {
             pass(src, &[diag(1, 1, "zz", "X", "auto")]),
             (src.to_owned(), 0)
         );
+    }
+
+    #[test]
+    fn applies_an_edit_that_spans_lines() {
+        let src = "a\nb\n  c\nd";
+        let span = Span {
+            line: 2,
+            col: 1,
+            end_line: 3,
+            end_col: 4,
+        };
+        let mut d = Diagnostic::error("E000", "m", span, "", "m");
+        d.fixes.push(serde_json::json!({
+            "title": "t", "applicability": "auto",
+            "edits": [{"span": span, "search": "b\n  c\n", "text": ""}],
+        }));
+        assert_eq!(pass(src, &[d]), ("a\nd".to_owned(), 1));
     }
 }

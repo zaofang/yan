@@ -307,6 +307,40 @@ impl<'s> Cx<'s> {
         }
     }
 
+    /// Adds to the last diagnostic a fix that deletes the whole-line block starting at `line` and
+    /// running over the lines indented deeper than it.
+    pub fn fix_remove_block(&mut self, applicability: Applicability, title: &str, line: u32) {
+        let lines: Vec<&str> = self.src.split('\n').collect();
+        let first = line.saturating_sub(1) as usize;
+        let Some(head) = lines.get(first) else { return };
+        let indent = head.len() - head.trim_start().len();
+        let mut last = first;
+        for (i, l) in lines.iter().enumerate().skip(first + 1) {
+            if l.trim().is_empty() {
+                continue;
+            }
+            if l.len() - l.trim_start().len() <= indent {
+                break;
+            }
+            last = i;
+        }
+        let mut search = lines[first..=last].join("\n");
+        if last + 1 < lines.len() {
+            search.push('\n');
+        }
+        let end_col = lines[last].len() as u32 + 1;
+        let span = Span {
+            line,
+            col: 1,
+            end_line: last as u32 + 1,
+            end_col,
+        };
+        if let Some(d) = self.diags.pop() {
+            self.diags
+                .push(d.with_fix(applicability, title, span, &search, ""));
+        }
+    }
+
     /// Adds a secondary span to the last diagnostic.
     pub fn label(&mut self, span: Span, text: &str) {
         if let Some(d) = self.diags.last_mut() {
