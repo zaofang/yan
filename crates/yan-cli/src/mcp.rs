@@ -512,7 +512,7 @@ fn read(p: &PathBuf) -> Result<String, String> {
     std::fs::read_to_string(p).map_err(|e| format!("{}: {e}", p.display()))
 }
 
-/// The JSON Schema of each tool's input, by tool name (`yan schema gen`).
+/// The JSON Schema of each tool's input, by tool name (`yan mcp schema`).
 pub fn input_schemas() -> Value {
     let map: serde_json::Map<String, Value> = tools()
         .as_array()

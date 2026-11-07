@@ -1137,5 +1137,10 @@ sections = "19.1, 20.4, 25.5"
 
 [[entry]]
 rows = "R889"
+topic = "`yan schema gen <file>` keeps its meaning (table row types, 11.9); the JSON Schema of each `yan mcp` tool's input is printed by `yan mcp schema`, not by `yan schema gen` (#357)"
+sections = "18.1, 23"
+
+[[entry]]
+rows = "R890"
 topic = "`crypto_rand.fill_bytes(&buf)` fills a `bytearray` in place and `crypto_rand.random_bytes(n) -> bytes` wraps it; the owner chose both forms (#396)"
 sections = "7.1, 17.3"

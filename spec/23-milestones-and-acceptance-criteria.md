@@ -25,7 +25,7 @@ A milestone is complete only when every criterion below passes in CI. Performanc
 - Yan Agent lexer, parser, lenient normalizations N01 to N40, canonical printer.
 - Elaborator to Yan Core, including inference, capability passing, copy, share and move insertion, narrowing and fail-transparent closures.
 - Standard library: the M1 row of the std roadmap, including prelude, text, list, dict, set, iter, collections, rc, slices with bisect, fmt, regex, csv, encoding, path, cli, `proc.run`, rand, bigint, bits, `Secret`, log, io, fs, json, math, test; Temporal-style time types.
-- `yan check` with lints, `run` (including scripts), `test` with verdict caching, `fmt`, `sig`, `patch`, `undo`, `explain`, `fix`, `export --python`, `import --python`, `mcp`, `add`, `remove`, `update`, `tree`, `why`, `vendor`, `x`, `schema gen`, `toolchain`, `skill`.
+- `yan check` with lints, `run` (including scripts), `test` with verdict caching, `fmt`, `sig`, `patch`, `undo`, `explain`, `fix`, `export --python`, `import --python`, `mcp`, `mcp schema`, `add`, `remove`, `update`, `tree`, `why`, `vendor`, `x`, `schema gen`, `toolchain`, `skill`.
 - Agent features: spec gate, typed holes, autofix, `pack_context`, `search_type`, `query` over the `toolchain` capability; the grammar exported for llguidance, XGrammar and GBNF.
 - Safety: `Wire` limits, `Secret`, `proc`, `crypto_rand`, capability ceilings, test isolation, lexical safety, E312, spec freeze, protected targets, the untrusted-content channel.
 - Golden programs G1 to G4 run on the interpreter and, exported, under CPython 3.12 with identical output.
