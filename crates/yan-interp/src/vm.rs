@@ -1,5 +1,6 @@
 //! The register VM that runs compiled Yan IR.
 
+use std::collections::HashMap;
 use std::mem;
 use std::rc::Rc;
 
@@ -25,6 +26,35 @@ pub(crate) struct Vm<'o> {
     limits: Option<(crate::Limits, usize, u64, usize)>,
     /// The frame whose `par concurrent` tasks are running: only its own calls may park.
     task_base: Option<usize>,
+    /// Task indices from the outermost running `par concurrent` to the current task.
+    task_path: Vec<usize>,
+    /// Nested blocks whose tasks were all parked, so they yielded to their enclosing task,
+    /// by that task's path and the block's first entry.
+    suspended: HashMap<(Vec<usize>, u32), Suspended>,
+}
+
+struct Task {
+    pc: usize,
+    done: bool,
+    park: Option<(bool, usize)>,
+    seen: Option<u64>,
+}
+
+/// A `par concurrent` block that yielded mid-run.
+struct Suspended {
+    tasks: Vec<Task>,
+    first: Option<Result<Value, Value>>,
+    /// Per task index: the failure it left the block with, if any.
+    failed: Vec<Option<Value>>,
+    cancel: bool,
+}
+
+/// How a `par concurrent` block stopped.
+enum Flow {
+    Done,
+    Exit(Result<Value, Value>),
+    /// Every task is parked: the enclosing task parks too and runs the block again.
+    Yield,
 }
 
 /// The type name a value's `impl` is keyed by, where the value tells it.
@@ -275,6 +305,8 @@ impl<'o> Vm<'o> {
             it,
             limits: None,
             task_base: None,
+            task_path: Vec::new(),
+            suspended: HashMap::new(),
         }
     }
 
@@ -357,49 +389,51 @@ impl<'o> Vm<'o> {
     /// A task that parks yields to the lowest-index task that can progress. The first task to
     /// fail or return cancels the rest, which run on to fail their waits with `Cancelled`, and
     /// the block ends with its outcome (R390, R394, 9.4).
-    fn run_tasks(
-        &mut self,
-        code: &mut Rc<Code>,
-        base: usize,
-        entries: &[u32],
-    ) -> R<Option<Result<Value, Value>>> {
-        struct Task {
-            pc: usize,
-            done: bool,
-            park: Option<(bool, usize)>,
-            seen: Option<u64>,
-        }
-        let mut tasks: Vec<Task> = entries
-            .iter()
-            .map(|e| Task {
-                pc: *e as usize,
-                done: false,
-                park: None,
-                seen: None,
-            })
-            .collect();
+    fn run_tasks(&mut self, code: &mut Rc<Code>, base: usize, entries: &[u32]) -> R<Flow> {
+        let key = (self.task_path.clone(), entries[0]);
+        let (mut tasks, mut first, mut failed, cancel) = match self.suspended.remove(&key) {
+            Some(s) => (s.tasks, s.first, s.failed, s.cancel),
+            None => (
+                entries
+                    .iter()
+                    .map(|e| Task {
+                        pc: *e as usize,
+                        done: false,
+                        park: None,
+                        seen: None,
+                    })
+                    .collect(),
+                None,
+                vec![None; entries.len()],
+                false,
+            ),
+        };
         let outer = self.task_base.replace(base);
+        // Only the outermost block forces a deadlock (R396); a nested one yields to its task.
+        let can_yield = outer == Some(base) && !self.it.force;
         self.it.in_par += 1;
-        self.it.cancel.push(false);
-        let mut first = None;
-        // Per task index: the failure it left the block with, if any.
-        let mut failed: Vec<Option<Value>> = vec![None; tasks.len()];
+        self.it.cancel.push(cancel);
+        let mut yielded = false;
         let out = loop {
             let progress = self.it.progress;
-            let cancelled = self.it.cancel.last() == Some(&true);
+            let cancelled = self.it.cancel.iter().any(|c| *c);
             let next = tasks
                 .iter()
                 .position(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)));
             let (i, forced) = match next {
                 Some(i) => (i, false),
                 None => match tasks.iter().position(|t| !t.done) {
+                    Some(_) if can_yield => {
+                        yielded = true;
+                        break Ok(None);
+                    }
                     Some(i) => (i, true),
                     None => {
                         // R394: the lowest-index failure that is not `Cancelled` wins.
                         let lowest = failed.iter().flatten().find(|v| !is_cancelled(v));
                         break Ok(match lowest {
                             Some(v) => Some(Err(v.clone())),
-                            None => first,
+                            None => first.take(),
                         });
                     }
                 },
@@ -408,7 +442,9 @@ impl<'o> Vm<'o> {
             self.it.park = None;
             self.it.task_done = false;
             let mut pc = tasks[i].pc;
+            self.task_path.push(i);
             let r = self.exec_from(code, &mut pc, base);
+            self.task_path.pop();
             self.it.force = false;
             let t = &mut tasks[i];
             let prev = t.park.take();
@@ -450,6 +486,23 @@ impl<'o> Vm<'o> {
                 *self.it.cancel.last_mut().expect("this block") = true;
             }
         };
+        let cancel = self.it.cancel.pop().expect("this block");
+        self.task_base = outer;
+        self.it.in_par -= 1;
+        if yielded {
+            // The parked tasks stay registered as waiting receivers.
+            self.suspended.insert(
+                key,
+                Suspended {
+                    tasks,
+                    first,
+                    failed,
+                    cancel,
+                },
+            );
+            self.it.park = Some((false, usize::MAX));
+            return Ok(Flow::Yield);
+        }
         for t in &tasks {
             if let Some((true, c)) = t.park
                 && let Some(k) = self.it.waiting_recv.iter().position(|w| *w == c)
@@ -457,10 +510,13 @@ impl<'o> Vm<'o> {
                 self.it.waiting_recv.swap_remove(k);
             }
         }
-        self.task_base = outer;
-        self.it.in_par -= 1;
-        self.it.cancel.pop();
-        out
+        if self.it.in_par == 0 {
+            self.suspended.clear();
+        }
+        Ok(match out? {
+            Some(r) => Flow::Exit(r),
+            None => Flow::Done,
+        })
     }
 
     fn val<'a>(&'a self, code: &'a Code, base: usize, o: Opnd) -> &'a Value {
@@ -598,10 +654,15 @@ impl<'o> Vm<'o> {
                 Op::Fail(o) => return Ok(Err(dup(self.val(code, base, o)))),
                 Op::Par(i) => {
                     let (entries, join) = code.pars[i as usize].clone();
-                    if let Some(r) = self.run_tasks(code, base, &entries)? {
-                        return Ok(r);
+                    match self.run_tasks(code, base, &entries)? {
+                        Flow::Done => *pc = join as usize,
+                        Flow::Exit(r) => return Ok(r),
+                        Flow::Yield => {
+                            // Run the block again when the enclosing task resumes.
+                            *pc -= 1;
+                            return Ok(Ok(Value::Unit));
+                        }
                     }
-                    *pc = join as usize;
                 }
                 Op::TaskEnd => {
                     self.it.task_done = true;
