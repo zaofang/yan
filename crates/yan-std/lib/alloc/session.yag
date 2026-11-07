@@ -1,0 +1,9 @@
+"""Session protocols (9.5, R633, R634). `type P = session.protocol(spec)` declares a global
+protocol; `session.connect[P]()` returns one endpoint per role; `session.send(ep, Label(x))`,
+`session.recv(ep)` and `session.close(ep)` move an endpoint through its role's states. The
+elaborator types each operation by the endpoint's current state."""
+
+@since("1.0")
+pub class SessionClosed:
+    """The failure of a session operation after a peer's branch failed (R634)."""
+    pass

@@ -5,11 +5,10 @@
 
 use std::collections::HashMap;
 
-use yan_core::ast as y;
 use yan_diag::Span;
 use yan_hir as j;
 
-use crate::{Cx, Globals, R, Ty};
+use crate::Cx;
 
 /// Byte offsets into the protocol string.
 type At = (usize, usize);
@@ -58,9 +57,9 @@ enum L {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum State {
     /// The labels this state may send: (to, label, payload, next state).
-    Send(Vec<(usize, String, Option<Ty>, usize)>),
+    Send(Vec<(usize, String, Option<j::Type>, usize)>),
     /// The labels it may receive from one peer: (label, payload, next state).
-    Recv(usize, Vec<(String, Option<Ty>, usize)>),
+    Recv(usize, Vec<(String, Option<j::Type>, usize)>),
     End,
 }
 
@@ -531,7 +530,7 @@ fn build(l: &L, env: &mut HashMap<String, usize>, out: &mut Vec<Raw>) -> usize {
 }
 
 /// The state machine of `l`: reachable states numbered from the initial one, one `end`.
-fn machine(l: &L, g: &Globals, cx: &mut Cx, at: Span) -> R<Vec<State>> {
+fn machine(l: &L) -> Vec<State> {
     let mut raw = Vec::new();
     let start = build(l, &mut HashMap::new(), &mut raw);
     let end = raw.iter().position(|r| matches!(r, Raw::End));
@@ -562,25 +561,23 @@ fn machine(l: &L, g: &Globals, cx: &mut Cx, at: Span) -> R<Vec<State>> {
         }
         k += 1;
     }
-    let ty = |t: &Option<j::Type>, cx: &mut Cx| t.as_ref().map(|t| g.ty(t, cx, at)).transpose();
-    let mut states = Vec::new();
-    for s in &order {
-        states.push(match &raw[*s] {
+    order
+        .iter()
+        .map(|s| match &raw[*s] {
             Raw::Send(bs) => State::Send(
                 bs.iter()
-                    .map(|(to, l, t, n)| Ok((*to, l.clone(), ty(t, cx)?, index[&resolve(*n)])))
-                    .collect::<R<_>>()?,
+                    .map(|(to, l, t, n)| (*to, l.clone(), t.clone(), index[&resolve(*n)]))
+                    .collect(),
             ),
             Raw::Recv(p, bs) => State::Recv(
                 *p,
                 bs.iter()
-                    .map(|(l, t, n)| Ok((l.clone(), ty(t, cx)?, index[&resolve(*n)])))
-                    .collect::<R<_>>()?,
+                    .map(|(l, t, n)| (l.clone(), t.clone(), index[&resolve(*n)]))
+                    .collect(),
             ),
             Raw::Same(_) | Raw::End => State::End,
-        });
-    }
-    Ok(states)
+        })
+        .collect()
 }
 
 /// The span of bytes `at` of the string literal `lit` at `span`, when its source text is its
@@ -604,13 +601,7 @@ fn inside(cx: &Cx, span: Span, value: &str, at: At) -> Span {
 
 /// `session.protocol(spec)`: the protocol, or none after reporting why there is none (E270 for
 /// a malformed protocol, E728 for one that cannot be projected).
-pub(crate) fn protocol(
-    g: &Globals,
-    name: &str,
-    spec: &str,
-    span: Span,
-    cx: &mut Cx,
-) -> R<Option<Protocol>> {
+pub(crate) fn protocol(name: &str, spec: &str, span: Span, cx: &mut Cx) -> Option<Protocol> {
     let mut p = Parser {
         s: spec,
         i: 0,
@@ -637,7 +628,7 @@ pub(crate) fn protocol(
         Ok(g) => g,
         Err(f) => {
             report("E270", f, cx);
-            return Ok(None);
+            return None;
         }
     };
     let roles = p.roles;
@@ -651,39 +642,655 @@ pub(crate) fn protocol(
             ),
             cx,
         );
-        return Ok(None);
+        return None;
     }
     if let Err(f) = check_choices(&global, &roles) {
         report("E728", f, cx);
-        return Ok(None);
+        return None;
     }
     let mut states = Vec::new();
     for r in 0..roles.len() {
         match project(&global, r, &roles) {
-            Ok(l) => states.push(machine(&l, g, cx, span)?),
+            Ok(l) => states.push(machine(&l)),
             Err(f) => {
                 report("E728", f, cx);
-                return Ok(None);
+                return None;
             }
         }
     }
-    Ok(Some(Protocol {
+    Some(Protocol {
         name: name.to_owned(),
         roles,
         states,
-    }))
+    })
 }
 
-/// The Yan Core items of `p`: the protocol itself, a type without values.
-pub(crate) fn items(p: &Protocol) -> Vec<y::Item> {
-    vec![y::Item {
-        attrs: Vec::new(),
-        kind: y::ItemKind::Sum(y::Sum {
-            is_pub: true,
-            path: vec![p.name.clone()],
-            tparams: Vec::new(),
-            variants: Vec::new(),
+/// What one endpoint type is: its protocol, role and state.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Endpoint {
+    pub protocol: String,
+    pub role: usize,
+    pub state: usize,
+}
+
+impl Protocol {
+    /// The type of `role`'s endpoint in `state`.
+    pub(crate) fn state_type(&self, role: usize, state: usize) -> String {
+        match self.states[role][state] {
+            State::End => format!("{}_{}_end", self.name, self.roles[role]),
+            _ => format!("{}_{}_{state}", self.name, self.roles[role]),
+        }
+    }
+
+    pub(crate) fn roles_type(&self) -> String {
+        format!("{}_roles", self.name)
+    }
+
+    pub(crate) fn connect_fn(&self) -> String {
+        format!("__{}_connect", self.name)
+    }
+
+    pub(crate) fn op_fn(&self, role: usize, state: usize, op: &str) -> String {
+        format!("__{}_{op}", self.state_type(role, state))
+    }
+
+    /// What a choice state's `recv` returns: a sum with a variant per label.
+    pub(crate) fn got_type(&self, role: usize, state: usize) -> String {
+        format!("{}_got", self.state_type(role, state))
+    }
+
+    /// The endpoint types, by name.
+    pub(crate) fn endpoints(&self) -> Vec<(String, Endpoint)> {
+        let mut out = Vec::new();
+        for (r, states) in self.states.iter().enumerate() {
+            for k in 0..states.len() {
+                out.push((
+                    self.state_type(r, k),
+                    Endpoint {
+                        protocol: self.name.clone(),
+                        role: r,
+                        state: k,
+                    },
+                ));
+            }
+        }
+        out
+    }
+
+    /// The peers `r` sends to and receives from.
+    fn peers(&self, r: usize) -> (Vec<usize>, Vec<usize>) {
+        let (mut to, mut from) = (Vec::new(), Vec::new());
+        for s in &self.states[r] {
+            match s {
+                State::Send(bs) => to.extend(bs.iter().map(|b| b.0)),
+                State::Recv(p, _) => from.push(*p),
+                State::End => {}
+            }
+        }
+        for v in [&mut to, &mut from] {
+            v.sort_unstable();
+            v.dedup();
+        }
+        (to, from)
+    }
+
+    /// The labels and payloads that travel from `a` to `b`, each with its variant name in the
+    /// direction's message sum.
+    fn messages(&self, a: usize, b: usize) -> Vec<(String, Option<j::Type>, String)> {
+        let mut out: Vec<(String, Option<j::Type>, String)> = Vec::new();
+        for s in &self.states[a] {
+            let State::Send(bs) = s else { continue };
+            for (to, l, t, _) in bs {
+                if *to != b || out.iter().any(|(m, u, _)| m == l && u == t) {
+                    continue;
+                }
+                let same = out.iter().filter(|(m, _, _)| m == l).count();
+                let mut v = format!("{}_{l}", self.msg_type(a, b));
+                if same > 0 {
+                    v.push_str(&format!("_{}", same + 1));
+                }
+                out.push((l.clone(), t.clone(), v));
+            }
+        }
+        out
+    }
+
+    fn msg_type(&self, a: usize, b: usize) -> String {
+        format!("{}_{}_to_{}", self.name, self.roles[a], self.roles[b])
+    }
+}
+
+fn ex(kind: j::ExprKind, at: Span) -> j::Expr {
+    j::Expr {
+        kind,
+        span: at,
+        paren: false,
+    }
+}
+
+fn nm(n: &str, at: Span) -> j::Expr {
+    ex(j::ExprKind::Name(n.to_owned()), at)
+}
+
+fn arg(name: Option<&str>, e: j::Expr) -> j::Arg {
+    j::Arg {
+        name: name.map(str::to_owned),
+        span: e.span,
+        kind: j::ArgKind::Expr(e),
+    }
+}
+
+fn call(f: j::Expr, args: Vec<j::Arg>) -> j::Expr {
+    let at = f.span;
+    ex(j::ExprKind::Call(Box::new(f), args), at)
+}
+
+fn named(n: &str) -> j::Type {
+    j::Type::Named {
+        path: vec![n.to_owned()],
+        args: Vec::new(),
+    }
+}
+
+fn st(kind: j::StmtKind, at: Span) -> j::Stmt {
+    j::Stmt { kind, span: at }
+}
+
+fn field(name: &str, ty: j::Type, at: Span) -> j::Field {
+    j::Field {
+        decorators: Vec::new(),
+        name: name.to_owned(),
+        ty,
+        ty_span: at,
+        default: None,
+    }
+}
+
+/// `e else fail SessionClosed()`.
+fn or_closed(e: j::Expr, at: Span) -> j::Expr {
+    let closed = call(nm("SessionClosed", at), Vec::new());
+    ex(
+        j::ExprKind::Fallback(Box::new(e), Box::new(j::Fallback::Fail(closed))),
+        at,
+    )
+}
+
+/// `case T(f1=b1, ...)`, binding each field to `ep_<field>`, or to `_` when `bind` is false.
+fn destructure(t: &str, fields: &[String], bind: bool) -> j::Pat {
+    j::Pat::Path {
+        path: vec![t.to_owned()],
+        args: Some(
+            fields
+                .iter()
+                .map(|f| {
+                    let p = if bind {
+                        j::Pat::Path {
+                            path: vec![format!("ep_{f}")],
+                            args: None,
+                        }
+                    } else {
+                        j::Pat::Wild
+                    };
+                    (Some(f.clone()), p)
+                })
+                .collect(),
+        ),
+    }
+}
+
+/// The function's single statement: `match ep: case T(...): body`.
+fn on_endpoint(
+    t: &str,
+    fields: &[String],
+    bind: bool,
+    body: Vec<j::Stmt>,
+    at: Span,
+) -> Vec<j::Stmt> {
+    vec![st(
+        j::StmtKind::Match {
+            scrutinee: nm("ep", at),
+            cases: vec![j::Case {
+                pat: destructure(t, fields, bind),
+                span: at,
+                guard: None,
+                body: j::Block {
+                    inline: false,
+                    stmts: body,
+                },
+            }],
+        },
+        at,
+    )]
+}
+
+/// `T(f1=ep_f1, ...)`, with `ep_<swap.0>` replaced by `swap.1`.
+fn rebuild(t: &str, fields: &[String], swap: (&str, &str), at: Span) -> j::Expr {
+    call(
+        nm(t, at),
+        fields
+            .iter()
+            .map(|f| {
+                let v = if f == swap.0 {
+                    swap.1.to_owned()
+                } else {
+                    format!("ep_{f}")
+                };
+                arg(Some(f), nm(&v, at))
+            })
+            .collect(),
+    )
+}
+
+fn func(
+    name: String,
+    params: Vec<(bool, &str, j::Type)>,
+    ret: Option<j::Type>,
+    fails: bool,
+    stmts: Vec<j::Stmt>,
+    at: Span,
+) -> j::FuncDef {
+    j::FuncDef {
+        name,
+        name_span: at,
+        tparams: Vec::new(),
+        params: params
+            .into_iter()
+            .map(|(take, n, ty)| j::Param::Value {
+                conv: take.then_some(j::Conv::Take),
+                name: n.to_owned(),
+                span: at,
+                ty,
+                default: None,
+            })
+            .collect(),
+        ret: Some(j::RetType {
+            ty: ret,
+            fail: if fails {
+                vec![vec!["SessionClosed".into()]]
+            } else {
+                Vec::new()
+            },
+            from: Vec::new(),
         }),
-        span: Span::default(),
-    }]
+        uses: None,
+        body: Some(j::Body {
+            doc: None,
+            contracts: Vec::new(),
+            stmts,
+        }),
+    }
+}
+
+/// The items that implement `p` (R634), all at `at`: a message sum per direction, a `@linear`
+/// class per endpoint state holding the role's channel ends, a sum per choice that `recv` returns,
+/// the class `connect` returns, and a function per operation each state allows.
+pub(crate) fn items(p: &Protocol, is_pub: bool, at: Span) -> Vec<j::Item> {
+    let mut out = Vec::new();
+    let item = |kind, linear: bool| j::Item {
+        decorators: if linear {
+            vec![j::Decorator {
+                path: vec!["linear".into()],
+                args: None,
+            }]
+        } else {
+            Vec::new()
+        },
+        is_pub,
+        kind,
+        span: at,
+        name_span: at,
+    };
+    let n = p.roles.len();
+    for a in 0..n {
+        for b in 0..n {
+            let ms = p.messages(a, b);
+            if ms.is_empty() {
+                continue;
+            }
+            let variants = ms
+                .into_iter()
+                .map(|(_, t, v)| j::Variant {
+                    decorators: Vec::new(),
+                    name: v,
+                    fields: t.map(|t| vec![field("value", t, at)]).unwrap_or_default(),
+                })
+                .collect();
+            out.push(item(
+                j::ItemKind::Type(j::TypeDef {
+                    name: p.msg_type(a, b),
+                    tparams: Vec::new(),
+                    rhs: j::TypeRhs::Sum(variants),
+                    where_: None,
+                }),
+                false,
+            ));
+        }
+    }
+    let sender = |t: String| j::Type::Named {
+        path: vec!["Sender".into()],
+        args: vec![j::TArg::Type(named(&t))],
+    };
+    let receiver = |t: String| j::Type::Named {
+        path: vec!["Receiver".into()],
+        args: vec![j::TArg::Type(named(&t))],
+    };
+    let mut connect = Vec::new();
+    let mut roles = Vec::new();
+    for (r, states) in p.states.iter().enumerate() {
+        let (to, from) = p.peers(r);
+        let mut fields: Vec<(String, j::Type)> = Vec::new();
+        for &b in &to {
+            fields.push((format!("to_{}", p.roles[b]), sender(p.msg_type(r, b))));
+        }
+        for &b in &from {
+            fields.push((format!("from_{}", p.roles[b]), receiver(p.msg_type(b, r))));
+        }
+        let names: Vec<String> = fields.iter().map(|f| f.0.clone()).collect();
+        for k in 0..states.len() {
+            out.push(item(
+                j::ItemKind::Record(j::Record {
+                    name: p.state_type(r, k),
+                    tparams: Vec::new(),
+                    doc: None,
+                    fields: fields
+                        .iter()
+                        .map(|(f, t)| field(f, t.clone(), at))
+                        .collect(),
+                }),
+                true,
+            ));
+        }
+        for (k, s) in states.iter().enumerate() {
+            let me = p.state_type(r, k);
+            let ep = (true, "ep", named(&me));
+            match s {
+                State::Send(bs) => {
+                    for (to, l, t, next) in bs {
+                        let chan = format!("to_{}", p.roles[*to]);
+                        let variant = p
+                            .messages(r, *to)
+                            .into_iter()
+                            .find(|(m, u, _)| m == l && u == t)
+                            .expect("a message of the direction")
+                            .2;
+                        let msg = call(
+                            nm(&variant, at),
+                            t.iter()
+                                .map(|_| arg(Some("value"), nm("value", at)))
+                                .collect(),
+                        );
+                        let send = j::ExprKind::Call(
+                            Box::new(ex(
+                                j::ExprKind::Attr(Box::new(nm("chan", at)), "send".into(), at),
+                                at,
+                            )),
+                            vec![arg(None, msg)],
+                        );
+                        let body = vec![
+                            st(
+                                j::StmtKind::Assign {
+                                    target: nm("chan", at),
+                                    ty: None,
+                                    value: nm(&format!("ep_{chan}"), at),
+                                },
+                                at,
+                            ),
+                            st(j::StmtKind::Expr(or_closed(ex(send, at), at)), at),
+                            st(
+                                j::StmtKind::Return(Some(rebuild(
+                                    &p.state_type(r, *next),
+                                    &names,
+                                    (&chan, "chan"),
+                                    at,
+                                ))),
+                                at,
+                            ),
+                        ];
+                        let mut params = vec![ep.clone()];
+                        if let Some(t) = t {
+                            params.push((false, "value", t.clone()));
+                        }
+                        out.push(item(
+                            j::ItemKind::Func(func(
+                                p.op_fn(r, k, &format!("send_{l}")),
+                                params,
+                                Some(named(&p.state_type(r, *next))),
+                                true,
+                                on_endpoint(&me, &names, true, body, at),
+                                at,
+                            )),
+                            false,
+                        ));
+                    }
+                }
+                State::Recv(from, bs) => {
+                    let chan = format!("from_{}", p.roles[*from]);
+                    let all = p.messages(*from, r);
+                    let choice = bs.len() > 1;
+                    let ret = if choice {
+                        let variants = bs
+                            .iter()
+                            .map(|(l, t, next)| {
+                                let mut fs: Vec<j::Field> =
+                                    t.iter().map(|t| field("value", t.clone(), at)).collect();
+                                fs.push(field("next", named(&p.state_type(r, *next)), at));
+                                j::Variant {
+                                    decorators: Vec::new(),
+                                    name: l.clone(),
+                                    fields: fs,
+                                }
+                            })
+                            .collect();
+                        out.push(item(
+                            j::ItemKind::Type(j::TypeDef {
+                                name: p.got_type(r, k),
+                                tparams: Vec::new(),
+                                rhs: j::TypeRhs::Sum(variants),
+                                where_: None,
+                            }),
+                            false,
+                        ));
+                        named(&p.got_type(r, k))
+                    } else {
+                        let next = named(&p.state_type(r, bs[0].2));
+                        match &bs[0].1 {
+                            Some(t) => j::Type::Named {
+                                path: vec!["tuple".into()],
+                                args: vec![j::TArg::Type(t.clone()), j::TArg::Type(next)],
+                            },
+                            None => next,
+                        }
+                    };
+                    let mut cases = Vec::new();
+                    for (l, t, next) in bs {
+                        let variant = &all
+                            .iter()
+                            .find(|(m, u, _)| m == l && u == t)
+                            .expect("a message of the direction")
+                            .2;
+                        let ep = rebuild(&p.state_type(r, *next), &names, (&chan, "chan"), at);
+                        let value = t.is_some().then(|| nm("value", at));
+                        let result = if choice {
+                            let mut args: Vec<j::Arg> =
+                                value.into_iter().map(|v| arg(Some("value"), v)).collect();
+                            args.push(arg(Some("next"), ep));
+                            call(nm(l, at), args)
+                        } else {
+                            match value {
+                                Some(v) => ex(j::ExprKind::Tuple(vec![v, ep]), at),
+                                None => ep,
+                            }
+                        };
+                        cases.push(j::Case {
+                            pat: j::Pat::Path {
+                                path: vec![variant.clone()],
+                                args: Some(
+                                    t.iter()
+                                        .map(|_| {
+                                            (
+                                                Some("value".to_owned()),
+                                                j::Pat::Path {
+                                                    path: vec!["value".into()],
+                                                    args: None,
+                                                },
+                                            )
+                                        })
+                                        .collect(),
+                                ),
+                            },
+                            span: at,
+                            guard: None,
+                            body: j::Block {
+                                inline: false,
+                                stmts: vec![st(j::StmtKind::Return(Some(result)), at)],
+                            },
+                        });
+                    }
+                    if all.len() > bs.len() {
+                        // The protocol never sends another label in this state.
+                        cases.push(j::Case {
+                            pat: j::Pat::Wild,
+                            span: at,
+                            guard: None,
+                            body: j::Block {
+                                inline: false,
+                                stmts: vec![st(j::StmtKind::Unreachable, at)],
+                            },
+                        });
+                    }
+                    let recv = ex(
+                        j::ExprKind::Call(
+                            Box::new(ex(
+                                j::ExprKind::Attr(Box::new(nm("chan", at)), "recv".into(), at),
+                                at,
+                            )),
+                            Vec::new(),
+                        ),
+                        at,
+                    );
+                    let body = vec![
+                        st(
+                            j::StmtKind::Assign {
+                                target: nm("chan", at),
+                                ty: None,
+                                value: nm(&format!("ep_{chan}"), at),
+                            },
+                            at,
+                        ),
+                        st(
+                            j::StmtKind::Assign {
+                                target: nm("msg", at),
+                                ty: None,
+                                value: or_closed(recv, at),
+                            },
+                            at,
+                        ),
+                        st(
+                            j::StmtKind::Match {
+                                scrutinee: nm("msg", at),
+                                cases,
+                            },
+                            at,
+                        ),
+                    ];
+                    out.push(item(
+                        j::ItemKind::Func(func(
+                            p.op_fn(r, k, "recv"),
+                            vec![ep],
+                            Some(ret),
+                            true,
+                            on_endpoint(&me, &names, true, body, at),
+                            at,
+                        )),
+                        false,
+                    ));
+                }
+                State::End => {
+                    let body = vec![st(j::StmtKind::Pass, at)];
+                    out.push(item(
+                        j::ItemKind::Func(func(
+                            p.op_fn(r, k, "close"),
+                            vec![ep],
+                            None,
+                            false,
+                            on_endpoint(&me, &names, false, body, at),
+                            at,
+                        )),
+                        false,
+                    ));
+                }
+            }
+        }
+        let init: Vec<j::Arg> = names
+            .iter()
+            .map(|f| {
+                let (dir, peer) = f.split_once('_').expect("to_ or from_");
+                let b = p.roles.iter().position(|x| x == peer).expect("a role");
+                let v = if dir == "to" {
+                    format!("c_{r}_{b}_tx")
+                } else {
+                    format!("c_{b}_{r}_rx")
+                };
+                arg(Some(f), nm(&v, at))
+            })
+            .collect();
+        roles.push(field(&p.roles[r], named(&p.state_type(r, 0)), at));
+        connect.push((p.roles[r].clone(), call(nm(&p.state_type(r, 0), at), init)));
+    }
+    out.push(item(
+        j::ItemKind::Record(j::Record {
+            name: p.roles_type(),
+            tparams: Vec::new(),
+            doc: None,
+            fields: roles,
+        }),
+        false,
+    ));
+    let mut body = Vec::new();
+    for a in 0..n {
+        for b in 0..n {
+            if p.messages(a, b).is_empty() {
+                continue;
+            }
+            let chan = ex(
+                j::ExprKind::Index(
+                    Box::new(nm("Channel", at)),
+                    Box::new(nm(&p.msg_type(a, b), at)),
+                ),
+                at,
+            );
+            let one = ex(j::ExprKind::Lit(j::Lit::Int("1".into())), at);
+            body.push(st(
+                j::StmtKind::Assign {
+                    target: ex(
+                        j::ExprKind::Tuple(vec![
+                            nm(&format!("c_{a}_{b}_tx"), at),
+                            nm(&format!("c_{a}_{b}_rx"), at),
+                        ]),
+                        at,
+                    ),
+                    ty: None,
+                    value: call(chan, vec![arg(None, one)]),
+                },
+                at,
+            ));
+        }
+    }
+    let all = connect.into_iter().map(|(r, e)| arg(Some(&r), e)).collect();
+    body.push(st(
+        j::StmtKind::Return(Some(call(nm(&p.roles_type(), at), all))),
+        at,
+    ));
+    out.push(item(
+        j::ItemKind::Func(func(
+            p.connect_fn(),
+            Vec::new(),
+            Some(named(&p.roles_type())),
+            false,
+            body,
+            at,
+        )),
+        false,
+    ));
+    out
 }

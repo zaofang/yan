@@ -1319,3 +1319,8 @@ sections = "18.4"
 rows = "R925"
 topic = "`cost` bounds cover the body, the call charged to the caller; one `alloc` is a fresh heap value, an `inout` growth or a capturing closure"
 sections = "8.4"
+
+[[entry]]
+rows = "R926"
+topic = "Session details: protocol payloads in the module's surface, `X` or `continue X` repeats, malformed protocols E270; `session.send`, `recv` and `close` results, generated endpoint names collision-checked (E265); E727 covers `recv` and `close`"
+sections = "9.5, 25"

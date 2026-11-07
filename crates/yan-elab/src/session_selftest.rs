@@ -6,7 +6,7 @@ fn diags(src: &str) -> (Globals, Vec<Diagnostic>) {
         d.iter().all(|d| d.severity != yan_diag::Severity::Error),
         "{d:?}"
     );
-    let m = m.expect("parses");
+    let mut m = m.expect("parses");
     let mut cx = Cx {
         file: "t.yag",
         src,
@@ -21,7 +21,14 @@ fn diags(src: &str) -> (Globals, Vec<Diagnostic>) {
         lits: Vec::new(),
         origins: Vec::new(),
     };
-    let mut g = Globals::default();
+    let e = typefn::expand(&mut m, &mut cx).expect("supported");
+    let mut g = Globals {
+        applied: e.applied,
+        protocols: e.protocols,
+        endpoints: e.endpoints,
+        broken: e.broken,
+        ..Globals::default()
+    };
     stdlib::sums(&mut g, &m).expect("std sums");
     stdlib::classes(&mut g, &m).expect("std classes");
     collect(&mut g, &m, &mut cx).expect("supported");
@@ -44,7 +51,7 @@ fn a_protocol_projects_onto_each_role() {
     use session::State::*;
     let client = &p.states[0];
     assert!(
-        matches!(&client[0], Send(bs) if bs.len() == 1 && bs[0].1 == "Get" && bs[0].2 == Some(Ty::Str))
+        matches!(&client[0], Send(bs) if bs.len() == 1 && bs[0].1 == "Get" && bs[0].2 == Some(j::Type::Named { path: vec!["Str".into()], args: Vec::new() }))
     );
     let Recv(1, bs) = &client[1] else {
         panic!("{client:?}")
@@ -75,7 +82,7 @@ fn recursion_loops_back_to_its_state() {
 
 #[test]
 fn a_role_outside_the_choice_merges_equal_or_receivable_branches() {
-    let (_, d) = protocol("choice a { a -> b: X(); b -> c: P() | a -> b: Y(); b -> c: Q() }");
+    let (_, d) = protocol("choice a { a -> b: X(); b -> c: Px() | a -> b: Y(); b -> c: Qx() }");
     assert!(d.is_empty(), "the choice reaches `c` through `b`: {d:?}");
     let (_, d) = protocol("choice a { a -> b: X(); a -> c: Z() | a -> b: Y(); a -> c: Z() }");
     assert!(d.is_empty(), "{d:?}");
@@ -135,13 +142,12 @@ fn equal_applications_are_one_type() {
     let (g, d) = diags(&src);
     assert!(d.is_empty(), "{d:?}");
     assert_eq!(g.protocols.len(), 2, "A and B share one protocol");
-    let ty = |n: &str| g.aliases[n][0].clone();
-    let (j::Type::Call { args: a, .. }, j::Type::Call { args: b, .. }) = (ty("A"), ty("B")) else {
-        panic!("calls")
+    let j::Type::Call { path, args } = &g.aliases["B"][0] else {
+        panic!("B stays an application")
     };
     assert_eq!(
-        typefn::applied(&g, &["session".into(), "protocol".into()], &a).expect("memoized"),
-        typefn::applied(&g, &["session".into(), "protocol".into()], &b).expect("memoized"),
+        typefn::applied(&g, path, args).expect("memoized"),
+        Ty::Data("A".into())
     );
 }
 
@@ -157,4 +163,169 @@ fn a_protocol_type_elaborates_and_checks() {
     assert!(d.is_empty(), "{d:?}");
     let checked = yan_check::check("t.yag", &src, &y);
     assert!(checked.is_empty(), "{checked:?}");
+}
+
+fn checked(src: &str) -> (y::Module, Vec<Diagnostic>) {
+    let (m, d) = yan_yag::parse("t.yag", src, false);
+    assert!(d.is_empty(), "{d:?}");
+    let (y, mut d) =
+        elaborate("t.yag", src, &m.expect("parses"), Options::default()).expect("supported");
+    if d.iter().all(|d| d.severity != yan_diag::Severity::Error) {
+        d.extend(yan_check::check("t.yag", src, &y));
+    }
+    (y, d)
+}
+
+fn errors(d: &[Diagnostic]) -> Vec<&str> {
+    d.iter()
+        .filter(|d| d.severity == yan_diag::Severity::Error)
+        .map(|d| d.code.as_str())
+        .collect()
+}
+
+const FETCH_RUN: &str = "\
+def client(take ep: Fetch_client_0, key: str) -> str fail SessionClosed:
+    ep1 = session.send(ep, Get(key))?
+    got = session.recv(ep1)?
+    match got:
+        case Found(value=v, next=done):
+            session.close(done)
+            return f\"found {v}\"
+        case Missing(next=gone):
+            session.close(gone)
+            return \"missing\"
+
+def server(take ep: Fetch_server_0) -> None fail SessionClosed:
+    k, ep1 = session.recv(ep)?
+    if k == \"a\":
+        done = session.send(ep1, Found(42))?
+        session.close(done)
+    else:
+        gone = session.send(ep1, Missing())?
+        session.close(gone)
+
+pub def main() uses io:
+    eps = session.connect[Fetch]()
+    c = eps.client
+    s = eps.server
+    par concurrent:
+        r = client(c, \"a\") else \"closed\"
+        server(s) else None
+    io.print(r)
+";
+
+const FETCH_INT: &str = "client -> server: Get(str); choice server { server -> client: Found(int) | server -> client: Missing() }; end";
+
+#[test]
+fn endpoints_carry_a_session_to_its_end() {
+    let src = format!("type Fetch = session.protocol(\"{FETCH_INT}\")\n\n{FETCH_RUN}");
+    let (m, d) = checked(&src);
+    assert!(errors(&d).is_empty(), "{d:?}");
+    let mut out = Vec::new();
+    yan_interp::run(&m, &mut out).expect("runs");
+    assert_eq!(String::from_utf8(out).expect("utf-8"), "found 42\n");
+}
+
+#[test]
+fn recursive_three_party_sessions_run() {
+    let src = "\
+type Count = session.protocol(\"rec Loop { choice a { a -> b: Add(int); a -> c: Tick(); Loop | a -> b: Done(); a -> c: Stop(); b -> c: Total(int) } }\")
+
+def adder(take ep: Count_a_0, i: int, n: int) -> None fail SessionClosed:
+    decreases n - i
+    if i < n:
+        sent = session.send(ep, Add(i))?
+        again = session.send(sent, Tick())?
+        adder(again, i=i + 1, n=n)?
+        return
+    done = session.send(ep, Done())?
+    last = session.send(done, Stop())?
+    session.close(last)
+
+def summer(take ep: Count_b_0, total: int, fuel: int) -> None fail SessionClosed:
+    decreases fuel
+    got = session.recv(ep)?
+    match got:
+        case Add(value=v, next=more):
+            summer(more, total=total + v, fuel=fuel - 1)?
+        case Done(next=fin):
+            last = session.send(fin, Total(total))?
+            session.close(last)
+
+def reader(take ep: Count_c_0, ticks: int, fuel: int) -> int fail SessionClosed:
+    decreases fuel
+    got = session.recv(ep)?
+    match got:
+        case Tick(next=more):
+            return reader(more, ticks=ticks + 1, fuel=fuel - 1)?
+        case Stop(next=wait):
+            t, fin = session.recv(wait)?
+            session.close(fin)
+            return t * 100 + ticks
+
+pub def main() uses io:
+    eps = session.connect[Count]()
+    a = eps.a
+    b = eps.b
+    c = eps.c
+    par concurrent:
+        adder(a, i=0, n=5) else None
+        summer(b, total=0, fuel=100) else None
+        t = reader(c, ticks=0, fuel=100) else -1
+    io.print(f\"{t}\")
+";
+    let (m, d) = checked(src);
+    assert!(errors(&d).is_empty(), "{d:?}");
+    let mut out = Vec::new();
+    yan_interp::run(&m, &mut out).expect("runs");
+    assert_eq!(String::from_utf8(out).expect("utf-8"), "1005\n");
+}
+
+#[test]
+fn an_operation_the_state_does_not_allow_is_e727() {
+    let src = format!(
+        "type Fetch = session.protocol(\"{FETCH_INT}\")\n\n\
+         def wrong_label(take ep: Fetch_client_0) -> None fail SessionClosed:\n    ep1 = session.send(ep, Put(\"x\"))?\n    session.close(ep1)\n\n\
+         def early_close(take ep: Fetch_client_0) -> None fail SessionClosed:\n    ep1 = session.send(ep, Get(\"x\"))?\n    session.close(ep1)\n\n\
+         def recv_first(take ep: Fetch_client_0) -> None fail SessionClosed:\n    got = session.recv(ep)?\n"
+    );
+    let (_, d) = checked(&src);
+    assert_eq!(errors(&d), ["E727", "E727", "E727"], "{d:?}");
+    assert!(
+        d[0].message.contains("`Put`") && d[0].message.contains("allows sending `Get`"),
+        "{}",
+        d[0].message
+    );
+    assert!(
+        d[1].message.contains("`Fetch_client_1`") && d[1].message.contains("`recv` from `server`"),
+        "{}",
+        d[1].message
+    );
+}
+
+#[test]
+fn dropping_an_endpoint_before_end_is_e412() {
+    let src = format!(
+        "type Fetch = session.protocol(\"{FETCH_INT}\")\n\n\
+         def drop(take ep: Fetch_client_0) -> None fail SessionClosed:\n    ep1 = session.send(ep, Get(\"x\"))?\n    return\n"
+    );
+    let (_, d) = checked(&src);
+    assert_eq!(errors(&d), ["E412"], "{d:?}");
+}
+
+#[test]
+fn a_label_that_takes_a_name_is_e265() {
+    let src = format!(
+        "type Found = Hit(n: int) | Miss()\n\ntype Fetch = session.protocol(\"{FETCH_INT}\")\n"
+    );
+    let (_, d) = diags(&src.replace(
+        "type Found = Hit(n: int) | Miss()",
+        "type T = Found(n: int) | Other()",
+    ));
+    assert_eq!(
+        d.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
+        ["E265"],
+        "{d:?}"
+    );
+    assert!(d[0].message.contains("`Found`"), "{}", d[0].message);
 }

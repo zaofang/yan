@@ -227,6 +227,7 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
             }
             "layout" if g.layout_c.contains(&item) => {}
             "layout" => return unsupported("`@layout` other than `@layout(c)` on a record"),
+            "linear" if matches!(it.kind, j::ItemKind::Record(_)) => {}
             "reentrant" => reentrant(it, cx),
             "constant_time" => crate::consttime::check(it, cx),
             "deny" => {}
