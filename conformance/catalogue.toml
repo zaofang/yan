@@ -1,5 +1,5 @@
 # Diagnostic codes (spec 25) and spec sections, read by tools/conform.py --coverage.
-# Derived from the 1.0 draft (rev 420). Update it when section 25 or the section list changes.
+# Derived from the 1.0 draft (spec/25 as of 2026-11-08). Update it when section 25 or the section list changes.
 
 [codes]
 E001 = { section = "20.6", status = "active", meaning = "preview item used without preview = [\"name\"]" }
@@ -18,6 +18,12 @@ E013 = { section = "20.6", status = "active", meaning = "confirmed breaking chan
 E014 = { section = "18.4", status = "active", meaning = "approved test changed since tests.lock was signed" }
 E015 = { section = "18.4", status = "active", meaning = "approved test in tests.lock is missing" }
 W014 = { section = "20.6", status = "active", meaning = "possible breaking change without a witness" }
+E016 = { section = "19.4", status = "active", meaning = "yan publish refuses the manifest: overrides, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later" }
+E017 = { section = "18.2", status = "active", meaning = "construct this toolchain does not support yet, reported at the construct; checking continues (R649)" }
+E018 = { section = "19.1", status = "active", meaning = "package.yag has a field not in the manifest table, or lacks name, version, edition or yan where required" }
+E019 = { section = "19.1", status = "active", meaning = "yan.lock has a format newer than this toolchain reads" }
+E020 = { section = "19.1", status = "active", meaning = "under --locked, yan.lock is missing or does not match the manifest, or an offline archive is absent" }
+E021 = { section = "19.3", status = "active", meaning = "a namespace has no index mapping in registries" }
 E100 = { section = "13.2, 15.2", status = "active", meaning = "unexpected token; the expected set is listed" }
 E101 = { section = "13.2, 15.2", status = "active", meaning = "operator mix that requires parentheses" }
 E102 = { section = "13.1, 15.1", status = "active", meaning = "unclosed bracket, string or block" }
@@ -40,6 +46,7 @@ E135 = { section = "15.3", status = "active", meaning = "nested implicit-subject
 E140 = { section = "12.3", status = "active", meaning = "interior NUL in a c\"...\" literal" }
 E141 = { section = "10.5", status = "active", meaning = "yield outside a generator body" }
 E143 = { section = "3.5", status = "active", meaning = "become inside a constructor not in last-evaluated argument position (R456)" }
+E144 = { section = "17.3", status = "active", meaning = "data file outside the data profile: an item other than a literal constant, or an operator, call or name in a value (R827)" }
 E200 = { section = "20.3", status = "active", meaning = "unresolved name, including std items newer than the package's yan version" }
 E201 = { section = "10.1, 14.1", status = "active", meaning = "type mismatch, with the differing parts of the two types marked" }
 E202 = { section = "14.1, 15.3", status = "active", meaning = "wrong number of arguments, or unknown keyword or label argument" }
@@ -68,10 +75,15 @@ E271 = { section = "3.5", status = "active", meaning = "become callee signature 
 E232 = { section = "14.1", status = "active", meaning = "a type that mixes inline variants with other alternatives, or lists None among variants (retargeted by R423)" }
 E272 = { section = "10.4", status = "active", meaning = "error in a stage-0-dependent body, found at an instantiation; carries the instantiation site and stage-0 backtrace" }
 E273 = { section = "3.5", status = "active", meaning = "become outside tail position, inside par, with or a generator, or calling a closure or dyn method" }
+E274 = { section = "11.2", status = "active", meaning = "access outside the region an @access claim declares (R627)" }
+E275 = { section = "3.5", status = "active", meaning = "instantiation depth exceeded: polymorphic recursion past 64 nested instances, reported once per cycle (R772)" }
 E276 = { section = "14.1", status = "active", meaning = "a union lists None twice; write Option[T | None] for a nested optional (R793)" }
 E277 = { section = "18.2", status = "active", meaning = "@expect of a code that an enclosing @deny item denies (R797)" }
 E278 = { section = "18.2", status = "active", meaning = "@deny names a code that is not a W8xx lint (R797)" }
 E233 = { section = "13.1", status = "active", meaning = "str or f-string where a Template is expected (R452)" }
+E280 = { section = "18.9", status = "active", meaning = "one parameter documented both in an Args: section and above the parameter (R846)" }
+E281 = { section = "14.4", status = "active", meaning = "a type written in a parameter doc disagrees with the signature (R849)" }
+E282 = { section = "10.4", status = "active", meaning = "a derived trait (Eq, Ord, Hash, Show, Wire) has a field whose type does not implement it; one diagnostic per field, at the field's type annotation (RFC 0040, R872, R873)" }
 E301 = { section = "7.2", status = "active", meaning = "missing capability (fix inserts uses)" }
 E306 = { section = "7.2", status = "active", meaning = "capability stored, returned or captured by an escaping closure" }
 E307 = { section = "7.3", status = "active", meaning = "dynamic handler for a capability that must be static" }
@@ -90,6 +102,7 @@ E321 = { section = "17.1", status = "active", meaning = "stack bound not provabl
 E322 = { section = "17.1", status = "active", meaning = "task stack bound exceeds the manifest's stack reserve" }
 E323 = { section = "17.1", status = "active", meaning = "lock (Resource, CsMutex, Mutex or RwLock guard) held across a suspension point, on every platform (R395)" }
 E325 = { section = "17.4 (R451)", status = "active", meaning = "Untrusted value passed to a @trusted parameter (R451)" }
+E326 = { section = "7.3", status = "active", meaning = "host handler built or bound outside the platform, a yan_world or an attenuation of a held handle (R672)" }
 E330 = { section = "17.4", status = "active", meaning = "a Wire field type a codec cannot represent, or a variant field named like its sum's tag (R879, R887, RFC 0041)" }
 E331 = { section = "17.4", status = "active", meaning = "malformed item-level @wire: bad names, tag or unknown key or value, or a wire-name collision (R886, R887)" }
 E332 = { section = "20.4", status = "active", meaning = "a manifest edition that is neither \"next\" nor a four-digit year of 2026 or later (R888)" }
@@ -113,6 +126,7 @@ E420 = { section = "3.5", status = "active", meaning = "become argument borrows 
 E421 = { section = "5.4", status = "active", meaning = "drop body that can fail, blocks or uses a capability other than alloc, or Drop on a @linear type" }
 E422 = { section = "4.4", status = "active", meaning = "subscript body does not yield exactly once on every path (R457)" }
 E423 = { section = "4.4", status = "active", meaning = "subscript body fails under the let or inout mode it is used in (R457)" }
+E424 = { section = "17.4", status = "active", meaning = "branch, index, division or early exit depends on a secret-derived value in a @constant_time function (R611)" }
 E501 = { section = "14.1", status = "active", meaning = "index, key or other goal refuted, with the counterexample (R211)" }
 E502 = { section = "14.1", status = "active", meaning = "wildcard on a sum (Yan Agent)" }
 E503 = { section = "14.1, 12.3", status = "active", meaning = "non-exhaustive match, including open C enums and @non_exhaustive types without _" }
@@ -141,6 +155,7 @@ W420 = { section = "8.5", status = "active", meaning = "proof fell back to a run
 E604 = { section = "8.7", status = "active", meaning = "non-ghost code reads a ghost value (R458)" }
 E605 = { section = "8.7", status = "active", meaning = "lemma uses a capability (R458)" }
 H701 = { section = "21.2", status = "active", meaning = "typed hole, with expected type" }
+E618 = { section = "8.4", status = "active", meaning = "cost bound refuted, with a witness input (R610)" }
 E702 = { section = "21.2", status = "active", meaning = "hole in a release build" }
 E705 = { section = "9.2", status = "active", meaning = "par branch reads a binding another branch makes, or a place it writes" }
 E708 = { section = "9.1", status = "active", meaning = "par concurrent under a handler without concurrent forward progress" }
@@ -194,6 +209,8 @@ W840 = { section = "13.1", status = "active", meaning = "string literal content 
 W841 = { section = "17.5", status = "active", meaning = "message missing from a shipped locale; the source text is used (R335)" }
 W843 = { section = "9.6.1", status = "active", meaning = "permanent supervisor child placed on(node), which cannot fail over (R411)" }
 W850 = { section = "9.6.1 (R416 )", status = "active", meaning = "durable operation on a shared capability whose handler declares no idempotency support (R453)" }
+E727 = { section = "9.5", status = "active", meaning = "session operation the endpoint's current state does not allow: a send of another label, a recv or a close (R634, R926)" }
+E728 = { section = "9.5", status = "active", meaning = "session protocol cannot be projected onto a role (R633)" }
 E900 = { section = "5.7", status = "active", meaning = "proof attribute (@forbid(...), R447) violated, per line" }
 E901 = { section = "12", status = "active", meaning = "unsafe outside std or an ffi module" }
 E902 = { section = "12", status = "active", meaning = "extern block outside an ffi module" }
@@ -212,6 +229,12 @@ P003 = { section = "18.3", status = "active", meaning = "patch introduces errors
 P004 = { section = "18.3", status = "active", meaning = "replaced or deleted item missing" }
 P005 = { section = "18.3", status = "active", meaning = "added item already exists" }
 P006 = { section = "18.3", status = "active", meaning = "patch touches a protected target without a human confirmation token" }
+W851 = { section = "8.4", status = "active", meaning = "cost bound neither proven nor refuted, compiled as a counter in checked-all (R610)" }
+W852 = { section = "11.1", status = "active", meaning = "float expression less accurate than a rewrite found for it (R613)" }
+W853 = { section = "8.6", status = "active", meaning = "match arm that can match no value left by earlier arms (R606)" }
+W854 = { section = "15.1", status = "active", meaning = "Yan string with ${...}, which Yan prints literally; fix rewrites it to \\(...) (R663)" }
+W860 = { section = "18.9", status = "active", meaning = "an Args:, Attributes: or Variants: entry names no parameter, field or variant (R848)" }
+W861 = { section = "18.9", status = "active", meaning = "off by default, on in yan.toml: a public parameter, field or variant without a doc (R848)" }
 
 [sections]
 "3.1" = "Kinds"
