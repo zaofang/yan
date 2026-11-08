@@ -694,7 +694,7 @@ fn item(it: &y::Item, std: &dyn Std, marks: &Marks) -> R<Option<Item>> {
         y::ItemKind::Impl(_) => return no("impls"),
         y::ItemKind::Const(_) => return no("constants"),
         y::ItemKind::Test(_) => return no("tests"),
-        y::ItemKind::Extern(_) => return no("extern blocks"),
+        y::ItemKind::Extern(x) => (false, ItemKind::Extern(extern_block(x)?)),
         y::ItemKind::Inst(_) => return no("instances, which only optimized Yan Core has"),
     };
     let traits = marks.root(|m| match m {
@@ -737,6 +737,81 @@ fn item(it: &y::Item, std: &dyn Std, marks: &Marks) -> R<Option<Item>> {
         span: it.span,
         name_span: it.span,
     }))
+}
+
+fn extern_block(x: &y::Extern) -> R<Extern> {
+    let items = x
+        .items
+        .iter()
+        .map(|i| {
+            Ok(match i {
+                y::XItem::Fn {
+                    safe,
+                    name,
+                    params,
+                    variadic,
+                    ret,
+                    uses_none,
+                    nonblocking,
+                    ..
+                } => XItem::Fn {
+                    safe: *safe,
+                    name: name.clone(),
+                    name_span: AT,
+                    params: params
+                        .iter()
+                        .map(|p| {
+                            Ok(match p {
+                                y::XParam::Value { name, ty: t } => XParam {
+                                    name: name.clone(),
+                                    callback: None,
+                                    ty: ty(t)?,
+                                    ty_span: AT,
+                                },
+                                y::XParam::Callback {
+                                    name,
+                                    escaping,
+                                    ty: f,
+                                } => XParam {
+                                    name: name.clone(),
+                                    callback: Some(if *escaping {
+                                        Callback::Escaping
+                                    } else {
+                                        Callback::Scoped
+                                    }),
+                                    ty: ty(&y::Type::Fn(f.clone()))?,
+                                    ty_span: AT,
+                                },
+                            })
+                        })
+                        .collect::<R<_>>()?,
+                    variadic: *variadic,
+                    ret: match ty(ret)? {
+                        Type::None => None,
+                        t => Some((t, AT)),
+                    },
+                    uses_none: *uses_none,
+                    nonblocking: *nonblocking,
+                },
+                y::XItem::Static { safe, name, ty: t } => XItem::Static {
+                    safe: *safe,
+                    name: name.clone(),
+                    ty: ty(t)?,
+                    ty_span: AT,
+                },
+                y::XItem::Type { name, drop } => XItem::Type {
+                    name: name.clone(),
+                    drop: drop.last().cloned().unwrap_or_default(),
+                },
+            })
+        })
+        .collect::<R<_>>()?;
+    Ok(Extern {
+        abi: x.abi.clone(),
+        lib: x.lib.clone(),
+        link: x.link.clone(),
+        items,
+    })
 }
 
 fn field(f: &y::Field) -> R<Field> {
