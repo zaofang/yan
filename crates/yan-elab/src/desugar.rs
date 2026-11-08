@@ -230,6 +230,19 @@ pub(crate) fn fields(m: &j::Module, cx: &mut Cx) {
     }
 }
 
+/// E144: a `package.yag` outside the data profile (17.3, R827).
+pub(crate) fn profile(m: &j::Module, cx: &mut Cx) {
+    let manifest_file = std::path::Path::new(cx.file)
+        .file_name()
+        .is_some_and(|n| n == "package.yag");
+    if !manifest_file {
+        return;
+    }
+    for (span, why) in yan_yag::profile::violations(m) {
+        cx.err("E144", span, "package", why);
+    }
+}
+
 /// E332: a manifest `edition` that is neither `next` nor a year of 2026 or later (20.4).
 pub(crate) fn edition(m: &j::Module, cx: &mut Cx) {
     let Some(args) = package_args(m) else {

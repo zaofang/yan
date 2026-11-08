@@ -6,6 +6,7 @@ mod lexer;
 mod nested;
 mod parser;
 mod printer;
+pub mod profile;
 mod resugar;
 
 pub use grammar::{Expr as GrammarExpr, Grammar, Term as GrammarTerm};
