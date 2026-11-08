@@ -305,6 +305,60 @@ pub unsafe extern "C" fn yan_rt_print_str(s: *const String) {
     unsafe { yan_rt_print(s.as_ptr(), s.len()) }
 }
 
+/// `std.io.read_line`: the next stdin line without its terminator, or null at end of input.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_read_line() -> *mut String {
+    use std::io::BufRead;
+    let mut line = String::new();
+    match std::io::stdin().lock().read_line(&mut line) {
+        Ok(0) | Err(_) => std::ptr::null_mut(),
+        Ok(_) => {
+            let line = line.strip_suffix('\n').unwrap_or(&line);
+            str_block(line.strip_suffix('\r').unwrap_or(line))
+        }
+    }
+}
+
+/// `std.io.read_all`: the rest of stdin.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_read_all() -> *mut String {
+    use std::io::Read;
+    let mut s = String::new();
+    let _ = std::io::stdin().lock().read_to_string(&mut s);
+    str_block(&s)
+}
+
+thread_local! {
+    static FS_REASON: std::cell::RefCell<String> = const { std::cell::RefCell::new(String::new()) };
+}
+
+/// `std.fs.read` on the host: the file's text, or null with the reason kept for [`yan_rt_fs_reason`].
+///
+/// # Safety
+/// `path` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_fs_read(path: *const String) -> *mut String {
+    // SAFETY: the caller's contract.
+    match std::fs::read_to_string(unsafe { &*path }) {
+        Ok(s) => str_block(&s),
+        Err(e) => {
+            let reason = match e.kind() {
+                std::io::ErrorKind::NotFound => "not found".to_owned(),
+                std::io::ErrorKind::PermissionDenied => "permission denied".to_owned(),
+                _ => e.to_string(),
+            };
+            FS_REASON.with(|r| *r.borrow_mut() = reason);
+            std::ptr::null_mut()
+        }
+    }
+}
+
+/// The reason the last `yan_rt_fs_read` on this thread failed.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_fs_reason() -> *mut String {
+    FS_REASON.with(|r| str_block(&r.borrow()))
+}
+
 /// # Safety
 /// `a` and `b` are `Str` blocks.
 #[unsafe(no_mangle)]

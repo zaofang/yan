@@ -6,7 +6,7 @@ Effects are capabilities: second-class values passed as explicit parameters in Y
 
 | Name | Interface | Operations (minimum) |
 | --- | --- | --- |
-| `io` | `Io` | `print`, `eprint`, `read_line`; `split(n)` (4.3) |
+| `io` | `Io` | `print`, `eprint`, `read_line`, `read_all`; `split(n)` (4.3) |
 | `fs` | `Fs` | `read`, `write`, `append`, `list_dir`, `exists`, `remove`; completion-shaped (9.7); attenuated by `fs.only` and `fs.sub` (17.6, R674) |
 | `tmp` | `Tmp` | a scoped scratch directory removed at scope exit |
 | `net` | `Net` | `tcp_connect`, `tcp_listen`, `udp_bind`, `resolve`; completion-shaped with deadlines (9.7); attenuated by `net.only` (17.6); the TCP slice and `mem_net` are R789 to R791 |

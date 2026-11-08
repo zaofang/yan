@@ -67,9 +67,13 @@ macro_rules! fallible {
 }
 
 pub(super) static BINDS: &[(yan_std::registry::Id, Bind)] = &[
-    fallible!(STD_FS_READ, |a| {
-        [h, Str(path)] => fs_read(h, path),
-    }),
+    (
+        STD_FS_READ,
+        Bind::CapFallible(|it, a| match a {
+            [h, Str(path)] => Ok(fs_read(h, path, it.test)),
+            _ => bad_args(STD_FS_READ),
+        }),
+    ),
     (
         STD_FS_ONLY,
         Bind::Plain(|a| match a {
@@ -227,7 +231,7 @@ fn lexical(path: &str) -> Option<Vec<&str>> {
 
 /// `fs.only` and `fs.sub` resolve paths beneath their grants, never above them (R674). A
 /// `fake_fs` handler is its file map.
-fn fs_read(h: &Value, path: &str) -> Result<Value, Value> {
+fn fs_read(h: &Value, path: &str, test: bool) -> Result<Value, Value> {
     let denied = || fs_error(path, "not granted");
     match h {
         Dict(files) => files
@@ -241,7 +245,7 @@ fn fs_read(h: &Value, path: &str) -> Result<Value, Value> {
             let rel = lexical(path).filter(|_| !path.starts_with('/'));
             let Some(rel) = rel else { return Err(denied()) };
             let joined = format!("{}/{}", dir.trim_end_matches('/'), rel.join("/"));
-            fs_read(&fields[0].1, &joined)
+            fs_read(&fields[0].1, &joined, test)
         }
         Data { name, fields } if name == "OnlyFs" => {
             let List(grants) = &fields[1].1 else {
@@ -261,8 +265,18 @@ fn fs_read(h: &Value, path: &str) -> Result<Value, Value> {
                 return Err(denied());
             }
             let resolved = format!("{}{}", if abs { "/" } else { "" }, p.join("/"));
-            fs_read(&fields[0].1, &resolved)
+            fs_read(&fields[0].1, &resolved, test)
         }
+        Cap(_) if !test => std::fs::read_to_string(path)
+            .map(|s| Str(s.into()))
+            .map_err(|e| {
+                let reason = match e.kind() {
+                    std::io::ErrorKind::NotFound => "not found".to_owned(),
+                    std::io::ErrorKind::PermissionDenied => "permission denied".to_owned(),
+                    _ => e.to_string(),
+                };
+                fs_error(path, &reason)
+            }),
         _ => Err(fs_error(path, "no host fs handler")),
     }
 }

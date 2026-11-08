@@ -672,6 +672,10 @@ fn signature(f: &Func, m: &impl Module) -> Signature {
 
 const RT: &[RtFn] = &[
     RtFn::Print,
+    RtFn::ReadLine,
+    RtFn::ReadAll,
+    RtFn::FsRead,
+    RtFn::FsReason,
     RtFn::Concat,
     RtFn::ShowI64,
     RtFn::ShowU64,
@@ -727,6 +731,30 @@ fn rt_fn(
             abi::yan_rt_print_str as *const u8,
             &[I64],
             None,
+        ),
+        RtFn::ReadLine => (
+            "yan_rt_read_line",
+            abi::yan_rt_read_line as *const u8,
+            &[],
+            Some(I64),
+        ),
+        RtFn::ReadAll => (
+            "yan_rt_read_all",
+            abi::yan_rt_read_all as *const u8,
+            &[],
+            Some(I64),
+        ),
+        RtFn::FsRead => (
+            "yan_rt_fs_read",
+            abi::yan_rt_fs_read as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::FsReason => (
+            "yan_rt_fs_reason",
+            abi::yan_rt_fs_reason as *const u8,
+            &[],
+            Some(I64),
         ),
         RtFn::Concat => (
             "yan_rt_concat",

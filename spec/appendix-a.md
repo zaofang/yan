@@ -279,6 +279,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R930 | Lenient reader: N44 loop `else`, N45 nested comprehension, N46 chained assignment, N47 starred unpacking, N48 bare annotation (R930) | 14.4, 25 |
 | R931 | `yan import --python` applies the Python-side N-codes and lists them as notes; constructs without one are errors naming the line and the Yan Agent form (R931) | 17.8 |
 | R932 | N49: the lenient reader accepts positional arguments where E210 is the only fault and reads them as keywords from the first one on; `--strict` and Yan keep E210 (RFC 0049) | 14.1, 14.4, 25 |
+| R934 | `io.read_all() -> str` reads the rest of standard input; `io.read_line` strips `\n` or `\r\n`; under the default host handlers `fs.read` reads the real file, failing with `FsError` reason `not found` or `permission denied` | 7.1, 17.3 |
 
 <!-- /rows -->
 

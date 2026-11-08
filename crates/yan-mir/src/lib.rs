@@ -140,6 +140,14 @@ pub enum Inst {
 pub enum RtFn {
     /// `(Str)`
     Print,
+    /// `() -> Str`, a null pointer at end of input
+    ReadLine,
+    /// `() -> Str`
+    ReadAll,
+    /// `(Str) -> Str`, a null pointer on failure
+    FsRead,
+    /// `() -> Str`, why the last `FsRead` failed
+    FsReason,
     /// `(Str, Str) -> Str`
     Concat,
     /// `(i64) -> Str`
@@ -228,6 +236,10 @@ impl RtFn {
         matches!(
             self,
             RtFn::Concat
+                | RtFn::ReadLine
+                | RtFn::ReadAll
+                | RtFn::FsRead
+                | RtFn::FsReason
                 | RtFn::ShowI64
                 | RtFn::ShowU64
                 | RtFn::ShowF64
