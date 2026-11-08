@@ -21,7 +21,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
-use yan_rt::{abi, chan, dq, map, pq, sched, slice};
+use yan_rt::{abi, chan, dq, map, pq, sched, select, slice};
 
 type R<T> = Result<T, String>;
 
@@ -700,6 +700,7 @@ const RT: &[RtFn] = &[
     RtFn::HeapSort,
     RtFn::StrSlice,
     RtFn::ListSlice,
+    RtFn::Select,
     RtFn::DqLimit,
     RtFn::DqMaxlen,
     RtFn::DqPush,
@@ -920,6 +921,12 @@ fn rt_fn(
             "yan_rt_list_slice",
             slice::yan_rt_list_slice as *const u8,
             &[I64, I64, I64, I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::Select => (
+            "yan_rt_select",
+            select::yan_rt_select as *const u8,
+            &[I64, I64, I64],
             Some(I64),
         ),
         RtFn::DqLimit => (

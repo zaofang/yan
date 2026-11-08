@@ -214,6 +214,9 @@ pub enum RtFn {
     StrSlice,
     /// `(List, 3 x (tag, value)) -> List`: the elements picked, shallow-copied.
     ListSlice,
+    /// `(i64 kind, i64 n, i64 r) -> List` of one-word elements: the number of selections, then
+    /// each selection's `r` indices (`yan_rt::select`).
+    Select,
     /// `(List, i64)`: set a deque's `maxlen`.
     DqLimit,
     /// `(List) -> i64`: a deque's `maxlen`, or -1.
@@ -308,6 +311,7 @@ impl RtFn {
                 | RtFn::ListNew
                 | RtFn::ListPush
                 | RtFn::ListCopy
+                | RtFn::Select
                 | RtFn::MapNew
                 | RtFn::MapPush
                 | RtFn::MapCopy
