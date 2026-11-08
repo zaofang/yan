@@ -1,0 +1,6 @@
+spec = "19.1"
+rows = "R891"
+note = "a Package field outside the manifest table is E018; the span is the argument"
+command = ["check"]
+code = "E018"
+at = "package.yag:8:5"

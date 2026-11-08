@@ -1,0 +1,5 @@
+spec = "19.1"
+rows = "R896"
+note = "under --locked, a lock that does not pin a manifest requirement is E020"
+command = ["check", "--locked"]
+code = "E020"

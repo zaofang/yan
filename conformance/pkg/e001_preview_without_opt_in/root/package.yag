@@ -4,4 +4,5 @@ package: Package = Package(
     yan="1.x",
     platform="cli",
     capabilities=["io"],
+    edition="next",
 )
