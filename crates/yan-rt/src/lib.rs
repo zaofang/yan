@@ -11,6 +11,8 @@ pub mod crypto_rand;
 pub mod csv;
 #[allow(unsafe_code)]
 pub mod csvslots;
+#[allow(unsafe_code)]
+pub mod dq;
 pub mod fmt;
 #[allow(unsafe_code)]
 pub mod heap;
@@ -29,6 +31,8 @@ pub mod rand;
 pub mod regex;
 #[allow(unsafe_code)]
 pub mod sched;
+#[allow(unsafe_code)]
+pub mod slice;
 pub mod sort;
 pub mod text;
 pub mod wire;

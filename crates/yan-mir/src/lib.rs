@@ -206,6 +206,28 @@ pub enum RtFn {
     HeapPushPop,
     /// `(List, schema)`: sort ascending in place.
     HeapSort,
+    /// `(Str, 3 x (tag, value)) -> Str`: the chars picked by a slice (N50).
+    StrSlice,
+    /// `(List, 3 x (tag, value)) -> List`: the elements picked, shallow-copied.
+    ListSlice,
+    /// `(List, i64)`: set a deque's `maxlen`.
+    DqLimit,
+    /// `(List) -> i64`: a deque's `maxlen`, or -1.
+    DqMaxlen,
+    /// `(List, i64 front, Ptr x, Ptr out) -> i64`: push `x`; 1 with the element pushed out in `out`.
+    DqPush,
+    /// `(List, i64 front, Ptr out) -> i64`: 1 with the end element in `out`, or 0.
+    DqPop,
+    /// `(List, List) -> List`: append the second (consumed); the elements pushed out.
+    DqExtend,
+    /// `(List, i64)`: rotate right.
+    DqRotate,
+    /// `(List) -> List`: every element moved to a new list.
+    DqTake,
+    /// `(List, schema, Ptr x) -> i64`: 1 when `x` is an element.
+    DqContains,
+    /// `(List) -> Str`: `, maxlen=N`, or empty.
+    DqSuffix,
     /// `(Map) -> Map`, a copy of the slots.
     MapCopy,
     /// `(Map)`: free the block, not its entries.

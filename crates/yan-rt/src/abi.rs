@@ -225,9 +225,11 @@ pub fn panic_message(kind: &str) -> &'static str {
 pub struct List {
     pub(crate) words: usize,
     pub(crate) data: Vec<u64>,
+    /// A `deque`'s `maxlen`, or -1 (`yan_rt::dq`).
+    pub(crate) limit: i64,
 }
 
-fn leak<T>(x: T) -> *mut T {
+pub(crate) fn leak<T>(x: T) -> *mut T {
     crate::heap::block_taken();
     Box::into_raw(Box::new(x))
 }
@@ -449,6 +451,7 @@ pub extern "C" fn yan_rt_list_new(words: u64) -> *mut List {
     leak(List {
         words: words as usize,
         data: Vec::new(),
+        limit: -1,
     })
 }
 
@@ -501,6 +504,7 @@ pub unsafe extern "C" fn yan_rt_list_copy(l: *const List) -> *mut List {
     leak(List {
         words: l.words,
         data: l.data.clone(),
+        limit: l.limit,
     })
 }
 
@@ -558,6 +562,7 @@ unsafe fn store_slots(out: *mut u64, slots: Vec<crate::jsonslots::Slot>) {
                 Slot::List(words, xs) => leak(List {
                     words,
                     data: flat(xs),
+                    limit: -1,
                 }) as u64,
                 Slot::Map {
                     schema,
