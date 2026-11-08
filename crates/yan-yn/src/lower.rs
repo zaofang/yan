@@ -208,8 +208,10 @@ impl Lower<'_> {
                     nonblocking,
                     span,
                 } => {
-                    if !attrs.is_empty() || !from.is_empty() {
-                        return unsupported("attributes and `from` on extern items");
+                    if !from.is_empty() || attrs.iter().any(|a| a.name != "access") {
+                        return unsupported(
+                            "attributes other than `@access` and `from` on extern items",
+                        );
                     }
                     let mut ps = Vec::new();
                     let mut variadic = false;
@@ -228,6 +230,7 @@ impl Lower<'_> {
                         }
                     }
                     h::XItem::Fn {
+                        attrs: attrs.iter().map(|a| self.attr(a)).collect::<R<_>>()?,
                         safe: *safe,
                         name: name.clone(),
                         name_span: self.find(*span, name),

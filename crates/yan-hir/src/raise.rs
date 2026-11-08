@@ -16,7 +16,7 @@ use yan_surface::{Attach, Inserted, Mark, Trivia, TriviaTable};
 
 use crate::*;
 
-const AT: Span = Span {
+pub(crate) const AT: Span = Span {
     line: 0,
     col: 0,
     end_line: 0,
@@ -27,9 +27,9 @@ const AT: Span = Span {
 #[derive(Debug, PartialEq)]
 pub struct Unraised(pub String);
 
-type R<T> = Result<T, Unraised>;
+pub(crate) type R<T> = Result<T, Unraised>;
 
-fn no<T>(what: impl Into<String>) -> R<T> {
+pub(crate) fn no<T>(what: impl Into<String>) -> R<T> {
     Err(Unraised(what.into()))
 }
 
@@ -746,6 +746,7 @@ fn extern_block(x: &y::Extern) -> R<Extern> {
         .map(|i| {
             Ok(match i {
                 y::XItem::Fn {
+                    attrs,
                     safe,
                     name,
                     params,
@@ -755,6 +756,15 @@ fn extern_block(x: &y::Extern) -> R<Extern> {
                     nonblocking,
                     ..
                 } => XItem::Fn {
+                    attrs: attrs
+                        .iter()
+                        .map(|a| {
+                            Ok(Decorator {
+                                path: vec![a.name.clone()],
+                                args: a.args.as_deref().map(crate::claim::args).transpose()?,
+                            })
+                        })
+                        .collect::<R<_>>()?,
                     safe: *safe,
                     name: name.clone(),
                     name_span: AT,

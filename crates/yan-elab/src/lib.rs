@@ -4,6 +4,7 @@
 //!
 //! The Yan Core tree keeps Yan Agent spans, so the Yan Core checker reports at Yan Agent positions.
 
+mod access;
 mod accuracy;
 mod bounds;
 mod cli;
