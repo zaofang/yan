@@ -97,19 +97,17 @@ pub fn check(
         }
     }
     if offline {
+        let store = crate::registry::configured_store(root);
+        let roots = crate::store::roots(root, store.as_deref());
         for p in &records {
             let Some(digest) = p.get("digest").and_then(toml::Value::as_str) else {
                 continue;
             };
-            let file = format!("{}.zip", digest.trim_start_matches("sha256:"));
-            if !["vendor", ".yan/store"]
-                .iter()
-                .any(|d| root.join(d).join(&file).exists())
-            {
+            if crate::store::source(&roots, digest)?.is_none() {
                 return Err(fail(
                     "E020",
                     format!(
-                        "offline: the archive `{file}` is in neither `.yan/store` nor `vendor`"
+                        "offline: no archive for `{digest}` in the workspace store, `vendor` or the user store"
                     ),
                 ));
             }
