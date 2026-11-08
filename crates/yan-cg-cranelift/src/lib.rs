@@ -21,7 +21,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
-use yan_rt::{abi, chan, map, sched};
+use yan_rt::{abi, chan, map, pq, sched};
 
 type R<T> = Result<T, String>;
 
@@ -693,6 +693,11 @@ const RT: &[RtFn] = &[
     RtFn::ListLen,
     RtFn::ListAt,
     RtFn::ListCopy,
+    RtFn::HeapUp,
+    RtFn::HeapFix,
+    RtFn::HeapPop,
+    RtFn::HeapPushPop,
+    RtFn::HeapSort,
     RtFn::MapNew,
     RtFn::MapFind,
     RtFn::MapIndex,
@@ -863,6 +868,36 @@ fn rt_fn(
             abi::yan_rt_list_at as *const u8,
             &[I64, I64],
             Some(I64),
+        ),
+        RtFn::HeapUp => (
+            "yan_rt_heap_up",
+            pq::yan_rt_heap_up as *const u8,
+            &[I64, I64],
+            None,
+        ),
+        RtFn::HeapFix => (
+            "yan_rt_heap_fix",
+            pq::yan_rt_heap_fix as *const u8,
+            &[I64, I64],
+            None,
+        ),
+        RtFn::HeapPop => (
+            "yan_rt_heap_pop",
+            pq::yan_rt_heap_pop as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::HeapPushPop => (
+            "yan_rt_heap_pushpop",
+            pq::yan_rt_heap_pushpop as *const u8,
+            &[I64, I64, I64, I64],
+            None,
+        ),
+        RtFn::HeapSort => (
+            "yan_rt_heap_sort",
+            pq::yan_rt_heap_sort as *const u8,
+            &[I64, I64],
+            None,
         ),
         RtFn::MapNew => (
             "yan_rt_map_new",

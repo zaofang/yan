@@ -10,7 +10,7 @@ use std::collections::HashMap;
 /// `i<bits>`, `u<bits>`, `f`, `b`, `n` (unit), `s` (`Str`), `(..)` tuple,
 /// `{name|..}` record, `<name|..;..>` sum (a tag slot, then every variant's fields).
 #[derive(Debug, Clone, PartialEq)]
-enum Key {
+pub(crate) enum Key {
     Int(u32, bool),
     Float,
     Bool,
@@ -46,6 +46,67 @@ impl Key {
             Key::Tuple(_) => "tuple",
             Key::Rec(..) | Key::Sum(_) => "record",
         }
+    }
+
+    /// Order the elements `a` and `b` of equal layout from slot `*at`, as `Ord` does.
+    ///
+    /// # Safety
+    /// Every `Str` slot holds a live `Str` block.
+    pub(crate) unsafe fn cmp(&self, a: &[u64], b: &[u64], at: &mut usize) -> std::cmp::Ordering {
+        use std::cmp::Ordering::Equal;
+        let (x, y) = (a[*at], b[*at]);
+        let ord = match self {
+            Key::Int(bits, signed) => {
+                let sh = 64 - bits;
+                let n = |v: u64| {
+                    if *signed {
+                        i128::from(((v << sh) as i64) >> sh)
+                    } else {
+                        i128::from((v << sh) >> sh)
+                    }
+                };
+                n(x).cmp(&n(y))
+            }
+            Key::Float => f64::from_bits(x)
+                .partial_cmp(&f64::from_bits(y))
+                .unwrap_or(Equal),
+            Key::Bool => (x as u8 != 0).cmp(&(y as u8 != 0)),
+            Key::Unit => Equal,
+            // SAFETY: the caller's contract.
+            Key::Str => unsafe { (*(x as *const String)).cmp(&*(y as *const String)) },
+            Key::Tuple(ks) | Key::Rec(_, ks) => {
+                for k in ks {
+                    // SAFETY: forwarded.
+                    let o = unsafe { k.cmp(a, b, at) };
+                    if o != Equal {
+                        return o;
+                    }
+                }
+                return Equal;
+            }
+            Key::Sum(vs) => {
+                if x != y {
+                    return x.cmp(&y);
+                }
+                *at += 1;
+                for (i, (_, ks)) in vs.iter().enumerate() {
+                    if i as u64 == x {
+                        for k in ks {
+                            // SAFETY: forwarded.
+                            let o = unsafe { k.cmp(a, b, at) };
+                            if o != Equal {
+                                return o;
+                            }
+                        }
+                    } else {
+                        *at += ks.iter().map(Key::width).sum::<usize>();
+                    }
+                }
+                return Equal;
+            }
+        };
+        *at += 1;
+        ord
     }
 
     /// Encode the slots `w[*at..]`, advancing `at` past them.
@@ -105,7 +166,7 @@ impl Key {
     }
 }
 
-fn parse(s: &mut &str) -> Key {
+pub(crate) fn parse(s: &mut &str) -> Key {
     let c = s.as_bytes()[0];
     *s = &s[1..];
     let digits = |s: &mut &str| {
