@@ -7,8 +7,8 @@ use yan_diag::Diagnostic;
 
 use crate::lock::{fail, parts};
 
-/// `min_release_age`'s default (19.4).
-const COOL_OFF: i64 = 7 * 86400;
+/// `min_release_age`'s default in days (19.4).
+const DEFAULT_AGE_DAYS: i64 = 7;
 
 pub struct Info {
     pub version: String,
@@ -22,38 +22,65 @@ pub struct Info {
 pub struct Index {
     pub source: String,
     dir: PathBuf,
+    cool_off: i64,
 }
 
-/// Namespace to index, from the workspace's `.yan/config.yag` and then the user's.
-pub struct Registries(Vec<(String, String, PathBuf)>);
+/// Namespace to index and the cool-off, from the workspace's `.yan/config.yag` and then the
+/// user's (R943).
+pub struct Registries {
+    entries: Vec<(String, String, PathBuf)>,
+    min_release_age: i64,
+}
 
-fn read(base: &Path) -> Vec<(String, String, PathBuf)> {
-    let Ok(src) = std::fs::read_to_string(base.join(".yan/config.yag")) else {
-        return Vec::new();
+fn read(base: &Path) -> Result<yan_elab::Config, Box<Diagnostic>> {
+    let path = base.join(".yan/config.yag");
+    let Ok(src) = std::fs::read_to_string(&path) else {
+        return Ok(Default::default());
     };
     let (m, _) = yan_yag::parse("config.yag", &src, false);
-    m.map(|m| {
-        yan_elab::registries(&m)
-            .into_iter()
-            .map(|(ns, to)| (ns, to.clone(), base.join(to)))
-            .collect()
-    })
-    .unwrap_or_default()
+    let config = m.map(|m| yan_elab::config(&m)).unwrap_or_default();
+    match config.unknown.first() {
+        Some(n) => Err(fail(
+            "E018",
+            format!("`{n}` is not a `Config` field in `{}`", path.display()),
+        )),
+        None => Ok(config),
+    }
 }
 
 impl Registries {
-    pub fn load(root: &Path) -> Self {
-        let mut all = read(root);
-        if let Some(home) = std::env::var_os("HOME") {
-            all.extend(read(Path::new(&home)));
-        }
-        Self(all)
+    pub fn load(root: &Path) -> Result<Self, Box<Diagnostic>> {
+        let workspace = read(root)?;
+        let user = match std::env::var_os("HOME") {
+            Some(home) => read(Path::new(&home))?,
+            None => Default::default(),
+        };
+        let entries = [
+            (root, &workspace),
+            (
+                Path::new(&std::env::var_os("HOME").unwrap_or_default()),
+                &user,
+            ),
+        ]
+        .into_iter()
+        .flat_map(|(base, c)| {
+            c.registries
+                .iter()
+                .map(|(ns, to)| (ns.clone(), to.clone(), base.join(to)))
+        })
+        .collect();
+        // A workspace value below the user's (or the default) is ignored.
+        let floor = user.min_release_age.unwrap_or(DEFAULT_AGE_DAYS);
+        Ok(Self {
+            entries,
+            min_release_age: floor.max(workspace.min_release_age.unwrap_or(0)),
+        })
     }
 
     /// The index of `name`'s namespace. A mapped namespace never falls back (19.4).
     pub fn index(&self, name: &str) -> Result<Index, Box<Diagnostic>> {
         let ns = name.split('/').next().unwrap_or(name);
-        let (_, source, dir) = self.0.iter().find(|(n, ..)| n == ns).ok_or_else(|| {
+        let (_, source, dir) = self.entries.iter().find(|(n, ..)| n == ns).ok_or_else(|| {
             fail(
                 "E021",
                 format!("namespace `{ns}` has no `registries` mapping in `.yan/config.yag`"),
@@ -68,6 +95,7 @@ impl Registries {
         Ok(Index {
             source: source.clone(),
             dir: dir.clone(),
+            cool_off: self.min_release_age * 86400,
         })
     }
 }
@@ -185,7 +213,7 @@ pub fn newest(index: &Index, name: &str, want: &str, exact: bool, now: i64) -> O
         .iter()
         .filter(|v| satisfies(v, want) && !v.contains('-'))
         .filter_map(|v| index.info(name, v))
-        .filter(|i| !i.yanked && (exact || i.published + COOL_OFF <= now))
+        .filter(|i| !i.yanked && (exact || i.published + index.cool_off <= now))
         .max_by_key(|i| parts(&i.version))
 }
 

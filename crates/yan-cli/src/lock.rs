@@ -230,7 +230,7 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
         })?;
         members.push((dir.clone(), m));
     }
-    let registries = Registries::load(root);
+    let registries = Registries::load(root)?;
     let previous = records(root);
     let pinned = |key: &Key| {
         previous.iter().find_map(|p| {

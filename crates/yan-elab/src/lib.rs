@@ -37,7 +37,7 @@ use yan_diag::{Applicability, Diagnostic, Span};
 use yan_hir as j;
 use yan_surface::{Attach, Mark, Trivia, TriviaTable};
 
-pub use config::registries;
+pub use config::{Config, config};
 pub use desugar::{Manifest, manifest};
 pub use stdlib::{StdInfo, StdModule, install_std};
 pub use ty::Ty;
