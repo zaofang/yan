@@ -1,5 +1,16 @@
 # Working on Yan
 
+## Order of work
+
+1. Get it working, 2. get it right, 3. make it fast. Never skip a stage and never start the next while
+the previous is red. A PR states which stage it claims.
+
+- Working: runs on interpreter and native; both outputs attached.
+- Right: conformance case proposed via `conform/*`, differential run clean, spec rows and code agree.
+- Fast: callgrind figure against the committed baseline, recorded in the PR.
+
+Laws and gates: [docs/development-laws.md](docs/development-laws.md).
+
 ## Changing the spec
 
 The spec is `spec/` (one file per top-level section). It changes only for rows the lead accepted, in a
@@ -18,7 +29,7 @@ Never hand-edit the block between the `rows:` markers in `spec/appendix-a.md`.
 ## Paths
 
 Agents never edit `tests/` or `conformance/`; propose changes in a separate PR. CI's path guard
-(`tools/guard.py`) enforces this.
+(`tools/guard.py`) enforces this for every PR whose author is not the lead, whatever the branch name.
 
 ## Practices
 
@@ -33,3 +44,12 @@ Agents never edit `tests/` or `conformance/`; propose changes in a separate PR. 
 9. A PR that leaves a known hole files it as a numbered item in a gap issue (as #690, #709).
 10. Mac threads get the lead's standing merge approval message attached by id.
 11. When the queue ends, refresh the progress report (#351) and bench baseline (#350).
+12. One fact, one representation: ownership, moves, spans and newtype identity are computed once and
+    shared. A fix that adds a second representation is rejected.
+13. Fail loud: an unsupported construct gets a diagnostic or a real implementation, never a silent
+    fallback or a bare generic error.
+14. Every figure in a report or README carries a commit and a date; progress and coverage figures are
+    generated, not typed. Stale means older than 7 days.
+15. A frozen name changes only by RFC and a lead card. Retired names do not appear outside the archive.
+16. Spec debt (rows with no implementation or case) is reported in each progress report and must not grow
+    across two consecutive reports without a lead card.

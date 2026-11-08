@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-08 | [Yan development laws and phased plans](https://claude.ai/artifact/RaRsJ6bHuLRe1MQyNet4qq) | Accepted by the lead 2026-11-08 ("Apply"); laws DL1 to DL16 in [docs/development-laws.md](../development-laws.md), practices in CLAUDE.md, gate issues under the parent tracking issue; no rows |
 | 2026-11-07 | [R567 failure-mix study (T18)](https://claude.ai/artifact/1tUqnYo9Mds7wDV2JBruKs) | Study only; failures of rerun #289 grouped (Sonnet 13, Haiku 32 first-reply losses; 10 Yan-only wrong results with no diagnostic, 7 repaired rejections, 2 unrepaired); proposals D1 to D5: type empty `ex` lists from the parameter, accept positional arguments in the lenient reader, close residual wrapped rejections, three-seed repeat with a paired sign test, one primer line; no syntax row supported; D1 to D5 open; no rows |
 | 2026-11-07 | [R567 three-seed repeat (T18 D4, #698)](../reports/2026-11-07-r567-three-seed-repeat.md) | Seeds 2 to 4, Sonnet and Haiku; paired first-reply sign test: Yan Agent loses 2 to 32 (Sonnet) and 10 to 38 (Haiku) discordant pairs, p < 0.001 pooled; gap 10 points vs Python spread 3 to 6; not noise; no rows |
 | 2026-11-06 | [Package manager crate (`yan-pkg`) design](../studies/package-manager-crate.md) | Design for #481; open choices A to D; no rows yet |
