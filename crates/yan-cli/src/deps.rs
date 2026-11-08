@@ -697,4 +697,20 @@ mod tests {
         manifest("\"@a/b 1\": \"https://x.org/b.git\"");
         assert_eq!(lock::write(&dir).unwrap_err().code, "E017");
     }
+
+    #[test]
+    fn the_lock_marks_each_package_with_the_subgraphs_that_use_it() {
+        let dir = world("kinds");
+        std::fs::write(
+            dir.join("package.yag"),
+            "package: Package = Package(name=\"@a/app\", version=\"0.1.0\", dependencies=[\"@a/b 1.0.0\"], dev_dependencies=[\"@a/c 1.0.0\"])\n",
+        )
+        .unwrap();
+        lock::write(&dir).unwrap();
+        let text = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
+        // c requires b, so b is in both subgraphs and c only in dev; one version of b.
+        assert!(text.contains("name = \"@a/b\"\nversion = \"1.2.0\""));
+        assert!(text.contains("kinds = [\"dep\", \"dev\"]"));
+        assert!(text.contains("name = \"@a/c\"") && text.matches("kinds = [\"dev\"]").count() == 1);
+    }
 }

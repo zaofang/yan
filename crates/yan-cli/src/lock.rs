@@ -167,6 +167,8 @@ struct Locked {
     rebuilds: Vec<String>,
     /// The directory of an override, relative to the root (R950).
     path: Option<String>,
+    /// The subgraphs that use the package: `dep`, `dev`, `tool` (R951).
+    kinds: Vec<&'static str>,
 }
 
 type Key = (String, String);
@@ -321,6 +323,7 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
                 approvals: Vec::new(),
                 rebuilds: Vec::new(),
                 path: None,
+                kinds: Vec::new(),
             });
         }
     }
@@ -366,6 +369,7 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
             "the requirements do not settle on one set of versions".into(),
         ));
     }
+    let kinds = subgraph_kinds(&top, &members, &chosen);
     for (key, (source, info)) in chosen {
         // Approvals and attestations belong to a version; `yan lock` keeps those it already has.
         let kept = |field: &str| {
@@ -398,6 +402,7 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
             name: key.0.clone(),
             version: info.version,
             source,
+            kinds: kinds.get(&key).cloned().unwrap_or_default(),
             path: overrides.get(&key).map(|(p, _)| p.clone()),
             digest: Some(info.digest).filter(|d| !d.is_empty()),
             publisher: Some(info.publisher).filter(|p| !p.is_empty()),
@@ -406,6 +411,44 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
     }
     out.sort_by(|a, b| a.key.cmp(&b.key));
     Ok(out)
+}
+
+/// The subgraphs each chosen package is reachable from: `dependencies` (`dep`), `dev_dependencies`
+/// (`dev`) and `tools` (`tool`), from the root and the members (R951).
+fn subgraph_kinds(
+    top: &yan_elab::Manifest,
+    members: &[(String, yan_elab::Manifest)],
+    chosen: &BTreeMap<Key, (String, Info)>,
+) -> BTreeMap<Key, Vec<&'static str>> {
+    let mut out: BTreeMap<Key, Vec<&'static str>> = BTreeMap::new();
+    let manifests: Vec<&yan_elab::Manifest> = std::iter::once(top)
+        .chain(members.iter().map(|(_, m)| m))
+        .collect();
+    type Roots = fn(&yan_elab::Manifest) -> &Vec<String>;
+    let kinds: [(&'static str, Roots); 3] = [
+        ("dep", |m| &m.dependencies),
+        ("dev", |m| &m.dev_dependencies),
+        ("tool", |m| &m.tools),
+    ];
+    for (kind, roots) in kinds {
+        let mut todo: Vec<Key> = manifests
+            .iter()
+            .flat_map(|m| roots(m))
+            .filter_map(|r| requirement(r))
+            .collect();
+        let mut seen: Vec<Key> = Vec::new();
+        while let Some(key) = todo.pop() {
+            if seen.contains(&key) {
+                continue;
+            }
+            if let Some((_, info)) = chosen.get(&key) {
+                todo.extend(info.requirements.iter().filter_map(|r| requirement(r)));
+                out.entry(key.clone()).or_default().push(kind);
+            }
+            seen.push(key);
+        }
+    }
+    out
 }
 
 /// The root's `overrides` (R950): `"@org/name major": "path/to/dir"`, each replacing that
@@ -498,6 +541,10 @@ fn render(packages: &[Locked]) -> String {
                 let items: Vec<_> = values.iter().map(|v| quoted(v)).collect();
                 text += &format!("{field} = [{}]\n", items.join(", "));
             }
+        }
+        if !p.kinds.is_empty() {
+            let items: Vec<_> = p.kinds.iter().map(|k| quoted(k)).collect();
+            text += &format!("kinds = [{}]\n", items.join(", "));
         }
     }
     text
