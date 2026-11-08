@@ -5,4 +5,5 @@ package: Package = Package(
     platform="cli",
     capabilities=["io"],
     preview=["evented"],
+    edition="next",
 )

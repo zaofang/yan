@@ -1,0 +1,4 @@
+spec = "19.1"
+rows = "R896"
+note = "a package without dependencies needs no yan.lock under --locked"
+command = ["check", "--locked"]

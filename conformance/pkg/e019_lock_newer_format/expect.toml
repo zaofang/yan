@@ -1,0 +1,5 @@
+spec = "19.1"
+rows = "R893"
+note = "a lock whose format is newer than the toolchain reads is E019, with or without --locked"
+command = ["check"]
+code = "E019"
