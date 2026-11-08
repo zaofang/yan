@@ -158,6 +158,10 @@ pub struct Manifest {
     pub members: Vec<String>,
     /// The requirements of `dependencies` alone, the ones dependents inherit (R636).
     pub dependencies: Vec<String>,
+    /// The requirements of `dev_dependencies` alone (R951).
+    pub dev_dependencies: Vec<String>,
+    /// The requirements of `tools` alone (R951).
+    pub tools: Vec<String>,
     /// Whether `overrides` names any package (R636).
     pub has_overrides: bool,
     /// The `overrides` entries as written: key (`@org/name major`) and value (a path, R950).
@@ -340,6 +344,8 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
         version: string("version"),
         members: strs("members").unwrap_or_default(),
         dependencies: reqs("dependencies"),
+        dev_dependencies: reqs("dev_dependencies"),
+        tools: reqs("tools"),
         has_overrides: !reqs("overrides").is_empty(),
         overrides: pairs("overrides"),
         requirements: ["dependencies", "dev_dependencies", "tools"]
