@@ -1444,3 +1444,38 @@ def gap(x: float) -> float:
     assert_eq!(d.len(), 1, "{d:?}");
     assert_eq!(d, accuracy_diags(src));
 }
+
+#[test]
+fn raise_restores_extern_blocks() {
+    let src = "unsafe extern \"C\" lib sort link \"sort\"\n\
+               \x20 safe qsort_view(n: int, cmp: scoped (int, int) -> int)\n\
+               \x20 unsafe free_greeting(p: int)\n\n\
+               main() = 0\n";
+    let (ast, d) = yan_yn::parse("t.yn", src);
+    assert!(d.is_empty(), "{d:?}");
+    let (h, d) = yan_yn::lower("t.yn", src, &ast).expect("lowers");
+    assert!(d.is_empty(), "{d:?}");
+    // E902 (outside an ffi module) does not stop the block being elaborated.
+    let (m, _) = elaborate("t.yn", src, &h, Options::default()).expect("supported");
+    let raised = yan_hir::raise::raise(&m, &yan_surface::TriviaTable::default(), &StdInfo)
+        .expect("raises")
+        .module;
+    let x = raised
+        .items
+        .iter()
+        .find_map(|i| match &i.kind {
+            yan_hir::ItemKind::Extern(x) => Some(x),
+            _ => None,
+        })
+        .expect("extern block");
+    assert_eq!(
+        (x.abi.as_str(), x.lib.as_str(), x.link.as_deref()),
+        ("C", "sort", Some("sort"))
+    );
+    assert_eq!(x.items.len(), 2);
+    let yan_hir::XItem::Fn { safe, params, .. } = &x.items[0] else {
+        panic!("fn")
+    };
+    assert!(*safe);
+    assert_eq!(params[1].callback, Some(yan_hir::Callback::Scoped));
+}
