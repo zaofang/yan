@@ -348,7 +348,7 @@ fn info_reports_field_annotations_and_reifiers_keep_them() {
                \x20   _ -> \"other\"\n\n\
                clone_of(t: Type) -> Type =\n\
                \x20 match meta.info(t)\n\
-               \x20   Record(info:) -> meta.record_type(RecordInfo(name: \"Copy\", params: [], fields: info.fields, annotations: []))\n\
+               \x20   Record(info:) -> meta.record_type(RecordInfo(name: \"Copy\", params: [], fields: info.fields, annotations: [], layout: Layout(size: 0, align: 1)))\n\
                \x20   _ -> t\n\n\
                type Twin = clone_of(Point)\n\n\
                let a: str = #tags(Point)\n\
