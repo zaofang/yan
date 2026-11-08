@@ -23,6 +23,8 @@ pub mod list;
 pub mod map;
 pub mod math;
 pub mod num;
+#[allow(unsafe_code)]
+pub mod pq;
 pub mod rand;
 pub mod regex;
 #[allow(unsafe_code)]

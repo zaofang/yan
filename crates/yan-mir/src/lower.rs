@@ -29,6 +29,8 @@ pub enum Shape {
     List(Box<Shape>),
     /// A `dict`: a block of entries in insertion order (`yan_rt::map`).
     Map(Box<Shape>, Box<Shape>),
+    /// A `heap`: a list block kept as a min-heap (`yan_rt::pq`).
+    Heap(Box<Shape>),
     Rec(String, Vec<(String, Shape)>),
     Tuple(Vec<Shape>),
     /// A tag slot, then each variant's fields in order.
@@ -43,7 +45,9 @@ impl Shape {
     fn slots(&self, out: &mut Vec<Ty>) {
         match self {
             Shape::Scalar(t) => out.push(*t),
-            Shape::Str | Shape::List(_) | Shape::Map(..) | Shape::Chan(_) => out.push(Ty::Ptr),
+            Shape::Str | Shape::List(_) | Shape::Map(..) | Shape::Heap(_) | Shape::Chan(_) => {
+                out.push(Ty::Ptr)
+            }
             Shape::Fn(..) => out.extend([Ty::Ptr, Ty::Ptr]),
             Shape::Rec(_, fs) => fs.iter().for_each(|(_, s)| s.slots(out)),
             Shape::Tuple(ss) => ss.iter().for_each(|s| s.slots(out)),
@@ -69,9 +73,12 @@ impl Shape {
     fn has_list(&self) -> bool {
         match self {
             Shape::List(_) => true,
-            Shape::Scalar(_) | Shape::Str | Shape::Map(..) | Shape::Fn(..) | Shape::Chan(_) => {
-                false
-            }
+            Shape::Scalar(_)
+            | Shape::Str
+            | Shape::Map(..)
+            | Shape::Heap(_)
+            | Shape::Fn(..)
+            | Shape::Chan(_) => false,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| s.has_list()),
             Shape::Tuple(ss) => ss.iter().any(Shape::has_list),
             Shape::Sum(_, vs) => vs.iter().flat_map(|(_, fs)| fs).any(|(_, s)| s.has_list()),
@@ -156,6 +163,9 @@ impl Types<'_> {
                             Box::new(self.shape_in(k, stack)?),
                             Box::new(self.shape_in(v, stack)?),
                         ));
+                    }
+                    ("Heap", [y::TArg::Type(e)]) => {
+                        return Ok(Shape::Heap(Box::new(self.shape_in(e, stack)?)));
                     }
                     ("Option", [y::TArg::Type(t)]) => {
                         let t = self.shape_in(t, stack)?;
@@ -1084,7 +1094,12 @@ impl<'a, 'm> Fn<'a, 'm> {
         let (mut v, s) = self.atom_any(a)?;
         match (s, v.len()) {
             (
-                Shape::Scalar(_) | Shape::Str | Shape::List(_) | Shape::Map(..) | Shape::Chan(_),
+                Shape::Scalar(_)
+                | Shape::Str
+                | Shape::List(_)
+                | Shape::Map(..)
+                | Shape::Heap(_)
+                | Shape::Chan(_),
                 1,
             ) => Ok(v.remove(0)),
             _ => unsupported("an aggregate operand"),
@@ -1246,6 +1261,19 @@ impl<'a, 'm> Fn<'a, 'm> {
         .contains(&id)
         {
             return self.dict_call(id, c, dst);
+        }
+        if [
+            id::STD_PRELUDE_HEAP,
+            id::STD_COLLECTIONS_HEAP_PUSH,
+            id::STD_COLLECTIONS_HEAP_POP,
+            id::STD_COLLECTIONS_HEAP_PEEK,
+            id::STD_COLLECTIONS_HEAP_PUSHPOP,
+            id::STD_COLLECTIONS_HEAP_INTO_SORTED,
+            id::STD_COLLECTIONS_HEAP_LEN,
+        ]
+        .contains(&id)
+        {
+            return self.heap_call(id, c, dst);
         }
         match (id, args.as_slice()) {
             (id::STD_IO_PRINT, [(_, a)]) => {
@@ -1556,6 +1584,23 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Operand::Local(out)
             }
             Shape::Map(k, e) => self.show_map(v[0].clone(), k, e)?,
+            Shape::Heap(e) => {
+                let mut schema = String::new();
+                Self::key_schema(e, &mut schema)?;
+                let schema = self.lit(&schema);
+                let l = self.rt(RtFn::ListCopy, Ty::Ptr, v.to_vec());
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::HeapSort,
+                    args: vec![l.clone(), schema],
+                });
+                let inner = self.show(std::slice::from_ref(&l), &Shape::List(e.clone()), nested)?;
+                self.free(RtFn::ListFree, l);
+                let open = self.lit("heap(");
+                let head = self.concat2(open, inner);
+                let close = self.lit(")");
+                self.concat2(head, close)
+            }
             Shape::List(e) => {
                 let list = v[0].clone();
                 let out = self.local(Ty::Ptr);
@@ -1669,7 +1714,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let empty = self.lit("");
                 vec![self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])]
             }
-            Shape::List(e) => {
+            Shape::List(e) | Shape::Heap(e) => {
                 let l = self.rt(RtFn::ListCopy, Ty::Ptr, v);
                 if Self::has_heap(e) {
                     let n = self.rt(RtFn::ListLen, I64, vec![l.clone()]);
@@ -1804,6 +1849,126 @@ impl<'a, 'm> Fn<'a, 'm> {
             return unsupported("a `std.dict` call on a non-dict");
         };
         Ok((v.remove(0), *k, *e))
+    }
+
+    fn heap_call(&mut self, id: registry::Id, c: &y::Call, dst: Option<Var>) -> R<()> {
+        let args = Self::value_args(c)?;
+        let set = |me: &mut Self, v: Vec<Operand>| {
+            if let Some(d) = &dst {
+                me.copy_to(&d.locals.clone(), v);
+            }
+        };
+        let hrt = |me: &mut Self, f: RtFn, args: Vec<Operand>| {
+            me.emit(Inst::Rt { dst: None, f, args });
+        };
+        if id == id::STD_PRELUDE_HEAP {
+            let [y::TArg::Type(t)] = c.targs.as_slice() else {
+                return unsupported("`heap` without its element type");
+            };
+            let e = self.shape(t)?;
+            let mut schema = String::new();
+            Self::key_schema(&e, &mut schema)?;
+            let l = match args.as_slice() {
+                [] => self.rt(
+                    RtFn::ListNew,
+                    Ty::Ptr,
+                    vec![Operand::Int(e.width() as i128)],
+                ),
+                [(conv, a)] => {
+                    let (_, s) = self.atom_any(a)?;
+                    if !matches!(s, Shape::List(_)) {
+                        return unsupported("`heap` of a non-list");
+                    }
+                    let l = self.owned(conv, a, &s)?.remove(0);
+                    let schema = self.lit(&schema);
+                    hrt(self, RtFn::HeapFix, vec![l.clone(), schema]);
+                    l
+                }
+                _ => return unsupported("`heap` with extra arguments"),
+            };
+            set(self, vec![l]);
+            return Ok(());
+        }
+        let Some((_, h)) = args.first() else {
+            return unsupported(format!("call of `{}`", c.path.join(".")));
+        };
+        let (mut v, s) = self.atom_any(h)?;
+        let Shape::Heap(e) = s else {
+            return unsupported("a `heap` call on a non-heap");
+        };
+        let l = v.remove(0);
+        let mut schema = String::new();
+        Self::key_schema(&e, &mut schema)?;
+        let w = e.width() as i128;
+        match (id, &args[1..]) {
+            (id::STD_COLLECTIONS_HEAP_LEN, []) => {
+                let r = self.rt(RtFn::ListLen, I64, vec![l]);
+                set(self, vec![r]);
+            }
+            (id::STD_COLLECTIONS_HEAP_PUSH, [(xc, x)]) => {
+                let x = self.owned(xc, x, &e)?;
+                let at = self.rt(RtFn::ListPush, Ty::Ptr, vec![l.clone()]);
+                self.write(&At::Mem(at, 0), x);
+                let schema = self.lit(&schema);
+                hrt(self, RtFn::HeapUp, vec![l, schema]);
+            }
+            (id::STD_COLLECTIONS_HEAP_POP, []) => {
+                let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(w)]);
+                let schema = self.lit(&schema);
+                let ok = self.rt(RtFn::HeapPop, I64, vec![l, schema, out.clone()]);
+                let empty = self.scalar_op(ScalarOp::Eq, I64, vec![ok, Operand::Int(0)]);
+                let (bad, good) = self.branch(empty);
+                self.cur = bad;
+                self.finish(Term::Panic("bounds"));
+                self.cur = good;
+                let v = self.read(&At::Mem(out.clone(), 0), &e);
+                self.free(RtFn::EnvFree, out);
+                set(self, v);
+            }
+            (id::STD_COLLECTIONS_HEAP_PEEK, []) => {
+                let Some(d) = &dst else {
+                    return Ok(());
+                };
+                let ds = d.shape.clone();
+                let n = self.rt(RtFn::ListLen, I64, vec![l.clone()]);
+                let empty = self.scalar_op(ScalarOp::Eq, I64, vec![n, Operand::Int(0)]);
+                let (none, some) = self.branch(empty);
+                let join = self.block_new();
+                self.cur = none;
+                set(self, Self::variant_value(&ds, "None", vec![]));
+                self.goto(join);
+                self.cur = some;
+                let p = self.rt(RtFn::ListAt, Ty::Ptr, vec![l, Operand::Int(0)]);
+                let top = self.read(&At::Mem(p, 0), &e);
+                let top = self.clone_value(top, &e)?;
+                set(self, Self::variant_value(&ds, "Some", top));
+                self.goto(join);
+            }
+            (id::STD_COLLECTIONS_HEAP_PUSHPOP, [(xc, x)]) => {
+                let x = self.owned(xc, x, &e)?;
+                let xb = self.key_buf(x);
+                let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(w)]);
+                let schema = self.lit(&schema);
+                hrt(
+                    self,
+                    RtFn::HeapPushPop,
+                    vec![l, schema, xb.clone(), out.clone()],
+                );
+                let v = self.read(&At::Mem(out.clone(), 0), &e);
+                self.free(RtFn::EnvFree, xb);
+                self.free(RtFn::EnvFree, out);
+                set(self, v);
+            }
+            (id::STD_COLLECTIONS_HEAP_INTO_SORTED, []) => {
+                let (conv, h) = args[0];
+                let l = self.owned(&conv, h, &Shape::Heap(e.clone()))?.remove(0);
+                let schema = self.lit(&schema);
+                hrt(self, RtFn::HeapSort, vec![l.clone(), schema]);
+                set(self, vec![l]);
+            }
+            _ => return unsupported(format!("call of `{}`", c.path.join("."))),
+        }
+        Ok(())
     }
 
     fn dict_call(&mut self, id: registry::Id, c: &y::Call, dst: Option<Var>) -> R<()> {
@@ -2027,7 +2192,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         match s {
             Shape::Map(..) => true,
             Shape::Scalar(_) | Shape::Str | Shape::Fn(..) | Shape::Chan(_) => false,
-            Shape::List(e) => Self::has_map(e),
+            Shape::List(e) | Shape::Heap(e) => Self::has_map(e),
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_map(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_map),
             Shape::Sum(_, vs) => vs
@@ -2040,7 +2205,12 @@ impl<'a, 'm> Fn<'a, 'm> {
     fn has_heap(s: &Shape) -> bool {
         match s {
             Shape::Scalar(_) => false,
-            Shape::Str | Shape::List(_) | Shape::Map(..) | Shape::Fn(..) | Shape::Chan(_) => true,
+            Shape::Str
+            | Shape::List(_)
+            | Shape::Map(..)
+            | Shape::Heap(_)
+            | Shape::Fn(..)
+            | Shape::Chan(_) => true,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_heap(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_heap),
             Shape::Sum(_, vs) => vs
@@ -2061,7 +2231,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str => self.free(RtFn::StrFree, v[0].clone()),
             Shape::Chan(_) => self.free(RtFn::ChanDrop, v[0].clone()),
-            Shape::List(e) => {
+            Shape::List(e) | Shape::Heap(e) => {
                 if Self::has_heap(e) {
                     let list = v[0].clone();
                     let n = self.rt(RtFn::ListLen, I64, vec![list.clone()]);

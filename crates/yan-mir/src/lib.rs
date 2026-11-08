@@ -196,6 +196,16 @@ pub enum RtFn {
     MapLen,
     /// `(Map, i64) -> Ptr` to the key then value slots of an entry, in insertion order.
     MapAt,
+    /// `(List, schema)`: restore heap order after an append.
+    HeapUp,
+    /// `(List, schema)`: heapify.
+    HeapFix,
+    /// `(List, schema, Ptr out) -> i64`: 1 with the least element in `out`, or 0.
+    HeapPop,
+    /// `(List, schema, Ptr x, Ptr out)`: push `x`, pop the least into `out`.
+    HeapPushPop,
+    /// `(List, schema)`: sort ascending in place.
+    HeapSort,
     /// `(Map) -> Map`, a copy of the slots.
     MapCopy,
     /// `(Map)`: free the block, not its entries.
