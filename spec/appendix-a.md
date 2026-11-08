@@ -297,6 +297,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R949 | A version's `.info` lists the advisory ids it fixes and affects; a fix of an advisory affecting the lock bypasses the cool-off, and `yan update` prints each yanked locked version's reason (control characters stripped, 200 characters) and names any bypass (RFC 0053 D7) | 19.3, 19.4 |
 | R950 | An override replaces only its (name, major) and the lock records `source = "override"`; a manifest with `overrides` is E017 until implemented; the Python environment stays with `uv` and the lock records the `pylock.toml` digest (RFC 0053 D8) | 19.1 |
 | R951 | `dependencies`, `dev_dependencies` and `tools` resolve as three subgraphs; a package in several resolves to the maximum of its minimums, one version per (name, major), and the lock marks each package with `kinds` (RFC 0053 D9) | 19.1 |
+| R952 | `@access(name: region, ...)` binds one region to each array parameter and `out` to a non-unit result, each exactly once; non-array parameters are not named; `rows(axis)` and `cols(axis)` need an axis below the operand's rank and `tile(M, N)` positive literals; a malformed claim is E284 before any body is read (RFC 0052 D1) | 10.6, 11.2, 25 |
 
 <!-- /rows -->
 

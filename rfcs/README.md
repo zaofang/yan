@@ -71,5 +71,5 @@ research index links their studies and rows.
 | [0049](0049-positional-args-lenient.md) | Positional arguments in the lenient reader | accepted | R932 |
 | [0050](0050-empty-literal-argument-typing.md) | Empty literals in arguments of an optional parameter | accepted | R933 |
 | [0051](0051-reflection-and-user-type-functions.md) | Reflection and user type functions | accepted | staged |
-| [0052](0052-access-binding-syntax.md) | Binding syntax for `@access` claims: named operands, one region each | draft | none |
+| [0052](0052-access-binding-syntax.md) | Binding syntax for `@access` claims: named operands, one region each | accepted | R952 |
 | [0053](0053-package-manager-gaps.md) | Package manager gaps after the directory-index resolver | accepted | R943 to R951 |

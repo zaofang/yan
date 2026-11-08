@@ -1449,3 +1449,8 @@ sections = "19.1"
 rows = "R951"
 topic = "`dependencies`, `dev_dependencies` and `tools` resolve as three subgraphs; a package in several resolves to the maximum of its minimums, one version per (name, major), and the lock marks each package with `kinds` (RFC 0053 D9)"
 sections = "19.1"
+
+[[entry]]
+rows = "R952"
+topic = "`@access(name: region, ...)` binds one region to each array parameter and `out` to a non-unit result, each exactly once; non-array parameters are not named; `rows(axis)` and `cols(axis)` need an axis below the operand's rank and `tile(M, N)` positive literals; a malformed claim is E284 before any body is read (RFC 0052 D1)"
+sections = "10.6, 11.2, 25"
