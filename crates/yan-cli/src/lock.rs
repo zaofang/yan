@@ -165,6 +165,8 @@ struct Locked {
     publisher: Option<String>,
     approvals: Vec<String>,
     rebuilds: Vec<String>,
+    /// The directory of an override, relative to the root (R950).
+    path: Option<String>,
 }
 
 type Key = (String, String);
@@ -272,6 +274,7 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
         members.push((dir.clone(), m));
     }
     let registries = Registries::load(root)?;
+    let overrides = load_overrides(root, &top)?;
     let previous = records(root);
     let pinned = |key: &Key| {
         previous.iter().find_map(|p| {
@@ -317,6 +320,7 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
                 publisher: None,
                 approvals: Vec::new(),
                 rebuilds: Vec::new(),
+                path: None,
             });
         }
     }
@@ -335,6 +339,13 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
         }
         let mut next: BTreeMap<Key, (String, Info)> = BTreeMap::new();
         for (key, m) in &mins {
+            if let Some((path, manifest)) = overrides.get(key) {
+                next.insert(
+                    key.clone(),
+                    ("override".to_owned(), overridden(m, path, manifest)?),
+                );
+                continue;
+            }
             let index = registries.index(&m.name)?;
             let info = select(&index, m, pinned(key).as_deref())?;
             next.insert(key.clone(), (index.source, info));
@@ -387,13 +398,75 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
             name: key.0.clone(),
             version: info.version,
             source,
+            path: overrides.get(&key).map(|(p, _)| p.clone()),
+            digest: Some(info.digest).filter(|d| !d.is_empty()),
+            publisher: Some(info.publisher).filter(|p| !p.is_empty()),
             key,
-            digest: Some(info.digest),
-            publisher: Some(info.publisher),
         });
     }
     out.sort_by(|a, b| a.key.cmp(&b.key));
     Ok(out)
+}
+
+/// The root's `overrides` (R950): `"@org/name major": "path/to/dir"`, each replacing that
+/// (name, major) with the package at the path. Anything but a path is E017.
+fn load_overrides(
+    root: &Path,
+    top: &yan_elab::Manifest,
+) -> Result<BTreeMap<Key, (String, yan_elab::Manifest)>, Box<Diagnostic>> {
+    let mut out = BTreeMap::new();
+    for (key, path) in &top.overrides {
+        let (name, major) = key
+            .split_once(' ')
+            .ok_or_else(|| fail("E018", format!("override `{key}` is not `@org/name x.y`")))?;
+        if path.contains("://") {
+            return Err(fail(
+                "E017",
+                format!("override `{key}`: only a local path is supported yet"),
+            ));
+        }
+        let manifest = manifest_at(&root.join(path)).ok_or_else(|| {
+            fail(
+                "E018",
+                format!("override `{key}`: `{path}` has no readable `package.yag`"),
+            )
+        })?;
+        if manifest.name.as_deref() != Some(name) {
+            return Err(fail(
+                "E018",
+                format!("override `{key}`: `{path}` is not `{name}`"),
+            ));
+        }
+        out.insert(identity(name, major.trim()), (path.clone(), manifest));
+    }
+    Ok(out)
+}
+
+/// The version an override stands for, which must meet the accumulated minimum.
+fn overridden(m: &Min, path: &str, manifest: &yan_elab::Manifest) -> Result<Info, Box<Diagnostic>> {
+    let version = manifest.version.clone().unwrap_or_default();
+    if parts(&version) < parts(&m.want) {
+        return Err(fail(
+            "E021",
+            format!(
+                "override `{path}` is {} of `{}`, below {} (required by {})",
+                version,
+                m.name,
+                m.want,
+                m.requirers.join(", ")
+            ),
+        ));
+    }
+    Ok(Info {
+        version,
+        digest: String::new(),
+        publisher: String::new(),
+        capability_digest: None,
+        requirements: manifest.requirements.clone(),
+        yanked: false,
+        malicious: None,
+        published: 0,
+    })
 }
 
 fn quoted(s: &str) -> String {
@@ -414,6 +487,7 @@ fn render(packages: &[Locked]) -> String {
             ("digest", &p.digest),
             ("capability_digest", &p.capability_digest),
             ("publisher", &p.publisher),
+            ("path", &p.path),
         ] {
             if let Some(v) = value {
                 text += &format!("{field} = {}\n", quoted(v));

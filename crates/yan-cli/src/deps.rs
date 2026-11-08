@@ -670,4 +670,31 @@ mod tests {
             ["removed archives/stale.zip"]
         );
     }
+
+    #[test]
+    fn an_override_replaces_its_name_and_major_and_is_recorded_with_its_path() {
+        let dir = world("override");
+        std::fs::create_dir_all(dir.join("fix/b")).unwrap();
+        std::fs::write(
+            dir.join("fix/b/package.yag"),
+            "package: Package = Package(name=\"@a/b\", version=\"1.2.5\")\n",
+        )
+        .unwrap();
+        let manifest = |overrides: &str| {
+            std::fs::write(
+                dir.join("package.yag"),
+                format!("package: Package = Package(name=\"@a/app\", version=\"0.1.0\", dependencies=[\"@a/b 1.0.0\"], overrides={{{overrides}}})\n"),
+            )
+            .unwrap();
+        };
+        manifest("\"@a/b 1\": \"fix/b\"");
+        lock::write(&dir).unwrap();
+        let text = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
+        assert!(text.contains(
+            "name = \"@a/b\"\nversion = \"1.2.5\"\nsource = \"override\"\npath = \"fix/b\"\n"
+        ));
+        assert!(!text.contains("digest"));
+        manifest("\"@a/b 1\": \"https://x.org/b.git\"");
+        assert_eq!(lock::write(&dir).unwrap_err().code, "E017");
+    }
 }
