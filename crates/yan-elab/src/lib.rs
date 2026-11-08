@@ -11,6 +11,7 @@ mod consttime;
 mod cost;
 mod cost_proof;
 pub use cost_proof::inferred as inferred_cost;
+mod config;
 mod coverage;
 mod csvwire;
 mod decorators;
@@ -34,6 +35,7 @@ use yan_diag::{Applicability, Diagnostic, Span};
 use yan_hir as j;
 use yan_surface::{Attach, Mark, Trivia, TriviaTable};
 
+pub use config::registries;
 pub use desugar::{Manifest, manifest};
 pub use stdlib::{StdInfo, StdModule, install_std};
 pub use ty::Ty;
