@@ -34,7 +34,7 @@ uv run python bench/r567/report.py bench/r567/runs/claude-free-5shot --json summ
 
 - `--model claude:M` uses the `claude -p` CLI (Anthropic credits, no key). `anthropic:M` uses
   `ANTHROPIC_API_KEY`. `compat:URL#M` talks to a llama.cpp or vLLM server. `oracle:DIR[?wrong]` replays
-  stored solutions for dry runs (`bench/r567/oracle/`, three tasks).
+  stored solutions for dry runs (`bench/r567/oracle/`, ten tasks).
 - Reruns skip finished files. One JSON record per task and arm under `runs/MODEL-DECODING-Nshot/`.
 - `--limit` takes a seeded shuffle (`--seed`). Pass the same limit and seed for every model.
 

@@ -361,6 +361,21 @@
    "expect": []
   },
   {
+   "path": "yag/pass/types/n49_keyword_form.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R932"
+   ],
+   "flags": [
+    "--strict"
+   ],
+   "expect": []
+  },
+  {
    "path": "yag/pass/types/narrowing.yag",
    "kind": "pass",
    "milestone": "M1",
@@ -3866,11 +3881,13 @@
     "14.1"
    ],
    "rows": [],
-   "flags": [],
+   "flags": [
+    "--strict"
+   ],
    "expect": [
     {
      "code": "E210",
-     "line": 10,
+     "line": 11,
      "col": 20
     }
    ]
@@ -3885,11 +3902,13 @@
    "rows": [
     "R800"
    ],
-   "flags": [],
+   "flags": [
+    "--strict"
+   ],
    "expect": [
     {
      "code": "E210",
-     "line": 12,
+     "line": 13,
      "col": 16
     }
    ]
@@ -4730,6 +4749,22 @@
    "flags": [],
    "expect": [],
    "stdout": "True True True\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n49_positional_args.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1",
+    "14.4"
+   ],
+   "rows": [
+    "R932"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "24 24\n2 3 4\n",
    "exit": 0
   },
   {

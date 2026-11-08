@@ -1246,3 +1246,26 @@ pub def main() uses io:
     assert_eq!(p.kind, "contract");
     assert!(p.fields.iter().any(|(n, _)| n == "steps"), "{:?}", p.fields);
 }
+
+const SHARED_TYPES: &str = "def vol(w: int, h: int, d: int) -> int:\n    return w * 100 + h * 10 + d\n\nclass Box:\n    w: int\n    h: int\n    d: int\n\npub def main() uses io:\n    a = 2\n    b = 3\n    c = 4\n    io.print(f\"{vol(a, b, c)} {vol(a, b, 5)} {Box(a, b, c).h}\")\n";
+
+#[test]
+fn positional_args_for_shared_types_are_n44() {
+    let (m, d) = lower(SHARED_TYPES);
+    let codes: Vec<_> = d.iter().map(|d| d.code.as_str()).collect();
+    assert_eq!(codes, ["N49", "N49", "N49"], "{d:?}");
+    let mut out = Vec::new();
+    yan_interp::run(&m, &mut out).expect("runs");
+    assert_eq!(String::from_utf8(out).unwrap(), "234 235 3\n");
+}
+
+#[test]
+fn strict_keeps_e210_for_shared_types() {
+    let (m, _) = yan_yag::parse("t.yag", SHARED_TYPES, true);
+    let opts = Options {
+        strict: true,
+        ..Options::default()
+    };
+    let (_, d) = elaborate("t.yag", SHARED_TYPES, &m.expect("parses"), opts).expect("supported");
+    assert!(d.iter().any(|d| d.code == "E210"), "{d:?}");
+}

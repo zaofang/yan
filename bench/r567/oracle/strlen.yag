@@ -1,0 +1,6 @@
+def strlen(s: str) -> int:
+    """Length of the string."""
+    ex strlen("") == 0
+    ex strlen("abc") == 3
+    # ---
+    return len(s)

@@ -1,0 +1,24 @@
+# spec: 14.1, 14.4
+# rows: R932
+# note: N49 reads positional arguments for same-typed parameters as keywords from the first one that needed it; a call and a record constructor
+# stdout:
+# 24 24
+# 2 3 4
+
+class Box:
+    w: int
+    h: int
+    d: int
+
+def area(w: int, h: int, d: int) -> int:
+    return w * h * d
+
+def make(a: int, b: int, c: int) -> Box:
+    return Box(a, b, c)
+
+pub def main() uses io:
+    a = 3
+    b = 4
+    io.print(f"{area(2, a, b)} {area(2, h=a, d=b)}")
+    box = make(2, 3, 4)
+    io.print(f"{box.w} {box.h} {box.d}")
