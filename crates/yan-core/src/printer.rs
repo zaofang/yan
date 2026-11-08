@@ -152,7 +152,7 @@ fn call(c: &Call) -> String {
     format!("{}{}({args})", path(&c.path), targs(&c.targs))
 }
 
-fn expr(e: &Expr) -> String {
+pub fn expr(e: &Expr) -> String {
     match e {
         Expr::Atom(a) => atom(a),
         Expr::Call(c) => call(c),
