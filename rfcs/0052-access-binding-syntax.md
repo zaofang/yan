@@ -1,8 +1,8 @@
 # 0052: @access binding syntax
 
-- Status: draft
+- Status: accepted
 - Research: RFC 0016 D3 (Fern, PLDI 2025)
-- Rows: filled in when accepted
+- Rows: R952
 
 ## Summary
 
@@ -27,13 +27,13 @@ Recommended.
 
 Rules: every array parameter and a non-unit result MUST appear exactly once; non-array parameters
 MUST NOT appear; `rows(axis)` and `cols(axis)` need an axis below the operand's rank, and `tile(M, N)`
-needs positive M and N. A malformed claim is a syntax-level error before any body is read.
+needs positive M and N. A malformed claim is E284, reported before any body is read.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: accepted; Antonio, standing approval of 2026-11-08
+- Row: R952
 
 ## Spec changes
 
 Section 11.2 (the access patterns paragraph) gains the binding grammar and rules; section 10.6
-attribute table entry for `@access` links to it; the diagnostics catalogue gains one code for a
+attribute table entry for `@access` links to it; the diagnostics catalogue gains E284 for a
 malformed claim.
