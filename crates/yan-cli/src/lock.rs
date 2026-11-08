@@ -1,15 +1,18 @@
 //! `yan.lock` (19.1, R892 to R896): reading it, E019 for a newer format, E020 under `--locked`, and
 //! `yan lock`, which writes it from the manifest and the workspace members.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use yan_diag::{Diagnostic, Span};
+
+use crate::registry::{Index, Info, Registries};
 
 /// The newest lock `format` this toolchain reads.
 const FORMAT: i64 = 1;
 
 /// The identity a requirement `"@org/name x.y[.z]"` pins: the name and its major (the minor in 0.y.z).
-fn identity(name: &str, version: &str) -> (String, String) {
+pub(crate) fn identity(name: &str, version: &str) -> (String, String) {
     let mut parts = version.split('.');
     let major = parts.next().unwrap_or("");
     let key = match major {
@@ -24,7 +27,7 @@ fn requirement(req: &str) -> Option<(String, String)> {
     Some(identity(name, version.trim()))
 }
 
-fn fail(code: &str, message: String) -> Box<Diagnostic> {
+pub(crate) fn fail(code: &str, message: String) -> Box<Diagnostic> {
     Box::new(Diagnostic::error(
         code,
         "yan.lock",
@@ -36,7 +39,12 @@ fn fail(code: &str, message: String) -> Box<Diagnostic> {
 
 /// Check `yan.lock` of the package at `root` against its manifest requirements. A missing lock
 /// is an error only under `locked`; a lock is read, never written.
-pub fn check(root: &Path, requirements: &[String], locked: bool) -> Result<(), Box<Diagnostic>> {
+pub fn check(
+    root: &Path,
+    requirements: &[String],
+    locked: bool,
+    offline: bool,
+) -> Result<(), Box<Diagnostic>> {
     let path = root.join("yan.lock");
     let Ok(text) = std::fs::read_to_string(&path) else {
         return if locked && !requirements.is_empty() {
@@ -65,11 +73,14 @@ pub fn check(root: &Path, requirements: &[String], locked: bool) -> Result<(), B
     if !locked {
         return Ok(());
     }
-    let pinned: Vec<(String, String)> = table
+    let records: Vec<&toml::Value> = table
         .get("package")
         .and_then(toml::Value::as_array)
         .into_iter()
         .flatten()
+        .collect();
+    let pinned: Vec<(String, String)> = records
+        .iter()
         .filter_map(|p| {
             Some(identity(
                 p.get("name")?.as_str()?,
@@ -85,7 +96,47 @@ pub fn check(root: &Path, requirements: &[String], locked: bool) -> Result<(), B
             }
         }
     }
+    if offline {
+        for p in &records {
+            let Some(digest) = p.get("digest").and_then(toml::Value::as_str) else {
+                continue;
+            };
+            let file = format!("{}.zip", digest.trim_start_matches("sha256:"));
+            if !["vendor", ".yan/store"]
+                .iter()
+                .any(|d| root.join(d).join(&file).exists())
+            {
+                return Err(fail(
+                    "E020",
+                    format!(
+                        "offline: the archive `{file}` is in neither `.yan/store` nor `vendor`"
+                    ),
+                ));
+            }
+        }
+    }
     Ok(())
+}
+
+/// The `[[package]]` records of the existing `yan.lock`, if it reads.
+fn records(root: &Path) -> Vec<toml::Value> {
+    std::fs::read_to_string(root.join("yan.lock"))
+        .ok()
+        .and_then(|t| t.parse::<toml::Table>().ok())
+        .and_then(|t| match t.get("package") {
+            Some(toml::Value::Array(a)) => Some(a.clone()),
+            _ => None,
+        })
+        .unwrap_or_default()
+}
+
+/// The publisher identity `yan.lock` records for the package a requirement names.
+pub fn locked_publisher(root: &Path, name: &str, version: &str) -> Option<String> {
+    let key = identity(name, version);
+    records(root).iter().find_map(|p| {
+        let id = identity(p.get("name")?.as_str()?, p.get("version")?.as_str()?);
+        (id == key).then(|| p.get("publisher")?.as_str().map(str::to_owned))?
+    })
 }
 
 fn manifest_at(dir: &Path) -> Option<yan_elab::Manifest> {
@@ -95,7 +146,7 @@ fn manifest_at(dir: &Path) -> Option<yan_elab::Manifest> {
 }
 
 /// Numeric dotted components, so that `1.10` orders after `1.9`.
-fn parts(version: &str) -> Vec<u64> {
+pub(crate) fn parts(version: &str) -> Vec<u64> {
     version.split('.').map(|p| p.parse().unwrap_or(0)).collect()
 }
 
@@ -104,10 +155,66 @@ struct Locked {
     version: String,
     source: String,
     key: (String, String),
+    digest: Option<String>,
+    publisher: Option<String>,
 }
 
-/// Resolve every requirement of the package at `root` and of its members against the members
-/// themselves (19.1: members share one lock). Anything else needs an index (E021, R895).
+type Key = (String, String);
+
+#[derive(Clone)]
+/// A registry requirement's accumulated minimum (R894): the largest minimum any requirer wrote.
+struct Min {
+    name: String,
+    want: String,
+    requirers: Vec<String>,
+}
+
+fn raise(mins: &mut BTreeMap<Key, Min>, requirer: &str, req: &str) -> Result<(), Box<Diagnostic>> {
+    let Some((name, want)) = req.split_once(' ') else {
+        return Err(fail("E018", format!("`{req}` is not `@org/name x.y[.z]`")));
+    };
+    let want = want.trim();
+    let min = mins.entry(identity(name, want)).or_insert_with(|| Min {
+        name: name.to_owned(),
+        want: want.to_owned(),
+        requirers: Vec::new(),
+    });
+    if parts(want) > parts(&min.want) {
+        min.want = want.to_owned();
+    }
+    if !min.requirers.iter().any(|r| r == requirer) {
+        min.requirers.push(requirer.to_owned());
+    }
+    Ok(())
+}
+
+/// Minimal version selection: the smallest published version at or above the minimum. A yanked
+/// version is never newly selected but stays where the lock already pins it (19.3).
+fn select(index: &Index, m: &Min, pinned: Option<&str>) -> Result<Info, Box<Diagnostic>> {
+    index
+        .versions(&m.name)
+        .into_iter()
+        .flatten()
+        .filter(|v| crate::registry::satisfies(v, &m.want))
+        .filter_map(|v| index.info(&m.name, &v))
+        .filter(|i| !i.yanked || pinned == Some(i.version.as_str()))
+        .min_by_key(|i| parts(&i.version))
+        .ok_or_else(|| {
+            fail(
+                "E021",
+                format!(
+                    "no published version of `{}` satisfies {} (required by {})",
+                    m.name,
+                    m.want,
+                    m.requirers.join(", ")
+                ),
+            )
+        })
+}
+
+/// Resolve every requirement of the package at `root` and of its members: against the members
+/// first (19.1: members share one lock), then against the indexes `registries` maps (R894,
+/// R895). A namespace with no mapping is E021.
 fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
     let top = manifest_at(root)
         .ok_or_else(|| fail("E018", "`package.yag` is missing or unreadable".into()))?;
@@ -121,12 +228,26 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
         })?;
         members.push((dir.clone(), m));
     }
-    let requirements = top
+    let registries = Registries::load(root);
+    let previous = records(root);
+    let pinned = |key: &Key| {
+        previous.iter().find_map(|p| {
+            let (n, v) = (p.get("name")?.as_str()?, p.get("version")?.as_str()?);
+            (identity(n, v) == *key).then(|| v.to_owned())
+        })
+    };
+    let wanted = top
         .requirements
         .iter()
-        .chain(members.iter().flat_map(|(_, m)| &m.requirements));
+        .map(|r| (top.name.as_deref().unwrap_or("."), r))
+        .chain(members.iter().flat_map(|(_, m)| {
+            m.requirements
+                .iter()
+                .map(|r| (m.name.as_deref().unwrap_or("."), r))
+        }));
     let mut out: Vec<Locked> = Vec::new();
-    for r in requirements {
+    let mut mins: BTreeMap<Key, Min> = BTreeMap::new();
+    for (requirer, r) in wanted {
         let Some((name, version)) = r.split_once(' ') else {
             return Err(fail("E018", format!("`{r}` is not `@org/name x.y[.z]`")));
         };
@@ -136,12 +257,8 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
             (identity(n, v) == key).then(|| (dir, n.to_owned(), v.to_owned()))
         });
         let Some((dir, n, v)) = found else {
-            return Err(fail(
-                "E021",
-                format!(
-                    "no member provides `{r}` and its namespace has no `registries` mapping in `.yan/config.yag`"
-                ),
-            ));
+            raise(&mut mins, requirer, r)?;
+            continue;
         };
         if parts(&v) < parts(version.trim()) {
             return Err(fail("E021", format!("member `{n}` is {v}, below `{r}`")));
@@ -152,8 +269,43 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
                 version: v,
                 source: dir.clone(),
                 key,
+                digest: None,
+                publisher: None,
             });
         }
+    }
+    let mut chosen: BTreeMap<Key, (String, Info)> = BTreeMap::new();
+    loop {
+        let mut changed = false;
+        for (key, m) in mins.clone() {
+            let index = registries.index(&m.name)?;
+            let info = select(&index, &m, pinned(&key).as_deref())?;
+            if chosen
+                .get(&key)
+                .is_some_and(|(_, c)| c.version == info.version)
+            {
+                continue;
+            }
+            changed = true;
+            let who = format!("{} {}", m.name, info.version);
+            for req in &info.requirements {
+                raise(&mut mins, &who, req)?;
+            }
+            chosen.insert(key, (index.source, info));
+        }
+        if !changed {
+            break;
+        }
+    }
+    for (key, (source, info)) in chosen {
+        out.push(Locked {
+            name: key.0.clone(),
+            version: info.version,
+            source,
+            key,
+            digest: Some(info.digest),
+            publisher: Some(info.publisher),
+        });
     }
     out.sort_by(|a, b| a.key.cmp(&b.key));
     Ok(out)
@@ -173,6 +325,11 @@ fn render(packages: &[Locked]) -> String {
             quoted(&p.version),
             quoted(&p.source)
         );
+        for (field, value) in [("digest", &p.digest), ("publisher", &p.publisher)] {
+            if let Some(v) = value {
+                text += &format!("{field} = {}\n", quoted(v));
+            }
+        }
     }
     text
 }
@@ -205,7 +362,7 @@ mod tests {
             std::fs::write(dir.join("yan.lock"), l).unwrap();
         }
         let reqs: Vec<String> = reqs.iter().map(|s| (*s).to_owned()).collect();
-        check(&dir, &reqs, locked).err().map(|d| d.code)
+        check(&dir, &reqs, locked, false).err().map(|d| d.code)
     }
 
     const LOCK: &str = "format = 1\n\n[[package]]\nname = \"@a/b\"\nversion = \"1.4.2\"\n";
@@ -265,7 +422,7 @@ mod tests {
             "format = 1\n\n[[package]]\nname = \"@a/b\"\nversion = \"1.4.2\"\nsource = \"b\"\n"
         );
         assert!(!write(&dir).unwrap());
-        assert!(check(&dir, &["@a/b 1.0".into()], true).is_ok());
+        assert!(check(&dir, &["@a/b 1.0".into()], true, false).is_ok());
     }
 
     #[test]
