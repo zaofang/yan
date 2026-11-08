@@ -718,6 +718,7 @@ impl Parser<'_> {
                 drop: self.path()?,
             });
         }
+        let attrs = self.attrs()?;
         let safe = if self.eat_kw("safe") {
             true
         } else if self.eat_kw("unsafe") {
@@ -726,6 +727,9 @@ impl Parser<'_> {
             return self.unexpected("`safe`, `unsafe` or `type`");
         };
         if self.eat_kw("static") {
+            if !attrs.is_empty() {
+                return self.unexpected("`fn`; attributes on extern statics are not supported");
+            }
             let name = self.name()?;
             self.expect_punct(":")?;
             return Ok(XItem::Static {
@@ -780,6 +784,7 @@ impl Parser<'_> {
         }
         let nonblocking = self.eat_kw("nonblocking");
         Ok(XItem::Fn {
+            attrs,
             safe,
             name,
             params,
@@ -1565,6 +1570,9 @@ impl Parser<'_> {
         } else {
             None
         };
+        if fields.is_none() && self.is_punct("(") {
+            return Ok(ConstVal::Call(path, self.list("(", ")", Self::const_val)?));
+        }
         Ok(ConstVal::Path { path, fields })
     }
 }

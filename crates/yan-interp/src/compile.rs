@@ -383,6 +383,7 @@ struct Globals<'m> {
 fn const_value(c: &ConstVal) -> Option<Value> {
     Some(match c {
         ConstVal::Lit(l) => literal(l).ok()?,
+        ConstVal::Call(..) => return None,
         ConstVal::List(xs) => Value::List(xs.iter().map(const_value).collect::<Option<_>>()?),
         ConstVal::Tuple(xs) => Value::Tuple(xs.iter().map(const_value).collect::<Option<_>>()?),
         ConstVal::Path { path, fields } => Value::Data {

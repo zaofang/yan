@@ -2,6 +2,7 @@
 //! Built-in types carry their Yan Core names (16.3); surfaces desugar their own forms before HIR
 //! (R558). Spans are the first token of each node.
 
+mod claim;
 pub mod raise;
 
 use yan_diag::Span;
@@ -63,6 +64,8 @@ pub struct Extern {
 #[derive(Clone, Debug, PartialEq)]
 pub enum XItem {
     Fn {
+        /// Only `@access` claims (RFC 0052); Core carries them as [`yan_core::ast::Attr`].
+        attrs: Vec<Decorator>,
         safe: bool,
         name: Name,
         name_span: Span,

@@ -286,6 +286,7 @@ fn const_val(c: &ConstVal) -> String {
         }
         ConstVal::List(xs) => format!("[{}]", comma(xs, const_val)),
         ConstVal::Tuple(xs) => format!("({})", comma(xs, const_val)),
+        ConstVal::Call(p, xs) => format!("{}({})", path(p), comma(xs, const_val)),
     }
 }
 
@@ -454,6 +455,7 @@ impl Printer {
                     let safety = |s: bool| if s { "safe" } else { "unsafe" };
                     let line = match x {
                         XItem::Fn {
+                            attrs,
                             safe,
                             name,
                             params,
@@ -483,12 +485,15 @@ impl Printer {
                             if *variadic {
                                 ps.push("...".into());
                             }
-                            let mut s = format!(
+                            let mut s: String = attrs.iter().map(|a| attr(a) + " ").collect();
+                            write!(
+                                s,
                                 "{} fn {name}({}) -> {}",
                                 safety(*safe),
                                 ps.join(", "),
                                 ty(ret)
-                            );
+                            )
+                            .unwrap();
                             if !from.is_empty() {
                                 write!(s, " from {}", from.join(", ")).unwrap();
                             }

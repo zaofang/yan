@@ -4,7 +4,7 @@
 
 use std::path::Path;
 
-use yan_core::ast::{Contract, FnDef, Item, ItemKind, XItem};
+use yan_core::ast::{Attr, Contract, FnDef, Item, ItemKind, XItem};
 use yan_db::{Database, Loaded};
 
 use crate::test;
@@ -32,6 +32,14 @@ impl Finding {
 
 /// Attributes that state a claim the checker cannot verify on an extern.
 const CLAIM_ATTRS: [&str; 2] = ["access", "stack"];
+
+fn claim_detail(a: &Attr) -> String {
+    let args = a
+        .args
+        .as_ref()
+        .map_or(String::new(), |v| format!("({} args)", v.len()));
+    format!("@{}{args}", a.name)
+}
 
 fn preconditions(f: &FnDef) -> String {
     let pre: Vec<String> = f
@@ -81,12 +89,19 @@ fn item_findings(module: &str, it: &Item, key: &str, out: &mut Vec<Finding>) {
             for x in &e.items {
                 match x {
                     XItem::Fn {
+                        attrs,
                         safe,
                         name,
                         uses_none,
                         ..
                     } => {
                         let name = format!("{at}.{name}");
+                        for a in attrs
+                            .iter()
+                            .filter(|a| CLAIM_ATTRS.contains(&a.name.as_str()))
+                        {
+                            push("trusted_claim", name.clone(), claim_detail(a));
+                        }
                         if *safe {
                             push("extern_safe", name.clone(), "trusted safe signature".into());
                         }
@@ -117,14 +132,10 @@ fn item_findings(module: &str, it: &Item, key: &str, out: &mut Vec<Finding>) {
         } else {
             "claim"
         };
-        let args = a
-            .args
-            .as_ref()
-            .map_or(String::new(), |v| format!("({} args)", v.len()));
         out.push(Finding {
             kind,
             item: at.clone(),
-            detail: format!("@{}{args}", a.name),
+            detail: claim_detail(a),
         });
     }
 }
@@ -167,6 +178,17 @@ mod tests {
             item_findings("m", it, &h.key, &mut out);
         }
         out.iter().map(Finding::line).collect()
+    }
+
+    #[test]
+    fn lists_access_claim_on_extern_fn() {
+        let src = "module m\n\nunsafe extern \"C\" lib m link \"libm\" {\n    @access(a = rows(0), out = elementwise) safe fn scale(a: Array[f64]) -> Array[f64]\n}\n";
+        let got = findings(src);
+        assert!(
+            got.iter()
+                .any(|l| l.starts_with("trusted_claim") && l.contains("@access(2 args)")),
+            "{got:?}"
+        );
     }
 
     #[test]

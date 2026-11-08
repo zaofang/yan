@@ -193,6 +193,7 @@ pub struct Extern {
 #[derive(Clone, Debug, PartialEq)]
 pub enum XItem {
     Fn {
+        attrs: Vec<Attr>,
         safe: bool,
         name: Name,
         params: Vec<XParam>,
@@ -512,6 +513,8 @@ pub enum ConstVal {
     },
     List(Vec<ConstVal>),
     Tuple(Vec<ConstVal>),
+    /// `rows(0)`: a constructor applied to constants (`@access` regions, RFC 0052).
+    Call(Path, Vec<ConstVal>),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

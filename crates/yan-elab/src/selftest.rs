@@ -1498,3 +1498,39 @@ fn manifest_outside_the_data_profile_is_e144() {
     assert_eq!(codes(&pkg("str(1)"), "package.yag"), ["E144"]);
     assert!(codes(&pkg("\"1.\" + \"0\""), "script.yag").is_empty());
 }
+
+fn access_codes(claim: &str) -> Vec<String> {
+    let src = format!(
+        "unsafe extern \"C\" lib k link \"k\"\n\
+         \x20 {claim}\n\
+         \x20 safe scale(a: Array[8, f64], n: int) -> Array[8, f64]\n\n\
+         main() = 0\n"
+    );
+    let (ast, d) = yan_yn::parse("t.yn", &src);
+    assert!(d.is_empty(), "{d:?}");
+    let (h, d) = yan_yn::lower("t.yn", &src, &ast).expect("lowers");
+    assert!(d.is_empty(), "{d:?}");
+    let (_, d) = elaborate("t.yn", &src, &h, Options::default()).expect("supported");
+    d.into_iter()
+        .filter(|d| d.code == "E284")
+        .map(|d| d.message)
+        .collect()
+}
+
+#[test]
+fn access_claim_binds_every_array_operand_once() {
+    let d = access_codes("@access(a: rows(0), out: elementwise)");
+    assert!(d.is_empty(), "{d:?}");
+    assert!(access_codes("@access(out: tile(4, 8), a: whole)").is_empty());
+    let one = |c: &str| {
+        let d = access_codes(c);
+        assert_eq!(d.len(), 1, "{c}: {d:?}");
+    };
+    one("@access(a: whole)");
+    one("@access(a: whole, a: whole, out: whole)");
+    one("@access(a: whole, out: whole, b: whole)");
+    one("@access(a: whole, n: whole, out: whole)");
+    one("@access(a: rows(1), out: whole)");
+    one("@access(a: tile(0, 4), out: whole)");
+    one("@access(a: stripes(1), out: whole)");
+}

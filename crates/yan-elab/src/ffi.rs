@@ -157,8 +157,10 @@ pub(crate) fn lower(g: &Globals, x: &j::Extern, cx: &mut Cx) -> R<y::Extern> {
     for xi in &x.items {
         items.push(match xi {
             j::XItem::Fn {
+                attrs,
                 safe,
                 name,
+                name_span,
                 params,
                 variadic,
                 uses_none,
@@ -166,6 +168,12 @@ pub(crate) fn lower(g: &Globals, x: &j::Extern, cx: &mut Cx) -> R<y::Extern> {
                 ..
             } => {
                 let sig = &g.fns[name];
+                let named: Vec<(&str, &Ty)> = sig
+                    .params
+                    .iter()
+                    .map(|p| (p.name.as_str(), &p.ty))
+                    .collect();
+                let attrs = crate::access::lower(name, attrs, &named, &sig.ret, *name_span, cx)?;
                 let params = params
                     .iter()
                     .zip(&sig.params)
@@ -187,6 +195,7 @@ pub(crate) fn lower(g: &Globals, x: &j::Extern, cx: &mut Cx) -> R<y::Extern> {
                     })
                     .collect();
                 y::XItem::Fn {
+                    attrs,
                     safe: *safe,
                     name: name.clone(),
                     params,
