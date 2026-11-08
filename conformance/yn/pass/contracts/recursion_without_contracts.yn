@@ -1,0 +1,6 @@
+-- spec: 8.4
+
+countdown(n: int) -> int =
+  if n <= 0
+    return 0
+  countdown(n - 1)

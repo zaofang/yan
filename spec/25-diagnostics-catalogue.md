@@ -116,7 +116,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E280 | one parameter documented both in an `Args:` section and above the parameter (R846) *new* | 18.9 |
 | E281 | a type written in a parameter doc disagrees with the signature (R849) *new* | 14.4 |
 | E282 | a derived trait (`Eq`, `Ord`, `Hash`, `Show`, `Wire`) has a field whose type does not implement it; one diagnostic per field, at the field's type annotation (RFC 0040, R872, R873) *new* | 10.4, 17.4 |
-| E283 | a Yan Agent function returns `Type`: Yan Agent applies type functions but does not define them (RFC 0051 D6, R940) *new* | 10.4, 14 |
+| E283 | a Yan Agent function returns `Type`: Yan Agent applies type functions but does not define them (RFC 0051 D6, R941) *new* | 10.4, 14 |
 | E233 | str or f-string where a Template is expected (R452) new | 13.1 |
 
 ### 25.5 Capabilities, handlers and failure
@@ -204,7 +204,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | Code | Meaning | Section |
 | --- | --- | --- |
 | E601 | `pub` function with no `ex` and no `test_` calling it (Yan Agent; publish and release only, R284) | 8.4 |
-| E602 | recursion without `decreases` | 8.4 |
+| E602 | recursion without `decreases` in a module that has contracts (R940) | 8.4 |
 | E603 | contract not proven in a `@prove` module *new* | 8.5 |
 | E617 | retired by R447; a test that binds a real capability is an I/O test | 18.4 |
 | V401 | proof failed, with counterexample | 8.7 |
