@@ -400,8 +400,9 @@ def main() -> int:
     ap.add_argument("--keep", type=Path)
     ap.add_argument(
         "--ensures",
-        action="store_true",
-        help="also emit `ensures` (yan-interp does not evaluate it yet)",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="emit `ensures` clauses",
     )
     a = ap.parse_args()
     if a.mode == "cases":
