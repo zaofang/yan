@@ -7,6 +7,11 @@ pub class Annotation:
     name: str
 
 @since("1.0")
+pub class Layout:
+    size: int
+    align: int
+
+@since("1.0")
 pub class FieldInfo:
     name: str
     ty: Type
@@ -19,6 +24,7 @@ pub class RecordInfo:
     params: list[Type]
     fields: list[FieldInfo]
     annotations: list[Annotation]
+    layout: Layout
 
 @since("1.0")
 pub class VariantInfo:
@@ -31,6 +37,7 @@ pub class SumInfo:
     params: list[Type]
     variants: list[VariantInfo]
     annotations: list[Annotation]
+    layout: Layout
 
 @since("1.0")
 pub class NewtypeInfo:

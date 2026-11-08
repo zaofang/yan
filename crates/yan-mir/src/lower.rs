@@ -327,6 +327,27 @@ impl Sig {
     }
 }
 
+/// The default-target layout of `ty` against the records and sums in `items`, or what it uses that
+/// native code cannot lay out yet.
+pub fn layout_of<'a>(items: impl IntoIterator<Item = &'a y::ItemKind>, ty: &y::Type) -> R<Layout> {
+    let mut types = Types {
+        recs: HashMap::new(),
+        sums: HashMap::new(),
+    };
+    for it in items {
+        match it {
+            y::ItemKind::Record(r) => {
+                types.recs.insert(r.path.last().expect("named"), r);
+            }
+            y::ItemKind::Sum(s) => {
+                types.sums.insert(s.path.last().expect("named"), s);
+            }
+            _ => {}
+        }
+    }
+    types.shape(ty).map(|s| layout::layout(&s))
+}
+
 /// The MIR of `m`, or what it uses that native code cannot run yet.
 pub fn lower(m: &y::Module) -> R<Program> {
     let mut types = Types {
