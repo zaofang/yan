@@ -8,7 +8,7 @@ use crate::bind::{self, Bind};
 use crate::compile::*;
 use crate::{
     Frame, Interp, Operand, R, Stop, Value, data, intrinsic, out_of_range, panic, panic_fields,
-    unsupported,
+    panic_with, unsupported,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -1019,6 +1019,9 @@ impl<'o> Vm<'o> {
                     }
                 }
                 Op::Panic(kind) => return panic(kind),
+                Op::CompileError(m) => {
+                    return panic_with("compile_error", code.msgs[m as usize].clone());
+                }
                 Op::Unsupported(m) => return unsupported(code.msgs[m as usize].clone()),
                 Op::Match { pat, src, to } => {
                     let p = &code.pats[pat as usize];

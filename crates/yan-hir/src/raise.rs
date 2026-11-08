@@ -818,8 +818,19 @@ fn field(f: &y::Field) -> R<Field> {
     if f.default.is_some() {
         return no("field defaults");
     }
+    let decorators = f
+        .attrs
+        .iter()
+        .map(|a| match a.args {
+            None => Ok(Decorator {
+                path: vec![a.name.clone()],
+                args: None,
+            }),
+            Some(_) => no("attributes with arguments"),
+        })
+        .collect::<R<_>>()?;
     Ok(Field {
-        decorators: Vec::new(),
+        decorators,
         name: f.name.clone(),
         ty: ty(&f.ty)?,
         ty_span: Span::default(),

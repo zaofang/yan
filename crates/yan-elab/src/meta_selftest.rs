@@ -273,6 +273,92 @@ fn info_reports_a_newtype_as_a_newtype() {
     assert_eq!(run(src), "newtype Meters\n");
 }
 
+const GUARDED: &str = "type Point = { x: int, y: float }\n\n\
+                       pick(t: Type, n: int) -> Type =\n\
+                       \x20 if n > 1\n\
+                       \x20   #compile_error(\"n must be 1\")\n\
+                       \x20 t\n\n";
+
+#[test]
+fn compile_error_in_a_type_function_is_e270_at_the_application() {
+    let src = format!(
+        "{GUARDED}\
+         type Bad = pick(Point, 2)\n\n\
+         main() uses io =\n\
+         \x20 io.print(\"\")\n"
+    );
+    let d = yn(&src).1;
+    assert_eq!(d.len(), 1, "{d:?}");
+    assert!(
+        d[0].starts_with("E270 8:1") && d[0].contains("n must be 1"),
+        "{d:?}"
+    );
+}
+
+#[test]
+fn compile_error_not_reached_is_no_error() {
+    let src = format!(
+        "{GUARDED}\
+         type Fine = pick(Point, 1)\n\n\
+         main() uses io =\n\
+         \x20 let p: Fine = Point(x: 1, y: 2.5)\n\
+         \x20 io.print(\"\\(p.x)\")\n"
+    );
+    assert_eq!(run(&src), "1\n");
+}
+
+#[test]
+fn a_type_function_may_not_use_capabilities_or_unsafe() {
+    let io = "type Point = { x: int, y: float }\n\n\
+              noisy(t: Type) -> Type uses io =\n\
+              \x20 io.print(\"hi\")\n\
+              \x20 t\n\n\
+              type Bad = noisy(Point)\n\n\
+              main() uses io =\n\
+              \x20 io.print(\"\")\n";
+    let d = yn(io).1;
+    assert!(
+        d.iter().any(|e| e.starts_with("E268") && e.contains("io")),
+        "{d:?}"
+    );
+    let helper = "type Point = { x: int, y: float }\n\n\
+                  raw() -> int =\n\
+                  \x20 unsafe\n\
+                  \x20   1\n\n\
+                  viaraw(t: Type) -> Type =\n\
+                  \x20 let n = raw()\n\
+                  \x20 t\n\n\
+                  type Bad = viaraw(Point)\n\n\
+                  main() uses io =\n\
+                  \x20 io.print(\"\")\n";
+    let d = yn(helper).1;
+    assert!(
+        d.iter()
+            .any(|e| e.starts_with("E268") && e.contains("unsafe")),
+        "{d:?}"
+    );
+}
+
+#[test]
+fn info_reports_field_annotations_and_reifiers_keep_them() {
+    let src = "type Point = { @tag x: int, y: float }\n\n\
+               tags(t: Type) -> str =\n\
+               \x20 match meta.info(t)\n\
+               \x20   Record(info:) -> \"\\(info.fields[0].annotations.len()) \\(info.fields[0].annotations[0].name) \\(info.fields[1].annotations.len())\"\n\
+               \x20   _ -> \"other\"\n\n\
+               clone_of(t: Type) -> Type =\n\
+               \x20 match meta.info(t)\n\
+               \x20   Record(info:) -> meta.record_type(RecordInfo(name: \"Copy\", params: [], fields: info.fields, annotations: [], layout: Layout(size: 0, align: 1)))\n\
+               \x20   _ -> t\n\n\
+               type Twin = clone_of(Point)\n\n\
+               let a: str = #tags(Point)\n\
+               let b: str = #tags(Twin)\n\n\
+               main() uses io =\n\
+               \x20 io.print(a)\n\
+               \x20 io.print(b)\n";
+    assert_eq!(run(src), "1 tag 0\n1 tag 0\n");
+}
+
 #[test]
 fn info_describes_array_axes() {
     let src = "type Grid = Array[3, str, f64]\n\n\

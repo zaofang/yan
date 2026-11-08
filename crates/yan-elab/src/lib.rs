@@ -21,6 +21,7 @@ mod jsonwire;
 mod lower;
 pub mod marks;
 mod reify;
+mod s0caps;
 mod session;
 mod stage0;
 mod stdlib;
@@ -94,6 +95,8 @@ pub(crate) struct Field {
     pub default: Option<j::Expr>,
     /// `@wire(name: ...)`: the key or column the field has in json and csv (R874, R878).
     pub wire: Option<String>,
+    /// The argument-free decorators, carried to Core (RFC 0051 D1).
+    pub attrs: Vec<y::Attr>,
 }
 
 /// E331 when two of `fs` have the same wire name.
@@ -897,6 +900,18 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                     ty_span: f.ty_span,
                     default: f.default.clone(),
                     wire: decorators::wire_name(&f.decorators).map_err(|u| u.at(at))?,
+                    attrs: f
+                        .decorators
+                        .iter()
+                        .filter(|d| d.args.is_none())
+                        .filter_map(|d| match d.path.as_slice() {
+                            [name] => Some(y::Attr {
+                                name: name.clone(),
+                                args: None,
+                            }),
+                            _ => None,
+                        })
+                        .collect(),
                 })
             })
             .collect()
@@ -1403,6 +1418,7 @@ fn core_fields(fs: &[Field]) -> R<Vec<y::Field>> {
     fs.iter()
         .map(|f| {
             Ok(y::Field {
+                attrs: f.attrs.clone(),
                 is_pub: true,
                 name: f.name.clone(),
                 ty: f.ty.core(),

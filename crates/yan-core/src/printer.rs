@@ -240,12 +240,15 @@ fn tparams(ps: &[TParam]) -> String {
 }
 
 fn field(f: &Field) -> String {
-    let mut s = format!(
+    let mut s: String = f.attrs.iter().map(|a| format!("{} ", attr(a))).collect();
+    write!(
+        s,
         "{}{}: {}",
         if f.is_pub { "pub " } else { "" },
         f.name,
         ty(&f.ty)
-    );
+    )
+    .unwrap();
     if let Some(d) = &f.default {
         write!(s, " = {}", const_val(d)).unwrap();
     }
