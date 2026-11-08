@@ -15,6 +15,7 @@ path = "src/main.rs"
 blake3.workspace = true
 sha2.workspace = true
 zip.workspace = true
+ureq.workspace = true
 parquet.workspace = true
 clap.workspace = true
 serde_json.workspace = true

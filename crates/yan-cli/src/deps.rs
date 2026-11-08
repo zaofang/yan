@@ -147,7 +147,7 @@ pub fn add(root: &Path, spec: &str, now: i64) -> Result<String, Failure> {
     let (exact, text) = text.strip_prefix('=').map_or((false, text), |t| (true, t));
     let (src, m) = manifest(root)?;
     let index = Registries::load(root)?.index(name)?;
-    let Some(versions) = index.versions(name) else {
+    let Some(versions) = index.versions(name)? else {
         let near = index.nearest(name);
         return Err(fail(
             "E003",
@@ -163,20 +163,26 @@ pub fn add(root: &Path, spec: &str, now: i64) -> Result<String, Failure> {
         .into());
     };
     let want = if text.is_empty() {
-        versions
-            .iter()
-            .filter_map(|v| index.info(name, v))
-            .map(|i| i.version)
-            .max_by_key(|v| lock::parts(v))
+        let mut newest: Option<String> = None;
+        for v in &versions {
+            if let Some(i) = index.info(name, v)?
+                && newest
+                    .as_ref()
+                    .is_none_or(|n| lock::parts(&i.version) > lock::parts(n))
+            {
+                newest = Some(i.version);
+            }
+        }
+        newest
             .map(|v| v.split('.').next().unwrap_or("0").to_owned())
             .unwrap_or_default()
     } else {
         text.to_owned()
     };
     let info = if exact {
-        index.info(name, &want).filter(|i| !i.yanked)
+        index.info(name, &want)?.filter(|i| !i.yanked)
     } else {
-        registry::newest(&index, name, &want, false, now)
+        registry::newest(&index, name, &want, false, now)?
     }
     .ok_or_else(|| {
         Failure::Msg(format!(
@@ -230,7 +236,7 @@ pub fn update(root: &Path, only: Option<&str>, now: i64) -> Result<Vec<String>, 
             continue;
         };
         seen = true;
-        let Some(info) = registry::newest(&index, name, current, false, now) else {
+        let Some(info) = registry::newest(&index, name, current, false, now)? else {
             continue;
         };
         if lock::parts(&info.version) <= lock::parts(current) {
