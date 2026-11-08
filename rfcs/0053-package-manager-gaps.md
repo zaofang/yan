@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Research: none; starts from issue #767, RFC 0044, spec 19 and the resolver in `crates/yan-cli/src/{registry,deps}.rs`
-- Rows: not yet numbered; claimed in the PR that writes the spec edits
+- Rows: R943 to R951 (D1 to D9 in order); E022
 
 ## Summary
 
@@ -31,7 +31,7 @@ a typo in `trust` or `min_release_age` must not be silently ignored, since both 
 rule for `min_release_age` stops a cloned repository from disabling the cool-off.
 
 - Decision: as recommended; Antonio, 2026-11-08
-- Row:
+- Row: R943
 
 ### D2: archive and store layout
 
@@ -50,7 +50,7 @@ equal bytes share one file, a corrupt file cannot be mistaken for a good one, an
 directory with nothing to translate. (b) is easier to browse, which `yan tree` and `yan why` do not need.
 
 - Decision: as recommended; Antonio, 2026-11-08
-- Row:
+- Row: R944
 
 ### D3: fields added to `yan.lock`
 
@@ -73,7 +73,7 @@ large, stay out of merge conflicts. Inlining them (the 19.4 text says "bundles l
 be changed to "referenced from"; this RFC asks for that edit.
 
 - Decision: as recommended; Antonio, 2026-11-08
-- Row:
+- Row: R945
 
 ### D4: HTTPS indexes
 
@@ -92,7 +92,7 @@ Recommendation: (a) plus loopback `http://` under (b) for tests only, gated on t
 or `::1`. A directory is already the `file://` case, so (c) adds a second spelling for nothing.
 
 - Decision: as recommended; Antonio, 2026-11-08
-- Row:
+- Row: R946
 
 ### D5: gate semantics for E004 and E007
 
@@ -118,7 +118,7 @@ archive, but the lock's digest means the substitution is caught on the next buil
 at worst blocks a version, which `yan approve` with `--override-mark` (D6) clears.
 
 - Decision: as recommended; Antonio, 2026-11-08
-- Row:
+- Row: R947
 
 ### D6: `yan approve` and `yan vendor`
 
@@ -138,7 +138,7 @@ unsigned record, so nothing weaker than the spec is accepted anywhere that matte
 `signer = "local"` explicitly so M2 can reject it by value.
 
 - Decision: as recommended; Antonio, 2026-11-08
-- Row:
+- Row: R948
 
 ### D7: cool-off bypass for advisory fixes, and the yank reason
 
@@ -155,7 +155,7 @@ is printed as such, naming the advisory id, so a reviewer of the lock diff sees 
 taken.
 
 - Decision: as recommended; Antonio, 2026-11-08
-- Row:
+- Row: R949
 
 ### D8: `overrides` and the `python` environment
 
@@ -174,7 +174,7 @@ E017, not ignored. `python` (b): the Python environment is `uv`'s job, the proje
 resolver would drift from it. Yan resolves only what must be identical across machines, the digest.
 
 - Decision: as recommended; Antonio, 2026-11-08
-- Row:
+- Row: R950
 
 ### D9: dependencies, dev dependencies and tools as three subgraphs
 
@@ -189,7 +189,7 @@ of its minimums across them, so the lock holds one version per (name, major), an
 subgraphs use it. (c) is rejected because it splits the one source of truth for versions.
 
 - Decision: as recommended; Antonio, 2026-11-08
-- Row:
+- Row: R951
 
 ## Spec changes
 

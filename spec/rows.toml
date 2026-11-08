@@ -1404,3 +1404,48 @@ sections = "10.4, 14.1, 17.3, 25"
 rows = "R942"
 topic = "A user type-function application may appear in any type position, with stage-0 expressions (literals, constants, types, calls) as arguments; applications run once each in dependency order, and one that depends on its own result is E261 (RFC 0051 D4)"
 sections = "10.4, 25"
+
+[[entry]]
+rows = "R943"
+topic = "`.yan/config.yag` is one `Config(registries, min_release_age, trust, offline, store)` record, unknown fields an error; lookup is workspace then user per key, `registries` merging by namespace, and a workspace may only raise the user's `min_release_age` (RFC 0053 D1)"
+sections = "19.1, 19.3"
+
+[[entry]]
+rows = "R944"
+topic = "Archives are content-addressed: `archives/<sha256>.zip` and an unpacked `src/<sha256>/` under `.yan/store`, `vendor/` or the user store, looked up in that order and re-verified against `yan.lock` on every read; an archive with a symlink, absolute path, `..` component or duplicate path is E022 (RFC 0053 D2)"
+sections = "19.3, 19.4, 25.2"
+
+[[entry]]
+rows = "R945"
+topic = "Each `[[package]]` table has fields in the order name, version, source, digest, capability_digest, publisher, approvals, rebuilds; approvals and rebuilds hold bundle digests, bodies live in `.yan/bundles/` and `vendor/bundles/` (RFC 0053 D3)"
+sections = "19.1, 19.4"
+
+[[entry]]
+rows = "R946"
+topic = "A `registries` value may be a directory, an `https://` URL, or an `http://` URL whose host is loopback; redirects stay on the same host over HTTPS, bodies are size-limited, and the archive digest is always checked against `.info` and the lock (RFC 0053 D4)"
+sections = "19.3"
+
+[[entry]]
+rows = "R947"
+topic = "Before the registry exists, E004 is enforced with no search snapshot meaning nothing is established, and E007 is enforced from an unsigned `.info` `malicious` flag; both gate the agent caller, never an interactive human add for E004 (RFC 0053 D5)"
+sections = "19.3, 19.4"
+
+[[entry]]
+rows = "R948"
+topic = "`yan vendor` copies every locked archive and referenced bundle into `vendor/` with digest checks and prunes unlocked entries; before M2 `yan approve` writes a record with `signer = \"local\"` that clears local gates but fails the CI `approvers` check (E009) (RFC 0053 D6)"
+sections = "18.1, 19.4"
+
+[[entry]]
+rows = "R949"
+topic = "A version's `.info` lists the advisory ids it fixes and affects; a fix of an advisory affecting the lock bypasses the cool-off, and `yan update` prints each yanked locked version's reason (control characters stripped, 200 characters) and names any bypass (RFC 0053 D7)"
+sections = "19.3, 19.4"
+
+[[entry]]
+rows = "R950"
+topic = "An override replaces only its (name, major) and the lock records `source = \"override\"`; a manifest with `overrides` is E017 until implemented; the Python environment stays with `uv` and the lock records the `pylock.toml` digest (RFC 0053 D8)"
+sections = "19.1"
+
+[[entry]]
+rows = "R951"
+topic = "`dependencies`, `dev_dependencies` and `tools` resolve as three subgraphs; a package in several resolves to the maximum of its minimums, one version per (name, major), and the lock marks each package with `kinds` (RFC 0053 D9)"
+sections = "19.1"
