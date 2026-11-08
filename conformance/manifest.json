@@ -7245,6 +7245,209 @@
    ]
   },
   {
+   "path": "yn/fail/ffi/e284_axis_out_of_rank.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R952"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 11,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_operand_missing.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R952"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 11,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_operand_not_array.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R952"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 11,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_operand_repeated.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R952"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 11,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_operand_unknown.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R952"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 11,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_region_bad.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R952"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 11,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_tile_zero.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R952"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 11,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 11,
+     "col": 43
+    }
+   ]
+  },
+  {
    "path": "yn/fail/ffi/e903_unsafe_call_outside_block.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -9116,6 +9319,22 @@
     "8.3"
    ],
    "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "",
+   "exit": 101
+  },
+  {
+   "path": "yir/run/ensures_fails.yir",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "8.2",
+    "8.4"
+   ],
+   "rows": [
+    "R882"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "",
