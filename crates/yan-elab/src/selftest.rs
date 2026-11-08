@@ -599,6 +599,19 @@ fn exclusive_returning_branches_share_one_use() {
 }
 
 #[test]
+fn reassignment_ends_a_moved_name() {
+    let src = "def f(n: int) -> int:\n    xs = [0]\n    for i in range(n):\n        ys = xs\n        xs = [i]\n        print(len(ys))\n    return len(xs)\n\n\
+               def g(n: int) -> int:\n    xs = [0]\n    ys = xs\n    if n > 0:\n        xs = [n]\n    return len(xs) + len(ys)\n";
+    let (_, d) = lower(src);
+    let e413: Vec<_> = d
+        .iter()
+        .filter(|d| d.code == "E413")
+        .map(|d| d.span.line)
+        .collect();
+    assert_eq!(e413, [11], "{d:?}");
+}
+
+#[test]
 fn std_functions_called_only_in_a_contract_are_lowered() {
     let src = "def below(n: int) -> list[int]:\n    post all(p < n for p in out)\n    return list(range(n))\n\n\
                pub def main() uses io:\n    io.print(f\"{below(3)}\")\n";
