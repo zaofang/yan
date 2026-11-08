@@ -1584,7 +1584,7 @@ impl Lower<'_, '_, '_> {
                 name: k,
                 params: vec![y::Param::Value {
                     comptime: false,
-                    conv: Conv::Let,
+                    conv: Conv::Sink,
                     name: v.clone(),
                     ty: ty.core(),
                 }],
