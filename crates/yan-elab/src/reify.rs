@@ -12,7 +12,7 @@ use yan_interp::Stage0;
 use crate::{Cx, R, stage0, unsupported};
 
 /// The function an alias applies, when it is a function of the module returning `Type`.
-fn type_fn<'a>(m: &'a j::Module, path: &[String]) -> Option<&'a j::Item> {
+pub(crate) fn type_fn<'a>(m: &'a j::Module, path: &[String]) -> Option<&'a j::Item> {
     let [name] = path else { return None };
     m.items.iter().find(|it| {
         matches!(&it.kind, j::ItemKind::Func(f) if &f.name == name
@@ -47,7 +47,12 @@ fn spell(e: &j::Expr) -> Option<String> {
         j::ExprKind::Name(n) => n.clone(),
         j::ExprKind::Index(b, k) => format!("{}[{}]", spell(b)?, spell(k)?),
         j::ExprKind::Tuple(xs) => xs.iter().map(spell).collect::<Option<Vec<_>>>()?.join(", "),
-        _ => format!("{:?}", crate::const_val(e).ok()?),
+        _ => match crate::const_val(e) {
+            Ok(v) => format!("{v:?}"),
+            // A stage-0 constant or call: its spelling keys the run, and equal results unify
+            // by the name the function gives the type.
+            Err(_) => format!("{:?}", e.kind),
+        },
     })
 }
 
@@ -55,9 +60,11 @@ fn key(path: &[String], args: &[j::Arg]) -> R<String> {
     let mut parts = Vec::new();
     for a in args {
         match (&a.name, &a.kind) {
-            (None, j::ArgKind::Expr(e)) => parts.push(spell(e).ok_or(()).or_else(|()| {
-                unsupported("a type-function argument that is not a literal or a type")
-            })?),
+            (None, j::ArgKind::Expr(e)) => parts.push(
+                spell(e)
+                    .ok_or(())
+                    .or_else(|()| unsupported("a type-function argument of this form"))?,
+            ),
             _ => return unsupported("a named or `&` type-function argument"),
         }
     }
@@ -183,15 +190,19 @@ fn hir_item(d: &y::Item, from: &j::Item) -> R<j::Item> {
         }),
         _ => return unsupported("a reified declaration of this kind"),
     };
+    let mut decorators: Vec<j::Decorator> = d
+        .attrs
+        .iter()
+        .map(|a| j::Decorator {
+            path: vec![a.name.clone()],
+            args: None,
+        })
+        .collect();
+    if matches!(d.kind, y::ItemKind::Newtype(_)) {
+        decorators.push(crate::desugar::newtype_mark());
+    }
     Ok(j::Item {
-        decorators: d
-            .attrs
-            .iter()
-            .map(|a| j::Decorator {
-                path: vec![a.name.clone()],
-                args: None,
-            })
-            .collect(),
+        decorators,
         is_pub: from.is_pub,
         kind,
         span: at,
@@ -321,7 +332,7 @@ fn run(
 /// order: the reified declarations join the module, and `X` becomes an alias of the type
 /// (E265 when a name is taken). A failed alias is dropped, so its uses are E200. Returns the failed aliases.
 pub(crate) fn expand(m: &mut j::Module, cx: &mut Cx) -> R<Vec<String>> {
-    let mut broken = Vec::new();
+    let mut broken = order(m, cx);
     let mut memo: HashMap<String, String> = HashMap::new();
     let mut at = 0;
     while at < m.items.len() {
@@ -400,6 +411,60 @@ pub(crate) fn expand(m: &mut j::Module, cx: &mut Cx) -> R<Vec<String>> {
         }
     }
     Ok(broken)
+}
+
+/// Put the applications in dependency order (an argument that names another application's alias
+/// needs it applied first), and drop the ones that depend on their own result with E261.
+fn order(m: &mut j::Module, cx: &mut Cx) -> Vec<String> {
+    let slots: Vec<usize> = (0..m.items.len())
+        .filter(|&i| application(m, &m.items[i]).is_some())
+        .collect();
+    let names: Vec<String> = slots
+        .iter()
+        .map(|&i| m.items[i].kind.name().to_owned())
+        .collect();
+    let deps: Vec<Vec<usize>> = slots
+        .iter()
+        .map(|&i| {
+            let (_, _, args) = application(m, &m.items[i]).expect("an application");
+            let text = format!("{args:?}");
+            let used: HashSet<&str> = words(&text).collect();
+            (0..names.len())
+                .filter(|&k| used.contains(names[k].as_str()))
+                .collect()
+        })
+        .collect();
+    let mut done: Vec<usize> = Vec::new();
+    while done.len() < slots.len() {
+        let next = (0..slots.len())
+            .find(|k| !done.contains(k) && deps[*k].iter().all(|d| done.contains(d)));
+        match next {
+            Some(k) => done.push(k),
+            None => break,
+        }
+    }
+    let cyclic: Vec<usize> = (0..slots.len()).filter(|k| !done.contains(k)).collect();
+    let items: Vec<j::Item> = slots.iter().map(|&i| m.items[i].clone()).collect();
+    for (pos, &k) in done.iter().chain(&cyclic).enumerate() {
+        m.items[slots[pos]] = items[k].clone();
+    }
+    let mut broken = Vec::new();
+    for &k in &cyclic {
+        cx.err(
+            "E261",
+            items[k].span,
+            &names[k],
+            format!(
+                "`{}` depends on its own result; stage-0 evaluation cannot start",
+                names[k]
+            ),
+        );
+        broken.push(names[k].clone());
+    }
+    for &i in slots[done.len()..].iter().rev() {
+        m.items.remove(i);
+    }
+    broken
 }
 
 /// D5: a function returning `Type` is called only at stage 0, from another one or under `#`.

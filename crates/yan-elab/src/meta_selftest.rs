@@ -202,3 +202,73 @@ fn a_type_function_called_at_run_time_is_e262() {
         yn(&src).1
     );
 }
+
+#[test]
+fn an_application_may_appear_in_any_type_position() {
+    let src = format!(
+        "{MIRROR}\
+         type Box = {{ inner: mirror(Point), more: List[mirror(Point)] }}\n\n\
+         twin(p: mirror(Point)) -> mirror(Point) =\n\
+         \x20 p\n\n\
+         main() uses io =\n\
+         \x20 let a: mirror(Point) = Mirror(x2: 1, y2: 2.5)\n\
+         \x20 let b = Box(inner: twin(a), more: [a])\n\
+         \x20 io.print(\"\\(b.inner.x2) \\(b.more.len())\")\n"
+    );
+    assert_eq!(run(&src), "1 1\n");
+}
+
+#[test]
+fn application_arguments_are_stage_0_constants_and_calls() {
+    let src = "type Shape = Circle(r: float) | Dot()\n\n\
+               let k: int = 3\n\n\
+               two() -> int = 2\n\n\
+               wrap(t: Type, n: int) -> Type =\n\
+               \x20 meta.newtype(NewtypeInfo(name: \"N\\(n)\", inner: t, annotations: []))\n\n\
+               main() uses io =\n\
+               \x20 let a: wrap(int, k) = N3(7)\n\
+               \x20 let b: wrap(int, two() + 1) = N3(8)\n\
+               \x20 io.print(\"\\(a.value) \\(b.value)\")\n";
+    assert_eq!(run(src), "7 8\n");
+}
+
+#[test]
+fn an_application_that_depends_on_its_own_result_is_not_a_hang() {
+    let src = format!(
+        "{MIRROR}\
+         type Loop = mirror(Loop)\n\n\
+         main() uses io =\n\
+         \x20 io.print(\"\")\n"
+    );
+    assert!(
+        yn(&src).1.iter().any(|d| d.starts_with("E261")),
+        "{:?}",
+        yn(&src).1
+    );
+}
+
+#[test]
+fn applications_run_in_dependency_order() {
+    let src = "wrap(t: Type, n: int) -> Type =\n\
+               \x20 meta.newtype(NewtypeInfo(name: \"N\\(n)\", inner: t, annotations: []))\n\n\
+               type Outer = wrap(Inner, 2)\n\
+               type Inner = wrap(int, 1)\n\n\
+               main() uses io =\n\
+               \x20 let o: Outer = N2(N1(5))\n\
+               \x20 io.print(\"\\(o.value.value)\")\n";
+    assert_eq!(run(src), "5\n");
+}
+
+#[test]
+fn info_reports_a_newtype_as_a_newtype() {
+    let src = "type Meters = newtype[float]\n\n\
+               kind(t: Type) -> str =\n\
+               \x20 match meta.info(t)\n\
+               \x20   Newtype(info:) -> \"newtype \\(info.name)\"\n\
+               \x20   Record(info:) -> \"record\"\n\
+               \x20   _ -> \"other\"\n\n\
+               let k: str = #kind(Meters)\n\n\
+               main() uses io =\n\
+               \x20 io.print(k)\n";
+    assert_eq!(run(src), "newtype Meters\n");
+}
