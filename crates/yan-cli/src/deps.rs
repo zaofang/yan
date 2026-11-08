@@ -146,7 +146,7 @@ pub fn add(root: &Path, spec: &str, now: i64) -> Result<String, Failure> {
     };
     let (exact, text) = text.strip_prefix('=').map_or((false, text), |t| (true, t));
     let (src, m) = manifest(root)?;
-    let index = Registries::load(root).index(name)?;
+    let index = Registries::load(root)?.index(name)?;
     let Some(versions) = index.versions(name) else {
         let near = index.nearest(name);
         return Err(fail(
@@ -216,7 +216,7 @@ pub fn remove(root: &Path, name: &str) -> Result<String, Failure> {
 /// cool-off window in its major, unless the publisher changed (E005).
 pub fn update(root: &Path, only: Option<&str>, now: i64) -> Result<Vec<String>, Failure> {
     let (mut src, m) = manifest(root)?;
-    let registries = Registries::load(root);
+    let registries = Registries::load(root)?;
     let mut moved = Vec::new();
     let mut seen = false;
     for r in &m.requirements {
@@ -349,6 +349,31 @@ mod tests {
         )
         .unwrap();
         dir
+    }
+
+    #[test]
+    fn config_fields_are_checked_and_the_workspace_may_only_raise_the_cool_off() {
+        let dir = world("config-fields");
+        let write = |body: &str| {
+            std::fs::write(
+                dir.join(".yan/config.yag"),
+                format!("config: Config = Config(registries={{\"@a\": \"index\"}}, {body})\n"),
+            )
+            .unwrap();
+        };
+        write("colour=1");
+        assert_eq!(Registries::load(&dir).err().unwrap().code, "E018");
+        write("min_release_age=0, trust=[\"x\"], offline=false, store=\"s\"");
+        let now = registry::now();
+        assert!(add(&dir, "@a/b@2", now).is_err());
+        assert_eq!(add(&dir, "@a/b", now).ok().unwrap(), "added @a/b 1.2.0");
+        let dir = world("raised");
+        std::fs::write(
+            dir.join(".yan/config.yag"),
+            "config: Config = Config(registries={\"@a\": \"index\"}, min_release_age=100000)\n",
+        )
+        .unwrap();
+        assert!(add(&dir, "@a/b", now).is_err());
     }
 
     #[test]
