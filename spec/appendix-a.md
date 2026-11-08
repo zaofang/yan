@@ -286,6 +286,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R938 | `par concurrent` ranks `SessionClosed` like `Cancelled`: a peer's session failure never hides the failure that closed the session (#690) | 9.4, 9.5 |
 | R939 | A `Type` is a stage-0 handle to a resolved type, compared by type identity (aliases are their target); a type expression where a `Type` is expected is a handle, and one outside stage 0 is E262. `std.meta.info(t) -> TypeInfo`, a `@non_exhaustive` sum whose `match` needs a wildcard (E503), describes records, sums, newtypes, scalars, arrays, views, optionals, tuples, functions, built-ins and traits (RFC 0051 D1, D2) | 10.4, 17.3 |
 | R940 | E602 fires only in a module that has a `requires`, `ensures`, `example` or loop `invariant`; contract-free recursion needs no `decreases`, so Advent-of-Code style programs check clean | 8.4, 25 |
+| R941 | `record_type`, `sum_type` and `newtype` reify reflection records into nominal types; a function returning `Type` is a stage-0 function defined in Yan Core and Yan (a run-time call is E262), `type X = f(args)` applies it in source order, and Yan Agent does not define one (E283) (RFC 0051 D3, D5, D6) | 10.4, 14.1, 17.3, 25 |
 
 <!-- /rows -->
 

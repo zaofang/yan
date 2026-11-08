@@ -1394,3 +1394,8 @@ sections = "10.4, 17.3"
 rows = "R940"
 topic = "E602 fires only in a module that has a `requires`, `ensures`, `example` or loop `invariant`; contract-free recursion needs no `decreases`, so Advent-of-Code style programs check clean"
 sections = "8.4, 25"
+
+[[entry]]
+rows = "R941"
+topic = "`record_type`, `sum_type` and `newtype` reify reflection records into nominal types; a function returning `Type` is a stage-0 function defined in Yan Core and Yan (a run-time call is E262), `type X = f(args)` applies it in source order, and Yan Agent does not define one (E283) (RFC 0051 D3, D5, D6)"
+sections = "10.4, 14.1, 17.3, 25"

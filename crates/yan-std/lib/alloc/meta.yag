@@ -64,3 +64,15 @@ pub type TypeInfo = Record(info: RecordInfo) | Sum(info: SumInfo) | Newtype(info
 @intrinsic
 @since("1.0")
 pub def info(t: Type) -> TypeInfo: ...
+
+@intrinsic
+@since("1.0")
+pub def record_type(r: RecordInfo) -> Type: ...
+
+@intrinsic
+@since("1.0")
+pub def sum_type(s: SumInfo) -> Type: ...
+
+@intrinsic
+@since("1.0")
+pub def newtype(n: NewtypeInfo) -> Type: ...

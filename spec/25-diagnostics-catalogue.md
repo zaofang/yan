@@ -94,7 +94,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E251 | capability set includes itself, directly or through another set (R431) new | 7.1 |
 | E260 | stage-0 panic (with stage-0 backtrace and use site) *new* | 10.4 |
 | E261 | stage-0 step, heap or depth budget exceeded *new* | 10.4 |
-| E262 | non-materializable value crosses into run time *new* | 10.4 |
+| E262 | non-materializable value crosses into run time, or a function returning `Type` is called at run time *new* | 10.4 |
 | E263 | compile-time function parameter not specialized away *new* | 10.4 |
 | E264 | reflection access to an item or field not visible at the call site *new* | 10.4 |
 | E265 | reified name collides with an existing name *new* | 10.4 |
@@ -116,6 +116,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E280 | one parameter documented both in an `Args:` section and above the parameter (R846) *new* | 18.9 |
 | E281 | a type written in a parameter doc disagrees with the signature (R849) *new* | 14.4 |
 | E282 | a derived trait (`Eq`, `Ord`, `Hash`, `Show`, `Wire`) has a field whose type does not implement it; one diagnostic per field, at the field's type annotation (RFC 0040, R872, R873) *new* | 10.4, 17.4 |
+| E283 | a Yan Agent function returns `Type`: Yan Agent applies type functions but does not define them (RFC 0051 D6, R941) *new* | 10.4, 14 |
 | E233 | str or f-string where a Template is expected (R452) new | 13.1 |
 
 ### 25.5 Capabilities, handlers and failure

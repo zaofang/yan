@@ -6593,6 +6593,9 @@ impl Lower<'_, '_, '_> {
         let Some(sig) = self.g.fns.get(name) else {
             return unsupported(format!("`{name}`"));
         };
+        if sig.ret == Ty::Type && sig.params.iter().all(|p| p.ty != Ty::Type) {
+            crate::reify::stage0_only(self.g, &self.item, name, at, self.cx);
+        }
         if let Some(&(safe, variadic)) = self.g.externs.get(name) {
             if !safe && !self.in_unsafe {
                 self.err(
