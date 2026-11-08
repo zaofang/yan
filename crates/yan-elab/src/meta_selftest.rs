@@ -274,6 +274,61 @@ fn info_reports_a_newtype_as_a_newtype() {
 }
 
 #[test]
+fn info_describes_array_axes() {
+    let src = "type Grid = Array[3, str, f64]\n\n\
+               axis(t: Type, i: int) -> str =\n\
+               \x20 match meta.info(t)\n\
+               \x20   Array(info:) ->\n\
+               \x20     match info.axes[i]\n\
+               \x20       Positional(size:) -> \"\\(size)\"\n\
+               \x20       Variable(name:) -> name\n\
+               \x20       Labelled(label:) -> \"label \\(label == str)\"\n\
+               \x20   _ -> \"other\"\n\n\
+               shape(t: Type) -> str =\n\
+               \x20 match meta.info(t)\n\
+               \x20   Array(info:) -> \"\\(info.axes.len()) \\(axis(t, 0)) \\(axis(t, 1)) \\(info.elem == f64)\"\n\
+               \x20   _ -> \"other\"\n\n\
+               let s: str = #shape(Grid)\n\n\
+               main() uses io =\n\
+               \x20 io.print(s)\n";
+    assert_eq!(run(src), "2 3 label True True\n");
+}
+
+#[test]
+fn info_describes_a_trait() {
+    let src = "trait Acquirer\n\
+               \x20 send(self, pan: str, minor: int) -> bool\n\n\
+               methods(t: Type) -> str =\n\
+               \x20 match meta.info(t)\n\
+               \x20   Trait(info:) -> \"\\(info.name) \\(info.methods.len()) \\(info.methods[0].name) \\(info.methods[0].sig.params.len())\"\n\
+               \x20   _ -> \"other\"\n\n\
+               let m: str = #methods(Acquirer)\n\n\
+               main() uses io =\n\
+               \x20 io.print(m)\n";
+    assert_eq!(run(src), "Acquirer 1 send 3\n");
+}
+
+#[test]
+fn an_application_inside_a_larger_expression_is_hoisted() {
+    let src = "same(t: Type) -> Type =\n\
+               \x20 t\n\n\
+               main() uses io =\n\
+               \x20 io.print(\"\\(f(1 as same(i64)))\")\n";
+    let (ast, _) = yan_yn::parse("t.yn", src);
+    let (mut h, _) = yan_yn::lower("t.yn", src, &ast).expect("lowers");
+    crate::tyapp::hoist(&mut h);
+    let aliases: Vec<_> = h
+        .items
+        .iter()
+        .filter_map(|it| match &it.kind {
+            j::ItemKind::Type(d) => Some(d.name.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(aliases, ["__app_1"]);
+}
+
+#[test]
 fn info_reports_layout_of_records_and_sums() {
     let src = format!(
         "{TYPES}\

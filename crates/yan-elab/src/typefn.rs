@@ -35,6 +35,10 @@ fn values(args: &[j::Arg]) -> R<Vec<y::ConstVal>> {
 pub(crate) fn applied(g: &Globals, path: &[String], args: &[j::Arg]) -> R<Ty> {
     match g.applied.get(&key(path, &values(args)?)) {
         Some(t) => Ok(t.clone()),
+        // A protocol's endpoint types are named after its alias, so it needs one (R926).
+        None if path == ["session", "protocol"] => unsupported(
+            "`session.protocol` without an alias of the same arguments; name it with `type P = session.protocol(...)`",
+        ),
         None => unsupported("a type function applied anywhere but `type X = f(...)`"),
     }
 }

@@ -3,8 +3,8 @@
 //! before the item that uses it, so [`crate::reify::expand`] evaluates it once on the stage-0
 //! interpreter and every use resolves to the reified type.
 //!
-//! Types inside expressions other than statement annotations (a cast in a larger expression)
-//! are not visited.
+//! The types inside expressions are visited too, so a cast inside a call is an application.
+//! `session.protocol(...)` hoists the same way, into the alias form its expansion reads.
 
 use yan_hir as j;
 
@@ -147,27 +147,59 @@ fn func(f: &mut j::FuncDef, v: V) {
 fn stmts(ss: &mut [j::Stmt], v: V) {
     for s in ss {
         match &mut s.kind {
-            j::StmtKind::Assign { ty: Some(t), .. }
-            | j::StmtKind::Ghost { ty: Some(t), .. }
-            | j::StmtKind::Bind { ty: Some(t), .. } => ty(t, v),
-            j::StmtKind::Unsafe(b)
-            | j::StmtKind::StageFor { body: b, .. }
-            | j::StmtKind::While { body: b, .. }
-            | j::StmtKind::For { body: b, .. } => stmts(b, v),
-            j::StmtKind::StageIf { then, els, .. } => {
+            j::StmtKind::Assign {
+                target,
+                ty: t,
+                value,
+            } => {
+                t.iter_mut().for_each(|t| ty(t, v));
+                expr(target, v);
+                expr(value, v);
+            }
+            j::StmtKind::Ghost { ty: t, value, .. } | j::StmtKind::Bind { ty: t, value, .. } => {
+                t.iter_mut().for_each(|t| ty(t, v));
+                expr(value, v);
+            }
+            j::StmtKind::AugAssign { target, value, .. } => {
+                expr(target, v);
+                expr(value, v);
+            }
+            j::StmtKind::Expr(e)
+            | j::StmtKind::Become(e)
+            | j::StmtKind::Fail(e)
+            | j::StmtKind::Assert(e)
+            | j::StmtKind::Return(Some(e)) => expr(e, v),
+            j::StmtKind::Unsafe(b) => stmts(b, v),
+            j::StmtKind::StageFor { iter, body, .. } | j::StmtKind::For { iter, body, .. } => {
+                expr(iter, v);
+                stmts(body, v);
+            }
+            j::StmtKind::While { cond, body, .. } => {
+                expr(cond, v);
+                stmts(body, v);
+            }
+            j::StmtKind::StageIf { cond, then, els } => {
+                expr(cond, v);
                 stmts(then, v);
                 if let Some(e) = els {
                     stmts(e, v);
                 }
             }
             j::StmtKind::If { arms, els } => {
-                arms.iter_mut().for_each(|(_, b)| stmts(&mut b.stmts, v));
+                for (c, b) in arms {
+                    expr(c, v);
+                    stmts(&mut b.stmts, v);
+                }
                 if let Some(b) = els {
                     stmts(&mut b.stmts, v);
                 }
             }
-            j::StmtKind::Match { cases, .. } => {
-                cases.iter_mut().for_each(|c| stmts(&mut c.body.stmts, v));
+            j::StmtKind::Match { scrutinee, cases } => {
+                expr(scrutinee, v);
+                for c in cases {
+                    c.guard.iter_mut().for_each(|g| expr(g, v));
+                    stmts(&mut c.body.stmts, v);
+                }
             }
             j::StmtKind::With { body, .. } => stmts(&mut body.stmts, v),
             j::StmtKind::Par { body, .. } => match body {
@@ -175,5 +207,80 @@ fn stmts(ss: &mut [j::Stmt], v: V) {
             },
             _ => {}
         }
+    }
+}
+
+/// The types inside an expression: the target of each cast.
+fn expr(e: &mut j::Expr, v: V) {
+    use j::ExprKind as K;
+    match &mut e.kind {
+        K::Cast(x, t) => {
+            expr(x, v);
+            ty(t, v);
+        }
+        K::FStr { pieces, .. } => {
+            for p in pieces {
+                if let j::FPiece::Expr(x, _) = p {
+                    expr(x, v);
+                }
+            }
+        }
+        K::Tuple(xs) | K::List(xs) | K::Set(xs) => xs.iter_mut().for_each(|x| expr(x, v)),
+        K::Dict(kvs) => kvs.iter_mut().for_each(|(k, x)| {
+            expr(k, v);
+            expr(x, v);
+        }),
+        K::Comp {
+            elem,
+            value,
+            iter,
+            cond,
+            ..
+        } => {
+            expr(elem, v);
+            value.iter_mut().for_each(|x| expr(x, v));
+            expr(iter, v);
+            cond.iter_mut().for_each(|x| expr(x, v));
+        }
+        K::Call(f, args) => {
+            expr(f, v);
+            for a in args {
+                match &mut a.kind {
+                    j::ArgKind::Expr(x) | j::ArgKind::Ref(x) | j::ArgKind::Become(x) => expr(x, v),
+                }
+            }
+        }
+        K::Index(a, b) | K::Binary(_, a, b) | K::Compare(_, a, b) => {
+            expr(a, v);
+            expr(b, v);
+        }
+        K::Slice(x, parts, _) => {
+            expr(x, v);
+            parts.iter_mut().flatten().for_each(|p| expr(p, v));
+        }
+        K::Attr(x, ..)
+        | K::Try(x)
+        | K::Unary(_, x)
+        | K::Not(x)
+        | K::Lambda(_, x)
+        | K::Reify(x)
+        | K::Stage(x) => expr(x, v),
+        K::Cond { then, cond, els } => {
+            expr(then, v);
+            expr(cond, v);
+            expr(els, v);
+        }
+        K::Fallback(x, fb) => {
+            expr(x, v);
+            match &mut **fb {
+                j::Fallback::Value(y) | j::Fallback::Bind(_, y) | j::Fallback::Fail(y) => {
+                    expr(y, v)
+                }
+                j::Fallback::Return(y) => y.iter_mut().for_each(|y| expr(y, v)),
+                j::Fallback::Block(_, b) => stmts(b, v),
+                j::Fallback::Break | j::Fallback::Continue => {}
+            }
+        }
+        K::Name(_) | K::Lit(_) | K::Hole | K::Wild => {}
     }
 }
