@@ -531,7 +531,14 @@ fn declare_rt<M: Module>(module: &mut M) -> R<([CFuncId; 3], CFuncId, Vec<CFuncI
         .map(|f| {
             let (name, _, params, ret) = rt_fn(*f);
             let mut sig = module.make_signature();
-            sig.params.extend(params.iter().map(|t| AbiParam::new(*t)));
+            // Rust reads a `u8` argument as a zero-extended register.
+            sig.params.extend(params.iter().map(|t| {
+                if *t == types::I8 {
+                    AbiParam::new(*t).uext()
+                } else {
+                    AbiParam::new(*t)
+                }
+            }));
             sig.returns.extend(ret.map(AbiParam::new));
             module
                 .declare_function(name, Linkage::Import, &sig)
