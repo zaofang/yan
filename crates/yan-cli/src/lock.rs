@@ -194,25 +194,32 @@ fn raise(mins: &mut BTreeMap<Key, Min>, requirer: &str, req: &str) -> Result<(),
 /// Minimal version selection: the smallest published version at or above the minimum. A yanked
 /// version is never newly selected but stays where the lock already pins it (19.3).
 fn select(index: &Index, m: &Min, pinned: Option<&str>) -> Result<Info, Box<Diagnostic>> {
-    index
-        .versions(&m.name)
-        .into_iter()
-        .flatten()
-        .filter(|v| crate::registry::satisfies(v, &m.want))
-        .filter_map(|v| index.info(&m.name, &v))
-        .filter(|i| !i.yanked || pinned == Some(i.version.as_str()))
-        .min_by_key(|i| parts(&i.version))
-        .ok_or_else(|| {
-            fail(
-                "E021",
-                format!(
-                    "no published version of `{}` satisfies {} (required by {})",
-                    m.name,
-                    m.want,
-                    m.requirers.join(", ")
-                ),
-            )
-        })
+    let mut best: Option<Info> = None;
+    for v in index.versions(&m.name)?.into_iter().flatten() {
+        if !crate::registry::satisfies(&v, &m.want) {
+            continue;
+        }
+        let Some(i) = index.info(&m.name, &v)? else {
+            continue;
+        };
+        let older = best
+            .as_ref()
+            .is_none_or(|b| parts(&i.version) < parts(&b.version));
+        if (!i.yanked || pinned == Some(i.version.as_str())) && older {
+            best = Some(i);
+        }
+    }
+    best.ok_or_else(|| {
+        fail(
+            "E021",
+            format!(
+                "no published version of `{}` satisfies {} (required by {})",
+                m.name,
+                m.want,
+                m.requirers.join(", ")
+            ),
+        )
+    })
 }
 
 /// Resolve every requirement of the package at `root` and of its members: against the members
