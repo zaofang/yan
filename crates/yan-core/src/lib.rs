@@ -9,7 +9,7 @@ mod parser;
 mod printer;
 
 pub use parser::parse;
-pub use printer::{print, ty as type_text};
+pub use printer::{expr as expr_text, print, ty as type_text};
 
 #[cfg(test)]
 mod selftest {

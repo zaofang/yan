@@ -36,6 +36,8 @@ pub enum Ty {
     Foreign(&'static str, Vec<Ty>),
     /// `Array[a1, ..., an, T]` (11.2): each axis as written, a literal size or a label type.
     Array(Vec<String>, Box<Ty>),
+    /// A stage-0 type handle (10.4, RFC 0051 D1).
+    Type,
     /// Produced after an error was reported; compatible with every type.
     Err,
 }
@@ -126,6 +128,7 @@ impl Ty {
             Ty::Char => named("char", vec![]),
             Ty::Fixed(n) => named(n, vec![]),
             Ty::Unit => named("Unit", vec![]),
+            Ty::Type => named("Type", vec![]),
             Ty::Never | Ty::Err => named("Never", vec![]),
             Ty::List(t) => named("List", vec![t.core()]),
             Ty::Dict(k, v) => named("Map", vec![k.core(), v.core()]),
@@ -164,6 +167,7 @@ impl Ty {
             | Ty::Char
             | Ty::Fixed(_)
             | Ty::Unit
+            | Ty::Type
             | Ty::Never
             | Ty::Err => true,
             Ty::Tuple(ts) => ts.iter().all(Ty::is_copy),
@@ -392,6 +396,7 @@ impl std::fmt::Display for Ty {
             }
             Ty::Unit => write!(f, "None"),
             Ty::Never => write!(f, "Never"),
+            Ty::Type => write!(f, "Type"),
             Ty::Err => write!(f, "?"),
             Ty::List(t) => write!(f, "list[{t}]"),
             Ty::Dict(k, v) => write!(f, "dict[{k}, {v}]"),

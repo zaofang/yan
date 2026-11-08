@@ -5,7 +5,9 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand, ValueEnum};
 
 mod agent;
+mod audit;
 mod build;
+mod deps;
 mod examples;
 mod export;
 mod fix;
@@ -14,6 +16,7 @@ mod mcp;
 mod patch;
 mod publish;
 mod pyimport;
+mod registry;
 mod review;
 mod schema;
 mod test;
@@ -103,6 +106,16 @@ enum Command {
     },
     /// Write `yan.lock` from the manifest and the workspace members (19.1, R896).
     Lock,
+    /// Add a registry dependency: the newest version outside the cool-off window (19.4, R894).
+    Add {
+        /// `@org/name`, `@org/name@1.4` or `@org/name@=1.4.2` (exact, skips the cool-off).
+        spec: String,
+    },
+    /// Move registry requirements to the newest version outside the cool-off window (19.4).
+    Update {
+        /// With none, every registry requirement.
+        name: Option<String>,
+    },
     /// Check files and report diagnostics.
     Check {
         /// `prose` when output is a terminal, `line` otherwise (18.2).
@@ -119,6 +132,9 @@ enum Command {
         /// Fail with E020 unless `yan.lock` pins every requirement of the manifest (R896).
         #[arg(long)]
         locked: bool,
+        /// With `--locked`, fail with E020 when a pinned archive is in neither `.yan/store` nor `vendor` (R896).
+        #[arg(long, requires = "locked")]
+        offline: bool,
         /// With none, the package in the current directory: `package.yag` and its modules.
         files: Vec<PathBuf>,
     },
@@ -226,6 +242,9 @@ enum Command {
         /// Fail with E020 unless `yan.lock` pins every requirement of the manifest (R896).
         #[arg(long)]
         locked: bool,
+        /// With `--locked`, fail with E020 when a pinned archive is in neither `.yan/store` nor `vendor` (R896).
+        #[arg(long, requires = "locked")]
+        offline: bool,
     },
     /// Run one task through the spec gate as a client of `yan mcp` (the reference agent
     /// loop), and print its run record.
@@ -266,6 +285,12 @@ enum Command {
         /// `BASE` or `BASE..HEAD`, git revisions; HEAD left out is the working tree.
         #[arg(default_value = "HEAD")]
         range: String,
+        #[arg(long, value_enum, default_value_t = ReviewFormat::Line)]
+        format: ReviewFormat,
+    },
+    /// List the claims taken on trust: `unsafe` items and preconditions, extern `safe`,
+    /// `uses none` and `@access` claims (6, 11.2, 12).
+    Audit {
         #[arg(long, value_enum, default_value_t = ReviewFormat::Line)]
         format: ReviewFormat,
     },
@@ -322,10 +347,11 @@ fn main() -> ExitCode {
             strict,
             level,
             locked,
+            offline,
             files,
         } => check(
             &files,
-            locked,
+            (locked, offline),
             format,
             max_errors,
             Database::new(strict, level.as_deref() == Some("release")),
@@ -347,6 +373,19 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
+        Command::Add { spec } => {
+            dep_result(deps::add(Path::new("."), &spec, registry::now()).map(|m| vec![m]))
+        }
+        Command::Update { name } => {
+            let moved = deps::update(Path::new("."), name.as_deref(), registry::now());
+            dep_result(moved.map(|m| {
+                if m.is_empty() {
+                    vec!["nothing to update".into()]
+                } else {
+                    m
+                }
+            }))
+        }
         Command::Publish { .. } => match publish::check(Path::new(".")) {
             Ok(d) if d.is_empty() => ExitCode::SUCCESS,
             Ok(d) => {
@@ -388,8 +427,10 @@ fn main() -> ExitCode {
             only,
             no_cache,
             locked,
-        } => run_tests(format, gate, only.as_deref(), no_cache, locked),
+            offline,
+        } => run_tests(format, gate, only.as_deref(), no_cache, (locked, offline)),
         Command::Review { range, format } => review(&range, format),
+        Command::Audit { format } => audit(format),
         Command::View {
             as_,
             file,
@@ -521,7 +562,7 @@ fn main() -> ExitCode {
 }
 
 /// Read `yan.lock` of the package in the current directory (E019, and E020 under `--locked`).
-fn lock_gate(locked: bool) -> Result<(), ExitCode> {
+fn lock_gate((locked, offline): (bool, bool), format: Option<Format>) -> Result<(), ExitCode> {
     let reqs = std::fs::read_to_string("package.yag")
         .ok()
         .and_then(|src| {
@@ -530,8 +571,14 @@ fn lock_gate(locked: bool) -> Result<(), ExitCode> {
         })
         .map(|m| m.requirements)
         .unwrap_or_default();
-    lock::check(Path::new("."), &reqs, locked).map_err(|d| {
-        print_diags(&[*d]);
+    lock::check(Path::new("."), &reqs, locked, offline).map_err(|d| {
+        match format {
+            Some(Format::Json) => println!(
+                "{}",
+                serde_json::to_string(&[*d]).expect("records serialize")
+            ),
+            _ => print_diags(&[*d]),
+        }
         ExitCode::FAILURE
     })
 }
@@ -541,9 +588,9 @@ fn run_tests(
     gate: bool,
     only: Option<&str>,
     no_cache: bool,
-    locked: bool,
+    locked: (bool, bool),
 ) -> ExitCode {
-    if let Err(code) = lock_gate(locked) {
+    if let Err(code) = lock_gate(locked, Some(format)) {
         return code;
     }
     let root = Path::new(".");
@@ -561,6 +608,24 @@ fn run_tests(
     } else {
         ExitCode::SUCCESS
     }
+}
+
+fn audit(format: ReviewFormat) -> ExitCode {
+    let findings = match audit::audit(Path::new(".")) {
+        Ok(f) => f,
+        Err(msg) => return tool_failure(&msg),
+    };
+    match format {
+        ReviewFormat::Line => findings.iter().for_each(|f| println!("{}", f.line())),
+        ReviewFormat::Json => println!(
+            "{}",
+            serde_json::Value::Array(findings.iter().map(audit::Finding::json).collect())
+        ),
+        ReviewFormat::Md => findings
+            .iter()
+            .for_each(|f| println!("- `{}` {}: {}", f.kind, f.item, f.detail)),
+    }
+    ExitCode::SUCCESS
 }
 
 fn review(range: &str, format: ReviewFormat) -> ExitCode {
@@ -858,13 +923,13 @@ fn package_files(root: &Path) -> Result<Vec<PathBuf>, String> {
 
 fn check(
     files: &[PathBuf],
-    locked: bool,
+    locked: (bool, bool),
     format: Option<Format>,
     max_errors: usize,
     mut db: Database,
 ) -> ExitCode {
     use std::io::IsTerminal;
-    if let Err(code) = lock_gate(locked) {
+    if let Err(code) = lock_gate(locked, format) {
         return code;
     }
     let mut diags = Vec::new();
@@ -1002,6 +1067,20 @@ fn native(file: &str, m: &yan_core::ast::Module, jit: Jit) -> ExitCode {
             ExitCode::SUCCESS
         }
         Err(what) => tool_failure(&format!("not supported yet: {what}")),
+    }
+}
+
+fn dep_result(r: Result<Vec<String>, deps::Failure>) -> ExitCode {
+    match r {
+        Ok(lines) => {
+            lines.iter().for_each(|l| println!("{l}"));
+            ExitCode::SUCCESS
+        }
+        Err(deps::Failure::Diag(d)) => {
+            print_diags(&[*d]);
+            ExitCode::FAILURE
+        }
+        Err(deps::Failure::Msg(m)) => tool_failure(&m),
     }
 }
 

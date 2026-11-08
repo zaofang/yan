@@ -10469,6 +10469,109 @@
    }
   },
   {
+   "path": "pkg/e018_unknown_field",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "9",
+    "1"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R891",
+    "note": "a Package field outside the manifest table is E018; the span is the argument",
+    "command": [
+     "check"
+    ],
+    "code": "E018",
+    "at": "package.yag:8:5"
+   }
+  },
+  {
+   "path": "pkg/e019_lock_newer_format",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "9",
+    "3"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R893",
+    "note": "a lock whose format is newer than the toolchain reads is E019, with or without --locked",
+    "command": [
+     "check"
+    ],
+    "code": "E019"
+   }
+  },
+  {
+   "path": "pkg/e020_locked_lock_mismatch",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "9",
+    "6"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R896",
+    "note": "under --locked, a lock that does not pin a manifest requirement is E020",
+    "command": [
+     "check",
+     "--locked"
+    ],
+    "code": "E020"
+   }
+  },
+  {
+   "path": "pkg/e020_locked_lock_missing",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "9",
+    "6"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R896",
+    "note": "under --locked, a package with dependencies and no yan.lock is E020",
+    "command": [
+     "check",
+     "--locked"
+    ],
+    "code": "E020"
+   }
+  },
+  {
    "path": "pkg/e144_manifest_call",
    "kind": "pkg",
    "milestone": "M2b",
@@ -10768,6 +10871,56 @@
     "note": "edition is next or a four-digit year of 2026 or later",
     "command": [
      "check"
+    ]
+   }
+  },
+  {
+   "path": "pkg/locked_lock_matches",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "9",
+    "6"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R896",
+    "note": "under --locked, a lock that pins every requirement passes",
+    "command": [
+     "check",
+     "--locked"
+    ]
+   }
+  },
+  {
+   "path": "pkg/locked_no_dependencies_needs_no_lock",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R",
+    "8",
+    "9",
+    "6"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R896",
+    "note": "a package without dependencies needs no yan.lock under --locked",
+    "command": [
+     "check",
+     "--locked"
     ]
    }
   },

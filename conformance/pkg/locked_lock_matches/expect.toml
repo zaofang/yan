@@ -1,0 +1,4 @@
+spec = "19.1"
+rows = "R896"
+note = "under --locked, a lock that pins every requirement passes"
+command = ["check", "--locked"]

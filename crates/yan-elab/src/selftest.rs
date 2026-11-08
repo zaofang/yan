@@ -954,7 +954,9 @@ fn sibling_channel_waits_are_e713_only_in_plain_par() {
 }
 
 fn edition_codes(value: &str) -> Vec<String> {
-    let src = format!("package: Package = Package(name=\"@a/b\", edition=\"{value}\")\n");
+    let src = format!(
+        "package: Package = Package(name=\"@a/b\", version=\"1.0.0\", yan=\">=1\", edition=\"{value}\")\n"
+    );
     let (m, _) = yan_yag::parse("package.yag", &src, false);
     let (_, d) =
         elaborate("package.yag", &src, &m.expect("parses"), Options::default()).expect("supported");
@@ -978,7 +980,9 @@ fn malformed_editions_are_e332() {
 #[test]
 fn unknown_manifest_fields_are_e018() {
     let codes = |field: &str| {
-        let src = format!("package: Package = Package(name=\"@a/b\", {field}=1)\n");
+        let src = format!(
+            "package: Package = Package(name=\"@a/b\", version=\"1.0.0\", edition=\"2026\", yan=\">=1\", {field}=1)\n"
+        );
         let (m, _) = yan_yag::parse("package.yag", &src, false);
         let (_, d) = elaborate("package.yag", &src, &m.expect("parses"), Options::default())
             .expect("supported");
@@ -986,6 +990,20 @@ fn unknown_manifest_fields_are_e018() {
     };
     assert_eq!(codes("colour"), ["E018"]);
     assert!(codes("members").is_empty());
+}
+
+#[test]
+fn missing_manifest_fields_are_e018() {
+    let codes = |args: &str, file: &str| {
+        let src = format!("package: Package = Package({args})\n");
+        let (m, _) = yan_yag::parse(file, &src, false);
+        let (_, d) =
+            elaborate(file, &src, &m.expect("parses"), Options::default()).expect("supported");
+        d.into_iter().map(|d| d.code).collect::<Vec<_>>()
+    };
+    assert_eq!(codes("name=\"@a/b\"", "package.yag"), ["E018"; 3]);
+    assert!(codes("name=\"@a/b\"", "script.yag").is_empty());
+    assert!(codes("name=\"@a/b\", members=[]", "package.yag").is_empty());
 }
 
 // Fail-transparent closures (spec 4.6): a failure inside a non-escaping closure argument is the caller's.
@@ -1425,4 +1443,39 @@ def gap(x: float) -> float:
     let d = accuracy_diags(src);
     assert_eq!(d.len(), 1, "{d:?}");
     assert_eq!(d, accuracy_diags(src));
+}
+
+#[test]
+fn raise_restores_extern_blocks() {
+    let src = "unsafe extern \"C\" lib sort link \"sort\"\n\
+               \x20 safe qsort_view(n: int, cmp: scoped (int, int) -> int)\n\
+               \x20 unsafe free_greeting(p: int)\n\n\
+               main() = 0\n";
+    let (ast, d) = yan_yn::parse("t.yn", src);
+    assert!(d.is_empty(), "{d:?}");
+    let (h, d) = yan_yn::lower("t.yn", src, &ast).expect("lowers");
+    assert!(d.is_empty(), "{d:?}");
+    // E902 (outside an ffi module) does not stop the block being elaborated.
+    let (m, _) = elaborate("t.yn", src, &h, Options::default()).expect("supported");
+    let raised = yan_hir::raise::raise(&m, &yan_surface::TriviaTable::default(), &StdInfo)
+        .expect("raises")
+        .module;
+    let x = raised
+        .items
+        .iter()
+        .find_map(|i| match &i.kind {
+            yan_hir::ItemKind::Extern(x) => Some(x),
+            _ => None,
+        })
+        .expect("extern block");
+    assert_eq!(
+        (x.abi.as_str(), x.lib.as_str(), x.link.as_deref()),
+        ("C", "sort", Some("sort"))
+    );
+    assert_eq!(x.items.len(), 2);
+    let yan_hir::XItem::Fn { safe, params, .. } = &x.items[0] else {
+        panic!("fn")
+    };
+    assert!(*safe);
+    assert_eq!(params[1].callback, Some(yan_hir::Callback::Scoped));
 }
