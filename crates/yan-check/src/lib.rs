@@ -359,6 +359,19 @@ struct Binding {
     bad_captures: Vec<(&'static str, Span)>,
 }
 
+type Shadowed = (
+    Name,
+    Option<Binding>,
+    Option<Vec<How>>,
+    Option<HashSet<Name>>,
+);
+
+/// What a `match` arm's binders shadowed, to restore when the arm ends.
+struct ArmScope {
+    order_len: usize,
+    outer: Vec<Shadowed>,
+}
+
 struct Cx<'g, 'm> {
     g: &'g Globals<'m>,
     file: &'g str,
@@ -370,6 +383,8 @@ struct Cx<'g, 'm> {
     /// Bindings in order, for the end-of-body checks.
     order: Vec<Name>,
     uses: HashMap<Name, Vec<How>>,
+    /// The fields taken out of each record binding.
+    taken: HashMap<Name, HashSet<Name>>,
     /// Moved names and where each moved.
     moved: HashMap<Name, Span>,
     reported: HashSet<Name>,
@@ -437,6 +452,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             env: HashMap::new(),
             order: Vec::new(),
             uses: HashMap::new(),
+            taken: HashMap::new(),
             moved: HashMap::new(),
             reported: HashSet::new(),
             par: Vec::new(),
@@ -471,6 +487,7 @@ impl<'g, 'm> Cx<'g, 'm> {
     ) -> &mut Binding {
         self.order.push(name.clone());
         self.moved.remove(name);
+        self.taken.remove(name);
         let b = Binding {
             ty,
             kind,
@@ -506,17 +523,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                     format!("the `try` result `{n}` is never inspected"),
                 );
             }
-            let linear =
-                b.ty.as_ref()
-                    .and_then(base)
-                    .is_some_and(|t| self.g.linear.contains(t));
-            if b.local && linear && !uses.iter().any(|h| h.consumes()) {
-                self.err(
-                    "E412",
-                    b.span,
-                    format!("`@linear` value `{n}` is never consumed"),
-                );
-            }
+            self.check_consumed(n, &b, &uses);
             if uses.iter().any(|h| h.escapes()) {
                 for (code, at) in b.bad_captures {
                     let what = if code == "E306" {
@@ -534,6 +541,55 @@ impl<'g, 'm> Cx<'g, 'm> {
                 }
             }
         }
+    }
+
+    fn check_consumed(&mut self, n: &Name, b: &Binding, uses: &[How]) {
+        let linear =
+            b.ty.as_ref()
+                .and_then(base)
+                .is_some_and(|t| self.g.linear.contains(t));
+        if !b.local || !linear || uses.iter().any(|h| h.consumes()) {
+            return;
+        }
+        // A record whose linear fields were all taken out is consumed with them.
+        let held = self.linear_fields(b.ty.as_ref());
+        let taken = self.taken.get(n);
+        let missing: Vec<&Name> = held
+            .iter()
+            .filter(|f| !taken.is_some_and(|t| t.contains(*f)))
+            .collect();
+        if held.is_empty() {
+            self.err(
+                "E412",
+                b.span,
+                format!("`@linear` value `{n}` is never consumed"),
+            );
+        } else if !missing.is_empty() {
+            let fs = missing.iter().map(|f| format!("`{f}`")).collect::<Vec<_>>();
+            self.err(
+                "E412",
+                b.span,
+                format!(
+                    "`@linear` value `{n}` is never consumed: {} not taken out of it",
+                    fs.join(", ")
+                ),
+            );
+        }
+    }
+
+    /// The fields of a record type that are themselves `@linear`.
+    fn linear_fields(&self, t: Option<&Type>) -> Vec<Name> {
+        let Some(Type::Named(n)) = t else {
+            return Vec::new();
+        };
+        let Some(r) = self.g.records.get(&n.path.join(".")) else {
+            return Vec::new();
+        };
+        r.fields
+            .iter()
+            .filter(|f| base(&f.ty).is_some_and(|b| self.g.linear.contains(b)))
+            .map(|f| f.name.clone())
+            .collect()
     }
 
     fn use_name(&mut self, n: &Name, span: Span, how: How) {
@@ -652,20 +708,84 @@ impl<'g, 'm> Cx<'g, 'm> {
 
     /// Run `f` from the current move state for each branch and merge the branches that continue.
     fn branches<'b>(&mut self, blocks: impl IntoIterator<Item = &'b Block>, fallthrough: bool) {
+        self.arms(blocks.into_iter().map(|b| (None, b)), None, fallthrough);
+    }
+
+    /// Like [`Cx::branches`], binding each arm's pattern for that arm alone: two arms that bind
+    /// the same name keep separate use records, so each is checked for E412 on its own.
+    fn arms<'b>(
+        &mut self,
+        arms: impl IntoIterator<Item = (Option<(&'b Pat, Span)>, &'b Block)>,
+        scrutinee: Option<&str>,
+        fallthrough: bool,
+    ) {
         let before = self.moved.clone();
         let mut merged = if fallthrough {
             before.clone()
         } else {
             HashMap::new()
         };
-        for b in blocks {
+        for (pat, b) in arms {
             self.moved = before.clone();
+            let scope = pat.map(|(p, span)| self.enter_arm(p, scrutinee, span));
             self.block(b);
+            if let Some(scope) = scope {
+                self.leave_arm(scope);
+            }
             if !diverges(b) {
                 merged.extend(self.moved.drain());
             }
         }
         self.moved = merged;
+    }
+
+    fn enter_arm(&mut self, p: &Pat, scrutinee: Option<&str>, span: Span) -> ArmScope {
+        let mut names = Vec::new();
+        pat_names(p, &mut names, &self.g.variant_of);
+        let scope = ArmScope {
+            order_len: self.order.len(),
+            outer: names
+                .iter()
+                .map(|n| {
+                    (
+                        n.clone(),
+                        self.env.get(n).cloned(),
+                        self.uses.remove(n),
+                        self.taken.remove(n),
+                    )
+                })
+                .collect(),
+        };
+        self.bind_pat_typed(p, scrutinee, span);
+        scope
+    }
+
+    fn leave_arm(&mut self, scope: ArmScope) {
+        self.order.truncate(scope.order_len);
+        for (n, env, uses, taken) in scope.outer {
+            if let Some(b) = self.env.get(&n).cloned() {
+                let arm_uses = self.uses.remove(&n).unwrap_or_default();
+                self.check_consumed(&n, &b, &arm_uses);
+                self.taken.remove(&n);
+                if let Some(t) = taken {
+                    self.taken.insert(n.clone(), t);
+                }
+                if let Some(u) = &uses {
+                    self.uses
+                        .entry(n.clone())
+                        .or_default()
+                        .extend(u.iter().copied());
+                }
+            }
+            match env {
+                Some(b) => {
+                    self.env.insert(n, b);
+                }
+                None => {
+                    self.env.remove(&n);
+                }
+            }
+        }
     }
 
     fn block(&mut self, b: &Block) {
@@ -747,10 +867,11 @@ impl<'g, 'm> Cx<'g, 'm> {
             StmtKind::Match { scrutinee, arms } => {
                 let t = self.atom(scrutinee, How::Read);
                 self.exhaustive(scrutinee, arms, s.span);
-                for (p, _) in arms {
-                    self.bind_pat_typed(p, t.as_deref(), s.span);
-                }
-                self.branches(arms.iter().map(|(_, b)| b), false);
+                self.arms(
+                    arms.iter().map(|(p, b)| (Some((p, s.span)), b)),
+                    t.as_deref(),
+                    false,
+                );
             }
             StmtKind::Loop {
                 invariants,
@@ -990,6 +1111,12 @@ impl<'g, 'm> Cx<'g, 'm> {
 
     fn place(&mut self, p: &Place, how: How) -> Option<Type> {
         self.use_name(&p.root, p.root_span, how);
+        if let Some(Proj::Field(f, _)) = p.projs.first() {
+            self.taken
+                .entry(p.root.clone())
+                .or_default()
+                .insert(f.clone());
+        }
         for proj in &p.projs {
             if let Proj::Index(a) = proj {
                 self.atom(a, How::Read);
@@ -1369,6 +1496,17 @@ mod selftest {
             (d[0].labels[0].text.as_str(), d[0].labels[0].span.line),
             ("moved", 6)
         );
+    }
+
+    #[test]
+    fn match_arms_binding_one_name_are_checked_separately() {
+        let src = "@linear\nrecord Handle { fd: i64 }\n\
+                   sum Found { Hit { next: Handle }, Miss { next: Handle } }\n\
+                   fn close(sink h: Handle) -> i64 {\n    ret 0\n}\n\
+                   fn f(sink s: Found) -> i64 {\n    match s {\n\
+                   \x20       Hit { next: ep } => { let n: i64 = close(sink ep)\n            ret n }\n\
+                   \x20       Miss { next: ep } => { ret 0 }\n    }\n}\n";
+        assert_eq!(codes(src), [("E412".into(), 9, 5)]);
     }
 
     #[test]

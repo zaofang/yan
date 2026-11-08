@@ -699,6 +699,13 @@ impl Protocol {
         format!("{}_got", self.state_type(role, state))
     }
 
+    /// The variant of a choice state's result sum for a label. Yan Core's variant namespace is
+    /// flat, so the name carries the sum's; a pattern written with the bare label resolves to
+    /// it by the scrutinee's type.
+    pub(crate) fn got_variant(&self, role: usize, state: usize, label: &str) -> String {
+        format!("{}_{label}", self.got_type(role, state))
+    }
+
     /// The endpoint types, by name.
     pub(crate) fn endpoints(&self) -> Vec<(String, Endpoint)> {
         let mut out = Vec::new();
@@ -1076,7 +1083,7 @@ pub(crate) fn items(p: &Protocol, is_pub: bool, at: Span) -> Vec<j::Item> {
                                 fs.push(field("next", named(&p.state_type(r, *next)), at));
                                 j::Variant {
                                     decorators: Vec::new(),
-                                    name: l.clone(),
+                                    name: p.got_variant(r, k, l),
                                     fields: fs,
                                 }
                             })
@@ -1114,7 +1121,7 @@ pub(crate) fn items(p: &Protocol, is_pub: bool, at: Span) -> Vec<j::Item> {
                             let mut args: Vec<j::Arg> =
                                 value.into_iter().map(|v| arg(Some("value"), v)).collect();
                             args.push(arg(Some("next"), ep));
-                            call(nm(l, at), args)
+                            call(nm(&p.got_variant(r, k, l), at), args)
                         } else {
                             match value {
                                 Some(v) => ex(j::ExprKind::Tuple(vec![v, ep]), at),
@@ -1244,7 +1251,7 @@ pub(crate) fn items(p: &Protocol, is_pub: bool, at: Span) -> Vec<j::Item> {
             doc: None,
             fields: roles,
         }),
-        false,
+        true,
     ));
     let mut body = Vec::new();
     for a in 0..n {
