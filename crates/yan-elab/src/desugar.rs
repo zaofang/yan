@@ -160,6 +160,8 @@ pub struct Manifest {
     pub dependencies: Vec<String>,
     /// Whether `overrides` names any package (R636).
     pub has_overrides: bool,
+    /// The `overrides` entries as written: key (`@org/name major`) and value (a path, R950).
+    pub overrides: Vec<(String, String)>,
 }
 
 /// The fields of the manifest table (19.1).
@@ -304,6 +306,23 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
             _ => Vec::new(),
         }
     };
+    let pairs = |name: &str| -> Vec<(String, String)> {
+        let value = args.iter().find_map(|a| match (&a.name, &a.kind) {
+            (Some(n), j::ArgKind::Expr(e)) if n == name => Some(&e.kind),
+            _ => None,
+        });
+        let lit = |e: &j::Expr| match &e.kind {
+            j::ExprKind::Lit(j::Lit::Str { value, .. }) => Some(value.clone()),
+            _ => None,
+        };
+        match value {
+            Some(j::ExprKind::Dict(kvs)) => kvs
+                .iter()
+                .filter_map(|(k, v)| Some((lit(k)?, lit(v)?)))
+                .collect(),
+            _ => Vec::new(),
+        }
+    };
     let string = |field: &str| {
         args.iter().find_map(|a| match (&a.name, &a.kind) {
             (
@@ -322,6 +341,7 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
         members: strs("members").unwrap_or_default(),
         dependencies: reqs("dependencies"),
         has_overrides: !reqs("overrides").is_empty(),
+        overrides: pairs("overrides"),
         requirements: ["dependencies", "dev_dependencies", "tools"]
             .into_iter()
             .flat_map(reqs)
