@@ -161,6 +161,8 @@ struct Locked {
 
 type Key = (String, String);
 
+const MAX_ROUNDS: usize = 64;
+
 #[derive(Clone)]
 /// A registry requirement's accumulated minimum (R894): the largest minimum any requirer wrote.
 struct Min {
@@ -274,28 +276,40 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
             });
         }
     }
+    // Minimums are rebuilt each round from the roots and the requirements of the versions
+    // currently chosen, so a superseded version's requirements stop constraining (R894).
+    let roots = mins;
     let mut chosen: BTreeMap<Key, (String, Info)> = BTreeMap::new();
-    loop {
-        let mut changed = false;
-        for (key, m) in mins.clone() {
-            let index = registries.index(&m.name)?;
-            let info = select(&index, &m, pinned(&key).as_deref())?;
-            if chosen
-                .get(&key)
-                .is_some_and(|(_, c)| c.version == info.version)
-            {
-                continue;
-            }
-            changed = true;
-            let who = format!("{} {}", m.name, info.version);
+    let mut settled = false;
+    for _ in 0..MAX_ROUNDS {
+        let mut mins = roots.clone();
+        for (key, (_, info)) in &chosen {
+            let who = format!("{} {}", key.0, info.version);
             for req in &info.requirements {
                 raise(&mut mins, &who, req)?;
             }
-            chosen.insert(key, (index.source, info));
         }
-        if !changed {
+        let mut next: BTreeMap<Key, (String, Info)> = BTreeMap::new();
+        for (key, m) in &mins {
+            let index = registries.index(&m.name)?;
+            let info = select(&index, m, pinned(key).as_deref())?;
+            next.insert(key.clone(), (index.source, info));
+        }
+        let stable = next.len() == chosen.len()
+            && next
+                .iter()
+                .all(|(k, (_, i))| chosen.get(k).is_some_and(|(_, c)| c.version == i.version));
+        chosen = next;
+        if stable {
+            settled = true;
             break;
         }
+    }
+    if !settled {
+        return Err(fail(
+            "E021",
+            "the requirements do not settle on one set of versions".into(),
+        ));
     }
     for (key, (source, info)) in chosen {
         out.push(Locked {
