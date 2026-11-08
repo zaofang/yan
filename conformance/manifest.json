@@ -90,6 +90,17 @@
    "expect": []
   },
   {
+   "path": "yag/pass/contracts/recursion_without_contracts.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "8.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yag/pass/dist/remote_share.yag",
    "kind": "pass",
    "milestone": "M1",
@@ -6837,6 +6848,17 @@
    "rows": [
     "R461"
    ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yn/pass/contracts/recursion_without_contracts.yn",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "8.4"
+   ],
+   "rows": [],
    "flags": [],
    "expect": []
   },

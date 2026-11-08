@@ -1384,3 +1384,8 @@ sections = "11.9, 18.1"
 rows = "R938"
 topic = "`par concurrent` ranks `SessionClosed` like `Cancelled`: a peer's session failure never hides the failure that closed the session (#690)"
 sections = "9.4, 9.5"
+
+[[entry]]
+rows = "R939"
+topic = "E602 fires only in a module that has a `requires`, `ensures`, `example` or loop `invariant`; contract-free recursion needs no `decreases`, so Advent-of-Code style programs check clean"
+sections = "8.4, 25"

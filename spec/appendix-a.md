@@ -284,6 +284,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R936 | `std.itertools` has `permutations`, `combinations`, `combinations_with_replacement`, `product`, `pairwise` and `accumulate` over lists, returning lazy `iter` values in Python's order; `list(it)` of an `iter` is read as `it.collect()` (N37) | 14.4, 17.3 |
 | R937 | `yan schema gen <file>` reads only the Parquet footer and prints `# schema blake3:<hash>` then `class <Stem>Row:` with one field per column: bool `bool`, INT32 and INT64 `int`, FLOAT and DOUBLE `float`, UTF8, ENUM and JSON `str`, other byte arrays `bytes`, an optional column `T | None`; the hash is blake3 of `yan schema 1`, NUL and the field lines; a nested, repeated, INT96 or non-identifier column exits 1 with a message (#732) | 11.9, 18.1 |
 | R938 | `par concurrent` ranks `SessionClosed` like `Cancelled`: a peer's session failure never hides the failure that closed the session (#690) | 9.4, 9.5 |
+| R939 | E602 fires only in a module that has a `requires`, `ensures`, `example` or loop `invariant`; contract-free recursion needs no `decreases`, so Advent-of-Code style programs check clean | 8.4, 25 |
 
 <!-- /rows -->
 
