@@ -6,7 +6,7 @@
 use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
 use std::hash::{BuildHasherDefault, Hash, Hasher};
-use std::io::Write;
+use std::io::{BufRead, Read, Write};
 use std::rc::Rc;
 
 use indexmap::{IndexMap, IndexSet};
@@ -823,6 +823,31 @@ static BUILTINS: &[(yan_std::registry::Id, bind::Bind)] = {
                     Err(e) => unsupported(format!("stdout: {e}")),
                 },
                 _ => bad_args(STD_IO_PRINT),
+            }),
+        ),
+        (
+            STD_IO_READ_LINE,
+            Bind::Cap(|_, _| {
+                let mut line = String::new();
+                match std::io::stdin().lock().read_line(&mut line) {
+                    Ok(0) => Ok(native::opt(None)),
+                    Ok(_) => {
+                        let line = line.strip_suffix('\n').unwrap_or(&line);
+                        let line = line.strip_suffix('\r').unwrap_or(line);
+                        Ok(native::opt(Some(Value::Str(line.into()))))
+                    }
+                    Err(e) => unsupported(format!("stdin: {e}")),
+                }
+            }),
+        ),
+        (
+            STD_IO_READ_ALL,
+            Bind::Cap(|_, _| {
+                let mut s = String::new();
+                match std::io::stdin().lock().read_to_string(&mut s) {
+                    Ok(_) => Ok(Value::Str(s.into())),
+                    Err(e) => unsupported(format!("stdin: {e}")),
+                }
             }),
         ),
         (STD_LIST_NEW, Bind::Plain(|_| Ok(Value::List(Vec::new())))),

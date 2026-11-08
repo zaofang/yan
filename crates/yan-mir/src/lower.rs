@@ -1225,6 +1225,55 @@ impl<'a, 'm> Fn<'a, 'm> {
                     args: vec![s],
                 });
             }
+            (id::STD_FS_READ, [(_, path)]) => {
+                let Some(dst) = dst else {
+                    return unsupported("`fs.read` without a result");
+                };
+                let Some((_, _, efs)) = dst.shape.variant("Err") else {
+                    return unsupported("`fs.read` without its failure");
+                };
+                if !matches!(&efs[0].1, Shape::Rec(n, fs) if n == "FsError" && fs.len() == 2) {
+                    return unsupported("`fs.read` with another failure type");
+                }
+                let path = self.scalar1(path)?;
+                let p = self.rt(RtFn::FsRead, Ty::Ptr, vec![path.clone()]);
+                let failed = self.scalar_op(ScalarOp::Eq, I64, vec![p.clone(), Operand::Int(0)]);
+                let (e, o) = self.branch(failed);
+                let join = self.block_new();
+                self.cur = e;
+                let empty = self.lit("");
+                let at = self.rt(RtFn::Concat, Ty::Ptr, vec![path, empty]);
+                let reason = self.rt(RtFn::FsReason, Ty::Ptr, vec![]);
+                let err = Self::variant_value(&dst.shape, "Err", vec![at, reason]);
+                self.copy_to(&dst.locals, err);
+                self.goto(join);
+                self.cur = o;
+                let ok = Self::variant_value(&dst.shape, "Ok", vec![p]);
+                self.copy_to(&dst.locals, ok);
+                self.goto(join);
+            }
+            (id::STD_IO_READ_ALL, []) => {
+                let r = self.rt(RtFn::ReadAll, Ty::Ptr, vec![]);
+                set(self, r);
+            }
+            (id::STD_IO_READ_LINE, []) => {
+                let Some(dst) = dst else {
+                    return unsupported("`read_line` without a result");
+                };
+                let p = self.rt(RtFn::ReadLine, Ty::Ptr, vec![]);
+                let eof = self.scalar_op(ScalarOp::Eq, I64, vec![p.clone(), Operand::Int(0)]);
+                let (e, o) = self.branch(eof);
+                let join = self.block_new();
+                self.cur = e;
+                let none = Self::variant_value(&dst.shape, "None", Vec::new());
+                self.copy_to(&dst.locals, none);
+                self.goto(join);
+                self.cur = o;
+                let some = Self::variant_value(&dst.shape, "Some", vec![p]);
+                self.copy_to(&dst.locals, some);
+                self.goto(join);
+                self.cur = join;
+            }
             (id::STD_TEXT_CONCAT, [(_, a), (_, b)]) => {
                 let (a, b) = (self.scalar1(a)?, self.scalar1(b)?);
                 let r = self.rt(RtFn::Concat, Ty::Ptr, vec![a, b]);
