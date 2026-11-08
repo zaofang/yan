@@ -111,6 +111,9 @@ enum Command {
     Add {
         /// `@org/name`, `@org/name@1.4` or `@org/name@=1.4.2` (exact, skips the cool-off).
         spec: String,
+        /// Add as the `toolchain` capability does for an agent: an unlocked package is E004 (R947).
+        #[arg(long)]
+        agent: bool,
     },
     /// Remove a registry dependency and rewrite the lock (19.4, R896).
     Remove {
@@ -379,8 +382,13 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
-        Command::Add { spec } => {
-            dep_result(deps::add(Path::new("."), &spec, registry::now()).map(|m| vec![m]))
+        Command::Add { spec, agent } => {
+            let caller = if agent {
+                deps::Caller::Agent
+            } else {
+                deps::Caller::Human
+            };
+            dep_result(deps::add(Path::new("."), &spec, registry::now(), caller).map(|m| vec![m]))
         }
         Command::Remove { name } => {
             dep_result(deps::remove(Path::new("."), &name).map(|m| vec![m]))
