@@ -1381,6 +1381,21 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.copy_to(&dst.locals, v);
                 self.free(RtFn::EnvFree, buf);
             }
+            (id::STD_TEXT_CHAR_COUNT, [(_, a)]) => {
+                let s = self.scalar1(a)?;
+                let r = self.rt(RtFn::CharCount, I64, vec![s]);
+                set(self, r);
+            }
+            (id::STD_TEXT_BYTE_LEN, [(_, a)]) => {
+                let s = self.scalar1(a)?;
+                let r = self.rt(RtFn::ByteLen, I64, vec![s]);
+                set(self, r);
+            }
+            (id::STD_TEXT_INT_OF, [(_, a)]) => {
+                let s = self.scalar1(a)?;
+                let r = self.rt(RtFn::IntOf, I64, vec![s]);
+                set(self, r);
+            }
             (id::STD_LIST_NEW, []) => {
                 let Some(e) = self.targ(c)? else {
                     return unsupported("`std.list.new` without its element type");
