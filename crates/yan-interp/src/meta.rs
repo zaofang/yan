@@ -244,7 +244,30 @@ fn declared(
         )
     };
     let wrap = |variant: &str, record: &str, fs| data(variant, vec![("info", data(record, fs))]);
+    let marked = attrs.iter().any(|a| a.name == "newtype");
+    let attrs: Vec<Attr> = attrs
+        .iter()
+        .filter(|a| a.name != "newtype")
+        .cloned()
+        .collect();
+    let attrs = attrs.as_slice();
     match kind {
+        ItemKind::Record(r)
+            if marked && matches!(r.fields.as_slice(), [f] if f.name == "value") =>
+        {
+            wrap(
+                "Newtype",
+                "NewtypeInfo",
+                vec![
+                    ("name", s(name)),
+                    (
+                        "inner",
+                        handle(subst(&r.fields[0].ty, &r.tparams, args), types),
+                    ),
+                    ("annotations", annotations(attrs)),
+                ],
+            )
+        }
         ItemKind::Record(r) => wrap(
             "Record",
             "RecordInfo",

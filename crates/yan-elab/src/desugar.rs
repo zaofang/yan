@@ -9,6 +9,14 @@ use yan_diag::Span;
 
 use crate::Cx;
 
+/// Marks the record a newtype became, so reflection still reports a newtype (`info`).
+pub(crate) fn newtype_mark() -> j::Decorator {
+    j::Decorator {
+        path: vec!["newtype".into()],
+        args: None,
+    }
+}
+
 /// `type N = newtype[T]` is a record `N` with the one field `value: T`: built `N(v)`, unwrapped
 /// `.value`, with no implicit conversion. `type S = uses a, B` names a set of capabilities that
 /// `uses S` expands to; a set that reaches itself is E251, reported at the first set of the cycle.
@@ -52,6 +60,7 @@ pub(crate) fn module(m: &j::Module, cx: &mut Cx) -> j::Module {
         match &mut it.kind {
             j::ItemKind::Type(t) if t.where_.is_none() && t.tparams.is_empty() => {
                 if let j::TypeRhs::Newtype(ty) = &t.rhs {
+                    it.decorators.push(newtype_mark());
                     it.kind = j::ItemKind::Record(j::Record {
                         name: t.name.clone(),
                         tparams: Vec::new(),

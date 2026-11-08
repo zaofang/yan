@@ -258,3 +258,17 @@ fn applications_run_in_dependency_order() {
                \x20 io.print(\"\\(o.value.value)\")\n";
     assert_eq!(run(src), "5\n");
 }
+
+#[test]
+fn info_reports_a_newtype_as_a_newtype() {
+    let src = "type Meters = newtype[float]\n\n\
+               kind(t: Type) -> str =\n\
+               \x20 match meta.info(t)\n\
+               \x20   Newtype(info:) -> \"newtype \\(info.name)\"\n\
+               \x20   Record(info:) -> \"record\"\n\
+               \x20   _ -> \"other\"\n\n\
+               let k: str = #kind(Meters)\n\n\
+               main() uses io =\n\
+               \x20 io.print(k)\n";
+    assert_eq!(run(src), "newtype Meters\n");
+}

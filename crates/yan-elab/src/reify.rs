@@ -190,15 +190,19 @@ fn hir_item(d: &y::Item, from: &j::Item) -> R<j::Item> {
         }),
         _ => return unsupported("a reified declaration of this kind"),
     };
+    let mut decorators: Vec<j::Decorator> = d
+        .attrs
+        .iter()
+        .map(|a| j::Decorator {
+            path: vec![a.name.clone()],
+            args: None,
+        })
+        .collect();
+    if matches!(d.kind, y::ItemKind::Newtype(_)) {
+        decorators.push(crate::desugar::newtype_mark());
+    }
     Ok(j::Item {
-        decorators: d
-            .attrs
-            .iter()
-            .map(|a| j::Decorator {
-                path: vec![a.name.clone()],
-                args: None,
-            })
-            .collect(),
+        decorators,
         is_pub: from.is_pub,
         kind,
         span: at,

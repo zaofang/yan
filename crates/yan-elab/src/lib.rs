@@ -714,17 +714,19 @@ pub fn elaborate_in(
                 docs.push((items.len(), Attach::Leading, d));
             }
             // 5.4: a `@linear` class must be consumed, which the Yan Core checker enforces (E412).
-            let linear = matches!(it.kind, j::ItemKind::Record(_))
-                && it.decorators.iter().any(|d| d.path == ["linear"]);
+            let carried = |name: &str| {
+                matches!(it.kind, j::ItemKind::Record(_))
+                    && it.decorators.iter().any(|d| d.path == [name])
+            };
             items.push(y::Item {
-                attrs: if linear {
-                    vec![y::Attr {
-                        name: "linear".into(),
+                attrs: ["linear", "newtype"]
+                    .into_iter()
+                    .filter(|n| carried(n))
+                    .map(|n| y::Attr {
+                        name: n.into(),
                         args: None,
-                    }]
-                } else {
-                    Vec::new()
-                },
+                    })
+                    .collect(),
                 kind: k,
                 span: it.span,
             });
