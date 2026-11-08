@@ -189,7 +189,7 @@ pub fn add(root: &Path, spec: &str, now: i64, caller: Caller) -> Result<String, 
     let info = if exact {
         index.info(name, &want)?.filter(|i| !i.yanked)
     } else {
-        registry::newest(&index, name, &want, false, now)?
+        registry::newest(&index, name, &want, false, &[], now)?
     }
     .ok_or_else(|| {
         Failure::Msg(format!(
@@ -260,7 +260,10 @@ pub fn update(root: &Path, only: Option<&str>, now: i64) -> Result<Vec<String>, 
             continue;
         };
         seen = true;
-        let Some(info) = registry::newest(&index, name, current, false, now)? else {
+        let locked = lock::locked_version(root, name, current)
+            .and_then(|v| index.info(name, &v).ok().flatten());
+        let affected = locked.as_ref().map_or(&[][..], |l| &l.affects[..]);
+        let Some(info) = registry::newest(&index, name, current, false, affected, now)? else {
             continue;
         };
         if lock::parts(&info.version) <= lock::parts(current) {
@@ -279,6 +282,25 @@ pub fn update(root: &Path, only: Option<&str>, now: i64) -> Result<Vec<String>, 
         let new = format!("{name} {}", info.version);
         src = src.replace(&format!("\"{r}\""), &format!("\"{new}\""));
         moved.push(format!("{name} {current} -> {}", info.version));
+        if let Some(l) = locked.as_ref().filter(|l| l.yanked) {
+            moved.push(format!(
+                "yanked: {name} {}: {} -> {}",
+                l.version,
+                registry::reason_line(l.yank_reason.as_deref().unwrap_or("no reason given")),
+                info.version
+            ));
+        }
+        if index.cooling(&info, now) {
+            let ids: Vec<_> = info.fixes.iter().filter(|f| affected.contains(f)).collect();
+            moved.push(format!(
+                "cool-off bypassed: {name} {} fixes {}",
+                info.version,
+                ids.iter()
+                    .map(|s| s.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ));
+        }
     }
     if let Some(o) = only
         && !seen
@@ -506,6 +528,36 @@ mod tests {
             panic!("expected a diagnostic");
         };
         assert_eq!(d.code, "E005");
+    }
+
+    #[test]
+    fn update_bypasses_the_cool_off_for_an_advisory_fix_and_prints_the_yank_reason() {
+        let dir = world("advisory");
+        let now = registry::now();
+        add(&dir, "@a/b@=1.0.0", now, Caller::Human).ok().unwrap();
+        let v = dir.join("index/@a/b/@v");
+        let with = |ver: &str, time: &str, extra: &str| {
+            let body = info(ver, time, "pub", "").replace("\"yanked\":false", extra);
+            std::fs::write(v.join(format!("{ver}.info")), body).unwrap();
+        };
+        let long = "x".repeat(250);
+        with(
+            "1.0.0",
+            "2020-01-01T00:00:00Z",
+            &format!("\"yanked\":true,\"yank_reason\":\"bad\\u0007{long}\",\"affects\":[\"A1\"]"),
+        );
+        with(
+            "1.3.0",
+            "2999-01-01T00:00:00Z",
+            "\"yanked\":false,\"fixes\":[\"A1\"]",
+        );
+        let moved = update(&dir, None, now).ok().unwrap();
+        assert_eq!(moved[0], "@a/b 1.0.0 -> 1.3.0");
+        assert_eq!(
+            moved[1],
+            format!("yanked: @a/b 1.0.0: bad{}... -> 1.3.0", "x".repeat(197))
+        );
+        assert_eq!(moved[2], "cool-off bypassed: @a/b 1.3.0 fixes A1");
     }
 
     #[test]

@@ -17,6 +17,11 @@ pub struct Info {
     pub capability_digest: Option<String>,
     pub requirements: Vec<String>,
     pub yanked: bool,
+    /// The publisher's reason for the yank, as written (R949); display it through `reason_line`.
+    pub yank_reason: Option<String>,
+    /// Advisory ids this version fixes and is affected by (R949).
+    pub fixes: Vec<String>,
+    pub affects: Vec<String>,
     /// The advisory text of a malicious mark (R947).
     pub malicious: Option<String>,
     pub published: i64,
@@ -250,20 +255,25 @@ impl Index {
 fn parse_info(text: &[u8], version: &str) -> Option<Info> {
     let v: serde_json::Value = serde_json::from_slice(text).ok()?;
     let s = |k: &str| v.get(k).and_then(|x| x.as_str()).map(str::to_owned);
-    Some(Info {
-        version: version.to_owned(),
-        digest: s("digest")?,
-        publisher: s("publisher")?,
-        capability_digest: s("capability_digest"),
-        requirements: v
-            .get("requirements")
+    let strings = |k: &str| -> Vec<String> {
+        v.get(k)
             .and_then(|r| r.as_array())
             .map(|r| {
                 r.iter()
                     .filter_map(|x| x.as_str().map(str::to_owned))
                     .collect()
             })
-            .unwrap_or_default(),
+            .unwrap_or_default()
+    };
+    Some(Info {
+        version: version.to_owned(),
+        digest: s("digest")?,
+        publisher: s("publisher")?,
+        capability_digest: s("capability_digest"),
+        requirements: strings("requirements"),
+        fixes: strings("fixes"),
+        affects: strings("affects"),
+        yank_reason: s("yank_reason"),
         yanked: v.get("yanked").and_then(|y| y.as_bool()).unwrap_or(false),
         malicious: v
             .get("malicious")
@@ -321,13 +331,31 @@ pub fn satisfies(version: &str, want: &str) -> bool {
         && parts(version) >= parts(want)
 }
 
+/// A yank reason for one line of output: control characters dropped, 200 characters (R949).
+pub fn reason_line(reason: &str) -> String {
+    let clean: String = reason.chars().filter(|c| !c.is_control()).collect();
+    if clean.chars().count() > 200 {
+        format!("{}...", clean.chars().take(200).collect::<String>())
+    } else {
+        clean
+    }
+}
+
+impl Index {
+    /// Whether `info` is younger than the cool-off (19.4).
+    pub fn cooling(&self, info: &Info, now: i64) -> bool {
+        info.published + self.cool_off > now
+    }
+}
+
 /// The newest version satisfying `want` that is not yanked and, unless `exact`, is older than
-/// the cool-off (19.4).
+/// the cool-off (19.4) or fixes one of the `affected` advisories (R949).
 pub fn newest(
     index: &Index,
     name: &str,
     want: &str,
     exact: bool,
+    affected: &[String],
     now: i64,
 ) -> Result<Option<Info>, Box<Diagnostic>> {
     let mut best: Option<Info> = None;
@@ -343,7 +371,7 @@ pub fn newest(
             .is_none_or(|b| parts(&i.version) > parts(&b.version));
         if !i.yanked
             && i.malicious.is_none()
-            && (exact || i.published + index.cool_off <= now)
+            && (exact || !index.cooling(&i, now) || i.fixes.iter().any(|f| affected.contains(f)))
             && newer
         {
             best = Some(i);

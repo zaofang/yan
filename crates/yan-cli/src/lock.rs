@@ -135,6 +135,15 @@ pub fn is_locked(root: &Path, name: &str) -> bool {
         .any(|p| p.get("name").and_then(toml::Value::as_str) == Some(name))
 }
 
+/// The version `yan.lock` records for the package a requirement names.
+pub fn locked_version(root: &Path, name: &str, version: &str) -> Option<String> {
+    let key = identity(name, version);
+    records(root).iter().find_map(|p| {
+        let v = p.get("version")?.as_str()?;
+        (identity(p.get("name")?.as_str()?, v) == key).then(|| v.to_owned())
+    })
+}
+
 /// The publisher identity `yan.lock` records for the package a requirement names.
 pub fn locked_publisher(root: &Path, name: &str, version: &str) -> Option<String> {
     let key = identity(name, version);
@@ -610,6 +619,9 @@ fn overridden(
         capability_digest: None,
         requirements: manifest.requirements.clone(),
         yanked: false,
+        yank_reason: None,
+        fixes: Vec::new(),
+        affects: Vec::new(),
         malicious: None,
         published: 0,
     })
