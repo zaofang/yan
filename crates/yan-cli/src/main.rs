@@ -111,6 +111,11 @@ enum Command {
         /// `@org/name`, `@org/name@1.4` or `@org/name@=1.4.2` (exact, skips the cool-off).
         spec: String,
     },
+    /// Remove a registry dependency and rewrite the lock (19.4, R896).
+    Remove {
+        /// `@org/name`.
+        name: String,
+    },
     /// Move registry requirements to the newest version outside the cool-off window (19.4).
     Update {
         /// With none, every registry requirement.
@@ -375,6 +380,9 @@ fn main() -> ExitCode {
         },
         Command::Add { spec } => {
             dep_result(deps::add(Path::new("."), &spec, registry::now()).map(|m| vec![m]))
+        }
+        Command::Remove { name } => {
+            dep_result(deps::remove(Path::new("."), &name).map(|m| vec![m]))
         }
         Command::Update { name } => {
             let moved = deps::update(Path::new("."), name.as_deref(), registry::now());
