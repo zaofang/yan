@@ -407,6 +407,36 @@ pub unsafe extern "C" fn yan_rt_repr(s: *const String) -> *mut String {
 }
 
 /// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_char_count(s: *const String) -> i64 {
+    // SAFETY: the caller's contract.
+    unsafe { &*s }.chars().count() as i64
+}
+
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_byte_len(s: *const String) -> i64 {
+    // SAFETY: the caller's contract.
+    unsafe { &*s }.len() as i64
+}
+
+/// `int(s)`: panics `conversion` unless `s.strip()` is an integer.
+///
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_int_of(s: *const String) -> i64 {
+    // SAFETY: the caller's contract.
+    let s = unsafe { &*s };
+    match crate::text::parse_int(s.trim()) {
+        Some(i) => i as i64,
+        None => panic("conversion"),
+    }
+}
+
+/// # Safety
 /// `a` and `b` are `Str` blocks.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_str_eq(a: *const String, b: *const String) -> u8 {

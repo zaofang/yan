@@ -166,6 +166,12 @@ pub enum RtFn {
     Repr,
     /// `(Str, Str) -> bool`
     StrEq,
+    /// `(Str) -> i64`
+    CharCount,
+    /// `(Str) -> i64`
+    ByteLen,
+    /// `(Str) -> i64`, panics `conversion`
+    IntOf,
     /// `(words) -> List` with elements of `words` slots.
     ListNew,
     /// `(List) -> Ptr` to a new last element's slots.
