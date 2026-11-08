@@ -282,6 +282,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R934 | `io.read_all() -> str` reads the rest of standard input; `io.read_line` strips `\n` or `\r\n`; under the default host handlers `fs.read` reads the real file, failing with `FsError` reason `not found` or `permission denied` | 7.1, 17.3 |
 | R935 | N50 and N51: the lenient reader reads `s[a:b:c]` on a `str` as a Python slice over chars (clamped, negative from the end, `std.text.slice_clamped`) and `int(s)` as `s.strip().parse_int()` that panics with kind `conversion` on a bad literal (`std.text.int_of`); `--strict` keeps E504 for the slice and E201 for `int(s)` | 14.1, 14.4, 25 |
 | R936 | `std.itertools` has `permutations`, `combinations`, `combinations_with_replacement`, `product`, `pairwise` and `accumulate` over lists, returning lazy `iter` values in Python's order; `list(it)` of an `iter` is read as `it.collect()` (N37) | 14.4, 17.3 |
+| R937 | `yan schema gen <file>` reads only the Parquet footer and prints `# schema blake3:<hash>` then `class <Stem>Row:` with one field per column: bool `bool`, INT32 and INT64 `int`, FLOAT and DOUBLE `float`, UTF8, ENUM and JSON `str`, other byte arrays `bytes`, an optional column `T | None`; the hash is blake3 of `yan schema 1`, NUL and the field lines; a nested, repeated, INT96 or non-identifier column exits 1 with a message (#732) | 11.9, 18.1 |
 
 <!-- /rows -->
 
