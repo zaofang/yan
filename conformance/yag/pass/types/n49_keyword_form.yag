@@ -1,5 +1,5 @@
 # spec: 14.1
-# rows: R930
+# rows: R932
 # flags: --strict
 # note: the keyword form the lenient reader normalizes to is accepted under --strict; leading exempt arguments stay positional
 

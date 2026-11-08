@@ -1,6 +1,6 @@
 # spec: 14.1, 14.4
-# rows: R930
-# note: N44 reads positional arguments for same-typed parameters as keywords from the first one that needed it; a call and a record constructor
+# rows: R932
+# note: N49 reads positional arguments for same-typed parameters as keywords from the first one that needed it; a call and a record constructor
 # stdout:
 # 24 24
 # 2 3 4

@@ -361,14 +361,14 @@
    "expect": []
   },
   {
-   "path": "yag/pass/types/n44_keyword_form.yag",
+   "path": "yag/pass/types/n49_keyword_form.yag",
    "kind": "pass",
    "milestone": "M1",
    "spec": [
     "14.1"
    ],
    "rows": [
-    "R930"
+    "R932"
    ],
    "flags": [
     "--strict"
@@ -4733,7 +4733,7 @@
    "exit": 0
   },
   {
-   "path": "yag/run/lenient/n44_positional_args.yag",
+   "path": "yag/run/lenient/n49_positional_args.yag",
    "kind": "run",
    "milestone": "M1",
    "spec": [
@@ -4741,7 +4741,7 @@
     "14.4"
    ],
    "rows": [
-    "R930"
+    "R932"
    ],
    "flags": [],
    "expect": [],
