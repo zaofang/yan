@@ -1,15 +1,15 @@
 # 0053: Package manager gaps after the directory-index resolver
 
-- Status: draft
+- Status: accepted
 - Research: none; starts from issue #767, RFC 0044, spec 19 and the resolver in `crates/yan-cli/src/{registry,deps}.rs`
-- Rows: none until the lead decides
+- Rows: not yet numbered; claimed in the PR that writes the spec edits
 
 ## Summary
 
 The resolver, `yan add`, `update`, `remove` and `--offline` work against directory indexes. Issue #767
 lists what is still unspecified or unimplemented. Items 7 and the `remove` half of item 4 are done (#799).
 This note settles the open design questions, one decision each with options and a recommendation, so the
-remaining implementation PRs have a spec to cite. It records no decision. Conformance cases are proposed in
+remaining implementation PRs have a spec to cite. Decisions D1 to D9 were taken as recommended on question cards, Antonio, 2026-11-08. Conformance cases are proposed in
 a separate `conform/*` PR.
 
 ## Decisions
@@ -30,7 +30,7 @@ Recommendation: (a). It reuses the reader and E018-style unknown-field rule alre
 a typo in `trust` or `min_release_age` must not be silently ignored, since both weaken a gate. The lowering
 rule for `min_release_age` stops a cloned repository from disabling the cool-off.
 
-- Decision:
+- Decision: as recommended; Antonio, 2026-11-08
 - Row:
 
 ### D2: archive and store layout
@@ -49,7 +49,7 @@ Recommendation: (a). The digest is the identity everywhere else (index, log, loc
 equal bytes share one file, a corrupt file cannot be mistaken for a good one, and vendoring is a copy of a
 directory with nothing to translate. (b) is easier to browse, which `yan tree` and `yan why` do not need.
 
-- Decision:
+- Decision: as recommended; Antonio, 2026-11-08
 - Row:
 
 ### D3: fields added to `yan.lock`
@@ -72,7 +72,7 @@ reviewer sees a capability gain as a one-line diff next to the version bump, and
 large, stay out of merge conflicts. Inlining them (the 19.4 text says "bundles live in `yan.lock`") should
 be changed to "referenced from"; this RFC asks for that edit.
 
-- Decision:
+- Decision: as recommended; Antonio, 2026-11-08
 - Row:
 
 ### D4: HTTPS indexes
@@ -91,7 +91,7 @@ total per request. The HTTP client is the toolchain's own (no `curl` subprocess)
 Recommendation: (a) plus loopback `http://` under (b) for tests only, gated on the host being `127.0.0.1`
 or `::1`. A directory is already the `file://` case, so (c) adds a second spelling for nothing.
 
-- Decision:
+- Decision: as recommended; Antonio, 2026-11-08
 - Row:
 
 ### D5: gate semantics for E004 and E007
@@ -117,7 +117,7 @@ milestone is the silent fallback the practice forbids. An unsigned index can alr
 archive, but the lock's digest means the substitution is caught on the next build; a false malicious mark
 at worst blocks a version, which `yan approve` with `--override-mark` (D6) clears.
 
-- Decision:
+- Decision: as recommended; Antonio, 2026-11-08
 - Row:
 
 ### D6: `yan approve` and `yan vendor`
@@ -137,7 +137,7 @@ approval to clear them, the record format is the final one except the signature,
 unsigned record, so nothing weaker than the spec is accepted anywhere that matters. The record carries
 `signer = "local"` explicitly so M2 can reject it by value.
 
-- Decision:
+- Decision: as recommended; Antonio, 2026-11-08
 - Row:
 
 ### D7: cool-off bypass for advisory fixes, and the yank reason
@@ -154,7 +154,7 @@ verbatim (control characters stripped, 200 characters, then `...`), and the vers
 is printed as such, naming the advisory id, so a reviewer of the lock diff sees why a young version was
 taken.
 
-- Decision:
+- Decision: as recommended; Antonio, 2026-11-08
 - Row:
 
 ### D8: `overrides` and the `python` environment
@@ -173,7 +173,7 @@ overrides cannot publish (E016, already specified). Until the work lands, a mani
 E017, not ignored. `python` (b): the Python environment is `uv`'s job, the project assumes `uv`, and a second
 resolver would drift from it. Yan resolves only what must be identical across machines, the digest.
 
-- Decision:
+- Decision: as recommended; Antonio, 2026-11-08
 - Row:
 
 ### D9: dependencies, dev dependencies and tools as three subgraphs
@@ -188,7 +188,7 @@ not widen the capability set a dependent sees (R636). A package in two subgraphs
 of its minimums across them, so the lock holds one version per (name, major), and `kinds` records which
 subgraphs use it. (c) is rejected because it splits the one source of truth for versions.
 
-- Decision:
+- Decision: as recommended; Antonio, 2026-11-08
 - Row:
 
 ## Spec changes
