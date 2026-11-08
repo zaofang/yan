@@ -2,7 +2,7 @@
 //! `yan lock`, which writes it from the manifest and the workspace members.
 
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use yan_diag::{Diagnostic, Span};
 
@@ -342,10 +342,13 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
         }
         let mut next: BTreeMap<Key, (String, Info)> = BTreeMap::new();
         for (key, m) in &mins {
-            if let Some((path, manifest)) = overrides.get(key) {
+            if let Some((path, manifest, digest)) = overrides.get(key) {
                 next.insert(
                     key.clone(),
-                    ("override".to_owned(), overridden(m, path, manifest)?),
+                    (
+                        "override".to_owned(),
+                        overridden(m, path, manifest, digest.clone())?,
+                    ),
                 );
                 continue;
             }
@@ -403,7 +406,7 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
             version: info.version,
             source,
             kinds: kinds.get(&key).cloned().unwrap_or_default(),
-            path: overrides.get(&key).map(|(p, _)| p.clone()),
+            path: overrides.get(&key).map(|(p, ..)| p.clone()),
             digest: Some(info.digest).filter(|d| !d.is_empty()),
             publisher: Some(info.publisher).filter(|p| !p.is_empty()),
             key,
@@ -451,42 +454,142 @@ fn subgraph_kinds(
     out
 }
 
-/// The root's `overrides` (R950): `"@org/name major": "path/to/dir"`, each replacing that
-/// (name, major) with the package at the path. Anything but a path is E017.
+/// An override's package: where it is recorded, its manifest and, for a git commit, the digest of
+/// its archive.
+type Overridden = (String, yan_elab::Manifest, Option<String>);
+
+/// The root's `overrides` (R950): `"@org/name major": "path/to/dir"` or
+/// `"git+https://host/repo@<commit> sha256:<hex>"`, each replacing that (name, major).
 fn load_overrides(
     root: &Path,
     top: &yan_elab::Manifest,
-) -> Result<BTreeMap<Key, (String, yan_elab::Manifest)>, Box<Diagnostic>> {
+) -> Result<BTreeMap<Key, Overridden>, Box<Diagnostic>> {
     let mut out = BTreeMap::new();
     for (key, path) in &top.overrides {
         let (name, major) = key
             .split_once(' ')
             .ok_or_else(|| fail("E018", format!("override `{key}` is not `@org/name x.y`")))?;
-        if path.contains("://") {
-            return Err(fail(
-                "E017",
-                format!("override `{key}`: only a local path is supported yet"),
-            ));
-        }
-        let manifest = manifest_at(&root.join(path)).ok_or_else(|| {
+        let (recorded, dir, digest) = match path.strip_prefix("git+") {
+            Some(spec) => {
+                let (url, commit, digest) = git_spec(key, spec)?;
+                let dir = fetch_git(&root.join(".yan/store"), key, url, commit, digest)?;
+                (
+                    format!("git+{url}@{commit}"),
+                    dir,
+                    Some(format!("sha256:{digest}")),
+                )
+            }
+            None if path.contains("://") => {
+                return Err(fail(
+                    "E017",
+                    format!(
+                        "override `{key}`: a URL must be `git+https://host/repo@<commit> sha256:<hex>`"
+                    ),
+                ));
+            }
+            None => (path.clone(), root.join(path), None),
+        };
+        let manifest = manifest_at(&dir).ok_or_else(|| {
             fail(
                 "E018",
-                format!("override `{key}`: `{path}` has no readable `package.yag`"),
+                format!("override `{key}`: `{recorded}` has no readable `package.yag`"),
             )
         })?;
         if manifest.name.as_deref() != Some(name) {
             return Err(fail(
                 "E018",
-                format!("override `{key}`: `{path}` is not `{name}`"),
+                format!("override `{key}`: `{recorded}` is not `{name}`"),
             ));
         }
-        out.insert(identity(name, major.trim()), (path.clone(), manifest));
+        out.insert(identity(name, major.trim()), (recorded, manifest, digest));
     }
     Ok(out)
 }
 
+/// `https://host/repo@<commit> sha256:<hex>`: the URL, the 40-hex commit and the archive digest.
+pub(crate) fn git_spec<'a>(
+    key: &str,
+    spec: &'a str,
+) -> Result<(&'a str, &'a str, &'a str), Box<Diagnostic>> {
+    let bad = || {
+        fail(
+            "E018",
+            format!(
+                "override `{key}`: `git+{spec}` is not `git+https://host/repo@<commit> sha256:<hex>`"
+            ),
+        )
+    };
+    let (at, digest) = spec.split_once(" sha256:").ok_or_else(bad)?;
+    let (url, commit) = at.rsplit_once('@').ok_or_else(bad)?;
+    let hex = |s: &str, n: usize| s.len() == n && s.bytes().all(|b| b.is_ascii_hexdigit());
+    if !url.starts_with("https://") || !hex(commit, 40) || !hex(digest, 64) {
+        return Err(bad());
+    }
+    Ok((url, commit, digest))
+}
+
+/// The unpacked tree of `commit` of `url` under `store`, whose zip archive (`git archive`) must
+/// hash to `digest` (E020). The archive is kept in the store, so a rebuild needs no network.
+pub(crate) fn fetch_git(
+    store: &Path,
+    key: &str,
+    url: &str,
+    commit: &str,
+    digest: &str,
+) -> Result<PathBuf, Box<Diagnostic>> {
+    let kept = store.join("archives").join(format!("{digest}.zip"));
+    let bytes = match std::fs::read(&kept) {
+        Ok(b) => b,
+        Err(_) => {
+            let git = |dir: &Path, args: &[&str]| {
+                let out = std::process::Command::new("git")
+                    .args(args)
+                    .current_dir(dir)
+                    .output()
+                    .map_err(|e| fail("E017", format!("override `{key}`: cannot run git: {e}")))?;
+                if out.status.success() {
+                    Ok(out.stdout)
+                } else {
+                    Err(fail(
+                        "E017",
+                        format!(
+                            "override `{key}`: git {}: {}",
+                            args[0],
+                            String::from_utf8_lossy(&out.stderr).trim()
+                        ),
+                    ))
+                }
+            };
+            let tmp = store.join(format!("git-{digest}"));
+            let io = |e: std::io::Error| fail("E017", format!("override `{key}`: {e}"));
+            let _ = std::fs::remove_dir_all(&tmp);
+            std::fs::create_dir_all(&tmp).map_err(io)?;
+            git(&tmp, &["init", "--quiet"])?;
+            git(&tmp, &["fetch", "--quiet", "--depth", "1", url, commit])?;
+            let bytes = git(&tmp, &["archive", "--format=zip", commit])?;
+            std::fs::remove_dir_all(&tmp).map_err(io)?;
+            bytes
+        }
+    };
+    if crate::store::sha256(&bytes) != digest {
+        return Err(fail(
+            "E020",
+            format!("override `{key}`: commit {commit} does not archive to `sha256:{digest}`"),
+        ));
+    }
+    std::fs::create_dir_all(store.join("archives"))
+        .and_then(|()| std::fs::write(&kept, &bytes))
+        .map_err(|e| fail("E017", format!("override `{key}`: {e}")))?;
+    crate::store::unpack(store, digest, &bytes)
+}
+
 /// The version an override stands for, which must meet the accumulated minimum.
-fn overridden(m: &Min, path: &str, manifest: &yan_elab::Manifest) -> Result<Info, Box<Diagnostic>> {
+fn overridden(
+    m: &Min,
+    path: &str,
+    manifest: &yan_elab::Manifest,
+    digest: Option<String>,
+) -> Result<Info, Box<Diagnostic>> {
     let version = manifest.version.clone().unwrap_or_default();
     if parts(&version) < parts(&m.want) {
         return Err(fail(
@@ -502,7 +605,7 @@ fn overridden(m: &Min, path: &str, manifest: &yan_elab::Manifest) -> Result<Info
     }
     Ok(Info {
         version,
-        digest: String::new(),
+        digest: digest.unwrap_or_default(),
         publisher: String::new(),
         capability_digest: None,
         requirements: manifest.requirements.clone(),
