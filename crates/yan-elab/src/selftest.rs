@@ -962,6 +962,19 @@ fn malformed_editions_are_e332() {
     }
 }
 
+#[test]
+fn unknown_manifest_fields_are_e018() {
+    let codes = |field: &str| {
+        let src = format!("package: Package = Package(name=\"@a/b\", {field}=1)\n");
+        let (m, _) = yan_yag::parse("package.yag", &src, false);
+        let (_, d) = elaborate("package.yag", &src, &m.expect("parses"), Options::default())
+            .expect("supported");
+        d.into_iter().map(|d| d.code).collect::<Vec<_>>()
+    };
+    assert_eq!(codes("colour"), ["E018"]);
+    assert!(codes("members").is_empty());
+}
+
 // Fail-transparent closures (spec 4.6): a failure inside a non-escaping closure argument is the caller's.
 const FAILING_CALLBACK: &str = "class Bad:\n    code: int\n\nclass Other:\n    n: int\n\n\
     def check(x: int) -> int fail Bad:\n    if x < 0:\n        fail Bad(code=x)\n    return x\n\n\
