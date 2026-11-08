@@ -4922,7 +4922,14 @@ impl Lower<'_, '_, '_> {
                         self.err("E504", at, format!("a slice of a `str`; use `{s}.chars()`"));
                         return Ok((Rhs::Atom(xs), Ty::Err));
                     }
-                    Ty::Str => return unsupported("slices of a `str`"),
+                    Ty::Str => {
+                        self.lenient(
+                            "N50",
+                            at,
+                            "`s[a:b]` slices chars, normalized to `std.text.slice_clamped`",
+                        );
+                        Ty::Str
+                    }
                     t => {
                         self.err(
                             "E201",
@@ -4945,7 +4952,11 @@ impl Lower<'_, '_, '_> {
                     };
                     args.push(let_arg(a));
                 }
-                let c = call("std.list.slice_clamped", vec![et.targ()], args, at);
+                let c = if t == Ty::Str {
+                    call("std.text.slice_clamped", vec![], args, at)
+                } else {
+                    call("std.list.slice_clamped", vec![et.targ()], args, at)
+                };
                 (Rhs::Call(c), t)
             }
             K::Lambda(ps, body) => self.lambda(ps, body, want)?,
@@ -7719,6 +7730,10 @@ impl Lower<'_, '_, '_> {
                     ("bigint", Ty::BigInt) => return Ok((Rhs::Atom(a), t)),
                     ("int", Ty::Int) | ("float", Ty::Float) => return Ok((Rhs::Atom(a), t)),
                     ("int", Ty::Float) => ("std.prelude.int", vec![], Ty::Int),
+                    ("int", Ty::Str) if !self.cx.strict => {
+                        self.lenient("N51", at, "`int(s)` normalized to `std.text.int_of(s)`");
+                        ("std.text.int_of", vec![], Ty::Int)
+                    }
                     ("float", Ty::Int) => ("std.prelude.float", vec![], Ty::Float),
                     ("round", Ty::Float) => ("std.prelude.round", vec![], Ty::Int),
                     ("abs", Ty::Int | Ty::Float) => ("std.prelude.abs", vec![t.targ()], t.clone()),

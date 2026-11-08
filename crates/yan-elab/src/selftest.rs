@@ -1263,6 +1263,30 @@ pub def main() uses io:
 const SHARED_TYPES: &str = "def vol(w: int, h: int, d: int) -> int:\n    return w * 100 + h * 10 + d\n\nclass Box:\n    w: int\n    h: int\n    d: int\n\npub def main() uses io:\n    a = 2\n    b = 3\n    c = 4\n    io.print(f\"{vol(a, b, c)} {vol(a, b, 5)} {Box(a, b, c).h}\")\n";
 
 #[test]
+fn str_slices_and_int_of_str_are_n50_n51() {
+    let src = "pub def main() uses io:\n    s = \"hello world\"\n    io.print(s[0:5])\n    io.print(s[-5:])\n    io.print(s[::-1])\n    io.print(s[3:100])\n    n = int(\" 12 \")\n    io.print(f\"{n + 1}\")\n";
+    let (m, d) = lower(src);
+    let codes: Vec<_> = d.iter().map(|d| d.code.as_str()).collect();
+    assert_eq!(codes, ["N50", "N50", "N50", "N50", "N51"], "{d:?}");
+    let mut out = Vec::new();
+    yan_interp::run(&m, &mut out).expect("runs");
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        "hello\nworld\ndlrow olleh\nlo world\n13\n"
+    );
+}
+
+#[test]
+fn int_of_a_bad_str_panics_with_conversion() {
+    let (m, _) = lower("pub def main() uses io:\n    n = int(\"zz\")\n    io.print(f\"{n}\")\n");
+    let mut out = Vec::new();
+    let Err(yan_interp::Stop::Panic(p)) = yan_interp::run(&m, &mut out) else {
+        panic!("int of a bad str does not panic");
+    };
+    assert_eq!(p.kind, "conversion");
+}
+
+#[test]
 fn positional_args_for_shared_types_are_n44() {
     let (m, d) = lower(SHARED_TYPES);
     let codes: Vec<_> = d.iter().map(|d| d.code.as_str()).collect();

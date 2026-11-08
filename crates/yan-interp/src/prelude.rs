@@ -47,6 +47,29 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             None => return panic("bounds"),
         }
     }),
+    f!(STD_TEXT_SLICE_CLAMPED, |a| {
+        [Str(x), start, stop, step] => {
+            let int = |v: &Value| match v {
+                Data { fields, .. } => match fields.first() {
+                    Some((_, Int(i))) => Some(*i),
+                    _ => None,
+                },
+                _ => None,
+            };
+            let step = int(step).unwrap_or(1);
+            if step == 0 {
+                return panic("value");
+            }
+            let cs: Vec<char> = x.chars().collect();
+            s(list::slice_indices(cs.len(), int(start), int(stop), step).map(|k| cs[k]).collect())
+        }
+    }),
+    f!(STD_TEXT_INT_OF, |a| {
+        [Str(x)] => match text::parse_int(x.trim()) {
+            Some(i) => Int(i),
+            None => return panic_with("conversion", format!("invalid literal for int(): {x:?}")),
+        }
+    }),
     f!(STD_TEXT_GRAPHEME_COUNT, |a| { [Str(x)] => Int(text::grapheme_count(x) as i128) }),
     f!(STD_TEXT_UPPER, |a| { [Str(x)] => s(x.to_uppercase()) }),
     f!(STD_TEXT_LOWER, |a| { [Str(x)] => s(x.to_lowercase()) }),
