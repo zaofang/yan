@@ -468,7 +468,7 @@ pub(crate) fn compile(m: &Module) -> Program {
 fn has_requires(f: &FnDef) -> bool {
     f.contracts
         .iter()
-        .any(|k| matches!(k, Contract::Requires(_)))
+        .any(|k| matches!(k, Contract::Requires(_) | Contract::Ensures(_)))
 }
 
 /// The names a predicate reads, in first-use order.
@@ -615,6 +615,9 @@ struct FnC<'g, 'm> {
     at: Span,
     /// Booleans bound to a comparison of two atoms, for the message of an `assert` on them.
     cmps: Map<Name, [Atom; 2]>,
+    /// `ensures` predicates with their clause position, checked at every `ret` (R882).
+    ensures: Vec<(Expr, u32)>,
+    item: Option<[u8; 32]>,
 }
 
 impl<'g, 'm> FnC<'g, 'm> {
@@ -627,6 +630,8 @@ impl<'g, 'm> FnC<'g, 'm> {
             barrier: 0,
             at: Span::default(),
             cmps: Map::default(),
+            ensures: Vec::new(),
+            item: None,
         };
         for p in params {
             let r = c.temp();
@@ -648,6 +653,7 @@ impl<'g, 'm> FnC<'g, 'm> {
         let mut c = FnC::new(g, &f.params, f.body.as_ref(), &[]);
         c.code.name = name;
         c.at = f.name_span;
+        c.item = item;
         let mut clause = 0;
         for k in &f.contracts {
             match k {
@@ -663,7 +669,10 @@ impl<'g, 'm> FnC<'g, 'm> {
                     c.emit(Op::Check { src: t, info });
                     clause += 1;
                 }
-                Contract::Ensures(_) => clause += 1,
+                Contract::Ensures(e) => {
+                    c.ensures.push((e.clone(), clause));
+                    clause += 1;
+                }
                 Contract::Cost { steps, alloc } => {
                     // Both bounds are evaluated before either counter starts.
                     let mut begins = Vec::new();
@@ -699,6 +708,35 @@ impl<'g, 'm> FnC<'g, 'm> {
             None => c.unsupported("call of a function without a body"),
         }
         c.code
+    }
+
+    fn ret(&mut self, a: &Atom) {
+        let o = match self.atom(a) {
+            Ok(o) => o,
+            Err(m) => return self.unsupported(m),
+        };
+        if self.ensures.is_empty() {
+            self.emit(Op::Ret(o));
+            return;
+        }
+        let out = self.reg_of(&"out".to_owned());
+        self.emit(Op::Move { dst: out, src: o });
+        for (e, clause) in self.ensures.clone() {
+            let t = self.temp();
+            self.expr(&e, t);
+            let info = self.code.contracts.len() as u32;
+            let vars = free_vars(&e)
+                .into_iter()
+                .filter_map(|n| self.regs.get(&n).map(|r| (n, *r)))
+                .collect();
+            self.code.contracts.push(ContractC {
+                item: self.item,
+                clause,
+                vars,
+            });
+            self.emit(Op::Check { src: t, info });
+        }
+        self.emit(Op::Ret(Opnd(out)));
     }
 
     fn closure(&mut self, k: &Closure) -> usize {
@@ -1010,12 +1048,7 @@ impl<'g, 'm> FnC<'g, 'm> {
             StmtKind::Continue { label } => self.leave_loop(label, false),
             StmtKind::Jp { .. } => {}
             StmtKind::Jump { name, args } => self.jump(name, args),
-            StmtKind::Ret(a) => match self.atom(a) {
-                Ok(o) => {
-                    self.emit(Op::Ret(o));
-                }
-                Err(m) => self.unsupported(m),
-            },
+            StmtKind::Ret(a) => self.ret(a),
             StmtKind::Fail(a) => match self.atom(a) {
                 Ok(o) => {
                     self.emit(Op::Fail(o));
