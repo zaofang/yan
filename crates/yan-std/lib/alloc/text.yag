@@ -20,6 +20,16 @@ pub def char_count(self: str) -> int: ...
 @since("1.0")
 pub def char_at(self: str, i: int) -> char: ...
 
+# What `s[start:stop:step]` lowers to: Python's slice over chars.
+@intrinsic
+@since("1.0")
+pub def slice_clamped(self: str, start: int | None, stop: int | None, step: int | None) -> str: ...
+
+# What `int(s)` lowers to: `s.strip().parse_int()`, panicking with `conversion` on None.
+@intrinsic
+@since("1.0")
+pub def int_of(self: str) -> int: ...
+
 @intrinsic
 @since("1.0")
 pub def grapheme_count(self: str) -> int: ...

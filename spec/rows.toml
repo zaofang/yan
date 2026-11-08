@@ -1364,3 +1364,8 @@ sections = "14.1, 14.4, 25"
 rows = "R934"
 topic = "`io.read_all() -> str` reads the rest of standard input; `io.read_line` strips `\\n` or `\\r\\n`; under the default host handlers `fs.read` reads the real file, failing with `FsError` reason `not found` or `permission denied`"
 sections = "7.1, 17.3"
+
+[[entry]]
+rows = "R935"
+topic = "N50 and N51: the lenient reader reads `s[a:b:c]` on a `str` as a Python slice over chars (clamped, negative from the end, `std.text.slice_clamped`) and `int(s)` as `s.strip().parse_int()` that panics with kind `conversion` on a bad literal (`std.text.int_of`); `--strict` keeps E504 for the slice and E201 for `int(s)`"
+sections = "14.1, 14.4, 25"
