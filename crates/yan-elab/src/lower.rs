@@ -3133,7 +3133,19 @@ impl Lower<'_, '_, '_> {
                 (y::Pat::Lit(l), Vec::new())
             }
             j::Pat::Path { path, args } if path.len() == 1 => {
-                let n = &path[0];
+                // A choice's result sum names its variants by label (R634).
+                let labelled = match ty {
+                    Ty::Data(s) if args.is_some() => {
+                        let v = format!("{s}_{}", path[0]);
+                        self.g
+                            .variant_of
+                            .get(&v)
+                            .is_some_and(|o| o == s)
+                            .then_some(v)
+                    }
+                    _ => None,
+                };
+                let n = labelled.as_ref().unwrap_or(&path[0]);
                 let fields: Option<Vec<(String, Ty)>> = match (ty, n.as_str()) {
                     (Ty::Option(_), "None") if args.is_none() => Some(Vec::new()),
                     (Ty::Option(t), "Some") => Some(vec![("value".into(), (**t).clone())]),

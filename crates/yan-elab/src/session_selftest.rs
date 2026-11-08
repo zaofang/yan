@@ -314,18 +314,24 @@ fn dropping_an_endpoint_before_end_is_e412() {
 }
 
 #[test]
-fn a_label_that_takes_a_name_is_e265() {
+fn a_label_may_share_a_variant_name() {
     let src = format!(
-        "type Found = Hit(n: int) | Miss()\n\ntype Fetch = session.protocol(\"{FETCH_INT}\")\n"
+        "type T = Found(n: int) | Other()\n\ntype Fetch = session.protocol(\"{FETCH_INT}\")\n\n{FETCH_RUN}"
     );
-    let (_, d) = diags(&src.replace(
-        "type Found = Hit(n: int) | Miss()",
-        "type T = Found(n: int) | Other()",
-    ));
-    assert_eq!(
-        d.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
-        ["E265"],
-        "{d:?}"
+    let (m, d) = checked(&src);
+    assert!(errors(&d).is_empty(), "{d:?}");
+    let mut out = Vec::new();
+    yan_interp::run(&m, &mut out).expect("runs");
+    assert_eq!(String::from_utf8(out).expect("utf-8"), "found 42\n");
+}
+
+#[test]
+fn a_role_never_taken_out_of_the_endpoints_is_e412() {
+    let src = format!(
+        "type Fetch = session.protocol(\"{FETCH_INT}\")\n\n\
+         pub def main() -> None fail SessionClosed:\n    eps = session.connect[Fetch]()\n    c = eps.client\n    ep1 = session.send(c, Get(\"k\"))?\n    got = session.recv(ep1)?\n    match got:\n        case Found(value=v, next=d):\n            session.close(d)\n        case Missing(next=d):\n            session.close(d)\n"
     );
-    assert!(d[0].message.contains("`Found`"), "{}", d[0].message);
+    let (_, d) = checked(&src);
+    assert_eq!(errors(&d), ["E412"], "{d:?}");
+    assert!(d.iter().any(|d| d.message.contains("`server`")), "{d:?}");
 }
