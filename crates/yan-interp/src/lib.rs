@@ -1,7 +1,7 @@
 //! Interpreter over Yan IR text: `compile` lowers each function to register bytecode, `vm` runs it.
 //!
 //! `par` runs its branches in order, which M0 allows. Contracts run at the `check` level for
-//! `requires`; `ensures`, `decreases` and `example` are not evaluated yet.
+//! `requires` and, at every `ret`, `ensures` with `out`; `decreases` and `example` are not evaluated yet.
 
 use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
@@ -972,6 +972,23 @@ mod selftest {
                 ("divisor", Operand::Int(0))
             ])
         );
+    }
+
+    #[test]
+    fn failed_ensures_panics_with_contract() {
+        let run_src = |ens: &str| {
+            let src = format!(
+                "module t\nfn f() -> i64 {ens} {{\n ret 1\n}}\nfn main() -> Unit {{\n let x: i64 = f()\n ret ()\n}}\n"
+            );
+            let (m, d) = yan_core::parse("t.yir", &src);
+            assert!(d.is_empty());
+            run(&m.unwrap(), &mut Vec::new())
+        };
+        let Err(Stop::Panic(p)) = run_src("ensures le_i64(let out, let 0)") else {
+            panic!("expected a panic")
+        };
+        assert_eq!(p.fields[0], ("clause".to_owned(), Operand::Int(0)));
+        assert!(run_src("ensures ge_i64(let out, let 0)").is_ok());
     }
 
     #[test]
