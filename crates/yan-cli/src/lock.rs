@@ -156,7 +156,10 @@ struct Locked {
     source: String,
     key: (String, String),
     digest: Option<String>,
+    capability_digest: Option<String>,
     publisher: Option<String>,
+    approvals: Vec<String>,
+    rebuilds: Vec<String>,
 }
 
 type Key = (String, String);
@@ -272,7 +275,10 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
                 source: dir.clone(),
                 key,
                 digest: None,
+                capability_digest: None,
                 publisher: None,
+                approvals: Vec::new(),
+                rebuilds: Vec::new(),
             });
         }
     }
@@ -312,7 +318,26 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
         ));
     }
     for (key, (source, info)) in chosen {
+        // Approvals and attestations belong to a version; `yan lock` keeps those it already has.
+        let kept = |field: &str| {
+            previous
+                .iter()
+                .find(|p| {
+                    p.get("name").and_then(toml::Value::as_str) == Some(&key.0)
+                        && p.get("version").and_then(toml::Value::as_str) == Some(&info.version)
+                })
+                .and_then(|p| p.get(field)?.as_array())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|x| x.as_str().map(str::to_owned))
+                        .collect()
+                })
+                .unwrap_or_default()
+        };
         out.push(Locked {
+            approvals: kept("approvals"),
+            rebuilds: kept("rebuilds"),
+            capability_digest: info.capability_digest,
             name: key.0.clone(),
             version: info.version,
             source,
@@ -339,9 +364,19 @@ fn render(packages: &[Locked]) -> String {
             quoted(&p.version),
             quoted(&p.source)
         );
-        for (field, value) in [("digest", &p.digest), ("publisher", &p.publisher)] {
+        for (field, value) in [
+            ("digest", &p.digest),
+            ("capability_digest", &p.capability_digest),
+            ("publisher", &p.publisher),
+        ] {
             if let Some(v) = value {
                 text += &format!("{field} = {}\n", quoted(v));
+            }
+        }
+        for (field, values) in [("approvals", &p.approvals), ("rebuilds", &p.rebuilds)] {
+            if !values.is_empty() {
+                let items: Vec<_> = values.iter().map(|v| quoted(v)).collect();
+                text += &format!("{field} = [{}]\n", items.join(", "));
             }
         }
     }

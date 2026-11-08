@@ -377,6 +377,37 @@ mod tests {
     }
 
     #[test]
+    fn lock_fields_follow_the_package_table_order_and_keep_approvals() {
+        let dir = world("lock-fields");
+        let p = dir.join("index/@a/b/@v/1.2.0.info");
+        let body = std::fs::read_to_string(&p).unwrap();
+        std::fs::write(
+            &p,
+            body.replace(
+                "{\"digest",
+                "{\"capability_digest\":\"sha256:cap\",\"digest",
+            ),
+        )
+        .unwrap();
+        let now = registry::now();
+        add(&dir, "@a/b", now).ok().unwrap();
+        let lock = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
+        assert!(lock.contains(
+            "digest = \"sha256:1.2.0\"\ncapability_digest = \"sha256:cap\"\npublisher = \"pub\"\n"
+        ));
+        let approved = lock.replace(
+            "publisher = \"pub\"\n",
+            "publisher = \"pub\"\napprovals = [\"sha256:ap\"]\nrebuilds = [\"sha256:rb\"]\n",
+        );
+        std::fs::write(dir.join("yan.lock"), &approved).unwrap();
+        assert!(!crate::lock::write(&dir).ok().unwrap());
+        assert_eq!(
+            std::fs::read_to_string(dir.join("yan.lock")).unwrap(),
+            approved
+        );
+    }
+
+    #[test]
     fn add_skips_the_cool_off_pins_exactly_and_locks_transitively() {
         let dir = world("add");
         let now = registry::now();
