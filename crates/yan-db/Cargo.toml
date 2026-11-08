@@ -10,6 +10,7 @@ publish.workspace = true
 [dependencies]
 blake3.workspace = true
 salsa.workspace = true
+toml.workspace = true
 yan-check.workspace = true
 yan-core.workspace = true
 yan-diag.workspace = true

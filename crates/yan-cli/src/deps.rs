@@ -108,6 +108,31 @@ fn with_dependency(src: &str, local: &str, req: &str) -> Result<String, Failure>
     ))
 }
 
+/// `src` without the `dependencies` entry that requires `name`.
+fn without_dependency(src: &str, name: &str) -> Option<String> {
+    let (start, end) = deps_span(src)?;
+    let needle = format!("\"{name} ");
+    let items: Vec<&str> = src[start + 1..end - 1]
+        .split(',')
+        .map(str::trim)
+        .filter(|i| !i.is_empty())
+        .collect();
+    let kept: Vec<&str> = items
+        .iter()
+        .copied()
+        .filter(|i| !i.contains(&needle))
+        .collect();
+    (kept.len() < items.len()).then(|| {
+        format!(
+            "{}{}{}{}",
+            &src[..=start],
+            kept.join(", "),
+            &src[end - 1..end],
+            &src[end..]
+        )
+    })
+}
+
 fn local_name(name: &str) -> &str {
     name.rsplit('/').next().unwrap_or(name)
 }
@@ -174,6 +199,17 @@ pub fn add(root: &Path, spec: &str, now: i64) -> Result<String, Failure> {
     .map_err(|e| Failure::Msg(format!("cannot write package.yag: {e}")))?;
     lock::write(root)?;
     Ok(format!("added {req}"))
+}
+
+/// `yan remove @org/name`: drop the requirement from `dependencies` and rewrite the lock.
+pub fn remove(root: &Path, name: &str) -> Result<String, Failure> {
+    let (src, _) = manifest(root)?;
+    let out = without_dependency(&src, name)
+        .ok_or_else(|| Failure::Msg(format!("`{name}` is not in `dependencies`")))?;
+    std::fs::write(root.join("package.yag"), out)
+        .map_err(|e| Failure::Msg(format!("cannot write package.yag: {e}")))?;
+    lock::write(root)?;
+    Ok(format!("removed {name}"))
 }
 
 /// `yan update [@org/name]`: move each registry requirement to the newest version outside the
@@ -392,5 +428,50 @@ mod tests {
         std::fs::create_dir_all(dir.join("vendor")).unwrap();
         std::fs::write(dir.join("vendor/1.2.0.zip"), "").unwrap();
         assert!(lock::check(&dir, &reqs, true, true).is_ok());
+    }
+
+    #[test]
+    fn a_superseded_version_stops_constraining() {
+        let dir = world("superseded");
+        let put = |n: &str, v: &str, reqs: &str| {
+            let d = dir.join("index/@a").join(n).join("@v");
+            std::fs::create_dir_all(&d).unwrap();
+            std::fs::write(
+                d.join(format!("{v}.info")),
+                info(v, "2020-01-01T00:00:00Z", "pub", reqs),
+            )
+            .unwrap();
+        };
+        put("x", "1.0.0", "");
+        put("x", "1.5.0", "");
+        std::fs::write(dir.join("index/@a/x/@v/list"), "1.0.0\n1.5.0\n").unwrap();
+        put("b", "1.2.0", "");
+        put("b", "1.0.0", "\"@a/x 1.5\"");
+        put("b", "1.3.0", "\"@a/x 1.0\"");
+        std::fs::write(dir.join("index/@a/b/@v/list"), "1.0.0\n1.2.0\n1.3.0\n").unwrap();
+        put("c", "1.0.0", "\"@a/b 1.3\"");
+        std::fs::write(
+            dir.join("package.yag"),
+            "package: Package = Package(name=\"@a/app\", version=\"0.1.0\", dependencies=[\"@a/b 1.0.0\", \"@a/c 1.0.0\"])\n",
+        )
+        .unwrap();
+        lock::write(&dir).unwrap();
+        let lock = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
+        assert!(lock.contains("name = \"@a/b\"\nversion = \"1.3.0\""));
+        assert!(lock.contains("name = \"@a/x\"\nversion = \"1.0.0\""));
+    }
+
+    #[test]
+    fn remove_drops_the_entry_and_its_lock_record() {
+        let dir = world("remove");
+        let now = registry::now();
+        add(&dir, "@a/b", now).ok().unwrap();
+        add(&dir, "@a/c", now).ok().unwrap();
+        assert_eq!(remove(&dir, "@a/c").ok().unwrap(), "removed @a/c");
+        let yag = std::fs::read_to_string(dir.join("package.yag")).unwrap();
+        assert!(yag.contains("dependencies={\"b\": \"@a/b 1.2.0\"}"));
+        let lock = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
+        assert!(!lock.contains("@a/c"));
+        assert!(remove(&dir, "@a/c").is_err());
     }
 }

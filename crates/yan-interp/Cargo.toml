@@ -13,6 +13,7 @@ yan-std.workspace = true
 yan-rt.workspace = true
 yan-core.workspace = true
 yan-diag.workspace = true
+yan-mir.workspace = true
 indexmap.workspace = true
 jiff.workspace = true
 num-bigint.workspace = true
