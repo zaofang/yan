@@ -4500,7 +4500,7 @@ impl Lower<'_, '_, '_> {
                 (Rhs::Ctor(y::Ctor::Tuple(atoms)), Ty::Tuple(tys))
             }
             K::List(xs) => {
-                let mut et = match want {
+                let mut et = match unoption(want) {
                     Some(Ty::List(t)) => Some((**t).clone()),
                     _ => None,
                 };
@@ -4539,7 +4539,7 @@ impl Lower<'_, '_, '_> {
                 (Rhs::Atom(Atom::Name(l, at)), lt)
             }
             K::Dict(kvs) => {
-                let (mut kt, mut vt) = match want {
+                let (mut kt, mut vt) = match unoption(want) {
                     Some(Ty::Dict(k, v)) => (Some((**k).clone()), Some((**v).clone())),
                     _ => (None, None),
                 };
@@ -9546,6 +9546,15 @@ fn expr_callees(e: &j::Expr, out: &mut HashSet<String>) {
             }
         }
     });
+}
+
+/// The type a literal is checked against: `U` where `U | None` is expected (R794).
+fn unoption(want: Option<&Ty>) -> Option<&Ty> {
+    let mut w = want;
+    while let Some(Ty::Option(t)) = w {
+        w = Some(t);
+    }
+    w
 }
 
 /// A collection's type arguments, which its std methods take in the same order.

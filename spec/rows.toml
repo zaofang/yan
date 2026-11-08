@@ -781,6 +781,11 @@ topic = "Empty `[]` and `{}` bindings take their type from the first `append`, `
 sections = "14.1"
 
 [[entry]]
+rows = "R933"
+topic = "An empty `[]` or `{}` argument, in a body or an `ex` line, takes the type of the parameter, through `| None` (R933)"
+sections = "14.1"
+
+[[entry]]
 rows = "R809"
 topic = "`ex f(x) == v` means `Ok(v)` and `fail e` as an operand is `Err(e)`, so `ex f(x) == fail E` states a failure (R809)"
 sections = "14.1"

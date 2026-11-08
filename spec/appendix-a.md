@@ -163,6 +163,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R806 | N35 lifts `re.match`, `re.search`, `re.fullmatch`, `re.split`, `re.sub` and `re.findall` to `regex.compile(pattern)` and the method, and `re` names the `regex` module (R806) | 14.4, 17.3 |
 | R807 | Standing policy: a Python builtin or method that models reach for and Yan Agent lacks is a real std function or an N-code normalization, never a bare E200 or E203 (R807) | 14.4 |
 | R808 | Empty `[]` and `{}` bindings take their type from the first `append`, `extend`, key store or `return` that fixes it, else E241 (R808) | 14.1 |
+| R933 | An empty `[]` or `{}` argument, in a body or an `ex` line, takes the type of the parameter, through `| None` (R933) | 14.1 |
 | R809 | `ex f(x) == v` means `Ok(v)` and `fail e` as an operand is `Err(e)`, so `ex f(x) == fail E` states a failure (R809) | 14.1 |
 | R810 | A tuple of one element type is iterable in `for`; indexing or `len` on an `iter` names `.collect()` and `.count()` (R810) | 14.1, 17.2 |
 | R811 | `with shield(d):` holds enclosing cancellation for a bounded block with its own deadline; Core `shield at { ... }` (R811) | 9.4 |
