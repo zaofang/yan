@@ -463,7 +463,7 @@ fn main() -> ExitCode {
 }
 
 /// Read `yan.lock` of the package in the current directory (E019, and E020 under `--locked`).
-fn lock_gate(locked: bool) -> Result<(), ExitCode> {
+fn lock_gate(locked: bool, format: Option<Format>) -> Result<(), ExitCode> {
     let reqs = std::fs::read_to_string("package.yag")
         .ok()
         .and_then(|src| {
@@ -473,7 +473,13 @@ fn lock_gate(locked: bool) -> Result<(), ExitCode> {
         .map(|m| m.requirements)
         .unwrap_or_default();
     lock::check(Path::new("."), &reqs, locked).map_err(|d| {
-        print_diags(&[*d]);
+        match format {
+            Some(Format::Json) => println!(
+                "{}",
+                serde_json::to_string(&[*d]).expect("records serialize")
+            ),
+            _ => print_diags(&[*d]),
+        }
         ExitCode::FAILURE
     })
 }
@@ -485,7 +491,7 @@ fn run_tests(
     no_cache: bool,
     locked: bool,
 ) -> ExitCode {
-    if let Err(code) = lock_gate(locked) {
+    if let Err(code) = lock_gate(locked, Some(format)) {
         return code;
     }
     let root = Path::new(".");
@@ -801,7 +807,7 @@ fn check(
     mut db: Database,
 ) -> ExitCode {
     use std::io::IsTerminal;
-    if let Err(code) = lock_gate(locked) {
+    if let Err(code) = lock_gate(locked, format) {
         return code;
     }
     let mut diags = Vec::new();

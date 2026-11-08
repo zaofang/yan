@@ -941,7 +941,9 @@ fn sibling_channel_waits_are_e713_only_in_plain_par() {
 }
 
 fn edition_codes(value: &str) -> Vec<String> {
-    let src = format!("package: Package = Package(name=\"@a/b\", edition=\"{value}\")\n");
+    let src = format!(
+        "package: Package = Package(name=\"@a/b\", version=\"1.0.0\", yan=\">=1\", edition=\"{value}\")\n"
+    );
     let (m, _) = yan_yag::parse("package.yag", &src, false);
     let (_, d) =
         elaborate("package.yag", &src, &m.expect("parses"), Options::default()).expect("supported");
@@ -965,7 +967,9 @@ fn malformed_editions_are_e332() {
 #[test]
 fn unknown_manifest_fields_are_e018() {
     let codes = |field: &str| {
-        let src = format!("package: Package = Package(name=\"@a/b\", {field}=1)\n");
+        let src = format!(
+            "package: Package = Package(name=\"@a/b\", version=\"1.0.0\", edition=\"2026\", yan=\">=1\", {field}=1)\n"
+        );
         let (m, _) = yan_yag::parse("package.yag", &src, false);
         let (_, d) = elaborate("package.yag", &src, &m.expect("parses"), Options::default())
             .expect("supported");
@@ -973,6 +977,20 @@ fn unknown_manifest_fields_are_e018() {
     };
     assert_eq!(codes("colour"), ["E018"]);
     assert!(codes("members").is_empty());
+}
+
+#[test]
+fn missing_manifest_fields_are_e018() {
+    let codes = |args: &str, file: &str| {
+        let src = format!("package: Package = Package({args})\n");
+        let (m, _) = yan_yag::parse(file, &src, false);
+        let (_, d) =
+            elaborate(file, &src, &m.expect("parses"), Options::default()).expect("supported");
+        d.into_iter().map(|d| d.code).collect::<Vec<_>>()
+    };
+    assert_eq!(codes("name=\"@a/b\"", "package.yag"), ["E018"; 3]);
+    assert!(codes("name=\"@a/b\"", "script.yag").is_empty());
+    assert!(codes("name=\"@a/b\", members=[]", "package.yag").is_empty());
 }
 
 // Fail-transparent closures (spec 4.6): a failure inside a non-escaping closure argument is the caller's.

@@ -174,7 +174,31 @@ const MANIFEST_FIELDS: &[&str] = &[
 
 /// E018: a `Package(...)` field outside the manifest table (R891).
 pub(crate) fn fields(m: &j::Module, cx: &mut Cx) {
-    for a in package_args(m).unwrap_or_default() {
+    let args = package_args(m).unwrap_or_default();
+    let manifest_file = std::path::Path::new(cx.file)
+        .file_name()
+        .is_some_and(|n| n == "package.yag");
+    let members_only = args.iter().any(|a| a.name.as_deref() == Some("members"));
+    if manifest_file && !members_only {
+        let span = m
+            .items
+            .iter()
+            .find(|it| matches!(&it.kind, j::ItemKind::Const { name, .. } if name == "package"))
+            .map(|it| it.span);
+        for req in ["name", "version", "edition", "yan"] {
+            if let Some(span) =
+                span.filter(|_| !args.iter().any(|a| a.name.as_deref() == Some(req)))
+            {
+                cx.err(
+                    "E018",
+                    span,
+                    "package",
+                    format!("the manifest lacks `{req}`"),
+                );
+            }
+        }
+    }
+    for a in args {
         let Some(n) = &a.name else { continue };
         if !MANIFEST_FIELDS.contains(&n.as_str()) {
             cx.err(
