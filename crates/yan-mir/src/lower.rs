@@ -35,6 +35,22 @@ const DEQUE_IDS: &[registry::Id] = &[
     id::STD_COLLECTIONS_DEQUE_CONTAINS,
 ];
 
+/// The kinds `RtFn::Select` takes, as `yan_rt::select` numbers them.
+mod select_kind {
+    pub const PERMUTATIONS: i64 = 0;
+    pub const COMBINATIONS: i64 = 1;
+    pub const WITH_REPLACEMENT: i64 = 2;
+}
+
+const ITERTOOLS_IDS: &[registry::Id] = &[
+    id::STD_ITERTOOLS_PERMUTATIONS,
+    id::STD_ITERTOOLS_COMBINATIONS,
+    id::STD_ITERTOOLS_COMBINATIONS_WITH_REPLACEMENT,
+    id::STD_ITERTOOLS_PRODUCT,
+    id::STD_ITERTOOLS_PAIRWISE,
+    id::STD_ITERTOOLS_ACCUMULATE,
+];
+
 pub(crate) type Fields = Vec<(String, Shape)>;
 
 /// A Yan Core type as scalar slots.
@@ -177,7 +193,8 @@ impl Types<'_> {
                 let name = n.path[0].as_str();
                 match (name, n.args.as_slice()) {
                     ("Str", []) => return Ok(Shape::Str),
-                    ("List", [y::TArg::Type(e)]) => {
+                    // No lazy adapters natively: an `iter` from `std.itertools` is its list.
+                    ("List" | "Iter", [y::TArg::Type(e)]) => {
                         return Ok(Shape::List(Box::new(self.shape_in(e, stack)?)));
                     }
                     ("Map", [y::TArg::Type(k), y::TArg::Type(v)]) => {
@@ -275,6 +292,9 @@ impl Types<'_> {
 }
 
 /// The fieldless failure types of section 9, which std declares.
+/// Failures a `par` ranks below every other: a cancelled wait, and the `SessionClosed` a session
+/// operation turns it into (R394, R634).
+const CANCEL_LIKE: &[&str] = &["Cancelled", "SessionClosed"];
 const STD_FAILURES: &[&str] = &["Cancelled", "Timeout", "Draining", "Deadlock"];
 
 fn result(ok: Shape, err: Shape) -> Shape {
@@ -980,26 +1000,33 @@ impl<'a, 'm> Fn<'a, 'm> {
             return;
         }
         let kind = match e {
-            Shape::Rec(n, fs) if n == "Cancelled" && fs.is_empty() => Operand::Int(2),
-            Shape::Sum(_, _) if e.variant("Cancelled").is_some() => {
-                let (tag, _, _) = e.variant("Cancelled").expect("checked");
-                let is = self.scalar_op(ScalarOp::Eq, I64, vec![ev[0].clone(), Operand::Int(tag)]);
+            Shape::Rec(n, fs) if CANCEL_LIKE.contains(&n.as_str()) && fs.is_empty() => {
+                Operand::Int(2)
+            }
+            Shape::Sum(_, _) if CANCEL_LIKE.iter().any(|n| e.variant(n).is_some()) => {
                 let k = self.local(I64);
                 self.emit(Inst::Copy {
                     dst: k,
                     src: Operand::Int(1),
                 });
-                let (c, o) = self.branch(is);
-                let join = self.block_new();
-                self.cur = c;
-                self.emit(Inst::Copy {
-                    dst: k,
-                    src: Operand::Int(2),
-                });
-                self.goto(join);
-                self.cur = o;
-                self.goto(join);
-                self.cur = join;
+                for n in CANCEL_LIKE {
+                    let Some((tag, _, _)) = e.variant(n) else {
+                        continue;
+                    };
+                    let is =
+                        self.scalar_op(ScalarOp::Eq, I64, vec![ev[0].clone(), Operand::Int(tag)]);
+                    let (c, o) = self.branch(is);
+                    let join = self.block_new();
+                    self.cur = c;
+                    self.emit(Inst::Copy {
+                        dst: k,
+                        src: Operand::Int(2),
+                    });
+                    self.goto(join);
+                    self.cur = o;
+                    self.goto(join);
+                    self.cur = join;
+                }
                 Operand::Local(k)
             }
             _ => Operand::Int(1),
@@ -1034,19 +1061,18 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     fn scalar_op(&mut self, op: ScalarOp, ty: Ty, args: Vec<Operand>) -> Operand {
-        let name = match op {
-            ScalarOp::Eq => "eq_i64",
-            ScalarOp::Ne => "ne_i64",
-            ScalarOp::Ge => "ge_i64",
-            ScalarOp::Le => "le_i64",
-            ScalarOp::AddChecked => "add_checked_i64",
+        let (name, out) = match (op, ty) {
+            (ScalarOp::Eq, _) => ("eq_i64", Ty::Bool),
+            (ScalarOp::Ne, _) => ("ne_i64", Ty::Bool),
+            (ScalarOp::Ge, _) => ("ge_i64", Ty::Bool),
+            (ScalarOp::Le, _) => ("le_i64", Ty::Bool),
+            (ScalarOp::AddChecked, _) => ("add_checked_i64", I64),
+            (ScalarOp::SubChecked, _) => ("sub_checked_i64", I64),
+            (ScalarOp::MulChecked, _) => ("mul_checked_i64", I64),
+            (ScalarOp::Add, _) => ("add_f64", Ty::F64),
             _ => unreachable!("only used for these"),
         };
-        let d = self.local(if matches!(op, ScalarOp::AddChecked) {
-            I64
-        } else {
-            Ty::Bool
-        });
+        let d = self.local(out);
         self.emit(Inst::Scalar {
             dst: Some(d),
             id: registry::id(name).expect("scalar ops are registered"),
@@ -1245,6 +1271,26 @@ impl<'a, 'm> Fn<'a, 'm> {
         };
         let args = Self::value_args(c)?;
         let dst1 = dst.as_ref().and_then(|v| v.locals.first().copied());
+        let ct = match id {
+            id::STD_CT_CT_SELECT => Some(ScalarOp::CtSelect),
+            id::STD_CT_CT_EQ => Some(ScalarOp::CtEq),
+            id::STD_CT_CT_LT => Some(ScalarOp::CtLt),
+            _ => None,
+        };
+        if let Some(op) = ct {
+            let args = args
+                .iter()
+                .map(|(_, a)| self.scalar1(a))
+                .collect::<R<Vec<_>>>()?;
+            self.emit(Inst::Scalar {
+                dst: dst1,
+                id,
+                op,
+                ty: I64,
+                args,
+            });
+            return Ok(());
+        }
         if let Some((op, ty)) = scalar(&name) {
             let args = args
                 .iter()
@@ -1290,6 +1336,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
         if DEQUE_IDS.contains(&id) {
             return self.deque_call(id, c, dst);
+        }
+        if ITERTOOLS_IDS.contains(&id) {
+            return self.itertools_call(id, c, dst);
         }
         if [
             id::STD_PRELUDE_HEAP,
@@ -1543,13 +1592,39 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let at = self.rt(RtFn::ListPush, Ty::Ptr, Self::ops(&list));
                 self.write(&At::Mem(at, 0), v);
             }
-            (id::STD_PRELUDE_LIST, [(conv, a)]) => {
+            (id::STD_PRELUDE_LIST | id::STD_ITER_OPS_COLLECT, [(conv, a)]) => {
                 let (_, s) = self.atom_any(a)?;
                 if !matches!(s, Shape::List(_)) {
                     return unsupported("`list` of a non-list");
                 }
                 let v = self.owned(conv, a, &s)?;
                 set(self, v[0].clone());
+            }
+            // The cursor of an `iter` from `std.itertools` is the list block's `limit` slot.
+            (id::STD_ITER_OPS_DONE, [(_, a)]) => {
+                let l = self.scalar1(a)?;
+                let pos = self.rt(RtFn::DqMaxlen, I64, vec![l.clone()]);
+                let n = self.rt(RtFn::ListLen, I64, vec![l]);
+                let done = self.scalar_op(ScalarOp::Ge, I64, vec![pos, n]);
+                set(self, done);
+            }
+            (id::STD_ITER_OPS_CURRENT, [(_, a)]) => {
+                let (v, s) = self.atom_any(a)?;
+                let Shape::List(e) = s else {
+                    return unsupported("`current` of this iterator");
+                };
+                let l = v[0].clone();
+                let pos = self.rt(RtFn::DqMaxlen, I64, vec![l.clone()]);
+                let x = self.element(&l, pos.clone(), &e)?;
+                let next = self.scalar_op(ScalarOp::AddChecked, I64, vec![pos, Operand::Int(1)]);
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::DqLimit,
+                    args: vec![l, next],
+                });
+                if let Some(d) = &dst {
+                    self.copy_to(&d.locals.clone(), x);
+                }
             }
             (id::STD_LIST_LEN, [(_, a)]) => {
                 let l = self.scalar1(a)?;
@@ -2115,6 +2190,309 @@ impl<'a, 'm> Fn<'a, 'm> {
             _ => return unsupported(format!("call of `{}`", c.path.join("."))),
         }
         Ok(())
+    }
+
+    /// `std.itertools`, eagerly: the result is the list its `iter` would yield.
+    fn itertools_call(&mut self, id: registry::Id, c: &y::Call, dst: Option<Var>) -> R<()> {
+        let args = Self::value_args(c)?;
+        let Some((_, xs_atom)) = args.first() else {
+            return unsupported(format!("call of `{}`", c.path.join(".")));
+        };
+        let (xv, xs) = self.atom_any(xs_atom)?;
+        let Shape::List(e) = xs else {
+            return unsupported("`std.itertools` on a non-list");
+        };
+        let xs = xv[0].clone();
+        let n = self.rt(RtFn::ListLen, I64, vec![xs.clone()]);
+        let out = match id {
+            id::STD_ITERTOOLS_PERMUTATIONS
+            | id::STD_ITERTOOLS_COMBINATIONS
+            | id::STD_ITERTOOLS_COMBINATIONS_WITH_REPLACEMENT => {
+                let kind = match id {
+                    id::STD_ITERTOOLS_PERMUTATIONS => select_kind::PERMUTATIONS,
+                    id::STD_ITERTOOLS_COMBINATIONS => select_kind::COMBINATIONS,
+                    _ => select_kind::WITH_REPLACEMENT,
+                };
+                let Some((_, r)) = args.get(1) else {
+                    return unsupported("`std.itertools` without `r`");
+                };
+                let r = if id == id::STD_ITERTOOLS_PERMUTATIONS {
+                    self.int_or(r, n.clone())?
+                } else {
+                    self.scalar1(r)?
+                };
+                self.selections(kind, &xs, &e, n, r)?
+            }
+            id::STD_ITERTOOLS_PRODUCT => {
+                let Some((_, b)) = args.get(1) else {
+                    return unsupported("`product` without a second list");
+                };
+                let (bv, bs) = self.atom_any(b)?;
+                let Shape::List(f) = bs else {
+                    return unsupported("`product` of a non-list");
+                };
+                let bl = bv[0].clone();
+                let m = self.rt(RtFn::ListLen, I64, vec![bl.clone()]);
+                let out = self.rt(
+                    RtFn::ListNew,
+                    Ty::Ptr,
+                    vec![Operand::Int((e.width() + f.width()) as i128)],
+                );
+                self.each(n, |me, i| {
+                    me.each(m.clone(), |me, j| {
+                        let mut pair = me.element(&xs, i.clone(), &e)?;
+                        pair.extend(me.element(&bl, j, &f)?);
+                        let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![out.clone()]);
+                        me.write(&At::Mem(slot, 0), pair);
+                        Ok(())
+                    })
+                })?;
+                out
+            }
+            id::STD_ITERTOOLS_PAIRWISE => {
+                let out = self.rt(
+                    RtFn::ListNew,
+                    Ty::Ptr,
+                    vec![Operand::Int((2 * e.width()) as i128)],
+                );
+                let pairs = self.scalar_op(ScalarOp::SubChecked, I64, vec![n, Operand::Int(1)]);
+                self.each(pairs, |me, i| {
+                    let mut pair = me.element(&xs, i.clone(), &e)?;
+                    let next = me.scalar_op(ScalarOp::AddChecked, I64, vec![i, Operand::Int(1)]);
+                    pair.extend(me.element(&xs, next, &e)?);
+                    let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![out.clone()]);
+                    me.write(&At::Mem(slot, 0), pair);
+                    Ok(())
+                })?;
+                out
+            }
+            _ => {
+                let (Some((_, f)), Some((_, init))) = (args.get(1), args.get(2)) else {
+                    return unsupported("`accumulate` without its defaults");
+                };
+                self.accumulate(&xs, n, &e, f, init)?
+            }
+        };
+        self.emit(Inst::Rt {
+            dst: None,
+            f: RtFn::DqLimit,
+            args: vec![out.clone(), Operand::Int(0)],
+        });
+        if let Some(d) = &dst {
+            self.copy_to(&d.locals.clone(), vec![out]);
+        }
+        Ok(())
+    }
+
+    /// `accumulate(xs, f, initial)`: the running values, `f` or `+` combining them.
+    fn accumulate(
+        &mut self,
+        xs: &Operand,
+        n: Operand,
+        e: &Shape,
+        f: &y::Atom,
+        init: &y::Atom,
+    ) -> R<Operand> {
+        let option = |t: Shape| {
+            Shape::Sum(
+                "Option".into(),
+                vec![
+                    ("Some".into(), vec![("value".into(), t)]),
+                    ("None".into(), vec![]),
+                ],
+            )
+        };
+        let fn_shape = Shape::Fn(vec![e.clone(), e.clone()], Box::new(e.clone()));
+        let f = self.atom(f, &option(fn_shape))?;
+        let init = self.atom(init, &option(e.clone()))?;
+        let add = match e {
+            Shape::Scalar(t) if *t == I64 => Some(ScalarOp::AddChecked),
+            Shape::Scalar(Ty::F64) => Some(ScalarOp::Add),
+            Shape::Scalar(Ty::Int(_)) => return unsupported("`accumulate` of this integer type"),
+            _ => None,
+        };
+        let acc = self.var(e.clone());
+        let started = self.local(I64);
+        let out = self.rt(
+            RtFn::ListNew,
+            Ty::Ptr,
+            vec![Operand::Int(e.width() as i128)],
+        );
+        let push = |me: &mut Self, v: Vec<Operand>| -> R<()> {
+            let v = me.clone_value(v, e)?;
+            let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![out.clone()]);
+            me.write(&At::Mem(slot, 0), v);
+            Ok(())
+        };
+        let has_init = self.scalar_op(ScalarOp::Eq, I64, vec![init[0].clone(), Operand::Int(0)]);
+        let (yes, no) = self.branch(has_init);
+        let join = self.block_new();
+        self.cur = yes;
+        let v = self.clone_value(init[1..].to_vec(), e)?;
+        self.copy_to(&acc.locals, v);
+        self.emit(Inst::Copy {
+            dst: started,
+            src: Operand::Int(1),
+        });
+        push(self, Self::ops(&acc))?;
+        self.goto(join);
+        self.cur = no;
+        self.emit(Inst::Copy {
+            dst: started,
+            src: Operand::Int(0),
+        });
+        self.goto(join);
+        self.each(n, |me, i| {
+            let x = me.element(xs, i, e)?;
+            let first = me.scalar_op(
+                ScalarOp::Eq,
+                I64,
+                vec![Operand::Local(started), Operand::Int(0)],
+            );
+            let (first, rest) = me.branch(first);
+            let next = me.block_new();
+            me.cur = first;
+            me.copy_to(&acc.locals, x.clone());
+            me.emit(Inst::Copy {
+                dst: started,
+                src: Operand::Int(1),
+            });
+            me.goto(next);
+            me.cur = rest;
+            let cur = Self::ops(&acc);
+            let has_f = me.scalar_op(ScalarOp::Eq, I64, vec![f[0].clone(), Operand::Int(0)]);
+            let (call, plain) = me.branch(has_f);
+            let joined = me.block_new();
+            let r = me.var(e.clone());
+            me.cur = call;
+            let mut ops = vec![f[2].clone()];
+            ops.extend(cur.clone());
+            ops.extend(x.clone());
+            let mut params = vec![Ty::Ptr];
+            params.extend(e.tys());
+            params.extend(e.tys());
+            me.emit(Inst::CallIndirect {
+                dst: r.locals.clone(),
+                code: f[1].clone(),
+                args: ops,
+                params,
+                ret: e.tys(),
+            });
+            me.goto(joined);
+            me.cur = plain;
+            match add {
+                Some(op) => {
+                    let ty = if op == ScalarOp::Add { Ty::F64 } else { I64 };
+                    let sum = me.scalar_op(op, ty, vec![cur[0].clone(), x[0].clone()]);
+                    me.copy_to(&r.locals, vec![sum]);
+                    me.goto(joined);
+                }
+                None => {
+                    me.finish(Term::Panic("value"));
+                    me.cur = joined;
+                }
+            }
+            me.glue(e, &cur);
+            me.glue(e, &x);
+            me.copy_to(&acc.locals, Self::ops(&r));
+            me.goto(next);
+            push(me, Self::ops(&acc))
+        })?;
+        if Self::has_heap(e) {
+            let any = self.scalar_op(
+                ScalarOp::Eq,
+                I64,
+                vec![Operand::Local(started), Operand::Int(1)],
+            );
+            let (yes, no) = self.branch(any);
+            let done = self.block_new();
+            self.cur = yes;
+            self.glue(e, &Self::ops(&acc));
+            self.goto(done);
+            self.cur = no;
+            self.goto(done);
+        }
+        Ok(out)
+    }
+
+    /// Element `i` of the list block `l`, cloned.
+    fn element(&mut self, l: &Operand, i: Operand, e: &Shape) -> R<Vec<Operand>> {
+        let at = At::Mem(self.rt(RtFn::ListAt, Ty::Ptr, vec![l.clone(), i]), 0);
+        let v = self.read(&at, e);
+        self.clone_value(v, e)
+    }
+
+    /// The payload of an `int | None` argument, or `none` for the `None`.
+    fn int_or(&mut self, a: &y::Atom, none: Operand) -> R<Operand> {
+        let want = Shape::Sum(
+            "Union".into(),
+            vec![
+                ("int".into(), vec![("value".into(), Shape::Scalar(I64))]),
+                ("None".into(), vec![]),
+            ],
+        );
+        let v = self.atom(a, &want)?;
+        let r = self.local(I64);
+        let some = self.scalar_op(ScalarOp::Eq, I64, vec![v[0].clone(), Operand::Int(0)]);
+        let (yes, no) = self.branch(some);
+        let join = self.block_new();
+        self.cur = yes;
+        self.emit(Inst::Copy {
+            dst: r,
+            src: v[1].clone(),
+        });
+        self.goto(join);
+        self.cur = no;
+        self.emit(Inst::Copy { dst: r, src: none });
+        self.goto(join);
+        Ok(Operand::Local(r))
+    }
+
+    /// The list of `r`-element lists of `xs` that `kind` selects.
+    fn selections(
+        &mut self,
+        kind: i64,
+        xs: &Operand,
+        e: &Shape,
+        n: Operand,
+        r: Operand,
+    ) -> R<Operand> {
+        let sel = self.rt(
+            RtFn::Select,
+            Ty::Ptr,
+            vec![Operand::Int(kind as i128), n, r.clone()],
+        );
+        let count = {
+            let at = At::Mem(
+                self.rt(RtFn::ListAt, Ty::Ptr, vec![sel.clone(), Operand::Int(0)]),
+                0,
+            );
+            self.read(&at, &Shape::Scalar(I64)).remove(0)
+        };
+        let out = self.rt(RtFn::ListNew, Ty::Ptr, vec![Operand::Int(1)]);
+        self.each(count, |me, k| {
+            let row = me.scalar_op(ScalarOp::MulChecked, I64, vec![k, r.clone()]);
+            let row = me.scalar_op(ScalarOp::AddChecked, I64, vec![row, Operand::Int(1)]);
+            let inner = me.rt(
+                RtFn::ListNew,
+                Ty::Ptr,
+                vec![Operand::Int(e.width() as i128)],
+            );
+            me.each(r.clone(), |me, j| {
+                let at = me.scalar_op(ScalarOp::AddChecked, I64, vec![row.clone(), j]);
+                let p = me.rt(RtFn::ListAt, Ty::Ptr, vec![sel.clone(), at]);
+                let idx = me.read(&At::Mem(p, 0), &Shape::Scalar(I64)).remove(0);
+                let x = me.element(xs, idx, e)?;
+                let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![inner.clone()]);
+                me.write(&At::Mem(slot, 0), x);
+                Ok(())
+            })?;
+            let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![out.clone()]);
+            me.write(&At::Mem(slot, 0), vec![inner]);
+            Ok(())
+        })?;
+        self.free(RtFn::ListFree, sel);
+        Ok(out)
     }
 
     fn heap_call(&mut self, id: registry::Id, c: &y::Call, dst: Option<Var>) -> R<()> {

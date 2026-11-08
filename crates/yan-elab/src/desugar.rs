@@ -141,6 +141,16 @@ pub struct Manifest {
     pub previews: Vec<String>,
     /// The requirements of `dependencies`, `dev_dependencies` and `tools`, as written (R642).
     pub requirements: Vec<String>,
+    /// The package's own `name`.
+    pub name: Option<String>,
+    /// The package's own `version`.
+    pub version: Option<String>,
+    /// The workspace members' directories, relative to the manifest (root only, 19.1).
+    pub members: Vec<String>,
+    /// The requirements of `dependencies` alone, the ones dependents inherit (R636).
+    pub dependencies: Vec<String>,
+    /// Whether `overrides` names any package (R636).
+    pub has_overrides: bool,
 }
 
 /// The fields of the manifest table (19.1).
@@ -248,7 +258,24 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
             _ => Vec::new(),
         }
     };
+    let string = |field: &str| {
+        args.iter().find_map(|a| match (&a.name, &a.kind) {
+            (
+                Some(n),
+                j::ArgKind::Expr(j::Expr {
+                    kind: j::ExprKind::Lit(j::Lit::Str { value, .. }),
+                    ..
+                }),
+            ) if n == field => Some(value.clone()),
+            _ => None,
+        })
+    };
     Some(Manifest {
+        name: string("name"),
+        version: string("version"),
+        members: strs("members").unwrap_or_default(),
+        dependencies: reqs("dependencies"),
+        has_overrides: !reqs("overrides").is_empty(),
         requirements: ["dependencies", "dev_dependencies", "tools"]
             .into_iter()
             .flat_map(reqs)

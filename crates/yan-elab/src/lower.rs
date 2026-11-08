@@ -60,6 +60,9 @@ struct Lower<'a, 'c, 's> {
     indexed: HashSet<String>,
     /// Where each read sits: the branch groups enclosing it, for E413 reachability.
     use_paths: HashMap<Span, Vec<Branch>>,
+    /// Plain-name reassignments: the statement span and its enclosing branches, so a
+    /// reassignment ends the live range of a move (E413).
+    defs: HashMap<String, Vec<(Span, Vec<Branch>)>>,
     ghosts: HashSet<String>,
     /// The parameter N05 took as the measure.
     inferred: Option<String>,
@@ -792,6 +795,7 @@ fn function_body_with(
         uses: HashMap::new(),
         indexed: HashSet::new(),
         use_paths: HashMap::new(),
+        defs: HashMap::new(),
         ghosts: sig.ghosts.iter().map(|(_, n)| n.clone()).collect(),
         inferred: None,
         bound: Vec::new(),
@@ -830,6 +834,7 @@ fn function_body_with(
         &body.stmts,
         &mut l.uses,
         &mut l.use_paths,
+        &mut l.defs,
         &mut Vec::new(),
         &mut 0,
     );
@@ -3128,7 +3133,19 @@ impl Lower<'_, '_, '_> {
                 (y::Pat::Lit(l), Vec::new())
             }
             j::Pat::Path { path, args } if path.len() == 1 => {
-                let n = &path[0];
+                // A choice's result sum names its variants by label (R634).
+                let labelled = match ty {
+                    Ty::Data(s) if args.is_some() => {
+                        let v = format!("{s}_{}", path[0]);
+                        self.g
+                            .variant_of
+                            .get(&v)
+                            .is_some_and(|o| o == s)
+                            .then_some(v)
+                    }
+                    _ => None,
+                };
+                let n = labelled.as_ref().unwrap_or(&path[0]);
                 let fields: Option<Vec<(String, Ty)>> = match (ty, n.as_str()) {
                     (Ty::Option(_), "None") if args.is_none() => Some(Vec::new()),
                     (Ty::Option(t), "Some") => Some(vec![("value".into(), (**t).clone())]),
@@ -9229,10 +9246,29 @@ fn names_used(
     stmts: &[j::Stmt],
     out: &mut HashMap<String, Vec<Span>>,
     paths: &mut HashMap<Span, Vec<Branch>>,
+    defs: &mut HashMap<String, Vec<(Span, Vec<Branch>)>>,
     path: &mut Vec<Branch>,
     groups: &mut usize,
 ) {
     for s in stmts {
+        if let j::StmtKind::Assign { target, .. } = &s.kind {
+            let names: Vec<&String> = match &target.kind {
+                j::ExprKind::Name(n) => vec![n],
+                j::ExprKind::Tuple(ts) => ts
+                    .iter()
+                    .filter_map(|t| match &t.kind {
+                        j::ExprKind::Name(n) => Some(n),
+                        _ => None,
+                    })
+                    .collect(),
+                _ => Vec::new(),
+            };
+            for n in names {
+                defs.entry(n.clone())
+                    .or_default()
+                    .push((s.span, path.clone()));
+            }
+        }
         let exprs: Vec<&j::Expr> = match &s.kind {
             j::StmtKind::Assign { target, value, .. } => {
                 let mut v: Vec<&j::Expr> = match &target.kind {
@@ -9267,7 +9303,7 @@ fn names_used(
                     ends: ends(b),
                 });
             }
-            names_used(b, out, paths, path, groups);
+            names_used(b, out, paths, defs, path, groups);
             if exclusive {
                 path.pop();
             }
@@ -9362,11 +9398,27 @@ impl Lower<'_, '_, '_> {
             })
     }
 
+    /// Whether a reassignment of `n` between `at` and `to` always happens before `to`.
+    fn redefined(&self, n: &str, at: Span, to: Span) -> bool {
+        let (Some(defs), Some(tp)) = (self.defs.get(n), self.use_paths.get(&to)) else {
+            return false;
+        };
+        defs.iter().any(|(d, dp)| {
+            (d.end_line, d.end_col) > (at.line, at.col)
+                && (d.end_line, d.end_col) <= (to.line, to.col)
+                && dp.iter().all(|b| tp.contains(b))
+        })
+    }
+
     fn next_use(&self, n: &str, at: Span) -> Option<Span> {
         self.uses
             .get(n)?
             .iter()
-            .filter(|s| (s.line, s.col) > (at.line, at.col) && self.reachable(at, **s))
+            .filter(|s| {
+                (s.line, s.col) > (at.line, at.col)
+                    && self.reachable(at, **s)
+                    && !self.redefined(n, at, **s)
+            })
             .min_by_key(|s| (s.line, s.col))
             .copied()
     }

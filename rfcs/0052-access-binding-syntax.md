@@ -1,4 +1,4 @@
-# 0051: @access binding syntax
+# 0052: @access binding syntax
 
 - Status: draft
 - Research: RFC 0016 D3 (Fern, PLDI 2025)

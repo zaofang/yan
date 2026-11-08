@@ -12,8 +12,10 @@ mod fix;
 mod lock;
 mod mcp;
 mod patch;
+mod publish;
 mod pyimport;
 mod review;
+mod schema;
 mod test;
 mod trust;
 use yan_db::{Database, Loaded};
@@ -76,12 +78,31 @@ enum McpCommand {
 const SKILL: &str = include_str!("../skill.md");
 
 #[derive(Subcommand)]
+enum SchemaCommand {
+    /// Print the row record of a Parquet file and the hash of its schema.
+    Gen { file: PathBuf },
+}
+
+#[derive(Subcommand)]
 enum Command {
     /// Print the Yan Agent grammar for constrained decoding (21.3).
     Grammar {
         #[arg(long, value_enum)]
         format: GrammarFormat,
     },
+    /// Write the row record type of a data file as Yan Agent source (11.9).
+    Schema {
+        #[command(subcommand)]
+        command: SchemaCommand,
+    },
+    /// Refuse a manifest that cannot be published (19.4, E016).
+    Publish {
+        /// Only check the manifest; publishing itself waits for the registry.
+        #[arg(long, required = true)]
+        check: bool,
+    },
+    /// Write `yan.lock` from the manifest and the workspace members (19.1, R896).
+    Lock,
     /// Check files and report diagnostics.
     Check {
         /// `prose` when output is a terminal, `line` otherwise (18.2).
@@ -309,6 +330,31 @@ fn main() -> ExitCode {
             max_errors,
             Database::new(strict, level.as_deref() == Some("release")),
         ),
+        Command::Lock => match lock::write(Path::new(".")) {
+            Ok(changed) => {
+                println!(
+                    "{}",
+                    if changed {
+                        "wrote yan.lock"
+                    } else {
+                        "yan.lock is up to date"
+                    }
+                );
+                ExitCode::SUCCESS
+            }
+            Err(d) => {
+                print_diags(&[*d]);
+                ExitCode::FAILURE
+            }
+        },
+        Command::Publish { .. } => match publish::check(Path::new(".")) {
+            Ok(d) if d.is_empty() => ExitCode::SUCCESS,
+            Ok(d) => {
+                print_diags(&d);
+                ExitCode::FAILURE
+            }
+            Err(msg) => tool_failure(&msg),
+        },
         Command::Explain { code } => explain(&code),
         Command::Run {
             file,
@@ -361,6 +407,18 @@ fn main() -> ExitCode {
             }
             ExitCode::SUCCESS
         }
+        Command::Schema {
+            command: SchemaCommand::Gen { file },
+        } => match schema::generate(&file) {
+            Ok(text) => {
+                print!("{text}");
+                ExitCode::SUCCESS
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                ExitCode::FAILURE
+            }
+        },
         Command::Fmt { check, files } => fmt(&files, check),
         Command::Fix {
             dry_run,

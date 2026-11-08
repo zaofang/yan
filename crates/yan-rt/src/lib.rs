@@ -32,6 +32,8 @@ pub mod regex;
 #[allow(unsafe_code)]
 pub mod sched;
 #[allow(unsafe_code)]
+pub mod select;
+#[allow(unsafe_code)]
 pub mod slice;
 pub mod sort;
 pub mod text;

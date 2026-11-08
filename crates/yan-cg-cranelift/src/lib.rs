@@ -21,7 +21,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
-use yan_rt::{abi, chan, dq, map, pq, sched, slice};
+use yan_rt::{abi, chan, dq, map, pq, sched, select, slice};
 
 type R<T> = Result<T, String>;
 
@@ -700,6 +700,7 @@ const RT: &[RtFn] = &[
     RtFn::HeapSort,
     RtFn::StrSlice,
     RtFn::ListSlice,
+    RtFn::Select,
     RtFn::DqLimit,
     RtFn::DqMaxlen,
     RtFn::DqPush,
@@ -920,6 +921,12 @@ fn rt_fn(
             "yan_rt_list_slice",
             slice::yan_rt_list_slice as *const u8,
             &[I64, I64, I64, I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::Select => (
+            "yan_rt_select",
+            select::yan_rt_select as *const u8,
+            &[I64, I64, I64],
             Some(I64),
         ),
         RtFn::DqLimit => (
@@ -1592,6 +1599,32 @@ impl Gen<'_, '_> {
                 self.guard(ne, "exclusivity");
                 return None;
             }
+            // Mask arithmetic only: no branch, select or compare on the operands (R611).
+            (CtSelect, _) => {
+                let wide = self.b.ins().uextend(types::I64, a[0]);
+                let mask = self.b.ins().ineg(wide);
+                let diff = self.b.ins().bxor(a[1], a[2]);
+                let pick = self.b.ins().band(diff, mask);
+                self.b.ins().bxor(a[2], pick)
+            }
+            (CtEq, _) => {
+                let x = self.b.ins().bxor(a[0], a[1]);
+                let neg = self.b.ins().ineg(x);
+                let nonzero = self.b.ins().bor(x, neg);
+                let bit = self.b.ins().ushr_imm_u(nonzero, 63);
+                let eq = self.b.ins().bxor_imm_u(bit, 1);
+                self.b.ins().ireduce(types::I8, eq)
+            }
+            (CtLt, _) => {
+                // sign of a - b, corrected for overflow
+                let d = self.b.ins().isub(a[0], a[1]);
+                let x = self.b.ins().bxor(a[0], a[1]);
+                let y = self.b.ins().bxor(d, a[0]);
+                let o = self.b.ins().band(x, y);
+                let m = self.b.ins().bxor(d, o);
+                let bit = self.b.ins().ushr_imm_u(m, 63);
+                self.b.ins().ireduce(types::I8, bit)
+            }
             (Not, Ty::Bool) => self.b.ins().bxor_imm_s(a[0], 1),
             (And, _) => self.b.ins().band(a[0], a[1]),
             (Or, _) => self.b.ins().bor(a[0], a[1]),
@@ -1764,6 +1797,25 @@ mod selftest {
             assert eq_i64(let n, let 13)\n let r: i64 = count(let 1000000, let 0)\n assert eq_i64(let r, let 1000000)\n\
             let q: i64 = floordiv_i64(let -7, let 2)\n assert eq_i64(let q, let -4)\n\
             let w: u8 = mod_u8(let 7, let 3)\n assert eq_u8(let w, let 1)\n ret ()\n}\n";
+        let (m, d) = yan_core::parse("t.yir", src);
+        assert!(d.is_empty(), "{d:?}");
+        let p = yan_mir::lower(&m.unwrap()).expect("lowers");
+        run_both(&p);
+    }
+
+    /// `std.ct` helpers agree with their definitions at the signed extremes (R611).
+    #[test]
+    fn runs_constant_time_helpers() {
+        let src = "module t\n\
+            fn main() -> Unit {\n\
+            let lo: i64 = -9223372036854775807\n let hi: i64 = 9223372036854775807\n\
+            let a: bool = std.ct.ct_lt(let lo, let 0)\n assert a\n\
+            let b: bool = std.ct.ct_lt(let hi, let lo)\n let nb: bool = not_bool(let b)\n assert nb\n\
+            let c: bool = std.ct.ct_lt(let 3, let 3)\n let nc: bool = not_bool(let c)\n assert nc\n\
+            let d: bool = std.ct.ct_eq(let hi, let hi)\n assert d\n\
+            let e: bool = std.ct.ct_eq(let lo, let hi)\n let ne: bool = not_bool(let e)\n assert ne\n\
+            let f: i64 = std.ct.ct_select(let true, let 7, let 9)\n assert eq_i64(let f, let 7)\n\
+            let g: i64 = std.ct.ct_select(let false, let 7, let 9)\n assert eq_i64(let g, let 9)\n ret ()\n}\n";
         let (m, d) = yan_core::parse("t.yir", src);
         assert!(d.is_empty(), "{d:?}");
         let p = yan_mir::lower(&m.unwrap()).expect("lowers");

@@ -531,7 +531,7 @@ impl<'o> Vm<'o> {
                     }
                     Some(i) => (i, true),
                     None => {
-                        // R394: the lowest-index failure that is not `Cancelled` wins.
+                        // R394: the lowest-index failure that is not `Cancelled` or `SessionClosed` wins.
                         let lowest = failed.iter().flatten().find(|v| !is_cancelled(v));
                         break Ok(match lowest {
                             Some(v) => Some(Err(v.clone())),
@@ -1394,7 +1394,7 @@ fn walk_mut<'v, 's>(
 }
 
 fn is_cancelled(v: &Value) -> bool {
-    matches!(v, Value::Data { name, .. } if &**name == "Cancelled")
+    matches!(v, Value::Data { name, .. } if matches!(&**name, "Cancelled" | "SessionClosed"))
 }
 
 /// A `cost steps` counter ran out: panic kind `contract` (R610, R211).
@@ -1488,6 +1488,22 @@ mod tests {
                     }
                 }
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod cancel_like_tests {
+    use super::*;
+
+    #[test]
+    fn session_closed_ranks_like_cancelled() {
+        for n in ["Cancelled", "SessionClosed"] {
+            let v = Value::Data {
+                name: n.into(),
+                fields: Default::default(),
+            };
+            assert!(is_cancelled(&v), "{n}");
         }
     }
 }
