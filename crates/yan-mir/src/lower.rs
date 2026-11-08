@@ -292,6 +292,9 @@ impl Types<'_> {
 }
 
 /// The fieldless failure types of section 9, which std declares.
+/// Failures a `par` ranks below every other: a cancelled wait, and the `SessionClosed` a session
+/// operation turns it into (R394, R634).
+const CANCEL_LIKE: &[&str] = &["Cancelled", "SessionClosed"];
 const STD_FAILURES: &[&str] = &["Cancelled", "Timeout", "Draining", "Deadlock"];
 
 fn result(ok: Shape, err: Shape) -> Shape {
@@ -997,26 +1000,33 @@ impl<'a, 'm> Fn<'a, 'm> {
             return;
         }
         let kind = match e {
-            Shape::Rec(n, fs) if n == "Cancelled" && fs.is_empty() => Operand::Int(2),
-            Shape::Sum(_, _) if e.variant("Cancelled").is_some() => {
-                let (tag, _, _) = e.variant("Cancelled").expect("checked");
-                let is = self.scalar_op(ScalarOp::Eq, I64, vec![ev[0].clone(), Operand::Int(tag)]);
+            Shape::Rec(n, fs) if CANCEL_LIKE.contains(&n.as_str()) && fs.is_empty() => {
+                Operand::Int(2)
+            }
+            Shape::Sum(_, _) if CANCEL_LIKE.iter().any(|n| e.variant(n).is_some()) => {
                 let k = self.local(I64);
                 self.emit(Inst::Copy {
                     dst: k,
                     src: Operand::Int(1),
                 });
-                let (c, o) = self.branch(is);
-                let join = self.block_new();
-                self.cur = c;
-                self.emit(Inst::Copy {
-                    dst: k,
-                    src: Operand::Int(2),
-                });
-                self.goto(join);
-                self.cur = o;
-                self.goto(join);
-                self.cur = join;
+                for n in CANCEL_LIKE {
+                    let Some((tag, _, _)) = e.variant(n) else {
+                        continue;
+                    };
+                    let is =
+                        self.scalar_op(ScalarOp::Eq, I64, vec![ev[0].clone(), Operand::Int(tag)]);
+                    let (c, o) = self.branch(is);
+                    let join = self.block_new();
+                    self.cur = c;
+                    self.emit(Inst::Copy {
+                        dst: k,
+                        src: Operand::Int(2),
+                    });
+                    self.goto(join);
+                    self.cur = o;
+                    self.goto(join);
+                    self.cur = join;
+                }
                 Operand::Local(k)
             }
             _ => Operand::Int(1),
