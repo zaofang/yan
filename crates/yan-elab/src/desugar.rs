@@ -139,6 +139,76 @@ pub struct Manifest {
     pub capabilities: Option<Vec<String>>,
     /// The previews the package opts into (20.6).
     pub previews: Vec<String>,
+    /// The requirements of `dependencies`, `dev_dependencies` and `tools`, as written (R642).
+    pub requirements: Vec<String>,
+}
+
+/// The fields of the manifest table (19.1).
+const MANIFEST_FIELDS: &[&str] = &[
+    "name",
+    "version",
+    "edition",
+    "yan",
+    "dependencies",
+    "dev_dependencies",
+    "tools",
+    "overrides",
+    "python",
+    "exclude",
+    "capabilities",
+    "platform",
+    "allow_ffi",
+    "native",
+    "preview",
+    "members",
+    "approvers",
+    "trust",
+    "rebuilders",
+    "min_release_age",
+    "license",
+    "license_policy",
+    "profile",
+    "embedded",
+    "i18n",
+];
+
+/// E018: a `Package(...)` field outside the manifest table (R891).
+pub(crate) fn fields(m: &j::Module, cx: &mut Cx) {
+    let args = package_args(m).unwrap_or_default();
+    let manifest_file = std::path::Path::new(cx.file)
+        .file_name()
+        .is_some_and(|n| n == "package.yag");
+    let members_only = args.iter().any(|a| a.name.as_deref() == Some("members"));
+    if manifest_file && !members_only {
+        let span = m
+            .items
+            .iter()
+            .find(|it| matches!(&it.kind, j::ItemKind::Const { name, .. } if name == "package"))
+            .map(|it| it.span);
+        for req in ["name", "version", "edition", "yan"] {
+            if let Some(span) =
+                span.filter(|_| !args.iter().any(|a| a.name.as_deref() == Some(req)))
+            {
+                cx.err(
+                    "E018",
+                    span,
+                    "package",
+                    format!("the manifest lacks `{req}`"),
+                );
+            }
+        }
+    }
+    for a in args {
+        let Some(n) = &a.name else { continue };
+        if !MANIFEST_FIELDS.contains(&n.as_str()) {
+            cx.err(
+                "E018",
+                a.span,
+                "package",
+                format!("`{n}` is not a manifest field"),
+            );
+        }
+    }
 }
 
 /// E332: a manifest `edition` that is neither `next` nor a year of 2026 or later (20.4).
@@ -187,7 +257,26 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
             _ => None,
         })
     };
+    let reqs = |name: &str| -> Vec<String> {
+        let value = args.iter().find_map(|a| match (&a.name, &a.kind) {
+            (Some(n), j::ArgKind::Expr(e)) if n == name => Some(&e.kind),
+            _ => None,
+        });
+        let lit = |e: &j::Expr| match &e.kind {
+            j::ExprKind::Lit(j::Lit::Str { value, .. }) => Some(value.clone()),
+            _ => None,
+        };
+        match value {
+            Some(j::ExprKind::List(xs)) => xs.iter().filter_map(lit).collect(),
+            Some(j::ExprKind::Dict(kvs)) => kvs.iter().filter_map(|(_, v)| lit(v)).collect(),
+            _ => Vec::new(),
+        }
+    };
     Some(Manifest {
+        requirements: ["dependencies", "dev_dependencies", "tools"]
+            .into_iter()
+            .flat_map(reqs)
+            .collect(),
         capabilities: strs("capabilities"),
         previews: strs("preview").unwrap_or_default(),
     })
