@@ -5,6 +5,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand, ValueEnum};
 
 mod agent;
+mod audit;
 mod build;
 mod examples;
 mod export;
@@ -269,6 +270,12 @@ enum Command {
         #[arg(long, value_enum, default_value_t = ReviewFormat::Line)]
         format: ReviewFormat,
     },
+    /// List the claims taken on trust: `unsafe` items and preconditions, extern `safe`,
+    /// `uses none` and `@access` claims (6, 11.2, 12).
+    Audit {
+        #[arg(long, value_enum, default_value_t = ReviewFormat::Line)]
+        format: ReviewFormat,
+    },
     /// Compile a program to an executable with the system linker (`cc`).
     Build {
         #[arg(long)]
@@ -390,6 +397,7 @@ fn main() -> ExitCode {
             locked,
         } => run_tests(format, gate, only.as_deref(), no_cache, locked),
         Command::Review { range, format } => review(&range, format),
+        Command::Audit { format } => audit(format),
         Command::View {
             as_,
             file,
@@ -567,6 +575,24 @@ fn run_tests(
     } else {
         ExitCode::SUCCESS
     }
+}
+
+fn audit(format: ReviewFormat) -> ExitCode {
+    let findings = match audit::audit(Path::new(".")) {
+        Ok(f) => f,
+        Err(msg) => return tool_failure(&msg),
+    };
+    match format {
+        ReviewFormat::Line => findings.iter().for_each(|f| println!("{}", f.line())),
+        ReviewFormat::Json => println!(
+            "{}",
+            serde_json::Value::Array(findings.iter().map(audit::Finding::json).collect())
+        ),
+        ReviewFormat::Md => findings
+            .iter()
+            .for_each(|f| println!("- `{}` {}: {}", f.kind, f.item, f.detail)),
+    }
+    ExitCode::SUCCESS
 }
 
 fn review(range: &str, format: ReviewFormat) -> ExitCode {
