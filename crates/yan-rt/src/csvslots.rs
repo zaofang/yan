@@ -627,6 +627,7 @@ mod tests {
         let rows = List {
             words: 3,
             data: vec![5, 0, name as u64, 6, 1, 0],
+            limit: -1,
         };
         // SAFETY: the rows hold `P`s and `name` is live.
         let out = unsafe { dump(&rows, ",", SCHEMA) };

@@ -21,7 +21,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
-use yan_rt::{abi, chan, map, pq, sched};
+use yan_rt::{abi, chan, dq, map, pq, sched, slice};
 
 type R<T> = Result<T, String>;
 
@@ -698,6 +698,17 @@ const RT: &[RtFn] = &[
     RtFn::HeapPop,
     RtFn::HeapPushPop,
     RtFn::HeapSort,
+    RtFn::StrSlice,
+    RtFn::ListSlice,
+    RtFn::DqLimit,
+    RtFn::DqMaxlen,
+    RtFn::DqPush,
+    RtFn::DqPop,
+    RtFn::DqExtend,
+    RtFn::DqRotate,
+    RtFn::DqTake,
+    RtFn::DqContains,
+    RtFn::DqSuffix,
     RtFn::MapNew,
     RtFn::MapFind,
     RtFn::MapIndex,
@@ -898,6 +909,72 @@ fn rt_fn(
             pq::yan_rt_heap_sort as *const u8,
             &[I64, I64],
             None,
+        ),
+        RtFn::StrSlice => (
+            "yan_rt_str_slice",
+            slice::yan_rt_str_slice as *const u8,
+            &[I64, I64, I64, I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::ListSlice => (
+            "yan_rt_list_slice",
+            slice::yan_rt_list_slice as *const u8,
+            &[I64, I64, I64, I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::DqLimit => (
+            "yan_rt_dq_limit",
+            dq::yan_rt_dq_limit as *const u8,
+            &[I64, I64],
+            None,
+        ),
+        RtFn::DqMaxlen => (
+            "yan_rt_dq_maxlen",
+            dq::yan_rt_dq_maxlen as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::DqPush => (
+            "yan_rt_dq_push",
+            dq::yan_rt_dq_push as *const u8,
+            &[I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::DqPop => (
+            "yan_rt_dq_pop",
+            dq::yan_rt_dq_pop as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::DqExtend => (
+            "yan_rt_dq_extend",
+            dq::yan_rt_dq_extend as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::DqRotate => (
+            "yan_rt_dq_rotate",
+            dq::yan_rt_dq_rotate as *const u8,
+            &[I64, I64],
+            None,
+        ),
+        RtFn::DqTake => (
+            "yan_rt_dq_take",
+            dq::yan_rt_dq_take as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::DqContains => (
+            "yan_rt_dq_contains",
+            dq::yan_rt_dq_contains as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::DqSuffix => (
+            "yan_rt_dq_suffix",
+            dq::yan_rt_dq_suffix as *const u8,
+            &[I64],
+            Some(I64),
         ),
         RtFn::MapNew => (
             "yan_rt_map_new",

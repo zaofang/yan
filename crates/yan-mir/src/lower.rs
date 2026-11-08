@@ -19,6 +19,22 @@ const I64: Ty = Ty::Int(IntTy {
     signed: true,
 });
 
+const DEQUE_IDS: &[registry::Id] = &[
+    id::STD_PRELUDE_DEQUE,
+    id::STD_COLLECTIONS_DEQUE_APPEND,
+    id::STD_COLLECTIONS_DEQUE_APPENDLEFT,
+    id::STD_COLLECTIONS_DEQUE_POP,
+    id::STD_COLLECTIONS_DEQUE_POPLEFT,
+    id::STD_COLLECTIONS_DEQUE_FIRST,
+    id::STD_COLLECTIONS_DEQUE_LAST,
+    id::STD_COLLECTIONS_DEQUE_EXTEND,
+    id::STD_COLLECTIONS_DEQUE_ROTATE,
+    id::STD_COLLECTIONS_DEQUE_CLEAR,
+    id::STD_COLLECTIONS_DEQUE_MAXLEN,
+    id::STD_COLLECTIONS_DEQUE_LEN,
+    id::STD_COLLECTIONS_DEQUE_CONTAINS,
+];
+
 pub(crate) type Fields = Vec<(String, Shape)>;
 
 /// A Yan Core type as scalar slots.
@@ -31,6 +47,8 @@ pub enum Shape {
     Map(Box<Shape>, Box<Shape>),
     /// A `heap`: a list block kept as a min-heap (`yan_rt::pq`).
     Heap(Box<Shape>),
+    /// A `deque`: a list block that also holds its `maxlen` (`yan_rt::dq`).
+    Deque(Box<Shape>),
     Rec(String, Vec<(String, Shape)>),
     Tuple(Vec<Shape>),
     /// A tag slot, then each variant's fields in order.
@@ -45,9 +63,12 @@ impl Shape {
     fn slots(&self, out: &mut Vec<Ty>) {
         match self {
             Shape::Scalar(t) => out.push(*t),
-            Shape::Str | Shape::List(_) | Shape::Map(..) | Shape::Heap(_) | Shape::Chan(_) => {
-                out.push(Ty::Ptr)
-            }
+            Shape::Str
+            | Shape::List(_)
+            | Shape::Map(..)
+            | Shape::Heap(_)
+            | Shape::Deque(_)
+            | Shape::Chan(_) => out.push(Ty::Ptr),
             Shape::Fn(..) => out.extend([Ty::Ptr, Ty::Ptr]),
             Shape::Rec(_, fs) => fs.iter().for_each(|(_, s)| s.slots(out)),
             Shape::Tuple(ss) => ss.iter().for_each(|s| s.slots(out)),
@@ -77,6 +98,7 @@ impl Shape {
             | Shape::Str
             | Shape::Map(..)
             | Shape::Heap(_)
+            | Shape::Deque(_)
             | Shape::Fn(..)
             | Shape::Chan(_) => false,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| s.has_list()),
@@ -166,6 +188,9 @@ impl Types<'_> {
                     }
                     ("Heap", [y::TArg::Type(e)]) => {
                         return Ok(Shape::Heap(Box::new(self.shape_in(e, stack)?)));
+                    }
+                    ("Deque", [y::TArg::Type(e)]) => {
+                        return Ok(Shape::Deque(Box::new(self.shape_in(e, stack)?)));
                     }
                     ("Option", [y::TArg::Type(t)]) => {
                         let t = self.shape_in(t, stack)?;
@@ -1099,6 +1124,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 | Shape::List(_)
                 | Shape::Map(..)
                 | Shape::Heap(_)
+                | Shape::Deque(_)
                 | Shape::Chan(_),
                 1,
             ) => Ok(v.remove(0)),
@@ -1261,6 +1287,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         .contains(&id)
         {
             return self.dict_call(id, c, dst);
+        }
+        if DEQUE_IDS.contains(&id) {
+            return self.deque_call(id, c, dst);
         }
         if [
             id::STD_PRELUDE_HEAP,
@@ -1450,6 +1479,45 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(RtFn::ByteLen, I64, vec![s]);
                 set(self, r);
             }
+            (
+                id::STD_TEXT_SLICE_CLAMPED | id::STD_LIST_SLICE_CLAMPED,
+                [(_, a), (_, b), (_, c), (_, d)],
+            ) => {
+                let (mut v, s) = self.atom_any(a)?;
+                let mut args = vec![v.remove(0)];
+                let opt = Shape::Sum(
+                    "Option".into(),
+                    vec![
+                        ("Some".into(), vec![("value".into(), Shape::Scalar(I64))]),
+                        ("None".into(), vec![]),
+                    ],
+                );
+                for bound in [b, c, d] {
+                    args.extend(self.atom(bound, &opt)?);
+                }
+                let r = match &s {
+                    Shape::Str if id == id::STD_TEXT_SLICE_CLAMPED => {
+                        self.rt(RtFn::StrSlice, Ty::Ptr, args)
+                    }
+                    Shape::List(e) if id == id::STD_LIST_SLICE_CLAMPED => {
+                        let l = self.rt(RtFn::ListSlice, Ty::Ptr, args);
+                        if Self::has_heap(e) {
+                            let n = self.rt(RtFn::ListLen, I64, vec![l.clone()]);
+                            self.each(n, |me, i| {
+                                let at =
+                                    At::Mem(me.rt(RtFn::ListAt, Ty::Ptr, vec![l.clone(), i]), 0);
+                                let ev = me.read(&at, e);
+                                let c = me.clone_value(ev, e)?;
+                                me.write(&at, c);
+                                Ok(())
+                            })?;
+                        }
+                        l
+                    }
+                    _ => return unsupported("a slice of this type"),
+                };
+                set(self, r);
+            }
             (id::STD_TEXT_INT_OF, [(_, a)]) => {
                 let s = self.scalar1(a)?;
                 let r = self.rt(RtFn::IntOf, I64, vec![s]);
@@ -1601,6 +1669,17 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let close = self.lit(")");
                 self.concat2(head, close)
             }
+            Shape::Deque(e) => {
+                let l = self.rt(RtFn::ListCopy, Ty::Ptr, v.to_vec());
+                let inner = self.show(std::slice::from_ref(&l), &Shape::List(e.clone()), nested)?;
+                self.free(RtFn::ListFree, l);
+                let open = self.lit("deque(");
+                let head = self.concat2(open, inner);
+                let suffix = self.rt(RtFn::DqSuffix, Ty::Ptr, v.to_vec());
+                let head = self.concat2(head, suffix);
+                let close = self.lit(")");
+                self.concat2(head, close)
+            }
             Shape::List(e) => {
                 let list = v[0].clone();
                 let out = self.local(Ty::Ptr);
@@ -1714,7 +1793,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let empty = self.lit("");
                 vec![self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])]
             }
-            Shape::List(e) | Shape::Heap(e) => {
+            Shape::List(e) | Shape::Heap(e) | Shape::Deque(e) => {
                 let l = self.rt(RtFn::ListCopy, Ty::Ptr, v);
                 if Self::has_heap(e) {
                     let n = self.rt(RtFn::ListLen, I64, vec![l.clone()]);
@@ -1849,6 +1928,193 @@ impl<'a, 'm> Fn<'a, 'm> {
             return unsupported("a `std.dict` call on a non-dict");
         };
         Ok((v.remove(0), *k, *e))
+    }
+
+    fn deque_call(&mut self, id: registry::Id, c: &y::Call, dst: Option<Var>) -> R<()> {
+        let args = Self::value_args(c)?;
+        let set = |me: &mut Self, v: Vec<Operand>| {
+            if let Some(d) = &dst {
+                me.copy_to(&d.locals.clone(), v);
+            }
+        };
+        if id == id::STD_PRELUDE_DEQUE {
+            let [y::TArg::Type(t)] = c.targs.as_slice() else {
+                return unsupported("`deque` without its element type");
+            };
+            let e = self.shape(t)?;
+            let (src, limit) = match args.as_slice() {
+                [] => (None, None),
+                [a] => (Some(*a), None),
+                [a, m] => (Some(*a), Some(m.1)),
+                _ => return unsupported("`deque` with extra arguments"),
+            };
+            let l = match src {
+                Some((conv, a)) => {
+                    let (_, s) = self.atom_any(a)?;
+                    if !matches!(s, Shape::List(_)) {
+                        return unsupported("`deque` of a non-list");
+                    }
+                    self.owned(&conv, a, &s)?.remove(0)
+                }
+                None => self.rt(
+                    RtFn::ListNew,
+                    Ty::Ptr,
+                    vec![Operand::Int(e.width() as i128)],
+                ),
+            };
+            let l = match limit {
+                Some(m) => {
+                    let m = self.scalar1(m)?;
+                    let d = self.rt(
+                        RtFn::ListNew,
+                        Ty::Ptr,
+                        vec![Operand::Int(e.width() as i128)],
+                    );
+                    self.emit(Inst::Rt {
+                        dst: None,
+                        f: RtFn::DqLimit,
+                        args: vec![d.clone(), m],
+                    });
+                    let out = self.rt(RtFn::DqExtend, Ty::Ptr, vec![d.clone(), l]);
+                    self.glue(&Shape::List(Box::new(e)), &[out]);
+                    d
+                }
+                None => l,
+            };
+            set(self, vec![l]);
+            return Ok(());
+        }
+        let Some((_, h)) = args.first() else {
+            return unsupported(format!("call of `{}`", c.path.join(".")));
+        };
+        let (mut v, s) = self.atom_any(h)?;
+        let Shape::Deque(e) = s else {
+            return unsupported("a `deque` call on a non-deque");
+        };
+        let l = v.remove(0);
+        let w = e.width() as i128;
+        match (id, &args[1..]) {
+            (id::STD_COLLECTIONS_DEQUE_LEN, []) => {
+                let r = self.rt(RtFn::ListLen, I64, vec![l]);
+                set(self, vec![r]);
+            }
+            (
+                id::STD_COLLECTIONS_DEQUE_APPEND | id::STD_COLLECTIONS_DEQUE_APPENDLEFT,
+                [(xc, x)],
+            ) => {
+                let front = i128::from(id == id::STD_COLLECTIONS_DEQUE_APPENDLEFT);
+                let x = self.owned(xc, x, &e)?;
+                let xb = self.key_buf(x);
+                let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(w)]);
+                let evicted = self.rt(
+                    RtFn::DqPush,
+                    I64,
+                    vec![l, Operand::Int(front), xb.clone(), out.clone()],
+                );
+                if Self::has_heap(&e) {
+                    let (drop_it, join) = (self.block_new(), self.block_new());
+                    let none = self.scalar_op(ScalarOp::Eq, I64, vec![evicted, Operand::Int(0)]);
+                    let (skip, evict) = self.branch(none);
+                    self.cur = skip;
+                    self.goto(join);
+                    self.cur = evict;
+                    self.goto(drop_it);
+                    self.cur = drop_it;
+                    let old = self.read(&At::Mem(out.clone(), 0), &e);
+                    self.glue(&e, &old);
+                    self.goto(join);
+                }
+                self.free(RtFn::EnvFree, xb);
+                self.free(RtFn::EnvFree, out);
+            }
+            (id::STD_COLLECTIONS_DEQUE_POP | id::STD_COLLECTIONS_DEQUE_POPLEFT, []) => {
+                let front = i128::from(id == id::STD_COLLECTIONS_DEQUE_POPLEFT);
+                let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(w)]);
+                let ok = self.rt(RtFn::DqPop, I64, vec![l, Operand::Int(front), out.clone()]);
+                let empty = self.scalar_op(ScalarOp::Eq, I64, vec![ok, Operand::Int(0)]);
+                let (bad, good) = self.branch(empty);
+                self.cur = bad;
+                self.finish(Term::Panic("bounds"));
+                self.cur = good;
+                let v = self.read(&At::Mem(out.clone(), 0), &e);
+                self.free(RtFn::EnvFree, out);
+                set(self, v);
+            }
+            (id::STD_COLLECTIONS_DEQUE_FIRST | id::STD_COLLECTIONS_DEQUE_LAST, []) => {
+                let Some(d) = &dst else {
+                    return Ok(());
+                };
+                let ds = d.shape.clone();
+                let n = self.rt(RtFn::ListLen, I64, vec![l.clone()]);
+                let empty = self.scalar_op(ScalarOp::Eq, I64, vec![n.clone(), Operand::Int(0)]);
+                let (none, some) = self.branch(empty);
+                let join = self.block_new();
+                self.cur = none;
+                set(self, Self::variant_value(&ds, "None", vec![]));
+                self.goto(join);
+                self.cur = some;
+                let i = if id == id::STD_COLLECTIONS_DEQUE_FIRST {
+                    Operand::Int(0)
+                } else {
+                    self.scalar_op(ScalarOp::AddChecked, I64, vec![n, Operand::Int(-1)])
+                };
+                let p = self.rt(RtFn::ListAt, Ty::Ptr, vec![l, i]);
+                let top = self.read(&At::Mem(p, 0), &e);
+                let top = self.clone_value(top, &e)?;
+                set(self, Self::variant_value(&ds, "Some", top));
+                self.goto(join);
+            }
+            (id::STD_COLLECTIONS_DEQUE_EXTEND, [(xc, x)]) => {
+                let (_, xs) = self.atom_any(x)?;
+                if !matches!(xs, Shape::List(_)) {
+                    return unsupported("`deque.extend` of a non-list");
+                }
+                let src = self.owned(xc, x, &xs)?.remove(0);
+                let out = self.rt(RtFn::DqExtend, Ty::Ptr, vec![l, src]);
+                self.glue(&Shape::List(e), &[out]);
+            }
+            (id::STD_COLLECTIONS_DEQUE_ROTATE, [(_, n)]) => {
+                let n = self.scalar1(n)?;
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::DqRotate,
+                    args: vec![l, n],
+                });
+            }
+            (id::STD_COLLECTIONS_DEQUE_CLEAR, []) => {
+                let out = self.rt(RtFn::DqTake, Ty::Ptr, vec![l]);
+                self.glue(&Shape::List(e), &[out]);
+            }
+            (id::STD_COLLECTIONS_DEQUE_MAXLEN, []) => {
+                let Some(d) = &dst else {
+                    return Ok(());
+                };
+                let ds = d.shape.clone();
+                let m = self.rt(RtFn::DqMaxlen, I64, vec![l]);
+                let none = self.scalar_op(ScalarOp::Le, I64, vec![m.clone(), Operand::Int(-1)]);
+                let (n, sm) = self.branch(none);
+                let join = self.block_new();
+                self.cur = n;
+                set(self, Self::variant_value(&ds, "None", vec![]));
+                self.goto(join);
+                self.cur = sm;
+                set(self, Self::variant_value(&ds, "Some", vec![m]));
+                self.goto(join);
+            }
+            (id::STD_COLLECTIONS_DEQUE_CONTAINS, [(_, x)]) => {
+                let x = self.atom(x, &e)?;
+                let xb = self.key_buf(x);
+                let mut schema = String::new();
+                Self::key_schema(&e, &mut schema)?;
+                let schema = self.lit(&schema);
+                let r = self.rt(RtFn::DqContains, I64, vec![l, schema, xb.clone()]);
+                self.free(RtFn::EnvFree, xb);
+                let r = self.scalar_op(ScalarOp::Ne, I64, vec![r, Operand::Int(0)]);
+                set(self, vec![r]);
+            }
+            _ => return unsupported(format!("call of `{}`", c.path.join("."))),
+        }
+        Ok(())
     }
 
     fn heap_call(&mut self, id: registry::Id, c: &y::Call, dst: Option<Var>) -> R<()> {
@@ -2175,10 +2441,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                     shape = s;
                 }
                 y::Proj::Index(i) => {
-                    let Shape::List(e) = shape else {
+                    let (Shape::List(e) | Shape::Deque(e)) = shape.clone() else {
                         return unsupported("indexing a non-list");
                     };
-                    let list = self.read(&at, &Shape::List(e.clone())).remove(0);
+                    let list = self.read(&at, &shape).remove(0);
                     let i = self.scalar1(i)?;
                     at = At::Mem(self.rt(RtFn::ListAt, Ty::Ptr, vec![list, i]), 0);
                     shape = *e;
@@ -2192,7 +2458,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         match s {
             Shape::Map(..) => true,
             Shape::Scalar(_) | Shape::Str | Shape::Fn(..) | Shape::Chan(_) => false,
-            Shape::List(e) | Shape::Heap(e) => Self::has_map(e),
+            Shape::List(e) | Shape::Heap(e) | Shape::Deque(e) => Self::has_map(e),
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_map(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_map),
             Shape::Sum(_, vs) => vs
@@ -2209,6 +2475,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             | Shape::List(_)
             | Shape::Map(..)
             | Shape::Heap(_)
+            | Shape::Deque(_)
             | Shape::Fn(..)
             | Shape::Chan(_) => true,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_heap(s)),
@@ -2231,7 +2498,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str => self.free(RtFn::StrFree, v[0].clone()),
             Shape::Chan(_) => self.free(RtFn::ChanDrop, v[0].clone()),
-            Shape::List(e) | Shape::Heap(e) => {
+            Shape::List(e) | Shape::Heap(e) | Shape::Deque(e) => {
                 if Self::has_heap(e) {
                     let list = v[0].clone();
                     let n = self.rt(RtFn::ListLen, I64, vec![list.clone()]);
@@ -2415,7 +2682,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let v = self.read(&at, &s);
                 match &s {
                     s if Self::has_map(s) => self.clone_value(v, s),
-                    Shape::List(e) if !e.has_list() => {
+                    Shape::List(e) | Shape::Deque(e) if !e.has_list() => {
                         Ok(vec![self.rt(RtFn::ListCopy, Ty::Ptr, v)])
                     }
                     s if s.has_list() => unsupported("a copy of nested lists"),
@@ -2448,11 +2715,18 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     fn propagate(&mut self, c: &y::Call, drops: &[y::Name], want: &Shape) -> R<Vec<Operand>> {
-        let Some(func) = self.callee(c)? else {
-            return unsupported(format!("`?` on `{}`", c.path.join(".")));
-        };
-        let theirs = self.sig(func).ret.clone();
         let mine = self.sig(self.me as FuncId).ret.clone();
+        let theirs = match self.callee(c)? {
+            Some(func) => self.sig(func).ret.clone(),
+            // `fs.read` fails with the `FsError` the caller propagates; its lowering checks that.
+            None if registry::id(&c.path.join(".")) == Some(id::STD_FS_READ) => {
+                let Some((_, _, mine_e)) = mine.variant("Err") else {
+                    return unsupported("`?` outside a failing function");
+                };
+                result(Shape::Str, mine_e[0].1.clone())
+            }
+            None => return unsupported(format!("`?` on `{}`", c.path.join("."))),
+        };
         let (Some((_, ok_at, _)), Some((_, err_at, efs)), Some((_, _, mine_e))) = (
             theirs.variant("Ok"),
             theirs.variant("Err"),
