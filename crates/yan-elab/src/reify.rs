@@ -284,6 +284,15 @@ fn run(
         doc: None,
         items: reachable(m, at),
     };
+    if let Some(what) = crate::s0caps::violation(&pre.items) {
+        cx.err(
+            "E268",
+            it.span,
+            &name,
+            format!("stage 0 does not allow this: {what}; a type function may use only `alloc`, `embed` and `diag`"),
+        );
+        return Ok(None);
+    }
     pre.items.push(j::Item {
         decorators: Vec::new(),
         is_pub: false,
@@ -312,6 +321,18 @@ fn run(
             "E262",
             format!("`{}` did not give a `Type`", path.join(".")),
         ),
+        Err(yan_interp::Stop::Panic(p)) if p.kind == "compile_error" => {
+            cx.err("E270", it.span, &name, p.message.clone());
+            let notes = cx.diags.last_mut().map(|d| &mut d.notes).expect("pushed");
+            notes.push(format!("raised in type function `{}`", path.join(".")));
+            notes.extend(p.trace.iter().filter(|f| f.item != fname).map(|f| {
+                format!(
+                    "stage-0 backtrace: at {} {}:{}",
+                    f.item, f.at.line, f.at.col
+                )
+            }));
+            return Ok(None);
+        }
         Err(yan_interp::Stop::Panic(p)) => (
             "E260",
             format!("stage-0 evaluation panicked: {}: {}", p.kind, p.message),

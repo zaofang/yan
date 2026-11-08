@@ -1787,7 +1787,14 @@ impl Lower<'_, '_, '_> {
                 };
                 let item = self.item.clone();
                 if matches!(&f.kind, j::ExprKind::Name(n) if n == "compile_error") {
-                    self.cx.err("E270", at, &item, msg);
+                    // In a type function it is raised when the application reaches it (10.4).
+                    if self.g.fns.get(&item).is_some_and(|s| s.ret == Ty::Type) {
+                        let arg = Arg::Value(y::Conv::Let, Atom::Lit(Literal::Str(msg), at), at);
+                        let c = call("std.meta.compile_error", vec![], vec![arg], at);
+                        self.emit(StmtKind::Rhs(Rhs::Call(c)), at);
+                    } else {
+                        self.cx.err("E270", at, &item, msg);
+                    }
                 } else {
                     self.cx.warn("W816", at, &item, msg);
                 }

@@ -21,6 +21,7 @@ mod jsonwire;
 mod lower;
 pub mod marks;
 mod reify;
+mod s0caps;
 mod session;
 mod stage0;
 mod stdlib;

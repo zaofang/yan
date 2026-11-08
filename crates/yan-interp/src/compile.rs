@@ -187,6 +187,8 @@ pub(crate) enum Op {
         info: u32,
     },
     Panic(&'static str),
+    /// `compile_error` reached at stage 0: panic with kind `compile_error` and `code.msgs[i]`.
+    CompileError(u32),
     Unsupported(u32),
     /// Bind `pat` from `src` or jump to `to` when it does not match.
     Match {
@@ -1495,6 +1497,14 @@ impl<'g, 'm> FnC<'g, 'm> {
         {
             let src = self.konst(crate::meta::handle(t.clone(), &self.g.types));
             self.emit(Op::Move { dst, src });
+            return;
+        }
+        if c.path == ["std", "meta", "compile_error"]
+            && let [Arg::Value(_, Atom::Lit(Literal::Str(msg), _), _)] = c.args.as_slice()
+        {
+            self.code.msgs.push(msg.clone());
+            let i = self.code.msgs.len() as u32 - 1;
+            self.emit(Op::CompileError(i));
             return;
         }
         let typed = matches!(mode, Mode::Plain | Mode::Propagate(_) | Mode::Contract);
