@@ -2334,6 +2334,7 @@ dependencies = [
  "serde_json",
  "yan-core",
  "yan-diag",
+ "yan-mir",
  "yan-rt",
  "yan-std",
  "yan-yag",

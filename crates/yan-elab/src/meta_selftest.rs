@@ -118,7 +118,7 @@ const MIRROR: &str = "type Point = { x: int, y: float }\n\n\
                       \x20 match meta.info(t)\n\
                       \x20   Record(info:) ->\n\
                       \x20     let fields = info.fields.map(f -> FieldInfo(name: f.name + \"2\", ty: f.ty, public: True, annotations: []))\n\
-                      \x20     meta.record_type(RecordInfo(name: \"Mirror\", params: [], fields: fields, annotations: []))\n\
+                      \x20     meta.record_type(RecordInfo(name: \"Mirror\", params: [], fields: fields, annotations: [], layout: Layout(size: 0, align: 1)))\n\
                       \x20   _ -> t\n\n";
 
 #[test]
@@ -158,7 +158,7 @@ fn type_functions_reify_sums_and_newtypes_and_chain() {
                \x20 match meta.info(t)\n\
                \x20   Sum(info:) ->\n\
                \x20     let vs = info.variants.map(v -> VariantInfo(name: v.name + \"\\(n)\", fields: v.fields))\n\
-               \x20     meta.sum_type(SumInfo(name: \"S\\(n)\", params: [], variants: vs, annotations: []))\n\
+               \x20     meta.sum_type(SumInfo(name: \"S\\(n)\", params: [], variants: vs, annotations: [], layout: Layout(size: 0, align: 1)))\n\
                \x20   _ -> meta.newtype(NewtypeInfo(name: \"N\\(n)\", inner: t, annotations: []))\n\n\
                type Wrapped = wrap(Shape, 1)\n\
                type Id = wrap(int, 2)\n\
@@ -271,4 +271,23 @@ fn info_reports_a_newtype_as_a_newtype() {
                main() uses io =\n\
                \x20 io.print(k)\n";
     assert_eq!(run(src), "newtype Meters\n");
+}
+
+#[test]
+fn info_reports_layout_of_records_and_sums() {
+    let src = format!(
+        "{TYPES}\
+         lay(t: Type) -> str =\n\
+         \x20 match meta.info(t)\n\
+         \x20   Record(info:) -> \"\\(info.layout.size) \\(info.layout.align)\"\n\
+         \x20   Sum(info:) -> \"\\(info.layout.size) \\(info.layout.align)\"\n\
+         \x20   _ -> \"other\"\n\n\
+         let a: str = #lay(Point)\n\
+         let b: str = #lay(Shape)\n\
+\n\
+         main() uses io =\n\
+         \x20 io.print(a)\n\
+         \x20 io.print(b)\n"
+    );
+    assert_eq!(run(&src), "16 8\n24 8\n");
 }
