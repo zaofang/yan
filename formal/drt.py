@@ -114,10 +114,14 @@ fn emit(cap io: Io, let x: i64) -> Unit {
 class Gen:
     """Random well-typed Yan Core-K programs over i64, a sum, a failure record and `inout`."""
 
-    def __init__(self, rng: random.Random) -> None:
+    def __init__(self, rng: random.Random, ensures: bool = False) -> None:
         self.rng = rng
+        self.ensures = ensures
         self.n = 0
         self.fns: list[str] = []
+        self.rec: list[str] = []
+        # a module without contract clauses has no E602 (R940)
+        self.contracts = rng.random() < 0.75
 
     def fresh(self, p: str) -> str:
         self.n += 1
@@ -305,9 +309,53 @@ class Gen:
         body += self.block("    ", ["a", "acc", w], [w, "acc"], 2, True, self.rng.randint(2, 6))
         body.append(f"    ret {self.rng.choice(['a', 'acc', w])}")
         self.fns.append(name)
+        clauses = []
+        if self.contracts and self.rng.random() < 0.5:
+            clauses.append(f"    requires {self.cmp()}(let a, let {self.lit()})")
+        if self.contracts and self.ensures and self.rng.random() < 0.5:
+            clauses.append(f"    ensures {self.cmp()}(let out, let {self.lit()})")
         return [
-            f"fn {name}(cap io: Io, let a: i64, inout acc: i64) -> i64 fail Bad {{",
+            f"fn {name}(cap io: Io, let a: i64, inout acc: i64) -> i64 fail Bad",
+            *clauses,
+            "{",
             *body,
+            "}",
+            "",
+        ]
+
+    def cmp(self) -> str:
+        return self.rng.choice(["lt_i64", "le_i64", "eq_i64", "ge_i64", "gt_i64"])
+
+    def recursive(self, name: str, callee: str) -> list[str]:
+        """A function that recurses on `n - 1` through `callee` (itself, or its mutual partner).
+
+        With contracts it usually carries `decreases n`; leaving it out is an E602 on both sides.
+        """
+        r = self.rng
+        clauses = []
+        if self.contracts:
+            clauses.append("    requires ge_i64(let n, let 0)")
+            if self.ensures and r.random() < 0.5:
+                clauses.append(
+                    f"    ensures {r.choice(['lt_i64', 'ge_i64'])}(let out, let {r.randint(0, 20)})"
+                )
+            if r.random() < 0.8:
+                clauses.append("    decreases n")
+        self.rec.append(name)
+        return [
+            f"fn {name}(cap io: Io, let n: i64) -> i64",
+            *clauses,
+            "{",
+            "    let z: bool = le_i64(let n, let 0)",
+            "    if z {",
+            self.mark("        "),
+            "        ret 0",
+            "    }",
+            self.mark("    "),
+            "    let m: i64 = sub_checked_i64(let n, let 1)",
+            f"    let r: i64 = {callee}(cap io, let m)",
+            "    let s: i64 = add_checked_i64(let r, let n)",
+            "    ret s",
             "}",
             "",
         ]
@@ -324,8 +372,18 @@ class Gen:
         ]
         for i in range(self.rng.randint(1, 4)):
             lines += self.function(f"f{i}")
+        k = self.rng.choice(["self", "mutual", "none"])
+        if k == "self":
+            lines += self.recursive("r0", "r0")
+        elif k == "mutual":
+            lines += self.recursive("r0", "r1") + self.recursive("r1", "r0")
         v = self.fresh("v")
         body = [f"    var {v}: i64 = {self.lit()}"]
+        for f in self.rec:
+            body.append(
+                f"    let q_{f}: i64 = {f}(cap io, let {self.rng.choice([-1, 0, 1, 2, 5, 8])})"
+            )
+            body.append(f"    emit(cap io, let q_{f})")
         body += self.block("    ", [v], [v], 3, False, self.rng.randint(3, 8))
         body += [f"    emit(cap io, let {v})", "    ret ()"]
         lines += ["fn main(cap io: Io) -> Unit {", *body, "}", ""]
@@ -340,6 +398,11 @@ def main() -> int:
     ap.add_argument("--count", type=int, default=200)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--keep", type=Path)
+    ap.add_argument(
+        "--ensures",
+        action="store_true",
+        help="also emit `ensures` (yan-interp does not evaluate it yet)",
+    )
     a = ap.parse_args()
     if a.mode == "cases":
         files = sorted((ROOT / "conformance/yir/run").glob("*.yir"))
@@ -348,7 +411,7 @@ def main() -> int:
         files = []
         for i in range(a.count):
             p = Path(d) / f"g{a.seed}_{i}.yir"
-            p.write_text(Gen(random.Random(a.seed * 1_000_003 + i)).program(f"g{i}"))
+            p.write_text(Gen(random.Random(a.seed * 1_000_003 + i), a.ensures).program(f"g{i}"))
             files.append(p)
         return compare(files, a.yan, a.yancore, a.keep)
 

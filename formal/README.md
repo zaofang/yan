@@ -21,7 +21,10 @@ uv run python formal/drt.py gen --count 1000 --seed 1 --keep /tmp/drt
 ```
 
 `gen` writes random Yan-K programs over `i64`, a sum, a failure record, `inout`, `try` and `?`,
-join points, loops, `par` and asserts. Each prints branch markers and residues of its values, so
+join points, loops, `par`, asserts, `requires` (a failed one is a `contract` panic), and recursive
+functions, self or mutual, with `decreases` (E602 when it is left out of a module that has contracts, R940;
+contract-free modules recurse without it). The model checks E602 before it runs, as `yan run` does (R901).
+`--ensures` also emits `ensures`; it is off because yan-interp does not evaluate it yet. Each prints branch markers and residues of its values, so
 two runs agree only if they took the same path and computed the same numbers. A program either side
 reports as unsupported (exit 2) is skipped. Any difference is a bug in one implementation or a gap
 in the spec, and `--keep` saves the program.
