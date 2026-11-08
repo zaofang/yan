@@ -239,7 +239,7 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
             let stop = has_error(&errs);
             errs.extend(diags);
             if let Some(sf) = surface(path) {
-                errs.extend(docs::lint(&name, file.text(db), m, sf));
+                errs.extend(docs::lint(&name, file.text(db), m, sf, sub_item_lint(path)));
             }
             if stop {
                 Loaded::Stopped(errs)
@@ -248,6 +248,20 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
             }
         }
     }
+}
+
+/// W861 is on when the nearest `yan.toml` sets `[lint] missing-sub-item-docs = true` (R848).
+fn sub_item_lint(path: &Path) -> bool {
+    let Some(dir) = path.parent() else {
+        return false;
+    };
+    dir.ancestors()
+        .map(|d| d.join("yan.toml"))
+        .find(|p| p.is_file())
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|t| t.parse::<toml::Table>().ok())
+        .and_then(|t| t.get("lint")?.get("missing-sub-item-docs")?.as_bool())
+        .unwrap_or(false)
 }
 
 /// The manifest in the `package.yag` of the nearest directory above `path` that has one (19.1).
@@ -500,5 +514,28 @@ mod selftest {
         assert_eq!(codes("t.yn", src), ["E403"]);
         let ok = "main() =\n  var total = 0\n  total += 1\n";
         assert!(codes("t.yn", ok).is_empty());
+    }
+
+    const ARGS: &str = "def f(\n    #: the x\n    x: int,\n    y: list[int],\n) -> int:\n    \"\"\"Does f.\n\n    Args:\n        x: also x\n        y (list[str]): the y\n        q: nothing\n    \"\"\"\n    return x + len(y)\n";
+
+    #[test]
+    fn args_section_diagnostics() {
+        assert_eq!(codes("t.yag", ARGS), ["E280", "E281", "W860"]);
+    }
+
+    #[test]
+    fn missing_sub_item_docs_are_opt_in() {
+        let dir = std::env::temp_dir().join(format!("yan-w861-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let src = "pub def f(x: int) -> int:\n    \"\"\"Does f.\"\"\"\n    return x\n";
+        let path = dir.join("m.yag");
+        assert!(!codes(path.to_str().unwrap(), src).contains(&"W861".to_owned()));
+        std::fs::write(
+            dir.join("yan.toml"),
+            "[lint]\nmissing-sub-item-docs = true\n",
+        )
+        .unwrap();
+        assert!(codes(path.to_str().unwrap(), src).contains(&"W861".to_owned()));
+        std::fs::remove_dir_all(&dir).ok();
     }
 }

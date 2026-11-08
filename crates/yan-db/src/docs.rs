@@ -6,7 +6,14 @@ use yan_diag::{Diagnostic, Severity, Span};
 use yan_hir as j;
 use yan_names::Surface;
 
-pub(crate) fn lint(file: &str, src: &str, m: &j::Module, surface: Surface) -> Vec<Diagnostic> {
+/// `sub_items` enables W861, the opt-in missing sub-item doc lint (`yan.toml`, R848).
+pub(crate) fn lint(
+    file: &str,
+    src: &str,
+    m: &j::Module,
+    surface: Surface,
+    sub_items: bool,
+) -> Vec<Diagnostic> {
     let names = item_names(m);
     let lines: Vec<&str> = src.lines().collect();
     let mut out = Vec::new();
@@ -14,10 +21,16 @@ pub(crate) fn lint(file: &str, src: &str, m: &j::Module, surface: Surface) -> Ve
         let j::ItemKind::Func(f) = &it.kind else {
             continue;
         };
-        if f.body.as_ref().is_none_or(|b| b.doc.is_none()) {
-            continue;
+        let has_doc = f.body.as_ref().is_some_and(|b| b.doc.is_some());
+        let doc = if has_doc {
+            doc_lines(&lines, f.name_span.line as usize)
+        } else {
+            None
+        };
+        if surface == Surface::Yag {
+            out.extend(param_docs(file, &lines, it.is_pub, sub_items, f, doc));
         }
-        let Some((first, last)) = doc_lines(&lines, f.name_span.line as usize) else {
+        let Some((first, last)) = doc else {
             continue;
         };
         let mut warn = |code: &str, line: usize, col: usize, len: usize, msg: String| {
@@ -91,6 +104,169 @@ pub(crate) fn lint(file: &str, src: &str, m: &j::Module, surface: Surface) -> Ve
                         );
                     }
                 }
+            }
+        }
+    }
+    out
+}
+
+struct ArgsEntry<'a> {
+    name: &'a str,
+    ty: Option<&'a str>,
+    line: usize,
+    col: usize,
+}
+
+/// The `name: text` and `name (type): text` entries of the `Args:` section in the docstring.
+fn args_entries<'a>(lines: &[&'a str], (first, last): (usize, usize)) -> Vec<ArgsEntry<'a>> {
+    let mut out = Vec::new();
+    let mut header: Option<usize> = None;
+    let mut entry_indent = 0;
+    for (k, line) in lines.iter().enumerate().take(last + 1).skip(first) {
+        let t = line.trim_start();
+        let indent = line.len() - t.len();
+        if t.trim_end() == "Args:" {
+            header = Some(indent);
+            entry_indent = usize::MAX;
+            continue;
+        }
+        let Some(base) = header else { continue };
+        if t.trim().is_empty() {
+            continue;
+        }
+        if indent <= base {
+            header = None;
+            continue;
+        }
+        entry_indent = entry_indent.min(indent);
+        if indent != entry_indent {
+            continue;
+        }
+        let Some((head, _)) = t.split_once(':') else {
+            continue;
+        };
+        let (name, ty) = match head.split_once(" (") {
+            Some((n, rest)) => (n, rest.strip_suffix(')')),
+            None => (head, None),
+        };
+        if !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            out.push(ArgsEntry {
+                name,
+                ty,
+                line: k,
+                col: indent,
+            });
+        }
+    }
+    out
+}
+
+/// E280, E281, W860 and W861 for the parameter docs of a function (R846 to R849).
+fn param_docs(
+    file: &str,
+    lines: &[&str],
+    is_pub: bool,
+    sub_items: bool,
+    f: &j::FuncDef,
+    doc: Option<(usize, usize)>,
+) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    let mut report = |code: &str, line: usize, col: usize, len: usize, msg: String| {
+        let span = Span {
+            line: line as u32 + 1,
+            col: col as u32 + 1,
+            end_line: line as u32 + 1,
+            end_col: (col + len) as u32 + 1,
+        };
+        let mut d = Diagnostic::error(code, file, span, &lines[line][col..col + len], msg)
+            .with_item(&f.name);
+        if code.starts_with('W') {
+            d.severity = Severity::Warning;
+        }
+        out.push(d);
+    };
+    let params: Vec<(&str, &j::Type)> = f
+        .params
+        .iter()
+        .filter_map(|p| match p {
+            j::Param::Value { name, ty, .. } | j::Param::Pack { name, ty } => {
+                Some((name.as_str(), ty))
+            }
+            j::Param::Slash => None,
+        })
+        .collect();
+    let sig_end = doc.map_or(lines.len(), |(first, _)| first);
+    let above: HashSet<&str> = (f.name_span.line as usize..sig_end)
+        .filter(|&k| k > 0 && lines[k - 1].trim_start().starts_with("#:"))
+        .filter_map(|k| lines[k].trim_start().split_once(':').map(|(n, _)| n.trim()))
+        .collect();
+    let entries = doc.map(|d| args_entries(lines, d)).unwrap_or_default();
+    for e in &entries {
+        let Some((_, ty)) = params.iter().find(|(n, _)| *n == e.name) else {
+            report(
+                "W860",
+                e.line,
+                e.col,
+                e.name.len(),
+                format!("`Args:` documents `{}`, which is not a parameter", e.name),
+            );
+            continue;
+        };
+        if above.contains(e.name) {
+            report(
+                "E280",
+                e.line,
+                e.col,
+                e.name.len(),
+                format!("`{}` is documented here and above the parameter", e.name),
+            );
+        }
+        if let Some(written) = e.ty {
+            let sig = yan_yag::print_type(ty);
+            let squash = |s: &str| s.split_whitespace().collect::<String>();
+            if squash(written) != squash(&sig) {
+                report(
+                    "E281",
+                    e.line,
+                    e.col,
+                    e.name.len(),
+                    format!(
+                        "`{}` is written as `{written}`, the signature says `{sig}`",
+                        e.name
+                    ),
+                );
+            }
+        }
+    }
+    if is_pub && sub_items {
+        let documented: HashSet<&str> = entries.iter().map(|e| e.name).collect();
+        for (name, _) in params.iter().filter(|(n, _)| *n != "self") {
+            if documented.contains(name) || above.contains(name) {
+                continue;
+            }
+            let line = f.name_span.line as usize - 1;
+            let at = (line..sig_end.min(lines.len()))
+                .find_map(|k| {
+                    let t = lines[k].trim_start();
+                    let ind = lines[k].len() - t.len();
+                    let from = if k == line {
+                        f.name_span.col as usize
+                    } else {
+                        ind
+                    };
+                    lines[k][from.min(lines[k].len())..]
+                        .find(name)
+                        .map(|c| (k, from + c))
+                })
+                .unwrap_or((line, f.name_span.col as usize - 1));
+            if lines[at.0].len() >= at.1 + name.len() {
+                report(
+                    "W861",
+                    at.0,
+                    at.1,
+                    name.len(),
+                    format!("parameter `{name}` of a public function has no doc"),
+                );
             }
         }
     }

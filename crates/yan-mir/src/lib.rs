@@ -13,7 +13,7 @@ mod lower;
 mod tasks;
 
 pub use layout::{Layout, SumLayout, layout};
-pub use lower::{Shape, lower};
+pub use lower::{Shape, layout_of, lower};
 use yan_std::registry::Id;
 
 pub type Local = u32;

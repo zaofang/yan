@@ -2252,6 +2252,7 @@ version = "0.0.0"
 dependencies = [
  "blake3",
  "salsa",
+ "toml",
  "yan-check",
  "yan-core",
  "yan-diag",
@@ -2334,6 +2335,7 @@ dependencies = [
  "serde_json",
  "yan-core",
  "yan-diag",
+ "yan-mir",
  "yan-rt",
  "yan-std",
  "yan-yag",

@@ -1479,3 +1479,22 @@ fn raise_restores_extern_blocks() {
     assert!(*safe);
     assert_eq!(params[1].callback, Some(yan_hir::Callback::Scoped));
 }
+
+#[test]
+fn manifest_outside_the_data_profile_is_e144() {
+    let codes = |src: &str, file: &str| {
+        let (m, _) = yan_yag::parse(file, src, false);
+        let (_, d) =
+            elaborate(file, src, &m.expect("parses"), Options::default()).expect("supported");
+        d.into_iter().map(|d| d.code).collect::<Vec<_>>()
+    };
+    let pkg = |v: &str| {
+        format!(
+            "package: Package = Package(name=\"@a/b\", version={v}, edition=\"2026\", yan=\">=1\")\n"
+        )
+    };
+    assert!(codes(&pkg("\"1.0.0\""), "package.yag").is_empty());
+    assert_eq!(codes(&pkg("\"1.\" + \"0\""), "package.yag"), ["E144"]);
+    assert_eq!(codes(&pkg("str(1)"), "package.yag"), ["E144"]);
+    assert!(codes(&pkg("\"1.\" + \"0\""), "script.yag").is_empty());
+}

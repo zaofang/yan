@@ -135,7 +135,7 @@ fn info(args: &[Value]) -> R<Value> {
                 })
                 .collect();
             if let Some((attrs, kind)) = h.types.decls.get(&name) {
-                return Ok(declared(&name, &args, attrs, kind, &h.types));
+                return declared(&name, &args, attrs, kind, &h.types);
             }
             if let Some((bits, signed, float)) = scalar(&name) {
                 return Ok(one(
@@ -224,7 +224,7 @@ fn declared(
     attrs: &[Attr],
     kind: &ItemKind,
     types: &Rc<Types>,
-) -> Value {
+) -> R<Value> {
     let params = || Value::List(args.iter().map(|a| handle(a.clone(), types)).collect());
     let fields = |ps: &[TParam], fs: &[Field]| {
         Value::List(
@@ -251,7 +251,7 @@ fn declared(
         .cloned()
         .collect();
     let attrs = attrs.as_slice();
-    match kind {
+    Ok(match kind {
         ItemKind::Record(r)
             if marked && matches!(r.fields.as_slice(), [f] if f.name == "value") =>
         {
@@ -276,6 +276,7 @@ fn declared(
                 ("params", params()),
                 ("fields", fields(&r.tparams, &r.fields)),
                 ("annotations", annotations(attrs)),
+                ("layout", layout(name, args, kind, types)?),
             ],
         ),
         ItemKind::Sum(su) => wrap(
@@ -305,6 +306,7 @@ fn declared(
                     ),
                 ),
                 ("annotations", annotations(attrs)),
+                ("layout", layout(name, args, kind, types)?),
             ],
         ),
         ItemKind::Newtype(n) => wrap(
@@ -317,6 +319,59 @@ fn declared(
             ],
         ),
         _ => unreachable!("Types holds only records, sums and newtypes"),
+    })
+}
+
+/// `Layout(size, align)` of a record or sum applied to `args`, under the default target layout.
+fn layout(name: &str, args: &[Type], kind: &ItemKind, types: &Types) -> R<Value> {
+    let applied = match kind {
+        ItemKind::Record(r) => ItemKind::Record(Record {
+            tparams: Vec::new(),
+            fields: r
+                .fields
+                .iter()
+                .map(|f| Field {
+                    ty: subst(&f.ty, &r.tparams, args),
+                    ..f.clone()
+                })
+                .collect(),
+            ..r.clone()
+        }),
+        ItemKind::Sum(su) => ItemKind::Sum(Sum {
+            tparams: Vec::new(),
+            variants: su
+                .variants
+                .iter()
+                .map(|v| Variant {
+                    fields: v.fields.as_ref().map(|fs| {
+                        fs.iter()
+                            .map(|f| Field {
+                                ty: subst(&f.ty, &su.tparams, args),
+                                ..f.clone()
+                            })
+                            .collect()
+                    }),
+                    ..v.clone()
+                })
+                .collect(),
+            ..su.clone()
+        }),
+        _ => unreachable!("only records and sums have a layout"),
+    };
+    let ty = Type::Named(Named {
+        path: vec![name.into()],
+        args: Vec::new(),
+    });
+    let decls = types.decls.values().map(|(_, k)| k).chain([&applied]);
+    match yan_mir::layout_of(decls, &ty) {
+        Ok(l) => Ok(data(
+            "Layout",
+            vec![
+                ("size", Value::Int(l.size.into())),
+                ("align", Value::Int(l.align.into())),
+            ],
+        )),
+        Err(e) => unsupported(format!("the layout of `{name}`: {e}")),
     }
 }
 
