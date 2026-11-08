@@ -570,6 +570,7 @@ pub fn elaborate_in(
     };
     let manifest = manifest.or_else(|| desugar::manifest(m));
     desugar::edition(m, &mut cx);
+    desugar::fields(m, &mut cx);
     let mut m = desugar::module(m, &mut cx);
     desugar::without_manifest(&mut m);
     let expanded = typefn::expand(&mut m, &mut cx)?;

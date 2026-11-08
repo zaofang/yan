@@ -9,6 +9,7 @@ mod build;
 mod examples;
 mod export;
 mod fix;
+mod lock;
 mod mcp;
 mod patch;
 mod pyimport;
@@ -94,6 +95,9 @@ enum Command {
         /// Check level (8.5); `release` enables the release-only rules.
         #[arg(long)]
         level: Option<String>,
+        /// Fail with E020 unless `yan.lock` pins every requirement of the manifest (R896).
+        #[arg(long)]
+        locked: bool,
         /// With none, the package in the current directory: `package.yag` and its modules.
         files: Vec<PathBuf>,
     },
@@ -198,6 +202,9 @@ enum Command {
         /// Run every test instead of reusing cached verdicts (18.4).
         #[arg(long)]
         no_cache: bool,
+        /// Fail with E020 unless `yan.lock` pins every requirement of the manifest (R896).
+        #[arg(long)]
+        locked: bool,
     },
     /// Run one task through the spec gate as a client of `yan mcp` (the reference agent
     /// loop), and print its run record.
@@ -293,9 +300,11 @@ fn main() -> ExitCode {
             max_errors,
             strict,
             level,
+            locked,
             files,
         } => check(
             &files,
+            locked,
             format,
             max_errors,
             Database::new(strict, level.as_deref() == Some("release")),
@@ -332,7 +341,8 @@ fn main() -> ExitCode {
             gate,
             only,
             no_cache,
-        } => run_tests(format, gate, only.as_deref(), no_cache),
+            locked,
+        } => run_tests(format, gate, only.as_deref(), no_cache, locked),
         Command::Review { range, format } => review(&range, format),
         Command::View {
             as_,
@@ -452,7 +462,32 @@ fn main() -> ExitCode {
     }
 }
 
-fn run_tests(format: Format, gate: bool, only: Option<&str>, no_cache: bool) -> ExitCode {
+/// Read `yan.lock` of the package in the current directory (E019, and E020 under `--locked`).
+fn lock_gate(locked: bool) -> Result<(), ExitCode> {
+    let reqs = std::fs::read_to_string("package.yag")
+        .ok()
+        .and_then(|src| {
+            let (m, _) = yan_yag::parse("package.yag", &src, false);
+            yan_elab::manifest(&m?)
+        })
+        .map(|m| m.requirements)
+        .unwrap_or_default();
+    lock::check(Path::new("."), &reqs, locked).map_err(|d| {
+        print_diags(&[*d]);
+        ExitCode::FAILURE
+    })
+}
+
+fn run_tests(
+    format: Format,
+    gate: bool,
+    only: Option<&str>,
+    no_cache: bool,
+    locked: bool,
+) -> ExitCode {
+    if let Err(code) = lock_gate(locked) {
+        return code;
+    }
     let root = Path::new(".");
     let cache = (!no_cache).then(|| test::cache_file(root));
     let report = match test::run(root, only, gate, cache.as_deref(), None) {
@@ -760,11 +795,15 @@ fn package_files(root: &Path) -> Result<Vec<PathBuf>, String> {
 
 fn check(
     files: &[PathBuf],
+    locked: bool,
     format: Option<Format>,
     max_errors: usize,
     mut db: Database,
 ) -> ExitCode {
     use std::io::IsTerminal;
+    if let Err(code) = lock_gate(locked) {
+        return code;
+    }
     let mut diags = Vec::new();
     let mut texts = std::collections::HashMap::new();
     let package;
