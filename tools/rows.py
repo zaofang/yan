@@ -8,10 +8,17 @@ rows.py check            fail on a row allocated twice, a cited row that is not 
 rows.py next [N]         print the next N free row numbers (default 1)
 rows.py next-code FAM    print the next free diagnostic code in a family, e.g. E3 or W8
 rows.py render           rewrite Appendix A.1 from spec/rows.toml
+rows.py renumber --base REF [--check]
+                         move this branch's new rows that REF already allocates above REF's
+                         top, rewriting rows.toml, spec/ and SPEC_QUESTIONS.md, then render;
+                         --check only reports (exit 1 on a collision). Run it before merging
+                         main into the branch: after the merge old and new citations of one
+                         number cannot be told apart.
 """
 
 import argparse
 import re
+import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -166,6 +173,54 @@ def check() -> list[str]:
     )
 
 
+def base_entries(ref: str) -> list[Entry]:
+    text = subprocess.run(
+        ["git", "show", f"{ref}:spec/rows.toml"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    entries: list[Entry] = tomllib.loads(text)["entry"]
+    return entries
+
+
+def row_numbers(entries: list[Entry]) -> list[int]:
+    return [int(r[1:]) for e in entries for r in expand(e["rows"]) if r.startswith("R")]
+
+
+def renumbering(base: list[Entry], head: list[Entry]) -> dict[str, str]:
+    """Old to new ids for every row of a new head entry that shares a number with base."""
+    base_owner, _ = allocations(base)
+    known = {(e["rows"], e["topic"]) for e in base}
+    top = max(row_numbers(base) + row_numbers(head))
+    mapping: dict[str, str] = {}
+    for e in head:
+        if (e["rows"], e["topic"]) in known:
+            continue
+        own = [r for r in expand(e["rows"]) if r.startswith("R") and r not in e.get("also", [])]
+        if any(r in base_owner for r in own):
+            for r in own:
+                top += 1
+                mapping[r] = f"R{top}"
+    return mapping
+
+
+def apply_renumbering(mapping: dict[str, str]) -> None:
+    def sub(m: re.Match[str]) -> str:
+        return mapping.get(m.group(0), m.group(0))
+
+    pattern = re.compile(r"\bR\d+\b")
+    for path in [REGISTRY, ROOT / "SPEC_QUESTIONS.md", *SPEC.glob("*.md")]:
+        text = path.read_text()
+        new = pattern.sub(sub, text)
+        if new != text:
+            path.write_text(new)
+    stale = {p for rid, paths in cited_rows().items() if rid in mapping for p in paths}
+    for p in sorted(p for p in stale if p.startswith("conformance/")):
+        print(f"conformance is lead-owned: update the old row ids in {p}", file=sys.stderr)
+
+
 def next_free(count: int) -> list[str]:
     owner, _ = allocations(load())
     top = max(int(r[1:]) for r in owner if r.startswith("R"))
@@ -190,6 +245,9 @@ def main(argv: list[str] | None = None) -> int:
     code = sub.add_parser("next-code")
     code.add_argument("family")
     sub.add_parser("render")
+    ren = sub.add_parser("renumber")
+    ren.add_argument("--base", required=True)
+    ren.add_argument("--check", action="store_true")
     args = ap.parse_args(argv)
     match args.cmd:
         case "check":
@@ -201,6 +259,17 @@ def main(argv: list[str] | None = None) -> int:
             print(" ".join(next_free(args.count)))
         case "next-code":
             print(next_code(args.family))
+        case "renumber":
+            mapping = renumbering(base_entries(args.base), load())
+            for old, new in mapping.items():
+                print(f"{old} -> {new}")
+            if mapping and args.check:
+                return 1
+            if mapping:
+                apply_renumbering(mapping)
+                APPENDIX.write_text(
+                    APPENDIX.read_text().replace(block(APPENDIX.read_text()), render(load()))
+                )
         case "render":
             text = APPENDIX.read_text()
             APPENDIX.write_text(text.replace(block(text), render(load())))
