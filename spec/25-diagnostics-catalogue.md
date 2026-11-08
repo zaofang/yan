@@ -203,7 +203,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | Code | Meaning | Section |
 | --- | --- | --- |
 | E601 | `pub` function with no `ex` and no `test_` calling it (Yan Agent; publish and release only, R284) | 8.4 |
-| E602 | recursion without `decreases` | 8.4 |
+| E602 | recursion without `decreases` in a module that has contracts (R940) | 8.4 |
 | E603 | contract not proven in a `@prove` module *new* | 8.5 |
 | E617 | retired by R447; a test that binds a real capability is an I/O test | 18.4 |
 | V401 | proof failed, with counterexample | 8.7 |

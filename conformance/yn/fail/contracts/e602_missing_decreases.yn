@@ -2,6 +2,7 @@
 -- expect: E602 at 4:1
 
 countdown(n: int) -> int =
+  pre n >= 0
   if n <= 0
     return 0
   countdown(n - 1)

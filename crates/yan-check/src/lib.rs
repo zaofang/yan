@@ -26,12 +26,14 @@ pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
     let mut diags = Vec::new();
     let mut callees: HashMap<String, HashSet<String>> = HashMap::new();
     let module = m.path.join(".");
+    let has_invariant = std::cell::Cell::new(false);
     let body = |def: &FnDef, is_gen: bool, item: String, diags: &mut Vec<Diagnostic>| {
         let mut cx = Cx::new(&g, file, src, item, def, is_gen);
         if let Some(b) = &def.body {
             cx.block(b);
         }
         cx.finish();
+        has_invariant.set(has_invariant.get() || cx.has_invariant);
         diags.append(&mut cx.diags);
         cx.callees
     };
@@ -94,7 +96,17 @@ pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
             _ => {}
         }
     }
-    for (key, f) in &g.fns {
+    // 8.4: recursion needs `decreases` only in a module that uses contracts.
+    let contracts = has_invariant.get()
+        || g.fns.values().any(|f| {
+            f.contracts.iter().any(|c| {
+                matches!(
+                    c,
+                    Contract::Requires(_) | Contract::Ensures(_) | Contract::Example(_)
+                )
+            })
+        });
+    for (key, f) in g.fns.iter().filter(|_| contracts) {
         let decreases = f
             .contracts
             .iter()
@@ -394,6 +406,7 @@ struct Cx<'g, 'm> {
     par_uses: Vec<(Name, usize, usize, bool)>,
     with_depth: usize,
     callees: HashSet<String>,
+    has_invariant: bool,
     /// Each join point's parameter names, so a jump's arguments carry their captures in.
     jps: HashMap<Name, Vec<Name>>,
     diags: Vec<Diagnostic>,
@@ -460,6 +473,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             par_uses: Vec::new(),
             with_depth: 0,
             callees: HashSet::new(),
+            has_invariant: false,
             jps: HashMap::new(),
             diags: Vec::new(),
         };
@@ -879,6 +893,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                 body,
                 ..
             } => {
+                self.has_invariant |= !invariants.is_empty();
                 invariants
                     .iter()
                     .chain(decreases)
@@ -1517,12 +1532,18 @@ mod selftest {
     }
 
     #[test]
+    fn recursion_without_contracts_needs_no_decreases() {
+        let src = "fn a(let n: i64) -> i64 {\n    let r: i64 = a(let n)\n    ret r\n}\n";
+        assert_eq!(codes(src), []);
+    }
+
+    #[test]
     fn mutual_recursion_needs_decreases() {
-        let src = "fn a(let n: i64) -> i64 {\n    let r: i64 = b(let n)\n    ret r\n}\n\
+        let src = "fn a(let n: i64) -> i64\n    requires true\n{\n    let r: i64 = b(let n)\n    ret r\n}\n\
                    fn b(let n: i64) -> i64 {\n    let r: i64 = a(let n)\n    ret r\n}\n";
         let mut got = codes(src);
         got.sort();
-        assert_eq!(got, [("E602".into(), 2, 4), ("E602".into(), 6, 4)]);
+        assert_eq!(got, [("E602".into(), 2, 4), ("E602".into(), 8, 4)]);
     }
 
     #[test]
