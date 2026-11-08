@@ -1269,3 +1269,14 @@ fn strict_keeps_e210_for_shared_types() {
     let (_, d) = elaborate("t.yag", SHARED_TYPES, &m.expect("parses"), opts).expect("supported");
     assert!(d.iter().any(|d| d.code == "E210"), "{d:?}");
 }
+
+#[test]
+fn empty_literal_argument_takes_the_optional_parameter_type() {
+    let src = "def n(xs: list[int] | None) -> int:\n    ex n([]) == 0\n    if xs is None:\n        return -1\n    return len(xs)\n\n\
+def m(d: dict[str, int] | None = None) -> int:\n    ex m({}) == 0\n    return 0\n\n\
+def k() -> int:\n    return n([]) + m({})\n";
+    let (_, d) = lower(src);
+    assert!(d.iter().all(|d| d.code != "E241"), "{d:?}");
+    let (_, d) = lower("def k() -> int:\n    ys = []\n    return 0\n");
+    assert!(d.iter().any(|d| d.code == "E241"), "{d:?}");
+}
