@@ -174,6 +174,7 @@ E017, not ignored. `python` (b): the Python environment is `uv`'s job, the proje
 resolver would drift from it. Yan resolves only what must be identical across machines, the digest.
 
 - Decision: as recommended; Antonio, 2026-11-08
+- Detail for `python` (writing PR): a `python` field needs `pylock.toml` at the root; the lock gains `pylock` right after `format` (top-level keys precede tables in TOML).
 - Details accepted, Antonio, 2026-11-08: the key is `"@org/name major"` and the lock record carries a `path` field after `publisher`. A value is a directory or `"git+https://host/repo@<commit> sha256:<hex>"`; the lock `path` then holds `git+<url>@<commit>` and `digest` the archive digest.
 - Row: R950
 

@@ -70,6 +70,16 @@ pub fn check(
         Some(_) => {}
         None => return Err(fail("E020", "`yan.lock` has no integer `format`".into())),
     }
+    if let Some(want) = table.get("pylock").and_then(toml::Value::as_str) {
+        let have = std::fs::read(root.join("pylock.toml"))
+            .map(|b| format!("sha256:{}", crate::store::sha256(&b)));
+        if have.as_deref().ok() != Some(want) {
+            return Err(fail(
+                "E020",
+                format!("`pylock.toml` does not hash to the locked `{want}`"),
+            ));
+        }
+    }
     if !locked {
         return Ok(());
     }
@@ -632,8 +642,11 @@ fn quoted(s: &str) -> String {
 }
 
 /// The canonical text: `format` first, records sorted by (name, major), fields in fixed order.
-fn render(packages: &[Locked]) -> String {
+fn render(packages: &[Locked], pylock: Option<&str>) -> String {
     let mut text = format!("format = {FORMAT}\n");
+    if let Some(d) = pylock {
+        text += &format!("pylock = {}\n", quoted(d));
+    }
     for p in packages {
         text += &format!(
             "\n[[package]]\nname = {}\nversion = {}\nsource = {}\n",
@@ -665,10 +678,33 @@ fn render(packages: &[Locked]) -> String {
     text
 }
 
+/// The digest of `pylock.toml` when the root or a member declares `python` requirements: the
+/// environment is `uv`'s, the lock pins its result (R950). A missing file is E021.
+fn pylock_digest(root: &Path) -> Result<Option<String>, Box<Diagnostic>> {
+    let top = manifest_at(root)
+        .ok_or_else(|| fail("E018", "`package.yag` is missing or unreadable".into()))?;
+    let python = !top.python.is_empty()
+        || top
+            .members
+            .iter()
+            .any(|d| manifest_at(&root.join(d)).is_some_and(|m| !m.python.is_empty()));
+    if !python {
+        return Ok(None);
+    }
+    let bytes = std::fs::read(root.join("pylock.toml")).map_err(|_| {
+        fail(
+            "E021",
+            "`python` requirements need a `pylock.toml` at the root; resolve one with uv".into(),
+        )
+    })?;
+    Ok(Some(format!("sha256:{}", crate::store::sha256(&bytes))))
+}
+
 /// `yan lock`: write `yan.lock` for the package at `root`. Returns whether the file changed.
 pub fn write(root: &Path) -> Result<bool, Box<Diagnostic>> {
     let path = root.join("yan.lock");
-    let text = render(&resolve(root)?);
+    let packages = resolve(root)?;
+    let text = render(&packages, pylock_digest(root)?.as_deref());
     if std::fs::read_to_string(&path).is_ok_and(|old| old == text) {
         return Ok(false);
     }
