@@ -992,6 +992,21 @@ mod selftest {
     }
 
     #[test]
+    fn ensures_reads_entry_value_of_inout_parameter() {
+        let run_src = |ens: &str| {
+            let src = format!(
+                "module t\nfn f(inout n: i64) -> Unit {ens} {{\n n = add_checked_i64(let n, let 1)\n ret ()\n}}\nfn main() -> Unit {{\n var x: i64 = 5\n f(inout x)\n ret ()\n}}\n"
+            );
+            let (m, d) = yan_core::parse("t.yir", &src);
+            assert!(d.is_empty(), "{d:?}");
+            run(&m.unwrap(), &mut Vec::new())
+        };
+        let r = run_src("ensures gt_i64(let n, let old_n)");
+        assert!(r.is_ok(), "{:?}", r.err().map(|e| format!("{e:?}")));
+        assert!(run_src("ensures le_i64(let n, let old_n)").is_err());
+    }
+
+    #[test]
     fn contract_and_dict_key_panics_carry_operands() {
         let fields = |body: &str| {
             let (m, d) = yan_core::parse("t.yir", &format!("module t\n{body}"));

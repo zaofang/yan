@@ -3,6 +3,8 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+mod contracts;
+
 use yan_core::ast as y;
 use yan_std::registry::{self, id};
 
@@ -716,6 +718,8 @@ struct Fn<'a, 'm> {
     cmps: HashMap<String, [y::Atom; 2]>,
     /// The hex identity hash of the function's item, for `contract` panics.
     item: Option<String>,
+    /// `ensures` predicates with their clause position, checked at every normal return (R882).
+    ensures: Vec<(y::Expr, i128)>,
     /// The `inout` parameters' slots, returned with every result.
     inout: Vec<Local>,
     blocks: Vec<Block>,
@@ -748,6 +752,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             names: HashMap::new(),
             cmps: HashMap::new(),
             item: None,
+            ensures: Vec::new(),
             inout: Vec::new(),
             blocks: Vec::new(),
             done: Vec::new(),
@@ -835,23 +840,13 @@ impl<'a, 'm> Fn<'a, 'm> {
         for c in contracts {
             match c {
                 y::Contract::Requires(e) => {
-                    let t = self.expr(e)?;
-                    let mut fields = vec![("clause".to_owned(), Operand::Int(clause))];
-                    if let Some(h) = self.item.clone() {
-                        fields.push(("item".to_owned(), self.lit(&h)));
-                    }
-                    for n in free_names(e) {
-                        if let Some(v) =
-                            self.scalar_field(&y::Atom::Name(n.clone(), Default::default()))
-                        {
-                            fields.push((n, v));
-                        }
-                    }
-                    let fields = fields.into_iter().map(|(n, v)| (self.lit(&n), v)).collect();
-                    self.check_fields(t, "contract", fields);
+                    self.check_clause(e, clause)?;
                     clause += 1;
                 }
-                y::Contract::Ensures(_) => clause += 1,
+                y::Contract::Ensures(e) => {
+                    self.ensures.push((e.clone(), clause));
+                    clause += 1;
+                }
                 y::Contract::Cost { steps, alloc } => {
                     // Both bounds are evaluated before either counter starts.
                     let mut begins = Vec::new();
@@ -873,6 +868,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 _ => {}
             }
         }
+        self.bind_olds();
         self.block(body)?;
         self.finish(Term::Panic("unreachable"));
         Ok(Func {
@@ -3771,6 +3767,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let sig = &self.sig(self.me as FuncId);
                 let (ok, ret, fails) = (sig.ok.clone(), sig.ret.clone(), sig.fails);
                 let v = self.atom(a, &ok)?;
+                self.check_ensures(&v, &ok)?;
                 let v = if fails {
                     Self::variant_value(&ret, "Ok", v)
                 } else {
@@ -3791,6 +3788,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Ok(())
             }
             K::Become(c) => {
+                if !self.ensures.is_empty() {
+                    return unsupported("`become` in a function with `ensures`");
+                }
                 let name = c.path.join(".");
                 let Some(func) = self.callee(c)? else {
                     return unsupported(format!("`become` of `{name}`"));

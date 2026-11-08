@@ -670,6 +670,7 @@ impl<'g, 'm> FnC<'g, 'm> {
                     clause += 1;
                 }
                 Contract::Ensures(e) => {
+                    c.bind_olds(e);
                     c.ensures.push((e.clone(), clause));
                     clause += 1;
                 }
@@ -708,6 +709,22 @@ impl<'g, 'm> FnC<'g, 'm> {
             None => c.unsupported("call of a function without a body"),
         }
         c.code
+    }
+
+    /// Snapshot each parameter `p` that `e` reads as `old_p` (its entry value) before the body runs.
+    fn bind_olds(&mut self, e: &Expr) {
+        for n in free_vars(e) {
+            if let Some(p) = n.strip_prefix("old_")
+                && !self.regs.contains_key(&n)
+                && let Some(src) = self.regs.get(p).copied()
+            {
+                let dst = self.reg_of(&n);
+                self.emit(Op::Move {
+                    dst,
+                    src: Opnd(src),
+                });
+            }
+        }
     }
 
     fn ret(&mut self, a: &Atom) {
