@@ -1,0 +1,6 @@
+def get_positive(values: list[int]) -> list[int]:
+    """Keep the values above zero."""
+    ex get_positive([-1, 2, -4, 5]) == [2, 5]
+    ex get_positive([]) == []
+    # ---
+    return [v for v in values if v > 0]
