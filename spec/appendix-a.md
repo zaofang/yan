@@ -285,6 +285,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R937 | `yan schema gen <file>` reads only the Parquet footer and prints `# schema blake3:<hash>` then `class <Stem>Row:` with one field per column: bool `bool`, INT32 and INT64 `int`, FLOAT and DOUBLE `float`, UTF8, ENUM and JSON `str`, other byte arrays `bytes`, an optional column `T | None`; the hash is blake3 of `yan schema 1`, NUL and the field lines; a nested, repeated, INT96 or non-identifier column exits 1 with a message (#732) | 11.9, 18.1 |
 | R938 | `par concurrent` ranks `SessionClosed` like `Cancelled`: a peer's session failure never hides the failure that closed the session (#690) | 9.4, 9.5 |
 | R939 | A `Type` is a stage-0 handle to a resolved type, compared by type identity (aliases are their target); a type expression where a `Type` is expected is a handle, and one outside stage 0 is E262. `std.meta.info(t) -> TypeInfo`, a `@non_exhaustive` sum whose `match` needs a wildcard (E503), describes records, sums, newtypes, scalars, arrays, views, optionals, tuples, functions, built-ins and traits (RFC 0051 D1, D2) | 10.4, 17.3 |
+| R940 | `record_type`, `sum_type` and `newtype` reify reflection records into nominal types; a function returning `Type` is a stage-0 function defined in Yan Core and Yan (a run-time call is E262), `type X = f(args)` applies it in source order, and Yan Agent does not define one (E283) (RFC 0051 D3, D5, D6) | 10.4, 14.1, 17.3, 25 |
 
 <!-- /rows -->
 

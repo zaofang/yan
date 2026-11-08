@@ -20,6 +20,7 @@ mod ffi;
 mod jsonwire;
 mod lower;
 pub mod marks;
+mod reify;
 mod session;
 mod stage0;
 mod stdlib;
@@ -576,7 +577,10 @@ pub fn elaborate_in(
     desugar::fields(m, &mut cx);
     let mut m = desugar::module(m, &mut cx);
     desugar::without_manifest(&mut m);
-    let expanded = typefn::expand(&mut m, &mut cx)?;
+    reify::surface(&m, &mut cx);
+    let reified_broken = reify::expand(&mut m, &mut cx)?;
+    let mut expanded = typefn::expand(&mut m, &mut cx)?;
+    expanded.broken.extend(reified_broken);
     if let Some(caps) = manifest.as_ref().and_then(|p| p.capabilities.as_ref()) {
         desugar::ceiling(&m, caps, &mut cx);
     }

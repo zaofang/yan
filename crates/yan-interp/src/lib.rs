@@ -201,6 +201,16 @@ impl Default for Limits {
 pub enum Stage0 {
     Value(yan_core::ast::ConstVal),
     NotMaterializable(&'static str),
+    /// A `Type` made by `record_type`, `sum_type` or `newtype` (RFC 0051 D3).
+    Type(Reified),
+}
+
+/// A stage-0 `Type` result: the resolved type, and the declarations that reification made, each
+/// before any that mention it.
+#[derive(Debug)]
+pub struct Reified {
+    pub ty: yan_core::ast::Type,
+    pub decls: Vec<yan_core::ast::Item>,
 }
 
 /// Evaluate nullary `fn f` of `m` at stage 0, on a thread with room for deep recursion.
@@ -252,7 +262,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
     );
     vm.limit(limits);
     match vm.call(code, Vec::new())?.0 {
-        Ok(v) => Ok(materialize(&v)),
+        Ok(v) => Ok(meta::reified(&v).map_or_else(|| materialize(&v), Stage0::Type)),
         Err(_) => unsupported("a failing stage-0 call"),
     }
 }

@@ -4,33 +4,54 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use yan_core::ast::*;
-use yan_std::registry::{Id, id::STD_META_INFO};
+use yan_std::registry::{
+    Id,
+    id::{STD_META_INFO, STD_META_NEWTYPE, STD_META_RECORD_TYPE, STD_META_SUM_TYPE},
+};
 
 use crate::bind::Bind;
-use crate::{R, Value, unsupported};
+use crate::{R, Value, panic_with, unsupported};
 
-pub(super) static BINDS: &[(Id, Bind)] = &[(STD_META_INFO, Bind::Plain(|a| info(a)))];
+pub(super) static BINDS: &[(Id, Bind)] = &[
+    (STD_META_INFO, Bind::Plain(|a| info(a))),
+    (
+        STD_META_RECORD_TYPE,
+        Bind::Plain(|a| reify(a, Reifier::Record)),
+    ),
+    (STD_META_SUM_TYPE, Bind::Plain(|a| reify(a, Reifier::Sum))),
+    (
+        STD_META_NEWTYPE,
+        Bind::Plain(|a| reify(a, Reifier::Newtype)),
+    ),
+];
 
 /// The records, sums and newtypes of a module, by path, with their annotations.
 #[derive(Debug, Default)]
-pub(crate) struct Types(HashMap<Name, (Vec<Attr>, ItemKind)>);
+pub(crate) struct Types {
+    decls: HashMap<Name, (Vec<Attr>, ItemKind)>,
+    /// The declarations `record_type`, `sum_type` and `newtype` made, in dependency order.
+    reified: Vec<Name>,
+}
 
 impl Types {
     pub(crate) fn of(m: &Module) -> Self {
-        Types(
-            m.items
-                .iter()
-                .filter_map(|it| {
-                    let path = match &it.kind {
-                        ItemKind::Record(r) => &r.path,
-                        ItemKind::Sum(s) => &s.path,
-                        ItemKind::Newtype(n) => &n.path,
-                        _ => return None,
-                    };
-                    Some((path.join("."), (it.attrs.clone(), it.kind.clone())))
-                })
-                .collect(),
-        )
+        let decls = m
+            .items
+            .iter()
+            .filter_map(|it| {
+                let path = match &it.kind {
+                    ItemKind::Record(r) => &r.path,
+                    ItemKind::Sum(s) => &s.path,
+                    ItemKind::Newtype(n) => &n.path,
+                    _ => return None,
+                };
+                Some((path.join("."), (it.attrs.clone(), it.kind.clone())))
+            })
+            .collect();
+        Types {
+            decls,
+            reified: Vec::new(),
+        }
     }
 }
 
@@ -113,7 +134,7 @@ fn info(args: &[Value]) -> R<Value> {
                     TArg::Nat(_) => None,
                 })
                 .collect();
-            if let Some((attrs, kind)) = h.types.0.get(&name) {
+            if let Some((attrs, kind)) = h.types.decls.get(&name) {
                 return Ok(declared(&name, &args, attrs, kind, &h.types));
             }
             if let Some((bits, signed, float)) = scalar(&name) {
@@ -274,4 +295,183 @@ fn declared(
         ),
         _ => unreachable!("Types holds only records, sums and newtypes"),
     }
+}
+
+/// What a stage-0 `Type` result stands for: the type and the declarations it was reified from.
+pub(crate) fn reified(v: &Value) -> Option<crate::Reified> {
+    let Value::Type(h) = v else { return None };
+    Some(crate::Reified {
+        ty: h.ty.clone(),
+        decls: h
+            .types
+            .reified
+            .iter()
+            .map(|n| h.types.decls[n].clone())
+            .map(|(attrs, kind)| Item {
+                attrs,
+                kind,
+                span: yan_diag::Span::default(),
+            })
+            .collect(),
+    })
+}
+
+#[derive(Clone, Copy)]
+enum Reifier {
+    Record,
+    Sum,
+    Newtype,
+}
+
+fn field<'a>(v: &'a Value, name: &str) -> Option<&'a Value> {
+    let Value::Data { fields, .. } = v else {
+        return None;
+    };
+    fields.iter().find(|(n, _)| n == name).map(|(_, v)| v)
+}
+
+fn text(v: Option<&Value>) -> Option<String> {
+    match v {
+        Some(Value::Str(x)) => Some(x.to_string()),
+        _ => None,
+    }
+}
+
+fn items(v: Option<&Value>) -> Option<&[Value]> {
+    match v {
+        Some(Value::List(xs)) => Some(xs),
+        _ => None,
+    }
+}
+
+/// The handles inside `v`'s declarations are merged into `into`, so a reified type keeps the
+/// declarations of the reified types it mentions.
+fn merge(into: &mut Types, from: &Types) {
+    for n in &from.reified {
+        if !into.decls.contains_key(n) {
+            into.decls.insert(n.clone(), from.decls[n].clone());
+            into.reified.push(n.clone());
+        }
+    }
+    for (n, d) in &from.decls {
+        into.decls.entry(n.clone()).or_insert_with(|| d.clone());
+    }
+}
+
+fn fields_of(
+    list: &[Value],
+    into: &mut Types,
+    owner: &str,
+    what: &str,
+) -> R<Vec<yan_core::ast::Field>> {
+    let mut out: Vec<yan_core::ast::Field> = Vec::new();
+    for f in list {
+        let (Some(name), Some(Value::Type(h)), Some(Value::Bool(public))) =
+            (text(field(f, "name")), field(f, "ty"), field(f, "public"))
+        else {
+            return unsupported("a `FieldInfo` that is not name, ty, public and annotations");
+        };
+        if out.iter().any(|g| g.name == name) {
+            return panic_with(
+                "reify",
+                format!("{what} `{owner}` has two fields named `{name}`"),
+            );
+        }
+        merge(into, &h.types);
+        out.push(yan_core::ast::Field {
+            is_pub: *public,
+            name,
+            ty: h.ty.clone(),
+            default: None,
+        });
+    }
+    Ok(out)
+}
+
+fn attrs_of(v: Option<&Value>) -> Vec<Attr> {
+    items(v)
+        .into_iter()
+        .flatten()
+        .filter_map(|a| text(field(a, "name")))
+        .map(|name| Attr { name, args: None })
+        .collect()
+}
+
+/// `record_type`, `sum_type` and `newtype` (RFC 0051 D3): a nominal type named after the
+/// reflection record. Its checking is the elaborator's, which declares it like a written type.
+fn reify(args: &[Value], how: Reifier) -> R<Value> {
+    let [info] = args else {
+        return unsupported("a reifier without one reflection record");
+    };
+    let Some(name) = text(field(info, "name")) else {
+        return unsupported("a reflection record without a `name`");
+    };
+    let mut types = Types::default();
+    let tparams = Vec::new();
+    let kind = match how {
+        Reifier::Record => {
+            let Some(fs) = items(field(info, "fields")) else {
+                return unsupported("a `RecordInfo` without `fields`");
+            };
+            ItemKind::Record(Record {
+                is_pub: true,
+                path: vec![name.clone()],
+                tparams,
+                fields: fields_of(fs, &mut types, &name, "record")?,
+            })
+        }
+        Reifier::Sum => {
+            let Some(vs) = items(field(info, "variants")) else {
+                return unsupported("a `SumInfo` without `variants`");
+            };
+            let mut variants: Vec<Variant> = Vec::new();
+            for v in vs {
+                let Some(label) = text(field(v, "name")) else {
+                    return unsupported("a `VariantInfo` without a `name`");
+                };
+                if variants.iter().any(|w| w.name == label) {
+                    return panic_with(
+                        "reify",
+                        format!("sum `{name}` has two variants named `{label}`"),
+                    );
+                }
+                let fs = items(field(v, "fields")).unwrap_or(&[]);
+                let fs = fields_of(fs, &mut types, &name, "variant")?;
+                variants.push(Variant {
+                    name: label,
+                    fields: (!fs.is_empty()).then_some(fs),
+                });
+            }
+            ItemKind::Sum(Sum {
+                is_pub: true,
+                path: vec![name.clone()],
+                tparams,
+                variants,
+            })
+        }
+        Reifier::Newtype => {
+            let Some(Value::Type(inner)) = field(info, "inner") else {
+                return unsupported("a `NewtypeInfo` without `inner`");
+            };
+            merge(&mut types, &inner.types);
+            ItemKind::Newtype(Newtype {
+                is_pub: true,
+                path: vec![name.clone()],
+                tparams,
+                ty: inner.ty.clone(),
+                pred: None,
+            })
+        }
+    };
+    let attrs = attrs_of(field(info, "annotations"));
+    let ty = Type::Named(Named {
+        path: vec![name.clone()],
+        args: Vec::new(),
+    });
+    types.decls.insert(name.clone(), (attrs, kind));
+    types.reified.push(name);
+    Ok(Value::Type(Rc::new(Handle {
+        ty,
+        types: Rc::new(types),
+    })))
 }

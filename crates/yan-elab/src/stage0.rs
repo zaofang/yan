@@ -82,6 +82,10 @@ pub(crate) fn constant(
     }
     let (code, msg) = match yan_interp::stage0(&module, &fname, limits(it)?) {
         Ok(Stage0::Value(v)) => return Ok(Some(v)),
+        Ok(Stage0::Type(_)) => (
+            "E262",
+            "a `Type` cannot cross into run time; only data is materialized".into(),
+        ),
         Ok(Stage0::NotMaterializable(what)) => (
             "E262",
             format!("{what} cannot cross into run time; only data is materialized"),
@@ -101,7 +105,7 @@ pub(crate) fn constant(
 }
 
 /// The budgets of 10.4, raised by `@limit(stage0_depth: n, stage0_steps: n)`.
-fn limits(it: &j::Item) -> R<Limits> {
+pub(crate) fn limits(it: &j::Item) -> R<Limits> {
     let mut l = Limits::default();
     for d in it.decorators.iter().filter(|d| d.path == ["limit"]) {
         for a in d.args.iter().flatten() {

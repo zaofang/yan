@@ -7,7 +7,16 @@ fn yn(src: &str) -> (y::Module, Vec<String>) {
     assert!(d.is_empty(), "{d:?}");
     let (h, d) = yan_yn::lower("t.yn", src, &ast).expect("lowers");
     assert!(d.is_empty(), "{d:?}");
-    let (m, d) = elaborate("t.yn", src, &h, Options::default()).expect("supported");
+    let (m, d) = elaborate(
+        "t.yn",
+        src,
+        &h,
+        Options {
+            yn: true,
+            ..Options::default()
+        },
+    )
+    .expect("supported");
     (
         m,
         d.into_iter()
@@ -101,5 +110,95 @@ fn a_type_stays_at_stage_0() {
     assert!(
         d.len() == 2 && d.iter().all(|e| e.starts_with("E262")),
         "{d:?}"
+    );
+}
+
+const MIRROR: &str = "type Point = { x: int, y: float }\n\n\
+                      mirror(t: Type) -> Type =\n\
+                      \x20 match meta.info(t)\n\
+                      \x20   Record(info:) ->\n\
+                      \x20     let fields = info.fields.map(f -> FieldInfo(name: f.name + \"2\", ty: f.ty, public: True, annotations: []))\n\
+                      \x20     meta.record_type(RecordInfo(name: \"Mirror\", params: [], fields: fields, annotations: []))\n\
+                      \x20   _ -> t\n\n";
+
+#[test]
+fn a_type_function_reifies_a_record() {
+    let src = format!(
+        "{MIRROR}\
+         type Twin = mirror(Point)\n\
+         type Again = mirror(Point)\n\n\
+         main() uses io =\n\
+         \x20 let a: Twin = Mirror(x2: 1, y2: 2.5)\n\
+         \x20 let b: Again = Mirror(x2: 3, y2: 2.5)\n\
+         \x20 io.print(\"\\(a.x2) \\(b.y2)\")\n"
+    );
+    assert_eq!(run(&src), "1 2.5\n");
+}
+
+#[test]
+fn a_reified_name_that_is_taken_is_e265() {
+    let src = format!(
+        "{MIRROR}\
+         type Mirror = Point\n\
+         type Twin = mirror(Point)\n\n\
+         main() uses io =\n\
+         \x20 io.print(\"\")\n"
+    );
+    assert!(
+        yn(&src).1.iter().any(|d| d.starts_with("E265")),
+        "{:?}",
+        yn(&src).1
+    );
+}
+
+#[test]
+fn type_functions_reify_sums_and_newtypes_and_chain() {
+    let src = "type Shape = Circle(r: float) | Dot()\n\n\
+               wrap(t: Type, n: int) -> Type =\n\
+               \x20 match meta.info(t)\n\
+               \x20   Sum(info:) ->\n\
+               \x20     let vs = info.variants.map(v -> VariantInfo(name: v.name + \"\\(n)\", fields: v.fields))\n\
+               \x20     meta.sum_type(SumInfo(name: \"S\\(n)\", params: [], variants: vs, annotations: []))\n\
+               \x20   _ -> meta.newtype(NewtypeInfo(name: \"N\\(n)\", inner: t, annotations: []))\n\n\
+               type Wrapped = wrap(Shape, 1)\n\
+               type Id = wrap(int, 2)\n\
+               type Both = wrap(Wrapped, 3)\n\n\
+               main() uses io =\n\
+               \x20 let w: Wrapped = Circle1(r: 2.0)\n\
+               \x20 let i: Id = N2(7)\n\
+               \x20 let b: Both = Circle13(r: 1.0)\n\
+               \x20 io.print(\"\\(w) \\(i.value) \\(b)\")\n";
+    let out = run(src);
+    assert!(
+        out.contains("Circle1") && out.contains('7') && out.contains("Circle13"),
+        "{out}"
+    );
+}
+
+#[test]
+fn yan_agent_applies_type_functions_but_does_not_define_one() {
+    let src = "class Point:\n    x: int\n\ndef same(t: Type) -> Type:\n    return t\n\ndef main() -> None:\n    pass\n";
+    let (m, d) = yan_yag::parse("t.yag", src, false);
+    assert!(
+        d.iter().all(|d| d.severity != yan_diag::Severity::Error),
+        "{d:?}"
+    );
+    let (_, d) =
+        elaborate("t.yag", src, &m.expect("parses"), Options::default()).expect("supported");
+    assert!(d.iter().any(|d| d.code == "E283"), "{d:?}");
+}
+
+#[test]
+fn a_type_function_called_at_run_time_is_e262() {
+    let src = format!(
+        "{MIRROR}\
+         main() uses io =\n\
+         \x20 let t = mirror(Point)\n\
+         \x20 io.print(\"\")\n"
+    );
+    assert!(
+        yn(&src).1.iter().any(|d| d.starts_with("E262")),
+        "{:?}",
+        yn(&src).1
     );
 }
