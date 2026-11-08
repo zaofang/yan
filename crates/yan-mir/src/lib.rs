@@ -176,6 +176,24 @@ pub enum RtFn {
     ListAt,
     /// `(List) -> List`, a copy of the slots.
     ListCopy,
+    /// `(key words, value words, Str key schema) -> Map`.
+    MapNew,
+    /// `(Map, Ptr key) -> Ptr` to the entry's value slots, or null.
+    MapFind,
+    /// `(Map, Ptr key) -> Ptr` to the entry's value slots; panics `bounds`.
+    MapIndex,
+    /// `(Map, Ptr key) -> Ptr` to a new entry's value slots; the key is not in the map.
+    MapPush,
+    /// `(Map, Ptr key, Ptr out) -> i64`: 1 with the entry's key and value slots in `out`, or 0.
+    MapRemove,
+    /// `(Map) -> i64`
+    MapLen,
+    /// `(Map, i64) -> Ptr` to the key then value slots of an entry, in insertion order.
+    MapAt,
+    /// `(Map) -> Map`, a copy of the slots.
+    MapCopy,
+    /// `(Map)`: free the block, not its entries.
+    MapFree,
     /// `(Ptr out, Str, Str)`: the slots of `Result[T, JsonError]` into `out`.
     JsonParse,
     /// `(Ptr value, Str schema) -> Str`
@@ -248,6 +266,9 @@ impl RtFn {
                 | RtFn::ListNew
                 | RtFn::ListPush
                 | RtFn::ListCopy
+                | RtFn::MapNew
+                | RtFn::MapPush
+                | RtFn::MapCopy
                 | RtFn::JsonDump
                 | RtFn::JsonErrorShow
                 | RtFn::CsvDump

@@ -27,6 +27,8 @@ pub enum Shape {
     Scalar(Ty),
     Str,
     List(Box<Shape>),
+    /// A `dict`: a block of entries in insertion order (`yan_rt::map`).
+    Map(Box<Shape>, Box<Shape>),
     Rec(String, Vec<(String, Shape)>),
     Tuple(Vec<Shape>),
     /// A tag slot, then each variant's fields in order.
@@ -41,7 +43,7 @@ impl Shape {
     fn slots(&self, out: &mut Vec<Ty>) {
         match self {
             Shape::Scalar(t) => out.push(*t),
-            Shape::Str | Shape::List(_) | Shape::Chan(_) => out.push(Ty::Ptr),
+            Shape::Str | Shape::List(_) | Shape::Map(..) | Shape::Chan(_) => out.push(Ty::Ptr),
             Shape::Fn(..) => out.extend([Ty::Ptr, Ty::Ptr]),
             Shape::Rec(_, fs) => fs.iter().for_each(|(_, s)| s.slots(out)),
             Shape::Tuple(ss) => ss.iter().for_each(|s| s.slots(out)),
@@ -67,7 +69,9 @@ impl Shape {
     fn has_list(&self) -> bool {
         match self {
             Shape::List(_) => true,
-            Shape::Scalar(_) | Shape::Str | Shape::Fn(..) | Shape::Chan(_) => false,
+            Shape::Scalar(_) | Shape::Str | Shape::Map(..) | Shape::Fn(..) | Shape::Chan(_) => {
+                false
+            }
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| s.has_list()),
             Shape::Tuple(ss) => ss.iter().any(Shape::has_list),
             Shape::Sum(_, vs) => vs.iter().flat_map(|(_, fs)| fs).any(|(_, s)| s.has_list()),
@@ -146,6 +150,12 @@ impl Types<'_> {
                     ("Str", []) => return Ok(Shape::Str),
                     ("List", [y::TArg::Type(e)]) => {
                         return Ok(Shape::List(Box::new(self.shape_in(e, stack)?)));
+                    }
+                    ("Map", [y::TArg::Type(k), y::TArg::Type(v)]) => {
+                        return Ok(Shape::Map(
+                            Box::new(self.shape_in(k, stack)?),
+                            Box::new(self.shape_in(v, stack)?),
+                        ));
                     }
                     ("Option", [y::TArg::Type(t)]) => {
                         let t = self.shape_in(t, stack)?;
@@ -991,6 +1001,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     fn scalar_op(&mut self, op: ScalarOp, ty: Ty, args: Vec<Operand>) -> Operand {
         let name = match op {
             ScalarOp::Eq => "eq_i64",
+            ScalarOp::Ne => "ne_i64",
             ScalarOp::Ge => "ge_i64",
             ScalarOp::Le => "le_i64",
             ScalarOp::AddChecked => "add_checked_i64",
@@ -1072,7 +1083,10 @@ impl<'a, 'm> Fn<'a, 'm> {
     fn scalar1(&mut self, a: &y::Atom) -> R<Operand> {
         let (mut v, s) = self.atom_any(a)?;
         match (s, v.len()) {
-            (Shape::Scalar(_) | Shape::Str | Shape::List(_) | Shape::Chan(_), 1) => Ok(v.remove(0)),
+            (
+                Shape::Scalar(_) | Shape::Str | Shape::List(_) | Shape::Map(..) | Shape::Chan(_),
+                1,
+            ) => Ok(v.remove(0)),
             _ => unsupported("an aggregate operand"),
         }
     }
@@ -1216,6 +1230,23 @@ impl<'a, 'm> Fn<'a, 'm> {
                 me.emit(Inst::Copy { dst: d, src: v });
             }
         };
+        if [
+            id::STD_DICT_NEW,
+            id::STD_DICT_INSERT,
+            id::STD_DICT_INDEX,
+            id::STD_DICT_GET,
+            id::STD_DICT_CONTAINS_KEY,
+            id::STD_DICT_LEN,
+            id::STD_DICT_REMOVE,
+            id::STD_DICT_SETDEFAULT,
+            id::STD_DICT_ITEMS,
+            id::STD_DICT_KEYS,
+            id::STD_DICT_VALUES,
+        ]
+        .contains(&id)
+        {
+            return self.dict_call(id, c, dst);
+        }
         match (id, args.as_slice()) {
             (id::STD_IO_PRINT, [(_, a)]) => {
                 let s = self.scalar1(a)?;
@@ -1401,6 +1432,14 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let at = self.rt(RtFn::ListPush, Ty::Ptr, Self::ops(&list));
                 self.write(&At::Mem(at, 0), v);
             }
+            (id::STD_PRELUDE_LIST, [(conv, a)]) => {
+                let (_, s) = self.atom_any(a)?;
+                if !matches!(s, Shape::List(_)) {
+                    return unsupported("`list` of a non-list");
+                }
+                let v = self.owned(conv, a, &s)?;
+                set(self, v[0].clone());
+            }
             (id::STD_LIST_LEN, [(_, a)]) => {
                 let l = self.scalar1(a)?;
                 let r = self.rt(RtFn::ListLen, I64, vec![l]);
@@ -1501,6 +1540,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.cur = join;
                 Operand::Local(out)
             }
+            Shape::Map(k, e) => self.show_map(v[0].clone(), k, e)?,
             Shape::List(e) => {
                 let list = v[0].clone();
                 let out = self.local(Ty::Ptr);
@@ -1547,6 +1587,376 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Operand::Local(out)
             }
         })
+    }
+
+    fn show_map(&mut self, m: Operand, k: &Shape, e: &Shape) -> R<Operand> {
+        let out = self.local(Ty::Ptr);
+        let open = self.lit("{");
+        self.emit(Inst::Copy {
+            dst: out,
+            src: open,
+        });
+        let n = self.rt(RtFn::MapLen, I64, vec![m.clone()]);
+        self.each(n, |me, i| {
+            let first = me.scalar_op(ScalarOp::Eq, I64, vec![i.clone(), Operand::Int(0)]);
+            let (skip, sep) = me.branch(first);
+            me.cur = sep;
+            let comma = me.lit(", ");
+            let r = me.concat2(Operand::Local(out), comma);
+            me.emit(Inst::Copy { dst: out, src: r });
+            me.goto(skip);
+            let at = me.rt(RtFn::MapAt, Ty::Ptr, vec![m.clone(), i]);
+            let kv = me.read(&At::Mem(at.clone(), 0), k);
+            let ks = me.show(&kv, k, true)?;
+            let colon = me.lit(": ");
+            let ev = me.read(&At::Mem(at, k.width() as u32), e);
+            let es = me.show(&ev, e, true)?;
+            let r = me.concat(vec![Operand::Local(out), ks, colon, es]);
+            me.emit(Inst::Copy { dst: out, src: r });
+            Ok(())
+        })?;
+        let close = self.lit("}");
+        Ok(self.concat2(Operand::Local(out), close))
+    }
+
+    /// `i` from 0 below `n`.
+    fn each(&mut self, n: Operand, mut body: impl FnMut(&mut Self, Operand) -> R<()>) -> R<()> {
+        let i = self.local(I64);
+        self.emit(Inst::Copy {
+            dst: i,
+            src: Operand::Int(0),
+        });
+        let head = self.block_new();
+        self.goto(head);
+        let done = self.scalar_op(ScalarOp::Ge, I64, vec![Operand::Local(i), n]);
+        let (exit, b) = self.branch(done);
+        self.cur = b;
+        body(self, Operand::Local(i))?;
+        let next = self.scalar_op(
+            ScalarOp::AddChecked,
+            I64,
+            vec![Operand::Local(i), Operand::Int(1)],
+        );
+        self.emit(Inst::Copy { dst: i, src: next });
+        self.finish(Term::Jump(head));
+        self.cur = exit;
+        Ok(())
+    }
+
+    /// A copy of `v` that owns its own blocks.
+    fn clone_value(&mut self, v: Vec<Operand>, s: &Shape) -> R<Vec<Operand>> {
+        if !Self::has_heap(s) {
+            return Ok(v);
+        }
+        Ok(match s {
+            Shape::Scalar(_) => v,
+            Shape::Str => {
+                let empty = self.lit("");
+                vec![self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])]
+            }
+            Shape::List(e) => {
+                let l = self.rt(RtFn::ListCopy, Ty::Ptr, v);
+                if Self::has_heap(e) {
+                    let n = self.rt(RtFn::ListLen, I64, vec![l.clone()]);
+                    self.each(n, |me, i| {
+                        let at = At::Mem(me.rt(RtFn::ListAt, Ty::Ptr, vec![l.clone(), i]), 0);
+                        let ev = me.read(&at, e);
+                        let c = me.clone_value(ev, e)?;
+                        me.write(&at, c);
+                        Ok(())
+                    })?;
+                }
+                vec![l]
+            }
+            Shape::Map(k, e) => {
+                let m = self.rt(RtFn::MapCopy, Ty::Ptr, v);
+                let n = self.rt(RtFn::MapLen, I64, vec![m.clone()]);
+                self.each(n, |me, i| {
+                    let p = me.rt(RtFn::MapAt, Ty::Ptr, vec![m.clone(), i]);
+                    for (at, s) in [(0, k), (k.width() as u32, e)] {
+                        if Self::has_heap(s) {
+                            let at = At::Mem(p.clone(), at);
+                            let x = me.read(&at, s);
+                            let c = me.clone_value(x, s)?;
+                            me.write(&at, c);
+                        }
+                    }
+                    Ok(())
+                })?;
+                vec![m]
+            }
+            Shape::Rec(..) | Shape::Tuple(_) => {
+                let mut out = Vec::with_capacity(v.len());
+                for (_, at, fs) in s.fields().expect("an aggregate") {
+                    out.extend(self.clone_value(v[at..at + fs.width()].to_vec(), fs)?);
+                }
+                out
+            }
+            Shape::Sum(_, vs) => {
+                let out = self.var(s.clone());
+                self.copy_to(&out.locals, v.clone());
+                let Operand::Local(tag) = v[0] else {
+                    return unsupported("a copy of a constant sum");
+                };
+                let join = self.block_new();
+                let arms: Vec<BlockId> = vs.iter().map(|_| self.block_new()).collect();
+                self.finish(Term::Switch {
+                    on: tag,
+                    targets: arms.clone(),
+                });
+                let mut at = 1;
+                for (arm, (_, fs)) in arms.into_iter().zip(vs) {
+                    self.cur = arm;
+                    for (_, fs) in fs {
+                        let w = fs.width();
+                        let c = self.clone_value(v[at..at + w].to_vec(), fs)?;
+                        self.copy_to(&out.locals[at..at + w], c);
+                        at += w;
+                    }
+                    self.finish(Term::Jump(join));
+                }
+                self.cur = join;
+                Self::ops(&out)
+            }
+            Shape::Fn(..) => return unsupported("a copy of a closure"),
+            Shape::Chan(_) => return unsupported("a copy of a channel end"),
+        })
+    }
+
+    /// How `yan_rt::map` encodes a key of shape `s`.
+    fn key_schema(s: &Shape, out: &mut String) -> R<()> {
+        match s {
+            Shape::Scalar(Ty::Int(t)) => {
+                out.push(if t.signed { 'i' } else { 'u' });
+                out.push_str(&t.bits.to_string());
+            }
+            Shape::Scalar(Ty::F64) => out.push('f'),
+            Shape::Scalar(Ty::Bool) => out.push('b'),
+            Shape::Scalar(Ty::Unit) => out.push('n'),
+            Shape::Str => out.push('s'),
+            Shape::Tuple(ss) => {
+                out.push('(');
+                for s in ss {
+                    Self::key_schema(s, out)?;
+                }
+                out.push(')');
+            }
+            Shape::Rec(name, fs) => {
+                out.push('{');
+                out.push_str(name);
+                out.push('|');
+                for (_, s) in fs {
+                    Self::key_schema(s, out)?;
+                }
+                out.push('}');
+            }
+            Shape::Sum(_, vs) => {
+                out.push('<');
+                for (n, fs) in vs {
+                    out.push_str(n);
+                    out.push('|');
+                    for (_, s) in fs {
+                        Self::key_schema(s, out)?;
+                    }
+                    out.push(';');
+                }
+                out.push('>');
+            }
+            _ => return unsupported("a dict key of this type"),
+        }
+        Ok(())
+    }
+
+    /// `key`'s slots in a fresh block, freed with `EnvFree`.
+    fn key_buf(&mut self, key: Vec<Operand>) -> Operand {
+        let buf = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(key.len() as i128)]);
+        self.write(&At::Mem(buf.clone(), 0), key);
+        buf
+    }
+
+    /// An argument a `take` parameter owns: a borrowed one is copied.
+    fn owned(&mut self, conv: &y::Conv, a: &y::Atom, s: &Shape) -> R<Vec<Operand>> {
+        let v = self.atom(a, s)?;
+        if matches!(conv, y::Conv::Sink) || matches!(a, y::Atom::Lit(..)) {
+            return Ok(v);
+        }
+        self.clone_value(v, s)
+    }
+
+    fn map_arg(&mut self, a: &y::Atom) -> R<(Operand, Shape, Shape)> {
+        let (mut v, s) = self.atom_any(a)?;
+        let Shape::Map(k, e) = s else {
+            return unsupported("a `std.dict` call on a non-dict");
+        };
+        Ok((v.remove(0), *k, *e))
+    }
+
+    fn dict_call(&mut self, id: registry::Id, c: &y::Call, dst: Option<Var>) -> R<()> {
+        let args = Self::value_args(c)?;
+        let set = |me: &mut Self, v: Vec<Operand>| {
+            if let Some(d) = &dst {
+                me.copy_to(&d.locals.clone(), v);
+            }
+        };
+        if id == id::STD_DICT_NEW {
+            let [y::TArg::Type(k), y::TArg::Type(e)] = c.targs.as_slice() else {
+                return unsupported("`std.dict.new` without its key and value types");
+            };
+            let (k, e) = (self.shape(k)?, self.shape(e)?);
+            let mut schema = String::new();
+            Self::key_schema(&k, &mut schema)?;
+            let schema = self.lit(&schema);
+            let r = self.rt(
+                RtFn::MapNew,
+                Ty::Ptr,
+                vec![
+                    Operand::Int(k.width() as i128),
+                    Operand::Int(e.width() as i128),
+                    schema,
+                ],
+            );
+            set(self, vec![r]);
+            return Ok(());
+        }
+        let Some((_, m)) = args.first() else {
+            return unsupported(format!("call of `{}`", c.path.join(".")));
+        };
+        let (m, k, e) = self.map_arg(m)?;
+        let kw = k.width() as u32;
+        match (id, &args[1..]) {
+            (id::STD_DICT_LEN, []) => {
+                let r = self.rt(RtFn::MapLen, I64, vec![m]);
+                set(self, vec![r]);
+            }
+            (id::STD_DICT_CONTAINS_KEY, [(_, key)]) => {
+                let key = self.atom(key, &k)?;
+                let buf = self.key_buf(key);
+                let p = self.rt(RtFn::MapFind, Ty::Ptr, vec![m, buf.clone()]);
+                self.free(RtFn::EnvFree, buf);
+                let r = self.scalar_op(ScalarOp::Ne, I64, vec![p, Operand::Int(0)]);
+                set(self, vec![r]);
+            }
+            (id::STD_DICT_INDEX, [(_, key)]) => {
+                let key = self.atom(key, &k)?;
+                let buf = self.key_buf(key);
+                let p = self.rt(RtFn::MapIndex, Ty::Ptr, vec![m, buf.clone()]);
+                self.free(RtFn::EnvFree, buf);
+                let v = self.read(&At::Mem(p, 0), &e);
+                let v = self.clone_value(v, &e)?;
+                set(self, v);
+            }
+            (id::STD_DICT_GET, [(_, key)]) => {
+                let Some(d) = &dst else {
+                    return Ok(());
+                };
+                let ds = d.shape.clone();
+                let key = self.atom(key, &k)?;
+                let buf = self.key_buf(key);
+                let p = self.rt(RtFn::MapFind, Ty::Ptr, vec![m, buf.clone()]);
+                self.free(RtFn::EnvFree, buf);
+                let missing = self.scalar_op(ScalarOp::Eq, I64, vec![p.clone(), Operand::Int(0)]);
+                let (none, some) = self.branch(missing);
+                let join = self.block_new();
+                self.cur = none;
+                set(self, Self::variant_value(&ds, "None", vec![]));
+                self.goto(join);
+                self.cur = some;
+                let v = self.read(&At::Mem(p, 0), &e);
+                let v = self.clone_value(v, &e)?;
+                set(self, Self::variant_value(&ds, "Some", v));
+                self.goto(join);
+            }
+            (id::STD_DICT_INSERT | id::STD_DICT_SETDEFAULT, [(kc, key), (vc, val)]) => {
+                let key = self.owned(kc, key, &k)?;
+                let val = self.owned(vc, val, &e)?;
+                let buf = self.key_buf(key.clone());
+                let p = self.rt(RtFn::MapFind, Ty::Ptr, vec![m.clone(), buf.clone()]);
+                let missing = self.scalar_op(ScalarOp::Eq, I64, vec![p.clone(), Operand::Int(0)]);
+                let (new, old) = self.branch(missing);
+                let join = self.block_new();
+                self.cur = new;
+                let q = self.rt(RtFn::MapPush, Ty::Ptr, vec![m, buf.clone()]);
+                self.write(&At::Mem(q.clone(), 0), val.clone());
+                if id == id::STD_DICT_SETDEFAULT {
+                    let v = self.read(&At::Mem(q, 0), &e);
+                    let v = self.clone_value(v, &e)?;
+                    set(self, v);
+                }
+                self.goto(join);
+                self.cur = old;
+                self.glue(&k, &key);
+                if id == id::STD_DICT_SETDEFAULT {
+                    self.glue(&e, &val);
+                    let v = self.read(&At::Mem(p, 0), &e);
+                    let v = self.clone_value(v, &e)?;
+                    set(self, v);
+                } else {
+                    let prev = self.read(&At::Mem(p.clone(), 0), &e);
+                    self.glue(&e, &prev);
+                    self.write(&At::Mem(p, 0), val);
+                }
+                self.goto(join);
+                self.free(RtFn::EnvFree, buf);
+            }
+            (id::STD_DICT_REMOVE, [(_, key)]) => {
+                let key = self.atom(key, &k)?;
+                let buf = self.key_buf(key);
+                let out = self.rt(
+                    RtFn::Alloc,
+                    Ty::Ptr,
+                    vec![Operand::Int(i128::from(kw) + e.width() as i128)],
+                );
+                let r = self.rt(RtFn::MapRemove, I64, vec![m, buf.clone(), out.clone()]);
+                self.free(RtFn::EnvFree, buf);
+                let ds = dst.as_ref().map(|d| d.shape.clone());
+                let missing = self.scalar_op(ScalarOp::Eq, I64, vec![r, Operand::Int(0)]);
+                let (none, some) = self.branch(missing);
+                let join = self.block_new();
+                self.cur = none;
+                if let Some(ds) = &ds {
+                    set(self, Self::variant_value(ds, "None", vec![]));
+                }
+                self.goto(join);
+                self.cur = some;
+                let kv = self.read(&At::Mem(out.clone(), 0), &k);
+                self.glue(&k, &kv);
+                let v = self.read(&At::Mem(out.clone(), kw), &e);
+                match &ds {
+                    Some(ds) => set(self, Self::variant_value(ds, "Some", v)),
+                    None => self.glue(&e, &v),
+                }
+                self.goto(join);
+                self.free(RtFn::EnvFree, out);
+            }
+            (id::STD_DICT_ITEMS | id::STD_DICT_KEYS | id::STD_DICT_VALUES, []) => {
+                let (take_k, take_v) = match id {
+                    id::STD_DICT_ITEMS => (true, true),
+                    id::STD_DICT_KEYS => (true, false),
+                    _ => (false, true),
+                };
+                let words = if take_k { k.width() } else { 0 } + if take_v { e.width() } else { 0 };
+                let l = self.rt(RtFn::ListNew, Ty::Ptr, vec![Operand::Int(words as i128)]);
+                let n = self.rt(RtFn::MapLen, I64, vec![m.clone()]);
+                self.each(n, |me, i| {
+                    let at = me.rt(RtFn::MapAt, Ty::Ptr, vec![m.clone(), i]);
+                    let mut x = Vec::new();
+                    if take_k {
+                        let kv = me.read(&At::Mem(at.clone(), 0), &k);
+                        x.extend(me.clone_value(kv, &k)?);
+                    }
+                    if take_v {
+                        let ev = me.read(&At::Mem(at, kw), &e);
+                        x.extend(me.clone_value(ev, &e)?);
+                    }
+                    let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![l.clone()]);
+                    me.write(&At::Mem(slot, 0), x);
+                    Ok(())
+                })?;
+                set(self, vec![l]);
+            }
+            _ => return unsupported(format!("call of `{}`", c.path.join("."))),
+        }
+        Ok(())
     }
 
     fn show_fields(&mut self, name: &str, v: &[Operand], fs: &[(String, Shape)]) -> R<Operand> {
@@ -1598,10 +2008,24 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok((at, shape))
     }
 
+    fn has_map(s: &Shape) -> bool {
+        match s {
+            Shape::Map(..) => true,
+            Shape::Scalar(_) | Shape::Str | Shape::Fn(..) | Shape::Chan(_) => false,
+            Shape::List(e) => Self::has_map(e),
+            Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_map(s)),
+            Shape::Tuple(ss) => ss.iter().any(Self::has_map),
+            Shape::Sum(_, vs) => vs
+                .iter()
+                .flat_map(|(_, fs)| fs)
+                .any(|(_, s)| Self::has_map(s)),
+        }
+    }
+
     fn has_heap(s: &Shape) -> bool {
         match s {
             Shape::Scalar(_) => false,
-            Shape::Str | Shape::List(_) | Shape::Fn(..) | Shape::Chan(_) => true,
+            Shape::Str | Shape::List(_) | Shape::Map(..) | Shape::Fn(..) | Shape::Chan(_) => true,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_heap(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_heap),
             Shape::Sum(_, vs) => vs
@@ -1649,6 +2073,20 @@ impl<'a, 'm> Fn<'a, 'm> {
                     self.cur = exit;
                 }
                 self.free(RtFn::ListFree, v[0].clone());
+            }
+            Shape::Map(k, e) => {
+                let m = v[0].clone();
+                let n = self.rt(RtFn::MapLen, I64, vec![m.clone()]);
+                self.each(n, |me, i| {
+                    let at = me.rt(RtFn::MapAt, Ty::Ptr, vec![m.clone(), i]);
+                    let kv = me.read(&At::Mem(at.clone(), 0), k);
+                    me.glue(k, &kv);
+                    let ev = me.read(&At::Mem(at, k.width() as u32), e);
+                    me.glue(e, &ev);
+                    Ok(())
+                })
+                .expect("glue does not fail");
+                self.free(RtFn::MapFree, m);
             }
             Shape::Rec(..) | Shape::Tuple(_) => {
                 for (_, at, fs) in s.fields().expect("an aggregate") {
@@ -1791,6 +2229,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let (at, s) = self.place(p)?;
                 let v = self.read(&at, &s);
                 match &s {
+                    s if Self::has_map(s) => self.clone_value(v, s),
                     Shape::List(e) if !e.has_list() => {
                         Ok(vec![self.rt(RtFn::ListCopy, Ty::Ptr, v)])
                     }

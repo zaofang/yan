@@ -529,6 +529,24 @@ unsafe fn store_slots(out: *mut u64, slots: Vec<crate::jsonslots::Slot>) {
                     words,
                     data: flat(xs),
                 }) as u64,
+                Slot::Map {
+                    schema,
+                    kw,
+                    vw,
+                    entries,
+                } => {
+                    let m = crate::map::Map::new(&schema, kw, vw);
+                    for (k, v) in entries {
+                        // SAFETY: `k` is `kw` slots of a key not yet in `m`, `v` `vw` slots.
+                        unsafe {
+                            let at = crate::map::yan_rt_map_push(m, flat(k).as_ptr());
+                            for (i, w) in flat(v).into_iter().enumerate() {
+                                at.add(i).write(w);
+                            }
+                        }
+                    }
+                    m as u64
+                }
             })
             .collect()
     }

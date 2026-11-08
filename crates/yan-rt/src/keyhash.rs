@@ -107,6 +107,10 @@ impl Enc {
         &self.0
     }
 
+    pub fn into_bytes(self) -> Vec<u8> {
+        self.0
+    }
+
     /// The first 64 bits of BLAKE3 over the encoding, as an unsigned integer.
     pub fn hash(&self) -> u64 {
         hash(&self.0)
