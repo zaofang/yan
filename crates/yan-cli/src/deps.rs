@@ -137,9 +137,16 @@ fn local_name(name: &str) -> &str {
     name.rsplit('/').next().unwrap_or(name)
 }
 
+/// Who adds: a human at a terminal, or an agent through the `toolchain` capability (R947).
+#[derive(Clone, Copy, PartialEq)]
+pub enum Caller {
+    Human,
+    Agent,
+}
+
 /// `yan add @org/name[@text | @=x.y.z]`: the newest version outside the cool-off window that
 /// satisfies `text`, written as the requirement's minimum.
-pub fn add(root: &Path, spec: &str, now: i64) -> Result<String, Failure> {
+pub fn add(root: &Path, spec: &str, now: i64, caller: Caller) -> Result<String, Failure> {
     let (name, text) = match spec[1..].find('@') {
         Some(i) => (&spec[..=i], &spec[i + 2..]),
         None => (spec, ""),
@@ -189,6 +196,20 @@ pub fn add(root: &Path, spec: &str, now: i64) -> Result<String, Failure> {
             "no version of `{name}` satisfies `{want}` outside the 7-day cool-off"
         ))
     })?;
+    if let Some(advisory) = &info.malicious {
+        return Err(lock::malicious(&index, name, &info, advisory).into());
+    }
+    // No search snapshot exists yet, so nothing is established (R947).
+    if caller == Caller::Agent && !lock::is_locked(root, name) {
+        return Err(fail(
+            "E004",
+            format!(
+                "`{name}` is neither locked nor established; run `yan approve {name}@{}` to allow the add",
+                info.version
+            ),
+        )
+        .into());
+    }
     let req = format!("{name} {}", info.version);
     if m.requirements.iter().any(|r| {
         r.split_once(' ')
@@ -371,15 +392,18 @@ mod tests {
         assert_eq!(Registries::load(&dir).err().unwrap().code, "E018");
         write("min_release_age=0, trust=[\"x\"], offline=false, store=\"s\"");
         let now = registry::now();
-        assert!(add(&dir, "@a/b@2", now).is_err());
-        assert_eq!(add(&dir, "@a/b", now).ok().unwrap(), "added @a/b 1.2.0");
+        assert!(add(&dir, "@a/b@2", now, Caller::Human).is_err());
+        assert_eq!(
+            add(&dir, "@a/b", now, Caller::Human).ok().unwrap(),
+            "added @a/b 1.2.0"
+        );
         let dir = world("raised");
         std::fs::write(
             dir.join(".yan/config.yag"),
             "config: Config = Config(registries={\"@a\": \"index\"}, min_release_age=100000)\n",
         )
         .unwrap();
-        assert!(add(&dir, "@a/b", now).is_err());
+        assert!(add(&dir, "@a/b", now, Caller::Human).is_err());
     }
 
     #[test]
@@ -396,7 +420,7 @@ mod tests {
         )
         .unwrap();
         let now = registry::now();
-        add(&dir, "@a/b", now).ok().unwrap();
+        add(&dir, "@a/b", now, Caller::Human).ok().unwrap();
         let lock = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
         assert!(lock.contains(
             "digest = \"sha256:1.2.0\"\ncapability_digest = \"sha256:cap\"\npublisher = \"pub\"\n"
@@ -417,7 +441,10 @@ mod tests {
     fn add_skips_the_cool_off_pins_exactly_and_locks_transitively() {
         let dir = world("add");
         let now = registry::now();
-        assert_eq!(add(&dir, "@a/b", now).ok().unwrap(), "added @a/b 1.2.0");
+        assert_eq!(
+            add(&dir, "@a/b", now, Caller::Human).ok().unwrap(),
+            "added @a/b 1.2.0"
+        );
         let lock = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
         assert!(lock.contains("name = \"@a/b\"\nversion = \"1.2.0\"\nsource = \"index\"\ndigest = \"sha256:1.2.0\"\npublisher = \"pub\""));
         assert!(
@@ -425,14 +452,14 @@ mod tests {
                 .unwrap()
                 .contains("dependencies={\"b\": \"@a/b 1.2.0\"}")
         );
-        assert!(add(&dir, "@a/b", now).is_err());
+        assert!(add(&dir, "@a/b", now, Caller::Human).is_err());
         let dir = world("exact");
         assert_eq!(
-            add(&dir, "@a/b@=1.3.0", now).ok().unwrap(),
+            add(&dir, "@a/b@=1.3.0", now, Caller::Human).ok().unwrap(),
             "added @a/b 1.3.0"
         );
         let dir = world("transitive");
-        add(&dir, "@a/c", now).ok().unwrap();
+        add(&dir, "@a/c", now, Caller::Human).ok().unwrap();
         let lock = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
         assert!(lock.contains("name = \"@a/b\"\nversion = \"1.2.0\""));
         assert!(lock.contains("name = \"@a/c\"\nversion = \"1.0.0\""));
@@ -441,12 +468,12 @@ mod tests {
     #[test]
     fn unknown_name_is_e003_and_unmapped_namespace_is_e021() {
         let dir = world("names");
-        let Err(Failure::Diag(d)) = add(&dir, "@a/bb", registry::now()) else {
+        let Err(Failure::Diag(d)) = add(&dir, "@a/bb", registry::now(), Caller::Human) else {
             panic!("expected a diagnostic");
         };
         assert_eq!(d.code, "E003");
         assert!(d.message.contains("@a/b"));
-        let Err(Failure::Diag(d)) = add(&dir, "@z/b", registry::now()) else {
+        let Err(Failure::Diag(d)) = add(&dir, "@z/b", registry::now(), Caller::Human) else {
             panic!("expected a diagnostic");
         };
         assert_eq!(d.code, "E021");
@@ -456,7 +483,7 @@ mod tests {
     fn update_moves_to_the_newest_and_a_publisher_change_is_e005() {
         let dir = world("update");
         let now = registry::now();
-        add(&dir, "@a/b@=1.0.0", now).ok().unwrap();
+        add(&dir, "@a/b@=1.0.0", now, Caller::Human).ok().unwrap();
         let moved = update(&dir, None, now).ok().unwrap();
         assert_eq!(moved, vec!["@a/b 1.0.0 -> 1.2.0".to_owned()]);
         assert!(
@@ -481,7 +508,9 @@ mod tests {
     #[test]
     fn offline_locked_needs_each_archive_in_the_store_or_vendor() {
         let dir = world("offline");
-        add(&dir, "@a/b", registry::now()).ok().unwrap();
+        add(&dir, "@a/b", registry::now(), Caller::Human)
+            .ok()
+            .unwrap();
         let reqs = ["@a/b 1.2.0".to_owned()];
         assert_eq!(
             lock::check(&dir, &reqs, true, true).unwrap_err().code,
@@ -539,13 +568,53 @@ mod tests {
     fn remove_drops_the_entry_and_its_lock_record() {
         let dir = world("remove");
         let now = registry::now();
-        add(&dir, "@a/b", now).ok().unwrap();
-        add(&dir, "@a/c", now).ok().unwrap();
+        add(&dir, "@a/b", now, Caller::Human).ok().unwrap();
+        add(&dir, "@a/c", now, Caller::Human).ok().unwrap();
         assert_eq!(remove(&dir, "@a/c").ok().unwrap(), "removed @a/c");
         let yag = std::fs::read_to_string(dir.join("package.yag")).unwrap();
         assert!(yag.contains("dependencies={\"b\": \"@a/b 1.2.0\"}"));
         let lock = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
         assert!(!lock.contains("@a/c"));
         assert!(remove(&dir, "@a/c").is_err());
+    }
+
+    #[test]
+    fn an_agent_add_of_an_unlocked_package_is_e004() {
+        let dir = world("agent");
+        let now = registry::now();
+        let Err(Failure::Diag(d)) = add(&dir, "@a/b", now, Caller::Agent) else {
+            panic!("expected a diagnostic");
+        };
+        assert_eq!(d.code, "E004");
+        assert!(d.message.contains("yan approve @a/b@1.2.0"));
+        assert!(!dir.join("yan.lock").exists());
+        add(&dir, "@a/b", now, Caller::Human).ok().unwrap();
+        assert!(lock::is_locked(&dir, "@a/b"));
+    }
+
+    #[test]
+    fn a_malicious_version_is_e007_even_when_pinned_and_names_the_clean_one() {
+        let dir = world("malicious");
+        add(&dir, "@a/b", registry::now(), Caller::Human)
+            .ok()
+            .unwrap();
+        let bad = dir.join("index/@a/b/@v/1.2.0.info");
+        let text = std::fs::read_to_string(&bad).unwrap();
+        std::fs::write(
+            &bad,
+            text.replace(
+                "\"yanked\"",
+                "\"malicious\":true,\"advisory\":\"steals keys\",\"yanked\"",
+            ),
+        )
+        .unwrap();
+        let err = lock::write(&dir).unwrap_err();
+        assert_eq!(err.code, "E007");
+        assert!(err.message.contains("steals keys"));
+        assert!(err.message.contains("nearest clean version: 1.3.0"));
+        let Err(Failure::Diag(d)) = add(&dir, "@a/b@=1.2.0", registry::now(), Caller::Human) else {
+            panic!("expected a diagnostic");
+        };
+        assert_eq!(d.code, "E007");
     }
 }

@@ -128,6 +128,13 @@ fn records(root: &Path) -> Vec<toml::Value> {
         .unwrap_or_default()
 }
 
+/// Whether `yan.lock` has a record for `name`, at any version.
+pub fn is_locked(root: &Path, name: &str) -> bool {
+    records(root)
+        .iter()
+        .any(|p| p.get("name").and_then(toml::Value::as_str) == Some(name))
+}
+
 /// The publisher identity `yan.lock` records for the package a requirement names.
 pub fn locked_publisher(root: &Path, name: &str, version: &str) -> Option<String> {
     let key = identity(name, version);
@@ -209,7 +216,7 @@ fn select(index: &Index, m: &Min, pinned: Option<&str>) -> Result<Info, Box<Diag
             best = Some(i);
         }
     }
-    best.ok_or_else(|| {
+    let chosen = best.ok_or_else(|| {
         fail(
             "E021",
             format!(
@@ -219,7 +226,33 @@ fn select(index: &Index, m: &Min, pinned: Option<&str>) -> Result<Info, Box<Diag
                 m.requirers.join(", ")
             ),
         )
-    })
+    })?;
+    match &chosen.malicious {
+        Some(advisory) => Err(malicious(index, &m.name, &chosen, advisory)),
+        None => Ok(chosen),
+    }
+}
+
+/// E007 for `bad`, naming the nearest clean version above it (R947).
+pub(crate) fn malicious(index: &Index, name: &str, bad: &Info, advisory: &str) -> Box<Diagnostic> {
+    let clean = index
+        .versions(name)
+        .ok()
+        .flatten()
+        .into_iter()
+        .flatten()
+        .filter(|v| parts(v) > parts(&bad.version) && !v.contains('-'))
+        .filter_map(|v| index.info(name, &v).ok().flatten())
+        .filter(|i| i.malicious.is_none() && !i.yanked)
+        .min_by_key(|i| parts(&i.version));
+    fail(
+        "E007",
+        format!(
+            "`{name}` {} is marked malicious: {advisory}; nearest clean version: {}",
+            bad.version,
+            clean.map_or("none".into(), |c| c.version)
+        ),
+    )
 }
 
 /// Resolve every requirement of the package at `root` and of its members: against the members

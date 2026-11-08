@@ -17,6 +17,8 @@ pub struct Info {
     pub capability_digest: Option<String>,
     pub requirements: Vec<String>,
     pub yanked: bool,
+    /// The advisory text of a malicious mark (R947).
+    pub malicious: Option<String>,
     pub published: i64,
 }
 
@@ -257,6 +259,11 @@ fn parse_info(text: &[u8], version: &str) -> Option<Info> {
             })
             .unwrap_or_default(),
         yanked: v.get("yanked").and_then(|y| y.as_bool()).unwrap_or(false),
+        malicious: v
+            .get("malicious")
+            .and_then(|m| m.as_bool())
+            .filter(|m| *m)
+            .map(|_| s("advisory").unwrap_or_default()),
         published: epoch(&s("time")?)?,
     })
 }
@@ -328,7 +335,11 @@ pub fn newest(
         let newer = best
             .as_ref()
             .is_none_or(|b| parts(&i.version) > parts(&b.version));
-        if !i.yanked && (exact || i.published + index.cool_off <= now) && newer {
+        if !i.yanked
+            && i.malicious.is_none()
+            && (exact || i.published + index.cool_off <= now)
+            && newer
+        {
             best = Some(i);
         }
     }
