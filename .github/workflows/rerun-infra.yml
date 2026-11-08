@@ -1,0 +1,29 @@
+# Rerun a failed ci run once when a failed job shows an infra signature (practice 7). Code
+# failures are never rerun. Tracked in #785; overlaps #761 and #780.
+name: rerun-infra
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  rerun:
+    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.run_attempt == 1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rerun failed jobs if the failure is infra
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed > failed.log || true
+          if grep -Eiq '(HTTP/[0-9.]+ 5[0-9]{2}|error: 5[0-9]{2}|returned error: 5[0-9]{2}|status code 5[0-9]{2}| 50[234] (Bad Gateway|Service Unavailable|Gateway Time-?out))' failed.log; then
+            gh run rerun "$RUN_ID" --repo "$GITHUB_REPOSITORY" --failed
+          else
+            echo "not an infra failure; no rerun"
+          fi

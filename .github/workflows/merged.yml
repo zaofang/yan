@@ -1,0 +1,41 @@
+# On a merged PR: note the merge on each issue it references and log it on #449.
+# Closes/Fixes keywords already close issues natively. Tracked in #786.
+name: merged
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  note:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on referenced issues and append to the #449 log
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+          SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -eu
+          refs=$(printf '%s' "$BODY" | grep -oEi '(closes|fixes|resolves|refs|part of) +#[0-9]+' | grep -oE '[0-9]+' | sort -un || true)
+          for n in $refs; do
+            [ "$n" = "$PR" ] && continue
+            gh issue comment "$n" --repo "$GITHUB_REPOSITORY" --body "Merged in #$PR (${SHA:0:9})." || true
+          done
+          line="- #$PR ${TITLE//$'\n'/ } (${SHA:0:9})"
+          marker='<!-- merge-log -->'
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/449/comments" --paginate \
+            --jq "[.[] | select(.user.type==\"Bot\" and (.body | startswith(\"$marker\")))][0].id // empty")
+          if [ -n "$id" ]; then
+            old=$(gh api "repos/$GITHUB_REPOSITORY/issues/comments/$id" --jq .body)
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$old"$'\n'"$line"
+          else
+            gh issue comment 449 --repo "$GITHUB_REPOSITORY" --body "$marker"$'\n'"Merge log"$'\n'"$line"
+          fi
