@@ -119,6 +119,7 @@ pub struct Record {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Field {
+    pub attrs: Vec<Attr>,
     pub is_pub: bool,
     pub name: Name,
     pub ty: Type,

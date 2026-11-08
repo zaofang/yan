@@ -136,7 +136,14 @@ fn hir_fields(fs: &[y::Field], at: Span) -> R<Vec<j::Field>> {
     fs.iter()
         .map(|f| {
             Ok(j::Field {
-                decorators: Vec::new(),
+                decorators: f
+                    .attrs
+                    .iter()
+                    .map(|a| j::Decorator {
+                        path: vec![a.name.clone()],
+                        args: None,
+                    })
+                    .collect(),
                 name: f.name.clone(),
                 ty: core_type(&f.ty)?,
                 ty_span: at,

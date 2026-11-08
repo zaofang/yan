@@ -236,7 +236,7 @@ fn declared(
                             ("name", s(&f.name)),
                             ("ty", handle(subst(&f.ty, ps, args), types)),
                             ("public", Value::Bool(f.is_pub)),
-                            ("annotations", Value::List(Vec::new())),
+                            ("annotations", annotations(&f.attrs)),
                         ],
                     )
                 })
@@ -402,6 +402,7 @@ fn fields_of(
         }
         merge(into, &h.types);
         out.push(yan_core::ast::Field {
+            attrs: attrs_of(field(f, "annotations")),
             is_pub: *public,
             name,
             ty: h.ty.clone(),

@@ -338,3 +338,23 @@ fn a_type_function_may_not_use_capabilities_or_unsafe() {
         "{d:?}"
     );
 }
+
+#[test]
+fn info_reports_field_annotations_and_reifiers_keep_them() {
+    let src = "type Point = { @tag x: int, y: float }\n\n\
+               tags(t: Type) -> str =\n\
+               \x20 match meta.info(t)\n\
+               \x20   Record(info:) -> \"\\(info.fields[0].annotations.len()) \\(info.fields[0].annotations[0].name) \\(info.fields[1].annotations.len())\"\n\
+               \x20   _ -> \"other\"\n\n\
+               clone_of(t: Type) -> Type =\n\
+               \x20 match meta.info(t)\n\
+               \x20   Record(info:) -> meta.record_type(RecordInfo(name: \"Copy\", params: [], fields: info.fields, annotations: []))\n\
+               \x20   _ -> t\n\n\
+               type Twin = clone_of(Point)\n\n\
+               let a: str = #tags(Point)\n\
+               let b: str = #tags(Twin)\n\n\
+               main() uses io =\n\
+               \x20 io.print(a)\n\
+               \x20 io.print(b)\n";
+    assert_eq!(run(src), "1 tag 0\n1 tag 0\n");
+}

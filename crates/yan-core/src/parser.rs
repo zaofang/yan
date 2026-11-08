@@ -293,16 +293,7 @@ impl Parser<'_> {
 
     fn item(&mut self) -> PResult<Item> {
         let start = self.span();
-        let mut attrs = Vec::new();
-        while self.eat_punct("@") {
-            let name = self.name()?;
-            let args = if self.is_punct("(") {
-                Some(self.list("(", ")", Self::attr_arg)?)
-            } else {
-                None
-            };
-            attrs.push(Attr { name, args });
-        }
+        let attrs = self.attrs()?;
         let is_pub = self.eat_kw("pub");
         let is_unsafe = self.eat_kw("unsafe");
         let kind = match self.peek() {
@@ -418,6 +409,20 @@ impl Parser<'_> {
             kind,
             span: join_end(start, self.prev_span()),
         })
+    }
+
+    fn attrs(&mut self) -> PResult<Vec<Attr>> {
+        let mut attrs = Vec::new();
+        while self.eat_punct("@") {
+            let name = self.name()?;
+            let args = if self.is_punct("(") {
+                Some(self.list("(", ")", Self::attr_arg)?)
+            } else {
+                None
+            };
+            attrs.push(Attr { name, args });
+        }
+        Ok(attrs)
     }
 
     fn attr_arg(&mut self) -> PResult<AttrArg> {
@@ -561,6 +566,7 @@ impl Parser<'_> {
     }
 
     fn field(&mut self) -> PResult<Field> {
+        let attrs = self.attrs()?;
         let is_pub = self.eat_kw("pub");
         let name = self.name()?;
         self.expect_punct(":")?;
@@ -571,6 +577,7 @@ impl Parser<'_> {
             None
         };
         Ok(Field {
+            attrs,
             is_pub,
             name,
             ty,

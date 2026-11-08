@@ -29,11 +29,15 @@ pub(crate) fn derives(it: &j::Item, name: &str) -> bool {
 }
 
 /// The name in `@wire(name: "...")` among a field's or variant's decorators (R874, R878); any
-/// other decorator there is not supported yet.
+/// other decorator with arguments there is not supported yet.
 pub(crate) fn wire_name(ds: &[j::Decorator]) -> R<Option<String>> {
     let mut out = None;
     for d in ds {
         if d.path != ["wire"] {
+            // An argument-free decorator is an annotation, carried to Core on the field.
+            if d.args.is_none() && d.path.len() == 1 {
+                continue;
+            }
             return unsupported(format!(
                 "decorator `@{}` on a field or variant",
                 d.path.join(".")
