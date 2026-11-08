@@ -98,6 +98,10 @@ structure Fn where
   requires : List Rhs
   ensures : List Rhs
   body : Block
+  /-- has a `decreases` clause (8.4) -/
+  decreases : Bool := false
+  /-- has an `example` clause or a loop `invariant`; with `requires`/`ensures` these make a module contractual (R940) -/
+  contractual : Bool := false
   deriving Repr, Inhabited
 
 /-- A record or a sum variant: its field names in declaration order. -/

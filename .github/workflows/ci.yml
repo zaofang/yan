@@ -105,8 +105,22 @@ jobs:
       # registry sources under cargo builds running on the other runners.
       - name: Install Lean at the version formal/lean-toolchain pins
         run: |
-          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          # Transient 5xx from the elan or toolchain host: retry the install (#761). A build failure is not retried.
+          for i in 1 2 3; do
+            curl -sSfL --retry 3 --retry-all-errors https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none && break
+            [ "$i" = 3 ] && exit 1
+            sleep $((i * 15))
+          done
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      # Fetches the pinned Lean toolchain on first use; retry only that fetch, not the build.
+      - name: Fetch the Lean toolchain
+        run: |
+          for i in 1 2 3; do
+            elan toolchain install "$(cat lean-toolchain)" && break
+            [ "$i" = 3 ] && exit 1
+            sleep $((i * 15))
+          done
+        working-directory: formal
       - run: lake build
         working-directory: formal
       - run: cargo build --locked --release -p yan-cli

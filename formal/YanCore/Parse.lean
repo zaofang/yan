@@ -414,16 +414,24 @@ def fnItem : P Fn := do
   if ← eatKw "fail" then let _ ← ty.failTy
   let mut req := #[]
   let mut ens := #[]
+  let mut dec := false
+  let mut ex := false
   repeat
     if ← eatKw "requires" then req := req.push (← pred)
     else if ← eatKw "ensures" then ens := ens.push (← pred)
     else if ← eatKw "decreases" then
+      dec := true
       let _ ← pred
       while ← eatSym "," do let _ ← pred
-    else if ← eatKw "example" then let _ ← pred
+    else if ← eatKw "example" then ex := true; let _ ← pred
     else if ← isKw "cost" then fail "not supported yet: cost"
     else break
-  return ⟨name, ps, req.toList, ens.toList, ← block⟩
+  let start ← get
+  let b ← block
+  let toks ← read
+  let inv := (toks.extract start (← get)).any (·.tok == .ident "invariant")
+  return { name, params := ps, requires := req.toList, ensures := ens.toList, body := b,
+           decreases := dec, contractual := ex || inv }
 
 def fields : P (List String) := do
   sym "{"

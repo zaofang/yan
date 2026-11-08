@@ -13,6 +13,10 @@ def main (args : List String) : IO UInt32 := do
       IO.eprintln s!"yancore: not supported yet: {e}"
       return 2
     | .ok m =>
+      -- `yan run` checks first (R901)
+      if let bad@(_ :: _) := e602 m then
+        for n in bad do IO.eprintln s!"error[E602]: recursive function `{n}` has no `decreases` clause"
+        return 1
       let (o, out) := runMain m
       let stdout ← IO.getStdout
       for line in out do stdout.putStrLn line
