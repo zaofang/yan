@@ -101,6 +101,8 @@ enum Command {
         #[arg(long, required = true)]
         check: bool,
     },
+    /// Write `yan.lock` from the manifest and the workspace members (19.1, R896).
+    Lock,
     /// Check files and report diagnostics.
     Check {
         /// `prose` when output is a terminal, `line` otherwise (18.2).
@@ -328,6 +330,23 @@ fn main() -> ExitCode {
             max_errors,
             Database::new(strict, level.as_deref() == Some("release")),
         ),
+        Command::Lock => match lock::write(Path::new(".")) {
+            Ok(changed) => {
+                println!(
+                    "{}",
+                    if changed {
+                        "wrote yan.lock"
+                    } else {
+                        "yan.lock is up to date"
+                    }
+                );
+                ExitCode::SUCCESS
+            }
+            Err(d) => {
+                print_diags(&[*d]);
+                ExitCode::FAILURE
+            }
+        },
         Command::Publish { .. } => match publish::check(Path::new(".")) {
             Ok(d) if d.is_empty() => ExitCode::SUCCESS,
             Ok(d) => {
