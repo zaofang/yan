@@ -25,6 +25,7 @@ mod session;
 mod stage0;
 mod stdlib;
 mod ty;
+mod tyapp;
 mod typefn;
 mod wire;
 
@@ -578,6 +579,7 @@ pub fn elaborate_in(
     let mut m = desugar::module(m, &mut cx);
     desugar::without_manifest(&mut m);
     reify::surface(&m, &mut cx);
+    tyapp::hoist(&mut m);
     let reified_broken = reify::expand(&mut m, &mut cx)?;
     let mut expanded = typefn::expand(&mut m, &mut cx)?;
     expanded.broken.extend(reified_broken);

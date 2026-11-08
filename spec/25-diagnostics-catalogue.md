@@ -93,7 +93,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E250 | two functions of one name at one method-resolution step | 17.2 |
 | E251 | capability set includes itself, directly or through another set (R431) new | 7.1 |
 | E260 | stage-0 panic (with stage-0 backtrace and use site) *new* | 10.4 |
-| E261 | stage-0 step, heap or depth budget exceeded *new* | 10.4 |
+| E261 | stage-0 step, heap or depth budget exceeded, or a type-function application that depends on its own result (R942) *new* | 10.4 |
 | E262 | non-materializable value crosses into run time, or a function returning `Type` is called at run time *new* | 10.4 |
 | E263 | compile-time function parameter not specialized away *new* | 10.4 |
 | E264 | reflection access to an item or field not visible at the call site *new* | 10.4 |

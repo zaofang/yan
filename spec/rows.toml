@@ -1399,3 +1399,8 @@ sections = "8.4, 25"
 rows = "R941"
 topic = "`record_type`, `sum_type` and `newtype` reify reflection records into nominal types; a function returning `Type` is a stage-0 function defined in Yan Core and Yan (a run-time call is E262), `type X = f(args)` applies it in source order, and Yan Agent does not define one (E283) (RFC 0051 D3, D5, D6)"
 sections = "10.4, 14.1, 17.3, 25"
+
+[[entry]]
+rows = "R942"
+topic = "A user type-function application may appear in any type position, with stage-0 expressions (literals, constants, types, calls) as arguments; applications run once each in dependency order, and one that depends on its own result is E261 (RFC 0051 D4)"
+sections = "10.4, 25"
