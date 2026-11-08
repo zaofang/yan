@@ -1,0 +1,18 @@
+# spec: 14.1
+# rows: R932
+# flags: --strict
+# note: the keyword form the lenient reader normalizes to is accepted under --strict; leading exempt arguments stay positional
+
+class Box:
+    w: int
+    h: int
+    d: int
+
+def area(w: int, h: int, d: int) -> int:
+    return w * h * d
+
+def f(a: int, b: int) -> int:
+    return area(2, h=a, d=b)
+
+def g(a: int, b: int) -> Box:
+    return Box(w=a, h=b, d=a)

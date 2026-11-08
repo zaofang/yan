@@ -1349,3 +1349,8 @@ sections = "14.4, 25"
 rows = "R931"
 topic = "`yan import --python` applies the Python-side N-codes and lists them as notes; constructs without one are errors naming the line and the Yan Agent form (R931)"
 sections = "17.8"
+
+[[entry]]
+rows = "R932"
+topic = "N49: the lenient reader accepts positional arguments where E210 is the only fault and reads them as keywords from the first one on; `--strict` and Yan keep E210 (RFC 0049)"
+sections = "14.1, 14.4, 25"
