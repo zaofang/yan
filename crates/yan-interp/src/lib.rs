@@ -32,6 +32,7 @@ mod jsonwire;
 mod keyed;
 mod log;
 mod math;
+mod meta;
 mod native;
 mod net;
 mod path;
@@ -96,6 +97,8 @@ pub(crate) enum Value {
     Zone(Rc<civil::Zone>),
     Closure(Rc<vm::Clo>),
     Iter(iter::It),
+    /// A stage-0 type handle (RFC 0051 D1).
+    Type(Rc<meta::Handle>),
 }
 
 /// FNV-1a: frames hash short names on every access, where SipHash dominated the profile.
@@ -153,6 +156,7 @@ impl Hash for Key {
                     name.hash(h);
                     fields.iter().for_each(|(_, x)| go(x, h));
                 }
+                Value::Type(t) => format!("{:?}", t.ty).hash(h),
                 _ => {}
             }
         }
@@ -276,6 +280,7 @@ fn materialize(v: &Value) -> Stage0 {
                 ),
             },
             Value::Closure(_) => return Err("a function value"),
+            Value::Type(_) => return Err("a `Type`"),
             _ => return Err("this value"),
         })
     }

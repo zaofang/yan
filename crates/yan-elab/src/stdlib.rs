@@ -35,6 +35,8 @@ pub(crate) struct Std {
     pub(crate) caps: HashSet<String>,
     /// Sum types by bare name, as classes.
     sums: HashMap<String, (&'static str, j::TypeDef)>,
+    /// `@non_exhaustive` sums: a match outside std needs a wildcard (20.6).
+    open: HashSet<String>,
     /// Constants by path, `std.<module>.<name>`.
     consts: HashMap<String, j::Expr>,
     /// Each module's file name and source, for diagnostics in std bodies.
@@ -99,6 +101,9 @@ pub(crate) static STD: LazyLock<Std> = LazyLock::new(|| {
                     }
                 }
                 j::ItemKind::Type(t) if matches!(t.rhs, j::TypeRhs::Sum(_)) => {
+                    if has("non_exhaustive") {
+                        out.open.insert(t.name.clone());
+                    }
                     out.sums.insert(t.name.clone(), (module, t));
                 }
                 j::ItemKind::Const { name, value, .. } => {
@@ -227,6 +232,11 @@ pub(crate) fn konst(path: &str) -> Option<&'static j::Expr> {
 /// The std module that declares sum type `name`.
 pub(crate) fn sum_module(name: &str) -> Option<&'static str> {
     STD.sums.get(name).map(|(m, _)| *m)
+}
+
+/// Whether std sum `name` is `@non_exhaustive`.
+pub(crate) fn non_exhaustive(name: &str) -> bool {
+    STD.open.contains(name)
 }
 
 /// The std module that declares class `name`.
@@ -475,19 +485,7 @@ fn raw_words(m: &j::Module) -> HashSet<String> {
 /// The std classes `m` may meet, registered in `g`: those whose name or module (a capability
 /// such as `fs`) `src` names, unless `m` defines the name itself.
 pub(crate) fn classes(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
-    let own: HashSet<&str> = m.items.iter().map(|it| it.kind.name()).collect();
-    let words = words(m);
-    let mut out = Vec::new();
-    for (name, c) in &STD.classes {
-        if (words.contains(name.as_str()) || words.contains(c.module))
-            && !own.contains(name.as_str())
-        {
-            g.records.insert(name.clone(), Vec::new());
-            g.std_records.insert(name.clone());
-            out.push((name, c));
-        }
-    }
-    out.sort_by_key(|(n, _)| *n);
+    let out = declare_classes(g, m);
     for (name, c) in &out {
         let mut cx = std_cx(c.module);
         let mut fs = Vec::new();
@@ -503,6 +501,25 @@ pub(crate) fn classes(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
         g.records.insert((*name).clone(), fs);
     }
     Ok(out.into_iter().map(|(n, _)| n.clone()).collect())
+}
+
+/// The std classes `m` may meet, registered in `g` without their fields, so a std sum's
+/// variant may name one before [`classes`] resolves them.
+fn declare_classes(g: &mut Globals, m: &j::Module) -> Vec<(&'static String, &'static Class)> {
+    let own: HashSet<&str> = m.items.iter().map(|it| it.kind.name()).collect();
+    let words = words(m);
+    let mut out = Vec::new();
+    for (name, c) in &STD.classes {
+        if (words.contains(name.as_str()) || words.contains(c.module))
+            && !own.contains(name.as_str())
+        {
+            g.records.entry(name.clone()).or_default();
+            g.std_records.insert(name.clone());
+            out.push((name, c));
+        }
+    }
+    out.sort_by_key(|(n, _)| *n);
+    out
 }
 
 /// The std sum types `m` may meet, registered in `g` as [`classes`] registers classes.
@@ -532,6 +549,7 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
         }
     }
     out.sort();
+    declare_classes(g, m);
     let span = Span {
         line: 1,
         col: 1,
@@ -661,6 +679,7 @@ fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
                     Ty::Data(n.to_owned())
                 }
                 (n, []) if b.contains_key(n) => b[n].clone(),
+                ("Type", []) => Ty::Type,
                 (n, a) => crate::ty::builtin(n, a)?,
             }
         }

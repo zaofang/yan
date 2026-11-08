@@ -1384,3 +1384,8 @@ sections = "11.9, 18.1"
 rows = "R938"
 topic = "`par concurrent` ranks `SessionClosed` like `Cancelled`: a peer's session failure never hides the failure that closed the session (#690)"
 sections = "9.4, 9.5"
+
+[[entry]]
+rows = "R939"
+topic = "A `Type` is a stage-0 handle to a resolved type, compared by type identity (aliases are their target); a type expression where a `Type` is expected is a handle, and one outside stage 0 is E262. `std.meta.info(t) -> TypeInfo`, a `@non_exhaustive` sum whose `match` needs a wildcard (E503), describes records, sums, newtypes, scalars, arrays, views, optionals, tuples, functions, built-ins and traits (RFC 0051 D1, D2)"
+sections = "10.4, 17.3"
