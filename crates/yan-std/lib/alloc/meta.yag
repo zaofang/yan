@@ -60,13 +60,36 @@ pub class FnInfo:
     uses: list[str]
 
 @since("1.0")
+pub type Axis = Positional(size: int) | Variable(name: str) | Labelled(label: Type)
+
+@since("1.0")
+pub class ArrayInfo:
+    elem: Type
+    axes: list[Axis]
+
+@since("1.0")
+pub class ViewInfo:
+    elem: Type
+    mutable: bool
+
+@since("1.0")
+pub class MethodInfo:
+    name: str
+    sig: FnInfo
+
+@since("1.0")
+pub class TraitInfo:
+    name: str
+    methods: list[MethodInfo]
+
+@since("1.0")
 pub class BuiltinInfo:
     name: str
     args: list[Type]
 
 @since("1.0")
 @non_exhaustive
-pub type TypeInfo = Record(info: RecordInfo) | Sum(info: SumInfo) | Newtype(info: NewtypeInfo) | Scalar(info: ScalarInfo) | Optional(inner: Type) | Tuple(elems: list[Type]) | Fn(info: FnInfo) | Builtin(info: BuiltinInfo)
+pub type TypeInfo = Record(info: RecordInfo) | Sum(info: SumInfo) | Newtype(info: NewtypeInfo) | Scalar(info: ScalarInfo) | Array(info: ArrayInfo) | View(info: ViewInfo) | Optional(inner: Type) | Tuple(elems: list[Type]) | Fn(info: FnInfo) | Builtin(info: BuiltinInfo) | Trait(info: TraitInfo)
 
 @intrinsic
 @since("1.0")

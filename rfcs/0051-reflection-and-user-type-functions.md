@@ -39,11 +39,14 @@ on it needs a wildcard arm, so adding a variant later is not a breaking change:
   `layout`.
 - `Newtype(NewtypeInfo)`: `name`, `inner: Type`, `annotations`.
 - `Scalar(ScalarInfo)`: `name`, `bits: Int`, `signed: Bool`, `float: Bool`.
-- `Array(ArrayInfo)`: `elem: Type`, `len: Int`. `View(ViewInfo)`: `elem: Type`, `mutable: Bool`.
+- `Array(ArrayInfo)`: `elem: Type`, `axes: List[Axis]`, `Axis` being `Positional(size: Int)`, `Variable(name: Str)`
+  or `Labelled(label: Type)` in written order (11.2). A single `len` is not defined for labelled or multi-axis
+  arrays (coordinates are run-time data), so the axes are reported instead and Yan Core keeps them in `Array`'s
+  arguments. `View(ViewInfo)`: `elem: Type`, `mutable: Bool`.
 - `Optional(Type)`, `Tuple(List[Type])`, `Fn(FnInfo)` (parameters with names and types, return, `fail`, `uses`).
 - `Builtin(BuiltinInfo)`: `name: Str` and `args: List[Type]` for `Str`, `List`, `Map`, `Set` and the other std
   containers, which have no fields to reflect.
-- `Trait(TraitInfo)`: `name` and method signatures, for `info` on a trait.
+- `Trait(TraitInfo)`: `name` and `methods: List[MethodInfo]` (`name`, `sig: FnInfo`), for `info` on a trait.
 
 `FieldInfo` is `name: Str`, `ty: Type`, `public: Bool`, `annotations: List[Annotation]`. `layout` is
 `Layout(size: Int, align: Int)` under the target's layout (10.4 stage-0 target semantics). Fields are listed in

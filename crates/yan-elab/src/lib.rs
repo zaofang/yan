@@ -399,6 +399,32 @@ pub(crate) fn cap_type(name: &str) -> String {
 
 impl Globals {
     /// Resolve a written type; reports E200 for an unknown name.
+    /// `path` is an `Array` size variable: one name that is no type (11.2).
+    fn size_var(&self, path: &[String]) -> bool {
+        let [n] = path else { return false };
+        ty::builtin(n, &[]).is_none()
+            && !self.records.contains_key(n)
+            && !self.sums.contains_key(n)
+            && !self.aliases.contains_key(n)
+            && !self.scope.borrow().iter().any(|p| p == n)
+            && !n.starts_with(char::is_uppercase)
+    }
+
+    /// A type expression read as a stage-0 handle (10.4): a type, or a trait of the module.
+    pub(crate) fn handle(&self, t: &j::Type, cx: &mut Cx, span: Span) -> R<y::TArg> {
+        if let j::Type::Named { path, args } = t
+            && let [n] = path.as_slice()
+            && args.is_empty()
+            && self.traits.contains_key(n)
+        {
+            return Ok(y::TArg::Type(y::Type::Named(y::Named {
+                path: path.clone(),
+                args: Vec::new(),
+            })));
+        }
+        Ok(self.ty(t, cx, span)?.targ())
+    }
+
     pub fn ty(&self, t: &j::Type, cx: &mut Cx, span: Span) -> R<Ty> {
         Ok(match t {
             j::Type::None => Ty::Unit,
@@ -458,11 +484,16 @@ impl Globals {
                 };
                 let mut shape = Vec::new();
                 for axis in axes {
-                    match axis {
-                        j::TArg::Int(n) => shape.push(n.clone()),
-                        j::TArg::Type(t) => shape.push(format!("{t:?}")),
+                    shape.push(match axis {
+                        j::TArg::Int(n) => ty::Axis::Size(n.clone()),
+                        j::TArg::Type(j::Type::Named { path, args })
+                            if args.is_empty() && self.size_var(path) =>
+                        {
+                            ty::Axis::Size(path[0].clone())
+                        }
+                        j::TArg::Type(t) => ty::Axis::Label(self.ty(t, cx, span)?),
                         j::TArg::Text(_) => return unsupported("`Array` axis"),
-                    }
+                    });
                 }
                 Ty::Array(shape, Box::new(self.ty(elem, cx, span)?))
             }
