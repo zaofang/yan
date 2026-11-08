@@ -49,6 +49,15 @@ fn read(base: &Path) -> Result<yan_elab::Config, Box<Diagnostic>> {
     }
 }
 
+/// The `store` path of the workspace configuration, else the user's (R943).
+pub fn configured_store(root: &Path) -> Option<String> {
+    let workspace = read(root).ok()?.store;
+    workspace.or_else(|| {
+        let home = std::env::var_os("HOME")?;
+        read(Path::new(&home)).ok()?.store
+    })
+}
+
 impl Registries {
     pub fn load(root: &Path) -> Result<Self, Box<Diagnostic>> {
         let workspace = read(root)?;

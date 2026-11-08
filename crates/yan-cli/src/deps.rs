@@ -481,8 +481,20 @@ mod tests {
             lock::check(&dir, &reqs, true, true).unwrap_err().code,
             "E020"
         );
-        std::fs::create_dir_all(dir.join("vendor")).unwrap();
-        std::fs::write(dir.join("vendor/1.2.0.zip"), "").unwrap();
+        let bytes = crate::store::tests::zip_of(&[("package.yag", b"")]);
+        let digest = crate::store::sha256(&bytes);
+        let lock = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
+        std::fs::write(
+            dir.join("yan.lock"),
+            lock.replace("sha256:1.2.0", &format!("sha256:{digest}")),
+        )
+        .unwrap();
+        std::fs::create_dir_all(dir.join("vendor/archives")).unwrap();
+        std::fs::write(
+            dir.join("vendor/archives").join(format!("{digest}.zip")),
+            bytes,
+        )
+        .unwrap();
         assert!(lock::check(&dir, &reqs, true, true).is_ok());
     }
 

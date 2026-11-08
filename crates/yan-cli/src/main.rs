@@ -19,6 +19,7 @@ mod pyimport;
 mod registry;
 mod review;
 mod schema;
+mod store;
 mod test;
 mod trust;
 use yan_db::{Database, Loaded};
