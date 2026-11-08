@@ -481,6 +481,7 @@ impl Globals {
                     (n, []) if self.records.contains_key(n) || self.sums.contains_key(n) => {
                         Ty::Data(n.to_owned())
                     }
+                    ("Type", []) => Ty::Type,
                     ("Self", []) if self.self_ty.borrow().is_some() => {
                         self.self_ty.borrow().clone().expect("checked")
                     }
@@ -1594,6 +1595,9 @@ mod session_selftest;
 
 #[cfg(test)]
 mod stdlib_selftest;
+
+#[cfg(test)]
+mod meta_selftest;
 
 /// The rest of the line from the start of `span`: an `ex` expression runs to the end of its line.
 fn source_text(src: &str, span: yan_diag::Span) -> Option<String> {

@@ -311,6 +311,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         }
         Cap(n) => format!("<capability {n}>"),
         Closure(_) => "<function>".into(),
+        Type(t) => yan_core::type_text(&t.ty),
         Iter(_) => "<iter>".into(),
         Bytes(b) => super::encoding::repr(b),
         Secret(_) => "Secret(***)".into(),

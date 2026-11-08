@@ -375,6 +375,7 @@ struct Globals<'m> {
     codes: Vec<Option<Code>>,
     pending: Vec<(usize, Name, &'m FnDef, Option<[u8; 32]>)>,
     hashes: Option<Vec<yan_core::hash::Hashed>>,
+    types: Rc<crate::meta::Types>,
 }
 
 fn const_value(c: &ConstVal) -> Option<Value> {
@@ -406,6 +407,7 @@ pub(crate) fn compile(m: &Module) -> Program {
             .iter()
             .any(|i| matches!(&i.kind, ItemKind::Fn(f) | ItemKind::Inst(Inst { def: f, .. }) if has_requires(f)) || matches!(&i.kind, ItemKind::Impl(i) if i.fns.iter().any(has_requires)))
             .then(|| yan_core::hash::hash_module(m)),
+        types: Rc::new(crate::meta::Types::of(m)),
     };
     for (ix, item) in m.items.iter().enumerate() {
         let ih = g.hashes.as_ref().map(|h| *h[ix].identity.group.as_bytes());
@@ -1488,6 +1490,13 @@ impl<'g, 'm> FnC<'g, 'm> {
     }
 
     fn call(&mut self, c: &Call, mode: Mode, dst: Reg) {
+        if c.path == ["std", "meta", "type_of"]
+            && let [TArg::Type(t)] = c.targs.as_slice()
+        {
+            let src = self.konst(crate::meta::handle(t.clone(), &self.g.types));
+            self.emit(Op::Move { dst, src });
+            return;
+        }
         let typed = matches!(mode, Mode::Plain | Mode::Propagate(_) | Mode::Contract);
         let Some(site) = self.site(c, mode) else {
             return;

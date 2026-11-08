@@ -1084,6 +1084,15 @@ fn function_body_with(
     })
 }
 
+/// A surface type name as HIR spells it: built-ins by their Yan Core names (16.3).
+fn core_type_name(n: &str) -> String {
+    [yan_names::Surface::Yag, yan_names::Surface::Yn]
+        .into_iter()
+        .find_map(|s| yan_names::type_name(n, s, yan_names::Surface::Yir))
+        .unwrap_or(n)
+        .to_owned()
+}
+
 fn call(path: &str, targs: Vec<y::TArg>, args: Vec<Arg>, span: Span) -> y::Call {
     y::Call {
         path: path.split('.').map(str::to_owned).collect(),
@@ -2946,8 +2955,10 @@ impl Lower<'_, '_, '_> {
             }
             _ => false,
         };
+        let open = matches!(&t, Ty::Data(d) if self.g.std_sums.contains(d) && crate::stdlib::non_exhaustive(d));
         if let Ty::Data(d) = &t
             && self.g.sums.contains_key(d)
+            && !open
             && let Some(c) = cases
                 .iter()
                 .find(|c| matches!(c.pat, j::Pat::Wild) && c.span != at)
@@ -2982,7 +2993,7 @@ impl Lower<'_, '_, '_> {
         let covered = cases.iter().any(|c| c.guard.is_none() && catch_all(&c.pat))
             || (matches!(t, Ty::Bool) && bools(true) && bools(false))
             || int_cov.as_ref().is_some_and(|(_, all)| *all);
-        if (scalar || matches!(t, Ty::Bool)) && !covered {
+        if (scalar || open || matches!(t, Ty::Bool)) && !covered {
             self.err(
                 "E503",
                 at,
@@ -3886,10 +3897,55 @@ impl Lower<'_, '_, '_> {
     }
 
     fn atom(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Atom, Ty)> {
+        if want == Some(&Ty::Type)
+            && let Some(jt) = self.type_expr(e)
+        {
+            let t = self.g.ty(&jt, self.cx, e.span)?;
+            // A function with a `Type` parameter runs only at stage 0 (10.4).
+            if !self.item.starts_with("__stage0_")
+                && !self.locals.values().any(|l| l.ty == Ty::Type)
+            {
+                self.err(
+                    "E262",
+                    e.span,
+                    "a `Type` exists only at stage 0; evaluate this under `#`".into(),
+                );
+            }
+            let r = Rhs::Call(call("std.meta.type_of", vec![t.targ()], vec![], e.span));
+            return Ok((self.tmp(&Ty::Type, r, e.span), Ty::Type));
+        }
         let (r, t) = self.rhs(e, want)?;
         let (r, t) = self.widen(r, t, want, e.span)?;
         let (r, t) = self.inject(r, t, want, e.span);
         Ok((self.tmp(&t, r, e.span), t))
+    }
+
+    /// `e` read as a type in argument position (RFC 0051 D1), unless it names a value.
+    fn type_expr(&self, e: &j::Expr) -> Option<j::Type> {
+        Some(match &e.kind {
+            j::ExprKind::Name(n) if self.locals.contains_key(n) || self.g.fns.contains_key(n) => {
+                return None;
+            }
+            j::ExprKind::Name(n) => j::Type::Named {
+                path: vec![core_type_name(n)],
+                args: Vec::new(),
+            },
+            j::ExprKind::Index(b, k) => {
+                let j::Type::Named { path, .. } = self.type_expr(b)? else {
+                    return None;
+                };
+                let ks = match &k.kind {
+                    j::ExprKind::Tuple(ks) => ks.iter().collect(),
+                    _ => vec![&**k],
+                };
+                let mut args = Vec::new();
+                for k in ks {
+                    args.push(j::TArg::Type(self.type_expr(k)?));
+                }
+                j::Type::Named { path, args }
+            }
+            _ => return None,
+        })
     }
 
     /// The type of the integer literal `text`: the expected integer type when its range holds

@@ -1,0 +1,66 @@
+"""Reflection at stage 0 (10.4, RFC 0051 D1, D2). A `Type` is an opaque handle to a resolved type;
+handles compare by type identity. `info(t)` describes it. `TypeInfo` is non-exhaustive: a `match`
+on it needs a wildcard arm."""
+
+@since("1.0")
+pub class Annotation:
+    name: str
+
+@since("1.0")
+pub class FieldInfo:
+    name: str
+    ty: Type
+    public: bool
+    annotations: list[Annotation]
+
+@since("1.0")
+pub class RecordInfo:
+    name: str
+    params: list[Type]
+    fields: list[FieldInfo]
+    annotations: list[Annotation]
+
+@since("1.0")
+pub class VariantInfo:
+    name: str
+    fields: list[FieldInfo]
+
+@since("1.0")
+pub class SumInfo:
+    name: str
+    params: list[Type]
+    variants: list[VariantInfo]
+    annotations: list[Annotation]
+
+@since("1.0")
+pub class NewtypeInfo:
+    name: str
+    inner: Type
+    annotations: list[Annotation]
+
+@since("1.0")
+pub class ScalarInfo:
+    name: str
+    bits: int
+    signed: bool
+    float: bool
+
+@since("1.0")
+pub class FnInfo:
+    params: list[Type]
+    ret: Type
+    fails: list[Type]
+    uses: list[str]
+
+@since("1.0")
+pub class BuiltinInfo:
+    name: str
+    args: list[Type]
+
+@since("1.0")
+@non_exhaustive
+pub type TypeInfo = Record(info: RecordInfo) | Sum(info: SumInfo) | Newtype(info: NewtypeInfo) | Scalar(info: ScalarInfo) | Optional(inner: Type) | Tuple(elems: list[Type]) | Fn(info: FnInfo) | Builtin(info: BuiltinInfo)
+
+@intrinsic
+@since("1.0")
+pub def info(t: Type) -> TypeInfo: ...
