@@ -19,11 +19,19 @@ fn ignores(def: &Json) -> bool {
 }
 
 /// A slot before its blocks exist, so a failed decode leaks nothing.
+#[derive(Debug, PartialEq)]
 pub enum Slot {
     Word(u64),
     Str(String),
     /// A list whose elements take `words` slots each.
     List(usize, Vec<Slot>),
+    /// A dict with keys encoded by `schema` (`crate::map`), as key and value slots in order.
+    Map {
+        schema: String,
+        kw: usize,
+        vw: usize,
+        entries: Vec<(Vec<Slot>, Vec<Slot>)>,
+    },
 }
 
 type Fail = (usize, Reason);
@@ -77,6 +85,7 @@ fn expected(t: &Json) -> String {
             Some((k, Json::Str(n))) if k == "named" => n.clone(),
             Some((k, _)) => match k.as_str() {
                 "opt" | "list" | "tuple" => "array".into(),
+                "dict" => "object".into(),
                 k => k.into(),
             },
             None => String::new(),
@@ -124,6 +133,64 @@ impl Cx<'_> {
             },
             _ => 0,
         }
+    }
+
+    /// The `crate::map` key schema of type `t`, if it can be a native dict key.
+    fn key_schema(&self, t: &Json, out: &mut String) -> Option<()> {
+        let fields = |me: &Self, fs: &Json, out: &mut String| {
+            items(fs)
+                .iter()
+                .try_for_each(|f| me.key_schema(get(f, "t")?, out))
+        };
+        match t {
+            Json::Str(n) => out.push_str(match n.as_str() {
+                "bool" => "b",
+                "int" => "i64",
+                "float" => "f",
+                "str" => "s",
+                _ => return None,
+            }),
+            Json::Object(o) => {
+                let (k, v) = o.first()?;
+                match k.as_str() {
+                    "opt" => {
+                        out.push_str("<Some|");
+                        self.key_schema(v, out)?;
+                        out.push_str(";None|;>");
+                    }
+                    "tuple" => {
+                        out.push('(');
+                        for t in items(v) {
+                            self.key_schema(t, out)?;
+                        }
+                        out.push(')');
+                    }
+                    "named" => {
+                        let n = text(Some(v));
+                        let def = self.def(n);
+                        if let Some(rec) = get(def, "rec") {
+                            out.push('{');
+                            out.push_str(n);
+                            out.push('|');
+                            fields(self, rec, out)?;
+                            out.push('}');
+                        } else {
+                            out.push('<');
+                            for v in get(def, "sum").map_or(&[][..], items) {
+                                out.push_str(text(get(v, "n")));
+                                out.push('|');
+                                fields(self, get(v, "fs").unwrap_or(&Json::Null), out)?;
+                                out.push(';');
+                            }
+                            out.push('>');
+                        }
+                    }
+                    _ => return None,
+                }
+            }
+            _ => return None,
+        }
+        Some(())
     }
 
     fn fields_width(&self, fs: &Json) -> usize {
@@ -188,6 +255,87 @@ impl Cx<'_> {
                             self.decode(t, x, kid(p, i), &format!("{path}[{i}]"), &mut elems)?;
                         }
                         out.push(Slot::List(self.width(t), elems));
+                    }
+                    ("dict", kv, _) => {
+                        let [kt, vt] = items(kv) else {
+                            return Err(bad());
+                        };
+                        let mut schema = String::new();
+                        if self.key_schema(kt, &mut schema).is_none() {
+                            return Err(invalid("a key type native code cannot hash yet"));
+                        }
+                        let mut entries: Vec<(Vec<Slot>, Vec<Slot>)> = Vec::new();
+                        match (kt, j) {
+                            (Json::Str(k), Json::Object(fs)) if k == "str" => {
+                                for (i, (name, x)) in fs.iter().enumerate() {
+                                    let mut v = Vec::new();
+                                    self.decode(
+                                        vt,
+                                        x,
+                                        kid(p, i),
+                                        &format!("{path}.{name}"),
+                                        &mut v,
+                                    )?;
+                                    let k = vec![Slot::Str(name.clone())];
+                                    match entries.iter_mut().find(|(e, _)| *e == k) {
+                                        Some(e) => e.1 = v,
+                                        None => entries.push((k, v)),
+                                    }
+                                }
+                            }
+                            (Json::Str(k), _) if k == "str" => return Err(bad()),
+                            (_, Json::Array(xs)) => {
+                                for (i, x) in xs.iter().enumerate() {
+                                    let here = format!("{path}[{i}]");
+                                    let q = kid(p, i);
+                                    let pair = match x {
+                                        Json::Array(pair) if pair.len() == 2 => pair,
+                                        _ => {
+                                            return Err((
+                                                q.at,
+                                                Reason::Mismatch {
+                                                    path: here,
+                                                    expected: "array".into(),
+                                                    found: kind(x).into(),
+                                                },
+                                            ));
+                                        }
+                                    };
+                                    let (mut k, mut v) = (Vec::new(), Vec::new());
+                                    self.decode(
+                                        kt,
+                                        &pair[0],
+                                        kid(q, 0),
+                                        &format!("{here}[0]"),
+                                        &mut k,
+                                    )?;
+                                    self.decode(
+                                        vt,
+                                        &pair[1],
+                                        kid(q, 1),
+                                        &format!("{here}[1]"),
+                                        &mut v,
+                                    )?;
+                                    if entries.iter().any(|(e, _)| *e == k) {
+                                        return Err((
+                                            q.at,
+                                            Reason::Invalid {
+                                                path: here,
+                                                msg: "duplicate key".into(),
+                                            },
+                                        ));
+                                    }
+                                    entries.push((k, v));
+                                }
+                            }
+                            _ => return Err(bad()),
+                        }
+                        out.push(Slot::Map {
+                            schema,
+                            kw: self.width(kt),
+                            vw: self.width(vt),
+                            entries,
+                        });
                     }
                     ("tuple", ts, Json::Array(xs)) => {
                         let ts = items(ts);
@@ -352,6 +500,39 @@ impl Cx<'_> {
                                 .map(|x| unsafe { self.encode(t, x) })
                                 .collect::<Result<_, _>>()?,
                         )
+                    }
+                    "dict" => {
+                        let [kt, vt] = items(t) else {
+                            return Err(());
+                        };
+                        // SAFETY: the caller's contract.
+                        let m = unsafe { &*(w[0] as *const crate::map::Map) };
+                        let (kw, vw) = (self.width(kt), self.width(vt));
+                        let entries = m.entries().map(|e| {
+                            // SAFETY: entries are a key of `kt` then a value of `vt`.
+                            unsafe {
+                                Ok((
+                                    self.encode(kt, &e[..kw])?,
+                                    self.encode(vt, &e[kw..kw + vw])?,
+                                ))
+                            }
+                        });
+                        if *kt == Json::Str("str".into()) {
+                            Json::Object(
+                                entries
+                                    .map(|e| match e? {
+                                        (Json::Str(k), v) => Ok((k, v)),
+                                        _ => Err(()),
+                                    })
+                                    .collect::<Result<_, _>>()?,
+                            )
+                        } else {
+                            Json::Array(
+                                entries
+                                    .map(|e| e.map(|(k, v)| Json::Array(vec![k, v])))
+                                    .collect::<Result<_, _>>()?,
+                            )
+                        }
                     }
                     "tuple" => {
                         let mut at = 0;

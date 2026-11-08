@@ -84,7 +84,7 @@ pub fn layout(s: &Shape) -> Layout {
             let (size, align) = scalar(*t);
             plain(size, align)
         }
-        Shape::Str | Shape::List(_) | Shape::Chan(_) => plain(8, 8),
+        Shape::Str | Shape::List(_) | Shape::Map(..) | Shape::Chan(_) => plain(8, 8),
         Shape::Fn(..) => plain(16, 8),
         Shape::Tuple(ss) => aggregate(&ss.iter().map(layout).collect::<Vec<_>>()),
         Shape::Rec(_, fs) => aggregate(&fs.iter().map(|(_, s)| layout(s)).collect::<Vec<_>>()),

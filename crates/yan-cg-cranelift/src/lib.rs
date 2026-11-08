@@ -21,7 +21,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
-use yan_rt::{abi, chan, sched};
+use yan_rt::{abi, chan, map, sched};
 
 type R<T> = Result<T, String>;
 
@@ -693,6 +693,15 @@ const RT: &[RtFn] = &[
     RtFn::ListLen,
     RtFn::ListAt,
     RtFn::ListCopy,
+    RtFn::MapNew,
+    RtFn::MapFind,
+    RtFn::MapIndex,
+    RtFn::MapPush,
+    RtFn::MapRemove,
+    RtFn::MapLen,
+    RtFn::MapAt,
+    RtFn::MapCopy,
+    RtFn::MapFree,
     RtFn::JsonParse,
     RtFn::JsonDump,
     RtFn::JsonErrorShow,
@@ -854,6 +863,60 @@ fn rt_fn(
             abi::yan_rt_list_at as *const u8,
             &[I64, I64],
             Some(I64),
+        ),
+        RtFn::MapNew => (
+            "yan_rt_map_new",
+            map::yan_rt_map_new as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::MapFind => (
+            "yan_rt_map_find",
+            map::yan_rt_map_find as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::MapIndex => (
+            "yan_rt_map_index",
+            map::yan_rt_map_index as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::MapPush => (
+            "yan_rt_map_push",
+            map::yan_rt_map_push as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::MapRemove => (
+            "yan_rt_map_remove",
+            map::yan_rt_map_remove as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::MapLen => (
+            "yan_rt_map_len",
+            map::yan_rt_map_len as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::MapAt => (
+            "yan_rt_map_at",
+            map::yan_rt_map_at as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::MapCopy => (
+            "yan_rt_map_copy",
+            map::yan_rt_map_copy as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::MapFree => (
+            "yan_rt_map_free",
+            map::yan_rt_map_free as *const u8,
+            &[I64],
+            None,
         ),
         RtFn::JsonParse => (
             "yan_rt_json_parse",
