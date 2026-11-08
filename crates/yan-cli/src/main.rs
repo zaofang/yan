@@ -12,6 +12,7 @@ mod fix;
 mod lock;
 mod mcp;
 mod patch;
+mod publish;
 mod pyimport;
 mod review;
 mod schema;
@@ -93,6 +94,12 @@ enum Command {
     Schema {
         #[command(subcommand)]
         command: SchemaCommand,
+    },
+    /// Refuse a manifest that cannot be published (19.4, E016).
+    Publish {
+        /// Only check the manifest; publishing itself waits for the registry.
+        #[arg(long, required = true)]
+        check: bool,
     },
     /// Check files and report diagnostics.
     Check {
@@ -321,6 +328,14 @@ fn main() -> ExitCode {
             max_errors,
             Database::new(strict, level.as_deref() == Some("release")),
         ),
+        Command::Publish { .. } => match publish::check(Path::new(".")) {
+            Ok(d) if d.is_empty() => ExitCode::SUCCESS,
+            Ok(d) => {
+                print_diags(&d);
+                ExitCode::FAILURE
+            }
+            Err(msg) => tool_failure(&msg),
+        },
         Command::Explain { code } => explain(&code),
         Command::Run {
             file,
