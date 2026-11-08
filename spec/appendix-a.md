@@ -281,6 +281,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R932 | N49: the lenient reader accepts positional arguments where E210 is the only fault and reads them as keywords from the first one on; `--strict` and Yan keep E210 (RFC 0049) | 14.1, 14.4, 25 |
 | R934 | `io.read_all() -> str` reads the rest of standard input; `io.read_line` strips `\n` or `\r\n`; under the default host handlers `fs.read` reads the real file, failing with `FsError` reason `not found` or `permission denied` | 7.1, 17.3 |
 | R935 | N50 and N51: the lenient reader reads `s[a:b:c]` on a `str` as a Python slice over chars (clamped, negative from the end, `std.text.slice_clamped`) and `int(s)` as `s.strip().parse_int()` that panics with kind `conversion` on a bad literal (`std.text.int_of`); `--strict` keeps E504 for the slice and E201 for `int(s)` | 14.1, 14.4, 25 |
+| R936 | `std.itertools` has `permutations`, `combinations`, `combinations_with_replacement`, `product`, `pairwise` and `accumulate` over lists, returning lazy `iter` values in Python's order; `list(it)` of an `iter` is read as `it.collect()` (N37) | 14.4, 17.3 |
 
 <!-- /rows -->
 

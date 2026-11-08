@@ -1369,3 +1369,8 @@ sections = "7.1, 17.3"
 rows = "R935"
 topic = "N50 and N51: the lenient reader reads `s[a:b:c]` on a `str` as a Python slice over chars (clamped, negative from the end, `std.text.slice_clamped`) and `int(s)` as `s.strip().parse_int()` that panics with kind `conversion` on a bad literal (`std.text.int_of`); `--strict` keeps E504 for the slice and E201 for `int(s)`"
 sections = "14.1, 14.4, 25"
+
+[[entry]]
+rows = "R936"
+topic = "`std.itertools` has `permutations`, `combinations`, `combinations_with_replacement`, `product`, `pairwise` and `accumulate` over lists, returning lazy `iter` values in Python's order; `list(it)` of an `iter` is read as `it.collect()` (N37)"
+sections = "14.4, 17.3"

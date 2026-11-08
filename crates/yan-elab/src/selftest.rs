@@ -1277,6 +1277,28 @@ fn str_slices_and_int_of_str_are_n50_n51() {
 }
 
 #[test]
+fn itertools_enumerates_in_python_order() {
+    let src = "pub def main() uses io:\n    xs = [1, 2, 3]\n    io.print(f\"{list(itertools.permutations(xs, 2))}\")\n    io.print(f\"{list(itertools.combinations(xs, 2))}\")\n    io.print(f\"{list(itertools.combinations_with_replacement([1, 2], 2))}\")\n    io.print(f\"{list(itertools.product([1, 2], [3, 4]))}\")\n    io.print(f\"{list(itertools.pairwise(xs))}\")\n    io.print(f\"{list(itertools.accumulate(xs))}\")\n    io.print(f\"{list(itertools.accumulate(xs, lambda a, b: a * b, initial=2))}\")\n";
+    let (m, d) = lower(src);
+    assert!(
+        d.iter().all(|d| d.code != "E200" && d.code != "E201"),
+        "{d:?}"
+    );
+    let mut out = Vec::new();
+    yan_interp::run(&m, &mut out).expect("runs");
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        "[[1, 2], [1, 3], [2, 1], [2, 3], [3, 1], [3, 2]]\n\
+         [[1, 2], [1, 3], [2, 3]]\n\
+         [[1, 1], [1, 2], [2, 2]]\n\
+         [(1, 3), (1, 4), (2, 3), (2, 4)]\n\
+         [(1, 2), (2, 3)]\n\
+         [1, 3, 6]\n\
+         [2, 2, 4, 12]\n"
+    );
+}
+
+#[test]
 fn int_of_a_bad_str_panics_with_conversion() {
     let (m, _) = lower("pub def main() uses io:\n    n = int(\"zz\")\n    io.print(f\"{n}\")\n");
     let mut out = Vec::new();

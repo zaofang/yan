@@ -7726,6 +7726,11 @@ impl Lower<'_, '_, '_> {
                         let c = call("std.prelude.list", vec![e.targ()], vec![sink_arg(a)], at);
                         return Ok((Rhs::Call(c), t.clone()));
                     }
+                    ("list", Ty::Coll("iter", _)) => {
+                        let (r, ty) = self.method_on(a, &t, "collect", at)?;
+                        self.lenient("N37", at, "`list(it)` normalized to `it.collect()`");
+                        return Ok((r, ty));
+                    }
                     ("bigint", Ty::Int) => ("std.prelude.bigint", vec![], Ty::BigInt),
                     ("bigint", Ty::BigInt) => return Ok((Rhs::Atom(a), t)),
                     ("int", Ty::Int) | ("float", Ty::Float) => return Ok((Rhs::Atom(a), t)),
@@ -9552,7 +9557,7 @@ fn expr_callees(e: &j::Expr, out: &mut HashSet<String>) {
                         out.insert(format!("{n}_nonempty"));
                     }
                     // N37 may collect an `iter` from a source.
-                    if matches!(n.as_str(), "chars" | "iter" | "graphemes") {
+                    if matches!(n.as_str(), "chars" | "iter" | "graphemes" | "list") {
                         out.insert("collect".into());
                     }
                     out.insert(n.clone());

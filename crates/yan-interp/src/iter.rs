@@ -57,6 +57,8 @@ enum Pipe {
     Chain(It, It),
     Windows(It, usize, VecDeque<Value>),
     Chunks(It, usize),
+    /// Source, step (`None` adds), the running value, and whether to emit it first.
+    Accumulate(It, Option<F>, Option<Value>, bool),
 }
 
 fn it(p: Pipe) -> Value {
@@ -65,6 +67,90 @@ fn it(p: Pipe) -> Value {
 
 fn items(xs: impl IntoIterator<Item = Value>) -> Value {
     it(Pipe::Items(xs.into_iter().collect()))
+}
+
+/// The payload of a `T | None` argument.
+fn unwrap_opt(v: &Value) -> Option<&Value> {
+    match v {
+        Value::Data { name, fields } if name == "None" && fields.is_empty() => None,
+        Value::Data { name, fields } if name == "Some" => fields.first().map(|f| &f.1),
+        v => Some(v),
+    }
+}
+
+/// Python's `accumulate` default, `+` on ints and floats.
+fn add(a: Value, b: Value) -> R<Value> {
+    match (a, b) {
+        (Value::Int(a), Value::Int(b)) => match a.checked_add(b) {
+            Some(n) if (i64::MIN as i128..=i64::MAX as i128).contains(&n) => Ok(Value::Int(n)),
+            _ => panic("overflow"),
+        },
+        (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a + b)),
+        _ => panic("value"),
+    }
+}
+
+/// Ordered selections of `r` items, by position, in lexicographic index order.
+fn permutations(xs: &[Value], r: i128) -> Vec<Vec<Value>> {
+    let n = xs.len();
+    if r < 0 || r as usize > n {
+        return Vec::new();
+    }
+    let r = r as usize;
+    let mut out = Vec::new();
+    let mut used = vec![false; n];
+    let mut cur = Vec::with_capacity(r);
+    fn go(
+        xs: &[Value],
+        r: usize,
+        used: &mut [bool],
+        cur: &mut Vec<usize>,
+        out: &mut Vec<Vec<Value>>,
+    ) {
+        if cur.len() == r {
+            out.push(cur.iter().map(|&i| xs[i].clone()).collect());
+            return;
+        }
+        for i in 0..xs.len() {
+            if !used[i] {
+                used[i] = true;
+                cur.push(i);
+                go(xs, r, used, cur, out);
+                cur.pop();
+                used[i] = false;
+            }
+        }
+    }
+    go(xs, r, &mut used, &mut cur, &mut out);
+    out
+}
+
+/// Sorted-position selections of `r` items, with repeats allowed when `repeat`.
+fn combinations(xs: &[Value], r: i128, repeat: bool) -> Vec<Vec<Value>> {
+    if r < 0 {
+        return Vec::new();
+    }
+    fn go(
+        xs: &[Value],
+        r: usize,
+        from: usize,
+        repeat: bool,
+        cur: &mut Vec<Value>,
+        out: &mut Vec<Vec<Value>>,
+    ) {
+        if cur.len() == r {
+            out.push(cur.clone());
+            return;
+        }
+        for i in from..xs.len() {
+            cur.push(xs[i].clone());
+            go(xs, r, if repeat { i } else { i + 1 }, repeat, cur, out);
+            cur.pop();
+        }
+    }
+    let mut out = Vec::new();
+    go(xs, r as usize, 0, repeat, &mut Vec::new(), &mut out);
+    out
 }
 
 fn truthy(v: Value) -> bool {
@@ -88,6 +174,22 @@ impl Vm<'_> {
                 }
                 Some(x.clone())
             }
+            Pipe::Accumulate(_, _, acc, first @ true) => {
+                *first = false;
+                acc.clone()
+            }
+            Pipe::Accumulate(src, f, acc, _) => match self.pull(src)? {
+                Some(x) => {
+                    let next = match (acc.take(), &*f) {
+                        (None, _) => x,
+                        (Some(a), Some(f)) => self.apply(f, vec![a, x])?,
+                        (Some(a), None) => add(a, x)?,
+                    };
+                    *acc = Some(next.clone());
+                    Some(next)
+                }
+                None => None,
+            },
             Pipe::Map(src, f) => match self.pull(src)? {
                 Some(x) => Some(self.apply(f, vec![x])?),
                 None => None,
@@ -249,6 +351,41 @@ impl Vm<'_> {
                 Dict(d)
             }
             (STD_ITER_EMPTY, []) => items([]),
+            (STD_ITERTOOLS_PERMUTATIONS, [List(xs), r]) => {
+                let r = match unwrap_opt(r) {
+                    Some(Int(r)) => *r,
+                    _ => xs.len() as i128,
+                };
+                items(permutations(xs, r).into_iter().map(List))
+            }
+            (STD_ITERTOOLS_COMBINATIONS, [List(xs), Int(r)]) => {
+                items(combinations(xs, *r, false).into_iter().map(List))
+            }
+            (STD_ITERTOOLS_COMBINATIONS_WITH_REPLACEMENT, [List(xs), Int(r)]) => {
+                items(combinations(xs, *r, true).into_iter().map(List))
+            }
+            (STD_ITERTOOLS_PRODUCT, [List(a), List(b)]) => items(
+                a.iter()
+                    .flat_map(|x| b.iter().map(move |y| Tuple(vec![x.clone(), y.clone()]))),
+            ),
+            (STD_ITERTOOLS_PAIRWISE, [List(xs)]) => items(xs.windows(2).map(|w| Tuple(w.to_vec()))),
+            (STD_ITERTOOLS_ACCUMULATE, [List(xs), f, init]) => {
+                let f = match unwrap_opt(f) {
+                    Some(Closure(f)) => Some(f.clone()),
+                    _ => None,
+                };
+                let init = unwrap_opt(init).cloned();
+                let first = init.is_some();
+                it(Pipe::Accumulate(
+                    It(Rc::new(RefCell::new(Stage {
+                        pipe: Pipe::Items(xs.iter().cloned().collect()),
+                        cur: None,
+                    }))),
+                    f,
+                    init,
+                    first,
+                ))
+            }
             (_, [Iter(i), rest @ ..]) => {
                 let i = i.clone();
                 match (id, rest) {
@@ -456,6 +593,12 @@ pub(crate) const IDS: &[Id] = &[
     STD_ITER_OPS_WINDOWS,
     STD_ITER_OPS_ZIP,
     STD_ITER_REPEAT,
+    STD_ITERTOOLS_ACCUMULATE,
+    STD_ITERTOOLS_COMBINATIONS,
+    STD_ITERTOOLS_COMBINATIONS_WITH_REPLACEMENT,
+    STD_ITERTOOLS_PAIRWISE,
+    STD_ITERTOOLS_PERMUTATIONS,
+    STD_ITERTOOLS_PRODUCT,
     STD_LIST_ITER,
     STD_PRELUDE_DICT,
     STD_PRELUDE_SET,
