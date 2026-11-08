@@ -1280,3 +1280,77 @@ def k() -> int:\n    return n([]) + m({})\n";
     let (_, d) = lower("def k() -> int:\n    ys = []\n    return 0\n");
     assert!(d.iter().any(|d| d.code == "E241"), "{d:?}");
 }
+
+fn accuracy_diags(src: &str) -> Vec<Diagnostic> {
+    lower(src)
+        .1
+        .into_iter()
+        .filter(|d| d.code == "W852")
+        .collect()
+}
+
+#[test]
+fn cancelling_square_roots_are_w852_with_the_conjugate_fix() {
+    let src = "\
+import math
+
+def gap(x: float) -> float:
+    pre x > 1.0
+    return math.sqrt(x + 1.0) - math.sqrt(x)
+";
+    let d = accuracy_diags(src);
+    assert_eq!(d.len(), 1, "{d:?}");
+    let fix = d[0]
+        .fixes
+        .first()
+        .map(|f| f.to_string())
+        .unwrap_or_else(|| d[0].message.clone());
+    assert!(
+        fix.contains("1.0 / (math.sqrt(x + 1.0) + math.sqrt(x))"),
+        "{fix}"
+    );
+}
+
+#[test]
+fn a_difference_of_squares_is_w852() {
+    let src = "\
+def d(x: float) -> float:
+    pre x > 1.0
+    return (x + 1.0) * (x + 1.0) - x * x
+";
+    let d = accuracy_diags(src);
+    assert_eq!(d.len(), 1, "{d:?}");
+    assert_eq!(d[0].quote, "(x + 1.0) * (x + 1.0) - x * x");
+    assert!(d[0].message.contains("loses 0.0"), "{}", d[0].message);
+}
+
+#[test]
+fn accurate_or_narrowed_or_effectful_float_code_is_not_w852() {
+    let src = "\
+import math
+
+def poly(x: float) -> float:
+    return x * x + 2.0 * x
+
+def near(x: float) -> float:
+    pre x >= 0.0 and x <= 1.0
+    return math.sqrt(x + 1.0) - math.sqrt(x)
+
+def show(x: float) -> float uses io:
+    io.print(\"x\")
+    return math.sqrt(x + 1.0) - math.sqrt(x)
+";
+    assert_eq!(accuracy_diags(src), Vec::<Diagnostic>::new());
+}
+
+#[test]
+fn w852_sampling_is_deterministic() {
+    let src = "\
+def gap(x: float) -> float:
+    pre x > 1.0
+    return 1.0 / (x + 1.0) - 1.0 / x
+";
+    let d = accuracy_diags(src);
+    assert_eq!(d.len(), 1, "{d:?}");
+    assert_eq!(d, accuracy_diags(src));
+}

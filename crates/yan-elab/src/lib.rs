@@ -4,6 +4,7 @@
 //!
 //! The Yan Core tree keeps Yan Agent spans, so the Yan Core checker reports at Yan Agent positions.
 
+mod accuracy;
 mod bounds;
 mod cli;
 mod consttime;
@@ -757,13 +758,10 @@ pub fn elaborate_in(
         path: vec![stem],
         items,
     };
+    let hashes = yan_core::hash::hash_module(&module);
+    accuracy::check(m, &hashes, &mut cx);
     let mut table = TriviaTable::default();
-    for (n, (it, h)) in module
-        .items
-        .iter()
-        .zip(yan_core::hash::hash_module(&module))
-        .enumerate()
-    {
+    for (n, (it, h)) in module.items.iter().zip(hashes).enumerate() {
         let key = h.identity.to_string();
         table.set_names(&key, h.names);
         for (_, attach, text) in docs.iter().filter(|d| d.0 == n) {

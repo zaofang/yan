@@ -8,6 +8,9 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+egg.workspace = true
+num-bigint.workspace = true
+num-traits.workspace = true
 serde_json.workspace = true
 unicode-normalization = "0.1.26"
 yan-core.workspace = true
