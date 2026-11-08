@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Research: [R567 failure-mix study (T18)](https://claude.ai/artifact/1tUqnYo9Mds7wDV2JBruKs), item D2
-- Rows: R930
+- Rows: R932
 
 ## Summary
 
@@ -14,9 +14,9 @@ unchanged.
 
 ## Decisions
 
-### D1: N44, positional arguments read as keywords
+### D1: N49, positional arguments read as keywords
 
-When E210 is the only fault of a call, the lenient reader accepts it with note N44 and elaborates the arguments as
+When E210 is the only fault of a call, the lenient reader accepts it with note N49 and elaborates the arguments as
 keywords. The first argument that needed a keyword and every later one are named, because a positional argument cannot
 follow a keyword one; arguments before it, and the exempt literals and equal-name arguments before it, stay
 positional. Record constructors follow the same rule. `yan check --strict`, and Yan, keep E210. The printer emits the
@@ -24,8 +24,8 @@ keywords, so the canonical text needs no extra round. Meaning is unchanged: the 
 the position they were written at. Recommended: accept.
 
 - Decision: accepted; Antonio, standing approval of 2026-11-07
-- Row: R930
+- Row: R932
 
 ## Spec changes
 
-14.1 (calls), 14.4 (N44), 25 (E210, N range).
+14.1 (calls), 14.4 (N49), 25 (E210, N range).

@@ -1253,7 +1253,7 @@ const SHARED_TYPES: &str = "def vol(w: int, h: int, d: int) -> int:\n    return 
 fn positional_args_for_shared_types_are_n44() {
     let (m, d) = lower(SHARED_TYPES);
     let codes: Vec<_> = d.iter().map(|d| d.code.as_str()).collect();
-    assert_eq!(codes, ["N44", "N44", "N44"], "{d:?}");
+    assert_eq!(codes, ["N49", "N49", "N49"], "{d:?}");
     let mut out = Vec::new();
     yan_interp::run(&m, &mut out).expect("runs");
     assert_eq!(String::from_utf8(out).unwrap(), "234 235 3\n");

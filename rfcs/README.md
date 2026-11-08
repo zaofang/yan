@@ -68,4 +68,4 @@ research index links their studies and rows.
 | [0046](0046-std-readings.md) | Std readings assumed by the implementation | accepted | R908 to R914 |
 | [0047](0047-toolchain-readings.md) | Toolchain readings assumed by the implementation | accepted | R915 to R924 |
 | [0048](0048-residual-wrapped-rejections.md) | Residual wrapped rejections from the R567 failure-mix study | accepted | R927 to R929 |
-| [0049](0049-positional-args-lenient.md) | Positional arguments in the lenient reader | accepted | R930 |
+| [0049](0049-positional-args-lenient.md) | Positional arguments in the lenient reader | accepted | R932 |

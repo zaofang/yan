@@ -50,7 +50,7 @@ struct Lower<'a, 'c, 's> {
     n: usize,
     /// Lowering a `become` call, whose arguments are exempt from E210 (SPEC_QUESTIONS).
     in_become: bool,
-    /// The first parameter index whose argument N44 turned into a keyword one.
+    /// The first parameter index whose argument N49 turned into a keyword one.
     keyworded_from: Option<usize>,
     /// Dict elements that `place` copied out; a mutating caller stores them back.
     dict_places: Vec<DictPlace>,
@@ -7194,7 +7194,7 @@ impl Lower<'_, '_, '_> {
         }
         // E210: parameters that share a type take keyword arguments, in a callee with three or
         // more parameters (R800). The lenient reader takes them by position and reads them as
-        // keywords (N44).
+        // keywords (N49).
         let mut unkeyed: Vec<usize> = Vec::new();
         for (k, slot) in slots.iter().enumerate().filter(|_| ps.len() > 2) {
             let Some(Given::Expr(e, _, _, keyword)) = slot else {
@@ -7228,7 +7228,7 @@ impl Lower<'_, '_, '_> {
                 );
             } else {
                 self.lenient(
-                    "N44",
+                    "N49",
                     sp,
                     "positional arguments for parameters that share a type normalized to keywords",
                 );
