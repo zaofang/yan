@@ -501,12 +501,19 @@ pub fn run(m: &Module, out: &mut dyn Write) -> R<i32> {
 
 /// [`run`] with the program arguments `env.args()` returns.
 pub fn run_with(m: &Module, out: &mut dyn Write, args: Vec<String>) -> R<i32> {
-    Ok(
-        match entry(m, "main", out, None, args, &mut 0, None)?.is_ok() {
-            true => 0,
-            false => EXIT_FAILURE,
-        },
-    )
+    run_reporting(m, out, args).map(|(status, _)| status)
+}
+
+/// [`run_with`], also giving the shown failure value when `main` failed.
+pub fn run_reporting(
+    m: &Module,
+    out: &mut dyn Write,
+    args: Vec<String>,
+) -> R<(i32, Option<String>)> {
+    Ok(match entry(m, "main", out, None, args, &mut 0, None)? {
+        Ok(_) => (0, None),
+        Err(v) => (EXIT_FAILURE, Some(prelude::show(&v, false))),
+    })
 }
 
 /// Run the test `fn f` of `m` under `limits`, on a thread with room for deep recursion.
@@ -1033,6 +1040,17 @@ mod selftest {
             "record E { c: i64 }\nfn main() -> Unit fail E {\n let e: E = E { c: 1 }\n fail e\n}\n",
         );
         assert_eq!(s, EXIT_FAILURE);
+    }
+
+    #[test]
+    fn run_reporting_shows_the_failure_of_main() {
+        let src = "module t\nrecord E { c: i64 }\nfn main() -> Unit fail E {\n let e: E = E { c: 1 }\n fail e\n}\n";
+        let (m, _) = yan_core::parse("t.yir", src);
+        let (s, shown) = run_reporting(&m.unwrap(), &mut Vec::new(), Vec::new()).expect("runs");
+        assert_eq!(
+            (s, shown.is_some_and(|t| t.contains("c"))),
+            (EXIT_FAILURE, true)
+        );
     }
 
     #[test]

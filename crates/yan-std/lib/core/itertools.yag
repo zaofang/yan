@@ -1,0 +1,26 @@
+"""Combinatorics over lists, the `itertools` names Python programs expect (17.3). Each function
+returns a lazy `iter` in Python's order; results are `list[T]` where Python gives tuples."""
+
+@intrinsic
+@since("1.0")
+pub def permutations[T](xs: list[T], r: int | None = None) -> iter[list[T]]: ...
+
+@intrinsic
+@since("1.0")
+pub def combinations[T](xs: list[T], r: int) -> iter[list[T]]: ...
+
+@intrinsic
+@since("1.0")
+pub def combinations_with_replacement[T](xs: list[T], r: int) -> iter[list[T]]: ...
+
+@intrinsic
+@since("1.0")
+pub def product[T, U](a: list[T], b: list[U]) -> iter[tuple[T, U]]: ...
+
+@intrinsic
+@since("1.0")
+pub def pairwise[T](xs: list[T]) -> iter[tuple[T, T]]: ...
+
+@intrinsic
+@since("1.0")
+pub def accumulate[T](xs: list[T], f: Callable[[T, T], T] | None = None, initial: T | None = None) -> iter[T]: ...

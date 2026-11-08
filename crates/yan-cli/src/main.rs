@@ -751,8 +751,13 @@ fn run_program(
         module
     };
     let mut out = std::io::stdout().lock();
-    match yan_interp::run_with(module, &mut out, args) {
-        Ok(status) => ExitCode::from(status as u8),
+    match yan_interp::run_reporting(module, &mut out, args) {
+        Ok((status, failure)) => {
+            if let Some(f) = failure {
+                eprintln!("{f}");
+            }
+            ExitCode::from(status as u8)
+        }
         Err(Stop::Panic(p)) => {
             eprintln!("{}", p.render(&file.display().to_string()));
             ExitCode::from(EXIT_PANIC as u8)
