@@ -200,7 +200,10 @@ pub fn add(root: &Path, spec: &str, now: i64, caller: Caller) -> Result<String, 
         return Err(lock::malicious(&index, name, &info, advisory).into());
     }
     // No search snapshot exists yet, so nothing is established (R947).
-    if caller == Caller::Agent && !lock::is_locked(root, name) {
+    if caller == Caller::Agent
+        && !lock::is_locked(root, name)
+        && crate::vendor::approvals_of(root, name, &info.version).is_empty()
+    {
         return Err(fail(
             "E004",
             format!(
@@ -616,5 +619,55 @@ mod tests {
             panic!("expected a diagnostic");
         };
         assert_eq!(d.code, "E007");
+    }
+
+    #[test]
+    fn approve_clears_e004_and_vendor_copies_and_prunes() {
+        let dir = world("vendor");
+        let now = registry::now();
+        let Err(Failure::Diag(d)) = add(&dir, "@a/c", now, Caller::Agent) else {
+            panic!("expected E004");
+        };
+        assert_eq!(d.code, "E004");
+        crate::vendor::approve(&dir, "@a/c@1.0.0").ok().unwrap();
+        add(&dir, "@a/c", now, Caller::Agent).ok().unwrap();
+        let lock = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
+        assert!(lock.contains("approvals = [\"sha256:"));
+
+        // Give every locked package a real archive in the index and the lock its digest.
+        let bytes = crate::store::tests::zip_of(&[("package.yag", b"")]);
+        let digest = crate::store::sha256(&bytes);
+        for (n, v) in [("b", "1.2.0"), ("c", "1.0.0")] {
+            let at = dir.join("index/@a").join(n).join("@v");
+            std::fs::write(at.join(format!("{v}.zip")), &bytes).unwrap();
+            let info = at.join(format!("{v}.info"));
+            let text = std::fs::read_to_string(&info).unwrap();
+            std::fs::write(
+                &info,
+                text.replace(&format!("sha256:{v}"), &format!("sha256:{digest}")),
+            )
+            .unwrap();
+        }
+        std::fs::remove_file(dir.join("yan.lock")).unwrap();
+        lock::write(&dir).unwrap();
+        let out = crate::vendor::vendor(&dir).ok().unwrap();
+        assert!(out.iter().any(|l| l.starts_with("vendored")));
+        let archive = dir.join("vendor/archives").join(format!("{digest}.zip"));
+        assert_eq!(std::fs::read(&archive).unwrap(), bytes);
+        assert_eq!(
+            std::fs::read_dir(dir.join("vendor/bundles"))
+                .unwrap()
+                .count(),
+            1
+        );
+        assert_eq!(
+            crate::vendor::vendor(&dir).ok().unwrap(),
+            ["vendor is up to date"]
+        );
+        std::fs::write(dir.join("vendor/archives/stale.zip"), "x").unwrap();
+        assert_eq!(
+            crate::vendor::vendor(&dir).ok().unwrap(),
+            ["removed archives/stale.zip"]
+        );
     }
 }
