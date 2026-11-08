@@ -3742,6 +3742,25 @@
    ]
   },
   {
+   "path": "yag/fail/types/e201_optional_arithmetic.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "25"
+   ],
+   "rows": [
+    "R929"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/types/e201_rebind_changes_type.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -5058,6 +5077,21 @@
    "exit": 101
   },
   {
+   "path": "yag/run/std/char_parse_int_float.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17"
+   ],
+   "rows": [
+    "R927"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7 None 7.0 None\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/cli_errors.yag",
    "kind": "run",
    "milestone": "M1",
@@ -6074,6 +6108,21 @@
    "flags": [],
    "expect": [],
    "stdout": "2\n1-2 4 7\n3-4 12 15\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/regex_finditer.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R928"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1-2 2\n3-4 10\n1-2 0\n9-8 4\n",
    "exit": 0
   },
   {

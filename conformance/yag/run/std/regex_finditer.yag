@@ -1,0 +1,15 @@
+# spec: 14.4
+# rows: R928
+# note: N35 and N34 read re.finditer and compiled.finditer as find_all; a for over it sees the Match values in order
+# stdout:
+# 1-2 2
+# 3-4 10
+# 1-2 0
+# 9-8 4
+
+pub def main() uses io:
+    for m in re.finditer(r"\d-\d", "x 1-2-3 9 3-4"):
+        io.print(f"{m.text()} {m.start()}")
+    r = regex.compile(r"\d-\d")
+    for m in r.finditer("1-2 9-8"):
+        io.print(f"{m.text()} {m.start()}")
