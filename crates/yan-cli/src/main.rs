@@ -14,6 +14,7 @@ mod mcp;
 mod patch;
 mod pyimport;
 mod review;
+mod schema;
 mod test;
 mod trust;
 use yan_db::{Database, Loaded};
@@ -76,11 +77,22 @@ enum McpCommand {
 const SKILL: &str = include_str!("../skill.md");
 
 #[derive(Subcommand)]
+enum SchemaCommand {
+    /// Print the row record of a Parquet file and the hash of its schema.
+    Gen { file: PathBuf },
+}
+
+#[derive(Subcommand)]
 enum Command {
     /// Print the Yan Agent grammar for constrained decoding (21.3).
     Grammar {
         #[arg(long, value_enum)]
         format: GrammarFormat,
+    },
+    /// Write the row record type of a data file as Yan Agent source (11.9).
+    Schema {
+        #[command(subcommand)]
+        command: SchemaCommand,
     },
     /// Check files and report diagnostics.
     Check {
@@ -361,6 +373,18 @@ fn main() -> ExitCode {
             }
             ExitCode::SUCCESS
         }
+        Command::Schema {
+            command: SchemaCommand::Gen { file },
+        } => match schema::generate(&file) {
+            Ok(text) => {
+                print!("{text}");
+                ExitCode::SUCCESS
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                ExitCode::FAILURE
+            }
+        },
         Command::Fmt { check, files } => fmt(&files, check),
         Command::Fix {
             dry_run,
