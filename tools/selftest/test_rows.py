@@ -1,4 +1,4 @@
-from tools.rows import allocations, check, expand, missing_sections, next_code
+from tools.rows import allocations, check, expand, missing_sections, next_code, renumbering
 
 
 def test_expand_lists_and_ranges() -> None:
@@ -30,3 +30,12 @@ def test_next_code_follows_the_family_maximum() -> None:
 def test_unknown_section_is_an_error() -> None:
     entry = {"rows": "R1", "sections": "3.1, 99.9 (note 4.4)"}
     assert missing_sections([entry]) == ["R1: section 99.9 does not exist"]
+
+
+def test_renumbering_moves_only_colliding_new_entries() -> None:
+    base = [{"rows": "R1", "topic": "a"}, {"rows": "R2, R3", "topic": "b"}]
+    assert renumbering(base, [*base, {"rows": "R3 to R4", "topic": "c"}]) == {
+        "R3": "R5",
+        "R4": "R6",
+    }
+    assert renumbering(base, [*base, {"rows": "R4", "topic": "c"}]) == {}
