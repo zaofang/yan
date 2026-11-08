@@ -3,6 +3,13 @@
 use yan_core::ast::{self as y, Named, TArg};
 use yan_names::{Surface, type_name};
 
+/// An `Array` axis (11.2): positional, a literal size or a size variable, or labelled.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Axis {
+    Size(String),
+    Label(Ty),
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Ty {
     Int,
@@ -34,8 +41,8 @@ pub enum Ty {
     Fn(bool, Vec<Ty>, Box<Ty>),
     /// A `core.ffi` type in an ffi module (12.3, 12.5): `Ptr[T]`, `CStr`, `View[T]` and so on.
     Foreign(&'static str, Vec<Ty>),
-    /// `Array[a1, ..., an, T]` (11.2): each axis as written, a literal size or a label type.
-    Array(Vec<String>, Box<Ty>),
+    /// `Array[a1, ..., an, T]` (11.2): each axis, a size or a label type.
+    Array(Vec<Axis>, Box<Ty>),
     /// A stage-0 type handle (10.4, RFC 0051 D1).
     Type,
     /// Produced after an error was reported; compatible with every type.
@@ -145,7 +152,17 @@ impl Ty {
             Ty::Union(ts) => y::Type::Union(ts.iter().map(Ty::core).collect()),
             Ty::Data(n) | Ty::Param(n) => named(n, vec![]),
             Ty::Foreign(n, ts) => named(n, ts.iter().map(Ty::core).collect()),
-            Ty::Array(_, t) => named("Array", vec![t.core()]),
+            Ty::Array(axes, t) => y::Type::Named(Named {
+                path: vec!["Array".into()],
+                args: axes
+                    .iter()
+                    .map(|a| match a {
+                        Axis::Size(n) => TArg::Nat(n.clone()),
+                        Axis::Label(l) => l.targ(),
+                    })
+                    .chain([t.targ()])
+                    .collect(),
+            }),
             Ty::Fn(_, ps, r) => y::Type::Fn(y::FnType {
                 params: ps.iter().map(|t| (y::Conv::Let, t.core())).collect(),
                 ret: Box::new(r.core()),
@@ -378,7 +395,16 @@ impl Ty {
 impl std::fmt::Display for Ty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Ty::Array(axes, t) => write!(f, "Array[{}, {t}]", axes.join(", ")),
+            Ty::Array(axes, t) => {
+                write!(f, "Array[")?;
+                for a in axes {
+                    match a {
+                        Axis::Size(n) => write!(f, "{n}, ")?,
+                        Axis::Label(l) => write!(f, "{l}, ")?,
+                    }
+                }
+                write!(f, "{t}]")
+            }
             Ty::Int => write!(f, "int"),
             Ty::Float => write!(f, "float"),
             Ty::BigInt => write!(f, "bigint"),

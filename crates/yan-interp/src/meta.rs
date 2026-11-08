@@ -25,7 +25,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
 ];
 
-/// The records, sums and newtypes of a module, by path, with their annotations.
+/// The records, sums, newtypes and traits of a module, by path, with their annotations.
 #[derive(Debug, Default)]
 pub(crate) struct Types {
     decls: HashMap<Name, (Vec<Attr>, ItemKind)>,
@@ -43,6 +43,7 @@ impl Types {
                     ItemKind::Record(r) => &r.path,
                     ItemKind::Sum(s) => &s.path,
                     ItemKind::Newtype(n) => &n.path,
+                    ItemKind::Trait(t) => &t.path,
                     _ => return None,
                 };
                 Some((path.join("."), (it.attrs.clone(), it.kind.clone())))
@@ -98,31 +99,21 @@ fn info(args: &[Value]) -> R<Value> {
         |variant: &str, record: &str, fields| data(variant, vec![("info", data(record, fields))]);
     Ok(match &h.ty {
         Type::Tuple(xs) => data("Tuple", vec![("elems", ts(xs))]),
-        Type::Fn(f) => one(
+        Type::Fn(f) => data(
             "Fn",
-            "FnInfo",
-            vec![
-                (
-                    "params",
-                    Value::List(f.params.iter().map(|(_, p)| t(p)).collect()),
-                ),
-                ("ret", t(&f.ret)),
-                (
-                    "fails",
-                    match f.fail.as_deref() {
-                        None => Value::List(Vec::new()),
-                        Some(Type::Union(xs)) => ts(xs),
-                        Some(x) => ts(std::slice::from_ref(x)),
-                    },
-                ),
-                (
-                    "uses",
-                    Value::List(match &f.uses {
-                        Some(CapSet::Names(ns)) => ns.iter().map(|n| s(n)).collect(),
+            vec![(
+                "info",
+                fn_info(
+                    f.params.iter().map(|(_, p)| p),
+                    &f.ret,
+                    f.fail.as_deref(),
+                    match &f.uses {
+                        Some(CapSet::Names(ns)) => ns.clone(),
                         _ => Vec::new(),
-                    }),
+                    },
+                    &h.types,
                 ),
-            ],
+            )],
         ),
         Type::Named(n) => {
             let name = n.path.join(".");
@@ -134,8 +125,26 @@ fn info(args: &[Value]) -> R<Value> {
                     TArg::Nat(_) => None,
                 })
                 .collect();
-            if let Some((attrs, kind)) = h.types.decls.get(&name) {
-                return Ok(declared(&name, &args, attrs, kind, &h.types));
+            match h.types.decls.get(&name) {
+                Some((_, ItemKind::Trait(tr))) => {
+                    let methods = tr
+                        .sigs
+                        .iter()
+                        .map(|f| {
+                            data(
+                                "MethodInfo",
+                                vec![("name", s(&f.path.join("."))), ("sig", sig(f, &h.types))],
+                            )
+                        })
+                        .collect();
+                    return Ok(one(
+                        "Trait",
+                        "TraitInfo",
+                        vec![("name", s(&name)), ("methods", Value::List(methods))],
+                    ));
+                }
+                Some((attrs, kind)) => return Ok(declared(&name, &args, attrs, kind, &h.types)),
+                None => {}
             }
             if let Some((bits, signed, float)) = scalar(&name) {
                 return Ok(one(
@@ -151,6 +160,28 @@ fn info(args: &[Value]) -> R<Value> {
             }
             match (name.as_str(), args.as_slice()) {
                 ("Option", [x]) => data("Optional", vec![("inner", t(x))]),
+                ("View" | "MutView", [x]) => one(
+                    "View",
+                    "ViewInfo",
+                    vec![("elem", t(x)), ("mutable", Value::Bool(name == "MutView"))],
+                ),
+                ("Array", [.., elem]) => {
+                    let axes = n.args[..n.args.len() - 1]
+                        .iter()
+                        .map(|a| match a {
+                            TArg::Nat(k) => match k.parse() {
+                                Ok(k) => data("Positional", vec![("size", Value::Int(k))]),
+                                Err(_) => data("Variable", vec![("name", s(k))]),
+                            },
+                            TArg::Type(l) => data("Labelled", vec![("label", t(l))]),
+                        })
+                        .collect();
+                    one(
+                        "Array",
+                        "ArrayInfo",
+                        vec![("elem", t(elem)), ("axes", Value::List(axes))],
+                    )
+                }
                 _ => one(
                     "Builtin",
                     "BuiltinInfo",
@@ -160,6 +191,44 @@ fn info(args: &[Value]) -> R<Value> {
         }
         _ => return unsupported("`std.meta.info` of this type"),
     })
+}
+
+/// An `FnInfo`: parameter types, return, failures and capabilities.
+fn fn_info<'a>(
+    params: impl Iterator<Item = &'a Type>,
+    ret: &Type,
+    fail: Option<&Type>,
+    uses: Vec<Name>,
+    types: &Rc<Types>,
+) -> Value {
+    let t = |ty: &Type| handle(ty.clone(), types);
+    let fails = match fail {
+        None => Vec::new(),
+        Some(Type::Union(xs)) => xs.iter().map(t).collect(),
+        Some(x) => vec![t(x)],
+    };
+    data(
+        "FnInfo",
+        vec![
+            ("params", Value::List(params.map(t).collect())),
+            ("ret", t(ret)),
+            ("fails", Value::List(fails)),
+            ("uses", Value::List(uses.iter().map(|n| s(n)).collect())),
+        ],
+    )
+}
+
+/// The `FnInfo` of a trait method's signature; capability parameters are its `uses`.
+fn sig(f: &FnDef, types: &Rc<Types>) -> Value {
+    let mut uses = Vec::new();
+    let mut params = Vec::new();
+    for p in &f.params {
+        match p {
+            Param::Value { ty, .. } => params.push(ty),
+            Param::Cap { ty, .. } => uses.push(ty.path.join(".")),
+        }
+    }
+    fn_info(params.into_iter(), &f.ret, f.fail.as_ref(), uses, types)
 }
 
 /// Bits, signedness and floatness of a scalar by its Yan Core name.
@@ -316,7 +385,7 @@ fn declared(
                 ("annotations", annotations(attrs)),
             ],
         ),
-        _ => unreachable!("Types holds only records, sums and newtypes"),
+        _ => unreachable!("traits are described by `info`"),
     }
 }
 

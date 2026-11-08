@@ -15,6 +15,7 @@ use yan_diag::{Applicability, Span};
 use yan_hir as j;
 
 use crate::bounds::{self, Site};
+use crate::ty::Axis;
 use crate::{Cx, Globals, R, Sig, Ty, ffi, unsupported};
 
 /// List and dict methods whose receiver is `var` (R421).
@@ -3900,7 +3901,7 @@ impl Lower<'_, '_, '_> {
         if want == Some(&Ty::Type)
             && let Some(jt) = self.type_expr(e)
         {
-            let t = self.g.ty(&jt, self.cx, e.span)?;
+            let t = self.g.handle(&jt, self.cx, e.span)?;
             // A function with a `Type` parameter runs only at stage 0 (10.4).
             if !self.item.starts_with("__stage0_")
                 && !self.locals.values().any(|l| l.ty == Ty::Type)
@@ -3911,7 +3912,7 @@ impl Lower<'_, '_, '_> {
                     "a `Type` exists only at stage 0; evaluate this under `#`".into(),
                 );
             }
-            let r = Rhs::Call(call("std.meta.type_of", vec![t.targ()], vec![], e.span));
+            let r = Rhs::Call(call("std.meta.type_of", vec![t], vec![], e.span));
             return Ok((self.tmp(&Ty::Type, r, e.span), Ty::Type));
         }
         let (r, t) = self.rhs(e, want)?;
@@ -5681,7 +5682,7 @@ impl Lower<'_, '_, '_> {
             && sa
                 .iter()
                 .chain(sb)
-                .all(|d| d.chars().all(|c| c.is_ascii_digit()))
+                .all(|d| matches!(d, Axis::Size(n) if n.chars().all(|c| c.is_ascii_digit())))
         {
             self.err(
                 "E520",
