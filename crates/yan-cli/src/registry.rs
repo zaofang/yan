@@ -14,6 +14,7 @@ pub struct Info {
     pub version: String,
     pub digest: String,
     pub publisher: String,
+    pub capability_digest: Option<String>,
     pub requirements: Vec<String>,
     pub yanked: bool,
     pub published: i64,
@@ -126,6 +127,7 @@ impl Index {
             version: version.to_owned(),
             digest: s("digest")?,
             publisher: s("publisher")?,
+            capability_digest: s("capability_digest"),
             requirements: v
                 .get("requirements")
                 .and_then(|r| r.as_array())
