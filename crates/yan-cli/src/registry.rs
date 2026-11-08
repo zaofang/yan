@@ -137,6 +137,7 @@ fn http_base(source: &str) -> Result<String, Box<Diagnostic>> {
 }
 
 const LIST_LIMIT: u64 = 1 << 20;
+const ARCHIVE_LIMIT: u64 = 256 << 20;
 
 fn host_of(url: &str) -> &str {
     url.split("://")
@@ -210,6 +211,11 @@ impl Index {
                 .map(str::to_owned)
                 .collect()
         }))
+    }
+
+    /// The archive bytes of `version`, or `None` when the index has none.
+    pub fn archive(&self, name: &str, version: &str) -> Result<Option<Vec<u8>>, Box<Diagnostic>> {
+        self.read(name, &format!("{version}.zip"), ARCHIVE_LIMIT)
     }
 
     pub fn info(&self, name: &str, version: &str) -> Result<Option<Info>, Box<Diagnostic>> {

@@ -22,6 +22,7 @@ mod schema;
 mod store;
 mod test;
 mod trust;
+mod vendor;
 use yan_db::{Database, Loaded};
 use yan_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, finish};
 use yan_ide::ViewError;
@@ -115,6 +116,14 @@ enum Command {
         #[arg(long)]
         agent: bool,
     },
+    /// Record a local approval of `@org/name@x.y.z` (19.4, R948): `signer = "local"`, which clears
+    /// local gates and fails CI's `approvers` check (E009).
+    Approve {
+        /// `@org/name@x.y.z`.
+        spec: String,
+    },
+    /// Copy every locked archive and referenced bundle into `vendor/` and prune the rest (R948).
+    Vendor,
     /// Remove a registry dependency and rewrite the lock (19.4, R896).
     Remove {
         /// `@org/name`.
@@ -390,6 +399,10 @@ fn main() -> ExitCode {
             };
             dep_result(deps::add(Path::new("."), &spec, registry::now(), caller).map(|m| vec![m]))
         }
+        Command::Approve { spec } => {
+            dep_result(vendor::approve(Path::new("."), &spec).map(|m| vec![m]))
+        }
+        Command::Vendor => dep_result(vendor::vendor(Path::new("."))),
         Command::Remove { name } => {
             dep_result(deps::remove(Path::new("."), &name).map(|m| vec![m]))
         }

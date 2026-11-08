@@ -373,7 +373,15 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
                 .unwrap_or_default()
         };
         out.push(Locked {
-            approvals: kept("approvals"),
+            approvals: {
+                let mut a: Vec<String> = kept("approvals");
+                for b in crate::vendor::approvals_of(root, &key.0, &info.version) {
+                    if !a.contains(&b) {
+                        a.push(b);
+                    }
+                }
+                a
+            },
             rebuilds: kept("rebuilds"),
             capability_digest: info.capability_digest,
             name: key.0.clone(),
