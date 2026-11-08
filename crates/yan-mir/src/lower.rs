@@ -1245,6 +1245,26 @@ impl<'a, 'm> Fn<'a, 'm> {
         };
         let args = Self::value_args(c)?;
         let dst1 = dst.as_ref().and_then(|v| v.locals.first().copied());
+        let ct = match id {
+            id::STD_CT_CT_SELECT => Some(ScalarOp::CtSelect),
+            id::STD_CT_CT_EQ => Some(ScalarOp::CtEq),
+            id::STD_CT_CT_LT => Some(ScalarOp::CtLt),
+            _ => None,
+        };
+        if let Some(op) = ct {
+            let args = args
+                .iter()
+                .map(|(_, a)| self.scalar1(a))
+                .collect::<R<Vec<_>>>()?;
+            self.emit(Inst::Scalar {
+                dst: dst1,
+                id,
+                op,
+                ty: I64,
+                args,
+            });
+            return Ok(());
+        }
         if let Some((op, ty)) = scalar(&name) {
             let args = args
                 .iter()

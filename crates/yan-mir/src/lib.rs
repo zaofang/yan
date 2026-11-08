@@ -86,6 +86,10 @@ pub enum ScalarOp {
     Ge,
     /// Panics when its two operands are equal (`exclusive_check`).
     Exclusive,
+    /// `std.ct`: branchless on `int` operands (R611).
+    CtSelect,
+    CtEq,
+    CtLt,
 }
 
 #[derive(Clone, Debug, PartialEq)]
