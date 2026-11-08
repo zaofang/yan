@@ -699,6 +699,58 @@ mod tests {
     }
 
     #[test]
+    fn a_git_override_is_fetched_by_commit_and_checked_against_its_digest() {
+        let dir = world("gitoverride");
+        let repo = dir.join("b.git");
+        std::fs::create_dir_all(&repo).unwrap();
+        std::fs::write(
+            repo.join("package.yag"),
+            "package: Package = Package(name=\"@a/b\", version=\"1.2.5\")\n",
+        )
+        .unwrap();
+        let git = |args: &[&str]| {
+            let out = std::process::Command::new("git")
+                .args([
+                    "-c",
+                    "user.name=t",
+                    "-c",
+                    "user.email=t@t",
+                    "-c",
+                    "commit.gpgsign=false",
+                ])
+                .args(args)
+                .current_dir(&repo)
+                .output()
+                .unwrap();
+            assert!(
+                out.status.success(),
+                "{}",
+                String::from_utf8_lossy(&out.stderr)
+            );
+            String::from_utf8(out.stdout).unwrap()
+        };
+        git(&["init", "--quiet"]);
+        git(&["add", "."]);
+        git(&["commit", "--quiet", "-m", "b"]);
+        let commit = git(&["rev-parse", "HEAD"]).trim().to_owned();
+        let bytes = std::process::Command::new("git")
+            .args(["archive", "--format=zip", &commit])
+            .current_dir(&repo)
+            .output()
+            .unwrap()
+            .stdout;
+        let digest = crate::store::sha256(&bytes);
+        let at = repo.display().to_string();
+        let got = lock::fetch_git(&dir.join(".yan/store"), "k", &at, &commit, &digest).unwrap();
+        assert!(got.join("package.yag").is_file());
+        let wrong = "0".repeat(64);
+        let err = lock::fetch_git(&dir.join("other"), "k", &at, &commit, &wrong).unwrap_err();
+        assert_eq!(err.code, "E020");
+        assert!(lock::git_spec("k", &format!("https://x.org/b@{commit} sha256:{digest}")).is_ok());
+        assert!(lock::git_spec("k", &format!("http://x.org/b@{commit} sha256:{digest}")).is_err());
+    }
+
+    #[test]
     fn the_lock_marks_each_package_with_the_subgraphs_that_use_it() {
         let dir = world("kinds");
         std::fs::write(

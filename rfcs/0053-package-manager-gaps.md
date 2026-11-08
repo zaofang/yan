@@ -174,6 +174,7 @@ E017, not ignored. `python` (b): the Python environment is `uv`'s job, the proje
 resolver would drift from it. Yan resolves only what must be identical across machines, the digest.
 
 - Decision: as recommended; Antonio, 2026-11-08
+- Details accepted, Antonio, 2026-11-08: the key is `"@org/name major"` and the lock record carries a `path` field after `publisher`. A value is a directory or `"git+https://host/repo@<commit> sha256:<hex>"`; the lock `path` then holds `git+<url>@<commit>` and `digest` the archive digest.
 - Row: R950
 
 ### D9: dependencies, dev dependencies and tools as three subgraphs
@@ -189,6 +190,7 @@ of its minimums across them, so the lock holds one version per (name, major), an
 subgraphs use it. (c) is rejected because it splits the one source of truth for versions.
 
 - Decision: as recommended; Antonio, 2026-11-08
+- Detail accepted, Antonio, 2026-11-08: `kinds` is written last in a lock record.
 - Row: R951
 
 ## Spec changes

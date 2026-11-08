@@ -1442,7 +1442,7 @@ sections = "19.3, 19.4"
 
 [[entry]]
 rows = "R950"
-topic = "An override replaces only its (name, major) and the lock records `source = \"override\"`; a manifest with `overrides` is E017 until implemented; the Python environment stays with `uv` and the lock records the `pylock.toml` digest (RFC 0053 D8)"
+topic = "An override replaces only its (name, major) and the lock records `source = \"override\"` and its `path` (a directory, or a git commit pinned by archive digest); the Python environment stays with `uv` and the lock records the `pylock.toml` digest (RFC 0053 D8)"
 sections = "19.1"
 
 [[entry]]
