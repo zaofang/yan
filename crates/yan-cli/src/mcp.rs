@@ -18,7 +18,7 @@ use crate::examples::{self, Kind};
 use crate::patch::{self, Ops};
 use crate::{test, trust};
 
-const PROTOCOL: &str = "2026-07-28";
+pub(crate) const PROTOCOL: &str = "2026-07-28";
 
 /// What code may spend: steps (calls and loop iterations), wall-clock time and heap bytes
 /// above what the process held when the code started.
@@ -29,20 +29,20 @@ pub struct Budget {
     pub heap: usize,
 }
 
-const PER_CALL: Budget = Budget {
+pub(crate) const PER_CALL: Budget = Budget {
     steps: 200_000_000,
     wall: Duration::from_secs(60),
     heap: 1 << 30,
 };
 
-const PER_SESSION: Budget = Budget {
+pub(crate) const PER_SESSION: Budget = Budget {
     steps: 2_000_000_000,
     wall: Duration::from_secs(600),
     heap: 1 << 30,
 };
 
 impl Budget {
-    fn min(self, o: Budget) -> Budget {
+    pub(crate) fn min(self, o: Budget) -> Budget {
         Budget {
             steps: self.steps.min(o.steps),
             wall: self.wall.min(o.wall),
@@ -161,7 +161,7 @@ pub fn respond(server: &Server, req: &Value) -> Option<Value> {
     Some(json!({"jsonrpc": "2.0", "id": id, "result": result}))
 }
 
-fn error(id: Value, code: i64, message: &str) -> Value {
+pub(crate) fn error(id: Value, code: i64, message: &str) -> Value {
     json!({"jsonrpc": "2.0", "id": id, "error": {"code": code, "message": message}})
 }
 

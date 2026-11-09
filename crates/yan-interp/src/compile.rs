@@ -505,10 +505,12 @@ fn param_name(p: &Param) -> &Name {
     name
 }
 
-/// The names a body binds, outside nested closures.
+/// The names a body binds, outside nested closures; with `writes`, also the names it assigns or
+/// passes `inout`.
 fn binds(
     b: &Block,
     nullary: &HashSet<Name, std::hash::BuildHasherDefault<Fnv>>,
+    writes: bool,
     out: &mut Vec<Name>,
 ) {
     fn pat(p: &Pat, n: &HashSet<Name, std::hash::BuildHasherDefault<Fnv>>, out: &mut Vec<Name>) {
@@ -528,60 +530,69 @@ fn binds(
             _ => {}
         }
     }
-    fn call(c: &Call, out: &mut Vec<Name>) {
+    fn call(c: &Call, writes: bool, out: &mut Vec<Name>) {
+        if !writes {
+            return;
+        }
         for a in &c.args {
             if let Arg::Value(Conv::Inout, Atom::Name(n, _), _) = a {
                 out.push(n.clone());
             }
         }
     }
-    fn rhs(r: &Rhs, out: &mut Vec<Name>) {
+    fn rhs(r: &Rhs, writes: bool, out: &mut Vec<Name>) {
         match r {
-            Rhs::Call(c) | Rhs::Try(c) | Rhs::Propagate { call: c, .. } => call(c, out),
+            Rhs::Call(c) | Rhs::Try(c) | Rhs::Propagate { call: c, .. } => call(c, writes, out),
             _ => {}
         }
     }
-    fn expr(e: &Expr, out: &mut Vec<Name>) {
+    fn expr(e: &Expr, writes: bool, out: &mut Vec<Name>) {
         if let Expr::Call(c) = e {
-            call(c, out);
+            call(c, writes, out);
         }
     }
     for s in &b.stmts {
         match &s.kind {
             StmtKind::Let { pat: p, rhs: r, .. } => {
-                rhs(r, out);
+                rhs(r, writes, out);
                 pat(p, nullary, out);
             }
             StmtKind::Assign { place, rhs: r, .. } => {
-                rhs(r, out);
-                out.push(place.root.clone());
+                rhs(r, writes, out);
+                if writes {
+                    out.push(place.root.clone());
+                }
             }
-            StmtKind::Rhs(r) => rhs(r, out),
+            StmtKind::Rhs(r) => rhs(r, writes, out),
             StmtKind::If { then, els, .. } => {
-                binds(then, nullary, out);
+                binds(then, nullary, writes, out);
                 if let Some(e) = els {
-                    binds(e, nullary, out);
+                    binds(e, nullary, writes, out);
                 }
             }
             StmtKind::Match { arms, .. } => {
                 for (p, b) in arms {
                     pat(p, nullary, out);
-                    binds(b, nullary, out);
+                    binds(b, nullary, writes, out);
                 }
             }
-            StmtKind::Loop { body, .. } | StmtKind::Unsafe(body) => binds(body, nullary, out),
+            StmtKind::Loop { body, .. } | StmtKind::Unsafe(body) => {
+                binds(body, nullary, writes, out)
+            }
             StmtKind::Jp { params, body, .. } => {
                 out.extend(params.iter().map(param_name).cloned());
-                binds(body, nullary, out);
+                binds(body, nullary, writes, out);
             }
             StmtKind::With { name, body, .. } => {
                 out.push(name.clone());
-                binds(body, nullary, out);
+                binds(body, nullary, writes, out);
             }
-            StmtKind::Deadline { body, .. } => binds(body, nullary, out),
-            StmtKind::Par { blocks, .. } => blocks.iter().for_each(|b| binds(b, nullary, out)),
-            StmtKind::Become(c) => call(c, out),
-            StmtKind::Assert(e) => expr(e, out),
+            StmtKind::Deadline { body, .. } => binds(body, nullary, writes, out),
+            StmtKind::Par { blocks, .. } => {
+                blocks.iter().for_each(|b| binds(b, nullary, writes, out))
+            }
+            StmtKind::Become(c) => call(c, writes, out),
+            StmtKind::Assert(e) => expr(e, writes, out),
             _ => {}
         }
     }
@@ -624,6 +635,8 @@ struct FnC<'g, 'm> {
     /// `ensures` predicates with their clause position, checked at every `ret` (R882).
     ensures: Vec<(Expr, u32)>,
     item: Option<[u8; 32]>,
+    /// The names each enclosing `par concurrent` task binds, innermost last.
+    task_binds: Vec<Vec<Name>>,
 }
 
 impl<'g, 'm> FnC<'g, 'm> {
@@ -638,6 +651,7 @@ impl<'g, 'm> FnC<'g, 'm> {
             cmps: Map::default(),
             ensures: Vec::new(),
             item: None,
+            task_binds: Vec::new(),
         };
         for p in params {
             let r = c.temp();
@@ -647,7 +661,7 @@ impl<'g, 'm> FnC<'g, 'm> {
         c.code.nparams = c.code.nregs;
         let mut names = extra.to_vec();
         if let Some(b) = body {
-            binds(b, &c.g.nullary, &mut names);
+            binds(b, &c.g.nullary, true, &mut names);
         }
         for n in names {
             c.reg_of(&n);
@@ -1115,6 +1129,9 @@ impl<'g, 'm> FnC<'g, 'm> {
                 self.emit(Op::Panic("unreachable"));
             }
             StmtKind::Unsafe(b) => self.block(b),
+            // A task's drop of a name of the enclosing frame waits for the frame, which then
+            // drops it once, as the native `Unwind` does (R394).
+            StmtKind::Drop(n) if self.task_binds.last().is_some_and(|b| !b.contains(n)) => {}
             StmtKind::Drop(n) => {
                 self.cmps.retain(|_, sides| {
                     !sides
@@ -1231,7 +1248,7 @@ impl<'g, 'm> FnC<'g, 'm> {
             .iter()
             .map(|b| {
                 let mut v = Vec::new();
-                binds(b, &self.g.nullary, &mut v);
+                binds(b, &self.g.nullary, true, &mut v);
                 v.sort();
                 v.dedup();
                 v
@@ -1254,7 +1271,11 @@ impl<'g, 'm> FnC<'g, 'm> {
                     saved.push((n.clone(), old));
                 }
             }
+            let mut own = Vec::new();
+            binds(b, &self.g.nullary, false, &mut own);
+            self.task_binds.push(own);
             self.block(b);
+            self.task_binds.pop();
             self.emit(Op::TaskEnd);
             for (n, old) in saved {
                 self.regs.insert(n, old);

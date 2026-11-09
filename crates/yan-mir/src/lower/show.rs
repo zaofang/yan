@@ -32,6 +32,10 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(Ty::Ptr) => unreachable!("not a Yan Core type"),
             Shape::Fn(..) => self.lit("<function>"),
             Shape::Chan(_) => return unsupported("`show` of a channel end"),
+            Shape::Actor(_) => return unsupported("`show` of an actor handle"),
+            Shape::Rec(name, _) if name == "Duration" => {
+                return unsupported("`show` of a `Duration`");
+            }
             Shape::Str if nested => self.rt(RtFn::Repr, Ty::Ptr, vec![v[0].clone()]),
             Shape::Str => {
                 let empty = self.lit("");
@@ -67,7 +71,8 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.concat(parts)
             }
             Shape::Sum(name, vs) => {
-                let option = name == "Option";
+                // A union shows as its member, as `Option` shows as its value.
+                let option = name == "Option" || name == "Union";
                 let out = self.local(Ty::Ptr);
                 let join = self.block_new();
                 for (n, fs) in vs {
@@ -77,7 +82,6 @@ impl<'a, 'm> Fn<'a, 'm> {
                         self.scalar_op(ScalarOp::Eq, I64, vec![v[0].clone(), Operand::Int(tag)]);
                     let (t, e) = self.branch(is);
                     self.cur = t;
-                    // `Option` shows as its value or `None`.
                     let r = match (option, fs.first()) {
                         (true, Some((_, inner))) => self.show(&v[at..at + w], inner, nested)?,
                         (true, None) => self.lit("None"),
@@ -303,6 +307,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             Shape::Fn(..) => return unsupported("a copy of a closure"),
             Shape::Chan(_) => return unsupported("a copy of a channel end"),
+            Shape::Actor(_) => return unsupported("a copy of an actor handle"),
         })
     }
 
