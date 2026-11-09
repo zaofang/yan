@@ -47,7 +47,7 @@ impl Lower<'_, '_, '_> {
             },
             K::Name(n) if self.narrowed(n).is_some() => {
                 let m = self.narrowed(n).expect("checked").to_owned();
-                self.uses.entry(n.clone()).or_default().push(at);
+                self.last_use.mark_read(n);
                 let t = self.locals[&m].ty.clone();
                 if n == "out" {
                     self.cx.marks.push(crate::marks::Pending {

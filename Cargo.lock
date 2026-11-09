@@ -2555,6 +2555,7 @@ dependencies = [
  "yan-core",
  "yan-db",
  "yan-diag",
+ "yan-flow",
  "yan-hir",
  "yan-interp",
  "yan-names",

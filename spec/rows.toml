@@ -1469,3 +1469,8 @@ sections = "11.2, 25"
 rows = "R955"
 topic = "Region meanings relative to the tile origin and shape, and the optional `halo: h` argument of `rows`, `cols` and `tile` (non-negative literal, widens each bounded axis by `h` each side); `elementwise`, `whole` and `out` take no halo, a malformed halo is E284 (RFC 0055 D3)"
 sections = "11.2, 25"
+
+[[entry]]
+rows = "R956"
+topic = "Last use (E413, `move` versus `copy`) is decided on the control-flow graph of the shared `yan-flow` analysis; a use inside a loop is followed by every use reachable around the back edge, with no separate rule for names bound outside the loop (RFC 0054 D4)"
+sections = "4.2"

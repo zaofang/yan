@@ -87,23 +87,23 @@ impl Lower<'_, '_, '_> {
             .params
             .iter()
             .any(|p| p.name == *x && p.conv != Conv::Sink);
-        let looped = self.loop_outer.last().is_some_and(|o| o.contains(x));
-        if borrowed || looped || self.used_after(x, at) {
+        if borrowed || self.next_use(x, at).is_some() {
             Rhs::Copy(place)
         } else {
             Rhs::Move(place)
         }
     }
 
-    /// `a` names a local the loop reads again: it is bound outside the loop and this statement
-    /// does not reassign it, or it is read later.
+    /// Inside a loop, `a` names a local that this statement does not reassign and that is read
+    /// again, around the loop or after it.
     pub(super) fn not_last_use(&self, a: &j::Expr, at: Span) -> bool {
-        let (j::ExprKind::Name(n), Some(outer)) = (&a.kind, self.loop_outer.last()) else {
+        let j::ExprKind::Name(n) = &a.kind else {
             return false;
         };
-        self.locals.contains_key(n)
+        !self.loops.is_empty()
+            && self.locals.contains_key(n)
             && self.target.as_ref() != Some(n)
-            && (outer.contains(n) || self.used_after(n, at))
+            && self.next_use(n, at).is_some()
     }
 
     /// The side of `f(x) == Ok(v)` that is not the constructor: a fallible call is its

@@ -301,6 +301,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R953 | `@kernel(tile: M, N)` functions take one `TileOrigin` parameter (an `int` per tile axis, supplied by the launch, no public constructor) and read and write `Array` elements in the body (RFC 0055 D1) | 11.2, 17.1 |
 | R954 | An `@access` claim on a body is verified by an affine index proof over literals, constants, `TileOrigin` fields, bounded loop variables and `/` and `%` by a positive literal, decided by the 8.6 solver; an access that cannot be proved inside its region is E274, with no run-time fallback (RFC 0055 D2) | 11.2, 25 |
 | R955 | Region meanings relative to the tile origin and shape, and the optional `halo: h` argument of `rows`, `cols` and `tile` (non-negative literal, widens each bounded axis by `h` each side); `elementwise`, `whole` and `out` take no halo, a malformed halo is E284 (RFC 0055 D3) | 11.2, 25 |
+| R956 | Last use (E413, `move` versus `copy`) is decided on the control-flow graph of the shared `yan-flow` analysis; a use inside a loop is followed by every use reachable around the back edge, with no separate rule for names bound outside the loop (RFC 0054 D4) | 4.2 |
 
 <!-- /rows -->
 

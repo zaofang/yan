@@ -65,8 +65,13 @@ impl Cfg {
         Node(self.events.len() - 1)
     }
 
-    pub fn push(&mut self, n: Node, e: Event) {
+    /// Appends `e` to `n` and returns the point after it.
+    pub fn push(&mut self, n: Node, e: Event) -> Point {
         self.events[n.0].push(e);
+        Point {
+            node: n,
+            event: self.events[n.0].len(),
+        }
     }
 
     pub fn edge(&mut self, from: Node, to: Node) {
@@ -81,6 +86,43 @@ impl Cfg {
 
     pub fn is_empty(&self) -> bool {
         self.events.is_empty()
+    }
+
+    /// The earliest read of `b` reachable from `p` before a redefinition: the witness for
+    /// "used again".
+    pub fn next_use(&self, b: Binding, p: Point) -> Option<Site> {
+        let mut found: Option<Site> = None;
+        let mut seen = vec![false; self.len()];
+        let mut stack = Vec::new();
+        let scan = |node: Node, from: usize, found: &mut Option<Site>| -> bool {
+            for e in &self.events[node.0][from..] {
+                match *e {
+                    Event::Def { binding, .. } if binding == b => return false,
+                    Event::Use { binding, site }
+                    | Event::Move { binding, site }
+                    | Event::MoveField { binding, site, .. }
+                        if binding == b =>
+                    {
+                        *found = Some(found.map_or(site, |f| f.min(site)));
+                        return false;
+                    }
+                    _ => {}
+                }
+            }
+            true
+        };
+        if scan(p.node, p.event, &mut found) {
+            stack.extend(self.succs[p.node.0].iter().copied());
+        }
+        while let Some(n) = stack.pop() {
+            if std::mem::replace(&mut seen[n.0], true) {
+                continue;
+            }
+            if scan(n, 0, &mut found) {
+                stack.extend(self.succs[n.0].iter().copied());
+            }
+        }
+        found
     }
 
     fn preds(&self) -> Vec<Vec<Node>> {
@@ -275,38 +317,7 @@ impl Solution<'_> {
     /// The earliest read of `b` reachable from `p` before a redefinition: the witness for
     /// "used again".
     pub fn next_use(&self, b: Binding, p: Point) -> Option<Site> {
-        let mut found: Option<Site> = None;
-        let mut seen = vec![false; self.cfg.len()];
-        let mut stack = Vec::new();
-        let scan = |node: Node, from: usize, found: &mut Option<Site>| -> bool {
-            for e in &self.cfg.events[node.0][from..] {
-                match *e {
-                    Event::Def { binding, .. } if binding == b => return false,
-                    Event::Use { binding, site }
-                    | Event::Move { binding, site }
-                    | Event::MoveField { binding, site, .. }
-                        if binding == b =>
-                    {
-                        *found = Some(found.map_or(site, |f| f.min(site)));
-                        return false;
-                    }
-                    _ => {}
-                }
-            }
-            true
-        };
-        if scan(p.node, p.event, &mut found) {
-            stack.extend(self.cfg.succs[p.node.0].iter().copied());
-        }
-        while let Some(n) = stack.pop() {
-            if std::mem::replace(&mut seen[n.0], true) {
-                continue;
-            }
-            if scan(n, 0, &mut found) {
-                stack.extend(self.cfg.succs[n.0].iter().copied());
-            }
-        }
-        found
+        self.cfg.next_use(b, p)
     }
 }
 

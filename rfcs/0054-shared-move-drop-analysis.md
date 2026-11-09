@@ -51,7 +51,7 @@ to diverge, which is the cause of this RFC.
 Recommendation: (b).
 
 - Decision: as recommended; Antonio, 2026-11-09
-- Row: (R number once accepted)
+- Row: none (implementation design)
 
 ### D2: binding identity
 
@@ -62,7 +62,7 @@ Recommendation: (b). It removes the by-hand shadowing and scope-exit cases in th
 `redefined` function in the elaborator. Spans stay in the diagnostics only.
 
 - Decision: as recommended; Antonio, 2026-11-09
-- Row: (R number once accepted)
+- Row: none (implementation design)
 
 ### D3: the three facts
 
@@ -97,7 +97,7 @@ Conformance cases that depend on the old result are for the lead to change; the 
 and does not edit them.
 
 - Decision: as recommended; Antonio, 2026-11-09
-- Row: (R number once accepted)
+- Row: R956
 
 ### D5: order of migration and what is deleted
 
@@ -117,7 +117,7 @@ has no graph at all, the checker second because it owns the diagnostics, `yan-op
 the consumer that must not regress performance.
 
 - Decision: as recommended; Antonio, 2026-11-09
-- Row: (R number once accepted)
+- Row: none (implementation design)
 
 ## Spec changes
 
