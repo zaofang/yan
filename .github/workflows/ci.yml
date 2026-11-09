@@ -148,6 +148,8 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest@0.9.100
+      # nextest builds only test targets; yan-cli's build tests need libyan_rt.a (a plain cargo test builds it as a side effect).
+      - run: cargo build --locked -p yan-rt
       # nextest does not run doctests.
       - run: cargo nextest run --locked --no-fail-fast
       - run: cargo test --locked --doc
