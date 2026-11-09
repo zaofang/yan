@@ -74,4 +74,4 @@ research index links their studies and rows.
 | [0052](0052-access-binding-syntax.md) | Binding syntax for `@access` claims: named operands, one region each | accepted | R952 |
 | [0053](0053-package-manager-gaps.md) | Package manager gaps after the directory-index resolver | accepted | R943 to R951 |
 | [0054](0054-shared-move-drop-analysis.md) | One dataflow move and drop analysis | draft | |
-| [0055](0055-kernel-access-verification.md) | `@kernel` functions and E274 body verification | draft | |
+| [0055](0055-kernel-access-verification.md) | `@kernel` functions and E274 body verification | accepted | R953 to R955 |

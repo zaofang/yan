@@ -1454,3 +1454,18 @@ sections = "19.1"
 rows = "R952"
 topic = "`@access(name: region, ...)` binds one region to each array parameter and `out` to a non-unit result, each exactly once; non-array parameters are not named; `rows(axis)` and `cols(axis)` need an axis below the operand's rank and `tile(M, N)` positive literals; a malformed claim is E284 before any body is read (RFC 0052 D1)"
 sections = "10.6, 11.2, 25"
+
+[[entry]]
+rows = "R953"
+topic = "`@kernel(tile: M, N)` functions take one `TileOrigin` parameter (an `int` per tile axis, supplied by the launch, no public constructor) and read and write `Array` elements in the body (RFC 0055 D1)"
+sections = "11.2, 17.1"
+
+[[entry]]
+rows = "R954"
+topic = "An `@access` claim on a body is verified by an affine index proof over literals, constants, `TileOrigin` fields, bounded loop variables and `/` and `%` by a positive literal, decided by the 8.6 solver; an access that cannot be proved inside its region is E274, with no run-time fallback (RFC 0055 D2)"
+sections = "11.2, 25"
+
+[[entry]]
+rows = "R955"
+topic = "Region meanings relative to the tile origin and shape, and the optional `halo: h` argument of `rows`, `cols` and `tile` (non-negative literal, widens each bounded axis by `h` each side); `elementwise`, `whole` and `out` take no halo, a malformed halo is E284 (RFC 0055 D3)"
+sections = "11.2, 25"

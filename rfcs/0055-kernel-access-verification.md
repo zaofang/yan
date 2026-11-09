@@ -1,9 +1,9 @@
 # 0055: `@kernel` functions and E274 body verification
 
-- Status: draft
+- Status: accepted
 - Research: RFC 0016 D3 (Fern, PLDI 2025); RFC 0052 (binding syntax); roadblocks study
   (https://claude.ai/artifact/728U7arS1GVNBzdWy5T3jq); issue #674
-- Rows: filled in when accepted
+- Rows: R953 to R955
 
 ## Summary
 
@@ -23,14 +23,14 @@ relative to the tile, and how this meets the `Tile[M, N, T]` model of 17.1 (R327
 constants). The function takes one parameter of type `TileOrigin`, a std record with one `int` field
 per tile axis, `at.i0`, `at.i1`, the origin of the program instance's output tile in the output array.
 The body reads and writes array elements (`a[at.i0 + i, at.i1 + j]`), where `i` and `j` are loop
-variables bounded by the tile shape. The launch supplies the `TileOrigin`; a call from user code is a
-diagnostic whose code is chosen when rows are numbered.
+variables bounded by the tile shape. The launch supplies the `TileOrigin`. It has no public constructor, so user code cannot call a
+`@kernel` function: the call lacks an argument it cannot build.
 
 Options: (a) implicit origin bindings; (b) an explicit `TileOrigin` parameter, visible in the
 signature and in `yan audit`; (c) only the R327 `Tile[M, N, T]` values, with no element access.
 
 - Decision: (b), the lead, 2026-11-09 (card on this thread)
-- Row: (R number once accepted)
+- Row: R953
 
 ### D2: the provable index language
 
@@ -48,7 +48,7 @@ Options: (a) affine over the listed terms only, with `/` and `%` in a later RFC;
 the solver). The index language of (b) is the accepted one.
 
 - Decision: (b), affine plus `/` and `%` by a literal, the lead, 2026-11-09 (card on this thread)
-- Row: (R number once accepted)
+- Row: R954
 
 ### D3: what each region means, with halos
 
@@ -77,22 +77,24 @@ tiles write the same element, which breaks determinism under `par`; E284).
 Options: (a) regions without halos, a stencil declaring `whole`; (b) halo offsets as above.
 
 - Decision: (b), the lead, 2026-11-09 (card on this thread)
-- Row: (R number once accepted)
+- Row: R955
 
 ### D4: staging and the toolchain
 
-Element read and write on `Array` is supported only inside `@kernel` bodies first, so no general
-array semantics are decided by this RFC. Order: (1) parse and elaborate `@kernel`, tile bindings and
-`Array` element access, interpreter result, with the `kernel` profile restrictions of R320 left to
-their own work; (2) the affine prover and E274, with its crate symbol and catalogue entry (E274 is
-already catalogued); (3) native lowering with the same program on interpreter and native (CLAUDE.md
-practice 1). Conformance cases go on a `conform/*` PR, not here. The E274 catalogue entry stays.
+The prover comes first, on a synthetic IR, then the surface. Order: (1) the affine prover and region
+containment check over a small index IR (affine forms, `/` and `%` by literal, loop bounds, tile shape,
+region, halo), with unit tests; it reuses the 8.6 `Lin` and solver, and E274 and its message are
+produced from the IR; (2) `@kernel`, `TileOrigin` and `Array` element access in kernel bodies lowered
+to that IR, interpreter first; (3) native lowering, with the same program on interpreter and native
+(CLAUDE.md practice 1). Conformance cases go on a `conform/*` PR, not here.
 
-Options: (a) the order above; (b) prover first on a synthetic IR, then the surface. Recommended: (a);
-(b) would add an analysis with no input the toolchain can produce.
+Options: (a) surface, then prover, then native; (b) prover first on a synthetic IR. Recommended
+(a): a prover with no producible input cannot be tested end to end.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: (b), the lead, 2026-11-09 (card on this thread), against the recommendation. The stage-1
+  prover is reached only from its unit tests until stage 2 lands, and is not wired into any
+  diagnostic until then.
+- Row: none (process)
 
 ## Spec changes
 
