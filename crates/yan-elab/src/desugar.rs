@@ -166,6 +166,8 @@ pub struct Manifest {
     pub has_overrides: bool,
     /// The `overrides` entries as written: key (`@org/name major`) and value (a path, R950).
     pub overrides: Vec<(String, String)>,
+    /// The Python requirements of `python` (R638).
+    pub python: Vec<String>,
 }
 
 /// The fields of the manifest table (19.1).
@@ -348,6 +350,7 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
         tools: reqs("tools"),
         has_overrides: !reqs("overrides").is_empty(),
         overrides: pairs("overrides"),
+        python: strs("python").unwrap_or_default(),
         requirements: ["dependencies", "dev_dependencies", "tools"]
             .into_iter()
             .flat_map(reqs)

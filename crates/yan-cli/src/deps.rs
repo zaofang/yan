@@ -561,6 +561,31 @@ mod tests {
     }
 
     #[test]
+    fn python_requirements_pin_the_pylock_digest() {
+        let dir = world("pylock");
+        std::fs::write(
+            dir.join("package.yag"),
+            "package: Package = Package(name=\"@a/app\", version=\"0.1.0\", python=[\"numpy>=2\"])\n",
+        )
+        .unwrap();
+        assert_eq!(lock::write(&dir).unwrap_err().code, "E021");
+        std::fs::write(dir.join("pylock.toml"), "lock-version = \"1.0\"\n").unwrap();
+        lock::write(&dir).unwrap();
+        let text = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
+        let digest = format!(
+            "sha256:{}",
+            crate::store::sha256(b"lock-version = \"1.0\"\n")
+        );
+        assert!(text.starts_with(&format!("format = 1\npylock = \"{digest}\"\n")));
+        assert!(lock::check(&dir, &[], true, false).is_ok());
+        std::fs::write(dir.join("pylock.toml"), "changed\n").unwrap();
+        assert_eq!(
+            lock::check(&dir, &[], true, false).unwrap_err().code,
+            "E020"
+        );
+    }
+
+    #[test]
     fn offline_locked_needs_each_archive_in_the_store_or_vendor() {
         let dir = world("offline");
         add(&dir, "@a/b", registry::now(), Caller::Human)
