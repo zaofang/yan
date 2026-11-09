@@ -694,6 +694,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--laws", action="store_true", help="report the round-trip laws (16.5) instead; never fails"
     )
+    ap.add_argument("--report-only", action="store_true", help="always exit 0")
     args = ap.parse_args(argv)
 
     executors = []
@@ -729,7 +730,7 @@ def main(argv: list[str] | None = None) -> int:
                 indent=2,
             )
         )
-    return 1 if counts["fail"] else 0
+    return 1 if counts["fail"] and not args.report_only else 0
 
 
 def report_laws(cases: list[Case], executors: list[CommandExecutor], out: Path | None) -> int:

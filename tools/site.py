@@ -18,8 +18,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
-
-from tools import rows
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -221,6 +220,7 @@ class Build:
     commit: str
     day: str
     url: str
+    status: dict[str, Any] | None = None
 
 
 def git(*args: str) -> str:
@@ -308,30 +308,103 @@ def blog_pages(build: Build) -> tuple[list[Page], str]:
     return [index, *(p for _, p in posts)], feed
 
 
+def table(head: list[str], body: list[list[object]]) -> str:
+    th = "".join(f"<th>{h}</th>" for h in head)
+    tr = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in body)
+    return f"<table><thead><tr>{th}</tr></thead><tbody>{tr}</tbody></table>"
+
+
+def stamp(status: dict[str, Any]) -> str:
+    c = status["commit"]
+    return f'<p class="label">CI run on <code>{c[:7]}</code>, {status["date"]}</p>'
+
+
+def pct(n: int, d: int) -> str:
+    return f"{100 * n / d:.0f}%" if d else "-"
+
+
 def status_page(build: Build) -> Page:
     cases = json.loads((ROOT / "conformance/manifest.json").read_text())["cases"]
     by_surface = Counter(c["path"].split("/")[0] for c in cases)
-    by_milestone = Counter(c.get("milestone") or "none" for c in cases)
-    owner, _ = rows.allocations(rows.load())
     rfcs = [f for f in (ROOT / "rfcs").glob("[0-9]*.md") if not f.name.startswith("0000")]
-
-    def table(head: str, counts: Counter[str]) -> str:
-        body = "".join(f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in sorted(counts.items()))
-        head_row = f"<thead><tr><th>{head}</th><th>Cases</th></tr></thead>"
-        return f"<table>{head_row}<tbody>{body}</tbody></table>"
-
-    body = f"""<h1>Status</h1>
-<p class="label">Generated from <code>{build.commit[:7]}</code> on {build.day}</p>
-<table><tbody>
-<tr><td>Conformance cases</td><td>{len(cases)}</td></tr>
-<tr><td>Spec change rows</td><td>{sum(1 for r in owner if r.startswith("R"))}</td></tr>
-<tr><td>RFCs</td><td>{len(rfcs)}</td></tr>
-</tbody></table>
-<h2 id="by-surface">Cases by directory</h2>
-{table("Directory", by_surface)}
-<h2 id="by-milestone">Cases by milestone</h2>
-{table("Milestone", by_milestone)}"""
-    return Page("status/index.html", "Status", body)
+    body = [
+        "<h1>Status</h1>",
+        f'<p class="label">Site built from <code>{build.commit[:7]}</code> on {build.day}</p>',
+    ]
+    s = build.status
+    if s is None:
+        body.append(
+            "<p>This build carries no CI status data (built without <code>--status</code>).</p>"
+        )
+    else:
+        conf = s["conformance"]
+        body += [
+            '<h2 id="conformance">Conformance by milestone</h2>',
+            stamp(s),
+            f"<p>Executor: {', '.join(conf['executors'])}.</p>",
+            table(
+                ["Milestone", "Cases", "Pass", "Fail", "Skip", "Pass rate"],
+                [
+                    [m, v["cases"], v["pass"], v["fail"], v["skip"], pct(v["pass"], v["cases"])]
+                    for m, v in conf["milestones"].items()
+                ],
+            ),
+        ]
+        d = s["differential"]
+        body += [
+            '<h2 id="differential">Differential run</h2>',
+            stamp(s),
+            f"<p>{d['programs']} programs on {', '.join(d['backends'][1:])} against the "
+            f"{d['backends'][0]} oracle.</p>",
+            table(
+                ["Unexplained", "Allowlisted", "Refused by a backend", "Stale allowlist"],
+                [[d["unexplained"], d["allowlisted"], d["refused"], d["stale"]]],
+            ),
+        ]
+        debt = s["spec_debt"]
+        body += [
+            '<h2 id="spec-debt">Spec debt</h2>',
+            stamp(s),
+            table(
+                ["Measure", "Count", "Of"],
+                [
+                    [
+                        "Change rows with no conformance case",
+                        debt["rows_without_case"],
+                        debt["rows"],
+                    ],
+                    [
+                        "Diagnostic codes not implemented",
+                        debt["codes_unimplemented"],
+                        debt["codes"],
+                    ],
+                ],
+            ),
+        ]
+        b = s["bench"]
+        langs = {"yan": "Yan", "py": "Python", "rs": "Rust"}
+        body += [
+            '<h2 id="bench">Benchmarks</h2>',
+            stamp(s),
+            f"<p>Wall time in ms, one run, startup subtracted; indicative only. "
+            f"{b['env']['system']} {b['env']['machine']}.</p>",
+            table(
+                ["Program", *(f"{name} ms" for name in langs.values())],
+                [
+                    [r["program"], *(r["ms"].get(lang, "-") for lang in langs)]
+                    for r in b["programs"]
+                ],
+            ),
+        ]
+    body += [
+        '<h2 id="repository">Repository</h2>',
+        table(
+            ["Measure", "Count"],
+            [["Conformance cases", len(cases)], ["RFCs", len(rfcs)]]
+            + [[f"Cases in <code>{k}/</code>", v] for k, v in sorted(by_surface.items())],
+        ),
+    ]
+    return Page("status/index.html", "Status", "\n".join(body))
 
 
 def pages(build: Build) -> tuple[list[Page], str]:
@@ -340,11 +413,12 @@ def pages(build: Build) -> tuple[list[Page], str]:
     return [home, *tour_pages(), status_page(build), *blog], feed
 
 
-def build(out: Path, url: str, wasm: bool) -> None:
+def build(out: Path, url: str, wasm: bool, status: Path | None) -> None:
     wasm_file = PLAYGROUND / "yan.wasm"
     if wasm and not wasm_file.exists():
         sys.exit("playground/yan.wasm is missing: run playground/build.sh, or pass --no-wasm")
-    info = Build(git("rev-parse", "HEAD"), git("log", "-1", "--format=%cs"), url)
+    data = json.loads(status.read_text()) if status else None
+    info = Build(git("rev-parse", "HEAD"), git("log", "-1", "--format=%cs"), url, data)
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir(parents=True)
     shutil.copytree(SITE / "brand", out / "brand")
@@ -414,11 +488,12 @@ def main() -> int:
     b.add_argument("out", type=Path)
     b.add_argument("--url", default="", help="absolute site URL ending in /, for feeds and cards")
     b.add_argument("--no-wasm", action="store_true")
+    b.add_argument("--status", type=Path, help="status data from tools.status, rendered on status/")
     c = sub.add_parser("check")
     c.add_argument("--yan", required=True)
     args = ap.parse_args()
     if args.cmd == "build":
-        build(args.out, args.url, not args.no_wasm)
+        build(args.out, args.url, not args.no_wasm, args.status)
         return 0
     return check(args.yan)
 

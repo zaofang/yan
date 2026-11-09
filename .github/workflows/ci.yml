@@ -192,9 +192,41 @@ jobs:
       - run: uv sync --locked
       - run: cargo build --locked --release -p yan-cli
       - run: uv run python bench/run.py --runs 1 --json bench-summary.json
+      # Every case, every milestone, for the status page; the M1 gate stays in the rust job.
+      - run: >-
+          uv run python tools/conform.py --report-only --json conformance-all.json
+          --executor interp=${{ github.workspace }}/target/release/yan
       - uses: actions/upload-artifact@v4
         with:
           name: bench-summary
-          path: bench-summary.json
+          path: |
+            bench-summary.json
+            conformance-all.json
+      - if: always()
+        uses: ./.github/actions/cleanup
+
+  # Status page data (#871): CI figures plus spec debt, stamped with commit and date (law 14).
+  status:
+    needs: [rust, bench]
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - uses: actions/download-artifact@v4
+        with:
+          name: conformance-summary
+      - uses: actions/download-artifact@v4
+        with:
+          name: bench-summary
+      - run: >-
+          uv run python -m tools.status --conformance conformance-all.json
+          --difftest difftest-summary.json --bench bench-summary.json --out status.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: status
+          path: status.json
       - if: always()
         uses: ./.github/actions/cleanup
