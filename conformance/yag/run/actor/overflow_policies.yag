@@ -1,0 +1,40 @@
+# spec: 9.6, 17.3
+# rows: R974, R975, R976
+# note: each overflow policy with capacity 1 and two sends, then a send through `actor.send_only` (#895)
+# stdout:
+# Undelivered(reason=Full(), args=(2,))
+# 1
+# 2
+# 1
+# 3
+# 13
+
+class Log:
+    n: int
+
+def add(var self: Log, v: int):
+    self.n += v
+
+def total(var self: Log) -> int:
+    return self.n
+
+def main() uses io, nondet:
+    a: Actor[Log, Reject] = actor.spawn(Log(n=0), capacity=1)
+    actor.send(a).add(1) else e -> print(f"{e}")
+    actor.send(a).add(2) else e -> print(f"{e}")
+    print(a.total() else -1)
+    d: Actor[Log, DropOldest] = actor.spawn(Log(n=0), capacity=1)
+    actor.send(d).add(1) else e -> print(f"{e}")
+    actor.send(d).add(2) else e -> print(f"{e}")
+    print(d.total() else -1)
+    n: Actor[Log, DropNew] = actor.spawn(Log(n=0), capacity=1)
+    actor.send(n).add(1) else e -> print(f"{e}")
+    actor.send(n).add(2) else e -> print(f"{e}")
+    print(n.total() else -1)
+    b = actor.spawn(Log(n=0), capacity=1)
+    actor.send(b).add(1) else e -> print(f"{e}")
+    actor.send(b).add(2) else e -> print(f"{e}")
+    print(b.total() else -1)
+    s = actor.send_only(b)
+    actor.send(s).add(10) else e -> print(f"{e}")
+    print(b.total() else -1)
