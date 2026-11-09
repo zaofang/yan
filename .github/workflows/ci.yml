@@ -153,12 +153,17 @@ jobs:
       - run: >-
           uv run python tools/conform.py --laws --json laws-summary.json
           --executor interp=${{ github.workspace }}/target/release/yan
+      # DL5 differential run: report-only until native parity (#758) makes it blocking.
+      - run: >-
+          uv run python -m tools.difftest --report-only --json difftest-summary.json
+          --yan ${{ github.workspace }}/target/release/yan
       - uses: actions/upload-artifact@v4
         with:
           name: conformance-summary
           path: |
             conformance-summary.json
             laws-summary.json
+            difftest-summary.json
 
   # One run per program: checks that every benchmark still computes its result; times are indicative.
   # Main pushes and the nightly run only.
