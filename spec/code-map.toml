@@ -4,7 +4,7 @@
 # Retired and reserved catalogue codes need no entry.
 
 [codes]
-E001 = "crates/yan-elab/src/lower.rs"
+E001 = "crates/yan-elab/src/lower/std_calls.rs"
 E002 = { unimplemented = "#825" }
 E003 = "crates/yan-cli/src/deps.rs"
 E004 = "crates/yan-cli/src/deps.rs"
@@ -44,7 +44,7 @@ E134 = "crates/yan-yn/src/lib.rs"
 E135 = "crates/yan-yn/src/lib.rs"
 E140 = "crates/yan-yag/src/lexer.rs"
 E141 = "crates/yan-check/src/lib.rs"
-E143 = "crates/yan-elab/src/lower.rs"
+E143 = "crates/yan-elab/src/lower/calls.rs"
 E144 = "crates/yan-elab/src/desugar.rs"
 E200 = "crates/yan-check/src/lib.rs"
 E201 = "crates/yan-check/src/lib.rs"
@@ -52,17 +52,17 @@ E202 = "crates/yan-check/src/lib.rs"
 E203 = "crates/yan-check/src/lib.rs"
 E210 = "crates/yan-elab/src/lower.rs"
 E220 = "crates/yan-elab/src/lib.rs"
-E221 = "crates/yan-elab/src/lower.rs"
+E221 = "crates/yan-elab/src/lower/calls.rs"
 E230 = "crates/yan-elab/src/lower.rs"
 E232 = "crates/yan-yag/src/parser.rs"
-E233 = "crates/yan-elab/src/lower.rs"
+E233 = "crates/yan-elab/src/lower/std_calls.rs"
 E240 = "crates/yan-yag/src/parser.rs"
-E241 = "crates/yan-elab/src/lower.rs"
+E241 = "crates/yan-elab/src/lower/args.rs"
 E250 = "crates/yan-elab/src/lib.rs"
 E251 = "crates/yan-elab/src/desugar.rs"
 E260 = "crates/yan-elab/src/reify.rs"
 E261 = "crates/yan-cli/src/mcp.rs"
-E262 = "crates/yan-elab/src/lower.rs"
+E262 = "crates/yan-elab/src/lower/scalar.rs"
 E263 = { unimplemented = "#825" }
 E264 = { unimplemented = "#825" }
 E265 = "crates/yan-elab/src/meta_selftest.rs"
@@ -70,9 +70,9 @@ E266 = { unimplemented = "#825" }
 E267 = "crates/yan-db/src/lib.rs"
 E268 = "crates/yan-elab/src/meta_selftest.rs"
 E269 = "crates/yan-elab/src/decorators.rs"
-E270 = "crates/yan-elab/src/lower.rs"
+E270 = "crates/yan-elab/src/lower/calls.rs"
 E271 = "crates/yan-check/src/lib.rs"
-E272 = "crates/yan-elab/src/lower.rs"
+E272 = "crates/yan-elab/src/lower/calls.rs"
 E273 = "crates/yan-check/src/lib.rs"
 E274 = { unimplemented = "#825" }
 E275 = "crates/yan-opt/src/mono.rs"
@@ -91,11 +91,11 @@ E307 = { unimplemented = "#825" }
 E310 = "crates/yan-check/src/lib.rs"
 E311 = "crates/yan-check/src/lib.rs"
 E312 = "crates/yan-check/src/lib.rs"
-E313 = "crates/yan-elab/src/lower.rs"
+E313 = "crates/yan-elab/src/lower/rhs.rs"
 E314 = "crates/yan-elab/src/desugar.rs"
-E315 = "crates/yan-elab/src/lower.rs"
+E315 = "crates/yan-elab/src/lower/rhs.rs"
 E316 = { unimplemented = "#825" }
-E317 = "crates/yan-elab/src/lower.rs"
+E317 = "crates/yan-elab/src/lower/stmt_form.rs"
 E318 = { unimplemented = "#825" }
 E319 = { unimplemented = "#825" }
 E320 = { unimplemented = "#825" }
@@ -113,13 +113,13 @@ E332 = "crates/yan-elab/src/desugar.rs"
 E401 = "crates/yan-check/src/lib.rs"
 E402 = "crates/yan-check/src/lib.rs"
 E403 = "crates/yan-check/src/lib.rs"
-E404 = "crates/yan-elab/src/lower.rs"
-E405 = "crates/yan-elab/src/lower.rs"
+E404 = "crates/yan-elab/src/lower/args.rs"
+E405 = "crates/yan-elab/src/lower/args.rs"
 E406 = "crates/yan-check/src/lib.rs"
 E412 = "crates/yan-check/src/lib.rs"
 E413 = "crates/yan-diag/src/lib.rs"
-E414 = "crates/yan-elab/src/lower.rs"
-E415 = "crates/yan-elab/src/lower.rs"
+E414 = "crates/yan-elab/src/lower/calls.rs"
+E415 = "crates/yan-elab/src/lower/call_expr.rs"
 E416 = "crates/yan-check/src/lib.rs"
 E417 = "crates/yan-check/src/lib.rs"
 E418 = "crates/yan-elab/src/lower.rs"
@@ -130,19 +130,19 @@ E422 = { unimplemented = "#825" }
 E423 = { unimplemented = "#825" }
 E424 = "crates/yan-elab/src/consttime.rs"
 E501 = "crates/yan-diag/src/lib.rs"
-E502 = "crates/yan-elab/src/lower.rs"
+E502 = "crates/yan-elab/src/lower/matching.rs"
 E503 = "crates/yan-check/src/lib.rs"
-E504 = "crates/yan-elab/src/lower.rs"
-E520 = "crates/yan-elab/src/lower.rs"
+E504 = "crates/yan-elab/src/lower/assign.rs"
+E520 = "crates/yan-elab/src/lower/arith.rs"
 E521 = { unimplemented = "#825" }
-E530 = "crates/yan-elab/src/lower.rs"
-E540 = "crates/yan-elab/src/lower.rs"
+E530 = "crates/yan-elab/src/lower/arith.rs"
+E540 = "crates/yan-elab/src/lower/calls.rs"
 E541 = { unimplemented = "#825" }
-E542 = "crates/yan-elab/src/lower.rs"
+E542 = "crates/yan-elab/src/lower/calls.rs"
 E543 = { unimplemented = "#825" }
 E544 = { unimplemented = "#825" }
-E545 = "crates/yan-elab/src/lower.rs"
-E550 = "crates/yan-elab/src/lower.rs"
+E545 = "crates/yan-elab/src/lower/std_calls.rs"
+E550 = "crates/yan-elab/src/lower/std_calls.rs"
 E551 = "crates/yan-elab/src/decorators.rs"
 E552 = { unimplemented = "#825" }
 E553 = { unimplemented = "#825" }
@@ -151,7 +151,7 @@ E555 = "crates/yan-elab/src/decorators.rs"
 E601 = "crates/yan-elab/src/lib.rs"
 E602 = "crates/yan-check/src/lib.rs"
 E603 = { unimplemented = "#825" }
-E604 = "crates/yan-elab/src/lower.rs"
+E604 = "crates/yan-elab/src/lower/rhs.rs"
 E605 = "crates/yan-elab/src/lib.rs"
 E618 = "crates/yan-elab/src/cost.rs"
 E619 = "crates/yan-cli/src/mcp.rs"
@@ -161,13 +161,13 @@ E708 = { unimplemented = "#825" }
 E709 = "crates/yan-elab/src/lower.rs"
 E710 = { unimplemented = "#825" }
 E711 = { unimplemented = "#825" }
-E712 = "crates/yan-elab/src/lower.rs"
-E713 = "crates/yan-elab/src/lower.rs"
+E712 = "crates/yan-elab/src/lower/stmt_form.rs"
+E713 = "crates/yan-elab/src/lower/arith.rs"
 E714 = { unimplemented = "#825" }
 E715 = "crates/yan-elab/src/decorators.rs"
 E716 = "crates/yan-elab/src/lower.rs"
-E717 = "crates/yan-elab/src/lower.rs"
-E720 = "crates/yan-elab/src/lower.rs"
+E717 = "crates/yan-elab/src/lower/arith.rs"
+E720 = "crates/yan-elab/src/lower/call_expr.rs"
 E721 = { unimplemented = "#825" }
 E722 = { unimplemented = "#825" }
 E723 = { unimplemented = "#825" }
@@ -177,17 +177,17 @@ E726 = "crates/yan-elab/src/lower.rs"
 E727 = "crates/yan-elab/src/lower.rs"
 E728 = "crates/yan-elab/src/session.rs"
 E900 = "crates/yan-elab/src/decorators.rs"
-E901 = "crates/yan-elab/src/lower.rs"
+E901 = "crates/yan-elab/src/lower/stmt_form.rs"
 E902 = "crates/yan-elab/src/ffi.rs"
-E903 = "crates/yan-elab/src/lower.rs"
+E903 = "crates/yan-elab/src/lower/calls.rs"
 E904 = "crates/yan-elab/src/ffi.rs"
-E905 = "crates/yan-elab/src/lower.rs"
+E905 = "crates/yan-elab/src/lower/calls.rs"
 E906 = "crates/yan-elab/src/ffi.rs"
 E907 = "crates/yan-elab/src/ffi.rs"
 E908 = { unimplemented = "#825" }
 E909 = { unimplemented = "#825" }
-E910 = "crates/yan-elab/src/lower.rs"
-E911 = "crates/yan-elab/src/lower.rs"
+E910 = "crates/yan-elab/src/lower/calls.rs"
+E911 = "crates/yan-elab/src/lower/calls.rs"
 H701 = "crates/yan-cli/src/mcp.rs"
 P001 = "crates/yan-cli/src/patch.rs"
 P002 = "crates/yan-cli/src/patch.rs"
@@ -201,38 +201,38 @@ W014 = { unimplemented = "#825" }
 W111 = "crates/yan-yag/src/parser.rs"
 W420 = { unimplemented = "#825" }
 W801 = { unimplemented = "#825" }
-W803 = "crates/yan-elab/src/lower.rs"
+W803 = "crates/yan-elab/src/lower/std_calls.rs"
 W805 = "crates/yan-elab/src/lib.rs"
 W806 = "crates/yan-cli/src/mcp.rs"
 W807 = "crates/yan-elab/src/bounds.rs"
 W808 = { unimplemented = "#825" }
 W810 = "crates/yan-elab/src/decorators.rs"
-W811 = "crates/yan-elab/src/lower.rs"
+W811 = "crates/yan-elab/src/lower/matching.rs"
 W812 = "crates/yan-elab/src/lower.rs"
 W813 = "crates/yan-elab/src/lib.rs"
 W814 = { unimplemented = "#825" }
-W815 = "crates/yan-elab/src/lower.rs"
-W816 = "crates/yan-elab/src/lower.rs"
-W817 = "crates/yan-elab/src/lower.rs"
-W818 = "crates/yan-elab/src/lower.rs"
-W819 = "crates/yan-elab/src/lower.rs"
+W815 = "crates/yan-elab/src/lower/calls.rs"
+W816 = "crates/yan-elab/src/lower/stmt_form.rs"
+W817 = "crates/yan-elab/src/lower/arith.rs"
+W818 = "crates/yan-elab/src/lower/consume.rs"
+W819 = "crates/yan-elab/src/lower/method.rs"
 W820 = "crates/yan-elab/src/bounds.rs"
 W821 = { unimplemented = "#825" }
 W822 = "crates/yan-elab/src/lower.rs"
-W823 = "crates/yan-elab/src/lower.rs"
+W823 = "crates/yan-elab/src/lower/assign.rs"
 W824 = "crates/yan-elab/src/lower.rs"
 W830 = "crates/yan-elab/src/lib.rs"
 W831 = "crates/yan-db/src/docs.rs"
 W832 = "crates/yan-db/src/docs.rs"
 W833 = "crates/yan-db/src/docs.rs"
 W834 = { unimplemented = "#825" }
-W840 = "crates/yan-elab/src/lower.rs"
+W840 = "crates/yan-elab/src/lower/rhs.rs"
 W841 = { unimplemented = "#825" }
 W843 = { unimplemented = "#825" }
 W850 = { unimplemented = "#825" }
 W851 = "crates/yan-elab/src/cost.rs"
 W852 = "crates/yan-elab/src/accuracy.rs"
-W853 = "crates/yan-elab/src/lower.rs"
+W853 = "crates/yan-elab/src/lower/matching.rs"
 W854 = "crates/yan-diag/src/habit.rs"
 W855 = { unimplemented = "#825" }
 W856 = { unimplemented = "#825" }
