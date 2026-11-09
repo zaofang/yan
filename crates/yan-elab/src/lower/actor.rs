@@ -352,8 +352,16 @@ impl Lower<'_, '_, '_> {
             span: at,
             paren: false,
         };
-        let hn = self.fresh("h");
-        self.bind(&hn, false, &ht, Rhs::Atom(ha), at, at);
+        // The message borrows the handle, which does not own the actor (9.6), so the sender
+        // keeps it.
+        let hn = match ha {
+            Atom::Name(n, _) => n,
+            a => {
+                let n = self.fresh("h");
+                self.bind(&n, false, &ht, Rhs::Atom(a), at, at);
+                n
+            }
+        };
         let hv = Atom::Name(hn.clone(), at);
         // The arguments move into a tuple that the message takes, or that a failed send returns
         // in `Undelivered.args` (R976).
