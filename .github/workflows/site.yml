@@ -36,7 +36,7 @@ jobs:
           fi
           echo "WASI_INCLUDE=$(ls -d "$dir"/include/wasm32-wasi* | head -n1)" >> "$GITHUB_ENV"
           clang --print-targets | grep -q wasm32 || { echo "clang has no wasm32 backend"; exit 1; }
-      - run: rustup target add wasm32-unknown-unknown
+      - run: rustup target add wasm32-wasip1
       - run: ./playground/build.sh
       - run: cargo build --release -p yan-cli
       - run: uv run python -m tools.site check --yan target/release/yan
