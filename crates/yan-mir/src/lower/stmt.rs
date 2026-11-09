@@ -151,6 +151,10 @@ impl<'a, 'm> Fn<'a, 'm> {
     pub(super) fn stmt(&mut self, s: &'m y::Stmt) -> R<()> {
         use y::StmtKind as K;
         self.line = s.span.line;
+        if let Some(n) = self.flagged_drop(&s.kind) {
+            self.drop_stmt(n);
+            return Ok(());
+        }
         if !matches!(s.kind, K::Drop(_) | K::Ret(_) | K::Fail(_)) {
             self.flush_deferred();
         }

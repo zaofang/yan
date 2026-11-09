@@ -22,14 +22,47 @@ impl Fn<'_, '_> {
         if self.depth(n) < self.task_starts.len() {
             self.deferred.push(n.clone());
         } else {
-            self.drop_name(n);
+            self.drop_owned(n);
         }
+    }
+
+    /// `if _dN { drop n }` for the flag of `n`, the form the elaborator writes it in.
+    pub(super) fn flagged_drop<'s>(&self, k: &'s y::StmtKind) -> Option<&'s y::Name> {
+        let y::StmtKind::If {
+            cond: y::Atom::Name(f, _),
+            then,
+            els: None,
+        } = k
+        else {
+            return None;
+        };
+        match then.stmts.as_slice() {
+            [
+                y::Stmt {
+                    kind: y::StmtKind::Drop(n),
+                    ..
+                },
+            ] if self.flags.get(n) == Some(f) => Some(n),
+            _ => None,
+        }
+    }
+
+    /// Drop `n`, under its flag if it has one: a drop list or a deferred drop names a flagged
+    /// local that may have been moved (R871).
+    fn drop_owned(&mut self, n: &str) {
+        let Some(flag) = self.flags.get(n).and_then(|f| self.names.get(f)) else {
+            return self.drop_name(n);
+        };
+        let (set, unset) = self.branch(Operand::Local(flag.locals[0]));
+        self.cur = set;
+        self.drop_name(n);
+        self.goto(unset);
     }
 
     /// Drops deferred by [`Self::drop_stmt`] that no exit followed.
     pub(super) fn flush_deferred(&mut self) {
         for n in std::mem::take(&mut self.deferred) {
-            self.drop_name(&n);
+            self.drop_owned(&n);
         }
     }
 
@@ -41,7 +74,7 @@ impl Fn<'_, '_> {
         for d in (0..=self.task_starts.len()).rev() {
             for n in &drops {
                 if self.depth(n) == d {
-                    self.drop_name(n);
+                    self.drop_owned(n);
                 }
             }
             if d == 0 {

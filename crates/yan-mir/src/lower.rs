@@ -757,6 +757,8 @@ struct Fn<'a, 'm> {
     task_starts: Vec<Local>,
     /// Names of an enclosing frame whose `drop` in a branch waits for the exit that follows.
     deferred: Vec<String>,
+    /// Each flagged local to its drop flag (5.3).
+    flags: HashMap<String, String>,
     /// Whether the program counts steps and allocations for `cost` bounds (R610).
     costing: bool,
     /// The tokens of this function's `cost` counters, ended on every exit.
@@ -788,6 +790,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             line: 0,
             task_starts: Vec::new(),
             deferred: Vec::new(),
+            flags: HashMap::new(),
             costing: mono.borrow().costing,
             cost_tokens: Vec::new(),
         }
@@ -814,10 +817,11 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.item = item;
         let names: Vec<&str> = params(f)?.into_iter().map(|(n, ..)| n).collect();
         let body = f.body.as_ref().expect("filtered on body");
+        self.flags = yan_check::drop_flags(&f.params, body);
         self.body(&f.path.join("."), &names, &f.contracts, body, Vec::new())
     }
 
-    fn closure(self, c: &'m y::Closure, caps: Vec<(String, Shape)>) -> R<Func> {
+    fn closure(mut self, c: &'m y::Closure, caps: Vec<(String, Shape)>) -> R<Func> {
         let mut names = vec![""];
         for p in &c.params {
             let y::Param::Value { name, .. } = p else {
@@ -825,6 +829,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             };
             names.push(name);
         }
+        self.flags = yan_check::drop_flags(&c.params, &c.body);
         self.body("closure", &names, &[], &c.body, caps)
     }
 

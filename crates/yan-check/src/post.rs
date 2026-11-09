@@ -11,6 +11,7 @@ use std::mem;
 use yan_core::ast::*;
 use yan_diag::{Diagnostic, Span};
 
+use crate::flags::{is_flag_init, owned_params};
 use crate::own;
 
 const CODE: &str = "I001";
@@ -79,32 +80,6 @@ pub fn check_optimized(file: &str, m: &Module) -> Vec<Diagnostic> {
     v.diags
 }
 
-fn owned_params(params: &[Param]) -> Vec<(&Name, &Type)> {
-    params
-        .iter()
-        .filter_map(|p| match p {
-            Param::Value {
-                conv: Conv::Sink,
-                name,
-                ty,
-                ..
-            } if !own::is_copy(ty) => Some((name, ty)),
-            _ => None,
-        })
-        .collect()
-}
-
-fn is_flag_init(s: &Stmt) -> Option<&Name> {
-    match &s.kind {
-        StmtKind::Let {
-            pat: Pat::Bind(f),
-            rhs: Rhs::Atom(Atom::Lit(Literal::Bool(true), _)),
-            ..
-        } if f.starts_with("_d") => Some(f),
-        _ => None,
-    }
-}
-
 fn sets_flag(s: Option<&Stmt>, f: &str, v: bool) -> bool {
     matches!(s.map(|s| &s.kind), Some(StmtKind::Assign {
         place: Place { root, projs, .. },
@@ -117,7 +92,7 @@ impl V {
     /// The body of a join point declares into the enclosing scope. The state at its end.
     fn hoisted_jp(&mut self, name: &Name, params: &[Param], body: &Block) -> Option<St> {
         let saved = self.st.clone().expect("reachable");
-        for (n, _) in owned_params(params) {
+        for n in owned_params(params) {
             self.declare(n);
         }
         for (i, s) in body.stmts.iter().enumerate() {
@@ -140,13 +115,7 @@ impl V {
         self.item = format!("{}.{}", path.join("."), f.path.join("."));
         if let Some(b) = &f.body {
             let owned = owned_params(&f.params);
-            self.run(
-                &owned
-                    .into_iter()
-                    .map(|(n, _)| n.clone())
-                    .collect::<Vec<_>>(),
-                b,
-            );
+            self.run(&owned.into_iter().cloned().collect::<Vec<_>>(), b);
         }
     }
 
@@ -368,10 +337,7 @@ impl V {
 
     fn closure(&mut self, r: &Rhs) {
         if let Rhs::Closure(c) = r {
-            let owned: Vec<Name> = owned_params(&c.params)
-                .into_iter()
-                .map(|(n, _)| n.clone())
-                .collect();
+            let owned: Vec<Name> = owned_params(&c.params).into_iter().cloned().collect();
             self.run(&owned, &c.body);
         }
     }
@@ -595,10 +561,7 @@ impl V {
                 );
                 let saved = self.st.clone().expect("reachable");
                 self.jps.insert(name.clone(), (pos, saved.clone()));
-                let owned: Vec<Name> = owned_params(params)
-                    .into_iter()
-                    .map(|(n, _)| n.clone())
-                    .collect();
+                let owned: Vec<Name> = owned_params(params).into_iter().cloned().collect();
                 self.block(body, &owned);
                 self.st = Some(saved);
             }
