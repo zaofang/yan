@@ -16,28 +16,54 @@ pub(crate) fn is_kernel(it: &j::Item) -> bool {
     matches!(it.kind, j::ItemKind::Func(_)) && it.decorators.iter().any(|d| d.path == ["kernel"])
 }
 
+/// The value of an integer constant expression: literals, the module's integer constants, and
+/// `+`, `-`, `*`, `//` and `%` (the last two by a positive divisor) over them, at stage 0 or not.
 fn literal(e: &j::Expr, consts: &Consts) -> Option<i128> {
+    use j::ExprKind as K;
     match &e.kind {
-        j::ExprKind::Lit(j::Lit::Int(s)) => s.replace('_', "").parse().ok(),
-        j::ExprKind::Name(n) => consts.get(n).copied(),
+        K::Lit(j::Lit::Int(s)) => s.replace('_', "").parse().ok(),
+        K::Name(n) => consts.get(n).copied(),
+        K::Unary("-", a) => literal(a, consts)?.checked_neg(),
+        K::Stage(a) => literal(a, consts),
+        K::Binary(op, a, b) => {
+            let (a, b) = (literal(a, consts)?, literal(b, consts)?);
+            match *op {
+                "+" => a.checked_add(b),
+                "-" => a.checked_sub(b),
+                "*" => a.checked_mul(b),
+                "//" if b > 0 => Some(a.div_euclid(b)),
+                "%" if b > 0 => Some(a.rem_euclid(b)),
+                _ => None,
+            }
+        }
         _ => None,
     }
 }
 
-/// Integer constants declared at module level.
+/// Integer constants declared at module level, in any order.
 pub(crate) type Consts = HashMap<String, i128>;
 
 pub(crate) fn consts(items: &[j::Item]) -> Consts {
-    let empty = Consts::new();
-    items
+    let defs: Vec<(&String, &j::Expr)> = items
         .iter()
         .filter_map(|it| match &it.kind {
-            j::ItemKind::Const { name, value, .. } => {
-                literal(value, &empty).map(|v| (name.clone(), v))
-            }
+            j::ItemKind::Const { name, value, .. } => Some((name, value)),
             _ => None,
         })
-        .collect()
+        .collect();
+    let mut out = Consts::new();
+    // Each pass folds at least one more constant, or none is left to fold.
+    loop {
+        let found: Vec<(String, i128)> = defs
+            .iter()
+            .filter(|(n, _)| !out.contains_key(*n))
+            .filter_map(|(n, v)| literal(v, &out).map(|v| ((*n).clone(), v)))
+            .collect();
+        if found.is_empty() {
+            return out;
+        }
+        out.extend(found);
+    }
 }
 
 fn arg_expr(a: &j::Arg) -> Option<&j::Expr> {
@@ -434,9 +460,12 @@ pub(crate) fn check(g: &Globals, it: &j::Item, consts: &Consts, cx: &mut Cx) -> 
         .any(|d| d.severity == yan_diag::Severity::Error))
 }
 
-/// Rewrites each `@kernel` function `k(at, args...) -> R` to `k(at, args..., var out: R) uses
-/// gpu`: a program instance writes its part of the launch's `out` (RFC 0058 D1).
+/// Rewrites each `@kernel` function `k(at, args...) -> R` to `k(at, args..., var out: R) -> ()
+/// fail KernelFault uses gpu`: a program instance writes its part of the launch's `out`, and a
+/// failed bounds check fails it (RFC 0058 D1, R327). Adds the function `gpu.launch(k, ...)`
+/// calls, `launcher(k)(args...) -> R fail KernelFault uses gpu`, whose body runs the grid.
 pub(crate) fn prepare(m: &mut j::Module) {
+    let mut launchers = Vec::new();
     for it in &mut m.items {
         if !is_kernel(it) {
             continue;
@@ -444,25 +473,163 @@ pub(crate) fn prepare(m: &mut j::Module) {
         let j::ItemKind::Func(f) = &mut it.kind else {
             unreachable!("is_kernel")
         };
-        let Some(ty) = f.ret.as_mut().and_then(|r| r.ty.take()) else {
+        let Some(r) = f.ret.as_mut() else {
             continue;
         };
-        f.params.push(j::Param::Value {
-            conv: Some(j::Conv::Var),
-            name: "out".into(),
-            span: f.name_span,
-            ty,
-            default: None,
-        });
-        let gpu = j::CapRef {
+        let Some(ty) = r.ty.take() else {
+            continue;
+        };
+        r.fail = vec![vec![FAULT.into()]];
+        let at = f.name_span;
+        let gpu = || j::CapRef {
             path: vec!["gpu".into()],
             alias: None,
         };
+        let args: Vec<j::Param> = f.params.iter().filter(|p| !is_origin(p)).cloned().collect();
+        f.params.push(j::Param::Value {
+            conv: Some(j::Conv::Var),
+            name: "out".into(),
+            span: at,
+            ty: ty.clone(),
+            default: None,
+        });
         match &mut f.uses {
-            Some(j::Uses::Caps(cs)) => cs.push(gpu),
-            _ => f.uses = Some(j::Uses::Caps(vec![gpu])),
+            Some(j::Uses::Caps(cs)) => cs.push(gpu()),
+            _ => f.uses = Some(j::Uses::Caps(vec![gpu()])),
+        }
+
+        let ex = |kind| j::Expr {
+            kind,
+            span: at,
+            paren: false,
+        };
+        let name = |n: &str| ex(j::ExprKind::Name(n.to_owned()));
+        let arg = |e| j::Arg {
+            name: None,
+            kind: j::ArgKind::Expr(e),
+            span: at,
+        };
+        let forwarded = args.iter().filter_map(|p| match p {
+            j::Param::Value { name: n, .. } => Some(arg(name(n))),
+            _ => None,
+        });
+        let launch = ex(j::ExprKind::Call(
+            Box::new(ex(j::ExprKind::Attr(
+                Box::new(name("gpu")),
+                "launch".into(),
+                at,
+            ))),
+            std::iter::once(arg(name(&f.name)))
+                .chain(forwarded)
+                .collect(),
+        ));
+        launchers.push(j::Item {
+            decorators: Vec::new(),
+            is_pub: false,
+            kind: j::ItemKind::Func(j::FuncDef {
+                name: launcher(&f.name),
+                name_span: at,
+                tparams: Vec::new(),
+                params: args,
+                ret: Some(j::RetType {
+                    ty: Some(ty),
+                    fail: vec![vec![FAULT.into()]],
+                    from: Vec::new(),
+                }),
+                uses: Some(j::Uses::Caps(vec![gpu()])),
+                body: Some(j::Body {
+                    doc: None,
+                    contracts: Vec::new(),
+                    stmts: vec![j::Stmt {
+                        kind: j::StmtKind::Return(Some(launch)),
+                        span: at,
+                    }],
+                }),
+            }),
+            span: it.span,
+            name_span: at,
+        });
+    }
+    m.items.extend(launchers);
+}
+
+/// A `@kernel` body, whose element accesses lower to `std.array.checked2`.
+pub(crate) fn takes_origin(f: &j::FuncDef) -> bool {
+    f.params.iter().any(is_origin)
+}
+
+fn is_origin(p: &j::Param) -> bool {
+    matches!(p, j::Param::Value { ty: j::Type::Named { path, .. }, .. } if path == &["TileOrigin"])
+}
+
+/// What a failed bounds check in a kernel body fails with (R327).
+pub(crate) const FAULT: &str = "KernelFault";
+
+/// The function `gpu.launch(k, ...)` calls.
+pub(crate) fn launcher(kernel: &str) -> String {
+    format!("__{kernel}_launch")
+}
+
+/// The kernel whose launcher `item` is.
+pub(crate) fn launched(item: &str) -> Option<&str> {
+    item.strip_prefix("__")?.strip_suffix("_launch")
+}
+
+/// What a launch of a kernel needs: its `out` type, element zero, sizes and grid steps.
+pub(crate) struct Plan {
+    pub out: Ty,
+    pub elem: Ty,
+    pub zero: y::Literal,
+    pub dims: Vec<i64>,
+    pub steps: Vec<Step>,
+}
+
+/// Why a kernel cannot be launched.
+pub(crate) enum Unfit {
+    /// E521: an `out` axis is not a whole number of tiles (R973).
+    Partial(String),
+    Unsupported(String),
+}
+
+/// The launch of `name`, or why it cannot run; the same for every launch of the kernel.
+pub(crate) fn plan(g: &Globals, name: &str) -> Result<Plan, Unfit> {
+    let unsupported = |w: &str| Err(Unfit::Unsupported(w.into()));
+    let Some(grid) = g.kernels.get(name) else {
+        return unsupported("`gpu.launch` of anything but a `@kernel` function by name");
+    };
+    let out = g.fns[name]
+        .params
+        .last()
+        .map(|p| p.ty.clone())
+        .expect("a kernel has `out`");
+    let (Some(dims), Ty::Array(_, et)) = (out.dims(), &out) else {
+        return unsupported("a `@kernel` result whose sizes are not literals");
+    };
+    let zero = match **et {
+        Ty::Float | Ty::Fixed("f32") => y::Literal::Float("0.0".into()),
+        Ty::Int | Ty::Fixed(_) => y::Literal::Int("0".into()),
+        Ty::Bool => y::Literal::Bool(false),
+        _ => return unsupported("a `@kernel` result of other than number or `bool` elements"),
+    };
+    let steps = grid.steps(dims.len()).map_err(Unfit::Unsupported)?;
+    for (a, (d, s)) in dims.iter().zip(&steps).enumerate() {
+        if let Step::By(s) = s
+            && d % s != 0
+        {
+            return Err(Unfit::Partial(format!(
+                "axis {a} of `{name}`'s result has {d} elements, not a whole number of \
+                 {s}-element tiles"
+            )));
         }
     }
+    let elem = (**et).clone();
+    Ok(Plan {
+        out,
+        elem,
+        zero,
+        dims,
+        steps,
+    })
 }
 
 /// The std functions element access and `gpu.launch` lower to, which no source names.
@@ -699,9 +866,9 @@ mod tests {
     #[test]
     fn a_launch_runs_one_instance_per_tile() {
         let src = format!(
-            "{INC}main() uses io, gpu =\n\
+            "{INC}main() fail KernelFault uses io, gpu =\n\
              \x20 let a: Array[2, 4, int] = [1 2 3 4; 5 6 7 8]\n\
-             \x20 let r = gpu.launch(inc, a)\n\
+             \x20 let r = gpu.launch(inc, a)?\n\
              \x20 io.print(\"\\(r[0, 0]) \\(r[0, 3]) \\(r[1, 2])\")\n"
         );
         assert_eq!(run(&src), Ok("10 42 72\n".into()));
@@ -712,10 +879,59 @@ mod tests {
         let src = "@kernel(tile: 1, 3)\n@access(a: rows(0), out: rows(0))\n\
             total(at: TileOrigin, a: Array[2, 3, int]) -> Array[2, 3, int] =\n\
             \x20 for j in range(0, 3)\n    out[at.i0, j] = a[at.i0, 0] + a[at.i0, 1] + a[at.i0, 2]\n\n\
-            main() uses io, gpu =\n\
-            \x20 let r = gpu.launch(total, [1 2 3; 4 5 6])\n\
+            main() fail KernelFault uses io, gpu =\n\
+            \x20 let r = gpu.launch(total, [1 2 3; 4 5 6])?\n\
             \x20 io.print(\"\\(r[0, 2]) \\(r[1, 0])\")\n";
         assert_eq!(run(src), Ok("6 15\n".into()));
+    }
+
+    #[test]
+    fn a_failed_bounds_check_fails_the_launch() {
+        let src = "@kernel(tile: 1, 3)\n@access(a: rows(0, halo: 1), out: rows(0))\n\
+            prev(at: TileOrigin, a: Array[2, 3, int]) -> Array[2, 3, int] =\n\
+            \x20 for j in range(0, 3)\n    out[at.i0, j] = a[at.i0 - 1, j]\n\n\
+            fault(a: Array[2, 3, int]) -> str uses gpu =\n\
+            \x20 let r = gpu.launch(prev, a) else e ->\n\
+            \x20   return \"\\(e.i0) \\(e.i1) \\(e.line):\\(e.col)\"\n\
+            \x20 \"\\(r[1, 0])\"\n\n\
+            main() uses io, gpu =\n  io.print(fault([1 2 3; 4 5 6]))\n";
+        assert_eq!(run(src), Ok("0 0 5:23\n".into()));
+    }
+
+    #[test]
+    fn a_literal_index_past_an_axis_is_e501() {
+        let src = "main() uses io =\n\
+            \x20 let a: Array[2, 3, int] = [1 2 3; 4 5 6]\n\
+            \x20 io.print(\"\\(a[1, 2]) \\(a[2, 0]) \\(a[0, -1])\")\n";
+        assert_eq!(run(src), Err(vec!["E501@3".into(), "E501@3".into()]));
+    }
+
+    #[test]
+    fn constant_expressions_fold_in_tiles_and_indices() {
+        let src = "let w: int = #(h * 2)\nlet h: int = 1\nlet last: int = #(w - h)\n\n\
+            @kernel(tile: h, w)\n@access(a: rows(0), out: rows(0))\n\
+            pick(at: TileOrigin, a: Array[2, 2, int]) -> Array[2, 2, int] =\n\
+            \x20 for j in range(0, w)\n    out[at.i0, j] = a[at.i0, last % w]\n\n\
+            main() uses io, gpu =\n\
+            \x20 let r = gpu.launch(pick, [1 2; 3 4]) else e ->\n    return\n\
+            \x20 io.print(\"\\(r[0, 0]) \\(r[1, 1])\")\n";
+        assert_eq!(run(src), Ok("2 4\n".into()));
+    }
+
+    #[test]
+    fn a_result_of_fixed_width_or_bool_elements_starts_zeroed() {
+        let src = "@kernel(tile: 1, 2)\n@access(a: elementwise, out: elementwise)\n\
+            pos(at: TileOrigin, a: Array[1, 4, i32]) -> Array[1, 4, bool] =\n\
+            \x20 for j in range(0, 2)\n    out[at.i0, at.i1 + j] = a[at.i0, at.i1 + j] > 0\n\n\
+            @kernel(tile: 1, 2)\n@access(a: elementwise, out: elementwise)\n\
+            keep(at: TileOrigin, a: Array[1, 4, i32]) -> Array[1, 4, i32] =\n\
+            \x20 out[at.i0, at.i1] = a[at.i0, at.i1]\n\n\
+            main() uses io, gpu =\n\
+            \x20 let a: Array[1, 4, i32] = [1 0 3 4]\n\
+            \x20 let p = gpu.launch(pos, a) else e ->\n    return\n\
+            \x20 let k = gpu.launch(keep, a) else e ->\n    return\n\
+            \x20 io.print(\"\\(p[0, 0]) \\(p[0, 1]) \\(p[0, 3]) \\(k[0, 0]) \\(k[0, 1])\")\n";
+        assert_eq!(run(src), Ok("True False True 1 0\n".into()));
     }
 
     #[test]
@@ -724,7 +940,7 @@ mod tests {
             .replace("2, 4, int] =", "2, 5, int] =")
             .replace("-> Array[2, 4", "-> Array[2, 5");
         let src = format!(
-            "{src}f(a: Array[2, 5, int]) -> Array[2, 5, int] uses gpu =\n  gpu.launch(inc, a)\n\nmain() = 0\n"
+            "{src}f(a: Array[2, 5, int]) -> Array[2, 5, int] fail KernelFault uses gpu =\n  gpu.launch(inc, a)?\n\nmain() = 0\n"
         );
         assert_eq!(run(&src), Err(vec!["E521@9".into()]));
     }
@@ -732,7 +948,7 @@ mod tests {
     #[test]
     fn a_launch_needs_the_gpu_capability() {
         let src = format!(
-            "{INC}f(a: Array[2, 4, int]) -> Array[2, 4, int] =\n  gpu.launch(inc, a)\n\nmain() = 0\n"
+            "{INC}f(a: Array[2, 4, int]) -> Array[2, 4, int] fail KernelFault =\n  gpu.launch(inc, a)?\n\nmain() = 0\n"
         );
         assert_eq!(run(&src), Err(vec!["E301@9".into()]));
     }

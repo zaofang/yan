@@ -9,10 +9,12 @@ use yan_hir as j;
 use yan_hir::ExprKind as K;
 
 /// What an index expression indexes, as elaboration found it.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Site {
     List,
     Dict,
+    /// An `Array` with these literal sizes, indexed one axis per part (11.2).
+    Array(Vec<i64>),
 }
 
 pub(crate) struct Finding {
@@ -800,6 +802,21 @@ impl Solver<'_> {
                 self.expr(k, f);
                 match self.sites.get(&e.span) {
                     Some(Site::List) => self.index(e.span, b, k, f),
+                    Some(Site::Array(dims)) => {
+                        let parts = match &k.kind {
+                            K::Tuple(xs) => xs.iter().collect(),
+                            _ => vec![&**k],
+                        };
+                        for (x, &d) in parts.into_iter().zip(dims) {
+                            let mut side = Vec::new();
+                            match self.lin(x, &mut side) {
+                                Some(i) => self.in_bounds(x.span, i, Lin::konst(d.into()), side, f),
+                                None => {
+                                    self.unknown(x.span, "the index is outside the linear fragment")
+                                }
+                            }
+                        }
+                    }
                     Some(Site::Dict) => {
                         let known = matches!((&b.kind, key_of(k)), (K::Name(d), Some(key)) if f.keys.contains(&(d.clone(), key.clone())));
                         if !known {
@@ -911,6 +928,11 @@ impl Solver<'_> {
             self.unknown(at, "the index is outside the linear fragment");
             return;
         };
+        self.in_bounds(at, i, n, side, f);
+    }
+
+    /// E501 when `0 <= i < n` fails in every live case, W820 when some case cannot prove it.
+    fn in_bounds(&mut self, at: Span, i: Lin, n: Lin, side: Vec<Lin>, f: &Facts) {
         let last = n.sub(&Lin::konst(1));
         let (mut live, mut refuted, mut proven) = (0, 0, 0);
         for case in f.cases() {

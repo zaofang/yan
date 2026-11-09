@@ -734,6 +734,9 @@ fn bodies(m: &j::Module) -> Vec<Body> {
             if let Some(b) = &f.body {
                 crate::lower::body_callees(b, &mut names);
                 crate::kernel::array_callees(&b.stmts, &mut names);
+                if crate::kernel::takes_origin(f) {
+                    names.insert("checked2".into());
+                }
             }
         }
     }
