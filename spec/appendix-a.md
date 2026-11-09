@@ -298,6 +298,9 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R950 | An override replaces only its (name, major) and the lock records `source = "override"` and its `path` (a directory, or a git commit pinned by archive digest); the Python environment stays with `uv` and the lock records the `pylock.toml` digest (RFC 0053 D8) | 19.1 |
 | R951 | `dependencies`, `dev_dependencies` and `tools` resolve as three subgraphs; a package in several resolves to the maximum of its minimums, one version per (name, major), and the lock marks each package with `kinds` (RFC 0053 D9) | 19.1 |
 | R952 | `@access(name: region, ...)` binds one region to each array parameter and `out` to a non-unit result, each exactly once; non-array parameters are not named; `rows(axis)` and `cols(axis)` need an axis below the operand's rank and `tile(M, N)` positive literals; a malformed claim is E284 before any body is read (RFC 0052 D1) | 10.6, 11.2, 25 |
+| R953 | `@kernel(tile: M, N)` functions take one `TileOrigin` parameter (an `int` per tile axis, supplied by the launch, no public constructor) and read and write `Array` elements in the body (RFC 0055 D1) | 11.2, 17.1 |
+| R954 | An `@access` claim on a body is verified by an affine index proof over literals, constants, `TileOrigin` fields, bounded loop variables and `/` and `%` by a positive literal, decided by the 8.6 solver; an access that cannot be proved inside its region is E274, with no run-time fallback (RFC 0055 D2) | 11.2, 25 |
+| R955 | Region meanings relative to the tile origin and shape, and the optional `halo: h` argument of `rows`, `cols` and `tile` (non-negative literal, widens each bounded axis by `h` each side); `elementwise`, `whole` and `out` take no halo, a malformed halo is E284 (RFC 0055 D3) | 11.2, 25 |
 
 <!-- /rows -->
 
