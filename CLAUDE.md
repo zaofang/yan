@@ -6,7 +6,7 @@
 the previous is red. A PR states which stage it claims.
 
 - Working: runs on interpreter and native; both outputs attached.
-- Right: conformance case proposed via `conform/*`, differential run clean, spec rows and code agree.
+- Right: conformance case proposed via `conform/*`, differential run clean (`uv run python -m tools.difftest`; divergences go in `tools/difftest_allow.toml` with an issue), spec rows and code agree.
 - Fast: callgrind figure against the committed baseline, recorded in the PR.
 
 Laws and gates: [docs/development-laws.md](docs/development-laws.md).
