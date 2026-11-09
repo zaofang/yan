@@ -1,0 +1,44 @@
+# spec: 9.6
+# rows: R397, R977, R980
+# note: the actor crashes while a `@reentrant` handler waits; the handler cannot retake the state and fails `Stopped` (#835)
+# stdout:
+# -1
+# Stopped(reason=Crashed(error='Neg()'))
+
+class A:
+    n: int
+
+class Neg:
+    pass
+
+def take_away(var self: A, k: int) -> int fail Neg:
+    if self.n < k:
+        fail Neg()
+    self.n -= k
+    return self.n
+
+@reentrant
+def wait_for(var self: A, var rx: Receiver[int]) -> int fail ActorError:
+    self.n += 1
+    v = rx.recv()?
+    self.n += v
+    return self.n
+
+def poke(a: Actor[A], var tx: Sender[int]) -> int:
+    r = a.take_away(5) else e -> -1
+    tx.send(100) else e -> None
+    return r
+
+def show(r: Result[int, ActorError]) -> str:
+    match r:
+        case Ok(v):
+            return f"{v}"
+        case Err(e):
+            return f"{e}"
+
+def main() uses io:
+    a = actor.spawn(A(n=0))
+    tx, rx = Channel[int](1)
+    par concurrent:
+        print(show(a.wait_for(&rx)))
+        print(poke(a, &tx))
