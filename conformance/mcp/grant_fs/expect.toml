@@ -1,0 +1,4 @@
+spec = "21.4"
+rows = ["R986"]
+note = "with `--allow fs` the tool reads beneath the package; `../x` and an absolute path fail `not granted` (#908)"
+flags = ["--allow", "fs"]

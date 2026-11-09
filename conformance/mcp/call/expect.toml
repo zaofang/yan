@@ -1,0 +1,3 @@
+spec = "21.4"
+rows = ["R985"]
+note = "`add {a: 2}` returns 3 with `b` defaulted; a float for an int and an unknown member are tool errors; a `Wire` record argument decodes (#908)"
