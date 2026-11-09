@@ -301,6 +301,11 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R953 | `@kernel(tile: M, N)` functions take one `TileOrigin` parameter (an `int` per tile axis, supplied by the launch, no public constructor) and read and write `Array` elements in the body (RFC 0055 D1) | 11.2, 17.1 |
 | R954 | An `@access` claim on a body is verified by an affine index proof over literals, constants, `TileOrigin` fields, bounded loop variables and `/` and `%` by a positive literal, decided by the 8.6 solver; an access that cannot be proved inside its region is E274, with no run-time fallback (RFC 0055 D2) | 11.2, 25 |
 | R955 | Region meanings relative to the tile origin and shape, and the optional `halo: h` argument of `rows`, `cols` and `tile` (non-negative literal, widens each bounded axis by `h` each side); `elementwise`, `whole` and `out` take no halo, a malformed halo is E284 (RFC 0055 D3) | 11.2, 25 |
+| R956 | `actor.spawn(state: S, capacity: int = 1024) -> Actor[S, P]` moves the state into a new actor, `P` from the expected type (default `block`), `pre capacity >= 1`; `h.f(args)` resolved by R435 is the `call` (RFC 0056 D1) | 17.3 |
+| R957 | An actor spawned outside every `with supervisor` is owned by a root supervisor std binds before `main` and per test function (`one_for_one`, 1 restart per 5 s), stopped in reverse spawn order when `main` or the test returns (RFC 0056 D2) | 9.6 |
+| R958 | `actor.spawn(state)` children are `temporary`; a restartable child is `ChildSpec(start, args, restart=)` whose top-level `start` returns `S` and is called on each start and restart under the supervisor scope's capabilities, the R411 child spec (RFC 0056 D3) | 9.6, 17.3 |
+| R959 | Under `sequential` tasks are ordered by task path (par concurrent branch: parent plus branch index; actor: supervisor scope plus spawn index; handlers run as the actor's task) and the lowest runnable path runs next; under `seeded` the generator chooses (RFC 0056 D4) | 9.1 |
+| R960 | `cluster = sim(nodes, seed)`: in-process nodes with their own root supervisor, seed-derived node ids and task-path prefixes, always-encoded `Remote` calls, optional seeded `drop`, `delay` and `partition` fault schedules in virtual time, `monitor` and `Down` from the simulated view (RFC 0056 D9) | 9.6.1 |
 
 <!-- /rows -->
 
