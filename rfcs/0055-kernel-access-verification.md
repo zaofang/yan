@@ -36,18 +36,18 @@ signature and in `yan audit`; (c) only the R327 `Tile[M, N, T]` values, with no 
 
 An index expression is provable when it is an affine form `sum(c_k * x_k) + c` over integer literals,
 comptime constants, the `TileOrigin` fields, and loop variables of `for` loops with affine literal
-bounds. Anything else (a loaded value, a call, a product of two variables, a loop with data-dependent
+bounds, and `e / c` or `e % c` of such a form with a positive integer literal `c`. Anything else (a loaded value, a call, a product of two variables, a divisor that is not a literal, a loop with data-dependent
 bounds) is E274 at the index, naming why it is not affine. There is no run-time check fallback.
 
 The proof reuses the 8.6 solver: facts are the loop bounds and the tile shape, the goal is the
 region's containment inequality, decided by the same Fourier-Motzkin elimination. One solver, one
 integer-linear representation (CLAUDE.md practice 12).
 
-Options: (a) affine over the listed terms (above); (b) also `i / c` and `i % c` with literal `c`
-(needed for blocked layouts, costs a divisibility case in the solver); (c) affine only, with (b) as
-a later RFC. Recommended: (c) now, so the first implementation is complete for its language.
+Options: (a) affine over the listed terms only, with `/` and `%` in a later RFC; (b) also `i / c` and
+`i % c` with literal `c` (needed for blocked layouts and `tile(M, N)`, costs a divisibility case in
+the solver). The index language of (b) is the accepted one.
 
-- Decision: (lead's answer, date)
+- Decision: (b), affine plus `/` and `%` by a literal, the lead, 2026-11-09 (card on this thread)
 - Row: (R number once accepted)
 
 ### D3: what each region means
@@ -60,7 +60,7 @@ vector `x` is inside the region when:
 - `rows(a)`: axis `a` lies in `[t_a, t_a + T_a)`; every other axis is any in-bounds index.
 - `cols(a)`: the same region as `rows(a)`. The two spellings are kept because R627 already names both.
 - `tile(M, N)`: both axes lie in a `M x N` block whose origin is `t` rounded down to a multiple of
-  `M` and `N`. Needs the divisibility case of D2 (b), so it is E274 on every access until D2 (b).
+  `M` and `N`. Needs the divisibility case of D2 (b), which D2 (b) provides.
 - `whole`: any in-bounds index; no access can contradict it.
 
 The `out` operand is the write region and the others are read regions. Reading outside a read region
