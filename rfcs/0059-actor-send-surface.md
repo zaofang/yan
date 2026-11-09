@@ -45,7 +45,7 @@ Options: (a) `SendOnly[S, P]`, with `Remote[SendOnly[S, P]]` for a remote one; (
 call through it is E201 with the fix `actor.send(h)`. (b) suggests the actor's own queue, which the
 holder does not own. (c) hides authority in a value the type does not show, against least authority.
 
-- Decision:
+- Decision: (a), the lead, 2026-11-09 (card on the slice 2b thread)
 - Row:
 
 ### D3: the failure of a send
