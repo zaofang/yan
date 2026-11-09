@@ -1,0 +1,7 @@
+# Known backend divergences from the interpreter (DL5). Each entry needs an issue; an entry that
+# no longer mismatches fails tools/difftest.py as stale.
+
+[[allow]]
+program = "conformance/yag/run/failure/main_fails.yag"
+backend = "cranelift"
+issue = "#822"
