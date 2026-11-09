@@ -47,7 +47,7 @@ write region is E284; (c) one instance per tile on every axis, run in row-major 
 writes winning. (c) is deterministic only on `cpu` and breaks R328 on hardware; (b) rejects
 row-reduction kernels such as a row sum into a column. Recommended (a).
 
-- Decision:
+- Decision: (a), the lead, 2026-11-09 (card on the project thread)
 - Row:
 
 ### D3: output shapes that are not whole tiles
