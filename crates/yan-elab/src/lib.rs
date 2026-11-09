@@ -6,6 +6,8 @@
 
 mod access;
 mod accuracy;
+#[allow(dead_code)] // reached only from tests until the `@kernel` surface lands (RFC 0055 stage 2)
+mod affine;
 mod bounds;
 mod cli;
 mod consttime;
