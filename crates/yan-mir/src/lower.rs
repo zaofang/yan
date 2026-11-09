@@ -3,6 +3,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+mod actor;
 mod call;
 mod collections;
 mod contracts;
@@ -81,6 +82,8 @@ pub enum Shape {
     Fn(Vec<Shape>, Box<Shape>),
     /// A `Sender[T]` or `Receiver[T]`: the channel both ends share.
     Chan(Box<Shape>),
+    /// An `Actor[S]`: the actor's index in `yan_rt::actor`, which the handle does not own.
+    Actor(Box<Shape>),
 }
 
 impl Shape {
@@ -92,7 +95,8 @@ impl Shape {
             | Shape::Map(..)
             | Shape::Heap(_)
             | Shape::Deque(_)
-            | Shape::Chan(_) => out.push(Ty::Ptr),
+            | Shape::Chan(_)
+            | Shape::Actor(_) => out.push(Ty::Ptr),
             Shape::Fn(..) => out.extend([Ty::Ptr, Ty::Ptr]),
             Shape::Rec(_, fs) => fs.iter().for_each(|(_, s)| s.slots(out)),
             Shape::Tuple(ss) => ss.iter().for_each(|s| s.slots(out)),
@@ -124,7 +128,8 @@ impl Shape {
             | Shape::Heap(_)
             | Shape::Deque(_)
             | Shape::Fn(..)
-            | Shape::Chan(_) => false,
+            | Shape::Chan(_)
+            | Shape::Actor(_) => false,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| s.has_list()),
             Shape::Tuple(ss) => ss.iter().any(Shape::has_list),
             Shape::Sum(_, vs) => vs.iter().flat_map(|(_, fs)| fs).any(|(_, s)| s.has_list()),
@@ -233,6 +238,9 @@ impl Types<'_> {
                     ("Sender" | "Receiver", [y::TArg::Type(e)]) => {
                         return Ok(Shape::Chan(Box::new(self.shape_in(e, stack)?)));
                     }
+                    ("Actor", [y::TArg::Type(s)]) => {
+                        return Ok(Shape::Actor(Box::new(self.shape_in(s, stack)?)));
+                    }
                     (_, []) => {}
                     _ => return unsupported(format!("type `{name}[..]`")),
                 }
@@ -262,6 +270,8 @@ impl Types<'_> {
                     Shape::Sum(name.to_owned(), vs)
                 } else if STD_FAILURES.contains(&name) {
                     Shape::Rec(name.to_owned(), Vec::new())
+                } else if name == "Duration" {
+                    actor::duration()
                 } else {
                     return unsupported(format!("type `{name}`"));
                 };
@@ -303,7 +313,7 @@ impl Types<'_> {
 /// Failures a `par` ranks below every other: a cancelled wait, and the `SessionClosed` a session
 /// operation turns it into (R394, R634).
 const CANCEL_LIKE: &[&str] = &["Cancelled", "SessionClosed"];
-const STD_FAILURES: &[&str] = &["Cancelled", "Timeout", "Draining", "Deadlock"];
+const STD_FAILURES: &[&str] = &["Cancelled", "Timeout", "Draining", "Deadlock", "Stopped"];
 
 fn result(ok: Shape, err: Shape) -> Shape {
     Shape::Sum(
@@ -421,6 +431,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
         insts: HashMap::new(),
         sigs: Vec::new(),
         todo: Vec::new(),
+        restarts: HashMap::new(),
         costing,
     });
     let main = mono.borrow_mut().instance(&types, main)?;
@@ -443,6 +454,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
             Todo::Closure(c, caps) => {
                 Fn::new(&mono, &types, &mut prog.strings, me).closure(c, caps)?
             }
+            Todo::Restart(s) => Fn::new(&mono, &types, &mut prog.strings, me).restart(&s),
         };
         prog.funcs.push(func);
     }
@@ -477,6 +489,8 @@ struct Mono<'m> {
     sigs: Vec<Sig>,
     /// What each instance lowers, in id order.
     todo: Vec<Todo<'m>>,
+    /// The restart thunk of each actor state shape.
+    restarts: HashMap<Shape, FuncId>,
     /// Some function has a `cost` bound, so every function counts steps and allocations.
     costing: bool,
 }
@@ -487,6 +501,8 @@ enum Todo<'m> {
     /// A closure body with its captures' names and types, read from the block in its first
     /// parameter.
     Closure(&'m y::Closure, Vec<(String, Shape)>),
+    /// The restart thunk of actors with this state (`actor.rs`).
+    Restart(Shape),
 }
 
 impl Mono<'_> {
@@ -740,6 +756,8 @@ struct Fn<'a, 'm> {
     costing: bool,
     /// The tokens of this function's `cost` counters, ended on every exit.
     cost_tokens: Vec<Operand>,
+    /// The supervisor scope depth this function's `with supervisor` scopes end at (`actor.rs`).
+    sup_depth: Option<Local>,
 }
 
 impl<'a, 'm> Fn<'a, 'm> {
@@ -768,6 +786,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             tasks: 0,
             costing: mono.borrow().costing,
             cost_tokens: Vec::new(),
+            sup_depth: None,
         }
     }
 
@@ -1065,6 +1084,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     fn ret(&mut self, mut v: Vec<Operand>) {
         v.extend(self.inout.iter().map(|l| Operand::Local(*l)));
         self.end_costs();
+        self.end_sups();
         self.end(Term::Return(v));
     }
 
@@ -1175,7 +1195,8 @@ impl<'a, 'm> Fn<'a, 'm> {
                 | Shape::Map(..)
                 | Shape::Heap(_)
                 | Shape::Deque(_)
-                | Shape::Chan(_),
+                | Shape::Chan(_)
+                | Shape::Actor(_),
                 1,
             ) => Ok(v.remove(0)),
             _ => unsupported("an aggregate operand"),

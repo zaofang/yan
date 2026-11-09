@@ -265,6 +265,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                 if !self.ensures.is_empty() {
                     return unsupported("`become` in a function with `ensures`");
                 }
+                if self.sup_depth.is_some() {
+                    return unsupported("`become` in a function with `with supervisor`");
+                }
                 let name = c.path.join(".");
                 let Some(func) = self.callee(c)? else {
                     return unsupported(format!("`become` of `{name}`"));
@@ -368,6 +371,12 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             K::Rhs(_) => Ok(()),
             K::Yield(_) => unsupported("generators"),
+            K::With {
+                name,
+                handler,
+                body,
+                ..
+            } if name == "supervisor" => self.with_supervisor(handler, body),
             K::With { .. } => unsupported("`with`"),
             K::Deadline { .. } => unsupported("`deadline`"),
             K::ComptimeFor { .. } | K::ComptimeIf { .. } => unsupported("a comptime statement"),

@@ -299,6 +299,32 @@ pub enum RtFn {
     ParCancel,
     /// `(handle)`: leave the block.
     ParEnd,
+    /// `(state, words, capacity, restart, thunk, code, env) -> actor` (`yan_rt::actor`).
+    ActorSpawn,
+    /// `(actor, out, in_task) -> status`: a handler takes the state.
+    ActorTake,
+    /// `(actor, state)`: the state goes back.
+    ActorPut,
+    /// `(actor, code, env, in_task) -> status`: enqueue a message.
+    ActorSend,
+    /// `(i) -> u64`: a work slot.
+    ActorArg,
+    /// `()`: the message in the work slots ran.
+    ActorRan,
+    /// `() -> bool`: an idle actor's message into the work slots.
+    ActorIdle,
+    /// `(actor)`: a handler failed.
+    ActorCrash,
+    /// `() -> bool`: the next restart into the work slots.
+    ActorRestartNext,
+    /// `(actor, state)`: a restarted actor's new state.
+    ActorRestarted,
+    /// `(low, strategy, intensity, period) -> low`: open a supervisor scope.
+    SupBegin,
+    /// `()`: end the innermost supervisor scope.
+    SupEnd,
+    /// `(depth)`: end the scopes past `depth`.
+    SupEndTo,
     /// `(resource, bound, clause) -> token`: start a `cost` counter (R610); 0 steps, 1 alloc.
     CostBegin,
     /// `(token)`: end the counters started since `token`.

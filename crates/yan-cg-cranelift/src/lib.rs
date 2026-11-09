@@ -21,7 +21,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
-use yan_rt::{abi, chan, dq, map, pq, sched, select, slice};
+use yan_rt::{abi, actor, chan, dq, map, pq, sched, select, slice};
 
 type R<T> = Result<T, String>;
 
@@ -749,6 +749,19 @@ const RT: &[RtFn] = &[
     RtFn::CostBegin,
     RtFn::CostEnd,
     RtFn::CostCount,
+    RtFn::ActorSpawn,
+    RtFn::ActorTake,
+    RtFn::ActorPut,
+    RtFn::ActorSend,
+    RtFn::ActorArg,
+    RtFn::ActorRan,
+    RtFn::ActorIdle,
+    RtFn::ActorCrash,
+    RtFn::ActorRestartNext,
+    RtFn::ActorRestarted,
+    RtFn::SupBegin,
+    RtFn::SupEnd,
+    RtFn::SupEndTo,
 ];
 
 /// Symbol, address, parameter types and result type.
@@ -1209,6 +1222,84 @@ fn rt_fn(
         RtFn::ParEnd => (
             "yan_rt_par_end",
             sched::yan_rt_par_end as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ActorSpawn => (
+            "yan_rt_actor_spawn",
+            actor::yan_rt_actor_spawn as *const u8,
+            &[I64, I64, I64, I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::ActorTake => (
+            "yan_rt_actor_take",
+            actor::yan_rt_actor_take as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::ActorPut => (
+            "yan_rt_actor_put",
+            actor::yan_rt_actor_put as *const u8,
+            &[I64, I64],
+            None,
+        ),
+        RtFn::ActorSend => (
+            "yan_rt_actor_send",
+            actor::yan_rt_actor_send as *const u8,
+            &[I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::ActorArg => (
+            "yan_rt_actor_arg",
+            actor::yan_rt_actor_arg as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::ActorRan => (
+            "yan_rt_actor_ran",
+            actor::yan_rt_actor_ran as *const u8,
+            &[],
+            None,
+        ),
+        RtFn::ActorIdle => (
+            "yan_rt_actor_idle",
+            actor::yan_rt_actor_idle as *const u8,
+            &[],
+            Some(I64),
+        ),
+        RtFn::ActorCrash => (
+            "yan_rt_actor_crash",
+            actor::yan_rt_actor_crash as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ActorRestartNext => (
+            "yan_rt_actor_restart_next",
+            actor::yan_rt_actor_restart_next as *const u8,
+            &[],
+            Some(I64),
+        ),
+        RtFn::ActorRestarted => (
+            "yan_rt_actor_restarted",
+            actor::yan_rt_actor_restarted as *const u8,
+            &[I64, I64],
+            None,
+        ),
+        RtFn::SupBegin => (
+            "yan_rt_sup_begin",
+            actor::yan_rt_sup_begin as *const u8,
+            &[I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::SupEnd => (
+            "yan_rt_sup_end",
+            actor::yan_rt_sup_end as *const u8,
+            &[],
+            None,
+        ),
+        RtFn::SupEndTo => (
+            "yan_rt_sup_end_to",
+            actor::yan_rt_sup_end_to as *const u8,
             &[I64],
             None,
         ),

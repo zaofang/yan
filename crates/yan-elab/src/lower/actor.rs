@@ -245,10 +245,19 @@ impl Lower<'_, '_, '_> {
             span,
             paren: false,
         };
-        let hn = self.fresh("h");
-        self.bind(&hn, false, &ht, Rhs::Atom(ha), at, at);
+        // The message borrows the handle, which does not own the actor (9.6), so the sender
+        // keeps it.
+        let hn = match ha {
+            Atom::Name(n, _) => n,
+            a => {
+                let n = self.fresh("h");
+                self.bind(&n, false, &ht, Rhs::Atom(a), at, at);
+                n
+            }
+        };
         let hv = Atom::Name(hn.clone(), at);
         let mut moved = Vec::with_capacity(args.len());
+        let mut sunk = Vec::with_capacity(args.len());
         for a in args {
             let j::ArgKind::Expr(e) = &a.kind else {
                 return unsupported("a spread argument to `actor.send`");
@@ -256,6 +265,7 @@ impl Lower<'_, '_, '_> {
             let (v, t) = self.atom(e, None)?;
             let n = self.fresh("m");
             self.bind(&n, false, &t, Rhs::Atom(v), e.span, e.span);
+            sunk.push(n.clone());
             moved.push(j::Arg {
                 name: a.name.clone(),
                 kind: j::ArgKind::Expr(name(n, e.span)),
@@ -274,7 +284,15 @@ impl Lower<'_, '_, '_> {
         let none = j::Fallback::Value(ex(j::ExprKind::Lit(j::Lit::None)));
         let body = ex(j::ExprKind::Fallback(Box::new(msg), Box::new(none)));
         let want = Ty::Fn(false, Vec::new(), Box::new(Ty::Unit));
-        let (clo, ct) = self.lambda(&[], &body, Some(&want))?;
+        let (mut clo, ct) = self.lambda(&[], &body, Some(&want))?;
+        // The arguments move into the message (R264), which owns them until it runs.
+        if let Rhs::Closure(c) = &mut clo {
+            for (conv, n, _) in &mut c.captures {
+                if sunk.contains(n) {
+                    *conv = Conv::Sink;
+                }
+            }
+        }
         let clo = self.tmp(&ct, clo, at);
         let c = call(
             "std.actor.send",

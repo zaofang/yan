@@ -193,9 +193,12 @@ pub fn split(f: &mut Func, co: bool, ret: &[Ty]) {
             },
         );
         targets.push(yields);
+        let idle = idle_message(f, d);
+        targets.push(idle);
         owner.resize(f.blocks.len(), None);
         seen.resize(f.blocks.len(), true);
         owner[yields as usize] = owner[r.par as usize];
+        owner[idle as usize] = owner[r.par as usize];
         // The block's own return leaves from the task around it, if any.
         owner[leave as usize] = owner[r.par as usize];
         f.blocks[d as usize].term = Term::Switch { on: next, targets };
@@ -289,4 +292,35 @@ pub fn split(f: &mut Func, co: bool, ret: &[Ty]) {
             };
         }
     }
+}
+
+/// A block that runs an idle actor's queued message, which owns its captures block, then
+/// returns to the dispatcher `d` (RFC 0056 D4).
+fn idle_message(f: &mut Func, d: BlockId) -> BlockId {
+    let mut local = |t: Ty| {
+        f.locals.push(t);
+        f.locals.len() as Local - 1
+    };
+    let (got, code, env, u) = (local(I64), local(Ty::Ptr), local(Ty::Ptr), local(Ty::Unit));
+    let rt = |dst: Option<Local>, f: RtFn, args: Vec<Operand>| Inst::Rt { dst, f, args };
+    let insts = vec![
+        rt(Some(got), RtFn::ActorIdle, Vec::new()),
+        rt(Some(code), RtFn::ActorArg, vec![Operand::Int(0)]),
+        rt(Some(env), RtFn::ActorArg, vec![Operand::Int(1)]),
+        Inst::CallIndirect {
+            dst: vec![u],
+            code: Operand::Local(code),
+            args: vec![Operand::Local(env)],
+            params: vec![Ty::Ptr],
+            ret: vec![Ty::Unit],
+        },
+        rt(None, RtFn::EnvFree, vec![Operand::Local(env)]),
+        rt(None, RtFn::ActorRan, Vec::new()),
+    ];
+    f.blocks.push(Block {
+        lines: vec![0; insts.len()],
+        insts,
+        term: Term::Jump(d),
+    });
+    f.blocks.len() as BlockId - 1
 }

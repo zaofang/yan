@@ -25,7 +25,7 @@ impl Chan {
     }
 }
 
-fn deadlock() -> ! {
+pub(crate) fn deadlock() -> ! {
     let k = "deadlock";
     // SAFETY: a static string.
     unsafe { crate::abi::yan_rt_panic(k.as_ptr(), k.len()) }
