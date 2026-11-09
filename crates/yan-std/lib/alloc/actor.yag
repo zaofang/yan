@@ -1,5 +1,22 @@
-"""Actors (9.6, 17.3): `Actor[S]` owns state `S`; a handle reaches other nodes as `Remote`."""
+"""Actors (9.6, 17.3): `Actor[S]` owns state `S`; a handle reaches other nodes as `Remote`.
+`take`, `put` and `settle` are the lowering of a handler call `h.f(args)` (R435), not for direct use."""
 
 @intrinsic
 @since("1.0")
 pub def share[S](self: Actor[S]) -> Remote[Actor[S]]: ...
+
+@intrinsic
+@since("1.0")
+pub def spawn[S](state: S, capacity: int = 1024) -> Actor[S]: ...
+
+@intrinsic
+@since("1.0")
+pub def take[S](self: Actor[S]) -> S: ...
+
+@intrinsic
+@since("1.0")
+pub def put[S](self: Actor[S], state: S) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def settle[S, T, E](self: Actor[S], state: S, outcome: Result[T, E]) -> T fail E: ...

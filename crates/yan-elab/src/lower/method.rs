@@ -148,6 +148,9 @@ impl Lower<'_, '_, '_> {
             };
             return self.user_call(&path, Some(&recv), args, at);
         }
+        if let Some(r) = self.handler_call(b, m, args, at)? {
+            return Ok(r);
+        }
         if self.g.fns.contains_key(m) {
             if let Some(module) = self.ty_of_local(b).as_ref().and_then(Ty::module)
                 && crate::stdlib::decl(&format!("std.{module}.{m}")).is_some()
