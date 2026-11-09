@@ -189,21 +189,126 @@ def main() uses io:
     assert_eq!(codes(&src), ["E729"]);
 }
 
-#[test]
-fn a_reentrant_handler_call_is_unsupported() {
-    let src = "\
+const REENTRANT: &str = "\
 class A:
     n: int
 
-@reentrant
-def get(var self: A) -> int:
+class Neg:
+    pass
+
+def bump(var self: A, k: int) -> int:
+    self.n = self.n + k
     return self.n
+
+def take_away(var self: A, k: int) -> int fail Neg:
+    if self.n < k:
+        fail Neg()
+    self.n = self.n - k
+    return self.n
+
+@reentrant
+def wait_for(var self: A, var rx: Receiver[int]) -> int fail ActorError:
+    self.n = self.n + 1
+    v = rx.recv()?
+    self.n = self.n + v
+    return self.n
+
+def show(r: Result[int, ActorError]) -> str:
+    match r:
+        case Ok(v):
+            return f\"{v}\"
+        case Err(e):
+            return f\"{e}\"
+";
+
+#[test]
+fn a_reentrant_handler_calls_back_into_its_own_actor() {
+    let src = format!(
+        "{REENTRANT}
+@reentrant
+def relay(var self: A, me: Actor[A]) -> int fail ActorError:
+    self.n = self.n + 1
+    v = me.bump(10)?
+    self.n = self.n + 100
+    return self.n * 1000 + v
 
 def main() uses io:
     a = actor.spawn(A(n=0))
-    print(a.get() else -1)
+    print(show(a.relay(a)))
+    print(a.bump(0) else -1)
+"
+    );
+    assert_eq!(run(&src).expect("runs"), "111011\n111\n");
+}
+
+#[test]
+fn another_handler_runs_while_a_reentrant_one_waits() {
+    let src = format!(
+        "{REENTRANT}
+def poke(a: Actor[A], var tx: Sender[int]) -> int:
+    b = a.bump(10) else -1
+    tx.send(100) else e -> None
+    return b
+
+def main() uses io:
+    a = actor.spawn(A(n=0))
+    tx, rx = Channel[int](1)
+    par concurrent:
+        print(show(a.wait_for(&rx)))
+        print(poke(a, &tx))
+    print(a.bump(0) else -1)
+"
+    );
+    assert_eq!(run(&src).expect("runs"), "11\n111\n111\n");
+}
+
+const POKE_FAILING: &str = "
+def poke(a: Actor[A], var tx: Sender[int]) -> int:
+    r = a.take_away(5) else e -> -1
+    tx.send(100) else e -> None
+    return r
 ";
-    assert!(unsupported(src));
+
+#[test]
+fn a_reentrant_handler_whose_actor_crashed_while_it_waited_fails_stopped() {
+    let src = format!(
+        "{REENTRANT}{POKE_FAILING}
+def main() uses io:
+    a = actor.spawn(A(n=0))
+    tx, rx = Channel[int](1)
+    par concurrent:
+        print(show(a.wait_for(&rx)))
+        print(poke(a, &tx))
+"
+    );
+    assert_eq!(
+        run(&src).expect("runs"),
+        "-1\nStopped(reason=Crashed(error='Neg()'))\n"
+    );
+}
+
+#[test]
+fn a_reentrant_handler_does_not_retake_a_restarted_actor() {
+    let src = format!(
+        "{REENTRANT}{POKE_FAILING}
+def fresh(n: int) -> A:
+    return A(n=n)
+
+def main() uses io:
+    tx, rx = Channel[int](2)
+    with supervisor(actor.one_for_one(intensity=3)):
+        a = actor.start(ChildSpec(fresh, (0,), restart=permanent))
+        par concurrent:
+            print(show(a.wait_for(&rx)))
+            print(poke(a, &tx))
+        tx.send(1) else e -> None
+        print(show(a.wait_for(&rx)))
+"
+    );
+    assert_eq!(
+        run(&src).expect("runs"),
+        "-1\nStopped(reason=Crashed(error='Neg()'))\n2\n"
+    );
 }
 
 #[test]
