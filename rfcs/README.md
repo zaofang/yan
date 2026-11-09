@@ -78,4 +78,5 @@ research index links their studies and rows.
 | [0056](0056-actor-runtime.md) | Actor runtime: spawn, handler calls, mailboxes, supervision, native and Remote on `std.sim` | accepted | R956 to R960 |
 | [0057](0057-self-hosted-compiler.md) | Self-hosted compiler for 1.0; Rust as the frozen stage 0 (replaces R215) | accepted | R966 to R970 |
 | [0058](0058-kernel-launch.md) | Launching a `@kernel` function: `gpu.launch`, the grid, whole tiles | accepted | R971 to R973 |
-| [0060](0060-actor-supervision-surface.md) | Actor supervision: the surface and what stops an actor | draft | |
+| [0059](0059-actor-send-surface.md) | Actor overflow policies, send-only handles and send failures | accepted | R974 to R977 |
+| [0060](0060-actor-supervision-surface.md) | Actor supervision: the surface and what stops an actor | accepted | R978 to R981 |

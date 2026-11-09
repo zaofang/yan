@@ -1,8 +1,8 @@
 # 0060: Actor supervision: the surface and what stops an actor
 
-- Status: draft
+- Status: accepted
 - Research: none; follows RFC 0056 (accepted) slice 3 and 9.6. Gap issue #835.
-- Rows: filled in when accepted
+- Rows: R978 to R981
 
 ## Summary
 
@@ -27,7 +27,7 @@ and needs no variant spelling; (b) is longer at every use; (c) makes `with super
 call syntax.
 
 - Decision: (a), inconsequential, closest to 9.6
-- Row: none until accepted
+- Row: R978
 
 ### D2: starting a restartable child
 
@@ -40,7 +40,7 @@ Options: (a) a separate `actor.start`; (b) `actor.spawn` accepting a `ChildSpec`
 makes a `ChildSpec` value ambiguous with a state of that type.
 
 - Decision: (a), inconsequential
-- Row: none until accepted
+- Row: R979
 
 ### D3: what stops an actor
 
@@ -60,8 +60,8 @@ Options:
 `transient` and `permanent` differ only once a normal stop exists (no surface for one yet); every
 failure is abnormal.
 
-- Decision: (a) recommended; question card on the slice 3 thread
-- Row: none until accepted
+- Decision: (a), the lead, 2026-11-09 (card on the slice 3 thread)
+- Row: R980
 
 ### D4: escalation
 
@@ -74,7 +74,7 @@ failing `Stopped`; (c) cancel the scope's body (9.4). (b) hides a crash loop; (c
 to own a task, which slice 3 does not have.
 
 - Decision: (a), inconsequential, fail loud
-- Row: none until accepted
+- Row: R981
 
 ### D5: shutdown
 
