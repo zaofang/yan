@@ -307,6 +307,12 @@ impl Elab<'_> {
                     for s in &body.stmts {
                         self.stmt(s, &mut nb);
                     }
+                    // What the body binds is not yet bound where the branch jumps to it, so
+                    // those jumps drop only what the branch bound after the join point.
+                    let here = self.here();
+                    if let Some(jp) = self.cx.jps.get_mut(name) {
+                        jp.pos = here;
+                    }
                     out.push(stmt(
                         StmtKind::Jp {
                             name: name.clone(),
