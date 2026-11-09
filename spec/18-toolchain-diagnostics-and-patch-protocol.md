@@ -8,7 +8,7 @@ One binary, `yan`, provides every tool. All subcommands share the query database
 | --- | --- | --- |
 | `yan new <name>` | create a package with `package.yag`, `src/`, `tests/` | M1 |
 | `yan check [--strict] [--level check\|release\|prove] [--stage0-profile]` | parse, elaborate, check and lint; no code generation | M1 |
-| `yan run [file] [--record f.trace]` | run on the interpreter (M1) or Cranelift (M1b+); a single `.yag` file with a `package` constant runs as a script | M1 |
+| `yan run [file] [--record f.trace]` | run on the interpreter (M1) or native code (M1b+; Cranelift in stage 0, LLVM in the shipped compiler, R968); a single `.yag` file with a `package` constant runs as a script | M1 |
 | `yan test [--filter p] [--no-cache] [--update] [--fuzz name] [--mutate] [--ub] [--explore[=N]] [--math] [--coverage] [--bench]` | examples, `test_` functions, property tests, snapshots, fuzzing, mutation testing, UB and schedule checking; `--coverage` gives line, branch and contract-clause coverage as LCOV, and `--bench` runs `bench_` functions (R449) | M1 |
 | `yan fmt [--check]` | canonical printing for either surface | M1 |
 | `yan sig <module> [--budget n]` | signatures, contracts and examples only; with a budget, the most relevant within n tokens | M1 |
@@ -24,7 +24,7 @@ One binary, `yan`, provides every tool. All subcommands share the query database
 | `yan schema gen <file>` | write table row types from data files (11.9) | M1 |
 | `yan toolchain`, `yan self update` | fetch and verify toolchains (20.3, 19.6) | M1 |
 | `yan skill` | print the agent skill file | M1 |
-| `yan build [--release] [--target t] [--verify]` | native build: Cranelift for debug, LLVM for release; `--verify` builds twice and compares | M1b, M2 |
+| `yan build [--release] [--target t] [--verify]` | native build: LLVM for debug (`-O0`) and release (Cranelift for debug in stage 0, R968); `--verify` builds twice and compares | M1b, M2 |
 | `yan replay f.trace` | deterministic replay (7.6) | M1 (interpreter), M2a (native) (R378) |
 | `yan debug`, `yan profile` | debugger (DAP) and profiler | M1 (interpreter), M2a (native checkpoints) (R378) |
 | `yan doc` | documentation site with `ex` clauses as doctests | M1 (R319, R378) |

@@ -220,6 +220,7 @@ Chronological, from git history, RFCs and project notes.
 | 2026-11-03 | `elab` emitted bare `let ys = xs` for lists with no `move`; drops never generated. RFC 0028 decided both; move/copy built (#169), drops not yet. | debt |
 | 2026-11-03 to 04 | Yong to Yan rename (R774, R775, #166, #168): Wen became plain Yan (`.yn`), Xin became Yan Agent (`.yag`), Yong Core became Yan Core (`.yir`). The conformance half needed Antonio's own PR. All 17 surface seals redrawn on one grid. | rename |
 | 2026-11-04 | `std.list.push` replaced by `append` across code, tests and std (#172 to #174). | API change |
+| 2026-11-09 | R215 (Rust only) replaced by self-hosting for 1.0 (RFC 0057, R966 to R970): Rust becomes the frozen stage 0; LLVM C API for 1.0 codegen, Cranelift stays in stage 0. Reverses the 2026-11-04 study's keep-Rust-for-1.0 recommendation. | pivot |
 
 Recurring difficulties:
 

@@ -311,6 +311,11 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R963 | Three facts solved to a fixed point: maybe-moved (a read of a maybe-moved binding is a use after move), live (a last-use move is a read at which the binding is not live, and the witness for the used-again label is the first read found), and maybe-owned with a must-owned companion (a drop flag only where the type has custom `Drop` or is `@linear` and ownership depends on the path); a field taken out of a record leaves it owned with a hole; migrated one client at a time (RFC 0054 D3) | 4.2, 5.3, 5.4, 10.6 |
 | R964 | Loops are decided by the graph: a read in a loop body is followed by every read reachable around the back edge; there is no separate loop rule, and a program whose E413 result changes is migrated by the lead (RFC 0054 D4) | 4.2 |
 | R965 | `yan-flow` migrates in order: crate, elaborator, checker, `yan-opt` drops, then conformance cases on a `conform/*` PR; each stage deletes the mechanism it replaces (RFC 0054 D5) | 4.2, 5.3 |
+| R966 | Implementation language, replacing R215: the 1.0 toolchain is written in Yan; the Rust workspace is stage 0, the bootstrap and oracle, frozen when the fixpoint passes; non-Yan parts are LLVM through its C API, a thin libc shim and the pinned clang and lld; the Lean model stays outside the rule (RFC 0057 D1) | 22.1, 22.2, 22.7, 23, 26.1 |
+| R967 | Self-hosting stages S0 to S5 with byte-equality gates against stage 0 on the corpus, a stage 2 = stage 3 fixpoint, shipping from stage 2, and the frozen Rust tree plus a `.yir` snapshot as seeds (RFC 0057 D2) | 22.7, 23 |
+| R968 | The Yan compiler generates code through LLVM's C API for debug and release builds in 1.0; Cranelift stays in stage 0; a Yan-written debug backend replaces it after 1.0 (RFC 0057 D3) | 1, 18.1, 22.7 |
+| R969 | The compiler is written in Yan (`.yn`); the Yan lexer, parser, printer and lowering to HIR move from M3 to M2a; compiler sources avoid the contested forms until the M3 comparison reports (RFC 0057 D4) | 22.7, 23 |
+| R970 | S2 starts after formal phases 1 and 2, which wait for the M1 gate; stage 0 keeps growing until the freeze, optimizer and package manager included, and every stage-0 crate is ported (RFC 0057 D5) | 22.7 |
 
 <!-- /rows -->
 

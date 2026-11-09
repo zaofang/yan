@@ -5,7 +5,7 @@ Each surface has its own reader. Everything from the elaborator down is shared:
 ```
 .yag --> Yan Agent reader (+ lenient reader) --\
                                             >-- elaborator --> checked Yan Core --> optimizer --+--> interpreter (reference, stage 0, checked UB mode)
-.yn  --> Yan reader ----------------------+                                               +--> Cranelift (debug builds)
+.yn  --> Yan reader ----------------------+                                               +--> Cranelift (stage-0 debug builds)
 .ymt  --> Yan Meta reader ----------------------/                                               +--> LLVM (release builds)
 checked Yan Core --> Yan printer (any item);  checked Yan Core --> Yan Agent printer (items inside the Yan Agent subset)
 checked Yan Core --> Yan Meta printer (any item, with its spelling notes)
