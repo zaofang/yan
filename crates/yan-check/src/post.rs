@@ -35,6 +35,15 @@ struct Local {
     flag: Option<Name>,
 }
 
+/// A join point's body is entered only by its jumps: the first jump fixes the state it expects
+/// (`entry`) and every other jump must match it. A body no jump reaches starts from `decl`.
+#[derive(Clone)]
+struct Jp {
+    pos: Pos,
+    decl: St,
+    entry: Option<St>,
+}
+
 struct Loop {
     label: Name,
     pos: Pos,
@@ -48,7 +57,7 @@ struct V {
     /// `None` after a statement that does not continue.
     st: Option<St>,
     loops: Vec<Loop>,
-    jps: HashMap<Name, (Pos, St)>,
+    jps: HashMap<Name, Jp>,
     last_decl: Option<Name>,
     /// Names bound by `match` patterns, to the scrutinee local they view.
     views: HashMap<Name, Name>,
@@ -89,28 +98,6 @@ fn sets_flag(s: Option<&Stmt>, f: &str, v: bool) -> bool {
 }
 
 impl V {
-    /// The body of a join point declares into the enclosing scope. The state at its end.
-    fn hoisted_jp(&mut self, name: &Name, params: &[Param], body: &Block) -> Option<St> {
-        let saved = self.st.clone().expect("reachable");
-        for n in owned_params(params) {
-            self.declare(n);
-        }
-        for (i, s) in body.stmts.iter().enumerate() {
-            if self.st.is_some() {
-                self.stmt(s, body.stmts.get(i + 1));
-            }
-        }
-        let end = self.st.take();
-        // The jumps come after the body: what it declared is not theirs to have dropped.
-        let pos = (
-            self.scopes.len() - 1,
-            self.scopes.last().map_or(0, Vec::len),
-        );
-        self.jps.insert(name.clone(), (pos, saved.clone()));
-        self.st = Some(saved);
-        end
-    }
-
     fn func(&mut self, path: &Path, f: &FnDef) {
         self.item = format!("{}.{}", path.join("."), f.path.join("."));
         if let Some(b) = &f.body {
@@ -181,12 +168,9 @@ impl V {
         self.scopes.push(Vec::new());
         self.last_decl = None;
         owned.iter().for_each(|n| self.declare(n));
-        for (i, s) in b.stmts.iter().enumerate() {
-            if self.st.is_none() {
-                break;
-            }
-            self.stmt(s, b.stmts.get(i + 1));
-        }
+        let (pending, prev) = self.seq(&b.stmts);
+        self.jp_bodies(pending, false);
+        self.restore_jps(prev);
         let end = b.stmts.last().map(|s| s.span).unwrap_or_default();
         if self.st.is_some() {
             let top = self.scopes.len() - 1;
@@ -199,6 +183,75 @@ impl V {
                 st.retain(|k, _| !k.starts_with(&prefix));
             }
         }
+    }
+
+    /// Walk `stmts` up to the first that does not continue. A join point is registered, and its
+    /// body is left to [`Self::jp_bodies`], once its jumps have been seen. Also returns the join
+    /// points these shadow.
+    fn seq<'b>(&mut self, stmts: &'b [Stmt]) -> (Vec<&'b Stmt>, Vec<(Name, Option<Jp>)>) {
+        let mut pending = Vec::new();
+        let mut prev = Vec::new();
+        for (i, s) in stmts.iter().enumerate() {
+            let Some(st) = &self.st else { break };
+            if let StmtKind::Jp { name, .. } = &s.kind {
+                let jp = Jp {
+                    pos: (
+                        self.scopes.len() - 1,
+                        self.scopes.last().map_or(0, Vec::len),
+                    ),
+                    decl: st.clone(),
+                    entry: None,
+                };
+                prev.push((name.clone(), self.jps.insert(name.clone(), jp)));
+                pending.push(s);
+            } else {
+                self.stmt(s, stmts.get(i + 1));
+            }
+        }
+        (pending, prev)
+    }
+
+    fn restore_jps(&mut self, prev: Vec<(Name, Option<Jp>)>) {
+        for (name, jp) in prev.into_iter().rev() {
+            match jp {
+                Some(jp) => self.jps.insert(name, jp),
+                None => self.jps.remove(&name),
+            };
+        }
+    }
+
+    /// Walk the bodies of `pending`, each from the state its jumps expect, reached ones first
+    /// since a body may jump to another. Without `hoisted` a body is a scope of its own and the
+    /// state afterwards is the one before; with it (a `par` branch) the body declares into the
+    /// enclosing scope and the state afterwards is its end.
+    fn jp_bodies(&mut self, mut pending: Vec<&Stmt>, hoisted: bool) {
+        let rest = self.st.take();
+        let mut end = None;
+        while !pending.is_empty() {
+            let i = pending
+                .iter()
+                .position(|s| matches!(&s.kind, StmtKind::Jp { name, .. } if self.jps[name].entry.is_some()))
+                .unwrap_or(0);
+            let StmtKind::Jp { name, params, body } = &pending.remove(i).kind else {
+                unreachable!("only join points are pending");
+            };
+            let jp = self.jps[name].clone();
+            self.st = Some(jp.entry.unwrap_or(jp.decl));
+            let owned: Vec<Name> = owned_params(params).into_iter().cloned().collect();
+            // The body sees only what was declared before the join point.
+            let after = self.scopes[jp.pos.0].split_off(jp.pos.1);
+            if hoisted {
+                owned.iter().for_each(|n| self.declare(n));
+                let (inner, prev) = self.seq(&body.stmts);
+                self.jp_bodies(inner, false);
+                self.restore_jps(prev);
+                end = Some(self.st.take());
+            } else {
+                self.block(body, &owned);
+                self.scopes[jp.pos.0].extend(after);
+            }
+        }
+        self.st = end.unwrap_or(rest);
     }
 
     /// Everything declared at or after `pos` is gone.
@@ -554,23 +607,21 @@ impl V {
                 }
                 self.st = None;
             }
-            StmtKind::Jp { name, params, body } => {
-                let pos = (
-                    self.scopes.len() - 1,
-                    self.scopes.last().map_or(0, Vec::len),
-                );
-                let saved = self.st.clone().expect("reachable");
-                self.jps.insert(name.clone(), (pos, saved.clone()));
-                let owned: Vec<Name> = owned_params(params).into_iter().cloned().collect();
-                self.block(body, &owned);
-                self.st = Some(saved);
-            }
+            StmtKind::Jp { .. } => unreachable!("join points are walked by `seq`"),
             StmtKind::Jump { name, .. } => {
                 self.consume(&s.kind, next, at, true);
-                if let Some((pos, def)) = self.jps.get(name).cloned() {
-                    self.require_gone(pos, at, "before the jump");
-                    self.st = Some(self.restrict(&def));
-                    self.same(&def, at, "the join point");
+                if let Some(jp) = self.jps.get(name).cloned() {
+                    self.require_gone(jp.pos, at, "before the jump");
+                    match jp.entry {
+                        Some(want) => {
+                            self.st = Some(self.restrict(&want));
+                            self.same(&want, at, "the join point");
+                        }
+                        None => {
+                            let entry = self.restrict(&jp.decl);
+                            self.jps.get_mut(name).expect("found").entry = Some(entry);
+                        }
+                    }
                 }
                 self.st = None;
             }
@@ -590,21 +641,9 @@ impl V {
             // A join point at the top of a branch (`r = f() else x`) declares its body into the
             // enclosing scope too, and the code after the `par` continues from the body's end.
             StmtKind::Par { blocks, .. } => blocks.iter().for_each(|b| {
-                let mut resume = None;
-                for (i, s) in b.stmts.iter().enumerate() {
-                    if self.st.is_none() {
-                        break;
-                    }
-                    match &s.kind {
-                        StmtKind::Jp { name, params, body } => {
-                            resume = Some(self.hoisted_jp(name, params, body));
-                        }
-                        _ => self.stmt(s, b.stmts.get(i + 1)),
-                    }
-                }
-                if let Some(end) = resume {
-                    self.st = end;
-                }
+                let (pending, prev) = self.seq(&b.stmts);
+                self.jp_bodies(pending, true);
+                self.restore_jps(prev);
             }),
             StmtKind::Assert(_) | StmtKind::Asm { .. } => {}
         }

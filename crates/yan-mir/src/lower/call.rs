@@ -114,6 +114,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.dict_call(id, c, dst);
         }
+        if self.actor_call(id, c, dst.as_ref())? {
+            return Ok(());
+        }
         if DEQUE_IDS.contains(&id) {
             return self.deque_call(id, c, dst);
         }
