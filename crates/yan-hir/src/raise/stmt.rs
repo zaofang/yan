@@ -9,7 +9,9 @@ impl<'a> Fold<'a> {
         let mut out = Vec::new();
         let mut i = 0;
         while i < ss.len() {
-            i += self.stmt(&ss[i..], &mut out)?;
+            i += self
+                .stmt(&ss[i..], &mut out)
+                .map_err(|e| e.at(ss[i].span))?;
         }
         Ok(out)
     }

@@ -358,9 +358,8 @@ pub fn view(
                 } else {
                     trivia.clone()
                 };
-                let raised = yan_hir::raise::raise(m, trivia, &yan_elab::StdInfo).map_err(
-                    |yan_hir::raise::Unraised(what)| unsupported(&format!("raising {what}")),
-                )?;
+                let raised = yan_hir::raise::raise(m, trivia, &yan_elab::StdInfo)
+                    .map_err(|e| unsupported(&format!("raising {e}")))?;
                 let unused = yan_hir::raise::unconsumed(trivia, &raised);
                 if marks.strict && !unused.is_empty() {
                     return Err(ViewError::Diagnostics(unused_spellings(

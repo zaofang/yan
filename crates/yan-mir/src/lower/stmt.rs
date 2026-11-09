@@ -63,12 +63,19 @@ impl<'a, 'm> Fn<'a, 'm> {
         if let Some(Scope::Jps { at, .. }) = self.scopes.last_mut() {
             *at = None;
         }
+        let single = decls.len() == 1;
         let jps_in = decls.iter().zip(&jps).zip(jp_vars).zip(seen);
         for ((((_, _, body), (_, start, _)), vs), names) in jps_in {
             self.cur = *start;
             self.names = names;
             self.names.extend(vs);
-            self.block(body)?;
+            if single {
+                // The one continuation is where the block's code resumes, so names its body binds
+                // stay visible to a `par` branch's results.
+                self.block_in(body)?;
+            } else {
+                self.block(body)?;
+            }
             self.finish(Term::Switch {
                 on: cont,
                 targets: resume.clone(),

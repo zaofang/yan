@@ -176,6 +176,20 @@ pub enum RtFn {
     ByteLen,
     /// `(Str) -> i64`, panics `conversion`
     IntOf,
+    /// `(f64) -> i64`, panics `conversion` (`int(x)`)
+    TruncF64,
+    /// `(f64) -> i64`, panics `conversion` (`round(x)`)
+    RoundF64,
+    /// `(i64) -> f64`
+    IntToF64,
+    /// `(i64) -> i64`, panics `overflow`
+    AbsI64,
+    /// `(f64) -> f64`
+    AbsF64,
+    /// `(f64) -> bool`
+    IsInf,
+    /// `(f64) -> bool`
+    IsFinite,
     /// `(words) -> List` with elements of `words` slots.
     ListNew,
     /// `(List) -> Ptr` to a new last element's slots.

@@ -1035,4 +1035,22 @@ mod tests {
         let whole = bad(" var x: Str = move a\n drop p\n drop x\n");
         assert_eq!(whole.len(), 1, "{whole:?}");
     }
+
+    #[test]
+    fn the_check_takes_each_field_a_record_pattern_binds_once() {
+        let bad = |body: &str| {
+            let src = format!(
+                "module t\nrecord P {{ pub a: Str, pub b: Str }}\nfn f(sink p: P) -> Unit {{\n match p {{\n  P {{ a: x, b: y }} => {{\n{body}  }}\n }}\n ret ()\n}}\n"
+            );
+            let (m, d) = yan_core::parse("t.yir", &src);
+            assert!(d.is_empty(), "{d:?}");
+            yan_check::check_optimized("t.yir", &m.expect("parses"))
+        };
+        assert!(
+            bad("   var u: Str = move x\n   var v: Str = move y\n   drop v\n   drop u\n")
+                .is_empty()
+        );
+        let twice = bad("   var u: Str = move x\n   var v: Str = move x\n   drop v\n   drop u\n");
+        assert_eq!(twice.len(), 1, "{twice:?}");
+    }
 }

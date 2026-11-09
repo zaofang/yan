@@ -1087,6 +1087,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         let (name, out) = match (op, ty) {
             (ScalarOp::Eq, _) => ("eq_i64", Ty::Bool),
             (ScalarOp::Ne, _) => ("ne_i64", Ty::Bool),
+            (ScalarOp::Not, _) => ("not_bool", Ty::Bool),
             (ScalarOp::Ge, _) => ("ge_i64", Ty::Bool),
             (ScalarOp::Le, _) => ("le_i64", Ty::Bool),
             (ScalarOp::AddChecked, _) => ("add_checked_i64", I64),

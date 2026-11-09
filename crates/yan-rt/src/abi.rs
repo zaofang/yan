@@ -438,6 +438,41 @@ pub unsafe extern "C" fn yan_rt_int_of(s: *const String) -> i64 {
     }
 }
 
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_trunc_f64(x: f64) -> i64 {
+    crate::num::trunc_i64(x).unwrap_or_else(|| panic("conversion"))
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_round_f64(x: f64) -> i64 {
+    crate::num::round_i64(x).unwrap_or_else(|| panic("conversion"))
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_int_to_f64(i: i64) -> f64 {
+    i as f64
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_abs_i64(i: i64) -> i64 {
+    i.checked_abs().unwrap_or_else(|| panic("overflow"))
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_abs_f64(x: f64) -> f64 {
+    x.abs()
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_is_inf(x: f64) -> u8 {
+    u8::from(x.is_infinite())
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_is_finite(x: f64) -> u8 {
+    u8::from(x.is_finite())
+}
+
 /// # Safety
 /// `a` and `b` are `Str` blocks.
 #[unsafe(no_mangle)]

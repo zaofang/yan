@@ -313,6 +313,34 @@ impl V {
         }
     }
 
+    /// A field bound whole by a record pattern is tracked like `let x = root.f`, so a pattern
+    /// that binds two owned fields can move each once.
+    fn track_pattern_fields<'a>(
+        &mut self,
+        root: &str,
+        pats: impl Iterator<Item = &'a Pat>,
+        bound: &mut Vec<Name>,
+    ) {
+        for p in pats {
+            let Pat::Ctor {
+                fields: Some((fs, _)),
+                ..
+            } = p
+            else {
+                continue;
+            };
+            for (f, sub) in fs {
+                let Pat::Bind(n) = sub else { continue };
+                let key = format!("{root}.{f}");
+                if let Some(st) = &mut self.st {
+                    st.entry(key.clone()).or_insert(S::Live);
+                }
+                self.fields.insert(n.clone(), key);
+                bound.push(n.clone());
+            }
+        }
+    }
+
     fn closure(&mut self, r: &Rhs) {
         if let Rhs::Closure(c) = r {
             let owned: Vec<Name> = owned_params(&c.params)
@@ -463,11 +491,19 @@ impl V {
                         for n in &bound {
                             self.views.insert(n.clone(), root.clone());
                         }
+                        if root == *x && arms.len() == 1 {
+                            self.track_pattern_fields(
+                                &root,
+                                arms.iter().map(|(p, _)| p),
+                                &mut bound,
+                            );
+                        }
                     }
                 }
                 self.branches(arms.iter().map(|(_, b)| Some(b)));
                 for n in &bound {
                     self.views.remove(n);
+                    self.fields.remove(n);
                 }
             }
             StmtKind::Loop { label, body, .. } => {

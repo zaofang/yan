@@ -31,12 +31,29 @@ pub(crate) const AT: Span = Span {
 
 /// A Yan Core form raise does not handle yet.
 #[derive(Debug, PartialEq)]
-pub struct Unraised(pub String);
+pub struct Unraised(pub String, pub Option<Span>);
+
+impl Unraised {
+    /// Locates the failure at `span` unless a nearer form already did.
+    fn at(mut self, span: Span) -> Self {
+        self.1 = self.1.or(Some(span));
+        self
+    }
+}
+
+impl std::fmt::Display for Unraised {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.1 {
+            Some(s) => write!(f, "{} at {}:{}", self.0, s.line, s.col),
+            None => f.write_str(&self.0),
+        }
+    }
+}
 
 pub(crate) type R<T> = Result<T, Unraised>;
 
 pub(crate) fn no<T>(what: impl Into<String>) -> R<T> {
-    Err(Unraised(what.into()))
+    Err(Unraised(what.into(), None))
 }
 
 /// What raise needs to know about std, which only the elaborator has loaded.
@@ -84,7 +101,7 @@ pub fn raise(m: &y::Module, trivia: &TriviaTable, std: &dyn Std) -> R<Raised> {
             Mark::Lemma(t) => Some(t.clone()),
             _ => None,
         });
-        if let Some(mut i) = item(it, std, &marks)? {
+        if let Some(mut i) = item(it, std, &marks).map_err(|e| e.at(it.span))? {
             for text in lemmas {
                 items.push(Item {
                     decorators: Vec::new(),
