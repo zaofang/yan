@@ -1,0 +1,8 @@
+name: cleanup
+description: Remove build output a self-hosted job left in its workspace and temp dir.
+runs:
+  using: composite
+  steps:
+    # Never touches the checkout itself, ~/.cargo, ~/.elan or the runner config.
+    - shell: bash
+      run: rm -rf "$GITHUB_WORKSPACE/target" "$GITHUB_WORKSPACE/.venv" "$GITHUB_WORKSPACE/formal/.lake" "$RUNNER_TEMP/cargo"

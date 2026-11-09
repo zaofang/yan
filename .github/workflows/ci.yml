@@ -43,6 +43,8 @@ jobs:
           else
             echo code=false >> "$GITHUB_OUTPUT"
           fi
+      - if: always()
+        uses: ./.github/actions/cleanup
 
   guard:
     if: github.event_name == 'pull_request'
@@ -61,6 +63,8 @@ jobs:
         run: |
           git diff --name-only --no-renames "$BASE...$HEAD" \
             | python3 tools/guard.py --branch "$BRANCH" --author-type "$AUTHOR_TYPE"
+      - if: always()
+        uses: ./.github/actions/cleanup
 
   canary:
     runs-on: self-hosted
@@ -74,6 +78,8 @@ jobs:
             echo "guard accepted an agent patch to tests/" >&2
             exit 1
           fi
+      - if: always()
+        uses: ./.github/actions/cleanup
 
   check:
     runs-on: self-hosted
@@ -88,6 +94,8 @@ jobs:
       - run: uv run mypy tools
       - run: uv run pytest -q tools/selftest
       - run: uv run python tools/rows.py check
+      - if: always()
+        uses: ./.github/actions/cleanup
 
   # The Lean model of the core (RFC 0022): it builds, and it agrees with the interpreter.
   formal:
@@ -127,6 +135,8 @@ jobs:
       - run: uv sync --locked
       - run: uv run python formal/drt.py cases
       - run: uv run python formal/drt.py gen --count 300 --seed 1
+      - if: always()
+        uses: ./.github/actions/cleanup
 
   # Rust checks and conformance share one checkout and one build cache.
   rust:
@@ -164,6 +174,8 @@ jobs:
             conformance-summary.json
             laws-summary.json
             difftest-summary.json
+      - if: always()
+        uses: ./.github/actions/cleanup
 
   # One run per program: checks that every benchmark still computes its result; times are indicative.
   # Main pushes and the nightly run only.
@@ -184,3 +196,5 @@ jobs:
         with:
           name: bench-summary
           path: bench-summary.json
+      - if: always()
+        uses: ./.github/actions/cleanup
