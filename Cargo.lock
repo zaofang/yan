@@ -2635,6 +2635,7 @@ dependencies = [
  "yan-check",
  "yan-core",
  "yan-diag",
+ "yan-flow",
 ]
 
 [[package]]

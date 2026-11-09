@@ -3,6 +3,7 @@
 
 mod drops;
 mod mono;
+mod owned;
 
 use yan_core::ast::Module;
 use yan_diag::Diagnostic;

@@ -1,6 +1,10 @@
 //! Drop elaboration (R770, 5.3 step 1): after this pass every owned, non-copy local is consumed
 //! or dropped exactly once on every path.
 //!
+//! Ownership comes from the shared owned fact (RFC 0054, [`crate::owned`]): a local is dropped
+//! where it is must-owned. Where control flow meets, a local some incoming path owns and the
+//! meeting point does not must-own is dropped on that path's edge.
+//!
 //! Owned locals are `let`/`var` bindings that do not alias another place (`Rhs::Proj` binds a
 //! view) and `sink` parameters. Drops go at scope exit in reverse declaration order and before
 //! every early exit. A value moved on only some paths is dropped on the branch edge where it is
@@ -20,8 +24,8 @@ use yan_core::ast::*;
 use yan_diag::Span;
 
 use crate::Error;
-
-type Live = HashMap<Name, bool>;
+use crate::owned::{Facts, Key, addr, owned_params, pat_decls};
+use yan_flow::Binding;
 /// A point in the scope stack: locals of scope `.0` from index `.1` on, and every deeper scope.
 type Pos = (usize, usize);
 
@@ -51,14 +55,16 @@ pub fn elaborate(m: &Module) -> Result<Module, Error> {
 
 /// Run the pass over one body until the set of flagged locals stops growing.
 fn settle(obs: &Observable, params: &[Param], body: &Block) -> Result<Block, Error> {
+    let facts = Facts::new(params, body);
     let mut flags: HashMap<Name, Name> = HashMap::new();
     for _ in 0..8 {
         let mut e = Elab {
             obs,
+            facts: &facts,
             flags: flags.clone(),
             need: Vec::new(),
-            hoisted: Vec::new(),
             tmp: 0,
+            blocks: Vec::new(),
             cx: Cx::default(),
         };
         let b = e.block(body, owned_params(params));
@@ -71,21 +77,6 @@ fn settle(obs: &Observable, params: &[Param], body: &Block) -> Result<Block, Err
         }
     }
     Err(Error::Unsupported("drop flags that do not settle".into()))
-}
-
-fn owned_params(params: &[Param]) -> Vec<(Name, Type)> {
-    params
-        .iter()
-        .filter_map(|p| match p {
-            Param::Value {
-                conv: Conv::Sink,
-                name,
-                ty,
-                ..
-            } => Some((name.clone(), ty.clone())),
-            _ => None,
-        })
-        .collect()
 }
 
 /// Types whose drop can be seen: custom `Drop`, `@linear`, extern handles, and anything holding one.
@@ -169,24 +160,24 @@ fn mentions(t: &Type, set: &HashSet<String>) -> bool {
 struct Local {
     name: Name,
     ty: Type,
+    id: Binding,
 }
 
 struct Loop {
     label: Name,
     pos: Pos,
-    entry: Live,
-    brk: Option<Live>,
+    key: usize,
+    broken: bool,
 }
 
 struct Jp {
     pos: Pos,
-    def: Live,
+    key: usize,
 }
 
 #[derive(Default)]
 struct Cx {
     scopes: Vec<Vec<Local>>,
-    live: Live,
     loops: Vec<Loop>,
     jps: HashMap<Name, Jp>,
     /// Names bound by `match` patterns, to the scrutinee local they view.
@@ -202,18 +193,20 @@ enum Flow {
 struct Branch {
     stmts: Vec<Stmt>,
     flow: Flow,
-    live: Live,
+    end: Key,
 }
 
 struct Elab<'a> {
     obs: &'a Observable,
+    facts: &'a Facts,
     /// Local to the name of its drop flag.
     flags: HashMap<Name, Name>,
     /// Locals found to need a flag this run.
     need: Vec<Name>,
-    /// Locals bound in a `par` branch's join point, live once the `par` ends.
-    hoisted: Vec<Name>,
     tmp: usize,
+    /// Addresses of the enclosing blocks; a join point's body falls through to the end of the
+    /// innermost one.
+    blocks: Vec<usize>,
     cx: Cx,
 }
 
@@ -233,6 +226,13 @@ fn place(root: &str, span: Span) -> Place {
     }
 }
 
+fn rhs_mut(k: &mut StmtKind) -> Option<&mut Rhs> {
+    match k {
+        StmtKind::Let { rhs, .. } | StmtKind::Assign { rhs, .. } | StmtKind::Rhs(rhs) => Some(rhs),
+        _ => None,
+    }
+}
+
 impl Elab<'_> {
     fn flag_on(&mut self, x: &Name) {
         if !self.flags.contains_key(x) && !self.need.contains(x) {
@@ -240,24 +240,31 @@ impl Elab<'_> {
         }
     }
 
-    fn ty_of(&self, x: &str) -> Option<&Type> {
+    fn local(&self, x: &str) -> Option<&Local> {
         self.cx
             .scopes
             .iter()
             .rev()
-            .flatten()
-            .rev()
+            .flat_map(|s| s.iter().rev())
             .find(|l| l.name == x)
-            .map(|l| &l.ty)
+    }
+
+    fn owned(&self, k: Key, x: &str) -> bool {
+        self.local(x).is_some_and(|l| self.facts.must(k, l.id))
+    }
+
+    fn top(&self) -> Pos {
+        (self.cx.scopes.len(), 0)
     }
 
     /// A new scope holding `owned` (bound by the caller) and the statements of `b`.
     fn block(&mut self, b: &Block, owned: Vec<(Name, Type)>) -> Block {
         self.cx.scopes.push(Vec::new());
+        self.blocks.push(addr(b));
         let at = b.stmts.first().map(|s| s.span).unwrap_or_default();
         let mut out = Vec::new();
         for (n, ty) in &owned {
-            self.declare(n, ty, at, &mut out);
+            self.declare(n, ty, addr(b), at, &mut out);
         }
         let mut flow = Flow::Normal;
         for s in &b.stmts {
@@ -268,76 +275,61 @@ impl Elab<'_> {
         }
         let end = b.stmts.last().map(|s| s.span).unwrap_or_default();
         if flow == Flow::Normal {
+            let k = addr(b);
+            self.edge(Key::Tail(k), Key::End(k), self.top(), end, &mut out);
             let top = self.cx.scopes.len() - 1;
-            self.exit_drops((top, 0), &[], end, &mut out);
+            self.exit_drops((top, 0), &[], end, Key::End(k), &mut out);
         }
-        for l in self.cx.scopes.pop().unwrap_or_default() {
-            self.cx.live.remove(&l.name);
-        }
+        self.blocks.pop();
+        self.cx.scopes.pop();
         Block { stmts: out }
     }
 
-    /// A block whose locals are declared in, and dropped with, the enclosing scope.
+    /// A `par` branch: what its top-level join points bind is visible after the `par`, so their
+    /// bodies declare into the enclosing scope.
     fn hoisted_block(&mut self, b: &Block) -> Block {
+        self.blocks.push(addr(b));
         let mut out = Vec::new();
         for s in &b.stmts {
             match &s.kind {
                 StmtKind::Jp { name, params, body } => {
-                    self.hoisted_jp(name, params, body, s.span, &mut out);
+                    self.cx.jps.insert(
+                        name.clone(),
+                        Jp {
+                            pos: self.here(),
+                            key: addr(s),
+                        },
+                    );
+                    let mut nb = Vec::new();
+                    for (n, ty) in owned_params(params) {
+                        self.declare(&n, &ty, addr(body), s.span, &mut nb);
+                    }
+                    for s in &body.stmts {
+                        self.stmt(s, &mut nb);
+                    }
+                    out.push(stmt(
+                        StmtKind::Jp {
+                            name: name.clone(),
+                            params: params.to_vec(),
+                            body: Block { stmts: nb },
+                        },
+                        s.span,
+                    ));
                 }
                 _ => {
                     self.stmt(s, &mut out);
                 }
             }
         }
+        self.blocks.pop();
         Block { stmts: out }
     }
 
-    /// A join point at the top of a `par` branch (`r = f() else x`): what its body binds is
-    /// visible after the `par`, so the body declares into the enclosing scope. The jumps still
-    /// see the liveness before the body; the bindings turn live once the `par` ends.
-    fn hoisted_jp(
-        &mut self,
-        name: &Name,
-        params: &[Param],
-        body: &Block,
-        at: Span,
-        out: &mut Vec<Stmt>,
-    ) {
-        let pos = (
+    fn here(&self) -> Pos {
+        (
             self.cx.scopes.len() - 1,
             self.cx.scopes.last().map_or(0, Vec::len),
-        );
-        let saved = self.cx.live.clone();
-        self.cx.jps.insert(
-            name.clone(),
-            Jp {
-                pos,
-                def: saved.clone(),
-            },
-        );
-        let mut nb = Vec::new();
-        for (n, ty) in owned_params(params) {
-            self.declare(&n, &ty, at, &mut nb);
-        }
-        for s in &body.stmts {
-            self.stmt(s, &mut nb);
-        }
-        let bound: Vec<Name> = self.cx.scopes.last().map_or(Vec::new(), |sc| {
-            sc[pos.1..].iter().map(|l| l.name.clone()).collect()
-        });
-        let live = &self.cx.live;
-        self.hoisted
-            .extend(bound.into_iter().filter(|n| live.get(n) == Some(&true)));
-        self.cx.live = saved;
-        out.push(stmt(
-            StmtKind::Jp {
-                name: name.clone(),
-                params: params.to_vec(),
-                body: Block { stmts: nb },
-            },
-            at,
-        ));
+        )
     }
 
     fn flow_of(&self, b: &Block) -> Flow {
@@ -355,15 +347,15 @@ impl Elab<'_> {
         }
     }
 
-    fn declare(&mut self, n: &Name, ty: &Type, at: Span, out: &mut Vec<Stmt>) {
+    fn declare(&mut self, n: &Name, ty: &Type, site: usize, at: Span, out: &mut Vec<Stmt>) {
         if own::is_copy(ty) {
             return;
         }
         self.cx.scopes.last_mut().expect("in a scope").push(Local {
             name: n.clone(),
             ty: ty.clone(),
+            id: self.facts.binding(site, n),
         });
-        self.cx.live.insert(n.clone(), true);
         if let Some(f) = self.flags.get(n) {
             out.push(stmt(
                 StmtKind::Let {
@@ -382,20 +374,8 @@ impl Elab<'_> {
         }
     }
 
-    fn declare_pat(&mut self, p: &Pat, ty: &Type, at: Span, out: &mut Vec<Stmt>) {
-        match (p, ty) {
-            (Pat::Bind(n), _) => self.declare(n, ty, at, out),
-            (Pat::Tuple(ps), Type::Tuple(ts)) if ps.len() == ts.len() => {
-                for (p, t) in ps.iter().zip(ts) {
-                    self.declare_pat(p, t, at, out);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    /// `drop x`, or `if _dN { drop x }` for a flagged local; nothing when `x` was moved.
-    fn drop_stmt(&self, x: &Name, at: Span, out: &mut Vec<Stmt>) {
+    /// `drop x`, or `if _dN { drop x }` for a flagged local; nothing when `x` is not owned at `k`.
+    fn drop_stmt(&self, x: &Name, at: Span, k: Key, out: &mut Vec<Stmt>) {
         let drop = stmt(StmtKind::Drop(x.clone()), at);
         match self.flags.get(x) {
             Some(f) => out.push(stmt(
@@ -406,13 +386,13 @@ impl Elab<'_> {
                 },
                 at,
             )),
-            None if self.cx.live.get(x) == Some(&true) => out.push(drop),
+            None if self.owned(k, x) => out.push(drop),
             None => {}
         }
     }
 
     /// Drops for everything declared at or after `pos`, innermost and latest first, except `skip`.
-    fn exit_drops(&self, pos: Pos, skip: &[Name], at: Span, out: &mut Vec<Stmt>) {
+    fn exit_drops(&self, pos: Pos, skip: &[Name], at: Span, k: Key, out: &mut Vec<Stmt>) {
         for (si, scope) in self.cx.scopes.iter().enumerate().rev() {
             if si < pos.0 {
                 break;
@@ -420,7 +400,7 @@ impl Elab<'_> {
             let from = if si == pos.0 { pos.1 } else { 0 };
             for l in scope[from..].iter().rev() {
                 if !skip.contains(&l.name) {
-                    self.drop_stmt(&l.name, at, out);
+                    self.drop_stmt(&l.name, at, k, out);
                 }
             }
         }
@@ -428,18 +408,70 @@ impl Elab<'_> {
 
     /// What a function exit drops, in order: the `?` drop list. A flagged local is listed too and
     /// is dropped under its flag.
-    fn exit_names(&self, skip: &[Name]) -> Vec<Name> {
+    fn exit_names(&self, skip: &[Name], k: Key) -> Vec<Name> {
         let mut out = Vec::new();
         for scope in self.cx.scopes.iter().rev() {
             for l in scope.iter().rev() {
-                let owned =
-                    self.flags.contains_key(&l.name) || self.cx.live.get(&l.name) == Some(&true);
+                let owned = self.flags.contains_key(&l.name) || self.facts.must(k, l.id);
                 if owned && !skip.contains(&l.name) {
                     out.push(l.name.clone());
                 }
             }
         }
         out
+    }
+
+    /// Control goes from `from` to `to`, where the locals declared before `pos` are in scope. A
+    /// local `from` owns and `to` does not must-own is dropped on this edge, or gets a flag when
+    /// its drop is observable (5.4): the drop must then wait for the scope's end. An `exact`
+    /// target (a join point) also takes a flag for a local it owns and `from` does not.
+    fn edge(&mut self, from: Key, to: Key, pos: Pos, at: Span, out: &mut Vec<Stmt>) {
+        self.edge_to(from, to, pos, false, at, out);
+    }
+
+    fn edge_to(
+        &mut self,
+        from: Key,
+        to: Key,
+        pos: Pos,
+        exact: bool,
+        at: Span,
+        out: &mut Vec<Stmt>,
+    ) {
+        let mut seen = HashSet::new();
+        let mut visible: Vec<(Name, Binding, bool)> = Vec::new();
+        for (si, scope) in self.cx.scopes.iter().enumerate().rev() {
+            if si > pos.0 {
+                continue;
+            }
+            let upto = if si == pos.0 { pos.1 } else { scope.len() };
+            for l in scope[..upto.min(scope.len())].iter().rev() {
+                if seen.insert(l.name.clone()) {
+                    visible.push((l.name.clone(), l.id, self.obs.of(&l.ty)));
+                }
+            }
+        }
+        visible.sort_by(|a, b| a.0.cmp(&b.0));
+        for (x, id, obs) in visible {
+            if self.flags.contains_key(&x) {
+                continue;
+            }
+            if self.facts.must(to, id) {
+                if exact && !self.facts.must(from, id) {
+                    self.flag_on(&x);
+                }
+                continue;
+            }
+            if self.facts.must(from, id) {
+                if obs {
+                    self.flag_on(&x);
+                } else {
+                    out.push(stmt(StmtKind::Drop(x), at));
+                }
+            } else if obs && self.facts.may(to, id) {
+                self.flag_on(&x);
+            }
+        }
     }
 
     /// What `s` consumes, with a name bound by a `match` pattern standing for the scrutinee it
@@ -451,18 +483,12 @@ impl Elab<'_> {
             .collect()
     }
 
-    /// Mark the owned locals `s` consumes and return the flagged ones.
-    fn consume(&mut self, s: &StmtKind) -> Vec<Name> {
-        let mut flagged = Vec::new();
-        for n in &self.consumed(s) {
-            if let Some(v) = self.cx.live.get_mut(n) {
-                *v = false;
-                if self.flags.contains_key(n) {
-                    flagged.push(n.clone());
-                }
-            }
-        }
-        flagged
+    /// The flagged locals `s` consumes.
+    fn consume(&self, s: &StmtKind) -> Vec<Name> {
+        self.consumed(s)
+            .into_iter()
+            .filter(|n| self.flags.contains_key(n) && self.local(n).is_some())
+            .collect()
     }
 
     fn set_flag(&self, x: &Name, v: bool, at: Span, out: &mut Vec<Stmt>) {
@@ -483,106 +509,60 @@ impl Elab<'_> {
         }
     }
 
-    /// Make the current state of the locals in `target` equal to it: drop what the target says
-    /// is gone, flag what the target says is still owned.
-    fn reconcile(&mut self, target: &Live, at: Span, out: &mut Vec<Stmt>) {
-        let mut names: Vec<&Name> = target.keys().collect();
-        names.sort();
-        for x in names {
-            if self.flags.contains_key(x) {
-                continue;
-            }
-            match (target[x], self.cx.live.get(x).copied()) {
-                (false, Some(true)) => {
-                    if self.ty_of(x).is_some_and(|t| self.obs.of(t)) {
-                        self.flag_on(x);
-                    } else {
-                        self.drop_stmt(x, at, out);
-                        self.cx.live.insert(x.clone(), false);
-                    }
-                }
-                (true, Some(false)) => self.flag_on(x),
-                _ => {}
-            }
-        }
-    }
-
-    fn restrict(&self, within: &Live) -> Live {
-        within
-            .keys()
-            .filter_map(|k| self.cx.live.get(k).map(|v| (k.clone(), *v)))
-            .collect()
-    }
-
-    fn closure(&mut self, r: &mut Rhs) {
-        if let Rhs::Closure(c) = r {
+    /// Elaborates the body of a closure in `orig` into its copy `r`.
+    fn closure(&mut self, r: &mut Rhs, orig: &Rhs) {
+        if let (Rhs::Closure(c), Rhs::Closure(o)) = (r, orig) {
             let saved = mem::take(&mut self.cx);
-            c.body = self.block(&c.body.clone(), owned_params(&c.params));
+            let blocks = mem::take(&mut self.blocks);
+            c.body = self.block(&o.body, owned_params(&o.params));
             self.cx = saved;
+            self.blocks = blocks;
         }
     }
 
-    fn run_branches(&mut self, blocks: Vec<Option<&Block>>, pre: &Live) -> Vec<Branch> {
+    fn run_branches(&mut self, blocks: Vec<Option<&Block>>, fall: Key) -> Vec<Branch> {
         blocks
             .into_iter()
-            .map(|b| {
-                self.cx.live = pre.clone();
-                match b {
-                    Some(b) => {
-                        let nb = self.block(b, Vec::new());
-                        Branch {
-                            flow: self.flow_of(&nb),
-                            stmts: nb.stmts,
-                            live: self.restrict(pre),
-                        }
+            .map(|b| match b {
+                Some(b) => {
+                    let nb = self.block(b, Vec::new());
+                    Branch {
+                        flow: self.flow_of(&nb),
+                        stmts: nb.stmts,
+                        end: Key::End(addr(b)),
                     }
-                    None => Branch {
-                        stmts: Vec::new(),
-                        flow: Flow::Normal,
-                        live: pre.clone(),
-                    },
                 }
+                None => Branch {
+                    stmts: Vec::new(),
+                    flow: Flow::Normal,
+                    end: fall,
+                },
             })
             .collect()
     }
 
-    /// Join branch end states: a local gone on some paths is dropped at the end of the others.
-    fn join(&mut self, bs: &mut [Branch], pre: &Live, at: Span) -> Flow {
+    /// The branches meet at `to`.
+    fn join(&mut self, bs: &mut [Branch], to: Key, at: Span) -> Flow {
         if bs.iter().all(|b| b.flow == Flow::Diverged) {
-            self.cx.live = pre.clone();
             return Flow::Diverged;
         }
-        let mut names: Vec<&Name> = pre.keys().collect();
-        names.sort();
-        let mut target = Live::new();
-        for x in names {
-            let ends: Vec<bool> = bs
-                .iter()
-                .filter(|b| b.flow == Flow::Normal)
-                .map(|b| b.live[x])
-                .collect();
-            target.insert(x.clone(), ends.iter().all(|v| *v));
-        }
         for b in bs.iter_mut().filter(|b| b.flow == Flow::Normal) {
-            self.cx.live = mem::take(&mut b.live);
-            self.reconcile(&target, at, &mut b.stmts);
+            self.edge(b.end, to, self.top(), at, &mut b.stmts);
         }
-        self.cx.live = target;
         Flow::Normal
     }
 
     fn stmt(&mut self, s: &Stmt, out: &mut Vec<Stmt>) -> Flow {
         let at = s.span;
+        let key = addr(s);
+        let mid = Key::Mid(key);
         let mut new = s.clone();
         let skip = self.consumed(&s.kind);
-        match &mut new.kind {
-            StmtKind::Let { rhs, .. } | StmtKind::Assign { rhs, .. } | StmtKind::Rhs(rhs) => {
-                self.closure(rhs);
-                if let Rhs::Propagate { drops, .. } = rhs {
-                    *drops = self.exit_names(&skip);
-                }
+        if let (Some(rhs), Some(orig)) = (rhs_mut(&mut new.kind), crate::owned::rhs_of(&s.kind)) {
+            self.closure(rhs, orig);
+            if let Rhs::Propagate { drops, .. } = rhs {
+                *drops = self.exit_names(&skip, mid);
             }
-            _ => {}
         }
         match &s.kind {
             StmtKind::Drop(_) | StmtKind::Reuse { .. } => {
@@ -603,19 +583,22 @@ impl Elab<'_> {
                     self.cx.views.remove(x);
                 }
                 if !matches!(rhs, Rhs::Proj(_)) {
-                    self.declare_pat(pat, ty, at, out);
+                    let mut ds = Vec::new();
+                    pat_decls(pat, ty, &mut ds);
+                    for (n, t) in ds {
+                        self.declare(n, t, key, at, out);
+                    }
                 }
                 Flow::Normal
             }
             StmtKind::Assign { place: p, rhs, .. } => {
                 let flagged = self.consume(&s.kind);
                 let x = &p.root;
-                let ty = self.ty_of(x).cloned();
-                match ty {
-                    Some(ty) if p.projs.is_empty() && self.cx.live.contains_key(x) => {
+                match self.local(x).map(|l| l.ty.clone()) {
+                    Some(ty) if p.projs.is_empty() => {
                         // The old value goes after the right-hand side is evaluated.
                         if matches!(rhs, Rhs::Atom(Atom::Lit(..))) {
-                            self.drop_stmt(x, at, out);
+                            self.drop_stmt(x, at, mid, out);
                             out.push(new);
                         } else {
                             self.tmp += 1;
@@ -637,7 +620,7 @@ impl Elab<'_> {
                                 },
                                 at,
                             ));
-                            self.drop_stmt(x, at, out);
+                            self.drop_stmt(x, at, mid, out);
                             out.push(stmt(
                                 StmtKind::Assign {
                                     place: p.clone(),
@@ -647,7 +630,6 @@ impl Elab<'_> {
                                 at,
                             ));
                         }
-                        self.cx.live.insert(x.clone(), true);
                         if self.flags.contains_key(x) {
                             self.set_flag(x, true, at, out);
                         }
@@ -657,16 +639,15 @@ impl Elab<'_> {
                 self.clear_flags(flagged, at, out);
                 Flow::Normal
             }
-            StmtKind::Rhs(_) | StmtKind::Assert(_) | StmtKind::Asm { .. } => {
+            StmtKind::Rhs(_) | StmtKind::Assert(_) | StmtKind::Asm { .. } | StmtKind::Yield(_) => {
                 let flagged = self.consume(&s.kind);
                 out.push(new);
                 self.clear_flags(flagged, at, out);
                 Flow::Normal
             }
             StmtKind::If { cond, then, els } | StmtKind::ComptimeIf { cond, then, els } => {
-                let pre = self.cx.live.clone();
-                let mut bs = self.run_branches(vec![Some(then), els.as_ref()], &pre);
-                let flow = self.join(&mut bs, &pre, at);
+                let mut bs = self.run_branches(vec![Some(then), els.as_ref()], Key::Fall(key));
+                let flow = self.join(&mut bs, Key::Join(key), at);
                 let (e, t) = (bs.pop().expect("two"), bs.pop().expect("two"));
                 let els =
                     (els.is_some() || !e.stmts.is_empty()).then_some(Block { stmts: e.stmts });
@@ -684,11 +665,10 @@ impl Elab<'_> {
                 flow
             }
             StmtKind::Match { scrutinee, arms } => {
-                let pre = self.cx.live.clone();
                 let mut bound = Vec::new();
                 if let Atom::Name(x, _) = scrutinee {
                     let root = self.cx.views.get(x).unwrap_or(x).clone();
-                    if pre.contains_key(&root) {
+                    if self.local(&root).is_some() {
                         for (p, _) in arms {
                             own::pat_binders(p, &mut bound);
                         }
@@ -697,11 +677,12 @@ impl Elab<'_> {
                         }
                     }
                 }
-                let mut bs = self.run_branches(arms.iter().map(|(_, b)| Some(b)).collect(), &pre);
+                let mut bs =
+                    self.run_branches(arms.iter().map(|(_, b)| Some(b)).collect(), Key::Fall(key));
                 for n in &bound {
                     self.cx.views.remove(n);
                 }
-                let flow = self.join(&mut bs, &pre, at);
+                let flow = self.join(&mut bs, Key::Join(key), at);
                 let arms = arms
                     .iter()
                     .zip(bs)
@@ -722,17 +703,22 @@ impl Elab<'_> {
                 decreases,
                 body,
             } => {
-                let entry = self.cx.live.clone();
+                self.enter_loop(key);
                 self.cx.loops.push(Loop {
                     label: label.clone(),
-                    pos: (self.cx.scopes.len(), 0),
-                    entry: entry.clone(),
-                    brk: None,
+                    pos: self.top(),
+                    key,
+                    broken: false,
                 });
                 let mut nb = self.block(body, Vec::new());
                 if self.flow_of(&nb) == Flow::Normal {
-                    self.cx.live = self.restrict(&entry);
-                    self.reconcile(&entry, at, &mut nb.stmts);
+                    self.edge(
+                        Key::End(addr(body)),
+                        Key::Head(key),
+                        self.top(),
+                        at,
+                        &mut nb.stmts,
+                    );
                 }
                 let lp = self.cx.loops.pop().expect("pushed above");
                 out.push(stmt(
@@ -744,15 +730,10 @@ impl Elab<'_> {
                     },
                     at,
                 ));
-                match lp.brk {
-                    Some(l) => {
-                        self.cx.live = l;
-                        Flow::Normal
-                    }
-                    None => {
-                        self.cx.live = entry;
-                        Flow::Diverged
-                    }
+                if lp.broken {
+                    Flow::Normal
+                } else {
+                    Flow::Diverged
                 }
             }
             StmtKind::ComptimeFor {
@@ -761,13 +742,17 @@ impl Elab<'_> {
                 iter,
                 body,
             } => {
-                let entry = self.cx.live.clone();
+                self.enter_loop(key);
                 let mut nb = self.block(body, Vec::new());
                 if self.flow_of(&nb) == Flow::Normal {
-                    self.cx.live = self.restrict(&entry);
-                    self.reconcile(&entry, at, &mut nb.stmts);
+                    self.edge(
+                        Key::End(addr(body)),
+                        Key::Head(key),
+                        self.top(),
+                        at,
+                        &mut nb.stmts,
+                    );
                 }
-                self.cx.live = entry;
                 out.push(stmt(
                     StmtKind::ComptimeFor {
                         name: name.clone(),
@@ -780,7 +765,6 @@ impl Elab<'_> {
                 Flow::Normal
             }
             StmtKind::Break { label, .. } | StmtKind::Continue { label } => {
-                let skip = self.consumed(&s.kind);
                 let Some(i) = self
                     .cx
                     .loops
@@ -791,37 +775,38 @@ impl Elab<'_> {
                     out.push(new);
                     return Flow::Diverged;
                 };
-                let (pos, entry) = (self.cx.loops[i].pos, self.cx.loops[i].entry.clone());
-                self.exit_drops(pos, &skip, at, out);
-                self.consume(&s.kind);
-                self.cx.live = self.restrict(&entry);
-                if matches!(s.kind, StmtKind::Break { .. }) {
-                    match self.cx.loops[i].brk.clone() {
-                        None => self.cx.loops[i].brk = Some(self.cx.live.clone()),
-                        Some(t) => self.reconcile(&t, at, out),
-                    }
+                let (pos, lk) = (self.cx.loops[i].pos, self.cx.loops[i].key);
+                self.exit_drops(pos, &skip, at, mid, out);
+                let to = if matches!(s.kind, StmtKind::Break { .. }) {
+                    self.cx.loops[i].broken = true;
+                    Key::Join(lk)
                 } else {
-                    self.reconcile(&entry, at, out);
-                }
+                    Key::Head(lk)
+                };
+                self.edge(mid, to, pos, at, out);
                 out.push(new);
                 Flow::Diverged
             }
             StmtKind::Jp { name, params, body } => {
-                let pos = (
-                    self.cx.scopes.len() - 1,
-                    self.cx.scopes.last().map_or(0, Vec::len),
-                );
-                let saved = self.cx.live.clone();
                 self.cx.jps.insert(
                     name.clone(),
                     Jp {
-                        pos,
-                        def: saved.clone(),
+                        pos: self.here(),
+                        key,
                     },
                 );
-                let owned = owned_params(params);
-                let nb = self.block(body, owned);
-                self.cx.live = saved;
+                let mut nb = self.block(body, owned_params(params));
+                if self.flow_of(&nb) == Flow::Normal
+                    && let Some(&blk) = self.blocks.last()
+                {
+                    self.edge(
+                        Key::End(addr(body)),
+                        Key::End(blk),
+                        self.top(),
+                        at,
+                        &mut nb.stmts,
+                    );
+                }
                 out.push(stmt(
                     StmtKind::Jp {
                         name: name.clone(),
@@ -833,34 +818,24 @@ impl Elab<'_> {
                 Flow::Normal
             }
             StmtKind::Jump { name, .. } => {
-                let skip = self.consumed(&s.kind);
-                let (pos, def) = match self.cx.jps.get(name) {
-                    Some(j) => (j.pos, j.def.clone()),
-                    None => ((0, 0), Live::new()),
-                };
-                self.exit_drops(pos, &skip, at, out);
+                let jp = self.cx.jps.get(name).map(|j| (j.pos, j.key));
+                self.exit_drops(jp.map_or((0, 0), |j| j.0), &skip, at, mid, out);
                 let flagged = self.consume(&s.kind);
-                self.reconcile(&def, at, out);
+                if let Some((pos, jk)) = jp {
+                    self.edge_to(mid, Key::Join(jk), pos, true, at, out);
+                }
                 self.clear_flags(flagged, at, out);
                 out.push(new);
                 Flow::Diverged
             }
             StmtKind::Ret(_) | StmtKind::Fail(_) | StmtKind::Become(_) => {
-                let skip = self.consumed(&s.kind);
-                self.exit_drops((0, 0), &skip, at, out);
-                self.consume(&s.kind);
+                self.exit_drops((0, 0), &skip, at, mid, out);
                 out.push(new);
                 Flow::Diverged
             }
             StmtKind::Unreachable => {
                 out.push(new);
                 Flow::Diverged
-            }
-            StmtKind::Yield(_) => {
-                let flagged = self.consume(&s.kind);
-                out.push(new);
-                self.clear_flags(flagged, at, out);
-                Flow::Normal
             }
             StmtKind::With {
                 handler,
@@ -902,11 +877,7 @@ impl Elab<'_> {
                 flow
             }
             StmtKind::Par { concurrent, blocks } => {
-                // Branch bindings stay visible after the `par`: they belong to the enclosing scope.
                 let blocks = blocks.iter().map(|b| self.hoisted_block(b)).collect();
-                for n in std::mem::take(&mut self.hoisted) {
-                    self.cx.live.insert(n, true);
-                }
                 out.push(stmt(
                     StmtKind::Par {
                         concurrent: *concurrent,
@@ -918,8 +889,25 @@ impl Elab<'_> {
             }
         }
     }
-}
 
+    /// A local owned on entry to a loop but not on every way back to its head is dropped where
+    /// the loop body loses it, which the entry edge cannot know: it gets a flag.
+    fn enter_loop(&mut self, key: usize) {
+        let lost: Vec<Name> = self
+            .cx
+            .scopes
+            .iter()
+            .flatten()
+            .filter(|l| {
+                self.facts.must(Key::Mid(key), l.id) && !self.facts.must(Key::Head(key), l.id)
+            })
+            .map(|l| l.name.clone())
+            .collect();
+        for x in lost {
+            self.flag_on(&x);
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
