@@ -58,7 +58,9 @@ impl<'a, 'm> Fn<'a, 'm> {
     pub(super) fn has_map(s: &Shape) -> bool {
         match s {
             Shape::Map(..) => true,
-            Shape::Scalar(_) | Shape::Str | Shape::Fn(..) | Shape::Chan(_) => false,
+            Shape::Scalar(_) | Shape::Str | Shape::Fn(..) | Shape::Chan(_) | Shape::Actor(_) => {
+                false
+            }
             Shape::List(e) | Shape::Heap(e) | Shape::Deque(e) => Self::has_map(e),
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_map(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_map),
@@ -71,7 +73,7 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     pub(super) fn has_heap(s: &Shape) -> bool {
         match s {
-            Shape::Scalar(_) => false,
+            Shape::Scalar(_) | Shape::Actor(_) => false,
             Shape::Str
             | Shape::List(_)
             | Shape::Map(..)
@@ -95,7 +97,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             return;
         }
         match s {
-            Shape::Scalar(_) => {}
+            Shape::Scalar(_) | Shape::Actor(_) => {}
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str => self.free(RtFn::StrFree, v[0].clone()),
             Shape::Chan(_) => self.free(RtFn::ChanDrop, v[0].clone()),
@@ -171,9 +173,10 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
     }
 
-    /// A channel operation; one that parks suspends its task and runs again when the task
-    /// resumes. It can park inside a task, or anywhere in a coroutine variant (`co`).
-    /// Its status: 0, or 2 when the task is cancelled (9.4).
+    /// A channel or actor operation; one that parks suspends its task and runs again when the
+    /// task resumes. It can park inside a task, or anywhere in a coroutine variant (`co`). One
+    /// that cannot park runs the actor message yan-rt hands back, then runs again (RFC 0056 D4).
+    /// Its status: 0, or 2 when the task is cancelled (9.4), or an actor operation's own.
     pub(super) fn blocking(&mut self, f: RtFn, mut args: Vec<Operand>) -> Operand {
         args.push(Operand::Int(i128::from(!self.task_starts.is_empty())));
         let op = self.block_new();
@@ -183,6 +186,16 @@ impl<'a, 'm> Fn<'a, 'm> {
         let (suspend, on) = self.branch(parked);
         self.cur = suspend;
         self.finish(Term::Suspend { resume: op });
+        self.cur = on;
+        let work = self.scalar_op(
+            ScalarOp::Eq,
+            I64,
+            vec![st.clone(), Operand::Int(actor::WORK)],
+        );
+        let (run, on) = self.branch(work);
+        self.cur = run;
+        self.run_message();
+        self.goto(op);
         self.cur = on;
         st
     }
@@ -331,7 +344,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                 };
                 result(Shape::Str, mine_e[0].1.clone())
             }
-            None => return unsupported(format!("`?` on `{}`", c.path.join("."))),
+            None => match self.intrinsic_result(c)? {
+                Some(s) => s,
+                None => return unsupported(format!("`?` on `{}`", c.path.join("."))),
+            },
         };
         let (Some((_, ok_at, _)), Some((_, err_at, efs)), Some((_, _, mine_e))) = (
             theirs.variant("Ok"),
@@ -340,10 +356,11 @@ impl<'a, 'm> Fn<'a, 'm> {
         ) else {
             return unsupported("`?` outside a failing function");
         };
-        if efs[0].1 != mine_e[0].1 {
-            return unsupported("`?` across error types");
+        let (e, mine_e) = (efs[0].1.clone(), mine_e[0].1.clone());
+        // A widened failure leaving a task leaks the enclosing frame's locals (#835).
+        if e != mine_e && !self.task_starts.is_empty() {
+            return unsupported("`?` across error types in a `par concurrent` branch");
         }
-        let e = efs[0].1.clone();
         let r = self.var(theirs);
         let v = Self::ops(&r);
         self.call(c, Some(r))?;
@@ -351,10 +368,87 @@ impl<'a, 'm> Fn<'a, 'm> {
         let (ok, err) = self.branch(is_ok);
         self.cur = err;
         let ev = v[err_at..err_at + e.width()].to_vec();
-        self.unwind(drops, Some((&e, &ev)));
+        let ev = self.widen_err(ev, &e, &mine_e)?;
+        self.unwind(drops, Some((&mine_e, &ev)));
         self.ret(Self::variant_value(&mine, "Err", ev));
         self.cur = ok;
         Ok(v[ok_at..ok_at + want.width()].to_vec())
+    }
+
+    /// The `Result` a fallible std call `c` makes, for `?` on it.
+    fn intrinsic_result(&mut self, c: &y::Call) -> R<Option<Shape>> {
+        let cancelled = || Shape::Rec("Cancelled".into(), Vec::new());
+        Ok(match registry::id(&c.path.join(".")) {
+            Some(id::STD_ACTOR_REPLY) => match Self::value_args(c)?.as_slice() {
+                [(_, a)] => Some(self.atom_any(a)?.1),
+                _ => None,
+            },
+            Some(id::STD_CHAN_RECEIVER_RECV) => self.targ(c)?.map(|e| result(e, cancelled())),
+            Some(id::STD_CHAN_SENDER_SEND) => Some(result(Shape::Scalar(Ty::Unit), cancelled())),
+            _ => None,
+        })
+    }
+
+    /// The failure `ev` of shape `e` as one of the fail type `f`: `e` itself, a member of the
+    /// union `f`, or a union of its members.
+    pub(super) fn widen_err(&mut self, ev: Vec<Operand>, e: &Shape, f: &Shape) -> R<Vec<Operand>> {
+        if e == f {
+            return Ok(ev);
+        }
+        let Shape::Sum(fu, fvs) = f else {
+            return unsupported("`?` across error types");
+        };
+        if fu != "Union" {
+            return unsupported("`?` across error types");
+        }
+        // Each member of `e` with its tag in `e` (none when `e` is one member) and its slots.
+        let members: Vec<(Option<i128>, String, Vec<Operand>)> = match e {
+            Shape::Sum(n, vs) if n == "Union" => {
+                let mut at = 1;
+                let mut out = Vec::new();
+                for (tag, (name, fs)) in vs.iter().enumerate() {
+                    let w: usize = fs.iter().map(|(_, s)| s.width()).sum();
+                    out.push((Some(tag as i128), name.clone(), ev[at..at + w].to_vec()));
+                    at += w;
+                }
+                out
+            }
+            _ => match fvs
+                .iter()
+                .find(|(_, fs)| matches!(fs.as_slice(), [(_, m)] if m == e))
+            {
+                Some((name, _)) => vec![(None, name.clone(), ev.clone())],
+                None => return unsupported("`?` across error types"),
+            },
+        };
+        let out = self.var(f.clone());
+        let join = self.block_new();
+        for (tag, name, payload) in members {
+            if f.variant(&name).is_none() {
+                return unsupported("`?` across error types");
+            }
+            let next = match tag {
+                Some(t) => {
+                    let is =
+                        self.scalar_op(ScalarOp::Eq, I64, vec![ev[0].clone(), Operand::Int(t)]);
+                    let (this, next) = self.branch(is);
+                    self.cur = this;
+                    Some(next)
+                }
+                None => None,
+            };
+            let v = Self::variant_value(f, &name, payload);
+            self.copy_to(&out.locals, v);
+            self.goto(join);
+            if let Some(n) = next {
+                self.cur = n;
+            }
+        }
+        if !self.done[self.cur as usize] && self.cur != join {
+            self.finish(Term::Panic("unreachable"));
+        }
+        self.cur = join;
+        Ok(Self::ops(&out))
     }
 
     /// Lift `c` to its own function; its value is that code and a block of the captures.
