@@ -20,23 +20,22 @@ relative to the tile, and how this meets the `Tile[M, N, T]` model of 17.1 (R327
 ### D1: how a kernel names its tile
 
 `@kernel(tile: M, N)` on a function declares the tile shape (positive integer literals or `Nat`
-constants) and gives the body one implicit `int` binding per tile axis, `t0`, `t1`, the origin of the
-program instance's output tile in the output array. The body reads and writes array elements
-(`a[t0 + i, t1 + j]`), where `i` and `j` are loop variables bounded by the tile shape.
+constants). The function takes one parameter of type `TileOrigin`, a std record with one `int` field
+per tile axis, `at.i0`, `at.i1`, the origin of the program instance's output tile in the output array.
+The body reads and writes array elements (`a[at.i0 + i, at.i1 + j]`), where `i` and `j` are loop
+variables bounded by the tile shape. The launch supplies the `TileOrigin`; a call from user code is a
+diagnostic whose code is chosen when rows are numbered.
 
-Options: (a) implicit origin bindings `t0`, `t1` (above); (b) an explicit leading parameter of a
-`TileOrigin` record type, which is visible in the signature and in `yan audit` but adds a type and a
-call-site rule; (c) only the R327 `Tile[M, N, T]` values (`load`, `store`), with no element access.
-Recommended: (a). The origin is not an argument a caller supplies, so a parameter misrepresents it.
-(c) cannot state or check an `@access` region because `load` takes whole tiles.
+Options: (a) implicit origin bindings; (b) an explicit `TileOrigin` parameter, visible in the
+signature and in `yan audit`; (c) only the R327 `Tile[M, N, T]` values, with no element access.
 
-- Decision: (lead's answer, date)
+- Decision: (b), the lead, 2026-11-09 (card on this thread)
 - Row: (R number once accepted)
 
 ### D2: the provable index language
 
 An index expression is provable when it is an affine form `sum(c_k * x_k) + c` over integer literals,
-comptime constants, the origin bindings, and loop variables of `for` loops with affine literal
+comptime constants, the `TileOrigin` fields, and loop variables of `for` loops with affine literal
 bounds. Anything else (a loaded value, a call, a product of two variables, a loop with data-dependent
 bounds) is E274 at the index, naming why it is not affine. There is no run-time check fallback.
 
@@ -53,7 +52,7 @@ a later RFC. Recommended: (c) now, so the first implementation is complete for i
 
 ### D3: what each region means
 
-For an operand with axes `a_0 ... a_{n-1}` and tile origin `t` and shape `T`, an access at index
+For an operand with axes `a_0 ... a_{n-1}` and tile origin `t` (the `TileOrigin` fields) and shape `T`, an access at index
 vector `x` is inside the region when:
 
 - `elementwise`: `x_k = t_k + i_k` with `0 <= i_k < T_k` for every axis (the operand has the tile's
