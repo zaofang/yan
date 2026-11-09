@@ -1081,6 +1081,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         let (name, out) = match (op, ty) {
             (ScalarOp::Eq, _) => ("eq_i64", Ty::Bool),
             (ScalarOp::Ne, _) => ("ne_i64", Ty::Bool),
+            (ScalarOp::Not, _) => ("not_bool", Ty::Bool),
             (ScalarOp::Ge, _) => ("ge_i64", Ty::Bool),
             (ScalarOp::Le, _) => ("le_i64", Ty::Bool),
             (ScalarOp::AddChecked, _) => ("add_checked_i64", I64),
@@ -1624,6 +1625,18 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let n = self.rt(RtFn::ListLen, I64, vec![l]);
                 let done = self.scalar_op(ScalarOp::Ge, I64, vec![pos, n]);
                 set(self, done);
+            }
+            (id::STD_CMP_EQ | id::STD_CMP_NE, [(_, a), (_, b)]) => {
+                let (x, sx) = self.atom_any(a)?;
+                let (y, sy) = self.atom_any(b)?;
+                if sx != Shape::Str || sy != Shape::Str {
+                    return unsupported(format!("call of `{name}` on this type"));
+                }
+                let mut r = self.rt(RtFn::StrEq, Ty::Bool, vec![x[0].clone(), y[0].clone()]);
+                if id == id::STD_CMP_NE {
+                    r = self.scalar_op(ScalarOp::Not, Ty::Bool, vec![r]);
+                }
+                set(self, r);
             }
             (id::STD_ITER_OPS_CURRENT, [(_, a)]) => {
                 let (v, s) = self.atom_any(a)?;
@@ -3596,12 +3609,19 @@ impl<'a, 'm> Fn<'a, 'm> {
         if let Some(Scope::Jps { at, .. }) = self.scopes.last_mut() {
             *at = None;
         }
+        let single = decls.len() == 1;
         let jps_in = decls.iter().zip(&jps).zip(jp_vars).zip(seen);
         for ((((_, _, body), (_, start, _)), vs), names) in jps_in {
             self.cur = *start;
             self.names = names;
             self.names.extend(vs);
-            self.block(body)?;
+            if single {
+                // The one continuation is where the block's code resumes, so names its body binds
+                // stay visible to a `par` branch's results.
+                self.block_in(body)?;
+            } else {
+                self.block(body)?;
+            }
             self.finish(Term::Switch {
                 on: cont,
                 targets: resume.clone(),
