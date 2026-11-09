@@ -15,7 +15,6 @@ impl Lower<'_, '_, '_> {
         body: impl FnOnce(&mut Self) -> R<()>,
     ) -> R<()> {
         self.loops.push((label.clone(), name.map(str::to_owned)));
-        self.loop_outer.push(self.locals.keys().cloned().collect());
         let b = self.block_with(|l| {
             let done = call(
                 "std.iter.ops.done",
@@ -49,7 +48,6 @@ impl Lower<'_, '_, '_> {
             body(l)
         });
         self.loops.pop();
-        self.loop_outer.pop();
         let body = b?;
         self.emit(
             StmtKind::Loop {
@@ -240,7 +238,6 @@ impl Lower<'_, '_, '_> {
             (Some((xs, e)), n, one)
         };
         self.loops.push((label.clone(), name.map(str::to_owned)));
-        self.loop_outer.push(self.locals.keys().cloned().collect());
         let b = self.block_with(|l| {
             let ge = call(
                 if descending { "le_i64" } else { "ge_i64" },
@@ -298,7 +295,6 @@ impl Lower<'_, '_, '_> {
             body(l)
         });
         self.loops.pop();
-        self.loop_outer.pop();
         let body = b?;
         self.emit(
             StmtKind::Loop {

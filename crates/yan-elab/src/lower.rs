@@ -26,6 +26,7 @@ mod call_expr;
 mod calls;
 mod consume;
 mod fallback;
+mod last_use;
 mod loops;
 mod matching;
 mod method;
@@ -72,15 +73,10 @@ struct Lower<'a, 'c, 's> {
     keyworded_from: Option<usize>,
     /// Dict elements that `place` copied out; a mutating caller stores them back.
     dict_places: Vec<DictPlace>,
-    /// Every read of each name, for last-use moves (E413).
-    uses: HashMap<String, Vec<Span>>,
+    /// Last use of each local, for E413 and `move` versus `copy`.
+    last_use: last_use::LastUse,
     /// Names the body indexes or measures, which N37 collects when bound to an `iter`.
     indexed: HashSet<String>,
-    /// Where each read sits: the branch groups enclosing it, for E413 reachability.
-    use_paths: HashMap<Span, Vec<Branch>>,
-    /// Plain-name reassignments: the statement span and its enclosing branches, so a
-    /// reassignment ends the live range of a move (E413).
-    defs: HashMap<String, Vec<(Span, Vec<Branch>)>>,
     ghosts: HashSet<String>,
     /// The parameter N05 took as the measure.
     inferred: Option<String>,
@@ -101,8 +97,6 @@ struct Lower<'a, 'c, 's> {
     fn_calls: Vec<(String, Span)>,
     /// `k = lambda ...` with no expected type: the target and lambda, lowered at the first call.
     pending: HashMap<String, (j::Expr, j::Expr)>,
-    /// The locals bound outside each enclosing loop, for W822.
-    loop_outer: Vec<HashSet<String>>,
     /// The name the current statement assigns, for W822.
     target: Option<String>,
     /// Inside an `unsafe` block (12.1).
@@ -810,10 +804,8 @@ fn function_body_with(
         in_become: false,
         keyworded_from: None,
         dict_places: Vec::new(),
-        uses: HashMap::new(),
+        last_use: last_use::LastUse::new(&body.stmts),
         indexed: HashSet::new(),
-        use_paths: HashMap::new(),
-        defs: HashMap::new(),
         ghosts: sig.ghosts.iter().map(|(_, n)| n.clone()).collect(),
         inferred: None,
         bound: Vec::new(),
@@ -824,7 +816,6 @@ fn function_body_with(
         handlers: Vec::new(),
         fn_calls: Vec::new(),
         pending: HashMap::new(),
-        loop_outer: Vec::new(),
         target: None,
         in_unsafe: false,
         stage,
@@ -848,14 +839,6 @@ fn function_body_with(
         hoists: Rc::clone(hoists),
         open: HashMap::new(),
     };
-    names_used(
-        &body.stmts,
-        &mut l.uses,
-        &mut l.use_paths,
-        &mut l.defs,
-        &mut Vec::new(),
-        &mut 0,
-    );
     indexed_names(&body.stmts, &mut l.indexed);
     l.infer_decreases(f, &body.stmts);
     let mut params: Vec<y::Param> = sig
@@ -1052,9 +1035,7 @@ fn function_body_with(
         .filter(|_| !hole_body)
         .map(|p| (p.name.clone(), p.span))
         .chain(mem::take(&mut l.bound))
-        .filter(|(n, _)| {
-            !n.starts_with('_') && n != "self" && l.uses.get(n).is_none_or(Vec::is_empty)
-        })
+        .filter(|(n, _)| !n.starts_with('_') && n != "self" && !l.last_use.is_read(n))
         .collect();
     let item = l.item.clone();
     // A name the item could not resolve may be a misspelt use of an "unused" binding (R291).
@@ -1825,83 +1806,6 @@ fn field_params(fs: &[crate::Field], at: Span) -> Vec<crate::P> {
         .collect()
 }
 
-/// One enclosing arm of a branching statement: its group, its index, and whether it ends.
-#[derive(Clone, Copy, PartialEq)]
-struct Branch {
-    group: usize,
-    arm: usize,
-    ends: bool,
-}
-
-fn names_used(
-    stmts: &[j::Stmt],
-    out: &mut HashMap<String, Vec<Span>>,
-    paths: &mut HashMap<Span, Vec<Branch>>,
-    defs: &mut HashMap<String, Vec<(Span, Vec<Branch>)>>,
-    path: &mut Vec<Branch>,
-    groups: &mut usize,
-) {
-    for s in stmts {
-        if let j::StmtKind::Assign { target, .. } = &s.kind {
-            let names: Vec<&String> = match &target.kind {
-                j::ExprKind::Name(n) => vec![n],
-                j::ExprKind::Tuple(ts) => ts
-                    .iter()
-                    .filter_map(|t| match &t.kind {
-                        j::ExprKind::Name(n) => Some(n),
-                        _ => None,
-                    })
-                    .collect(),
-                _ => Vec::new(),
-            };
-            for n in names {
-                defs.entry(n.clone())
-                    .or_default()
-                    .push((s.span, path.clone()));
-            }
-        }
-        let exprs: Vec<&j::Expr> = match &s.kind {
-            j::StmtKind::Assign { target, value, .. } => {
-                let mut v: Vec<&j::Expr> = match &target.kind {
-                    j::ExprKind::Name(_) => Vec::new(),
-                    j::ExprKind::Tuple(ts) => ts
-                        .iter()
-                        .filter(|t| !matches!(t.kind, j::ExprKind::Name(_)))
-                        .collect(),
-                    _ => vec![target],
-                };
-                v.push(value);
-                v
-            }
-            _ => stmt_exprs(s),
-        };
-        for e in exprs {
-            walk(e, &mut |e| {
-                if let j::ExprKind::Name(n) = &e.kind {
-                    out.entry(n.clone()).or_default().push(e.span);
-                    paths.insert(e.span, path.clone());
-                }
-            });
-        }
-        let exclusive = matches!(s.kind, j::StmtKind::If { .. } | j::StmtKind::Match { .. });
-        *groups += 1;
-        let group = *groups;
-        for (arm, b) in sub_blocks(s).into_iter().enumerate() {
-            if exclusive {
-                path.push(Branch {
-                    group,
-                    arm,
-                    ends: ends(b),
-                });
-            }
-            names_used(b, out, paths, defs, path, groups);
-            if exclusive {
-                path.pop();
-            }
-        }
-    }
-}
-
 /// The parameters that `old(p)` reads in `posts`.
 fn olds(posts: &[j::Expr]) -> Vec<String> {
     let mut out = Vec::new();
@@ -1971,47 +1875,9 @@ fn calls_self(stmts: &[j::Stmt], name: &str) -> bool {
 }
 
 impl Lower<'_, '_, '_> {
-    fn used_after(&self, n: &str, at: Span) -> bool {
-        self.next_use(n, at).is_some()
-    }
-
-    /// The first use of `n` after `at`.
-    /// Whether control can pass from the read at `from` to the read at `to`: arms of one
-    /// `if` or `match` exclude each other, and an arm that ends does not reach past itself.
-    fn reachable(&self, from: Span, to: Span) -> bool {
-        let (Some(f), Some(t)) = (self.use_paths.get(&from), self.use_paths.get(&to)) else {
-            return true;
-        };
-        f.iter()
-            .all(|b| match t.iter().find(|c| c.group == b.group) {
-                Some(c) => c.arm == b.arm,
-                None => !b.ends,
-            })
-    }
-
-    /// Whether a reassignment of `n` between `at` and `to` always happens before `to`.
-    fn redefined(&self, n: &str, at: Span, to: Span) -> bool {
-        let (Some(defs), Some(tp)) = (self.defs.get(n), self.use_paths.get(&to)) else {
-            return false;
-        };
-        defs.iter().any(|(d, dp)| {
-            (d.end_line, d.end_col) > (at.line, at.col)
-                && (d.end_line, d.end_col) <= (to.line, to.col)
-                && dp.iter().all(|b| tp.contains(b))
-        })
-    }
-
+    /// The first read of `n` reachable from the read at `at` before `n` is reassigned.
     fn next_use(&self, n: &str, at: Span) -> Option<Span> {
-        self.uses
-            .get(n)?
-            .iter()
-            .filter(|s| {
-                (s.line, s.col) > (at.line, at.col)
-                    && self.reachable(at, **s)
-                    && !self.redefined(n, at, **s)
-            })
-            .min_by_key(|s| (s.line, s.col))
-            .copied()
+        self.last_use.next_use(n, at)
     }
 
     /// N05: a recursive function without `decreases` whose body matches a sum-typed parameter

@@ -173,7 +173,6 @@ impl Lower<'_, '_, '_> {
             } => {
                 let label = self.label();
                 self.loops.push((label.clone(), name.clone()));
-                self.loop_outer.push(self.locals.keys().cloned().collect());
                 let b = self.block_with(|l| {
                     let c = l.cond(cond)?;
                     let stop = y::Block {
@@ -199,7 +198,6 @@ impl Lower<'_, '_, '_> {
                     l.stmts(body)
                 });
                 self.loops.pop();
-                self.loop_outer.pop();
                 let body = b?;
                 self.emit(
                     StmtKind::Loop {

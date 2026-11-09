@@ -507,7 +507,7 @@ fn a_method_on_a_literal_lowers() {
 #[test]
 fn consumption_is_written() {
     let src = "def f(xs: list[int], c: bool) -> list[int] uses io:\n    ys = xs\n    if c:\n        return ys\n\
-               \x20   zs = [1]\n    ws = zs\n    a, b = ws, [2]\n    a, b = b, a\n    for i in range(2):\n        v = a\n        io.print(f\"{len(v)}\")\n\
+               \x20   zs = [1]\n    ws = zs\n    a, b = ws, [2]\n    a, b = b, a\n    for i in range(2):\n        v = a.copy()\n        io.print(f\"{len(v)}\")\n\
                \x20   return b\n\n\
                pub def main() uses io:\n    io.print(f\"{len(f([3], False))}\")\n";
     let text = yan_core::print(&lower(src).0);
@@ -521,6 +521,15 @@ fn consumption_is_written() {
         assert!(text.contains(line), "{line}\n{text}");
     }
     assert_eq!(run(src), "1\n1\n1\n");
+}
+
+#[test]
+fn a_loop_that_returns_after_the_read_moves() {
+    let src = "def f() -> int:\n    zs = [1]\n    for i in range(2):\n        ws = zs\n        return len(ws)\n    return 0\n\n\
+               pub def main() uses io:\n    io.print(f\"{f()}\")\n";
+    let text = yan_core::print(&lower(src).0);
+    assert!(text.contains("let ws: List[i64] = move zs"), "{text}");
+    assert_eq!(run(src), "1\n");
 }
 
 #[test]
