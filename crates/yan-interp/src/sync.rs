@@ -10,7 +10,7 @@ use yan_std::registry::{Id, id::*};
 use super::bind::{Bind, bad_args};
 use super::time::wait_out;
 use super::vm::{Clo, Vm};
-use super::{Interp, R, Value, panic, unsupported};
+use super::{Interp, R, Value, data, panic, unsupported};
 
 fn end(name: &str, chan: usize) -> Value {
     Value::Data {
@@ -63,6 +63,8 @@ pub(crate) struct Actor {
     mail: VecDeque<Rc<Clo>>,
     /// A queued message is running, so the actor takes no other from its mailbox.
     running: bool,
+    /// The task path of the handler holding the state, while one does.
+    holder: Option<Vec<usize>>,
 }
 
 /// Run actor `id`'s oldest queued message if the actor is idle; whether one ran.
@@ -84,7 +86,17 @@ fn run_queued(vm: &mut Vm, id: usize) -> R<bool> {
     r.map(|_| true)
 }
 
-/// Another handler holds actor `id`: wait for it as for a full channel, keyed apart from
+/// Run one queued message of the first idle actor that has one; whether one ran.
+pub(crate) fn run_idle(vm: &mut Vm) -> R<bool> {
+    for id in 0..vm.it.actors.len() {
+        if run_queued(vm, id)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+/// A full mailbox of a busy actor: the sender waits as for a full channel, keyed apart from
 /// channels (R959).
 fn wait_busy(it: &mut Interp, id: usize) -> R<Value> {
     if it.park_ok && !it.force {
@@ -94,7 +106,63 @@ fn wait_busy(it: &mut Interp, id: usize) -> R<Value> {
     if it.force || it.in_par == 0 {
         return panic("deadlock");
     }
+    unsupported("a send that waits on a busy actor, in the interpreter")
+}
+
+/// Another handler holds actor `id`: the caller `me` parks until it is free. Where it cannot
+/// park, the enclosing deadline ends the wait with `Timeout` (R397).
+fn wait_call(it: &mut Interp, id: usize, me: Vec<usize>) -> R<Value> {
+    if it.park_ok && !it.force {
+        if !it.actor_waits.iter().any(|(p, _)| *p == me) {
+            it.actor_waits.push((me, id));
+        }
+        it.park = Some((false, usize::MAX - 1 - id));
+        return Ok(Value::Unit);
+    }
+    unwait(it, &me);
+    if let Some(t) = wait_out(it) {
+        return Ok(data("Err", "error", t));
+    }
+    if it.force || it.in_par == 0 {
+        return panic("deadlock");
+    }
     unsupported("a handler call that waits on a busy actor, in the interpreter")
+}
+
+fn unwait(it: &mut Interp, me: &[usize]) {
+    it.actor_waits.retain(|(p, _)| p != me);
+}
+
+/// The state goes back to actor `id` after a handler ran.
+fn give_back(it: &mut Interp, id: usize, state: Value) {
+    let a = &mut it.actors[id];
+    a.state = Some(state);
+    a.holder = None;
+    it.progress += 1;
+}
+
+/// The youngest caller of a wait cycle that `me` closes by waiting on actor `id`, if it closes
+/// one (RFC 0056 D6). Each actor's holder waits for the actor it is parked on, and a task waits
+/// for the tasks of its own `par concurrent` blocks, whose paths extend its own.
+fn cycle(it: &Interp, me: &[usize], id: usize) -> Option<Vec<usize>> {
+    let mut callers = vec![me.to_vec()];
+    let mut at = id;
+    for _ in 0..=it.actors.len() {
+        let h = it.actors[at].holder.as_ref()?;
+        if callers.iter().any(|c| c.starts_with(h)) {
+            return callers.into_iter().max();
+        }
+        at = it.actor_waits.iter().find(|(p, _)| p == h)?.1;
+        callers.push(h.clone());
+    }
+    None
+}
+
+fn failure(name: &str) -> Value {
+    Value::Data {
+        name: name.into(),
+        fields: Vec::new(),
+    }
 }
 
 pub(super) static BINDS: &[(Id, Bind)] = &[
@@ -110,6 +178,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                     capacity: *cap as usize,
                     mail: VecDeque::new(),
                     running: false,
+                    holder: None,
                 });
                 Ok(end("Actor", it.actors.len() - 1))
             }
@@ -120,12 +189,31 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_ACTOR_TAKE,
         Bind::Vm(|vm, _, a| {
             let id = chan(&a[0]);
+            let me = vm.task_path.clone();
+            if let Some(k) = vm.it.doomed.iter().position(|p| *p == me) {
+                vm.it.doomed.swap_remove(k);
+                unwait(&mut vm.it, &me);
+                return Ok(data("Err", "error", failure("Deadlock")));
+            }
             // A call is a barrier: the actor runs every message queued before it (R813).
             while run_queued(vm, id)? {}
-            match vm.it.actors[id].state.take() {
-                Some(s) => Ok(s),
-                None => wait_busy(&mut vm.it, id),
+            if let Some(s) = vm.it.actors[id].state.take() {
+                vm.it.actors[id].holder = Some(me.clone());
+                unwait(&mut vm.it, &me);
+                return Ok(data("Ok", "value", s));
             }
+            match cycle(&vm.it, &me, id) {
+                Some(y) if y == me => {
+                    unwait(&mut vm.it, &me);
+                    return Ok(data("Err", "error", failure("Deadlock")));
+                }
+                Some(y) if !vm.it.doomed.contains(&y) => {
+                    vm.it.doomed.push(y);
+                    vm.it.progress += 1;
+                }
+                _ => {}
+            }
+            wait_call(&mut vm.it, id, me)
         }),
     ),
     (
@@ -148,23 +236,25 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_ACTOR_PUT,
         Bind::Cap(|it, a| {
-            it.actors[chan(&a[0])].state = Some(std::mem::take(&mut a[1]));
-            it.progress += 1;
+            give_back(it, chan(&a[0]), std::mem::take(&mut a[1]));
             Ok(Value::Unit)
         }),
     ),
     (
         STD_ACTOR_SETTLE,
-        Bind::CapFallible(|it, a| {
-            it.actors[chan(&a[0])].state = Some(std::mem::take(&mut a[1]));
-            it.progress += 1;
-            match std::mem::take(&mut a[2]) {
-                Value::Data { name, mut fields } => {
-                    let v = fields.pop().expect("a result payload").1;
-                    Ok(if name == "Ok" { Ok(v) } else { Err(v) })
-                }
-                _ => bad_args(STD_ACTOR_SETTLE),
+        Bind::Cap(|it, a| {
+            give_back(it, chan(&a[0]), std::mem::take(&mut a[1]));
+            Ok(std::mem::take(&mut a[2]))
+        }),
+    ),
+    (
+        STD_ACTOR_REPLY,
+        Bind::CapFallible(|_, a| match std::mem::take(&mut a[0]) {
+            Value::Data { name, mut fields } => {
+                let v = fields.pop().expect("a result payload").1;
+                Ok(if name == "Ok" { Ok(v) } else { Err(v) })
             }
+            _ => bad_args(STD_ACTOR_REPLY),
         }),
     ),
     (
