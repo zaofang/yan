@@ -17,13 +17,12 @@ concurrency:
   group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: true
 
-# Cargo, Lean and bench jobs run on the self-hosted runners (the repo is private, so no fork PRs reach them);
-# before the repo goes public those runners must be ephemeral and fork PRs approval-gated (#423).
-# The light jobs (changes, guard, canary, check) run on hosted runners so they never queue behind a build.
+# Every job runs on the self-hosted runners (the repo is private, so no fork PRs reach them); hosted runners
+# fail at job start on this account. Before the repo goes public the runners must be ephemeral and fork PRs approval-gated (#423).
 # Each self-hosted runner keeps its own warm target/ and cargo home; the cleanup action prunes them past a cap.
 jobs:
   changes:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       code: ${{ steps.diff.outputs.code }}
     steps:
@@ -48,7 +47,7 @@ jobs:
 
   guard:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,7 +64,7 @@ jobs:
             | python3 tools/guard.py --branch "$BRANCH" --author-type "$AUTHOR_TYPE"
 
   canary:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
         with:
@@ -78,7 +77,7 @@ jobs:
           fi
 
   check:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
         with:
