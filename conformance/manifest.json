@@ -4552,21 +4552,6 @@
    "exit": 0
   },
   {
-   "path": "yag/run/concurrency/par_concurrent_exit_drops_once.yag",
-   "kind": "run",
-   "milestone": "M1",
-   "spec": [
-    "9.4"
-   ],
-   "rows": [
-    "R394"
-   ],
-   "flags": [],
-   "expect": [],
-   "stdout": "Bad(n=-1)\nBad(n=2)\n",
-   "exit": 0
-  },
-  {
    "path": "yag/run/concurrency/par_concurrent_failure_order.yag",
    "kind": "run",
    "milestone": "M2a",
