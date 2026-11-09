@@ -2566,6 +2566,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "yan-flow"
+version = "0.0.0"
+
+[[package]]
 name = "yan-hir"
 version = "0.0.0"
 dependencies = [

@@ -1,10 +1,10 @@
 # 0054: One dataflow move and drop analysis
 
-- Status: draft
+- Status: accepted
 - Research: the code survey in this RFC (main 85ca567, 2026-11-09); laws and plan in the study
   "Yan development laws and phased plans" (https://claude.ai/artifact/RaRsJ6bHuLRe1MQyNet4qq), item 7 of the
   short-term plan; RFC 0028 for the `yan-opt` drop contract
-- Rows: filled in when accepted
+- Rows: R956 to R960 (D1 to D5 in order)
 
 ## Summary
 
@@ -50,8 +50,8 @@ to diverge, which is the cause of this RFC.
 
 Recommendation: (b).
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: as recommended; Antonio, 2026-11-09
+- Row: R956
 
 ### D2: binding identity
 
@@ -61,8 +61,8 @@ so a shadowing `let` or a loop re-bind is a new id and a name is only a lookup i
 Recommendation: (b). It removes the by-hand shadowing and scope-exit cases in the checker and the
 `redefined` function in the elaborator. Spans stay in the diagnostics only.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: as recommended; Antonio, 2026-11-09
+- Row: R957
 
 ### D3: the three facts
 
@@ -78,8 +78,8 @@ Recommendation: (b). It removes the by-hand shadowing and scope-exit cases in th
 
 Recommendation: all three, in the order moved, live, owned, one client at a time.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: as recommended; Antonio, 2026-11-09
+- Row: R958
 
 ### D4: loops change one observable result
 
@@ -96,8 +96,8 @@ Recommendation: (a). (b) is a second representation of the same fact (CLAUDE.md 
 Conformance cases that depend on the old result are for the lead to change; the migration PR lists them
 and does not edit them.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: as recommended; Antonio, 2026-11-09
+- Row: R959
 
 ### D5: order of migration and what is deleted
 
@@ -116,8 +116,8 @@ Recommendation: this order; the elaborator first because `next_use` is the one m
 has no graph at all, the checker second because it owns the diagnostics, `yan-opt` last because it is
 the consumer that must not regress performance.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: as recommended; Antonio, 2026-11-09
+- Row: R960
 
 ## Spec changes
 
