@@ -1519,3 +1519,28 @@ sections = "4.2"
 rows = "R965"
 topic = "`yan-flow` migrates in order: crate, elaborator, checker, `yan-opt` drops, then conformance cases on a `conform/*` PR; each stage deletes the mechanism it replaces (RFC 0054 D5)"
 sections = "4.2, 5.3"
+
+[[entry]]
+rows = "R966"
+topic = "Implementation language, replacing R215: the 1.0 toolchain is written in Yan; the Rust workspace is stage 0, the bootstrap and oracle, frozen when the fixpoint passes; non-Yan parts are LLVM through its C API, a thin libc shim and the pinned clang and lld; the Lean model stays outside the rule (RFC 0057 D1)"
+sections = "22.1, 22.2, 22.7, 23, 26.1"
+
+[[entry]]
+rows = "R967"
+topic = "Self-hosting stages S0 to S5 with byte-equality gates against stage 0 on the corpus, a stage 2 = stage 3 fixpoint, shipping from stage 2, and the frozen Rust tree plus a `.yir` snapshot as seeds (RFC 0057 D2)"
+sections = "22.7, 23"
+
+[[entry]]
+rows = "R968"
+topic = "The Yan compiler generates code through LLVM's C API for debug and release builds in 1.0; Cranelift stays in stage 0; a Yan-written debug backend replaces it after 1.0 (RFC 0057 D3)"
+sections = "1, 18.1, 22.7"
+
+[[entry]]
+rows = "R969"
+topic = "The compiler is written in Yan (`.yn`); the Yan lexer, parser, printer and lowering to HIR move from M3 to M2a; compiler sources avoid the contested forms until the M3 comparison reports (RFC 0057 D4)"
+sections = "22.7, 23"
+
+[[entry]]
+rows = "R970"
+topic = "S2 starts after formal phases 1 and 2, which wait for the M1 gate; stage 0 keeps growing until the freeze, optimizer and package manager included, and every stage-0 crate is ported (RFC 0057 D5)"
+sections = "22.7"

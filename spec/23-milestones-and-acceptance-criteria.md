@@ -46,6 +46,7 @@ M2a (systems layer and performance; gate: Rust parity):
 
 - Monomorphization, comptime specialization, ownership passes, fusion, static handler resolution.
 - LLVM backend; release builds; Windows and WebAssembly targets.
+- Yan lexer, parser, printer and lowering to HIR, pulled forward from M3 (R969); the S0 readiness gate of 22.7 (R967).
 - Systems layer: `unsafe`, `Ptr`, `RawCell`, layout control, SIMD `Vec`, atomics and the memory model (section 6), `yan test --ub` and `--explore` on native builds (their interpreter forms are M1, R378), FFI and the C profile (section 12), `core`, `alloc` and `std` tiers and platform `freestanding`, with a freestanding binary in the conformance suite that passes the embedded profile checks and prints its stack bound (R320, R321, R324, R325). The rest of the embedded profile (R322, R323, R326) is M4.
 - Concurrency: `pool` scheduler, `par concurrent`, cancellation and drain, `std.evented` (io\_uring with epoll fallback, kqueue, IOCP) as a preview.
 - Determinism tests pass, and record and replay works for every built-in capability.
@@ -59,7 +60,8 @@ M2b (library, registry and tools):
 
 ### M3 · Yan
 
-- Yan lexer, parser and printer; projections in both directions; all round-trip laws that apply pass on the whole suite, and `conform.py --laws` gates CI (R564).
+- Self-hosting stages S1 to S3 of 22.7 (R967).
+- Projections in both directions; all round-trip laws that apply pass on the whole suite, and `conform.py --laws` gates CI (R564).
 - The print-only Yan Meta view, `yan view --as ymt` (16.6, R563).
 - Prose diagnostics; language server; reactive notebooks; live values computed on examples; depth-lens inlay hints; Yan tree-sitter grammar; item-level merge driver.
 - Yan surface: grapheme-aware display, date literals, `select`, generators, deadline blocks; HTTP server; localizable diagnostics.
@@ -68,6 +70,7 @@ M2b (library, registry and tools):
 ### RC · Release candidate
 
 - The 1.0 edition is named; the freeze list (20.2) takes effect; the release train (20.7) starts.
+- Self-hosting stages S4 and S5 of 22.7 pass; `yan` ships from stage 2 and stage 0 is frozen (R966, R967).
 
 **Docs gate (R319).** Every fence in the tour, book, guides and std passes, and std `pub` doc coverage is 100%. The doc model and links land in M0; `yan doc`, the fence runner and doc lints in M1; the wasm interpreter in M1b; the surface toggle, tour, book and playground in M3.
 

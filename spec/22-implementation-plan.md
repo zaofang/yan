@@ -4,13 +4,13 @@ This section is normative where it says MUST; elsewhere it is the recommended pa
 
 ### 22.1 Two implementations
 
-Yan Core has one implementation, written in Rust with the crate layout below (R215, chosen 2026-10-31 in place of a Python reference followed by a port). M0 and M1 run on the interpreter, whose checked mode defines the abstract machine (6.1); Cranelift debug code generation follows in M1b. The conformance runner is implementation-independent and is the oracle: for every conformance and evaluation program, the interpreter and every code generator MUST produce the same result, diagnostic codes included. For Yan Agent programs, the output of `yan export --python` run under CPython 3.12 is an independent second check. Performance targets apply to native code.
+The 1.0 toolchain is written in Yan (R966, RFC 0057), which replaces R215. Until then Yan Core has one implementation, stage 0, written in Rust with the crate layout below; it bootstraps the Yan compiler, is the oracle every port is compared against, and is frozen when the fixpoint gate of 22.7 passes. M0 and M1 run on the interpreter, whose checked mode defines the abstract machine (6.1); Cranelift debug code generation follows in M1b. The conformance runner is implementation-independent and is the oracle: for every conformance and evaluation program, the interpreter and every code generator MUST produce the same result, diagnostic codes included. For Yan Agent programs, the output of `yan export --python` run under CPython 3.12 is an independent second check. Performance targets apply to native code.
 
-**Formal core model (R680).** `formal/` holds a Lean 4 model of Yan-K, the fragment of Yan Core text named in RFC 0022: a reader, an executable semantics, and from phase 1 on the proofs of the formal core study. It is the one exception to R215: it never ships, no crate depends on it, and building the toolchain never needs Lean. `formal/drt.py` runs the `conformance/yir/run` cases and generated Yan-K programs on both the interpreter and the model and compares output, exit status and panic kind; a difference is a bug in one of them or a gap in this spec. Proofs start after the M1 gate.
+**Formal core model (R680).** `formal/` holds a Lean 4 model of Yan-K, the fragment of Yan Core text named in RFC 0022: a reader, an executable semantics, and from phase 1 on the proofs of the formal core study. It stays outside the toolchain-language rule (R966): it never ships, no crate depends on it, and building the toolchain never needs Lean. `formal/drt.py` runs the `conformance/yir/run` cases and generated Yan-K programs on both the interpreter and the model and compares output, exit status and panic kind; a difference is a bug in one of them or a gap in this spec. Proofs start after the M1 gate.
 
 ### 22.2 Crates
 
-The compiler and tools MUST be written in Rust (stable toolchain) as one Cargo workspace:
+Stage 0 (22.1) MUST be written in Rust (stable toolchain) as one Cargo workspace. The self-hosted compiler (22.7) ports the same crates and keeps their responsibilities and layering:
 
 | Crate | Responsibility | Key dependencies |
 | --- | --- | --- |
@@ -73,3 +73,26 @@ Other dependencies: `opentelemetry` (spans), `gimli` (DWARF), LibAFL (fuzzing).
 2. Propose each feature's conformance tests (section 24) for the spec owner's approval before implementing it. Approved tests, conformance files and the spec are read-only to agents: CI rejects any agent patch that touches `tests/`, `conformance/` or `spec/` (CODEOWNERS plus a path guard). Agents keep their own non-gating tests in `src/**/selftest/` (SQ28).
 3. Keep `SPEC_QUESTIONS.md` current; never resolve an ambiguity silently.
 4. Keep the compiler's own diagnostics in the 18.2 format from the first commit, because the agent loop depends on them.
+
+### 22.7 Self-hosting (RFC 0057)
+
+**Stages (R967).** The Yan compiler is ported from stage 0 in six stages. Each passes its gate before the next starts. The corpus is every file under `conformance/`, `crates/yan-std/lib/` and `examples/`; Yan Core text is canonical, so middle-end gates are text diffs.
+
+| Stage | Ports | Gate |
+| --- | --- | --- |
+| S0 readiness | nothing | native AOT runs a compiler-shaped program (read files, lex, build maps, print); every feature the compiler uses runs natively with no difftest allowlist entry; a callgrind baseline for lexing a large file |
+| S1 front end | `yan-diag`, `yan-names`, `yan-surface`, the lexers, parsers and printers of Yan, Yan Agent and Yan Core text, the validator | stage-1 parse-print output and diagnostic codes equal stage 0's on the corpus |
+| S2 middle end | `yan-hir`, `yan-elab`, `yan-check`, `yan-flow`, `yan-opt` | printed Yan Core after elaboration and after `yan-opt` equals stage 0's on the corpus; every conformance fail case gives the same codes |
+| S3 back end and runtime | `yan-mir`, the LLVM code generator, `yan-rt` | `tools.difftest` clean on the interpreter, stage-0 native and stage-1 native |
+| S4 fixpoint | nothing | stage 0 builds stage 1, stage 1 builds stage 2, stage 2 builds stage 3; stage 2 and stage 3 are bit-identical and stage 2 passes the full conformance suite; `yan` ships from stage 2 and stage 0 freezes |
+| S5 tools | `yan-cli`, `yan-ide`, `yan-mcp`, `yan-lsp`, `yan-pkg`, `yan-interp`, `yan-db` | each tool's results equal stage 0's; the interpreter stays the abstract machine of 6.1 |
+
+S5 may overlap S4; 1.0 needs both. The frozen Rust tree and a committed `.yir` snapshot of stage 2 are the bootstrap seeds; the Rust tree is also the second compiler for diverse double compiling. After the freeze stage 0 takes only the fixes needed to keep building the seed.
+
+**Shipped languages (R966).** The shipped toolchain is Yan source except LLVM, called through its C API, a thin C shim over libc where Yan's FFI cannot express a call, and the pinned clang and lld of 22.4.
+
+**Code generation (R968).** The Yan compiler generates code through LLVM's C API for debug (`-O0`) and release builds. Cranelift stays in stage 0 only; where this spec names Cranelift it means stage 0's backend. After 1.0 a debug backend written in Yan replaces it for fast debug builds and the JIT.
+
+**Surface (R969).** The compiler is written in Yan (`.yn`). The Yan lexer, parser, printer and lowering to HIR are M2a work (23). Until the M3 randomized comparison reports, compiler sources avoid the contested forms it covers.
+
+**Ordering (R970).** S2 starts only after formal phases 1 and 2 (22.1) land, and those start after the M1 gate. Stage 0 keeps growing until the freeze, the optimizer and the package manager included, and every stage-0 crate is ported.
