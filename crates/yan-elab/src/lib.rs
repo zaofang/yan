@@ -66,11 +66,13 @@ pub struct Options {
 }
 
 /// A construct the elaborator does not lower yet, at the innermost statement or expression
-/// that was being lowered when it was found (E017, R649).
+/// that was being lowered when it was found (E017, R649), or, with `code`, a construct no
+/// toolchain accepts, which stops the item the same way.
 #[derive(Debug)]
 pub struct Unsupported {
     pub what: String,
     pub at: Option<Span>,
+    pub code: Option<&'static str>,
 }
 
 impl Unsupported {
@@ -87,6 +89,16 @@ pub(crate) fn unsupported<T>(what: impl Into<String>) -> R<T> {
     Err(Unsupported {
         what: what.into(),
         at: None,
+        code: None,
+    })
+}
+
+/// Stops the item with diagnostic `code` and `message`.
+pub(crate) fn refuse<T>(code: &'static str, message: impl Into<String>) -> R<T> {
+    Err(Unsupported {
+        what: message.into(),
+        at: None,
+        code: Some(code),
     })
 }
 
@@ -725,6 +737,12 @@ pub fn elaborate_in(
         });
     }
     let mut launchable = std::collections::HashSet::new();
+    let kernels: std::collections::HashSet<&str> = m
+        .items
+        .iter()
+        .filter(|it| kernel::is_kernel(it))
+        .map(|it| it.kind.name())
+        .collect();
     for it in &m.items {
         let start = cx.diags.len();
         let checked = if kernel::is_kernel(it) {
@@ -737,9 +755,10 @@ pub fn elaborate_in(
                 }
             })
         } else if let Some(k) = kernel::launched(it.kind.name())
-            && g.kernels.contains_key(k)
+            && kernels.contains(k)
         {
-            // A launch of a kernel that is not proved or does not fit was reported at the launch.
+            // A launch of a kernel that is malformed, not proved or does not fit was reported at
+            // the kernel or the launch.
             if launchable.contains(k) && kernel::plan(&g, k).is_ok() {
                 item(&g, it, &mut cx)
             } else {
@@ -754,7 +773,10 @@ pub fn elaborate_in(
             // R649: report the construct and go on with the next item.
             Err(u) => {
                 let at = u.at.unwrap_or(it.span);
-                cx.err("E017", at, it.kind.name(), unsupported_message(&u.what));
+                match u.code {
+                    Some(code) => cx.err(code, at, it.kind.name(), u.what),
+                    None => cx.err("E017", at, it.kind.name(), unsupported_message(&u.what)),
+                }
                 continue;
             }
         };

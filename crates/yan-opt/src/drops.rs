@@ -423,21 +423,8 @@ impl Elab<'_> {
 
     /// Control goes from `from` to `to`, where the locals declared before `pos` are in scope. A
     /// local `from` owns and `to` does not must-own is dropped on this edge, or gets a flag when
-    /// its drop is observable (5.4): the drop must then wait for the scope's end. An `exact`
-    /// target (a join point) also takes a flag for a local it owns and `from` does not.
+    /// its drop is observable (5.4): the drop must then wait for the scope's end.
     fn edge(&mut self, from: Key, to: Key, pos: Pos, at: Span, out: &mut Vec<Stmt>) {
-        self.edge_to(from, to, pos, false, at, out);
-    }
-
-    fn edge_to(
-        &mut self,
-        from: Key,
-        to: Key,
-        pos: Pos,
-        exact: bool,
-        at: Span,
-        out: &mut Vec<Stmt>,
-    ) {
         let mut seen = HashSet::new();
         let mut visible: Vec<(Name, Binding, bool)> = Vec::new();
         for (si, scope) in self.cx.scopes.iter().enumerate().rev() {
@@ -457,9 +444,6 @@ impl Elab<'_> {
                 continue;
             }
             if self.facts.must(to, id) {
-                if exact && !self.facts.must(from, id) {
-                    self.flag_on(&x);
-                }
                 continue;
             }
             if self.facts.must(from, id) {
@@ -822,7 +806,7 @@ impl Elab<'_> {
                 self.exit_drops(jp.map_or((0, 0), |j| j.0), &skip, at, mid, out);
                 let flagged = self.consume(&s.kind);
                 if let Some((pos, jk)) = jp {
-                    self.edge_to(mid, Key::Join(jk), pos, true, at, out);
+                    self.edge(mid, Key::Join(jk), pos, at, out);
                 }
                 self.clear_flags(flagged, at, out);
                 out.push(new);
@@ -1040,14 +1024,39 @@ mod tests {
     }
 
     #[test]
-    fn a_jump_out_of_a_result_match_clears_the_scrutinee_flag() {
+    fn a_jump_that_owns_a_plain_value_drops_it_on_the_edge() {
         let t = elab(
             "module t\nrecord Bad { pub code: i64 }\nfn mk(let x: i64) -> Str fail Bad {\n let s: Str = \"a\"\n ret s\n}\n\
              fn f() -> Unit {\n let r: Result[Str, Bad] = try mk(let 1)\n\
              jp k(let v: Str) {\n  let a: Str = move v\n  ret ()\n }\n\
              match r {\n Ok { value: o } => {\n  jump k(o)\n }\n Err { error: e } => {\n  let z: Str = \"e\"\n  jump k(z)\n }\n }\n}\n",
         );
-        has(&t, &["Ok { value: o } => {", "_d0 = false", "jump k(o)"]);
+        assert!(!t.contains("_d0"), "{t}");
+        has(&t, &["Err { error: e } => {", "drop r", "jump k(z)"]);
+    }
+
+    #[test]
+    fn a_jump_that_owns_a_custom_drop_value_leaves_it_to_a_flag() {
+        let t = elab(
+            "module t\nrecord Guard { n: i64 }\nimpl Drop for Guard {\n fn drop(inout self: Guard) -> Unit {\n  ret ()\n }\n}\n\
+             fn take(sink g: Guard) -> Unit {\n ret ()\n}\n\
+             fn f(sink g: Guard, let c: bool) -> Unit {\n jp k() {\n  ret ()\n }\n\
+             if c {\n  let u: Unit = take(sink g)\n  jump k()\n }\n jump k()\n}\n",
+        );
+        has(
+            &t,
+            &[
+                "var _d0: bool = true",
+                "jp k() {",
+                "if _d0 {",
+                "drop g",
+                "ret ()",
+            ],
+        );
+        has(
+            &t,
+            &["let u: Unit = take(sink g)", "_d0 = false", "jump k()"],
+        );
     }
 
     #[test]

@@ -132,14 +132,33 @@ impl Lower<'_, '_, '_> {
     /// each writing its disjoint part of a zeroed `out`, which is the result.
     pub(super) fn launch(&mut self, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
         let Some((k, rest)) = args.split_first() else {
-            return unsupported("`gpu.launch` without a `@kernel` function");
+            return crate::refuse(
+                kernel::MISUSE,
+                "`gpu.launch` takes a `@kernel` function first",
+            );
         };
         let name = match &k.kind {
             j::ArgKind::Expr(j::Expr {
                 kind: j::ExprKind::Name(n),
                 ..
             }) if k.name.is_none() && self.g.kernels.contains_key(n) => n.clone(),
-            _ => return unsupported("`gpu.launch` of anything but a `@kernel` function by name"),
+            // A malformed kernel has its launcher but no grid: E285 is at the kernel.
+            j::ArgKind::Expr(j::Expr {
+                kind: j::ExprKind::Name(n),
+                ..
+            }) if k.name.is_none() && self.g.fns.contains_key(&kernel::launcher(n)) => {
+                return Ok((
+                    Rhs::Atom(Atom::Lit(Literal::Unit, at)),
+                    Ty::Err,
+                    Some(Ty::Err),
+                ));
+            }
+            _ => {
+                return crate::refuse(
+                    kernel::MISUSE,
+                    "`gpu.launch` takes a `@kernel` function by name first",
+                );
+            }
         };
         let plan = match kernel::plan(self.g, &name) {
             Ok(p) => p,

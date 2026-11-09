@@ -88,11 +88,14 @@ impl Lower<'_, '_, '_> {
                     && (n == "TileOrigin" || self.g.kernels.contains_key(n))
                     && !self.locals.contains_key(n) =>
             {
-                unsupported(if n == "TileOrigin" {
-                    "building a `TileOrigin`: only `gpu.launch` supplies one (R953)"
-                } else {
-                    "calling a `@kernel` function: launch it with `gpu.launch` (RFC 0058)"
-                })
+                crate::refuse(
+                    crate::kernel::MISUSE,
+                    if n == "TileOrigin" {
+                        "only `gpu.launch` builds a `TileOrigin`"
+                    } else {
+                        "a `@kernel` function is not called directly: launch it with `gpu.launch`"
+                    },
+                )
             }
             j::ExprKind::Attr(m, op, _)
                 if op == "spawn"

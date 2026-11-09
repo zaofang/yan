@@ -80,4 +80,5 @@ research index links their studies and rows.
 | [0058](0058-kernel-launch.md) | Launching a `@kernel` function: `gpu.launch`, the grid, whole tiles | accepted | R971 to R973 |
 | [0059](0059-actor-send-surface.md) | Actor overflow policies, send-only handles and send failures | accepted | R974 to R977 |
 | [0060](0060-actor-supervision-surface.md) | Actor supervision: the surface and what stops an actor | accepted | R978 to R981 |
-| [0062](0062-serve-package-as-mcp.md) | Serve a package's public functions as MCP tools | draft |  |
+| [0061](0061-kernel-claim-gaps.md) | `halo` on extern claims, and codes for a malformed `@kernel` | accepted | R982, R983 |
+| [0062](0062-serve-package-as-mcp.md) | Serve a package's public functions as MCP tools | accepted | R984 to R986 |

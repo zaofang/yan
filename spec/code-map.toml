@@ -85,6 +85,8 @@ E281 = "crates/yan-db/src/docs.rs"
 E282 = "crates/yan-elab/src/decorators.rs"
 E283 = "crates/yan-elab/src/meta_selftest.rs"
 E284 = "crates/yan-elab/src/access.rs"
+E285 = "crates/yan-elab/src/kernel.rs"
+E286 = "crates/yan-elab/src/kernel.rs"
 E301 = "crates/yan-check/src/lib.rs"
 E306 = "crates/yan-check/src/lib.rs"
 E307 = { unimplemented = "#825" }

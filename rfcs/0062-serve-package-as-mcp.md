@@ -1,9 +1,9 @@
 # 0062: Serve a package's public functions as MCP tools
 
-- Status: draft
+- Status: accepted
 - Research: none; polish item N4 (#866, tracked by #862). Builds on 21.4, R676 and the json wire
   forms of R874 to R877.
-- Rows: filled in when accepted
+- Rows: R984 to R986
 
 ## Summary
 
@@ -29,8 +29,8 @@ switches `yan mcp` into a second mode; (c) a new top-level `yan serve`. (a) keep
 whose authority differs, apart while grouping both under `mcp`; (b) gives one command two
 unrelated tool sets; (c) separates it from the MCP rows it shares transport and budgets with.
 
-- Decision: (pending, card 2026-11-09)
-- Row:
+- Decision: (a), lead card 2026-11-09
+- Row: R984
 
 ### D2: which functions are tools
 
@@ -46,7 +46,7 @@ decorator. (b) adds a decorator for what visibility already says; (a) fails loud
 silently skipping a function the author meant to serve (law 13).
 
 - Decision: (a), inconsequential, as the issue states
-- Row:
+- Row: R985
 
 ### D3: arguments, results and failures
 
@@ -60,7 +60,7 @@ disagree. A failure value, an argument that does not decode (with its R877 path)
 budget stop each return `isError: true` with the reason as text.
 
 - Decision: (a), inconsequential, follows R874 to R877
-- Row:
+- Row: R985
 
 ### D4: authority
 
@@ -76,7 +76,7 @@ call stays bounded by its signature; (b) lets any package that is installed exer
 it declares; (c) is (b) with an opt-out.
 
 - Decision: (a), lead card 2026-11-09
-- Row:
+- Row: R986
 
 ### D5: trust and budgets
 
@@ -85,7 +85,7 @@ not recorded (R676). Each call runs on the interpreter under the per-call and pe
 heap and wall-clock budgets of 21.4 (R676).
 
 - Decision: inconsequential, follows R676
-- Row:
+- Row: R986
 
 ## Spec changes
 
