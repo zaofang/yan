@@ -119,3 +119,4 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-01 | [Chang K2 study (positional local names)](https://claude.ai/artifact/V6Do54hGXcokurJ45NHF6f) | R519 |
 | 2026-11-01 | [Security model: capabilities, FFI and agents](https://claude.ai/artifact/Hotw9YyR8LEvWE4GbB9gLi) | RFC 0026: R672 to R677 |
 | 2026-10-30 | [1.0 Development Roadmap](https://claude.ai/artifact/3ADZraWojw9z33QdGY8GsS) | Living plan |
+| 2026-11-09 | [Self-hosted Yan compiler and formal-proof plan](https://claude.ai/artifact/3TzWFi1LTaqs7ggzokFz3T) | #851; RFC pending (#858) |
