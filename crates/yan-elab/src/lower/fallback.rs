@@ -156,6 +156,7 @@ impl Lower<'_, '_, '_> {
                             );
                             return Ok((r, Ty::Data(n)));
                         }
+                        Ty::Err => return Ok((r, Ty::Err)),
                         t => {
                             self.err(
                                 "E201",

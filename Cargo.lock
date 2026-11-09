@@ -2620,6 +2620,7 @@ dependencies = [
 name = "yan-mir"
 version = "0.0.0"
 dependencies = [
+ "yan-check",
  "yan-core",
  "yan-std",
 ]

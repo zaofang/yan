@@ -26,8 +26,11 @@ pub class Timeout:
 
 @since("1.0")
 pub class Stopped:
-    """The failure of a call to an actor that stopped before it ran the call (9.6)."""
-    pass
+    """The failure of a call to an actor that stopped before it ran the call, and why (9.6, R977)."""
+    reason: StopReason
+
+@since("1.0")
+pub type StopReason = Normal() | Shutdown() | Crashed(error: str) | NodeDown()
 
 @since("1.0")
 pub class Deadlock:

@@ -8,6 +8,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+yan-check.workspace = true
 yan-core.workspace = true
 yan-std.workspace = true
 

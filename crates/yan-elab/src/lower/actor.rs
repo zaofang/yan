@@ -19,10 +19,11 @@ impl Lower<'_, '_, '_> {
         {
             return self.send_call(h, m, args, at).map(Some);
         }
-        let Some(Ty::Coll("Actor", ts)) = self.ty_of_local(b) else {
-            return Ok(None);
+        let (kind, ts) = match self.ty_of_local(b) {
+            Some(Ty::Coll(k @ ("Actor" | "SendOnly"), ts)) => (k, ts),
+            _ => return Ok(None),
         };
-        let state = ts[0].clone();
+        let (state, policy) = (ts[0].clone(), ts[1].clone());
         let Some(sig) = self
             .g
             .fns
@@ -32,6 +33,23 @@ impl Lower<'_, '_, '_> {
         else {
             return Ok(None);
         };
+        if kind == "SendOnly"
+            && !matches!((&b.kind, &self.sent_through), (j::ExprKind::Name(n), Some(s)) if n == s)
+        {
+            self.err(
+                "E201",
+                at,
+                format!(
+                    "a `SendOnly` handle can send but not call `{m}` (R975); send it with \
+                     `actor.send(h).{m}(...)`"
+                ),
+            );
+            return Ok(Some((
+                Rhs::Atom(Atom::Lit(Literal::Unit, at)),
+                Ty::Err,
+                None,
+            )));
+        }
         if self.g.reentrant.contains(m) {
             return unsupported("a call to a `@reentrant` actor handler, before RFC 0056 slice 4");
         }
@@ -40,7 +58,7 @@ impl Lower<'_, '_, '_> {
         let took = Ty::Result(Box::new(state.clone()), Box::new(fail.clone()));
         let take = call(
             "std.actor.take",
-            vec![state.targ(), fail.targ()],
+            vec![state.targ(), policy.targ(), fail.targ()],
             vec![let_arg(h.clone())],
             at,
         );
@@ -70,7 +88,8 @@ impl Lower<'_, '_, '_> {
                     (Some(e), Rhs::Call(c)) => {
                         let tried = Ty::Result(Box::new(t.clone()), Box::new(e.clone()));
                         let tried = l.tmp(&tried, Rhs::Try(c), at);
-                        let targs = vec![state.targ(), t.targ(), e.targ(), fail.targ()];
+                        let targs =
+                            vec![state.targ(), policy.targ(), t.targ(), e.targ(), fail.targ()];
                         let args = vec![let_arg(h.clone()), sink_arg(back), sink_arg(tried)];
                         let c = call("std.actor.settle", targs, args, at);
                         l.tmp(&rt, Rhs::Call(c), at)
@@ -82,7 +101,7 @@ impl Lower<'_, '_, '_> {
                         let v = l.tmp(&t, r, at);
                         let put = call(
                             "std.actor.put",
-                            vec![state.targ()],
+                            vec![state.targ(), policy.targ()],
                             vec![let_arg(h.clone()), sink_arg(back)],
                             at,
                         );
@@ -147,20 +166,22 @@ fn ctor(name: &str, field: &str, a: Atom) -> Rhs {
 }
 
 impl Lower<'_, '_, '_> {
-    /// `actor.spawn(state, capacity=1024)` moves `state` into a new actor (R956).
-    pub(super) fn spawn_call(&mut self, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
-        let expr = |a: &j::Arg| match &a.kind {
-            j::ArgKind::Expr(e) => Some(e.clone()),
-            _ => None,
-        };
+    /// `actor.spawn(state, capacity=1024)` moves `state` into a new actor (R956) whose overflow
+    /// policy is the one the expected type names (R974).
+    pub(super) fn spawn_call(
+        &mut self,
+        args: &[j::Arg],
+        at: Span,
+        want: Option<&Ty>,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
         let (state, cap) = match args {
-            [s] if s.name.is_none() => (expr(s), None),
+            [s] if s.name.is_none() => (arg_expr(s), None),
             [s, c] if s.name.is_none() && c.name.as_deref().is_none_or(|n| n == "capacity") => {
-                (expr(s), expr(c).map(Some))
+                (arg_expr(s), arg_expr(c))
             }
             _ => (None, None),
         };
-        let (Some(state), Some(cap)) = (state, cap.or(Some(None))) else {
+        let Some(state) = state else {
             self.err(
                 "E201",
                 at,
@@ -168,24 +189,104 @@ impl Lower<'_, '_, '_> {
             );
             return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
         };
-        let (state, st) = self.atom(&state, None)?;
-        let cap = match cap {
+        let (state, st) = self.atom(state, None)?;
+        let cap = self.capacity(cap, at)?;
+        let (p, code) = self.policy(want, at);
+        let c = call(
+            "std.actor.spawn_as",
+            vec![st.targ(), p.targ()],
+            vec![sink_arg(state), let_arg(cap), let_arg(code)],
+            at,
+        );
+        Ok((Rhs::Call(c), Ty::Coll("Actor", vec![st, p]), None))
+    }
+
+    /// `actor.send_only(h)`: the same handle as a `SendOnly[S, P]`, which sends but cannot call
+    /// (R975).
+    pub(super) fn send_only_call(&mut self, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
+        let h = match args {
+            [h] if h.name.is_none() => arg_expr(h),
+            _ => None,
+        };
+        let typed = match h {
+            Some(h) => {
+                let (a, t) = self.atom(h, None)?;
+                match t {
+                    Ty::Coll("Actor", ts) => Some((a, ts)),
+                    _ => None,
+                }
+            }
+            None => None,
+        };
+        let Some((h, ts)) = typed else {
+            self.err(
+                "E201",
+                at,
+                "`actor.send_only` takes one `Actor` handle".into(),
+            );
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        };
+        let c = call(
+            "std.actor.send_only",
+            ts.iter().map(Ty::targ).collect(),
+            vec![let_arg(h)],
+            at,
+        );
+        Ok((Rhs::Call(c), Ty::Coll("SendOnly", ts), None))
+    }
+
+    fn capacity(&mut self, cap: Option<&j::Expr>, at: Span) -> R<Atom> {
+        Ok(match cap {
             Some(e) => {
-                let (c, ct) = self.atom(&e, Some(&Ty::Int))?;
+                let (c, ct) = self.atom(e, Some(&Ty::Int))?;
                 self.expect(&ct, &Ty::Int, e.span);
                 c
             }
             None => Atom::Lit(Literal::Int("1024".into()), at),
+        })
+    }
+
+    /// The overflow policy `P` of the `Actor[S, P]` a spawn is expected to make, `Block` when
+    /// none is expected, and its runtime code. Any but `Block` needs `uses nondet` (R974, E709).
+    fn policy(&mut self, want: Option<&Ty>, at: Span) -> (Ty, Atom) {
+        let p = match want {
+            Some(Ty::Coll("Actor", ts)) => ts[1].clone(),
+            _ => Ty::Data("Block".into()),
         };
-        let c = call(
-            "std.actor.spawn",
-            vec![st.targ()],
-            vec![sink_arg(state), let_arg(cap)],
-            at,
-        );
-        Ok((Rhs::Call(c), Ty::Coll("Actor", vec![st]), None))
+        let code = match &p {
+            Ty::Data(n) => POLICIES.iter().position(|q| q == n),
+            Ty::Err => Some(0),
+            _ => None,
+        };
+        let Some(code) = code else {
+            let t = self.ty_text(&p);
+            self.err(
+                "E201",
+                at,
+                format!(
+                    "`{t}` is not an overflow policy; `P` in `Actor[S, P]` is `Block`, \
+                     `DropOldest`, `DropNew` or `Reject` (R974)"
+                ),
+            );
+            return (Ty::Err, Atom::Lit(Literal::Int("0".into()), at));
+        };
+        if code != 0 && !self.sig.caps.iter().any(|c| c == "nondet") {
+            self.err(
+                "E709",
+                at,
+                format!(
+                    "an actor with overflow policy `{}` drops or refuses messages by how fast it \
+                     drains; declare `uses nondet`",
+                    POLICIES[code]
+                ),
+            );
+        }
+        (p, Atom::Lit(Literal::Int(code.to_string()), at))
     }
 }
+
+/// The overflow policies, by their runtime code (R974).
+const POLICIES: [&str; 4] = ["Block", "DropOldest", "DropNew", "Reject"];
 
 impl Lower<'_, '_, '_> {
     /// `actor.send(h).f(args)` (R813): move the arguments now and enqueue `lambda: h.f(args)` in
@@ -198,11 +299,11 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         let (ha, ht) = self.atom(h, None)?;
-        let Ty::Coll("Actor", ts) = &ht else {
+        let Ty::Coll("Actor" | "SendOnly", ts) = &ht else {
             self.err(
                 "E201",
                 h.span,
-                "`actor.send` takes an `Actor` handle".into(),
+                "`actor.send` takes an `Actor` or `SendOnly` handle".into(),
             );
             return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
         };
@@ -235,7 +336,8 @@ impl Lower<'_, '_, '_> {
             // the sender's would escape in the message (E306).
             Some(s) if !s.caps.is_empty() => {
                 return unsupported(
-                    "`actor.send` of a handler with `uses`, before RFC 0056 slice 3",
+                    "`actor.send` of a handler with `uses`, before actors hold their \
+                     supervisor's capabilities (R397)",
                 );
             }
             Some(_) => {}
@@ -245,44 +347,86 @@ impl Lower<'_, '_, '_> {
             span,
             paren: false,
         };
-        let hn = self.fresh("h");
-        self.bind(&hn, false, &ht, Rhs::Atom(ha), at, at);
-        let hv = Atom::Name(hn.clone(), at);
-        let mut moved = Vec::with_capacity(args.len());
-        for a in args {
-            let j::ArgKind::Expr(e) = &a.kind else {
-                return unsupported("a spread argument to `actor.send`");
-            };
-            let (v, t) = self.atom(e, None)?;
-            let n = self.fresh("m");
-            self.bind(&n, false, &t, Rhs::Atom(v), e.span, e.span);
-            moved.push(j::Arg {
-                name: a.name.clone(),
-                kind: j::ArgKind::Expr(name(n, e.span)),
-                span: a.span,
-            });
-        }
         let ex = |kind| j::Expr {
             kind,
             span: at,
             paren: false,
         };
-        let handler = ex(j::ExprKind::Attr(Box::new(name(hn, h.span)), m.into(), at));
-        let msg = ex(j::ExprKind::Call(Box::new(handler), moved));
+        // The message borrows the handle, which does not own the actor (9.6), so the sender
+        // keeps it.
+        let hn = match ha {
+            Atom::Name(n, _) => n,
+            a => {
+                let n = self.fresh("h");
+                self.bind(&n, false, &ht, Rhs::Atom(a), at, at);
+                n
+            }
+        };
+        let hv = Atom::Name(hn.clone(), at);
+        // The arguments move into a tuple that the message takes, or that a failed send returns
+        // in `Undelivered.args` (R976).
+        let mut moved = Vec::with_capacity(args.len());
+        let mut keys = Vec::with_capacity(args.len());
+        for a in args {
+            let j::ArgKind::Expr(e) = &a.kind else {
+                return unsupported("a reference argument to `actor.send`");
+            };
+            let (v, t) = self.atom(e, None)?;
+            let n = self.fresh("m");
+            self.bind(&n, false, &t, Rhs::Atom(v), e.span, e.span);
+            moved.push(name(n, e.span));
+            keys.push(a.name.clone());
+        }
+        let (tup, at_ty) = self.atom(&ex(j::ExprKind::Tuple(moved)), None)?;
+        let tup = self.tmp(&at_ty, Rhs::Atom(tup), at);
+        let pn = self.fresh("a");
+        let unpacked = keys
+            .into_iter()
+            .enumerate()
+            .map(|(i, key)| j::Arg {
+                name: key,
+                kind: j::ArgKind::Expr(ex(j::ExprKind::Index(
+                    Box::new(name(pn.clone(), at)),
+                    Box::new(ex(j::ExprKind::Lit(j::Lit::Int(i.to_string())))),
+                ))),
+                span: at,
+            })
+            .collect();
+        let handler = ex(j::ExprKind::Attr(
+            Box::new(name(hn.clone(), h.span)),
+            m.into(),
+            at,
+        ));
+        let msg = ex(j::ExprKind::Call(Box::new(handler), unpacked));
         // A sent handler has no failure of its own, and an admitted message runs on an idle
         // actor, so the call's `ActorError` cannot occur; a stopped actor drops it (R813).
-        let none = j::Fallback::Value(ex(j::ExprKind::Lit(j::Lit::None)));
+        let none = j::Fallback::Bind(self.fresh("e"), ex(j::ExprKind::Lit(j::Lit::None)));
         let body = ex(j::ExprKind::Fallback(Box::new(msg), Box::new(none)));
-        let want = Ty::Fn(false, Vec::new(), Box::new(Ty::Unit));
-        let (clo, ct) = self.lambda(&[], &body, Some(&want))?;
+        let want = Ty::Fn(false, vec![at_ty.clone()], Box::new(Ty::Unit));
+        let was = self.sent_through.replace(hn);
+        let clo = self.lambda(&[pn], &body, Some(&want));
+        self.sent_through = was;
+        let (clo, ct) = clo?;
         let clo = self.tmp(&ct, clo, at);
+        let reason = send_reasons(&ts[1]);
+        let fail = Ty::Coll("Undelivered", vec![at_ty.clone(), reason.clone()]);
         let c = call(
             "std.actor.send",
-            vec![ts[0].targ()],
-            vec![let_arg(hv), sink_arg(clo)],
+            vec![ts[0].targ(), ts[1].targ(), at_ty.targ(), fail.targ()],
+            vec![let_arg(hv), sink_arg(tup), sink_arg(clo)],
             at,
         );
-        Ok((Rhs::Call(c), Ty::Unit, None))
+        Ok((Rhs::Call(c), Ty::Unit, Some(fail)))
+    }
+}
+
+/// Why a send under policy `p` can fail (R976).
+fn send_reasons(p: &Ty) -> Ty {
+    let data = |n: &str| Ty::Data(n.into());
+    match p {
+        Ty::Data(n) if n == "Reject" => Ty::Union(vec![data("Stopped"), data("Full")]),
+        Ty::Data(n) if n == "DropOldest" || n == "DropNew" => data("Stopped"),
+        _ => Ty::Union(vec![data("Stopped"), data("Timeout"), data("Cancelled")]),
     }
 }
 
@@ -310,7 +454,12 @@ impl Lower<'_, '_, '_> {
 impl Lower<'_, '_, '_> {
     /// `actor.start(ChildSpec(f, (args...), restart=permanent), capacity=1024)`: a restartable
     /// child whose every start calls the top-level `f(args)`, the arguments evaluated once (R958).
-    pub(super) fn start_call(&mut self, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
+    pub(super) fn start_call(
+        &mut self,
+        args: &[j::Arg],
+        at: Span,
+        want: Option<&Ty>,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
         let (spec, cap) = match args {
             [s] if s.name.is_none() => (arg_expr(s), None),
             [s, c] if s.name.is_none() && c.name.as_deref().is_none_or(|n| n == "capacity") => {
@@ -377,25 +526,19 @@ impl Lower<'_, '_, '_> {
             paren: false,
         };
         let state = sig.ret.clone();
-        let want = Ty::Fn(false, Vec::new(), Box::new(state.clone()));
-        let (clo, ct) = self.lambda(&[], &body, Some(&want))?;
+        let starts = Ty::Fn(false, Vec::new(), Box::new(state.clone()));
+        let (clo, ct) = self.lambda(&[], &body, Some(&starts))?;
         let clo = self.tmp(&ct, clo, at);
-        let cap = match cap {
-            Some(e) => {
-                let (c, ct) = self.atom(e, Some(&Ty::Int))?;
-                self.expect(&ct, &Ty::Int, e.span);
-                c
-            }
-            None => Atom::Lit(Literal::Int("1024".into()), at),
-        };
+        let cap = self.capacity(cap, at)?;
+        let (p, code) = self.policy(want, at);
         let restart = Atom::Lit(Literal::Int(restart.to_string()), at);
         let c = call(
             "std.actor.start",
-            vec![state.targ()],
-            vec![sink_arg(clo), let_arg(restart), let_arg(cap)],
+            vec![state.targ(), p.targ()],
+            vec![sink_arg(clo), let_arg(restart), let_arg(cap), let_arg(code)],
             at,
         );
-        Ok((Rhs::Call(c), Ty::Coll("Actor", vec![state]), None))
+        Ok((Rhs::Call(c), Ty::Coll("Actor", vec![state, p]), None))
     }
 }
 

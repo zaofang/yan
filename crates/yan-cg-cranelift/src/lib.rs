@@ -387,14 +387,8 @@ fn object(p: &Program, source: Option<&std::path::Path>) -> R<Vec<u8>> {
             b.ins().store(MemFlagsData::trusted(), block, slot, 0);
         }
         let main = module.declare_func_in_func(ids[p.main as usize], b.func);
-        let c = b.ins().call(main, &[]);
-        let code = if p.main_fails {
-            let tag = b.inst_results(c)[0];
-            let (one, zero) = (b.ins().iconst(types::I64, 1), b.ins().iconst(types::I64, 0));
-            b.ins().select(tag, one, zero)
-        } else {
-            b.ins().iconst(types::I64, 0)
-        };
+        b.ins().call(main, &[]);
+        let code = b.ins().iconst(types::I64, 0);
         let exit = module.declare_func_in_func(exit, b.func);
         b.ins().call(exit, &[code]);
         b.ins().trap(TrapCode::unwrap_user(1));
@@ -435,7 +429,7 @@ pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
     let mut module = JITModule::new(jb);
     let ptr = module.target_config().pointer_type();
 
-    let (panic, exit, rt_ids) = declare_rt(&mut module)?;
+    let (panic, _, rt_ids) = declare_rt(&mut module)?;
     let mut resolve_sig = module.make_signature();
     resolve_sig
         .params
@@ -488,7 +482,7 @@ pub fn compile_with(p: &Program, jit: Jit) -> R<Compiled> {
                 stubs[p.main as usize]
             }
         };
-        entry_point(&mut st, main, p.main_fails, exit)?
+        entry_point(&mut st, main)?
     };
     Ok(Compiled { _lazy: lazy, entry })
 }
@@ -605,12 +599,7 @@ fn stubs(st: &mut State<JITModule>, lazy: &Lazy, resolve: CFuncId) -> R<Vec<CFun
 
 /// Define the C-ABI trampoline the host calls, which calls the tail-convention `main`, and
 /// finalize the module.
-fn entry_point(
-    st: &mut State<JITModule>,
-    main: CFuncId,
-    fails: bool,
-    exit: CFuncId,
-) -> R<extern "C" fn()> {
+fn entry_point(st: &mut State<JITModule>, main: CFuncId) -> R<extern "C" fn()> {
     let State {
         module, fctx, ctx, ..
     } = st;
@@ -625,19 +614,7 @@ fn entry_point(
         b.switch_to_block(blk);
         b.seal_block(blk);
         let main = module.declare_func_in_func(main, b.func);
-        let c = b.ins().call(main, &[]);
-        if fails {
-            let tag = b.inst_results(c)[0];
-            let (failed, done) = (b.create_block(), b.create_block());
-            b.ins().brif(tag, failed, &[], done, &[]);
-            b.switch_to_block(failed);
-            let exit = module.declare_func_in_func(exit, b.func);
-            let one = b.ins().iconst(types::I64, 1);
-            b.ins().call(exit, &[one]);
-            b.ins().trap(TrapCode::unwrap_user(1));
-            b.switch_to_block(done);
-            b.seal_all_blocks();
-        }
+        b.ins().call(main, &[]);
         b.ins().return_(&[]);
         b.finalize(module.target_config());
     }
@@ -672,6 +649,7 @@ fn signature(f: &Func, m: &impl Module) -> Signature {
 
 const RT: &[RtFn] = &[
     RtFn::Print,
+    RtFn::FailMain,
     RtFn::ReadLine,
     RtFn::ReadAll,
     RtFn::FsRead,
@@ -765,6 +743,12 @@ fn rt_fn(
         RtFn::Print => (
             "yan_rt_print_str",
             abi::yan_rt_print_str as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::FailMain => (
+            "yan_rt_fail_main",
+            abi::yan_rt_fail_main as *const u8,
             &[I64],
             None,
         ),
@@ -1599,7 +1583,7 @@ impl Gen<'_, '_> {
                 }
             }
             Term::Panic(kind) => self.call_panic(kind),
-            Term::Par { .. } | Term::Suspend { .. } | Term::TaskEnd => {
+            Term::Par { .. } | Term::Suspend { .. } | Term::TaskEnd | Term::Unwind { .. } => {
                 unreachable!("removed by the task transform")
             }
             Term::PanicFields { kind, fields } => self.call_panic_fields(kind, fields),

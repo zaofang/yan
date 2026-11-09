@@ -13,6 +13,7 @@ mod export;
 mod fix;
 mod lock;
 mod mcp;
+mod new;
 mod patch;
 mod publish;
 mod pyimport;
@@ -90,6 +91,13 @@ enum SchemaCommand {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Create a package directory from a template: `package.yag` and `src/` (18.1).
+    New {
+        /// `@org/name`, or `name` for `@local/name`; the directory is `name`.
+        name: String,
+        #[arg(long, value_enum, default_value = "cli")]
+        template: new::Template,
+    },
     /// Print the Yan Agent grammar for constrained decoding (21.3).
     Grammar {
         #[arg(long, value_enum)]
@@ -377,6 +385,10 @@ fn main() -> ExitCode {
             max_errors,
             Database::new(strict, level.as_deref() == Some("release")),
         ),
+        Command::New { name, template } => match new::create(Path::new("."), &name, template) {
+            Ok(_) => ExitCode::SUCCESS,
+            Err(msg) => tool_failure(&msg),
+        },
         Command::Lock => match lock::write(Path::new(".")) {
             Ok(changed) => {
                 println!(

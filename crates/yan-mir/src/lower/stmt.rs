@@ -151,6 +151,13 @@ impl<'a, 'm> Fn<'a, 'm> {
     pub(super) fn stmt(&mut self, s: &'m y::Stmt) -> R<()> {
         use y::StmtKind as K;
         self.line = s.span.line;
+        if let Some(n) = self.flagged_drop(&s.kind) {
+            self.drop_stmt(n);
+            return Ok(());
+        }
+        if !matches!(s.kind, K::Drop(_) | K::Ret(_) | K::Fail(_)) {
+            self.flush_deferred();
+        }
         match &s.kind {
             K::Let { pat, ty, rhs, .. } => {
                 let shape = self.shape(ty)?;
@@ -247,6 +254,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 } else {
                     v
                 };
+                self.unwind(&[], None);
                 self.ret(v);
                 Ok(())
             }
@@ -257,7 +265,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 };
                 let e = fs[0].1.clone();
                 let v = self.atom(a, &e)?;
-                self.exit_kind(&e, &v);
+                self.unwind(&[], Some((&e, &v)));
                 self.ret(Self::variant_value(&ret, "Err", v));
                 Ok(())
             }
@@ -311,13 +319,14 @@ impl<'a, 'm> Fn<'a, 'm> {
                     tasks: tasks.clone(),
                     join,
                 });
-                self.tasks += 1;
                 for (b, t) in blocks.iter().zip(tasks) {
                     self.cur = t;
+                    self.task_starts.push(self.locals.len() as Local);
                     self.block_in(b)?;
+                    self.flush_deferred();
+                    self.task_starts.pop();
                     self.finish(Term::TaskEnd);
                 }
-                self.tasks -= 1;
                 self.cur = join;
                 Ok(())
             }
@@ -358,7 +367,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             K::Unsafe(b) => self.block(b),
             K::Drop(n) => {
-                self.drop_name(n);
+                self.drop_stmt(n);
                 Ok(())
             }
             K::Rhs(y::Rhs::Call(c)) => self.call(c, None),
