@@ -1,4 +1,4 @@
-# 0059: Actor supervision: the surface and what stops an actor
+# 0060: Actor supervision: the surface and what stops an actor
 
 - Status: draft
 - Research: none; follows RFC 0056 (accepted) slice 3 and 9.6. Gap issue #835.
