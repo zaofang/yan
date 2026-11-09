@@ -307,6 +307,12 @@ pub enum RtFn {
     ActorTake,
     /// `(actor, state)`: the state goes back.
     ActorPut,
+    /// `(actor, state) -> starts`: a `@reentrant` handler lends the state back.
+    ActorLend,
+    /// `(actor, starts, out, in_task) -> status`: a `@reentrant` handler takes it back.
+    ActorRetake,
+    /// `(actor, state) -> bool`: a handler call ends; whether its failure stops the actor.
+    ActorGive,
     /// `(actor, thunk, code, env, args, in_task) -> status`: enqueue a message.
     ActorSend,
     /// `(i) -> u64`: a work slot.
