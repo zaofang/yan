@@ -934,6 +934,24 @@ mod selftest {
     }
 
     #[test]
+    fn a_task_leaves_frame_drops_to_the_frame() {
+        let (s, out) = run_src(
+            "record Bad { pub n: i64 }\n\
+             fn f() -> Str fail Bad {\n let c: Tuple(Sender[i64], Receiver[i64]) = std.chan.Channel[i64](let 0)\n\
+             var tx: Sender[i64] = c._0\n var rx: Receiver[i64] = c._1\n\
+             par concurrent {\n  {\n   let r: Result[i64, Cancelled] = try std.chan.receiver.recv[i64](inout rx)\n\
+             drop r\n   let a: Bad = Bad { n: 1 }\n   drop rx\n   drop tx\n   fail a\n  }\n\
+             {\n   let w: Result[Unit, Cancelled] = try std.chan.sender.send[i64](inout tx, sink 5)\n\
+             drop w\n   let b: Bad = Bad { n: 2 }\n   drop rx\n   drop tx\n   fail b\n  }\n }\n\
+             drop rx\n drop tx\n ret \"ok\"\n}\n\
+             fn main(cap io: Io) -> Unit {\n let r: Result[Str, Bad] = try f()\n\
+             match r {\n  Ok { value: _ } => {\n   std.io.print(cap io, let \"ok\")\n  }\n\
+             Err { error: e } => {\n   let s: Str = std.fmt.show[Bad](let e)\n   std.io.print(cap io, let s)\n  }\n }\n ret ()\n}\n",
+        );
+        assert_eq!((s, out.as_str()), (0, "Bad(n=1)\n"));
+    }
+
+    #[test]
     fn inout_writes_back_and_closures_capture() {
         let (s, _) = run_src(
             "fn bump(inout n: i64) -> Unit {\n n = add_checked_i64(let n, let 1)\n ret ()\n}\n\
