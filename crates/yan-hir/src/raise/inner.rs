@@ -364,10 +364,12 @@ impl<'a> Fold<'a> {
             } => {
                 let h = self.atom(handler)?;
                 let body = self.block(body)?;
-                out.push(stmt(StmtKind::With {
-                    kind: WithKind::Bind(n.clone(), h),
-                    body,
-                }));
+                let kind = if n == "supervisor" {
+                    WithKind::Supervisor(h)
+                } else {
+                    WithKind::Bind(n.clone(), h)
+                };
+                out.push(stmt(StmtKind::With { kind, body }));
             }
             K::Deadline { at, body } => {
                 let at = self.atom(at)?;

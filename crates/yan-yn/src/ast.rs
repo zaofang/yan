@@ -421,6 +421,7 @@ pub enum WithKind {
     },
     Deadline(Expr),
     Timeout(Expr),
+    Supervisor(Expr),
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -342,6 +342,10 @@ impl Lower<'_, '_, '_> {
                     at,
                 );
             }
+            K::With {
+                kind: j::WithKind::Supervisor(spec),
+                body,
+            } => self.with_supervisor(spec, body, at)?,
             // `timeout(d)` is a deadline `d` from now (9.4).
             K::With {
                 kind: kind @ (j::WithKind::Deadline(e) | j::WithKind::Timeout(e)),

@@ -1692,6 +1692,8 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
 
 #[cfg(test)]
 mod actor_selftest;
+#[cfg(test)]
+mod supervisor_selftest;
 
 #[cfg(test)]
 mod selftest;

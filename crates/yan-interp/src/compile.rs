@@ -83,6 +83,10 @@ pub(crate) enum Op {
     DeadlineEnd {
         saved: Reg,
     },
+    /// Open a `with supervisor` scope with the spec in `src` (9.6).
+    SupBegin(Opnd),
+    /// Close it, stopping its children.
+    SupEnd,
     Move {
         dst: Reg,
         src: Opnd,
@@ -596,6 +600,7 @@ enum Scope {
     Deadline {
         saved: Reg,
     },
+    Sup,
     Block {
         jps: Vec<(Name, u32, Vec<Reg>)>,
         cont: Option<Reg>,
@@ -1127,6 +1132,22 @@ impl<'g, 'm> FnC<'g, 'm> {
                 dyn_: false,
                 handler,
                 body,
+            } if name == "supervisor" => {
+                let src = match self.atom(handler) {
+                    Ok(o) => o,
+                    Err(m) => return self.unsupported(m),
+                };
+                self.emit(Op::SupBegin(src));
+                self.scopes.push(Scope::Sup);
+                self.block(body);
+                self.scopes.pop();
+                self.emit(Op::SupEnd);
+            }
+            StmtKind::With {
+                name,
+                dyn_: false,
+                handler,
+                body,
             } => {
                 let h = match self.atom(handler) {
                     Ok(h) => h,
@@ -1255,6 +1276,7 @@ impl<'g, 'm> FnC<'g, 'm> {
                     src: *saved,
                 }),
                 Scope::Deadline { saved } => Some(Op::DeadlineEnd { saved: *saved }),
+                Scope::Sup => Some(Op::SupEnd),
                 _ => None,
             })
             .collect();
@@ -1274,7 +1296,7 @@ impl<'g, 'm> FnC<'g, 'm> {
         };
         if self.scopes[i + 1..]
             .iter()
-            .any(|s| matches!(s, Scope::With { .. } | Scope::Deadline { .. }))
+            .any(|s| matches!(s, Scope::With { .. } | Scope::Deadline { .. } | Scope::Sup))
         {
             return false;
         }

@@ -332,6 +332,14 @@ fn now(it: &mut Interp, h: &Value) -> Value {
 
 static START: LazyLock<std::time::Instant> = LazyLock::new(std::time::Instant::now);
 
+/// The monotonic reading std's own timers use: the virtual clock when one is bound.
+pub(crate) fn mono_now(it: &Interp) -> i128 {
+    it.clocks
+        .last()
+        .copied()
+        .unwrap_or_else(|| START.elapsed().as_nanos() as i128)
+}
+
 fn monotonic(it: &mut Interp, h: &Value) -> Value {
     match slept(it, h) {
         Some(s) => Mono(*s),

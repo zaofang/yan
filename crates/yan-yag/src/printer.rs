@@ -792,6 +792,7 @@ impl Printer {
                     WithKind::Bind(n, e) => format!("with {n} = {}:", expr(e, 0)),
                     WithKind::Deadline(e) => format!("with deadline({}):", expr(e, 0)),
                     WithKind::Timeout(e) => format!("with timeout({}):", expr(e, 0)),
+                    WithKind::Supervisor(e) => format!("with supervisor({}):", expr(e, 0)),
                 };
                 self.block(head, body, d);
             }

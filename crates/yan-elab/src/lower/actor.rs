@@ -204,3 +204,153 @@ impl Lower<'_, '_, '_> {
         Ok((Rhs::Call(c), Ty::Unit, None))
     }
 }
+
+impl Lower<'_, '_, '_> {
+    /// `with supervisor(spec): body`: the actors started in `body` are children of a supervisor
+    /// with `spec`, stopped in shutdown order when `body` ends (9.6).
+    pub(super) fn with_supervisor(&mut self, spec: &j::Expr, body: &j::Block, at: Span) -> R<()> {
+        let want = Ty::Data("Supervisor".into());
+        let (a, t) = self.atom(spec, Some(&want))?;
+        self.expect(&t, &want, spec.span);
+        let b = self.block(&body.stmts)?;
+        self.emit(
+            StmtKind::With {
+                name: "supervisor".into(),
+                dyn_: false,
+                handler: a,
+                body: b,
+            },
+            at,
+        );
+        Ok(())
+    }
+}
+
+impl Lower<'_, '_, '_> {
+    /// `actor.start(ChildSpec(f, (args...), restart=permanent), capacity=1024)`: a restartable
+    /// child whose every start calls the top-level `f(args)`, the arguments evaluated once (R958).
+    pub(super) fn start_call(&mut self, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
+        let (spec, cap) = match args {
+            [s] if s.name.is_none() => (arg_expr(s), None),
+            [s, c] if s.name.is_none() && c.name.as_deref().is_none_or(|n| n == "capacity") => {
+                (arg_expr(s), arg_expr(c))
+            }
+            _ => (None, None),
+        };
+        let parts = spec.and_then(|e| match &e.kind {
+            j::ExprKind::Call(f, cargs)
+                if matches!(&f.kind, j::ExprKind::Name(n) if n == "ChildSpec") =>
+            {
+                child_spec(cargs)
+            }
+            _ => None,
+        });
+        let Some((f, fargs, restart)) = parts else {
+            self.err(
+                "E201",
+                at,
+                "`actor.start` takes `ChildSpec(start, (args...), restart=permanent)` and an \
+                 optional `capacity`; `restart` is `permanent`, `transient` or `temporary`"
+                    .into(),
+            );
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        };
+        let Some(sig) = self.g.fns.get(f.0.as_str()).cloned() else {
+            self.err(
+                "E201",
+                f.1,
+                format!(
+                    "the start of a `ChildSpec` is a top-level function; `{}` is not one",
+                    f.0
+                ),
+            );
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        };
+        if sig.fail.is_some() {
+            return unsupported("a `ChildSpec` start function with a fail type");
+        }
+        // R958 gives a start the capabilities of the scope that binds the supervisor, which no
+        // actor holds yet; the starter's would escape in the child.
+        if !sig.caps.is_empty() {
+            return unsupported("a `ChildSpec` start function with `uses`");
+        }
+        let name = |n: String, span: Span| j::Expr {
+            kind: j::ExprKind::Name(n),
+            span,
+            paren: false,
+        };
+        let mut moved = Vec::with_capacity(fargs.len());
+        for e in fargs {
+            let (v, t) = self.atom(e, None)?;
+            let n = self.fresh("a");
+            self.bind(&n, false, &t, Rhs::Atom(v), e.span, e.span);
+            moved.push(j::Arg {
+                name: None,
+                kind: j::ArgKind::Expr(name(n, e.span)),
+                span: e.span,
+            });
+        }
+        let body = j::Expr {
+            kind: j::ExprKind::Call(Box::new(name(f.0.clone(), f.1)), moved),
+            span: at,
+            paren: false,
+        };
+        let state = sig.ret.clone();
+        let want = Ty::Fn(false, Vec::new(), Box::new(state.clone()));
+        let (clo, ct) = self.lambda(&[], &body, Some(&want))?;
+        let clo = self.tmp(&ct, clo, at);
+        let cap = match cap {
+            Some(e) => {
+                let (c, ct) = self.atom(e, Some(&Ty::Int))?;
+                self.expect(&ct, &Ty::Int, e.span);
+                c
+            }
+            None => Atom::Lit(Literal::Int("1024".into()), at),
+        };
+        let restart = Atom::Lit(Literal::Int(restart.to_string()), at);
+        let c = call(
+            "std.actor.start",
+            vec![state.targ()],
+            vec![sink_arg(clo), let_arg(restart), let_arg(cap)],
+            at,
+        );
+        Ok((Rhs::Call(c), Ty::Coll("Actor", vec![state]), None))
+    }
+}
+
+/// The start function, its arguments and the restart type (0 `permanent`, 1 `transient`,
+/// 2 `temporary`) of `ChildSpec(start, (args...), restart=...)`.
+fn arg_expr(a: &j::Arg) -> Option<&j::Expr> {
+    match &a.kind {
+        j::ArgKind::Expr(e) => Some(e),
+        _ => None,
+    }
+}
+
+fn child_spec(args: &[j::Arg]) -> Option<((String, Span), &[j::Expr], u8)> {
+    let expr = arg_expr;
+    let (f, a, r) = match args {
+        [f, a] => (f, a, None),
+        [f, a, r] if r.name.as_deref() == Some("restart") => (f, a, Some(r)),
+        _ => return None,
+    };
+    if f.name.is_some() || a.name.is_some() {
+        return None;
+    }
+    let j::ExprKind::Name(n) = &expr(f)?.kind else {
+        return None;
+    };
+    let j::ExprKind::Tuple(xs) = &expr(a)?.kind else {
+        return None;
+    };
+    let restart = match r {
+        None => 0,
+        Some(r) => match &expr(r)?.kind {
+            j::ExprKind::Name(r) if r == "permanent" => 0,
+            j::ExprKind::Name(r) if r == "transient" => 1,
+            j::ExprKind::Name(r) if r == "temporary" => 2,
+            _ => return None,
+        },
+    };
+    Some(((n.clone(), expr(f)?.span), xs, restart))
+}

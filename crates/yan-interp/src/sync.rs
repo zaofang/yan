@@ -8,6 +8,7 @@ use std::rc::Rc;
 use yan_std::registry::{Id, id::*};
 
 use super::bind::{Bind, bad_args};
+use super::supervise::{self, Child, Restart};
 use super::time::wait_out;
 use super::vm::{Clo, Vm};
 use super::{Interp, R, Value, panic, unsupported};
@@ -63,12 +64,66 @@ pub(crate) struct Actor {
     mail: VecDeque<Rc<Clo>>,
     /// A queued message is running, so the actor takes no other from its mailbox.
     running: bool,
+    /// Stopped by a failed handler or its supervisor, and not restarted.
+    stopped: bool,
+    child: Child,
+}
+
+impl Actor {
+    /// Its queue is dropped and its state with it (R813).
+    pub(crate) fn stop(&mut self) {
+        self.stopped = true;
+        self.state = None;
+        self.mail.clear();
+    }
+
+    pub(crate) fn child(&self) -> &Child {
+        &self.child
+    }
+
+    /// A restart starts from `state` with an empty mailbox (R813, R958).
+    pub(crate) fn restart_with(&mut self, state: Value) {
+        self.stopped = false;
+        self.state = Some(state);
+    }
+}
+
+/// A new actor with `state`, a child of the supervisor bound here (R957).
+pub(crate) fn spawn(
+    it: &mut Interp,
+    state: Value,
+    cap: i128,
+    restart: Restart,
+    start: Option<Rc<Clo>>,
+) -> R<Value> {
+    if cap < 1 {
+        return panic("precondition `capacity >= 1` of `spawn` failed");
+    }
+    let id = it.actors.len();
+    let child = supervise::adopt(it, id, restart, start);
+    it.actors.push(Actor {
+        state: Some(state),
+        capacity: cap as usize,
+        mail: VecDeque::new(),
+        running: false,
+        stopped: false,
+        child,
+    });
+    Ok(end("Actor", id))
+}
+
+/// A call or send to a stopped actor fails `Stopped` (9.6), which no handler fail type carries
+/// yet.
+fn stopped<T>() -> R<T> {
+    unsupported(
+        "a call or send to a stopped actor, before `ActorError` joins the handler fail type",
+    )
 }
 
 /// Run actor `id`'s oldest queued message if the actor is idle; whether one ran.
 fn run_queued(vm: &mut Vm, id: usize) -> R<bool> {
     let a = &mut vm.it.actors[id];
-    if a.running || a.state.is_none() {
+    if a.running || a.state.is_none() || a.stopped {
         return Ok(false);
     }
     let Some(m) = a.mail.pop_front() else {
@@ -101,17 +156,8 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_ACTOR_SPAWN,
         Bind::Cap(|it, a| match a {
-            [_, Value::Int(cap)] if *cap < 1 => {
-                panic("precondition `capacity >= 1` of `spawn` failed")
-            }
             [state, Value::Int(cap)] => {
-                it.actors.push(Actor {
-                    state: Some(std::mem::take(state)),
-                    capacity: *cap as usize,
-                    mail: VecDeque::new(),
-                    running: false,
-                });
-                Ok(end("Actor", it.actors.len() - 1))
+                spawn(it, std::mem::take(state), *cap, Restart::Temporary, None)
             }
             _ => bad_args(STD_ACTOR_SPAWN),
         }),
@@ -120,8 +166,14 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_ACTOR_TAKE,
         Bind::Vm(|vm, _, a| {
             let id = chan(&a[0]);
+            if vm.it.actors[id].stopped {
+                return stopped();
+            }
             // A call is a barrier: the actor runs every message queued before it (R813).
             while run_queued(vm, id)? {}
+            if vm.it.actors[id].stopped {
+                return stopped();
+            }
             match vm.it.actors[id].state.take() {
                 Some(s) => Ok(s),
                 None => wait_busy(&mut vm.it, id),
@@ -132,6 +184,9 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_ACTOR_SEND,
         Bind::Vm(|vm, _, a| {
             let id = chan(&a[0]);
+            if vm.it.actors[id].stopped {
+                return stopped();
+            }
             let Value::Closure(m) = std::mem::take(&mut a[1]) else {
                 return bad_args(STD_ACTOR_SEND);
             };
@@ -155,13 +210,20 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_ACTOR_SETTLE,
-        Bind::CapFallible(|it, a| {
-            it.actors[chan(&a[0])].state = Some(std::mem::take(&mut a[1]));
-            it.progress += 1;
+        Bind::VmFallible(|vm, _, a| {
+            let id = chan(&a[0]);
+            vm.it.actors[id].state = Some(std::mem::take(&mut a[1]));
+            vm.it.progress += 1;
             match std::mem::take(&mut a[2]) {
                 Value::Data { name, mut fields } => {
                     let v = fields.pop().expect("a result payload").1;
-                    Ok(if name == "Ok" { Ok(v) } else { Err(v) })
+                    if name == "Ok" {
+                        return Ok(Ok(v));
+                    }
+                    // A failed handler may have left the state half updated, so it stops the
+                    // actor; the caller still gets the failure.
+                    supervise::crash(vm, id)?;
+                    Ok(Err(v))
                 }
                 _ => bad_args(STD_ACTOR_SETTLE),
             }

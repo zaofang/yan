@@ -1,6 +1,7 @@
 """Actors (9.6, 17.3): `Actor[S]` owns state `S`; a handle reaches other nodes as `Remote`.
-`take`, `put`, `settle` and `send` are the lowering of a handler call `h.f(args)` (R435) and of
-`actor.send(h).f(args)` (R813), not for direct use."""
+`take`, `put`, `settle`, `send` and `start` are the lowering of a handler call `h.f(args)` (R435) and of
+`actor.send(h).f(args)` (R813) and of `actor.start(ChildSpec(f, (args...), restart=r))`
+(R958), not for direct use."""
 
 @intrinsic
 @since("1.0")
@@ -25,3 +26,31 @@ pub def settle[S, T, E](self: Actor[S], state: S, outcome: Result[T, E]) -> T fa
 @intrinsic
 @since("1.0")
 pub def send[S](self: Actor[S], message: Callable[[], None]) -> None: ...
+
+@since("1.0")
+pub type Strategy = OneForOne() | OneForAll() | RestForOne()
+
+@since("1.0")
+pub class Supervisor:
+    """A supervisor spec (9.6): its strategy, at most `intensity` restarts per `period`, and each
+    child's `shutdown` timeout. `with supervisor(spec):` binds it for the actors started inside."""
+    strategy: Strategy
+    intensity: int
+    period: Duration
+    shutdown: Duration
+
+@intrinsic
+@since("1.0")
+pub def one_for_one(intensity: int = 1, period: Duration = 5 * s, shutdown: Duration = 5 * s) -> Supervisor: ...
+
+@intrinsic
+@since("1.0")
+pub def one_for_all(intensity: int = 1, period: Duration = 5 * s, shutdown: Duration = 5 * s) -> Supervisor: ...
+
+@intrinsic
+@since("1.0")
+pub def rest_for_one(intensity: int = 1, period: Duration = 5 * s, shutdown: Duration = 5 * s) -> Supervisor: ...
+
+@intrinsic
+@since("1.0")
+pub def start[S](start: Callable[[], S], restart: int, capacity: int) -> Actor[S]: ...

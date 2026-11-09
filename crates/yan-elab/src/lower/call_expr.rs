@@ -100,6 +100,12 @@ impl Lower<'_, '_, '_> {
             {
                 self.spawn_call(args, at)
             }
+            j::ExprKind::Attr(m, op, _)
+                if op == "start"
+                    && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.locals.contains_key(a)) =>
+            {
+                self.start_call(args, at)
+            }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Channel" && !self.locals.contains_key(n)) =>
             {
                 let j::ExprKind::Name(tn) = &k.kind else {

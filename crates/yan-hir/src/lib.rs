@@ -442,6 +442,8 @@ pub enum WithKind {
     Bind(Name, Expr),
     Deadline(Expr),
     Timeout(Expr),
+    /// `with supervisor(spec):` binds the supervisor of the actors started in the body (9.6).
+    Supervisor(Expr),
 }
 
 #[derive(Clone, Debug, PartialEq)]

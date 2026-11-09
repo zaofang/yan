@@ -49,16 +49,16 @@ def main() uses io:
 }
 
 #[test]
-fn a_failing_handler_keeps_its_actor() {
+fn a_failing_handler_reaches_its_caller() {
     let src = format!(
         "{COUNTER}
 def main() uses io:
     c = actor.spawn(Counter(n=0), capacity=4)
-    print(c.checked(-1) else -1)
     print(c.checked(5) else -1)
+    print(c.checked(-1) else -1)
 "
     );
-    assert_eq!(run(&src).expect("runs"), "-1\n5\n");
+    assert_eq!(run(&src).expect("runs"), "5\n-1\n");
 }
 
 #[test]

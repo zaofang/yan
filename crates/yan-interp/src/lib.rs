@@ -44,6 +44,7 @@ mod regex;
 mod std_parity;
 #[cfg(test)]
 mod std_selftest;
+mod supervise;
 mod sync;
 mod time;
 mod toolchain;
@@ -248,6 +249,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             deadline: None,
             chans: Vec::new(),
             actors: Vec::new(),
+            sups: Default::default(),
             net: Default::default(),
             test: false,
             progress: 0,
@@ -375,6 +377,8 @@ pub(crate) struct Interp<'o> {
     chans: Vec<(usize, VecDeque<Value>)>,
     /// Each actor, by actor (9.6).
     actors: Vec<sync::Actor>,
+    /// Every supervisor and the open `with supervisor` scopes (9.6).
+    sups: supervise::Sups,
     /// Every `mem_net` network, listener and stream end.
     net: net::Nets,
     /// Running under `yan test`, which picks the default handlers (7.3).
@@ -638,6 +642,7 @@ fn entry(
         deadline: None,
         chans: Vec::new(),
         actors: Vec::new(),
+        sups: Default::default(),
         net: Default::default(),
         test: limits.is_some(),
         progress: 0,
