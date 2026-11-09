@@ -50,28 +50,33 @@ the solver). The index language of (b) is the accepted one.
 - Decision: (b), affine plus `/` and `%` by a literal, the lead, 2026-11-09 (card on this thread)
 - Row: (R number once accepted)
 
-### D3: what each region means
+### D3: what each region means, with halos
 
-For an operand with axes `a_0 ... a_{n-1}` and tile origin `t` (the `TileOrigin` fields) and shape `T`, an access at index
-vector `x` is inside the region when:
+For an operand with axes `a_0 ... a_{n-1}` and tile origin `t` (the `TileOrigin` fields) and shape `T`,
+an access at index vector `x` is inside the region when:
 
 - `elementwise`: `x_k = t_k + i_k` with `0 <= i_k < T_k` for every axis (the operand has the tile's
   rank; a lower-rank operand is E274 at the claim).
 - `rows(a)`: axis `a` lies in `[t_a, t_a + T_a)`; every other axis is any in-bounds index.
 - `cols(a)`: the same region as `rows(a)`. The two spellings are kept because R627 already names both.
 - `tile(M, N)`: both axes lie in a `M x N` block whose origin is `t` rounded down to a multiple of
-  `M` and `N`. Needs the divisibility case of D2 (b), which D2 (b) provides.
+  `M` and `N`, which D2 provides for.
 - `whole`: any in-bounds index; no access can contradict it.
 
+`rows`, `cols` and `tile` take an optional trailing `halo: h`, `h` a non-negative integer literal. The
+region widens by `h` elements on each side of every axis it bounds, so `rows(0, halo: 1)` is
+`[t_0 - 1, t_0 + T_0 + 1)` on axis 0. A halo does not move an access past the array: an index outside
+the array is E501 as everywhere (8.6). `elementwise` and `whole` take no halo (E284). This extends the
+RFC 0052 grammar: `halo` is the one named argument a region accepts, and a negative, non-literal or
+repeated halo is E284.
+
 The `out` operand is the write region and the others are read regions. Reading outside a read region
-or writing outside the write region is E274; an access in bounds of the array but outside the region
-is E274, and out of bounds of the array is E501 as everywhere (8.6).
+or writing outside the write region is E274, and `out` takes no halo (a write halo would let two
+tiles write the same element, which breaks determinism under `par`; E284).
 
-Options: (a) as above; (b) regions as sets of indices relative to the origin with a user-written
-offset (`rows(0, halo: 1)`), which stencils need. Recommended: (a) now; stencil halos are a later RFC
-and, until then, a stencil declares `whole`.
+Options: (a) regions without halos, a stencil declaring `whole`; (b) halo offsets as above.
 
-- Decision: (lead's answer, date)
+- Decision: (b), the lead, 2026-11-09 (card on this thread)
 - Row: (R number once accepted)
 
 ### D4: staging and the toolchain
@@ -91,7 +96,7 @@ Options: (a) the order above; (b) prover first on a synthetic IR, then the surfa
 
 ## Spec changes
 
-Section 11.2 (access patterns paragraph) gains the tile bindings and the region meanings; section
+Section 11.2 (access patterns paragraph) gains the tile bindings, the region meanings and the `halo` argument (with the RFC 0052 grammar in the Binding paragraph); section
 17.1 (R320, R327) states that `@kernel` bodies may use element access under D1 to D3 beside
-`Tile` values; the diagnostics catalogue keeps E274 and, if the lead accepts D2, adds the
-"not affine" wording to its meaning.
+`Tile` values; the diagnostics catalogue keeps E274, adds the "not affine" wording to its meaning, and extends E284
+to a malformed halo.
