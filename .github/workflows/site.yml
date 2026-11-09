@@ -1,0 +1,64 @@
+name: site
+
+# Builds the website (tools/site.py) with the playground's wasm on every PR that touches it, and
+# deploys it to GitHub Pages on merge. No server code: Pages serves the files as built.
+on:
+  pull_request:
+    paths: [site/**, playground/**, tools/site.py, crates/**, Cargo.lock, .github/workflows/site.yml]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
+  cancel-in-progress: true
+
+env:
+  WASI_SYSROOT_VERSION: "25"
+
+jobs:
+  build:
+    # Self-hosted like ci.yml: hosted runners fail at job start on this account.
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: wasi-libc headers
+        run: |
+          dir="$RUNNER_TOOL_CACHE/wasi-sysroot-$WASI_SYSROOT_VERSION"
+          if [ ! -d "$dir" ]; then
+            mkdir -p "$dir"
+            curl -fsSL "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-$WASI_SYSROOT_VERSION/wasi-sysroot-$WASI_SYSROOT_VERSION.0.tar.gz" \
+              | tar xz -C "$dir" --strip-components=1
+          fi
+          echo "WASI_INCLUDE=$(ls -d "$dir"/include/wasm32-wasi* | head -n1)" >> "$GITHUB_ENV"
+          clang --print-targets | grep -q wasm32 || { echo "clang has no wasm32 backend"; exit 1; }
+      - run: rustup target add wasm32-wasip1
+      - run: ./playground/build.sh
+      - run: cargo build --release -p yan-cli
+      - run: uv run python -m tools.site check --yan target/release/yan
+      - id: pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+      - run: uv run python -m tools.site build _site --url "${{ steps.pages.outputs.base_url }}/"
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: self-hosted
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
