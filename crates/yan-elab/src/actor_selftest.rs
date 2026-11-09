@@ -88,3 +88,98 @@ def main() uses io:
     );
     assert!(matches!(run(&src), Err(yan_interp::Stop::Panic(..))));
 }
+
+const LOUD: &str = "\
+class Loud:
+    n: int
+
+def add(var self: Loud, by: int):
+    self.n += by
+
+def shout(var self: Loud, k: int) uses io:
+    print(k)
+
+def total(var self: Loud) -> int:
+    return self.n
+";
+
+/// Whether elaboration reports `src` as not supported yet (E017), never silently accepts it.
+fn unsupported(src: &str) -> bool {
+    let (m, d) = yan_yag::parse("t.yag", src, false);
+    assert!(d.is_empty(), "{d:?}");
+    let (_, d) =
+        elaborate("t.yag", src, &m.expect("parses"), Options::default()).expect("elaborates");
+    d.iter().any(|d| d.code == "E017")
+}
+
+#[test]
+fn a_call_runs_the_messages_sent_before_it_in_order() {
+    let src = format!(
+        "{LOUD}
+def main() uses io:
+    a = actor.spawn(Loud(n=0))
+    actor.send(a).add(1)
+    actor.send(a).add(2)
+    print(a.total())
+    actor.send(a).add(4)
+    print(a.total())
+"
+    );
+    assert_eq!(run(&src).expect("runs"), "3\n7\n");
+}
+
+#[test]
+fn a_full_mailbox_runs_its_oldest_message_before_admitting() {
+    let src = format!(
+        "{LOUD}
+def main() uses io:
+    a = actor.spawn(Loud(n=0), capacity=1)
+    actor.send(a).add(1)
+    actor.send(a).add(2)
+    actor.send(a).add(4)
+    print(a.total())
+"
+    );
+    assert_eq!(run(&src).expect("runs"), "7\n");
+}
+
+#[test]
+fn a_handler_with_uses_cannot_be_sent_yet() {
+    let src = format!(
+        "{LOUD}
+def main() uses io:
+    a = actor.spawn(Loud(n=0))
+    actor.send(a).shout(1)
+"
+    );
+    assert!(unsupported(&src));
+}
+
+#[test]
+fn only_unit_handlers_can_be_sent() {
+    let src = format!(
+        "{LOUD}
+def main() uses io:
+    a = actor.spawn(Loud(n=0))
+    actor.send(a).total()
+"
+    );
+    assert!(unsupported(&src));
+}
+
+#[test]
+fn a_reentrant_handler_call_is_unsupported() {
+    let src = "\
+class A:
+    n: int
+
+@reentrant
+def get(var self: A) -> int:
+    return self.n
+
+def main() uses io:
+    a = actor.spawn(A(n=0))
+    print(a.get())
+";
+    assert!(unsupported(src));
+}

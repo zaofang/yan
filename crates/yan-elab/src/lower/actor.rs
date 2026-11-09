@@ -10,6 +10,15 @@ impl Lower<'_, '_, '_> {
         args: &[j::Arg],
         at: Span,
     ) -> R<Option<(Rhs, Ty, Option<Ty>)>> {
+        if let j::ExprKind::Call(f, hs) = &b.kind
+            && matches!(&f.kind, j::ExprKind::Attr(a, op, _) if op == "send"
+                && matches!(&a.kind, j::ExprKind::Name(n) if n == "actor" && !self.locals.contains_key(n)))
+            && let [h] = &hs[..]
+            && h.name.is_none()
+            && let j::ArgKind::Expr(h) = &h.kind
+        {
+            return self.send_call(h, m, args, at).map(Some);
+        }
         let Some(Ty::Coll("Actor", ts)) = self.ty_of_local(b) else {
             return Ok(None);
         };
@@ -23,6 +32,9 @@ impl Lower<'_, '_, '_> {
         else {
             return Ok(None);
         };
+        if self.g.reentrant.contains(m) {
+            return unsupported("a call to a `@reentrant` actor handler, before RFC 0056 slice 4");
+        }
         let (h, _) = self.atom(b, None)?;
         let take = call(
             "std.actor.take",
@@ -102,5 +114,93 @@ impl Lower<'_, '_, '_> {
             at,
         );
         Ok((Rhs::Call(c), Ty::Coll("Actor", vec![st]), None))
+    }
+}
+
+impl Lower<'_, '_, '_> {
+    /// `actor.send(h).f(args)` (R813): move the arguments now and enqueue `lambda: h.f(args)` in
+    /// the actor's mailbox; the actor runs it when it is next scheduled.
+    fn send_call(
+        &mut self,
+        h: &j::Expr,
+        m: &str,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let (ha, ht) = self.atom(h, None)?;
+        let Ty::Coll("Actor", ts) = &ht else {
+            self.err(
+                "E201",
+                h.span,
+                "`actor.send` takes an `Actor` handle".into(),
+            );
+            return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+        };
+        let sig = self
+            .g
+            .fns
+            .get(m)
+            .filter(|s| s.params.first().is_some_and(|p| p.ty == ts[0]))
+            .cloned();
+        match sig {
+            None => {
+                return unsupported("`actor.send` of a name that is not a handler of the state");
+            }
+            Some(s) if s.ret != Ty::Unit || s.fail.is_some() => {
+                return unsupported("`actor.send` of a handler with a result or a fail type");
+            }
+            // R397 runs a message under its supervisor's capabilities, which no actor holds yet;
+            // the sender's would escape in the message (E306).
+            Some(s) if !s.caps.is_empty() => {
+                return unsupported(
+                    "`actor.send` of a handler with `uses`, before RFC 0056 slice 3",
+                );
+            }
+            Some(_) => {}
+        }
+        let name = |n: String, span: Span| j::Expr {
+            kind: j::ExprKind::Name(n),
+            span,
+            paren: false,
+        };
+        let hn = self.fresh("h");
+        self.bind(&hn, false, &ht, Rhs::Atom(ha), at, at);
+        let hv = Atom::Name(hn.clone(), at);
+        let mut moved = Vec::with_capacity(args.len());
+        for a in args {
+            let j::ArgKind::Expr(e) = &a.kind else {
+                return unsupported("a spread argument to `actor.send`");
+            };
+            let (v, t) = self.atom(e, None)?;
+            let n = self.fresh("m");
+            self.bind(&n, false, &t, Rhs::Atom(v), e.span, e.span);
+            moved.push(j::Arg {
+                name: a.name.clone(),
+                kind: j::ArgKind::Expr(name(n, e.span)),
+                span: a.span,
+            });
+        }
+        let body = j::Expr {
+            kind: j::ExprKind::Call(
+                Box::new(j::Expr {
+                    kind: j::ExprKind::Attr(Box::new(name(hn, h.span)), m.into(), at),
+                    span: at,
+                    paren: false,
+                }),
+                moved,
+            ),
+            span: at,
+            paren: false,
+        };
+        let want = Ty::Fn(false, Vec::new(), Box::new(Ty::Unit));
+        let (clo, ct) = self.lambda(&[], &body, Some(&want))?;
+        let clo = self.tmp(&ct, clo, at);
+        let c = call(
+            "std.actor.send",
+            vec![ts[0].targ()],
+            vec![let_arg(hv), sink_arg(clo)],
+            at,
+        );
+        Ok((Rhs::Call(c), Ty::Unit, None))
     }
 }
