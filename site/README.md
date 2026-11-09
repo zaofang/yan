@@ -1,7 +1,7 @@
 # Website
 
 Static site: home (`index.md`), tour (`tour/`), playground (`../playground/`), status (generated
-from the repository) and blog (`blog/YYYY-MM-DD-slug.md`, with an Atom feed). Brand files in
+from CI data, below) and blog (`blog/YYYY-MM-DD-slug.md`, with an Atom feed). Brand files in
 `brand/` are copied unchanged from the brand kit.
 
 ```sh
@@ -15,5 +15,10 @@ Pages are a Markdown subset (headings, paragraphs, lists, tables, fences, raw HT
 `yag`, `yn` or `yir` fence is a program with an "Open in playground" link; `check` runs it on the
 interpreter and native backends and compares stdout with the `output` fence after it. Fence
 attributes: `expect=E301` (must be rejected with that code), `exit=101`, `check` (check only, no run).
+
+The status page renders `status.json` from `tools/status.py`, which CI's `status` job builds on
+main pushes and the nightly run (artifact `status`): conformance by milestone, the differential
+run, spec debt and bench figures, each stamped with commit and date. Pass it with
+`build --status status.json`; without it the page says it carries no CI data.
 
 A `CNAME` file here, once the domain exists (#389), is copied to the site root.
