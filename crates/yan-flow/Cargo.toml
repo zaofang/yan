@@ -1,6 +1,6 @@
 [package]
 name = "yan-flow"
-description = "Control-flow graph with maybe-moved, live and maybe-owned facts (RFC 0054)"
+description = "One dataflow analysis for moves, liveness and ownership over a control-flow graph (RFC 0054)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

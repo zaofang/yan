@@ -52,6 +52,7 @@ pub fn lower(file: &str, src: &str, m: &Module) -> R<(h::Module, Vec<Diagnostic>
         doc: None,
         self_ty: named(&["Self"], Vec::new()),
         fresh: 0,
+        kernel: false,
     };
     let mut items = Vec::new();
     for it in &m.items {
@@ -88,6 +89,8 @@ struct Lower<'a> {
     self_ty: h::Type,
     /// Names made up by desugaring, numbered.
     fresh: usize,
+    /// Inside a `@kernel` item, where `a[i, j]` indexes by axes (RFC 0055).
+    kernel: bool,
 }
 
 fn mk(kind: h::ExprKind, span: Span) -> h::Expr {
@@ -159,6 +162,7 @@ impl Lower<'_> {
     fn item(&mut self, it: &Item) -> R<Option<h::Item>> {
         let decorators = it.attrs.iter().map(|a| self.attr(a)).collect::<R<_>>()?;
         self.doc = self.doc_above(it.span.line);
+        self.kernel = it.attrs.iter().any(|a| a.name == "kernel");
         let (kind, name_span) = match &it.kind {
             ItemKind::Fn(f) => {
                 let def = self.fn_def(&f.sig, Some(&f.body), !it.public)?;
@@ -1587,6 +1591,20 @@ impl Lower<'_> {
                     ],
                     false,
                 ),
+                // `a[i, j]` in a `@kernel` body: the index is a tuple of axes (RFC 0055).
+                axes if self.kernel
+                    && axes.len() > 1
+                    && axes.iter().all(|a| matches!(a, IxArg::Expr(_))) =>
+                {
+                    let mut idx = Vec::new();
+                    for a in axes {
+                        if let IxArg::Expr(i) = a {
+                            idx.push(self.expr(i)?);
+                        }
+                    }
+                    let tuple = mk(K::Tuple(idx), x.span);
+                    K::Index(b(self.expr(x)?), b(tuple))
+                }
                 _ => return unsupported("multi-axis, labelled and inclusive indexing"),
             },
             ExprKind::Question(x) => K::Try(b(self.expr(x)?)),

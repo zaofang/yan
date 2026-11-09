@@ -6,6 +6,7 @@
 
 mod access;
 mod accuracy;
+mod affine;
 mod bounds;
 mod cli;
 mod consttime;
@@ -19,6 +20,7 @@ mod decorators;
 mod desugar;
 mod ffi;
 mod jsonwire;
+mod kernel;
 mod lower;
 pub mod marks;
 mod reify;
@@ -521,6 +523,7 @@ impl Globals {
                         Ty::Data(n.to_owned())
                     }
                     ("Type", []) => Ty::Type,
+                    ("TileOrigin", []) => Ty::Data("TileOrigin".into()),
                     ("Self", []) if self.self_ty.borrow().is_some() => {
                         self.self_ty.borrow().clone().expect("checked")
                     }
@@ -689,11 +692,16 @@ pub fn elaborate_in(
     // rides on the first item elaboration lowers.
     let mut docs: Vec<(usize, Attach, String)> = Vec::new();
     let mut module_doc = m.doc.clone();
+    let kernel_consts = kernel::consts(&m.items);
     for it in &m.items {
         let start = cx.diags.len();
-        let k = match item(&g, it, &mut cx)
-            .and_then(|k| decorators::check(&g, it, start, &mut cx).map(|()| k))
-        {
+        let checked = if kernel::is_kernel(it) {
+            kernel::check(&g, it, &kernel_consts, &mut cx).map(|()| None)
+        } else {
+            item(&g, it, &mut cx)
+                .and_then(|k| decorators::check(&g, it, start, &mut cx).map(|()| k))
+        };
+        let k = match checked {
             Ok(k) => k,
             // R649: report the construct and go on with the next item.
             Err(u) => {

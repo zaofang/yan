@@ -57,6 +57,7 @@ fn settle(obs: &Observable, params: &[Param], body: &Block) -> Result<Block, Err
             obs,
             flags: flags.clone(),
             need: Vec::new(),
+            hoisted: Vec::new(),
             tmp: 0,
             cx: Cx::default(),
         };
@@ -210,6 +211,8 @@ struct Elab<'a> {
     flags: HashMap<Name, Name>,
     /// Locals found to need a flag this run.
     need: Vec<Name>,
+    /// Locals bound in a `par` branch's join point, live once the `par` ends.
+    hoisted: Vec<Name>,
     tmp: usize,
     cx: Cx,
 }
@@ -278,9 +281,63 @@ impl Elab<'_> {
     fn hoisted_block(&mut self, b: &Block) -> Block {
         let mut out = Vec::new();
         for s in &b.stmts {
-            self.stmt(s, &mut out);
+            match &s.kind {
+                StmtKind::Jp { name, params, body } => {
+                    self.hoisted_jp(name, params, body, s.span, &mut out);
+                }
+                _ => {
+                    self.stmt(s, &mut out);
+                }
+            }
         }
         Block { stmts: out }
+    }
+
+    /// A join point at the top of a `par` branch (`r = f() else x`): what its body binds is
+    /// visible after the `par`, so the body declares into the enclosing scope. The jumps still
+    /// see the liveness before the body; the bindings turn live once the `par` ends.
+    fn hoisted_jp(
+        &mut self,
+        name: &Name,
+        params: &[Param],
+        body: &Block,
+        at: Span,
+        out: &mut Vec<Stmt>,
+    ) {
+        let pos = (
+            self.cx.scopes.len() - 1,
+            self.cx.scopes.last().map_or(0, Vec::len),
+        );
+        let saved = self.cx.live.clone();
+        self.cx.jps.insert(
+            name.clone(),
+            Jp {
+                pos,
+                def: saved.clone(),
+            },
+        );
+        let mut nb = Vec::new();
+        for (n, ty) in owned_params(params) {
+            self.declare(&n, &ty, at, &mut nb);
+        }
+        for s in &body.stmts {
+            self.stmt(s, &mut nb);
+        }
+        let bound: Vec<Name> = self.cx.scopes.last().map_or(Vec::new(), |sc| {
+            sc[pos.1..].iter().map(|l| l.name.clone()).collect()
+        });
+        let live = &self.cx.live;
+        self.hoisted
+            .extend(bound.into_iter().filter(|n| live.get(n) == Some(&true)));
+        self.cx.live = saved;
+        out.push(stmt(
+            StmtKind::Jp {
+                name: name.clone(),
+                params: params.to_vec(),
+                body: Block { stmts: nb },
+            },
+            at,
+        ));
     }
 
     fn flow_of(&self, b: &Block) -> Flow {
@@ -847,6 +904,9 @@ impl Elab<'_> {
             StmtKind::Par { concurrent, blocks } => {
                 // Branch bindings stay visible after the `par`: they belong to the enclosing scope.
                 let blocks = blocks.iter().map(|b| self.hoisted_block(b)).collect();
+                for n in std::mem::take(&mut self.hoisted) {
+                    self.cx.live.insert(n, true);
+                }
                 out.push(stmt(
                     StmtKind::Par {
                         concurrent: *concurrent,
@@ -1000,6 +1060,15 @@ mod tests {
              match r {\n Ok { value: o } => {\n  jump k(o)\n }\n Err { error: e } => {\n  let z: Str = \"e\"\n  jump k(z)\n }\n }\n}\n",
         );
         has(&t, &["Ok { value: o } => {", "_d0 = false", "jump k(o)"]);
+    }
+
+    #[test]
+    fn a_par_branch_else_binding_lives_to_the_end_of_the_scope() {
+        let t = elab(
+            "module t\nrecord Bad { pub code: i64 }\nfn mk(let x: i64) -> Str fail Bad {\n let s: Str = \"a\"\n ret s\n}\n\
+             fn f(cap io: Io) -> Unit {\n par {\n  {\n   let _t: Result[Str, Bad] = try mk(let 1)\n   jp k(sink v: Str) {\n    let r: Str = move v\n   }\n   match _t {\n    Ok { value: o } => {\n     jump k(o)\n    }\n    Err { error: _ } => {\n     let z: Str = \"e\"\n     jump k(z)\n    }\n   }\n  }\n }\n std.io.print(cap io, let r)\n ret ()\n}\n",
+        );
+        has(&t, &["std.io.print(cap io, let r)", "drop r", "ret ()"]);
     }
 
     #[test]

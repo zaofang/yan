@@ -136,8 +136,7 @@ ask it for a module's front end, elaborated core, diagnostics and items, keyed b
 - **Optimizer** (`yan-opt`, RFC 0028): Yan Core in, Yan Core out, so every pass is visible with
   `yan view` and checkable by the differential law (optimized and unoptimized runs agree).
   Monomorphization (#170) turns each reached generic instance into an `inst fn id[i64]` item. Drop
-  elaboration (R770, drops only in optimized Yan Core) is accepted but not built. `yan-flow` (RFC 0054)
-  holds the shared control-flow graph and the maybe-moved, live and maybe-owned facts; no pass uses it yet.
+  elaboration (R770, drops only in optimized Yan Core) is accepted but not built.
 - **MIR** (`yan-mir`): one CFG per function over typed scalar locals. Records, tuples and
   non-recursive sums are split into scalar slots (a sum is a tag slot followed by every variant's
   slots). `match` lowers to Maranget decision trees (#114). `Str` and `List` are pointers to `yan-rt`

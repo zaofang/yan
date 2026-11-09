@@ -74,7 +74,7 @@ E270 = "crates/yan-elab/src/lower/calls.rs"
 E271 = "crates/yan-check/src/lib.rs"
 E272 = "crates/yan-elab/src/lower/calls.rs"
 E273 = "crates/yan-check/src/lib.rs"
-E274 = { unimplemented = "#825" }
+E274 = "crates/yan-elab/src/affine.rs"
 E275 = "crates/yan-opt/src/mono.rs"
 E276 = "crates/yan-yag/src/parser.rs"
 E277 = "crates/yan-elab/src/decorators.rs"
