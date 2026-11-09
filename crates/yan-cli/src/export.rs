@@ -853,7 +853,13 @@ mod tests {
 
     fn check_path(name: &str, path: &Path, run_tests: bool) {
         let py = render(path).unwrap_or_else(|_| panic!("export of {name} failed"));
-        let dir = std::env::temp_dir().join(format!("yan-export-{name}-{}", std::process::id()));
+        // Case names contain '/'; without flattening, the first path component is a shared
+        // fixed-name dir that another user's run owns.
+        let dir = std::env::temp_dir().join(format!(
+            "yan-export-{}-{}",
+            name.replace('/', "_"),
+            std::process::id()
+        ));
         std::fs::create_dir_all(&dir).unwrap();
         let file = dir.join("prog.py");
         std::fs::write(&file, py).unwrap();
