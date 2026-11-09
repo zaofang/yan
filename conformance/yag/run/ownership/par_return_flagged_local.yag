@@ -1,0 +1,14 @@
+# spec: 4.2, 9.4
+# note: a `par concurrent` branch returns while the enclosing frame holds a flagged local; it is dropped once under its flag (#897, #906). Stdin is empty or `hi`; the result does not depend on it.
+# stdout:
+# 1
+
+def r() -> int uses io:
+    path = io.read_line() else "x"
+    par concurrent:
+        return 1
+        return 2
+    return path.char_count()
+
+pub def main() uses io:
+    io.print(f"{r()}")

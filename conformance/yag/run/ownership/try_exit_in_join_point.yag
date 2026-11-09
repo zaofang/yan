@@ -1,0 +1,16 @@
+# spec: 4.2, 8.1
+# note: `?` leaves from a join point after an `else` fallback bound a flagged local; the local is dropped under its flag (#897, #906). `missing.txt` does not exist; stdin is empty or `hi`.
+# stdout:
+# -1
+
+def g() -> int fail FsError uses fs:
+    text = fs.read("missing.txt")?
+    return text.char_count()
+
+def k() -> int fail FsError uses io, fs:
+    path = io.read_line() else "x"
+    n = g()?
+    return n + path.char_count()
+
+pub def main() uses io, fs:
+    io.print(f"{k() else -1}")

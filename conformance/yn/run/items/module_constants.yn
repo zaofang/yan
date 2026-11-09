@@ -1,0 +1,20 @@
+-- spec: 3
+-- note: literal module constants of each scalar type, read from main and from another function (#900)
+-- stdout:
+-- 4
+-- hi!
+-- True
+-- 1.0
+
+let h: int = 3
+let s: str = "hi"
+let b: bool = True
+let x: float = 1
+
+show_s(t: str) -> str = t + "!"
+
+main() =
+  io.print(str(h + 1))
+  io.print(show_s(s))
+  io.print(str(b))
+  io.print(str(x))
