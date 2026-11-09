@@ -286,7 +286,7 @@ fn const_val(c: &ConstVal) -> String {
         }
         ConstVal::List(xs) => format!("[{}]", comma(xs, const_val)),
         ConstVal::Tuple(xs) => format!("({})", comma(xs, const_val)),
-        ConstVal::Call(p, xs) => format!("{}({})", path(p), comma(xs, const_val)),
+        ConstVal::Call(p, xs) => format!("{}({})", path(p), comma(xs, attr_arg)),
     }
 }
 
@@ -328,14 +328,14 @@ fn pat(p: &Pat) -> String {
 fn attr(a: &Attr) -> String {
     match &a.args {
         None => format!("@{}", a.name),
-        Some(args) => format!(
-            "@{}({})",
-            a.name,
-            comma(args, |x| match &x.name {
-                Some(n) => format!("{n} = {}", const_val(&x.value)),
-                None => const_val(&x.value),
-            })
-        ),
+        Some(args) => format!("@{}({})", a.name, comma(args, attr_arg)),
+    }
+}
+
+fn attr_arg(x: &AttrArg) -> String {
+    match &x.name {
+        Some(n) => format!("{n} = {}", const_val(&x.value)),
+        None => const_val(&x.value),
     }
 }
 
@@ -780,5 +780,20 @@ impl Printer {
             StmtKind::Reuse { name, ctor: c } => self.line(&format!("reuse {name} as {}", ctor(c))),
             StmtKind::Rhs(r) => self.rhs_line("", r),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn a_region_with_a_halo_round_trips() {
+        let src = "module m\n\nunsafe extern \"C\" lib m link \"libm\" {\n    @access(a = rows(0, halo = 1), out = tile(4, 8)) safe fn f(a: Array[f64]) -> Array[f64]\n}\n";
+        let (m, d) = crate::parser::parse("t.ycore", src);
+        assert!(d.is_empty(), "{d:?}");
+        let printed = super::print(&m.expect("parses"));
+        assert!(
+            printed.contains("@access(a = rows(0, halo = 1), out = tile(4, 8))"),
+            "{printed}"
+        );
     }
 }
