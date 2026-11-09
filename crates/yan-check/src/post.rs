@@ -114,6 +114,28 @@ fn sets_flag(s: Option<&Stmt>, f: &str, v: bool) -> bool {
 }
 
 impl V {
+    /// The body of a join point declares into the enclosing scope. The state at its end.
+    fn hoisted_jp(&mut self, name: &Name, params: &[Param], body: &Block) -> Option<St> {
+        let saved = self.st.clone().expect("reachable");
+        for (n, _) in owned_params(params) {
+            self.declare(n);
+        }
+        for (i, s) in body.stmts.iter().enumerate() {
+            if self.st.is_some() {
+                self.stmt(s, body.stmts.get(i + 1));
+            }
+        }
+        let end = self.st.take();
+        // The jumps come after the body: what it declared is not theirs to have dropped.
+        let pos = (
+            self.scopes.len() - 1,
+            self.scopes.last().map_or(0, Vec::len),
+        );
+        self.jps.insert(name.clone(), (pos, saved.clone()));
+        self.st = Some(saved);
+        end
+    }
+
     fn func(&mut self, path: &Path, f: &FnDef) {
         self.item = format!("{}.{}", path.join("."), f.path.join("."));
         if let Some(b) = &f.body {
@@ -602,11 +624,23 @@ impl V {
                 self.block(body, &[]);
             }
             // Branch bindings stay visible after the `par`: they belong to the enclosing scope.
+            // A join point at the top of a branch (`r = f() else x`) declares its body into the
+            // enclosing scope too, and the code after the `par` continues from the body's end.
             StmtKind::Par { blocks, .. } => blocks.iter().for_each(|b| {
+                let mut resume = None;
                 for (i, s) in b.stmts.iter().enumerate() {
-                    if self.st.is_some() {
-                        self.stmt(s, b.stmts.get(i + 1));
+                    if self.st.is_none() {
+                        break;
                     }
+                    match &s.kind {
+                        StmtKind::Jp { name, params, body } => {
+                            resume = Some(self.hoisted_jp(name, params, body));
+                        }
+                        _ => self.stmt(s, b.stmts.get(i + 1)),
+                    }
+                }
+                if let Some(end) = resume {
+                    self.st = end;
                 }
             }),
             StmtKind::Assert(_) | StmtKind::Asm { .. } => {}
