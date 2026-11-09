@@ -89,10 +89,14 @@ jobs:
       - uses: sigstore/cosign-installer@v3
       - name: Sign SHA256SUMS (keyless Sigstore)
         run: cosign sign-blob --yes --bundle dist/out/SHA256SUMS.sigstore.json dist/out/SHA256SUMS
-      - uses: actions/attest-build-provenance@v2
+      # Attestations need a public repository (or GitHub Enterprise Cloud), #877.
+      - if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@v2
         with:
           subject-path: dist/out/yan-*.tar.gz
-      - uses: actions/attest-sbom@v2
+      # Attestations need a public repository (or GitHub Enterprise Cloud), #877.
+      - if: ${{ !github.event.repository.private }}
+        uses: actions/attest-sbom@v2
         with:
           subject-path: dist/out/yan-*.tar.gz
           sbom-path: dist/out/yan.spdx.json
