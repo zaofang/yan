@@ -30,7 +30,7 @@ hands the body a `TileOrigin`. (b) hides an I/O-handler operation behind a call 
 capability that R329 requires; (c) lets user code hold a `TileOrigin`, which R953 forbids.
 Recommended (a).
 
-- Decision:
+- Decision: (a), the lead, 2026-11-09 (card on the project thread)
 - Row:
 
 ### D2: the grid and the write region
