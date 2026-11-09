@@ -84,6 +84,7 @@ E233 = { section = "13.1", status = "active", meaning = "str or f-string where a
 E280 = { section = "18.9", status = "active", meaning = "one parameter documented both in an Args: section and above the parameter (R846)" }
 E281 = { section = "14.4", status = "active", meaning = "a type written in a parameter doc disagrees with the signature (R849)" }
 E282 = { section = "10.4", status = "active", meaning = "a derived trait (Eq, Ord, Hash, Show, Wire) has a field whose type does not implement it; one diagnostic per field, at the field's type annotation (RFC 0040, R872, R873)" }
+E284 = { section = "11.2", status = "active", meaning = "malformed @access claim: an operand missing, repeated, unknown or a non-array parameter, an axis not below the operand's rank, or a non-positive tile size (RFC 0052 D1, R952)" }
 E301 = { section = "7.2", status = "active", meaning = "missing capability (fix inserts uses)" }
 E306 = { section = "7.2", status = "active", meaning = "capability stored, returned or captured by an escaping closure" }
 E307 = { section = "7.3", status = "active", meaning = "dynamic handler for a capability that must be static" }

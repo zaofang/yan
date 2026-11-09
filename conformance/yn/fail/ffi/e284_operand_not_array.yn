@@ -1,0 +1,13 @@
+-- spec: 11.2
+-- rows: R952
+-- note: the array parameters also draw E904 from the current checker; E284 is the point of the case
+-- note: n is an int, not an array
+-- expect: E284 at 11:8
+-- expect: E904 at 11:17
+-- expect: E904 at 11:43
+
+unsafe extern "C" lib k link "k"
+  @access(a: whole, n: whole, out: whole)
+  safe scale(a: Array[8, f64], n: int) -> Array[8, f64]
+
+main() = 0

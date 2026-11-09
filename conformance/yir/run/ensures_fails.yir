@@ -1,0 +1,18 @@
+-- spec: 8.2, 8.4
+-- rows: R882
+-- note: the function returns 1, so ensures clause 0 fails; a contract panic (R882) exits 101
+-- stdout:
+-- exit: 101
+
+module conf.ensures_fails
+
+fn one() -> i64
+    ensures le_i64(let out, let 0)
+{
+    ret 1
+}
+
+fn main() -> Unit {
+    let a: i64 = one()
+    ret ()
+}
