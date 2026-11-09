@@ -43,6 +43,14 @@ brew install atbraz/yan/yan
 Releases cover macOS (arm64, x86_64) and Linux (x86_64, arm64). The installer checks `SHA256SUMS`, and its
 Sigstore signature when `cosign` is on `PATH`. `yan build` links with the system `cc`.
 
+Start a package from a template (`cli`, `library` or `agent-tool`):
+
+```sh
+yan new --template cli total && cd total
+yan test
+printf '1\n2\n39\n' | yan run src/main.yag
+```
+
 ## Releasing
 
 Push a `v*` tag. [`release.yml`](.github/workflows/release.yml) builds the four archives (`yan`,

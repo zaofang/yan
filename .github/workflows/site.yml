@@ -1,11 +1,14 @@
 name: site
 
 # Builds the website (tools/site.py) with the playground's wasm on every PR that touches it, and
-# deploys it to GitHub Pages on merge. No server code: Pages serves the files as built.
+# deploys it to GitHub Pages after each green ci run on main (push or nightly), with that run's
+# status artifact rendered on the status page (#871). No server code: Pages serves the files as built.
 on:
   pull_request:
     paths: [site/**, playground/**, tools/site.py, crates/**, Cargo.lock, .github/workflows/site.yml]
-  push:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -21,10 +24,19 @@ env:
 
 jobs:
   build:
+    # A fork PR can name its branch main, so the event is checked as well as the branch.
+    if: >-
+      github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success'
+      && contains(fromJSON('["push", "schedule"]'), github.event.workflow_run.event))
     # Self-hosted like ci.yml: hosted runners fail at job start on this account.
     runs-on: self-hosted
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: astral-sh/setup-uv@v6
       - name: wasi-libc headers
         run: |
@@ -43,7 +55,15 @@ jobs:
       - id: pages
         if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
-      - run: uv run python -m tools.site build _site --url "${{ steps.pages.outputs.base_url }}/"
+      - if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: status
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - run: >-
+          uv run python -m tools.site build _site --url "${{ steps.pages.outputs.base_url }}/"
+          ${{ github.event_name == 'workflow_run' && '--status status.json' || '' }}
       - if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:

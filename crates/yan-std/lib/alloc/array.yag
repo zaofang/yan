@@ -14,3 +14,19 @@ pub def filled[T](x: T, n: int) -> list[T]:
     for _ in range(n):
         out.append(x.copy())
     return out
+
+@since("1.0")
+pub class KernelFault:
+    """A failed bounds check in a `@kernel` body (17.1): the program instance's tile origin and
+    the line and column of the access."""
+    i0: int
+    i1: int
+    line: int
+    col: int
+
+@since("1.0")
+pub def checked2(row: int, i: int, rows: int, cols: int, i0: int, i1: int, line: int, col: int) -> int fail KernelFault:
+    """`offset2` in a `@kernel` body, where an index outside its axis fails the launch."""
+    if row < 0 or row >= rows or i < 0 or i >= cols:
+        fail KernelFault(i0=i0, i1=i1, line=line, col=col)
+    return row * cols + i

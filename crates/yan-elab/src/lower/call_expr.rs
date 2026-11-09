@@ -88,23 +88,32 @@ impl Lower<'_, '_, '_> {
                     && (n == "TileOrigin" || self.g.kernels.contains_key(n))
                     && !self.locals.contains_key(n) =>
             {
-                unsupported(if n == "TileOrigin" {
-                    "building a `TileOrigin`: only `gpu.launch` supplies one (R953)"
-                } else {
-                    "calling a `@kernel` function: launch it with `gpu.launch` (RFC 0058)"
-                })
+                crate::refuse(
+                    crate::kernel::MISUSE,
+                    if n == "TileOrigin" {
+                        "only `gpu.launch` builds a `TileOrigin`"
+                    } else {
+                        "a `@kernel` function is not called directly: launch it with `gpu.launch`"
+                    },
+                )
             }
             j::ExprKind::Attr(m, op, _)
                 if op == "spawn"
                     && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.locals.contains_key(a)) =>
             {
-                self.spawn_call(args, at)
+                self.spawn_call(args, at, want)
+            }
+            j::ExprKind::Attr(m, op, _)
+                if op == "send_only"
+                    && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.locals.contains_key(a)) =>
+            {
+                self.send_only_call(args, at)
             }
             j::ExprKind::Attr(m, op, _)
                 if op == "start"
                     && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.locals.contains_key(a)) =>
             {
-                self.start_call(args, at)
+                self.start_call(args, at, want)
             }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Channel" && !self.locals.contains_key(n)) =>
             {

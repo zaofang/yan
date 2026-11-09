@@ -59,3 +59,11 @@ brew install atbraz/yan/yan
 ```
 
 Releases cover macOS (arm64, x86_64) and Linux (x86_64, arm64).
+
+Start a package from a template (`cli`, `library` or `agent-tool`):
+
+```sh
+yan new --template cli total && cd total
+yan test
+printf '1\n2\n39\n' | yan run src/main.yag
+```

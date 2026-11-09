@@ -1,4 +1,5 @@
-//! Local actors on the interpreter (RFC 0056 slices 1 and 2: R956, R957, R959, R813).
+//! Local actors on the interpreter (RFC 0056 slices 1 and 2: R956, R957, R959, R813; RFC 0059:
+//! R974 to R977).
 
 use super::*;
 
@@ -139,10 +140,10 @@ fn a_call_runs_the_messages_sent_before_it_in_order() {
         "{LOUD}
 def main() uses io:
     a = actor.spawn(Loud(n=0))
-    actor.send(a).add(1)
-    actor.send(a).add(2)
+    actor.send(a).add(1) else e -> None
+    actor.send(a).add(2) else e -> None
     print(a.total() else -1)
-    actor.send(a).add(4)
+    actor.send(a).add(4) else e -> None
     print(a.total() else -1)
 "
     );
@@ -155,9 +156,9 @@ fn a_full_mailbox_runs_its_oldest_message_before_admitting() {
         "{LOUD}
 def main() uses io:
     a = actor.spawn(Loud(n=0), capacity=1)
-    actor.send(a).add(1)
-    actor.send(a).add(2)
-    actor.send(a).add(4)
+    actor.send(a).add(1) else e -> None
+    actor.send(a).add(2) else e -> None
+    actor.send(a).add(4) else e -> None
     print(a.total() else -1)
 "
     );
@@ -238,7 +239,10 @@ def main() uses io:
         print(show(b.signal_then(a, &tx)))
 ";
     // The failed `signal_then` stops `b`, which `a` then finds stopped (RFC 0060 D3).
-    assert_eq!(run(src).expect("runs"), "Deadlock()\nStopped()\n");
+    assert_eq!(
+        run(src).expect("runs"),
+        "Deadlock()\nStopped(reason=Crashed(error='Deadlock()'))\n"
+    );
 }
 
 #[test]
@@ -293,10 +297,178 @@ def ping(var self: Relay, take out: Sender[int], v: int):
 def main() uses io:
     tx, rx = Channel[int](1)
     a = actor.spawn(Relay(n=0))
-    actor.send(a).ping(tx, 5)
+    actor.send(a).ping(tx, 5) else e -> None
     par concurrent:
         print(rx.recv() else e -> -1)
         print(1)
 ";
     assert_eq!(run(src).expect("runs"), "1\n10\n");
+}
+
+#[test]
+fn each_overflow_policy_handles_a_full_mailbox() {
+    let src = "\
+class Log:
+    n: int
+
+def add(var self: Log, v: int):
+    self.n += v
+
+def total(var self: Log) -> int:
+    return self.n
+
+def main() uses io, nondet:
+    a: Actor[Log, Reject] = actor.spawn(Log(n=0), capacity=1)
+    actor.send(a).add(1) else e -> print(f\"{e}\")
+    actor.send(a).add(2) else e -> print(f\"{e}\")
+    print(a.total() else -1)
+    d: Actor[Log, DropOldest] = actor.spawn(Log(n=0), capacity=1)
+    actor.send(d).add(1) else e -> print(f\"{e}\")
+    actor.send(d).add(2) else e -> print(f\"{e}\")
+    print(d.total() else -1)
+    n: Actor[Log, DropNew] = actor.spawn(Log(n=0), capacity=1)
+    actor.send(n).add(1) else e -> print(f\"{e}\")
+    actor.send(n).add(2) else e -> print(f\"{e}\")
+    print(n.total() else -1)
+    b = actor.spawn(Log(n=0), capacity=1)
+    actor.send(b).add(1) else e -> print(f\"{e}\")
+    actor.send(b).add(2) else e -> print(f\"{e}\")
+    print(b.total() else -1)
+    s = actor.send_only(b)
+    actor.send(s).add(10) else e -> print(f\"{e}\")
+    print(b.total() else -1)
+";
+    assert_eq!(
+        run(src).expect("runs"),
+        "Undelivered(reason=Full(), args=(2,))\n1\n2\n1\n3\n13\n"
+    );
+}
+
+#[test]
+fn stopped_actors_say_why_and_failed_sends_return_their_arguments() {
+    let src = "\
+class C:
+    n: int
+
+def inc(var self: C, by: int) -> int fail str:
+    if by < 0:
+        fail \"negative\"
+    self.n += by
+    return self.n
+
+def get(var self: C) -> int:
+    return self.n
+
+def add(var self: C, by: int):
+    self.n += by
+
+def show(r: Result[int, ActorError]) -> str:
+    match r:
+        case Ok(v):
+            return f\"{v}\"
+        case Err(e):
+            return f\"{e}\"
+
+def scoped() -> Actor[C] uses io:
+    with supervisor(actor.one_for_one()):
+        d = actor.spawn(C(n=0))
+        return d
+
+def main() uses io:
+    c = actor.spawn(C(n=0))
+    print(c.inc(1) else e -> -1)
+    print(c.inc(-1) else e -> -1)
+    print(show(c.get()))
+    actor.send(c).add(5) else e -> print(f\"{e} {e.args[0]} {e.reason}\")
+    d = scoped()
+    print(show(d.get()))
+    actor.send(d).add(5) else e -> print(f\"{e}\")
+";
+    assert_eq!(
+        run(src).expect("runs"),
+        "1\n-1\nStopped(reason=Crashed(error='negative'))\n\
+         Undelivered(reason=Stopped(reason=Crashed(error='negative')), args=(5,)) 5 \
+         Stopped(reason=Crashed(error='negative'))\n\
+         Stopped(reason=Shutdown())\nUndelivered(reason=Stopped(reason=Shutdown()), args=(5,))\n"
+    );
+}
+
+#[test]
+fn policies_and_send_only_handles_are_checked() {
+    let src = "\
+class C:
+    n: int
+
+def add(var self: C, by: int):
+    self.n += by
+
+def get(var self: C) -> int:
+    return self.n
+
+def main() uses io:
+    a: Actor[C, Reject] = actor.spawn(C(n=0))
+    b: Actor[C, int] = actor.spawn(C(n=0))
+    s = actor.send_only(actor.spawn(C(n=0)))
+    print(s.get() else -1)
+";
+    assert_eq!(codes(src), ["E709", "E201", "E201"]);
+}
+
+#[test]
+fn a_call_outside_every_deadline_times_out_after_5_s() {
+    let src = "\
+class A:
+    n: int
+
+def get(var self: A) -> int:
+    return self.n
+
+def hold(var self: A, var rx: Receiver[int]) -> int fail Cancelled:
+    return rx.recv()?
+
+def show(r: Result[int, ActorError]) -> str:
+    match r:
+        case Ok(v):
+            return f\"{v}\"
+        case Err(e):
+            return f\"{e}\"
+
+def ask(a: Actor[A], var go: Receiver[int]) -> str uses time:
+    go.recv() else e -> 0
+    t0 = time.monotonic()
+    r = show(a.get())
+    return f\"{r} after {time.monotonic() - t0}\"
+
+def main() uses io, time:
+    with time = virtual(time.now()):
+        a = actor.spawn(A(n=0))
+        tx, rx = Channel[int](1)
+        go_tx, go_rx = Channel[int](1)
+        par concurrent:
+            for _ in range(1):
+                print(ask(a, &go_rx))
+                tx.send(7) else e -> None
+            print(a.hold(&rx) else e -> -1)
+            go_tx.send(1) else e -> None
+";
+    assert_eq!(run(src).expect("runs"), "Timeout() after PT5S\n7\n");
+}
+
+#[test]
+fn an_idle_actor_runs_its_mail_when_main_waits() {
+    let src = "\
+class Relay:
+    n: int
+
+def ping(var self: Relay, take out: Sender[int], v: int):
+    tx = out
+    tx.send(v * 2) else e -> None
+
+def main() uses io:
+    tx, rx = Channel[int](1)
+    a = actor.spawn(Relay(n=0))
+    actor.send(a).ping(tx, 5) else e -> None
+    print(rx.recv() else e -> -1)
+";
+    assert_eq!(run(src).expect("runs"), "10\n");
 }

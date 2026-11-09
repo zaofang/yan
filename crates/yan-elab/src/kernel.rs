@@ -10,34 +10,65 @@ use yan_hir as j;
 
 use crate::affine::{self, Idx, Kernel, Operand, Region, Stmt};
 use crate::ty::Ty;
-use crate::{Cx, Globals, R, Unsupported, unsupported};
+use crate::{Cx, Globals, R, Unsupported, refuse, unsupported};
+
+/// A malformed `@kernel` declaration (R983).
+const DECL: &str = "E285";
+/// A `@kernel` function called, or a `TileOrigin` built, outside `gpu.launch` (R983).
+pub(crate) const MISUSE: &str = "E286";
 
 pub(crate) fn is_kernel(it: &j::Item) -> bool {
     matches!(it.kind, j::ItemKind::Func(_)) && it.decorators.iter().any(|d| d.path == ["kernel"])
 }
 
+/// The value of an integer constant expression: literals, the module's integer constants, and
+/// `+`, `-`, `*`, `//` and `%` (the last two by a positive divisor) over them, at stage 0 or not.
 fn literal(e: &j::Expr, consts: &Consts) -> Option<i128> {
+    use j::ExprKind as K;
     match &e.kind {
-        j::ExprKind::Lit(j::Lit::Int(s)) => s.replace('_', "").parse().ok(),
-        j::ExprKind::Name(n) => consts.get(n).copied(),
+        K::Lit(j::Lit::Int(s)) => s.replace('_', "").parse().ok(),
+        K::Name(n) => consts.get(n).copied(),
+        K::Unary("-", a) => literal(a, consts)?.checked_neg(),
+        K::Stage(a) => literal(a, consts),
+        K::Binary(op, a, b) => {
+            let (a, b) = (literal(a, consts)?, literal(b, consts)?);
+            match *op {
+                "+" => a.checked_add(b),
+                "-" => a.checked_sub(b),
+                "*" => a.checked_mul(b),
+                "//" if b > 0 => Some(a.div_euclid(b)),
+                "%" if b > 0 => Some(a.rem_euclid(b)),
+                _ => None,
+            }
+        }
         _ => None,
     }
 }
 
-/// Integer constants declared at module level.
+/// Integer constants declared at module level, in any order.
 pub(crate) type Consts = HashMap<String, i128>;
 
 pub(crate) fn consts(items: &[j::Item]) -> Consts {
-    let empty = Consts::new();
-    items
+    let defs: Vec<(&String, &j::Expr)> = items
         .iter()
         .filter_map(|it| match &it.kind {
-            j::ItemKind::Const { name, value, .. } => {
-                literal(value, &empty).map(|v| (name.clone(), v))
-            }
+            j::ItemKind::Const { name, value, .. } => Some((name, value)),
             _ => None,
         })
-        .collect()
+        .collect();
+    let mut out = Consts::new();
+    // Each pass folds at least one more constant, or none is left to fold.
+    loop {
+        let found: Vec<(String, i128)> = defs
+            .iter()
+            .filter(|(n, _)| !out.contains_key(*n))
+            .filter_map(|(n, v)| literal(v, &out).map(|v| ((*n).clone(), v)))
+            .collect();
+        if found.is_empty() {
+            return out;
+        }
+        out.extend(found);
+    }
 }
 
 fn arg_expr(a: &j::Arg) -> Option<&j::Expr> {
@@ -55,7 +86,10 @@ fn tile(d: &j::Decorator, consts: &Consts) -> R<Vec<i128>> {
         .is_some_and(|a| a.name.as_deref() == Some("tile"));
     let unnamed_rest = args.iter().skip(1).all(|a| a.name.is_none());
     if !named_tile || !unnamed_rest {
-        return unsupported("a `@kernel` that is not `@kernel(tile: M, N)`");
+        return refuse(
+            DECL,
+            "`@kernel` takes `tile:` and one size per axis: `@kernel(tile: M, N)`",
+        );
     }
     let shape: Option<Vec<i128>> = args
         .iter()
@@ -66,88 +100,37 @@ fn tile(d: &j::Decorator, consts: &Consts) -> R<Vec<i128>> {
         })
         .collect();
     shape.map_or_else(
-        || unsupported("a `@kernel` tile size that is not a positive integer constant"),
+        || refuse(DECL, "a `@kernel` tile size is a positive integer constant"),
         Ok,
     )
 }
 
-/// Splits `halo: h` off every region call of `@access`. A halo that is negative, not a literal,
-/// repeated or on a region that takes none is E284; the rest goes to the extern checker.
-fn split_halos(
-    d: &j::Decorator,
-    func: &str,
-    at: Span,
-    cx: &mut Cx,
-) -> (j::Decorator, HashMap<String, u64>) {
-    let mut halos = HashMap::new();
-    let mut out = d.clone();
-    for a in out.args.iter_mut().flatten() {
-        let (Some(label), j::ArgKind::Expr(e)) = (a.name.clone(), &mut a.kind) else {
-            continue;
-        };
-        let j::ExprKind::Call(f, args) = &mut e.kind else {
-            continue;
-        };
-        let region = match &f.kind {
-            j::ExprKind::Name(n) => n.clone(),
-            _ => continue,
-        };
-        let (halo, rest): (Vec<_>, Vec<_>) = std::mem::take(args)
-            .into_iter()
-            .partition(|a| a.name.as_deref() == Some("halo"));
-        *args = rest;
-        match halo.as_slice() {
-            [] => {}
-            [h] if label != "out" && matches!(region.as_str(), "rows" | "cols" | "tile") => {
-                match arg_expr(h)
-                    .and_then(|e| literal(e, &Consts::new()))
-                    .and_then(|n| u64::try_from(n).ok())
-                {
-                    Some(n) => {
-                        halos.insert(label, n);
-                    }
-                    None => cx.err(
-                        "E284",
-                        at,
-                        func,
-                        format!("`{label}`: `halo` is a non-negative integer literal"),
-                    ),
-                }
-            }
-            [_] => cx.err(
-                "E284",
-                at,
-                func,
-                format!("`{label}`: `{region}` or `out` takes no halo here"),
-            ),
-            _ => cx.err("E284", at, func, format!("`{label}`: `halo` given twice")),
-        }
-    }
-    (out, halos)
-}
-
-fn region(v: &y::ConstVal, halo: u64) -> Region {
+fn region(v: &y::ConstVal) -> Region {
     let int = |v: &y::ConstVal| match v {
         y::ConstVal::Lit(y::Literal::Int(s)) => s.parse().unwrap_or(0),
         _ => 0,
     };
     match v {
-        y::ConstVal::Call(p, a) => match (p[0].as_str(), a.as_slice()) {
-            ("rows", [x]) => Region::Rows {
-                axis: int(x) as usize,
-                halo,
-            },
-            ("cols", [x]) => Region::Cols {
-                axis: int(x) as usize,
-                halo,
-            },
-            ("tile", [m, n]) => Region::Tile {
-                m: int(m),
-                n: int(n),
-                halo,
-            },
-            _ => unreachable!("access::lower accepts only these regions"),
-        },
+        y::ConstVal::Call(p, a) => {
+            let (halo, pos): (Vec<_>, Vec<_>) = a.iter().partition(|a| a.name.is_some());
+            let halo = halo.first().map_or(0, |h| int(&h.value) as u64);
+            match (p[0].as_str(), pos.as_slice()) {
+                ("rows", [x]) => Region::Rows {
+                    axis: int(&x.value) as usize,
+                    halo,
+                },
+                ("cols", [x]) => Region::Cols {
+                    axis: int(&x.value) as usize,
+                    halo,
+                },
+                ("tile", [m, n]) => Region::Tile {
+                    m: int(&m.value),
+                    n: int(&n.value),
+                    halo,
+                },
+                _ => unreachable!("access::lower accepts only these regions"),
+            }
+        }
         y::ConstVal::Path { path, .. } if path[0] == "whole" => Region::Whole,
         _ => Region::Elementwise,
     }
@@ -355,7 +338,10 @@ pub(crate) fn check(g: &Globals, it: &j::Item, consts: &Consts, cx: &mut Cx) -> 
         .map(|p| p.name.as_str())
         .collect();
     let [at] = origins.as_slice() else {
-        return unsupported("a `@kernel` function without exactly one `TileOrigin` parameter");
+        return refuse(
+            DECL,
+            "a `@kernel` function takes exactly one `TileOrigin` parameter",
+        );
     };
     let Some((a_at, ad)) = it
         .decorators
@@ -363,11 +349,10 @@ pub(crate) fn check(g: &Globals, it: &j::Item, consts: &Consts, cx: &mut Cx) -> 
         .enumerate()
         .find(|(_, d)| d.path == ["access"])
     else {
-        return unsupported("a `@kernel` function without an `@access` claim");
+        return refuse(DECL, "a `@kernel` function needs an `@access` claim");
     };
     let claim = line_of(a_at);
 
-    let (ad, halos) = split_halos(ad, &f.name, claim, cx);
     let named: Vec<(&str, &Ty)> = sig
         .params
         .iter()
@@ -379,10 +364,7 @@ pub(crate) fn check(g: &Globals, it: &j::Item, consts: &Consts, cx: &mut Cx) -> 
         .iter()
         .find(|p| p.name == "out")
         .map_or(&Ty::Unit, |p| &p.ty);
-    if cx.diags[start..].iter().any(|d| d.code == "E284") {
-        return Ok(false);
-    }
-    let attrs = crate::access::lower(&f.name, &[ad], &named, ret, claim, cx)?;
+    let attrs = crate::access::lower(&f.name, std::slice::from_ref(ad), &named, ret, claim, cx)?;
     if cx.diags[start..].iter().any(|d| d.code == "E284") {
         return Ok(false);
     }
@@ -400,10 +382,9 @@ pub(crate) fn check(g: &Globals, it: &j::Item, consts: &Consts, cx: &mut Cx) -> 
             Some(Ty::Array(axes, _)) => axes.len(),
             _ => 0,
         };
-        let halo = halos.get(&name).copied().unwrap_or(0);
         operands.push(Operand {
             write: name == "out",
-            region: region(&a.value, halo),
+            region: region(&a.value),
             name,
             rank,
         });
@@ -434,9 +415,12 @@ pub(crate) fn check(g: &Globals, it: &j::Item, consts: &Consts, cx: &mut Cx) -> 
         .any(|d| d.severity == yan_diag::Severity::Error))
 }
 
-/// Rewrites each `@kernel` function `k(at, args...) -> R` to `k(at, args..., var out: R) uses
-/// gpu`: a program instance writes its part of the launch's `out` (RFC 0058 D1).
+/// Rewrites each `@kernel` function `k(at, args...) -> R` to `k(at, args..., var out: R) -> ()
+/// fail KernelFault uses gpu`: a program instance writes its part of the launch's `out`, and a
+/// failed bounds check fails it (RFC 0058 D1, R327). Adds the function `gpu.launch(k, ...)`
+/// calls, `launcher(k)(args...) -> R fail KernelFault uses gpu`, whose body runs the grid.
 pub(crate) fn prepare(m: &mut j::Module) {
+    let mut launchers = Vec::new();
     for it in &mut m.items {
         if !is_kernel(it) {
             continue;
@@ -444,25 +428,163 @@ pub(crate) fn prepare(m: &mut j::Module) {
         let j::ItemKind::Func(f) = &mut it.kind else {
             unreachable!("is_kernel")
         };
-        let Some(ty) = f.ret.as_mut().and_then(|r| r.ty.take()) else {
+        let Some(r) = f.ret.as_mut() else {
             continue;
         };
-        f.params.push(j::Param::Value {
-            conv: Some(j::Conv::Var),
-            name: "out".into(),
-            span: f.name_span,
-            ty,
-            default: None,
-        });
-        let gpu = j::CapRef {
+        let Some(ty) = r.ty.take() else {
+            continue;
+        };
+        r.fail = vec![vec![FAULT.into()]];
+        let at = f.name_span;
+        let gpu = || j::CapRef {
             path: vec!["gpu".into()],
             alias: None,
         };
+        let args: Vec<j::Param> = f.params.iter().filter(|p| !is_origin(p)).cloned().collect();
+        f.params.push(j::Param::Value {
+            conv: Some(j::Conv::Var),
+            name: "out".into(),
+            span: at,
+            ty: ty.clone(),
+            default: None,
+        });
         match &mut f.uses {
-            Some(j::Uses::Caps(cs)) => cs.push(gpu),
-            _ => f.uses = Some(j::Uses::Caps(vec![gpu])),
+            Some(j::Uses::Caps(cs)) => cs.push(gpu()),
+            _ => f.uses = Some(j::Uses::Caps(vec![gpu()])),
+        }
+
+        let ex = |kind| j::Expr {
+            kind,
+            span: at,
+            paren: false,
+        };
+        let name = |n: &str| ex(j::ExprKind::Name(n.to_owned()));
+        let arg = |e| j::Arg {
+            name: None,
+            kind: j::ArgKind::Expr(e),
+            span: at,
+        };
+        let forwarded = args.iter().filter_map(|p| match p {
+            j::Param::Value { name: n, .. } => Some(arg(name(n))),
+            _ => None,
+        });
+        let launch = ex(j::ExprKind::Call(
+            Box::new(ex(j::ExprKind::Attr(
+                Box::new(name("gpu")),
+                "launch".into(),
+                at,
+            ))),
+            std::iter::once(arg(name(&f.name)))
+                .chain(forwarded)
+                .collect(),
+        ));
+        launchers.push(j::Item {
+            decorators: Vec::new(),
+            is_pub: false,
+            kind: j::ItemKind::Func(j::FuncDef {
+                name: launcher(&f.name),
+                name_span: at,
+                tparams: Vec::new(),
+                params: args,
+                ret: Some(j::RetType {
+                    ty: Some(ty),
+                    fail: vec![vec![FAULT.into()]],
+                    from: Vec::new(),
+                }),
+                uses: Some(j::Uses::Caps(vec![gpu()])),
+                body: Some(j::Body {
+                    doc: None,
+                    contracts: Vec::new(),
+                    stmts: vec![j::Stmt {
+                        kind: j::StmtKind::Return(Some(launch)),
+                        span: at,
+                    }],
+                }),
+            }),
+            span: it.span,
+            name_span: at,
+        });
+    }
+    m.items.extend(launchers);
+}
+
+/// A `@kernel` body, whose element accesses lower to `std.array.checked2`.
+pub(crate) fn takes_origin(f: &j::FuncDef) -> bool {
+    f.params.iter().any(is_origin)
+}
+
+fn is_origin(p: &j::Param) -> bool {
+    matches!(p, j::Param::Value { ty: j::Type::Named { path, .. }, .. } if path == &["TileOrigin"])
+}
+
+/// What a failed bounds check in a kernel body fails with (R327).
+pub(crate) const FAULT: &str = "KernelFault";
+
+/// The function `gpu.launch(k, ...)` calls.
+pub(crate) fn launcher(kernel: &str) -> String {
+    format!("__{kernel}_launch")
+}
+
+/// The kernel whose launcher `item` is.
+pub(crate) fn launched(item: &str) -> Option<&str> {
+    item.strip_prefix("__")?.strip_suffix("_launch")
+}
+
+/// What a launch of a kernel needs: its `out` type, element zero, sizes and grid steps.
+pub(crate) struct Plan {
+    pub out: Ty,
+    pub elem: Ty,
+    pub zero: y::Literal,
+    pub dims: Vec<i64>,
+    pub steps: Vec<Step>,
+}
+
+/// Why a kernel cannot be launched.
+pub(crate) enum Unfit {
+    /// E521: an `out` axis is not a whole number of tiles (R973).
+    Partial(String),
+    Unsupported(String),
+}
+
+/// The launch of `name`, or why it cannot run; the same for every launch of the kernel.
+pub(crate) fn plan(g: &Globals, name: &str) -> Result<Plan, Unfit> {
+    let unsupported = |w: &str| Err(Unfit::Unsupported(w.into()));
+    let Some(grid) = g.kernels.get(name) else {
+        return unsupported("`gpu.launch` of anything but a `@kernel` function by name");
+    };
+    let out = g.fns[name]
+        .params
+        .last()
+        .map(|p| p.ty.clone())
+        .expect("a kernel has `out`");
+    let (Some(dims), Ty::Array(_, et)) = (out.dims(), &out) else {
+        return unsupported("a `@kernel` result whose sizes are not literals");
+    };
+    let zero = match **et {
+        Ty::Float | Ty::Fixed("f32") => y::Literal::Float("0.0".into()),
+        Ty::Int | Ty::Fixed(_) => y::Literal::Int("0".into()),
+        Ty::Bool => y::Literal::Bool(false),
+        _ => return unsupported("a `@kernel` result of other than number or `bool` elements"),
+    };
+    let steps = grid.steps(dims.len()).map_err(Unfit::Unsupported)?;
+    for (a, (d, s)) in dims.iter().zip(&steps).enumerate() {
+        if let Step::By(s) = s
+            && d % s != 0
+        {
+            return Err(Unfit::Partial(format!(
+                "axis {a} of `{name}`'s result has {d} elements, not a whole number of \
+                 {s}-element tiles"
+            )));
         }
     }
+    let elem = (**et).clone();
+    Ok(Plan {
+        out,
+        elem,
+        zero,
+        dims,
+        steps,
+    })
 }
 
 /// The std functions element access and `gpu.launch` lower to, which no source names.
@@ -699,9 +821,9 @@ mod tests {
     #[test]
     fn a_launch_runs_one_instance_per_tile() {
         let src = format!(
-            "{INC}main() uses io, gpu =\n\
+            "{INC}main() fail KernelFault uses io, gpu =\n\
              \x20 let a: Array[2, 4, int] = [1 2 3 4; 5 6 7 8]\n\
-             \x20 let r = gpu.launch(inc, a)\n\
+             \x20 let r = gpu.launch(inc, a)?\n\
              \x20 io.print(\"\\(r[0, 0]) \\(r[0, 3]) \\(r[1, 2])\")\n"
         );
         assert_eq!(run(&src), Ok("10 42 72\n".into()));
@@ -712,10 +834,59 @@ mod tests {
         let src = "@kernel(tile: 1, 3)\n@access(a: rows(0), out: rows(0))\n\
             total(at: TileOrigin, a: Array[2, 3, int]) -> Array[2, 3, int] =\n\
             \x20 for j in range(0, 3)\n    out[at.i0, j] = a[at.i0, 0] + a[at.i0, 1] + a[at.i0, 2]\n\n\
-            main() uses io, gpu =\n\
-            \x20 let r = gpu.launch(total, [1 2 3; 4 5 6])\n\
+            main() fail KernelFault uses io, gpu =\n\
+            \x20 let r = gpu.launch(total, [1 2 3; 4 5 6])?\n\
             \x20 io.print(\"\\(r[0, 2]) \\(r[1, 0])\")\n";
         assert_eq!(run(src), Ok("6 15\n".into()));
+    }
+
+    #[test]
+    fn a_failed_bounds_check_fails_the_launch() {
+        let src = "@kernel(tile: 1, 3)\n@access(a: rows(0, halo: 1), out: rows(0))\n\
+            prev(at: TileOrigin, a: Array[2, 3, int]) -> Array[2, 3, int] =\n\
+            \x20 for j in range(0, 3)\n    out[at.i0, j] = a[at.i0 - 1, j]\n\n\
+            fault(a: Array[2, 3, int]) -> str uses gpu =\n\
+            \x20 let r = gpu.launch(prev, a) else e ->\n\
+            \x20   return \"\\(e.i0) \\(e.i1) \\(e.line):\\(e.col)\"\n\
+            \x20 \"\\(r[1, 0])\"\n\n\
+            main() uses io, gpu =\n  io.print(fault([1 2 3; 4 5 6]))\n";
+        assert_eq!(run(src), Ok("0 0 5:23\n".into()));
+    }
+
+    #[test]
+    fn a_literal_index_past_an_axis_is_e501() {
+        let src = "main() uses io =\n\
+            \x20 let a: Array[2, 3, int] = [1 2 3; 4 5 6]\n\
+            \x20 io.print(\"\\(a[1, 2]) \\(a[2, 0]) \\(a[0, -1])\")\n";
+        assert_eq!(run(src), Err(vec!["E501@3".into(), "E501@3".into()]));
+    }
+
+    #[test]
+    fn constant_expressions_fold_in_tiles_and_indices() {
+        let src = "let w: int = #(h * 2)\nlet h: int = 1\nlet last: int = #(w - h)\n\n\
+            @kernel(tile: h, w)\n@access(a: rows(0), out: rows(0))\n\
+            pick(at: TileOrigin, a: Array[2, 2, int]) -> Array[2, 2, int] =\n\
+            \x20 for j in range(0, w)\n    out[at.i0, j] = a[at.i0, last % w]\n\n\
+            main() uses io, gpu =\n\
+            \x20 let r = gpu.launch(pick, [1 2; 3 4]) else e ->\n    return\n\
+            \x20 io.print(\"\\(r[0, 0]) \\(r[1, 1])\")\n";
+        assert_eq!(run(src), Ok("2 4\n".into()));
+    }
+
+    #[test]
+    fn a_result_of_fixed_width_or_bool_elements_starts_zeroed() {
+        let src = "@kernel(tile: 1, 2)\n@access(a: elementwise, out: elementwise)\n\
+            pos(at: TileOrigin, a: Array[1, 4, i32]) -> Array[1, 4, bool] =\n\
+            \x20 for j in range(0, 2)\n    out[at.i0, at.i1 + j] = a[at.i0, at.i1 + j] > 0\n\n\
+            @kernel(tile: 1, 2)\n@access(a: elementwise, out: elementwise)\n\
+            keep(at: TileOrigin, a: Array[1, 4, i32]) -> Array[1, 4, i32] =\n\
+            \x20 out[at.i0, at.i1] = a[at.i0, at.i1]\n\n\
+            main() uses io, gpu =\n\
+            \x20 let a: Array[1, 4, i32] = [1 0 3 4]\n\
+            \x20 let p = gpu.launch(pos, a) else e ->\n    return\n\
+            \x20 let k = gpu.launch(keep, a) else e ->\n    return\n\
+            \x20 io.print(\"\\(p[0, 0]) \\(p[0, 1]) \\(p[0, 3]) \\(k[0, 0]) \\(k[0, 1])\")\n";
+        assert_eq!(run(src), Ok("True False True 1 0\n".into()));
     }
 
     #[test]
@@ -724,7 +895,7 @@ mod tests {
             .replace("2, 4, int] =", "2, 5, int] =")
             .replace("-> Array[2, 4", "-> Array[2, 5");
         let src = format!(
-            "{src}f(a: Array[2, 5, int]) -> Array[2, 5, int] uses gpu =\n  gpu.launch(inc, a)\n\nmain() = 0\n"
+            "{src}f(a: Array[2, 5, int]) -> Array[2, 5, int] fail KernelFault uses gpu =\n  gpu.launch(inc, a)?\n\nmain() = 0\n"
         );
         assert_eq!(run(&src), Err(vec!["E521@9".into()]));
     }
@@ -732,7 +903,7 @@ mod tests {
     #[test]
     fn a_launch_needs_the_gpu_capability() {
         let src = format!(
-            "{INC}f(a: Array[2, 4, int]) -> Array[2, 4, int] =\n  gpu.launch(inc, a)\n\nmain() = 0\n"
+            "{INC}f(a: Array[2, 4, int]) -> Array[2, 4, int] fail KernelFault =\n  gpu.launch(inc, a)?\n\nmain() = 0\n"
         );
         assert_eq!(run(&src), Err(vec!["E301@9".into()]));
     }
@@ -740,8 +911,28 @@ mod tests {
     #[test]
     fn only_a_launch_calls_a_kernel_or_builds_its_origin() {
         let call = format!("{INC}f(a: Array[2, 4, int]) =\n  inc(a, a)\n\nmain() = 0\n");
-        assert_eq!(run(&call), Err(vec!["E017@9".into()]));
+        assert_eq!(run(&call), Err(vec!["E286@9".into()]));
         let origin = format!("{INC}f() -> int =\n  TileOrigin(i0: 0, i1: 0).i0\n\nmain() = 0\n");
-        assert_eq!(run(&origin), Err(vec!["E017@9".into()]));
+        assert_eq!(run(&origin), Err(vec!["E286@9".into()]));
+        let other = format!("{INC}g() -> int = 1\n\nf() =\n  gpu.launch(g)\n\nmain() = 0\n");
+        assert_eq!(run(&other), Err(vec!["E286@11".into()]));
+    }
+
+    #[test]
+    fn a_malformed_kernel_declaration_is_e285() {
+        let codes = |from: &str, to: &str| run(&format!("{}main() = 0\n", INC.replace(from, to)));
+        let e285 = || Err(vec!["E285@1".into()]);
+        assert_eq!(codes("tile: 2, 2", "2, 2"), e285());
+        assert_eq!(codes("tile: 2, 2", "tile: 0, 2"), e285());
+        assert_eq!(codes("at: TileOrigin, ", ""), e285());
+        assert_eq!(
+            codes("@access(a: elementwise, out: elementwise)\n", ""),
+            e285()
+        );
+        let launched = format!(
+            "{}f(a: Array[2, 4, int]) -> Array[2, 4, int] fail KernelFault uses gpu =\n  gpu.launch(inc, a)?\n\nmain() = 0\n",
+            INC.replace("tile: 2, 2", "2, 2")
+        );
+        assert_eq!(run(&launched), e285());
     }
 }

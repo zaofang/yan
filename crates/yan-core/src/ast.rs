@@ -513,8 +513,9 @@ pub enum ConstVal {
     },
     List(Vec<ConstVal>),
     Tuple(Vec<ConstVal>),
-    /// `rows(0)`: a constructor applied to constants (`@access` regions, RFC 0052).
-    Call(Path, Vec<ConstVal>),
+    /// `rows(0, halo = 1)`: a constructor applied to constants (`@access` regions, RFC 0052,
+    /// R982).
+    Call(Path, Vec<AttrArg>),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

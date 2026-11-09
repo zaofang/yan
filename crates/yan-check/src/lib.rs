@@ -3,10 +3,12 @@
 //! It reports only what it can prove from the module alone. A type it cannot work out, such as
 //! a std result or a generic instance, is unknown and never produces a mismatch.
 
+mod flags;
 mod flow;
 pub mod own;
 mod post;
 
+pub use flags::drop_flags;
 pub use post::check_optimized;
 
 use std::collections::{HashMap, HashSet};

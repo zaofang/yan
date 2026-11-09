@@ -11,6 +11,7 @@ use crate::{Interp, R, Value};
 
 /// A capability operation whose `Err` is the failure value.
 pub(crate) type CapFn = fn(&mut Interp, &mut [Value]) -> R<Result<Value, Value>>;
+pub(crate) type VmFn = fn(&mut Vm, &mut [Value]) -> R<Result<Value, Value>>;
 
 #[derive(Clone, Copy)]
 pub(crate) enum Bind {
@@ -23,6 +24,8 @@ pub(crate) enum Bind {
     Fallible(fn(&[Value]) -> R<Result<Value, Value>>),
     /// Runs in the VM, which it may call back into for closures.
     Vm(fn(&mut Vm, Id, &mut [Value]) -> R<Value>),
+    /// Runs in the VM and may fail; `Err` is the failure value.
+    VmFallible(VmFn),
 }
 
 /// The functions that call closures, bound to their VM handlers.
@@ -104,7 +107,7 @@ pub(crate) fn call(path: &str, args: &mut [Value]) -> R<Result<Value, Value>> {
     match get(id).expect("bound") {
         Bind::Plain(f) => f(args).map(Ok),
         Bind::Fallible(f) => f(args),
-        Bind::Cap(_) | Bind::CapFallible(_) | Bind::Vm(_) => {
+        Bind::Cap(_) | Bind::CapFallible(_) | Bind::Vm(_) | Bind::VmFallible(_) => {
             unreachable!("selftests call neither")
         }
     }

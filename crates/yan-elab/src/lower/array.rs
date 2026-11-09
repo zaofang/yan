@@ -2,11 +2,13 @@
 //! `gpu.launch` of a `@kernel` function (17.1, RFC 0055 stage 3, RFC 0058).
 
 use super::*;
-use crate::kernel::Step;
+use crate::kernel::{self, Plan, Step, Unfit};
 
 impl Lower<'_, '_, '_> {
     /// `a[i, j]` on an `Array` as a place: the element at the row-major offset, which
-    /// `std.array.offset2` folds axis by axis and sets to -1 when an index leaves its axis.
+    /// `std.array.offset2` folds axis by axis and sets to -1 when an index leaves its axis. In a
+    /// `@kernel` body `std.array.checked2` folds it instead, and an index outside its axis fails
+    /// the program instance with `KernelFault` (R327).
     pub(super) fn array_place(&mut self, i: &j::Expr, mut p: Place, t: &Ty) -> R<(Place, Ty)> {
         let Ty::Array(_, et) = t else {
             unreachable!("an array")
@@ -31,7 +33,18 @@ impl Lower<'_, '_, '_> {
             );
             return Ok((p, Ty::Err));
         }
-        if let [x] = parts.as_slice() {
+        let origin = self.g.kernels.contains_key(&self.item).then(|| {
+            self.sig
+                .params
+                .iter()
+                .find(|p| p.ty == Ty::Data("TileOrigin".into()))
+                .expect("a kernel has a `TileOrigin`")
+                .name
+                .clone()
+        });
+        if let [x] = parts.as_slice()
+            && origin.is_none()
+        {
             let (a, at) = self.atom(x, Some(&Ty::Int))?;
             self.expect(&at, &Ty::Int, x.span);
             p.projs.push(Proj::Index(a));
@@ -43,18 +56,41 @@ impl Lower<'_, '_, '_> {
         for (x, d) in parts.into_iter().zip(dims) {
             let (a, at) = self.atom(x, Some(&Ty::Int))?;
             self.expect(&at, &Ty::Int, x.span);
-            let c = call(
-                "std.array.offset2",
-                vec![],
-                vec![
-                    let_arg(off),
-                    let_arg(a),
-                    let_arg(int(extent, x.span)),
-                    let_arg(int(d, x.span)),
-                ],
-                x.span,
-            );
-            off = self.tmp(&Ty::Int, Rhs::Call(c), x.span);
+            let mut args = vec![
+                let_arg(off),
+                let_arg(a),
+                let_arg(int(extent, x.span)),
+                let_arg(int(d, x.span)),
+            ];
+            let rhs = match &origin {
+                None => Rhs::Call(call("std.array.offset2", vec![], args, x.span)),
+                Some(o) => {
+                    for f in ["i0", "i1"] {
+                        let e = j::Expr {
+                            kind: j::ExprKind::Attr(
+                                Box::new(j::Expr {
+                                    kind: j::ExprKind::Name(o.clone()),
+                                    span: x.span,
+                                    paren: false,
+                                }),
+                                f.into(),
+                                x.span,
+                            ),
+                            span: x.span,
+                            paren: false,
+                        };
+                        args.push(let_arg(self.atom(&e, Some(&Ty::Int))?.0));
+                    }
+                    args.push(let_arg(int(x.span.line.into(), x.span)));
+                    args.push(let_arg(int(x.span.col.into(), x.span)));
+                    Rhs::Propagate {
+                        call: call("std.array.checked2", vec![], args, x.span),
+                        via: None,
+                        drops: Vec::new(),
+                    }
+                }
+            };
+            off = self.tmp(&Ty::Int, rhs, x.span);
             extent *= d;
         }
         p.projs.push(Proj::Index(off));
@@ -91,54 +127,66 @@ impl Lower<'_, '_, '_> {
         Ok((Rhs::Atom(a), want.clone()))
     }
 
-    /// `gpu.launch(k, args...)` (RFC 0058): one call of the kernel per program instance, each
-    /// writing its disjoint part of a zeroed `out`, which is the result.
+    /// `gpu.launch(k, args...)` (RFC 0058): a call of `k`'s launcher, which fails with
+    /// `KernelFault`. In the launcher's own body, one call of the kernel per program instance,
+    /// each writing its disjoint part of a zeroed `out`, which is the result.
     pub(super) fn launch(&mut self, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
         let Some((k, rest)) = args.split_first() else {
-            return unsupported("`gpu.launch` without a `@kernel` function");
+            return crate::refuse(
+                kernel::MISUSE,
+                "`gpu.launch` takes a `@kernel` function first",
+            );
         };
-        let kernel = match &k.kind {
+        let name = match &k.kind {
             j::ArgKind::Expr(j::Expr {
                 kind: j::ExprKind::Name(n),
                 ..
-            }) if k.name.is_none() => self.g.kernels.get(n).map(|g| (n.clone(), g.clone())),
-            _ => None,
-        };
-        let Some((name, grid)) = kernel else {
-            return unsupported("`gpu.launch` of anything but a `@kernel` function by name");
-        };
-        let out_ty = self.g.fns[&name]
-            .params
-            .last()
-            .map(|p| p.ty.clone())
-            .expect("a kernel has `out`");
-        let (Some(dims), Ty::Array(_, et)) = (out_ty.dims(), &out_ty) else {
-            return unsupported("a `@kernel` result whose sizes are not literals");
-        };
-        let zero = match **et {
-            Ty::Int => Literal::Int("0".into()),
-            Ty::Float => Literal::Float("0.0".into()),
-            _ => return unsupported("a `@kernel` result of other than `int` or `float` elements"),
-        };
-        let steps = match grid.steps(dims.len()) {
-            Ok(s) => s,
-            Err(why) => return unsupported(&why),
-        };
-        for (a, (d, s)) in dims.iter().zip(&steps).enumerate() {
-            if let Step::By(s) = s
-                && d % s != 0
-            {
-                self.err(
-                    "E521",
-                    at,
-                    format!(
-                        "axis {a} of `{name}`'s result has {d} elements, not a whole number of \
-                         {s}-element tiles"
-                    ),
-                );
-                return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+            }) if k.name.is_none() && self.g.kernels.contains_key(n) => n.clone(),
+            // A malformed kernel has its launcher but no grid: E285 is at the kernel.
+            j::ArgKind::Expr(j::Expr {
+                kind: j::ExprKind::Name(n),
+                ..
+            }) if k.name.is_none() && self.g.fns.contains_key(&kernel::launcher(n)) => {
+                return Ok((
+                    Rhs::Atom(Atom::Lit(Literal::Unit, at)),
+                    Ty::Err,
+                    Some(Ty::Err),
+                ));
             }
+            _ => {
+                return crate::refuse(
+                    kernel::MISUSE,
+                    "`gpu.launch` takes a `@kernel` function by name first",
+                );
+            }
+        };
+        let plan = match kernel::plan(self.g, &name) {
+            Ok(p) => p,
+            Err(Unfit::Unsupported(why)) => return unsupported(&why),
+            Err(Unfit::Partial(why)) => {
+                self.err("E521", at, why);
+                return Ok((
+                    Rhs::Atom(Atom::Lit(Literal::Unit, at)),
+                    Ty::Err,
+                    Some(Ty::Err),
+                ));
+            }
+        };
+        if kernel::launched(&self.item) != Some(name.as_str()) {
+            let f = j::Expr {
+                kind: j::ExprKind::Name(kernel::launcher(&name)),
+                span: k.span,
+                paren: false,
+            };
+            return self.call_expr(&f, rest, at, None);
         }
+        let Plan {
+            out: out_ty,
+            elem: et,
+            zero,
+            dims,
+            steps,
+        } = plan;
 
         let out = self.fresh("launch");
         let total: i64 = dims.iter().product();
@@ -187,8 +235,9 @@ impl Lower<'_, '_, '_> {
             ..a.clone()
         }));
         call_args.push(arg(Some("out"), j::ArgKind::Ref(name_e(&out))));
+        let call = x(j::ExprKind::Call(Box::new(name_e(&name)), call_args));
         let mut body = vec![j::Stmt {
-            kind: j::StmtKind::Expr(x(j::ExprKind::Call(Box::new(name_e(&name)), call_args))),
+            kind: j::StmtKind::Expr(x(j::ExprKind::Try(Box::new(call)))),
             span: at,
         }];
         for a in (0..dims.len()).rev() {

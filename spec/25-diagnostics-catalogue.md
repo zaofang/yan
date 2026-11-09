@@ -119,6 +119,8 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E282 | a derived trait (`Eq`, `Ord`, `Hash`, `Show`, `Wire`) has a field whose type does not implement it; one diagnostic per field, at the field's type annotation (RFC 0040, R872, R873) *new* | 10.4, 17.4 |
 | E283 | a Yan Agent function returns `Type`: Yan Agent applies type functions but does not define them (RFC 0051 D6, R941) *new* | 10.4, 14 |
 | E284 | malformed `@access` claim: an operand missing, repeated, unknown or a non-array parameter, an axis not below the operand's rank, or a non-positive tile size (RFC 0052 D1, R952) *new* | 11.2 |
+| E285 | malformed `@kernel` declaration: a decorator other than `@kernel(tile: M, N)` with positive constants, not exactly one `TileOrigin` parameter, or no `@access` claim (RFC 0061 D2, R983) *new* | 11.2 |
+| E286 | a `@kernel` function called or a `TileOrigin` built outside `gpu.launch`, or `gpu.launch` of anything but a `@kernel` function by name (RFC 0061 D2, R983) *new* | 11.2 |
 | E233 | str or f-string where a Template is expected (R452) new | 13.1 |
 
 ### 25.5 Capabilities, handlers and failure

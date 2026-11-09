@@ -105,7 +105,7 @@ pub(crate) fn begin(it: &mut Interp, spec: &Value, base: usize) -> R<()> {
 pub(crate) fn end(it: &mut Interp) {
     if let Some((s, _)) = it.sups.open.pop() {
         for c in it.sups.all[s].children.clone().into_iter().rev() {
-            it.actors[c].stop();
+            it.actors[c].stop(super::sync::failure("Shutdown"));
         }
     }
 }
@@ -121,8 +121,8 @@ pub(crate) fn end_frame(it: &mut Interp, base: usize) {
 /// it and, by strategy, its siblings, unless that exceeds the restart intensity, which stops
 /// every child and escalates; nothing above a supervisor can restart it, so escalation ends the
 /// run as a panic of kind `supervisor`.
-pub(crate) fn crash(vm: &mut Vm, id: usize) -> R<()> {
-    vm.it.actors[id].stop();
+pub(crate) fn crash(vm: &mut Vm, id: usize, reason: Value) -> R<()> {
+    vm.it.actors[id].stop(reason);
     let (s, restart) = {
         let c = vm.it.actors[id].child();
         (c.sup, c.restart)
@@ -138,7 +138,7 @@ pub(crate) fn crash(vm: &mut Vm, id: usize) -> R<()> {
     if sup.restarts.len() >= sup.intensity {
         let (n, p) = (sup.intensity, sup.period);
         for c in sup.children.clone().into_iter().rev() {
-            vm.it.actors[c].stop();
+            vm.it.actors[c].stop(super::sync::failure("Shutdown"));
         }
         return panic_with(
             "supervisor",
@@ -153,7 +153,9 @@ pub(crate) fn crash(vm: &mut Vm, id: usize) -> R<()> {
         Strategy::RestForOne => sup.children[at..].to_vec(),
     };
     for &c in group.iter().rev() {
-        vm.it.actors[c].stop();
+        if c != id {
+            vm.it.actors[c].stop(super::sync::failure("Shutdown"));
+        }
     }
     for c in group {
         if vm.it.actors[c].child().restart == Restart::Temporary {
@@ -207,7 +209,13 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_ACTOR_START,
         Bind::Vm(|vm, _, a| {
-            let [Value::Closure(start), Value::Int(restart), Value::Int(cap)] = a else {
+            let [
+                Value::Closure(start),
+                Value::Int(restart),
+                Value::Int(cap),
+                Value::Int(policy),
+            ] = a
+            else {
                 return bad_args(STD_ACTOR_START);
             };
             let restart = match restart {
@@ -215,9 +223,9 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                 1 => Restart::Transient,
                 _ => Restart::Temporary,
             };
-            let (start, cap) = (start.clone(), *cap);
+            let (start, cap, policy) = (start.clone(), *cap, *policy);
             let state = vm.apply(&start, Vec::new())?;
-            super::sync::spawn(&mut vm.it, state, cap, restart, Some(start))
+            super::sync::spawn(&mut vm.it, state, cap, restart, Some(start), policy)
         }),
     ),
 ];

@@ -327,6 +327,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R979 | `actor.start(ChildSpec(start, (args...), restart=permanent), capacity=1024) -> Actor[S]` starts a restartable child: `start` a top-level function returning `S` with no fail type, `args` a tuple evaluated once, `restart` one of `permanent`, `transient`, `temporary` (RFC 0060 D2) | 9.6, 17.3 |
 | R980 | A handler failure stops its actor: the caller gets the failure, queued messages are dropped, later calls fail `Stopped(Crashed)`, and the supervisor restarts it by restart type and strategy (RFC 0060 D3) | 9.6 |
 | R981 | Exceeding a supervisor's restart intensity stops its children in reverse start order and panics with kind `supervisor`; a scope's children stop in reverse start order when the scope ends, however it ends (RFC 0060 D4, D5) | 9.6 |
+| R982 | `halo: h` holds on `extern` `@access` claims as on `@kernel` claims; Core spells a region as a constant call with `AttrArg` arguments, `rows(0, halo = 1)`, and the Core `ConstVal` grammar lists that call form (RFC 0061 D1) | 3, 11.2 |
+| R983 | A malformed `@kernel` declaration (a decorator other than `@kernel(tile: M, N)` with positive constants, not exactly one `TileOrigin` parameter, no `@access` claim) is E285; calling a `@kernel` function or building a `TileOrigin` outside `gpu.launch`, or launching anything but a `@kernel` function by name, is E286 (RFC 0061 D2) | 11.2, 25 |
 
 <!-- /rows -->
 

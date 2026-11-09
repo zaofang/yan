@@ -1,0 +1,7 @@
+package: Package = Package(
+    name="{name}",
+    version="0.1.0",
+    edition="next",
+    yan="1.x",
+    capabilities=[],
+)

@@ -450,6 +450,9 @@ impl Lower<'_, '_, '_> {
                             }
                         }
                     }
+                    // A failed send's reason and arguments (R976).
+                    Ty::Coll("Undelivered", ts) if f == "reason" => ts[1].clone(),
+                    Ty::Coll("Undelivered", ts) if f == "args" => ts[0].clone(),
                     t => {
                         self.err(
                             "E203",
@@ -526,7 +529,12 @@ impl Lower<'_, '_, '_> {
             t => (p, t),
         };
         match &t {
-            Ty::Array(..) => self.array_place(i, p, &t),
+            Ty::Array(..) => {
+                if let Some(dims) = t.dims() {
+                    self.sites.insert(e.span, Site::Array(dims));
+                }
+                self.array_place(i, p, &t)
+            }
             Ty::List(_) | Ty::Coll("deque" | "bytes" | "bytearray", _) => {
                 let et = match t {
                     Ty::Coll("bytes" | "bytearray", _) => Ty::Fixed("u8"),
