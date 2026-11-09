@@ -1571,7 +1571,7 @@ impl Parser<'_> {
             None
         };
         if fields.is_none() && self.is_punct("(") {
-            return Ok(ConstVal::Call(path, self.list("(", ")", Self::const_val)?));
+            return Ok(ConstVal::Call(path, self.list("(", ")", Self::attr_arg)?));
         }
         Ok(ConstVal::Path { path, fields })
     }

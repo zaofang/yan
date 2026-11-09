@@ -1,4 +1,5 @@
-//! `@access` claims on extern functions (11.2, R627, R952): the binding rules of RFC 0052 D1.
+//! `@access` claims on extern and `@kernel` functions (11.2, R627, R952, R955): the binding rules
+//! of RFC 0052 D1 and the halos of RFC 0055 D3.
 
 use std::collections::HashSet;
 
@@ -23,37 +24,65 @@ fn arg_expr(a: &j::Arg) -> Option<&j::Expr> {
     }
 }
 
-/// The region's text for diagnostics, or why it is malformed for an operand of `rank` axes.
-fn region(e: &j::Expr, rank: usize) -> Result<y::ConstVal, String> {
-    let name = |e: &j::Expr| match &e.kind {
-        j::ExprKind::Name(n) => Some(n.clone()),
-        _ => None,
-    };
+/// The region in Core, or why it is malformed for an operand of `rank` axes. `rows`, `cols` and
+/// `tile` take an optional `halo: h`, except on `out` (R955).
+fn region(e: &j::Expr, rank: usize, out: bool) -> Result<y::ConstVal, String> {
     let path = |n: &str| vec![n.to_owned()];
+    let lit = |n: u64| y::ConstVal::Lit(y::Literal::Int(n.to_string()));
+    let pos = |v| y::AttrArg {
+        name: None,
+        value: v,
+    };
     match &e.kind {
         j::ExprKind::Name(n) if n == "elementwise" || n == "whole" => Ok(y::ConstVal::Path {
             path: path(n),
             fields: None,
         }),
         j::ExprKind::Call(f, args) => {
-            let f = name(f).unwrap_or_default();
-            let ints: Vec<Option<u64>> =
-                args.iter().map(|a| arg_expr(a).and_then(literal)).collect();
-            let lit = |n: u64| y::ConstVal::Lit(y::Literal::Int(n.to_string()));
-            match (f.as_str(), ints.as_slice()) {
-                ("rows" | "cols", [Some(axis)]) if (*axis as usize) < rank => {
-                    Ok(y::ConstVal::Call(path(&f), vec![lit(*axis)]))
-                }
-                ("rows" | "cols", [Some(axis)]) => Err(format!(
-                    "axis {axis} is not below the operand's rank {rank}"
-                )),
-                ("tile", [Some(m), Some(n)]) if *m > 0 && *n > 0 => {
-                    Ok(y::ConstVal::Call(path(&f), vec![lit(*m), lit(*n)]))
-                }
-                ("tile", [Some(_), Some(_)]) => Err("`tile` sizes must be positive".into()),
-                ("rows" | "cols" | "tile", _) => Err(format!("`{f}` takes integer literals")),
-                _ => Err(format!("`{f}` is not a region")),
+            let f = match &f.kind {
+                j::ExprKind::Name(n) => n.clone(),
+                _ => String::new(),
+            };
+            let (halo, rest): (Vec<_>, Vec<_>) =
+                args.iter().partition(|a| a.name.as_deref() == Some("halo"));
+            if !matches!(f.as_str(), "rows" | "cols" | "tile") {
+                return Err(match (f.as_str(), halo.is_empty()) {
+                    ("elementwise" | "whole", false) => format!("`{f}` takes no halo"),
+                    _ => format!("`{f}` is not a region"),
+                });
             }
+            if rest.iter().any(|a| a.name.is_some()) {
+                return Err("`halo` is the one named argument a region accepts".into());
+            }
+            let halo = match halo.as_slice() {
+                [] => None,
+                [_] if out => return Err("`out` takes no halo".into()),
+                [h] => match arg_expr(h).and_then(literal) {
+                    Some(n) => Some(n),
+                    None => return Err("`halo` is a non-negative integer literal".into()),
+                },
+                _ => return Err("`halo` given twice".into()),
+            };
+            let ints: Vec<Option<u64>> =
+                rest.iter().map(|a| arg_expr(a).and_then(literal)).collect();
+            let mut bound: Vec<y::AttrArg> = match (f.as_str(), ints.as_slice()) {
+                ("rows" | "cols", [Some(axis)]) if (*axis as usize) < rank => vec![pos(lit(*axis))],
+                ("rows" | "cols", [Some(axis)]) => {
+                    return Err(format!(
+                        "axis {axis} is not below the operand's rank {rank}"
+                    ));
+                }
+                ("tile", [Some(m), Some(n)]) if *m > 0 && *n > 0 => {
+                    vec![pos(lit(*m)), pos(lit(*n))]
+                }
+                ("tile", [Some(_), Some(_)]) => return Err("`tile` sizes must be positive".into()),
+                _ => return Err(format!("`{f}` takes integer literals")),
+            };
+            bound.extend(halo.map(|h| y::AttrArg {
+                name: Some("halo".into()),
+                value: lit(h),
+            }));
+            Ok(y::ConstVal::Call(path(&f), bound))
         }
         _ => Err(
             "expected `elementwise`, `rows(axis)`, `cols(axis)`, `tile(M, N)` or `whole`".into(),
@@ -110,7 +139,7 @@ pub(crate) fn lower(
                     continue;
                 }
             };
-            match arg_expr(a).map(|e| region(e, rank)) {
+            match arg_expr(a).map(|e| region(e, rank, label == "out")) {
                 Some(Ok(v)) => bound.push(y::AttrArg {
                     name: Some(label.clone()),
                     value: v,

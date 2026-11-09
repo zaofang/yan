@@ -496,9 +496,9 @@ impl Cx<'_> {
             ConstVal::List(vs) | ConstVal::Tuple(vs) => {
                 vs.iter_mut().for_each(|v| self.const_val(v))
             }
-            ConstVal::Call(path, vs) => {
+            ConstVal::Call(path, args) => {
                 self.path(path);
-                vs.iter_mut().for_each(|v| self.const_val(v))
+                args.iter_mut().for_each(|a| self.const_val(&mut a.value))
             }
         }
     }

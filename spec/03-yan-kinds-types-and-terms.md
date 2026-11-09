@@ -155,6 +155,7 @@ AsmOperand ::= ("in" | "out" | "inout" | "lateout") "(" (Name | String) ")" Atom
            | "clobber_abi(" String ")" | "options(" Name {"," Name} ")"
 Atom     ::= Name | Literal
 ConstVal ::= Literal | Path ["{" [Name ":" ConstVal {"," Name ":" ConstVal}] "}"]
+           | Path "(" [AttrArg {"," AttrArg}] ")"                -- `@access` regions (R982)
            | "[" [ConstVal {"," ConstVal}] "]" | "(" ConstVal {"," ConstVal} ")"
 Expr     ::= Atom | Call                                       -- pure; in contracts only
 Pred     ::= the decidable fragment of section 8.6, written with intrinsic calls over Atoms

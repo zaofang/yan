@@ -1543,3 +1543,19 @@ fn access_claim_binds_every_array_operand_once() {
     one("@access(a: tile(0, 4), out: whole)");
     one("@access(a: stripes(1), out: whole)");
 }
+
+#[test]
+fn access_claim_on_extern_takes_a_halo() {
+    let d = access_codes("@access(a: rows(0, halo: 1), out: elementwise)");
+    assert!(d.is_empty(), "{d:?}");
+    assert!(access_codes("@access(a: tile(4, 4, halo: 2), out: whole)").is_empty());
+    let one = |c: &str| {
+        let d = access_codes(c);
+        assert_eq!(d.len(), 1, "{c}: {d:?}");
+    };
+    one("@access(a: rows(0, halo: 1, halo: 1), out: whole)");
+    one("@access(a: rows(0, halo: -1), out: whole)");
+    one("@access(a: rows(0, size: 1), out: whole)");
+    one("@access(a: elementwise(halo: 1), out: whole)");
+    one("@access(a: whole, out: rows(0, halo: 1))");
+}
