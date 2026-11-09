@@ -1,4 +1,12 @@
-from tools.rows import allocations, check, expand, missing_sections, next_code, renumbering
+from tools.rows import (
+    allocations,
+    check,
+    code_map_errors,
+    expand,
+    missing_sections,
+    next_code,
+    renumbering,
+)
 
 
 def test_expand_lists_and_ranges() -> None:
@@ -39,3 +47,7 @@ def test_renumbering_moves_only_colliding_new_entries() -> None:
         "R4": "R6",
     }
     assert renumbering(base, [*base, {"rows": "R4", "topic": "c"}]) == {}
+
+
+def test_code_map_agrees_with_spec_and_catalogue() -> None:
+    assert code_map_errors() == []

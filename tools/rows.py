@@ -5,6 +5,8 @@ rows.py check            fail on a row allocated twice, a cited row that is not 
                          listed twice in section 25, a code cited in spec/ but missing from
                          section 25, two RFCs with one number, or a study cited in spec/ or
                          rfcs/ that docs/research/README.md does not list
+                         and the code map (spec/code-map.toml) disagreeing with section 25, the
+                         conformance catalogue, rows.toml or the crate files it names
 rows.py next [N]         print the next N free row numbers (default 1)
 rows.py next-code FAM    print the next free diagnostic code in a family, e.g. E3 or W8
 rows.py render           rewrite Appendix A.1 from spec/rows.toml
@@ -29,6 +31,8 @@ SPEC = ROOT / "spec"
 REGISTRY = SPEC / "rows.toml"
 APPENDIX = SPEC / "appendix-a.md"
 CATALOGUE = SPEC / "25-diagnostics-catalogue.md"
+CODE_MAP = SPEC / "code-map.toml"
+CONFORM_CATALOGUE = ROOT / "conformance" / "catalogue.toml"
 RFCS = ROOT / "rfcs"
 RESEARCH = ROOT / "docs" / "research" / "README.md"
 BEGIN = "<!-- rows: generated from spec/rows.toml by tools/rows.py render; do not edit -->"
@@ -150,6 +154,47 @@ def uncatalogued_codes() -> list[str]:
     return errors
 
 
+def code_map_errors() -> list[str]:
+    section = {
+        c for cell in CODE_LIST_CELL.findall(CATALOGUE.read_text()) for c in cell.split(", ")
+    }
+    catalogue = tomllib.loads(CONFORM_CATALOGUE.read_text())["codes"]
+    mapped: dict[str, Any] = tomllib.loads(CODE_MAP.read_text())["codes"]
+    inactive = {c for c, v in catalogue.items() if v["status"] in ("retired", "reserved")}
+    known = section | set(catalogue)
+    errors = [
+        f"{c} has no entry in spec/code-map.toml" for c in sorted(known - inactive - set(mapped))
+    ]
+    errors += [
+        f"{c} is in spec/code-map.toml but in neither section 25 nor the catalogue"
+        for c in sorted(set(mapped) - known)
+    ]
+    errors += [
+        f"{c} is {catalogue[c]['status']} in the catalogue but has a code-map entry"
+        for c in sorted(inactive & set(mapped))
+    ]
+    registry = {c for e in load() for c in CITED_CODE.findall(str(e))}
+    errors += [
+        f"{c} cited in spec/rows.toml but not a known code" for c in sorted(registry - known)
+    ]
+    for code, entry in sorted(mapped.items()):
+        if isinstance(entry, str):
+            path = ROOT / entry
+            if not path.is_file():
+                errors.append(f"{code} maps to {entry}, which does not exist")
+            elif not re.search(rf"\b{code}\b", path.read_text()):
+                errors.append(f"{code} maps to {entry}, which does not mention it")
+        elif not re.fullmatch(r"#\d+", str(entry.get("unimplemented", ""))):
+            errors.append(f'{code} needs a file path or unimplemented = "#<gap issue>"')
+    unimplemented = {c for c, e in mapped.items() if isinstance(e, dict)}
+    for path in sorted((ROOT / "crates").rglob("*.rs")):
+        for code in sorted(unimplemented & set(CITED_CODE.findall(path.read_text()))):
+            errors.append(
+                f"{code} is marked unimplemented but {path.relative_to(ROOT)} mentions it"
+            )
+    return errors
+
+
 def check() -> list[str]:
     entries = load()
     owner, errors = allocations(entries)
@@ -167,6 +212,7 @@ def check() -> list[str]:
     return (
         errors
         + uncatalogued_codes()
+        + code_map_errors()
         + missing_sections(entries)
         + duplicate_rfcs()
         + unindexed_studies()
