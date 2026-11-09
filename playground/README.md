@@ -6,14 +6,15 @@ Yan Agent, Yan and Yan Meta. Everything runs client side in `yan.wasm`, built fr
 
 ## Build and serve
 
-Needs the `wasm32-unknown-unknown` target, a clang with the WebAssembly backend and the
-wasi-libc headers (`core-math` is C).
+Builds for `wasm32-wasip1`; `worker.js` provides the WASI calls (clock, random, console output)
+in the browser. Needs a clang with the WebAssembly backend and the wasi-libc headers (`core-math`
+is C).
 
 ```sh
-rustup target add wasm32-unknown-unknown
+rustup target add wasm32-wasip1
 # Debian/Ubuntu: apt install clang wasi-libc
 # macOS: brew install llvm wasi-libc; then
-#   CC_wasm32_unknown_unknown=$(brew --prefix llvm)/bin/clang \
+#   CC_wasm32_wasip1=$(brew --prefix llvm)/bin/clang \
 #   WASI_INCLUDE=$(brew --prefix wasi-libc)/share/wasi-sysroot/include/wasm32-wasi
 ./playground/build.sh
 python3 -m http.server -d playground 8000
@@ -35,8 +36,9 @@ clicks.
 
 ## Limits
 
-- `run` uses the interpreter. Programs that read the real clock trap: wasm32 has no
-  `SystemTime`. A run that takes longer than 10 s is stopped.
-- core-math's C calls to `fenv.h` and stdio are stubbed in `worker.js`; wasm has only
-  round-to-nearest, so results match native builds.
+- `run` uses the interpreter. There is no file system, and programs that start threads do not run
+  yet. A run that takes longer than 10 s is stopped.
+- wasm has only round-to-nearest, so core-math's results match native builds.
+- Share copies a link that carries the program in its fragment: `#<surface>/<base64url of raw
+  deflate>`. The site's tour links use the same format (`tools/site.py`).
 - `examples.js` holds programs from `conformance/` with their header comments dropped.
