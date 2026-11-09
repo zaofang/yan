@@ -591,7 +591,14 @@ impl V {
                 self.consume(&s.kind, next, at, false);
                 self.block(body, &[]);
             }
-            StmtKind::Par { blocks, .. } => blocks.iter().for_each(|b| self.block(b, &[])),
+            // Branch bindings stay visible after the `par`: they belong to the enclosing scope.
+            StmtKind::Par { blocks, .. } => blocks.iter().for_each(|b| {
+                for (i, s) in b.stmts.iter().enumerate() {
+                    if self.st.is_some() {
+                        self.stmt(s, b.stmts.get(i + 1));
+                    }
+                }
+            }),
             StmtKind::Assert(_) | StmtKind::Asm { .. } => {}
         }
     }
