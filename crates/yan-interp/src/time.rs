@@ -386,6 +386,11 @@ pub(crate) fn timeout() -> Value {
 /// `fixed_time` or `virtual` handlers every such clock advances to the deadline.
 pub(crate) fn wait_out(it: &mut Interp) -> Option<Value> {
     let d = it.deadline?;
+    Some(wait_until(it, d))
+}
+
+/// Wait until `d`, then fail `Timeout`.
+pub(crate) fn wait_until(it: &mut Interp, d: i128) -> Value {
     if it.clocks.is_empty() {
         let now = START.elapsed().as_nanos() as i128;
         if d > now {
@@ -394,7 +399,7 @@ pub(crate) fn wait_out(it: &mut Interp) -> Option<Value> {
     } else {
         it.clocks.iter_mut().for_each(|c| *c = (*c).max(d));
     }
-    Some(timeout())
+    timeout()
 }
 
 /// The host time left before the enclosing deadline, for host I/O that can be cut short. Under

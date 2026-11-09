@@ -105,6 +105,8 @@ struct Lower<'a, 'c, 's> {
     in_unsafe: bool,
     /// Lowering `gpu.launch`, the one place a `TileOrigin` is built and a kernel called.
     in_launch: bool,
+    /// The handle a message of `actor.send` calls through, which may be a `SendOnly` (R975).
+    sent_through: Option<String>,
     /// Stage-0 names: an instance's `Nat` parameters and `#for` targets (10.4).
     stage: Vec<(String, Sv)>,
     /// Optional locals narrowed by an `is None` test (R285): the source name, the local
@@ -810,6 +812,7 @@ fn function_body_with(
         n: 0,
         in_become: false,
         in_launch: false,
+        sent_through: None,
         keyworded_from: None,
         dict_places: Vec::new(),
         last_use: last_use::LastUse::new(&body.stmts),

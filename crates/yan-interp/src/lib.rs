@@ -251,6 +251,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             actors: Vec::new(),
             sups: Default::default(),
             actor_waits: Vec::new(),
+            wait_since: Vec::new(),
             doomed: Vec::new(),
             net: Default::default(),
             test: false,
@@ -383,6 +384,8 @@ pub(crate) struct Interp<'o> {
     sups: supervise::Sups,
     /// The tasks parked on a busy actor, by task path, and the actor each waits for (RFC 0056 D6).
     actor_waits: Vec<(Vec<usize>, usize)>,
+    /// When each task waiting on an actor began to wait, for the 5 s default deadline (9.6).
+    wait_since: Vec<(Vec<usize>, i128)>,
     /// Parked callers that a wait cycle chose to fail `Deadlock` when they next retry (D6).
     doomed: Vec<Vec<usize>>,
     /// Every `mem_net` network, listener and stream end.
@@ -650,6 +653,7 @@ fn entry(
         actors: Vec::new(),
         sups: Default::default(),
         actor_waits: Vec::new(),
+        wait_since: Vec::new(),
         doomed: Vec::new(),
         net: Default::default(),
         test: limits.is_some(),

@@ -9,7 +9,7 @@ use yan_std::registry::{Id, id::*};
 
 use super::bind::{Bind, bad_args};
 use super::supervise::{self, Child, Restart};
-use super::time::wait_out;
+use super::time::{mono_now, wait_out, wait_until};
 use super::vm::{Clo, Vm};
 use super::{Interp, R, Value, data, panic, unsupported};
 
@@ -48,6 +48,15 @@ fn blocked(it: &mut Interp, op: &str, chan: usize) -> R<Result<Value, Value>> {
     }
 }
 
+/// A wait that cannot park leaves nothing else to run, so an idle actor runs a queued message
+/// first, as it would at `par concurrent` quiescence (RFC 0056 D4); whether one ran.
+fn idle_ran(vm: &mut Vm) -> R<bool> {
+    if vm.it.park_ok && !vm.it.force {
+        return Ok(false);
+    }
+    run_idle(vm)
+}
+
 /// In a cancelled task a blocking operation fails `Cancelled` (9.4).
 fn cancelled(it: &Interp) -> Option<Value> {
     it.cancel.iter().any(|c| *c).then(|| Value::Data {
@@ -56,25 +65,35 @@ fn cancelled(it: &Interp) -> Option<Value> {
     })
 }
 
+/// What a send to a full mailbox does (R974).
+#[derive(Clone, Copy, PartialEq)]
+enum Policy {
+    Block,
+    DropOldest,
+    DropNew,
+    Reject,
+}
+
 /// A local actor (RFC 0056 D5): its state, `None` while a handler holds it, and its mailbox of
-/// sent messages, each a closure that makes the handler call.
+/// sent messages, each a closure that makes the handler call and the arguments it takes.
 pub(crate) struct Actor {
     state: Option<Value>,
     capacity: usize,
-    mail: VecDeque<Rc<Clo>>,
+    policy: Policy,
+    mail: VecDeque<(Rc<Clo>, Value)>,
     /// A queued message is running, so the actor takes no other from its mailbox.
     running: bool,
     /// The task path of the handler holding the state, while one does.
     holder: Option<Vec<usize>>,
-    /// Stopped by a failed handler or its supervisor, and not restarted.
-    stopped: bool,
+    /// Why a failed handler or its supervisor stopped it, until it restarts (R977).
+    stopped: Option<Value>,
     child: Child,
 }
 
 impl Actor {
     /// Its queue is dropped and its state with it (R813).
-    pub(crate) fn stop(&mut self) {
-        self.stopped = true;
+    pub(crate) fn stop(&mut self, reason: Value) {
+        self.stopped = Some(reason);
         self.state = None;
         self.holder = None;
         self.mail.clear();
@@ -86,7 +105,7 @@ impl Actor {
 
     /// A restart starts from `state` with an empty mailbox (R813, R958).
     pub(crate) fn restart_with(&mut self, state: Value) {
-        self.stopped = false;
+        self.stopped = None;
         self.state = Some(state);
     }
 }
@@ -98,6 +117,7 @@ pub(crate) fn spawn(
     cap: i128,
     restart: Restart,
     start: Option<Rc<Clo>>,
+    policy: i128,
 ) -> R<Value> {
     if cap < 1 {
         return panic("precondition `capacity >= 1` of `spawn` failed");
@@ -107,33 +127,61 @@ pub(crate) fn spawn(
     it.actors.push(Actor {
         state: Some(state),
         capacity: cap as usize,
+        policy: match policy {
+            1 => Policy::DropOldest,
+            2 => Policy::DropNew,
+            3 => Policy::Reject,
+            _ => Policy::Block,
+        },
         mail: VecDeque::new(),
         running: false,
         holder: None,
-        stopped: false,
+        stopped: None,
         child,
     });
     Ok(end("Actor", id))
 }
 
-/// A send to a stopped actor fails `Stopped` (9.6), which no send fail type carries yet.
-fn stopped_send<T>() -> R<T> {
-    unsupported("a send to a stopped actor, before sends have a fail type")
+/// `Stopped(reason)` (R977).
+fn stopped(reason: &Value) -> Value {
+    Value::Data {
+        name: "Stopped".into(),
+        fields: vec![("reason".into(), reason.clone())],
+    }
+}
+
+/// `Crashed(error)`: the shown text of a handler's failure (R977).
+pub(crate) fn crashed(e: &Value) -> Value {
+    Value::Data {
+        name: "Crashed".into(),
+        fields: vec![(
+            "error".into(),
+            Value::Str(super::prelude::show(e, false).into()),
+        )],
+    }
+}
+
+/// A failed send gives back its arguments (R976).
+fn undelivered(reason: Value, args: Value) -> Value {
+    Value::Data {
+        name: "Undelivered".into(),
+        fields: vec![("reason".into(), reason), ("args".into(), args)],
+    }
 }
 
 /// Run actor `id`'s oldest queued message if the actor is idle; whether one ran.
 fn run_queued(vm: &mut Vm, id: usize) -> R<bool> {
     let a = &mut vm.it.actors[id];
-    if a.running || a.state.is_none() || a.stopped {
+    if a.running || a.state.is_none() || a.stopped.is_some() {
         return Ok(false);
     }
-    let Some(m) = a.mail.pop_front() else {
+    let Some((m, args)) = a.mail.pop_front() else {
         return Ok(false);
     };
     a.running = true;
     // The message runs under this std frame, so it cannot park; the caller still may.
     let park_ok = vm.it.park_ok;
-    let r = vm.apply(&m, Vec::new());
+    let r = vm.apply(&m, vec![args]);
     vm.it.park_ok = park_ok;
     vm.it.actors[id].running = false;
     vm.it.progress += 1;
@@ -150,41 +198,51 @@ pub(crate) fn run_idle(vm: &mut Vm) -> R<bool> {
     Ok(false)
 }
 
-/// A full mailbox of a busy actor: the sender waits as for a full channel, keyed apart from
-/// channels (R959).
-fn wait_busy(it: &mut Interp, id: usize) -> R<Value> {
+/// Task `me` waits on actor `id`, keyed apart from channels (R959): it parks where it can.
+/// Where it cannot, the call deadline ends the wait with `Timeout`: the enclosing scope's, or
+/// 5 s after the wait began (9.6). `None` means it parked.
+fn wait(it: &mut Interp, id: usize, me: &[usize], what: &str) -> R<Option<Value>> {
     if it.park_ok && !it.force {
-        it.park = Some((false, usize::MAX - 1 - id));
-        return Ok(Value::Unit);
-    }
-    if it.force || it.in_par == 0 {
-        return panic("deadlock");
-    }
-    unsupported("a send that waits on a busy actor, in the interpreter")
-}
-
-/// Another handler holds actor `id`: the caller `me` parks until it is free. Where it cannot
-/// park, the enclosing deadline ends the wait with `Timeout` (R397).
-fn wait_call(it: &mut Interp, id: usize, me: Vec<usize>) -> R<Value> {
-    if it.park_ok && !it.force {
-        if !it.actor_waits.iter().any(|(p, _)| *p == me) {
-            it.actor_waits.push((me, id));
+        if !it.wait_since.iter().any(|(p, _)| p == me) {
+            let now = mono_now(it);
+            it.wait_since.push((me.to_vec(), now));
         }
         it.park = Some((false, usize::MAX - 1 - id));
-        return Ok(Value::Unit);
+        return Ok(None);
     }
-    unwait(it, &me);
-    if let Some(t) = wait_out(it) {
-        return Ok(data("Err", "error", t));
+    let since = it.wait_since.iter().find(|(p, _)| p == me).map(|w| w.1);
+    let d = match it.deadline {
+        Some(d) => d,
+        None if it.force || it.in_par == 0 => {
+            since.unwrap_or_else(|| mono_now(it)) + DEFAULT_DEADLINE
+        }
+        None => {
+            return unsupported(format!(
+                "{what} that waits on a busy actor, in the interpreter"
+            ));
+        }
+    };
+    unwait(it, me);
+    Ok(Some(wait_until(it, d)))
+}
+
+/// The deadline of a `call` or a `Block` send outside every deadline scope (9.6).
+const DEFAULT_DEADLINE: i128 = 5_000_000_000;
+
+/// Another handler holds actor `id`: the caller `me` waits until it is free (R397).
+fn wait_call(it: &mut Interp, id: usize, me: Vec<usize>) -> R<Value> {
+    if it.park_ok && !it.force && !it.actor_waits.iter().any(|(p, _)| *p == me) {
+        it.actor_waits.push((me.clone(), id));
     }
-    if it.force || it.in_par == 0 {
-        return panic("deadlock");
-    }
-    unsupported("a handler call that waits on a busy actor, in the interpreter")
+    Ok(match wait(it, id, &me, "a handler call")? {
+        Some(t) => data("Err", "error", t),
+        None => Value::Unit,
+    })
 }
 
 fn unwait(it: &mut Interp, me: &[usize]) {
     it.actor_waits.retain(|(p, _)| p != me);
+    it.wait_since.retain(|(p, _)| p != me);
 }
 
 /// The state goes back to actor `id` after a handler ran.
@@ -212,7 +270,7 @@ fn cycle(it: &Interp, me: &[usize], id: usize) -> Option<Vec<usize>> {
     None
 }
 
-fn failure(name: &str) -> Value {
+pub(crate) fn failure(name: &str) -> Value {
     Value::Data {
         name: name.into(),
         fields: Vec::new(),
@@ -224,11 +282,26 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_ACTOR_SPAWN,
         Bind::Cap(|it, a| match a {
             [state, Value::Int(cap)] => {
-                spawn(it, std::mem::take(state), *cap, Restart::Temporary, None)
+                spawn(it, std::mem::take(state), *cap, Restart::Temporary, None, 0)
             }
             _ => bad_args(STD_ACTOR_SPAWN),
         }),
     ),
+    (
+        STD_ACTOR_SPAWN_AS,
+        Bind::Cap(|it, a| match a {
+            [state, Value::Int(cap), Value::Int(policy)] => spawn(
+                it,
+                std::mem::take(state),
+                *cap,
+                Restart::Temporary,
+                None,
+                *policy,
+            ),
+            _ => bad_args(STD_ACTOR_SPAWN_AS),
+        }),
+    ),
+    (STD_ACTOR_SEND_ONLY, Bind::Plain(|a| Ok(a[0].clone()))),
     (
         STD_ACTOR_TAKE,
         Bind::Vm(|vm, _, a| {
@@ -241,9 +314,10 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             }
             // A call is a barrier: the actor runs every message queued before it (R813).
             while run_queued(vm, id)? {}
-            if vm.it.actors[id].stopped {
+            if let Some(r) = &vm.it.actors[id].stopped {
+                let e = stopped(r);
                 unwait(&mut vm.it, &me);
-                return Ok(data("Err", "error", failure("Stopped")));
+                return Ok(data("Err", "error", e));
             }
             if let Some(s) = vm.it.actors[id].state.take() {
                 vm.it.actors[id].holder = Some(me.clone());
@@ -266,22 +340,47 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_ACTOR_SEND,
-        Bind::Vm(|vm, _, a| {
+        Bind::VmFallible(|vm, a| {
             let id = chan(&a[0]);
-            if vm.it.actors[id].stopped {
-                return stopped_send();
+            if let Some(r) = &vm.it.actors[id].stopped {
+                let e = stopped(r);
+                return Ok(Err(undelivered(e, std::mem::take(&mut a[1]))));
             }
-            let Value::Closure(m) = std::mem::take(&mut a[1]) else {
+            let full = |it: &Interp| it.actors[id].mail.len() >= it.actors[id].capacity;
+            if full(&vm.it) {
+                match vm.it.actors[id].policy {
+                    Policy::Reject => {
+                        return Ok(Err(undelivered(failure("Full"), std::mem::take(&mut a[1]))));
+                    }
+                    Policy::DropNew => return Ok(Ok(Value::Unit)),
+                    Policy::DropOldest => {
+                        vm.it.actors[id].mail.pop_front();
+                    }
+                    // A full mailbox parks a `Block` sender, so the actor runs its oldest
+                    // message first; waiting is a cancellation point (9.6).
+                    Policy::Block => {
+                        if let Some(c) = cancelled(&vm.it) {
+                            return Ok(Err(undelivered(c, std::mem::take(&mut a[1]))));
+                        }
+                        if !run_queued(vm, id)? {
+                            let me = vm.task_path.clone();
+                            return Ok(match wait(&mut vm.it, id, &me, "a send")? {
+                                Some(t) => Err(undelivered(t, std::mem::take(&mut a[1]))),
+                                None => Ok(Value::Unit),
+                            });
+                        }
+                    }
+                }
+            }
+            let me = vm.task_path.clone();
+            unwait(&mut vm.it, &me);
+            let Value::Closure(m) = std::mem::take(&mut a[2]) else {
                 return bad_args(STD_ACTOR_SEND);
             };
-            let full = |it: &Interp| it.actors[id].mail.len() >= it.actors[id].capacity;
-            // A full mailbox parks a `block` sender, so the actor runs its oldest message first.
-            if full(&vm.it) && !run_queued(vm, id)? {
-                return wait_busy(&mut vm.it, id);
-            }
-            vm.it.actors[id].mail.push_back(m);
+            let args = std::mem::take(&mut a[1]);
+            vm.it.actors[id].mail.push_back((m, args));
             vm.it.progress += 1;
-            Ok(Value::Unit)
+            Ok(Ok(Value::Unit))
         }),
     ),
     (
@@ -299,8 +398,10 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             let outcome = std::mem::take(&mut a[2]);
             // A failed handler may have left the state half updated, so it stops the actor;
             // the caller still gets the failure (RFC 0060 D3).
-            if matches!(&outcome, Value::Data { name, .. } if name == "Err") {
-                supervise::crash(vm, id)?;
+            if let Value::Data { name, fields } = &outcome
+                && name == "Err"
+            {
+                supervise::crash(vm, id, crashed(&fields[0].1))?;
             }
             Ok(outcome)
         }),
@@ -332,17 +433,19 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_CHAN_RECEIVER_RECV,
-        Bind::CapFallible(|it, a| {
-            if let Some(e) = cancelled(it) {
-                return Ok(Err(e));
-            }
+        Bind::VmFallible(|vm, a| {
             let c = chan(&a[0]);
-            match it.chans[c].1.pop_front() {
-                Some(v) => {
-                    it.progress += 1;
-                    Ok(Ok(v))
+            loop {
+                if let Some(e) = cancelled(&vm.it) {
+                    return Ok(Err(e));
                 }
-                None => blocked(it, "recv", c),
+                if let Some(v) = vm.it.chans[c].1.pop_front() {
+                    vm.it.progress += 1;
+                    return Ok(Ok(v));
+                }
+                if !idle_ran(vm)? {
+                    return blocked(&mut vm.it, "recv", c);
+                }
             }
         }),
     ),
@@ -352,25 +455,29 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_CHAN_SENDER_SEND,
-        Bind::CapFallible(|it, a| {
-            if let Some(e) = cancelled(it) {
-                return Ok(Err(e));
-            }
+        Bind::VmFallible(|vm, a| {
             let c = chan(&a[0]);
-            let (cap, q) = &mut it.chans[c];
-            // A rendezvous channel hands over only to a receiver already waiting.
-            let room = if *cap == 0 {
-                let waiting = it.waiting_recv.iter().filter(|w| **w == c).count();
-                q.len() < waiting
-            } else {
-                q.len() < *cap
-            };
-            if room {
-                q.push_back(std::mem::take(&mut a[1]));
-                it.progress += 1;
-                Ok(Ok(Value::Unit))
-            } else {
-                blocked(it, "send", c)
+            loop {
+                let it = &mut vm.it;
+                if let Some(e) = cancelled(it) {
+                    return Ok(Err(e));
+                }
+                let (cap, q) = &mut it.chans[c];
+                // A rendezvous channel hands over only to a receiver already waiting.
+                let room = if *cap == 0 {
+                    let waiting = it.waiting_recv.iter().filter(|w| **w == c).count();
+                    q.len() < waiting
+                } else {
+                    q.len() < *cap
+                };
+                if room {
+                    q.push_back(std::mem::take(&mut a[1]));
+                    it.progress += 1;
+                    return Ok(Ok(Value::Unit));
+                }
+                if !idle_ran(vm)? {
+                    return blocked(&mut vm.it, "send", c);
+                }
             }
         }),
     ),
