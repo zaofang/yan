@@ -1,0 +1,11 @@
+-- spec: 8.1
+-- note: a main failing with a four-field record reports it and exits 1 (#900); stderr is `Big(a=1, b=2, c='x', d=4)`
+-- stdout:
+-- start
+-- exit: 1
+
+type Big = { a: int, b: int, c: str, d: int }
+
+main() fail Big =
+  io.print("start")
+  fail Big(a: 1, b: 2, c: "x", d: 4)

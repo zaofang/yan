@@ -174,14 +174,21 @@ impl<'a, 'm> Fn<'a, 'm> {
                     return unsupported("`settle` without its result");
                 };
                 let h = self.scalar1(h)?;
-                self.put(h.clone(), state)?;
+                let buf = self.state_buf(state)?;
+                let stops = self.rt(RtFn::ActorGive, I64, vec![h.clone(), buf.clone()]);
+                self.free(RtFn::EnvFree, buf);
                 let (v, s) = self.atom_any(outcome)?;
                 let Some((_, err_at, err)) = s.variant("Err") else {
                     return unsupported("a handler outcome that is not a `Result`");
                 };
                 let e = err[0].1.clone();
                 let failed = self.scalar_op(ScalarOp::Eq, I64, vec![v[0].clone(), Operand::Int(1)]);
-                let (crash, on) = self.branch(failed);
+                let (check, on) = self.branch(failed);
+                self.cur = check;
+                let stops = self.scalar_op(ScalarOp::Eq, I64, vec![stops, Operand::Int(1)]);
+                let (crash, kept) = self.branch(stops);
+                self.cur = kept;
+                self.goto(on);
                 self.cur = crash;
                 // A failed handler stops its actor `Crashed` with the failure's text (R977).
                 let text = self.show(&v[err_at..err_at + e.width()], &e, false)?;
@@ -194,6 +201,21 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.restarts();
                 self.goto(on);
                 self.widen(&v, &s, d)?;
+            }
+            (id::STD_ACTOR_LEND, [(_, h), (_, state)]) => {
+                let h = self.scalar1(h)?;
+                let buf = self.state_buf(state)?;
+                let since = self.rt(RtFn::ActorLend, I64, vec![h, buf.clone()]);
+                self.free(RtFn::EnvFree, buf);
+                if let Some(d) = dst {
+                    self.copy_to(&d.locals, vec![since]);
+                }
+            }
+            (id::STD_ACTOR_RETAKE, [(_, h), (_, since), (_, state)]) => {
+                let Some(d) = dst else {
+                    return unsupported("`retake` without its result");
+                };
+                self.retake(h, since, state, d)?;
             }
             (id::STD_ACTOR_REPLY, [(_, outcome)]) => {
                 let (v, s) = self.atom_any(outcome)?;
@@ -233,6 +255,18 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     fn put(&mut self, h: Operand, state: &y::Atom) -> R<()> {
+        let buf = self.state_buf(state)?;
+        self.emit(Inst::Rt {
+            dst: None,
+            f: RtFn::ActorPut,
+            args: vec![h, buf.clone()],
+        });
+        self.free(RtFn::EnvFree, buf);
+        Ok(())
+    }
+
+    /// A new block holding the slots of `state`, for yan-rt to copy.
+    fn state_buf(&mut self, state: &y::Atom) -> R<Operand> {
         let (v, _) = self.atom_any(state)?;
         let buf = self.rt(
             RtFn::Alloc,
@@ -240,12 +274,42 @@ impl<'a, 'm> Fn<'a, 'm> {
             vec![Operand::Int(v.len().max(1) as i128)],
         );
         self.write(&At::Mem(buf.clone(), 0), v);
-        self.emit(Inst::Rt {
-            dst: None,
-            f: RtFn::ActorPut,
-            args: vec![h, buf.clone()],
-        });
-        self.free(RtFn::EnvFree, buf);
+        Ok(buf)
+    }
+
+    /// `retake`: the state back into the `@reentrant` handler's `inout` `state`, then `Ok`, or
+    /// `Err` of why not (9.6).
+    fn retake(&mut self, h: &y::Atom, since: &y::Atom, state: &y::Atom, d: &Var) -> R<()> {
+        let (y::Atom::Name(n, _), Some((_, _, err))) = (state, d.shape.variant("Err")) else {
+            return unsupported("`retake` into a value that is not a name");
+        };
+        let Some(sv) = self.names.get(n).cloned() else {
+            return unsupported("`retake` into an unknown name");
+        };
+        let e = err[0].1.clone();
+        let (h, since) = (self.scalar1(h)?, self.scalar1(since)?);
+        let out = self.rt(
+            RtFn::Alloc,
+            Ty::Ptr,
+            vec![Operand::Int(sv.shape.width().max(1) as i128)],
+        );
+        let st = self.blocking(RtFn::ActorRetake, vec![h.clone(), since, out.clone()]);
+        let join = self.block_new();
+        let (taken, failed) = self.branch_eq(st.clone(), 0);
+        self.cur = taken;
+        let v = self.read(&At::Mem(out.clone(), 0), &sv.shape);
+        self.copy_to(&sv.locals, v);
+        let ok = Self::variant_value(&d.shape, "Ok", Vec::new());
+        self.copy_to(&d.locals, ok);
+        self.goto(join);
+        self.cur = failed;
+        let f = self.failed(st, &h, &e)?;
+        self.copy_to(
+            &d.locals,
+            Self::variant_value(&d.shape, "Err", Self::ops(&f)),
+        );
+        self.goto(join);
+        self.free(RtFn::EnvFree, out);
         Ok(())
     }
 
