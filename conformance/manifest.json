@@ -5059,6 +5059,20 @@
    "exit": 0
   },
   {
+   "path": "yag/run/ownership/par_return_flagged_local.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2",
+    "9.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/ownership/sink_capture_in_branch.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5072,6 +5086,20 @@
    "flags": [],
    "expect": [],
    "stdout": "5\n0\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/try_exit_in_join_point.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2",
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "-1\n",
    "exit": 0
   },
   {
@@ -8796,6 +8824,19 @@
    "exit": 3
   },
   {
+   "path": "yn/run/failure/main_fails_wide_record.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "start\n",
+   "exit": 1
+  },
+  {
    "path": "yn/run/hello.yn",
    "kind": "run",
    "milestone": "M3",
@@ -8808,6 +8849,19 @@
    "flags": [],
    "expect": [],
    "stdout": "hello, world\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/items/module_constants.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "4\nhi!\nTrue\n1.0\n",
    "exit": 0
   },
   {

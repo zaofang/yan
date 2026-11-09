@@ -313,6 +313,7 @@ fn run(
         yn: cx.yn,
         ffi: cx.ffi,
         untrusted: cx.untrusted,
+        tools: false,
     };
     let (core, _, diags) = crate::elaborate_in(cx.file, cx.src, &pre, opts, None)?;
     if diags
