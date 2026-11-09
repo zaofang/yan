@@ -46,7 +46,7 @@ fn render(file: &Path) -> Result<String, ExitCode> {
         Err(msg) => return Err(crate::tool_failure(msg)),
     };
     let raised = raise::raise(m, trivia, &yan_elab::StdInfo)
-        .map_err(|raise::Unraised(what)| crate::tool_failure(&format!("raising {what}")))?
+        .map_err(|e| crate::tool_failure(&format!("raising {e}")))?
         .module;
     module(&raised).map_err(|msg| {
         eprintln!("yan: export: {msg}");
