@@ -1,0 +1,17 @@
+# spec: 4.2
+# rows: R962, R964
+# note: `x` is rebound before the next iteration reads it, so passing it to a `take` parameter moves it (#848)
+
+def g() -> list[int]:
+    return [1]
+
+def h(take xs: list[int]) -> int:
+    return len(xs)
+
+def f() -> int:
+    t = 0
+    x = g()
+    for i in range(3):
+        t += h(x)
+        x = g()
+    return t

@@ -239,6 +239,34 @@
    "expect": []
   },
   {
+   "path": "yag/pass/ownership/move_in_loop_then_return.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R963",
+    "R964"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yag/pass/ownership/rebind_before_next_read.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R962",
+    "R964"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yag/pass/ownership/share.yag",
    "kind": "pass",
    "milestone": "M1",
@@ -2697,6 +2725,26 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e413_bind_in_loop.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1",
+    "R964"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 10,
+     "col": 13
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e413_bind_new_name.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -4976,6 +5024,54 @@
    "flags": [],
    "expect": [],
    "stdout": "3\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/loop_two_breaks_drop_once.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2",
+    "5.3"
+   ],
+   "rows": [
+    "R963"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7\n0\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/match_arm_payload_or_fresh.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2",
+    "5.3"
+   ],
+   "rows": [
+    "R963"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a!\nfresh\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/sink_capture_in_branch.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2",
+    "5.3"
+   ],
+   "rows": [
+    "R963"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "5\n0\n",
    "exit": 0
   },
   {
@@ -8850,6 +8946,35 @@
    "expect": []
   },
   {
+   "path": "yir/pass/linear_released_on_failing_path.yir",
+   "kind": "pass",
+   "milestone": "M0",
+   "spec": [
+    "5.4",
+    "10.6"
+   ],
+   "rows": [
+    "R443",
+    "R963"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yir/pass/loop_move_then_break.yir",
+   "kind": "pass",
+   "milestone": "M0",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R963",
+    "R964"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yir/pass/types.yir",
    "kind": "pass",
    "milestone": "M0",
@@ -9086,6 +9211,26 @@
    ]
   },
   {
+   "path": "yir/fail/e401_move_in_loop.yir",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R963",
+    "R964"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E401",
+     "line": 14,
+     "col": 32
+    }
+   ]
+  },
+  {
    "path": "yir/fail/e401_use_after_move.yir",
    "kind": "fail",
    "milestone": "M0",
@@ -9153,6 +9298,48 @@
      "code": "E406",
      "line": 7,
      "col": 37
+    }
+   ]
+  },
+  {
+   "path": "yir/fail/e412_linear_consumed_on_one_path.yir",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "5.4",
+    "10.6"
+   ],
+   "rows": [
+    "R443",
+    "R963"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E412",
+     "line": 16,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "yir/fail/e412_linear_field_left.yir",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "5.4",
+    "10.6"
+   ],
+   "rows": [
+    "R443",
+    "R963"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E412",
+     "line": 19,
+     "col": 9
     }
    ]
   },

@@ -1,0 +1,22 @@
+-- spec: 5.4, 10.6
+-- rows: R443, R963
+-- note: `h` is consumed on one path only; the other returns with it maybe-owned (#861)
+-- expect: E412 at 16:9
+
+module conf.e412_one_path
+
+@linear
+record H { fd: i64 }
+
+fn close(sink h: H) -> i64 {
+    ret 0
+}
+
+fn f(let c: bool) -> i64 {
+    let h: H = H { fd: 1 }
+    if c {
+        let n: i64 = close(sink h)
+        ret n
+    }
+    ret 0
+}
