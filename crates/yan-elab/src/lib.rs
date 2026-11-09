@@ -239,6 +239,8 @@ pub(crate) struct Globals {
     pub derived: HashSet<(String, String)>,
     /// Functions marked `@deprecated`, for W815.
     pub deprecated: HashSet<String>,
+    /// Functions marked `@reentrant` (9.6).
+    pub reentrant: HashSet<String>,
     pub consts: HashMap<String, Ty>,
     /// The records that come from std rather than the module.
     pub std_records: std::collections::HashSet<String>,
@@ -1050,6 +1052,9 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 first.insert(f.name.clone(), f.name_span);
                 if it.decorators.iter().any(|d| d.path == ["deprecated"]) {
                     g.deprecated.insert(f.name.clone());
+                }
+                if it.decorators.iter().any(|d| d.path == ["reentrant"]) {
+                    g.reentrant.insert(f.name.clone());
                 }
                 if f.name.starts_with("test_")
                     && let Some(b) = &f.body

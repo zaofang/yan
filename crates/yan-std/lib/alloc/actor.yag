@@ -1,5 +1,6 @@
 """Actors (9.6, 17.3): `Actor[S]` owns state `S`; a handle reaches other nodes as `Remote`.
-`take`, `put` and `settle` are the lowering of a handler call `h.f(args)` (R435), not for direct use."""
+`take`, `put`, `settle` and `send` are the lowering of a handler call `h.f(args)` (R435) and of
+`actor.send(h).f(args)` (R813), not for direct use."""
 
 @intrinsic
 @since("1.0")
@@ -20,3 +21,7 @@ pub def put[S](self: Actor[S], state: S) -> None: ...
 @intrinsic
 @since("1.0")
 pub def settle[S, T, E](self: Actor[S], state: S, outcome: Result[T, E]) -> T fail E: ...
+
+@intrinsic
+@since("1.0")
+pub def send[S](self: Actor[S], message: Callable[[], None]) -> None: ...

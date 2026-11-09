@@ -373,8 +373,8 @@ pub(crate) struct Interp<'o> {
     deadline: Option<i128>,
     /// Each channel's capacity and queued values, by channel.
     chans: Vec<(usize, VecDeque<Value>)>,
-    /// Each actor's state, by actor; `None` while a handler holds it (9.6).
-    actors: Vec<Option<Value>>,
+    /// Each actor, by actor (9.6).
+    actors: Vec<sync::Actor>,
     /// Every `mem_net` network, listener and stream end.
     net: net::Nets,
     /// Running under `yan test`, which picks the default handlers (7.3).

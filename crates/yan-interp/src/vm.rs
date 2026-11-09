@@ -20,7 +20,7 @@ pub(crate) struct Clo {
 pub(crate) struct Vm<'o> {
     codes: Vec<Rc<Code>>,
     stack: Vec<Value>,
-    it: Interp<'o>,
+    pub(crate) it: Interp<'o>,
     /// Budgets, with the current depth, the steps taken and the live heap bytes at the
     /// start; none at run time.
     limits: Option<(crate::Limits, usize, u64, usize)>,
