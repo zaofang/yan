@@ -44,6 +44,7 @@ yan-yag = { path = "crates/yan-yag" }
 yan-elab = { path = "crates/yan-elab" }
 yan-yn = { path = "crates/yan-yn" }
 yan-names = { path = "crates/yan-names" }
+yan-flow = { path = "crates/yan-flow" }
 yan-opt = { path = "crates/yan-opt" }
 yan-db = { path = "crates/yan-db" }
 yan-ide = { path = "crates/yan-ide" }
