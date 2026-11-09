@@ -75,7 +75,7 @@ puts the person running the server, not the package author, in charge of authori
 call stays bounded by its signature; (b) lets any package that is installed exercise everything
 it declares; (c) is (b) with an opt-out.
 
-- Decision: (pending, card 2026-11-09)
+- Decision: (a), lead card 2026-11-09
 - Row:
 
 ### D5: trust and budgets
