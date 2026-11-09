@@ -247,6 +247,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             args: Vec::new(),
             deadline: None,
             chans: Vec::new(),
+            actors: Vec::new(),
             net: Default::default(),
             test: false,
             progress: 0,
@@ -372,6 +373,8 @@ pub(crate) struct Interp<'o> {
     deadline: Option<i128>,
     /// Each channel's capacity and queued values, by channel.
     chans: Vec<(usize, VecDeque<Value>)>,
+    /// Each actor's state, by actor; `None` while a handler holds it (9.6).
+    actors: Vec<Option<Value>>,
     /// Every `mem_net` network, listener and stream end.
     net: net::Nets,
     /// Running under `yan test`, which picks the default handlers (7.3).
@@ -634,6 +637,7 @@ fn entry(
         args: argv,
         deadline: None,
         chans: Vec::new(),
+        actors: Vec::new(),
         net: Default::default(),
         test: limits.is_some(),
         progress: 0,

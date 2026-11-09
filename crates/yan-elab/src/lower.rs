@@ -18,6 +18,7 @@ use crate::bounds::{self, Site};
 use crate::ty::Axis;
 use crate::{Cx, Globals, R, Sig, Ty, ffi, unsupported};
 
+mod actor;
 mod args;
 mod arith;
 mod assign;

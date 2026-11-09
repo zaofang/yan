@@ -77,6 +77,12 @@ impl Lower<'_, '_, '_> {
                 };
                 self.cli_call("parse_args", &t, std::slice::from_ref(xs), at, Some(value))
             }
+            j::ExprKind::Attr(m, op, _)
+                if op == "spawn"
+                    && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.locals.contains_key(a)) =>
+            {
+                self.spawn_call(args, at)
+            }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Channel" && !self.locals.contains_key(n)) =>
             {
                 let j::ExprKind::Name(tn) = &k.kind else {

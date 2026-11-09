@@ -1,5 +1,6 @@
 //! std.rc, std.sync, std.chan, std.actor and std.lattice: checked by the elaborator and the Yan Core checker.
-//! The interpreter runs channels on one thread and stops with "not supported" at the rest.
+//! The interpreter runs channels and local actors on one thread and stops with "not supported"
+//! at the rest.
 
 use std::collections::VecDeque;
 
@@ -20,9 +21,9 @@ fn chan(v: &Value) -> usize {
     match v {
         Value::Data { fields, .. } => match fields[0].1 {
             Value::Int(c) => c as usize,
-            _ => unreachable!("a channel end"),
+            _ => unreachable!("a channel end or an actor"),
         },
-        _ => unreachable!("a channel end"),
+        _ => unreachable!("a channel end or an actor"),
     }
 }
 
@@ -53,6 +54,60 @@ fn cancelled(it: &Interp) -> Option<Value> {
 }
 
 pub(super) static BINDS: &[(Id, Bind)] = &[
+    (
+        STD_ACTOR_SPAWN,
+        Bind::Cap(|it, a| match a {
+            [_, Value::Int(cap)] if *cap < 1 => {
+                panic("precondition `capacity >= 1` of `spawn` failed")
+            }
+            [state, Value::Int(_)] => {
+                it.actors.push(Some(std::mem::take(state)));
+                Ok(end("Actor", it.actors.len() - 1))
+            }
+            _ => bad_args(STD_ACTOR_SPAWN),
+        }),
+    ),
+    (
+        STD_ACTOR_TAKE,
+        Bind::Cap(|it, a| {
+            let id = chan(&a[0]);
+            if let Some(s) = it.actors[id].take() {
+                return Ok(s);
+            }
+            // Another task's handler holds the state (it parked): wait for it as for a full
+            // channel, keyed apart from channels (R959).
+            if it.park_ok && !it.force {
+                it.park = Some((false, usize::MAX - 1 - id));
+                return Ok(Value::Unit);
+            }
+            if it.force || it.in_par == 0 {
+                return panic("deadlock");
+            }
+            unsupported("a handler call that waits on a busy actor, in the interpreter")
+        }),
+    ),
+    (
+        STD_ACTOR_PUT,
+        Bind::Cap(|it, a| {
+            it.actors[chan(&a[0])] = Some(std::mem::take(&mut a[1]));
+            it.progress += 1;
+            Ok(Value::Unit)
+        }),
+    ),
+    (
+        STD_ACTOR_SETTLE,
+        Bind::CapFallible(|it, a| {
+            it.actors[chan(&a[0])] = Some(std::mem::take(&mut a[1]));
+            it.progress += 1;
+            match std::mem::take(&mut a[2]) {
+                Value::Data { name, mut fields } => {
+                    let v = fields.pop().expect("a result payload").1;
+                    Ok(if name == "Ok" { Ok(v) } else { Err(v) })
+                }
+                _ => bad_args(STD_ACTOR_SETTLE),
+            }
+        }),
+    ),
     (
         STD_ACTOR_SHARE,
         Bind::Plain(|_| unsupported("`std.actor.share` in the interpreter")),
