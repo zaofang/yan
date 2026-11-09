@@ -1,8 +1,8 @@
 //! Affine index proof for `@access` claims on kernel bodies (RFC 0055 D2, D3, R954, R955).
 //!
 //! A small index IR is reduced to the 8.6 `Lin` form and every access is decided against its
-//! operand's region by the 8.6 Fourier-Motzkin solver (`bounds::unsat`). Reached only from its
-//! tests until the `@kernel` surface lowers to this IR (RFC 0055 D4, stage 2).
+//! operand's region by the 8.6 Fourier-Motzkin solver (`bounds::unsat`). `kernel` lowers `@kernel`
+//! bodies to this IR (RFC 0055 D4, stage 2).
 
 use std::collections::{BTreeMap, HashMap};
 
