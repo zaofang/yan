@@ -96,6 +96,32 @@ pub(crate) fn waiting(c: usize) -> usize {
     with(|st| st.waiting_recv.iter().filter(|w| **w == c).count())
 }
 
+/// The running task's path (R398): the index of the running task of each block from the
+/// outermost in.
+pub(crate) fn path() -> Vec<usize> {
+    with(|st| {
+        let mut p = Vec::new();
+        let mut at = st.cur;
+        while let Some(h) = at {
+            let b = st.blocks[h].as_ref().expect("a live par block");
+            p.extend(b.running);
+            at = b.parent;
+        }
+        p.reverse();
+        p
+    })
+}
+
+/// A block runs a task although every task is parked.
+pub(crate) fn forced() -> bool {
+    with(|st| st.force.is_some())
+}
+
+/// No `par concurrent` block is running.
+pub(crate) fn idle() -> bool {
+    with(|st| st.blocks.iter().all(Option::is_none))
+}
+
 /// Park the running task on `p`; false when it cannot park (outside a task, or forced).
 pub(crate) fn park(p: Park, in_task: bool) -> bool {
     with(|st| {
@@ -172,8 +198,8 @@ pub extern "C" fn yan_rt_par_cancel(h: u64) -> u64 {
 }
 
 /// Account for the step of block `h` that just ended, then the task to run next: the task
-/// count when every task is done, or one past it when every task is parked and the block
-/// yields to its enclosing task.
+/// count when every task is done, one past it when every task is parked and the block yields
+/// to its enclosing task, or two past it to run an idle actor's message first.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
     with(|st| {
@@ -217,6 +243,13 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
             .tasks
             .iter()
             .position(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)));
+        // No task can progress: an idle actor runs a queued message, as an actor task would
+        // (RFC 0056 D4), and the parked tasks retry.
+        if pick.is_none() && crate::actor::idle_ready() {
+            let n = b.tasks.len() as u64;
+            st.cur = parent;
+            return n + 2;
+        }
         let (i, forced) = match pick {
             Some(i) => (i, false),
             None if b.can_yield && !inherited => {

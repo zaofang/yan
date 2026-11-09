@@ -221,10 +221,8 @@ impl<'a> Lower<'a> {
     }
 
     /// A join point's body is entered only by its jumps and falls through to the end of the
-    /// block that declares it. Every jump must leave the locals as they were where the join
-    /// point is declared (the check of the optimized text holds `drops` to it), so the body is
-    /// entered from there. In a `par` branch (`hoisted`) the body declares into the enclosing
-    /// scope.
+    /// block that declares it, so what its body owns is the meet of its jumps. In a `par` branch
+    /// (`hoisted`) the body declares into the enclosing scope.
     fn seq(&mut self, b: &'a Block, hoisted: bool) {
         let declared: Vec<(&Name, Option<Node>)> = b
             .stmts
@@ -247,7 +245,6 @@ impl<'a> Lower<'a> {
             let from = self.cur;
             let resume = self.branch(from);
             let entry = self.jps[name];
-            self.cfg.edge(from, entry);
             self.cur = entry;
             self.mark(Key::Join(addr(s)));
             if hoisted {
@@ -404,10 +401,11 @@ impl<'a> Lower<'a> {
                 self.jump(target);
             }
             StmtKind::Jump { name, .. } => {
-                if let Some(&n) = self.jps.get(name) {
+                let target = self.jps.get(name).copied();
+                if let Some(n) = target {
                     self.jumped.insert(n);
                 }
-                self.jump(None);
+                self.jump(target);
             }
             StmtKind::Ret(_) | StmtKind::Become(_) => self.jump(Some(self.exit)),
             StmtKind::Fail(_) => self.jump(Some(self.failed)),

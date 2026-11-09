@@ -43,6 +43,28 @@ fn field(g: &Globals, f: &Field, todo: &mut Vec<String>) -> Option<J> {
 pub(crate) fn schema(g: &Globals, root: &Ty) -> Option<String> {
     let mut todo = Vec::new();
     let root = ty(g, root, &mut todo)?;
+    let defs = defs(g, todo)?;
+    Some(json!({"root": root, "defs": defs}).to_string())
+}
+
+/// The schema of a served tool (RFC 0062): its parameters as the record `$args`, and its
+/// result, `"unit"` for none. `Err` names the first parameter or result with no json form.
+pub(crate) fn tool(g: &Globals, params: &[Field], ret: &Ty) -> Result<J, String> {
+    let mut todo = Vec::new();
+    let mut fs = Vec::new();
+    for p in params {
+        fs.push(field(g, p, &mut todo).ok_or_else(|| format!("parameter `{}: {}`", p.name, p.ty))?);
+    }
+    let ret = match ret {
+        Ty::Unit => json!("unit"),
+        t => ty(g, t, &mut todo).ok_or_else(|| format!("result `{t}`"))?,
+    };
+    let mut defs = defs(g, todo).ok_or("a type it reaches")?;
+    defs.insert("$args".into(), json!({"rec": fs}));
+    Ok(json!({"args": {"named": "$args"}, "ret": ret, "defs": defs}))
+}
+
+fn defs(g: &Globals, mut todo: Vec<String>) -> Option<serde_json::Map<String, J>> {
     let mut defs = serde_json::Map::new();
     while let Some(n) = todo.pop() {
         if defs.contains_key(&n) {
@@ -68,5 +90,5 @@ pub(crate) fn schema(g: &Globals, root: &Ty) -> Option<String> {
         };
         defs.insert(n.clone(), g.with_wire_opts(&n, def));
     }
-    Some(json!({"root": root, "defs": defs}).to_string())
+    Some(defs)
 }
