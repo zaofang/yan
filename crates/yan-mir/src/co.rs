@@ -369,7 +369,7 @@ impl Cx {
 
 fn succs(t: &Term) -> Vec<BlockId> {
     match t {
-        Term::Jump(b) | Term::Suspend { resume: b } => vec![*b],
+        Term::Jump(b) | Term::Suspend { resume: b } | Term::Unwind { drops: b } => vec![*b],
         Term::Branch { then, els, .. } => vec![*then, *els],
         Term::Switch { targets, .. } => targets.clone(),
         Term::Par { tasks, join } => tasks.iter().copied().chain([*join]).collect(),
@@ -390,7 +390,7 @@ fn swap_targets(t: &mut Term, a: BlockId, b: BlockId) {
         }
     };
     match t {
-        Term::Jump(x) | Term::Suspend { resume: x } => sw(x),
+        Term::Jump(x) | Term::Suspend { resume: x } | Term::Unwind { drops: x } => sw(x),
         Term::Branch { then, els, .. } => {
             sw(then);
             sw(els);
@@ -457,6 +457,7 @@ fn shift_term(t: &mut Term) {
         Term::Jump(_)
         | Term::Par { .. }
         | Term::Suspend { .. }
+        | Term::Unwind { .. }
         | Term::TaskEnd
         | Term::Panic(_) => {}
     }
@@ -504,6 +505,7 @@ fn term_uses(t: &Term) -> Vec<Local> {
         Term::Jump(_)
         | Term::Par { .. }
         | Term::Suspend { .. }
+        | Term::Unwind { .. }
         | Term::TaskEnd
         | Term::Panic(_) => Vec::new(),
     }

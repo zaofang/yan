@@ -144,6 +144,8 @@ pub enum Inst {
 pub enum RtFn {
     /// `(Str)`
     Print,
+    /// `(Str)`: the shown failure of `main` on stderr, then exit status 1; does not return.
+    FailMain,
     /// `() -> Str`, a null pointer at end of input
     ReadLine,
     /// `() -> Str`
@@ -363,7 +365,7 @@ pub enum Term {
         kind: &'static str,
         fields: Vec<(Operand, Operand)>,
     },
-    /// The branches of a `par concurrent` as tasks, then `join`. This and the next two exist
+    /// The branches of a `par concurrent` as tasks, then `join`. This and the next three exist
     /// only between lowering and the task transform (RFC 0043).
     Par {
         tasks: Vec<BlockId>,
@@ -375,6 +377,11 @@ pub enum Term {
     },
     /// The running task's branch ended.
     TaskEnd,
+    /// The running task leaves the function, and if the block keeps its result (R394) the block
+    /// continues at `drops` once every task ended: the drops of the enclosing frame, run once.
+    Unwind {
+        drops: BlockId,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -400,8 +407,7 @@ pub struct Func {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Program {
     pub funcs: Vec<Func>,
+    /// Takes no arguments and returns `unit`: a failing `main` is wrapped (`lower/entry.rs`).
     pub main: FuncId,
-    /// `main` returns a `Result`, whose tag is its first slot; `Err` exits with status 1.
-    pub main_fails: bool,
     pub strings: Vec<String>,
 }

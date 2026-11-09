@@ -175,7 +175,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     /// resumes. It can park inside a task, or anywhere in a coroutine variant (`co`).
     /// Its status: 0, or 2 when the task is cancelled (9.4).
     pub(super) fn blocking(&mut self, f: RtFn, mut args: Vec<Operand>) -> Operand {
-        args.push(Operand::Int(i128::from(self.tasks > 0)));
+        args.push(Operand::Int(i128::from(!self.task_starts.is_empty())));
         let op = self.block_new();
         self.goto(op);
         let st = self.rt(f, I64, args);
@@ -351,10 +351,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         let (ok, err) = self.branch(is_ok);
         self.cur = err;
         let ev = v[err_at..err_at + e.width()].to_vec();
-        for n in drops {
-            self.drop_name(n);
-        }
-        self.exit_kind(&e, &ev);
+        self.unwind(drops, Some((&e, &ev)));
         self.ret(Self::variant_value(&mine, "Err", ev));
         self.cur = ok;
         Ok(v[ok_at..ok_at + want.width()].to_vec())

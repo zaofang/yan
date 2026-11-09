@@ -48,6 +48,11 @@ pub(crate) fn walk(f: &Func) -> Walk {
                 work.extend(tasks.iter().enumerate().map(|(k, t)| (*t, Some((r, k)))));
             }
             Term::Suspend { resume } => work.push((*resume, ctx)),
+            // The frame's drops run where the block's own return leaves.
+            Term::Unwind { drops } => {
+                let (r, _) = ctx.expect("`Unwind` is in a task");
+                work.push((*drops, owner[regions[r].par as usize]));
+            }
             Term::Jump(t) => work.push((*t, ctx)),
             Term::Branch { then, els, .. } => work.extend([(*then, ctx), (*els, ctx)]),
             Term::Switch { targets, .. } => work.extend(targets.iter().map(|t| (*t, ctx))),
@@ -121,6 +126,9 @@ pub fn split(f: &mut Func, co: bool, ret: &[Ty]) {
     let mut handles = Vec::new();
     let mut pending = Vec::new();
     let mut results: Vec<Vec<Local>> = Vec::new();
+    // Per region: which target of `leave` the kept result takes, and `leave`.
+    let mut sites = Vec::new();
+    let mut leaves = Vec::new();
     for r in &regions {
         let n = r.tasks.len();
         let can_yield = co || r.parent.is_some();
@@ -149,14 +157,17 @@ pub fn split(f: &mut Func, co: bool, ret: &[Ty]) {
             ),
         );
         let p = new_local(f);
-        push(
-            f,
-            r.par,
-            Inst::Copy {
-                dst: p,
-                src: Operand::Int(0),
-            },
-        );
+        let site = new_local(f);
+        for l in [p, site] {
+            push(
+                f,
+                r.par,
+                Inst::Copy {
+                    dst: l,
+                    src: Operand::Int(0),
+                },
+            );
+        }
         f.blocks[r.par as usize].term = Term::Jump(d);
         let res: Vec<Local> = ret
             .iter()
@@ -165,9 +176,16 @@ pub fn split(f: &mut Func, co: bool, ret: &[Ty]) {
                 f.locals.len() as Local - 1
             })
             .collect();
-        let leave = new_block(
+        let ret_res = new_block(
             f,
             Term::Return(res.iter().map(|l| Operand::Local(*l)).collect()),
+        );
+        let leave = new_block(
+            f,
+            Term::Switch {
+                on: site,
+                targets: vec![ret_res],
+            },
         );
         let done = new_block(
             f,
@@ -198,11 +216,14 @@ pub fn split(f: &mut Func, co: bool, ret: &[Ty]) {
         owner[yields as usize] = owner[r.par as usize];
         // The block's own return leaves from the task around it, if any.
         owner[leave as usize] = owner[r.par as usize];
+        owner[ret_res as usize] = owner[r.par as usize];
         f.blocks[d as usize].term = Term::Switch { on: next, targets };
         disp.push(d);
         handles.push(h);
         pending.push(p);
         results.push(res);
+        sites.push(site);
+        leaves.push(leave);
         states.push(st);
         resumes.push(r.tasks.iter().map(|t| vec![*t]).collect());
     }
@@ -240,8 +261,8 @@ pub fn split(f: &mut Func, co: bool, ret: &[Ty]) {
                 );
                 f.blocks[b as usize].term = Term::Jump(disp[r]);
             }
-            // Leaving the function from a task: the first to keeps its result for the block.
-            Term::Return(os) => {
+            // Leaving the function from a task: the block keeps one result (R394).
+            term @ (Term::Return(_) | Term::Unwind { .. }) => {
                 let first = new_local(f);
                 push(
                     f,
@@ -252,11 +273,29 @@ pub fn split(f: &mut Func, co: bool, ret: &[Ty]) {
                         vec![Operand::Local(handles[r])],
                     ),
                 );
-                let mut keep: Vec<Inst> = results[r]
-                    .iter()
-                    .zip(os)
-                    .map(|(d, o)| Inst::Copy { dst: *d, src: o })
-                    .collect();
+                let (mut keep, at): (Vec<Inst>, usize) = match term {
+                    Term::Return(os) => (
+                        results[r]
+                            .iter()
+                            .zip(os)
+                            .map(|(d, o)| Inst::Copy { dst: *d, src: o })
+                            .collect(),
+                        0,
+                    ),
+                    Term::Unwind { drops } => {
+                        let Term::Switch { targets, .. } = &mut f.blocks[leaves[r] as usize].term
+                        else {
+                            unreachable!("`leave` switches")
+                        };
+                        targets.push(drops);
+                        (Vec::new(), targets.len() - 1)
+                    }
+                    _ => unreachable!(),
+                };
+                keep.push(Inst::Copy {
+                    dst: sites[r],
+                    src: Operand::Int(at as i128),
+                });
                 keep.push(Inst::Copy {
                     dst: pending[r],
                     src: Operand::Int(1),

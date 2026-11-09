@@ -5,10 +5,13 @@ use std::collections::HashMap;
 
 mod call;
 mod collections;
+mod consts;
 mod contracts;
+mod entry;
 mod pattern;
 mod show;
 mod stmt;
+mod unwind;
 mod values;
 
 use yan_core::ast as y;
@@ -376,6 +379,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
         })
         .then(|| yan_core::hash::hash_module(m));
     let mut item_hashes = Vec::new();
+    let mut consts = Vec::new();
     for (ix, i) in m.items.iter().enumerate() {
         let (f, args) = match &i.kind {
             y::ItemKind::Fn(f) => (f, &[][..]),
@@ -386,6 +390,10 @@ pub fn lower(m: &y::Module) -> R<Program> {
             }
             y::ItemKind::Sum(s) => {
                 types.sums.insert(s.path.last().expect("named"), s);
+                continue;
+            }
+            y::ItemKind::Const(c) => {
+                consts.push(c);
                 continue;
             }
             _ => return unsupported(format!("item at line {}", i.span.line)),
@@ -422,12 +430,17 @@ pub fn lower(m: &y::Module) -> R<Program> {
         sigs: Vec::new(),
         todo: Vec::new(),
         costing,
+        consts,
     });
     let main = mono.borrow_mut().instance(&types, main)?;
+    let main = if mono.borrow().sigs[main as usize].fails {
+        mono.borrow_mut().entry(main)
+    } else {
+        main
+    };
     let mut prog = Program {
         funcs: Vec::new(),
         main,
-        main_fails: mono.borrow().sigs[main as usize].fails,
         strings: Vec::new(),
     };
     // Instances are lowered in id order; lowering one can add more.
@@ -443,6 +456,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
             Todo::Closure(c, caps) => {
                 Fn::new(&mono, &types, &mut prog.strings, me).closure(c, caps)?
             }
+            Todo::Entry(main) => Fn::new(&mono, &types, &mut prog.strings, me).entry(main)?,
         };
         prog.funcs.push(func);
     }
@@ -479,6 +493,7 @@ struct Mono<'m> {
     todo: Vec<Todo<'m>>,
     /// Some function has a `cost` bound, so every function counts steps and allocations.
     costing: bool,
+    consts: Vec<&'m y::Const>,
 }
 
 #[derive(Clone)]
@@ -487,6 +502,8 @@ enum Todo<'m> {
     /// A closure body with its captures' names and types, read from the block in its first
     /// parameter.
     Closure(&'m y::Closure, Vec<(String, Shape)>),
+    /// The entry that reports a failing `main`.
+    Entry(FuncId),
 }
 
 impl Mono<'_> {
@@ -734,8 +751,12 @@ struct Fn<'a, 'm> {
     scopes: Vec<Scope>,
     /// The line of the statement being lowered.
     line: u32,
-    /// How many `par concurrent` branches enclose the code being lowered.
-    tasks: u32,
+    /// The first local of each `par concurrent` branch enclosing the code being lowered,
+    /// outermost first: a name whose locals start below `task_starts[d]` was bound outside the
+    /// branch at depth `d + 1`.
+    task_starts: Vec<Local>,
+    /// Names of an enclosing frame whose `drop` in a branch waits for the exit that follows.
+    deferred: Vec<String>,
     /// Whether the program counts steps and allocations for `cost` bounds (R610).
     costing: bool,
     /// The tokens of this function's `cost` counters, ended on every exit.
@@ -765,7 +786,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             cur: 0,
             scopes: Vec::new(),
             line: 0,
-            tasks: 0,
+            task_starts: Vec::new(),
+            deferred: Vec::new(),
             costing: mono.borrow().costing,
             cost_tokens: Vec::new(),
         }
@@ -832,6 +854,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         let mut ret = sig.ret.tys();
         ret.extend(sig.inout());
         self.cur = self.block_new();
+        self.bind_consts()?;
         if let Some(env) = env {
             let mut word = 0;
             for (n, shape) in caps {
@@ -1019,7 +1042,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     /// In a task, tell the scheduler that the exit that follows fails with `ev` of shape `e`,
     /// and whether that is `Cancelled` (R394).
     fn exit_kind(&mut self, e: &Shape, ev: &[Operand]) {
-        if self.tasks == 0 {
+        if self.task_starts.is_empty() {
             return;
         }
         let kind = match e {
