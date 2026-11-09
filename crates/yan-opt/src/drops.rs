@@ -1063,4 +1063,13 @@ mod tests {
         let twice = bad("   var u: Str = move x\n   var v: Str = move x\n   drop v\n   drop u\n");
         assert_eq!(twice.len(), 1, "{twice:?}");
     }
+
+    #[test]
+    fn the_check_takes_a_field_of_each_arm_once() {
+        let src = "module t\nsum S { A { pub a: Str, pub n: Str }, B { pub b: Str } }\nfn f(sink p: S) -> Str {\n match p {\n  A { a: x, n: y } => {\n   var u: Str = move x\n   drop y\n   ret u\n  }\n  B { b: z } => {\n   ret z\n  }\n }\n}\n";
+        let (m, d) = yan_core::parse("t.yir", src);
+        assert!(d.is_empty(), "{d:?}");
+        let diags = yan_check::check_optimized("t.yir", &m.expect("parses"));
+        assert!(diags.is_empty(), "{diags:?}");
+    }
 }

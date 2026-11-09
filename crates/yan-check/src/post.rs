@@ -321,6 +321,9 @@ impl V {
         pats: impl Iterator<Item = &'a Pat>,
         bound: &mut Vec<Name>,
     ) {
+        if self.flag_of(root).is_some() {
+            return;
+        }
         for p in pats {
             let Pat::Ctor {
                 fields: Some((fs, _)),
@@ -482,6 +485,7 @@ impl V {
             }
             StmtKind::Match { scrutinee, arms } => {
                 let mut bound = Vec::new();
+                let mut tracked = None;
                 if let Atom::Name(x, _) = scrutinee {
                     let root = self.views.get(x).unwrap_or(x).clone();
                     if self.st.as_ref().is_some_and(|st| st.contains_key(&root)) {
@@ -491,16 +495,22 @@ impl V {
                         for n in &bound {
                             self.views.insert(n.clone(), root.clone());
                         }
-                        if root == *x && arms.len() == 1 {
-                            self.track_pattern_fields(
-                                &root,
-                                arms.iter().map(|(p, _)| p),
-                                &mut bound,
-                            );
-                        }
+                        tracked = (root == *x).then_some(root);
                     }
                 }
-                self.branches(arms.iter().map(|(_, b)| Some(b)));
+                let pre = self.st.clone().expect("reachable");
+                let mut ends = Vec::new();
+                for (p, b) in arms {
+                    self.st = Some(pre.clone());
+                    if let Some(root) = &tracked {
+                        self.track_pattern_fields(root, std::iter::once(p), &mut bound);
+                    }
+                    self.block(b, &[]);
+                    if let Some(st) = self.st.take() {
+                        ends.push(st);
+                    }
+                }
+                self.st = merge(&pre, ends);
                 for n in &bound {
                     self.views.remove(n);
                     self.fields.remove(n);
