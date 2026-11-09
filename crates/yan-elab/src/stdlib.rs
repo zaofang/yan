@@ -708,6 +708,7 @@ fn bodies(m: &j::Module) -> Vec<Body> {
             seen.insert(f.name.clone());
             if let Some(b) = &f.body {
                 crate::lower::body_callees(b, &mut names);
+                crate::kernel::array_callees(&b.stmts, &mut names);
             }
         }
     }

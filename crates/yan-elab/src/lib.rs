@@ -242,6 +242,8 @@ pub(crate) struct Globals {
     pub consts: HashMap<String, Ty>,
     /// The records that come from std rather than the module.
     pub std_records: std::collections::HashSet<String>,
+    /// Each `@kernel` function's launch grid (RFC 0058).
+    pub kernels: HashMap<String, kernel::Grid>,
     /// The std sum types in scope.
     pub std_sums: std::collections::HashSet<String>,
     /// Functions called from a `test_` function (E601).
@@ -626,7 +628,9 @@ pub fn elaborate_in(
         desugar::ceiling(&m, caps, &mut cx);
     }
     cx.previews = manifest.map(|p| p.previews).unwrap_or_default();
+    kernel::prepare(&mut m);
     let m = &m;
+    let kernel_consts = kernel::consts(&m.items);
     let mut g = Globals {
         applied: expanded.applied,
         protocols: expanded.protocols,
@@ -637,6 +641,11 @@ pub fn elaborate_in(
     let std_sums = stdlib::sums(&mut g, m)?;
     let std_classes = stdlib::classes(&mut g, m)?;
     collect(&mut g, m, &mut cx)?;
+    g.kernels = kernel::grids(&m.items, &kernel_consts);
+    if m.items.iter().any(kernel::is_kernel) {
+        g.records
+            .insert("TileOrigin".into(), kernel::origin_fields());
+    }
     let std_fns = stdlib::collect(&mut g, m)?;
     let mut items = derive_froms(&mut g, m);
     for name in std_classes {
@@ -692,11 +701,33 @@ pub fn elaborate_in(
     // rides on the first item elaboration lowers.
     let mut docs: Vec<(usize, Attach, String)> = Vec::new();
     let mut module_doc = m.doc.clone();
-    let kernel_consts = kernel::consts(&m.items);
+    if let Some(fs) = g.records.get("TileOrigin") {
+        items.push(y::Item {
+            attrs: Vec::new(),
+            kind: y::ItemKind::Record(y::Record {
+                is_pub: false,
+                path: vec!["TileOrigin".into()],
+                tparams: Vec::new(),
+                fields: core_fields(fs)?,
+            }),
+            span: Span {
+                line: 1,
+                col: 1,
+                end_line: 1,
+                end_col: 1,
+            },
+        });
+    }
     for it in &m.items {
         let start = cx.diags.len();
         let checked = if kernel::is_kernel(it) {
-            kernel::check(&g, it, &kernel_consts, &mut cx).map(|()| None)
+            kernel::check(&g, it, &kernel_consts, &mut cx).and_then(|proved| {
+                if proved {
+                    item(&g, it, &mut cx)
+                } else {
+                    Ok(None)
+                }
+            })
         } else {
             item(&g, it, &mut cx)
                 .and_then(|k| decorators::check(&g, it, start, &mut cx).map(|()| k))

@@ -250,6 +250,9 @@ impl Lower<'_, '_, '_> {
                 }
                 (Rhs::Ctor(y::Ctor::Tuple(atoms)), Ty::Tuple(tys))
             }
+            K::List(xs) if let Some(w @ Ty::Array(..)) = unoption(want) => {
+                self.array_literal(xs, &w.clone(), at)?
+            }
             K::List(xs) => {
                 let mut et = match unoption(want) {
                     Some(Ty::List(t)) => Some((**t).clone()),

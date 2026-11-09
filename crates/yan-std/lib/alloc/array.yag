@@ -1,0 +1,16 @@
+"""Arrays (11.2): an `Array` with literal sizes is stored flat, row-major, as a list. These are the
+lowering of element access and of `gpu.launch` (17.1), not for direct use."""
+
+@since("1.0")
+pub def offset2(row: int, i: int, rows: int, cols: int) -> int:
+    """`row * cols + i`; -1 when an index is outside its axis, so indexing the list panics."""
+    if row < 0 or row >= rows or i < 0 or i >= cols:
+        return -1
+    return row * cols + i
+
+@since("1.0")
+pub def filled[T](x: T, n: int) -> list[T]:
+    out: list[T] = []
+    for _ in range(n):
+        out.append(x.copy())
+    return out

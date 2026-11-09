@@ -78,6 +78,23 @@ impl Lower<'_, '_, '_> {
                 self.cli_call("parse_args", &t, std::slice::from_ref(xs), at, Some(value))
             }
             j::ExprKind::Attr(m, op, _)
+                if op == "launch"
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "gpu" && !self.locals.contains_key(c)) =>
+            {
+                self.launch(args, at)
+            }
+            j::ExprKind::Name(n)
+                if !self.in_launch
+                    && (n == "TileOrigin" || self.g.kernels.contains_key(n))
+                    && !self.locals.contains_key(n) =>
+            {
+                unsupported(if n == "TileOrigin" {
+                    "building a `TileOrigin`: only `gpu.launch` supplies one (R953)"
+                } else {
+                    "calling a `@kernel` function: launch it with `gpu.launch` (RFC 0058)"
+                })
+            }
+            j::ExprKind::Attr(m, op, _)
                 if op == "spawn"
                     && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.locals.contains_key(a)) =>
             {
