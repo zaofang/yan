@@ -1,8 +1,8 @@
 # 0061: `halo` on extern claims, and a code for a malformed `@kernel`
 
-- Status: draft
+- Status: accepted
 - Research: RFC 0052 (D1), RFC 0055 (D1, D3), RFC 0058; issue #674 (gaps 5 and 6)
-- Rows: filled in when accepted
+- Rows: R982, R983
 
 ## Summary
 
@@ -60,8 +60,8 @@ Options:
 Recommendation: (a). A declaration error and a use error sit at different places in the program;
 (c) mixes a claim error with a declaration error and leaves misuse unanswered.
 
-- Decision:
-- Row:
+- Decision: (a), the lead, 2026-11-09 (card on this thread); E285 and E286
+- Row: R983
 
 ## Spec changes
 
