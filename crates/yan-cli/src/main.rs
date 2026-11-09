@@ -318,6 +318,9 @@ enum Command {
         strict: bool,
         #[arg(long)]
         level: Option<String>,
+        /// Build twice in separate roots and fail on any byte difference (E010).
+        #[arg(long)]
+        verify: bool,
         /// The executable to write.
         #[arg(short, long)]
         output: PathBuf,
@@ -445,10 +448,12 @@ fn main() -> ExitCode {
             file,
             strict,
             level,
+            verify,
             output,
         } => build::run(
             &file,
             &output,
+            verify,
             Database::new(strict, level.as_deref() == Some("release")),
         ),
         Command::Test {

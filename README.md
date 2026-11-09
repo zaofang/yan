@@ -33,6 +33,26 @@ Authoritative documents: the Yan 1.0 spec (draft) in [`spec/`](spec/README.md) a
 
 Held-out evaluation tests live in a separate private repository that agents cannot read.
 
+## Install
+
+```sh
+curl -fsSL https://github.com/atbraz/yan-lang/releases/latest/download/install.sh | sh
+brew install atbraz/yan/yan
+```
+
+Releases cover macOS (arm64, x86_64) and Linux (x86_64, arm64). The installer checks `SHA256SUMS`, and its
+Sigstore signature when `cosign` is on `PATH`. `yan build` links with the system `cc`.
+
+## Releasing
+
+Push a `v*` tag. [`release.yml`](.github/workflows/release.yml) builds the four archives (`yan`,
+`libyan_rt.a`, `LICENSE`, packed by `tools/release.py package`), checks `yan build --verify` on each, and
+publishes `install.sh`, `yan.rb`, `yan.spdx.json`, the `yan grammar` files (`yan-agent.gbnf`,
+`.xgrammar`, `.llguidance`), `SHA256SUMS` with its keyless Sigstore bundle, and build provenance and SBOM
+attestations. Clean runners then time install to first `yan run` through the installer and the formula
+(limit 60 s). The tap repository `atbraz/homebrew-yan` is updated when the `HOMEBREW_TAP_TOKEN` secret is
+set.
+
 ## Development
 
 ```sh

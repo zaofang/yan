@@ -1,0 +1,176 @@
+# A `v*` tag builds release archives for four targets, signs and attests them, publishes the GitHub
+# release with the installer, Homebrew formula, SBOM and constrained-decoding grammars, then installs
+# it on clean runners and times install to first `yan run` (#863).
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { target: aarch64-apple-darwin, os: macos-15 }
+          - { target: x86_64-apple-darwin, os: macos-15-intel }
+          - { target: x86_64-unknown-linux-gnu, os: ubuntu-24.04 }
+          - { target: aarch64-unknown-linux-gnu, os: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+      - name: Stamp the version and reproducibility inputs
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          sed -i.orig "s/^version = \"0.0.0\"$/version = \"$version\"/" Cargo.toml
+          rm Cargo.toml.orig
+          echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
+          echo "RUSTFLAGS=--remap-path-prefix=$GITHUB_WORKSPACE=. --remap-path-prefix=$HOME/.cargo=/cargo" >> "$GITHUB_ENV"
+      - run: cargo build --release -p yan-cli -p yan-rt
+      - name: Smoke test, and check `yan build --verify` reproduces a program bit for bit
+        run: |
+          printf 'pub def main() uses io:\n    io.print("hello, world")\n' > hello.yag
+          test "$(target/release/yan run hello.yag)" = "hello, world"
+          target/release/yan build --verify -o hello hello.yag
+          test "$(./hello)" = "hello, world"
+      - run: uv run python -m tools.release package "yan-${{ matrix.target }}.tar.gz" target/release/yan target/release/libyan_rt.a LICENSE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yan-${{ matrix.target }}
+          path: yan-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+      - uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: ${{ runner.temp }}/yan.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/out
+          merge-multiple: true
+      - name: Grammars, installer and SBOM
+        run: |
+          cd dist/out
+          cp "$RUNNER_TEMP/yan.spdx.json" .
+          tar -xzf yan-x86_64-unknown-linux-gnu.tar.gz -C "$RUNNER_TEMP" yan
+          for f in gbnf xgrammar llguidance; do "$RUNNER_TEMP/yan" grammar --format "$f" > "yan-agent.$f"; done
+          cp ../install.sh .
+      - name: Checksums and Homebrew formula
+        run: |
+          cd dist/out
+          sha256sum -- * | sort -k2 > SHA256SUMS
+          uv run --project ../.. python -m tools.release formula "$GITHUB_REF_NAME" SHA256SUMS > yan.rb
+      - uses: sigstore/cosign-installer@v3
+      - name: Sign SHA256SUMS (keyless Sigstore)
+        run: cosign sign-blob --yes --bundle dist/out/SHA256SUMS.sigstore.json dist/out/SHA256SUMS
+      # Attestations need a public repository (or GitHub Enterprise Cloud), #877.
+      - if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/out/yan-*.tar.gz
+      # Attestations need a public repository (or GitHub Enterprise Cloud), #877.
+      - if: ${{ !github.event.repository.private }}
+        uses: actions/attest-sbom@v2
+        with:
+          subject-path: dist/out/yan-*.tar.gz
+          sbom-path: dist/out/yan.spdx.json
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pre=$(case "$GITHUB_REF_NAME" in *-*) echo --prerelease ;; esac)
+          gh release create "$GITHUB_REF_NAME" dist/out/* --repo "$GITHUB_REPOSITORY" \
+            --verify-tag --generate-notes $pre
+      - name: Update the project tap
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        if: env.TAP_TOKEN != '' && !contains(github.ref_name, '-')
+        run: |
+          git clone "https://x-access-token:$TAP_TOKEN@github.com/atbraz/homebrew-yan.git" "$RUNNER_TEMP/tap"
+          mkdir -p "$RUNNER_TEMP/tap/Formula"
+          cp dist/out/yan.rb "$RUNNER_TEMP/tap/Formula/yan.rb"
+          cd "$RUNNER_TEMP/tap"
+          git add Formula/yan.rb
+          git -c user.name=yan-release -c user.email=noreply@github.com commit -m "yan $GITHUB_REF_NAME"
+          git push
+
+  # Clean runners: the installer and the formula, each timed from start to first `yan run` (< 60 s).
+  install:
+    needs: publish
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel, ubuntu-24.04, ubuntu-24.04-arm]
+        via: [curl, brew]
+        exclude:
+          - { os: ubuntu-24.04, via: brew }
+          - { os: ubuntu-24.04-arm, via: brew }
+    runs-on: ${{ matrix.os }}
+    steps:
+      # One installer run checks the Sigstore signature path; cosign is optional for users.
+      - if: matrix.os == 'ubuntu-24.04' && matrix.via == 'curl'
+        uses: sigstore/cosign-installer@v3
+      - name: Fetch the published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/rel"
+      - name: Install and run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VIA: ${{ matrix.via }}
+        run: |
+          printf 'pub def main() uses io:\n    io.print("hello, world")\n' > "$RUNNER_TEMP/hello.yag"
+          private=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)
+          start=$(date +%s)
+          if [ "$VIA" = curl ]; then
+            # A private repository's assets need auth, so the installer reads them from disk there.
+            if [ "$private" = true ]; then
+              YAN_BASE_URL="$RUNNER_TEMP/rel" sh "$RUNNER_TEMP/rel/install.sh"
+            else
+              curl -fsSL "https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/install.sh" | sh
+            fi
+            yan="$HOME/.yan/bin/yan"
+          else
+            brew tap-new --no-git local/yan
+            formula="$(brew --repository local/yan)/Formula/yan.rb"
+            if [ "$private" = true ]; then
+              sed "s|https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/|file://$RUNNER_TEMP/rel/|" \
+                "$RUNNER_TEMP/rel/yan.rb" > "$formula"
+            else
+              cp "$RUNNER_TEMP/rel/yan.rb" "$formula"
+            fi
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install local/yan/yan
+            yan="$(brew --prefix)/bin/yan"
+          fi
+          out=$("$yan" run "$RUNNER_TEMP/hello.yag")
+          elapsed=$(( $(date +%s) - start ))
+          echo "install to first yan run via $VIA on ${{ matrix.os }}: ${elapsed}s" | tee -a "$GITHUB_STEP_SUMMARY"
+          test "$out" = "hello, world"
+          test "$elapsed" -lt 60
+          if [ "$VIA" = brew ]; then brew test local/yan/yan; fi
