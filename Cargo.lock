@@ -2476,6 +2476,7 @@ version = "0.0.0"
 dependencies = [
  "yan-core",
  "yan-diag",
+ "yan-flow",
 ]
 
 [[package]]

@@ -162,10 +162,7 @@ impl Cfg {
                         }
                         o = Some(match o {
                             None => po,
-                            Some(acc) => Owned {
-                                may: acc.may.union(&po.may).copied().collect(),
-                                must: acc.must.intersection(&po.must).copied().collect(),
-                            },
+                            Some(acc) => acc.join(&po),
                         });
                     }
                 }
@@ -209,7 +206,8 @@ impl Cfg {
     }
 }
 
-type Moved = BTreeSet<(Binding, Option<Field>)>;
+/// A move and where it happened; `None` is the whole value.
+type Moved = BTreeSet<(Binding, Option<Field>, Site)>;
 
 /// May and must sets of owned bindings. A binding in `may` but not `must` is owned on some
 /// paths only: dropping it needs a drop flag or an edge drop.
@@ -217,22 +215,49 @@ type Moved = BTreeSet<(Binding, Option<Field>)>;
 pub struct Owned {
     pub may: BTreeSet<Binding>,
     pub must: BTreeSet<Binding>,
+    /// Fields taken out of a binding on every path on which it is still owned.
+    pub holes: BTreeSet<(Binding, Field)>,
+}
+
+impl Owned {
+    fn join(&self, o: &Owned) -> Owned {
+        // A path that no longer owns the binding has no field left to drop: every field is a
+        // hole there.
+        let hole = |s: &Owned, h: &(Binding, Field)| s.holes.contains(h) || !s.may.contains(&h.0);
+        Owned {
+            may: self.may.union(&o.may).copied().collect(),
+            must: self.must.intersection(&o.must).copied().collect(),
+            holes: self
+                .holes
+                .union(&o.holes)
+                .filter(|h| hole(self, h) && hole(o, h))
+                .copied()
+                .collect(),
+        }
+    }
 }
 
 fn step_moved(s: &mut Moved, e: &Event) {
     match *e {
-        Event::Def { binding, .. } => s.retain(|(b, _)| *b != binding),
-        Event::Move { binding, .. } => {
-            s.insert((binding, None));
+        Event::Def { binding, .. } => s.retain(|(b, ..)| *b != binding),
+        Event::Move { binding, site } => {
+            s.insert((binding, None, site));
         }
-        Event::MoveField { binding, field, .. } => {
-            s.insert((binding, Some(field)));
+        Event::MoveField {
+            binding,
+            field,
+            site,
+        } => {
+            s.insert((binding, Some(field), site));
         }
         Event::Use { .. } | Event::Drop { .. } => {}
     }
 }
 
 fn step_owned(s: &mut Owned, e: &Event) {
+    if let Event::Def { binding, .. } | Event::Move { binding, .. } | Event::Drop { binding } = *e {
+        s.holes.retain(|(b, _)| *b != binding);
+    }
     match *e {
         Event::Def { binding, owned } => {
             if owned {
@@ -247,7 +272,10 @@ fn step_owned(s: &mut Owned, e: &Event) {
             s.may.remove(&binding);
             s.must.remove(&binding);
         }
-        Event::Use { .. } | Event::MoveField { .. } => {}
+        Event::MoveField { binding, field, .. } => {
+            s.holes.insert((binding, field));
+        }
+        Event::Use { .. } => {}
     }
 }
 
@@ -281,22 +309,38 @@ impl Solution<'_> {
     /// Whether `b` (or, for `Some(f)`, its field) may have been moved at `p`. A whole-value
     /// move also counts for a field.
     pub fn maybe_moved(&self, b: Binding, field: Option<Field>, p: Point) -> bool {
-        let mut s = self.moved_in[p.node.0].clone();
-        for e in &self.cfg.events[p.node.0][..p.event] {
-            step_moved(&mut s, e);
-        }
-        s.contains(&(b, None)) || field.is_some_and(|f| s.contains(&(b, Some(f))))
+        self.moved_at(p)
+            .iter()
+            .any(|&(x, f, _)| x == b && (f.is_none() || f == field))
+    }
+
+    /// The sites of the whole-value moves of `b` that may reach `p`, in order.
+    pub fn moves(&self, b: Binding, p: Point) -> Vec<Site> {
+        let s: BTreeSet<Site> = self
+            .moved_at(p)
+            .iter()
+            .filter(|&&(x, f, _)| x == b && f.is_none())
+            .map(|&(.., site)| site)
+            .collect();
+        s.into_iter().collect()
     }
 
     /// Fields of `b` that may have been taken out at `p`.
     pub fn moved_fields(&self, b: Binding, p: Point) -> Vec<Field> {
+        let s: BTreeSet<Field> = self
+            .moved_at(p)
+            .iter()
+            .filter_map(|&(x, f, _)| if x == b { f } else { None })
+            .collect();
+        s.into_iter().collect()
+    }
+
+    fn moved_at(&self, p: Point) -> Moved {
         let mut s = self.moved_in[p.node.0].clone();
         for e in &self.cfg.events[p.node.0][..p.event] {
             step_moved(&mut s, e);
         }
-        s.iter()
-            .filter_map(|(x, f)| if *x == b { *f } else { None })
-            .collect()
+        s
     }
 
     /// Whether a read of `b` is reachable from `p` before a redefinition.
@@ -470,6 +514,42 @@ mod tests {
         assert!(!s.maybe_moved(X, None, at(a, 2)));
         assert_eq!(s.moved_fields(X, at(a, 2)), vec![Field(7)]);
         assert!(s.owned_at(at(a, 2)).unwrap().must.contains(&X));
+    }
+
+    #[test]
+    fn a_field_is_a_hole_at_a_join_only_if_taken_on_every_owning_path() {
+        let take = |f: u32, s: u32| Event::MoveField {
+            binding: X,
+            field: Field(f),
+            site: Site(s),
+        };
+        let (mut g, n) = diamond();
+        g.push(n[0], def(X));
+        g.push(n[1], take(0, 1));
+        g.push(n[1], take(1, 2));
+        g.push(n[2], take(0, 3));
+        let s = g.solve();
+        let o = s.owned_at(at(n[3], 0)).unwrap();
+        assert_eq!(o.holes, BTreeSet::from([(X, Field(0))]));
+
+        let (mut g, n) = diamond();
+        g.push(n[0], def(X));
+        g.push(n[1], take(0, 1));
+        g.push(n[2], mv(X, 2));
+        let s = g.solve();
+        let o = s.owned_at(at(n[3], 0)).unwrap();
+        assert_eq!(o.holes, BTreeSet::from([(X, Field(0))]));
+        assert!(o.may.contains(&X) && !o.must.contains(&X));
+    }
+
+    #[test]
+    fn moves_name_every_site_that_may_reach() {
+        let (mut g, n) = diamond();
+        g.push(n[0], def(X));
+        g.push(n[1], mv(X, 1));
+        g.push(n[2], mv(X, 2));
+        let s = g.solve();
+        assert_eq!(s.moves(X, at(n[3], 0)), vec![Site(1), Site(2)]);
     }
 
     #[test]
