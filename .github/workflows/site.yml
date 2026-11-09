@@ -17,7 +17,9 @@ permissions:
 
 concurrency:
   group: site-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
-  cancel-in-progress: true
+  # On main, a ci run that finishes later (often a red one whose build is skipped) must not cancel
+  # a deploy in progress.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   WASI_SYSROOT_VERSION: "25"
