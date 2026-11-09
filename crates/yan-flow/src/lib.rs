@@ -80,6 +80,14 @@ impl Cfg {
         }
     }
 
+    /// The point after the last event of `n` so far.
+    pub fn end(&self, n: Node) -> Point {
+        Point {
+            node: n,
+            event: self.events[n.0].len(),
+        }
+    }
+
     pub fn len(&self) -> usize {
         self.events.len()
     }
