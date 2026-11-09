@@ -1,5 +1,6 @@
 //! `@kernel` functions (11.2, 17.1, R953 to R955): lowers the body to the affine index IR and
-//! reports what the prover finds (RFC 0055 stage 2). Execution is stage 3.
+//! reports what the prover finds (RFC 0055 stage 2). A proved kernel runs through `gpu.launch`
+//! (stage 3, RFC 0058): it takes `var out` and `uses gpu`, and the grid follows its write region.
 
 use std::collections::HashMap;
 
@@ -323,9 +324,9 @@ impl Lowering<'_> {
     }
 }
 
-/// Checks one `@kernel` function. Diagnostics go to `cx`; a kernel that passes still cannot run
-/// (RFC 0055 stage 3), which is E017.
-pub(crate) fn check(g: &Globals, it: &j::Item, consts: &Consts, cx: &mut Cx) -> R<()> {
+/// Checks one `@kernel` function after [`prepare`]. Diagnostics go to `cx`; true when the body is
+/// proved and the kernel can be lowered.
+pub(crate) fn check(g: &Globals, it: &j::Item, consts: &Consts, cx: &mut Cx) -> R<bool> {
     let j::ItemKind::Func(f) = &it.kind else {
         unreachable!("is_kernel")
     };
@@ -370,15 +371,20 @@ pub(crate) fn check(g: &Globals, it: &j::Item, consts: &Consts, cx: &mut Cx) -> 
     let named: Vec<(&str, &Ty)> = sig
         .params
         .iter()
-        .filter(|p| p.ty != Ty::Data("TileOrigin".into()))
+        .filter(|p| p.ty != Ty::Data("TileOrigin".into()) && p.name != "out")
         .map(|p| (p.name.as_str(), &p.ty))
         .collect();
+    let ret = sig
+        .params
+        .iter()
+        .find(|p| p.name == "out")
+        .map_or(&Ty::Unit, |p| &p.ty);
     if cx.diags[start..].iter().any(|d| d.code == "E284") {
-        return Ok(());
+        return Ok(false);
     }
-    let attrs = crate::access::lower(&f.name, &[ad], &named, &sig.ret, claim, cx)?;
+    let attrs = crate::access::lower(&f.name, &[ad], &named, ret, claim, cx)?;
     if cx.diags[start..].iter().any(|d| d.code == "E284") {
-        return Ok(());
+        return Ok(false);
     }
 
     let args = attrs.iter().flat_map(|a| a.args.iter().flatten());
@@ -386,7 +392,7 @@ pub(crate) fn check(g: &Globals, it: &j::Item, consts: &Consts, cx: &mut Cx) -> 
     for a in args {
         let name = a.name.clone().expect("access::lower binds by name");
         let ty = if name == "out" {
-            Some(&sig.ret)
+            Some(ret)
         } else {
             named.iter().find(|(n, _)| *n == name).map(|(_, t)| *t)
         };
@@ -423,13 +429,183 @@ pub(crate) fn check(g: &Globals, it: &j::Item, consts: &Consts, cx: &mut Cx) -> 
     for finding in affine::check(&kernel) {
         cx.err(finding.code, finding.span, &f.name, finding.message);
     }
-    if cx.diags[start..]
+    Ok(!cx.diags[start..]
         .iter()
-        .any(|d| d.severity == yan_diag::Severity::Error)
-    {
-        return Ok(());
+        .any(|d| d.severity == yan_diag::Severity::Error))
+}
+
+/// Rewrites each `@kernel` function `k(at, args...) -> R` to `k(at, args..., var out: R) uses
+/// gpu`: a program instance writes its part of the launch's `out` (RFC 0058 D1).
+pub(crate) fn prepare(m: &mut j::Module) {
+    for it in &mut m.items {
+        if !is_kernel(it) {
+            continue;
+        }
+        let j::ItemKind::Func(f) = &mut it.kind else {
+            unreachable!("is_kernel")
+        };
+        let Some(ty) = f.ret.as_mut().and_then(|r| r.ty.take()) else {
+            continue;
+        };
+        f.params.push(j::Param::Value {
+            conv: Some(j::Conv::Var),
+            name: "out".into(),
+            span: f.name_span,
+            ty,
+            default: None,
+        });
+        let gpu = j::CapRef {
+            path: vec!["gpu".into()],
+            alias: None,
+        };
+        match &mut f.uses {
+            Some(j::Uses::Caps(cs)) => cs.push(gpu),
+            _ => f.uses = Some(j::Uses::Caps(vec![gpu])),
+        }
     }
-    unsupported("running a `@kernel` function (RFC 0055 stage 3)")
+}
+
+/// The std functions element access and `gpu.launch` lower to, which no source names.
+pub(crate) fn array_callees(stmts: &[j::Stmt], out: &mut std::collections::HashSet<String>) {
+    for s in stmts {
+        for e in crate::lower::stmt_exprs(s) {
+            crate::lower::walk(e, &mut |e| match &e.kind {
+                j::ExprKind::Index(_, k) if matches!(k.kind, j::ExprKind::Tuple(_)) => {
+                    out.insert("offset2".into());
+                }
+                j::ExprKind::Call(f, _)
+                    if matches!(&f.kind, j::ExprKind::Attr(m, n, _)
+                    if n == "launch" && matches!(&m.kind, j::ExprKind::Name(g) if g == "gpu")) =>
+                {
+                    out.insert("filled".into());
+                }
+                _ => {}
+            });
+        }
+        for b in crate::lower::sub_blocks(s) {
+            array_callees(b, out);
+        }
+    }
+}
+
+/// `TileOrigin`'s fields: an `int` per tile axis (R953). Only `gpu.launch` builds one.
+pub(crate) fn origin_fields() -> Vec<crate::Field> {
+    let at = Span {
+        line: 1,
+        col: 1,
+        end_line: 1,
+        end_col: 1,
+    };
+    ["i0", "i1"]
+        .map(|n| crate::Field {
+            name: n.into(),
+            ty: Ty::Int,
+            ty_span: at,
+            default: None,
+            wire: None,
+            attrs: Vec::new(),
+        })
+        .into()
+}
+
+/// How the launch grid steps along one axis of `out` (RFC 0058 D2).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum Step {
+    /// Origins `0, s, 2s, ...`.
+    By(i64),
+    /// One program instance, origin 0: the write region leaves the axis free.
+    Once,
+}
+
+/// A kernel's tile shape and the region its `out` claim names.
+#[derive(Clone, Debug)]
+pub(crate) struct Grid {
+    tile: Vec<i64>,
+    out: Region,
+}
+
+impl Grid {
+    /// The step on each of the `rank` axes of `out`, or why the claim and tile do not fit it.
+    pub(crate) fn steps(&self, rank: usize) -> Result<Vec<Step>, String> {
+        let tile = |a: usize| {
+            self.tile
+                .get(a)
+                .map(|&t| Step::By(t))
+                .ok_or_else(|| "a `@kernel` result with more axes than its tile".to_string())
+        };
+        match self.out {
+            Region::Elementwise => (0..rank).map(tile).collect(),
+            Region::Rows { axis, .. } | Region::Cols { axis, .. } => (0..rank)
+                .map(|a| if a == axis { tile(a) } else { Ok(Step::Once) })
+                .collect(),
+            Region::Tile { m, n, .. } if rank == 2 => {
+                Ok(vec![Step::By(m as i64), Step::By(n as i64)])
+            }
+            Region::Tile { .. } => {
+                Err("`tile(M, N)` on a result that is not two-dimensional".into())
+            }
+            Region::Whole => Ok(vec![Step::Once; rank]),
+        }
+    }
+}
+
+/// The grid of each `@kernel` function whose tile and `out` claim are well formed; [`check`]
+/// reports the others.
+pub(crate) fn grids(items: &[j::Item], consts: &Consts) -> HashMap<String, Grid> {
+    let mut out = HashMap::new();
+    for it in items.iter().filter(|it| is_kernel(it)) {
+        let kd = it.decorators.iter().find(|d| d.path == ["kernel"]);
+        let Some(Ok(tile)) = kd.map(|d| tile(d, consts)) else {
+            continue;
+        };
+        let claim = it
+            .decorators
+            .iter()
+            .filter(|d| d.path == ["access"])
+            .flat_map(|d| d.args.as_deref().unwrap_or_default())
+            .find(|a| a.name.as_deref() == Some("out"))
+            .and_then(arg_expr)
+            .and_then(out_region);
+        if let Some(region) = claim {
+            out.insert(
+                it.kind.name().to_owned(),
+                Grid {
+                    tile: tile.into_iter().map(|t| t as i64).collect(),
+                    out: region,
+                },
+            );
+        }
+    }
+    out
+}
+
+/// The region of an `out` claim, read from the source: `out` takes no halo (R955).
+fn out_region(e: &j::Expr) -> Option<Region> {
+    let lit = |a: &j::Arg| match arg_expr(a).map(|e| &e.kind) {
+        Some(j::ExprKind::Lit(j::Lit::Int(s))) => s.replace('_', "").parse::<i128>().ok(),
+        _ => None,
+    };
+    match &e.kind {
+        j::ExprKind::Name(n) if n == "elementwise" => Some(Region::Elementwise),
+        j::ExprKind::Name(n) if n == "whole" => Some(Region::Whole),
+        j::ExprKind::Call(f, args) => match (&f.kind, args.as_slice()) {
+            (j::ExprKind::Name(n), [a]) if n == "rows" => Some(Region::Rows {
+                axis: lit(a)? as usize,
+                halo: 0,
+            }),
+            (j::ExprKind::Name(n), [a]) if n == "cols" => Some(Region::Cols {
+                axis: lit(a)? as usize,
+                halo: 0,
+            }),
+            (j::ExprKind::Name(n), [a, b]) if n == "tile" => Some(Region::Tile {
+                m: lit(a)?,
+                n: lit(b)?,
+                halo: 0,
+            }),
+            _ => None,
+        },
+        _ => None,
+    }
 }
 
 #[cfg(test)]
@@ -458,8 +634,8 @@ mod tests {
     }
 
     #[test]
-    fn a_proved_kernel_reaches_the_stage_3_gap() {
-        assert_eq!(codes("elementwise", "a[at.i0 + i, at.i1 + j]"), ["E017@1"]);
+    fn a_proved_kernel_lowers() {
+        assert!(codes("elementwise", "a[at.i0 + i, at.i1 + j]").is_empty());
     }
 
     #[test]
@@ -472,10 +648,7 @@ mod tests {
 
     #[test]
     fn a_halo_widens_the_region() {
-        assert_eq!(
-            codes("rows(0, halo: 1)", "a[at.i0 + i + 1, j + 9]"),
-            ["E017@1"]
-        );
+        assert!(codes("rows(0, halo: 1)", "a[at.i0 + i + 1, j + 9]").is_empty());
         assert_eq!(codes("rows(0, halo: 1)", "a[at.i0 + i + 2, j]"), ["E274@6"]);
     }
 
@@ -490,5 +663,85 @@ mod tests {
     #[test]
     fn a_halo_on_elementwise_is_e284() {
         assert_eq!(codes("elementwise(halo: 1)", "a[i, j]"), ["E284@2"]);
+    }
+
+    /// Elaborates, checks and runs a Yan program on the interpreter; the diagnostics' codes on
+    /// failure.
+    fn run(src: &str) -> Result<String, Vec<String>> {
+        let (ast, d) = yan_yn::parse("t.yn", src);
+        assert!(d.is_empty(), "{d:?}");
+        let (h, d) = yan_yn::lower("t.yn", src, &ast).expect("lowers");
+        assert!(d.is_empty(), "{d:?}");
+        let opts = Options {
+            yn: true,
+            ..Options::default()
+        };
+        let (y, mut d) = elaborate("t.yn", src, &h, opts).expect("supported");
+        d.extend(yan_check::check("t.yn", src, &y));
+        let errs: Vec<String> = d
+            .iter()
+            .filter(|d| d.severity == yan_diag::Severity::Error)
+            .map(|d| format!("{}@{}", d.code, d.span.line))
+            .collect();
+        if !errs.is_empty() {
+            return Err(errs);
+        }
+        let mut out = Vec::new();
+        yan_interp::run(&y, &mut out).expect("runs");
+        Ok(String::from_utf8(out).expect("utf-8"))
+    }
+
+    const INC: &str = "@kernel(tile: 2, 2)\n@access(a: elementwise, out: elementwise)\n\
+        inc(at: TileOrigin, a: Array[2, 4, int]) -> Array[2, 4, int] =\n\
+        \x20 for i in range(0, 2)\n    for j in range(0, 2)\n      \
+        out[at.i0 + i, at.i1 + j] = a[at.i0 + i, at.i1 + j] * 10 + at.i1\n\n";
+
+    #[test]
+    fn a_launch_runs_one_instance_per_tile() {
+        let src = format!(
+            "{INC}main() uses io, gpu =\n\
+             \x20 let a: Array[2, 4, int] = [1 2 3 4; 5 6 7 8]\n\
+             \x20 let r = gpu.launch(inc, a)\n\
+             \x20 io.print(\"\\(r[0, 0]) \\(r[0, 3]) \\(r[1, 2])\")\n"
+        );
+        assert_eq!(run(&src), Ok("10 42 72\n".into()));
+    }
+
+    #[test]
+    fn a_rows_write_region_gives_one_instance_per_row_band() {
+        let src = "@kernel(tile: 1, 3)\n@access(a: rows(0), out: rows(0))\n\
+            total(at: TileOrigin, a: Array[2, 3, int]) -> Array[2, 3, int] =\n\
+            \x20 for j in range(0, 3)\n    out[at.i0, j] = a[at.i0, 0] + a[at.i0, 1] + a[at.i0, 2]\n\n\
+            main() uses io, gpu =\n\
+            \x20 let r = gpu.launch(total, [1 2 3; 4 5 6])\n\
+            \x20 io.print(\"\\(r[0, 2]) \\(r[1, 0])\")\n";
+        assert_eq!(run(src), Ok("6 15\n".into()));
+    }
+
+    #[test]
+    fn a_result_that_is_not_whole_tiles_is_e521() {
+        let src = INC
+            .replace("2, 4, int] =", "2, 5, int] =")
+            .replace("-> Array[2, 4", "-> Array[2, 5");
+        let src = format!(
+            "{src}f(a: Array[2, 5, int]) -> Array[2, 5, int] uses gpu =\n  gpu.launch(inc, a)\n\nmain() = 0\n"
+        );
+        assert_eq!(run(&src), Err(vec!["E521@9".into()]));
+    }
+
+    #[test]
+    fn a_launch_needs_the_gpu_capability() {
+        let src = format!(
+            "{INC}f(a: Array[2, 4, int]) -> Array[2, 4, int] =\n  gpu.launch(inc, a)\n\nmain() = 0\n"
+        );
+        assert_eq!(run(&src), Err(vec!["E301@9".into()]));
+    }
+
+    #[test]
+    fn only_a_launch_calls_a_kernel_or_builds_its_origin() {
+        let call = format!("{INC}f(a: Array[2, 4, int]) =\n  inc(a, a)\n\nmain() = 0\n");
+        assert_eq!(run(&call), Err(vec!["E017@9".into()]));
+        let origin = format!("{INC}f() -> int =\n  TileOrigin(i0: 0, i1: 0).i0\n\nmain() = 0\n");
+        assert_eq!(run(&origin), Err(vec!["E017@9".into()]));
     }
 }

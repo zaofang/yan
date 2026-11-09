@@ -52,7 +52,6 @@ pub fn lower(file: &str, src: &str, m: &Module) -> R<(h::Module, Vec<Diagnostic>
         doc: None,
         self_ty: named(&["Self"], Vec::new()),
         fresh: 0,
-        kernel: false,
     };
     let mut items = Vec::new();
     for it in &m.items {
@@ -89,8 +88,6 @@ struct Lower<'a> {
     self_ty: h::Type,
     /// Names made up by desugaring, numbered.
     fresh: usize,
-    /// Inside a `@kernel` item, where `a[i, j]` indexes by axes (RFC 0055).
-    kernel: bool,
 }
 
 fn mk(kind: h::ExprKind, span: Span) -> h::Expr {
@@ -162,7 +159,6 @@ impl Lower<'_> {
     fn item(&mut self, it: &Item) -> R<Option<h::Item>> {
         let decorators = it.attrs.iter().map(|a| self.attr(a)).collect::<R<_>>()?;
         self.doc = self.doc_above(it.span.line);
-        self.kernel = it.attrs.iter().any(|a| a.name == "kernel");
         let (kind, name_span) = match &it.kind {
             ItemKind::Fn(f) => {
                 let def = self.fn_def(&f.sig, Some(&f.body), !it.public)?;
@@ -1591,11 +1587,8 @@ impl Lower<'_> {
                     ],
                     false,
                 ),
-                // `a[i, j]` in a `@kernel` body: the index is a tuple of axes (RFC 0055).
-                axes if self.kernel
-                    && axes.len() > 1
-                    && axes.iter().all(|a| matches!(a, IxArg::Expr(_))) =>
-                {
+                // `a[i, j]` on an `Array`: the index is a tuple of axes (11.2, RFC 0055).
+                axes if axes.len() > 1 && axes.iter().all(|a| matches!(a, IxArg::Expr(_))) => {
                     let mut idx = Vec::new();
                     for a in axes {
                         if let IxArg::Expr(i) = a {
@@ -1680,7 +1673,12 @@ impl Lower<'_> {
             ExprKind::Cast(x, t) => K::Cast(b(self.expr(x)?), self.ty(t)?),
             ExprKind::UnitNum { .. } => return unsupported("unit literals"),
             ExprKind::Temporal { .. } => return unsupported("date and time literals"),
-            ExprKind::Grid(_) => return unsupported("grid literals"),
+            // A grid is its rows as nested lists; the expected `Array` type checks the shape (R463).
+            ExprKind::Grid(rows) => K::List(
+                rows.iter()
+                    .map(|r| Ok(mk(K::List(self.exprs(r)?), e.span)))
+                    .collect::<R<_>>()?,
+            ),
             ExprKind::Stage(x) => K::Stage(b(self.expr(x)?)),
             ExprKind::Asm { .. } => return unsupported("`asm`"),
             ExprKind::TypeField(..) | ExprKind::Reflect(..) => {

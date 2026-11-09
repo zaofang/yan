@@ -21,6 +21,7 @@ use crate::{Cx, Globals, R, Sig, Ty, ffi, unsupported};
 mod actor;
 mod args;
 mod arith;
+mod array;
 mod assign;
 mod builtin;
 mod call_expr;
@@ -102,6 +103,8 @@ struct Lower<'a, 'c, 's> {
     target: Option<String>,
     /// Inside an `unsafe` block (12.1).
     in_unsafe: bool,
+    /// Lowering `gpu.launch`, the one place a `TileOrigin` is built and a kernel called.
+    in_launch: bool,
     /// Stage-0 names: an instance's `Nat` parameters and `#for` targets (10.4).
     stage: Vec<(String, Sv)>,
     /// Optional locals narrowed by an `is None` test (R285): the source name, the local
@@ -803,6 +806,7 @@ fn function_body_with(
         loops: Vec::new(),
         n: 0,
         in_become: false,
+        in_launch: false,
         keyworded_from: None,
         dict_places: Vec::new(),
         last_use: last_use::LastUse::new(&body.stmts),

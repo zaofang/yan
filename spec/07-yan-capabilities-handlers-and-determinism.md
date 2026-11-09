@@ -26,7 +26,7 @@ Effects are capabilities: second-class values passed as explicit parameters in Y
 | `alloc` | `Alloc` | `alloc`, `realloc`, `free`; ambient (5.5) |
 | `sched` | `Sched` | task placement for `par`, `par for`, `par_fold` and actors |
 | `cluster` | `Cluster` | remote spawn and calls between nodes (9.6.1, R400) |
-| `gpu` | `Gpu` | device memory and kernel launch (17.1, R327, R377) |
+| `gpu` | `Gpu` | device memory and kernel launch, `launch` (17.1, R327, R377, R971) |
 | `critical_section` | `CriticalSection` | interrupt-masked read-modify-write on freestanding targets (17.1, R377). |
 
 `embed` and `diag` are stage-0 only (10.4), and `abort` is a platform setting (17.1), so none of them is a runtime capability.

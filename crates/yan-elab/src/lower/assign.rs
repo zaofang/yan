@@ -526,6 +526,7 @@ impl Lower<'_, '_, '_> {
             t => (p, t),
         };
         match &t {
+            Ty::Array(..) => self.array_place(i, p, &t),
             Ty::List(_) | Ty::Coll("deque" | "bytes" | "bytearray", _) => {
                 let et = match t {
                     Ty::Coll("bytes" | "bytearray", _) => Ty::Fixed("u8"),

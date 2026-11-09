@@ -1544,3 +1544,18 @@ sections = "22.7, 23"
 rows = "R970"
 topic = "S2 starts after formal phases 1 and 2, which wait for the M1 gate; stage 0 keeps growing until the freeze, optimizer and package manager included, and every stage-0 crate is ported (RFC 0057 D5)"
 sections = "22.7"
+
+[[entry]]
+rows = "R971"
+topic = "`gpu.launch(k, args...)` runs a `@kernel` function once per program instance under `uses gpu` and returns its `out`; the `cpu` handler runs the instances on the host, and a trap fails the launch with `KernelFault` (RFC 0058 D1)"
+sections = "7.1, 17.1"
+
+[[entry]]
+rows = "R972"
+topic = "The launch grid follows the `out` region: instances step by the extent the region bounds on each axis and have one origin on an axis it leaves free, so their writes are disjoint (RFC 0058 D2)"
+sections = "17.1"
+
+[[entry]]
+rows = "R973"
+topic = "An `out` size on a stepped axis that is not a literal divisible by the step is E521 at the launch (RFC 0058 D3)"
+sections = "17.1, 25"

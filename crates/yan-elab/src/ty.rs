@@ -125,6 +125,20 @@ fn named(name: &str, args: Vec<y::Type>) -> y::Type {
 }
 
 impl Ty {
+    /// The sizes of an `Array` whose axes are all positional literals.
+    pub fn dims(&self) -> Option<Vec<i64>> {
+        match self {
+            Ty::Array(axes, _) => axes
+                .iter()
+                .map(|a| match a {
+                    Axis::Size(n) => n.replace('_', "").parse().ok(),
+                    Axis::Label(_) => None,
+                })
+                .collect(),
+            _ => None,
+        }
+    }
+
     pub fn core(&self) -> y::Type {
         match self {
             Ty::Int => named("i64", vec![]),
@@ -152,6 +166,8 @@ impl Ty {
             Ty::Union(ts) => y::Type::Union(ts.iter().map(Ty::core).collect()),
             Ty::Data(n) | Ty::Param(n) => named(n, vec![]),
             Ty::Foreign(n, ts) => named(n, ts.iter().map(Ty::core).collect()),
+            // Literal positional axes are stored flat, row-major, as one list (11.2).
+            Ty::Array(_, t) if self.dims().is_some() => named("List", vec![t.core()]),
             Ty::Array(axes, t) => y::Type::Named(Named {
                 path: vec!["Array".into()],
                 args: axes

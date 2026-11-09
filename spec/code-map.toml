@@ -134,7 +134,7 @@ E502 = "crates/yan-elab/src/lower/matching.rs"
 E503 = "crates/yan-check/src/lib.rs"
 E504 = "crates/yan-elab/src/lower/assign.rs"
 E520 = "crates/yan-elab/src/lower/arith.rs"
-E521 = { unimplemented = "#825" }
+E521 = "crates/yan-elab/src/lower/array.rs"
 E530 = "crates/yan-elab/src/lower/arith.rs"
 E540 = "crates/yan-elab/src/lower/calls.rs"
 E541 = { unimplemented = "#825" }

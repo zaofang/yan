@@ -186,7 +186,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E503 | non-exhaustive match, including open C enums and `@non_exhaustive` types without `_` | 14.1, 12.3 |
 | E504 | integer indexing or `len` on `str` | 14.1 |
 | E520 | positional axis broadcast against a non-scalar | 11.2 |
-| E521 | tile shape mismatch in a kernel operation new | 17.1 |
+| E521 | tile shape mismatch in a kernel operation, or a launch result that is not a whole number of tiles (R973) new | 17.1 |
 | E530 | unit, dimension, kind or affine-point mismatch | 11.4 |
 | E540 | invalid or out-of-range date or time literal *new* | 14.2 |
 | E541 | zoned literal in a gap or an unresolved fold *new* | 14.2 |
