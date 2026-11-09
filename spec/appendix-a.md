@@ -319,6 +319,10 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R971 | `gpu.launch(k, args...)` runs a `@kernel` function once per program instance under `uses gpu` and returns its `out`; the `cpu` handler runs the instances on the host, and a trap fails the launch with `KernelFault` (RFC 0058 D1) | 7.1, 17.1 |
 | R972 | The launch grid follows the `out` region: instances step by the extent the region bounds on each axis and have one origin on an axis it leaves free, so their writes are disjoint (RFC 0058 D2) | 17.1 |
 | R973 | An `out` size on a stepped axis that is not a literal divisible by the step is E521 at the launch (RFC 0058 D3) | 17.1, 25 |
+| R974 | Overflow policies are the fieldless std types `Block`, `DropOldest`, `DropNew` and `Reject`; `P` in `Actor[S, P]` comes from the expected type at the spawn, `Actor[S]` is `Actor[S, Block]`, and spawn takes `capacity` only (RFC 0059 D1) | 9.6, 14, 17.3 |
+| R975 | `actor.send_only(h)` returns `SendOnly[S, P]` (remotely `Remote[SendOnly[S, P]]`), which sends but cannot call; a call through it is E201 with the fix `actor.send(h)` (RFC 0059 D2) | 9.6, 17.3 |
+| R976 | A send fails `Undelivered[A, R]` with `reason: R` and `args: A`, the handler's arguments; `R` is `Stopped | Timeout | Cancelled` for `Block`, `Stopped | Full` for `Reject`, `Stopped` for the drop policies, plus remote transport failures (RFC 0059 D3) | 9.6, 17.3 |
+| R977 | `Stopped(reason: StopReason)` with `StopReason = Normal() | Shutdown() | Crashed(error: str) | NodeDown()`, one type locally and in `RemoteError` (RFC 0059 D4) | 9.6, 9.6.1, 17.3 |
 
 <!-- /rows -->
 

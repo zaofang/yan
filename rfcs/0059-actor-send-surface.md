@@ -1,8 +1,8 @@
 # 0059: Actor overflow policies, send-only handles and send failures
 
-- Status: draft
+- Status: accepted
 - Research: none; this RFC settles how R814, R813 and R435 are spelled, without new behavior. Gap issue #835 (slice 2b items 1 to 3 and 5).
-- Rows: filled in when accepted
+- Rows: R974 to R977
 
 ## Summary
 
@@ -34,7 +34,7 @@ expected type, as R956 says (`a: Actor[Log, DropOldest] = actor.spawn(Log())`). 
 R956's form.
 
 - Decision: (a), the lead, 2026-11-09 (card on the slice 2b thread)
-- Row:
+- Row: R974
 
 ### D2: the send-only handle type
 
@@ -46,7 +46,7 @@ call through it is E201 with the fix `actor.send(h)`. (b) suggests the actor's o
 holder does not own. (c) hides authority in a value the type does not show, against least authority.
 
 - Decision: (a), the lead, 2026-11-09 (card on the slice 2b thread)
-- Row:
+- Row: R975
 
 ### D3: the failure of a send
 
@@ -61,18 +61,18 @@ the reason union that `P` allows: `Stopped | Timeout | Cancelled` for `Block`, `
 std class beside `Stopped`. (b) makes a new sum per handler and per policy. (c) breaks R813's retry
 promise.
 
-- Decision:
-- Row:
+- Decision: (a), the lead, 2026-11-09 (card on the slice 2b thread)
+- Row: R976
 
 ### D4: why an actor stopped
 
-`Stopped` gets one field, `reason: StopReason`, where `StopReason = Normal() | Shutdown() | Crashed()
-| NodeDown()`, and `RemoteError`'s `Stopped{reason}` is this same type (one fact, one
+`Stopped` gets one field, `reason: StopReason`, where `StopReason = Normal() | Shutdown() |
+Crashed(error: str) | NodeDown()`, where `Crashed` carries the failure's shown text so it is `Wire`, and `RemoteError`'s `Stopped{reason}` is this same type (one fact, one
 representation). Supervision (RFC 0056 slice 3) fills it. Until then a local call never fails
 `Stopped`.
 
 - Decision: inconsequential, most complete
-- Row:
+- Row: R977
 
 ## Spec changes
 
