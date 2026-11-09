@@ -11225,6 +11225,60 @@
    }
   },
   {
+   "path": "pkg/yan_new_agent_tool",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template agent-tool @conf/new_agent_tool` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
+   "path": "pkg/yan_new_cli",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template cli @conf/new_cli` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
+   "path": "pkg/yan_new_library",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template library @conf/new_library` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
    "path": "fmt/blank_lines",
    "kind": "fmt",
    "milestone": "M1",
