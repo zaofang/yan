@@ -13,7 +13,7 @@ E006 = { unimplemented = "#825" }
 E007 = "crates/yan-cli/src/deps.rs"
 E008 = { unimplemented = "#825" }
 E009 = "crates/yan-cli/src/main.rs"
-E010 = { unimplemented = "#825" }
+E010 = "crates/yan-cli/src/build.rs"
 E011 = { unimplemented = "#825" }
 E012 = { unimplemented = "#825" }
 E013 = { unimplemented = "#825" }
