@@ -1,7 +1,7 @@
 """Actors (9.6, 17.3): `Actor[S]` owns state `S`; a handle reaches other nodes as `Remote`.
-`take`, `put`, `settle`, `send` and `start` are the lowering of a handler call `h.f(args)` (R435) and of
-`actor.send(h).f(args)` (R813) and of `actor.start(ChildSpec(f, (args...), restart=r))`
-(R958), not for direct use."""
+`take`, `put`, `settle`, `reply`, `send` and `start` are the lowering of a handler call `h.f(args)`
+(R435), of `actor.send(h).f(args)` (R813) and of `actor.start(ChildSpec(f, (args...), restart=r))`
+(R958), not for direct use. `F` is the call's fail type, the handler's own plus `ActorError`."""
 
 @intrinsic
 @since("1.0")
@@ -13,7 +13,7 @@ pub def spawn[S](state: S, capacity: int = 1024) -> Actor[S]: ...
 
 @intrinsic
 @since("1.0")
-pub def take[S](self: Actor[S]) -> S: ...
+pub def take[S, F](self: Actor[S]) -> Result[S, F]: ...
 
 @intrinsic
 @since("1.0")
@@ -21,7 +21,11 @@ pub def put[S](self: Actor[S], state: S) -> None: ...
 
 @intrinsic
 @since("1.0")
-pub def settle[S, T, E](self: Actor[S], state: S, outcome: Result[T, E]) -> T fail E: ...
+pub def settle[S, T, E, F](self: Actor[S], state: S, outcome: Result[T, E]) -> Result[T, F]: ...
+
+@intrinsic
+@since("1.0")
+pub def reply[T, F](outcome: Result[T, F]) -> T fail F: ...
 
 @intrinsic
 @since("1.0")

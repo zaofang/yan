@@ -121,7 +121,7 @@ def main() uses io:
     print(c.add(1) else -1)
 "
     );
-    assert!(matches!(run(&src), Err(yan_interp::Stop::Unsupported(..))));
+    assert_eq!(run(&src).expect("runs"), "-1\n-1\n");
 }
 
 #[test]
@@ -149,7 +149,7 @@ def main() uses io:
     print(c.add(1) else -1)
 "
     );
-    assert!(matches!(run(&src), Err(yan_interp::Stop::Unsupported(..))));
+    assert_eq!(run(&src).expect("runs"), "-1\n");
 }
 
 #[test]
