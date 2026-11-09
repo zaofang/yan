@@ -1,4 +1,4 @@
-//! `yan mcp package` (RFC 0061): each public function of the served module, other than `main`
+//! `yan mcp package` (RFC 0062): each public function of the served module, other than `main`
 //! and tests, is a tool. Its schema rides to the server as a `tool` attribute on the Core item.
 
 use serde_json::json;

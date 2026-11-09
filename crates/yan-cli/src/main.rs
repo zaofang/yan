@@ -79,7 +79,7 @@ enum OpCommand {
 enum McpCommand {
     /// Print the JSON Schema of every tool's input.
     Schema,
-    /// Serve a package's public functions as tools (RFC 0061).
+    /// Serve a package's public functions as tools (RFC 0062).
     Package {
         #[arg(default_value = ".")]
         dir: PathBuf,

@@ -606,7 +606,7 @@ pub fn query(
     })
 }
 
-/// Call the served tool `fn f` of `m` (RFC 0061) with `args`, a json object, under `limits`; `fs`
+/// Call the served tool `fn f` of `m` (RFC 0062) with `args`, a json object, under `limits`; `fs`
 /// is confined beneath `root`. `Ok` is the result as json text; `Err` the failure value or the
 /// argument error as text.
 pub fn tool(
@@ -648,7 +648,7 @@ pub fn tool(
     })
 }
 
-/// The schema elaboration attached to the tool `fn f` (RFC 0061).
+/// The schema elaboration attached to the tool `fn f` (RFC 0062).
 fn tool_schema(m: &Module, f: &str) -> Option<serde_json::Value> {
     m.items.iter().find_map(
         |i| match (&i.kind, i.attrs.iter().find(|a| a.name == "tool")) {
@@ -732,7 +732,7 @@ fn entry(
             Param::Cap { name, .. } if host.is_some() && name != "toolchain" => unsupported(
                 format!("`{f}` uses `{name}`; a query may use only `toolchain`"),
             ),
-            // A tool's `fs` resolves beneath the served root (RFC 0061, R674).
+            // A tool's `fs` resolves beneath the served root (RFC 0062, R674).
             Param::Cap { name, .. } if name == "fs" && root.is_some() => Ok(Value::Data {
                 name: "SubFs".into(),
                 fields: vec![

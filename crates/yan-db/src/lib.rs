@@ -47,7 +47,7 @@ pub struct Settings {
     /// Stage 0 does not run (R676).
     #[returns(copy)]
     pub untrusted: bool,
-    /// Public functions carry tool schemas for `yan mcp package` (RFC 0061).
+    /// Public functions carry tool schemas for `yan mcp package` (RFC 0062).
     #[returns(copy)]
     pub tools: bool,
 }
@@ -92,7 +92,7 @@ impl Database {
         self
     }
 
-    /// Elaborate public functions as tools (RFC 0061).
+    /// Elaborate public functions as tools (RFC 0062).
     pub fn tools(mut self) -> Self {
         use salsa::Setter;
         Settings::get(&self).set_tools(&mut self).to(true);

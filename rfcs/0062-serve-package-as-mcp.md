@@ -1,4 +1,4 @@
-# 0061: Serve a package's public functions as MCP tools
+# 0062: Serve a package's public functions as MCP tools
 
 - Status: draft
 - Research: none; polish item N4 (#866, tracked by #862). Builds on 21.4, R676 and the json wire

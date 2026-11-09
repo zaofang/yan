@@ -47,7 +47,7 @@ pub(crate) fn schema(g: &Globals, root: &Ty) -> Option<String> {
     Some(json!({"root": root, "defs": defs}).to_string())
 }
 
-/// The schema of a served tool (RFC 0061): its parameters as the record `$args`, and its
+/// The schema of a served tool (RFC 0062): its parameters as the record `$args`, and its
 /// result, `"unit"` for none. `Err` names the first parameter or result with no json form.
 pub(crate) fn tool(g: &Globals, params: &[Field], ret: &Ty) -> Result<J, String> {
     let mut todo = Vec::new();

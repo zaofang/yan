@@ -440,7 +440,7 @@ fn schema(s: &str) -> S {
 }
 
 /// A served tool's arguments object, decoded against its `$args` record into the parameters in
-/// order (RFC 0061); `Err` is the `JsonError` value.
+/// order (RFC 0062); `Err` is the `JsonError` value.
 pub(crate) fn tool_args(sc: &S, text: &str) -> Result<Vec<Value>, Value> {
     let (j, pos) = json::parse_pos(text, 128).map_err(super::json::error)?;
     match (Cx { schema: sc }).decode(&sc["args"], &j, &pos, "$") {

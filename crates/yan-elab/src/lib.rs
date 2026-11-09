@@ -61,7 +61,7 @@ pub struct Options {
     /// The repository is not trusted, so stage 0 does not run (R676).
     pub untrusted: bool,
     /// The module is served by `yan mcp package`: its public functions carry tool schemas
-    /// (RFC 0061).
+    /// (RFC 0062).
     pub tools: bool,
 }
 

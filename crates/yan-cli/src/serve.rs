@@ -1,4 +1,4 @@
-//! `yan mcp package [DIR]` (RFC 0061): serve a package's public functions as MCP tools over
+//! `yan mcp package [DIR]` (RFC 0062): serve a package's public functions as MCP tools over
 //! stdio. A tool's arguments and result are its signature's json forms (R875); a call binds only
 //! the capabilities the operator granted with `--allow`, and `fs` resolves beneath the package.
 
