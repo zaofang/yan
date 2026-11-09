@@ -49,16 +49,16 @@ def main() uses io:
 }
 
 #[test]
-fn a_failing_handler_keeps_its_actor() {
+fn a_failing_handler_reaches_its_caller() {
     let src = format!(
         "{COUNTER}
 def main() uses io:
     c = actor.spawn(Counter(n=0), capacity=4)
-    print(c.checked(-1) else -1)
     print(c.checked(5) else -1)
+    print(c.checked(-1) else -1)
 "
     );
-    assert_eq!(run(&src).expect("runs"), "-1\n5\n");
+    assert_eq!(run(&src).expect("runs"), "5\n-1\n");
 }
 
 #[test]
@@ -86,7 +86,8 @@ def main() uses io:
     print(show(a.ping(a)))
     print(a.total() else -1)
 ";
-    assert_eq!(run(src).expect("runs"), "Deadlock()\n1\n");
+    // The failed `ping` stops `a` (RFC 0060 D3).
+    assert_eq!(run(src).expect("runs"), "Deadlock()\n-1\n");
 }
 
 #[test]
@@ -236,7 +237,8 @@ def main() uses io:
         print(show(a.wait_then(b, &rx)))
         print(show(b.signal_then(a, &tx)))
 ";
-    assert_eq!(run(src).expect("runs"), "Deadlock()\n21\n");
+    // The failed `signal_then` stops `b`, which `a` then finds stopped (RFC 0060 D3).
+    assert_eq!(run(src).expect("runs"), "Deadlock()\nStopped()\n");
 }
 
 #[test]

@@ -49,6 +49,7 @@ static TABLE: LazyLock<Vec<Option<Bind>>> = LazyLock::new(|| {
         .chain(crate::crypto_rand::BINDS)
         .chain(crate::fault::BINDS)
         .chain(crate::sync::BINDS)
+        .chain(crate::supervise::BINDS)
         .chain(crate::log::BINDS)
         .chain(crate::proc::BINDS)
         .chain(crate::net::BINDS)
@@ -103,6 +104,8 @@ pub(crate) fn call(path: &str, args: &mut [Value]) -> R<Result<Value, Value>> {
     match get(id).expect("bound") {
         Bind::Plain(f) => f(args).map(Ok),
         Bind::Fallible(f) => f(args),
-        Bind::Cap(_) | Bind::CapFallible(_) | Bind::Vm(_) => unreachable!("selftests call neither"),
+        Bind::Cap(_) | Bind::CapFallible(_) | Bind::Vm(_) => {
+            unreachable!("selftests call neither")
+        }
     }
 }

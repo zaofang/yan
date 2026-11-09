@@ -1322,6 +1322,13 @@ impl<'a> Parser<'a> {
                             WithKind::Timeout(e)
                         }
                     }
+                    Tok::Name(w) if w == "supervisor" && *self.peek_n(1) == Tok::Punct("(") => {
+                        self.bump();
+                        self.bump();
+                        let e = self.expr()?;
+                        self.expect_p(")")?;
+                        WithKind::Supervisor(e)
+                    }
                     _ => {
                         let (name, _) = self.name()?;
                         self.expect_p("=")?;

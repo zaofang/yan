@@ -44,6 +44,7 @@ mod regex;
 mod std_parity;
 #[cfg(test)]
 mod std_selftest;
+mod supervise;
 mod sync;
 mod time;
 mod toolchain;
@@ -248,6 +249,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             deadline: None,
             chans: Vec::new(),
             actors: Vec::new(),
+            sups: Default::default(),
             actor_waits: Vec::new(),
             doomed: Vec::new(),
             net: Default::default(),
@@ -377,6 +379,8 @@ pub(crate) struct Interp<'o> {
     chans: Vec<(usize, VecDeque<Value>)>,
     /// Each actor, by actor (9.6).
     actors: Vec<sync::Actor>,
+    /// Every supervisor and the open `with supervisor` scopes (9.6).
+    sups: supervise::Sups,
     /// The tasks parked on a busy actor, by task path, and the actor each waits for (RFC 0056 D6).
     actor_waits: Vec<(Vec<usize>, usize)>,
     /// Parked callers that a wait cycle chose to fail `Deadlock` when they next retry (D6).
@@ -644,6 +648,7 @@ fn entry(
         deadline: None,
         chans: Vec::new(),
         actors: Vec::new(),
+        sups: Default::default(),
         actor_waits: Vec::new(),
         doomed: Vec::new(),
         net: Default::default(),

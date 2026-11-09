@@ -451,6 +451,24 @@ impl<'o> Vm<'o> {
     }
 
     /// Call closure `c`; a closure cannot fail, since function types have no `fail` yet.
+    /// Call a std function bound to the VM on the arguments at `base`, taken off the stack so
+    /// the closures it calls run on it.
+    fn native_vm<T>(
+        &mut self,
+        base: usize,
+        f: impl FnOnce(&mut Self, &mut [Value]) -> R<T>,
+    ) -> R<T> {
+        let mut args: Vec<Value> = self.stack[base..].iter_mut().map(mem::take).collect();
+        let chain = mem::replace(&mut self.chain, false);
+        let r = f(self, &mut args);
+        self.chain = chain;
+        let r = r?;
+        for (i, v) in args.into_iter().enumerate() {
+            self.stack[base + i] = v;
+        }
+        Ok(r)
+    }
+
     pub(crate) fn apply(&mut self, c: &Rc<Clo>, args: Vec<Value>) -> R<Value> {
         let base = self.stack.len();
         let n = args.len();
@@ -670,6 +688,10 @@ impl<'o> Vm<'o> {
         let outer = mem::replace(&mut self.it.deadline, deadline);
         let r = self.resume_into(code, &mut pc, base, callee);
         let inner = mem::replace(&mut self.it.deadline, outer);
+        // So do its `with supervisor` scopes, unless the frame parked to resume later.
+        if self.it.park.is_none() {
+            crate::supervise::end_frame(&mut self.it, base);
+        }
         // So does its `cost` counter.
         if self.costs.last().is_some_and(|c| c.base >= base) {
             self.costs.retain(|c| c.base < base);
@@ -781,6 +803,11 @@ impl<'o> Vm<'o> {
                     };
                     self.it.deadline = Some(self.it.deadline.map_or(at, |d| d.min(at)));
                 }
+                Op::SupBegin(src) => {
+                    let spec = self.val(code, base, src).clone();
+                    crate::supervise::begin(&mut self.it, &spec, base)?;
+                }
+                Op::SupEnd => crate::supervise::end(&mut self.it),
                 Op::DeadlineEnd { saved } => {
                     self.it.deadline = match self.stack[base + saved as usize] {
                         Value::Mono(d) => Some(d),
@@ -1220,19 +1247,7 @@ impl<'o> Vm<'o> {
                     Bind::Cap(f) => Ok(f(&mut self.it, &mut self.stack[new_base..])?),
                     Bind::CapFallible(f) => f(&mut self.it, &mut self.stack[new_base..])?,
                     Bind::Fallible(f) => f(&self.stack[new_base..])?,
-                    Bind::Vm(f) => {
-                        // Taken off the stack: closures the function calls run on it.
-                        let mut args: Vec<Value> =
-                            self.stack[new_base..].iter_mut().map(mem::take).collect();
-                        let chain = mem::replace(&mut self.chain, false);
-                        let r = f(self, id, &mut args);
-                        self.chain = chain;
-                        let r = r?;
-                        for (i, v) in args.into_iter().enumerate() {
-                            self.stack[new_base + i] = v;
-                        }
-                        Ok(r)
-                    }
+                    Bind::Vm(f) => Ok(self.native_vm(new_base, |vm, a| f(vm, id, a))?),
                 };
                 if let Some(before) = before {
                     self.count_allocs(s, new_base, &before, &r)?;

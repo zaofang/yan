@@ -338,7 +338,10 @@ pub(crate) fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
         K::For { iter, .. } => vec![iter],
         K::Match { scrutinee, .. } => vec![scrutinee],
         K::With { kind, .. } => match kind {
-            j::WithKind::Bind(_, e) | j::WithKind::Deadline(e) | j::WithKind::Timeout(e) => vec![e],
+            j::WithKind::Bind(_, e)
+            | j::WithKind::Deadline(e)
+            | j::WithKind::Timeout(e)
+            | j::WithKind::Supervisor(e) => vec![e],
         },
         K::Par {
             body: j::ParBody::For { iter, .. },

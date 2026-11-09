@@ -1568,6 +1568,12 @@ impl Parser {
                         } else {
                             WithKind::Timeout(e)
                         }
+                    } else if self.is_kw("supervisor") && self.is_op_at(1, "(") {
+                        self.bump();
+                        self.bump();
+                        let e = self.expr()?;
+                        self.expect_op(")")?;
+                        WithKind::Supervisor(e)
                     } else {
                         let n = self.name()?;
                         self.expect_op("=")?;

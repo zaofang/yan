@@ -323,6 +323,10 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R975 | `actor.send_only(h)` returns `SendOnly[S, P]` (remotely `Remote[SendOnly[S, P]]`), which sends but cannot call; a call through it is E201 with the fix `actor.send(h)` (RFC 0059 D2) | 9.6, 17.3 |
 | R976 | A send fails `Undelivered[A, R]` with `reason: R` and `args: A`, the handler's arguments; `R` is `Stopped | Timeout | Cancelled` for `Block`, `Stopped | Full` for `Reject`, `Stopped` for the drop policies, plus remote transport failures (RFC 0059 D3) | 9.6, 17.3 |
 | R977 | `Stopped(reason: StopReason)` with `StopReason = Normal() | Shutdown() | Crashed(error: str) | NodeDown()`, one type locally and in `RemoteError` (RFC 0059 D4) | 9.6, 9.6.1, 17.3 |
+| R978 | `with supervisor(spec):` takes a `Supervisor` built by `actor.one_for_one`, `one_for_all` or `rest_for_one(intensity: int = 1, period: Duration = 5 * s, shutdown: Duration = 5 * s)` (RFC 0060 D1) | 9.6, 17.3 |
+| R979 | `actor.start(ChildSpec(start, (args...), restart=permanent), capacity=1024) -> Actor[S]` starts a restartable child: `start` a top-level function returning `S` with no fail type, `args` a tuple evaluated once, `restart` one of `permanent`, `transient`, `temporary` (RFC 0060 D2) | 9.6, 17.3 |
+| R980 | A handler failure stops its actor: the caller gets the failure, queued messages are dropped, later calls fail `Stopped(Crashed)`, and the supervisor restarts it by restart type and strategy (RFC 0060 D3) | 9.6 |
+| R981 | Exceeding a supervisor's restart intensity stops its children in reverse start order and panics with kind `supervisor`; a scope's children stop in reverse start order when the scope ends, however it ends (RFC 0060 D4, D5) | 9.6 |
 
 <!-- /rows -->
 

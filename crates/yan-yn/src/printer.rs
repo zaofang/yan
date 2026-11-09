@@ -520,6 +520,7 @@ impl Printer {
                     ),
                     WithKind::Deadline(e) => format!("with deadline({})", expr(e)),
                     WithKind::Timeout(e) => format!("with timeout({})", expr(e)),
+                    WithKind::Supervisor(e) => format!("with supervisor({})", expr(e)),
                 };
                 self.block(&head, body);
             }

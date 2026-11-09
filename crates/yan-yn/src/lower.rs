@@ -1188,6 +1188,7 @@ impl Lower<'_> {
                     }
                     WithKind::Deadline(e) => h::WithKind::Deadline(self.expr(e)?),
                     WithKind::Timeout(e) => h::WithKind::Timeout(self.expr(e)?),
+                    WithKind::Supervisor(e) => h::WithKind::Supervisor(self.expr(e)?),
                 },
                 body: self.block(body)?,
             },
@@ -2159,6 +2160,7 @@ fn stmt_names(s: &Stmt, names: &mut Names, bound: &mut HashSet<String>) {
                     names.fails.insert("Timeout".into());
                     e(x, names, bound)
                 }
+                WithKind::Supervisor(x) => e(x, names, bound),
             }
             block(body, names, bound);
         }
