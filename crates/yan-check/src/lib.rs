@@ -3,6 +3,7 @@
 //! It reports only what it can prove from the module alone. A type it cannot work out, such as
 //! a std result or a generic instance, is unknown and never produces a mismatch.
 
+mod flow;
 pub mod own;
 mod post;
 
@@ -33,6 +34,7 @@ pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
             cx.block(b);
         }
         cx.finish();
+        cx.flow_findings();
         has_invariant.set(has_invariant.get() || cx.has_invariant);
         diags.append(&mut cx.diags);
         cx.callees
@@ -345,13 +347,6 @@ enum How {
 }
 
 impl How {
-    fn consumes(self) -> bool {
-        matches!(
-            self,
-            How::Sink | How::Ret | How::Store | How::Move | How::Drop
-        )
-    }
-
     fn escapes(self) -> bool {
         matches!(self, How::Sink | How::Ret | How::Store)
     }
@@ -359,6 +354,7 @@ impl How {
 
 #[derive(Clone)]
 struct Binding {
+    id: yan_flow::Binding,
     ty: Option<Type>,
     kind: Kind,
     span: Span,
@@ -371,12 +367,7 @@ struct Binding {
     bad_captures: Vec<(&'static str, Span)>,
 }
 
-type Shadowed = (
-    Name,
-    Option<Binding>,
-    Option<Vec<How>>,
-    Option<HashSet<Name>>,
-);
+type Shadowed = (Name, Option<Binding>, Option<Vec<How>>);
 
 /// What a `match` arm's binders shadowed, to restore when the arm ends.
 struct ArmScope {
@@ -395,10 +386,7 @@ struct Cx<'g, 'm> {
     /// Bindings in order, for the end-of-body checks.
     order: Vec<Name>,
     uses: HashMap<Name, Vec<How>>,
-    /// The fields taken out of each record binding.
-    taken: HashMap<Name, HashSet<Name>>,
-    /// Moved names and where each moved.
-    moved: HashMap<Name, Span>,
+    flow: flow::Flow,
     reported: HashSet<Name>,
     par: Vec<(usize, usize)>,
     next_par: usize,
@@ -410,21 +398,6 @@ struct Cx<'g, 'm> {
     /// Each join point's parameter names, so a jump's arguments carry their captures in.
     jps: HashMap<Name, Vec<Name>>,
     diags: Vec<Diagnostic>,
-}
-
-fn diverges(b: &Block) -> bool {
-    b.stmts.last().is_some_and(|s| {
-        matches!(
-            s.kind,
-            StmtKind::Ret(_)
-                | StmtKind::Fail(_)
-                | StmtKind::Jump { .. }
-                | StmtKind::Become(_)
-                | StmtKind::Break { .. }
-                | StmtKind::Continue { .. }
-                | StmtKind::Unreachable
-        )
-    })
 }
 
 fn pat_names(p: &Pat, out: &mut Vec<Name>, variants: &HashMap<String, String>) {
@@ -465,8 +438,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             env: HashMap::new(),
             order: Vec::new(),
             uses: HashMap::new(),
-            taken: HashMap::new(),
-            moved: HashMap::new(),
+            flow: flow::Flow::new(),
             reported: HashSet::new(),
             par: Vec::new(),
             next_par: 0,
@@ -491,6 +463,15 @@ impl<'g, 'm> Cx<'g, 'm> {
         self.bind(name, Some(ty), kind, span, false);
     }
 
+    /// A join point's parameters own what the jumps pass them.
+    fn bind_jp_param(&mut self, p: &Param, span: Span) {
+        let (name, ty, kind) = match p {
+            Param::Value { conv, name, ty, .. } => (name, ty.clone(), Kind::Param(*conv)),
+            Param::Cap { name, ty } => (name, Type::Named(ty.clone()), Kind::Cap),
+        };
+        self.bind_as(name, Some(ty), kind, span, false, true);
+    }
+
     fn bind(
         &mut self,
         name: &Name,
@@ -499,10 +480,23 @@ impl<'g, 'm> Cx<'g, 'm> {
         span: Span,
         local: bool,
     ) -> &mut Binding {
+        self.bind_as(name, ty, kind, span, local, local)
+    }
+
+    /// `owns`: a `@linear` value bound here must be consumed before the body exits.
+    fn bind_as(
+        &mut self,
+        name: &Name,
+        ty: Option<Type>,
+        kind: Kind,
+        span: Span,
+        local: bool,
+        owns: bool,
+    ) -> &mut Binding {
         self.order.push(name.clone());
-        self.moved.remove(name);
-        self.taken.remove(name);
+        let linear = if owns { self.linear(ty.as_ref()) } else { None };
         let b = Binding {
+            id: self.flow.bind(name, span, linear),
             ty,
             kind,
             span,
@@ -537,7 +531,6 @@ impl<'g, 'm> Cx<'g, 'm> {
                     format!("the `try` result `{n}` is never inspected"),
                 );
             }
-            self.check_consumed(n, &b, &uses);
             if uses.iter().any(|h| h.escapes()) {
                 for (code, at) in b.bad_captures {
                     let what = if code == "E306" {
@@ -557,38 +550,42 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
     }
 
-    fn check_consumed(&mut self, n: &Name, b: &Binding, uses: &[How]) {
-        let linear =
-            b.ty.as_ref()
-                .and_then(base)
-                .is_some_and(|t| self.g.linear.contains(t));
-        if !b.local || !linear || uses.iter().any(|h| h.consumes()) {
-            return;
+    fn flow_findings(&mut self) {
+        let flow = mem::replace(&mut self.flow, flow::Flow::new());
+        for f in flow.finish() {
+            match f {
+                flow::Finding::UseAfterMove { name, at, moved } => {
+                    let d = error(
+                        self.file,
+                        self.src,
+                        &self.item,
+                        "E401",
+                        at,
+                        format!("`{name}` is used after it was moved"),
+                    );
+                    self.diags.push(d.with_label(moved, "moved"));
+                }
+                flow::Finding::NotConsumed { name, at, missing } => {
+                    let message = if missing.is_empty() {
+                        format!("`@linear` value `{name}` is never consumed")
+                    } else {
+                        let fs: Vec<String> = missing.iter().map(|f| format!("`{f}`")).collect();
+                        format!(
+                            "`@linear` value `{name}` is never consumed: {} not taken out of it",
+                            fs.join(", ")
+                        )
+                    };
+                    self.err("E412", at, message);
+                }
+            }
         }
-        // A record whose linear fields were all taken out is consumed with them.
-        let held = self.linear_fields(b.ty.as_ref());
-        let taken = self.taken.get(n);
-        let missing: Vec<&Name> = held
-            .iter()
-            .filter(|f| !taken.is_some_and(|t| t.contains(*f)))
-            .collect();
-        if held.is_empty() {
-            self.err(
-                "E412",
-                b.span,
-                format!("`@linear` value `{n}` is never consumed"),
-            );
-        } else if !missing.is_empty() {
-            let fs = missing.iter().map(|f| format!("`{f}`")).collect::<Vec<_>>();
-            self.err(
-                "E412",
-                b.span,
-                format!(
-                    "`@linear` value `{n}` is never consumed: {} not taken out of it",
-                    fs.join(", ")
-                ),
-            );
-        }
+    }
+
+    /// For a `@linear` type, its linear fields (empty when it is not a record).
+    fn linear(&self, t: Option<&Type>) -> Option<Vec<Name>> {
+        t.and_then(base)
+            .is_some_and(|b| self.g.linear.contains(b))
+            .then(|| self.linear_fields(t))
     }
 
     /// The fields of a record type that are themselves `@linear`.
@@ -607,18 +604,11 @@ impl<'g, 'm> Cx<'g, 'm> {
     }
 
     fn use_name(&mut self, n: &Name, span: Span, how: How) {
-        if let Some(&at) = self.moved.get(n)
-            && self.reported.insert(n.clone())
-        {
-            let d = error(
-                self.file,
-                self.src,
-                &self.item,
-                "E401",
-                span,
-                format!("`{n}` is used after it was moved"),
-            );
-            self.diags.push(d.with_label(at, "moved"));
+        if let Some(id) = self.env.get(n).map(|b| b.id) {
+            self.flow.read(id, span);
+            if matches!(how, How::Ret | How::Store | How::Drop) {
+                self.flow.release(id);
+            }
         }
         if let Some(b) = self.env.get(n)
             && let Some((pid, branch)) = b.tag
@@ -720,37 +710,34 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
     }
 
-    /// Run `f` from the current move state for each branch and merge the branches that continue.
+    /// Each block is a branch from here; they join after, with the fall-through edge when
+    /// `fallthrough`.
     fn branches<'b>(&mut self, blocks: impl IntoIterator<Item = &'b Block>, fallthrough: bool) {
         self.arms(blocks.into_iter().map(|b| (None, b)), None, fallthrough);
     }
 
-    /// Like [`Cx::branches`], binding each arm's pattern for that arm alone: two arms that bind
-    /// the same name keep separate use records, so each is checked for E412 on its own.
+    /// Like [`Cx::branches`], binding each arm's pattern for that arm alone.
     fn arms<'b>(
         &mut self,
         arms: impl IntoIterator<Item = (Option<(&'b Pat, Span)>, &'b Block)>,
         scrutinee: Option<&str>,
         fallthrough: bool,
     ) {
-        let before = self.moved.clone();
-        let mut merged = if fallthrough {
-            before.clone()
-        } else {
-            HashMap::new()
-        };
+        let from = self.flow.cur;
+        let join = self.flow.node();
         for (pat, b) in arms {
-            self.moved = before.clone();
+            self.flow.cur = self.flow.branch(from);
             let scope = pat.map(|(p, span)| self.enter_arm(p, scrutinee, span));
             self.block(b);
             if let Some(scope) = scope {
                 self.leave_arm(scope);
             }
-            if !diverges(b) {
-                merged.extend(self.moved.drain());
-            }
+            self.flow.edge(self.flow.cur, join);
         }
-        self.moved = merged;
+        if fallthrough {
+            self.flow.edge(from, join);
+        }
+        self.flow.cur = join;
     }
 
     fn enter_arm(&mut self, p: &Pat, scrutinee: Option<&str>, span: Span) -> ArmScope {
@@ -760,14 +747,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             order_len: self.order.len(),
             outer: names
                 .iter()
-                .map(|n| {
-                    (
-                        n.clone(),
-                        self.env.get(n).cloned(),
-                        self.uses.remove(n),
-                        self.taken.remove(n),
-                    )
-                })
+                .map(|n| (n.clone(), self.env.get(n).cloned(), self.uses.remove(n)))
                 .collect(),
         };
         self.bind_pat_typed(p, scrutinee, span);
@@ -776,14 +756,9 @@ impl<'g, 'm> Cx<'g, 'm> {
 
     fn leave_arm(&mut self, scope: ArmScope) {
         self.order.truncate(scope.order_len);
-        for (n, env, uses, taken) in scope.outer {
-            if let Some(b) = self.env.get(&n).cloned() {
-                let arm_uses = self.uses.remove(&n).unwrap_or_default();
-                self.check_consumed(&n, &b, &arm_uses);
-                self.taken.remove(&n);
-                if let Some(t) = taken {
-                    self.taken.insert(n.clone(), t);
-                }
+        for (n, env, uses) in scope.outer {
+            if self.env.contains_key(&n) {
+                self.uses.remove(&n);
                 if let Some(u) = &uses {
                     self.uses
                         .entry(n.clone())
@@ -802,9 +777,45 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
     }
 
+    /// A join point's body is entered only by its jumps and falls through to the end of the
+    /// block that declares it.
     fn block(&mut self, b: &Block) {
+        let jps: Vec<(&Name, Option<yan_flow::Node>)> = b
+            .stmts
+            .iter()
+            .filter_map(|s| match &s.kind {
+                StmtKind::Jp { name, .. } => Some((name, self.flow.declare_jp(name))),
+                _ => None,
+            })
+            .collect();
+        let end = (!jps.is_empty()).then(|| self.flow.node());
         for s in &b.stmts {
-            self.stmt(s);
+            if let (StmtKind::Jp { name, params, body }, Some(end)) = (&s.kind, end) {
+                let names = params
+                    .iter()
+                    .map(|p| match p {
+                        Param::Value { name, .. } | Param::Cap { name, .. } => name.clone(),
+                    })
+                    .collect();
+                self.jps.insert(name.clone(), names);
+                let resume = self.flow.cur;
+                self.flow.cur = self.flow.jp(name).expect("declared");
+                for p in params {
+                    self.bind_jp_param(p, s.span);
+                }
+                self.block(body);
+                self.flow.edge(self.flow.cur, end);
+                self.flow.cur = resume;
+            } else {
+                self.stmt(s);
+            }
+        }
+        if let Some(end) = end {
+            self.flow.edge(self.flow.cur, end);
+            self.flow.cur = end;
+        }
+        for (name, prev) in jps {
+            self.flow.restore_jp(name, prev);
         }
     }
 
@@ -870,8 +881,10 @@ impl<'g, 'm> Cx<'g, 'm> {
                 if let Some(t) = self.place_ty(place) {
                     self.compatible(&t, got, *rhs_span);
                 }
-                if place.projs.is_empty() {
-                    self.moved.remove(&place.root);
+                if place.projs.is_empty()
+                    && let Some(b) = self.env.get(&place.root)
+                {
+                    self.flow.redefine(b.id);
                 }
             }
             StmtKind::If { cond, then, els } | StmtKind::ComptimeIf { cond, then, els } => {
@@ -888,39 +901,35 @@ impl<'g, 'm> Cx<'g, 'm> {
                 );
             }
             StmtKind::Loop {
+                label,
                 invariants,
                 decreases,
                 body,
-                ..
             } => {
                 self.has_invariant |= !invariants.is_empty();
+                self.flow.enter_loop(label);
                 invariants
                     .iter()
                     .chain(decreases)
                     .for_each(|e| self.expr(e));
-                self.branches([body], true);
+                self.block(body);
+                self.flow.leave_loop();
             }
-            StmtKind::Break { value, .. } => {
+            StmtKind::Break { label, value } => {
                 if let Some(v) = value {
                     self.atom(v, How::Read);
                 }
+                let to = self.flow.loop_target(label, false);
+                self.flow.jump(to);
             }
-            StmtKind::Continue { .. } | StmtKind::Unreachable | StmtKind::Asm { .. } => {}
-            StmtKind::Jp { name, params, body } => {
-                let names = params
-                    .iter()
-                    .map(|p| match p {
-                        Param::Value { name, .. } | Param::Cap { name, .. } => name.clone(),
-                    })
-                    .collect();
-                self.jps.insert(name.clone(), names);
-                for p in params {
-                    self.bind_param(p, s.span);
-                }
-                let before = self.moved.clone();
-                self.block(body);
-                self.moved = before;
+            StmtKind::Continue { label } => {
+                let to = self.flow.loop_target(label, true);
+                self.flow.jump(to);
             }
+            StmtKind::Unreachable => self.flow.jump(None),
+            StmtKind::Asm { .. } => {}
+            // Walked by `block`, which knows where its body falls through to.
+            StmtKind::Jp { .. } => {}
             StmtKind::Jump { name, args } => {
                 let params = self.jps.get(name).cloned().unwrap_or_default();
                 for (a, p) in args.iter().zip(&params) {
@@ -931,13 +940,22 @@ impl<'g, 'm> Cx<'g, 'm> {
                 }
                 for a in args {
                     self.atom(a, How::Read);
+                    if let Atom::Name(n, _) = a
+                        && let Some(b) = self.env.get(n)
+                    {
+                        self.flow.release(b.id);
+                    }
                 }
+                let to = self.flow.jp(name);
+                self.flow.jump(to);
             }
             StmtKind::Ret(a) => {
                 self.atom(a, How::Ret);
+                self.flow.exit();
             }
             StmtKind::Fail(a) => {
                 self.atom(a, How::Ret);
+                self.flow.fail();
             }
             StmtKind::Yield(a) => {
                 if !self.is_gen {
@@ -945,7 +963,10 @@ impl<'g, 'm> Cx<'g, 'm> {
                 }
                 self.atom(a, How::Read);
             }
-            StmtKind::Become(c) => self.become_(c, s.span),
+            StmtKind::Become(c) => {
+                self.become_(c, s.span);
+                self.flow.exit();
+            }
             StmtKind::With {
                 name,
                 handler,
@@ -978,8 +999,12 @@ impl<'g, 'm> Cx<'g, 'm> {
                 body,
             } => {
                 self.atom(iter, How::Read);
+                let head = self.flow.enter_loop(name);
                 self.bind(name, Some(ty.clone()), Kind::Let, s.span, false);
-                self.branches([body], true);
+                self.flow.cur = self.flow.branch(head);
+                self.block(body);
+                self.flow.leave_loop();
+                self.flow.cur = self.flow.branch(head);
             }
             StmtKind::Assert(e) => self.expr(e),
             StmtKind::Unsafe(b) => self.block(b),
@@ -1022,17 +1047,17 @@ impl<'g, 'm> Cx<'g, 'm> {
     /// Like [`Cx::bind_pat`], giving each binder of a constructor's field the field's type, so a
     /// `@linear` value taken out of a sum or record must still be consumed (E412).
     fn bind_pat_typed(&mut self, p: &Pat, scrutinee: Option<&str>, span: Span) {
-        let mut typed = Vec::new();
+        let mut typed = HashMap::new();
         self.field_binders(p, scrutinee, &mut typed);
-        self.bind_pat(p, span);
-        for (n, t) in typed {
-            if let Some(b) = self.env.get_mut(&n) {
-                b.ty = Some(t);
-            }
+        let mut names = Vec::new();
+        pat_names(p, &mut names, &self.g.variant_of);
+        for n in names {
+            let t = typed.remove(&n);
+            self.bind(&n, t, Kind::Let, span, true);
         }
     }
 
-    fn field_binders(&self, p: &Pat, ty: Option<&str>, out: &mut Vec<(Name, Type)>) {
+    fn field_binders(&self, p: &Pat, ty: Option<&str>, out: &mut HashMap<Name, Type>) {
         let Pat::Ctor {
             path,
             fields: Some((ps, _)),
@@ -1065,7 +1090,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             };
             match sub {
                 Pat::Bind(n) if !self.g.variant_of.contains_key(n) => {
-                    out.push((n.clone(), field.ty.clone()))
+                    out.insert(n.clone(), field.ty.clone());
                 }
                 _ => self.field_binders(sub, Some(&type_text(&field.ty)), out),
             }
@@ -1126,11 +1151,10 @@ impl<'g, 'm> Cx<'g, 'm> {
 
     fn place(&mut self, p: &Place, how: How) -> Option<Type> {
         self.use_name(&p.root, p.root_span, how);
-        if let Some(Proj::Field(f, _)) = p.projs.first() {
-            self.taken
-                .entry(p.root.clone())
-                .or_default()
-                .insert(f.clone());
+        if let Some(Proj::Field(f, at)) = p.projs.first()
+            && let Some(b) = self.env.get(&p.root)
+        {
+            self.flow.take(b.id, f, *at);
         }
         for proj in &p.projs {
             if let Proj::Index(a) = proj {
@@ -1166,6 +1190,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                     );
                 }
                 let (ret, callee) = self.call(call);
+                self.flow.may_fail();
                 let callee_fail = callee.and_then(|f| f.fail.as_ref());
                 if let (None, Some(cft), Some(own)) = (via, callee_fail, self.def.fail.as_ref()) {
                     let cf = type_text(cft);
@@ -1232,8 +1257,10 @@ impl<'g, 'm> Cx<'g, 'm> {
             }
             Rhs::Move(p) => {
                 let t = self.place(p, How::Move);
-                if p.projs.is_empty() {
-                    self.moved.insert(p.root.clone(), at);
+                if p.projs.is_empty()
+                    && let Some(b) = self.env.get(&p.root)
+                {
+                    self.flow.moved(b.id, at);
                 }
                 t.as_ref().map(type_text)
             }
@@ -1248,19 +1275,22 @@ impl<'g, 'm> Cx<'g, 'm> {
                             How::Read
                         },
                     );
+                    // A `sink` capture moves ownership into the closure.
+                    if *cv == Conv::Sink
+                        && let Some(b) = self.env.get(n)
+                    {
+                        self.flow.release(b.id);
+                    }
                 }
-                let saved = (
-                    self.env.clone(),
-                    mem::take(&mut self.par),
-                    self.moved.clone(),
-                    self.is_gen,
-                );
+                let saved = (self.env.clone(), mem::take(&mut self.par), self.is_gen);
+                let body = self.flow.enter_body();
                 for p in &c.params {
                     self.bind_param(p, at);
                 }
                 self.is_gen = false;
                 self.block(&c.body);
-                (self.env, self.par, self.moved, self.is_gen) = saved;
+                self.flow.leave_body(body);
+                (self.env, self.par, self.is_gen) = saved;
                 None
             }
         }
@@ -1302,9 +1332,10 @@ impl<'g, 'm> Cx<'g, 'm> {
         self.overlap(&c.args);
         for a in &c.args {
             if let Arg::Value(Conv::Sink, Atom::Name(n, at), _) = a
-                && !is_copy(self.env.get(n).and_then(|b| b.ty.as_ref()))
+                && let Some(b) = self.env.get(n)
+                && !is_copy(b.ty.as_ref())
             {
-                self.moved.insert(n.clone(), *at);
+                self.flow.moved(b.id, *at);
             }
         }
 
@@ -1522,6 +1553,67 @@ mod selftest {
                    \x20       Hit { next: ep } => { let n: i64 = close(sink ep)\n            ret n }\n\
                    \x20       Miss { next: ep } => { ret 0 }\n    }\n}\n";
         assert_eq!(codes(src), [("E412".into(), 9, 5)]);
+    }
+
+    const HANDLE: &str =
+        "@linear\nrecord H { fd: i64 }\nfn close(sink h: H) -> i64 {\n    ret 0\n}\n";
+
+    #[test]
+    fn a_linear_value_consumed_on_one_path_only_is_e412() {
+        let src = format!(
+            "{HANDLE}fn f(let c: bool) -> i64 {{\n    let h: H = H {{ fd: 1 }}\n    if c {{\n\
+             \x20       let n: i64 = close(sink h)\n        ret n\n    }}\n    ret 0\n}}\n"
+        );
+        assert_eq!(codes(&src), [("E412".into(), 8, 9)]);
+    }
+
+    #[test]
+    fn a_failing_path_does_not_leak_a_linear_value() {
+        let src = format!(
+            "{HANDLE}fn may(let x: i64) -> i64 fail i64 {{\n    ret x\n}}\n\
+             fn f() -> i64 fail i64 {{\n    let h: H = H {{ fd: 1 }}\n    let a: i64 = may(let 1)?\n\
+             \x20   let n: i64 = close(sink h)\n    ret n\n}}\n"
+        );
+        assert_eq!(codes(&src), []);
+        let src = format!(
+            "{HANDLE}fn f(let c: bool) -> i64 fail i64 {{\n    let h: H = H {{ fd: 1 }}\n\
+             \x20   if c {{\n        fail 1\n    }}\n    let n: i64 = close(sink h)\n    ret n\n}}\n"
+        );
+        assert_eq!(codes(&src), []);
+    }
+
+    #[test]
+    fn a_move_in_a_loop_is_seen_by_the_next_iteration() {
+        let src = "fn keep(sink xs: List[i64]) -> i64 {\n    ret 0\n}\n\
+                   fn f(sink xs: List[i64]) -> i64 {\n    loop 'l {\n        let n: i64 = keep(sink xs)\n    }\n    ret 0\n}\n";
+        assert_eq!(codes(src), [("E401".into(), 7, 32)]);
+        let src = "fn keep(sink xs: List[i64]) -> i64 {\n    ret 0\n}\n\
+                   fn f(sink xs: List[i64]) -> i64 {\n    loop 'l {\n        let n: i64 = keep(sink xs)\n        break 'l\n    }\n    ret 0\n}\n";
+        assert_eq!(codes(src), []);
+    }
+
+    #[test]
+    fn a_record_is_consumed_when_every_linear_field_is_taken_out() {
+        let pair = format!(
+            "{HANDLE}@linear\nrecord P {{ a: H, b: H }}\n\
+             fn f(sink x: H, sink y: H) -> i64 {{\n    let p: P = P {{ a: x, b: y }}\n\
+             \x20   let a: H = move p.a\n    let n: i64 = close(sink a)\n"
+        );
+        let both = format!(
+            "{pair}    let b: H = move p.b\n    let m: i64 = close(sink b)\n    ret m\n}}\n"
+        );
+        assert_eq!(codes(&both), []);
+        let one = format!("{pair}    ret n\n}}\n");
+        let src = format!("module t\n{one}");
+        let (m, _) = yan_core::parse("t.yir", &src);
+        let d = check("t.yir", &src, &m.unwrap());
+        assert_eq!(d.len(), 1);
+        assert_eq!(d[0].code, "E412");
+        assert!(
+            d[0].message.ends_with("`b` not taken out of it"),
+            "{}",
+            d[0].message
+        );
     }
 
     #[test]

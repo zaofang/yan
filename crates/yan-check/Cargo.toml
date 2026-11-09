@@ -10,6 +10,7 @@ publish.workspace = true
 [dependencies]
 yan-core.workspace = true
 yan-diag.workspace = true
+yan-flow.workspace = true
 
 [lints]
 workspace = true
