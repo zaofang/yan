@@ -47,6 +47,9 @@ pub struct Settings {
     /// Stage 0 does not run (R676).
     #[returns(copy)]
     pub untrusted: bool,
+    /// Public functions carry tool schemas for `yan mcp package` (RFC 0061).
+    #[returns(copy)]
+    pub tools: bool,
 }
 
 /// An item of a module, keyed by its file, its name and its salted hash (3.6): an edited item
@@ -78,7 +81,7 @@ impl Database {
         static STD: Once = Once::new();
         STD.call_once(|| yan_elab::install_std(std_modules));
         let db = Self::default();
-        Settings::new(&db, strict, release, false);
+        Settings::new(&db, strict, release, false, false);
         db
     }
 
@@ -86,6 +89,13 @@ impl Database {
     pub fn untrusted(mut self) -> Self {
         use salsa::Setter;
         Settings::get(&self).set_untrusted(&mut self).to(true);
+        self
+    }
+
+    /// Elaborate public functions as tools (RFC 0061).
+    pub fn tools(mut self) -> Self {
+        use salsa::Setter;
+        Settings::get(&self).set_tools(&mut self).to(true);
         self
     }
 
@@ -231,6 +241,7 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
         yn,
         ffi: is_ffi(path),
         untrusted: settings.untrusted(db),
+        tools: settings.tools(db),
     };
     let name = path.display().to_string();
     match yan_elab::elaborate_in(&name, file.text(db), m, opts, package_manifest(path)) {

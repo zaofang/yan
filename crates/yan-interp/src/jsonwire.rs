@@ -320,6 +320,7 @@ impl Cx<'_> {
                 ("float", Float(f)) if f.is_finite() => Json::Float(*f),
                 ("str", Str(s)) => Json::Str(s.to_string()),
                 ("char", Char(c)) => Json::Str(c.to_string()),
+                ("unit", Unit) => Json::Null,
                 _ => return Err(()),
             },
             (S::Object(o), _) => {
@@ -436,6 +437,23 @@ fn error(s: &str, (at, reason): Fail) -> Value {
 
 fn schema(s: &str) -> S {
     serde_json::from_str(s).expect("the elaborator's schema")
+}
+
+/// A served tool's arguments object, decoded against its `$args` record into the parameters in
+/// order (RFC 0061); `Err` is the `JsonError` value.
+pub(crate) fn tool_args(sc: &S, text: &str) -> Result<Vec<Value>, Value> {
+    let (j, pos) = json::parse_pos(text, 128).map_err(super::json::error)?;
+    match (Cx { schema: sc }).decode(&sc["args"], &j, &pos, "$") {
+        Ok(Data { fields, .. }) => Ok(fields.into_iter().map(|(_, v)| v).collect()),
+        Ok(_) => unreachable!("`$args` is a record"),
+        Err(f) => Err(error(text, f)),
+    }
+}
+
+/// A served tool's result as json text, `None` for a non-finite float.
+pub(crate) fn tool_result(sc: &S, v: &Value) -> Option<String> {
+    let j = (Cx { schema: sc }).encode(&sc["ret"], v).ok()?;
+    json::dump(&j, None).ok()
 }
 
 pub(super) static BINDS: &[(yan_std::registry::Id, Bind)] = &[

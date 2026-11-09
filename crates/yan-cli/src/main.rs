@@ -20,6 +20,7 @@ mod pyimport;
 mod registry;
 mod review;
 mod schema;
+mod serve;
 mod store;
 mod test;
 mod trust;
@@ -78,6 +79,18 @@ enum OpCommand {
 enum McpCommand {
     /// Print the JSON Schema of every tool's input.
     Schema,
+    /// Serve a package's public functions as tools (RFC 0061).
+    Package {
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+        /// Capabilities a call may use, comma-separated; none by default. `fs` resolves beneath
+        /// the package.
+        #[arg(long, value_delimiter = ',')]
+        allow: Vec<String>,
+        /// Print the tools as `tools/list` returns them, and exit.
+        #[arg(long)]
+        list: bool,
+    },
 }
 
 /// The agent skill file; committed as golden text.
@@ -594,6 +607,22 @@ fn main() -> ExitCode {
             println!("{}", mcp::input_schemas());
             ExitCode::SUCCESS
         }
+        Command::Mcp {
+            command: Some(McpCommand::Package { dir, allow, list }),
+        } => match serve::Package::open(&dir, allow, trust::is_trusted(&dir)) {
+            Ok(p) if list => {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&p.list()).unwrap_or_default()
+                );
+                ExitCode::SUCCESS
+            }
+            Ok(p) => match p.serve() {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(msg) => tool_failure(&msg),
+            },
+            Err(msg) => tool_failure(&msg),
+        },
         Command::Mcp { command: None } => match mcp::serve(Path::new(".")) {
             Ok(()) => ExitCode::SUCCESS,
             Err(msg) => tool_failure(&msg),

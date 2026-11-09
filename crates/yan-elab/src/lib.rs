@@ -28,6 +28,7 @@ mod s0caps;
 mod session;
 mod stage0;
 mod stdlib;
+mod tools;
 mod ty;
 mod tyapp;
 mod typefn;
@@ -59,6 +60,9 @@ pub struct Options {
     pub ffi: bool,
     /// The repository is not trusted, so stage 0 does not run (R676).
     pub untrusted: bool,
+    /// The module is served by `yan mcp package`: its public functions carry tool schemas
+    /// (RFC 0061).
+    pub tools: bool,
 }
 
 /// A construct the elaborator does not lower yet, at the innermost statement or expression
@@ -848,6 +852,9 @@ pub fn elaborate_in(
         }
     }
     cost::check(&g, m, &items, &mut cx);
+    if opts.tools {
+        tools::attach(&g, m, &mut items, &mut cx);
+    }
     let stem = std::path::Path::new(file)
         .file_stem()
         .and_then(|s| s.to_str())
