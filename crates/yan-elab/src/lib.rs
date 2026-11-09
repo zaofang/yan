@@ -1679,7 +1679,16 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                     mark: Mark::View,
                 });
             }
-            y::ItemKind::Fn(lower::function(g, f, &g.fns[&f.name], it.is_pub, cx)?)
+            let sig = &g.fns[&f.name];
+            let def = lower::function(g, f, sig, it.is_pub, cx)?;
+            if g.reentrant.contains(&f.name) && !sig.params.is_empty() {
+                g.generated.borrow_mut().push(y::Item {
+                    attrs: Vec::new(),
+                    kind: y::ItemKind::Fn(lower::reentrant::lent(g, &def, sig)),
+                    span: it.span,
+                });
+            }
+            y::ItemKind::Fn(def)
         }
         j::ItemKind::Extern(x) => y::ItemKind::Extern(ffi::lower(g, x, cx)?),
         j::ItemKind::Trait(t) => y::ItemKind::Trait(y::Trait {

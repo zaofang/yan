@@ -79,6 +79,13 @@ struct Actor {
     holder: Option<Vec<usize>>,
     /// Why it stopped, until it restarts.
     stopped: Option<Reason>,
+    /// Starts so far, so a `@reentrant` handler that lent the state cannot retake a restart's.
+    starts: u64,
+    /// Why the last start stopped, for a `@reentrant` handler that lent it the state.
+    ended: Option<Reason>,
+    /// The task paths of the `@reentrant` handlers that lent the state, innermost last, each
+    /// marked once its retake failed.
+    lent: Vec<(Vec<usize>, bool)>,
     sup: usize,
     restart: Restart,
     /// The restart thunk, then the start closure's code and captures block.
@@ -262,6 +269,9 @@ pub unsafe extern "C" fn yan_rt_actor_spawn(
             running: false,
             holder: None,
             stopped: None,
+            starts: 0,
+            ended: None,
+            lent: Vec::new(),
             sup,
             restart: match restart {
                 0 => Restart::Permanent,
@@ -328,7 +338,13 @@ fn cycle(st: &State, me: &[usize], id: usize) -> Option<Vec<usize>> {
 /// `out` has room for the state's slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_actor_take(id: u64, out: *mut u64, in_task: u64) -> u64 {
-    let id = id as usize;
+    // SAFETY: the caller's contract.
+    unsafe { take_state(id as usize, out, in_task != 0, true) }
+}
+
+/// # Safety
+/// `out` has room for the state's slots.
+unsafe fn take_state(id: usize, out: *mut u64, in_task: bool, barrier: bool) -> u64 {
     let me = sched::path();
     let r = with(|st| {
         if let Some(k) = st.doomed.iter().position(|p| *p == me) {
@@ -336,7 +352,7 @@ pub unsafe extern "C" fn yan_rt_actor_take(id: u64, out: *mut u64, in_task: u64)
             unwait(st, &me);
             return Some(DEADLOCK);
         }
-        if queued(st, id) {
+        if barrier && queued(st, id) {
             return Some(WORK);
         }
         if st.actors[id].stopped.is_some() {
@@ -366,7 +382,7 @@ pub unsafe extern "C" fn yan_rt_actor_take(id: u64, out: *mut u64, in_task: u64)
     if let Some(r) = r {
         return r;
     }
-    let st = wait(id, me.clone(), in_task != 0, "a handler call");
+    let st = wait(id, me.clone(), in_task, "a handler call");
     if st == 1 {
         with(|s| {
             if !s.waits.iter().any(|(p, _)| *p == me) {
@@ -375,6 +391,85 @@ pub unsafe extern "C" fn yan_rt_actor_take(id: u64, out: *mut u64, in_task: u64)
         });
     }
     st
+}
+
+/// A `@reentrant` handler lends the state slots at `state` back to actor `id` at a suspension
+/// (9.6): the actor's start count, for [`yan_rt_actor_retake`].
+///
+/// # Safety
+/// `state` holds the actor's state slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_actor_lend(id: u64, state: *const u64) -> u64 {
+    // SAFETY: the caller's contract.
+    unsafe { yan_rt_actor_put(id, state) };
+    with(|st| {
+        let a = &mut st.actors[id as usize];
+        a.lent.push((sched::path(), false));
+        a.starts
+    })
+}
+
+/// The `@reentrant` handler that lent actor `id`'s state while it had made `since` starts takes
+/// it back into `out`, as [`yan_rt_actor_take`] without the barrier. It fails [`STOPPED`] when
+/// the actor stopped or restarted meanwhile.
+///
+/// # Safety
+/// `out` has room for the state's slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_actor_retake(
+    id: u64,
+    since: u64,
+    out: *mut u64,
+    in_task: u64,
+) -> u64 {
+    let id = id as usize;
+    let restarted = with(|st| st.actors[id].starts != since && st.actors[id].stopped.is_none());
+    let r = if restarted {
+        STOPPED
+    } else {
+        // SAFETY: the caller's contract.
+        unsafe { take_state(id, out, in_task != 0, false) }
+    };
+    if matches!(r, 0 | STOPPED | DEADLOCK | TIMEOUT) {
+        let me = sched::path();
+        with(|st| {
+            let lent = &mut st.actors[id].lent;
+            let k = lent
+                .iter()
+                .rposition(|(p, _)| *p == me)
+                .expect("lent first");
+            if r == 0 {
+                lent.remove(k);
+            } else {
+                lent[k].1 = true;
+            }
+        });
+    }
+    r
+}
+
+/// A handler call ends: the state slots at `state` go back to actor `id` if this task holds it.
+/// 1 when the handler's failure stops the actor (RFC 0060 D3): it held the state, or it is a
+/// `@reentrant` handler that failed while it lent it; 0 when its retake failed.
+///
+/// # Safety
+/// `state` holds the actor's state slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_actor_give(id: u64, state: *const u64) -> u64 {
+    let me = sched::path();
+    let held = with(|st| st.actors[id as usize].holder.as_ref() == Some(&me));
+    if held {
+        // SAFETY: the caller's contract.
+        unsafe { yan_rt_actor_put(id, state) };
+        return 1;
+    }
+    with(|st| {
+        let lent = &mut st.actors[id as usize].lent;
+        match lent.iter().rposition(|(p, _)| *p == me) {
+            Some(k) => u64::from(!lent.remove(k).1),
+            None => 0,
+        }
+    })
 }
 
 /// The state's `words` slots at `state` go back to actor `id` after a handler ran.
@@ -531,15 +626,21 @@ pub unsafe extern "C" fn yan_rt_actor_restarted(id: u64, state: *const u64) {
         let a = &mut st.actors[id as usize];
         // SAFETY: the caller's contract.
         let v = unsafe { std::slice::from_raw_parts(state, a.words) }.to_vec();
-        a.stopped = None;
+        a.ended = a.stopped.take();
+        a.starts += 1;
         a.state = Some(v);
     });
+}
+
+/// Why actor `id` stopped, or why its last start did once it restarted.
+fn why(a: &Actor) -> Option<&Reason> {
+    a.stopped.as_ref().or(a.ended.as_ref())
 }
 
 /// Why stopped actor `id` stopped: 1 `Shutdown`, 2 `Crashed`.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_actor_reason(id: u64) -> u64 {
-    with(|st| match st.actors[id as usize].stopped {
+    with(|st| match why(&st.actors[id as usize]) {
         Some(Reason::Crashed(_)) => 2,
         _ => 1,
     })
@@ -548,7 +649,7 @@ pub extern "C" fn yan_rt_actor_reason(id: u64) -> u64 {
 /// The shown failure that crashed actor `id`, as a new string.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_actor_reason_text(id: u64) -> *mut String {
-    let s = with(|st| match &st.actors[id as usize].stopped {
+    let s = with(|st| match why(&st.actors[id as usize]) {
         Some(Reason::Crashed(s)) => s.clone(),
         _ => String::new(),
     });
