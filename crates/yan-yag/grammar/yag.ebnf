@@ -56,7 +56,7 @@ forstmt   = "for" target "in" expr ":" lbody ;
 lbody     = NEWLINE INDENT {BOL ("invariant" | "decreases") expr NEWLINE} stmt {stmt} DEDENT ;
 matchstmt = "match" expr ":" NEWLINE INDENT case {case} DEDENT ;
 case      = BOL "case" pattern ["if" expr] ":" block ;
-withstmt  = "with" (NAME "=" expr | "deadline" "(" expr ")" | "timeout" "(" expr ")") ":" block ;
+withstmt  = "with" (NAME "=" expr | "deadline" "(" expr ")" | "timeout" "(" expr ")" | "supervisor" "(" expr ")") ":" block ;
 parstmt   = "par" ["concurrent"] ["(" "limit" "=" expr ")"] (":" NEWLINE INDENT stmt {stmt} DEDENT | "for" target "in" expr ":" lbody) ;
 block     = simple NEWLINE | NEWLINE INDENT stmt {stmt} DEDENT ;
 

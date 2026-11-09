@@ -541,10 +541,12 @@ pub fn run_reporting(
     out: &mut dyn Write,
     args: Vec<String>,
 ) -> R<(i32, Option<String>)> {
-    Ok(match entry(m, "main", out, None, args, &mut 0, None)? {
-        Ok(_) => (0, None),
-        Err(v) => (EXIT_FAILURE, Some(prelude::show(&v, false))),
-    })
+    Ok(
+        match entry(m, "main", out, None, args, &mut 0, Mode::Run)? {
+            Ok(_) => (0, None),
+            Err(v) => (EXIT_FAILURE, Some(prelude::show(&v, false))),
+        },
+    )
 }
 
 /// Run the test `fn f` of `m` under `limits`, on a thread with room for deep recursion.
@@ -565,7 +567,7 @@ pub fn test_metered(
         std::thread::Builder::new()
             .stack_size(1 << 30)
             .spawn_scoped(s, || {
-                entry(m, f, out, Some(limits), Vec::new(), spent, None).map(|r| r.is_ok())
+                entry(m, f, out, Some(limits), Vec::new(), spent, Mode::Run).map(|r| r.is_ok())
             })
             .expect("spawn the test thread")
             .join()
@@ -587,13 +589,95 @@ pub fn query(
         std::thread::Builder::new()
             .stack_size(1 << 30)
             .spawn_scoped(s, || {
-                entry(m, f, out, Some(limits), Vec::new(), spent, Some(host))
-                    .map(|r| r.map(|v| json_of(&v)).map_err(|v| prelude::show(&v, false)))
+                entry(
+                    m,
+                    f,
+                    out,
+                    Some(limits),
+                    Vec::new(),
+                    spent,
+                    Mode::Query(host),
+                )
+                .map(|r| r.map(|v| json_of(&v)).map_err(|v| prelude::show(&v, false)))
             })
             .expect("spawn the query thread")
             .join()
             .unwrap_or_else(|_| unsupported("the interpreter crashed"))
     })
+}
+
+/// Call the served tool `fn f` of `m` (RFC 0062) with `args`, a json object, under `limits`; `fs`
+/// is confined beneath `root`. `Ok` is the result as json text; `Err` the failure value or the
+/// argument error as text.
+pub fn tool(
+    m: &Module,
+    f: &str,
+    args: &str,
+    root: &str,
+    limits: Limits,
+    out: &mut (dyn Write + Send),
+    spent: &mut u64,
+) -> R<Result<String, String>> {
+    let Some(sc) = tool_schema(m, f) else {
+        return unsupported(format!("`{f}` is not a tool"));
+    };
+    std::thread::scope(|s| {
+        std::thread::Builder::new()
+            .stack_size(1 << 30)
+            .spawn_scoped(s, || {
+                let args = match jsonwire::tool_args(&sc, args) {
+                    Ok(v) => v,
+                    Err(e) => return Ok(Err(prelude::show(&e, false))),
+                };
+                let call = ToolCall {
+                    args,
+                    root: root.into(),
+                };
+                let r = entry(m, f, out, Some(limits), Vec::new(), spent, Mode::Tool(call))?;
+                Ok(match r {
+                    Ok(v) => match jsonwire::tool_result(&sc, &v) {
+                        Some(j) => Ok(j),
+                        None => return panic("value"),
+                    },
+                    Err(v) => Err(prelude::show(&v, false)),
+                })
+            })
+            .expect("spawn the tool thread")
+            .join()
+            .unwrap_or_else(|_| unsupported("the interpreter crashed"))
+    })
+}
+
+/// The schema elaboration attached to the tool `fn f` (RFC 0062).
+fn tool_schema(m: &Module, f: &str) -> Option<serde_json::Value> {
+    m.items.iter().find_map(
+        |i| match (&i.kind, i.attrs.iter().find(|a| a.name == "tool")) {
+            (ItemKind::Fn(d), Some(a)) if d.path.join(".") == f => match &a.args.as_ref()?[0].value
+            {
+                yan_core::ast::ConstVal::Lit(yan_core::ast::Literal::Str(t)) => {
+                    serde_json::from_str::<serde_json::Value>(t)
+                        .ok()?
+                        .get("schema")
+                        .cloned()
+                }
+                _ => None,
+            },
+            _ => None,
+        },
+    )
+}
+
+/// What `entry` runs: a program or test, a toolchain query, or a served tool call.
+enum Mode<'a> {
+    Run,
+    Query(&'a dyn Host),
+    Tool(ToolCall),
+}
+
+/// A served tool call: its decoded arguments and the root its `fs` is confined beneath.
+struct ToolCall {
+    args: Vec<Value>,
+    root: String,
 }
 
 fn json_of(v: &Value) -> serde_json::Value {
@@ -617,8 +701,13 @@ fn entry(
     limits: Option<Limits>,
     argv: Vec<String>,
     spent: &mut u64,
-    host: Option<&dyn Host>,
+    mode: Mode,
 ) -> R<Result<Value, Value>> {
+    let (host, tool) = match mode {
+        Mode::Run => (None, None),
+        Mode::Query(h) => (Some(h), None),
+        Mode::Tool(t) => (None, Some(t)),
+    };
     let program = compile::compile(m);
     let Some(code) = program.fns.get(f).copied() else {
         return unsupported(format!("no `fn {f}` in the module"));
@@ -632,6 +721,10 @@ fn entry(
             _ => None,
         })
         .expect("a fn item");
+    let (mut vals, root) = match tool {
+        Some(t) => (t.args.into_iter(), Some(t.root)),
+        None => (Vec::new().into_iter(), None),
+    };
     let args = def
         .params
         .iter()
@@ -639,8 +732,21 @@ fn entry(
             Param::Cap { name, .. } if host.is_some() && name != "toolchain" => unsupported(
                 format!("`{f}` uses `{name}`; a query may use only `toolchain`"),
             ),
+            // A tool's `fs` resolves beneath the served root (RFC 0062, R674).
+            Param::Cap { name, .. } if name == "fs" && root.is_some() => Ok(Value::Data {
+                name: "SubFs".into(),
+                fields: vec![
+                    ("inner".into(), Value::Cap(name.clone())),
+                    (
+                        "dir".into(),
+                        Value::Str(root.clone().unwrap_or_default().into()),
+                    ),
+                ],
+            }),
             Param::Cap { name, .. } => Ok(Value::Cap(name.clone())),
-            Param::Value { .. } => unsupported(format!("`{f}` with value parameters")),
+            Param::Value { .. } => vals
+                .next()
+                .map_or_else(|| unsupported(format!("`{f}` with value parameters")), Ok),
         })
         .collect::<R<Vec<_>>>()?;
     let mut it = Interp {
@@ -656,7 +762,7 @@ fn entry(
         wait_since: Vec::new(),
         doomed: Vec::new(),
         net: Default::default(),
-        test: limits.is_some(),
+        test: limits.is_some() && root.is_none(),
         progress: 0,
         waiting_recv: Vec::new(),
         park_ok: false,
@@ -671,6 +777,7 @@ fn entry(
     let args = args
         .into_iter()
         .map(|a| match a {
+            a if root.is_some() => a,
             Value::Cap(n) if limits.is_some() && n == "rand" => rand::seeded(&mut it, 0, "ChaCha8"),
             Value::Cap(n) if limits.is_some() && n == "env" => env::test_default(),
             Value::Cap(n) if limits.is_some() && n == "proc" => proc::test_default(),
@@ -931,6 +1038,24 @@ mod selftest {
             Err(Stop::Limit(w)) => panic!("limit: {w}"),
         };
         (status, String::from_utf8(out).unwrap())
+    }
+
+    #[test]
+    fn a_task_leaves_frame_drops_to_the_frame() {
+        let (s, out) = run_src(
+            "record Bad { pub n: i64 }\n\
+             fn f() -> Str fail Bad {\n let c: Tuple(Sender[i64], Receiver[i64]) = std.chan.Channel[i64](let 0)\n\
+             var tx: Sender[i64] = c._0\n var rx: Receiver[i64] = c._1\n\
+             par concurrent {\n  {\n   let r: Result[i64, Cancelled] = try std.chan.receiver.recv[i64](inout rx)\n\
+             drop r\n   let a: Bad = Bad { n: 1 }\n   drop rx\n   drop tx\n   fail a\n  }\n\
+             {\n   let w: Result[Unit, Cancelled] = try std.chan.sender.send[i64](inout tx, sink 5)\n\
+             drop w\n   let b: Bad = Bad { n: 2 }\n   drop rx\n   drop tx\n   fail b\n  }\n }\n\
+             drop rx\n drop tx\n ret \"ok\"\n}\n\
+             fn main(cap io: Io) -> Unit {\n let r: Result[Str, Bad] = try f()\n\
+             match r {\n  Ok { value: _ } => {\n   std.io.print(cap io, let \"ok\")\n  }\n\
+             Err { error: e } => {\n   let s: Str = std.fmt.show[Bad](let e)\n   std.io.print(cap io, let s)\n  }\n }\n ret ()\n}\n",
+        );
+        assert_eq!((s, out.as_str()), (0, "Bad(n=1)\n"));
     }
 
     #[test]

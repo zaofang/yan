@@ -87,6 +87,13 @@ pub(crate) struct Actor {
     holder: Option<Vec<usize>>,
     /// Why a failed handler or its supervisor stopped it, until it restarts (R977).
     stopped: Option<Value>,
+    /// Starts so far, so a `@reentrant` handler that lent the state cannot retake a restart's.
+    starts: i128,
+    /// Why the last start stopped, for a `@reentrant` handler that lent it the state.
+    ended: Option<Value>,
+    /// The task paths of the `@reentrant` handlers that lent the state, innermost last, each
+    /// marked once its retake failed.
+    lent: Vec<(Vec<usize>, bool)>,
     child: Child,
 }
 
@@ -105,7 +112,8 @@ impl Actor {
 
     /// A restart starts from `state` with an empty mailbox (R813, R958).
     pub(crate) fn restart_with(&mut self, state: Value) {
-        self.stopped = None;
+        self.ended = self.stopped.take();
+        self.starts += 1;
         self.state = Some(state);
     }
 }
@@ -137,6 +145,9 @@ pub(crate) fn spawn(
         running: false,
         holder: None,
         stopped: None,
+        starts: 0,
+        ended: None,
+        lent: Vec::new(),
         child,
     });
     Ok(end("Actor", id))
@@ -229,15 +240,45 @@ fn wait(it: &mut Interp, id: usize, me: &[usize], what: &str) -> R<Option<Value>
 /// The deadline of a `call` or a `Block` send outside every deadline scope (9.6).
 const DEFAULT_DEADLINE: i128 = 5_000_000_000;
 
-/// Another handler holds actor `id`: the caller `me` waits until it is free (R397).
-fn wait_call(it: &mut Interp, id: usize, me: Vec<usize>) -> R<Value> {
+/// Another handler holds actor `id`: the caller `me` waits until it is free (R397). `None` means
+/// it parked.
+fn wait_call(it: &mut Interp, id: usize, me: Vec<usize>) -> R<Option<Value>> {
     if it.park_ok && !it.force && !it.actor_waits.iter().any(|(p, _)| *p == me) {
         it.actor_waits.push((me.clone(), id));
     }
-    Ok(match wait(it, id, &me, "a handler call")? {
-        Some(t) => data("Err", "error", t),
-        None => Value::Unit,
-    })
+    wait(it, id, &me, "a handler call")
+}
+
+/// Task `me` takes actor `id`'s state for a handler, or fails; `None` means it parked to wait
+/// for the handler holding it (R397).
+fn take_state(vm: &mut Vm, id: usize, me: Vec<usize>) -> R<Option<Result<Value, Value>>> {
+    if let Some(k) = vm.it.doomed.iter().position(|p| *p == me) {
+        vm.it.doomed.swap_remove(k);
+        unwait(&mut vm.it, &me);
+        return Ok(Some(Err(failure("Deadlock"))));
+    }
+    if let Some(r) = &vm.it.actors[id].stopped {
+        let e = stopped(r);
+        unwait(&mut vm.it, &me);
+        return Ok(Some(Err(e)));
+    }
+    if let Some(s) = vm.it.actors[id].state.take() {
+        vm.it.actors[id].holder = Some(me.clone());
+        unwait(&mut vm.it, &me);
+        return Ok(Some(Ok(s)));
+    }
+    match cycle(&vm.it, &me, id) {
+        Some(y) if y == me => {
+            unwait(&mut vm.it, &me);
+            return Ok(Some(Err(failure("Deadlock"))));
+        }
+        Some(y) if !vm.it.doomed.contains(&y) => {
+            vm.it.doomed.push(y);
+            vm.it.progress += 1;
+        }
+        _ => {}
+    }
+    Ok(wait_call(&mut vm.it, id, me)?.map(Err))
 }
 
 fn unwait(it: &mut Interp, me: &[usize]) {
@@ -307,35 +348,61 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         Bind::Vm(|vm, _, a| {
             let id = chan(&a[0]);
             let me = vm.task_path.clone();
-            if let Some(k) = vm.it.doomed.iter().position(|p| *p == me) {
-                vm.it.doomed.swap_remove(k);
-                unwait(&mut vm.it, &me);
-                return Ok(data("Err", "error", failure("Deadlock")));
-            }
             // A call is a barrier: the actor runs every message queued before it (R813).
-            while run_queued(vm, id)? {}
-            if let Some(r) = &vm.it.actors[id].stopped {
-                let e = stopped(r);
-                unwait(&mut vm.it, &me);
-                return Ok(data("Err", "error", e));
+            if !vm.it.doomed.contains(&me) {
+                while run_queued(vm, id)? {}
             }
-            if let Some(s) = vm.it.actors[id].state.take() {
-                vm.it.actors[id].holder = Some(me.clone());
-                unwait(&mut vm.it, &me);
-                return Ok(data("Ok", "value", s));
-            }
-            match cycle(&vm.it, &me, id) {
-                Some(y) if y == me => {
-                    unwait(&mut vm.it, &me);
-                    return Ok(data("Err", "error", failure("Deadlock")));
+            Ok(match take_state(vm, id, me)? {
+                None => Value::Unit,
+                Some(Ok(s)) => data("Ok", "value", s),
+                Some(Err(e)) => data("Err", "error", e),
+            })
+        }),
+    ),
+    (
+        STD_ACTOR_LEND,
+        Bind::Vm(|vm, _, a| {
+            let id = chan(&a[0]);
+            let me = vm.task_path.clone();
+            give_back(&mut vm.it, id, std::mem::take(&mut a[1]));
+            let a = &mut vm.it.actors[id];
+            a.lent.push((me, false));
+            Ok(Value::Int(a.starts))
+        }),
+    ),
+    (
+        STD_ACTOR_RETAKE,
+        Bind::VmFallible(|vm, a| {
+            let (id, me) = (chan(&a[0]), vm.task_path.clone());
+            let Value::Int(since) = a[1] else {
+                return bad_args(STD_ACTOR_RETAKE);
+            };
+            let act = &vm.it.actors[id];
+            let r = if act.starts != since && act.stopped.is_none() {
+                let ended = act.ended.as_ref().expect("a restarted actor stopped first");
+                Err(stopped(ended))
+            } else {
+                match take_state(vm, id, me.clone())? {
+                    None => return Ok(Ok(Value::Unit)),
+                    Some(r) => r,
                 }
-                Some(y) if !vm.it.doomed.contains(&y) => {
-                    vm.it.doomed.push(y);
-                    vm.it.progress += 1;
+            };
+            let lent = &mut vm.it.actors[id].lent;
+            let k = lent
+                .iter()
+                .rposition(|(p, _)| *p == me)
+                .expect("lent first");
+            match r {
+                Ok(s) => {
+                    lent.remove(k);
+                    a[2] = s;
+                    Ok(Ok(Value::Unit))
                 }
-                _ => {}
+                Err(e) => {
+                    lent[k].1 = true;
+                    Ok(Err(e))
+                }
             }
-            wait_call(&mut vm.it, id, me)
         }),
     ),
     (
@@ -394,14 +461,27 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_ACTOR_SETTLE,
         Bind::Vm(|vm, _, a| {
             let id = chan(&a[0]);
-            give_back(&mut vm.it, id, std::mem::take(&mut a[1]));
+            let me = vm.task_path.clone();
             let outcome = std::mem::take(&mut a[2]);
+            let failed = match &outcome {
+                Value::Data { name, fields } if name == "Err" => Some(crashed(&fields[0].1)),
+                _ => None,
+            };
+            let act = &mut vm.it.actors[id];
+            if act.holder.as_ref() == Some(&me) {
+                give_back(&mut vm.it, id, std::mem::take(&mut a[1]));
+            } else {
+                // A `@reentrant` handler failed while it lent the state, which stays with the
+                // actor, or its retake failed and it holds nothing to settle.
+                let k = act.lent.iter().rposition(|(p, _)| *p == me);
+                if k.is_none_or(|k| act.lent.remove(k).1) {
+                    return Ok(outcome);
+                }
+            }
             // A failed handler may have left the state half updated, so it stops the actor;
             // the caller still gets the failure (RFC 0060 D3).
-            if let Value::Data { name, fields } = &outcome
-                && name == "Err"
-            {
-                supervise::crash(vm, id, crashed(&fields[0].1))?;
+            if let Some(reason) = failed {
+                supervise::crash(vm, id, reason)?;
             }
             Ok(outcome)
         }),

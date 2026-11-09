@@ -33,6 +33,7 @@ mod loops;
 mod matching;
 mod method;
 mod narrow;
+pub(crate) mod reentrant;
 mod rhs;
 mod scalar;
 mod std_calls;

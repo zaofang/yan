@@ -50,9 +50,7 @@ impl Lower<'_, '_, '_> {
                 None,
             )));
         }
-        if self.g.reentrant.contains(m) {
-            return unsupported("a call to a `@reentrant` actor handler, before RFC 0056 slice 4");
-        }
+        let reentrant = self.g.reentrant.contains(m);
         let fail = actor_fail(sig.fail.as_ref());
         let (h, _) = self.atom(b, None)?;
         let took = Ty::Result(Box::new(state.clone()), Box::new(fail.clone()));
@@ -84,6 +82,16 @@ impl Lower<'_, '_, '_> {
                 let (r, t, e) = l.call_sig(m, &sig, Some(&recv), args, at)?;
                 let rt = Ty::Result(Box::new(t.clone()), Box::new(fail.clone()));
                 let back = Atom::Name(s.clone(), at);
+                let (e, r) = match r {
+                    // It lends the state back at each suspension (9.6).
+                    Rhs::Call(mut c) if reentrant => {
+                        c.path = vec![super::reentrant::lent_name(m)];
+                        c.targs.push(policy.targ());
+                        c.args.push(let_arg(h.clone()));
+                        (Some(fail.clone()), Rhs::Call(c))
+                    }
+                    r => (e, r),
+                };
                 let out = match (e, r) {
                     (Some(e), Rhs::Call(c)) => {
                         let tried = Ty::Result(Box::new(t.clone()), Box::new(e.clone()));
@@ -148,7 +156,7 @@ impl Lower<'_, '_, '_> {
 }
 
 /// A handler call fails with the handler's own failures plus `ActorError` (RFC 0056 D1).
-fn actor_fail(own: Option<&Ty>) -> Ty {
+pub(super) fn actor_fail(own: Option<&Ty>) -> Ty {
     let mut ms = Vec::new();
     let actor = ["Stopped", "Timeout", "Cancelled", "Deadlock"].map(|n| Ty::Data(n.into()));
     for t in own.into_iter().cloned().chain(actor) {
