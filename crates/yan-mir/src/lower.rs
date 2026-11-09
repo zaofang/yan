@@ -1584,6 +1584,41 @@ impl<'a, 'm> Fn<'a, 'm> {
                 };
                 set(self, r);
             }
+            (id::STD_PRELUDE_INT, [(_, a)]) => {
+                let x = self.scalar1(a)?;
+                let r = self.rt(RtFn::TruncF64, I64, vec![x]);
+                set(self, r);
+            }
+            (id::STD_PRELUDE_ROUND, [(_, a)]) => {
+                let x = self.scalar1(a)?;
+                let r = self.rt(RtFn::RoundF64, I64, vec![x]);
+                set(self, r);
+            }
+            (id::STD_PRELUDE_FLOAT, [(_, a)]) => {
+                let x = self.scalar1(a)?;
+                let r = self.rt(RtFn::IntToF64, Ty::F64, vec![x]);
+                set(self, r);
+            }
+            (id::STD_PRELUDE_ABS, [(_, a)]) => {
+                let (v, s) = self.atom_any(a)?;
+                let (f, ty) = match s {
+                    Shape::Scalar(Ty::F64) => (RtFn::AbsF64, Ty::F64),
+                    Shape::Scalar(t) if t == I64 => (RtFn::AbsI64, I64),
+                    _ => return unsupported("`abs` of this type"),
+                };
+                let r = self.rt(f, ty, v);
+                set(self, r);
+            }
+            (id::STD_MATH_IS_INF | id::STD_MATH_IS_FINITE, [(_, a)]) => {
+                let x = self.scalar1(a)?;
+                let f = if id == id::STD_MATH_IS_INF {
+                    RtFn::IsInf
+                } else {
+                    RtFn::IsFinite
+                };
+                let r = self.rt(f, Ty::Bool, vec![x]);
+                set(self, r);
+            }
             (id::STD_TEXT_INT_OF, [(_, a)]) => {
                 let s = self.scalar1(a)?;
                 let r = self.rt(RtFn::IntOf, I64, vec![s]);
