@@ -977,6 +977,17 @@ mod tests {
             .all(|d| d.severity != yan_diag::Severity::Error)
     }
 
+    /// Rejected only by 13.2's "mixes that require parentheses" (E101), which the grammar does
+    /// not encode: `x else e -1` is a grammatical fallback whose right side needs parentheses.
+    fn only_mixes(src: &str) -> bool {
+        let errors: Vec<_> = crate::parse("t.yag", src, true)
+            .1
+            .into_iter()
+            .filter(|d| d.severity == yan_diag::Severity::Error)
+            .collect();
+        !errors.is_empty() && errors.iter().all(|d| d.code == "E101")
+    }
+
     fn corpus() -> Vec<(PathBuf, String)> {
         ["yag/pass", "yag/run", "golden"]
             .iter()
@@ -1063,7 +1074,7 @@ mod tests {
         let (mut rejected, mut disagree) = (0, Vec::new());
         for (n, (_, src)) in corpus().iter().enumerate() {
             for m in mutants(src, n * 7 + 3) {
-                if parses(&m) {
+                if parses(&m) || only_mixes(&m) {
                     continue;
                 }
                 if g.accepts(&m) {

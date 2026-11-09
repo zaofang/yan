@@ -1,10 +1,10 @@
 """Actors (9.6, 17.3): `Actor[S, P]` owns state `S` and has overflow policy `P`; a handle reaches
 other nodes as `Remote`. `take`, `put`, `settle`, `reply`, `send`, `spawn_as` and `start` are the
 lowering of a handler call `h.f(args)` (R435), of `actor.send(h).f(args)` (R813), of
-`actor.spawn(state)` (R956) and of `actor.start(ChildSpec(f, (args...), restart=r))` (R958), not for
-direct use. `F` is the call's fail type: the handler's own plus `ActorError`, or
-`Undelivered[A, R]` for a send. `policy` is `P` as 0 `Block`, 1 `DropOldest`, 2 `DropNew`,
-3 `Reject`."""
+`actor.spawn(state)` (R956) and of `actor.start(ChildSpec(f, (args...), restart=r))` (R958), and
+`lend` and `retake` of a `@reentrant` handler's suspensions (9.6), not for direct use. `F` is the
+call's fail type: the handler's own plus `ActorError`, or `Undelivered[A, R]` for a send. `policy`
+is `P` as 0 `Block`, 1 `DropOldest`, 2 `DropNew`, 3 `Reject`."""
 
 @since("1.0")
 pub class Block:
@@ -58,6 +58,14 @@ pub def put[S, P](self: Actor[S, P], state: S) -> None: ...
 @intrinsic
 @since("1.0")
 pub def settle[S, P, T, E, F](self: Actor[S, P], state: S, outcome: Result[T, E]) -> Result[T, F]: ...
+
+@intrinsic
+@since("1.0")
+pub def lend[S, P](self: Actor[S, P], var state: S) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def retake[S, P, F](self: Actor[S, P], since: int, var state: S) -> None fail F: ...
 
 @intrinsic
 @since("1.0")

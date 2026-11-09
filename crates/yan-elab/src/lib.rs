@@ -28,6 +28,7 @@ mod s0caps;
 mod session;
 mod stage0;
 mod stdlib;
+mod tools;
 mod ty;
 mod tyapp;
 mod typefn;
@@ -59,6 +60,9 @@ pub struct Options {
     pub ffi: bool,
     /// The repository is not trusted, so stage 0 does not run (R676).
     pub untrusted: bool,
+    /// The module is served by `yan mcp package`: its public functions carry tool schemas
+    /// (RFC 0062).
+    pub tools: bool,
 }
 
 /// A construct the elaborator does not lower yet, at the innermost statement or expression
@@ -870,6 +874,9 @@ pub fn elaborate_in(
         }
     }
     cost::check(&g, m, &items, &mut cx);
+    if opts.tools {
+        tools::attach(&g, m, &mut items, &mut cx);
+    }
     let stem = std::path::Path::new(file)
         .file_stem()
         .and_then(|s| s.to_str())
@@ -1672,7 +1679,16 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                     mark: Mark::View,
                 });
             }
-            y::ItemKind::Fn(lower::function(g, f, &g.fns[&f.name], it.is_pub, cx)?)
+            let sig = &g.fns[&f.name];
+            let def = lower::function(g, f, sig, it.is_pub, cx)?;
+            if g.reentrant.contains(&f.name) && !sig.params.is_empty() {
+                g.generated.borrow_mut().push(y::Item {
+                    attrs: Vec::new(),
+                    kind: y::ItemKind::Fn(lower::reentrant::lent(g, &def, sig)),
+                    span: it.span,
+                });
+            }
+            y::ItemKind::Fn(def)
         }
         j::ItemKind::Extern(x) => y::ItemKind::Extern(ffi::lower(g, x, cx)?),
         j::ItemKind::Trait(t) => y::ItemKind::Trait(y::Trait {
