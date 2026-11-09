@@ -75,4 +75,4 @@ research index links their studies and rows.
 | [0053](0053-package-manager-gaps.md) | Package manager gaps after the directory-index resolver | accepted | R943 to R951 |
 | [0054](0054-shared-move-drop-analysis.md) | One dataflow move and drop analysis | draft | |
 | [0055](0055-kernel-access-verification.md) | `@kernel` functions and E274 body verification | accepted | R953 to R955 |
-| [0056](0056-actor-runtime.md) | Actor runtime: spawn, handler calls, mailboxes, supervision, native and Remote on `std.sim` | draft | |
+| [0056](0056-actor-runtime.md) | Actor runtime: spawn, handler calls, mailboxes, supervision, native and Remote on `std.sim` | accepted | R956 to R960 |

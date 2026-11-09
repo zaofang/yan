@@ -1,8 +1,8 @@
 # 0056: Actor runtime: spawn, handler calls, mailboxes, supervision, native and Remote on `std.sim`
 
-- Status: draft
+- Status: accepted
 - Research: none; the model is accepted spec (9.6, 9.6.1, R264, R390 to R399, R400 to R419, R435, R442, R813, R814). This note fixes how it runs and closes the gaps the spec leaves open. Gap issue #835.
-- Rows: filled in when accepted
+- Rows: R956 to R960
 
 ## Summary
 
@@ -36,7 +36,7 @@ Options: (a) value state, as above; (b) a start function `spawn(f, args)` only, 
 function form, so both exist with distinct jobs.
 
 - Decision: (a), inconsequential, most complete reading of 17.3
-- Row: (pending)
+- Row: R956
 
 ### D2: who owns an actor when no supervisor is bound
 
@@ -58,9 +58,8 @@ structured (it ends with `main`), so nothing leaks. (b) is stricter but makes ev
 supervisor block. (c) mixes two scope kinds and makes an actor's lifetime depend on unrelated `par`
 blocks.
 
-- Recommendation: (a)
-- Decision: (pending, card on this thread)
-- Row: (pending)
+- Decision: (a), the lead, 2026-11-09 (card on this thread)
+- Row: R957
 
 ### D3: what a restart restarts from
 
@@ -80,9 +79,8 @@ Options:
 (a) restarts from a known start without copying hidden state and reuses the R411 shape. (b) restarts
 from a stale snapshot and silently adds a `Clone` bound. (c) drops D1's common case.
 
-- Recommendation: (a)
-- Decision: (pending, card on this thread)
-- Row: (pending)
+- Decision: (a), the lead, 2026-11-09 (card on this thread)
+- Row: R958
 
 ### D4: one scheduler, one task identity
 
@@ -99,7 +97,7 @@ A task parks on a channel end (today), a reply slot or a mailbox with no space (
 carries over unchanged. Global quiescence (R396) and virtual-time advance read the same park set.
 
 - Decision: one scheduler, inconsequential, most complete
-- Row: (pending; 9.1's ordering sentence gains actors)
+- Row: R959
 
 ### D5: mailboxes, calls and replies
 
@@ -168,7 +166,7 @@ takes optional `drop`, `delay` and `partition` schedules, all drawn from the see
 membership view.
 
 - Decision: as above, inconsequential
-- Row: (pending; the `sim` constructor and its fault parameters are a new row in 9.6.1)
+- Row: R960
 
 ## Slice plan
 
