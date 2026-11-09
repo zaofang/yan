@@ -78,7 +78,11 @@ fn blocking(i: &Inst) -> bool {
     matches!(
         i,
         Inst::Rt {
-            f: RtFn::ChanSend | RtFn::ChanRecv | RtFn::ActorTake | RtFn::ActorSend,
+            f: RtFn::ChanSend
+                | RtFn::ChanRecv
+                | RtFn::ActorTake
+                | RtFn::ActorRetake
+                | RtFn::ActorSend,
             ..
         }
     )
@@ -258,7 +262,12 @@ impl Cx {
             if w.owner[*b].is_none() {
                 for i in &mut f.blocks[*b].insts {
                     if let Inst::Rt {
-                        f: RtFn::ChanSend | RtFn::ChanRecv | RtFn::ActorTake | RtFn::ActorSend,
+                        f:
+                            RtFn::ChanSend
+                            | RtFn::ChanRecv
+                            | RtFn::ActorTake
+                            | RtFn::ActorRetake
+                            | RtFn::ActorSend,
                         args,
                         ..
                     } = i
