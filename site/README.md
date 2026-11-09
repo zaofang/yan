@@ -19,6 +19,7 @@ attributes: `expect=E301` (must be rejected with that code), `exit=101`, `check`
 The status page renders `status.json` from `tools/status.py`, which CI's `status` job builds on
 main pushes and the nightly run (artifact `status`): conformance by milestone, the differential
 run, spec debt and bench figures, each stamped with commit and date. Pass it with
-`build --status status.json`; without it the page says it carries no CI data.
+`build --status status.json`; without it the page says it carries no CI data. `site.yml` deploys
+after each green `ci` run on main and passes that run's artifact.
 
 A `CNAME` file here, once the domain exists (#389), is copied to the site root.
