@@ -1,0 +1,11 @@
+[package]
+name = "yan-flow"
+description = "One dataflow analysis for moves, liveness and ownership over a control-flow graph (RFC 0054)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
