@@ -301,13 +301,13 @@ pub enum RtFn {
     ParCancel,
     /// `(handle)`: leave the block.
     ParEnd,
-    /// `(state, words, capacity, restart, thunk, code, env) -> actor` (`yan_rt::actor`).
+    /// `(state, words, capacity, policy, restart, thunk, code, env) -> actor` (`yan_rt::actor`).
     ActorSpawn,
     /// `(actor, out, in_task) -> status`: a handler takes the state.
     ActorTake,
     /// `(actor, state)`: the state goes back.
     ActorPut,
-    /// `(actor, code, env, in_task) -> status`: enqueue a message.
+    /// `(actor, thunk, code, env, args, in_task) -> status`: enqueue a message.
     ActorSend,
     /// `(i) -> u64`: a work slot.
     ActorArg,
@@ -315,8 +315,12 @@ pub enum RtFn {
     ActorRan,
     /// `() -> bool`: an idle actor's message into the work slots.
     ActorIdle,
-    /// `(actor)`: a handler failed.
+    /// `(actor, shown failure)`: a handler failed.
     ActorCrash,
+    /// `(actor) -> kind`: why a stopped actor stopped, 1 `Shutdown` or 2 `Crashed`.
+    ActorReason,
+    /// `(actor) -> str`: the shown failure of a crashed actor.
+    ActorReasonText,
     /// `() -> bool`: the next restart into the work slots.
     ActorRestartNext,
     /// `(actor, state)`: a restarted actor's new state.

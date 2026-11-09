@@ -333,29 +333,31 @@ pub fn split(f: &mut Func, co: bool, ret: &[Ty]) {
     }
 }
 
-/// A block that runs an idle actor's queued message, which owns its captures block, then
+/// A block that runs an idle actor's queued message through its thunk, then
 /// returns to the dispatcher `d` (RFC 0056 D4).
 fn idle_message(f: &mut Func, d: BlockId) -> BlockId {
     let mut local = |t: Ty| {
         f.locals.push(t);
         f.locals.len() as Local - 1
     };
-    let (got, code, env, u) = (local(I64), local(Ty::Ptr), local(Ty::Ptr), local(Ty::Unit));
+    let got = local(I64);
+    let w: Vec<Local> = (0..4).map(|_| local(Ty::Ptr)).collect();
+    let u = local(Ty::Unit);
     let rt = |dst: Option<Local>, f: RtFn, args: Vec<Operand>| Inst::Rt { dst, f, args };
-    let insts = vec![
-        rt(Some(got), RtFn::ActorIdle, Vec::new()),
-        rt(Some(code), RtFn::ActorArg, vec![Operand::Int(0)]),
-        rt(Some(env), RtFn::ActorArg, vec![Operand::Int(1)]),
+    let mut insts = vec![rt(Some(got), RtFn::ActorIdle, Vec::new())];
+    for (i, l) in w.iter().enumerate() {
+        insts.push(rt(Some(*l), RtFn::ActorArg, vec![Operand::Int(i as i128)]));
+    }
+    insts.extend([
         Inst::CallIndirect {
             dst: vec![u],
-            code: Operand::Local(code),
-            args: vec![Operand::Local(env)],
-            params: vec![Ty::Ptr],
+            code: Operand::Local(w[0]),
+            args: w[1..].iter().map(|l| Operand::Local(*l)).collect(),
+            params: vec![Ty::Ptr; 3],
             ret: vec![Ty::Unit],
         },
-        rt(None, RtFn::EnvFree, vec![Operand::Local(env)]),
         rt(None, RtFn::ActorRan, Vec::new()),
-    ];
+    ]);
     f.blocks.push(Block {
         lines: vec![0; insts.len()],
         insts,

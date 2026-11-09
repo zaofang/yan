@@ -6,7 +6,47 @@ use super::*;
 const PTR: Shape = Shape::Scalar(Ty::Ptr);
 
 /// The yan-rt status asking the caller to run the closure in the work slots and retry.
-const WORK: i128 = 3;
+pub(super) const WORK: i128 = 3;
+
+/// The yan-rt statuses of a failed actor operation, by the failure each means.
+const FAILURES: &[(i128, &str)] = &[
+    (4, "Stopped"),
+    (5, "Deadlock"),
+    (6, "Timeout"),
+    (7, "Full"),
+    (2, "Cancelled"),
+];
+
+/// A thunk yan-rt hands back to run, made once per shape; each takes three pointers.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub(super) enum Thunk {
+    /// `(start code, start env, actor)`: restart an actor of this state.
+    Restart,
+    /// `(code, env, args)`: run a message taking these arguments.
+    Message,
+}
+
+/// `Stopped(reason)` (R977).
+pub(super) fn stopped() -> Shape {
+    let reason = Shape::Sum(
+        "StopReason".into(),
+        vec![
+            ("Normal".into(), Vec::new()),
+            ("Shutdown".into(), Vec::new()),
+            ("Crashed".into(), vec![("error".into(), Shape::Str)]),
+            ("NodeDown".into(), Vec::new()),
+        ],
+    );
+    Shape::Rec("Stopped".into(), vec![("reason".into(), reason)])
+}
+
+/// `Undelivered[A, R]`: why a send failed and its arguments (R976).
+pub(super) fn undelivered(args: Shape, reason: Shape) -> Shape {
+    Shape::Rec(
+        "Undelivered".into(),
+        vec![("reason".into(), reason), ("args".into(), args)],
+    )
+}
 
 /// A `Duration` is its nanoseconds; `show` and arithmetic on it are not native yet.
 pub(super) fn duration() -> Shape {
@@ -73,13 +113,16 @@ impl<'a, 'm> Fn<'a, 'm> {
             return Ok(true);
         }
         match (id, args.as_slice()) {
-            (id::STD_ACTOR_SPAWN, [(_, state), (_, cap)]) => {
-                let Some(s) = self.targ(c)? else {
-                    return unsupported("`spawn` without its state type");
-                };
+            (id::STD_ACTOR_SPAWN | id::STD_ACTOR_SPAWN_AS, [(_, state), (_, cap), policy @ ..]) => {
+                let s = self.state_targ(c)?;
                 let v = self.atom(state, &s)?;
                 let cap = self.scalar1(cap)?;
+                let policy = match policy {
+                    [(_, p)] => self.scalar1(p)?,
+                    _ => Operand::Int(0),
+                };
                 let none = vec![
+                    policy,
                     Operand::Int(2),
                     Operand::Int(0),
                     Operand::Int(0),
@@ -90,12 +133,17 @@ impl<'a, 'm> Fn<'a, 'm> {
                     self.copy_to(&d.locals, vec![a]);
                 }
             }
-            (id::STD_ACTOR_START, [(_, start), (_, restart), (_, cap)]) => {
-                let Some(s) = self.targ(c)? else {
-                    return unsupported("`start` without its state type");
-                };
+            (id::STD_ACTOR_SEND_ONLY, [(_, h)]) => {
+                let h = self.scalar1(h)?;
+                if let Some(d) = dst {
+                    self.copy_to(&d.locals, vec![h]);
+                }
+            }
+            (id::STD_ACTOR_START, [(_, start), (_, restart), (_, cap), (_, policy)]) => {
+                let s = self.state_targ(c)?;
                 let f = self.atom(start, &Shape::Fn(Vec::new(), Box::new(s.clone())))?;
                 let (restart, cap) = (self.scalar1(restart)?, self.scalar1(cap)?);
+                let policy = self.scalar1(policy)?;
                 let v = self.var(s.clone());
                 self.emit(Inst::CallIndirect {
                     dst: v.locals.clone(),
@@ -104,8 +152,8 @@ impl<'a, 'm> Fn<'a, 'm> {
                     params: vec![Ty::Ptr],
                     ret: s.tys(),
                 });
-                let thunk = Operand::Func(self.restart_thunk(&s));
-                let how = vec![restart, thunk, f[0].clone(), f[1].clone()];
+                let thunk = Operand::Func(self.thunk_id(Thunk::Restart, &s));
+                let how = vec![policy, restart, thunk, f[0].clone(), f[1].clone()];
                 let a = self.spawn(&s, Self::ops(&v), cap, how);
                 if let Some(d) = dst {
                     self.copy_to(&d.locals, vec![a]);
@@ -128,14 +176,21 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let h = self.scalar1(h)?;
                 self.put(h.clone(), state)?;
                 let (v, s) = self.atom_any(outcome)?;
+                let Some((_, err_at, err)) = s.variant("Err") else {
+                    return unsupported("a handler outcome that is not a `Result`");
+                };
+                let e = err[0].1.clone();
                 let failed = self.scalar_op(ScalarOp::Eq, I64, vec![v[0].clone(), Operand::Int(1)]);
                 let (crash, on) = self.branch(failed);
                 self.cur = crash;
+                // A failed handler stops its actor `Crashed` with the failure's text (R977).
+                let text = self.show(&v[err_at..err_at + e.width()], &e, false)?;
                 self.emit(Inst::Rt {
                     dst: None,
                     f: RtFn::ActorCrash,
-                    args: vec![h],
+                    args: vec![h, text.clone()],
                 });
+                self.free(RtFn::StrFree, text);
                 self.restarts();
                 self.goto(on);
                 self.widen(&v, &s, d)?;
@@ -148,17 +203,11 @@ impl<'a, 'm> Fn<'a, 'm> {
                     None => {}
                 }
             }
-            (id::STD_ACTOR_SEND, [(_, h), (_, m)]) => {
-                let h = self.scalar1(h)?;
-                let unit = Shape::Fn(Vec::new(), Box::new(Shape::Scalar(Ty::Unit)));
-                let m = self.atom(m, &unit)?;
-                let mut args = vec![h];
-                args.extend(m);
-                let st = self.retried(RtFn::ActorSend, args);
-                let (ok, bad) = self.branch_eq(st, 0);
-                self.cur = bad;
-                self.finish(Term::Panic("unreachable"));
-                self.cur = ok;
+            (id::STD_ACTOR_SEND, [(_, h), (_, args), (_, m)]) => {
+                let Some(d) = dst else {
+                    return unsupported("`send` without its result");
+                };
+                self.send(c, h, args, m, d)?;
             }
             _ => return Ok(false),
         }
@@ -200,47 +249,16 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(())
     }
 
-    /// A blocking actor operation: it suspends its task when it parks (status 1) and runs the
-    /// closure yan-rt asks for (status [`WORK`]), retrying after either. Its final status.
-    fn retried(&mut self, f: RtFn, args: Vec<Operand>) -> Operand {
-        let op = self.block_new();
-        self.goto(op);
-        let st = self.blocking(f, args);
-        let (work, on) = self.branch_eq(st.clone(), WORK);
-        self.cur = work;
-        self.run_message();
-        self.goto(op);
-        self.cur = on;
-        st
+    /// The state type `S`, the first type argument of every `std.actor` operation.
+    fn state_targ(&self, c: &y::Call) -> R<Shape> {
+        match c.targs.first() {
+            Some(y::TArg::Type(t)) => self.shape(t),
+            _ => unsupported(format!("`{}` without its state type", c.path.join("."))),
+        }
     }
 
-    /// Run the message in the work slots, which owns its captures block.
-    fn run_message(&mut self) {
-        let code = self.rt(RtFn::ActorArg, Ty::Ptr, vec![Operand::Int(0)]);
-        let env = self.rt(RtFn::ActorArg, Ty::Ptr, vec![Operand::Int(1)]);
-        let u = self.local(Ty::Unit);
-        self.emit(Inst::CallIndirect {
-            dst: vec![u],
-            code,
-            args: vec![env.clone()],
-            params: vec![Ty::Ptr],
-            ret: vec![Ty::Unit],
-        });
-        self.free(RtFn::EnvFree, env);
-        self.emit(Inst::Rt {
-            dst: None,
-            f: RtFn::ActorRan,
-            args: Vec::new(),
-        });
-    }
-
-    /// Restart every child a crash queued, each from its start closure through its thunk.
-    fn restarts(&mut self) {
-        let head = self.block_new();
-        self.goto(head);
-        let k = self.rt(RtFn::ActorRestartNext, I64, Vec::new());
-        let (done, more) = self.branch_eq(k, 0);
-        self.cur = more;
+    /// Run the message or restart in the work slots, whose thunk owns the blocks it is given.
+    pub(super) fn run_work(&mut self) {
         let a: Vec<Operand> = (0..4)
             .map(|i| self.rt(RtFn::ActorArg, Ty::Ptr, vec![Operand::Int(i)]))
             .collect();
@@ -252,26 +270,142 @@ impl<'a, 'm> Fn<'a, 'm> {
             params: vec![Ty::Ptr; 3],
             ret: vec![Ty::Unit],
         });
+    }
+
+    /// Run the message in the work slots.
+    pub(super) fn run_message(&mut self) {
+        self.run_work();
+        self.emit(Inst::Rt {
+            dst: None,
+            f: RtFn::ActorRan,
+            args: Vec::new(),
+        });
+    }
+
+    /// `send(h, args, message)` (R813): enqueue `message` with `args` as a thunk call, into
+    /// `Ok`, or `Err(Undelivered(reason, args))` with the arguments given back (R976).
+    fn send(&mut self, c: &y::Call, h: &y::Atom, args: &y::Atom, m: &y::Atom, d: &Var) -> R<()> {
+        let (Some((_, _, ok)), Some((_, _, err))) = (d.shape.variant("Ok"), d.shape.variant("Err"))
+        else {
+            return unsupported("`send` without a `Result`");
+        };
+        let (ok, und) = (ok[0].1.clone(), err[0].1.clone());
+        let Some(a) = (match c.targs.get(2) {
+            Some(y::TArg::Type(t)) => Some(self.shape(t)?),
+            _ => None,
+        }) else {
+            return unsupported("`send` without its argument type");
+        };
+        let Some(ufs) = und.fields() else {
+            return unsupported("`send` failing other than `Undelivered`");
+        };
+        let h = self.scalar1(h)?;
+        let v = self.atom(args, &a)?;
+        let buf = self.rt(
+            RtFn::Alloc,
+            Ty::Ptr,
+            vec![Operand::Int(a.width().max(1) as i128)],
+        );
+        self.write(&At::Mem(buf.clone(), 0), v);
+        let msg = Shape::Fn(vec![a.clone()], Box::new(Shape::Scalar(Ty::Unit)));
+        let m = self.atom(m, &msg)?;
+        let thunk = Operand::Func(self.thunk_id(Thunk::Message, &a));
+        let st = self.blocking(
+            RtFn::ActorSend,
+            vec![h.clone(), thunk, m[0].clone(), m[1].clone(), buf.clone()],
+        );
+        let join = self.block_new();
+        let (sent, failed) = self.branch_eq(st.clone(), 0);
+        self.cur = sent;
+        let unit = vec![Operand::Unit; ok.width()];
+        self.copy_to(&d.locals, Self::variant_value(&d.shape, "Ok", unit));
+        self.goto(join);
+        self.cur = failed;
+        self.free(RtFn::EnvFree, m[1].clone());
+        let back = self.read(&At::Mem(buf.clone(), 0), &a);
+        self.free(RtFn::EnvFree, buf);
+        let mut uv = Vec::new();
+        for (f, _, s) in ufs {
+            match f.as_str() {
+                "reason" => uv.extend(Self::ops(&self.failed(st.clone(), &h, s)?)),
+                "args" => uv.extend(back.clone()),
+                _ => return unsupported(format!("`Undelivered` field `{f}`")),
+            }
+        }
+        self.copy_to(&d.locals, Self::variant_value(&d.shape, "Err", uv));
+        self.goto(join);
+        Ok(())
+    }
+
+    /// The failure of actor `h`'s operation with failed status `st`, as a value of `e`.
+    fn failed(&mut self, st: Operand, h: &Operand, e: &Shape) -> R<Var> {
+        let out = self.var(e.clone());
+        let join = self.block_new();
+        for (k, name) in FAILURES {
+            if Self::failure(e, name, Vec::new()).is_none() {
+                continue;
+            }
+            let (this, next) = self.branch_eq(st.clone(), *k);
+            self.cur = this;
+            let payload = if *name == "Stopped" {
+                self.stop_reason(h)
+            } else {
+                Vec::new()
+            };
+            let v = Self::failure(e, name, payload).expect("checked above");
+            self.copy_to(&out.locals, v);
+            self.goto(join);
+            self.cur = next;
+        }
+        self.finish(Term::Panic("unreachable"));
+        self.cur = join;
+        Ok(out)
+    }
+
+    /// Why stopped actor `h` stopped: the slots of a `Stopped`.
+    fn stop_reason(&mut self, h: &Operand) -> Vec<Operand> {
+        let s = stopped();
+        let r = s.fields().expect("a record")[0].2.clone();
+        let out = self.var(r.clone());
+        let join = self.block_new();
+        let kind = self.rt(RtFn::ActorReason, I64, vec![h.clone()]);
+        let (crashed, shutdown) = self.branch_eq(kind, 2);
+        self.cur = crashed;
+        let text = self.rt(RtFn::ActorReasonText, Ty::Ptr, vec![h.clone()]);
+        self.copy_to(&out.locals, Self::variant_value(&r, "Crashed", vec![text]));
+        self.goto(join);
+        self.cur = shutdown;
+        self.copy_to(&out.locals, Self::variant_value(&r, "Shutdown", Vec::new()));
+        self.goto(join);
+        Self::ops(&out)
+    }
+
+    /// Restart every child a crash queued, each from its start closure through its thunk.
+    fn restarts(&mut self) {
+        let head = self.block_new();
+        self.goto(head);
+        let k = self.rt(RtFn::ActorRestartNext, I64, Vec::new());
+        let (done, more) = self.branch_eq(k, 0);
+        self.cur = more;
+        self.run_work();
         self.goto(head);
         self.cur = done;
     }
 
-    /// `take`: `Ok` of the actor's state, or `Err` of `Stopped` or `Deadlock` (RFC 0056 D6).
+    /// `take`: `Ok` of the actor's state, or `Err` of why not (RFC 0056 D6, R977).
     fn take(&mut self, h: &y::Atom, d: &Var) -> R<()> {
         let (Some((_, _, ok)), Some((_, _, err))) = (d.shape.variant("Ok"), d.shape.variant("Err"))
         else {
             return unsupported("`take` without a `Result`");
         };
         let (s, e) = (ok[0].1.clone(), err[0].1.clone());
-        let stopped = Self::variant_value(&d.shape, "Err", Self::failure(&e, "Stopped")?);
-        let deadlock = Self::variant_value(&d.shape, "Err", Self::failure(&e, "Deadlock")?);
         let h = self.scalar1(h)?;
         let out = self.rt(
             RtFn::Alloc,
             Ty::Ptr,
             vec![Operand::Int(s.width().max(1) as i128)],
         );
-        let st = self.retried(RtFn::ActorTake, vec![h, out.clone()]);
+        let st = self.blocking(RtFn::ActorTake, vec![h.clone(), out.clone()]);
         let join = self.block_new();
         let (taken, failed) = self.branch_eq(st.clone(), 0);
         self.cur = taken;
@@ -280,25 +414,24 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.copy_to(&d.locals, v);
         self.goto(join);
         self.cur = failed;
-        let (stop, dead) = self.branch_eq(st, 4);
-        self.cur = stop;
-        self.copy_to(&d.locals, stopped);
-        self.goto(join);
-        self.cur = dead;
-        self.copy_to(&d.locals, deadlock);
+        let f = self.failed(st, &h, &e)?;
+        self.copy_to(
+            &d.locals,
+            Self::variant_value(&d.shape, "Err", Self::ops(&f)),
+        );
         self.goto(join);
         self.free(RtFn::EnvFree, out);
         Ok(())
     }
 
-    /// The fieldless failure `name` as a value of the fail type `e`.
-    fn failure(e: &Shape, name: &str) -> R<Vec<Operand>> {
+    /// The failure `name` with `payload` as a value of the fail type `e`, if `e` has it.
+    fn failure(e: &Shape, name: &str, payload: Vec<Operand>) -> Option<Vec<Operand>> {
         match e {
-            Shape::Rec(n, fs) if n == name && fs.is_empty() => Ok(Vec::new()),
+            Shape::Rec(n, _) if n == name => Some(payload),
             Shape::Sum(_, _) if e.variant(name).is_some() => {
-                Ok(Self::variant_value(e, name, Vec::new()))
+                Some(Self::variant_value(e, name, payload))
             }
-            _ => unsupported(format!("an actor call whose failure lacks `{name}`")),
+            _ => None,
         }
     }
 
@@ -329,10 +462,10 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(())
     }
 
-    /// The thunk that restarts actors of state `s`, made once per shape.
-    fn restart_thunk(&mut self, s: &Shape) -> FuncId {
+    /// The thunk `k` for shape `s`, made once.
+    fn thunk_id(&mut self, k: Thunk, s: &Shape) -> FuncId {
         let mut m = self.mono.borrow_mut();
-        if let Some(id) = m.restarts.get(s) {
+        if let Some(id) = m.thunks.get(&(k, s.clone())) {
             return *id;
         }
         let id = m.sigs.len() as FuncId;
@@ -342,39 +475,66 @@ impl<'a, 'm> Fn<'a, 'm> {
             ret: Shape::Scalar(Ty::Unit),
             fails: false,
         });
-        m.todo.push(Todo::Restart(s.clone()));
-        m.restarts.insert(s.clone(), id);
+        m.todo.push(Todo::Thunk(k, s.clone()));
+        m.thunks.insert((k, s.clone()), id);
         id
     }
 
-    /// `thunk(code, env, actor)`: call the start closure `code`, `env` and give the actor the
-    /// state it returns (R958).
-    pub(super) fn restart(mut self, s: &Shape) -> Func {
-        let p: Vec<Local> = (0..3).map(|_| self.local(Ty::Ptr)).collect();
+    /// The body of thunk `k` for shape `s`.
+    pub(super) fn thunk(mut self, k: Thunk, s: &Shape) -> Func {
+        let p: Vec<Operand> = (0..3)
+            .map(|_| Operand::Local(self.local(Ty::Ptr)))
+            .collect();
         self.cur = self.block_new();
-        let v = self.var(s.clone());
-        self.emit(Inst::CallIndirect {
-            dst: v.locals.clone(),
-            code: Operand::Local(p[0]),
-            args: vec![Operand::Local(p[1])],
-            params: vec![Ty::Ptr],
-            ret: s.tys(),
-        });
-        let buf = self.rt(
-            RtFn::Alloc,
-            Ty::Ptr,
-            vec![Operand::Int(s.width().max(1) as i128)],
-        );
-        self.write(&At::Mem(buf.clone(), 0), Self::ops(&v));
-        self.emit(Inst::Rt {
-            dst: None,
-            f: RtFn::ActorRestarted,
-            args: vec![Operand::Local(p[2]), buf.clone()],
-        });
-        self.free(RtFn::EnvFree, buf);
+        match k {
+            // Call the start closure and give the actor the state it returns (R958).
+            Thunk::Restart => {
+                let v = self.var(s.clone());
+                self.emit(Inst::CallIndirect {
+                    dst: v.locals.clone(),
+                    code: p[0].clone(),
+                    args: vec![p[1].clone()],
+                    params: vec![Ty::Ptr],
+                    ret: s.tys(),
+                });
+                let buf = self.rt(
+                    RtFn::Alloc,
+                    Ty::Ptr,
+                    vec![Operand::Int(s.width().max(1) as i128)],
+                );
+                self.write(&At::Mem(buf.clone(), 0), Self::ops(&v));
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::ActorRestarted,
+                    args: vec![p[2].clone(), buf.clone()],
+                });
+                self.free(RtFn::EnvFree, buf);
+            }
+            // Call the message closure with the arguments `s` it owns.
+            Thunk::Message => {
+                let mut args = vec![p[1].clone()];
+                args.extend(self.read(&At::Mem(p[2].clone(), 0), s));
+                self.free(RtFn::EnvFree, p[2].clone());
+                let mut params = vec![Ty::Ptr];
+                params.extend(s.tys());
+                let u = self.local(Ty::Unit);
+                self.emit(Inst::CallIndirect {
+                    dst: vec![u],
+                    code: p[0].clone(),
+                    args,
+                    params,
+                    ret: vec![Ty::Unit],
+                });
+                self.free(RtFn::EnvFree, p[1].clone());
+            }
+        }
         self.finish(Term::Return(vec![Operand::Unit]));
         Func {
-            name: "actor.restart".into(),
+            name: match k {
+                Thunk::Restart => "actor.restart",
+                Thunk::Message => "actor.message",
+            }
+            .into(),
             params: 3,
             ret: vec![Ty::Unit],
             locals: self.locals,

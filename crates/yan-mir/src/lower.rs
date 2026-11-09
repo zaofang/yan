@@ -241,8 +241,13 @@ impl Types<'_> {
                     ("Sender" | "Receiver", [y::TArg::Type(e)]) => {
                         return Ok(Shape::Chan(Box::new(self.shape_in(e, stack)?)));
                     }
-                    ("Actor", [y::TArg::Type(s)]) => {
+                    // The overflow policy is the actor's, at run time.
+                    ("Actor" | "SendOnly", [y::TArg::Type(s), ..]) => {
                         return Ok(Shape::Actor(Box::new(self.shape_in(s, stack)?)));
+                    }
+                    ("Undelivered", [y::TArg::Type(a), y::TArg::Type(r)]) => {
+                        let (a, r) = (self.shape_in(a, stack)?, self.shape_in(r, stack)?);
+                        return Ok(actor::undelivered(a, r));
                     }
                     (_, []) => {}
                     _ => return unsupported(format!("type `{name}[..]`")),
@@ -275,6 +280,8 @@ impl Types<'_> {
                     Shape::Rec(name.to_owned(), Vec::new())
                 } else if name == "Duration" {
                     actor::duration()
+                } else if name == "Stopped" {
+                    actor::stopped()
                 } else {
                     return unsupported(format!("type `{name}`"));
                 };
@@ -316,7 +323,7 @@ impl Types<'_> {
 /// Failures a `par` ranks below every other: a cancelled wait, and the `SessionClosed` a session
 /// operation turns it into (R394, R634).
 const CANCEL_LIKE: &[&str] = &["Cancelled", "SessionClosed"];
-const STD_FAILURES: &[&str] = &["Cancelled", "Timeout", "Draining", "Deadlock", "Stopped"];
+const STD_FAILURES: &[&str] = &["Cancelled", "Timeout", "Draining", "Deadlock", "Full"];
 
 fn result(ok: Shape, err: Shape) -> Shape {
     Shape::Sum(
@@ -439,7 +446,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
         insts: HashMap::new(),
         sigs: Vec::new(),
         todo: Vec::new(),
-        restarts: HashMap::new(),
+        thunks: HashMap::new(),
         costing,
         consts,
     });
@@ -467,7 +474,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
             Todo::Closure(c, caps) => {
                 Fn::new(&mono, &types, &mut prog.strings, me).closure(c, caps)?
             }
-            Todo::Restart(s) => Fn::new(&mono, &types, &mut prog.strings, me).restart(&s),
+            Todo::Thunk(k, s) => Fn::new(&mono, &types, &mut prog.strings, me).thunk(k, &s),
             Todo::Entry(main) => Fn::new(&mono, &types, &mut prog.strings, me).entry(main)?,
         };
         prog.funcs.push(func);
@@ -503,8 +510,8 @@ struct Mono<'m> {
     sigs: Vec<Sig>,
     /// What each instance lowers, in id order.
     todo: Vec<Todo<'m>>,
-    /// The restart thunk of each actor state shape.
-    restarts: HashMap<Shape, FuncId>,
+    /// The actor thunks made, by kind and shape (`actor.rs`).
+    thunks: HashMap<(actor::Thunk, Shape), FuncId>,
     /// Some function has a `cost` bound, so every function counts steps and allocations.
     costing: bool,
     consts: Vec<&'m y::Const>,
@@ -516,8 +523,8 @@ enum Todo<'m> {
     /// A closure body with its captures' names and types, read from the block in its first
     /// parameter.
     Closure(&'m y::Closure, Vec<(String, Shape)>),
-    /// The restart thunk of actors with this state (`actor.rs`).
-    Restart(Shape),
+    /// An actor thunk (`actor.rs`).
+    Thunk(actor::Thunk, Shape),
     /// The entry that reports a failing `main`.
     Entry(FuncId),
 }

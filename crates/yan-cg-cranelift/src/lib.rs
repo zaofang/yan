@@ -735,6 +735,8 @@ const RT: &[RtFn] = &[
     RtFn::ActorRan,
     RtFn::ActorIdle,
     RtFn::ActorCrash,
+    RtFn::ActorReason,
+    RtFn::ActorReasonText,
     RtFn::ActorRestartNext,
     RtFn::ActorRestarted,
     RtFn::SupBegin,
@@ -1212,7 +1214,7 @@ fn rt_fn(
         RtFn::ActorSpawn => (
             "yan_rt_actor_spawn",
             actor::yan_rt_actor_spawn as *const u8,
-            &[I64, I64, I64, I64, I64, I64, I64],
+            &[I64, I64, I64, I64, I64, I64, I64, I64],
             Some(I64),
         ),
         RtFn::ActorTake => (
@@ -1230,7 +1232,7 @@ fn rt_fn(
         RtFn::ActorSend => (
             "yan_rt_actor_send",
             actor::yan_rt_actor_send as *const u8,
-            &[I64, I64, I64, I64],
+            &[I64, I64, I64, I64, I64, I64],
             Some(I64),
         ),
         RtFn::ActorArg => (
@@ -1254,8 +1256,20 @@ fn rt_fn(
         RtFn::ActorCrash => (
             "yan_rt_actor_crash",
             actor::yan_rt_actor_crash as *const u8,
-            &[I64],
+            &[I64, I64],
             None,
+        ),
+        RtFn::ActorReason => (
+            "yan_rt_actor_reason",
+            actor::yan_rt_actor_reason as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::ActorReasonText => (
+            "yan_rt_actor_reason_text",
+            actor::yan_rt_actor_reason_text as *const u8,
+            &[I64],
+            Some(I64),
         ),
         RtFn::ActorRestartNext => (
             "yan_rt_actor_restart_next",

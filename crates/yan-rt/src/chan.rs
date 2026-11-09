@@ -49,8 +49,17 @@ pub const BLOCKED: u64 = 1;
 /// The status of an operation in a cancelled task: it fails `Cancelled` (9.4).
 pub const CANCELLED: u64 = 2;
 
+/// A wait that cannot park leaves nothing else to run, so an idle actor runs a queued message
+/// first, as it would at `par concurrent` quiescence (RFC 0056 D4): [`crate::actor::WORK`].
+fn idle_or_deadlock() -> u64 {
+    if crate::actor::yan_rt_actor_idle() == 0 {
+        deadlock();
+    }
+    crate::actor::WORK
+}
+
 /// `send`: the element's slots from `buf`; 0, or [`BLOCKED`] when `in_task` (nonzero) lets it
-/// park. A rendezvous channel (capacity 0) hands over only to a receiver already waiting.
+/// park, or [`crate::actor::WORK`] when it cannot. A rendezvous channel (capacity 0) hands over only to a receiver already waiting.
 ///
 /// # Safety
 /// `ch` is a live channel and `buf` holds its element's slots.
@@ -70,7 +79,7 @@ pub unsafe extern "C" fn yan_rt_chan_send(ch: *mut Chan, buf: *const u64, in_tas
         if sched::park((false, ch as usize), in_task != 0) {
             return BLOCKED;
         }
-        deadlock();
+        return idle_or_deadlock();
     }
     // SAFETY: the caller's contract.
     let v = unsafe { std::slice::from_raw_parts(buf, c.words) };
@@ -97,7 +106,7 @@ pub unsafe extern "C" fn yan_rt_chan_recv(ch: *mut Chan, out: *mut u64, in_task:
         if sched::park((true, ch as usize), in_task != 0) {
             return BLOCKED;
         }
-        deadlock();
+        return idle_or_deadlock();
     }
     for (i, w) in c.q.drain(..c.stride()).enumerate().take(c.words) {
         // SAFETY: the caller's contract.

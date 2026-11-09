@@ -6,7 +6,7 @@
 
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use crate::sched;
 
@@ -16,6 +16,41 @@ pub const WORK: u64 = 3;
 pub const STOPPED: u64 = 4;
 /// A call fails `Deadlock`.
 pub const DEADLOCK: u64 = 5;
+/// A wait outlived its deadline: `Timeout`.
+pub const TIMEOUT: u64 = 6;
+/// A send to a full `Reject` mailbox fails `Full`.
+pub const FULL: u64 = 7;
+/// A `Block` send in a cancelled task fails `Cancelled`.
+pub use crate::chan::CANCELLED;
+
+/// The deadline of a call or a `Block` send outside every deadline scope (9.6).
+const DEFAULT_DEADLINE: Duration = Duration::from_secs(5);
+
+#[derive(Clone, Copy, PartialEq)]
+enum Policy {
+    Block,
+    DropOldest,
+    DropNew,
+    Reject,
+}
+
+/// Why an actor stopped (R977); natively never `Normal` or `NodeDown`.
+enum Reason {
+    Shutdown,
+    Crashed(String),
+}
+
+/// A queued message: its thunk, closure code, captures block and arguments block.
+type Message = [u64; 4];
+
+fn free(m: Message) {
+    // SAFETY: a message's captures and arguments blocks, from `yan_rt_alloc`, owned by the
+    // mailbox.
+    unsafe {
+        crate::abi::yan_rt_free_env(m[2] as *mut u64);
+        crate::abi::yan_rt_free_env(m[3] as *mut u64);
+    }
+}
 
 #[derive(Clone, Copy, PartialEq)]
 enum Restart {
@@ -36,13 +71,14 @@ struct Actor {
     /// `None` while a handler holds it, or once stopped.
     state: Option<Vec<u64>>,
     capacity: usize,
-    /// Message closures: code and captures block.
-    mail: VecDeque<[u64; 2]>,
+    policy: Policy,
+    mail: VecDeque<Message>,
     /// A queued message is running, so the actor takes no other from its mailbox.
     running: bool,
     /// The task path of the handler holding the state, while one does.
     holder: Option<Vec<usize>>,
-    stopped: bool,
+    /// Why it stopped, until it restarts.
+    stopped: Option<Reason>,
     sup: usize,
     restart: Restart,
     /// The restart thunk, then the start closure's code and captures block.
@@ -51,14 +87,11 @@ struct Actor {
 
 impl Actor {
     /// Its queue is dropped, and its state with it (R813).
-    fn stop(&mut self) {
-        self.stopped = true;
+    fn stop(&mut self, why: Reason) {
+        self.stopped = Some(why);
         self.state = None;
         self.holder = None;
-        for [_, env] in self.mail.drain(..) {
-            // SAFETY: a message's captures block, from `yan_rt_alloc`, owned by the mailbox.
-            unsafe { crate::abi::yan_rt_free_env(env as *mut u64) };
-        }
+        self.mail.drain(..).for_each(free);
     }
 }
 
@@ -79,12 +112,14 @@ struct State {
     open: Vec<usize>,
     /// Tasks parked on a busy actor, by task path, and the actor each waits for (RFC 0056 D6).
     waits: Vec<(Vec<usize>, usize)>,
+    /// When each task parked on an actor began waiting, for its deadline.
+    since: Vec<(Vec<usize>, Instant)>,
     /// Callers that close a wait cycle as its youngest, failing `Deadlock` when they resume.
     doomed: Vec<Vec<usize>>,
     /// Children a crash restarts, in order.
     restarts: VecDeque<usize>,
     /// The closure the last [`WORK`] asks for.
-    work: [u64; 4],
+    work: [u64; 5],
     start: Instant,
 }
 
@@ -101,9 +136,10 @@ impl Default for State {
             }],
             open: Vec::new(),
             waits: Vec::new(),
+            since: Vec::new(),
             doomed: Vec::new(),
             restarts: VecDeque::new(),
-            work: [0; 4],
+            work: [0; 5],
             start: Instant::now(),
         }
     }
@@ -139,14 +175,14 @@ fn key(id: usize) -> (bool, usize) {
 /// Pop actor `id`'s oldest message into the work slots if the actor is idle.
 fn queued(st: &mut State, id: usize) -> bool {
     let a = &mut st.actors[id];
-    if a.running || a.state.is_none() || a.stopped {
+    if a.running || a.state.is_none() {
         return false;
     }
-    let Some([code, env]) = a.mail.pop_front() else {
+    let Some([thunk, code, env, args]) = a.mail.pop_front() else {
         return false;
     };
     a.running = true;
-    st.work = [code, env, id as u64, 0];
+    st.work = [thunk, code, env, args, id as u64];
     true
 }
 
@@ -155,7 +191,7 @@ pub(crate) fn idle_ready() -> bool {
     with(|st| {
         st.actors
             .iter()
-            .any(|a| !a.running && a.state.is_some() && !a.stopped && !a.mail.is_empty())
+            .any(|a| !a.running && a.state.is_some() && !a.mail.is_empty())
     })
 }
 
@@ -165,8 +201,9 @@ pub extern "C" fn yan_rt_actor_idle() -> u64 {
     with(|st| (0..st.actors.len()).any(|id| queued(st, id))).into()
 }
 
-/// Work slot `i` of the last [`WORK`]: a message's code, captures and actor; or a restart's
-/// thunk, start code, start captures and actor.
+/// Work slot `i` of the last [`WORK`]: a message's thunk, code, captures, arguments and actor;
+/// or a restart's thunk, start code, start captures and actor. A thunk takes the three slots
+/// after it.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_actor_arg(i: u64) -> u64 {
     with(|st| st.work[i as usize])
@@ -176,14 +213,15 @@ pub extern "C" fn yan_rt_actor_arg(i: u64) -> u64 {
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_actor_ran() {
     with(|st| {
-        let id = st.work[2] as usize;
+        let id = st.work[4] as usize;
         st.actors[id].running = false;
     });
     sched::progressed();
 }
 
-/// A new actor with the `words` slots at `state`, a child of the innermost supervisor: `restart`
-/// 0 permanent, 1 transient, 2 temporary, restarted by calling `thunk(code, env, actor)`.
+/// A new actor with the `words` slots at `state`, a child of the innermost supervisor, with
+/// overflow `policy` 0 `Block`, 1 `DropOldest`, 2 `DropNew` or 3 `Reject` (R974): `restart` 0
+/// permanent, 1 transient, 2 temporary, restarted by calling `thunk(code, env, actor)`.
 ///
 /// # Safety
 /// `state` holds `words` slots.
@@ -192,6 +230,7 @@ pub unsafe extern "C" fn yan_rt_actor_spawn(
     state: *const u64,
     words: u64,
     cap: i64,
+    policy: u64,
     restart: u64,
     thunk: u64,
     code: u64,
@@ -213,10 +252,16 @@ pub unsafe extern "C" fn yan_rt_actor_spawn(
             words: words as usize,
             state: Some(v),
             capacity: cap as usize,
+            policy: match policy {
+                1 => Policy::DropOldest,
+                2 => Policy::DropNew,
+                3 => Policy::Reject,
+                _ => Policy::Block,
+            },
             mail: VecDeque::new(),
             running: false,
             holder: None,
-            stopped: false,
+            stopped: None,
             sup,
             restart: match restart {
                 0 => Restart::Permanent,
@@ -231,6 +276,32 @@ pub unsafe extern "C" fn yan_rt_actor_spawn(
 
 fn unwait(st: &mut State, me: &[usize]) {
     st.waits.retain(|(p, _)| p != me);
+    st.since.retain(|(p, _)| p != me);
+}
+
+/// Task `me` waits on actor `id`, keyed apart from channels (R959): 1 when it parked. Where it
+/// cannot, nothing else runs, so it fails [`TIMEOUT`] 5 s after the wait began (9.6); native
+/// code has no deadline scopes.
+fn wait(id: usize, me: Vec<usize>, in_task: bool, what: &str) -> u64 {
+    if sched::park(key(id), in_task) {
+        with(|st| {
+            if !st.since.iter().any(|(p, _)| *p == me) {
+                st.since.push((me, Instant::now()));
+            }
+        });
+        return 1;
+    }
+    if !sched::forced() && !sched::idle() {
+        unsupported(&format!("{what} that waits on a busy actor"));
+    }
+    let since = with(|st| {
+        let s = st.since.iter().find(|(p, _)| *p == me).map(|w| w.1);
+        unwait(st, &me);
+        s
+    });
+    let end = since.unwrap_or_else(Instant::now) + DEFAULT_DEADLINE;
+    std::thread::sleep(end.saturating_duration_since(Instant::now()));
+    TIMEOUT
 }
 
 /// The youngest caller of a wait cycle that `me` closes by waiting on actor `id`, if it closes
@@ -250,7 +321,7 @@ fn cycle(st: &State, me: &[usize], id: usize) -> Option<Vec<usize>> {
 }
 
 /// Take actor `id`'s state for a handler call (R435): 0 with its slots in `out`, or
-/// [`crate::chan::BLOCKED`], [`WORK`], [`STOPPED`] or [`DEADLOCK`]. A call is a barrier: the
+/// [`crate::chan::BLOCKED`], [`WORK`], [`STOPPED`], [`DEADLOCK`] or [`TIMEOUT`]. A call is a barrier: the
 /// actor first runs every message queued before it (R813).
 ///
 /// # Safety
@@ -268,7 +339,7 @@ pub unsafe extern "C" fn yan_rt_actor_take(id: u64, out: *mut u64, in_task: u64)
         if queued(st, id) {
             return Some(WORK);
         }
-        if st.actors[id].stopped {
+        if st.actors[id].stopped.is_some() {
             unwait(st, &me);
             return Some(STOPPED);
         }
@@ -295,19 +366,15 @@ pub unsafe extern "C" fn yan_rt_actor_take(id: u64, out: *mut u64, in_task: u64)
     if let Some(r) = r {
         return r;
     }
-    if sched::park(key(id), in_task != 0) {
-        with(|st| {
-            if !st.waits.iter().any(|(p, _)| *p == me) {
-                st.waits.push((me, id));
+    let st = wait(id, me.clone(), in_task != 0, "a handler call");
+    if st == 1 {
+        with(|s| {
+            if !s.waits.iter().any(|(p, _)| *p == me) {
+                s.waits.push((me, id));
             }
         });
-        return 1;
     }
-    with(|st| unwait(st, &me));
-    if sched::forced() || sched::idle() {
-        crate::chan::deadlock();
-    }
-    unsupported("a handler call that waits on a busy actor")
+    st
 }
 
 /// The state's `words` slots at `state` go back to actor `id` after a handler ran.
@@ -326,53 +393,80 @@ pub unsafe extern "C" fn yan_rt_actor_put(id: u64, state: *const u64) {
     sched::progressed();
 }
 
-/// Enqueue the message closure `code`, `env` on actor `id` (R813): 0, 1 when parked on a full
-/// mailbox, or [`WORK`] to run the actor's oldest message first.
+/// Enqueue on actor `id` the message `thunk(code, env, args)` (R813): 0, 1 when parked on a full
+/// mailbox, [`WORK`] to run the actor's oldest message first, or why it is undelivered:
+/// [`STOPPED`], [`FULL`], [`CANCELLED`] or [`TIMEOUT`], leaving the message to the caller
+/// (R976). A full mailbox does what the actor's policy says (R974).
 #[unsafe(no_mangle)]
-pub extern "C" fn yan_rt_actor_send(id: u64, code: u64, env: u64, in_task: u64) -> u64 {
+pub extern "C" fn yan_rt_actor_send(
+    id: u64,
+    thunk: u64,
+    code: u64,
+    env: u64,
+    args: u64,
+    in_task: u64,
+) -> u64 {
     let id = id as usize;
+    let m = [thunk, code, env, args];
     let r = with(|st| {
-        let a = &st.actors[id];
-        if a.stopped {
-            return None;
+        let a = &mut st.actors[id];
+        if a.stopped.is_some() {
+            return Some(STOPPED);
         }
         if a.mail.len() >= a.capacity {
-            return Some(if queued(st, id) { WORK } else { 1 });
+            match a.policy {
+                Policy::Reject => return Some(FULL),
+                Policy::DropNew => {
+                    free(m);
+                    return Some(0);
+                }
+                Policy::DropOldest => a.mail.pop_front().into_iter().for_each(free),
+                // A full mailbox parks a `Block` sender, so the actor runs its oldest message
+                // first; waiting is a cancellation point (9.6).
+                Policy::Block => {
+                    if sched::cancelled() {
+                        return Some(CANCELLED);
+                    }
+                    return Some(if queued(st, id) { WORK } else { WAIT });
+                }
+            }
         }
-        st.actors[id].mail.push_back([code, env]);
-        Some(0)
+        st.actors[id].mail.push_back(m);
+        None
     });
+    let me = sched::path();
     match r {
-        None => unsupported("a send to a stopped actor, before sends have a fail type"),
-        Some(1) => {
-            if sched::park(key(id), in_task != 0) {
-                return 1;
-            }
-            if sched::forced() || sched::idle() {
-                crate::chan::deadlock();
-            }
-            unsupported("a send that waits on a busy actor")
-        }
-        Some(0) => {
+        Some(WAIT) => wait(id, me, in_task != 0, "a send"),
+        Some(r) => r,
+        None => {
+            with(|st| unwait(st, &me));
             sched::progressed();
             0
         }
-        Some(r) => r,
     }
 }
+
+/// A full `Block` mailbox with no message ready to run: the sender waits.
+const WAIT: u64 = u64::MAX;
 
 fn now(st: &State) -> i128 {
     st.start.elapsed().as_nanos() as i128
 }
 
-/// A handler of actor `id` failed, which stops it (RFC 0060 D3). Its supervisor queues the
-/// restarts its strategy asks for, which [`yan_rt_actor_restart_next`] hands out, unless that
-/// exceeds the restart intensity: then every child stops and the run panics `supervisor`.
+/// A handler of actor `id` failed with the shown failure `error`, which stops it `Crashed`
+/// (RFC 0060 D3, R977). Its supervisor queues the restarts its strategy asks for, which
+/// [`yan_rt_actor_restart_next`] hands out, unless that exceeds the restart intensity: then
+/// every child stops and the run panics `supervisor`.
+///
+/// # Safety
+/// `error` is a `Str` block.
 #[unsafe(no_mangle)]
-pub extern "C" fn yan_rt_actor_crash(id: u64) {
+pub unsafe extern "C" fn yan_rt_actor_crash(id: u64, error: *const String) {
     let id = id as usize;
+    // SAFETY: the caller's contract.
+    let error = unsafe { &*error }.clone();
     let over = with(|st| {
-        st.actors[id].stop();
+        st.actors[id].stop(Reason::Crashed(error));
         let (s, restart) = (st.actors[id].sup, st.actors[id].restart);
         if restart == Restart::Temporary {
             return None;
@@ -385,7 +479,7 @@ pub extern "C" fn yan_rt_actor_crash(id: u64) {
         if sup.restarts.len() >= sup.intensity {
             let (n, p) = (sup.intensity, sup.period);
             for c in sup.children.clone().into_iter().rev() {
-                st.actors[c].stop();
+                st.actors[c].stop(Reason::Shutdown);
             }
             return Some((n, p));
         }
@@ -396,8 +490,8 @@ pub extern "C" fn yan_rt_actor_crash(id: u64) {
             Strategy::OneForAll => sup.children.clone(),
             Strategy::RestForOne => sup.children[at..].to_vec(),
         };
-        for &c in group.iter().rev() {
-            st.actors[c].stop();
+        for &c in group.iter().rev().filter(|c| **c != id) {
+            st.actors[c].stop(Reason::Shutdown);
         }
         st.restarts.extend(
             group
@@ -420,7 +514,7 @@ pub extern "C" fn yan_rt_actor_restart_next() -> u64 {
     with(|st| match st.restarts.pop_front() {
         Some(c) => {
             let [thunk, code, env] = st.actors[c].start;
-            st.work = [thunk, code, env, c as u64];
+            st.work = [thunk, code, env, c as u64, 0];
             1
         }
         None => 0,
@@ -437,9 +531,28 @@ pub unsafe extern "C" fn yan_rt_actor_restarted(id: u64, state: *const u64) {
         let a = &mut st.actors[id as usize];
         // SAFETY: the caller's contract.
         let v = unsafe { std::slice::from_raw_parts(state, a.words) }.to_vec();
-        a.stopped = false;
+        a.stopped = None;
         a.state = Some(v);
     });
+}
+
+/// Why stopped actor `id` stopped: 1 `Shutdown`, 2 `Crashed`.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_actor_reason(id: u64) -> u64 {
+    with(|st| match st.actors[id as usize].stopped {
+        Some(Reason::Crashed(_)) => 2,
+        _ => 1,
+    })
+}
+
+/// The shown failure that crashed actor `id`, as a new string.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_actor_reason_text(id: u64) -> *mut String {
+    let s = with(|st| match &st.actors[id as usize].stopped {
+        Some(Reason::Crashed(s)) => s.clone(),
+        _ => String::new(),
+    });
+    crate::abi::leak(s)
 }
 
 /// `with supervisor(spec):` opens a scope with strategy `strategy` (0 one for one, 1 one for
@@ -472,7 +585,7 @@ pub extern "C" fn yan_rt_sup_end_to(depth: u64) {
         while st.open.len() as u64 > depth {
             let s = st.open.pop().expect("an open scope");
             for c in st.sups[s].children.clone().into_iter().rev() {
-                st.actors[c].stop();
+                st.actors[c].stop(Reason::Shutdown);
             }
         }
     });

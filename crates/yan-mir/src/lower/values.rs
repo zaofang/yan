@@ -173,9 +173,10 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
     }
 
-    /// A channel operation; one that parks suspends its task and runs again when the task
-    /// resumes. It can park inside a task, or anywhere in a coroutine variant (`co`).
-    /// Its status: 0, or 2 when the task is cancelled (9.4).
+    /// A channel or actor operation; one that parks suspends its task and runs again when the
+    /// task resumes. It can park inside a task, or anywhere in a coroutine variant (`co`). One
+    /// that cannot park runs the actor message yan-rt hands back, then runs again (RFC 0056 D4).
+    /// Its status: 0, or 2 when the task is cancelled (9.4), or an actor operation's own.
     pub(super) fn blocking(&mut self, f: RtFn, mut args: Vec<Operand>) -> Operand {
         args.push(Operand::Int(i128::from(!self.task_starts.is_empty())));
         let op = self.block_new();
@@ -185,6 +186,16 @@ impl<'a, 'm> Fn<'a, 'm> {
         let (suspend, on) = self.branch(parked);
         self.cur = suspend;
         self.finish(Term::Suspend { resume: op });
+        self.cur = on;
+        let work = self.scalar_op(
+            ScalarOp::Eq,
+            I64,
+            vec![st.clone(), Operand::Int(actor::WORK)],
+        );
+        let (run, on) = self.branch(work);
+        self.cur = run;
+        self.run_message();
+        self.goto(op);
         self.cur = on;
         st
     }
@@ -346,6 +357,10 @@ impl<'a, 'm> Fn<'a, 'm> {
             return unsupported("`?` outside a failing function");
         };
         let (e, mine_e) = (efs[0].1.clone(), mine_e[0].1.clone());
+        // A widened failure leaving a task leaks the enclosing frame's locals (#835).
+        if e != mine_e && !self.task_starts.is_empty() {
+            return unsupported("`?` across error types in a `par concurrent` branch");
+        }
         let r = self.var(theirs);
         let v = Self::ops(&r);
         self.call(c, Some(r))?;
