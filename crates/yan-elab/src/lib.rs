@@ -720,16 +720,27 @@ pub fn elaborate_in(
             },
         });
     }
+    let mut launchable = std::collections::HashSet::new();
     for it in &m.items {
         let start = cx.diags.len();
         let checked = if kernel::is_kernel(it) {
             kernel::check(&g, it, &kernel_consts, &mut cx).and_then(|proved| {
                 if proved {
+                    launchable.insert(it.kind.name());
                     item(&g, it, &mut cx)
                 } else {
                     Ok(None)
                 }
             })
+        } else if let Some(k) = kernel::launched(it.kind.name())
+            && g.kernels.contains_key(k)
+        {
+            // A launch of a kernel that is not proved or does not fit was reported at the launch.
+            if launchable.contains(k) && kernel::plan(&g, k).is_ok() {
+                item(&g, it, &mut cx)
+            } else {
+                Ok(None)
+            }
         } else {
             item(&g, it, &mut cx)
                 .and_then(|k| decorators::check(&g, it, start, &mut cx).map(|()| k))
