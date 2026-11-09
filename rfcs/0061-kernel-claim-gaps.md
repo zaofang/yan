@@ -35,8 +35,8 @@ Options:
 Recommendation: (a). It keeps one representation of a region from source to Core, fixes the grammar
 gap, and costs one field in `ConstVal::Call`.
 
-- Decision:
-- Row:
+- Decision: (a), the lead, 2026-11-09 (card on this thread)
+- Row: R982
 
 ### D2: the code for a malformed or misused `@kernel`
 
