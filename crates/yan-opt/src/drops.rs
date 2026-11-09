@@ -274,6 +274,15 @@ impl Elab<'_> {
         Block { stmts: out }
     }
 
+    /// A block whose locals are declared in, and dropped with, the enclosing scope.
+    fn hoisted_block(&mut self, b: &Block) -> Block {
+        let mut out = Vec::new();
+        for s in &b.stmts {
+            self.stmt(s, &mut out);
+        }
+        Block { stmts: out }
+    }
+
     fn flow_of(&self, b: &Block) -> Flow {
         match b.stmts.last().map(|s| &s.kind) {
             Some(
@@ -836,7 +845,8 @@ impl Elab<'_> {
                 flow
             }
             StmtKind::Par { concurrent, blocks } => {
-                let blocks = blocks.iter().map(|b| self.block(b, Vec::new())).collect();
+                // Branch bindings stay visible after the `par`: they belong to the enclosing scope.
+                let blocks = blocks.iter().map(|b| self.hoisted_block(b)).collect();
                 out.push(stmt(
                     StmtKind::Par {
                         concurrent: *concurrent,
