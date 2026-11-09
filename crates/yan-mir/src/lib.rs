@@ -144,6 +144,8 @@ pub enum Inst {
 pub enum RtFn {
     /// `(Str)`
     Print,
+    /// `(Str)`: the shown failure of `main` on stderr, then exit status 1; does not return.
+    FailMain,
     /// `() -> Str`, a null pointer at end of input
     ReadLine,
     /// `() -> Str`
@@ -400,8 +402,7 @@ pub struct Func {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Program {
     pub funcs: Vec<Func>,
+    /// Takes no arguments and returns `unit`: a failing `main` is wrapped (`lower/entry.rs`).
     pub main: FuncId,
-    /// `main` returns a `Result`, whose tag is its first slot; `Err` exits with status 1.
-    pub main_fails: bool,
     pub strings: Vec<String>,
 }

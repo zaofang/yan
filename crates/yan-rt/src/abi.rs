@@ -307,6 +307,18 @@ pub unsafe extern "C" fn yan_rt_print_str(s: *const String) {
     unsafe { yan_rt_print(s.as_ptr(), s.len()) }
 }
 
+/// `main` failed: its error, shown, on stderr, then exit status 1.
+///
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_fail_main(s: *const String) -> ! {
+    let _ = std::io::stdout().flush();
+    // SAFETY: the caller's contract.
+    eprintln!("{}", unsafe { &*s });
+    yan_rt_exit(1)
+}
+
 /// `std.io.read_line`: the next stdin line without its terminator, or null at end of input.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_read_line() -> *mut String {
