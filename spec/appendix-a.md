@@ -316,6 +316,9 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R968 | The Yan compiler generates code through LLVM's C API for debug and release builds in 1.0; Cranelift stays in stage 0; a Yan-written debug backend replaces it after 1.0 (RFC 0057 D3) | 1, 18.1, 22.7 |
 | R969 | The compiler is written in Yan (`.yn`); the Yan lexer, parser, printer and lowering to HIR move from M3 to M2a; compiler sources avoid the contested forms until the M3 comparison reports (RFC 0057 D4) | 22.7, 23 |
 | R970 | S2 starts after formal phases 1 and 2, which wait for the M1 gate; stage 0 keeps growing until the freeze, optimizer and package manager included, and every stage-0 crate is ported (RFC 0057 D5) | 22.7 |
+| R971 | `gpu.launch(k, args...)` runs a `@kernel` function once per program instance under `uses gpu` and returns its `out`; the `cpu` handler runs the instances on the host, and a trap fails the launch with `KernelFault` (RFC 0058 D1) | 7.1, 17.1 |
+| R972 | The launch grid follows the `out` region: instances step by the extent the region bounds on each axis and have one origin on an axis it leaves free, so their writes are disjoint (RFC 0058 D2) | 17.1 |
+| R973 | An `out` size on a stepped axis that is not a literal divisible by the step is E521 at the launch (RFC 0058 D3) | 17.1, 25 |
 
 <!-- /rows -->
 

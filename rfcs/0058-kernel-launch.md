@@ -1,8 +1,8 @@
 # 0058: launching a `@kernel` function
 
-- Status: draft
+- Status: accepted
 - Research: RFC 0055 (D1 to D4); spec 17.1 (R327 to R329); issue #674
-- Rows: filled in when accepted
+- Rows: R971 to R973
 
 ## Summary
 
@@ -31,7 +31,7 @@ capability that R329 requires; (c) lets user code hold a `TileOrigin`, which R95
 Recommended (a).
 
 - Decision: (a), the lead, 2026-11-09 (card on the project thread)
-- Row:
+- Row: R971
 
 ### D2: the grid and the write region
 
@@ -48,7 +48,7 @@ writes winning. (c) is deterministic only on `cpu` and breaks R328 on hardware; 
 row-reduction kernels such as a row sum into a column. Recommended (a).
 
 - Decision: (a), the lead, 2026-11-09 (card on the project thread)
-- Row:
+- Row: R972
 
 ### D3: output shapes that are not whole tiles
 
@@ -62,8 +62,8 @@ bounds check fault their out-of-range writes. Under (b) every kernel over a ragg
 its body guards each access, and the prover does not read guards as facts. Recommended (a); a later
 RFC can add guarded edge tiles.
 
-- Decision:
-- Row:
+- Decision: (a), the lead, 2026-11-09 (card on the project thread)
+- Row: R973
 
 ## Spec changes
 
