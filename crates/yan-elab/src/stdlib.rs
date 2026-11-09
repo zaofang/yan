@@ -37,6 +37,8 @@ pub(crate) struct Std {
     sums: HashMap<String, (&'static str, j::TypeDef)>,
     /// `@non_exhaustive` sums: a match outside std needs a wildcard (20.6).
     open: HashSet<String>,
+    /// Union aliases by bare name, as `ActorError`.
+    aliases: HashMap<String, Vec<j::Type>>,
     /// Constants by path, `std.<module>.<name>`.
     consts: HashMap<String, j::Expr>,
     /// Each module's file name and source, for diagnostics in std bodies.
@@ -100,6 +102,13 @@ pub(crate) static STD: LazyLock<Std> = LazyLock::new(|| {
                         out.fns.insert(path, decl(def, false, true));
                     }
                 }
+                j::ItemKind::Type(j::TypeDef {
+                    name,
+                    rhs: j::TypeRhs::Alias(ts),
+                    ..
+                }) => {
+                    out.aliases.insert(name, ts);
+                }
                 j::ItemKind::Type(t) if matches!(t.rhs, j::TypeRhs::Sum(_)) => {
                     if has("non_exhaustive") {
                         out.open.insert(t.name.clone());
@@ -137,6 +146,7 @@ impl yan_hir::raise::Std for StdInfo {
             || path.starts_with("__cost_")
             || STD.classes.contains_key(path)
             || STD.sums.contains_key(path)
+            || STD.aliases.contains_key(path)
             || STD.fns.contains_key(&format!("std.prelude.{path}"))
     }
 
@@ -437,6 +447,16 @@ fn words(m: &j::Module) -> HashSet<String> {
     if TIME.iter().any(|t| w.contains(*t)) {
         w.insert("time".into());
     }
+    // A std alias names its members.
+    for (name, ts) in &STD.aliases {
+        if w.contains(name) {
+            for t in ts {
+                if let j::Type::Named { path, .. } = t {
+                    w.extend(path.last().cloned());
+                }
+            }
+        }
+    }
     w
 }
 
@@ -550,6 +570,11 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
         }
     }
     out.sort();
+    for (name, ts) in &STD.aliases {
+        if words.contains(name.as_str()) && !own.contains(name.as_str()) {
+            g.aliases.insert(name.clone(), ts.clone());
+        }
+    }
     declare_classes(g, m);
     let span = Span {
         line: 1,

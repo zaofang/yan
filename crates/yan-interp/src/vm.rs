@@ -27,7 +27,7 @@ pub(crate) struct Vm<'o> {
     /// The frame whose `par concurrent` tasks are running: only its own calls may park.
     task_base: Option<usize>,
     /// Task indices from the outermost running `par concurrent` to the current task.
-    task_path: Vec<usize>,
+    pub(crate) task_path: Vec<usize>,
     /// Nested blocks whose tasks were all parked, so they yielded to their enclosing task,
     /// by that task's path and the block's first entry.
     suspended: HashMap<(Vec<usize>, u32), Suspended>,
@@ -522,6 +522,11 @@ impl<'o> Vm<'o> {
             let next = tasks
                 .iter()
                 .position(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)));
+            // No task can progress: an idle actor runs a queued message, as an actor task would
+            // (RFC 0056 D4), and the parked tasks retry.
+            if next.is_none() && super::sync::run_idle(self)? {
+                continue;
+            }
             let (i, forced) = match next {
                 Some(i) => (i, false),
                 None => match tasks.iter().position(|t| !t.done) {

@@ -35,45 +35,115 @@ impl Lower<'_, '_, '_> {
         if self.g.reentrant.contains(m) {
             return unsupported("a call to a `@reentrant` actor handler, before RFC 0056 slice 4");
         }
+        let fail = actor_fail(sig.fail.as_ref());
         let (h, _) = self.atom(b, None)?;
+        let took = Ty::Result(Box::new(state.clone()), Box::new(fail.clone()));
         let take = call(
             "std.actor.take",
-            vec![state.targ()],
+            vec![state.targ(), fail.targ()],
             vec![let_arg(h.clone())],
             at,
         );
-        let s = self.fresh("s");
-        self.bind(&s, true, &state, Rhs::Call(take), at, at);
-        let recv = j::Expr {
-            kind: j::ExprKind::Name(s.clone()),
-            span: b.span,
-            paren: false,
-        };
-        let (r, t, fail) = self.call_sig(m, &sig, Some(&recv), args, at)?;
-        let back = Atom::Name(s, at);
-        match (fail, r) {
-            (Some(e), Rhs::Call(c)) => {
-                let rt = Ty::Result(Box::new(t.clone()), Box::new(e.clone()));
-                let tried = self.tmp(&rt, Rhs::Try(c), at);
-                let targs = vec![state.targ(), t.targ(), e.targ()];
-                let args = vec![let_arg(h), sink_arg(back), sink_arg(tried)];
-                let c = call("std.actor.settle", targs, args, at);
-                Ok(Some((Rhs::Call(c), t, Some(e))))
-            }
-            (Some(_), _) => unsupported("a fallible handler call that is not a plain call"),
-            (None, r) => {
-                let v = self.tmp(&t, r, at);
-                let put = call(
-                    "std.actor.put",
-                    vec![state.targ()],
-                    vec![let_arg(h), sink_arg(back)],
+        let took = self.tmp(&took, Rhs::Call(take), at);
+        let (v, rt) = self.join(at, |l, k| {
+            let (o, s) = (l.fresh("o"), l.fresh("s"));
+            let mut ret = Ty::Err;
+            let ok = l.block_with(|l| {
+                l.declare(&o, state.clone());
+                l.bind(
+                    &s,
+                    true,
+                    &state,
+                    Rhs::Atom(Atom::Name(o.clone(), at)),
+                    at,
                     at,
                 );
-                self.emit(StmtKind::Rhs(Rhs::Call(put)), at);
-                Ok(Some((Rhs::Atom(v), t, None)))
-            }
-        }
+                let recv = j::Expr {
+                    kind: j::ExprKind::Name(s.clone()),
+                    span: b.span,
+                    paren: false,
+                };
+                let (r, t, e) = l.call_sig(m, &sig, Some(&recv), args, at)?;
+                let rt = Ty::Result(Box::new(t.clone()), Box::new(fail.clone()));
+                let back = Atom::Name(s.clone(), at);
+                let out = match (e, r) {
+                    (Some(e), Rhs::Call(c)) => {
+                        let tried = Ty::Result(Box::new(t.clone()), Box::new(e.clone()));
+                        let tried = l.tmp(&tried, Rhs::Try(c), at);
+                        let targs = vec![state.targ(), t.targ(), e.targ(), fail.targ()];
+                        let args = vec![let_arg(h.clone()), sink_arg(back), sink_arg(tried)];
+                        let c = call("std.actor.settle", targs, args, at);
+                        l.tmp(&rt, Rhs::Call(c), at)
+                    }
+                    (Some(_), _) => {
+                        return unsupported("a fallible handler call that is not a plain call");
+                    }
+                    (None, r) => {
+                        let v = l.tmp(&t, r, at);
+                        let put = call(
+                            "std.actor.put",
+                            vec![state.targ()],
+                            vec![let_arg(h.clone()), sink_arg(back)],
+                            at,
+                        );
+                        l.emit(StmtKind::Rhs(Rhs::Call(put)), at);
+                        l.tmp(&rt, ctor("Ok", "value", v), at)
+                    }
+                };
+                l.jump(k, out, at);
+                ret = rt;
+                Ok(())
+            })?;
+            let e = l.fresh("e");
+            let err = l.block_with(|l| {
+                l.declare(&e, fail.clone());
+                let out = l.tmp(&ret, ctor("Err", "error", Atom::Name(e.clone(), at)), at);
+                l.jump(k, out, at);
+                Ok(())
+            })?;
+            let arm = |c: &str, f: &str, n: &str| y::Pat::Ctor {
+                path: vec![c.into()],
+                fields: Some((vec![(f.into(), y::Pat::Bind(n.into()))], false)),
+            };
+            let m = y::Stmt {
+                kind: StmtKind::Match {
+                    scrutinee: took,
+                    arms: vec![(arm("Ok", "value", &o), ok), (arm("Err", "error", &e), err)],
+                },
+                span: at,
+            };
+            Ok((m, ret.clone()))
+        })?;
+        let Ty::Result(t, _) = &rt else {
+            return Ok(Some((Rhs::Atom(v), Ty::Err, None)));
+        };
+        let t = (**t).clone();
+        let c = call(
+            "std.actor.reply",
+            vec![t.targ(), fail.targ()],
+            vec![sink_arg(v)],
+            at,
+        );
+        Ok(Some((Rhs::Call(c), t, Some(fail))))
     }
+}
+
+/// A handler call fails with the handler's own failures plus `ActorError` (RFC 0056 D1).
+fn actor_fail(own: Option<&Ty>) -> Ty {
+    let mut ms = Vec::new();
+    let actor = ["Stopped", "Timeout", "Cancelled", "Deadlock"].map(|n| Ty::Data(n.into()));
+    for t in own.into_iter().cloned().chain(actor) {
+        crate::union_add(&mut ms, t);
+    }
+    Ty::Union(ms)
+}
+
+fn ctor(name: &str, field: &str, a: Atom) -> Rhs {
+    Rhs::Ctor(y::Ctor::Named {
+        path: vec![name.into()],
+        targs: Vec::new(),
+        fields: vec![(field.into(), a)],
+    })
 }
 
 impl Lower<'_, '_, '_> {
@@ -147,7 +217,19 @@ impl Lower<'_, '_, '_> {
                 return unsupported("`actor.send` of a name that is not a handler of the state");
             }
             Some(s) if s.ret != Ty::Unit || s.fail.is_some() => {
-                return unsupported("`actor.send` of a handler with a result or a fail type");
+                let what = match (&s.ret, &s.fail) {
+                    (Ty::Unit, Some(e)) => format!("fails `{}`", self.ty_text(e)),
+                    (t, _) => format!("returns `{}`", self.ty_text(t)),
+                };
+                self.err(
+                    "E729",
+                    at,
+                    format!(
+                        "`{m}` {what}; only a handler with a unit result and no fail type can be \
+                         sent (R813); call it as `h.{m}(...)` to get its outcome"
+                    ),
+                );
+                return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
             }
             // R397 runs a message under its supervisor's capabilities, which no actor holds yet;
             // the sender's would escape in the message (E306).
@@ -180,18 +262,17 @@ impl Lower<'_, '_, '_> {
                 span: a.span,
             });
         }
-        let body = j::Expr {
-            kind: j::ExprKind::Call(
-                Box::new(j::Expr {
-                    kind: j::ExprKind::Attr(Box::new(name(hn, h.span)), m.into(), at),
-                    span: at,
-                    paren: false,
-                }),
-                moved,
-            ),
+        let ex = |kind| j::Expr {
+            kind,
             span: at,
             paren: false,
         };
+        let handler = ex(j::ExprKind::Attr(Box::new(name(hn, h.span)), m.into(), at));
+        let msg = ex(j::ExprKind::Call(Box::new(handler), moved));
+        // A sent handler has no failure of its own, and an admitted message runs on an idle
+        // actor, so the call's `ActorError` cannot occur; a stopped actor drops it (R813).
+        let none = j::Fallback::Value(ex(j::ExprKind::Lit(j::Lit::None)));
+        let body = ex(j::ExprKind::Fallback(Box::new(msg), Box::new(none)));
         let want = Ty::Fn(false, Vec::new(), Box::new(Ty::Unit));
         let (clo, ct) = self.lambda(&[], &body, Some(&want))?;
         let clo = self.tmp(&ct, clo, at);

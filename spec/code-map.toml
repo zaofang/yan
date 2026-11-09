@@ -176,6 +176,7 @@ E725 = { unimplemented = "#825" }
 E726 = "crates/yan-elab/src/lower.rs"
 E727 = "crates/yan-elab/src/lower.rs"
 E728 = "crates/yan-elab/src/session.rs"
+E729 = "crates/yan-elab/src/lower/actor.rs"
 E900 = "crates/yan-elab/src/decorators.rs"
 E901 = "crates/yan-elab/src/lower/stmt_form.rs"
 E902 = "crates/yan-elab/src/ffi.rs"

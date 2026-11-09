@@ -248,6 +248,8 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             deadline: None,
             chans: Vec::new(),
             actors: Vec::new(),
+            actor_waits: Vec::new(),
+            doomed: Vec::new(),
             net: Default::default(),
             test: false,
             progress: 0,
@@ -375,6 +377,10 @@ pub(crate) struct Interp<'o> {
     chans: Vec<(usize, VecDeque<Value>)>,
     /// Each actor, by actor (9.6).
     actors: Vec<sync::Actor>,
+    /// The tasks parked on a busy actor, by task path, and the actor each waits for (RFC 0056 D6).
+    actor_waits: Vec<(Vec<usize>, usize)>,
+    /// Parked callers that a wait cycle chose to fail `Deadlock` when they next retry (D6).
+    doomed: Vec<Vec<usize>>,
     /// Every `mem_net` network, listener and stream end.
     net: net::Nets,
     /// Running under `yan test`, which picks the default handlers (7.3).
@@ -638,6 +644,8 @@ fn entry(
         deadline: None,
         chans: Vec::new(),
         actors: Vec::new(),
+        actor_waits: Vec::new(),
+        doomed: Vec::new(),
         net: Default::default(),
         test: limits.is_some(),
         progress: 0,
