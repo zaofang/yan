@@ -365,7 +365,7 @@ pub enum Term {
         kind: &'static str,
         fields: Vec<(Operand, Operand)>,
     },
-    /// The branches of a `par concurrent` as tasks, then `join`. This and the next two exist
+    /// The branches of a `par concurrent` as tasks, then `join`. This and the next three exist
     /// only between lowering and the task transform (RFC 0043).
     Par {
         tasks: Vec<BlockId>,
@@ -377,6 +377,11 @@ pub enum Term {
     },
     /// The running task's branch ended.
     TaskEnd,
+    /// The running task leaves the function, and if the block keeps its result (R394) the block
+    /// continues at `drops` once every task ended: the drops of the enclosing frame, run once.
+    Unwind {
+        drops: BlockId,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

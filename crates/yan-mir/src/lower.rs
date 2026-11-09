@@ -11,6 +11,7 @@ mod entry;
 mod pattern;
 mod show;
 mod stmt;
+mod unwind;
 mod values;
 
 use yan_core::ast as y;
@@ -750,8 +751,12 @@ struct Fn<'a, 'm> {
     scopes: Vec<Scope>,
     /// The line of the statement being lowered.
     line: u32,
-    /// How many `par concurrent` branches enclose the code being lowered.
-    tasks: u32,
+    /// The first local of each `par concurrent` branch enclosing the code being lowered,
+    /// outermost first: a name whose locals start below `task_starts[d]` was bound outside the
+    /// branch at depth `d + 1`.
+    task_starts: Vec<Local>,
+    /// Names of an enclosing frame whose `drop` in a branch waits for the exit that follows.
+    deferred: Vec<String>,
     /// Whether the program counts steps and allocations for `cost` bounds (R610).
     costing: bool,
     /// The tokens of this function's `cost` counters, ended on every exit.
@@ -781,7 +786,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             cur: 0,
             scopes: Vec::new(),
             line: 0,
-            tasks: 0,
+            task_starts: Vec::new(),
+            deferred: Vec::new(),
             costing: mono.borrow().costing,
             cost_tokens: Vec::new(),
         }
@@ -1036,7 +1042,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     /// In a task, tell the scheduler that the exit that follows fails with `ev` of shape `e`,
     /// and whether that is `Cancelled` (R394).
     fn exit_kind(&mut self, e: &Shape, ev: &[Operand]) {
-        if self.tasks == 0 {
+        if self.task_starts.is_empty() {
             return;
         }
         let kind = match e {

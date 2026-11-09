@@ -1583,7 +1583,7 @@ impl Gen<'_, '_> {
                 }
             }
             Term::Panic(kind) => self.call_panic(kind),
-            Term::Par { .. } | Term::Suspend { .. } | Term::TaskEnd => {
+            Term::Par { .. } | Term::Suspend { .. } | Term::TaskEnd | Term::Unwind { .. } => {
                 unreachable!("removed by the task transform")
             }
             Term::PanicFields { kind, fields } => self.call_panic_fields(kind, fields),
