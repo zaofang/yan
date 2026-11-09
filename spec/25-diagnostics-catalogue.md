@@ -291,7 +291,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | W854 | Yan string with `${...}`, which Yan prints literally; fix rewrites it to `\(...)` (R663) new | 15.1 |
 | W855 | `shield` block with no blocking operation (R812) *new* | 9.4 |
 | W856 | `shield` duration not below the default cancel grace (R812) *new* | 9.4 |
-| W857 | send to a `drop_*` actor inside a `shield` (R814) *new* | 9.6 |
+| W857 | send to a `DropOldest` or `DropNew` actor inside a `shield` (R814) *new* | 9.6 |
 | W858 | relaxed float block with no float operator (R822) *new* | 7.7 |
 | W859 | `with fast_math:` nested in a relaxed scope (R822) *new* | 7.7 |
 | W860 | an `Args:`, `Attributes:` or `Variants:` entry names no parameter, field or variant (R848) *new* | 18.9 |
