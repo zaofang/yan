@@ -1472,5 +1472,50 @@ sections = "11.2, 25"
 
 [[entry]]
 rows = "R956"
-topic = "Last use (E413, `move` versus `copy`) is decided on the control-flow graph of the shared `yan-flow` analysis; a use inside a loop is followed by every use reachable around the back edge, with no separate rule for names bound outside the loop (RFC 0054 D4)"
+topic = "`actor.spawn(state: S, capacity: int = 1024) -> Actor[S, P]` moves the state into a new actor, `P` from the expected type (default `block`), `pre capacity >= 1`; `h.f(args)` resolved by R435 is the `call` (RFC 0056 D1)"
+sections = "17.3"
+
+[[entry]]
+rows = "R957"
+topic = "An actor spawned outside every `with supervisor` is owned by a root supervisor std binds before `main` and per test function (`one_for_one`, 1 restart per 5 s), stopped in reverse spawn order when `main` or the test returns (RFC 0056 D2)"
+sections = "9.6"
+
+[[entry]]
+rows = "R958"
+topic = "`actor.spawn(state)` children are `temporary`; a restartable child is `ChildSpec(start, args, restart=)` whose top-level `start` returns `S` and is called on each start and restart under the supervisor scope's capabilities, the R411 child spec (RFC 0056 D3)"
+sections = "9.6, 17.3"
+
+[[entry]]
+rows = "R959"
+topic = "Under `sequential` tasks are ordered by task path (par concurrent branch: parent plus branch index; actor: supervisor scope plus spawn index; handlers run as the actor's task) and the lowest runnable path runs next; under `seeded` the generator chooses (RFC 0056 D4)"
+sections = "9.1"
+
+[[entry]]
+rows = "R960"
+topic = "`cluster = sim(nodes, seed)`: in-process nodes with their own root supervisor, seed-derived node ids and task-path prefixes, always-encoded `Remote` calls, optional seeded `drop`, `delay` and `partition` fault schedules in virtual time, `monitor` and `Down` from the simulated view (RFC 0056 D9)"
+sections = "9.6.1"
+
+[[entry]]
+rows = "R961"
+topic = "`yan-flow` is the one move, last-use and drop analysis: a generic control-flow graph of basic blocks with edges for branches, loop back edges, `break`, `continue`, `match` arms, and exits for `return`, `fail` and `?`; the checker, the elaborator and drop elaboration each lower their own IR to it (RFC 0054 D1)"
+sections = "4.2, 5.3"
+
+[[entry]]
+rows = "R962"
+topic = "Facts are keyed by binding identity assigned at definition: a shadowing `let` or a loop re-bind is a new binding and a name is only a lookup into the current scope (RFC 0054 D2)"
+sections = "4.2, 5.3"
+
+[[entry]]
+rows = "R963"
+topic = "Three facts solved to a fixed point: maybe-moved (a read of a maybe-moved binding is a use after move), live (a last-use move is a read at which the binding is not live, and the witness for the used-again label is the first read found), and maybe-owned with a must-owned companion (a drop flag only where the type has custom `Drop` or is `@linear` and ownership depends on the path); a field taken out of a record leaves it owned with a hole; migrated one client at a time (RFC 0054 D3)"
+sections = "4.2, 5.3, 5.4, 10.6"
+
+[[entry]]
+rows = "R964"
+topic = "Loops are decided by the graph: a read in a loop body is followed by every read reachable around the back edge; there is no separate loop rule, and a program whose E413 result changes is migrated by the lead (RFC 0054 D4)"
 sections = "4.2"
+
+[[entry]]
+rows = "R965"
+topic = "`yan-flow` migrates in order: crate, elaborator, checker, `yan-opt` drops, then conformance cases on a `conform/*` PR; each stage deletes the mechanism it replaces (RFC 0054 D5)"
+sections = "4.2, 5.3"

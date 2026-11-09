@@ -1,10 +1,10 @@
 # 0054: One dataflow move and drop analysis
 
-- Status: draft
+- Status: accepted
 - Research: the code survey in this RFC (main 85ca567, 2026-11-09); laws and plan in the study
   "Yan development laws and phased plans" (https://claude.ai/artifact/RaRsJ6bHuLRe1MQyNet4qq), item 7 of the
   short-term plan; RFC 0028 for the `yan-opt` drop contract
-- Rows: filled in when accepted
+- Rows: R961 to R965 (D1 to D5 in order)
 
 ## Summary
 
@@ -51,7 +51,7 @@ to diverge, which is the cause of this RFC.
 Recommendation: (b).
 
 - Decision: as recommended; Antonio, 2026-11-09
-- Row: none (implementation design)
+- Row: R961
 
 ### D2: binding identity
 
@@ -62,7 +62,7 @@ Recommendation: (b). It removes the by-hand shadowing and scope-exit cases in th
 `redefined` function in the elaborator. Spans stay in the diagnostics only.
 
 - Decision: as recommended; Antonio, 2026-11-09
-- Row: none (implementation design)
+- Row: R962
 
 ### D3: the three facts
 
@@ -79,7 +79,7 @@ Recommendation: (b). It removes the by-hand shadowing and scope-exit cases in th
 Recommendation: all three, in the order moved, live, owned, one client at a time.
 
 - Decision: as recommended; Antonio, 2026-11-09
-- Row: (R number once accepted)
+- Row: R963
 
 ### D4: loops change one observable result
 
@@ -97,7 +97,7 @@ Conformance cases that depend on the old result are for the lead to change; the 
 and does not edit them.
 
 - Decision: as recommended; Antonio, 2026-11-09
-- Row: R956
+- Row: R964
 
 ### D5: order of migration and what is deleted
 
@@ -117,7 +117,7 @@ has no graph at all, the checker second because it owns the diagnostics, `yan-op
 the consumer that must not regress performance.
 
 - Decision: as recommended; Antonio, 2026-11-09
-- Row: none (implementation design)
+- Row: R965
 
 ## Spec changes
 

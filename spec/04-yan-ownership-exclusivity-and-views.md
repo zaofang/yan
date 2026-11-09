@@ -22,7 +22,7 @@ The receiver of a method is a parameter like any other; it is exempt from E210 (
 
 Surfaces never write `move`; the elaborator inserts moves and trivial copies by last-use analysis:
 
-1. A use of a variable that is its last use on every path becomes `move`. Paths are those of the function's control-flow graph: arms of one `if` or `match` exclude each other, a reassignment ends the live range, and a loop's back edge is an edge, so a use inside a loop is followed by every use reachable around the loop before a reassignment (R956).
+1. A use of a variable that is its last use on every path becomes `move`. Last use is decided on a control-flow graph whose facts are keyed by binding, not by name, and a loop back edge is an ordinary edge, so a read in a loop body is followed by every read reachable around the loop (R961, R962, R964).
 2. Any other use passed to `sink`, stored into a container or record, or bound to a new name becomes a bitwise copy if the type is trivially copyable (contains no heap-backed component).
 3. For a heap-backed type such a use is E413 unless the source writes `copy x` (Yan Agent `x.copy()`), a deep copy costing O(size). E413's fix inserts `copy`, or `share` when the type implements `Share`, so `autofix` resolves it without a model generation.
 
