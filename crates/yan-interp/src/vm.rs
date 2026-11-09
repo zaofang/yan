@@ -1248,6 +1248,7 @@ impl<'o> Vm<'o> {
                     Bind::CapFallible(f) => f(&mut self.it, &mut self.stack[new_base..])?,
                     Bind::Fallible(f) => f(&self.stack[new_base..])?,
                     Bind::Vm(f) => Ok(self.native_vm(new_base, |vm, a| f(vm, id, a))?),
+                    Bind::VmFallible(f) => self.native_vm(new_base, f)?,
                 };
                 if let Some(before) = before {
                     self.count_allocs(s, new_base, &before, &r)?;

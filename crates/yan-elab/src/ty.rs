@@ -50,7 +50,7 @@ pub enum Ty {
 }
 
 /// Each std.collections type, by its Yan Agent name; its Yan Core name is in the projection table.
-pub const COLLECTIONS: [&str; 33] = [
+pub const COLLECTIONS: [&str; 35] = [
     "deque",
     "iter",
     "heap",
@@ -79,6 +79,8 @@ pub const COLLECTIONS: [&str; 33] = [
     "Sender",
     "Receiver",
     "Actor",
+    "SendOnly",
+    "Undelivered",
     "Remote",
     "Lub",
     "Max",
@@ -110,6 +112,8 @@ pub fn builtin(n: &str, a: &[Ty]) -> Option<Ty> {
         ("tuple", ts) => Ty::Tuple(ts.to_vec()),
         ("Option", [t]) => Ty::Option(Box::new(t.clone())),
         ("Result", [t, e]) => Ty::Result(Box::new(t.clone()), Box::new(e.clone())),
+        // `Actor[S]` is `Actor[S, Block]` (R974).
+        ("Actor", [s]) => Ty::Coll("Actor", vec![s.clone(), Ty::Data("Block".into())]),
         (n, ts) => match collection(type_name(n, Surface::Yir, Surface::Yag)?)? {
             (c, k) if k == ts.len() => Ty::Coll(c, ts.to_vec()),
             _ => return None,
@@ -156,6 +160,10 @@ impl Ty {
             Ty::Set(t) => named("Set", vec![t.core()]),
             // Dimensions are checked during elaboration; Yan Core holds the number (11.4).
             Ty::Coll("Quantity", ts) => ts[0].core(),
+            // `Actor[S, Block]` is spelled `Actor[S]` (R974).
+            Ty::Coll("Actor", ts) if ts[1] == Ty::Data("Block".into()) => {
+                named("Actor", vec![ts[0].core()])
+            }
             Ty::Coll(n, ts) => {
                 let y = type_name(n, Surface::Yag, Surface::Yir).expect("a collection");
                 named(y, ts.iter().map(Ty::core).collect())
@@ -295,7 +303,7 @@ impl Ty {
             Ty::Coll("Atomic", _) => Some("sync.atomic"),
             Ty::Coll("Sender", _) => Some("chan.sender"),
             Ty::Coll("Receiver", _) => Some("chan.receiver"),
-            Ty::Coll("Actor", _) => Some("actor"),
+            Ty::Coll("Actor" | "SendOnly" | "Undelivered", _) => Some("actor"),
             Ty::Coll("Lub", _) => Some("lattice"),
             Ty::Coll("Max", _) => Some("lattice.max"),
             Ty::Coll("Locale", _) => Some("i18n"),
