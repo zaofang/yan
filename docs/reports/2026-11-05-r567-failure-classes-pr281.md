@@ -1,6 +1,6 @@
 # R567 pass@1 failures after #280 and #281: classes and fixes
 
-Offline analysis of the Yan Agent records in `/mnt/project-files/r567/pr281/` (report
+Main at `ef86575` (2026-11-05). Offline analysis of the Yan Agent records in `/mnt/project-files/r567/pr281/` (report
 `2026-11-05-r567-rerun-pr281.md`). No new runs. A failure is a normal (non-impossible) task whose first
 body reply did not pass the hidden cases: 17 Sonnet, 39 Haiku. "Python also fails" means the Python arm
 failed the same task's hidden cases on its first reply (one run, so about 3 to 4 points of noise).

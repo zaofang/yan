@@ -17,7 +17,7 @@ Repairs: 2 in the spec phase, 3 in the body phase. Hidden cases never reach the 
 `tasks.py` rebuilds MultiPL-E's translation from the original benchmark files on GitHub (the MultiPL-E
 datasets are on Hugging Face, which the cloud environment cannot reach). It keeps a task when every
 assert is `f(literals) == literal`, then infers one signature from the cases, with at least three cases.
-Today that is 98 of 164 HumanEval and 852 of 974 MBPP problems. The signature is part of the prompt, in
+At `32db6f7` (2026-11-08) that is 98 of 164 HumanEval and 852 of 974 MBPP problems. The signature is part of the prompt, in
 Python type syntax, so both arms answer the same question. MBPP names are rewritten to snake_case (E110),
 and calls use keywords when two parameters share a type (E210); both arms see the same names.
 

@@ -1,6 +1,6 @@
 # R567 lowering candidates: Python expectations the spec forbids or leaves open
 
-Source: `docs/reports/2026-11-04-r567-sonnet-haiku.md`. Each item below changes language semantics if
+Main at `fb1d2cf`, 2026-11-04. Source: `docs/reports/2026-11-04-r567-sonnet-haiku.md`. Each item below changes language semantics if
 accepted, so none is implemented. Row ids are the spec sections that govern today's behaviour; this list
 proposes no new rows. Failed-round counts are Sonnet / Haiku before repair; E017 is 10 / 19 in total across all its forms and the report does not split it.
 
