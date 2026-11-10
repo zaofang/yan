@@ -1,0 +1,26 @@
+# spec: 9.6.1
+# rows: R408
+# note: an argument the Wire codec rejects fails the call SchemaMismatch before the handler runs, and the state is intact
+# stdout:
+# -1
+# 6
+
+class Box:
+    n: int
+
+def add(var self: Box, s: str, k: int) -> int:
+    self.n += k + len(s) % 7
+    return self.n
+
+@remote
+def make(start: int) -> Box:
+    return Box(n=start)
+
+pub def main() -> None uses io, cluster:
+    with cluster = sim(2, 3):
+        a = cluster.spawn(ChildSpec(make, (0,)), placement=On(cluster.nodes()[1]))
+        big = "x" * 20000000
+        r = a.add(big, 1) else e -> -1
+        io.print(f"{r}")
+        r2 = a.add("x", 5) else e -> -1
+        io.print(f"{r2}")
