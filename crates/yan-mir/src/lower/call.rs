@@ -375,12 +375,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(f, ty, v);
                 set(self, r);
             }
-            (id::STD_MATH_IS_INF | id::STD_MATH_IS_FINITE, [(_, a)]) => {
+            (id::STD_MATH_IS_NAN | id::STD_MATH_IS_INF | id::STD_MATH_IS_FINITE, [(_, a)]) => {
                 let x = self.scalar1(a)?;
-                let f = if id == id::STD_MATH_IS_INF {
-                    RtFn::IsInf
-                } else {
-                    RtFn::IsFinite
+                let f = match id {
+                    id::STD_MATH_IS_NAN => RtFn::IsNan,
+                    id::STD_MATH_IS_INF => RtFn::IsInf,
+                    _ => RtFn::IsFinite,
                 };
                 let r = self.rt(f, Ty::Bool, vec![x]);
                 set(self, r);

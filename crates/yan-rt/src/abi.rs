@@ -476,6 +476,11 @@ pub extern "C" fn yan_rt_abs_f64(x: f64) -> f64 {
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_is_nan(x: f64) -> u8 {
+    u8::from(x.is_nan())
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_is_inf(x: f64) -> u8 {
     u8::from(x.is_infinite())
 }

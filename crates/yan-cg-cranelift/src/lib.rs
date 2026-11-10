@@ -671,6 +671,7 @@ const RT: &[RtFn] = &[
     RtFn::IntToF64,
     RtFn::AbsI64,
     RtFn::AbsF64,
+    RtFn::IsNan,
     RtFn::IsInf,
     RtFn::IsFinite,
     RtFn::ListNew,
@@ -895,6 +896,12 @@ fn rt_fn(
             abi::yan_rt_abs_f64 as *const u8,
             &[F64],
             Some(F64),
+        ),
+        RtFn::IsNan => (
+            "yan_rt_is_nan",
+            abi::yan_rt_is_nan as *const u8,
+            &[F64],
+            Some(I8),
         ),
         RtFn::IsInf => (
             "yan_rt_is_inf",

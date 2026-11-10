@@ -189,6 +189,8 @@ pub enum RtFn {
     /// `(f64) -> f64`
     AbsF64,
     /// `(f64) -> bool`
+    IsNan,
+    /// `(f64) -> bool`
     IsInf,
     /// `(f64) -> bool`
     IsFinite,
