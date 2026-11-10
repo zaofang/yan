@@ -18,5 +18,5 @@ def make(start: int) -> Box:
 
 pub def main() -> None uses io, cluster:
     with cluster = sim(2, 3):
-        a = cluster.spawn(ChildSpec(make, (0,)), placement=On(cluster.nodes()[1]))
+        a = cluster.spawn(ChildSpec(make, (0,)), placement=On(cluster.self_node()))
         _ = a
