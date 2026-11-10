@@ -1,6 +1,29 @@
 use super::*;
 
 impl Lower<'_, '_, '_> {
+    /// `at` widened from the callee name to the closing parenthesis of its call, on one line.
+    fn call_span(&self, at: Span) -> Option<Span> {
+        let line = self.cx.src.lines().nth(at.line.checked_sub(1)? as usize)?;
+        let from = at.end_col.saturating_sub(1) as usize;
+        let mut depth = 0u32;
+        for (i, c) in line.get(from..)?.char_indices() {
+            match c {
+                '(' => depth += 1,
+                ')' if depth == 1 => {
+                    return Some(Span {
+                        end_line: at.line,
+                        end_col: (from + i + 2) as u32,
+                        ..at
+                    });
+                }
+                ')' => depth = depth.checked_sub(1)?,
+                _ if depth == 0 => return None,
+                _ => {}
+            }
+        }
+        None
+    }
+
     pub(super) fn rhs(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Rhs, Ty)> {
         self.rhs_inner(e, want).map_err(|u| u.at(e.span))
     }
@@ -440,6 +463,17 @@ impl Lower<'_, '_, '_> {
                                 at,
                                 "the failure of this call is not handled; add `?` or `else`".into(),
                             );
+                            if let (Some(whole), true) =
+                                (self.call_span(at), self.sig.fail.is_some())
+                            {
+                                let fixed = format!("{}?", self.cx.text(whole));
+                                self.cx.fix(
+                                    Applicability::Auto,
+                                    "propagate with `?`",
+                                    whole,
+                                    &fixed,
+                                );
+                            }
                             (Rhs::Call(c), t)
                         }
                     },
