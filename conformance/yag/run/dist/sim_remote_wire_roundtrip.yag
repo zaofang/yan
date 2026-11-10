@@ -1,0 +1,29 @@
+# spec: 9.6.1
+# rows: R402
+# note: arguments and result of a call through Remote round-trip through the Wire codec unchanged
+# stdout:
+# Pt(x=111, tag='z', xs=[1.5, 2.5])
+
+@derive(Wire)
+class Pt:
+    x: int
+    tag: str | None
+    xs: list[float]
+
+class Box:
+    n: int
+
+def echo(var self: Box, p: Pt, d: dict[str, int], t: tuple[int, str]) -> Pt:
+    self.n += 1
+    return Pt(x=p.x + d["k"] + t[0], tag=t[1], xs=p.xs)
+
+@remote
+def make() -> Box:
+    return Box(n=0)
+
+pub def main() -> None fail RemoteError uses io, cluster:
+    with cluster = sim(2, 3):
+        a = cluster.spawn(ChildSpec(make, ()), placement=On(cluster.nodes()[1]))
+        d = {"k": 10}
+        r = a.echo(Pt(x=1, tag=None, xs=[1.5, 2.5]), d, (100, "z"))?
+        io.print(f"{r}")
