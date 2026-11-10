@@ -1,0 +1,24 @@
+-- spec: 11.2, 17.1
+-- rows: R971
+-- note: `bool` and fixed-width results start zeroed; `keep` writes only each tile's first column (#893)
+-- stdout:
+-- True False True 1 0
+
+@kernel(tile: 1, 2)
+@access(a: elementwise, out: elementwise)
+pos(at: TileOrigin, a: Array[1, 4, i32]) -> Array[1, 4, bool] =
+  for j in range(0, 2)
+    out[at.i0, at.i1 + j] = a[at.i0, at.i1 + j] > 0
+
+@kernel(tile: 1, 2)
+@access(a: elementwise, out: elementwise)
+keep(at: TileOrigin, a: Array[1, 4, i32]) -> Array[1, 4, i32] =
+  out[at.i0, at.i1] = a[at.i0, at.i1]
+
+main() uses io, gpu =
+  let a: Array[1, 4, i32] = [1 0 3 4]
+  let p = gpu.launch(pos, a) else e ->
+    return
+  let k = gpu.launch(keep, a) else e ->
+    return
+  io.print("\(p[0, 0]) \(p[0, 1]) \(p[0, 3]) \(k[0, 0]) \(k[0, 1])")

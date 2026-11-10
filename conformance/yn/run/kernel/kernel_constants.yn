@@ -1,0 +1,20 @@
+-- spec: 11.2, 10.4
+-- rows: R954
+-- note: constant expressions, including stage 0, fold in tile sizes and indices, in any order (#893)
+-- stdout:
+-- 2 4
+
+let w: int = #(h * 2)
+let h: int = 1
+let last: int = #(w - h)
+
+@kernel(tile: h, w)
+@access(a: rows(0), out: rows(0))
+pick(at: TileOrigin, a: Array[2, 2, int]) -> Array[2, 2, int] =
+  for j in range(0, w)
+    out[at.i0, j] = a[at.i0, last % w]
+
+main() uses io, gpu =
+  let r = gpu.launch(pick, [1 2; 3 4]) else e ->
+    return
+  io.print("\(r[0, 0]) \(r[1, 1])")

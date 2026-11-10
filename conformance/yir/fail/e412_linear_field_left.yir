@@ -1,0 +1,23 @@
+-- spec: 5.4, 10.6
+-- rows: R443, R963
+-- note: only `p.a` is taken out of a `@linear` record; the message names `b` (#861)
+-- expect: E412 at 19:9
+
+module conf.e412_field
+
+@linear
+record H { fd: i64 }
+
+fn close(sink h: H) -> i64 {
+    ret 0
+}
+
+@linear
+record P { a: H, b: H }
+
+fn f(sink x: H, sink y: H) -> i64 {
+    let p: P = P { a: x, b: y }
+    let a: H = move p.a
+    let n: i64 = close(sink a)
+    ret n
+}
