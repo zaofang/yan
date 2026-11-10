@@ -1,7 +1,7 @@
 # spec: 9.6.1
 # rows: R407, R989
 # note: a start placed with `On` must be `@remote`; the span is the start's name
-# expect: E721 at 15:37
+# expect: E721 at 14:37
 
 class Counter:
     n: int
@@ -11,5 +11,4 @@ def make(start: int) -> Counter:
 
 pub def main() -> None uses cluster:
     with cluster = sim(2, 1):
-        ns = cluster.nodes()
-        a = cluster.spawn(ChildSpec(make, (1,)), placement=On(ns[1]))
+        _ = cluster.spawn(ChildSpec(make, (1,)), placement=On(cluster.self_node()))
