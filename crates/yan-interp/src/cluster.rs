@@ -164,6 +164,35 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             }
         }),
     ),
+    // The `inout` copy of a call through `Remote` replaces its place unless the reply was lost.
+    (
+        STD_CLUSTER_COMMIT,
+        Bind::Vm(|vm: &mut Vm, _, a| {
+            if vm.it.replied {
+                a[0] = std::mem::take(&mut a[1]);
+            }
+            Ok(Value::Unit)
+        }),
+    ),
+    // A start argument of `cluster.spawn` that cannot be encoded has no call to fail.
+    (
+        STD_CLUSTER_WIRE_START,
+        Bind::Vm(|_, _, a| match roundtrip(a, STD_CLUSTER_WIRE_START)? {
+            Ok(v) => Ok(v),
+            Err(why) => crate::panic_with("wire", format!("a start argument: {why}")),
+        }),
+    ),
+    (STD_CLUSTER_HANDLE, Bind::Plain(|a| Ok(a[0].clone()))),
+    (
+        STD_CLUSTER_FAULT_SEND,
+        Bind::Vm(|vm: &mut Vm, _, a| {
+            let me = vm.task_path.clone();
+            let from = current(&vm.it, &me);
+            let to = vm.it.actors[crate::sync::chan(&a[0])].home;
+            crate::simfault::request_send(&mut vm.it, &me, from, to);
+            Ok(Value::Unit)
+        }),
+    ),
     (
         STD_CLUSTER_ADMIT,
         Bind::Vm(|vm: &mut Vm, _, _| {

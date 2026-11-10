@@ -425,6 +425,10 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_ACTOR_SEND,
         Bind::VmFallible(|vm, a| {
             let id = chan(&a[0]);
+            let me = vm.task_path.clone();
+            if let Some(e) = crate::simfault::lost_send(&mut vm.it, &me) {
+                return Ok(Err(undelivered(e, std::mem::take(&mut a[1]))));
+            }
             if let Some(r) = &vm.it.actors[id].stopped {
                 let e = stopped(r);
                 return Ok(Err(undelivered(e, std::mem::take(&mut a[1]))));
