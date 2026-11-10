@@ -153,14 +153,24 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             Ok(crate::simfault::reply(&mut vm.it, &me, outcome))
         }),
     ),
+    // An argument that cannot be encoded fails the call `SchemaMismatch` before the handler runs.
     (
         STD_CLUSTER_WIRE,
-        Bind::Plain(|a| {
-            roundtrip(a, STD_CLUSTER_WIRE)?.or_else(|why| {
-                crate::panic_with(
-                    "wire",
-                    format!("a call through `Remote` cannot encode its value: {why}"),
-                )
+        Bind::Vm(|vm: &mut Vm, _, a| match roundtrip(a, STD_CLUSTER_WIRE)? {
+            Ok(v) => Ok(v),
+            Err(_) => {
+                crate::simfault::mismatch(&mut vm.it, &vm.task_path);
+                Ok(std::mem::take(&mut a[0]))
+            }
+        }),
+    ),
+    (
+        STD_CLUSTER_ADMIT,
+        Bind::Vm(|vm: &mut Vm, _, _| {
+            let me = vm.task_path.clone();
+            Ok(match crate::simfault::admit(&mut vm.it, &me) {
+                Some(e) => crate::data("Err", "error", e),
+                None => crate::data("Ok", "value", Value::Unit),
             })
         }),
     ),
