@@ -1,0 +1,137 @@
+# Yan grammar, the notation of spec 15.2 made machine-readable.
+# {x} zero or more, [x] optional, (a | b) group, "x" literal token, rules end with ';'.
+# UPPERCASE words are terminals. BOL marks the start of a physical line (indentation in text
+# grammars, ignored by the recognizer). Newlines inside brackets are joined by the lexer.
+
+module    = {modattr} {item} ;
+modattr   = BOL "@@" NAME ["(" [args] ")"] NEWLINE ;
+item      = {attr} BOL ["pub"] (fundef | gendef | subdef | lemmadef | typedef | traitdef | impldef | constdef | externdef)
+          | BOL usedecl ;
+attr      = BOL "@" NAME ["(" [args] ")"] NEWLINE ;
+usedecl   = "use" ["."] NAME {"." NAME} ["as" NAME] NEWLINE ;
+
+fundef    = sig "=" body ;
+gendef    = "gen" sig "=" body ;
+subdef    = "sub" sig "=" body ;
+lemmadef  = "lemma" sig "=" body ;
+sig       = NAME [tparams] "(" [params] ")" ("->" fntype
+            | ["->" vtype ["from" NAME {"," NAME}]] ["fail" vtype] ["uses" capitem {"," capitem}]) ;
+body      = expr NEWLINE
+          | NEWLINE INDENT {contract} stmt {stmt} DEDENT
+          | NEWLINE INDENT {contract} arm {arm} DEDENT ;
+contract  = BOL ("pre" | "post" | "ex" | "decreases") expr NEWLINE
+          | BOL "cost" costbound {"," costbound} NEWLINE ;
+costbound = ("steps" | "alloc") "<=" expr ;
+capitem   = NAME [":" TYPENAME] | TYPENAME | "none" ;
+tparams   = "[" tparam {"," tparam} "]" ;
+tparam    = TYPENAME [":" bound {"+" bound}] | NAME ":" type ;
+bound     = tpath ["[" type {"," type} "]"] | "Nat" ;
+params    = param {"," param} [","] ;
+param     = ["var" | "take" | "ghost"] (NAME | "self") [":" type] ["=" expr] | "/" | "**" NAME ":" type ;
+
+typedef   = "type" TYPENAME [tparams] "=" (record | variant {"|" variant} | atype | "newtype" "[" type "]" | "uses" capitem {"," capitem}) ["where" expr] NEWLINE ;
+record    = "{" rfield {"," rfield} [","] "}" ;
+rfield    = field | "/" ;
+field     = {attr} NAME ":" type ["=" expr] ;
+variant   = attr variant | TYPENAME "(" [field {"," field}] ")" ;
+traitdef  = "trait" TYPENAME [tparams] NEWLINE INDENT {BOL "type" TYPENAME NEWLINE}
+            {{attr} BOL sig ("=" body | NEWLINE)} [BOL "derived" "=" body] DEDENT ;
+impldef   = ["unsafe"] "impl" tpath ["[" type {"," type} "]"] "for" type NEWLINE INDENT
+            {BOL "type" TYPENAME "=" type NEWLINE} {{attr} BOL (fundef | gendef | subdef)} DEDENT ;
+constdef  = "let" NAME ":" type "=" expr NEWLINE ;
+externdef = "unsafe" "extern" STRING "lib" NAME ["link" STRING] NEWLINE INDENT
+            {xitem} DEDENT ;
+xitem     = {attr} BOL ("safe" | "unsafe") (NAME "(" [xparam {"," xparam}] ")" ["->" vtype ["from" NAME {"," NAME}]]
+            ["uses" "none"] ["nonblocking"] | "static" NAME ":" type) NEWLINE
+          | BOL "type" TYPENAME "drop" NAME NEWLINE ;
+xparam    = NAME ":" (type | ("scoped" | "escaping") fntype) | "..." ;
+
+stmt      = BOL simple NEWLINE | BOL compound ;
+simple    = fallback [assignop expr] | bind | "ghost" bind
+          | "return" [expr] | "fail" expr | "yield" expr | "reveal" NAME {"." NAME}
+          | "break" [NAME] | "continue" [NAME] | "assert" expr | "unreachable" | "become" postfix ;
+bind      = ("let" | "var") pattern [":" type] "=" (lambda | cond ["else" (NAME "->" expr | diverge | cond)]) ;
+assignop  = "=" | "+=" | "-=" | "*=" | "/=" | "//=" | "%=" | "**=" | "&=" | "|=" | "^=" | "<<=" | ">>=" ;
+place     = NAME {"." NAME | "[" expr "]"} ;
+compound  = ifstmt | matchstmt | forstmt | whilestmt | loopstmt | parstmt | selectstmt
+          | withstmt | unsafestmt | stagestmt | blockbind ;
+blockbind = ("let" | "var") pattern [":" type] "=" (NEWLINE INDENT stmt {stmt} DEDENT | parfor)
+          | ("let" | "var") pattern [":" type] "=" cond "else" [NAME "->"] dblock ;
+ifstmt    = "if" expr block {BOL "else" "if" expr block} [BOL "else" block] ;
+matchstmt = "match" expr NEWLINE INDENT arm {arm} DEDENT ;
+arm       = BOL pattern ["if" disj] "->" (expr NEWLINE | block) ;
+forstmt   = [NAME ":"] "for" ["var"] pattern "in" expr lbody ;
+whilestmt = [NAME ":"] "while" expr lbody ;
+loopstmt  = [NAME ":"] "loop" lbody ;
+lbody     = NEWLINE INDENT {BOL ("invariant" | "decreases") expr NEWLINE} stmt {stmt} DEDENT ;
+parstmt   = "par" ["concurrent"] NEWLINE INDENT stmt {stmt} DEDENT | parfor ;
+parfor    = "par" ["concurrent"] ["(" "limit" ":" expr ")"] "for" pattern "in" expr block ;
+selectstmt = "select" NEWLINE INDENT selarm {selarm} DEDENT ;
+selarm    = BOL postfix ["is" pattern] "->" (expr NEWLINE | block) ;
+withstmt  = "with" (NAME "=" ["dyn"] expr | ("deadline" | "timeout") "(" expr ")") block ;
+unsafestmt = "unsafe" block ;
+stagestmt = "#" "for" pattern "in" expr block | "#" "if" expr block ["else" block] ;
+block     = NEWLINE INDENT stmt {stmt} DEDENT ;
+
+expr      = lambda | fallback ;
+lambda    = (NAME | "(" [NAME {"," NAME}] ")") "->" expr ;
+fallback  = cond ["else" (NAME "->" expr | diverge | cond)] ;
+dblock    = NEWLINE INDENT stmt {stmt} DEDENT ;
+diverge   = "return" [cond] | "fail" cond | "break" [NAME] | "continue" [NAME] | "unreachable" ;
+cond      = "if" disj "then" disj "else" cond | disj ;
+disj      = conj {"or" conj} ;
+conj      = neg {"and" neg} ;
+neg       = "not" neg | comp ;
+comp      = bitor [compop bitor] | bitor "is" ["not"] pattern ;
+compop    = "==" | "!=" | "<" | "<=" | ">" | ">=" | "in" | "not" "in" ;
+bitor     = bitxor {"|" bitxor} ;
+bitxor    = bitand {"^" bitand} ;
+bitand    = shift {"&" shift} ;
+shift     = arith {("<<" | ">>") arith} ;
+arith     = term {("+" | "-") term} ;
+term      = unary {("*" | "/" | "//" | "%" | "@") unary} ;
+unary     = ("-" | "+" | "~" | SIGN) unary | ("copy" | "share" | "try") unary | power ;
+power     = cast ["**" unary] ;
+cast      = postfix {"as" base} ;
+postfix   = atom {"." NAME | "." TYPENAME | "." "(" NAME ")" | "(" [args] ")" | "[" ixarg {"," ixarg} "]" | "?"} ;
+ixarg     = expr | slice | (TYPENAME | scalar) ":" (expr | slice) ;
+slice     = [bitor] (".." | "..=") [bitor] ;
+args      = arg {"," arg} [","] ;
+arg       = expr | "&" place | "become" postfix | NAME ":" ["become" postfix | expr] ;
+atom      = literal | NAME | "_" | TYPENAME | "self" | ("(" | SPLPAREN) expr ["," [expr {"," expr}]] ")"
+          | "[" [expr {"," expr} [","]] "]" | "{" [expr ":" expr {"," expr ":" expr} [","]] "}"
+          | "{" expr {"," expr} [","] "}" | grid | subject | "#" atom | asmexpr ;
+subject   = "." NAME ;
+grid      = "[" unary (gelem {gelem} {";" row} | ";" row {";" row}) "]" ;
+row       = gelem {gelem} ;
+gelem     = [SIGN] (literal | NAME | TYPENAME | SPLPAREN expr ")") ;
+asmexpr   = "asm" "(" STRING {"," asmarg} ")" ;
+asmarg    = ("in" | "out" | "inout" | "lateout") "(" (NAME | STRING) ")" (expr | NAME ":" type)
+          | "clobber_abi" "(" STRING ")" | "pure" | "nomem" | "readonly" | "nostack" ;
+literal   = INT | FLOAT | STRING | BYTES | CHAR | TSTRING | UNIT | DATE | TIME | INSTANT | ZONED | "True" | "False" | "None" ;
+
+pattern   = alt {"|" alt} ;
+alt       = altbase {"as" NAME} ;
+altbase   = "_" | literal [(".." | "..=") literal] | NAME
+          | vpath ["(" [ppat {"," ppat}] ")"]
+          | "(" pattern "," pattern {"," pattern} ")"
+          | "[" [spat {"," spat}] "]" ;
+vpath     = {NAME "."} TYPENAME ;
+ppat      = pattern | NAME ":" [pattern] | ".." ;
+spat      = pattern | ".." [NAME] ;
+
+type      = vtype | fntype ;
+vtype     = base ["?" | "|" base {"|" base}] ;
+atype     = nbase ["?" | "|" base {"|" base}] | fntype ;
+fntype    = "par" fnsig | fnsig ;
+fnsig     = "(" [type {"," type}] ")" "->" (fntype | vtype ["fail" vtype] ["uses" fcaps]) ;
+fcaps     = capitem | "(" capitem {"," capitem} ")" ;
+base      = nbase | "{" field {"," field} "}" ;
+nbase     = tpath ["[" targ {"," targ} "]"] | NAME | NAME {"." NAME} "(" [args] ")" | "dyn" TYPENAME ["[" type {"," type} "]"]
+          | "(" ")" | "(" type ")" | "(" type "," type {"," type} ")"
+          | "Ref" "[" type "]" | "Ptr" "[" type "]" | "Vec" "[" INT "," NAME "]" ;
+targ      = type | INT ;
+tpath     = TYPENAME | NAME "." tpath ;
+scalar    = "i8" | "i16" | "i32" | "i64" | "i128" | "u8" | "u16" | "u32" | "u64" | "u128"
+          | "f16" | "bf16" | "f32" | "f64" | "f128" | "dec128" | "int" | "float" | "bool" | "char" | "str"
+          | "Addr" ;

@@ -118,7 +118,7 @@ enum Command {
         #[arg(long, value_enum, default_value = "cli")]
         template: new::Template,
     },
-    /// Print the Yan Agent grammar for constrained decoding (21.3).
+    /// Print the Yan Agent or Yan grammar for constrained decoding (21.3).
     Grammar {
         #[arg(long = "as", value_enum, default_value = "yag")]
         surface: GrammarSurface,
@@ -508,15 +508,11 @@ fn main() -> ExitCode {
         } => view(&as_, &file, yan_ide::Marks { strict, bare }),
         Command::Export { file, .. } => export::run(&file),
         Command::Import { file, .. } => pyimport::run(&file),
-        Command::Grammar {
-            surface: GrammarSurface::Yn,
-            ..
-        } => {
-            eprintln!("yan grammar --as yn: no generated grammar for plain Yan yet (R994)");
-            ExitCode::FAILURE
-        }
-        Command::Grammar { format, .. } => {
-            let g = yan_yag::Grammar::yag();
+        Command::Grammar { surface, format } => {
+            let g = match surface {
+                GrammarSurface::Yag => yan_yag::agent_grammar(),
+                GrammarSurface::Yn => yan_yn::grammar(),
+            };
             match format {
                 GrammarFormat::Gbnf => print!("{}", g.gbnf()),
                 GrammarFormat::Xgrammar => print!("{}", g.xgrammar()),

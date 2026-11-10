@@ -9,7 +9,7 @@ mod printer;
 pub mod profile;
 mod resugar;
 
-pub use grammar::{Expr as GrammarExpr, Grammar, Term as GrammarTerm};
+pub use grammar::grammar as agent_grammar;
 pub use printer::{expr as print_expr, print, ty as print_type};
 
 /// `print` with the comments and blank lines of `src`, the text `m` was read from (R376), taken
