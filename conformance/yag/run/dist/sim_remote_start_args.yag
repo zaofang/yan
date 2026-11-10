@@ -1,0 +1,21 @@
+# spec: 9.6.1
+# rows: R989
+# note: cluster.spawn start arguments round-trip through the codec
+# stdout:
+# 7
+
+class Box:
+    n: int
+
+def get(self: Box) -> int:
+    return self.n
+
+@remote
+def make(start: int) -> Box:
+    return Box(n=start)
+
+pub def main() -> None uses io, cluster:
+    with cluster = sim(2, 3):
+        a = cluster.spawn(ChildSpec(make, (7,)), placement=On(cluster.nodes()[1]))
+        r = a.get() else e -> -1
+        io.print(f"{r}")
