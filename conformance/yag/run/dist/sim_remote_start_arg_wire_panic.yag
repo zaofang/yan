@@ -1,0 +1,20 @@
+# spec: 9.6.1
+# rows: R989
+# note: a cluster.spawn start argument the Wire codec rejects panics wire, as the spawn has no failure of its own
+# exit: 101
+
+class Box:
+    n: int
+
+@remote
+def make(s: str) -> Box:
+    return Box(n=len(s))
+
+def get(self: Box) -> int:
+    return self.n
+
+pub def main() -> None uses io, cluster:
+    with cluster = sim(2, 3):
+        big = "x" * 20000000
+        a = cluster.spawn(ChildSpec(make, (big,)), placement=On(cluster.nodes()[1]))
+        io.print(f"{a.get() else e -> -9}")
