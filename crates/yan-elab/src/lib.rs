@@ -257,6 +257,8 @@ pub(crate) struct Globals {
     pub deprecated: HashSet<String>,
     /// Functions marked `@reentrant` (9.6).
     pub reentrant: HashSet<String>,
+    /// Functions marked `@remote`, which an off-node start may name (R407, E721).
+    pub remote: HashSet<String>,
     pub consts: HashMap<String, Ty>,
     /// The records that come from std rather than the module.
     pub std_records: std::collections::HashSet<String>,
@@ -1126,6 +1128,9 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 }
                 if it.decorators.iter().any(|d| d.path == ["reentrant"]) {
                     g.reentrant.insert(f.name.clone());
+                }
+                if it.decorators.iter().any(|d| d.path == ["remote"]) {
+                    g.remote.insert(f.name.clone());
                 }
                 if f.name.starts_with("test_")
                     && let Some(b) = &f.body

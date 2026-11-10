@@ -253,6 +253,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             sups: Default::default(),
             actor_waits: Vec::new(),
             nodes: Vec::new(),
+            placed: None,
             wait_since: Vec::new(),
             doomed: Vec::new(),
             net: Default::default(),
@@ -388,6 +389,8 @@ pub(crate) struct Interp<'o> {
     actor_waits: Vec<(Vec<usize>, usize)>,
     /// The nodes tasks entered, innermost last, by task path (RFC 0063 D1).
     nodes: Vec<(Vec<usize>, usize)>,
+    /// The node a `cluster.spawn` placed its start on, when not the caller's (RFC 0063 D2).
+    placed: Option<usize>,
     /// When each task waiting on an actor began to wait, for the 5 s default deadline (9.6).
     wait_since: Vec<(Vec<usize>, i128)>,
     /// Parked callers that a wait cycle chose to fail `Deadlock` when they next retry (D6).
@@ -763,7 +766,8 @@ fn entry(
         actors: Vec::new(),
         sups: Default::default(),
         actor_waits: Vec::new(),
-            nodes: Vec::new(),
+        nodes: Vec::new(),
+        placed: None,
         wait_since: Vec::new(),
         doomed: Vec::new(),
         net: Default::default(),

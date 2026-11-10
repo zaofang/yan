@@ -32,6 +32,22 @@ struct Sup {
     children: Vec<usize>,
     /// When each restart within the last `period` happened.
     restarts: VecDeque<i128>,
+    /// For the scope of a `with cluster = sim(n, seed)` binding, the root supervisor of each of
+    /// nodes 1 to n-1 (RFC 0063 D1).
+    nodes: Option<Vec<usize>>,
+}
+
+impl Sup {
+    fn root() -> Self {
+        Sup {
+            strategy: Strategy::OneForOne,
+            intensity: 1,
+            period: 5_000_000_000,
+            children: Vec::new(),
+            restarts: VecDeque::new(),
+            nodes: None,
+        }
+    }
 }
 
 /// Every supervisor, the root first, and the open `with supervisor` scopes with the frame base
@@ -46,13 +62,7 @@ impl Default for Sups {
     /// 5 s (R957).
     fn default() -> Self {
         Sups {
-            all: vec![Sup {
-                strategy: Strategy::OneForOne,
-                intensity: 1,
-                period: 5_000_000_000,
-                children: Vec::new(),
-                restarts: VecDeque::new(),
-            }],
+            all: vec![Sup::root()],
             open: Vec::new(),
         }
     }
@@ -65,9 +75,25 @@ pub(crate) struct Child {
     pub(crate) start: Option<Rc<Clo>>,
 }
 
-/// The supervisor of an actor started now, which takes it as its last child.
+/// The supervisor of an actor started now, which takes it as its last child: the bound one, or
+/// for a start placed on another node, that node's root supervisor (RFC 0063 D2).
 pub(crate) fn adopt(it: &mut Interp, id: usize, restart: Restart, start: Option<Rc<Clo>>) -> Child {
-    let sup = it.sups.open.last().map_or(0, |s| s.0);
+    let all = &it.sups.all;
+    let mut open = it.sups.open.iter().rev().map(|s| &all[s.0]);
+    let sup = match it.placed {
+        Some(0) => 0,
+        Some(k) => open
+            .find_map(|s| s.nodes.as_ref())
+            .and_then(|ns| ns.get(k - 1).copied())
+            .unwrap_or(0),
+        None => it
+            .sups
+            .open
+            .iter()
+            .rev()
+            .find(|s| all[s.0].nodes.is_none())
+            .map_or(0, |s| s.0),
+    };
     it.sups.all[sup].children.push(id);
     Child {
         sup,
@@ -78,6 +104,16 @@ pub(crate) fn adopt(it: &mut Interp, id: usize, restart: Restart, start: Option<
 
 /// `with supervisor(spec):` opens a scope at frame `base`.
 pub(crate) fn begin(it: &mut Interp, spec: &Value, base: usize) -> R<()> {
+    if let Some(n) = crate::cluster::size(spec) {
+        let first = it.sups.all.len();
+        it.sups.all.extend((1..n).map(|_| Sup::root()));
+        it.sups.all.push(Sup {
+            nodes: Some((first..first + n - 1).collect()),
+            ..Sup::root()
+        });
+        it.sups.open.push((it.sups.all.len() - 1, base));
+        return Ok(());
+    }
     let Value::Data { fields, .. } = spec else {
         return bad_args(STD_ACTOR_ONE_FOR_ONE);
     };
@@ -95,17 +131,22 @@ pub(crate) fn begin(it: &mut Interp, spec: &Value, base: usize) -> R<()> {
         period: *period,
         children: Vec::new(),
         restarts: VecDeque::new(),
+        nodes: None,
     });
     let id = it.sups.all.len() - 1;
     it.sups.open.push((id, base));
     Ok(())
 }
 
-/// The innermost scope ends: its children stop in reverse start order (9.6).
+/// The innermost scope ends: its children stop in reverse start order (9.6), and for a
+/// `with cluster` scope, each node's children, the last node first (RFC 0063 D1).
 pub(crate) fn end(it: &mut Interp) {
     if let Some((s, _)) = it.sups.open.pop() {
-        for c in it.sups.all[s].children.clone().into_iter().rev() {
-            it.actors[c].stop(super::sync::failure("Shutdown"));
+        let nodes = it.sups.all[s].nodes.clone().unwrap_or_default();
+        for s in nodes.into_iter().rev().chain([s]) {
+            for c in it.sups.all[s].children.clone().into_iter().rev() {
+                it.actors[c].stop(super::sync::failure("Shutdown"));
+            }
         }
     }
 }

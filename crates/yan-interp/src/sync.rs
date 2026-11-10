@@ -506,10 +506,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             _ => bad_args(STD_ACTOR_REPLY),
         }),
     ),
-    (
-        STD_ACTOR_SHARE,
-        Bind::Plain(|a| Ok(a[0].clone())),
-    ),
+    (STD_ACTOR_SHARE, Bind::Plain(|a| Ok(a[0].clone()))),
     (
         STD_CHAN_CHANNEL,
         Bind::Cap(|it, a| match a {

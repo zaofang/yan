@@ -19,7 +19,6 @@ use crate::ty::Axis;
 use crate::{Cx, Globals, R, Sig, Ty, ffi, unsupported};
 
 mod actor;
-mod cluster;
 mod args;
 mod arith;
 mod array;
@@ -27,6 +26,7 @@ mod assign;
 mod builtin;
 mod call_expr;
 mod calls;
+mod cluster;
 mod consume;
 mod fallback;
 mod last_use;

@@ -31,7 +31,7 @@ impl Lower<'_, '_, '_> {
                     _ => return unsupported("this `On` placement"),
                 },
                 (j::ExprKind::Name(n), _) => {
-                    return unsupported(&format!(
+                    return unsupported(format!(
                         "placement `{n}` in this release; use `Local()` or `On(node)` (#929)"
                     ));
                 }
@@ -39,6 +39,9 @@ impl Lower<'_, '_, '_> {
             },
             Some(_) => return unsupported("a computed placement"),
         };
+        if node.is_some() {
+            self.off_node_start(&rest);
+        }
         if let Some(n) = node {
             let (cl, _) = self.atom(c, None)?;
             let want = Ty::Data("Node".into());
@@ -61,6 +64,7 @@ impl Lower<'_, '_, '_> {
         let Ty::Coll("Actor", ts) = &t else {
             return Ok((Rhs::Atom(h), Ty::Err, None));
         };
+        self.wire_handlers(&ts[0], at);
         let share = call(
             "std.actor.share",
             ts.iter().map(|t| t.targ()).collect(),
@@ -68,5 +72,60 @@ impl Lower<'_, '_, '_> {
             at,
         );
         Ok((Rhs::Call(share), Ty::Coll("Remote", vec![t.clone()]), None))
+    }
+}
+
+impl Lower<'_, '_, '_> {
+    /// An off-node start names a `@remote` function (E721) taking Wire arguments (E720), since
+    /// it runs by signature hash on the chosen node (R407, R958).
+    fn off_node_start(&mut self, args: &[j::Arg]) {
+        let Some(j::ArgKind::Expr(j::Expr {
+            kind: j::ExprKind::Call(_, cargs),
+            ..
+        })) = args.first().map(|a| &a.kind)
+        else {
+            return;
+        };
+        let Some(((f, span), _, _)) = super::actor::child_spec(cargs) else {
+            return;
+        };
+        let Some(sig) = self.g.fns.get(f.as_str()) else {
+            return;
+        };
+        if !self.g.remote.contains(&f) {
+            self.err(
+                "E721",
+                span,
+                format!("an off-node start names a `@remote` function; mark `{f}` `@remote`"),
+            );
+        } else if let Some(p) = sig.params.iter().find(|p| !wire(&p.ty)) {
+            let msg = format!(
+                "an off-node start takes Wire arguments, but `{f}` takes `{}` that is not",
+                p.name
+            );
+            self.err("E720", span, msg);
+        }
+    }
+
+    /// E720 unless every handler of an actor with state `state` takes Wire values, since a
+    /// `Remote` handle may call it from another node (R401).
+    pub(super) fn wire_handlers(&mut self, state: &Ty, at: Span) {
+        let mut bad: Vec<&String> = self
+            .g
+            .fns
+            .iter()
+            .filter(|(_, s)| {
+                s.params.first().is_some_and(|p| p.ty == *state)
+                    && s.params[1..].iter().any(|p| !wire(&p.ty))
+            })
+            .map(|(n, _)| n)
+            .collect();
+        bad.sort();
+        if let Some(h) = bad.first() {
+            let msg = format!(
+                "a remote actor's handlers take Wire values, but `{h}` takes one that is not"
+            );
+            self.err("E720", at, msg);
+        }
     }
 }

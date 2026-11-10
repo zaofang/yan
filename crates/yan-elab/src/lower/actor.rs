@@ -60,6 +60,19 @@ impl Lower<'_, '_, '_> {
         // A call through `Remote` fails `RemoteError` too (R408, RFC 0063 D4) and runs on the
         // actor's home node (D1).
         if remote {
+            if !self
+                .sig
+                .caps
+                .iter()
+                .chain(&self.handlers)
+                .any(|c| c == "cluster")
+            {
+                self.err(
+                    "E301",
+                    at,
+                    format!("`{m}` is a call through `Remote`; declare `uses cluster` (R400)"),
+                );
+            }
             if let Ty::Union(ms) = &mut fail {
                 for n in ["Unreachable", "Rejected", "SchemaMismatch"] {
                     crate::union_add(ms, Ty::Data(n.into()));
@@ -580,7 +593,7 @@ fn arg_expr(a: &j::Arg) -> Option<&j::Expr> {
     }
 }
 
-fn child_spec(args: &[j::Arg]) -> Option<((String, Span), &[j::Expr], u8)> {
+pub(super) fn child_spec(args: &[j::Arg]) -> Option<((String, Span), &[j::Expr], u8)> {
     let expr = arg_expr;
     let (f, a, r) = match args {
         [f, a] => (f, a, None),

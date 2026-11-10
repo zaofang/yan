@@ -43,6 +43,11 @@ fn node_id(seed: i128, i: i128) -> Value {
     }
 }
 
+/// How many nodes the `sim` handler `h` has, or `None` when `h` is not one.
+pub(crate) fn size(h: &Value) -> Option<usize> {
+    matches!(h, Value::Data { name, .. } if name == "Sim").then(|| ids(h).len())
+}
+
 fn ids(h: &Value) -> &[Value] {
     match h {
         Value::Data { name, fields } if name == "Sim" => match &fields[0].1 {
@@ -96,6 +101,9 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         Bind::Vm(|vm: &mut Vm, _, a| match index(&a[0], &a[1]) {
             Some(k) => {
                 let me = vm.task_path.clone();
+                if current(&vm.it, &me) != k {
+                    vm.it.placed = Some(k);
+                }
                 enter(&mut vm.it, me, k);
                 Ok(Value::Unit)
             }
@@ -107,6 +115,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         Bind::Vm(|vm: &mut Vm, _, _| {
             let me = vm.task_path.clone();
             leave(&mut vm.it, &me);
+            vm.it.placed = None;
             Ok(Value::Unit)
         }),
     ),
