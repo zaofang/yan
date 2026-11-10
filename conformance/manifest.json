@@ -5001,6 +5001,20 @@
    "exit": 0
   },
   {
+   "path": "yag/run/ownership/else_results_in_inner_block.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2",
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n2\n3\n0\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/ownership/exclusivity_panic.yag",
    "kind": "run",
    "milestone": "M1",
