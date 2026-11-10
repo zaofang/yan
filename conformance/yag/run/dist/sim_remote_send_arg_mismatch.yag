@@ -1,0 +1,27 @@
+# spec: 9.6.1
+# rows: R408, R976
+# note: a send through Remote whose argument the Wire codec rejects fails Undelivered(SchemaMismatch) and never runs the handler
+# stdout:
+# rejected
+# 6
+
+class Box:
+    n: int
+
+def add(var self: Box, s: str, k: int) -> None:
+    self.n += k + len(s) % 7
+
+def get(self: Box) -> int:
+    return self.n
+
+@remote
+def make(start: int) -> Box:
+    return Box(n=start)
+
+pub def main() -> None uses io, cluster:
+    with cluster = sim(2, 3):
+        a = cluster.spawn(ChildSpec(make, (0,)), placement=On(cluster.nodes()[1]))
+        big = "x" * 20000000
+        actor.send(a).add(big, 1) else e -> io.print("rejected")
+        actor.send(a).add("x", 5) else e -> io.print("unexpected")
+        io.print(f"{a.get() else e -> -9}")
