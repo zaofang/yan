@@ -1,8 +1,10 @@
 """The cluster capability (7, 9.6.1, R400): the nodes a program runs on and the calls through
 `Remote` between them (RFC 0063). `reach` is the lowering of a handler call through
-`Remote[Actor[S, P]]`, and `place` and `leave` of `cluster.spawn`, not for direct use."""
+`Remote[Actor[S, P]]`, and `place` and `leave` of `cluster.spawn`, and `wire` of the encode and decode a call through
+`Remote` makes of its arguments and result (R402), not for direct use."""
 
 @since("1.0")
+@derive(Wire)
 pub class Node:
     """A node (R403): its id, shown as 32 hex digits."""
     id: str
@@ -45,3 +47,7 @@ pub def place(cluster: Cluster, node: Node) -> None: ...
 @intrinsic
 @since("1.0")
 pub def leave() -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def wire[T](x: T, schema: str) -> T: ...

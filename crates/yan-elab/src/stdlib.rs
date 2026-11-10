@@ -24,6 +24,7 @@ pub(crate) struct Class {
     module: &'static str,
     class: j::Record,
     span: Span,
+    wire: bool,
 }
 
 #[derive(Default)]
@@ -90,6 +91,7 @@ pub(crate) static STD: LazyLock<Std> = LazyLock::new(|| {
                 preview: preview.clone(),
                 def,
             };
+            let wire = crate::decorators::derives(&it, "Wire");
             match it.kind {
                 j::ItemKind::Func(def) => {
                     let path = format!("std.{module}.{}", def.name);
@@ -126,6 +128,7 @@ pub(crate) static STD: LazyLock<Std> = LazyLock::new(|| {
                             module,
                             class,
                             span,
+                            wire,
                         },
                     );
                 }
@@ -539,6 +542,9 @@ pub(crate) fn classes(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
             });
         }
         g.records.insert((*name).clone(), fs);
+        if c.wire {
+            g.wires.insert((*name).clone());
+        }
     }
     Ok(out.into_iter().map(|(n, _)| n.clone()).collect())
 }

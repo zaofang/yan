@@ -113,7 +113,11 @@ impl Lower<'_, '_, '_> {
                     span: b.span,
                     paren: false,
                 };
-                let (r, t, e) = l.call_sig(m, &sig, Some(&recv), args, at)?;
+                let (mut r, t, e) = l.call_sig(m, &sig, Some(&recv), args, at)?;
+                if remote && let Rhs::Call(c) = &mut r {
+                    let ps: Vec<Ty> = sig.params.iter().map(|p| p.ty.clone()).collect();
+                    l.remote_args(c, &ps, at)?;
+                }
                 let rt = Ty::Result(Box::new(t.clone()), Box::new(fail.clone()));
                 let back = Atom::Name(s.clone(), at);
                 let (e, r) = match r {
@@ -129,7 +133,11 @@ impl Lower<'_, '_, '_> {
                 let out = match (e, r) {
                     (Some(e), Rhs::Call(c)) => {
                         let tried = Ty::Result(Box::new(t.clone()), Box::new(e.clone()));
-                        let tried = l.tmp(&tried, Rhs::Try(c), at);
+                        let mut tried_a = l.tmp(&tried, Rhs::Try(c), at);
+                        if remote {
+                            tried_a = l.remote_wire(&tried, tried_a, at)?;
+                        }
+                        let tried = tried_a;
                         let targs =
                             vec![state.targ(), policy.targ(), t.targ(), e.targ(), fail.targ()];
                         let args = vec![let_arg(h.clone()), sink_arg(back), sink_arg(tried)];
@@ -140,7 +148,10 @@ impl Lower<'_, '_, '_> {
                         return unsupported("a fallible handler call that is not a plain call");
                     }
                     (None, r) => {
-                        let v = l.tmp(&t, r, at);
+                        let mut v = l.tmp(&t, r, at);
+                        if remote {
+                            v = l.remote_wire(&t, v, at)?;
+                        }
                         let put = call(
                             "std.actor.put",
                             vec![state.targ(), policy.targ()],

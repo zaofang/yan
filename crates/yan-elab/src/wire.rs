@@ -12,7 +12,7 @@ pub(crate) fn schema(
     owner: &str,
     f: &Field,
     t: &Ty,
-    todo: &mut Vec<String>,
+    todo: &mut Vec<Ty>,
 ) -> Result<Schema, String> {
     let mut sub = |t: &Ty| schema(g, owner, f, t, todo).map(Box::new);
     Ok(match t {
@@ -33,8 +33,13 @@ pub(crate) fn schema(
                 .collect::<Result<_, _>>()?,
         ),
         Ty::Data(n) if g.wires.contains(n) => {
-            todo.push(n.clone());
+            todo.push(t.clone());
             Schema::Named(n.clone())
+        }
+        // A call through `Remote` carries a result and a failure union (R402).
+        Ty::Result(..) | Ty::Union(_) => {
+            todo.push(t.clone());
+            Schema::Named(t.to_string())
         }
         Ty::Data(n) => {
             return Err(format!(
@@ -51,14 +56,23 @@ pub(crate) fn schema(
     })
 }
 
-/// Not called yet: the std codecs (json, csv) read it.
-///
-/// The schemas reachable from record or sum `name`, or why it cannot derive `Wire`.
-#[allow(dead_code)]
-pub(crate) fn schemas(g: &Globals, name: &str) -> Result<Schemas, String> {
+/// The schemas for a value of type `root` crossing a node boundary (R402): the value is the
+/// one field of the record `$`, so any `Wire` type, a result or a failure union can be a root.
+pub(crate) fn schemas(g: &Globals, root: &Ty) -> Result<Schemas, String> {
+    let one = |name: &str, ty: &Ty| Field {
+        name: name.into(),
+        ty: ty.clone(),
+        ty_span: Default::default(),
+        default: None,
+        wire: None,
+        attrs: Vec::new(),
+    };
+    let at = one("value", root);
+    let mut todo = Vec::new();
+    let top = schema(g, "a remote call", &at, root, &mut todo)?;
     let mut defs = HashMap::new();
-    let mut todo = vec![name.to_owned()];
-    while let Some(n) = todo.pop() {
+    while let Some(t) = todo.pop() {
+        let n = t.to_string();
         if defs.contains_key(&n) {
             continue;
         }
@@ -67,21 +81,50 @@ pub(crate) fn schemas(g: &Globals, name: &str) -> Result<Schemas, String> {
                 .map(|f| Ok((f.name.clone(), schema(g, owner, f, &f.ty, &mut todo)?)))
                 .collect::<Result<Vec<_>, String>>()
         };
-        let def = if let Some(fs) = g.records.get(&n) {
-            Def::Record(fields(&n, fs)?)
-        } else if let Some(vs) = g.sums.get(&n) {
-            let mut out = Vec::new();
-            for (v, fs) in vs {
-                out.push((v.clone(), fields(v, fs)?));
+        let def = match &t {
+            Ty::Result(a, b) => Def::Sum(vec![
+                ("Ok".into(), fields("Ok", &[one("value", a)])?),
+                ("Err".into(), fields("Err", &[one("error", b)])?),
+            ]),
+            Ty::Union(ms) => {
+                let mut out = Vec::new();
+                for m in ms {
+                    let Ty::Data(v) = m else {
+                        return Err(format!("failure `{m}` is not a class"));
+                    };
+                    let fs = g
+                        .records
+                        .get(v)
+                        .or_else(|| {
+                            g.sums
+                                .values()
+                                .flatten()
+                                .find(|(n, _)| n == v)
+                                .map(|(_, f)| f)
+                        })
+                        .ok_or_else(|| format!("failure `{v}` is not a class"))?;
+                    out.push((v.clone(), fields(v, fs)?));
+                }
+                Def::Sum(out)
             }
-            Def::Sum(out)
-        } else {
-            return Err(format!("`{n}` is not a record or a sum"));
+            _ if g.records.contains_key(&n) => Def::Record(fields(&n, &g.records[&n])?),
+            _ => {
+                let vs = g
+                    .sums
+                    .get(&n)
+                    .ok_or_else(|| format!("`{n}` is not a record or a sum"))?;
+                let mut out = Vec::new();
+                for (v, fs) in vs {
+                    out.push((v.clone(), fields(v, fs)?));
+                }
+                Def::Sum(out)
+            }
         };
         defs.insert(n, def);
     }
+    defs.insert("$".into(), Def::Record(vec![("value".into(), top)]));
     Ok(Schemas {
-        root: name.to_owned(),
+        root: "$".into(),
         defs,
     })
 }
