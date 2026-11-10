@@ -76,6 +76,51 @@ impl Lower<'_, '_, '_> {
 }
 
 impl Lower<'_, '_, '_> {
+    /// `cluster.monitor(remote)` is a receiver that gets one `Stopped` when the actor stops (R411).
+    pub(super) fn cluster_monitor(
+        &mut self,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let [
+            j::Arg {
+                name: None,
+                kind: j::ArgKind::Expr(e),
+                ..
+            },
+        ] = args
+        else {
+            return unsupported("`monitor` takes the one `Remote` handle to watch");
+        };
+        let (x, t) = self.atom(e, None)?;
+        let Ty::Coll("Remote", r) = &t else {
+            if t != Ty::Err {
+                self.err(
+                    "E201",
+                    e.span,
+                    "`monitor` watches a `Remote` actor handle".to_string(),
+                );
+            }
+            return Ok((Rhs::Atom(x), Ty::Err, None));
+        };
+        let Some(Ty::Coll("Actor", ts)) = r.first() else {
+            return unsupported("`monitor` of a `Remote` that is not an actor handle");
+        };
+        let c = call(
+            "std.cluster.monitor",
+            ts.iter()
+                .map(|t| t.targ())
+                .chain([Ty::Data("Stopped".into()).targ()])
+                .collect(),
+            vec![Arg::Cap("cluster".into(), at), let_arg(x)],
+            at,
+        );
+        let down = Ty::Coll("Receiver", vec![Ty::Data("Stopped".into())]);
+        Ok((Rhs::Call(c), down, None))
+    }
+}
+
+impl Lower<'_, '_, '_> {
     /// An off-node start names a `@remote` function (E721) taking Wire arguments (E720), since
     /// it runs by signature hash on the chosen node (R407, R958).
     fn off_node_start(&mut self, args: &[j::Arg]) {
@@ -110,27 +155,30 @@ impl Lower<'_, '_, '_> {
     /// E720 unless every handler of an actor with state `state` takes Wire values, since a
     /// `Remote` handle may call it from another node (R401).
     pub(super) fn wire_handlers(&mut self, state: &Ty, at: Span) {
-        let mut bad: Vec<&String> = self
-            .g
+        let g = self.g;
+        let ok = |t: &Ty| wire(t) && crate::wire::schemas(g, t).is_ok();
+        let mut bad: Vec<&String> = g
             .fns
             .iter()
             .filter(|(_, s)| {
                 s.params.first().is_some_and(|p| p.ty == *state)
-                    && s.params[1..].iter().any(|p| !wire(&p.ty))
+                    && (s.params[1..].iter().any(|p| !ok(&p.ty))
+                        || !ok(&s.ret)
+                        || s.fail.as_ref().is_some_and(|f| !ok(f)))
             })
             .map(|(n, _)| n)
             .collect();
         bad.sort();
         if let Some(h) = bad.first() {
             let msg = format!(
-                "a remote actor's handlers take Wire values, but `{h}` takes one that is not"
+                "a remote actor's handlers take and return Wire values, but `{h}` does not"
             );
             self.err("E720", at, msg);
         }
     }
 
     /// `x` of type `t` after the encode and decode every call through `Remote` makes (R402).
-    pub(super) fn remote_wire(&mut self, t: &Ty, x: Atom, at: Span) -> R<Atom> {
+    pub(super) fn remote_wire(&mut self, t: &Ty, x: Atom, reply: bool, at: Span) -> R<Atom> {
         let sc = match crate::wire::schemas(self.g, t) {
             Ok(sc) => sc,
             Err(why) => {
@@ -144,12 +192,31 @@ impl Lower<'_, '_, '_> {
         };
         let text = serde_json::to_string(&sc).expect("schemas serialize");
         let c = call(
-            "std.cluster.wire",
+            if reply {
+                "std.cluster.wire_reply"
+            } else {
+                "std.cluster.wire"
+            },
             vec![t.targ()],
             vec![let_arg(x), let_arg(Atom::Lit(Literal::Str(text), at))],
             at,
         );
         Ok(self.tmp(t, Rhs::Call(c), at))
+    }
+
+    /// The reply of a call through `Remote` arrives, or is lost on the way back (RFC 0063 D5).
+    pub(super) fn arrive(&mut self, rt: &Ty, outcome: Atom, remote: bool, at: Span) -> Atom {
+        if !remote {
+            return outcome;
+        }
+        let Ty::Result(t, e) = rt else { return outcome };
+        let c = call(
+            "std.cluster.arrive",
+            vec![t.targ(), e.targ()],
+            vec![let_arg(outcome)],
+            at,
+        );
+        self.tmp(rt, Rhs::Call(c), at)
     }
 
     /// The arguments of a call through `Remote` after the round trip; the receiver is first.
@@ -167,7 +234,7 @@ impl Lower<'_, '_, '_> {
             if *conv == y::Conv::Inout {
                 return unsupported("an `inout` argument in a call through `Remote`");
             }
-            *x = self.remote_wire(t, x.clone(), *sp)?;
+            *x = self.remote_wire(t, x.clone(), false, *sp)?;
             let _ = at;
         }
         Ok(())

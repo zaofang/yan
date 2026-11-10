@@ -1,5 +1,25 @@
 """The simulated cluster (9.6.1, R417, RFC 0063): every node runs in this process."""
 
+@since("1.0")
+pub class Cut:
+    """An explicit partition (R417): from `at` after the binding it lasts `heal`, and the nodes in `side` cannot reach the rest."""
+    at: Duration
+    heal: Duration
+    side: set[int]
+
+@since("1.0")
+pub class FaultPlan:
+    """What `Faults(...)` built: the faults of a `sim` cluster (R417)."""
+    drop: float
+    delay: Duration
+    partition: Duration
+    heal: Duration
+    cuts: list[Cut]
+
 @intrinsic
 @since("1.0")
-pub def sim(nodes: int, seed: int) -> std.cluster.Cluster: ...
+pub def Faults(drop: float = 0.0, delay: Duration = 0 * s, partition: Duration = 0 * s, heal: Duration = 1 * s, cuts: list[Cut] = []) -> FaultPlan: ...
+
+@intrinsic
+@since("1.0")
+pub def sim(nodes: int, seed: int, faults: FaultPlan = Faults()) -> std.cluster.Cluster: ...
