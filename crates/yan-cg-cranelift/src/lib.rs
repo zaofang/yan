@@ -21,7 +21,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
-use yan_rt::{abi, actor, chan, dq, map, pq, sched, select, slice};
+use yan_rt::{abi, actor, chan, cluster, dq, map, pq, sched, select, slice};
 
 type R<T> = Result<T, String>;
 
@@ -55,7 +55,8 @@ pub struct Compiled {
 impl Compiled {
     /// Run `main`. A panic exits the process with status 101 (8.3).
     pub fn run(&self) {
-        (self.entry)()
+        (self.entry)();
+        actor::end_root();
     }
 }
 
@@ -663,6 +664,7 @@ const RT: &[RtFn] = &[
     RtFn::ShowBool,
     RtFn::Repr,
     RtFn::StrEq,
+    RtFn::StrRepeat,
     RtFn::CharCount,
     RtFn::ByteLen,
     RtFn::IntOf,
@@ -746,6 +748,16 @@ const RT: &[RtFn] = &[
     RtFn::ActorRestarted,
     RtFn::SupBegin,
     RtFn::SupEnd,
+    RtFn::SimNew,
+    RtFn::SimBegin,
+    RtFn::ClusterNodes,
+    RtFn::ClusterSelfNode,
+    RtFn::ClusterPlace,
+    RtFn::ClusterLeave,
+    RtFn::ClusterReach,
+    RtFn::ClusterFaultSend,
+    RtFn::ClusterAdmit,
+    RtFn::ClusterArrive,
     RtFn::SupEndTo,
 ];
 
@@ -842,6 +854,12 @@ fn rt_fn(
             "yan_rt_repr",
             abi::yan_rt_repr as *const u8,
             &[I64],
+            Some(I64),
+        ),
+        RtFn::StrRepeat => (
+            "yan_rt_str_repeat",
+            abi::yan_rt_str_repeat as *const u8,
+            &[I64, I64],
             Some(I64),
         ),
         RtFn::StrEq => (
@@ -1329,6 +1347,66 @@ fn rt_fn(
             actor::yan_rt_sup_end as *const u8,
             &[],
             None,
+        ),
+        RtFn::SimNew => (
+            "yan_rt_sim_new",
+            cluster::yan_rt_sim_new as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::SimBegin => (
+            "yan_rt_sim_begin",
+            cluster::yan_rt_sim_begin as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::ClusterNodes => (
+            "yan_rt_cluster_nodes",
+            cluster::yan_rt_cluster_nodes as *const u8,
+            &[],
+            Some(I64),
+        ),
+        RtFn::ClusterSelfNode => (
+            "yan_rt_cluster_self_node",
+            cluster::yan_rt_cluster_self_node as *const u8,
+            &[],
+            Some(I64),
+        ),
+        RtFn::ClusterPlace => (
+            "yan_rt_cluster_place",
+            cluster::yan_rt_cluster_place as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ClusterLeave => (
+            "yan_rt_cluster_leave",
+            cluster::yan_rt_cluster_leave as *const u8,
+            &[],
+            None,
+        ),
+        RtFn::ClusterReach => (
+            "yan_rt_cluster_reach",
+            cluster::yan_rt_cluster_reach as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ClusterFaultSend => (
+            "yan_rt_cluster_fault_send",
+            cluster::yan_rt_cluster_fault_send as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ClusterAdmit => (
+            "yan_rt_cluster_admit",
+            cluster::yan_rt_cluster_admit as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ClusterArrive => (
+            "yan_rt_cluster_arrive",
+            cluster::yan_rt_cluster_arrive as *const u8,
+            &[I64],
+            Some(I64),
         ),
         RtFn::SupEndTo => (
             "yan_rt_sup_end_to",

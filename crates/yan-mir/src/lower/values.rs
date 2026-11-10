@@ -64,7 +64,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             | Shape::Heap(_)
             | Shape::Deque(_)
             | Shape::Fn(..)
-            | Shape::Chan(_) => true,
+            | Shape::Chan(_)
+            | Shape::Set(_) => true,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_heap(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_heap),
             Shape::Sum(_, vs) => vs
@@ -113,6 +114,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 }
                 self.free(RtFn::ListFree, v[0].clone());
             }
+            Shape::Set(k) => self.glue(&Self::set_map(k), v),
             Shape::Map(k, e) => {
                 let m = v[0].clone();
                 let n = self.rt(RtFn::MapLen, I64, vec![m.clone()]);

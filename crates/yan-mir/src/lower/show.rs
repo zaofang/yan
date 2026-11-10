@@ -33,6 +33,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Fn(..) => self.lit("<function>"),
             Shape::Chan(_) => return unsupported("`show` of a channel end"),
             Shape::Actor(_) => return unsupported("`show` of an actor handle"),
+            Shape::Set(_) => return unsupported("`show` of a `set`"),
             Shape::Rec(name, _) if name == "Duration" => {
                 return unsupported("`show` of a `Duration`");
             }
@@ -255,6 +256,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 }
                 vec![l]
             }
+            Shape::Set(k) => self.clone_value(v, &Self::set_map(k))?,
             Shape::Map(k, e) => {
                 let m = self.rt(RtFn::MapCopy, Ty::Ptr, v);
                 let n = self.rt(RtFn::MapLen, I64, vec![m.clone()]);
