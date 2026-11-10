@@ -141,7 +141,7 @@ Accepted for research on 2026-11-01, not normative for 1.0. Each row names the 1
 | R780 | Rank polymorphism: a shape-row kind, `Array[...B, n, T]` with `...B` an axis-list variable, and a lifting rule for functions over cells (Remora, Dex) (RFC 0029). | 3, 11.2 |
 | R781 | Size arithmetic: linear (Presburger) constraints over `Nat` size variables, so `concat` gives `n + m`; undecided goals follow 8.6 (RFC 0029). | 11.2 |
 | R782 | Body reflection: `info(f)` at stage 0 returns a read-only view of a function body; a stage-0 query hashes every body it reads (RFC 0029). | 10.4 |
-| R783 | Rewriting attributes: an `@attribute` function may wrap or replace the body it annotates; `yan expand` prints the result (RFC 0029). | 10.4, E266 |
+| R783 | Rewriting attributes: an `@attribute` function may wrap or replace the body it annotates; `yan expand` prints the result (RFC 0029). Engine: egglog (equality saturation with Datalog), replacing `egg` for these rewrites, under a fixed rule schedule and node limit; reaching the limit is a diagnostic, never a partial rewrite (RFC 0065 D7, R1000). | 10.4, E266 |
 | R784 | Proof tactics: stage-0 scripts that discharge 8.6 goals through goal reflection and a tactic API (LCF) (RFC 0029). | none |
 | R785 | Row-polymorphic records `.{x: int \| r}` and anonymous record types outside stage 0 (RFC 0029). | 3 |
 | R786 | GADTs: sum constructors that refine the sum's type parameters (RFC 0029). | 3 |

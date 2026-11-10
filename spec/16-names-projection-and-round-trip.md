@@ -76,6 +76,8 @@ These MUST hold within each edition and MUST be tested on every conformance prog
 
 **Trivia through Yan Core.** Yan Core carries seven hash-neutral kinds of trivia, so laws 1, 2, 5 and 6 hold byte for byte: comments and docstrings; blank lines; literal spelling (18.5); local names (3.6, R519); Yan Meta spelling notes, which record which of several Yan Meta spellings produced a node (16.6, R518); origin marks, which record that elaboration inserted a node (a capability argument, a copy, a move or a conversion) rather than the author writing it (R565); and spelling marks, which record a choice the author made among spellings of one tree (R838). Trivia is kept in one side table per module, keyed by item hash and node path, and is never hashed. A note whose spelling no longer matches its node after an edit is dropped, and the default spelling prints. Comments attach as leading (on their own line, to the next node), trailing (on the same line, to the previous node) or dangling (in an empty construct or before a closer).
 
+**Lossless syntax tree (RFC 0065 D2, R995).** Every reader builds one lossless red-green syntax tree (as rowan) holding every token with its whitespace and comments. Elaboration derives the trivia above from that tree and from nothing else, and no reader keeps trivia in another form. Plain Yan and Yan Agent build it before 1.0; each niche reader builds it from its first version.
+
 **Spelling marks (RFC 0034).** Elaboration of every surface writes spelling marks; no surface lowering does. A node is named by its item hash and a node path from the one walker in `yan-core` (`yan_core::path::walk`), which elaboration and raise both use (R837). Parameter k of a function is `[0, k]`, contract k is `[1, k]`, body statement s is `[2, s]` and, in the b-th nested block of a statement, `[2, s, b, s']`; function f of an `impl` is walked under the prefix `[3, f]`. The call of a statement is its path plus `0`, argument k of a call is the call's path plus `k`, a literal atom is its parent's path plus `0`, and field k of a named constructor is its statement's path plus `0, k`. A closure's statement s is its statement's path plus `0, s` (R862). Elaboration records a mark against the HIR span and kind of a node and moves it, once the item is built, to the first node in walk order with that span and kind; a span is this join key only and is never stored.
 
 The marks are a closed set, and adding one is a row (R838). Each records a fact, never source text:
@@ -117,6 +119,8 @@ Literal spelling stays the existing literal trivia (18.5), valid only if it deno
 
 Law 1 also has a bare companion for every case it runs on: raise with an empty trivia table, print, elaborate the result, and compare item hashes with `elaborate(F)`; `yan view --bare` produces the raised text. A case that passes law 1 and fails the companion shows a mark covering for a raise bug, and fails law 1 (R842). `tools/conform.py --laws` runs law 1 in strict mode and runs the companion.
 
+N7 is checked as a lens law pair (RFC 0065 D3, R996): for each niche surface S, PutGet `S(elaborate(F)) == F` and GetPut `elaborate(S(W)) == elaborate(W)` run as one seeded property test parameterised by surface, over generated modules as well as the conformance programs, and a failure prints the smallest counterexample found.
+
 **Item identity.** An item's hash is defined in section 3.6. Two items with the same hash are the same item, whichever surface they came from.
 
 ### 16.6 Yan Meta: the lab and canary surface
@@ -149,11 +153,11 @@ A niche surface is a small, domain-shaped language over Yan. It may be a spellin
 
 1. **N1 Semantics (R568, R768).** It lowers to Yan Core, the core or an accepted Yan Core extension, which Yan prints as 15.4 says; or it defines semantics of its own under the boundary rules below. Its RFC says which, per form.
 2. **N2 Subset with a checker.** A decidable predicate says which items print in the surface; outside it, `yan view --as <name>` reports the first excluding construct, as 16.4 does for Yan Agent.
-3. **N3 One printing.** Law 8 holds as for Yan Agent and Yan. Sugar is recovered from the Yan Core tree, from stage-0 metadata attached by the lowering, or from the trivia of 16.5.
+3. **N3 One printing.** Law 8 holds as for Yan Agent and Yan. Sugar is recovered from the Yan Core tree, from stage-0 metadata attached by the lowering, or from the trivia of 16.5, which come from the reader's lossless syntax tree (R995).
 4. **N4 Same item hash.** A lowering never creates or drops a hashed name (3.6); generated names follow a fixed rule.
 5. **N5 Five facts visible.** Each of the five facts (law 4) keeps a mark in the text.
 6. **N6 Crate.** `yan-<name>` holds the lexer, parser, AST and lowering into `yan-hir`, and touches nothing below it. A surface engine (R568), if the surface has one, is a separate crate `yan-<name>-engine` or a std package, at the runtime layer beside `yan-rt` (R576).
-7. **N7 Round-trip laws.** For surface S: `S(elaborate(F)) == F` byte for byte for canonical F, and `elaborate(S(W)) == elaborate(W)` by item hash for any Yan W in the subset.
+7. **N7 Round-trip laws.** For surface S: `S(elaborate(F)) == F` byte for byte for canonical F, and `elaborate(S(W)) == elaborate(W)` by item hash for any Yan W in the subset. The pair is tested as lens laws, as 16.5 says (R996).
 8. **N8 Names and diagnostics.** A column in 16.3 for names it spells differently; messages render per surface (R297); new codes only for its own syntax.
 9. **N9 Files and lexis.** Extension `.<name>`, one surface per file, any mix per package, calls across surfaces by name; lexical rules as 13.1.
 
@@ -172,6 +176,8 @@ A niche surface is a small, domain-shaped language over Yan. It may be a spellin
 | R547 | Yan Protocol 言礼 | `.ypc` | session-typed protocols | `@linear` state types (R443) over `std.chan` | none | research |
 | R548 | Yan Spec 言规 | `.ysp` | specs checked against actors by trace refinement | `std.sim` models and replay checks (17.7) | none | research |
 | R549 | Yan Law 言法 | `.ylaw` | statute-shaped rules with default logic | `uses none` functions over `Money` (11.7) | none | research |
+
+**Design bases (RFC 0065 D8 to D10, R1001).** The Yan Binary Format RFC starts from the EverParse 3D constructs (dependent records, validators that never read out of bounds, no double fetch) as its core forms, with a Kaitai Struct importer after the reader. The Yan Law RFC starts from the Catala default calculus as its semantics. The Yan Workflow RFC starts from event-history replay as in Temporal, with determinism from law 7 and workflow versions pinned by item hash.
 
 **Own semantics (R568).** A niche surface is exempt from law 1. Inside its items it may define behavior that Yan cannot express, such as three-valued logic, inference as evaluation, or clocked time. These rules still bind it:
 

@@ -16,7 +16,7 @@ Effects are capabilities: second-class values passed as explicit parameters in Y
 | `log` | `Log` | structured key-value events at `debug`, `info`, `warn`, `error` over one `event(level, msg, fields)` operation, plus spans as child handlers (R688, R689); `@splittable` |
 | `metrics` | `Metrics` | counters, gauges, histograms; `@splittable` |
 | `env` | `Env` | `args`, `var`, `vars`, `secret` (returns `Secret[str] \| None`), `local_zone`, `system_tzdb`; no `set_var` (R686); attenuated by `env.only` (R674) |
-| `proc` | `Proc` | `run(Command)` taking argv, never a shell string (R692); `spawn(Command)` with piped stdio follows `Reader` and `Writer` (R693); there is no shell helper (R448); attenuated by `proc.only` (R674) |
+| `proc` | `Proc` | `run(Command)` taking argv, never a shell string (R692); `spawn(Command)` with piped stdio follows `Reader` and `Writer` (R693); there is no shell helper (R448); attenuated by `proc.only` (R674); each child runs under the OS-enforced ceiling of 7.4 (R998) |
 | `signals` | `Signals` | a stream of OS signals; SIGINT and SIGTERM also drain `main`'s root scope (9.4) |
 | `py` | `Py` | `call`, `import_module` (Python bridge, section 17) |
 | `fault` | `Fault` | `maybe(name) -> bool`; handlers `never` (default, compiles away) and `sim` (seeded) |
@@ -69,6 +69,8 @@ In Yan Agent every function lists its capabilities. In Yan only `pub` functions 
 ### 7.4 Platforms and ceilings
 
 `platform` in `package.yag` names a capability bundle with default handlers (`cli`, `service`, `job`, `wasm`, `freestanding`). A package's `capabilities` list is a ceiling enforced transitively (section 19.2): using a capability the package did not declare is E314, including through dependencies. Ceilings may carry `net.only` patterns and must list every foreign-library capability.
+
+**Child processes (RFC 0065 D5, R998).** `proc.run` and `proc.spawn` confine each child to the caller's `fs` and `net` grants before exec: a Landlock ruleset on Linux 5.13 and later, Capsicum on FreeBSD. On Linux a child is held as a pidfd. Where the OS cannot enforce a ceiling narrower than the process's own, the call fails with `ProcReason.Unconfined()` unless the `Command` carries `.unconfined()`; `yan audit` lists every `.unconfined()` site, and the capability manifest records it as `proc.unconfined`.
 
 ### 7.5 Time and zones
 
