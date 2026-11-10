@@ -100,6 +100,18 @@ impl Actor {
         self.holder = None;
         self.mail.drain(..).for_each(free);
     }
+
+    /// Stopped for good: the start closure goes too.
+    fn end(&mut self) {
+        self.stop(Reason::Shutdown);
+        self.release_start();
+    }
+
+    fn release_start(&mut self) {
+        let env = std::mem::take(&mut self.start[2]);
+        // SAFETY: the captures block of the start closure, which only a restart reads.
+        unsafe { crate::abi::yan_rt_free_env(env as *mut u64) };
+    }
 }
 
 struct Sup {
@@ -564,6 +576,7 @@ pub unsafe extern "C" fn yan_rt_actor_crash(id: u64, error: *const String) {
         st.actors[id].stop(Reason::Crashed(error));
         let (s, restart) = (st.actors[id].sup, st.actors[id].restart);
         if restart == Restart::Temporary {
+            st.actors[id].release_start();
             return None;
         }
         let t = now(st);
@@ -574,7 +587,7 @@ pub unsafe extern "C" fn yan_rt_actor_crash(id: u64, error: *const String) {
         if sup.restarts.len() >= sup.intensity {
             let (n, p) = (sup.intensity, sup.period);
             for c in sup.children.clone().into_iter().rev() {
-                st.actors[c].stop(Reason::Shutdown);
+                st.actors[c].end();
             }
             return Some((n, p));
         }
@@ -586,7 +599,11 @@ pub unsafe extern "C" fn yan_rt_actor_crash(id: u64, error: *const String) {
             Strategy::RestForOne => sup.children[at..].to_vec(),
         };
         for &c in group.iter().rev().filter(|c| **c != id) {
-            st.actors[c].stop(Reason::Shutdown);
+            if st.actors[c].restart == Restart::Temporary {
+                st.actors[c].end();
+            } else {
+                st.actors[c].stop(Reason::Shutdown);
+            }
         }
         st.restarts.extend(
             group
@@ -686,7 +703,7 @@ pub extern "C" fn yan_rt_sup_end_to(depth: u64) {
         while st.open.len() as u64 > depth {
             let s = st.open.pop().expect("an open scope");
             for c in st.sups[s].children.clone().into_iter().rev() {
-                st.actors[c].stop(Reason::Shutdown);
+                st.actors[c].end();
             }
         }
     });
