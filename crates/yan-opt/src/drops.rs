@@ -65,6 +65,8 @@ fn settle(obs: &Observable, params: &[Param], body: &Block) -> Result<Block, Err
             need: Vec::new(),
             tmp: 0,
             blocks: Vec::new(),
+            falls: HashMap::new(),
+            ends: HashSet::new(),
             cx: Cx::default(),
         };
         let b = e.block(body, owned_params(params));
@@ -207,6 +209,11 @@ struct Elab<'a> {
     /// Addresses of the enclosing blocks; a join point's body falls through to the end of the
     /// innermost one.
     blocks: Vec<usize>,
+    /// Blocks a join point's body falls through to, with how many of the block's own locals
+    /// that body sees.
+    falls: HashMap<usize, usize>,
+    /// Blocks whose end is reached.
+    ends: HashSet<usize>,
     cx: Cx,
 }
 
@@ -274,11 +281,21 @@ impl Elab<'_> {
             flow = self.stmt(s, &mut out);
         }
         let end = b.stmts.last().map(|s| s.span).unwrap_or_default();
+        let k = addr(b);
+        let top = self.cx.scopes.len() - 1;
+        let fell = self.falls.remove(&k);
         if flow == Flow::Normal {
-            let k = addr(b);
             self.edge(Key::Tail(k), Key::End(k), self.top(), end, &mut out);
-            let top = self.cx.scopes.len() - 1;
             self.exit_drops((top, 0), &[], end, Key::End(k), &mut out);
+        } else if let Some(seen) = fell {
+            // Only a join point's body reaches the end, and the jumps to it dropped what the
+            // block declared after it.
+            for l in self.cx.scopes[top][..seen].iter().rev() {
+                self.drop_stmt(&l.name, end, Key::End(k), &mut out);
+            }
+        }
+        if flow == Flow::Normal || fell.is_some() {
+            self.ends.insert(k);
         }
         self.blocks.pop();
         self.cx.scopes.pop();
@@ -785,10 +802,13 @@ impl Elab<'_> {
                         key,
                     },
                 );
+                let seen = self.here().1;
                 let mut nb = self.block(body, owned_params(params));
-                if self.flow_of(&nb) == Flow::Normal
+                if self.ends.contains(&addr(body))
                     && let Some(&blk) = self.blocks.last()
                 {
+                    let f = self.falls.entry(blk).or_insert(seen);
+                    *f = (*f).min(seen);
                     self.edge(
                         Key::End(addr(body)),
                         Key::End(blk),
@@ -1063,6 +1083,39 @@ mod tests {
             &t,
             &["let u: Unit = take(sink g)", "_d0 = false", "jump k()"],
         );
+    }
+
+    #[test]
+    fn a_join_point_that_falls_through_drops_what_its_block_declared_before_it() {
+        let t = elab(
+            "module t\nfn f(let c: bool) -> Unit {\n if c {\n  let s: Str = \"a\"\n\
+             jp k() {\n   let u: Str = \"b\"\n   jp m() {\n    let w: Str = \"c\"\n   }\n   jump m()\n  }\n\
+             let x: Str = \"d\"\n  jump k()\n }\n ret ()\n}\n",
+        );
+        has(
+            &t,
+            &[
+                "let w: Str = \"c\"",
+                "drop w",
+                "}",
+                "jump m()",
+                "drop u",
+                "}",
+            ],
+        );
+        has(
+            &t,
+            &[
+                "let x: Str = \"d\"",
+                "drop x",
+                "jump k()",
+                "drop s",
+                "}",
+                "ret ()",
+            ],
+        );
+        assert_eq!(t.matches("drop s").count(), 1, "{t}");
+        assert_eq!(t.matches("drop x").count(), 1, "{t}");
     }
 
     #[test]

@@ -1,0 +1,20 @@
+# spec: 4.2, 5.3
+# rows: R963
+# note: one arm moves the payload into the join, the other joins with a fresh value; the scrutinee is released once on the second path (#879)
+# stdout:
+# a!
+# fresh
+
+def pick(s: str) -> str:
+    r: Result[str, str] = Ok(s + "!") if s != "" else Err("none")
+    out = ""
+    match r:
+        case Ok(v):
+            out = v
+        case Err(e):
+            out = "fresh"
+    return out
+
+pub def main() uses io:
+    io.print(pick("a"))
+    io.print(pick(""))

@@ -1,0 +1,13 @@
+-- spec: 11.2
+-- rows: R953, R983
+-- note: a kernel takes exactly one `TileOrigin` parameter, here none (#904)
+-- expect: E285 at 6:1
+
+@kernel(tile: 2, 2)
+@access(a: elementwise, out: elementwise)
+inc(a: Array[2, 4, int]) -> Array[2, 4, int] =
+  for i in range(0, 2)
+    for j in range(0, 2)
+      out[i, j] = a[i, j] + 1
+
+main() = 0
