@@ -1,0 +1,36 @@
+# spec: 9.6.1
+# rows: R992, R976
+# note: a send through Remote is faulted at admission: a lost request fails Undelivered, a healthy one is delivered
+# stdout:
+# undelivered
+# done
+# -9
+# done
+# 5
+
+class Box:
+    n: int
+
+def bump(var self: Box, k: int) -> None:
+    self.n += k
+
+def get(self: Box) -> int:
+    return self.n
+
+@remote
+def make(start: int) -> Box:
+    return Box(n=start)
+
+def try_send(a: Remote[Actor[Box, Block]]) -> str uses io, cluster:
+    actor.send(a).bump(5) else e -> io.print("undelivered")
+    return "done"
+
+pub def main() -> None uses io, cluster:
+    with cluster = sim(2, 3, Faults(drop=1.0)):
+        a = cluster.spawn(ChildSpec(make, (0,)), placement=On(cluster.nodes()[1]))
+        io.print(try_send(a))
+        io.print(f"{a.get() else e -> -9}")
+    with cluster = sim(2, 3):
+        a = cluster.spawn(ChildSpec(make, (0,)), placement=On(cluster.nodes()[1]))
+        io.print(try_send(a))
+        io.print(f"{a.get() else e -> -9}")

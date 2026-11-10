@@ -10,6 +10,7 @@ mod affine;
 mod bounds;
 mod cli;
 mod consttime;
+mod copy_out;
 mod cost;
 mod cost_proof;
 pub use cost_proof::inferred as inferred_cost;
@@ -875,6 +876,7 @@ pub fn elaborate_in(
             });
         }
     }
+    copy_out::items(&mut items);
     cost::check(&g, m, &items, &mut cx);
     if opts.tools {
         tools::attach(&g, m, &mut items, &mut cx);

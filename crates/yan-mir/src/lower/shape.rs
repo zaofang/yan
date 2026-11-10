@@ -62,24 +62,6 @@ impl Shape {
         self.tys().len()
     }
 
-    pub(super) fn has_list(&self) -> bool {
-        match self {
-            Shape::List(_) => true,
-            Shape::Scalar(_)
-            | Shape::Str
-            | Shape::Map(..)
-            | Shape::Heap(_)
-            | Shape::Deque(_)
-            | Shape::Fn(..)
-            | Shape::Chan(_)
-            | Shape::Actor(_)
-            | Shape::Set(_) => false,
-            Shape::Rec(_, fs) => fs.iter().any(|(_, s)| s.has_list()),
-            Shape::Tuple(ss) => ss.iter().any(Shape::has_list),
-            Shape::Sum(_, vs) => vs.iter().flat_map(|(_, fs)| fs).any(|(_, s)| s.has_list()),
-        }
-    }
-
     /// The fields of a record or tuple, by name, with their first slot.
     pub(super) fn fields(&self) -> Option<Vec<(String, usize, &Shape)>> {
         let named: Vec<(String, &Shape)> = match self {

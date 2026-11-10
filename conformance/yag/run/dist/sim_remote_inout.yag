@@ -1,0 +1,30 @@
+# spec: 9.6.1
+# rows: R992
+# note: an inout argument over Remote takes the handler's change, and stays unchanged when the request is lost
+# stdout:
+# 5 [5]
+# -1 []
+
+class Box:
+    n: int
+
+def add(var self: Box, var log: list[int], k: int) -> int:
+    self.n += k
+    log.append(k)
+    return self.n
+
+@remote
+def make(start: int) -> Box:
+    return Box(n=start)
+
+pub def main() -> None uses io, cluster:
+    with cluster = sim(2, 3):
+        a = cluster.spawn(ChildSpec(make, (0,)), placement=On(cluster.nodes()[1]))
+        log: list[int] = []
+        r = a.add(&log, 5) else e -> -1
+        io.print(f"{r} {log}")
+    with cluster = sim(2, 3, Faults(drop=1.0)):
+        a = cluster.spawn(ChildSpec(make, (0,)), placement=On(cluster.nodes()[1]))
+        log: list[int] = []
+        r = a.add(&log, 5) else e -> -1
+        io.print(f"{r} {log}")
