@@ -1,0 +1,191 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Yan",
+  "scopeName": "source.yan",
+  "fileTypes": ["yn"],
+  "patterns": [{ "include": "#code" }],
+  "repository": {
+    "code": {
+      "patterns": [
+        { "include": "#doc-comment" },
+        { "include": "#comment" },
+        { "include": "#string" },
+        { "include": "#attribute" },
+        { "include": "#datetime" },
+        { "include": "#number" },
+        { "include": "#declaration" },
+        { "include": "#keyword" },
+        { "include": "#constant" },
+        { "include": "#type" },
+        { "include": "#function-call" },
+        { "include": "#operator" }
+      ]
+    },
+    "doc-comment": {
+      "name": "comment.block.documentation.yan",
+      "match": "(?:^|(?<=\\s))---(?:\\s.*|$)"
+    },
+    "comment": {
+      "name": "comment.line.double-dash.yan",
+      "match": "(?:^|(?<=\\s))--(?:>(?=\\s)|(?=\\s|$))(?:\\s.*|$)"
+    },
+    "string": {
+      "patterns": [
+        {
+          "name": "string.quoted.triple.yan",
+          "begin": "[bc]?\"\"\"",
+          "end": "\"\"\"",
+          "patterns": [{ "include": "#escape" }, { "include": "#interpolation" }]
+        },
+        {
+          "name": "string.quoted.raw.yan",
+          "begin": "\\br\"",
+          "end": "\""
+        },
+        {
+          "name": "string.quoted.double.yan",
+          "begin": "[bc]?\"",
+          "end": "\"|$",
+          "patterns": [{ "include": "#escape" }, { "include": "#interpolation" }]
+        },
+        {
+          "name": "string.quoted.single.char.yan",
+          "match": "\\bc'(?:\\\\.|[^'\\\\])'",
+          "captures": { "0": { "patterns": [{ "include": "#escape" }] } }
+        }
+      ]
+    },
+    "escape": {
+      "name": "constant.character.escape.yan",
+      "match": "\\\\(?:[nrt0\\\\\"']|x[0-9A-Fa-f]{2}|u\\{[0-9A-Fa-f]+\\})"
+    },
+    "interpolation": {
+      "name": "meta.interpolation.yan",
+      "begin": "\\\\\\(",
+      "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.yan" } },
+      "end": "\\)",
+      "endCaptures": { "0": { "name": "punctuation.section.interpolation.end.yan" } },
+      "patterns": [
+        { "include": "#nested-parens" },
+        { "include": "#format-spec" },
+        { "include": "#code" }
+      ]
+    },
+    "nested-parens": {
+      "begin": "\\(",
+      "end": "\\)",
+      "patterns": [{ "include": "#nested-parens" }, { "include": "#code" }]
+    },
+    "format-spec": {
+      "name": "constant.other.format-spec.yan",
+      "match": ":[^()\"]*(?=\\))"
+    },
+    "attribute": {
+      "name": "meta.attribute.yan",
+      "match": "(@)([a-z_][a-z0-9_]*(?:\\.[a-z_][a-z0-9_]*)*)",
+      "captures": {
+        "1": { "name": "punctuation.definition.attribute.yan" },
+        "2": { "name": "entity.other.attribute-name.yan" }
+      }
+    },
+    "datetime": {
+      "name": "constant.numeric.datetime.yan",
+      "match": "\\b\\d{4}-\\d{2}-\\d{2}(?:T\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d+)?)?(?:Z|[+-]\\d{2}:\\d{2})?(?:\\[[A-Za-z_/+-]+\\])?)?\\b|\\b\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?\\b"
+    },
+    "number": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.yan",
+          "match": "\\b0x[0-9A-Fa-f_]+(?:[A-Za-z]+)?\\b"
+        },
+        {
+          "name": "constant.numeric.octal.yan",
+          "match": "\\b0o[0-7_]+(?:[A-Za-z]+)?\\b"
+        },
+        {
+          "name": "constant.numeric.binary.yan",
+          "match": "\\b0b[01_]+(?:[A-Za-z]+)?\\b"
+        },
+        {
+          "name": "constant.numeric.float.yan",
+          "match": "\\b\\d[\\d_]*(?:\\.\\d[\\d_]*(?:[eE][+-]?\\d+)?|[eE][+-]?\\d+)(?:[A-Za-z]+)?\\b"
+        },
+        {
+          "name": "constant.numeric.integer.yan",
+          "match": "\\b\\d[\\d_]*(?:[A-Za-z]+)?\\b"
+        }
+      ]
+    },
+    "declaration": {
+      "patterns": [
+        {
+          "match": "\\b(type)\\s+([A-Z][A-Za-z0-9]*)",
+          "captures": {
+            "1": { "name": "storage.type.yan" },
+            "2": { "name": "entity.name.type.yan" }
+          }
+        },
+        {
+          "match": "\\b(trait|impl)\\b(?:\\s+([A-Z][A-Za-z0-9]*))?",
+          "captures": {
+            "1": { "name": "storage.type.yan" },
+            "2": { "name": "entity.name.type.interface.yan" }
+          }
+        },
+        {
+          "match": "^\\s*(?:(pub)\\s+)?([a-z_][a-z0-9_]*)(?=\\s*(?:\\[[^\\]]*\\])?\\s*\\()",
+          "captures": {
+            "1": { "name": "storage.modifier.yan" },
+            "2": { "name": "entity.name.function.yan" }
+          }
+        }
+      ]
+    },
+    "keyword": {
+      "patterns": [
+        {
+          "name": "keyword.control.yan",
+          "match": "\\b(?:if|then|else|match|for|in|while|loop|break|continue|return|par|try|fail|become|select|concurrent|yield)\\b"
+        },
+        {
+          "name": "keyword.operator.word.yan",
+          "match": "\\b(?:and|or|not|is|as)\\b"
+        },
+        {
+          "name": "storage.modifier.yan",
+          "match": "\\b(?:let|var|take|pub|dyn|use|with|unsafe|extern|copy|share|gen|sub|safe|lib|link|asm|ghost|lemma|reveal|from)\\b"
+        },
+        {
+          "name": "keyword.other.contract.yan",
+          "match": "\\b(?:uses|pre|post|ex|invariant|decreases|assert|unreachable)\\b"
+        },
+        {
+          "name": "variable.language.self.yan",
+          "match": "\\bself\\b"
+        }
+      ]
+    },
+    "constant": {
+      "name": "constant.language.yan",
+      "match": "\\b(?:True|False|None)\\b"
+    },
+    "type": {
+      "name": "entity.name.type.yan",
+      "match": "\\b[A-Z][A-Za-z0-9]*\\b"
+    },
+    "function-call": {
+      "match": "\\b([a-z_][a-z0-9_]*)(?=\\s*(?:\\[[^\\]]*\\])?\\()",
+      "captures": { "1": { "name": "entity.name.function.call.yan" } }
+    },
+    "operator": {
+      "patterns": [
+        { "name": "keyword.operator.arrow.yan", "match": "->|=>" },
+        { "name": "keyword.operator.comparison.yan", "match": "==|!=|<=|>=|<|>" },
+        { "name": "keyword.operator.assignment.yan", "match": "[-+*/%]?=" },
+        { "name": "keyword.operator.arithmetic.yan", "match": "//|\\*\\*|[-+*/%]" },
+        { "name": "keyword.operator.try.yan", "match": "\\?" },
+        { "name": "punctuation.accessor.yan", "match": "\\.\\.\\.?|\\." }
+      ]
+    }
+  }
+}
