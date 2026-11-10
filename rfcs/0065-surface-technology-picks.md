@@ -1,8 +1,8 @@
 # 0065: Technology picks for the surfaces: shared reader infrastructure, agent tooling, `std.sim`, and design bases for four niche surfaces
 
-- Status: draft
+- Status: accepted (D1 to D10, lead cards 2026-11-10)
 - Research: [Yan surfaces: technology research](https://claude.ai/artifact/CZWDhwoMky8RN3rKEAs1eQ); issue #947, tracked by #449. Items: #948 to #957; the rest of the study is in tracker #958.
-- Rows: filled in when accepted
+- Rows: R994 to R1001
 
 ## Summary
 
@@ -28,8 +28,8 @@ Options: (a) generated from the reader; (b) a hand-written grammar file per surf
 (b) is a second representation of the grammar (practice 12). (c) leaves the parse-repair turns of the
 agent loop (21) in place. Recommended (a).
 
-- Decision:
-- Row:
+- Decision: (a), lead card 2026-11-10
+- Row: R994
 
 ### D2: one lossless CST under every reader (#949)
 
@@ -41,8 +41,8 @@ Options: (a) now, for plain Yan and Yan Agent; (b) when the first niche reader i
 each reader keeps its own trivia. (a) costs most now but is cheapest overall: two readers to move
 instead of fifteen, and it removes a duplicated representation today. Recommended (a).
 
-- Decision:
-- Row:
+- Decision: (a), now for plain Yan and Yan Agent, lead card 2026-11-10
+- Row: R995
 
 ### D3: N7 stated as lens laws (#950)
 
@@ -55,8 +55,8 @@ Restate N7 (16.5) as the lens law pair: `S(elaborate(F)) == F` for canonical F i
 No runtime library. The meaning of N7 does not change; the row gains the names and the test
 obligation. Recommended: accept.
 
-- Decision:
-- Row:
+- Decision: accepted, lead card 2026-11-10
+- Row: R996
 
 ### D4: typed-hole context tool in `yan mcp` (#951)
 
@@ -66,8 +66,8 @@ and cut to the budget. After Blinn et al.,
 [Statically Contextualizing Large Language Models with Typed Holes](https://arxiv.org/abs/2409.00921)
 (OOPSLA 2024). Recommended: accept.
 
-- Decision:
-- Row:
+- Decision: accepted, lead card 2026-11-10
+- Row: R997
 
 ### D5: OS-enforced capability ceilings on child processes (#952)
 
@@ -87,8 +87,8 @@ The decision is what happens where the OS cannot enforce the ceiling:
 (c) is a silent fallback (practice 13). (b) lets a test pass on one OS and leak on another.
 Recommended (a).
 
-- Decision:
-- Row:
+- Decision: (a), fail loud with an explicit opt-in, lead card 2026-11-10
+- Row: R998
 
 ### D6: PCT scheduling and trace validation in `std.sim` (#953)
 
@@ -106,8 +106,8 @@ Two additions to 17.7:
 
 Recommended: accept both; PCT first, since the actor work (#929) can use it at once.
 
-- Decision:
-- Row:
+- Decision: accepted, both, lead card 2026-11-10
+- Row: R999
 
 ### D7: egglog for rewriting attributes (#954)
 
@@ -116,8 +116,8 @@ for R783 and a candidate for yan-opt rewrites, replacing the `egg` already in tr
 schedule and node limit keep it deterministic; hitting the limit is a diagnostic. Yan Meta research
 track; no work before its gate. Recommended: accept as the R783 engine choice.
 
-- Decision:
-- Row:
+- Decision: accepted, lead card 2026-11-10
+- Row: R1000
 
 ### D8 to D10: design bases for three niche surfaces (#955, #956, #957)
 
@@ -137,8 +137,8 @@ Options: (a) add one sentence to each surface's entry in 16.7 naming its basis; 
 RFC only and let each surface RFC decide; (c) reject. (a) makes the basis visible where a surface RFC
 starts and costs three sentences. Recommended (a).
 
-- Decision:
-- Row:
+- Decision: (a), one sentence each in 16.7, lead card 2026-11-10
+- Row: R1001
 
 ## Spec changes
 

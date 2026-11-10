@@ -67,6 +67,7 @@ The printer MUST produce exactly one text for a given Yan Agent tree:
 - A function whose body is one `match` on its parameters prints as a `match` body; Yan Agent has no clause form (R426).
 - Calls print in the form written, dot or free (R420).
 - The fixes for W823 (redundant local annotation) and W824 (guard a fallback replaces) are safe fixes applied in the agent loop (R429).
+- The grammar of this form is generated from the reader and never kept by hand; `yan grammar` prints it for constrained-decoding engines, and every canonical module parses under it (RFC 0065 D1, R994).
 
 ### 14.4 Lenient reader
 

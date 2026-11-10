@@ -25,7 +25,7 @@ Human review of model-written code starts with the spec, which is short and read
 
 - `yan check` reports each hole as H701 with its expected type.
 - In development builds a program with holes runs: a hole evaluates to an indeterminate value, operations on it propagate indeterminacy, and evaluation continues around it, as in Hazel. Release builds reject holes (E702).
-- The `hole_context` query returns, for one hole: expected type, in-scope bindings with types, the enclosing function's contracts, nearby examples, and the top five `search_type` results. The output MUST fit in 400 tokens.
+- The `hole_context` query returns, for one hole: expected type, in-scope bindings with types, the enclosing function's contracts, nearby examples, and the top five `search_type` results, then the definitions of the types named by the expected type and those bindings, ranked by distance from the hole (RFC 0065 D4, R997). The output MUST fit in `max_tokens`, 400 by default.
 
 ### 21.3 Constrained decoding
 
@@ -55,7 +55,7 @@ A Model Context Protocol server (protocol 2026-07-28, stateless) over stdio. Eve
 | `pack_context` | task description, budget in tokens | the most relevant signatures, contracts and examples, ranked by dependency distance from the items named in the task |
 | `search_type` | a type, e.g. `Callable[[Table[Trade]], Array[Str, float]]` | matching functions with signatures, best first |
 | `type_at` | file, line, column | inferred type and capabilities |
-| `hole_context` | file, line, column | as 21.2 |
+| `hole_context` | file, line, column; optional max\_tokens | as 21.2 (R997) |
 | `spec_check` | an item with body `...` | phase-1 results (21.1) |
 | `run_tests` | filter | results, with counterexamples for property tests |
 | `why_shared` | item or site | where a value is deep-copied or shared through `Rc` or `Arc` |

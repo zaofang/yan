@@ -25,6 +25,7 @@ One binary, `yan`, provides every tool. All subcommands share the query database
 | `yan schema gen <file>` | write table row types from data files (11.9) | M1 |
 | `yan toolchain`, `yan self update` | fetch and verify toolchains (20.3, 19.6) | M1 |
 | `yan skill` | print the agent skill file | M1 |
+| `yan grammar --as yag\|yn [--format lark\|gbnf]` | print the canonical-form grammar generated from the reader, for constrained decoding (14.3, R994) | M3 |
 | `yan build [--release] [--target t] [--verify]` | native build: LLVM for debug (`-O0`) and release (Cranelift for debug in stage 0, R968); `--verify` builds twice and compares | M1b, M2 |
 | `yan replay f.trace` | deterministic replay (7.6) | M1 (interpreter), M2a (native) (R378) |
 | `yan debug`, `yan profile` | debugger (DAP) and profiler | M1 (interpreter), M2a (native checkpoints) (R378) |

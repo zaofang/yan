@@ -1659,3 +1659,43 @@ sections = "13.2, 18.1, 18.9, 23"
 rows = "R991"
 topic = "1.x bucket of section 23 ships under the 20.7 release train after the 1.0 edition; the randomized comparison on contested Yan syntax moves there and reports after 1.0, so compiler sources avoid the contested forms through 1.0 (amends R969)"
 sections = "22.7, 23"
+
+[[entry]]
+rows = "R994"
+topic = "The Yan Agent and Yan canonical-form grammars are generated from the reader, never kept by hand; `yan grammar --as yag\\|yn [--format lark\\|gbnf]` prints them for constrained-decoding engines, and every canonical module parses under its grammar (RFC 0065 D1)"
+sections = "14.3, 18.1"
+
+[[entry]]
+rows = "R995"
+topic = "Every reader builds one lossless red-green syntax tree holding every token with its whitespace and comments; elaboration derives the hash-neutral trivia of 16.5 from it alone and no reader keeps trivia in another form; plain Yan and Yan Agent before 1.0, each niche reader from its first version (RFC 0065 D2)"
+sections = "16.5, 16.7"
+
+[[entry]]
+rows = "R996"
+topic = "N7 is checked as a lens law pair, PutGet `S(elaborate(F)) == F` and GetPut `elaborate(S(W)) == elaborate(W)`, by one seeded property test parameterised by surface over generated modules and the conformance programs, printing the smallest counterexample (RFC 0065 D3)"
+sections = "16.5, 16.7"
+
+[[entry]]
+rows = "R997"
+topic = "`hole_context` also returns the definitions of the types named by the hole's expected type and its in-scope bindings, ranked by distance from the hole, and takes an optional `max_tokens` (default 400) (RFC 0065 D4)"
+sections = "21.2, 21.4"
+
+[[entry]]
+rows = "R998"
+topic = "`proc.run` and `proc.spawn` confine each child to the caller's `fs` and `net` grants before exec (Landlock on Linux 5.13+, Capsicum on FreeBSD; pidfd handles on Linux); where the OS cannot enforce a narrower ceiling the call fails with `ProcReason.Unconfined()` unless the `Command` carries `.unconfined()`, which `yan audit` lists and the capability manifest records as `proc.unconfined` (RFC 0065 D5)"
+sections = "7.1, 7.4, 17.3"
+
+[[entry]]
+rows = "R999"
+topic = "`std.sim` PCT scheduling, `pct(depth = d)`, seeded with d - 1 priority change points and a stated lower bound per run; `sim.check_trace(trace, spec)` checks a recorded trace against communicating state machines, one per actor, and reports the first disallowed step; base for Yan Spec (R548) (RFC 0065 D6)"
+sections = "17.7"
+
+[[entry]]
+rows = "R1000"
+topic = "Rewriting attributes (R783) run on egglog, replacing `egg` for these rewrites, under a fixed rule schedule and node limit; reaching the limit is a diagnostic, never a partial rewrite; research track (RFC 0065 D7)"
+sections = "26.6"
+
+[[entry]]
+rows = "R1001"
+topic = "Design bases for three niche surface RFCs: EverParse 3D constructs plus a Kaitai Struct importer for Yan Binary Format, the Catala default calculus for Yan Law, Temporal-style event-history replay with hash-pinned versions for Yan Workflow; R550 unchanged (RFC 0065 D8 to D10)"
+sections = "16.7"
