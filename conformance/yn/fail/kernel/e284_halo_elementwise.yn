@@ -1,0 +1,13 @@
+-- spec: 11.2
+-- rows: R955
+-- note: `halo` is for `rows`, `cols` and `tile`, not `elementwise` (#845)
+-- expect: E284 at 7:1
+
+@kernel(tile: 8, 8)
+@access(a: elementwise(halo: 1), out: elementwise)
+scale(at: TileOrigin, a: Array[64, 64, float]) -> Array[64, 64, float] =
+  for i in range(0, 8)
+    for j in range(0, 8)
+      out[at.i0 + i, at.i1 + j] = a[i, j]
+
+main() = 0

@@ -1,0 +1,17 @@
+-- spec: 11.2, 17.1
+-- rows: R955, R971, R972
+-- note: a `rows(0)` write region gives one instance per band of two rows; the read claim carries a halo the body does not need (#880)
+-- stdout:
+-- 3.0 7.5 13.5 13.5
+
+@kernel(tile: 2, 3)
+@access(a: rows(0, halo: 1), out: rows(0))
+mix(at: TileOrigin, a: Array[4, 3, float]) -> Array[4, 3, float] =
+  for i in range(0, 2)
+    for j in range(0, 3)
+      out[at.i0 + i, j] = a[at.i0 + i, j] + a[at.i0 + 1 - i, j] * 0.5
+
+main() fail KernelFault uses io, gpu =
+  let a: Array[4, 3, float] = [1.0 2.0 3.0; 4.0 5.0 6.0; 7.0 8.0 9.0; 10.0 11.0 12.0]
+  let r = gpu.launch(mix, a)?
+  io.print("\(r[0, 0]) \(r[1, 2]) \(r[2, 1]) \(r[3, 0])")
