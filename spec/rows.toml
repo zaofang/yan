@@ -1639,3 +1639,13 @@ sections = "21.4"
 rows = "R987"
 topic = "conformance/mcp/ holds served-package cases: `root/`, `yan mcp package` flags, and a JSON-RPC session with its exact replies, the `--list` result, or the code that refuses to start the server; the runner trusts the copied root first"
 sections = "24.1"
+
+[[entry]]
+rows = "R990"
+topic = "release scope trimmed to the polish floor (RFC 0064 D1): reactive notebooks, live values, depth-lens inlay hints, the item-level merge driver and the full book move from M3 to 1.x; the language server, Yan tree-sitter grammar, tour, by-example pages, std reference and `yan repl` stay in M3"
+sections = "13.2, 18.1, 18.9, 23"
+
+[[entry]]
+rows = "R991"
+topic = "1.x bucket of section 23 ships under the 20.7 release train after the 1.0 edition; the randomized comparison on contested Yan syntax moves there and reports after 1.0, so compiler sources avoid the contested forms through 1.0 (amends R969)"
+sections = "22.7, 23"

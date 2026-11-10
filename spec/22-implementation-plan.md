@@ -93,6 +93,6 @@ S5 may overlap S4; 1.0 needs both. The frozen Rust tree and a committed `.yir` s
 
 **Code generation (R968).** The Yan compiler generates code through LLVM's C API for debug (`-O0`) and release builds. Cranelift stays in stage 0 only; where this spec names Cranelift it means stage 0's backend. After 1.0 a debug backend written in Yan replaces it for fast debug builds and the JIT.
 
-**Surface (R969).** The compiler is written in Yan (`.yn`). The Yan lexer, parser, printer and lowering to HIR are M2a work (23). Until the M3 randomized comparison reports, compiler sources avoid the contested forms it covers.
+**Surface (R969).** The compiler is written in Yan (`.yn`). The Yan lexer, parser, printer and lowering to HIR are M2a work (23). Until the randomized comparison reports (after 1.0, R991), compiler sources avoid the contested forms it covers.
 
 **Ordering (R970).** S2 starts only after formal phases 1 and 2 (22.1) land, and those start after the M1 gate. Stage 0 keeps growing until the freeze, the optimizer and the package manager included, and every stage-0 crate is ported.

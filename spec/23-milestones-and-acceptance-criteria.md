@@ -63,16 +63,23 @@ M2b (library, registry and tools):
 - Self-hosting stages S1 to S3 of 22.7 (R967).
 - Projections in both directions; all round-trip laws that apply pass on the whole suite, and `conform.py --laws` gates CI (R564).
 - The print-only Yan Meta view, `yan view --as ymt` (16.6, R563).
-- Prose diagnostics; language server; reactive notebooks; live values computed on examples; depth-lens inlay hints; Yan tree-sitter grammar; item-level merge driver.
+- Prose diagnostics; language server; Yan tree-sitter grammar; `yan repl` (R990).
 - Yan surface: grapheme-aware display, date literals, `select`, generators, deadline blocks; HTTP server; localizable diagnostics.
-- Randomized comparison (at least 30 participants) on contested Yan syntax: implicit-subject lambdas and the typed implicit subject in frame expressions, grid literals, unit suffixes, `\(x)` interpolation, and the `&x` mark.
 
 ### RC · Release candidate
 
 - The 1.0 edition is named; the freeze list (20.2) takes effect; the release train (20.7) starts.
 - Self-hosting stages S4 and S5 of 22.7 pass; `yan` ships from stage 2 and stage 0 is frozen (R966, R967).
 
-**Docs gate (R319).** Every fence in the tour, book, guides and std passes, and std `pub` doc coverage is 100%. The doc model and links land in M0; `yan doc`, the fence runner and doc lints in M1; the wasm interpreter in M1b; the surface toggle, tour, book and playground in M3.
+**Docs gate (R319).** Every fence in the tour, book, guides and std passes, and std `pub` doc coverage is 100%. The doc model and links land in M0; `yan doc`, the fence runner and doc lints in M1; the wasm interpreter in M1b; the surface toggle, tour and playground in M3, the book in 1.x (R990).
+
+### 1.x · After 1.0
+
+Ships under the release train of 20.7, not before the 1.0 edition (R991).
+
+- Reactive notebooks (`yan nb`) and live values computed on examples; depth-lens inlay hints; the item-level merge driver (`yan merge-driver`).
+- The full book, beyond the tour, by-example pages and std reference of R319.
+- Randomized comparison (at least 30 participants) on contested Yan syntax: implicit-subject lambdas and the typed implicit subject in frame expressions, grid literals, unit suffixes, `\(x)` interpolation, and the `&x` mark. It reports after 1.0 (R969).
 
 ### M4 · Depth
 
