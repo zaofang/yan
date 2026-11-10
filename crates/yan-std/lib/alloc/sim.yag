@@ -23,3 +23,43 @@ pub def Faults(drop: float = 0.0, delay: Duration = 0 * s, partition: Duration =
 @intrinsic
 @since("1.0")
 pub def sim(nodes: int, seed: int, faults: FaultPlan = Faults()) -> std.cluster.Cluster: ...
+
+@since("1.0")
+pub type TraceVerdict = Accepted() | Rejected(index: int, actor: str, event: str, state: str)
+
+@since("1.0")
+pub class Step:
+    """One recorded event of a trace (R999): the actor it happened at and the event's name."""
+    actor: str
+    event: str
+
+@since("1.0")
+pub class Edge:
+    """A transition of a machine (R999): in `src`, `event` is allowed and leads to `dst`."""
+    src: str
+    event: str
+    dst: str
+
+@since("1.0")
+pub class Machine:
+    """The state machine of one actor (R999), in `start` at the first step."""
+    actor: str
+    start: str
+    edges: list[Edge]
+
+@since("1.0")
+pub class Spec:
+    """A spec for `check_trace` (R999): one state machine per actor."""
+    machines: list[Machine]
+
+@intrinsic
+@since("1.0")
+pub def pct(depth: int = 2, seed: int = 0, steps: int = 1000) -> std.sched.Sched:
+    """PCT scheduling (R999): the highest-priority runnable task runs, and `depth - 1` change points drawn from `seed` among the first `steps` decisions demote the task chosen there."""
+    ...
+
+@intrinsic
+@since("1.0")
+pub def check_trace(trace: list[Step], spec: Spec) -> TraceVerdict:
+    """Accepted when every step is allowed by its actor's machine in order, else Rejected at the first step that is not (R999)."""
+    ...

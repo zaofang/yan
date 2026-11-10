@@ -74,6 +74,8 @@ struct Task {
     done: bool,
     park: Option<(bool, usize)>,
     seen: Option<u64>,
+    /// The PCT priority (R999); unused without a `pct` handler.
+    prio: i64,
     /// Frames called from the task's own, outermost first, with their stack from `height` up.
     chain: Vec<Saved>,
     seg: Vec<Value>,
@@ -510,23 +512,31 @@ impl<'o> Vm<'o> {
         let key = (self.task_path.clone(), entries[0]);
         let (mut tasks, mut first, mut failed, cancel) = match self.suspended.remove(&key) {
             Some(s) => (s.tasks, s.first, s.failed, s.cancel),
-            None => (
-                entries
-                    .iter()
-                    .map(|e| Task {
-                        pc: *e as usize,
-                        done: false,
-                        park: None,
-                        seen: None,
-                        chain: Vec::new(),
-                        seg: Vec::new(),
-                        height: 0,
-                    })
-                    .collect(),
-                None,
-                vec![None; entries.len()],
-                false,
-            ),
+            None => {
+                let prios = match self.it.pct.as_mut() {
+                    Some(p) => p.priorities(entries.len()),
+                    None => vec![0; entries.len()],
+                };
+                (
+                    entries
+                        .iter()
+                        .zip(prios)
+                        .map(|(e, prio)| Task {
+                            pc: *e as usize,
+                            done: false,
+                            park: None,
+                            seen: None,
+                            prio,
+                            chain: Vec::new(),
+                            seg: Vec::new(),
+                            height: 0,
+                        })
+                        .collect(),
+                    None,
+                    vec![None; entries.len()],
+                    false,
+                )
+            }
         };
         let outer = self.task_base.replace(base);
         // Only the outermost block forces a deadlock (R396); a nested one yields to its task.
@@ -537,9 +547,21 @@ impl<'o> Vm<'o> {
         let out = loop {
             let progress = self.it.progress;
             let cancelled = self.it.cancel.iter().any(|c| *c);
-            let next = tasks
+            let runnable: Vec<bool> = tasks
                 .iter()
-                .position(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)));
+                .map(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)))
+                .collect();
+            let next = match self.it.pct.as_mut() {
+                Some(p) => {
+                    let mut prios: Vec<i64> = tasks.iter().map(|t| t.prio).collect();
+                    let i = p.pick(&mut prios, &runnable);
+                    for (t, q) in tasks.iter_mut().zip(prios) {
+                        t.prio = q;
+                    }
+                    i
+                }
+                None => runnable.iter().position(|r| *r),
+            };
             // No task can progress: an idle actor runs a queued message, as an actor task would
             // (RFC 0056 D4), and the parked tasks retry.
             if next.is_none() && super::sync::run_idle(self)? {

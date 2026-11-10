@@ -41,6 +41,7 @@ mod prelude;
 mod proc;
 mod rand;
 mod regex;
+mod simcheck;
 mod simfault;
 #[cfg(test)]
 mod std_parity;
@@ -257,6 +258,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             nodes: Vec::new(),
             placed: None,
             sim: None,
+            pct: None,
             monitors: Vec::new(),
             seq: Default::default(),
             remote: Vec::new(),
@@ -403,6 +405,8 @@ pub(crate) struct Interp<'o> {
     placed: Option<usize>,
     /// The `sim` handler last built: nodes, faults, seed and the clock at its binding (RFC 0063 D3).
     sim: Option<Value>,
+    /// The PCT scheduler last built, which chooses the next task of a `par concurrent` (R999).
+    pct: Option<simcheck::Pct>,
     /// Each monitored actor, the channel its `Down` goes to and the node of the watcher (RFC 0063 D7).
     monitors: Vec<(usize, usize, usize)>,
     /// Messages sent so far over each ordered node pair, which index its fault stream.
@@ -792,6 +796,7 @@ fn entry(
         nodes: Vec::new(),
         placed: None,
         sim: None,
+        pct: None,
         monitors: Vec::new(),
         seq: Default::default(),
         remote: Vec::new(),
