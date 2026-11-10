@@ -233,6 +233,9 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
             "layout" => return unsupported("`@layout` other than `@layout(c)` on a record"),
             "linear" | "newtype" if matches!(it.kind, j::ItemKind::Record(_)) => {}
             "reentrant" => reentrant(it, cx),
+            // Read where an off-node start names it (`cluster_spawn`, E721).
+            "remote" if matches!(it.kind, j::ItemKind::Func(_)) => {}
+            "remote" => return unsupported("`@remote` on an item that is not a function"),
             "constant_time" => crate::consttime::check(it, cx),
             "deny" => {}
             // Read when the type is declared (`item_wire`).

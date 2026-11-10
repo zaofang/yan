@@ -256,6 +256,16 @@ topic = "distributed compute: cluster capability, location-transparent Remote ha
 sections = "9.6, 9.6.1, 25"
 
 [[entry]]
+rows = "R988"
+topic = "simulated nodes: node 0 is the binding task, per-node root supervisors, a handler runs on its actor's home node, `Remote` calls need `uses cluster`, seeded node ids and task-path prefixes (RFC 0063 D1, D6)"
+sections = "9.6.1"
+
+[[entry]]
+rows = "R989"
+topic = "`cluster.spawn(ChildSpec, placement=, capacity=)` returns `Remote`; `std.cluster` types; an `On` start names a `@remote` function with Wire arguments (E721, E720); unsupported placements are E017 (RFC 0063 D2)"
+sections = "9.6.1"
+
+[[entry]]
 rows = "R380 to R389"
 topic = "performance: deferred overflow traps, check elision and loop versioning, one reduction order, LLVM code-generation facts, move and return elision, unobservable allocation, safe portable SIMD and multiversioning, hashing and UnorderedMap, in-place concatenation, release pipeline and M2a gate"
 sections = "3.3, 3.4, 4.1, 5.5, 6.6, 7.7, 8.5, 8.6, 9.3, 10.6, 11.1, 11.3, 23"

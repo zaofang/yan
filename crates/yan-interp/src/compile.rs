@@ -1178,7 +1178,17 @@ impl<'g, 'm> FnC<'g, 'm> {
                 });
                 self.emit(Op::Move { dst: reg, src: h });
                 self.scopes.push(Scope::With { reg, saved });
+                // Nodes 1 to n-1 each get a root supervisor for the binding (RFC 0063 D1).
+                let cluster = name == "cluster";
+                if cluster {
+                    self.emit(Op::SupBegin(h));
+                    self.scopes.push(Scope::Sup);
+                }
                 self.block(body);
+                if cluster {
+                    self.scopes.pop();
+                    self.emit(Op::SupEnd);
+                }
                 self.scopes.pop();
                 self.emit(Op::Restore {
                     dst: reg,

@@ -26,6 +26,7 @@ mod assign;
 mod builtin;
 mod call_expr;
 mod calls;
+mod cluster;
 mod consume;
 mod fallback;
 mod last_use;

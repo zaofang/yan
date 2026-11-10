@@ -1,0 +1,5 @@
+"""The simulated cluster (9.6.1, R417, RFC 0063): every node runs in this process."""
+
+@intrinsic
+@since("1.0")
+pub def sim(nodes: int, seed: int) -> std.cluster.Cluster: ...

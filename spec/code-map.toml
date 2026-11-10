@@ -169,8 +169,8 @@ E714 = { unimplemented = "#825" }
 E715 = "crates/yan-elab/src/decorators.rs"
 E716 = "crates/yan-elab/src/lower.rs"
 E717 = "crates/yan-elab/src/lower/arith.rs"
-E720 = "crates/yan-elab/src/lower/call_expr.rs"
-E721 = { unimplemented = "#825" }
+E720 = "crates/yan-elab/src/lower/cluster.rs"
+E721 = "crates/yan-elab/src/lower/cluster.rs"
 E722 = { unimplemented = "#825" }
 E723 = { unimplemented = "#825" }
 E724 = { unimplemented = "#825" }

@@ -110,6 +110,13 @@ impl Lower<'_, '_, '_> {
                 self.send_only_call(args, at)
             }
             j::ExprKind::Attr(m, op, _)
+                if op == "spawn"
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "cluster")
+                    && self.sig.caps.iter().any(|c| c == "cluster") =>
+            {
+                self.cluster_spawn(m, args, at)
+            }
+            j::ExprKind::Attr(m, op, _)
                 if op == "start"
                     && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.locals.contains_key(a)) =>
             {
@@ -403,24 +410,7 @@ impl Lower<'_, '_, '_> {
                     && c.path.join(".") == "std.actor.share"
                     && let Some(Ty::Coll("Actor", ts)) = self.ty_of_local(b)
                 {
-                    let state = ts[0].clone();
-                    let mut bad: Vec<&String> = self
-                        .g
-                        .fns
-                        .iter()
-                        .filter(|(_, s)| {
-                            s.params.first().is_some_and(|p| p.ty == state)
-                                && s.params[1..].iter().any(|p| !wire(&p.ty))
-                        })
-                        .map(|(n, _)| n)
-                        .collect();
-                    bad.sort();
-                    if let Some(h) = bad.first() {
-                        let msg = format!(
-                            "a remote actor's handlers take Wire values, but `{h}` takes one that is not"
-                        );
-                        self.err("E720", at, msg);
-                    }
+                    self.wire_handlers(&ts[0], at);
                 }
                 if let (Rhs::Call(c), _, _) = &r
                     && c.path.join(".") == "std.chan.sender.send"
