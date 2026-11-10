@@ -750,6 +750,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--laws", action="store_true", help="report the round-trip laws (16.5) instead; never fails"
     )
+    ap.add_argument("--seed", type=int, default=0, help="seed for the N7 generator")
+    ap.add_argument("--samples", type=int, default=20, help="generated modules per N7 surface")
     ap.add_argument("--report-only", action="store_true", help="always exit 0")
     args = ap.parse_args(argv)
 
@@ -767,7 +769,7 @@ def main(argv: list[str] | None = None) -> int:
 
     cases = selected(cases, args.milestone)
     if args.laws:
-        return report_laws(cases, executors, args.json)
+        return report_laws(cases, executors, args.json, args.seed, args.samples)
     results = [judge(c, ex) for c in cases for ex in executors]
     counts = Counter(r.status for r in results)
     for r in results:
@@ -789,7 +791,11 @@ def main(argv: list[str] | None = None) -> int:
     return 1 if counts["fail"] and not args.report_only else 0
 
 
-def report_laws(cases: list[Case], executors: list[CommandExecutor], out: Path | None) -> int:
+def report_laws(
+    cases: list[Case], executors: list[CommandExecutor], out: Path | None, seed: int, samples: int
+) -> int:
+    from tools import lens  # lens imports this module
+
     summary: dict[str, object] = {}
     for ex in executors:
         for law, results in check_laws(cases, ex).items():
@@ -803,6 +809,14 @@ def report_laws(cases: list[Case], executors: list[CommandExecutor], out: Path |
                 "counts": tally,
                 "results": [asdict(r) for r in results],
             }
+        for s in lens.SURFACES:
+            r = lens.check(ex, s, seed, samples)
+            print(
+                f"FAIL law {r.case} {r.executor}: {r.detail}"
+                if r.status == "fail"
+                else f"{r.case}, {ex.name}: pass"
+            )
+            summary[f"{ex.name} {r.case}"] = {"counts": {r.status: 1}, "results": [asdict(r)]}
     if out:
         out.write_text(json.dumps(summary, indent=2))
     # Reported only until M3, when the laws gate CI (R564).
