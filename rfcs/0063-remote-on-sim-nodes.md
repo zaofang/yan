@@ -53,7 +53,7 @@ Options:
 Recommendation: (a). It matches a real node, where the process that binds `cluster` is a member, and
 gives every actor one node that `NodeDown` and partitions can act on.
 
-- Decision: (lead)
+- Decision: (a), lead card, 2026-11-10
 - Row: (one new row extending R417)
 
 ### D2: the `std.cluster` surface for step 1
