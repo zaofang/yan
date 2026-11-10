@@ -38,6 +38,7 @@ yan-interp = { path = "crates/yan-interp" }
 yan-check = { path = "crates/yan-check" }
 yan-std = { path = "crates/yan-std" }
 yan-rt = { path = "crates/yan-rt" }
+yan-sandbox = { path = "crates/yan-sandbox" }
 yan-mir = { path = "crates/yan-mir" }
 yan-cg-cranelift = { path = "crates/yan-cg-cranelift" }
 yan-hir = { path = "crates/yan-hir" }

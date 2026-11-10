@@ -1,7 +1,7 @@
 """The proc capability: run a program by argv, never through a shell (17.3, 7.1, R448)."""
 
 @since("1.0")
-pub type ProcReason = NotFound() | PermissionDenied() | OsError()
+pub type ProcReason = NotFound() | PermissionDenied() | OsError() | Unconfined()
 
 @since("1.0")
 pub class ProcError:
@@ -49,6 +49,10 @@ pub def in_dir[P: AsPath](self: Command, p: P) -> Command: ...
 @intrinsic
 @since("1.0")
 pub def stdin(self: Command, b: bytes) -> Command: ...
+
+@intrinsic
+@since("1.0")
+pub def unconfined(self: Command) -> Command: ...
 
 @intrinsic
 @since("1.0")

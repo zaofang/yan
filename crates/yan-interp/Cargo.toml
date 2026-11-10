@@ -12,6 +12,7 @@ blake3.workspace = true
 serde_json.workspace = true
 yan-std.workspace = true
 yan-rt.workspace = true
+yan-sandbox.workspace = true
 yan-core.workspace = true
 yan-diag.workspace = true
 yan-mir.workspace = true
