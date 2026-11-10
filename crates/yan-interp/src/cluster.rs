@@ -1,5 +1,6 @@
 //! std.cluster and std.sim: the `sim` handler's nodes and which node code runs on (RFC 0063 D1).
 
+use crate::R;
 use yan_std::registry::{Id, id::*};
 
 use yan_rt::wire::{Def, Limits, Schema, Schemas, Val, decode, encode};
@@ -68,23 +69,59 @@ fn index(h: &Value, n: &Value) -> Option<usize> {
 pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_SIM_SIM,
-        Bind::Plain(|a| match a {
-            [Value::Int(n), Value::Int(seed)] if *n >= 1 => Ok(Value::Data {
-                name: "Sim".into(),
-                fields: vec![(
-                    "nodes".into(),
-                    Value::List((0..*n).map(|i| node_id(*seed, i)).collect()),
-                )],
-            }),
-            [Value::Int(_), Value::Int(_)] => {
+        Bind::Cap(|it, a| match a {
+            [Value::Int(n), Value::Int(seed), faults] if *n >= 1 => {
+                let sim = Value::Data {
+                    name: "Sim".into(),
+                    fields: vec![
+                        (
+                            "nodes".into(),
+                            Value::List((0..*n).map(|i| node_id(*seed, i)).collect()),
+                        ),
+                        ("faults".into(), faults.clone()),
+                        ("seed".into(), Value::Int(*seed)),
+                        ("epoch".into(), Value::Int(crate::time::mono_now(it))),
+                    ],
+                };
+                it.sim = Some(sim.clone());
+                it.seq.clear();
+                Ok(sim)
+            }
+            [Value::Int(_), Value::Int(_), _] => {
                 crate::panic("precondition `nodes >= 1` of `sim` failed")
             }
             _ => bad_args(STD_SIM_SIM),
         }),
     ),
     (
+        STD_SIM_FAULTS,
+        Bind::Plain(|a| {
+            let names = ["drop", "delay", "partition", "heal", "cuts"];
+            Ok(Value::Data {
+                name: "FaultPlan".into(),
+                fields: names
+                    .iter()
+                    .zip(a)
+                    .map(|(n, v)| ((*n).into(), v.clone()))
+                    .collect(),
+            })
+        }),
+    ),
+    (
         STD_CLUSTER_NODES,
         Bind::Plain(|a| Ok(Value::List(ids(&a[0]).to_vec()))),
+    ),
+    // One `Down` arrives on the receiver when the target stops (R411).
+    (
+        STD_CLUSTER_MONITOR,
+        Bind::Cap(|it, a| {
+            let id = crate::sync::chan(&a[1]);
+            it.chans.push((usize::MAX, Default::default()));
+            let c = it.chans.len() - 1;
+            it.monitors.push((id, c));
+            deliver(it, id);
+            Ok(crate::sync::end("Receiver", c))
+        }),
     ),
     (
         STD_CLUSTER_SELF_NODE,
@@ -96,39 +133,49 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             }
         }),
     ),
-    // Same-node and cross-node calls share one path until faults land (#929 step 3).
-    (STD_CLUSTER_REACH, Bind::Plain(|a| Ok(a[0].clone()))),
+    // The request message of a call through `Remote` (RFC 0063 D5); `take` reports its failure.
+    (
+        STD_CLUSTER_REACH,
+        Bind::Vm(|vm: &mut Vm, _, a| {
+            let me = vm.task_path.clone();
+            let from = current(&vm.it, &me);
+            let to = vm.it.actors[crate::sync::chan(&a[0])].home;
+            crate::simfault::request(&mut vm.it, &me, from, to);
+            Ok(a[0].clone())
+        }),
+    ),
+    // The reply message: the call fails when it is lost or late, though the handler ran.
+    (
+        STD_CLUSTER_ARRIVE,
+        Bind::Vm(|vm: &mut Vm, _, a| {
+            let me = vm.task_path.clone();
+            let outcome = std::mem::take(&mut a[0]);
+            Ok(crate::simfault::reply(&mut vm.it, &me, outcome))
+        }),
+    ),
     (
         STD_CLUSTER_WIRE,
         Bind::Plain(|a| {
-            let [x, Value::Str(sc)] = a else {
-                return bad_args(STD_CLUSTER_WIRE);
-            };
-            let sc: Schemas = serde_json::from_str(sc).expect("the elaborator's schema");
-            let root = &sc.defs[&sc.root];
-            let Def::Record(f) = root else {
-                unreachable!("the root is a record")
-            };
-            let fail = |why: String| {
+            roundtrip(a, STD_CLUSTER_WIRE)?.or_else(|why| {
                 crate::panic_with(
                     "wire",
                     format!("a call through `Remote` cannot encode its value: {why}"),
                 )
-            };
-            let v = match to_val(&sc, &f[0].1, x) {
-                Ok(v) => v,
-                Err(w) => return fail(w),
-            };
-            let bytes = match encode(&sc, &Val::Record(vec![v])) {
-                Ok(b) => b,
-                Err(e) => return fail(format!("{e:?}")),
-            };
-            match decode(&sc, &bytes, Limits::default()) {
-                Ok(Val::Record(mut vs)) => Ok(from_val(&sc, &f[0].1, vs.remove(0))),
-                Ok(_) => unreachable!("the root is a record"),
-                Err(e) => fail(format!("{e:?}")),
-            }
+            })
         }),
+    ),
+    // The reply cannot be encoded: the handler ran, and the call fails `SchemaMismatch` (R408).
+    (
+        STD_CLUSTER_WIRE_REPLY,
+        Bind::Vm(
+            |vm: &mut Vm, _, a| match roundtrip(a, STD_CLUSTER_WIRE_REPLY)? {
+                Ok(v) => Ok(v),
+                Err(_) => {
+                    crate::simfault::mismatch(&mut vm.it, &vm.task_path);
+                    Ok(std::mem::take(&mut a[0]))
+                }
+            },
+        ),
     ),
     (
         STD_CLUSTER_PLACE,
@@ -276,4 +323,53 @@ fn named(sc: &Schemas, fs: &[(String, Schema)], xs: Vec<Val>) -> Vec<(super::Nam
         .zip(xs)
         .map(|((n, t), x)| (n.as_str().into(), from_val(sc, t, x)))
         .collect()
+}
+
+/// Delivers the `Stopped` of each monitor of actor `id`, which has just stopped.
+pub(crate) fn deliver(it: &mut Interp, id: usize) {
+    let Some(reason) = it.actors[id].stopped.clone() else {
+        return;
+    };
+    let (fired, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut it.monitors)
+        .into_iter()
+        .partition(|(a, _)| *a == id);
+    it.monitors = rest;
+    for (_, c) in fired {
+        let down = Value::Data {
+            name: "Stopped".into(),
+            fields: vec![("reason".into(), reason.clone())],
+        };
+        it.chans[c].1.push_back(down);
+        it.progress += 1;
+    }
+}
+
+/// Stops actor `id` and tells its monitors.
+pub(crate) fn stop(it: &mut Interp, id: usize, reason: Value) {
+    it.actors[id].stop(reason);
+    deliver(it, id);
+}
+
+/// `x` after the encode and decode of a call through `Remote`, or why it cannot be.
+fn roundtrip(a: &[Value], id: Id) -> R<Result<Value, String>> {
+    let [x, Value::Str(sc)] = a else {
+        return bad_args(id);
+    };
+    let sc: Schemas = serde_json::from_str(sc).expect("the elaborator's schema");
+    let Def::Record(f) = &sc.defs[&sc.root] else {
+        unreachable!("the root is a record")
+    };
+    let v = match to_val(&sc, &f[0].1, x) {
+        Ok(v) => v,
+        Err(w) => return Ok(Err(w)),
+    };
+    let bytes = match encode(&sc, &Val::Record(vec![v])) {
+        Ok(b) => b,
+        Err(e) => return Ok(Err(format!("{e:?}"))),
+    };
+    Ok(match decode(&sc, &bytes, Limits::default()) {
+        Ok(Val::Record(mut vs)) => Ok(from_val(&sc, &f[0].1, vs.remove(0))),
+        Ok(_) => unreachable!("the root is a record"),
+        Err(e) => Err(format!("{e:?}")),
+    })
 }

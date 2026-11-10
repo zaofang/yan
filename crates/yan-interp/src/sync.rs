@@ -13,14 +13,14 @@ use super::time::{mono_now, wait_out, wait_until};
 use super::vm::{Clo, Vm};
 use super::{Interp, R, Value, data, panic, unsupported};
 
-fn end(name: &str, chan: usize) -> Value {
+pub(crate) fn end(name: &str, chan: usize) -> Value {
     Value::Data {
         name: name.into(),
         fields: vec![("chan".into(), Value::Int(chan as i128))],
     }
 }
 
-fn chan(v: &Value) -> usize {
+pub(crate) fn chan(v: &Value) -> usize {
     match v {
         Value::Data { fields, .. } => match fields[0].1 {
             Value::Int(c) => c as usize,
@@ -86,7 +86,7 @@ pub(crate) struct Actor {
     /// The task path of the handler holding the state, while one does.
     holder: Option<Vec<usize>>,
     /// Why a failed handler or its supervisor stopped it, until it restarts (R977).
-    stopped: Option<Value>,
+    pub(crate) stopped: Option<Value>,
     /// Starts so far, so a `@reentrant` handler that lent the state cannot retake a restart's.
     starts: i128,
     /// Why the last start stopped, for a `@reentrant` handler that lent it the state.
@@ -95,7 +95,7 @@ pub(crate) struct Actor {
     /// marked once its retake failed.
     lent: Vec<(Vec<usize>, bool)>,
     /// The node it runs on (RFC 0063 D1).
-    home: usize,
+    pub(crate) home: usize,
     child: Child,
 }
 
@@ -351,18 +351,27 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         Bind::Vm(|vm, _, a| {
             let id = chan(&a[0]);
             let me = vm.task_path.clone();
+            if let Some(e) = crate::simfault::refused(&mut vm.it, &me) {
+                return Ok(data("Err", "error", e));
+            }
             // A call is a barrier: the actor runs every message queued before it (R813).
             if !vm.it.doomed.contains(&me) {
                 while run_queued(vm, id)? {}
             }
             Ok(match take_state(vm, id, me.clone())? {
-                None => Value::Unit,
+                None => {
+                    crate::simfault::forget(&mut vm.it, &me);
+                    Value::Unit
+                }
                 Some(Ok(s)) => {
                     let home = vm.it.actors[id].home;
                     crate::cluster::enter(&mut vm.it, me, home);
                     data("Ok", "value", s)
                 }
-                Some(Err(e)) => data("Err", "error", e),
+                Some(Err(e)) => {
+                    crate::simfault::forget(&mut vm.it, &me);
+                    data("Err", "error", e)
+                }
             })
         }),
     ),

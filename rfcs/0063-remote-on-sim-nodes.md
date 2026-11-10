@@ -2,7 +2,7 @@
 
 - Status: accepted (D1 and D3 by lead cards, 2026-11-10)
 - Research: none; follows RFC 0056 D9 (accepted, R960) and the survey in #929.
-- Rows: R988 (D1, D6), R989 (D2); R417 admits listed cuts (D3). D3's `sim` faults row lands with step 3
+- Rows: R988 (D1, D6), R989 (D2); R417 admits listed cuts (D3); R992 (D3, D5) and R993 (monitor) with step 3
 
 ## Summary
 
@@ -171,3 +171,9 @@ diagnostic. Step 2 (always encode), step 3 (D3's faults, D5, `monitor`) and step
   for D3's `sim` and `Faults`.
 - 7: the `cluster` row points at `std.cluster`.
 - 17.3 (std actors) or a new 17.x entry for `std.cluster` and `std.sim`.
+
+## Step 3 as built
+
+- Class fields take literal defaults only, so `Faults(...)` is a std constructor function that returns a `FaultPlan` with the fields of D3; `Cut` is a class.
+- `monitor` delivers `Stopped(reason)`, the existing class, on a `Receiver[Stopped]`: the name `Down` is a variant of `std.math.Round`, and a std signature cannot name a class of another module. `demonitor` is dropping the receiver.
+- A partition does not yet deliver `NodeDown()` to a monitor.

@@ -36,9 +36,18 @@ pub trait Cluster:
     def nodes(self: Self) -> list[Node]: ...
     def self_node(self: Self) -> Node: ...
 
+
 @intrinsic
 @since("1.0")
 pub def reach[S, P](self: Remote[Actor[S, P]]) -> Actor[S, P]: ...
+
+@intrinsic
+@since("1.0")
+pub def arrive[T, F](outcome: Result[T, F]) -> Result[T, F]: ...
+
+@intrinsic
+@since("1.0")
+pub def monitor[S, P, D](cluster: Cluster, target: Remote[Actor[S, P]]) -> Receiver[D]: ...
 
 @intrinsic
 @since("1.0")
@@ -47,6 +56,10 @@ pub def place(cluster: Cluster, node: Node) -> None: ...
 @intrinsic
 @since("1.0")
 pub def leave() -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def wire_reply[T](x: T, schema: str) -> T: ...
 
 @intrinsic
 @since("1.0")

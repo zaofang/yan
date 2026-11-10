@@ -41,6 +41,7 @@ mod prelude;
 mod proc;
 mod rand;
 mod regex;
+mod simfault;
 #[cfg(test)]
 mod std_parity;
 #[cfg(test)]
@@ -254,6 +255,10 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             actor_waits: Vec::new(),
             nodes: Vec::new(),
             placed: None,
+            sim: None,
+            monitors: Vec::new(),
+            seq: Default::default(),
+            remote: Vec::new(),
             wait_since: Vec::new(),
             doomed: Vec::new(),
             net: Default::default(),
@@ -391,6 +396,14 @@ pub(crate) struct Interp<'o> {
     nodes: Vec<(Vec<usize>, usize)>,
     /// The node a `cluster.spawn` placed its start on, when not the caller's (RFC 0063 D2).
     placed: Option<usize>,
+    /// The `sim` handler last built: nodes, faults, seed and the clock at its binding (RFC 0063 D3).
+    sim: Option<Value>,
+    /// Each monitored actor and the channel its `Down` goes to (RFC 0063 D7).
+    monitors: Vec<(usize, usize)>,
+    /// Messages sent so far over each ordered node pair, which index its fault stream.
+    seq: std::collections::HashMap<(usize, usize), u64>,
+    /// The calls through `Remote` awaiting their reply, innermost last, by task path.
+    remote: Vec<(Vec<usize>, simfault::Pending)>,
     /// When each task waiting on an actor began to wait, for the 5 s default deadline (9.6).
     wait_since: Vec<(Vec<usize>, i128)>,
     /// Parked callers that a wait cycle chose to fail `Deadlock` when they next retry (D6).
@@ -768,6 +781,10 @@ fn entry(
         actor_waits: Vec::new(),
         nodes: Vec::new(),
         placed: None,
+        sim: None,
+        monitors: Vec::new(),
+        seq: Default::default(),
+        remote: Vec::new(),
         wait_since: Vec::new(),
         doomed: Vec::new(),
         net: Default::default(),
