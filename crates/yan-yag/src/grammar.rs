@@ -1256,4 +1256,12 @@ mod tests {
         assert!(diff[0].1.starts_with("tqbody"));
         assert!(!g.xgrammar().contains(" . "));
     }
+
+    #[test]
+    fn output_is_byte_stable() {
+        let (a, b) = (Grammar::yag(), Grammar::yag());
+        assert_eq!(a.gbnf(), b.gbnf());
+        assert_eq!(a.llguidance(), b.llguidance());
+        assert_eq!(a.xgrammar(), b.xgrammar());
+    }
 }
