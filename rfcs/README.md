@@ -83,3 +83,4 @@ research index links their studies and rows.
 | [0061](0061-kernel-claim-gaps.md) | `halo` on extern claims, and codes for a malformed `@kernel` | accepted | R982, R983 |
 | [0062](0062-serve-package-as-mcp.md) | Serve a package's public functions as MCP tools | accepted | R984 to R986 |
 | [0063](0063-remote-on-sim-nodes.md) | `Remote` on `std.sim`: which node code runs on, the `cluster` surface and `sim` faults | accepted | R988, R989 |
+| [0064](0064-rc-scope-trim.md) | Trim the release-candidate scope to the polish floor | accepted | R990, R991 |

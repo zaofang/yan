@@ -120,3 +120,4 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-01 | [Security model: capabilities, FFI and agents](https://claude.ai/artifact/Hotw9YyR8LEvWE4GbB9gLi) | RFC 0026: R672 to R677 |
 | 2026-10-30 | [1.0 Development Roadmap](https://claude.ai/artifact/3ADZraWojw9z33QdGY8GsS) | Living plan |
 | 2026-11-09 | [Self-hosted Yan compiler and formal-proof plan](https://claude.ai/artifact/3TzWFi1LTaqs7ggzokFz3T) | #851; RFC 0057 (#858): R966 to R970 replace R215; LLVM C API for 1.0, `.yn` surface, S2 after formal phases 1 and 2 |
+| 2026-11-09 | [Yan pre-1.0 polish plan](https://claude.ai/artifact/LqVkrNAL8pERD5rGacTrku) | #862; RFC 0064: R990, R991 |
