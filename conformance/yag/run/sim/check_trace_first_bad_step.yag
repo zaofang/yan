@@ -1,0 +1,13 @@
+# spec: 17.7
+# rows: R999
+# note: check_trace accepts a trace the spec allows and rejects the first step it does not
+# stdout:
+# Accepted()
+# Rejected(index=1, actor='door', event='open', state='opened')
+
+def main() uses io:
+    spec = Spec([Machine("door", "closed", [Edge("closed", "open", "opened"), Edge("opened", "close", "closed")])])
+    good = [Step("door", "open"), Step("door", "close"), Step("door", "open")]
+    bad = [Step("door", "open"), Step("door", "open"), Step("door", "close")]
+    io.print(f"{sim.check_trace(good, spec)}")
+    io.print(f"{sim.check_trace(bad, spec)}")
