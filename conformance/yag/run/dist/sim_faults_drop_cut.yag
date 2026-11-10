@@ -1,0 +1,32 @@
+# spec: 9.6.1
+# rows: R992
+# note: a lost request leaves the handler unrun, a lost reply leaves its effects, a cut fails every call across it
+# stdout:
+# -1
+# -1
+# 1
+
+class Box:
+    n: int
+
+def bump(var self: Box) -> int:
+    self.n += 1
+    return self.n
+
+@remote
+def make() -> Box:
+    return Box(n=0)
+
+def try_call(a: Remote[Actor[Box, Block]]) -> int uses cluster:
+    return a.bump() else e -> -1
+
+pub def main() -> None uses io, cluster:
+    with cluster = sim(2, 3, Faults(drop=1.0)):
+        a = cluster.spawn(ChildSpec(make, ()), placement=On(cluster.nodes()[1]))
+        io.print(f"{try_call(a)}")
+    with cluster = sim(2, 3, Faults(cuts=[Cut(at=0 * s, heal=5 * s, side=set([0]))])):
+        a = cluster.spawn(ChildSpec(make, ()), placement=On(cluster.nodes()[1]))
+        io.print(f"{try_call(a)}")
+    with cluster = sim(2, 3):
+        a = cluster.spawn(ChildSpec(make, ()), placement=On(cluster.nodes()[1]))
+        io.print(f"{try_call(a)}")

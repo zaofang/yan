@@ -1,0 +1,22 @@
+# spec: 9.6.1
+# rows: R401
+# note: a remote actor's handler result must be Wire (E720)
+# expect: E720 at 21:13
+
+class Box:
+    n: int
+
+class Opaque:
+    n: int
+
+def get(var self: Box) -> Opaque:
+    return Opaque(n=self.n)
+
+@remote
+def make() -> Box:
+    return Box(n=0)
+
+pub def main() -> None uses io, cluster:
+    with cluster = sim(2, 3):
+        a = cluster.spawn(ChildSpec(make, ()), placement=On(cluster.nodes()[1]))
+        _ = a
