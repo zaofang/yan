@@ -119,53 +119,101 @@ impl Lower<'_, '_, '_> {
                     l.remote_args(c, &ps, at)?;
                 }
                 let rt = Ty::Result(Box::new(t.clone()), Box::new(fail.clone()));
+                ret = rt.clone();
                 let back = Atom::Name(s.clone(), at);
-                let (e, r) = match r {
-                    // It lends the state back at each suspension (9.6).
-                    Rhs::Call(mut c) if reentrant => {
-                        c.path = vec![super::reentrant::lent_name(m)];
-                        c.targs.push(policy.targ());
-                        c.args.push(let_arg(h.clone()));
-                        (Some(fail.clone()), Rhs::Call(c))
-                    }
-                    r => (e, r),
-                };
-                let out = match (e, r) {
-                    (Some(e), Rhs::Call(c)) => {
-                        let tried = Ty::Result(Box::new(t.clone()), Box::new(e.clone()));
-                        let mut tried_a = l.tmp(&tried, Rhs::Try(c), at);
-                        if remote {
-                            tried_a = l.remote_wire(&tried, tried_a, true, at)?;
+                let rest = |l: &mut Self, k: &str| -> R<()> {
+                    let (e, r) = match r {
+                        // It lends the state back at each suspension (9.6).
+                        Rhs::Call(mut c) if reentrant => {
+                            c.path = vec![super::reentrant::lent_name(m)];
+                            c.targs.push(policy.targ());
+                            c.args.push(let_arg(h.clone()));
+                            (Some(fail.clone()), Rhs::Call(c))
                         }
-                        let tried = tried_a;
-                        let targs =
-                            vec![state.targ(), policy.targ(), t.targ(), e.targ(), fail.targ()];
-                        let args = vec![let_arg(h.clone()), sink_arg(back), sink_arg(tried)];
-                        let c = call("std.actor.settle", targs, args, at);
-                        let settled = l.tmp(&rt, Rhs::Call(c), at);
-                        l.arrive(&rt, settled, remote, at)
-                    }
-                    (Some(_), _) => {
-                        return unsupported("a fallible handler call that is not a plain call");
-                    }
-                    (None, r) => {
-                        let mut v = l.tmp(&t, r, at);
-                        if remote {
-                            v = l.remote_wire(&t, v, true, at)?;
+                        r => (e, r),
+                    };
+                    let out = match (e, r) {
+                        (Some(e), Rhs::Call(c)) => {
+                            let tried = Ty::Result(Box::new(t.clone()), Box::new(e.clone()));
+                            let mut tried_a = l.tmp(&tried, Rhs::Try(c), at);
+                            if remote {
+                                tried_a = l.remote_wire(&tried, tried_a, true, at)?;
+                            }
+                            let tried = tried_a;
+                            let targs =
+                                vec![state.targ(), policy.targ(), t.targ(), e.targ(), fail.targ()];
+                            let args = vec![let_arg(h.clone()), sink_arg(back), sink_arg(tried)];
+                            let c = call("std.actor.settle", targs, args, at);
+                            let settled = l.tmp(&rt, Rhs::Call(c), at);
+                            l.arrive(&rt, settled, remote, at)
                         }
-                        let put = call(
-                            "std.actor.put",
-                            vec![state.targ(), policy.targ()],
-                            vec![let_arg(h.clone()), sink_arg(back)],
-                            at,
-                        );
-                        l.emit(StmtKind::Rhs(Rhs::Call(put)), at);
-                        let ok = l.tmp(&rt, ctor("Ok", "value", v), at);
-                        l.arrive(&rt, ok, remote, at)
-                    }
+                        (Some(_), _) => {
+                            return unsupported("a fallible handler call that is not a plain call");
+                        }
+                        (None, r) => {
+                            let mut v = l.tmp(&t, r, at);
+                            if remote {
+                                v = l.remote_wire(&t, v, true, at)?;
+                            }
+                            let put = call(
+                                "std.actor.put",
+                                vec![state.targ(), policy.targ()],
+                                vec![let_arg(h.clone()), sink_arg(back)],
+                                at,
+                            );
+                            l.emit(StmtKind::Rhs(Rhs::Call(put)), at);
+                            let ok = l.tmp(&rt, ctor("Ok", "value", v), at);
+                            l.arrive(&rt, ok, remote, at)
+                        }
+                    };
+                    l.jump(k, out, at);
+                    Ok(())
                 };
-                l.jump(k, out, at);
-                ret = rt;
+                // An argument that cannot be encoded fails the call before the handler runs (R408).
+                if remote {
+                    let none = Ty::Result(Box::new(Ty::Unit), Box::new(fail.clone()));
+                    let adm = call("std.cluster.admit", vec![fail.targ()], Vec::new(), at);
+                    let adm = l.tmp(&none, Rhs::Call(adm), at);
+                    let (u, e2) = (l.fresh("u"), l.fresh("e"));
+                    let (v2, _) = l.join(at, |l, k2| {
+                        let ok2 = l.block_with(|l| {
+                            l.declare(&u, Ty::Unit);
+                            rest(l, k2)
+                        })?;
+                        let bad = l.block_with(|l| {
+                            l.declare(&e2, fail.clone());
+                            let put = call(
+                                "std.actor.put",
+                                vec![state.targ(), policy.targ()],
+                                vec![let_arg(h.clone()), sink_arg(Atom::Name(s.clone(), at))],
+                                at,
+                            );
+                            l.emit(StmtKind::Rhs(Rhs::Call(put)), at);
+                            let out =
+                                l.tmp(&rt, ctor("Err", "error", Atom::Name(e2.clone(), at)), at);
+                            l.jump(k2, out, at);
+                            Ok(())
+                        })?;
+                        let arm = |c: &str, f: &str, n: &str| y::Pat::Ctor {
+                            path: vec![c.into()],
+                            fields: Some((vec![(f.into(), y::Pat::Bind(n.into()))], false)),
+                        };
+                        let m = y::Stmt {
+                            kind: StmtKind::Match {
+                                scrutinee: adm,
+                                arms: vec![
+                                    (arm("Ok", "value", &u), ok2),
+                                    (arm("Err", "error", &e2), bad),
+                                ],
+                            },
+                            span: at,
+                        };
+                        Ok((m, rt.clone()))
+                    })?;
+                    l.jump(k, v2, at);
+                } else {
+                    rest(l, k)?;
+                }
                 Ok(())
             })?;
             let e = l.fresh("e");

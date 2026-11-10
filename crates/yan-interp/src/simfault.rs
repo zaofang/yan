@@ -217,3 +217,13 @@ pub(crate) fn mismatch(it: &mut Interp, path: &[usize]) {
         it.remote[k].1.mismatch = true;
     }
 }
+
+/// The call's failure when an argument could not be encoded; it ends the call.
+pub(crate) fn admit(it: &mut Interp, path: &[usize]) -> Option<Value> {
+    let k = it.remote.iter().rposition(|(p, _)| p == path)?;
+    if !it.remote[k].1.mismatch {
+        return None;
+    }
+    it.remote.remove(k);
+    Some(crate::sync::failure("SchemaMismatch"))
+}
