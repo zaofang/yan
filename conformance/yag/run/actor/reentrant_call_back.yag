@@ -1,0 +1,32 @@
+# spec: 9.6
+# rows: R397
+# note: a `@reentrant` handler lends the state back while it calls into its own actor, so the callback runs instead of failing `Deadlock` (#835)
+# stdout:
+# 111011
+# 111
+
+class A:
+    n: int
+
+def bump(var self: A, k: int) -> int:
+    self.n += k
+    return self.n
+
+@reentrant
+def relay(var self: A, me: Actor[A]) -> int fail ActorError:
+    self.n += 1
+    v = me.bump(10)?
+    self.n += 100
+    return self.n * 1000 + v
+
+def show(r: Result[int, ActorError]) -> str:
+    match r:
+        case Ok(v):
+            return f"{v}"
+        case Err(e):
+            return f"{e}"
+
+def main() uses io:
+    a = actor.spawn(A(n=0))
+    print(show(a.relay(a)))
+    print(a.bump(0) else -1)

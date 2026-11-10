@@ -4676,6 +4676,53 @@
    "exit": 0
   },
   {
+   "path": "yag/run/actor/reentrant_actor_crashed.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6"
+   ],
+   "rows": [
+    "R397",
+    "R977",
+    "R980"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "-1\nStopped(reason=Crashed(error='Neg()'))\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/actor/reentrant_call_back.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6"
+   ],
+   "rows": [
+    "R397"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "111011\n111\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/actor/reentrant_interleave.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6"
+   ],
+   "rows": [
+    "R397"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "11\n111\n111\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/actor/stop_reasons.yag",
    "kind": "run",
    "milestone": "M1",
