@@ -7012,6 +7012,33 @@
    "expect": []
   },
   {
+   "path": "yn/pass/kernel/div_mod_by_literal.yn",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yn/pass/kernel/halo_in_bounds.yn",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954",
+    "R955"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yn/pass/ownership/for_var.yn",
    "kind": "pass",
    "milestone": "M3",
@@ -7132,6 +7159,31 @@
    ],
    "flags": [],
    "expect": []
+  },
+  {
+   "path": "yn/fail/bounds/e501_array_index.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.6",
+    "11.2"
+   ],
+   "rows": [
+    "R211"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E501",
+     "line": 9,
+     "col": 28
+    },
+    {
+     "code": "E501",
+     "line": 9,
+     "col": 42
+    }
+   ]
   },
   {
    "path": "yn/fail/bounds/e501_refuted.yn",
@@ -7393,6 +7445,156 @@
     {
      "code": "E904",
      "line": 11,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_extern_halo_elementwise.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955",
+    "R982"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 10,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_extern_halo_negative.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955",
+    "R982"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 10,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_extern_halo_out.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955",
+    "R982"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 10,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_extern_halo_repeated.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955",
+    "R982"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 10,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_extern_region_unknown_argument.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955",
+    "R982"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 10,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 10,
      "col": 43
     }
    ]
@@ -7691,6 +7893,31 @@
    ]
   },
   {
+   "path": "yn/fail/ffi/extern_halo_accepted.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955",
+    "R982"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E904",
+     "line": 9,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 9,
+     "col": 43
+    }
+   ]
+  },
+  {
    "path": "yn/fail/holes/h701_typed_hole.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -7706,6 +7933,448 @@
      "code": "H701",
      "line": 5,
      "col": 14
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_halo_exceeded.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954",
+    "R955"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 11,
+     "col": 35
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_loaded_index.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 10,
+     "col": 21
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_loop_bound_loaded.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 11,
+     "col": 3
+    },
+    {
+     "code": "E274",
+     "line": 12,
+     "col": 5
+    },
+    {
+     "code": "E274",
+     "line": 12,
+     "col": 21
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_loop_wider_than_tile.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 10,
+     "col": 21
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_mod_by_zero.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 10,
+     "col": 25
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_not_affine.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 11,
+     "col": 35
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_past_tile.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 11,
+     "col": 35
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_write_past_tile.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 10,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e284_axis_out_of_rank.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 7,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e284_halo_elementwise.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 7,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e285_kernel_tile_zero.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E285",
+     "line": 6,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e285_kernel_two_tile_origins.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E285",
+     "line": 6,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e285_kernel_without_access.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E285",
+     "line": 6,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e285_kernel_without_tile_name.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E285",
+     "line": 6,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e285_kernel_without_tile_origin.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E285",
+     "line": 6,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e286_direct_kernel_call.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E286",
+     "line": 14,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e286_launch_of_non_kernel.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E286",
+     "line": 9,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e286_tile_origin_outside_launch.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E286",
+     "line": 14,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e301_launch_without_gpu.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "7.1",
+    "17.1"
+   ],
+   "rows": [
+    "R971"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 14,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e310_launch_propagates_undeclared.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.1",
+    "17.1"
+   ],
+   "rows": [
+    "R327",
+    "R971"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E310",
+     "line": 14,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e315_unhandled_launch.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.1",
+    "17.1"
+   ],
+   "rows": [
+    "R327",
+    "R971"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E315",
+     "line": 14,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e521_partial_tile.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "17.1"
+   ],
+   "rows": [
+    "R973"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E521",
+     "line": 14,
+     "col": 3
     }
    ]
   },
@@ -8862,6 +9531,92 @@
    "flags": [],
    "expect": [],
    "stdout": "4\nhi!\nTrue\n1.0\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/kernel/kernel_constants.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "11.2",
+    "10.4"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 4\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/kernel/kernel_fault.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "8.1",
+    "11.2",
+    "17.1"
+   ],
+   "rows": [
+    "R327",
+    "R971"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 0 11:23\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/kernel/launch_bool_and_i32.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "11.2",
+    "17.1"
+   ],
+   "rows": [
+    "R971"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "True False True 1 0\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/kernel/launch_elementwise.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "11.2",
+    "17.1"
+   ],
+   "rows": [
+    "R953",
+    "R971",
+    "R972"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 18 32\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/kernel/launch_rows.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "11.2",
+    "17.1"
+   ],
+   "rows": [
+    "R955",
+    "R971",
+    "R972"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3.0 7.5 13.5 13.5\n",
    "exit": 0
   },
   {

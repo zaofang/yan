@@ -1,0 +1,13 @@
+-- spec: 11.2
+-- rows: R953, R983
+-- note: `@kernel` takes `tile:` (#904)
+-- expect: E285 at 6:1
+
+@kernel(2, 2)
+@access(a: elementwise, out: elementwise)
+inc(at: TileOrigin, a: Array[2, 4, int]) -> Array[2, 4, int] =
+  for i in range(0, 2)
+    for j in range(0, 2)
+      out[at.i0 + i, at.i1 + j] = a[at.i0 + i, at.i1 + j] + 1
+
+main() = 0

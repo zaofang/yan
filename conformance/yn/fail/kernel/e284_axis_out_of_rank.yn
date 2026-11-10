@@ -1,0 +1,13 @@
+-- spec: 11.2
+-- rows: R955
+-- note: `rows(2)` names an axis a rank-2 tile does not have (#674)
+-- expect: E284 at 7:1
+
+@kernel(tile: 4, 8)
+@access(a: rows(2), out: elementwise)
+k(at: TileOrigin, a: Array[8, 8, int]) -> Array[8, 8, int] =
+  for i in range(0, 4)
+    for j in range(0, 8)
+      out[at.i0 + i, at.i1 + j] = a[at.i0 + i, at.i1 + j]
+
+main() = 0
