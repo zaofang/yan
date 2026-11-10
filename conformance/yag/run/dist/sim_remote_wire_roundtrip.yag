@@ -18,12 +18,12 @@ def echo(var self: Box, p: Pt, d: dict[str, int], t: tuple[int, str]) -> Pt:
     return Pt(x=p.x + d["k"] + t[0], tag=t[1], xs=p.xs)
 
 @remote
-def make() -> Box:
-    return Box(n=0)
+def make(start: int) -> Box:
+    return Box(n=start)
 
 pub def main() -> None fail RemoteError uses io, cluster:
     with cluster = sim(2, 3):
-        a = cluster.spawn(ChildSpec(make, ()), placement=On(cluster.nodes()[1]))
+        a = cluster.spawn(ChildSpec(make, (0,)), placement=On(cluster.nodes()[1]))
         d = {"k": 10}
         r = a.echo(Pt(x=1, tag=None, xs=[1.5, 2.5]), d, (100, "z"))?
         io.print(f"{r}")
