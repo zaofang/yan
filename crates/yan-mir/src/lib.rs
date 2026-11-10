@@ -344,8 +344,7 @@ pub enum RtFn {
     SupEnd,
     /// `(depth)`: end the scopes past `depth`.
     SupEndTo,
-    /// `(nodes, seed, Ptr plan) -> sim`: a `sim` cluster (RFC 0063 D3); delays, partitions
-    /// and cuts are refused until native virtual time (#929 4c).
+    /// `(nodes, seed, Ptr plan) -> sim`: a `sim` cluster (RFC 0063 D3).
     SimNew,
     /// `(low, sim) -> low`: `with cluster = sim`, a supervisor scope with each node's root.
     SimBegin,

@@ -223,6 +223,11 @@ pub struct Map {
 }
 
 impl Map {
+    /// The entries' slots, `kw + vw` each, in insertion order.
+    pub(crate) fn slots(&self) -> &[u64] {
+        &self.data
+    }
+
     /// A new block: `kw`-slot keys encoded by `schema`, `vw`-slot values.
     pub(crate) fn new(schema: &str, kw: usize, vw: usize) -> *mut Map {
         let mut s = schema;

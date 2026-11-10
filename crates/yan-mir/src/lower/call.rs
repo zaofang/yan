@@ -418,6 +418,21 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let at = self.rt(RtFn::ListPush, Ty::Ptr, Self::ops(&list));
                 self.write(&At::Mem(at, 0), v);
             }
+            // An `iter` is its list, its cursor in the `limit` slot.
+            (id::STD_LIST_ITER, [(conv, a)]) => {
+                let (_, s) = self.atom_any(a)?;
+                let v = self.owned(conv, a, &s)?;
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::DqLimit,
+                    args: vec![v[0].clone(), Operand::Int(0)],
+                });
+                set(self, v[0].clone());
+            }
+            (id::STD_PRELUDE_SET, [(conv, a)]) => {
+                let r = self.set_of(conv, a)?;
+                set(self, r);
+            }
             (id::STD_PRELUDE_LIST | id::STD_ITER_OPS_COLLECT, [(conv, a)]) => {
                 let (_, s) = self.atom_any(a)?;
                 if !matches!(s, Shape::List(_)) {

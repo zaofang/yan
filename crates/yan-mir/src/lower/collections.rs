@@ -616,6 +616,45 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(())
     }
 
+    /// `set(xs)`: a map block of the distinct elements, keys only, in first-seen order.
+    pub(super) fn set_of(&mut self, conv: &y::Conv, a: &y::Atom) -> R<Operand> {
+        let (_, s) = self.atom_any(a)?;
+        let Shape::List(e) = &s else {
+            return unsupported("`set` of a non-list");
+        };
+        let mut schema = String::new();
+        Self::key_schema(e, &mut schema)?;
+        let schema = self.lit(&schema);
+        let m = self.rt(
+            RtFn::MapNew,
+            Ty::Ptr,
+            vec![Operand::Int(e.width() as i128), Operand::Int(0), schema],
+        );
+        let xs = self.atom(a, &s)?[0].clone();
+        let n = self.rt(RtFn::ListLen, I64, vec![xs.clone()]);
+        self.each(n, |me, i| {
+            let x = me.element(&xs, i, e)?;
+            let buf = me.key_buf(x.clone());
+            let p = me.rt(RtFn::MapFind, Ty::Ptr, vec![m.clone(), buf.clone()]);
+            let missing = me.scalar_op(ScalarOp::Eq, I64, vec![p, Operand::Int(0)]);
+            let (new, seen) = me.branch(missing);
+            let join = me.block_new();
+            me.cur = new;
+            me.rt(RtFn::MapPush, Ty::Ptr, vec![m.clone(), buf.clone()]);
+            me.goto(join);
+            me.cur = seen;
+            me.glue(e, &x);
+            me.goto(join);
+            me.cur = join;
+            me.free(RtFn::EnvFree, buf);
+            Ok(())
+        })?;
+        if matches!(conv, y::Conv::Sink) {
+            self.glue(&s, &[xs]);
+        }
+        Ok(m)
+    }
+
     pub(super) fn dict_call(&mut self, id: registry::Id, c: &y::Call, dst: Option<Var>) -> R<()> {
         let args = Self::value_args(c)?;
         let set = |me: &mut Self, v: Vec<Operand>| {

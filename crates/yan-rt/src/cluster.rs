@@ -1,12 +1,14 @@
 //! `std.sim` and `std.cluster` for native code (RFC 0063), a port of the interpreter's
 //! `cluster.rs`: every node runs in this process, each with its own root supervisor, and the
-//! node a task runs on is kept with the actors in [`crate::actor`]. Of a fault plan, only drops
-//! run here; delays, partitions and cuts wait for virtual time (#929 4c).
+//! node a task runs on is kept with the actors in [`crate::actor`]. Native code has no `std.time`
+//! handler, so a fault plan's times are read from the monotonic clock since `sim` was built and a
+//! delay sleeps, as the interpreter does without a virtual clock.
 
 use crate::abi::{List, str_block};
 use crate::actor::{Sup, current, home, leave, panic_with, unsupported, with};
 use crate::sched;
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 /// Node `i`'s id: the first 128 bits of BLAKE3 over `"yan.sim.node" || seed || i` (D6), with
 /// both as 128-bit integers, as the interpreter hashes them.
@@ -21,12 +23,25 @@ fn node_id(seed: i64, i: i64) -> String {
         .collect()
 }
 
-/// The drops of the last `sim` built (RFC 0063 D5), drawn per ordered node pair from its seed,
-/// and the calls and sends through `Remote` they fault, by task path.
+/// A listed partition (D3): from `at` for `heal` ns since the binding, `side` against the rest.
+struct Cut {
+    at: i64,
+    heal: i64,
+    side: Vec<usize>,
+}
+
+/// The faults of the last `sim` built (RFC 0063 D3, D5), drawn per ordered node pair from its
+/// seed, and the calls and sends through `Remote` they fault, by task path.
 #[derive(Default)]
 pub(crate) struct Faults {
     seed: i128,
+    nodes: usize,
+    epoch: Option<Instant>,
     drop: f64,
+    delay: i64,
+    partition: i64,
+    heal: i64,
+    cuts: Vec<Cut>,
     /// The next message number of each ordered node pair.
     seq: HashMap<(usize, usize), u64>,
     /// Each call through `Remote` that crossed nodes, innermost last: its pair and whether its
@@ -51,7 +66,41 @@ impl Faults {
         (u64::from_le_bytes(b) >> 11) as f64 / (1u64 << 53) as f64
     }
 
-    /// Sends the next message from `from` to `to`: whether it is lost.
+    /// Whether a seeded or listed partition separates `a` and `b` at `t` ns since the binding.
+    fn cut(&self, a: usize, b: usize, t: i64) -> bool {
+        if self
+            .cuts
+            .iter()
+            .any(|c| c.at <= t && t < c.at + c.heal && c.side.contains(&a) != c.side.contains(&b))
+        {
+            return true;
+        }
+        if self.partition <= 0 || self.nodes < 2 {
+            return false;
+        }
+        let mut end = 0i64;
+        for k in 0u64.. {
+            let gap = (self.draw(b"gap", [k, 0, 0]) * 2.0 * self.partition as f64) as i64;
+            let (start, stop) = (end + gap, end + gap + self.heal);
+            if start > t {
+                return false;
+            }
+            if t < stop {
+                let mut side: Vec<bool> = (0..self.nodes)
+                    .map(|n| self.draw(b"side", [k, n as u64, 0]) < 0.5)
+                    .collect();
+                // Both sides are non-empty.
+                if side.iter().all(|s| *s) || side.iter().all(|s| !*s) {
+                    side[(k as usize) % self.nodes] ^= true;
+                }
+                return side[a] != side[b];
+            }
+            end = stop;
+        }
+        unreachable!("the schedule passes `t`")
+    }
+
+    /// Sends the next message from `from` to `to`, waiting its delay: whether it is lost.
     fn lost(&mut self, from: usize, to: usize) -> bool {
         if from == to {
             return false;
@@ -59,7 +108,13 @@ impl Faults {
         let seq = self.seq.entry((from, to)).or_insert(0);
         let k = *seq;
         *seq += 1;
-        self.draw(b"drop", [from as u64, to as u64, k]) < self.drop
+        let ix = [from as u64, to as u64, k];
+        let delay = (self.draw(b"delay", ix) * self.delay as f64) as i64;
+        let t = self.epoch.map_or(0, |e| e.elapsed().as_nanos() as i64);
+        if delay > 0 {
+            std::thread::sleep(Duration::from_nanos(delay as u64));
+        }
+        self.cut(from, to, t + delay) || self.draw(b"drop", ix) < self.drop
     }
 
     /// Whether the innermost call of `me` lost its request; that ends the call.
@@ -149,13 +204,30 @@ pub unsafe extern "C" fn yan_rt_sim_new(nodes: i64, seed: i64, plan: *const u64)
     let p = unsafe { std::slice::from_raw_parts(plan, 5) };
     // SAFETY: as above.
     let cuts = unsafe { &*(p[4] as *const List) };
-    if p[1] != 0 || p[2] != 0 || !cuts.data.is_empty() {
-        unsupported("the delays, partitions and cuts of a `sim` cluster (#929 4c)");
-    }
+    let cuts = cuts
+        .data
+        .chunks(3)
+        .map(|c| Cut {
+            at: c[0] as i64,
+            heal: c[1] as i64,
+            // SAFETY: a `Cut`'s `side` is a `set[int]` block.
+            side: unsafe { &*(c[2] as *const crate::map::Map) }
+                .slots()
+                .iter()
+                .map(|n| *n as usize)
+                .collect(),
+        })
+        .collect();
     with(|st| {
         st.faults = Faults {
             seed: seed.into(),
+            nodes: nodes as usize,
+            epoch: Some(Instant::now()),
             drop: f64::from_bits(p[0]),
+            delay: p[1] as i64,
+            partition: p[2] as i64,
+            heal: p[3] as i64,
+            cuts,
             ..Faults::default()
         };
         st.sims.push((0..nodes).map(|i| node_id(seed, i)).collect());
