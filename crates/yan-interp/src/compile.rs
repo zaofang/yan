@@ -445,7 +445,14 @@ pub(crate) fn compile(m: &Module) -> Program {
                 );
             }
             ItemKind::Const(c) => {
-                if let Some(v) = const_value(&c.value) {
+                if let Some(mut v) = const_value(&c.value) {
+                    // 3.4: an int literal initialising a `float` constant is a float.
+                    if let (Value::Int(i), Type::Named(n)) = (&v, &c.ty)
+                        && n.path.len() == 1
+                        && matches!(n.path[0].as_str(), "f64" | "float")
+                    {
+                        v = Value::Float(*i as f64);
+                    }
                     g.consts.insert(c.path.join("."), v);
                 }
             }
