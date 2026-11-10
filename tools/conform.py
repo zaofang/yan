@@ -8,6 +8,8 @@ An executor is any command that implements:
     CMD semver --format json --base OLD NEW -> JSON object with "bump"
     CMD ARGS... --format json             -> run in a pkg/ case's copied root; JSON records
     CMD fmt FILE                          -> rewrites FILE in place; exit 1 if it does not load
+    CMD trust; CMD mcp package [FLAGS]    -> run in an mcp/ case's copied root; JSON-RPC lines
+                                             on stdin and stdout, or a refusal code on stderr
 Exit status 2 or above from either command is a failure of the tool, never a verdict.
 The same suite drives the interpreter and every code generator (spec 22.1, 24.1).
 
@@ -24,6 +26,7 @@ from the case headers and conformance/catalogue.toml.
 
 import argparse
 import json
+import re
 import shlex
 import shutil
 import subprocess
@@ -47,6 +50,7 @@ TOP_KINDS = {
     "patch": "patch",
     "pkg": "pkg",
     "fmt": "fmt",
+    "mcp": "mcp",
     "roundtrip": "roundtrip",
     "sim": "sim",
 }
@@ -114,6 +118,8 @@ class Executor(Protocol):
     def tool(self, workdir: Path, args: list[str]) -> tuple[list[dict[str, object]], int]: ...
 
     def fmt(self, path: Path) -> int: ...
+
+    def mcp(self, root: Path, flags: list[str], session: str) -> tuple[str, str, int]: ...
 
 
 @dataclass(frozen=True)
@@ -184,6 +190,20 @@ class CommandExecutor:
         if out.returncode >= TOOL_FAILURE:
             raise ToolFailure(out.stderr.strip())
         return out.returncode
+
+    def mcp(self, root: Path, flags: list[str], session: str) -> tuple[str, str, int]:
+        # Serving runs the package's code, so the toolchain refuses an untrusted directory.
+        trust = subprocess.run([*self.argv, "trust"], capture_output=True, text=True, cwd=root)
+        if trust.returncode != 0:
+            raise ToolFailure(trust.stderr.strip())
+        out = subprocess.run(
+            [*self.argv, "mcp", "package", *flags],
+            input=session,
+            capture_output=True,
+            text=True,
+            cwd=root,
+        )
+        return out.stdout, out.stderr, out.returncode
 
     def hash(self, path: Path, reverse: bool = False) -> list[tuple[str, str]] | None:
         flags = ["--reverse-items"] if reverse else []
@@ -288,7 +308,7 @@ def discover(root: Path) -> list[Case]:
         base = root / top
         if not base.is_dir():
             continue
-        if kind in ("patch", "semver", "pkg", "fmt"):
+        if kind in ("patch", "semver", "pkg", "fmt", "mcp"):
             cases += [_dir_case(kind, p) for p in sorted(base.iterdir()) if p.is_dir()]
             continue
         for p in _files(base):
@@ -363,6 +383,8 @@ def _judge(case: Case, ex: Executor) -> Result:
             return _judge_pkg(case, ex)
         case "fmt":
             return _judge_fmt(case, ex)
+        case "mcp":
+            return _judge_mcp(case, ex)
         case "semver":
             bump = ex.semver(case.path / "old", case.path / "new")
             if bump != case.meta.get("bump"):
@@ -438,6 +460,40 @@ def _judge_pkg(case: Case, ex: Executor) -> Result:
         hits = [r for r in hits if _where(r) == at]
     if not hits or code == 0:
         return Result(name, ex.name, "fail", f"expected {want} at {at}, exit {code}: {records}")
+    return Result(name, ex.name, "pass")
+
+
+def _judge_mcp(case: Case, ex: Executor) -> Result:
+    name = str(case.path)
+    if not (case.path / "root").is_dir():
+        return Result(name, ex.name, "fail", "no root/")
+    session = case.path / "session.jsonl"
+    with tempfile.TemporaryDirectory() as tmp:
+        shutil.copytree(case.path, tmp, dirs_exist_ok=True)
+        out, err, code = ex.mcp(
+            Path(tmp) / "root",
+            case.flags,
+            session.read_text(encoding="utf-8") if session.is_file() else "",
+        )
+    want = case.meta.get("code")
+    if want is not None:
+        if code == 0 or not re.search(rf"\b{want}\b", err):
+            return Result(name, ex.name, "fail", f"expected {want}, exit {code}: {err.strip()}")
+        return Result(name, ex.name, "pass")
+    if code != 0:
+        return Result(name, ex.name, "fail", f"exit {code}: {err.strip()}")
+    listed, replies = case.path / "expect.json", case.path / "expect.jsonl"
+    if listed.is_file():
+        got: object = json.loads(out)
+        expected: object = json.loads(listed.read_text(encoding="utf-8"))
+    elif replies.is_file():
+        got = [json.loads(line) for line in out.splitlines() if line.strip()]
+        lines = replies.read_text(encoding="utf-8").splitlines()
+        expected = [json.loads(line) for line in lines if line.strip()]
+    else:
+        return Result(name, ex.name, "fail", "no code, expect.json or expect.jsonl")
+    if got != expected:
+        return Result(name, ex.name, "fail", f"got {json.dumps(got)}")
     return Result(name, ex.name, "pass")
 
 

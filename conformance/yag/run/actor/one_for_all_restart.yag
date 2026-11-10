@@ -1,0 +1,27 @@
+# spec: 9.6, 17.3
+# rows: R978, R979, R980
+# note: one_for_all restarts every sibling when one child fails (#884)
+# stdout:
+# 105
+# -1
+# 100
+
+class Counter:
+    n: int
+
+def counter(n: int) -> Counter:
+    return Counter(n=n)
+
+def add(var self: Counter, by: int) -> int fail str:
+    if by < 0:
+        fail "negative"
+    self.n += by
+    return self.n
+
+def main() uses io:
+    with supervisor(actor.one_for_all()):
+        a = actor.start(ChildSpec(counter, (0,)))
+        b = actor.start(ChildSpec(counter, (100,)))
+        print(b.add(5) else -1)
+        print(a.add(-1) else -1)
+        print(b.add(0) else -1)

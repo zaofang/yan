@@ -1,0 +1,4 @@
+{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
+{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "size", "arguments": {"path": "src/main.yag"}}}
+{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "size", "arguments": {"path": "../x"}}}
+{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "size", "arguments": {"path": "/etc/passwd"}}}

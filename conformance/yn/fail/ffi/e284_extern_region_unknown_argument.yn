@@ -1,0 +1,12 @@
+-- spec: 11.2
+-- rows: R955, R982
+-- note: the array parameters also draw E904 from the current checker; `halo` is the one named argument of a region (#904)
+-- expect: E284 at 10:8
+-- expect: E904 at 10:17
+-- expect: E904 at 10:43
+
+unsafe extern "C" lib k link "k"
+  @access(a: rows(0, size: 1), out: elementwise)
+  safe scale(a: Array[8, f64], n: int) -> Array[8, f64]
+
+main() = 0

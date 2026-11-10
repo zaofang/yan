@@ -1,0 +1,17 @@
+# spec: 9.6
+# rows: R813
+# note: only unit, no-fail handlers can be sent (#835)
+# expect: E729 at 17:5
+
+class C:
+    n: int
+
+def add(var self: C, by: int):
+    self.n += by
+
+def get(var self: C) -> int:
+    return self.n
+
+def main() uses io:
+    a = actor.spawn(C(n=0))
+    actor.send(a).get()

@@ -1,0 +1,100 @@
+{
+  "tools": [
+    {
+      "description": "Adds `b` to `a`.\n\nuses: none",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "a": {
+            "type": "integer"
+          },
+          "b": {
+            "default": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "a"
+        ],
+        "type": "object"
+      },
+      "name": "add",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "The taxicab length of `p`.\n\nuses: none",
+      "inputSchema": {
+        "$defs": {
+          "Point": {
+            "additionalProperties": false,
+            "properties": {
+              "x": {
+                "type": "integer"
+              },
+              "y": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "x",
+              "y"
+            ],
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "p": {
+            "$ref": "#/$defs/Point"
+          }
+        },
+        "required": [
+          "p"
+        ],
+        "type": "object"
+      },
+      "name": "norm1",
+      "outputSchema": {
+        "$defs": {
+          "Point": {
+            "additionalProperties": false,
+            "properties": {
+              "x": {
+                "type": "integer"
+              },
+              "y": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "x",
+              "y"
+            ],
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "type": "object"
+      }
+    }
+  ]
+}

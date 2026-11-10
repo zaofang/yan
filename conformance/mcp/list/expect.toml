@@ -1,0 +1,4 @@
+spec = "21.4"
+rows = ["R984", "R985"]
+note = "`--list` shows only the public non-test functions: `b` has `default: 1`, `required` is `[\"a\"]`, and the `Wire` record is under `$defs` (#908)"
+flags = ["--list"]

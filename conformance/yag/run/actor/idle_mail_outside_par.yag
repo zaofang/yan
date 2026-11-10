@@ -1,0 +1,18 @@
+# spec: 9.6
+# rows: R813
+# note: main sends to an idle actor and then waits on what the message sends; the idle actor runs its mail (#895)
+# stdout:
+# 10
+
+class Relay:
+    n: int
+
+def ping(var self: Relay, take out: Sender[int], v: int):
+    tx = out
+    tx.send(v * 2) else e -> None
+
+def main() uses io:
+    tx, rx = Channel[int](1)
+    a = actor.spawn(Relay(n=0))
+    actor.send(a).ping(tx, 5) else e -> None
+    print(rx.recv() else e -> -1)

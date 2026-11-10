@@ -1,0 +1,16 @@
+-- spec: 17.1
+-- rows: R973
+-- note: a 2x5 result is not whole 2x2 tiles (#880)
+-- expect: E521 at 14:3
+
+@kernel(tile: 2, 2)
+@access(a: elementwise, out: elementwise)
+inc(at: TileOrigin, a: Array[2, 5, int]) -> Array[2, 5, int] =
+  for i in range(0, 2)
+    for j in range(0, 2)
+      out[at.i0 + i, at.i1 + j] = a[at.i0 + i, at.i1 + j] * 10 + at.i1
+
+f(a: Array[2, 5, int]) -> Array[2, 5, int] fail KernelFault uses gpu =
+  gpu.launch(inc, a)?
+
+main() = 0

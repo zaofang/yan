@@ -1,0 +1,17 @@
+# spec: 9.6, 17.3
+# rows: R975
+# note: a `SendOnly` handle cannot call; the fix is `actor.send(h)` (#895)
+# expect: E201 at 17:11
+
+class C:
+    n: int
+
+def add(var self: C, by: int):
+    self.n += by
+
+def get(var self: C) -> int:
+    return self.n
+
+def main() uses io:
+    s = actor.send_only(actor.spawn(C(n=0)))
+    print(s.get() else e -> -1)

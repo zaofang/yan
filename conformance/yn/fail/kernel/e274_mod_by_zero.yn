@@ -1,0 +1,12 @@
+-- spec: 11.2
+-- rows: R954
+-- note: `%` by zero is not affine (#674)
+-- expect: E274 at 10:25
+
+@kernel(tile: 8, 8)
+@access(a: rows(0), out: rows(0))
+k(at: TileOrigin, a: Array[8, 8, int]) -> Array[8, 8, int] =
+  for i in range(0, 8)
+    out[at.i0 + i, 0] = a[at.i0 + i, i % 0]
+
+main() = 0

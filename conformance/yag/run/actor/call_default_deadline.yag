@@ -1,0 +1,40 @@
+# spec: 9.6, 17.3
+# rows: R956
+# note: a call outside every deadline scope times out after the 5 s default, under virtual time (#895)
+# stdout:
+# Timeout() after PT5S
+# 7
+
+class A:
+    n: int
+
+def get(var self: A) -> int:
+    return self.n
+
+def hold(var self: A, var rx: Receiver[int]) -> int fail Cancelled:
+    return rx.recv()?
+
+def show(r: Result[int, ActorError]) -> str:
+    match r:
+        case Ok(v):
+            return f"{v}"
+        case Err(e):
+            return f"{e}"
+
+def ask(a: Actor[A], var go: Receiver[int]) -> str uses time:
+    go.recv() else e -> 0
+    t0 = time.monotonic()
+    r = show(a.get())
+    return f"{r} after {time.monotonic() - t0}"
+
+def main() uses io, time:
+    with time = virtual(time.now()):
+        a = actor.spawn(A(n=0))
+        tx, rx = Channel[int](1)
+        go_tx, go_rx = Channel[int](1)
+        par concurrent:
+            for _ in range(1):
+                print(ask(a, &go_rx))
+                tx.send(7) else e -> None
+            print(a.hold(&rx) else e -> -1)
+            go_tx.send(1) else e -> None

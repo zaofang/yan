@@ -1,0 +1,16 @@
+-- spec: 11.2
+-- rows: R953, R983
+-- note: only `gpu.launch` builds a `TileOrigin` (#904)
+-- expect: E286 at 14:3
+
+@kernel(tile: 2, 2)
+@access(a: elementwise, out: elementwise)
+inc(at: TileOrigin, a: Array[2, 4, int]) -> Array[2, 4, int] =
+  for i in range(0, 2)
+    for j in range(0, 2)
+      out[at.i0 + i, at.i1 + j] = a[at.i0 + i, at.i1 + j] + 1
+
+f() -> int =
+  TileOrigin(i0: 0, i1: 0).i0
+
+main() = 0
