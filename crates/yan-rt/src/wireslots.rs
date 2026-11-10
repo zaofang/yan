@@ -284,7 +284,8 @@ mod tests {
     #[test]
     fn a_dict_of_lists_is_copied_into_fresh_blocks() {
         use crate::abi::{List, leak, str_block, yan_rt_wire_roundtrip};
-        let json = r#"{"root":"$","defs":{"$":{"Record":[["d",{"Dict":["Str",{"List":"Int"}]}]]}}}"#;
+        let json =
+            r#"{"root":"$","defs":{"$":{"Record":[["d",{"Dict":["Str",{"List":"Int"}]}]]}}}"#;
         let sc = schemas(json);
         let m = crate::map::Map::new("s", 1, 1);
         let xs = leak(List {
