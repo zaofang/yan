@@ -117,6 +117,18 @@ unsafe fn read(sc: &Schemas, t: &Schema, w: &[u64]) -> Val {
                     .collect(),
             )
         }
+        // A `set` is a map block of keys with no value slots.
+        Schema::Set(k) => {
+            // SAFETY: the caller's contract.
+            let m = unsafe { &*(w[0] as *const crate::map::Map) };
+            let kw = width(sc, k);
+            // SAFETY: an entry is a key of `k`.
+            Val::List(
+                m.entries()
+                    .map(|x| unsafe { read(sc, k, &x[..kw]) })
+                    .collect(),
+            )
+        }
         // `Some` is tag 0 and `None` tag 1, as the native `Option` sum.
         Schema::Option(_) if w[0] == 1 => Val::Option(None),
         // SAFETY: forwarded.
@@ -134,7 +146,7 @@ unsafe fn read(sc: &Schemas, t: &Schema, w: &[u64]) -> Val {
                 Val::Variant(k, parts(&mut vs[k].1.iter().map(|f| &f.1), &w[at..]))
             }
         },
-        Schema::Char | Schema::Bytes | Schema::Set(_) => unreachable!("no native slots for {t:?}"),
+        Schema::Char | Schema::Bytes => unreachable!("no native slots for {t:?}"),
     }
 }
 
@@ -168,6 +180,24 @@ fn write(sc: &Schemas, t: &Schema, v: Val, out: &mut Vec<Slot>) {
                 schema,
                 kw: width(sc, k),
                 vw: width(sc, e),
+                entries,
+            });
+        }
+        (Schema::Set(k), Val::List(xs)) => {
+            let mut schema = String::new();
+            key_schema(sc, k, &mut schema);
+            let entries = xs
+                .into_iter()
+                .map(|a| {
+                    let mut ka = Vec::new();
+                    write(sc, k, a, &mut ka);
+                    (ka, Vec::new())
+                })
+                .collect();
+            out.push(Slot::Map {
+                schema,
+                kw: width(sc, k),
+                vw: 0,
                 entries,
             });
         }
