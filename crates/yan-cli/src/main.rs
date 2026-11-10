@@ -54,7 +54,14 @@ struct Cli {
 enum GrammarFormat {
     Gbnf,
     Xgrammar,
+    #[value(alias = "lark")]
     Llguidance,
+}
+
+#[derive(Clone, Copy, PartialEq, ValueEnum)]
+enum GrammarSurface {
+    Yag,
+    Yn,
 }
 
 #[derive(Clone, Copy, PartialEq, ValueEnum)]
@@ -113,7 +120,9 @@ enum Command {
     },
     /// Print the Yan Agent grammar for constrained decoding (21.3).
     Grammar {
-        #[arg(long, value_enum)]
+        #[arg(long = "as", value_enum, default_value = "yag")]
+        surface: GrammarSurface,
+        #[arg(long, value_enum, default_value = "gbnf")]
         format: GrammarFormat,
     },
     /// Write the row record type of a data file as Yan Agent source (11.9).
@@ -499,7 +508,14 @@ fn main() -> ExitCode {
         } => view(&as_, &file, yan_ide::Marks { strict, bare }),
         Command::Export { file, .. } => export::run(&file),
         Command::Import { file, .. } => pyimport::run(&file),
-        Command::Grammar { format } => {
+        Command::Grammar {
+            surface: GrammarSurface::Yn,
+            ..
+        } => {
+            eprintln!("yan grammar --as yn: no generated grammar for plain Yan yet (R994)");
+            ExitCode::FAILURE
+        }
+        Command::Grammar { format, .. } => {
             let g = yan_yag::Grammar::yag();
             match format {
                 GrammarFormat::Gbnf => print!("{}", g.gbnf()),
