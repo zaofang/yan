@@ -22,6 +22,8 @@ pub const TIMEOUT: u64 = 6;
 pub const FULL: u64 = 7;
 /// A message through `Remote` was lost: `Unreachable` (RFC 0063 D5).
 pub const UNREACHABLE: u64 = 8;
+/// A send through `Remote` carried an argument the codec rejects: `SchemaMismatch` (R408).
+pub const SCHEMA_MISMATCH: u64 = 9;
 /// A `Block` send in a cancelled task fails `Cancelled`.
 pub use crate::chan::CANCELLED;
 
@@ -562,8 +564,8 @@ pub extern "C" fn yan_rt_actor_send(
     let m = [thunk, code, env, args];
     let me = sched::path();
     let r = with(|st| {
-        if st.faults.lost_send(&me) {
-            return Some(UNREACHABLE);
+        if let Some(s) = st.faults.lost_send(&me) {
+            return Some(s);
         }
         let a = &mut st.actors[id];
         if a.stopped.is_some() {

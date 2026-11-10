@@ -185,6 +185,20 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             Err(why) => crate::panic_with("wire", format!("a start argument: {why}")),
         }),
     ),
+    // An argument of a send through `Remote` that cannot be encoded fails the send (R408).
+    (
+        STD_CLUSTER_WIRE_SEND,
+        Bind::Vm(
+            |vm: &mut Vm, _, a| match roundtrip(a, STD_CLUSTER_WIRE_SEND)? {
+                Ok(v) => Ok(v),
+                Err(_) => {
+                    vm.it.sending =
+                        Some((vm.task_path.clone(), crate::sync::failure("SchemaMismatch")));
+                    Ok(std::mem::take(&mut a[0]))
+                }
+            },
+        ),
+    ),
     (STD_CLUSTER_HANDLE, Bind::Plain(|a| Ok(a[0].clone()))),
     (
         STD_CLUSTER_FAULT_SEND,

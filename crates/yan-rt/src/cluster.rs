@@ -5,7 +5,9 @@
 //! delay sleeps, as the interpreter does without a virtual clock.
 
 use crate::abi::{List, str_block};
-use crate::actor::{Sup, current, home, leave, panic_with, unsupported, with};
+use crate::actor::{
+    SCHEMA_MISMATCH, Sup, UNREACHABLE, current, home, leave, panic_with, unsupported, with,
+};
 use crate::sched;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -47,8 +49,8 @@ pub(crate) struct Faults {
     /// Each call through `Remote` that crossed nodes, innermost last: its pair and whether its
     /// request was lost.
     calls: Vec<(Vec<usize>, (usize, usize), bool)>,
-    /// The task whose next send was lost.
-    sending: Option<Vec<usize>>,
+    /// The task whose next send failed in transit and the status it fails with.
+    sending: Option<(Vec<usize>, u64)>,
 }
 
 impl Faults {
@@ -135,9 +137,10 @@ impl Faults {
         }
     }
 
-    /// Whether the send of `me` that `yan_rt_cluster_fault_send` faulted was lost.
-    pub(crate) fn lost_send(&mut self, me: &[usize]) -> bool {
-        self.sending.take().is_some_and(|p| p == me)
+    /// The status the send of `me` fails with when `yan_rt_cluster_fault_send` lost it or
+    /// `yan_rt_cluster_send_mismatch` rejected its arguments.
+    pub(crate) fn lost_send(&mut self, me: &[usize]) -> Option<u64> {
+        self.sending.take().filter(|(p, _)| p == me).map(|(_, s)| s)
     }
 }
 
@@ -160,8 +163,18 @@ pub extern "C" fn yan_rt_cluster_fault_send(id: u64) {
     let me = sched::path();
     with(|st| {
         let lost = st.faults.lost(current(st, &me), home(st, id as usize));
-        st.faults.sending = lost.then_some(me);
+        st.faults.sending = lost.then_some((me, UNREACHABLE));
     });
+}
+
+/// A send through `Remote` whose argument the codec rejected (`status` non-zero) fails
+/// `SchemaMismatch` (R408).
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_cluster_send_mismatch(status: u64) {
+    if status != 0 {
+        let me = sched::path();
+        with(|st| st.faults.sending = Some((me, SCHEMA_MISMATCH)));
+    }
 }
 
 /// `admit`: a call whose argument the codec rejected (`mismatch` non-zero) ends here.
