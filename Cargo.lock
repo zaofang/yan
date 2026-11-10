@@ -2528,6 +2528,7 @@ dependencies = [
  "yan-opt",
  "yan-rt",
  "yan-yag",
+ "yan-yn",
  "zip",
 ]
 
@@ -2573,6 +2574,10 @@ dependencies = [
  "serde",
  "serde_json",
 ]
+
+[[package]]
+name = "yan-ebnf"
+version = "0.0.0"
 
 [[package]]
 name = "yan-elab"
@@ -2719,6 +2724,7 @@ version = "0.0.0"
 dependencies = [
  "yan-cst",
  "yan-diag",
+ "yan-ebnf",
  "yan-hir",
  "yan-names",
 ]
@@ -2729,6 +2735,7 @@ version = "0.0.0"
 dependencies = [
  "yan-cst",
  "yan-diag",
+ "yan-ebnf",
  "yan-hir",
  "yan-names",
 ]

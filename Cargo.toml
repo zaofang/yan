@@ -41,6 +41,7 @@ yan-rt = { path = "crates/yan-rt" }
 yan-mir = { path = "crates/yan-mir" }
 yan-cg-cranelift = { path = "crates/yan-cg-cranelift" }
 yan-hir = { path = "crates/yan-hir" }
+yan-ebnf = { path = "crates/yan-ebnf" }
 yan-yag = { path = "crates/yan-yag" }
 yan-elab = { path = "crates/yan-elab" }
 yan-yn = { path = "crates/yan-yn" }

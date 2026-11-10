@@ -1,11 +1,13 @@
 //! Yan, the human surface (spec 15): lexer, parser and syntax diagnostics.
 
 pub mod ast;
+mod grammar;
 mod lexer;
 mod lower;
 mod parser;
 mod printer;
 
+pub use grammar::grammar;
 pub use lower::{Unsupported, lower};
 pub use printer::print;
 

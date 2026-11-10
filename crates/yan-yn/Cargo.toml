@@ -9,6 +9,7 @@ publish.workspace = true
 
 [dependencies]
 yan-cst.workspace = true
+yan-ebnf.workspace = true
 yan-diag.workspace = true
 yan-hir.workspace = true
 yan-names.workspace = true
