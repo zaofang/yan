@@ -1,0 +1,5 @@
+spec = "21.4"
+rows = ["R985"]
+note = "a public function that takes a `Callable` cannot be a tool, and the server does not start (#908)"
+flags = ["--list"]
+code = "E201"

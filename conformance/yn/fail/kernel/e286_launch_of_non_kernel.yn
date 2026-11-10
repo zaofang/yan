@@ -1,0 +1,11 @@
+-- spec: 11.2
+-- rows: R953, R983
+-- note: `gpu.launch` takes a `@kernel` function by name (#904)
+-- expect: E286 at 9:3
+
+g(a: Array[2, 4, int]) -> Array[2, 4, int] = a
+
+f(a: Array[2, 4, int]) -> Array[2, 4, int] fail KernelFault uses gpu =
+  gpu.launch(g, a)?
+
+main() = 0

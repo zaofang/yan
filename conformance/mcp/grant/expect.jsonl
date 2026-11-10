@@ -1,0 +1,2 @@
+{"id":1,"jsonrpc":"2.0","result":{"capabilities":{"tools":{}},"protocolVersion":"2026-07-28","serverInfo":{"name":"yan-package","version":"0.0.0"}}}
+{"id":2,"jsonrpc":"2.0","result":{"content":[{"text":"`size` uses `fs`, which the server was not granted; restart it with `--allow fs`","type":"text"}],"isError":true}}

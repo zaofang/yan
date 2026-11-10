@@ -1,0 +1,17 @@
+-- spec: 4.2
+-- rows: R963, R964
+-- note: the move in the first iteration is seen by the second through the back edge (#861)
+-- expect: E401 at 14:32
+
+module conf.e401_loop
+
+fn keep(sink xs: List[i64]) -> i64 {
+    ret 0
+}
+
+fn f(sink xs: List[i64]) -> i64 {
+    loop 'l {
+        let n: i64 = keep(sink xs)
+    }
+    ret 0
+}

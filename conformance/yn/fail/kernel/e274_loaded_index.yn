@@ -1,0 +1,12 @@
+-- spec: 11.2
+-- rows: R954
+-- note: a loaded value as a row index cannot be proved inside the band (#674)
+-- expect: E274 at 10:21
+
+@kernel(tile: 4, 8)
+@access(a: rows(0), out: rows(0))
+k(at: TileOrigin, a: Array[8, 8, int]) -> Array[8, 8, int] =
+  for j in range(0, 8)
+    out[at.i0, j] = a[at.i0 + a[at.i0, 0], j]
+
+main() = 0

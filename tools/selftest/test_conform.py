@@ -56,6 +56,15 @@ class Fake:
             path.write_text(self.formatted)
         return self.fmt_exit
 
+    mcp_result: tuple[str, str, int] = ("", "", 0)
+    seen_session: list[str] = field(default_factory=list)
+
+    def mcp(self, root: Path, flags: list[str], session: str) -> tuple[str, str, int]:
+        assert (root / "package.yag").is_file()
+        self.seen_flags.append(flags)
+        self.seen_session.append(session)
+        return self.mcp_result
+
     def tool(self, workdir: Path, args: list[str]) -> tuple[list[dict[str, object]], int]:
         assert (workdir / "package.yag").is_file()
         self.seen_args.append(args)
@@ -314,3 +323,38 @@ def test_fmt_needs_a_pair(tmp_path: Path) -> None:
     (tmp_path / "fmt" / "f1" / "out.yag").unlink()
     [case] = discover(tmp_path)
     assert judge(case, Fake(formatted="b\n")).status == "fail"
+
+
+def _mcp(tmp_path: Path, expect: str, files: dict[str, str]) -> Case:
+    case = tmp_path / "mcp" / "m1"
+    (case / "root").mkdir(parents=True)
+    (case / "root" / "package.yag").write_text("")
+    (case / "expect.toml").write_text(expect)
+    for name, text in files.items():
+        (case / name).write_text(text)
+    [c] = discover(tmp_path)
+    return c
+
+
+def test_mcp_replies(tmp_path: Path) -> None:
+    case = _mcp(
+        tmp_path,
+        'spec = "21.4"\nflags = ["--allow", "fs"]\n',
+        {"session.jsonl": '{"id":1}\n', "expect.jsonl": '{"id": 1, "result": 3}\n'},
+    )
+    fake = Fake(mcp_result=('{"result":3,"id":1}\n', "", 0))
+    assert judge(case, fake).status == "pass"
+    assert fake.seen_flags == [["--allow", "fs"]]
+    assert fake.seen_session == ['{"id":1}\n']
+    assert judge(case, Fake(mcp_result=('{"result":4,"id":1}\n', "", 0))).status == "fail"
+
+
+def test_mcp_list_and_refusal(tmp_path: Path) -> None:
+    listed = _mcp(tmp_path / "a", 'spec = "21.4"\nflags = ["--list"]\n', {"expect.json": "{}"})
+    assert judge(listed, Fake(mcp_result=("{}", "", 0))).status == "pass"
+    assert judge(listed, Fake(mcp_result=("{}", "", 2))).status == "fail"
+    refused = _mcp(tmp_path / "b", 'spec = "21.4"\ncode = "E201"\n', {})
+    assert (
+        judge(refused, Fake(mcp_result=("", "yan: E201 src/main.yag:6:9 ...", 2))).status == "pass"
+    )
+    assert judge(refused, Fake(mcp_result=("", "", 0))).status == "fail"

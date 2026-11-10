@@ -1,0 +1,19 @@
+# spec: 4.2, 8.1
+# note: each `else` result printed inside a block that does not end the function is dropped once; the join points it lowers to fall through to the block's end (#927)
+# stdout:
+# 1
+# 2
+# 3
+# 0
+
+def f(x: int) -> int fail str:
+    if x < 0:
+        fail "negative"
+    return x
+
+def main() uses io:
+    if True:
+        print(f(1) else -1)
+        print(f(2) else -1)
+        print(f(3) else -1)
+    print(0)
