@@ -1,0 +1,44 @@
+# spec: 17.7
+# rows: R999
+# note: PCT runs replay from the seed and a lost-update race is found within the seeds tried
+# stdout:
+# 11
+# 2 2
+
+class Cell:
+    n: int
+
+def get(self: Cell) -> int:
+    return self.n
+
+def set(var self: Cell, v: int) -> None:
+    self.n = v
+
+def add(var self: Cell, k: int) -> None:
+    self.n += k
+
+def reader(c: Actor[Cell], var rx: Receiver[int]) -> None:
+    v = c.get() else e -> 0
+    rx.recv() else e -> 0
+    c.set(v + 1) else e -> None
+
+def adder(c: Actor[Cell], var tx: Sender[int]) -> None:
+    c.add(1) else e -> None
+    tx.send(1) else e -> None
+
+def run(seed: int) -> int:
+    with sched = pct(2, seed, 100):
+        c = actor.spawn(Cell(n=0))
+        tx, rx = Channel[int](1)
+        par concurrent:
+            reader(c, &rx)
+            adder(c, &tx)
+        return c.get() else e -> -1
+
+def main() uses io:
+    lost = 0
+    for seed in range(0, 20):
+        if run(seed) == 1:
+            lost += 1
+    io.print(f"{lost}")
+    io.print(f"{run(3)} {run(3)}")
