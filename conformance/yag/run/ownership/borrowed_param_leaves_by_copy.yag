@@ -1,0 +1,42 @@
+# spec: 4.1, 4.2
+# rows: R769
+# note: a value returned, stored or matched out of a borrowed parameter is a copy, so caller and callee each free their own (#963)
+# stdout:
+# h1
+# Pt(tag='z1', xs=[1.5, 2.5]) z1 [1.5, 2.5]
+# ('z1', 1) a1
+# Pt(tag=None, xs=[1.5, 2.5]) (100, 'z1') h1 a1
+
+class Pt:
+    tag: str | None
+    xs: list[float]
+
+def same(s: str) -> str:
+    return s
+
+def echo(p: Pt, t: tuple[int, str]) -> Pt:
+    return Pt(tag=t[1], xs=p.xs)
+
+def name(t: tuple[int, str]) -> str:
+    return t[1]
+
+def xs(p: Pt) -> list[float]:
+    return p.xs
+
+def pair(s: str) -> tuple[str, int]:
+    return (s, 1)
+
+def some(o: str | None) -> str:
+    if o is not None:
+        return o
+    return "n"
+
+pub def main() -> None uses io:
+    h = f"h{1}"
+    p = Pt(tag=None, xs=[1.5, 2.5])
+    t = (100, f"z{1}")
+    o: str | None = f"a{1}"
+    io.print(same(h))
+    io.print(f"{echo(p, t)} {name(t)} {xs(p)}")
+    io.print(f"{pair(t[1])} {some(o)}")
+    io.print(f"{p} {t} {h} {o}")

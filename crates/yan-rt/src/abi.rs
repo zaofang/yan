@@ -491,6 +491,16 @@ pub extern "C" fn yan_rt_is_finite(x: f64) -> u8 {
     u8::from(x.is_finite())
 }
 
+/// `s` repeated `n` times, empty for `n <= 0` (`std.text.repeat`).
+///
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_repeat(s: *const String, n: i64) -> *mut String {
+    // SAFETY: the caller's contract.
+    str_block(&unsafe { &*s }.repeat(n.max(0) as usize))
+}
+
 /// # Safety
 /// `a` and `b` are `Str` blocks.
 #[unsafe(no_mangle)]
@@ -566,6 +576,7 @@ pub unsafe extern "C" fn yan_rt_list_copy(l: *const List) -> *mut List {
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_exit(code: i64) -> ! {
     let _ = std::io::stdout().flush();
+    crate::actor::end_root();
     if std::env::var_os("YAN_REPORT_LIVE").is_some() {
         eprintln!("live: {}", crate::heap::live_blocks());
     }

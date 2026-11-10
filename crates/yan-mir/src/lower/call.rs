@@ -197,6 +197,11 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.goto(join);
                 self.cur = join;
             }
+            (id::STD_TEXT_REPEAT, [(_, a), (_, n)]) => {
+                let (a, n) = (self.scalar1(a)?, self.scalar1(n)?);
+                let r = self.rt(RtFn::StrRepeat, Ty::Ptr, vec![a, n]);
+                set(self, r);
+            }
             (id::STD_TEXT_CONCAT, [(_, a), (_, b)]) => {
                 let (a, b) = (self.scalar1(a)?, self.scalar1(b)?);
                 let r = self.rt(RtFn::Concat, Ty::Ptr, vec![a, b]);
@@ -432,7 +437,10 @@ impl<'a, 'm> Fn<'a, 'm> {
             (id::STD_CMP_EQ | id::STD_CMP_NE, [(_, a), (_, b)]) => {
                 let (x, sx) = self.atom_any(a)?;
                 let (y, sy) = self.atom_any(b)?;
-                if sx != Shape::Str || sy != Shape::Str {
+                // A `Node` is its id (R403).
+                let node = cluster::std_type("Node");
+                let text = |s: &Shape| *s == Shape::Str || Some(s) == node.as_ref();
+                if !text(&sx) || sx != sy {
                     return unsupported(format!("call of `{name}` on this type"));
                 }
                 let mut r = self.rt(RtFn::StrEq, Ty::Bool, vec![x[0].clone(), y[0].clone()]);

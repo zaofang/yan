@@ -90,7 +90,8 @@ pub fn layout(s: &Shape) -> Layout {
         | Shape::Heap(_)
         | Shape::Deque(_)
         | Shape::Chan(_)
-        | Shape::Actor(_) => plain(8, 8),
+        | Shape::Actor(_)
+        | Shape::Set(_) => plain(8, 8),
         Shape::Fn(..) => plain(16, 8),
         Shape::Tuple(ss) => aggregate(&ss.iter().map(layout).collect::<Vec<_>>()),
         Shape::Rec(_, fs) => aggregate(&fs.iter().map(|(_, s)| layout(s)).collect::<Vec<_>>()),

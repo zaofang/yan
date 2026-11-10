@@ -2,7 +2,7 @@
 
 Static site: home (`index.md`), tour (`tour/`), playground (`../playground/`), status (generated
 from CI data, below) and blog (`blog/YYYY-MM-DD-slug.md`, with an Atom feed). Brand files in
-`brand/` are copied unchanged from the brand kit.
+`brand/` are copied unchanged from the brand kit: `brand/icons/` holds the UI icons (24 px grid, `currentColor` stroke) and `brand/file-doc-*.svg` the document-shape file icons.
 
 ```sh
 ./playground/build.sh                                  # playground/yan.wasm

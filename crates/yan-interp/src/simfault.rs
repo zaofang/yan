@@ -161,6 +161,34 @@ fn send(it: &mut Interp, from: usize, to: usize) -> Option<Value> {
     lost.then(|| crate::sync::failure("Unreachable"))
 }
 
+/// Tells each monitor whose watcher a partition now separates from the actor's node that the
+/// actor's node is down (RFC 0063 D7). It runs wherever the virtual clock is read or advanced,
+/// so delivery is a function of the seed and the clock.
+pub(crate) fn sweep(it: &mut Interp) {
+    if it.monitors.is_empty() {
+        return;
+    }
+    let Some(sim) = it.sim.clone() else { return };
+    let f = Faults::of(&sim);
+    let t = mono_now(it) - f.epoch;
+    let (down, rest): (Vec<_>, Vec<_>) =
+        std::mem::take(&mut it.monitors)
+            .into_iter()
+            .partition(|&(id, _, owner)| {
+                let home = it.actors[id].home;
+                owner != home && f.cut(owner, home, t)
+            });
+    it.monitors = rest;
+    for (_, c, _) in down {
+        let reason = crate::sync::failure("NodeDown");
+        it.chans[c].1.push_back(Value::Data {
+            name: "Stopped".into(),
+            fields: vec![("reason".into(), reason)],
+        });
+        it.progress += 1;
+    }
+}
+
 /// A call through `Remote` leaves its caller's node for the actor's: the request message.
 pub(crate) fn request(it: &mut Interp, path: &[usize], from: usize, to: usize) {
     let failed = if from == to { None } else { send(it, from, to) };

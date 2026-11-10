@@ -20,6 +20,8 @@ pub const DEADLOCK: u64 = 5;
 pub const TIMEOUT: u64 = 6;
 /// A send to a full `Reject` mailbox fails `Full`.
 pub const FULL: u64 = 7;
+/// A message through `Remote` was lost: `Unreachable` (RFC 0063 D5).
+pub const UNREACHABLE: u64 = 8;
 /// A `Block` send in a cancelled task fails `Cancelled`.
 pub use crate::chan::CANCELLED;
 
@@ -87,6 +89,8 @@ struct Actor {
     /// marked once its retake failed.
     lent: Vec<(Vec<usize>, bool)>,
     sup: usize,
+    /// The node it runs on (RFC 0063 D1).
+    home: usize,
     restart: Restart,
     /// The restart thunk, then the start closure's code and captures block.
     start: [u64; 3],
@@ -114,7 +118,7 @@ impl Actor {
     }
 }
 
-struct Sup {
+pub(crate) struct Sup {
     strategy: Strategy,
     intensity: usize,
     period: i128,
@@ -122,13 +126,38 @@ struct Sup {
     children: Vec<usize>,
     /// When each restart within the last `period` happened.
     restarts: VecDeque<i128>,
+    /// For the scope of `with cluster = sim(..)`: the cluster and the root supervisor of each
+    /// of its nodes 1 to n-1 (RFC 0063 D1).
+    pub(crate) nodes: Option<(usize, Vec<usize>)>,
 }
 
-struct State {
+impl Sup {
+    /// A root supervisor: `one_for_one`, 1 restart per 5 s (R957).
+    pub(crate) fn root() -> Self {
+        Sup {
+            strategy: Strategy::OneForOne,
+            intensity: 1,
+            period: 5_000_000_000,
+            children: Vec::new(),
+            restarts: VecDeque::new(),
+            nodes: None,
+        }
+    }
+}
+
+pub(crate) struct State {
     actors: Vec<Actor>,
     /// Every supervisor, the root first (R957), and the open `with supervisor` scopes.
-    sups: Vec<Sup>,
-    open: Vec<usize>,
+    pub(crate) sups: Vec<Sup>,
+    pub(crate) open: Vec<usize>,
+    /// The node ids of each `sim` cluster built (RFC 0063 D3).
+    pub(crate) sims: Vec<Vec<String>>,
+    /// The nodes tasks entered, innermost last, by task path (D1).
+    pub(crate) nodes: Vec<(Vec<usize>, usize)>,
+    /// The node a `cluster.spawn` placed its start on, when not the caller's (D2).
+    pub(crate) placed: Option<usize>,
+    /// The faults of the last `sim` built and its messages, as `yan_rt::cluster` keeps them.
+    pub(crate) faults: crate::cluster::Faults,
     /// Tasks parked on a busy actor, by task path, and the actor each waits for (RFC 0056 D6).
     waits: Vec<(Vec<usize>, usize)>,
     /// When each task parked on an actor began waiting, for its deadline.
@@ -146,14 +175,12 @@ impl Default for State {
     fn default() -> Self {
         State {
             actors: Vec::new(),
-            sups: vec![Sup {
-                strategy: Strategy::OneForOne,
-                intensity: 1,
-                period: 5_000_000_000,
-                children: Vec::new(),
-                restarts: VecDeque::new(),
-            }],
+            sups: vec![Sup::root()],
             open: Vec::new(),
+            sims: Vec::new(),
+            nodes: Vec::new(),
+            placed: None,
+            faults: Default::default(),
             waits: Vec::new(),
             since: Vec::new(),
             doomed: Vec::new(),
@@ -168,18 +195,18 @@ thread_local! {
     static STATE: RefCell<State> = RefCell::default();
 }
 
-fn with<T>(f: impl FnOnce(&mut State) -> T) -> T {
+pub(crate) fn with<T>(f: impl FnOnce(&mut State) -> T) -> T {
     STATE.with(|s| f(&mut s.borrow_mut()))
 }
 
-fn panic_with(kind: &str, msg: &str) -> ! {
+pub(crate) fn panic_with(kind: &str, msg: &str) -> ! {
     use std::io::Write;
     let _ = std::io::stdout().flush();
     eprintln!("panic({kind}): {msg}");
     std::process::exit(101)
 }
 
-fn unsupported(what: &str) -> ! {
+pub(crate) fn unsupported(what: &str) -> ! {
     use std::io::Write;
     let _ = std::io::stdout().flush();
     eprintln!("yan: not supported yet: {what} in native code");
@@ -263,9 +290,11 @@ pub unsafe extern "C" fn yan_rt_actor_spawn(
     }
     // SAFETY: the caller's contract.
     let v = unsafe { std::slice::from_raw_parts(state, words as usize) }.to_vec();
+    let me = sched::path();
     with(|st| {
         let id = st.actors.len();
-        let sup = st.open.last().copied().unwrap_or(0);
+        let sup = adopter(st);
+        let home = current(st, &me);
         st.sups[sup].children.push(id);
         st.actors.push(Actor {
             words: words as usize,
@@ -285,6 +314,7 @@ pub unsafe extern "C" fn yan_rt_actor_spawn(
             ended: None,
             lent: Vec::new(),
             sup,
+            home,
             restart: match restart {
                 0 => Restart::Permanent,
                 1 => Restart::Transient,
@@ -343,15 +373,24 @@ fn cycle(st: &State, me: &[usize], id: usize) -> Option<Vec<usize>> {
 }
 
 /// Take actor `id`'s state for a handler call (R435): 0 with its slots in `out`, or
-/// [`crate::chan::BLOCKED`], [`WORK`], [`STOPPED`], [`DEADLOCK`] or [`TIMEOUT`]. A call is a barrier: the
-/// actor first runs every message queued before it (R813).
+/// [`crate::chan::BLOCKED`], [`WORK`], [`STOPPED`], [`DEADLOCK`], [`TIMEOUT`] or, for a call through
+/// `Remote` whose request was lost, [`UNREACHABLE`]. A call is a barrier: the actor first runs
+/// every message queued before it (R813).
 ///
 /// # Safety
 /// `out` has room for the state's slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_actor_take(id: u64, out: *mut u64, in_task: u64) -> u64 {
+    let me = sched::path();
+    if with(|st| st.faults.refused(&me)) {
+        return UNREACHABLE;
+    }
     // SAFETY: the caller's contract.
-    unsafe { take_state(id as usize, out, in_task != 0, true) }
+    let r = unsafe { take_state(id as usize, out, in_task != 0, true) };
+    if ![0, WORK, crate::chan::BLOCKED].contains(&r) {
+        with(|st| st.faults.forget(&me));
+    }
+    r
 }
 
 /// # Safety
@@ -376,6 +415,9 @@ unsafe fn take_state(id: usize, out: *mut u64, in_task: bool, barrier: bool) -> 
             unsafe { std::ptr::copy_nonoverlapping(s.as_ptr(), out, s.len()) };
             st.actors[id].holder = Some(me.clone());
             unwait(st, &me);
+            // The handler runs on its actor's node (D1.3).
+            let home = st.actors[id].home;
+            st.nodes.push((me.clone(), home));
             return Some(0);
         }
         match cycle(st, &me, id) {
@@ -476,6 +518,7 @@ pub unsafe extern "C" fn yan_rt_actor_give(id: u64, state: *const u64) -> u64 {
         return 1;
     }
     with(|st| {
+        leave(st, &me);
         let lent = &mut st.actors[id as usize].lent;
         match lent.iter().rposition(|(p, _)| *p == me) {
             Some(k) => u64::from(!lent.remove(k).1),
@@ -490,7 +533,9 @@ pub unsafe extern "C" fn yan_rt_actor_give(id: u64, state: *const u64) -> u64 {
 /// `state` holds the actor's state slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_actor_put(id: u64, state: *const u64) {
+    let me = sched::path();
     with(|st| {
+        leave(st, &me);
         let a = &mut st.actors[id as usize];
         // SAFETY: the caller's contract.
         let v = unsafe { std::slice::from_raw_parts(state, a.words) }.to_vec();
@@ -502,8 +547,8 @@ pub unsafe extern "C" fn yan_rt_actor_put(id: u64, state: *const u64) {
 
 /// Enqueue on actor `id` the message `thunk(code, env, args)` (R813): 0, 1 when parked on a full
 /// mailbox, [`WORK`] to run the actor's oldest message first, or why it is undelivered:
-/// [`STOPPED`], [`FULL`], [`CANCELLED`] or [`TIMEOUT`], leaving the message to the caller
-/// (R976). A full mailbox does what the actor's policy says (R974).
+/// [`UNREACHABLE`], [`STOPPED`], [`FULL`], [`CANCELLED`] or [`TIMEOUT`], leaving the message to
+/// the caller (R976). A full mailbox does what the actor's policy says (R974).
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_actor_send(
     id: u64,
@@ -515,7 +560,11 @@ pub extern "C" fn yan_rt_actor_send(
 ) -> u64 {
     let id = id as usize;
     let m = [thunk, code, env, args];
+    let me = sched::path();
     let r = with(|st| {
+        if st.faults.lost_send(&me) {
+            return Some(UNREACHABLE);
+        }
         let a = &mut st.actors[id];
         if a.stopped.is_some() {
             return Some(STOPPED);
@@ -541,7 +590,6 @@ pub extern "C" fn yan_rt_actor_send(
         st.actors[id].mail.push_back(m);
         None
     });
-    let me = sched::path();
     match r {
         Some(WAIT) => wait(id, me, in_task != 0, "a send"),
         Some(r) => r,
@@ -690,23 +738,73 @@ pub extern "C" fn yan_rt_sup_begin(low: u64, strategy: u64, intensity: i64, peri
             period: i128::from(period),
             children: Vec::new(),
             restarts: VecDeque::new(),
+            nodes: None,
         });
         st.open.push(st.sups.len() - 1);
         low.min(depth)
     })
 }
 
-/// The scopes past the first `depth` end: their children stop in reverse start order (9.6).
+/// The scopes past the first `depth` end: their children stop in reverse start order (9.6),
+/// and for a `with cluster` scope each node's children, the last node first (RFC 0063 D1).
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_sup_end_to(depth: u64) {
     with(|st| {
         while st.open.len() as u64 > depth {
             let s = st.open.pop().expect("an open scope");
-            for c in st.sups[s].children.clone().into_iter().rev() {
-                st.actors[c].end();
+            let nodes = st.sups[s].nodes.as_ref().map(|n| n.1.clone());
+            for s in nodes.unwrap_or_default().into_iter().rev().chain([s]) {
+                for c in st.sups[s].children.clone().into_iter().rev() {
+                    st.actors[c].end();
+                }
             }
         }
     });
+}
+
+/// The program ends: the root supervisor's children stop, the last started first (R957).
+pub fn end_root() {
+    with(|st| {
+        for c in st.sups[0].children.clone().into_iter().rev() {
+            st.actors[c].end();
+        }
+    });
+}
+
+/// The node task `me` runs on: the innermost node entered by it or a task it descends from
+/// (D1.2), else node 0, the binding task's (D1.1).
+pub(crate) fn current(st: &State, me: &[usize]) -> usize {
+    st.nodes
+        .iter()
+        .rev()
+        .find(|(p, _)| me.starts_with(p))
+        .map_or(0, |n| n.1)
+}
+
+/// The node actor `id` runs on.
+pub(crate) fn home(st: &State, id: usize) -> usize {
+    st.actors[id].home
+}
+
+/// Task `me` returns from the node it last entered.
+pub(crate) fn leave(st: &mut State, me: &[usize]) {
+    if let Some(k) = st.nodes.iter().rposition(|(p, _)| p == me) {
+        st.nodes.remove(k);
+    }
+}
+
+/// The supervisor of an actor started now: the innermost open scope that is not a cluster's,
+/// or for a start placed on another node, that node's root supervisor (RFC 0063 D2).
+fn adopter(st: &State) -> usize {
+    let mut open = st.open.iter().rev().map(|s| (*s, &st.sups[*s]));
+    match st.placed {
+        Some(0) => 0,
+        Some(k) => open
+            .find_map(|(_, s)| s.nodes.as_ref())
+            .and_then(|n| n.1.get(k - 1).copied())
+            .unwrap_or(0),
+        None => open.find(|(_, s)| s.nodes.is_none()).map_or(0, |s| s.0),
+    }
 }
 
 /// The innermost scope ends.

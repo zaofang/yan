@@ -386,6 +386,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 body,
                 ..
             } if name == "supervisor" => self.with_supervisor(handler, body),
+            K::With {
+                name,
+                handler,
+                body,
+                ..
+            } if name == "cluster" => self.with_cluster(handler, body),
             K::With { .. } => unsupported("`with`"),
             K::Deadline { .. } => unsupported("`deadline`"),
             K::ComptimeFor { .. } | K::ComptimeIf { .. } => unsupported("a comptime statement"),

@@ -400,8 +400,8 @@ pub(crate) struct Interp<'o> {
     placed: Option<usize>,
     /// The `sim` handler last built: nodes, faults, seed and the clock at its binding (RFC 0063 D3).
     sim: Option<Value>,
-    /// Each monitored actor and the channel its `Down` goes to (RFC 0063 D7).
-    monitors: Vec<(usize, usize)>,
+    /// Each monitored actor, the channel its `Down` goes to and the node of the watcher (RFC 0063 D7).
+    monitors: Vec<(usize, usize, usize)>,
     /// Messages sent so far over each ordered node pair, which index its fault stream.
     seq: std::collections::HashMap<(usize, usize), u64>,
     /// The calls through `Remote` awaiting their reply, innermost last, by task path.
