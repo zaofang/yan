@@ -517,6 +517,7 @@ impl Lower<'_, '_, '_> {
         // in `Undelivered.args` (R976).
         let mut moved = Vec::with_capacity(args.len());
         let mut keys = Vec::with_capacity(args.len());
+        let mut tys = Vec::with_capacity(args.len());
         for a in args {
             let j::ArgKind::Expr(e) = &a.kind else {
                 return unsupported("a reference argument to `actor.send`");
@@ -526,6 +527,25 @@ impl Lower<'_, '_, '_> {
             self.bind(&n, false, &t, Rhs::Atom(v), e.span, e.span);
             moved.push(name(n, e.span));
             keys.push(a.name.clone());
+            tys.push(t);
+        }
+        // The request is faulted once the arguments are evaluated, then each one is encoded: one
+        // the codec rejects fails the send `SchemaMismatch` (R408).
+        if let Some(rh) = &remote_h {
+            let f = call(
+                "std.cluster.fault_send",
+                vec![ts[0].targ(), ts[1].targ()],
+                vec![let_arg(rh.clone())],
+                at,
+            );
+            self.emit(StmtKind::Rhs(Rhs::Call(f)), at);
+            for (m, t) in moved.iter_mut().zip(&tys) {
+                let sp = m.span;
+                let Atom::Name(n, _) = self.send_wire(t, m.clone(), sp)? else {
+                    unreachable!("a temporary is a name")
+                };
+                *m = name(n, sp);
+            }
         }
         let (tup, at_ty) = self.atom(&ex(j::ExprKind::Tuple(moved)), None)?;
         let tup = self.tmp(&at_ty, Rhs::Atom(tup), at);
@@ -570,15 +590,6 @@ impl Lower<'_, '_, '_> {
             reason = Ty::Union(ms);
         }
         let fail = Ty::Coll("Undelivered", vec![at_ty.clone(), reason.clone()]);
-        if let Some(rh) = remote_h {
-            let f = call(
-                "std.cluster.fault_send",
-                vec![ts[0].targ(), ts[1].targ()],
-                vec![let_arg(rh)],
-                at,
-            );
-            self.emit(StmtKind::Rhs(Rhs::Call(f)), at);
-        }
         let c = call(
             "std.actor.send",
             vec![ts[0].targ(), ts[1].targ(), at_ty.targ(), fail.targ()],

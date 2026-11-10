@@ -360,6 +360,8 @@ pub enum RtFn {
     ClusterReach,
     /// `(actor)`: the message of a send through `Remote`.
     ClusterFaultSend,
+    /// `(status)`: a send through `Remote` whose argument was rejected fails `SchemaMismatch`.
+    ClusterSendMismatch,
     /// `(mismatch)`: a call through `Remote` whose argument was rejected ends.
     ClusterAdmit,
     /// `(mismatch) -> lost`: the reply message of a call through `Remote`.
