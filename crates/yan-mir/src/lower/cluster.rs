@@ -1,7 +1,7 @@
 //! `std.cluster` and `std.sim` in native code (RFC 0063): the `sim` handler's nodes in
 //! `yan_rt::cluster`, which node code runs on (D1), and the `Wire` round trip of every value
 //! that crosses to a node (R402), over `yan_rt::wireslots`. Requests, replies and sends are
-//! dropped in `yan_rt::cluster`; the other faults wait for virtual time (#929 4c).
+//! faulted in `yan_rt::cluster`.
 
 use super::*;
 
