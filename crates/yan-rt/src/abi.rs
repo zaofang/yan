@@ -215,6 +215,7 @@ pub fn panic_message(kind: &str) -> &'static str {
         "exclusivity" => "two mutable accesses to the same place",
         "conversion" => "the value does not fit the target type",
         "deadlock" => "every task is blocked",
+        "wire" => "a value the Wire codec rejects",
         _ => "invalid value",
     }
 }
@@ -683,6 +684,45 @@ pub unsafe extern "C" fn yan_rt_json_error_show(v: *const u64) -> *mut String {
     let w = unsafe { std::slice::from_raw_parts(v, 14) };
     // SAFETY: as above.
     str_block(&unsafe { crate::jsonslots::show_error(w) })
+}
+
+/// `std.cluster.wire`, `wire_reply` and `wire_start`: the value in `v` after the `Wire` round
+/// trip (R402) into `out`; 0, or 1 when the codec rejects it. A rejected start argument has no
+/// call to fail and panics `wire` (`start` != 0).
+///
+/// # Safety
+/// `v` holds the schema's root type and `out` has room for it; `schema` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_wire_roundtrip(
+    out: *mut u64,
+    v: *const u64,
+    schema: *const String,
+    start: i64,
+) -> i64 {
+    // SAFETY: the caller's contract.
+    let sc: crate::wire::Schemas =
+        serde_json::from_str(unsafe { &*schema }).expect("the elaborator's schema");
+    // SAFETY: as above.
+    let w = unsafe { std::slice::from_raw_parts(v, crate::wireslots::root_width(&sc)) };
+    // SAFETY: as above.
+    let (slots, why) = unsafe { crate::wireslots::roundtrip(&sc, w) };
+    match why {
+        None => {
+            // SAFETY: as above.
+            unsafe { store_slots(out, slots) };
+            0
+        }
+        Some(why) if start != 0 => {
+            let _ = std::io::stdout().flush();
+            eprintln!("panic(wire): a start argument: {why:?}");
+            std::process::exit(101)
+        }
+        Some(_) => {
+            // SAFETY: as above.
+            unsafe { store_slots(out, slots) };
+            1
+        }
+    }
 }
 
 /// `std.csv.parse`: the slots of the `Result` into `out`.
