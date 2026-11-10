@@ -18,12 +18,12 @@ def bump(var self: Box) -> int fail Boom:
     return self.n
 
 @remote
-def make() -> Box:
-    return Box(n=0)
+def make(start: int) -> Box:
+    return Box(n=start)
 
 pub def main() -> None uses io, cluster:
     with cluster = sim(2, 3):
-        a = cluster.spawn(ChildSpec(make, (), restart=temporary), placement=On(cluster.nodes()[1]))
+        a = cluster.spawn(ChildSpec(make, (0,), restart=temporary), placement=On(cluster.nodes()[1]))
         rx = cluster.monitor(a)
         v = a.bump() else e -> -1
         w = a.bump() else e -> -2

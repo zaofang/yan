@@ -13,10 +13,10 @@ def get(var self: Box) -> Opaque:
     return Opaque(n=self.n)
 
 @remote
-def make() -> Box:
-    return Box(n=0)
+def make(start: int) -> Box:
+    return Box(n=start)
 
 pub def main() -> None uses io, cluster:
     with cluster = sim(2, 3):
-        a = cluster.spawn(ChildSpec(make, ()), placement=On(cluster.nodes()[1]))
+        a = cluster.spawn(ChildSpec(make, (0,)), placement=On(cluster.nodes()[1]))
         _ = a
