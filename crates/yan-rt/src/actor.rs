@@ -20,6 +20,8 @@ pub const DEADLOCK: u64 = 5;
 pub const TIMEOUT: u64 = 6;
 /// A send to a full `Reject` mailbox fails `Full`.
 pub const FULL: u64 = 7;
+/// A message through `Remote` was lost: `Unreachable` (RFC 0063 D5).
+pub const UNREACHABLE: u64 = 8;
 /// A `Block` send in a cancelled task fails `Cancelled`.
 pub use crate::chan::CANCELLED;
 
@@ -154,6 +156,8 @@ pub(crate) struct State {
     pub(crate) nodes: Vec<(Vec<usize>, usize)>,
     /// The node a `cluster.spawn` placed its start on, when not the caller's (D2).
     pub(crate) placed: Option<usize>,
+    /// The faults of the last `sim` built and its messages, as `yan_rt::cluster` keeps them.
+    pub(crate) faults: crate::cluster::Faults,
     /// Tasks parked on a busy actor, by task path, and the actor each waits for (RFC 0056 D6).
     waits: Vec<(Vec<usize>, usize)>,
     /// When each task parked on an actor began waiting, for its deadline.
@@ -176,6 +180,7 @@ impl Default for State {
             sims: Vec::new(),
             nodes: Vec::new(),
             placed: None,
+            faults: Default::default(),
             waits: Vec::new(),
             since: Vec::new(),
             doomed: Vec::new(),
@@ -368,15 +373,24 @@ fn cycle(st: &State, me: &[usize], id: usize) -> Option<Vec<usize>> {
 }
 
 /// Take actor `id`'s state for a handler call (R435): 0 with its slots in `out`, or
-/// [`crate::chan::BLOCKED`], [`WORK`], [`STOPPED`], [`DEADLOCK`] or [`TIMEOUT`]. A call is a barrier: the
-/// actor first runs every message queued before it (R813).
+/// [`crate::chan::BLOCKED`], [`WORK`], [`STOPPED`], [`DEADLOCK`], [`TIMEOUT`] or, for a call through
+/// `Remote` whose request was lost, [`UNREACHABLE`]. A call is a barrier: the actor first runs
+/// every message queued before it (R813).
 ///
 /// # Safety
 /// `out` has room for the state's slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_actor_take(id: u64, out: *mut u64, in_task: u64) -> u64 {
+    let me = sched::path();
+    if with(|st| st.faults.refused(&me)) {
+        return UNREACHABLE;
+    }
     // SAFETY: the caller's contract.
-    unsafe { take_state(id as usize, out, in_task != 0, true) }
+    let r = unsafe { take_state(id as usize, out, in_task != 0, true) };
+    if ![0, WORK, crate::chan::BLOCKED].contains(&r) {
+        with(|st| st.faults.forget(&me));
+    }
+    r
 }
 
 /// # Safety
@@ -533,8 +547,8 @@ pub unsafe extern "C" fn yan_rt_actor_put(id: u64, state: *const u64) {
 
 /// Enqueue on actor `id` the message `thunk(code, env, args)` (R813): 0, 1 when parked on a full
 /// mailbox, [`WORK`] to run the actor's oldest message first, or why it is undelivered:
-/// [`STOPPED`], [`FULL`], [`CANCELLED`] or [`TIMEOUT`], leaving the message to the caller
-/// (R976). A full mailbox does what the actor's policy says (R974).
+/// [`UNREACHABLE`], [`STOPPED`], [`FULL`], [`CANCELLED`] or [`TIMEOUT`], leaving the message to
+/// the caller (R976). A full mailbox does what the actor's policy says (R974).
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_actor_send(
     id: u64,
@@ -546,7 +560,11 @@ pub extern "C" fn yan_rt_actor_send(
 ) -> u64 {
     let id = id as usize;
     let m = [thunk, code, env, args];
+    let me = sched::path();
     let r = with(|st| {
+        if st.faults.lost_send(&me) {
+            return Some(UNREACHABLE);
+        }
         let a = &mut st.actors[id];
         if a.stopped.is_some() {
             return Some(STOPPED);
@@ -572,7 +590,6 @@ pub extern "C" fn yan_rt_actor_send(
         st.actors[id].mail.push_back(m);
         None
     });
-    let me = sched::path();
     match r {
         Some(WAIT) => wait(id, me, in_task != 0, "a send"),
         Some(r) => r,
@@ -762,6 +779,11 @@ pub(crate) fn current(st: &State, me: &[usize]) -> usize {
         .rev()
         .find(|(p, _)| me.starts_with(p))
         .map_or(0, |n| n.1)
+}
+
+/// The node actor `id` runs on.
+pub(crate) fn home(st: &State, id: usize) -> usize {
+    st.actors[id].home
 }
 
 /// Task `me` returns from the node it last entered.

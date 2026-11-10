@@ -1,7 +1,7 @@
 //! `std.cluster` and `std.sim` in native code (RFC 0063): the `sim` handler's nodes in
 //! `yan_rt::cluster`, which node code runs on (D1), and the `Wire` round trip of every value
-//! that crosses to a node (R402), over `yan_rt::wireslots`. Faults wait for virtual time (#929
-//! 4c): `sim` refuses a non-empty fault plan, so requests and replies are never lost here.
+//! that crosses to a node (R402), over `yan_rt::wireslots`. Requests, replies and sends are
+//! dropped in `yan_rt::cluster`; the other faults wait for virtual time (#929 4c).
 
 use super::*;
 
@@ -157,18 +157,39 @@ impl<'m> Fn<'_, 'm> {
                 f: RtFn::ClusterLeave,
                 args: Vec::new(),
             }),
-            // A `Remote` is its handle, and without faults a request always arrives (D5).
+            // A `Remote` is its handle; a lost request fails the call at `take` (D5).
             (id::STD_CLUSTER_REACH | id::STD_CLUSTER_HANDLE | id::STD_ACTOR_SHARE, [(_, h)]) => {
                 let h = self.scalar1(h)?;
+                if id == id::STD_CLUSTER_REACH {
+                    self.emit(Inst::Rt {
+                        dst: None,
+                        f: RtFn::ClusterReach,
+                        args: vec![h.clone()],
+                    });
+                }
                 if let Some(d) = dst {
                     self.copy_to(&d.locals, vec![h]);
                 }
             }
-            (id::STD_CLUSTER_FAULT_SEND, [_]) => {}
+            // A lost send fails at `send` (R976).
+            (id::STD_CLUSTER_FAULT_SEND, [(_, h)]) => {
+                let h = self.scalar1(h)?;
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::ClusterFaultSend,
+                    args: vec![h],
+                });
+            }
             (id::STD_CLUSTER_ADMIT, []) => {
                 let Some(d) = dst else {
                     return unsupported("`admit` without its result");
                 };
+                let flag = self.mismatch();
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::ClusterAdmit,
+                    args: vec![Operand::Local(flag)],
+                });
                 let ok = Self::variant_value(&d.shape, "Ok", vec![Operand::Unit]);
                 self.mismatched(d, ok)?;
             }
@@ -178,9 +199,26 @@ impl<'m> Fn<'_, 'm> {
                 };
                 let v = self.owned(conv, outcome, &d.shape)?;
                 let shape = d.shape.clone();
-                let lost = self.mismatched(d, v.clone())?;
+                let flag = self.mismatch();
+                let lost = self.rt(RtFn::ClusterArrive, I64, vec![Operand::Local(flag)]);
+                let rejected = self.mismatched(d, v.clone())?;
+                let Some(gone) = shape
+                    .variant("Err")
+                    .and_then(|(_, _, e)| Self::failure(&e[0].1, "Unreachable", Vec::new()))
+                else {
+                    return unsupported(
+                        "a call through `Remote` whose fail type lacks `Unreachable`",
+                    );
+                };
+                // A lost reply fails the call; the codec never sends one it rejected.
+                let (dropped, delivered) = self.branch(lost);
+                self.cur = dropped;
+                self.copy_to(&d.locals, Self::variant_value(&shape, "Err", gone));
+                self.glue(&shape, &v);
+                self.goto(delivered);
+                self.cur = delivered;
                 // A reply the codec rejected is lost; the handler's result goes with it.
-                let (drop, kept) = self.branch(lost);
+                let (drop, kept) = self.branch(rejected);
                 self.cur = drop;
                 self.glue(&shape, &v);
                 self.goto(kept);

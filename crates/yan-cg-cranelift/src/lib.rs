@@ -754,6 +754,10 @@ const RT: &[RtFn] = &[
     RtFn::ClusterSelfNode,
     RtFn::ClusterPlace,
     RtFn::ClusterLeave,
+    RtFn::ClusterReach,
+    RtFn::ClusterFaultSend,
+    RtFn::ClusterAdmit,
+    RtFn::ClusterArrive,
     RtFn::SupEndTo,
 ];
 
@@ -1379,6 +1383,30 @@ fn rt_fn(
             cluster::yan_rt_cluster_leave as *const u8,
             &[],
             None,
+        ),
+        RtFn::ClusterReach => (
+            "yan_rt_cluster_reach",
+            cluster::yan_rt_cluster_reach as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ClusterFaultSend => (
+            "yan_rt_cluster_fault_send",
+            cluster::yan_rt_cluster_fault_send as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ClusterAdmit => (
+            "yan_rt_cluster_admit",
+            cluster::yan_rt_cluster_admit as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ClusterArrive => (
+            "yan_rt_cluster_arrive",
+            cluster::yan_rt_cluster_arrive as *const u8,
+            &[I64],
+            Some(I64),
         ),
         RtFn::SupEndTo => (
             "yan_rt_sup_end_to",

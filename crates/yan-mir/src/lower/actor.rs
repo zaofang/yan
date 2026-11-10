@@ -15,6 +15,7 @@ const FAILURES: &[(i128, &str)] = &[
     (6, "Timeout"),
     (7, "Full"),
     (2, "Cancelled"),
+    (8, "Unreachable"),
 ];
 
 /// A thunk yan-rt hands back to run, made once per shape; each takes three pointers.

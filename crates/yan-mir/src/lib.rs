@@ -344,8 +344,8 @@ pub enum RtFn {
     SupEnd,
     /// `(depth)`: end the scopes past `depth`.
     SupEndTo,
-    /// `(nodes, seed, Ptr plan) -> sim`: a `sim` cluster (RFC 0063 D3); a non-empty fault
-    /// plan is refused until native virtual time (#929 4c).
+    /// `(nodes, seed, Ptr plan) -> sim`: a `sim` cluster (RFC 0063 D3); delays, partitions
+    /// and cuts are refused until native virtual time (#929 4c).
     SimNew,
     /// `(low, sim) -> low`: `with cluster = sim`, a supervisor scope with each node's root.
     SimBegin,
@@ -357,6 +357,14 @@ pub enum RtFn {
     ClusterPlace,
     /// `()`: the calling task returns from the node it was placed on.
     ClusterLeave,
+    /// `(actor)`: the request message of a call through `Remote` (D5).
+    ClusterReach,
+    /// `(actor)`: the message of a send through `Remote`.
+    ClusterFaultSend,
+    /// `(mismatch)`: a call through `Remote` whose argument was rejected ends.
+    ClusterAdmit,
+    /// `(mismatch) -> lost`: the reply message of a call through `Remote`.
+    ClusterArrive,
     /// `(resource, bound, clause) -> token`: start a `cost` counter (R610); 0 steps, 1 alloc.
     CostBegin,
     /// `(token)`: end the counters started since `token`.
