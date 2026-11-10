@@ -224,8 +224,9 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                 _ => Restart::Temporary,
             };
             let (start, cap, policy) = (start.clone(), *cap, *policy);
+            let home = crate::cluster::current(&vm.it, &vm.task_path);
             let state = vm.apply(&start, Vec::new())?;
-            super::sync::spawn(&mut vm.it, state, cap, restart, Some(start), policy)
+            super::sync::spawn(&mut vm.it, home, state, cap, restart, Some(start), policy)
         }),
     ),
 ];

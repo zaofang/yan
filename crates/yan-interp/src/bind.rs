@@ -52,6 +52,7 @@ static TABLE: LazyLock<Vec<Option<Bind>>> = LazyLock::new(|| {
         .chain(crate::crypto_rand::BINDS)
         .chain(crate::fault::BINDS)
         .chain(crate::sync::BINDS)
+        .chain(crate::cluster::BINDS)
         .chain(crate::supervise::BINDS)
         .chain(crate::log::BINDS)
         .chain(crate::proc::BINDS)
