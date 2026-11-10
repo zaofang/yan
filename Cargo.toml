@@ -30,6 +30,7 @@ num-integer = "0.1"
 num-traits = "0.2"
 regex = "1"
 unicode-segmentation = "1"
+rowan = "0.16"
 egg = { version = "0.11", default-features = false, features = ["deterministic"] }
 yan-core = { path = "crates/yan-core" }
 yan-diag = { path = "crates/yan-diag" }
@@ -49,6 +50,7 @@ yan-opt = { path = "crates/yan-opt" }
 yan-db = { path = "crates/yan-db" }
 yan-ide = { path = "crates/yan-ide" }
 yan-surface = { path = "crates/yan-surface" }
+yan-cst = { path = "crates/yan-cst" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

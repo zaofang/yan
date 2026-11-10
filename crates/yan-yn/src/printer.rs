@@ -1,10 +1,10 @@
 //! The canonical Yan printer (spec 15.4): 2-space blocks, minimal parentheses plus those E101
 //! requires, signature layout of 15.3.
 //!
-//! Comments and author blank lines come back from the module's trivia (18.5, R376).
+//! Comments and author blank lines come back from the module's syntax tree (18.5, R376, R995).
 
+use yan_cst::{Comments, Lead};
 use yan_diag::wrap::wrap;
-use yan_diag::{Lead, Trivia};
 
 use crate::ast::*;
 
@@ -12,7 +12,7 @@ const WIDTH: usize = 100;
 
 pub fn print(m: &Module) -> String {
     let mut p = Printer {
-        trivia: m.trivia.clone(),
+        trivia: Comments::new(&m.cst.syntax(), 0),
         ..Printer::default()
     };
     for a in &m.attrs {
@@ -41,7 +41,7 @@ pub fn print(m: &Module) -> String {
 struct Printer {
     out: String,
     indent: usize,
-    trivia: Trivia,
+    trivia: Comments,
     /// A trailing comment for the next line printed.
     pending: Option<String>,
 }

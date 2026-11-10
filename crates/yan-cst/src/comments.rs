@@ -1,4 +1,7 @@
-//! Comments and blank lines the parsers drop and the canonical printers put back (spec 18.5, R376).
+//! Comments and blank lines, read from the syntax tree, that the canonical printers put back
+//! (spec 18.5, R376).
+
+use crate::{Kind, SyntaxNode, positioned};
 
 #[derive(Clone, Debug)]
 struct Comment {
@@ -15,38 +18,44 @@ struct Comment {
 /// An own-line comment and whether the author left a blank line before it.
 pub type Lead = (bool, String);
 
+/// The comments and blank lines of a syntax tree, as the canonical printers take them back
+/// (18.5, R376). Each comment is handed out once.
 #[derive(Clone, Debug, Default)]
-pub struct Trivia {
+pub struct Comments {
     comments: Vec<Comment>,
     blank: Vec<u32>,
 }
 
-impl PartialEq for Trivia {
-    fn eq(&self, _: &Self) -> bool {
-        true
-    }
-}
-
-impl Trivia {
-    /// `comments` are (line, column, text); `code` are the (line, column) starts of the code tokens.
-    pub fn new(src: &str, comments: &[(u32, u32, String)], code: &[(u32, u32)]) -> Self {
-        let mut code = code.to_vec();
-        code.sort_unstable();
-        let comments = comments
-            .iter()
+impl Comments {
+    /// The comments of `root` after line `header`, which the reader prints on its own.
+    pub fn new(root: &SyntaxNode, header: u32) -> Self {
+        let mut code = Vec::new();
+        let mut found = Vec::new();
+        for (line, col, t) in positioned(root) {
+            match t.kind() {
+                Kind::Comment | Kind::DocComment if line > header => {
+                    found.push((line, col, t.text().trim_end().to_owned()))
+                }
+                Kind::Token => code.push((line, col)),
+                _ => {}
+            }
+        }
+        let comments = found
+            .into_iter()
             .map(|(line, col, text)| {
-                let at = code.partition_point(|p| *p < (*line, *col));
+                let at = code.partition_point(|p| *p < (line, col));
                 Comment {
-                    line: *line,
-                    col: *col,
-                    text: text.clone(),
-                    trailing: at > 0 && code[at - 1].0 == *line,
+                    line,
+                    col,
+                    text,
+                    trailing: at > 0 && code[at - 1].0 == line,
                     next_col: code.get(at).map(|p| p.1),
                     used: false,
                 }
             })
             .collect();
-        let blank = src
+        let blank = root
+            .to_string()
             .lines()
             .enumerate()
             .filter(|(_, l)| l.trim().is_empty())

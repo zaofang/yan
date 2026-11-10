@@ -3,17 +3,17 @@
 use std::cell::Cell;
 
 use crate::ast::*;
+use yan_cst::{Comments, Lead};
 use yan_diag::wrap::wrap as wrap_line;
-use yan_diag::{Lead, Trivia};
 
 const WIDTH: usize = 100;
 use yan_names::{Surface, type_row};
 
 pub fn print(m: &Module) -> String {
-    print_with(m, Trivia::default())
+    print_with(m, Comments::default())
 }
 
-pub(crate) fn print_with(m: &Module, trivia: Trivia) -> String {
+pub(crate) fn print_with(m: &Module, trivia: Comments) -> String {
     let mut p = Printer {
         out: String::new(),
         trivia,
@@ -54,7 +54,7 @@ pub(crate) fn print_with(m: &Module, trivia: Trivia) -> String {
 
 struct Printer {
     out: String,
-    trivia: Trivia,
+    trivia: Comments,
     /// A trailing comment for the next line printed.
     pending: Option<String>,
 }

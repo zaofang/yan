@@ -1,0 +1,14 @@
+[package]
+name = "yan-cst"
+description = "Lossless syntax tree shared by every surface reader (spec 16.5, R995)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+rowan.workspace = true
+
+[lints]
+workspace = true

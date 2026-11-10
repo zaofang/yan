@@ -12,9 +12,18 @@ mod resugar;
 pub use grammar::{Expr as GrammarExpr, Grammar, Term as GrammarTerm};
 pub use printer::{expr as print_expr, print, ty as print_type};
 
-/// `print` with the comments and blank lines of `src`, the text `m` was read from (R376).
+/// `print` with the comments and blank lines of `src`, the text `m` was read from (R376), taken
+/// from its syntax tree (R995). The file's leading comment lines are the header, which the
+/// printer keeps on its own.
 pub fn print_source(m: &ast::Module, src: &str) -> String {
-    printer::print_with(m, lexer::lex(src).trivia)
+    let header = src.lines().take_while(|l| l.starts_with('#')).count() as u32;
+    let comments = yan_cst::Comments::new(&syntax(src).syntax(), header);
+    printer::print_with(m, comments)
+}
+
+/// The lossless syntax tree of `src` as the lenient reader reads it (R995).
+pub fn syntax(src: &str) -> yan_cst::Cst {
+    parser::parse_with_syntax(src, false).2
 }
 pub use resugar::resugar;
 use yan_diag::{Diagnostic, Severity};
@@ -366,5 +375,47 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
             }
         }
         assert!(n == 0 || n > 50, "found {n} files");
+    }
+}
+
+#[cfg(test)]
+mod syntax_selftest {
+    use std::path::{Path, PathBuf};
+
+    fn files(dir: &Path, out: &mut Vec<PathBuf>) {
+        for e in std::fs::read_dir(dir).unwrap() {
+            let p = e.unwrap().path();
+            if p.is_dir() {
+                files(&p, out);
+            } else if p.extension().is_some_and(|x| x == "yag") {
+                out.push(p);
+            }
+        }
+    }
+
+    /// The syntax tree of every `.yag` file under conformance/ prints back to its source byte for
+    /// byte, and a file that reads cleanly has no skipped text and one item node per item (R995).
+    #[test]
+    fn syntax_tree_lossless() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../conformance");
+        let mut paths = Vec::new();
+        files(&root, &mut paths);
+        assert!(paths.len() > 100);
+        for p in paths {
+            let src = std::fs::read_to_string(&p).unwrap();
+            let (m, issues, cst) = crate::parser::parse_with_syntax(&src, false);
+            assert_eq!(cst.to_string(), src, "{}", p.display());
+            if issues.is_empty()
+                && let Some(m) = m
+            {
+                let tree = cst.syntax();
+                let skipped = tree
+                    .descendants_with_tokens()
+                    .any(|t| t.kind() == yan_cst::Kind::Skipped);
+                assert!(!skipped, "{}", p.display());
+                let items = tree.children().filter(|n| n.kind() == yan_cst::Kind::Item);
+                assert_eq!(items.count(), m.items.len(), "{}", p.display());
+            }
+        }
     }
 }

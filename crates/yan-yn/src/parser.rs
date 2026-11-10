@@ -3,6 +3,7 @@
 
 use std::collections::HashSet;
 
+use yan_cst::Kind;
 use yan_diag::{Diagnostic, Span};
 
 use crate::ast::*;
@@ -27,6 +28,8 @@ pub struct Parser<'a> {
     sign_binary: bool,
     fn_kind: Option<FnKind>,
     reported: HashSet<(u32, u32, &'static str)>,
+    /// Syntax nodes as token index ranges, for the lossless tree (R995).
+    pub nodes: Vec<(Kind, usize, usize)>,
 }
 
 fn join(a: Span, b: Span) -> Span {
@@ -76,7 +79,17 @@ impl<'a> Parser<'a> {
             sign_binary: false,
             fn_kind: None,
             reported: HashSet::new(),
+            nodes: Vec::new(),
         }
+    }
+
+    fn node<T>(&mut self, kind: Kind, f: impl FnOnce(&mut Self) -> P<T>) -> P<T> {
+        let from = self.pos;
+        let r = f(self);
+        if r.is_ok() {
+            self.nodes.push((kind, from, self.pos));
+        }
+        r
     }
 
     // ---- token access
@@ -349,12 +362,15 @@ impl<'a> Parser<'a> {
         Module {
             attrs,
             items,
-            docs: Vec::new(),
-            trivia: Default::default(),
+            cst: Default::default(),
         }
     }
 
     fn attr(&mut self) -> P<Attr> {
+        self.node(Kind::Attr, Self::attr_)
+    }
+
+    fn attr_(&mut self) -> P<Attr> {
         let start = self.span();
         self.bump();
         let attr = self.attr_body(start)?;
@@ -386,6 +402,10 @@ impl<'a> Parser<'a> {
     }
 
     fn item(&mut self) -> P<Item> {
+        self.node(Kind::Item, Self::item_)
+    }
+
+    fn item_(&mut self) -> P<Item> {
         let start = self.span();
         let attrs = self.attrs()?;
         if self.is_kw("use") {
@@ -596,6 +616,10 @@ impl<'a> Parser<'a> {
     }
 
     fn params(&mut self) -> P<Vec<Param>> {
+        self.node(Kind::Params, Self::params_)
+    }
+
+    fn params_(&mut self) -> P<Vec<Param>> {
         let mut out = Vec::new();
         while !self.is_p(")") {
             let start = self.span();
@@ -1019,6 +1043,10 @@ impl<'a> Parser<'a> {
     // ---- bodies and statements
 
     fn body(&mut self, allow_clauses: bool) -> P<Body> {
+        self.node(Kind::Body, |p| p.body_(allow_clauses))
+    }
+
+    fn body_(&mut self, allow_clauses: bool) -> P<Body> {
         if !self.at_block() {
             let e = self.expr()?;
             self.end_stmt()?;
@@ -1128,6 +1156,10 @@ impl<'a> Parser<'a> {
     }
 
     fn arm(&mut self) -> P<Arm> {
+        self.node(Kind::Arm, Self::arm_)
+    }
+
+    fn arm_(&mut self) -> P<Arm> {
         let start = self.span();
         let pattern = self.pattern()?;
         let guard = if self.eat_kw("if") {
@@ -1155,6 +1187,10 @@ impl<'a> Parser<'a> {
     }
 
     fn stmt(&mut self) -> P<Stmt> {
+        self.node(Kind::Stmt, Self::stmt_)
+    }
+
+    fn stmt_(&mut self) -> P<Stmt> {
         let start = self.span();
         let kind = self.stmt_kind(start)?;
         Ok(Stmt {
@@ -1544,6 +1580,10 @@ impl<'a> Parser<'a> {
     }
 
     pub fn expr(&mut self) -> P<Expr> {
+        self.node(Kind::Expr, Self::expr_)
+    }
+
+    fn expr_(&mut self) -> P<Expr> {
         let start = self.span();
         let lambda_params = match self.peek() {
             Tok::Name(n) if *self.peek_n(1) == Tok::Punct("->") => {
@@ -2417,6 +2457,10 @@ impl<'a> Parser<'a> {
     // ---- patterns
 
     pub fn pattern(&mut self) -> P<Pattern> {
+        self.node(Kind::Pattern, Self::pattern_)
+    }
+
+    fn pattern_(&mut self) -> P<Pattern> {
         let start = self.span();
         let first = self.alt()?;
         if !self.is_p("|") {
@@ -2581,6 +2625,10 @@ impl<'a> Parser<'a> {
     }
 
     pub fn ty(&mut self) -> P<Type> {
+        self.node(Kind::Type, Self::ty_)
+    }
+
+    fn ty_(&mut self) -> P<Type> {
         if self.at_fn_type() {
             return self.fn_type();
         }
