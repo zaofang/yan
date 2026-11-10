@@ -1,0 +1,14 @@
+# spec: 9.6.1
+# rows: R400, R988
+# note: a handler call through Remote needs `uses cluster`
+# expect: E301 at 14:12
+
+class Counter:
+    n: int
+
+def bump(var self: Counter, by: int) -> int:
+    self.n += by
+    return self.n
+
+def poke(r: Remote[Actor[Counter]]) -> int fail RemoteError:
+    return r.bump(1)?
