@@ -1,7 +1,2 @@
 # Known backend divergences from the interpreter (DL5). Each entry needs an issue; an entry that
 # no longer mismatches fails tools/difftest.py as stale.
-
-[[allow]]
-program = "conformance/yn/run/items/module_constants.yn"
-backend = "cranelift"
-issue = "#911"
