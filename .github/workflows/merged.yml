@@ -13,7 +13,8 @@ permissions:
 jobs:
   note:
     if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+    # Hosted runners do not start on this account (lead decision 2026-11-10, #973); needs gh on the runner.
+    runs-on: self-hosted
     steps:
       - name: Comment on referenced issues and append to the #449 log
         env:
