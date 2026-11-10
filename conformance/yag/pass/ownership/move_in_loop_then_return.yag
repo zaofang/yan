@@ -1,0 +1,10 @@
+# spec: 4.2
+# rows: R963, R964
+# note: the body returns after `ws = zs`, so no later iteration reads `zs`: a move, not E413 (#848)
+
+def f(n: int) -> int:
+    zs = [1, 2, 3]
+    for i in range(n):
+        ws = zs
+        return len(ws)
+    return 0

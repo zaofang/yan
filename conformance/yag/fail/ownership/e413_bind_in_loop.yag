@@ -1,0 +1,12 @@
+# spec: 4.2
+# rows: R1, R964
+# note: `a` is read again by the next iteration, so `v = a` in the body is an implicit copy (#848)
+# expect: E413 at 10:13
+
+def f() -> int:
+    a = [1, 2]
+    t = 0
+    for i in range(3):
+        v = a
+        t += len(v)
+    return t
