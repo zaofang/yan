@@ -447,6 +447,10 @@ fn words(m: &j::Module) -> HashSet<String> {
     if TIME.iter().any(|t| w.contains(*t)) {
         w.insert("time".into());
     }
+    // A call through `Remote` fails with `std.cluster` types (R408).
+    if w.contains("Remote") || w.contains("RemoteError") {
+        w.insert("cluster".into());
+    }
     // A std alias names its members.
     for (name, ts) in &STD.aliases {
         if w.contains(name) {
@@ -502,6 +506,21 @@ fn raw_words(m: &j::Module) -> HashSet<String> {
     w
 }
 
+/// The names `m` declares, items and sum variants, which shadow std types of the same name.
+fn own_names(m: &j::Module) -> HashSet<&str> {
+    let mut own: HashSet<&str> = m.items.iter().map(|it| it.kind.name()).collect();
+    for it in &m.items {
+        if let j::ItemKind::Type(j::TypeDef {
+            rhs: j::TypeRhs::Sum(vs),
+            ..
+        }) = &it.kind
+        {
+            own.extend(vs.iter().map(|v| v.name.as_str()));
+        }
+    }
+    own
+}
+
 /// The std classes `m` may meet, registered in `g`: those whose name or module (a capability
 /// such as `fs`) `src` names, unless `m` defines the name itself.
 pub(crate) fn classes(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
@@ -527,7 +546,7 @@ pub(crate) fn classes(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
 /// The std classes `m` may meet, registered in `g` without their fields, so a std sum's
 /// variant may name one before [`classes`] resolves them.
 fn declare_classes(g: &mut Globals, m: &j::Module) -> Vec<(&'static String, &'static Class)> {
-    let own: HashSet<&str> = m.items.iter().map(|it| it.kind.name()).collect();
+    let own = own_names(m);
     let words = words(m);
     let mut out = Vec::new();
     for (name, c) in &STD.classes {
@@ -545,7 +564,7 @@ fn declare_classes(g: &mut Globals, m: &j::Module) -> Vec<(&'static String, &'st
 
 /// The std sum types `m` may meet, registered in `g` as [`classes`] registers classes.
 pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
-    let own: HashSet<&str> = m.items.iter().map(|it| it.kind.name()).collect();
+    let own = own_names(m);
     let words = words(m);
     let mut out = Vec::new();
     for (name, (module, t)) in &STD.sums {
@@ -553,10 +572,9 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
             continue;
         };
         // A std class may name a sum of its module in a field.
-        let class_named = STD
-            .classes
-            .iter()
-            .any(|(c, k)| k.module == *module && words.contains(c.as_str()));
+        let class_named = STD.classes.iter().any(|(c, k)| {
+            k.module == *module && words.contains(c.as_str()) && !own.contains(c.as_str())
+        });
         if (words.contains(name.as_str()) || words.contains(*module) || class_named)
             && !own.contains(name.as_str())
         {
