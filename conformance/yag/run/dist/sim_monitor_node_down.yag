@@ -1,0 +1,25 @@
+# spec: 9.6.1
+# rows: R993
+# note: a partition that cuts the watcher from the actor delivers Stopped(NodeDown) at the next clock read
+# stdout:
+# before
+# Stopped(reason=NodeDown())
+
+class Box:
+    n: int
+
+@remote
+def make(start: int) -> Box:
+    return Box(n=start)
+
+pub def main() -> None uses io, cluster, time:
+    with time = virtual(time.now()):
+      with cluster = sim(2, 3, Faults(cuts=[Cut(at=2 * s, heal=5 * s, side=set([0]))])):
+          a = cluster.spawn(ChildSpec(make, (0,)), placement=On(cluster.nodes()[1]))
+          rx = cluster.monitor(a)
+          time.sleep(1 * s) else e -> None
+          io.print("before")
+          time.sleep(2 * s) else e -> None
+          d = rx.recv() else e -> Stopped(reason=Normal())
+          io.print(f"{d}")
+
