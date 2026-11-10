@@ -10,10 +10,19 @@ pub type Name = String;
 pub struct Module {
     pub attrs: Vec<Attr>,
     pub items: Vec<Item>,
+    /// The lossless syntax tree the module was read from (R995); never compared.
+    pub cst: yan_cst::Cst,
+}
+
+impl Module {
     /// `---` doc comments: line and text.
-    pub docs: Vec<(u32, String)>,
-    /// Comments and blank lines, for the printer; never compared.
-    pub trivia: yan_diag::Trivia,
+    pub fn docs(&self) -> Vec<(u32, String)> {
+        self.cst
+            .docs()
+            .into_iter()
+            .map(|(line, text)| (line, text[3..].trim().to_owned()))
+            .collect()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

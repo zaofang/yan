@@ -9,6 +9,7 @@ mod printer;
 pub use lower::{Unsupported, lower};
 pub use printer::print;
 
+use lexer::Tok;
 use yan_diag::Diagnostic;
 
 /// Parse a `.yn` file. The module is returned whenever parsing recovered, with every lexical
@@ -17,10 +18,36 @@ pub fn parse(file: &str, src: &str) -> (ast::Module, Vec<Diagnostic>) {
     let (lexed, mut diags) = lexer::lex(file, src);
     let mut p = parser::Parser::new(&lexed.tokens, file, src);
     let mut module = p.module();
-    module.docs = lexed.docs;
-    module.trivia = lexed.trivia;
+    module.cst = syntax(src, &lexed, &p.nodes);
     diags.append(&mut p.diags);
     (module, diags)
+}
+
+/// The lossless tree over `src` (R995): the lexer's tokens and comments and the parser's nodes.
+fn syntax(
+    src: &str,
+    lexed: &lexer::Lexed,
+    nodes: &[(yan_cst::Kind, usize, usize)],
+) -> yan_cst::Cst {
+    let code =
+        |t: &&lexer::Token| !matches!(t.tok, Tok::Newline | Tok::Indent | Tok::Dedent | Tok::Eof);
+    let mut b = yan_cst::Builder::new(src);
+    for t in lexed.tokens.iter().filter(code) {
+        b.token(t.start, t.end);
+    }
+    for &(lo, hi, doc) in &lexed.comments {
+        b.comment(lo, hi, doc);
+    }
+    for &(kind, from, to) in nodes {
+        let mut toks = lexed.tokens[from..to].iter().filter(code);
+        if let Some(first) = toks.next() {
+            let (lo, hi) = toks.fold((first.start, first.end), |(lo, hi), t| {
+                (lo.min(t.start), hi.max(t.end))
+            });
+            b.node(kind, lo, hi);
+        }
+    }
+    b.finish()
 }
 
 #[cfg(test)]
@@ -58,6 +85,30 @@ mod selftest {
             .collect();
         out.sort();
         out
+    }
+
+    /// The syntax tree of every `.yn` file under conformance/ prints back to its source byte for
+    /// byte, and holds one item node per item of a clean parse (R995).
+    #[test]
+    fn syntax_tree_lossless() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../conformance");
+        let mut paths = Vec::new();
+        files(&root, &mut paths);
+        assert!(paths.len() > 100);
+        for p in paths {
+            let src = std::fs::read_to_string(&p).unwrap();
+            let (m, diags) = crate::parse(&p.to_string_lossy(), &src);
+            assert_eq!(m.cst.to_string(), src, "{}", p.display());
+            if diags.is_empty() {
+                let tree = m.cst.syntax();
+                let items = tree.children().filter(|n| n.kind() == yan_cst::Kind::Item);
+                assert_eq!(items.count(), m.items.len(), "{}", p.display());
+                let skipped = tree
+                    .descendants_with_tokens()
+                    .any(|t| t.kind() == yan_cst::Kind::Skipped);
+                assert!(!skipped, "{}", p.display());
+            }
+        }
     }
 
     /// Every Yan conformance case parses; cases whose expected codes are all syntax codes

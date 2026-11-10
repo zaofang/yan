@@ -3,6 +3,7 @@
 
 use std::collections::HashSet;
 
+use yan_cst::{Builder, Cst, Kind, LineIndex};
 use yan_diag::{Severity, Span};
 use yan_names::{Surface, TYPES, type_row};
 
@@ -71,10 +72,18 @@ struct Parser {
     lifted: Vec<Item>,
     /// N09: the type an unannotated `self` parameter takes.
     self_ty: Option<Type>,
+    /// Syntax nodes as token index ranges, for the lossless tree (R995).
+    nodes: Vec<(Kind, usize, usize)>,
 }
 
 /// Parse a `.yag` file. The module is `None` only when the lexer stopped early.
 pub fn parse(src: &str, strict: bool) -> (Option<Module>, Vec<Issue>) {
+    let (m, issues, _) = parse_with_syntax(src, strict);
+    (m, issues)
+}
+
+/// `parse` and the lossless tree over `src` (R995), built even when lexing stops early.
+pub fn parse_with_syntax(src: &str, strict: bool) -> (Option<Module>, Vec<Issue>, Cst) {
     let lexed = lex(src);
     let mut p = Parser {
         toks: lexed.tokens,
@@ -83,22 +92,58 @@ pub fn parse(src: &str, strict: bool) -> (Option<Module>, Vec<Issue>) {
         issues: lexed.issues,
         lifted: Vec::new(),
         self_ty: None,
+        nodes: Vec::new(),
     };
-    if lexed.fatal {
-        return (None, p.issues);
+    let m = (!lexed.fatal).then(|| {
+        p.check_names();
+        if !strict {
+            let notes = crate::nested::lift(&mut p.toks);
+            p.issues.extend(notes);
+        }
+        let header = src
+            .lines()
+            .take_while(|l| l.starts_with('#'))
+            .map(str::to_owned)
+            .collect();
+        p.module(header)
+    });
+    let cst = syntax(src, &p.toks, &lexed.comments, &p.nodes);
+    (m, p.issues, cst)
+}
+
+fn syntax(
+    src: &str,
+    toks: &[Token],
+    comments: &[(usize, usize)],
+    nodes: &[(Kind, usize, usize)],
+) -> Cst {
+    let lines = LineIndex::new(src);
+    let range = |t: &Token| {
+        (
+            lines.offset(t.span.line, t.span.col),
+            lines.offset(t.span.end_line, t.span.end_col),
+        )
+    };
+    let code = |t: &&Token| !matches!(t.tok, Tok::Newline | Tok::Indent | Tok::Dedent | Tok::Eof);
+    let mut b = Builder::new(src);
+    for t in toks.iter().filter(code) {
+        let (lo, hi) = range(t);
+        b.token(lo, hi);
     }
-    p.check_names();
-    if !strict {
-        let notes = crate::nested::lift(&mut p.toks);
-        p.issues.extend(notes);
+    for &(lo, hi) in comments {
+        b.comment(lo, hi, false);
     }
-    let header = src
-        .lines()
-        .take_while(|l| l.starts_with('#'))
-        .map(str::to_owned)
-        .collect();
-    let m = p.module(header);
-    (Some(m), p.issues)
+    for &(kind, from, to) in nodes {
+        let span = toks[from..to]
+            .iter()
+            .filter(code)
+            .map(range)
+            .reduce(|(lo, hi), (l, h)| (lo.min(l), hi.max(h)));
+        if let Some((lo, hi)) = span {
+            b.node(kind, lo, hi);
+        }
+    }
+    b.finish()
 }
 
 fn is_type_name(n: &str) -> bool {
@@ -122,6 +167,15 @@ fn op_of(e: &Expr) -> Option<&'static str> {
 }
 
 impl Parser {
+    fn node<T>(&mut self, kind: Kind, f: impl FnOnce(&mut Self) -> P<T>) -> P<T> {
+        let from = self.pos;
+        let r = f(self);
+        if r.is_ok() {
+            self.nodes.push((kind, from, self.pos));
+        }
+        r
+    }
+
     // ---- tokens ----
 
     fn tok(&self) -> &Tok {
@@ -469,6 +523,10 @@ impl Parser {
     }
 
     fn item(&mut self) -> P<Item> {
+        self.node(Kind::Item, Self::item_)
+    }
+
+    fn item_(&mut self) -> P<Item> {
         let mut decorators = Vec::new();
         while self.is_op("@") {
             let at = self.span();
@@ -775,6 +833,10 @@ impl Parser {
     }
 
     fn params(&mut self) -> P<Vec<Param>> {
+        self.node(Kind::Params, Self::params_)
+    }
+
+    fn params_(&mut self) -> P<Vec<Param>> {
         self.expect_op("(")?;
         let mut out = Vec::new();
         while !self.is_op(")") {
@@ -855,6 +917,10 @@ impl Parser {
     }
 
     fn fbody(&mut self) -> P<Body> {
+        self.node(Kind::Body, Self::fbody_)
+    }
+
+    fn fbody_(&mut self) -> P<Body> {
         self.expect_newline_then_indent()?;
         let doc = self.docstring();
         let mut contracts = Vec::new();
@@ -1214,6 +1280,10 @@ impl Parser {
     // ---- types ----
 
     fn ty(&mut self) -> P<Type> {
+        self.node(Kind::Type, Self::ty_)
+    }
+
+    fn ty_(&mut self) -> P<Type> {
         let at = self.span();
         let base = self.base_ty()?;
         if self.is_op("|") && self.is_kw_at(1, "None") {
@@ -1398,6 +1468,10 @@ impl Parser {
     // ---- statements ----
 
     fn block(&mut self) -> P<Block> {
+        self.node(Kind::Body, Self::block_)
+    }
+
+    fn block_(&mut self) -> P<Block> {
         if matches!(self.tok(), Tok::Newline) {
             self.expect_newline_then_indent()?;
             return Ok(Block {
@@ -1447,6 +1521,10 @@ impl Parser {
 
     /// One statement, or `None` for a rejected one that was reported and skipped.
     fn stmt(&mut self) -> P<Option<Stmt>> {
+        self.node(Kind::Stmt, Self::stmt_)
+    }
+
+    fn stmt_(&mut self) -> P<Option<Stmt>> {
         let span = self.span();
         let word = match self.tok() {
             Tok::Name(n) => n.clone(),
@@ -1747,6 +1825,10 @@ impl Parser {
     // ---- patterns ----
 
     fn pattern(&mut self) -> P<Pat> {
+        self.node(Kind::Pattern, Self::pattern_)
+    }
+
+    fn pattern_(&mut self) -> P<Pat> {
         let mut p = self.pattern_one()?;
         while self.eat_kw("as") {
             p = Pat::As(Box::new(p), self.name()?);
@@ -1826,6 +1908,10 @@ impl Parser {
     }
 
     fn expr(&mut self) -> P<Expr> {
+        self.node(Kind::Expr, Self::expr_)
+    }
+
+    fn expr_(&mut self) -> P<Expr> {
         if self.is_kw("lambda") {
             let span = self.span();
             self.bump();
@@ -2549,6 +2635,7 @@ impl Parser {
             issues: Vec::new(),
             lifted: Vec::new(),
             self_ty: None,
+            nodes: Vec::new(),
         };
         let r = sub.expr();
         self.issues.append(&mut sub.issues);

@@ -48,7 +48,7 @@ pub fn lower(file: &str, src: &str, m: &Module) -> R<(h::Module, Vec<Diagnostic>
         diags: Vec::new(),
         inferred,
         inferred_fail,
-        docs: m.docs.iter().cloned().collect(),
+        docs: m.docs().into_iter().collect(),
         doc: None,
         self_ty: named(&["Self"], Vec::new()),
         fresh: 0,

@@ -1,7 +1,7 @@
 //! Yan Agent tokens and the layout rules of 13.1: INDENT and DEDENT at line starts outside brackets,
 //! newlines joined inside brackets.
 
-use yan_diag::{Severity, Span, Trivia};
+use yan_diag::{Severity, Span};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum FPart {
@@ -76,7 +76,7 @@ struct Lexer<'a> {
     indents: Vec<u32>,
     at_line_start: bool,
     fresh_line: bool,
-    comments: Vec<(u32, u32, String)>,
+    comments: Vec<(usize, usize)>,
 }
 
 pub struct Lexed {
@@ -84,7 +84,8 @@ pub struct Lexed {
     pub issues: Vec<Issue>,
     /// A fatal error: the token stream stops before it.
     pub fatal: bool,
-    pub trivia: Trivia,
+    /// Comments as byte ranges.
+    pub comments: Vec<(usize, usize)>,
 }
 
 pub fn lex(src: &str) -> Lexed {
@@ -113,17 +114,8 @@ pub fn lex(src: &str) -> Lexed {
         }
     }
     lx.push_at(Tok::Eof, at);
-    // The file's leading comment lines are the header, which the printer keeps on its own.
-    let header = src.lines().take_while(|l| l.starts_with('#')).count() as u32;
-    lx.comments.retain(|c| c.0 > header);
-    let code: Vec<_> = lx
-        .toks
-        .iter()
-        .filter(|t| !matches!(t.tok, Tok::Newline | Tok::Indent | Tok::Dedent | Tok::Eof))
-        .map(|t| (t.span.line, t.span.col))
-        .collect();
     Lexed {
-        trivia: Trivia::new(src, &lx.comments, &code),
+        comments: lx.comments,
         tokens: lx.toks,
         issues: lx.issues,
         fatal,
@@ -387,10 +379,9 @@ impl Lexer<'_> {
     }
 
     fn comment(&mut self) {
-        let (start, at) = (self.i, self.here());
+        let start = self.i;
         self.comment_body();
-        let text = self.src[start..self.i].trim_end().to_owned();
-        self.comments.push((at.line, at.col, text));
+        self.comments.push((start, self.i));
     }
 
     fn comment_body(&mut self) {

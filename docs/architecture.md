@@ -49,7 +49,7 @@ and spelling notes), checked Yan Core. Down is parse, abstract, elaborate; up is
 raise. The HIR is the only pivot between surfaces: Yan Agent and Yan never translate to each other
 directly. Since #165 the HIR is surface-neutral (Yan type names, `Record`, no Yan-only forms).
 
-Layering is one-way (R558, R560): base crates (`yan-diag`, `yan-names`) then surface crates, then
+Layering is one-way (R558, R560): base crates (`yan-diag`, `yan-names`, `yan-cst`) then surface crates, then
 `yan-hir` and `yan-elab`, then `yan-core`, then back ends. `yan-elab` depends on no surface crate;
 `yan-db` parses std sources so the elaborator need not.
 
@@ -72,6 +72,12 @@ ask it for a module's front end, elaborated core, diagnostics and items, keyed b
 - **Trivia side table (16.5, `yan-surface`).** Everything needed to print a module byte for byte that
   is not in the hash: comments, blank lines, spelling notes, origin marks for inserted copies and moves
   (R565).
+- **Lossless syntax tree (16.5, R995, `yan-cst`).** Each reader (`yan-yn`, `yan-yag`) builds one rowan
+  red-green tree holding every byte of its source: the lexer supplies token and comment ranges, the
+  parser the ranges of the nodes it closed (item, attribute, parameters, body, statement, arm,
+  expression, pattern, type), and uncovered text becomes whitespace. Printing the tree reproduces the
+  source; the canonical printers take comments and blank lines back from it (`yan_cst::Comments`),
+  and Yan doc comments come from it.
 
 ## 4. Types and checking
 
