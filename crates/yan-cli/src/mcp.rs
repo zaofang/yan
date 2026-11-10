@@ -284,6 +284,31 @@ fn call(server: &Server, tool: &str, args: &Value) -> Result<Value, String> {
                 "structuredContent": {"items": items, "text": text},
             }))
         }
+        "hole_context" => {
+            let module = str_arg(args, "module")?;
+            let path = patch::module_path(root, module)?;
+            let at = |k: &str| {
+                args[k]
+                    .as_u64()
+                    .map(|n| n as u32)
+                    .ok_or_else(|| format!("missing integer argument `{k}`"))
+            };
+            let (line, col) = (at("line")?, at("column")?);
+            let mut db = db.borrow_mut();
+            let f = db.file(&path, &read(&path)?);
+            let ctx = yan_ide::hole_context(
+                &*db,
+                f,
+                line,
+                col,
+                max_tokens(args).unwrap_or(yan_ide::DEFAULT_MAX_TOKENS),
+            )?;
+            let text = serde_json::to_string_pretty(&ctx).map_err(|e| e.to_string())?;
+            Ok(json!({
+                "content": [{"type": "text", "text": text}],
+                "structuredContent": ctx,
+            }))
+        }
         "search_type" => {
             let hits = yan_ide::search_type(str_arg(args, "type")?)?;
             let text = hits
@@ -695,6 +720,31 @@ fn tools() -> Value {
             },
         },
         {
+            "name": "hole_context",
+            "description": "For the typed hole `...` at a position: its expected type, the bindings in scope with their types (nearest first), the enclosing function's contracts and examples, the definitions of the types they name (nearest first) and the top five std functions returning the expected type, cut to max_tokens (default 400).",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "module": {"type": "string"},
+                    "line": {"type": "integer", "description": "1-based"},
+                    "column": {"type": "integer", "description": "1-based"},
+                    "max_tokens": {"type": "integer"},
+                },
+                "required": ["module", "line", "column"],
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {
+                    "expected": {"type": "string"},
+                    "bindings": {"type": "array"},
+                    "contracts": {"type": "array"},
+                    "examples": {"type": "array"},
+                    "search": {"type": "array"},
+                    "definitions": {"type": "array"},
+                },
+            },
+        },
+        {
             "name": "search_type",
             "description": "Std functions matching a type, best first; a Callable type matches a whole signature, any other type a return or parameter type. A single capital letter matches any type.",
             "inputSchema": {
@@ -774,7 +824,7 @@ mod tests {
         assert!(respond(&d, &note).is_none());
         let list = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list"});
         let r = respond(&d, &list).unwrap();
-        assert_eq!(r["result"]["tools"].as_array().unwrap().len(), 11);
+        assert_eq!(r["result"]["tools"].as_array().unwrap().len(), 12);
     }
 
     #[test]
@@ -817,6 +867,40 @@ mod tests {
             .map(|i| i["text"].as_str().unwrap().len() / 4 + 1)
             .sum();
         assert!(cost <= 60 && items.len() < 30, "{cost}");
+    }
+
+    const HOLE: &str = "class Point:\n    x: int\n    y: int\n\ndef f(p: Point, n: int) -> Point:\n    \"\"\"d\"\"\"\n    pre n > 0\n    ex f(Point(1, 2), 1) == Point(1, 2)\n    k = n + 1\n    ...\n";
+
+    fn hole(tag: &str, src: &str, extra: Value) -> Value {
+        let dir = package(tag, src);
+        let mut args = json!({"module": "m", "line": 10, "column": 5});
+        args.as_object_mut()
+            .unwrap()
+            .extend(extra.as_object().unwrap().clone());
+        tool(&Server::new(&dir, true), "hole_context", args)
+    }
+
+    #[test]
+    fn hole_context_reports_each_field() {
+        let r = hole("hole", HOLE, json!({}));
+        let c = &r["structuredContent"];
+        assert_eq!(c["expected"], "Point", "{r}");
+        assert_eq!(c["bindings"][0]["name"], "k");
+        assert_eq!(c["bindings"][2]["type"], "Point");
+        assert_eq!(c["contracts"][0], "pre n > 0");
+        assert!(c["examples"][0].as_str().unwrap().starts_with("ex f("));
+        assert_eq!(c["definitions"][0]["name"], "Point");
+        assert!(c["search"].is_array());
+        assert_eq!(hole("hole2", HOLE, json!({})), r);
+    }
+
+    #[test]
+    fn hole_context_respects_max_tokens() {
+        let r = hole("hole3", HOLE, json!({"max_tokens": 4}));
+        let c = &r["structuredContent"];
+        assert_eq!(c["expected"], "Point");
+        assert!(c["definitions"].as_array().unwrap().is_empty());
+        assert!(c["bindings"].as_array().unwrap().len() < 3);
     }
 
     #[test]

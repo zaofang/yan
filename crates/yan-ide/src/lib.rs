@@ -2,11 +2,13 @@
 //! view-as. `yan-cli` and `yan mcp` use it, and the language server will.
 
 mod context;
+mod hole;
 
 use std::collections::HashMap;
 use std::path::Path;
 
 pub use context::{Packed, TypeHit, pack_context, search_type};
+pub use hole::{DEFAULT_MAX_TOKENS, HoleContext};
 
 use serde::Serialize;
 use yan_core::ast as y;
@@ -15,6 +17,28 @@ use yan_diag::{Diagnostic, Span};
 use yan_names::Surface;
 
 pub use yan_db::Database;
+
+/// The context of the typed hole at 1-based `line` and `col` of a Yan Agent file (21.2, R997).
+pub fn hole_context(
+    db: &dyn Db,
+    file: SourceFile,
+    line: u32,
+    col: u32,
+    max_tokens: usize,
+) -> Result<HoleContext, String> {
+    let mut inferred = HashMap::new();
+    if let (Some(s), Ok(Loaded::Ready(m, _, _))) =
+        (yan_db::surface(file.path(db)), yan_db::load(db, file))
+    {
+        for_each_let(m, &mut |name, at, ty| {
+            inferred.insert((name.to_owned(), at.line), show_type(ty, s));
+        });
+    }
+    match yan_db::front(db, file).as_ref().map_err(Clone::clone)? {
+        Front::Hir(h, _) => hole::hole_context(h, line, col, max_tokens, &inferred),
+        _ => Err("hole_context reads Yan Agent files".to_owned()),
+    }
+}
 
 /// Every diagnostic of the module, or a tool failure (an unsupported construct, no front end).
 /// Each fix is kept only once it is verified (R292).
