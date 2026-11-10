@@ -1,0 +1,31 @@
+# spec: 9.6.1
+# rows: R993
+# note: monitor delivers one Stopped(reason) when the actor stops
+# stdout:
+# 1 -2 Stopped(reason=Crashed(error='Boom()'))
+
+class Box:
+    n: int
+
+@derive(Wire)
+class Boom:
+    pass
+
+def bump(var self: Box) -> int fail Boom:
+    self.n += 1
+    if self.n > 1:
+        fail Boom()
+    return self.n
+
+@remote
+def make(start: int) -> Box:
+    return Box(n=start)
+
+pub def main() -> None uses io, cluster:
+    with cluster = sim(2, 3):
+        a = cluster.spawn(ChildSpec(make, (0,), restart=temporary), placement=On(cluster.nodes()[1]))
+        rx = cluster.monitor(a)
+        v = a.bump() else e -> -1
+        w = a.bump() else e -> -2
+        d = rx.recv() else e -> Stopped(reason=Normal())
+        io.print(f"{v} {w} {d}")
