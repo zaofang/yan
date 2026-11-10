@@ -1,0 +1,3 @@
+spec = "18.1"
+note = "`yan new --template library @conf/new_library` output checks and passes its tests (#899)"
+command = ["test"]

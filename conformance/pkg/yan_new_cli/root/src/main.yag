@@ -1,0 +1,20 @@
+"""Prints the total of the integers on standard input, one per line."""
+
+pub def total(lines: list[str]) -> int:
+    """The sum of the integers written in `lines`."""
+    ex total(["1", "2", "39"]) == 42
+    ex total([]) == 0
+    t = 0
+    for line in lines:
+        t += line.int_of()
+    return t
+
+pub def main() uses io:
+    lines: list[str] = []
+    while True:
+        line = io.read_line() else break
+        lines.append(line)
+    io.print(f"{total(lines)}")
+
+def test_negative():
+    assert total(["5", "-7"]) == -2
