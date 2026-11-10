@@ -1,7 +1,7 @@
 import random
 from pathlib import Path
 
-from tools import lens
+from tools import conform as lens
 from tools.conform import ToolFailure
 
 S = lens.Surface("Fake", ".fk", "fk")
@@ -45,11 +45,11 @@ def test_shrink_keeps_only_the_failing_item() -> None:
 
 
 def test_passes_when_laws_hold() -> None:
-    assert lens.check(Fake(), S, 0, 5).status == "pass"
+    assert lens.check_n7(Fake(), S, 0, 5).status == "pass"
 
 
 def test_failure_prints_minimal_counterexample() -> None:
-    r = lens.check(Fake(getput_bug="f0"), S, 0, 20)
+    r = lens.check_n7(Fake(getput_bug="f0"), S, 0, 20)
     assert r.status == "fail"
     assert r.detail.startswith("GetPut")
     body = r.detail.split("counterexample:\n")[1]
@@ -58,4 +58,4 @@ def test_failure_prints_minimal_counterexample() -> None:
 
 
 def test_unsupported_is_not_a_violation() -> None:
-    assert lens.check(Fake(unsupported="f"), S, 0, 5).status == "pass"
+    assert lens.check_n7(Fake(unsupported="f"), S, 0, 5).status == "pass"
