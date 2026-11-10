@@ -42,6 +42,7 @@ impl Lower<'_, '_, '_> {
         if node.is_some() {
             self.off_node_start(&rest);
         }
+        let rest = self.encode_start_args(rest)?;
         if let Some(n) = node {
             let (cl, _) = self.atom(c, None)?;
             let want = Ty::Data("Node".into());
@@ -76,6 +77,57 @@ impl Lower<'_, '_, '_> {
 }
 
 impl Lower<'_, '_, '_> {
+    /// The arguments of a `ChildSpec` start round-trip through the codec before the start runs,
+    /// as every value that crosses to a node does (R402); a value that cannot be encoded
+    /// panics `wire`.
+    fn encode_start_args(&mut self, mut rest: Vec<j::Arg>) -> R<Vec<j::Arg>> {
+        let Some(j::ArgKind::Expr(spec)) = rest.first_mut().map(|a| &mut a.kind) else {
+            return Ok(rest);
+        };
+        let j::ExprKind::Call(_, cargs) = &mut spec.kind else {
+            return Ok(rest);
+        };
+        let Some(((f, _), _, _)) = super::actor::child_spec(cargs) else {
+            return Ok(rest);
+        };
+        let Some(sig) = self.g.fns.get(f.as_str()).cloned() else {
+            return Ok(rest);
+        };
+        let Some(j::ArgKind::Expr(tuple)) = cargs.get_mut(1).map(|a| &mut a.kind) else {
+            return Ok(rest);
+        };
+        let j::ExprKind::Tuple(xs) = &mut tuple.kind else {
+            return Ok(rest);
+        };
+        for (x, p) in xs.iter_mut().zip(&sig.params) {
+            let sp = x.span;
+            let (v, t) = self.atom(x, Some(&p.ty))?;
+            self.expect(&t, &p.ty, sp);
+            let sc = match crate::wire::schemas(self.g, &p.ty) {
+                Ok(sc) => sc,
+                Err(why) => {
+                    self.err(
+                        "E720",
+                        sp,
+                        format!("a start argument carries Wire values: {why}"),
+                    );
+                    continue;
+                }
+            };
+            let text = serde_json::to_string(&sc).expect("schemas serialize");
+            let c = call(
+                "std.cluster.wire_start",
+                vec![p.ty.targ()],
+                vec![let_arg(v), let_arg(Atom::Lit(Literal::Str(text), sp))],
+                sp,
+            );
+            let n = self.fresh("s");
+            self.bind(&n, false, &p.ty, Rhs::Call(c), sp, sp);
+            x.kind = j::ExprKind::Name(n);
+        }
+        Ok(rest)
+    }
+
     /// `cluster.monitor(remote)` is a receiver that gets one `Stopped` when the actor stops (R411).
     pub(super) fn cluster_monitor(
         &mut self,
@@ -219,9 +271,16 @@ impl Lower<'_, '_, '_> {
         self.tmp(rt, Rhs::Call(c), at)
     }
 
-    /// The arguments of a call through `Remote` after the round trip; the receiver is first.
-    pub(super) fn remote_args(&mut self, c: &mut y::Call, params: &[Ty], at: Span) -> R<()> {
+    /// The arguments of a call through `Remote` after the round trip; the receiver is first. An
+    /// `inout` argument is passed as an encoded copy, returned as `(place, copy, type, span)` so
+    /// the caller commits the copy back once the reply arrives (R408).
+    pub(super) fn remote_args(
+        &mut self,
+        c: &mut y::Call,
+        params: &[Ty],
+    ) -> R<Vec<(String, String, Ty, Span)>> {
         let mut k = 0;
+        let mut copies = Vec::new();
         for a in &mut c.args {
             let y::Arg::Value(conv, x, sp) = a else {
                 continue;
@@ -232,11 +291,48 @@ impl Lower<'_, '_, '_> {
             }
             let Some(t) = params.get(k - 1) else { continue };
             if *conv == y::Conv::Inout {
-                return unsupported("an `inout` argument in a call through `Remote`");
+                let Atom::Name(n, _) = x.clone() else {
+                    return unsupported("an `inout` argument in a call through `Remote`");
+                };
+                let v = self.remote_wire(t, x.clone(), false, *sp)?;
+                let copy = self.fresh("i");
+                self.bind(&copy, true, t, Rhs::Atom(v), *sp, *sp);
+                *x = Atom::Name(copy.clone(), *sp);
+                copies.push((n, copy, t.clone(), *sp));
+                continue;
             }
             *x = self.remote_wire(t, x.clone(), false, *sp)?;
-            let _ = at;
         }
-        Ok(())
+        Ok(copies)
+    }
+
+    /// The reply carries each `inout` copy back: it is encoded with the result, so a copy that
+    /// cannot be encoded fails the call `SchemaMismatch`.
+    pub(super) fn inout_replies(
+        &mut self,
+        copies: &[(String, String, Ty, Span)],
+    ) -> R<Vec<(String, Atom, Ty, Span)>> {
+        let mut out = Vec::new();
+        for (n, copy, t, sp) in copies {
+            let v = self.remote_wire(t, Atom::Name(copy.clone(), *sp), true, *sp)?;
+            out.push((n.clone(), v, t.clone(), *sp));
+        }
+        Ok(out)
+    }
+
+    /// Once the reply has arrived, each `inout` place takes its copy unless the reply was lost.
+    pub(super) fn commit_inouts(&mut self, back: Vec<(String, Atom, Ty, Span)>) {
+        for (n, v, t, sp) in back {
+            let c = call(
+                "std.cluster.commit",
+                vec![t.targ()],
+                vec![
+                    Arg::Value(y::Conv::Inout, Atom::Name(n, sp), sp),
+                    sink_arg(v),
+                ],
+                sp,
+            );
+            self.emit(StmtKind::Rhs(Rhs::Call(c)), sp);
+        }
     }
 }

@@ -68,3 +68,19 @@ pub def wire_reply[T](x: T, schema: str) -> T: ...
 @intrinsic
 @since("1.0")
 pub def wire[T](x: T, schema: str) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def commit[T](var dst: T, src: T) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def wire_start[T](x: T, schema: str) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def handle[S, P](self: Remote[Actor[S, P]]) -> Actor[S, P]: ...
+
+@intrinsic
+@since("1.0")
+pub def fault_send[S, P](self: Remote[Actor[S, P]]) -> None: ...

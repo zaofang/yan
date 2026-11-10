@@ -177,3 +177,6 @@ diagnostic. Step 2 (always encode), step 3 (D3's faults, D5, `monitor`) and step
 - Class fields take literal defaults only, so `Faults(...)` is a std constructor function that returns a `FaultPlan` with the fields of D3; `Cut` is a class.
 - `monitor` delivers `Stopped(reason)`, the existing class, on a `Receiver[Stopped]`: the name `Down` is a variant of `std.math.Round`, and a std signature cannot name a class of another module. `demonitor` is dropping the receiver.
 - A partition does not yet deliver `NodeDown()` to a monitor.
+- An `inout` argument is passed as an encoded copy and replaces its place once the reply arrives; a lost or unencodable reply leaves the place unchanged (`std.cluster.commit`).
+- `cluster.spawn` start arguments round-trip through the codec; one that cannot be encoded panics `wire`, since the spawn has no failure of its own yet.
+- `actor.send` through `Remote` is faulted at admission (D5): a lost request fails `Undelivered(reason=Unreachable(), args)`. Send arguments are not yet encoded.

@@ -259,6 +259,8 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             monitors: Vec::new(),
             seq: Default::default(),
             remote: Vec::new(),
+            replied: true,
+            sending: None,
             wait_since: Vec::new(),
             doomed: Vec::new(),
             net: Default::default(),
@@ -404,6 +406,10 @@ pub(crate) struct Interp<'o> {
     seq: std::collections::HashMap<(usize, usize), u64>,
     /// The calls through `Remote` awaiting their reply, innermost last, by task path.
     remote: Vec<(Vec<usize>, simfault::Pending)>,
+    /// Whether the last reply through `Remote` arrived, for `std.cluster.commit`.
+    replied: bool,
+    /// The failure of the send through `Remote` about to be made, by task path.
+    sending: Option<(Vec<usize>, Value)>,
     /// When each task waiting on an actor began to wait, for the 5 s default deadline (9.6).
     wait_since: Vec<(Vec<usize>, i128)>,
     /// Parked callers that a wait cycle chose to fail `Deadlock` when they next retry (D6).
@@ -785,6 +791,8 @@ fn entry(
         monitors: Vec::new(),
         seq: Default::default(),
         remote: Vec::new(),
+        replied: true,
+        sending: None,
         wait_since: Vec::new(),
         doomed: Vec::new(),
         net: Default::default(),
