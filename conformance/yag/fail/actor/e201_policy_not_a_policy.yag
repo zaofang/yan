@@ -1,0 +1,17 @@
+# spec: 9.6, 17.3
+# rows: R974
+# note: the policy argument of `Actor[S, P]` must be an overflow policy type (#895)
+# expect: E201 at 16:24
+
+class C:
+    n: int
+
+def add(var self: C, by: int):
+    self.n += by
+
+def get(var self: C) -> int:
+    return self.n
+
+def main() uses io:
+    b: Actor[C, int] = actor.spawn(C(n=0))
+    print(b.get() else e -> -1)

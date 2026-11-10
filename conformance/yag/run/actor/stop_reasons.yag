@@ -1,0 +1,47 @@
+# spec: 9.6, 17.3
+# rows: R976, R977, R980
+# note: a crashed actor says why it stopped, a failed send returns its arguments, and a scope end stops with `Shutdown` (#895)
+# stdout:
+# 1
+# -1
+# Stopped(reason=Crashed(error='negative'))
+# Undelivered(reason=Stopped(reason=Crashed(error='negative')), args=(5,)) 5 Stopped(reason=Crashed(error='negative'))
+# Stopped(reason=Shutdown())
+# Undelivered(reason=Stopped(reason=Shutdown()), args=(5,))
+
+class C:
+    n: int
+
+def inc(var self: C, by: int) -> int fail str:
+    if by < 0:
+        fail "negative"
+    self.n += by
+    return self.n
+
+def get(var self: C) -> int:
+    return self.n
+
+def add(var self: C, by: int):
+    self.n += by
+
+def show(r: Result[int, ActorError]) -> str:
+    match r:
+        case Ok(v):
+            return f"{v}"
+        case Err(e):
+            return f"{e}"
+
+def scoped() -> Actor[C] uses io:
+    with supervisor(actor.one_for_one()):
+        d = actor.spawn(C(n=0))
+        return d
+
+def main() uses io:
+    c = actor.spawn(C(n=0))
+    print(c.inc(1) else e -> -1)
+    print(c.inc(-1) else e -> -1)
+    print(show(c.get()))
+    actor.send(c).add(5) else e -> print(f"{e} {e.args[0]} {e.reason}")
+    d = scoped()
+    print(show(d.get()))
+    actor.send(d).add(5) else e -> print(f"{e}")

@@ -1,0 +1,28 @@
+# spec: 9.6, 17.3
+# rows: R980
+# note: a call back into a busy actor fails `Deadlock` in the youngest caller; that failure stops the actor (#835)
+# stdout:
+# Deadlock()
+# -1
+
+class A:
+    n: int
+
+def ping(var self: A, other: Actor[A]) -> int fail ActorError:
+    self.n += 1
+    return other.ping(other)?
+
+def total(var self: A) -> int:
+    return self.n
+
+def show(r: Result[int, ActorError]) -> str:
+    match r:
+        case Ok(v):
+            return f"{v}"
+        case Err(e):
+            return f"{e}"
+
+def main() uses io:
+    a = actor.spawn(A(n=0))
+    print(show(a.ping(a)))
+    print(a.total() else -1)

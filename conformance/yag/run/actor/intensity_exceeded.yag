@@ -1,0 +1,24 @@
+# spec: 9.6, 17.3
+# rows: R978, R981
+# note: a second failure inside the period exceeds intensity 1 and panics with kind `supervisor` (#884)
+# stdout:
+# -1
+# exit: 101
+
+class Counter:
+    n: int
+
+def counter(n: int) -> Counter:
+    return Counter(n=n)
+
+def add(var self: Counter, by: int) -> int fail str:
+    if by < 0:
+        fail "negative"
+    self.n += by
+    return self.n
+
+def main() uses io:
+    with supervisor(actor.one_for_one(intensity=1)):
+        c = actor.start(ChildSpec(counter, (0,)))
+        print(c.add(-1) else -1)
+        print(c.add(-1) else -1)

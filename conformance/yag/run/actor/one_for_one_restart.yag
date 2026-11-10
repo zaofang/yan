@@ -1,0 +1,26 @@
+# spec: 9.6, 17.3
+# rows: R978, R979, R980
+# note: a permanent child restarts from its start function after a handler failure (#884)
+# stdout:
+# 11
+# -1
+# 11
+
+class Counter:
+    n: int
+
+def counter(n: int) -> Counter:
+    return Counter(n=n)
+
+def add(var self: Counter, by: int) -> int fail str:
+    if by < 0:
+        fail "negative"
+    self.n += by
+    return self.n
+
+def main() uses io:
+    with supervisor(actor.one_for_one(intensity=3)):
+        c = actor.start(ChildSpec(counter, (10,), restart=permanent))
+        print(c.add(1) else -1)
+        print(c.add(-1) else -1)
+        print(c.add(1) else -1)
