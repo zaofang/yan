@@ -2666,6 +2666,8 @@ dependencies = [
  "rand_core 0.9.5",
  "rand_pcg",
  "regex",
+ "serde",
+ "serde_json",
  "unicode-segmentation",
 ]
 

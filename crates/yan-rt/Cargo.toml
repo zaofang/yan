@@ -15,6 +15,8 @@ libm.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true
 regex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 unicode-segmentation.workspace = true
 
 # The workspace forbids unsafe code; this crate denies it and allows it only where native code

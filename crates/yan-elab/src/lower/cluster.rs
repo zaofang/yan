@@ -128,4 +128,48 @@ impl Lower<'_, '_, '_> {
             self.err("E720", at, msg);
         }
     }
+
+    /// `x` of type `t` after the encode and decode every call through `Remote` makes (R402).
+    pub(super) fn remote_wire(&mut self, t: &Ty, x: Atom, at: Span) -> R<Atom> {
+        let sc = match crate::wire::schemas(self.g, t) {
+            Ok(sc) => sc,
+            Err(why) => {
+                self.err(
+                    "E720",
+                    at,
+                    format!("a call through `Remote` carries Wire values: {why}"),
+                );
+                return Ok(x);
+            }
+        };
+        let text = serde_json::to_string(&sc).expect("schemas serialize");
+        let c = call(
+            "std.cluster.wire",
+            vec![t.targ()],
+            vec![let_arg(x), let_arg(Atom::Lit(Literal::Str(text), at))],
+            at,
+        );
+        Ok(self.tmp(t, Rhs::Call(c), at))
+    }
+
+    /// The arguments of a call through `Remote` after the round trip; the receiver is first.
+    pub(super) fn remote_args(&mut self, c: &mut y::Call, params: &[Ty], at: Span) -> R<()> {
+        let mut k = 0;
+        for a in &mut c.args {
+            let y::Arg::Value(conv, x, sp) = a else {
+                continue;
+            };
+            k += 1;
+            if k == 1 {
+                continue;
+            }
+            let Some(t) = params.get(k - 1) else { continue };
+            if *conv == y::Conv::Inout {
+                return unsupported("an `inout` argument in a call through `Remote`");
+            }
+            *x = self.remote_wire(t, x.clone(), *sp)?;
+            let _ = at;
+        }
+        Ok(())
+    }
 }

@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 /// A type as `derive(Wire)` sees it.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Schema {
     Unit,
     Bool,
@@ -24,13 +24,13 @@ pub enum Schema {
 }
 
 /// The fields of a record, or the variants of a sum, in declaration order.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Def {
     Record(Vec<(String, Schema)>),
     Sum(Vec<(String, Vec<(String, Schema)>)>),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Schemas {
     pub root: String,
     pub defs: HashMap<String, Def>,
