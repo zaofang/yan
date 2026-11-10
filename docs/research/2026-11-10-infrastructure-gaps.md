@@ -1,6 +1,6 @@
 # Infrastructure gaps: what Yan still needs
 
-Study only. Measured on main at `e8f1f0e`, 2026-11-10. No rows.
+Study only. Measured on main at `e8f1f0e`, 2026-11-10. No rows. Issues: #973 to #978.
 
 The question: what engineering and release infrastructure does the project lack, given one part-time
 lead, agent-written code, and a repository that stays private for now.
