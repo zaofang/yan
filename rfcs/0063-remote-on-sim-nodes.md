@@ -1,8 +1,8 @@
 # 0063: `Remote` on `std.sim`: which node code runs on, the `cluster` surface and the `sim` faults
 
-- Status: draft
+- Status: accepted (D1 and D3 by lead cards, 2026-11-10)
 - Research: none; follows RFC 0056 D9 (accepted, R960) and the survey in #929.
-- Rows: filled in when accepted
+- Rows: R988 (D1, D6), R989 (D2); R417 admits listed cuts (D3). D3's `sim` faults row lands with step 3
 
 ## Summary
 
