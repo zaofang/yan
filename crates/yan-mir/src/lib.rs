@@ -172,6 +172,8 @@ pub enum RtFn {
     Repr,
     /// `(Str, Str) -> bool`
     StrEq,
+    /// `(Str, i64) -> Str`: `n` copies, none for `n <= 0`.
+    StrRepeat,
     /// `(Str) -> i64`
     CharCount,
     /// `(Str) -> i64`
@@ -342,6 +344,19 @@ pub enum RtFn {
     SupEnd,
     /// `(depth)`: end the scopes past `depth`.
     SupEndTo,
+    /// `(nodes, seed, Ptr plan) -> sim`: a `sim` cluster (RFC 0063 D3); a non-empty fault
+    /// plan is refused until native virtual time (#929 4c).
+    SimNew,
+    /// `(low, sim) -> low`: `with cluster = sim`, a supervisor scope with each node's root.
+    SimBegin,
+    /// `() -> List[Node]`: the bound cluster's nodes.
+    ClusterNodes,
+    /// `() -> Node`: the node the calling task runs on (D1).
+    ClusterSelfNode,
+    /// `(Node)`: the calling task runs on that node until `ClusterLeave`.
+    ClusterPlace,
+    /// `()`: the calling task returns from the node it was placed on.
+    ClusterLeave,
     /// `(resource, bound, clause) -> token`: start a `cost` counter (R610); 0 steps, 1 alloc.
     CostBegin,
     /// `(token)`: end the counters started since `token`.

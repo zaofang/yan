@@ -489,7 +489,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     /// The failure `name` with `payload` as a value of the fail type `e`, if `e` has it.
-    fn failure(e: &Shape, name: &str, payload: Vec<Operand>) -> Option<Vec<Operand>> {
+    pub(super) fn failure(e: &Shape, name: &str, payload: Vec<Operand>) -> Option<Vec<Operand>> {
         match e {
             Shape::Rec(n, _) if n == name => Some(payload),
             Shape::Sum(_, _) if e.variant(name).is_some() => {
@@ -623,23 +623,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         else {
             return unsupported("a supervisor spec that is not a `Supervisor`");
         };
-        let depth = match self.sup_depth {
-            Some(d) => d,
-            None => {
-                let d = self.local(I64);
-                let entry = &mut self.blocks[0];
-                entry.insts.insert(
-                    0,
-                    Inst::Copy {
-                        dst: d,
-                        src: Operand::Int(i128::from(i64::MAX)),
-                    },
-                );
-                entry.lines.insert(0, 0);
-                self.sup_depth = Some(d);
-                d
-            }
-        };
+        let depth = self.sup_depth();
         self.emit(Inst::Rt {
             dst: Some(depth),
             f: RtFn::SupBegin,
@@ -652,6 +636,19 @@ impl<'a, 'm> Fn<'a, 'm> {
             args: Vec::new(),
         });
         Ok(())
+    }
+
+    /// The open scope count when this function opened its first `with supervisor` or `with
+    /// cluster`, for [`Self::end_sups`].
+    pub(super) fn sup_depth(&mut self) -> Local {
+        match self.sup_depth {
+            Some(d) => d,
+            None => {
+                let d = self.entry_local(i128::from(i64::MAX));
+                self.sup_depth = Some(d);
+                d
+            }
+        }
     }
 
     /// End the `with supervisor` scopes this function opened, before it leaves.
