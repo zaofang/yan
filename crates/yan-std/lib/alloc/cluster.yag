@@ -47,6 +47,10 @@ pub def arrive[T, F](outcome: Result[T, F]) -> Result[T, F]: ...
 
 @intrinsic
 @since("1.0")
+pub def admit[F]() -> Result[None, F]: ...
+
+@intrinsic
+@since("1.0")
 pub def monitor[S, P, D](cluster: Cluster, target: Remote[Actor[S, P]]) -> Receiver[D]: ...
 
 @intrinsic
