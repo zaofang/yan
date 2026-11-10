@@ -2649,6 +2649,7 @@ dependencies = [
  "yan-diag",
  "yan-mir",
  "yan-rt",
+ "yan-sandbox",
  "yan-std",
  "yan-yag",
 ]
@@ -2705,6 +2706,13 @@ dependencies = [
  "serde",
  "serde_json",
  "unicode-segmentation",
+]
+
+[[package]]
+name = "yan-sandbox"
+version = "0.0.0"
+dependencies = [
+ "libc",
 ]
 
 [[package]]

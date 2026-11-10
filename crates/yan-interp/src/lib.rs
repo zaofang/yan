@@ -248,6 +248,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             clocks: Vec::new(),
             rngs: Vec::new(),
             args: Vec::new(),
+            ceiling: Default::default(),
             deadline: None,
             chans: Vec::new(),
             actors: Vec::new(),
@@ -384,6 +385,8 @@ pub(crate) struct Interp<'o> {
     rngs: Vec<rand::Gen>,
     /// The program's arguments under the host `env` handler.
     args: Vec<String>,
+    /// What a child process may touch, computed once from the entry handlers (RFC 0065 D5).
+    ceiling: yan_sandbox::Ceiling,
     /// The earliest enclosing `deadline` scope, as monotonic nanoseconds (9.4).
     deadline: Option<i128>,
     /// Each channel's capacity and queued values, by channel.
@@ -780,6 +783,7 @@ fn entry(
         clocks: Vec::new(),
         rngs: Vec::new(),
         args: argv,
+        ceiling: proc::ceiling(&args),
         deadline: None,
         chans: Vec::new(),
         actors: Vec::new(),

@@ -9,7 +9,7 @@ use yan_std::registry::{Id, id::*};
 use super::bind::{Bind, bad_args};
 use super::native::opt;
 use super::time::{host_time_left, timeout};
-use super::{Key, R, Value};
+use super::{Interp, Key, R, Value};
 
 /// The record name of a `Command`, which no program can declare.
 pub(super) const COMMAND: &str = "proc.Command";
@@ -19,6 +19,7 @@ const VARS: usize = 2;
 const CLEAR: usize = 3;
 const CWD: usize = 4;
 const INPUT: usize = 5;
+const UNCONFINED: usize = 6;
 
 fn command(program: Value, args: Value) -> Value {
     Value::Data {
@@ -30,6 +31,7 @@ fn command(program: Value, args: Value) -> Value {
             ("clear_env".into(), Value::Bool(false)),
             ("cwd".into(), Value::Unit),
             ("input".into(), Value::Unit),
+            ("unconfined".into(), Value::Bool(false)),
         ],
     }
 }
@@ -114,7 +116,7 @@ fn signal(_: &std::process::ExitStatus) -> Option<i32> {
     None
 }
 
-fn host_run(cmd: &Value, left: Option<std::time::Duration>) -> Result<Value, Value> {
+fn host_run(it: &Interp, cmd: &Value, left: Option<std::time::Duration>) -> Result<Value, Value> {
     let program = text(field(cmd, PROGRAM));
     let mut c = std::process::Command::new(program);
     if let Value::List(xs) = field(cmd, ARGS) {
@@ -137,6 +139,11 @@ fn host_run(cmd: &Value, left: Option<std::time::Duration>) -> Result<Value, Val
         Value::Bytes(b) => b.to_vec(),
         _ => Vec::new(),
     };
+    if field(cmd, UNCONFINED) != &Value::Bool(true)
+        && let Err(u) = yan_sandbox::confine(&mut c, &it.ceiling)
+    {
+        return Err(error(program, "Unconfined", u.0.into()));
+    }
     c.stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -197,7 +204,12 @@ fn host_run(cmd: &Value, left: Option<std::time::Duration>) -> Result<Value, Val
     ))
 }
 
-fn run(h: &Value, cmd: &Value, left: Option<std::time::Duration>) -> Result<Value, Value> {
+fn run(
+    it: &Interp,
+    h: &Value,
+    cmd: &Value,
+    left: Option<std::time::Duration>,
+) -> Result<Value, Value> {
     match h {
         Value::Data { name, fields } if name == "OnlyProc" => {
             let program = text(field(cmd, PROGRAM));
@@ -207,7 +219,7 @@ fn run(h: &Value, cmd: &Value, left: Option<std::time::Duration>) -> Result<Valu
                     "PermissionDenied",
                     "not granted by proc.only".into(),
                 )),
-                _ => run(&fields[0].1, cmd, left),
+                _ => run(it, &fields[0].1, cmd, left),
             }
         }
         Value::Data { name, fields } if name == "FakeProc" => {
@@ -220,7 +232,7 @@ fn run(h: &Value, cmd: &Value, left: Option<std::time::Duration>) -> Result<Valu
                 _ => unreachable!("a fake_proc map"),
             }
         }
-        _ => host_run(cmd, left),
+        _ => host_run(it, cmd, left),
     }
 }
 
@@ -312,6 +324,10 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         }),
     ),
     (
+        STD_PROC_UNCONFINED,
+        Bind::Plain(|a| with(&a[0], UNCONFINED, |u| *u = Value::Bool(true))),
+    ),
+    (
         STD_PROC_SUCCESS,
         Bind::Plain(|a| match &a[0] {
             Value::Data { fields, .. } => Ok(Value::Bool(match &fields[0].1 {
@@ -338,8 +354,68 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_PROC_RUN,
         Bind::CapFallible(|it, a| match a {
-            [h, cmd] => Ok(run(h, cmd, host_time_left(it))),
+            [h, cmd] => Ok(run(it, h, cmd, host_time_left(it))),
             _ => bad_args(STD_PROC_RUN),
         }),
     ),
 ];
+
+/// The ceiling a child inherits: the union of what the entry `fs` and `net` handlers grant.
+pub(super) fn ceiling(entry: &[Value]) -> yan_sandbox::Ceiling {
+    let mut c = yan_sandbox::Ceiling::default();
+    for h in entry {
+        let (read, write) = fs_grants(h);
+        c.read.extend(read);
+        c.write.extend(write);
+        c.net |= net_granted(h);
+    }
+    c
+}
+
+fn net_granted(h: &Value) -> bool {
+    match h {
+        Value::Cap(n) => n == "net",
+        Value::Data { name, fields } if name == "OnlyNet" => net_granted(&fields[0].1),
+        _ => false,
+    }
+}
+
+type Dirs = Vec<std::path::PathBuf>;
+
+/// The directories handler `h` lets a program read and write; non-`fs` values grant none.
+fn fs_grants(h: &Value) -> (Dirs, Dirs) {
+    let root = || vec![std::path::PathBuf::from("/")];
+    match h {
+        Value::Cap(n) if n == "fs" => (root(), root()),
+        Value::Data { name, fields } if name == "SubFs" => {
+            let (r, w) = fs_grants(&fields[0].1);
+            let dir = std::path::PathBuf::from(text(&fields[1].1));
+            (
+                meet(r, std::slice::from_ref(&dir)),
+                meet(w, std::slice::from_ref(&dir)),
+            )
+        }
+        Value::Data { name, fields } if name == "OnlyFs" => {
+            let (r, w) = fs_grants(&fields[0].1);
+            let paths = |v: &Value| match v {
+                Value::List(xs) => xs.iter().map(|x| text(x).into()).collect::<Dirs>(),
+                _ => Vec::new(),
+            };
+            (meet(r, &paths(&fields[1].1)), meet(w, &paths(&fields[2].1)))
+        }
+        _ => (Vec::new(), Vec::new()),
+    }
+}
+
+/// The paths of `a` and `b` that lie within one another, each reduced to the deeper of the pair.
+fn meet(a: Dirs, b: &[std::path::PathBuf]) -> Dirs {
+    a.iter()
+        .flat_map(|x| {
+            b.iter().filter_map(move |y| match () {
+                _ if y.starts_with(x) => Some(y.clone()),
+                _ if x.starts_with(y) => Some(x.clone()),
+                _ => None,
+            })
+        })
+        .collect()
+}
