@@ -19,8 +19,12 @@ impl Lower<'_, '_, '_> {
         {
             return self.send_call(h, m, args, at).map(Some);
         }
-        let (kind, ts) = match self.ty_of_local(b) {
-            Some(Ty::Coll(k @ ("Actor" | "SendOnly"), ts)) => (k, ts),
+        let (kind, ts, remote) = match self.ty_of_local(b) {
+            Some(Ty::Coll(k @ ("Actor" | "SendOnly"), ts)) => (k, ts, false),
+            Some(Ty::Coll("Remote", r)) => match r.into_iter().next() {
+                Some(Ty::Coll("Actor", ts)) => ("Actor", ts, true),
+                _ => return Ok(None),
+            },
             _ => return Ok(None),
         };
         let (state, policy) = (ts[0].clone(), ts[1].clone());
@@ -51,8 +55,38 @@ impl Lower<'_, '_, '_> {
             )));
         }
         let reentrant = self.g.reentrant.contains(m);
-        let fail = actor_fail(sig.fail.as_ref());
-        let (h, _) = self.atom(b, None)?;
+        let mut fail = actor_fail(sig.fail.as_ref());
+        let (mut h, _) = self.atom(b, None)?;
+        // A call through `Remote` fails `RemoteError` too (R408, RFC 0063 D4) and runs on the
+        // actor's home node (D1).
+        if remote {
+            if !self
+                .sig
+                .caps
+                .iter()
+                .chain(&self.handlers)
+                .any(|c| c == "cluster")
+            {
+                self.err(
+                    "E301",
+                    at,
+                    format!("`{m}` is a call through `Remote`; declare `uses cluster` (R400)"),
+                );
+            }
+            if let Ty::Union(ms) = &mut fail {
+                for n in ["Unreachable", "Rejected", "SchemaMismatch"] {
+                    crate::union_add(ms, Ty::Data(n.into()));
+                }
+            }
+            let actor = Ty::Coll("Actor", vec![state.clone(), policy.clone()]);
+            let c = call(
+                "std.cluster.reach",
+                vec![state.targ(), policy.targ()],
+                vec![let_arg(h)],
+                at,
+            );
+            h = self.tmp(&actor, Rhs::Call(c), at);
+        }
         let took = Ty::Result(Box::new(state.clone()), Box::new(fail.clone()));
         let take = call(
             "std.actor.take",
@@ -559,7 +593,7 @@ fn arg_expr(a: &j::Arg) -> Option<&j::Expr> {
     }
 }
 
-fn child_spec(args: &[j::Arg]) -> Option<((String, Span), &[j::Expr], u8)> {
+pub(super) fn child_spec(args: &[j::Arg]) -> Option<((String, Span), &[j::Expr], u8)> {
     let expr = arg_expr;
     let (f, a, r) = match args {
         [f, a] => (f, a, None),

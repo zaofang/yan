@@ -1,0 +1,47 @@
+"""The cluster capability (7, 9.6.1, R400): the nodes a program runs on and the calls through
+`Remote` between them (RFC 0063). `reach` is the lowering of a handler call through
+`Remote[Actor[S, P]]`, and `place` and `leave` of `cluster.spawn`, not for direct use."""
+
+@since("1.0")
+pub class Node:
+    """A node (R403): its id, shown as 32 hex digits."""
+    id: str
+
+@since("1.0")
+pub type Placement = Local() | On(node: Node) | Spread() | ByKey(key: bytes) | Near(node: Node)
+
+@since("1.0")
+pub class Unreachable:
+    """A message to or from another node was lost or cut off by a partition (R408)."""
+    pass
+
+@since("1.0")
+pub class Rejected:
+    """The receiving node refused the call (R408)."""
+    pass
+
+@since("1.0")
+pub class SchemaMismatch:
+    """The receiving node's `Wire` schema for the call differs (R408)."""
+    pass
+
+@since("1.0")
+pub type RemoteError = Stopped | Timeout | Cancelled | Deadlock | Unreachable | Rejected | SchemaMismatch
+
+@capability
+@since("1.0")
+pub trait Cluster:
+    def nodes(self: Self) -> list[Node]: ...
+    def self_node(self: Self) -> Node: ...
+
+@intrinsic
+@since("1.0")
+pub def reach[S, P](self: Remote[Actor[S, P]]) -> Actor[S, P]: ...
+
+@intrinsic
+@since("1.0")
+pub def place(cluster: Cluster, node: Node) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def leave() -> None: ...

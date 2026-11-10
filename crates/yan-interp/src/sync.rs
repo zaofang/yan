@@ -94,6 +94,8 @@ pub(crate) struct Actor {
     /// The task paths of the `@reentrant` handlers that lent the state, innermost last, each
     /// marked once its retake failed.
     lent: Vec<(Vec<usize>, bool)>,
+    /// The node it runs on (RFC 0063 D1).
+    home: usize,
     child: Child,
 }
 
@@ -121,6 +123,7 @@ impl Actor {
 /// A new actor with `state`, a child of the supervisor bound here (R957).
 pub(crate) fn spawn(
     it: &mut Interp,
+    home: usize,
     state: Value,
     cap: i128,
     restart: Restart,
@@ -148,6 +151,7 @@ pub(crate) fn spawn(
         starts: 0,
         ended: None,
         lent: Vec::new(),
+        home,
         child,
     });
     Ok(end("Actor", id))
@@ -321,24 +325,23 @@ pub(crate) fn failure(name: &str) -> Value {
 pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_ACTOR_SPAWN,
-        Bind::Cap(|it, a| match a {
+        Bind::Vm(|vm, _, a| match a {
             [state, Value::Int(cap)] => {
-                spawn(it, std::mem::take(state), *cap, Restart::Temporary, None, 0)
+                let home = crate::cluster::current(&vm.it, &vm.task_path);
+                let s = std::mem::take(state);
+                spawn(&mut vm.it, home, s, *cap, Restart::Temporary, None, 0)
             }
             _ => bad_args(STD_ACTOR_SPAWN),
         }),
     ),
     (
         STD_ACTOR_SPAWN_AS,
-        Bind::Cap(|it, a| match a {
-            [state, Value::Int(cap), Value::Int(policy)] => spawn(
-                it,
-                std::mem::take(state),
-                *cap,
-                Restart::Temporary,
-                None,
-                *policy,
-            ),
+        Bind::Vm(|vm, _, a| match a {
+            [state, Value::Int(cap), Value::Int(policy)] => {
+                let home = crate::cluster::current(&vm.it, &vm.task_path);
+                let s = std::mem::take(state);
+                spawn(&mut vm.it, home, s, *cap, Restart::Temporary, None, *policy)
+            }
             _ => bad_args(STD_ACTOR_SPAWN_AS),
         }),
     ),
@@ -352,9 +355,13 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             if !vm.it.doomed.contains(&me) {
                 while run_queued(vm, id)? {}
             }
-            Ok(match take_state(vm, id, me)? {
+            Ok(match take_state(vm, id, me.clone())? {
                 None => Value::Unit,
-                Some(Ok(s)) => data("Ok", "value", s),
+                Some(Ok(s)) => {
+                    let home = vm.it.actors[id].home;
+                    crate::cluster::enter(&mut vm.it, me, home);
+                    data("Ok", "value", s)
+                }
                 Some(Err(e)) => data("Err", "error", e),
             })
         }),
@@ -452,8 +459,10 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_ACTOR_PUT,
-        Bind::Cap(|it, a| {
-            give_back(it, chan(&a[0]), std::mem::take(&mut a[1]));
+        Bind::Vm(|vm, _, a| {
+            let me = vm.task_path.clone();
+            crate::cluster::leave(&mut vm.it, &me);
+            give_back(&mut vm.it, chan(&a[0]), std::mem::take(&mut a[1]));
             Ok(Value::Unit)
         }),
     ),
@@ -463,6 +472,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             let id = chan(&a[0]);
             let me = vm.task_path.clone();
             let outcome = std::mem::take(&mut a[2]);
+            crate::cluster::leave(&mut vm.it, &me);
             let failed = match &outcome {
                 Value::Data { name, fields } if name == "Err" => Some(crashed(&fields[0].1)),
                 _ => None,
@@ -496,10 +506,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             _ => bad_args(STD_ACTOR_REPLY),
         }),
     ),
-    (
-        STD_ACTOR_SHARE,
-        Bind::Plain(|_| unsupported("`std.actor.share` in the interpreter")),
-    ),
+    (STD_ACTOR_SHARE, Bind::Plain(|a| Ok(a[0].clone()))),
     (
         STD_CHAN_CHANNEL,
         Bind::Cap(|it, a| match a {

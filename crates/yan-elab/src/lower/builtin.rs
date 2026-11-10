@@ -263,11 +263,19 @@ impl Lower<'_, '_, '_> {
             "dict" | "set" | "enumerate" | "zip" | "reversed" | "isinstance" | "hash" | "repr"
             | "atan2" | "hypot" => unsupported(format!("`{n}`")),
             // std.test is in scope without an import (assumption A7).
-            _ if let Some((path, p)) = ["prelude", "test"].iter().find_map(|m| {
-                let path = format!("std.{m}.{n}");
-                let p = crate::stdlib::decl(&path)?.plain()?;
-                Some((path, p))
-            }) =>
+            // A handler constructor is chosen by the capability it is bound to, so `sim` in
+            // `with cluster = sim(n, seed)` is `std.sim.sim`, not the fault handler (R417).
+            _ if let Some((path, p)) = ["prelude", "test", "sim"]
+                .iter()
+                .filter_map(|m| {
+                    let path = format!("std.{m}.{n}");
+                    let p = crate::stdlib::decl(&path)?.plain()?;
+                    Some((path, p))
+                })
+                .filter(|(path, p)| {
+                    !path.starts_with("std.sim.") || want.is_some_and(|w| *w == p.ret)
+                })
+                .min_by_key(|(_, p)| want.is_none_or(|w| *w != p.ret)) =>
             {
                 if p.fail.is_some() {
                     return unsupported(format!("`{path}`, a std function that can fail"));

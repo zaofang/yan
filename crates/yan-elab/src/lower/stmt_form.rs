@@ -317,8 +317,8 @@ impl Lower<'_, '_, '_> {
                         "a release build binds `fault` only to `never`".into(),
                     );
                 }
-                let (a, ht) = self.atom(h, None)?;
                 let want = Ty::Data(self.sig.cap_trait(name));
+                let (a, ht) = self.atom(h, Some(&want))?;
                 let wrong = match &ht {
                     Ty::Data(g) => {
                         *g != self.sig.cap_trait(name) && crate::stdlib::STD.caps.contains(g)
