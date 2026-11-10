@@ -16,6 +16,7 @@ const FAILURES: &[(i128, &str)] = &[
     (7, "Full"),
     (2, "Cancelled"),
     (8, "Unreachable"),
+    (9, "SchemaMismatch"),
 ];
 
 /// A thunk yan-rt hands back to run, made once per shape; each takes three pointers.

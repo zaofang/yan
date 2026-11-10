@@ -5,7 +5,8 @@
 
 use super::*;
 
-const WIRE_IDS: [registry::Id; 3] = [
+const WIRE_IDS: [registry::Id; 4] = [
+    id::STD_CLUSTER_WIRE_SEND,
     id::STD_CLUSTER_WIRE,
     id::STD_CLUSTER_WIRE_REPLY,
     id::STD_CLUSTER_WIRE_START,
@@ -288,6 +289,15 @@ impl<'m> Fn<'_, 'm> {
         self.free(RtFn::EnvFree, buf);
         let back = self.read(&At::Mem(out.clone(), 0), &shape);
         self.free(RtFn::EnvFree, out);
+        if id == id::STD_CLUSTER_WIRE_SEND {
+            self.emit(Inst::Rt {
+                dst: None,
+                f: RtFn::ClusterSendMismatch,
+                args: vec![st],
+            });
+            self.copy_to(&dst.locals, back);
+            return Ok(());
+        }
         // A rejected argument or reply fails the call `SchemaMismatch` at `admit` or `arrive`.
         let flag = self.mismatch();
         let any = self.scalar_op(ScalarOp::AddChecked, I64, vec![Operand::Local(flag), st]);

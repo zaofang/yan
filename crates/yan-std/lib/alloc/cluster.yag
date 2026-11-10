@@ -79,6 +79,10 @@ pub def wire_start[T](x: T, schema: str) -> T: ...
 
 @intrinsic
 @since("1.0")
+pub def wire_send[T](x: T, schema: str) -> T: ...
+
+@intrinsic
+@since("1.0")
 pub def handle[S, P](self: Remote[Actor[S, P]]) -> Actor[S, P]: ...
 
 @intrinsic

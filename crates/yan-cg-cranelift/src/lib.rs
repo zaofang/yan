@@ -756,6 +756,7 @@ const RT: &[RtFn] = &[
     RtFn::ClusterLeave,
     RtFn::ClusterReach,
     RtFn::ClusterFaultSend,
+    RtFn::ClusterSendMismatch,
     RtFn::ClusterAdmit,
     RtFn::ClusterArrive,
     RtFn::SupEndTo,
@@ -1393,6 +1394,12 @@ fn rt_fn(
         RtFn::ClusterFaultSend => (
             "yan_rt_cluster_fault_send",
             cluster::yan_rt_cluster_fault_send as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ClusterSendMismatch => (
+            "yan_rt_cluster_send_mismatch",
+            cluster::yan_rt_cluster_send_mismatch as *const u8,
             &[I64],
             None,
         ),

@@ -256,6 +256,31 @@ impl Lower<'_, '_, '_> {
         Ok(self.tmp(t, Rhs::Call(c), at))
     }
 
+    /// The argument `x` of a send through `Remote` after the encode and decode; one the codec
+    /// rejects fails the send `SchemaMismatch` (R408).
+    pub(super) fn send_wire(&mut self, t: &Ty, x: j::Expr, at: Span) -> R<Atom> {
+        let (x, _) = self.atom(&x, Some(t))?;
+        let sc = match crate::wire::schemas(self.g, t) {
+            Ok(sc) => sc,
+            Err(why) => {
+                self.err(
+                    "E720",
+                    at,
+                    format!("a send through `Remote` carries Wire values: {why}"),
+                );
+                return Ok(x);
+            }
+        };
+        let text = serde_json::to_string(&sc).expect("schemas serialize");
+        let c = call(
+            "std.cluster.wire_send",
+            vec![t.targ()],
+            vec![let_arg(x), let_arg(Atom::Lit(Literal::Str(text), at))],
+            at,
+        );
+        Ok(self.tmp(t, Rhs::Call(c), at))
+    }
+
     /// The reply of a call through `Remote` arrives, or is lost on the way back (RFC 0063 D5).
     pub(super) fn arrive(&mut self, rt: &Ty, outcome: Atom, remote: bool, at: Span) -> Atom {
         if !remote {

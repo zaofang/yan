@@ -179,4 +179,4 @@ diagnostic. Step 2 (always encode), step 3 (D3's faults, D5, `monitor`) and step
 - A partition delivers `Stopped(reason=NodeDown())` to a monitor whose watcher it separates from the actor's node. Lead card 2026-11-10: delivery is lazy, checked at `monitor`, `sleep` and `recv` on the receiver (`simfault::sweep`), so no timer task exists and the result is a function of seed and clock.
 - An `inout` argument is passed as an encoded copy and replaces its place once the reply arrives; a lost or unencodable reply leaves the place unchanged (`std.cluster.commit`).
 - `cluster.spawn` start arguments round-trip through the codec; one that cannot be encoded panics `wire`, since the spawn has no failure of its own yet.
-- `actor.send` through `Remote` is faulted at admission (D5): a lost request fails `Undelivered(reason=Unreachable(), args)`. Send arguments are not yet encoded.
+- `actor.send` through `Remote` is faulted at admission (D5): a lost request fails `Undelivered(reason=Unreachable(), args)`. Each send argument round-trips through the codec after the fault draw, and one the codec rejects fails the send `Undelivered(reason=SchemaMismatch(), args)` (R408).
