@@ -539,6 +539,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                 if let Some(e) = cancelled(&vm.it) {
                     return Ok(Err(e));
                 }
+                crate::simfault::sweep(&mut vm.it);
                 if let Some(v) = vm.it.chans[c].1.pop_front() {
                     vm.it.progress += 1;
                     return Ok(Ok(v));

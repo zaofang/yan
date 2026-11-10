@@ -355,6 +355,7 @@ fn sleep(it: &mut Interp, h: &Value, ns: i128) {
         Some(s) => *s += ns,
         None => std::thread::sleep(std::time::Duration::from_nanos(ns as u64)),
     }
+    crate::simfault::sweep(it);
 }
 
 /// Sleeps `ns`, or until the enclosing deadline when that comes first; `Err` is `Timeout` (9.4).

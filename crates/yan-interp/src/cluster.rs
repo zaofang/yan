@@ -114,12 +114,15 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     // One `Down` arrives on the receiver when the target stops (R411).
     (
         STD_CLUSTER_MONITOR,
-        Bind::Cap(|it, a| {
+        Bind::Vm(|vm: &mut Vm, _, a| {
             let id = crate::sync::chan(&a[1]);
+            let owner = current(&vm.it, &vm.task_path);
+            let it = &mut vm.it;
             it.chans.push((usize::MAX, Default::default()));
             let c = it.chans.len() - 1;
-            it.monitors.push((id, c));
+            it.monitors.push((id, c, owner));
             deliver(it, id);
+            crate::simfault::sweep(it);
             Ok(crate::sync::end("Receiver", c))
         }),
     ),
@@ -371,9 +374,9 @@ pub(crate) fn deliver(it: &mut Interp, id: usize) {
     };
     let (fired, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut it.monitors)
         .into_iter()
-        .partition(|(a, _)| *a == id);
+        .partition(|(a, _, _)| *a == id);
     it.monitors = rest;
-    for (_, c) in fired {
+    for (_, c, _) in fired {
         let down = Value::Data {
             name: "Stopped".into(),
             fields: vec![("reason".into(), reason.clone())],

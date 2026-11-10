@@ -272,7 +272,7 @@ sections = "9.6.1"
 
 [[entry]]
 rows = "R993"
-topic = "`cluster.monitor(remote)` returns a `Receiver[Stopped]` that gets one `Stopped(reason)` when the actor stops, `NodeDown()` from a partition excepted until a later step (RFC 0063 D7)"
+topic = "`cluster.monitor(remote)` returns a `Receiver[Stopped]` that gets one `Stopped(reason)` when the actor stops, `NodeDown()` when a partition cuts the watcher's node from the actor's, delivered in `sim` at the next clock read or advance (RFC 0063 D7)"
 sections = "9.6.1"
 
 [[entry]]
