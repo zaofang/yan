@@ -19,3 +19,11 @@ def test_human_may_touch_tests() -> None:
 
 def test_prefix_is_a_directory_not_a_substring() -> None:
     assert violations(["tools/tests_helper.py", "testsuite/a"], "agent/x", "User") == []
+
+
+def test_non_lead_author_on_plain_branch_is_agent() -> None:
+    assert violations(["tests/a.yag"], "feature/x", "User", "some-agent") == ["tests/a.yag"]
+
+
+def test_lead_author_on_plain_branch_may_touch_tests() -> None:
+    assert violations(["tests/a.yag"], "feature/x", "User", "atbraz") == []

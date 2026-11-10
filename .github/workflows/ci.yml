@@ -59,9 +59,10 @@ jobs:
           HEAD: ${{ github.event.pull_request.head.sha }}
           BRANCH: ${{ github.head_ref }}
           AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           git diff --name-only --no-renames "$BASE...$HEAD" \
-            | python3 tools/guard.py --branch "$BRANCH" --author-type "$AUTHOR_TYPE"
+            | python3 tools/guard.py --branch "$BRANCH" --author-type "$AUTHOR_TYPE" --author "$AUTHOR"
 
   canary:
     runs-on: self-hosted
@@ -73,6 +74,10 @@ jobs:
         run: |
           if printf 'tests/canary.yag\n' | python3 tools/guard.py --branch agent/canary; then
             echo "guard accepted an agent patch to tests/" >&2
+            exit 1
+          fi
+          if printf 'tests/canary.yag\n' | python3 tools/guard.py --branch feature/x --author some-agent; then
+            echo "guard accepted a non-lead author on a non-agent branch" >&2
             exit 1
           fi
 
