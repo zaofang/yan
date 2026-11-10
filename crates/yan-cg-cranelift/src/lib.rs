@@ -711,6 +711,7 @@ const RT: &[RtFn] = &[
     RtFn::CsvParse,
     RtFn::CsvDump,
     RtFn::CsvErrorShow,
+    RtFn::WireRoundtrip,
     RtFn::Alloc,
     RtFn::StrFree,
     RtFn::ListFree,
@@ -1117,6 +1118,12 @@ fn rt_fn(
             "yan_rt_csv_dump",
             abi::yan_rt_csv_dump as *const u8,
             &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::WireRoundtrip => (
+            "yan_rt_wire_roundtrip",
+            abi::yan_rt_wire_roundtrip as *const u8,
+            &[I64, I64, I64, I64],
             Some(I64),
         ),
         RtFn::CsvErrorShow => (

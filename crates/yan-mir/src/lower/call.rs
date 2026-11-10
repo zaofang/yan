@@ -117,6 +117,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         if self.actor_call(id, c, dst.as_ref())? {
             return Ok(());
         }
+        if self.cluster_call(id, c, dst.as_ref())? {
+            return Ok(());
+        }
         if DEQUE_IDS.contains(&id) {
             return self.deque_call(id, c, dst);
         }

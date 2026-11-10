@@ -40,3 +40,5 @@ pub mod slice;
 pub mod sort;
 pub mod text;
 pub mod wire;
+#[allow(unsafe_code)]
+pub mod wireslots;

@@ -269,6 +269,9 @@ pub enum RtFn {
     CsvDump,
     /// `(Ptr slots) -> Str`: the text of a `CsvError`.
     CsvErrorShow,
+    /// `(Ptr out, Ptr value, Str schema, i64 start) -> i64`: the value after the `Wire` round
+    /// trip into `out`; 0, or 1 when the codec rejects it. A rejected start argument panics.
+    WireRoundtrip,
     /// `(words) -> Ptr` to that many zeroed words.
     Alloc,
     /// `(Str)`: free the block; a literal's block is left alone.

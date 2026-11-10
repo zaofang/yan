@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 mod actor;
 mod call;
+mod cluster;
 mod collections;
 mod consts;
 mod contracts;
