@@ -135,14 +135,15 @@ impl Lower<'_, '_, '_> {
                         let tried = Ty::Result(Box::new(t.clone()), Box::new(e.clone()));
                         let mut tried_a = l.tmp(&tried, Rhs::Try(c), at);
                         if remote {
-                            tried_a = l.remote_wire(&tried, tried_a, at)?;
+                            tried_a = l.remote_wire(&tried, tried_a, true, at)?;
                         }
                         let tried = tried_a;
                         let targs =
                             vec![state.targ(), policy.targ(), t.targ(), e.targ(), fail.targ()];
                         let args = vec![let_arg(h.clone()), sink_arg(back), sink_arg(tried)];
                         let c = call("std.actor.settle", targs, args, at);
-                        l.tmp(&rt, Rhs::Call(c), at)
+                        let settled = l.tmp(&rt, Rhs::Call(c), at);
+                        l.arrive(&rt, settled, remote, at)
                     }
                     (Some(_), _) => {
                         return unsupported("a fallible handler call that is not a plain call");
@@ -150,7 +151,7 @@ impl Lower<'_, '_, '_> {
                     (None, r) => {
                         let mut v = l.tmp(&t, r, at);
                         if remote {
-                            v = l.remote_wire(&t, v, at)?;
+                            v = l.remote_wire(&t, v, true, at)?;
                         }
                         let put = call(
                             "std.actor.put",
@@ -159,7 +160,8 @@ impl Lower<'_, '_, '_> {
                             at,
                         );
                         l.emit(StmtKind::Rhs(Rhs::Call(put)), at);
-                        l.tmp(&rt, ctor("Ok", "value", v), at)
+                        let ok = l.tmp(&rt, ctor("Ok", "value", v), at);
+                        l.arrive(&rt, ok, remote, at)
                     }
                 };
                 l.jump(k, out, at);

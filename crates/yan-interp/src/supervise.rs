@@ -145,7 +145,7 @@ pub(crate) fn end(it: &mut Interp) {
         let nodes = it.sups.all[s].nodes.clone().unwrap_or_default();
         for s in nodes.into_iter().rev().chain([s]) {
             for c in it.sups.all[s].children.clone().into_iter().rev() {
-                it.actors[c].stop(super::sync::failure("Shutdown"));
+                super::cluster::stop(it, c, super::sync::failure("Shutdown"));
             }
         }
     }
@@ -163,7 +163,7 @@ pub(crate) fn end_frame(it: &mut Interp, base: usize) {
 /// every child and escalates; nothing above a supervisor can restart it, so escalation ends the
 /// run as a panic of kind `supervisor`.
 pub(crate) fn crash(vm: &mut Vm, id: usize, reason: Value) -> R<()> {
-    vm.it.actors[id].stop(reason);
+    super::cluster::stop(&mut vm.it, id, reason);
     let (s, restart) = {
         let c = vm.it.actors[id].child();
         (c.sup, c.restart)
@@ -179,7 +179,7 @@ pub(crate) fn crash(vm: &mut Vm, id: usize, reason: Value) -> R<()> {
     if sup.restarts.len() >= sup.intensity {
         let (n, p) = (sup.intensity, sup.period);
         for c in sup.children.clone().into_iter().rev() {
-            vm.it.actors[c].stop(super::sync::failure("Shutdown"));
+            super::cluster::stop(&mut vm.it, c, super::sync::failure("Shutdown"));
         }
         return panic_with(
             "supervisor",
@@ -195,7 +195,7 @@ pub(crate) fn crash(vm: &mut Vm, id: usize, reason: Value) -> R<()> {
     };
     for &c in group.iter().rev() {
         if c != id {
-            vm.it.actors[c].stop(super::sync::failure("Shutdown"));
+            super::cluster::stop(&mut vm.it, c, super::sync::failure("Shutdown"));
         }
     }
     for c in group {
