@@ -1,0 +1,16 @@
+-- spec: 8.1, 17.1
+-- rows: R327, R971
+-- note: a launch can fail `KernelFault`, so it must be handled (#893)
+-- expect: E315 at 14:3
+
+@kernel(tile: 2, 2)
+@access(a: elementwise, out: elementwise)
+inc(at: TileOrigin, a: Array[2, 4, int]) -> Array[2, 4, int] =
+  for i in range(0, 2)
+    for j in range(0, 2)
+      out[at.i0 + i, at.i1 + j] = a[at.i0 + i, at.i1 + j] * 10 + at.i1
+
+f(a: Array[2, 4, int]) -> Array[2, 4, int] uses gpu =
+  gpu.launch(inc, a)
+
+main() = 0

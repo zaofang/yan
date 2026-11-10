@@ -1624,3 +1624,8 @@ sections = "21.4"
 rows = "R986"
 topic = "A served call binds only capabilities the operator granted with `--allow` (default none), refusing before it runs a call whose `uses` exceeds the grant and naming what is missing; a granted `fs` is `fs.sub` of the package root (R674); the server refuses an untrusted directory and runs each call under the 21.4 budgets (R676) (RFC 0062 D4, D5)"
 sections = "21.4"
+
+[[entry]]
+rows = "R987"
+topic = "conformance/mcp/ holds served-package cases: `root/`, `yan mcp package` flags, and a JSON-RPC session with its exact replies, the `--list` result, or the code that refuses to start the server; the runner trusts the copied root first"
+sections = "24.1"

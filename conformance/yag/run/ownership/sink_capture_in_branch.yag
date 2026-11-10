@@ -1,0 +1,18 @@
+# spec: 4.2, 5.3
+# rows: R963
+# note: a closure captures `s` inside one branch, its last use, so the capture moves it; leaving the scope drops `s` once on each path (#879)
+# stdout:
+# 5
+# 0
+
+def f(c: bool) -> int:
+    s = "hello"
+    n = 0
+    if c:
+        g = lambda: s.char_count()
+        n = g()
+    return n
+
+pub def main() uses io:
+    io.print(f"{f(True)}")
+    io.print(f"{f(False)}")

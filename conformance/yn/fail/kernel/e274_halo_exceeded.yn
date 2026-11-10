@@ -1,0 +1,13 @@
+-- spec: 11.2
+-- rows: R954, R955
+-- note: two rows past a band whose halo is 1 (#845)
+-- expect: E274 at 11:35
+
+@kernel(tile: 8, 8)
+@access(a: rows(0, halo: 1), out: elementwise)
+scale(at: TileOrigin, a: Array[64, 64, float]) -> Array[64, 64, float] =
+  for i in range(0, 8)
+    for j in range(0, 8)
+      out[at.i0 + i, at.i1 + j] = a[at.i0 + i + 2, j]
+
+main() = 0

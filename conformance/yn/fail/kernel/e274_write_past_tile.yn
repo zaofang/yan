@@ -1,0 +1,12 @@
+-- spec: 11.2
+-- rows: R954
+-- note: a write to `out` past the tile (#674)
+-- expect: E274 at 10:5
+
+@kernel(tile: 4, 8)
+@access(a: elementwise, out: elementwise)
+k(at: TileOrigin, a: Array[8, 16, int]) -> Array[8, 16, int] =
+  for j in range(0, 8)
+    out[at.i0, at.i1 + j + 8] = a[at.i0, at.i1 + j]
+
+main() = 0

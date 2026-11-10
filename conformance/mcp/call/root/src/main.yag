@@ -1,0 +1,18 @@
+@derive(Wire)
+class Point:
+    x: int
+    y: int
+
+pub def add(a: int, b: int = 1) -> int:
+    """Adds `b` to `a`."""
+    return a + b
+
+pub def norm1(p: Point) -> int:
+    """The taxicab length of `p`."""
+    return abs(p.x) + abs(p.y)
+
+def helper() -> int:
+    return 0
+
+def test_add():
+    assert add(2) == 3

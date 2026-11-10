@@ -1,0 +1,26 @@
+-- spec: 5.4, 10.6
+-- rows: R443, R963
+-- note: failing exits are exempt: a `@linear` local live across `?` and across `fail` is closed on the returning path only (#861)
+
+module conf.linear_failing_path
+
+@linear
+record H { fd: i64 }
+
+fn close(sink h: H) -> i64 {
+    ret 0
+}
+
+fn may(let x: i64) -> i64 fail i64 {
+    ret x
+}
+
+fn f(let c: bool) -> i64 fail i64 {
+    let h: H = H { fd: 1 }
+    let a: i64 = may(let 1)?
+    if c {
+        fail 1
+    }
+    let n: i64 = close(sink h)
+    ret n
+}

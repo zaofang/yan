@@ -239,6 +239,34 @@
    "expect": []
   },
   {
+   "path": "yag/pass/ownership/move_in_loop_then_return.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R963",
+    "R964"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yag/pass/ownership/rebind_before_next_read.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R962",
+    "R964"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yag/pass/ownership/share.yag",
    "kind": "pass",
    "milestone": "M1",
@@ -2697,6 +2725,26 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e413_bind_in_loop.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1",
+    "R964"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 10,
+     "col": 13
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e413_bind_new_name.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -4968,6 +5016,20 @@
    "exit": 0
   },
   {
+   "path": "yag/run/ownership/else_results_in_inner_block.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2",
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n2\n3\n0\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/ownership/exclusivity_panic.yag",
    "kind": "run",
    "milestone": "M1",
@@ -4994,6 +5056,38 @@
    "exit": 0
   },
   {
+   "path": "yag/run/ownership/loop_two_breaks_drop_once.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2",
+    "5.3"
+   ],
+   "rows": [
+    "R963"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7\n0\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/match_arm_payload_or_fresh.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2",
+    "5.3"
+   ],
+   "rows": [
+    "R963"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a!\nfresh\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/ownership/par_return_flagged_local.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5005,6 +5099,22 @@
    "flags": [],
    "expect": [],
    "stdout": "1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/sink_capture_in_branch.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2",
+    "5.3"
+   ],
+   "rows": [
+    "R963"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "5\n0\n",
    "exit": 0
   },
   {
@@ -6931,6 +7041,33 @@
    "expect": []
   },
   {
+   "path": "yn/pass/kernel/div_mod_by_literal.yn",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yn/pass/kernel/halo_in_bounds.yn",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954",
+    "R955"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yn/pass/ownership/for_var.yn",
    "kind": "pass",
    "milestone": "M3",
@@ -7051,6 +7188,31 @@
    ],
    "flags": [],
    "expect": []
+  },
+  {
+   "path": "yn/fail/bounds/e501_array_index.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.6",
+    "11.2"
+   ],
+   "rows": [
+    "R211"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E501",
+     "line": 9,
+     "col": 28
+    },
+    {
+     "code": "E501",
+     "line": 9,
+     "col": 42
+    }
+   ]
   },
   {
    "path": "yn/fail/bounds/e501_refuted.yn",
@@ -7312,6 +7474,156 @@
     {
      "code": "E904",
      "line": 11,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_extern_halo_elementwise.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955",
+    "R982"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 10,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_extern_halo_negative.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955",
+    "R982"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 10,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_extern_halo_out.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955",
+    "R982"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 10,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_extern_halo_repeated.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955",
+    "R982"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 10,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 43
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e284_extern_region_unknown_argument.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955",
+    "R982"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 10,
+     "col": 8
+    },
+    {
+     "code": "E904",
+     "line": 10,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 10,
      "col": 43
     }
    ]
@@ -7610,6 +7922,31 @@
    ]
   },
   {
+   "path": "yn/fail/ffi/extern_halo_accepted.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955",
+    "R982"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E904",
+     "line": 9,
+     "col": 17
+    },
+    {
+     "code": "E904",
+     "line": 9,
+     "col": 43
+    }
+   ]
+  },
+  {
    "path": "yn/fail/holes/h701_typed_hole.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -7625,6 +7962,448 @@
      "code": "H701",
      "line": 5,
      "col": 14
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_halo_exceeded.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954",
+    "R955"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 11,
+     "col": 35
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_loaded_index.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 10,
+     "col": 21
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_loop_bound_loaded.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 11,
+     "col": 3
+    },
+    {
+     "code": "E274",
+     "line": 12,
+     "col": 5
+    },
+    {
+     "code": "E274",
+     "line": 12,
+     "col": 21
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_loop_wider_than_tile.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 10,
+     "col": 21
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_mod_by_zero.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 10,
+     "col": 25
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_not_affine.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 11,
+     "col": 35
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_past_tile.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 11,
+     "col": 35
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e274_write_past_tile.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E274",
+     "line": 10,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e284_axis_out_of_rank.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 7,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e284_halo_elementwise.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R955"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E284",
+     "line": 7,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e285_kernel_tile_zero.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E285",
+     "line": 6,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e285_kernel_two_tile_origins.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E285",
+     "line": 6,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e285_kernel_without_access.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E285",
+     "line": 6,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e285_kernel_without_tile_name.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E285",
+     "line": 6,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e285_kernel_without_tile_origin.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E285",
+     "line": 6,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e286_direct_kernel_call.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E286",
+     "line": 14,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e286_launch_of_non_kernel.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E286",
+     "line": 9,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e286_tile_origin_outside_launch.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "11.2"
+   ],
+   "rows": [
+    "R953",
+    "R983"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E286",
+     "line": 14,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e301_launch_without_gpu.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "7.1",
+    "17.1"
+   ],
+   "rows": [
+    "R971"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 14,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e310_launch_propagates_undeclared.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.1",
+    "17.1"
+   ],
+   "rows": [
+    "R327",
+    "R971"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E310",
+     "line": 14,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e315_unhandled_launch.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.1",
+    "17.1"
+   ],
+   "rows": [
+    "R327",
+    "R971"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E315",
+     "line": 14,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e521_partial_tile.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "17.1"
+   ],
+   "rows": [
+    "R973"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E521",
+     "line": 14,
+     "col": 3
     }
    ]
   },
@@ -8784,6 +9563,92 @@
    "exit": 0
   },
   {
+   "path": "yn/run/kernel/kernel_constants.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "11.2",
+    "10.4"
+   ],
+   "rows": [
+    "R954"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 4\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/kernel/kernel_fault.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "8.1",
+    "11.2",
+    "17.1"
+   ],
+   "rows": [
+    "R327",
+    "R971"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 0 11:23\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/kernel/launch_bool_and_i32.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "11.2",
+    "17.1"
+   ],
+   "rows": [
+    "R971"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "True False True 1 0\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/kernel/launch_elementwise.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "11.2",
+    "17.1"
+   ],
+   "rows": [
+    "R953",
+    "R971",
+    "R972"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 18 32\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/kernel/launch_rows.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "11.2",
+    "17.1"
+   ],
+   "rows": [
+    "R955",
+    "R971",
+    "R972"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3.0 7.5 13.5 13.5\n",
+   "exit": 0
+  },
+  {
    "path": "yn/run/numbers/checked_cast.yn",
    "kind": "run",
    "milestone": "M3",
@@ -8914,6 +9779,35 @@
    ],
    "rows": [
     "SQ2"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yir/pass/linear_released_on_failing_path.yir",
+   "kind": "pass",
+   "milestone": "M0",
+   "spec": [
+    "5.4",
+    "10.6"
+   ],
+   "rows": [
+    "R443",
+    "R963"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yir/pass/loop_move_then_break.yir",
+   "kind": "pass",
+   "milestone": "M0",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R963",
+    "R964"
    ],
    "flags": [],
    "expect": []
@@ -9155,6 +10049,26 @@
    ]
   },
   {
+   "path": "yir/fail/e401_move_in_loop.yir",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R963",
+    "R964"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E401",
+     "line": 14,
+     "col": 32
+    }
+   ]
+  },
+  {
    "path": "yir/fail/e401_use_after_move.yir",
    "kind": "fail",
    "milestone": "M0",
@@ -9222,6 +10136,48 @@
      "code": "E406",
      "line": 7,
      "col": 37
+    }
+   ]
+  },
+  {
+   "path": "yir/fail/e412_linear_consumed_on_one_path.yir",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "5.4",
+    "10.6"
+   ],
+   "rows": [
+    "R443",
+    "R963"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E412",
+     "line": 16,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "yir/fail/e412_linear_field_left.yir",
+   "kind": "fail",
+   "milestone": "M0",
+   "spec": [
+    "5.4",
+    "10.6"
+   ],
+   "rows": [
+    "R443",
+    "R963"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E412",
+     "line": 19,
+     "col": 9
     }
    ]
   },
@@ -11294,6 +12250,60 @@
    }
   },
   {
+   "path": "pkg/yan_new_agent_tool",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template agent-tool @conf/new_agent_tool` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
+   "path": "pkg/yan_new_cli",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template cli @conf/new_cli` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
+   "path": "pkg/yan_new_library",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template library @conf/new_library` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
    "path": "fmt/blank_lines",
    "kind": "fmt",
    "milestone": "M1",
@@ -11371,6 +12381,178 @@
    "expect": [],
    "expect_toml": {
     "spec": "14.3"
+   }
+  },
+  {
+   "path": "mcp/call",
+   "kind": "mcp",
+   "milestone": "M1",
+   "spec": [
+    "21.4"
+   ],
+   "rows": [
+    "R985"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.4",
+    "rows": [
+     "R985"
+    ],
+    "note": "`add {a: 2}` returns 3 with `b` defaulted; a float for an int and an unknown member are tool errors; a `Wire` record argument decodes (#908)"
+   }
+  },
+  {
+   "path": "mcp/grant",
+   "kind": "mcp",
+   "milestone": "M1",
+   "spec": [
+    "21.4"
+   ],
+   "rows": [
+    "R986"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.4",
+    "rows": [
+     "R986"
+    ],
+    "note": "a `uses fs` tool is refused without `--allow fs`, and the refusal names the flag (#908)"
+   }
+  },
+  {
+   "path": "mcp/grant_fs",
+   "kind": "mcp",
+   "milestone": "M1",
+   "spec": [
+    "21.4"
+   ],
+   "rows": [
+    "R986"
+   ],
+   "flags": [
+    "--allow",
+    "fs"
+   ],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.4",
+    "rows": [
+     "R986"
+    ],
+    "note": "with `--allow fs` the tool reads beneath the package; `../x` and an absolute path fail `not granted` (#908)",
+    "flags": [
+     "--allow",
+     "fs"
+    ]
+   }
+  },
+  {
+   "path": "mcp/list",
+   "kind": "mcp",
+   "milestone": "M1",
+   "spec": [
+    "21.4"
+   ],
+   "rows": [
+    "R984",
+    "R985"
+   ],
+   "flags": [
+    "--list"
+   ],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.4",
+    "rows": [
+     "R984",
+     "R985"
+    ],
+    "note": "`--list` shows only the public non-test functions: `b` has `default: 1`, `required` is `[\"a\"]`, and the `Wire` record is under `$defs` (#908)",
+    "flags": [
+     "--list"
+    ]
+   }
+  },
+  {
+   "path": "mcp/refuse_callable",
+   "kind": "mcp",
+   "milestone": "M1",
+   "spec": [
+    "21.4"
+   ],
+   "rows": [
+    "R985"
+   ],
+   "flags": [
+    "--list"
+   ],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.4",
+    "rows": [
+     "R985"
+    ],
+    "note": "a public function that takes a `Callable` cannot be a tool, and the server does not start (#908)",
+    "flags": [
+     "--list"
+    ],
+    "code": "E201"
+   }
+  },
+  {
+   "path": "mcp/refuse_generic",
+   "kind": "mcp",
+   "milestone": "M1",
+   "spec": [
+    "21.4"
+   ],
+   "rows": [
+    "R985"
+   ],
+   "flags": [
+    "--list"
+   ],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.4",
+    "rows": [
+     "R985"
+    ],
+    "note": "a public function that is generic cannot be a tool, and the server does not start (#908)",
+    "flags": [
+     "--list"
+    ],
+    "code": "E201"
+   }
+  },
+  {
+   "path": "mcp/refuse_io",
+   "kind": "mcp",
+   "milestone": "M1",
+   "spec": [
+    "21.4"
+   ],
+   "rows": [
+    "R985"
+   ],
+   "flags": [
+    "--list"
+   ],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.4",
+    "rows": [
+     "R985"
+    ],
+    "note": "a public function that uses `io` cannot be a tool, and the server does not start (#908)",
+    "flags": [
+     "--list"
+    ],
+    "code": "E201"
    }
   }
  ]

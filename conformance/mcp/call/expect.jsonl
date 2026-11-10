@@ -1,0 +1,5 @@
+{"id":1,"jsonrpc":"2.0","result":{"capabilities":{"tools":{}},"protocolVersion":"2026-07-28","serverInfo":{"name":"yan-package","version":"0.0.0"}}}
+{"id":2,"jsonrpc":"2.0","result":{"content":[{"text":"3","type":"text"}],"structuredContent":{"result":3}}}
+{"id":3,"jsonrpc":"2.0","result":{"content":[{"text":"line 1, col 6: $.a: expected int, found float","type":"text"}],"isError":true}}
+{"id":4,"jsonrpc":"2.0","result":{"content":[{"text":"line 1, col 12: $: unknown field \"c\"","type":"text"}],"isError":true}}
+{"id":5,"jsonrpc":"2.0","result":{"content":[{"text":"7","type":"text"}],"structuredContent":{"result":7}}}

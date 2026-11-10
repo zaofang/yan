@@ -1,0 +1,15 @@
+"""An agent tool. Its public functions are what an agent may call, and their `uses` clauses are
+all the authority a call gets: `size` can read files and do nothing else."""
+
+pub def size(path: str) -> int fail FsError uses fs:
+    """The number of characters in the file at `path`."""
+    text = fs.read(path)?
+    return text.char_count()
+
+pub def main() -> fail FsError uses io, fs:
+    path = io.read_line() else "package.yag"
+    io.print(f"{size(path)?}")
+
+def test_size() -> fail FsError:
+    with fs = fake_fs({"notes.txt": "buy milk\n"}):
+        assert size("notes.txt")? == 9

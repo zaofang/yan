@@ -1,0 +1,26 @@
+"""Integer helpers."""
+
+pub def gcd(a: int, b: int) -> int:
+    """The greatest common divisor of `a` and `b`."""
+    pre a >= 0 and b >= 0
+    ex gcd(12, 18) == 6
+    ex gcd(7, 0) == 7
+    x = a
+    y = b
+    while y != 0:
+        x, y = y, x % y
+    return x
+
+pub def clamp(x: int, lo: int, hi: int) -> int:
+    """`x` limited to the range from `lo` to `hi`."""
+    pre lo <= hi
+    ex clamp(5, 0, 3) == 3
+    ex clamp(-1, 0, 3) == 0
+    if x < lo:
+        return lo
+    if x > hi:
+        return hi
+    return x
+
+def test_gcd_is_symmetric():
+    assert gcd(84, 36) == gcd(36, 84)

@@ -1,0 +1,4 @@
+pub def size(path: str) -> int fail FsError uses fs:
+    """The number of characters in the file at `path`."""
+    text = fs.read(path)?
+    return text.char_count()

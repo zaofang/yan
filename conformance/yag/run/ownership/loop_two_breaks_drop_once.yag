@@ -1,0 +1,25 @@
+# spec: 4.2, 5.3
+# rows: R963
+# note: one `break` leaves after moving `s`, the other with `s` still owned; `s` is dropped exactly once on each path, on the edge (#879)
+# stdout:
+# 7
+# 0
+
+def keep(take s: str) -> int:
+    return s.char_count()
+
+def f(n: int) -> int:
+    t = 0
+    for i in range(10):
+        s = f"item{i}"
+        if i == n:
+            t += keep(s)
+            break
+        if i > n + 5:
+            break
+        t += 1
+    return t
+
+pub def main() uses io:
+    io.print(f"{f(2)}")
+    io.print(f"{f(-9)}")

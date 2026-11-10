@@ -14,6 +14,7 @@ conformance/
   fmt/                                     -- canonical-form rewrites
   solver/                                  -- 8.6 solver goals (R378)
   pkg/                                     -- package and toolchain diagnostics (R479)
+  mcp/                                     -- served packages, `yan mcp package` (R987)
 ```
 
 - `pass/` files must check with no errors.
@@ -23,6 +24,7 @@ conformance/
 - `semver/` holds one old/new package pair per row of the API evolution table (20.6) with the expected bump. pkg/ holds one package tree per case, with an optional earlier version, the toolchain command to run and the expected diagnostic, for the codes of sections 18 to 20 that need a whole package (R479).
 - `patch/` cases contain a module, a patch and the expected result or P-code.
 - `fmt/` cases hold `in.<ext>` and `out.<ext>`; `fmt` run on a copy of the input must produce exactly the bytes of the output.
+- `mcp/` cases hold a package tree in `root/`, the server flags, and either a JSON-RPC session (`session.jsonl`) with its exact replies (`expect.jsonl`), the expected `--list` result (`expect.json`), or the code that refuses to start the server. The runner records the copied root with `yan trust` before serving it (21.4, R984 to R987).
 
 ### 24.2 Required coverage
 

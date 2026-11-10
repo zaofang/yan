@@ -1,0 +1,12 @@
+-- spec: 11.2
+-- rows: R954, R955
+-- note: one row past the band is inside a halo of 1, and axis 1 is free under `rows(0)` (#845)
+
+@kernel(tile: 8, 8)
+@access(a: rows(0, halo: 1), out: elementwise)
+scale(at: TileOrigin, a: Array[64, 64, float]) -> Array[64, 64, float] =
+  for i in range(0, 8)
+    for j in range(0, 8)
+      out[at.i0 + i, at.i1 + j] = a[at.i0 + i + 1, j + 9]
+
+main() = 0

@@ -1,0 +1,19 @@
+-- spec: 8.1, 11.2, 17.1
+-- rows: R327, R971
+-- note: a halo read above row 0 fails the launch with `KernelFault` naming the instance's origin and the access's position (#893)
+-- stdout:
+-- 0 0 11:23
+
+@kernel(tile: 1, 3)
+@access(a: rows(0, halo: 1), out: rows(0))
+prev(at: TileOrigin, a: Array[2, 3, int]) -> Array[2, 3, int] =
+  for j in range(0, 3)
+    out[at.i0, j] = a[at.i0 - 1, j]
+
+fault(a: Array[2, 3, int]) -> str uses gpu =
+  let r = gpu.launch(prev, a) else e ->
+    return "\(e.i0) \(e.i1) \(e.line):\(e.col)"
+  "\(r[1, 0])"
+
+main() uses io, gpu =
+  io.print(fault([1 2 3; 4 5 6]))
