@@ -114,9 +114,10 @@ impl Lower<'_, '_, '_> {
                     paren: false,
                 };
                 let (mut r, t, e) = l.call_sig(m, &sig, Some(&recv), args, at)?;
+                let mut copies = Vec::new();
                 if remote && let Rhs::Call(c) = &mut r {
                     let ps: Vec<Ty> = sig.params.iter().map(|p| p.ty.clone()).collect();
-                    l.remote_args(c, &ps, at)?;
+                    copies = l.remote_args(c, &ps)?;
                 }
                 let rt = Ty::Result(Box::new(t.clone()), Box::new(fail.clone()));
                 ret = rt.clone();
@@ -139,13 +140,16 @@ impl Lower<'_, '_, '_> {
                             if remote {
                                 tried_a = l.remote_wire(&tried, tried_a, true, at)?;
                             }
+                            let inback = l.inout_replies(&copies)?;
                             let tried = tried_a;
                             let targs =
                                 vec![state.targ(), policy.targ(), t.targ(), e.targ(), fail.targ()];
                             let args = vec![let_arg(h.clone()), sink_arg(back), sink_arg(tried)];
                             let c = call("std.actor.settle", targs, args, at);
                             let settled = l.tmp(&rt, Rhs::Call(c), at);
-                            l.arrive(&rt, settled, remote, at)
+                            let out = l.arrive(&rt, settled, remote, at);
+                            l.commit_inouts(inback);
+                            out
                         }
                         (Some(_), _) => {
                             return unsupported("a fallible handler call that is not a plain call");
@@ -155,6 +159,7 @@ impl Lower<'_, '_, '_> {
                             if remote {
                                 v = l.remote_wire(&t, v, true, at)?;
                             }
+                            let inback = l.inout_replies(&copies)?;
                             let put = call(
                                 "std.actor.put",
                                 vec![state.targ(), policy.targ()],
@@ -163,7 +168,9 @@ impl Lower<'_, '_, '_> {
                             );
                             l.emit(StmtKind::Rhs(Rhs::Call(put)), at);
                             let ok = l.tmp(&rt, ctor("Ok", "value", v), at);
-                            l.arrive(&rt, ok, remote, at)
+                            let out = l.arrive(&rt, ok, remote, at);
+                            l.commit_inouts(inback);
+                            out
                         }
                     };
                     l.jump(k, out, at);
@@ -402,6 +409,46 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         let (ha, ht) = self.atom(h, None)?;
+        // A send through `Remote` crosses nodes, so it is faulted at admission (RFC 0063 D5);
+        // the message itself runs on the plain handle.
+        let (ha, ht, remote) = match ht {
+            Ty::Coll("Remote", r)
+                if matches!(r.first(), Some(Ty::Coll("Actor" | "SendOnly", _))) =>
+            {
+                let inner = r.into_iter().next().expect("matched");
+                if !self
+                    .sig
+                    .caps
+                    .iter()
+                    .chain(&self.handlers)
+                    .any(|c| c == "cluster")
+                {
+                    self.err(
+                        "E301",
+                        at,
+                        format!("`{m}` is sent through `Remote`; declare `uses cluster` (R400)"),
+                    );
+                }
+                let Ty::Coll(_, ts) = &inner else {
+                    unreachable!("matched")
+                };
+                let c = call(
+                    "std.cluster.handle",
+                    vec![ts[0].targ(), ts[1].targ()],
+                    vec![let_arg(ha.clone())],
+                    at,
+                );
+                let plain = self.tmp(&inner, Rhs::Call(c), at);
+                let rt = Ty::Coll("Remote", vec![inner]);
+                (plain, rt, Some(ha))
+            }
+            ht => (ha, ht, None),
+        };
+        let remote_h = remote;
+        let ht = match &ht {
+            Ty::Coll("Remote", r) => r[0].clone(),
+            _ => ht,
+        };
         let Ty::Coll("Actor" | "SendOnly", ts) = &ht else {
             self.err(
                 "E201",
@@ -511,8 +558,27 @@ impl Lower<'_, '_, '_> {
         self.sent_through = was;
         let (clo, ct) = clo?;
         let clo = self.tmp(&ct, clo, at);
-        let reason = send_reasons(&ts[1]);
+        let mut reason = send_reasons(&ts[1]);
+        if remote_h.is_some() {
+            let mut ms = match reason {
+                Ty::Union(ms) => ms,
+                r => vec![r],
+            };
+            for n in ["Unreachable", "Rejected", "SchemaMismatch"] {
+                crate::union_add(&mut ms, Ty::Data(n.into()));
+            }
+            reason = Ty::Union(ms);
+        }
         let fail = Ty::Coll("Undelivered", vec![at_ty.clone(), reason.clone()]);
+        if let Some(rh) = remote_h {
+            let f = call(
+                "std.cluster.fault_send",
+                vec![ts[0].targ(), ts[1].targ()],
+                vec![let_arg(rh)],
+                at,
+            );
+            self.emit(StmtKind::Rhs(Rhs::Call(f)), at);
+        }
         let c = call(
             "std.actor.send",
             vec![ts[0].targ(), ts[1].targ(), at_ty.targ(), fail.targ()],

@@ -175,6 +175,19 @@ pub(crate) fn request(it: &mut Interp, path: &[usize], from: usize, to: usize) {
     ));
 }
 
+/// A send through `Remote` leaves its node for the actor's; `taken` then fails it when lost.
+pub(crate) fn request_send(it: &mut Interp, path: &[usize], from: usize, to: usize) {
+    it.sending = if from == to { None } else { send(it, from, to) }.map(|e| (path.to_vec(), e));
+}
+
+/// The failure of the send of `path` that `request_send` faulted.
+pub(crate) fn lost_send(it: &mut Interp, path: &[usize]) -> Option<Value> {
+    match it.sending.take() {
+        Some((p, e)) if p == path => Some(e),
+        _ => None,
+    }
+}
+
 /// The request's failure when the call never reached the handler; it ends the call.
 pub(crate) fn refused(it: &mut Interp, path: &[usize]) -> Option<Value> {
     let k = it.remote.iter().rposition(|(p, _)| p == path)?;
@@ -191,6 +204,7 @@ pub(crate) fn forget(it: &mut Interp, path: &[usize]) {
 
 /// The reply message of the call `outcome` answers: its failure when the reply is lost or late.
 pub(crate) fn reply(it: &mut Interp, path: &[usize], outcome: Value) -> Value {
+    it.replied = true;
     let Some(k) = it.remote.iter().rposition(|(p, _)| p == path) else {
         return outcome;
     };
@@ -202,6 +216,7 @@ pub(crate) fn reply(it: &mut Interp, path: &[usize], outcome: Value) -> Value {
     } else {
         send(it, p.to, p.from)
     };
+    it.replied = err.is_none();
     match err {
         Some(e) => Value::Data {
             name: "Err".into(),
