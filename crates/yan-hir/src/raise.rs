@@ -1319,7 +1319,9 @@ impl<'a> Fold<'a> {
             y::Rhs::Propagate {
                 call, via: None, ..
             } => Ok(e(ExprKind::Try(Box::new(self.call(call)?)))),
-            y::Rhs::Propagate { .. } => no("`?` with a conversion"),
+            y::Rhs::Propagate { call, .. } => {
+                no("`?` with a conversion").map_err(|e| e.at(call.span))
+            }
             y::Rhs::Proj(p) | y::Rhs::Move(p) => self.place(p),
             y::Rhs::Copy(p) => {
                 let x = self.place(p)?;
@@ -1423,7 +1425,7 @@ impl<'a> Fold<'a> {
     }
 
     fn call(&mut self, c: &y::Call) -> R<Expr> {
-        let x = self.call_marked(c)?;
+        let x = self.call_marked(c).map_err(|e| e.at(c.span))?;
         self.marks.consume(&self.marks.args(c));
         Ok(x)
     }
