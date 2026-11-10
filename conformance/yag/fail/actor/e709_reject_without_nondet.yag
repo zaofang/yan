@@ -1,0 +1,17 @@
+# spec: 9.6, 17.3
+# rows: R974
+# note: a `Reject` actor needs `uses nondet` (#895)
+# expect: E709 at 16:27
+
+class C:
+    n: int
+
+def add(var self: C, by: int):
+    self.n += by
+
+def get(var self: C) -> int:
+    return self.n
+
+def main() uses io:
+    a: Actor[C, Reject] = actor.spawn(C(n=0))
+    print(a.get() else e -> -1)

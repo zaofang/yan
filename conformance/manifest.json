@@ -465,6 +465,85 @@
    "expect": []
   },
   {
+   "path": "yag/fail/actor/e201_call_through_send_only.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.6",
+    "17.3"
+   ],
+   "rows": [
+    "R975"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 17,
+     "col": 11
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/actor/e201_policy_not_a_policy.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.6",
+    "17.3"
+   ],
+   "rows": [
+    "R974"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 16,
+     "col": 24
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/actor/e709_reject_without_nondet.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.6",
+    "17.3"
+   ],
+   "rows": [
+    "R974"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 16,
+     "col": 27
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/actor/e729_send_returns_a_value.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.6"
+   ],
+   "rows": [
+    "R813"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E729",
+     "line": 17,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/arrays/e520_positional_broadcast.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -4477,6 +4556,142 @@
      "col": 7
     }
    ]
+  },
+  {
+   "path": "yag/run/actor/call_back_deadlock.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6",
+    "17.3"
+   ],
+   "rows": [
+    "R980"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Deadlock()\n-1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/actor/call_default_deadline.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6",
+    "17.3"
+   ],
+   "rows": [
+    "R956"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Timeout() after PT5S\n7\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/actor/idle_mail_outside_par.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6"
+   ],
+   "rows": [
+    "R813"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "10\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/actor/intensity_exceeded.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6",
+    "17.3"
+   ],
+   "rows": [
+    "R978",
+    "R981"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "-1\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/actor/one_for_all_restart.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6",
+    "17.3"
+   ],
+   "rows": [
+    "R978",
+    "R979",
+    "R980"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "105\n-1\n100\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/actor/one_for_one_restart.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6",
+    "17.3"
+   ],
+   "rows": [
+    "R978",
+    "R979",
+    "R980"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "11\n-1\n11\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/actor/overflow_policies.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6",
+    "17.3"
+   ],
+   "rows": [
+    "R974",
+    "R975",
+    "R976"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Undelivered(reason=Full(), args=(2,))\n1\n2\n1\n3\n13\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/actor/stop_reasons.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6",
+    "17.3"
+   ],
+   "rows": [
+    "R976",
+    "R977",
+    "R980"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n-1\nStopped(reason=Crashed(error='negative'))\nUndelivered(reason=Stopped(reason=Crashed(error='negative')), args=(5,)) 5 Stopped(reason=Crashed(error='negative'))\nStopped(reason=Shutdown())\nUndelivered(reason=Stopped(reason=Shutdown()), args=(5,))\n",
+   "exit": 0
   },
   {
    "path": "yag/run/bindings/r832_if_else.yag",
