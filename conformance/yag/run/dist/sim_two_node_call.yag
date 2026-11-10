@@ -1,0 +1,28 @@
+# spec: 9.6.1
+# rows: R988, R989
+# note: a call through Remote runs the handler on its actor's home node; node 0 is the binding task
+# stdout:
+# 15 1
+# True True True
+
+class Counter:
+    n: int
+
+def bump(var self: Counter, by: int) -> int:
+    self.n += by
+    return self.n
+
+def here(var self: Counter) -> Node uses cluster:
+    return cluster.self_node()
+
+@remote
+def make(start: int) -> Counter:
+    return Counter(n=start)
+
+pub def main() -> None fail RemoteError uses io, cluster:
+    with cluster = sim(2, 7):
+        ns = cluster.nodes()
+        a = cluster.spawn(ChildSpec(make, (10,)), placement=On(ns[1]))
+        b = cluster.spawn(ChildSpec(make, (0,)))
+        io.print(f"{a.bump(5)?} {b.bump(1)?}")
+        io.print(f"{cluster.self_node() == ns[0]} {a.here()? == ns[1]} {b.here()? == ns[0]}")

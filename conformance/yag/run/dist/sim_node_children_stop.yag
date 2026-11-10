@@ -1,0 +1,28 @@
+# spec: 9.6.1
+# rows: R988
+# note: a node's root supervisor stops its children when the `with cluster` block ends
+# stdout:
+# 3 2
+# after: -1
+
+class Counter:
+    n: int
+
+def bump(var self: Counter, by: int) -> int:
+    self.n += by
+    return self.n
+
+@remote
+def make(start: int) -> Counter:
+    return Counter(n=start)
+
+pub def main() -> None fail RemoteError uses io, cluster:
+    held: list[Remote[Actor[Counter]]] = []
+    with cluster = sim(3, 1):
+        ns = cluster.nodes()
+        a = cluster.spawn(ChildSpec(make, (1,)), placement=On(ns[2]))
+        io.print(f"{len(ns)} {a.bump(1)?}")
+        held.append(a)
+    b = held[0]
+    v = b.bump(1) else -1
+    io.print(f"after: {v}")

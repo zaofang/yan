@@ -1,0 +1,16 @@
+# spec: 9.6.1
+# rows: R412, R989
+# note: placements other than Local and On are refused, never run as Local
+# expect: E017 at 16:13
+
+class Counter:
+    n: int
+
+@remote
+def make(start: int) -> Counter:
+    return Counter(n=start)
+
+pub def main() -> None uses cluster:
+    with cluster = sim(2, 1):
+        ns = cluster.nodes()
+        a = cluster.spawn(ChildSpec(make, (1,)), placement=Spread())
