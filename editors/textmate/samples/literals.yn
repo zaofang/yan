@@ -1,0 +1,33 @@
+--- Lexical tour of Yan (spec 15.1).
+
+-- line comment
+type Money = newtype[int]
+type Shape = Circle(r: float) | Square(side: float)
+
+@wire(name: "slug")
+type Row = { id: int, label: str }
+
+pub demo(xs: List[int], who: str) -> str fail Err uses io =
+  pre xs.len() > 0
+  ex demo([1], "a") == "x"
+  let n = 0xFF_FF + 0o17 + 0b1010 + 1_000
+  let f = 2.5e-3 * 150ms
+  let when = 2026-10-30T09:00:00Z
+  let at = 09:00:00
+  let day = 2026-10-30
+  let raw = r"C:\no\escape"
+  let bytes = b"\x00\x01"
+  let ch = c'a'
+  let msg = "hi \(who) total \(xs.len():>5) tab\t"
+  let grid = [1 -2; 3 4]
+  var total = 0
+  for x in xs
+    total += x ** 2 // 3
+    --> total
+  match who
+    "a" -> True
+    _ -> False
+  if total >= 1 and not False then None else total
+  io.print("""
+    multi \(who)
+    """)
