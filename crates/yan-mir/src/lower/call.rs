@@ -383,6 +383,36 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(f, ty, v);
                 set(self, r);
             }
+            (
+                id::STD_MATH_FLOOR
+                | id::STD_MATH_CEIL
+                | id::STD_MATH_TRUNC
+                | id::STD_MATH_NEXT_UP
+                | id::STD_MATH_NEXT_DOWN,
+                [(_, a)],
+            ) => {
+                let x = self.scalar1(a)?;
+                let f = match id {
+                    id::STD_MATH_FLOOR => RtFn::Floor,
+                    id::STD_MATH_CEIL => RtFn::Ceil,
+                    id::STD_MATH_TRUNC => RtFn::TruncF,
+                    id::STD_MATH_NEXT_UP => RtFn::NextUp,
+                    _ => RtFn::NextDown,
+                };
+                let r = self.rt(f, Ty::F64, vec![x]);
+                set(self, r);
+            }
+            (id::STD_MATH_FMOD | id::STD_MATH_COPYSIGN, [(_, a), (_, b)]) => {
+                let x = self.scalar1(a)?;
+                let y = self.scalar1(b)?;
+                let f = if id == id::STD_MATH_FMOD {
+                    RtFn::Fmod
+                } else {
+                    RtFn::Copysign
+                };
+                let r = self.rt(f, Ty::F64, vec![x, y]);
+                set(self, r);
+            }
             (id::STD_MATH_IS_NAN | id::STD_MATH_IS_INF | id::STD_MATH_IS_FINITE, [(_, a)]) => {
                 let x = self.scalar1(a)?;
                 let f = match id {

@@ -190,6 +190,20 @@ pub enum RtFn {
     AbsI64,
     /// `(f64) -> f64`
     AbsF64,
+    /// `(f64) -> f64`
+    Floor,
+    /// `(f64) -> f64`
+    Ceil,
+    /// `(f64) -> f64`
+    TruncF,
+    /// `(f64) -> f64`
+    NextUp,
+    /// `(f64) -> f64`
+    NextDown,
+    /// `(f64, f64) -> f64`
+    Fmod,
+    /// `(f64, f64) -> f64`
+    Copysign,
     /// `(f64) -> bool`
     IsNan,
     /// `(f64) -> bool`

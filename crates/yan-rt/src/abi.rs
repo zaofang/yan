@@ -491,6 +491,41 @@ pub extern "C" fn yan_rt_is_finite(x: f64) -> u8 {
     u8::from(x.is_finite())
 }
 
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_floor(x: f64) -> f64 {
+    x.floor()
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_ceil(x: f64) -> f64 {
+    x.ceil()
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_trunc(x: f64) -> f64 {
+    x.trunc()
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_next_up(x: f64) -> f64 {
+    x.next_up()
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_next_down(x: f64) -> f64 {
+    x.next_down()
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_fmod(x: f64, y: f64) -> f64 {
+    x % y
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_copysign(x: f64, y: f64) -> f64 {
+    x.copysign(y)
+}
+
 /// `s` repeated `n` times, empty for `n <= 0` (`std.text.repeat`).
 ///
 /// # Safety
