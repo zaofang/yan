@@ -89,6 +89,12 @@ class Faults:
     delay: Duration = 0 * s    # each message waits a uniform draw in [0, delay]
     partition: Duration = 0 * s  # mean time between partitions; 0 means none
     heal: Duration = 1 * s     # how long each partition lasts
+    cuts: List[Cut] = []       # explicit partitions, in addition to the seeded ones
+
+class Cut:
+    at: Duration               # virtual time since the binding
+    heal: Duration             # how long it lasts
+    side: Set[int]             # node indices on one side; the rest are on the other
 ```
 
 All draws come from the seed: each ordered node pair has its own stream, indexed by the message's
@@ -110,7 +116,8 @@ Recommendation: (a). It is what R417 says, keeps every run a function of the see
 short `partition` with a fixed seed already give deterministic tests. (b) can be added later without
 breaking (a).
 
-- Decision: (lead)
+- Decision: (b), lead card, 2026-11-10. `Faults` gains `cuts: List[Cut]` as shown; R417's "drawn from
+  the seed" becomes "drawn from the seed or listed as cuts".
 - Row: (one new row in 9.6.1 for the constructor and `Faults`)
 
 ### D4: `RemoteError` and fail types
@@ -160,7 +167,7 @@ diagnostic. Step 2 (always encode), step 3 (D3's faults, D5, `monitor`) and step
 
 ## Spec changes
 
-- 9.6.1: a row after R417 for D1 and D6; a row for D2's `cluster.spawn`, `Node` and `Placement`; a row
+- 9.6.1: R417's fault sentence admits listed cuts (D3); a row after R417 for D1 and D6; a row for D2's `cluster.spawn`, `Node` and `Placement`; a row
   for D3's `sim` and `Faults`.
 - 7: the `cluster` row points at `std.cluster`.
 - 17.3 (std actors) or a new 17.x entry for `std.cluster` and `std.sim`.
