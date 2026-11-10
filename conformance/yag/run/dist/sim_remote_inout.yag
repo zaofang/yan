@@ -20,11 +20,11 @@ def make(start: int) -> Box:
 pub def main() -> None uses io, cluster:
     with cluster = sim(2, 3):
         a = cluster.spawn(ChildSpec(make, (0,)), placement=On(cluster.nodes()[1]))
-        var log: list[int] = []
+        log: list[int] = []
         r = a.add(&log, 5) else e -> -1
         io.print(f"{r} {log}")
     with cluster = sim(2, 3, Faults(drop=1.0)):
         a = cluster.spawn(ChildSpec(make, (0,)), placement=On(cluster.nodes()[1]))
-        var log: list[int] = []
+        log: list[int] = []
         r = a.add(&log, 5) else e -> -1
         io.print(f"{r} {log}")
