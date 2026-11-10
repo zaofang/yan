@@ -359,6 +359,19 @@ fn mechanical_fixes_remove_their_diagnostics() {
 }
 
 #[test]
+fn unhandled_failure_in_a_failing_function_gets_the_question_mark_fix() {
+    let src = "def parse(s: str) -> int fail str:\n    if s == \"\":\n        fail \"empty\"\n    return 1\n\n\
+               def a(s: str) -> int fail str:\n    x = parse(s)\n    return x + 1\n";
+    let (_, d) = lower(src);
+    let codes: Vec<_> = d.iter().map(|d| d.code.as_str()).collect();
+    assert_eq!(codes, ["E315"], "{d:?}");
+    let fixed = apply_fixes(src, &d);
+    assert!(fixed.contains("x = parse(s)?"), "{fixed}");
+    let (_, d) = lower(&fixed);
+    assert!(d.is_empty(), "{fixed}\n{d:?}");
+}
+
+#[test]
 fn early_return_guards_prove_indices() {
     let codes = |src: &str| -> Vec<String> { lower(src).1.into_iter().map(|d| d.code).collect() };
     let guarded = "\
