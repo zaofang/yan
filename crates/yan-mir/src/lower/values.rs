@@ -55,22 +55,6 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok((at, shape))
     }
 
-    pub(super) fn has_map(s: &Shape) -> bool {
-        match s {
-            Shape::Map(..) => true,
-            Shape::Scalar(_) | Shape::Str | Shape::Fn(..) | Shape::Chan(_) | Shape::Actor(_) => {
-                false
-            }
-            Shape::List(e) | Shape::Heap(e) | Shape::Deque(e) => Self::has_map(e),
-            Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_map(s)),
-            Shape::Tuple(ss) => ss.iter().any(Self::has_map),
-            Shape::Sum(_, vs) => vs
-                .iter()
-                .flat_map(|(_, fs)| fs)
-                .any(|(_, s)| Self::has_map(s)),
-        }
-    }
-
     pub(super) fn has_heap(s: &Shape) -> bool {
         match s {
             Shape::Scalar(_) | Shape::Actor(_) => false,
@@ -294,14 +278,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             y::Rhs::Copy(p) => {
                 let (at, s) = self.place(p)?;
                 let v = self.read(&at, &s);
-                match &s {
-                    s if Self::has_map(s) => self.clone_value(v, s),
-                    Shape::List(e) | Shape::Deque(e) if !e.has_list() => {
-                        Ok(vec![self.rt(RtFn::ListCopy, Ty::Ptr, v)])
-                    }
-                    s if s.has_list() => unsupported("a copy of nested lists"),
-                    _ => Ok(v),
-                }
+                self.clone_value(v, &s)
             }
             y::Rhs::Ctor(c) => self.ctor(c, want),
             y::Rhs::Try(c) => {
