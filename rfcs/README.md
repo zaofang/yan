@@ -86,3 +86,4 @@ research index links their studies and rows.
 | [0064](0064-rc-scope-trim.md) | Trim the release-candidate scope to the polish floor | accepted | R990, R991 |
 | [0065](0065-surface-technology-picks.md) | Technology picks for the surfaces: shared reader infrastructure, agent tooling, `std.sim`, niche-surface bases | accepted | R994 to R1001 |
 | [0066](0066-trace-diff.md) | Trace diff: `yan replay --diff`, and the trace container it reads | draft | none yet |
+| [0067](0067-no-op-review.md) | Semantic no-op certification in `yan review` | draft | none yet |
