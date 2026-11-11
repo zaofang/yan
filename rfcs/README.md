@@ -87,3 +87,4 @@ research index links their studies and rows.
 | [0065](0065-surface-technology-picks.md) | Technology picks for the surfaces: shared reader infrastructure, agent tooling, `std.sim`, niche-surface bases | accepted | R994 to R1001 |
 | [0066](0066-trace-diff.md) | Trace diff: `yan replay --diff`, and the trace container it reads | draft | none yet |
 | [0067](0067-no-op-review.md) | Semantic no-op certification in `yan review` | draft | none yet |
+| [0068](0068-behavioral-semver.md) | Behavioral semver: differential check of changed `pub` items on generated inputs | draft | none yet |
