@@ -93,10 +93,10 @@ Contributions: see [CONTRIBUTING.md](CONTRIBUTING.md) (DCO sign-off, AI disclosu
 
 ## Required repository settings
 
-CI runs on a self-hosted runner (no hosted Actions minutes): register one under Settings → Actions → Runners.
-
+CI runs on GitHub-hosted runners. The repository variable `CI_RUNNER` overrides the runner label; leave it
+unset on a public repository. Under Settings → Actions → General, require approval for all outside
+contributors' workflow runs.
 
 Branch protection on `main`: require a pull request, require review from Code Owners, and require
-the `guard`, `canary`, `check`, `rust` and `conformance` status checks. The runner needs rustup
-(the toolchain is pinned in `rust-toolchain.toml`) and uv.
+the `guard`, `canary`, `check`, `rust` and `formal` status checks.
 Enable private vulnerability reporting under Settings → Code security.

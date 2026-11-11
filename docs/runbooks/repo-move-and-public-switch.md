@@ -26,7 +26,7 @@ Run `tools/move/preflight.sh` for the automatable ones.
 - [ ] Hosted runners start. Run `tools/move/smoke-hosted.sh --apply` after the org exists: it creates a public `zaofang/runner-smoke`, runs ubuntu/macos/windows, then you delete it. If it fails with zero steps (the #973 signature) it is a billing/account lock; fix with GitHub support before anything else.
 - [ ] Full-history secret scan. A regex scan on 2026-11-10 found nothing (1107 commits). Re-run with `gitleaks detect --source . --log-opts=--all --redact` right before the flip (new commits since).
 - [ ] Old Actions run logs checked or deleted: logs of past runs become public with the repo.
-- [ ] #423 and #461: fork-PR safety. No `runs-on: self-hosted` left in `.github/workflows` (ci.yml, merged.yml, rerun-infra.yml, site.yml currently use it). Lead merges `.github/`.
+- [ ] #423 and #461: fork-PR safety. Workflows take `runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}`: set the variable `CI_RUNNER=self-hosted` before merging the safety PR (private repo, hosted runners down, #973), delete it at the flip. `gh variable list` must show no `CI_RUNNER` when public. Lead merges `.github/`.
 - [ ] #462 closed.
 - [ ] Lawyer: employment IP check. Trademark search and filing for Yan/Yong (CNIPA, USPTO, EUIPO). LG-decision from 2026-10-31: go public after both.
 - [ ] Private vulnerability reporting on (#389); `SECURITY.md` and CODE_OF_CONDUCT contact path match.

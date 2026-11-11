@@ -1,0 +1,31 @@
+name: Bug report
+description: Something behaves differently from the spec or crashes
+labels: [bug]
+body:
+  - type: textarea
+    id: program
+    attributes:
+      label: Minimal program
+      description: The smallest program that shows it.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Expected and actual output
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: "`yan --version` and platform"
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Backend
+      options: [interpreter, native, both, unsure]
+    validations:
+      required: true
