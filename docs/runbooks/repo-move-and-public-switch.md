@@ -9,7 +9,8 @@ Target state: repo `zaofang/yan-lang`, public; Antonio's login `amteb`; CI on Gi
 
 1. Land open PRs #994-#997 first. They hardcode the `atbraz` login and would be left pointing at a stale name.
 2. Preflight and hosted-runner smoke test (nothing irreversible yet).
-3. Transfer `atbraz/yan-lang` to `zaofang`. Old URLs redirect.
+3. Rewrite author emails out of history (decided, see B0). Before the transfer so no org redirect or runner state has to be redone.
+3b. Transfer `atbraz/yan-lang` to `zaofang`. Old URLs redirect.
 4. Sweep PR phase 1 (repo slug). Move the Homebrew tap.
 5. Machine side (section C).
 6. Rename the user `atbraz` -> `amteb`. After the transfer so no repo URL depends on the old login, and after the tap moves so the old name cannot be squatted under a live tap.
@@ -29,12 +30,13 @@ Run `tools/move/preflight.sh` for the automatable ones.
 - [ ] #462 closed.
 - [ ] Lawyer: employment IP check. Trademark search and filing for Yan/Yong (CNIPA, USPTO, EUIPO). LG-decision from 2026-10-31: go public after both.
 - [ ] Private vulnerability reporting on (#389); `SECURITY.md` and CODE_OF_CONDUCT contact path match.
-- [ ] Commit author emails (~620 commits) will be public. Accept, or decide on rewriting before the flip (force push; not recommended).
+- [ ] Commit author emails (~620 commits): DECIDED 2026-11-11 to rewrite history first (B0). Ticked when `rewrite-authors.sh` shows only noreply addresses and GitHub Support has purged the old objects.
 - [ ] Settings > Actions > General: fork PR workflows require approval for all outside contributors.
 - [ ] Secrets inventory (`gh secret list`): `HOMEBREW_TAP_TOKEN` and any others reviewed; none readable by fork PRs.
 
 ## B. GitHub side (Antonio, in order)
 
+0. Rewrite author emails (decided 2026-11-11). Preconditions: #994-#997 merged, every other branch and PR either merged or closed (their commits are not rewritten and would reintroduce the old SHAs), all machines and cloud sessions have no unpushed work. Then: `tools/move/rewrite-authors.sh` (dry run lists emails), `--apply` (rewrites a temp mirror, prints counts), `--push` (force-pushes branches and tags). Needs `pip install git-filter-repo`. Expect: every SHA changes, so SHAs cited in issues, reports and memory go stale (PR and issue numbers do not); local clones must be re-cloned (`git fetch && git reset --hard` per branch, or fresh clone, on mbp, quant-dev and any other machine); open PR branches must be recreated. The old commits stay reachable by direct URL and through `refs/pull/*` of past PRs, so ask GitHub Support to purge unreachable objects and clear cached views before the flip; until they confirm, treat the emails as still exposed. Also check that `Co-Authored-By` and `Assisted-by` trailers in messages hold no personal address (the script does not edit messages). The noreply address defaults to `119127935+amteb@users.noreply.github.com`; pass `--to` to change it.
 1. Create org `zaofang` (Free plan). Check the name is available. Add yourself as owner. Enable 2FA requirement.
 2. Install the Claude GitHub App on the org with access to the repo: https://github.com/apps/claude/installations/select_target
 3. Transfer: repo Settings > Danger zone > Transfer ownership > `zaofang`, keep the name `yan-lang`. Do not create another repo named `atbraz/yan-lang` afterwards (it would break the redirect).
@@ -72,8 +74,8 @@ Do the following on each machine, after the transfer (B3) and again after the us
 2. Remotes (after B3): `tools/move/retarget-remotes.sh /Users/antonio/Code/Projects/yan-lang` (mbp) or `/home/antonio/yan-lang` (quant-dev); review the output; rerun with `--apply`. GitHub redirects make old remotes work for a while; do not rely on it.
 3. gh auth (after B9): `gh auth status`. If the stored login is stale: `gh auth refresh`, or `gh auth logout` then `gh auth login`. PATs on the machines owned by the user account (runner registration, HOMEBREW_TAP_TOKEN, any `GH_TOKEN` in rc files or cron) must be recreated with resource owner `zaofang`; keep them in the keychain or a root-only file, not in the repo. The audit script names the files that mention the old login, never prints values.
 4. Runners. Decide once:
-   - Preferred: retire. After the flip hosted runners are free and fork-safe. `tools/move/runners.sh list`, then `runners.sh --apply retire` on quant-dev (do-yan*) and on mbp (the old `mbp-ben*` and `mbp-ceteris` runners, launchd `actions.runner.atbraz-yong.*`). Also remove them in Settings > Actions > Runners if deregistration fails. Do this before the flip so no fork PR can ever queue on them.
-   - Fallback, only if hosted runners cannot be made to work or a job needs the box (callgrind, `bench` label): keep them as an org-level runner group scoped to the one repo, with "Allow public repositories" left off, and jobs gated to `push` on main and `workflow_dispatch`, never `pull_request`. Re-register: `tools/move/runners.sh --apply register --url https://github.com/zaofang --labels self-hosted,linux,x64,do-ci,ephemeral`. Repo-level runners must be assumed to need re-registration after a transfer; verify with `list` and the runners page.
+   - Decided: retire. After the flip hosted runners are free and fork-safe. `tools/move/runners.sh list`, then `runners.sh --apply retire` on quant-dev (do-yan*) and on mbp (the old `mbp-ben*` and `mbp-ceteris` runners, launchd `actions.runner.atbraz-yong.*`). Also remove them in Settings > Actions > Runners if deregistration fails. Do this before the flip so no fork PR can ever queue on them.
+   - Fallback (not chosen; use only if hosted runners cannot be made to work or a job needs the box (callgrind, `bench` label)): keep them as an org-level runner group scoped to the one repo, with "Allow public repositories" left off, and jobs gated to `push` on main and `workflow_dispatch`, never `pull_request`. Re-register: `tools/move/runners.sh --apply register --url https://github.com/zaofang --labels self-hosted,linux,x64,do-ci,ephemeral`. Repo-level runners must be assumed to need re-registration after a transfer; verify with `list` and the runners page.
 5. Services: launchd on mbp (`launchctl list | grep actions.runner`) and systemd on quant-dev (`systemctl list-units 'actions.runner.*'`). `runners.sh` stops and uninstalls through each runner's `svc.sh`; the unit name embeds the old owner, so a re-registered runner gets a new unit name. Check that nothing else (Remote Control wrappers, cron) invokes the old unit names.
 6. Cron and health checks on quant-dev: the audit lists cron lines and units mentioning the owner. Update any healthcheck that polls `repos/atbraz/yan-lang/actions/runners` to the new slug, or delete it when the runners are retired. Remove the "both runners offline" heartbeat from the DO plan if the box is retired.
 7. Claude Code environments: the Remote Control sessions for both machines are tied to a folder path, not a remote, so they keep working; after step 2 new sessions clone the new slug. For cloud environments and the project, update the repo link (B7). Threads' standing memory entries naming `atbraz/yan-lang` get updated by the coordinator after the sweep.
@@ -86,8 +88,8 @@ Do the following on each machine, after the transfer (B3) and again after the us
 - Public flip: not reversible in effect. Flipping back to private does not retract clones, caches or the Actions logs already seen.
 - If hosted runners still do not start on the org: stop at step 2 of the order; the move can proceed privately, the flip waits.
 
-## E. Open questions for Antonio
+## E. Decisions (Antonio, 2026-11-11)
 
-- D1 Tap: transfer with the repo (recommended) or leave under the user account until after the rename.
-- D2 Runners: retire after the flip (recommended) or keep an org runner group for bench jobs only.
-- D3 Author emails: accept public, or rewrite history first.
+- Tap: transfer with the repo to `zaofang/homebrew-yan`.
+- Runners: retire all self-hosted runners after the flip (no bench group).
+- Author emails: rewrite history first (B0).
