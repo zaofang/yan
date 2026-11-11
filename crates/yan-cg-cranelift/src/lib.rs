@@ -1998,10 +1998,153 @@ impl Gen<'_, '_> {
                 };
                 self.b.ins().fdiv(x, y)
             }
+            (Shl | Shr | WrappingShl | RotateLeft | RotateRight, Ty::Int(t)) => {
+                self.shift(op, t, a[0], a[1])
+            }
+            (
+                CountOnes | CountZeros | LeadingZeros | TrailingZeros | BitWidth | SwapBytes
+                | ReverseBits | IsPowerOfTwo,
+                Ty::Int(t),
+            ) => self.bits(op, t, a[0]),
             (AddChecked | SubChecked | MulChecked, Ty::Int(t)) => self.checked(op, t, a[0], a[1]),
             (FloorDiv | Mod, Ty::Int(t)) => self.floor(op, t, a[0], a[1]),
             _ => unreachable!("yan-mir decoded {op:?} on {ty:?}"),
         })
+    }
+
+    /// A value held as its sign- or zero-extended 64-bit form: wrap `v` to `t`.
+    /// `c - v`.
+    fn rsub(&mut self, v: Value, c: i64) -> Value {
+        let c = self.b.ins().iconst(types::I64, c);
+        self.b.ins().isub(c, v)
+    }
+
+    fn wrap(&mut self, t: IntTy, v: Value) -> Value {
+        if t.bits == 64 {
+            return v;
+        }
+        let narrow = match t.bits {
+            8 => types::I8,
+            16 => types::I16,
+            _ => types::I32,
+        };
+        let r = self.b.ins().ireduce(narrow, v);
+        if t.signed {
+            self.b.ins().sextend(types::I64, r)
+        } else {
+            self.b.ins().uextend(types::I64, r)
+        }
+    }
+
+    /// The two's-complement pattern of `x` in the low `t.bits` bits.
+    fn pattern(&mut self, t: IntTy, x: Value) -> Value {
+        if t.bits == 64 || !t.signed {
+            return x;
+        }
+        self.b.ins().band_imm_s(x, (1i64 << t.bits) - 1)
+    }
+
+    fn shift(&mut self, op: ScalarOp, t: IntTy, x: Value, n: Value) -> Value {
+        use ScalarOp::*;
+        let w = i64::from(t.bits);
+        if matches!(op, RotateLeft | RotateRight) {
+            let k = self.b.ins().band_imm_s(n, w - 1);
+            let k = if op == RotateRight {
+                let back = self.rsub(k, w);
+                self.b.ins().band_imm_s(back, w - 1)
+            } else {
+                k
+            };
+            let p = self.pattern(t, x);
+            if t.bits == 64 {
+                return self.b.ins().rotl(p, k);
+            }
+            let up = self.b.ins().ishl(p, k);
+            let down_by = self.rsub(k, w);
+            let down = self.b.ins().ushr(p, down_by);
+            let both = self.b.ins().bor(up, down);
+            return self.wrap(t, both);
+        }
+        let ok = self.b.ins().icmp_imm_s(IntCC::UnsignedLessThan, n, w);
+        self.guard(ok, "overflow");
+        let r = match op {
+            Shr if t.signed => return self.b.ins().sshr(x, n),
+            Shr => return self.b.ins().ushr(x, n),
+            _ => self.b.ins().ishl(x, n),
+        };
+        if op == WrappingShl {
+            return self.wrap(t, r);
+        }
+        // The shifted value must fit `t` and lose no bits.
+        if t.bits == 64 {
+            let back = if t.signed {
+                self.b.ins().sshr(r, n)
+            } else {
+                self.b.ins().ushr(r, n)
+            };
+            let same = self.b.ins().icmp(IntCC::Equal, back, x);
+            self.guard(same, "overflow");
+        } else {
+            let (lo, hi) = t.range();
+            let ge = self
+                .b
+                .ins()
+                .icmp_imm_s(IntCC::SignedGreaterThanOrEqual, r, lo as i64);
+            let le = self
+                .b
+                .ins()
+                .icmp_imm_s(IntCC::SignedLessThanOrEqual, r, hi as i64);
+            let ok = self.b.ins().band(ge, le);
+            self.guard(ok, "overflow");
+        }
+        r
+    }
+
+    fn bits(&mut self, op: ScalarOp, t: IntTy, x: Value) -> Value {
+        use ScalarOp::*;
+        let w = i64::from(t.bits);
+        let p = self.pattern(t, x);
+        match op {
+            CountOnes => self.b.ins().popcnt(p),
+            CountZeros => {
+                let ones = self.b.ins().popcnt(p);
+                self.rsub(ones, w)
+            }
+            LeadingZeros => {
+                let z = self.b.ins().clz(p);
+                self.b.ins().iadd_imm_s(z, w - 64)
+            }
+            BitWidth => {
+                let z = self.b.ins().clz(p);
+                self.rsub(z, 64)
+            }
+            TrailingZeros => {
+                let z = self.b.ins().ctz(p);
+                let cap = self.b.ins().iconst(types::I64, w);
+                self.b.ins().umin(z, cap)
+            }
+            SwapBytes | ReverseBits => {
+                let r = if op == SwapBytes {
+                    self.b.ins().bswap(p)
+                } else {
+                    self.b.ins().bitrev(p)
+                };
+                let r = self.b.ins().ushr_imm_s(r, 64 - w);
+                self.wrap(t, r)
+            }
+            _ => {
+                let m = self.b.ins().iadd_imm_s(x, -1);
+                let both = self.b.ins().band(x, m);
+                let single = self.b.ins().icmp_imm_s(IntCC::Equal, both, 0);
+                let cc = if t.signed {
+                    IntCC::SignedGreaterThan
+                } else {
+                    IntCC::NotEqual
+                };
+                let pos = self.b.ins().icmp_imm_s(cc, x, 0);
+                self.b.ins().band(single, pos)
+            }
+        }
     }
 
     fn checked(&mut self, op: ScalarOp, t: IntTy, x: Value, y: Value) -> Value {
