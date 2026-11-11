@@ -1,0 +1,12 @@
+# spec: 14.4
+# rows: R849
+# note: the Args: entry writes list[str]; the signature says list[int]
+# expect: E281 at 10:9
+
+def f(y: list[int]) -> int:
+    """Does f.
+
+    Args:
+        y (list[str]): the y
+    """
+    return len(y)

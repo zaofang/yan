@@ -1149,6 +1149,46 @@
    ]
   },
   {
+   "path": "yag/fail/dist/e017_spread_placement.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R412",
+    "R989"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E017",
+     "line": 16,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/dist/e301_remote_call_without_cluster.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R400",
+    "R988"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 14,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/dist/e720_non_wire_handler.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -1168,6 +1208,45 @@
    ]
   },
   {
+   "path": "yag/fail/dist/e720_remote_result_not_wire.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R401"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E720",
+     "line": 21,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/dist/e721_off_node_start_not_remote.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R407",
+    "R989"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E721",
+     "line": 14,
+     "col": 37
+    }
+   ]
+  },
+  {
    "path": "yag/fail/dist/e726_entity_key_not_hash.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -1183,6 +1262,44 @@
      "code": "E726",
      "line": 10,
      "col": 13
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/docs/e280_args_and_above.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "18.9"
+   ],
+   "rows": [
+    "R846"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E280",
+     "line": 13,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/docs/e281_written_type_disagrees.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R849"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E281",
+     "line": 10,
+     "col": 9
     }
    ]
   },
@@ -1240,6 +1357,25 @@
      "code": "W833",
      "line": 9,
      "col": 8
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/docs/w860_args_entry_matches_nothing.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "18.9"
+   ],
+   "rows": [
+    "R848"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W860",
+     "line": 9,
+     "col": 9
     }
    ]
   },
@@ -4950,6 +5086,189 @@
    "exit": 101
   },
   {
+   "path": "yag/run/dist/sim_faults_drop_cut.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R992"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "-1\n-1\n1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/dist/sim_monitor_node_down.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R993"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before\nStopped(reason=NodeDown())\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/dist/sim_monitor_stopped.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R993"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 -2 Stopped(reason=Crashed(error='Boom()'))\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/dist/sim_node_children_stop.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R988"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 2\nafter: -1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/dist/sim_remote_arg_mismatch.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R408"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "-1\n6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/dist/sim_remote_inout.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R992"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "5 [5]\n-1 []\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/dist/sim_remote_send_arg_mismatch.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R408",
+    "R976"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "rejected\n5\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/dist/sim_remote_send_drop.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R992",
+    "R976"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "undelivered\ndone\n-9\ndone\n5\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/dist/sim_remote_start_arg_wire_panic.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R989"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": null,
+   "exit": 101
+  },
+  {
+   "path": "yag/run/dist/sim_remote_start_args.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R989"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/dist/sim_remote_wire_roundtrip.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R402"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Pt(x=111, tag='z', xs=[1.5, 2.5])\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/dist/sim_two_node_call.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R988",
+    "R989"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "15 1\nTrue True True\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/failure/context.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5278,6 +5597,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/ownership/borrowed_param_leaves_by_copy.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R769"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "h1\nPt(tag='z1', xs=[1.5, 2.5]) z1 [1.5, 2.5]\n('z1', 1) a1\nPt(tag=None, xs=[1.5, 2.5]) (100, 'z1') h1 a1\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/ownership/else_results_in_inner_block.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5406,6 +5741,36 @@
    "flags": [],
    "expect": [],
    "stdout": "3 4\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/sim/check_trace_first_bad_step.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.7"
+   ],
+   "rows": [
+    "R999"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Accepted()\nRejected(index=1, actor='door', event='open', state='opened')\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/sim/pct_lost_update.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.7"
+   ],
+   "rows": [
+    "R999"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "11\n2 2\n",
    "exit": 0
   },
   {
