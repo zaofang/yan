@@ -11,7 +11,7 @@ workspace (spec 22.2).
 | Yan Meta | `.ymt` | Research and canary surface, built after M1. |
 | Yan Shell, Yan Binary Format, and the other named job surfaces | `.ynsh`, `.ybf`, ... | Named niche surfaces, none built. See [docs/surfaces.md](docs/surfaces.md). |
 
-Status: milestone M1 is 410 of 410 conformance cases passing; the whole suite is 492 of 544.
+Status: generated per commit on the status page (`tools/status.py`, artifact `status`) and in `conformance/COVERAGE.md`.
 Design laws, pipeline and measured state: [docs/architecture.md](docs/architecture.md).
 Accepted decisions and studies: [docs/decisions-2026-11-04.md](docs/decisions-2026-11-04.md), [docs/studies/](docs/studies), [docs/research/README.md](docs/research/README.md).
 

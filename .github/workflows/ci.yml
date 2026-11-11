@@ -94,6 +94,7 @@ jobs:
       - run: uv run mypy tools
       - run: uv run pytest -q tools/selftest
       - run: uv run python tools/rows.py check
+      - run: uv run python -m tools.lint_reports
 
   # The Lean model of the core (RFC 0022): it builds, and it agrees with the interpreter.
   formal:
