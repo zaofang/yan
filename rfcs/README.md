@@ -91,3 +91,4 @@ research index links their studies and rows.
 | [0069](0069-upgrade-dossier.md) | Upgrade dossier: `yan update --dossier` reports reached changes, authority gained, divergences and affected tests | draft | none yet |
 | [0070](0070-simulation-first-io-tests.md) | Simulation-first I/O tests: `yan test --sim` caches, sweeps and shrinks tests that run under `std.sim` | draft | none yet |
 | [0071](0071-trace-shrink-and-bug-bundles.md) | Trace shrinking and repro bundles: `yan replay --shrink` and `yan bug` minimize and pack a failing recorded run | draft | none yet |
+| [0072](0072-proof-carrying-patches.md) | Proof-carrying patches: signed test evidence that `yan review` and `yan test` accept by recomputed verdict key | draft | none yet |
