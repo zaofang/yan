@@ -1,0 +1,12 @@
+# spec: 18.9
+# rows: R848
+# expect: W860 at 9:9
+
+def f(x: int) -> int:
+    """Does f.
+
+    Args:
+        q: nothing
+        x: the x
+    """
+    return x
