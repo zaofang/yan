@@ -1,0 +1,15 @@
+# spec: 18.9
+# rows: R846
+# note: x is documented above the parameter and in Args:
+# expect: E280 at 13:9
+
+def f(
+    #: the x
+    x: int,
+) -> int:
+    """Does f.
+
+    Args:
+        x: also x
+    """
+    return x
