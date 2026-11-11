@@ -1,0 +1,120 @@
+# spec: 17.3
+# rows: R681
+# note: counts, rotations, swaps and shifts agree on every fixed-width integer type at its edge values
+# stdout:
+# int8 -128: 1 0 7 8 -128 1 False
+#   rot 4 16 64 16 shl 0 shr -1
+# int8 22: 3 3 1 5 22 104 False
+#   rot -80 -62 11 -62 shl 0 shr 0
+# int8 127: 7 1 0 7 127 -2 False
+#   rot -5 -17 -65 -17 shl -128 shr 0
+#   64
+# uint8 0: 0 8 8 0 0 0 False
+#   rot 0 0 0 0 shl 0 shr 0
+# uint8 22: 3 3 1 5 22 104 False
+#   rot 176 194 11 194 shl 0 shr 0
+# uint8 255: 8 0 0 8 255 255 False
+#   rot 255 255 255 255 shl 128 shr 1
+#   64
+# int16 -5: 15 0 0 16 -1025 -8193 False
+#   rot -33 32767 -3 -129 shl -32768 shr -1
+# int16 300: 4 7 2 9 11265 13440 False
+#   rot 2400 -32731 150 9600 shl 0 shr 0
+#   16384
+# uint16 300: 4 7 2 9 11265 13440 False
+#   rot 2400 32805 150 9600 shl 0 shr 0
+# uint16 65535: 16 0 0 16 65535 65535 False
+#   rot 65535 65535 65535 65535 shl 32768 shr 1
+#   16384
+# int32 -2147483648: 1 0 31 32 128 1 False
+#   rot 4 268435456 1073741824 16 shl 0 shr -1
+# int32 305419896: 13 3 3 29 2018915346 510274632 False
+#   rot -1851608128 38177487 152709948 1183502082 shl 0 shr 0
+#   1073741824
+# uint32 1: 1 31 0 1 16777216 2147483648 True
+#   rot 8 536870912 2147483648 32 shl 2147483648 shr 0
+# uint32 4294967295: 32 0 0 32 4294967295 4294967295 False
+#   rot 4294967295 4294967295 4294967295 4294967295 shl 2147483648 shr 1
+#   1073741824
+# int64 -9223372036854775808: 1 0 63 64 128 1 False
+#   rot 4 1152921504606846976 4611686018427387904 16 shl 0 shr -1
+# int64 3: 2 62 0 2 216172782113783808 -4611686018427387904 False
+#   rot 24 6917529027641081856 -9223372036854775807 96 shl -9223372036854775808 shr 0
+#   4611686018427387904
+# uint64 3: 2 62 0 2 216172782113783808 13835058055282163712 False
+#   rot 24 6917529027641081856 9223372036854775809 96 shl 9223372036854775808 shr 0
+# uint64 18446744073709551615: 64 0 0 64 18446744073709551615 18446744073709551615 False
+#   rot 18446744073709551615 18446744073709551615 18446744073709551615 18446744073709551615 shl 9223372036854775808 shr 1
+#   4611686018427387904
+
+pub def main() uses io:
+    x: int8 = -128
+    io.print(f"int8 -128: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 13)} shl {bits.wrapping_shl(x, 7)} shr {x >> 7}")
+    x: int8 = 22
+    io.print(f"int8 22: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 13)} shl {bits.wrapping_shl(x, 7)} shr {x >> 7}")
+    x: int8 = 127
+    io.print(f"int8 127: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 13)} shl {bits.wrapping_shl(x, 7)} shr {x >> 7}")
+    one: int8 = 1
+    io.print(f"  {one << 6}")
+    x: uint8 = 0
+    io.print(f"uint8 0: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 13)} shl {bits.wrapping_shl(x, 7)} shr {x >> 7}")
+    x: uint8 = 22
+    io.print(f"uint8 22: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 13)} shl {bits.wrapping_shl(x, 7)} shr {x >> 7}")
+    x: uint8 = 255
+    io.print(f"uint8 255: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 13)} shl {bits.wrapping_shl(x, 7)} shr {x >> 7}")
+    one: uint8 = 1
+    io.print(f"  {one << 6}")
+    x: int16 = -5
+    io.print(f"int16 -5: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 21)} shl {bits.wrapping_shl(x, 15)} shr {x >> 15}")
+    x: int16 = 300
+    io.print(f"int16 300: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 21)} shl {bits.wrapping_shl(x, 15)} shr {x >> 15}")
+    one: int16 = 1
+    io.print(f"  {one << 14}")
+    x: uint16 = 300
+    io.print(f"uint16 300: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 21)} shl {bits.wrapping_shl(x, 15)} shr {x >> 15}")
+    x: uint16 = 65535
+    io.print(f"uint16 65535: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 21)} shl {bits.wrapping_shl(x, 15)} shr {x >> 15}")
+    one: uint16 = 1
+    io.print(f"  {one << 14}")
+    x: int32 = -2147483648
+    io.print(f"int32 -2147483648: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 37)} shl {bits.wrapping_shl(x, 31)} shr {x >> 31}")
+    x: int32 = 305419896
+    io.print(f"int32 305419896: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 37)} shl {bits.wrapping_shl(x, 31)} shr {x >> 31}")
+    one: int32 = 1
+    io.print(f"  {one << 30}")
+    x: uint32 = 1
+    io.print(f"uint32 1: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 37)} shl {bits.wrapping_shl(x, 31)} shr {x >> 31}")
+    x: uint32 = 4294967295
+    io.print(f"uint32 4294967295: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 37)} shl {bits.wrapping_shl(x, 31)} shr {x >> 31}")
+    one: uint32 = 1
+    io.print(f"  {one << 30}")
+    x: int64 = -9223372036854775808
+    io.print(f"int64 -9223372036854775808: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 69)} shl {bits.wrapping_shl(x, 63)} shr {x >> 63}")
+    x: int64 = 3
+    io.print(f"int64 3: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 69)} shl {bits.wrapping_shl(x, 63)} shr {x >> 63}")
+    one: int64 = 1
+    io.print(f"  {one << 62}")
+    x: uint64 = 3
+    io.print(f"uint64 3: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 69)} shl {bits.wrapping_shl(x, 63)} shr {x >> 63}")
+    x: uint64 = 18446744073709551615
+    io.print(f"uint64 18446744073709551615: {bits.count_ones(x)} {bits.leading_zeros(x)} {bits.trailing_zeros(x)} {bits.bit_width(x)} {bits.swap_bytes(x)} {bits.reverse_bits(x)} {bits.is_power_of_two(x)}")
+    io.print(f"  rot {bits.rotate_left(x, 3)} {bits.rotate_right(x, 3)} {bits.rotate_left(x, -1)} {bits.rotate_left(x, 69)} shl {bits.wrapping_shl(x, 63)} shr {x >> 63}")
+    one: uint64 = 1
+    io.print(f"  {one << 62}")
