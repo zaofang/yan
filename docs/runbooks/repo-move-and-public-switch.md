@@ -59,7 +59,7 @@ uv run python tools/move/sweep.py --phase transfer --apply
 uv run python tools/move/sweep.py --phase rename --apply   # only after the user rename
 ```
 
-Hardcoded today (2026-11-11): `.github/CODEOWNERS` (7 lines, @atbraz), `.github/workflows/release.yml:115` (tap clone URL), `tools/release.py:14` (`REPO`), `dist/install.sh:3,8`, `README.md:39,40,61`, `site/index.md:57,58`, `CONTRIBUTING.md:3`, `CODE_OF_CONDUCT.md:49`. `docs/studies/syntax/yan-delegate.md:283` is a historical review record and stays; studies, research and reports are skipped on purpose. Everything else in the repo uses `$GITHUB_REPOSITORY`. Outside the repo: the Homebrew formula in the tap (its `homepage` and `url` lines), any claude.ai study or Doc that links the old slug, domain/DNS records, package-registry reservations.
+Hardcoded today (2026-11-11): `.github/CODEOWNERS` (7 lines, @atbraz), `.github/workflows/release.yml:115` (tap clone URL), `tools/release.py:14` (`REPO`), `NOTICE:5`, `tools/guard.py` (`LEAD`, with `LEAD_ID` as the real key) and its selftest, `dist/install.sh:3,8`, `README.md:39,40,61`, `site/index.md:57,58`, `CONTRIBUTING.md:3`, `CODE_OF_CONDUCT.md:49`. `docs/studies/syntax/yan-delegate.md:283` is a historical review record and stays; studies, research and reports are skipped on purpose. Everything else in the repo uses `$GITHUB_REPOSITORY`. Outside the repo: the Homebrew formula in the tap (its `homepage` and `url` lines), any claude.ai study or Doc that links the old slug, domain/DNS records, package-registry reservations.
 
 The sweep PR touches `.github/`, so it needs the lead's merge and fails `tools/guard.py` when authored from a `claude/` branch, as usual. Rows and codes are not involved.
 

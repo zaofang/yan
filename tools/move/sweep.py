@@ -38,6 +38,7 @@ def rules(phase: str, org: str, user: str, old: str) -> list[tuple[re.Pattern[st
         return [
             (re.compile(rf"@{old}\b"), f"@{user}"),
             (re.compile(rf"github\.com/{old}(?=[)\s\"']|$)"), f"github.com/{user}"),
+            (re.compile(rf'"{old}"'), f'"{user}"'),  # tools/guard.py LEAD and its selftest
         ]
     return []
 

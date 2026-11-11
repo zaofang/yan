@@ -19,7 +19,7 @@ ureq = { version = "3", features = ["rustls"] }
 zip = { version = "9", default-features = false, features = ["deflate"] }
 parquet = { version = "60", default-features = false }
 toml = "1"
-rustpython-parser = "0.4"
+rustpython-parser = { version = "0.4", default-features = false, features = ["location", "num-bigint"] }
 salsa = { version = "0.28", default-features = false, features = ["macros", "inventory"] }
 core-math = "1.4"
 indexmap = "2"
