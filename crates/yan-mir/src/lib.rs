@@ -90,6 +90,20 @@ pub enum ScalarOp {
     CtSelect,
     CtEq,
     CtLt,
+    /// `std.bits` and the shift operators on fixed-width integers (`n` is an `int`).
+    Shl,
+    Shr,
+    WrappingShl,
+    RotateLeft,
+    RotateRight,
+    CountOnes,
+    CountZeros,
+    LeadingZeros,
+    TrailingZeros,
+    BitWidth,
+    SwapBytes,
+    ReverseBits,
+    IsPowerOfTwo,
 }
 
 #[derive(Clone, Debug, PartialEq)]
