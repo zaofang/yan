@@ -85,3 +85,4 @@ research index links their studies and rows.
 | [0063](0063-remote-on-sim-nodes.md) | `Remote` on `std.sim`: which node code runs on, the `cluster` surface and `sim` faults | accepted | R988, R989 |
 | [0064](0064-rc-scope-trim.md) | Trim the release-candidate scope to the polish floor | accepted | R990, R991 |
 | [0065](0065-surface-technology-picks.md) | Technology picks for the surfaces: shared reader infrastructure, agent tooling, `std.sim`, niche-surface bases | accepted | R994 to R1001 |
+| [0071](0071-trace-shrink-and-bug-bundles.md) | Trace shrinking and repro bundles: `yan replay --shrink` and `yan bug` minimize and pack a failing recorded run | draft | none yet |
