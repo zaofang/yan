@@ -88,3 +88,4 @@ research index links their studies and rows.
 | [0066](0066-trace-diff.md) | Trace diff: `yan replay --diff`, and the trace container it reads | draft | none yet |
 | [0067](0067-no-op-review.md) | Semantic no-op certification in `yan review` | draft | none yet |
 | [0068](0068-behavioral-semver.md) | Behavioral semver: differential check of changed `pub` items on generated inputs | draft | none yet |
+| [0069](0069-upgrade-dossier.md) | Upgrade dossier: `yan update --dossier` reports reached changes, authority gained, divergences and affected tests | draft | none yet |
