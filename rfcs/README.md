@@ -93,3 +93,4 @@ research index links their studies and rows.
 | [0071](0071-trace-shrink-and-bug-bundles.md) | Trace shrinking and repro bundles: `yan replay --shrink` and `yan bug` minimize and pack a failing recorded run | draft | none yet |
 | [0072](0072-proof-carrying-patches.md) | Proof-carrying patches: signed test evidence that `yan review` and `yan test` accept by recomputed verdict key | draft | none yet |
 | [0073](0073-agent-session-journal.md) | Agent session journal: `--journal` on `yan mcp` and `yan agent`, a recorded session as an R305 trace | draft | |
+| [0074](0074-growth-contracts.md) | Growth contracts: check a cost class by fitting deterministic step counts | draft | |
