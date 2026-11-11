@@ -16,7 +16,14 @@ import sys
 from pathlib import Path
 
 # Historical records and this tooling keep the old names on purpose.
-SKIP_PREFIXES = ("docs/studies/", "docs/research/", "docs/reports/", "docs/runbooks/repo-move", "tools/move/", "target/")
+SKIP_PREFIXES = (
+    "docs/studies/",
+    "docs/research/",
+    "docs/reports/",
+    "docs/runbooks/repo-move",
+    "tools/move/",
+    "target/",
+)
 SKIP_NAMES = {"Cargo.lock", "uv.lock"}
 
 
@@ -45,7 +52,9 @@ def eligible(path: str) -> bool:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--phase", choices=["transfer", "rename", "audit"], required=True)
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--old-user", default="atbraz")
@@ -59,7 +68,7 @@ def main() -> int:
     for path in filter(eligible, tracked_files()):
         try:
             lines = Path(path).read_text().splitlines(keepends=True)
-        except (UnicodeDecodeError, FileNotFoundError):
+        except UnicodeDecodeError, FileNotFoundError:
             continue
         new_lines = []
         for n, line in enumerate(lines, 1):
@@ -71,14 +80,16 @@ def main() -> int:
                     print(f"{path}:{n}: {line.strip()[:140]}")
                     changed += 1
             elif new != line:
-                print(f"{path}:{n}: {line.strip()[:110]}\n{' ' * len(path)}   -> {new.strip()[:110]}")
+                pad = " " * len(path)
+                print(f"{path}:{n}: {line.strip()[:110]}\n{pad}   -> {new.strip()[:110]}")
                 changed += 1
             new_lines.append(new)
         if args.apply and args.phase != "audit" and new_lines != lines:
             Path(path).write_text("".join(new_lines))
 
     verb = "rewrote" if args.apply else "would rewrite"
-    print(f"\n{changed} line(s) " + ("to review" if args.phase == "audit" else f"{verb} ({args.phase})"))
+    what = "to review" if args.phase == "audit" else f"{verb} ({args.phase})"
+    print(f"\n{changed} line(s) {what}")
     if not args.apply and args.phase != "audit":
         print("dry run; pass --apply to write")
     return 0
