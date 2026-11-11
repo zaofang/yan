@@ -1,0 +1,16 @@
+name: Feature request
+description: Propose a language or tooling change
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you cannot do today, with a short example.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed change
+      description: Language changes go through an RFC (rfcs/0000-template.md); this starts the discussion.

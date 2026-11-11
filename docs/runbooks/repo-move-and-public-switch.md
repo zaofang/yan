@@ -26,7 +26,7 @@ Run `tools/move/preflight.sh` for the automatable ones.
 - [ ] Hosted runners start. Run `tools/move/smoke-hosted.sh --apply` after the org exists: it creates a public `zaofang/runner-smoke`, runs ubuntu/macos/windows, then you delete it. If it fails with zero steps (the #973 signature) it is a billing/account lock; fix with GitHub support before anything else.
 - [ ] Full-history secret scan. A regex scan on 2026-11-10 found nothing (1107 commits). Re-run with `gitleaks detect --source . --log-opts=--all --redact` right before the flip (new commits since).
 - [ ] Old Actions run logs checked or deleted: logs of past runs become public with the repo.
-- [ ] #423 and #461: fork-PR safety. No `runs-on: self-hosted` left in `.github/workflows` (ci.yml, merged.yml, rerun-infra.yml, site.yml currently use it). Lead merges `.github/`.
+- [ ] #423 and #461: fork-PR safety. Workflows take `runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}`: set the variable `CI_RUNNER=self-hosted` before merging the safety PR (private repo, hosted runners down, #973), delete it at the flip. `gh variable list` must show no `CI_RUNNER` when public. Lead merges `.github/`.
 - [ ] #462 closed.
 - [ ] Lawyer: employment IP check. Trademark search and filing for Yan/Yong (CNIPA, USPTO, EUIPO). LG-decision from 2026-10-31: go public after both.
 - [ ] Private vulnerability reporting on (#389); `SECURITY.md` and CODE_OF_CONDUCT contact path match.
@@ -59,7 +59,7 @@ uv run python tools/move/sweep.py --phase transfer --apply
 uv run python tools/move/sweep.py --phase rename --apply   # only after the user rename
 ```
 
-Hardcoded today (2026-11-11): `.github/CODEOWNERS` (7 lines, @atbraz), `.github/workflows/release.yml:115` (tap clone URL), `tools/release.py:14` (`REPO`), `dist/install.sh:3,8`, `README.md:39,40,61`, `site/index.md:57,58`, `CONTRIBUTING.md:3`, `CODE_OF_CONDUCT.md:49`. `docs/studies/syntax/yan-delegate.md:283` is a historical review record and stays; studies, research and reports are skipped on purpose. Everything else in the repo uses `$GITHUB_REPOSITORY`. Outside the repo: the Homebrew formula in the tap (its `homepage` and `url` lines), any claude.ai study or Doc that links the old slug, domain/DNS records, package-registry reservations.
+Hardcoded today (2026-11-11): `.github/CODEOWNERS` (7 lines, @atbraz), `.github/workflows/release.yml:115` (tap clone URL), `tools/release.py:14` (`REPO`), `NOTICE:5`, `tools/guard.py` (`LEAD`, with `LEAD_ID` as the real key) and its selftest, `dist/install.sh:3,8`, `README.md:39,40,61`, `site/index.md:57,58`, `CONTRIBUTING.md:3`, `CODE_OF_CONDUCT.md:49`. `docs/studies/syntax/yan-delegate.md:283` is a historical review record and stays; studies, research and reports are skipped on purpose. Everything else in the repo uses `$GITHUB_REPOSITORY`. Outside the repo: the Homebrew formula in the tap (its `homepage` and `url` lines), any claude.ai study or Doc that links the old slug, domain/DNS records, package-registry reservations.
 
 The sweep PR touches `.github/`, so it needs the lead's merge and fails `tools/guard.py` when authored from a `claude/` branch, as usual. Rows and codes are not involved.
 

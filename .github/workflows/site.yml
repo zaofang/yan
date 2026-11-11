@@ -31,7 +31,7 @@ jobs:
       github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success'
       && contains(fromJSON('["push", "schedule"]'), github.event.workflow_run.event))
     # Self-hosted like ci.yml: hosted runners fail at job start on this account.
-    runs-on: self-hosted
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     permissions:
       contents: read
       actions: read
@@ -74,7 +74,7 @@ jobs:
   deploy:
     if: github.event_name != 'pull_request'
     needs: build
-    runs-on: self-hosted
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     permissions:
       pages: write
       id-token: write

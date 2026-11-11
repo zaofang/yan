@@ -17,12 +17,13 @@ concurrency:
   group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: true
 
-# Every job runs on the self-hosted runners (the repo is private, so no fork PRs reach them); hosted runners
-# fail at job start on this account. Before the repo goes public the runners must be ephemeral and fork PRs approval-gated (#423).
+# Runner choice is the repo variable CI_RUNNER. Unset means GitHub-hosted, the only safe value once the repo is
+# public. While the repo is private and hosted runners do not start (#973), set CI_RUNNER=self-hosted; delete the
+# variable at the public flip (runbook B11). Never set it to self-hosted on a public repo (#423, #461).
 # Each self-hosted runner keeps its own warm target/ and cargo home; the cleanup action prunes them past a cap.
 jobs:
   changes:
-    runs-on: self-hosted
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     outputs:
       code: ${{ steps.diff.outputs.code }}
     steps:
@@ -47,7 +48,7 @@ jobs:
 
   guard:
     if: github.event_name == 'pull_request'
-    runs-on: self-hosted
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -60,12 +61,13 @@ jobs:
           BRANCH: ${{ github.head_ref }}
           AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
           AUTHOR: ${{ github.event.pull_request.user.login }}
+          AUTHOR_ID: ${{ github.event.pull_request.user.id }}
         run: |
           git diff --name-only --no-renames "$BASE...$HEAD" \
-            | python3 tools/guard.py --branch "$BRANCH" --author-type "$AUTHOR_TYPE" --author "$AUTHOR"
+            | python3 tools/guard.py --branch "$BRANCH" --author-type "$AUTHOR_TYPE" --author "$AUTHOR" --author-id "$AUTHOR_ID"
 
   canary:
-    runs-on: self-hosted
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -82,7 +84,7 @@ jobs:
           fi
 
   check:
-    runs-on: self-hosted
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -100,7 +102,7 @@ jobs:
   formal:
     needs: changes
     if: needs.changes.outputs.code == 'true'
-    runs-on: self-hosted
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -141,7 +143,7 @@ jobs:
   rust:
     needs: changes
     if: needs.changes.outputs.code == 'true'
-    runs-on: self-hosted
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -160,6 +162,7 @@ jobs:
       - run: cargo nextest run --locked --no-fail-fast
       - run: cargo test --locked --doc
       - run: uv sync --locked
+      - run: uv run python tools/third_party.py --check
       - run: cargo build --locked --release -p yan-cli
       # Gate on the cases due by the milestone the implementation has reached (spec 23); raise it when a milestone starts.
       - run: >-
@@ -187,7 +190,7 @@ jobs:
   # Main pushes and the nightly run only.
   bench:
     if: github.event_name != 'pull_request'
-    runs-on: self-hosted
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -215,7 +218,7 @@ jobs:
   # Builds nothing, so no cleanup step (it fails on a workspace without target/).
   status:
     needs: [rust, bench]
-    runs-on: self-hosted
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
         with:
