@@ -85,4 +85,9 @@ research index links their studies and rows.
 | [0063](0063-remote-on-sim-nodes.md) | `Remote` on `std.sim`: which node code runs on, the `cluster` surface and `sim` faults | accepted | R988, R989 |
 | [0064](0064-rc-scope-trim.md) | Trim the release-candidate scope to the polish floor | accepted | R990, R991 |
 | [0065](0065-surface-technology-picks.md) | Technology picks for the surfaces: shared reader infrastructure, agent tooling, `std.sim`, niche-surface bases | accepted | R994 to R1001 |
+| [0066](0066-trace-diff.md) | Trace diff: `yan replay --diff`, and the trace container it reads | draft | none yet |
+| [0067](0067-no-op-review.md) | Semantic no-op certification in `yan review` | draft | none yet |
+| [0068](0068-behavioral-semver.md) | Behavioral semver: differential check of changed `pub` items on generated inputs | draft | none yet |
+| [0069](0069-upgrade-dossier.md) | Upgrade dossier: `yan update --dossier` reports reached changes, authority gained, divergences and affected tests | draft | none yet |
+| [0070](0070-simulation-first-io-tests.md) | Simulation-first I/O tests: `yan test --sim` caches, sweeps and shrinks tests that run under `std.sim` | draft | none yet |
 | [0071](0071-trace-shrink-and-bug-bundles.md) | Trace shrinking and repro bundles: `yan replay --shrink` and `yan bug` minimize and pack a failing recorded run | draft | none yet |
