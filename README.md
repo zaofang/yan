@@ -85,8 +85,8 @@ spec 18.2 diagnostic records) and `CMD run FILE`. Exit status 2 from either is a
 Programs compiled with Yan belong to their authors. Std and runtime code embedded in them falls under the
 LLVM exception, so binaries need no Yan notice.
 
-Copyright the Yan authors. "Yan" and the 言 logo are trademarks claimed by the project lead; the trademark policy will be
-published before the repository goes public.
+Copyright the Yan authors. Path-by-path scope: [LICENSING.md](LICENSING.md). "Yan" and the 言 logo are
+trademarks claimed by the project lead; see [TRADEMARK.md](TRADEMARK.md).
 
 Contributions: see [CONTRIBUTING.md](CONTRIBUTING.md) (DCO sign-off, AI disclosure),
 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and [SECURITY.md](SECURITY.md).

@@ -7,7 +7,8 @@ accepts RFCs, approves tests, merges and cuts releases.
 
 Every commit must carry a `Signed-off-by:` line (`git commit -s`), certifying the
 [Developer Certificate of Origin 1.1](https://developercertificate.org/). Contributions come in under the
-license they go out under (see `README.md`, Licensing). There is no CLA.
+license they go out under (see `LICENSING.md`). There is no CLA. The `dco` workflow fails a PR if any
+commit lacks a matching `Signed-off-by:`; fix with `git rebase --signoff main` and force-push.
 
 ## AI-assisted contributions
 
