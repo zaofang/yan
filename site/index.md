@@ -54,8 +54,8 @@ area(s: Shape) -> int uses none =
 ## Install
 
 ```sh
-curl -fsSL https://github.com/atbraz/yan-lang/releases/latest/download/install.sh | sh
-brew install atbraz/yan/yan
+curl -fsSL https://github.com/zaofang/yan/releases/latest/download/install.sh | sh
+brew install zaofang/yan/yan
 ```
 
 Releases cover macOS (arm64, x86_64) and Linux (x86_64, arm64).

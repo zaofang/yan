@@ -27,10 +27,12 @@ SKIP_PREFIXES = (
 SKIP_NAMES = {"Cargo.lock", "uv.lock"}
 
 
-def rules(phase: str, org: str, user: str, old: str) -> list[tuple[re.Pattern[str], str]]:
+def rules(
+    phase: str, org: str, user: str, old: str, repo: str
+) -> list[tuple[re.Pattern[str], str]]:
     if phase == "transfer":
         return [
-            (re.compile(rf"\b{old}/yan-lang\b"), f"{org}/yan-lang"),
+            (re.compile(rf"\b{old}/yan-lang\b"), f"{org}/{repo}"),
             (re.compile(rf"\b{old}/homebrew-yan\b"), f"{org}/homebrew-yan"),
             (re.compile(rf"\b{old}/yan/yan\b"), f"{org}/yan/yan"),
         ]
@@ -60,10 +62,11 @@ def main() -> int:
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--old-user", default="atbraz")
     ap.add_argument("--new-org", default="zaofang")
+    ap.add_argument("--new-repo", default="yan")
     ap.add_argument("--new-user", default="amteb")
     args = ap.parse_args()
 
-    rs = rules(args.phase, args.new_org, args.new_user, args.old_user)
+    rs = rules(args.phase, args.new_org, args.new_user, args.old_user, args.new_repo)
     audit = re.compile(re.escape(args.old_user))
     changed = 0
     for path in filter(eligible, tracked_files()):

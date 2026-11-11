@@ -1,11 +1,11 @@
 #!/bin/sh
 # Install the yan toolchain from a GitHub release.
-#   curl -fsSL https://github.com/atbraz/yan-lang/releases/latest/download/install.sh | sh
+#   curl -fsSL https://github.com/zaofang/yan/releases/latest/download/install.sh | sh
 # Environment: YAN_VERSION (tag, default latest), YAN_HOME (default ~/.yan),
 # YAN_BASE_URL (release download root, for mirrors and tests).
 set -eu
 
-repo=atbraz/yan-lang
+repo=zaofang/yan
 home=${YAN_HOME:-$HOME/.yan}
 if [ -n "${YAN_BASE_URL:-}" ]; then
     base=$YAN_BASE_URL

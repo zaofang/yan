@@ -26,7 +26,7 @@ def test_non_lead_author_on_plain_branch_is_agent() -> None:
 
 
 def test_lead_author_on_plain_branch_may_touch_tests() -> None:
-    assert violations(["tests/a.yag"], "feature/x", "User", "atbraz") == []
+    assert violations(["tests/a.yag"], "feature/x", "User", "amteb") == []
 
 
 def test_lead_is_matched_by_id_after_a_login_rename() -> None:
@@ -34,4 +34,4 @@ def test_lead_is_matched_by_id_after_a_login_rename() -> None:
 
 
 def test_squatted_old_login_is_not_the_lead_when_the_id_is_given() -> None:
-    assert violations(["tests/a.yag"], "feature/x", "User", "atbraz", "1") == ["tests/a.yag"]
+    assert violations(["tests/a.yag"], "feature/x", "User", "amteb", "1") == ["tests/a.yag"]
