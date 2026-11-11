@@ -85,3 +85,4 @@ research index links their studies and rows.
 | [0063](0063-remote-on-sim-nodes.md) | `Remote` on `std.sim`: which node code runs on, the `cluster` surface and `sim` faults | accepted | R988, R989 |
 | [0064](0064-rc-scope-trim.md) | Trim the release-candidate scope to the polish floor | accepted | R990, R991 |
 | [0065](0065-surface-technology-picks.md) | Technology picks for the surfaces: shared reader infrastructure, agent tooling, `std.sim`, niche-surface bases | accepted | R994 to R1001 |
+| [0074](0074-growth-contracts.md) | Growth contracts: check a cost class by fitting deterministic step counts | draft | |
