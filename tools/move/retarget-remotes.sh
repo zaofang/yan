@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Point local clones at the new owner. Dry run unless --apply. Idempotent.
-# usage: retarget-remotes.sh [--apply] [--old atbraz/yan-lang] [--new zaofang/yan-lang] DIR...
+# usage: retarget-remotes.sh [--apply] [--old atbraz/yan-lang] [--new zaofang/yan] DIR...
 set -euo pipefail
-APPLY=0 OLD=atbraz/yan-lang NEW=zaofang/yan-lang
+APPLY=0 OLD=atbraz/yan-lang NEW=zaofang/yan
 while [[ "${1:-}" == --* ]]; do
   case $1 in
     --apply) APPLY=1; shift ;;
