@@ -17,13 +17,11 @@ concurrency:
   group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: true
 
-# Runner choice is the repo variable CI_RUNNER. Unset means GitHub-hosted, the only safe value once the repo is
-# public. While the repo is private and hosted runners do not start (#973), set CI_RUNNER=self-hosted; delete the
-# variable at the public flip (runbook B11). Never set it to self-hosted on a public repo (#423, #461).
-# Each self-hosted runner keeps its own warm target/ and cargo home; the cleanup action prunes them past a cap.
+# Every job runs on GitHub-hosted runners: the repo is public, so fork PRs must never reach a machine we own
+# (#423, #461). Do not add a self-hosted label.
 jobs:
   changes:
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.diff.outputs.code }}
     steps:
@@ -48,7 +46,7 @@ jobs:
 
   guard:
     if: github.event_name == 'pull_request'
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -67,7 +65,7 @@ jobs:
             | python3 tools/guard.py --branch "$BRANCH" --author-type "$AUTHOR_TYPE" --author "$AUTHOR" --author-id "$AUTHOR_ID"
 
   canary:
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -84,7 +82,7 @@ jobs:
           fi
 
   check:
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -102,7 +100,7 @@ jobs:
   formal:
     needs: changes
     if: needs.changes.outputs.code == 'true'
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -143,7 +141,7 @@ jobs:
   rust:
     needs: changes
     if: needs.changes.outputs.code == 'true'
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -190,7 +188,7 @@ jobs:
   # Main pushes and the nightly run only.
   bench:
     if: github.event_name != 'pull_request'
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -218,7 +216,7 @@ jobs:
   # Builds nothing, so no cleanup step (it fails on a workspace without target/).
   status:
     needs: [rust, bench]
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:

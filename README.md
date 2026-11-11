@@ -93,8 +93,7 @@ Contributions: see [CONTRIBUTING.md](CONTRIBUTING.md) (DCO sign-off, AI disclosu
 
 ## Required repository settings
 
-CI runs on GitHub-hosted runners. The repository variable `CI_RUNNER` overrides the runner label; leave it
-unset on a public repository. Under Settings → Actions → General, require approval for all outside
+CI runs on GitHub-hosted runners only. Under Settings → Actions → General, require approval for all outside
 contributors' workflow runs.
 
 Branch protection on `main`: require a pull request, require review from Code Owners, and require
