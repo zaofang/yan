@@ -1,7 +1,8 @@
 # Security policy
 
 Report vulnerabilities privately through this repository's Security tab ("Report a vulnerability").
-Do not open a public issue.
+Do not open a public issue. The Security tab must have private vulnerability reporting enabled before the
+repository goes public (#462).
 
 - You get an acknowledgement within 7 days.
 - Disclosure is coordinated, with a 90-day deadline from the report, sooner once a fix ships.
