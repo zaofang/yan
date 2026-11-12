@@ -216,6 +216,8 @@ pub enum RtFn {
     NextDown,
     /// `(f64, f64) -> f64`
     Fmod,
+    Pown,
+    Pow,
     /// `(f64, f64) -> f64`
     Copysign,
     /// `(f64) -> bool`
