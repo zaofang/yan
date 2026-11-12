@@ -120,6 +120,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         if self.cluster_call(id, c, dst.as_ref())? {
             return Ok(());
         }
+        if id == id::STD_ERROR_CONTEXT {
+            return self.error_call(c, dst);
+        }
         if [
             id::STD_REGEX_COMPILE,
             id::STD_REGEX_ESCAPE,

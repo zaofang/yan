@@ -387,6 +387,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let err = named(self, "RegexError")?;
                 Some(result(ok, err))
             }
+            Some(id::STD_ERROR_CONTEXT) => self.context_shape(c)?,
             Some(id::STD_PRELUDE_CHR) => Some(self.encoding_shape(Shape::Char)?),
             Some(id::STD_ENCODING_BASE64_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
             Some(id::STD_ENCODING_HEX_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
