@@ -712,6 +712,8 @@ const RT: &[RtFn] = &[
     RtFn::KeyCmp,
     RtFn::ListInsert,
     RtFn::ListSliceExact,
+    RtFn::ParseInt,
+    RtFn::ParseFloat,
     RtFn::Math1,
     RtFn::Math2,
     RtFn::Copysign,
@@ -1188,6 +1190,18 @@ fn rt_fn(
             abi::yan_rt_list_slice_exact as *const u8,
             &[I64, I64, I64],
             Some(I64),
+        ),
+        RtFn::ParseInt => (
+            "yan_rt_parse_int",
+            abi::yan_rt_parse_int as *const u8,
+            &[I64, I64],
+            Some(I8),
+        ),
+        RtFn::ParseFloat => (
+            "yan_rt_parse_float",
+            abi::yan_rt_parse_float as *const u8,
+            &[I64, I64],
+            Some(I8),
         ),
         RtFn::Math1 => (
             "yan_rt_math1",

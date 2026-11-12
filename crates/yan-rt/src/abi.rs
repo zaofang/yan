@@ -599,6 +599,38 @@ pub unsafe extern "C" fn yan_rt_list_slice_exact(l: *const List, i: i64, j: i64)
     })
 }
 
+/// Parse `s` as an int into `out[0]`; 1 when it parsed.
+///
+/// # Safety
+/// `s` is a `Str` block; `out` has one word.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_parse_int(s: *const String, out: *mut i64) -> u8 {
+    // SAFETY: the caller's contract.
+    match crate::text::parse_int(unsafe { &*s }) {
+        Some(v) => {
+            unsafe { *out = v as i64 };
+            1
+        }
+        None => 0,
+    }
+}
+
+/// Parse `s` as a float into `out[0]`; 1 when it parsed.
+///
+/// # Safety
+/// `s` is a `Str` block; `out` has one word.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_parse_float(s: *const String, out: *mut f64) -> u8 {
+    // SAFETY: the caller's contract.
+    match crate::text::parse_float(unsafe { &*s }) {
+        Some(v) => {
+            unsafe { *out = v };
+            1
+        }
+        None => 0,
+    }
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_ldexp(x: f64, n: i64) -> f64 {
     crate::math::ldexp(x, n.into())

@@ -281,6 +281,10 @@ pub enum RtFn {
     ListInsert,
     /// `(list, i, j) -> list`, a shallow copy; panics out of range.
     ListSliceExact,
+    /// `(str, out) -> bool`, parsing into the word at `out`.
+    ParseInt,
+    /// `(str, out) -> bool`, parsing into the word at `out`.
+    ParseFloat,
     Math1,
     /// `(op, f64, f64) -> f64`, op indexes `lower::math::MATH2`.
     Math2,
