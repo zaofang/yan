@@ -54,11 +54,35 @@ struct Scan<'a> {
 }
 
 fn body(f: &mut FnDef) {
-    let Some(b) = &mut f.body else {
-        return;
-    };
-    let params: HashMap<Name, Type> = f
-        .params
+    let returns_view = !f.from.is_empty();
+    let params = f.params.clone();
+    if let Some(b) = &mut f.body {
+        owned_exits(&params, returns_view, 0, b);
+        closures(b, 0);
+    }
+}
+
+/// Closure bodies get the same treatment: their parameters are borrowed too.
+fn closures(b: &mut Block, depth: usize) {
+    for s in &mut b.stmts {
+        if let StmtKind::Let {
+            rhs: Rhs::Closure(c),
+            ..
+        }
+        | StmtKind::Rhs(Rhs::Closure(c)) = &mut s.kind
+        {
+            // Fresh names start apart from the enclosing body's, whose copies a closure may capture.
+            owned_exits(&c.params, false, 1000 * (depth + 1), &mut c.body);
+            closures(&mut c.body, depth + 1);
+        }
+        for b in blocks_mut(&mut s.kind) {
+            closures(b, depth);
+        }
+    }
+}
+
+fn owned_exits(ps: &[Param], returns_view: bool, fresh: usize, b: &mut Block) {
+    let params: HashMap<Name, Type> = ps
         .iter()
         .filter_map(|p| match p {
             Param::Value { conv, name, ty, .. } if *conv != Conv::Sink && !own::is_copy(ty) => {
@@ -71,7 +95,7 @@ fn body(f: &mut FnDef) {
         return;
     }
     let mut s = Scan {
-        returns_view: !f.from.is_empty(),
+        returns_view,
         params: &params,
         borrowed: params.keys().map(|n| (n.clone(), Def::Param)).collect(),
         types: params.clone(),
@@ -82,7 +106,7 @@ fn body(f: &mut FnDef) {
     let mut r = Rewrite {
         plan: s.plan,
         n: 0,
-        fresh: 0,
+        fresh,
     };
     r.block(b);
 }
