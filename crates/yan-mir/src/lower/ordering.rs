@@ -49,6 +49,18 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let (_, s) = self.atom_any(xs)?;
                 let v = self.atom(xs, &s)?;
                 let copy = self.rt(RtFn::ListCopy, Ty::Ptr, v);
+                if let Shape::List(e) = &s
+                    && Self::has_heap(e)
+                {
+                    let n = self.rt(RtFn::ListLen, I64, vec![copy.clone()]);
+                    self.each(n, |me, i| {
+                        let at = At::Mem(me.rt(RtFn::ListAt, Ty::Ptr, vec![copy.clone(), i]), 0);
+                        let ev = me.read(&at, e);
+                        let c = me.clone_value(ev, e)?;
+                        me.write(&at, c);
+                        Ok(())
+                    })?;
+                }
                 self.sort_list(&s, copy.clone(), *rev)?;
                 if let Some(d) = &dst {
                     self.copy_to(&d.locals.clone(), vec![copy]);

@@ -326,6 +326,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(Ty::Bool) => out.push('b'),
             Shape::Scalar(Ty::Unit) => out.push('n'),
             Shape::Str => out.push('s'),
+            Shape::Bytes => out.push('y'),
             Shape::Tuple(ss) => {
                 out.push('(');
                 for s in ss {

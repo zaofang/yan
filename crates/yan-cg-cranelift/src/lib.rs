@@ -702,6 +702,7 @@ const RT: &[RtFn] = &[
     RtFn::BytesAt,
     RtFn::BytesFind,
     RtFn::BytesSlice,
+    RtFn::KeyCmp,
     RtFn::Math1,
     RtFn::Math2,
     RtFn::Copysign,
@@ -1116,6 +1117,12 @@ fn rt_fn(
         RtFn::BytesSlice => (
             "yan_rt_bytes_slice",
             bytes::yan_rt_bytes_slice as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::KeyCmp => (
+            "yan_rt_key_cmp",
+            map::yan_rt_key_cmp as *const u8,
             &[I64, I64, I64],
             Some(I64),
         ),
