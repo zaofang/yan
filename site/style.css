@@ -1,8 +1,8 @@
 /* Tokens match playground/index.html. Square corners, heavy rules, ruled code panes. */
 :root {
   --paper: #F3F1EC; --paper-2: #ECE9E2; --ink: #141518; --ash: #5B5E66; --rule: #D6D2C8;
-  --seal: #C8341F; --yag: #2A7253; --yn: #3D4FA8; --yir: #C8341F;
-  --code-k: #3D4FA8; --code-s: #2A7253; --code-n: #8F5A0B; --code-t: #7A3E9D; --code-c: #8A8D94;
+  --seal: #C8341F; --seal-text: #B8301C; --on-seal: #F3F1EC; --yag: #2A7253; --yn: #3D4FA8; --yir: #C8341F;
+  --code-k: #3D4FA8; --code-s: #2A7253; --code-n: #8F5A0B; --code-t: #7A3E9D; --code-c: #6A6D75;
   --f-display: "Inter Tight", "Inter", system-ui, sans-serif;
   --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -11,15 +11,15 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --paper: #121316; --paper-2: #1A1B1F; --ink: #ECE9E2; --ash: #A9ACB4; --rule: #2C2E34;
-    --seal: #E2553F; --yag: #5DBB8E; --yn: #8C9BEA; --yir: #E2553F;
-    --code-k: #8C9BEA; --code-s: #5DBB8E; --code-n: #DEA461; --code-t: #CC98EE; --code-c: #6E7179;
+    --seal: #E2553F; --seal-text: #E2553F; --on-seal: #121316; --yag: #5DBB8E; --yn: #8C9BEA; --yir: #E2553F;
+    --code-k: #8C9BEA; --code-s: #5DBB8E; --code-n: #DEA461; --code-t: #CC98EE; --code-c: #8A8D94;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --paper: #121316; --paper-2: #1A1B1F; --ink: #ECE9E2; --ash: #A9ACB4; --rule: #2C2E34;
-  --seal: #E2553F; --yag: #5DBB8E; --yn: #8C9BEA; --yir: #E2553F;
-  --code-k: #8C9BEA; --code-s: #5DBB8E; --code-n: #DEA461; --code-t: #CC98EE; --code-c: #6E7179;
+  --seal: #E2553F; --seal-text: #E2553F; --on-seal: #121316; --yag: #5DBB8E; --yn: #8C9BEA; --yir: #E2553F;
+  --code-k: #8C9BEA; --code-s: #5DBB8E; --code-n: #DEA461; --code-t: #CC98EE; --code-c: #8A8D94;
   color-scheme: dark;
 }
 
@@ -27,7 +27,7 @@
 body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 var(--f-body); }
 :focus-visible { outline: 2px solid var(--seal); outline-offset: 1px; }
 a { color: inherit; text-decoration-color: var(--seal); text-underline-offset: 3px; }
-a:hover { color: var(--seal); }
+a:hover { color: var(--seal-text); }
 
 header {
   display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px;
@@ -60,8 +60,8 @@ code { font: .88em var(--f-mono); }
   display: inline-flex; align-items: center; height: 38px; padding: 0 16px; border: 1px solid var(--ink);
   background: var(--paper); text-decoration: none; font: 600 14px/1 var(--f-body);
 }
-.btn-run { background: var(--seal); border-color: var(--seal); color: #F3F1EC; }
-.btn-run:hover { color: #F3F1EC; filter: brightness(1.08); }
+.btn-run { background: var(--seal); border-color: var(--seal); color: var(--on-seal); }
+.btn-run:hover { color: var(--on-seal); filter: brightness(1.08); }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0; }
 
 .program { margin: 20px 0 0; border: 1px solid var(--rule); border-top: 3px solid var(--c, var(--ink)); }
@@ -74,7 +74,7 @@ code { font: .88em var(--f-mono); }
 }
 .program .name { font: 800 15px/1 var(--f-display); }
 .program .ext { font: 12px/1 var(--f-mono); color: var(--ash); }
-.program .rejected { color: var(--seal); }
+.program .rejected { color: var(--seal-text); }
 .program .btn { margin-left: auto; height: 28px; font-size: 12px; padding: 0 10px; border-color: var(--rule); }
 .program .btn:hover { border-color: var(--ink); }
 pre { margin: 0; overflow-x: auto; font: 13px/20px var(--f-mono); tab-size: 4; padding: 12px 14px; font-variant-ligatures: none; }
