@@ -616,6 +616,26 @@ pub unsafe extern "C" fn yan_rt_list_copy(l: *const List) -> *mut List {
     })
 }
 
+/// Reverse the elements of a list in place.
+///
+/// # Safety
+/// `l` is a `List` block nothing else borrows.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_list_reverse(l: *mut List) {
+    // SAFETY: the caller's contract.
+    let l = unsafe { &mut *l };
+    let w = l.words;
+    if w == 0 {
+        return;
+    }
+    let n = l.data.len() / w;
+    for i in 0..n / 2 {
+        for k in 0..w {
+            l.data.swap(i * w + k, (n - 1 - i) * w + k);
+        }
+    }
+}
+
 /// End the program with `code` once stdout is flushed: `main` returned or failed (8.1). With
 /// `YAN_REPORT_LIVE` set, `live: N` goes to stderr first, as `yan run --report-live` prints it.
 #[unsafe(no_mangle)]

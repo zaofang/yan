@@ -120,6 +120,16 @@ impl<'a, 'm> Fn<'a, 'm> {
         if self.cluster_call(id, c, dst.as_ref())? {
             return Ok(());
         }
+        if [
+            id::STD_LIST_REVERSE,
+            id::STD_LIST_SORT,
+            id::STD_LIST_SORT_UNSTABLE,
+            id::STD_PRELUDE_SORTED,
+        ]
+        .contains(&id)
+        {
+            return self.ordering_call(id, c, dst);
+        }
         if DEQUE_IDS.contains(&id) {
             return self.deque_call(id, c, dst);
         }
