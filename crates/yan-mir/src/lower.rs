@@ -912,6 +912,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             (ScalarOp::SubChecked, _) => ("sub_checked_i64", I64),
             (ScalarOp::MulChecked, _) => ("mul_checked_i64", I64),
             (ScalarOp::Add, _) => ("add_f64", Ty::F64),
+            (ScalarOp::FloorDiv, _) => ("floordiv_i64", I64),
             _ => unreachable!("only used for these"),
         };
         let d = self.local(out);
