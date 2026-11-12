@@ -49,4 +49,5 @@ pub(super) static MATH2: &[Id] = &[
     STD_MATH_ATAN2,
     STD_MATH_ATAN2PI,
     STD_MATH_REMAINDER,
+    STD_MATH_DIV,
 ];

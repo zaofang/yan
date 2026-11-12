@@ -492,6 +492,31 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(f, Ty::Bool, vec![x]);
                 set(self, r);
             }
+            (id::STD_TEXT_PARSE_INT | id::STD_TEXT_PARSE_FLOAT, [(_, a)]) => {
+                let Some(d) = &dst else {
+                    return Ok(());
+                };
+                let ds = d.shape.clone();
+                let locals = d.locals.clone();
+                let s = self.scalar1(a)?;
+                let (f, ty) = if id == id::STD_TEXT_PARSE_INT {
+                    (RtFn::ParseInt, I64)
+                } else {
+                    (RtFn::ParseFloat, Ty::F64)
+                };
+                let buf = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(1)]);
+                let ok = self.rt(f, Ty::Bool, vec![s, buf.clone()]);
+                let (some, none) = self.branch(ok);
+                let join = self.block_new();
+                self.cur = some;
+                let v = self.read(&At::Mem(buf.clone(), 0), &Shape::Scalar(ty));
+                self.copy_to(&locals, Self::variant_value(&ds, "Some", v));
+                self.goto(join);
+                self.cur = none;
+                self.copy_to(&locals, Self::variant_value(&ds, "None", vec![]));
+                self.goto(join);
+                self.free(RtFn::EnvFree, buf);
+            }
             (id::STD_TEXT_SPLITLINES, [(_, a)]) => {
                 let s = self.scalar1(a)?;
                 let r = self.rt(RtFn::StrSplitLines, Ty::Ptr, vec![s]);
