@@ -696,6 +696,7 @@ const RT: &[RtFn] = &[
     RtFn::HeapPushPop,
     RtFn::HeapSort,
     RtFn::ListReverse,
+    RtFn::StrChars,
     RtFn::StrSlice,
     RtFn::ListSlice,
     RtFn::Select,
@@ -1244,6 +1245,12 @@ fn rt_fn(
             abi::yan_rt_free_env as *const u8,
             &[I64],
             None,
+        ),
+        RtFn::StrChars => (
+            "yan_rt_str_chars",
+            abi::yan_rt_str_chars as *const u8,
+            &[I64],
+            Some(I64),
         ),
         RtFn::ListReverse => (
             "yan_rt_list_reverse",

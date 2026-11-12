@@ -125,6 +125,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             id::STD_LIST_SORT,
             id::STD_LIST_SORT_UNSTABLE,
             id::STD_PRELUDE_SORTED,
+            id::STD_TEXT_CHARS,
+            id::STD_TEXT_ITER,
         ]
         .contains(&id)
         {

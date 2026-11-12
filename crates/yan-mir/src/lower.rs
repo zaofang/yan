@@ -947,7 +947,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             y::Literal::Bool(b) => (Operand::Bool(*b), Shape::Scalar(Ty::Bool)),
             y::Literal::Unit => (Operand::Unit, Shape::Scalar(Ty::Unit)),
             y::Literal::Str(s) => (self.lit(s), Shape::Str),
-            y::Literal::Char(_) => return unsupported("a char"),
+            y::Literal::Char(c) => (self.lit(&c.to_string()), Shape::Str),
         })
     }
 

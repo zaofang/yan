@@ -122,7 +122,8 @@ impl Types<'_> {
             y::Type::Named(n) if n.path.len() == 1 => {
                 let name = n.path[0].as_str();
                 match (name, n.args.as_slice()) {
-                    ("Str", []) => return Ok(Shape::Str),
+                    // A `char` is a one-character `str` (a char converts to `str` implicitly, 17.8).
+                    ("Str" | "char", []) => return Ok(Shape::Str),
                     // No lazy adapters natively: an `iter` from `std.itertools` is its list.
                     ("List" | "Iter", [y::TArg::Type(e)]) => {
                         return Ok(Shape::List(Box::new(self.shape_in(e, stack)?)));

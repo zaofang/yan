@@ -616,6 +616,24 @@ pub unsafe extern "C" fn yan_rt_list_copy(l: *const List) -> *mut List {
     })
 }
 
+/// The characters of a `Str` as a list of one-character `Str` blocks.
+///
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_chars(s: *const String) -> *mut List {
+    // SAFETY: the caller's contract.
+    let s = unsafe { &*s };
+    leak(List {
+        words: 1,
+        data: s
+            .chars()
+            .map(|c| str_block(c.encode_utf8(&mut [0; 4])) as u64)
+            .collect(),
+        limit: -1,
+    })
+}
+
 /// Reverse the elements of a list in place.
 ///
 /// # Safety

@@ -54,6 +54,19 @@ impl<'a, 'm> Fn<'a, 'm> {
                     self.copy_to(&d.locals.clone(), vec![copy]);
                 }
             }
+            // An `iter` is its list, its cursor in the `limit` slot (`std.list.iter`).
+            (id::STD_TEXT_CHARS | id::STD_TEXT_ITER, [(_, s)]) => {
+                let s = self.scalar1(s)?;
+                let l = self.rt(RtFn::StrChars, Ty::Ptr, vec![s]);
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::DqLimit,
+                    args: vec![l.clone(), Operand::Int(0)],
+                });
+                if let Some(d) = &dst {
+                    self.copy_to(&d.locals.clone(), vec![l]);
+                }
+            }
             _ => return unsupported(format!("call of `{name}`")),
         }
         Ok(())
