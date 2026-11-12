@@ -188,6 +188,10 @@ pub enum RtFn {
     StrEq,
     /// `(Str, i64) -> Str`: `n` copies, none for `n <= 0`.
     StrRepeat,
+    /// `(str) -> int`, extended grapheme clusters.
+    GraphemeCount,
+    /// `(str, sep, i) -> str`: part `i` (0 before, 1 separator, 2 after) of `std.text.partition`.
+    StrPartition,
     /// `(Str) -> i64`
     CharCount,
     /// `(Str) -> i64`

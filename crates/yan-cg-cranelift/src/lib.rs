@@ -667,6 +667,8 @@ const RT: &[RtFn] = &[
     RtFn::Repr,
     RtFn::StrEq,
     RtFn::StrRepeat,
+    RtFn::GraphemeCount,
+    RtFn::StrPartition,
     RtFn::CharCount,
     RtFn::ByteLen,
     RtFn::IntOf,
@@ -937,6 +939,18 @@ fn rt_fn(
             abi::yan_rt_str_eq as *const u8,
             &[I64, I64],
             Some(I8),
+        ),
+        RtFn::GraphemeCount => (
+            "yan_rt_grapheme_count",
+            abi::yan_rt_grapheme_count as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::StrPartition => (
+            "yan_rt_str_partition",
+            abi::yan_rt_str_partition as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
         ),
         RtFn::CharCount => (
             "yan_rt_char_count",
