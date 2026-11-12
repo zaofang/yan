@@ -143,7 +143,29 @@ impl<'a, 'm> Fn<'a, 'm> {
             return self.path_call(id, c, dst);
         }
         if [
+            id::STD_ITER_OPS_COUNT,
+            id::STD_ITER_OPS_SUM,
+            id::STD_ITER_OPS_SUM_FLOAT,
+            id::STD_ITER_OPS_MIN,
+            id::STD_ITER_OPS_MAX,
+            id::STD_ITER_OPS_MAP,
+            id::STD_ITER_OPS_FILTER,
+            id::STD_ITER_OPS_TAKE_WHILE,
+            id::STD_ITER_OPS_DROP_WHILE,
+            id::STD_ITER_OPS_FOLD,
+            id::STD_ITER_OPS_ANY,
+            id::STD_ITER_OPS_ALL,
+            id::STD_ITER_OPS_FIND,
+        ]
+        .contains(&id)
+        {
+            return self.iter_closure_call(id, c, dst);
+        }
+        if [
             id::STD_ITER_OPS_ENUMERATE,
+            id::STD_ITER_OPS_STEP_BY,
+            id::STD_ITER_OPS_ZIP,
+            id::STD_ITER_OPS_CHAIN,
             id::STD_ITER_OPS_TAKE,
             id::STD_ITER_OPS_SKIP,
             id::STD_ITER_OPS_WINDOWS,
