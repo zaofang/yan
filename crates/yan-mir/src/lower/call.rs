@@ -541,6 +541,34 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(f, ty, vec![x, y]);
                 set(self, r);
             }
+            (id::STD_ENCODING_SLICE_EXACT, [(_, a), (_, b), (_, c)]) => {
+                let (x, i, j) = (self.scalar1(a)?, self.scalar1(b)?, self.scalar1(c)?);
+                let r = self.rt(RtFn::BytesSlice, Ty::Ptr, vec![x, i, j]);
+                set(self, r);
+            }
+            (id::STD_ENCODING_AT | id::STD_ENCODING_FIND, [(_, a), (_, b)]) => {
+                let Some(d) = &dst else {
+                    return Ok(());
+                };
+                let ds = d.shape.clone();
+                let (x, y) = (self.scalar1(a)?, self.scalar1(b)?);
+                let f = if id == id::STD_ENCODING_AT {
+                    RtFn::BytesAt
+                } else {
+                    RtFn::BytesFind
+                };
+                let r = self.rt(f, I64, vec![x, y]);
+                let missing = self.scalar_op(ScalarOp::Le, I64, vec![r.clone(), Operand::Int(-1)]);
+                let (none, some) = self.branch(missing);
+                let join = self.block_new();
+                let locals = d.locals.clone();
+                self.cur = none;
+                self.copy_to(&locals, Self::variant_value(&ds, "None", vec![]));
+                self.goto(join);
+                self.cur = some;
+                self.copy_to(&locals, Self::variant_value(&ds, "Some", vec![r]));
+                self.goto(join);
+            }
             (id::STD_TEXT_INT_OF, [(_, a)]) => {
                 let s = self.scalar1(a)?;
                 let r = self.rt(RtFn::IntOf, I64, vec![s]);

@@ -42,6 +42,16 @@ impl<'a, 'm> Fn<'a, 'm> {
                     shape = s;
                 }
                 y::Proj::Index(i) => {
+                    if shape == Shape::Bytes {
+                        let b = self.read(&at, &shape).remove(0);
+                        let i = self.scalar1(i)?;
+                        at = At::Mem(self.rt(RtFn::BytesIndex, Ty::Ptr, vec![b, i]), 0);
+                        shape = Shape::Scalar(Ty::Int(IntTy {
+                            bits: 8,
+                            signed: false,
+                        }));
+                        continue;
+                    }
                     let (Shape::List(e) | Shape::Deque(e)) = shape.clone() else {
                         return unsupported("indexing a non-list");
                     };
