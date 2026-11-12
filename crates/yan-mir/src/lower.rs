@@ -166,6 +166,16 @@ pub fn lower(m: &y::Module) -> R<Program> {
                 consts.push(c);
                 continue;
             }
+            // Only `Exit` is lowered, for the exit status of a failing `main`.
+            y::ItemKind::Impl(im) if im.trait_.path == ["Exit"] => {
+                let ty = yan_core::type_text(&im.for_ty);
+                for f in &im.fns {
+                    by_name.insert(format!("{ty}.{}", f.path.join(".")), defs.len());
+                    item_hashes.push(None);
+                    defs.push(f);
+                }
+                continue;
+            }
             _ => return unsupported(format!("item at line {}", i.span.line)),
         };
         if f.body.is_none() {

@@ -860,7 +860,7 @@ fn rt_fn(
         RtFn::FailMain => (
             "yan_rt_fail_main",
             abi::yan_rt_fail_main as *const u8,
-            &[I64],
+            &[I64, I64],
             None,
         ),
         RtFn::ReadLine => (

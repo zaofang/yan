@@ -33,11 +33,13 @@ impl Fn<'_, '_> {
         let is_ok = self.scalar_op(ScalarOp::Eq, I64, vec![v[0].clone(), Operand::Int(0)]);
         let (ok, err) = self.branch(is_ok);
         self.cur = err;
-        let shown = self.show(&v[err_at..err_at + e.width()], &e, false)?;
+        let ev = v[err_at..err_at + e.width()].to_vec();
+        let shown = self.show(&ev, &e, false)?;
+        let code = self.exit_code(&e, ev)?;
         self.emit(Inst::Rt {
             dst: None,
             f: RtFn::FailMain,
-            args: vec![shown],
+            args: vec![shown, code],
         });
         self.finish(Term::Panic("unreachable"));
         self.cur = ok;
@@ -50,5 +52,31 @@ impl Fn<'_, '_> {
             locals: self.locals,
             blocks: self.blocks,
         })
+    }
+}
+
+impl Fn<'_, '_> {
+    /// The status a failing `main` exits with: the `code` of the error's `Exit` impl, else 1 (R430).
+    fn exit_code(&mut self, e: &Shape, ev: Vec<Operand>) -> R<Operand> {
+        let Shape::Rec(name, _) = e else {
+            return Ok(Operand::Int(1));
+        };
+        let Some(def) = self
+            .mono
+            .borrow()
+            .by_name
+            .get(&format!("{name}.code"))
+            .copied()
+        else {
+            return Ok(Operand::Int(1));
+        };
+        let func = self.mono.borrow_mut().instance(self.types, def)?;
+        let r = self.var(self.sig(func).ret.clone());
+        self.emit(Inst::Call {
+            dst: r.locals.clone(),
+            func,
+            args: ev,
+        });
+        Ok(Operand::Local(r.locals[0]))
     }
 }

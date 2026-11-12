@@ -369,6 +369,7 @@ pub(crate) struct AssertC {
 pub(crate) struct Program {
     pub codes: Vec<Rc<Code>>,
     pub fns: Map<Name, usize>,
+    pub methods: Map<Name, usize>,
 }
 
 struct Globals<'m> {
@@ -474,6 +475,7 @@ pub(crate) fn compile(m: &Module) -> Program {
             .map(|c| Rc::new(c.unwrap_or_default()))
             .collect(),
         fns: g.fns,
+        methods: g.methods,
     }
 }
 

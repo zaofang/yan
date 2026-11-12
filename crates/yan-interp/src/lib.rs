@@ -574,10 +574,11 @@ pub fn run_reporting(
     out: &mut dyn Write,
     args: Vec<String>,
 ) -> R<(i32, Option<String>)> {
+    let mut code = None;
     Ok(
-        match entry(m, "main", out, None, args, &mut 0, Mode::Run)? {
+        match entry(m, "main", out, None, args, &mut 0, Mode::Run, &mut code)? {
             Ok(_) => (0, None),
-            Err(v) => (EXIT_FAILURE, Some(prelude::show(&v, false))),
+            Err(v) => (code.unwrap_or(EXIT_FAILURE), Some(prelude::show(&v, false))),
         },
     )
 }
@@ -600,7 +601,17 @@ pub fn test_metered(
         std::thread::Builder::new()
             .stack_size(1 << 30)
             .spawn_scoped(s, || {
-                entry(m, f, out, Some(limits), Vec::new(), spent, Mode::Run).map(|r| r.is_ok())
+                entry(
+                    m,
+                    f,
+                    out,
+                    Some(limits),
+                    Vec::new(),
+                    spent,
+                    Mode::Run,
+                    &mut None,
+                )
+                .map(|r| r.is_ok())
             })
             .expect("spawn the test thread")
             .join()
@@ -630,6 +641,7 @@ pub fn query(
                     Vec::new(),
                     spent,
                     Mode::Query(host),
+                    &mut None,
                 )
                 .map(|r| r.map(|v| json_of(&v)).map_err(|v| prelude::show(&v, false)))
             })
@@ -666,7 +678,16 @@ pub fn tool(
                     args,
                     root: root.into(),
                 };
-                let r = entry(m, f, out, Some(limits), Vec::new(), spent, Mode::Tool(call))?;
+                let r = entry(
+                    m,
+                    f,
+                    out,
+                    Some(limits),
+                    Vec::new(),
+                    spent,
+                    Mode::Tool(call),
+                    &mut None,
+                )?;
                 Ok(match r {
                     Ok(v) => match jsonwire::tool_result(&sc, &v) {
                         Some(j) => Ok(j),
@@ -727,6 +748,7 @@ fn json_of(v: &Value) -> serde_json::Value {
 }
 
 /// Call `fn f` of `m` with its capabilities bound; `false` when it returns a failure.
+#[allow(clippy::too_many_arguments)]
 fn entry(
     m: &Module,
     f: &str,
@@ -735,6 +757,7 @@ fn entry(
     argv: Vec<String>,
     spent: &mut u64,
     mode: Mode,
+    exit: &mut Option<i32>,
 ) -> R<Result<Value, Value>> {
     let (host, tool) = match mode {
         Mode::Run => (None, None),
@@ -742,6 +765,7 @@ fn entry(
         Mode::Tool(t) => (None, Some(t)),
     };
     let program = compile::compile(m);
+    let methods = program.methods.clone();
     let Some(code) = program.fns.get(f).copied() else {
         return unsupported(format!("no `fn {f}` in the module"));
     };
@@ -833,7 +857,16 @@ fn entry(
     }
     let r = vm.call(code, args);
     *spent += vm.steps();
-    Ok(r?.0)
+    let r = r?.0;
+    // A failing `main` exits with the `code` of its error's `Exit` impl (8.1, R430).
+    if let (Err(Value::Data { name, .. }), true) = (&r, f == "main")
+        && let Some(&c) = methods.get(format!("{name}.code").as_str())
+        && let (Ok(Value::Int(n)), _) =
+            vm.call(c, vec![r.as_ref().err().cloned().unwrap_or(Value::Unit)])?
+    {
+        *exit = i32::try_from(n).ok();
+    }
+    Ok(r)
 }
 
 pub(crate) fn int_range(ty: &str) -> Option<(i128, i128)> {
