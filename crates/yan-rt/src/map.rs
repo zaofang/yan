@@ -16,6 +16,8 @@ pub(crate) enum Key {
     Bool,
     Unit,
     Str,
+    /// A `Path` block: a `Str` block ordered by its parts.
+    Path,
     /// A `bytes` block (`yan_rt::bytes`).
     Bytes,
     Tuple(Vec<Key>),
@@ -45,6 +47,7 @@ impl Key {
             Key::Bool => "bool",
             Key::Unit => "value",
             Key::Str => "text",
+            Key::Path => "text",
             Key::Bytes => "bytes",
             Key::Tuple(_) => "tuple",
             Key::Rec(..) | Key::Sum(_) => "record",
@@ -123,6 +126,11 @@ impl Key {
             // SAFETY: the caller's contract.
             Key::Str => unsafe { (*(x as *const String)).cmp(&*(y as *const String)) },
             // SAFETY: the caller's contract.
+            Key::Path => unsafe {
+                let parts = |p: u64| crate::path::Parsed::posix(&*(p as *const String)).parts();
+                parts(x).cmp(&parts(y))
+            },
+            // SAFETY: the caller's contract.
             Key::Bytes => unsafe { (*(x as *const Vec<u8>)).cmp(&*(y as *const Vec<u8>)) },
             Key::Tuple(ks) | Key::Rec(_, ks) => {
                 for k in ks {
@@ -179,7 +187,7 @@ impl Key {
             Key::Bool => out.bool(x as u8 != 0),
             Key::Unit => out.unit(),
             // SAFETY: the caller's contract.
-            Key::Str => out.text(unsafe { &*(x as *const String) }),
+            Key::Str | Key::Path => out.text(unsafe { &*(x as *const String) }),
             // SAFETY: the caller's contract.
             Key::Bytes => out.bytes(unsafe { &*(x as *const Vec<u8>) }),
             Key::Tuple(ks) => {
@@ -286,6 +294,7 @@ pub(crate) fn parse(s: &mut &str) -> Key {
         b'n' => Key::Unit,
         b's' => Key::Str,
         b'y' => Key::Bytes,
+        b'p' => Key::Path,
         b'(' => Key::Tuple(until(s, b')')),
         b'{' => {
             let n = name(s);

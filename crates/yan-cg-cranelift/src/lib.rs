@@ -21,7 +21,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
-use yan_rt::{abi, actor, bytes, chan, cluster, dq, map, pq, sched, select, slice};
+use yan_rt::{abi, actor, bytes, chan, cluster, dq, map, pathabi, pq, sched, select, slice};
 
 type R<T> = Result<T, String>;
 
@@ -687,6 +687,14 @@ const RT: &[RtFn] = &[
     RtFn::StrSplit,
     RtFn::StrSplitLines,
     RtFn::BytesOfStr,
+    RtFn::PathNew,
+    RtFn::PathOp,
+    RtFn::PathWith,
+    RtFn::PathJoin,
+    RtFn::PathIsAbsolute,
+    RtFn::PathStartsWith,
+    RtFn::PathRelativeTo,
+    RtFn::PathParts,
     RtFn::BytesFromList,
     RtFn::BytesFree,
     RtFn::BytesCopy,
@@ -1123,6 +1131,54 @@ fn rt_fn(
             "yan_rt_bytes_find",
             bytes::yan_rt_bytes_find as *const u8,
             &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::PathNew => (
+            "yan_rt_path_new",
+            pathabi::yan_rt_path_new as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::PathOp => (
+            "yan_rt_path_op",
+            pathabi::yan_rt_path_op as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::PathWith => (
+            "yan_rt_path_with",
+            pathabi::yan_rt_path_with as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::PathJoin => (
+            "yan_rt_path_join",
+            pathabi::yan_rt_path_join as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::PathIsAbsolute => (
+            "yan_rt_path_is_absolute",
+            pathabi::yan_rt_path_is_absolute as *const u8,
+            &[I64],
+            Some(I8),
+        ),
+        RtFn::PathStartsWith => (
+            "yan_rt_path_starts_with",
+            pathabi::yan_rt_path_starts_with as *const u8,
+            &[I64, I64],
+            Some(I8),
+        ),
+        RtFn::PathRelativeTo => (
+            "yan_rt_path_relative_to",
+            pathabi::yan_rt_path_relative_to as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::PathParts => (
+            "yan_rt_path_parts",
+            pathabi::yan_rt_path_parts as *const u8,
+            &[I64],
             Some(I64),
         ),
         RtFn::BytesSlice => (

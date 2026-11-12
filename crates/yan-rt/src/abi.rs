@@ -235,7 +235,7 @@ pub(crate) fn leak<T>(x: T) -> *mut T {
     Box::into_raw(Box::new(x))
 }
 
-fn panic(kind: &str) -> ! {
+pub(crate) fn panic(kind: &str) -> ! {
     // SAFETY: a str is valid UTF-8.
     unsafe { yan_rt_panic(kind.as_ptr(), kind.len()) }
 }
