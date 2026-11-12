@@ -51,6 +51,21 @@ impl Lower<'_, '_, '_> {
             if let Some(r) = &ret {
                 l.expect(&t, r, body.span);
             }
+            // Parameters and captures are borrowed, so returning one hands back a copy.
+            let a = match &a {
+                Atom::Name(x, sp)
+                    if !t.is_copy()
+                        && (names.contains(x) || captures.iter().any(|(_, m, _)| m == x)) =>
+                {
+                    let place = Place {
+                        root: x.clone(),
+                        root_span: *sp,
+                        projs: Vec::new(),
+                    };
+                    l.tmp(&t, Rhs::Copy(place), body.span)
+                }
+                _ => a,
+            };
             rt = ret.clone().unwrap_or(t);
             l.emit(StmtKind::Ret(a), body.span);
             Ok(())
