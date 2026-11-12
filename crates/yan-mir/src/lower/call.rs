@@ -121,6 +121,22 @@ impl<'a, 'm> Fn<'a, 'm> {
             return Ok(());
         }
         if [
+            id::STD_REGEX_COMPILE,
+            id::STD_REGEX_ESCAPE,
+            id::STD_REGEX_SEARCH,
+            id::STD_REGEX_MATCH,
+            id::STD_REGEX_FULLMATCH,
+            id::STD_REGEX_FIND_ALL,
+            id::STD_REGEX_SPLIT,
+            id::STD_REGEX_SUB,
+            id::STD_REGEX_GROUP,
+            id::STD_REGEX_NAMED,
+        ]
+        .contains(&id)
+        {
+            return self.regex_call(id, c, dst);
+        }
+        if [
             id::STD_TEXT_CHARS,
             id::STD_TEXT_ITER,
             id::STD_TEXT_CHAR_AT,

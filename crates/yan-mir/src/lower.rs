@@ -17,6 +17,7 @@ mod math;
 mod ordering;
 mod path;
 mod pattern;
+mod regex;
 mod shape;
 mod show;
 mod stmt;
