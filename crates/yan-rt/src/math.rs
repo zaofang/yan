@@ -249,7 +249,7 @@ pub static MATH1: &[fn(f64) -> f64] = &[
 ];
 
 /// Nearest-rounded binary kernels native code calls by index, in the order of `yan_mir`'s `MATH2`.
-pub static MATH2: &[fn(f64, f64) -> f64] = &[powr, hypot, atan2, atan2pi, remainder];
+pub static MATH2: &[fn(f64, f64) -> f64] = &[powr, hypot, atan2, atan2pi, remainder, |x, y| x / y];
 
 #[cfg(test)]
 mod tests {

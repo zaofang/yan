@@ -277,6 +277,10 @@ pub enum RtFn {
     EncodingErrorShow,
     /// `(schema, a, b) -> int`: -1, 0 or 1 by the key order of the schema.
     KeyCmp,
+    /// `(str, out) -> bool`, parsing into the word at `out`.
+    ParseInt,
+    /// `(str, out) -> bool`, parsing into the word at `out`.
+    ParseFloat,
     Math1,
     /// `(op, f64, f64) -> f64`, op indexes `lower::math::MATH2`.
     Math2,
