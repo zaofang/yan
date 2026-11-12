@@ -11,7 +11,7 @@ import os
 import tarfile
 from pathlib import Path
 
-REPO = "atbraz/yan-lang"
+REPO = "zaofang/yan"
 BOTTLES = {
     ("macos", "arm"): "aarch64-apple-darwin",
     ("macos", "intel"): "x86_64-apple-darwin",

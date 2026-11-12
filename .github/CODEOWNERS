@@ -1,9 +1,9 @@
 # Human-owned paths: Antonio's review is required (enable "Require review from Code Owners").
-/tests/                @atbraz
-/conformance/          @atbraz
-/spec/                 @atbraz
-/rfcs/                 @atbraz
-/.github/              @atbraz
-/tools/guard.py        @atbraz
-/CLAUDE.md             @atbraz
-/SPEC_QUESTIONS.md     @atbraz
+/tests/                @amteb
+/conformance/          @amteb
+/spec/                 @amteb
+/rfcs/                 @amteb
+/.github/              @amteb
+/tools/guard.py        @amteb
+/CLAUDE.md             @amteb
+/SPEC_QUESTIONS.md     @amteb

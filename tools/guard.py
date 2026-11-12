@@ -10,7 +10,7 @@ import sys
 
 PROTECTED = ("tests/", "conformance/")
 AGENT_BRANCH_PREFIXES = ("agent/", "claude/")
-LEAD = "atbraz"
+LEAD = "amteb"
 LEAD_ID = "119127935"  # immutable: survives the login rename and cannot be squatted
 
 

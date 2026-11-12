@@ -4,7 +4,7 @@
 #
 #   runners.sh list
 #   runners.sh [--apply] retire                     stop services and deregister every runner found
-#   runners.sh [--apply] register --url https://github.com/zaofang/yan-lang [--labels L] [--prefix P]
+#   runners.sh [--apply] register --url https://github.com/zaofang/yan [--labels L] [--prefix P]
 #                                                   re-register every runner found against a new URL
 #
 # Needs `gh` authenticated as an owner/admin of the target (fine-grained PAT: Administration rw on

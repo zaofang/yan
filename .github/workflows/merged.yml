@@ -14,7 +14,7 @@ jobs:
   note:
     # Fork PRs get a read-only token, so the comment step could only fail.
     if: github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - name: Comment on referenced issues and append to the #449 log
         env:
