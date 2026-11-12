@@ -219,6 +219,12 @@ pub enum RtFn {
     Pown,
     Pow,
     /// `(op, f64) -> f64`, op indexes `lower::math::MATH1`.
+    /// `(f64, i64) -> f64`
+    Ldexp,
+    /// `(f64) -> f64`, the mantissa of `frexp`.
+    FrexpM,
+    /// `(f64) -> i64`, the exponent of `frexp`.
+    FrexpE,
     Math1,
     /// `(op, f64, f64) -> f64`, op indexes `lower::math::MATH2`.
     Math2,
