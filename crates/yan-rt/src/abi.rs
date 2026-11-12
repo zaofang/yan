@@ -424,6 +424,29 @@ pub unsafe extern "C" fn yan_rt_repr(s: *const String) -> *mut String {
 /// # Safety
 /// `s` is a `Str` block.
 #[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_grapheme_count(s: *const String) -> i64 {
+    // SAFETY: the caller's contract.
+    crate::text::grapheme_count(unsafe { &*s }) as i64
+}
+
+/// Part `i` (0 before, 1 separator, 2 after) of `s` partitioned at `sep`, as a new `Str` block.
+///
+/// # Safety
+/// `s` and `sep` are `Str` blocks.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_partition(
+    s: *const String,
+    sep: *const String,
+    i: i64,
+) -> *mut String {
+    // SAFETY: the caller's contract.
+    let (a, m, b) = crate::text::partition(unsafe { &*s }, unsafe { &*sep });
+    str_block([a, m, b][i as usize])
+}
+
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_char_count(s: *const String) -> i64 {
     // SAFETY: the caller's contract.
     unsafe { &*s }.chars().count() as i64

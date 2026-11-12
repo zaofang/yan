@@ -433,6 +433,23 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(RtFn::CharCount, I64, vec![s]);
                 set(self, r);
             }
+            (id::STD_TEXT_GRAPHEME_COUNT, [(_, a)]) => {
+                let s = self.scalar1(a)?;
+                let r = self.rt(RtFn::GraphemeCount, I64, vec![s]);
+                set(self, r);
+            }
+            (id::STD_TEXT_PARTITION, [(_, a), (_, sep)]) => {
+                let (s, sep) = (self.scalar1(a)?, self.scalar1(sep)?);
+                let parts = (0..3)
+                    .map(|i| {
+                        let args = vec![s.clone(), sep.clone(), Operand::Int(i)];
+                        self.rt(RtFn::StrPartition, Ty::Ptr, args)
+                    })
+                    .collect();
+                if let Some(d) = &dst {
+                    self.copy_to(&d.locals.clone(), parts);
+                }
+            }
             (id::STD_TEXT_BYTE_LEN, [(_, a)]) => {
                 let s = self.scalar1(a)?;
                 let r = self.rt(RtFn::ByteLen, I64, vec![s]);
