@@ -10,6 +10,7 @@ mod collections;
 mod consts;
 mod contracts;
 mod entry;
+mod ordering;
 mod pattern;
 mod shape;
 mod show;

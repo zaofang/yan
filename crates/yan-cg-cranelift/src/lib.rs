@@ -695,6 +695,7 @@ const RT: &[RtFn] = &[
     RtFn::HeapPop,
     RtFn::HeapPushPop,
     RtFn::HeapSort,
+    RtFn::ListReverse,
     RtFn::StrSlice,
     RtFn::ListSlice,
     RtFn::Select,
@@ -1241,6 +1242,12 @@ fn rt_fn(
         RtFn::EnvFree => (
             "yan_rt_free_env",
             abi::yan_rt_free_env as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ListReverse => (
+            "yan_rt_list_reverse",
+            abi::yan_rt_list_reverse as *const u8,
             &[I64],
             None,
         ),

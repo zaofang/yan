@@ -260,6 +260,7 @@ pub enum RtFn {
     HeapPushPop,
     /// `(List, schema)`: sort ascending in place.
     HeapSort,
+    ListReverse,
     /// `(Str, 3 x (tag, value)) -> Str`: the chars picked by a slice (N50).
     StrSlice,
     /// `(List, 3 x (tag, value)) -> List`: the elements picked, shallow-copied.
