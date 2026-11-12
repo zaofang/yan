@@ -74,6 +74,12 @@ struct Parser {
     self_ty: Option<Type>,
     /// Syntax nodes as token index ranges, for the lossless tree (R995).
     nodes: Vec<(Kind, usize, usize)>,
+    /// N45: statements a simple statement's multi-`for` comprehensions were rewritten to, which
+    /// run before it.
+    hoisted: Vec<Stmt>,
+    /// Reading a simple statement, where a multi-`for` comprehension can be hoisted.
+    in_simple: bool,
+    comps: usize,
 }
 
 /// Parse a `.yag` file. The module is `None` only when the lexer stopped early.
@@ -93,6 +99,9 @@ pub fn parse_with_syntax(src: &str, strict: bool) -> (Option<Module>, Vec<Issue>
         lifted: Vec::new(),
         self_ty: None,
         nodes: Vec::new(),
+        hoisted: Vec::new(),
+        in_simple: false,
+        comps: 0,
     };
     let m = (!lexed.fatal).then(|| {
         p.check_names();
@@ -1116,6 +1125,7 @@ impl Parser {
         let mut out = Vec::new();
         while !matches!(self.tok(), Tok::Dedent | Tok::Eof) {
             if let Some(s) = self.stmt()? {
+                out.append(&mut self.hoisted);
                 out.push(s);
             }
         }
@@ -1571,11 +1581,13 @@ impl Parser {
                 stmts: self.stmts_until_dedent()?,
             });
         }
-        let s = self.simple()?;
+        let s = self.simple_stmt()?;
         self.expect_newline()?;
+        let mut stmts = std::mem::take(&mut self.hoisted);
+        stmts.push(s);
         Ok(Block {
             inline: true,
-            stmts: vec![s],
+            stmts,
         })
     }
 
@@ -1790,7 +1802,7 @@ impl Parser {
                 }
             }
             _ => {
-                let s = self.simple()?;
+                let s = self.simple_stmt()?;
                 self.expect_newline()?;
                 return Ok(Some(s));
             }
@@ -1806,6 +1818,13 @@ impl Parser {
     fn par_expr_follows(&self) -> bool {
         let n = if self.is_kw_at(1, "concurrent") { 2 } else { 1 };
         self.is_op_at(n, "[") || self.is_op_at(n, "{")
+    }
+
+    fn simple_stmt(&mut self) -> P<Stmt> {
+        let outer = std::mem::replace(&mut self.in_simple, true);
+        let s = self.simple();
+        self.in_simple = outer;
+        s
     }
 
     fn simple(&mut self) -> P<Stmt> {
@@ -2488,6 +2507,14 @@ impl Parser {
         } else {
             None
         };
+        if self.is_kw("for")
+            && !self.strict
+            && self.in_simple
+            && par.is_none()
+            && matches!(kind, CompKind::List)
+        {
+            return self.multi_for(elem, (target, iter, cond.map(|c| *c)), span);
+        }
         if self.is_kw("for") {
             self.error("E107", span, "a comprehension has exactly one `for` clause");
             while !matches!(
@@ -2510,6 +2537,77 @@ impl Parser {
             span,
             paren: false,
         })
+    }
+
+    /// N45: the list comprehension `[e for a in A for b in B ...]` as nested `for` statements that
+    /// fill a fresh name, hoisted before the statement; the comprehension reads as that name.
+    fn multi_for(
+        &mut self,
+        elem: Expr,
+        first: (Vec<Name>, Expr, Option<Expr>),
+        span: Span,
+    ) -> P<Expr> {
+        let mut clauses = vec![first];
+        while self.eat_kw("for") {
+            let target = self.target()?;
+            self.expect_kw("in")?;
+            let iter = self.disj()?;
+            let cond = if self.eat_kw("if") {
+                Some(self.disj()?)
+            } else {
+                None
+            };
+            clauses.push((target, iter, cond));
+        }
+        self.comps += 1;
+        let name = format!("_comp{}", self.comps);
+        self.note("N45", span, "nested comprehension rewritten as loops");
+        let mk = |kind| Expr {
+            kind,
+            span,
+            paren: false,
+        };
+        let var = || mk(ExprKind::Name(name.clone()));
+        let (init, fill) = (ExprKind::List(Vec::new()), method(var(), "append", elem));
+        let mut body = Stmt { kind: fill, span };
+        for (target, iter, cond) in clauses.into_iter().rev() {
+            let mut inner = vec![body];
+            if let Some(c) = cond {
+                inner = vec![Stmt {
+                    kind: StmtKind::If {
+                        arms: vec![(
+                            c,
+                            Block {
+                                inline: false,
+                                stmts: inner,
+                            },
+                        )],
+                        els: None,
+                    },
+                    span,
+                }];
+            }
+            body = Stmt {
+                kind: StmtKind::For {
+                    label: None,
+                    target,
+                    iter,
+                    contracts: Vec::new(),
+                    body: inner,
+                },
+                span,
+            };
+        }
+        self.hoisted.push(Stmt {
+            kind: StmtKind::Assign {
+                target: var(),
+                ty: None,
+                value: mk(init),
+            },
+            span,
+        });
+        self.hoisted.push(body);
+        Ok(var())
     }
 
     fn atom(&mut self) -> P<Expr> {
@@ -2728,6 +2826,9 @@ impl Parser {
             lifted: Vec::new(),
             self_ty: None,
             nodes: Vec::new(),
+            hoisted: Vec::new(),
+            in_simple: false,
+            comps: 0,
         };
         let r = sub.expr();
         self.issues.append(&mut sub.issues);
@@ -2748,4 +2849,24 @@ fn option(t: Type) -> Type {
         path: vec!["Option".into()],
         args: vec![TArg::Type(t)],
     }
+}
+
+/// `receiver.name(arg)` as a statement.
+fn method(receiver: Expr, name: &str, arg: Expr) -> StmtKind {
+    let span = arg.span;
+    let callee = Expr {
+        kind: ExprKind::Attr(Box::new(receiver), name.to_owned(), span),
+        span,
+        paren: false,
+    };
+    let arg = Arg {
+        name: None,
+        span,
+        kind: ArgKind::Expr(arg),
+    };
+    StmtKind::Expr(Expr {
+        kind: ExprKind::Call(Box::new(callee), vec![arg]),
+        span,
+        paren: false,
+    })
 }
