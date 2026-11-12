@@ -758,19 +758,28 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     /// The closure inside a `key: Callable | None` argument; a run-time `None` panics `value`.
     fn key_closure(&mut self, key: &y::Atom) -> R<Vec<Operand>> {
+        Ok(self.key_fn(key)?.0)
+    }
+
+    /// As `key_closure`, with the shape of the keys it returns.
+    pub(super) fn key_fn(&mut self, key: &y::Atom) -> R<(Vec<Operand>, Shape)> {
         let (v, shape) = self.atom_any(key)?;
-        let Some((tag, at, _)) = shape.variant("Some") else {
+        let Some((tag, at, fs)) = shape.variant("Some") else {
             return unsupported("a `key` argument of this type");
         };
+        let Some((_, Shape::Fn(_, ret))) = fs.first() else {
+            return unsupported("a `key` argument of this type");
+        };
+        let ret = (**ret).clone();
         let some = self.scalar_op(ScalarOp::Eq, I64, vec![v[0].clone(), Operand::Int(tag)]);
         let (go, bad) = self.branch(some);
         self.cur = bad;
         self.finish(Term::Panic("value"));
         self.cur = go;
-        Ok(v[at..at + 2].to_vec())
+        Ok((v[at..at + 2].to_vec(), ret))
     }
 
-    fn call_closure(
+    pub(super) fn call_closure(
         &mut self,
         f: &[Operand],
         args: &[(&Shape, &Vec<Operand>)],

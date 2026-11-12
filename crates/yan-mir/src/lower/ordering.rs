@@ -75,7 +75,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 };
                 let x = self.atom(x, e)?;
                 let right = id == id::STD_LIST_BISECT_RIGHT;
-                let at = self.bisect(&name, l[0].clone(), e, x, right)?;
+                let at = self.bisect(&name, l[0].clone(), e, x, right, None)?;
                 if let Some(d) = &dst {
                     self.copy_to(&d.locals.clone(), vec![at]);
                 }
@@ -87,7 +87,36 @@ impl<'a, 'm> Fn<'a, 'm> {
                 };
                 let v = self.atom(x, e)?;
                 let ops = Self::ops(&list);
-                let at = self.bisect(&name, ops[0].clone(), e, v.clone(), true)?;
+                let at = self.bisect(&name, ops[0].clone(), e, v.clone(), true, None)?;
+                let mut args = ops;
+                args.push(at);
+                let slot = self.rt(RtFn::ListInsert, Ty::Ptr, args);
+                self.write(&At::Mem(slot, 0), v);
+            }
+            (id::STD_LIST_BISECT_LEFT | id::STD_LIST_BISECT_RIGHT, [(_, a), (_, x), (_, key)]) => {
+                let (l, s) = self.atom_any(a)?;
+                let Shape::List(e) = &s else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let kf = self.key_fn(key)?;
+                let x = self.atom(x, &kf.1)?;
+                let right = id == id::STD_LIST_BISECT_RIGHT;
+                let at = self.bisect(&name, l[0].clone(), e, x, right, Some(&kf))?;
+                if let Some(d) = &dst {
+                    self.copy_to(&d.locals.clone(), vec![at]);
+                }
+            }
+            (id::STD_LIST_INSORT, [(_, y::Atom::Name(l, _)), (_, x), (_, key)]) => {
+                let list = self.name(l)?.clone();
+                let Shape::List(e) = &list.shape else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let kf = self.key_fn(key)?;
+                let v = self.atom(x, e)?;
+                let k = self.call_closure(&kf.0, &[(e, &v)], &kf.1);
+                let ops = Self::ops(&list);
+                let at = self.bisect(&name, ops[0].clone(), e, k.clone(), true, Some(&kf))?;
+                self.glue(&kf.1, &k);
                 let mut args = ops;
                 args.push(at);
                 let slot = self.rt(RtFn::ListInsert, Ty::Ptr, args);
@@ -107,9 +136,12 @@ impl<'a, 'm> Fn<'a, 'm> {
         e: &Shape,
         x: Vec<Operand>,
         right: bool,
+        key: Option<&(Vec<Operand>, Shape)>,
     ) -> R<Operand> {
+        // `x` and the compared values have the key's shape when there is a key function.
+        let ke = key.map_or(e, |(_, ks)| ks);
         let mut schema = String::new();
-        if Self::key_schema(e, &mut schema).is_err() {
+        if Self::key_schema(ke, &mut schema).is_err() {
             return unsupported(format!("call of `{name}` on this type"));
         }
         let schema = self.lit(&schema);
@@ -139,9 +171,16 @@ impl<'a, 'm> Fn<'a, 'm> {
             self.rt(RtFn::ListAt, Ty::Ptr, vec![l.clone(), mid.clone()]),
             0,
         );
-        let m = self.read(&at, e);
-        let (mb, xb) = (self.key_buf(m), self.key_buf(x.clone()));
+        let el = self.read(&at, e);
+        let m = match key {
+            None => el,
+            Some((f, ks)) => self.call_closure(f, &[(e, &el)], ks),
+        };
+        let (mb, xb) = (self.key_buf(m.clone()), self.key_buf(x.clone()));
         let o = self.rt(RtFn::KeyCmp, I64, vec![schema, mb.clone(), xb.clone()]);
+        if key.is_some() {
+            self.glue(ke, &m);
+        }
         self.free(RtFn::EnvFree, mb);
         self.free(RtFn::EnvFree, xb);
         let bound = Operand::Int(if right { 0 } else { -1 });
