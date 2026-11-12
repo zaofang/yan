@@ -561,6 +561,44 @@ pub unsafe extern "C" fn yan_rt_str_splitlines(s: *const String) -> *mut List {
     str_list(crate::text::splitlines(unsafe { &*s }))
 }
 
+/// The slots of a new element inserted at `i`, clamped as `list.insert` does (negative counts from
+/// the end); later elements shift up. Valid until the list next grows.
+///
+/// # Safety
+/// `l` is a `List` block that nothing else borrows.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_list_insert(l: *mut List, i: i64) -> *mut u64 {
+    // SAFETY: the caller's contract.
+    let l = unsafe { &mut *l };
+    let n = l.data.len().checked_div(l.words).unwrap_or(0);
+    let at = crate::list::insert_at(i.into(), n) * l.words;
+    l.data.splice(at..at, std::iter::repeat_n(0, l.words));
+    l.data[at..].as_mut_ptr()
+}
+
+/// A new list of elements `i..j`, shallow-copied; panics when out of range.
+///
+/// # Safety
+/// `l` is a `List` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_list_slice_exact(l: *const List, i: i64, j: i64) -> *mut List {
+    // SAFETY: the caller's contract.
+    let l = unsafe { &*l };
+    let w = l.words;
+    let n = l.data.len().checked_div(w).unwrap_or(0);
+    let (Ok(x), Ok(y)) = (usize::try_from(i), usize::try_from(j)) else {
+        panic("bounds")
+    };
+    if x > y || y > n {
+        panic("bounds");
+    }
+    leak(List {
+        words: w,
+        data: l.data[x * w..y * w].to_vec(),
+        limit: -1,
+    })
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_ldexp(x: f64, n: i64) -> f64 {
     crate::math::ldexp(x, n.into())

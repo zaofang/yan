@@ -710,6 +710,8 @@ const RT: &[RtFn] = &[
     RtFn::Base64Decode,
     RtFn::EncodingErrorShow,
     RtFn::KeyCmp,
+    RtFn::ListInsert,
+    RtFn::ListSliceExact,
     RtFn::Math1,
     RtFn::Math2,
     RtFn::Copysign,
@@ -1172,6 +1174,18 @@ fn rt_fn(
         RtFn::KeyCmp => (
             "yan_rt_key_cmp",
             map::yan_rt_key_cmp as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::ListInsert => (
+            "yan_rt_list_insert",
+            abi::yan_rt_list_insert as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::ListSliceExact => (
+            "yan_rt_list_slice_exact",
+            abi::yan_rt_list_slice_exact as *const u8,
             &[I64, I64, I64],
             Some(I64),
         ),

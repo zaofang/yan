@@ -614,6 +614,37 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let at = self.rt(RtFn::ListPush, Ty::Ptr, Self::ops(&list));
                 self.write(&At::Mem(at, 0), v);
             }
+            (id::STD_LIST_INSERT, [(_, y::Atom::Name(l, _)), (_, i), (_, x)]) => {
+                let list = self.name(l)?.clone();
+                let Shape::List(e) = &list.shape else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let i = self.scalar1(i)?;
+                let v = self.atom(x, e)?;
+                let mut args = Self::ops(&list);
+                args.push(i);
+                let at = self.rt(RtFn::ListInsert, Ty::Ptr, args);
+                self.write(&At::Mem(at, 0), v);
+            }
+            (id::STD_LIST_SLICE_EXACT, [(_, a), (_, i), (_, j)]) => {
+                let (v, s) = self.atom_any(a)?;
+                let Shape::List(e) = &s else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let (i, j) = (self.scalar1(i)?, self.scalar1(j)?);
+                let l = self.rt(RtFn::ListSliceExact, Ty::Ptr, vec![v[0].clone(), i, j]);
+                if Self::has_heap(e) {
+                    let n = self.rt(RtFn::ListLen, I64, vec![l.clone()]);
+                    self.each(n, |me, i| {
+                        let at = At::Mem(me.rt(RtFn::ListAt, Ty::Ptr, vec![l.clone(), i]), 0);
+                        let ev = me.read(&at, e);
+                        let c = me.clone_value(ev, e)?;
+                        me.write(&at, c);
+                        Ok(())
+                    })?;
+                }
+                set(self, l);
+            }
             // An `iter` is its list, its cursor in the `limit` slot.
             (id::STD_LIST_ITER, [(conv, a)]) => {
                 let (_, s) = self.atom_any(a)?;
