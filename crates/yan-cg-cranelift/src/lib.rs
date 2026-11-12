@@ -739,6 +739,8 @@ const RT: &[RtFn] = &[
     RtFn::ParseFloat,
     RtFn::Math1,
     RtFn::Math2,
+    RtFn::Rounded,
+    RtFn::DotExact,
     RtFn::Copysign,
     RtFn::IsNan,
     RtFn::IsInf,
@@ -1356,6 +1358,18 @@ fn rt_fn(
             "yan_rt_math1",
             abi::yan_rt_math1 as *const u8,
             &[I64, F64],
+            Some(F64),
+        ),
+        RtFn::DotExact => (
+            "yan_rt_dot_exact",
+            abi::yan_rt_dot_exact as *const u8,
+            &[I64, I64, I64],
+            Some(F64),
+        ),
+        RtFn::Rounded => (
+            "yan_rt_rounded",
+            abi::yan_rt_rounded as *const u8,
+            &[I64, I64, F64, F64, F64],
             Some(F64),
         ),
         RtFn::Math2 => (

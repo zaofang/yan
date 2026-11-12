@@ -1,5 +1,7 @@
 //! Nearest-rounded `std.math` kernels called by index; the order is `yan_rt::math::MATH1`/`MATH2`.
 
+use crate::Operand;
+use yan_core::ast as y;
 use yan_std::registry::Id;
 use yan_std::registry::id::*;
 
@@ -51,3 +53,25 @@ pub(super) static MATH2: &[Id] = &[
     STD_MATH_REMAINDER,
     STD_MATH_DIV,
 ];
+
+/// The `yan_rt::math::rounded` op and operand count of a `std.math` function with a `Round` mode.
+pub(super) fn rounded_op(id: Id) -> Option<(i128, usize)> {
+    Some(match id {
+        STD_MATH_ADD => (0, 2),
+        STD_MATH_SUB => (1, 2),
+        STD_MATH_MUL => (2, 2),
+        STD_MATH_DIV => (3, 2),
+        STD_MATH_FMA => (4, 3),
+        STD_MATH_SQRT => (5, 1),
+        _ => return None,
+    })
+}
+
+/// The tag of a literal `math.Round` variant.
+pub(super) fn round_tag(a: &y::Atom) -> Option<Operand> {
+    let y::Atom::Name(n, _) = a else { return None };
+    let tag = ["NearestEven", "Up", "Down", "TowardZero"]
+        .iter()
+        .position(|v| v == n)?;
+    Some(Operand::Int(tag as i128))
+}
