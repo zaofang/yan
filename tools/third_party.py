@@ -13,21 +13,26 @@ import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
+
+Package = dict[str, Any]
 
 OUT = Path("THIRD_PARTY.md")
 ROOT_PACKAGE = "yan-cli"
 NOTICE_PREFIXES = ("LICENSE", "LICENCE", "COPYING", "NOTICE", "UNLICENSE")
 
 
-def metadata() -> dict:
+def metadata() -> Package:
     cmd = [
         "cargo", "metadata", "--locked", "--format-version", "1",
         "--filter-platform", "x86_64-unknown-linux-gnu",
     ]  # fmt: skip
-    return json.loads(subprocess.run(cmd, capture_output=True, check=True, text=True).stdout)
+    out = subprocess.run(cmd, capture_output=True, check=True, text=True).stdout
+    meta: Package = json.loads(out)
+    return meta
 
 
-def linked(meta: dict) -> list[dict]:
+def linked(meta: Package) -> list[Package]:
     by_id = {p["id"]: p for p in meta["packages"]}
     nodes = {n["id"]: n for n in meta["resolve"]["nodes"]}
     root = next(p["id"] for p in meta["packages"] if p["name"] == ROOT_PACKAGE)
@@ -46,7 +51,7 @@ def linked(meta: dict) -> list[dict]:
     )
 
 
-def notice_files(pkg: dict) -> list[Path]:
+def notice_files(pkg: Package) -> list[Path]:
     root = Path(pkg["manifest_path"]).parent
     files = [
         f for f in root.iterdir() if f.is_file() and f.name.upper().startswith(NOTICE_PREFIXES)
@@ -54,7 +59,7 @@ def notice_files(pkg: dict) -> list[Path]:
     return sorted(files)
 
 
-def render(pkgs: list[dict]) -> str:
+def render(pkgs: list[Package]) -> str:
     texts: dict[str, list[str]] = defaultdict(list)
     lines = [
         "# Third-party software",
