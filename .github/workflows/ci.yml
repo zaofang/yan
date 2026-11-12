@@ -95,6 +95,8 @@ jobs:
       - run: uv run pytest -q tools/selftest
       - run: uv run python tools/rows.py check
       - run: uv run python -m tools.lint_reports
+      - run: uv run python -m tools.names_lint
+      - run: uv run python -m tools.line_ratchet
 
   # The Lean model of the core (RFC 0022): it builds, and it agrees with the interpreter.
   formal:
@@ -170,9 +172,9 @@ jobs:
       - run: >-
           uv run python tools/conform.py --laws --json laws-summary.json
           --executor interp=${{ github.workspace }}/target/release/yan
-      # DL5 differential run: report-only until native parity (#758) makes it blocking.
+      # DL5 differential run: blocks on any unexplained diff; refusals stay reported until native parity (#758).
       - run: >-
-          uv run python -m tools.difftest --report-only --json difftest-summary.json
+          uv run python -m tools.difftest --json difftest-summary.json
           --yan ${{ github.workspace }}/target/release/yan
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
