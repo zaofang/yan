@@ -42,3 +42,9 @@ a separate PR.
 ## Conduct and security
 
 See `CODE_OF_CONDUCT.md` and `SECURITY.md`.
+
+## Merging
+
+`main` is protected by a ruleset (`.github/rulesets/main.json`): `guard`, `canary`, `check`, `formal`, `rust` and
+`signoff` must pass, with no bypass. A red check is fixed, never merged over. Apply it with
+`gh api -X POST repos/zaofang/yan/rulesets --input .github/rulesets/main.json`.
