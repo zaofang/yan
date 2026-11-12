@@ -656,6 +656,36 @@ pub extern "C" fn yan_rt_math2(op: i64, x: f64, y: f64) -> f64 {
     crate::math::MATH2[op as usize](x, y)
 }
 
+/// # Safety
+/// `xs` is a `List` block of floats; `ys` is one too, or null for a plain sum.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_dot_exact(xs: *const List, ys: *const List, mode: i64) -> f64 {
+    let floats = |l: *const List| -> Vec<f64> {
+        // SAFETY: the caller's contract.
+        unsafe { &*l }
+            .data
+            .iter()
+            .map(|w| f64::from_bits(*w))
+            .collect()
+    };
+    let xs = floats(xs);
+    let terms: Vec<(f64, f64)> = if ys.is_null() {
+        xs.into_iter().map(|x| (x, 1.0)).collect()
+    } else {
+        let ys = floats(ys);
+        if xs.len() != ys.len() {
+            panic("value");
+        }
+        xs.into_iter().zip(ys).collect()
+    };
+    crate::math::dot(terms.into_iter(), crate::math::mode_of(mode))
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_rounded(op: i64, mode: i64, x: f64, y: f64, z: f64) -> f64 {
+    crate::math::rounded(op, mode, x, y, z)
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_pown(x: f64, n: i64) -> f64 {
     crate::math::pown(x, n.into())

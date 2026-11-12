@@ -545,6 +545,34 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(RtFn::Math2, Ty::F64, vec![Operand::Int(op), x, y]);
                 set(self, r);
             }
+            (_, [xs @ .., (_, round)])
+                if math::rounded_op(id).is_some_and(|(_, n)| xs.len() == n)
+                    && math::round_tag(round).is_some() =>
+            {
+                let (op, _) = math::rounded_op(id).unwrap_or((0, 0));
+                let mode = math::round_tag(round).unwrap_or(Operand::Int(0));
+                let mut ops = vec![Operand::Int(op), mode];
+                for (_, a) in xs {
+                    ops.push(self.scalar1(a)?);
+                }
+                ops.resize(5, Operand::F64(0.0));
+                let r = self.rt(RtFn::Rounded, Ty::F64, ops);
+                set(self, r);
+            }
+            (id::STD_MATH_SUM_EXACT | id::STD_MATH_DOT_EXACT, [lists @ .., (_, round)])
+                if lists.len() == if id == id::STD_MATH_SUM_EXACT { 1 } else { 2 }
+                    && math::round_tag(round).is_some() =>
+            {
+                let mode = math::round_tag(round).unwrap_or(Operand::Int(0));
+                let mut ops = Vec::new();
+                for (_, a) in lists {
+                    ops.push(self.scalar1(a)?);
+                }
+                ops.resize(2, Operand::Int(0));
+                ops.push(mode);
+                let r = self.rt(RtFn::DotExact, Ty::F64, ops);
+                set(self, r);
+            }
             (id::STD_MATH_LDEXP, [(_, x), (_, n)]) => {
                 let (x, n) = (self.scalar1(x)?, self.scalar1(n)?);
                 let r = self.rt(RtFn::Ldexp, Ty::F64, vec![x, n]);
