@@ -181,6 +181,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.path_call(id, c, dst);
         }
+        if [id::STD_PRELUDE_MIN, id::STD_PRELUDE_MAX].contains(&id) {
+            return self.prelude_extreme(id, c, dst);
+        }
         if [
             id::STD_ITER_OPS_COUNT,
             id::STD_ITER_OPS_SUM,
