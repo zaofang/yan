@@ -231,6 +231,14 @@ pub enum RtFn {
     StrSplitLines,
     /// `(str) -> bytes`
     BytesOfStr,
+    PathNew,
+    PathOp,
+    PathWith,
+    PathJoin,
+    PathIsAbsolute,
+    PathStartsWith,
+    PathRelativeTo,
+    PathParts,
     /// `(list[uint8]) -> bytes`
     BytesFromList,
     /// `(bytes)`
@@ -498,6 +506,12 @@ impl RtFn {
                 | RtFn::HexDecode
                 | RtFn::BytesSlice
                 | RtFn::BytesOfStr
+                | RtFn::PathNew
+                | RtFn::PathOp
+                | RtFn::PathWith
+                | RtFn::PathJoin
+                | RtFn::PathRelativeTo
+                | RtFn::PathParts
                 | RtFn::BytesFromList
                 | RtFn::BytesCopy
                 | RtFn::BytesConcat

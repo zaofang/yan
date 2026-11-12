@@ -121,6 +121,28 @@ impl<'a, 'm> Fn<'a, 'm> {
             return Ok(());
         }
         if [
+            id::STD_PRELUDE_PATH,
+            id::STD_TEXT_AS_PATH,
+            id::STD_PATH_AS_PATH,
+            id::STD_PATH_TEXT,
+            id::STD_PATH_PARENT,
+            id::STD_PATH_NAME,
+            id::STD_PATH_SUFFIX,
+            id::STD_PATH_STEM,
+            id::STD_PATH_NORMALIZE,
+            id::STD_PATH_WITH_NAME,
+            id::STD_PATH_WITH_SUFFIX,
+            id::STD_PATH_JOIN,
+            id::STD_PATH_IS_ABSOLUTE,
+            id::STD_PATH_STARTS_WITH,
+            id::STD_PATH_PARTS,
+            id::STD_PATH_RELATIVE_TO,
+        ]
+        .contains(&id)
+        {
+            return self.path_call(id, c, dst);
+        }
+        if [
             id::STD_ITER_OPS_COUNT,
             id::STD_ITER_OPS_SUM,
             id::STD_ITER_OPS_SUM_FLOAT,
@@ -744,7 +766,8 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let (y, sy) = self.atom_any(b)?;
                 // A `Node` is its id (R403).
                 let node = cluster::std_type("Node");
-                let text = |s: &Shape| *s == Shape::Str || Some(s) == node.as_ref();
+                let text =
+                    |s: &Shape| matches!(s, Shape::Str | Shape::Path) || Some(s) == node.as_ref();
                 if sx != sy {
                     return unsupported(format!("call of `{name}` on this type"));
                 }

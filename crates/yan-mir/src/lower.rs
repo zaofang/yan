@@ -14,6 +14,7 @@ mod entry;
 mod iter;
 mod math;
 mod ordering;
+mod path;
 mod pattern;
 mod shape;
 mod show;
@@ -992,6 +993,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Shape::Scalar(_)
                 | Shape::Str
                 | Shape::Bytes
+                | Shape::Path
                 | Shape::List(_)
                 | Shape::Map(..)
                 | Shape::Heap(_)

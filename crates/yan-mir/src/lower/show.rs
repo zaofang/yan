@@ -38,6 +38,11 @@ impl<'a, 'm> Fn<'a, 'm> {
                 return unsupported("`show` of a `Duration`");
             }
             Shape::Bytes => self.rt(RtFn::BytesRepr, Ty::Ptr, vec![v[0].clone()]),
+            // A path prints as its text, also inside a container.
+            Shape::Path => {
+                let empty = self.lit("");
+                self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])
+            }
             Shape::Str if nested => self.rt(RtFn::Repr, Ty::Ptr, vec![v[0].clone()]),
             Shape::Str => {
                 let empty = self.lit("");
@@ -244,7 +249,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
         Ok(match s {
             Shape::Scalar(_) => v,
-            Shape::Str => {
+            Shape::Str | Shape::Path => {
                 let empty = self.lit("");
                 vec![self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])]
             }
@@ -332,6 +337,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(Ty::Unit) => out.push('n'),
             Shape::Str => out.push('s'),
             Shape::Bytes => out.push('y'),
+            Shape::Path => out.push('p'),
             Shape::Tuple(ss) => {
                 out.push('(');
                 for s in ss {
