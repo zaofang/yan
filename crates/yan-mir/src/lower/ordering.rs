@@ -59,6 +59,27 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(())
     }
 
+    /// `a == b` of a record, tuple or sum of scalars and strs: the runtime compares the two
+    /// elements' slots by their schema, as `heap` orders them.
+    pub(super) fn key_eq(
+        &mut self,
+        shape: &Shape,
+        a: Vec<Operand>,
+        b: Vec<Operand>,
+        name: &str,
+    ) -> R<Operand> {
+        let mut schema = String::new();
+        if Self::key_schema(shape, &mut schema).is_err() {
+            return unsupported(format!("call of `{name}` on this type"));
+        }
+        let schema = self.lit(&schema);
+        let (a, b) = (self.key_buf(a), self.key_buf(b));
+        let r = self.rt(RtFn::KeyEq, Ty::Bool, vec![schema, a.clone(), b.clone()]);
+        self.free(RtFn::EnvFree, a);
+        self.free(RtFn::EnvFree, b);
+        Ok(r)
+    }
+
     fn sort_list(&mut self, shape: &Shape, list: Operand, reverse: bool) -> R<()> {
         let Shape::List(e) = shape else {
             return unsupported("a sort of a non-list");

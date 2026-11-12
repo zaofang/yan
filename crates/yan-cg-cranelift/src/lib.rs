@@ -695,6 +695,7 @@ const RT: &[RtFn] = &[
     RtFn::HeapPop,
     RtFn::HeapPushPop,
     RtFn::HeapSort,
+    RtFn::KeyEq,
     RtFn::ListReverse,
     RtFn::StrSlice,
     RtFn::ListSlice,
@@ -1028,6 +1029,12 @@ fn rt_fn(
             pq::yan_rt_heap_up as *const u8,
             &[I64, I64],
             None,
+        ),
+        RtFn::KeyEq => (
+            "yan_rt_key_eq",
+            map::yan_rt_key_eq as *const u8,
+            &[I64, I64, I64],
+            Some(I8),
         ),
         RtFn::HeapFix => (
             "yan_rt_heap_fix",
