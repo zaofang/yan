@@ -325,12 +325,12 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
         assert_eq!(codes(src, false), [("N45".into(), 2, 12)]);
         let out = print(&parse("t.yag", src, false).0.unwrap());
         assert!(
-            out.contains("_comp1 = []")
+            out.contains("comp_1 = []")
                 && out.contains("for x in xs:")
                 && out.contains("if x > 0:")
                 && out.contains("for y in ys:")
-                && out.contains("_comp1.append(x * y)")
-                && out.contains("return _comp1"),
+                && out.contains("comp_1.append(x * y)")
+                && out.contains("return comp_1"),
             "{out}"
         );
         // Strict keeps E107, and so does a comprehension in a condition.

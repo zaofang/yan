@@ -2560,7 +2560,7 @@ impl Parser {
             clauses.push((target, iter, cond));
         }
         self.comps += 1;
-        let name = format!("_comp{}", self.comps);
+        let name = format!("comp_{}", self.comps);
         self.note("N45", span, "nested comprehension rewritten as loops");
         let mk = |kind| Expr {
             kind,
