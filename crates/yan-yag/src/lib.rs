@@ -320,6 +320,26 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
     }
 
     #[test]
+    fn a_multi_for_list_comprehension_becomes_loops() {
+        let src = "def f(xs: list[int], ys: list[int]) -> list[int]:\n    return [x * y for x in xs if x > 0 for y in ys]\n";
+        assert_eq!(codes(src, false), [("N45".into(), 2, 12)]);
+        let out = print(&parse("t.yag", src, false).0.unwrap());
+        assert!(
+            out.contains("_comp1 = []")
+                && out.contains("for x in xs:")
+                && out.contains("if x > 0:")
+                && out.contains("for y in ys:")
+                && out.contains("_comp1.append(x * y)")
+                && out.contains("return _comp1"),
+            "{out}"
+        );
+        // Strict keeps E107, and so does a comprehension in a condition.
+        assert_eq!(codes(src, true)[0].0, "E107");
+        let cond = "def f(xs: list[int]) -> int:\n    if len([x for x in xs for y in xs]) > 1:\n        return 1\n    return 0\n";
+        assert_eq!(codes(cond, false)[0].0, "E107");
+    }
+
+    #[test]
     fn loose_ex_moves_into_the_function_above() {
         let src =
             "def f(n: int) -> int:\n    \"\"\"Doc.\"\"\"\n    ...\n\nex f(1) == 1\nex f(2) == 2\n";
