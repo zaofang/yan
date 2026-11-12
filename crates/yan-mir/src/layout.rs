@@ -75,7 +75,7 @@ fn plain(size: u64, align: u64) -> Layout {
 
 /// Whether the type has an invalid all-zero bit pattern that a sum can use as a tag.
 fn has_null_niche(s: &Shape) -> bool {
-    matches!(s, Shape::Str | Shape::List(_))
+    matches!(s, Shape::Str | Shape::Bytes | Shape::List(_))
 }
 
 pub fn layout(s: &Shape) -> Layout {
@@ -85,6 +85,7 @@ pub fn layout(s: &Shape) -> Layout {
             plain(size, align)
         }
         Shape::Str
+        | Shape::Bytes
         | Shape::List(_)
         | Shape::Map(..)
         | Shape::Heap(_)

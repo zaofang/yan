@@ -21,7 +21,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
-use yan_rt::{abi, actor, chan, cluster, dq, map, pq, sched, select, slice};
+use yan_rt::{abi, actor, bytes, chan, cluster, dq, map, pq, sched, select, slice};
 
 type R<T> = Result<T, String>;
 
@@ -686,6 +686,18 @@ const RT: &[RtFn] = &[
     RtFn::FrexpE,
     RtFn::StrSplit,
     RtFn::StrSplitLines,
+    RtFn::BytesOfStr,
+    RtFn::BytesFromList,
+    RtFn::BytesFree,
+    RtFn::BytesCopy,
+    RtFn::BytesLen,
+    RtFn::BytesConcat,
+    RtFn::BytesToList,
+    RtFn::BytesStarts,
+    RtFn::BytesEnds,
+    RtFn::BytesHex,
+    RtFn::BytesLossy,
+    RtFn::BytesRepr,
     RtFn::Math1,
     RtFn::Math2,
     RtFn::Copysign,
@@ -1004,6 +1016,78 @@ fn rt_fn(
         RtFn::StrSplitLines => (
             "yan_rt_str_splitlines",
             abi::yan_rt_str_splitlines as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::BytesOfStr => (
+            "yan_rt_bytes_of_str",
+            bytes::yan_rt_bytes_of_str as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::BytesFromList => (
+            "yan_rt_bytes_from_list",
+            bytes::yan_rt_bytes_from_list as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::BytesFree => (
+            "yan_rt_bytes_free",
+            bytes::yan_rt_bytes_free as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::BytesCopy => (
+            "yan_rt_bytes_copy",
+            bytes::yan_rt_bytes_copy as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::BytesLen => (
+            "yan_rt_bytes_len",
+            bytes::yan_rt_bytes_len as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::BytesConcat => (
+            "yan_rt_bytes_concat",
+            bytes::yan_rt_bytes_concat as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::BytesToList => (
+            "yan_rt_bytes_to_list",
+            bytes::yan_rt_bytes_to_list as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::BytesStarts => (
+            "yan_rt_bytes_starts_with",
+            bytes::yan_rt_bytes_starts_with as *const u8,
+            &[I64, I64],
+            Some(I8),
+        ),
+        RtFn::BytesEnds => (
+            "yan_rt_bytes_ends_with",
+            bytes::yan_rt_bytes_ends_with as *const u8,
+            &[I64, I64],
+            Some(I8),
+        ),
+        RtFn::BytesHex => (
+            "yan_rt_bytes_hex",
+            bytes::yan_rt_bytes_hex as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::BytesLossy => (
+            "yan_rt_bytes_lossy",
+            bytes::yan_rt_bytes_lossy as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::BytesRepr => (
+            "yan_rt_bytes_repr",
+            bytes::yan_rt_bytes_repr as *const u8,
             &[I64],
             Some(I64),
         ),

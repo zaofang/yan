@@ -37,6 +37,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Rec(name, _) if name == "Duration" => {
                 return unsupported("`show` of a `Duration`");
             }
+            Shape::Bytes => self.rt(RtFn::BytesRepr, Ty::Ptr, vec![v[0].clone()]),
             Shape::Str if nested => self.rt(RtFn::Repr, Ty::Ptr, vec![v[0].clone()]),
             Shape::Str => {
                 let empty = self.lit("");
@@ -242,6 +243,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let empty = self.lit("");
                 vec![self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])]
             }
+            Shape::Bytes => vec![self.rt(RtFn::BytesCopy, Ty::Ptr, v)],
             Shape::List(e) | Shape::Heap(e) | Shape::Deque(e) => {
                 let l = self.rt(RtFn::ListCopy, Ty::Ptr, v);
                 if Self::has_heap(e) {
