@@ -121,6 +121,19 @@ impl<'a, 'm> Fn<'a, 'm> {
             return Ok(());
         }
         if [
+            id::STD_ITER_OPS_ENUMERATE,
+            id::STD_ITER_OPS_TAKE,
+            id::STD_ITER_OPS_SKIP,
+            id::STD_ITER_OPS_WINDOWS,
+            id::STD_ITER_OPS_CHUNKS,
+            id::STD_ITER_OPS_NEXT,
+            id::STD_ITER_OPS_COLLECT,
+        ]
+        .contains(&id)
+        {
+            return self.iter_call(id, c, dst);
+        }
+        if [
             id::STD_LIST_REVERSE,
             id::STD_LIST_SORT,
             id::STD_LIST_SORT_UNSTABLE,
@@ -688,7 +701,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.set_of(conv, a)?;
                 set(self, r);
             }
-            (id::STD_PRELUDE_LIST | id::STD_ITER_OPS_COLLECT, [(conv, a)]) => {
+            (id::STD_PRELUDE_LIST, [(conv, a)]) => {
                 let (_, s) = self.atom_any(a)?;
                 if !matches!(s, Shape::List(_)) {
                     return unsupported("`list` of a non-list");

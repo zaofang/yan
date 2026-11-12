@@ -11,6 +11,7 @@ mod consts;
 mod contracts;
 mod encoding;
 mod entry;
+mod iter;
 mod math;
 mod ordering;
 mod pattern;
