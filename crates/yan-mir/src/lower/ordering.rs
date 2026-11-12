@@ -122,9 +122,144 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let slot = self.rt(RtFn::ListInsert, Ty::Ptr, args);
                 self.write(&At::Mem(slot, 0), v);
             }
+            (
+                id::STD_LIST_SORT,
+                [
+                    (_, y::Atom::Name(l, _)),
+                    (_, key),
+                    (_, y::Atom::Lit(y::Literal::Bool(rev), _)),
+                ],
+            ) => {
+                let list = self.name(l)?.clone();
+                let Shape::List(e) = &list.shape else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let kf = self.key_fn(key)?;
+                self.sort_keyed(&name, Self::ops(&list)[0].clone(), e, &kf, *rev)?;
+            }
+            (id::STD_LIST_SORT_UNSTABLE, [(_, y::Atom::Name(l, _)), (_, key)]) => {
+                let list = self.name(l)?.clone();
+                let Shape::List(e) = &list.shape else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let kf = self.key_fn(key)?;
+                self.sort_keyed(&name, Self::ops(&list)[0].clone(), e, &kf, false)?;
+            }
+            (
+                id::STD_PRELUDE_SORTED,
+                [
+                    (_, xs),
+                    (_, key),
+                    (_, y::Atom::Lit(y::Literal::Bool(rev), _)),
+                ],
+            ) => {
+                let (_, s) = self.atom_any(xs)?;
+                let Shape::List(e) = &s else {
+                    return unsupported(format!("call of `{name}` on this iterable"));
+                };
+                let kf = self.key_fn(key)?;
+                let v = self.atom(xs, &s)?;
+                let copy = self.rt(RtFn::ListCopy, Ty::Ptr, v);
+                if Self::has_heap(e) {
+                    let n = self.rt(RtFn::ListLen, I64, vec![copy.clone()]);
+                    self.each(n, |me, i| {
+                        let at = At::Mem(me.rt(RtFn::ListAt, Ty::Ptr, vec![copy.clone(), i]), 0);
+                        let ev = me.read(&at, e);
+                        let c = me.clone_value(ev, e)?;
+                        me.write(&at, c);
+                        Ok(())
+                    })?;
+                }
+                self.sort_keyed(&name, copy.clone(), e, &kf, *rev)?;
+                if let Some(d) = &dst {
+                    self.copy_to(&d.locals.clone(), vec![copy]);
+                }
+            }
             _ => return unsupported(format!("call of `{name}`")),
         }
         Ok(())
+    }
+
+    /// A stable insertion sort of list block `l` by `key(element)`, comparing keys by schema
+    /// order; with `reverse`, equal keys still keep their order. The key closure runs on each
+    /// comparison, and each key value is freed after it.
+    fn sort_keyed(
+        &mut self,
+        name: &str,
+        l: Operand,
+        e: &Shape,
+        key: &(Vec<Operand>, Shape),
+        reverse: bool,
+    ) -> R<()> {
+        let ks = &key.1;
+        let mut schema = String::new();
+        if Self::key_schema(ks, &mut schema).is_err() {
+            return unsupported(format!("call of `{name}` with this key type"));
+        }
+        let schema = self.lit(&schema);
+        let n = self.rt(RtFn::ListLen, I64, vec![l.clone()]);
+        let j = self.local(I64);
+        self.each(n, |me, i| {
+            let at_i = At::Mem(me.rt(RtFn::ListAt, Ty::Ptr, vec![l.clone(), i.clone()]), 0);
+            let x = me.read(&at_i, e);
+            let kx = me.call_closure(&key.0, &[(e, &x)], ks);
+            me.emit(Inst::Copy {
+                dst: j,
+                src: i.clone(),
+            });
+            let head = me.block_new();
+            me.goto(head);
+            let more = me.scalar_op(ScalarOp::Ge, I64, vec![Operand::Local(j), Operand::Int(1)]);
+            let (check, place) = me.branch(more);
+            me.cur = check;
+            let prev = me.scalar_op(
+                ScalarOp::SubChecked,
+                I64,
+                vec![Operand::Local(j), Operand::Int(1)],
+            );
+            let at_p = At::Mem(me.rt(RtFn::ListAt, Ty::Ptr, vec![l.clone(), prev]), 0);
+            let p = me.read(&at_p, e);
+            let kp = me.call_closure(&key.0, &[(e, &p)], ks);
+            let (pb, xb) = (me.key_buf(kp.clone()), me.key_buf(kx.clone()));
+            let o = me.rt(
+                RtFn::KeyCmp,
+                I64,
+                vec![schema.clone(), pb.clone(), xb.clone()],
+            );
+            me.free(RtFn::EnvFree, pb);
+            me.free(RtFn::EnvFree, xb);
+            me.glue(ks, &kp);
+            // Shift while the previous key sorts after `x` (before it, when reversed).
+            let shift = if reverse {
+                me.scalar_op(ScalarOp::Le, I64, vec![o, Operand::Int(-1)])
+            } else {
+                me.scalar_op(ScalarOp::Ge, I64, vec![o, Operand::Int(1)])
+            };
+            let (go, stop) = me.branch(shift);
+            me.cur = go;
+            let at_j = At::Mem(
+                me.rt(RtFn::ListAt, Ty::Ptr, vec![l.clone(), Operand::Local(j)]),
+                0,
+            );
+            let p2 = me.read(&at_p, e);
+            me.write(&at_j, p2);
+            let down = me.scalar_op(
+                ScalarOp::SubChecked,
+                I64,
+                vec![Operand::Local(j), Operand::Int(1)],
+            );
+            me.emit(Inst::Copy { dst: j, src: down });
+            me.goto(head);
+            me.cur = stop;
+            me.goto(place);
+            let at_j = At::Mem(
+                me.rt(RtFn::ListAt, Ty::Ptr, vec![l.clone(), Operand::Local(j)]),
+                0,
+            );
+            me.write(&at_j, x);
+            me.glue(ks, &kx);
+            Ok(())
+        })
     }
 
     /// The first index of list block `l` whose element is not before `x` (`right`: not at or
