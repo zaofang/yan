@@ -1,0 +1,9 @@
+# spec: 17.3
+# rows: R769
+# stdout:
+# [('a', 1), ('b', 2)]
+
+pub def main() uses io:
+    ps = [(1, "a"), (2, "b")]
+    qs = ps.iter().map(lambda p: (p[1], p[0])).collect()
+    io.print(f"{qs}")
