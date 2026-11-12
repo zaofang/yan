@@ -181,6 +181,30 @@ pub fn exact(hw: f64, ins: &[f64], terms: &[(f64, f64)], mode: Mode) -> f64 {
     }
 }
 
+/// The `Mode` of a `math.Round` tag.
+pub fn mode_of(tag: i64) -> Mode {
+    match tag {
+        1 => Mode::Up,
+        2 => Mode::Down,
+        3 => Mode::Zero,
+        _ => Mode::Nearest,
+    }
+}
+
+/// The correctly rounded `add`, `sub`, `mul`, `div`, `fma` or `sqrt` (op 0 to 5) in the `math.Round`
+/// variant with tag `mode`.
+pub fn rounded(op: i64, mode: i64, x: f64, y: f64, z: f64) -> f64 {
+    let mode = mode_of(mode);
+    match op {
+        0 => exact(x + y, &[x, y], &[(x, 1.0), (y, 1.0)], mode),
+        1 => exact(x - y, &[x, y], &[(x, 1.0), (-y, 1.0)], mode),
+        2 => exact(x * y, &[x, y], &[(x, y)], mode),
+        3 => div(x, y, mode),
+        4 => exact(x.mul_add(y, z), &[x, y, z], &[(x, y), (z, 1.0)], mode),
+        _ => sqrt(x, mode),
+    }
+}
+
 pub fn pown(x: f64, n: i128) -> f64 {
     let r = core_math::pow(x.abs(), n as f64);
     if x.is_sign_negative() && n % 2 != 0 {

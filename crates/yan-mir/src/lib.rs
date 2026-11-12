@@ -313,6 +313,11 @@ pub enum RtFn {
     Math1,
     /// `(op, f64, f64) -> f64`, op indexes `lower::math::MATH2`.
     Math2,
+    /// `(op, mode, f64, f64, f64) -> f64`: op 0 add, 1 sub, 2 mul, 3 div, 4 fma, 5 sqrt; mode is the
+    /// `math.Round` tag (nearest, up, down, toward zero).
+    Rounded,
+    /// `(xs, ys or 0, mode) -> f64`: the exactly rounded sum, or dot product, of float lists.
+    DotExact,
     /// `(f64, f64) -> f64`
     Copysign,
     /// `(f64) -> bool`
