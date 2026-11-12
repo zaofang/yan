@@ -118,6 +118,96 @@ impl<'a, 'm> Fn<'a, 'm> {
                 advance(self, to);
                 out
             }
+            id::STD_ITER_OPS_ZIP | id::STD_ITER_OPS_CHAIN => {
+                let (bv, bs) = self.atom_any(args[1].1)?;
+                let Shape::List(f) = bs else {
+                    return unsupported(format!("call of `{name}` on this iterator"));
+                };
+                let b = bv[0].clone();
+                let bpos = self.rt(RtFn::DqMaxlen, I64, vec![b.clone()]);
+                let bpos = self.max_i64(bpos, Operand::Int(0));
+                let blen = self.rt(RtFn::ListLen, I64, vec![b.clone()]);
+                let brem =
+                    self.scalar_op(ScalarOp::SubChecked, I64, vec![blen.clone(), bpos.clone()]);
+                let zip = id == id::STD_ITER_OPS_ZIP;
+                if !zip && *f != *e {
+                    return unsupported(format!("call of `{name}` on this type"));
+                }
+                let width = if zip {
+                    e.width() + f.width()
+                } else {
+                    e.width()
+                };
+                let out = self.rt(RtFn::ListNew, Ty::Ptr, vec![Operand::Int(width as i128)]);
+                let push = |me: &mut Self, v: Vec<Operand>| {
+                    let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![out.clone()]);
+                    me.write(&At::Mem(slot, 0), v);
+                };
+                if zip {
+                    let n = self.min_i64(rem, brem);
+                    self.each(n.clone(), |me, i| {
+                        let ja = at(me, &pos, i.clone());
+                        let mut t = me.element(&l, ja, &e)?;
+                        let jb = at(me, &bpos, i);
+                        t.extend(me.element(&b, jb, &f)?);
+                        push(me, t);
+                        Ok(())
+                    })?;
+                    let (ta, tb) = (at(self, &pos, n.clone()), at(self, &bpos, n));
+                    advance(self, ta);
+                    self.emit(Inst::Rt {
+                        dst: None,
+                        f: RtFn::DqLimit,
+                        args: vec![b, tb],
+                    });
+                } else {
+                    self.each(rem, |me, i| {
+                        let j = at(me, &pos, i);
+                        let x = me.element(&l, j, &e)?;
+                        push(me, x);
+                        Ok(())
+                    })?;
+                    self.each(brem, |me, i| {
+                        let j = at(me, &bpos, i);
+                        let x = me.element(&b, j, &f)?;
+                        push(me, x);
+                        Ok(())
+                    })?;
+                    advance(self, len);
+                    self.emit(Inst::Rt {
+                        dst: None,
+                        f: RtFn::DqLimit,
+                        args: vec![b, blen],
+                    });
+                }
+                out
+            }
+            id::STD_ITER_OPS_STEP_BY => {
+                let n = self.scalar1(args[1].1)?;
+                let big = self.scalar_op(ScalarOp::Ge, I64, vec![n.clone(), Operand::Int(1)]);
+                let (ok, bad) = self.branch(big);
+                self.cur = bad;
+                self.finish(Term::Panic("value"));
+                self.cur = ok;
+                let c = self.scalar_op(ScalarOp::AddChecked, I64, vec![rem, n.clone()]);
+                let c = self.scalar_op(ScalarOp::SubChecked, I64, vec![c, Operand::Int(1)]);
+                let count = self.scalar_op(ScalarOp::FloorDiv, I64, vec![c, n.clone()]);
+                let out = self.rt(
+                    RtFn::ListNew,
+                    Ty::Ptr,
+                    vec![Operand::Int(e.width() as i128)],
+                );
+                self.each(count, |me, i| {
+                    let k = me.scalar_op(ScalarOp::MulChecked, I64, vec![i, n.clone()]);
+                    let j = at(me, &pos, k);
+                    let x = me.element(&l, j, &e)?;
+                    let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![out.clone()]);
+                    me.write(&At::Mem(slot, 0), x);
+                    Ok(())
+                })?;
+                advance(self, len);
+                out
+            }
             id::STD_ITER_OPS_WINDOWS | id::STD_ITER_OPS_CHUNKS => {
                 let n = self.scalar1(args[1].1)?;
                 let big = self.scalar_op(ScalarOp::Ge, I64, vec![n.clone(), Operand::Int(1)]);
@@ -203,5 +293,372 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.emit(Inst::Copy { dst: r, src: no });
         self.goto(join);
         Operand::Local(r)
+    }
+}
+
+impl<'a, 'm> Fn<'a, 'm> {
+    /// `map`, `filter`, `take_while`, `drop_while`, `fold`, `any`, `all`, `find`, `count`, `sum`,
+    /// `min` and `max` over the remaining items, evaluated at the call; a closure runs only for
+    /// the items its adapter pulls.
+    pub(super) fn iter_closure_call(
+        &mut self,
+        id: registry::Id,
+        c: &y::Call,
+        dst: Option<Var>,
+    ) -> R<()> {
+        let name = c.path.join(".");
+        let args = Self::value_args(c)?;
+        let Some((_, a)) = args.first() else {
+            return unsupported(format!("call of `{name}`"));
+        };
+        let (v, s) = self.atom_any(a)?;
+        let Shape::List(e) = s else {
+            return unsupported(format!("call of `{name}` on this iterator"));
+        };
+        let e = *e;
+        let l = v[0].clone();
+        let pos = self.rt(RtFn::DqMaxlen, I64, vec![l.clone()]);
+        let pos = self.max_i64(pos, Operand::Int(0));
+        let len = self.rt(RtFn::ListLen, I64, vec![l.clone()]);
+        let rem = self.scalar_op(ScalarOp::SubChecked, I64, vec![len.clone(), pos.clone()]);
+        let advance = |me: &mut Self| {
+            me.emit(Inst::Rt {
+                dst: None,
+                f: RtFn::DqLimit,
+                args: vec![l.clone(), len.clone()],
+            });
+        };
+        let set = |me: &mut Self, v: Vec<Operand>| {
+            if let Some(d) = &dst {
+                me.copy_to(&d.locals.clone(), v);
+            }
+        };
+        let item = |me: &mut Self, i: Operand| -> R<Vec<Operand>> {
+            let j = me.scalar_op(ScalarOp::AddChecked, I64, vec![pos.clone(), i]);
+            me.element(&l, j, &e)
+        };
+        let boolean = Shape::Scalar(Ty::Bool);
+        match id {
+            id::STD_ITER_OPS_COUNT => {
+                advance(self);
+                set(self, vec![rem]);
+            }
+            id::STD_ITER_OPS_SUM | id::STD_ITER_OPS_SUM_FLOAT => {
+                let (zero, op, ty) = match &e {
+                    Shape::Scalar(t) if *t == I64 => (Operand::Int(0), ScalarOp::AddChecked, I64),
+                    Shape::Scalar(Ty::F64) => (Operand::F64(0.0), ScalarOp::Add, Ty::F64),
+                    _ => return unsupported(format!("call of `{name}` on this type")),
+                };
+                let acc = self.local(ty);
+                self.emit(Inst::Copy {
+                    dst: acc,
+                    src: zero,
+                });
+                self.each(rem, |me, i| {
+                    let x = item(me, i)?;
+                    let sum = me.scalar_op(op, ty, vec![Operand::Local(acc), x[0].clone()]);
+                    me.emit(Inst::Copy { dst: acc, src: sum });
+                    Ok(())
+                })?;
+                advance(self);
+                set(self, vec![Operand::Local(acc)]);
+            }
+            id::STD_ITER_OPS_MIN | id::STD_ITER_OPS_MAX => {
+                let Some(d) = &dst else {
+                    return Ok(());
+                };
+                if !matches!(&e, Shape::Scalar(t) if *t == I64)
+                    || !matches!(args.get(1), Some((_, y::Atom::Name(n, _))) if n == "None")
+                {
+                    return unsupported(format!("call of `{name}` on this type"));
+                }
+                let ds = d.shape.clone();
+                let best = self.local(I64);
+                let have = self.local(I64);
+                self.emit(Inst::Copy {
+                    dst: have,
+                    src: Operand::Int(0),
+                });
+                let max = id == id::STD_ITER_OPS_MAX;
+                self.each(rem, |me, i| {
+                    let x = item(me, i)?;
+                    let first = me.scalar_op(
+                        ScalarOp::Eq,
+                        I64,
+                        vec![Operand::Local(have), Operand::Int(0)],
+                    );
+                    let (init, rest) = me.branch(first);
+                    let next = me.block_new();
+                    me.cur = init;
+                    me.emit(Inst::Copy {
+                        dst: best,
+                        src: x[0].clone(),
+                    });
+                    me.emit(Inst::Copy {
+                        dst: have,
+                        src: Operand::Int(1),
+                    });
+                    me.goto(next);
+                    me.cur = rest;
+                    // Replace when `x` is strictly better.
+                    let keep = if max {
+                        me.scalar_op(ScalarOp::Le, I64, vec![x[0].clone(), Operand::Local(best)])
+                    } else {
+                        me.scalar_op(ScalarOp::Ge, I64, vec![x[0].clone(), Operand::Local(best)])
+                    };
+                    let (skip, take) = me.branch(keep);
+                    me.cur = take;
+                    me.emit(Inst::Copy {
+                        dst: best,
+                        src: x[0].clone(),
+                    });
+                    me.goto(next);
+                    me.cur = skip;
+                    me.goto(next);
+                    Ok(())
+                })?;
+                advance(self);
+                let some = self.scalar_op(
+                    ScalarOp::Eq,
+                    I64,
+                    vec![Operand::Local(have), Operand::Int(1)],
+                );
+                let (yes, no) = self.branch(some);
+                let join = self.block_new();
+                self.cur = yes;
+                set(
+                    self,
+                    Self::variant_value(&ds, "Some", vec![Operand::Local(best)]),
+                );
+                self.goto(join);
+                self.cur = no;
+                set(self, Self::variant_value(&ds, "None", vec![]));
+                self.goto(join);
+            }
+            id::STD_ITER_OPS_MAP => {
+                let Some(d) = &dst else {
+                    return Ok(());
+                };
+                let Shape::List(u) = d.shape.clone() else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let f = self.atom(args[1].1, &Shape::Fn(vec![e.clone()], u.clone()))?;
+                let out = self.rt(
+                    RtFn::ListNew,
+                    Ty::Ptr,
+                    vec![Operand::Int(u.width() as i128)],
+                );
+                self.each(rem, |me, i| {
+                    let x = item(me, i)?;
+                    let r = me.call_closure(&f, &[(&e, &x)], &u);
+                    me.glue(&e, &x);
+                    let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![out.clone()]);
+                    me.write(&At::Mem(slot, 0), r);
+                    Ok(())
+                })?;
+                advance(self);
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::DqLimit,
+                    args: vec![out.clone(), Operand::Int(0)],
+                });
+                set(self, vec![out]);
+            }
+            id::STD_ITER_OPS_FILTER | id::STD_ITER_OPS_TAKE_WHILE | id::STD_ITER_OPS_DROP_WHILE => {
+                let f = self.atom(
+                    args[1].1,
+                    &Shape::Fn(vec![e.clone()], Box::new(boolean.clone())),
+                )?;
+                let out = self.rt(
+                    RtFn::ListNew,
+                    Ty::Ptr,
+                    vec![Operand::Int(e.width() as i128)],
+                );
+                // `on`: the predicate still runs (`take_while` until it fails, `drop_while`
+                // while it holds); `filter` always runs it.
+                let on = self.local(I64);
+                self.emit(Inst::Copy {
+                    dst: on,
+                    src: Operand::Int(1),
+                });
+                self.each(rem, |me, i| {
+                    let x = item(me, i)?;
+                    let join = me.block_new();
+                    let live =
+                        me.scalar_op(ScalarOp::Eq, I64, vec![Operand::Local(on), Operand::Int(1)]);
+                    let (run, idle) = me.branch(live);
+                    me.cur = idle;
+                    // The predicate is off: `take_while` is done, `drop_while` keeps everything.
+                    if id == id::STD_ITER_OPS_DROP_WHILE {
+                        let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![out.clone()]);
+                        me.write(&At::Mem(slot, 0), x.clone());
+                    } else {
+                        me.glue(&e, &x);
+                    }
+                    me.goto(join);
+                    me.cur = run;
+                    let r = me.call_closure(&f, &[(&e, &x)], &boolean);
+                    let (pass, fail) = me.branch(r[0].clone());
+                    me.cur = pass;
+                    if id == id::STD_ITER_OPS_DROP_WHILE {
+                        me.glue(&e, &x);
+                    } else {
+                        let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![out.clone()]);
+                        me.write(&At::Mem(slot, 0), x.clone());
+                    }
+                    me.goto(join);
+                    me.cur = fail;
+                    match id {
+                        id::STD_ITER_OPS_FILTER => me.glue(&e, &x),
+                        id::STD_ITER_OPS_TAKE_WHILE => {
+                            me.emit(Inst::Copy {
+                                dst: on,
+                                src: Operand::Int(0),
+                            });
+                            me.glue(&e, &x);
+                        }
+                        _ => {
+                            me.emit(Inst::Copy {
+                                dst: on,
+                                src: Operand::Int(0),
+                            });
+                            let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![out.clone()]);
+                            me.write(&At::Mem(slot, 0), x.clone());
+                        }
+                    }
+                    me.goto(join);
+                    Ok(())
+                })?;
+                advance(self);
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::DqLimit,
+                    args: vec![out.clone(), Operand::Int(0)],
+                });
+                set(self, vec![out]);
+            }
+            id::STD_ITER_OPS_FOLD => {
+                let (init, acc_shape) = self.atom_any(args[1].1)?;
+                if Self::has_heap(&acc_shape) || Self::has_heap(&e) {
+                    return unsupported(format!("call of `{name}` on this type"));
+                }
+                let f = self.atom(
+                    args[2].1,
+                    &Shape::Fn(
+                        vec![acc_shape.clone(), e.clone()],
+                        Box::new(acc_shape.clone()),
+                    ),
+                )?;
+                let acc = self.var(acc_shape.clone());
+                self.copy_to(&acc.locals, init);
+                self.each(rem, |me, i| {
+                    let x = item(me, i)?;
+                    let cur = Self::ops(&acc);
+                    let r = me.call_closure(&f, &[(&acc_shape, &cur), (&e, &x)], &acc_shape);
+                    me.copy_to(&acc.locals, r);
+                    Ok(())
+                })?;
+                advance(self);
+                set(self, Self::ops(&acc));
+            }
+            id::STD_ITER_OPS_ANY | id::STD_ITER_OPS_ALL | id::STD_ITER_OPS_FIND => {
+                let f = self.atom(
+                    args[1].1,
+                    &Shape::Fn(vec![e.clone()], Box::new(boolean.clone())),
+                )?;
+                let find = id == id::STD_ITER_OPS_FIND;
+                let all = id == id::STD_ITER_OPS_ALL;
+                let found = self.local(I64);
+                self.emit(Inst::Copy {
+                    dst: found,
+                    src: Operand::Int(0),
+                });
+                let hit = self.var(e.clone());
+                self.each(rem, |me, i| {
+                    let x = item(me, i)?;
+                    let join = me.block_new();
+                    let open = me.scalar_op(
+                        ScalarOp::Eq,
+                        I64,
+                        vec![Operand::Local(found), Operand::Int(0)],
+                    );
+                    let (run, idle) = me.branch(open);
+                    me.cur = idle;
+                    me.glue(&e, &x);
+                    me.goto(join);
+                    me.cur = run;
+                    let r = me.call_closure(&f, &[(&e, &x)], &boolean);
+                    // `all` stops on a false, `any` and `find` on a true.
+                    let (yes, no) = me.branch(r[0].clone());
+                    let (stop, go) = if all { (no, yes) } else { (yes, no) };
+                    me.cur = stop;
+                    me.emit(Inst::Copy {
+                        dst: found,
+                        src: Operand::Int(1),
+                    });
+                    if find {
+                        me.copy_to(&hit.locals, x.clone());
+                    } else {
+                        me.glue(&e, &x);
+                    }
+                    me.goto(join);
+                    me.cur = go;
+                    me.glue(&e, &x);
+                    me.goto(join);
+                    Ok(())
+                })?;
+                advance(self);
+                let hit_any = self.scalar_op(
+                    ScalarOp::Eq,
+                    I64,
+                    vec![Operand::Local(found), Operand::Int(1)],
+                );
+                if find {
+                    let Some(d) = &dst else {
+                        return Ok(());
+                    };
+                    let ds = d.shape.clone();
+                    let (yes, no) = self.branch(hit_any);
+                    let join = self.block_new();
+                    self.cur = yes;
+                    set(self, Self::variant_value(&ds, "Some", Self::ops(&hit)));
+                    self.goto(join);
+                    self.cur = no;
+                    set(self, Self::variant_value(&ds, "None", vec![]));
+                    self.goto(join);
+                } else if all {
+                    let r = self.scalar_op(ScalarOp::Not, Ty::Bool, vec![hit_any]);
+                    set(self, vec![r]);
+                } else {
+                    set(self, vec![hit_any]);
+                }
+            }
+            _ => return unsupported(format!("call of `{name}`")),
+        }
+        Ok(())
+    }
+
+    /// `f(args)` for the closure value `f` (code, environment); the arguments stay the caller's.
+    fn call_closure(
+        &mut self,
+        f: &[Operand],
+        args: &[(&Shape, &Vec<Operand>)],
+        ret: &Shape,
+    ) -> Vec<Operand> {
+        let mut ops = vec![f[1].clone()];
+        let mut params = vec![Ty::Ptr];
+        for (s, v) in args {
+            ops.extend((*v).iter().cloned());
+            params.extend(s.tys());
+        }
+        let d = self.var(ret.clone());
+        self.emit(Inst::CallIndirect {
+            dst: d.locals.clone(),
+            code: f[0].clone(),
+            args: ops,
+            params,
+            ret: ret.tys(),
+        });
+        Self::ops(&d)
     }
 }
