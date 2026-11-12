@@ -134,6 +134,8 @@ impl Types<'_> {
                     ("Str", []) => return Ok(Shape::Str),
                     ("Bytes", []) => return Ok(Shape::Bytes),
                     ("Path", []) => return Ok(Shape::Path),
+                    // A `Rand` handler is its index in `yan_rt::rand`.
+                    ("Rand", []) => return Ok(Shape::Scalar(I64)),
                     ("char", []) => return Ok(Shape::Char),
                     // No lazy adapters natively: an `iter` from `std.itertools` is its list.
                     ("List" | "Iter", [y::TArg::Type(e)]) => {

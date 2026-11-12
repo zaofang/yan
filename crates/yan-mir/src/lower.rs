@@ -17,6 +17,7 @@ mod math;
 mod ordering;
 mod path;
 mod pattern;
+mod rand;
 mod regex;
 mod shape;
 mod show;
@@ -290,7 +291,7 @@ impl Mono<'_> {
         let sig = Sig {
             params: params(f)?
                 .into_iter()
-                .map(|(_, c, t)| Ok((c, types.shape(t)?)))
+                .map(|(_, c, t)| Ok((c, types.shape(&t)?)))
                 .collect::<R<_>>()?,
             ret: match &f.fail {
                 Some(e) => result(ok.clone(), types.shape(e)?),
@@ -307,15 +308,36 @@ impl Mono<'_> {
     }
 }
 
-fn params(f: &y::FnDef) -> R<Vec<(&str, y::Conv, &y::Type)>> {
-    f.params
+/// A `Rand` capability parameter is a real parameter in native code: the handler's index in
+/// `yan_rt::rand`. `main`'s is the OS generator, bound in its body. Other capabilities are
+/// ambient.
+fn rand_cap(p: &y::Param) -> Option<&str> {
+    match p {
+        y::Param::Cap { name, ty } if ty.path == ["Rand"] => Some(name),
+        _ => None,
+    }
+}
+
+fn rand_type() -> y::Type {
+    y::Type::Named(y::Named {
+        path: vec!["Rand".to_owned()],
+        args: Vec::new(),
+    })
+}
+
+fn params(f: &y::FnDef) -> R<Vec<(&str, y::Conv, y::Type)>> {
+    let caps = f
+        .params
         .iter()
-        .filter_map(|p| match p {
-            y::Param::Value { comptime: true, .. } => Some(unsupported("a comptime parameter")),
-            y::Param::Value { name, ty, conv, .. } => Some(Ok((name.as_str(), *conv, ty))),
-            y::Param::Cap { .. } => None,
-        })
-        .collect()
+        .filter_map(rand_cap)
+        .filter(|_| f.path != ["main"])
+        .map(|n| Some(Ok((n, y::Conv::Let, rand_type()))));
+    let values = f.params.iter().filter_map(|p| match p {
+        y::Param::Value { comptime: true, .. } => Some(unsupported("a comptime parameter")),
+        y::Param::Value { name, ty, conv, .. } => Some(Ok((name.as_str(), *conv, ty.clone()))),
+        y::Param::Cap { .. } => None,
+    });
+    caps.map(|c| c.expect("some")).chain(values).collect()
 }
 
 fn scalar_ty(name: &str) -> Option<Ty> {
@@ -552,6 +574,10 @@ struct Fn<'a, 'm> {
     cost_tokens: Vec<Operand>,
     /// The supervisor scope depth this function's `with supervisor` scopes end at (`actor.rs`).
     sup_depth: Option<Local>,
+    /// `main`'s `Rand` capabilities, bound to the OS generator.
+    os_rand: Vec<String>,
+    /// The names of `Rand` handlers, which a `par` splits per branch.
+    rands: Vec<String>,
     /// Whether the codec rejected a value of the call through `Remote` being made (`cluster.rs`).
     mismatch: Option<Local>,
 }
@@ -585,6 +611,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             costing: mono.borrow().costing,
             cost_tokens: Vec::new(),
             sup_depth: None,
+            os_rand: Vec::new(),
+            rands: Vec::new(),
             mismatch: None,
         }
     }
@@ -610,6 +638,20 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.item = item;
         let names: Vec<&str> = params(f)?.into_iter().map(|(n, ..)| n).collect();
         let body = f.body.as_ref().expect("filtered on body");
+        self.rands = f
+            .params
+            .iter()
+            .filter_map(rand_cap)
+            .map(str::to_owned)
+            .collect();
+        if f.path == ["main"] {
+            self.os_rand = f
+                .params
+                .iter()
+                .filter_map(rand_cap)
+                .map(str::to_owned)
+                .collect();
+        }
         self.flags = yan_check::drop_flags(&f.params, body);
         self.body(&f.path.join("."), &names, &f.contracts, body, Vec::new())
     }
@@ -653,6 +695,11 @@ impl<'a, 'm> Fn<'a, 'm> {
         ret.extend(sig.inout());
         self.cur = self.block_new();
         self.bind_consts()?;
+        for n in std::mem::take(&mut self.os_rand) {
+            let var = self.var(Shape::Scalar(I64));
+            self.copy_to(&var.locals.clone(), vec![Operand::Int(0)]);
+            self.names.insert(n, var);
+        }
         if let Some(env) = env {
             let mut word = 0;
             for (n, shape) in caps {
@@ -1051,16 +1098,17 @@ impl<'a, 'm> Fn<'a, 'm> {
     fn user_args(&mut self, func: FuncId, c: &y::Call) -> R<(Vec<Operand>, Vec<Local>)> {
         let args = Self::value_args(c)?;
         let sig = &self.sig(func);
-        if sig.params.len() != args.len() {
+        let params: Vec<(y::Conv, Shape)> = sig.params.clone();
+        let caps = self.rand_args(func, c)?;
+        if params.len() != caps.len() + args.len() {
             return unsupported(format!(
                 "call of `{}` with these arguments",
                 c.path.join(".")
             ));
         }
-        let params: Vec<(y::Conv, Shape)> = sig.params.clone();
-        let mut ops = Vec::new();
+        let mut ops = caps;
         let mut back = Vec::new();
-        for ((conv, a), (_, shape)) in args.into_iter().zip(&params) {
+        for ((conv, a), (_, shape)) in args.into_iter().zip(&params[ops.len()..]) {
             if conv == y::Conv::Inout {
                 let y::Atom::Name(n, _) = a else {
                     return unsupported("an `inout` literal");
@@ -1070,6 +1118,37 @@ impl<'a, 'm> Fn<'a, 'm> {
             ops.extend(self.atom(a, shape)?);
         }
         Ok((ops, back))
+    }
+
+    /// The handlers a call passes for the `Rand` capability parameters of `func`: the call's
+    /// capability arguments at the positions of those parameters.
+    fn rand_args(&mut self, func: FuncId, c: &y::Call) -> R<Vec<Operand>> {
+        let def: Option<&'m y::FnDef> = match self.mono.borrow().todo.get(func as usize) {
+            Some(Todo::Def(d)) => Some(self.mono.borrow().defs[*d]),
+            _ => None,
+        };
+        let Some(def) = def else {
+            return Ok(Vec::new());
+        };
+        let given: Vec<&String> = c
+            .args
+            .iter()
+            .filter_map(|a| match a {
+                y::Arg::Cap(n, _) => Some(n),
+                y::Arg::Value(..) => None,
+            })
+            .collect();
+        let mut out = Vec::new();
+        let caps = def
+            .params
+            .iter()
+            .filter(|p| matches!(p, y::Param::Cap { .. }));
+        for (p, n) in caps.zip(given) {
+            if rand_cap(p).is_some() && def.path != ["main"] {
+                out.extend(Self::ops(self.name(n)?));
+            }
+        }
+        Ok(out)
     }
 }
 

@@ -359,6 +359,18 @@ fn mechanical_fixes_remove_their_diagnostics() {
 }
 
 #[test]
+fn unhandled_failure_in_a_total_function_gets_the_default_template() {
+    let src = "def parse(s: str) -> int fail str:\n    if s == \"\":\n        fail \"empty\"\n    return 1\n\n\
+               def a(s: str) -> int:\n    x = parse(s)\n    return x + 1\n";
+    let (_, d) = lower(src);
+    let codes: Vec<_> = d.iter().map(|d| d.code.as_str()).collect();
+    assert_eq!(codes, ["E315"], "{d:?}");
+    assert_eq!(d[0].fixes.len(), 1, "{d:?}");
+    assert_eq!(d[0].fixes[0]["applicability"], "template");
+    assert_eq!(d[0].fixes[0]["edits"][0]["text"], "parse(s) else ...");
+}
+
+#[test]
 fn unhandled_failure_in_a_failing_function_gets_the_question_mark_fix() {
     let src = "def parse(s: str) -> int fail str:\n    if s == \"\":\n        fail \"empty\"\n    return 1\n\n\
                def a(s: str) -> int fail str:\n    x = parse(s)\n    return x + 1\n";

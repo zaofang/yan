@@ -190,6 +190,16 @@ pub enum RtFn {
     StrRepeat,
     /// `(str) -> int`, extended grapheme clusters.
     GraphemeCount,
+    /// `(seed, algorithm tag) -> handler`: a `seeded` generator, as an index in `yan_rt::rand`.
+    RandSeeded,
+    /// `(handler, k) -> handler`: the handler of branch `k` of a `par`.
+    RandSplit,
+    /// `(handler) -> u64`.
+    RandNext,
+    /// `(handler) -> f64` in `[0, 1)`.
+    RandF64,
+    /// `(handler, n) -> int` below `n > 0`.
+    RandBelow,
     /// `(str, sep, i) -> str`: part `i` (0 before, 1 separator, 2 after) of `std.text.partition`.
     StrPartition,
     /// `(Str) -> i64`
