@@ -66,6 +66,66 @@ impl<'a, 'm> Fn<'a, 'm> {
                     self.copy_to(&d.locals.clone(), vec![copy]);
                 }
             }
+            (id::STD_LIST_INDEX, [(_, a), (_, x)]) => {
+                let Some(d) = &dst else {
+                    return Ok(());
+                };
+                let (ds, locals) = (d.shape.clone(), d.locals.clone());
+                let (l, s) = self.atom_any(a)?;
+                let Shape::List(e) = &s else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let x = self.atom(x, e)?;
+                let list = l[0].clone();
+                let n = self.rt(RtFn::ListLen, I64, vec![list.clone()]);
+                let found = self.local(I64);
+                self.emit(Inst::Copy {
+                    dst: found,
+                    src: Operand::Int(-1),
+                });
+                self.each(n, |me, i| {
+                    let open = me.scalar_op(
+                        ScalarOp::Eq,
+                        I64,
+                        vec![Operand::Local(found), Operand::Int(-1)],
+                    );
+                    let (look, skip) = me.branch(open);
+                    let join = me.block_new();
+                    me.cur = look;
+                    let at = At::Mem(
+                        me.rt(RtFn::ListAt, Ty::Ptr, vec![list.clone(), i.clone()]),
+                        0,
+                    );
+                    let ev = me.read(&at, e);
+                    let hit = me.key_eq(e, ev, x.clone(), "index")?;
+                    let (yes, no) = me.branch(hit);
+                    me.cur = yes;
+                    me.emit(Inst::Copy { dst: found, src: i });
+                    me.goto(join);
+                    me.cur = no;
+                    me.goto(join);
+                    me.cur = skip;
+                    me.goto(join);
+                    me.cur = join;
+                    Ok(())
+                })?;
+                let miss = self.scalar_op(
+                    ScalarOp::Eq,
+                    I64,
+                    vec![Operand::Local(found), Operand::Int(-1)],
+                );
+                let (none, some) = self.branch(miss);
+                let join = self.block_new();
+                self.cur = none;
+                self.copy_to(&locals, Self::variant_value(&ds, "None", vec![]));
+                self.goto(join);
+                self.cur = some;
+                self.copy_to(
+                    &locals,
+                    Self::variant_value(&ds, "Some", vec![Operand::Local(found)]),
+                );
+                self.goto(join);
+            }
             (id::STD_LIST_BISECT_LEFT | id::STD_LIST_BISECT_RIGHT, [(_, a), (_, x), (_, key)])
                 if !keyed(key) =>
             {

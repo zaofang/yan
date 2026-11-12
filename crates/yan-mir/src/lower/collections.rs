@@ -655,6 +655,28 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(m)
     }
 
+    /// `range(n)` / `range(lo, hi)` as a list; empty when `hi <= lo`.
+    pub(super) fn range_list(&mut self, args: &[(y::Conv, &y::Atom)]) -> R<Operand> {
+        let ints = args
+            .iter()
+            .map(|(_, a)| self.scalar1(a))
+            .collect::<R<Vec<_>>>()?;
+        let (lo, hi) = match ints.as_slice() {
+            [hi] => (Operand::Int(0), hi.clone()),
+            [lo, hi] => (lo.clone(), hi.clone()),
+            _ => return unsupported("`range` arity"),
+        };
+        let n = self.scalar_op(ScalarOp::SubChecked, I64, vec![hi, lo.clone()]);
+        let out = self.rt(RtFn::ListNew, Ty::Ptr, vec![Operand::Int(1)]);
+        self.each(n, |me, i| {
+            let x = me.scalar_op(ScalarOp::AddChecked, I64, vec![lo.clone(), i]);
+            let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![out.clone()]);
+            me.write(&At::Mem(slot, 0), vec![x]);
+            Ok(())
+        })?;
+        Ok(out)
+    }
+
     /// `dict(pairs)`: later pairs overwrite earlier ones, keeping the first key's position.
     pub(super) fn dict_of(&mut self, conv: &y::Conv, a: &y::Atom) -> R<Operand> {
         let (_, s) = self.atom_any(a)?;
