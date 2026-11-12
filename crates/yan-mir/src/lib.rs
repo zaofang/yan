@@ -225,6 +225,10 @@ pub enum RtFn {
     FrexpM,
     /// `(f64) -> i64`, the exponent of `frexp`.
     FrexpE,
+    /// `(str, tag, str) -> List`; the separator is used when `tag` is 0, else whitespace splits.
+    StrSplit,
+    /// `(str) -> List`
+    StrSplitLines,
     Math1,
     /// `(op, f64, f64) -> f64`, op indexes `lower::math::MATH2`.
     Math2,

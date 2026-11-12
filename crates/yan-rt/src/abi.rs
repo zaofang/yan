@@ -526,6 +526,41 @@ pub extern "C" fn yan_rt_pow(x: f64, y: f64) -> f64 {
     crate::math::pow(x, y)
 }
 
+fn str_list<'a>(parts: impl Iterator<Item = &'a str>) -> *mut List {
+    let l = yan_rt_list_new(1);
+    for p in parts {
+        // SAFETY: `l` is a fresh list of one-word elements that nothing else borrows.
+        unsafe { *yan_rt_list_push(l) = str_block(p) as u64 };
+    }
+    l
+}
+
+/// # Safety
+/// `s` is a `Str` block; `sep` is one when `tag` is 0.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_split(
+    s: *const String,
+    tag: i64,
+    sep: *const String,
+) -> *mut List {
+    // SAFETY: the caller's contract.
+    let s = unsafe { &*s };
+    if tag == 0 {
+        // SAFETY: the caller's contract.
+        str_list(s.split(unsafe { &**sep }))
+    } else {
+        str_list(crate::text::split_whitespace(s))
+    }
+}
+
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_splitlines(s: *const String) -> *mut List {
+    // SAFETY: the caller's contract.
+    str_list(crate::text::splitlines(unsafe { &*s }))
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_ldexp(x: f64, n: i64) -> f64 {
     crate::math::ldexp(x, n.into())

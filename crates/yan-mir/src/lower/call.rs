@@ -483,6 +483,27 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(f, Ty::Bool, vec![x]);
                 set(self, r);
             }
+            (id::STD_TEXT_SPLITLINES, [(_, a)]) => {
+                let s = self.scalar1(a)?;
+                let r = self.rt(RtFn::StrSplitLines, Ty::Ptr, vec![s]);
+                set(self, r);
+            }
+            (id::STD_TEXT_SPLIT, [(_, a), (_, sep)]) => {
+                let s = self.scalar1(a)?;
+                let (tag, sep) = match sep {
+                    y::Atom::Name(n, _) if n == "None" => (Operand::Int(1), Operand::Int(0)),
+                    _ => {
+                        let (v, shape) = self.atom_any(sep)?;
+                        match shape {
+                            Shape::Str => (Operand::Int(0), v[0].clone()),
+                            Shape::Sum(_, vs) if vs.len() == 2 => (v[0].clone(), v[1].clone()),
+                            _ => return unsupported("`std.text.split` with this separator"),
+                        }
+                    }
+                };
+                let r = self.rt(RtFn::StrSplit, Ty::Ptr, vec![s, tag, sep]);
+                set(self, r);
+            }
             (id::STD_TEXT_INT_OF, [(_, a)]) => {
                 let s = self.scalar1(a)?;
                 let r = self.rt(RtFn::IntOf, I64, vec![s]);
