@@ -227,6 +227,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             id::STD_LIST_BISECT_LEFT,
             id::STD_LIST_BISECT_RIGHT,
             id::STD_LIST_INSORT,
+            id::STD_LIST_INDEX,
         ]
         .contains(&id)
         {
@@ -835,6 +836,10 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             (id::STD_PRELUDE_DICT, [(conv, a)]) => {
                 let r = self.dict_of(conv, a)?;
+                set(self, r);
+            }
+            (id::STD_PRELUDE_RANGE, [..]) if (1..=2).contains(&args.len()) => {
+                let r = self.range_list(&args)?;
                 set(self, r);
             }
             (id::STD_PRELUDE_LIST, [(conv, a)]) => {
