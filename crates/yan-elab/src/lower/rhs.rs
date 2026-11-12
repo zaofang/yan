@@ -473,6 +473,14 @@ impl Lower<'_, '_, '_> {
                                     whole,
                                     &fixed,
                                 );
+                            } else if let Some(whole) = self.call_span(at) {
+                                let fixed = format!("{} else ...", self.cx.text(whole));
+                                self.cx.fix(
+                                    Applicability::Template,
+                                    "handle the failure with a default",
+                                    whole,
+                                    &fixed,
+                                );
                             }
                             (Rhs::Call(c), t)
                         }

@@ -92,6 +92,11 @@ fn verify_fixes(db: &dyn Db, file: SourceFile, diags: &mut [Diagnostic]) {
         allowed.remove(i);
         let fixes = std::mem::take(&mut d.fixes);
         for mut fix in fixes {
+            // A hole is filled later (R292): only auto and choice fixes are verified.
+            if fix["applicability"] == "template" {
+                d.fixes.push(fix);
+                continue;
+            }
             let Some(text) = apply_edits(file.text(db), &fix["edits"]) else {
                 continue;
             };
