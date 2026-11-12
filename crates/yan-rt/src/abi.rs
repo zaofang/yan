@@ -527,6 +527,16 @@ pub extern "C" fn yan_rt_pow(x: f64, y: f64) -> f64 {
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_math1(op: i64, x: f64) -> f64 {
+    crate::math::MATH1[op as usize](x)
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_math2(op: i64, x: f64, y: f64) -> f64 {
+    crate::math::MATH2[op as usize](x, y)
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_pown(x: f64, n: i64) -> f64 {
     crate::math::pown(x, n.into())
 }

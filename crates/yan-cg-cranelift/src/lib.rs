@@ -681,6 +681,8 @@ const RT: &[RtFn] = &[
     RtFn::Fmod,
     RtFn::Pown,
     RtFn::Pow,
+    RtFn::Math1,
+    RtFn::Math2,
     RtFn::Copysign,
     RtFn::IsNan,
     RtFn::IsInf,
@@ -968,6 +970,18 @@ fn rt_fn(
             "yan_rt_pow",
             abi::yan_rt_pow as *const u8,
             &[F64, F64],
+            Some(F64),
+        ),
+        RtFn::Math1 => (
+            "yan_rt_math1",
+            abi::yan_rt_math1 as *const u8,
+            &[I64, F64],
+            Some(F64),
+        ),
+        RtFn::Math2 => (
+            "yan_rt_math2",
+            abi::yan_rt_math2 as *const u8,
+            &[I64, F64, F64],
             Some(F64),
         ),
         RtFn::Pown => (

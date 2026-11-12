@@ -431,6 +431,27 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(RtFn::Pow, Ty::F64, vec![x, y]);
                 set(self, r);
             }
+            (_, [(_, x), (_, y::Atom::Name(round, _))])
+                if round == "NearestEven" && math::MATH1.contains(&id) =>
+            {
+                let op = math::MATH1.iter().position(|&i| i == id).unwrap_or(0) as i128;
+                let x = self.scalar1(x)?;
+                let r = self.rt(RtFn::Math1, Ty::F64, vec![Operand::Int(op), x]);
+                set(self, r);
+            }
+            (_, [(_, x), (_, y), rest @ ..])
+                if math::MATH2.contains(&id)
+                    && match rest {
+                        [] => id == id::STD_MATH_REMAINDER,
+                        [(_, y::Atom::Name(round, _))] => round == "NearestEven",
+                        _ => false,
+                    } =>
+            {
+                let op = math::MATH2.iter().position(|&i| i == id).unwrap_or(0) as i128;
+                let (x, y) = (self.scalar1(x)?, self.scalar1(y)?);
+                let r = self.rt(RtFn::Math2, Ty::F64, vec![Operand::Int(op), x, y]);
+                set(self, r);
+            }
             // Only the default rounding, nearest-even; a directed mode is refused like the interpreter.
             (id::STD_MATH_POWN, [(_, x), (_, n), (_, y::Atom::Name(round, _))])
                 if round == "NearestEven" =>
