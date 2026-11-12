@@ -59,6 +59,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         match s {
             Shape::Scalar(_) | Shape::Actor(_) => false,
             Shape::Str
+            | Shape::Bytes
             | Shape::List(_)
             | Shape::Map(..)
             | Shape::Heap(_)
@@ -85,6 +86,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(_) | Shape::Actor(_) => {}
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str => self.free(RtFn::StrFree, v[0].clone()),
+            Shape::Bytes => self.free(RtFn::BytesFree, v[0].clone()),
             Shape::Chan(_) => self.free(RtFn::ChanDrop, v[0].clone()),
             Shape::List(e) | Shape::Heap(e) | Shape::Deque(e) => {
                 if Self::has_heap(e) {

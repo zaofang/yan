@@ -504,6 +504,43 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(RtFn::StrSplit, Ty::Ptr, vec![s, tag, sep]);
                 set(self, r);
             }
+            (
+                id::STD_TEXT_BYTES
+                | id::STD_ENCODING_FROM_LIST
+                | id::STD_ENCODING_TO_LIST
+                | id::STD_ENCODING_HEX
+                | id::STD_ENCODING_DECODE_UTF8_LOSSY,
+                [(_, a)],
+            ) => {
+                let x = self.scalar1(a)?;
+                let (f, ty) = match id {
+                    id::STD_TEXT_BYTES => (RtFn::BytesOfStr, Ty::Ptr),
+                    id::STD_ENCODING_FROM_LIST => (RtFn::BytesFromList, Ty::Ptr),
+                    id::STD_ENCODING_TO_LIST => (RtFn::BytesToList, Ty::Ptr),
+                    id::STD_ENCODING_HEX => (RtFn::BytesHex, Ty::Ptr),
+                    _ => (RtFn::BytesLossy, Ty::Ptr),
+                };
+                let r = self.rt(f, ty, vec![x]);
+                set(self, r);
+            }
+            (id::STD_ENCODING_LEN, [(_, a)]) => {
+                let x = self.scalar1(a)?;
+                let r = self.rt(RtFn::BytesLen, I64, vec![x]);
+                set(self, r);
+            }
+            (
+                id::STD_ENCODING_CONCAT | id::STD_ENCODING_STARTS_WITH | id::STD_ENCODING_ENDS_WITH,
+                [(_, a), (_, b)],
+            ) => {
+                let (x, y) = (self.scalar1(a)?, self.scalar1(b)?);
+                let (f, ty) = match id {
+                    id::STD_ENCODING_CONCAT => (RtFn::BytesConcat, Ty::Ptr),
+                    id::STD_ENCODING_STARTS_WITH => (RtFn::BytesStarts, Ty::Bool),
+                    _ => (RtFn::BytesEnds, Ty::Bool),
+                };
+                let r = self.rt(f, ty, vec![x, y]);
+                set(self, r);
+            }
             (id::STD_TEXT_INT_OF, [(_, a)]) => {
                 let s = self.scalar1(a)?;
                 let r = self.rt(RtFn::IntOf, I64, vec![s]);

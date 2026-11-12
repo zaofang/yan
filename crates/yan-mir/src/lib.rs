@@ -229,6 +229,30 @@ pub enum RtFn {
     StrSplit,
     /// `(str) -> List`
     StrSplitLines,
+    /// `(str) -> bytes`
+    BytesOfStr,
+    /// `(list[uint8]) -> bytes`
+    BytesFromList,
+    /// `(bytes)`
+    BytesFree,
+    /// `(bytes) -> bytes`
+    BytesCopy,
+    /// `(bytes) -> int`
+    BytesLen,
+    /// `(bytes, bytes) -> bytes`
+    BytesConcat,
+    /// `(bytes) -> list[uint8]`
+    BytesToList,
+    /// `(bytes, bytes) -> bool`
+    BytesStarts,
+    /// `(bytes, bytes) -> bool`
+    BytesEnds,
+    /// `(bytes) -> str`
+    BytesHex,
+    /// `(bytes) -> str`
+    BytesLossy,
+    /// `(bytes) -> str`, CPython's repr (R584).
+    BytesRepr,
     Math1,
     /// `(op, f64, f64) -> f64`, op indexes `lower::math::MATH2`.
     Math2,
@@ -435,6 +459,14 @@ impl RtFn {
                 | RtFn::ShowF64
                 | RtFn::ShowBool
                 | RtFn::Repr
+                | RtFn::BytesOfStr
+                | RtFn::BytesFromList
+                | RtFn::BytesCopy
+                | RtFn::BytesConcat
+                | RtFn::BytesToList
+                | RtFn::BytesHex
+                | RtFn::BytesLossy
+                | RtFn::BytesRepr
                 | RtFn::ListNew
                 | RtFn::ListPush
                 | RtFn::ListCopy

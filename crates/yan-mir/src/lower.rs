@@ -988,6 +988,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             (
                 Shape::Scalar(_)
                 | Shape::Str
+                | Shape::Bytes
                 | Shape::List(_)
                 | Shape::Map(..)
                 | Shape::Heap(_)

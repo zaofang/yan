@@ -7,6 +7,8 @@ use super::*;
 pub enum Shape {
     Scalar(Ty),
     Str,
+    /// A `bytes` value: a block holding a `Vec<u8>` (`yan_rt::bytes`).
+    Bytes,
     List(Box<Shape>),
     /// A `dict`: a block of entries in insertion order (`yan_rt::map`).
     Map(Box<Shape>, Box<Shape>),
@@ -33,6 +35,7 @@ impl Shape {
         match self {
             Shape::Scalar(t) => out.push(*t),
             Shape::Str
+            | Shape::Bytes
             | Shape::List(_)
             | Shape::Map(..)
             | Shape::Heap(_)
@@ -123,6 +126,7 @@ impl Types<'_> {
                 let name = n.path[0].as_str();
                 match (name, n.args.as_slice()) {
                     ("Str", []) => return Ok(Shape::Str),
+                    ("Bytes", []) => return Ok(Shape::Bytes),
                     // No lazy adapters natively: an `iter` from `std.itertools` is its list.
                     ("List" | "Iter", [y::TArg::Type(e)]) => {
                         return Ok(Shape::List(Box::new(self.shape_in(e, stack)?)));

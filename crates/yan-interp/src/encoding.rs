@@ -2,6 +2,8 @@
 
 use std::rc::Rc;
 
+use yan_rt::bytes::hex;
+pub(super) use yan_rt::bytes::repr;
 use yan_std::registry::{Id, id::*};
 
 use super::bind::{Bind, bad_args};
@@ -48,28 +50,6 @@ fn byte(v: &Value) -> u8 {
         Int(i) => *i as u8,
         _ => unreachable!("a uint8"),
     }
-}
-
-/// CPython's repr of a byte string, always single-quoted (R584).
-pub(super) fn repr(b: &[u8]) -> String {
-    let mut s = String::from("b'");
-    for &c in b {
-        match c {
-            b'\\' => s.push_str("\\\\"),
-            b'\'' => s.push_str("\\'"),
-            b'\t' => s.push_str("\\t"),
-            b'\n' => s.push_str("\\n"),
-            b'\r' => s.push_str("\\r"),
-            0x20..=0x7e => s.push(c as char),
-            _ => s.push_str(&format!("\\x{c:02x}")),
-        }
-    }
-    s.push('\'');
-    s
-}
-
-fn hex(b: &[u8]) -> String {
-    b.iter().map(|c| format!("{c:02x}")).collect()
 }
 
 fn hex_decode(s: &str) -> Result<Value, Value> {
