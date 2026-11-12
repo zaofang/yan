@@ -158,7 +158,7 @@ pub enum Inst {
 pub enum RtFn {
     /// `(Str)`
     Print,
-    /// `(Str)`: the shown failure of `main` on stderr, then exit status 1; does not return.
+    /// `(Str, i64)`: the shown failure of `main` on stderr, then that exit status; does not return.
     FailMain,
     /// `() -> Str`, a null pointer at end of input
     ReadLine,
