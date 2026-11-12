@@ -69,6 +69,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                     me.rt(RtFn::Base64Decode, Ty::Ptr, vec![x, url])
                 })
             }
+            id::STD_PRELUDE_CHR => {
+                let bad = self.rt(RtFn::ChrCheck, I64, vec![x.clone()]);
+                self.encoding_result(&dst, bad, "Scalar", |_| x)
+            }
             id::STD_ENCODING_DECODE_UTF8 => {
                 let bad = self.rt(RtFn::Utf8Check, I64, vec![x.clone()]);
                 self.encoding_result(&dst, bad, "Utf8", |me| {

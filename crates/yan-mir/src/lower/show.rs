@@ -39,6 +39,15 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             Shape::Bytes => self.rt(RtFn::BytesRepr, Ty::Ptr, vec![v[0].clone()]),
             // A path prints as its text, also inside a container.
+            Shape::Char => {
+                let s = self.rt(RtFn::CharStr, Ty::Ptr, vec![v[0].clone()]);
+                if !nested {
+                    return Ok(s);
+                }
+                let r = self.rt(RtFn::Repr, Ty::Ptr, vec![s.clone()]);
+                self.free(RtFn::StrFree, s);
+                r
+            }
             Shape::Path => {
                 let empty = self.lit("");
                 self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])
@@ -248,7 +257,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             return Ok(v);
         }
         Ok(match s {
-            Shape::Scalar(_) => v,
+            Shape::Scalar(_) | Shape::Char => v,
             Shape::Str | Shape::Path => {
                 let empty = self.lit("");
                 vec![self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])]
@@ -338,6 +347,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Str => out.push('s'),
             Shape::Bytes => out.push('y'),
             Shape::Path => out.push('p'),
+            Shape::Char => out.push_str("u32"),
             Shape::Tuple(ss) => {
                 out.push('(');
                 for s in ss {

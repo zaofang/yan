@@ -84,6 +84,7 @@ pub fn layout(s: &Shape) -> Layout {
             let (size, align) = scalar(*t);
             plain(size, align)
         }
+        Shape::Char => plain(8, 8),
         Shape::Str
         | Shape::Bytes
         | Shape::Path

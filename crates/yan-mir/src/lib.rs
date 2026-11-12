@@ -231,6 +231,13 @@ pub enum RtFn {
     StrSplitLines,
     /// `(str) -> bytes`
     BytesOfStr,
+    CharStr,
+    StrChars,
+    CharAt,
+    CharPred,
+    StrPred,
+    StrCount,
+    ChrCheck,
     PathNew,
     PathOp,
     PathWith,
@@ -506,6 +513,8 @@ impl RtFn {
                 | RtFn::HexDecode
                 | RtFn::BytesSlice
                 | RtFn::BytesOfStr
+                | RtFn::CharStr
+                | RtFn::StrChars
                 | RtFn::PathNew
                 | RtFn::PathOp
                 | RtFn::PathWith

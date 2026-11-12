@@ -21,7 +21,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
-use yan_rt::{abi, actor, bytes, chan, cluster, dq, map, pathabi, pq, sched, select, slice};
+use yan_rt::{abi, actor, bytes, chan, chars, cluster, dq, map, pathabi, pq, sched, select, slice};
 
 type R<T> = Result<T, String>;
 
@@ -687,6 +687,13 @@ const RT: &[RtFn] = &[
     RtFn::StrSplit,
     RtFn::StrSplitLines,
     RtFn::BytesOfStr,
+    RtFn::CharStr,
+    RtFn::StrChars,
+    RtFn::CharAt,
+    RtFn::CharPred,
+    RtFn::StrPred,
+    RtFn::StrCount,
+    RtFn::ChrCheck,
     RtFn::PathNew,
     RtFn::PathOp,
     RtFn::PathWith,
@@ -1178,6 +1185,48 @@ fn rt_fn(
         RtFn::PathParts => (
             "yan_rt_path_parts",
             pathabi::yan_rt_path_parts as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::CharStr => (
+            "yan_rt_char_str",
+            chars::yan_rt_char_str as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::StrChars => (
+            "yan_rt_str_chars",
+            chars::yan_rt_str_chars as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::CharAt => (
+            "yan_rt_char_at",
+            chars::yan_rt_char_at as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::CharPred => (
+            "yan_rt_char_pred",
+            chars::yan_rt_char_pred as *const u8,
+            &[I64, I64],
+            Some(I8),
+        ),
+        RtFn::StrPred => (
+            "yan_rt_str_pred",
+            chars::yan_rt_str_pred as *const u8,
+            &[I64, I64],
+            Some(I8),
+        ),
+        RtFn::StrCount => (
+            "yan_rt_str_count",
+            chars::yan_rt_str_count as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::ChrCheck => (
+            "yan_rt_chr_check",
+            chars::yan_rt_chr_check as *const u8,
             &[I64],
             Some(I64),
         ),

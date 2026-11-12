@@ -11,6 +11,8 @@ pub enum Shape {
     Bytes,
     /// A `Path`: a `Str` block of normalized text, ordered by its parts.
     Path,
+    /// A `char`: its code point in one word.
+    Char,
     List(Box<Shape>),
     /// A `dict`: a block of entries in insertion order (`yan_rt::map`).
     Map(Box<Shape>, Box<Shape>),
@@ -36,6 +38,7 @@ impl Shape {
     pub(super) fn slots(&self, out: &mut Vec<Ty>) {
         match self {
             Shape::Scalar(t) => out.push(*t),
+            Shape::Char => out.push(I64),
             Shape::Str
             | Shape::Bytes
             | Shape::Path
@@ -131,6 +134,7 @@ impl Types<'_> {
                     ("Str", []) => return Ok(Shape::Str),
                     ("Bytes", []) => return Ok(Shape::Bytes),
                     ("Path", []) => return Ok(Shape::Path),
+                    ("char", []) => return Ok(Shape::Char),
                     // No lazy adapters natively: an `iter` from `std.itertools` is its list.
                     ("List" | "Iter", [y::TArg::Type(e)]) => {
                         return Ok(Shape::List(Box::new(self.shape_in(e, stack)?)));

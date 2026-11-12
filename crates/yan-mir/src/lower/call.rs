@@ -121,6 +121,29 @@ impl<'a, 'm> Fn<'a, 'm> {
             return Ok(());
         }
         if [
+            id::STD_TEXT_CHARS,
+            id::STD_TEXT_ITER,
+            id::STD_TEXT_CHAR_AT,
+            id::STD_PRELUDE_ORD,
+            id::STD_TEXT_COUNT,
+            id::STD_TEXT_IS_DIGIT,
+            id::STD_TEXT_IS_ALPHA,
+            id::STD_TEXT_IS_ALNUM,
+            id::STD_TEXT_IS_UPPER,
+            id::STD_TEXT_IS_LOWER,
+            id::STD_TEXT_IS_SPACE,
+            id::STD_TEXT_ISDIGIT,
+            id::STD_TEXT_ISALPHA,
+            id::STD_TEXT_ISALNUM,
+            id::STD_TEXT_ISUPPER,
+            id::STD_TEXT_ISLOWER,
+            id::STD_TEXT_ISSPACE,
+        ]
+        .contains(&id)
+        {
+            return self.chars_call(id, c, dst);
+        }
+        if [
             id::STD_PRELUDE_PATH,
             id::STD_TEXT_AS_PATH,
             id::STD_PATH_AS_PATH,
@@ -192,6 +215,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
         if [
             id::STD_ENCODING_DECODE_UTF8,
+            id::STD_PRELUDE_CHR,
             id::STD_ENCODING_HEX_DECODE,
             id::STD_ENCODING_BASE64_DECODE,
         ]
