@@ -511,10 +511,14 @@ impl<'a, 'm> Fn<'a, 'm> {
                 // A `Node` is its id (R403).
                 let node = cluster::std_type("Node");
                 let text = |s: &Shape| *s == Shape::Str || Some(s) == node.as_ref();
-                if !text(&sx) || sx != sy {
+                if sx != sy {
                     return unsupported(format!("call of `{name}` on this type"));
                 }
-                let mut r = self.rt(RtFn::StrEq, Ty::Bool, vec![x[0].clone(), y[0].clone()]);
+                let mut r = if text(&sx) {
+                    self.rt(RtFn::StrEq, Ty::Bool, vec![x[0].clone(), y[0].clone()])
+                } else {
+                    self.key_eq(&sx, x, y, &name)?
+                };
                 if id == id::STD_CMP_NE {
                     r = self.scalar_op(ScalarOp::Not, Ty::Bool, vec![r]);
                 }

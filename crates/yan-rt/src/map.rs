@@ -48,6 +48,51 @@ impl Key {
         }
     }
 
+    /// Whether the elements `a` and `b` of equal layout are equal from slot `*at`, as `==` reads
+    /// them: a NaN is not equal to anything.
+    ///
+    /// # Safety
+    /// Every `Str` slot holds a live `Str` block.
+    pub(crate) unsafe fn eq(&self, a: &[u64], b: &[u64], at: &mut usize) -> bool {
+        match self {
+            Key::Float => {
+                let eq = f64::from_bits(a[*at]) == f64::from_bits(b[*at]);
+                *at += 1;
+                eq
+            }
+            Key::Tuple(ks) | Key::Rec(_, ks) => {
+                let mut eq = true;
+                for k in ks {
+                    // Every field is read, so `at` ends past the element.
+                    // SAFETY: forwarded.
+                    eq &= unsafe { k.eq(a, b, at) };
+                }
+                eq
+            }
+            Key::Sum(vs) => {
+                if a[*at] != b[*at] {
+                    return false;
+                }
+                let tag = a[*at];
+                *at += 1;
+                let mut eq = true;
+                for (i, (_, ks)) in vs.iter().enumerate() {
+                    if i as u64 == tag {
+                        for k in ks {
+                            // SAFETY: forwarded.
+                            eq &= unsafe { k.eq(a, b, at) };
+                        }
+                    } else {
+                        *at += ks.iter().map(Key::width).sum::<usize>();
+                    }
+                }
+                eq
+            }
+            // SAFETY: forwarded.
+            _ => unsafe { self.cmp(a, b, at) }.is_eq(),
+        }
+    }
+
     /// Order the elements `a` and `b` of equal layout from slot `*at`, as `Ord` does.
     ///
     /// # Safety
@@ -163,6 +208,24 @@ impl Key {
             }
         }
         *at += 1;
+    }
+}
+
+/// Whether the element at `a` equals the one at `b`, both laid out as `schema` says.
+///
+/// # Safety
+/// `schema` is a `Str` block; `a` and `b` point to elements of its layout with live `Str` blocks.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_key_eq(schema: *const String, a: *const u64, b: *const u64) -> u8 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        let key = parse(&mut (*schema).as_str());
+        let w = key.width();
+        u8::from(key.eq(
+            std::slice::from_raw_parts(a, w),
+            std::slice::from_raw_parts(b, w),
+            &mut 0,
+        ))
     }
 }
 
