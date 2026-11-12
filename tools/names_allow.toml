@@ -1,0 +1,23 @@
+# DL12: paths where retired names may appear (history, studies, archive). Globs relative to the repo root.
+# Everything else must use the current names (see docs/naming).
+retired = ["Ben", "Fan", "Ming", "Yong", "Jian", "Xin", "Chang", "Lanting"]
+
+allow = [
+  "brand/**",
+  "spec/archive/**",
+  "spec/rows.toml",
+  "spec/appendix-a.md",
+  "spec/README.md",
+  "spec/26-*.md",
+  "docs/architecture.md",
+  "docs/research/**",
+  "docs/reports/**",
+  "docs/studies/**",
+  "docs/runbooks/**",
+  "rfcs/**",
+  "bench/r567/README.md",
+  "tools/move/**",
+  "tools/names_allow.toml",
+  "tools/names_lint.py",
+  "tools/selftest/test_names_lint.py",
+]
