@@ -13,37 +13,48 @@ pub struct Fixed {
     pub applied: usize,
 }
 
-/// The text of `src` after the first `auto` fix of each diagnostic, and how many were applied.
-/// Overlapping edits and edits whose search text no longer sits at the span are skipped.
+/// The text of `src` after the first `auto` fix of each diagnostic, and how many fixes were
+/// applied. A fix is applied whole or not at all: it is skipped when one of its edits overlaps an
+/// edit already taken (the rightmost fix wins) or its search text no longer sits at the span.
 fn pass(src: &str, diags: &[Diagnostic]) -> (String, usize) {
-    let mut edits: Vec<(Span, &str, &str)> = diags
-        .iter()
-        .filter_map(|d| d.fixes.iter().find(|f| f["applicability"] == "auto"))
-        .filter_map(|f| {
-            let e = &f["edits"][0];
-            let span = serde_json::from_value(e["span"].clone()).ok()?;
-            Some((span, e["search"].as_str()?, e["text"].as_str()?))
-        })
-        .collect();
-    edits.sort_by_key(|(s, ..)| std::cmp::Reverse((s.line, s.col)));
-    let mut text = src.to_owned();
     let starts: Vec<usize> = std::iter::once(0)
         .chain(src.match_indices('\n').map(|(i, _)| i + 1))
         .collect();
+    // Each fix as byte ranges with their replacement; `None` when an edit does not apply.
+    let mut fixes: Vec<Vec<(usize, usize, &str)>> = diags
+        .iter()
+        .filter_map(|d| d.fixes.iter().find(|f| f["applicability"] == "auto"))
+        .filter_map(|f| {
+            f["edits"]
+                .as_array()?
+                .iter()
+                .map(|e| {
+                    let span: Span = serde_json::from_value(e["span"].clone()).ok()?;
+                    let search = e["search"].as_str()?;
+                    let from = starts.get(span.line.saturating_sub(1) as usize)?
+                        + span.col.saturating_sub(1) as usize;
+                    let to = from + search.len();
+                    (src.get(from..to) == Some(search)).then_some((from, to, e["text"].as_str()?))
+                })
+                .collect()
+        })
+        .collect();
+    fixes.retain(|f| !f.is_empty());
+    fixes.sort_by_key(|f| std::cmp::Reverse(f.iter().map(|e| e.0).max()));
+    let mut taken: Vec<(usize, usize, &str)> = Vec::new();
     let mut count = 0;
-    let mut floor = usize::MAX;
-    for (span, search, replacement) in edits {
-        let Some(&start) = starts.get(span.line.saturating_sub(1) as usize) else {
-            continue;
-        };
-        let from = start + span.col.saturating_sub(1) as usize;
-        let to = from + search.len();
-        if to > floor || src.get(from..to) != Some(search) {
+    for fix in fixes {
+        let clash = |e: &(usize, usize, &str)| taken.iter().any(|t| e.0 < t.1 && t.0 < e.1);
+        if fix.iter().any(clash) {
             continue;
         }
-        text.replace_range(from..to, replacement);
-        floor = from;
+        taken.extend(fix);
         count += 1;
+    }
+    taken.sort_by_key(|e| std::cmp::Reverse(e.0));
+    let mut text = src.to_owned();
+    for (from, to, replacement) in taken {
+        text.replace_range(from..to, replacement);
     }
     (text, count)
 }
@@ -116,6 +127,25 @@ mod tests {
             pass(src, &[diag(1, 1, "zz", "X", "auto")]),
             (src.to_owned(), 0)
         );
+    }
+
+    #[test]
+    fn a_fix_with_several_edits_is_applied_whole() {
+        let src = "ab ab";
+        let spans = [(1, 1), (1, 4)].map(|(line, col)| Span {
+            line,
+            col,
+            end_line: line,
+            end_col: col + 2,
+        });
+        let mut d = Diagnostic::error("E000", "m", spans[0], "", "m");
+        d.fixes.push(serde_json::json!({
+            "title": "t", "applicability": "auto",
+            "edits": spans.map(|s| serde_json::json!({"span": s, "search": "ab", "text": "x"})),
+        }));
+        assert_eq!(pass(src, &[d.clone()]), ("x x".to_owned(), 1));
+        // One stale edit drops the whole fix.
+        assert_eq!(pass("ab zz", &[d]), ("ab zz".to_owned(), 0));
     }
 
     #[test]

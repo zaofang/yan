@@ -118,6 +118,27 @@ impl Diagnostic {
         self
     }
 
+    /// A fix that replaces the text `search` of every span in `spans` with `text`.
+    pub fn with_edits(
+        mut self,
+        applicability: Applicability,
+        title: impl Into<String>,
+        spans: &[Span],
+        search: &str,
+        text: &str,
+    ) -> Self {
+        let edits: Vec<_> = spans
+            .iter()
+            .map(|s| serde_json::json!({"span": s, "search": search, "text": text}))
+            .collect();
+        self.fixes.push(serde_json::json!({
+            "title": title.into(),
+            "applicability": applicability,
+            "edits": edits,
+        }));
+        self
+    }
+
     /// `[#n ] code path:line:col[ item:][ `quote`] message { | note } { | kind: old -> new }`
     /// (R294, R650). A label renders as the note `text at line:col`.
     pub fn render_line(&self, id: Option<usize>) -> String {
