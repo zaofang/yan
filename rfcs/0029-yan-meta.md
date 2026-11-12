@@ -1,7 +1,7 @@
 # 0029: Yan Meta, the lab and canary surface
 
 - Status: accepted (the lead accepted every decision below on 2026-11-03)
-- Research: [Yan Notation: names and real features](https://claude.ai/artifact/XwShntWVWkEzcMhkxbswiT)
+- Research: Yan Notation: names and real features
 - Rows: R776 to R786
 
 ## Summary

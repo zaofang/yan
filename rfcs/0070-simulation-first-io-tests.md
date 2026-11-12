@@ -1,7 +1,7 @@
 # 0070: Simulation-first I/O tests: `yan test --sim`
 
 - Status: draft
-- Research: [Yan tooling study: borrow and champion](https://claude.ai/artifact/SAaQdxrqitundhjM7DoBxz),
+- Research: Yan tooling study: borrow and champion,
   champion C5; tracker #1004, under #449.
 - Rows: filled in when accepted
 

@@ -1,7 +1,7 @@
 # 0004: Architecture for one core and many surfaces
 
 - Status: accepted (the lead accepted D1 to D7, and Q1 as D8, on 2026-11-01)
-- Research: [Yan architecture plan: one core, many surfaces](https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC)
+- Research: Yan architecture plan: one core, many surfaces
 - Rows: R558 to R565
 
 ## Summary

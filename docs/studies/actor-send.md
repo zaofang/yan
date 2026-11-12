@@ -4,7 +4,7 @@ Study and proposal, 2026-11-04. Docs only: no spec rows, no conformance edits, n
 Items are labelled D1, D2 and so on; none carries a row number. Everything here is non-normative until
 an RFC and accepted rows say otherwise.
 
-Brief: item F4 of the [language forums study](https://claude.ai/artifact/E8xVSw3fhTwuxFu38DqrtT).
+Brief: item F4 of the language forums study.
 Yan actors have only `call` (9.6): `h.f(args)` sends a message and suspends the caller until the
 handler returns, under a deadline. There is no fire-and-forget form. Study a one-way send: mailbox
 ordering, backpressure, failure, cancellation and its interaction with deadlines and `Timeout` (9.4,

@@ -1,7 +1,7 @@
 # 0075: Ecosystem impact testing: rerun only the dependents' tests a release changes
 
 - Status: draft
-- Research: [Yan tooling study: borrow and champion](https://claude.ai/artifact/SAaQdxrqitundhjM7DoBxz),
+- Research: Yan tooling study: borrow and champion,
   champion C10; tracker #1004, under #449.
 - Rows: filled in when accepted
 

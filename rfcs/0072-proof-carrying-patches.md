@@ -1,7 +1,7 @@
 # 0072: Proof-carrying patches: signed test evidence that `yan review` and `yan test` accept by key lookup
 
 - Status: draft
-- Research: [Yan tooling study: borrow and champion](https://claude.ai/artifact/SAaQdxrqitundhjM7DoBxz),
+- Research: Yan tooling study: borrow and champion,
   champion C7; tracker #1004, under #449.
 - Rows: filled in when accepted
 

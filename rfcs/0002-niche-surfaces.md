@@ -1,11 +1,11 @@
 # 0002: Niche surfaces
 
 - Status: accepted (the lead accepted every decision below on 2026-11-01: "Accept everything into rfcs")
-- Research: [Surface shortlist, revision 2](https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD),
-  which supersedes [Niche surfaces](https://claude.ai/artifact/KeTJFKjzLUGkq1DXDCTSdk) and
-  [Surface mock-ups with names](https://claude.ai/artifact/PH4PixndFSBKFfsRKzZrbn); background in
-  [Positioning and market gaps](https://claude.ai/artifact/5HW3yvtnC4CcdwREm5Byz3) and
-  [Novelty audit](https://claude.ai/artifact/UGAdAaZBTP4kFekXPszC1M)
+- Research: Surface shortlist, revision 2,
+  which supersedes Niche surfaces and
+  Surface mock-ups with names; background in
+  Positioning and market gaps and
+  Novelty audit
 - Rows: R536 to R550
 
 ## Summary

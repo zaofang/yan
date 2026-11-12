@@ -1,7 +1,7 @@
 # 0010: Exact integer solver and guard-aware matches
 
 - Status: accepted (the lead chose "Accept both" on 2026-11-01)
-- Research: [Theory and compiler frontier survey](https://claude.ai/artifact/YNj73yYvBWphMVzAdNLABE), items 1 and 2
+- Research: Theory and compiler frontier survey, items 1 and 2
 - Rows: R605, R606
 
 ## Summary

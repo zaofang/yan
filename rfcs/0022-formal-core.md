@@ -1,7 +1,7 @@
 # 0022: A formal model of Yan's core in Lean 4
 
 - Status: accepted (D1, D2, D3, D4)
-- Research: [Formal core study](https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y)
+- Research: Formal core study
 - Rows: R680, R764, R765
 
 ## Summary

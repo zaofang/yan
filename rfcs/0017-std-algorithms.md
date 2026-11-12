@@ -1,7 +1,7 @@
 # 0017: std algorithms
 
 - Status: accepted (the lead chose "Accept all four" on 2026-11-01)
-- Research: [Deep frontier survey: speed and capability](https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H), picks 10, 12, 13 and 14
+- Research: Deep frontier survey: speed and capability, picks 10, 12, 13 and 14
 - Rows: R629 to R632
 
 ## Summary

@@ -4,7 +4,7 @@ Study and proposal, 2026-11-04. Docs only: no spec rows, no conformance edits, n
 codes. Items are labelled D1, D2 and so on; none carries a row number. Everything here is
 non-normative until an RFC and accepted rows say otherwise.
 
-Brief: item F8 of the [language forums study](https://claude.ai/artifact/E8xVSw3fhTwuxFu38DqrtT).
+Brief: item F8 of the language forums study.
 Study extractors, patterns whose matching logic is a user function, as in Scala `unapply`, Python
 `__match_args__` and F# active patterns. Cover prior art, exhaustiveness, determinism, capabilities,
 lowering to Yan Core, and a recommendation.

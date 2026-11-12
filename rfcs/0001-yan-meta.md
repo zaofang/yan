@@ -1,10 +1,10 @@
 # 0001: Yan Meta, the third surface
 
 - Status: accepted (the lead accepted every decision below on 2026-11-01)
-- Research: [Chang 2, kitchen sink](https://claude.ai/artifact/Urz3zEhuESTobLRf8aqk2X),
-  [Chang 1, dense ASCII surface](https://claude.ai/artifact/DubBokGE1zKEpoVzwYKfAz),
-  [positional local names](https://claude.ai/artifact/V6Do54hGXcokurJ45NHF6f),
-  [research track: eight extensions](https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8)
+- Research: Chang 2, kitchen sink,
+  Chang 1, dense ASCII surface,
+  positional local names,
+  research track: eight extensions
 - Rows: R516 to R535; renamed and extended by RFC 0029 (R776 to R786)
 
 ## Summary

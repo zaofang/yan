@@ -1,7 +1,7 @@
 # 0016: Data engines
 
 - Status: accepted (the lead chose "Accept all four" on 2026-11-01)
-- Research: [Deep frontier survey: speed and capability](https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H), picks 2, 8, 9 and 16
+- Research: Deep frontier survey: speed and capability, picks 2, 8, 9 and 16
 - Rows: R625 to R628
 
 ## Summary

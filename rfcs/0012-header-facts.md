@@ -1,7 +1,7 @@
 # 0012: New facts in the header
 
 - Status: accepted (the lead chose "Accept all as normative" on 2026-11-01)
-- Research: [Theory and compiler frontier survey](https://claude.ai/artifact/YNj73yYvBWphMVzAdNLABE), items 8, 9 and 10
+- Research: Theory and compiler frontier survey, items 8, 9 and 10
 - Rows: R610 to R612
 
 ## Summary

@@ -1,7 +1,7 @@
 # 0011: Proof and test power
 
 - Status: accepted (the lead chose "Accept all three" on 2026-11-01)
-- Research: [Theory and compiler frontier survey](https://claude.ai/artifact/YNj73yYvBWphMVzAdNLABE), items 5, 6 and 7
+- Research: Theory and compiler frontier survey, items 5, 6 and 7
 - Rows: R607 to R609
 
 ## Summary

@@ -1,7 +1,7 @@
 # 0021: Error messages
 
 - Status: accepted
-- Research: [Yan error messages audit](https://claude.ai/artifact/6catGcMdztyszRmvJLoiRu)
+- Research: Yan error messages audit
 - Rows: R648 to R651
 
 ## Summary

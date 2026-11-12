@@ -1,8 +1,8 @@
 # 0031: Numeric panic operands, item-level deny, a longer cool-off, target-typed variants as a non-goal
 
 - Status: accepted (the lead accepted every decision below on 2026-11-04; rows written)
-- Research: [Language forums study](https://claude.ai/artifact/E8xVSw3fhTwuxFu38DqrtT) items F1, F3 and F7;
-  [Python Ideas and PEPs study](https://claude.ai/artifact/R1t3UGwQ9VKSaNbGjHPfVQ) items I2 and I4
+- Research: Language forums study items F1, F3 and F7;
+  Python Ideas and PEPs study items I2 and I4
 - Rows: R796 to R799
 
 ## Summary

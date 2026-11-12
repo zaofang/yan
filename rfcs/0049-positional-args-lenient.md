@@ -1,7 +1,7 @@
 # 0049: Positional arguments in the lenient reader
 
 - Status: accepted
-- Research: [R567 failure-mix study (T18)](https://claude.ai/artifact/1tUqnYo9Mds7wDV2JBruKs), item D2
+- Research: R567 failure-mix study (T18), item D2
 - Rows: R932
 
 ## Summary
