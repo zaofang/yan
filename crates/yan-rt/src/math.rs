@@ -207,6 +207,50 @@ pub fn ldexp(x: f64, n: i128) -> f64 {
     libm::scalbn(x, n.clamp(-10_000, 10_000) as i32)
 }
 
+/// Nearest-rounded unary kernels native code calls by index, in the order of `yan_mir`'s `MATH1`.
+pub static MATH1: &[fn(f64) -> f64] = &[
+    exp,
+    exp2,
+    exp10,
+    expm1,
+    exp2m1,
+    exp10m1,
+    log,
+    log2,
+    log10,
+    log1p,
+    log2p1,
+    log10p1,
+    cbrt,
+    rsqrt,
+    sin,
+    cos,
+    tan,
+    sinpi,
+    cospi,
+    tanpi,
+    asin,
+    acos,
+    atan,
+    asinpi,
+    acospi,
+    atanpi,
+    sinh,
+    cosh,
+    tanh,
+    asinh,
+    acosh,
+    atanh,
+    erf,
+    erfc,
+    lgamma,
+    tgamma,
+    |x| sqrt(x, Mode::Nearest),
+];
+
+/// Nearest-rounded binary kernels native code calls by index, in the order of `yan_mir`'s `MATH2`.
+pub static MATH2: &[fn(f64, f64) -> f64] = &[powr, hypot, atan2, atan2pi, remainder];
+
 #[cfg(test)]
 mod tests {
     use super::*;

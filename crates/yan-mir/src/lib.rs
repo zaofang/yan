@@ -218,6 +218,10 @@ pub enum RtFn {
     Fmod,
     Pown,
     Pow,
+    /// `(op, f64) -> f64`, op indexes `lower::math::MATH1`.
+    Math1,
+    /// `(op, f64, f64) -> f64`, op indexes `lower::math::MATH2`.
+    Math2,
     /// `(f64, f64) -> f64`
     Copysign,
     /// `(f64) -> bool`
