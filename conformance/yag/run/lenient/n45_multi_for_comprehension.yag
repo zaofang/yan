@@ -1,0 +1,14 @@
+# spec: 14.1, 14.4
+# rows: R930
+# note: N45 reads a list comprehension with two for clauses as nested for statements that append
+# stdout:
+# [2, 3, 4, 6, 6, 9]
+# [(2, 2), (2, 3), (3, 2), (3, 3)]
+
+pub def main() uses io:
+    xs = [1, 2, 3]
+    ys = [2, 3]
+    prods = [x * y for x in xs for y in ys if x * y > 1]
+    pairs = [(a, b) for a in ys for b in ys]
+    io.print(f"{prods}")
+    io.print(f"{pairs}")
