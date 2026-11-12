@@ -374,6 +374,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                 [(_, a)] => Some(self.atom_any(a)?.1),
                 _ => None,
             },
+            Some(id::STD_ENCODING_DECODE_UTF8) => Some(self.encoding_shape(Shape::Str)?),
+            Some(id::STD_ENCODING_BASE64_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
+            Some(id::STD_ENCODING_HEX_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
             Some(id::STD_CHAN_RECEIVER_RECV) => self.targ(c)?.map(|e| result(e, cancelled())),
             Some(id::STD_CHAN_SENDER_SEND) => Some(result(Shape::Scalar(Ty::Unit), cancelled())),
             Some(id::STD_ACTOR_RETAKE) => match c.targs.get(2) {

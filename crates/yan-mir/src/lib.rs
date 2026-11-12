@@ -261,6 +261,20 @@ pub enum RtFn {
     BytesFind,
     /// `(bytes, i, j) -> bytes`; panics out of range.
     BytesSlice,
+    /// `(bytes) -> int`: -1 when UTF-8, else the valid prefix length.
+    Utf8Check,
+    /// `(str) -> int`: -1 when valid hex, else the first fault.
+    HexCheck,
+    /// `(str) -> bytes` of a string `HexCheck` accepted.
+    HexDecode,
+    /// `(bytes, url, pad) -> str`
+    Base64,
+    /// `(str, url) -> int`: -1 when strict base64, else the first fault.
+    Base64Check,
+    /// `(str, url) -> bytes` of a string `Base64Check` accepted.
+    Base64Decode,
+    /// `(at, reason) -> str`, `invalid <kind> at <at>` (R583).
+    EncodingErrorShow,
     Math1,
     /// `(op, f64, f64) -> f64`, op indexes `lower::math::MATH2`.
     Math2,
@@ -467,6 +481,10 @@ impl RtFn {
                 | RtFn::ShowF64
                 | RtFn::ShowBool
                 | RtFn::Repr
+                | RtFn::Base64
+                | RtFn::Base64Decode
+                | RtFn::EncodingErrorShow
+                | RtFn::HexDecode
                 | RtFn::BytesSlice
                 | RtFn::BytesOfStr
                 | RtFn::BytesFromList
