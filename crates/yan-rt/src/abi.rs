@@ -527,6 +527,21 @@ pub extern "C" fn yan_rt_pow(x: f64, y: f64) -> f64 {
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_ldexp(x: f64, n: i64) -> f64 {
+    crate::math::ldexp(x, n.into())
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_frexp_m(x: f64) -> f64 {
+    crate::math::frexp(x).0
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_frexp_e(x: f64) -> i64 {
+    crate::math::frexp(x).1.into()
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_math1(op: i64, x: f64) -> f64 {
     crate::math::MATH1[op as usize](x)
 }

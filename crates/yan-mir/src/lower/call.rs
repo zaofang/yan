@@ -452,6 +452,19 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(RtFn::Math2, Ty::F64, vec![Operand::Int(op), x, y]);
                 set(self, r);
             }
+            (id::STD_MATH_LDEXP, [(_, x), (_, n)]) => {
+                let (x, n) = (self.scalar1(x)?, self.scalar1(n)?);
+                let r = self.rt(RtFn::Ldexp, Ty::F64, vec![x, n]);
+                set(self, r);
+            }
+            (id::STD_MATH_FREXP, [(_, x)]) => {
+                let x = self.scalar1(x)?;
+                let m = self.rt(RtFn::FrexpM, Ty::F64, vec![x.clone()]);
+                let e = self.rt(RtFn::FrexpE, I64, vec![x]);
+                if let Some(d) = &dst {
+                    self.copy_to(&d.locals.clone(), vec![m, e]);
+                }
+            }
             // Only the default rounding, nearest-even; a directed mode is refused like the interpreter.
             (id::STD_MATH_POWN, [(_, x), (_, n), (_, y::Atom::Name(round, _))])
                 if round == "NearestEven" =>
