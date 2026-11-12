@@ -1,6 +1,6 @@
 ## 23. Milestones and acceptance criteria
 
-A milestone is complete only when every criterion below passes in CI. Performance figures are targets. The M1 gate is the project's central bet, and its result decides whether the later milestones proceed unchanged. Dates and staffing are in the 1.0 Roadmap (https://claude.ai/artifact/3ADZraWojw9z33QdGY8GsS).
+A milestone is complete only when every criterion below passes in CI. Performance figures are targets. The M1 gate is the project's central bet, and its result decides whether the later milestones proceed unchanged. Dates and staffing are in the 1.0 Roadmap.
 
 ### P0 · Setup
 

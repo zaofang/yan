@@ -1,7 +1,7 @@
 # 0067: Semantic no-op certification in `yan review`
 
 - Status: draft
-- Research: [Yan tooling study: borrow and champion](https://claude.ai/artifact/SAaQdxrqitundhjM7DoBxz),
+- Research: Yan tooling study: borrow and champion,
   champion C2; tracker #1004, under #449.
 - Rows: filled in when accepted
 

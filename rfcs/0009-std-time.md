@@ -1,7 +1,7 @@
 # 0009: std.time
 
 - Status: accepted (the lead chose "Accept, civil time in this RFC" on 2026-11-01: D2 to D6 accepted, D1 replaced; then "Accept all (D7 to D13)" the same day)
-- Research: [Date and time](https://claude.ai/artifact/MoSWSGCoXQ4zqGm8RtKvVd) (the design behind 7.5, 11.6 and 17.5)
+- Research: Date and time (the design behind 7.5, 11.6 and 17.5)
 - Rows: R593 to R604
 
 ## Summary

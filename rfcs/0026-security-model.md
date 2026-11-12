@@ -1,7 +1,7 @@
 # 0026: Security model: unforgeable handlers, unconfined capabilities and agent confinement
 
 - Status: accepted
-- Research: [Security model: capabilities, FFI and agents](https://claude.ai/artifact/Hotw9YyR8LEvWE4GbB9gLi)
+- Research: Security model: capabilities, FFI and agents
 - Rows: R672 to R677
 
 ## Summary

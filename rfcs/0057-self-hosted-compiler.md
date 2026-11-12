@@ -1,7 +1,7 @@
 # 0057: Self-hosted compiler; Rust as the frozen stage 0
 
 - Status: accepted
-- Research: [Self-hosted Yan compiler and formal-proof plan](https://claude.ai/artifact/3TzWFi1LTaqs7ggzokFz3T) (2026-11-09, read against 82f6a33); [Bootstrapping roadmap](../docs/studies/bootstrapping.md) (2026-11-04). Tracker #851, stages #852 to #857, this RFC #858.
+- Research: Self-hosted Yan compiler and formal-proof plan (2026-11-09, read against 82f6a33); [Bootstrapping roadmap](../docs/studies/bootstrapping.md) (2026-11-04). Tracker #851, stages #852 to #857, this RFC #858.
 - Rows: R966 to R970
 
 ## Summary

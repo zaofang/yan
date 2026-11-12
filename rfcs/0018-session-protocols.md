@@ -1,7 +1,7 @@
 # 0018: Session protocols
 
 - Status: accepted (the lead chose "Accept as normative" on 2026-11-01)
-- Research: [Deep frontier survey: speed and capability](https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H), pick 18
+- Research: Deep frontier survey: speed and capability, pick 18
 - Rows: R633, R634
 
 ## Summary

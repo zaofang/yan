@@ -5,8 +5,8 @@
 | Decision | Chosen | Rejected | Reason |
 | --- | --- | --- | --- |
 | Structure | one core, two surfaces | two separate languages | one checker and one ecosystem; ecosystem size drives model performance |
-| Names (R586) | every name but Yong and Wen from 兰亭集序 (opens with 永, ends with 文): Xin 信, Chang 畅, niche names from the same text | names picked one by one; 信达雅; 文心雕龙; plain dialect words | one famous source, no sound clashes; https://claude.ai/artifact/8zD7T9QnYtNUsbF96cLHNN |
-| Names (R774) | Yan 言 for the project, core and binary; "Yan <job>" for every surface (plain Yan `.yn`, Yan Agent `.yag`), `.y` extensions, Chinese names 言 plus one character; supersedes R586 | keep Yong 永; 印 Yin; full Lanting names; two-character main names (Yanwen, Yanxin) | humble name with real idiom pairs (言文一致, 言而有信), one rule to learn, extensions kept; https://claude.ai/artifact/BHBRo7tdX5b3H4uZbQGs6o |
+| Names (R586) | every name but Yong and Wen from 兰亭集序 (opens with 永, ends with 文): Xin 信, Chang 畅, niche names from the same text | names picked one by one; 信达雅; 文心雕龙; plain dialect words | one famous source, no sound clashes; |
+| Names (R774) | Yan 言 for the project, core and binary; "Yan <job>" for every surface (plain Yan `.yn`, Yan Agent `.yag`), `.y` extensions, Chinese names 言 plus one character; supersedes R586 | keep Yong 永; 印 Yin; full Lanting names; two-character main names (Yanwen, Yanxin) | humble name with real idiom pairs (言文一致, 言而有信), one rule to learn, extensions kept; |
 | Yan Agent surface | typed Python 3.12 shape | a novel token-minimal syntax | general models score near zero on unfamiliar languages; one repair round outweighs a 12% token saving |
 | Precedence | Python's, with parentheses for confusable mixes | no precedence | rejecting `a + b * c` guarantees repair loops for no safety gain |
 | Runtime | none: scheduler, I/O waiting and allocation are capability handlers | M:N green threads; built-in event loop | systems use and Rust-parity speed |
@@ -63,7 +63,7 @@ These are non-goals for Yan Core. Yan Meta (16.6) may spell some of them as suga
 3. GPU code generation from `par for` bodies through MLIR (M4).
 4. Whether Yan Agent's remaining non-Python constructs (`uses`, `pre`, `post`, `ex`, `var`, `take`, `fail`, `&`, `from`) need the 21.6 fluency plan to reach parity with Python on pass@1.
 5. Every token-cost claim must be re-measured against the target models' own tokenizers.
-6. Behaviour-oriented concurrency (R455) was deferred past 1.0 on 2026-10-31, as a possible first-party package `@yan/boc`. E718 stays reserved for it. The study (https://claude.ai/artifact/VzrZufE1XbSHjKNVNNVsQo) found that its deterministic subset rarely beats a loop or `par for` followed by an ordered commit, and that live use needs `uses nondet`, as Mutex does. Before any adoption, seven defects need rows: no Yan Agent or Yan spelling, an undefined waiting scope, no result path to the scheduler, one cell named twice, E718 across calls, an unmeasured scheduling cost, and how a package registers waits under R396. Revisit when an M2a benchmark program needs atomic updates across several objects.
+6. Behaviour-oriented concurrency (R455) was deferred past 1.0 on 2026-10-31, as a possible first-party package `@yan/boc`. E718 stays reserved for it. The study found that its deterministic subset rarely beats a loop or `par for` followed by an ordered commit, and that live use needs `uses nondet`, as Mutex does. Before any adoption, seven defects need rows: no Yan Agent or Yan spelling, an undefined waiting scope, no result path to the scheduler, one cell named twice, E718 across calls, an unmeasured scheduling cost, and how a package registers waits under R396. Revisit when an M2a benchmark program needs atomic updates across several objects.
 
 ### 26.4 Glossary
 
@@ -92,7 +92,7 @@ These are non-goals for Yan Core. Yan Meta (16.6) may spell some of them as suga
 
 ### 26.5 Licensing, governance and trademark (R350 to R366)
 
-The owner accepted these rows on 2026-10-31 from the licensing and governance design (https://claude.ai/artifact/LzDEiynMMwg4yJeri7oUFq). They are project policy, not legal advice. Employment IP and trademark clearance MUST be settled before the repository goes public, and the repository goes public at the M0 gate.
+The owner accepted these rows on 2026-10-31 from the licensing and governance design. They are project policy, not legal advice. Employment IP and trademark clearance MUST be settled before the repository goes public, and the repository goes public at the M0 gate.
 
 | Row | Rule |
 | --- | --- |
@@ -116,7 +116,7 @@ The owner accepted these rows on 2026-10-31 from the licensing and governance de
 
 ### 26.6 Research track (R522 to R535, R554 to R557, R780 to R786)
 
-Accepted for research on 2026-11-01, not normative for 1.0. Each row names the 1.0 text it would amend if adopted; adoption takes its own RFC. The study is https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8; the Yan Meta forms waiting on each row are in RFC 0001. Rows R554 to R557 come from RFC 0003 (study https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD). Rows R780 to R786 come from RFC 0029 (study https://claude.ai/artifact/XwShntWVWkEzcMhkxbswiT). Yan Meta (16.6) spells each item first, as an experimental form that K1 rejects until the extension lands; no extension is enabled early for one surface (law 1).
+Accepted for research on 2026-11-01, not normative for 1.0. Each row names the 1.0 text it would amend if adopted; adoption takes its own RFC. The study is; the Yan Meta forms waiting on each row are in RFC 0001. Rows R554 to R557 come from RFC 0003 (study). Rows R780 to R786 come from RFC 0029 (study). Yan Meta (16.6) spells each item first, as an experimental form that K1 rejects until the extension lands; no extension is enabled early for one surface (law 1).
 
 | Row | Research item | 1.0 text it would amend |
 | --- | --- | --- |

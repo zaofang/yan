@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Research: the code survey in this RFC (main 85ca567, 2026-11-09); laws and plan in the study
-  "Yan development laws and phased plans" (https://claude.ai/artifact/RaRsJ6bHuLRe1MQyNet4qq), item 7 of the
+  "Yan development laws and phased plans", item 7 of the
   short-term plan; RFC 0028 for the `yan-opt` drop contract
 - Rows: R961 to R965 (D1 to D5 in order)
 

@@ -397,7 +397,7 @@ sections = "2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25"
 
 [[entry]]
 rows = "R370 to R379"
-topic = "consistency audit (https://claude.ai/artifact/6m2hzP9zq9KsgcMXv8VqEp): clause form in Yan only (R370); Yan aliases, sums and newtype\\[T\\] as in Yan Agent (R371); W820 only for solver goals and call-site pre, plain overflow checks (R372); Yan Agent soft match, case and type, Callable fail, par(limit=) (R373); Yan grammar gaps: become, unit, guards, select arms, typed hole, let-else, grids (R374); examples in canonical form (R375); blank lines inside bodies (R376); ChaCha8 default rand, capability and attribute registries, one test handler set (R377); commands, milestones, debug tool and coverage (R378); code families E273, E521, E014, E015, E316, warning rules, cross-references and names (R379)"
+topic = "consistency audit: clause form in Yan only (R370); Yan aliases, sums and newtype\\[T\\] as in Yan Agent (R371); W820 only for solver goals and call-site pre, plain overflow checks (R372); Yan Agent soft match, case and type, Callable fail, par(limit=) (R373); Yan grammar gaps: become, unit, guards, select arms, typed hole, let-else, grids (R374); examples in canonical form (R375); blank lines inside bodies (R376); ChaCha8 default rand, capability and attribute registries, one test handler set (R377); commands, milestones, debug tool and coverage (R378); code families E273, E521, E014, E015, E316, warning rules, cross-references and names (R379)"
 sections = "3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2"
 
 [[entry]]
@@ -422,7 +422,7 @@ sections = "3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3"
 
 [[entry]]
 rows = "R460 to R466"
-topic = "Grammar check (https://claude.ai/artifact/BgkEJ6284UCgx2rJmMtGfa): 13.2 and 15.2 restated so that Yan Agent has no LALR(1) conflicts and Yan none once three lookahead points are marked, productions for forms the prose already used, the seven missing factorings, built-in type words as keywords in type position (R460); uses Kv as cache in Yan Agent (R461); the next-token rule for soft keywords, and Yan reserves fail (R462); Yan grid elements and spacing (R463); Yan conditional branches, function-type clauses and let-else (R464); ghost and lemma as prefix words (R465); @@prove as the module attribute (R466)"
+topic = "Grammar check: 13.2 and 15.2 restated so that Yan Agent has no LALR(1) conflicts and Yan none once three lookahead points are marked, productions for forms the prose already used, the seven missing factorings, built-in type words as keywords in type position (R460); uses Kv as cache in Yan Agent (R461); the next-token rule for soft keywords, and Yan reserves fail (R462); Yan grid elements and spacing (R463); Yan conditional branches, function-type clauses and let-else (R464); ghost and lemma as prefix words (R465); @@prove as the module attribute (R466)"
 sections = "4.4, 7, 13.1, 13.2, 14, 15.1, 15.2"
 
 [[entry]]
@@ -432,7 +432,7 @@ sections = "22, 26.1"
 
 [[entry]]
 rows = "R216 to R218"
-topic = "Yan Agent token rerun (https://claude.ai/artifact/Nwge2MBPHS5a4f8tzdRp52): expression lists as tuples on the right of =, after return and as a tuple of places (R216); a class with \\_\\_init\\_\\_ read as record fields, N30 (R217); splitlines, partition, list index and list(...) in std, closing G9 (R218)"
+topic = "Yan Agent token rerun: expression lists as tuples on the right of =, after return and as a tuple of places (R216); a class with \\_\\_init\\_\\_ read as record fields, N30 (R217); splitlines, partition, list index and list(...) in std, closing G9 (R218)"
 sections = "13.2, 14.1, 14.4, 17.2, 17.3"
 
 [[entry]]
@@ -442,7 +442,7 @@ sections = "4.4, 7.1, 8.6, 9.2, 9.4, 17.2, 24.1, 25"
 
 [[entry]]
 rows = "R474 to R476"
-topic = "Std build plan (https://claude.ai/artifact/FKZWX8ou7oHRZ3TcKkoKjQ), decided by the owner: native std bodies are @intrinsic def with a ... body, reserved to std (R474); the declaring module of each built-in type for method resolution, with the new module std.num (R475); Option in Yan Core text is Some { value: v } and None (R476)"
+topic = "Std build plan, decided by the owner: native std bodies are @intrinsic def with a ... body, reserved to std (R474); the declaring module of each built-in type for method resolution, with the new module std.num (R475); Option in Yan Core text is Some { value: v } and None (R476)"
 sections = "17, 17.2"
 
 [[entry]]
@@ -467,12 +467,12 @@ sections = "6.4, 22.2"
 
 [[entry]]
 rows = "R482 to R486"
-topic = "std.regex proposal (https://claude.ai/artifact/VfVzs8W5JiZJ8rJmUiaUDN), decided by the owner: find\\_all returns Match values (R482); char offsets (R483); literal patterns checked at stage 0 as E545 and infallible (R484); Python replacement syntax (R485); 1 MiB automaton limit (R486)"
+topic = "std.regex proposal, decided by the owner: find\\_all returns Match values (R482); char offsets (R483); literal patterns checked at stage 0 as E545 and infallible (R484); Python replacement syntax (R485); 1 MiB automaton limit (R486)"
 sections = "17.3"
 
 [[entry]]
 rows = "R488 to R493"
-topic = "std.collections proposal (https://claude.ai/artifact/V79buG5mN2UWG7yV1aiaSX), decided by the owner: prelude constructors (R488); empty pop panics, peeks return None (R489); deque maxlen (R490); heap not iterable, shown ascending, Reverse for max (R491); no positional indexing on sorted types (R492); CPython repr show formats (R493)"
+topic = "std.collections proposal, decided by the owner: prelude constructors (R488); empty pop panics, peeks return None (R489); deque maxlen (R490); heap not iterable, shown ascending, Reverse for max (R491); no positional indexing on sorted types (R492); CPython repr show formats (R493)"
 sections = "17.3"
 
 [[entry]]
@@ -482,32 +482,32 @@ sections = "10.4"
 
 [[entry]]
 rows = "R494 to R499"
-topic = "std slices and bisect proposal (https://claude.ai/artifact/GfKVALRNrp1oa6PFatYqZq), decided by the owner: list methods now, std.slices with views (R494); bisect\\_left, bisect\\_right, insort without lo/hi (R495); key= with closures (R496); reverse() and no sort(reverse=) (R497); insert clamps (R498); slice\\_exact panics outside its range (R499)"
+topic = "std slices and bisect proposal, decided by the owner: list methods now, std.slices with views (R494); bisect\\_left, bisect\\_right, insort without lo/hi (R495); key= with closures (R496); reverse() and no sort(reverse=) (R497); insert clamps (R498); slice\\_exact panics outside its range (R499)"
 sections = "17.3"
 
 [[entry]]
 rows = "R500 to R507"
-topic = "std.math proposal (https://claude.ai/artifact/DyYksx46pyAe555dLaBB2H), decided by the owner: CORE-MATH, tier E (R500); float scope, compound and rootn later (R501); C23 and IEEE names (R502); IEEE results on domain errors (R503); Round sum type, libm directed modes after codegen in the interpreter (R504); exact sum\\_exact and dot\\_exact (R505); pi, e, inf, nan (R506); grad deferred to M4 (R507)"
+topic = "std.math proposal, decided by the owner: CORE-MATH, tier E (R500); float scope, compound and rootn later (R501); C23 and IEEE names (R502); IEEE results on domain errors (R503); Round sum type, libm directed modes after codegen in the interpreter (R504); exact sum\\_exact and dot\\_exact (R505); pi, e, inf, nan (R506); grad deferred to M4 (R507)"
 sections = "11.1, 17.3"
 
 [[entry]]
 rows = "R508 to R515"
-topic = "std.iter proposal (https://claude.ai/artifact/5bV4s3C4spRNVJnzVDqAGr), decided by the owner: built-in lazy iter\\[T\\] (R508); sources, range stays a list (R509); adapters (R510); consumers (R511); eager list methods kept (R512); borrowing iterators second-class (R513); key= (R514); pull order (R515)"
+topic = "std.iter proposal, decided by the owner: built-in lazy iter\\[T\\] (R508); sources, range stays a list (R509); adapters (R510); consumers (R511); eager list methods kept (R512); borrowing iterators second-class (R513); key= (R514); pull order (R515)"
 sections = "6.x, 17.3"
 
 [[entry]]
 rows = "R516 to R521"
-topic = "Yan Meta, the third surface (RFC 0001, https://claude.ai/artifact/Urz3zEhuESTobLRf8aqk2X), decided by the owner: Yan Meta is a full surface with `.ymt` files, built at M4 (R516); admission rules K1 to K5 (R517); law 8 per surface, Yan Meta spelling notes as hash-neutral trivia, round-trip law 6 (R518); positional locals in the item hash (R519); keyboard rule, ASCII outside strings and comments (R520); open admission and the readmitted forms (R521)"
+topic = "Yan Meta, the third surface (RFC 0001), decided by the owner: Yan Meta is a full surface with `.ymt` files, built at M4 (R516); admission rules K1 to K5 (R517); law 8 per surface, Yan Meta spelling notes as hash-neutral trivia, round-trip law 6 (R518); positional locals in the item hash (R519); keyboard rule, ASCII outside strings and comments (R520); open admission and the readmitted forms (R521)"
 sections = "1, 2, 3.6, 16.5, 16.6, 23, 26.1, 26.2"
 
 [[entry]]
 rows = "R522 to R535"
-topic = "Research track (https://claude.ai/artifact/CgK4yYLoCXJ55YaPrKffm8), accepted for research, not normative for 1.0: effect handlers (R522); information-flow labels (R523); graded types (R524); typed staging (R525); per-reader spelling (R526); bidirectional grammars (R527); incremental computation (R528); synthesis from examples (R529); positional type parameters (R530); Sym (R531); Any (R532); panic recovery (R533); STM (R534); eval (R535)"
+topic = "Research track, accepted for research, not normative for 1.0: effect handlers (R522); information-flow labels (R523); graded types (R524); typed staging (R525); per-reader spelling (R526); bidirectional grammars (R527); incremental computation (R528); synthesis from examples (R529); positional type parameters (R530); Sym (R531); Any (R532); panic recovery (R533); STM (R534); eval (R535)"
 sections = "26.6"
 
 [[entry]]
 rows = "R536 to R550"
-topic = "Niche surfaces (RFC 0002, https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD), accepted by the owner, post-1.0: admission rules N1 to N9 (R536); Yan Schema (R537); Yan Prompt (R538); Yan Query Language (R539); Yan Shell (R540); Yan Workflow (R541); Yan Infra (R542); Yan Binary Format (R543); Yan Dataflow (R544); research surfaces Yan Delegate (R545), Yan Probabilistic (R546), Yan Protocol (R547), Yan Spec (R548), Yan Law (R549); order and gating (R550)"
+topic = "Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 to N9 (R536); Yan Schema (R537); Yan Prompt (R538); Yan Query Language (R539); Yan Shell (R540); Yan Workflow (R541); Yan Infra (R542); Yan Binary Format (R543); Yan Dataflow (R544); research surfaces Yan Delegate (R545), Yan Probabilistic (R546), Yan Protocol (R547), Yan Spec (R548), Yan Law (R549); order and gating (R550)"
 sections = "16.7, 23"
 
 [[entry]]
@@ -522,17 +522,17 @@ sections = "26.6"
 
 [[entry]]
 rows = "R558 to R565"
-topic = "Architecture for one core and many surfaces (RFC 0004, https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC), accepted by the owner: HIR as the surface-neutral pivot (R558); one printer per surface and a shared raise (R559); crate boundaries and layering (R560); one intrinsic registry (R561); std source layout by tier, Yan Agent and Yan sources (R562); Yan Meta print-only view in M3 (R563); law checking over the whole suite (R564); origin marks as trivia and raise (R565)"
+topic = "Architecture for one core and many surfaces (RFC 0004), accepted by the owner: HIR as the surface-neutral pivot (R558); one printer per surface and a shared raise (R559); crate boundaries and layering (R560); one intrinsic registry (R561); std source layout by tier, Yan Agent and Yan sources (R562); Yan Meta print-only view in M3 (R563); law checking over the whole suite (R564); origin marks as trivia and raise (R565)"
 sections = "1, 16.4, 16.5, 16.6, 17.1, 22.2, 22.4, 23, 24.2"
 
 [[entry]]
 rows = "R566, R567"
-topic = "Yan Agent and Yan direction (https://claude.ai/artifact/4piYJXunC1Vp4f14HAtYHh), decided by the owner: the model probe runs as soon as the Yan Agent front end and interpreter work, and Yan Agent syntax rows wait for it (R566); the M1 token gate splits spec-phase from body and repair tokens, with a tests-included typed-Python baseline (R567)"
+topic = "Yan Agent and Yan direction, decided by the owner: the model probe runs as soon as the Yan Agent front end and interpreter work, and Yan Agent syntax rows wait for it (R566); the M1 token gate splits spec-phase from body and repair tokens, with a tests-included typed-Python baseline (R567)"
 sections = "21.6, 23"
 
 [[entry]]
 rows = "R568"
-topic = "Niche surfaces may own semantics (https://claude.ai/artifact/4piYJXunC1Vp4f14HAtYHh), decided by the owner: niche surfaces are exempt from law 1 behind a boundary signature in Yan Core types, keeping laws 2, 4, 6, 7 and capabilities; forms lower to checked Yan Core or run on a surface engine linked as an extern item (R568)"
+topic = "Niche surfaces may own semantics, decided by the owner: niche surfaces are exempt from law 1 behind a boundary signature in Yan Core types, keeping laws 2, 4, 6, 7 and capabilities; forms lower to checked Yan Core or run on a surface engine linked as an extern item (R568)"
 sections = "2, 16.7"
 
 [[entry]]
@@ -542,7 +542,7 @@ sections = "17.3"
 
 [[entry]]
 rows = "R576"
-topic = "Niche surface engines (RFC 0006, https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC): engine items enter the HIR as extern signatures; engines are separate `yan-<name>-engine` crates or std packages at the runtime layer beside `yan-rt`"
+topic = "Niche surface engines (RFC 0006): engine items enter the HIR as extern signatures; engines are separate `yan-<name>-engine` crates or std packages at the runtime layer beside `yan-rt`"
 sections = "1, 16.7, 22.2"
 
 [[entry]]
@@ -552,7 +552,7 @@ sections = "17.3"
 
 [[entry]]
 rows = "R586"
-topic = "Surface names from Wang Xizhi's 兰亭集序 (https://claude.ai/artifact/8zD7T9QnYtNUsbF96cLHNN), decided by the owner: Yong 永 and Wen 文 kept; Jian 简 becomes Xin 信 (`.xin`, crate `yong-xin`), Fei 斐 becomes Chang 畅 (`.chang`); niche surfaces Wu 悟, Qi 契, Ting 亭, Cha 察, Xu 序, Yin 引, Xing 形, Liu 流, Tuo 托, Sui 随, Hui 会, Guan 观, Yan 言 (R586)"
+topic = "Surface names from Wang Xizhi's 兰亭集序, decided by the owner: Yong 永 and Wen 文 kept; Jian 简 becomes Xin 信 (`.xin`, crate `yong-xin`), Fei 斐 becomes Chang 畅 (`.chang`); niche surfaces Wu 悟, Qi 契, Ting 亭, Cha 察, Xu 序, Yin 引, Xing 形, Liu 流, Tuo 托, Sui 随, Hui 会, Guan 观, Yan 言 (R586)"
 sections = "1, 16.7, 26"
 
 [[entry]]
@@ -567,7 +567,7 @@ sections = "11.6, 17.5"
 
 [[entry]]
 rows = "R605 to R606"
-topic = "Exact solver and guard-aware matches (RFC 0010, https://claude.ai/artifact/YNj73yYvBWphMVzAdNLABE), decided by the owner: the Omega test decides R345 goals, with `%` and low-bit masks tied to their operands (R605); match exhaustiveness decided by the 8.6 solver with guards and refinements as facts, witnesses in E503, W853 for empty arms (R606)"
+topic = "Exact solver and guard-aware matches (RFC 0010), decided by the owner: the Omega test decides R345 goals, with `%` and low-bit masks tied to their operands (R605); match exhaustiveness decided by the 8.6 solver with guards and refinements as facts, witnesses in E503, W853 for empty arms (R606)"
 sections = "8.6, 14.1, 15, 25"
 
 [[entry]]
@@ -592,7 +592,7 @@ sections = "18.1, 21.1, 21.4, 21.6, 25"
 
 [[entry]]
 rows = "R622 to R624"
-topic = "Guaranteed zero-cost abstractions (RFC 0015, https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H), decided by the owner: lambda set specialization, so a closure with a closed lambda set and no heap-backed captures never allocates or calls indirectly (R622); every chain of std adapters fuses to one loop with no allocation or indirect call (R623); SIMD lanes for `uses none` `par for` bodies, and `@vectorize` as a proof attribute (R624)"
+topic = "Guaranteed zero-cost abstractions (RFC 0015), decided by the owner: lambda set specialization, so a closure with a closed lambda set and no heap-backed captures never allocates or calls indirectly (R622); every chain of std adapters fuses to one loop with no allocation or indirect call (R623); SIMD lanes for `uses none` `par for` bodies, and `@vectorize` as a proof attribute (R624)"
 sections = "5.5, 5.7, 9.3, 10.6, 11.3, 13, 17"
 
 [[entry]]
@@ -612,12 +612,12 @@ sections = "9.5, 9.6, 25"
 
 [[entry]]
 rows = "R635 to R647"
-topic = "Packaging and ecosystem (RFC 0020, https://claude.ai/artifact/NHdZaQ9Q6X5tFxz1xh9BQC), decided by the owner: local dependency names (R635); dev, tool and root-only override dependencies and the M1 static index (R636); registry operations on Tessera, public witnesses, one job runner and an Actions rebuilder (R637); Python dependencies locked as pylock.toml (R638); first-party native libraries bundled in the toolchain (R639); wheels, a PEP 517 backend and the yan-build crate (R640); npm through components and jco at M4 (R641); requirement syntax (R642); pre-releases (R643); publisher yank (R644); search snapshot (R645); E016 publish refusals (R646); optional lock fields (R647)"
+topic = "Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names (R635); dev, tool and root-only override dependencies and the M1 static index (R636); registry operations on Tessera, public witnesses, one job runner and an Actions rebuilder (R637); Python dependencies locked as pylock.toml (R638); first-party native libraries bundled in the toolchain (R639); wheels, a PEP 517 backend and the yan-build crate (R640); npm through components and jco at M4 (R641); requirement syntax (R642); pre-releases (R643); publisher yank (R644); search snapshot (R645); E016 publish refusals (R646); optional lock fields (R647)"
 sections = "12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25"
 
 [[entry]]
 rows = "R648"
-topic = "Error messages (RFC 0021, https://claude.ai/artifact/6catGcMdztyszRmvJLoiRu), decided by the owner: D1, E545 registered in section 25; `tools/rows.py check` fails when the spec cites a code that section 25 does not list"
+topic = "Error messages (RFC 0021), decided by the owner: D1, E545 registered in section 25; `tools/rows.py check` fails when the spec cites a code that section 25 does not list"
 sections = "17.2, 25"
 
 [[entry]]
@@ -642,12 +642,12 @@ sections = "11.7, 15.2, 15.3, 24.3"
 
 [[entry]]
 rows = "R672 to R677"
-topic = "Security model (RFC 0026, https://claude.ai/artifact/Hotw9YyR8LEvWE4GbB9gLi), decided by the owner: host handlers are unforgeable, E326 (R672); unconfined class for proc, py and foreign libraries, `uses none` externs stay in the ceiling (R673); `fs.only`, `fs.sub`, `proc.only` and `env.only` attenuators (R674); frozen clauses keep their meaning and P006 covers the test-hash closure (R675); `yan mcp` confinement, budgets, untrusted channel and `yan trust` (R676); `embed` resolves symlinks and archives hold none (R677)"
+topic = "Security model (RFC 0026), decided by the owner: host handlers are unforgeable, E326 (R672); unconfined class for proc, py and foreign libraries, `uses none` externs stay in the ceiling (R673); `fs.only`, `fs.sub`, `proc.only` and `env.only` attenuators (R674); frozen clauses keep their meaning and P006 covers the test-hash closure (R675); `yan mcp` confinement, budgets, untrusted channel and `yan trust` (R676); `embed` resolves symlinks and archives hold none (R677)"
 sections = "7.1, 7.3, 10.4, 12.2, 12.7, 17.6, 18.3, 19.2, 19.3, 19.4, 21.1, 21.4, 25"
 
 [[entry]]
 rows = "R680"
-topic = "Formal core model (RFC 0022, https://claude.ai/artifact/6PKpzbDykX73NCVzr8nU8y), decided by the owner: a Lean 4 model of Yan-K under `formal/`, checked against the interpreter by differential testing, never shipped and never a build dependency; the one exception to R215 (R680)"
+topic = "Formal core model (RFC 0022), decided by the owner: a Lean 4 model of Yan-K under `formal/`, checked against the interpreter by differential testing, never shipped and never a build dependency; the one exception to R215 (R680)"
 sections = "22.1, 26.1"
 
 [[entry]]
@@ -677,7 +677,7 @@ sections = "8.6"
 
 [[entry]]
 rows = "R665 to R671"
-topic = "`yan review` (RFC 0023, https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU), decided by the owner: the command over git revisions at M1 (R665); item changes on elaborated Yan Core, edited and affected (R666); authority gains and losses (R667); contracts, tests and `tests.lock`, approval judged by BASE, frozen edits (R668); the test verdict cache key and file (R669); provenance authors (R670); exit status and the JSON and Markdown formats (R671)"
+topic = "`yan review` (RFC 0023), decided by the owner: the command over git revisions at M1 (R665); item changes on elaborated Yan Core, edited and affected (R666); authority gains and losses (R667); contracts, tests and `tests.lock`, approval judged by BASE, frozen edits (R668); the test verdict cache key and file (R669); provenance authors (R670); exit status and the JSON and Markdown formats (R671)"
 sections = "18.1, 18.4, 21.5"
 
 [[entry]]
@@ -687,7 +687,7 @@ sections = "3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25"
 
 [[entry]]
 rows = "R766 to R767"
-topic = "Yan Agent model probe findings (https://claude.ai/artifact/8bZgdYmkeds1yWouV8Ryxs), decided by the owner: the lenient reader moves an `ex` line at the left margin into the function above, N32 (R766); the spec gate checks the names in `post` lines, so `result` fails in phase 1 and not after the freeze (R767)"
+topic = "Yan Agent model probe findings, decided by the owner: the lenient reader moves an `ex` line at the left margin into the function above, N32 (R766); the spec gate checks the names in `post` lines, so `result` fails in phase 1 and not after the freeze (R767)"
 sections = "14.4, 21.1, 23, 24, 25"
 
 [[entry]]
@@ -702,7 +702,7 @@ sections = "3.5, 4.2, 5.3, 5.4, 22.2, 22.3, 25"
 
 [[entry]]
 rows = "R774"
-topic = "Names: Yan 言 (https://claude.ai/artifact/BHBRo7tdX5b3H4uZbQGs6o), decided by the owner: project, toolchain, core and binary `yan` (crates `yan-*`); Wen becomes plain Yan 言文 (`.yn`); Xin becomes Yan Agent 言信 (`.yag`); the IR text is Yan Core 言核 (`.yir`, internal); Chang becomes Yan Notation 言符 (`.ynt`); every other surface is \"Yan\" plus an English job word, a `.y` extension of 2 to 4 letters and a Chinese name of 言 plus one character, used only once it ships (R774)"
+topic = "Names: Yan 言, decided by the owner: project, toolchain, core and binary `yan` (crates `yan-*`); Wen becomes plain Yan 言文 (`.yn`); Xin becomes Yan Agent 言信 (`.yag`); the IR text is Yan Core 言核 (`.yir`, internal); Chang becomes Yan Notation 言符 (`.ynt`); every other surface is \"Yan\" plus an English job word, a `.y` extension of 2 to 4 letters and a Chinese name of 言 plus one character, used only once it ships (R774)"
 sections = "1, 16.7, 26"
 
 [[entry]]
@@ -712,7 +712,7 @@ sections = "26.5"
 
 [[entry]]
 rows = "R776 to R786"
-topic = "Yan Meta, the lab and canary surface (RFC 0029, https://claude.ai/artifact/XwShntWVWkEzcMhkxbswiT), decided by the owner: the third surface is Yan Meta 言元 (`.ymt`), replacing Yan Notation 言符 (`.ynt`) in R774, identifiers `ymt` (R776); charter as lab, kitchen sink and canary, stages experimental, stable, graduated and retired, promotion and graduation evidence, retirement in the preview window (R777); `@lab(form)` module opt-in, hash-neutral, E001 and E002 as for previews (R778); forms that need no core change join RFC 0001 as experimental entries (R779); research track: rank polymorphism (R780), size arithmetic (R781), body reflection (R782), rewriting attributes (R783), proof tactics (R784), row-polymorphic and anonymous records (R785), GADTs (R786)"
+topic = "Yan Meta, the lab and canary surface (RFC 0029), decided by the owner: the third surface is Yan Meta 言元 (`.ymt`), replacing Yan Notation 言符 (`.ynt`) in R774, identifiers `ymt` (R776); charter as lab, kitchen sink and canary, stages experimental, stable, graduated and retired, promotion and graduation evidence, retirement in the preview window (R777); `@lab(form)` module opt-in, hash-neutral, E001 and E002 as for previews (R778); forms that need no core change join RFC 0001 as experimental entries (R779); research track: rank polymorphism (R780), size arithmetic (R781), body reflection (R782), rewriting attributes (R783), proof tactics (R784), row-polymorphic and anonymous records (R785), GADTs (R786)"
 sections = "1, 2, 16.6, 20.6, 22, 23, 25, 26"
 
 [[entry]]

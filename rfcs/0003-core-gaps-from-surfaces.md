@@ -1,7 +1,7 @@
 # 0003: Yan gaps found by the surface study
 
 - Status: accepted (the lead accepted every decision below on 2026-11-01: "Accept everything into rfcs")
-- Research: [Surface shortlist, revision 2](https://claude.ai/artifact/3cSMv6uiyc9DgCXBDGsmhD), section
+- Research: Surface shortlist, revision 2, section
   "Ideas for Yan itself"
 - Rows: R551 to R557
 

@@ -1,7 +1,7 @@
 # 0024: Learnability for Python and TypeScript developers
 
 - Status: accepted (the lead declined D1 and accepted D2 to D5 on cards, 2026-11-01)
-- Research: [Yan Agent and Yan learnability](https://claude.ai/artifact/SWCzhtopJtJjpSFa2MBY1x)
+- Research: Yan Agent and Yan learnability
 - Rows: R655 to R664
 
 ## Summary

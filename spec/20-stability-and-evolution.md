@@ -1,6 +1,6 @@
 ## 20. Stability and evolution
 
-The design behind this section is the Yan stability and evolution design (https://claude.ai/artifact/5v5DW2ucybYCy5m37XjDhV).
+The design behind this section is the Yan stability and evolution design.
 
 ### 20.1 The compatibility promise
 

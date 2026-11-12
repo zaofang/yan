@@ -1,7 +1,7 @@
 # 0015: Guaranteed zero-cost abstractions
 
 - Status: accepted (the lead chose "Accept all three" on 2026-11-01)
-- Research: [Deep frontier survey: speed and capability](https://claude.ai/artifact/U5Rg6qH5x2KMHX5dAfkh1H), picks 1, 4 and 7
+- Research: Deep frontier survey: speed and capability, picks 1, 4 and 7
 - Rows: R622 to R624
 
 ## Summary

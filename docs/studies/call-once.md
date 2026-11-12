@@ -4,7 +4,7 @@ Study and proposal, 2026-11-04. Docs only: no spec rows, no conformance edits, n
 Items are labelled D1, D2 and so on; none carries a row number. Everything here is non-normative until
 an RFC and accepted rows say otherwise.
 
-Brief: item F6 of the [language forums study](https://claude.ai/artifact/E8xVSw3fhTwuxFu38DqrtT).
+Brief: item F6 of the language forums study.
 Study function values that may be called at most once, as Rust's `FnOnce` and the Swift pitch
 [annotate functions called at most once](https://forums.swift.org/t/pitch-introduce-a-way-to-annotate-functions-that-are-called-at-most-once/89088).
 Cover prior art, capabilities, linear and affine use, determinism, lowering to Yan Core, and a

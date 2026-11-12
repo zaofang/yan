@@ -1,7 +1,7 @@
 # 0032: A first `std.net` slice and the `mem_net` test handler
 
 - Status: accepted (the lead chose "Accept all (D1 to D4)" on 2026-11-04)
-- Research: [Language forums study](https://claude.ai/artifact/E8xVSw3fhTwuxFu38DqrtT), item F2
+- Research: Language forums study, item F2
 - Rows: R789 to R792
 
 ## Summary

@@ -1,8 +1,7 @@
 # 0055: `@kernel` functions and E274 body verification
 
 - Status: accepted
-- Research: RFC 0016 D3 (Fern, PLDI 2025); RFC 0052 (binding syntax); roadblocks study
-  (https://claude.ai/artifact/728U7arS1GVNBzdWy5T3jq); issue #674
+- Research: RFC 0016 D3 (Fern, PLDI 2025); RFC 0052 (binding syntax); roadblocks study; issue #674
 - Rows: R953 to R955
 
 ## Summary

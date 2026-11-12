@@ -4,7 +4,7 @@ Study and proposal, 2026-11-04. Docs only: no spec rows, no conformance edits, n
 Items are labelled D1, D2 and so on; none carries a row number. Everything here is non-normative until
 an RFC and accepted rows say otherwise.
 
-Brief: item F10 of the [language forums study](https://claude.ai/artifact/E8xVSw3fhTwuxFu38DqrtT),
+Brief: item F10 of the language forums study,
 from the Swift forums thread ["Relaxed" floating-point operators](https://forums.swift.org/t/relaxed-floating-point-operators/90050).
 Floats are strict IEEE today and only an item marked `@fast_math` or `@unordered` under `nondet`
 relaxes them. Swift's argument is locality: relax one expression, not a file or a module. The forums

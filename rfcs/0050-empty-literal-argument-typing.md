@@ -1,7 +1,7 @@
 # 0050: Empty literals in arguments of an optional parameter
 
 - Status: accepted
-- Research: [R567 failure-mix study (T18)](https://claude.ai/artifact/1tUqnYo9Mds7wDV2JBruKs), item D1
+- Research: R567 failure-mix study (T18), item D1
 - Rows: R933
 
 ## Summary
