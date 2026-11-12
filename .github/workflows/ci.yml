@@ -175,7 +175,7 @@ jobs:
           uv run python -m tools.difftest --json difftest-summary.json
           --yan ${{ github.workspace }}/target/release/yan
       - if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: conformance-summary
           path: |
@@ -204,7 +204,7 @@ jobs:
       - run: >-
           uv run python tools/conform.py --report-only --json conformance-all.json
           --executor interp=${{ github.workspace }}/target/release/yan
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bench-summary
           path: |
@@ -233,7 +233,7 @@ jobs:
       - run: >-
           uv run python -m tools.status --conformance conformance-all.json
           --difftest difftest-summary.json --bench bench-summary.json --out status.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: status
           path: status.json
