@@ -41,6 +41,8 @@ pub mod pq;
 pub mod rand;
 pub mod regex;
 #[allow(unsafe_code)]
+pub mod regexabi;
+#[allow(unsafe_code)]
 pub mod sched;
 #[allow(unsafe_code)]
 pub mod select;

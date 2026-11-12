@@ -21,7 +21,9 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
-use yan_rt::{abi, actor, bytes, chan, chars, cluster, dq, map, pathabi, pq, sched, select, slice};
+use yan_rt::{
+    abi, actor, bytes, chan, chars, cluster, dq, map, pathabi, pq, regexabi, sched, select, slice,
+};
 
 type R<T> = Result<T, String>;
 
@@ -687,6 +689,12 @@ const RT: &[RtFn] = &[
     RtFn::StrSplit,
     RtFn::StrSplitLines,
     RtFn::BytesOfStr,
+    RtFn::RegexCheck,
+    RtFn::RegexEscape,
+    RtFn::RegexSplit,
+    RtFn::RegexSub,
+    RtFn::RegexFind,
+    RtFn::RegexFindAll,
     RtFn::CharStr,
     RtFn::StrChars,
     RtFn::CharAt,
@@ -1228,6 +1236,42 @@ fn rt_fn(
             "yan_rt_chr_check",
             chars::yan_rt_chr_check as *const u8,
             &[I64],
+            Some(I64),
+        ),
+        RtFn::RegexCheck => (
+            "yan_rt_regex_check",
+            regexabi::yan_rt_regex_check as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::RegexEscape => (
+            "yan_rt_regex_escape",
+            regexabi::yan_rt_regex_escape as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::RegexSplit => (
+            "yan_rt_regex_split",
+            regexabi::yan_rt_regex_split as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::RegexSub => (
+            "yan_rt_regex_sub",
+            regexabi::yan_rt_regex_sub as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::RegexFind => (
+            "yan_rt_regex_find",
+            regexabi::yan_rt_regex_find as *const u8,
+            &[I64, I64, I64, I64],
+            Some(I8),
+        ),
+        RtFn::RegexFindAll => (
+            "yan_rt_regex_find_all",
+            regexabi::yan_rt_regex_find_all as *const u8,
+            &[I64, I64],
             Some(I64),
         ),
         RtFn::BytesSlice => (

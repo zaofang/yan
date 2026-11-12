@@ -231,6 +231,12 @@ pub enum RtFn {
     StrSplitLines,
     /// `(str) -> bytes`
     BytesOfStr,
+    RegexCheck,
+    RegexEscape,
+    RegexSplit,
+    RegexSub,
+    RegexFind,
+    RegexFindAll,
     CharStr,
     StrChars,
     CharAt,
@@ -513,6 +519,12 @@ impl RtFn {
                 | RtFn::HexDecode
                 | RtFn::BytesSlice
                 | RtFn::BytesOfStr
+                | RtFn::RegexCheck
+                | RtFn::RegexEscape
+                | RtFn::RegexSplit
+                | RtFn::RegexSub
+                | RtFn::RegexFind
+                | RtFn::RegexFindAll
                 | RtFn::CharStr
                 | RtFn::StrChars
                 | RtFn::PathNew
