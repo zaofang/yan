@@ -275,6 +275,8 @@ pub enum RtFn {
     Base64Decode,
     /// `(at, reason) -> str`, `invalid <kind> at <at>` (R583).
     EncodingErrorShow,
+    /// `(schema, a, b) -> int`: -1, 0 or 1 by the key order of the schema.
+    KeyCmp,
     Math1,
     /// `(op, f64, f64) -> f64`, op indexes `lower::math::MATH2`.
     Math2,

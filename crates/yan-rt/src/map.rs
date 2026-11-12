@@ -7,7 +7,7 @@ use crate::keyhash::Enc;
 use std::collections::HashMap;
 
 /// How a key's slots encode, from the schema text the lowering builds:
-/// `i<bits>`, `u<bits>`, `f`, `b`, `n` (unit), `s` (`Str`), `(..)` tuple,
+/// `i<bits>`, `u<bits>`, `f`, `b`, `n` (unit), `s` (`Str`), `y` (`bytes`), `(..)` tuple,
 /// `{name|..}` record, `<name|..;..>` sum (a tag slot, then every variant's fields).
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Key {
@@ -16,6 +16,8 @@ pub(crate) enum Key {
     Bool,
     Unit,
     Str,
+    /// A `bytes` block (`yan_rt::bytes`).
+    Bytes,
     Tuple(Vec<Key>),
     Rec(String, Vec<Key>),
     Sum(Vec<(String, Vec<Key>)>),
@@ -43,6 +45,7 @@ impl Key {
             Key::Bool => "bool",
             Key::Unit => "value",
             Key::Str => "text",
+            Key::Bytes => "bytes",
             Key::Tuple(_) => "tuple",
             Key::Rec(..) | Key::Sum(_) => "record",
         }
@@ -119,6 +122,8 @@ impl Key {
             Key::Unit => Equal,
             // SAFETY: the caller's contract.
             Key::Str => unsafe { (*(x as *const String)).cmp(&*(y as *const String)) },
+            // SAFETY: the caller's contract.
+            Key::Bytes => unsafe { (*(x as *const Vec<u8>)).cmp(&*(y as *const Vec<u8>)) },
             Key::Tuple(ks) | Key::Rec(_, ks) => {
                 for k in ks {
                     // SAFETY: forwarded.
@@ -175,6 +180,8 @@ impl Key {
             Key::Unit => out.unit(),
             // SAFETY: the caller's contract.
             Key::Str => out.text(unsafe { &*(x as *const String) }),
+            // SAFETY: the caller's contract.
+            Key::Bytes => out.bytes(unsafe { &*(x as *const Vec<u8>) }),
             Key::Tuple(ks) => {
                 out.seq(ks.len());
                 for k in ks {
@@ -229,6 +236,26 @@ pub unsafe extern "C" fn yan_rt_key_eq(schema: *const String, a: *const u64, b: 
     }
 }
 
+/// # Safety
+/// As [`yan_rt_key_eq`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_key_cmp(
+    schema: *const String,
+    a: *const u64,
+    b: *const u64,
+) -> i64 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        let key = parse(&mut (*schema).as_str());
+        let w = key.width();
+        key.cmp(
+            std::slice::from_raw_parts(a, w),
+            std::slice::from_raw_parts(b, w),
+            &mut 0,
+        ) as i64
+    }
+}
+
 pub(crate) fn parse(s: &mut &str) -> Key {
     let c = s.as_bytes()[0];
     *s = &s[1..];
@@ -258,6 +285,7 @@ pub(crate) fn parse(s: &mut &str) -> Key {
         b'b' => Key::Bool,
         b'n' => Key::Unit,
         b's' => Key::Str,
+        b'y' => Key::Bytes,
         b'(' => Key::Tuple(until(s, b')')),
         b'{' => {
             let n = name(s);

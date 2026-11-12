@@ -709,6 +709,7 @@ const RT: &[RtFn] = &[
     RtFn::Base64Check,
     RtFn::Base64Decode,
     RtFn::EncodingErrorShow,
+    RtFn::KeyCmp,
     RtFn::Math1,
     RtFn::Math2,
     RtFn::Copysign,
@@ -1166,6 +1167,12 @@ fn rt_fn(
             "yan_rt_encoding_error_show",
             bytes::yan_rt_encoding_error_show as *const u8,
             &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::KeyCmp => (
+            "yan_rt_key_cmp",
+            map::yan_rt_key_cmp as *const u8,
+            &[I64, I64, I64],
             Some(I64),
         ),
         RtFn::Math1 => (

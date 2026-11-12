@@ -5,6 +5,12 @@ An RFC is one batch of spec decisions: what needs one, and the pipeline, are in
 [docs/research](../docs/research/README.md). Decisions made before 2026-11-01 have no RFC file; the
 research index links their studies and rows.
 
+## Spec freeze
+
+Lead decision 2026-11-12 (#1025): no new RFC or rows, except to fix a contradiction or unblock M1, until
+rows without a case are at or below 60 percent (`tools.status` spec_debt). RFCs 0068 to 0075 (#1004)
+are paused.
+
 ## Writing one
 
 1. Copy `0000-template.md` to `NNNN-slug.md`, with the next free number from the index below, and open

@@ -13,6 +13,10 @@ Laws and gates: [docs/development-laws.md](docs/development-laws.md).
 
 ## Changing the spec
 
+SPEC FREEZE (lead decision 2026-11-12, #1025): no new spec rows or RFCs, except to fix a contradiction or
+unblock M1, until rows without a case are at or below 60 percent (`tools.status` spec_debt; 74 percent,
+650 of 879, on 2026-11-12). RFCs 0068-0075 (#1004) are paused. The lead lifts the freeze by card.
+
 The spec is `spec/` (one file per top-level section). It changes only for rows the lead accepted, in a
 PR the lead merges.
 
