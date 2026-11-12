@@ -261,6 +261,8 @@ pub enum RtFn {
     BytesFind,
     /// `(bytes, i, j) -> bytes`; panics out of range.
     BytesSlice,
+    /// `(schema, a, b) -> int`: -1, 0 or 1 by the key order of the schema.
+    KeyCmp,
     Math1,
     /// `(op, f64, f64) -> f64`, op indexes `lower::math::MATH2`.
     Math2,

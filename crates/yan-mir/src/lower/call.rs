@@ -523,6 +523,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(f, ty, vec![x]);
                 set(self, r);
             }
+            // A `set` is a dict block without values.
+            (id::STD_SET_LEN, [(_, a)]) => {
+                let (m, _) = self.atom_any(a)?;
+                let r = self.rt(RtFn::MapLen, I64, vec![m[0].clone()]);
+                set(self, r);
+            }
             (id::STD_ENCODING_LEN, [(_, a)]) => {
                 let x = self.scalar1(a)?;
                 let r = self.rt(RtFn::BytesLen, I64, vec![x]);
@@ -642,6 +648,32 @@ impl<'a, 'm> Fn<'a, 'm> {
                 if id == id::STD_CMP_NE {
                     r = self.scalar_op(ScalarOp::Not, Ty::Bool, vec![r]);
                 }
+                set(self, r);
+            }
+            (
+                id::STD_CMP_LT | id::STD_CMP_LE | id::STD_CMP_GT | id::STD_CMP_GE,
+                [(_, a), (_, b)],
+            ) => {
+                let (x, sx) = self.atom_any(a)?;
+                let (y, sy) = self.atom_any(b)?;
+                if sx != sy {
+                    return unsupported(format!("call of `{name}` on this type"));
+                }
+                let mut schema = String::new();
+                if Self::key_schema(&sx, &mut schema).is_err() {
+                    return unsupported(format!("call of `{name}` on this type"));
+                }
+                let schema = self.lit(&schema);
+                let (x, y) = (self.key_buf(x), self.key_buf(y));
+                let o = self.rt(RtFn::KeyCmp, I64, vec![schema, x.clone(), y.clone()]);
+                self.free(RtFn::EnvFree, x);
+                self.free(RtFn::EnvFree, y);
+                let r = match id {
+                    id::STD_CMP_LT => self.scalar_op(ScalarOp::Le, I64, vec![o, Operand::Int(-1)]),
+                    id::STD_CMP_LE => self.scalar_op(ScalarOp::Le, I64, vec![o, Operand::Int(0)]),
+                    id::STD_CMP_GT => self.scalar_op(ScalarOp::Ge, I64, vec![o, Operand::Int(1)]),
+                    _ => self.scalar_op(ScalarOp::Ge, I64, vec![o, Operand::Int(0)]),
+                };
                 set(self, r);
             }
             (id::STD_ITER_OPS_CURRENT, [(_, a)]) => {
