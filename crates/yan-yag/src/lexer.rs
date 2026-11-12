@@ -51,6 +51,16 @@ pub struct Issue {
     pub severity: Severity,
     pub span: Span,
     pub message: String,
+    pub fix: Option<Rename>,
+}
+
+/// A rename of every occurrence of `from` to `to`, offered as the fix of a naming issue.
+#[derive(Clone, Debug)]
+pub struct Rename {
+    pub spans: Vec<Span>,
+    pub from: String,
+    pub to: String,
+    pub auto: bool,
 }
 
 const OPS: [&str; 49] = [
@@ -158,6 +168,7 @@ impl Lexer<'_> {
             severity,
             span,
             message: message.into(),
+            fix: None,
         });
     }
 

@@ -122,6 +122,7 @@ pub(crate) fn lift(toks: &mut Vec<Token>) -> Vec<Issue> {
                 severity: Severity::Note,
                 span,
                 message,
+                fix: None,
             });
             moved.push(r);
         }

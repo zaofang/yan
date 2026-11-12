@@ -26,7 +26,7 @@ pub fn syntax(src: &str) -> yan_cst::Cst {
     parser::parse_with_syntax(src, false).2
 }
 pub use resugar::resugar;
-use yan_diag::{Diagnostic, Severity};
+use yan_diag::{Applicability, Diagnostic, Severity};
 
 /// Parse a `.yag` file. `strict` disables the lenient reader (14.4): its deviations become
 /// errors where 13 names one, and its notes are not reported.
@@ -54,6 +54,15 @@ pub fn parse(file: &str, src: &str, strict: bool) -> (Option<ast::Module>, Vec<D
                 i.message,
             );
             d.severity = i.severity;
+            if let Some(r) = i.fix {
+                let how = if r.auto {
+                    Applicability::Auto
+                } else {
+                    Applicability::Choice
+                };
+                let title = format!("rename `{}` to `{}`", r.from, r.to);
+                d = d.with_edits(how, title, &r.spans, &r.from, &r.to);
+            }
             d
         })
         .collect();
@@ -417,5 +426,41 @@ mod syntax_selftest {
                 assert_eq!(items.count(), m.items.len(), "{}", p.display());
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod rename_fix {
+    use super::*;
+
+    #[test]
+    fn a_camel_case_name_is_renamed_at_every_occurrence() {
+        let src = "def addOne(x: int) -> int:\n    return x + 1\n\ndef main() -> int:\n    return addOne(2)\n";
+        let (_, d) = parse("t.yag", src, false);
+        let e110: Vec<_> = d.iter().filter(|d| d.code == "E110").collect();
+        assert_eq!(e110.len(), 1, "{d:?}");
+        let fix = &e110[0].fixes[0];
+        assert_eq!(fix["title"], "rename `addOne` to `add_one`");
+        assert_eq!(fix["applicability"], "auto");
+        assert_eq!(fix["edits"].as_array().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn uses_inside_an_f_string_are_renamed_too() {
+        let src = "def addOne(x: int) -> int:\n    return x\n\ndef main() uses io:\n    io.print(f\"{addOne(2)}\")\n";
+        let (_, d) = parse("t.yag", src, false);
+        let fix = &d.iter().find(|d| d.code == "E110").expect("E110").fixes[0];
+        assert_eq!(fix["applicability"], "auto");
+        assert_eq!(fix["edits"].as_array().unwrap().len(), 2);
+        assert_eq!(fix["edits"][1]["span"]["col"], 17);
+    }
+
+    #[test]
+    fn a_taken_spelling_gets_no_fix() {
+        let src =
+            "def addOne(x: int) -> int:\n    return x\n\ndef add_one() -> int:\n    return 1\n";
+        let (_, d) = parse("t.yag", src, false);
+        let e110 = d.iter().find(|d| d.code == "E110").expect("E110");
+        assert!(e110.fixes.is_empty(), "{e110:?}");
     }
 }

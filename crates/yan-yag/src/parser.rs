@@ -1,14 +1,14 @@
 //! Recursive-descent parser for the factored Yan Agent grammar of 13.2, with the lenient-reader
 //! normalizations that are purely syntactic (14.4). Errors recover at item boundaries (22.3).
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use yan_cst::{Builder, Cst, Kind, LineIndex};
 use yan_diag::{Severity, Span};
 use yan_names::{Surface, TYPES, type_row};
 
 use crate::ast::*;
-use crate::lexer::{FPart, Issue, Tok, Token, lex};
+use crate::lexer::{FPart, Issue, Rename, Tok, Token, lex};
 
 const RESERVED: [&str; 34] = [
     "def",
@@ -144,6 +144,31 @@ fn syntax(
         }
     }
     b.finish()
+}
+
+/// `myValue` as `my_value`; `None` when that is not a valid name or changes nothing.
+fn snake_case(n: &str) -> Option<String> {
+    let mut out = String::new();
+    let mut prev: Option<char> = None;
+    for c in n.chars() {
+        if c.is_ascii_uppercase() {
+            if prev.is_some_and(|p| p.is_ascii_lowercase() || p.is_ascii_digit()) {
+                out.push('_');
+            }
+            out.push(c.to_ascii_lowercase());
+        } else if c == '_' && out.ends_with('_') {
+            continue;
+        } else {
+            out.push(c);
+        }
+        prev = Some(c);
+    }
+    let out = out.trim_end_matches('_').to_owned();
+    let ok = out.starts_with(|c: char| c.is_ascii_lowercase())
+        && out
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
+    (ok && out != n).then_some(out)
 }
 
 fn is_type_name(n: &str) -> bool {
@@ -311,6 +336,7 @@ impl Parser {
             severity: Severity::Note,
             span,
             message: message.into(),
+            fix: None,
         });
     }
 
@@ -320,6 +346,7 @@ impl Parser {
             severity: Severity::Error,
             span,
             message: message.into(),
+            fix: None,
         });
     }
 
@@ -340,6 +367,13 @@ impl Parser {
     fn check_names(&mut self) {
         let mut seen = HashSet::new();
         let mut found = Vec::new();
+        let mut at: HashMap<&str, Vec<(Span, bool)>> = HashMap::new();
+        for (i, t) in self.toks.iter().enumerate() {
+            if let Tok::Name(n) = &t.tok {
+                let attr = i > 0 && matches!(self.toks[i - 1].tok, Tok::Op("."));
+                at.entry(n).or_default().push((t.span, attr));
+            }
+        }
         for t in &self.toks {
             let Tok::Name(n) = &t.tok else { continue };
             if !seen.insert(n.clone()) || n == "_" || (n.starts_with("__") && n.ends_with("__")) {
@@ -381,13 +415,71 @@ impl Parser {
                     format!("`{n}` has consecutive capitals; renamed throughout the module"),
                 ),
             };
+            // A rename is offered when the snake_case spelling is free; it is automatic unless
+            // the name is also written as an attribute, which may belong to another module.
+            let fix = (code == "E110")
+                .then(|| snake_case(&n))
+                .flatten()
+                .filter(|s| !at.contains_key(s.as_str()))
+                .map(|to| {
+                    let uses = &at[n.as_str()];
+                    let mut spans: Vec<Span> = uses.iter().map(|(s, _)| *s).collect();
+                    let (inner, ambiguous) = self.interpolated_uses(&n);
+                    spans.extend(inner);
+                    Rename {
+                        spans,
+                        from: n.clone(),
+                        to,
+                        auto: !ambiguous && !uses.iter().any(|(_, attr)| *attr),
+                    }
+                });
             self.issues.push(Issue {
                 code,
                 severity: sev,
                 span,
                 message: msg,
+                fix,
             });
         }
+    }
+
+    /// Spans of `name` inside f-string interpolations, and whether any use there is not a plain
+    /// single-line, non-attribute word (so the rename is not safe to apply by itself).
+    fn interpolated_uses(&self, name: &str) -> (Vec<Span>, bool) {
+        let (mut spans, mut ambiguous) = (Vec::new(), false);
+        for t in &self.toks {
+            let Tok::FStr { parts, .. } = &t.tok else {
+                continue;
+            };
+            for part in parts {
+                let FPart::Expr { src, line, col, .. } = part else {
+                    continue;
+                };
+                let b = src.as_bytes();
+                let word = |c: u8| c.is_ascii_alphanumeric() || c == b'_';
+                for (i, _) in src.match_indices(name) {
+                    let end = i + name.len();
+                    if (i > 0 && word(b[i - 1])) || b.get(end).is_some_and(|c| word(*c)) {
+                        continue;
+                    }
+                    if src.contains('\n')
+                        || src.contains(['\'', '"'])
+                        || (i > 0 && b[i - 1] == b'.')
+                    {
+                        ambiguous = true;
+                        continue;
+                    }
+                    let at = col + i as u32;
+                    spans.push(Span {
+                        line: *line,
+                        col: at,
+                        end_line: *line,
+                        end_col: at + name.len() as u32,
+                    });
+                }
+            }
+        }
+        (spans, ambiguous)
     }
 
     // ---- module and items ----
