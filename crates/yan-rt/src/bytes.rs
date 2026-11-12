@@ -126,3 +126,66 @@ pub unsafe extern "C" fn yan_rt_bytes_repr(b: *const Vec<u8>) -> *mut String {
     // SAFETY: the caller's contract.
     str_block(&repr(unsafe { &*b }))
 }
+
+fn out_of_range(i: i64, n: usize) -> ! {
+    let kind = "bounds";
+    // SAFETY: a str is valid UTF-8.
+    unsafe { crate::abi::yan_rt_panic_ops(kind.as_ptr(), kind.len(), 64, 1, i, n as i64) }
+}
+
+/// A word holding `b[i]`, counting from the end when `i` is negative.
+///
+/// # Safety
+/// `b` is a `bytes` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_bytes_index(b: *const Vec<u8>, i: i64) -> *mut u64 {
+    thread_local!(static WORD: std::cell::UnsafeCell<u64> = const { std::cell::UnsafeCell::new(0) });
+    // SAFETY: the caller's contract.
+    let b = unsafe { &*b };
+    let at = if i < 0 { i + b.len() as i64 } else { i };
+    let Some(&c) = usize::try_from(at).ok().and_then(|at| b.get(at)) else {
+        out_of_range(i, b.len())
+    };
+    WORD.with(|w| {
+        // SAFETY: the word is thread-local and only read right after this call.
+        unsafe { *w.get() = c.into() };
+        w.get()
+    })
+}
+
+/// # Safety
+/// `b` is a `bytes` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_bytes_at(b: *const Vec<u8>, i: i64) -> i64 {
+    // SAFETY: the caller's contract.
+    usize::try_from(i)
+        .ok()
+        .and_then(|i| unsafe { &*b }.get(i))
+        .map_or(-1, |&c| c.into())
+}
+
+/// # Safety
+/// `b` and `sub` are `bytes` blocks.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_bytes_find(b: *const Vec<u8>, sub: *const Vec<u8>) -> i64 {
+    // SAFETY: the caller's contract.
+    let (b, sub) = unsafe { (&*b, &*sub) };
+    if sub.is_empty() {
+        return 0;
+    }
+    b.windows(sub.len())
+        .position(|w| w == sub.as_slice())
+        .map_or(-1, |i| i as i64)
+}
+
+/// # Safety
+/// `b` is a `bytes` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_bytes_slice(b: *const Vec<u8>, i: i64, j: i64) -> *mut Vec<u8> {
+    // SAFETY: the caller's contract.
+    let b = unsafe { &*b };
+    match (usize::try_from(i), usize::try_from(j)) {
+        (Ok(x), Ok(y)) if x <= y && y <= b.len() => leak(b[x..y].to_vec()),
+        _ => out_of_range(j, b.len()),
+    }
+}

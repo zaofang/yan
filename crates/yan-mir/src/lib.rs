@@ -253,6 +253,14 @@ pub enum RtFn {
     BytesLossy,
     /// `(bytes) -> str`, CPython's repr (R584).
     BytesRepr,
+    /// `(bytes, i) -> *u64` a word holding the byte; panics out of range. Valid until the next call.
+    BytesIndex,
+    /// `(bytes, i) -> int`, the byte or -1 when `i` is out of range.
+    BytesAt,
+    /// `(bytes, bytes) -> int`, the first index or -1.
+    BytesFind,
+    /// `(bytes, i, j) -> bytes`; panics out of range.
+    BytesSlice,
     Math1,
     /// `(op, f64, f64) -> f64`, op indexes `lower::math::MATH2`.
     Math2,
@@ -459,6 +467,7 @@ impl RtFn {
                 | RtFn::ShowF64
                 | RtFn::ShowBool
                 | RtFn::Repr
+                | RtFn::BytesSlice
                 | RtFn::BytesOfStr
                 | RtFn::BytesFromList
                 | RtFn::BytesCopy
