@@ -367,9 +367,76 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let Some(d) = &dst else {
                     return Ok(());
                 };
-                if !matches!(&e, Shape::Scalar(t) if *t == I64)
-                    || !matches!(args.get(1), Some((_, y::Atom::Name(n, _))) if n == "None")
-                {
+                if !matches!(args.get(1), Some((_, y::Atom::Name(n, _))) if n == "None") {
+                    let f = self.key_closure(args[1].1)?;
+                    let ds = d.shape.clone();
+                    let best = self.var(e.clone());
+                    let (best_key, have) = (self.local(I64), self.local(I64));
+                    self.emit(Inst::Copy {
+                        dst: have,
+                        src: Operand::Int(0),
+                    });
+                    let max = id == id::STD_ITER_OPS_MAX;
+                    self.each(rem, |me, i| {
+                        let x = item(me, i)?;
+                        let k = me.call_closure(&f, &[(&e, &x)], &Shape::Scalar(I64))[0].clone();
+                        let first = me.scalar_op(
+                            ScalarOp::Eq,
+                            I64,
+                            vec![Operand::Local(have), Operand::Int(0)],
+                        );
+                        let (init, rest) = me.branch(first);
+                        let next = me.block_new();
+                        me.cur = init;
+                        me.copy_to(&best.locals.clone(), x.clone());
+                        me.emit(Inst::Copy {
+                            dst: best_key,
+                            src: k.clone(),
+                        });
+                        me.emit(Inst::Copy {
+                            dst: have,
+                            src: Operand::Int(1),
+                        });
+                        me.goto(next);
+                        me.cur = rest;
+                        // The first of equal keys wins.
+                        let cmp = if max { ScalarOp::Le } else { ScalarOp::Ge };
+                        let keep =
+                            me.scalar_op(cmp, I64, vec![k.clone(), Operand::Local(best_key)]);
+                        let (skip, take) = me.branch(keep);
+                        me.cur = take;
+                        let old = Self::ops(&best);
+                        me.glue(&e, &old);
+                        me.copy_to(&best.locals.clone(), x.clone());
+                        me.emit(Inst::Copy {
+                            dst: best_key,
+                            src: k,
+                        });
+                        me.goto(next);
+                        me.cur = skip;
+                        me.glue(&e, &x);
+                        me.goto(next);
+                        me.cur = next;
+                        Ok(())
+                    })?;
+                    advance(self);
+                    let some = self.scalar_op(
+                        ScalarOp::Eq,
+                        I64,
+                        vec![Operand::Local(have), Operand::Int(1)],
+                    );
+                    let (yes, no) = self.branch(some);
+                    let join = self.block_new();
+                    self.cur = yes;
+                    set(self, Self::variant_value(&ds, "Some", Self::ops(&best)));
+                    self.goto(join);
+                    self.cur = no;
+                    set(self, Self::variant_value(&ds, "None", vec![]));
+                    self.goto(join);
+                    self.cur = join;
+                    return Ok(());
+                }
+                if !matches!(&e, Shape::Scalar(t) if *t == I64) {
                     return unsupported(format!("call of `{name}` on this type"));
                 }
                 let ds = d.shape.clone();
@@ -639,6 +706,70 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     /// `f(args)` for the closure value `f` (code, environment); the arguments stay the caller's.
+    /// `min(a, b)` and `max(a, b)`, with an optional `key` returning an `int`; `b` wins only when
+    /// strictly better.
+    pub(super) fn prelude_extreme(
+        &mut self,
+        id: registry::Id,
+        c: &y::Call,
+        dst: Option<Var>,
+    ) -> R<()> {
+        let name = c.path.join(".");
+        let args = Self::value_args(c)?;
+        let (Some(dst), [(_, a), (_, b), (_, key)]) = (dst, args.as_slice()) else {
+            return unsupported(format!("call of `{name}`"));
+        };
+        let s = dst.shape.clone();
+        if !matches!(s, Shape::Scalar(_)) {
+            return unsupported(format!("call of `{name}` on this type"));
+        }
+        let (xa, xb) = (self.atom(a, &s)?, self.atom(b, &s)?);
+        let (ka, kb) = if matches!(key, y::Atom::Name(n, _) if n == "None") {
+            if !matches!(&s, Shape::Scalar(t) if *t == I64) {
+                return unsupported(format!("call of `{name}` on this type"));
+            }
+            (xa[0].clone(), xb[0].clone())
+        } else {
+            let f = self.key_closure(key)?;
+            let i = Shape::Scalar(I64);
+            (
+                self.call_closure(&f, &[(&s, &xa)], &i)[0].clone(),
+                self.call_closure(&f, &[(&s, &xb)], &i)[0].clone(),
+            )
+        };
+        let cmp = if id == id::STD_PRELUDE_MIN {
+            ScalarOp::Ge
+        } else {
+            ScalarOp::Le
+        };
+        let keep_a = self.scalar_op(cmp, I64, vec![kb, ka]);
+        let (a_wins, b_wins) = self.branch(keep_a);
+        let join = self.block_new();
+        let locals = dst.locals.clone();
+        self.cur = a_wins;
+        self.copy_to(&locals, xa);
+        self.goto(join);
+        self.cur = b_wins;
+        self.copy_to(&locals, xb);
+        self.goto(join);
+        self.cur = join;
+        Ok(())
+    }
+
+    /// The closure inside a `key: Callable | None` argument; a run-time `None` panics `value`.
+    fn key_closure(&mut self, key: &y::Atom) -> R<Vec<Operand>> {
+        let (v, shape) = self.atom_any(key)?;
+        let Some((tag, at, _)) = shape.variant("Some") else {
+            return unsupported("a `key` argument of this type");
+        };
+        let some = self.scalar_op(ScalarOp::Eq, I64, vec![v[0].clone(), Operand::Int(tag)]);
+        let (go, bad) = self.branch(some);
+        self.cur = bad;
+        self.finish(Term::Panic("value"));
+        self.cur = go;
+        Ok(v[at..at + 2].to_vec())
+    }
+
     fn call_closure(
         &mut self,
         f: &[Operand],
