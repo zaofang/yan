@@ -9,6 +9,7 @@ mod cluster;
 mod collections;
 mod consts;
 mod contracts;
+mod encoding;
 mod entry;
 mod math;
 mod ordering;

@@ -130,6 +130,15 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.ordering_call(id, c, dst);
         }
+        if [
+            id::STD_ENCODING_DECODE_UTF8,
+            id::STD_ENCODING_HEX_DECODE,
+            id::STD_ENCODING_BASE64_DECODE,
+        ]
+        .contains(&id)
+        {
+            return self.encoding_call(id, c, dst);
+        }
         if DEQUE_IDS.contains(&id) {
             return self.deque_call(id, c, dst);
         }
@@ -521,6 +530,11 @@ impl<'a, 'm> Fn<'a, 'm> {
                     _ => (RtFn::BytesLossy, Ty::Ptr),
                 };
                 let r = self.rt(f, ty, vec![x]);
+                set(self, r);
+            }
+            (id::STD_ENCODING_BASE64, [(_, a), (_, url), (_, pad)]) => {
+                let (x, url, pad) = (self.scalar1(a)?, self.scalar1(url)?, self.scalar1(pad)?);
+                let r = self.rt(RtFn::Base64, Ty::Ptr, vec![x, url, pad]);
                 set(self, r);
             }
             // A `set` is a dict block without values.

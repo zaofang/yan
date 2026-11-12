@@ -24,6 +24,71 @@ pub fn hex(b: &[u8]) -> String {
     b.iter().map(|c| format!("{c:02x}")).collect()
 }
 
+fn alphabet(url: bool) -> &'static [u8; 64] {
+    if url {
+        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    } else {
+        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+    }
+}
+
+pub fn base64(b: &[u8], url: bool, pad: bool) -> String {
+    let a = alphabet(url);
+    let mut s = String::new();
+    for chunk in b.chunks(3) {
+        let n = chunk.iter().fold(0u32, |n, &c| n << 8 | c as u32) << (8 * (3 - chunk.len()));
+        for k in 0..=chunk.len() {
+            s.push(a[(n >> (18 - 6 * k) & 63) as usize] as char);
+        }
+        if pad {
+            s.push_str(&"=="[..3 - chunk.len()]);
+        }
+    }
+    s
+}
+
+/// Strict: one accepted spelling per byte string and alphabet (R582).
+pub fn base64_decode(s: &str, url: bool) -> Result<Vec<u8>, usize> {
+    let a = alphabet(url);
+    let cs: Vec<char> = s.chars().collect();
+    let body = cs.len() - cs.iter().rev().take_while(|c| **c == '=').count();
+    let pads = cs.len() - body;
+    let mut vals = Vec::with_capacity(body);
+    for (i, c) in cs[..body].iter().enumerate() {
+        match a.iter().position(|x| *x as char == *c) {
+            Some(v) => vals.push(v as u32),
+            None => return Err(i),
+        }
+    }
+    if body % 4 == 1 || (pads > 0 && (!cs.len().is_multiple_of(4) || pads != 4 - body % 4)) {
+        return Err(body);
+    }
+    let mut out = Vec::with_capacity(body * 3 / 4);
+    for (g, chunk) in vals.chunks(4).enumerate() {
+        let n = chunk.iter().fold(0u32, |n, v| n << 6 | v) << (6 * (4 - chunk.len()));
+        let keep = chunk.len() - 1;
+        // Bits past the last whole byte must be zero.
+        if n & ((1 << (8 * (3 - keep))) - 1) != 0 {
+            return Err(g * 4 + chunk.len() - 1);
+        }
+        out.extend((0..keep).map(|k| (n >> (16 - 8 * k)) as u8));
+    }
+    Ok(out)
+}
+
+/// The bytes of a hex string, or the index of the first bad digit (R583).
+pub fn hex_decode(s: &str) -> Result<Vec<u8>, usize> {
+    let ds = s
+        .chars()
+        .enumerate()
+        .map(|(i, c)| c.to_digit(16).ok_or(i))
+        .collect::<Result<Vec<_>, _>>()?;
+    if ds.len() % 2 == 1 {
+        return Err(ds.len());
+    }
+    Ok(ds.chunks(2).map(|d| (d[0] * 16 + d[1]) as u8).collect())
+}
+
 /// # Safety
 /// `s` is a `Str` block.
 #[unsafe(no_mangle)]
@@ -188,4 +253,70 @@ pub unsafe extern "C" fn yan_rt_bytes_slice(b: *const Vec<u8>, i: i64, j: i64) -
         (Ok(x), Ok(y)) if x <= y && y <= b.len() => leak(b[x..y].to_vec()),
         _ => out_of_range(j, b.len()),
     }
+}
+
+/// -1 when `b` is UTF-8, else the length of its valid prefix.
+///
+/// # Safety
+/// `b` is a `bytes` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_utf8_check(b: *const Vec<u8>) -> i64 {
+    // SAFETY: the caller's contract.
+    std::str::from_utf8(unsafe { &*b }).map_or_else(|e| e.valid_up_to() as i64, |_| -1)
+}
+
+/// -1 when `s` is hex of even length, else the index of the first fault.
+///
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_hex_check(s: *const String) -> i64 {
+    // SAFETY: the caller's contract.
+    hex_decode(unsafe { &*s }).map_or_else(|at| at as i64, |_| -1)
+}
+
+/// # Safety
+/// `s` is a `Str` block that `yan_rt_hex_check` accepted.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_hex_decode(s: *const String) -> *mut Vec<u8> {
+    // SAFETY: the caller's contract.
+    leak(hex_decode(unsafe { &*s }).unwrap_or_default())
+}
+
+/// # Safety
+/// `b` is a `bytes` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_base64(b: *const Vec<u8>, url: u8, pad: u8) -> *mut String {
+    // SAFETY: the caller's contract.
+    str_block(&base64(unsafe { &*b }, url != 0, pad != 0))
+}
+
+/// -1 when `s` is strict base64, else the index of the first fault.
+///
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_base64_check(s: *const String, url: u8) -> i64 {
+    // SAFETY: the caller's contract.
+    base64_decode(unsafe { &*s }, url != 0).map_or_else(|at| at as i64, |_| -1)
+}
+
+/// # Safety
+/// `s` is a `Str` block that `yan_rt_base64_check` accepted.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_base64_decode(s: *const String, url: u8) -> *mut Vec<u8> {
+    // SAFETY: the caller's contract.
+    leak(base64_decode(unsafe { &*s }, url != 0).unwrap_or_default())
+}
+
+/// `invalid <kind> at <at>` for an `EncodingError` whose reason is variant `reason` (R583).
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_encoding_error_show(at: i64, reason: i64) -> *mut String {
+    let kind = match reason {
+        0 => "UTF-8",
+        1 => "hex",
+        3 => "scalar value",
+        _ => "base64",
+    };
+    str_block(&format!("invalid {kind} at {at}"))
 }

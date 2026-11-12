@@ -43,6 +43,11 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let empty = self.lit("");
                 self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])
             }
+            Shape::Rec(name, _) if name == "EncodingError" => self.rt(
+                RtFn::EncodingErrorShow,
+                Ty::Ptr,
+                vec![v[0].clone(), v[1].clone()],
+            ),
             Shape::Rec(name, _) if name == "JsonError" => {
                 let buf = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(v.len() as i128)]);
                 self.write(&At::Mem(buf.clone(), 0), v.to_vec());
