@@ -21,6 +21,8 @@ jobs:
         run: |
           bad=0
           for c in $(git rev-list --no-merges "$BASE..$HEAD"); do
+            # Dependabot cannot sign off; exact id-qualified address, not a wildcard.
+            [ "$(git log -1 --format=%ae "$c")" = "49699333+dependabot[bot]@users.noreply.github.com" ] && continue
             author=$(git log -1 --format='%an <%ae>' "$c")
             if ! git log -1 --format=%B "$c" | grep -qiF "Signed-off-by: $author"; then
               echo "::error::$c ($author) lacks a matching Signed-off-by"
