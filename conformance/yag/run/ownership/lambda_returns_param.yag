@@ -1,0 +1,16 @@
+# spec: 4.2, 17.3
+# rows: R510, R514
+# note: a lambda that returns its borrowed parameter or a capture returns a copy, so the source list stays whole and nothing is freed twice (#1072)
+# stdout:
+# ['bb', 'a', 'ccc'] ['bb', 'a', 'ccc']
+# ['a', 'bb', 'ccc']
+# kept
+
+pub def main() uses io:
+    ws = ["bb", "a", "ccc"]
+    ys = ws.iter().map(lambda w: w).collect()
+    io.print(f"{ys} {ws}")
+    io.print(f"{sorted(ws, key=lambda w: w)}")
+    note = "kept"
+    f = lambda: note
+    io.print(f"{f()}")
