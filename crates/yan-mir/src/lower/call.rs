@@ -243,6 +243,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.encoding_call(id, c, dst);
         }
+        if super::rand::RAND_IDS.contains(&id) {
+            return self.rand_call(id, c, dst);
+        }
         if DEQUE_IDS.contains(&id) {
             return self.deque_call(id, c, dst);
         }
