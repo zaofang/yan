@@ -413,6 +413,22 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(f, Ty::F64, vec![x, y]);
                 set(self, r);
             }
+            // Two arguments: the default rounding, nearest-even. A directed mode is refused.
+            (id::STD_MATH_POW, [(_, x), (_, y), (_, y::Atom::Name(round, _))])
+                if round == "NearestEven" =>
+            {
+                let (x, y) = (self.scalar1(x)?, self.scalar1(y)?);
+                let r = self.rt(RtFn::Pow, Ty::F64, vec![x, y]);
+                set(self, r);
+            }
+            // Only the default rounding, nearest-even; a directed mode is refused like the interpreter.
+            (id::STD_MATH_POWN, [(_, x), (_, n), (_, y::Atom::Name(round, _))])
+                if round == "NearestEven" =>
+            {
+                let (x, n) = (self.scalar1(x)?, self.scalar1(n)?);
+                let r = self.rt(RtFn::Pown, Ty::F64, vec![x, n]);
+                set(self, r);
+            }
             (id::STD_MATH_IS_NAN | id::STD_MATH_IS_INF | id::STD_MATH_IS_FINITE, [(_, a)]) => {
                 let x = self.scalar1(a)?;
                 let f = match id {

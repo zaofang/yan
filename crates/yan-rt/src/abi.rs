@@ -522,6 +522,16 @@ pub extern "C" fn yan_rt_fmod(x: f64, y: f64) -> f64 {
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_pow(x: f64, y: f64) -> f64 {
+    crate::math::pow(x, y)
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_pown(x: f64, n: i64) -> f64 {
+    crate::math::pown(x, n.into())
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_copysign(x: f64, y: f64) -> f64 {
     x.copysign(y)
 }
