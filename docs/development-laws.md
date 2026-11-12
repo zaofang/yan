@@ -26,7 +26,7 @@ a check exists with a hole; None = prose only, a gate issue exists.
 | DL13 Seams | No new code in the three giant lowering files without a split plan; new lowering goes in a new module. | `tools/line_ratchet.py`, cap 3,000 lines per file (#1028); split #757 | Gated |
 | DL14 Dated facts | Every number in a report or README carries a commit and date. Progress and coverage figures are CI-generated. Older than 7 days is stale. | `tools/lint_reports.py` in CI: commit and date on report heads and README figures, `conformance/COVERAGE.md` equals fresh output, stale reports listed | Gated |
 | DL15 Red CI is classified | Infra signature (HTTP 5xx on toolchain fetch) gets one rerun; a code failure never does. Never skip, quarantine or weaken a test to get green. At most two fix attempts per PR. | Classifier step in `ci.yml`; CI robustness #761 | None |
-| DL16 Review and merge | One issue per PR, closed on merge. Lead-owned paths need the lead. Everything else merges on green CI as a merge commit. A PR that leaves a known hole files it as a numbered gap item. | CODEOWNERS and branch protection; issue-link check on PR body | Partial |
+| DL16 Review and merge | One issue per PR, closed on merge. Lead-owned paths need the lead. Everything else merges only on green CI, as a merge commit; there is no merge on red. A PR that leaves a known hole files it as a numbered gap item. | CODEOWNERS and the `main` ruleset (`.github/rulesets/main.json`: six required checks, no bypass); issue-link check on PR body | Partial |
 
 ## Plans
 
