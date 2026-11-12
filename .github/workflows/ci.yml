@@ -170,11 +170,12 @@ jobs:
       - run: >-
           uv run python tools/conform.py --laws --json laws-summary.json
           --executor interp=${{ github.workspace }}/target/release/yan
-      # DL5 differential run: report-only until native parity (#758) makes it blocking.
+      # DL5 differential run: blocking. Divergences go in tools/difftest_allow.toml with an issue.
       - run: >-
-          uv run python -m tools.difftest --report-only --json difftest-summary.json
+          uv run python -m tools.difftest --json difftest-summary.json
           --yan ${{ github.workspace }}/target/release/yan
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: conformance-summary
           path: |
