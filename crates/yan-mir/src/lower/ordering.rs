@@ -66,9 +66,100 @@ impl<'a, 'm> Fn<'a, 'm> {
                     self.copy_to(&d.locals.clone(), vec![copy]);
                 }
             }
+            (id::STD_LIST_BISECT_LEFT | id::STD_LIST_BISECT_RIGHT, [(_, a), (_, x), (_, key)])
+                if !keyed(key) =>
+            {
+                let (l, s) = self.atom_any(a)?;
+                let Shape::List(e) = &s else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let x = self.atom(x, e)?;
+                let right = id == id::STD_LIST_BISECT_RIGHT;
+                let at = self.bisect(&name, l[0].clone(), e, x, right)?;
+                if let Some(d) = &dst {
+                    self.copy_to(&d.locals.clone(), vec![at]);
+                }
+            }
+            (id::STD_LIST_INSORT, [(_, y::Atom::Name(l, _)), (_, x), (_, key)]) if !keyed(key) => {
+                let list = self.name(l)?.clone();
+                let Shape::List(e) = &list.shape else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let v = self.atom(x, e)?;
+                let ops = Self::ops(&list);
+                let at = self.bisect(&name, ops[0].clone(), e, v.clone(), true)?;
+                let mut args = ops;
+                args.push(at);
+                let slot = self.rt(RtFn::ListInsert, Ty::Ptr, args);
+                self.write(&At::Mem(slot, 0), v);
+            }
             _ => return unsupported(format!("call of `{name}`")),
         }
         Ok(())
+    }
+
+    /// The first index of list block `l` whose element is not before `x` (`right`: not at or
+    /// before), by binary search over the elements' schema order.
+    fn bisect(
+        &mut self,
+        name: &str,
+        l: Operand,
+        e: &Shape,
+        x: Vec<Operand>,
+        right: bool,
+    ) -> R<Operand> {
+        let mut schema = String::new();
+        if Self::key_schema(e, &mut schema).is_err() {
+            return unsupported(format!("call of `{name}` on this type"));
+        }
+        let schema = self.lit(&schema);
+        let (lo, hi) = (self.local(I64), self.local(I64));
+        self.emit(Inst::Copy {
+            dst: lo,
+            src: Operand::Int(0),
+        });
+        let n = self.rt(RtFn::ListLen, I64, vec![l.clone()]);
+        self.emit(Inst::Copy { dst: hi, src: n });
+        let head = self.block_new();
+        self.goto(head);
+        let done = self.scalar_op(
+            ScalarOp::Ge,
+            I64,
+            vec![Operand::Local(lo), Operand::Local(hi)],
+        );
+        let (exit, body) = self.branch(done);
+        self.cur = body;
+        let sum = self.scalar_op(
+            ScalarOp::AddChecked,
+            I64,
+            vec![Operand::Local(lo), Operand::Local(hi)],
+        );
+        let mid = self.scalar_op(ScalarOp::FloorDiv, I64, vec![sum, Operand::Int(2)]);
+        let at = At::Mem(
+            self.rt(RtFn::ListAt, Ty::Ptr, vec![l.clone(), mid.clone()]),
+            0,
+        );
+        let m = self.read(&at, e);
+        let (mb, xb) = (self.key_buf(m), self.key_buf(x.clone()));
+        let o = self.rt(RtFn::KeyCmp, I64, vec![schema, mb.clone(), xb.clone()]);
+        self.free(RtFn::EnvFree, mb);
+        self.free(RtFn::EnvFree, xb);
+        let bound = Operand::Int(if right { 0 } else { -1 });
+        let before = self.scalar_op(ScalarOp::Le, I64, vec![o, bound]);
+        let (lt, ge) = self.branch(before);
+        self.cur = lt;
+        let up = self.scalar_op(
+            ScalarOp::AddChecked,
+            I64,
+            vec![mid.clone(), Operand::Int(1)],
+        );
+        self.emit(Inst::Copy { dst: lo, src: up });
+        self.finish(Term::Jump(head));
+        self.cur = ge;
+        self.emit(Inst::Copy { dst: hi, src: mid });
+        self.finish(Term::Jump(head));
+        self.cur = exit;
+        Ok(Operand::Local(lo))
     }
 
     /// `a == b` of a record, tuple or sum of scalars and strs: the runtime compares the two
