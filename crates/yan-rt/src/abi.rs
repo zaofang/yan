@@ -1152,3 +1152,38 @@ pub extern "C" fn yan_rt_cost_count(resource: u64, n: u64) {
         cost_panic(r, bound, clause);
     }
 }
+
+/// `seeded(seed, algorithm)`: algorithm tag 0 is `ChaCha8`, 1 is `Pcg64Dxsm`.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_rand_seeded(seed: i64, algorithm: i64) -> i64 {
+    crate::rand::seeded(seed as u64, algorithm == 1)
+}
+
+/// The handler for branch `k` of a `par` under `h`. A handler that cannot split ends the
+/// program (E402 at run time, as the interpreter does).
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_rand_split(h: i64, k: i64) -> i64 {
+    match crate::rand::branch(h, k as u64) {
+        Some(b) => b,
+        None => {
+            eprintln!("yan: `seeded(seed, Pcg64Dxsm())` in a `par` cannot split (E402)");
+            std::process::exit(101)
+        }
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_rand_next(h: i64) -> i64 {
+    crate::rand::next(h) as i64
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_rand_f64(h: i64) -> f64 {
+    crate::rand::f64_from(crate::rand::next(h))
+}
+
+/// Uniform in `[0, n)`, `n > 0`.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_rand_below(h: i64, n: i64) -> i64 {
+    crate::rand::below(n as u64, || crate::rand::next(h)) as i64
+}

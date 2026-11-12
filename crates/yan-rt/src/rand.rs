@@ -151,6 +151,67 @@ pub fn split(parent: u64, k: u64) -> u64 {
     splitmix64(&mut b)
 }
 
+enum Gen {
+    ChaCha8(ChaCha8),
+    Pcg64Dxsm(Pcg64Dxsm),
+}
+
+struct Handler {
+    seed: u64,
+    state: Gen,
+}
+
+/// The `seeded` handlers made so far. A handler value is its index plus one; 0 is the OS
+/// generator.
+static HANDLERS: std::sync::Mutex<Vec<Handler>> = std::sync::Mutex::new(Vec::new());
+
+fn register(seed: u64, pcg: bool) -> i64 {
+    let state = if pcg {
+        Gen::Pcg64Dxsm(Pcg64Dxsm::new(seed))
+    } else {
+        Gen::ChaCha8(ChaCha8::new(seed))
+    };
+    let mut hs = HANDLERS.lock().expect("the rand handlers");
+    hs.push(Handler { seed, state });
+    hs.len() as i64
+}
+
+/// A `seeded(seed)` handler (`pcg`: `seeded(seed, Pcg64Dxsm())`).
+pub fn seeded(seed: u64, pcg: bool) -> i64 {
+    register(seed, pcg)
+}
+
+/// The next word under handler `h`.
+pub fn next(h: i64) -> u64 {
+    if h <= 0 {
+        let mut b = [0u8; 8];
+        getrandom::fill(&mut b).expect("the OS generator");
+        return u64::from_le_bytes(b);
+    }
+    let mut hs = HANDLERS.lock().expect("the rand handlers");
+    match &mut hs[h as usize - 1].state {
+        Gen::ChaCha8(g) => g.next_u64(),
+        Gen::Pcg64Dxsm(g) => g.next_u64(),
+    }
+}
+
+/// The handler for branch `k` of a `par` under `h`; `None` for a `Pcg64Dxsm` handler, which
+/// cannot split.
+pub fn branch(h: i64, k: u64) -> Option<i64> {
+    if h <= 0 {
+        return Some(h);
+    }
+    let parent = {
+        let hs = HANDLERS.lock().expect("the rand handlers");
+        let e = &hs[h as usize - 1];
+        match e.state {
+            Gen::ChaCha8(_) => e.seed,
+            Gen::Pcg64Dxsm(_) => return None,
+        }
+    };
+    Some(register(split(parent, k), false))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

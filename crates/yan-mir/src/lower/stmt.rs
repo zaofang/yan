@@ -322,10 +322,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                     tasks: tasks.clone(),
                     join,
                 });
-                for (b, t) in blocks.iter().zip(tasks) {
+                for (k, (b, t)) in blocks.iter().zip(tasks).enumerate() {
                     self.cur = t;
                     self.task_starts.push(self.locals.len() as Local);
+                    let saved = self.split_rands(k);
                     self.block_in(b)?;
+                    self.restore_rands(saved);
                     self.flush_deferred();
                     self.task_starts.pop();
                     self.finish(Term::TaskEnd);
@@ -333,7 +335,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.cur = join;
                 Ok(())
             }
-            K::Par { blocks, .. } => blocks.iter().try_for_each(|b| self.block_in(b)),
+            K::Par { blocks, .. } => blocks.iter().enumerate().try_for_each(|(k, b)| {
+                let saved = self.split_rands(k);
+                self.block_in(b)?;
+                self.restore_rands(saved);
+                Ok(())
+            }),
             K::Assert(e) => {
                 let sides = match e {
                     y::Expr::Atom(y::Atom::Name(n, _)) => self.cmps.get(n).cloned(),
@@ -392,6 +399,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 body,
                 ..
             } if name == "cluster" => self.with_cluster(handler, body),
+            K::With {
+                name,
+                handler,
+                body,
+                ..
+            } if name == "rand" => self.with_rand(name, handler, body),
             K::With { .. } => unsupported("`with`"),
             K::Deadline { .. } => unsupported("`deadline`"),
             K::ComptimeFor { .. } | K::ComptimeIf { .. } => unsupported("a comptime statement"),
