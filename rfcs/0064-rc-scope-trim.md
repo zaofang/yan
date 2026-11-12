@@ -1,7 +1,7 @@
 # 0064: Trim the release-candidate scope to the polish floor
 
 - Status: accepted (D1, lead card 2026-11-09)
-- Research: [Yan pre-1.0 polish plan](https://claude.ai/artifact/LqVkrNAL8pERD5rGacTrku); issue #875, tracked by #862.
+- Research: Yan pre-1.0 polish plan; issue #875, tracked by #862.
 - Rows: R990, R991
 
 ## Summary

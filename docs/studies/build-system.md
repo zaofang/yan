@@ -7,7 +7,7 @@ an RFC and accepted rows say otherwise.
 Brief: what a Yan build system should be (manifest, lockfile, content-hash cache from the query
 database, hermetic builds, capability-aware dependencies, agent-friendly zero-config), compared with
 Cargo, Bazel, Nix, Deno and uv; what to take from the zero-config build sketch
-(https://claude.ai/artifact/TM5MAoNw4ESrbCfYGNefFu, Part 2) for Yan packages, and what belongs to a
+(Part 2) for Yan packages, and what belongs to a
 separate polyglot product. Recommend one design and a minimal first milestone after M1.
 
 ## 1. Answer
@@ -39,7 +39,7 @@ Specified:
 | Per-item and per-instantiation salsa cache, object fragment per instantiation, remote CAS read by all and written by CI | 18.4 | salsa per file and item in `yan-db`; codegen is Cranelift JIT only, no object files |
 | Test verdict cache keyed by item hashes and toolchain hash | 18.4 | implemented, `.yan/cache/verdicts.json` |
 | Bit-reproducible release builds, `yan build --verify`, pinned clang, bundled linker | 19.5 | specified; `yan build` is M1b and M2 |
-| Global store, reflinks, HTTP CAS remote cache | Toolchain Design doc (https://claude.ai/artifact/1DBzFtmytWANhwwKurTg3i) | design only |
+| Global store, reflinks, HTTP CAS remote cache | Toolchain Design doc | design only |
 
 Missing in the spec: where the global store lives and how it is keyed, the cache key of an object
 fragment, how the remote cache is addressed and trusted, the lockfile's file format, how C sources
@@ -215,7 +215,7 @@ These are design decisions for a later RFC; the spec is unchanged until rows are
 
 - Spec 1, 3.6, 10.4, 12.8, 18.1, 18.4, 19.1 to 19.6, 22.2, 23 (M1, M1b).
 - `crates/yan-db/src/lib.rs`, `crates/yan-cli/src/test.rs`, `crates/yan-cg-cranelift/src/lib.rs`.
-- Zero-config build sketch: https://claude.ai/artifact/TM5MAoNw4ESrbCfYGNefFu (Part 2).
-- Yan Toolchain Design: https://claude.ai/artifact/1DBzFtmytWANhwwKurTg3i.
+- Zero-config build sketch: (Part 2).
+- Yan Toolchain Design:.
 - Cargo book (build scripts, fingerprints), Bazel remote caching and REAPI v2, Nix derivations and
   content-addressed paths, Deno lockfile and permissions, uv cache and lockfile docs.

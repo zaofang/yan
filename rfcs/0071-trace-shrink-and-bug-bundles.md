@@ -1,7 +1,7 @@
 # 0071: Trace shrinking and repro bundles: `yan replay --shrink`, `yan bug`
 
 - Status: draft
-- Research: [Yan tooling study: borrow and champion](https://claude.ai/artifact/SAaQdxrqitundhjM7DoBxz),
+- Research: Yan tooling study: borrow and champion,
   champion C6; tracker #1004, under #449.
 - Rows: filled in when accepted
 

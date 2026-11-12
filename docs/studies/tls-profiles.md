@@ -4,7 +4,7 @@ Study and proposal, 2026-11-04. Docs only: no spec rows, no conformance edits, n
 Items are labelled D1, D2 and so on; none carries a row number. Everything here is non-normative until
 an RFC and accepted rows say otherwise.
 
-Brief: item F11 of the [language forums study](https://claude.ai/artifact/E8xVSw3fhTwuxFu38DqrtT),
+Brief: item F11 of the language forums study,
 from the Go issue [crypto/tls Profiles](https://github.com/golang/go/issues/79043). The forums study read
 that thread at title level only, and so does this one: nothing here depends on what the Go proposal
 says. The idea is a small set of named configurations instead of free-form cipher and version lists.

@@ -1,7 +1,7 @@
 # 0014: The reference agent loop
 
 - Status: accepted (the lead chose "Accept all (D1 to D6)" on 2026-11-01)
-- Research: [Yan product study](https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU), shortlist item 1
+- Research: Yan product study, shortlist item 1
 - Rows: R616 to R621
 
 ## Summary

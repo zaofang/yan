@@ -4,7 +4,7 @@ Study and proposal, 2026-11-04. Docs only: no spec rows, no conformance edits, n
 Items are labelled D1, D2 and so on; none carries a row number. Everything here is non-normative until
 an RFC and accepted rows say otherwise.
 
-Brief: item F12 of the [language forums study](https://claude.ai/artifact/E8xVSw3fhTwuxFu38DqrtT),
+Brief: item F12 of the language forums study,
 from the TC39 [SeededPRNG](https://github.com/tc39/proposal-seeded-random) proposal (Stage 2), which
 fixes ChaCha12 behind `Random.Seeded` so a seed means the same stream everywhere and adds `getState` and
 `setState` to save and resume it. The forums study rated F12 half covered: Yan already fixes the

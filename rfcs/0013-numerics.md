@@ -1,7 +1,7 @@
 # 0013: Numerics: accuracy lint, reverse mode, sparse index equations
 
 - Status: accepted (the lead chose "Accept all three" on 2026-11-01)
-- Research: [Theory and compiler frontier survey](https://claude.ai/artifact/YNj73yYvBWphMVzAdNLABE), items 11, 12 and 13
+- Research: Theory and compiler frontier survey, items 11, 12 and 13
 - Rows: R613 to R615
 
 ## Summary

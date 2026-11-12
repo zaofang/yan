@@ -83,7 +83,7 @@ Actors, supervision and deadlock detection are std packages in `std.actor`; an a
 
 #### 9.6.1 Distributed compute (R400 to R419)
 
-Distribution is one capability and the std package `std.dist` over it. A program that does not bind `cluster` pays nothing for it. Design: https://claude.ai/artifact/1bHS11teg1PxvwVqXzCfqP.
+Distribution is one capability and the std package `std.dist` over it. A program that does not bind `cluster` pays nothing for it. Design:.
 
 - **Capability (R400).** `cluster` is a built-in capability. Its handler is built from `net`, `tls` and the node's key; code using `cluster` never holds raw `net`. Every `cluster` operation is a `nondet` point and is logged under R305. Operations: `nodes`, `self_node`, `view`, `spawn(e, placement=)`, `call_remote`, `monitor`, `demonitor`, `entity`, `group`.
 - **Addresses (R401).** `Remote[Actor[S]]` is location-transparent: a handle call through it behaves the same for a local or remote actor, apart from `RemoteError`. `share` coerces `Actor[S]` to `Remote[Actor[S]]` only when every handler of `S` has `Wire` parameters, result and failure (E720). A remote message is the identity hash (R348) of the handler's signature (name, parameter types, result, failure; not its body) plus the encoded arguments.

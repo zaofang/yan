@@ -1,7 +1,7 @@
 # 0020: Packaging and ecosystem
 
 - Status: accepted
-- Research: [Yan packaging and ecosystem](https://claude.ai/artifact/NHdZaQ9Q6X5tFxz1xh9BQC)
+- Research: Yan packaging and ecosystem
 - Rows: R635 to R647
 
 ## Summary

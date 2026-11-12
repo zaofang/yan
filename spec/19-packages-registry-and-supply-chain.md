@@ -1,6 +1,6 @@
 ## 19. Packages, registry and supply chain
 
-The design behind this section is the Yan supply-chain security design (https://claude.ai/artifact/XcMuaSWJuuHdxNPs3R6668).
+The design behind this section is the Yan supply-chain security design.
 
 ### 19.1 Manifest and lockfile
 

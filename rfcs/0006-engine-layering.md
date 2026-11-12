@@ -2,7 +2,7 @@
 
 - Status: accepted (the lead approved writing the amended architecture into the spec on 2026-11-01:
   "accept the grand strategy into rfc/spec/row/wherever appropriate")
-- Research: [Yan architecture plan: one core, many surfaces](https://claude.ai/artifact/NpTvDsHWcBnPtCmWvLtqFC),
+- Research: Yan architecture plan: one core, many surfaces,
   section "Amendments after the Yan Agent and Yan assessment"
 - Rows: R576
 

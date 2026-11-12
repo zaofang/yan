@@ -1,6 +1,6 @@
 ## 22. Implementation plan
 
-This section is normative where it says MUST; elsewhere it is the recommended path. Deviations SHOULD be recorded in `SPEC_QUESTIONS.md` with the reason. The Yan Technical Implementation Spec (https://claude.ai/artifact/JqBVcrhH5heYx7F4BjkmYF) sits under this section and adds no language behavior.
+This section is normative where it says MUST; elsewhere it is the recommended path. Deviations SHOULD be recorded in `SPEC_QUESTIONS.md` with the reason. The Yan Technical Implementation Spec sits under this section and adds no language behavior.
 
 ### 22.1 Two implementations
 

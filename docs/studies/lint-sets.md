@@ -4,7 +4,7 @@ Study and proposal, 2026-11-04. Docs only: no spec rows, no conformance edits, n
 Items are labelled D1, D2 and so on; none carries a row number. Everything here is non-normative until
 an RFC and accepted rows say otherwise.
 
-Brief: item F9 of the [language forums study](https://claude.ai/artifact/E8xVSw3fhTwuxFu38DqrtT).
+Brief: item F9 of the language forums study.
 Should `package.yag` name a lint set, std lints at chosen levels plus `@forbid` sets, that
 `yan check` and `yan test` apply to the whole package? Cover prior art, how it fits the existing lint
 rules (18.2), `@expect` and `@deny` (R797), profiles (R320), editions (R348) and the agent patch

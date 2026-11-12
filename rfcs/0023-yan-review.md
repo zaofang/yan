@@ -1,7 +1,7 @@
 # 0023: `yan review`, a report for agent PRs
 
 - Status: accepted (the lead chose "Accept all (D1 to D7)" on 2026-11-01)
-- Research: [What Yan is and how it fits together](https://claude.ai/artifact/HtZ81sCkbF8LnYJRNrGeVU), gap 2
+- Research: What Yan is and how it fits together, gap 2
 - Rows: R665 to R671
 
 ## Summary

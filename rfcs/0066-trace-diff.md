@@ -1,7 +1,7 @@
 # 0066: Trace diff: `yan replay --diff`, and the trace container it reads
 
 - Status: draft
-- Research: [Yan tooling study: borrow and champion](https://claude.ai/artifact/SAaQdxrqitundhjM7DoBxz),
+- Research: Yan tooling study: borrow and champion,
   champion C1; tracker #1004, under #449.
 - Rows: filled in when accepted
 

@@ -1,7 +1,7 @@
 # 0073: Agent session journal: record, replay and diff `yan mcp` sessions
 
 - Status: draft
-- Research: [Yan tooling study: borrow and champion](https://claude.ai/artifact/SAaQdxrqitundhjM7DoBxz),
+- Research: Yan tooling study: borrow and champion,
   champion C8; tracker #1004, under #449.
 - Rows: filled in when accepted
 

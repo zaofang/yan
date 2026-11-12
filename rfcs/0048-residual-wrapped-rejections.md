@@ -1,7 +1,7 @@
 # 0048: Residual wrapped rejections from the R567 failure-mix study
 
 - Status: accepted
-- Research: [R567 failure-mix study (T18)](https://claude.ai/artifact/1tUqnYo9Mds7wDV2JBruKs), item D3
+- Research: R567 failure-mix study (T18), item D3
 - Rows: R927 to R929
 
 ## Summary

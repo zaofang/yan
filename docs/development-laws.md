@@ -1,6 +1,6 @@
 # Yan development laws
 
-Source: study "Yan development laws and phased plans" (https://claude.ai/artifact/RaRsJ6bHuLRe1MQyNet4qq), 2026-11-08.
+Source: study "Yan development laws and phased plans", 2026-11-08.
 Rules summarised in [CLAUDE.md](../CLAUDE.md); gate issues are tracked from parent issue #770, linked from #449 and #752.
 
 The order is fixed: 1. get it working, 2. get it right, 3. make it fast. The laws make that order checkable.

@@ -1,7 +1,7 @@
 # 0074: Growth contracts: check a function's cost class by fitting deterministic step counts
 
 - Status: draft
-- Research: [Yan tooling study: borrow and champion](https://claude.ai/artifact/SAaQdxrqitundhjM7DoBxz),
+- Research: Yan tooling study: borrow and champion,
   champion C9; tracker #1004, under #449.
 - Rows: filled in when accepted
 

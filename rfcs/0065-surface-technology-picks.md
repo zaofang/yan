@@ -1,7 +1,7 @@
 # 0065: Technology picks for the surfaces: shared reader infrastructure, agent tooling, `std.sim`, and design bases for four niche surfaces
 
 - Status: accepted (D1 to D10, lead cards 2026-11-10)
-- Research: [Yan surfaces: technology research](https://claude.ai/artifact/CZWDhwoMky8RN3rKEAs1eQ); issue #947, tracked by #449. Items: #948 to #957; the rest of the study is in tracker #958.
+- Research: Yan surfaces: technology research; issue #947, tracked by #449. Items: #948 to #957; the rest of the study is in tracker #958.
 - Rows: R994 to R1001
 
 ## Summary
