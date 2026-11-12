@@ -11,6 +11,8 @@ pub mod bytes;
 #[allow(unsafe_code)]
 pub mod chan;
 #[allow(unsafe_code)]
+pub mod chars;
+#[allow(unsafe_code)]
 pub mod cluster;
 pub mod collections;
 pub mod crypto_rand;

@@ -67,7 +67,7 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     pub(super) fn has_heap(s: &Shape) -> bool {
         match s {
-            Shape::Scalar(_) | Shape::Actor(_) => false,
+            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) => false,
             Shape::Str
             | Shape::Bytes
             | Shape::Path
@@ -94,7 +94,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             return;
         }
         match s {
-            Shape::Scalar(_) | Shape::Actor(_) => {}
+            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) => {}
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str | Shape::Path => self.free(RtFn::StrFree, v[0].clone()),
             Shape::Bytes => self.free(RtFn::BytesFree, v[0].clone()),
@@ -376,6 +376,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 _ => None,
             },
             Some(id::STD_ENCODING_DECODE_UTF8) => Some(self.encoding_shape(Shape::Str)?),
+            Some(id::STD_PRELUDE_CHR) => Some(self.encoding_shape(Shape::Char)?),
             Some(id::STD_ENCODING_BASE64_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
             Some(id::STD_ENCODING_HEX_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
             Some(id::STD_CHAN_RECEIVER_RECV) => self.targ(c)?.map(|e| result(e, cancelled())),

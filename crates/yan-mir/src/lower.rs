@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 mod actor;
 mod call;
+mod chars;
 mod cluster;
 mod collections;
 mod consts;
@@ -952,7 +953,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             y::Literal::Bool(b) => (Operand::Bool(*b), Shape::Scalar(Ty::Bool)),
             y::Literal::Unit => (Operand::Unit, Shape::Scalar(Ty::Unit)),
             y::Literal::Str(s) => (self.lit(s), Shape::Str),
-            y::Literal::Char(_) => return unsupported("a char"),
+            y::Literal::Char(c) => (Operand::Int(i128::from(u32::from(*c))), Shape::Char),
         })
     }
 
@@ -991,6 +992,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         match (s, v.len()) {
             (
                 Shape::Scalar(_)
+                | Shape::Char
                 | Shape::Str
                 | Shape::Bytes
                 | Shape::Path
