@@ -655,6 +655,60 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(m)
     }
 
+    /// `dict(pairs)`: later pairs overwrite earlier ones, keeping the first key's position.
+    pub(super) fn dict_of(&mut self, conv: &y::Conv, a: &y::Atom) -> R<Operand> {
+        let (_, s) = self.atom_any(a)?;
+        let Shape::List(pair) = &s else {
+            return unsupported("`dict` of a non-list");
+        };
+        let Shape::Tuple(kv) = &**pair else {
+            return unsupported("`dict` of items that are not pairs");
+        };
+        let [k, e] = kv.as_slice() else {
+            return unsupported("`dict` of items that are not pairs");
+        };
+        let kw = k.width();
+        let mut schema = String::new();
+        Self::key_schema(k, &mut schema)?;
+        let schema = self.lit(&schema);
+        let m = self.rt(
+            RtFn::MapNew,
+            Ty::Ptr,
+            vec![
+                Operand::Int(kw as i128),
+                Operand::Int(e.width() as i128),
+                schema,
+            ],
+        );
+        let xs = self.atom(a, &s)?[0].clone();
+        let n = self.rt(RtFn::ListLen, I64, vec![xs.clone()]);
+        self.each(n, |me, i| {
+            let x = me.element(&xs, i, pair)?;
+            let (key, val) = (x[..kw].to_vec(), x[kw..].to_vec());
+            let buf = me.key_buf(key.clone());
+            let p = me.rt(RtFn::MapFind, Ty::Ptr, vec![m.clone(), buf.clone()]);
+            let missing = me.scalar_op(ScalarOp::Eq, I64, vec![p.clone(), Operand::Int(0)]);
+            let (new, old) = me.branch(missing);
+            let join = me.block_new();
+            me.cur = new;
+            let q = me.rt(RtFn::MapPush, Ty::Ptr, vec![m.clone(), buf.clone()]);
+            me.write(&At::Mem(q, 0), val.clone());
+            me.goto(join);
+            me.cur = old;
+            me.glue(k, &key);
+            let prev = me.read(&At::Mem(p.clone(), 0), e);
+            me.glue(e, &prev);
+            me.write(&At::Mem(p, 0), val);
+            me.goto(join);
+            me.free(RtFn::EnvFree, buf);
+            Ok(())
+        })?;
+        if matches!(conv, y::Conv::Sink) {
+            self.glue(&s, &[xs]);
+        }
+        Ok(m)
+    }
+
     pub(super) fn dict_call(&mut self, id: registry::Id, c: &y::Call, dst: Option<Var>) -> R<()> {
         let args = Self::value_args(c)?;
         let set = |me: &mut Self, v: Vec<Operand>| {

@@ -33,7 +33,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Fn(..) => self.lit("<function>"),
             Shape::Chan(_) => return unsupported("`show` of a channel end"),
             Shape::Actor(_) => return unsupported("`show` of an actor handle"),
-            Shape::Set(_) => return unsupported("`show` of a `set`"),
+            Shape::Set(k) => self.show_set(v[0].clone(), k)?,
             Shape::Rec(name, _) if name == "Duration" => {
                 return unsupported("`show` of a `Duration`");
             }
@@ -221,6 +221,45 @@ impl<'a, 'm> Fn<'a, 'm> {
         })?;
         let close = self.lit("}");
         Ok(self.concat2(Operand::Local(out), close))
+    }
+
+    /// `{a, b}` in insertion order, or `set()` when empty.
+    fn show_set(&mut self, m: Operand, k: &Shape) -> R<Operand> {
+        let n = self.rt(RtFn::MapLen, I64, vec![m.clone()]);
+        let out = self.local(Ty::Ptr);
+        let empty = self.scalar_op(ScalarOp::Eq, I64, vec![n.clone(), Operand::Int(0)]);
+        let (none, some) = self.branch(empty);
+        let join = self.block_new();
+        self.cur = none;
+        let lit = self.lit("set()");
+        self.emit(Inst::Copy { dst: out, src: lit });
+        self.goto(join);
+        self.cur = some;
+        let open = self.lit("{");
+        self.emit(Inst::Copy {
+            dst: out,
+            src: open,
+        });
+        self.each(n, |me, i| {
+            let first = me.scalar_op(ScalarOp::Eq, I64, vec![i.clone(), Operand::Int(0)]);
+            let (skip, sep) = me.branch(first);
+            me.cur = sep;
+            let comma = me.lit(", ");
+            let r = me.concat2(Operand::Local(out), comma);
+            me.emit(Inst::Copy { dst: out, src: r });
+            me.goto(skip);
+            let at = me.rt(RtFn::MapAt, Ty::Ptr, vec![m.clone(), i]);
+            let kv = me.read(&At::Mem(at, 0), k);
+            let ks = me.show(&kv, k, true)?;
+            let r = me.concat2(Operand::Local(out), ks);
+            me.emit(Inst::Copy { dst: out, src: r });
+            Ok(())
+        })?;
+        let close = self.lit("}");
+        let r = self.concat2(Operand::Local(out), close);
+        self.emit(Inst::Copy { dst: out, src: r });
+        self.goto(join);
+        Ok(Operand::Local(out))
     }
 
     /// `i` from 0 below `n`.

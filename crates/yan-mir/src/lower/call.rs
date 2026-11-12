@@ -833,6 +833,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.set_of(conv, a)?;
                 set(self, r);
             }
+            (id::STD_PRELUDE_DICT, [(conv, a)]) => {
+                let r = self.dict_of(conv, a)?;
+                set(self, r);
+            }
             (id::STD_PRELUDE_LIST, [(conv, a)]) => {
                 let (_, s) = self.atom_any(a)?;
                 if !matches!(s, Shape::List(_)) {
