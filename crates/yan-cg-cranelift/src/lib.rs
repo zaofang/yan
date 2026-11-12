@@ -684,6 +684,8 @@ const RT: &[RtFn] = &[
     RtFn::Ldexp,
     RtFn::FrexpM,
     RtFn::FrexpE,
+    RtFn::StrSplit,
+    RtFn::StrSplitLines,
     RtFn::Math1,
     RtFn::Math2,
     RtFn::Copysign,
@@ -991,6 +993,18 @@ fn rt_fn(
             "yan_rt_frexp_e",
             abi::yan_rt_frexp_e as *const u8,
             &[F64],
+            Some(I64),
+        ),
+        RtFn::StrSplit => (
+            "yan_rt_str_split",
+            abi::yan_rt_str_split as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::StrSplitLines => (
+            "yan_rt_str_splitlines",
+            abi::yan_rt_str_splitlines as *const u8,
+            &[I64],
             Some(I64),
         ),
         RtFn::Math1 => (
