@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-13 | [What language communities ask for, ranked for Yan](2026-11-13-forum-wishlist-ranking.md) | Study only; ~35 languages swept, 70 themes; most top mainstream asks already in the spec; ranked gaps: hash-keyed incremental compilation, notations and lenses, live programming on hashes, size arithmetic, rank polymorphism, one-shot effects, tactics; declines specialization, HKT, dependent types, procedural macros; no rows |
 | 2026-11-13 | [Yan Meta: syntax proposal after forum review](2026-11-13-yan-meta-syntax-proposal.md) | Proposal only; forums show pushback on procedural macros (build time, IDE), demand for checked DSLs; recommends no procedural macros, declared bidirectional notations, LL(1) DSL islands, reader lenses; no rows |
 | 2026-11-13 | [Yan Meta: user-defined syntax and the macro model](2026-11-13-yan-meta-syntax-extension.md) | Study only; recommends three tiers over a fixed shape reader: `notation` (rule plus template, binding specs, derived printer), delimited LL(1) `grammar` islands, `elab` after R525; conflicts with the 26.2 no-macros non-goal and the 16.6 parse-before-imports rule need a lead decision; no rows |
 | 2026-11-11 | [Public-release audit](2026-11-11-public-release-audit.md) | Audit only; no secrets in history, no rewrite needed; blockers: self-hosted runners on fork PRs (#423, #461, #462), hosted runners (#973), lawyer, trademark policy; should: LGPL malachite in the binary, third-party notices, private artifact links; no rows |
@@ -127,3 +128,4 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-09 | Yan pre-1.0 polish plan | #862; RFC 0064: R990, R991 |
 | 2026-11-10 | Yan surfaces: technology research | #947; RFC 0065: R994 to R1001 (#948 to #957); rest in #958 |
 | 2026-11-11 | Tooling study: borrow and champion | Study only; record, replay, debug, profile, semver, doc, why and diff have no CLI; 10 borrows B1 to B10, 10 champions C1 to C10; D1 (build order: replay with trace diff, no-op review, `yan rewrite`) and D3 (RFCs for all ten) decided 2026-11-11, D2 deferred to #992; tracker #1004; RFC 0066 (C1, draft), RFC 0075 (C10, draft) |
+| 2026-11-13 | Spec difficulty audit | #1129; `tools/spec_audit.py`; per-row CSV; no rows |

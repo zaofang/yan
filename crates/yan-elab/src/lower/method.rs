@@ -395,6 +395,9 @@ impl Lower<'_, '_, '_> {
             let (a, xt) = self.atom(x, Some(pt))?;
             self.expect(&xt, pt, x.span);
             let conv = if *take { Conv::Sink } else { Conv::Let };
+            if *take {
+                self.sink_of_element(&a, x.span);
+            }
             out.push(Arg::Value(conv, a, x.span));
         }
         for _ in n..params.len() {

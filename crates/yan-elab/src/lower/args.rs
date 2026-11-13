@@ -249,7 +249,8 @@ impl Lower<'_, '_, '_> {
                     let a = self.tmp(&t, r, sp);
                     self.expect(&t, &p.ty, sp);
                     self.arg_tys.push((p.ty.clone(), t.clone(), sp));
-                    if let (Conv::Sink, Atom::Name(n, _)) = (conv, &a)
+                    if conv == Conv::Sink && self.sink_of_element(&a, sp) {
+                    } else if let (Conv::Sink, Atom::Name(n, _)) = (conv, &a)
                         && !t.is_copy()
                         && self.locals.contains_key(n)
                         && let Some(later) = self.next_use(n, e.span)
@@ -268,6 +269,24 @@ impl Lower<'_, '_, '_> {
             }
         }
         Ok(Some(done.into_iter().flatten().collect()))
+    }
+
+    /// E413 when `a`, passed by `sink`, names an element of a list: the list still owns it.
+    pub(super) fn sink_of_element(&mut self, a: &Atom, sp: Span) -> bool {
+        let Atom::Name(n, _) = a else {
+            return false;
+        };
+        if !self.index_views.contains(n) {
+            return false;
+        }
+        self.err(
+            "E413",
+            sp,
+            "an element of a list cannot be moved out; pass `.copy()`".into(),
+        );
+        let copied = format!("{}.copy()", self.cx.text(sp));
+        self.cx.fix(Applicability::Auto, "copy", sp, &copied);
+        true
     }
 
     /// Whether `t` mentions a type parameter of the callee that is not yet bound; the caller's

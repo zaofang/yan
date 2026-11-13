@@ -212,10 +212,11 @@ impl Diagnostic {
     /// file's text.
     pub fn render_prose(&self, src: &str) -> String {
         let lines: Vec<&str> = src.lines().collect();
-        let kind = match self.severity {
-            Severity::Error => "error",
-            Severity::Warning => "warning",
-            Severity::Note => "note",
+        // Glyph first, so the severity reads without colour (Workshop Standard L5).
+        let (glyph, kind) = match self.severity {
+            Severity::Error => ("✗", "error"),
+            Severity::Warning => ("▲", "warning"),
+            Severity::Note => ("◆", "note"),
         };
         let title = catalogue(&self.code).map_or_else(|| self.message.clone(), |(m, _)| m);
         let mut marks: Vec<(Span, char, &str)> = vec![(self.span, '^', self.message.as_str())];
@@ -230,7 +231,7 @@ impl Diagnostic {
             .len();
         let pad = " ".repeat(width);
         let mut out = format!(
-            "{kind}[{}]: {title}\n{pad}--> {}:{}:{}\n{pad} |\n",
+            "{glyph} {kind}[{}]: {title}\n{pad}--> {}:{}:{}\n{pad} |\n",
             self.code, self.file, self.span.line, self.span.col
         );
         let mut shown = None;
@@ -509,7 +510,7 @@ mod selftest {
         };
         assert_eq!(
             d.render_prose(src),
-            "error[E413]: implicit copy of a heap-backed value (fix inserts `copy` or `share`)\n\
+            "✗ error[E413]: implicit copy of a heap-backed value (fix inserts `copy` or `share`)\n\
              \x20--> m.yag:2:10\n  |\n\
              2 |     ys = xs\n  |          ^^ `xs` is used again later\n\
              3 |     return len(xs)\n  |                - used again\n\
