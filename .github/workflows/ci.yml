@@ -108,11 +108,10 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-      # Restores the dependency build main saved; only the rust job saves it.
+      # Restores the dependency build main saved; saves on main only. The key includes the job id, so each job has its own cache.
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          shared-key: build
-          save-if: false
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Install Lean at the version formal/lean-toolchain pins
         run: |
           # Transient 5xx from the elan or toolchain host: retry the install (#761). A build failure is not retried.
@@ -153,7 +152,6 @@ jobs:
       # Dependencies are cached from main; PRs restore and never save.
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          shared-key: build
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --all-targets -- -D warnings
@@ -201,8 +199,7 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          shared-key: build
-          save-if: false
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: uv sync --locked
       - run: cargo build --locked --release -p yan-cli
       - run: uv run python bench/run.py --runs 1 --json bench-summary.json
