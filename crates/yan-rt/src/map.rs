@@ -18,6 +18,8 @@ pub(crate) enum Key {
     Str,
     /// A `Path` block: a `Str` block ordered by its parts.
     Path,
+    /// A `WindowsPath` block: a `Str` block ordered, equal and hashed by its folded parts.
+    WinPath,
     /// A `bytes` block (`yan_rt::bytes`).
     Bytes,
     Tuple(Vec<Key>),
@@ -47,7 +49,7 @@ impl Key {
             Key::Bool => "bool",
             Key::Unit => "value",
             Key::Str => "text",
-            Key::Path => "text",
+            Key::Path | Key::WinPath => "text",
             Key::Bytes => "bytes",
             Key::Tuple(_) => "tuple",
             Key::Rec(..) | Key::Sum(_) => "record",
@@ -131,6 +133,12 @@ impl Key {
                 parts(x).cmp(&parts(y))
             },
             // SAFETY: the caller's contract.
+            Key::WinPath => unsafe {
+                let parts =
+                    |p: u64| crate::path::Parsed::windows(&*(p as *const String)).folded_parts();
+                parts(x).cmp(&parts(y))
+            },
+            // SAFETY: the caller's contract.
             Key::Bytes => unsafe { (*(x as *const Vec<u8>)).cmp(&*(y as *const Vec<u8>)) },
             Key::Tuple(ks) | Key::Rec(_, ks) => {
                 for k in ks {
@@ -188,6 +196,8 @@ impl Key {
             Key::Unit => out.unit(),
             // SAFETY: the caller's contract.
             Key::Str | Key::Path => out.text(unsafe { &*(x as *const String) }),
+            // SAFETY: the caller's contract.
+            Key::WinPath => out.win_path(&unsafe { &*(x as *const String) }.to_lowercase()),
             // SAFETY: the caller's contract.
             Key::Bytes => out.bytes(unsafe { &*(x as *const Vec<u8>) }),
             Key::Tuple(ks) => {
@@ -295,6 +305,7 @@ pub(crate) fn parse(s: &mut &str) -> Key {
         b's' => Key::Str,
         b'y' => Key::Bytes,
         b'p' => Key::Path,
+        b'w' => Key::WinPath,
         b'(' => Key::Tuple(until(s, b')')),
         b'{' => {
             let n = name(s);

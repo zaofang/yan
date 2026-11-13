@@ -200,6 +200,24 @@ impl<'a, 'm> Fn<'a, 'm> {
             id::STD_PATH_STARTS_WITH,
             id::STD_PATH_PARTS,
             id::STD_PATH_RELATIVE_TO,
+            id::STD_PRELUDE_WINDOWSPATH,
+            id::STD_PATH_WINDOWS_TEXT,
+            id::STD_PATH_WINDOWS_PARENT,
+            id::STD_PATH_WINDOWS_NAME,
+            id::STD_PATH_WINDOWS_SUFFIX,
+            id::STD_PATH_WINDOWS_STEM,
+            id::STD_PATH_WINDOWS_NORMALIZE,
+            id::STD_PATH_WINDOWS_WITH_NAME,
+            id::STD_PATH_WINDOWS_WITH_SUFFIX,
+            id::STD_PATH_WINDOWS_JOIN,
+            id::STD_PATH_WINDOWS_IS_ABSOLUTE,
+            id::STD_PATH_WINDOWS_STARTS_WITH,
+            id::STD_PATH_WINDOWS_PARTS,
+            id::STD_PATH_WINDOWS_RELATIVE_TO,
+            id::STD_PATH_WINDOWS_DRIVE,
+            id::STD_PATH_WINDOWS_ROOT,
+            id::STD_PATH_WINDOWS_ANCHOR,
+            id::STD_PATH_WINDOWS_TO_POSIX,
         ]
         .contains(&id)
         {
@@ -994,10 +1012,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let node = cluster::std_type("Node");
                 let text =
                     |s: &Shape| matches!(s, Shape::Str | Shape::Path) || Some(s) == node.as_ref();
+                let win = sx == Shape::WinPath;
                 if sx != sy {
                     return unsupported(format!("call of `{name}` on this type"));
                 }
-                let mut r = if text(&sx) {
+                let mut r = if win {
+                    self.rt(RtFn::WinPathEq, Ty::Bool, vec![x[0].clone(), y[0].clone()])
+                } else if text(&sx) {
                     self.rt(RtFn::StrEq, Ty::Bool, vec![x[0].clone(), y[0].clone()])
                 } else {
                     self.key_eq(&sx, x, y, &name)?

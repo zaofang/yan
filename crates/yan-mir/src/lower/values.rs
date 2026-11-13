@@ -80,6 +80,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             | Shape::ByteArray
             | Shape::BigInt
             | Shape::Path
+            | Shape::WinPath
             | Shape::List(_)
             | Shape::Map(..)
             | Shape::Heap(_)
@@ -105,7 +106,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         match s {
             Shape::Scalar(_) | Shape::Char | Shape::Actor(_) => {}
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
-            Shape::Str | Shape::Path => self.free(RtFn::StrFree, v[0].clone()),
+            Shape::Str | Shape::Path | Shape::WinPath => self.free(RtFn::StrFree, v[0].clone()),
             Shape::Bytes | Shape::ByteArray | Shape::BigInt => {
                 self.free(RtFn::BytesFree, v[0].clone())
             }

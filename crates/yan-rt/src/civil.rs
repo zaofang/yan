@@ -541,7 +541,7 @@ fn encode(v: &crate::cli::V, d: &str, pos: &mut usize, out: &mut Vec<i64>) {
         (b'p', V::Path(s)) => {
             let tmp = crate::abi::str_block(s);
             // SAFETY: `tmp` is a fresh `Str` block.
-            let p = unsafe { crate::pathabi::yan_rt_path_new(tmp) };
+            let p = unsafe { crate::pathabi::yan_rt_path_new(0, tmp) };
             // SAFETY: as above; the original block is not used again.
             unsafe { crate::abi::yan_rt_str_free(tmp) };
             out.push(p as i64);

@@ -112,7 +112,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.free(RtFn::StrFree, s);
                 r
             }
-            Shape::Path => {
+            Shape::Path | Shape::WinPath => {
                 let empty = self.lit("");
                 self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])
             }
@@ -361,7 +361,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
         Ok(match s {
             Shape::Scalar(_) | Shape::Char => v,
-            Shape::Str | Shape::Path => {
+            Shape::Str | Shape::Path | Shape::WinPath => {
                 let empty = self.lit("");
                 vec![self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])]
             }
@@ -453,6 +453,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Bytes | Shape::ByteArray => out.push('y'),
             Shape::BigInt => out.push('g'),
             Shape::Path => out.push('p'),
+            Shape::WinPath => out.push('w'),
             Shape::Char => out.push_str("u32"),
             Shape::Tuple(ss) => {
                 out.push('(');

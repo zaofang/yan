@@ -1114,6 +1114,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 | Shape::ByteArray
                 | Shape::BigInt
                 | Shape::Path
+                | Shape::WinPath
                 | Shape::List(_)
                 | Shape::Map(..)
                 | Shape::Heap(_)

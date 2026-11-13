@@ -9,8 +9,13 @@ fn text<'a>(s: *const String) -> &'a str {
     unsafe { &*s }
 }
 
-fn posix(s: *const String) -> Parsed {
-    Parsed::posix(text(s))
+/// `win` is 1 for a `WindowsPath` block, 0 for a `Path` block.
+fn parse(win: i64, s: *const String) -> Parsed {
+    if win != 0 {
+        Parsed::windows(text(s))
+    } else {
+        Parsed::posix(text(s))
+    }
 }
 
 /// `Path(s)` and `s.as_path()`: the normalized text of `s`.
@@ -18,8 +23,8 @@ fn posix(s: *const String) -> Parsed {
 /// # Safety
 /// `s` is a `Str` block.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_path_new(s: *const String) -> *mut String {
-    str_block(&posix(s).text())
+pub unsafe extern "C" fn yan_rt_path_new(win: i64, s: *const String) -> *mut String {
+    str_block(&parse(win, s).text())
 }
 
 /// `parent` (0), `name` (1), `suffix` (2), `stem` (3), `normalize` (4) of a path.
@@ -27,8 +32,8 @@ pub unsafe extern "C" fn yan_rt_path_new(s: *const String) -> *mut String {
 /// # Safety
 /// `p` is a `Path` block.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_path_op(op: i64, p: *const String) -> *mut String {
-    let p = posix(p);
+pub unsafe extern "C" fn yan_rt_path_op(win: i64, op: i64, p: *const String) -> *mut String {
+    let p = parse(win, p);
     let stem = |p: &Parsed| p.name()[..p.name().len() - p.suffix().len()].to_owned();
     match op {
         0 => str_block(&p.parent().text()),
@@ -45,11 +50,12 @@ pub unsafe extern "C" fn yan_rt_path_op(op: i64, p: *const String) -> *mut Strin
 /// `p` is a `Path` block, `n` a `Str` block.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_path_with(
+    win: i64,
     op: i64,
     p: *const String,
     n: *const String,
 ) -> *mut String {
-    let (p, n) = (posix(p), text(n));
+    let (p, n) = (parse(win, p), text(n));
     let name = if op == 0 {
         n.to_owned()
     } else {
@@ -71,8 +77,12 @@ pub unsafe extern "C" fn yan_rt_path_with(
 /// # Safety
 /// `p` is a `Path` block, `q` a `Path` or `Str` block.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_path_join(p: *const String, q: *const String) -> *mut String {
-    str_block(&posix(p).join(&posix(q)).text())
+pub unsafe extern "C" fn yan_rt_path_join(
+    win: i64,
+    p: *const String,
+    q: *const String,
+) -> *mut String {
+    str_block(&parse(win, p).join(&parse(win, q)).text())
 }
 
 /// `is_absolute`.
@@ -80,8 +90,9 @@ pub unsafe extern "C" fn yan_rt_path_join(p: *const String, q: *const String) ->
 /// # Safety
 /// `p` is a `Path` block.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_path_is_absolute(p: *const String) -> u8 {
-    u8::from(!posix(p).root.is_empty())
+pub unsafe extern "C" fn yan_rt_path_is_absolute(win: i64, p: *const String) -> u8 {
+    let p = parse(win, p);
+    u8::from(!p.root.is_empty() && (!p.win || !p.drive.is_empty()))
 }
 
 /// `starts_with`.
@@ -89,8 +100,12 @@ pub unsafe extern "C" fn yan_rt_path_is_absolute(p: *const String) -> u8 {
 /// # Safety
 /// `p` and `b` are `Path` blocks.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_path_starts_with(p: *const String, b: *const String) -> u8 {
-    u8::from(posix(p).strip(&posix(b)).is_some())
+pub unsafe extern "C" fn yan_rt_path_starts_with(
+    win: i64,
+    p: *const String,
+    b: *const String,
+) -> u8 {
+    u8::from(parse(win, p).strip(&parse(win, b)).is_some())
 }
 
 /// `relative_to`: the relative path, or null when `b` is not a prefix.
@@ -99,16 +114,18 @@ pub unsafe extern "C" fn yan_rt_path_starts_with(p: *const String, b: *const Str
 /// `p` and `b` are `Path` blocks.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_path_relative_to(
+    win: i64,
     p: *const String,
     b: *const String,
 ) -> *mut String {
-    match posix(p).strip(&posix(b)) {
+    let p = parse(win, p);
+    match p.strip(&parse(win, b)) {
         Some(segs) => {
             let rel = Parsed {
                 drive: String::new(),
                 root: "",
                 segs,
-                win: false,
+                win: p.win,
             };
             str_block(&rel.text())
         }
@@ -121,11 +138,47 @@ pub unsafe extern "C" fn yan_rt_path_relative_to(
 /// # Safety
 /// `p` is a `Path` block.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_path_parts(p: *const String) -> *mut List {
+pub unsafe extern "C" fn yan_rt_path_parts(win: i64, p: *const String) -> *mut List {
     let l = yan_rt_list_new(1);
-    for part in posix(p).parts() {
+    for part in parse(win, p).parts() {
         // SAFETY: `l` is a fresh list of one-word elements that nothing else borrows.
         unsafe { *yan_rt_list_push(l) = str_block(&part) as u64 };
     }
     l
+}
+
+/// `drive` (0), `root` (1) or `anchor` (2) of a `WindowsPath`.
+///
+/// # Safety
+/// `p` is a `WindowsPath` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_path_win_part(op: i64, p: *const String) -> *mut String {
+    let p = Parsed::windows(text(p));
+    match op {
+        0 => str_block(&p.drive),
+        1 => str_block(p.root),
+        _ => str_block(&p.anchor()),
+    }
+}
+
+/// `to_posix`: the same segments as a `Path` block, or null when there is a drive or a root.
+///
+/// # Safety
+/// `p` is a `WindowsPath` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_path_to_posix(p: *const String) -> *mut String {
+    let p = Parsed::windows(text(p));
+    if !p.drive.is_empty() || !p.root.is_empty() {
+        return std::ptr::null_mut();
+    }
+    str_block(&Parsed { win: false, ..p }.text())
+}
+
+/// `==` on `WindowsPath` blocks: equal when the case-folded parts are.
+///
+/// # Safety
+/// `a` and `b` are `WindowsPath` blocks.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_winpath_eq(a: *const String, b: *const String) -> u8 {
+    u8::from(Parsed::windows(text(a)).folded_parts() == Parsed::windows(text(b)).folded_parts())
 }
