@@ -196,3 +196,16 @@ Nothing changes in Yan Core, the checker, hashing, Yan or Yan Agent. Timing: aft
 - HN on control structures and algebraic effects: https://hn.svelte.dev/item/45798068
 - Unison, "The big idea": https://www.unison-lang.org/docs/the-big-idea
 - Livelits (TyDe 2019): https://icfp19.sigplan.org/details/tyde-2019-papers/12/Livelits-Filling-Typed-Holes-with-Live-GUIs
+
+## Decisions (lead cards, 2026-11-13)
+
+All as recommended. Direction for the RFC after the freeze (#1025) lifts; no rows yet.
+
+- Proposal D1 to D6 adopted.
+- 26.2 and 10.4 to be amended: no syntactic macros in Yan Core, Yan or Yan Agent; Yan Meta admits declarative notations only.
+- Imports: explicit `use syntax m.{a, b}` lines, resolved before other imports; the shape layer still parses with no imports.
+- Use-site marks: islands only (head word or literal prefix); word notations carry no mark.
+- Grammars: one grammar language, also giving runtime parsers and printers for data (R527 `std.syntax`).
+- Templates are written in Yan Meta.
+- Exports: none from published packages until the mechanism is `stable`.
+- Shadowing: none; a clash is an error at the `use syntax` line.
