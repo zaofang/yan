@@ -142,6 +142,16 @@ pub unsafe extern "C" fn yan_rt_chan_drop(ch: *mut Chan) {
     }
 }
 
+/// A copy of an end: one more end of the same channel.
+///
+/// # Safety
+/// `ch` is a live channel.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_chan_clone(ch: *mut Chan) {
+    // SAFETY: the caller's contract.
+    unsafe { (*ch).ends += 1 };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

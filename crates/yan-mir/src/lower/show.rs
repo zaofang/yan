@@ -434,7 +434,14 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Self::ops(&out)
             }
             Shape::Fn(..) => return unsupported("a copy of a closure"),
-            Shape::Chan(_) => return unsupported("a copy of a channel end"),
+            Shape::Chan(_) => {
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::ChanClone,
+                    args: v.clone(),
+                });
+                v
+            }
             Shape::Actor(_) => return unsupported("a copy of an actor handle"),
         })
     }

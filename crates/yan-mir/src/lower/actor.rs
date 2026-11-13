@@ -556,7 +556,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             // Call the message closure with the arguments `s` it owns.
             Thunk::Message => {
                 let mut args = vec![p[1].clone()];
-                args.extend(self.read(&At::Mem(p[2].clone(), 0), s));
+                let owned = self.read(&At::Mem(p[2].clone(), 0), s);
+                args.extend(owned.clone());
                 self.free(RtFn::EnvFree, p[2].clone());
                 let mut params = vec![Ty::Ptr];
                 params.extend(s.tys());
@@ -568,6 +569,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                     params,
                     ret: vec![Ty::Unit],
                 });
+                // The closure borrows its parameter (what it takes it copies), so the arguments
+                // are dropped here.
+                self.glue(s, &owned);
                 self.free(RtFn::EnvFree, p[1].clone());
             }
         }
