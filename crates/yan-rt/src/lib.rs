@@ -7,6 +7,8 @@ pub mod abi;
 #[allow(unsafe_code)]
 pub mod actor;
 #[allow(unsafe_code)]
+pub mod bigint;
+#[allow(unsafe_code)]
 pub mod bytes;
 #[allow(unsafe_code)]
 pub mod chan;

@@ -78,6 +78,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Str
             | Shape::Bytes
             | Shape::ByteArray
+            | Shape::BigInt
             | Shape::Path
             | Shape::List(_)
             | Shape::Map(..)
@@ -105,7 +106,9 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(_) | Shape::Char | Shape::Actor(_) => {}
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str | Shape::Path => self.free(RtFn::StrFree, v[0].clone()),
-            Shape::Bytes | Shape::ByteArray => self.free(RtFn::BytesFree, v[0].clone()),
+            Shape::Bytes | Shape::ByteArray | Shape::BigInt => {
+                self.free(RtFn::BytesFree, v[0].clone())
+            }
             Shape::Chan(_) => self.free(RtFn::ChanDrop, v[0].clone()),
             Shape::List(e) | Shape::Heap(e) | Shape::Deque(e) => {
                 if Self::has_heap(e) {

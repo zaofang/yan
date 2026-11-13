@@ -11,6 +11,8 @@ pub enum Shape {
     Bytes,
     /// A `bytearray`: the same block, changed in place.
     ByteArray,
+    /// A `bigint`: a block holding its two's-complement bytes, little endian (`yan_rt::bigint`).
+    BigInt,
     /// A `Path`: a `Str` block of normalized text, ordered by its parts.
     Path,
     /// A `char`: its code point in one word.
@@ -44,6 +46,7 @@ impl Shape {
             Shape::Str
             | Shape::Bytes
             | Shape::ByteArray
+            | Shape::BigInt
             | Shape::Path
             | Shape::List(_)
             | Shape::Map(..)
@@ -137,6 +140,7 @@ impl Types<'_> {
                     ("Str", []) => return Ok(Shape::Str),
                     ("Bytes", []) => return Ok(Shape::Bytes),
                     ("ByteArray", []) => return Ok(Shape::ByteArray),
+                    ("bigint", []) => return Ok(Shape::BigInt),
                     ("Path", []) => return Ok(Shape::Path),
                     // A `Rand` handler is its index in `yan_rt::rand`.
                     ("Rand", []) => return Ok(Shape::Scalar(I64)),

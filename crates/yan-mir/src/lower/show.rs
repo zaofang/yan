@@ -38,6 +38,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Rec(name, _) if name == "Duration" => {
                 return unsupported("`show` of a `Duration`");
             }
+            Shape::BigInt => self.rt(RtFn::BigStr, Ty::Ptr, vec![v[0].clone()]),
             Shape::Bytes => self.rt(RtFn::BytesRepr, Ty::Ptr, vec![v[0].clone()]),
             Shape::ByteArray => {
                 let r = self.rt(RtFn::BytesRepr, Ty::Ptr, vec![v[0].clone()]);
@@ -307,7 +308,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let empty = self.lit("");
                 vec![self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])]
             }
-            Shape::Bytes | Shape::ByteArray => vec![self.rt(RtFn::BytesCopy, Ty::Ptr, v)],
+            Shape::Bytes | Shape::ByteArray | Shape::BigInt => {
+                vec![self.rt(RtFn::BytesCopy, Ty::Ptr, v)]
+            }
             Shape::List(e) | Shape::Heap(e) | Shape::Deque(e) => {
                 let l = self.rt(RtFn::ListCopy, Ty::Ptr, v);
                 if Self::has_heap(e) {
@@ -391,6 +394,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(Ty::Unit) => out.push('n'),
             Shape::Str => out.push('s'),
             Shape::Bytes | Shape::ByteArray => out.push('y'),
+            Shape::BigInt => out.push('g'),
             Shape::Path => out.push('p'),
             Shape::Char => out.push_str("u32"),
             Shape::Tuple(ss) => {

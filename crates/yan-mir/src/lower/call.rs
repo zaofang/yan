@@ -71,6 +71,9 @@ impl<'a, 'm> Fn<'a, 'm> {
             });
             return Ok(());
         }
+        if self.big_call(id, c, dst.clone())? {
+            return Ok(());
+        }
         if let Some((op, ty)) = scalar(&name) {
             let args = args
                 .iter()

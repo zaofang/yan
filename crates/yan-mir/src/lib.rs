@@ -298,6 +298,22 @@ pub enum RtFn {
     BytesLossy,
     /// `(bytes) -> str`, CPython's repr (R584).
     BytesRepr,
+    /// `(int) -> bigint`
+    BigFromInt,
+    /// `(op, bigint, bigint) -> bigint`; op codes in `yan_rt::bigint`.
+    BigBin,
+    /// `(op, bigint, bigint) -> bool`
+    BigCmp,
+    /// `(left, bigint, int) -> bigint`
+    BigShift,
+    /// `(bigint, int) -> bigint`
+    BigPow,
+    /// `(bigint) -> bigint`
+    BigNot,
+    /// `(0 count_ones | 1 bit_width, bigint) -> int`
+    BigBits,
+    /// `(bigint) -> str`
+    BigStr,
     /// `(bytes, i) -> *u64` a word holding the byte; panics out of range. Valid until the next call.
     BytesIndex,
     /// `(bytes, i) -> int`, the byte or -1 when `i` is out of range.
@@ -571,6 +587,12 @@ impl RtFn {
                 | RtFn::BytesHex
                 | RtFn::BytesLossy
                 | RtFn::BytesRepr
+                | RtFn::BigFromInt
+                | RtFn::BigBin
+                | RtFn::BigShift
+                | RtFn::BigPow
+                | RtFn::BigNot
+                | RtFn::BigStr
                 | RtFn::ListNew
                 | RtFn::ListPush
                 | RtFn::ListCopy
