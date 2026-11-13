@@ -13,6 +13,8 @@ pub struct Chan {
     /// Queued elements, `words` slots each (one for a zero-slot element), oldest first.
     q: VecDeque<u64>,
     ends: u32,
+    /// Live `Sender`s; with none left and nothing queued a receive finds the channel closed.
+    senders: u32,
 }
 
 impl Chan {
@@ -40,6 +42,7 @@ pub extern "C" fn yan_rt_chan_new(cap: u64, words: u64) -> *mut Chan {
         words: words as usize,
         q: VecDeque::new(),
         ends: 2,
+        senders: 1,
     }))
 }
 
@@ -48,6 +51,9 @@ pub const BLOCKED: u64 = 1;
 
 /// The status of an operation in a cancelled task: it fails `Cancelled` (9.4).
 pub const CANCELLED: u64 = 2;
+
+/// The status of a `recv` on a closed, empty channel: it yields None (9.5).
+pub const CLOSED: u64 = 3;
 
 /// A wait that cannot park leaves nothing else to run, so an idle actor runs a queued message
 /// first, as it would at `par concurrent` quiescence (RFC 0056 D4): [`crate::actor::WORK`].
@@ -103,6 +109,9 @@ pub unsafe extern "C" fn yan_rt_chan_recv(ch: *mut Chan, out: *mut u64, in_task:
     // SAFETY: the caller's contract.
     let c = unsafe { &mut *ch };
     if c.len() == 0 {
+        if c.senders == 0 {
+            return CLOSED;
+        }
         if sched::park((true, ch as usize), in_task != 0) {
             return BLOCKED;
         }
@@ -140,6 +149,31 @@ pub unsafe extern "C" fn yan_rt_chan_drop(ch: *mut Chan) {
         // SAFETY: from `yan_rt_chan_new`, and both ends are gone.
         drop(unsafe { Box::from_raw(ch) });
     }
+}
+
+/// Drop a `Sender`: the receivers see the channel closed once its last is gone.
+///
+/// # Safety
+/// As [`yan_rt_chan_drop`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_chan_drop_sender(ch: *mut Chan) {
+    // SAFETY: the caller's contract.
+    unsafe { (*ch).senders -= 1 };
+    sched::progressed();
+    // SAFETY: as above.
+    unsafe { yan_rt_chan_drop(ch) };
+}
+
+/// A copy of a `Sender`.
+///
+/// # Safety
+/// `ch` is a live channel.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_chan_clone_sender(ch: *mut Chan) {
+    // SAFETY: the caller's contract.
+    unsafe { (*ch).senders += 1 };
+    // SAFETY: as above.
+    unsafe { yan_rt_chan_clone(ch) };
 }
 
 /// A copy of an end: one more end of the same channel.

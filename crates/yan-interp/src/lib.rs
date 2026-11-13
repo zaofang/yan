@@ -392,8 +392,8 @@ pub(crate) struct Interp<'o> {
     ceiling: yan_sandbox::Ceiling,
     /// The earliest enclosing `deadline` scope, as monotonic nanoseconds (9.4).
     deadline: Option<i128>,
-    /// Each channel's capacity and queued values, by channel.
-    chans: Vec<(usize, VecDeque<Value>)>,
+    /// Each channel, by channel.
+    chans: Vec<sync::Chan>,
     /// Each actor, by actor (9.6).
     actors: Vec<sync::Actor>,
     /// Every supervisor and the open `with supervisor` scopes (9.6).

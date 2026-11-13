@@ -104,7 +104,7 @@ pub fn layout(s: &Shape) -> Layout {
         | Shape::Map(..)
         | Shape::Heap(_)
         | Shape::Deque(_)
-        | Shape::Chan(_)
+        | Shape::Chan(..)
         | Shape::Actor(_)
         | Shape::Set(_) => plain(8, 8),
         Shape::Fn(..) => plain(16, 8),

@@ -2,7 +2,7 @@
 
 @intrinsic
 @since("1.0")
-pub def recv[T](var self: Receiver[T]) -> T fail Cancelled | Timeout: ...
+pub def recv[T](var self: Receiver[T]) -> T | None fail Cancelled | Timeout: ...
 
 @intrinsic
 @since("1.0")

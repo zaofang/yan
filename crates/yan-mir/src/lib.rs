@@ -523,8 +523,11 @@ pub enum RtFn {
     ChanRecv,
     /// `(Ptr chan)`: drop one end.
     ChanDrop,
+    /// `ChanDrop` of a `Sender`: the last one closes the channel.
+    ChanDropSender,
     /// `(Ptr chan)`: a new end of the same channel.
     ChanClone,
+    ChanCloneSender,
     /// `(n, can_yield) -> handle`: enter a `par concurrent` of `n` tasks.
     ParBegin,
     /// `(handle) -> i64`: the task to run next, the task count when all are done, or past it
