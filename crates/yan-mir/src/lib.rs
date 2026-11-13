@@ -314,6 +314,13 @@ pub enum RtFn {
     BigBits,
     /// `(bigint) -> str`
     BigStr,
+    /// `(op, hi, lo, hi, lo) -> *[hi, lo, ok]` on `Duration` and `Instant` words, valid until the
+    /// next call (`yan_rt::timeabi`).
+    TimeOp,
+    /// `(op, hi, lo, hi, lo) -> f64`
+    TimeF64,
+    /// `(instant, hi, lo) -> str`
+    TimeShow,
     /// `(bytes, i) -> *u64` a word holding the byte; panics out of range. Valid until the next call.
     BytesIndex,
     /// `(bytes, i) -> int`, the byte or -1 when `i` is out of range.
@@ -593,6 +600,7 @@ impl RtFn {
                 | RtFn::BigPow
                 | RtFn::BigNot
                 | RtFn::BigStr
+                | RtFn::TimeShow
                 | RtFn::ListNew
                 | RtFn::ListPush
                 | RtFn::ListCopy

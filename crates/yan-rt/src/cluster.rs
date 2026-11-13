@@ -200,11 +200,16 @@ pub extern "C" fn yan_rt_cluster_arrive(mismatch: u64) -> u64 {
     })
 }
 
+/// A `Duration` of words `hi`, `lo` as nanoseconds, saturating at the `i64` range.
+fn ns(hi: u64, lo: u64) -> i64 {
+    let n = (i128::from(hi as i64) << 64) | i128::from(lo);
+    n.clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64
+}
+
 /// `sim(nodes, seed, faults)`: the cluster's index. `plan` holds a `FaultPlan`'s slots: `drop`,
-/// `delay`, `partition`, `heal`, `cuts`.
-///
+/// `delay`, `partition`, `heal` (two words each), `cuts`.
 /// # Safety
-/// `plan` holds those five slots, `cuts` a `List` block.
+/// `plan` holds those eight slots, `cuts` a `List` block.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_sim_new(nodes: i64, seed: i64, plan: *const u64) -> u64 {
     if nodes < 1 {
@@ -214,17 +219,17 @@ pub unsafe extern "C" fn yan_rt_sim_new(nodes: i64, seed: i64, plan: *const u64)
         );
     }
     // SAFETY: the caller's contract.
-    let p = unsafe { std::slice::from_raw_parts(plan, 5) };
+    let p = unsafe { std::slice::from_raw_parts(plan, 8) };
     // SAFETY: as above.
-    let cuts = unsafe { &*(p[4] as *const List) };
+    let cuts = unsafe { &*(p[7] as *const List) };
     let cuts = cuts
         .data
-        .chunks(3)
+        .chunks(5)
         .map(|c| Cut {
-            at: c[0] as i64,
-            heal: c[1] as i64,
+            at: ns(c[0], c[1]),
+            heal: ns(c[2], c[3]),
             // SAFETY: a `Cut`'s `side` is a `set[int]` block.
-            side: unsafe { &*(c[2] as *const crate::map::Map) }
+            side: unsafe { &*(c[4] as *const crate::map::Map) }
                 .slots()
                 .iter()
                 .map(|n| *n as usize)
@@ -237,9 +242,9 @@ pub unsafe extern "C" fn yan_rt_sim_new(nodes: i64, seed: i64, plan: *const u64)
             nodes: nodes as usize,
             epoch: Some(Instant::now()),
             drop: f64::from_bits(p[0]),
-            delay: p[1] as i64,
-            partition: p[2] as i64,
-            heal: p[3] as i64,
+            delay: ns(p[1], p[2]),
+            partition: ns(p[3], p[4]),
+            heal: ns(p[5], p[6]),
             cuts,
             ..Faults::default()
         };

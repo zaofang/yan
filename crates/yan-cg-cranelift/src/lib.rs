@@ -23,7 +23,7 @@ mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::{
     abi, actor, bigint, bytes, chan, chars, cluster, dq, map, pathabi, pq, regexabi, sched, select,
-    slice,
+    slice, timeabi,
 };
 
 type R<T> = Result<T, String>;
@@ -734,6 +734,9 @@ const RT: &[RtFn] = &[
     RtFn::BytesHex,
     RtFn::BytesLossy,
     RtFn::BytesRepr,
+    RtFn::TimeOp,
+    RtFn::TimeF64,
+    RtFn::TimeShow,
     RtFn::BigFromInt,
     RtFn::BigBin,
     RtFn::BigCmp,
@@ -1266,6 +1269,24 @@ fn rt_fn(
             "yan_rt_big_str",
             bigint::yan_rt_big_str as *const u8,
             &[I64],
+            Some(I64),
+        ),
+        RtFn::TimeOp => (
+            "yan_rt_time",
+            timeabi::yan_rt_time as *const u8,
+            &[I64, I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::TimeF64 => (
+            "yan_rt_time_f64",
+            timeabi::yan_rt_time_f64 as *const u8,
+            &[I64, I64, I64, I64, I64],
+            Some(F64),
+        ),
+        RtFn::TimeShow => (
+            "yan_rt_time_show",
+            timeabi::yan_rt_time_show as *const u8,
+            &[I64, I64, I64],
             Some(I64),
         ),
         RtFn::BytesRepr => (
