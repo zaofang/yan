@@ -98,11 +98,7 @@ fn children_mut(e: &mut j::Expr, f: &mut dyn FnMut(&mut j::Expr)) {
     }
 }
 
-fn replace_first(
-    e: &mut j::Expr,
-    want: &mut dyn FnMut(&j::Expr) -> bool,
-    with: &j::Expr,
-) -> bool {
+fn replace_first(e: &mut j::Expr, want: &mut dyn FnMut(&j::Expr) -> bool, with: &j::Expr) -> bool {
     if want(e) {
         *e = with.clone();
         return true;
@@ -203,9 +199,11 @@ fn is_place(e: &j::Expr) -> bool {
 /// The body as one expression when it only selects among yields.
 fn select(stmts: &[j::Stmt]) -> Option<j::Expr> {
     match stmts {
-        [j::Stmt {
-            kind: K::Yield(e), ..
-        }] => Some(e.clone()),
+        [
+            j::Stmt {
+                kind: K::Yield(e), ..
+            },
+        ] => Some(e.clone()),
         [
             j::Stmt {
                 kind:
@@ -245,7 +243,10 @@ impl Lower<'_, '_, '_> {
     /// The first subscript use on the spine of an assignment target.
     fn spine_use(&self, e: &j::Expr) -> Option<j::Expr> {
         match &e.kind {
-            E::Index(b, _) => self.sub_at(e).map(|_| e.clone()).or_else(|| self.spine_use(b)),
+            E::Index(b, _) => self
+                .sub_at(e)
+                .map(|_| e.clone())
+                .or_else(|| self.spine_use(b)),
             E::Attr(b, ..) => self.spine_use(b),
             _ => None,
         }
@@ -370,7 +371,8 @@ impl Lower<'_, '_, '_> {
             out.push(s.clone());
             return Ok(out);
         }
-        if matches!(s.kind, K::Bind { .. }) && !stmts.iter().any(|x| matches!(x.kind, K::Yield(_))) {
+        if matches!(s.kind, K::Bind { .. }) && !stmts.iter().any(|x| matches!(x.kind, K::Yield(_)))
+        {
             return unsupported("a subscript yielding in a branch, read into a new name");
         }
         let proto = s.clone();
