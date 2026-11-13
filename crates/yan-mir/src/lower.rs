@@ -22,6 +22,7 @@ mod math;
 mod ordering;
 mod path;
 mod pattern;
+mod pipe;
 mod proc;
 mod rand;
 mod regex;
@@ -591,6 +592,8 @@ struct Fn<'a, 'm> {
     /// outermost first: a name whose locals start below `task_starts[d]` was bound outside the
     /// branch at depth `d + 1`.
     task_starts: Vec<Local>,
+    /// Lazy `iter` pipelines by the name they are bound to (`pipe.rs`).
+    pipes: HashMap<String, pipe::Lazy>,
     /// Names of an enclosing frame whose `drop` in a branch waits for the exit that follows.
     deferred: Vec<String>,
     /// Each flagged local to its drop flag (5.3).
@@ -633,6 +636,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             scopes: Vec::new(),
             line: 0,
             task_starts: Vec::new(),
+            pipes: HashMap::new(),
             deferred: Vec::new(),
             flags: HashMap::new(),
             costing: mono.borrow().costing,

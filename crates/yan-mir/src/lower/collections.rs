@@ -868,10 +868,14 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.goto(join);
                 self.free(RtFn::EnvFree, out);
             }
-            (id::STD_DICT_ITEMS | id::STD_DICT_KEYS | id::STD_DICT_VALUES, []) => {
+            (
+                id::STD_DICT_ITEMS | id::STD_DICT_KEYS | id::STD_DICT_VALUES | id::STD_DICT_ITER,
+                [],
+            ) => {
                 let (take_k, take_v) = match id {
                     id::STD_DICT_ITEMS => (true, true),
-                    id::STD_DICT_KEYS => (true, false),
+                    // A dict iterates its keys (17.3).
+                    id::STD_DICT_KEYS | id::STD_DICT_ITER => (true, false),
                     _ => (false, true),
                 };
                 let words = if take_k { k.width() } else { 0 } + if take_v { e.width() } else { 0 };
