@@ -402,6 +402,18 @@ fn const_value(c: &ConstVal) -> Option<Value> {
     })
 }
 
+/// `scale[3]`: an instance differs from its siblings by value arguments the erased types hide.
+fn instance_key(path: &[String], args: &[TArg]) -> String {
+    let args: Vec<String> = args
+        .iter()
+        .map(|a| match a {
+            TArg::Type(t) => yan_core::type_text(t),
+            TArg::Nat(n) => n.clone(),
+        })
+        .collect();
+    format!("{}[{}]", path.join("."), args.join(", "))
+}
+
 pub(crate) fn compile(m: &Module) -> Program {
     let mut g = Globals {
         fns: Map::default(),
@@ -425,6 +437,9 @@ pub(crate) fn compile(m: &Module) -> Program {
                 let id = g.codes.len();
                 g.codes.push(None);
                 g.fns.insert(f.path.join("."), id);
+                if let ItemKind::Inst(i) = &item.kind {
+                    g.fns.insert(instance_key(&f.path, &i.args), id);
+                }
                 g.pending.push((id, f.path.join("."), f, ih));
             }
             ItemKind::Impl(i) => {
@@ -1574,7 +1589,12 @@ impl<'g, 'm> FnC<'g, 'm> {
             }
         }
         let name = c.path.join(".");
-        let callee = if let Some(f) = self.g.fns.get(&name) {
+        let callee = if let Some(f) = self
+            .g
+            .fns
+            .get(&instance_key(&c.path, &c.targs))
+            .or_else(|| self.g.fns.get(&name))
+        {
             Callee::Item(*f)
         } else {
             let suffix = format!(".{name}");
