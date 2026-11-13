@@ -166,6 +166,7 @@ impl Walk<'_> {
             StmtKind::Bind { .. } => unreachable!("rewritten above"),
             StmtKind::Yield(_) => Err("`yield`"),
             StmtKind::Unsafe(_) => Err("`unsafe`"),
+            StmtKind::Select(_) => Err("`select`"),
             StmtKind::Asm { .. } => Err("`asm`"),
             StmtKind::StageIf { .. } | StmtKind::StageFor { .. } => Err("stage-0 control"),
             StmtKind::BreakTo(_) | StmtKind::ContinueTo(_) => {

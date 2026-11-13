@@ -393,6 +393,18 @@ pub enum StmtKind {
         limit: Option<Expr>,
         body: ParBody,
     },
+    /// 15.3: the first ready arm in source order wins.
+    Select(Vec<SelectArm>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SelectArm {
+    /// The channel operation, `after(d)` or `deadline(t)`.
+    pub op: Expr,
+    /// The pattern after `is`.
+    pub pat: Option<Pat>,
+    pub body: Block,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug, PartialEq)]

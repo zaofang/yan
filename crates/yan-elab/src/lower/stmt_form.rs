@@ -292,6 +292,30 @@ impl Lower<'_, '_, '_> {
                 self.stmt(&s)?;
             }
             K::Par { .. } => return unsupported("`par for` with a limit and `par(limit=...)`"),
+            K::Select(arms) => {
+                if !self.sig.caps.iter().any(|c| c == "nondet") {
+                    self.err(
+                        "E709",
+                        at,
+                        "`select` depends on other tasks; declare `uses nondet`".into(),
+                    );
+                }
+                let mut bad = false;
+                for a in arms {
+                    if !select_op(&a.op) {
+                        bad = true;
+                        self.err(
+                            "E711",
+                            a.op.span,
+                            "a `select` arm is `recv()`, `send(v)`, `after(d)` or `deadline(t)`"
+                                .into(),
+                        );
+                    }
+                }
+                if !bad {
+                    return unsupported("`select` arms");
+                }
+            }
             K::With {
                 kind: j::WithKind::Bind(name, h),
                 body,
@@ -549,5 +573,21 @@ impl Lower<'_, '_, '_> {
         self.narrow.retain(|m| m.1 != out || m.0 != "out");
         self.emit(StmtKind::Ret(Atom::Name(out, at)), at);
         Ok(())
+    }
+}
+
+/// An arm operation of `select` (15.3): `ch.recv()`, `ch.send(v)`, `after(d)` or `deadline(t)`.
+fn select_op(e: &j::Expr) -> bool {
+    let j::ExprKind::Call(f, args) = &e.kind else {
+        return false;
+    };
+    match &f.kind {
+        j::ExprKind::Attr(_, m, _) => match m.as_str() {
+            "recv" => args.is_empty(),
+            "send" => args.len() == 1,
+            _ => false,
+        },
+        j::ExprKind::Name(n) => matches!(n.as_str(), "after" | "deadline") && args.len() == 1,
+        _ => false,
     }
 }

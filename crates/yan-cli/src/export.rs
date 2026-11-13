@@ -786,6 +786,7 @@ impl Emitter {
             }
             StmtKind::With { .. } => return no("with deadline or timeout"),
             StmtKind::Par { .. } => return no("par block"),
+            StmtKind::Select(_) => return no("select"),
             StmtKind::Unsafe(_) | StmtKind::Asm { .. } => return no("unsafe block"),
             StmtKind::Yield(_) => return no("yield"),
             StmtKind::StageIf { .. } | StmtKind::StageFor { .. } => return no("stage 0 statement"),

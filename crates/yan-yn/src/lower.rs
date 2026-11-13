@@ -1197,7 +1197,18 @@ impl Lower<'_> {
                 },
                 body: self.block(body)?,
             },
-            StmtKind::Select(_) => return unsupported("`select`"),
+            StmtKind::Select(arms) => K::Select(
+                arms.iter()
+                    .map(|a| {
+                        Ok(h::SelectArm {
+                            op: self.expr(&a.op)?,
+                            pat: a.pattern.as_ref().map(|p| self.pattern(p)).transpose()?,
+                            body: self.arm_body(&a.body, a.span)?,
+                            span: a.span,
+                        })
+                    })
+                    .collect::<R<_>>()?,
+            ),
             StmtKind::Unsafe(body) => K::Unsafe(self.stmts(body)?),
             StmtKind::StageIf {
                 cond,
