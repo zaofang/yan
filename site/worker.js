@@ -14,7 +14,7 @@ export default {
     const text = terminal(request);
     if (url.protocol === "http:" && !text) {
       url.protocol = "https:";
-      return Response.redirect(url.href, 301);
+      return new Response(null, { status: 301, headers: { location: url.href, vary: "accept, user-agent" } });
     }
     if (url.pathname !== "/") return env.ASSETS.fetch(request);
     const res = await env.ASSETS.fetch(text ? new URL("/index.txt", url) : request);
