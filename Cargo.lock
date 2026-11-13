@@ -2596,6 +2596,7 @@ dependencies = [
  "blake3",
  "core-math",
  "getrandom 0.4.3",
+ "jiff",
  "libm",
  "num-bigint 0.4.8",
  "num-traits",

@@ -23,6 +23,8 @@ pub mod csv;
 pub mod csvslots;
 #[allow(unsafe_code)]
 pub mod dq;
+#[allow(unsafe_code)]
+pub mod envhandler;
 pub mod fmt;
 #[allow(unsafe_code)]
 pub mod fshandler;

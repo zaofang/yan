@@ -22,8 +22,8 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::{
-    abi, actor, bigint, bytes, chan, chars, cluster, dq, fshandler, loghandler, map, pathabi, pq,
-    regexabi, sched, select, slice, timeabi,
+    abi, actor, bigint, bytes, chan, chars, cluster, dq, envhandler, fshandler, loghandler, map,
+    pathabi, pq, regexabi, sched, select, slice, timeabi,
 };
 
 type R<T> = Result<T, String>;
@@ -661,6 +661,14 @@ const RT: &[RtFn] = &[
     RtFn::LogNew,
     RtFn::LogSpan,
     RtFn::LogEvent,
+    RtFn::ZoneLookup,
+    RtFn::ZoneId,
+    RtFn::EnvFake,
+    RtFn::EnvOnly,
+    RtFn::EnvArgs,
+    RtFn::EnvVar,
+    RtFn::EnvVars,
+    RtFn::EnvZone,
     RtFn::FsReason,
     RtFn::Concat,
     RtFn::ShowI64,
@@ -901,6 +909,54 @@ fn rt_fn(
             "yan_rt_fs_read_with",
             fshandler::yan_rt_fs_read_with as *const u8,
             &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::ZoneLookup => (
+            "yan_rt_zone_lookup",
+            envhandler::yan_rt_zone_lookup as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::ZoneId => (
+            "yan_rt_zone_id",
+            envhandler::yan_rt_zone_id as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::EnvFake => (
+            "yan_rt_env_fake",
+            envhandler::yan_rt_env_fake as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::EnvOnly => (
+            "yan_rt_env_only",
+            envhandler::yan_rt_env_only as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::EnvArgs => (
+            "yan_rt_env_args",
+            envhandler::yan_rt_env_args as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::EnvVar => (
+            "yan_rt_env_var",
+            envhandler::yan_rt_env_var as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::EnvVars => (
+            "yan_rt_env_vars",
+            envhandler::yan_rt_env_vars as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::EnvZone => (
+            "yan_rt_env_zone",
+            envhandler::yan_rt_env_zone as *const u8,
+            &[I64],
             Some(I64),
         ),
         RtFn::LogNew => (

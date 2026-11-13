@@ -174,6 +174,22 @@ pub enum RtFn {
     LogSpan,
     /// `(handler, level, Str, list[tuple[str, str]])`
     LogEvent,
+    /// `env` handler or zone function.
+    ZoneLookup,
+    /// `env` handler or zone function.
+    ZoneId,
+    /// `env` handler or zone function.
+    EnvFake,
+    /// `env` handler or zone function.
+    EnvOnly,
+    /// `env` handler or zone function.
+    EnvArgs,
+    /// `env` handler or zone function.
+    EnvVar,
+    /// `env` handler or zone function.
+    EnvVars,
+    /// `env` handler or zone function.
+    EnvZone,
     /// `() -> Str`, why the last `FsRead` failed
     FsReason,
     /// `(Str, Str) -> Str`
@@ -565,6 +581,10 @@ impl RtFn {
         matches!(
             self,
             RtFn::Concat
+                | RtFn::ZoneId
+                | RtFn::EnvArgs
+                | RtFn::EnvVar
+                | RtFn::EnvVars
                 | RtFn::ReadLine
                 | RtFn::ReadAll
                 | RtFn::FsRead

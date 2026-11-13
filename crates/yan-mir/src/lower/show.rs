@@ -35,6 +35,12 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Actor(_) => return unsupported("`show` of an actor handle"),
             Shape::Set(k) => self.show_set(v[0].clone(), k)?,
             Shape::Rec(n, _) if n == "SortedMap" || n == "SortedSet" => self.show_sorted(v, s)?,
+            Shape::Rec(name, _) if name == "Secret" => self.lit("Secret(***)"),
+            Shape::Rec(name, _) if name == "TimeZone" => self.rt(
+                RtFn::TimeShow,
+                Ty::Ptr,
+                vec![Operand::Int(3), v[0].clone(), Operand::Int(0)],
+            ),
             Shape::Rec(name, _) if matches!(name.as_str(), "Duration" | "Instant" | "i128") => {
                 let instant = Operand::Int(match name.as_str() {
                     "Duration" => 0,
