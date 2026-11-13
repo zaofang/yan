@@ -1188,7 +1188,8 @@ pub(crate) fn items(p: &Protocol, is_pub: bool, at: Span) -> Vec<j::Item> {
                             j::StmtKind::Assign {
                                 target: nm("msg", at),
                                 ty: None,
-                                value: or_closed(recv, at),
+                                // The inner fallback maps a wait failure, the outer one a closed channel (`None`).
+                                value: or_closed(or_closed(recv, at), at),
                             },
                             at,
                         ),
