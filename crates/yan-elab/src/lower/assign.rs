@@ -349,7 +349,22 @@ impl Lower<'_, '_, '_> {
                     Rhs::Copy(p) => p.root_span,
                     _ => target.span,
                 };
-                self.emit(StmtKind::Rhs(r), sp);
+                // An unpacked component nothing else binds is owned here, so it is dropped.
+                if let Rhs::Atom(Atom::Name(x, xs)) = &r
+                    && x.starts_with('_')
+                    && !t.is_copy()
+                    && self.locals.contains_key(x)
+                {
+                    let mv = Rhs::Move(Place {
+                        root: x.clone(),
+                        root_span: *xs,
+                        projs: Vec::new(),
+                    });
+                    let w = self.fresh("w");
+                    self.bind(&w, false, &t, mv, sp, sp);
+                } else {
+                    self.emit(StmtKind::Rhs(r), sp);
+                }
             }
             _ => return unsupported("this assignment target"),
         }
