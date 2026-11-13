@@ -352,7 +352,8 @@ impl Lower<'_> {
         }
         let for_ty = self.ty(&i.for_type)?;
         let outer = std::mem::replace(&mut self.self_ty, for_ty.clone());
-        let fns = self.impl_fns(&i.items);
+        let fns = self.impl_fns(&i.items, FnKind::Plain);
+        let subs = self.impl_fns(&i.items, FnKind::Sub);
         self.self_ty = outer;
         Ok(h::Impl {
             trait_: i.trait_path.clone(),
@@ -364,17 +365,21 @@ impl Lower<'_> {
                 .map(|(n, t)| Ok((n.clone(), self.ty(t)?)))
                 .collect::<R<_>>()?,
             fns: fns?,
+            subs: subs?,
         })
     }
 
-    fn impl_fns(&mut self, items: &[Item]) -> R<Vec<h::FuncDef>> {
+    fn impl_fns(&mut self, items: &[Item], want: FnKind) -> R<Vec<h::FuncDef>> {
         let mut fns = Vec::new();
         for it in items {
             let ItemKind::Fn(f) = &it.kind else {
                 return unsupported("this impl item");
             };
-            if f.kind != FnKind::Plain {
-                return unsupported("generators and subscripts in an impl");
+            if !matches!(f.kind, FnKind::Plain | FnKind::Sub) {
+                return unsupported("generators in an impl");
+            }
+            if f.kind != want {
+                continue;
             }
             self.doc = self.doc_above(it.span.line);
             fns.push(self.fn_def(&f.sig, Some(&f.body), false)?);
@@ -1077,7 +1082,7 @@ impl Lower<'_> {
             StmtKind::Assert(e) => K::Assert(self.expr(e)?),
             StmtKind::Unreachable => K::Unreachable,
             StmtKind::Reveal(p) => K::Reveal(p.clone()),
-            StmtKind::Yield(_) => return unsupported("`yield`"),
+            StmtKind::Yield(e) => K::Yield(self.expr(e)?),
             // `if e is P` with no `elif` is a match on `e` (R558: `is` stays in Yan).
             StmtKind::If {
                 branches,

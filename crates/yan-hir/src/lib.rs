@@ -262,6 +262,8 @@ pub struct Impl {
     pub for_ty: Type,
     pub assoc: Vec<(Name, Type)>,
     pub fns: Vec<FuncDef>,
+    /// `sub` items (4.4, R457): inlined at each use, never lowered on their own.
+    pub subs: Vec<FuncDef>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -330,6 +332,8 @@ pub enum StmtKind {
         value: Expr,
     },
     Return(Option<Expr>),
+    /// `yield p` in a subscript body (4.4, R457).
+    Yield(Expr),
     Become(Expr),
     Fail(Expr),
     Break,

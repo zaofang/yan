@@ -164,6 +164,7 @@ impl Walk<'_> {
             }
             StmtKind::Ghost { value, .. } => self.expr(value),
             StmtKind::Bind { .. } => unreachable!("rewritten above"),
+            StmtKind::Yield(_) => Err("`yield`"),
             StmtKind::Unsafe(_) => Err("`unsafe`"),
             StmtKind::Asm { .. } => Err("`asm`"),
             StmtKind::StageIf { .. } | StmtKind::StageFor { .. } => Err("stage-0 control"),

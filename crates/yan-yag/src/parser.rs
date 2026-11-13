@@ -1376,6 +1376,7 @@ impl Parser {
             for_ty,
             assoc,
             fns,
+            subs: Vec::new(),
         })
     }
 
