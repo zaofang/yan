@@ -251,6 +251,24 @@ pub enum RtFn {
     StrSplit,
     /// `(str) -> List`
     StrSplitLines,
+    /// `str` text function.
+    StrUpper,
+    /// `str` text function.
+    StrLower,
+    /// `str` text function.
+    StrStrip,
+    /// `str` text function.
+    StrStarts,
+    /// `str` text function.
+    StrEnds,
+    /// `str` text function.
+    StrContains,
+    /// `str` text function.
+    StrContainsChar,
+    /// `str` text function.
+    StrReplace,
+    /// `str` text function.
+    StrJoin,
     /// `(str) -> bytes`
     BytesOfStr,
     RegexCheck,
@@ -565,6 +583,11 @@ impl RtFn {
         matches!(
             self,
             RtFn::Concat
+                | RtFn::StrUpper
+                | RtFn::StrLower
+                | RtFn::StrStrip
+                | RtFn::StrReplace
+                | RtFn::StrJoin
                 | RtFn::ReadLine
                 | RtFn::ReadAll
                 | RtFn::FsRead
