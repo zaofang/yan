@@ -504,6 +504,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             id::STD_ITER_OPS_MAP => {
                 let Some(d) = &dst else {
+                    self.drop_taken_source(id, &e, &v);
                     return Ok(());
                 };
                 let Shape::List(u) = d.shape.clone() else {
@@ -702,7 +703,22 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             _ => return unsupported(format!("call of `{name}`")),
         }
+        self.drop_taken_source(id, &e, &v);
         Ok(())
+    }
+
+    /// The adapters whose source is `take self` own it: free it once the result is built.
+    fn drop_taken_source(&mut self, id: registry::Id, e: &Shape, v: &[Operand]) {
+        if [
+            id::STD_ITER_OPS_MAP,
+            id::STD_ITER_OPS_FILTER,
+            id::STD_ITER_OPS_TAKE_WHILE,
+            id::STD_ITER_OPS_DROP_WHILE,
+        ]
+        .contains(&id)
+        {
+            self.glue(&Shape::List(Box::new(e.clone())), v);
+        }
     }
 
     /// `f(args)` for the closure value `f` (code, environment); the arguments stay the caller's.
