@@ -670,6 +670,14 @@ impl Solver<'_> {
                     f.kill(&n);
                 }
             }
+            S::Select(arms) => {
+                for a in arms {
+                    self.stmts(&a.body.stmts, f.clone());
+                    for n in assigned(&a.body.stmts, self.sites) {
+                        f.kill(&n);
+                    }
+                }
+            }
         }
         f
     }
