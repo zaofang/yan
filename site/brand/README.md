@@ -21,5 +21,11 @@ Yan follows the Zaofang Workshop Standard: shared laws for the system layer, wit
 - Size: the lockup is never shown narrower than 96 px (24 mm in print); below that, use the tile. Clear
   space is the x-height of `yan` on every side.
 - Motion: on the home page the word types out, then the tone arrives. Reduced motion shows it at once.
-- Stamp: the site footer carries the Zaofang avatar with "a zaofang project · 造坊出品"
+- Tile: the seal in a 72 percent box on paper, the same in both themes (`favicon.svg`, `icon-512.png`,
+  `favicon-32.png`).
+- Generated: `favicon.svg` and `social-card.svg` come from `uv run python -m tools.brand`; the PNGs are those
+  SVGs rendered in Chromium at 1x. Editor and terminal themes come from `uv run python -m tools.themes`.
+- CLI: `yan check` in prose leads each diagnostic with a glyph (✗ error, ▲ warning, ◆ note), opens with
+  `言 yan <version>`, ends with a summary line, and colours only on a terminal without `NO_COLOR`.
+- Stamp: the site footer and social card carry the Zaofang avatar with "a zaofang project · 造坊出品"
   (`zaofang-avatar.svg`, Zaofang's mark, used only for this stamp).
