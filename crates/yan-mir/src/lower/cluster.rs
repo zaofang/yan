@@ -239,6 +239,22 @@ impl<'m> Fn<'_, 'm> {
                 self.goto(kept);
                 self.cur = kept;
             }
+            // The copy replaces its place unless the reply was lost; else the copy is dropped.
+            (id::STD_CLUSTER_COMMIT, [(_, y::Atom::Name(n, _)), (_, copy)]) => {
+                let place = self.name(n)?.clone();
+                let v = self.atom(copy, &place.shape)?;
+                let replied = self.rt(RtFn::ClusterReplied, I64, Vec::new());
+                let join = self.block_new();
+                let (took, lost) = self.branch(replied);
+                self.cur = took;
+                self.glue(&place.shape, &Self::ops(&place));
+                self.copy_to(&place.locals, v.clone());
+                self.goto(join);
+                self.cur = lost;
+                self.glue(&place.shape, &v);
+                self.goto(join);
+                self.cur = join;
+            }
             (id::STD_CLUSTER_COMMIT, _) => {
                 return unsupported("an `inout` argument in a call through `Remote` (#929)");
             }

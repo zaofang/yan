@@ -36,6 +36,8 @@ struct Cut {
 /// seed, and the calls and sends through `Remote` they fault, by task path.
 #[derive(Default)]
 pub(crate) struct Faults {
+    /// Whether the last reply arrived; set by every `arrive`.
+    replied: bool,
     seed: i128,
     nodes: usize,
     epoch: i128,
@@ -197,12 +199,22 @@ pub extern "C" fn yan_rt_cluster_admit(mismatch: u64) {
 pub extern "C" fn yan_rt_cluster_arrive(mismatch: u64) -> u64 {
     let me = sched::path();
     with(|st| {
+        st.faults.replied = true;
         let Some(k) = st.faults.calls.iter().rposition(|(p, _, _)| *p == me) else {
             return 0;
         };
         let (_, (from, to), _) = st.faults.calls.remove(k);
-        u64::from(mismatch == 0 && st.faults.lost(to, from))
+        let lost = mismatch == 0 && st.faults.lost(to, from);
+        st.faults.replied = mismatch == 0 && !lost;
+        u64::from(lost)
     })
+}
+
+/// Whether the last call through `Remote` got its reply, so its `inout` copies replace their
+/// places.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_cluster_replied() -> u64 {
+    with(|st| u64::from(st.faults.replied))
 }
 
 /// A `Duration` of words `hi`, `lo` as nanoseconds, saturating at the `i64` range.
