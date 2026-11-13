@@ -406,7 +406,7 @@ pub(crate) struct Interp<'o> {
     /// The `sim` handler last built: nodes, faults, seed and the clock at its binding (RFC 0063 D3).
     sim: Option<Value>,
     /// The PCT scheduler last built, which chooses the next task of a `par concurrent` (R999).
-    pct: Option<simcheck::Pct>,
+    pct: Option<yan_rt::pct::Pct>,
     /// Each monitored actor, the channel its `Down` goes to and the node of the watcher (RFC 0063 D7).
     monitors: Vec<(usize, usize, usize)>,
     /// Messages sent so far over each ordered node pair, which index its fault stream.

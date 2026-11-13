@@ -458,6 +458,8 @@ impl<'a, 'm> Fn<'a, 'm> {
                 }
                 Ok(())
             }
+            // The scheduler `pct` built is already installed.
+            K::With { name, body, .. } if name == "sched" => self.block(body),
             K::With { .. } => unsupported("`with`"),
             K::Deadline { .. } => unsupported("`deadline`"),
             K::ComptimeFor { .. } | K::ComptimeIf { .. } => unsupported("a comptime statement"),

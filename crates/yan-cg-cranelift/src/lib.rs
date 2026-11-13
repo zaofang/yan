@@ -880,6 +880,7 @@ const RT: &[RtFn] = &[
     RtFn::SimCheck,
     RtFn::ClusterReplied,
     RtFn::ProcAmbient,
+    RtFn::SimPct,
     RtFn::ClusterSendMismatch,
     RtFn::ClusterAdmit,
     RtFn::ClusterArrive,
@@ -2215,6 +2216,12 @@ fn rt_fn(
             "yan_rt_cluster_reach",
             cluster::yan_rt_cluster_reach as *const u8,
             &[I64],
+            None,
+        ),
+        RtFn::SimPct => (
+            "yan_rt_sim_pct",
+            sched::yan_rt_sim_pct as *const u8,
+            &[I64, I64, I64],
             None,
         ),
         RtFn::ProcAmbient => (

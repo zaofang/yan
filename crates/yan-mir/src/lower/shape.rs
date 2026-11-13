@@ -162,6 +162,12 @@ impl Types<'_> {
                             Box::new(self.shape_in(&out, stack)?),
                         ));
                     }
+                    // The scheduler `pct` builds is `yan_rt::sched`'s, not a value.
+                    ("Sched", [])
+                        if !self.recs.contains_key(name) && !self.sums.contains_key(name) =>
+                    {
+                        return Ok(Shape::Scalar(I64));
+                    }
                     ("char", []) => return Ok(Shape::Char),
                     ("Secret", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
                         return Ok(Shape::Rec(
