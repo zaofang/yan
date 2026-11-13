@@ -230,6 +230,10 @@ impl Types<'_> {
                     Shape::Rec(name.to_owned(), Vec::new())
                 } else if name == "Duration" {
                     actor::duration()
+                } else if name == "i128" {
+                    time::wide("i128")
+                } else if name == "Instant" {
+                    time::shape(true)
                 } else if name == "Stopped" {
                     actor::stopped()
                 } else if let Some(s) = cluster::std_type(name) {

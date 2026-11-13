@@ -35,8 +35,17 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Actor(_) => return unsupported("`show` of an actor handle"),
             Shape::Set(k) => self.show_set(v[0].clone(), k)?,
             Shape::Rec(n, _) if n == "SortedMap" || n == "SortedSet" => self.show_sorted(v, s)?,
-            Shape::Rec(name, _) if name == "Duration" => {
-                return unsupported("`show` of a `Duration`");
+            Shape::Rec(name, _) if matches!(name.as_str(), "Duration" | "Instant" | "i128") => {
+                let instant = Operand::Int(match name.as_str() {
+                    "Duration" => 0,
+                    "Instant" => 1,
+                    _ => 2,
+                });
+                self.rt(
+                    RtFn::TimeShow,
+                    Ty::Ptr,
+                    vec![instant, v[0].clone(), v[1].clone()],
+                )
             }
             Shape::BigInt => self.rt(RtFn::BigStr, Ty::Ptr, vec![v[0].clone()]),
             Shape::Bytes => self.rt(RtFn::BytesRepr, Ty::Ptr, vec![v[0].clone()]),

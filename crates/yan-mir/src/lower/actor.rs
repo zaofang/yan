@@ -50,25 +50,13 @@ pub(super) fn undelivered(args: Shape, reason: Shape) -> Shape {
     )
 }
 
-/// A `Duration` is its nanoseconds; `show` and arithmetic on it are not native yet.
+/// A `Duration` is 128-bit nanoseconds as two words (`time.rs`).
 pub(super) fn duration() -> Shape {
-    Shape::Rec(
-        "Duration".into(),
-        vec![("nanos".into(), Shape::Scalar(I64))],
-    )
+    super::time::shape(false)
 }
 
-const DURATION_OF: &[(registry::Id, i128)] = &[
-    (id::STD_TIME_DURATION_OF_NANOS, 1),
-    (id::STD_TIME_DURATION_OF_MICROS, 1_000),
-    (id::STD_TIME_DURATION_OF_MILLIS, 1_000_000),
-    (id::STD_TIME_DURATION_OF_SECONDS, 1_000_000_000),
-    (id::STD_TIME_DURATION_OF_MINUTES, 60_000_000_000),
-    (id::STD_TIME_DURATION_OF_HOURS, 3_600_000_000_000),
-];
-
 impl<'a, 'm> Fn<'a, 'm> {
-    /// Lower `c` if it is a `std.actor` or `Duration` constructor call; whether it was.
+    /// Lower `c` if it is a `std.actor` call; whether it was.
     pub(super) fn actor_call(
         &mut self,
         id: registry::Id,
@@ -76,17 +64,6 @@ impl<'a, 'm> Fn<'a, 'm> {
         dst: Option<&Var>,
     ) -> R<bool> {
         let args = Self::value_args(c)?;
-        if let Some((_, k)) = DURATION_OF.iter().find(|(i, _)| *i == id) {
-            let [(_, n)] = args.as_slice() else {
-                return unsupported(format!("call of `{}`", c.path.join(".")));
-            };
-            let n = self.scalar1(n)?;
-            let ns = self.scalar_op(ScalarOp::MulChecked, I64, vec![n, Operand::Int(*k)]);
-            if let Some(d) = dst {
-                self.copy_to(&d.locals, vec![ns]);
-            }
-            return Ok(true);
-        }
         let strategy = match id {
             id::STD_ACTOR_ONE_FOR_ONE => Some("OneForOne"),
             id::STD_ACTOR_ONE_FOR_ALL => Some("OneForAll"),
@@ -620,8 +597,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 .find(|(f, ..)| f == n)
                 .map(|(_, at, _)| v[*at].clone())
         };
+        let period_lo = fs
+            .iter()
+            .find(|(f, ..)| f == "period")
+            .map(|(_, at, _)| v[*at + 1].clone());
         let (Some(strategy), Some(intensity), Some(period)) =
-            (slot("strategy"), slot("intensity"), slot("period"))
+            (slot("strategy"), slot("intensity"), period_lo)
         else {
             return unsupported("a supervisor spec that is not a `Supervisor`");
         };

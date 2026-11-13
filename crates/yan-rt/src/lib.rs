@@ -52,6 +52,9 @@ pub mod select;
 pub mod slice;
 pub mod sort;
 pub mod text;
+pub mod time;
+#[allow(unsafe_code)]
+pub mod timeabi;
 pub mod wire;
 #[allow(unsafe_code)]
 pub mod wireslots;
