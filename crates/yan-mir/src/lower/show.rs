@@ -44,6 +44,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                         | "Period"
                         | "ZonedDateTime"
                         | "TimeError"
+                        | "MonoInstant"
                 ) =>
             {
                 let op = match name.as_str() {
@@ -52,6 +53,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                     "PlainDateTime" => "show.datetime",
                     "Period" => "show.period",
                     "ZonedDateTime" => "show.zoned",
+                    "MonoInstant" => "show.mono",
                     _ => "show.error",
                 };
                 self.civil_show(op, v.to_vec())?

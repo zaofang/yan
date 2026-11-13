@@ -98,7 +98,7 @@ fn op(id: registry::Id) -> Option<(i64, Out, i64)> {
 
 impl<'a, 'm> Fn<'a, 'm> {
     /// An operand as its words `hi`, `lo`: a time value, or an `int` sign-extended.
-    fn time_words(&mut self, a: &y::Atom) -> R<Vec<Operand>> {
+    pub(super) fn time_words(&mut self, a: &y::Atom) -> R<Vec<Operand>> {
         let (v, s) = self.atom_any(a)?;
         Ok(match s {
             Shape::Scalar(_) => {

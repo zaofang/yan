@@ -412,7 +412,9 @@ impl<'a, 'm> Fn<'a, 'm> {
             Some(id::STD_ENCODING_BASE64_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
             Some(id::STD_ENCODING_HEX_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
             Some(id::STD_CHAN_RECEIVER_RECV) => self.targ(c)?.map(|e| result(e, cancelled())),
-            Some(id::STD_CHAN_SENDER_SEND) => Some(result(Shape::Scalar(Ty::Unit), cancelled())),
+            Some(id::STD_CHAN_SENDER_SEND | id::STD_TIME_SLEEP | id::STD_TIME_SLEEP_UNTIL) => {
+                Some(result(Shape::Scalar(Ty::Unit), cancelled()))
+            }
             Some(id::STD_ACTOR_RETAKE) => match c.targs.get(2) {
                 Some(y::TArg::Type(f)) => Some(result(Shape::Scalar(Ty::Unit), self.shape(f)?)),
                 _ => None,

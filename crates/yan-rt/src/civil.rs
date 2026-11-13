@@ -631,6 +631,67 @@ fn encode(v: &crate::cli::V, d: &str, pos: &mut usize, out: &mut Vec<i64>) {
     }
 }
 
+/// A `fixed_time` or `virtual` handler's clock: its start and the nanoseconds slept under it.
+struct Clock {
+    start: i128,
+    fixed: bool,
+    slept: i128,
+}
+
+static CLOCKS: std::sync::Mutex<Vec<Clock>> = std::sync::Mutex::new(Vec::new());
+static START: std::sync::LazyLock<std::time::Instant> =
+    std::sync::LazyLock::new(std::time::Instant::now);
+
+fn host_monotonic() -> i128 {
+    START.elapsed().as_nanos() as i128
+}
+
+/// Handler `h` (0 is the host clock): its `now` and `monotonic` readings.
+fn clock_now(h: i64) -> i128 {
+    let c = CLOCKS.lock().expect("clock table");
+    match h.checked_sub(1).and_then(|i| c.get(i as usize)) {
+        Some(c) if c.fixed => c.start,
+        Some(c) => c.start + c.slept,
+        None => std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_nanos() as i128),
+    }
+}
+
+fn clock_monotonic(h: i64) -> i128 {
+    let c = CLOCKS.lock().expect("clock table");
+    match h.checked_sub(1).and_then(|i| c.get(i as usize)) {
+        Some(c) => c.slept,
+        None => host_monotonic(),
+    }
+}
+
+/// The monotonic reading of the innermost `fixed_time` or `virtual` handler made, if any.
+pub fn clocks_last() -> Option<i128> {
+    CLOCKS.lock().expect("clock table").last().map(|c| c.slept)
+}
+
+/// A wait that nothing can end runs every handler clock up to `d`, as host time would pass.
+pub fn clocks_advance_to(d: i128) {
+    for c in CLOCKS.lock().expect("clock table").iter_mut() {
+        c.slept = c.slept.max(d);
+    }
+}
+
+fn clock_sleep(h: i64, ns: i128) {
+    if ns <= 0 {
+        return;
+    }
+    let mut c = CLOCKS.lock().expect("clock table");
+    match h.checked_sub(1).and_then(|i| c.get_mut(i as usize)) {
+        Some(c) => c.slept += ns,
+        None => {
+            drop(c);
+            std::thread::sleep(std::time::Duration::from_nanos(ns as u64));
+        }
+    }
+}
+
 /// Runs operation `op` on the argument words `a`.
 pub fn run(op: &str, a: &[i64]) -> Done {
     match op {
@@ -696,6 +757,28 @@ fn run_more(op: &str, a: &[i64]) -> Done {
                 ]),
             }
         }
+        "clock.fixed" | "clock.virtual" => {
+            let mut c = CLOCKS.lock().expect("clock table");
+            c.push(Clock {
+                start: join(a[0], a[1]),
+                fixed: op == "clock.fixed",
+                slept: 0,
+            });
+            int(c.len() as i64)
+        }
+        "clock.now" => Done::Ok(words(clock_now(a[0])).to_vec()),
+        "clock.monotonic" => Done::Ok(words(clock_monotonic(a[0])).to_vec()),
+        "clock.sleep" => {
+            clock_sleep(a[0], join(a[1], a[2]));
+            int(0)
+        }
+        "clock.sleep_until" => {
+            clock_sleep(a[0], join(a[1], a[2]) - clock_monotonic(a[0]));
+            int(0)
+        }
+        "mono.add" => Done::Ok(words(join(a[0], a[1]) + join(a[2], a[3])).to_vec()),
+        "mono.sub" | "mono.since" => Done::Ok(words(join(a[0], a[1]) - join(a[2], a[3])).to_vec()),
+        "show.mono" => str_out(&format!("MonoInstant({})", join(a[0], a[1]))),
         "instant.parse" => lift(parse_instant(text(a[0])), |w| w),
         "zone.parse" => match intern(text(a[0])) {
             Some(z) => int(z),
