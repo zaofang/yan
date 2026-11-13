@@ -32,6 +32,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(Ty::Ptr) => unreachable!("not a Yan Core type"),
             Shape::Fn(..) => self.lit("<function>"),
             Shape::Chan(..) => return unsupported("`show` of a channel end"),
+            Shape::Ptr => return unsupported("`show` of a `Ptr`"),
             Shape::Actor(_) => return unsupported("`show` of an actor handle"),
             Shape::Set(k) => self.show_set(v[0].clone(), k)?,
             Shape::Rec(n, _) if n == "SortedMap" || n == "SortedSet" => self.show_sorted(v, s)?,
@@ -360,7 +361,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             return Ok(v);
         }
         Ok(match s {
-            Shape::Scalar(_) | Shape::Char => v,
+            Shape::Scalar(_) | Shape::Char | Shape::Ptr => v,
             Shape::Str | Shape::Path | Shape::WinPath => {
                 let empty = self.lit("");
                 vec![self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])]

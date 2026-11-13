@@ -24,6 +24,7 @@ mod path;
 mod pattern;
 mod pipe;
 mod proc;
+mod ptr;
 mod rand;
 mod regex;
 mod shape;

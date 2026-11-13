@@ -230,6 +230,10 @@ pub enum RtFn {
     RandF64,
     /// `(handler, n) -> int` below `n > 0`.
     RandBelow,
+    /// `(addr, prov)`: records the provenance exposed at `addr` (6.6).
+    PtrExpose,
+    /// `(addr) -> prov`: the provenance last exposed at `addr`, 0 for none.
+    PtrExposed,
     /// `(str, sep, i) -> str`: part `i` (0 before, 1 separator, 2 after) of `std.text.partition`.
     StrPartition,
     /// `(Str) -> i64`
