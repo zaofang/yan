@@ -746,6 +746,95 @@ pub unsafe extern "C" fn yan_rt_str_repeat(s: *const String, n: i64) -> *mut Str
 }
 
 /// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_upper(s: *const String) -> *mut String {
+    // SAFETY: the caller's contract.
+    str_block(&unsafe { &*s }.to_uppercase())
+}
+
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_lower(s: *const String) -> *mut String {
+    // SAFETY: the caller's contract.
+    str_block(&unsafe { &*s }.to_lowercase())
+}
+
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_strip(s: *const String) -> *mut String {
+    // SAFETY: the caller's contract.
+    str_block(unsafe { &*s }.trim())
+}
+
+/// # Safety
+/// `s` and `p` are `Str` blocks.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_starts(s: *const String, p: *const String) -> u8 {
+    // SAFETY: the caller's contract.
+    u8::from(unsafe { &*s }.starts_with(unsafe { &**p }))
+}
+
+/// # Safety
+/// `s` and `p` are `Str` blocks.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_ends(s: *const String, p: *const String) -> u8 {
+    // SAFETY: the caller's contract.
+    u8::from(unsafe { &*s }.ends_with(unsafe { &**p }))
+}
+
+/// # Safety
+/// `s` and `p` are `Str` blocks.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_contains(s: *const String, p: *const String) -> u8 {
+    // SAFETY: the caller's contract.
+    u8::from(unsafe { &*s }.contains(unsafe { &**p }))
+}
+
+/// # Safety
+/// `s` is a `Str` block; `c` is a char scalar.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_contains_char(s: *const String, c: i64) -> u8 {
+    // SAFETY: the caller's contract.
+    u8::from(
+        u32::try_from(c)
+            .ok()
+            .and_then(char::from_u32)
+            .is_some_and(|c| unsafe { &*s }.contains(c)),
+    )
+}
+
+/// # Safety
+/// `s`, `p` and `q` are `Str` blocks.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_replace(
+    s: *const String,
+    p: *const String,
+    q: *const String,
+) -> *mut String {
+    // SAFETY: the caller's contract.
+    let (s, p, q) = unsafe { (&*s, &*p, &*q) };
+    str_block(&s.replace(p.as_str(), q))
+}
+
+/// # Safety
+/// `sep` is a `Str` block; `l` is a `List` of `Str` blocks.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_join(sep: *const String, l: *const List) -> *mut String {
+    // SAFETY: the caller's contract.
+    let (sep, l) = unsafe { (&*sep, &*l) };
+    // SAFETY: each one-word element of a `list[str]` is a `Str` block.
+    let parts: Vec<&str> = l
+        .data
+        .iter()
+        .map(|&w| unsafe { &*(w as *const String) }.as_str())
+        .collect();
+    str_block(&parts.join(sep))
+}
+
+/// # Safety
 /// `a` and `b` are `Str` blocks.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_str_eq(a: *const String, b: *const String) -> u8 {
