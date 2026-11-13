@@ -119,6 +119,20 @@ impl<'m> Fn<'_, 'm> {
                 }
                 self.copy_to(&d.locals, v);
             }
+            (id::STD_SIM_CHECK_TRACE, [(_, trace), (_, spec)]) => {
+                let Some(d) = dst else { return Ok(true) };
+                let trace = self.scalar1(trace)?;
+                let machines = self.atom_any(spec)?.0[0].clone();
+                let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(5)]);
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::SimCheck,
+                    args: vec![out.clone(), trace, machines],
+                });
+                let v = self.read(&At::Mem(out.clone(), 0), &d.shape);
+                self.free(RtFn::EnvFree, out);
+                self.copy_to(&d.locals, v);
+            }
             (id::STD_SIM_SIM, [(_, n), (_, seed), (_, plan)]) => {
                 let (n, seed) = (self.scalar1(n)?, self.scalar1(seed)?);
                 let s = std_type("FaultPlan").expect("a std type");
