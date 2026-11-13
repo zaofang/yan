@@ -144,7 +144,7 @@ impl Types<'_> {
                     ("Path", []) => return Ok(Shape::Path),
                     // A capability handler is its index in `yan_rt` (`rand`, `fshandler`,
                     // `loghandler`), unless the program declares a type of that name.
-                    ("Rand" | "Fs" | "Log" | "Env", [])
+                    ("Rand" | "Fs" | "Log" | "Env" | "Time", [])
                         if !self.recs.contains_key(name) && !self.sums.contains_key(name) =>
                     {
                         return Ok(Shape::Scalar(I64));
