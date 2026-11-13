@@ -430,7 +430,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 handler,
                 body,
                 ..
-            } if name == "rand" || name == "fs" || name == "log" => {
+            } if name == "rand" || name == "fs" || name == "log" || name == "env" => {
                 self.with_rand(name, handler, body)
             }
             K::With { .. } => unsupported("`with`"),

@@ -123,6 +123,9 @@ pub unsafe extern "C" fn yan_rt_time_f64(op: i64, ahi: i64, alo: i64, bhi: i64, 
 /// None beyond the C ABI.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_time_show(kind: i64, hi: i64, lo: i64) -> *mut String {
+    if kind == 3 {
+        return str_block(&crate::envhandler::zone_id(hi));
+    }
     let n = join(hi, lo);
     str_block(&match kind {
         0 => show_duration(n),

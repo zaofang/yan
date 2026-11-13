@@ -11,6 +11,7 @@ publish.workspace = true
 blake3.workspace = true
 core-math.workspace = true
 getrandom = "0.4"
+jiff.workspace = true
 libm.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true

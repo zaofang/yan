@@ -144,12 +144,18 @@ impl Types<'_> {
                     ("Path", []) => return Ok(Shape::Path),
                     // A capability handler is its index in `yan_rt` (`rand`, `fshandler`,
                     // `loghandler`), unless the program declares a type of that name.
-                    ("Rand" | "Fs" | "Log", [])
+                    ("Rand" | "Fs" | "Log" | "Env", [])
                         if !self.recs.contains_key(name) && !self.sums.contains_key(name) =>
                     {
                         return Ok(Shape::Scalar(I64));
                     }
                     ("char", []) => return Ok(Shape::Char),
+                    ("Secret", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
+                        return Ok(Shape::Rec(
+                            "Secret".into(),
+                            vec![("value".into(), self.shape_in(e, stack)?)],
+                        ));
+                    }
                     // No lazy adapters natively: an `iter` from `std.itertools` is its list.
                     ("List" | "Iter", [y::TArg::Type(e)]) => {
                         return Ok(Shape::List(Box::new(self.shape_in(e, stack)?)));
@@ -237,6 +243,8 @@ impl Types<'_> {
                     actor::duration()
                 } else if name == "i128" {
                     time::wide("i128")
+                } else if name == "TimeZone" {
+                    Shape::Rec("TimeZone".into(), vec![("id".into(), Shape::Scalar(I64))])
                 } else if name == "Instant" {
                     time::shape(true)
                 } else if name == "Stopped" {
