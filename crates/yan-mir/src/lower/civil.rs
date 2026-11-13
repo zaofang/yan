@@ -40,6 +40,7 @@ pub(super) fn std_type(name: &str) -> Option<Shape> {
         "TimeError" => rec(name, &[("at", i), ("reason", std_type("TimeReason")?)]),
         "Disambiguation" => sum(name, &["Compatible", "Earlier", "Later"]),
         "TimeZone" => rec(name, &[("id", i)]),
+        "Instant" => super::time::shape(true),
         "ZonedDateTime" => rec(
             name,
             &[
@@ -63,6 +64,7 @@ pub(super) fn fail_ok(id: registry::Id) -> Option<&'static str> {
         id::STD_TIME_PERIOD_PARSE => "Period",
         id::STD_TIME_PARSE => "ZonedDateTime",
         id::STD_TIME_ZONE_PARSE => "TimeZone",
+        id::STD_TIME_INSTANT_PARSE => "Instant",
         _ => return None,
     })
 }
@@ -101,6 +103,7 @@ fn table(id: registry::Id) -> Option<(&'static str, Kind, Recv)> {
         id::STD_TIME_PERIOD_PARSE => ("period.parse", Fail, All),
         id::STD_TIME_PARSE => ("zoned.parse", Fail, All),
         id::STD_TIME_ZONE_PARSE => ("zone.parse", Fail, All),
+        id::STD_TIME_INSTANT_PARSE => ("instant.parse", Fail, All),
         id::STD_TIME_DATE_STRPTIME => ("date.strptime", Fail, All),
         id::STD_TIME_PLAIN_TIME_STRPTIME => ("time.strptime", Fail, All),
         id::STD_TIME_PLAIN_DATE_TIME_STRPTIME => ("datetime.strptime", Fail, All),
