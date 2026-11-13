@@ -599,6 +599,18 @@ pub unsafe extern "C" fn yan_rt_list_insert(l: *mut List, i: i64) -> *mut u64 {
     l.data[at..].as_mut_ptr()
 }
 
+/// Removes element `i` of `l`; the caller has taken its value.
+///
+/// # Safety
+/// `l` is a `List` block that nothing else borrows, and `i` is in range.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_list_remove(l: *mut List, i: i64) {
+    // SAFETY: the caller's contract.
+    let l = unsafe { &mut *l };
+    let at = i as usize * l.words;
+    l.data.drain(at..at + l.words);
+}
+
 /// A new list of elements `i..j`, shallow-copied; panics when out of range.
 ///
 /// # Safety

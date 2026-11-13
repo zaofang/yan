@@ -157,6 +157,15 @@ impl Types<'_> {
                     ("Deque", [y::TArg::Type(e)]) => {
                         return Ok(Shape::Deque(Box::new(self.shape_in(e, stack)?)));
                     }
+                    ("SortedMap", [y::TArg::Type(k), y::TArg::Type(v)]) => {
+                        return Ok(super::sorted::sorted_dict(
+                            self.shape_in(k, stack)?,
+                            self.shape_in(v, stack)?,
+                        ));
+                    }
+                    ("SortedSet", [y::TArg::Type(t)]) => {
+                        return Ok(super::sorted::sorted_set(self.shape_in(t, stack)?));
+                    }
                     ("Option", [y::TArg::Type(t)]) => {
                         let t = self.shape_in(t, stack)?;
                         return Ok(Shape::Sum(

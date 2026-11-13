@@ -34,6 +34,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Chan(_) => return unsupported("`show` of a channel end"),
             Shape::Actor(_) => return unsupported("`show` of an actor handle"),
             Shape::Set(k) => self.show_set(v[0].clone(), k)?,
+            Shape::Rec(n, _) if n == "SortedMap" || n == "SortedSet" => self.show_sorted(v, s)?,
             Shape::Rec(name, _) if name == "Duration" => {
                 return unsupported("`show` of a `Duration`");
             }

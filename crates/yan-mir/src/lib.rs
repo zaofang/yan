@@ -324,6 +324,8 @@ pub enum RtFn {
     KeyCmp,
     /// `(list, i) -> *slots`, the new element's slots.
     ListInsert,
+    /// `(list, i)`: removes element `i` without dropping it.
+    ListRemove,
     /// `(list, i, j) -> list`, a shallow copy; panics out of range.
     ListSliceExact,
     /// `(str, out) -> bool`, parsing into the word at `out`.

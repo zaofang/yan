@@ -120,6 +120,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         if self.cluster_call(id, c, dst.as_ref())? {
             return Ok(());
         }
+        if sorted::IDS.contains(&id) {
+            return self.sorted_call(id, c, dst);
+        }
         if id == id::STD_ERROR_CONTEXT {
             return self.error_call(c, dst);
         }

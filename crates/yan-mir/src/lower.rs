@@ -22,6 +22,7 @@ mod rand;
 mod regex;
 mod shape;
 mod show;
+mod sorted;
 mod stmt;
 mod unwind;
 mod values;

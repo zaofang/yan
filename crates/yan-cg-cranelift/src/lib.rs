@@ -746,6 +746,7 @@ const RT: &[RtFn] = &[
     RtFn::EncodingErrorShow,
     RtFn::KeyCmp,
     RtFn::ListInsert,
+    RtFn::ListRemove,
     RtFn::ListSliceExact,
     RtFn::ParseInt,
     RtFn::ParseFloat,
@@ -1413,6 +1414,12 @@ fn rt_fn(
             map::yan_rt_key_cmp as *const u8,
             &[I64, I64, I64],
             Some(I64),
+        ),
+        RtFn::ListRemove => (
+            "yan_rt_list_remove",
+            abi::yan_rt_list_remove as *const u8,
+            &[I64, I64],
+            None,
         ),
         RtFn::ListInsert => (
             "yan_rt_list_insert",

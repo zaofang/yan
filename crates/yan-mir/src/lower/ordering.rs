@@ -324,7 +324,7 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     /// The first index of list block `l` whose element is not before `x` (`right`: not at or
     /// before), by binary search over the elements' schema order.
-    fn bisect(
+    pub(super) fn bisect(
         &mut self,
         name: &str,
         l: Operand,
