@@ -361,10 +361,6 @@ impl<'a, 'm> Fn<'a, 'm> {
             return unsupported("`?` outside a failing function");
         };
         let (e, mine_e) = (efs[0].1.clone(), mine_e[0].1.clone());
-        // A widened failure leaving a task leaks the enclosing frame's locals (#835).
-        if e != mine_e && !self.task_starts.is_empty() {
-            return unsupported("`?` across error types in a `par concurrent` branch");
-        }
         let r = self.var(theirs);
         let v = Self::ops(&r);
         self.call(c, Some(r))?;
