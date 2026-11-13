@@ -137,14 +137,14 @@ impl Lower<'_, '_, '_> {
                 self.start_call(args, at, want)
             }
             j::ExprKind::Attr(m, op, _)
-                if self.cx.ffi
+                if (self.cx.ffi || ptr::exposes(op))
                     && matches!(&m.kind, j::ExprKind::Name(p) if p == "ptr" && !self.locals.contains_key(p)) =>
             {
                 self.ptr_call(op, None, args, at, want)
             }
             j::ExprKind::Index(b, k)
-                if self.cx.ffi
-                    && let j::ExprKind::Attr(m, op, _) = &b.kind
+                if let j::ExprKind::Attr(m, op, _) = &b.kind
+                    && (self.cx.ffi || ptr::exposes(op))
                     && matches!(&m.kind, j::ExprKind::Name(p) if p == "ptr" && !self.locals.contains_key(p)) =>
             {
                 self.ptr_call(op, Some(k), args, at, want)
