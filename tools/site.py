@@ -236,6 +236,7 @@ def layout(page: Page, build: Build, current: str) -> str:
         f'<a href="{root}{href}"{" aria-current=page" if href == current else ""}>{name}</a>'
         for href, name in NAV
     )
+    motion = ' class="motion"' if page.path == "index.html" else ""
     title = "Yan 言" if page.path == "index.html" else f"{page.title} · Yan 言"
     card = f"{build.url}brand/social-card-1200x630.png" if build.url else ""
     meta = f'<meta property="og:image" content="{card}">' if card else ""
@@ -252,14 +253,16 @@ def layout(page: Page, build: Build, current: str) -> str:
 <link rel="alternate" type="application/atom+xml" href="{root}blog/feed.xml" title="Yan blog">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Noto+Serif+SC:wght@600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@600&display=swap">
 <link rel="stylesheet" href="{root}style.css">
-<header><a class="home" href="{root}">{lockup}</a><nav>{nav}</nav></header>
+<header{motion}><a class="home" href="{root}">{lockup}</a><nav>{nav}</nav></header>
 <main>
 {page.body}
 </main>
-<footer>Built from <code>{build.commit[:7]}</code> on {build.day}.
-Text CC-BY-4.0, examples 0BSD.</footer>
+<footer><p>Built from <code>{build.commit[:7]}</code> on {build.day}.
+Text CC-BY-4.0, examples 0BSD.</p>
+<p class="stamp"><img src="{root}brand/zaofang-avatar.svg" alt="">
+a zaofang project · 造坊出品</p></footer>
 </html>
 """
 

@@ -99,3 +99,7 @@ contributors' workflow runs.
 Branch protection on `main`: require a pull request, require review from Code Owners, and require
 the `guard`, `canary`, `check`, `rust` and `formal` status checks.
 Enable private vulnerability reporting under Settings → Code security.
+
+---
+
+<img src="site/brand/zaofang-avatar.svg" width="20" height="20" alt=""> a zaofang project · 造坊出品

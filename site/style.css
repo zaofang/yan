@@ -1,4 +1,5 @@
-/* Tokens match playground/index.html. Square corners, heavy rules, ruled code panes. */
+/* Tokens match playground/index.html and brand/tokens.json. Square corners, heavy rules, ruled code panes.
+   Labels in DM Mono (shared with Zaofang and Mandate); code in JetBrains Mono. */
 :root {
   --paper: #F3F1EC; --paper-2: #ECE9E2; --ink: #141518; --ash: #5B5E66; --rule: #D6D2C8;
   --seal: #C8341F; --seal-text: #B8301C; --on-seal: #F3F1EC; --yag: #2A7253; --yn: #3D4FA8; --yir: #C8341F;
@@ -6,6 +7,7 @@
   --f-display: "Inter Tight", "Inter", system-ui, sans-serif;
   --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --f-label: "DM Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --f-han: "Noto Serif SC", "Songti SC", "SimSun", serif;
 }
 @media (prefers-color-scheme: dark) {
@@ -35,26 +37,36 @@ header {
   border-bottom: 3px solid var(--ink);
 }
 .home { color: var(--ink); }
-.lockup { height: 30px; width: auto; display: block; }
-.lockup .red { fill: var(--seal); }
+.lockup { width: 96px; height: auto; display: block; }
+.lockup .seal { fill: currentColor; }
+.lockup .tone { fill: var(--seal); }
+/* The one motion: the word types out, then the tone arrives. Home page only. */
+.motion .lockup .word { animation: yan-type .54s steps(3, end) both; }
+.motion .lockup .tone { animation: yan-drop .24s ease-out .62s both; }
+@keyframes yan-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes yan-drop { from { opacity: 0; transform: translate(-.6px, -.6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .motion .lockup * { animation: none; } }
 nav { display: flex; flex-wrap: wrap; gap: 6px 22px; }
 header nav a {
-  font: 500 12px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase;
+  font: 500 12px/1 var(--f-label); letter-spacing: .14em; text-transform: uppercase;
   color: var(--ash); text-decoration: none; padding: 6px 0;
 }
 header nav a[aria-current] { color: var(--ink); box-shadow: inset 0 -3px 0 var(--seal); }
 
 main { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
 footer {
-  border-top: 1px solid var(--rule); color: var(--ash); font: 12px/1.5 var(--f-mono);
+  border-top: 1px solid var(--rule); color: var(--ash); font: 12px/1.5 var(--f-label);
   padding: 16px max(16px, calc((100% - 960px) / 2));
 }
+footer p { margin: 0; max-width: none; }
+.stamp { display: flex; align-items: center; gap: 8px; margin-top: 12px !important; }
+.stamp img { width: 20px; height: 20px; display: block; }
 h1, h2, h3 { font-family: var(--f-display); font-weight: 800; letter-spacing: -.01em; line-height: 1.15; }
 h1 { font-size: 40px; margin: 16px 0 12px; }
 h2 { font-size: 24px; margin: 40px 0 12px; padding-top: 12px; border-top: 3px solid var(--ink); }
 p, ul, ol { max-width: 68ch; }
 code { font: .88em var(--f-mono); }
-.label { font: 500 11px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ash); }
+.label { font: 500 11px/1 var(--f-label); letter-spacing: .14em; text-transform: uppercase; color: var(--ash); }
 
 .btn {
   display: inline-flex; align-items: center; height: 38px; padding: 0 16px; border: 1px solid var(--ink);
@@ -81,7 +93,7 @@ pre { margin: 0; overflow-x: auto; font: 13px/20px var(--f-mono); tab-size: 4; p
 code { font-variant-ligatures: none; }
 main > pre.code { border: 1px solid var(--rule); margin: 20px 0; }
 pre.output { border: 1px solid var(--rule); border-top: 0; background: var(--paper-2); color: var(--ash); }
-pre.output::before { content: "output"; display: block; font: 500 10px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; margin-bottom: 8px; }
+pre.output::before { content: "output"; display: block; font: 500 10px/1 var(--f-label); letter-spacing: .14em; text-transform: uppercase; margin-bottom: 8px; }
 .k { color: var(--code-k); font-weight: 500; }
 .s { color: var(--code-s); }
 .n { color: var(--code-n); }
@@ -97,13 +109,13 @@ pre.output::before { content: "output"; display: block; font: 500 10px/1 var(--f
 }
 .surfaces img { grid-row: span 3; }
 .surfaces b { font: 800 17px/1.2 var(--f-display); }
-.surfaces span { font: 12px/1.2 var(--f-mono); color: var(--ash); }
+.surfaces span { font: 12px/1.2 var(--f-label); color: var(--ash); }
 .surfaces em { font-style: normal; font-size: 14px; color: var(--ash); }
 
 table { border-collapse: collapse; margin: 12px 0; min-width: min(100%, 420px); }
 th, td { text-align: left; padding: 8px 16px 8px 0; border-bottom: 1px solid var(--rule); }
 td:last-child, th:last-child { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0; }
-th { font: 500 11px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ash); border-bottom: 3px solid var(--ink); }
+th { font: 500 11px/1 var(--f-label); letter-spacing: .14em; text-transform: uppercase; color: var(--ash); border-bottom: 3px solid var(--ink); }
 
 .toc { padding-left: 0; list-style-position: inside; font-size: 18px; }
 .toc li { padding: 10px 0; border-bottom: 1px solid var(--rule); }
