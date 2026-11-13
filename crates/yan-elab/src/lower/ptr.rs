@@ -3,6 +3,11 @@ use super::*;
 /// The result type of a `core.ptr` function: a pointer to `T`, an address or a callback's.
 const ADDR: Ty = Ty::Fixed("u64");
 
+/// The functions that expose provenance (6.6), legal only in ffi modules.
+pub(super) fn exposes(f: &str) -> bool {
+    matches!(f, "expose_provenance" | "with_exposed_provenance")
+}
+
 impl Lower<'_, '_, '_> {
     /// `ptr.f(...)` or `ptr.f[T](...)` (6.6); `T` comes from the explicit argument, the pointer
     /// argument or the expected type.
@@ -15,6 +20,14 @@ impl Lower<'_, '_, '_> {
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        if !self.cx.ffi {
+            self.err(
+                "E419",
+                at,
+                format!("`ptr.{f}` exposes provenance, which belongs in an ffi module, under the package's `ffi/` directory"),
+            );
+            return Ok(err);
+        }
         let arity = match f {
             "dangling" => 0,
             "with_addr" | "map_addr" => 2,
