@@ -346,7 +346,7 @@ def status_page(build: Build) -> Page:
             stamp(s),
             f"<p>Executor: {', '.join(conf['executors'])}.</p>",
             table(
-                ["Milestone", "Cases", "Pass", "Fail", "Skip", "Pass rate"],
+                ["Milestone", "Cases", "✓ Pass", "✗ Fail", "○ Skip", "Pass rate"],
                 [
                     [m, v["cases"], v["pass"], v["fail"], v["skip"], pct(v["pass"], v["cases"])]
                     for m, v in conf["milestones"].items()

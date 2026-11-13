@@ -22,6 +22,7 @@ mod review;
 mod schema;
 mod serve;
 mod store;
+mod term;
 mod test;
 mod trust;
 mod vendor;
@@ -1049,10 +1050,23 @@ fn check(
         Format::Line
     });
     match format {
-        Format::Prose => diags.iter().for_each(|d| {
-            let src = texts.get(&d.file).map_or("", String::as_str);
-            println!("{}", d.render_prose(src));
-        }),
+        Format::Prose => {
+            let term = term::Term::stdout();
+            println!("{}\n", term.header());
+            for d in &diags {
+                let src = texts.get(&d.file).map_or("", String::as_str);
+                println!("{}", term.diagnostic(d.severity, &d.render_prose(src)));
+            }
+            let count = |s| diags.iter().filter(|d| d.severity == s).count();
+            println!(
+                "{}",
+                term.summary(
+                    files.len(),
+                    count(Severity::Error),
+                    count(Severity::Warning)
+                )
+            );
+        }
         Format::Json => println!(
             "{}",
             serde_json::to_string(&diags).expect("records serialize")
