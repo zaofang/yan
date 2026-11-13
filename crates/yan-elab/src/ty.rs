@@ -487,5 +487,13 @@ impl std::fmt::Display for Ty {
 /// The sized scalars the elaborator lowers, by their Yan Core names (16.3).
 pub fn fixed(name: &str) -> Option<&'static str> {
     const LOWERED: [&str; 9] = ["i8", "i16", "i32", "i128", "u8", "u16", "u32", "u64", "f32"];
-    LOWERED.iter().find(|n| **n == name).copied()
+    LOWERED.iter().find(|n| **n == name).copied().or_else(|| {
+        yan_names::type_row(name, Surface::Yn)
+            .map(|r| r.yir)
+            .filter(|n| {
+                n[1..]
+                    .parse::<u8>()
+                    .is_ok_and(|b| !matches!(b, 8 | 16 | 32 | 64))
+            })
+    })
 }
