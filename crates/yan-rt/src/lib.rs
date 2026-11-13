@@ -34,6 +34,8 @@ pub mod jsonslots;
 pub mod keyhash;
 pub mod list;
 #[allow(unsafe_code)]
+pub mod loghandler;
+#[allow(unsafe_code)]
 pub mod map;
 pub mod math;
 pub mod num;

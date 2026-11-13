@@ -22,8 +22,8 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::{
-    abi, actor, bigint, bytes, chan, chars, cluster, dq, fshandler, map, pathabi, pq, regexabi,
-    sched, select, slice, timeabi,
+    abi, actor, bigint, bytes, chan, chars, cluster, dq, fshandler, loghandler, map, pathabi, pq,
+    regexabi, sched, select, slice, timeabi,
 };
 
 type R<T> = Result<T, String>;
@@ -658,6 +658,9 @@ const RT: &[RtFn] = &[
     RtFn::ReadAll,
     RtFn::FsRead,
     RtFn::FsFake,
+    RtFn::LogNew,
+    RtFn::LogSpan,
+    RtFn::LogEvent,
     RtFn::FsReason,
     RtFn::Concat,
     RtFn::ShowI64,
@@ -899,6 +902,24 @@ fn rt_fn(
             fshandler::yan_rt_fs_read_with as *const u8,
             &[I64, I64],
             Some(I64),
+        ),
+        RtFn::LogNew => (
+            "yan_rt_log_new",
+            loghandler::yan_rt_log_new as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::LogSpan => (
+            "yan_rt_log_span",
+            loghandler::yan_rt_log_span as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::LogEvent => (
+            "yan_rt_log_event",
+            loghandler::yan_rt_log_event as *const u8,
+            &[I64, I64, I64, I64],
+            None,
         ),
         RtFn::FsFake => (
             "yan_rt_fs_fake",
