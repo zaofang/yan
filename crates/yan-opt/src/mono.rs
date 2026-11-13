@@ -27,6 +27,15 @@ pub fn monomorphize(file: &str, m: &Module) -> Result<Module, Error> {
             _ => None,
         })
         .collect();
+    let comptime_at: HashMap<usize, Vec<usize>> = generic
+        .values()
+        .map(|&i| {
+            let ItemKind::Fn(f) = &m.items[i].kind else {
+                unreachable!("`generic` holds fns")
+            };
+            (i, comptime_params(f))
+        })
+        .collect();
     let mut mono = Mono {
         file,
         m,
@@ -40,8 +49,9 @@ pub fn monomorphize(file: &str, m: &Module) -> Result<Module, Error> {
             continue;
         }
         let mut it = it.clone();
-        let mut w = Walk::new(&none, &generic);
+        let mut w = Walk::new(&none, &generic, &comptime_at);
         w.item(&mut it.kind);
+        w.finish()?;
         mono.add(w.found, 1, &hashes)?;
         items.push(it);
     }
@@ -53,24 +63,21 @@ pub fn monomorphize(file: &str, m: &Module) -> Result<Module, Error> {
         let ItemKind::Fn(f) = &it.kind else {
             unreachable!("only generic fns are instantiated")
         };
-        let env: HashMap<String, Type> = f
+        let env: HashMap<String, TArg> = f
             .tparams
             .iter()
             .zip(&args)
-            .map(|(p, a)| match a {
-                TArg::Type(t) => (p.name.clone(), t.clone()),
-                TArg::Nat(_) => unreachable!("rejected in `add`"),
-            })
+            .map(|(p, a)| (p.name.clone(), a.clone()))
             .collect();
-        let mut kind = ItemKind::Inst(Inst {
-            args,
-            def: FnDef {
-                tparams: Vec::new(),
-                ..f.clone()
-            },
-        });
-        let mut w = Walk::new(&env, &generic);
+        let mut def = FnDef {
+            tparams: Vec::new(),
+            ..f.clone()
+        };
+        bind_comptime_values(&mut def, &args[f.tparams.len()..], it.span);
+        let mut kind = ItemKind::Inst(Inst { args, def });
+        let mut w = Walk::new(&env, &generic, &comptime_at);
         w.item(&mut kind);
+        w.finish()?;
         mono.add(w.found, depth + 1, &hashes)?;
         items.push(Item {
             attrs: it.attrs.clone(),
@@ -87,7 +94,52 @@ pub fn monomorphize(file: &str, m: &Module) -> Result<Module, Error> {
 }
 
 fn is_generic(f: &FnDef) -> bool {
-    !f.tparams.is_empty() && f.body.is_some()
+    (!f.tparams.is_empty() || !comptime_params(f).is_empty()) && f.body.is_some()
+}
+
+/// Indexes of the `comptime` value parameters.
+fn comptime_params(f: &FnDef) -> Vec<usize> {
+    f.params
+        .iter()
+        .enumerate()
+        .filter(|(_, p)| matches!(p, Param::Value { comptime: true, .. }))
+        .map(|(i, _)| i)
+        .collect()
+}
+
+/// Drops the `comptime` value parameters of an instance and binds each to its argument at the
+/// top of the body; the instance is then keyed by the value, so the binding is a constant.
+fn bind_comptime_values(def: &mut FnDef, values: &[TArg], span: Span) {
+    let mut binds = Vec::new();
+    let mut vals = values.iter();
+    def.params.retain(|p| match p {
+        Param::Value {
+            comptime: true,
+            name,
+            ty,
+            ..
+        } => {
+            let Some(TArg::Nat(n)) = vals.next() else {
+                unreachable!("checked at the call")
+            };
+            binds.push(Stmt {
+                kind: StmtKind::Let {
+                    mutable: false,
+                    pat: Pat::Bind(name.clone()),
+                    pat_span: span,
+                    ty: ty.clone(),
+                    rhs: Rhs::Atom(Atom::Lit(Literal::Int(n.clone()), span)),
+                    rhs_span: span,
+                },
+                span,
+            });
+            false
+        }
+        _ => true,
+    });
+    if let Some(b) = &mut def.body {
+        b.stmts.splice(0..0, binds);
+    }
 }
 
 struct Mono<'a> {
@@ -110,10 +162,10 @@ impl Mono<'_> {
                 unreachable!("`generic` holds fns")
             };
             let name = f.path.join(".");
-            if f.tparams.iter().any(|t| t.comptime || t.kind != Kind::Type) {
-                return Err(Error::Unsupported("a comptime type parameter".into()));
+            if f.tparams.iter().any(|t| t.kind == Kind::Dim) {
+                return Err(Error::Unsupported("a Dim type parameter".into()));
             }
-            if f.tparams.len() != args.len() {
+            if f.tparams.len() + comptime_params(f).len() != args.len() {
                 return Err(Error::Unsupported(format!(
                     "call of `{name}` without its type arguments"
                 )));
@@ -122,7 +174,7 @@ impl Mono<'_> {
                 .iter()
                 .map(|a| match a {
                     TArg::Type(t) => Ok(yan_core::type_text(t)),
-                    TArg::Nat(_) => Err(Error::Unsupported("a Nat type argument".into())),
+                    TArg::Nat(n) => Ok(n.clone()),
                 })
                 .collect::<Result<_, _>>()?;
             let key = (hashes[def].identity, text);
@@ -149,18 +201,31 @@ impl Mono<'_> {
 
 /// Replaces type parameters by `env` and collects the calls that name generic fns.
 struct Walk<'a> {
-    env: &'a HashMap<String, Type>,
+    env: &'a HashMap<String, TArg>,
     generic: &'a HashMap<String, usize>,
+    /// The `comptime` value parameter indexes of each generic item.
+    comptime_at: &'a HashMap<usize, Vec<usize>>,
     found: Vec<(usize, Vec<TArg>, Span)>,
+    err: Option<Error>,
 }
 
 impl<'a> Walk<'a> {
-    fn new(env: &'a HashMap<String, Type>, generic: &'a HashMap<String, usize>) -> Self {
+    fn new(
+        env: &'a HashMap<String, TArg>,
+        generic: &'a HashMap<String, usize>,
+        comptime_at: &'a HashMap<usize, Vec<usize>>,
+    ) -> Self {
         Walk {
             env,
             generic,
+            comptime_at,
             found: Vec::new(),
+            err: None,
         }
+    }
+
+    fn finish(&mut self) -> Result<(), Error> {
+        self.err.take().map_or(Ok(()), Err)
     }
 
     fn item(&mut self, k: &mut ItemKind) {
@@ -204,7 +269,7 @@ impl<'a> Walk<'a> {
         match t {
             Type::Named(n) => {
                 if let ([p], []) = (n.path.as_slice(), n.args.as_slice())
-                    && let Some(c) = self.env.get(p)
+                    && let Some(TArg::Type(c)) = self.env.get(p)
                 {
                     *t = c.clone();
                     return;
@@ -229,7 +294,13 @@ impl<'a> Walk<'a> {
 
     fn targs(&mut self, args: &mut [TArg]) {
         for a in args {
-            if let TArg::Type(t) = a {
+            let TArg::Type(t) = a else { continue };
+            if let Type::Named(n) = t
+                && let ([p], []) = (n.path.as_slice(), n.args.as_slice())
+                && let Some(c @ TArg::Nat(_)) = self.env.get(p)
+            {
+                *a = c.clone();
+            } else {
                 self.ty(t);
             }
         }
@@ -237,9 +308,31 @@ impl<'a> Walk<'a> {
 
     fn call(&mut self, c: &mut Call) {
         self.targs(&mut c.targs);
-        if let Some(&def) = self.generic.get(&c.path.join(".")) {
-            self.found.push((def, c.targs.clone(), c.span));
+        let Some(&def) = self.generic.get(&c.path.join(".")) else {
+            return;
+        };
+        // A `comptime` argument moves from the call's arguments to its type arguments.
+        let at = &self.comptime_at[&def];
+        let mut values = Vec::new();
+        for &i in at {
+            match c.args.get(i) {
+                Some(Arg::Value(_, Atom::Lit(Literal::Int(n), _), _)) => {
+                    values.push(TArg::Nat(n.clone()))
+                }
+                _ => {
+                    self.err.get_or_insert(Error::Unsupported(format!(
+                        "a `comptime` argument of `{}` that is not an integer literal",
+                        c.path.join(".")
+                    )));
+                    return;
+                }
+            }
         }
+        for &i in at.iter().rev() {
+            c.args.remove(i);
+        }
+        c.targs.extend(values);
+        self.found.push((def, c.targs.clone(), c.span));
     }
 
     fn expr(&mut self, e: &mut Expr) {
@@ -372,5 +465,37 @@ mod tests {
             panic!("expected E275")
         };
         assert_eq!(d.code, "E275");
+    }
+
+    #[test]
+    fn comptime_values_make_one_instance_each() {
+        let src = "module t\n\
+            fn scale(comptime let k: i64, let x: i64) -> i64 {\n ret x\n}\n\
+            fn sized[comptime n: Nat](let xs: Array[n, f64]) -> Array[n, f64] {\n\
+             let ys: Array[n, f64] = copy xs\n ret ys\n}\n\
+            fn main() -> Unit {\n let a: i64 = scale(let 3, let 1)\n\
+             let b: i64 = scale(let 3, let 2)\n let c: i64 = scale(let 4, let 1)\n\
+             let xs: Array[2, f64] = std.array.new[2, f64]()\n\
+             let ys: Array[2, f64] = sized[2](let xs)\n ret ()\n}\n";
+        let text = yan_core::print(&opt(src).expect("specializes"));
+        let insts: Vec<&str> = text.lines().filter(|l| l.starts_with("inst fn")).collect();
+        assert_eq!(
+            insts,
+            [
+                "inst fn scale[3](let x: i64) -> i64 {",
+                "inst fn scale[4](let x: i64) -> i64 {",
+                "inst fn sized[2](let xs: Array[2, f64]) -> Array[2, f64] {",
+            ]
+        );
+        assert!(text.contains("let k: i64 = 3"), "{text}");
+        assert!(text.contains("scale[3](let 2)"), "{text}");
+    }
+
+    #[test]
+    fn comptime_argument_must_be_a_literal() {
+        let src = "module t\n\
+            fn scale(comptime let k: i64, let x: i64) -> i64 {\n ret x\n}\n\
+            fn main() -> Unit {\n let n: i64 = 3\n let a: i64 = scale(let n, let 1)\n ret ()\n}\n";
+        assert!(matches!(opt(src), Err(Error::Unsupported(m)) if m.contains("comptime")));
     }
 }
