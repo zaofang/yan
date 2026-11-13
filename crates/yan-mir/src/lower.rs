@@ -171,8 +171,8 @@ pub fn lower(m: &y::Module) -> R<Program> {
                 consts.push(c);
                 continue;
             }
-            // Only `Exit` is lowered, for the exit status of a failing `main`.
-            y::ItemKind::Impl(im) if im.trait_.path == ["Exit"] => {
+            y::ItemKind::Trait(_) => continue,
+            y::ItemKind::Impl(im) => {
                 let ty = yan_core::type_text(&im.for_ty);
                 for f in &im.fns {
                     by_name.insert(format!("{ty}.{}", f.path.join(".")), defs.len());
@@ -650,10 +650,32 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     /// The instance a call names, if it names a function of this module.
     fn callee(&self, c: &y::Call) -> R<Option<FuncId>> {
-        let Some(&def) = self.mono.borrow().by_name.get(&key(&c.path, &c.targs)) else {
+        let found = self
+            .mono
+            .borrow()
+            .by_name
+            .get(&key(&c.path, &c.targs))
+            .copied();
+        let Some(def) = found.or_else(|| self.method_def(c)) else {
             return Ok(None);
         };
         self.mono.borrow_mut().instance(self.types, def).map(Some)
+    }
+
+    /// A trait method call dispatches on the type of its first argument, known statically here.
+    fn method_def(&self, c: &y::Call) -> Option<usize> {
+        let [m] = c.path.as_slice() else { return None };
+        let Some(y::Arg::Value(_, y::Atom::Name(n, _), _)) = c.args.first() else {
+            return None;
+        };
+        let (Shape::Rec(ty, _) | Shape::Sum(ty, _)) = &self.names.get(n)?.shape else {
+            return None;
+        };
+        self.mono
+            .borrow()
+            .by_name
+            .get(&format!("{ty}.{m}"))
+            .copied()
     }
 
     fn func(mut self, f: &'m y::FnDef, item: Option<String>) -> R<Func> {

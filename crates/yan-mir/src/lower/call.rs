@@ -357,6 +357,41 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.goto(join);
                 self.cur = join;
             }
+            (id::STD_TEXT_UPPER | id::STD_TEXT_LOWER | id::STD_TEXT_STRIP, [(_, a)]) => {
+                let f = match id {
+                    id::STD_TEXT_UPPER => RtFn::StrUpper,
+                    id::STD_TEXT_LOWER => RtFn::StrLower,
+                    _ => RtFn::StrStrip,
+                };
+                let a = self.scalar1(a)?;
+                let r = self.rt(f, Ty::Ptr, vec![a]);
+                set(self, r);
+            }
+            (
+                id::STD_TEXT_STARTSWITH | id::STD_TEXT_ENDSWITH | id::STD_TEXT_CONTAINS,
+                [(_, a), (_, p)],
+            ) => {
+                let (pv, ps) = self.atom_any(p)?;
+                let f = match (id, ps) {
+                    (id::STD_TEXT_STARTSWITH, _) => RtFn::StrStarts,
+                    (id::STD_TEXT_ENDSWITH, _) => RtFn::StrEnds,
+                    (_, Shape::Char) => RtFn::StrContainsChar,
+                    _ => RtFn::StrContains,
+                };
+                let a = self.scalar1(a)?;
+                let r = self.rt(f, Ty::Bool, vec![a, pv[0].clone()]);
+                set(self, r);
+            }
+            (id::STD_TEXT_REPLACE, [(_, a), (_, p), (_, q)]) => {
+                let (a, p, q) = (self.scalar1(a)?, self.scalar1(p)?, self.scalar1(q)?);
+                let r = self.rt(RtFn::StrReplace, Ty::Ptr, vec![a, p, q]);
+                set(self, r);
+            }
+            (id::STD_TEXT_JOIN, [(_, sep), (_, l)]) => {
+                let (sep, l) = (self.scalar1(sep)?, self.scalar1(l)?);
+                let r = self.rt(RtFn::StrJoin, Ty::Ptr, vec![sep, l]);
+                set(self, r);
+            }
             (id::STD_TEXT_REPEAT, [(_, a), (_, n)]) => {
                 let (a, n) = (self.scalar1(a)?, self.scalar1(n)?);
                 let r = self.rt(RtFn::StrRepeat, Ty::Ptr, vec![a, n]);
