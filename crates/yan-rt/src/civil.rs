@@ -666,6 +666,11 @@ fn clock_monotonic(h: i64) -> i128 {
     }
 }
 
+/// The monotonic reading `std.sim` times its faults by: the innermost handler's, else the host's.
+pub fn mono_now() -> i128 {
+    clocks_last().unwrap_or_else(host_monotonic)
+}
+
 /// The monotonic reading of the innermost `fixed_time` or `virtual` handler made, if any.
 pub fn clocks_last() -> Option<i128> {
     CLOCKS.lock().expect("clock table").last().map(|c| c.slept)
@@ -766,14 +771,24 @@ fn run_more(op: &str, a: &[i64]) -> Done {
             });
             int(c.len() as i64)
         }
-        "clock.now" => Done::Ok(words(clock_now(a[0])).to_vec()),
-        "clock.monotonic" => Done::Ok(words(clock_monotonic(a[0])).to_vec()),
+        "clock.now" => {
+            let t = clock_now(a[0]);
+            crate::cluster::sweep();
+            Done::Ok(words(t).to_vec())
+        }
+        "clock.monotonic" => {
+            let t = clock_monotonic(a[0]);
+            crate::cluster::sweep();
+            Done::Ok(words(t).to_vec())
+        }
         "clock.sleep" => {
             clock_sleep(a[0], join(a[1], a[2]));
+            crate::cluster::sweep();
             int(0)
         }
         "clock.sleep_until" => {
             clock_sleep(a[0], join(a[1], a[2]) - clock_monotonic(a[0]));
+            crate::cluster::sweep();
             int(0)
         }
         "mono.add" => Done::Ok(words(join(a[0], a[1]) + join(a[2], a[3])).to_vec()),

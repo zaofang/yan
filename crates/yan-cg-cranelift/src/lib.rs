@@ -876,6 +876,7 @@ const RT: &[RtFn] = &[
     RtFn::ClusterLeave,
     RtFn::ClusterReach,
     RtFn::ClusterFaultSend,
+    RtFn::ClusterMonitor,
     RtFn::ClusterSendMismatch,
     RtFn::ClusterAdmit,
     RtFn::ClusterArrive,
@@ -2211,6 +2212,12 @@ fn rt_fn(
             "yan_rt_cluster_reach",
             cluster::yan_rt_cluster_reach as *const u8,
             &[I64],
+            None,
+        ),
+        RtFn::ClusterMonitor => (
+            "yan_rt_cluster_monitor",
+            cluster::yan_rt_cluster_monitor as *const u8,
+            &[I64, I64],
             None,
         ),
         RtFn::ClusterFaultSend => (
