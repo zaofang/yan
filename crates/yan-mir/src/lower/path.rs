@@ -17,9 +17,11 @@ impl<'a, 'm> Fn<'a, 'm> {
         };
         let b = |i: usize| blocks[i].clone();
         let op = |n: i128| Operand::Int(n);
+        let (id, win) = Self::posix_id(id);
+        let w = op(i128::from(win));
         match (id, blocks.len()) {
-            (id::STD_PRELUDE_PATH | id::STD_TEXT_AS_PATH, 1) => {
-                let r = self.rt(RtFn::PathNew, Ty::Ptr, vec![b(0)]);
+            (id::STD_PRELUDE_PATH | id::STD_PRELUDE_WINDOWSPATH | id::STD_TEXT_AS_PATH, 1) => {
+                let r = self.rt(RtFn::PathNew, Ty::Ptr, vec![w, b(0)]);
                 set(self, r);
             }
             (id::STD_PATH_AS_PATH | id::STD_PATH_TEXT, 1) => {
@@ -42,36 +44,54 @@ impl<'a, 'm> Fn<'a, 'm> {
                     id::STD_PATH_STEM => 3,
                     _ => 4,
                 };
-                let r = self.rt(RtFn::PathOp, Ty::Ptr, vec![op(k), b(0)]);
+                let r = self.rt(RtFn::PathOp, Ty::Ptr, vec![w, op(k), b(0)]);
                 set(self, r);
             }
             (id::STD_PATH_WITH_NAME | id::STD_PATH_WITH_SUFFIX, 2) => {
                 let k = i128::from(id == id::STD_PATH_WITH_SUFFIX);
-                let r = self.rt(RtFn::PathWith, Ty::Ptr, vec![op(k), b(0), b(1)]);
+                let r = self.rt(RtFn::PathWith, Ty::Ptr, vec![w, op(k), b(0), b(1)]);
                 set(self, r);
             }
             (id::STD_PATH_JOIN, 2) => {
-                let r = self.rt(RtFn::PathJoin, Ty::Ptr, vec![b(0), b(1)]);
+                let r = self.rt(RtFn::PathJoin, Ty::Ptr, vec![w, b(0), b(1)]);
                 set(self, r);
             }
             (id::STD_PATH_IS_ABSOLUTE, 1) => {
-                let r = self.rt(RtFn::PathIsAbsolute, Ty::Bool, vec![b(0)]);
+                let r = self.rt(RtFn::PathIsAbsolute, Ty::Bool, vec![w, b(0)]);
                 set(self, r);
             }
             (id::STD_PATH_STARTS_WITH, 2) => {
-                let r = self.rt(RtFn::PathStartsWith, Ty::Bool, vec![b(0), b(1)]);
+                let r = self.rt(RtFn::PathStartsWith, Ty::Bool, vec![w, b(0), b(1)]);
                 set(self, r);
             }
             (id::STD_PATH_PARTS, 1) => {
-                let r = self.rt(RtFn::PathParts, Ty::Ptr, vec![b(0)]);
+                let r = self.rt(RtFn::PathParts, Ty::Ptr, vec![w, b(0)]);
                 set(self, r);
             }
-            (id::STD_PATH_RELATIVE_TO, 2) => {
+            (
+                id::STD_PATH_WINDOWS_DRIVE
+                | id::STD_PATH_WINDOWS_ROOT
+                | id::STD_PATH_WINDOWS_ANCHOR,
+                1,
+            ) => {
+                let k = match id {
+                    id::STD_PATH_WINDOWS_DRIVE => 0,
+                    id::STD_PATH_WINDOWS_ROOT => 1,
+                    _ => 2,
+                };
+                let r = self.rt(RtFn::PathWinPart, Ty::Ptr, vec![op(k), b(0)]);
+                set(self, r);
+            }
+            (id::STD_PATH_RELATIVE_TO | id::STD_PATH_WINDOWS_TO_POSIX, 1 | 2) => {
                 let Some(d) = &dst else {
                     return Ok(());
                 };
                 let ds = d.shape.clone();
-                let r = self.rt(RtFn::PathRelativeTo, Ty::Ptr, vec![b(0), b(1)]);
+                let r = if id == id::STD_PATH_WINDOWS_TO_POSIX {
+                    self.rt(RtFn::PathToPosix, Ty::Ptr, vec![b(0)])
+                } else {
+                    self.rt(RtFn::PathRelativeTo, Ty::Ptr, vec![w, b(0), b(1)])
+                };
                 let none = self.scalar_op(ScalarOp::Eq, I64, vec![r.clone(), op(0)]);
                 let (no, yes) = self.branch(none);
                 let join = self.block_new();
@@ -85,5 +105,28 @@ impl<'a, 'm> Fn<'a, 'm> {
             _ => return unsupported(format!("call of `{name}`")),
         }
         Ok(())
+    }
+
+    /// The `Path` operation a `WindowsPath` one shares its lowering with, and whether it was one.
+    fn posix_id(id: registry::Id) -> (registry::Id, bool) {
+        let pairs = [
+            (id::STD_PATH_WINDOWS_TEXT, id::STD_PATH_TEXT),
+            (id::STD_PATH_WINDOWS_PARENT, id::STD_PATH_PARENT),
+            (id::STD_PATH_WINDOWS_NAME, id::STD_PATH_NAME),
+            (id::STD_PATH_WINDOWS_SUFFIX, id::STD_PATH_SUFFIX),
+            (id::STD_PATH_WINDOWS_STEM, id::STD_PATH_STEM),
+            (id::STD_PATH_WINDOWS_NORMALIZE, id::STD_PATH_NORMALIZE),
+            (id::STD_PATH_WINDOWS_WITH_NAME, id::STD_PATH_WITH_NAME),
+            (id::STD_PATH_WINDOWS_WITH_SUFFIX, id::STD_PATH_WITH_SUFFIX),
+            (id::STD_PATH_WINDOWS_JOIN, id::STD_PATH_JOIN),
+            (id::STD_PATH_WINDOWS_IS_ABSOLUTE, id::STD_PATH_IS_ABSOLUTE),
+            (id::STD_PATH_WINDOWS_STARTS_WITH, id::STD_PATH_STARTS_WITH),
+            (id::STD_PATH_WINDOWS_PARTS, id::STD_PATH_PARTS),
+            (id::STD_PATH_WINDOWS_RELATIVE_TO, id::STD_PATH_RELATIVE_TO),
+        ];
+        match pairs.iter().find(|(w, _)| *w == id) {
+            Some((_, p)) => (*p, true),
+            None => (id, id == id::STD_PRELUDE_WINDOWSPATH),
+        }
     }
 }

@@ -314,6 +314,12 @@ pub enum RtFn {
     PathStartsWith,
     PathRelativeTo,
     PathParts,
+    /// `(op, path) -> Str`: `drive`, `root` or `anchor` of a `WindowsPath`.
+    PathWinPart,
+    /// `(path) -> Path or null`: `to_posix`.
+    PathToPosix,
+    /// `(a, b) -> bool`: `==` on `WindowsPath` blocks.
+    WinPathEq,
     /// `(list[uint8]) -> bytes`
     BytesFromList,
     /// `(bytes)`
@@ -654,6 +660,8 @@ impl RtFn {
                 | RtFn::PathJoin
                 | RtFn::PathRelativeTo
                 | RtFn::PathParts
+                | RtFn::PathWinPart
+                | RtFn::PathToPosix
                 | RtFn::BytesFromList
                 | RtFn::BytesCopy
                 | RtFn::BytesConcat

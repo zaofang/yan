@@ -15,6 +15,8 @@ pub enum Shape {
     BigInt,
     /// A `Path`: a `Str` block of normalized text, ordered by its parts.
     Path,
+    /// A `WindowsPath`: a `Str` block of normalized text, equal, ordered and hashed case-folded.
+    WinPath,
     /// A `char`: its code point in one word.
     Char,
     List(Box<Shape>),
@@ -48,6 +50,7 @@ impl Shape {
             | Shape::ByteArray
             | Shape::BigInt
             | Shape::Path
+            | Shape::WinPath
             | Shape::List(_)
             | Shape::Map(..)
             | Shape::Heap(_)
@@ -142,6 +145,7 @@ impl Types<'_> {
                     ("ByteArray", []) => return Ok(Shape::ByteArray),
                     ("bigint", []) => return Ok(Shape::BigInt),
                     ("Path", []) => return Ok(Shape::Path),
+                    ("WindowsPath", []) => return Ok(Shape::WinPath),
                     // A capability handler is its index in `yan_rt` (`rand`, `fshandler`,
                     // `loghandler`), unless the program declares a type of that name.
                     ("Rand" | "Fs" | "Log" | "Env" | "Time", [])
