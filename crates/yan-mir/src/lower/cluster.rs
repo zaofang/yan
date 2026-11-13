@@ -228,8 +228,23 @@ impl<'m> Fn<'_, 'm> {
             (id::STD_CLUSTER_COMMIT, _) => {
                 return unsupported("an `inout` argument in a call through `Remote` (#929)");
             }
-            (id::STD_CLUSTER_MONITOR, _) => {
-                return unsupported("`cluster.monitor` (#929 4c)");
+            // The monitor keeps the sender end; one `Stopped` (two slots) arrives on the receiver.
+            (id::STD_CLUSTER_MONITOR, [.., (_, h)]) => {
+                let Some(d) = dst else {
+                    return unsupported("`cluster.monitor` without its result");
+                };
+                let h = self.scalar1(h)?;
+                let ch = self.rt(
+                    RtFn::ChanNew,
+                    Ty::Ptr,
+                    vec![Operand::Int(1), Operand::Int(2)],
+                );
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::ClusterMonitor,
+                    args: vec![h, ch.clone()],
+                });
+                self.copy_to(&d.locals, vec![ch]);
             }
             _ => return Ok(false),
         }

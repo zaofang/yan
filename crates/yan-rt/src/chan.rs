@@ -116,6 +116,16 @@ pub unsafe extern "C" fn yan_rt_chan_recv(ch: *mut Chan, out: *mut u64, in_task:
     0
 }
 
+/// Queues `v`, an element's slots, on channel `ch` as its sender would.
+///
+/// # Safety
+/// `ch` is a live channel of `v.len()` slots.
+pub(crate) unsafe fn push(ch: usize, v: &[u64]) {
+    // SAFETY: the caller's contract.
+    let c = unsafe { &mut *(ch as *mut Chan) };
+    c.q.extend(v);
+}
+
 /// Drop one end; the channel goes with its last. Queued elements are not dropped (RFC 0043).
 ///
 /// # Safety

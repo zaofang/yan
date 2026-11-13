@@ -171,6 +171,8 @@ pub(crate) struct State {
     /// The closure the last [`WORK`] asks for.
     work: [u64; 5],
     start: Instant,
+    /// `(actor, channel, node of the watcher)` of each monitor not yet delivered.
+    pub(crate) monitors: Vec<(usize, usize, usize)>,
 }
 
 impl Default for State {
@@ -188,6 +190,7 @@ impl Default for State {
             doomed: Vec::new(),
             restarts: VecDeque::new(),
             work: [0; 5],
+            monitors: Vec::new(),
             start: Instant::now(),
         }
     }
@@ -629,6 +632,20 @@ pub unsafe extern "C" fn yan_rt_actor_crash(id: u64, error: *const String) {
     // SAFETY: the caller's contract.
     let error = unsafe { &*error }.clone();
     let over = with(|st| {
+        let over = crash(st, id, error);
+        settle(st);
+        over
+    });
+    if let Some((n, p)) = over {
+        panic_with(
+            "supervisor",
+            &format!("a supervisor exceeded its restart intensity of {n} per {p} ns"),
+        );
+    }
+}
+
+fn crash(st: &mut State, id: usize, error: String) -> Option<(usize, i128)> {
+    {
         st.actors[id].stop(Reason::Crashed(error));
         let (s, restart) = (st.actors[id].sup, st.actors[id].restart);
         if restart == Restart::Temporary {
@@ -667,12 +684,6 @@ pub unsafe extern "C" fn yan_rt_actor_crash(id: u64, error: *const String) {
                 .filter(|c| st.actors[*c].restart != Restart::Temporary),
         );
         None
-    });
-    if let Some((n, p)) = over {
-        panic_with(
-            "supervisor",
-            &format!("a supervisor exceeded its restart intensity of {n} per {p} ns"),
-        );
     }
 }
 
@@ -708,6 +719,34 @@ pub unsafe extern "C" fn yan_rt_actor_restarted(id: u64, state: *const u64) {
 /// Why actor `id` stopped, or why its last start did once it restarted.
 fn why(a: &Actor) -> Option<&Reason> {
     a.stopped.as_ref().or(a.ended.as_ref())
+}
+
+/// Delivers the `Stopped` of each monitor whose actor has stopped, and the `NodeDown` of each
+/// whose watcher a partition cuts from it (RFC 0063 D7): a `Stopped` is a `StopReason` tag
+/// (0 `Normal`, 1 `Shutdown`, 2 `Crashed`, 3 `NodeDown`) and the `Crashed` error.
+pub(crate) fn settle(st: &mut State) {
+    let t = st.faults.since();
+    let mut kept = Vec::new();
+    for (id, ch, owner) in std::mem::take(&mut st.monitors) {
+        let a = &st.actors[id];
+        let word = match &a.stopped {
+            Some(Reason::Shutdown) => Some([1, 0]),
+            Some(Reason::Crashed(e)) => Some([2, crate::abi::str_block(e) as u64]),
+            None if owner != a.home && st.faults.cut(owner, a.home, t) => Some([3, 0]),
+            None => None,
+        };
+        let Some(v) = word else {
+            kept.push((id, ch, owner));
+            continue;
+        };
+        // SAFETY: a live channel of a `Stopped`'s two slots, whose sender end is ours.
+        unsafe {
+            crate::chan::push(ch, &v);
+            crate::chan::yan_rt_chan_drop(ch as *mut crate::chan::Chan);
+        }
+        crate::sched::progressed();
+    }
+    st.monitors = kept;
 }
 
 /// Why stopped actor `id` stopped: 1 `Shutdown`, 2 `Crashed`.
@@ -767,6 +806,7 @@ pub extern "C" fn yan_rt_sup_end_to(depth: u64) {
                 }
             }
         }
+        settle(st);
     });
 }
 
@@ -775,6 +815,12 @@ pub fn end_root() {
     with(|st| {
         for c in st.sups[0].children.clone().into_iter().rev() {
             st.actors[c].end();
+        }
+        settle(st);
+        // A monitor of an actor that never stopped holds its channel's sender end.
+        for (_, ch, _) in std::mem::take(&mut st.monitors) {
+            // SAFETY: a live channel whose sender end is the monitor's.
+            unsafe { crate::chan::yan_rt_chan_drop(ch as *mut crate::chan::Chan) };
         }
     });
 }

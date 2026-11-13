@@ -10,7 +10,7 @@ use crate::actor::{
 };
 use crate::sched;
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 /// Node `i`'s id: the first 128 bits of BLAKE3 over `"yan.sim.node" || seed || i` (D6), with
 /// both as 128-bit integers, as the interpreter hashes them.
@@ -38,7 +38,7 @@ struct Cut {
 pub(crate) struct Faults {
     seed: i128,
     nodes: usize,
-    epoch: Option<Instant>,
+    epoch: i128,
     drop: f64,
     delay: i64,
     partition: i64,
@@ -68,8 +68,13 @@ impl Faults {
         (u64::from_le_bytes(b) >> 11) as f64 / (1u64 << 53) as f64
     }
 
+    /// Nanoseconds on the monotonic clock since the `sim` was built.
+    pub(crate) fn since(&self) -> i64 {
+        (crate::civil::mono_now() - self.epoch) as i64
+    }
+
     /// Whether a seeded or listed partition separates `a` and `b` at `t` ns since the binding.
-    fn cut(&self, a: usize, b: usize, t: i64) -> bool {
+    pub(crate) fn cut(&self, a: usize, b: usize, t: i64) -> bool {
         if self
             .cuts
             .iter()
@@ -112,7 +117,7 @@ impl Faults {
         *seq += 1;
         let ix = [from as u64, to as u64, k];
         let delay = (self.draw(b"delay", ix) * self.delay as f64) as i64;
-        let t = self.epoch.map_or(0, |e| e.elapsed().as_nanos() as i64);
+        let t = self.since();
         if delay > 0 {
             std::thread::sleep(Duration::from_nanos(delay as u64));
         }
@@ -240,7 +245,7 @@ pub unsafe extern "C" fn yan_rt_sim_new(nodes: i64, seed: i64, plan: *const u64)
         st.faults = Faults {
             seed: seed.into(),
             nodes: nodes as usize,
-            epoch: Some(Instant::now()),
+            epoch: crate::civil::mono_now(),
             drop: f64::from_bits(p[0]),
             delay: ns(p[1], p[2]),
             partition: ns(p[3], p[4]),
@@ -330,5 +335,28 @@ pub extern "C" fn yan_rt_cluster_leave() {
     with(|st| {
         leave(st, &me);
         st.placed = None;
+    });
+}
+
+/// `cluster.monitor`: channel `ch`, made with one slot per word of a `Stopped`, gets one
+/// `Stopped` when actor `id` stops, or `NodeDown` when a partition cuts the watcher from it.
+/// The monitor keeps the sender end of `ch`.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_cluster_monitor(id: u64, ch: u64) {
+    let me = sched::path();
+    with(|st| {
+        let owner = current(st, &me);
+        st.monitors.push((id as usize, ch as usize, owner));
+        crate::actor::settle(st);
+    });
+}
+
+/// Delivers the `NodeDown` of each monitor a partition now cuts: it runs wherever a handler
+/// clock is read or advanced, so delivery follows the seed and the clock.
+pub fn sweep() {
+    with(|st| {
+        if !st.monitors.is_empty() {
+            crate::actor::settle(st);
+        }
     });
 }
