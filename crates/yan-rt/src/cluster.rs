@@ -360,3 +360,55 @@ pub fn sweep() {
         }
     });
 }
+
+/// `std.sim.check_trace`: the verdict of `trace`, a `list[Step]`, against `machines`, a
+/// `list[Machine]`, into `out` as a `TraceVerdict`'s slots: the tag (0 `Accepted`, 1
+/// `Rejected`), then `index`, `actor`, `event` and `state`.
+///
+/// # Safety
+/// The lists have those element types and `out` has five slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_sim_check(
+    out: *mut u64,
+    trace: *const List,
+    machines: *const List,
+) {
+    fn text<'a>(w: u64) -> &'a str {
+        // SAFETY: a `Str` slot of a list element.
+        unsafe { &*(w as *const String) }
+    }
+    // SAFETY: the caller's contract.
+    let (trace, machines) = unsafe { (&*trace, &*machines) };
+    let mut states: HashMap<&str, &str> = HashMap::new();
+    let mut edges: HashMap<(&str, &str, &str), &str> = HashMap::new();
+    for m in machines.data.chunks(3) {
+        let actor = text(m[0]);
+        states.insert(actor, text(m[1]));
+        // SAFETY: a `Machine`'s `edges` is a `list[Edge]` block.
+        for e in unsafe { &*(m[2] as *const List) }.data.chunks(3) {
+            edges.insert((actor, text(e[0]), text(e[1])), text(e[2]));
+        }
+    }
+    let mut verdict = [0u64; 5];
+    for (i, step) in trace.data.chunks(2).enumerate() {
+        let (actor, event) = (text(step[0]), text(step[1]));
+        let state = states.get(actor).copied();
+        match state.and_then(|s| edges.get(&(actor, s, event))) {
+            Some(next) => {
+                states.insert(actor, next);
+            }
+            None => {
+                verdict = [
+                    1,
+                    i as u64,
+                    str_block(actor) as u64,
+                    str_block(event) as u64,
+                    str_block(state.unwrap_or("")) as u64,
+                ];
+                break;
+            }
+        }
+    }
+    // SAFETY: the caller's contract.
+    unsafe { std::slice::from_raw_parts_mut(out, 5) }.copy_from_slice(&verdict);
+}
