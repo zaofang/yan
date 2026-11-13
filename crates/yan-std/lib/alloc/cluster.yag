@@ -55,6 +55,10 @@ pub def monitor[S, P, D](cluster: Cluster, target: Remote[Actor[S, P]]) -> Recei
 
 @intrinsic
 @since("1.0")
+pub def group[A](cluster: Cluster, name: str) -> Group[A]: ...
+
+@intrinsic
+@since("1.0")
 pub def place(cluster: Cluster, node: Node) -> None: ...
 
 @intrinsic

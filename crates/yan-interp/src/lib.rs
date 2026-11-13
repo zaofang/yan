@@ -260,6 +260,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             sim: None,
             pct: None,
             monitors: Vec::new(),
+            groups: Vec::new(),
             seq: Default::default(),
             remote: Vec::new(),
             replied: true,
@@ -409,6 +410,8 @@ pub(crate) struct Interp<'o> {
     pct: Option<yan_rt::pct::Pct>,
     /// Each monitored actor, the channel its `Down` goes to and the node of the watcher (RFC 0063 D7).
     monitors: Vec<(usize, usize, usize)>,
+    /// The members of each named group, in join order (R414).
+    groups: Vec<(String, Vec<Value>)>,
     /// Messages sent so far over each ordered node pair, which index its fault stream.
     seq: std::collections::HashMap<(usize, usize), u64>,
     /// The calls through `Remote` awaiting their reply, innermost last, by task path.
@@ -822,6 +825,7 @@ fn entry(
         sim: None,
         pct: None,
         monitors: Vec::new(),
+        groups: Vec::new(),
         seq: Default::default(),
         remote: Vec::new(),
         replied: true,

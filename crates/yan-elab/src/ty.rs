@@ -50,7 +50,7 @@ pub enum Ty {
 }
 
 /// Each std.collections type, by its Yan Agent name; its Yan Core name is in the projection table.
-pub const COLLECTIONS: [&str; 35] = [
+pub const COLLECTIONS: [&str; 36] = [
     "deque",
     "iter",
     "heap",
@@ -85,6 +85,7 @@ pub const COLLECTIONS: [&str; 35] = [
     "Lub",
     "Max",
     "Entity",
+    "Group",
     "Locale",
 ];
 
@@ -304,6 +305,7 @@ impl Ty {
             Ty::Coll("Sender", _) => Some("chan.sender"),
             Ty::Coll("Receiver", _) => Some("chan.receiver"),
             Ty::Coll("Actor" | "SendOnly" | "Undelivered", _) => Some("actor"),
+            Ty::Coll("Group", _) => Some("cluster.group"),
             Ty::Coll("Lub", _) => Some("lattice"),
             Ty::Coll("Max", _) => Some("lattice.max"),
             Ty::Coll("Locale", _) => Some("i18n"),

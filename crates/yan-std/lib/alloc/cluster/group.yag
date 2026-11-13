@@ -1,0 +1,14 @@
+"""A named group of `A` handles (9.6.1, R414): `cluster.group(name)` returns the same group on every
+node of a view."""
+
+@intrinsic
+@since("1.0")
+pub def join[A](self: Group[A], member: A) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def leave[A](self: Group[A], member: A) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def members[A](self: Group[A]) -> list[A]: ...

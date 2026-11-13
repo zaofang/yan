@@ -68,6 +68,7 @@ pub const TYPES: &[TypeName] = &[
     row("Lub", "Lub", "Lub", 1),
     row("Max", "Max", "Max", 1),
     row("Entity", "Entity", "Entity", 2),
+    row("Group", "Group", "Group", 1),
     row("Locale", "Locale", "Locale", 0),
     row("Command", "Command", "Command", 0),
     row("TcpListener", "TcpListener", "TcpListener", 0),

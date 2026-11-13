@@ -128,6 +128,40 @@ impl Lower<'_, '_, '_> {
         Ok(rest)
     }
 
+    /// `cluster.group(name)` is the named group of `A` handles (R414); `A` comes from the
+    /// annotation of the binding.
+    pub(super) fn cluster_group(
+        &mut self,
+        args: &[j::Arg],
+        at: Span,
+        want: Option<&Ty>,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let [
+            j::Arg {
+                name: None,
+                kind: j::ArgKind::Expr(e),
+                ..
+            },
+        ] = args
+        else {
+            return unsupported("`group` takes the one name of the group");
+        };
+        let Some(t @ Ty::Coll("Group", a)) = want else {
+            return unsupported(
+                "`cluster.group` needs its type written, as in `g: Group[A] = ...`",
+            );
+        };
+        let (x, st) = self.atom(e, Some(&Ty::Str))?;
+        self.expect(&st, &Ty::Str, e.span);
+        let c = call(
+            "std.cluster.group",
+            vec![a[0].targ()],
+            vec![Arg::Cap("cluster".into(), at), let_arg(x)],
+            at,
+        );
+        Ok((Rhs::Call(c), t.clone(), None))
+    }
+
     /// `cluster.monitor(remote)` is a receiver that gets one `Stopped` when the actor stops (R411).
     pub(super) fn cluster_monitor(
         &mut self,
