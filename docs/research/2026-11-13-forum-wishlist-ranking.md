@@ -232,3 +232,11 @@ https://discuss.pytorch.org/t/feedback-on-pep-646-relevant-to-tensor-typing/1117
 https://arxiv.org/pdf/2509.22908; GlyphLang HN https://hn.nuxt.dev/item/46571166; marimo
 https://marimo.io/blog/introducing-marimo; Uiua HN https://news.ycombinator.com/item?id=37673127; Mojo
 wishlist https://github.com/modularml/mojo/discussions/1490.
+
+## Decisions (lead cards, 2026-11-13)
+
+- Gaps filed as tracker #1119 (#1120 to #1126); anonymous unions to be studied after M1 (#1127).
+- Incremental compilation keeps its normal place in the fast stage (not pulled ahead).
+- Size arithmetic and rank polymorphism enter through Yan Meta's lab first, then graduate (R777).
+- Hot reload gets normative semantics (state migration between item versions) via an RFC.
+- Declined: specialization, higher-kinded types, full dependent types, procedural macros.
