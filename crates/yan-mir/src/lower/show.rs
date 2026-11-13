@@ -56,6 +56,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                 };
                 self.civil_show(op, v.to_vec())?
             }
+            Shape::Rec(name, _) if name == "CliError" => {
+                let m = self.clone_value(v[..1].to_vec(), &Shape::Str)?;
+                m[0].clone()
+            }
             Shape::Rec(name, _) if name == "Secret" => self.lit("Secret(***)"),
             Shape::Rec(name, _) if name == "TimeZone" => self.rt(
                 RtFn::TimeShow,

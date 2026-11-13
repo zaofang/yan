@@ -663,6 +663,7 @@ const RT: &[RtFn] = &[
     RtFn::LogEvent,
     RtFn::Civil,
     RtFn::CivilOut,
+    RtFn::CivilOutF,
     RtFn::ZoneLookup,
     RtFn::ZoneId,
     RtFn::EnvFake,
@@ -981,6 +982,12 @@ fn rt_fn(
             civil::yan_rt_civil_out as *const u8,
             &[I64],
             Some(I64),
+        ),
+        RtFn::CivilOutF => (
+            "yan_rt_civil_out_f",
+            civil::yan_rt_civil_out_f as *const u8,
+            &[I64],
+            Some(F64),
         ),
         RtFn::LogNew => (
             "yan_rt_log_new",

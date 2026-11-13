@@ -37,6 +37,10 @@ pub(super) fn std_type(name: &str) -> Option<Shape> {
             ],
         ),
         "TimeReason" => sum(name, &["Syntax", "Range", "Zone", "Offset"]),
+        "CliError" => rec(
+            name,
+            &[("message", Shape::Str), ("help", Shape::Scalar(Ty::Bool))],
+        ),
         "TimeError" => rec(name, &[("at", i), ("reason", std_type("TimeReason")?)]),
         "Disambiguation" => sum(name, &["Compatible", "Earlier", "Later"]),
         "TimeZone" => rec(name, &[("id", i)]),
@@ -51,6 +55,43 @@ pub(super) fn std_type(name: &str) -> Option<Shape> {
         ),
         _ => return None,
     })
+}
+
+/// The description of `s` for `yan_rt::civil`'s `cli.parse`: its words' meaning.
+fn describe(s: &Shape, out: &mut String) -> R<()> {
+    match s {
+        Shape::Str => out.push('s'),
+        Shape::Path => out.push('p'),
+        Shape::Scalar(t) if *t == I64 => out.push('i'),
+        Shape::Scalar(Ty::F64) => out.push('f'),
+        Shape::Scalar(Ty::Bool) => out.push('b'),
+        Shape::Scalar(Ty::Unit) => out.push('n'),
+        Shape::List(e) => {
+            out.push('L');
+            describe(e, out)?;
+        }
+        Shape::Rec(_, fields) => {
+            out.push('{');
+            for (_, f) in fields {
+                describe(f, out)?;
+            }
+            out.push('}');
+        }
+        Shape::Sum(_, variants) => {
+            out.push('<');
+            for (name, fields) in variants {
+                out.push_str(name);
+                out.push('|');
+                for (_, f) in fields {
+                    describe(f, out)?;
+                }
+                out.push(';');
+            }
+            out.push('>');
+        }
+        _ => return unsupported("`std.cli.parse_args` for a field of this type"),
+    }
+    Ok(())
 }
 
 /// The success type of a civil time call that fails with `TimeError`, for `?`.
@@ -103,6 +144,7 @@ fn table(id: registry::Id) -> Option<(&'static str, Kind, Recv)> {
         id::STD_TIME_PERIOD_PARSE => ("period.parse", Fail, All),
         id::STD_TIME_PARSE => ("zoned.parse", Fail, All),
         id::STD_TIME_ZONE_PARSE => ("zone.parse", Fail, All),
+        id::STD_CLI_PARSE_ARGS => ("cli.parse", Fail, All),
         id::STD_TIME_INSTANT_PARSE => ("instant.parse", Fail, All),
         id::STD_TIME_DATE_STRPTIME => ("date.strptime", Fail, All),
         id::STD_TIME_PLAIN_TIME_STRPTIME => ("time.strptime", Fail, All),
@@ -169,6 +211,9 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     fn civil_out(&mut self, i: usize, ty: Ty) -> Operand {
+        if ty == Ty::F64 {
+            return self.rt(RtFn::CivilOutF, Ty::F64, vec![Operand::Int(i as i128)]);
+        }
         let w = self.rt(RtFn::CivilOut, I64, vec![Operand::Int(i as i128)]);
         if ty == Ty::Bool {
             self.scalar_op(ScalarOp::Ne, I64, vec![w, Operand::Int(0)])
@@ -266,6 +311,14 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             words.extend(v);
         }
+        if id == id::STD_CLI_PARSE_ARGS {
+            let Some((_, _, ok)) = dst.shape.variant("Ok") else {
+                return unsupported("`std.cli.parse_args` without its result");
+            };
+            let mut d = String::new();
+            describe(&ok[0].1, &mut d)?;
+            words.push(self.lit(&d));
+        }
         let status = self.civil_raw(op, words)?;
         self.civil_panics(&status);
         let join = self.block_new();
@@ -288,10 +341,15 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let fail = self.scalar_op(ScalarOp::Ne, I64, vec![status, Operand::Int(0)]);
                 let (e, o) = self.branch(fail);
                 self.cur = e;
-                let bad = if matches!(kind, Opt) {
-                    Vec::new()
-                } else {
-                    vec![self.civil_out(0, I64), self.civil_out(1, I64)]
+                let bad = match dst.shape.variant("Err") {
+                    Some((_, _, fields)) if matches!(kind, Fail) => {
+                        let tys: Vec<Ty> = fields.iter().flat_map(|(_, s)| s.tys()).collect();
+                        tys.iter()
+                            .enumerate()
+                            .map(|(i, t)| self.civil_out(i, *t))
+                            .collect()
+                    }
+                    _ => Vec::new(),
                 };
                 let v = Self::variant_value(&dst.shape, none, bad);
                 self.copy_to(&dst.locals, v);

@@ -21,6 +21,8 @@ pub enum Done {
     None,
     /// A parser's rejection: the char offset and the `TimeReason` tag.
     Err(i64, i64),
+    /// A failure with its words (status 2).
+    Fail(Vec<i64>),
     Overflow,
     Value,
 }
@@ -490,6 +492,145 @@ fn or_overflow(v: Option<Vec<i64>>) -> Done {
     v.map_or(Done::Overflow, Done::Ok)
 }
 
+/// The words of a value described by `d` from `pos`: `s` str, `p` path, `i` int, `f` float, `b`
+/// bool, `n` unit, `L` list of the next description, `{...}` a record of field descriptions, and
+/// `<name|fields;...>` a sum of variants: the tag, then every variant's fields (zeros unless
+/// selected).
+fn width(d: &[u8], pos: &mut usize) -> usize {
+    let c = d[*pos];
+    *pos += 1;
+    match c {
+        b'L' => {
+            width(d, pos);
+            1
+        }
+        b'{' => {
+            let mut w = 0;
+            while d[*pos] != b'}' {
+                w += width(d, pos);
+            }
+            *pos += 1;
+            w
+        }
+        b'<' => {
+            let mut w = 1;
+            while d[*pos] != b'>' {
+                while d[*pos] != b'|' {
+                    *pos += 1;
+                }
+                *pos += 1;
+                while d[*pos] != b';' {
+                    w += width(d, pos);
+                }
+                *pos += 1;
+            }
+            *pos += 1;
+            w
+        }
+        _ => 1,
+    }
+}
+
+fn encode(v: &crate::cli::V, d: &str, pos: &mut usize, out: &mut Vec<i64>) {
+    use crate::cli::V;
+    let d = d.as_bytes();
+    let c = d[*pos];
+    *pos += 1;
+    match (c, v) {
+        (b's', V::Str(s)) => out.push(crate::abi::str_block(s) as i64),
+        (b'p', V::Path(s)) => {
+            let tmp = crate::abi::str_block(s);
+            // SAFETY: `tmp` is a fresh `Str` block.
+            let p = unsafe { crate::pathabi::yan_rt_path_new(tmp) };
+            // SAFETY: as above; the original block is not used again.
+            unsafe { crate::abi::yan_rt_str_free(tmp) };
+            out.push(p as i64);
+        }
+        (b'i', V::Int(n)) => out.push(*n),
+        (b'f', V::Float(x)) => out.push(x.to_bits() as i64),
+        (b'b', V::Bool(b)) => out.push(i64::from(*b)),
+        (b'n', _) => out.push(0),
+        (b'L', V::List(xs)) => {
+            let start = *pos;
+            let w = width(d, &mut { start });
+            let l = crate::abi::yan_rt_list_new(w as u64);
+            for x in xs {
+                let mut slots = Vec::new();
+                *pos = start;
+                encode(x, std::str::from_utf8(d).expect("ascii"), pos, &mut slots);
+                // SAFETY: `l` is a fresh list of `w`-word elements that nothing else borrows.
+                let e = unsafe { crate::abi::yan_rt_list_push(l) };
+                for (i, s) in slots.iter().enumerate() {
+                    // SAFETY: the element has `w` slots.
+                    unsafe { *e.add(i) = *s as u64 };
+                }
+            }
+            *pos = start;
+            width(d, pos);
+            out.push(l as i64);
+        }
+        (b'{', V::Rec(_, fields)) => {
+            for (_, f) in fields {
+                encode(f, std::str::from_utf8(d).expect("ascii"), pos, out);
+            }
+            assert_eq!(d[*pos], b'}');
+            *pos += 1;
+        }
+        (b'<', _) => {
+            let (name, fields): (&str, &[(String, V)]) = match v {
+                V::Opt(None) => ("None", &[]),
+                V::Opt(Some(_)) => ("Some", &[]),
+                V::Variant(n) => (n, &[]),
+                V::Rec(n, fs) => (n, fs),
+                _ => panic!("cli value for a sum"),
+            };
+            let tag_at = out.len();
+            out.push(0);
+            let mut tag = 0;
+            let mut i = 0;
+            while d[*pos] != b'>' {
+                let end = d[*pos..]
+                    .iter()
+                    .position(|b| *b == b'|')
+                    .expect("variant name")
+                    + *pos;
+                let this = std::str::from_utf8(&d[*pos..end]).expect("ascii");
+                *pos = end + 1;
+                if this == name {
+                    tag = i;
+                    let mut k = 0;
+                    while d[*pos] != b';' {
+                        match v {
+                            V::Opt(Some(x)) => {
+                                encode(x, std::str::from_utf8(d).expect("ascii"), pos, out)
+                            }
+                            _ => {
+                                encode(
+                                    &fields[k].1,
+                                    std::str::from_utf8(d).expect("ascii"),
+                                    pos,
+                                    out,
+                                );
+                                k += 1;
+                            }
+                        }
+                    }
+                } else {
+                    while d[*pos] != b';' {
+                        let w = width(d, pos);
+                        out.extend(std::iter::repeat_n(0, w));
+                    }
+                }
+                *pos += 1;
+                i += 1;
+            }
+            *pos += 1;
+            out[tag_at] = tag;
+        }
+        _ => panic!("cli value `{v:?}` for description `{}`", c as char),
+    }
+}
+
 /// Runs operation `op` on the argument words `a`.
 pub fn run(op: &str, a: &[i64]) -> Done {
     match op {
@@ -536,6 +677,25 @@ fn run_more(op: &str, a: &[i64]) -> Done {
         "datetime.parse" => lift(whole(text(a[0]), Reader::datetime), dt_words),
         "period.parse" => lift(parse_period(text(a[0])), |p| p),
         "zoned.parse" => lift(parse_zoned(text(a[0])), |w| w),
+        "cli.parse" => {
+            // SAFETY: `a` holds a `list[str]` block, a `Str` schema and a `Str` descriptor.
+            let args: Vec<String> = unsafe { &*(a[0] as *const crate::abi::List) }
+                .data
+                .iter()
+                .map(|&w| text(w as i64).to_owned())
+                .collect();
+            match crate::cli::parse_args(&args, text(a[1])) {
+                Ok(v) => {
+                    let mut out = Vec::new();
+                    encode(&v, text(a[2]), &mut 0, &mut out);
+                    Done::Ok(out)
+                }
+                Err(e) => Done::Fail(vec![
+                    crate::abi::str_block(&e.message) as i64,
+                    i64::from(e.help),
+                ]),
+            }
+        }
         "instant.parse" => lift(parse_instant(text(a[0])), |w| w),
         "zone.parse" => match intern(text(a[0])) {
             Some(z) => int(z),
@@ -690,11 +850,18 @@ pub unsafe extern "C" fn yan_rt_civil(
         Done::Ok(w) => (0, w),
         Done::None => (1, Vec::new()),
         Done::Err(at, kind) => (2, vec![at, kind]),
+        Done::Fail(w) => (2, w),
         Done::Overflow => (3, Vec::new()),
         Done::Value => (4, Vec::new()),
     };
     OUT.with(|o| *o.borrow_mut() = out);
     status
+}
+
+/// Float word `i` of the last result.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_civil_out_f(i: i64) -> f64 {
+    f64::from_bits(OUT.with(|o| o.borrow()[i as usize]) as u64)
 }
 
 /// Word `i` of the last result.
