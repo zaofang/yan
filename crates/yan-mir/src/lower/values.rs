@@ -52,6 +52,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                         }));
                         continue;
                     }
+                    // A sorted set is its one list of items.
+                    if let Shape::Rec(n, fs) = &shape
+                        && n == "SortedSet"
+                        && let [(_, inner)] = fs.as_slice()
+                    {
+                        shape = inner.clone();
+                    }
                     let (Shape::List(e) | Shape::Deque(e)) = shape.clone() else {
                         return unsupported("indexing a non-list");
                     };
