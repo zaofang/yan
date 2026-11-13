@@ -111,6 +111,13 @@ impl Lower<'_, '_, '_> {
                 self.cluster_monitor(args, at)
             }
             j::ExprKind::Attr(m, op, _)
+                if op == "group"
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "cluster")
+                    && self.sig.caps.iter().any(|c| c == "cluster") =>
+            {
+                self.cluster_group(args, at, want)
+            }
+            j::ExprKind::Attr(m, op, _)
                 if op == "send_only"
                     && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.locals.contains_key(a)) =>
             {

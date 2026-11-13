@@ -248,6 +248,37 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         }),
     ),
     (
+        STD_CLUSTER_GROUP,
+        Bind::Plain(|a| match &a[1] {
+            Value::Str(_) => Ok(Value::Data {
+                name: "Group".into(),
+                fields: vec![("name".into(), a[1].clone())],
+            }),
+            _ => bad_args(STD_CLUSTER_GROUP),
+        }),
+    ),
+    (
+        STD_CLUSTER_GROUP_JOIN,
+        Bind::Vm(|vm: &mut Vm, _, a| {
+            let members = group_members(&mut vm.it, &a[0]);
+            if !members.contains(&a[1]) {
+                members.push(a[1].clone());
+            }
+            Ok(Value::Unit)
+        }),
+    ),
+    (
+        STD_CLUSTER_GROUP_LEAVE,
+        Bind::Vm(|vm: &mut Vm, _, a| {
+            group_members(&mut vm.it, &a[0]).retain(|m| *m != a[1]);
+            Ok(Value::Unit)
+        }),
+    ),
+    (
+        STD_CLUSTER_GROUP_MEMBERS,
+        Bind::Vm(|vm: &mut Vm, _, a| Ok(Value::List(group_members(&mut vm.it, &a[0]).clone()))),
+    ),
+    (
         STD_CLUSTER_LEAVE,
         Bind::Vm(|vm: &mut Vm, _, _| {
             let me = vm.task_path.clone();
@@ -257,6 +288,22 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         }),
     ),
 ];
+
+/// The members of the group `g` names, which the first use creates empty (R414).
+fn group_members<'a>(it: &'a mut Interp, g: &Value) -> &'a mut Vec<Value> {
+    let Value::Data { fields, .. } = g else {
+        unreachable!("a `Group` is a record of its name")
+    };
+    let Value::Str(name) = &fields[0].1 else {
+        unreachable!("a `Group` names itself with a string")
+    };
+    let name = name.to_string();
+    let k = it.groups.iter().position(|(n, _)| *n == name).unwrap_or_else(|| {
+        it.groups.push((name, Vec::new()));
+        it.groups.len() - 1
+    });
+    &mut it.groups[k].1
+}
 
 /// An interpreter value as the `Wire` codec's `Val` of schema `t` (R402).
 fn to_val(sc: &Schemas, t: &Schema, v: &Value) -> Result<Val, String> {

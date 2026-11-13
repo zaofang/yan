@@ -2284,6 +2284,7 @@ fn wire(t: &Ty) -> bool {
                     | "Atomic"
                     | "Sender"
                     | "Receiver"
+                    | "Group"
                     | "iter"
                     | "Secret"
                     | "TcpListener"

@@ -451,7 +451,7 @@ fn words(m: &j::Module) -> HashSet<String> {
         w.insert("time".into());
     }
     // A call through `Remote` fails with `std.cluster` types (R408).
-    if w.contains("Remote") || w.contains("RemoteError") {
+    if w.contains("Remote") || w.contains("RemoteError") || w.contains("Group") {
         w.insert("cluster".into());
     }
     // A std alias names its members.
