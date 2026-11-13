@@ -69,7 +69,7 @@ fn canonical(id: &str) -> Option<String> {
     Some(tz.iana_name().unwrap_or(id).to_owned())
 }
 
-fn intern(id: &str) -> Option<i64> {
+pub(crate) fn intern(id: &str) -> Option<i64> {
     let id = canonical(id)?;
     let mut z = ZONES.lock().expect("zone table");
     let z = z.get_or_insert_with(HashMap::new);
