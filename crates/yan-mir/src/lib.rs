@@ -585,6 +585,8 @@ pub enum RtFn {
     ClusterReach,
     /// `(actor)`: the message of a send through `Remote`.
     ClusterFaultSend,
+    /// `(depth, seed, steps)`: the `pct` scheduler of later `par concurrent` blocks.
+    SimPct,
     /// `()`: `proc.run` outside a `fake_proc` handler stops.
     ProcAmbient,
     /// `()`: whether the last call through `Remote` got its reply.

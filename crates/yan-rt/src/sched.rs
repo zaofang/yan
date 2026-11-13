@@ -17,6 +17,8 @@ struct Task {
     done: bool,
     park: Option<Park>,
     seen: Option<u64>,
+    /// The PCT priority (R999); unused without a `pct` scheduler.
+    prio: i64,
 }
 
 struct Block {
@@ -49,6 +51,8 @@ struct State {
     force: Option<usize>,
     /// The block whose task is running.
     cur: Option<usize>,
+    /// The PCT scheduler last built, which chooses the next task (R999).
+    pct: Option<crate::pct::Pct>,
 }
 
 thread_local! {
@@ -138,8 +142,18 @@ pub(crate) fn park(p: Park, in_task: bool) -> bool {
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_par_begin(n: u64, can_yield: u64) -> u64 {
     with(|st| {
+        let prios = match st.pct.as_mut() {
+            Some(p) => p.priorities(n as usize),
+            None => vec![0; n as usize],
+        };
         let b = Block {
-            tasks: (0..n).map(|_| Task::default()).collect(),
+            tasks: prios
+                .into_iter()
+                .map(|prio| Task {
+                    prio,
+                    ..Task::default()
+                })
+                .collect(),
             running: None,
             can_yield: can_yield != 0,
             parent: st.cur,
@@ -230,7 +244,7 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
         }
         let progress = st.progress;
         let inherited = st.force.is_some_and(|f| f != h as usize);
-        let b = block(st, h);
+        let b = st.blocks[h as usize].as_mut().expect("a live par block");
         let parent = b.parent;
         let Some(first) = b.tasks.iter().position(|t| !t.done) else {
             let n = b.tasks.len() as u64;
@@ -239,10 +253,20 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
         };
         // A cancelled task runs on to fail its next wait.
         let cancelled = b.cancelled;
-        let pick = b
+        let runnable: Vec<bool> = b
             .tasks
             .iter()
-            .position(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)));
+            .map(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)))
+            .collect();
+        let pick = match st.pct.as_mut() {
+            Some(p) => {
+                let mut prios: Vec<i64> = b.tasks.iter().map(|t| t.prio).collect();
+                let i = p.pick(&mut prios, &runnable);
+                b.tasks.iter_mut().zip(prios).for_each(|(t, q)| t.prio = q);
+                i
+            }
+            None => runnable.iter().position(|r| *r),
+        };
         // No task can progress: an idle actor runs a queued message, as an actor task would
         // (RFC 0056 D4), and the parked tasks retry.
         if pick.is_none() && crate::actor::idle_ready() {
@@ -283,6 +307,19 @@ pub extern "C" fn yan_rt_par_end(h: u64) {
         st.park = None;
         st.cur = b.parent;
     });
+}
+
+/// `pct(depth, seed, steps)`: the scheduler of every `par concurrent` that begins after it,
+/// as the interpreter keeps the last one built.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_sim_pct(depth: i64, seed: i64, steps: i64) {
+    if depth < 1 || steps < 1 {
+        crate::actor::panic_with(
+            "precondition `depth >= 1 and steps >= 1` of `pct` failed",
+            crate::abi::panic_message(""),
+        );
+    }
+    with(|st| st.pct = Some(crate::pct::Pct::new(seed as u64, depth, steps)));
 }
 
 #[cfg(test)]

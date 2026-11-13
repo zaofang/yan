@@ -133,6 +133,21 @@ impl<'m> Fn<'_, 'm> {
                 self.free(RtFn::EnvFree, out);
                 self.copy_to(&d.locals, v);
             }
+            (id::STD_SIM_PCT, [(_, depth), (_, seed), (_, steps)]) => {
+                let (depth, seed, steps) = (
+                    self.scalar1(depth)?,
+                    self.scalar1(seed)?,
+                    self.scalar1(steps)?,
+                );
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::SimPct,
+                    args: vec![depth, seed, steps],
+                });
+                if let Some(d) = dst {
+                    self.copy_to(&d.locals, vec![Operand::Int(0)]);
+                }
+            }
             (id::STD_SIM_SIM, [(_, n), (_, seed), (_, plan)]) => {
                 let (n, seed) = (self.scalar1(n)?, self.scalar1(seed)?);
                 let s = std_type("FaultPlan").expect("a std type");
