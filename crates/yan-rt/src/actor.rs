@@ -163,7 +163,7 @@ pub(crate) struct State {
     /// Tasks parked on a busy actor, by task path, and the actor each waits for (RFC 0056 D6).
     waits: Vec<(Vec<usize>, usize)>,
     /// When each task parked on an actor began waiting, for its deadline.
-    since: Vec<(Vec<usize>, Instant)>,
+    since: Vec<(Vec<usize>, Instant, Option<i128>)>,
     /// Callers that close a wait cycle as its youngest, failing `Deadlock` when they resume.
     doomed: Vec<Vec<usize>>,
     /// Children a crash restarts, in order.
@@ -330,7 +330,7 @@ pub unsafe extern "C" fn yan_rt_actor_spawn(
 
 fn unwait(st: &mut State, me: &[usize]) {
     st.waits.retain(|(p, _)| p != me);
-    st.since.retain(|(p, _)| p != me);
+    st.since.retain(|(p, ..)| p != me);
 }
 
 /// Task `me` waits on actor `id`, keyed apart from channels (R959): 1 when it parked. Where it
@@ -339,8 +339,9 @@ fn unwait(st: &mut State, me: &[usize]) {
 fn wait(id: usize, me: Vec<usize>, in_task: bool, what: &str) -> u64 {
     if sched::park(key(id), in_task) {
         with(|st| {
-            if !st.since.iter().any(|(p, _)| *p == me) {
-                st.since.push((me, Instant::now()));
+            if !st.since.iter().any(|(p, ..)| *p == me) {
+                st.since
+                    .push((me, Instant::now(), crate::civil::clocks_last()));
             }
         });
         return 1;
@@ -349,11 +350,16 @@ fn wait(id: usize, me: Vec<usize>, in_task: bool, what: &str) -> u64 {
         unsupported(&format!("{what} that waits on a busy actor"));
     }
     let since = with(|st| {
-        let s = st.since.iter().find(|(p, _)| *p == me).map(|w| w.1);
+        let s = st.since.iter().find(|(p, ..)| *p == me).map(|w| (w.1, w.2));
         unwait(st, &me);
         s
     });
-    let end = since.unwrap_or_else(Instant::now) + DEFAULT_DEADLINE;
+    // Under `fixed_time` or `virtual` handlers the wait takes no host time: their clocks jump.
+    if let Some(now) = since.and_then(|s| s.1).or_else(crate::civil::clocks_last) {
+        crate::civil::clocks_advance_to(now + DEFAULT_DEADLINE.as_nanos() as i128);
+        return TIMEOUT;
+    }
+    let end = since.map(|s| s.0).unwrap_or_else(Instant::now) + DEFAULT_DEADLINE;
     std::thread::sleep(end.saturating_duration_since(Instant::now()));
     TIMEOUT
 }

@@ -334,6 +334,7 @@ fn handler_cap(p: &y::Param) -> Option<(&str, &'static str)> {
         y::Param::Cap { name, ty } if ty.path == ["Fs"] => Some((name, "Fs")),
         y::Param::Cap { name, ty } if ty.path == ["Log"] => Some((name, "Log")),
         y::Param::Cap { name, ty } if ty.path == ["Env"] => Some((name, "Env")),
+        y::Param::Cap { name, ty } if ty.path == ["Time"] => Some((name, "Time")),
         _ => None,
     }
 }
@@ -1213,7 +1214,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         for (p, n) in caps.zip(given) {
             match handler_cap(p) {
                 // An unbound `Fs`, `Log` or `Env` is the ambient one.
-                Some((_, "Fs" | "Log" | "Env")) if !self.names.contains_key(n) => {
+                Some((_, "Fs" | "Log" | "Env" | "Time")) if !self.names.contains_key(n) => {
                     out.push(Operand::Int(0))
                 }
                 Some(_) if def.path != ["main"] => out.extend(Self::ops(self.name(n)?)),

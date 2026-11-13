@@ -41,6 +41,7 @@ pub(super) fn std_type(name: &str) -> Option<Shape> {
         "Disambiguation" => sum(name, &["Compatible", "Earlier", "Later"]),
         "TimeZone" => rec(name, &[("id", i)]),
         "Instant" => super::time::shape(true),
+        "MonoInstant" => super::time::wide("MonoInstant"),
         "ZonedDateTime" => rec(
             name,
             &[
@@ -156,6 +157,22 @@ fn table(id: registry::Id) -> Option<(&'static str, Kind, Recv)> {
     })
 }
 
+/// The clock operations: the name, and whether the call names a `time` handler.
+fn clock_table(id: registry::Id) -> Option<(&'static str, bool)> {
+    Some(match id {
+        id::STD_TIME_NOW => ("clock.now", true),
+        id::STD_TIME_MONOTONIC => ("clock.monotonic", true),
+        id::STD_TIME_SLEEP => ("clock.sleep", true),
+        id::STD_TIME_SLEEP_UNTIL => ("clock.sleep_until", true),
+        id::STD_TEST_FIXED_TIME => ("clock.fixed", false),
+        id::STD_TEST_VIRTUAL => ("clock.virtual", false),
+        id::STD_TIME_MONO_ADD => ("mono.add", false),
+        id::STD_TIME_MONO_SUB => ("mono.sub", false),
+        id::STD_TIME_MONO_SINCE => ("mono.since", false),
+        _ => return None,
+    })
+}
+
 impl<'a, 'm> Fn<'a, 'm> {
     /// One `yan_rt::civil` call on `words` (at most eight): its status.
     fn civil_raw(&mut self, op: &str, mut words: Vec<Operand>) -> R<Operand> {
@@ -242,6 +259,42 @@ impl<'a, 'm> Fn<'a, 'm> {
                 return Ok(true);
             }
             _ => {}
+        }
+        if let Some((op, cap)) = clock_table(id) {
+            let Some(dst) = dst else {
+                return unsupported(format!("`{op}` without a result"));
+            };
+            let mut words = Vec::new();
+            if cap {
+                // An unbound handler is the host clock (0).
+                words.push(
+                    match c.args.iter().find_map(|a| match a {
+                        y::Arg::Cap(n, _) => self.names.get(n),
+                        y::Arg::Value(..) => None,
+                    }) {
+                        Some(v) => Self::ops(v)[0].clone(),
+                        None => Operand::Int(0),
+                    },
+                );
+            }
+            for (_, a) in &args {
+                words.extend(self.time_words(a)?);
+            }
+            self.civil_raw(op, words)?;
+            if dst.shape.variant("Ok").is_some() {
+                // `sleep` fails only at a deadline, which native code has none of.
+                let ok = Self::variant_value(&dst.shape, "Ok", vec![Operand::Unit]);
+                self.copy_to(&dst.locals, ok);
+            } else {
+                let tys = dst.shape.tys();
+                let out: Vec<Operand> = tys
+                    .iter()
+                    .enumerate()
+                    .map(|(i, t)| self.civil_out(i, *t))
+                    .collect();
+                self.copy_to(&dst.locals, out);
+            }
+            return Ok(true);
         }
         let Some((op, kind, recv)) = table(id) else {
             return Ok(false);
