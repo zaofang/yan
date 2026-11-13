@@ -174,6 +174,10 @@ pub enum RtFn {
     LogSpan,
     /// `(handler, level, Str, list[tuple[str, str]])`
     LogEvent,
+    /// `(op name, 10 words) -> status`: a civil time operation (`yan_rt::civil`).
+    Civil,
+    /// `(i) -> word i` of the last civil result.
+    CivilOut,
     /// `env` handler or zone function.
     ZoneLookup,
     /// `env` handler or zone function.

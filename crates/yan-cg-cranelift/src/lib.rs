@@ -22,8 +22,8 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::{
-    abi, actor, bigint, bytes, chan, chars, cluster, dq, envhandler, fshandler, loghandler, map,
-    pathabi, pq, regexabi, sched, select, slice, timeabi,
+    abi, actor, bigint, bytes, chan, chars, civil, cluster, dq, envhandler, fshandler, loghandler,
+    map, pathabi, pq, regexabi, sched, select, slice, timeabi,
 };
 
 type R<T> = Result<T, String>;
@@ -661,6 +661,8 @@ const RT: &[RtFn] = &[
     RtFn::LogNew,
     RtFn::LogSpan,
     RtFn::LogEvent,
+    RtFn::Civil,
+    RtFn::CivilOut,
     RtFn::ZoneLookup,
     RtFn::ZoneId,
     RtFn::EnvFake,
@@ -965,6 +967,18 @@ fn rt_fn(
         RtFn::EnvZone => (
             "yan_rt_env_zone",
             envhandler::yan_rt_env_zone as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::Civil => (
+            "yan_rt_civil",
+            civil::yan_rt_civil as *const u8,
+            &[I64, I64, I64, I64, I64, I64, I64, I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::CivilOut => (
+            "yan_rt_civil_out",
+            civil::yan_rt_civil_out as *const u8,
             &[I64],
             Some(I64),
         ),

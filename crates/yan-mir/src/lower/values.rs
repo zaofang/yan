@@ -398,6 +398,11 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let err = named(self, "RegexError")?;
                 Some(result(ok, err))
             }
+            Some(i) if super::civil::fail_ok(i).is_some() => {
+                let ok = super::civil::std_type(super::civil::fail_ok(i).expect("checked"));
+                ok.zip(super::civil::std_type("TimeError"))
+                    .map(|(o, e)| result(o, e))
+            }
             Some(id::STD_ERROR_CONTEXT) => self.context_shape(c)?,
             Some(id::STD_PRELUDE_CHR) => Some(self.encoding_shape(Shape::Char)?),
             Some(id::STD_ENCODING_BASE64_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),

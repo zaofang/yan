@@ -243,8 +243,8 @@ impl Types<'_> {
                     actor::duration()
                 } else if name == "i128" {
                     time::wide("i128")
-                } else if name == "TimeZone" {
-                    Shape::Rec("TimeZone".into(), vec![("id".into(), Shape::Scalar(I64))])
+                } else if let Some(s) = civil::std_type(name) {
+                    s
                 } else if name == "Instant" {
                     time::shape(true)
                 } else if name == "Stopped" {

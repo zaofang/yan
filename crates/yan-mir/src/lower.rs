@@ -7,6 +7,7 @@ mod actor;
 mod bigint;
 mod call;
 mod chars;
+mod civil;
 mod cluster;
 mod collections;
 mod consts;
