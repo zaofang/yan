@@ -415,10 +415,10 @@ def status_page(build: Build) -> Page:
 def terminal_page(tour: Page, build: Build) -> str:
     """index.txt, served at / to terminals by site/worker.js."""
     c = tomllib.loads((SITE / "terminal.toml").read_text())
-    hello = next(p for p in tour.programs if p.stdout is not None)
+    hello, stdout = next((p, p.stdout) for p in tour.programs if p.stdout is not None)
     col = max(len(x["id"]) for x in c["links"]) + 3
     lines = ["言 yan", "", *c["lines"], "", f"$ cat {c['file']}", hello.source.rstrip("\n"), ""]
-    lines += [f"$ yan run {c['file']}", hello.stdout.rstrip("\n"), ""]
+    lines += [f"$ yan run {c['file']}", stdout.rstrip("\n"), ""]
     for x in c["links"]:
         url = x.get("url") or build.url + x["path"]
         lines += [x["id"].ljust(col) + x["summary"], " " * col + url]
