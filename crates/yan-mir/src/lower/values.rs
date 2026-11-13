@@ -326,6 +326,9 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     /// `c?`: its `Ok` value, or return its error from this function.
     pub(super) fn drop_name(&mut self, n: &str) {
+        if self.pipes.remove(n).is_some() {
+            return;
+        }
         if let Some(v) = self.names.get(n).cloned() {
             let ops: Vec<Operand> = v.locals.iter().map(|l| Operand::Local(*l)).collect();
             self.glue(&v.shape, &ops);

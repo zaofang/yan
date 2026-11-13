@@ -50,6 +50,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         let at = |me: &mut Self, base: &Operand, i: Operand| {
             me.scalar_op(ScalarOp::AddChecked, I64, vec![base.clone(), i])
         };
+        let mut other = None;
         let out = match id {
             id::STD_ITER_OPS_ENUMERATE => {
                 let out = self.rt(
@@ -124,6 +125,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                     return unsupported(format!("call of `{name}` on this iterator"));
                 };
                 let b = bv[0].clone();
+                other = Some((Shape::List(f.clone()), bv.clone()));
                 let bpos = self.rt(RtFn::DqMaxlen, I64, vec![b.clone()]);
                 let bpos = self.max_i64(bpos, Operand::Int(0));
                 let blen = self.rt(RtFn::ListLen, I64, vec![b.clone()]);
@@ -260,6 +262,11 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             _ => return unsupported(format!("call of `{name}`")),
         };
+        // `take self` (and `take other`): the adapters own their sources.
+        self.glue(&Shape::List(e.clone()), &v);
+        if let Some((bs, bv)) = &other {
+            self.glue(bs, bv);
+        }
         self.emit(Inst::Rt {
             dst: None,
             f: RtFn::DqLimit,
@@ -504,6 +511,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             id::STD_ITER_OPS_MAP => {
                 let Some(d) = &dst else {
+                    self.drop_taken_source(id, &e, &v);
                     return Ok(());
                 };
                 let Shape::List(u) = d.shape.clone() else {
@@ -702,7 +710,22 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             _ => return unsupported(format!("call of `{name}`")),
         }
+        self.drop_taken_source(id, &e, &v);
         Ok(())
+    }
+
+    /// The adapters whose source is `take self` own it: free it once the result is built.
+    fn drop_taken_source(&mut self, id: registry::Id, e: &Shape, v: &[Operand]) {
+        if [
+            id::STD_ITER_OPS_MAP,
+            id::STD_ITER_OPS_FILTER,
+            id::STD_ITER_OPS_TAKE_WHILE,
+            id::STD_ITER_OPS_DROP_WHILE,
+        ]
+        .contains(&id)
+        {
+            self.glue(&Shape::List(Box::new(e.clone())), v);
+        }
     }
 
     /// `f(args)` for the closure value `f` (code, environment); the arguments stay the caller's.

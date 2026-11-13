@@ -162,6 +162,11 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
         match &s.kind {
             K::Let { pat, ty, rhs, .. } => {
+                if let y::Pat::Bind(n) = pat
+                    && self.pipe_let(n, ty, rhs)?
+                {
+                    return Ok(());
+                }
                 let shape = self.shape(ty)?;
                 let v = self.value(rhs, &shape)?;
                 match pat {

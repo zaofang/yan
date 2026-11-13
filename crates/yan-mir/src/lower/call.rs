@@ -50,6 +50,20 @@ impl<'a, 'm> Fn<'a, 'm> {
             return unsupported(format!("call of `{name}`"));
         };
         let args = Self::value_args(c)?;
+        if [
+            id::STD_ITER_OPS_DONE,
+            id::STD_ITER_OPS_CURRENT,
+            id::STD_ITER_OPS_NEXT,
+            id::STD_ITER_OPS_COLLECT,
+            id::STD_ITER_OPS_COUNT,
+            id::STD_ITER_OPS_SUM,
+            id::STD_ITER_OPS_FOLD,
+        ]
+        .contains(&id)
+            && self.is_pipe_call(id, c)
+        {
+            return self.pipe_consume(id, c, dst);
+        }
         let dst1 = dst.as_ref().and_then(|v| v.locals.first().copied());
         let ct = match id {
             id::STD_CT_CT_SELECT => Some(ScalarOp::CtSelect),
@@ -127,6 +141,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             id::STD_DICT_ITEMS,
             id::STD_DICT_KEYS,
             id::STD_DICT_VALUES,
+            id::STD_DICT_ITER,
         ]
         .contains(&id)
         {
