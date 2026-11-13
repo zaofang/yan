@@ -123,6 +123,55 @@ pub unsafe extern "C" fn yan_rt_bytes_copy(b: *const Vec<u8>) -> *mut Vec<u8> {
     leak(unsafe { &*b }.clone())
 }
 
+/// `b[i] = x`, `i` counting from the end when negative; panics out of range.
+///
+/// # Safety
+/// `b` is a `bytearray` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_bytes_set(b: *mut Vec<u8>, i: i64, x: i64) {
+    // SAFETY: the caller's contract.
+    let b = unsafe { &mut *b };
+    let at = if i < 0 { i + b.len() as i64 } else { i };
+    match usize::try_from(at).ok().and_then(|at| b.get_mut(at)) {
+        Some(c) => *c = x as u8,
+        None => out_of_range(i, b.len()),
+    }
+}
+
+/// # Safety
+/// `b` is a `bytearray` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_bytes_push(b: *mut Vec<u8>, x: i64) {
+    // SAFETY: the caller's contract.
+    unsafe { &mut *b }.push(x as u8);
+}
+
+/// # Safety
+/// `b` is a `bytearray` block and `x` a `bytes` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_bytes_extend(b: *mut Vec<u8>, x: *const Vec<u8>) {
+    // SAFETY: the caller's contract.
+    unsafe { &mut *b }.extend_from_slice(unsafe { &*x });
+}
+
+/// The last byte, removed, or -1 when there is none.
+///
+/// # Safety
+/// `b` is a `bytearray` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_bytes_pop(b: *mut Vec<u8>) -> i64 {
+    // SAFETY: the caller's contract.
+    unsafe { &mut *b }.pop().map_or(-1, i64::from)
+}
+
+/// # Safety
+/// `b` is a `bytearray` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_bytes_clear(b: *mut Vec<u8>) {
+    // SAFETY: the caller's contract.
+    unsafe { &mut *b }.clear();
+}
+
 /// # Safety
 /// `b` is a `bytes` block.
 #[unsafe(no_mangle)]

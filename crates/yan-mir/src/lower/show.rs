@@ -38,6 +38,11 @@ impl<'a, 'm> Fn<'a, 'm> {
                 return unsupported("`show` of a `Duration`");
             }
             Shape::Bytes => self.rt(RtFn::BytesRepr, Ty::Ptr, vec![v[0].clone()]),
+            Shape::ByteArray => {
+                let r = self.rt(RtFn::BytesRepr, Ty::Ptr, vec![v[0].clone()]);
+                let (open, close) = (self.lit("bytearray("), self.lit(")"));
+                self.concat(vec![open, r, close])
+            }
             // A path prints as its text, also inside a container.
             Shape::Char => {
                 let s = self.rt(RtFn::CharStr, Ty::Ptr, vec![v[0].clone()]);
@@ -301,7 +306,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let empty = self.lit("");
                 vec![self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])]
             }
-            Shape::Bytes => vec![self.rt(RtFn::BytesCopy, Ty::Ptr, v)],
+            Shape::Bytes | Shape::ByteArray => vec![self.rt(RtFn::BytesCopy, Ty::Ptr, v)],
             Shape::List(e) | Shape::Heap(e) | Shape::Deque(e) => {
                 let l = self.rt(RtFn::ListCopy, Ty::Ptr, v);
                 if Self::has_heap(e) {
@@ -384,7 +389,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(Ty::Bool) => out.push('b'),
             Shape::Scalar(Ty::Unit) => out.push('n'),
             Shape::Str => out.push('s'),
-            Shape::Bytes => out.push('y'),
+            Shape::Bytes | Shape::ByteArray => out.push('y'),
             Shape::Path => out.push('p'),
             Shape::Char => out.push_str("u32"),
             Shape::Tuple(ss) => {

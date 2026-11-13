@@ -1054,6 +1054,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 | Shape::Char
                 | Shape::Str
                 | Shape::Bytes
+                | Shape::ByteArray
                 | Shape::Path
                 | Shape::List(_)
                 | Shape::Map(..)
