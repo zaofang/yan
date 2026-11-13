@@ -147,7 +147,9 @@ impl Lower<'_, '_, '_> {
             return unsupported("`group` takes the one name of the group");
         };
         let Some(t @ Ty::Coll("Group", a)) = want else {
-            return unsupported("`cluster.group` needs its type written, as in `g: Group[A] = ...`");
+            return unsupported(
+                "`cluster.group` needs its type written, as in `g: Group[A] = ...`",
+            );
         };
         let (x, st) = self.atom(e, Some(&Ty::Str))?;
         self.expect(&st, &Ty::Str, e.span);

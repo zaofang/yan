@@ -298,10 +298,14 @@ fn group_members<'a>(it: &'a mut Interp, g: &Value) -> &'a mut Vec<Value> {
         unreachable!("a `Group` names itself with a string")
     };
     let name = name.to_string();
-    let k = it.groups.iter().position(|(n, _)| *n == name).unwrap_or_else(|| {
-        it.groups.push((name, Vec::new()));
-        it.groups.len() - 1
-    });
+    let k = it
+        .groups
+        .iter()
+        .position(|(n, _)| *n == name)
+        .unwrap_or_else(|| {
+            it.groups.push((name, Vec::new()));
+            it.groups.len() - 1
+        });
     &mut it.groups[k].1
 }
 
