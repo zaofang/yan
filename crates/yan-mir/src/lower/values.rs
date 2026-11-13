@@ -398,6 +398,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let err = named(self, "RegexError")?;
                 Some(result(ok, err))
             }
+            Some(id::STD_CLI_PARSE_ARGS) => match self.targ(c)? {
+                Some(ok) => super::civil::std_type("CliError").map(|e| result(ok, e)),
+                None => None,
+            },
             Some(i) if super::civil::fail_ok(i).is_some() => {
                 let ok = super::civil::std_type(super::civil::fail_ok(i).expect("checked"));
                 ok.zip(super::civil::std_type("TimeError"))

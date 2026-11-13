@@ -178,6 +178,8 @@ pub enum RtFn {
     Civil,
     /// `(i) -> word i` of the last civil result.
     CivilOut,
+    /// `(i) -> f64`: word `i` of the last civil result as float bits.
+    CivilOutF,
     /// `env` handler or zone function.
     ZoneLookup,
     /// `env` handler or zone function.

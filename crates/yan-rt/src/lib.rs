@@ -16,6 +16,7 @@ pub mod chan;
 pub mod chars;
 #[allow(unsafe_code)]
 pub mod civil;
+pub mod cli;
 #[allow(unsafe_code)]
 pub mod cluster;
 pub mod collections;
