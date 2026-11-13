@@ -63,6 +63,21 @@ impl<'a, 'm> Fn<'a, 'm> {
                 m[0].clone()
             }
             Shape::Rec(name, _) if name == "Secret" => self.lit("Secret(***)"),
+            // `Command(['echo', 'hi'])` and `<program>: <message>`.
+            Shape::Rec(name, _) if name == "Command" => {
+                let argv = self.argv(v)?;
+                let list = Shape::List(Box::new(Shape::Str));
+                let shown = self.show(std::slice::from_ref(&argv), &list, false)?;
+                self.glue(&list, &[argv]);
+                let (open, close) = (self.lit("Command("), self.lit(")"));
+                self.concat(vec![open, shown, close])
+            }
+            Shape::Rec(name, _) if name == "ProcError" => {
+                let p = self.clone_value(v[..1].to_vec(), &Shape::Str)?;
+                let m = self.clone_value(v[v.len() - 1..].to_vec(), &Shape::Str)?;
+                let sep = self.lit(": ");
+                self.concat(vec![p[0].clone(), sep, m[0].clone()])
+            }
             Shape::Rec(name, _) if name == "TimeZone" => self.rt(
                 RtFn::TimeShow,
                 Ty::Ptr,

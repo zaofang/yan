@@ -149,6 +149,19 @@ impl Types<'_> {
                     {
                         return Ok(Shape::Scalar(I64));
                     }
+                    // The handler of `std.proc` is the dict `fake_proc` was given; 0 is the host.
+                    ("Proc", [])
+                        if !self.recs.contains_key(name) && !self.sums.contains_key(name) =>
+                    {
+                        let out = y::Type::Named(y::Named {
+                            path: vec!["Output".into()],
+                            args: Vec::new(),
+                        });
+                        return Ok(Shape::Map(
+                            Box::new(Shape::Str),
+                            Box::new(self.shape_in(&out, stack)?),
+                        ));
+                    }
                     ("char", []) => return Ok(Shape::Char),
                     ("Secret", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
                         return Ok(Shape::Rec(
@@ -243,6 +256,8 @@ impl Types<'_> {
                     actor::duration()
                 } else if name == "i128" {
                     time::wide("i128")
+                } else if let Some(s) = proc::std_type(name) {
+                    s
                 } else if let Some(s) = civil::std_type(name) {
                     s
                 } else if name == "Instant" {

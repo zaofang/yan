@@ -879,6 +879,7 @@ const RT: &[RtFn] = &[
     RtFn::ClusterMonitor,
     RtFn::SimCheck,
     RtFn::ClusterReplied,
+    RtFn::ProcAmbient,
     RtFn::ClusterSendMismatch,
     RtFn::ClusterAdmit,
     RtFn::ClusterArrive,
@@ -2214,6 +2215,12 @@ fn rt_fn(
             "yan_rt_cluster_reach",
             cluster::yan_rt_cluster_reach as *const u8,
             &[I64],
+            None,
+        ),
+        RtFn::ProcAmbient => (
+            "yan_rt_proc_ambient",
+            envhandler::yan_rt_proc_ambient as *const u8,
+            &[],
             None,
         ),
         RtFn::ClusterReplied => (

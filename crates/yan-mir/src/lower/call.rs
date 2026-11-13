@@ -77,6 +77,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         if self.env_call(id, c, dst.clone())? {
             return Ok(());
         }
+        if self.proc_call(id, c, dst.clone())? {
+            return Ok(());
+        }
         if self.log_call(id, c, dst.clone())? {
             return Ok(());
         }

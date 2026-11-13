@@ -22,6 +22,7 @@ mod math;
 mod ordering;
 mod path;
 mod pattern;
+mod proc;
 mod rand;
 mod regex;
 mod shape;
@@ -335,6 +336,7 @@ fn handler_cap(p: &y::Param) -> Option<(&str, &'static str)> {
         y::Param::Cap { name, ty } if ty.path == ["Log"] => Some((name, "Log")),
         y::Param::Cap { name, ty } if ty.path == ["Env"] => Some((name, "Env")),
         y::Param::Cap { name, ty } if ty.path == ["Time"] => Some((name, "Time")),
+        y::Param::Cap { name, ty } if ty.path == ["Proc"] => Some((name, "Proc")),
         _ => None,
     }
 }
@@ -1214,7 +1216,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         for (p, n) in caps.zip(given) {
             match handler_cap(p) {
                 // An unbound `Fs`, `Log` or `Env` is the ambient one.
-                Some((_, "Fs" | "Log" | "Env" | "Time")) if !self.names.contains_key(n) => {
+                Some((_, "Fs" | "Log" | "Env" | "Time" | "Proc"))
+                    if !self.names.contains_key(n) =>
+                {
                     out.push(Operand::Int(0))
                 }
                 Some(_) if def.path != ["main"] => out.extend(Self::ops(self.name(n)?)),
