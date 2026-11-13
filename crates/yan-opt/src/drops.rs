@@ -67,9 +67,13 @@ fn settle(obs: &Observable, params: &[Param], body: &Block) -> Result<Block, Err
             blocks: Vec::new(),
             falls: HashMap::new(),
             ends: HashSet::new(),
+            unsupported: None,
             cx: Cx::default(),
         };
         let b = e.block(body, owned_params(params));
+        if let Some(what) = e.unsupported {
+            return Err(Error::Unsupported(what.into()));
+        }
         if e.need.is_empty() {
             return Ok(b);
         }
@@ -214,6 +218,8 @@ struct Elab<'a> {
     falls: HashMap<usize, usize>,
     /// Blocks whose end is reached.
     ends: HashSet<usize>,
+    /// Set when the pass would silently drop code (R764 flow it does not model).
+    unsupported: Option<&'static str>,
     cx: Cx,
 }
 
@@ -276,6 +282,11 @@ impl Elab<'_> {
         let mut flow = Flow::Normal;
         for s in &b.stmts {
             if flow == Flow::Diverged {
+                // R764: a falling-through join point continues after the jumping statement,
+                // which this pass would drop with the rest of the block.
+                if self.falls.contains_key(&addr(b)) {
+                    self.unsupported = Some("code after a jump to a falling-through join point");
+                }
                 break;
             }
             flow = self.stmt(s, &mut out);
