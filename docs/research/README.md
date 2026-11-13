@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-13 | [Yan Meta: syntax proposal after forum review](2026-11-13-yan-meta-syntax-proposal.md) | Proposal only; forums show pushback on procedural macros (build time, IDE), demand for checked DSLs; recommends no procedural macros, declared bidirectional notations, LL(1) DSL islands, reader lenses; no rows |
 | 2026-11-13 | [Yan Meta: user-defined syntax and the macro model](2026-11-13-yan-meta-syntax-extension.md) | Study only; recommends three tiers over a fixed shape reader: `notation` (rule plus template, binding specs, derived printer), delimited LL(1) `grammar` islands, `elab` after R525; conflicts with the 26.2 no-macros non-goal and the 16.6 parse-before-imports rule need a lead decision; no rows |
 | 2026-11-11 | [Public-release audit](2026-11-11-public-release-audit.md) | Audit only; no secrets in history, no rewrite needed; blockers: self-hosted runners on fork PRs (#423, #461, #462), hosted runners (#973), lawyer, trademark policy; should: LGPL malachite in the binary, third-party notices, private artifact links; no rows |
 | 2026-11-10 | [Infrastructure gaps: what Yan still needs](2026-11-10-infrastructure-gaps.md) | Study only; hosted runners do not start (release, merge log, infra rerun blocked); 18 ranked items before 1.0 (top: GitHub plan, branch ruleset, cargo-deny and pinned Actions, backups, fuzzing and sanitizers, CI box); D1 to D3 open; no rows |

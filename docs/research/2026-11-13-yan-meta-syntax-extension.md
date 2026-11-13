@@ -457,6 +457,9 @@ they wait for the lead to lift it or to rule this an M1 unblock (it is not).
 
 ## 7. Recommendation
 
+Superseded by the [proposal after forum review](2026-11-13-yan-meta-syntax-proposal.md): no
+procedural macros (tier 3 dropped), notations and islands kept, lenses added.
+
 - **D1** Adopt the three-tier model: `notation` (M1, with M2 operators as its special case), then
   `grammar` islands (M3), then `elab` on R525. Reject reader replacement and host-grammar mutation.
 - **D2** The shape reader stays fixed in every tier. Notation resolution annotates, never rewrites.
