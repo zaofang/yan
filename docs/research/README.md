@@ -128,3 +128,4 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-09 | Yan pre-1.0 polish plan | #862; RFC 0064: R990, R991 |
 | 2026-11-10 | Yan surfaces: technology research | #947; RFC 0065: R994 to R1001 (#948 to #957); rest in #958 |
 | 2026-11-11 | Tooling study: borrow and champion | Study only; record, replay, debug, profile, semver, doc, why and diff have no CLI; 10 borrows B1 to B10, 10 champions C1 to C10; D1 (build order: replay with trace diff, no-op review, `yan rewrite`) and D3 (RFCs for all ten) decided 2026-11-11, D2 deferred to #992; tracker #1004; RFC 0066 (C1, draft), RFC 0075 (C10, draft) |
+| 2026-11-13 | Spec difficulty audit | #1129; `tools/spec_audit.py`; per-row CSV; no rows |
