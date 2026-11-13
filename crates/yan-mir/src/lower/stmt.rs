@@ -430,7 +430,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 handler,
                 body,
                 ..
-            } if name == "rand" => self.with_rand(name, handler, body),
+            } if name == "rand" || name == "fs" => self.with_rand(name, handler, body),
             K::With { .. } => unsupported("`with`"),
             K::Deadline { .. } => unsupported("`deadline`"),
             K::ComptimeFor { .. } | K::ComptimeIf { .. } => unsupported("a comptime statement"),

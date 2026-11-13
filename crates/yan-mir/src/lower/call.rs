@@ -297,7 +297,15 @@ impl<'a, 'm> Fn<'a, 'm> {
                     return unsupported("`fs.read` with another failure type");
                 }
                 let path = self.scalar1(path)?;
-                let p = self.rt(RtFn::FsRead, Ty::Ptr, vec![path.clone()]);
+                // An unbound handler is the ambient real file system.
+                let h = match c.args.iter().find_map(|a| match a {
+                    y::Arg::Cap(n, _) => self.names.get(n),
+                    y::Arg::Value(..) => None,
+                }) {
+                    Some(v) => Self::ops(v)[0].clone(),
+                    None => Operand::Int(0),
+                };
+                let p = self.rt(RtFn::FsRead, Ty::Ptr, vec![h, path.clone()]);
                 let failed = self.scalar_op(ScalarOp::Eq, I64, vec![p.clone(), Operand::Int(0)]);
                 let (e, o) = self.branch(failed);
                 let join = self.block_new();
@@ -312,6 +320,14 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let ok = Self::variant_value(&dst.shape, "Ok", vec![p]);
                 self.copy_to(&dst.locals, ok);
                 self.goto(join);
+            }
+            (id::STD_TEST_FAKE_FS, [(conv, files)]) => {
+                let (m, s) = self.atom_any(files)?;
+                let h = self.rt(RtFn::FsFake, I64, vec![m[0].clone()]);
+                if matches!(conv, y::Conv::Sink) {
+                    self.glue(&s, &m);
+                }
+                set(self, h);
             }
             (id::STD_IO_READ_ALL, []) => {
                 let r = self.rt(RtFn::ReadAll, Ty::Ptr, vec![]);

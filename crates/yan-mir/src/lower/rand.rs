@@ -152,7 +152,7 @@ impl<'m> Fn<'_, 'm> {
         let var = self.var(Shape::Scalar(I64));
         self.copy_to(&var.locals.clone(), vec![h]);
         let outer = self.names.insert(name.to_owned(), var);
-        if !self.rands.iter().any(|n| n == name) {
+        if name == "rand" && !self.rands.iter().any(|n| n == name) {
             self.rands.push(name.to_owned());
         }
         self.block(body)?;
