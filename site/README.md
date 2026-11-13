@@ -28,6 +28,7 @@ https://yanlang.dev, on Cloudflare Workers static assets (`wrangler.jsonc`). `si
 after each green `ci` run on main and passes that run's status artifact; on PRs it runs a
 `wrangler deploy --dry-run`. `worker.js` runs on every request: at `/` it serves `index.txt` to
 terminals (Accept `text/plain`, or curl, wget, HTTPie or xh), and it redirects browsers on plain
-http to https, so `curl yanlang.dev` works without `-L`. Repository secrets: `CLOUDFLARE_API_TOKEN`
-(Workers Scripts Edit on the account, Workers Routes Edit on the yanlang.dev zone) and
-`CLOUDFLARE_ACCOUNT_ID`.
+http to https, so `curl yanlang.dev` works without `-L`. The deploy job runs in the GitHub
+environment `production` (deployment branches: main only), which holds `CLOUDFLARE_API_TOKEN` (a
+custom token: Workers Scripts Edit and Account Settings Read on the account, Workers Routes Edit on
+the yanlang.dev zone) and `CLOUDFLARE_ACCOUNT_ID`.
