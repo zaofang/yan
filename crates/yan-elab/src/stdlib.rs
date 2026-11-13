@@ -858,7 +858,8 @@ fn std_cx(module: &str) -> Cx<'static> {
         strict: true,
         release: false,
         yn: false,
-        ffi: false,
+        // `core.ptr` names `Ptr`, a `core.ffi` type.
+        ffi: module.ends_with("ptr"),
         untrusted: false,
         previews: Vec::new(),
         diags: Vec::new(),
