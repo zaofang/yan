@@ -1,0 +1,10 @@
+# spec: 4.2
+# rows: R1
+# expect: E413 at 9:19
+
+def f() -> int:
+    xs = ["a" + "b"]
+    ys: list[str] = []
+    for t in xs:
+        ys.append(t)
+    return len(ys)
