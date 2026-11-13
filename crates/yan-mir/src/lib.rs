@@ -164,8 +164,10 @@ pub enum RtFn {
     ReadLine,
     /// `() -> Str`
     ReadAll,
-    /// `(Str) -> Str`, a null pointer on failure
+    /// `(handler, Str) -> Str`, a null pointer on failure
     FsRead,
+    /// `(dict[str, str]) -> handler`
+    FsFake,
     /// `() -> Str`, why the last `FsRead` failed
     FsReason,
     /// `(Str, Str) -> Str`

@@ -322,19 +322,24 @@ impl Mono<'_> {
     }
 }
 
-/// A `Rand` capability parameter is a real parameter in native code: the handler's index in
-/// `yan_rt::rand`. `main`'s is the OS generator, bound in its body. Other capabilities are
-/// ambient.
-fn rand_cap(p: &y::Param) -> Option<&str> {
+/// A `Rand` or `Fs` capability parameter is a real parameter in native code: the handler's index
+/// in `yan_rt::rand` or `yan_rt::fshandler`. `main`'s is the OS one (0), bound in its body.
+/// Other capabilities are ambient.
+fn handler_cap(p: &y::Param) -> Option<(&str, &'static str)> {
     match p {
-        y::Param::Cap { name, ty } if ty.path == ["Rand"] => Some(name),
+        y::Param::Cap { name, ty } if ty.path == ["Rand"] => Some((name, "Rand")),
+        y::Param::Cap { name, ty } if ty.path == ["Fs"] => Some((name, "Fs")),
         _ => None,
     }
 }
 
-fn rand_type() -> y::Type {
+fn rand_cap(p: &y::Param) -> Option<&str> {
+    handler_cap(p).filter(|(_, k)| *k == "Rand").map(|(n, _)| n)
+}
+
+fn handler_type(kind: &str) -> y::Type {
     y::Type::Named(y::Named {
-        path: vec!["Rand".to_owned()],
+        path: vec![kind.to_owned()],
         args: Vec::new(),
     })
 }
@@ -343,9 +348,9 @@ fn params(f: &y::FnDef) -> R<Vec<(&str, y::Conv, y::Type)>> {
     let caps = f
         .params
         .iter()
-        .filter_map(rand_cap)
+        .filter_map(handler_cap)
         .filter(|_| f.path != ["main"])
-        .map(|n| Some(Ok((n, y::Conv::Let, rand_type()))));
+        .map(|(n, k)| Some(Ok((n, y::Conv::Let, handler_type(k)))));
     let values = f.params.iter().filter_map(|p| match p {
         y::Param::Value { comptime: true, .. } => Some(unsupported("a comptime parameter")),
         y::Param::Value { name, ty, conv, .. } => Some(Ok((name.as_str(), *conv, ty.clone()))),
@@ -662,8 +667,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             self.os_rand = f
                 .params
                 .iter()
-                .filter_map(rand_cap)
-                .map(str::to_owned)
+                .filter_map(handler_cap)
+                .map(|(n, _)| n.to_owned())
                 .collect();
         }
         self.flags = yan_check::drop_flags(&f.params, body);
@@ -1179,8 +1184,11 @@ impl<'a, 'm> Fn<'a, 'm> {
             .iter()
             .filter(|p| matches!(p, y::Param::Cap { .. }));
         for (p, n) in caps.zip(given) {
-            if rand_cap(p).is_some() && def.path != ["main"] {
-                out.extend(Self::ops(self.name(n)?));
+            match handler_cap(p) {
+                // An unbound `Fs` is the ambient real file system.
+                Some((_, "Fs")) if !self.names.contains_key(n) => out.push(Operand::Int(0)),
+                Some(_) if def.path != ["main"] => out.extend(Self::ops(self.name(n)?)),
+                _ => {}
             }
         }
         Ok(out)

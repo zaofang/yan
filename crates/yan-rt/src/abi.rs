@@ -368,6 +368,10 @@ pub unsafe extern "C" fn yan_rt_fs_read(path: *const String) -> *mut String {
     }
 }
 
+pub(crate) fn set_fs_reason(reason: String) {
+    FS_REASON.with(|r| *r.borrow_mut() = reason);
+}
+
 /// The reason the last `yan_rt_fs_read` on this thread failed.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_fs_reason() -> *mut String {
