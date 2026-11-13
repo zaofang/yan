@@ -17,6 +17,8 @@
   --ash: #5B5E66;
   --rule: #D6D2C8;
   --seal: #C8341F;
+  --seal-text: #B8301C;
+  --on-seal: #F3F1EC;
   --yan: #C8341F;
   --yag: #2A7253;
   --yn: #3D4FA8;
@@ -27,7 +29,7 @@
   --code-s: #2A7253;
   --code-n: #8F5A0B;
   --code-t: #7A3E9D;
-  --code-c: #8A8D94;
+  --code-c: #6A6D75;
   --f-display: "Inter Tight", "Inter", system-ui, sans-serif;
   --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -36,17 +38,17 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --paper: #121316; --paper-2: #1A1B1F; --ink: #ECE9E2; --ash: #A9ACB4; --rule: #2C2E34;
-    --seal: #E2553F; --yan: #E2553F; --yag: #5DBB8E; --yn: #8C9BEA; --chang: #DEA461;
+    --seal: #E2553F; --seal-text: #E2553F; --on-seal: #121316; --yan: #E2553F; --yag: #5DBB8E; --yn: #8C9BEA; --chang: #DEA461;
     --ok: #5DBB8E; --warn: #DEA461;
-    --code-k: #8C9BEA; --code-s: #5DBB8E; --code-n: #DEA461; --code-t: #CC98EE; --code-c: #6E7179;
+    --code-k: #8C9BEA; --code-s: #5DBB8E; --code-n: #DEA461; --code-t: #CC98EE; --code-c: #8A8D94;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --paper: #121316; --paper-2: #1A1B1F; --ink: #ECE9E2; --ash: #A9ACB4; --rule: #2C2E34;
-  --seal: #E2553F; --yan: #E2553F; --yag: #5DBB8E; --yn: #8C9BEA; --chang: #DEA461;
+  --seal: #E2553F; --seal-text: #E2553F; --on-seal: #121316; --yan: #E2553F; --yag: #5DBB8E; --yn: #8C9BEA; --chang: #DEA461;
   --ok: #5DBB8E; --warn: #DEA461;
-  --code-k: #8C9BEA; --code-s: #5DBB8E; --code-n: #DEA461; --code-t: #CC98EE; --code-c: #6E7179;
+  --code-k: #8C9BEA; --code-s: #5DBB8E; --code-n: #DEA461; --code-t: #CC98EE; --code-c: #8A8D94;
   color-scheme: dark;
 }
 
@@ -81,7 +83,7 @@ select, .btn {
   padding: 0 12px; cursor: pointer;
 }
 .btn-run {
-  background: var(--seal); border-color: var(--seal); color: #F3F1EC;
+  background: var(--seal); border-color: var(--seal); color: var(--on-seal);
   font: 600 13px/1 var(--f-body); padding: 0 16px; display: inline-flex; align-items: center; gap: 10px;
 }
 .btn-run kbd { font: 500 11px/1 var(--f-mono); opacity: .8; }
@@ -112,7 +114,7 @@ main {
   padding: 12px 10px 12px 16px; color: var(--code-c); text-align: right; user-select: none;
   white-space: pre; overflow: hidden; font-variant-numeric: tabular-nums; border-right: 1px solid var(--rule);
 }
-.gutter .bad { color: var(--seal); font-weight: 700; }
+.gutter .bad { color: var(--seal-text); font-weight: 700; }
 textarea {
   border: 0; resize: none; padding: 12px 16px; background: var(--paper); color: var(--ink);
   white-space: pre; overflow: auto; outline: none; min-height: 0;
@@ -133,12 +135,12 @@ textarea {
 .panel { overflow: auto; padding: 10px 16px; font: 13px/20px var(--f-mono); min-height: 0; }
 .panel pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: inherit; }
 .exit { color: var(--ash); margin-top: 6px; }
-.exit.fail { color: var(--seal); }
+.exit.fail { color: var(--seal-text); }
 .diag { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 0 12px; padding: 3px 0; cursor: pointer; border: 0; background: none; text-align: left; width: 100%; font: inherit; }
 .diag:hover { background: var(--paper-2); }
 .diag .pos { color: var(--ash); font-variant-numeric: tabular-nums; }
 .diag .code { font-weight: 700; }
-.diag.error .code, .diag.tool .code { color: var(--seal); }
+.diag.error .code, .diag.tool .code { color: var(--seal-text); }
 .diag.warning .code { color: var(--warn); }
 .diag.note .code { color: var(--ash); }
 .empty { color: var(--ash); font-family: var(--f-body); }
@@ -364,7 +366,7 @@ function showDiagnostics(ds) {
   const errors = ds.filter((d) => d.severity === "error" || d.severity === "tool").length;
   $("#tab-diag").textContent = ds.length ? `Problems ${ds.length}` : "Problems";
   state.textContent = errors ? `${errors} error${errors > 1 ? "s" : ""}` : "checks";
-  state.style.color = errors ? "var(--seal)" : "var(--ok)";
+  state.style.color = errors ? "var(--seal-text)" : "var(--ok)";
   if (!ds.length) {
     panel.innerHTML = `<p class="empty">No problems.</p>`;
     return;
