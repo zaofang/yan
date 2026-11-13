@@ -36,6 +36,8 @@ pub enum Shape {
     Chan(Box<Shape>),
     /// An `Actor[S]`: the actor's index in `yan_rt::actor`, which the handle does not own.
     Actor(Box<Shape>),
+    /// A `Ptr[T]` (6.6): its address, then its provenance (0 for none).
+    Ptr,
     /// A `set`: a `yan_rt::map` block whose entries are keys with no value slots.
     Set(Box<Shape>),
 }
@@ -59,6 +61,7 @@ impl Shape {
             | Shape::Actor(_)
             | Shape::Set(_) => out.push(Ty::Ptr),
             Shape::Fn(..) => out.extend([Ty::Ptr, Ty::Ptr]),
+            Shape::Ptr => out.extend([I64, I64]),
             Shape::Rec(_, fs) => fs.iter().for_each(|(_, s)| s.slots(out)),
             Shape::Tuple(ss) => ss.iter().for_each(|s| s.slots(out)),
             Shape::Sum(_, vs) => {
@@ -171,6 +174,9 @@ impl Types<'_> {
                         if !self.recs.contains_key(name) && !self.sums.contains_key(name) =>
                     {
                         return Ok(Shape::Scalar(I64));
+                    }
+                    ("Ptr", [y::TArg::Type(_)]) if !self.recs.contains_key(name) => {
+                        return Ok(Shape::Ptr);
                     }
                     ("char", []) => return Ok(Shape::Char),
                     ("Secret", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {

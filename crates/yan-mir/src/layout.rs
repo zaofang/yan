@@ -107,7 +107,7 @@ pub fn layout(s: &Shape) -> Layout {
         | Shape::Chan(_)
         | Shape::Actor(_)
         | Shape::Set(_) => plain(8, 8),
-        Shape::Fn(..) => plain(16, 8),
+        Shape::Fn(..) | Shape::Ptr => plain(16, 8),
         Shape::Tuple(ss) => aggregate(&ss.iter().map(layout).collect::<Vec<_>>()),
         Shape::Rec(_, fs) => aggregate(&fs.iter().map(|(_, s)| layout(s)).collect::<Vec<_>>()),
         Shape::Sum(name, vs) => {

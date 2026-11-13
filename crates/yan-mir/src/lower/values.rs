@@ -74,7 +74,7 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     pub(super) fn has_heap(s: &Shape) -> bool {
         match s {
-            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) => false,
+            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr => false,
             Shape::Str
             | Shape::Bytes
             | Shape::ByteArray
@@ -104,7 +104,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             return;
         }
         match s {
-            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) => {}
+            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr => {}
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str | Shape::Path | Shape::WinPath => self.free(RtFn::StrFree, v[0].clone()),
             Shape::Bytes | Shape::ByteArray | Shape::BigInt => {
