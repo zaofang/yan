@@ -689,6 +689,8 @@ const RT: &[RtFn] = &[
     RtFn::RandNext,
     RtFn::RandF64,
     RtFn::RandBelow,
+    RtFn::PtrExpose,
+    RtFn::PtrExposed,
     RtFn::StrPartition,
     RtFn::CharCount,
     RtFn::ByteLen,
@@ -1111,6 +1113,18 @@ fn rt_fn(
             abi::yan_rt_rand_f64 as *const u8,
             &[I64],
             Some(F64),
+        ),
+        RtFn::PtrExpose => (
+            "yan_rt_ptr_expose",
+            abi::yan_rt_ptr_expose as *const u8,
+            &[I64, I64],
+            None,
+        ),
+        RtFn::PtrExposed => (
+            "yan_rt_ptr_exposed",
+            abi::yan_rt_ptr_exposed as *const u8,
+            &[I64],
+            Some(I64),
         ),
         RtFn::RandBelow => (
             "yan_rt_rand_below",

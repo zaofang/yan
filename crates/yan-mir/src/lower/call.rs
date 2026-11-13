@@ -300,6 +300,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.encoding_call(id, c, dst);
         }
+        if super::ptr::PTR_IDS.contains(&id) {
+            return self.ptr_call(id, c, dst);
+        }
         if super::rand::RAND_IDS.contains(&id) {
             return self.rand_call(id, c, dst);
         }
@@ -1031,7 +1034,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                 if sx != sy {
                     return unsupported(format!("call of `{name}` on this type"));
                 }
-                let mut r = if win {
+                // Pointers compare by address alone (6.6).
+                let mut r = if sx == Shape::Ptr {
+                    self.scalar_op(ScalarOp::Eq, I64, vec![x[0].clone(), y[0].clone()])
+                } else if win {
                     self.rt(RtFn::WinPathEq, Ty::Bool, vec![x[0].clone(), y[0].clone()])
                 } else if text(&sx) {
                     self.rt(RtFn::StrEq, Ty::Bool, vec![x[0].clone(), y[0].clone()])
