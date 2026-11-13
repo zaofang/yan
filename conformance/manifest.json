@@ -2998,6 +2998,44 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e413_sink_list_element.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 8,
+     "col": 15
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e413_sink_loop_element.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 9,
+     "col": 19
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e413_store_in_record.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3739,11 +3777,13 @@
     "13.2"
    ],
    "rows": [],
-   "flags": [],
+   "flags": [
+    "--strict"
+   ],
    "expect": [
     {
      "code": "E107",
-     "line": 5,
+     "line": 6,
      "col": 12
     }
    ]
@@ -5407,6 +5447,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/lenient/n45_multi_for_comprehension.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1",
+    "14.4"
+   ],
+   "rows": [
+    "R930"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[2, 3, 4, 6, 6, 9]\n[(2, 2), (2, 3), (3, 2), (3, 3)]\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/lenient/n49_positional_args.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5653,6 +5709,38 @@
    "exit": 0
   },
   {
+   "path": "yag/run/ownership/lambda_ctor_projection.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R769"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[('a', 1), ('b', 2)]\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/lambda_returns_param.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2",
+    "17.3"
+   ],
+   "rows": [
+    "R510",
+    "R514"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "['bb', 'a', 'ccc'] ['bb', 'a', 'ccc']\n['a', 'bb', 'ccc']\nkept\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/ownership/loop_two_breaks_drop_once.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5866,6 +5954,21 @@
    "expect": [],
    "stdout": "0 64\n",
    "exit": 101
+  },
+  {
+   "path": "yag/run/std/bits_widths.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R681"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "int8 -128: 1 0 7 8 -128 1 False\n  rot 4 16 64 16 shl 0 shr -1\nint8 22: 3 3 1 5 22 104 False\n  rot -80 -62 11 -62 shl 0 shr 0\nint8 127: 7 1 0 7 127 -2 False\n  rot -5 -17 -65 -17 shl -128 shr 0\n  64\nuint8 0: 0 8 8 0 0 0 False\n  rot 0 0 0 0 shl 0 shr 0\nuint8 22: 3 3 1 5 22 104 False\n  rot 176 194 11 194 shl 0 shr 0\nuint8 255: 8 0 0 8 255 255 False\n  rot 255 255 255 255 shl 128 shr 1\n  64\nint16 -5: 15 0 0 16 -1025 -8193 False\n  rot -33 32767 -3 -129 shl -32768 shr -1\nint16 300: 4 7 2 9 11265 13440 False\n  rot 2400 -32731 150 9600 shl 0 shr 0\n  16384\nuint16 300: 4 7 2 9 11265 13440 False\n  rot 2400 32805 150 9600 shl 0 shr 0\nuint16 65535: 16 0 0 16 65535 65535 False\n  rot 65535 65535 65535 65535 shl 32768 shr 1\n  16384\nint32 -2147483648: 1 0 31 32 128 1 False\n  rot 4 268435456 1073741824 16 shl 0 shr -1\nint32 305419896: 13 3 3 29 2018915346 510274632 False\n  rot -1851608128 38177487 152709948 1183502082 shl 0 shr 0\n  1073741824\nuint32 1: 1 31 0 1 16777216 2147483648 True\n  rot 8 536870912 2147483648 32 shl 2147483648 shr 0\nuint32 4294967295: 32 0 0 32 4294967295 4294967295 False\n  rot 4294967295 4294967295 4294967295 4294967295 shl 2147483648 shr 1\n  1073741824\nint64 -9223372036854775808: 1 0 63 64 128 1 False\n  rot 4 1152921504606846976 4611686018427387904 16 shl 0 shr -1\nint64 3: 2 62 0 2 216172782113783808 -4611686018427387904 False\n  rot 24 6917529027641081856 -9223372036854775807 96 shl -9223372036854775808 shr 0\n  4611686018427387904\nuint64 3: 2 62 0 2 216172782113783808 13835058055282163712 False\n  rot 24 6917529027641081856 9223372036854775809 96 shl 9223372036854775808 shr 0\nuint64 18446744073709551615: 64 0 0 64 18446744073709551615 18446744073709551615 False\n  rot 18446744073709551615 18446744073709551615 18446744073709551615 18446744073709551615 shl 9223372036854775808 shr 1\n  4611686018427387904\n",
+   "exit": 0
   },
   {
    "path": "yag/run/std/char_parse_int_float.yag",
