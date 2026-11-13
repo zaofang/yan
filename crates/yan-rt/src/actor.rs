@@ -49,8 +49,10 @@ type Message = [u64; 4];
 
 fn free(m: Message) {
     // SAFETY: a message's captures and arguments blocks, from `yan_rt_alloc`, owned by the
-    // mailbox.
+    // mailbox; its thunk, called with a null code, drops the arguments it holds.
     unsafe {
+        let drop: extern "C" fn(u64, u64, u64) = std::mem::transmute(m[0] as usize);
+        drop(0, m[2], m[3]);
         crate::abi::yan_rt_free_env(m[2] as *mut u64);
         crate::abi::yan_rt_free_env(m[3] as *mut u64);
     }

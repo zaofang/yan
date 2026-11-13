@@ -24,7 +24,7 @@ const FAILURES: &[(i128, &str)] = &[
 pub(super) enum Thunk {
     /// `(start code, start env, actor)`: restart an actor of this state.
     Restart,
-    /// `(code, env, args)`: run a message taking these arguments.
+    /// `(code, env, args)`: run a message taking these arguments; with a null `code`, drop them.
     Message,
 }
 
@@ -555,6 +555,15 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             // Call the message closure with the arguments `s` it owns.
             Thunk::Message => {
+                // A null code drops an undelivered message's arguments; yan-rt frees the blocks.
+                let dropping =
+                    self.scalar_op(ScalarOp::Eq, I64, vec![p[0].clone(), Operand::Int(0)]);
+                let (drop, run) = self.branch(dropping);
+                self.cur = drop;
+                let owned = self.read(&At::Mem(p[2].clone(), 0), s);
+                self.glue(s, &owned);
+                self.finish(Term::Return(vec![Operand::Unit]));
+                self.cur = run;
                 let mut args = vec![p[1].clone()];
                 let owned = self.read(&At::Mem(p[2].clone(), 0), s);
                 args.extend(owned.clone());
