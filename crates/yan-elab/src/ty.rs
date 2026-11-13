@@ -106,6 +106,8 @@ pub fn builtin(n: &str, a: &[Ty]) -> Option<Ty> {
         ("bool", []) => Ty::Bool,
         ("Str", []) => Ty::Str,
         ("char", []) => Ty::Char,
+        // `Addr` is `u64` on the 64-bit targets (3).
+        ("Addr", []) => Ty::Fixed("u64"),
         (n, []) if fixed(n).is_some() => Ty::Fixed(fixed(n)?),
         ("List", [t]) => Ty::List(Box::new(t.clone())),
         ("Set", [t]) => Ty::Set(Box::new(t.clone())),

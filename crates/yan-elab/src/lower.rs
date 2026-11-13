@@ -34,6 +34,7 @@ mod loops;
 mod matching;
 mod method;
 mod narrow;
+mod ptr;
 pub(crate) mod reentrant;
 mod rhs;
 mod scalar;

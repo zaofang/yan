@@ -39,6 +39,7 @@ mod net;
 mod path;
 mod prelude;
 mod proc;
+mod ptr;
 mod rand;
 mod regex;
 mod simcheck;
@@ -103,6 +104,8 @@ pub(crate) enum Value {
     Iter(iter::It),
     /// A stage-0 type handle (RFC 0051 D1).
     Type(Rc<meta::Handle>),
+    /// A `Ptr[T]` (6.6); equality compares addresses.
+    Ptr(ptr::PtrVal),
 }
 
 /// FNV-1a: frames hash short names on every access, where SipHash dominated the profile.
@@ -161,6 +164,7 @@ impl Hash for Key {
                     fields.iter().for_each(|(_, x)| go(x, h));
                 }
                 Value::Type(t) => format!("{:?}", t.ty).hash(h),
+                Value::Ptr(p) => p.addr.hash(h),
                 _ => {}
             }
         }
@@ -311,6 +315,7 @@ fn materialize(v: &Value) -> Stage0 {
             },
             Value::Closure(_) => return Err("a function value"),
             Value::Type(_) => return Err("a `Type`"),
+            Value::Ptr(_) => return Err("a `Ptr`"),
             _ => return Err("this value"),
         })
     }
