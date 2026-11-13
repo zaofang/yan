@@ -923,8 +923,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 set(self, done);
             }
             (id::STD_CMP_EQ | id::STD_CMP_NE, [(_, a), (_, b)]) => {
-                let (x, sx) = self.atom_any(a)?;
-                let (y, sy) = self.atom_any(b)?;
+                let (x, sx, y, sy) = self.atom_pair(a, b)?;
                 // A `Node` is its id (R403).
                 let node = cluster::std_type("Node");
                 let text =
@@ -946,8 +945,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 id::STD_CMP_LT | id::STD_CMP_LE | id::STD_CMP_GT | id::STD_CMP_GE,
                 [(_, a), (_, b)],
             ) => {
-                let (x, sx) = self.atom_any(a)?;
-                let (y, sy) = self.atom_any(b)?;
+                let (x, sx, y, sy) = self.atom_pair(a, b)?;
                 if sx != sy {
                     return unsupported(format!("call of `{name}` on this type"));
                 }
