@@ -1,0 +1,17 @@
+# spec: 14.1, 14.4
+# rows: R935
+# note: N50 reads s[a:b:c] on a str as a clamped Python slice over chars, N51 reads int(s) as s.strip().parse_int() and panics with kind conversion on a bad literal
+# stdout:
+# bc xyz cba ab
+# 42 -3
+# exit: 101
+
+def main() uses io:
+    s = "abc"
+    t = "xyz"
+    io.print(f"{s[1:]} {t[0:99]} {s[::-1]} {s[-3:-1]}")
+    n = int(" 42 ")
+    m = int("-3")
+    io.print(f"{n} {m}")
+    bad = int("4x")
+    io.print(f"{bad}")
