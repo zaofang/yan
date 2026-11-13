@@ -723,6 +723,58 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(RtFn::MapLen, I64, vec![m[0].clone()]);
                 set(self, r);
             }
+            (id::STD_PRELUDE_BYTEARRAY, []) => {
+                let empty = self.lit("");
+                let r = self.rt(RtFn::BytesOfStr, Ty::Ptr, vec![empty]);
+                set(self, r);
+            }
+            (
+                id::STD_ENCODING_BYTEARRAY_FROM_BYTES | id::STD_ENCODING_BYTEARRAY_TO_BYTES,
+                [(_, a)],
+            ) => {
+                let x = self.scalar1(a)?;
+                let r = self.rt(RtFn::BytesCopy, Ty::Ptr, vec![x]);
+                set(self, r);
+            }
+            (id::STD_ENCODING_BYTEARRAY_LEN, [(_, a)]) => {
+                let x = self.scalar1(a)?;
+                let r = self.rt(RtFn::BytesLen, I64, vec![x]);
+                set(self, r);
+            }
+            (
+                id::STD_ENCODING_BYTEARRAY_APPEND | id::STD_ENCODING_BYTEARRAY_EXTEND,
+                [(_, a), (_, b)],
+            ) => {
+                let (x, y) = (self.scalar1(a)?, self.scalar1(b)?);
+                let f = if id == id::STD_ENCODING_BYTEARRAY_APPEND {
+                    RtFn::BytesPush
+                } else {
+                    RtFn::BytesExtend
+                };
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f,
+                    args: vec![x, y],
+                });
+            }
+            (id::STD_ENCODING_BYTEARRAY_CLEAR, [(_, a)]) => {
+                let x = self.scalar1(a)?;
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::BytesClear,
+                    args: vec![x],
+                });
+            }
+            (id::STD_ENCODING_BYTEARRAY_POP, [(_, a)]) => {
+                let x = self.scalar1(a)?;
+                let r = self.rt(RtFn::BytesPop, I64, vec![x]);
+                let empty = self.scalar_op(ScalarOp::Le, I64, vec![r.clone(), Operand::Int(-1)]);
+                let (bad, good) = self.branch(empty);
+                self.cur = bad;
+                self.finish(Term::Panic("bounds"));
+                self.cur = good;
+                set(self, r);
+            }
             (id::STD_ENCODING_LEN, [(_, a)]) => {
                 let x = self.scalar1(a)?;
                 let r = self.rt(RtFn::BytesLen, I64, vec![x]);

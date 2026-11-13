@@ -9,6 +9,8 @@ pub enum Shape {
     Str,
     /// A `bytes` value: a block holding a `Vec<u8>` (`yan_rt::bytes`).
     Bytes,
+    /// A `bytearray`: the same block, changed in place.
+    ByteArray,
     /// A `Path`: a `Str` block of normalized text, ordered by its parts.
     Path,
     /// A `char`: its code point in one word.
@@ -41,6 +43,7 @@ impl Shape {
             Shape::Char => out.push(I64),
             Shape::Str
             | Shape::Bytes
+            | Shape::ByteArray
             | Shape::Path
             | Shape::List(_)
             | Shape::Map(..)
@@ -133,6 +136,7 @@ impl Types<'_> {
                 match (name, n.args.as_slice()) {
                     ("Str", []) => return Ok(Shape::Str),
                     ("Bytes", []) => return Ok(Shape::Bytes),
+                    ("ByteArray", []) => return Ok(Shape::ByteArray),
                     ("Path", []) => return Ok(Shape::Path),
                     // A `Rand` handler is its index in `yan_rt::rand`.
                     ("Rand", []) => return Ok(Shape::Scalar(I64)),

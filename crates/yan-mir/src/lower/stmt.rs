@@ -185,6 +185,30 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Ok(())
             }
             K::Assign { place, rhs, .. } => {
+                if let Some((y::Proj::Index(i), init)) = place.projs.split_last() {
+                    let outer = y::Place {
+                        projs: init.to_vec(),
+                        ..place.clone()
+                    };
+                    let (at, shape) = self.place(&outer)?;
+                    if shape == Shape::ByteArray {
+                        let b = self.read(&at, &shape).remove(0);
+                        let i = self.scalar1(i)?;
+                        let v = self.value(
+                            rhs,
+                            &Shape::Scalar(Ty::Int(IntTy {
+                                bits: 8,
+                                signed: false,
+                            })),
+                        )?;
+                        self.emit(Inst::Rt {
+                            dst: None,
+                            f: RtFn::BytesSet,
+                            args: vec![b, i, v[0].clone()],
+                        });
+                        return Ok(());
+                    }
+                }
                 let (at, shape) = self.place(place)?;
                 let v = self.value(rhs, &shape)?;
                 self.write(&at, v);

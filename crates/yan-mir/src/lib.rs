@@ -272,6 +272,16 @@ pub enum RtFn {
     BytesFree,
     /// `(bytes) -> bytes`
     BytesCopy,
+    /// `(bytearray, int, int)`: `b[i] = x`; panics out of range.
+    BytesSet,
+    /// `(bytearray, int)`
+    BytesPush,
+    /// `(bytearray, bytes)`
+    BytesExtend,
+    /// `(bytearray) -> int`, the last byte removed or -1 when empty.
+    BytesPop,
+    /// `(bytearray)`
+    BytesClear,
     /// `(bytes) -> int`
     BytesLen,
     /// `(bytes, bytes) -> bytes`
