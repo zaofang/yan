@@ -224,6 +224,10 @@ fn cap_binding(t: &str) -> String {
 
 #[derive(Default)]
 pub(crate) struct Globals {
+    /// `impl Index[K] for T` subscripts by `T`'s type text: `at`, inlined at each use (4.4, R457).
+    pub subs: HashMap<String, j::FuncDef>,
+    /// Subscript inlinings so far, to stop a recursive one.
+    pub sub_n: std::cell::Cell<u32>,
     pub records: HashMap<String, Vec<Field>>,
     pub sums: HashMap<String, Vec<(String, Vec<Field>)>>,
     pub variant_of: HashMap<String, String>,
@@ -1173,6 +1177,15 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             g.froms.insert((a.to_string(), for_ty.to_string()), name);
             continue;
         }
+        if let j::ItemKind::Impl(i) = &it.kind
+            && is_index_impl(i)
+        {
+            let for_ty = g.ty(&i.for_ty, cx, it.span)?;
+            let at = &i.subs[0];
+            lower::subscript::check_yields(at, cx);
+            g.subs.insert(for_ty.to_string(), at.clone());
+            continue;
+        }
         if let j::ItemKind::Impl(i) = &it.kind {
             let (Some(tr), true) = (impl_trait(i), i.args.is_empty()) else {
                 return unsupported("generic impls");
@@ -1225,6 +1238,14 @@ fn from_fn_name(i: &j::Impl) -> String {
         _ => "t".into(),
     };
     format!("{}__from_{}", text(&i.for_ty), text(&i.args[0]))
+}
+
+/// `impl Index[K] for T` with its one subscript `at` (4.4, R457).
+fn is_index_impl(i: &j::Impl) -> bool {
+    matches!(i.trait_.as_slice(), [t] if t == "Index")
+        && i.args.len() == 1
+        && i.fns.is_empty()
+        && matches!(i.subs.as_slice(), [s] if s.name == "at")
 }
 
 fn impl_trait(i: &j::Impl) -> Option<String> {
@@ -1709,6 +1730,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                 .collect(),
             derived: None,
         }),
+        j::ItemKind::Impl(i) if is_index_impl(i) => return Ok(None),
         j::ItemKind::Impl(i) if let Some((_, f)) = from_impl(i) => {
             let name = from_fn_name(i);
             let f = j::FuncDef {
@@ -1762,6 +1784,9 @@ mod stdlib_selftest;
 
 #[cfg(test)]
 mod meta_selftest;
+
+#[cfg(test)]
+mod subscript_selftest;
 
 /// The rest of the line from the start of `span`: an `ex` expression runs to the end of its line.
 fn source_text(src: &str, span: yan_diag::Span) -> Option<String> {

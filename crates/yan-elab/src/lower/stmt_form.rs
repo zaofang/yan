@@ -7,8 +7,14 @@ impl Lower<'_, '_, '_> {
         if !self.open.is_empty() {
             self.learn(s);
         }
+        if let Some(inlined) = self.inline_sub(s) {
+            for t in inlined? {
+                self.stmt(&t)?;
+            }
+            return Ok(());
+        }
         match &s.kind {
-            K::Pass | K::Reveal(_) => {}
+            K::Pass | K::Reveal(_) | K::Yield(_) => {}
             K::Expr(e) | K::Return(Some(e)) if matches!(e.kind, j::ExprKind::Hole) => {
                 self.hole(e.span);
             }

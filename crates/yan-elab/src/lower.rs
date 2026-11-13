@@ -39,6 +39,7 @@ mod rhs;
 mod scalar;
 mod std_calls;
 mod stmt_form;
+pub(crate) mod subscript;
 
 /// List and dict methods whose receiver is `var` (R421).
 const MUTATING: [&str; 11] = [
