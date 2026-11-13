@@ -546,7 +546,7 @@ enum Scope {
     /// A block that declares join points. A jump from its statement `at` sets `cont` to `at`,
     /// and the end of a join point's body resumes after that statement.
     Jps {
-        jps: Vec<(String, BlockId, Vec<Local>)>,
+        jps: Vec<(String, BlockId, Vec<Local>, Vec<Shape>)>,
         cont: Local,
         at: Option<i128>,
     },
@@ -1030,6 +1030,24 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Ok((vec![o], s))
             }
         }
+    }
+
+    /// Two operands of one type, either of which may be a fieldless variant of a sum.
+    fn atom_pair(
+        &mut self,
+        a: &y::Atom,
+        b: &y::Atom,
+    ) -> R<(Vec<Operand>, Shape, Vec<Operand>, Shape)> {
+        let unbound =
+            |me: &Self, x: &y::Atom| matches!(x, y::Atom::Name(n, _) if !me.names.contains_key(n));
+        if unbound(self, a) && !unbound(self, b) {
+            let (y, sy) = self.atom_any(b)?;
+            let x = self.atom(a, &sy)?;
+            return Ok((x, sy.clone(), y, sy));
+        }
+        let (x, sx) = self.atom_any(a)?;
+        let y = self.atom(b, &sx)?;
+        Ok((x, sx.clone(), y, sx))
     }
 
     /// An atom of type `want`: also a fieldless variant of a sum.

@@ -26,6 +26,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         let mut jp_vars = Vec::new();
         for (name, params, _) in &decls {
             let mut ls = Vec::new();
+            let mut shapes = Vec::new();
             let mut vs = Vec::new();
             for p in params.iter() {
                 let y::Param::Value { name, ty, .. } = p else {
@@ -33,9 +34,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                 };
                 let v = self.var(self.shape(ty)?);
                 ls.extend(&v.locals);
+                shapes.push(v.shape.clone());
                 vs.push((name.clone(), v));
             }
-            jps.push(((*name).clone(), self.block_new(), ls));
+            jps.push(((*name).clone(), self.block_new(), ls, shapes));
             jp_vars.push(vs);
         }
         self.scopes.push(Scope::Jps {
@@ -65,7 +67,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
         let single = decls.len() == 1;
         let jps_in = decls.iter().zip(&jps).zip(jp_vars).zip(seen);
-        for ((((_, _, body), (_, start, _)), vs), names) in jps_in {
+        for ((((_, _, body), (_, start, ..)), vs), names) in jps_in {
             self.cur = *start;
             self.names = names;
             self.names.extend(vs);
@@ -91,15 +93,15 @@ impl<'a, 'm> Fn<'a, 'm> {
             Scope::Jps { jps, cont, at } => jps
                 .iter()
                 .find(|(n, ..)| n == name)
-                .map(|(_, b, ps)| (*b, ps.clone(), *cont, *at)),
+                .map(|(_, b, ps, ss)| (*b, ps.clone(), ss.clone(), *cont, *at)),
             Scope::Loop { .. } => None,
         });
-        let Some((target, params, cont, at)) = found else {
+        let Some((target, params, shapes, cont, at)) = found else {
             return unsupported(format!("jump to `{name}`"));
         };
         let mut vals = Vec::new();
-        for a in args {
-            vals.extend(self.atom_any(a)?.0);
+        for (a, s) in args.iter().zip(&shapes) {
+            vals.extend(self.atom(a, s)?);
         }
         // Through temporaries, so `jump k(b, a)` reads before it writes.
         let temps: Vec<Local> = vals
