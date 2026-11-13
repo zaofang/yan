@@ -845,6 +845,7 @@ const RT: &[RtFn] = &[
     RtFn::ChanSend,
     RtFn::ChanRecv,
     RtFn::ChanDrop,
+    RtFn::ChanClone,
     RtFn::ParBegin,
     RtFn::ParNext,
     RtFn::ParTaskEnd,
@@ -2056,6 +2057,12 @@ fn rt_fn(
         RtFn::ChanDrop => (
             "yan_rt_chan_drop",
             chan::yan_rt_chan_drop as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ChanClone => (
+            "yan_rt_chan_clone",
+            chan::yan_rt_chan_clone as *const u8,
             &[I64],
             None,
         ),
