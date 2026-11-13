@@ -187,7 +187,7 @@ E904 = "crates/yan-elab/src/ffi.rs"
 E905 = "crates/yan-elab/src/lower/calls.rs"
 E906 = "crates/yan-elab/src/ffi.rs"
 E907 = "crates/yan-elab/src/ffi.rs"
-E908 = { unimplemented = "#825" }
+E908 = "crates/yan-elab/src/decorators.rs"
 E909 = { unimplemented = "#825" }
 E910 = "crates/yan-elab/src/lower/calls.rs"
 E911 = "crates/yan-elab/src/lower/calls.rs"
