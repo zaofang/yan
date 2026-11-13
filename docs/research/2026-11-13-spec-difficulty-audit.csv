@@ -1,0 +1,880 @@
+row,entry,topic,sections,cases,interp_cases,native_cases,cited_in,section_cases,status,difficulty,hard,why
+R1,0,"ownership, views","4.2, 4.5, 5.1",9,pass,ok,,29,native,4,ownership,view exclusivity and copy-out rules across every pass
+R2,0,"ownership, views","4.2, 4.5, 5.1",3,pass,n/a,,29,interp,4,ownership,view exclusivity and copy-out rules across every pass
+R3,1,"`sched` handler, I/O handlers, `par concurrent`","9.1, 9.7",0,none,n/a,,1,none,4,concurrency,scheduler and I/O handler semantics
+R4,1,"`sched` handler, I/O handlers, `par concurrent`","9.1, 9.7",0,none,n/a,,1,none,4,concurrency,scheduler and I/O handler semantics
+R5,2,panics abort,8.3,0,none,n/a,,9,none,2,,"front-end rule, std function or tooling surface"
+R6,3,overflow checked,3.4,2,pass,ok,,28,native,2,,"front-end rule, std function or tooling surface"
+R7,4,"allocation failure, `try_` siblings",5.5,0,none,n/a,,1,none,3,,fallible allocation siblings across std
+R8,5,Yan Agent subset,"1, 14.1",0,none,n/a,,54,none,2,,"front-end rule, std function or tooling surface"
+R9,6,generators,"10.5, 15.2",0,none,n/a,,10,none,4,,generators lower to resumable state machines
+R10,7,library tiers,"1, 17.1",0,none,n/a,,8,none,1,,"policy, naming or scope statement; no engineering"
+R11,8,"performance target, GPU",23,0,none,n/a,,0,none,4,gpu/kernel,GPU target and performance bar
+R12,9,no GATs,10.2,0,none,n/a,,4,none,1,,"policy, naming or scope statement; no engineering"
+R13,8,"performance target, GPU",23,0,none,n/a,,0,none,4,gpu/kernel,GPU target and performance bar
+R14,10,Yan Agent fluency plan,"21.3, 21.6, 23",0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R15,11,lints,"18.2, 25.10",0,none,n/a,,4,none,2,,"front-end rule, std function or tooling surface"
+R16,12,"`toolchain` capability, `query`, `undo`","7.1, 21.4",0,none,n/a,,16,none,3,,"toolchain capability, query and undo"
+R17,13,debugging and profiling,18.7,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R18,14,commands,18.1,0,none,n/a,,3,none,2,,"front-end rule, std function or tooling surface"
+R19,15,test verdict cache,18.4,0,none,n/a,,3,none,2,,"front-end rule, std function or tooling surface"
+R20,16,scripts,19.1,0,none,n/a,,9,none,2,,"front-end rule, std function or tooling surface"
+R21,17,watch expressions,"13.1, 15.1, 18.6",0,none,n/a,,31,none,2,,"front-end rule, std function or tooling surface"
+R22,18,no optional features,"19.1, 26.2",0,none,n/a,,9,none,1,,"policy, naming or scope statement; no engineering"
+R23,19,"std scope, `@yan` packages, `std.evented` preview, `Wire` codecs","17, 9.7",0,none,n/a,,1,none,2,,"front-end rule, std function or tooling surface"
+R24,19,"std scope, `@yan` packages, `std.evented` preview, `Wire` codecs","17, 9.7",0,none,n/a,,1,none,2,,"front-end rule, std function or tooling surface"
+R25,19,"std scope, `@yan` packages, `std.evented` preview, `Wire` codecs","17, 9.7",0,none,n/a,,1,none,2,,"front-end rule, std function or tooling surface"
+R26,19,"std scope, `@yan` packages, `std.evented` preview, `Wire` codecs","17, 9.7",0,none,n/a,,1,none,2,,"front-end rule, std function or tooling surface"
+R27,4,"allocation failure, `try_` siblings",5.5,0,none,n/a,,1,none,3,,fallible allocation siblings across std
+R28,20,"floating point, libm, tiers, reductions, 128-bit and f128, FMA","3.2, 11.1",0,none,n/a,,10,none,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R29,20,"floating point, libm, tiers, reductions, 128-bit and f128, FMA","3.2, 11.1",0,none,n/a,,10,none,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R30,20,"floating point, libm, tiers, reductions, 128-bit and f128, FMA","3.2, 11.1",0,none,n/a,,10,none,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R31,20,"floating point, libm, tiers, reductions, 128-bit and f128, FMA","3.2, 11.1",0,none,n/a,,10,none,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R32,20,"floating point, libm, tiers, reductions, 128-bit and f128, FMA","3.2, 11.1",0,none,n/a,,10,none,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R33,20,"floating point, libm, tiers, reductions, 128-bit and f128, FMA","3.2, 11.1",0,none,n/a,,10,none,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R34,21,autodiff,11.5,0,none,n/a,,0,none,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R35,22,units extensions,11.4,0,none,n/a,,2,none,3,,cross-cutting rule or mid-size subsystem
+R36,23,`Nat` parameters,"3.1, 10.1",0,none,n/a,,2,none,3,,cross-cutting rule or mid-size subsystem
+R37,24,`Pcg64Dxsm`,11.1,0,none,n/a,,9,none,2,,"front-end rule, std function or tooling surface"
+R38,25,"`Soa`, handles, allocators, columnar memory","5.5, 5.6, 11.8",0,none,n/a,,1,none,3,,cross-cutting rule or mid-size subsystem
+R39,25,"`Soa`, handles, allocators, columnar memory","5.5, 5.6, 11.8",0,none,n/a,,1,none,3,,cross-cutting rule or mid-size subsystem
+R40,25,"`Soa`, handles, allocators, columnar memory","5.5, 5.6, 11.8",0,none,n/a,,1,none,3,,cross-cutting rule or mid-size subsystem
+R41,25,"`Soa`, handles, allocators, columnar memory","5.5, 5.6, 11.8",0,none,n/a,,1,none,3,,cross-cutting rule or mid-size subsystem
+R42,26,"tables, deterministic queries, query arithmetic, argument packs, query compilati","10.1, 11.9, 7.1, 17.1",0,none,n/a,,19,none,3,,cross-cutting rule or mid-size subsystem
+R43,26,"tables, deterministic queries, query arithmetic, argument packs, query compilati","10.1, 11.9, 7.1, 17.1",0,none,n/a,,19,none,3,,cross-cutting rule or mid-size subsystem
+R44,26,"tables, deterministic queries, query arithmetic, argument packs, query compilati","10.1, 11.9, 7.1, 17.1",0,none,n/a,,19,none,3,,cross-cutting rule or mid-size subsystem
+R45,26,"tables, deterministic queries, query arithmetic, argument packs, query compilati","10.1, 11.9, 7.1, 17.1",0,none,n/a,,19,none,3,,cross-cutting rule or mid-size subsystem
+R46,26,"tables, deterministic queries, query arithmetic, argument packs, query compilati","10.1, 11.9, 7.1, 17.1",0,none,n/a,,19,none,3,,cross-cutting rule or mid-size subsystem
+R47,26,"tables, deterministic queries, query arithmetic, argument packs, query compilati","10.1, 11.9, 7.1, 17.1",0,none,n/a,,19,none,3,,cross-cutting rule or mid-size subsystem
+R48,26,"tables, deterministic queries, query arithmetic, argument packs, query compilati","10.1, 11.9, 7.1, 17.1",0,none,n/a,,19,none,3,,cross-cutting rule or mid-size subsystem
+R49,27,time,"7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8",0,none,n/a,,40,none,2,,"front-end rule, std function or tooling surface"
+R50,27,time,"7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8",0,none,n/a,,40,none,2,,"front-end rule, std function or tooling surface"
+R51,27,time,"7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8",0,none,n/a,,40,none,2,,"front-end rule, std function or tooling surface"
+R52,27,time,"7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8",0,none,n/a,,40,none,2,,"front-end rule, std function or tooling surface"
+R53,27,time,"7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8",0,none,n/a,,40,none,2,,"front-end rule, std function or tooling surface"
+R54,27,time,"7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8",0,none,n/a,,40,none,2,,"front-end rule, std function or tooling surface"
+R55,27,time,"7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8",0,none,n/a,,40,none,2,,"front-end rule, std function or tooling surface"
+R56,27,time,"7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8",0,none,n/a,,40,none,2,,"front-end rule, std function or tooling surface"
+R57,27,time,"7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8",0,none,n/a,,40,none,2,,"front-end rule, std function or tooling surface"
+R58,27,time,"7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8",0,none,n/a,,40,none,2,,"front-end rule, std function or tooling surface"
+R59,27,time,"7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8",0,none,n/a,,40,none,2,,"front-end rule, std function or tooling surface"
+R60,27,time,"7.1, 7.3, 7.5, 11.6, 14.2, 17.5, 11.8",0,none,n/a,,40,none,2,,"front-end rule, std function or tooling surface"
+R61,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R62,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R63,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R64,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R65,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R66,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R67,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R68,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R69,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R70,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R71,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R72,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R73,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R74,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R75,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R76,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R77,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R78,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R79,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R80,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R81,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R82,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R83,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R84,28,Yan ergonomics,"15, 4.6, 8.1, 10.3, 13.2, 14.1, 16.3",0,none,n/a,,101,none,2,,"front-end rule, std function or tooling surface"
+R85,6,generators,"10.5, 15.2",0,none,n/a,,10,none,4,,generators lower to resumable state machines
+R86,29,inline assembly,"12.9, 15.2",0,none,n/a,,8,none,4,,ABI and foreign-call layout
+R87,30,`select`,"15.2, 15.3",0,none,n/a,,31,none,4,concurrency,"select, supervision and restart semantics"
+R88,31,`&` and `%` in the solver,8.6,4,pass,n/a,,31,interp,5,verification,solver reasoning on bit operators
+R89,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R90,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R91,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R92,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R93,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R94,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R95,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R96,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R97,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R98,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R99,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R100,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R101,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R102,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R103,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R104,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R105,32,FFI and ABI,"12, 5.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R106,33,Yan signature layout,15.3,0,none,n/a,,25,none,2,,"front-end rule, std function or tooling surface"
+R110,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R111,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R112,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R113,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R114,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R115,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R116,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R117,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R118,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R119,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R120,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R121,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R122,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R123,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R124,34,memory and concurrency model,6,0,none,n/a,,0,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R130,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R131,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R132,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R133,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R134,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R135,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R136,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R137,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R138,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R139,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R140,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R141,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R142,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R143,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R144,35,compile time,"10.4, 10.6",0,none,n/a,,21,none,4,staging,"compile-time evaluation, reflection and type functions"
+R150,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R151,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R152,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R153,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R154,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R155,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R156,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R157,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R158,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R159,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R160,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R161,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R162,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R163,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R164,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R165,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R166,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R167,36,networking and async I/O,"9.4, 9.7, 17.6, 17.7, 7.1",0,none,n/a,,17,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R170,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R171,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R172,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R173,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R174,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R175,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R176,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R177,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R178,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R179,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R180,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R181,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R182,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R183,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R184,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R185,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R186,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R187,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R188,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R189,37,stability and evolution,20,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R190,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R191,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R192,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R193,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R194,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R195,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R196,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R197,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R198,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R199,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R200,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R201,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R202,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R203,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R204,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R205,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R206,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R207,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R208,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R209,38,supply chain,19,0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R210,75,"Yan Agent 1.0 model-first rules: full headers with ex handlers, undecided checks","8.4, 8.6, 11.2, 13.2, 14.1, 14.3, 14.4, 18.3, 21.2, 25",0,none,n/a,,216,none,2,,"front-end rule, std function or tooling surface"
+R211,75,"Yan Agent 1.0 model-first rules: full headers with ex handlers, undecided checks","8.4, 8.6, 11.2, 13.2, 14.1, 14.3, 14.4, 18.3, 21.2, 25",4,pass,ok,yan-interp,216,native,2,,"front-end rule, std function or tooling surface"
+R212,75,"Yan Agent 1.0 model-first rules: full headers with ex handlers, undecided checks","8.4, 8.6, 11.2, 13.2, 14.1, 14.3, 14.4, 18.3, 21.2, 25",3,pass,n/a,,216,interp,2,,"front-end rule, std function or tooling surface"
+R213,75,"Yan Agent 1.0 model-first rules: full headers with ex handlers, undecided checks","8.4, 8.6, 11.2, 13.2, 14.1, 14.3, 14.4, 18.3, 21.2, 25",0,none,n/a,,216,none,2,,"front-end rule, std function or tooling surface"
+R214,75,"Yan Agent 1.0 model-first rules: full headers with ex handlers, undecided checks","8.4, 8.6, 11.2, 13.2, 14.1, 14.3, 14.4, 18.3, 21.2, 25",5,pass,n/a,,216,interp,2,,"front-end rule, std function or tooling surface"
+R215,84,"Implementation language: Yan has one implementation, written in Rust, with no Py","22, 26.1",0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R216,85,"Yan Agent token rerun: expression lists as tuples on the right of =, after retur","13.2, 14.1, 14.4, 17.2, 17.3",1,pass,ok,yan-elab+yan-hir,252,native,2,,"front-end rule, std function or tooling surface"
+R217,85,"Yan Agent token rerun: expression lists as tuples on the right of =, after retur","13.2, 14.1, 14.4, 17.2, 17.3",0,none,n/a,,252,none,2,,"front-end rule, std function or tooling surface"
+R218,85,"Yan Agent token rerun: expression lists as tuples on the right of =, after retur","13.2, 14.1, 14.4, 17.2, 17.3",1,pass,ok,,252,native,2,,"front-end rule, std function or tooling surface"
+R240,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R241,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R242,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R243,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R244,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R245,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R246,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R247,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R248,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R249,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R250,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R251,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R252,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R253,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R254,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R255,39,formatter,"18.5, 16.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R260,40,"paradigm keepers: become, column expressions and keyed tables, std.rel, math.ein","3.5, 5.6, 9.6, 11.2, 15, 15.3, 16.5, 17.3, 18.1, 18.6",10,pass,ok,yan-check,230,native,2,,"front-end rule, std function or tooling surface"
+R261,40,"paradigm keepers: become, column expressions and keyed tables, std.rel, math.ein","3.5, 5.6, 9.6, 11.2, 15, 15.3, 16.5, 17.3, 18.1, 18.6",0,none,n/a,,230,none,2,,"front-end rule, std function or tooling surface"
+R262,40,"paradigm keepers: become, column expressions and keyed tables, std.rel, math.ein","3.5, 5.6, 9.6, 11.2, 15, 15.3, 16.5, 17.3, 18.1, 18.6",0,none,n/a,,230,none,2,,"front-end rule, std function or tooling surface"
+R263,40,"paradigm keepers: become, column expressions and keyed tables, std.rel, math.ein","3.5, 5.6, 9.6, 11.2, 15, 15.3, 16.5, 17.3, 18.1, 18.6",0,none,n/a,,230,none,2,,"front-end rule, std function or tooling surface"
+R264,40,"paradigm keepers: become, column expressions and keyed tables, std.rel, math.ein","3.5, 5.6, 9.6, 11.2, 15, 15.3, 16.5, 17.3, 18.1, 18.6",0,none,n/a,,230,none,2,,"front-end rule, std function or tooling surface"
+R265,40,"paradigm keepers: become, column expressions and keyed tables, std.rel, math.ein","3.5, 5.6, 9.6, 11.2, 15, 15.3, 16.5, 17.3, 18.1, 18.6",0,none,n/a,,230,none,2,,"front-end rule, std function or tooling surface"
+R266,40,"paradigm keepers: become, column expressions and keyed tables, std.rel, math.ein","3.5, 5.6, 9.6, 11.2, 15, 15.3, 16.5, 17.3, 18.1, 18.6",3,fail,ok,yan-yn,230,native,2,,"front-end rule, std function or tooling surface"
+R267,40,"paradigm keepers: become, column expressions and keyed tables, std.rel, math.ein","3.5, 5.6, 9.6, 11.2, 15, 15.3, 16.5, 17.3, 18.1, 18.6",0,none,n/a,,230,none,2,,"front-end rule, std function or tooling surface"
+R268,40,"paradigm keepers: become, column expressions and keyed tables, std.rel, math.ein","3.5, 5.6, 9.6, 11.2, 15, 15.3, 16.5, 17.3, 18.1, 18.6",0,none,n/a,,230,none,2,,"front-end rule, std function or tooling surface"
+R280,76,"Yan Agent token dry run: autofix in the loop, lenient N14 to N23, keyword inout ","8.4, 13.2, 14.1, 14.3, 14.4, 21.6, 25",0,none,n/a,,127,none,2,,"front-end rule, std function or tooling surface"
+R281,76,"Yan Agent token dry run: autofix in the loop, lenient N14 to N23, keyword inout ","8.4, 13.2, 14.1, 14.3, 14.4, 21.6, 25",0,none,n/a,,127,none,2,,"front-end rule, std function or tooling surface"
+R282,76,"Yan Agent token dry run: autofix in the loop, lenient N14 to N23, keyword inout ","8.4, 13.2, 14.1, 14.3, 14.4, 21.6, 25",0,none,n/a,,127,none,2,,"front-end rule, std function or tooling surface"
+R283,76,"Yan Agent token dry run: autofix in the loop, lenient N14 to N23, keyword inout ","8.4, 13.2, 14.1, 14.3, 14.4, 21.6, 25",0,none,n/a,,127,none,2,,"front-end rule, std function or tooling surface"
+R284,76,"Yan Agent token dry run: autofix in the loop, lenient N14 to N23, keyword inout ","8.4, 13.2, 14.1, 14.3, 14.4, 21.6, 25",1,pass,n/a,,127,interp,2,,"front-end rule, std function or tooling surface"
+R285,76,"Yan Agent token dry run: autofix in the loop, lenient N14 to N23, keyword inout ","8.4, 13.2, 14.1, 14.3, 14.4, 21.6, 25",1,pass,n/a,yan-elab,127,interp,2,,"front-end rule, std function or tooling surface"
+R286,76,"Yan Agent token dry run: autofix in the loop, lenient N14 to N23, keyword inout ","8.4, 13.2, 14.1, 14.3, 14.4, 21.6, 25",1,pass,n/a,,127,interp,2,,"front-end rule, std function or tooling surface"
+R287,76,"Yan Agent token dry run: autofix in the loop, lenient N14 to N23, keyword inout ","8.4, 13.2, 14.1, 14.3, 14.4, 21.6, 25",5,pass,n/a,,127,interp,2,,"front-end rule, std function or tooling surface"
+R288,76,"Yan Agent token dry run: autofix in the loop, lenient N14 to N23, keyword inout ","8.4, 13.2, 14.1, 14.3, 14.4, 21.6, 25",1,pass,n/a,,127,interp,2,,"front-end rule, std function or tooling surface"
+R289,76,"Yan Agent token dry run: autofix in the loop, lenient N14 to N23, keyword inout ","8.4, 13.2, 14.1, 14.3, 14.4, 21.6, 25",0,none,n/a,,127,none,2,,"front-end rule, std function or tooling surface"
+R290,41,"diagnostics: record fields, recovery by marking, verified fixes, quote anchors, ","15.5, 18.2, 21.4, 25",0,none,n/a,yan-diag,12,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R291,41,"diagnostics: record fields, recovery by marking, verified fixes, quote anchors, ","15.5, 18.2, 21.4, 25",0,none,n/a,yan-elab,12,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R292,41,"diagnostics: record fields, recovery by marking, verified fixes, quote anchors, ","15.5, 18.2, 21.4, 25",0,none,n/a,yan-cli+yan-diag+yan-ide,12,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R293,41,"diagnostics: record fields, recovery by marking, verified fixes, quote anchors, ","15.5, 18.2, 21.4, 25",0,none,n/a,yan-diag+yan-ide,12,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R294,41,"diagnostics: record fields, recovery by marking, verified fixes, quote anchors, ","15.5, 18.2, 21.4, 25",0,none,n/a,yan-diag,12,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R295,41,"diagnostics: record fields, recovery by marking, verified fixes, quote anchors, ","15.5, 18.2, 21.4, 25",0,none,n/a,yan-cli,12,none,2,,"front-end rule, std function or tooling surface"
+R296,41,"diagnostics: record fields, recovery by marking, verified fixes, quote anchors, ","15.5, 18.2, 21.4, 25",0,none,n/a,yan-diag,12,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R297,41,"diagnostics: record fields, recovery by marking, verified fixes, quote anchors, ","15.5, 18.2, 21.4, 25",0,none,n/a,,12,none,2,,"front-end rule, std function or tooling surface"
+R298,41,"diagnostics: record fields, recovery by marking, verified fixes, quote anchors, ","15.5, 18.2, 21.4, 25",9,pass,n/a,,12,interp,2,,"front-end rule, std function or tooling surface"
+R299,41,"diagnostics: record fields, recovery by marking, verified fixes, quote anchors, ","15.5, 18.2, 21.4, 25",0,none,n/a,yan-cli,12,none,2,,"front-end rule, std function or tooling surface"
+R300,44,"testing and debugging: tests.lock approval, property tests, file snapshots, choi","7.6, 18.4, 25",3,pass,n/a,yan-cli,4,interp,3,,cross-cutting rule or mid-size subsystem
+R301,44,"testing and debugging: tests.lock approval, property tests, file snapshots, choi","7.6, 18.4, 25",0,none,n/a,,4,none,3,,cross-cutting rule or mid-size subsystem
+R302,44,"testing and debugging: tests.lock approval, property tests, file snapshots, choi","7.6, 18.4, 25",0,none,n/a,,4,none,3,,cross-cutting rule or mid-size subsystem
+R303,44,"testing and debugging: tests.lock approval, property tests, file snapshots, choi","7.6, 18.4, 25",0,none,n/a,,4,none,3,,cross-cutting rule or mid-size subsystem
+R304,44,"testing and debugging: tests.lock approval, property tests, file snapshots, choi","7.6, 18.4, 25",0,none,n/a,,4,none,3,,cross-cutting rule or mid-size subsystem
+R305,44,"testing and debugging: tests.lock approval, property tests, file snapshots, choi","7.6, 18.4, 25",0,none,n/a,,4,none,3,,cross-cutting rule or mid-size subsystem
+R306,44,"testing and debugging: tests.lock approval, property tests, file snapshots, choi","7.6, 18.4, 25",0,none,n/a,,4,none,3,,cross-cutting rule or mid-size subsystem
+R307,44,"testing and debugging: tests.lock approval, property tests, file snapshots, choi","7.6, 18.4, 25",0,none,n/a,,4,none,3,,cross-cutting rule or mid-size subsystem
+R308,44,"testing and debugging: tests.lock approval, property tests, file snapshots, choi","7.6, 18.4, 25",0,none,n/a,,4,none,3,,cross-cutting rule or mid-size subsystem
+R309,44,"testing and debugging: tests.lock approval, property tests, file snapshots, choi","7.6, 18.4, 25",0,none,n/a,yan-cli+yan-elab,4,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R310,45,"documentation: doc model, hash-resolved links, site/JSON/agent outputs, surface ","18.9, 23, 25",0,none,n/a,,7,none,2,,"front-end rule, std function or tooling surface"
+R311,45,"documentation: doc model, hash-resolved links, site/JSON/agent outputs, surface ","18.9, 23, 25",0,none,n/a,,7,none,2,,"front-end rule, std function or tooling surface"
+R312,45,"documentation: doc model, hash-resolved links, site/JSON/agent outputs, surface ","18.9, 23, 25",0,none,n/a,,7,none,2,,"front-end rule, std function or tooling surface"
+R313,45,"documentation: doc model, hash-resolved links, site/JSON/agent outputs, surface ","18.9, 23, 25",0,none,n/a,,7,none,2,,"front-end rule, std function or tooling surface"
+R314,45,"documentation: doc model, hash-resolved links, site/JSON/agent outputs, surface ","18.9, 23, 25",0,none,n/a,,7,none,2,,"front-end rule, std function or tooling surface"
+R315,45,"documentation: doc model, hash-resolved links, site/JSON/agent outputs, surface ","18.9, 23, 25",0,none,n/a,,7,none,2,,"front-end rule, std function or tooling surface"
+R316,45,"documentation: doc model, hash-resolved links, site/JSON/agent outputs, surface ","18.9, 23, 25",0,none,n/a,,7,none,2,,"front-end rule, std function or tooling surface"
+R317,45,"documentation: doc model, hash-resolved links, site/JSON/agent outputs, surface ","18.9, 23, 25",4,pass,n/a,yan-db,7,interp,2,,"front-end rule, std function or tooling surface"
+R318,45,"documentation: doc model, hash-resolved links, site/JSON/agent outputs, surface ","18.9, 23, 25",0,none,n/a,,7,none,2,,"front-end rule, std function or tooling surface"
+R319,45,"documentation: doc model, hash-resolved links, site/JSON/agent outputs, surface ","18.9, 23, 25",0,none,n/a,,7,none,2,,"front-end rule, std function or tooling surface"
+R320,46,"embedded and GPU profiles: profiles, static stack bound, SVD peripherals and HAL","17.1, 23, 25",0,none,n/a,,9,none,4,gpu/kernel,"kernel regions, tiles and launch"
+R321,46,"embedded and GPU profiles: profiles, static stack bound, SVD peripherals and HAL","17.1, 23, 25",0,none,n/a,,9,none,4,gpu/kernel,"kernel regions, tiles and launch"
+R322,46,"embedded and GPU profiles: profiles, static stack bound, SVD peripherals and HAL","17.1, 23, 25",0,none,n/a,,9,none,4,gpu/kernel,"kernel regions, tiles and launch"
+R323,46,"embedded and GPU profiles: profiles, static stack bound, SVD peripherals and HAL","17.1, 23, 25",0,none,n/a,,9,none,4,gpu/kernel,"kernel regions, tiles and launch"
+R324,46,"embedded and GPU profiles: profiles, static stack bound, SVD peripherals and HAL","17.1, 23, 25",0,none,n/a,,9,none,4,gpu/kernel,"kernel regions, tiles and launch"
+R325,46,"embedded and GPU profiles: profiles, static stack bound, SVD peripherals and HAL","17.1, 23, 25",0,none,n/a,,9,none,4,gpu/kernel,"kernel regions, tiles and launch"
+R326,46,"embedded and GPU profiles: profiles, static stack bound, SVD peripherals and HAL","17.1, 23, 25",0,none,n/a,,9,none,4,gpu/kernel,"kernel regions, tiles and launch"
+R327,46,"embedded and GPU profiles: profiles, static stack bound, SVD peripherals and HAL","17.1, 23, 25",3,pass,ok,yan-elab,9,native,4,gpu/kernel,"kernel regions, tiles and launch"
+R328,46,"embedded and GPU profiles: profiles, static stack bound, SVD peripherals and HAL","17.1, 23, 25",0,none,n/a,,9,none,4,gpu/kernel,"kernel regions, tiles and launch"
+R329,46,"embedded and GPU profiles: profiles, static stack bound, SVD peripherals and HAL","17.1, 23, 25",0,none,n/a,,9,none,4,gpu/kernel,"kernel regions, tiles and launch"
+R330,55,"internationalization: Unicode 18.0 and CLDR 49 pins, std.unicode scope, explicit","3.3, 13.1, 17.5, 25",0,none,n/a,,42,none,3,,cross-cutting rule or mid-size subsystem
+R331,55,"internationalization: Unicode 18.0 and CLDR 49 pins, std.unicode scope, explicit","3.3, 13.1, 17.5, 25",0,none,n/a,,42,none,3,,cross-cutting rule or mid-size subsystem
+R332,55,"internationalization: Unicode 18.0 and CLDR 49 pins, std.unicode scope, explicit","3.3, 13.1, 17.5, 25",1,pass,n/a,yan-std,42,interp,3,,cross-cutting rule or mid-size subsystem
+R333,55,"internationalization: Unicode 18.0 and CLDR 49 pins, std.unicode scope, explicit","3.3, 13.1, 17.5, 25",0,none,n/a,,42,none,3,,cross-cutting rule or mid-size subsystem
+R334,55,"internationalization: Unicode 18.0 and CLDR 49 pins, std.unicode scope, explicit","3.3, 13.1, 17.5, 25",0,none,n/a,,42,none,3,,cross-cutting rule or mid-size subsystem
+R335,55,"internationalization: Unicode 18.0 and CLDR 49 pins, std.unicode scope, explicit","3.3, 13.1, 17.5, 25",4,pass,n/a,,42,interp,3,,cross-cutting rule or mid-size subsystem
+R336,55,"internationalization: Unicode 18.0 and CLDR 49 pins, std.unicode scope, explicit","3.3, 13.1, 17.5, 25",0,none,n/a,,42,none,3,,cross-cutting rule or mid-size subsystem
+R337,55,"internationalization: Unicode 18.0 and CLDR 49 pins, std.unicode scope, explicit","3.3, 13.1, 17.5, 25",0,none,n/a,,42,none,3,,cross-cutting rule or mid-size subsystem
+R338,55,"internationalization: Unicode 18.0 and CLDR 49 pins, std.unicode scope, explicit","3.3, 13.1, 17.5, 25",1,pass,n/a,yan-elab,42,interp,3,,cross-cutting rule or mid-size subsystem
+R339,55,"internationalization: Unicode 18.0 and CLDR 49 pins, std.unicode scope, explicit","3.3, 13.1, 17.5, 25",0,none,n/a,,42,none,3,,cross-cutting rule or mid-size subsystem
+R340,43,"red-team review, second pass: trusted facts for check removal and refinement che","3.6, 5.4, 6.5, 7.3, 7.6, 7.7, 8.5, 8.6, 9.2, 9.3, 9.5, 9.6, 10.4, 13.1, 13.2, 14.1, 14.4, 18.2, 25",2,pass,n/a,,233,interp,4,verification,"contract, cost and header-fact checking"
+R341,42,red-team review: cancellation only at blocking operations; capability sharing cl,"4.3, 7.1, 7.7, 9.2, 9.4, 10.2, 10.6, 14.1, 17.2, 25",1,pass,n/a,yan-elab,126,interp,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R342,43,"red-team review, second pass: trusted facts for check removal and refinement che","3.6, 5.4, 6.5, 7.3, 7.6, 7.7, 8.5, 8.6, 9.2, 9.3, 9.5, 9.6, 10.4, 13.1, 13.2, 14.1, 14.4, 18.2, 25",2,fail,ok,,233,native,4,verification,"contract, cost and header-fact checking"
+R343,43,"red-team review, second pass: trusted facts for check removal and refinement che","3.6, 5.4, 6.5, 7.3, 7.6, 7.7, 8.5, 8.6, 9.2, 9.3, 9.5, 9.6, 10.4, 13.1, 13.2, 14.1, 14.4, 18.2, 25",3,fail,n/a,,233,case-failing,4,verification,"contract, cost and header-fact checking"
+R344,42,red-team review: cancellation only at blocking operations; capability sharing cl,"4.3, 7.1, 7.7, 9.2, 9.4, 10.2, 10.6, 14.1, 17.2, 25",1,pass,ok,,126,native,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R345,43,"red-team review, second pass: trusted facts for check removal and refinement che","3.6, 5.4, 6.5, 7.3, 7.6, 7.7, 8.5, 8.6, 9.2, 9.3, 9.5, 9.6, 10.4, 13.1, 13.2, 14.1, 14.4, 18.2, 25",27,pass,n/a,,233,interp,4,verification,"contract, cost and header-fact checking"
+R346,43,"red-team review, second pass: trusted facts for check removal and refinement che","3.6, 5.4, 6.5, 7.3, 7.6, 7.7, 8.5, 8.6, 9.2, 9.3, 9.5, 9.6, 10.4, 13.1, 13.2, 14.1, 14.4, 18.2, 25",2,pass,n/a,,233,interp,4,verification,"contract, cost and header-fact checking"
+R347,43,"red-team review, second pass: trusted facts for check removal and refinement che","3.6, 5.4, 6.5, 7.3, 7.6, 7.7, 8.5, 8.6, 9.2, 9.3, 9.5, 9.6, 10.4, 13.1, 13.2, 14.1, 14.4, 18.2, 25",3,pass,n/a,,233,interp,4,verification,"contract, cost and header-fact checking"
+R348,43,"red-team review, second pass: trusted facts for check removal and refinement che","3.6, 5.4, 6.5, 7.3, 7.6, 7.7, 8.5, 8.6, 9.2, 9.3, 9.5, 9.6, 10.4, 13.1, 13.2, 14.1, 14.4, 18.2, 25",1,pass,n/a,yan-core,233,interp,4,verification,"contract, cost and header-fact checking"
+R349,43,"red-team review, second pass: trusted facts for check removal and refinement che","3.6, 5.4, 6.5, 7.3, 7.6, 7.7, 8.5, 8.6, 9.2, 9.3, 9.5, 9.6, 10.4, 13.1, 13.2, 14.1, 14.4, 18.2, 25",1,pass,n/a,,233,interp,4,verification,"contract, cost and header-fact checking"
+R350,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R351,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R352,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,yan-cli,0,none,1,,"policy, naming or scope statement; no engineering"
+R353,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R354,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R355,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R356,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R357,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R358,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R359,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R360,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R361,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R362,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R363,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R364,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R365,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R366,47,"licensing, governance and trademark: code, spec and docs licenses, compiled outp",26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R370,78,"consistency audit: clause form in Yan only (R370); Yan aliases, sums and newtype","3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2",2,fail,ok,yan-yn,341,native,3,,cross-cutting rule or mid-size subsystem
+R371,78,"consistency audit: clause form in Yan only (R370); Yan aliases, sums and newtype","3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2",1,pass,n/a,,341,interp,3,,cross-cutting rule or mid-size subsystem
+R372,78,"consistency audit: clause form in Yan only (R370); Yan aliases, sums and newtype","3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2",1,pass,n/a,yan-elab,341,interp,3,,cross-cutting rule or mid-size subsystem
+R373,78,"consistency audit: clause form in Yan only (R370); Yan aliases, sums and newtype","3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2",0,none,n/a,,341,none,3,,cross-cutting rule or mid-size subsystem
+R374,78,"consistency audit: clause form in Yan only (R370); Yan aliases, sums and newtype","3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2",2,fail,n/a,yan-yn,341,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R375,78,"consistency audit: clause form in Yan only (R370); Yan aliases, sums and newtype","3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2",0,none,n/a,,341,none,3,,cross-cutting rule or mid-size subsystem
+R376,78,"consistency audit: clause form in Yan only (R370); Yan aliases, sums and newtype","3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2",2,pass,n/a,yan-cst+yan-yag+yan-yn,341,interp,3,,cross-cutting rule or mid-size subsystem
+R377,78,"consistency audit: clause form in Yan only (R370); Yan aliases, sums and newtype","3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2",0,none,n/a,,341,none,3,,cross-cutting rule or mid-size subsystem
+R378,78,"consistency audit: clause form in Yan only (R370); Yan aliases, sums and newtype","3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2",0,none,n/a,,341,none,3,,cross-cutting rule or mid-size subsystem
+R379,78,"consistency audit: clause form in Yan only (R370); Yan aliases, sums and newtype","3.5, 7.1, 7.3, 7.6, 8.5, 8.6, 10.5, 10.6, 11.1, 12.5, 13.2, 14.1, 14.3, 14.5, 15.2, 15.3, 15.4, 15.6, 17.1, 17.3, 18.1, 18.2, 18.4, 21.4, 23, 24.1, 24.2, 25, A.2",0,none,n/a,,341,none,3,,cross-cutting rule or mid-size subsystem
+R380,54,"performance: deferred overflow traps, check elision and loop versioning, one red","3.3, 3.4, 4.1, 5.5, 6.6, 7.7, 8.5, 8.6, 9.3, 10.6, 11.1, 11.3, 23",2,pass,ok,,91,native,4,,"deferred overflow, check elision, loop versioning"
+R381,54,"performance: deferred overflow traps, check elision and loop versioning, one red","3.3, 3.4, 4.1, 5.5, 6.6, 7.7, 8.5, 8.6, 9.3, 10.6, 11.1, 11.3, 23",1,pass,n/a,,91,interp,4,,"deferred overflow, check elision, loop versioning"
+R382,54,"performance: deferred overflow traps, check elision and loop versioning, one red","3.3, 3.4, 4.1, 5.5, 6.6, 7.7, 8.5, 8.6, 9.3, 10.6, 11.1, 11.3, 23",0,none,n/a,yan-elab+yan-interp+yan-rt,91,interp-uncased,4,,"deferred overflow, check elision, loop versioning"
+R383,54,"performance: deferred overflow traps, check elision and loop versioning, one red","3.3, 3.4, 4.1, 5.5, 6.6, 7.7, 8.5, 8.6, 9.3, 10.6, 11.1, 11.3, 23",0,none,n/a,,91,none,4,,"deferred overflow, check elision, loop versioning"
+R384,54,"performance: deferred overflow traps, check elision and loop versioning, one red","3.3, 3.4, 4.1, 5.5, 6.6, 7.7, 8.5, 8.6, 9.3, 10.6, 11.1, 11.3, 23",0,none,n/a,,91,none,4,,"deferred overflow, check elision, loop versioning"
+R385,54,"performance: deferred overflow traps, check elision and loop versioning, one red","3.3, 3.4, 4.1, 5.5, 6.6, 7.7, 8.5, 8.6, 9.3, 10.6, 11.1, 11.3, 23",0,none,n/a,,91,none,4,,"deferred overflow, check elision, loop versioning"
+R386,54,"performance: deferred overflow traps, check elision and loop versioning, one red","3.3, 3.4, 4.1, 5.5, 6.6, 7.7, 8.5, 8.6, 9.3, 10.6, 11.1, 11.3, 23",0,none,n/a,,91,none,4,,"deferred overflow, check elision, loop versioning"
+R387,54,"performance: deferred overflow traps, check elision and loop versioning, one red","3.3, 3.4, 4.1, 5.5, 6.6, 7.7, 8.5, 8.6, 9.3, 10.6, 11.1, 11.3, 23",0,none,n/a,,91,none,4,,"deferred overflow, check elision, loop versioning"
+R388,54,"performance: deferred overflow traps, check elision and loop versioning, one red","3.3, 3.4, 4.1, 5.5, 6.6, 7.7, 8.5, 8.6, 9.3, 10.6, 11.1, 11.3, 23",2,pass,ok,yan-elab,91,native,4,,"deferred overflow, check elision, loop versioning"
+R389,54,"performance: deferred overflow traps, check elision and loop versioning, one red","3.3, 3.4, 4.1, 5.5, 6.6, 7.7, 8.5, 8.6, 9.3, 10.6, 11.1, 11.3, 23",0,none,n/a,,91,none,4,,"deferred overflow, check elision, loop versioning"
+R390,48,concurrency pass: sibling waits and cooperative sequential; channel handles not ,"6.3, 6.4, 6.7, 7.3, 7.7, 9.1, 9.2, 9.3, 9.4, 9.6, 25",2,pass,ok,yan-elab+yan-interp+yan-rt,56,native,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R391,48,concurrency pass: sibling waits and cooperative sequential; channel handles not ,"6.3, 6.4, 6.7, 7.3, 7.7, 9.1, 9.2, 9.3, 9.4, 9.6, 25",1,pass,n/a,,56,interp,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R392,48,concurrency pass: sibling waits and cooperative sequential; channel handles not ,"6.3, 6.4, 6.7, 7.3, 7.7, 9.1, 9.2, 9.3, 9.4, 9.6, 25",1,pass,n/a,,56,interp,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R393,48,concurrency pass: sibling waits and cooperative sequential; channel handles not ,"6.3, 6.4, 6.7, 7.3, 7.7, 9.1, 9.2, 9.3, 9.4, 9.6, 25",0,none,n/a,,56,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R394,48,concurrency pass: sibling waits and cooperative sequential; channel handles not ,"6.3, 6.4, 6.7, 7.3, 7.7, 9.1, 9.2, 9.3, 9.4, 9.6, 25",2,pass,ok,yan-interp+yan-mir+yan-rt,56,native,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R395,48,concurrency pass: sibling waits and cooperative sequential; channel handles not ,"6.3, 6.4, 6.7, 7.3, 7.7, 9.1, 9.2, 9.3, 9.4, 9.6, 25",0,none,n/a,,56,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R396,48,concurrency pass: sibling waits and cooperative sequential; channel handles not ,"6.3, 6.4, 6.7, 7.3, 7.7, 9.1, 9.2, 9.3, 9.4, 9.6, 25",0,none,n/a,yan-interp+yan-rt,56,interp-uncased,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R397,48,concurrency pass: sibling waits and cooperative sequential; channel handles not ,"6.3, 6.4, 6.7, 7.3, 7.7, 9.1, 9.2, 9.3, 9.4, 9.6, 25",4,pass,ok,yan-elab+yan-interp,56,native,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R398,48,concurrency pass: sibling waits and cooperative sequential; channel handles not ,"6.3, 6.4, 6.7, 7.3, 7.7, 9.1, 9.2, 9.3, 9.4, 9.6, 25",0,none,n/a,yan-rt,56,native-uncased,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R399,48,concurrency pass: sibling waits and cooperative sequential; channel handles not ,"6.3, 6.4, 6.7, 7.3, 7.7, 9.1, 9.2, 9.3, 9.4, 9.6, 25",0,none,n/a,,56,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R400,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",1,pass,n/a,yan-elab,36,interp,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R401,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",3,pass,n/a,yan-elab,36,interp,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R402,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",1,pass,ok,yan-elab+yan-interp+yan-mir+yan-rt,36,native,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R403,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",0,none,n/a,yan-mir,36,native-uncased,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R404,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",0,none,n/a,,36,none,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R405,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",0,none,n/a,,36,none,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R406,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",0,none,n/a,,36,none,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R407,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",1,pass,n/a,yan-elab,36,interp,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R408,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",2,pass,ok,yan-elab+yan-interp+yan-mir+yan-rt,36,native,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R409,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",0,none,n/a,,36,none,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R410,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",0,none,n/a,,36,none,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R411,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",0,none,n/a,yan-elab+yan-interp,36,interp-uncased,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R412,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",1,pass,n/a,,36,interp,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R413,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",1,pass,n/a,,36,interp,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R414,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",0,none,n/a,,36,none,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R415,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",0,none,n/a,,36,none,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R416,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",0,none,n/a,,36,none,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R417,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",0,none,n/a,yan-elab+yan-mir,36,interp-uncased,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R418,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",0,none,n/a,,36,none,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R419,49,"distributed compute: cluster capability, location-transparent Remote handles, lo","9.6, 9.6.1, 25",0,none,n/a,,36,none,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R420,77,"Yan Agent ambiguity pass: spec consistency (R420), receiver calls infer mutabili","2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25",0,none,n/a,,140,none,2,,"front-end rule, std function or tooling surface"
+R421,77,"Yan Agent ambiguity pass: spec consistency (R420), receiver calls infer mutabili","2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25",1,pass,n/a,yan-elab+yan-hir+yan-yag,140,interp,2,,"front-end rule, std function or tooling surface"
+R422,77,"Yan Agent ambiguity pass: spec consistency (R420), receiver calls infer mutabili","2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25",1,pass,n/a,,140,interp,2,,"front-end rule, std function or tooling surface"
+R423,77,"Yan Agent ambiguity pass: spec consistency (R420), receiver calls infer mutabili","2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25",5,pass,ok,,140,native,2,,"front-end rule, std function or tooling surface"
+R424,77,"Yan Agent ambiguity pass: spec consistency (R420), receiver calls infer mutabili","2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25",3,pass,n/a,yan-yag,140,interp,2,,"front-end rule, std function or tooling surface"
+R425,77,"Yan Agent ambiguity pass: spec consistency (R420), receiver calls infer mutabili","2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25",3,pass,n/a,,140,interp,2,,"front-end rule, std function or tooling surface"
+R426,77,"Yan Agent ambiguity pass: spec consistency (R420), receiver calls infer mutabili","2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25",0,none,n/a,,140,none,2,,"front-end rule, std function or tooling surface"
+R427,77,"Yan Agent ambiguity pass: spec consistency (R420), receiver calls infer mutabili","2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25",4,pass,n/a,,140,interp,2,,"front-end rule, std function or tooling surface"
+R428,77,"Yan Agent ambiguity pass: spec consistency (R420), receiver calls infer mutabili","2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25",0,none,n/a,,140,none,2,,"front-end rule, std function or tooling surface"
+R429,77,"Yan Agent ambiguity pass: spec consistency (R420), receiver calls infer mutabili","2, 3.2, 13.1, 13.2, 14.1, 14.3, 14.4, 14.5, 16.3, 21.3, 25",2,pass,n/a,yan-elab,140,interp,2,,"front-end rule, std function or tooling surface"
+R430,80,"Yan real-programs pass (accepted 2026-10-31): main entry and ExitCode, capabilit","4.6, 6.4, 7.1, 7.2, 8.1, 10.3, 15.1, 15.2, 15.3, 17.2, 25",3,pass,ok,yan-interp+yan-mir,124,native,3,,cross-cutting rule or mid-size subsystem
+R431,80,"Yan real-programs pass (accepted 2026-10-31): main entry and ExitCode, capabilit","4.6, 6.4, 7.1, 7.2, 8.1, 10.3, 15.1, 15.2, 15.3, 17.2, 25",3,pass,n/a,yan-yn,124,interp,3,,cross-cutting rule or mid-size subsystem
+R432,80,"Yan real-programs pass (accepted 2026-10-31): main entry and ExitCode, capabilit","4.6, 6.4, 7.1, 7.2, 8.1, 10.3, 15.1, 15.2, 15.3, 17.2, 25",2,pass,ok,yan-elab,124,native,3,,cross-cutting rule or mid-size subsystem
+R433,80,"Yan real-programs pass (accepted 2026-10-31): main entry and ExitCode, capabilit","4.6, 6.4, 7.1, 7.2, 8.1, 10.3, 15.1, 15.2, 15.3, 17.2, 25",2,fail,ok,yan-yn,124,native,3,,cross-cutting rule or mid-size subsystem
+R434,80,"Yan real-programs pass (accepted 2026-10-31): main entry and ExitCode, capabilit","4.6, 6.4, 7.1, 7.2, 8.1, 10.3, 15.1, 15.2, 15.3, 17.2, 25",2,pass,n/a,yan-yn,124,interp,3,,cross-cutting rule or mid-size subsystem
+R435,80,"Yan real-programs pass (accepted 2026-10-31): main entry and ExitCode, capabilit","4.6, 6.4, 7.1, 7.2, 8.1, 10.3, 15.1, 15.2, 15.3, 17.2, 25",1,pass,n/a,yan-elab+yan-rt,124,interp,3,,cross-cutting rule or mid-size subsystem
+R436,80,"Yan real-programs pass (accepted 2026-10-31): main entry and ExitCode, capabilit","4.6, 6.4, 7.1, 7.2, 8.1, 10.3, 15.1, 15.2, 15.3, 17.2, 25",3,pass,n/a,yan-elab,124,interp,3,,cross-cutting rule or mid-size subsystem
+R437,80,"Yan real-programs pass (accepted 2026-10-31): main entry and ExitCode, capabilit","4.6, 6.4, 7.1, 7.2, 8.1, 10.3, 15.1, 15.2, 15.3, 17.2, 25",1,fail,n/a,yan-yn,124,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R438,80,"Yan real-programs pass (accepted 2026-10-31): main entry and ExitCode, capabilit","4.6, 6.4, 7.1, 7.2, 8.1, 10.3, 15.1, 15.2, 15.3, 17.2, 25",2,pass,ok,yan-elab,124,native,3,,cross-cutting rule or mid-size subsystem
+R439,80,"Yan real-programs pass (accepted 2026-10-31): main entry and ExitCode, capabilit","4.6, 6.4, 7.1, 7.2, 8.1, 10.3, 15.1, 15.2, 15.3, 17.2, 25",0,none,n/a,,124,none,3,,cross-cutting rule or mid-size subsystem
+R440,81,Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Ty,"1, 3.1, 3.3, 4.1, 4.7, 5.4, 5.5, 5.6, 5.7, 7.1, 7.7, 8.1, 9.3, 9.6, 9.7, 10.4, 10.6, 11.2, 15.1, 15.2, 15.3, 16, 17.1, 17.3, 18.1, 18.4, 25",1,pass,n/a,,311,interp,3,,cross-cutting rule or mid-size subsystem
+R441,81,Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Ty,"1, 3.1, 3.3, 4.1, 4.7, 5.4, 5.5, 5.6, 5.7, 7.1, 7.7, 8.1, 9.3, 9.6, 9.7, 10.4, 10.6, 11.2, 15.1, 15.2, 15.3, 16, 17.1, 17.3, 18.1, 18.4, 25",1,fail,n/a,,311,case-failing,3,,cross-cutting rule or mid-size subsystem
+R442,81,Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Ty,"1, 3.1, 3.3, 4.1, 4.7, 5.4, 5.5, 5.6, 5.7, 7.1, 7.7, 8.1, 9.3, 9.6, 9.7, 10.4, 10.6, 11.2, 15.1, 15.2, 15.3, 16, 17.1, 17.3, 18.1, 18.4, 25",1,pass,n/a,,311,interp,3,,cross-cutting rule or mid-size subsystem
+R443,81,Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Ty,"1, 3.1, 3.3, 4.1, 4.7, 5.4, 5.5, 5.6, 5.7, 7.1, 7.7, 8.1, 9.3, 9.6, 9.7, 10.4, 10.6, 11.2, 15.1, 15.2, 15.3, 16, 17.1, 17.3, 18.1, 18.4, 25",5,fail,n/a,yan-check,311,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R444,81,Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Ty,"1, 3.1, 3.3, 4.1, 4.7, 5.4, 5.5, 5.6, 5.7, 7.1, 7.7, 8.1, 9.3, 9.6, 9.7, 10.4, 10.6, 11.2, 15.1, 15.2, 15.3, 16, 17.1, 17.3, 18.1, 18.4, 25",1,fail,n/a,,311,case-failing,3,,cross-cutting rule or mid-size subsystem
+R445,81,Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Ty,"1, 3.1, 3.3, 4.1, 4.7, 5.4, 5.5, 5.6, 5.7, 7.1, 7.7, 8.1, 9.3, 9.6, 9.7, 10.4, 10.6, 11.2, 15.1, 15.2, 15.3, 16, 17.1, 17.3, 18.1, 18.4, 25",0,none,n/a,,311,none,3,,cross-cutting rule or mid-size subsystem
+R446,81,Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Ty,"1, 3.1, 3.3, 4.1, 4.7, 5.4, 5.5, 5.6, 5.7, 7.1, 7.7, 8.1, 9.3, 9.6, 9.7, 10.4, 10.6, 11.2, 15.1, 15.2, 15.3, 16, 17.1, 17.3, 18.1, 18.4, 25",1,pass,n/a,,311,interp,3,,cross-cutting rule or mid-size subsystem
+R447,81,Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Ty,"1, 3.1, 3.3, 4.1, 4.7, 5.4, 5.5, 5.6, 5.7, 7.1, 7.7, 8.1, 9.3, 9.6, 9.7, 10.4, 10.6, 11.2, 15.1, 15.2, 15.3, 16, 17.1, 17.3, 18.1, 18.4, 25",1,pass,n/a,yan-elab,311,interp,3,,cross-cutting rule or mid-size subsystem
+R448,81,Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Ty,"1, 3.1, 3.3, 4.1, 4.7, 5.4, 5.5, 5.6, 5.7, 7.1, 7.7, 8.1, 9.3, 9.6, 9.7, 10.4, 10.6, 11.2, 15.1, 15.2, 15.3, 16, 17.1, 17.3, 18.1, 18.4, 25",0,none,n/a,,311,none,3,,cross-cutting rule or mid-size subsystem
+R449,81,Simplicity pass (accepted 2026-10-31; R441 after a memory-model check): kinds Ty,"1, 3.1, 3.3, 4.1, 4.7, 5.4, 5.5, 5.6, 5.7, 7.1, 7.7, 8.1, 9.3, 9.6, 9.7, 10.4, 10.6, 11.2, 15.1, 15.2, 15.3, 16, 17.1, 17.3, 18.1, 18.4, 25",0,none,n/a,,311,none,3,,cross-cutting rule or mid-size subsystem
+R450,82,"Futures: model calls, Untrusted, t-strings, durable resume, Lub cells, become in","3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3",0,none,n/a,,96,none,4,effects,"model calls, durable resume, untrusted values"
+R451,82,"Futures: model calls, Untrusted, t-strings, durable resume, Lub cells, become in","3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3",0,none,n/a,,96,none,4,effects,"model calls, durable resume, untrusted values"
+R452,82,"Futures: model calls, Untrusted, t-strings, durable resume, Lub cells, become in","3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3",2,pass,n/a,yan-elab,96,interp,4,effects,"model calls, durable resume, untrusted values"
+R453,82,"Futures: model calls, Untrusted, t-strings, durable resume, Lub cells, become in","3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3",0,none,n/a,,96,none,4,effects,"model calls, durable resume, untrusted values"
+R454,82,"Futures: model calls, Untrusted, t-strings, durable resume, Lub cells, become in","3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3",1,pass,n/a,yan-elab,96,interp,4,effects,"model calls, durable resume, untrusted values"
+R455,82,"Futures: model calls, Untrusted, t-strings, durable resume, Lub cells, become in","3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3",0,none,n/a,,96,none,4,effects,"model calls, durable resume, untrusted values"
+R456,82,"Futures: model calls, Untrusted, t-strings, durable resume, Lub cells, become in","3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3",3,pass,n/a,yan-elab,96,interp,4,effects,"model calls, durable resume, untrusted values"
+R457,82,"Futures: model calls, Untrusted, t-strings, durable resume, Lub cells, become in","3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3",4,fail,n/a,,96,case-failing,4,effects,"model calls, durable resume, untrusted values"
+R458,82,"Futures: model calls, Untrusted, t-strings, durable resume, Lub cells, become in","3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3",6,pass,n/a,,96,interp,4,effects,"model calls, durable resume, untrusted values"
+R459,82,"Futures: model calls, Untrusted, t-strings, durable resume, Lub cells, become in","3.5, 4.4, 5.7, 6.5, 8.7, 9.3, 10.3, 13.1, 9.6.1, 17.4, 26.3",0,none,n/a,,96,none,4,effects,"model calls, durable resume, untrusted values"
+R460,83,Grammar check: 13.2 and 15.2 restated so that Yan Agent has no LALR(1) conflicts,"4.4, 7, 13.1, 13.2, 14, 15.1, 15.2",0,none,n/a,,54,none,3,,cross-cutting rule or mid-size subsystem
+R461,83,Grammar check: 13.2 and 15.2 restated so that Yan Agent has no LALR(1) conflicts,"4.4, 7, 13.1, 13.2, 14, 15.1, 15.2",2,pass,n/a,,54,interp,3,,cross-cutting rule or mid-size subsystem
+R462,83,Grammar check: 13.2 and 15.2 restated so that Yan Agent has no LALR(1) conflicts,"4.4, 7, 13.1, 13.2, 14, 15.1, 15.2",1,pass,n/a,yan-yag,54,interp,3,,cross-cutting rule or mid-size subsystem
+R463,83,Grammar check: 13.2 and 15.2 restated so that Yan Agent has no LALR(1) conflicts,"4.4, 7, 13.1, 13.2, 14, 15.1, 15.2",0,none,n/a,yan-yn,54,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R464,83,Grammar check: 13.2 and 15.2 restated so that Yan Agent has no LALR(1) conflicts,"4.4, 7, 13.1, 13.2, 14, 15.1, 15.2",0,none,n/a,yan-yn,54,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R465,83,Grammar check: 13.2 and 15.2 restated so that Yan Agent has no LALR(1) conflicts,"4.4, 7, 13.1, 13.2, 14, 15.1, 15.2",6,pass,n/a,,54,interp,3,,cross-cutting rule or mid-size subsystem
+R466,83,Grammar check: 13.2 and 15.2 restated so that Yan Agent has no LALR(1) conflicts,"4.4, 7, 13.1, 13.2, 14, 15.1, 15.2",3,pass,n/a,,54,interp,3,,cross-cutting rule or mid-size subsystem
+R467,86,"Conformance suite questions, decided by the owner: a capability captured by an e","4.4, 7.1, 8.6, 9.2, 9.4, 17.2, 24.1, 25",0,none,n/a,yan-check,87,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R468,86,"Conformance suite questions, decided by the owner: a capability captured by an e","4.4, 7.1, 8.6, 9.2, 9.4, 17.2, 24.1, 25",0,none,n/a,,87,none,3,,cross-cutting rule or mid-size subsystem
+R469,86,"Conformance suite questions, decided by the owner: a capability captured by an e","4.4, 7.1, 8.6, 9.2, 9.4, 17.2, 24.1, 25",0,none,n/a,,87,none,3,,cross-cutting rule or mid-size subsystem
+R470,86,"Conformance suite questions, decided by the owner: a capability captured by an e","4.4, 7.1, 8.6, 9.2, 9.4, 17.2, 24.1, 25",0,none,n/a,,87,none,3,,cross-cutting rule or mid-size subsystem
+R471,86,"Conformance suite questions, decided by the owner: a capability captured by an e","4.4, 7.1, 8.6, 9.2, 9.4, 17.2, 24.1, 25",0,none,n/a,,87,none,3,,cross-cutting rule or mid-size subsystem
+R472,86,"Conformance suite questions, decided by the owner: a capability captured by an e","4.4, 7.1, 8.6, 9.2, 9.4, 17.2, 24.1, 25",0,none,n/a,yan-elab+yan-yn,87,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R473,86,"Conformance suite questions, decided by the owner: a capability captured by an e","4.4, 7.1, 8.6, 9.2, 9.4, 17.2, 24.1, 25",0,none,n/a,,87,none,3,,cross-cutting rule or mid-size subsystem
+R474,87,"Std build plan, decided by the owner: native std bodies are @intrinsic def with ","17, 17.2",0,none,n/a,yan-elab+yan-interp+yan-std,25,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R475,87,"Std build plan, decided by the owner: native std bodies are @intrinsic def with ","17, 17.2",0,none,n/a,yan-elab+yan-interp+yan-mir+yan-rt,25,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R476,87,"Std build plan, decided by the owner: native std bodies are @intrinsic def with ","17, 17.2",0,none,n/a,,25,none,2,,"front-end rule, std function or tooling surface"
+R477,88,"Comparison doc spec gaps, decided by the owner: the list append operation is app",17.3,0,none,n/a,,119,none,2,,"front-end rule, std function or tooling surface"
+R478,88,"Comparison doc spec gaps, decided by the owner: the list append operation is app",17.3,0,none,n/a,yan-hir,119,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R479,89,"Conformance suite question, decided by the owner: conformance/pkg/ holds multi-f",24.1,0,none,n/a,,0,none,2,,"front-end rule, std function or tooling surface"
+R480,90,"Performance frontier survey, accepted by the owner: a list comprehension that is","13 (N18 paragraph), 5.5",0,none,n/a,,1,none,3,,cross-cutting rule or mid-size subsystem
+R481,91,"Performance frontier survey, accepted by the owner: pool uses heartbeat scheduli","6.4, 22.2",0,none,n/a,,6,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R482,92,"std.regex proposal, decided by the owner: find\_all returns Match values (R482);",17.3,4,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R483,92,"std.regex proposal, decided by the owner: find\_all returns Match values (R482);",17.3,2,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R484,92,"std.regex proposal, decided by the owner: find\_all returns Match values (R482);",17.3,5,pass,ok,yan-elab,119,native,2,,"front-end rule, std function or tooling surface"
+R485,92,"std.regex proposal, decided by the owner: find\_all returns Match values (R482);",17.3,1,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R486,92,"std.regex proposal, decided by the owner: find\_all returns Match values (R482);",17.3,0,none,n/a,,119,none,2,,"front-end rule, std function or tooling surface"
+R487,94,"Performance frontier survey, second sweep, accepted by the owner: stage-0 steps ",10.4,0,none,n/a,yan-interp+yan-mir,16,interp-uncased,4,staging,"compile-time evaluation, reflection and type functions"
+R488,93,"std.collections proposal, decided by the owner: prelude constructors (R488); emp",17.3,4,pass,ok,yan-elab+yan-interp+yan-mir+yan-rt,119,native,2,,"front-end rule, std function or tooling surface"
+R489,93,"std.collections proposal, decided by the owner: prelude constructors (R488); emp",17.3,6,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R490,93,"std.collections proposal, decided by the owner: prelude constructors (R488); emp",17.3,1,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R491,93,"std.collections proposal, decided by the owner: prelude constructors (R488); emp",17.3,2,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R492,93,"std.collections proposal, decided by the owner: prelude constructors (R488); emp",17.3,2,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R493,93,"std.collections proposal, decided by the owner: prelude constructors (R488); emp",17.3,5,pass,ok,yan-interp+yan-rt,119,native,2,,"front-end rule, std function or tooling surface"
+R494,95,"std slices and bisect proposal, decided by the owner: list methods now, std.slic",17.3,1,pass,ok,yan-mir+yan-rt,119,native,2,,"front-end rule, std function or tooling surface"
+R495,95,"std slices and bisect proposal, decided by the owner: list methods now, std.slic",17.3,1,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R496,95,"std slices and bisect proposal, decided by the owner: list methods now, std.slic",17.3,1,pass,ok,yan-mir,119,native,2,,"front-end rule, std function or tooling surface"
+R497,95,"std slices and bisect proposal, decided by the owner: list methods now, std.slic",17.3,1,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R498,95,"std slices and bisect proposal, decided by the owner: list methods now, std.slic",17.3,1,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R499,95,"std slices and bisect proposal, decided by the owner: list methods now, std.slic",17.3,1,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R500,96,"std.math proposal, decided by the owner: CORE-MATH, tier E (R500); float scope, ","11.1, 17.3",1,pass,ok,yan-rt,128,native,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R501,96,"std.math proposal, decided by the owner: CORE-MATH, tier E (R500); float scope, ","11.1, 17.3",3,pass,ok,,128,native,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R502,96,"std.math proposal, decided by the owner: CORE-MATH, tier E (R500); float scope, ","11.1, 17.3",1,pass,ok,,128,native,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R503,96,"std.math proposal, decided by the owner: CORE-MATH, tier E (R500); float scope, ","11.1, 17.3",1,pass,ok,,128,native,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R504,96,"std.math proposal, decided by the owner: CORE-MATH, tier E (R500); float scope, ","11.1, 17.3",1,pass,ok,,128,native,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R505,96,"std.math proposal, decided by the owner: CORE-MATH, tier E (R500); float scope, ","11.1, 17.3",2,pass,ok,,128,native,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R506,96,"std.math proposal, decided by the owner: CORE-MATH, tier E (R500); float scope, ","11.1, 17.3",1,pass,ok,,128,native,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R507,96,"std.math proposal, decided by the owner: CORE-MATH, tier E (R500); float scope, ","11.1, 17.3",0,none,n/a,,128,none,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R508,97,"std.iter proposal, decided by the owner: built-in lazy iter\[T\] (R508); sources","6.x, 17.3",3,pass,ok,yan-interp+yan-mir,119,native,3,,cross-cutting rule or mid-size subsystem
+R509,97,"std.iter proposal, decided by the owner: built-in lazy iter\[T\] (R508); sources","6.x, 17.3",3,pass,ok,,119,native,3,,cross-cutting rule or mid-size subsystem
+R510,97,"std.iter proposal, decided by the owner: built-in lazy iter\[T\] (R508); sources","6.x, 17.3",4,pass,ok,,119,native,3,,cross-cutting rule or mid-size subsystem
+R511,97,"std.iter proposal, decided by the owner: built-in lazy iter\[T\] (R508); sources","6.x, 17.3",3,pass,ok,yan-elab+yan-hir,119,native,3,,cross-cutting rule or mid-size subsystem
+R512,97,"std.iter proposal, decided by the owner: built-in lazy iter\[T\] (R508); sources","6.x, 17.3",1,pass,ok,,119,native,3,,cross-cutting rule or mid-size subsystem
+R513,97,"std.iter proposal, decided by the owner: built-in lazy iter\[T\] (R508); sources","6.x, 17.3",1,pass,ok,,119,native,3,,cross-cutting rule or mid-size subsystem
+R514,97,"std.iter proposal, decided by the owner: built-in lazy iter\[T\] (R508); sources","6.x, 17.3",4,pass,ok,yan-elab+yan-interp,119,native,3,,cross-cutting rule or mid-size subsystem
+R515,97,"std.iter proposal, decided by the owner: built-in lazy iter\[T\] (R508); sources","6.x, 17.3",2,pass,ok,yan-elab+yan-interp+yan-mir,119,native,3,,cross-cutting rule or mid-size subsystem
+R516,98,"Yan Meta, the third surface (RFC 0001), decided by the owner: Yan Meta is a full","1, 2, 3.6, 16.5, 16.6, 23, 26.1, 26.2",0,none,n/a,,2,none,4,,"post-1.0 surface, engine or agent-loop work"
+R517,98,"Yan Meta, the third surface (RFC 0001), decided by the owner: Yan Meta is a full","1, 2, 3.6, 16.5, 16.6, 23, 26.1, 26.2",0,none,n/a,,2,none,4,,"post-1.0 surface, engine or agent-loop work"
+R518,98,"Yan Meta, the third surface (RFC 0001), decided by the owner: Yan Meta is a full","1, 2, 3.6, 16.5, 16.6, 23, 26.1, 26.2",0,none,n/a,yan-surface,2,interp-uncased,4,,"post-1.0 surface, engine or agent-loop work"
+R519,98,"Yan Meta, the third surface (RFC 0001), decided by the owner: Yan Meta is a full","1, 2, 3.6, 16.5, 16.6, 23, 26.1, 26.2",0,none,n/a,yan-core+yan-surface,2,interp-uncased,4,,"post-1.0 surface, engine or agent-loop work"
+R520,98,"Yan Meta, the third surface (RFC 0001), decided by the owner: Yan Meta is a full","1, 2, 3.6, 16.5, 16.6, 23, 26.1, 26.2",0,none,n/a,,2,none,4,,"post-1.0 surface, engine or agent-loop work"
+R521,98,"Yan Meta, the third surface (RFC 0001), decided by the owner: Yan Meta is a full","1, 2, 3.6, 16.5, 16.6, 23, 26.1, 26.2",0,none,n/a,,2,none,4,,"post-1.0 surface, engine or agent-loop work"
+R522,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R523,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R524,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R525,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R526,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R527,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R528,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R529,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R530,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R531,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R532,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R533,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R534,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R535,99,"Research track, accepted for research, not normative for 1.0: effect handlers (R",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R536,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R537,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R538,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R539,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R540,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R541,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R542,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R543,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R544,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R545,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R546,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R547,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R548,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R549,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R550,100,"Niche surfaces (RFC 0002), accepted by the owner, post-1.0: admission rules N1 t","16.7, 23",0,none,n/a,,0,none,4,,"post-1.0 surface, engine or agent-loop work"
+R551,101,"Yan gaps from the surface study (RFC 0003), accepted by the owner: `generate_cha","17.4, 9.6.1, 11.9",0,none,n/a,,34,none,2,,"front-end rule, std function or tooling surface"
+R552,101,"Yan gaps from the surface study (RFC 0003), accepted by the owner: `generate_cha","17.4, 9.6.1, 11.9",0,none,n/a,,34,none,2,,"front-end rule, std function or tooling surface"
+R553,101,"Yan gaps from the surface study (RFC 0003), accepted by the owner: `generate_cha","17.4, 9.6.1, 11.9",0,none,n/a,,34,none,2,,"front-end rule, std function or tooling surface"
+R554,102,"Research track additions (RFC 0003), not normative for 1.0: dry-run handler clas",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R555,102,"Research track additions (RFC 0003), not normative for 1.0: dry-run handler clas",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R556,102,"Research track additions (RFC 0003), not normative for 1.0: dry-run handler clas",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R557,102,"Research track additions (RFC 0003), not normative for 1.0: dry-run handler clas",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R558,103,"Architecture for one core and many surfaces (RFC 0004), accepted by the owner: H","1, 16.4, 16.5, 16.6, 17.1, 22.2, 22.4, 23, 24.2",0,none,n/a,yan-hir+yan-yn,10,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R559,103,"Architecture for one core and many surfaces (RFC 0004), accepted by the owner: H","1, 16.4, 16.5, 16.6, 17.1, 22.2, 22.4, 23, 24.2",0,none,n/a,yan-cli+yan-elab+yan-hir+yan-ide,10,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R560,103,"Architecture for one core and many surfaces (RFC 0004), accepted by the owner: H","1, 16.4, 16.5, 16.6, 17.1, 22.2, 22.4, 23, 24.2",0,none,n/a,yan-db+yan-elab+yan-ide+yan-mir+yan-surface,10,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R561,103,"Architecture for one core and many surfaces (RFC 0004), accepted by the owner: H","1, 16.4, 16.5, 16.6, 17.1, 22.2, 22.4, 23, 24.2",0,none,n/a,yan-cg-cranelift+yan-elab+yan-interp+yan-mir+yan-rt+yan-std,10,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R562,103,"Architecture for one core and many surfaces (RFC 0004), accepted by the owner: H","1, 16.4, 16.5, 16.6, 17.1, 22.2, 22.4, 23, 24.2",0,none,n/a,yan-std,10,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R563,103,"Architecture for one core and many surfaces (RFC 0004), accepted by the owner: H","1, 16.4, 16.5, 16.6, 17.1, 22.2, 22.4, 23, 24.2",0,none,n/a,,10,none,3,,cross-cutting rule or mid-size subsystem
+R564,103,"Architecture for one core and many surfaces (RFC 0004), accepted by the owner: H","1, 16.4, 16.5, 16.6, 17.1, 22.2, 22.4, 23, 24.2",0,none,n/a,,10,none,3,,cross-cutting rule or mid-size subsystem
+R565,103,"Architecture for one core and many surfaces (RFC 0004), accepted by the owner: H","1, 16.4, 16.5, 16.6, 17.1, 22.2, 22.4, 23, 24.2",0,none,n/a,yan-elab+yan-hir+yan-surface,10,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R566,104,"Yan Agent and Yan direction, decided by the owner: the model probe runs as soon ","21.6, 23",0,none,n/a,,0,none,2,,"front-end rule, std function or tooling surface"
+R567,104,"Yan Agent and Yan direction, decided by the owner: the model probe runs as soon ","21.6, 23",0,none,n/a,,0,none,2,,"front-end rule, std function or tooling surface"
+R568,105,"Niche surfaces may own semantics, decided by the owner: niche surfaces are exemp","2, 16.7",0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R569,106,"std.json (RFC 0005), decided by the owner: `json.Value` with `parse_value`/`dump",17.3,0,none,n/a,yan-interp+yan-rt,119,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R570,106,"std.json (RFC 0005), decided by the owner: `json.Value` with `parse_value`/`dump",17.3,0,none,n/a,yan-rt,119,native-uncased,2,,"front-end rule, std function or tooling surface"
+R571,106,"std.json (RFC 0005), decided by the owner: `json.Value` with `parse_value`/`dump",17.3,0,none,n/a,yan-rt,119,native-uncased,2,,"front-end rule, std function or tooling surface"
+R572,106,"std.json (RFC 0005), decided by the owner: `json.Value` with `parse_value`/`dump",17.3,0,none,n/a,yan-rt,119,native-uncased,2,,"front-end rule, std function or tooling surface"
+R573,106,"std.json (RFC 0005), decided by the owner: `json.Value` with `parse_value`/`dump",17.3,0,none,n/a,yan-interp+yan-rt,119,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R574,106,"std.json (RFC 0005), decided by the owner: `json.Value` with `parse_value`/`dump",17.3,0,none,n/a,yan-interp,119,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R575,106,"std.json (RFC 0005), decided by the owner: `json.Value` with `parse_value`/`dump",17.3,0,none,n/a,yan-interp+yan-rt,119,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R576,107,Niche surface engines (RFC 0006): engine items enter the HIR as extern signature,"1, 16.7, 22.2",0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R579,108,"std.encoding and `bytes` (RFC 0007), decided by the owner: immutable `bytes` (R5",17.3,4,pass,ok,yan-interp+yan-mir+yan-rt,119,native,2,,"front-end rule, std function or tooling surface"
+R580,108,"std.encoding and `bytes` (RFC 0007), decided by the owner: immutable `bytes` (R5",17.3,1,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R581,108,"std.encoding and `bytes` (RFC 0007), decided by the owner: immutable `bytes` (R5",17.3,1,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R582,108,"std.encoding and `bytes` (RFC 0007), decided by the owner: immutable `bytes` (R5",17.3,1,pass,ok,yan-rt,119,native,2,,"front-end rule, std function or tooling surface"
+R583,108,"std.encoding and `bytes` (RFC 0007), decided by the owner: immutable `bytes` (R5",17.3,1,pass,ok,yan-interp+yan-mir+yan-rt,119,native,2,,"front-end rule, std function or tooling surface"
+R584,108,"std.encoding and `bytes` (RFC 0007), decided by the owner: immutable `bytes` (R5",17.3,1,pass,ok,yan-mir+yan-rt,119,native,2,,"front-end rule, std function or tooling surface"
+R585,108,"std.encoding and `bytes` (RFC 0007), decided by the owner: immutable `bytes` (R5",17.3,3,pass,ok,yan-interp+yan-mir+yan-rt,119,native,2,,"front-end rule, std function or tooling surface"
+R586,109,"Surface names from Wang Xizhi's 兰亭集序, decided by the owner: Yong 永 and Wen 文 kep","1, 16.7, 26",0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R587,110,"std.path (RFC 0008), decided by the owner: `Path` value type over `str` (R587); ",17.3,2,pass,ok,yan-interp+yan-mir+yan-rt,119,native,2,,"front-end rule, std function or tooling surface"
+R588,110,"std.path (RFC 0008), decided by the owner: `Path` value type over `str` (R587); ",17.3,1,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R589,110,"std.path (RFC 0008), decided by the owner: `Path` value type over `str` (R587); ",17.3,2,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R590,110,"std.path (RFC 0008), decided by the owner: `Path` value type over `str` (R587); ",17.3,3,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R591,110,"std.path (RFC 0008), decided by the owner: `Path` value type over `str` (R587); ",17.3,0,none,n/a,yan-mir+yan-rt,119,native-uncased,2,,"front-end rule, std function or tooling surface"
+R592,110,"std.path (RFC 0008), decided by the owner: `Path` value type over `str` (R587); ",17.3,1,pass,ok,yan-interp+yan-rt,119,native,2,,"front-end rule, std function or tooling surface"
+R593,111,"std.time (RFC 0009), decided by the owner: `Duration` API before units (R593); `","11.6, 17.5",7,pass,ok,yan-interp+yan-rt,22,native,2,,"front-end rule, std function or tooling surface"
+R594,111,"std.time (RFC 0009), decided by the owner: `Duration` API before units (R593); `","11.6, 17.5",1,pass,ok,,22,native,2,,"front-end rule, std function or tooling surface"
+R595,111,"std.time (RFC 0009), decided by the owner: `Duration` API before units (R593); `","11.6, 17.5",2,pass,ok,yan-interp+yan-rt,22,native,2,,"front-end rule, std function or tooling surface"
+R596,111,"std.time (RFC 0009), decided by the owner: `Duration` API before units (R593); `","11.6, 17.5",1,pass,ok,yan-interp,22,native,2,,"front-end rule, std function or tooling surface"
+R597,111,"std.time (RFC 0009), decided by the owner: `Duration` API before units (R593); `","11.6, 17.5",1,pass,ok,yan-interp+yan-rt,22,native,2,,"front-end rule, std function or tooling surface"
+R598,111,"std.time (RFC 0009), decided by the owner: `Duration` API before units (R593); `","11.6, 17.5",2,pass,ok,yan-interp+yan-mir+yan-rt,22,native,2,,"front-end rule, std function or tooling surface"
+R599,111,"std.time (RFC 0009), decided by the owner: `Duration` API before units (R593); `","11.6, 17.5",2,pass,ok,yan-interp+yan-rt,22,native,2,,"front-end rule, std function or tooling surface"
+R600,111,"std.time (RFC 0009), decided by the owner: `Duration` API before units (R593); `","11.6, 17.5",1,pass,ok,yan-interp+yan-rt,22,native,2,,"front-end rule, std function or tooling surface"
+R601,111,"std.time (RFC 0009), decided by the owner: `Duration` API before units (R593); `","11.6, 17.5",2,pass,ok,yan-elab+yan-interp+yan-rt,22,native,2,,"front-end rule, std function or tooling surface"
+R602,111,"std.time (RFC 0009), decided by the owner: `Duration` API before units (R593); `","11.6, 17.5",1,pass,ok,yan-interp+yan-mir+yan-rt,22,native,2,,"front-end rule, std function or tooling surface"
+R603,111,"std.time (RFC 0009), decided by the owner: `Duration` API before units (R593); `","11.6, 17.5",0,none,n/a,yan-interp+yan-rt,22,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R604,111,"std.time (RFC 0009), decided by the owner: `Duration` API before units (R593); `","11.6, 17.5",1,pass,ok,yan-interp,22,native,2,,"front-end rule, std function or tooling surface"
+R605,112,"Exact solver and guard-aware matches (RFC 0010), decided by the owner: the Omega","8.6, 14.1, 15, 25",0,none,n/a,yan-elab,86,interp-uncased,5,verification,"exact solver, invariant inference, affine index proofs"
+R606,112,"Exact solver and guard-aware matches (RFC 0010), decided by the owner: the Omega","8.6, 14.1, 15, 25",0,none,n/a,yan-elab,86,interp-uncased,5,verification,"exact solver, invariant inference, affine index proofs"
+R607,113,"Proof and test power (RFC 0011), decided by the owner: invariant inference writt","8.7, 18.1, 18.4, 19.2, 21.4, 25",0,none,n/a,,21,none,5,verification,"exact solver, invariant inference, affine index proofs"
+R608,113,"Proof and test power (RFC 0011), decided by the owner: invariant inference writt","8.7, 18.1, 18.4, 19.2, 21.4, 25",0,none,n/a,,21,none,5,verification,"exact solver, invariant inference, affine index proofs"
+R609,113,"Proof and test power (RFC 0011), decided by the owner: invariant inference writt","8.7, 18.1, 18.4, 19.2, 21.4, 25",0,none,n/a,,21,none,5,verification,"exact solver, invariant inference, affine index proofs"
+R610,114,"New header facts (RFC 0012), decided by the owner: `cost steps <= A, alloc <= B`","3.5, 8.4, 13, 14, 15, 17.4, 18.1, 18.4, 21.4, 25",0,none,n/a,yan-core+yan-elab+yan-hir+yan-ide+yan-interp+yan-mir+yan-rt+yan-surface+yan-yn,64,interp-uncased,4,verification,"contract, cost and header-fact checking"
+R611,114,"New header facts (RFC 0012), decided by the owner: `cost steps <= A, alloc <= B`","3.5, 8.4, 13, 14, 15, 17.4, 18.1, 18.4, 21.4, 25",0,none,n/a,yan-cg-cranelift+yan-elab+yan-interp+yan-mir,64,interp-uncased,4,verification,"contract, cost and header-fact checking"
+R612,114,"New header facts (RFC 0012), decided by the owner: `cost steps <= A, alloc <= B`","3.5, 8.4, 13, 14, 15, 17.4, 18.1, 18.4, 21.4, 25",0,none,n/a,,64,none,4,verification,"contract, cost and header-fact checking"
+R613,115,"Numerics (RFC 0013), decided by the owner: accuracy lint W852 with an e-graph re","11.1, 11.2, 11.5, 25",0,none,n/a,yan-elab,50,interp-uncased,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R614,115,"Numerics (RFC 0013), decided by the owner: accuracy lint W852 with an e-graph re","11.1, 11.2, 11.5, 25",0,none,n/a,,50,none,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R615,115,"Numerics (RFC 0013), decided by the owner: accuracy lint W852 with an e-graph re","11.1, 11.2, 11.5, 25",0,none,n/a,,50,none,4,,"numerics: libm, reductions, autodiff, correctly rounded math"
+R616,116,"Reference agent loop (RFC 0014), decided by the owner: `yan agent` at M1 over th","18.1, 21.1, 21.4, 21.6, 25",0,none,n/a,,12,none,4,,"post-1.0 surface, engine or agent-loop work"
+R617,116,"Reference agent loop (RFC 0014), decided by the owner: `yan agent` at M1 over th","18.1, 21.1, 21.4, 21.6, 25",0,none,n/a,,12,none,4,,"post-1.0 surface, engine or agent-loop work"
+R618,116,"Reference agent loop (RFC 0014), decided by the owner: `yan agent` at M1 over th","18.1, 21.1, 21.4, 21.6, 25",0,none,n/a,,12,none,4,,"post-1.0 surface, engine or agent-loop work"
+R619,116,"Reference agent loop (RFC 0014), decided by the owner: `yan agent` at M1 over th","18.1, 21.1, 21.4, 21.6, 25",0,none,n/a,,12,none,4,,"post-1.0 surface, engine or agent-loop work"
+R620,116,"Reference agent loop (RFC 0014), decided by the owner: `yan agent` at M1 over th","18.1, 21.1, 21.4, 21.6, 25",0,none,n/a,,12,none,4,,"post-1.0 surface, engine or agent-loop work"
+R621,116,"Reference agent loop (RFC 0014), decided by the owner: `yan agent` at M1 over th","18.1, 21.1, 21.4, 21.6, 25",0,none,n/a,yan-cli,12,none,4,,"post-1.0 surface, engine or agent-loop work"
+R622,117,"Guaranteed zero-cost abstractions (RFC 0015), decided by the owner: lambda set s","5.5, 5.7, 9.3, 10.6, 11.3, 13, 17",0,none,n/a,,11,none,4,,"deferred overflow, check elision, loop versioning"
+R623,117,"Guaranteed zero-cost abstractions (RFC 0015), decided by the owner: lambda set s","5.5, 5.7, 9.3, 10.6, 11.3, 13, 17",0,none,n/a,,11,none,4,,"deferred overflow, check elision, loop versioning"
+R624,117,"Guaranteed zero-cost abstractions (RFC 0015), decided by the owner: lambda set s","5.5, 5.7, 9.3, 10.6, 11.3, 13, 17",0,none,n/a,,11,none,4,,"deferred overflow, check elision, loop versioning"
+R625,118,"Data engines (RFC 0016), decided by the owner: DBSP incremental views in `@yan/f","5.6, 9.3, 10.6, 11.2, 11.9, 17, 25",0,none,n/a,,50,none,4,,"post-1.0 surface, engine or agent-loop work"
+R626,118,"Data engines (RFC 0016), decided by the owner: DBSP incremental views in `@yan/f","5.6, 9.3, 10.6, 11.2, 11.9, 17, 25",0,none,n/a,,50,none,4,,"post-1.0 surface, engine or agent-loop work"
+R627,118,"Data engines (RFC 0016), decided by the owner: DBSP incremental views in `@yan/f","5.6, 9.3, 10.6, 11.2, 11.9, 17, 25",0,none,n/a,yan-cli+yan-elab,50,interp-uncased,4,,"post-1.0 surface, engine or agent-loop work"
+R628,118,"Data engines (RFC 0016), decided by the owner: DBSP incremental views in `@yan/f","5.6, 9.3, 10.6, 11.2, 11.9, 17, 25",0,none,n/a,,50,none,4,,"post-1.0 surface, engine or agent-loop work"
+R629,119,"std algorithms (RFC 0017), decided by the owner: `boolean=True` regex patterns w","11.1, 17",0,none,n/a,,10,none,3,,cross-cutting rule or mid-size subsystem
+R630,119,"std algorithms (RFC 0017), decided by the owner: `boolean=True` regex patterns w","11.1, 17",0,none,n/a,,10,none,3,,cross-cutting rule or mid-size subsystem
+R631,119,"std algorithms (RFC 0017), decided by the owner: `boolean=True` regex patterns w","11.1, 17",0,none,n/a,,10,none,3,,cross-cutting rule or mid-size subsystem
+R632,119,"std algorithms (RFC 0017), decided by the owner: `boolean=True` regex patterns w","11.1, 17",0,none,n/a,,10,none,3,,cross-cutting rule or mid-size subsystem
+R633,120,"Session protocols (RFC 0018), decided by the owner: `session.protocol` global pr","9.5, 9.6, 25",0,none,n/a,yan-elab,19,interp-uncased,5,concurrency,session types
+R634,120,"Session protocols (RFC 0018), decided by the owner: `session.protocol` global pr","9.5, 9.6, 25",0,none,n/a,yan-elab+yan-mir,19,interp-uncased,5,concurrency,session types
+R635,121,"Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names","12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25",0,none,n/a,,14,none,3,,cross-cutting rule or mid-size subsystem
+R636,121,"Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names","12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25",0,none,n/a,yan-cli+yan-elab,14,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R637,121,"Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names","12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25",0,none,n/a,,14,none,3,,cross-cutting rule or mid-size subsystem
+R638,121,"Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names","12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25",0,none,n/a,yan-elab,14,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R639,121,"Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names","12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25",0,none,n/a,,14,none,3,,cross-cutting rule or mid-size subsystem
+R640,121,"Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names","12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25",0,none,n/a,,14,none,3,,cross-cutting rule or mid-size subsystem
+R641,121,"Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names","12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25",0,none,n/a,,14,none,3,,cross-cutting rule or mid-size subsystem
+R642,121,"Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names","12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25",0,none,n/a,yan-elab,14,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R643,121,"Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names","12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25",0,none,n/a,yan-cli,14,none,3,,cross-cutting rule or mid-size subsystem
+R644,121,"Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names","12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25",0,none,n/a,,14,none,3,,cross-cutting rule or mid-size subsystem
+R645,121,"Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names","12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25",0,none,n/a,yan-cli,14,none,3,,cross-cutting rule or mid-size subsystem
+R646,121,"Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names","12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25",0,none,n/a,yan-cli,14,none,3,,cross-cutting rule or mid-size subsystem
+R647,121,"Packaging and ecosystem (RFC 0020), decided by the owner: local dependency names","12.7, 12.8, 17.8, 18.1, 19.1, 19.3, 19.4, 23, 25",0,none,n/a,,14,none,3,,cross-cutting rule or mid-size subsystem
+R648,122,"Error messages (RFC 0021), decided by the owner: D1, E545 registered in section ","17.2, 25",0,none,n/a,,25,none,2,,"front-end rule, std function or tooling surface"
+R649,123,"Error messages (RFC 0021) D2, decided by the owner: a construct the toolchain do","18.2, 25",0,none,n/a,yan-db+yan-elab+yan-yn,5,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R650,124,"Error messages (RFC 0021) D3, decided by the owner: the R294 line format leaves ",18.2,0,none,n/a,yan-diag,4,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R651,125,"Error messages (RFC 0021) D4, decided by the owner: E200 and E203 carry near nam",18.2,0,none,n/a,yan-diag+yan-elab,4,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R652,126,"Tally slice findings (examples/tally), decided by the owner: Yan variant pattern","11.7, 15.2, 15.3, 24.3",0,none,n/a,,39,none,2,,"front-end rule, std function or tooling surface"
+R653,126,"Tally slice findings (examples/tally), decided by the owner: Yan variant pattern","11.7, 15.2, 15.3, 24.3",0,none,n/a,,39,none,2,,"front-end rule, std function or tooling surface"
+R654,126,"Tally slice findings (examples/tally), decided by the owner: Yan variant pattern","11.7, 15.2, 15.3, 24.3",0,none,n/a,,39,none,2,,"front-end rule, std function or tooling surface"
+R655,130,"Learnability (RFC 0024), decided by the owner: `print` and `eprint` take any `Sh","3.4, 11.1, 14.1, 17.1",0,none,n/a,yan-elab,99,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R656,130,"Learnability (RFC 0024), decided by the owner: `print` and `eprint` take any `Sh","3.4, 11.1, 14.1, 17.1",0,none,n/a,yan-elab,99,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R657,130,"Learnability (RFC 0024), decided by the owner: `print` and `eprint` take any `Sh","3.4, 11.1, 14.1, 17.1",0,none,n/a,yan-elab,99,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R658,131,"Python idiom parity (RFC 0024), decided by the owner: `min` and `max` over one i","14.1, 14.4, 17.2, 25",0,none,n/a,yan-elab+yan-interp,121,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R659,131,"Python idiom parity (RFC 0024), decided by the owner: `min` and `max` over one i","14.1, 14.4, 17.2, 25",0,none,n/a,yan-elab+yan-interp,121,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R660,131,"Python idiom parity (RFC 0024), decided by the owner: `min` and `max` over one i","14.1, 14.4, 17.2, 25",0,none,n/a,yan-elab+yan-interp,121,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R661,131,"Python idiom parity (RFC 0024), decided by the owner: `min` and `max` over one i","14.1, 14.4, 17.2, 25",0,none,n/a,yan-yag,121,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R662,132,"Habit help (RFC 0024), decided by the owner: `habit` children on diagnostics tri","15.1, 15.5, 18.2, 18.9, 25",0,none,n/a,yan-diag,21,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R663,132,"Habit help (RFC 0024), decided by the owner: `habit` children on diagnostics tri","15.1, 15.5, 18.2, 18.9, 25",0,none,n/a,yan-yn,21,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R664,132,"Habit help (RFC 0024), decided by the owner: `habit` children on diagnostics tri","15.1, 15.5, 18.2, 18.9, 25",0,none,n/a,,21,none,2,,"front-end rule, std function or tooling surface"
+R665,134,"`yan review` (RFC 0023), decided by the owner: the command over git revisions at","18.1, 18.4, 21.5",0,none,n/a,,6,none,2,,"front-end rule, std function or tooling surface"
+R666,134,"`yan review` (RFC 0023), decided by the owner: the command over git revisions at","18.1, 18.4, 21.5",0,none,n/a,,6,none,2,,"front-end rule, std function or tooling surface"
+R667,134,"`yan review` (RFC 0023), decided by the owner: the command over git revisions at","18.1, 18.4, 21.5",0,none,n/a,,6,none,2,,"front-end rule, std function or tooling surface"
+R668,134,"`yan review` (RFC 0023), decided by the owner: the command over git revisions at","18.1, 18.4, 21.5",0,none,n/a,,6,none,2,,"front-end rule, std function or tooling surface"
+R669,134,"`yan review` (RFC 0023), decided by the owner: the command over git revisions at","18.1, 18.4, 21.5",0,none,n/a,,6,none,2,,"front-end rule, std function or tooling surface"
+R670,134,"`yan review` (RFC 0023), decided by the owner: the command over git revisions at","18.1, 18.4, 21.5",0,none,n/a,,6,none,2,,"front-end rule, std function or tooling surface"
+R671,134,"`yan review` (RFC 0023), decided by the owner: the command over git revisions at","18.1, 18.4, 21.5",0,none,n/a,,6,none,2,,"front-end rule, std function or tooling surface"
+R672,127,"Security model (RFC 0026), decided by the owner: host handlers are unforgeable, ","7.1, 7.3, 10.4, 12.2, 12.7, 17.6, 18.3, 19.2, 19.3, 19.4, 21.1, 21.4, 25",0,none,n/a,yan-elab,55,interp-uncased,4,effects,"capabilities, determinism and relaxed-math blocks"
+R673,127,"Security model (RFC 0026), decided by the owner: host handlers are unforgeable, ","7.1, 7.3, 10.4, 12.2, 12.7, 17.6, 18.3, 19.2, 19.3, 19.4, 21.1, 21.4, 25",0,none,n/a,,55,none,4,effects,"capabilities, determinism and relaxed-math blocks"
+R674,127,"Security model (RFC 0026), decided by the owner: host handlers are unforgeable, ","7.1, 7.3, 10.4, 12.2, 12.7, 17.6, 18.3, 19.2, 19.3, 19.4, 21.1, 21.4, 25",1,pass,ok,yan-interp,55,native,4,effects,"capabilities, determinism and relaxed-math blocks"
+R675,127,"Security model (RFC 0026), decided by the owner: host handlers are unforgeable, ","7.1, 7.3, 10.4, 12.2, 12.7, 17.6, 18.3, 19.2, 19.3, 19.4, 21.1, 21.4, 25",0,none,n/a,yan-cli+yan-elab,55,interp-uncased,4,effects,"capabilities, determinism and relaxed-math blocks"
+R676,127,"Security model (RFC 0026), decided by the owner: host handlers are unforgeable, ","7.1, 7.3, 10.4, 12.2, 12.7, 17.6, 18.3, 19.2, 19.3, 19.4, 21.1, 21.4, 25",0,none,n/a,yan-cli+yan-db+yan-elab+yan-interp+yan-rt,55,interp-uncased,4,effects,"capabilities, determinism and relaxed-math blocks"
+R677,127,"Security model (RFC 0026), decided by the owner: host handlers are unforgeable, ","7.1, 7.3, 10.4, 12.2, 12.7, 17.6, 18.3, 19.2, 19.3, 19.4, 21.1, 21.4, 25",0,none,n/a,,55,none,4,effects,"capabilities, determinism and relaxed-math blocks"
+R680,128,"Formal core model (RFC 0022), decided by the owner: a Lean 4 model of Yan-K unde","22.1, 26.1",0,none,n/a,,0,none,5,formal,Lean model of the core
+R681,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",5,pass,ok,,191,native,3,,cross-cutting rule or mid-size subsystem
+R682,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",5,pass,ok,,191,native,3,,cross-cutting rule or mid-size subsystem
+R683,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",2,pass,ok,,191,native,3,,cross-cutting rule or mid-size subsystem
+R684,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",3,pass,ok,,191,native,3,,cross-cutting rule or mid-size subsystem
+R685,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",1,pass,ok,,191,native,3,,cross-cutting rule or mid-size subsystem
+R686,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",1,pass,ok,yan-rt,191,native,3,,cross-cutting rule or mid-size subsystem
+R687,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",1,pass,ok,,191,native,3,,cross-cutting rule or mid-size subsystem
+R688,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",1,pass,ok,,191,native,3,,cross-cutting rule or mid-size subsystem
+R689,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",1,pass,ok,,191,native,3,,cross-cutting rule or mid-size subsystem
+R690,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",1,pass,ok,,191,native,3,,cross-cutting rule or mid-size subsystem
+R691,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",1,pass,ok,yan-mir,191,native,3,,cross-cutting rule or mid-size subsystem
+R692,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",1,pass,ok,yan-mir,191,native,3,,cross-cutting rule or mid-size subsystem
+R693,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",0,none,n/a,,191,none,3,,cross-cutting rule or mid-size subsystem
+R694,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",6,pass,ok,,191,native,3,,cross-cutting rule or mid-size subsystem
+R695,135,"std system modules (RFC 0019), decided by the owner: `bits` functions (R681); bi","3.4, 7.1, 7.3, 10.4, 17.3, 17.4, 25",5,pass,ok,,191,native,3,,cross-cutting rule or mid-size subsystem
+R760,133,"Inferred loop invariants (RFC 0027), decided by the owner: kills keep implied fa",8.6,1,pass,n/a,yan-elab,31,interp,5,verification,"exact solver, invariant inference, affine index proofs"
+R761,133,"Inferred loop invariants (RFC 0027), decided by the owner: kills keep implied fa",8.6,1,pass,n/a,yan-elab,31,interp,5,verification,"exact solver, invariant inference, affine index proofs"
+R762,133,"Inferred loop invariants (RFC 0027), decided by the owner: kills keep implied fa",8.6,1,pass,n/a,yan-elab,31,interp,5,verification,"exact solver, invariant inference, affine index proofs"
+R763,133,"Inferred loop invariants (RFC 0027), decided by the owner: kills keep implied fa",8.6,2,pass,n/a,yan-elab,31,interp,5,verification,"exact solver, invariant inference, affine index proofs"
+R764,129,"Gaps found by the formal core model (RFC 0022), decided by the owner: a join poi","3.5, 4.1",0,none,n/a,,31,none,4,formal,gaps found by the formal model
+R765,129,"Gaps found by the formal core model (RFC 0022), decided by the owner: a join poi","3.5, 4.1",0,none,n/a,,31,none,4,formal,gaps found by the formal model
+R766,136,"Yan Agent model probe findings, decided by the owner: the lenient reader moves a","14.4, 21.1, 23, 24, 25",0,none,n/a,,44,none,2,,"front-end rule, std function or tooling surface"
+R767,136,"Yan Agent model probe findings, decided by the owner: the lenient reader moves a","14.4, 21.1, 23, 24, 25",0,none,n/a,,44,none,2,,"front-end rule, std function or tooling surface"
+R768,137,"Yan out of the admission path, decided by the owner: K1 and N1 require lowering ","15.4, 16.6, 16.7",0,none,n/a,,0,none,2,,"front-end rule, std function or tooling surface"
+R769,138,"Ownership facts, drops and the `yan-opt` contract (RFC 0028), decided by the own","3.5, 4.2, 5.3, 5.4, 22.2, 22.3, 25",2,pass,ok,yan-elab,62,native,4,ownership,"moves, drops, partial moves, flow facts"
+R770,138,"Ownership facts, drops and the `yan-opt` contract (RFC 0028), decided by the own","3.5, 4.2, 5.3, 5.4, 22.2, 22.3, 25",0,none,n/a,yan-check+yan-opt,62,interp-uncased,4,ownership,"moves, drops, partial moves, flow facts"
+R771,138,"Ownership facts, drops and the `yan-opt` contract (RFC 0028), decided by the own","3.5, 4.2, 5.3, 5.4, 22.2, 22.3, 25",0,none,n/a,yan-cli+yan-mir+yan-opt,62,native-uncased,4,ownership,"moves, drops, partial moves, flow facts"
+R772,138,"Ownership facts, drops and the `yan-opt` contract (RFC 0028), decided by the own","3.5, 4.2, 5.3, 5.4, 22.2, 22.3, 25",0,none,n/a,yan-core+yan-mir+yan-opt,62,interp-uncased,4,ownership,"moves, drops, partial moves, flow facts"
+R773,138,"Ownership facts, drops and the `yan-opt` contract (RFC 0028), decided by the own","3.5, 4.2, 5.3, 5.4, 22.2, 22.3, 25",0,none,n/a,yan-opt,62,native-uncased,4,ownership,"moves, drops, partial moves, flow facts"
+R774,139,"Names: Yan 言, decided by the owner: project, toolchain, core and binary `yan` (c","1, 16.7, 26",0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R775,140,Marks and namespaces after the Yan rename: YAN (word) and the 言 logo replace YON,26.5,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R776,141,"Yan Meta, the lab and canary surface (RFC 0029), decided by the owner: the third","1, 2, 16.6, 20.6, 22, 23, 25, 26",0,none,n/a,,30,none,5,research,"research track, not normative for 1.0"
+R777,141,"Yan Meta, the lab and canary surface (RFC 0029), decided by the owner: the third","1, 2, 16.6, 20.6, 22, 23, 25, 26",0,none,n/a,,30,none,5,research,"research track, not normative for 1.0"
+R778,141,"Yan Meta, the lab and canary surface (RFC 0029), decided by the owner: the third","1, 2, 16.6, 20.6, 22, 23, 25, 26",0,none,n/a,,30,none,5,research,"research track, not normative for 1.0"
+R779,141,"Yan Meta, the lab and canary surface (RFC 0029), decided by the owner: the third","1, 2, 16.6, 20.6, 22, 23, 25, 26",0,none,n/a,,30,none,5,research,"research track, not normative for 1.0"
+R780,141,"Yan Meta, the lab and canary surface (RFC 0029), decided by the owner: the third","1, 2, 16.6, 20.6, 22, 23, 25, 26",0,none,n/a,,30,none,5,research,"research track, not normative for 1.0"
+R781,141,"Yan Meta, the lab and canary surface (RFC 0029), decided by the owner: the third","1, 2, 16.6, 20.6, 22, 23, 25, 26",0,none,n/a,,30,none,5,research,"research track, not normative for 1.0"
+R782,141,"Yan Meta, the lab and canary surface (RFC 0029), decided by the owner: the third","1, 2, 16.6, 20.6, 22, 23, 25, 26",0,none,n/a,,30,none,5,research,"research track, not normative for 1.0"
+R783,141,"Yan Meta, the lab and canary surface (RFC 0029), decided by the owner: the third","1, 2, 16.6, 20.6, 22, 23, 25, 26",0,none,n/a,,30,none,5,research,"research track, not normative for 1.0"
+R784,141,"Yan Meta, the lab and canary surface (RFC 0029), decided by the owner: the third","1, 2, 16.6, 20.6, 22, 23, 25, 26",0,none,n/a,,30,none,5,research,"research track, not normative for 1.0"
+R785,141,"Yan Meta, the lab and canary surface (RFC 0029), decided by the owner: the third","1, 2, 16.6, 20.6, 22, 23, 25, 26",0,none,n/a,,30,none,5,research,"research track, not normative for 1.0"
+R786,141,"Yan Meta, the lab and canary surface (RFC 0029), decided by the owner: the third","1, 2, 16.6, 20.6, 22, 23, 25, 26",0,none,n/a,,30,none,5,research,"research track, not normative for 1.0"
+R787,142,`upper` and `lower` on `char`: methods of `std.text` that apply to the one-scala,17,0,none,n/a,,1,none,1,,"policy, naming or scope statement; no engineering"
+R788,143,Cancel scopes lower to a Yan Core statement `deadline at { ... }` on a `MonoInst,"3.5, 9.4",0,none,n/a,,29,none,4,concurrency,cancel scopes lowered to deadline statements
+R789,149,"A first `std.net` slice and `mem_net` (RFC 0032), decided by the owner: `Net` wi","7.1, 7.3, 17.3",0,none,n/a,,131,none,3,,cross-cutting rule or mid-size subsystem
+R790,149,"A first `std.net` slice and `mem_net` (RFC 0032), decided by the owner: `Net` wi","7.1, 7.3, 17.3",0,none,n/a,,131,none,3,,cross-cutting rule or mid-size subsystem
+R791,149,"A first `std.net` slice and `mem_net` (RFC 0032), decided by the owner: `Net` wi","7.1, 7.3, 17.3",0,none,n/a,,131,none,3,,cross-cutting rule or mid-size subsystem
+R792,149,"A first `std.net` slice and `mem_net` (RFC 0032), decided by the owner: `Net` wi","7.1, 7.3, 17.3",0,none,n/a,,131,none,3,,cross-cutting rule or mid-size subsystem
+R793,144,Nested optionals keep two levels (RFC 0030): `Option[Option[T]]` is its own type,"14, 17, 25",3,pass,ok,yan-elab,2,native,3,,cross-cutting rule or mid-size subsystem
+R794,144,Nested optionals keep two levels (RFC 0030): `Option[Option[T]]` is its own type,"14, 17, 25",1,pass,ok,yan-elab,2,native,3,,cross-cutting rule or mid-size subsystem
+R795,144,Nested optionals keep two levels (RFC 0030): `Option[Option[T]]` is its own type,"14, 17, 25",3,pass,ok,yan-elab,2,native,3,,cross-cutting rule or mid-size subsystem
+R796,145,"Panic payloads carry numeric operand fields only (RFC 0031): integer, float, boo","8.3, 14, 17",0,none,n/a,yan-cg-cranelift+yan-interp+yan-mir+yan-rt,10,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R797,146,Item-level `@deny(code)` makes a W8xx lint an error inside the item in every bui,"10, 18.2, 25",3,fail,n/a,yan-elab,5,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R798,147,Default `min_release_age` is 7 days; moving off a yanked or malicious locked ver,19,0,none,n/a,,0,none,2,,"front-end rule, std function or tooling surface"
+R799,148,Non-goal: no variant names resolved from the expected type in Yan or Yan Agent (,26,0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R800,150,E210 relaxed: a callee with exactly two parameters takes them positionally even ,"14.1, 15.3",2,pass,n/a,yan-elab,79,interp,2,,"front-end rule, std function or tooling surface"
+R801,151,"Free prelude functions `ord(c) -> int`, `chr(n) -> char fail EncodingError` (new",17.2,4,pass,ok,yan-elab+yan-hir,24,native,2,,"front-end rule, std function or tooling surface"
+R802,152,A one-character `str` literal (no prefix or `r`) takes type `char` where `char` ,3.4,4,pass,n/a,yan-elab,28,interp,2,,"front-end rule, std function or tooling surface"
+R803,153,"Python string and char predicates as std functions: `str.count(part)`, `str.isdi",17.3,1,pass,ok,,119,native,2,,"front-end rule, std function or tooling surface"
+R804,154,"N33 lifts Python's `map(f, xs)` and `filter(f, xs)` to the eager `xs.map(f)` and","14.4, 17.2",1,pass,n/a,,66,interp,2,,"front-end rule, std function or tooling surface"
+R805,155,"N34 accepts Python spellings of the `char` and `str` predicates, `Regex.findall`","14.4, 17.3",1,pass,n/a,,161,interp,2,,"front-end rule, std function or tooling surface"
+R806,156,"N35 lifts `re.match`, `re.search`, `re.fullmatch`, `re.split`, `re.sub` and `re.","14.4, 17.3",1,pass,n/a,,161,interp,2,,"front-end rule, std function or tooling surface"
+R807,157,Standing policy: a Python builtin or method that models reach for and Yan Agent ,14.4,0,none,n/a,,42,none,2,,"front-end rule, std function or tooling surface"
+R808,158,"Empty `[]` and `{}` bindings take their type from the first `append`, `extend`, ",14.1,3,pass,ok,yan-elab+yan-hir,54,native,2,,"front-end rule, std function or tooling surface"
+R809,160,"`ex f(x) == v` means `Ok(v)` and `fail e` as an operand is `Err(e)`, so `ex f(x)",14.1,1,pass,ok,,54,native,3,,cross-cutting rule or mid-size subsystem
+R810,161,A tuple of one element type is iterable in `for`; indexing or `len` on an `iter`,"14.1, 17.2",5,pass,ok,,78,native,2,,"front-end rule, std function or tooling surface"
+R811,162,`with shield(d):` holds enclosing cancellation for a bounded block with its own ,9.4,0,none,n/a,,4,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R812,163,Opening a shield needs the marker capability `uses shield`; expiry is `fail Shie,"7.1, 9.4",0,none,n/a,,13,none,3,,cross-cutting rule or mid-size subsystem
+R813,164,"One-way `actor.send(h).f(args)`: admission semantics, shared FIFO with `call`, d",9.6,2,pass,ok,yan-elab+yan-interp+yan-mir+yan-rt,16,native,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R814,165,"Mailbox overflow policy in the handle type `Actor[S, P]`, failed send returns it",9.6,0,none,n/a,,16,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R815,166,`once` function types: a call consumes the value; `par` below plain below `once`,4.6,0,none,n/a,,8,none,4,ownership,"moves, drops, partial moves, flow facts"
+R816,167,"`once` closure literals are marked explicitly (E327), `@linear` captures, single",4.6,0,none,n/a,,8,none,4,ownership,"moves, drops, partial moves, flow facts"
+R817,168,"`@pattern` extractors and view patterns `(f -> p)` with `Option`, `bool` and sum","8.6, 15.3",0,none,n/a,,56,none,4,,"post-1.0 surface, engine or agent-loop work"
+R818,169,"Extractors take constant arguments, may be trait methods, contribute `post` fact","8.6, 15.3",0,none,n/a,,56,none,3,,cross-cutting rule or mid-size subsystem
+R819,170,"Manifest `lints=Lints(strict, deny, forbid)` that only strengthens, with std lin","18.2, 18.3, 19.1",0,none,n/a,,28,none,2,,"front-end rule, std function or tooling surface"
+R820,171,`@@deny` and `@@forbid` on a module; user-written lint analyzers are a 1.0 non-g,"10.6, 18.2, 26.2",1,fail,n/a,,9,case-failing,3,,cross-cutting rule or mid-size subsystem
+R821,172,"`with fast_math:` block and the relaxed set (contraction, reassociation, sign of","7.7, 10.6",0,none,n/a,,8,none,4,effects,"capabilities, determinism and relaxed-math blocks"
+R822,173,"`with strict:` escape, `with unordered:` block, Core `relaxed { ... }`, lints W8","7.7, 10.6",0,none,n/a,,8,none,4,effects,"capabilities, determinism and relaxed-math blocks"
+R823,174,"`rand.state() -> Option[RandState]` with opaque `RandState` bytes, `seeded(state","7.1, 17.3",0,none,n/a,,128,none,3,,cross-cutting rule or mid-size subsystem
+R824,175,Split rule: a branch seed depends on the task path through a per-task split coun,"7.7, 17.3",0,none,n/a,,122,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R825,176,"`tls.Profile` enum `compatible` and `modern`, narrowing-only `.only`, no raw con","9.6.1, 17.6, 18.3",0,none,n/a,,35,none,2,,"front-end rule, std function or tooling surface"
+R826,177,"The data profile (RFC 0033), decided by the owner: a profile of Yan Agent, not a","17.3, 19.1, 25",0,none,n/a,yan-yag,129,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R827,177,"The data profile (RFC 0033), decided by the owner: a profile of Yan Agent, not a","17.3, 19.1, 25",0,none,n/a,yan-elab+yan-yag,129,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R828,177,"The data profile (RFC 0033), decided by the owner: a profile of Yan Agent, not a","17.3, 19.1, 25",0,none,n/a,,129,none,3,,cross-cutting rule or mid-size subsystem
+R829,177,"The data profile (RFC 0033), decided by the owner: a profile of Yan Agent, not a","17.3, 19.1, 25",0,none,n/a,,129,none,3,,cross-cutting rule or mid-size subsystem
+R830,178,N36 takes a `char` where `str` is expected as its one-character `str`: arguments,"3.4, 14.4",4,pass,ok,,70,native,2,,"front-end rule, std function or tooling surface"
+R831,179,"N37 collects an `iter` where a `list` is expected, an `iter` call result indexed","14.4, 17.2",4,pass,ok,,66,native,2,,"front-end rule, std function or tooling surface"
+R832,180,"A name first bound on every path through an `if` with an `else`, or in a `with` ",14.1,3,pass,ok,yan-elab,54,native,2,,"front-end rule, std function or tooling surface"
+R833,181,"N38 takes an `int` variable where `float` is expected, or mixed with a `float` i","3.4, 14.4",4,pass,ok,,70,native,2,,"front-end rule, std function or tooling surface"
+R834,182,"N39 maps Python `math` names: `abs`, `fabs`, `isnan`, `isinf`, `isfinite`, int-t","14.4, 17.2",3,pass,ok,,66,native,2,,"front-end rule, std function or tooling surface"
+R835,183,"N40 on `re` calls: a compiled pattern calls its method, Python flags become inli","14.4, 17.2",4,pass,ok,,66,native,2,,"front-end rule, std function or tooling surface"
+R836,184,`bigint ** int` with a non-negative exponent is a `bigint` (R836),11.1,1,pass,ok,,9,native,2,,"front-end rule, std function or tooling surface"
+R837,185,"Spelling marks from elaboration to raise (RFC 0034, accepted by the owner): the ","16.5, 18.1, 25.4",0,none,n/a,,13,none,3,,cross-cutting rule or mid-size subsystem
+R838,185,"Spelling marks from elaboration to raise (RFC 0034, accepted by the owner): the ","16.5, 18.1, 25.4",0,none,n/a,,13,none,3,,cross-cutting rule or mid-size subsystem
+R839,185,"Spelling marks from elaboration to raise (RFC 0034, accepted by the owner): the ","16.5, 18.1, 25.4",0,none,n/a,,13,none,3,,cross-cutting rule or mid-size subsystem
+R840,185,"Spelling marks from elaboration to raise (RFC 0034, accepted by the owner): the ","16.5, 18.1, 25.4",0,none,n/a,,13,none,3,,cross-cutting rule or mid-size subsystem
+R841,185,"Spelling marks from elaboration to raise (RFC 0034, accepted by the owner): the ","16.5, 18.1, 25.4",0,none,n/a,,13,none,3,,cross-cutting rule or mid-size subsystem
+R842,185,"Spelling marks from elaboration to raise (RFC 0034, accepted by the owner): the ","16.5, 18.1, 25.4",0,none,n/a,,13,none,3,,cross-cutting rule or mid-size subsystem
+R843,185,"Spelling marks from elaboration to raise (RFC 0034, accepted by the owner): the ","16.5, 18.1, 25.4",0,none,n/a,,13,none,3,,cross-cutting rule or mid-size subsystem
+R844,186,"A doc on a parameter, field, variant, associated type or dict, list or tuple ent",16.5,0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R845,187,Sub-item docs are `#:` lines in Yan Agent and `---` lines in Yan above the node;,"13.1, 15.1, 15.3",0,none,n/a,,56,none,2,,"front-end rule, std function or tooling surface"
+R846,188,"Parameter docs in an `Args:` section or above the parameter, both kept; the `Doc","16.5, 18.9, 25.4",1,pass,n/a,yan-db,16,interp,2,,"front-end rule, std function or tooling surface"
+R847,189,"Variant docs are a `Variants:` section in the type doc, `Name:` and `Name.field:",18.9,0,none,n/a,,6,none,2,,"front-end rule, std function or tooling surface"
+R848,190,`yan doc` shows sub-item docs and counts them in `--coverage`; W860 for a sectio,"18.9, 25.10",1,pass,n/a,yan-db,6,interp,2,,"front-end rule, std function or tooling surface"
+R849,191,"Lenient reader: N41 PEP 257 attribute strings and `Attributes:`, N42 reST, Googl","14.4, 25.4",1,pass,n/a,yan-db,50,interp,2,,"front-end rule, std function or tooling surface"
+R850,192,`Const` mark: an inlined std constant written by name; raise re-evaluates the co,16.5,0,none,n/a,yan-surface,2,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R851,193,`Negated` mark: unary minus lowered to `-1.0 * x` on a float or to `0 - x` on an,16.5,0,none,n/a,yan-surface,2,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R852,194,`Qualified` mark: a std variant written module-qualified; an unmarked variant pr,16.5,0,none,n/a,yan-surface,2,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R853,195,`Lenient(code)` mark: the N-code of the lenient rewrite that produced a call; ra,"14.4, 16.5",0,none,n/a,yan-surface,44,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R854,196,Raise removes widening conversions that carry an origin mark; no new mark kind (,16.5,0,none,n/a,yan-elab,2,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R855,197,"Literal trivia covers float, string and char literal forms, validated by parsing","16.5, 18.5",0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R856,198,`Operator` mark: a power written with `**`; raise reprints the operator only if ,16.5,0,none,n/a,yan-surface,2,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R857,199,`Operator` mark also on the first `std.text.concat` of a chain written with `+`;,16.5,0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R858,200,"`Lenient(code)` may sit on an atom or on the first statement of a rewrite, as N3",16.5,0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R859,201,"`Explicit` mark: an argument equal to the parameter's default was written, as `r",16.5,0,none,n/a,yan-surface,2,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R860,202,"`Parallel` mark: a tuple assignment's snapshot bindings; raise prints `a, b = e1",16.5,0,none,n/a,yan-elab+yan-surface,2,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R861,203,`Prelude` mark: the expansion of a prelude `divmod` or `pow` call; raise re-expa,"16.5, 17.2",0,none,n/a,yan-surface,26,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R862,204,The node-path walk enters closure bodies: statement s of a closure is its statem,16.5,0,none,n/a,,2,none,2,,"front-end rule, std function or tooling surface"
+R863,205,`Hoisted` mark: a declaration elaboration inserted before an `if` or `with` for ,"14.1, 16.5",0,none,n/a,yan-hir+yan-surface,56,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R864,206,`View` mark: a view type written in a signature; raise prints `View[T]` only if ,"4.5, 16.5",0,none,n/a,yan-surface,5,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R865,207,`Schema(type)` mark on `cli.parse_args[T]` and `cli.parse[T]()`; raise prints `[,"16.5, 17.3",0,none,n/a,yan-surface,121,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R866,208,`Comprehension` mark: a comprehension lowered to a binding and an appending loop,16.5,0,none,n/a,yan-hir+yan-surface,2,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R867,209,An `ex` line of a Yan Agent function survives elaboration as its text in an `Exa,"8.4, 16.5",0,none,n/a,yan-surface,12,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R868,210,`Parenthesized` mark: a tuple written in parentheses; raise validates the node i,16.5,0,none,n/a,yan-hir+yan-surface,2,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R869,211,Spelling marks `FlagsKeyword` and `FlagsPositional` record how Python `re` flags,"14.4, 16.5",0,none,n/a,,44,none,2,,"front-end rule, std function or tooling surface"
+R870,212,"`Lemma`, `GhostParam`, `GhostStmt` and `GhostContract` marks keep the text of wh","8.7, 16.5",0,none,n/a,yan-elab+yan-hir+yan-surface,8,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R871,213,"The `?` form of optimized Yan Core carries a drop list, `f(x)? drop a, b`: the o","3.5, 5.3",0,none,n/a,yan-mir,28,native-uncased,3,,cross-cutting rule or mid-size subsystem
+R872,214,"A derived trait whose field type does not implement it is E282, for `Eq`, `Ord`,","10.4, 17.4, 25.4",0,none,n/a,yan-elab,39,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R873,215,"E282 is reported once per offending field, at the field's type annotation; a fie","10.4, 17.4, 25.4",0,none,n/a,yan-elab,39,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R874,216,"A sum type is written in json as one object with an internal tag: key `tag`, ren","17.3, 17.4",4,pass,ok,yan-cli+yan-elab+yan-interp+yan-rt,134,native,2,,"front-end rule, std function or tooling surface"
+R875,217,Typed json shapes: a record is an object in declaration order; `T | None` is `nu,"17.3, 17.4",3,pass,ok,yan-cli+yan-interp,134,native,2,,"front-end rule, std function or tooling surface"
+R876,218,Unknown fields in typed json are rejected unless the record has `@wire(unknown: ,"17.3, 17.4",5,pass,ok,yan-interp+yan-rt,134,native,2,,"front-end rule, std function or tooling surface"
+R877,219,"`JsonReason` gains `Mismatch(path, expected, found)`, `Missing(path, field)`, `U","17.3, 17.4",1,pass,ok,yan-elab+yan-interp+yan-rt,134,native,2,,"front-end rule, std function or tooling surface"
+R878,220,"`csv.parse[T: Wire](s, delimiter="","") -> list[T] fail CsvError` and `csv.dump[T:","17.3, 17.4",2,pass,ok,yan-elab+yan-interp+yan-rt,134,native,2,,"front-end rule, std function or tooling surface"
+R879,221,"A csv cell is a bool, int, float, str, `T | None` of those, a newtype over them,","17.3, 17.4, 25.5",3,pass,ok,yan-elab,145,native,2,,"front-end rule, std function or tooling surface"
+R880,222,"`type CsvError = { line, col, row, column, reason: CsvReason }` with `CsvReason ","17.3, 17.4",1,pass,ok,yan-elab+yan-interp+yan-rt,134,native,2,,"front-end rule, std function or tooling surface"
+R881,223,"Typed json and csv are accepted by round-trip cases of a record, optional and de","17.3, 17.4",6,pass,ok,yan-rt,134,native,2,,"front-end rule, std function or tooling surface"
+R882,224,A `contract` panic names its clause by the item hash and the clause's zero-based,8.3,1,pass,ok,yan-interp+yan-mir+yan-rt,9,native,2,,"front-end rule, std function or tooling surface"
+R883,225,A `contract` or `assert` panic carries the numeric free variables of the predica,8.3,0,none,n/a,yan-rt,9,native-uncased,2,,"front-end rule, std function or tooling surface"
+R884,226,A `bounds` panic for a missing dict key carries the first 64 bits of BLAKE3 over,8.3,0,none,n/a,yan-rt,9,native-uncased,2,,"front-end rule, std function or tooling surface"
+R885,227,`shape` leaves the kinds that carry operand fields until a runtime shape check e,8.3,0,none,n/a,,9,none,2,,"front-end rule, std function or tooling surface"
+R886,228,"`@wire(names: {a: ""x""})` on a record or sum renames its fields and variants on t","15.3, 17.3, 17.4, 25.5",11,pass,ok,yan-elab+yan-interp+yan-rt,170,native,2,,"front-end rule, std function or tooling surface"
+R887,229,"`@wire(tag: ""kind"")` and `@wire(unknown: ""ignore"")` are read on the item for jso","17.3, 17.4, 25.5",9,pass,ok,,145,native,2,,"front-end rule, std function or tooling surface"
+R888,230,"`edition` in `package.yag` is `""next""` or a four-digit year of 2026 or later, so","19.1, 20.4, 25.5",0,none,n/a,,28,none,2,,"front-end rule, std function or tooling surface"
+R889,231,"`yan schema gen <file>` keeps its meaning (table row types, 11.9); the JSON Sche","18.1, 23",0,none,n/a,,3,none,2,,"front-end rule, std function or tooling surface"
+R890,232,the manifest is `package.yag`; no other file name is read (RFC 0044),19.1,0,none,n/a,,9,none,2,,"front-end rule, std function or tooling surface"
+R891,233,"`package.yag` rejects fields outside the table and requires `name`, `version`, `","19.1, 25.2",0,none,n/a,yan-elab,9,interp-uncased,2,,"front-end rule, std function or tooling surface"
+R892,234,"`yan.lock` is TOML in a canonical print: `format` first, pinned-data tables, the",19.1,0,none,n/a,yan-cli,9,none,2,,"front-end rule, std function or tooling surface"
+R893,235,"the lock's `format` is an integer; newer toolchains read older formats, reading ","19.1, 25.2",0,none,n/a,,9,none,2,,"front-end rule, std function or tooling surface"
+R894,236,"the resolver reads each version's `.info` requirements, applies overrides, then ",19.1,0,none,n/a,yan-cli,9,none,2,,"front-end rule, std function or tooling surface"
+R895,237,"`.info` is JSON with archive digest, publisher identity, capability set, require","19.3, 25.2",0,none,n/a,yan-cli,0,none,2,,"front-end rule, std function or tooling surface"
+R896,238,"only `add`, `remove`, `update`, `approve`, `vendor` and `yan lock` write `yan.lo","18.1, 19.1, 25.2",0,none,n/a,yan-cli,12,none,2,,"front-end rule, std function or tooling surface"
+R897,239,`crypto_rand.fill_bytes(&buf)` fills a `bytearray` in place and `crypto_rand.ran,"7.1, 17.3",0,none,n/a,,128,none,2,,"front-end rule, std function or tooling surface"
+R898,240,"Yan Core text lexical rules: names, numeric and string literals, labels, 1-based",3.5,0,none,n/a,,25,none,2,,"front-end rule, std function or tooling surface"
+R899,241,"canonical layout: four-space indent, one statement per line, contracts before th","3.5, 16",0,none,n/a,,25,none,2,,"front-end rule, std function or tooling surface"
+R900,242,a comma continues a `uses` capability set inside a list unless the next name is ,15.2,0,none,n/a,,6,none,2,,"front-end rule, std function or tooling surface"
+R901,243,"checker readings: scalars copy, E602 recursion edges, flow-sensitive E401, unkno","4.2, 8.1, 25.2",0,none,n/a,,49,none,3,,cross-cutting rule or mid-size subsystem
+R902,244,"E210 exempts `become` arguments; bitwise `&`, `|`, `^` lower to non-overflowing ",14.1,0,none,n/a,,54,none,3,,cross-cutting rule or mid-size subsystem
+R903,245,"`par` order and lowest-index failure, `&` element copy-back with `exclusive_chec","4.3, 9.2, 14.1",0,none,n/a,,76,none,4,ownership,"moves, drops, partial moves, flow facts"
+R904,246,"Yan signature continuation, grid sign errors, time literals, stage-0 postfix cha","15.1, 15.2",0,none,n/a,,16,none,2,,"front-end rule, std function or tooling surface"
+R905,247,"stage-0 readings: constant `let`, template instances, E272 notes, `embed` resolv",10.4,0,none,n/a,,16,none,4,staging,"compile-time evaluation, reflection and type functions"
+R906,248,"`T` to `T | None` injection, `is None` narrowing and N15 truth tests (RFC 0045)","8.1, 14.1",0,none,n/a,,78,none,2,,"front-end rule, std function or tooling surface"
+R907,249,"slices, bigint literals, error unions, `post` and `old`, literal range E201, `Or","8.4, 14.1, 14.4",0,none,n/a,,106,none,2,,"front-end rule, std function or tooling surface"
+R908,250,missing dict key panics with kind `bounds`; bigint intrinsics are `<op>_bigint`;,"8.3, 11",0,none,n/a,,9,none,2,,"front-end rule, std function or tooling surface"
+R909,251,"`str.parse_int`, `parse_float` and `splitlines` accepted forms (RFC 0046)",17.3,0,none,n/a,,119,none,2,,"front-end rule, std function or tooling surface"
+R910,252,"std.regex: `split` keeps groups, error text is the engine's, group panics are `b",17.3,0,none,n/a,,119,none,2,,"front-end rule, std function or tooling surface"
+R911,253,"std.collections: one submodule per type, sorted iteration, constructors take lis","17.2, 17.3",0,none,n/a,,143,none,2,,"front-end rule, std function or tooling surface"
+R912,254,"`FsError`, `fake_fs`, `std.test` in scope without import, std classes lowered in",17.3,0,none,n/a,,119,none,2,,"front-end rule, std function or tooling surface"
+R913,255,`Error` is a message and a context list; `?` converts through `std.error.wrap`; ,17.3,0,none,n/a,,119,none,2,,"front-end rule, std function or tooling surface"
+R914,256,intrinsic registry generated from declarations; ids are build-local and resolved,22.1,0,none,n/a,,0,none,2,,"front-end rule, std function or tooling surface"
+R915,257,"conformance header layout: leading comment lines, `stdout:` blocks, `patch/` cas",24.1,0,none,n/a,,0,none,2,,"front-end rule, std function or tooling surface"
+R916,258,"patch module addressing, `--module`, `b3:` item hash, edits match canonical text",18.3,0,none,n/a,,15,none,2,,"front-end rule, std function or tooling surface"
+R917,259,"P006 protection set, P003 `--check`, whole-text oplog lines (RFC 0047)","18.3, 25.2",0,none,n/a,,15,none,2,,"front-end rule, std function or tooling surface"
+R918,260,"`yan mcp` module serving, token budget, `autofix`, `sig` and patch tools (RFC 00",21.4,0,none,n/a,,7,none,2,,"front-end rule, std function or tooling surface"
+R919,261,"ffi module by directory, `core.ffi` names with LP64 sizes, `MutView` and `View` ",12,0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R920,262,"FFI diagnostics E905, E906, E907, E911, `@forbid(alloc)`; interior NUL and `@for","12, 25.2",0,none,n/a,,2,none,4,,ABI and foreign-call layout
+R921,263,"native code starts in M1b before the M1 gate, interpreter stays the oracle, Cran","22.1, 22.6",0,none,n/a,,0,none,3,,cross-cutting rule or mid-size subsystem
+R922,264,interim native layout and no drops until drop elaboration (RFC 0047),"5.2, 5.3, 22.2",0,none,n/a,,3,none,3,,cross-cutting rule or mid-size subsystem
+R923,265,"unsafe confined to `yan-rt` and `yan-cg-cranelift` entry points, lazy JIT, primi","22.3, 22.4",0,none,n/a,,0,none,2,,"front-end rule, std function or tooling surface"
+R924,266,"`yan test` package, ids, budgets, test hash, `--gate` and output formats (RFC 00",18.4,0,none,n/a,,3,none,2,,"front-end rule, std function or tooling surface"
+R925,267,"`cost` bounds cover the body, the call charged to the caller; one `alloc` is a f",8.4,0,none,n/a,yan-cg-cranelift+yan-elab+yan-mir+yan-rt,10,interp-uncased,4,verification,"contract, cost and header-fact checking"
+R926,268,"Session details: protocol payloads in the module's surface, `X` or `continue X` ","9.5, 25",0,none,n/a,yan-elab,3,interp-uncased,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R927,269,`parse_int` and `parse_float` on `char`: methods of `std.text` that apply to the,17,1,pass,ok,,1,native,2,,"front-end rule, std function or tooling surface"
+R928,270,N35 and N34 accept `re.finditer` and `Regex.finditer` as `find_all` (RFC 0048),14.4,1,pass,ok,,42,native,2,,"front-end rule, std function or tooling surface"
+R929,271,"E201 on arithmetic with an `int`, `float` or `str` optional carries a `choice` f",25,1,pass,n/a,,1,interp,2,,"front-end rule, std function or tooling surface"
+R930,272,"Lenient reader: N44 loop `else`, N45 nested comprehension, N46 chained assignmen","14.4, 25",1,pass,ok,,43,native,2,,"front-end rule, std function or tooling surface"
+R931,273,`yan import --python` applies the Python-side N-codes and lists them as notes; c,17.8,0,none,n/a,,0,none,2,,"front-end rule, std function or tooling surface"
+R932,274,N49: the lenient reader accepts positional arguments where E210 is the only faul,"14.1, 14.4, 25",2,pass,ok,,97,native,2,,"front-end rule, std function or tooling surface"
+R933,159,"An empty `[]` or `{}` argument, in a body or an `ex` line, takes the type of the",14.1,0,none,n/a,,54,none,2,,"front-end rule, std function or tooling surface"
+R934,275,`io.read_all() -> str` reads the rest of standard input; `io.read_line` strips `,"7.1, 17.3",0,none,n/a,,128,none,2,,"front-end rule, std function or tooling surface"
+R935,276,N50 and N51: the lenient reader reads `s[a:b:c]` on a `str` as a Python slice ov,"14.1, 14.4, 25",0,none,n/a,,97,none,2,,"front-end rule, std function or tooling surface"
+R936,277,"`std.itertools` has `permutations`, `combinations`, `combinations_with_replaceme","14.4, 17.3",0,none,n/a,,161,none,2,,"front-end rule, std function or tooling surface"
+R937,278,`yan schema gen <file>` reads only the Parquet footer and prints `# schema blake,"11.9, 18.1",0,none,n/a,,3,none,2,,"front-end rule, std function or tooling surface"
+R938,279,`par concurrent` ranks `SessionClosed` like `Cancelled`: a peer's session failur,"9.4, 9.5",0,none,n/a,,6,none,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R939,280,"A `Type` is a stage-0 handle to a resolved type, compared by type identity (alia","10.4, 17.3",0,none,n/a,,135,none,4,staging,"compile-time evaluation, reflection and type functions"
+R940,281,"E602 fires only in a module that has a `requires`, `ensures`, `example` or loop ","8.4, 25",0,none,n/a,,11,none,3,,cross-cutting rule or mid-size subsystem
+R941,282,"`record_type`, `sum_type` and `newtype` reify reflection records into nominal ty","10.4, 14.1, 17.3, 25",0,none,n/a,,190,none,4,staging,"compile-time evaluation, reflection and type functions"
+R942,283,"A user type-function application may appear in any type position, with stage-0 e","10.4, 25",0,none,n/a,,17,none,4,staging,"compile-time evaluation, reflection and type functions"
+R943,284,"`.yan/config.yag` is one `Config(registries, min_release_age, trust, offline, st","19.1, 19.3",0,none,n/a,yan-cli+yan-elab,9,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R944,285,Archives are content-addressed: `archives/<sha256>.zip` and an unpacked `src/<sh,"19.3, 19.4, 25.2",0,none,n/a,yan-cli,0,none,3,,cross-cutting rule or mid-size subsystem
+R945,286,"Each `[[package]]` table has fields in the order name, version, source, digest, ","19.1, 19.4",0,none,n/a,,9,none,3,,cross-cutting rule or mid-size subsystem
+R946,287,"A `registries` value may be a directory, an `https://` URL, or an `http://` URL ",19.3,0,none,n/a,yan-cli,0,none,3,,cross-cutting rule or mid-size subsystem
+R947,288,"Before the registry exists, E004 is enforced with no search snapshot meaning not","19.3, 19.4",0,none,n/a,yan-cli,0,none,3,,cross-cutting rule or mid-size subsystem
+R948,289,`yan vendor` copies every locked archive and referenced bundle into `vendor/` wi,"18.1, 19.4",0,none,n/a,yan-cli,3,none,3,,cross-cutting rule or mid-size subsystem
+R949,290,A version's `.info` lists the advisory ids it fixes and affects; a fix of an adv,"19.3, 19.4",0,none,n/a,yan-cli,0,none,3,,cross-cutting rule or mid-size subsystem
+R950,291,"An override replaces only its (name, major) and the lock records `source = ""over",19.1,0,none,n/a,yan-cli+yan-elab,9,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R951,292,"`dependencies`, `dev_dependencies` and `tools` resolve as three subgraphs; a pac",19.1,0,none,n/a,yan-cli+yan-elab,9,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R952,293,"`@access(name: region, ...)` binds one region to each array parameter and `out` ","10.6, 11.2, 25",7,pass,n/a,yan-elab,46,interp,5,verification,"exact solver, invariant inference, affine index proofs"
+R953,294,"`@kernel(tile: M, N)` functions take one `TileOrigin` parameter (an `int` per ti","11.2, 17.1",9,pass,ok,yan-elab,48,native,4,gpu/kernel,"kernel regions, tiles and launch"
+R954,295,"An `@access` claim on a body is verified by an affine index proof over literals,","11.2, 25",11,pass,ok,yan-elab,41,native,5,verification,"exact solver, invariant inference, affine index proofs"
+R955,296,"Region meanings relative to the tile origin and shape, and the optional `halo: h","11.2, 25",11,pass,ok,yan-elab,41,native,5,verification,"exact solver, invariant inference, affine index proofs"
+R956,297,"`actor.spawn(state: S, capacity: int = 1024) -> Actor[S, P]` moves the state int",17.3,1,pass,ok,yan-elab,119,native,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R957,298,An actor spawned outside every `with supervisor` is owned by a root supervisor s,9.6,0,none,n/a,yan-elab+yan-interp+yan-rt,16,interp-uncased,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R958,299,`actor.spawn(state)` children are `temporary`; a restartable child is `ChildSpec,"9.6, 17.3",0,none,n/a,yan-elab+yan-interp+yan-mir+yan-rt,135,interp-uncased,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R959,300,Under `sequential` tasks are ordered by task path (par concurrent branch: parent,9.1,0,none,n/a,yan-elab+yan-interp+yan-rt,1,interp-uncased,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R960,301,"`cluster = sim(nodes, seed)`: in-process nodes with their own root supervisor, s",9.6.1,0,none,n/a,,19,none,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R961,302,"`yan-flow` is the one move, last-use and drop analysis: a generic control-flow g","4.2, 5.3",0,none,n/a,,28,none,4,ownership,"moves, drops, partial moves, flow facts"
+R962,303,Facts are keyed by binding identity assigned at definition: a shadowing `let` or,"4.2, 5.3",1,pass,n/a,,28,interp,4,ownership,"moves, drops, partial moves, flow facts"
+R963,304,Three facts solved to a fixed point: maybe-moved (a read of a maybe-moved bindin,"4.2, 5.3, 5.4, 10.6",9,pass,ok,,41,native,5,ownership,fixed-point maybe-moved analysis
+R964,305,Loops are decided by the graph: a read in a loop body is followed by every read ,4.2,5,pass,n/a,,25,interp,4,ownership,"moves, drops, partial moves, flow facts"
+R965,306,"`yan-flow` migrates in order: crate, elaborator, checker, `yan-opt` drops, then ","4.2, 5.3",0,none,n/a,,28,none,2,,"front-end rule, std function or tooling surface"
+R966,307,"Implementation language, replacing R215: the 1.0 toolchain is written in Yan; th","22.1, 22.2, 22.7, 23, 26.1",0,none,n/a,,0,none,1,,decision record (language choice)
+R967,308,Self-hosting stages S0 to S5 with byte-equality gates against stage 0 on the cor,"22.7, 23",0,none,n/a,,0,none,5,selfhost/llvm,"self-hosting stages, LLVM backend, compiler in Yan"
+R968,309,The Yan compiler generates code through LLVM's C API for debug and release build,"1, 18.1, 22.7",0,none,n/a,,3,none,5,selfhost/llvm,"self-hosting stages, LLVM backend, compiler in Yan"
+R969,310,"The compiler is written in Yan (`.yn`); the Yan lexer, parser, printer and lower","22.7, 23",0,none,n/a,,0,none,5,selfhost/llvm,"self-hosting stages, LLVM backend, compiler in Yan"
+R970,311,"S2 starts after formal phases 1 and 2, which wait for the M1 gate; stage 0 keeps",22.7,0,none,n/a,,0,none,2,,sequencing statement for S2
+R971,312,"`gpu.launch(k, args...)` runs a `@kernel` function once per program instance und","7.1, 17.1",7,pass,ok,,17,native,4,gpu/kernel,"kernel regions, tiles and launch"
+R972,313,The launch grid follows the `out` region: instances step by the extent the regio,17.1,2,pass,ok,,8,native,4,gpu/kernel,"kernel regions, tiles and launch"
+R973,314,An `out` size on a stepped axis that is not a literal divisible by the step is E,"17.1, 25",1,pass,n/a,yan-elab,9,interp,3,,cross-cutting rule or mid-size subsystem
+R974,315,"Overflow policies are the fieldless std types `Block`, `DropOldest`, `DropNew` a","9.6, 14, 17.3",3,pass,ok,yan-elab+yan-interp+yan-rt,135,native,3,,cross-cutting rule or mid-size subsystem
+R975,316,"`actor.send_only(h)` returns `SendOnly[S, P]` (remotely `Remote[SendOnly[S, P]]`","9.6, 17.3",2,pass,ok,yan-elab,135,native,4,distributed,"remote send, undelivered and stop reasons"
+R976,317,"A send fails `Undelivered[A, R]` with `reason: R` and `args: A`, the handler's a","9.6, 17.3",4,pass,ok,yan-elab+yan-interp+yan-mir+yan-rt,135,native,4,distributed,"remote send, undelivered and stop reasons"
+R977,318,`Stopped(reason: StopReason)` with `StopReason = Normal() | Shutdown() | Crashed,"9.6, 9.6.1, 17.3",2,pass,ok,yan-elab+yan-interp+yan-mir+yan-rt,154,native,4,distributed,"remote send, undelivered and stop reasons"
+R978,319,"`with supervisor(spec):` takes a `Supervisor` built by `actor.one_for_one`, `one","9.6, 17.3",3,pass,ok,,135,native,4,concurrency,"select, supervision and restart semantics"
+R979,320,"`actor.start(ChildSpec(start, (args...), restart=permanent), capacity=1024) -> A","9.6, 17.3",2,pass,ok,,135,native,2,,"front-end rule, std function or tooling surface"
+R980,321,"A handler failure stops its actor: the caller gets the failure, queued messages ",9.6,5,pass,ok,,16,native,4,concurrency,"select, supervision and restart semantics"
+R981,322,Exceeding a supervisor's restart intensity stops its children in reverse start o,9.6,1,pass,ok,yan-mir,16,native,4,concurrency,"select, supervision and restart semantics"
+R982,323,`halo: h` holds on `extern` `@access` claims as on `@kernel` claims; Core spells,"3, 11.2",6,pass,n/a,yan-core,41,interp,4,verification,"contract, cost and header-fact checking"
+R983,324,"A malformed `@kernel` declaration (a decorator other than `@kernel(tile: M, N)` ","11.2, 25",8,pass,n/a,yan-elab,41,interp,4,verification,"contract, cost and header-fact checking"
+R984,325,"`yan mcp package [DIR] [--allow CAP,...] [--list]` serves a package's public fun","18.1, 21.4",1,pass,n/a,,10,interp,2,,"front-end rule, std function or tooling surface"
+R985,326,"Every `pub def` of the package's entry module (`src/main.yag`, else `src/lib.yag",21.4,5,pass,n/a,,7,interp,2,,"front-end rule, std function or tooling surface"
+R986,327,A served call binds only capabilities the operator granted with `--allow` (defau,21.4,2,pass,n/a,,7,interp,2,,"front-end rule, std function or tooling surface"
+R987,328,"conformance/mcp/ holds served-package cases: `root/`, `yan mcp package` flags, a",24.1,0,none,n/a,,0,none,2,,"front-end rule, std function or tooling surface"
+R988,50,"simulated nodes: node 0 is the binding task, per-node root supervisors, a handle",9.6.1,3,pass,ok,,19,native,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R989,51,"`cluster.spawn(ChildSpec, placement=, capacity=)` returns `Remote`; `std.cluster",9.6.1,5,pass,ok,,19,native,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R990,329,"release scope trimmed to the polish floor (RFC 0064 D1): reactive notebooks, liv","13.2, 18.1, 18.9, 23",0,none,n/a,,22,none,1,,"policy, naming or scope statement; no engineering"
+R991,330,1.x bucket of section 23 ships under the 20.7 release train after the 1.0 editio,"22.7, 23",0,none,n/a,,0,none,1,,"policy, naming or scope statement; no engineering"
+R992,52,"`sim(nodes, seed, faults=Faults(drop, delay, partition, heal, cuts))`: per-pair ",9.6.1,3,pass,ok,,19,native,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R993,53,`cluster.monitor(remote)` returns a `Receiver[Stopped]` that gets one `Stopped(r,9.6.1,2,pass,ok,,19,native,5,distributed,"location-transparent remote calls, faults, simulated nodes"
+R994,331,"The Yan Agent and Yan canonical-form grammars are generated from the reader, nev","14.3, 18.1",0,none,n/a,,10,none,3,,cross-cutting rule or mid-size subsystem
+R995,332,Every reader builds one lossless red-green syntax tree holding every token with ,"16.5, 16.7",0,none,n/a,yan-cst+yan-yag+yan-yn,2,interp-uncased,3,,cross-cutting rule or mid-size subsystem
+R996,333,"N7 is checked as a lens law pair, PutGet `S(elaborate(F)) == F` and GetPut `elab","16.5, 16.7",0,none,n/a,,2,none,3,,cross-cutting rule or mid-size subsystem
+R997,334,`hole_context` also returns the definitions of the types named by the hole's exp,"21.2, 21.4",0,none,n/a,yan-ide,10,none,2,,"front-end rule, std function or tooling surface"
+R998,335,`proc.run` and `proc.spawn` confine each child to the caller's `fs` and `net` gr,"7.1, 7.4, 17.3",0,none,n/a,yan-sandbox,129,interp-uncased,4,effects,"capabilities, determinism and relaxed-math blocks"
+R999,336,"`std.sim` PCT scheduling, `pct(depth = d)`, seeded with d - 1 priority change po",17.7,2,pass,ok,yan-interp+yan-rt,3,native,4,concurrency,"structured concurrency, mailboxes, cancellation, scheduling"
+R1000,337,"Rewriting attributes (R783) run on egglog, replacing `egg` for these rewrites, u",26.6,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
+R1001,338,Design bases for three niche surface RFCs: EverParse 3D constructs plus a Kaitai,16.7,0,none,n/a,,0,none,5,research,"research track, not normative for 1.0"
