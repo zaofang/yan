@@ -426,6 +426,25 @@ fn parse_zoned(s: &str) -> Result<Vec<i64>, Fail> {
     Ok(zoned_words(ns, z).expect("in range"))
 }
 
+fn parse_instant(s: &str) -> Result<Vec<i64>, Fail> {
+    let mut r = Reader::new(s);
+    let dt = r.datetime()?;
+    let off_at = r.i;
+    let offset = r.offset()?.unwrap_or(0);
+    let off_text: String = r.cs[off_at..r.i].iter().collect();
+    if r.cs.get(r.i) == Some(&'[') {
+        let at = r.i;
+        let tag = r.tag()?;
+        if !(matches!(tag.as_str(), "UTC" | "Etc/UTC") || tag == off_text) {
+            return Err((at as i64, ZONE));
+        }
+    }
+    r.end()?;
+    in_instant(wall_ns(dt) - offset * 60 * NS)
+        .map(|ns| words(ns).to_vec())
+        .ok_or((0, RANGE))
+}
+
 fn strptime<T>(
     s: &str,
     fmt: &str,
@@ -517,6 +536,7 @@ fn run_more(op: &str, a: &[i64]) -> Done {
         "datetime.parse" => lift(whole(text(a[0]), Reader::datetime), dt_words),
         "period.parse" => lift(parse_period(text(a[0])), |p| p),
         "zoned.parse" => lift(parse_zoned(text(a[0])), |w| w),
+        "instant.parse" => lift(parse_instant(text(a[0])), |w| w),
         "zone.parse" => match intern(text(a[0])) {
             Some(z) => int(z),
             None => Done::Err(0, ZONE),
