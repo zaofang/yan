@@ -878,6 +878,7 @@ const RT: &[RtFn] = &[
     RtFn::ClusterFaultSend,
     RtFn::ClusterMonitor,
     RtFn::SimCheck,
+    RtFn::ClusterReplied,
     RtFn::ClusterSendMismatch,
     RtFn::ClusterAdmit,
     RtFn::ClusterArrive,
@@ -2214,6 +2215,12 @@ fn rt_fn(
             cluster::yan_rt_cluster_reach as *const u8,
             &[I64],
             None,
+        ),
+        RtFn::ClusterReplied => (
+            "yan_rt_cluster_replied",
+            cluster::yan_rt_cluster_replied as *const u8,
+            &[],
+            Some(I64),
         ),
         RtFn::SimCheck => (
             "yan_rt_sim_check",

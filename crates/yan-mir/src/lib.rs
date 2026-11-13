@@ -585,6 +585,8 @@ pub enum RtFn {
     ClusterReach,
     /// `(actor)`: the message of a send through `Remote`.
     ClusterFaultSend,
+    /// `()`: whether the last call through `Remote` got its reply.
+    ClusterReplied,
     /// `(out, trace, machines)`: the `TraceVerdict` of `check_trace` into `out`.
     SimCheck,
     /// `(actor, channel)`: the channel gets a `Stopped` when the actor stops.
