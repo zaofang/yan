@@ -1,0 +1,27 @@
+# The page terminals get at / (index.txt): these lines, the first tour program with its checked
+# output, then the links.
+lines = [
+  "Yan is a programming language with one core and many surfaces.",
+  "Programs name the capabilities they use; code that names none is pure.",
+]
+file = "hello.yag"
+
+[[links]]
+id = "tour"
+summary = "the language, one idea per page"
+path = "tour/"
+
+[[links]]
+id = "play"
+summary = "check and run Yan in the browser"
+path = "play/"
+
+[[links]]
+id = "status"
+summary = "conformance, spec debt and benchmarks, per commit"
+path = "status/"
+
+[[links]]
+id = "source"
+summary = "compiler, spec and conformance suite"
+url = "https://github.com/zaofang/yan"

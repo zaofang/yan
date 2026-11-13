@@ -1,4 +1,5 @@
-"""Builds the static website (home, tour, playground, status, blog) and checks its programs.
+"""Builds the static website (home, tour, playground, status, blog, the terminal page) and checks
+its programs.
 
 uv run python -m tools.site build OUT [--url URL] [--no-wasm]
 uv run python -m tools.site check --yan target/release/yan
@@ -13,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 import zlib
 from collections import Counter
 from dataclasses import dataclass, field
@@ -410,6 +412,20 @@ def status_page(build: Build) -> Page:
     return Page("status/index.html", "Status", "\n".join(body))
 
 
+def terminal_page(tour: Page, build: Build) -> str:
+    """index.txt, served at / to terminals by site/worker.js."""
+    c = tomllib.loads((SITE / "terminal.toml").read_text())
+    hello, stdout = next((p, p.stdout) for p in tour.programs if p.stdout is not None)
+    col = max(len(x["id"]) for x in c["links"]) + 3
+    lines = ["言 yan", "", *c["lines"], "", f"$ cat {c['file']}", hello.source.rstrip("\n"), ""]
+    lines += [f"$ yan run {c['file']}", stdout.rstrip("\n"), ""]
+    for x in c["links"]:
+        url = x.get("url") or build.url + x["path"]
+        lines += [x["id"].ljust(col) + x["summary"], " " * col + url]
+    lines += ["", f"built from {build.commit[:7]} on {build.day}", "a zaofang project · 造坊出品"]
+    return "\n".join(lines) + "\n"
+
+
 def pages(build: Build) -> tuple[list[Page], str]:
     home = render((SITE / "index.md").read_text(), "index.html", "")
     blog, feed = blog_pages(build)
@@ -438,9 +454,8 @@ def build(out: Path, url: str, wasm: bool, status: Path | None) -> None:
         current = next((h for h, _ in NAV if p.path.startswith(h)), "")
         target.write_text(layout(p, info, current))
     (out / "blog/feed.xml").write_text(feed)
-    (out / ".nojekyll").write_text("")
-    if (SITE / "CNAME").exists():
-        shutil.copy(SITE / "CNAME", out / "CNAME")
+    tour = next(p for p in all_pages if p.path.startswith("tour/0"))
+    (out / "index.txt").write_text(terminal_page(tour, info))
 
 
 def check_program(yan: str, p: Program) -> str | None:

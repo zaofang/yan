@@ -10,3 +10,4 @@ playground/yan.wasm
 bench/r567/runs/
 bench/r567/out/
 _site/
+.wrangler/

@@ -2,7 +2,7 @@ import base64
 import zlib
 from pathlib import Path
 
-from tools.site import Build, layout, pages, render, share_hash
+from tools.site import Build, layout, pages, render, share_hash, terminal_page
 
 
 def test_share_hash_round_trips_through_raw_deflate() -> None:
@@ -28,3 +28,13 @@ def test_every_page_renders_with_relative_links(tmp_path: Path) -> None:
     for p in all_pages:
         assert 'href="/' not in layout(p, build, "")
     assert feed.startswith("<?xml")
+
+
+def test_terminal_page_shows_the_first_tour_program_and_absolute_links() -> None:
+    build = Build("abcdef0" + "0" * 33, "2026-01-01", "https://yanlang.dev/")
+    tour = next(p for p in pages(build)[0] if p.path.startswith("tour/0"))
+    text = terminal_page(tour, build)
+    hello = tour.programs[0]
+    assert hello.source.rstrip("\n") in text and hello.stdout and hello.stdout in text
+    assert "https://yanlang.dev/play/" in text and "<" not in text
+    assert "abcdef0 on 2026-01-01" in text

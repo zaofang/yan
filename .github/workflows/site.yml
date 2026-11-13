@@ -1,8 +1,9 @@
 name: site
 
 # Builds the website (tools/site.py) with the playground's wasm on every PR that touches it, and
-# deploys it to GitHub Pages after each green ci run on main (push or nightly), with that run's
-# status artifact rendered on the status page (#871). No server code: Pages serves the files as built.
+# deploys it to yanlang.dev (Cloudflare Workers static assets, site/wrangler.jsonc) after each green
+# ci run on main (push or nightly), with that run's status artifact rendered on the status page
+# (#871). The only server code is site/worker.js, which serves index.txt to terminals at /.
 on:
   pull_request:
     paths: [site/**, playground/**, tools/site.py, crates/**, Cargo.lock, .github/workflows/site.yml]
@@ -23,6 +24,9 @@ concurrency:
 
 env:
   WASI_SYSROOT_VERSION: "25"
+  WRANGLER_VERSION: "4.151.3"
+  SITE_URL: https://yanlang.dev/
+  WRANGLER_SEND_METRICS: "false"
 
 jobs:
   build:
@@ -54,9 +58,6 @@ jobs:
       - run: ./playground/build.sh
       - run: cargo build --release -p yan-cli
       - run: uv run python -m tools.site check --yan target/release/yan
-      - id: pages
-        if: github.event_name != 'pull_request'
-        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -64,23 +65,37 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
       - run: >-
-          uv run python -m tools.site build _site --url "${{ steps.pages.outputs.base_url }}/"
+          uv run python -m tools.site build _site --url "$SITE_URL"
           ${{ github.event_name == 'workflow_run' && '--status status.json' || '' }}
+      # Validates the config and bundles the worker without uploading.
+      - run: npx --yes "wrangler@$WRANGLER_VERSION" deploy --config site/wrangler.jsonc --dry-run
       - if: github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
+          name: site
           path: _site
+          include-hidden-files: true
 
   deploy:
-    if: github.event_name != 'pull_request'
+    # workflow_run always runs on the default branch; a manual run deploys only from main.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     permissions:
-      pages: write
-      id-token: write
+      contents: read
+    # Holds CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID; deployment branches: main only.
     environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      name: production
+      url: https://yanlang.dev/
     steps:
-      - id: deploy
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: site
+          path: _site
+      - run: npx --yes "wrangler@$WRANGLER_VERSION" deploy --config site/wrangler.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -34,6 +34,12 @@ const wasi = {
     view().setUint32(read, 0, true);
     return 0;
   },
+  args_sizes_get: (count, size) => {
+    view().setUint32(count, 0, true);
+    view().setUint32(size, 0, true);
+    return 0;
+  },
+  args_get: () => 0,
   environ_sizes_get: (count, size) => {
     view().setUint32(count, 0, true);
     view().setUint32(size, 0, true);
