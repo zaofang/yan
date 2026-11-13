@@ -585,6 +585,8 @@ pub enum RtFn {
     ClusterReach,
     /// `(actor)`: the message of a send through `Remote`.
     ClusterFaultSend,
+    /// `()`: `proc.run` outside a `fake_proc` handler stops.
+    ProcAmbient,
     /// `()`: whether the last call through `Remote` got its reply.
     ClusterReplied,
     /// `(out, trace, machines)`: the `TraceVerdict` of `check_trace` into `out`.

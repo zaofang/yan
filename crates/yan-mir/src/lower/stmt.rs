@@ -438,6 +438,26 @@ impl<'a, 'm> Fn<'a, 'm> {
             {
                 self.with_rand(name, handler, body)
             }
+            // The handler is the `fake_proc` dict, which `with` consumes when the elaborator
+            // made it for this statement; one that returns from the body leaks it.
+            K::With {
+                name,
+                handler,
+                body,
+                ..
+            } if name == "proc" => {
+                let temp = matches!(handler, y::Atom::Name(n, _) if n.starts_with('_'));
+                let held = if temp {
+                    Some(self.atom_any(handler)?)
+                } else {
+                    None
+                };
+                self.with_rand(name, handler, body)?;
+                if let Some((v, s)) = held {
+                    self.glue(&s, &v);
+                }
+                Ok(())
+            }
             K::With { .. } => unsupported("`with`"),
             K::Deadline { .. } => unsupported("`deadline`"),
             K::ComptimeFor { .. } | K::ComptimeIf { .. } => unsupported("a comptime statement"),

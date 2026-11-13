@@ -398,6 +398,16 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let err = named(self, "RegexError")?;
                 Some(result(ok, err))
             }
+            Some(id::STD_PROC_RUN) => {
+                let named = |me: &mut Self, n: &str| {
+                    me.shape(&y::Type::Named(y::Named {
+                        path: vec![n.into()],
+                        args: Vec::new(),
+                    }))
+                };
+                let (ok, err) = (named(self, "Output")?, named(self, "ProcError")?);
+                Some(result(ok, err))
+            }
             Some(id::STD_CLI_PARSE_ARGS) => match self.targ(c)? {
                 Some(ok) => super::civil::std_type("CliError").map(|e| result(ok, e)),
                 None => None,

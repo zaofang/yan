@@ -250,3 +250,10 @@ pub extern "C" fn yan_rt_env_zone(h: u64) -> i64 {
         None => host_zone(),
     }
 }
+
+/// `proc.run` with no `fake_proc` handler would spawn on the host, which native code does not
+/// do: the interpreter confines the child by the entry ceiling.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_proc_ambient() {
+    crate::actor::unsupported("`proc.run` on the host");
+}
