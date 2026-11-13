@@ -1,0 +1,66 @@
+"""S0 readiness program (#852): lex source files into an arena of tokens, count kinds in a map
+and print a summary. Compiler-shaped: lists of records, dict of counts, sorted output."""
+
+class Token:
+    kind: str
+    start: int
+    end: int
+
+def kind_of(c: char) -> str uses none:
+    if c.is_alpha() or c == "_":
+        return "ident"
+    if c.is_digit():
+        return "int"
+    if c == " " or c == "\n":
+        return "space"
+    if c == "#":
+        return "comment"
+    if c == "\"":
+        return "str"
+    return "punct"
+
+def same_run(k: str, c: char) -> bool uses none:
+    if k == "ident":
+        return c.is_alpha() or c.is_digit() or c == "_"
+    if k == "int":
+        return c.is_digit()
+    if k == "space":
+        return c == " " or c == "\n"
+    if k == "comment":
+        return c != "\n"
+    return False
+
+def lex(src: str) -> list[Token] uses none:
+    cs: list[char] = src.chars().collect()
+    toks: list[Token] = []
+    i = 0
+    n = len(cs)
+    while i < n:
+        k = kind_of(cs[i])
+        j = i + 1
+        if k == "str":
+            while j < n and cs[j] != "\"":
+                j += 1
+            j = min(j + 1, n)
+        else:
+            while j < n and same_run(k, cs[j]):
+                j += 1
+        toks.append(Token(kind=k, start=i, end=j))
+        i = j
+    return toks
+
+pub def main() uses io, fs, env:
+    counts: dict[str, int] = {}
+    arena: list[Token] = []
+    files = 0
+    chars = 0
+    for p in env.args():
+        src = fs.read(p) else ""
+        files += 1
+        chars += src.char_count()
+        for t in lex(src):
+            counts[t.kind] = counts.get(t.kind, 0) + 1
+            arena.append(t.copy())
+    io.print(f"files {files} chars {chars} tokens {len(arena)}")
+    for k in sorted(counts.keys()):
+        io.print(f"{k} {counts[k]}")
