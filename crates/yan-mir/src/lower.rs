@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 mod actor;
+mod bigint;
 mod call;
 mod chars;
 mod cluster;
@@ -1056,6 +1057,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 | Shape::Str
                 | Shape::Bytes
                 | Shape::ByteArray
+                | Shape::BigInt
                 | Shape::Path
                 | Shape::List(_)
                 | Shape::Map(..)

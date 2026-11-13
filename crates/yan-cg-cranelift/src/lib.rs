@@ -22,7 +22,8 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::{
-    abi, actor, bytes, chan, chars, cluster, dq, map, pathabi, pq, regexabi, sched, select, slice,
+    abi, actor, bigint, bytes, chan, chars, cluster, dq, map, pathabi, pq, regexabi, sched, select,
+    slice,
 };
 
 type R<T> = Result<T, String>;
@@ -733,6 +734,14 @@ const RT: &[RtFn] = &[
     RtFn::BytesHex,
     RtFn::BytesLossy,
     RtFn::BytesRepr,
+    RtFn::BigFromInt,
+    RtFn::BigBin,
+    RtFn::BigCmp,
+    RtFn::BigShift,
+    RtFn::BigPow,
+    RtFn::BigNot,
+    RtFn::BigBits,
+    RtFn::BigStr,
     RtFn::BytesIndex,
     RtFn::BytesAt,
     RtFn::BytesFind,
@@ -1208,6 +1217,54 @@ fn rt_fn(
         RtFn::BytesLossy => (
             "yan_rt_bytes_lossy",
             bytes::yan_rt_bytes_lossy as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::BigFromInt => (
+            "yan_rt_big_from_int",
+            bigint::yan_rt_big_from_int as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::BigBin => (
+            "yan_rt_big_bin",
+            bigint::yan_rt_big_bin as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::BigCmp => (
+            "yan_rt_big_cmp",
+            bigint::yan_rt_big_cmp as *const u8,
+            &[I64, I64, I64],
+            Some(I8),
+        ),
+        RtFn::BigShift => (
+            "yan_rt_big_shift",
+            bigint::yan_rt_big_shift as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::BigPow => (
+            "yan_rt_big_pow",
+            bigint::yan_rt_big_pow as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::BigNot => (
+            "yan_rt_big_not",
+            bigint::yan_rt_big_not as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::BigBits => (
+            "yan_rt_big_bits",
+            bigint::yan_rt_big_bits as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::BigStr => (
+            "yan_rt_big_str",
+            bigint::yan_rt_big_str as *const u8,
             &[I64],
             Some(I64),
         ),
@@ -2460,6 +2517,10 @@ impl Gen<'_, '_> {
                 self.b.ins().ireduce(types::I8, bit)
             }
             (Not, Ty::Bool) => self.b.ins().bxor_imm_s(a[0], 1),
+            (Not, Ty::Int(t)) => {
+                let n = self.b.ins().bnot(a[0]);
+                self.wrap(t, n)
+            }
             (And, _) => self.b.ins().band(a[0], a[1]),
             (Or, _) => self.b.ins().bor(a[0], a[1]),
             (Xor, _) => self.b.ins().bxor(a[0], a[1]),

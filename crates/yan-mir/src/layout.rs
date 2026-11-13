@@ -77,7 +77,7 @@ fn plain(size: u64, align: u64) -> Layout {
 fn has_null_niche(s: &Shape) -> bool {
     matches!(
         s,
-        Shape::Str | Shape::Bytes | Shape::ByteArray | Shape::Path | Shape::List(_)
+        Shape::Str | Shape::Bytes | Shape::ByteArray | Shape::BigInt | Shape::Path | Shape::List(_)
     )
 }
 
@@ -91,6 +91,7 @@ pub fn layout(s: &Shape) -> Layout {
         Shape::Str
         | Shape::Bytes
         | Shape::ByteArray
+        | Shape::BigInt
         | Shape::Path
         | Shape::List(_)
         | Shape::Map(..)
