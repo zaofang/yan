@@ -1097,6 +1097,18 @@ mod tests {
     }
 
     #[test]
+    fn code_after_a_jump_to_a_falling_through_join_point_is_refused_not_dropped() {
+        let src = "module t\nfn f(let c: bool) -> Unit {\n jp k() {\n  let w: Str = \"c\"\n }\n\
+                   if c { jump k() } else { jump k() }\n let x: Str = \"d\"\n ret ()\n}\n";
+        let (m, d) = yan_core::parse("t.yir", src);
+        assert!(d.is_empty(), "{d:?}");
+        assert!(matches!(
+            elaborate(&m.expect("parses")),
+            Err(Error::Unsupported(_))
+        ));
+    }
+
+    #[test]
     fn a_join_point_that_falls_through_drops_what_its_block_declared_before_it() {
         let t = elab(
             "module t\nfn f(let c: bool) -> Unit {\n if c {\n  let s: Str = \"a\"\n\
