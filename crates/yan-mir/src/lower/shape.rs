@@ -142,8 +142,13 @@ impl Types<'_> {
                     ("ByteArray", []) => return Ok(Shape::ByteArray),
                     ("bigint", []) => return Ok(Shape::BigInt),
                     ("Path", []) => return Ok(Shape::Path),
-                    // A `Rand` handler is its index in `yan_rt::rand`.
-                    ("Rand" | "Fs", []) => return Ok(Shape::Scalar(I64)),
+                    // A capability handler is its index in `yan_rt` (`rand`, `fshandler`,
+                    // `loghandler`), unless the program declares a type of that name.
+                    ("Rand" | "Fs" | "Log", [])
+                        if !self.recs.contains_key(name) && !self.sums.contains_key(name) =>
+                    {
+                        return Ok(Shape::Scalar(I64));
+                    }
                     ("char", []) => return Ok(Shape::Char),
                     // No lazy adapters natively: an `iter` from `std.itertools` is its list.
                     ("List" | "Iter", [y::TArg::Type(e)]) => {

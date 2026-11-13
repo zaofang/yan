@@ -15,6 +15,7 @@ mod encoding;
 mod entry;
 mod error;
 mod iter;
+mod log;
 mod math;
 mod ordering;
 mod path;
@@ -329,6 +330,7 @@ fn handler_cap(p: &y::Param) -> Option<(&str, &'static str)> {
     match p {
         y::Param::Cap { name, ty } if ty.path == ["Rand"] => Some((name, "Rand")),
         y::Param::Cap { name, ty } if ty.path == ["Fs"] => Some((name, "Fs")),
+        y::Param::Cap { name, ty } if ty.path == ["Log"] => Some((name, "Log")),
         _ => None,
     }
 }
@@ -1185,8 +1187,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             .filter(|p| matches!(p, y::Param::Cap { .. }));
         for (p, n) in caps.zip(given) {
             match handler_cap(p) {
-                // An unbound `Fs` is the ambient real file system.
-                Some((_, "Fs")) if !self.names.contains_key(n) => out.push(Operand::Int(0)),
+                // An unbound `Fs` or `Log` is the ambient one.
+                Some((_, "Fs" | "Log")) if !self.names.contains_key(n) => out.push(Operand::Int(0)),
                 Some(_) if def.path != ["main"] => out.extend(Self::ops(self.name(n)?)),
                 _ => {}
             }

@@ -168,6 +168,12 @@ pub enum RtFn {
     FsRead,
     /// `(dict[str, str]) -> handler`
     FsFake,
+    /// `(sink, min level) -> handler`
+    LogNew,
+    /// `(handler, Str, list[tuple[str, str]]) -> handler`
+    LogSpan,
+    /// `(handler, level, Str, list[tuple[str, str]])`
+    LogEvent,
     /// `() -> Str`, why the last `FsRead` failed
     FsReason,
     /// `(Str, Str) -> Str`
