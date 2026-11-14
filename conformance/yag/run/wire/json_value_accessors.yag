@@ -1,0 +1,26 @@
+# spec: 17.3
+# rows: R569, R574
+# note: Value accessors are total; as_float widens an Int; at has no negative index; as_* on the wrong variant give None
+# stdout:
+# get_none=True null=True bool=None int=None float=None str=None list=False dict=False at0=False atneg=False
+# get_none=True null=False bool=True int=None float=None str=None list=False dict=False at0=False atneg=False
+# get_none=True null=False bool=None int=3 float=3.0 str=None list=False dict=False at0=False atneg=False
+# get_none=True null=False bool=None int=None float=2.5 str=None list=False dict=False at0=False atneg=False
+# get_none=True null=False bool=None int=None float=None str=x list=False dict=False at0=False atneg=False
+# get_none=True null=False bool=None int=None float=None str=None list=True dict=False at0=True atneg=False
+# get_none=False null=False bool=None int=None float=None str=None list=False dict=True at0=False atneg=False
+
+def acc(s: str) -> str fail JsonError:
+    v = json.parse_value(s)?
+    g = v.get("a")
+    out = f"get_none={g is None} null={v.is_null()}"
+    out += f" bool={v.as_bool()} int={v.as_int()} float={v.as_float()} str={v.as_str()}"
+    out += f" list={v.as_list() is not None} dict={v.as_dict() is not None} at0={v.at(0) is not None} atneg={v.at(-1) is not None}"
+    return out
+
+def a(s: str) -> str:
+    return acc(s) else err -> "error"
+
+pub def main() uses io:
+    for s in ["null", "true", "3", "2.5", "\"x\"", "[7,8]", "{\"a\":1}"]:
+        io.print(a(s))
