@@ -64,10 +64,12 @@ def spec_debt() -> dict[str, int]:
     cased = {
         r for c in conform.discover(CONFORMANCE) for label in c.rows for r in rows.expand(label)
     }
+    exempt = rows.exempt_rows() & allocated - cased
     codes = tomllib.loads(CODE_MAP.read_text())["codes"]
     return {
         "rows": len(allocated),
-        "rows_without_case": len(allocated - cased),
+        "rows_without_case": len(allocated - cased - exempt),
+        "rows_exempt": len(exempt),
         "codes": len(codes),
         "codes_unimplemented": sum(isinstance(e, dict) for e in codes.values()),
     }
