@@ -103,7 +103,7 @@ impl Lower<'_, '_, '_> {
         Ok((Rhs::Call(c), rt, None))
     }
 
-    fn ptr_pointee(&mut self, e: &j::Expr) -> R<Ty> {
+    pub(super) fn ptr_pointee(&mut self, e: &j::Expr) -> R<Ty> {
         let j::ExprKind::Name(tn) = &e.kind else {
             return unsupported("a `ptr` type argument that is not a name");
         };
@@ -112,5 +112,81 @@ impl Lower<'_, '_, '_> {
             args: Vec::new(),
         };
         self.g.ty(&named, self.cx, e.span)
+    }
+
+    /// `Ptr.of(&place)`: the address of a local, with its provenance (6.6).
+    pub(super) fn ptr_of(&mut self, args: &[j::Arg], at: Span) -> R<(Rhs, Ty, Option<Ty>)> {
+        let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        if !self.cx.ffi {
+            self.err(
+                "E419",
+                at,
+                "`Ptr.of` belongs in an ffi module, under the package's `ffi/` directory".into(),
+            );
+            return Ok(err);
+        }
+        let [
+            j::Arg {
+                kind: j::ArgKind::Ref(e),
+                ..
+            },
+        ] = args
+        else {
+            self.err("E202", at, "`Ptr.of` takes one argument, `&place`".into());
+            return Ok(err);
+        };
+        let j::ExprKind::Name(n) = &e.kind else {
+            return unsupported("`Ptr.of` of a field or element");
+        };
+        let Some(t) = self.locals.get(n).map(|l| l.ty.clone()) else {
+            self.err("E200", e.span, format!("`{n}` is not a local variable"));
+            return Ok(err);
+        };
+        let c = call(
+            "std.ptr.of",
+            vec![t.targ()],
+            vec![Arg::Value(
+                Conv::Inout,
+                Atom::Name(n.clone(), e.span),
+                e.span,
+            )],
+            at,
+        );
+        Ok((Rhs::Call(c), Ty::Foreign("Ptr", vec![t]), None))
+    }
+
+    /// `p.cast[U]()`: the same address and provenance, read as a `U`.
+    pub(super) fn ptr_cast(
+        &mut self,
+        recv: &j::Expr,
+        to: &j::Expr,
+        args: &[j::Arg],
+        at: Span,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let err = (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None);
+        if !args.is_empty() {
+            self.err("E202", at, "`cast` takes no arguments".into());
+            return Ok(err);
+        }
+        let (a, got) = self.atom(recv, None)?;
+        let Ty::Foreign("Ptr", ts) = &got else {
+            if got != Ty::Err {
+                self.err(
+                    "E201",
+                    recv.span,
+                    format!("`cast` takes a `Ptr`, not `{got}`"),
+                );
+            }
+            return Ok(err);
+        };
+        let from = ts[0].clone();
+        let u = self.ptr_pointee(to)?;
+        let c = call(
+            "std.ptr.cast",
+            vec![from.targ(), u.targ()],
+            vec![let_arg(a)],
+            at,
+        );
+        Ok((Rhs::Call(c), Ty::Foreign("Ptr", vec![u]), None))
     }
 }

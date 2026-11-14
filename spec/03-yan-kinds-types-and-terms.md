@@ -165,7 +165,7 @@ Comment  ::= "--" to end of line
 Rules on the grammar:
 
 - Records, sums and newtypes are nominal. Tuples are structural.
-- `Ptr`, `Uninit`, `asm` and `RawCell` are legal only inside `unsafe`. `Ref`, `Ptr`, `Uninit` and `Vec` are Yan-only (L4 to L6) and MUST NOT appear in Yan Agent-elaborated code. `Ptr[T]` is never null; a nullable pointer is `Option[Ptr[T]]`.
+- Dereferencing a `Ptr` (`read`, `write`), reading `Uninit`, `asm` and `RawCell` access are legal only inside `unsafe`. A `Ptr` may be built and passed wherever `unsafe` is permitted (12). `Ref`, `Ptr`, `Uninit` and `Vec` are Yan-only (L4 to L6) and MUST NOT appear in Yan Agent-elaborated code. `Ptr[T]` is never null; a nullable pointer is `Option[Ptr[T]]`.
 - `Call?` propagates a failure; `via` names the `From` conversion when the error types differ and injection does not apply (8.1). `try Call` reifies the outcome as a `Result`.
 - Arithmetic and comparison are calls to named intrinsics (`add_checked_i64`, `eq_f64`, ...); there are no infix operators in Yan.
 - Value-producing `if` and `match` are written with join points: `jp k(x: T) { ... }` is declared before the branch, and each arm ends in `jump k(a)`. Join points map one to one to Cranelift block parameters. A join point body that ends without `ret`, `jump`, `fail`, `become` or `unreachable` continues after the statement of its block that jumped to it (R764).

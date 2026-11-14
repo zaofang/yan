@@ -29,3 +29,27 @@ pub def expose_provenance[T](p: Ptr[T], /) -> Addr: ...
 @intrinsic
 @since("1.0")
 pub def with_exposed_provenance[T](a: Addr, /) -> Ptr[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def of[T](var place: T, /) -> Ptr[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def as_ptr[T](self: list[T], /) -> Ptr[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def offset[T](p: Ptr[T], n: int, /) -> Ptr[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def cast[T, U](p: Ptr[T], /) -> Ptr[U]: ...
+
+@intrinsic
+@since("1.0")
+pub def read[T](p: Ptr[T], /) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def write[T](p: Ptr[T], x: T, /) -> None: ...
