@@ -1,0 +1,10 @@
+"""Arena: a region freed in one step (4.7). `alloc` borrows the arena, so a `Ref` may not outlive
+it (E414)."""
+
+@intrinsic
+@since("1.0")
+pub def alloc[T](self: Arena, take v: T) -> Ref[T] from self: ...
+
+@intrinsic
+@since("1.0")
+pub def Arena() -> Arena: ...

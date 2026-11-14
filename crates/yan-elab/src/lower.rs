@@ -857,7 +857,7 @@ fn function_body_with(
             .ret
             .as_ref()
             .and_then(|r| r.ty.as_ref())
-            .is_some_and(is_view),
+            .is_some_and(|t| is_view(t) || is_ref(t)),
         hints: Rc::clone(hints),
         hoists: Rc::clone(hoists),
         open: HashMap::new(),
@@ -2311,6 +2311,10 @@ fn wire(t: &Ty) -> bool {
 
 pub(crate) fn is_view(t: &j::Type) -> bool {
     matches!(t, j::Type::Named { path, .. } if path.len() == 1 && path[0] == "View")
+}
+
+pub(crate) fn is_ref(t: &j::Type) -> bool {
+    matches!(t, j::Type::Named { path, .. } if path.len() == 1 && path[0] == "Ref")
 }
 
 /// The source text a one-line span covers.
