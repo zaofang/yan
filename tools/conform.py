@@ -41,7 +41,7 @@ from pathlib import Path
 from typing import Literal, Protocol
 
 SURFACES = ("yag", "yn", "yir")
-SURFACE_KINDS = ("pass", "fail", "run")
+SURFACE_KINDS = ("pass", "fail", "run", "opt")
 # Top-level directories of 24.1 and the kind each one is judged as. Kinds without a defined
 # case format yet are discovered and skipped.
 TOP_KINDS = {
@@ -111,6 +111,8 @@ class Executor(Protocol):
 
     def run_ub(self, path: Path, flags: list[str]) -> tuple[str, int]: ...
 
+    def run_opt(self, path: Path, flags: list[str]) -> tuple[str, int]: ...
+
     def patch(
         self, workdir: Path, patch: Path, flags: list[str]
     ) -> tuple[list[dict[str, object]], int]: ...
@@ -149,6 +151,15 @@ class CommandExecutor:
     def run_ub(self, path: Path, flags: list[str]) -> tuple[str, int]:
         out = subprocess.run(
             [*self.argv, "run", "--ub", *flags, str(path)], capture_output=True, text=True
+        )
+        if out.returncode == TOOL_FAILURE and out.stderr.startswith("yan:"):
+            raise ToolFailure(out.stderr.strip())
+        return out.stderr, out.returncode
+
+    def run_opt(self, path: Path, flags: list[str]) -> tuple[str, int]:
+        # Optimizer diagnostics are not in `check`; `run --opt` prints them to stderr.
+        out = subprocess.run(
+            [*self.argv, "run", "--opt", *flags, str(path)], capture_output=True, text=True
         )
         if out.returncode == TOOL_FAILURE and out.stderr.startswith("yan:"):
             raise ToolFailure(out.stderr.strip())
@@ -348,6 +359,9 @@ def _diags(records: list[dict[str, object]], errors_only: bool) -> list[Diag]:
     return sorted(out)
 
 
+_DIAG_LINE = re.compile(r"^([EWN]\d+) \S+?:(\d+):(\d+)", re.MULTILINE)
+
+
 def judge(case: Case, ex: Executor) -> Result:
     try:
         return _judge(case, ex)
@@ -364,6 +378,11 @@ def _judge(case: Case, ex: Executor) -> Result:
                 return Result(name, ex.name, "fail", f"unexpected errors: {got}")
         case "fail":
             got = _diags(ex.check(case.path, case.flags), errors_only=False)
+            if Counter(got) != Counter(case.expect):
+                return Result(name, ex.name, "fail", f"expected {sorted(case.expect)}, got {got}")
+        case "opt":
+            stderr, code = ex.run_opt(case.path, case.flags)
+            got = sorted(Diag(m[1], int(m[2]), int(m[3])) for m in _DIAG_LINE.finditer(stderr))
             if Counter(got) != Counter(case.expect):
                 return Result(name, ex.name, "fail", f"expected {sorted(case.expect)}, got {got}")
         case "run":
