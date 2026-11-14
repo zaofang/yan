@@ -894,7 +894,7 @@ pub(crate) fn int_range(ty: &str) -> Option<(i128, i128)> {
         "u32" => (0, u32::MAX.into()),
         "u64" => (0, u64::MAX.into()),
         "Addr" => (0, u64::MAX.into()),
-        _ => return None,
+        _ => return yan_std::intrinsics::wide_range(ty),
     })
 }
 
@@ -957,7 +957,22 @@ fn ty_static(ty: &str) -> &'static str {
     const NAMES: &[&str] = &[
         "i8", "i16", "i32", "i64", "i128", "u8", "u16", "u32", "u64", "u128", "int",
     ];
-    NAMES.iter().find(|n| **n == ty).copied().unwrap_or("int")
+    static WIDE: std::sync::Mutex<Vec<&'static str>> = std::sync::Mutex::new(Vec::new());
+    if let Some(n) = NAMES.iter().find(|n| **n == ty) {
+        return n;
+    }
+    if yan_std::intrinsics::wide(ty).is_none() {
+        return "int";
+    }
+    let mut wide = WIDE.lock().expect("no panic while held");
+    match wide.iter().find(|n| **n == ty) {
+        Some(n) => n,
+        None => {
+            let n = Box::leak(ty.to_owned().into_boxed_str());
+            wide.push(n);
+            n
+        }
+    }
 }
 
 /// `<op>_<scalar>` intrinsics (assumption Y4). `None` when `name` is not an intrinsic.

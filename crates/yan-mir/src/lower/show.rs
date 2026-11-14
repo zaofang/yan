@@ -456,7 +456,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         match s {
             Shape::Scalar(Ty::Int(t)) => {
                 out.push(if t.signed { 'i' } else { 'u' });
-                out.push_str(&t.bits.to_string());
+                out.push_str(&(t.storage_bytes() * 8).to_string());
             }
             Shape::Scalar(Ty::F64) => out.push('f'),
             Shape::Scalar(Ty::Bool) => out.push('b'),

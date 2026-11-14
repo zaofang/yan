@@ -8,9 +8,10 @@ const COPY_SCALARS: [&str; 6] = ["bool", "char", "Unit", "f32", "f64", "dec128"]
 /// Values of a copy type are never owned resources: nothing consumes or drops them.
 pub fn is_copy(t: &Type) -> bool {
     match t {
-        Type::Named(n) => n.path.last().is_some_and(|b| {
-            intrinsics::INTS.contains(&b.as_str()) || COPY_SCALARS.contains(&b.as_str())
-        }),
+        Type::Named(n) => n
+            .path
+            .last()
+            .is_some_and(|b| intrinsics::is_int(b) || COPY_SCALARS.contains(&b.as_str())),
         Type::Tuple(ts) => ts.iter().all(is_copy),
         Type::Refined { ty, .. } => is_copy(ty),
         _ => false,

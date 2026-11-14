@@ -209,7 +209,7 @@ fn base(t: &Type) -> Option<&str> {
 
 fn is_copy(t: Option<&Type>) -> bool {
     t.and_then(base)
-        .is_some_and(|b| intrinsics::INTS.contains(&b) || COPY_SCALARS.contains(&b))
+        .is_some_and(|b| intrinsics::is_int(b) || COPY_SCALARS.contains(&b))
 }
 
 fn conv_text(c: Conv) -> &'static str {
@@ -1115,9 +1115,7 @@ impl<'g, 'm> Cx<'g, 'm> {
         let d = type_text(decl);
         let ok = match got.as_str() {
             "{int}" => !NON_NUMERIC.contains(&d.as_str()),
-            "{float}" => {
-                !NON_NUMERIC.contains(&d.as_str()) && !intrinsics::INTS.contains(&d.as_str())
-            }
+            "{float}" => !NON_NUMERIC.contains(&d.as_str()) && !intrinsics::is_int(&d),
             "Never" => true,
             g => g == d,
         };

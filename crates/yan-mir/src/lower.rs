@@ -383,7 +383,10 @@ fn scalar_ty(name: &str) -> Option<Ty> {
         "f64" => Some(Ty::F64),
         "bool" => Some(Ty::Bool),
         "Unit" => Some(Ty::Unit),
-        _ => None,
+        _ => {
+            let (signed, bits) = yan_std::intrinsics::wide(name)?;
+            int(bits, signed)
+        }
     }
 }
 
@@ -429,7 +432,14 @@ fn scalar(path: &str) -> Option<(ScalarOp, Option<Ty>)> {
         "ge" => Ge,
         _ => return None,
     };
-    Some((op, Some(scalar_ty(ty)?)))
+    let ty = scalar_ty(ty)?;
+    // Byte order is undefined for a partial byte (R681 does not say).
+    if let (SwapBytes, Ty::Int(t)) = (op, ty)
+        && t.bits % 8 != 0
+    {
+        return None;
+    }
+    Some((op, Some(ty)))
 }
 
 fn parse_int(s: &str) -> R<i128> {
@@ -1007,24 +1017,18 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     fn scalar_op(&mut self, op: ScalarOp, ty: Ty, args: Vec<Operand>) -> Operand {
-        let (name, out) = match (op, ty) {
-            (ScalarOp::Eq, _) => ("eq_i64", Ty::Bool),
-            (ScalarOp::Ne, _) => ("ne_i64", Ty::Bool),
-            (ScalarOp::Not, _) => ("not_bool", Ty::Bool),
-            (ScalarOp::Ge, _) => ("ge_i64", Ty::Bool),
-            (ScalarOp::Le, _) => ("le_i64", Ty::Bool),
-            (ScalarOp::AddChecked, _) => ("add_checked_i64", I64),
-            (ScalarOp::SubChecked, _) => ("sub_checked_i64", I64),
-            (ScalarOp::MulChecked, _) => ("mul_checked_i64", I64),
-            (ScalarOp::Add, _) => ("add_f64", Ty::F64),
-            (ScalarOp::FloorDiv, _) => ("floordiv_i64", I64),
-            (ScalarOp::Shr, _) => ("shr_i64", I64),
+        let out = match (op, ty) {
+            (ScalarOp::Eq | ScalarOp::Ne | ScalarOp::Not | ScalarOp::Ge | ScalarOp::Le, _) => {
+                Ty::Bool
+            }
+            (ScalarOp::AddChecked | ScalarOp::SubChecked | ScalarOp::MulChecked, _) => I64,
+            (ScalarOp::Add, _) => Ty::F64,
+            (ScalarOp::FloorDiv | ScalarOp::Shr, _) => I64,
             _ => unreachable!("only used for these"),
         };
         let d = self.local(out);
         self.emit(Inst::Scalar {
             dst: Some(d),
-            id: registry::id(name).expect("scalar ops are registered"),
             op,
             ty,
             args,

@@ -1787,6 +1787,7 @@ fn int_range(n: &str) -> (i128, i128) {
         "u16" => (0, u16::MAX.into()),
         "u32" => (0, u32::MAX.into()),
         "u64" | "Addr" => (0, u64::MAX.into()),
+        _ if let Some(r) = yan_std::intrinsics::wide_range(n) => r,
         _ => (i64::MIN.into(), i64::MAX.into()),
     }
 }
