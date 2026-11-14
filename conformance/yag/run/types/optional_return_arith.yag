@@ -1,0 +1,14 @@
+# spec: 8.1
+# rows: R906
+# milestone: M1b
+# note: an expected `T | None` is a hint for the operands of an operator, not their type; `return a + b` in a function returning `int | None` injects the `int` result
+# stdout:
+# 3 None
+
+def add1(a: int, b: int) -> int | None:
+    if b > 100:
+        return None
+    return a + b
+
+pub def main() uses io:
+    io.print(f"{add1(1, 2)} {add1(1, 200)}")

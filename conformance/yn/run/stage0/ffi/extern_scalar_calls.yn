@@ -1,0 +1,25 @@
+-- spec: 12.1, 12.2
+-- note: extern calls with integer and f64 signatures run, with and without `uses <lib>`
+-- stdout:
+-- 2.0
+-- 1.0
+-- 1024.0
+-- 24.0
+-- 9000000000
+-- 2147483647
+
+unsafe extern "C" lib m link "m"
+  safe fabs(x: f64) -> f64 uses none
+  safe cos(x: f64) -> f64
+  safe pow(x: f64, y: f64) -> f64
+  safe ldexp(x: f64, e: c_int) -> f64 uses none
+  safe labs(x: c_long) -> c_long uses none
+  safe abs(x: c_int) -> c_int uses none
+
+main() uses io, m =
+  io.print(fabs(-2.0))
+  io.print(cos(0.0))
+  io.print(pow(2.0, 10.0))
+  io.print(ldexp(1.5, 4))
+  io.print(labs(-9000000000))
+  io.print(abs(-2147483647))
