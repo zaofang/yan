@@ -4,5 +4,6 @@
 
 type Maybe[T] = Just(value: T) | Nothing()
 
-def f() -> None:
+def f() -> int:
     n = Nothing()
+    return 0 if n is None else 1
