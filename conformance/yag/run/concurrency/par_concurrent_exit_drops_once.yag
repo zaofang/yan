@@ -36,5 +36,6 @@ def by_propagate() -> str fail Bad:
     return "ok"
 
 pub def main() uses io:
-    io.print(by_fail() else err -> f"{err}")
-    io.print(by_propagate() else err -> f"{err}")
+    with sched = sequential():
+        io.print(by_fail() else err -> f"{err}")
+        io.print(by_propagate() else err -> f"{err}")
