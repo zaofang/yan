@@ -4,9 +4,6 @@
 # stdout:
 # 3 2
 
-import collections
-import std
-
 def main() uses io:
     d = collections.deque([1, 2, 3])
     io.print(f"{std.len(d)} {len([1, 2])}")
