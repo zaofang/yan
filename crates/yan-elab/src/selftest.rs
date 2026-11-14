@@ -1639,3 +1639,22 @@ def g() -> int:\n    a: Maybe[int] = Nothing()\n    return f(a) + f(Just(value=1
     let (_, d) = lower(&format!("{decl}def g() -> None:\n    n = Nothing()\n"));
     assert!(d.iter().any(|d| d.code == "E241"), "{d:?}");
 }
+
+#[test]
+fn derive_wire_on_a_generic_sum_checks_arguments_at_the_instance() {
+    let ok = "\
+@derive(Wire)
+type Box[T] = Full(value: T) | Empty()
+
+def f(_: Box[int]) -> int:
+    return 1
+
+pub def main() uses io:
+    io.print(\"hi\")
+";
+    assert_eq!(codes(ok), Vec::<String>::new());
+    let bad = ok.replace("Box[int]", "Box[Fs]");
+    assert_eq!(codes(&bad), ["E282"]);
+    let plain = bad.replace("@derive(Wire)\n", "");
+    assert_eq!(codes(&plain), Vec::<String>::new());
+}
