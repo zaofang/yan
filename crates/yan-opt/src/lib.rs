@@ -2,6 +2,7 @@
 //! code generators lower its output through `yan-mir`.
 
 mod drops;
+mod joins;
 mod mono;
 mod owned;
 
