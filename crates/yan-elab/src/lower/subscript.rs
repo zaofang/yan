@@ -361,8 +361,14 @@ impl Lower<'_, '_, '_> {
         let mut stmts = body.stmts.clone();
         rename(&mut stmts, &map);
 
-        let read = if write { None } else { select(&stmts) };
+        let split = if write {
+            0
+        } else {
+            stmts.iter().take_while(|x| yields_of(x) == ZERO).count()
+        };
+        let read = if write { None } else { select(&stmts[split..]) };
         if let Some(sel) = read {
+            out.extend(stmts.drain(..split));
             for e in exprs_mut(s) {
                 if replace_first(e, &mut |x| x == used, &sel) {
                     break;
