@@ -356,6 +356,7 @@ Where the rows left wording to the consolidation, this draft chose as follows. E
 
 - **Numbering.** 55 new diagnostic codes were assigned (marked *new* in section 25). Packages and stability take the new E0xx family; stage 0 takes E260 to E270; systems-layer errors take the new E9xx family. Virtual time under `pool` is E710, beside E708, as the time design suggested.
 - **Kind `Size` renamed `Nat`**, matching the surfaces' `N: Nat` bounds (R36, R62).
+- **Rows without a case.** `spec/row-exemptions.toml` lists rows that no program can observe (`exempt`) and rows restated by another row (`merge`, with `into`), from the 2026-11-14 audit (#1025). Spec debt counts them as covered and keeps the population at every allocated R row; the progress report states both figures. Only a lead card adds a row there.
 - **`uint` removed** from Yan Agent's base types and the prelude, as R80 listed it among the replaced forms; Yan Agent uses the sized `uint8` to `uint128`.
 - **`ffi` modules** are the files under a package's `ffi/` directory, where `yan ffi import` writes them; v0.3 never said how a module is marked.
 - **`@forbid(rc)`** (spelled `@no_rc` before R447) now means no `Rc` or `Arc` count operation is reachable, since Yan has no `dup` after R1.
