@@ -13,6 +13,7 @@ yan-ebnf.workspace = true
 yan-diag.workspace = true
 yan-hir.workspace = true
 yan-names.workspace = true
+jiff.workspace = true
 
 [lints]
 workspace = true
