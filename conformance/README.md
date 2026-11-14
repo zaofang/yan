@@ -9,6 +9,7 @@ read-only to agents (22.6).
 |---|---|---|
 | `yag/pass/`, `yn/pass/`, `yir/pass/` | pass | `check` reports no errors (warnings and notes allowed) |
 | `yag/fail/`, `yn/fail/`, `yir/fail/` | fail | `check` reports exactly the `expect` lines, all severities, and nothing else |
+| `yir/opt/` | opt | `run --opt` reports exactly the `expect` lines (optimizer diagnostics, which `check` does not run), and nothing else |
 | `yag/run/`, `yn/run/`, `yir/run/` | run | `run` prints exactly the `stdout` block and exits with `exit` (default 0) |
 | `golden/` | run | as run; G1 to G4 of 24.3, and the proposed G5 (the Tally slice, in Yan Agent and Yan) |
 | `solver/` | fail | as fail; no `expect` line means no diagnostics at all (8.6 boundaries) |
