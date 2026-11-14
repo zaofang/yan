@@ -6,7 +6,7 @@ use super::*;
 const PTR: Shape = Shape::Scalar(Ty::Ptr);
 
 /// The yan-rt status asking the caller to run the closure in the work slots and retry.
-pub(super) const WORK: i128 = 3;
+pub(super) const WORK: i128 = 10;
 
 /// The yan-rt statuses of a failed actor operation, by the failure each means.
 const FAILURES: &[(i128, &str)] = &[

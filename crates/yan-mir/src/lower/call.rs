@@ -498,6 +498,28 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.chan_result_with(&dst, st, true, |me| me.read(&At::Mem(out.clone(), 0), &e))?;
                 self.free(RtFn::EnvFree, out);
             }
+            (id::STD_CHAN_RECEIVER_SELECT_KEY | id::STD_CHAN_SENDER_SELECT_KEY, [(_, ch)]) => {
+                // The channel block is 8-aligned, so its address carries the arm kind (`yan_rt::chan`).
+                let ch = self.scalar1(ch)?;
+                let key = if id == id::STD_CHAN_SENDER_SELECT_KEY {
+                    self.scalar_op(ScalarOp::AddChecked, I64, vec![ch, Operand::Int(1)])
+                } else {
+                    ch
+                };
+                set(self, key);
+            }
+            (id::STD_PRELUDE_SELECT_WAIT, [(_, keys), (_, at)]) => {
+                let Some(dst) = dst else {
+                    return unsupported("`select_wait` without its result");
+                };
+                let (keys, at) = (self.scalar1(keys)?, self.scalar1(at)?);
+                let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(1)]);
+                let st = self.blocking(RtFn::SelectWait, vec![keys, at, out.clone()]);
+                self.chan_result(&dst, st, |me| {
+                    me.read(&At::Mem(out.clone(), 0), &Shape::Scalar(I64))
+                })?;
+                self.free(RtFn::EnvFree, out);
+            }
             (id::STD_CHAN_SENDER_TRY_SEND, [(_, tx), (_, a)]) => {
                 let (Some(e), Some(dst)) = (self.targ(c)?, dst) else {
                     return unsupported("`try_send` without its type or result");
