@@ -1,12 +1,15 @@
--- spec: 12.3, 12.5
--- note: a scoped callback accepts any function; Owned is dropped by its free function
+-- spec: 12.2, 12.3, 12.5
+-- note: a scoped callback accepts any function; Owned is dropped by its free function; a `uses none` item needs no capability
 
 unsafe extern "C" lib sort link "sort"
   safe qsort_view(xs: MutView[c_int], cmp: scoped (c_int, c_int) -> c_int)
   safe greeting() -> Owned[CStr, free_greeting]
   unsafe free_greeting(p: Ptr[c_char])
+  safe sort_cost(n: c_int) -> c_int uses none
 
 cmp(a: c_int, b: c_int) -> c_int = a - b
 
-sorted(var xs: List[c_int]) =
+sorted(var xs: List[c_int]) uses sort =
   qsort_view(&xs, cmp)
+
+pure_cost(n: c_int) -> c_int = sort_cost(n)

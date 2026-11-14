@@ -7994,6 +7994,7 @@
    "kind": "pass",
    "milestone": "M3",
    "spec": [
+    "12.2",
     "12.3",
     "12.5"
    ],
@@ -8764,6 +8765,23 @@
    ]
   },
   {
+   "path": "yn/fail/ffi/e301_extern_call_without_uses.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 8,
+     "col": 20
+    }
+   ]
+  },
+  {
    "path": "yn/fail/ffi/e903_unsafe_call_outside_block.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -8776,7 +8794,7 @@
     {
      "code": "E903",
      "line": 8,
-     "col": 35
+     "col": 42
     }
    ]
   },
@@ -10450,6 +10468,22 @@
    "flags": [],
    "expect": [],
    "stdout": "4 9 [1, 4, 9]\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/concurrency/select_first_ready.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "9.5",
+    "15.3"
+   ],
+   "rows": [
+    "R342"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "105\n7\n108\n-2\n-1\n",
    "exit": 0
   },
   {
