@@ -55,6 +55,10 @@ pub const CANCELLED: u64 = 2;
 /// The status of a `recv` on a closed, empty channel: it yields None (9.5).
 pub const CLOSED: u64 = 3;
 
+/// The status of a `try_recv` on an open channel with nothing queued, or a `try_send` on one
+/// with no room (`Empty`, `Full`).
+pub const NOT_READY: u64 = 4;
+
 /// A wait that cannot park leaves nothing else to run, so an idle actor runs a queued message
 /// first, as it would at `par concurrent` quiescence (RFC 0056 D4): [`crate::actor::WORK`].
 fn idle_or_deadlock() -> u64 {
@@ -123,6 +127,45 @@ pub unsafe extern "C" fn yan_rt_chan_recv(ch: *mut Chan, out: *mut u64, in_task:
     }
     sched::progressed();
     0
+}
+
+/// `try_send`: as `send`, but a channel with no room is [`NOT_READY`] instead of a wait.
+///
+/// # Safety
+/// `ch` is a live channel and `buf` holds its element's slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_chan_try_send(ch: *mut Chan, buf: *const u64, in_task: u64) -> u64 {
+    if in_task != 0 && sched::cancelled() {
+        return CANCELLED;
+    }
+    // SAFETY: the caller's contract.
+    let c = unsafe { &mut *ch };
+    let room = if c.cap == 0 {
+        sched::waiting(ch as usize)
+    } else {
+        c.cap
+    };
+    if c.len() >= room {
+        return NOT_READY;
+    }
+    // SAFETY: the caller's contract.
+    unsafe { yan_rt_chan_send(ch, buf, 0) }
+}
+
+/// `try_recv`: as `recv`, but an open channel with nothing queued is [`NOT_READY`] instead of a
+/// wait; a closed one is [`CLOSED`].
+///
+/// # Safety
+/// `ch` is a live channel and `out` has room for its element's slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_chan_try_recv(ch: *mut Chan, out: *mut u64, in_task: u64) -> u64 {
+    // SAFETY: the caller's contract.
+    let c = unsafe { &*ch };
+    if c.len() == 0 && c.senders != 0 && !(in_task != 0 && sched::cancelled()) {
+        return NOT_READY;
+    }
+    // SAFETY: the caller's contract.
+    unsafe { yan_rt_chan_recv(ch, out, in_task) }
 }
 
 /// Queues `v`, an element's slots, on channel `ch` as its sender would.
