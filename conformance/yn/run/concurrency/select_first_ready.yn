@@ -1,0 +1,38 @@
+-- spec: 9.5, 15.3
+-- rows: R342
+-- note: select takes the first ready arm in source order; `is None` waits for close; a timer arm fires on the virtual clock (#1153)
+-- stdout:
+-- 105
+-- 7
+-- 108
+-- -2
+-- -1
+
+gone() -> Receiver[int] uses nondet =
+  let (tx, rx) = Channel[int](1)
+  rx
+
+pick(var a: Receiver[int], var b: Receiver[int]) -> int fail Cancelled | Timeout uses nondet, time =
+  select
+    a.recv() is Some(v) -> v
+    a.recv() is None -> 0 - 1
+    b.recv() is Some(v) -> v + 100
+    after(1s) -> 0 - 2
+
+main() uses io, nondet, time =
+  let (ta, ra) = Channel[int](2)
+  let (tb, rb) = Channel[int](2)
+  var x = ra
+  var y = rb
+  var sa = ta
+  var sb = tb
+  sb.send(5)?
+  io.print("\(pick(&x, &y)?)")
+  sa.send(7)?
+  sb.send(8)?
+  io.print("\(pick(&x, &y)?)")
+  io.print("\(pick(&x, &y)?)")
+  with time = virtual(Instant.from_unix_seconds(0))
+    io.print("\(pick(&x, &y)?)")
+  var g = gone()
+  io.print("\(pick(&g, &y)?)")
