@@ -72,7 +72,7 @@ pub fn monomorphize(file: &str, m: &Module) -> Result<Module, Error> {
             continue;
         }
         let mut it = it.clone();
-        let mut w = Walk::new(m, &none, &generic, &comptime_at);
+        let mut w = Walk::new(file, m, &none, &generic, &comptime_at);
         w.item(&mut it.kind);
         w.finish()?;
         mono.add(w.found, 1, &hashes)?;
@@ -98,7 +98,7 @@ pub fn monomorphize(file: &str, m: &Module) -> Result<Module, Error> {
         };
         bind_comptime_values(&mut def, &args[f.tparams.len()..], specs, it.span);
         let mut kind = ItemKind::Inst(Inst { args, def });
-        let mut w = Walk::new(m, &env, &generic, &comptime_at);
+        let mut w = Walk::new(file, m, &env, &generic, &comptime_at);
         w.item(&mut kind);
         w.finish()?;
         mono.add(w.found, depth + 1, &hashes)?;
@@ -297,6 +297,7 @@ impl Mono<'_> {
 
 /// Replaces type parameters by `env` and collects the calls that name generic fns.
 struct Walk<'a> {
+    file: &'a str,
     m: &'a Module,
     env: &'a HashMap<String, TArg>,
     generic: &'a HashMap<String, usize>,
@@ -312,12 +313,14 @@ struct Walk<'a> {
 
 impl<'a> Walk<'a> {
     fn new(
+        file: &'a str,
         m: &'a Module,
         env: &'a HashMap<String, TArg>,
         generic: &'a HashMap<String, usize>,
         comptime_at: &'a HashMap<usize, Vec<usize>>,
     ) -> Self {
         Walk {
+            file,
             m,
             env,
             generic,
@@ -445,10 +448,17 @@ impl<'a> Walk<'a> {
             match (ty, c.args.get(i)) {
                 (Type::Fn(_), Some(Arg::Value(_, Atom::Name(n, span), _))) => {
                     let Some((cty, closure, caps)) = self.closures.get(n) else {
-                        self.err.get_or_insert(Error::Unsupported(format!(
-                            "a `comptime` function argument of `{}` that is not a let-bound closure",
-                            c.path.join(".")
-                        )));
+                        let d = Diagnostic::error(
+                            "E263",
+                            self.file,
+                            *span,
+                            "",
+                            format!(
+                                "`{n}` passed to a `comptime` function parameter of `{}` cannot be specialized away: only a let-bound closure is accepted",
+                                c.path.join(".")
+                            ),
+                        );
+                        self.err.get_or_insert(Error::Diag(Box::new(d)));
                         return;
                     };
                     if let Some((conv, cap, _)) =
@@ -722,6 +732,9 @@ mod tests {
             "{APPLY}fn pass(let g: Fn(let i64) -> i64) -> i64 {{\n\
              let r: i64 = apply(let g, let 1)\n ret r\n}}\n"
         );
-        assert!(matches!(opt(&src), Err(Error::Unsupported(m)) if m.contains("let-bound closure")));
+        let Err(Error::Diag(d)) = opt(&src) else {
+            panic!("expected E263")
+        };
+        assert_eq!(d.code, "E263");
     }
 }

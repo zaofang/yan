@@ -63,7 +63,7 @@ E251 = "crates/yan-elab/src/desugar.rs"
 E260 = "crates/yan-elab/src/reify.rs"
 E261 = "crates/yan-cli/src/mcp.rs"
 E262 = "crates/yan-elab/src/lower/scalar.rs"
-E263 = { unimplemented = "#825" }
+E263 = "crates/yan-opt/src/mono.rs"
 E264 = { unimplemented = "#825" }
 E265 = "crates/yan-elab/src/meta_selftest.rs"
 E266 = { unimplemented = "#825" }
