@@ -243,7 +243,8 @@ impl Lower<'_, '_, '_> {
                     return self.user_call(n, None, args, at);
                 }
                 if let Some(fs) = self.g.records.get(n) {
-                    let ps = field_params(fs, at);
+                    let pos = self.g.record_positional.get(n).copied().unwrap_or(0);
+                    let ps = field_params(fs, pos, at);
                     let r = self.ctor(n, &ps, args, at)?;
                     return Ok((r, Ty::Data(n.clone()), None));
                 }
@@ -253,7 +254,7 @@ impl Lower<'_, '_, '_> {
                         .find(|(v, _)| v == n)
                         .expect("declared")
                         .1;
-                    let ps = field_params(fs, at);
+                    let ps = field_params(fs, 0, at);
                     if ps.is_empty() && args.is_empty() {
                         return Ok((Rhs::Atom(Atom::Name(n.clone(), at)), Ty::Data(s), None));
                     }

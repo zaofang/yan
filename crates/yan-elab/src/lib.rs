@@ -229,6 +229,8 @@ pub(crate) struct Globals {
     /// Subscript inlinings so far, to stop a recursive one.
     pub sub_n: std::cell::Cell<u32>,
     pub records: HashMap<String, Vec<Field>>,
+    /// Leading positional-only fields per record (R437).
+    pub record_positional: HashMap<String, usize>,
     pub sums: HashMap<String, Vec<(String, Vec<Field>)>>,
     pub variant_of: HashMap<String, String>,
     /// Variants with `@wire(name: ...)`, by variant name: the tag value in json and csv.
@@ -1038,6 +1040,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 }
                 check_wire_names(&c.name, &fs, it.span, cx);
                 g.wire_opts.insert(c.name.clone(), (None, w.ignore));
+                g.record_positional.insert(c.name.clone(), c.positional);
                 g.records.insert(c.name.clone(), fs);
             }
             j::ItemKind::Type(j::TypeDef {
