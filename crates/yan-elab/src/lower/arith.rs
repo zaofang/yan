@@ -210,6 +210,11 @@ impl Lower<'_, '_, '_> {
                     .into(),
             );
         }
+        // An operator never produces an optional: the expected `T | None` is a hint for `T`.
+        let want = want.map(|w| match w {
+            Ty::Option(i) => &**i,
+            w => w,
+        });
         let want = want.filter(|w| !matches!(w, Ty::Float) || op != "/");
         // `2 * x`: a literal on the left takes the right operand's type (R656).
         let lit_left = is_int_lit(a) && !is_int_lit(b) && !matches!(op, "<<" | ">>" | "**");
