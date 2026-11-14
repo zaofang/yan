@@ -229,6 +229,14 @@ impl Lower<'_, '_, '_> {
                 body: j::ParBody::Block(b),
             } => {
                 self.par_waits(b, *concurrent);
+                if *concurrent && self.pool_sched {
+                    self.err(
+                        "E708",
+                        at,
+                        "`par concurrent` needs concurrent forward progress, which `pool` does not give"
+                            .into(),
+                    );
+                }
                 let mut blocks = Vec::new();
                 let mut called: Vec<String> = Vec::new();
                 for s in b {
@@ -362,7 +370,13 @@ impl Lower<'_, '_, '_> {
                     self.expect(&ht, &want, h.span);
                 }
                 self.handlers.push(name.clone());
+                let outer_pool = self.pool_sched;
+                if name == "sched" {
+                    self.pool_sched = matches!(&h.kind, j::ExprKind::Call(f, _)
+                        if matches!(&f.kind, j::ExprKind::Name(n) if n == "pool"));
+                }
                 let b = self.block(&body.stmts);
+                self.pool_sched = outer_pool;
                 self.handlers.pop();
                 self.emit(
                     StmtKind::With {
