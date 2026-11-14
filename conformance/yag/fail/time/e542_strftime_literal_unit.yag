@@ -1,0 +1,7 @@
+# spec: 17.5
+# rows: R58
+# note: a literal strftime pattern is checked at stage 0 against the value's type
+# expect: E542 at 7:23
+
+def f(z: PlainDate) -> str:
+    return z.strftime("%H:%M")

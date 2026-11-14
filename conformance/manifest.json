@@ -860,6 +860,25 @@
    ]
   },
   {
+   "path": "yag/fail/concurrency/e708_par_concurrent_under_pool.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.1"
+   ],
+   "rows": [
+    "R390"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E708",
+     "line": 8,
+     "col": 9
+    }
+   ]
+  },
+  {
    "path": "yag/fail/concurrency/e709_arc_count.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -1145,6 +1164,36 @@
      "code": "E282",
      "line": 34,
      "col": 8
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/diag/recovery_marks_and_continues.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "18.2"
+   ],
+   "rows": [
+    "R290",
+    "R291"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 9,
+     "col": 9
+    },
+    {
+     "code": "E201",
+     "line": 10,
+     "col": 9
+    },
+    {
+     "code": "E200",
+     "line": 14,
+     "col": 12
     }
    ]
   },
@@ -2569,12 +2618,14 @@
    "spec": [
     "20.5"
    ],
-   "rows": [],
+   "rows": [
+    "R179"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "W815",
-     "line": 9,
+     "line": 10,
      "col": 12
     }
    ]
@@ -2690,6 +2741,23 @@
      "code": "W840",
      "line": 7,
      "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/match/e017_bits_layout_pattern.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "5.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E017",
+     "line": 12,
+     "col": 5
     }
    ]
   },
@@ -3903,7 +3971,8 @@
     "11.6"
    ],
    "rows": [
-    "R593"
+    "R593",
+    "R51"
    ],
    "flags": [],
    "expect": [
@@ -3953,6 +4022,25 @@
    ]
   },
   {
+   "path": "yag/fail/time/e221_zoned_ord.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "11.6"
+   ],
+   "rows": [
+    "R52"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E221",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/time/e540_impossible_date.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3982,6 +4070,25 @@
     {
      "code": "E542",
      "line": 5,
+     "col": 23
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/time/e542_strftime_literal_unit.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R58"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E542",
+     "line": 7,
      "col": 23
     }
    ]
@@ -4109,6 +4216,25 @@
     {
      "code": "E201",
      "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/types/e201_wide_literal.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R929"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 7,
      "col": 12
     }
    ]
@@ -4450,6 +4576,40 @@
      "code": "E276",
      "line": 7,
      "col": 10
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/types/e908_non_integer_field.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "5.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E908",
+     "line": 7,
+     "col": 8
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/types/e908_widths_sum.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "5.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E908",
+     "line": 6,
+     "col": 1
     }
    ]
   },
@@ -5155,6 +5315,21 @@
    "expect": [],
    "stdout": "2\n",
    "exit": 101
+  },
+  {
+   "path": "yag/run/dist/cluster_group.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.6.1"
+   ],
+   "rows": [
+    "R414"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n1\n2\n1\n",
+   "exit": 0
   },
   {
    "path": "yag/run/dist/sim_faults_drop_cut.yag",
@@ -5938,6 +6113,38 @@
    "expect": [],
    "stdout": "1 2\n[(1, 'a'), (2, 'b'), (2, 'c'), (3, 'd')]\n",
    "exit": 0
+  },
+  {
+   "path": "yag/run/std/bits_arbitrary_width.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R681",
+    "R682"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "uint3 0: 0 0 0 0 True False True 7\n  0 3 3 0 0 0 0 0\nuint3 7: 7 7 0 3 False False True 0\n  3 0 0 3 7 7 7 4\nint5 -16: -16 -16 0 -8 False True False 15\n  1 0 4 5 1 8 1 0\nint5 0: 0 0 0 0 True False True -1\n  0 5 5 0 0 0 0 0\nint5 15: 15 15 0 7 False False True -16\n  4 1 0 4 -2 -9 -2 -4\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/bits_arbitrary_width_overflow.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R681",
+    "R682"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7 -16\n",
+   "exit": 101
   },
   {
    "path": "yag/run/std/bits_bigint.yag",
@@ -7514,6 +7721,27 @@
    "exit": 101
   },
   {
+   "path": "yag/run/std/time_representation_range.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "11.6",
+    "17.5",
+    "7.5"
+   ],
+   "rows": [
+    "R49",
+    "R50",
+    "R51",
+    "R52",
+    "R55"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "36893488147419103228\nNone\nP1M2D PT1H30M\nTrue\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/time_strftime.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7526,6 +7754,24 @@
    "flags": [],
    "expect": [],
    "stdout": "Wednesday 31 January 2024\n09:05 PM\n1970-01-01 00:00:00 UTC\n2024-07-14\ninvalid time at 0\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/time_virtual_and_deadline.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "7.3",
+    "7.5",
+    "17.5"
+   ],
+   "rows": [
+    "R53",
+    "R54"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2000-01-01T00:00:00Z\n2000-01-01T00:00:10Z PT10S\n2000-01-01T00:00:10Z PT10S\n",
    "exit": 0
   },
   {
@@ -7617,6 +7863,19 @@
    "flags": [],
    "expect": [],
    "stdout": "6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/types/bits_layout_fields.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "5.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "5 17\n2 17\n9 1000\n9 255\n",
    "exit": 0
   },
   {
@@ -8132,7 +8391,15 @@
     "R374",
     "R433",
     "R437",
-    "R444"
+    "R444",
+    "R62",
+    "R64",
+    "R71",
+    "R73",
+    "R75",
+    "R76",
+    "R77",
+    "R82"
    ],
    "flags": [],
    "expect": []
@@ -8401,12 +8668,14 @@
    "spec": [
     "15.3"
    ],
-   "rows": [],
+   "rows": [
+    "R68"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "E312",
-     "line": 6,
+     "line": 7,
      "col": 3
     }
    ]
@@ -9636,12 +9905,14 @@
    "spec": [
     "15.3"
    ],
-   "rows": [],
+   "rows": [
+    "R66"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "E404",
-     "line": 9,
+     "line": 10,
      "col": 8
     }
    ]
@@ -9746,12 +10017,14 @@
    "spec": [
     "4.2"
    ],
-   "rows": [],
+   "rows": [
+    "R69"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "E416",
-     "line": 5,
+     "line": 6,
      "col": 11
     }
    ]
@@ -10088,12 +10361,14 @@
    "spec": [
     "15.3"
    ],
-   "rows": [],
+   "rows": [
+    "R67"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "E135",
-     "line": 7,
+     "line": 8,
      "col": 57
     }
    ]
@@ -10464,7 +10739,9 @@
    "spec": [
     "9.2"
    ],
-   "rows": [],
+   "rows": [
+    "R74"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "4 9 [1, 4, 9]\n",
@@ -10678,7 +10955,8 @@
    ],
    "rows": [
     "SQ21",
-    "R430"
+    "R430",
+    "R65"
    ],
    "flags": [],
    "expect": [],
@@ -11432,6 +11710,66 @@
    "exit": 0
   },
   {
+   "path": "yir/run/jp_falls_through.yir",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R764"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "body\nafter\nkept\n",
+   "exit": 0
+  },
+  {
+   "path": "yir/run/jp_falls_through_late_local.yir",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R764"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "body\nb\n",
+   "exit": 0
+  },
+  {
+   "path": "yir/run/jp_falls_through_sibling.yir",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R764"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "m\nbody\nafter\nkept\n",
+   "exit": 0
+  },
+  {
+   "path": "yir/run/jp_falls_through_two_statements.yir",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R764"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "body\nmid\nbody\nkept\n",
+   "exit": 0
+  },
+  {
    "path": "yir/run/overflow.yir",
    "kind": "run",
    "milestone": "M0",
@@ -12009,11 +12347,17 @@
    "spec": [
     "20.6"
    ],
-   "rows": [],
+   "rows": [
+    "R",
+    "1",
+    "8",
+    "3"
+   ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "20.6",
+    "rows": "R183",
     "bump": "major"
    }
   },
@@ -12144,11 +12488,17 @@
    "spec": [
     "20.6"
    ],
-   "rows": [],
+   "rows": [
+    "R",
+    "1",
+    "8",
+    "4"
+   ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "20.6",
+    "rows": "R184",
     "bump": "patch"
    }
   },
@@ -12620,11 +12970,17 @@
    "spec": [
     "20.6"
    ],
-   "rows": [],
+   "rows": [
+    "R",
+    "1",
+    "8",
+    "7"
+   ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "20.6",
+    "rows": "R187",
     "milestone": "M2a",
     "note": "removing g needs a major; 1.2.1 is a patch",
     "command": [
@@ -12972,13 +13328,19 @@
     "R",
     "8",
     "8",
-    "8"
+    "8",
+    ",",
+    " ",
+    "R",
+    "1",
+    "7",
+    "5"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "20.4",
-    "rows": "R888",
+    "rows": "R888, R175",
     "note": "edition is next or a four-digit year of 2026 or later; the span is the string literal",
     "command": [
      "check"
@@ -13076,13 +13438,19 @@
     "R",
     "8",
     "8",
-    "8"
+    "8",
+    ",",
+    " ",
+    "R",
+    "1",
+    "7",
+    "4"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "20.4",
-    "rows": "R888",
+    "rows": "R888, R174",
     "note": "edition is next or a four-digit year of 2026 or later",
     "command": [
      "check"
@@ -13210,11 +13578,17 @@
    "spec": [
     "20.6"
    ],
-   "rows": [],
+   "rows": [
+    "R",
+    "1",
+    "8",
+    "0"
+   ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "20.6",
+    "rows": "R180",
     "command": [
      "check"
     ]
@@ -13318,6 +13692,29 @@
    }
   },
   {
+   "path": "fmt/broken_group_item_order",
+   "kind": "fmt",
+   "milestone": "M1",
+   "spec": [
+    "18.5"
+   ],
+   "rows": [
+    "R243",
+    "R245",
+    "R248"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.5",
+    "rows": [
+     "R243",
+     "R245",
+     "R248"
+    ]
+   }
+  },
+  {
    "path": "fmt/canonical",
    "kind": "fmt",
    "milestone": "M1",
@@ -13362,6 +13759,29 @@
    "expect": [],
    "expect_toml": {
     "spec": "14.3"
+   }
+  },
+  {
+   "path": "fmt/trivia_width_indent",
+   "kind": "fmt",
+   "milestone": "M1",
+   "spec": [
+    "18.5"
+   ],
+   "rows": [
+    "R244",
+    "R245",
+    "R246"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.5",
+    "rows": [
+     "R244",
+     "R245",
+     "R246"
+    ]
    }
   },
   {

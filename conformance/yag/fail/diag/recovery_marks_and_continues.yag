@@ -1,0 +1,14 @@
+# spec: 18.2
+# rows: R290, R291
+# note: a failing expression is marked and checking of its item continues; later uses of x and y report nothing; one record per root cause, sorted by line
+# expect: E201 at 9:9
+# expect: E201 at 10:9
+# expect: E200 at 14:12
+
+def f(a: int, s: str) -> int:
+    x = a + s
+    y = a + s
+    return x + y
+
+def g() -> int:
+    return missing_name + 1
