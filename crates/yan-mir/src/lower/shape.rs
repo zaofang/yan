@@ -144,18 +144,17 @@ impl Types<'_> {
     /// substituted, named by the canonical instance text (D3, D7).
     fn generic_shape(&self, n: &y::Named, stack: &mut Vec<String>) -> Option<R<Shape>> {
         let name = n.path[0].as_str();
-        let (tparams, fields): (&[y::TParam], Vec<(&str, Option<&[y::Field]>)>) =
+        let (tparams, fields): (&[y::TParam], Vec<(&str, &[y::Field])>) =
             if let Some(r) = self.recs.get(name).filter(|r| !r.tparams.is_empty()) {
-                (&r.tparams, vec![("", Some(&r.fields[..]))])
-            } else if let Some(s) = self.sums.get(name).filter(|s| !s.tparams.is_empty()) {
+                (&r.tparams, vec![("", &r.fields[..])])
+            } else {
+                let s = self.sums.get(name).filter(|s| !s.tparams.is_empty())?;
                 let vs = s
                     .variants
                     .iter()
-                    .map(|v| (v.name.as_str(), Some(v.fields.as_deref().unwrap_or(&[]))))
+                    .map(|v| (v.name.as_str(), v.fields.as_deref().unwrap_or(&[])))
                     .collect();
                 (&s.tparams, vs)
-            } else {
-                return None;
             };
         let is_sum = self.sums.contains_key(name) && !self.recs.contains_key(name);
         let inst = yan_core::subst::instance(&n.path, &n.args);
@@ -166,7 +165,6 @@ impl Types<'_> {
         let built = (|| {
             let mut out = Vec::new();
             for (vname, fs) in &fields {
-                let fs = fs.unwrap_or(&[]);
                 let fs = fs
                     .iter()
                     .map(|f| {
