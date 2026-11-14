@@ -16,3 +16,18 @@ f() -> int =
   c[True] = 2
   c[False] += 1
   c[True] + c[False]
+
+type Box = { a: int, b: int }
+
+impl Index[int] for Box
+  sub at(self, k: int) -> int =
+    let j = k + 1
+    if j > 2
+      yield self.a
+    else
+      yield self.b
+
+g() -> int =
+  var c = Box(a: 4, b: 1)
+  let x = c[1]
+  x + 1
