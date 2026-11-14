@@ -1,0 +1,17 @@
+-- spec: 4.7
+-- rows: R441, R1002
+-- note: Arena.alloc, Ref.get and Ref.set on interpreter and native (#1243)
+-- stdout:
+-- 11 10 4 False
+
+type Point = { x: int, y: int }
+
+main() uses io =
+  let arena = Arena()
+  let a = arena.alloc(1)
+  let b = arena.alloc(Point(x: 2, y: 3))
+  let c = arena.alloc(True)
+  a.set(a.get() + 10)
+  b.set(Point(x: b.get().x * 5, y: b.get().y + 1))
+  c.set(not c.get())
+  io.print("\(a.get()) \(b.get().x) \(b.get().y) \(c.get())")
