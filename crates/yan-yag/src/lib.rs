@@ -171,6 +171,12 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
 "#;
 
     #[test]
+    fn marker_impl_body_round_trips() {
+        let src = "trait Marker:\n    \"\"\"Doc.\"\"\"\n\nclass H:\n    n: int\n\nimpl Marker for H: ...\n";
+        assert!(roundtrip(src).contains("impl Marker for H: ...\n"));
+    }
+
+    #[test]
     fn every_production_round_trips() {
         let printed = roundtrip(SAMPLE);
         assert!(printed.starts_with("# header\n\n\"\"\"Module doc.\"\"\"\n"));
