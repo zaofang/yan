@@ -379,7 +379,7 @@ impl Lexer<'_> {
                                 "E100",
                                 Severity::Error,
                                 at,
-                                &format!(
+                                format!(
                                     "unindent to {width} spaces matches no enclosing block; \
                                      indent this line {outer} spaces to close the inner block or \
                                      {inner} to stay in it"
