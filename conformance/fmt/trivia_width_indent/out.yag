@@ -1,0 +1,5 @@
+def f(x: int) -> int:
+    y = x + 1  # a trailing comment that is long enough to push this line well beyond one hundred columns wide
+    # own-line comment
+
+    return y
