@@ -7,6 +7,8 @@ impl<'a, 'm> Fn<'a, 'm> {
         v: &[Operand],
         fs: &[(String, Shape)],
     ) -> R<Operand> {
+        // An instance `Box[i64]` shows as `Box`, as in the interpreter.
+        let name = name.split('[').next().unwrap_or(name);
         let mut parts = vec![self.lit(&format!("{name}("))];
         let mut at = 0;
         for (i, (n, s)) in fs.iter().enumerate() {
