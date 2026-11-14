@@ -1,0 +1,45 @@
+# spec: 10.1, 13
+# rows: R423
+# stdout:
+# 2
+# ['x', 'y']
+# Pair(a=7, b='k')
+# Box(value='ab')
+# True
+# False
+# 2
+# Box(value=Box(value=2))
+
+class Box[T]:
+    value: T
+
+class Pair[A, B]:
+    a: A
+    b: B
+
+def unbox[T](take b: Box[T]) -> T:
+    return b.value
+
+def swap[A, B](p: Pair[A, B]) -> Pair[B, A]:
+    return Pair(a=p.b, b=p.a)
+
+def peek(b: Box[list[str]]) -> int:
+    match b:
+        case Box(value=xs):
+            return len(xs)
+
+pub def main() uses io:
+    s = Box(value=["x", "y"])
+    io.print(peek(s))
+    io.print(unbox(s))
+    p: Pair[str, int] = Pair(a="k", b=7)
+    q = swap(p)
+    io.print(q)
+    var m: Box[str] = Box(value="a")
+    m.value = m.value + "b"
+    io.print(m)
+    io.print(Box(value=1) == Box(value=1))
+    io.print(Box(value=1) == Box(value=2))
+    c: Box[Box[int]] = Box(value=Box(value=2))
+    io.print(c.value.value)
+    io.print(c)
