@@ -131,7 +131,7 @@ pub struct FuncDef {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RetType {
     pub ty: Option<Type>,
-    pub fail: Vec<Path>,
+    pub fail: Vec<Type>,
     pub from: Vec<Name>,
 }
 
@@ -280,7 +280,7 @@ pub enum Type {
         par: bool,
         params: Vec<Type>,
         ret: Box<Type>,
-        fail: Vec<Path>,
+        fail: Vec<Type>,
         uses: Vec<Name>,
     },
     /// A type function applied in type position, `session.protocol("...")` (10.4): its
@@ -295,6 +295,16 @@ pub enum Type {
         args: Vec<TArg>,
     },
     None,
+}
+
+impl Type {
+    /// A bare, unqualified type name with no arguments.
+    pub fn bare(name: &str) -> Type {
+        Type::Named {
+            path: vec![name.to_owned()],
+            args: Vec::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

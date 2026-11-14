@@ -913,7 +913,7 @@ fn func(
         ret: Some(j::RetType {
             ty: ret,
             fail: if fails {
-                vec![vec!["SessionClosed".into()]]
+                vec![j::Type::bare("SessionClosed")]
             } else {
                 Vec::new()
             },
