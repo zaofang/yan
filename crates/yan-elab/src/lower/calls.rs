@@ -564,6 +564,10 @@ impl Lower<'_, '_, '_> {
         let j::ExprKind::Call(f, args) = &e.kind else {
             return;
         };
+        if let j::ExprKind::Attr(recv, m, _) = &f.kind {
+            self.method_escape(e, recv, m);
+            return;
+        }
         let j::ExprKind::Name(callee) = &f.kind else {
             return;
         };
@@ -591,6 +595,33 @@ impl Lower<'_, '_, '_> {
                     format!("this view borrows from the local `{x}`, which ends with the function"),
                 );
             }
+        }
+    }
+
+    /// A returned `x.m(..)` whose std signature borrows `self` (`from self`) from a local `x`.
+    fn method_escape(&mut self, e: &j::Expr, recv: &j::Expr, m: &str) {
+        let j::ExprKind::Name(x) = &recv.kind else {
+            return;
+        };
+        if self.sig.params.iter().any(|q| q.name == *x) {
+            return;
+        }
+        let Some(module) = self.ty_of_local(recv).as_ref().and_then(Ty::module) else {
+            return;
+        };
+        let Some(d) = crate::stdlib::decl(&format!("std.{module}.{m}")) else {
+            return;
+        };
+        if d.def
+            .ret
+            .as_ref()
+            .is_some_and(|r| r.from.iter().any(|f| f == "self"))
+        {
+            self.err(
+                "E414",
+                e.span,
+                format!("this value borrows from the local `{x}`, which ends with the function"),
+            );
         }
     }
 

@@ -666,9 +666,8 @@ impl Lower<'_> {
                     .collect::<R<_>>()?,
             },
             TypeKind::Ptr(t) => named(&["Ptr"], vec![h::TArg::Type(self.ty(t)?)]),
-            TypeKind::Ref(_) | TypeKind::Vec { .. } => {
-                return unsupported("Ref and Vec types");
-            }
+            TypeKind::Ref(t) => named(&["Ref"], vec![h::TArg::Type(self.ty(t)?)]),
+            TypeKind::Vec { .. } => return unsupported("Vec types"),
             TypeKind::Record(_) => return unsupported("anonymous record types"),
             TypeKind::Call { path, args } => h::Type::Call {
                 path: path.clone(),
