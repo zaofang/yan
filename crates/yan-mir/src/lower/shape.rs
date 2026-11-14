@@ -339,10 +339,26 @@ pub(super) const STD_FAILURES: &[&str] = &[
     "Draining",
     "Deadlock",
     "Full",
+    "Empty",
+    "Closed",
     "Unreachable",
     "Rejected",
     "SchemaMismatch",
 ];
+
+/// The union of the fieldless failures `names`, in order.
+pub(super) fn failure_union(names: &[&str]) -> Shape {
+    Shape::Sum(
+        "Union".into(),
+        names
+            .iter()
+            .map(|n| {
+                let m = Shape::Rec((*n).into(), Vec::new());
+                ((*n).into(), vec![("value".into(), m)])
+            })
+            .collect(),
+    )
+}
 
 pub(super) fn result(ok: Shape, err: Shape) -> Shape {
     Shape::Sum(

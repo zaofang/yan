@@ -528,6 +528,10 @@ pub enum RtFn {
     /// `(Ptr chan, Ptr out, in_task) -> i64`: the oldest element's slots into `out`; 1 and 2
     /// as for `ChanSend`.
     ChanRecv,
+    /// `ChanSend` that never parks: 4 when the channel has no room.
+    ChanTrySend,
+    /// `ChanRecv` that never parks: 4 when open and empty, 3 when closed.
+    ChanTryRecv,
     /// `(Ptr chan)`: drop one end.
     ChanDrop,
     /// `ChanDrop` of a `Sender`: the last one closes the channel.

@@ -495,6 +495,32 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.chan_result_with(&dst, st, true, |me| me.read(&At::Mem(out.clone(), 0), &e))?;
                 self.free(RtFn::EnvFree, out);
             }
+            (id::STD_CHAN_SENDER_TRY_SEND, [(_, tx), (_, a)]) => {
+                let (Some(e), Some(dst)) = (self.targ(c)?, dst) else {
+                    return unsupported("`try_send` without its type or result");
+                };
+                let tx = self.scalar1(tx)?;
+                let v = self.atom(a, &e)?;
+                let buf = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(v.len() as i128)]);
+                self.write(&At::Mem(buf.clone(), 0), v);
+                let in_task = Operand::Int(i128::from(!self.task_starts.is_empty()));
+                let st = self.rt(RtFn::ChanTrySend, I64, vec![tx, buf.clone(), in_task]);
+                self.free(RtFn::EnvFree, buf);
+                self.try_result(&dst, st, "Full", |_| Vec::new())?;
+            }
+            (id::STD_CHAN_RECEIVER_TRY_RECV, [(_, rx)]) => {
+                let (Some(e), Some(dst)) = (self.targ(c)?, dst) else {
+                    return unsupported("`try_recv` without its type or result");
+                };
+                let rx = self.scalar1(rx)?;
+                let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(e.width() as i128)]);
+                let in_task = Operand::Int(i128::from(!self.task_starts.is_empty()));
+                let st = self.rt(RtFn::ChanTryRecv, I64, vec![rx, out.clone(), in_task]);
+                self.try_result(&dst, st, "Empty", |me| {
+                    me.read(&At::Mem(out.clone(), 0), &e)
+                })?;
+                self.free(RtFn::EnvFree, out);
+            }
             (id::STD_JSON_PARSE, [(_, a), (_, schema)]) => {
                 let Some(dst) = dst else {
                     return unsupported("`json.parse` without a result");

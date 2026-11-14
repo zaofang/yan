@@ -265,6 +265,8 @@ impl Cx {
                         f:
                             RtFn::ChanSend
                             | RtFn::ChanRecv
+                            | RtFn::ChanTrySend
+                            | RtFn::ChanTryRecv
                             | RtFn::ActorTake
                             | RtFn::ActorRetake
                             | RtFn::ActorSend,

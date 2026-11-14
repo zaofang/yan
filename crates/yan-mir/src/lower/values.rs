@@ -283,6 +283,39 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(())
     }
 
+    /// `dst` of a `try_` operation with status `st`: `Ok` of what `ok` reads, or the failure
+    /// its status means: 2 `Cancelled`, 3 `Closed`, 4 `not_ready` (`Empty` or `Full`).
+    pub(super) fn try_result(
+        &mut self,
+        dst: &Var,
+        st: Operand,
+        not_ready: &str,
+        ok: impl FnOnce(&mut Self) -> Vec<Operand>,
+    ) -> R<()> {
+        let Some((_, _, efs)) = dst.shape.variant("Err") else {
+            return unsupported("a channel operation without its failure");
+        };
+        let e = efs[0].1.clone();
+        let join = self.block_new();
+        for (k, name) in [(2, "Cancelled"), (3, "Closed"), (4, not_ready)] {
+            let Some(v) = Self::failure(&e, name, Vec::new()) else {
+                continue;
+            };
+            let (this, next) = self.branch_eq(st.clone(), k);
+            self.cur = this;
+            let v = Self::variant_value(&dst.shape, "Err", v);
+            self.copy_to(&dst.locals, v);
+            self.goto(join);
+            self.cur = next;
+        }
+        let v = ok(self);
+        let v = Self::variant_value(&dst.shape, "Ok", v);
+        self.copy_to(&dst.locals, v);
+        self.goto(join);
+        self.cur = join;
+        Ok(())
+    }
+
     pub(super) fn free(&mut self, f: RtFn, block: Operand) {
         self.emit(Inst::Rt {
             dst: None,
@@ -469,6 +502,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                 );
                 result(option, cancelled())
             }),
+            Some(id::STD_CHAN_RECEIVER_TRY_RECV) => self
+                .targ(c)?
+                .map(|e| result(e, failure_union(&["Empty", "Closed", "Cancelled"]))),
+            Some(id::STD_CHAN_SENDER_TRY_SEND) => Some(result(
+                Shape::Scalar(Ty::Unit),
+                failure_union(&["Full", "Cancelled"]),
+            )),
             Some(id::STD_CHAN_SENDER_SEND | id::STD_TIME_SLEEP | id::STD_TIME_SLEEP_UNTIL) => {
                 Some(result(Shape::Scalar(Ty::Unit), cancelled()))
             }
