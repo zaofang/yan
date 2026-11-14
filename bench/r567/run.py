@@ -172,7 +172,7 @@ def run_py(task: taskset.Task, a: argparse.Namespace) -> dict:
 
 
 def yan_hidden(src: str, task: taskset.Task, yan: str) -> dict:
-    total = len(task.cases)
+    total = task.n_tests
     with tempfile.TemporaryDirectory() as d:
         pathlib.Path(d, "task.yag").write_text(src + taskset.yan_tests(task))
         p = sh([yan, "test", "--no-cache"], d, 300)
@@ -201,7 +201,7 @@ def run_yan(task: taskset.Task, a: argparse.Namespace) -> dict:
         adapter = f"cmd:{shlex.quote(sys.executable)} {HERE / 'model.py'} {a.model}"
         cmd = [
             a.yan, "agent", str(t), "--dir", str(pathlib.Path(d, "work")), "--model", adapter,
-            "--primer", str(HERE / "primer.md"), "--spec-repairs", str(SPEC_REPAIRS),
+            "--primer", str(a.primer), "--spec-repairs", str(SPEC_REPAIRS),
             "--body-repairs", str(BODY_REPAIRS), "--max-tokens", str(MAX_TOKENS),
         ]  # fmt: skip
         if a.shots:
@@ -253,7 +253,8 @@ def run_one(task: taskset.Task, arm: str, a: argparse.Namespace) -> dict:
     rec.update(
         schema=SCHEMA, task=task.id, suite=task.suite, arm=arm, model=a.model, shots=a.shots,
         decoding=a.decoding, tokenizer=TOKENIZER, impossible=task.impossible,
-        cases=len(task.cases),
+        category=task.category, primer=a.primer.name,
+        cases=task.n_tests,
         hidden_first=hid(first) if first else None,
         hidden_final=hid(rec["final"]) if rec.get("final") else None,
     )  # fmt: skip
@@ -284,10 +285,13 @@ def main() -> None:
         default=0.0,
         help="share of tasks also run as impossible variants",
     )
+    ap.add_argument("--primer", type=pathlib.Path, default=HERE / "primer.md")
+    ap.add_argument("--tag", default="", help="run directory name; default VENDOR-DECODING-Nshot")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--out", default=str(HERE / "runs"))
     a = ap.parse_args()
     a.yan = str(pathlib.Path(a.yan).resolve())
+    a.primer = a.primer.resolve()
     if a.model.startswith("oracle:"):  # the adapter runs from another directory
         d, _, flag = a.model[7:].partition("?")
         a.model = f"oracle:{pathlib.Path(d).resolve()}" + (f"?{flag}" if flag else "")
@@ -306,7 +310,7 @@ def main() -> None:
         ts = [t for t in ts if t.id in a.ids.split(",")]
     n_imp = round(len(ts) * a.impossible)
     ts += [taskset.impossible(t) for t in ts[:n_imp]]
-    tag = f"{a.model.split(':')[0]}-{a.decoding}-{a.shots}shot"
+    tag = a.tag or f"{a.model.split(':')[0]}-{a.decoding}-{a.shots}shot"
     jobs = []
     for t in ts:
         for arm in a.arms.split(","):
