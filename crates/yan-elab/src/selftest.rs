@@ -1001,6 +1001,18 @@ fn par_concurrent_under_bound_pool_is_e708() {
     assert!(codes("pct()").is_empty());
 }
 
+#[test]
+fn par_concurrent_under_handler_without_concurrent_is_e708() {
+    let src = "class H:\n    n: int\n\nimpl Sched for H:\n    def width(self: Self) -> int:\n        \
+               return 1\n\npub def main() uses io:\n    with sched = H(n=1):\n        \
+               par concurrent:\n            io.print(\"a\")\n            io.print(\"b\")\n";
+    let (_, d) = lower(src);
+    assert_eq!(
+        d.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
+        ["E708"]
+    );
+}
+
 fn edition_codes(value: &str) -> Vec<String> {
     let src = format!(
         "package: Package = Package(name=\"@a/b\", version=\"1.0.0\", yan=\">=1\", edition=\"{value}\")\n"
