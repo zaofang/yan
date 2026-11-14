@@ -253,28 +253,8 @@ fn scalar(n: &str) -> Option<(i128, bool, bool)> {
 
 /// `ty` with the type parameters `ps` replaced by `args`.
 fn subst(ty: &Type, ps: &[TParam], args: &[Type]) -> Type {
-    let go = |t: &Type| subst(t, ps, args);
-    match ty {
-        Type::Named(n) if n.args.is_empty() && n.path.len() == 1 => ps
-            .iter()
-            .zip(args)
-            .find(|(p, _)| p.name == n.path[0])
-            .map_or_else(|| ty.clone(), |(_, a)| a.clone()),
-        Type::Named(n) => Type::Named(Named {
-            path: n.path.clone(),
-            args: n
-                .args
-                .iter()
-                .map(|a| match a {
-                    TArg::Type(t) => TArg::Type(go(t)),
-                    a => a.clone(),
-                })
-                .collect(),
-        }),
-        Type::Tuple(xs) => Type::Tuple(xs.iter().map(go).collect()),
-        Type::Union(xs) => Type::Union(xs.iter().map(go).collect()),
-        Type::Dyn(_) | Type::Fn(_) | Type::Refined { .. } => ty.clone(),
-    }
+    let args: Vec<TArg> = args.iter().cloned().map(TArg::Type).collect();
+    yan_core::subst::apply(ty, ps, &args)
 }
 
 fn annotations(attrs: &[Attr]) -> Value {

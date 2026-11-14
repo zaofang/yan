@@ -3,6 +3,7 @@
 pub mod ast;
 pub mod hash;
 pub mod path;
+pub mod subst;
 pub use yan_std::intrinsics;
 mod lexer;
 mod parser;
