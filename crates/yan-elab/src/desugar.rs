@@ -72,6 +72,7 @@ pub(crate) fn module(m: &j::Module, cx: &mut Cx) -> j::Module {
                             ty_span: Span::default(),
                             default: None,
                         }],
+                        positional: 0,
                     });
                 }
             }

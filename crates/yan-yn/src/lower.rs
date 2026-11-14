@@ -467,14 +467,12 @@ impl Lower<'_> {
         let tparams = self.tparams(&t.tparams)?;
         let rhs = match &t.rhs {
             TypeRhs::Record { fields, positional } => {
-                if positional.is_some() {
-                    return unsupported("positional-only record fields");
-                }
                 return Ok(h::ItemKind::Record(h::Record {
                     name: t.name.clone(),
                     tparams,
                     doc: self.doc.clone(),
                     fields: fields.iter().map(|f| self.field(f)).collect::<R<_>>()?,
+                    positional: positional.unwrap_or(0),
                 }));
             }
             TypeRhs::Sum(vs) => h::TypeRhs::Sum(

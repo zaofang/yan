@@ -162,6 +162,7 @@ fn hir_item(d: &y::Item, from: &j::Item) -> R<j::Item> {
             tparams: Vec::new(),
             doc: None,
             fields: hir_fields(&r.fields, at)?,
+            positional: 0,
         }),
         y::ItemKind::Sum(s) => {
             let variants = s
@@ -194,6 +195,7 @@ fn hir_item(d: &y::Item, from: &j::Item) -> R<j::Item> {
                 ty_span: at,
                 default: None,
             }],
+            positional: 0,
         }),
         _ => return unsupported("a reified declaration of this kind"),
     };

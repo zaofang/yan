@@ -211,6 +211,8 @@ pub struct Record {
     pub tparams: Vec<TParam>,
     pub doc: Option<String>,
     pub fields: Vec<Field>,
+    /// The number of leading fields before a `/`: positional-only (R437).
+    pub positional: usize,
 }
 
 #[derive(Clone, Debug, PartialEq)]

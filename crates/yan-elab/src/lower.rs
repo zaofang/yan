@@ -1823,14 +1823,15 @@ enum Given<'e> {
     Recv(&'e j::Expr),
 }
 
-fn field_params(fs: &[crate::Field], at: Span) -> Vec<crate::P> {
+fn field_params(fs: &[crate::Field], positional: usize, at: Span) -> Vec<crate::P> {
     fs.iter()
-        .map(|f| crate::P {
+        .enumerate()
+        .map(|(i, f)| crate::P {
             name: f.name.clone(),
             conv: Conv::Sink,
             ty: f.ty.clone(),
             default: f.default.clone(),
-            positional: false,
+            positional: i < positional,
             span: at,
         })
         .collect()

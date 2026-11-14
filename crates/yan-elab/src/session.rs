@@ -1003,6 +1003,7 @@ pub(crate) fn items(p: &Protocol, is_pub: bool, at: Span) -> Vec<j::Item> {
                         .iter()
                         .map(|(f, t)| field(f, t.clone(), at))
                         .collect(),
+                    positional: 0,
                 }),
                 true,
             ));
@@ -1251,6 +1252,7 @@ pub(crate) fn items(p: &Protocol, is_pub: bool, at: Span) -> Vec<j::Item> {
             tparams: Vec::new(),
             doc: None,
             fields: roles,
+            positional: 0,
         }),
         true,
     ));
