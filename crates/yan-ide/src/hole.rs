@@ -198,7 +198,7 @@ fn contracts_of(head: &str) -> (Vec<String>, Vec<String>) {
 
 fn type_names(t: &Type, f: &mut dyn FnMut(String)) {
     match t {
-        Type::Named { path, args } => {
+        Type::Named { path, args } | Type::Dyn { path, args } => {
             if let [n] = path.as_slice() {
                 f(n.clone());
             }

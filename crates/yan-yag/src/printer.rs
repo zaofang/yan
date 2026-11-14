@@ -128,6 +128,8 @@ pub fn ty(t: &Type) -> String {
             }
         }
         Type::Call { path: p, args: a } => format!("{}({})", path(p), args(a)),
+        Type::Dyn { path: p, args } if args.is_empty() => format!("dyn {}", path(p)),
+        Type::Dyn { path: p, args } => format!("dyn {}[{}]", path(p), comma(args, targ)),
         Type::Callable {
             par,
             params,

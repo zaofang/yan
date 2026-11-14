@@ -425,7 +425,8 @@ pub enum StmtKind {
 pub enum WithKind {
     Bind {
         name: Name,
-        dynamic: bool,
+        /// The `dyn` keyword, when present.
+        dynamic: Option<Span>,
         value: Expr,
     },
     Deadline(Expr),

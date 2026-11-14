@@ -152,6 +152,7 @@ fn ty(t: &Type) -> R<String> {
             return Ok(format!("Callable[[{}], {}]", ps.join(", "), ty(ret)?));
         }
         Type::Call { .. } => return no("type-function application"),
+        Type::Dyn { .. } => return no("`dyn` types"),
         Type::Named { path, args } => (path, args),
     };
     let args = args

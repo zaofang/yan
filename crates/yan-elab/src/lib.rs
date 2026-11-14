@@ -463,6 +463,7 @@ impl Globals {
         Ok(match t {
             j::Type::None => Ty::Unit,
             j::Type::Call { path, args } => typefn::applied(self, path, args)?,
+            j::Type::Dyn { .. } => return unsupported("`dyn` types"),
             j::Type::Callable {
                 par,
                 params,

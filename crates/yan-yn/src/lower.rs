@@ -34,6 +34,9 @@ fn unsupported<T>(what: impl Into<String>) -> R<T> {
     })
 }
 
+/// Capabilities whose handler must resolve to a concrete type at compile time (7.3, E307).
+const COMPILE_TIME_CAPS: [&str; 5] = ["alloc", "rand", "time", "sched", "fault"];
+
 /// The std capabilities a body can name without declaring them (7.1).
 const CAPS: [&str; 9] = [
     "io", "net", "fs", "time", "rand", "log", "nondet", "env", "proc",
@@ -655,7 +658,13 @@ impl Lower<'_> {
                     .collect(),
             },
             TypeKind::Union(_) => return unsupported("union types outside `fail` and aliases"),
-            TypeKind::Dyn { .. } => return unsupported("`dyn` types"),
+            TypeKind::Dyn { name, args } => h::Type::Dyn {
+                path: vec![name.clone()],
+                args: args
+                    .iter()
+                    .map(|t| Ok(h::TArg::Type(self.ty(t)?)))
+                    .collect::<R<_>>()?,
+            },
             TypeKind::Ptr(t) => named(&["Ptr"], vec![h::TArg::Type(self.ty(t)?)]),
             TypeKind::Ref(_) | TypeKind::Vec { .. } => {
                 return unsupported("Ref and Vec types");
@@ -1371,8 +1380,18 @@ impl Lower<'_> {
             },
             StmtKind::With { kind, body } => K::With {
                 kind: match kind {
-                    WithKind::Bind { dynamic: true, .. } => {
-                        return unsupported("`with name = dyn e`");
+                    WithKind::Bind {
+                        name,
+                        dynamic: Some(at),
+                        value,
+                    } => {
+                        if !COMPILE_TIME_CAPS.contains(&name.as_str()) {
+                            return unsupported("`with name = dyn e`");
+                        }
+                        let msg =
+                            format!("`{name}` must be bound to a handler resolved at compile time");
+                        self.err("E307", *at, &msg);
+                        h::WithKind::Bind(name.clone(), self.expr(value)?)
                     }
                     WithKind::Bind { name, value, .. } => {
                         h::WithKind::Bind(name.clone(), self.expr(value)?)
