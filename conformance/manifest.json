@@ -11704,6 +11704,51 @@
    "exit": 0
   },
   {
+   "path": "yir/run/jp_falls_through_late_local.yir",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R764"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "body\nb\n",
+   "exit": 0
+  },
+  {
+   "path": "yir/run/jp_falls_through_sibling.yir",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R764"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "m\nbody\nafter\nkept\n",
+   "exit": 0
+  },
+  {
+   "path": "yir/run/jp_falls_through_two_statements.yir",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R764"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "body\nmid\nbody\nkept\n",
+   "exit": 0
+  },
+  {
    "path": "yir/run/overflow.yir",
    "kind": "run",
    "milestone": "M0",
