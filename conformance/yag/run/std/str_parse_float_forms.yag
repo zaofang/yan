@@ -1,0 +1,22 @@
+# spec: 17.3
+# rows: R909
+# note: str.parse_float adds a fraction, an exponent and inf, infinity, nan in any case to the parse_int form; other text is None
+# stdout:
+# 1.5 1000.0 -0.25
+# True True True True
+# None None None
+
+pub def main() uses io:
+    a = "1.5".parse_float()
+    b = "1e3".parse_float()
+    c = "-0.25".parse_float()
+    io.print(f"{a} {b} {c}")
+    p = "inf".parse_float() else 0.0
+    q = "-Infinity".parse_float() else 0.0
+    r = "NaN".parse_float() else 0.0
+    s = "INFINITY".parse_float() else 0.0
+    io.print(f"{p > 1e308} {q < -1e308} {r != r} {s > 1e308}")
+    x = "1_0".parse_float()
+    y = "0x10".parse_float()
+    z = "".parse_float()
+    io.print(f"{x} {y} {z}")

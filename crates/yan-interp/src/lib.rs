@@ -277,6 +277,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             waiting_recv: Vec::new(),
             park_ok: false,
             park: None,
+            park_timer: None,
             force: false,
             in_par: 0,
             cancel: Vec::new(),
@@ -441,6 +442,8 @@ pub(crate) struct Interp<'o> {
     park_ok: bool,
     /// Set by a blocking operation that parked: (is a receive, channel).
     park: Option<(bool, usize)>,
+    /// Set with `park` by a `select` that waits on a timer: the reading it wakes at.
+    park_timer: Option<i128>,
     /// Every task is parked: fail the next blocking operation as a plain wait would.
     force: bool,
     /// How many `par concurrent` blocks are running tasks.
@@ -843,6 +846,7 @@ fn entry(
         waiting_recv: Vec::new(),
         park_ok: false,
         park: None,
+        park_timer: None,
         force: false,
         in_par: 0,
         cancel: Vec::new(),

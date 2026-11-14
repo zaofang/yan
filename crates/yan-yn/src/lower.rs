@@ -1813,6 +1813,9 @@ fn tail_return(stmts: &mut [h::Stmt]) {
                 .iter_mut()
                 .for_each(|c| tail_return(&mut c.body.stmts));
         }
+        h::StmtKind::Select(arms) => {
+            arms.iter_mut().for_each(|a| tail_return(&mut a.body.stmts));
+        }
         _ => {}
     }
 }

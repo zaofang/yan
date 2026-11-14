@@ -5007,6 +5007,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/collections/sorted_dict_iterates_ascending.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.2",
+    "17.3"
+   ],
+   "rows": [
+    "R911"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 2 3\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/chan_try_ops.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5491,6 +5507,37 @@
    "flags": [],
    "expect": [],
    "stdout": "24 24\n2 3 4\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n50_n51_slice_and_int.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1",
+    "14.4"
+   ],
+   "rows": [
+    "R935"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "bc xyz cba ab\n42 -3\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/lenient/r933_empty_literal_argument.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R933"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 0 0 0\n",
    "exit": 0
   },
   {
@@ -6495,6 +6542,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/itertools_order.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R936"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "123 132 213 231 312 321\n12 13 23\n11 12 21 22\n1-2 2-3\n1 3 6\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/list_bisect.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7035,6 +7097,36 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/regex_group_past_last.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R910"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "12\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/std/regex_named_missing.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R910"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n",
+   "exit": 101
+  },
+  {
    "path": "yag/run/std/regex_runtime_error.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7063,6 +7155,21 @@
    "flags": [],
    "expect": [],
    "stdout": "2024-10 2024 10 2024\n3 10\nNone\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/regex_split_nonparticipating_group.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R910"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "['a', '', 'b']\n['a', 'x', 'b']\n",
    "exit": 0
   },
   {
@@ -7158,6 +7265,51 @@
    "flags": [],
    "expect": [],
    "stdout": "['h', '\u00e9', 'l', 'l', 'o'] 5\n['a', 'b', 'c']\nh\n\u00e9\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/str_parse_float_forms.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R909"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1.5 1000.0 -0.25\nTrue True True True\nNone None None\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/str_parse_int_forms.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R909"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "12 -7 5 None None None None None None\n0 None\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/str_splitlines_boundaries.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R909"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 a b c\n3 a  b\n0\n2\n2 x y\n",
    "exit": 0
   },
   {
@@ -7844,6 +7996,17 @@
    "spec": [
     "12.3",
     "12.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yn/pass/ffi/uses_none_needs_no_capability.yn",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "12.2"
    ],
    "rows": [],
    "flags": [],
@@ -8612,6 +8775,23 @@
    ]
   },
   {
+   "path": "yn/fail/ffi/e301_extern_call_without_uses.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 8,
+     "col": 20
+    }
+   ]
+  },
+  {
    "path": "yn/fail/ffi/e903_unsafe_call_outside_block.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -8624,7 +8804,7 @@
     {
      "code": "E903",
      "line": 8,
-     "col": 35
+     "col": 42
     }
    ]
   },
@@ -10298,6 +10478,22 @@
    "flags": [],
    "expect": [],
    "stdout": "4 9 [1, 4, 9]\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/concurrency/select_first_ready.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "9.5",
+    "15.3"
+   ],
+   "rows": [
+    "R342"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "105\n7\n108\n-2\n-1\n",
    "exit": 0
   },
   {
