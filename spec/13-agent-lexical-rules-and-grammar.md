@@ -137,7 +137,7 @@ scalar    = "int" | "float" | "bool"
           | "int8" | "int16" | "int32" | "int128"                # int is 64-bit; int64, float64 lenient (N27)
           | "uint8" | "uint16" | "uint32" | "uint64" | "uint128"
           | "float16" | "bfloat16" | "float32" | "float128"
-errtype   = path {"|" path}
+errtype   = base {"|" base}
 callsfx   = "," ("fail" "(" errtype ")" ["," "uses" "(" NAME {"," NAME} ")"] | "uses" "(" NAME {"," NAME} ")")
 atarg     = INT | type                                        # an axis is a literal size, a size variable or a label type
 path      = NAME [ptail] | TYPENAME                           # a.b.C or a.b.c
