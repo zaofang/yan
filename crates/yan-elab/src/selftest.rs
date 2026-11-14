@@ -987,6 +987,20 @@ fn sibling_channel_waits_are_e713_only_in_plain_par() {
     assert!(codes("par concurrent").is_empty());
 }
 
+#[test]
+fn par_concurrent_under_bound_pool_is_e708() {
+    let codes = |h: &str| {
+        let src = format!(
+            "pub def main() uses io:\n    with sched = {h}:\n        par concurrent:\n            \
+             io.print(\"a\")\n            io.print(\"b\")\n"
+        );
+        let (_, d) = lower(&src);
+        d.iter().map(|d| d.code.clone()).collect::<Vec<_>>()
+    };
+    assert_eq!(codes("pool()"), ["E708"]);
+    assert!(codes("pct()").is_empty());
+}
+
 fn edition_codes(value: &str) -> Vec<String> {
     let src = format!(
         "package: Package = Package(name=\"@a/b\", version=\"1.0.0\", yan=\">=1\", edition=\"{value}\")\n"

@@ -159,7 +159,7 @@ E618 = "crates/yan-elab/src/cost.rs"
 E619 = "crates/yan-cli/src/mcp.rs"
 E702 = "crates/yan-elab/src/lower.rs"
 E705 = "crates/yan-check/src/lib.rs"
-E708 = { unimplemented = "#825" }
+E708 = "crates/yan-elab/src/lower/stmt_form.rs"
 E709 = "crates/yan-elab/src/lower.rs"
 E710 = { unimplemented = "#825" }
 E711 = "crates/yan-elab/src/lower/stmt_form.rs"

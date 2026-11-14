@@ -265,7 +265,7 @@ impl Lower<'_, '_, '_> {
             // std.test is in scope without an import (assumption A7).
             // A handler constructor is chosen by the capability it is bound to, so `sim` in
             // `with cluster = sim(n, seed)` is `std.sim.sim`, not the fault handler (R417).
-            _ if let Some((path, p)) = ["prelude", "test", "sim"]
+            _ if let Some((path, p)) = ["prelude", "test", "sim", "sched"]
                 .iter()
                 .filter_map(|m| {
                     let path = format!("std.{m}.{n}");

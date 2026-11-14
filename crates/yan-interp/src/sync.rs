@@ -801,4 +801,8 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_EVENTED_SCHED,
         Bind::Plain(|_| unsupported("`std.evented.sched` in the interpreter")),
     ),
+    (
+        STD_SCHED_POOL,
+        Bind::Plain(|_| unsupported("`std.sched.pool` in the interpreter")),
+    ),
 ];
