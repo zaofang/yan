@@ -13,7 +13,9 @@ Functions and types take type, `Nat`, axis and dimension parameters, user-define
 - A trait declares functions whose first parameter is `self`, of type `Self`. Default bodies are allowed.
 - **Associated types.** A trait may declare type members, `type Item`, which each impl fixes once. There are no generic associated types and no associated constants; lending iterators use `from` (4.5). The iteration protocol is `trait Iterator { type Item; fn next(inout self) -> Option[Item] }`, and `for` desugars through `IntoIter`. Adapters are lazy with guaranteed fusion, and an exhausted iterator keeps returning `None`.
 - **Coherence.** `impl Trait for Type` is legal only in the module that declares `Trait` or the one that declares `Type`. Overlapping impls are E220. There is no specialization.
-- Trait resolution happens entirely at compile time.
+- Trait resolution happens entirely at compile time, except for `dyn`.
+- **`dyn Trait` representation (R1004).** A `dyn Trait` value is an owned pair: the data, boxed through the bound `alloc`, and a vtable pointer. The vtable holds drop, size, align and the trait's methods in declaration order, and is generated per (type, trait) at monomorphization. A coercion from a concrete `T: Trait` to `dyn Trait` is explicit, a method call is one indirect call, and dropping the value runs the vtable's drop and frees the box. `let` and `inout` parameters of type `dyn Trait` pass the pair without copying.
+- **Object safety (R1005).** `dyn Trait` is legal only when the trait has no generic method, no associated type without a fixed value in the `dyn` type, and no `Self` in a parameter or result position other than the receiver, except in a method marked `where Self: Sized`, which is not callable through `dyn`. Otherwise E333.
 - **Method resolution.** `x.f(...)` always resolves a function, by the order of section 17.2: the current module, then the type's module, then the prelude, first match wins. A function-typed field is called as `(x.f)(...)` (SQ8). Two functions of one name at one step are E250.
 
 ### 10.3 Operators

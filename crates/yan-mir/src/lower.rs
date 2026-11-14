@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 mod actor;
+mod arena;
 mod bigint;
 mod call;
 mod chars;
@@ -1132,6 +1133,8 @@ impl<'a, 'm> Fn<'a, 'm> {
                 | Shape::Heap(_)
                 | Shape::Deque(_)
                 | Shape::Chan(..)
+                | Shape::Arena
+                | Shape::Ref(_)
                 | Shape::Actor(_),
                 1,
             ) => Ok(v.remove(0)),

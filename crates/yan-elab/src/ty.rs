@@ -35,6 +35,8 @@ pub enum Ty {
     Union(Vec<Ty>),
     /// A record, sum or newtype of this module.
     Data(String),
+    /// An instance of a generic sum of this module, at its type arguments (`Maybe[i64]`).
+    Inst(String, Vec<Ty>),
     /// A type parameter of the enclosing function, or `Self` in a trait.
     Param(String),
     /// `Callable[[params], ret]`; `par` when prefixed `par` (R436).
@@ -178,6 +180,7 @@ impl Ty {
             Ty::Result(t, e) => named("Result", vec![t.core(), e.core()]),
             Ty::Union(ts) => y::Type::Union(ts.iter().map(Ty::core).collect()),
             Ty::Data(n) | Ty::Param(n) => named(n, vec![]),
+            Ty::Inst(n, ts) => named(n, ts.iter().map(Ty::core).collect()),
             Ty::Foreign(n, ts) => named(n, ts.iter().map(Ty::core).collect()),
             // Literal positional axes are stored flat, row-major, as one list (11.2).
             Ty::Array(_, t) if self.dims().is_some() => named("List", vec![t.core()]),
@@ -248,6 +251,9 @@ impl Ty {
             (Ty::Coll(m, a), Ty::Coll(n, b)) => {
                 m == n && a.len() == b.len() && a.iter().zip(b).all(|(x, y)| x.fits(y))
             }
+            (Ty::Inst(m, a), Ty::Inst(n, b)) => {
+                m == n && a.len() == b.len() && a.iter().zip(b).all(|(x, y)| x.fits(y))
+            }
             (Ty::Fn(p, a, r), Ty::Fn(q, b, s)) => {
                 (*p || !q)
                     && a.len() == b.len()
@@ -306,6 +312,7 @@ impl Ty {
             Ty::Coll("Arc", _) => Some("sync.arc"),
             Ty::Coll("Cell", _) => Some("sync.cell"),
             Ty::Coll("Arena", _) => Some("arena"),
+            Ty::Coll("Ref", _) => Some("arena.ref"),
             Ty::Coll("Atomic", _) => Some("sync.atomic"),
             Ty::Coll("Sender", _) => Some("chan.sender"),
             Ty::Coll("Receiver", _) => Some("chan.receiver"),
@@ -339,6 +346,9 @@ impl Ty {
                 b.unify(d, map);
             }
             (Ty::Tuple(a), Ty::Tuple(b)) => a.iter().zip(b).for_each(|(x, y)| x.unify(y, map)),
+            (Ty::Inst(m, a), Ty::Inst(n, b)) if m == n => {
+                a.iter().zip(b).for_each(|(x, y)| x.unify(y, map))
+            }
             (Ty::Coll(m, a), Ty::Coll(n, b)) if m == n => {
                 a.iter().zip(b).for_each(|(x, y)| x.unify(y, map))
             }
@@ -356,7 +366,7 @@ impl Ty {
             Ty::Param(n) => n == p,
             Ty::List(t) | Ty::Set(t) | Ty::Option(t) => t.mentions(p),
             Ty::Dict(a, b) | Ty::Result(a, b) => a.mentions(p) || b.mentions(p),
-            Ty::Tuple(ts) | Ty::Coll(_, ts) => ts.iter().any(|t| t.mentions(p)),
+            Ty::Tuple(ts) | Ty::Coll(_, ts) | Ty::Inst(_, ts) => ts.iter().any(|t| t.mentions(p)),
             Ty::Fn(_, ps, r) => r.mentions(p) || ps.iter().any(|t| t.mentions(p)),
             _ => false,
         }
@@ -376,6 +386,7 @@ impl Ty {
             Ty::Result(t, e) => Ty::Result(s(t), s(e)),
             Ty::Tuple(ts) => Ty::Tuple(ts.iter().map(|t| t.subst(map)).collect()),
             Ty::Coll(n, ts) => Ty::Coll(n, ts.iter().map(|t| t.subst(map)).collect()),
+            Ty::Inst(n, ts) => Ty::Inst(n.clone(), ts.iter().map(|t| t.subst(map)).collect()),
             Ty::Fn(p, ps, r) => Ty::Fn(*p, ps.iter().map(|t| t.subst(map)).collect(), s(r)),
             t => t.clone(),
         }
@@ -481,6 +492,10 @@ impl std::fmt::Display for Ty {
                 write!(f, "{}", ts.join(" | "))
             }
             Ty::Data(n) | Ty::Param(n) => write!(f, "{n}"),
+            Ty::Inst(n, ts) => {
+                let ts: Vec<String> = ts.iter().map(Ty::to_string).collect();
+                write!(f, "{n}[{}]", ts.join(", "))
+            }
             Ty::Fn(p, ps, r) => {
                 let ps: Vec<String> = ps.iter().map(Ty::to_string).collect();
                 let par = if *p { "par " } else { "" };

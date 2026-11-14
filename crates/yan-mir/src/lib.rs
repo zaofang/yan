@@ -521,6 +521,12 @@ pub enum RtFn {
     ListFree,
     /// `(Ptr)`: free a closure's captures block; null is ignored.
     EnvFree,
+    /// `() -> Ptr`: an empty arena.
+    ArenaNew,
+    /// `(Ptr arena, words) -> Ptr` to that many zeroed words, owned by the arena.
+    ArenaAlloc,
+    /// `(Ptr arena)`: free the arena and every slot it handed out.
+    ArenaFree,
     /// `(cap, words) -> Ptr`: a channel of `words`-slot elements, shared by both ends.
     ChanNew,
     /// `(Ptr chan, Ptr slots, in_task) -> i64`: 1 when it parked the task, 2 when the task is

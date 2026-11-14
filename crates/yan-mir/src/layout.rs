@@ -106,6 +106,8 @@ pub fn layout(s: &Shape) -> Layout {
         | Shape::Deque(_)
         | Shape::Chan(..)
         | Shape::Actor(_)
+        | Shape::Arena
+        | Shape::Ref(_)
         | Shape::Set(_) => plain(8, 8),
         Shape::Fn(..) | Shape::Ptr => plain(16, 8),
         Shape::Tuple(ss) => aggregate(&ss.iter().map(layout).collect::<Vec<_>>()),

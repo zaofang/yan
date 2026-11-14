@@ -303,6 +303,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.encoding_call(id, c, dst);
         }
+        if super::arena::ARENA_IDS.contains(&id) {
+            return self.arena_call(id, c, dst);
+        }
         if super::ptr::PTR_IDS.contains(&id) {
             return self.ptr_call(id, c, dst);
         }
