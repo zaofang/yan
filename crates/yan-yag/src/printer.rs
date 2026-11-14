@@ -163,16 +163,8 @@ fn targ(a: &TArg) -> String {
     }
 }
 
-fn errtype(ps: &[Path]) -> String {
-    ps.iter()
-        .map(|p| {
-            ty(&Type::Named {
-                path: p.clone(),
-                args: Vec::new(),
-            })
-        })
-        .collect::<Vec<_>>()
-        .join(" | ")
+fn errtype(ts: &[Type]) -> String {
+    ts.iter().map(ty).collect::<Vec<_>>().join(" | ")
 }
 
 fn tparams(ps: &[TParam]) -> String {

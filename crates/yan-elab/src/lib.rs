@@ -1402,17 +1402,10 @@ fn sig_body(
             };
             let mut members = Vec::new();
             for p in &r.fail {
-                if p.len() != 1 {
+                if matches!(p, j::Type::Named { path, .. } if path.len() != 1) {
                     return unsupported("a qualified error type");
                 }
-                let t = g.ty(
-                    &j::Type::Named {
-                        path: p.clone(),
-                        args: Vec::new(),
-                    },
-                    cx,
-                    f.name_span,
-                )?;
+                let t = g.ty(p, cx, f.name_span)?;
                 union_add(&mut members, t);
             }
             if members.len() > 8 {

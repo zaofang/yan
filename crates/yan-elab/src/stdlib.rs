@@ -893,18 +893,10 @@ fn std_cx(module: &str) -> Cx<'static> {
 }
 
 /// A declared fail type: `None` inside when it cannot fail, a union for several members.
-fn fail_ty(paths: &[Vec<String>], b: &HashMap<String, Ty>) -> Option<Option<Ty>> {
-    let mut ms = paths
+fn fail_ty(types: &[j::Type], b: &HashMap<String, Ty>) -> Option<Option<Ty>> {
+    let mut ms = types
         .iter()
-        .map(|p| {
-            subst(
-                &j::Type::Named {
-                    path: p.clone(),
-                    args: Vec::new(),
-                },
-                b,
-            )
-        })
+        .map(|t| subst(t, b))
         .collect::<Option<Vec<_>>>()?;
     Some(match ms.len() {
         0 => None,

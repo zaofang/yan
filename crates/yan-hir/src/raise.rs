@@ -928,14 +928,16 @@ fn ty(t: &y::Type) -> R<Type> {
     })
 }
 
-fn fail_paths(t: &y::Type) -> R<Vec<Path>> {
+fn fail_types(t: &y::Type) -> R<Vec<Type>> {
     match t {
-        y::Type::Named(n) if n.args.is_empty() => Ok(vec![n.path.clone()]),
-        y::Type::Union(ts) => ts
+        y::Type::Named(_) => Ok(vec![ty(t)?]),
+        y::Type::Union(ts) => Ok(ts
             .iter()
-            .map(fail_paths)
-            .map(|p| Ok(p?.remove(0)))
-            .collect(),
+            .map(fail_types)
+            .collect::<R<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect()),
         _ => no("this failure type"),
     }
 }
@@ -997,7 +999,7 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
     let fail = f
         .fail
         .as_ref()
-        .map(fail_paths)
+        .map(fail_types)
         .transpose()?
         .unwrap_or_default();
     let ret = (!unit || !fail.is_empty()).then(|| -> R<RetType> {
