@@ -1,13 +1,13 @@
 # spec: 9.5
 # rows: R342
-# note: try_recv fails Empty on an open empty channel and Closed once every sender is gone; try_send fails Full (#1153)
+# note: try_recv returns TryRecv[T]: Got on a value, Empty on an open empty channel, Closed once every sender is gone; try_send fails Full (#1153, #1257)
 # stdout:
 # Empty()
 # sent
 # Full()
-# 1
+# Got(value=1)
 # Empty()
-# 0
+# Got(value=0)
 # Closed()
 
 def gone() -> Receiver[int] uses nondet:
@@ -15,9 +15,8 @@ def gone() -> Receiver[int] uses nondet:
     tx.try_send(0) else e -> None
     return rx
 
-def poll(var rx: Receiver[int]) -> str fail Empty | Closed | Cancelled uses nondet:
-    v = rx.try_recv()?
-    return f"{v}"
+def poll(var rx: Receiver[int]) -> str fail Cancelled uses nondet:
+    return f"{rx.try_recv()?}"
 
 def push(var tx: Sender[int], v: int) -> str fail Full | Cancelled uses nondet:
     tx.try_send(v)?

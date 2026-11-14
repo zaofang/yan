@@ -722,12 +722,24 @@ pub fn elaborate_in(
                 })
             })
             .collect::<R<_>>()?;
+        let tparams = g
+            .sum_params
+            .get(&name)
+            .into_iter()
+            .flatten()
+            .map(|n| y::TParam {
+                comptime: false,
+                name: n.clone(),
+                kind: y::Kind::Type,
+                bounds: Vec::new(),
+            })
+            .collect();
         items.push(y::Item {
             attrs: Vec::new(),
             kind: y::ItemKind::Sum(y::Sum {
                 is_pub: true,
                 path: vec![name],
-                tparams: Vec::new(),
+                tparams,
                 variants,
             }),
             span: Span {

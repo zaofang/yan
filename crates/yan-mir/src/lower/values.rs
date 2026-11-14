@@ -318,6 +318,56 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(())
     }
 
+    /// `TryRecv[t]`, declared in `std.chan`.
+    pub(super) fn try_recv_shape(&self, t: &y::Type) -> R<Shape> {
+        self.shape(&y::Type::Named(y::Named {
+            path: vec!["TryRecv".into()],
+            args: vec![y::TArg::Type(t.clone())],
+        }))
+    }
+
+    /// The `Result[TryRecv[T], Cancelled]` of a `try_recv` that returned status `st`: 2 cancelled,
+    /// 3 closed, 4 empty, else `ok` yields the received value.
+    pub(super) fn try_recv_result(
+        &mut self,
+        dst: &Var,
+        st: Operand,
+        ok: impl FnOnce(&mut Self) -> Vec<Operand>,
+    ) -> R<()> {
+        let (Some((_, _, efs)), Some((_, _, ofs))) =
+            (dst.shape.variant("Err"), dst.shape.variant("Ok"))
+        else {
+            return unsupported("`try_recv` without its result");
+        };
+        let (e, t) = (efs[0].1.clone(), ofs[0].1.clone());
+        let Some(cancelled) = Self::failure(&e, "Cancelled", Vec::new()) else {
+            return unsupported("a channel failure without `Cancelled`");
+        };
+        let join = self.block_new();
+        let (this, next) = self.branch_eq(st.clone(), 2);
+        self.cur = this;
+        let v = Self::variant_value(&dst.shape, "Err", cancelled);
+        self.copy_to(&dst.locals, v);
+        self.goto(join);
+        self.cur = next;
+        for (k, name) in [(3, "Closed"), (4, "Empty")] {
+            let (this, next) = self.branch_eq(st.clone(), k);
+            self.cur = this;
+            let v = Self::variant_value(&t, name, Vec::new());
+            let v = Self::variant_value(&dst.shape, "Ok", v);
+            self.copy_to(&dst.locals, v);
+            self.goto(join);
+            self.cur = next;
+        }
+        let got = ok(self);
+        let v = Self::variant_value(&t, "Got", got);
+        let v = Self::variant_value(&dst.shape, "Ok", v);
+        self.copy_to(&dst.locals, v);
+        self.goto(join);
+        self.cur = join;
+        Ok(())
+    }
+
     pub(super) fn free(&mut self, f: RtFn, block: Operand) {
         self.emit(Inst::Rt {
             dst: None,
@@ -508,9 +558,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Shape::Scalar(I64),
                 failure_union(&["Cancelled", "Timeout"]),
             )),
-            Some(id::STD_CHAN_RECEIVER_TRY_RECV) => self
-                .targ(c)?
-                .map(|e| result(e, failure_union(&["Empty", "Closed", "Cancelled"]))),
+            Some(id::STD_CHAN_RECEIVER_TRY_RECV) => match c.targs.as_slice() {
+                [y::TArg::Type(t)] => Some(result(self.try_recv_shape(t)?, cancelled())),
+                _ => None,
+            },
             Some(id::STD_CHAN_SENDER_TRY_SEND) => Some(result(
                 Shape::Scalar(Ty::Unit),
                 failure_union(&["Full", "Cancelled"]),
