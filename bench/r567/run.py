@@ -287,6 +287,7 @@ def main() -> None:
     )
     ap.add_argument("--primer", type=pathlib.Path, default=HERE / "primer.md")
     ap.add_argument("--tag", default="", help="run directory name; default VENDOR-DECODING-Nshot")
+    ap.add_argument("--impossible-only", action="store_true", help="run only the impossible variants")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--out", default=str(HERE / "runs"))
     a = ap.parse_args()
@@ -309,7 +310,8 @@ def main() -> None:
     if a.ids:
         ts = [t for t in ts if t.id in a.ids.split(",")]
     n_imp = round(len(ts) * a.impossible)
-    ts += [taskset.impossible(t) for t in ts[:n_imp]]
+    imps = [taskset.impossible(t) for t in ts[:n_imp]]
+    ts = imps if a.impossible_only else ts + imps
     tag = a.tag or f"{a.model.split(':')[0]}-{a.decoding}-{a.shots}shot"
     jobs = []
     for t in ts:
