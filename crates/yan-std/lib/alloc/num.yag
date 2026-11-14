@@ -1,0 +1,15 @@
+"""Methods on int and the other numbers (R475)."""
+
+@since("1.0")
+pub def bit_length(self: int) -> int:
+    """The bits needed for `|self|`, 0 for 0 (Python's `int.bit_length`)."""
+    if self == 0:
+        return 0
+    if self == -9223372036854775807 - 1:
+        return 64
+    n = self if self > 0 else -self
+    k = 0
+    while n > 0:
+        n //= 2
+        k += 1
+    return k
