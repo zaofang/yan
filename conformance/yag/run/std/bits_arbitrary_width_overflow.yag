@@ -1,0 +1,14 @@
+# spec: 3.4
+# rows: R681, R682
+# note: arithmetic on uint3 and int5 panics with overflow at the type's own edge, not at i64
+# stdout:
+# 7 -16
+# exit: 101
+
+pub def main() uses io:
+    a: uint3 = 7
+    b: int5 = -16
+    z: uint3 = 0
+    io.print(f"{a + z} {b}")
+    one: uint3 = 1
+    io.print(f"{a + one}")

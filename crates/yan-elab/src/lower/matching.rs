@@ -184,6 +184,17 @@ impl Lower<'_, '_, '_> {
     pub(super) fn pat(&mut self, p: &j::Pat, ty: &Ty, at: Span) -> R<(y::Pat, Vec<(String, Ty)>)> {
         Ok(match p {
             j::Pat::Wild => (y::Pat::Wild, Vec::new()),
+            // `None` against an option is the variant, not a unit literal.
+            j::Pat::Lit(e)
+                if matches!(e.kind, j::ExprKind::Lit(j::Lit::None))
+                    && matches!(ty, Ty::Option(_)) =>
+            {
+                let none = j::Pat::Path {
+                    path: vec!["None".to_owned()],
+                    args: None,
+                };
+                return self.pat(&none, ty, at);
+            }
             j::Pat::Lit(e) => {
                 let (l, lt) = match &e.kind {
                     j::ExprKind::Lit(l) => (literal(l)?, lit_ty(l)),
@@ -221,6 +232,11 @@ impl Lower<'_, '_, '_> {
                         .iter()
                         .find(|(v, _)| v == n)
                         .map(|(_, fs)| fs.iter().map(|f| (f.name.clone(), f.ty.clone())).collect()),
+                    (Ty::Data(r), _) if r == n && self.g.layout_bits.contains(r) => {
+                        return unsupported(format!(
+                            "a pattern on `@layout(bits)` record `{r}`; read its fields instead"
+                        ));
+                    }
                     (Ty::Data(r), _) if r == n && self.g.records.contains_key(r) => Some(
                         self.g.records[r]
                             .iter()

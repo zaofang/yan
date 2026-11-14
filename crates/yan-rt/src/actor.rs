@@ -175,6 +175,8 @@ pub(crate) struct State {
     start: Instant,
     /// `(actor, channel, node of the watcher)` of each monitor not yet delivered.
     pub(crate) monitors: Vec<(usize, usize, usize)>,
+    /// The members of each named group, in join order (R414).
+    pub(crate) groups: Vec<(String, Vec<u64>)>,
 }
 
 impl Default for State {
@@ -193,6 +195,7 @@ impl Default for State {
             restarts: VecDeque::new(),
             work: [0; 5],
             monitors: Vec::new(),
+            groups: Vec::new(),
             start: Instant::now(),
         }
     }

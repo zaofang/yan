@@ -74,7 +74,7 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     pub(super) fn has_heap(s: &Shape) -> bool {
         match s {
-            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) => false,
+            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr => false,
             Shape::Str
             | Shape::Bytes
             | Shape::ByteArray
@@ -86,7 +86,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             | Shape::Heap(_)
             | Shape::Deque(_)
             | Shape::Fn(..)
-            | Shape::Chan(_)
+            | Shape::Chan(..)
             | Shape::Set(_) => true,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_heap(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_heap),
@@ -104,13 +104,20 @@ impl<'a, 'm> Fn<'a, 'm> {
             return;
         }
         match s {
-            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) => {}
+            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr => {}
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str | Shape::Path | Shape::WinPath => self.free(RtFn::StrFree, v[0].clone()),
             Shape::Bytes | Shape::ByteArray | Shape::BigInt => {
                 self.free(RtFn::BytesFree, v[0].clone())
             }
-            Shape::Chan(_) => self.free(RtFn::ChanDrop, v[0].clone()),
+            Shape::Chan(_, sender) => {
+                let f = if *sender {
+                    RtFn::ChanDropSender
+                } else {
+                    RtFn::ChanDrop
+                };
+                self.free(f, v[0].clone())
+            }
             Shape::List(e) | Shape::Heap(e) | Shape::Deque(e) => {
                 if Self::has_heap(e) {
                     let list = v[0].clone();
@@ -219,6 +226,18 @@ impl<'a, 'm> Fn<'a, 'm> {
         st: Operand,
         ok: impl FnOnce(&mut Self) -> Vec<Operand>,
     ) -> R<()> {
+        self.chan_result_with(dst, st, false, ok)
+    }
+
+    /// As [`Self::chan_result`]; with `closed`, status 3 is the receive of a closed channel,
+    /// `Ok(None)`, and `ok` yields the `Some` payload.
+    pub(super) fn chan_result_with(
+        &mut self,
+        dst: &Var,
+        st: Operand,
+        closed: bool,
+        ok: impl FnOnce(&mut Self) -> Vec<Operand>,
+    ) -> R<()> {
         let Some((_, _, efs)) = dst.shape.variant("Err") else {
             return unsupported("a channel operation without its failure");
         };
@@ -231,13 +250,32 @@ impl<'a, 'm> Fn<'a, 'm> {
             _ => return unsupported("a channel failure without `Cancelled`"),
         };
         let err = Self::variant_value(&dst.shape, "Err", err);
-        let cancelled = self.scalar_op(ScalarOp::Eq, I64, vec![st, Operand::Int(2)]);
+        let cancelled = self.scalar_op(ScalarOp::Eq, I64, vec![st.clone(), Operand::Int(2)]);
         let (c, o) = self.branch(cancelled);
         let join = self.block_new();
         self.cur = c;
         self.copy_to(&dst.locals, err);
         self.goto(join);
         self.cur = o;
+        if closed {
+            let Some((_, _, ofs)) = dst.shape.variant("Ok") else {
+                return unsupported("a receive without its value");
+            };
+            let opt = ofs[0].1.clone();
+            let shut = self.scalar_op(ScalarOp::Eq, I64, vec![st, Operand::Int(3)]);
+            let (n, s) = self.branch(shut);
+            self.cur = n;
+            let none = Self::variant_value(&opt, "None", Vec::new());
+            let none = Self::variant_value(&dst.shape, "Ok", none);
+            self.copy_to(&dst.locals, none);
+            self.goto(join);
+            self.cur = s;
+            let some = Self::variant_value(&opt, "Some", ok(self));
+            let v = Self::variant_value(&dst.shape, "Ok", some);
+            self.copy_to(&dst.locals, v);
+            self.goto(join);
+            return Ok(());
+        }
         let v = ok(self);
         let v = Self::variant_value(&dst.shape, "Ok", v);
         self.copy_to(&dst.locals, v);
@@ -421,7 +459,16 @@ impl<'a, 'm> Fn<'a, 'm> {
             Some(id::STD_PRELUDE_CHR) => Some(self.encoding_shape(Shape::Char)?),
             Some(id::STD_ENCODING_BASE64_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
             Some(id::STD_ENCODING_HEX_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
-            Some(id::STD_CHAN_RECEIVER_RECV) => self.targ(c)?.map(|e| result(e, cancelled())),
+            Some(id::STD_CHAN_RECEIVER_RECV) => self.targ(c)?.map(|e| {
+                let option = Shape::Sum(
+                    "Option".into(),
+                    vec![
+                        ("Some".into(), vec![("value".into(), e)]),
+                        ("None".into(), vec![]),
+                    ],
+                );
+                result(option, cancelled())
+            }),
             Some(id::STD_CHAN_SENDER_SEND | id::STD_TIME_SLEEP | id::STD_TIME_SLEEP_UNTIL) => {
                 Some(result(Shape::Scalar(Ty::Unit), cancelled()))
             }

@@ -689,6 +689,8 @@ const RT: &[RtFn] = &[
     RtFn::RandNext,
     RtFn::RandF64,
     RtFn::RandBelow,
+    RtFn::PtrExpose,
+    RtFn::PtrExposed,
     RtFn::StrPartition,
     RtFn::CharCount,
     RtFn::ByteLen,
@@ -845,7 +847,9 @@ const RT: &[RtFn] = &[
     RtFn::ChanSend,
     RtFn::ChanRecv,
     RtFn::ChanDrop,
+    RtFn::ChanDropSender,
     RtFn::ChanClone,
+    RtFn::ChanCloneSender,
     RtFn::ParBegin,
     RtFn::ParNext,
     RtFn::ParTaskEnd,
@@ -881,6 +885,10 @@ const RT: &[RtFn] = &[
     RtFn::ClusterReach,
     RtFn::ClusterFaultSend,
     RtFn::ClusterMonitor,
+    RtFn::ClusterGroup,
+    RtFn::GroupJoin,
+    RtFn::GroupLeave,
+    RtFn::GroupMembers,
     RtFn::SimCheck,
     RtFn::ClusterReplied,
     RtFn::ProcAmbient,
@@ -1111,6 +1119,18 @@ fn rt_fn(
             abi::yan_rt_rand_f64 as *const u8,
             &[I64],
             Some(F64),
+        ),
+        RtFn::PtrExpose => (
+            "yan_rt_ptr_expose",
+            abi::yan_rt_ptr_expose as *const u8,
+            &[I64, I64],
+            None,
+        ),
+        RtFn::PtrExposed => (
+            "yan_rt_ptr_exposed",
+            abi::yan_rt_ptr_exposed as *const u8,
+            &[I64],
+            Some(I64),
         ),
         RtFn::RandBelow => (
             "yan_rt_rand_below",
@@ -2060,6 +2080,18 @@ fn rt_fn(
             &[I64],
             None,
         ),
+        RtFn::ChanDropSender => (
+            "yan_rt_chan_drop_sender",
+            chan::yan_rt_chan_drop_sender as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::ChanCloneSender => (
+            "yan_rt_chan_clone_sender",
+            chan::yan_rt_chan_clone_sender as *const u8,
+            &[I64],
+            None,
+        ),
         RtFn::ChanClone => (
             "yan_rt_chan_clone",
             chan::yan_rt_chan_clone as *const u8,
@@ -2275,6 +2307,30 @@ fn rt_fn(
             cluster::yan_rt_cluster_monitor as *const u8,
             &[I64, I64],
             None,
+        ),
+        RtFn::ClusterGroup => (
+            "yan_rt_cluster_group",
+            cluster::yan_rt_cluster_group as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::GroupJoin => (
+            "yan_rt_group_join",
+            cluster::yan_rt_group_join as *const u8,
+            &[I64, I64],
+            None,
+        ),
+        RtFn::GroupLeave => (
+            "yan_rt_group_leave",
+            cluster::yan_rt_group_leave as *const u8,
+            &[I64, I64],
+            None,
+        ),
+        RtFn::GroupMembers => (
+            "yan_rt_group_members",
+            cluster::yan_rt_group_members as *const u8,
+            &[I64],
+            Some(I64),
         ),
         RtFn::ClusterFaultSend => (
             "yan_rt_cluster_fault_send",
@@ -2814,7 +2870,8 @@ impl Gen<'_, '_> {
                 };
                 self.b.ins().icmp(cc, a[0], a[1])
             }
-            (Div, Ty::Int(t)) if t.bits == 64 => {
+            // above 32 bits the operands do not convert to f64 exactly
+            (Div, Ty::Int(t)) if t.bits > 32 => {
                 let f = if t.signed { RtFn::DivI64 } else { RtFn::DivU64 };
                 let at = RT
                     .iter()
@@ -2866,7 +2923,17 @@ impl Gen<'_, '_> {
         let narrow = match t.bits {
             8 => types::I8,
             16 => types::I16,
-            _ => types::I32,
+            32 => types::I32,
+            _ if !t.signed => {
+                return self
+                    .b
+                    .ins()
+                    .band_imm_s(v, (u64::MAX >> (64 - t.bits)) as i64);
+            }
+            _ => {
+                let up = self.b.ins().ishl_imm_s(v, 64 - i64::from(t.bits));
+                return self.b.ins().sshr_imm_s(up, 64 - i64::from(t.bits));
+            }
         };
         let r = self.b.ins().ireduce(narrow, v);
         if t.signed {
@@ -2881,17 +2948,30 @@ impl Gen<'_, '_> {
         if t.bits == 64 || !t.signed {
             return x;
         }
-        self.b.ins().band_imm_s(x, (1i64 << t.bits) - 1)
+        self.b
+            .ins()
+            .band_imm_s(x, (u64::MAX >> (64 - t.bits)) as i64)
+    }
+
+    /// `n` modulo `w`, non-negative.
+    fn modulo_width(&mut self, n: Value, w: i64) -> Value {
+        if w.count_ones() == 1 {
+            return self.b.ins().band_imm_s(n, w - 1);
+        }
+        let wv = self.b.ins().iconst(types::I64, w);
+        let r = self.b.ins().srem(n, wv);
+        let r = self.b.ins().iadd(r, wv);
+        self.b.ins().urem(r, wv)
     }
 
     fn shift(&mut self, op: ScalarOp, t: IntTy, x: Value, n: Value) -> Value {
         use ScalarOp::*;
         let w = i64::from(t.bits);
         if matches!(op, RotateLeft | RotateRight) {
-            let k = self.b.ins().band_imm_s(n, w - 1);
+            let k = self.modulo_width(n, w);
             let k = if op == RotateRight {
                 let back = self.rsub(k, w);
-                self.b.ins().band_imm_s(back, w - 1)
+                self.modulo_width(back, w)
             } else {
                 k
             };
@@ -3003,6 +3083,13 @@ impl Gen<'_, '_> {
             return r;
         }
         // Narrower operands are exact in i64, or wrap to a negative value that is out of range.
+        if op == MulChecked && t.bits > 32 {
+            let (r, of) = self.b.ins().smul_overflow(x, y);
+            let ok = self.b.ins().icmp_imm_s(IntCC::Equal, of, 0);
+            self.guard_ops(ok, "overflow", t, x, y);
+            self.in_range(r, t, x, y);
+            return r;
+        }
         let r = match op {
             AddChecked => self.b.ins().iadd(x, y),
             SubChecked => self.b.ins().isub(x, y),

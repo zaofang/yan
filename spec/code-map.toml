@@ -125,7 +125,7 @@ E415 = "crates/yan-elab/src/lower/call_expr.rs"
 E416 = "crates/yan-check/src/lib.rs"
 E417 = "crates/yan-check/src/lib.rs"
 E418 = "crates/yan-elab/src/lower.rs"
-E419 = { unimplemented = "#825" }
+E419 = "crates/yan-elab/src/lower/ptr.rs"
 E420 = "crates/yan-check/src/lib.rs"
 E421 = "crates/yan-check/src/lib.rs"
 E422 = "crates/yan-elab/src/lower/subscript.rs"

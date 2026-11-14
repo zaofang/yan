@@ -2,7 +2,15 @@
 
 @intrinsic
 @since("1.0")
-pub def recv[T](var self: Receiver[T]) -> T fail Cancelled | Timeout: ...
+pub def recv[T](var self: Receiver[T]) -> T | None fail Cancelled | Timeout: ...
+
+@intrinsic
+@since("1.0")
+pub def try_recv[T](var self: Receiver[T]) -> T fail Empty | Closed | Cancelled: ...
+
+@intrinsic
+@since("1.0")
+pub def select_key[T](var self: Receiver[T]) -> int: ...
 
 @intrinsic
 @since("1.0")

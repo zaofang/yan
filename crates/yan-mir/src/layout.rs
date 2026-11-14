@@ -2,8 +2,8 @@
 //! fields by descending alignment to minimize padding; `Option` uses a niche when its payload
 //! has an invalid bit pattern (5.1). Layout attributes (`@layout(..)`) are not modelled yet.
 
+use crate::Ty;
 use crate::lower::Shape;
-use crate::{IntTy, Ty};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Layout {
@@ -27,7 +27,7 @@ pub enum SumLayout {
 
 fn scalar(t: Ty) -> (u64, u64) {
     match t {
-        Ty::Int(IntTy { bits, .. }) => (u64::from(bits) / 8, u64::from(bits) / 8),
+        Ty::Int(t) => (t.storage_bytes(), t.storage_bytes()),
         Ty::F64 | Ty::Ptr => (8, 8),
         Ty::Bool => (1, 1),
         Ty::Unit => (0, 1),
@@ -104,10 +104,10 @@ pub fn layout(s: &Shape) -> Layout {
         | Shape::Map(..)
         | Shape::Heap(_)
         | Shape::Deque(_)
-        | Shape::Chan(_)
+        | Shape::Chan(..)
         | Shape::Actor(_)
         | Shape::Set(_) => plain(8, 8),
-        Shape::Fn(..) => plain(16, 8),
+        Shape::Fn(..) | Shape::Ptr => plain(16, 8),
         Shape::Tuple(ss) => aggregate(&ss.iter().map(layout).collect::<Vec<_>>()),
         Shape::Rec(_, fs) => aggregate(&fs.iter().map(|(_, s)| layout(s)).collect::<Vec<_>>()),
         Shape::Sum(name, vs) => {
@@ -150,6 +150,7 @@ pub fn layout(s: &Shape) -> Layout {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::IntTy;
 
     const fn int(bits: u8) -> Shape {
         Shape::Scalar(Ty::Int(IntTy { bits, signed: true }))

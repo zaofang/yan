@@ -39,6 +39,7 @@ mod net;
 mod path;
 mod prelude;
 mod proc;
+mod ptr;
 mod rand;
 mod regex;
 mod simcheck;
@@ -103,6 +104,8 @@ pub(crate) enum Value {
     Iter(iter::It),
     /// A stage-0 type handle (RFC 0051 D1).
     Type(Rc<meta::Handle>),
+    /// A `Ptr[T]` (6.6); equality compares addresses.
+    Ptr(ptr::PtrVal),
 }
 
 /// FNV-1a: frames hash short names on every access, where SipHash dominated the profile.
@@ -161,6 +164,7 @@ impl Hash for Key {
                     fields.iter().for_each(|(_, x)| go(x, h));
                 }
                 Value::Type(t) => format!("{:?}", t.ty).hash(h),
+                Value::Ptr(p) => p.addr.hash(h),
                 _ => {}
             }
         }
@@ -273,6 +277,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             waiting_recv: Vec::new(),
             park_ok: false,
             park: None,
+            park_timer: None,
             force: false,
             in_par: 0,
             cancel: Vec::new(),
@@ -311,6 +316,7 @@ fn materialize(v: &Value) -> Stage0 {
             },
             Value::Closure(_) => return Err("a function value"),
             Value::Type(_) => return Err("a `Type`"),
+            Value::Ptr(_) => return Err("a `Ptr`"),
             _ => return Err("this value"),
         })
     }
@@ -392,8 +398,8 @@ pub(crate) struct Interp<'o> {
     ceiling: yan_sandbox::Ceiling,
     /// The earliest enclosing `deadline` scope, as monotonic nanoseconds (9.4).
     deadline: Option<i128>,
-    /// Each channel's capacity and queued values, by channel.
-    chans: Vec<(usize, VecDeque<Value>)>,
+    /// Each channel, by channel.
+    chans: Vec<sync::Chan>,
     /// Each actor, by actor (9.6).
     actors: Vec<sync::Actor>,
     /// Every supervisor and the open `with supervisor` scopes (9.6).
@@ -436,6 +442,8 @@ pub(crate) struct Interp<'o> {
     park_ok: bool,
     /// Set by a blocking operation that parked: (is a receive, channel).
     park: Option<(bool, usize)>,
+    /// Set with `park` by a `select` that waits on a timer: the reading it wakes at.
+    park_timer: Option<i128>,
     /// Every task is parked: fail the next blocking operation as a plain wait would.
     force: bool,
     /// How many `par concurrent` blocks are running tasks.
@@ -838,6 +846,7 @@ fn entry(
         waiting_recv: Vec::new(),
         park_ok: false,
         park: None,
+        park_timer: None,
         force: false,
         in_par: 0,
         cancel: Vec::new(),
@@ -885,7 +894,7 @@ pub(crate) fn int_range(ty: &str) -> Option<(i128, i128)> {
         "u32" => (0, u32::MAX.into()),
         "u64" => (0, u64::MAX.into()),
         "Addr" => (0, u64::MAX.into()),
-        _ => return None,
+        _ => return yan_std::intrinsics::wide_range(ty),
     })
 }
 
@@ -948,7 +957,22 @@ fn ty_static(ty: &str) -> &'static str {
     const NAMES: &[&str] = &[
         "i8", "i16", "i32", "i64", "i128", "u8", "u16", "u32", "u64", "u128", "int",
     ];
-    NAMES.iter().find(|n| **n == ty).copied().unwrap_or("int")
+    static WIDE: std::sync::Mutex<Vec<&'static str>> = std::sync::Mutex::new(Vec::new());
+    if let Some(n) = NAMES.iter().find(|n| **n == ty) {
+        return n;
+    }
+    if yan_std::intrinsics::wide(ty).is_none() {
+        return "int";
+    }
+    let mut wide = WIDE.lock().expect("no panic while held");
+    match wide.iter().find(|n| **n == ty) {
+        Some(n) => n,
+        None => {
+            let n = Box::leak(ty.to_owned().into_boxed_str());
+            wide.push(n);
+            n
+        }
+    }
 }
 
 /// `<op>_<scalar>` intrinsics (assumption Y4). `None` when `name` is not an intrinsic.

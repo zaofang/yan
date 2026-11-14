@@ -181,7 +181,7 @@ pub(crate) fn sweep(it: &mut Interp) {
     it.monitors = rest;
     for (_, c, _) in down {
         let reason = crate::sync::failure("NodeDown");
-        it.chans[c].1.push_back(Value::Data {
+        it.chans[c].q.push_back(Value::Data {
             name: "Stopped".into(),
             fields: vec![("reason".into(), reason)],
         });
