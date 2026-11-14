@@ -1,0 +1,34 @@
+# spec: 9.6.1
+# rows: R414
+# note: one group per name; join is idempotent, leave of an absent member is a no-op, members keep join order
+# stdout:
+# 2
+# 1
+# 2
+# 1
+
+class Box:
+    n: int
+
+@remote
+def make(start: int) -> Box:
+    return Box(n=start)
+
+def get(self: Box) -> int:
+    return self.n
+
+pub def main() -> None uses io, cluster:
+    with cluster = sim(2, 3):
+        a = cluster.spawn(ChildSpec(make, (1,), restart=temporary), placement=On(cluster.nodes()[1]))
+        b = cluster.spawn(ChildSpec(make, (2,), restart=temporary), placement=On(cluster.nodes()[0]))
+        g: Group[Remote[Actor[Box]]] = cluster.group("w")
+        g.join(a)
+        g.join(b)
+        g.join(a)
+        h: Group[Remote[Actor[Box]]] = cluster.group("w")
+        io.print(f"{len(h.members())}")
+        for m in h.members():
+            io.print(f"{m.get() else e -> -1}")
+        g.leave(a)
+        g.leave(a)
+        io.print(f"{len(h.members())}")
