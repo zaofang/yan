@@ -592,12 +592,13 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             crate::simfault::sweep(&mut vm.it);
             if let Some(v) = vm.it.chans[c].q.pop_front() {
                 vm.it.progress += 1;
-                return Ok(Ok(crate::native::opt(Some(v))));
+                return Ok(Ok(v));
             }
-            if vm.it.chans[c].senders == 0 {
-                return Ok(Ok(crate::native::opt(None)));
-            }
-            Ok(Err(failure("Empty")))
+            Ok(Err(failure(if vm.it.chans[c].senders == 0 {
+                "Closed"
+            } else {
+                "Empty"
+            })))
         }),
     ),
     (
