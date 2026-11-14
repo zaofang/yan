@@ -29,6 +29,7 @@ mod calls;
 mod cluster;
 mod consume;
 mod fallback;
+mod generic_sum;
 mod last_use;
 mod loops;
 mod matching;

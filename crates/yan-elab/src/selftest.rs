@@ -1618,3 +1618,24 @@ fn yn_use_alias_renames_the_std_module_root() {
     let (_, d) = yan_yn::lower("t.yn", "use foo.bar as t\n", &ast).expect("lowers");
     assert_eq!(d[0].code, "E017");
 }
+
+#[test]
+fn generic_sum_constructors_take_arguments_from_the_expected_type_or_fields() {
+    let decl = "type Maybe[T] = Just(value: T) | Nothing()\n\n";
+    let ok = format!(
+        "{decl}def f(m: Maybe[int]) -> int:\n    match m:\n        case Just(value=v):\n            return v\n        case Nothing():\n            return 0\n\n\
+def g() -> int:\n    a: Maybe[int] = Nothing()\n    return f(a) + f(Just(value=1))\n"
+    );
+    let (items, d) = lower(&ok);
+    assert!(
+        d.iter().all(|d| d.severity != yan_diag::Severity::Error),
+        "{d:?}"
+    );
+    let text = format!("{items:?}");
+    assert!(
+        text.contains("targs: [Type(Named(Named { path: [\"i64\"]"),
+        "{text}"
+    );
+    let (_, d) = lower(&format!("{decl}def g() -> None:\n    n = Nothing()\n"));
+    assert!(d.iter().any(|d| d.code == "E241"), "{d:?}");
+}
