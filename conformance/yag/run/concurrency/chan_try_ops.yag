@@ -1,26 +1,35 @@
 # spec: 9.5
 # rows: R342
-# note: try_recv fails Empty on an open empty channel and returns None once closed; try_send fails Full (#1153)
+# note: try_recv fails Empty on an open empty channel and Closed once every sender is gone; try_send fails Full (#1153)
 # stdout:
-# -1
+# Empty()
+# sent
+# Full()
 # 1
-# full
-# 2
-# -2
-# None
+# Empty()
+# 0
+# Closed()
 
-def closed() -> Receiver[int]:
+def gone() -> Receiver[int] uses nondet:
     tx, rx = Channel[int](1)
+    tx.try_send(0) else e -> None
     return rx
+
+def poll(var rx: Receiver[int]) -> str fail Empty | Closed | Cancelled uses nondet:
+    v = rx.try_recv()?
+    return f"{v}"
+
+def push(var tx: Sender[int], v: int) -> str fail Full | Cancelled uses nondet:
+    tx.try_send(v)?
+    return "sent"
 
 def main() uses io, nondet:
     tx, rx = Channel[int](1)
-    print(rx.try_recv() else e -> -1)
-    tx.try_send(1) else e -> None
-    print(rx.try_recv() else e -> -2)
-    tx.try_send(2) else e -> None
-    tx.try_send(3) else e -> print("full")
-    print(rx.try_recv() else e -> -2)
-    print(rx.try_recv() else e -> -2)
-    r = closed()
-    print(r.try_recv() else e -> -3)
+    print(poll(&rx) else e -> f"{e}")
+    print(push(&tx, 1) else e -> f"{e}")
+    print(push(&tx, 2) else e -> f"{e}")
+    print(poll(&rx) else e -> f"{e}")
+    print(poll(&rx) else e -> f"{e}")
+    r = gone()
+    print(poll(&r) else e -> f"{e}")
+    print(poll(&r) else e -> f"{e}")
