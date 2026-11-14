@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 mod actor;
+mod arena;
 mod bigint;
 mod call;
 mod chars;
@@ -16,6 +17,7 @@ mod encoding;
 mod entry;
 mod env;
 mod error;
+mod extern_call;
 mod iter;
 mod log;
 mod math;
@@ -123,6 +125,7 @@ pub fn layout_of<'a>(items: impl IntoIterator<Item = &'a y::ItemKind>, ty: &y::T
     let mut types = Types {
         recs: HashMap::new(),
         sums: HashMap::new(),
+        externs: HashMap::new(),
     };
     for it in items {
         match it {
@@ -143,6 +146,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
     let mut types = Types {
         recs: HashMap::new(),
         sums: HashMap::new(),
+        externs: crate::ffi::collect(m),
     };
     let mut defs = Vec::new();
     let mut by_name = HashMap::new();
@@ -175,7 +179,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
                 consts.push(c);
                 continue;
             }
-            y::ItemKind::Trait(_) => continue,
+            y::ItemKind::Trait(_) | y::ItemKind::Extern(_) => continue,
             y::ItemKind::Impl(im) => {
                 let ty = yan_core::type_text(&im.for_ty);
                 for f in &im.fns {
@@ -1129,6 +1133,8 @@ impl<'a, 'm> Fn<'a, 'm> {
                 | Shape::Heap(_)
                 | Shape::Deque(_)
                 | Shape::Chan(..)
+                | Shape::Arena
+                | Shape::Ref(_)
                 | Shape::Actor(_),
                 1,
             ) => Ok(v.remove(0)),

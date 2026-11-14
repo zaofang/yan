@@ -689,6 +689,7 @@ fn item(it: &y::Item, std: &dyn Std, marks: &Marks) -> R<Option<Item>> {
                 tparams: tparams(&r.tparams),
                 doc: None,
                 fields: r.fields.iter().map(field).collect::<R<_>>()?,
+                positional: 0,
             }),
         ),
         y::ItemKind::Sum(s) => (

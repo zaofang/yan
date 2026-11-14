@@ -1,5 +1,6 @@
 -- spec: 4.2
--- expect: E416 at 5:11
+-- rows: R69
+-- expect: E416 at 6:11
 
 f(r: Rc[List[int]]) -> int =
   let _ = copy r

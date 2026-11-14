@@ -29,6 +29,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 SPEC = ROOT / "spec"
 REGISTRY = SPEC / "rows.toml"
+EXEMPTIONS = SPEC / "row-exemptions.toml"
 APPENDIX = SPEC / "appendix-a.md"
 CATALOGUE = SPEC / "25-diagnostics-catalogue.md"
 CODE_MAP = SPEC / "code-map.toml"
@@ -64,6 +65,40 @@ def expand(label: str) -> list[str]:
 def load() -> list[Entry]:
     entries: list[Entry] = tomllib.loads(REGISTRY.read_text())["entry"]
     return entries
+
+
+def exemptions() -> list[Entry]:
+    exempt: list[Entry] = tomllib.loads(EXEMPTIONS.read_text())["row"]
+    return exempt
+
+
+def exempt_rows() -> set[str]:
+    return {rid for e in exemptions() for rid in expand(e["rows"])}
+
+
+def exemption_errors(owner: dict[str, int]) -> list[str]:
+    errors = []
+    seen: set[str] = set()
+    for e in exemptions():
+        ids = expand(e["rows"])
+        errors += [
+            f"row-exemptions.toml: {rid} is not allocated" for rid in ids if rid not in owner
+        ]
+        errors += [f"row-exemptions.toml: {rid} listed twice" for rid in ids if rid in seen]
+        seen.update(ids)
+        if e["kind"] not in ("exempt", "merge"):
+            errors.append(f"row-exemptions.toml: bad kind {e['kind']} for {e['rows']}")
+        if (e["kind"] == "merge") != ("into" in e):
+            errors.append(
+                f"row-exemptions.toml: {e['rows']} needs `into` exactly when kind is merge"
+            )
+    targets = {e["into"] for e in exemptions() if "into" in e}
+    errors += [
+        f"row-exemptions.toml: merge target {t} is missing or exempt itself"
+        for t in sorted(targets)
+        if t not in owner or t in seen
+    ]
+    return errors
 
 
 def allocations(entries: list[Entry]) -> tuple[dict[str, int], list[str]]:
@@ -198,6 +233,7 @@ def code_map_errors() -> list[str]:
 def check() -> list[str]:
     entries = load()
     owner, errors = allocations(entries)
+    errors += exemption_errors(owner)
     if block(APPENDIX.read_text()) != render(entries):
         errors.append("Appendix A.1 is stale: run tools/rows.py render")
     for rid, paths in sorted(cited_rows().items()):

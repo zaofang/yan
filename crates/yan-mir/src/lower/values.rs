@@ -74,7 +74,7 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     pub(super) fn has_heap(s: &Shape) -> bool {
         match s {
-            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr => false,
+            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr | Shape::Ref(_) => false,
             Shape::Str
             | Shape::Bytes
             | Shape::ByteArray
@@ -87,6 +87,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             | Shape::Deque(_)
             | Shape::Fn(..)
             | Shape::Chan(..)
+            | Shape::Arena
             | Shape::Set(_) => true,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_heap(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_heap),
@@ -104,7 +105,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             return;
         }
         match s {
-            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr => {}
+            Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr | Shape::Ref(_) => {}
+            Shape::Arena => self.free(RtFn::ArenaFree, v[0].clone()),
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str | Shape::Path | Shape::WinPath => self.free(RtFn::StrFree, v[0].clone()),
             Shape::Bytes | Shape::ByteArray | Shape::BigInt => {
@@ -502,6 +504,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                 );
                 result(option, cancelled())
             }),
+            Some(id::STD_PRELUDE_SELECT_WAIT) => Some(result(
+                Shape::Scalar(I64),
+                failure_union(&["Cancelled", "Timeout"]),
+            )),
             Some(id::STD_CHAN_RECEIVER_TRY_RECV) => self
                 .targ(c)?
                 .map(|e| result(e, failure_union(&["Empty", "Closed", "Cancelled"]))),

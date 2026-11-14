@@ -17,6 +17,8 @@ struct Task {
     done: bool,
     park: Option<Park>,
     seen: Option<u64>,
+    /// The monotonic reading a parked `select` waits for, if it has a timer arm.
+    timer: Option<i128>,
     /// The PCT priority (R999); unused without a `pct` scheduler.
     prio: i64,
 }
@@ -46,6 +48,8 @@ struct State {
     waiting_recv: Vec<usize>,
     /// Set by a blocking operation that parked.
     park: Option<Park>,
+    /// Set with `park` by a `select` that has a timer arm: its earliest reading.
+    park_timer: Option<i128>,
     /// The block whose tasks are all parked and that runs one anyway: blocking operations
     /// cannot park, and blocks nested in that task cannot yield.
     force: Option<usize>,
@@ -128,11 +132,17 @@ pub(crate) fn idle() -> bool {
 
 /// Park the running task on `p`; false when it cannot park (outside a task, or forced).
 pub(crate) fn park(p: Park, in_task: bool) -> bool {
+    park_until(p, None, in_task)
+}
+
+/// As [`park`], also waking at monotonic reading `timer`.
+pub(crate) fn park_until(p: Park, timer: Option<i128>, in_task: bool) -> bool {
     with(|st| {
         if !in_task || st.force.is_some() || st.blocks.iter().all(Option::is_none) {
             return false;
         }
         st.park = Some(p);
+        st.park_timer = timer;
         true
     })
 }
@@ -218,8 +228,10 @@ pub extern "C" fn yan_rt_par_cancel(h: u64) -> u64 {
 pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
     with(|st| {
         let parked = st.park.take();
+        let timer = st.park_timer.take();
         let b = block(st, h);
         if let Some(i) = b.running.take() {
+            b.tasks[i].timer = timer;
             let prev = b.tasks[i].park.take();
             if let Some(now) = parked {
                 b.tasks[i].park = Some(now);
@@ -282,7 +294,16 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
                 st.cur = parent;
                 return n + 1;
             }
-            None => (first, true),
+            // A timer is the only thing that can end the wait: the earliest one fires.
+            None => (
+                b.tasks
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, t)| !t.done && t.timer.is_some())
+                    .min_by_key(|(_, t)| t.timer)
+                    .map_or(first, |(i, _)| i),
+                true,
+            ),
         };
         b.running = Some(i);
         st.force = forced.then_some(h as usize);

@@ -8,6 +8,7 @@
 //! freed yet. Anything else is reported as unsupported.
 
 mod co;
+pub mod ffi;
 mod layout;
 mod lower;
 mod tasks;
@@ -520,6 +521,12 @@ pub enum RtFn {
     ListFree,
     /// `(Ptr)`: free a closure's captures block; null is ignored.
     EnvFree,
+    /// `() -> Ptr`: an empty arena.
+    ArenaNew,
+    /// `(Ptr arena, words) -> Ptr` to that many zeroed words, owned by the arena.
+    ArenaAlloc,
+    /// `(Ptr arena)`: free the arena and every slot it handed out.
+    ArenaFree,
     /// `(cap, words) -> Ptr`: a channel of `words`-slot elements, shared by both ends.
     ChanNew,
     /// `(Ptr chan, Ptr slots, in_task) -> i64`: 1 when it parked the task, 2 when the task is
@@ -532,6 +539,9 @@ pub enum RtFn {
     ChanTrySend,
     /// `ChanRecv` that never parks: 4 when open and empty, 3 when closed.
     ChanTryRecv,
+    /// `(Ptr keys, Ptr at, Ptr out, in_task) -> i64`: `select_wait`'s ready arm into `out`; 1, 2
+    /// and the actor status as for `ChanRecv`.
+    SelectWait,
     /// `(Ptr chan)`: drop one end.
     ChanDrop,
     /// `ChanDrop` of a `Sender`: the last one closes the channel.
@@ -591,6 +601,10 @@ pub enum RtFn {
     SupEnd,
     /// `(depth)`: end the scopes past `depth`.
     SupEndTo,
+    /// `(lib Str, symbol Str, result kind, 6 ints, 8 f64s) -> i64`: a foreign function.
+    FfiCall,
+    /// As `FfiCall`, `-> f64`.
+    FfiCallF64,
     /// `(nodes, seed, Ptr plan) -> sim`: a `sim` cluster (RFC 0063 D3).
     SimNew,
     /// `(low, sim) -> low`: `with cluster = sim`, a supervisor scope with each node's root.

@@ -34,6 +34,9 @@ fn unsupported<T>(what: impl Into<String>) -> R<T> {
     })
 }
 
+/// Capabilities whose handler must resolve to a concrete type at compile time (7.3, E307).
+const COMPILE_TIME_CAPS: [&str; 5] = ["alloc", "rand", "time", "sched", "fault"];
+
 /// The std capabilities a body can name without declaring them (7.1).
 const CAPS: [&str; 9] = [
     "io", "net", "fs", "time", "rand", "log", "nondet", "env", "proc",
@@ -52,9 +55,22 @@ pub fn lower(file: &str, src: &str, m: &Module) -> R<(h::Module, Vec<Diagnostic>
         doc: None,
         self_ty: named(&["Self"], Vec::new()),
         fresh: 0,
+        aliases: HashMap::new(),
+        ctors: ctor_fields(m),
     };
     let mut items = Vec::new();
     for it in &m.items {
+        if let ItemKind::Use(u) = &it.kind {
+            match l.use_alias(u) {
+                Ok(()) => {}
+                Err(e) => l.err(
+                    "E017",
+                    it.span,
+                    &format!("{}: not supported by this toolchain yet", e.what),
+                ),
+            }
+            continue;
+        }
         match l.item(it) {
             Ok(Some(i)) => items.push(i),
             Ok(None) => {}
@@ -88,6 +104,32 @@ struct Lower<'a> {
     self_ty: h::Type,
     /// Names made up by desugaring, numbered.
     fresh: usize,
+    /// `use std.m as a`: `a` to the std module `m` (15.2, aliases only).
+    aliases: HashMap<String, String>,
+    /// Constructor name to its declared field names, for `..` in patterns.
+    ctors: HashMap<String, Vec<String>>,
+}
+
+fn ctor_fields(m: &Module) -> HashMap<String, Vec<String>> {
+    let names = |fs: &[Field]| fs.iter().map(|f| f.name.clone()).collect();
+    let mut out = HashMap::new();
+    for it in &m.items {
+        let ItemKind::Type(t) = &it.kind else {
+            continue;
+        };
+        match &t.rhs {
+            TypeRhs::Record { fields, .. } => {
+                out.insert(t.name.clone(), names(fields));
+            }
+            TypeRhs::Sum(vs) => {
+                for v in vs {
+                    out.insert(v.name.clone(), names(&v.fields));
+                }
+            }
+            _ => {}
+        }
+    }
+    out
 }
 
 fn mk(kind: h::ExprKind, span: Span) -> h::Expr {
@@ -96,6 +138,53 @@ fn mk(kind: h::ExprKind, span: Span) -> h::Expr {
         span,
         paren: false,
     }
+}
+
+/// E540 for a date or time that does not exist, E541 for a zoned time in a gap or an
+/// unresolved fold of the bundled tzdb (14.2). `None` when the literal is well formed.
+fn invalid_temporal(text: &str) -> Option<(&'static str, String)> {
+    use jiff::tz::AmbiguousOffset;
+    let num = |r: std::ops::Range<usize>| text.get(r)?.parse::<i16>().ok();
+    let date = jiff::civil::Date::new(num(0..4)?, num(5..7)? as i8, num(8..10)? as i8);
+    let Ok(date) = date else {
+        return Some(("E540", format!("`{text}` is not a valid date")));
+    };
+    let rest = text.get(11..)?;
+    let clock = rest.split(['Z', '+', '[', '-']).next()?;
+    let (hm, sec) = match clock
+        .split_once(':')
+        .and_then(|(h, r)| Some((h, r.split_once(':')?)))
+    {
+        Some((h, (m, s))) => ((h, m), s),
+        None => {
+            let (h, m) = clock.split_once(':')?;
+            ((h, m), "0")
+        }
+    };
+    let (sec, frac) = sec.split_once('.').unwrap_or((sec, ""));
+    let nanos = format!("{frac:0<9}");
+    let time = jiff::civil::Time::new(
+        hm.0.parse().ok()?,
+        hm.1.parse().ok()?,
+        sec.parse().ok()?,
+        nanos.get(..9)?.parse().ok()?,
+    );
+    let Ok(time) = time else {
+        return Some(("E540", format!("`{text}` is not a valid time")));
+    };
+    let zone = rest.split_once('[')?.1.strip_suffix(']')?;
+    let has_offset = rest.split('[').next()?.contains(['Z', '+', '-']);
+    if has_offset {
+        return None;
+    }
+    let tz = jiff::tz::TimeZone::get(zone).ok()?;
+    let dt = date.to_datetime(time);
+    let why = match tz.to_ambiguous_zoned(dt).offset() {
+        AmbiguousOffset::Unambiguous { .. } => return None,
+        AmbiguousOffset::Gap { .. } => "does not exist (gap)",
+        AmbiguousOffset::Fold { .. } => "is ambiguous (fold); give an offset",
+    };
+    Some(("E541", format!("`{text}` {why} in {zone}")))
 }
 
 fn stmt(kind: h::StmtKind, span: Span) -> h::Stmt {
@@ -117,6 +206,21 @@ fn returns_value(sig: &Sig) -> bool {
 }
 
 impl Lower<'_> {
+    /// Only `use std.m` and `use std.m as a` exist: std modules are reachable by their last
+    /// segment, so an alias is a rename of that root.
+    fn use_alias(&mut self, u: &UseDecl) -> R<()> {
+        let [root, module] = u.path.as_slice() else {
+            return unsupported("`use` of a path that is not `std.<module>`");
+        };
+        if u.relative || root != "std" {
+            return unsupported("`use` of a path that is not `std.<module>`");
+        }
+        if let Some(alias) = &u.alias {
+            self.aliases.insert(alias.clone(), module.clone());
+        }
+        Ok(())
+    }
+
     fn err(&mut self, code: &str, span: Span, msg: &str) {
         let line = self.src.lines().nth(span.line as usize - 1).unwrap_or("");
         let lo = (span.col as usize - 1).min(line.len());
@@ -182,7 +286,7 @@ impl Lower<'_> {
             ItemKind::Trait(t) => (h::ItemKind::Trait(self.trait_def(t)?), it.span),
             ItemKind::Impl(i) => (h::ItemKind::Impl(self.impl_def(i)?), it.span),
             ItemKind::Extern(x) => (h::ItemKind::Extern(self.extern_def(x)?), it.span),
-            ItemKind::Use(_) => return unsupported("use declarations"),
+            ItemKind::Use(_) => return Ok(None),
         };
         Ok(Some(h::Item {
             decorators,
@@ -391,14 +495,12 @@ impl Lower<'_> {
         let tparams = self.tparams(&t.tparams)?;
         let rhs = match &t.rhs {
             TypeRhs::Record { fields, positional } => {
-                if positional.is_some() {
-                    return unsupported("positional-only record fields");
-                }
                 return Ok(h::ItemKind::Record(h::Record {
                     name: t.name.clone(),
                     tparams,
                     doc: self.doc.clone(),
                     fields: fields.iter().map(|f| self.field(f)).collect::<R<_>>()?,
+                    positional: positional.unwrap_or(0),
                 }));
             }
             TypeRhs::Sum(vs) => h::TypeRhs::Sum(
@@ -556,11 +658,16 @@ impl Lower<'_> {
                     .collect(),
             },
             TypeKind::Union(_) => return unsupported("union types outside `fail` and aliases"),
-            TypeKind::Dyn { .. } => return unsupported("`dyn` types"),
+            TypeKind::Dyn { name, args } => h::Type::Dyn {
+                path: vec![name.clone()],
+                args: args
+                    .iter()
+                    .map(|t| Ok(h::TArg::Type(self.ty(t)?)))
+                    .collect::<R<_>>()?,
+            },
             TypeKind::Ptr(t) => named(&["Ptr"], vec![h::TArg::Type(self.ty(t)?)]),
-            TypeKind::Ref(_) | TypeKind::Vec { .. } => {
-                return unsupported("Ref and Vec types");
-            }
+            TypeKind::Ref(t) => named(&["Ref"], vec![h::TArg::Type(self.ty(t)?)]),
+            TypeKind::Vec { .. } => return unsupported("Vec types"),
             TypeKind::Record(_) => return unsupported("anonymous record types"),
             TypeKind::Call { path, args } => h::Type::Call {
                 path: path.clone(),
@@ -996,9 +1103,96 @@ impl Lower<'_> {
     fn stmts(&mut self, stmts: &[Stmt]) -> R<Vec<h::Stmt>> {
         let mut out = Vec::new();
         for s in stmts {
-            out.push(self.stmt(s)?);
+            match self.is_binding(s) {
+                Some(r) => out.extend(r.map_err(|u| u.at(s.span))?),
+                None => out.push(self.stmt(s)?),
+            }
         }
         Ok(out)
+    }
+
+    /// `let ok = e is P` is `var ok = false` and a match that sets it; the pattern's bindings
+    /// stay inside the arm, so none escape.
+    fn is_binding(&mut self, s: &Stmt) -> Option<R<Vec<h::Stmt>>> {
+        let StmtKind::Let {
+            ghost: false,
+            pattern:
+                Pattern {
+                    kind: PatKind::Bind(name),
+                    span: name_span,
+                },
+            ty: None,
+            value:
+                Expr {
+                    kind:
+                        ExprKind::Is {
+                            value,
+                            negated,
+                            pattern,
+                        },
+                    ..
+                },
+            ..
+        } = &s.kind
+        else {
+            return None;
+        };
+        if is_none(pattern) {
+            return None;
+        }
+        Some((|| {
+            let flag = |v: bool, span| {
+                let lit = mk(h::ExprKind::Lit(h::Lit::Bool(v)), span);
+                let target = mk(h::ExprKind::Name(name.clone()), span);
+                stmt(
+                    h::StmtKind::Assign {
+                        target,
+                        ty: None,
+                        value: lit,
+                    },
+                    span,
+                )
+            };
+            let hit = Arm {
+                pattern: pattern.clone(),
+                guard: None,
+                body: ArmBody::Block(Vec::new()),
+                span: s.span,
+            };
+            let mut cases = self.arm(&hit)?;
+            for c in &mut cases {
+                c.body.stmts.push(flag(!negated, s.span));
+            }
+            cases.push(h::Case {
+                pat: h::Pat::Wild,
+                span: s.span,
+                guard: None,
+                body: h::Block {
+                    inline: false,
+                    stmts: vec![flag(*negated, s.span)],
+                },
+            });
+            let init = mk(h::ExprKind::Lit(h::Lit::Bool(false)), s.span);
+            Ok(vec![
+                stmt(
+                    h::StmtKind::Bind {
+                        mutable: true,
+                        target: name.clone(),
+                        target_span: *name_span,
+                        ty: None,
+                        value: init,
+                    },
+                    s.span,
+                ),
+                stmt(
+                    h::StmtKind::Match {
+                        scrutinee: self.expr(value)?,
+                        cases,
+                    },
+                    s.span,
+                ),
+            ])
+        })())
     }
 
     fn stmt(&mut self, s: &Stmt) -> R<h::Stmt> {
@@ -1185,8 +1379,18 @@ impl Lower<'_> {
             },
             StmtKind::With { kind, body } => K::With {
                 kind: match kind {
-                    WithKind::Bind { dynamic: true, .. } => {
-                        return unsupported("`with name = dyn e`");
+                    WithKind::Bind {
+                        name,
+                        dynamic: Some(at),
+                        value,
+                    } => {
+                        if !COMPILE_TIME_CAPS.contains(&name.as_str()) {
+                            return unsupported("`with name = dyn e`");
+                        }
+                        let msg =
+                            format!("`{name}` must be bound to a handler resolved at compile time");
+                        self.err("E307", *at, &msg);
+                        h::WithKind::Bind(name.clone(), self.expr(value)?)
                     }
                     WithKind::Bind { name, value, .. } => {
                         h::WithKind::Bind(name.clone(), self.expr(value)?)
@@ -1427,6 +1631,26 @@ impl Lower<'_> {
                     Some(args) => {
                         let mut out = Vec::new();
                         for a in args {
+                            if matches!(a, PPat::Rest) {
+                                let Some(fields) = self.ctors.get(name) else {
+                                    return unsupported("`..` on a constructor declared elsewhere");
+                                };
+                                let positional =
+                                    args.iter().filter(|a| matches!(a, PPat::Pos(_))).count();
+                                let named: Vec<&Name> = args
+                                    .iter()
+                                    .filter_map(|a| match a {
+                                        PPat::Named(n, _) => Some(n),
+                                        _ => None,
+                                    })
+                                    .collect();
+                                for f in fields.iter().skip(positional) {
+                                    if !named.contains(&f) {
+                                        out.push((Some(f.clone()), h::Pat::Wild));
+                                    }
+                                }
+                                continue;
+                            }
                             out.push(match a {
                                 PPat::Pos(p) => (None, self.pattern(p)?),
                                 PPat::Named(n, Some(p)) => (Some(n.clone()), self.pattern(p)?),
@@ -1437,7 +1661,7 @@ impl Lower<'_> {
                                         args: None,
                                     },
                                 ),
-                                PPat::Rest => return unsupported("`..` in a constructor pattern"),
+                                PPat::Rest => unreachable!("handled above"),
                             });
                         }
                         Some(out)
@@ -1566,7 +1790,18 @@ impl Lower<'_> {
                     col: span.end_col.saturating_sub(n.len() as u32),
                     ..span
                 };
-                K::Attr(b(self.expr(x)?), n.clone(), at)
+                let root = match &x.kind {
+                    ExprKind::Name(a) => self.aliases.get(a),
+                    _ => None,
+                };
+                match root {
+                    Some(module) => K::Attr(
+                        b(mk(h::ExprKind::Name(module.clone()), x.span)),
+                        n.clone(),
+                        at,
+                    ),
+                    None => K::Attr(b(self.expr(x)?), n.clone(), at),
+                }
             }
             // `x.len()` is the builtin `len(x)`, so E504 and the bounds solver see it (15.3).
             ExprKind::Call(f, args)
@@ -1701,7 +1936,13 @@ impl Lower<'_> {
                     b(mk(h::ExprKind::Name(unit.clone()), e.span)),
                 )
             }
-            ExprKind::Temporal { .. } => return unsupported("date and time literals"),
+            ExprKind::Temporal { text, .. } => {
+                let Some((code, msg)) = invalid_temporal(text) else {
+                    return unsupported("date and time literals");
+                };
+                self.err(code, e.span, &msg);
+                K::Lit(h::Lit::Int("0".into()))
+            }
             // A grid is its rows as nested lists; the expected `Array` type checks the shape (R463).
             ExprKind::Grid(rows) => K::List(
                 rows.iter()

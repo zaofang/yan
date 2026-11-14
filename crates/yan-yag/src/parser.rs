@@ -1170,6 +1170,7 @@ impl Parser {
             tparams,
             doc,
             fields,
+            positional: 0,
         })
     }
 

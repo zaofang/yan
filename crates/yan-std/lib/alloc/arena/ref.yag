@@ -1,0 +1,10 @@
+"""Ref: a reference into an arena (4.7). Reads and writes are explicit: `get` copies the value out,
+`set` replaces it."""
+
+@intrinsic
+@since("1.0")
+pub def get[T](self: Ref[T]) -> T from self: ...
+
+@intrinsic
+@since("1.0")
+pub def set[T](self: Ref[T], take v: T) -> None: ...

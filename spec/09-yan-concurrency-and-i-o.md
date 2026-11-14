@@ -14,6 +14,8 @@ There is no language runtime. `par`, `par for` and `par concurrent` lower to cal
 | `explore(bound)` | exhaustive model checking in the reference interpreter (6.9) |
 | `std.evented` handlers | carriers on stackful coroutines with io\_uring, epoll, kqueue or IOCP (9.7) |
 
+**Concurrent marker (R1003).** `trait Concurrent` in `std.sync` is a marker: `impl Concurrent for H` promises that handler `H` gives concurrent forward progress to every branch of a `par concurrent`. `sequential`, `seeded`, `explore` and the `std.evented` handlers implement it; `pool` does not, since it has one thread per core. E708 is reported at a `par concurrent` whose bound `sched` handler type does not implement `Concurrent`, so it covers user handlers too; an unbound hosted default `pool` is E708 as well.
+
 Plain `par` may run its branches in any order or in sequence. Branches that must make progress at the same time, such as the two ends of a channel, use `par concurrent`, which requires a handler that guarantees concurrent progress (E708 otherwise). Code is the same under every handler, and there is no `async`/`await` and no function colouring.
 
 ### 9.2 `par` blocks

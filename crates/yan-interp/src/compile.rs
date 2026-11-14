@@ -275,6 +275,8 @@ pub(crate) enum Callee {
         local: Option<Reg>,
     },
     Native,
+    /// A function of a foreign library (12.1), by its name in the library.
+    Extern(Rc<yan_mir::ffi::ExternFn>),
 }
 
 #[derive(Debug)]
@@ -385,6 +387,7 @@ struct Globals<'m> {
     pending: Vec<(usize, Name, &'m FnDef, Option<[u8; 32]>)>,
     hashes: Option<Vec<yan_core::hash::Hashed>>,
     types: Rc<crate::meta::Types>,
+    externs: crate::HashMap<String, Rc<yan_mir::ffi::ExternFn>>,
 }
 
 fn const_value(c: &ConstVal) -> Option<Value> {
@@ -430,6 +433,10 @@ pub(crate) fn compile(m: &Module) -> Program {
             .any(|i| matches!(&i.kind, ItemKind::Fn(f) | ItemKind::Inst(Inst { def: f, .. }) if has_requires(f)) || matches!(&i.kind, ItemKind::Impl(i) if i.fns.iter().any(has_requires)))
             .then(|| yan_core::hash::hash_module(m)),
         types: Rc::new(crate::meta::Types::of(m)),
+        externs: yan_mir::ffi::collect(m)
+            .into_iter()
+            .filter_map(|(n, e)| Some((n, Rc::new(e.ok()?))))
+            .collect(),
     };
     for (ix, item) in m.items.iter().enumerate() {
         let ih = g.hashes.as_ref().map(|h| *h[ix].identity.group.as_bytes());
@@ -1596,7 +1603,13 @@ impl<'g, 'm> FnC<'g, 'm> {
     /// Add a call site, or emit the op that fails as evaluating its arguments would.
     fn site(&mut self, c: &Call, mode: Mode) -> Option<u32> {
         let mut args = Vec::with_capacity(c.args.len());
+        let foreign = !self.g.fns.contains_key(&c.path.join("."))
+            && self.g.externs.contains_key(&c.path.join("."));
         for a in &c.args {
+            // A library capability only gates the call (12.2); the foreign function never sees it.
+            if foreign && matches!(a, Arg::Cap(..)) {
+                continue;
+            }
             let r = match a {
                 Arg::Value(Conv::Inout, Atom::Name(n, _), _) => Ok(ArgC::Inout(self.reg_of(n))),
                 Arg::Value(_, a, _) => self.atom(a).map(ArgC::Val),
@@ -1618,6 +1631,8 @@ impl<'g, 'm> FnC<'g, 'm> {
             .or_else(|| self.g.fns.get(&name))
         {
             Callee::Item(*f)
+        } else if let Some(e) = self.g.externs.get(&name) {
+            Callee::Extern(e.clone())
         } else {
             let suffix = format!(".{name}");
             let methods: Vec<(Rc<str>, usize)> = self

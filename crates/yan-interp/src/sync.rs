@@ -49,6 +49,16 @@ pub(crate) fn end(name: &str, chan: usize) -> Value {
     }
 }
 
+fn slot_of(v: &Value) -> (usize, usize) {
+    match v {
+        Value::Tuple(p) => match p[..] {
+            [Value::Int(a), Value::Int(s)] => (a as usize, s as usize),
+            _ => unreachable!("a Ref"),
+        },
+        _ => unreachable!("a Ref"),
+    }
+}
+
 pub(crate) fn chan(v: &Value) -> usize {
     match v {
         Value::Data { fields, .. } => match fields[0].1 {
@@ -780,6 +790,42 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_SYNC_CELL_SET,
         Bind::Plain(|_| unsupported("`std.sync.cell.set` in the interpreter")),
+    ),
+    (
+        STD_ARENA_ALLOC,
+        Bind::Cap(|it, a| {
+            let Value::Int(arena) = a[0] else {
+                unreachable!("an arena")
+            };
+            let slots = &mut it.arenas[arena as usize];
+            slots.push(std::mem::take(&mut a[1]));
+            Ok(Value::Tuple(vec![
+                Value::Int(arena),
+                Value::Int(slots.len() as i128 - 1),
+            ]))
+        }),
+    ),
+    (
+        STD_ARENA_ARENA,
+        Bind::Cap(|it, _| {
+            it.arenas.push(Vec::new());
+            Ok(Value::Int(it.arenas.len() as i128 - 1))
+        }),
+    ),
+    (
+        STD_ARENA_REF_GET,
+        Bind::Cap(|it, a| {
+            let (arena, slot) = slot_of(&a[0]);
+            Ok(it.arenas[arena][slot].clone())
+        }),
+    ),
+    (
+        STD_ARENA_REF_SET,
+        Bind::Cap(|it, a| {
+            let (arena, slot) = slot_of(&a[0]);
+            it.arenas[arena][slot] = std::mem::take(&mut a[1]);
+            Ok(Value::Unit)
+        }),
     ),
     (
         STD_LATTICE_GET,

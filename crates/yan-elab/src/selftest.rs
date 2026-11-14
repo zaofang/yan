@@ -1598,3 +1598,63 @@ fn access_claim_on_extern_takes_a_halo() {
     one("@access(a: elementwise(halo: 1), out: whole)");
     one("@access(a: whole, out: rows(0, halo: 1))");
 }
+
+#[test]
+fn yn_use_alias_renames_the_std_module_root() {
+    let lower_yn = |src: &str| {
+        let (ast, d) = yan_yn::parse("t.yn", src);
+        assert!(d.is_empty(), "{d:?}");
+        let (h, d) = yan_yn::lower("t.yn", src, &ast).expect("lowers");
+        let opts = Options {
+            yn: true,
+            ..Options::default()
+        };
+        let (_, ed) = elaborate("t.yn", src, &h, opts).expect("supported");
+        d.into_iter().chain(ed).map(|d| d.code).collect::<Vec<_>>()
+    };
+    let body = "main() -> () uses io =\n  io.print(t.concat(\"a\", \"b\"))\n";
+    assert!(lower_yn(&format!("use std.text as t\n\n{body}")).is_empty());
+    let (ast, _) = yan_yn::parse("t.yn", "use foo.bar as t\n");
+    let (_, d) = yan_yn::lower("t.yn", "use foo.bar as t\n", &ast).expect("lowers");
+    assert_eq!(d[0].code, "E017");
+}
+
+#[test]
+fn generic_sum_constructors_take_arguments_from_the_expected_type_or_fields() {
+    let decl = "type Maybe[T] = Just(value: T) | Nothing()\n\n";
+    let ok = format!(
+        "{decl}def f(m: Maybe[int]) -> int:\n    match m:\n        case Just(value=v):\n            return v\n        case Nothing():\n            return 0\n\n\
+def g() -> int:\n    a: Maybe[int] = Nothing()\n    return f(a) + f(Just(value=1))\n"
+    );
+    let (items, d) = lower(&ok);
+    assert!(
+        d.iter().all(|d| d.severity != yan_diag::Severity::Error),
+        "{d:?}"
+    );
+    let text = format!("{items:?}");
+    assert!(
+        text.contains("targs: [Type(Named(Named { path: [\"i64\"]"),
+        "{text}"
+    );
+    let (_, d) = lower(&format!("{decl}def g() -> None:\n    n = Nothing()\n"));
+    assert!(d.iter().any(|d| d.code == "E241"), "{d:?}");
+}
+
+#[test]
+fn derive_wire_on_a_generic_sum_checks_arguments_at_the_instance() {
+    let ok = "\
+@derive(Wire)
+type Box[T] = Full(value: T) | Empty()
+
+def f(_: Box[int]) -> int:
+    return 1
+
+pub def main() uses io:
+    io.print(\"hi\")
+";
+    assert_eq!(codes(ok), Vec::<String>::new());
+    let bad = ok.replace("Box[int]", "Box[Fs]");
+    assert_eq!(codes(&bad), ["E282"]);
+    let plain = bad.replace("@derive(Wire)\n", "");
+    assert_eq!(codes(&plain), Vec::<String>::new());
+}

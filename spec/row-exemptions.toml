@@ -1,0 +1,47 @@
+# Rows that conformance cannot or need not cover. Evidence: docs/research/2026-11-14-uncased-row-audit.md (#1025, #1136).
+# kind exempt: unobservable from a program; tools.status counts the row as covered, the population stays 879.
+# kind merge: restated by `into`, whose own case covers it; the id stays citable.
+# Only rows with no case today are listed; add a row here only with a lead card.
+
+[[row]]
+rows = "R350 to R355, R357 to R366"
+kind = "exempt"
+group = "Licensing, governance, trademark (26.5)"
+reason = "Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+
+[[row]]
+rows = "R566 to R567, R586, R774 to R775, R990 to R991, R1001"
+kind = "exempt"
+group = "Names, marks, release scope, design bases"
+reason = "Naming, trademark, release-scope and probe-timing decisions; no program output depends on them."
+
+[[row]]
+rows = "R479, R558, R560 to R562, R914 to R915, R921 to R923, R961, R965, R987, R1000"
+kind = "exempt"
+group = "Toolchain-internal structure"
+reason = "Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+
+[[row]]
+rows = "R966 to R970"
+kind = "exempt"
+group = "Implementation language and self-hosting"
+reason = "Which language the compiler is written in, S0 to S5 stages and the LLVM choice. Tracked by #851, gated by byte-equality, not by a conformance case."
+
+[[row]]
+rows = "R796, R883 to R885"
+kind = "exempt"
+group = "Panic payload internals"
+reason = "Payload fields (RFC 0031, 0042) live in the record-and-replay buffer; a program sees only the terminal message, which omits them (spec 8.3)."
+
+[[row]]
+rows = "R565, R837 to R843, R850 to R870"
+kind = "merge"
+into = "R996"
+group = "Origin and spelling marks (RFC 0034)"
+reason = "HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+
+[[row]]
+rows = "R215"
+kind = "exempt"
+group = "Superseded implementation language"
+reason = "Replaced by R966 (spec says so)."

@@ -256,6 +256,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             ceiling: Default::default(),
             deadline: None,
             chans: Vec::new(),
+            arenas: Vec::new(),
             actors: Vec::new(),
             sups: Default::default(),
             actor_waits: Vec::new(),
@@ -400,6 +401,8 @@ pub(crate) struct Interp<'o> {
     deadline: Option<i128>,
     /// Each channel, by channel.
     chans: Vec<sync::Chan>,
+    /// The slots of each arena, by arena; a `Ref` is (arena, slot).
+    arenas: Vec<Vec<Value>>,
     /// Each actor, by actor (9.6).
     actors: Vec<sync::Actor>,
     /// Every supervisor and the open `with supervisor` scopes (9.6).
@@ -825,6 +828,7 @@ fn entry(
         ceiling: proc::ceiling(&args),
         deadline: None,
         chans: Vec::new(),
+        arenas: Vec::new(),
         actors: Vec::new(),
         sups: Default::default(),
         actor_waits: Vec::new(),

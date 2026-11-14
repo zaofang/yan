@@ -9,6 +9,7 @@ read-only to agents (22.6).
 |---|---|---|
 | `yag/pass/`, `yn/pass/`, `yir/pass/` | pass | `check` reports no errors (warnings and notes allowed) |
 | `yag/fail/`, `yn/fail/`, `yir/fail/` | fail | `check` reports exactly the `expect` lines, all severities, and nothing else |
+| `yir/opt/` | opt | `run --opt` reports exactly the `expect` lines (optimizer diagnostics, which `check` does not run), and nothing else |
 | `yag/run/`, `yn/run/`, `yir/run/` | run | `run` prints exactly the `stdout` block and exits with `exit` (default 0) |
 | `golden/` | run | as run; G1 to G4 of 24.3, and the proposed G5 (the Tally slice, in Yan Agent and Yan) |
 | `solver/` | fail | as fail; no `expect` line means no diagnostics at all (8.6 boundaries) |
@@ -90,7 +91,7 @@ naming one of these. Each is a proposed answer; change the cases if the spec dec
 | A6 | `wrap_as` and `sat_as` are generic functions, called as `wrap_as[u8](x)`. |
 | A7 | `fake_fs(files)` takes a `dict[str, str]`; `fs.read(path)` returns `str fail FsError`. |
 | A8 | `Max(v)` builds a `Max[T]` lattice value and `.value` unwraps it. |
-| A9 | A case file inside a directory named `ffi` is checked as an ffi module (12). |
+| A9 | A case file inside a directory named `ffi` or `ub` is checked as an ffi module (12). |
 | A10 | A patch's `"module": "m"` names `m.yag` in the directory it runs in, and `base` may be omitted. |
 | A11 | Raw pointers: `xs.as_ptr()`, `Ptr.of(&x)`, `p.offset(n)`, `p.cast[T]()` are safe to build; `p.read()` and `p.write(v)` need `unsafe`. |
 | A12 | `@yan/i18n` is reached as `i18n` (`i18n.Locale("en")`), and `@messages` records give each message as a field default. |

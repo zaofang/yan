@@ -7,6 +7,8 @@ pub mod abi;
 #[allow(unsafe_code)]
 pub mod actor;
 #[allow(unsafe_code)]
+pub mod arena;
+#[allow(unsafe_code)]
 pub mod bigint;
 #[allow(unsafe_code)]
 pub mod bytes;
@@ -28,6 +30,8 @@ pub mod csvslots;
 pub mod dq;
 #[allow(unsafe_code)]
 pub mod envhandler;
+#[allow(unsafe_code)]
+pub mod ffi;
 pub mod fmt;
 #[allow(unsafe_code)]
 pub mod fshandler;

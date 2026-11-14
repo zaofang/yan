@@ -1,0 +1,19 @@
+# spec: 11.6, 17.5, 7.5
+# rows: R49, R50, R51, R52, R55
+# note: i128 nanoseconds; range end is None for checked forms; calendar until returns (Period, Duration); zone lookup needs no capability beyond io
+# stdout:
+# 36893488147419103228
+# None
+# P1M2D PT1H30M
+# True
+
+pub def main() uses io:
+    io.print(f"{(Duration.nanos(9223372036854775807) * 4).nanos()}")
+    io.print(f"{PlainDate(9999, 12, 31).checked_add(Period(days=1))}")
+    a = PlainDateTime(PlainDate(2024, 1, 31), PlainTime(9, 0))
+    b = PlainDateTime(PlainDate(2024, 3, 2), PlainTime(10, 30))
+    p, d = a.until(b)
+    io.print(f"{p} {d}")
+    z1 = Instant.from_unix_seconds(0).in_zone(TimeZone("America/New_York"))
+    z2 = Instant.from_unix_seconds(0).in_zone(TimeZone("America/New_York"))
+    io.print(f"{z1 == z2}")

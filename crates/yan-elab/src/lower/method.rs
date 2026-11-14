@@ -151,10 +151,14 @@ impl Lower<'_, '_, '_> {
         if let Some(r) = self.handler_call(b, m, args, at)? {
             return Ok(r);
         }
-        if self.g.fns.contains_key(m) {
-            if let Some(module) = self.ty_of_local(b).as_ref().and_then(Ty::module)
-                && crate::stdlib::decl(&format!("std.{module}.{m}")).is_some()
-            {
+        let recv_decl = self
+            .ty_of_local(b)
+            .as_ref()
+            .and_then(Ty::module)
+            .filter(|module| crate::stdlib::decl(&format!("std.{module}.{m}")).is_some());
+        // A prelude function (`set`) does not hide the receiver's own method.
+        if self.g.fns.contains_key(m) && !(self.g.std_fns.contains(m) && recv_decl.is_some()) {
+            if let Some(module) = recv_decl {
                 self.cx.warn(
                     "W819",
                     at,
@@ -250,7 +254,8 @@ impl Lower<'_, '_, '_> {
             Ty::Data(n) if self.g.std_sums.contains(n) => crate::stdlib::sum_module(n),
             _ => None,
         };
-        let Some(module) = t.module().or(std_class) else {
+        let list_ptr = matches!((&t, m), (Ty::List(_), "as_ptr"));
+        let Some(module) = list_ptr.then_some("ptr").or(t.module()).or(std_class) else {
             self.err(
                 "E200",
                 at,
@@ -267,6 +272,13 @@ impl Lower<'_, '_, '_> {
             self.pattern_check(n, args.first());
         }
         let path = format!("std.{module}.{m}");
+        if matches!(path.as_str(), "std.ptr.read" | "std.ptr.write") && !self.in_unsafe {
+            self.err(
+                "E903",
+                at,
+                format!("`{m}` dereferences a `Ptr`; call it inside `unsafe`"),
+            );
+        }
         let Some(d) = crate::stdlib::decl(&path) else {
             let names = crate::stdlib::members(module);
             if matches!(t, Ty::Coll("iter", _)) && m == "len" {

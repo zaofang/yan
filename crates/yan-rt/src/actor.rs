@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use crate::sched;
 
 /// Retry after running the closure in the work slots.
-pub const WORK: u64 = 3;
+pub const WORK: u64 = 10;
 /// A call fails `Stopped`.
 pub const STOPPED: u64 = 4;
 /// A call fails `Deadlock`.

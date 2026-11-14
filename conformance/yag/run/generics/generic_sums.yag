@@ -1,0 +1,28 @@
+# spec: 10.1, 13
+# rows: R423
+# stdout:
+# 42
+# -1
+# 1
+# x
+
+type Maybe[T] = Just(value: T) | Nothing()
+type Pair[A, B] = P(a: A, b: B)
+
+def pick(m: Maybe[int]) -> int:
+    match m:
+        case Just(value=v):
+            return v
+        case Nothing():
+            return -1
+
+pub def main() uses io:
+    a: Maybe[int] = Just(value=41)
+    b: Maybe[int] = Nothing()
+    p = P(a=1, b="x")
+    io.print(pick(a) + 1)
+    io.print(pick(b))
+    match p:
+        case P(a=x, b=y):
+            io.print(x)
+            io.print(y)

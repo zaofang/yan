@@ -1,0 +1,31 @@
+-- spec: 10.4
+-- rows: R130
+-- note: a let-bound closure passed as a comptime Fn argument specializes into the instance; captures become extra value parameters (#1194)
+-- stdout:
+-- 34
+module conf.comptime_fn
+
+fn apply(comptime let f: Fn(let i64) -> i64, let x: i64) -> i64 {
+    let r: i64 = f(let x)
+    ret r
+}
+
+fn main(cap io: Io) -> Unit {
+    let base: i64 = 10
+    let add: Fn(let i64) -> i64 = fn [let base] (let x: i64) -> i64 {
+        let r: i64 = add_checked_i64(let x, let base)
+        ret r
+    }
+    let dbl: Fn(let i64) -> i64 = fn [] (let x: i64) -> i64 {
+        let r: i64 = add_checked_i64(let x, let x)
+        ret r
+    }
+    let a: i64 = apply(let add, let 1)
+    let b: i64 = apply(let dbl, let 4)
+    let c: i64 = apply(let add, let 5)
+    let s: i64 = add_checked_i64(let a, let b)
+    let t: i64 = add_checked_i64(let s, let c)
+    let o: Str = std.fmt.show[i64](let t)
+    std.io.print(cap io, let o)
+    ret ()
+}

@@ -38,6 +38,10 @@ pub enum Shape {
     Actor(Box<Shape>),
     /// A `Ptr[T]` (6.6): its address, then its provenance (0 for none).
     Ptr,
+    /// An `Arena`: a `yan_rt::arena` block that owns every slot `alloc` handed out.
+    Arena,
+    /// A `Ref[T]`: the address of its slot in an arena; the arena owns it.
+    Ref(Box<Shape>),
     /// A `set`: a `yan_rt::map` block whose entries are keys with no value slots.
     Set(Box<Shape>),
 }
@@ -59,6 +63,8 @@ impl Shape {
             | Shape::Deque(_)
             | Shape::Chan(..)
             | Shape::Actor(_)
+            | Shape::Arena
+            | Shape::Ref(_)
             | Shape::Set(_) => out.push(Ty::Ptr),
             Shape::Fn(..) => out.extend([Ty::Ptr, Ty::Ptr]),
             Shape::Ptr => out.extend([I64, I64]),
@@ -126,6 +132,7 @@ impl Shape {
 pub(super) struct Types<'m> {
     pub(super) recs: HashMap<&'m str, &'m y::Record>,
     pub(super) sums: HashMap<&'m str, &'m y::Sum>,
+    pub(super) externs: HashMap<String, R<crate::ffi::ExternFn>>,
 }
 
 impl Types<'_> {
@@ -177,6 +184,10 @@ impl Types<'_> {
                     }
                     ("Ptr", [y::TArg::Type(_)]) if !self.recs.contains_key(name) => {
                         return Ok(Shape::Ptr);
+                    }
+                    ("Arena", []) if !self.recs.contains_key(name) => return Ok(Shape::Arena),
+                    ("Ref", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
+                        return Ok(Shape::Ref(Box::new(self.shape_in(e, stack)?)));
                     }
                     ("char", []) => return Ok(Shape::Char),
                     ("Secret", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {

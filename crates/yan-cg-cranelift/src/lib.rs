@@ -22,8 +22,8 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::{
-    abi, actor, bigint, bytes, chan, chars, civil, cluster, dq, envhandler, fshandler, loghandler,
-    map, pathabi, pq, regexabi, sched, select, slice, timeabi,
+    abi, actor, bigint, bytes, chan, chars, civil, cluster, dq, envhandler, ffi, fshandler,
+    loghandler, map, pathabi, pq, regexabi, sched, select, slice, timeabi,
 };
 
 type R<T> = Result<T, String>;
@@ -843,11 +843,15 @@ const RT: &[RtFn] = &[
     RtFn::StrFree,
     RtFn::ListFree,
     RtFn::EnvFree,
+    RtFn::ArenaNew,
+    RtFn::ArenaAlloc,
+    RtFn::ArenaFree,
     RtFn::ChanNew,
     RtFn::ChanSend,
     RtFn::ChanRecv,
     RtFn::ChanTrySend,
     RtFn::ChanTryRecv,
+    RtFn::SelectWait,
     RtFn::ChanDrop,
     RtFn::ChanDropSender,
     RtFn::ChanClone,
@@ -899,6 +903,8 @@ const RT: &[RtFn] = &[
     RtFn::ClusterAdmit,
     RtFn::ClusterArrive,
     RtFn::SupEndTo,
+    RtFn::FfiCall,
+    RtFn::FfiCallF64,
 ];
 
 /// Symbol, address, parameter types and result type.
@@ -2040,6 +2046,24 @@ fn rt_fn(
             &[I64],
             None,
         ),
+        RtFn::ArenaNew => (
+            "yan_rt_arena_new",
+            yan_rt::arena::yan_rt_arena_new as *const u8,
+            &[],
+            Some(I64),
+        ),
+        RtFn::ArenaAlloc => (
+            "yan_rt_arena_alloc",
+            yan_rt::arena::yan_rt_arena_alloc as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::ArenaFree => (
+            "yan_rt_arena_free",
+            yan_rt::arena::yan_rt_arena_free as *const u8,
+            &[I64],
+            None,
+        ),
         RtFn::EnvFree => (
             "yan_rt_free_env",
             abi::yan_rt_free_env as *const u8,
@@ -2086,6 +2110,12 @@ fn rt_fn(
             "yan_rt_chan_try_recv",
             chan::yan_rt_chan_try_recv as *const u8,
             &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::SelectWait => (
+            "yan_rt_select_wait",
+            chan::yan_rt_select_wait as *const u8,
+            &[I64, I64, I64, I64],
             Some(I64),
         ),
         RtFn::ChanDrop => (
@@ -2369,6 +2399,22 @@ fn rt_fn(
             cluster::yan_rt_cluster_arrive as *const u8,
             &[I64],
             Some(I64),
+        ),
+        RtFn::FfiCall => (
+            "yan_rt_ffi_call",
+            ffi::yan_rt_ffi_call as *const u8,
+            &[
+                I64, I64, I64, I64, I64, I64, I64, I64, I64, F64, F64, F64, F64, F64, F64, F64, F64,
+            ],
+            Some(I64),
+        ),
+        RtFn::FfiCallF64 => (
+            "yan_rt_ffi_call_f64",
+            ffi::yan_rt_ffi_call_f64 as *const u8,
+            &[
+                I64, I64, I64, I64, I64, I64, I64, I64, I64, F64, F64, F64, F64, F64, F64, F64, F64,
+            ],
+            Some(F64),
         ),
         RtFn::SupEndTo => (
             "yan_rt_sup_end_to",
