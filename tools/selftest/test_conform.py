@@ -22,6 +22,7 @@ class Fake:
     output: tuple[str, int] = ("", 0)
     seen_flags: list[list[str]] = field(default_factory=list)
     ub_output: tuple[str, int] = ("", 0)
+    opt_output: tuple[str, int] = ("", 0)
     patched: str | None = None
     patch_records: list[dict[str, object]] = field(default_factory=list)
     bump: str = "patch"
@@ -40,6 +41,9 @@ class Fake:
 
     def run_ub(self, path: Path, flags: list[str]) -> tuple[str, int]:
         return self.ub_output
+
+    def run_opt(self, path: Path, flags: list[str]) -> tuple[str, int]:
+        return self.opt_output
 
     def patch(
         self, workdir: Path, patch: Path, flags: list[str]
@@ -215,6 +219,15 @@ def test_coverage_counts_codes_and_sections() -> None:
     assert "| E502 | 7.1 | non-exhaustive match | **none** |" in report
     assert "E231" not in report
     assert "N05" in report
+
+
+def test_opt_cases() -> None:
+    case = Case("opt", Path("o.yir"), expect=[Diag("E263", 9, 28)])
+    line = "E263 o.yir:9:28 `g` passed to a `comptime` function parameter cannot be specialized\n"
+    assert judge(case, Fake(opt_output=(line, 1))).status == "pass"
+    assert judge(case, Fake(opt_output=("E263 o.yir:9:29 x\n", 1))).status == "fail"
+    assert judge(case, Fake(opt_output=(line + "E200 o.yir:1:1 y\n", 1))).status == "fail"
+    assert judge(case, Fake()).status == "fail"
 
 
 def test_ub_cases() -> None:
