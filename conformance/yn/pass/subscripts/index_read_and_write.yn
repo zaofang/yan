@@ -31,3 +31,13 @@ g() -> int =
   var c = Box(a: 4, b: 1)
   let x = c[1]
   x + 1
+
+type Echo = { n: int }
+
+impl Index[int] for Echo
+  sub at(self, k: int) -> int =
+    yield k
+
+h() -> int =
+  let e = Echo(n: 0)
+  e[7]

@@ -1,0 +1,16 @@
+-- spec: 4.4
+-- rows: R457
+-- note: the read checks; the assignment uses the inout mode, which cannot write the key; the span is the yielded place
+-- expect: E423 at 10:11
+
+type Box = { v: int }
+
+impl Index[int] for Box
+  sub at(self, k: int) -> int =
+    yield k
+
+f() -> int =
+  var b = Box(v: 1)
+  let a = b[0]
+  b[0] = a + 1
+  b.v
