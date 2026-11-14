@@ -64,6 +64,7 @@ struct V {
     /// Names bound to one field of a local (`let x = t._0`), to the key `t._0` that tracks the
     /// field in the state, so moving each field of a destructured tuple once is not a repeat.
     fields: HashMap<Name, Name>,
+    copy: own::CopyFields,
     diags: Vec<Diagnostic>,
     file: String,
     item: String,
@@ -73,6 +74,7 @@ struct V {
 pub fn check_optimized(file: &str, m: &Module) -> Vec<Diagnostic> {
     let mut v = V {
         file: file.to_owned(),
+        copy: own::copy_fields(m),
         ..V::default()
     };
     for it in &m.items {
@@ -113,6 +115,7 @@ impl V {
 
     fn run(&mut self, owned: &[Name], b: &Block) {
         let saved = mem::take(self);
+        self.copy = saved.copy.clone();
         self.file = saved.file.clone();
         self.item = saved.item.clone();
         self.st = Some(St::new());
@@ -370,14 +373,18 @@ impl V {
         }
         for p in pats {
             let Pat::Ctor {
+                path,
                 fields: Some((fs, _)),
-                ..
             } = p
             else {
                 continue;
             };
+            let ctor = path.last().cloned().unwrap_or_default();
             for (f, sub) in fs {
                 let Pat::Bind(n) = sub else { continue };
+                if self.copy.contains(&(ctor.clone(), f.clone())) {
+                    continue;
+                }
                 let key = format!("{root}.{f}");
                 if let Some(st) = &mut self.st {
                     st.entry(key.clone()).or_insert(S::Live);
@@ -531,7 +538,7 @@ impl V {
                     let root = self.views.get(x).unwrap_or(x).clone();
                     if self.st.as_ref().is_some_and(|st| st.contains_key(&root)) {
                         for (p, _) in arms {
-                            own::pat_binders(p, &mut bound);
+                            own::view_binders(p, &self.copy, &mut bound);
                         }
                         for n in &bound {
                             self.views.insert(n.clone(), root.clone());

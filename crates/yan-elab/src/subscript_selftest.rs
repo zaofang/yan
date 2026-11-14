@@ -74,6 +74,25 @@ fn a_branching_body_selects_the_place() {
 }
 
 #[test]
+fn a_read_bound_to_a_new_name_hoists_the_statements_before_the_branch() {
+    let src = "type C = { a: int, b: int }\n\n\
+        impl Index[int] for C\n\
+        \x20 sub at(self, k: int) -> int =\n\
+        \x20   let j = k + 1\n\
+        \x20   if j > 2\n\
+        \x20     yield self.a\n\
+        \x20   else\n\
+        \x20     yield self.b\n\n\
+        main() uses io =\n\
+        \x20 var c = C(a: 4, b: 1)\n\
+        \x20 let x = c[1]\n\
+        \x20 let y = c[5]\n\
+        \x20 print(x + y)\n\
+        \x20 0\n";
+    assert_eq!(run(src), "5\n");
+}
+
+#[test]
 fn e422_when_a_path_yields_zero_or_two_times() {
     let none = "type C = { a: int }\n\nimpl Index[bool] for C\n\
         \x20 sub at(self, k: bool) -> int =\n\

@@ -215,7 +215,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(true)
     }
 
-    fn branch_eq(&mut self, v: Operand, k: i128) -> (BlockId, BlockId) {
+    pub(super) fn branch_eq(&mut self, v: Operand, k: i128) -> (BlockId, BlockId) {
         let c = self.scalar_op(ScalarOp::Eq, I64, vec![v, Operand::Int(k)]);
         self.branch(c)
     }
