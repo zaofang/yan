@@ -136,6 +136,31 @@ impl Lower<'_, '_, '_> {
             {
                 self.start_call(args, at, want)
             }
+            j::ExprKind::Attr(m, op, _)
+                if op == "of"
+                    && matches!(&m.kind, j::ExprKind::Name(p) if p == "Ptr" && !self.locals.contains_key(p)) =>
+            {
+                self.ptr_of(args, at)
+            }
+            j::ExprKind::Index(b, k)
+                if let j::ExprKind::Attr(m, op, _) = &b.kind
+                    && op == "cast" =>
+            {
+                self.ptr_cast(m, k, args, at)
+            }
+            j::ExprKind::Attr(m, op, _)
+                if (self.cx.ffi || ptr::exposes(op))
+                    && matches!(&m.kind, j::ExprKind::Name(p) if p == "ptr" && !self.locals.contains_key(p)) =>
+            {
+                self.ptr_call(op, None, args, at, want)
+            }
+            j::ExprKind::Index(b, k)
+                if let j::ExprKind::Attr(m, op, _) = &b.kind
+                    && (self.cx.ffi || ptr::exposes(op))
+                    && matches!(&m.kind, j::ExprKind::Name(p) if p == "ptr" && !self.locals.contains_key(p)) =>
+            {
+                self.ptr_call(op, Some(k), args, at, want)
+            }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Channel" && !self.locals.contains_key(n)) =>
             {
                 let j::ExprKind::Name(tn) = &k.kind else {
@@ -230,9 +255,16 @@ impl Lower<'_, '_, '_> {
                     return self.user_call(n, None, args, at);
                 }
                 if let Some(fs) = self.g.records.get(n) {
-                    let ps = field_params(fs, at);
+                    let pos = self.g.record_positional.get(n).copied().unwrap_or(0);
+                    let ps = field_params(fs, pos, at);
                     let r = self.ctor(n, &ps, args, at)?;
                     return Ok((r, Ty::Data(n.clone()), None));
+                }
+                if let Some(s) = self.g.variant_of.get(n).cloned()
+                    && self.g.sum_params.contains_key(&s)
+                {
+                    let (r, t) = self.generic_ctor(n, &s, args, at, want)?;
+                    return Ok((r, t, None));
                 }
                 if let Some(s) = self.g.variant_of.get(n).cloned() {
                     let fs = &self.g.sums[&s]
@@ -240,7 +272,7 @@ impl Lower<'_, '_, '_> {
                         .find(|(v, _)| v == n)
                         .expect("declared")
                         .1;
-                    let ps = field_params(fs, at);
+                    let ps = field_params(fs, 0, at);
                     if ps.is_empty() && args.is_empty() {
                         return Ok((Rhs::Atom(Atom::Name(n.clone(), at)), Ty::Data(s), None));
                     }

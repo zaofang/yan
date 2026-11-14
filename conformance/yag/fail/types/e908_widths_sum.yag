@@ -1,0 +1,8 @@
+# spec: 5.2
+# note: 3 + 4 bits in a u8 container
+# expect: E908 at 6:1
+
+@layout(bits(u8))
+class Flags:
+    a: uint3
+    b: uint4

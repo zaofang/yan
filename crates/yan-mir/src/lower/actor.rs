@@ -6,7 +6,7 @@ use super::*;
 const PTR: Shape = Shape::Scalar(Ty::Ptr);
 
 /// The yan-rt status asking the caller to run the closure in the work slots and retry.
-pub(super) const WORK: i128 = 3;
+pub(super) const WORK: i128 = 10;
 
 /// The yan-rt statuses of a failed actor operation, by the failure each means.
 const FAILURES: &[(i128, &str)] = &[
@@ -215,7 +215,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(true)
     }
 
-    fn branch_eq(&mut self, v: Operand, k: i128) -> (BlockId, BlockId) {
+    pub(super) fn branch_eq(&mut self, v: Operand, k: i128) -> (BlockId, BlockId) {
         let c = self.scalar_op(ScalarOp::Eq, I64, vec![v, Operand::Int(k)]);
         self.branch(c)
     }

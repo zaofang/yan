@@ -1,0 +1,37 @@
+# spec: 3.4
+# rows: R681, R682
+# note: add, sub, mul, shifts and comparisons on uint3 and int5 at 0 and the range edges, and std.bits agree with the type's own width
+# stdout:
+# uint3 0: 0 0 0 0 True False True 7
+#   0 3 3 0 0 0 0 0
+# uint3 7: 7 7 0 3 False False True 0
+#   3 0 0 3 7 7 7 4
+# int5 -16: -16 -16 0 -8 False True False 15
+#   1 0 4 5 1 8 1 0
+# int5 0: 0 0 0 0 True False True -1
+#   0 5 5 0 0 0 0 0
+# int5 15: 15 15 0 7 False False True -16
+#   4 1 0 4 -2 -9 -2 -4
+
+pub def main() uses io:
+    n = 1
+    u: uint3 = 0
+    z: uint3 = 0
+    io.print(f"uint3 {u}: {u + z} {u - z} {u * z} {u >> n} {u == z} {u < z} {u >= z} {~u}")
+    io.print(f"  {bits.count_ones(u)} {bits.leading_zeros(u)} {bits.trailing_zeros(u)} {bits.bit_width(u)} {bits.rotate_left(u, 1)} {bits.rotate_right(u, 1)} {bits.reverse_bits(u)} {bits.wrapping_shl(u, 2)}")
+    u: uint3 = 7
+    z: uint3 = 0
+    io.print(f"uint3 {u}: {u + z} {u - z} {u * z} {u >> n} {u == z} {u < z} {u >= z} {~u}")
+    io.print(f"  {bits.count_ones(u)} {bits.leading_zeros(u)} {bits.trailing_zeros(u)} {bits.bit_width(u)} {bits.rotate_left(u, 1)} {bits.rotate_right(u, 1)} {bits.reverse_bits(u)} {bits.wrapping_shl(u, 2)}")
+    i: int5 = -16
+    z: int5 = 0
+    io.print(f"int5 {i}: {i + z} {i - z} {i * z} {i >> n} {i == z} {i < z} {i >= z} {~i}")
+    io.print(f"  {bits.count_ones(i)} {bits.leading_zeros(i)} {bits.trailing_zeros(i)} {bits.bit_width(i)} {bits.rotate_left(i, 1)} {bits.rotate_right(i, 1)} {bits.reverse_bits(i)} {bits.wrapping_shl(i, 2)}")
+    i: int5 = 0
+    z: int5 = 0
+    io.print(f"int5 {i}: {i + z} {i - z} {i * z} {i >> n} {i == z} {i < z} {i >= z} {~i}")
+    io.print(f"  {bits.count_ones(i)} {bits.leading_zeros(i)} {bits.trailing_zeros(i)} {bits.bit_width(i)} {bits.rotate_left(i, 1)} {bits.rotate_right(i, 1)} {bits.reverse_bits(i)} {bits.wrapping_shl(i, 2)}")
+    i: int5 = 15
+    z: int5 = 0
+    io.print(f"int5 {i}: {i + z} {i - z} {i * z} {i >> n} {i == z} {i < z} {i >= z} {~i}")
+    io.print(f"  {bits.count_ones(i)} {bits.leading_zeros(i)} {bits.trailing_zeros(i)} {bits.bit_width(i)} {bits.rotate_left(i, 1)} {bits.rotate_right(i, 1)} {bits.reverse_bits(i)} {bits.wrapping_shl(i, 2)}")

@@ -1368,7 +1368,8 @@ impl<'a> Parser<'a> {
                     _ => {
                         let (name, _) = self.name()?;
                         self.expect_p("=")?;
-                        let dynamic = self.eat_kw("dyn");
+                        let dyn_span = self.span();
+                        let dynamic = self.eat_kw("dyn").then_some(dyn_span);
                         let value = self.expr()?;
                         WithKind::Bind {
                             name,

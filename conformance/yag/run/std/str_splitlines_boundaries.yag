@@ -1,0 +1,21 @@
+# spec: 17.3
+# rows: R909
+# note: splitlines uses CPython's boundaries (\n, \r\n, \r) and drops a final empty line; interior empty lines stay
+# stdout:
+# 3 a b c
+# 3 a  b
+# 0
+# 2
+# 2 x y
+
+pub def main() uses io:
+    a = "a\nb\r\nc\n".splitlines()
+    io.print(f"{len(a)} {a[0]} {a[1]} {a[2]}")
+    b = "a\n\nb".splitlines()
+    io.print(f"{len(b)} {b[0]} {b[1]} {b[2]}")
+    c = "".splitlines()
+    io.print(f"{len(c)}")
+    d = "one\ntwo\n".splitlines()
+    io.print(f"{len(d)}")
+    e = "x\ry".splitlines()
+    io.print(f"{len(e)} {e[0]} {e[1]}")

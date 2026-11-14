@@ -347,6 +347,14 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R999 | `std.sim` PCT scheduling, `pct(depth = d)`, seeded with d - 1 priority change points and a stated lower bound per run; `sim.check_trace(trace, spec)` checks a recorded trace against communicating state machines, one per actor, and reports the first disallowed step; base for Yan Spec (R548) (RFC 0065 D6) | 17.7 |
 | R1000 | Rewriting attributes (R783) run on egglog, replacing `egg` for these rewrites, under a fixed rule schedule and node limit; reaching the limit is a diagnostic, never a partial rewrite; research track (RFC 0065 D7) | 26.6 |
 | R1001 | Design bases for three niche surface RFCs: EverParse 3D constructs plus a Kaitai Struct importer for Yan Binary Format, the Catala default calculus for Yan Law, Temporal-style event-history replay with hash-pinned versions for Yan Workflow; R550 unchanged (RFC 0065 D8 to D10) | 16.7 |
+| R1002 | `Ref[T]` is read and written only by `r.get()` (a view `from` the arena) and `r.set(v)`; no auto-dereference, so E414 stays checkable by one escape analysis (#1243) | 4.7 |
+| R1003 | `Concurrent` marker trait on `sched` handlers; E708 generalised from `pool` to any bound handler without it, including an unbound hosted default (#1204) | 9.1 |
+| R1004 | `dyn Trait` is an owned pair, data boxed through `alloc` and a vtable of drop, size, align and methods per (type, trait) (#1244) | 10.2 |
+| R1005 | Object safety for `dyn Trait`, Rust-like; E333 (#1244) | 10.2, 25 |
+| R1006 | Free `sub` items at module level, used as `x.name(args)` in place position (#1139) | 4.4 |
+| R1007 | N52 maps bare `sqrt`, `sin`, `cos`, `tan`, `exp`, `log` to `math.f(x)` when the name is not bound (#1221) | 14.4 |
+| R1008 | N53 maps `s.len()` on a `str` and a free call `char_count(s)`, `parse_int(s)`, `to_string(x)`, `to_int(s)`, `slice(xs, a, b)`, `byte_at(s, i)` to the method or operator spellings (#1221) | 14.4 |
+| R1009 | N54: `import math`, `io`, `regex`, `collections`, `std` resolve to the std modules; a Python-only module or name is E200 with a `choice` fix, never bare (#1221) | 14.4 |
 
 <!-- /rows -->
 
@@ -356,6 +364,7 @@ Where the rows left wording to the consolidation, this draft chose as follows. E
 
 - **Numbering.** 55 new diagnostic codes were assigned (marked *new* in section 25). Packages and stability take the new E0xx family; stage 0 takes E260 to E270; systems-layer errors take the new E9xx family. Virtual time under `pool` is E710, beside E708, as the time design suggested.
 - **Kind `Size` renamed `Nat`**, matching the surfaces' `N: Nat` bounds (R36, R62).
+- **Rows without a case.** `spec/row-exemptions.toml` lists rows that no program can observe (`exempt`) and rows restated by another row (`merge`, with `into`), from the 2026-11-14 audit (#1025). Spec debt counts them as covered and keeps the population at every allocated R row; the progress report states both figures. Only a lead card adds a row there.
 - **`uint` removed** from Yan Agent's base types and the prelude, as R80 listed it among the replaced forms; Yan Agent uses the sized `uint8` to `uint128`.
 - **`ffi` modules** are the files under a package's `ffi/` directory, where `yan ffi import` writes them; v0.3 never said how a module is marked.
 - **`@forbid(rc)`** (spelled `@no_rc` before R447) now means no `Rc` or `Arc` count operation is reachable, since Yan has no `dup` after R1.

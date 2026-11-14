@@ -1,0 +1,11 @@
+# spec: 17.3
+# rows: R910
+# note: group(i) past the last group panics with kind bounds
+# stdout:
+# 12
+# exit: 101
+
+pub def main() uses io:
+    m = regex.compile(r"(\d)(\d)").search("12") else return
+    io.print(m.text())
+    io.print(f"{m.group(3)}")

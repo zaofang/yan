@@ -8,13 +8,13 @@
 //! freed yet. Anything else is reported as unsupported.
 
 mod co;
+pub mod ffi;
 mod layout;
 mod lower;
 mod tasks;
 
 pub use layout::{Layout, SumLayout, layout};
 pub use lower::{Shape, layout_of, lower};
-use yan_std::registry::Id;
 
 pub type Local = u32;
 pub type BlockId = u32;
@@ -27,6 +27,11 @@ pub struct IntTy {
 }
 
 impl IntTy {
+    /// Bytes a value occupies in memory: the width rounded up to a power-of-two byte count.
+    pub fn storage_bytes(self) -> u64 {
+        u64::from(self.bits).div_ceil(8).next_power_of_two()
+    }
+
     pub fn range(self) -> (i128, i128) {
         if self.signed {
             let m = 1i128 << (self.bits - 1);
@@ -114,7 +119,6 @@ pub enum Inst {
     },
     Scalar {
         dst: Option<Local>,
-        id: Id,
         op: ScalarOp,
         /// The operand type.
         ty: Ty,
@@ -230,6 +234,10 @@ pub enum RtFn {
     RandF64,
     /// `(handler, n) -> int` below `n > 0`.
     RandBelow,
+    /// `(addr, prov)`: records the provenance exposed at `addr` (6.6).
+    PtrExpose,
+    /// `(addr) -> prov`: the provenance last exposed at `addr`, 0 for none.
+    PtrExposed,
     /// `(str, sep, i) -> str`: part `i` (0 before, 1 separator, 2 after) of `std.text.partition`.
     StrPartition,
     /// `(Str) -> i64`
@@ -513,6 +521,12 @@ pub enum RtFn {
     ListFree,
     /// `(Ptr)`: free a closure's captures block; null is ignored.
     EnvFree,
+    /// `() -> Ptr`: an empty arena.
+    ArenaNew,
+    /// `(Ptr arena, words) -> Ptr` to that many zeroed words, owned by the arena.
+    ArenaAlloc,
+    /// `(Ptr arena)`: free the arena and every slot it handed out.
+    ArenaFree,
     /// `(cap, words) -> Ptr`: a channel of `words`-slot elements, shared by both ends.
     ChanNew,
     /// `(Ptr chan, Ptr slots, in_task) -> i64`: 1 when it parked the task, 2 when the task is
@@ -521,10 +535,20 @@ pub enum RtFn {
     /// `(Ptr chan, Ptr out, in_task) -> i64`: the oldest element's slots into `out`; 1 and 2
     /// as for `ChanSend`.
     ChanRecv,
+    /// `ChanSend` that never parks: 4 when the channel has no room.
+    ChanTrySend,
+    /// `ChanRecv` that never parks: 4 when open and empty, 3 when closed.
+    ChanTryRecv,
+    /// `(Ptr keys, Ptr at, Ptr out, in_task) -> i64`: `select_wait`'s ready arm into `out`; 1, 2
+    /// and the actor status as for `ChanRecv`.
+    SelectWait,
     /// `(Ptr chan)`: drop one end.
     ChanDrop,
+    /// `ChanDrop` of a `Sender`: the last one closes the channel.
+    ChanDropSender,
     /// `(Ptr chan)`: a new end of the same channel.
     ChanClone,
+    ChanCloneSender,
     /// `(n, can_yield) -> handle`: enter a `par concurrent` of `n` tasks.
     ParBegin,
     /// `(handle) -> i64`: the task to run next, the task count when all are done, or past it
@@ -577,6 +601,10 @@ pub enum RtFn {
     SupEnd,
     /// `(depth)`: end the scopes past `depth`.
     SupEndTo,
+    /// `(lib Str, symbol Str, result kind, 6 ints, 8 f64s) -> i64`: a foreign function.
+    FfiCall,
+    /// As `FfiCall`, `-> f64`.
+    FfiCallF64,
     /// `(nodes, seed, Ptr plan) -> sim`: a `sim` cluster (RFC 0063 D3).
     SimNew,
     /// `(low, sim) -> low`: `with cluster = sim`, a supervisor scope with each node's root.
@@ -603,6 +631,14 @@ pub enum RtFn {
     SimCheck,
     /// `(actor, channel)`: the channel gets a `Stopped` when the actor stops.
     ClusterMonitor,
+    /// `(name) -> group`: the handle of the named group.
+    ClusterGroup,
+    /// `(group, member)`
+    GroupJoin,
+    /// `(group, member)`
+    GroupLeave,
+    /// `(group) -> list`
+    GroupMembers,
     /// `(status)`: a send through `Remote` whose argument was rejected fails `SchemaMismatch`.
     ClusterSendMismatch,
     /// `(mismatch)`: a call through `Remote` whose argument was rejected ends.

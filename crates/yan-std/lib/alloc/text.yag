@@ -106,6 +106,87 @@ pub def as_path(self: str) -> Path: ...
 @since("1.0")
 pub def count(self: str, part: str) -> int: ...
 
+@since("1.0")
+pub def find(self: str, part: str) -> int:
+    """The char index of the first `part` in `self`, or -1 when absent (Python's `str.find`)."""
+    if part == "":
+        return 0
+    head, sep, _ = self.partition(part)
+    if sep == "":
+        return -1
+    return head.char_count()
+
+@since("1.0")
+pub def capitalize(self: str) -> str:
+    """The first char upper-cased and the rest lower-cased (Python's `str.capitalize`)."""
+    return self.slice_clamped(0, 1, None).upper() + self.slice_clamped(1, None, None).lower()
+
+@since("1.0")
+pub def rfind(self: str, part: str) -> int:
+    """The char index of the last `part` in `self`, or -1 when absent (Python's `str.rfind`)."""
+    n = self.char_count()
+    if part == "":
+        return n
+    k = part.char_count()
+    i = n - k
+    while i >= 0:
+        j = i + k
+        if self.slice_clamped(i, j, None) == part:
+            return i
+        i -= 1
+    return -1
+
+@since("1.0")
+pub def lstrip(self: str) -> str:
+    """`self` without leading whitespace (Python's `str.lstrip()`)."""
+    n = self.char_count()
+    i = 0
+    while i < n and self.char_at(i).is_space():
+        i += 1
+    return self.slice_clamped(i, None, None)
+
+@since("1.0")
+pub def rstrip(self: str) -> str:
+    """`self` without trailing whitespace (Python's `str.rstrip()`)."""
+    n = self.char_count()
+    while n > 0 and self.char_at(n - 1).is_space():
+        n -= 1
+    return self.slice_clamped(0, n, None)
+
+@since("1.0")
+pub def removeprefix(self: str, prefix: str) -> str:
+    """`self` without a leading `prefix` (Python's `str.removeprefix`)."""
+    if self.startswith(prefix):
+        return self.slice_clamped(prefix.char_count(), None, None)
+    return self.slice_clamped(0, None, None)
+
+@since("1.0")
+pub def removesuffix(self: str, suffix: str) -> str:
+    """`self` without a trailing `suffix` (Python's `str.removesuffix`)."""
+    if suffix != "" and self.endswith(suffix):
+        keep = self.char_count() - suffix.char_count()
+        return self.slice_clamped(0, keep, None)
+    return self.slice_clamped(0, None, None)
+
+@since("1.0")
+pub def ljust(self: str, width: int, fill: str = " ") -> str:
+    """`self` padded on the right with `fill` to `width` chars (Python's `str.ljust`)."""
+    return self.concat(fill.repeat(width - self.char_count()))
+
+@since("1.0")
+pub def rjust(self: str, width: int, fill: str = " ") -> str:
+    """`self` padded on the left with `fill` to `width` chars (Python's `str.rjust`)."""
+    return fill.repeat(width - self.char_count()).concat(self)
+
+@since("1.0")
+pub def zfill(self: str, width: int) -> str:
+    """`self` padded on the left with zeros after any sign (Python's `str.zfill`)."""
+    pad = "0".repeat(width - self.char_count())
+    sign = self.slice_clamped(0, 1, None)
+    if sign == "-" or sign == "+":
+        return sign.concat(pad).concat(self.slice_clamped(1, None, None))
+    return pad.concat(self)
+
 @intrinsic
 @since("1.0")
 pub def isdigit(self: str) -> bool: ...

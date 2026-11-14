@@ -1,0 +1,30 @@
+# spec: 17.3
+# rows: R569, R572
+# note: output keeps insertion order; compact has no spaces; indent puts one member per line with ": " and no trailing newline; only ", \ and controls are escaped and non-ASCII is written as UTF-8
+# stdout:
+# {"b":1,"a":[true,null],"c":{},"d":[]}
+# {
+#   "b": 1,
+#   "a": [
+#     true,
+#     null
+#   ],
+#   "c": {},
+#   "d": []
+# }
+# ["é\n\t\u0001\"\\/"]
+# [1.0,100.0,0.5]
+# []
+
+def rt(s: str, ind: int | None = None) -> str fail JsonError:
+    return json.dump_value(json.parse_value(s)?, indent=ind)
+
+def show(s: str, ind: int | None = None) -> str:
+    return rt(s, ind) else err -> f"{err}"
+
+pub def main() uses io:
+    io.print(show("{ \"b\" : 1 , \"a\" : [ true , null ] , \"c\" : { } , \"d\" : [ ] }"))
+    io.print(show("{ \"b\" : 1 , \"a\" : [ true , null ] , \"c\" : { } , \"d\" : [ ] }", 2))
+    io.print(show("[\"é\\n\\t\\u0001\\\"\\\\\\/\"]"))
+    io.print(show("[1.0, 1e2, 0.5]"))
+    io.print(show("[]", 4))

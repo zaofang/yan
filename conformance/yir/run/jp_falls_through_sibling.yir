@@ -1,0 +1,24 @@
+-- spec: 3.5
+-- rows: R764
+-- stdout:
+-- m
+-- body
+-- after
+-- kept
+
+module conf.jp_falls_through_sibling
+fn main(cap io: Io) -> Unit {
+    let s: Str = "kept"
+    jp k() {
+        std.io.print(cap io, let "body")
+    }
+    jp m() {
+        std.io.print(cap io, let "m")
+        jump k()
+    }
+    let c: bool = lt_i64(let 1, let 2)
+    if c { jump m() } else { jump m() }
+    std.io.print(cap io, let "after")
+    std.io.print(cap io, let s)
+    ret ()
+}

@@ -1,0 +1,21 @@
+# spec: 17.3
+# rows: R909
+# note: str.parse_int takes an optional sign and ASCII digits only and returns None outside int; no whitespace, radix prefix or underscore
+# stdout:
+# 12 -7 5 None None None None None None
+# 0 None
+
+pub def main() uses io:
+    a = "12".parse_int()
+    b = "-7".parse_int()
+    c = "+5".parse_int()
+    d = " 5".parse_int()
+    e = "0x1f".parse_int()
+    f = "1_0".parse_int()
+    g = "".parse_int()
+    h = "٣".parse_int()
+    i = "99999999999999999999".parse_int()
+    io.print(f"{a} {b} {c} {d} {e} {f} {g} {h} {i}")
+    j = "000".parse_int()
+    k = "-".parse_int()
+    io.print(f"{j} {k}")

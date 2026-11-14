@@ -667,8 +667,8 @@ fn a_cancel_scope_needs_timeout_in_the_fail_type() {
 
 #[test]
 fn channels_run_and_their_waits_time_out() {
-    let src = "def pair() -> int fail Cancelled:\n    tx, rx = Channel[int](2)\n    tx.send(1)?\n    tx.send(2)?\n    a = rx.recv()?\n    b = rx.recv()?\n    return a + b\n\n\
-               def empty() -> int fail Cancelled | Timeout uses time:\n    _, rx = Channel[int](1)\n    with timeout(5 * ms):\n        return rx.recv()?\n    return 0\n\n\
+    let src = "def pair() -> int fail Cancelled:\n    tx, rx = Channel[int](2)\n    tx.send(1)?\n    tx.send(2)?\n    a = rx.recv()? else 0\n    b = rx.recv()? else 0\n    return a + b\n\n\
+               def empty() -> int fail Cancelled | Timeout uses time:\n    tx, rx = Channel[int](1)\n    with timeout(5 * ms):\n        return rx.recv()? else 0\n    tx.send(0)?\n    return 0\n\n\
                def full() -> int fail Cancelled | Timeout uses time:\n    tx, _ = Channel[int](1)\n    with timeout(5 * ms):\n        tx.send(1)?\n        tx.send(2)?\n    return 0\n\n\
                pub def main() uses io, time:\n    p = pair() else _ -> -1\n    e = empty() else _ -> -1\n    f = full() else _ -> -1\n    io.print(f\"{p} {e} {f}\")\n";
     assert_eq!(run(src), "3 -1 -1\n");
@@ -985,6 +985,20 @@ fn sibling_channel_waits_are_e713_only_in_plain_par() {
     };
     assert_eq!(codes("par"), ["E713"]);
     assert!(codes("par concurrent").is_empty());
+}
+
+#[test]
+fn par_concurrent_under_bound_pool_is_e708() {
+    let codes = |h: &str| {
+        let src = format!(
+            "pub def main() uses io:\n    with sched = {h}:\n        par concurrent:\n            \
+             io.print(\"a\")\n            io.print(\"b\")\n"
+        );
+        let (_, d) = lower(&src);
+        d.iter().map(|d| d.code.clone()).collect::<Vec<_>>()
+    };
+    assert_eq!(codes("pool()"), ["E708"]);
+    assert!(codes("pct()").is_empty());
 }
 
 fn edition_codes(value: &str) -> Vec<String> {
@@ -1583,4 +1597,64 @@ fn access_claim_on_extern_takes_a_halo() {
     one("@access(a: rows(0, size: 1), out: whole)");
     one("@access(a: elementwise(halo: 1), out: whole)");
     one("@access(a: whole, out: rows(0, halo: 1))");
+}
+
+#[test]
+fn yn_use_alias_renames_the_std_module_root() {
+    let lower_yn = |src: &str| {
+        let (ast, d) = yan_yn::parse("t.yn", src);
+        assert!(d.is_empty(), "{d:?}");
+        let (h, d) = yan_yn::lower("t.yn", src, &ast).expect("lowers");
+        let opts = Options {
+            yn: true,
+            ..Options::default()
+        };
+        let (_, ed) = elaborate("t.yn", src, &h, opts).expect("supported");
+        d.into_iter().chain(ed).map(|d| d.code).collect::<Vec<_>>()
+    };
+    let body = "main() -> () uses io =\n  io.print(t.concat(\"a\", \"b\"))\n";
+    assert!(lower_yn(&format!("use std.text as t\n\n{body}")).is_empty());
+    let (ast, _) = yan_yn::parse("t.yn", "use foo.bar as t\n");
+    let (_, d) = yan_yn::lower("t.yn", "use foo.bar as t\n", &ast).expect("lowers");
+    assert_eq!(d[0].code, "E017");
+}
+
+#[test]
+fn generic_sum_constructors_take_arguments_from_the_expected_type_or_fields() {
+    let decl = "type Maybe[T] = Just(value: T) | Nothing()\n\n";
+    let ok = format!(
+        "{decl}def f(m: Maybe[int]) -> int:\n    match m:\n        case Just(value=v):\n            return v\n        case Nothing():\n            return 0\n\n\
+def g() -> int:\n    a: Maybe[int] = Nothing()\n    return f(a) + f(Just(value=1))\n"
+    );
+    let (items, d) = lower(&ok);
+    assert!(
+        d.iter().all(|d| d.severity != yan_diag::Severity::Error),
+        "{d:?}"
+    );
+    let text = format!("{items:?}");
+    assert!(
+        text.contains("targs: [Type(Named(Named { path: [\"i64\"]"),
+        "{text}"
+    );
+    let (_, d) = lower(&format!("{decl}def g() -> None:\n    n = Nothing()\n"));
+    assert!(d.iter().any(|d| d.code == "E241"), "{d:?}");
+}
+
+#[test]
+fn derive_wire_on_a_generic_sum_checks_arguments_at_the_instance() {
+    let ok = "\
+@derive(Wire)
+type Box[T] = Full(value: T) | Empty()
+
+def f(_: Box[int]) -> int:
+    return 1
+
+pub def main() uses io:
+    io.print(\"hi\")
+";
+    assert_eq!(codes(ok), Vec::<String>::new());
+    let bad = ok.replace("Box[int]", "Box[Fs]");
+    assert_eq!(codes(&bad), ["E282"]);
+    let plain = bad.replace("@derive(Wire)\n", "");
+    assert_eq!(codes(&plain), Vec::<String>::new());
 }

@@ -1,5 +1,6 @@
 -- spec: 15.3
--- expect: E404 at 9:8
+-- rows: R66
+-- expect: E404 at 10:8
 
 bump(var n: int) =
   n += 1

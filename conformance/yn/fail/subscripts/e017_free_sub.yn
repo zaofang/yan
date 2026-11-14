@@ -1,0 +1,9 @@
+-- spec: 4.4
+-- rows: R457
+-- note: a free `sub` item outside `impl Index` is refused loudly until it has a use syntax
+-- expect: E017 at 8:1
+
+type Box = { v: int }
+
+sub val(self: Box) -> int =
+  yield self.v

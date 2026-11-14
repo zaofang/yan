@@ -78,6 +78,13 @@ fn ty(t: &mut j::Type, v: V) {
             }
             ty(ret, v);
         }
+        j::Type::Dyn { args, .. } => {
+            for a in args {
+                if let j::TArg::Type(t) = a {
+                    ty(t, v);
+                }
+            }
+        }
         j::Type::Call { .. } | j::Type::None => {}
     }
     v(t);

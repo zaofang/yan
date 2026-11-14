@@ -31,22 +31,23 @@ type Pos = (usize, usize);
 
 pub fn elaborate(m: &Module) -> Result<Module, Error> {
     let obs = Observable::new(m);
+    let copy = own::copy_fields(m);
     let mut out = m.clone();
     for it in &mut out.items {
         match &mut it.kind {
             ItemKind::Fn(f) | ItemKind::Inst(Inst { def: f, .. }) => {
                 if let Some(b) = &f.body {
-                    f.body = Some(settle(&obs, &f.params, b)?);
+                    f.body = Some(settle(&obs, &copy, &f.params, b)?);
                 }
             }
             ItemKind::Impl(i) => {
                 for f in &mut i.fns {
                     if let Some(b) = &f.body {
-                        f.body = Some(settle(&obs, &f.params, b)?);
+                        f.body = Some(settle(&obs, &copy, &f.params, b)?);
                     }
                 }
             }
-            ItemKind::Test(t) => t.body = settle(&obs, &[], &t.body)?,
+            ItemKind::Test(t) => t.body = settle(&obs, &copy, &[], &t.body)?,
             _ => {}
         }
     }
@@ -54,22 +55,32 @@ pub fn elaborate(m: &Module) -> Result<Module, Error> {
 }
 
 /// Run the pass over one body until the set of flagged locals stops growing.
-fn settle(obs: &Observable, params: &[Param], body: &Block) -> Result<Block, Error> {
-    let facts = Facts::new(params, body);
+fn settle(
+    obs: &Observable,
+    copy: &own::CopyFields,
+    params: &[Param],
+    body: &Block,
+) -> Result<Block, Error> {
+    let body = &crate::joins::split(body);
+    let facts = Facts::new(params, body, copy);
     let mut flags: HashMap<Name, Name> = HashMap::new();
     for _ in 0..8 {
         let mut e = Elab {
             obs,
+            copy,
             facts: &facts,
             flags: flags.clone(),
             need: Vec::new(),
             tmp: 0,
-            blocks: Vec::new(),
-            falls: HashMap::new(),
+            resumed: HashMap::new(),
             ends: HashSet::new(),
+            unsupported: None,
             cx: Cx::default(),
         };
         let b = e.block(body, owned_params(params));
+        if let Some(what) = e.unsupported {
+            return Err(Error::Unsupported(what.into()));
+        }
         if e.need.is_empty() {
             return Ok(b);
         }
@@ -175,6 +186,22 @@ struct Loop {
 struct Jp {
     pos: Pos,
     key: usize,
+    /// Address of the body block, and whether it falls through (R764).
+    body: usize,
+    falls: bool,
+    /// The statement of the declaring block that its jumps come from, once one has.
+    cont: Option<usize>,
+    hoisted: bool,
+    /// Join points of the same block its body jumps to.
+    calls: Vec<Name>,
+}
+
+/// The statement being walked in a scope of the stack.
+#[derive(Clone, Copy)]
+struct Top {
+    stmt: usize,
+    is_jp: bool,
+    last: bool,
 }
 
 #[derive(Default)]
@@ -182,6 +209,8 @@ struct Cx {
     scopes: Vec<Vec<Local>>,
     loops: Vec<Loop>,
     jps: HashMap<Name, Jp>,
+    /// Per scope, the statement of its block being walked.
+    tops: Vec<Top>,
     /// Names bound by `match` patterns, to the scrutinee local they view.
     views: HashMap<Name, Name>,
 }
@@ -200,20 +229,20 @@ struct Branch {
 
 struct Elab<'a> {
     obs: &'a Observable,
+    copy: &'a own::CopyFields,
     facts: &'a Facts,
     /// Local to the name of its drop flag.
     flags: HashMap<Name, Name>,
     /// Locals found to need a flag this run.
     need: Vec<Name>,
     tmp: usize,
-    /// Addresses of the enclosing blocks; a join point's body falls through to the end of the
-    /// innermost one.
-    blocks: Vec<usize>,
-    /// Blocks a join point's body falls through to, with how many of the block's own locals
-    /// that body sees.
-    falls: HashMap<usize, usize>,
     /// Blocks whose end is reached.
     ends: HashSet<usize>,
+    /// Statements some jump inside them left for a falling-through join point of their block,
+    /// with the names of those join points.
+    resumed: HashMap<usize, Vec<Name>>,
+    /// Set when the pass would silently drop code (R764 flow it does not model).
+    unsupported: Option<&'static str>,
     cx: Cx,
 }
 
@@ -267,45 +296,76 @@ impl Elab<'_> {
     /// A new scope holding `owned` (bound by the caller) and the statements of `b`.
     fn block(&mut self, b: &Block, owned: Vec<(Name, Type)>) -> Block {
         self.cx.scopes.push(Vec::new());
-        self.blocks.push(addr(b));
         let at = b.stmts.first().map(|s| s.span).unwrap_or_default();
         let mut out = Vec::new();
         for (n, ty) in &owned {
             self.declare(n, ty, addr(b), at, &mut out);
         }
         let mut flow = Flow::Normal;
-        for s in &b.stmts {
+        let top = self.cx.scopes.len() - 1;
+        self.cx.tops.truncate(top);
+        self.cx.tops.push(Top {
+            stmt: 0,
+            is_jp: false,
+            last: false,
+        });
+        for (i, s) in b.stmts.iter().enumerate() {
             if flow == Flow::Diverged {
                 break;
             }
+            self.cx.tops[top] = Top {
+                stmt: addr(s),
+                is_jp: matches!(s.kind, StmtKind::Jp { .. }),
+                last: i + 1 == b.stmts.len(),
+            };
             flow = self.stmt(s, &mut out);
+            if let Some(jps) = self.resumed.remove(&addr(s)) {
+                // R764: what follows `s` runs after the bodies of the join points it jumped to.
+                flow = Flow::Normal;
+                self.resume(&jps, s, &mut out);
+            }
         }
         let end = b.stmts.last().map(|s| s.span).unwrap_or_default();
         let k = addr(b);
-        let top = self.cx.scopes.len() - 1;
-        let fell = self.falls.remove(&k);
         if flow == Flow::Normal {
-            self.edge(Key::Tail(k), Key::End(k), self.top(), end, &mut out);
             self.exit_drops((top, 0), &[], end, Key::End(k), &mut out);
-        } else if let Some(seen) = fell {
-            // Only a join point's body reaches the end, and the jumps to it dropped what the
-            // block declared after it.
-            for l in self.cx.scopes[top][..seen].iter().rev() {
-                self.drop_stmt(&l.name, end, Key::End(k), &mut out);
-            }
-        }
-        if flow == Flow::Normal || fell.is_some() {
             self.ends.insert(k);
         }
-        self.blocks.pop();
         self.cx.scopes.pop();
+        self.cx.tops.truncate(top);
         Block { stmts: out }
+    }
+
+    /// The bodies of `jps` end where `after` begins: what they own and it does not is dropped
+    /// at their end.
+    fn resume(&mut self, jps: &[Name], after: &Stmt, out: &mut [Stmt]) {
+        let pos = self.here();
+        for name in jps {
+            let Some(body) = self.cx.jps.get(name).map(|j| j.body) else {
+                continue;
+            };
+            let mut tail = Vec::new();
+            self.edge(
+                Key::End(body),
+                Key::After(addr(after)),
+                pos,
+                after.span,
+                &mut tail,
+            );
+            for st in out.iter_mut() {
+                if let StmtKind::Jp { name: n, body, .. } = &mut st.kind
+                    && n == name
+                {
+                    body.stmts.append(&mut tail);
+                    break;
+                }
+            }
+        }
     }
 
     /// A `par` branch: what its top-level join points bind is visible after the `par`, so their
     /// bodies declare into the enclosing scope.
     fn hoisted_block(&mut self, b: &Block) -> Block {
-        self.blocks.push(addr(b));
         let mut out = Vec::new();
         for s in &b.stmts {
             match &s.kind {
@@ -315,6 +375,11 @@ impl Elab<'_> {
                         Jp {
                             pos: self.here(),
                             key: addr(s),
+                            body: addr(body),
+                            falls: false,
+                            cont: None,
+                            hoisted: true,
+                            calls: Vec::new(),
                         },
                     );
                     let mut nb = Vec::new();
@@ -344,7 +409,6 @@ impl Elab<'_> {
                 }
             }
         }
-        self.blocks.pop();
         Block { stmts: out }
     }
 
@@ -520,10 +584,8 @@ impl Elab<'_> {
     fn closure(&mut self, r: &mut Rhs, orig: &Rhs) {
         if let (Rhs::Closure(c), Rhs::Closure(o)) = (r, orig) {
             let saved = mem::take(&mut self.cx);
-            let blocks = mem::take(&mut self.blocks);
             c.body = self.block(&o.body, owned_params(&o.params));
             self.cx = saved;
-            self.blocks = blocks;
         }
     }
 
@@ -677,7 +739,7 @@ impl Elab<'_> {
                     let root = self.cx.views.get(x).unwrap_or(x).clone();
                     if self.local(&root).is_some() {
                         for (p, _) in arms {
-                            own::pat_binders(p, &mut bound);
+                            own::view_binders(p, self.copy, &mut bound);
                         }
                         for n in &bound {
                             self.cx.views.insert(n.clone(), root.clone());
@@ -800,22 +862,16 @@ impl Elab<'_> {
                     Jp {
                         pos: self.here(),
                         key,
+                        body: addr(body),
+                        falls: false,
+                        cont: None,
+                        hoisted: false,
+                        calls: Vec::new(),
                     },
                 );
-                let seen = self.here().1;
-                let mut nb = self.block(body, owned_params(params));
-                if self.ends.contains(&addr(body))
-                    && let Some(&blk) = self.blocks.last()
-                {
-                    let f = self.falls.entry(blk).or_insert(seen);
-                    *f = (*f).min(seen);
-                    self.edge(
-                        Key::End(addr(body)),
-                        Key::End(blk),
-                        self.top(),
-                        at,
-                        &mut nb.stmts,
-                    );
+                let nb = self.block(body, owned_params(params));
+                if let Some(jp) = self.cx.jps.get_mut(name) {
+                    jp.falls = self.ends.contains(&addr(body));
                 }
                 out.push(stmt(
                     StmtKind::Jp {
@@ -828,6 +884,7 @@ impl Elab<'_> {
                 Flow::Normal
             }
             StmtKind::Jump { name, .. } => {
+                self.resume_point(name);
                 let jp = self.cx.jps.get(name).map(|j| (j.pos, j.key));
                 self.exit_drops(jp.map_or((0, 0), |j| j.0), &skip, at, mid, out);
                 let flagged = self.consume(&s.kind);
@@ -896,6 +953,67 @@ impl Elab<'_> {
                     at,
                 ));
                 Flow::Normal
+            }
+        }
+    }
+
+    /// A jump to a join point, directly or from the body of a sibling, whose body falls through:
+    /// the statement of the declaring block that holds the jump is where control resumes. The
+    /// jump of a sibling body is accounted for where its own join point is jumped to. Only one
+    /// such statement is modelled per join point (`joins` copies the others), and locals the
+    /// block declared after the join point are dead there.
+    fn resume_point(&mut self, name: &Name) {
+        let Some(jp) = self.cx.jps.get(name).filter(|j| !j.hoisted) else {
+            return;
+        };
+        let (si, seen) = jp.pos;
+        let top = self.cx.tops[si];
+        if top.is_jp {
+            let from = self
+                .cx
+                .jps
+                .iter_mut()
+                .find(|(_, j)| j.key == top.stmt && !j.hoisted);
+            if let Some((_, from)) = from
+                && !from.calls.contains(name)
+            {
+                from.calls.push(name.clone());
+            }
+            return;
+        }
+        let mut reached = vec![name.clone()];
+        let mut i = 0;
+        while i < reached.len() {
+            let calls = self.cx.jps.get(&reached[i]).map(|j| j.calls.clone());
+            for c in calls.into_iter().flatten() {
+                if !reached.contains(&c) {
+                    reached.push(c);
+                }
+            }
+            i += 1;
+        }
+        let late = self.cx.scopes[si].len() > seen;
+        for n in reached {
+            let Some(jp) = self.cx.jps.get(&n).filter(|j| j.falls && !j.hoisted) else {
+                continue;
+            };
+            let unsupported = if jp.cont.is_some_and(|c| c != top.stmt) {
+                Some("a falling-through join point jumped to from two statements")
+            } else if late && !top.last {
+                Some("owned locals declared between a falling-through join point and its jump")
+            } else {
+                None
+            };
+            if unsupported.is_some() {
+                self.unsupported = unsupported;
+                return;
+            }
+            let names = self.resumed.entry(top.stmt).or_default();
+            if !names.contains(&n) {
+                names.push(n.clone());
+            }
+            if let Some(jp) = self.cx.jps.get_mut(&n) {
+                jp.cont = Some(top.stmt);
             }
         }
     }
@@ -1086,6 +1204,72 @@ mod tests {
     }
 
     #[test]
+    fn code_after_a_jump_to_a_falling_through_join_point_is_kept() {
+        let t = elab(
+            "module t\nfn f(let c: bool) -> Unit {\n let s: Str = \"a\"\n jp k() {\n  let w: Str = \"c\"\n }\n\
+             if c { jump k() } else { jump k() }\n let x: Str = \"d\"\n ret ()\n}\n",
+        );
+        has(&t, &["let w: Str = \"c\"", "drop w", "}"]);
+        has(&t, &["let x: Str = \"d\"", "drop x", "drop s", "ret ()"]);
+        assert_eq!(t.matches("drop s").count(), 1, "{t}");
+    }
+
+    #[test]
+    fn a_falling_through_body_that_consumes_an_owned_local_leaves_it_gone_after() {
+        let t = elab(
+            "module t\nfn take(sink p: Str) -> Unit {\n ret ()\n}\n\
+             fn f(let c: bool) -> Unit {\n let s: Str = \"a\"\n jp k() {\n  let u: Unit = take(sink s)\n }\n\
+             if c { jump k() } else { jump k() }\n let x: Str = \"d\"\n ret ()\n}\n",
+        );
+        assert_eq!(t.matches("drop s").count(), 0, "{t}");
+        assert_eq!(t.matches("drop x").count(), 1, "{t}");
+    }
+
+    #[test]
+    fn owned_locals_between_a_falling_through_join_point_and_code_after_it_live_on() {
+        let t = elab(
+            "module t\nfn f(let c: bool) -> Unit {\n jp k() {\n  let w: Str = \"c\"\n }\n\
+             let y: Str = \"b\"\n if c { jump k() } else { jump k() }\n let x: Str = \"d\"\n ret ()\n}\n",
+        );
+        has(&t, &["let x: Str = \"d\"", "drop x", "drop y", "ret ()"]);
+        assert_eq!(t.matches("drop y").count(), 1, "{t}");
+        assert_eq!(t.matches("drop w").count(), 1, "{t}");
+    }
+
+    #[test]
+    fn a_join_point_jumped_to_from_two_statements_is_copied_per_statement() {
+        let t = elab(
+            "module t\nfn f(let c: bool) -> Unit {\n let s: Str = \"a\"\n jp k() {\n  let w: Str = \"c\"\n }\n\
+             if c { jump k() } else { jump k() }\n let y: Str = \"b\"\n if c { jump k() } else { jump k() }\n let x: Str = \"d\"\n ret ()\n}\n",
+        );
+        assert_eq!(t.matches("drop w").count(), 2, "{t}");
+        assert_eq!(t.matches("drop s").count(), 1, "{t}");
+        assert_eq!(t.matches("drop y").count(), 1, "{t}");
+        assert_eq!(t.matches("drop x").count(), 1, "{t}");
+    }
+
+    #[test]
+    fn a_falling_through_join_point_jumped_to_from_a_sibling_resumes_after_the_sibling_jump() {
+        let t = elab(
+            "module t\nfn f(let c: bool) -> Unit {\n let s: Str = \"a\"\n jp k() {\n  let w: Str = \"c\"\n }\n\
+             jp m() {\n  jump k()\n }\n if c { jump m() } else { jump k() }\n let x: Str = \"d\"\n ret ()\n}\n",
+        );
+        has(&t, &["let w: Str = \"c\"", "drop w", "}"]);
+        assert_eq!(t.matches("drop s").count(), 1, "{t}");
+        assert_eq!(t.matches("drop x").count(), 1, "{t}");
+    }
+
+    #[test]
+    fn the_check_verifies_code_after_a_jump_to_a_falling_through_join_point() {
+        let src = "module t\nfn f(let c: bool) -> Unit {\n let s: Str = \"a\"\n jp k() {\n  let w: Str = \"c\"\n  drop w\n }\n\
+                   if c { jump k() } else { jump k() }\n let x: Str = \"d\"\n drop s\n ret ()\n}\n";
+        let (m, d) = yan_core::parse("t.yir", src);
+        assert!(d.is_empty(), "{d:?}");
+        let diags = yan_check::check_optimized("t.yir", &m.expect("parses"));
+        assert_eq!(diags.len(), 1, "{diags:?}");
+    }
+
+    #[test]
     fn a_join_point_that_falls_through_drops_what_its_block_declared_before_it() {
         let t = elab(
             "module t\nfn f(let c: bool) -> Unit {\n if c {\n  let s: Str = \"a\"\n\
@@ -1125,6 +1309,14 @@ mod tests {
              fn f(cap io: Io) -> Unit {\n par {\n  {\n   let _t: Result[Str, Bad] = try mk(let 1)\n   jp k(sink v: Str) {\n    let r: Str = move v\n   }\n   match _t {\n    Ok { value: o } => {\n     jump k(o)\n    }\n    Err { error: _ } => {\n     let z: Str = \"e\"\n     jump k(z)\n    }\n   }\n  }\n }\n std.io.print(cap io, let r)\n ret ()\n}\n",
         );
         has(&t, &["std.io.print(cap io, let r)", "drop r", "ret ()"]);
+    }
+
+    #[test]
+    fn a_copy_field_bound_by_a_pattern_passes_to_a_jump_without_moving_the_scrutinee() {
+        let t = elab(
+            "module t\nsum Sh { A { x: i64 }, B { x: i64, y: i64 } }\nfn f(let c: bool, let a: i64) -> i64 {\n let s: Sh = B { x: a, y: a }\n var r: i64 = 0\n match s {\n  A { x: p } => {\n   r = p\n  }\n  B { x: q, y: w } => {\n   jp k(let v: i64) {\n    r = v\n   }\n   if c {\n    jump k(w)\n   } else {\n    jump k(q)\n   }\n  }\n }\n ret r\n}\n",
+        );
+        assert_eq!(t.matches("drop s").count(), 1, "{t}");
     }
 
     #[test]

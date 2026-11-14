@@ -31,8 +31,10 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(Ty::Unit) => self.lit("None"),
             Shape::Scalar(Ty::Ptr) => unreachable!("not a Yan Core type"),
             Shape::Fn(..) => self.lit("<function>"),
-            Shape::Chan(_) => return unsupported("`show` of a channel end"),
+            Shape::Chan(..) => return unsupported("`show` of a channel end"),
+            Shape::Ptr => return unsupported("`show` of a `Ptr`"),
             Shape::Actor(_) => return unsupported("`show` of an actor handle"),
+            Shape::Arena | Shape::Ref(_) => return unsupported("`show` of an arena or a `Ref`"),
             Shape::Set(k) => self.show_set(v[0].clone(), k)?,
             Shape::Rec(n, _) if n == "SortedMap" || n == "SortedSet" => self.show_sorted(v, s)?,
             Shape::Rec(name, _)
@@ -360,7 +362,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             return Ok(v);
         }
         Ok(match s {
-            Shape::Scalar(_) | Shape::Char => v,
+            Shape::Scalar(_) | Shape::Char | Shape::Ptr | Shape::Ref(_) => v,
             Shape::Str | Shape::Path | Shape::WinPath => {
                 let empty = self.lit("");
                 vec![self.rt(RtFn::Concat, Ty::Ptr, vec![v[0].clone(), empty])]
@@ -434,15 +436,20 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Self::ops(&out)
             }
             Shape::Fn(..) => return unsupported("a copy of a closure"),
-            Shape::Chan(_) => {
+            Shape::Chan(_, sender) => {
                 self.emit(Inst::Rt {
                     dst: None,
-                    f: RtFn::ChanClone,
+                    f: if *sender {
+                        RtFn::ChanCloneSender
+                    } else {
+                        RtFn::ChanClone
+                    },
                     args: v.clone(),
                 });
                 v
             }
             Shape::Actor(_) => return unsupported("a copy of an actor handle"),
+            Shape::Arena => return unsupported("a copy of an arena"),
         })
     }
 
@@ -451,7 +458,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         match s {
             Shape::Scalar(Ty::Int(t)) => {
                 out.push(if t.signed { 'i' } else { 'u' });
-                out.push_str(&t.bits.to_string());
+                out.push_str(&(t.storage_bytes() * 8).to_string());
             }
             Shape::Scalar(Ty::F64) => out.push('f'),
             Shape::Scalar(Ty::Bool) => out.push('b'),

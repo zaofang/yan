@@ -274,7 +274,7 @@ fn int_bits(name: &str) -> Option<u32> {
 }
 
 /// The `N` of `@layout(bits(uN))`: the first argument is `bits(...)` of one unsigned type.
-fn bits_container(args: &[j::Arg]) -> Option<u32> {
+pub(crate) fn bits_container(args: &[j::Arg]) -> Option<u32> {
     let [
         j::Arg {
             kind:
@@ -635,12 +635,62 @@ fn fields(g: &Globals, it: &j::Item, item: &str, tr: &str, cx: &mut Cx) {
                     );
                 }
             }
+            // A parameter of a generic sum is checked where the sum is instantiated.
+            let probe;
+            let f = match g.sum_params.get(item) {
+                Some(ps) => {
+                    let map: Vec<_> = ps.iter().map(|p| (p.clone(), Ty::Int)).collect();
+                    probe = crate::Field {
+                        name: f.name.clone(),
+                        ty: f.ty.subst(&map),
+                        ty_span: f.ty_span,
+                        default: None,
+                        wire: f.wire.clone(),
+                        attrs: Vec::new(),
+                    };
+                    &probe
+                }
+                None => f,
+            };
             let Err(msg) = field_ok(g, &owner, f, tr) else {
                 continue;
             };
             cx.err("E282", f.ty_span, item, msg);
             if tr == "Wire"
                 && has_capability(&f.ty)
+                && let Some(d) = cx.diags.last_mut()
+            {
+                d.notes.push("capabilities are never `Wire` (17.4)".into());
+            }
+        }
+    }
+}
+
+/// E282 for a type argument of generic sum `sum` that a derived trait of the sum cannot hold:
+/// a capability, a callable, a type without the derive (design D6).
+pub(crate) fn instance(g: &Globals, sum: &str, args: &[Ty], span: Span, cx: &mut Cx) {
+    let Some(ps) = g.sum_params.get(sum) else {
+        return;
+    };
+    for tr in FIELD_TRAITS {
+        if !g.derived.contains(&(tr.to_owned(), sum.to_owned())) {
+            continue;
+        }
+        for (p, t) in ps.iter().zip(args) {
+            let f = crate::Field {
+                name: p.clone(),
+                ty: t.clone(),
+                ty_span: span,
+                default: None,
+                wire: None,
+                attrs: Vec::new(),
+            };
+            let Err(msg) = field_ok(g, sum, &f, tr) else {
+                continue;
+            };
+            cx.err("E282", span, "", format!("type argument of `{sum}`: {msg}"));
+            if tr == "Wire"
+                && has_capability(t)
                 && let Some(d) = cx.diags.last_mut()
             {
                 d.notes.push("capabilities are never `Wire` (17.4)".into());

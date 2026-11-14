@@ -325,6 +325,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Period(p) => super::civil::show_period(p),
         Zone(z) => z.id().to_owned(),
         ByteArray(b) => format!("bytearray({})", super::encoding::repr(b)),
+        Ptr(p) => format!("Ptr({:#x})", p.addr),
     }
 }
 

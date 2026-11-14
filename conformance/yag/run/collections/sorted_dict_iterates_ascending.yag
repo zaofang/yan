@@ -1,0 +1,12 @@
+# spec: 17.2, 17.3
+# rows: R911
+# note: sorted_dict takes a dict and for over it yields keys ascending, whatever the insertion order
+# stdout:
+# 1 2 3
+
+pub def main() uses io:
+    m = sorted_dict({3: 30, 1: 10, 2: 20})
+    ks = ""
+    for k in m:
+        ks = ks + f"{k} "
+    io.print(ks.strip())

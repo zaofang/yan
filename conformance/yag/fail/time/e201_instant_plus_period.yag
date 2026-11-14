@@ -1,5 +1,5 @@
 # spec: 11.6
-# rows: R593
+# rows: R593, R51
 # note: Instant + Period is a type error
 # expect: E201 at 7:12
 

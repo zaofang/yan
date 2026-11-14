@@ -15,7 +15,7 @@ use std::collections::{HashMap, HashSet};
 use std::mem;
 
 use yan_core::ast::*;
-use yan_core::{intrinsics, type_text};
+use yan_core::{intrinsics, subst, type_text};
 use yan_diag::{Diagnostic, Span};
 
 /// Types whose `copy` is E416: they implement `Share` (4.2).
@@ -209,7 +209,7 @@ fn base(t: &Type) -> Option<&str> {
 
 fn is_copy(t: Option<&Type>) -> bool {
     t.and_then(base)
-        .is_some_and(|b| intrinsics::INTS.contains(&b) || COPY_SCALARS.contains(&b))
+        .is_some_and(|b| intrinsics::is_int(b) || COPY_SCALARS.contains(&b))
 }
 
 fn conv_text(c: Conv) -> &'static str {
@@ -245,10 +245,11 @@ struct Globals<'m> {
     records: HashMap<String, &'m Record>,
     /// Sum name to variant names, with the prelude's `Option` and `Result`.
     sums: HashMap<String, Vec<String>>,
-    /// Variant name to its sum, for sums without type parameters.
+    /// Variant name to its sum.
     variant_of: HashMap<String, String>,
     /// Each variant's fields, by sum and variant name.
     variant_fields: HashMap<(String, String), &'m [Field]>,
+    sum_defs: HashMap<String, &'m Sum>,
     linear: HashSet<String>,
     /// Trait methods and extern functions: callable, but their types are not tracked yet.
     other_fns: HashSet<String>,
@@ -267,6 +268,7 @@ impl<'m> Globals<'m> {
             ]),
             variant_of: HashMap::new(),
             variant_fields: HashMap::new(),
+            sum_defs: HashMap::new(),
             linear: HashSet::new(),
             other_fns: HashSet::new(),
         };
@@ -292,16 +294,15 @@ impl<'m> Globals<'m> {
                     if linear {
                         g.linear.insert(name.clone());
                     }
-                    if s.tparams.is_empty() {
-                        g.variant_of
-                            .extend(s.variants.iter().map(|v| (v.name.clone(), name.clone())));
-                        for v in &s.variants {
-                            if let Some(fs) = &v.fields {
-                                g.variant_fields
-                                    .insert((name.clone(), v.name.clone()), fs.as_slice());
-                            }
+                    g.variant_of
+                        .extend(s.variants.iter().map(|v| (v.name.clone(), name.clone())));
+                    for v in &s.variants {
+                        if let Some(fs) = &v.fields {
+                            g.variant_fields
+                                .insert((name.clone(), v.name.clone()), fs.as_slice());
                         }
                     }
+                    g.sum_defs.insert(name.clone(), s);
                     g.sums
                         .insert(name, s.variants.iter().map(|v| v.name.clone()).collect());
                 }
@@ -585,9 +586,28 @@ impl<'g, 'm> Cx<'g, 'm> {
 
     /// For a `@linear` type, its linear fields (empty when it is not a record).
     fn linear(&self, t: Option<&Type>) -> Option<Vec<Name>> {
-        t.and_then(base)
-            .is_some_and(|b| self.g.linear.contains(b))
-            .then(|| self.linear_fields(t))
+        t.filter(|t| self.is_linear(t, &mut HashSet::new()))
+            .map(|t| self.linear_fields(Some(t)))
+    }
+
+    /// `@linear` by attribute, or an instance of a generic sum with a `@linear` substituted field.
+    fn is_linear(&self, t: &Type, seen: &mut HashSet<String>) -> bool {
+        let Type::Named(n) = t else { return false };
+        let Some(b) = n.path.last() else { return false };
+        if self.g.linear.contains(b.as_str()) {
+            return true;
+        }
+        let key = type_text(t);
+        let Some(def) = self.g.sum_defs.get(&n.path.join(".")) else {
+            return false;
+        };
+        if def.tparams.is_empty() || !seen.insert(key) {
+            return false;
+        }
+        def.variants
+            .iter()
+            .flat_map(|v| v.fields.iter().flatten())
+            .any(|f| self.is_linear(&subst::apply(&f.ty, &def.tparams, &n.args), seen))
     }
 
     /// The fields of a record type that are themselves `@linear`.
@@ -722,7 +742,7 @@ impl<'g, 'm> Cx<'g, 'm> {
     fn arms<'b>(
         &mut self,
         arms: impl IntoIterator<Item = (Option<(&'b Pat, Span)>, &'b Block)>,
-        scrutinee: Option<&str>,
+        scrutinee: Option<&Type>,
         fallthrough: bool,
     ) {
         let from = self.flow.cur;
@@ -742,7 +762,7 @@ impl<'g, 'm> Cx<'g, 'm> {
         self.flow.cur = join;
     }
 
-    fn enter_arm(&mut self, p: &Pat, scrutinee: Option<&str>, span: Span) -> ArmScope {
+    fn enter_arm(&mut self, p: &Pat, scrutinee: Option<&Type>, span: Span) -> ArmScope {
         let mut names = Vec::new();
         pat_names(p, &mut names, &self.g.variant_of);
         let scope = ArmScope {
@@ -894,11 +914,15 @@ impl<'g, 'm> Cx<'g, 'm> {
                 self.branches(std::iter::once(then).chain(els), els.is_none());
             }
             StmtKind::Match { scrutinee, arms } => {
-                let t = self.atom(scrutinee, How::Read);
+                self.atom(scrutinee, How::Read);
+                let t = match scrutinee {
+                    Atom::Name(n, _) => self.env.get(n).and_then(|b| b.ty.clone()),
+                    Atom::Lit(..) => None,
+                };
                 self.exhaustive(scrutinee, arms, s.span);
                 self.arms(
                     arms.iter().map(|(p, b)| (Some((p, s.span)), b)),
-                    t.as_deref(),
+                    t.as_ref(),
                     false,
                 );
             }
@@ -1048,7 +1072,7 @@ impl<'g, 'm> Cx<'g, 'm> {
 
     /// Like [`Cx::bind_pat`], giving each binder of a constructor's field the field's type, so a
     /// `@linear` value taken out of a sum or record must still be consumed (E412).
-    fn bind_pat_typed(&mut self, p: &Pat, scrutinee: Option<&str>, span: Span) {
+    fn bind_pat_typed(&mut self, p: &Pat, scrutinee: Option<&Type>, span: Span) {
         let mut typed = HashMap::new();
         self.field_binders(p, scrutinee, &mut typed);
         let mut names = Vec::new();
@@ -1059,7 +1083,7 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
     }
 
-    fn field_binders(&self, p: &Pat, ty: Option<&str>, out: &mut HashMap<Name, Type>) {
+    fn field_binders(&self, p: &Pat, ty: Option<&Type>, out: &mut HashMap<Name, Type>) {
         let Pat::Ctor {
             path,
             fields: Some((ps, _)),
@@ -1068,21 +1092,32 @@ impl<'g, 'm> Cx<'g, 'm> {
             return;
         };
         let name = path.join(".");
-        let fields: &[Field] = match self.g.records.get(&name) {
-            Some(r) => &r.fields,
+        let fields: Vec<Field> = match self.g.records.get(&name) {
+            Some(r) => r.fields.clone(),
             None => {
                 let v = path.last().expect("paths are non-empty");
-                let sum = ty
-                    .filter(|t| {
-                        self.g
-                            .variant_fields
-                            .contains_key(&((*t).to_owned(), v.clone()))
-                    })
-                    .map(str::to_owned)
+                let scrut = ty.and_then(|t| match t {
+                    Type::Named(n) => Some(n),
+                    _ => None,
+                });
+                let sum = scrut
+                    .map(|n| n.path.join("."))
+                    .filter(|t| self.g.variant_fields.contains_key(&(t.clone(), v.clone())))
                     .or_else(|| self.g.variant_of.get(v).cloned());
-                match sum.and_then(|s| self.g.variant_fields.get(&(s, v.clone()))) {
-                    Some(fs) => fs,
-                    None => return,
+                let Some(sum) = sum else { return };
+                let Some(fs) = self.g.variant_fields.get(&(sum.clone(), v.clone())) else {
+                    return;
+                };
+                let def = self.g.sum_defs.get(&sum);
+                match (def, scrut) {
+                    (Some(d), Some(n)) if !d.tparams.is_empty() && n.path.join(".") == sum => fs
+                        .iter()
+                        .map(|f| Field {
+                            ty: subst::apply(&f.ty, &d.tparams, &n.args),
+                            ..f.clone()
+                        })
+                        .collect(),
+                    _ => fs.to_vec(),
                 }
             }
         };
@@ -1094,7 +1129,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                 Pat::Bind(n) if !self.g.variant_of.contains_key(n) => {
                     out.insert(n.clone(), field.ty.clone());
                 }
-                _ => self.field_binders(sub, Some(&type_text(&field.ty)), out),
+                _ => self.field_binders(sub, Some(&field.ty), out),
             }
         }
     }
@@ -1115,9 +1150,7 @@ impl<'g, 'm> Cx<'g, 'm> {
         let d = type_text(decl);
         let ok = match got.as_str() {
             "{int}" => !NON_NUMERIC.contains(&d.as_str()),
-            "{float}" => {
-                !NON_NUMERIC.contains(&d.as_str()) && !intrinsics::INTS.contains(&d.as_str())
-            }
+            "{float}" => !NON_NUMERIC.contains(&d.as_str()) && !intrinsics::is_int(&d),
             "Never" => true,
             g => g == d,
         };
@@ -1555,6 +1588,30 @@ mod selftest {
                    \x20       Hit { next: ep } => { let n: i64 = close(sink ep)\n            ret n }\n\
                    \x20       Miss { next: ep } => { ret 0 }\n    }\n}\n";
         assert_eq!(codes(src), [("E412".into(), 9, 5)]);
+    }
+
+    const GENERIC: &str = "@linear\nrecord Handle { fd: i64 }\n\
+                   sum Slot[T: Type] { Full { v: T }, Empty }\n\
+                   fn close(sink h: Handle) -> i64 {\n    ret 0\n}\n";
+
+    #[test]
+    fn a_generic_sum_instance_is_linear_when_its_field_is() {
+        let src = format!(
+            "{GENERIC}fn f(sink s: Slot[Handle]) -> i64 {{\n    match s {{\n\
+             \x20       Full {{ v: h }} => {{ ret 0 }}\n\
+             \x20       Empty => {{ ret 0 }}\n    }}\n}}\n"
+        );
+        assert_eq!(codes(&src), [("E412".into(), 9, 5)]);
+    }
+
+    #[test]
+    fn a_generic_sum_instance_of_a_copy_type_is_not_linear() {
+        let src = format!(
+            "{GENERIC}fn f(sink s: Slot[i64]) -> i64 {{\n    match s {{\n\
+             \x20       Full {{ v: n }} => {{ ret n }}\n\
+             \x20       Empty => {{ ret 0 }}\n    }}\n}}\n"
+        );
+        assert_eq!(codes(&src), []);
     }
 
     const HANDLE: &str =

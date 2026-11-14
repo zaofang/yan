@@ -1003,17 +1003,22 @@ fn layout(raws: Vec<Raw>, file: &str, diags: &mut Vec<Diagnostic>) -> Vec<Token>
                 stack.push(ind);
                 out.push(marker(tok.span, Tok::Indent));
             } else {
+                let mut inner = top;
                 while ind < *stack.last().expect("base level") {
-                    stack.pop();
+                    inner = stack.pop().expect("checked above");
                     out.push(marker(tok.span, Tok::Dedent));
                 }
-                if ind > *stack.last().expect("base level") {
+                let outer = *stack.last().expect("base level");
+                if ind > outer {
                     diags.push(Diagnostic::error(
                         "E100",
                         file,
                         tok.span,
                         "",
-                        "indentation does not match any enclosing block",
+                        format!(
+                            "indent of {ind} matches no enclosing block; use {outer} to close \
+                             the inner block or {inner} to stay in it"
+                        ),
                     ));
                     stack.push(ind);
                 }

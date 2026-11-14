@@ -3,3 +3,18 @@
 @intrinsic
 @since("1.0")
 pub def Channel[T](capacity: int) -> tuple[Sender[T], Receiver[T]]: ...
+
+@since("1.0")
+pub class Empty:
+    """The failure of `try_recv` on an open channel with nothing queued yet (9.5)."""
+    pass
+
+@since("1.0")
+pub class Closed:
+    """The failure of `try_recv` once every sender is gone and the queue is drained (9.5)."""
+    pass
+
+@since("1.0")
+pub class Full:
+    """The failure of `try_send` on a channel with no room (9.5)."""
+    pass

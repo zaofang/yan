@@ -1,0 +1,7 @@
+# spec: 11.6
+# rows: R52
+# note: ZonedDateTime has structural equality and no ordering
+# expect: E221 at 7:12
+
+def f(a: ZonedDateTime, b: ZonedDateTime) -> bool:
+    return a < b

@@ -643,7 +643,7 @@ fn mentions(t: &j::Type, n: &str) -> bool {
         j::Type::Callable { params, ret, .. } => {
             params.iter().any(|p| mentions(p, n)) || mentions(ret, n)
         }
-        j::Type::Call { .. } | j::Type::None => false,
+        j::Type::Call { .. } | j::Type::Dyn { .. } | j::Type::None => false,
     }
 }
 
@@ -661,7 +661,7 @@ fn unify(pat: &j::Type, t: &Ty, tps: &[&str], b: &mut HashMap<String, Ty>) -> bo
             }
         }
         j::Type::None => *t == Ty::Unit,
-        j::Type::Callable { .. } | j::Type::Call { .. } => false,
+        j::Type::Callable { .. } | j::Type::Call { .. } | j::Type::Dyn { .. } => false,
         j::Type::Named { path, args } if matches!(t, Ty::Data(_)) => {
             args.is_empty() && matches!(t, Ty::Data(n) if path.as_slice() == [n.as_str()])
         }
@@ -699,6 +699,7 @@ fn shape(t: &Ty) -> Option<(&'static str, Vec<&Ty>)> {
             ts.iter().collect(),
         ),
         Ty::Fixed(n) => (n, vec![]),
+        Ty::Foreign("Ptr", ts) => ("Ptr", ts.iter().collect()),
         _ => return None,
     })
 }
@@ -707,7 +708,7 @@ fn shape(t: &Ty) -> Option<(&'static str, Vec<&Ty>)> {
 fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
     Some(match pat {
         j::Type::None => Ty::Unit,
-        j::Type::Callable { .. } | j::Type::Call { .. } => return None,
+        j::Type::Callable { .. } | j::Type::Call { .. } | j::Type::Dyn { .. } => return None,
         j::Type::Named { path, args } => {
             let a = args
                 .iter()
@@ -731,6 +732,7 @@ fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
                 }
                 (n, []) if b.contains_key(n) => b[n].clone(),
                 ("Type", []) => Ty::Type,
+                ("Ptr", [t]) => Ty::Foreign("Ptr", vec![t.clone()]),
                 (n, a) => crate::ty::builtin(n, a)?,
             }
         }
@@ -858,7 +860,8 @@ fn std_cx(module: &str) -> Cx<'static> {
         strict: true,
         release: false,
         yn: false,
-        ffi: false,
+        // `core.ptr` names `Ptr`, a `core.ffi` type.
+        ffi: module.ends_with("ptr"),
         untrusted: false,
         previews: Vec::new(),
         diags: Vec::new(),

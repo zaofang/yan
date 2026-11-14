@@ -1,0 +1,7 @@
+# spec: 3.4
+# rows: R929
+# note: a literal beyond a uint3's own range is E201
+# expect: E201 at 7:12
+
+def f() -> uint3:
+    return 8

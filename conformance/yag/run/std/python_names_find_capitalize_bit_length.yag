@@ -1,0 +1,28 @@
+# spec: 14.4, 17.3
+# rows: R807
+# stdout:
+# 2
+# -1
+# 2
+# 0
+# Hello world
+# 
+# 8
+# 0
+# 3
+# 1
+# 64
+
+pub def main() uses io:
+    io.print(str("hello".find("l")))
+    io.print(str("hello".find("z")))
+    io.print(str("héllo".find("llo")))
+    io.print(str("hello".find("")))
+    io.print("hELLO wORLD".capitalize())
+    io.print("".capitalize())
+    io.print(str((255).bit_length()))
+    io.print(str((0).bit_length()))
+    io.print(str((-5).bit_length()))
+    io.print(str((1).bit_length()))
+    n = -9223372036854775807 - 1
+    io.print(str(n.bit_length()))

@@ -1,0 +1,10 @@
+# spec: 17.3
+# rows: R910
+# note: split keeps captured groups between pieces, and a group that did not take part is the empty string
+# stdout:
+# ['a', '', 'b']
+# ['a', 'x', 'b']
+
+pub def main() uses io:
+    io.print(f"{regex.compile('(x)?,').split('a,b')}")
+    io.print(f"{regex.compile('(x)?,').split('ax,b')}")

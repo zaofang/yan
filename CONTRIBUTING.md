@@ -3,6 +3,10 @@
 Yan has one lead, Antonio ([@amteb](https://github.com/amteb)), who owns the spec, the tests and the gates,
 accepts RFCs, approves tests, merges and cuts releases.
 
+## Filing issues
+
+Label every new issue `group:P1` to `group:P10` (see `docs/research/2026-11-14-work-hierarchy.md`) and add it to that group's `TRACK-P<n>` tracker.
+
 ## Sign-off (DCO)
 
 Every commit must carry a `Signed-off-by:` line (`git commit -s`), certifying the

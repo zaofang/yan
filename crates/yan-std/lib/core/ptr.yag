@@ -1,0 +1,55 @@
+"""Pointer provenance (6.6). `Ptr[T]` is a `core.ffi` type; `addr` drops provenance, `with_addr` and
+`map_addr` keep it, and `without_provenance` and `dangling` give pointers that never dereference.
+`expose_provenance` and `with_exposed_provenance` are legal only in `ffi` modules (E419)."""
+
+@intrinsic
+@since("1.0")
+pub def addr[T](p: Ptr[T], /) -> Addr: ...
+
+@intrinsic
+@since("1.0")
+pub def with_addr[T](p: Ptr[T], a: Addr, /) -> Ptr[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def map_addr[T](p: Ptr[T], f: Callable[[Addr], Addr], /) -> Ptr[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def without_provenance[T](a: Addr, /) -> Ptr[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def dangling[T]() -> Ptr[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def expose_provenance[T](p: Ptr[T], /) -> Addr: ...
+
+@intrinsic
+@since("1.0")
+pub def with_exposed_provenance[T](a: Addr, /) -> Ptr[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def of[T](var place: T, /) -> Ptr[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def as_ptr[T](self: list[T], /) -> Ptr[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def offset[T](p: Ptr[T], n: int, /) -> Ptr[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def cast[T, U](p: Ptr[T], /) -> Ptr[U]: ...
+
+@intrinsic
+@since("1.0")
+pub def read[T](p: Ptr[T], /) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def write[T](p: Ptr[T], x: T, /) -> None: ...

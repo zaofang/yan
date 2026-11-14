@@ -105,6 +105,8 @@ pub(crate) enum Op {
         src: Reg,
     },
     Clear(Reg),
+    /// `Clear`, first closing the channel when the register holds its last `Sender`.
+    DropSender(Reg),
     Jmp(u32),
     /// A loop's jump back to its start: one step (R487), unlike a jump to a join point.
     Loop(u32),
@@ -273,6 +275,8 @@ pub(crate) enum Callee {
         local: Option<Reg>,
     },
     Native,
+    /// A function of a foreign library (12.1), by its name in the library.
+    Extern(Rc<yan_mir::ffi::ExternFn>),
 }
 
 #[derive(Debug)]
@@ -383,6 +387,7 @@ struct Globals<'m> {
     pending: Vec<(usize, Name, &'m FnDef, Option<[u8; 32]>)>,
     hashes: Option<Vec<yan_core::hash::Hashed>>,
     types: Rc<crate::meta::Types>,
+    externs: crate::HashMap<String, Rc<yan_mir::ffi::ExternFn>>,
 }
 
 fn const_value(c: &ConstVal) -> Option<Value> {
@@ -428,6 +433,10 @@ pub(crate) fn compile(m: &Module) -> Program {
             .any(|i| matches!(&i.kind, ItemKind::Fn(f) | ItemKind::Inst(Inst { def: f, .. }) if has_requires(f)) || matches!(&i.kind, ItemKind::Impl(i) if i.fns.iter().any(has_requires)))
             .then(|| yan_core::hash::hash_module(m)),
         types: Rc::new(crate::meta::Types::of(m)),
+        externs: yan_mir::ffi::collect(m)
+            .into_iter()
+            .filter_map(|(n, e)| Some((n, Rc::new(e.ok()?))))
+            .collect(),
     };
     for (ix, item) in m.items.iter().enumerate() {
         let ih = g.hashes.as_ref().map(|h| *h[ix].identity.group.as_bytes());
@@ -522,6 +531,10 @@ fn free_vars(e: &Expr) -> Vec<Name> {
         }
     }
     out
+}
+
+fn is_sender(t: &Type) -> bool {
+    matches!(t, Type::Named(n) if n.path.last().is_some_and(|s| s == "Sender"))
 }
 
 fn param_name(p: &Param) -> &Name {
@@ -661,6 +674,8 @@ struct FnC<'g, 'm> {
     item: Option<[u8; 32]>,
     /// The names each enclosing `par concurrent` task binds, innermost last.
     task_binds: Vec<Vec<Name>>,
+    /// Names bound at type `Sender[_]`: dropping one may close its channel.
+    senders: Vec<Name>,
 }
 
 impl<'g, 'm> FnC<'g, 'm> {
@@ -676,8 +691,14 @@ impl<'g, 'm> FnC<'g, 'm> {
             ensures: Vec::new(),
             item: None,
             task_binds: Vec::new(),
+            senders: Vec::new(),
         };
         for p in params {
+            if let Param::Value { name, ty, .. } = p
+                && is_sender(ty)
+            {
+                c.senders.push(name.clone());
+            }
             let r = c.temp();
             // A repeated parameter name keeps its first slot.
             c.regs.entry(param_name(p).clone()).or_insert(r);
@@ -996,8 +1017,11 @@ impl<'g, 'm> FnC<'g, 'm> {
 
     fn stmt_ops(&mut self, s: &Stmt) {
         match &s.kind {
-            StmtKind::Let { pat, rhs, .. } => match pat {
+            StmtKind::Let { pat, rhs, ty, .. } => match pat {
                 Pat::Bind(n) if !self.g.nullary.contains(n) => {
+                    if is_sender(ty) {
+                        self.senders.push(n.clone());
+                    }
                     match comparison(rhs) {
                         Some(sides) => self.cmps.insert(n.clone(), sides),
                         None => self.cmps.remove(n),
@@ -1164,7 +1188,12 @@ impl<'g, 'm> FnC<'g, 'm> {
                 });
                 if let Some(r) = self.regs.get(n) {
                     let r = *r;
-                    self.emit(Op::Clear(r));
+                    let sender = self.senders.contains(n);
+                    self.emit(if sender {
+                        Op::DropSender(r)
+                    } else {
+                        Op::Clear(r)
+                    });
                 }
             }
             StmtKind::Yield(_) => self.unsupported("generators"),
@@ -1574,7 +1603,13 @@ impl<'g, 'm> FnC<'g, 'm> {
     /// Add a call site, or emit the op that fails as evaluating its arguments would.
     fn site(&mut self, c: &Call, mode: Mode) -> Option<u32> {
         let mut args = Vec::with_capacity(c.args.len());
+        let foreign = !self.g.fns.contains_key(&c.path.join("."))
+            && self.g.externs.contains_key(&c.path.join("."));
         for a in &c.args {
+            // A library capability only gates the call (12.2); the foreign function never sees it.
+            if foreign && matches!(a, Arg::Cap(..)) {
+                continue;
+            }
             let r = match a {
                 Arg::Value(Conv::Inout, Atom::Name(n, _), _) => Ok(ArgC::Inout(self.reg_of(n))),
                 Arg::Value(_, a, _) => self.atom(a).map(ArgC::Val),
@@ -1596,6 +1631,8 @@ impl<'g, 'm> FnC<'g, 'm> {
             .or_else(|| self.g.fns.get(&name))
         {
             Callee::Item(*f)
+        } else if let Some(e) = self.g.externs.get(&name) {
+            Callee::Extern(e.clone())
         } else {
             let suffix = format!(".{name}");
             let methods: Vec<(Rc<str>, usize)> = self

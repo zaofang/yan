@@ -1,0 +1,19 @@
+# spec: 14.1
+# rows: R933
+# note: an empty [] or {} passed as an argument takes the type of the parameter, also under | None
+# stdout:
+# 0 0 0 0
+
+def count(xs: list[int]) -> int:
+    return len(xs)
+
+def keys(d: dict[str, int]) -> int:
+    return len(d)
+
+def maybe(xs: list[int] | None) -> int:
+    if xs is None:
+        return 0
+    return len(xs)
+
+def main() uses io:
+    io.print(f"{count([])} {keys({})} {maybe([])} {maybe(None)}")

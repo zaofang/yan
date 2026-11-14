@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-14 | [Uncased spec row audit](2026-11-14-uncased-row-audit.md) | Audit only; at `2d72926` 634 of 879 rows uncased; 47 exempt (unobservable), 30 merge, 54 deferred (post-1.0) candidates; exempt + merge alone do not reach the 60 percent gate (#1025, #1136); awaiting lead card; no rows |
 | 2026-11-13 | [What language communities ask for, ranked for Yan](2026-11-13-forum-wishlist-ranking.md) | Study only; ~35 languages swept, 70 themes; most top mainstream asks already in the spec; ranked gaps: hash-keyed incremental compilation, notations and lenses, live programming on hashes, size arithmetic, rank polymorphism, one-shot effects, tactics; declines specialization, HKT, dependent types, procedural macros; lead cards 2026-11-13: gaps filed as #1119, incremental not pulled ahead, R780/R781 via Yan Meta lab, hot reload gets semantics, all four declines confirmed; no rows |
 | 2026-11-13 | [Yan Meta: syntax proposal after forum review](2026-11-13-yan-meta-syntax-proposal.md) | Proposal only; forums show pushback on procedural macros (build time, IDE), demand for checked DSLs; recommends no procedural macros, declared bidirectional notations, LL(1) DSL islands, reader lenses; adopted by lead cards 2026-11-13 (D1 to D6 and all detail cards as recommended), RFC after the freeze; no rows |
 | 2026-11-13 | [Yan Meta: user-defined syntax and the macro model](2026-11-13-yan-meta-syntax-extension.md) | Study only; recommends three tiers over a fixed shape reader: `notation` (rule plus template, binding specs, derived printer), delimited LL(1) `grammar` islands, `elab` after R525; conflicts with the 26.2 no-macros non-goal and the 16.6 parse-before-imports rule need a lead decision; no rows |
@@ -129,3 +130,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-10 | Yan surfaces: technology research | #947; RFC 0065: R994 to R1001 (#948 to #957); rest in #958 |
 | 2026-11-11 | Tooling study: borrow and champion | Study only; record, replay, debug, profile, semver, doc, why and diff have no CLI; 10 borrows B1 to B10, 10 champions C1 to C10; D1 (build order: replay with trace diff, no-op review, `yan rewrite`) and D3 (RFCs for all ten) decided 2026-11-11, D2 deferred to #992; tracker #1004; RFC 0066 (C1, draft), RFC 0075 (C10, draft) |
 | 2026-11-13 | Spec difficulty audit | #1129; `tools/spec_audit.py`; per-row CSV; no rows |
+| 2026-11-14 | Work hierarchy: open issues by queue position | 180 open issues in 10 groups; duplicates, orphans and stale M1 items flagged; no rows |
+| 2026-11-14 | OpenRouter sweep: 41 models writing Yan Agent | Data in `bench/r567/results/openrouter-2026-11-14/`; no rows |
+| 2026-11-14 | Design: `run --ub`, `Ptr`, `dyn`, `Arena`/`Ref`, `every_production` lowerings | #1182; D1 to D9, tasks T1 to T14; no rows (dyn rows wait on the freeze) |
+| 2026-11-14 | Design: generic sum types, `TryRecv[T]` and native `select` | #1163; D1 to D10, tasks #1252 to #1260; no rows (implements 3.5, 10.1, R347, R423, R772) |

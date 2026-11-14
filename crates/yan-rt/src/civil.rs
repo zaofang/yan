@@ -683,6 +683,16 @@ pub fn clocks_advance_to(d: i128) {
     }
 }
 
+/// A wait that nothing else can end: the innermost handler's clock runs up to monotonic reading
+/// `t`, or the host sleeps until it.
+pub fn wait_until(t: i128) {
+    if clocks_last().is_some() {
+        clocks_advance_to(t);
+    } else if let Ok(ns) = u64::try_from(t - host_monotonic()) {
+        std::thread::sleep(std::time::Duration::from_nanos(ns));
+    }
+}
+
 fn clock_sleep(h: i64, ns: i128) {
     if ns <= 0 {
         return;

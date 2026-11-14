@@ -27,7 +27,6 @@ impl<'a, 'm> Fn<'a, 'm> {
                         let d = self.local(Ty::Bool);
                         self.emit(Inst::Scalar {
                             dst: Some(d),
-                            id: registry::id("eq_i64").expect("registered"),
                             op: ScalarOp::Eq,
                             ty: *t,
                             args: vec![v[0].clone(), o],

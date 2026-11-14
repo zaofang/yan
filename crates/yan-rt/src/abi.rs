@@ -1287,6 +1287,26 @@ pub extern "C" fn yan_rt_rand_f64(h: i64) -> f64 {
     crate::rand::f64_from(crate::rand::next(h))
 }
 
+thread_local! {
+    /// Provenance of every exposed address (6.6), as the interpreter's `core.ptr` keeps it.
+    static EXPOSED: std::cell::RefCell<std::collections::BTreeMap<i64, i64>> =
+        const { std::cell::RefCell::new(std::collections::BTreeMap::new()) };
+}
+
+/// `ptr.expose_provenance`: remember the provenance at `addr`; a pointer with none exposes nothing.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_ptr_expose(addr: i64, prov: i64) {
+    if prov != 0 {
+        EXPOSED.with_borrow_mut(|e| e.insert(addr, prov));
+    }
+}
+
+/// `ptr.with_exposed_provenance`: the provenance exposed at `addr`, 0 for none.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_ptr_exposed(addr: i64) -> i64 {
+    EXPOSED.with_borrow(|e| e.get(&addr).copied().unwrap_or(0))
+}
+
 /// Uniform in `[0, n)`, `n > 0`.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_rand_below(h: i64, n: i64) -> i64 {

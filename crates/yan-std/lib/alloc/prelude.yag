@@ -208,3 +208,9 @@ pub def fmt_pad(s: str, width: int, align: int, fill: str) -> str:
     elif align == 2:
         left = gap // 2
     return fill * left + s + fill * (gap - left)
+
+# select (15.3): the index of the first ready arm in source order. A channel arm is its end's
+# `select_key`; a timer arm is -1 and takes the next reading of `at`.
+@intrinsic
+@since("1.0")
+pub def select_wait(arms: list[int], at: list[MonoInstant]) -> int fail Cancelled | Timeout: ...

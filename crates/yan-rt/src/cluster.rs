@@ -363,6 +363,50 @@ pub extern "C" fn yan_rt_cluster_monitor(id: u64, ch: u64) {
     });
 }
 
+/// `cluster.group`: the handle of the group `name` names, which the first use creates (R414).
+///
+/// # Safety
+/// `name` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_cluster_group(name: *const String) -> u64 {
+    // SAFETY: the caller's contract.
+    let name = unsafe { &*name };
+    with(|st| {
+        let k = st.groups.iter().position(|(n, _)| n == name);
+        k.unwrap_or_else(|| {
+            st.groups.push((name.clone(), Vec::new()));
+            st.groups.len() - 1
+        }) as u64
+    })
+}
+
+/// `group.join(member)`: a member already present stays where it is.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_group_join(g: u64, member: u64) {
+    with(|st| {
+        let ms = &mut st.groups[g as usize].1;
+        if !ms.contains(&member) {
+            ms.push(member);
+        }
+    });
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_group_leave(g: u64, member: u64) {
+    with(|st| st.groups[g as usize].1.retain(|m| *m != member));
+}
+
+/// `group.members()`: a `list` of the members in join order.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_group_members(g: u64) -> *mut List {
+    let data = with(|st| st.groups[g as usize].1.clone());
+    crate::abi::leak(List {
+        words: 1,
+        data,
+        limit: -1,
+    })
+}
+
 /// Delivers the `NodeDown` of each monitor a partition now cuts: it runs wherever a handler
 /// clock is read or advanced, so delivery follows the seed and the clock.
 pub fn sweep() {

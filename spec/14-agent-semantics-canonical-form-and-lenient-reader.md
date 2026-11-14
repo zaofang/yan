@@ -126,6 +126,9 @@ The lenient reader accepts these deviations and normalizes them, reporting a not
 | N49 | positional arguments for parameters that share a type, where E210 is the only fault of the call (function or record constructor) | the first such argument and every later one by keyword, `area(w, h=a, d=1)`; `--strict` keeps E210 (R932) |
 | N50 | `s[a:b]`, `s[a:b:c]` on a `str` | `std.text.slice_clamped(s, a, b, c)`: Python's slice over chars, clamped, step 0 panics with `value`; costs O(n) (R935) |
 | N51 | `int(s)` on a `str` | `std.text.int_of(s)`: `s.strip().parse_int()`, panicking with kind `conversion` and `invalid literal for int()` when it is `None` (R935) |
+| N52 | a bare `sqrt(x)`, `sin`, `cos`, `tan`, `exp` or `log` call whose name is not bound in the module | `math.sqrt(x)` and so on (R1007) |
+| N53 | `s.len()` on a `str`; a free call `char_count(s)`, `parse_int(s)`, `to_string(x)`, `to_int(s)`, `slice(xs, a, b)`, `byte_at(s, i)` | `s.char_count()`; `s.char_count()`, `s.parse_int()`, `str(x)`, N51's `int(s)`, `xs[a:b]` (N50 on a `str`), `s.bytes()[i]` (N37) (R1008) |
+| N54 | `import math`, `import io`, `import regex`, `import collections`, `import std` and their `from` forms | as N01, resolving to `std.math`, `std.io`, `std.regex`, `std.collections` and `std`; a Python-only module or name, such as `collections.Counter`, is E200 with a `choice` fix naming the nearest std name (R1009) |
 
 **Python names (R807).** A Python builtin or method that models reach for and Yan Agent lacks is either a real std function, when it fits determinism and the capability rules, or an N-code normalization with a note. It is never a bare E200 or E203. A name left out needs a recorded reason in the decision log.
 

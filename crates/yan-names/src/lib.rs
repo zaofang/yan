@@ -58,6 +58,8 @@ pub const TYPES: &[TypeName] = &[
     row("Rc", "Rc", "Rc", 1),
     row("Arc", "Arc", "Arc", 1),
     row("Cell", "Cell", "Cell", 1),
+    row("Arena", "Arena", "Arena", 0),
+    row("Ref", "Ref", "Ref", 1),
     row("Atomic", "Atomic", "Atomic", 1),
     row("Sender", "Sender", "Sender", 1),
     row("Receiver", "Receiver", "Receiver", 1),

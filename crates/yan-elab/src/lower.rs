@@ -29,11 +29,13 @@ mod calls;
 mod cluster;
 mod consume;
 mod fallback;
+mod generic_sum;
 mod last_use;
 mod loops;
 mod matching;
 mod method;
 mod narrow;
+mod ptr;
 pub(crate) mod reentrant;
 mod rhs;
 mod scalar;
@@ -100,6 +102,8 @@ struct Lower<'a, 'c, 's> {
     want_ret: Option<(Ty, Span)>,
     /// Capabilities bound by an enclosing `with name = handler`.
     handlers: Vec<String>,
+    /// The innermost enclosing `with sched = ...` binds `pool`, which gives no concurrent progress (E708).
+    pool_sched: bool,
     /// Each call of a non-`par` callable local, for E716.
     fn_calls: Vec<(String, Span)>,
     /// `k = lambda ...` with no expected type: the target and lambda, lowered at the first call.
@@ -833,6 +837,7 @@ fn function_body_with(
         arg_tys: Vec::new(),
         want_ret: None,
         handlers: Vec::new(),
+        pool_sched: false,
         fn_calls: Vec::new(),
         pending: HashMap::new(),
         target: None,
@@ -853,7 +858,7 @@ fn function_body_with(
             .ret
             .as_ref()
             .and_then(|r| r.ty.as_ref())
-            .is_some_and(is_view),
+            .is_some_and(|t| is_view(t) || is_ref(t)),
         hints: Rc::clone(hints),
         hoists: Rc::clone(hoists),
         open: HashMap::new(),
@@ -1786,6 +1791,7 @@ fn int_range(n: &str) -> (i128, i128) {
         "u16" => (0, u16::MAX.into()),
         "u32" => (0, u32::MAX.into()),
         "u64" | "Addr" => (0, u64::MAX.into()),
+        _ if let Some(r) = yan_std::intrinsics::wide_range(n) => r,
         _ => (i64::MIN.into(), i64::MAX.into()),
     }
 }
@@ -1818,14 +1824,15 @@ enum Given<'e> {
     Recv(&'e j::Expr),
 }
 
-fn field_params(fs: &[crate::Field], at: Span) -> Vec<crate::P> {
+fn field_params(fs: &[crate::Field], positional: usize, at: Span) -> Vec<crate::P> {
     fs.iter()
-        .map(|f| crate::P {
+        .enumerate()
+        .map(|(i, f)| crate::P {
             name: f.name.clone(),
             conv: Conv::Sink,
             ty: f.ty.clone(),
             default: f.default.clone(),
-            positional: false,
+            positional: i < positional,
             span: at,
         })
         .collect()
@@ -2218,6 +2225,8 @@ const UNITS: &[(&str, &str, f64, DurationCtor)] = &[
 const NONDET_OPS: &[&str] = &[
     "std.sync.arc.strong_count",
     "std.chan.sender.share",
+    "std.chan.sender.try_send",
+    "std.chan.receiver.try_recv",
     "std.chan.receiver.share",
     "std.actor.share",
 ];
@@ -2303,6 +2312,10 @@ fn wire(t: &Ty) -> bool {
 
 pub(crate) fn is_view(t: &j::Type) -> bool {
     matches!(t, j::Type::Named { path, .. } if path.len() == 1 && path[0] == "View")
+}
+
+pub(crate) fn is_ref(t: &j::Type) -> bool {
+    matches!(t, j::Type::Named { path, .. } if path.len() == 1 && path[0] == "Ref")
 }
 
 /// The source text a one-line span covers.

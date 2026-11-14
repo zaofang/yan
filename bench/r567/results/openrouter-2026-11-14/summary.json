@@ -1,0 +1,4394 @@
+{
+ "amazon/nova-lite-v1": {
+  "attempts": 100,
+  "pass": 25,
+  "pass_rate": 0.25,
+  "pass_ci": [
+   0.175,
+   0.343
+  ],
+  "pass1_rate": 0.24,
+  "pass1_ci": [
+   0.167,
+   0.332
+  ],
+  "hard": [
+   9,
+   50
+  ],
+  "easy": [
+   16,
+   50
+  ],
+  "spec_failed": 56,
+  "mean_rounds": 3.33,
+  "first_reply_n_notes": 1,
+  "first_reply_e_rate": 0.96,
+  "tokens_in": 637137,
+  "tokens_out": 65029,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0538,
+  "cost_per_pass": 0.0022,
+  "latency_median_s": 1.08,
+  "cats": {
+   "has:bool": [
+    4,
+    14
+   ],
+   "has:dict": [
+    0,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    10,
+    48
+   ],
+   "has:tuple": [
+    2,
+    9
+   ],
+   "humaneval": [
+    4,
+    8
+   ],
+   "mbpp": [
+    21,
+    92
+   ],
+   "params>=3": [
+    1,
+    13
+   ],
+   "ret:bool": [
+    4,
+    14
+   ],
+   "ret:dict": [
+    0,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    10,
+    36
+   ],
+   "ret:list": [
+    5,
+    18
+   ],
+   "ret:str": [
+    5,
+    25
+   ],
+   "ret:tuple": [
+    0,
+    2
+   ]
+  },
+  "e_codes": {
+   "E100": 247,
+   "E201": 102,
+   "W820": 53,
+   "E203": 34,
+   "W823": 31,
+   "E200": 30,
+   "E017": 23,
+   "W812": 17,
+   "E315": 7,
+   "E202": 7,
+   "E403": 6,
+   "E619": 5
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "anthropic/claude-haiku-5.5": {
+  "attempts": 100,
+  "pass": 71,
+  "pass_rate": 0.71,
+  "pass_ci": [
+   0.615,
+   0.79
+  ],
+  "pass1_rate": 0.6,
+  "pass1_ci": [
+   0.502,
+   0.691
+  ],
+  "hard": [
+   31,
+   50
+  ],
+  "easy": [
+   40,
+   50
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.37,
+  "first_reply_n_notes": 0.07,
+  "first_reply_e_rate": 0.05,
+  "tokens_in": 504614,
+  "tokens_out": 218920,
+  "tokens_reasoning": 163614,
+  "cost_total": 0.1599,
+  "cost_per_pass": 0.0023,
+  "latency_median_s": 4.0,
+  "cats": {
+   "has:bool": [
+    10,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    35,
+    48
+   ],
+   "has:tuple": [
+    6,
+    9
+   ],
+   "humaneval": [
+    8,
+    8
+   ],
+   "mbpp": [
+    63,
+    92
+   ],
+   "params>=3": [
+    9,
+    13
+   ],
+   "ret:bool": [
+    10,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    27,
+    36
+   ],
+   "ret:list": [
+    13,
+    18
+   ],
+   "ret:str": [
+    18,
+    25
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E017": 8,
+   "W806": 7,
+   "E201": 7,
+   "E110": 4,
+   "E301": 2,
+   "E200": 1,
+   "E413": 1,
+   "E104": 1,
+   "E545": 1,
+   "E602": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "anthropic/claude-opus-5.5": {
+  "attempts": 40,
+  "pass": 39,
+  "pass_rate": 0.975,
+  "pass_ci": [
+   0.871,
+   0.996
+  ],
+  "pass1_rate": 0.85,
+  "pass1_ci": [
+   0.709,
+   0.929
+  ],
+  "hard": [
+   29,
+   30
+  ],
+  "easy": [
+   10,
+   10
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.27,
+  "first_reply_n_notes": 0,
+  "first_reply_e_rate": 0.05,
+  "tokens_in": 193734,
+  "tokens_out": 36832,
+  "tokens_reasoning": 11048,
+  "cost_total": 1.575,
+  "cost_per_pass": 0.0404,
+  "latency_median_s": 4.41,
+  "cats": {
+   "has:bool": [
+    4,
+    4
+   ],
+   "has:float": [
+    3,
+    3
+   ],
+   "has:str": [
+    26,
+    26
+   ],
+   "has:tuple": [
+    3,
+    3
+   ],
+   "humaneval": [
+    6,
+    6
+   ],
+   "mbpp": [
+    33,
+    34
+   ],
+   "params>=3": [
+    5,
+    5
+   ],
+   "ret:bool": [
+    4,
+    4
+   ],
+   "ret:float": [
+    3,
+    3
+   ],
+   "ret:int": [
+    10,
+    11
+   ],
+   "ret:list": [
+    7,
+    7
+   ],
+   "ret:str": [
+    14,
+    14
+   ],
+   "ret:tuple": [
+    1,
+    1
+   ]
+  },
+  "e_codes": {
+   "E201": 6,
+   "E203": 5,
+   "E413": 2,
+   "W831": 2,
+   "E107": 1,
+   "W806": 1,
+   "E017": 1,
+   "E315": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "anthropic/claude-sonnet-5.5": {
+  "attempts": 40,
+  "pass": 36,
+  "pass_rate": 0.9,
+  "pass_ci": [
+   0.769,
+   0.96
+  ],
+  "pass1_rate": 0.875,
+  "pass1_ci": [
+   0.739,
+   0.945
+  ],
+  "hard": [
+   26,
+   30
+  ],
+  "easy": [
+   10,
+   10
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.15,
+  "first_reply_n_notes": 0.03,
+  "first_reply_e_rate": 0.0,
+  "tokens_in": 175925,
+  "tokens_out": 52940,
+  "tokens_reasoning": 32141,
+  "cost_total": 0.9452,
+  "cost_per_pass": 0.0263,
+  "latency_median_s": 4.32,
+  "cats": {
+   "has:bool": [
+    3,
+    4
+   ],
+   "has:float": [
+    3,
+    3
+   ],
+   "has:str": [
+    24,
+    26
+   ],
+   "has:tuple": [
+    3,
+    3
+   ],
+   "humaneval": [
+    6,
+    6
+   ],
+   "mbpp": [
+    30,
+    34
+   ],
+   "params>=3": [
+    5,
+    5
+   ],
+   "ret:bool": [
+    3,
+    4
+   ],
+   "ret:float": [
+    3,
+    3
+   ],
+   "ret:int": [
+    9,
+    11
+   ],
+   "ret:list": [
+    6,
+    7
+   ],
+   "ret:str": [
+    14,
+    14
+   ],
+   "ret:tuple": [
+    1,
+    1
+   ]
+  },
+  "e_codes": {
+   "E203": 4,
+   "W806": 2,
+   "E200": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "deepseek/deepseek-v4-flash": {
+  "attempts": 99,
+  "pass": 57,
+  "pass_rate": 0.576,
+  "pass_ci": [
+   0.477,
+   0.668
+  ],
+  "pass1_rate": 0.384,
+  "pass1_ci": [
+   0.294,
+   0.482
+  ],
+  "hard": [
+   23,
+   49
+  ],
+  "easy": [
+   34,
+   50
+  ],
+  "spec_failed": 1,
+  "mean_rounds": 2.83,
+  "first_reply_n_notes": 0.33,
+  "first_reply_e_rate": 0.172,
+  "tokens_in": 455581,
+  "tokens_out": 373248,
+  "tokens_reasoning": 321061,
+  "cost_total": 0.1326,
+  "cost_per_pass": 0.0023,
+  "latency_median_s": 4.96,
+  "cats": {
+   "has:bool": [
+    9,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    29,
+    48
+   ],
+   "has:tuple": [
+    6,
+    9
+   ],
+   "humaneval": [
+    7,
+    8
+   ],
+   "mbpp": [
+    50,
+    91
+   ],
+   "params>=3": [
+    5,
+    13
+   ],
+   "ret:bool": [
+    9,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    20,
+    35
+   ],
+   "ret:list": [
+    11,
+    18
+   ],
+   "ret:str": [
+    14,
+    25
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E203": 29,
+   "E201": 28,
+   "E017": 11,
+   "W820": 11,
+   "E200": 10,
+   "W806": 9,
+   "E301": 6,
+   "E202": 4,
+   "E110": 4,
+   "E403": 3,
+   "E413": 3,
+   "E315": 2
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "deepseek/deepseek-v4-pro": {
+  "attempts": 100,
+  "pass": 53,
+  "pass_rate": 0.53,
+  "pass_ci": [
+   0.433,
+   0.625
+  ],
+  "pass1_rate": 0.39,
+  "pass1_ci": [
+   0.3,
+   0.488
+  ],
+  "hard": [
+   21,
+   50
+  ],
+  "easy": [
+   32,
+   50
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.76,
+  "first_reply_n_notes": 0.24,
+  "first_reply_e_rate": 0.09,
+  "tokens_in": 435143,
+  "tokens_out": 393280,
+  "tokens_reasoning": 347304,
+  "cost_total": 0.3804,
+  "cost_per_pass": 0.0072,
+  "latency_median_s": 12.24,
+  "cats": {
+   "has:bool": [
+    9,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    25,
+    48
+   ],
+   "has:tuple": [
+    6,
+    9
+   ],
+   "humaneval": [
+    6,
+    8
+   ],
+   "mbpp": [
+    47,
+    92
+   ],
+   "params>=3": [
+    6,
+    13
+   ],
+   "ret:bool": [
+    9,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    17,
+    36
+   ],
+   "ret:list": [
+    10,
+    18
+   ],
+   "ret:str": [
+    14,
+    25
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 18,
+   "E203": 12,
+   "E403": 9,
+   "E017": 8,
+   "E110": 8,
+   "W806": 7,
+   "E202": 4,
+   "E301": 4,
+   "E315": 3,
+   "E200": 3,
+   "E100": 2,
+   "E619": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "deepseek/deepseek-v4.1-flash": {
+  "attempts": 98,
+  "pass": 56,
+  "pass_rate": 0.571,
+  "pass_ci": [
+   0.473,
+   0.665
+  ],
+  "pass1_rate": 0.48,
+  "pass1_ci": [
+   0.383,
+   0.577
+  ],
+  "hard": [
+   23,
+   48
+  ],
+  "easy": [
+   33,
+   50
+  ],
+  "spec_failed": 2,
+  "mean_rounds": 2.69,
+  "first_reply_n_notes": 0.15,
+  "first_reply_e_rate": 0.214,
+  "tokens_in": 450777,
+  "tokens_out": 508112,
+  "tokens_reasoning": 445519,
+  "cost_total": 0.352,
+  "cost_per_pass": 0.0063,
+  "latency_median_s": 3.85,
+  "cats": {
+   "has:bool": [
+    9,
+    13
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    26,
+    48
+   ],
+   "has:tuple": [
+    6,
+    9
+   ],
+   "humaneval": [
+    8,
+    8
+   ],
+   "mbpp": [
+    48,
+    90
+   ],
+   "params>=3": [
+    8,
+    13
+   ],
+   "ret:bool": [
+    9,
+    13
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    21,
+    35
+   ],
+   "ret:list": [
+    10,
+    18
+   ],
+   "ret:str": [
+    13,
+    25
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E301": 19,
+   "E201": 13,
+   "E203": 10,
+   "W806": 7,
+   "E110": 6,
+   "E100": 6,
+   "E017": 5,
+   "E107": 4,
+   "E200": 4,
+   "E103": 3,
+   "E102": 2,
+   "E221": 2
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "google/gemini-3.5-flash-lite": {
+  "attempts": 100,
+  "pass": 63,
+  "pass_rate": 0.63,
+  "pass_ci": [
+   0.532,
+   0.718
+  ],
+  "pass1_rate": 0.49,
+  "pass1_ci": [
+   0.394,
+   0.587
+  ],
+  "hard": [
+   26,
+   50
+  ],
+  "easy": [
+   37,
+   50
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.86,
+  "first_reply_n_notes": 0.07,
+  "first_reply_e_rate": 0.03,
+  "tokens_in": 502162,
+  "tokens_out": 44569,
+  "tokens_reasoning": 0,
+  "cost_total": 0.2621,
+  "cost_per_pass": 0.0042,
+  "latency_median_s": 0.97,
+  "cats": {
+   "has:bool": [
+    10,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    30,
+    48
+   ],
+   "has:tuple": [
+    7,
+    9
+   ],
+   "humaneval": [
+    8,
+    8
+   ],
+   "mbpp": [
+    55,
+    92
+   ],
+   "params>=3": [
+    8,
+    13
+   ],
+   "ret:bool": [
+    10,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    25,
+    36
+   ],
+   "ret:list": [
+    9,
+    18
+   ],
+   "ret:str": [
+    15,
+    25
+   ],
+   "ret:tuple": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E203": 14,
+   "E017": 13,
+   "E201": 11,
+   "E200": 9,
+   "E202": 6,
+   "E301": 5,
+   "W806": 5,
+   "E110": 3,
+   "E403": 1,
+   "E545": 1,
+   "E315": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "google/gemini-3.8-flash": {
+  "attempts": 99,
+  "pass": 86,
+  "pass_rate": 0.869,
+  "pass_ci": [
+   0.788,
+   0.922
+  ],
+  "pass1_rate": 0.707,
+  "pass1_ci": [
+   0.611,
+   0.788
+  ],
+  "hard": [
+   41,
+   50
+  ],
+  "easy": [
+   45,
+   49
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.28,
+  "first_reply_n_notes": 0.09,
+  "first_reply_e_rate": 0.02,
+  "tokens_in": 356650,
+  "tokens_out": 355570,
+  "tokens_reasoning": 325134,
+  "cost_total": 1.6099,
+  "cost_per_pass": 0.0187,
+  "latency_median_s": 7.16,
+  "cats": {
+   "has:bool": [
+    11,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    3,
+    5
+   ],
+   "has:str": [
+    43,
+    47
+   ],
+   "has:tuple": [
+    9,
+    9
+   ],
+   "humaneval": [
+    8,
+    8
+   ],
+   "mbpp": [
+    78,
+    91
+   ],
+   "params>=3": [
+    10,
+    12
+   ],
+   "ret:bool": [
+    11,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    2,
+    4
+   ],
+   "ret:int": [
+    31,
+    36
+   ],
+   "ret:list": [
+    16,
+    18
+   ],
+   "ret:str": [
+    23,
+    24
+   ],
+   "ret:tuple": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E017": 6,
+   "E202": 5,
+   "E201": 5,
+   "E203": 4,
+   "E110": 4,
+   "W806": 2,
+   "E200": 2,
+   "E301": 2,
+   "E413": 1,
+   "E602": 1,
+   "E315": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "google/gemini-4-hydrogen": {
+  "attempts": 40,
+  "pass": 32,
+  "pass_rate": 0.8,
+  "pass_ci": [
+   0.652,
+   0.895
+  ],
+  "pass1_rate": 0.7,
+  "pass1_ci": [
+   0.546,
+   0.819
+  ],
+  "hard": [
+   23,
+   30
+  ],
+  "easy": [
+   9,
+   10
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.23,
+  "first_reply_n_notes": 0,
+  "first_reply_e_rate": 0.025,
+  "tokens_in": 145183,
+  "tokens_out": 145411,
+  "tokens_reasoning": 129360,
+  "cost_total": 1.3939,
+  "cost_per_pass": 0.0436,
+  "latency_median_s": 7.36,
+  "cats": {
+   "has:bool": [
+    3,
+    4
+   ],
+   "has:float": [
+    2,
+    3
+   ],
+   "has:str": [
+    22,
+    26
+   ],
+   "has:tuple": [
+    3,
+    3
+   ],
+   "humaneval": [
+    6,
+    6
+   ],
+   "mbpp": [
+    26,
+    34
+   ],
+   "params>=3": [
+    4,
+    5
+   ],
+   "ret:bool": [
+    3,
+    4
+   ],
+   "ret:float": [
+    2,
+    3
+   ],
+   "ret:int": [
+    8,
+    11
+   ],
+   "ret:list": [
+    6,
+    7
+   ],
+   "ret:str": [
+    12,
+    14
+   ],
+   "ret:tuple": [
+    1,
+    1
+   ]
+  },
+  "e_codes": {
+   "W806": 4,
+   "W831": 2,
+   "E201": 2,
+   "E203": 2,
+   "E202": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "google/gemma-3-27b-it": {
+  "attempts": 97,
+  "pass": 40,
+  "pass_rate": 0.412,
+  "pass_ci": [
+   0.32,
+   0.512
+  ],
+  "pass1_rate": 0.361,
+  "pass1_ci": [
+   0.272,
+   0.46
+  ],
+  "hard": [
+   14,
+   48
+  ],
+  "easy": [
+   26,
+   49
+  ],
+  "spec_failed": 10,
+  "mean_rounds": 3.3,
+  "first_reply_n_notes": 0.35,
+  "first_reply_e_rate": 0.227,
+  "tokens_in": 598575,
+  "tokens_out": 46627,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0478,
+  "cost_per_pass": 0.0012,
+  "latency_median_s": 3.89,
+  "cats": {
+   "has:bool": [
+    5,
+    14
+   ],
+   "has:dict": [
+    0,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    18,
+    46
+   ],
+   "has:tuple": [
+    3,
+    9
+   ],
+   "humaneval": [
+    7,
+    8
+   ],
+   "mbpp": [
+    33,
+    89
+   ],
+   "params>=3": [
+    2,
+    12
+   ],
+   "ret:bool": [
+    5,
+    14
+   ],
+   "ret:dict": [
+    0,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    16,
+    36
+   ],
+   "ret:list": [
+    8,
+    17
+   ],
+   "ret:str": [
+    9,
+    23
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 77,
+   "E200": 37,
+   "E301": 36,
+   "E403": 24,
+   "E203": 10,
+   "E017": 10,
+   "E110": 9,
+   "E315": 6,
+   "W806": 5,
+   "E202": 3,
+   "E100": 3,
+   "E310": 2
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "google/gemma-4-31b-it": {
+  "attempts": 100,
+  "pass": 55,
+  "pass_rate": 0.55,
+  "pass_ci": [
+   0.452,
+   0.644
+  ],
+  "pass1_rate": 0.42,
+  "pass1_ci": [
+   0.328,
+   0.518
+  ],
+  "hard": [
+   24,
+   50
+  ],
+  "easy": [
+   31,
+   50
+  ],
+  "spec_failed": 2,
+  "mean_rounds": 2.95,
+  "first_reply_n_notes": 0.06,
+  "first_reply_e_rate": 0.08,
+  "tokens_in": 541512,
+  "tokens_out": 63620,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0767,
+  "cost_per_pass": 0.0014,
+  "latency_median_s": 1.33,
+  "cats": {
+   "has:bool": [
+    10,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    25,
+    48
+   ],
+   "has:tuple": [
+    7,
+    9
+   ],
+   "humaneval": [
+    8,
+    8
+   ],
+   "mbpp": [
+    47,
+    92
+   ],
+   "params>=3": [
+    7,
+    13
+   ],
+   "ret:bool": [
+    10,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    18,
+    36
+   ],
+   "ret:list": [
+    11,
+    18
+   ],
+   "ret:str": [
+    12,
+    25
+   ],
+   "ret:tuple": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 21,
+   "E203": 18,
+   "W806": 15,
+   "E017": 8,
+   "E315": 7,
+   "E403": 4,
+   "E241": 4,
+   "E200": 4,
+   "E100": 4,
+   "E110": 4,
+   "E413": 2,
+   "E202": 2
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "ibm-granite/granite-4.2-8b": {
+  "attempts": 98,
+  "pass": 56,
+  "pass_rate": 0.571,
+  "pass_ci": [
+   0.473,
+   0.665
+  ],
+  "pass1_rate": 0.51,
+  "pass1_ci": [
+   0.413,
+   0.607
+  ],
+  "hard": [
+   24,
+   48
+  ],
+  "easy": [
+   32,
+   50
+  ],
+  "spec_failed": 2,
+  "mean_rounds": 2.77,
+  "first_reply_n_notes": 0.38,
+  "first_reply_e_rate": 0.408,
+  "tokens_in": 470226,
+  "tokens_out": 1311175,
+  "tokens_reasoning": 1262549,
+  "cost_total": 0.2125,
+  "cost_per_pass": 0.0038,
+  "latency_median_s": 35.0,
+  "cats": {
+   "has:bool": [
+    9,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    25,
+    47
+   ],
+   "has:tuple": [
+    6,
+    9
+   ],
+   "humaneval": [
+    7,
+    8
+   ],
+   "mbpp": [
+    49,
+    90
+   ],
+   "params>=3": [
+    6,
+    13
+   ],
+   "ret:bool": [
+    9,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    24,
+    36
+   ],
+   "ret:list": [
+    10,
+    17
+   ],
+   "ret:str": [
+    10,
+    24
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E100": 23,
+   "W820": 19,
+   "E017": 10,
+   "E201": 10,
+   "W823": 8,
+   "W812": 8,
+   "E200": 7,
+   "W806": 5,
+   "E110": 5,
+   "E413": 4,
+   "E315": 2,
+   "E602": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "meta-llama/llama-3.1-8b-instruct": {
+  "attempts": 97,
+  "pass": 11,
+  "pass_rate": 0.113,
+  "pass_ci": [
+   0.065,
+   0.192
+  ],
+  "pass1_rate": 0.113,
+  "pass1_ci": [
+   0.065,
+   0.192
+  ],
+  "hard": [
+   3,
+   48
+  ],
+  "easy": [
+   8,
+   49
+  ],
+  "spec_failed": 67,
+  "mean_rounds": 3.47,
+  "first_reply_n_notes": 0.59,
+  "first_reply_e_rate": 0.897,
+  "tokens_in": 593611,
+  "tokens_out": 64275,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0175,
+  "cost_per_pass": 0.0016,
+  "latency_median_s": 2.98,
+  "cats": {
+   "has:bool": [
+    3,
+    14
+   ],
+   "has:dict": [
+    0,
+    1
+   ],
+   "has:float": [
+    1,
+    4
+   ],
+   "has:str": [
+    5,
+    46
+   ],
+   "has:tuple": [
+    1,
+    9
+   ],
+   "humaneval": [
+    3,
+    8
+   ],
+   "mbpp": [
+    8,
+    89
+   ],
+   "params>=3": [
+    0,
+    12
+   ],
+   "ret:bool": [
+    3,
+    14
+   ],
+   "ret:dict": [
+    0,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    1,
+    35
+   ],
+   "ret:list": [
+    3,
+    17
+   ],
+   "ret:str": [
+    3,
+    24
+   ],
+   "ret:tuple": [
+    0,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 110,
+   "E100": 95,
+   "W820": 71,
+   "E203": 60,
+   "E017": 47,
+   "W823": 32,
+   "E200": 24,
+   "E301": 21,
+   "E104": 8,
+   "E202": 8,
+   "E110": 5,
+   "W806": 4
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "meta-llama/llama-3.3-70b-instruct": {
+  "attempts": 100,
+  "pass": 38,
+  "pass_rate": 0.38,
+  "pass_ci": [
+   0.291,
+   0.478
+  ],
+  "pass1_rate": 0.28,
+  "pass1_ci": [
+   0.201,
+   0.375
+  ],
+  "hard": [
+   16,
+   50
+  ],
+  "easy": [
+   22,
+   50
+  ],
+  "spec_failed": 16,
+  "mean_rounds": 3.61,
+  "first_reply_n_notes": 0.63,
+  "first_reply_e_rate": 0.48,
+  "tokens_in": 606825,
+  "tokens_out": 49119,
+  "tokens_reasoning": 0,
+  "cost_total": 0.2332,
+  "cost_per_pass": 0.0061,
+  "latency_median_s": 1.81,
+  "cats": {
+   "has:bool": [
+    7,
+    14
+   ],
+   "has:dict": [
+    0,
+    1
+   ],
+   "has:float": [
+    1,
+    5
+   ],
+   "has:str": [
+    20,
+    48
+   ],
+   "has:tuple": [
+    3,
+    9
+   ],
+   "humaneval": [
+    7,
+    8
+   ],
+   "mbpp": [
+    31,
+    92
+   ],
+   "params>=3": [
+    4,
+    13
+   ],
+   "ret:bool": [
+    7,
+    14
+   ],
+   "ret:dict": [
+    0,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    11,
+    36
+   ],
+   "ret:list": [
+    7,
+    18
+   ],
+   "ret:str": [
+    12,
+    25
+   ],
+   "ret:tuple": [
+    0,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 121,
+   "E200": 59,
+   "E100": 20,
+   "E203": 18,
+   "E017": 18,
+   "E202": 7,
+   "E110": 7,
+   "E403": 6,
+   "E107": 3,
+   "W806": 3,
+   "E221": 3,
+   "E619": 3
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "meta-llama/llama-4-maverick": {
+  "attempts": 99,
+  "pass": 29,
+  "pass_rate": 0.293,
+  "pass_ci": [
+   0.212,
+   0.389
+  ],
+  "pass1_rate": 0.242,
+  "pass1_ci": [
+   0.169,
+   0.335
+  ],
+  "hard": [
+   12,
+   49
+  ],
+  "easy": [
+   17,
+   50
+  ],
+  "spec_failed": 24,
+  "mean_rounds": 3.66,
+  "first_reply_n_notes": 0.56,
+  "first_reply_e_rate": 0.636,
+  "tokens_in": 614363,
+  "tokens_out": 54249,
+  "tokens_reasoning": 0,
+  "cost_total": 0.1749,
+  "cost_per_pass": 0.006,
+  "latency_median_s": 2.21,
+  "cats": {
+   "has:bool": [
+    4,
+    14
+   ],
+   "has:dict": [
+    0,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    15,
+    48
+   ],
+   "has:tuple": [
+    3,
+    9
+   ],
+   "humaneval": [
+    5,
+    8
+   ],
+   "mbpp": [
+    24,
+    91
+   ],
+   "params>=3": [
+    3,
+    13
+   ],
+   "ret:bool": [
+    4,
+    14
+   ],
+   "ret:dict": [
+    0,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    9,
+    35
+   ],
+   "ret:list": [
+    6,
+    18
+   ],
+   "ret:str": [
+    8,
+    25
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 69,
+   "E017": 46,
+   "E203": 42,
+   "E200": 29,
+   "E100": 28,
+   "E107": 12,
+   "E232": 10,
+   "E202": 9,
+   "E104": 5,
+   "E103": 5,
+   "E504": 3,
+   "E403": 3
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "microsoft/phi-4": {
+  "attempts": 100,
+  "pass": 32,
+  "pass_rate": 0.32,
+  "pass_ci": [
+   0.237,
+   0.417
+  ],
+  "pass1_rate": 0.3,
+  "pass1_ci": [
+   0.219,
+   0.396
+  ],
+  "hard": [
+   11,
+   50
+  ],
+  "easy": [
+   21,
+   50
+  ],
+  "spec_failed": 35,
+  "mean_rounds": 3.13,
+  "first_reply_n_notes": 0.73,
+  "first_reply_e_rate": 0.68,
+  "tokens_in": 543882,
+  "tokens_out": 66152,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0473,
+  "cost_per_pass": 0.0015,
+  "latency_median_s": 2.24,
+  "cats": {
+   "has:bool": [
+    2,
+    14
+   ],
+   "has:dict": [
+    0,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    13,
+    48
+   ],
+   "has:tuple": [
+    3,
+    9
+   ],
+   "humaneval": [
+    4,
+    8
+   ],
+   "mbpp": [
+    28,
+    92
+   ],
+   "params>=3": [
+    3,
+    13
+   ],
+   "ret:bool": [
+    2,
+    14
+   ],
+   "ret:dict": [
+    0,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    12,
+    36
+   ],
+   "ret:list": [
+    9,
+    18
+   ],
+   "ret:str": [
+    7,
+    25
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 139,
+   "E200": 72,
+   "W820": 61,
+   "W823": 40,
+   "E203": 26,
+   "E017": 21,
+   "E100": 20,
+   "E403": 14,
+   "E202": 13,
+   "W812": 10,
+   "E106": 7,
+   "E619": 7
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "minimax/minimax-m3": {
+  "attempts": 100,
+  "pass": 57,
+  "pass_rate": 0.57,
+  "pass_ci": [
+   0.472,
+   0.663
+  ],
+  "pass1_rate": 0.46,
+  "pass1_ci": [
+   0.366,
+   0.557
+  ],
+  "hard": [
+   21,
+   50
+  ],
+  "easy": [
+   36,
+   50
+  ],
+  "spec_failed": 2,
+  "mean_rounds": 2.84,
+  "first_reply_n_notes": 0.26,
+  "first_reply_e_rate": 0.2,
+  "tokens_in": 494715,
+  "tokens_out": 420952,
+  "tokens_reasoning": 377319,
+  "cost_total": 0.4713,
+  "cost_per_pass": 0.0083,
+  "latency_median_s": 4.83,
+  "cats": {
+   "has:bool": [
+    9,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    26,
+    48
+   ],
+   "has:tuple": [
+    6,
+    9
+   ],
+   "humaneval": [
+    8,
+    8
+   ],
+   "mbpp": [
+    49,
+    92
+   ],
+   "params>=3": [
+    7,
+    13
+   ],
+   "ret:bool": [
+    9,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    23,
+    36
+   ],
+   "ret:list": [
+    10,
+    18
+   ],
+   "ret:str": [
+    12,
+    25
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 22,
+   "E203": 12,
+   "W806": 10,
+   "E200": 9,
+   "E315": 7,
+   "E301": 7,
+   "E017": 6,
+   "E602": 4,
+   "E110": 4,
+   "E100": 3,
+   "W820": 2,
+   "E202": 2
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "minimax/minimax-m3.1-flash": {
+  "attempts": 98,
+  "pass": 63,
+  "pass_rate": 0.643,
+  "pass_ci": [
+   0.544,
+   0.731
+  ],
+  "pass1_rate": 0.49,
+  "pass1_ci": [
+   0.393,
+   0.587
+  ],
+  "hard": [
+   29,
+   50
+  ],
+  "easy": [
+   34,
+   48
+  ],
+  "spec_failed": 2,
+  "mean_rounds": 2.77,
+  "first_reply_n_notes": 0.28,
+  "first_reply_e_rate": 0.173,
+  "tokens_in": 497841,
+  "tokens_out": 730183,
+  "tokens_reasoning": 661478,
+  "cost_total": 0.4645,
+  "cost_per_pass": 0.0074,
+  "latency_median_s": 7.47,
+  "cats": {
+   "has:bool": [
+    10,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    30,
+    48
+   ],
+   "has:tuple": [
+    7,
+    9
+   ],
+   "humaneval": [
+    7,
+    7
+   ],
+   "mbpp": [
+    56,
+    91
+   ],
+   "params>=3": [
+    7,
+    12
+   ],
+   "ret:bool": [
+    10,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    24,
+    35
+   ],
+   "ret:list": [
+    11,
+    17
+   ],
+   "ret:str": [
+    14,
+    25
+   ],
+   "ret:tuple": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 35,
+   "W806": 11,
+   "E301": 11,
+   "E203": 10,
+   "E110": 9,
+   "E107": 5,
+   "E315": 5,
+   "E017": 4,
+   "E200": 3,
+   "E413": 2,
+   "E100": 2,
+   "W820": 2
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "mistralai/codestral-2508": {
+  "attempts": 100,
+  "pass": 35,
+  "pass_rate": 0.35,
+  "pass_ci": [
+   0.264,
+   0.447
+  ],
+  "pass1_rate": 0.32,
+  "pass1_ci": [
+   0.237,
+   0.417
+  ],
+  "hard": [
+   14,
+   50
+  ],
+  "easy": [
+   21,
+   50
+  ],
+  "spec_failed": 7,
+  "mean_rounds": 3.24,
+  "first_reply_n_notes": 0.12,
+  "first_reply_e_rate": 0.12,
+  "tokens_in": 520620,
+  "tokens_out": 40247,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0853,
+  "cost_per_pass": 0.0024,
+  "latency_median_s": 1.06,
+  "cats": {
+   "has:bool": [
+    4,
+    14
+   ],
+   "has:dict": [
+    0,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    15,
+    48
+   ],
+   "has:tuple": [
+    2,
+    9
+   ],
+   "humaneval": [
+    6,
+    8
+   ],
+   "mbpp": [
+    29,
+    92
+   ],
+   "params>=3": [
+    3,
+    13
+   ],
+   "ret:bool": [
+    4,
+    14
+   ],
+   "ret:dict": [
+    0,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    14,
+    36
+   ],
+   "ret:list": [
+    9,
+    18
+   ],
+   "ret:str": [
+    7,
+    25
+   ],
+   "ret:tuple": [
+    0,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 38,
+   "E203": 31,
+   "E200": 27,
+   "E017": 16,
+   "E403": 15,
+   "E504": 7,
+   "E315": 5,
+   "E202": 4,
+   "E619": 3,
+   "E110": 3,
+   "W820": 2,
+   "W823": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "mistralai/devstral-2512": {
+  "attempts": 100,
+  "pass": 50,
+  "pass_rate": 0.5,
+  "pass_ci": [
+   0.404,
+   0.596
+  ],
+  "pass1_rate": 0.37,
+  "pass1_ci": [
+   0.282,
+   0.468
+  ],
+  "hard": [
+   20,
+   50
+  ],
+  "easy": [
+   30,
+   50
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 3.11,
+  "first_reply_n_notes": 0.15,
+  "first_reply_e_rate": 0.03,
+  "tokens_in": 496995,
+  "tokens_out": 36537,
+  "tokens_reasoning": 0,
+  "cost_total": 0.1702,
+  "cost_per_pass": 0.0034,
+  "latency_median_s": 1.13,
+  "cats": {
+   "has:bool": [
+    9,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    24,
+    48
+   ],
+   "has:tuple": [
+    6,
+    9
+   ],
+   "humaneval": [
+    8,
+    8
+   ],
+   "mbpp": [
+    42,
+    92
+   ],
+   "params>=3": [
+    6,
+    13
+   ],
+   "ret:bool": [
+    9,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    15,
+    36
+   ],
+   "ret:list": [
+    9,
+    18
+   ],
+   "ret:str": [
+    14,
+    25
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E203": 52,
+   "E201": 31,
+   "E403": 17,
+   "E017": 12,
+   "E315": 7,
+   "W806": 6,
+   "E202": 3,
+   "E413": 3,
+   "E404": 3,
+   "E504": 2,
+   "E200": 2,
+   "E545": 2
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "mistralai/ministral-8b-2512": {
+  "attempts": 99,
+  "pass": 31,
+  "pass_rate": 0.313,
+  "pass_ci": [
+   0.23,
+   0.41
+  ],
+  "pass1_rate": 0.232,
+  "pass1_ci": [
+   0.16,
+   0.325
+  ],
+  "hard": [
+   11,
+   50
+  ],
+  "easy": [
+   20,
+   49
+  ],
+  "spec_failed": 11,
+  "mean_rounds": 4.21,
+  "first_reply_n_notes": 0.51,
+  "first_reply_e_rate": 0.293,
+  "tokens_in": 1055042,
+  "tokens_out": 204241,
+  "tokens_reasoning": 0,
+  "cost_total": 0.1051,
+  "cost_per_pass": 0.0034,
+  "latency_median_s": 2.0,
+  "cats": {
+   "has:bool": [
+    3,
+    14
+   ],
+   "has:dict": [
+    0,
+    1
+   ],
+   "has:float": [
+    1,
+    5
+   ],
+   "has:str": [
+    14,
+    48
+   ],
+   "has:tuple": [
+    3,
+    9
+   ],
+   "humaneval": [
+    5,
+    8
+   ],
+   "mbpp": [
+    26,
+    91
+   ],
+   "params>=3": [
+    2,
+    13
+   ],
+   "ret:bool": [
+    3,
+    14
+   ],
+   "ret:dict": [
+    0,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    11,
+    35
+   ],
+   "ret:list": [
+    7,
+    18
+   ],
+   "ret:str": [
+    9,
+    25
+   ],
+   "ret:tuple": [
+    0,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 47,
+   "E200": 36,
+   "W806": 30,
+   "E017": 28,
+   "E203": 27,
+   "W820": 24,
+   "E100": 23,
+   "E301": 10,
+   "E504": 8,
+   "E403": 7,
+   "W812": 6,
+   "E110": 5
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "mistralai/mistral-large-2512": {
+  "attempts": 100,
+  "pass": 38,
+  "pass_rate": 0.38,
+  "pass_ci": [
+   0.291,
+   0.478
+  ],
+  "pass1_rate": 0.31,
+  "pass1_ci": [
+   0.228,
+   0.406
+  ],
+  "hard": [
+   15,
+   50
+  ],
+  "easy": [
+   23,
+   50
+  ],
+  "spec_failed": 9,
+  "mean_rounds": 3.51,
+  "first_reply_n_notes": 0.37,
+  "first_reply_e_rate": 0.39,
+  "tokens_in": 615173,
+  "tokens_out": 68119,
+  "tokens_reasoning": 0,
+  "cost_total": 0.24,
+  "cost_per_pass": 0.0063,
+  "latency_median_s": 2.53,
+  "cats": {
+   "has:bool": [
+    6,
+    14
+   ],
+   "has:dict": [
+    0,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    20,
+    48
+   ],
+   "has:tuple": [
+    4,
+    9
+   ],
+   "humaneval": [
+    6,
+    8
+   ],
+   "mbpp": [
+    32,
+    92
+   ],
+   "params>=3": [
+    3,
+    13
+   ],
+   "ret:bool": [
+    6,
+    14
+   ],
+   "ret:dict": [
+    0,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    10,
+    36
+   ],
+   "ret:list": [
+    10,
+    18
+   ],
+   "ret:str": [
+    11,
+    25
+   ],
+   "ret:tuple": [
+    0,
+    2
+   ]
+  },
+  "e_codes": {
+   "E203": 48,
+   "E201": 46,
+   "E017": 31,
+   "E200": 23,
+   "W806": 16,
+   "E100": 15,
+   "E403": 10,
+   "E504": 6,
+   "E102": 6,
+   "E619": 6,
+   "E232": 4,
+   "E110": 3
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "mistralai/mistral-small-3.2-24b-instruct": {
+  "attempts": 100,
+  "pass": 38,
+  "pass_rate": 0.38,
+  "pass_ci": [
+   0.291,
+   0.478
+  ],
+  "pass1_rate": 0.3,
+  "pass1_ci": [
+   0.219,
+   0.396
+  ],
+  "hard": [
+   16,
+   50
+  ],
+  "easy": [
+   22,
+   50
+  ],
+  "spec_failed": 3,
+  "mean_rounds": 3.73,
+  "first_reply_n_notes": 0.13,
+  "first_reply_e_rate": 0.26,
+  "tokens_in": 643807,
+  "tokens_out": 54324,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0378,
+  "cost_per_pass": 0.001,
+  "latency_median_s": 1.3,
+  "cats": {
+   "has:bool": [
+    7,
+    14
+   ],
+   "has:dict": [
+    0,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    18,
+    48
+   ],
+   "has:tuple": [
+    1,
+    9
+   ],
+   "humaneval": [
+    8,
+    8
+   ],
+   "mbpp": [
+    30,
+    92
+   ],
+   "params>=3": [
+    3,
+    13
+   ],
+   "ret:bool": [
+    7,
+    14
+   ],
+   "ret:dict": [
+    0,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    13,
+    36
+   ],
+   "ret:list": [
+    8,
+    18
+   ],
+   "ret:str": [
+    9,
+    25
+   ],
+   "ret:tuple": [
+    0,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 65,
+   "E203": 49,
+   "E017": 26,
+   "W806": 17,
+   "E202": 14,
+   "E200": 13,
+   "E403": 7,
+   "W812": 4,
+   "E100": 4,
+   "E315": 4,
+   "E221": 4,
+   "E310": 4
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "moonshotai/kimi-k2.7-code": {
+  "attempts": 95,
+  "pass": 56,
+  "pass_rate": 0.589,
+  "pass_ci": [
+   0.489,
+   0.683
+  ],
+  "pass1_rate": 0.432,
+  "pass1_ci": [
+   0.337,
+   0.532
+  ],
+  "hard": [
+   22,
+   45
+  ],
+  "easy": [
+   34,
+   50
+  ],
+  "spec_failed": 3,
+  "mean_rounds": 2.81,
+  "first_reply_n_notes": 0.34,
+  "first_reply_e_rate": 0.221,
+  "tokens_in": 440853,
+  "tokens_out": 530189,
+  "tokens_reasoning": 476622,
+  "cost_total": 2.1068,
+  "cost_per_pass": 0.0376,
+  "latency_median_s": 22.88,
+  "cats": {
+   "has:bool": [
+    9,
+    13
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    24,
+    45
+   ],
+   "has:tuple": [
+    5,
+    8
+   ],
+   "humaneval": [
+    7,
+    8
+   ],
+   "mbpp": [
+    49,
+    87
+   ],
+   "params>=3": [
+    9,
+    13
+   ],
+   "ret:bool": [
+    9,
+    13
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    24,
+    36
+   ],
+   "ret:list": [
+    11,
+    17
+   ],
+   "ret:str": [
+    10,
+    23
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 23,
+   "E203": 17,
+   "E200": 11,
+   "W806": 10,
+   "E017": 9,
+   "E110": 9,
+   "E202": 6,
+   "E315": 6,
+   "E100": 4,
+   "E310": 4,
+   "E107": 3,
+   "E104": 3
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "moonshotai/kimi-k3.1-pro": {
+  "attempts": 40,
+  "pass": 24,
+  "pass_rate": 0.6,
+  "pass_ci": [
+   0.446,
+   0.737
+  ],
+  "pass1_rate": 0.55,
+  "pass1_ci": [
+   0.398,
+   0.693
+  ],
+  "hard": [
+   15,
+   30
+  ],
+  "easy": [
+   9,
+   10
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.45,
+  "first_reply_n_notes": 0.15,
+  "first_reply_e_rate": 0.125,
+  "tokens_in": 157026,
+  "tokens_out": 156203,
+  "tokens_reasoning": 141132,
+  "cost_total": 1.5141,
+  "cost_per_pass": 0.0631,
+  "latency_median_s": 6.98,
+  "cats": {
+   "has:bool": [
+    3,
+    4
+   ],
+   "has:float": [
+    1,
+    3
+   ],
+   "has:str": [
+    16,
+    26
+   ],
+   "has:tuple": [
+    3,
+    3
+   ],
+   "humaneval": [
+    6,
+    6
+   ],
+   "mbpp": [
+    18,
+    34
+   ],
+   "params>=3": [
+    3,
+    5
+   ],
+   "ret:bool": [
+    3,
+    4
+   ],
+   "ret:float": [
+    1,
+    3
+   ],
+   "ret:int": [
+    5,
+    11
+   ],
+   "ret:list": [
+    5,
+    7
+   ],
+   "ret:str": [
+    9,
+    14
+   ],
+   "ret:tuple": [
+    1,
+    1
+   ]
+  },
+  "e_codes": {
+   "W806": 4,
+   "E203": 3,
+   "E107": 3,
+   "E201": 3,
+   "E315": 2,
+   "E301": 2,
+   "E104": 1,
+   "E100": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "nvidia/nemotron-3-super-120b-a12b": {
+  "attempts": 98,
+  "pass": 59,
+  "pass_rate": 0.602,
+  "pass_ci": [
+   0.503,
+   0.693
+  ],
+  "pass1_rate": 0.469,
+  "pass1_ci": [
+   0.374,
+   0.567
+  ],
+  "hard": [
+   26,
+   49
+  ],
+  "easy": [
+   33,
+   49
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.83,
+  "first_reply_n_notes": 0.35,
+  "first_reply_e_rate": 0.276,
+  "tokens_in": 444150,
+  "tokens_out": 239070,
+  "tokens_reasoning": 199064,
+  "cost_total": 0.1482,
+  "cost_per_pass": 0.0025,
+  "latency_median_s": 5.25,
+  "cats": {
+   "has:bool": [
+    8,
+    13
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    27,
+    47
+   ],
+   "has:tuple": [
+    7,
+    9
+   ],
+   "humaneval": [
+    7,
+    8
+   ],
+   "mbpp": [
+    52,
+    90
+   ],
+   "params>=3": [
+    7,
+    13
+   ],
+   "ret:bool": [
+    8,
+    13
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    24,
+    36
+   ],
+   "ret:list": [
+    10,
+    18
+   ],
+   "ret:str": [
+    13,
+    24
+   ],
+   "ret:tuple": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E203": 41,
+   "E200": 29,
+   "E201": 20,
+   "E017": 6,
+   "E403": 5,
+   "W806": 4,
+   "E315": 4,
+   "E202": 3,
+   "E241": 3,
+   "E110": 3,
+   "E102": 2,
+   "E413": 2
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "openai/gpt-4.1": {
+  "attempts": 39,
+  "pass": 15,
+  "pass_rate": 0.385,
+  "pass_ci": [
+   0.249,
+   0.541
+  ],
+  "pass1_rate": 0.385,
+  "pass1_ci": [
+   0.249,
+   0.541
+  ],
+  "hard": [
+   10,
+   29
+  ],
+  "easy": [
+   5,
+   10
+  ],
+  "spec_failed": 1,
+  "mean_rounds": 3.03,
+  "first_reply_n_notes": 0.18,
+  "first_reply_e_rate": 0.154,
+  "tokens_in": 194226,
+  "tokens_out": 22280,
+  "tokens_reasoning": 0,
+  "cost_total": 0.5313,
+  "cost_per_pass": 0.0354,
+  "latency_median_s": 1.53,
+  "cats": {
+   "has:bool": [
+    3,
+    4
+   ],
+   "has:float": [
+    1,
+    3
+   ],
+   "has:str": [
+    7,
+    25
+   ],
+   "has:tuple": [
+    2,
+    3
+   ],
+   "humaneval": [
+    6,
+    6
+   ],
+   "mbpp": [
+    9,
+    33
+   ],
+   "params>=3": [
+    1,
+    5
+   ],
+   "ret:bool": [
+    3,
+    4
+   ],
+   "ret:float": [
+    1,
+    3
+   ],
+   "ret:int": [
+    4,
+    10
+   ],
+   "ret:list": [
+    3,
+    7
+   ],
+   "ret:str": [
+    3,
+    14
+   ],
+   "ret:tuple": [
+    1,
+    1
+   ]
+  },
+  "e_codes": {
+   "E203": 14,
+   "E201": 12,
+   "E017": 5,
+   "E102": 4,
+   "E504": 3,
+   "E315": 3,
+   "E301": 3,
+   "E200": 2,
+   "E103": 2,
+   "E100": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "openai/gpt-4.1-mini": {
+  "attempts": 100,
+  "pass": 45,
+  "pass_rate": 0.45,
+  "pass_ci": [
+   0.356,
+   0.548
+  ],
+  "pass1_rate": 0.34,
+  "pass1_ci": [
+   0.255,
+   0.437
+  ],
+  "hard": [
+   17,
+   50
+  ],
+  "easy": [
+   28,
+   50
+  ],
+  "spec_failed": 2,
+  "mean_rounds": 3.1,
+  "first_reply_n_notes": 0.1,
+  "first_reply_e_rate": 0.1,
+  "tokens_in": 498403,
+  "tokens_out": 46953,
+  "tokens_reasoning": 0,
+  "cost_total": 0.2273,
+  "cost_per_pass": 0.0051,
+  "latency_median_s": 1.53,
+  "cats": {
+   "has:bool": [
+    6,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    21,
+    48
+   ],
+   "has:tuple": [
+    6,
+    9
+   ],
+   "humaneval": [
+    5,
+    8
+   ],
+   "mbpp": [
+    40,
+    92
+   ],
+   "params>=3": [
+    5,
+    13
+   ],
+   "ret:bool": [
+    6,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    16,
+    36
+   ],
+   "ret:list": [
+    9,
+    18
+   ],
+   "ret:str": [
+    11,
+    25
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E203": 65,
+   "E201": 26,
+   "W806": 15,
+   "E202": 6,
+   "E017": 5,
+   "E200": 5,
+   "E100": 5,
+   "W812": 3,
+   "E110": 3,
+   "E413": 2,
+   "E602": 2,
+   "E301": 2
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "openai/gpt-4.1-nano": {
+  "attempts": 100,
+  "pass": 21,
+  "pass_rate": 0.21,
+  "pass_ci": [
+   0.142,
+   0.3
+  ],
+  "pass1_rate": 0.18,
+  "pass1_ci": [
+   0.117,
+   0.267
+  ],
+  "hard": [
+   9,
+   50
+  ],
+  "easy": [
+   12,
+   50
+  ],
+  "spec_failed": 52,
+  "mean_rounds": 3.12,
+  "first_reply_n_notes": 0.32,
+  "first_reply_e_rate": 0.69,
+  "tokens_in": 472955,
+  "tokens_out": 33055,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0371,
+  "cost_per_pass": 0.0018,
+  "latency_median_s": 1.52,
+  "cats": {
+   "has:bool": [
+    4,
+    14
+   ],
+   "has:dict": [
+    0,
+    1
+   ],
+   "has:float": [
+    1,
+    5
+   ],
+   "has:str": [
+    7,
+    48
+   ],
+   "has:tuple": [
+    2,
+    9
+   ],
+   "humaneval": [
+    3,
+    8
+   ],
+   "mbpp": [
+    18,
+    92
+   ],
+   "params>=3": [
+    2,
+    13
+   ],
+   "ret:bool": [
+    4,
+    14
+   ],
+   "ret:dict": [
+    0,
+    1
+   ],
+   "ret:float": [
+    0,
+    4
+   ],
+   "ret:int": [
+    7,
+    36
+   ],
+   "ret:list": [
+    6,
+    18
+   ],
+   "ret:str": [
+    4,
+    25
+   ],
+   "ret:tuple": [
+    0,
+    2
+   ]
+  },
+  "e_codes": {
+   "E100": 148,
+   "W812": 31,
+   "E201": 21,
+   "E017": 13,
+   "E200": 13,
+   "W823": 8,
+   "E110": 5,
+   "E203": 4,
+   "E403": 4,
+   "E102": 3,
+   "E202": 1,
+   "W806": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "openai/gpt-5.1-codex-mini": {
+  "attempts": 98,
+  "pass": 47,
+  "pass_rate": 0.48,
+  "pass_ci": [
+   0.383,
+   0.577
+  ],
+  "pass1_rate": 0.347,
+  "pass1_ci": [
+   0.26,
+   0.445
+  ],
+  "hard": [
+   19,
+   50
+  ],
+  "easy": [
+   28,
+   48
+  ],
+  "spec_failed": 6,
+  "mean_rounds": 2.92,
+  "first_reply_n_notes": 0.12,
+  "first_reply_e_rate": 0.265,
+  "tokens_in": 443198,
+  "tokens_out": 402837,
+  "tokens_reasoning": 358326,
+  "cost_total": 0.8545,
+  "cost_per_pass": 0.0182,
+  "latency_median_s": 4.83,
+  "cats": {
+   "has:bool": [
+    7,
+    13
+   ],
+   "has:dict": [
+    0,
+    1
+   ],
+   "has:float": [
+    1,
+    5
+   ],
+   "has:str": [
+    21,
+    47
+   ],
+   "has:tuple": [
+    4,
+    9
+   ],
+   "humaneval": [
+    7,
+    8
+   ],
+   "mbpp": [
+    40,
+    90
+   ],
+   "params>=3": [
+    6,
+    13
+   ],
+   "ret:bool": [
+    7,
+    13
+   ],
+   "ret:dict": [
+    0,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    19,
+    36
+   ],
+   "ret:list": [
+    9,
+    18
+   ],
+   "ret:str": [
+    10,
+    24
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E203": 43,
+   "E201": 34,
+   "E200": 17,
+   "E017": 7,
+   "E100": 7,
+   "E315": 5,
+   "E403": 5,
+   "E301": 5,
+   "E202": 3,
+   "E413": 3,
+   "E104": 2,
+   "E110": 2
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "openai/gpt-5.4-mini": {
+  "attempts": 98,
+  "pass": 56,
+  "pass_rate": 0.571,
+  "pass_ci": [
+   0.473,
+   0.665
+  ],
+  "pass1_rate": 0.418,
+  "pass1_ci": [
+   0.326,
+   0.517
+  ],
+  "hard": [
+   23,
+   50
+  ],
+  "easy": [
+   33,
+   48
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.85,
+  "first_reply_n_notes": 0.03,
+  "first_reply_e_rate": 0.02,
+  "tokens_in": 428442,
+  "tokens_out": 34420,
+  "tokens_reasoning": 0,
+  "cost_total": 0.333,
+  "cost_per_pass": 0.0059,
+  "latency_median_s": 1.25,
+  "cats": {
+   "has:bool": [
+    10,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    27,
+    47
+   ],
+   "has:tuple": [
+    6,
+    9
+   ],
+   "humaneval": [
+    8,
+    8
+   ],
+   "mbpp": [
+    48,
+    90
+   ],
+   "params>=3": [
+    7,
+    13
+   ],
+   "ret:bool": [
+    10,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    19,
+    35
+   ],
+   "ret:list": [
+    10,
+    18
+   ],
+   "ret:str": [
+    14,
+    24
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E203": 21,
+   "E201": 21,
+   "E017": 7,
+   "E200": 6,
+   "E403": 5,
+   "E202": 3,
+   "E110": 3,
+   "W806": 3,
+   "E504": 2,
+   "E602": 2,
+   "E301": 2,
+   "E545": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "openai/gpt-5.4-nano": {
+  "attempts": 99,
+  "pass": 35,
+  "pass_rate": 0.354,
+  "pass_ci": [
+   0.266,
+   0.452
+  ],
+  "pass1_rate": 0.232,
+  "pass1_ci": [
+   0.16,
+   0.325
+  ],
+  "hard": [
+   13,
+   49
+  ],
+  "easy": [
+   22,
+   50
+  ],
+  "spec_failed": 2,
+  "mean_rounds": 4.46,
+  "first_reply_n_notes": 0,
+  "first_reply_e_rate": 0.242,
+  "tokens_in": 842091,
+  "tokens_out": 73542,
+  "tokens_reasoning": 0,
+  "cost_total": 0.2169,
+  "cost_per_pass": 0.0062,
+  "latency_median_s": 1.5,
+  "cats": {
+   "has:bool": [
+    4,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    15,
+    47
+   ],
+   "has:tuple": [
+    6,
+    9
+   ],
+   "humaneval": [
+    5,
+    8
+   ],
+   "mbpp": [
+    30,
+    91
+   ],
+   "params>=3": [
+    4,
+    13
+   ],
+   "ret:bool": [
+    4,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    13,
+    35
+   ],
+   "ret:list": [
+    8,
+    18
+   ],
+   "ret:str": [
+    7,
+    25
+   ],
+   "ret:tuple": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E203": 84,
+   "E201": 51,
+   "E100": 22,
+   "E017": 21,
+   "E200": 14,
+   "W806": 9,
+   "E110": 5,
+   "E301": 3,
+   "E202": 3,
+   "E413": 2,
+   "E602": 2,
+   "E504": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "openai/gpt-5.6-luna": {
+  "attempts": 100,
+  "pass": 61,
+  "pass_rate": 0.61,
+  "pass_ci": [
+   0.512,
+   0.7
+  ],
+  "pass1_rate": 0.5,
+  "pass1_ci": [
+   0.404,
+   0.596
+  ],
+  "hard": [
+   25,
+   50
+  ],
+  "easy": [
+   36,
+   50
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.49,
+  "first_reply_n_notes": 0.22,
+  "first_reply_e_rate": 0.11,
+  "tokens_in": 366337,
+  "tokens_out": 108083,
+  "tokens_reasoning": 77409,
+  "cost_total": 0.1552,
+  "cost_per_pass": 0.0025,
+  "latency_median_s": 5.56,
+  "cats": {
+   "has:bool": [
+    10,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    27,
+    48
+   ],
+   "has:tuple": [
+    7,
+    9
+   ],
+   "humaneval": [
+    8,
+    8
+   ],
+   "mbpp": [
+    53,
+    92
+   ],
+   "params>=3": [
+    8,
+    13
+   ],
+   "ret:bool": [
+    10,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    22,
+    36
+   ],
+   "ret:list": [
+    11,
+    18
+   ],
+   "ret:str": [
+    14,
+    25
+   ],
+   "ret:tuple": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 18,
+   "E203": 15,
+   "E202": 8,
+   "E315": 5,
+   "E017": 4,
+   "E200": 4,
+   "E107": 3,
+   "E221": 2,
+   "W806": 2,
+   "E110": 2,
+   "E241": 1,
+   "E104": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "openai/gpt-5.6-terra": {
+  "attempts": 40,
+  "pass": 17,
+  "pass_rate": 0.425,
+  "pass_ci": [
+   0.285,
+   0.578
+  ],
+  "pass1_rate": 0.375,
+  "pass1_ci": [
+   0.242,
+   0.53
+  ],
+  "hard": [
+   11,
+   30
+  ],
+  "easy": [
+   6,
+   10
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.58,
+  "first_reply_n_notes": 0.05,
+  "first_reply_e_rate": 0.1,
+  "tokens_in": 154563,
+  "tokens_out": 21211,
+  "tokens_reasoning": 9044,
+  "cost_total": 0.3328,
+  "cost_per_pass": 0.0196,
+  "latency_median_s": 2.83,
+  "cats": {
+   "has:bool": [
+    3,
+    4
+   ],
+   "has:float": [
+    1,
+    3
+   ],
+   "has:str": [
+    10,
+    26
+   ],
+   "has:tuple": [
+    2,
+    3
+   ],
+   "humaneval": [
+    6,
+    6
+   ],
+   "mbpp": [
+    11,
+    34
+   ],
+   "params>=3": [
+    1,
+    5
+   ],
+   "ret:bool": [
+    3,
+    4
+   ],
+   "ret:float": [
+    1,
+    3
+   ],
+   "ret:int": [
+    4,
+    11
+   ],
+   "ret:list": [
+    3,
+    7
+   ],
+   "ret:str": [
+    5,
+    14
+   ],
+   "ret:tuple": [
+    1,
+    1
+   ]
+  },
+  "e_codes": {
+   "E200": 5,
+   "E203": 4,
+   "E201": 3,
+   "W806": 1,
+   "E504": 1,
+   "E104": 1,
+   "E315": 1,
+   "E221": 1,
+   "E202": 1,
+   "E301": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "qwen/qwen3-coder": {
+  "attempts": 100,
+  "pass": 49,
+  "pass_rate": 0.49,
+  "pass_ci": [
+   0.394,
+   0.587
+  ],
+  "pass1_rate": 0.33,
+  "pass1_ci": [
+   0.246,
+   0.427
+  ],
+  "hard": [
+   20,
+   50
+  ],
+  "easy": [
+   29,
+   50
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 3.39,
+  "first_reply_n_notes": 0.34,
+  "first_reply_e_rate": 0.12,
+  "tokens_in": 595246,
+  "tokens_out": 65597,
+  "tokens_reasoning": 0,
+  "cost_total": 0.1421,
+  "cost_per_pass": 0.0029,
+  "latency_median_s": 1.26,
+  "cats": {
+   "has:bool": [
+    7,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    23,
+    48
+   ],
+   "has:tuple": [
+    7,
+    9
+   ],
+   "humaneval": [
+    8,
+    8
+   ],
+   "mbpp": [
+    41,
+    92
+   ],
+   "params>=3": [
+    6,
+    13
+   ],
+   "ret:bool": [
+    7,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    18,
+    36
+   ],
+   "ret:list": [
+    10,
+    18
+   ],
+   "ret:str": [
+    10,
+    25
+   ],
+   "ret:tuple": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E203": 56,
+   "E201": 39,
+   "W806": 16,
+   "E200": 13,
+   "E017": 8,
+   "E403": 7,
+   "E315": 5,
+   "E202": 4,
+   "E413": 3,
+   "E110": 3,
+   "E602": 2,
+   "E100": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "qwen/qwen3-coder-30b-a3b-instruct": {
+  "attempts": 100,
+  "pass": 45,
+  "pass_rate": 0.45,
+  "pass_ci": [
+   0.356,
+   0.548
+  ],
+  "pass1_rate": 0.34,
+  "pass1_ci": [
+   0.255,
+   0.437
+  ],
+  "hard": [
+   19,
+   50
+  ],
+  "easy": [
+   26,
+   50
+  ],
+  "spec_failed": 8,
+  "mean_rounds": 3.29,
+  "first_reply_n_notes": 0.58,
+  "first_reply_e_rate": 0.15,
+  "tokens_in": 556193,
+  "tokens_out": 54240,
+  "tokens_reasoning": 0,
+  "cost_total": 0.1142,
+  "cost_per_pass": 0.0025,
+  "latency_median_s": 0.98,
+  "cats": {
+   "has:bool": [
+    6,
+    14
+   ],
+   "has:dict": [
+    0,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    20,
+    48
+   ],
+   "has:tuple": [
+    6,
+    9
+   ],
+   "humaneval": [
+    7,
+    8
+   ],
+   "mbpp": [
+    38,
+    92
+   ],
+   "params>=3": [
+    4,
+    13
+   ],
+   "ret:bool": [
+    6,
+    14
+   ],
+   "ret:dict": [
+    0,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    17,
+    36
+   ],
+   "ret:list": [
+    8,
+    18
+   ],
+   "ret:str": [
+    11,
+    25
+   ],
+   "ret:tuple": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E203": 67,
+   "E201": 30,
+   "E403": 21,
+   "E017": 18,
+   "E200": 10,
+   "E202": 7,
+   "W806": 6,
+   "E110": 6,
+   "E100": 5,
+   "W823": 4,
+   "E315": 4,
+   "W820": 4
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "qwen/qwen3.7-flash": {
+  "attempts": 97,
+  "pass": 49,
+  "pass_rate": 0.505,
+  "pass_ci": [
+   0.407,
+   0.603
+  ],
+  "pass1_rate": 0.371,
+  "pass1_ci": [
+   0.282,
+   0.47
+  ],
+  "hard": [
+   19,
+   47
+  ],
+  "easy": [
+   30,
+   50
+  ],
+  "spec_failed": 4,
+  "mean_rounds": 2.74,
+  "first_reply_n_notes": 0.12,
+  "first_reply_e_rate": 0.103,
+  "tokens_in": 429810,
+  "tokens_out": 1305810,
+  "tokens_reasoning": 1269682,
+  "cost_total": 0.1832,
+  "cost_per_pass": 0.0037,
+  "latency_median_s": 31.93,
+  "cats": {
+   "has:bool": [
+    6,
+    14
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    25,
+    45
+   ],
+   "has:tuple": [
+    6,
+    9
+   ],
+   "humaneval": [
+    7,
+    8
+   ],
+   "mbpp": [
+    42,
+    89
+   ],
+   "params>=3": [
+    5,
+    12
+   ],
+   "ret:bool": [
+    6,
+    14
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    18,
+    34
+   ],
+   "ret:list": [
+    8,
+    18
+   ],
+   "ret:str": [
+    13,
+    24
+   ],
+   "ret:tuple": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 56,
+   "E203": 14,
+   "E017": 8,
+   "E315": 7,
+   "W820": 6,
+   "E202": 4,
+   "E200": 4,
+   "E413": 3,
+   "W806": 3,
+   "E110": 3,
+   "E403": 2,
+   "E602": 2
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "qwen/qwen3.7-plus": {
+  "attempts": 98,
+  "pass": 61,
+  "pass_rate": 0.622,
+  "pass_ci": [
+   0.524,
+   0.712
+  ],
+  "pass1_rate": 0.51,
+  "pass1_ci": [
+   0.413,
+   0.607
+  ],
+  "hard": [
+   26,
+   49
+  ],
+  "easy": [
+   35,
+   49
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.42,
+  "first_reply_n_notes": 0.08,
+  "first_reply_e_rate": 0.051,
+  "tokens_in": 366814,
+  "tokens_out": 508765,
+  "tokens_reasoning": 475878,
+  "cost_total": 0.7136,
+  "cost_per_pass": 0.0117,
+  "latency_median_s": 27.91,
+  "cats": {
+   "has:bool": [
+    8,
+    13
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    29,
+    47
+   ],
+   "has:tuple": [
+    7,
+    9
+   ],
+   "humaneval": [
+    8,
+    8
+   ],
+   "mbpp": [
+    53,
+    90
+   ],
+   "params>=3": [
+    7,
+    13
+   ],
+   "ret:bool": [
+    8,
+    13
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    24,
+    35
+   ],
+   "ret:list": [
+    11,
+    18
+   ],
+   "ret:str": [
+    14,
+    25
+   ],
+   "ret:tuple": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E203": 13,
+   "W806": 6,
+   "E201": 5,
+   "E017": 4,
+   "E315": 4,
+   "E403": 3,
+   "E110": 3,
+   "W820": 2,
+   "E200": 2,
+   "E202": 2,
+   "E413": 2,
+   "E301": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "stepfun/step-3.7-flash": {
+  "attempts": 95,
+  "pass": 39,
+  "pass_rate": 0.411,
+  "pass_ci": [
+   0.317,
+   0.511
+  ],
+  "pass1_rate": 0.368,
+  "pass1_ci": [
+   0.278,
+   0.469
+  ],
+  "hard": [
+   14,
+   45
+  ],
+  "easy": [
+   25,
+   50
+  ],
+  "spec_failed": 13,
+  "mean_rounds": 3.08,
+  "first_reply_n_notes": 0.62,
+  "first_reply_e_rate": 0.516,
+  "tokens_in": 501310,
+  "tokens_out": 1710850,
+  "tokens_reasoning": 0,
+  "cost_total": 2.0673,
+  "cost_per_pass": 0.053,
+  "latency_median_s": 17.1,
+  "cats": {
+   "has:bool": [
+    7,
+    13
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    2,
+    5
+   ],
+   "has:str": [
+    17,
+    44
+   ],
+   "has:tuple": [
+    4,
+    8
+   ],
+   "humaneval": [
+    7,
+    8
+   ],
+   "mbpp": [
+    32,
+    87
+   ],
+   "params>=3": [
+    7,
+    13
+   ],
+   "ret:bool": [
+    7,
+    13
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    1,
+    4
+   ],
+   "ret:int": [
+    14,
+    36
+   ],
+   "ret:list": [
+    7,
+    18
+   ],
+   "ret:str": [
+    9,
+    22
+   ],
+   "ret:tuple": [
+    0,
+    1
+   ]
+  },
+  "e_codes": {
+   "E201": 49,
+   "E100": 41,
+   "E017": 15,
+   "E203": 14,
+   "E107": 9,
+   "E110": 9,
+   "E200": 5,
+   "E104": 5,
+   "E301": 5,
+   "W820": 5,
+   "W823": 4,
+   "E202": 4
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ }
+}

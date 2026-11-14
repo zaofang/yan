@@ -1,0 +1,31 @@
+# spec: 17.3
+# rows: R936
+# note: itertools returns lazy iter values in Python's order; permutations, combinations, product, pairwise and accumulate over lists
+# stdout:
+# 123 132 213 231 312 321
+# 12 13 23
+# 11 12 21 22
+# 1-2 2-3
+# 1 3 6
+
+pub def main() uses io:
+    p = ""
+    for t in itertools.permutations([1, 2, 3]):
+        p = p + f"{t[0]}{t[1]}{t[2]} "
+    io.print(p.strip())
+    c = ""
+    for t in itertools.combinations([1, 2, 3], 2):
+        c = c + f"{t[0]}{t[1]} "
+    io.print(c.strip())
+    q = ""
+    for t in itertools.product([1, 2], [1, 2]):
+        q = q + f"{t[0]}{t[1]} "
+    io.print(q.strip())
+    w = ""
+    for t in itertools.pairwise([1, 2, 3]):
+        w = w + f"{t[0]}-{t[1]} "
+    io.print(w.strip())
+    a = ""
+    for x in itertools.accumulate([1, 2, 3]):
+        a = a + f"{x} "
+    io.print(a.strip())

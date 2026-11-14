@@ -118,7 +118,8 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             let id = crate::sync::chan(&a[1]);
             let owner = current(&vm.it, &vm.task_path);
             let it = &mut vm.it;
-            it.chans.push((usize::MAX, Default::default()));
+            it.chans
+                .push(crate::sync::Chan::new(usize::MAX, usize::MAX));
             let c = it.chans.len() - 1;
             it.monitors.push((id, c, owner));
             deliver(it, id);
@@ -446,7 +447,7 @@ pub(crate) fn deliver(it: &mut Interp, id: usize) {
             name: "Stopped".into(),
             fields: vec![("reason".into(), reason.clone())],
         };
-        it.chans[c].1.push_back(down);
+        it.chans[c].q.push_back(down);
         it.progress += 1;
     }
 }

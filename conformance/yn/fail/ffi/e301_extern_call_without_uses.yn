@@ -1,0 +1,8 @@
+-- spec: 12.2
+-- note: calling an extern item needs `uses <lib>`
+-- expect: E301 at 8:20
+
+unsafe extern "C" lib m link "m"
+  safe cos(x: f64) -> f64
+
+f(x: f64) -> f64 = cos(x)

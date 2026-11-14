@@ -1,0 +1,9 @@
+# spec: 10.1, 17.4
+# rows: R423, R872
+# expect: E282 at 8:7
+
+@derive(Wire)
+type Box[T] = Full(value: T) | Empty()
+
+def f(_: Box[Fs]) -> int:
+    return 1

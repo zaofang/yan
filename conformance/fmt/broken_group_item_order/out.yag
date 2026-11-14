@@ -1,0 +1,12 @@
+def zeta() -> int:
+    return 1000000
+
+def alpha(x: int) -> int:
+    return 0xFFFFFFFF + 1_0_0_0 + x
+
+def long_call(a: int, b: int) -> int:
+    return combine_things(
+        argument_number_one_is_long,
+        argument_number_two_is_long,
+        argument_number_three_is_long,
+    )

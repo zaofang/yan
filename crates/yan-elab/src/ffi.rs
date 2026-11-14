@@ -87,6 +87,7 @@ pub(crate) fn collect(g: &mut Globals, x: &j::Extern, at: Span, cx: &mut Cx) -> 
             params,
             variadic,
             ret,
+            uses_none,
             ..
         } = xi
         else {
@@ -142,7 +143,11 @@ pub(crate) fn collect(g: &mut Globals, x: &j::Extern, at: Span, cx: &mut Cx) -> 
                 params: ps,
                 ret,
                 fail: None,
-                caps: Vec::new(),
+                caps: if *uses_none {
+                    Vec::new()
+                } else {
+                    vec![x.lib.clone()]
+                },
                 cap_tys: Vec::new(),
                 from: Vec::new(),
                 ghosts: Vec::new(),

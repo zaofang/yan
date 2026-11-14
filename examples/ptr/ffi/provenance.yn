@@ -1,0 +1,11 @@
+-- spec: 6.6
+-- note: addr drops provenance, with_addr keeps it, pointer == compares addresses
+
+main() uses io =
+  p = ptr.without_provenance[c_char](4096)
+  q = ptr.with_addr(p, 4104)
+  print(ptr.addr(q))
+  print(p == ptr.without_provenance[c_char](4096))
+  d = ptr.dangling[c_int]()
+  print(ptr.addr(d))
+  print(ptr.addr(ptr.map_addr(p, a -> a + 8)))

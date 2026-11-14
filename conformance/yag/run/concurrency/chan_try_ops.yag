@@ -1,0 +1,35 @@
+# spec: 9.5
+# rows: R342
+# note: try_recv fails Empty on an open empty channel and Closed once every sender is gone; try_send fails Full (#1153)
+# stdout:
+# Empty()
+# sent
+# Full()
+# 1
+# Empty()
+# 0
+# Closed()
+
+def gone() -> Receiver[int] uses nondet:
+    tx, rx = Channel[int](1)
+    tx.try_send(0) else e -> None
+    return rx
+
+def poll(var rx: Receiver[int]) -> str fail Empty | Closed | Cancelled uses nondet:
+    v = rx.try_recv()?
+    return f"{v}"
+
+def push(var tx: Sender[int], v: int) -> str fail Full | Cancelled uses nondet:
+    tx.try_send(v)?
+    return "sent"
+
+def main() uses io, nondet:
+    tx, rx = Channel[int](1)
+    print(poll(&rx) else e -> f"{e}")
+    print(push(&tx, 1) else e -> f"{e}")
+    print(push(&tx, 2) else e -> f"{e}")
+    print(poll(&rx) else e -> f"{e}")
+    print(poll(&rx) else e -> f"{e}")
+    r = gone()
+    print(poll(&r) else e -> f"{e}")
+    print(poll(&r) else e -> f"{e}")

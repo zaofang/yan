@@ -1,0 +1,20 @@
+-- spec: 3.5
+-- rows: R764
+-- stdout:
+-- body
+-- after
+-- kept
+
+module conf.jp_falls_through
+
+fn main(cap io: Io) -> Unit {
+    let s: Str = "kept"
+    jp k() {
+        std.io.print(cap io, let "body")
+    }
+    let c: bool = lt_i64(let 1, let 2)
+    if c { jump k() } else { jump k() }
+    std.io.print(cap io, let "after")
+    std.io.print(cap io, let s)
+    ret ()
+}

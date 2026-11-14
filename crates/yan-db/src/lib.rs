@@ -293,7 +293,7 @@ fn package_manifest(path: &Path) -> Option<yan_elab::Manifest> {
 
 /// 12: a module under the package's `ffi/` directory. The package root is the nearest
 /// directory above the module with a `yan.toml`; without one, the module's own directory
-/// must be named `ffi` (conformance assumption A9). Directories above the root never count.
+/// must be named `ffi` or `ub` (conformance assumption A9). Directories above the root never count.
 fn is_ffi(path: &Path) -> bool {
     let Some(dir) = path.parent() else {
         return false;
@@ -304,7 +304,7 @@ fn is_ffi(path: &Path) -> bool {
                 .next()
                 .is_some_and(|c| c.as_os_str() == "ffi")
         }),
-        None => dir.file_name().is_some_and(|n| n == "ffi"),
+        None => dir.file_name().is_some_and(|n| n == "ffi" || n == "ub"),
     }
 }
 
@@ -452,6 +452,7 @@ mod tests {
         assert!(!is_ffi(&pkg.join("src").join("a.yn")));
         assert!(is_ffi(&pkg.join("ffi").join("a.yn")));
         assert!(is_ffi(Path::new("conformance/yn/pass/ffi/a.yn")));
+        assert!(is_ffi(Path::new("conformance/ub/a.yn")));
         assert!(!is_ffi(Path::new("conformance/yn/fail/unsafe/a.yn")));
     }
 

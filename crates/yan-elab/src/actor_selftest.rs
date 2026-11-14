@@ -209,7 +209,7 @@ def take_away(var self: A, k: int) -> int fail Neg:
 @reentrant
 def wait_for(var self: A, var rx: Receiver[int]) -> int fail ActorError:
     self.n = self.n + 1
-    v = rx.recv()?
+    v = rx.recv()? else 0
     self.n = self.n + v
     return self.n
 
@@ -360,7 +360,7 @@ def get(var self: A) -> int:
     return self.n
 
 def hold(var self: A, var rx: Receiver[int]) -> int fail Cancelled:
-    return rx.recv()?
+    return rx.recv()? else 0
 
 def ask(a: Actor[A], var go: Receiver[int]) -> int fail ActorError uses time:
     go.recv()?
@@ -529,7 +529,7 @@ def get(var self: A) -> int:
     return self.n
 
 def hold(var self: A, var rx: Receiver[int]) -> int fail Cancelled:
-    return rx.recv()?
+    return rx.recv()? else 0
 
 def show(r: Result[int, ActorError]) -> str:
     match r:

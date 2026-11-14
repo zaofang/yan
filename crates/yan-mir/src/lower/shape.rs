@@ -32,10 +32,16 @@ pub enum Shape {
     Sum(String, Vec<(String, Vec<(String, Shape)>)>),
     /// A closure: its code and its captures' block. `ret` is a `Result` for `fail E`.
     Fn(Vec<Shape>, Box<Shape>),
-    /// A `Sender[T]` or `Receiver[T]`: the channel both ends share.
-    Chan(Box<Shape>),
+    /// A `Sender[T]` (true) or `Receiver[T]`: the channel both ends share.
+    Chan(Box<Shape>, bool),
     /// An `Actor[S]`: the actor's index in `yan_rt::actor`, which the handle does not own.
     Actor(Box<Shape>),
+    /// A `Ptr[T]` (6.6): its address, then its provenance (0 for none).
+    Ptr,
+    /// An `Arena`: a `yan_rt::arena` block that owns every slot `alloc` handed out.
+    Arena,
+    /// A `Ref[T]`: the address of its slot in an arena; the arena owns it.
+    Ref(Box<Shape>),
     /// A `set`: a `yan_rt::map` block whose entries are keys with no value slots.
     Set(Box<Shape>),
 }
@@ -55,10 +61,13 @@ impl Shape {
             | Shape::Map(..)
             | Shape::Heap(_)
             | Shape::Deque(_)
-            | Shape::Chan(_)
+            | Shape::Chan(..)
             | Shape::Actor(_)
+            | Shape::Arena
+            | Shape::Ref(_)
             | Shape::Set(_) => out.push(Ty::Ptr),
             Shape::Fn(..) => out.extend([Ty::Ptr, Ty::Ptr]),
+            Shape::Ptr => out.extend([I64, I64]),
             Shape::Rec(_, fs) => fs.iter().for_each(|(_, s)| s.slots(out)),
             Shape::Tuple(ss) => ss.iter().for_each(|s| s.slots(out)),
             Shape::Sum(_, vs) => {
@@ -123,11 +132,56 @@ impl Shape {
 pub(super) struct Types<'m> {
     pub(super) recs: HashMap<&'m str, &'m y::Record>,
     pub(super) sums: HashMap<&'m str, &'m y::Sum>,
+    pub(super) externs: HashMap<String, R<crate::ffi::ExternFn>>,
 }
 
 impl Types<'_> {
     pub(super) fn shape(&self, t: &y::Type) -> R<Shape> {
         self.shape_in(t, &mut Vec::new())
+    }
+
+    /// The shape of a nominal record or sum at type arguments: its fields with the arguments
+    /// substituted, named by the canonical instance text (D3, D7).
+    fn generic_shape(&self, n: &y::Named, stack: &mut Vec<String>) -> Option<R<Shape>> {
+        let name = n.path[0].as_str();
+        let (tparams, fields): (&[y::TParam], Vec<(&str, &[y::Field])>) =
+            if let Some(r) = self.recs.get(name).filter(|r| !r.tparams.is_empty()) {
+                (&r.tparams, vec![("", &r.fields[..])])
+            } else {
+                let s = self.sums.get(name).filter(|s| !s.tparams.is_empty())?;
+                let vs = s
+                    .variants
+                    .iter()
+                    .map(|v| (v.name.as_str(), v.fields.as_deref().unwrap_or(&[])))
+                    .collect();
+                (&s.tparams, vs)
+            };
+        let is_sum = self.sums.contains_key(name) && !self.recs.contains_key(name);
+        let inst = yan_core::subst::instance(&n.path, &n.args);
+        if stack.contains(&inst) {
+            return Some(unsupported(format!("recursive type `{inst}`")));
+        }
+        stack.push(inst.clone());
+        let built = (|| {
+            let mut out = Vec::new();
+            for (vname, fs) in &fields {
+                let fs = fs
+                    .iter()
+                    .map(|f| {
+                        let t = yan_core::subst::apply(&f.ty, tparams, &n.args);
+                        Ok((f.name.clone(), self.shape_in(&t, stack)?))
+                    })
+                    .collect::<R<Vec<_>>>()?;
+                out.push(((*vname).to_owned(), fs));
+            }
+            Ok(if is_sum {
+                Shape::Sum(inst, out)
+            } else {
+                Shape::Rec(inst, out.pop().map(|(_, f)| f).unwrap_or_default())
+            })
+        })();
+        stack.pop();
+        Some(built)
     }
 
     pub(super) fn shape_in(&self, t: &y::Type, stack: &mut Vec<String>) -> R<Shape> {
@@ -171,6 +225,13 @@ impl Types<'_> {
                         if !self.recs.contains_key(name) && !self.sums.contains_key(name) =>
                     {
                         return Ok(Shape::Scalar(I64));
+                    }
+                    ("Ptr", [y::TArg::Type(_)]) if !self.recs.contains_key(name) => {
+                        return Ok(Shape::Ptr);
+                    }
+                    ("Arena", []) if !self.recs.contains_key(name) => return Ok(Shape::Arena),
+                    ("Ref", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
+                        return Ok(Shape::Ref(Box::new(self.shape_in(e, stack)?)));
                     }
                     ("char", []) => return Ok(Shape::Char),
                     ("Secret", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
@@ -218,7 +279,8 @@ impl Types<'_> {
                         return Ok(result(self.shape_in(t, stack)?, self.shape_in(e, stack)?));
                     }
                     ("Sender" | "Receiver", [y::TArg::Type(e)]) => {
-                        return Ok(Shape::Chan(Box::new(self.shape_in(e, stack)?)));
+                        let sender = name == "Sender";
+                        return Ok(Shape::Chan(Box::new(self.shape_in(e, stack)?), sender));
                     }
                     // The overflow policy is the actor's, at run time.
                     ("Actor" | "SendOnly", [y::TArg::Type(s), ..]) => {
@@ -229,12 +291,26 @@ impl Types<'_> {
                     }
                     // A `Remote` is its handle: every node runs in this process (R417).
                     ("Remote", [y::TArg::Type(h)]) => return self.shape_in(h, stack),
+                    // A `Group` is its index in `yan_rt`; its members are one-word handles.
+                    ("Group", [y::TArg::Type(a)]) => {
+                        if !matches!(self.shape_in(a, stack)?, Shape::Actor(_) | Shape::Scalar(_)) {
+                            return unsupported(format!(
+                                "type `{name}[..]` of members that are not handles"
+                            ));
+                        }
+                        return Ok(Shape::Scalar(I64));
+                    }
                     ("Undelivered", [y::TArg::Type(a), y::TArg::Type(r)]) => {
                         let (a, r) = (self.shape_in(a, stack)?, self.shape_in(r, stack)?);
                         return Ok(actor::undelivered(a, r));
                     }
                     (_, []) => {}
-                    _ => return unsupported(format!("type `{name}[..]`")),
+                    _ => {
+                        if let Some(s) = self.generic_shape(n, stack) {
+                            return s;
+                        }
+                        return unsupported(format!("type `{name}[..]`"));
+                    }
                 }
                 if let Some(t) = scalar_ty(name) {
                     return Ok(Shape::Scalar(t));
@@ -323,10 +399,26 @@ pub(super) const STD_FAILURES: &[&str] = &[
     "Draining",
     "Deadlock",
     "Full",
+    "Empty",
+    "Closed",
     "Unreachable",
     "Rejected",
     "SchemaMismatch",
 ];
+
+/// The union of the fieldless failures `names`, in order.
+pub(super) fn failure_union(names: &[&str]) -> Shape {
+    Shape::Sum(
+        "Union".into(),
+        names
+            .iter()
+            .map(|n| {
+                let m = Shape::Rec((*n).into(), Vec::new());
+                ((*n).into(), vec![("value".into(), m)])
+            })
+            .collect(),
+    )
+}
 
 pub(super) fn result(ok: Shape, err: Shape) -> Shape {
     Shape::Sum(

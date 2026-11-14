@@ -13,6 +13,8 @@ pub struct Chan {
     /// Queued elements, `words` slots each (one for a zero-slot element), oldest first.
     q: VecDeque<u64>,
     ends: u32,
+    /// Live `Sender`s; with none left and nothing queued a receive finds the channel closed.
+    senders: u32,
 }
 
 impl Chan {
@@ -40,6 +42,7 @@ pub extern "C" fn yan_rt_chan_new(cap: u64, words: u64) -> *mut Chan {
         words: words as usize,
         q: VecDeque::new(),
         ends: 2,
+        senders: 1,
     }))
 }
 
@@ -48,6 +51,13 @@ pub const BLOCKED: u64 = 1;
 
 /// The status of an operation in a cancelled task: it fails `Cancelled` (9.4).
 pub const CANCELLED: u64 = 2;
+
+/// The status of a `recv` on a closed, empty channel: it yields None (9.5).
+pub const CLOSED: u64 = 3;
+
+/// The status of a `try_recv` on an open channel with nothing queued, or a `try_send` on one
+/// with no room (`Empty`, `Full`).
+pub const NOT_READY: u64 = 4;
 
 /// A wait that cannot park leaves nothing else to run, so an idle actor runs a queued message
 /// first, as it would at `par concurrent` quiescence (RFC 0056 D4): [`crate::actor::WORK`].
@@ -103,6 +113,9 @@ pub unsafe extern "C" fn yan_rt_chan_recv(ch: *mut Chan, out: *mut u64, in_task:
     // SAFETY: the caller's contract.
     let c = unsafe { &mut *ch };
     if c.len() == 0 {
+        if c.senders == 0 {
+            return CLOSED;
+        }
         if sched::park((true, ch as usize), in_task != 0) {
             return BLOCKED;
         }
@@ -114,6 +127,126 @@ pub unsafe extern "C" fn yan_rt_chan_recv(ch: *mut Chan, out: *mut u64, in_task:
     }
     sched::progressed();
     0
+}
+
+/// `try_send`: as `send`, but a channel with no room is [`NOT_READY`] instead of a wait.
+///
+/// # Safety
+/// `ch` is a live channel and `buf` holds its element's slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_chan_try_send(ch: *mut Chan, buf: *const u64, in_task: u64) -> u64 {
+    if in_task != 0 && sched::cancelled() {
+        return CANCELLED;
+    }
+    // SAFETY: the caller's contract.
+    let c = unsafe { &mut *ch };
+    let room = if c.cap == 0 {
+        sched::waiting(ch as usize)
+    } else {
+        c.cap
+    };
+    if c.len() >= room {
+        return NOT_READY;
+    }
+    // SAFETY: the caller's contract.
+    unsafe { yan_rt_chan_send(ch, buf, 0) }
+}
+
+/// `try_recv`: as `recv`, but an open channel with nothing queued is [`NOT_READY`] instead of a
+/// wait; a closed one is [`CLOSED`].
+///
+/// # Safety
+/// `ch` is a live channel and `out` has room for its element's slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_chan_try_recv(ch: *mut Chan, out: *mut u64, in_task: u64) -> u64 {
+    // SAFETY: the caller's contract.
+    let c = unsafe { &*ch };
+    if c.len() == 0 && c.senders != 0 && !(in_task != 0 && sched::cancelled()) {
+        return NOT_READY;
+    }
+    // SAFETY: the caller's contract.
+    unsafe { yan_rt_chan_recv(ch, out, in_task) }
+}
+
+/// The arm kinds in the low two bits of a `select_wait` key, the channel above: a receive that
+/// is ready on a message or on close, a send, a receive that wants a message (`is Some(..)`),
+/// and one that wants close (`is None`). A timer arm is -1.
+const SEL_RECV: i64 = 0;
+const SEL_SEND: i64 = 1;
+const SEL_VALUE: i64 = 2;
+
+/// `select_wait` (15.3): the index of the first ready arm in source order into `out`, as the
+/// interpreter's; 0, or [`BLOCKED`], [`CANCELLED`] or [`crate::actor::WORK`] as for `recv`.
+/// A timer arm takes the next of `at`'s readings (two words each) and is ready once the clock
+/// reaches it; with nothing else able to end the wait the clock runs up to the earliest.
+///
+/// # Safety
+/// `keys` and `at` are live lists of arm keys and readings, and `out` has a slot.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_select_wait(
+    keys: *const crate::abi::List,
+    at: *const crate::abi::List,
+    out: *mut u64,
+    in_task: u64,
+) -> u64 {
+    // SAFETY: the caller's contract.
+    let (keys, at) = unsafe { (&(*keys).data, &(*at).data) };
+    let at: Vec<i128> = at
+        .chunks(2)
+        .map(|w| (i128::from(w[0] as i64) << 64) | i128::from(w[1]))
+        .collect();
+    loop {
+        if in_task != 0 && sched::cancelled() {
+            return CANCELLED;
+        }
+        let now = crate::civil::mono_now();
+        let mut timers = at.iter();
+        let mut wake: Option<i128> = None;
+        for (i, &k) in keys.iter().enumerate() {
+            let k = k as i64;
+            let ready = if k < 0 {
+                let t = *timers.next().expect("a reading per timer arm");
+                wake = Some(wake.map_or(t, |w| w.min(t)));
+                t <= now
+            } else {
+                // SAFETY: a key is a live channel with its arm kind in the low bits.
+                let c = unsafe { &*((k & !3) as *const Chan) };
+                match k & 3 {
+                    SEL_RECV => c.senders == 0 || c.len() > 0,
+                    SEL_SEND => {
+                        let room = if c.cap == 0 {
+                            sched::waiting((k & !3) as usize)
+                        } else {
+                            c.cap
+                        };
+                        c.len() < room
+                    }
+                    SEL_VALUE => c.len() > 0,
+                    _ => c.senders == 0 && c.len() == 0,
+                }
+            };
+            if ready {
+                // SAFETY: the caller's contract.
+                unsafe { *out = i as u64 };
+                return 0;
+            }
+        }
+        let first_recv = keys
+            .iter()
+            .map(|&k| k as i64)
+            .find(|&k| k >= 0 && k & 3 != SEL_SEND);
+        let on = first_recv.map_or((false, usize::MAX), |k| (true, (k & !3) as usize));
+        if sched::park_until(on, wake, in_task != 0) {
+            return BLOCKED;
+        }
+        if crate::actor::yan_rt_actor_idle() != 0 {
+            return crate::actor::WORK;
+        }
+        match wake {
+            Some(w) => crate::civil::wait_until(w),
+            None => deadlock(),
+        }
+    }
 }
 
 /// Queues `v`, an element's slots, on channel `ch` as its sender would.
@@ -140,6 +273,31 @@ pub unsafe extern "C" fn yan_rt_chan_drop(ch: *mut Chan) {
         // SAFETY: from `yan_rt_chan_new`, and both ends are gone.
         drop(unsafe { Box::from_raw(ch) });
     }
+}
+
+/// Drop a `Sender`: the receivers see the channel closed once its last is gone.
+///
+/// # Safety
+/// As [`yan_rt_chan_drop`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_chan_drop_sender(ch: *mut Chan) {
+    // SAFETY: the caller's contract.
+    unsafe { (*ch).senders -= 1 };
+    sched::progressed();
+    // SAFETY: as above.
+    unsafe { yan_rt_chan_drop(ch) };
+}
+
+/// A copy of a `Sender`.
+///
+/// # Safety
+/// `ch` is a live channel.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_chan_clone_sender(ch: *mut Chan) {
+    // SAFETY: the caller's contract.
+    unsafe { (*ch).senders += 1 };
+    // SAFETY: as above.
+    unsafe { yan_rt_chan_clone(ch) };
 }
 
 /// A copy of an end: one more end of the same channel.

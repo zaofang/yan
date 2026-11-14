@@ -689,6 +689,7 @@ fn item(it: &y::Item, std: &dyn Std, marks: &Marks) -> R<Option<Item>> {
                 tparams: tparams(&r.tparams),
                 doc: None,
                 fields: r.fields.iter().map(field).collect::<R<_>>()?,
+                positional: 0,
             }),
         ),
         y::ItemKind::Sum(s) => (
@@ -1742,8 +1743,8 @@ fn annotation(value: &Expr, t: &y::Type) -> R<Option<Type>> {
                 t,
                 y::Type::Named(n) if n.path.len() == 1
                     && !matches!(n.path[0].as_str(), "i64" | "f64" | "BigInt")
-                    && yan_std::intrinsics::INTS.iter().chain(&yan_std::intrinsics::FLOATS)
-                        .any(|s| *s == n.path[0])
+                    && (yan_std::intrinsics::is_int(&n.path[0])
+                        || yan_std::intrinsics::FLOATS.contains(&n.path[0].as_str()))
             ),
             _ => false,
         };

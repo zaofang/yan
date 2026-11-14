@@ -1,0 +1,132 @@
+row,bucket,group,reason
+R350,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R351,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R352,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R353,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R354,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R355,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R357,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R358,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R359,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R360,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R361,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R362,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R363,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R364,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R365,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R366,exempt,"Licensing, governance, trademark (26.5)","Legal and process rules about the project, not program behaviour. R356 (license_policy enforced by yan check) stays, it is observable."
+R566,exempt,"Names, marks, release scope, design bases","Naming, trademark, release-scope and probe-timing decisions; no program output depends on them."
+R567,exempt,"Names, marks, release scope, design bases","Naming, trademark, release-scope and probe-timing decisions; no program output depends on them."
+R586,exempt,"Names, marks, release scope, design bases","Naming, trademark, release-scope and probe-timing decisions; no program output depends on them."
+R774,exempt,"Names, marks, release scope, design bases","Naming, trademark, release-scope and probe-timing decisions; no program output depends on them."
+R775,exempt,"Names, marks, release scope, design bases","Naming, trademark, release-scope and probe-timing decisions; no program output depends on them."
+R990,exempt,"Names, marks, release scope, design bases","Naming, trademark, release-scope and probe-timing decisions; no program output depends on them."
+R991,exempt,"Names, marks, release scope, design bases","Naming, trademark, release-scope and probe-timing decisions; no program output depends on them."
+R1001,exempt,"Names, marks, release scope, design bases","Naming, trademark, release-scope and probe-timing decisions; no program output depends on them."
+R479,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R558,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R560,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R561,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R562,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R914,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R915,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R921,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R922,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R923,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R961,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R965,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R987,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R1000,exempt,Toolchain-internal structure,"Crate layering, registry generation, suite layout, unsafe confinement, yan-flow placement, egglog backend choice. Checked by repo tooling (cargo, lint scripts, tools/conform.py), never by a Yan program."
+R966,exempt,Implementation language and self-hosting,"Which language the compiler is written in, S0 to S5 stages and the LLVM choice. Tracked by #851, gated by byte-equality, not by a conformance case."
+R967,exempt,Implementation language and self-hosting,"Which language the compiler is written in, S0 to S5 stages and the LLVM choice. Tracked by #851, gated by byte-equality, not by a conformance case."
+R968,exempt,Implementation language and self-hosting,"Which language the compiler is written in, S0 to S5 stages and the LLVM choice. Tracked by #851, gated by byte-equality, not by a conformance case."
+R969,exempt,Implementation language and self-hosting,"Which language the compiler is written in, S0 to S5 stages and the LLVM choice. Tracked by #851, gated by byte-equality, not by a conformance case."
+R970,exempt,Implementation language and self-hosting,"Which language the compiler is written in, S0 to S5 stages and the LLVM choice. Tracked by #851, gated by byte-equality, not by a conformance case."
+R796,exempt,Panic payload internals,"Payload fields (RFC 0031, 0042) live in the record-and-replay buffer; a program sees only the terminal message, which omits them (spec 8.3)."
+R883,exempt,Panic payload internals,"Payload fields (RFC 0031, 0042) live in the record-and-replay buffer; a program sees only the terminal message, which omits them (spec 8.3)."
+R884,exempt,Panic payload internals,"Payload fields (RFC 0031, 0042) live in the record-and-replay buffer; a program sees only the terminal message, which omits them (spec 8.3)."
+R885,exempt,Panic payload internals,"Payload fields (RFC 0031, 0042) live in the record-and-replay buffer; a program sees only the terminal message, which omits them (spec 8.3)."
+R565,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R837,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R838,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R839,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R840,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R841,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R842,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R843,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R850,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R851,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R852,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R853,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R854,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R855,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R856,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R857,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R858,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R859,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R860,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R861,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R862,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R863,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R864,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R865,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R866,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R867,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R868,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R869,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R870,merge,Origin and spelling marks (RFC 0034),"HIR trivia marks. Not observable alone; their only contract is the raise round trip, already stated by N7 and law 6 (R996)."
+R215,merge,Superseded implementation language,Replaced by R966 (spec says so).
+R455,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R522,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R523,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R524,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R525,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R526,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R527,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R528,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R529,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R530,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R531,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R532,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R533,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R534,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R535,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R536,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R537,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R538,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R539,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R540,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R541,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R542,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R543,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R544,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R545,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R546,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R547,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R548,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R549,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R550,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R554,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R555,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R556,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R557,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R568,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R576,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R680,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R776,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R777,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R778,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R779,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R780,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R781,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R782,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R783,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R784,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R785,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R786,defer,"Research track and niche surfaces, post-1.0",Spec marks them not normative for 1.0 or post-1.0.
+R516,defer,"Yan Meta, M4",Third surface built at M4 (R516).
+R517,defer,"Yan Meta, M4",Third surface built at M4 (R516).
+R518,defer,"Yan Meta, M4",Third surface built at M4 (R516).
+R519,defer,"Yan Meta, M4",Third surface built at M4 (R516).
+R520,defer,"Yan Meta, M4",Third surface built at M4 (R516).
+R521,defer,"Yan Meta, M4",Third surface built at M4 (R516).

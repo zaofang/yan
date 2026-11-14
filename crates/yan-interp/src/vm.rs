@@ -73,6 +73,8 @@ struct Task {
     pc: usize,
     done: bool,
     park: Option<(bool, usize)>,
+    /// The reading a parked `select` wakes at on a timer arm.
+    timer: Option<i128>,
     seen: Option<u64>,
     /// The PCT priority (R999); unused without a `pct` handler.
     prio: i64,
@@ -337,6 +339,7 @@ fn bindings(p: &CPat, v: &Value, out: &mut Vec<(Reg, Value)>) {
 enum Target {
     Code(usize, Option<Rc<Clo>>),
     Native,
+    Extern(Rc<yan_mir::ffi::ExternFn>),
 }
 
 impl<'o> Vm<'o> {
@@ -525,6 +528,7 @@ impl<'o> Vm<'o> {
                             pc: *e as usize,
                             done: false,
                             park: None,
+                            timer: None,
                             seen: None,
                             prio,
                             chain: Vec::new(),
@@ -574,7 +578,16 @@ impl<'o> Vm<'o> {
                         yielded = true;
                         break Ok(None);
                     }
-                    Some(i) => (i, true),
+                    // A timer is the only thing that can end the wait: the earliest one fires.
+                    Some(first) => (
+                        tasks
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, t)| !t.done && t.timer.is_some())
+                            .min_by_key(|(_, t)| t.timer)
+                            .map_or(first, |(i, _)| i),
+                        true,
+                    ),
                     None => {
                         // R394: the lowest-index failure that is not `Cancelled` or `SessionClosed` wins.
                         let lowest = failed.iter().flatten().find(|v| !is_cancelled(v));
@@ -610,6 +623,7 @@ impl<'o> Vm<'o> {
                 Ok(r) => r,
                 Err(e) => break Err(e),
             };
+            t.timer = self.it.park_timer.take();
             if let Some(now) = self.it.park.take() {
                 if !self.unwinding.is_empty() {
                     // Parked in a called function: keep its frames and stack for the next run.
@@ -837,6 +851,10 @@ impl<'o> Vm<'o> {
                     };
                 }
                 Op::Clear(r) => self.stack[base + r as usize] = Value::Unit,
+                Op::DropSender(r) => {
+                    let v = mem::take(&mut self.stack[base + r as usize]);
+                    crate::sync::drop_sender(&mut self.it, &v);
+                }
                 Op::Jmp(to) => *pc = to as usize,
                 // A loop iteration is one step (R487).
                 Op::Loop(to) => {
@@ -930,7 +948,7 @@ impl<'o> Vm<'o> {
                     self.push_args(code, base, s);
                     let (g, clo) = match self.target_at(s, base, new_base) {
                         Target::Code(g, clo) => (g, clo),
-                        Target::Native => {
+                        Target::Native | Target::Extern(_) => {
                             return unsupported("`become` of a std function or intrinsic");
                         }
                     };
@@ -1171,6 +1189,7 @@ impl<'o> Vm<'o> {
         match &s.callee {
             Callee::Item(f) => Target::Code(*f, None),
             Callee::Native => Target::Native,
+            Callee::Extern(e) => Target::Extern(e.clone()),
             Callee::Dyn { methods, local } => {
                 if let Some(tk) = self.stack[args..].first().and_then(type_key)
                     && let Some((_, f)) = methods.iter().find(|(t, _)| &**t == tk)
@@ -1283,6 +1302,7 @@ impl<'o> Vm<'o> {
                 }
                 r
             }
+            Target::Extern(e) => Ok(foreign_call(&e, &s.name, &self.stack[new_base..])?),
             Target::Native => {
                 let before = self
                     .counting_allocs()
@@ -1552,4 +1572,44 @@ mod cancel_like_tests {
             assert!(is_cancelled(&v), "{n}");
         }
     }
+}
+
+/// Calls the foreign function `name` of `e` with `args`, as native code does through `yan_rt::ffi`.
+fn foreign_call(e: &yan_mir::ffi::ExternFn, name: &str, args: &[Value]) -> R<Value> {
+    use yan_mir::ffi::Scalar;
+    let mut ints = [0i64; yan_rt::ffi::INTS];
+    let mut floats = [0f64; yan_rt::ffi::FLOATS];
+    let (mut i, mut f) = (0, 0);
+    for (a, p) in args.iter().zip(&e.params) {
+        match (a, p) {
+            (Value::Int(n), Scalar::Int(_)) => {
+                ints[i] = *n as i64;
+                i += 1;
+            }
+            (Value::Float(x), Scalar::F64) => {
+                floats[f] = *x;
+                f += 1;
+            }
+            _ => return unsupported(format!("argument of `{name}`")),
+        }
+    }
+    let host = |m: String| Stop::Unsupported(m);
+    Ok(match e.ret {
+        Some(Scalar::F64) => {
+            Value::Float(yan_rt::ffi::call_f64(&e.link, name, ints, floats).map_err(host)?)
+        }
+        Some(Scalar::Int(_)) => Value::Int(
+            if matches!(e.ret, Some(Scalar::Int(t)) if !t.signed && t.bits == 64) {
+                i128::from(
+                    yan_rt::ffi::call(&e.link, name, e.kind(), ints, floats).map_err(host)? as u64,
+                )
+            } else {
+                i128::from(yan_rt::ffi::call(&e.link, name, e.kind(), ints, floats).map_err(host)?)
+            },
+        ),
+        None => {
+            yan_rt::ffi::call(&e.link, name, 0, ints, floats).map_err(host)?;
+            Value::Unit
+        }
+    })
 }
