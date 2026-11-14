@@ -16,10 +16,10 @@ use yan_flow::{Binding, Cfg, Event, Node, Owned, Point, Site};
 pub(crate) enum Key {
     /// After a statement's own consumption, before what it defines.
     Mid(usize),
-    /// The end of a block's statements on the normal path.
-    Tail(usize),
-    /// The end of a block once the bodies of its join points fall in.
+    /// The end of a block, where the bodies of its join points that fall through have rejoined.
     End(usize),
+    /// After a statement some jump inside it left for a falling-through join point of its block.
+    After(usize),
     /// Where the arms of an `if` or `match`, the `break`s of a loop, or the jumps to a join point
     /// meet.
     Join(usize),
@@ -111,6 +111,9 @@ impl Facts {
     }
 }
 
+/// A join point name with the node and position it shadows.
+type Shadowed<'a> = (&'a Name, Option<Node>, Option<(usize, usize)>);
+
 struct Lower<'a> {
     cfg: Cfg,
     cur: Node,
@@ -123,7 +126,10 @@ struct Lower<'a> {
     /// Label, head and exit of each enclosing loop.
     loops: Vec<(Name, Node, Node)>,
     jps: HashMap<Name, Node>,
-    jumped: HashSet<Node>,
+    /// Scope index and local count where each join point of an enclosing block was declared.
+    jp_pos: HashMap<Name, (usize, usize)>,
+    /// Every jump's target, in lowering order.
+    hits: Vec<Node>,
     sites: u32,
     points: Vec<(Key, Point)>,
     decls: HashMap<(usize, Name), Binding>,
@@ -146,7 +152,8 @@ impl<'a> Lower<'a> {
             views: HashMap::new(),
             loops: Vec::new(),
             jps: HashMap::new(),
-            jumped: HashSet::new(),
+            jp_pos: HashMap::new(),
+            hits: Vec::new(),
             sites: 0,
             points: Vec::new(),
             decls: HashMap::new(),
@@ -220,31 +227,49 @@ impl<'a> Lower<'a> {
         self.scopes.pop();
     }
 
-    /// A join point's body is entered only by its jumps and falls through to the end of the
-    /// block that declares it, so what its body owns is the meet of its jumps. In a `par` branch
-    /// (`hoisted`) the body declares into the enclosing scope.
+    /// A join point's body is entered only by its jumps; when it falls through it continues
+    /// after the statement of the declaring block that jumped (R764), so what its body owns is
+    /// the meet of its jumps and what follows that statement meets the body's end. A jump
+    /// leaves the locals the block declared after the join point. In a `par` branch (`hoisted`)
+    /// the body declares into the enclosing scope.
     fn seq(&mut self, b: &'a Block, hoisted: bool) {
-        let declared: Vec<(&Name, Option<Node>)> = b
+        let declared: Vec<Shadowed> = b
             .stmts
             .iter()
             .filter_map(|s| match &s.kind {
                 StmtKind::Jp { name, .. } => {
                     let n = self.cfg.node();
-                    Some((name, self.jps.insert(name.clone(), n)))
+                    Some((
+                        name,
+                        self.jps.insert(name.clone(), n),
+                        self.jp_pos.remove(name),
+                    ))
                 }
                 _ => None,
             })
             .collect();
-        // Entry node and end node of each join point body.
-        let mut bodies = Vec::new();
+        // Entry node, end node and jump targets of each join point body.
+        let mut bodies: Vec<(Node, Node, Vec<Node>)> = Vec::new();
+        // The node after each statement that jumped, with the targets it jumped to.
+        let mut conts: Vec<(Node, Vec<Node>)> = Vec::new();
         for s in &b.stmts {
+            let h0 = self.hits.len();
             let StmtKind::Jp { name, params, body } = &s.kind else {
                 self.stmt(s);
+                if self.hits.len() > h0 {
+                    self.mark(Key::After(addr(s)));
+                    conts.push((self.cur, self.hits[h0..].to_vec()));
+                }
                 continue;
             };
             let from = self.cur;
             let resume = self.branch(from);
             let entry = self.jps[name];
+            if !hoisted {
+                let si = self.scopes.len() - 1;
+                self.jp_pos
+                    .insert(name.clone(), (si, self.scopes[si].len()));
+            }
             self.cur = entry;
             self.mark(Key::Join(addr(s)));
             if hoisted {
@@ -257,24 +282,38 @@ impl<'a> Lower<'a> {
             } else {
                 self.block(body, &owned_params(params));
             }
-            bodies.push((entry, self.cur));
+            bodies.push((entry, self.cur, self.hits[h0..].to_vec()));
             self.cur = resume;
         }
-        self.mark(Key::Tail(addr(b)));
-        if !bodies.is_empty() {
-            let end = self.branch(self.cur);
-            for (entry, last) in bodies {
-                if self.jumped.contains(&entry) {
-                    self.cfg.edge(last, end);
+        for (after, hit) in conts {
+            // A body that jumps to a sibling continues after the same statement.
+            let mut reach: HashSet<Node> = hit.into_iter().collect();
+            loop {
+                let n = reach.len();
+                for (entry, _, inner) in &bodies {
+                    if reach.contains(entry) {
+                        reach.extend(inner);
+                    }
+                }
+                if reach.len() == n {
+                    break;
                 }
             }
-            self.cur = end;
+            for (entry, last, _) in &bodies {
+                if reach.contains(entry) {
+                    self.cfg.edge(*last, after);
+                }
+            }
         }
         self.mark(Key::End(addr(b)));
-        for (name, prev) in declared {
+        for (name, prev, pos) in declared {
             match prev {
                 Some(n) => self.jps.insert(name.clone(), n),
                 None => self.jps.remove(name),
+            };
+            match pos {
+                Some(p) => self.jp_pos.insert(name.clone(), p),
+                None => self.jp_pos.remove(name),
             };
         }
     }
@@ -403,7 +442,14 @@ impl<'a> Lower<'a> {
             StmtKind::Jump { name, .. } => {
                 let target = self.jps.get(name).copied();
                 if let Some(n) = target {
-                    self.jumped.insert(n);
+                    self.hits.push(n);
+                }
+                if let Some(&(si, seen)) = self.jp_pos.get(name) {
+                    let gone: Vec<Binding> =
+                        self.scopes[si][seen..].iter().map(|&(_, b)| b).collect();
+                    for binding in gone {
+                        self.cfg.push(self.cur, Event::Drop { binding });
+                    }
                 }
                 self.jump(target);
             }
