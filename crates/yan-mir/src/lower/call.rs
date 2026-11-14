@@ -46,6 +46,28 @@ impl<'a, 'm> Fn<'a, 'm> {
             });
             return Ok(());
         }
+        if let Some((op, ty)) = scalar(&name) {
+            let args = Self::value_args(c)?;
+            let dst1 = dst.as_ref().and_then(|v| v.locals.first().copied());
+            let args = args
+                .iter()
+                .map(|(_, a)| self.scalar1(a))
+                .collect::<R<Vec<_>>>()?;
+            let ty = match ty {
+                Some(t) => t,
+                None => match args.first() {
+                    Some(Operand::Local(l)) => self.locals[*l as usize],
+                    _ => I64,
+                },
+            };
+            self.emit(Inst::Scalar {
+                dst: dst1,
+                op,
+                ty,
+                args,
+            });
+            return Ok(());
+        }
         let Some(id) = registry::id(&name) else {
             return unsupported(format!("call of `{name}`"));
         };
@@ -78,7 +100,6 @@ impl<'a, 'm> Fn<'a, 'm> {
                 .collect::<R<Vec<_>>>()?;
             self.emit(Inst::Scalar {
                 dst: dst1,
-                id,
                 op,
                 ty: I64,
                 args,
@@ -101,27 +122,6 @@ impl<'a, 'm> Fn<'a, 'm> {
             return Ok(());
         }
         if self.big_call(id, c, dst.clone())? {
-            return Ok(());
-        }
-        if let Some((op, ty)) = scalar(&name) {
-            let args = args
-                .iter()
-                .map(|(_, a)| self.scalar1(a))
-                .collect::<R<Vec<_>>>()?;
-            let ty = match ty {
-                Some(t) => t,
-                None => match args.first() {
-                    Some(Operand::Local(l)) => self.locals[*l as usize],
-                    _ => I64,
-                },
-            };
-            self.emit(Inst::Scalar {
-                dst: dst1,
-                id,
-                op,
-                ty,
-                args,
-            });
             return Ok(());
         }
         let set = |me: &mut Self, v: Operand| {

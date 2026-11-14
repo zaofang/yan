@@ -13,7 +13,7 @@ fn width(ty: &str) -> Option<u32> {
         "i32" | "u32" => 32,
         "i64" | "u64" | "Addr" => 64,
         "i128" => 128,
-        _ => return None,
+        _ => return yan_std::intrinsics::wide(ty).map(|(_, w)| w.into()),
     })
 }
 
@@ -72,7 +72,10 @@ pub(crate) fn int(op: &str, ty: &str, args: &[Value]) -> Option<R<Value>> {
             })
         }
         ("not", [Value::Int(a)]) => int(!pattern(*a, w) & mask(w)),
-        ("swap_bytes", [Value::Int(a)]) => int(pattern(*a, w).swap_bytes() >> (128 - w)),
+        ("swap_bytes", [Value::Int(a)]) if w % 8 == 0 => {
+            int(pattern(*a, w).swap_bytes() >> (128 - w))
+        }
+        ("swap_bytes", _) => crate::unsupported(format!("`swap_bytes` on `{ty}`, not whole bytes")),
         ("reverse_bits", [Value::Int(a)]) => int(pattern(*a, w).reverse_bits() >> (128 - w)),
         ("count_ones", [Value::Int(a)]) => count(pattern(*a, w).count_ones()),
         ("count_zeros", [Value::Int(a)]) => count(w - pattern(*a, w).count_ones()),

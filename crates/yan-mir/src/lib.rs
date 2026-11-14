@@ -14,7 +14,6 @@ mod tasks;
 
 pub use layout::{Layout, SumLayout, layout};
 pub use lower::{Shape, layout_of, lower};
-use yan_std::registry::Id;
 
 pub type Local = u32;
 pub type BlockId = u32;
@@ -27,6 +26,11 @@ pub struct IntTy {
 }
 
 impl IntTy {
+    /// Bytes a value occupies in memory: the width rounded up to a power-of-two byte count.
+    pub fn storage_bytes(self) -> u64 {
+        u64::from(self.bits).div_ceil(8).next_power_of_two()
+    }
+
     pub fn range(self) -> (i128, i128) {
         if self.signed {
             let m = 1i128 << (self.bits - 1);
@@ -114,7 +118,6 @@ pub enum Inst {
     },
     Scalar {
         dst: Option<Local>,
-        id: Id,
         op: ScalarOp,
         /// The operand type.
         ty: Ty,
