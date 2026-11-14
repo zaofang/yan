@@ -17,7 +17,7 @@ You write Yan Agent, a typed Python 3.12 dialect. Differences from Python:
 - `len(x)` works on str, list and dict. The method `.len()` exists on lists and dicts only: for a str write `s.char_count()`.
 - A chained comparison `a < b < c` is rejected; write `a < b and b < c`.
 - A comprehension has exactly one `for` clause (and optional `if`); use a loop for nested iteration.
-- str has no `find`, `capitalize`, `title` or indexing by `s[i]` in your own loops over chars; use `s.chars()`, `s.split(...)`, `s.partition(...)`, `s.startswith(...)`, `s.replace(...)`, `s.upper()`, `s.lower()`.
+- str has no `find`, `capitalize` or `title`; use `s.chars()`, `s.split(...)`, `s.partition(...)`, `s.startswith(...)`, `s.replace(...)`, `s.upper()`, `s.lower()`.
 - int has no `bit_length`; use `bits.bit_width(x)`, `bits.count_ones(x)`, `bits.rotate_left(x, k)`.
 - `chr(n)` is fallible (fails EncodingError): `chr(n)?` in a fallible function, or `chr(n) else "?"`.
 - Do not annotate a local that has an initializer, and write `_` for a parameter you never read; both draw warnings the checker reports back.
