@@ -254,6 +254,10 @@ impl Lower<'_, '_, '_> {
                 if self.g.fns.contains_key(n) {
                     return self.user_call(n, None, args, at);
                 }
+                if self.g.records.contains_key(n) && self.g.type_params.contains_key(n) {
+                    let (r, t) = self.generic_ctor(n, n, args, at, want)?;
+                    return Ok((r, t, None));
+                }
                 if let Some(fs) = self.g.records.get(n) {
                     let pos = self.g.record_positional.get(n).copied().unwrap_or(0);
                     let ps = field_params(fs, pos, at);
@@ -261,7 +265,7 @@ impl Lower<'_, '_, '_> {
                     return Ok((r, Ty::Data(n.clone()), None));
                 }
                 if let Some(s) = self.g.variant_of.get(n).cloned()
-                    && self.g.sum_params.contains_key(&s)
+                    && self.g.type_params.contains_key(&s)
                 {
                     let (r, t) = self.generic_ctor(n, &s, args, at, want)?;
                     return Ok((r, t, None));

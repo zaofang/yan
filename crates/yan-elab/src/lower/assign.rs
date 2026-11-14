@@ -454,6 +454,22 @@ impl Lower<'_, '_, '_> {
                 let (mut p, t) = self.place(b)?;
                 let ft = match &t {
                     Ty::Err => Ty::Err,
+                    Ty::Inst(r, targs) if self.g.records.contains_key(r) => {
+                        let map: Vec<_> = self.g.type_params[r]
+                            .iter()
+                            .cloned()
+                            .zip(targs.iter().cloned())
+                            .collect();
+                        match self.g.records[r].iter().find(|fd| fd.name == *f) {
+                            Some(fd) => fd.ty.subst(&map),
+                            None => {
+                                let names = self.g.records[r].iter().map(|fd| fd.name.as_str());
+                                let msg = format!("`{r}` has no field `{f}`");
+                                self.err_near("E203", *fsp, msg, f, names);
+                                Ty::Err
+                            }
+                        }
+                    }
                     Ty::Data(r) if self.g.records.contains_key(r) => {
                         match self.g.records[r].iter().find(|fd| fd.name == *f) {
                             Some(fd) => fd.ty.clone(),

@@ -81,7 +81,10 @@ fn failure_types(m: &Module) -> HashSet<String> {
         if let ItemKind::Func(f) = &it.kind
             && let Some(r) = &f.ret
         {
-            s.extend(r.fail.iter().filter_map(|p| p.last().cloned()));
+            s.extend(r.fail.iter().filter_map(|t| match t {
+                Type::Named { path, .. } => path.last().cloned(),
+                _ => None,
+            }));
         }
     }
     s

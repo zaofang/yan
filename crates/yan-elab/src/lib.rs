@@ -232,8 +232,8 @@ pub(crate) struct Globals {
     /// Leading positional-only fields per record (R437).
     pub record_positional: HashMap<String, usize>,
     pub sums: HashMap<String, Vec<(String, Vec<Field>)>>,
-    /// The type parameters of each generic sum; its field types mention them as `Ty::Param`.
-    pub sum_params: HashMap<String, Vec<String>>,
+    /// The type parameters of each generic sum or record; its field types mention them as `Ty::Param`.
+    pub type_params: HashMap<String, Vec<String>>,
     pub variant_of: HashMap<String, String>,
     /// Variants with `@wire(name: ...)`, by variant name: the tag value in json and csv.
     pub variant_wire: HashMap<String, String>,
@@ -553,12 +553,12 @@ impl Globals {
                     return Ok(t);
                 }
                 match (name.as_str(), a.as_slice()) {
-                    (n, a) if self.sum_params.contains_key(n) => {
-                        if a.len() != self.sum_params[n].len() {
+                    (n, a) if self.type_params.contains_key(n) => {
+                        if a.len() != self.type_params[n].len() {
                             return unsupported(format!(
                                 "`{n}` with {} type arguments; it takes {}",
                                 a.len(),
-                                self.sum_params[n].len()
+                                self.type_params[n].len()
                             ));
                         }
                         decorators::instance(self, n, a, span, cx);
@@ -722,12 +722,24 @@ pub fn elaborate_in(
                 })
             })
             .collect::<R<_>>()?;
+        let tparams = g
+            .type_params
+            .get(&name)
+            .into_iter()
+            .flatten()
+            .map(|n| y::TParam {
+                comptime: false,
+                name: n.clone(),
+                kind: y::Kind::Type,
+                bounds: Vec::new(),
+            })
+            .collect();
         items.push(y::Item {
             attrs: Vec::new(),
             kind: y::ItemKind::Sum(y::Sum {
                 is_pub: true,
                 path: vec![name],
-                tparams: Vec::new(),
+                tparams,
                 variants,
             }),
             span: Span {
@@ -963,7 +975,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                             _ => unsupported("bounds and value parameters on a generic sum"),
                         });
                         let ps = ps.collect::<Result<_, _>>().map_err(|u| u.at(it.span))?;
-                        g.sum_params.insert(t.name.clone(), ps);
+                        g.type_params.insert(t.name.clone(), ps);
                     }
                 }
                 j::TypeRhs::Alias(ts) => {
@@ -973,11 +985,16 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                     return unsupported("newtypes and capability sets").map_err(|u| u.at(it.span));
                 }
             },
-            j::ItemKind::Record(c) if !c.tparams.is_empty() => {
-                return unsupported("generic classes").map_err(|u| u.at(it.span));
-            }
             j::ItemKind::Record(c) => {
                 g.records.insert(c.name.clone(), Vec::new());
+                if !c.tparams.is_empty() {
+                    let ps = c.tparams.iter().map(|p| match p {
+                        j::TParam::Type { name, bounds } if bounds.is_empty() => Ok(name.clone()),
+                        _ => unsupported("bounds and value parameters on a generic class"),
+                    });
+                    let ps = ps.collect::<Result<_, _>>().map_err(|u| u.at(it.span))?;
+                    g.type_params.insert(c.name.clone(), ps);
+                }
                 let c_layout = |d: &j::Decorator| {
                     d.path == ["layout"]
                         && d.args.as_ref().is_some_and(|a| {
@@ -1048,7 +1065,13 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     for it in &m.items {
         match &it.kind {
             j::ItemKind::Record(c) => {
-                let mut fs = fields(g, &c.fields, cx, it.span)?;
+                let outer = g.scope.borrow().len();
+                g.scope
+                    .borrow_mut()
+                    .extend(g.type_params.get(&c.name).into_iter().flatten().cloned());
+                let fs = fields(g, &c.fields, cx, it.span);
+                g.scope.borrow_mut().truncate(outer);
+                let mut fs = fs?;
                 let w = decorators::item_wire(it, &c.name, cx);
                 for (key, wire, at) in &w.names {
                     match fs.iter_mut().find(|f| f.name == *key) {
@@ -1078,7 +1101,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 let outer = g.scope.borrow().len();
                 g.scope
                     .borrow_mut()
-                    .extend(g.sum_params.get(name).into_iter().flatten().cloned());
+                    .extend(g.type_params.get(name).into_iter().flatten().cloned());
                 for v in vs {
                     let fs = fields(g, &v.fields, cx, it.span);
                     out.push((
@@ -1379,17 +1402,10 @@ fn sig_body(
             };
             let mut members = Vec::new();
             for p in &r.fail {
-                if p.len() != 1 {
+                if matches!(p, j::Type::Named { path, .. } if path.len() != 1) {
                     return unsupported("a qualified error type");
                 }
-                let t = g.ty(
-                    &j::Type::Named {
-                        path: p.clone(),
-                        args: Vec::new(),
-                    },
-                    cx,
-                    f.name_span,
-                )?;
+                let t = g.ty(p, cx, f.name_span)?;
                 union_add(&mut members, t);
             }
             if members.len() > 8 {
@@ -1590,13 +1606,27 @@ fn core_fields(fs: &[Field]) -> R<Vec<y::Field>> {
         .collect()
 }
 
+fn core_tparams(g: &Globals, name: &str) -> Vec<y::TParam> {
+    g.type_params
+        .get(name)
+        .into_iter()
+        .flatten()
+        .map(|n| y::TParam {
+            comptime: false,
+            name: n.clone(),
+            kind: y::Kind::Type,
+            bounds: Vec::new(),
+        })
+        .collect()
+}
+
 fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
     Ok(Some(match &it.kind {
         j::ItemKind::Verbatim(_) => return Ok(None),
         j::ItemKind::Record(c) => y::ItemKind::Record(y::Record {
             is_pub: it.is_pub,
             path: vec![c.name.clone()],
-            tparams: Vec::new(),
+            tparams: core_tparams(g, &c.name),
             fields: core_fields(&g.records[&c.name])?,
         }),
         j::ItemKind::Type(t) => match &t.rhs {
@@ -1612,22 +1642,10 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                         },
                     });
                 }
-                let tparams = g
-                    .sum_params
-                    .get(&t.name)
-                    .into_iter()
-                    .flatten()
-                    .map(|n| y::TParam {
-                        comptime: false,
-                        name: n.clone(),
-                        kind: y::Kind::Type,
-                        bounds: Vec::new(),
-                    })
-                    .collect();
                 y::ItemKind::Sum(y::Sum {
                     is_pub: it.is_pub,
                     path: vec![t.name.clone()],
-                    tparams,
+                    tparams: core_tparams(g, &t.name),
                     variants,
                 })
             }

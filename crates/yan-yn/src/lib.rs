@@ -437,8 +437,8 @@ f(x: int) -> int =
                 _ => None,
             })
         };
-        assert_eq!(fail("mid"), Some(vec![vec!["E".to_owned()]]));
-        assert_eq!(fail("top"), Some(vec![vec!["E".to_owned()]]));
+        assert_eq!(fail("mid"), Some(vec![yan_hir::Type::bare("E")]));
+        assert_eq!(fail("top"), Some(vec![yan_hir::Type::bare("E")]));
         assert_eq!(fail("run"), Some(vec![]));
     }
 
@@ -455,6 +455,6 @@ f(x: int) -> int =
             }
             _ => None,
         });
-        assert_eq!(fail, Some(vec![vec!["Timeout".to_owned()]]));
+        assert_eq!(fail, Some(vec![yan_hir::Type::bare("Timeout")]));
     }
 }

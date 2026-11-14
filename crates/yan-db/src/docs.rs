@@ -349,7 +349,7 @@ fn uses(f: &j::FuncDef) -> Vec<String> {
 fn fails(f: &j::FuncDef) -> Vec<String> {
     f.ret
         .iter()
-        .flat_map(|r| r.fail.iter().map(|p| p.join(".")))
+        .flat_map(|r| r.fail.iter().map(yan_yag::print_type))
         .collect()
 }
 

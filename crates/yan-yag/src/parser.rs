@@ -813,13 +813,16 @@ impl Parser {
                         _ => None,
                     };
                     r.fail = match &args[1] {
-                        TArg::Type(Type::Named { path, .. }) => vec![path.clone()],
+                        TArg::Type(t @ Type::Named { .. }) => vec![t.clone()],
                         TArg::Text(t) => t
                             .split(" | ")
                             .map(|p| {
-                                let mut p = p.split('.').map(str::to_owned).collect();
-                                self.builtin(&mut p, 0, at);
-                                p
+                                let mut path = p.split('.').map(str::to_owned).collect();
+                                self.builtin(&mut path, 0, at);
+                                Type::Named {
+                                    path,
+                                    args: Vec::new(),
+                                }
                             })
                             .collect(),
                         _ => Vec::new(),
@@ -841,13 +844,10 @@ impl Parser {
         Ok(r)
     }
 
-    fn errtype(&mut self) -> P<Vec<Path>> {
+    fn errtype(&mut self) -> P<Vec<Type>> {
         let mut out = Vec::new();
         loop {
-            let at = self.span();
-            let mut p = self.path()?;
-            self.builtin(&mut p, 0, at);
-            out.push(p);
+            out.push(self.ty()?);
             if !self.eat_op("|") {
                 return Ok(out);
             }

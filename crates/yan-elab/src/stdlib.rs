@@ -568,6 +568,9 @@ fn declare_classes(g: &mut Globals, m: &j::Module) -> Vec<(&'static String, &'st
     out
 }
 
+/// Std sums named only by the signature of the method that returns them.
+const RETURNED_BY: &[(&str, &str)] = &[("TryRecv", "try_recv")];
+
 /// The std sum types `m` may meet, registered in `g` as [`classes`] registers classes.
 pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
     let own = own_names(m);
@@ -581,7 +584,11 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
         let class_named = STD.classes.iter().any(|(c, k)| {
             k.module == *module && words.contains(c.as_str()) && !own.contains(c.as_str())
         });
-        if (words.contains(name.as_str()) || words.contains(*module) || class_named)
+        // A sum a method returns is named by the method, not by the caller.
+        let returned = RETURNED_BY
+            .iter()
+            .any(|(s, f)| s == name && words.contains(*f));
+        if (words.contains(name.as_str()) || words.contains(*module) || class_named || returned)
             && !own.contains(name.as_str())
         {
             for v in vs {
@@ -589,6 +596,14 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
             }
             // Registered empty first: a variant's field may name its own sum.
             g.sums.insert(name.clone(), Vec::new());
+            let ps = t.tparams.iter().filter_map(|p| match p {
+                j::TParam::Type { name, .. } => Some(name.clone()),
+                _ => None,
+            });
+            let ps: Vec<String> = ps.collect();
+            if !ps.is_empty() {
+                g.type_params.insert(name.clone(), ps);
+            }
             g.std_sums.insert(name.clone());
             out.push(name.clone());
         }
@@ -612,6 +627,10 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
             unreachable!("a std sum")
         };
         let mut cx = std_cx(module);
+        let outer = g.scope.borrow().len();
+        g.scope
+            .borrow_mut()
+            .extend(g.type_params.get(name).into_iter().flatten().cloned());
         let mut variants = Vec::new();
         for v in vs {
             let mut fs = Vec::new();
@@ -627,6 +646,7 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
             }
             variants.push((v.name.clone(), fs));
         }
+        g.scope.borrow_mut().truncate(outer);
         g.sums.insert(name.clone(), variants);
     }
     Ok(out)
@@ -731,6 +751,7 @@ fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
                     Ty::Data(n.to_owned())
                 }
                 (n, []) if b.contains_key(n) => b[n].clone(),
+                (n, a) if STD.sums.contains_key(n) => Ty::Inst(n.to_owned(), a.to_vec()),
                 ("Type", []) => Ty::Type,
                 ("Ptr", [t]) => Ty::Foreign("Ptr", vec![t.clone()]),
                 (n, a) => crate::ty::builtin(n, a)?,
@@ -872,18 +893,10 @@ fn std_cx(module: &str) -> Cx<'static> {
 }
 
 /// A declared fail type: `None` inside when it cannot fail, a union for several members.
-fn fail_ty(paths: &[Vec<String>], b: &HashMap<String, Ty>) -> Option<Option<Ty>> {
-    let mut ms = paths
+fn fail_ty(types: &[j::Type], b: &HashMap<String, Ty>) -> Option<Option<Ty>> {
+    let mut ms = types
         .iter()
-        .map(|p| {
-            subst(
-                &j::Type::Named {
-                    path: p.clone(),
-                    args: Vec::new(),
-                },
-                b,
-            )
-        })
+        .map(|t| subst(t, b))
         .collect::<Option<Vec<_>>>()?;
     Some(match ms.len() {
         0 => None,
