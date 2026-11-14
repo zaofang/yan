@@ -751,7 +751,10 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                 return Ok(Err(e));
             }
             if !send_room(it, c) {
-                return Ok(Err(failure("Full")));
+                return Ok(Err(Value::Data {
+                    name: "Full".into(),
+                    fields: vec![("value".into(), std::mem::take(&mut a[1]))],
+                }));
             }
             it.chans[c].q.push_back(std::mem::take(&mut a[1]));
             it.progress += 1;

@@ -7,7 +7,7 @@ pub def send[T](var self: Sender[T], take v: T) -> None fail Cancelled | Timeout
 
 @intrinsic
 @since("1.0")
-pub def try_send[T](var self: Sender[T], take v: T) -> None fail Full | Cancelled: ...
+pub def try_send[T](var self: Sender[T], take v: T) -> None fail Full[T] | Cancelled: ...
 
 @intrinsic
 @since("1.0")
