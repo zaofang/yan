@@ -79,6 +79,15 @@ pub def extend[T](var self: list[T], other: list[T]) -> None:
         self.append(x.copy())
 
 @since("1.0")
+pub def count[T: Eq](self: list[T], x: T) -> int:
+    """How many elements equal `x` (Python's `list.count`)."""
+    n = 0
+    for y in self:
+        if y == x:
+            n += 1
+    return n
+
+@since("1.0")
 pub def map[T, U](self: list[T], f: Callable[[T], U]) -> list[U]:
     out: list[U] = []
     for x in self:
