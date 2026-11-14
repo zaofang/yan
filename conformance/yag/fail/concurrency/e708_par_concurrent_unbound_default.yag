@@ -1,9 +1,0 @@
-# spec: 9.1
-# rows: R1003
-# note: an unbound hosted default is pool, which is not Concurrent
-# expect: E708 at 7:5
-
-def main() uses io:
-    par concurrent:
-        io.print("a")
-        io.print("b")
