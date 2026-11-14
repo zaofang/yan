@@ -233,8 +233,7 @@ impl Lower<'_, '_, '_> {
                     self.err(
                         "E708",
                         at,
-                        "`par concurrent` needs concurrent forward progress, which `pool` does not give"
-                            .into(),
+                        "needs concurrent forward progress, which `pool` does not give".into(),
                     );
                 }
                 let mut blocks = Vec::new();
