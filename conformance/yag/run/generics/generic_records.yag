@@ -35,7 +35,7 @@ pub def main() uses io:
     p: Pair[str, int] = Pair(a="k", b=7)
     q = swap(p)
     io.print(q)
-    var m: Box[str] = Box(value="a")
+    m: Box[str] = Box(value="a")
     m.value = m.value + "b"
     io.print(m)
     io.print(Box(value=1) == Box(value=1))
