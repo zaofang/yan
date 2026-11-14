@@ -837,7 +837,8 @@ fn function_body_with(
         arg_tys: Vec::new(),
         want_ret: None,
         handlers: Vec::new(),
-        sched_not_concurrent: false,
+        // The hosted default handler is `pool`, which is not `Concurrent` (R1003).
+        sched_not_concurrent: f.name == "main",
         fn_calls: Vec::new(),
         pending: HashMap::new(),
         target: None,
