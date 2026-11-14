@@ -140,6 +140,52 @@ impl Types<'_> {
         self.shape_in(t, &mut Vec::new())
     }
 
+    /// The shape of a nominal record or sum at type arguments: its fields with the arguments
+    /// substituted, named by the canonical instance text (D3, D7).
+    fn generic_shape(&self, n: &y::Named, stack: &mut Vec<String>) -> Option<R<Shape>> {
+        let name = n.path[0].as_str();
+        let (tparams, fields): (&[y::TParam], Vec<(&str, Option<&[y::Field]>)>) =
+            if let Some(r) = self.recs.get(name).filter(|r| !r.tparams.is_empty()) {
+                (&r.tparams, vec![("", Some(&r.fields[..]))])
+            } else if let Some(s) = self.sums.get(name).filter(|s| !s.tparams.is_empty()) {
+                let vs = s
+                    .variants
+                    .iter()
+                    .map(|v| (v.name.as_str(), Some(v.fields.as_deref().unwrap_or(&[]))))
+                    .collect();
+                (&s.tparams, vs)
+            } else {
+                return None;
+            };
+        let is_sum = self.sums.contains_key(name) && !self.recs.contains_key(name);
+        let inst = yan_core::subst::instance(&n.path, &n.args);
+        if stack.contains(&inst) {
+            return Some(unsupported(format!("recursive type `{inst}`")));
+        }
+        stack.push(inst.clone());
+        let built = (|| {
+            let mut out = Vec::new();
+            for (vname, fs) in &fields {
+                let fs = fs.unwrap_or(&[]);
+                let fs = fs
+                    .iter()
+                    .map(|f| {
+                        let t = yan_core::subst::apply(&f.ty, tparams, &n.args);
+                        Ok((f.name.clone(), self.shape_in(&t, stack)?))
+                    })
+                    .collect::<R<Vec<_>>>()?;
+                out.push(((*vname).to_owned(), fs));
+            }
+            Ok(if is_sum {
+                Shape::Sum(inst, out)
+            } else {
+                Shape::Rec(inst, out.pop().map(|(_, f)| f).unwrap_or_default())
+            })
+        })();
+        stack.pop();
+        Some(built)
+    }
+
     pub(super) fn shape_in(&self, t: &y::Type, stack: &mut Vec<String>) -> R<Shape> {
         match t {
             y::Type::Tuple(ts) => Ok(Shape::Tuple(
@@ -261,7 +307,12 @@ impl Types<'_> {
                         return Ok(actor::undelivered(a, r));
                     }
                     (_, []) => {}
-                    _ => return unsupported(format!("type `{name}[..]`")),
+                    _ => {
+                        if let Some(s) = self.generic_shape(n, stack) {
+                            return s;
+                        }
+                        return unsupported(format!("type `{name}[..]`"));
+                    }
                 }
                 if let Some(t) = scalar_ty(name) {
                     return Ok(Shape::Scalar(t));
