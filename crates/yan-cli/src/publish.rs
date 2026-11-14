@@ -32,6 +32,15 @@ pub fn refusals(m: &Manifest) -> Vec<Diagnostic> {
             "`overrides` is root-only and cannot be published".into(),
         ));
     }
+    if !m.previews.is_empty() && m.version.as_deref().and_then(major).is_some_and(|v| v >= 1) {
+        out.push(Diagnostic::error(
+            "E002",
+            "package.yag",
+            Span::default(),
+            "",
+            "a package at 1.0 or later cannot enable previews",
+        ));
+    }
     for r in prereleases(m) {
         out.push(refusal(format!(
             "`{r}` is a pre-release dependency of a package at 1.0 or later"

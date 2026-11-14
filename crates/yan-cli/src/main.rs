@@ -20,6 +20,7 @@ mod pyimport;
 mod registry;
 mod review;
 mod schema;
+mod semver;
 mod serve;
 mod store;
 mod term;
@@ -134,8 +135,28 @@ enum Command {
     /// Refuse a manifest that cannot be published (19.4, E016).
     Publish {
         /// Only check the manifest; publishing itself waits for the registry.
-        #[arg(long, required = true)]
+        #[arg(long, required_unless_present = "dry_run")]
         check: bool,
+        /// Run every refusal short of uploading: the manifest, previews at 1.0 (E002) and, with
+        /// `--base`, the version bump (E008).
+        #[arg(long)]
+        dry_run: bool,
+        /// The last published version's package directory.
+        #[arg(long)]
+        base: Option<PathBuf>,
+        #[arg(long, value_enum)]
+        format: Option<Format>,
+    },
+    /// Classify the API change since a published version and check the declared bump (20.6).
+    Semver {
+        /// The published version's package directory.
+        #[arg(long)]
+        base: PathBuf,
+        #[arg(long, value_enum)]
+        format: Option<Format>,
+        /// With a directory, print the bump between the two as `{"bump": ...}`; with none, check
+        /// the package in the current directory against its declared version (E013).
+        new: Option<PathBuf>,
     },
     /// Write `yan.lock` from the manifest and the workspace members (19.1, R896).
     Lock,
@@ -454,13 +475,30 @@ fn main() -> ExitCode {
                 }
             }))
         }
-        Command::Publish { .. } => match publish::check(Path::new(".")) {
-            Ok(d) if d.is_empty() => ExitCode::SUCCESS,
-            Ok(d) => {
-                print_diags(&d);
-                ExitCode::FAILURE
+        Command::Publish { base, format, .. } => {
+            let found = publish::check(Path::new(".")).and_then(|mut d| {
+                if let Some(base) = &base {
+                    d.extend(semver::findings(Path::new("."), base, "E008")?);
+                }
+                Ok(d)
+            });
+            match found {
+                Ok(d) => emit_records(&d, format),
+                Err(msg) => tool_failure(&msg),
             }
-            Err(msg) => tool_failure(&msg),
+        }
+        Command::Semver { base, format, new } => match new {
+            Some(new) => match semver::compare(&base, &new) {
+                Ok(r) => {
+                    println!("{}", serde_json::json!({"bump": r.bump.name()}));
+                    ExitCode::SUCCESS
+                }
+                Err(msg) => tool_failure(&msg),
+            },
+            None => match semver::findings(Path::new("."), &base, "E013") {
+                Ok(d) => emit_records(&d, format),
+                Err(msg) => tool_failure(&msg),
+            },
         },
         Command::Explain { code } => explain(&code),
         Command::Run {
@@ -771,6 +809,21 @@ fn explain(code: &str) -> ExitCode {
         println!("\nNo conformance example for {code} yet.");
     }
     ExitCode::SUCCESS
+}
+
+fn emit_records(diags: &[Diagnostic], format: Option<Format>) -> ExitCode {
+    match format {
+        Some(Format::Json) => println!(
+            "{}",
+            serde_json::to_string(diags).expect("records serialize")
+        ),
+        _ => print_diags(diags),
+    }
+    if diags.iter().any(|d| d.severity == Severity::Error) {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
 }
 
 fn print_diags(diags: &[Diagnostic]) {
