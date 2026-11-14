@@ -857,4 +857,13 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_SCHED_POOL,
         Bind::Plain(|_| unsupported("`std.sched.pool` in the interpreter")),
     ),
+    (
+        STD_SCHED_SEQUENTIAL,
+        Bind::Plain(|_| {
+            Ok(Value::Data {
+                name: "Sequential".into(),
+                fields: Vec::new(),
+            })
+        }),
+    ),
 ];
