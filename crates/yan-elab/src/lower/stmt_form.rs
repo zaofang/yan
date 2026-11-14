@@ -1,6 +1,21 @@
 use super::*;
 
 impl Lower<'_, '_, '_> {
+    /// Whether handler expression `h` of type `ht` implements `Concurrent` (R1003): a std handler
+    /// constructor marked `@concurrent`, or a type with `impl Concurrent`. The opaque `Sched`
+    /// type of any other expression does not.
+    fn handler_concurrent(&self, h: &j::Expr, ht: &Ty) -> bool {
+        if let j::ExprKind::Call(f, _) = &h.kind
+            && let j::ExprKind::Name(n) = &f.kind
+            && let Some(d) = ["sched", "sim", "evented"]
+                .iter()
+                .find_map(|m| crate::stdlib::decl(&format!("std.{m}.{n}")))
+        {
+            return d.concurrent;
+        }
+        self.implements(ht, "Concurrent")
+    }
+
     pub(super) fn stmt_inner(&mut self, s: &j::Stmt) -> R<()> {
         use j::StmtKind as K;
         let at = s.span;
@@ -229,11 +244,11 @@ impl Lower<'_, '_, '_> {
                 body: j::ParBody::Block(b),
             } => {
                 self.par_waits(b, *concurrent);
-                if *concurrent && self.pool_sched {
+                if *concurrent && self.sched_not_concurrent {
                     self.err(
                         "E708",
                         at,
-                        "needs concurrent forward progress, which `pool` does not give".into(),
+                        "needs concurrent forward progress, which the bound `sched` handler does not give; it must implement `Concurrent`".into(),
                     );
                 }
                 let mut blocks = Vec::new();
@@ -369,13 +384,12 @@ impl Lower<'_, '_, '_> {
                     self.expect(&ht, &want, h.span);
                 }
                 self.handlers.push(name.clone());
-                let outer_pool = self.pool_sched;
+                let outer = self.sched_not_concurrent;
                 if name == "sched" {
-                    self.pool_sched = matches!(&h.kind, j::ExprKind::Call(f, _)
-                        if matches!(&f.kind, j::ExprKind::Name(n) if n == "pool"));
+                    self.sched_not_concurrent = !self.handler_concurrent(h, &ht);
                 }
                 let b = self.block(&body.stmts);
-                self.pool_sched = outer_pool;
+                self.sched_not_concurrent = outer;
                 self.handlers.pop();
                 self.emit(
                     StmtKind::With {

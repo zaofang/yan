@@ -53,6 +53,7 @@ pub class Spec:
     machines: list[Machine]
 
 @intrinsic
+@concurrent
 @since("1.0")
 pub def pct(depth: int = 2, seed: int = 0, steps: int = 1000) -> std.sched.Sched:
     """PCT scheduling (R999): the highest-priority runnable task runs, and `depth - 1` change points drawn from `seed` among the first `steps` decisions demote the task chosen there."""
