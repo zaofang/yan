@@ -24,6 +24,7 @@ mod path;
 mod pattern;
 mod pipe;
 mod proc;
+mod ptr;
 mod rand;
 mod regex;
 mod shape;
@@ -1123,7 +1124,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 | Shape::Map(..)
                 | Shape::Heap(_)
                 | Shape::Deque(_)
-                | Shape::Chan(_)
+                | Shape::Chan(..)
                 | Shape::Actor(_),
                 1,
             ) => Ok(v.remove(0)),

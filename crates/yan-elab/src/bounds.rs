@@ -467,7 +467,7 @@ impl Solver<'_> {
     fn stmt(&mut self, s: &j::Stmt, mut f: Facts) -> Facts {
         use j::StmtKind as S;
         match &s.kind {
-            S::Expr(e) | S::Become(e) | S::Fail(e) => self.expr(e, &mut f),
+            S::Expr(e) | S::Become(e) | S::Fail(e) | S::Yield(e) => self.expr(e, &mut f),
             S::Return(e) => {
                 if let Some(e) = e {
                     self.expr(e, &mut f);
@@ -668,6 +668,14 @@ impl Solver<'_> {
                 self.stmts(stmts, f.clone());
                 for n in assigned(stmts, self.sites) {
                     f.kill(&n);
+                }
+            }
+            S::Select(arms) => {
+                for a in arms {
+                    self.stmts(&a.body.stmts, f.clone());
+                    for n in assigned(&a.body.stmts, self.sites) {
+                        f.kill(&n);
+                    }
                 }
             }
         }

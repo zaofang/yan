@@ -837,6 +837,10 @@ impl<'o> Vm<'o> {
                     };
                 }
                 Op::Clear(r) => self.stack[base + r as usize] = Value::Unit,
+                Op::DropSender(r) => {
+                    let v = mem::take(&mut self.stack[base + r as usize]);
+                    crate::sync::drop_sender(&mut self.it, &v);
+                }
                 Op::Jmp(to) => *pc = to as usize,
                 // A loop iteration is one step (R487).
                 Op::Loop(to) => {

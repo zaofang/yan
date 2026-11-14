@@ -300,6 +300,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.encoding_call(id, c, dst);
         }
+        if super::ptr::PTR_IDS.contains(&id) {
+            return self.ptr_call(id, c, dst);
+        }
         if super::rand::RAND_IDS.contains(&id) {
             return self.rand_call(id, c, dst);
         }
@@ -489,7 +492,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let rx = self.scalar1(rx)?;
                 let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(e.width() as i128)]);
                 let st = self.blocking(RtFn::ChanRecv, vec![rx, out.clone()]);
-                self.chan_result(&dst, st, |me| me.read(&At::Mem(out.clone(), 0), &e))?;
+                self.chan_result_with(&dst, st, true, |me| me.read(&At::Mem(out.clone(), 0), &e))?;
                 self.free(RtFn::EnvFree, out);
             }
             (id::STD_JSON_PARSE, [(_, a), (_, schema)]) => {
@@ -1031,7 +1034,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                 if sx != sy {
                     return unsupported(format!("call of `{name}` on this type"));
                 }
-                let mut r = if win {
+                // Pointers compare by address alone (6.6).
+                let mut r = if sx == Shape::Ptr {
+                    self.scalar_op(ScalarOp::Eq, I64, vec![x[0].clone(), y[0].clone()])
+                } else if win {
                     self.rt(RtFn::WinPathEq, Ty::Bool, vec![x[0].clone(), y[0].clone()])
                 } else if text(&sx) {
                     self.rt(RtFn::StrEq, Ty::Bool, vec![x[0].clone(), y[0].clone()])

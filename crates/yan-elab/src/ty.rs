@@ -50,7 +50,7 @@ pub enum Ty {
 }
 
 /// Each std.collections type, by its Yan Agent name; its Yan Core name is in the projection table.
-pub const COLLECTIONS: [&str; 35] = [
+pub const COLLECTIONS: [&str; 36] = [
     "deque",
     "iter",
     "heap",
@@ -85,6 +85,7 @@ pub const COLLECTIONS: [&str; 35] = [
     "Lub",
     "Max",
     "Entity",
+    "Group",
     "Locale",
 ];
 
@@ -105,6 +106,8 @@ pub fn builtin(n: &str, a: &[Ty]) -> Option<Ty> {
         ("bool", []) => Ty::Bool,
         ("Str", []) => Ty::Str,
         ("char", []) => Ty::Char,
+        // `Addr` is `u64` on the 64-bit targets (3).
+        ("Addr", []) => Ty::Fixed("u64"),
         (n, []) if fixed(n).is_some() => Ty::Fixed(fixed(n)?),
         ("List", [t]) => Ty::List(Box::new(t.clone())),
         ("Set", [t]) => Ty::Set(Box::new(t.clone())),
@@ -304,6 +307,7 @@ impl Ty {
             Ty::Coll("Sender", _) => Some("chan.sender"),
             Ty::Coll("Receiver", _) => Some("chan.receiver"),
             Ty::Coll("Actor" | "SendOnly" | "Undelivered", _) => Some("actor"),
+            Ty::Coll("Group", _) => Some("cluster.group"),
             Ty::Coll("Lub", _) => Some("lattice"),
             Ty::Coll("Max", _) => Some("lattice.max"),
             Ty::Coll("Locale", _) => Some("i18n"),
@@ -485,5 +489,13 @@ impl std::fmt::Display for Ty {
 /// The sized scalars the elaborator lowers, by their Yan Core names (16.3).
 pub fn fixed(name: &str) -> Option<&'static str> {
     const LOWERED: [&str; 9] = ["i8", "i16", "i32", "i128", "u8", "u16", "u32", "u64", "f32"];
-    LOWERED.iter().find(|n| **n == name).copied()
+    LOWERED.iter().find(|n| **n == name).copied().or_else(|| {
+        yan_names::type_row(name, Surface::Yn)
+            .map(|r| r.yir)
+            .filter(|n| {
+                n[1..]
+                    .parse::<u8>()
+                    .is_ok_and(|b| !matches!(b, 8 | 16 | 32 | 64))
+            })
+    })
 }

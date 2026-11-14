@@ -34,11 +34,13 @@ mod loops;
 mod matching;
 mod method;
 mod narrow;
+mod ptr;
 pub(crate) mod reentrant;
 mod rhs;
 mod scalar;
 mod std_calls;
 mod stmt_form;
+pub(crate) mod subscript;
 
 /// List and dict methods whose receiver is `var` (R421).
 const MUTATING: [&str; 11] = [
@@ -353,6 +355,7 @@ pub(crate) fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
             body: j::ParBody::For { iter, .. },
             ..
         } => vec![iter],
+        K::Select(arms) => arms.iter().map(|a| &a.op).collect(),
         K::Asm { args, .. } => args
             .iter()
             .filter_map(|a| match a {
@@ -385,6 +388,7 @@ pub(crate) fn sub_blocks(s: &j::Stmt) -> Vec<&[j::Stmt]> {
             j::ParBody::Block(b) => vec![b],
             j::ParBody::For { body, .. } => vec![body],
         },
+        K::Select(arms) => arms.iter().map(|a| a.body.stmts.as_slice()).collect(),
         _ => Vec::new(),
     }
 }
@@ -2284,6 +2288,7 @@ fn wire(t: &Ty) -> bool {
                     | "Atomic"
                     | "Sender"
                     | "Receiver"
+                    | "Group"
                     | "iter"
                     | "Secret"
                     | "TcpListener"

@@ -230,7 +230,10 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
                 }
             }
             "layout" if g.layout_c.contains(&item) => {}
-            "layout" => return unsupported("`@layout` other than `@layout(c)` on a record"),
+            "layout" if bits_container(args).is_some() => bits_layout(it, args, &item, cx),
+            "layout" => {
+                return unsupported("`@layout` other than `@layout(c)` and `@layout(bits)`");
+            }
             "linear" | "newtype" if matches!(it.kind, j::ItemKind::Record(_)) => {}
             "reentrant" => reentrant(it, cx),
             // Read where an off-node start names it (`cluster_spawn`, E721).
@@ -254,6 +257,96 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
         }
     }
     Ok(())
+}
+
+/// The width of the built-in integer type `name` as any surface spells it, in bits.
+fn int_bits(name: &str) -> Option<u32> {
+    use yan_names::{Surface, type_row};
+    let row = [Surface::Yir, Surface::Yag, Surface::Yn]
+        .into_iter()
+        .find_map(|s| type_row(name, s))?;
+    let digits = match row.yir {
+        "int" => "64",
+        "float" => return None,
+        n => n.strip_prefix(['u', 'i'])?,
+    };
+    digits.parse().ok()
+}
+
+/// The `N` of `@layout(bits(uN))`: the first argument is `bits(...)` of one unsigned type.
+fn bits_container(args: &[j::Arg]) -> Option<u32> {
+    let [
+        j::Arg {
+            kind:
+                j::ArgKind::Expr(j::Expr {
+                    kind: j::ExprKind::Call(f, a),
+                    ..
+                }),
+            ..
+        },
+    ] = args
+    else {
+        return None;
+    };
+    let (
+        j::ExprKind::Name(f),
+        [
+            j::Arg {
+                kind:
+                    j::ArgKind::Expr(j::Expr {
+                        kind: j::ExprKind::Name(t),
+                        ..
+                    }),
+                ..
+            },
+        ],
+    ) = (&f.kind, a.as_slice())
+    else {
+        return None;
+    };
+    (f == "bits").then_some(())?;
+    int_bits(t).filter(|_| t.starts_with(['u']) || t.starts_with("uint"))
+}
+
+/// E908: the field widths of a `@layout(bits(uN))` record sum to `N`.
+fn bits_layout(it: &j::Item, args: &[j::Arg], item: &str, cx: &mut Cx) {
+    let (Some(n), j::ItemKind::Record(c)) = (bits_container(args), &it.kind) else {
+        return cx.err(
+            "E908",
+            it.span,
+            item,
+            "`@layout(bits(uN))` needs a class".into(),
+        );
+    };
+    let mut sum = 0;
+    for f in &c.fields {
+        let w = match &f.ty {
+            j::Type::Named { path, args } if path.len() == 1 && args.is_empty() => {
+                int_bits(&path[0])
+            }
+            _ => None,
+        };
+        match w {
+            Some(w) => sum += w,
+            None => cx.err(
+                "E908",
+                f.ty_span,
+                item,
+                format!(
+                    "field `{}` of a `bits` layout is not an integer type",
+                    f.name
+                ),
+            ),
+        }
+    }
+    if sum != n {
+        cx.err(
+            "E908",
+            it.span,
+            item,
+            format!("field widths sum to {sum} bits, not the {n} of `bits(u{n})`"),
+        );
+    }
 }
 
 /// The code named by decorator argument `a`, if it is a bare name.

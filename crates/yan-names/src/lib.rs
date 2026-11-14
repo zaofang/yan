@@ -68,6 +68,7 @@ pub const TYPES: &[TypeName] = &[
     row("Lub", "Lub", "Lub", 1),
     row("Max", "Max", "Max", 1),
     row("Entity", "Entity", "Entity", 2),
+    row("Group", "Group", "Group", 1),
     row("Locale", "Locale", "Locale", 0),
     row("Command", "Command", "Command", 0),
     row("TcpListener", "TcpListener", "TcpListener", 0),
@@ -102,11 +103,59 @@ pub const TYPES: &[TypeName] = &[
 /// The table row a surface spells `name`, if `name` is one of its built-in type names. Yan's
 /// `i64` and `f64` are rows too: Yan reads both its spellings.
 pub fn type_row(name: &str, s: Surface) -> Option<&'static TypeName> {
-    TYPES.iter().find(|r| r.get(s) == name).or(match (s, name) {
-        (Surface::Yn, "i64") => type_row("int", Surface::Yn),
-        (Surface::Yn, "f64") => type_row("float", Surface::Yn),
-        _ => None,
-    })
+    TYPES
+        .iter()
+        .find(|r| r.get(s) == name)
+        .or(match (s, name) {
+            (Surface::Yn, "i64") => type_row("int", Surface::Yn),
+            (Surface::Yn, "f64") => type_row("float", Surface::Yn),
+            _ => None,
+        })
+        .or_else(|| wide_row(name, s))
+}
+
+/// The widest arbitrary-width integer the backends carry in one machine word.
+pub const MAX_WIDE: u8 = 63;
+
+/// The row of an arbitrary-width integer (`u3`, `i12`; Yan Agent `uint3`, `int12`), 1 to
+/// [`MAX_WIDE`] bits. The table's own widths (8, 16, 32) are rows there, not here.
+fn wide_row(name: &str, s: Surface) -> Option<&'static TypeName> {
+    static ROWS: std::sync::Mutex<Vec<&'static TypeName>> = std::sync::Mutex::new(Vec::new());
+    let (signed, bits) = match s {
+        Surface::Yag => match name.strip_prefix("uint") {
+            Some(b) => (false, b),
+            None => (true, name.strip_prefix("int")?),
+        },
+        _ => {
+            let (sign, b) = name.split_at_checked(1)?;
+            (
+                match sign {
+                    "u" => false,
+                    "i" => true,
+                    _ => return None,
+                },
+                b,
+            )
+        }
+    };
+    if bits.starts_with('0') {
+        return None;
+    }
+    let n: u8 = bits
+        .parse()
+        .ok()
+        .filter(|n| (1..=MAX_WIDE).contains(n) && !matches!(n, 8 | 16 | 32))?;
+    let mut rows = ROWS.lock().expect("no panic while held");
+    let yir = format!("{}{n}", if signed { 'i' } else { 'u' });
+    if let Some(r) = rows.iter().find(|r| r.yir == yir) {
+        return Some(r);
+    }
+    let leak = |s: String| -> &'static str { Box::leak(s.into_boxed_str()) };
+    let yag = leak(format!("{}int{n}", if signed { "" } else { "u" }));
+    let yir = leak(yir);
+    let row: &'static TypeName = Box::leak(Box::new(row(yir, yag, yir, 0)));
+    rows.push(row);
+    Some(row)
 }
 
 /// `name`, a built-in type name of surface `from`, as surface `to` spells it.

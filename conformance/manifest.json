@@ -2998,6 +2998,44 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e413_sink_list_element.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 8,
+     "col": 15
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e413_sink_loop_element.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 9,
+     "col": 19
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e413_store_in_record.yag",
    "kind": "fail",
    "milestone": "M1",

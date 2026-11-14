@@ -39,6 +39,7 @@ mod net;
 mod path;
 mod prelude;
 mod proc;
+mod ptr;
 mod rand;
 mod regex;
 mod simcheck;
@@ -103,6 +104,8 @@ pub(crate) enum Value {
     Iter(iter::It),
     /// A stage-0 type handle (RFC 0051 D1).
     Type(Rc<meta::Handle>),
+    /// A `Ptr[T]` (6.6); equality compares addresses.
+    Ptr(ptr::PtrVal),
 }
 
 /// FNV-1a: frames hash short names on every access, where SipHash dominated the profile.
@@ -161,6 +164,7 @@ impl Hash for Key {
                     fields.iter().for_each(|(_, x)| go(x, h));
                 }
                 Value::Type(t) => format!("{:?}", t.ty).hash(h),
+                Value::Ptr(p) => p.addr.hash(h),
                 _ => {}
             }
         }
@@ -260,6 +264,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             sim: None,
             pct: None,
             monitors: Vec::new(),
+            groups: Vec::new(),
             seq: Default::default(),
             remote: Vec::new(),
             replied: true,
@@ -310,6 +315,7 @@ fn materialize(v: &Value) -> Stage0 {
             },
             Value::Closure(_) => return Err("a function value"),
             Value::Type(_) => return Err("a `Type`"),
+            Value::Ptr(_) => return Err("a `Ptr`"),
             _ => return Err("this value"),
         })
     }
@@ -391,8 +397,8 @@ pub(crate) struct Interp<'o> {
     ceiling: yan_sandbox::Ceiling,
     /// The earliest enclosing `deadline` scope, as monotonic nanoseconds (9.4).
     deadline: Option<i128>,
-    /// Each channel's capacity and queued values, by channel.
-    chans: Vec<(usize, VecDeque<Value>)>,
+    /// Each channel, by channel.
+    chans: Vec<sync::Chan>,
     /// Each actor, by actor (9.6).
     actors: Vec<sync::Actor>,
     /// Every supervisor and the open `with supervisor` scopes (9.6).
@@ -409,6 +415,8 @@ pub(crate) struct Interp<'o> {
     pct: Option<yan_rt::pct::Pct>,
     /// Each monitored actor, the channel its `Down` goes to and the node of the watcher (RFC 0063 D7).
     monitors: Vec<(usize, usize, usize)>,
+    /// The members of each named group, in join order (R414).
+    groups: Vec<(String, Vec<Value>)>,
     /// Messages sent so far over each ordered node pair, which index its fault stream.
     seq: std::collections::HashMap<(usize, usize), u64>,
     /// The calls through `Remote` awaiting their reply, innermost last, by task path.
@@ -822,6 +830,7 @@ fn entry(
         sim: None,
         pct: None,
         monitors: Vec::new(),
+        groups: Vec::new(),
         seq: Default::default(),
         remote: Vec::new(),
         replied: true,

@@ -32,10 +32,12 @@ pub enum Shape {
     Sum(String, Vec<(String, Vec<(String, Shape)>)>),
     /// A closure: its code and its captures' block. `ret` is a `Result` for `fail E`.
     Fn(Vec<Shape>, Box<Shape>),
-    /// A `Sender[T]` or `Receiver[T]`: the channel both ends share.
-    Chan(Box<Shape>),
+    /// A `Sender[T]` (true) or `Receiver[T]`: the channel both ends share.
+    Chan(Box<Shape>, bool),
     /// An `Actor[S]`: the actor's index in `yan_rt::actor`, which the handle does not own.
     Actor(Box<Shape>),
+    /// A `Ptr[T]` (6.6): its address, then its provenance (0 for none).
+    Ptr,
     /// A `set`: a `yan_rt::map` block whose entries are keys with no value slots.
     Set(Box<Shape>),
 }
@@ -55,10 +57,11 @@ impl Shape {
             | Shape::Map(..)
             | Shape::Heap(_)
             | Shape::Deque(_)
-            | Shape::Chan(_)
+            | Shape::Chan(..)
             | Shape::Actor(_)
             | Shape::Set(_) => out.push(Ty::Ptr),
             Shape::Fn(..) => out.extend([Ty::Ptr, Ty::Ptr]),
+            Shape::Ptr => out.extend([I64, I64]),
             Shape::Rec(_, fs) => fs.iter().for_each(|(_, s)| s.slots(out)),
             Shape::Tuple(ss) => ss.iter().for_each(|s| s.slots(out)),
             Shape::Sum(_, vs) => {
@@ -172,6 +175,9 @@ impl Types<'_> {
                     {
                         return Ok(Shape::Scalar(I64));
                     }
+                    ("Ptr", [y::TArg::Type(_)]) if !self.recs.contains_key(name) => {
+                        return Ok(Shape::Ptr);
+                    }
                     ("char", []) => return Ok(Shape::Char),
                     ("Secret", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
                         return Ok(Shape::Rec(
@@ -218,7 +224,8 @@ impl Types<'_> {
                         return Ok(result(self.shape_in(t, stack)?, self.shape_in(e, stack)?));
                     }
                     ("Sender" | "Receiver", [y::TArg::Type(e)]) => {
-                        return Ok(Shape::Chan(Box::new(self.shape_in(e, stack)?)));
+                        let sender = name == "Sender";
+                        return Ok(Shape::Chan(Box::new(self.shape_in(e, stack)?), sender));
                     }
                     // The overflow policy is the actor's, at run time.
                     ("Actor" | "SendOnly", [y::TArg::Type(s), ..]) => {

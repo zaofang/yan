@@ -451,7 +451,7 @@ fn words(m: &j::Module) -> HashSet<String> {
         w.insert("time".into());
     }
     // A call through `Remote` fails with `std.cluster` types (R408).
-    if w.contains("Remote") || w.contains("RemoteError") {
+    if w.contains("Remote") || w.contains("RemoteError") || w.contains("Group") {
         w.insert("cluster".into());
     }
     // A std alias names its members.
@@ -858,7 +858,8 @@ fn std_cx(module: &str) -> Cx<'static> {
         strict: true,
         release: false,
         yn: false,
-        ffi: false,
+        // `core.ptr` names `Ptr`, a `core.ffi` type.
+        ffi: module.ends_with("ptr"),
         untrusted: false,
         previews: Vec::new(),
         diags: Vec::new(),

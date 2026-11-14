@@ -960,7 +960,19 @@ fn run_program(
             }
         }
     } else {
-        module
+        match yan_opt::elaborate_drops(module) {
+            Ok(m) => {
+                optimized = m;
+                &optimized
+            }
+            Err(yan_opt::Error::Diag(d)) => {
+                print_diags(&[*d]);
+                return ExitCode::FAILURE;
+            }
+            Err(yan_opt::Error::Unsupported(what)) => {
+                return tool_failure(&format!("not supported yet: {what} in drop elaboration"));
+            }
+        }
     };
     let mut out = std::io::stdout().lock();
     match yan_interp::run_reporting(module, &mut out, args) {
