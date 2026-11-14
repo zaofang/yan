@@ -289,6 +289,11 @@ pub enum Type {
         path: Path,
         args: Vec<Arg>,
     },
+    /// `dyn Path`: a trait object type (7.3, 10).
+    Dyn {
+        path: Path,
+        args: Vec<TArg>,
+    },
     None,
 }
 

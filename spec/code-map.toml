@@ -89,7 +89,7 @@ E285 = "crates/yan-elab/src/kernel.rs"
 E286 = "crates/yan-elab/src/kernel.rs"
 E301 = "crates/yan-check/src/lib.rs"
 E306 = "crates/yan-check/src/lib.rs"
-E307 = { unimplemented = "#825" }
+E307 = "crates/yan-yn/src/lower.rs"
 E310 = "crates/yan-check/src/lib.rs"
 E311 = "crates/yan-check/src/lib.rs"
 E312 = "crates/yan-check/src/lib.rs"
