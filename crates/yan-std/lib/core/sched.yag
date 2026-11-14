@@ -4,3 +4,9 @@
 @since("1.0")
 pub trait Sched:
     def width(self: Self) -> int: ...
+
+@intrinsic
+@since("1.0")
+pub def pool() -> Sched:
+    """Fork-join over OS threads, one per core (9.1): parallel but not concurrent forward progress."""
+    ...
