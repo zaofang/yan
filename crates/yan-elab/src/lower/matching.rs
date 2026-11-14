@@ -232,6 +232,11 @@ impl Lower<'_, '_, '_> {
                         .iter()
                         .find(|(v, _)| v == n)
                         .map(|(_, fs)| fs.iter().map(|f| (f.name.clone(), f.ty.clone())).collect()),
+                    (Ty::Data(r), _) if r == n && self.g.layout_bits.contains(r) => {
+                        return unsupported(format!(
+                            "a pattern on `@layout(bits)` record `{r}`; read its fields instead"
+                        ));
+                    }
                     (Ty::Data(r), _) if r == n && self.g.records.contains_key(r) => Some(
                         self.g.records[r]
                             .iter()

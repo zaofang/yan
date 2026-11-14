@@ -274,7 +274,7 @@ fn int_bits(name: &str) -> Option<u32> {
 }
 
 /// The `N` of `@layout(bits(uN))`: the first argument is `bits(...)` of one unsigned type.
-fn bits_container(args: &[j::Arg]) -> Option<u32> {
+pub(crate) fn bits_container(args: &[j::Arg]) -> Option<u32> {
     let [
         j::Arg {
             kind:

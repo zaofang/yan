@@ -252,6 +252,8 @@ pub(crate) struct Globals {
     pub externs: HashMap<String, (bool, bool)>,
     /// Records marked `@layout(c)` (12.3).
     pub layout_c: HashSet<String>,
+    /// Records marked `@layout(bits(uN))` (5.2).
+    pub layout_bits: HashSet<String>,
     /// Records marked `@derive(Cli)`, with their `@help` texts (RFC 0019 D14).
     pub clis: HashMap<String, HashMap<String, String>>,
     /// Records and sums marked `@derive(Wire)` (17.4).
@@ -956,6 +958,15 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 };
                 if it.decorators.iter().any(c_layout) {
                     g.layout_c.insert(c.name.clone());
+                }
+                let bits_layout = |d: &j::Decorator| {
+                    d.path == ["layout"]
+                        && d.args
+                            .as_deref()
+                            .is_some_and(|a| decorators::bits_container(a).is_some())
+                };
+                if it.decorators.iter().any(bits_layout) {
+                    g.layout_bits.insert(c.name.clone());
                 }
                 let cli = |d: &j::Decorator| {
                     d.path == ["derive"]
