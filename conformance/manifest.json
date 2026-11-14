@@ -2618,12 +2618,14 @@
    "spec": [
     "20.5"
    ],
-   "rows": [],
+   "rows": [
+    "R179"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "W815",
-     "line": 9,
+     "line": 10,
      "col": 12
     }
    ]
@@ -8389,7 +8391,15 @@
     "R374",
     "R433",
     "R437",
-    "R444"
+    "R444",
+    "R62",
+    "R64",
+    "R71",
+    "R73",
+    "R75",
+    "R76",
+    "R77",
+    "R82"
    ],
    "flags": [],
    "expect": []
@@ -8658,12 +8668,14 @@
    "spec": [
     "15.3"
    ],
-   "rows": [],
+   "rows": [
+    "R68"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "E312",
-     "line": 6,
+     "line": 7,
      "col": 3
     }
    ]
@@ -9893,12 +9905,14 @@
    "spec": [
     "15.3"
    ],
-   "rows": [],
+   "rows": [
+    "R66"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "E404",
-     "line": 9,
+     "line": 10,
      "col": 8
     }
    ]
@@ -10003,12 +10017,14 @@
    "spec": [
     "4.2"
    ],
-   "rows": [],
+   "rows": [
+    "R69"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "E416",
-     "line": 5,
+     "line": 6,
      "col": 11
     }
    ]
@@ -10345,12 +10361,14 @@
    "spec": [
     "15.3"
    ],
-   "rows": [],
+   "rows": [
+    "R67"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "E135",
-     "line": 7,
+     "line": 8,
      "col": 57
     }
    ]
@@ -10721,7 +10739,9 @@
    "spec": [
     "9.2"
    ],
-   "rows": [],
+   "rows": [
+    "R74"
+   ],
    "flags": [],
    "expect": [],
    "stdout": "4 9 [1, 4, 9]\n",
@@ -10935,7 +10955,8 @@
    ],
    "rows": [
     "SQ21",
-    "R430"
+    "R430",
+    "R65"
    ],
    "flags": [],
    "expect": [],
@@ -12281,11 +12302,17 @@
    "spec": [
     "20.6"
    ],
-   "rows": [],
+   "rows": [
+    "R",
+    "1",
+    "8",
+    "3"
+   ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "20.6",
+    "rows": "R183",
     "bump": "major"
    }
   },
@@ -12416,11 +12443,17 @@
    "spec": [
     "20.6"
    ],
-   "rows": [],
+   "rows": [
+    "R",
+    "1",
+    "8",
+    "4"
+   ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "20.6",
+    "rows": "R184",
     "bump": "patch"
    }
   },
@@ -12892,11 +12925,17 @@
    "spec": [
     "20.6"
    ],
-   "rows": [],
+   "rows": [
+    "R",
+    "1",
+    "8",
+    "7"
+   ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "20.6",
+    "rows": "R187",
     "milestone": "M2a",
     "note": "removing g needs a major; 1.2.1 is a patch",
     "command": [
@@ -13244,13 +13283,19 @@
     "R",
     "8",
     "8",
-    "8"
+    "8",
+    ",",
+    " ",
+    "R",
+    "1",
+    "7",
+    "5"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "20.4",
-    "rows": "R888",
+    "rows": "R888, R175",
     "note": "edition is next or a four-digit year of 2026 or later; the span is the string literal",
     "command": [
      "check"
@@ -13348,13 +13393,19 @@
     "R",
     "8",
     "8",
-    "8"
+    "8",
+    ",",
+    " ",
+    "R",
+    "1",
+    "7",
+    "4"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "20.4",
-    "rows": "R888",
+    "rows": "R888, R174",
     "note": "edition is next or a four-digit year of 2026 or later",
     "command": [
      "check"
@@ -13482,11 +13533,17 @@
    "spec": [
     "20.6"
    ],
-   "rows": [],
+   "rows": [
+    "R",
+    "1",
+    "8",
+    "0"
+   ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "20.6",
+    "rows": "R180",
     "command": [
      "check"
     ]

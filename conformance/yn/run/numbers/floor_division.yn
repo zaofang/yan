@@ -1,5 +1,5 @@
 -- spec: 3.4
--- rows: SQ21, R430
+-- rows: SQ21, R430, R65
 -- stdout:
 -- 3 -4 1 2 3.5
 

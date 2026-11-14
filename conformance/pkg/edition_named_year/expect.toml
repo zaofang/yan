@@ -1,4 +1,4 @@
 spec = "20.4"
-rows = "R888"
+rows = "R888, R174"
 note = "edition is next or a four-digit year of 2026 or later"
 command = ["check"]

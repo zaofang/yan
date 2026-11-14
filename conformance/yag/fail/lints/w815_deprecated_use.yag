@@ -1,5 +1,6 @@
 # spec: 20.5
-# expect: W815 at 9:12
+# rows: R179
+# expect: W815 at 10:12
 
 @deprecated(since="0.1", note="use g")
 def f() -> int:
