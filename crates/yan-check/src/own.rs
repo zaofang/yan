@@ -1,5 +1,7 @@
 //! Ownership facts shared by drop elaboration (`yan-opt`) and the post-optimization check (D2, D3).
 
+use std::collections::HashSet;
+
 use yan_core::ast::*;
 use yan_core::intrinsics;
 
@@ -81,5 +83,57 @@ pub fn pat_binders(p: &Pat, out: &mut Vec<Name>) {
             out.extend(rest.iter().flatten().cloned());
         }
         _ => {}
+    }
+}
+
+/// Constructor and field name pairs whose type is copy in every declaration of that constructor.
+pub type CopyFields = HashSet<(Name, Name)>;
+
+pub fn copy_fields(m: &Module) -> CopyFields {
+    let last = |p: &Path| p.last().cloned().unwrap_or_default();
+    let mut copy = CopyFields::new();
+    let mut other = CopyFields::new();
+    let mut add = |ctor: Name, fs: &[Field]| {
+        for f in fs {
+            let key = (ctor.clone(), f.name.clone());
+            if is_copy(&f.ty) {
+                copy.insert(key);
+            } else {
+                other.insert(key);
+            }
+        }
+    };
+    for it in &m.items {
+        match &it.kind {
+            ItemKind::Record(r) => add(last(&r.path), &r.fields),
+            ItemKind::Sum(s) => s
+                .variants
+                .iter()
+                .for_each(|v| add(v.name.clone(), v.fields.as_deref().unwrap_or(&[]))),
+            _ => {}
+        }
+    }
+    copy.retain(|k| !other.contains(k));
+    copy
+}
+
+/// `pat_binders` without the names bound to a copy field: those are values, not views of the
+/// scrutinee, so passing one on does not move it.
+pub fn view_binders(p: &Pat, copy: &CopyFields, out: &mut Vec<Name>) {
+    match p {
+        Pat::Ctor {
+            path,
+            fields: Some((fs, _)),
+        } => {
+            let ctor = path.last().cloned().unwrap_or_default();
+            for (f, sub) in fs {
+                if matches!(sub, Pat::Bind(_)) && copy.contains(&(ctor.clone(), f.clone())) {
+                    continue;
+                }
+                view_binders(sub, copy, out);
+            }
+        }
+        Pat::Tuple(ps) | Pat::Or(ps) => ps.iter().for_each(|p| view_binders(p, copy, out)),
+        _ => pat_binders(p, out),
     }
 }
