@@ -1598,3 +1598,23 @@ fn access_claim_on_extern_takes_a_halo() {
     one("@access(a: elementwise(halo: 1), out: whole)");
     one("@access(a: whole, out: rows(0, halo: 1))");
 }
+
+#[test]
+fn yn_use_alias_renames_the_std_module_root() {
+    let lower_yn = |src: &str| {
+        let (ast, d) = yan_yn::parse("t.yn", src);
+        assert!(d.is_empty(), "{d:?}");
+        let (h, d) = yan_yn::lower("t.yn", src, &ast).expect("lowers");
+        let opts = Options {
+            yn: true,
+            ..Options::default()
+        };
+        let (_, ed) = elaborate("t.yn", src, &h, opts).expect("supported");
+        d.into_iter().chain(ed).map(|d| d.code).collect::<Vec<_>>()
+    };
+    let body = "main() -> () uses io =\n  io.print(t.concat(\"a\", \"b\"))\n";
+    assert!(lower_yn(&format!("use std.text as t\n\n{body}")).is_empty());
+    let (ast, _) = yan_yn::parse("t.yn", "use foo.bar as t\n");
+    let (_, d) = yan_yn::lower("t.yn", "use foo.bar as t\n", &ast).expect("lowers");
+    assert_eq!(d[0].code, "E017");
+}

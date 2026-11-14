@@ -52,9 +52,21 @@ pub fn lower(file: &str, src: &str, m: &Module) -> R<(h::Module, Vec<Diagnostic>
         doc: None,
         self_ty: named(&["Self"], Vec::new()),
         fresh: 0,
+        aliases: HashMap::new(),
     };
     let mut items = Vec::new();
     for it in &m.items {
+        if let ItemKind::Use(u) = &it.kind {
+            match l.use_alias(u) {
+                Ok(()) => {}
+                Err(e) => l.err(
+                    "E017",
+                    it.span,
+                    &format!("{}: not supported by this toolchain yet", e.what),
+                ),
+            }
+            continue;
+        }
         match l.item(it) {
             Ok(Some(i)) => items.push(i),
             Ok(None) => {}
@@ -88,6 +100,8 @@ struct Lower<'a> {
     self_ty: h::Type,
     /// Names made up by desugaring, numbered.
     fresh: usize,
+    /// `use std.m as a`: `a` to the std module `m` (15.2, aliases only).
+    aliases: HashMap<String, String>,
 }
 
 fn mk(kind: h::ExprKind, span: Span) -> h::Expr {
@@ -164,6 +178,21 @@ fn returns_value(sig: &Sig) -> bool {
 }
 
 impl Lower<'_> {
+    /// Only `use std.m` and `use std.m as a` exist: std modules are reachable by their last
+    /// segment, so an alias is a rename of that root.
+    fn use_alias(&mut self, u: &UseDecl) -> R<()> {
+        let [root, module] = u.path.as_slice() else {
+            return unsupported("`use` of a path that is not `std.<module>`");
+        };
+        if u.relative || root != "std" {
+            return unsupported("`use` of a path that is not `std.<module>`");
+        }
+        if let Some(alias) = &u.alias {
+            self.aliases.insert(alias.clone(), module.clone());
+        }
+        Ok(())
+    }
+
     fn err(&mut self, code: &str, span: Span, msg: &str) {
         let line = self.src.lines().nth(span.line as usize - 1).unwrap_or("");
         let lo = (span.col as usize - 1).min(line.len());
@@ -229,7 +258,7 @@ impl Lower<'_> {
             ItemKind::Trait(t) => (h::ItemKind::Trait(self.trait_def(t)?), it.span),
             ItemKind::Impl(i) => (h::ItemKind::Impl(self.impl_def(i)?), it.span),
             ItemKind::Extern(x) => (h::ItemKind::Extern(self.extern_def(x)?), it.span),
-            ItemKind::Use(_) => return unsupported("use declarations"),
+            ItemKind::Use(_) => return Ok(None),
         };
         Ok(Some(h::Item {
             decorators,
@@ -1613,7 +1642,18 @@ impl Lower<'_> {
                     col: span.end_col.saturating_sub(n.len() as u32),
                     ..span
                 };
-                K::Attr(b(self.expr(x)?), n.clone(), at)
+                let root = match &x.kind {
+                    ExprKind::Name(a) => self.aliases.get(a),
+                    _ => None,
+                };
+                match root {
+                    Some(module) => K::Attr(
+                        b(mk(h::ExprKind::Name(module.clone()), x.span)),
+                        n.clone(),
+                        at,
+                    ),
+                    None => K::Attr(b(self.expr(x)?), n.clone(), at),
+                }
             }
             // `x.len()` is the builtin `len(x)`, so E504 and the bounds solver see it (15.3).
             ExprKind::Call(f, args)
