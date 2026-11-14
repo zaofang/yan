@@ -291,6 +291,7 @@ impl Lower<'_, '_, '_> {
                 let (r, t, _) = self.std_call(&path, p, Vec::new(), args, n, at)?;
                 Ok((r, t))
             }
+            _ if let Some(r) = self.lenient_free(n, args, at, want)? => Ok(r),
             _ => {
                 let mut names: Vec<&str> = self.g.fns.keys().map(String::as_str).collect();
                 names.extend(BUILTINS);

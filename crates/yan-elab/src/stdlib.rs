@@ -505,6 +505,10 @@ fn raw_words(m: &j::Module) -> HashSet<String> {
     if text.contains("\"**\"") || w.contains("pow") {
         w.insert("math".into());
     }
+    // N52 reads a bare `sqrt` as `math.sqrt`.
+    if crate::lower::MATH_FREE.iter().any(|f| w.contains(*f)) {
+        w.insert("math".into());
+    }
     // `chr` fails with a `std.encoding` error (R801).
     if w.contains("chr") {
         w.insert("encoding".into());
