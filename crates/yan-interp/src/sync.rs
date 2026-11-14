@@ -583,6 +583,24 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         }),
     ),
     (
+        STD_CHAN_RECEIVER_TRY_RECV,
+        Bind::VmFallible(|vm, a| {
+            let c = chan(&a[0]);
+            if let Some(e) = cancelled(&vm.it) {
+                return Ok(Err(e));
+            }
+            crate::simfault::sweep(&mut vm.it);
+            if let Some(v) = vm.it.chans[c].q.pop_front() {
+                vm.it.progress += 1;
+                return Ok(Ok(crate::native::opt(Some(v))));
+            }
+            if vm.it.chans[c].senders == 0 {
+                return Ok(Ok(crate::native::opt(None)));
+            }
+            Ok(Err(failure("Empty")))
+        }),
+    ),
+    (
         STD_CHAN_RECEIVER_SHARE,
         Bind::Plain(|_| unsupported("`std.chan.receiver.share` in the interpreter")),
     ),
@@ -612,6 +630,29 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                     return blocked(&mut vm.it, "send", c);
                 }
             }
+        }),
+    ),
+    (
+        STD_CHAN_SENDER_TRY_SEND,
+        Bind::VmFallible(|vm, a| {
+            let c = chan(&a[0]);
+            let it = &mut vm.it;
+            if let Some(e) = cancelled(it) {
+                return Ok(Err(e));
+            }
+            let ch = &mut it.chans[c];
+            let waiting = it.waiting_recv.iter().filter(|w| **w == c).count();
+            let room = if ch.cap == 0 {
+                ch.q.len() < waiting
+            } else {
+                ch.q.len() < ch.cap
+            };
+            if !room {
+                return Ok(Err(failure("Full")));
+            }
+            ch.q.push_back(std::mem::take(&mut a[1]));
+            it.progress += 1;
+            Ok(Ok(Value::Unit))
         }),
     ),
     (
