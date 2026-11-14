@@ -561,6 +561,7 @@ impl Globals {
                                 self.sum_params[n].len()
                             ));
                         }
+                        decorators::instance(self, n, a, span, cx);
                         Ty::Inst(n.to_owned(), a.to_vec())
                     }
                     (n, []) if self.records.contains_key(n) || self.sums.contains_key(n) => {
