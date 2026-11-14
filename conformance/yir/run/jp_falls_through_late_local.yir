@@ -1,0 +1,17 @@
+-- spec: 3.5
+-- rows: R764
+-- stdout:
+-- body
+-- b
+
+module conf.jp_falls_through_late_local
+fn main(cap io: Io) -> Unit {
+    jp k() {
+        std.io.print(cap io, let "body")
+    }
+    let y: Str = "b"
+    let c: bool = lt_i64(let 1, let 2)
+    if c { jump k() } else { jump k() }
+    std.io.print(cap io, let y)
+    ret ()
+}
