@@ -10244,6 +10244,25 @@
    ]
   },
   {
+   "path": "yn/fail/subscripts/e017_free_sub.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.4"
+   ],
+   "rows": [
+    "R457"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E017",
+     "line": 8,
+     "col": 1
+    }
+   ]
+  },
+  {
    "path": "yn/fail/subscripts/e422_no_yield_on_a_path.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -10282,12 +10301,11 @@
    ]
   },
   {
-   "path": "yn/fail/subscripts/e423_inout_through_view.yn",
+   "path": "yn/fail/subscripts/e423_inout_yield_not_from_self.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
-    "4.4",
-    "4.3"
+    "4.4"
    ],
    "rows": [
     "R457"
@@ -10296,7 +10314,7 @@
    "expect": [
     {
      "code": "E423",
-     "line": 12,
+     "line": 10,
      "col": 11
     }
    ]
