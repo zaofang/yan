@@ -12,7 +12,6 @@ blake3.workspace = true
 core-math.workspace = true
 getrandom = "0.4"
 jiff.workspace = true
-libc = "0.2"
 libm.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true
@@ -36,3 +35,6 @@ rand_pcg = "0.9"
 
 [lib]
 crate-type = ["rlib", "staticlib"]
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

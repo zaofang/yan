@@ -6,8 +6,11 @@
 //! register files in declaration order, so a function of up to `INTS` integers and `FLOATS`
 //! floats is called through one signature that fills every register.
 
+#[cfg(unix)]
 use std::collections::HashMap;
+#[cfg(unix)]
 use std::ffi::{CString, c_void};
+#[cfg(unix)]
 use std::sync::Mutex;
 
 pub const INTS: usize = 6;
@@ -23,8 +26,10 @@ type IntFn =
 type FloatFn =
     extern "C" fn(i64, i64, i64, i64, i64, i64, f64, f64, f64, f64, f64, f64, f64, f64) -> f64;
 
+#[cfg(unix)]
 static SYMBOLS: Mutex<Option<HashMap<(String, String), usize>>> = Mutex::new(None);
 
+#[cfg(unix)]
 fn open(link: &str) -> *mut c_void {
     // Dev symlinks (`libm.so`) are absent on many hosts; the versioned names are tried next.
     for name in [
@@ -43,6 +48,12 @@ fn open(link: &str) -> *mut c_void {
     std::ptr::null_mut()
 }
 
+#[cfg(not(unix))]
+fn symbol(link: &str, _sym: &str) -> Result<usize, String> {
+    Err(format!("cannot load library `{link}` on this target"))
+}
+
+#[cfg(unix)]
 fn symbol(link: &str, sym: &str) -> Result<usize, String> {
     let mut g = SYMBOLS.lock().unwrap_or_else(|e| e.into_inner());
     let cache = g.get_or_insert_with(HashMap::new);
