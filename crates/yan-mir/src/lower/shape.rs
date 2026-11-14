@@ -236,6 +236,15 @@ impl Types<'_> {
                     }
                     // A `Remote` is its handle: every node runs in this process (R417).
                     ("Remote", [y::TArg::Type(h)]) => return self.shape_in(h, stack),
+                    // A `Group` is its index in `yan_rt`; its members are one-word handles.
+                    ("Group", [y::TArg::Type(a)]) => {
+                        if !matches!(self.shape_in(a, stack)?, Shape::Actor(_) | Shape::Scalar(_)) {
+                            return unsupported(format!(
+                                "type `{name}[..]` of members that are not handles"
+                            ));
+                        }
+                        return Ok(Shape::Scalar(I64));
+                    }
                     ("Undelivered", [y::TArg::Type(a), y::TArg::Type(r)]) => {
                         let (a, r) = (self.shape_in(a, stack)?, self.shape_in(r, stack)?);
                         return Ok(actor::undelivered(a, r));

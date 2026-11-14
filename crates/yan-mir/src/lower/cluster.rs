@@ -291,6 +291,33 @@ impl<'m> Fn<'_, 'm> {
                 });
                 self.copy_to(&d.locals, vec![ch]);
             }
+            (id::STD_CLUSTER_GROUP, [.., (_, name)]) => {
+                let Some(d) = dst else {
+                    return unsupported("`cluster.group` without its result");
+                };
+                let name = self.scalar1(name)?;
+                let g = self.rt(RtFn::ClusterGroup, I64, vec![name]);
+                self.copy_to(&d.locals, vec![g]);
+            }
+            (id::STD_CLUSTER_GROUP_JOIN | id::STD_CLUSTER_GROUP_LEAVE, [(_, g), (_, m)]) => {
+                let (g, m) = (self.scalar1(g)?, self.scalar1(m)?);
+                let f = if id == id::STD_CLUSTER_GROUP_JOIN {
+                    RtFn::GroupJoin
+                } else {
+                    RtFn::GroupLeave
+                };
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f,
+                    args: vec![g, m],
+                });
+            }
+            (id::STD_CLUSTER_GROUP_MEMBERS, [(_, g)]) => {
+                let Some(d) = dst else { return Ok(true) };
+                let g = self.scalar1(g)?;
+                let l = self.rt(RtFn::GroupMembers, Ty::Ptr, vec![g]);
+                self.copy_to(&d.locals, vec![l]);
+            }
             _ => return Ok(false),
         }
         Ok(true)
