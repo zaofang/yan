@@ -31,6 +31,8 @@ mod consume;
 mod fallback;
 mod generic_sum;
 mod last_use;
+mod lenient_names;
+pub(crate) use lenient_names::MATH_FREE;
 mod loops;
 mod matching;
 mod method;

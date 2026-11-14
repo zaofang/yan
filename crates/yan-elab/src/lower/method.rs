@@ -207,6 +207,12 @@ impl Lower<'_, '_, '_> {
             );
         }
         let m = if self.cx.strict { m } else { canon };
+        let m = if !self.cx.strict && t == Ty::Str && m == "len" {
+            self.lenient("N53", at, "`s.len()` normalized to `s.char_count()`");
+            "char_count"
+        } else {
+            m
+        };
         let zero = [j::Arg {
             name: None,
             kind: j::ArgKind::Expr(j::Expr {
