@@ -300,6 +300,12 @@ impl Lower<'_, '_, '_> {
                     return self.cap_call(c, m, args, at);
                 }
                 if let j::ExprKind::Name(module) = &b.kind
+                    && let Some((r, t)) =
+                        self.lenient_module_call(module, m, args, at, *name_at, want)?
+                {
+                    return Ok((r, t, None));
+                }
+                if let j::ExprKind::Name(module) = &b.kind
                     && !self.locals.contains_key(module)
                     && self.std_variant(module, m)
                 {
