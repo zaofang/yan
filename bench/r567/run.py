@@ -269,6 +269,9 @@ def main() -> None:
     ap.add_argument("--suite", default="humaneval,mbpp")
     ap.add_argument("--limit", type=int, default=None, help="tasks to run, after a seeded shuffle")
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument(
+        "--ids", default="", help="comma-separated task ids, e.g. HumanEval/11,mbpp/118"
+    )
     ap.add_argument("--only", default="", help="comma-separated task function names")
     ap.add_argument("--shots", type=int, choices=[0, 5], default=5)
     ap.add_argument("--arms", default="yag,py")
@@ -299,6 +302,8 @@ def main() -> None:
     ts = taskset.select(a.suite.split(","), a.limit, a.seed)
     if a.only:
         ts = [t for t in ts if t.name in a.only.split(",")]
+    if a.ids:
+        ts = [t for t in ts if t.id in a.ids.split(",")]
     n_imp = round(len(ts) * a.impossible)
     ts += [taskset.impossible(t) for t in ts[:n_imp]]
     tag = f"{a.model.split(':')[0]}-{a.decoding}-{a.shots}shot"

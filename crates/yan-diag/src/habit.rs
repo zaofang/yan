@@ -48,6 +48,28 @@ const TABLE: &[Habit] = &[
                as a parameter, or write a `lambda`",
     },
     Habit {
+        ext: "yag",
+        lang: "python",
+        codes: &["E100"],
+        on: |l| {
+            let l = l.trim_start();
+            l.starts_with("ex ")
+                && (l.contains("raises") || l.contains("fails ") || l.contains("pytest."))
+        },
+        text: "Python `pytest.raises(E)` or `fails E` in an example: state a failure as \
+               `ex f(x) == fail E`",
+    },
+    Habit {
+        ext: "yag",
+        lang: "python",
+        codes: &["E100"],
+        on: |l| {
+            let l = l.trim_start();
+            l.starts_with("ex ") && l.contains(" fail ") && !l.contains("== fail ")
+        },
+        text: "`fail E` in an `ex` line is an operand: write `ex f(x) == fail E` to state a failure",
+    },
+    Habit {
         ext: "yn",
         lang: "typescript",
         codes: &["E100"],
@@ -110,6 +132,20 @@ mod selftest {
             end_col: 2,
         };
         Diagnostic::error(code, file, at, "", "m")
+    }
+
+    #[test]
+    fn ex_failure_forms_get_the_fix() {
+        let src = "    ex f(0) fail E\n    ex f(0) fails E\n    ex f(0) == fail E\n";
+        let mut ds = vec![
+            diag("E100", "a.yag", 1),
+            diag("E100", "a.yag", 2),
+            diag("E100", "a.yag", 3),
+        ];
+        annotate(src, &mut ds);
+        assert!(ds[0].children[0].text.contains("ex f(x) == fail E"));
+        assert!(ds[1].children[0].text.contains("ex f(x) == fail E"));
+        assert!(ds[2].children.is_empty());
     }
 
     #[test]

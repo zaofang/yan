@@ -515,7 +515,7 @@ impl Printer {
                         value,
                     } => format!(
                         "with {name} = {}{}",
-                        if *dynamic { "dyn " } else { "" },
+                        if dynamic.is_some() { "dyn " } else { "" },
                         expr(value)
                     ),
                     WithKind::Deadline(e) => format!("with deadline({})", expr(e)),

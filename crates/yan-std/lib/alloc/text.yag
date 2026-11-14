@@ -106,6 +106,21 @@ pub def as_path(self: str) -> Path: ...
 @since("1.0")
 pub def count(self: str, part: str) -> int: ...
 
+@since("1.0")
+pub def find(self: str, part: str) -> int:
+    """The char index of the first `part` in `self`, or -1 when absent (Python's `str.find`)."""
+    if part == "":
+        return 0
+    head, sep, _ = self.partition(part)
+    if sep == "":
+        return -1
+    return head.char_count()
+
+@since("1.0")
+pub def capitalize(self: str) -> str:
+    """The first char upper-cased and the rest lower-cased (Python's `str.capitalize`)."""
+    return self.slice_clamped(0, 1, None).upper() + self.slice_clamped(1, None, None).lower()
+
 @intrinsic
 @since("1.0")
 pub def isdigit(self: str) -> bool: ...

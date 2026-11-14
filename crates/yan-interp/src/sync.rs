@@ -782,6 +782,14 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         Bind::Plain(|_| unsupported("`std.sync.cell.set` in the interpreter")),
     ),
     (
+        STD_ARENA_ALLOC,
+        Bind::Plain(|_| unsupported("`std.arena.alloc` in the interpreter")),
+    ),
+    (
+        STD_ARENA_ARENA,
+        Bind::Plain(|_| unsupported("`std.arena.Arena` in the interpreter")),
+    ),
+    (
         STD_LATTICE_GET,
         Bind::Plain(|_| unsupported("`std.lattice.get` in the interpreter")),
     ),

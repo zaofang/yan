@@ -10,6 +10,8 @@ Models (the SPEC argument):
   anthropic:MODEL     the Messages API with ANTHROPIC_API_KEY; usage is the provider's own count
   compat:URL#MODEL    an OpenAI-compatible server (llama.cpp, vLLM). The only vendor that can apply
                       the GBNF grammar in $R567_GRAMMAR, which the harness sets for constrained runs
+  openrouter:VENDOR/MODEL  OpenRouter with OPENROUTER_API_KEY. Each call appends its cost to
+                      $R567_LEDGER; calls stop once the ledger reaches $R567_CAP_USD (default 19)
   oracle:DIR[?wrong]  scripted replies from DIR/NAME.yag and DIR/NAME.py, for dry runs (no network)
 
 usage: python model.py SPEC
@@ -18,10 +20,13 @@ usage: python model.py SPEC
 import json
 import os
 import pathlib
+import random
 import re
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.error
 import urllib.request
 
 Usage = dict[str, int]
@@ -126,6 +131,60 @@ class Compat:
         }
 
 
+class OpenRouter:
+    def __init__(self, model: str):
+        self.model, self.key = model, os.environ["OPENROUTER_API_KEY"]
+        self.ledger = pathlib.Path(os.environ.get("R567_LEDGER", "openrouter-ledger.jsonl"))
+        self.cap = float(os.environ.get("R567_CAP_USD", "19"))
+        self.temperature = float(os.environ.get("R567_TEMPERATURE", "0.3"))
+
+    def spent(self) -> float:
+        if not self.ledger.exists():
+            return 0.0
+        return sum(json.loads(line)["cost"] for line in self.ledger.read_text().splitlines())
+
+    @staticmethod
+    def post_retry(url: str, body: dict, headers: dict[str, str]) -> dict:
+        for attempt in range(7):  # rate limits and dropped connections are not model failures
+            try:
+                return post(url, body, headers)
+            except urllib.error.HTTPError as e:
+                if e.code not in (429, 500, 502, 503, 504) or attempt == 6:
+                    raise
+            except ConnectionError, TimeoutError, urllib.error.URLError:
+                if attempt == 6:
+                    raise
+            time.sleep(min(60, 2 ** (attempt + 1)) * (0.5 + random.random()))
+        raise AssertionError
+
+    def __call__(self, system: str, msgs: list[dict], max_tokens: int) -> dict:
+        if self.spent() >= self.cap:
+            raise RuntimeError(f"spend cap ${self.cap} reached")
+        t0 = time.time()
+        r = self.post_retry(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+                "model": self.model, "max_tokens": max_tokens, "temperature": self.temperature,
+                "messages": [{"role": "system", "content": system}, *msgs],
+                "usage": {"include": True},
+            },
+            {"authorization": f"Bearer {self.key}"},
+        )  # fmt: skip
+        if "choices" not in r:
+            raise RuntimeError(f"openrouter: {json.dumps(r.get('error', r))[:300]}")
+        u = r["usage"]
+        reasoning = (u.get("completion_tokens_details") or {}).get("reasoning_tokens", 0)
+        row = {"model": self.model, "in": u["prompt_tokens"], "out": u["completion_tokens"],
+               "reasoning": reasoning, "cost": u.get("cost") or 0.0,
+               "secs": round(time.time() - t0, 2),
+               "finish": r["choices"][0].get("finish_reason")}  # fmt: skip
+        with self.ledger.open("a") as f:
+            f.write(json.dumps(row) + "\n")
+        text = r["choices"][0]["message"].get("content") or ""
+        return {"text": text, "usage": {"in": row["in"], "out": row["out"], "reasoning": reasoning},
+                "model": self.model}  # fmt: skip
+
+
 class Oracle:
     """Replays a stored solution. `wrong` fails every body with an off-by-one result."""
 
@@ -159,7 +218,12 @@ def make(spec: str, grammar_file: str | None = None):
     vendor, _, rest = spec.partition(":")
     if vendor == "compat":
         return Compat(rest, grammar_file)
-    return {"claude": ClaudeCode, "anthropic": Anthropic, "oracle": Oracle}[vendor](rest)
+    return {
+        "claude": ClaudeCode,
+        "anthropic": Anthropic,
+        "openrouter": OpenRouter,
+        "oracle": Oracle,
+    }[vendor](rest)
 
 
 def main() -> None:
