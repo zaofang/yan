@@ -602,7 +602,7 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
             });
             let ps: Vec<String> = ps.collect();
             if !ps.is_empty() {
-                g.sum_params.insert(name.clone(), ps);
+                g.type_params.insert(name.clone(), ps);
             }
             g.std_sums.insert(name.clone());
             out.push(name.clone());
@@ -630,7 +630,7 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
         let outer = g.scope.borrow().len();
         g.scope
             .borrow_mut()
-            .extend(g.sum_params.get(name).into_iter().flatten().cloned());
+            .extend(g.type_params.get(name).into_iter().flatten().cloned());
         let mut variants = Vec::new();
         for v in vs {
             let mut fs = Vec::new();

@@ -11,17 +11,25 @@ impl Lower<'_, '_, '_> {
         at: Span,
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty)> {
-        let params = self.g.sum_params[s].clone();
+        let params = self.g.type_params[s].clone();
         let generic = Ty::Inst(
             s.to_owned(),
             params.iter().map(|p| Ty::Param(p.clone())).collect(),
         );
-        let fs = &self.g.sums[s]
-            .iter()
-            .find(|(v, _)| v == n)
-            .expect("declared")
-            .1;
-        let ps = field_params(fs, 0, at);
+        let ps = match self.g.records.get(n) {
+            Some(fs) => {
+                let pos = self.g.record_positional.get(n).copied().unwrap_or(0);
+                field_params(fs, pos, at)
+            }
+            None => {
+                let fs = &self.g.sums[s]
+                    .iter()
+                    .find(|(v, _)| v == n)
+                    .expect("declared")
+                    .1;
+                field_params(fs, 0, at)
+            }
+        };
         let outer = mem::take(&mut self.arg_tys);
         if let Some(w @ Ty::Inst(ws, _)) = want
             && ws == s

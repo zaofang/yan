@@ -88,7 +88,7 @@ impl Lower<'_, '_, '_> {
                 } else if let Some(t) = self.g.consts.get(n) {
                     (Rhs::Atom(Atom::Name(n.clone(), at)), t.clone())
                 } else if let Some(s) = self.g.variant_of.get(n)
-                    && self.g.sum_params.contains_key(s)
+                    && self.g.type_params.contains_key(s)
                 {
                     let s = s.clone();
                     self.generic_ctor(n, &s, &[], at, want)?
