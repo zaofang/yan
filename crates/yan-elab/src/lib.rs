@@ -697,7 +697,18 @@ pub fn elaborate_in(
             kind: y::ItemKind::Record(y::Record {
                 is_pub: true,
                 path: vec![name.clone()],
-                tparams: Vec::new(),
+                tparams: g
+                    .type_params
+                    .get(&name)
+                    .into_iter()
+                    .flatten()
+                    .map(|n| y::TParam {
+                        comptime: false,
+                        name: n.clone(),
+                        kind: y::Kind::Type,
+                        bounds: Vec::new(),
+                    })
+                    .collect(),
                 fields: core_fields(&g.records[&name])?,
             }),
             span: Span {

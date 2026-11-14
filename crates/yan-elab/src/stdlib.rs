@@ -530,6 +530,10 @@ pub(crate) fn classes(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
     let out = declare_classes(g, m);
     for (name, c) in &out {
         let mut cx = std_cx(c.module);
+        let outer = g.scope.borrow().len();
+        g.scope
+            .borrow_mut()
+            .extend(g.type_params.get(*name).into_iter().flatten().cloned());
         let mut fs = Vec::new();
         for f in &c.class.fields {
             fs.push(crate::Field {
@@ -541,6 +545,7 @@ pub(crate) fn classes(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
                 wire: None,
             });
         }
+        g.scope.borrow_mut().truncate(outer);
         g.records.insert((*name).clone(), fs);
         if c.wire {
             g.wires.insert((*name).clone());
@@ -556,17 +561,35 @@ fn declare_classes(g: &mut Globals, m: &j::Module) -> Vec<(&'static String, &'st
     let words = words(m);
     let mut out = Vec::new();
     for (name, c) in &STD.classes {
-        if (words.contains(name.as_str()) || words.contains(c.module))
+        let returned = CLASS_RETURNED_BY
+            .iter()
+            .any(|(k, f)| k == name && words.contains(*f));
+        if (words.contains(name.as_str()) || words.contains(c.module) || returned)
             && !own.contains(name.as_str())
         {
             g.records.entry(name.clone()).or_default();
             g.std_records.insert(name.clone());
+            let ps: Vec<String> = c
+                .class
+                .tparams
+                .iter()
+                .filter_map(|p| match p {
+                    j::TParam::Type { name, .. } => Some(name.clone()),
+                    _ => None,
+                })
+                .collect();
+            if !ps.is_empty() {
+                g.type_params.insert(name.clone(), ps);
+            }
             out.push((name, c));
         }
     }
     out.sort_by_key(|(n, _)| *n);
     out
 }
+
+/// Std classes named only by the signature of the method whose failure they are.
+const CLASS_RETURNED_BY: &[(&str, &str)] = &[("Full", "try_send")];
 
 /// Std sums named only by the signature of the method that returns them.
 const RETURNED_BY: &[(&str, &str)] = &[("TryRecv", "try_recv")];
@@ -752,6 +775,14 @@ fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
                 }
                 (n, []) if b.contains_key(n) => b[n].clone(),
                 (n, a) if STD.sums.contains_key(n) => Ty::Inst(n.to_owned(), a.to_vec()),
+                (n, a)
+                    if STD
+                        .classes
+                        .get(n)
+                        .is_some_and(|c| !c.class.tparams.is_empty()) =>
+                {
+                    Ty::Inst(n.to_owned(), a.to_vec())
+                }
                 ("Type", []) => Ty::Type,
                 ("Ptr", [t]) => Ty::Foreign("Ptr", vec![t.clone()]),
                 (n, a) => crate::ty::builtin(n, a)?,

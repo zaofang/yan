@@ -287,22 +287,29 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(())
     }
 
-    /// `dst` of a `try_` operation with status `st`: `Ok` of what `ok` reads, or the failure
-    /// its status means: 2 `Cancelled`, 3 `Closed`, 4 `not_ready` (`Empty` or `Full`).
-    pub(super) fn try_result(
+    /// `dst` of a `try_send` with status `st`: `Ok`, or the failure its status means: 2
+    /// `Cancelled`, 4 `Full[T]` carrying back the unsent `payload`, which the channel did not take.
+    pub(super) fn try_send_result(
         &mut self,
         dst: &Var,
         st: Operand,
-        not_ready: &str,
-        ok: impl FnOnce(&mut Self) -> Vec<Operand>,
+        payload: Vec<Operand>,
     ) -> R<()> {
         let Some((_, _, efs)) = dst.shape.variant("Err") else {
             return unsupported("a channel operation without its failure");
         };
         let e = efs[0].1.clone();
         let join = self.block_new();
-        for (k, name) in [(2, "Cancelled"), (3, "Closed"), (4, not_ready)] {
-            let Some(v) = Self::failure(&e, name, Vec::new()) else {
+        let full = match &e {
+            Shape::Sum(_, vs) => vs.iter().map(|(n, _)| n).find(|n| n.starts_with("Full[")),
+            _ => None,
+        }
+        .cloned();
+        for (k, name, payload) in [
+            (2, "Cancelled".to_owned(), Vec::new()),
+            (4, full.unwrap_or_default(), payload),
+        ] {
+            let Some(v) = Self::failure(&e, &name, payload) else {
                 continue;
             };
             let (this, next) = self.branch_eq(st.clone(), k);
@@ -312,8 +319,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             self.goto(join);
             self.cur = next;
         }
-        let v = ok(self);
-        let v = Self::variant_value(&dst.shape, "Ok", v);
+        let v = Self::variant_value(&dst.shape, "Ok", Vec::new());
         self.copy_to(&dst.locals, v);
         self.goto(join);
         self.cur = join;
@@ -564,10 +570,22 @@ impl<'a, 'm> Fn<'a, 'm> {
                 [y::TArg::Type(t)] => Some(result(self.try_recv_shape(t)?, cancelled())),
                 _ => None,
             },
-            Some(id::STD_CHAN_SENDER_TRY_SEND) => Some(result(
-                Shape::Scalar(Ty::Unit),
-                failure_union(&["Full", "Cancelled"]),
-            )),
+            Some(id::STD_CHAN_SENDER_TRY_SEND) => match c.targs.as_slice() {
+                [y::TArg::Type(t)] => {
+                    let named = |n: &str, args| {
+                        y::Type::Named(y::Named {
+                            path: vec![n.into()],
+                            args,
+                        })
+                    };
+                    let fail = y::Type::Union(vec![
+                        named("Full", vec![y::TArg::Type(t.clone())]),
+                        named("Cancelled", Vec::new()),
+                    ]);
+                    Some(result(Shape::Scalar(Ty::Unit), self.shape(&fail)?))
+                }
+                _ => None,
+            },
             Some(id::STD_CHAN_SENDER_SEND | id::STD_TIME_SLEEP | id::STD_TIME_SLEEP_UNTIL) => {
                 Some(result(Shape::Scalar(Ty::Unit), cancelled()))
             }

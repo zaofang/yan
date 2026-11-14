@@ -8,6 +8,6 @@ pub def Channel[T](capacity: int) -> tuple[Sender[T], Receiver[T]]: ...
 pub type TryRecv[T] = Got(value: T) | Empty() | Closed()
 
 @since("1.0")
-pub class Full:
-    """The failure of `try_send` on a channel with no room (9.5)."""
-    pass
+pub class Full[T]:
+    """The failure of `try_send` on a channel with no room; `value` is the unsent payload (9.5)."""
+    value: T
