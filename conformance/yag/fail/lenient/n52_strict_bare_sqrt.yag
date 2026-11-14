@@ -1,0 +1,7 @@
+# spec: 14.4
+# rows: R1007
+# flags: --strict
+# expect: E200 at 7:12
+
+def f(x: float) -> float:
+    return sqrt(x)
