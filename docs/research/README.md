@@ -132,3 +132,4 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-13 | Spec difficulty audit | #1129; `tools/spec_audit.py`; per-row CSV; no rows |
 | 2026-11-14 | Work hierarchy: open issues by queue position | 180 open issues in 10 groups; duplicates, orphans and stale M1 items flagged; no rows |
 | 2026-11-14 | OpenRouter sweep: 41 models writing Yan Agent | Data in `bench/r567/results/openrouter-2026-11-14/`; no rows |
+| 2026-11-14 | OpenRouter sweep follow-up: hard Yan tasks, primer v1/v2/v3, Python arm | Data in `bench/r567/results/openrouter-followup-2026-11-14/`; no rows |

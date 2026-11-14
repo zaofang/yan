@@ -287,7 +287,7 @@ def main() -> None:
     )
     ap.add_argument("--primer", type=pathlib.Path, default=HERE / "primer.md")
     ap.add_argument("--tag", default="", help="run directory name; default VENDOR-DECODING-Nshot")
-    ap.add_argument("--impossible-only", action="store_true", help="run only the impossible variants")
+    ap.add_argument("--impossible-only", action="store_true", help="run only impossible variants")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--out", default=str(HERE / "runs"))
     a = ap.parse_args()

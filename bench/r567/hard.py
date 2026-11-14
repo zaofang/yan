@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Yan-specific hard tasks for the R567 harness: concurrency, ownership, failure, contracts, sums,
 numbers, bits, capabilities. HumanEval and MBPP translate Python algorithms and cannot probe these.
 
@@ -26,7 +27,8 @@ class Hard:
 
 TASKS = [
     Hard(
-        "hard/par_lowest_failure", "concurrency",
+        "hard/par_lowest_failure",
+        "concurrency",
         "Check every element in parallel and fail with the failure of the lowest-index bad element.\n\n"
         "Given:\n\nclass Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n"
         "    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\n"
@@ -40,7 +42,8 @@ TASKS = [
         "def all_even(xs: list[int]) -> list[int] fail Bad:\n    return par [check(x)? for x in xs]\n",
     ),
     Hard(
-        "hard/par_squares", "concurrency",
+        "hard/par_squares",
+        "concurrency",
         "Square every element in parallel.\n\n"
         "Given:\n\ndef square(x: int) -> int:\n    return x * x\n\n"
         "Function: squares(xs: list[int]) -> list[int]",
@@ -50,7 +53,8 @@ TASKS = [
         "def squares(xs: list[int]) -> list[int]:\n    return par [square(x) for x in xs]\n",
     ),
     Hard(
-        "hard/channel_capacity", "concurrency",
+        "hard/channel_capacity",
+        "concurrency",
         "Create a channel of integers with the given capacity and try to send every element without "
         "blocking. Count how many sends were accepted before the channel was full, then stop.\n\n"
         "Function: accepted(cap: int, xs: list[int]) -> int uses nondet",
@@ -63,7 +67,8 @@ TASKS = [
         "        if not push(&tx, x):\n            break\n        n += 1\n    return n\n",
     ),
     Hard(
-        "hard/inout_bump", "ownership",
+        "hard/inout_bump",
+        "ownership",
         "Add `by` to every element of the list, in place, so the caller sees the change.\n\n"
         "Function: bump_all(xs: list[int], by: int) -> None",
         "def test_hidden_0():\n    v = [1, 2, 3]\n    bump_all(&v, 10)\n    assert v == [11, 12, 13]\n\n"
@@ -72,7 +77,8 @@ TASKS = [
         "    for i in range(xs.len()):\n        xs[i] += by\n",
     ),
     Hard(
-        "hard/take_longest", "ownership",
+        "hard/take_longest",
+        "ownership",
         "Consume both lists and return the longer one; the first wins a tie.\n\n"
         "Function: longest(a: list[int], b: list[int]) -> list[int]",
         "def test_hidden_0():\n    assert longest([1], [1, 2]) == [1, 2]\n\n"
@@ -81,7 +87,8 @@ TASKS = [
         "    if a.len() >= b.len():\n        return a\n    return b\n",
     ),
     Hard(
-        "hard/swap_ends", "ownership",
+        "hard/swap_ends",
+        "ownership",
         "Swap the first and last elements of the list in place. An empty or one-element list is "
         "unchanged.\n\nFunction: swap_ends(xs: list[int]) -> None",
         "def test_hidden_0():\n    v = [1, 2, 3, 4]\n    swap_ends(&v)\n    assert v == [4, 2, 3, 1]\n\n"
@@ -91,14 +98,16 @@ TASKS = [
         "    t = xs[0]\n    xs[0] = xs[n - 1]\n    xs[n - 1] = t\n",
     ),
     Hard(
-        "hard/append_copy", "ownership",
+        "hard/append_copy",
+        "ownership",
         "Append a copy of `s` to the borrowed list `dst` and return nothing. The list is the "
         "caller's, edited in place.\n\nFunction: add_name(dst: list[str], s: str) -> None",
-        "def test_hidden_0():\n    v = [\"a\"]\n    add_name(&v, \"b\")\n    assert v == [\"a\", \"b\"]\n",
+        'def test_hidden_0():\n    v = ["a"]\n    add_name(&v, "b")\n    assert v == ["a", "b"]\n',
         "def add_name(var dst: list[str], s: str) -> None:\n    dst.append(s.copy())\n",
     ),
     Hard(
-        "hard/safe_div", "failure",
+        "hard/safe_div",
+        "failure",
         "Divide a by b with integer division. Dividing by zero is a failure carrying the numerator.\n\n"
         "Given:\n\nclass DivZero:\n    a: int\n\n"
         "Function: safe_div(a: int, b: int) -> int fail DivZero",
@@ -108,20 +117,22 @@ TASKS = [
         "    if b == 0:\n        fail DivZero(a=a)\n    return a // b\n",
     ),
     Hard(
-        "hard/sum_parsed", "failure",
+        "hard/sum_parsed",
+        "failure",
         "Parse every string as an integer and sum them. The first string that is not an integer "
         "fails with BadInput carrying that string.\n\n"
         "Given:\n\nclass BadInput:\n    text: str\n\n"
         "Function: sum_parsed(xs: list[str]) -> int fail BadInput",
-        "def test_hidden_0():\n    assert sum_parsed([\"1\", \"22\", \"-3\"]) == 20\n\n"
-        "def test_hidden_1():\n    r = sum_parsed([\"1\", \"x\", \"y\"]) else err -> err.text.char_count()\n    assert r == 1\n\n"
+        'def test_hidden_0():\n    assert sum_parsed(["1", "22", "-3"]) == 20\n\n'
+        'def test_hidden_1():\n    r = sum_parsed(["1", "x", "y"]) else err -> err.text.char_count()\n    assert r == 1\n\n'
         "def test_hidden_2():\n    assert sum_parsed([]) == 0\n",
         "class BadInput:\n    text: str\n\ndef sum_parsed(xs: list[str]) -> int fail BadInput:\n"
         "    total = 0\n    for s in xs:\n        v = s.parse_int() else fail BadInput(text=s.copy())\n"
         "        total += v\n    return total\n",
     ),
     Hard(
-        "hard/first_or", "failure",
+        "hard/first_or",
+        "failure",
         "Return the first element, or `default` for an empty list.\n\n"
         "Function: first_or(xs: list[int], default: int) -> int",
         "def test_hidden_0():\n    assert first_or([4, 5], default=9) == 4\n\n"
@@ -129,7 +140,8 @@ TASKS = [
         "def first_or(xs: list[int], default: int) -> int:\n    return xs.get(0) else default\n",
     ),
     Hard(
-        "hard/isqrt_contract", "contracts",
+        "hard/isqrt_contract",
+        "contracts",
         "Integer square root: the largest r with r*r <= n. State the contract: a precondition that n is "
         "not negative and a postcondition that pins the result.\n\nFunction: isqrt(n: int) -> int",
         "def test_hidden_0():\n    assert isqrt(17) == 4\n\ndef test_hidden_1():\n    assert isqrt(16) == 4\n\n"
@@ -138,7 +150,8 @@ TASKS = [
         "    r = 0\n    while (r + 1) * (r + 1) <= n:\n        r += 1\n    return r\n",
     ),
     Hard(
-        "hard/shape_area", "sums",
+        "hard/shape_area",
+        "sums",
         "Area of shapes, rounded down. A triangle's area is b*h/2.\n\n"
         "Given:\n\ntype Shape = Rect(w: int, h: int) | Square(side: int) | Tri(b: int, h: int)\n\n"
         "Function: area(s: Shape) -> int",
@@ -151,7 +164,8 @@ TASKS = [
         "        case Tri(b=b, h=h):\n            return b * h // 2\n",
     ),
     Hard(
-        "hard/expr_eval", "sums",
+        "hard/expr_eval",
+        "sums",
         "Evaluate an arithmetic expression tree.\n\n"
         "Given:\n\ntype Expr = Num(v: int) | Add(l: Expr, r: Expr) | Mul(l: Expr, r: Expr)\n\n"
         "Function: eval_expr(e: Expr) -> int",
@@ -163,16 +177,18 @@ TASKS = [
         "        case Mul(l=l, r=r):\n            return eval_expr(l) * eval_expr(r)\n",
     ),
     Hard(
-        "hard/factorial_big", "numbers",
+        "hard/factorial_big",
+        "numbers",
         "Factorial of n as an arbitrary-precision integer. int overflow panics in Yan, so n up to 25 "
         "needs bigint.\n\nFunction: fact(n: int) -> bigint",
-        "def test_hidden_0():\n    assert f\"{fact(25)}\" == \"15511210043330985984000000\"\n\n"
-        "def test_hidden_1():\n    assert f\"{fact(0)}\" == \"1\"\n",
+        'def test_hidden_0():\n    assert f"{fact(25)}" == "15511210043330985984000000"\n\n'
+        'def test_hidden_1():\n    assert f"{fact(0)}" == "1"\n',
         "def fact(n: int) -> bigint:\n    r: bigint = 1\n    for i in range(1, n + 1):\n"
         "        r = r * bigint(i)\n    return r\n",
     ),
     Hard(
-        "hard/checked_add", "numbers",
+        "hard/checked_add",
+        "numbers",
         "Add two 64-bit signed integers. Return None when the sum does not fit in int, never overflow "
         "(overflow panics).\n\nFunction: checked_add(a: int, b: int) -> int | None",
         "def test_hidden_0():\n    assert checked_add(1, 2) == 3\n\n"
@@ -184,14 +200,16 @@ TASKS = [
         "        return None\n    r = a + b\n    return r\n",
     ),
     Hard(
-        "hard/bit_parity", "bits",
+        "hard/bit_parity",
+        "bits",
         "True when the byte has an odd number of set bits.\n\nFunction: parity(x: uint8) -> bool",
         "def test_hidden_0():\n    assert parity(7) == True\n\ndef test_hidden_1():\n    assert parity(3) == False\n\n"
         "def test_hidden_2():\n    assert parity(0) == False\n",
         "def parity(x: uint8) -> bool:\n    return bits.count_ones(x) % 2 == 1\n",
     ),
     Hard(
-        "hard/rotl8", "bits",
+        "hard/rotl8",
+        "bits",
         "Rotate an 8-bit value left by k bits (k from 0 to 7), wrapping the high bits around.\n\n"
         "Function: rotl8(x: uint8, k: int) -> uint8",
         "def test_hidden_0():\n    assert rotl8(1, 3) == 8\n\ndef test_hidden_1():\n    assert rotl8(129, 1) == 3\n\n"
@@ -199,10 +217,11 @@ TASKS = [
         "def rotl8(x: uint8, k: int) -> uint8:\n    return bits.rotate_left(x, k)\n",
     ),
     Hard(
-        "hard/shout_caps", "capabilities",
+        "hard/shout_caps",
+        "capabilities",
         "Print every string upper-cased on its own line. Declare the capability the function needs.\n\n"
         "Function: shout(xs: list[str]) -> None",
-        "def test_hidden_0() uses io:\n    shout([\"a\", \"b\"])\n    assert True\n",
+        'def test_hidden_0() uses io:\n    shout(["a", "b"])\n    assert True\n',
         "def shout(xs: list[str]) -> None uses io:\n    for s in xs:\n        io.print(s.upper())\n",
     ),
 ]
