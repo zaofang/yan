@@ -1,0 +1,10 @@
+# spec: 9.1
+# rows: R390
+# note: pool gives parallel but not concurrent forward progress; the marker for other handlers waits on the spec freeze
+# expect: E708 at 8:9
+
+def main() uses io:
+    with sched = pool():
+        par concurrent:
+            io.print("a")
+            io.print("b")
