@@ -250,7 +250,8 @@ impl Lower<'_, '_, '_> {
             Ty::Data(n) if self.g.std_sums.contains(n) => crate::stdlib::sum_module(n),
             _ => None,
         };
-        let Some(module) = t.module().or(std_class) else {
+        let list_ptr = matches!((&t, m), (Ty::List(_), "as_ptr"));
+        let Some(module) = list_ptr.then_some("ptr").or(t.module()).or(std_class) else {
             self.err(
                 "E200",
                 at,
@@ -267,6 +268,13 @@ impl Lower<'_, '_, '_> {
             self.pattern_check(n, args.first());
         }
         let path = format!("std.{module}.{m}");
+        if matches!(path.as_str(), "std.ptr.read" | "std.ptr.write") && !self.in_unsafe {
+            self.err(
+                "E903",
+                at,
+                format!("`{m}` dereferences a `Ptr`; call it inside `unsafe`"),
+            );
+        }
         let Some(d) = crate::stdlib::decl(&path) else {
             let names = crate::stdlib::members(module);
             if matches!(t, Ty::Coll("iter", _)) && m == "len" {

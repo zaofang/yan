@@ -317,6 +317,7 @@ impl Ty {
             Ty::Coll(_, _) => Some("collections.sorted_set"),
             Ty::Int | Ty::Float | Ty::BigInt | Ty::Bool | Ty::Fixed(_) => Some("num"),
             Ty::Option(_) | Ty::Result(..) => Some("result"),
+            Ty::Foreign("Ptr", _) => Some("ptr"),
             _ => None,
         }
     }

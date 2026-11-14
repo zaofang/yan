@@ -699,6 +699,7 @@ fn shape(t: &Ty) -> Option<(&'static str, Vec<&Ty>)> {
             ts.iter().collect(),
         ),
         Ty::Fixed(n) => (n, vec![]),
+        Ty::Foreign("Ptr", ts) => ("Ptr", ts.iter().collect()),
         _ => return None,
     })
 }
@@ -731,6 +732,7 @@ fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
                 }
                 (n, []) if b.contains_key(n) => b[n].clone(),
                 ("Type", []) => Ty::Type,
+                ("Ptr", [t]) => Ty::Foreign("Ptr", vec![t.clone()]),
                 (n, a) => crate::ty::builtin(n, a)?,
             }
         }

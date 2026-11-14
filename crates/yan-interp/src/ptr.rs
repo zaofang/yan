@@ -39,7 +39,32 @@ fn addr_of(v: &Value) -> Option<u64> {
     }
 }
 
+/// The raw-memory operations run on `yan-machine`, never here (law 13).
 pub(crate) const BINDS: &[(yan_std::registry::Id, Bind)] = &[
+    (
+        STD_PTR_OF,
+        Bind::Plain(|_| crate::unsupported("`Ptr.of` outside the raw-memory machine")),
+    ),
+    (
+        STD_PTR_AS_PTR,
+        Bind::Plain(|_| crate::unsupported("`as_ptr` outside the raw-memory machine")),
+    ),
+    (
+        STD_PTR_OFFSET,
+        Bind::Plain(|_| crate::unsupported("`offset` outside the raw-memory machine")),
+    ),
+    (
+        STD_PTR_CAST,
+        Bind::Plain(|_| crate::unsupported("`cast` outside the raw-memory machine")),
+    ),
+    (
+        STD_PTR_READ,
+        Bind::Plain(|_| crate::unsupported("`read` outside the raw-memory machine")),
+    ),
+    (
+        STD_PTR_WRITE,
+        Bind::Plain(|_| crate::unsupported("`write` outside the raw-memory machine")),
+    ),
     (
         STD_PTR_ADDR,
         Bind::Plain(|a| match &*a {

@@ -137,6 +137,18 @@ impl Lower<'_, '_, '_> {
                 self.start_call(args, at, want)
             }
             j::ExprKind::Attr(m, op, _)
+                if op == "of"
+                    && matches!(&m.kind, j::ExprKind::Name(p) if p == "Ptr" && !self.locals.contains_key(p)) =>
+            {
+                self.ptr_of(args, at)
+            }
+            j::ExprKind::Index(b, k)
+                if let j::ExprKind::Attr(m, op, _) = &b.kind
+                    && op == "cast" =>
+            {
+                self.ptr_cast(m, k, args, at)
+            }
+            j::ExprKind::Attr(m, op, _)
                 if (self.cx.ffi || ptr::exposes(op))
                     && matches!(&m.kind, j::ExprKind::Name(p) if p == "ptr" && !self.locals.contains_key(p)) =>
             {
