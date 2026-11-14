@@ -613,6 +613,14 @@ pub enum RtFn {
     SimCheck,
     /// `(actor, channel)`: the channel gets a `Stopped` when the actor stops.
     ClusterMonitor,
+    /// `(name) -> group`: the handle of the named group.
+    ClusterGroup,
+    /// `(group, member)`
+    GroupJoin,
+    /// `(group, member)`
+    GroupLeave,
+    /// `(group) -> list`
+    GroupMembers,
     /// `(status)`: a send through `Remote` whose argument was rejected fails `SchemaMismatch`.
     ClusterSendMismatch,
     /// `(mismatch)`: a call through `Remote` whose argument was rejected ends.
