@@ -1,0 +1,11 @@
+# spec: 17.3
+# rows: R910
+# note: named(n) for a name the pattern does not define panics with kind bounds
+# stdout:
+# 1
+# exit: 101
+
+pub def main() uses io:
+    m = regex.compile(r"(?P<a>\d)").search("1") else return
+    io.print(m.named("a") else "")
+    io.print(f"{m.named('b')}")
