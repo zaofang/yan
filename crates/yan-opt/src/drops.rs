@@ -31,22 +31,23 @@ type Pos = (usize, usize);
 
 pub fn elaborate(m: &Module) -> Result<Module, Error> {
     let obs = Observable::new(m);
+    let copy = own::copy_fields(m);
     let mut out = m.clone();
     for it in &mut out.items {
         match &mut it.kind {
             ItemKind::Fn(f) | ItemKind::Inst(Inst { def: f, .. }) => {
                 if let Some(b) = &f.body {
-                    f.body = Some(settle(&obs, &f.params, b)?);
+                    f.body = Some(settle(&obs, &copy, &f.params, b)?);
                 }
             }
             ItemKind::Impl(i) => {
                 for f in &mut i.fns {
                     if let Some(b) = &f.body {
-                        f.body = Some(settle(&obs, &f.params, b)?);
+                        f.body = Some(settle(&obs, &copy, &f.params, b)?);
                     }
                 }
             }
-            ItemKind::Test(t) => t.body = settle(&obs, &[], &t.body)?,
+            ItemKind::Test(t) => t.body = settle(&obs, &copy, &[], &t.body)?,
             _ => {}
         }
     }
@@ -54,12 +55,18 @@ pub fn elaborate(m: &Module) -> Result<Module, Error> {
 }
 
 /// Run the pass over one body until the set of flagged locals stops growing.
-fn settle(obs: &Observable, params: &[Param], body: &Block) -> Result<Block, Error> {
-    let facts = Facts::new(params, body);
+fn settle(
+    obs: &Observable,
+    copy: &own::CopyFields,
+    params: &[Param],
+    body: &Block,
+) -> Result<Block, Error> {
+    let facts = Facts::new(params, body, copy);
     let mut flags: HashMap<Name, Name> = HashMap::new();
     for _ in 0..8 {
         let mut e = Elab {
             obs,
+            copy,
             facts: &facts,
             flags: flags.clone(),
             need: Vec::new(),
@@ -219,6 +226,7 @@ struct Branch {
 
 struct Elab<'a> {
     obs: &'a Observable,
+    copy: &'a own::CopyFields,
     facts: &'a Facts,
     /// Local to the name of its drop flag.
     flags: HashMap<Name, Name>,
@@ -727,7 +735,7 @@ impl Elab<'_> {
                     let root = self.cx.views.get(x).unwrap_or(x).clone();
                     if self.local(&root).is_some() {
                         for (p, _) in arms {
-                            own::pat_binders(p, &mut bound);
+                            own::view_binders(p, self.copy, &mut bound);
                         }
                         for n in &bound {
                             self.cx.views.insert(n.clone(), root.clone());
@@ -1235,6 +1243,14 @@ mod tests {
              fn f(cap io: Io) -> Unit {\n par {\n  {\n   let _t: Result[Str, Bad] = try mk(let 1)\n   jp k(sink v: Str) {\n    let r: Str = move v\n   }\n   match _t {\n    Ok { value: o } => {\n     jump k(o)\n    }\n    Err { error: _ } => {\n     let z: Str = \"e\"\n     jump k(z)\n    }\n   }\n  }\n }\n std.io.print(cap io, let r)\n ret ()\n}\n",
         );
         has(&t, &["std.io.print(cap io, let r)", "drop r", "ret ()"]);
+    }
+
+    #[test]
+    fn a_copy_field_bound_by_a_pattern_passes_to_a_jump_without_moving_the_scrutinee() {
+        let t = elab(
+            "module t\nsum Sh { A { x: i64 }, B { x: i64, y: i64 } }\nfn f(let c: bool, let a: i64) -> i64 {\n let s: Sh = B { x: a, y: a }\n var r: i64 = 0\n match s {\n  A { x: p } => {\n   r = p\n  }\n  B { x: q, y: w } => {\n   jp k(let v: i64) {\n    r = v\n   }\n   if c {\n    jump k(w)\n   } else {\n    jump k(q)\n   }\n  }\n }\n ret r\n}\n",
+        );
+        assert_eq!(t.matches("drop s").count(), 1, "{t}");
     }
 
     #[test]

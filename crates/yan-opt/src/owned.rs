@@ -74,11 +74,11 @@ pub(crate) struct Facts {
 }
 
 impl Facts {
-    pub(crate) fn new(params: &[Param], body: &Block) -> Self {
+    pub(crate) fn new(params: &[Param], body: &Block, copy: &own::CopyFields) -> Self {
         let mut facts = Facts::default();
         let mut bodies = vec![(owned_params(params), body)];
         while let Some((owned, b)) = bodies.pop() {
-            let mut l = Lower::new(facts.decls.len() as u32);
+            let mut l = Lower::new(facts.decls.len() as u32, copy);
             l.block(b, &owned);
             let end = l.cur;
             l.cfg.edge(end, l.exit);
@@ -115,6 +115,7 @@ impl Facts {
 type Shadowed<'a> = (&'a Name, Option<Node>, Option<(usize, usize)>);
 
 struct Lower<'a> {
+    copy: &'a own::CopyFields,
     cfg: Cfg,
     cur: Node,
     exit: Node,
@@ -137,12 +138,13 @@ struct Lower<'a> {
 }
 
 impl<'a> Lower<'a> {
-    fn new(next: u32) -> Self {
+    fn new(next: u32, copy: &'a own::CopyFields) -> Self {
         let mut cfg = Cfg::new();
         let cur = cfg.node();
         let exit = cfg.node();
         let failed = cfg.node();
         Lower {
+            copy,
             cfg,
             cur,
             exit,
@@ -389,7 +391,7 @@ impl<'a> Lower<'a> {
                     let root = self.views.get(x).unwrap_or(x).clone();
                     if self.local(&root).is_some() {
                         for (p, _) in arms {
-                            own::pat_binders(p, &mut bound);
+                            own::view_binders(p, self.copy, &mut bound);
                         }
                         for n in &bound {
                             self.views.insert(n.clone(), root.clone());
