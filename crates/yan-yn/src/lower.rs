@@ -98,6 +98,53 @@ fn mk(kind: h::ExprKind, span: Span) -> h::Expr {
     }
 }
 
+/// E540 for a date or time that does not exist, E541 for a zoned time in a gap or an
+/// unresolved fold of the bundled tzdb (14.2). `None` when the literal is well formed.
+fn invalid_temporal(text: &str) -> Option<(&'static str, String)> {
+    use jiff::tz::AmbiguousOffset;
+    let num = |r: std::ops::Range<usize>| text.get(r)?.parse::<i16>().ok();
+    let date = jiff::civil::Date::new(num(0..4)? as i16, num(5..7)? as i8, num(8..10)? as i8);
+    let Ok(date) = date else {
+        return Some(("E540", format!("`{text}` is not a valid date")));
+    };
+    let rest = text.get(11..)?;
+    let clock = rest.split(['Z', '+', '[', '-']).next()?;
+    let (hm, sec) = match clock
+        .split_once(':')
+        .and_then(|(h, r)| Some((h, r.split_once(':')?)))
+    {
+        Some((h, (m, s))) => ((h, m), s),
+        None => {
+            let (h, m) = clock.split_once(':')?;
+            ((h, m), "0")
+        }
+    };
+    let (sec, frac) = sec.split_once('.').unwrap_or((sec, ""));
+    let nanos = format!("{frac:0<9}");
+    let time = jiff::civil::Time::new(
+        hm.0.parse().ok()?,
+        hm.1.parse().ok()?,
+        sec.parse().ok()?,
+        nanos.get(..9)?.parse().ok()?,
+    );
+    let Ok(time) = time else {
+        return Some(("E540", format!("`{text}` is not a valid time")));
+    };
+    let zone = rest.split_once('[')?.1.strip_suffix(']')?;
+    let has_offset = rest.split('[').next()?.contains(['Z', '+', '-']);
+    if has_offset {
+        return None;
+    }
+    let tz = jiff::tz::TimeZone::get(zone).ok()?;
+    let dt = date.to_datetime(time);
+    let why = match tz.to_ambiguous_zoned(dt).offset() {
+        AmbiguousOffset::Unambiguous { .. } => return None,
+        AmbiguousOffset::Gap { .. } => "does not exist (gap)",
+        AmbiguousOffset::Fold { .. } => "is ambiguous (fold); give an offset",
+    };
+    Some(("E541", format!("`{text}` {why} in {zone}")))
+}
+
 fn stmt(kind: h::StmtKind, span: Span) -> h::Stmt {
     h::Stmt { kind, span }
 }
@@ -1701,7 +1748,13 @@ impl Lower<'_> {
                     b(mk(h::ExprKind::Name(unit.clone()), e.span)),
                 )
             }
-            ExprKind::Temporal { .. } => return unsupported("date and time literals"),
+            ExprKind::Temporal { text, .. } => {
+                let Some((code, msg)) = invalid_temporal(text) else {
+                    return unsupported("date and time literals");
+                };
+                self.err(code, e.span, &msg);
+                K::Lit(h::Lit::Int("0".into()))
+            }
             // A grid is its rows as nested lists; the expected `Array` type checks the shape (R463).
             ExprKind::Grid(rows) => K::List(
                 rows.iter()
