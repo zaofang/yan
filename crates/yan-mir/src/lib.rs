@@ -230,6 +230,10 @@ pub enum RtFn {
     RandF64,
     /// `(handler, n) -> int` below `n > 0`.
     RandBelow,
+    /// `(addr, prov)`: records the provenance exposed at `addr` (6.6).
+    PtrExpose,
+    /// `(addr) -> prov`: the provenance last exposed at `addr`, 0 for none.
+    PtrExposed,
     /// `(str, sep, i) -> str`: part `i` (0 before, 1 separator, 2 after) of `std.text.partition`.
     StrPartition,
     /// `(Str) -> i64`
@@ -523,8 +527,11 @@ pub enum RtFn {
     ChanRecv,
     /// `(Ptr chan)`: drop one end.
     ChanDrop,
+    /// `ChanDrop` of a `Sender`: the last one closes the channel.
+    ChanDropSender,
     /// `(Ptr chan)`: a new end of the same channel.
     ChanClone,
+    ChanCloneSender,
     /// `(n, can_yield) -> handle`: enter a `par concurrent` of `n` tasks.
     ParBegin,
     /// `(handle) -> i64`: the task to run next, the task count when all are done, or past it

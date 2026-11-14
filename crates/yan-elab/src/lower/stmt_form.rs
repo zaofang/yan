@@ -312,8 +312,10 @@ impl Lower<'_, '_, '_> {
                         );
                     }
                 }
-                if !bad {
-                    return unsupported("`select` arms");
+                if !bad && self.sig.caps.iter().any(|c| c == "nondet") {
+                    for s in self.select_stmts(arms, at) {
+                        self.stmt(&s)?;
+                    }
                 }
             }
             K::With {
@@ -573,6 +575,177 @@ impl Lower<'_, '_, '_> {
         self.narrow.retain(|m| m.1 != out || m.0 != "out");
         self.emit(StmtKind::Ret(Atom::Name(out, at)), at);
         Ok(())
+    }
+}
+
+/// `select` (15.3) over `std.chan.select_wait`, which returns the first ready arm in source
+/// order; the chosen arm's own operation then runs and cannot block. Timer arms read the clock
+/// once, on entry.
+impl Lower<'_, '_, '_> {
+    fn select_stmts(&mut self, arms: &[j::SelectArm], at: Span) -> Vec<j::Stmt> {
+        use j::StmtKind as K;
+        let ex = |kind| j::Expr {
+            kind,
+            span: at,
+            paren: false,
+        };
+        let name = |n: &str| ex(j::ExprKind::Name(n.to_owned()));
+        let attr = |e: j::Expr, m: &str| ex(j::ExprKind::Attr(Box::new(e), m.to_owned(), at));
+        let call = |f: j::Expr, args: Vec<j::Expr>| {
+            let args = args
+                .into_iter()
+                .map(|e| j::Arg {
+                    name: None,
+                    span: at,
+                    kind: j::ArgKind::Expr(e),
+                })
+                .collect();
+            ex(j::ExprKind::Call(Box::new(f), args))
+        };
+        let st = |kind| j::Stmt { kind, span: at };
+        let base = self.fresh("selbase");
+        let idx = self.fresh("sel");
+        let (mut keys, mut ats, mut ops) = (Vec::new(), Vec::new(), Vec::new());
+        for a in arms {
+            let j::ExprKind::Call(f, args) = &a.op.kind else {
+                unreachable!("checked by `select_op`")
+            };
+            let recv_kind = a.pat.as_ref().map_or(0, recv_pat_kind);
+            match &f.kind {
+                j::ExprKind::Attr(r, m, _) => {
+                    let key = call(attr((**r).clone(), "select_key"), Vec::new());
+                    keys.push(if m == "recv" && recv_kind > 0 {
+                        let k = ex(j::ExprKind::Lit(j::Lit::Int(recv_kind.to_string())));
+                        ex(j::ExprKind::Binary("+", Box::new(key), Box::new(k)))
+                    } else {
+                        key
+                    });
+                }
+                j::ExprKind::Name(n) => {
+                    keys.push(ex(j::ExprKind::Unary(
+                        "-",
+                        Box::new(ex(j::ExprKind::Lit(j::Lit::Int("1".into())))),
+                    )));
+                    let arg = args[0].clone();
+                    let j::ArgKind::Expr(arg) = arg.kind else {
+                        unreachable!("checked by `select_op`")
+                    };
+                    ats.push(if n == "after" {
+                        ex(j::ExprKind::Binary(
+                            "+",
+                            Box::new(name(&base)),
+                            Box::new(arg),
+                        ))
+                    } else {
+                        arg
+                    });
+                }
+                _ => unreachable!("checked by `select_op`"),
+            }
+            let mut body = a.body.stmts.clone();
+            let is_chan = matches!(&f.kind, j::ExprKind::Attr(..));
+            if is_chan {
+                let op = ex(j::ExprKind::Try(Box::new(a.op.clone())));
+                body = match &a.pat {
+                    // `is None` waits for the close, so the received value is the `None`.
+                    Some(_) if recv_kind == 3 => {
+                        std::iter::once(st(K::Expr(op))).chain(body).collect()
+                    }
+                    Some(pat) => {
+                        let mut cases = vec![j::Case {
+                            pat: pat.clone(),
+                            span: a.span,
+                            guard: None,
+                            body: j::Block {
+                                inline: false,
+                                stmts: body,
+                            },
+                        }];
+                        // `is Some(..)` waits for a message, so the `None` case cannot happen.
+                        if recv_kind == 2 {
+                            cases.push(j::Case {
+                                pat: j::Pat::Path {
+                                    path: vec!["None".to_owned()],
+                                    args: None,
+                                },
+                                span: a.span,
+                                guard: None,
+                                body: j::Block {
+                                    inline: false,
+                                    stmts: vec![st(K::Unreachable)],
+                                },
+                            });
+                        }
+                        vec![st(K::Match {
+                            scrutinee: op,
+                            cases,
+                        })]
+                    }
+                    None => std::iter::once(st(K::Expr(op))).chain(body).collect(),
+                };
+            }
+            ops.push(j::Block {
+                inline: false,
+                stmts: body,
+            });
+        }
+        let mut out = Vec::new();
+        if !ats.is_empty() {
+            out.push(st(K::Bind {
+                mutable: false,
+                target: base.clone(),
+                target_span: at,
+                ty: None,
+                value: call(attr(name("time"), "monotonic"), Vec::new()),
+            }));
+        }
+        let wait = name("select_wait");
+        out.push(st(K::Bind {
+            mutable: false,
+            target: idx.clone(),
+            target_span: at,
+            ty: None,
+            value: ex(j::ExprKind::Try(Box::new(call(
+                wait,
+                vec![ex(j::ExprKind::List(keys)), ex(j::ExprKind::List(ats))],
+            )))),
+        }));
+        let last = ops.pop().expect("a `select` has an arm");
+        let arms: Vec<(j::Expr, j::Block)> = ops
+            .into_iter()
+            .enumerate()
+            .map(|(i, b)| {
+                let n = ex(j::ExprKind::Lit(j::Lit::Int(i.to_string())));
+                (
+                    ex(j::ExprKind::Compare(
+                        "==",
+                        Box::new(name(&idx)),
+                        Box::new(n),
+                    )),
+                    b,
+                )
+            })
+            .collect();
+        out.push(st(K::If {
+            arms,
+            els: Some(last),
+        }));
+        out
+    }
+}
+
+/// The `select_wait` kind of a receive arm's pattern: 3 for `None` (the close), 2 for `Some(..)`
+/// (a message), 0 for a pattern that takes either.
+fn recv_pat_kind(p: &j::Pat) -> i32 {
+    match p {
+        j::Pat::Lit(e) if matches!(e.kind, j::ExprKind::Lit(j::Lit::None)) => 3,
+        j::Pat::Path { path, args } if path.len() == 1 && path[0] == "None" && args.is_none() => 3,
+        j::Pat::Path {
+            path,
+            args: Some(_),
+        } if path.len() == 1 && path[0] == "Some" => 2,
+        j::Pat::As(p, _) => recv_pat_kind(p),
+        _ => 0,
     }
 }
 

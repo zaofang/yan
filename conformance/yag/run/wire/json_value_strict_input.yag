@@ -1,0 +1,57 @@
+# spec: 17.3
+# rows: R571, R573
+# note: input is strict RFC 8259; only the line and the reason variant are pinned; messages and columns are not
+# stdout:
+# 1 syntax
+# 1 syntax
+# 1 syntax
+# 1 syntax
+# 1 syntax
+# 1 syntax
+# 1 syntax
+# 1 syntax
+# 1 syntax
+# ok
+# 1 syntax
+# 3 syntax
+# 1 syntax
+# 1 syntax
+# ok
+# 1 duplicate a
+# 1 depth
+# ok
+# 1 range
+
+def reason(e: JsonError) -> str:
+    match e.reason:
+        case Syntax(m):
+            return "syntax"
+        case Depth():
+            return "depth"
+        case Duplicate(k):
+            return f"duplicate {k}"
+        case Range():
+            return "range"
+        case Mismatch(p, want, found):
+            return "typed"
+        case Missing(p, f):
+            return "typed"
+        case Unknown(p, f):
+            return "typed"
+        case Invalid(p, m):
+            return "typed"
+
+def parse(s: str, d: int = 128) -> str fail JsonError:
+    json.parse_value(s, max_depth=d)?
+    return "ok"
+
+def k(s: str, d: int = 128) -> str:
+    return parse(s, d) else err -> f"{err.line} {reason(err)}"
+
+pub def main() uses io:
+    for s in ["[1,]", "{'a':1}", "[NaN]", "[Infinity]", "[01]", "[1] x", "// c\n1", "\"a\tb\"", "\"\\ud800\"", "\"\\ud83d\\ude00\"", "\u00a0[1]", "\n\n[1,]", "\ufeff[1]", "", " \t\n\r[ ]"]:
+        io.print(k(s))
+    io.print(k("{\"a\":1,\"a\":2}"))
+    io.print(k("[[[1]]]", 2))
+    io.print(k("[[1]]", 2))
+    io.print(k("[12345678901234567890]"))

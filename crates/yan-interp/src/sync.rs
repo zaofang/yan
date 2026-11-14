@@ -9,9 +9,38 @@ use yan_std::registry::{Id, id::*};
 
 use super::bind::{Bind, bad_args};
 use super::supervise::{self, Child, Restart};
-use super::time::{mono_now, wait_out, wait_until};
+use super::time::{advance_to, mono_now, wait_out, wait_until};
 use super::vm::{Clo, Vm};
 use super::{Interp, R, Value, data, panic, unsupported};
+
+/// A channel: its capacity, queued values and live `Sender`s. With none left and the queue
+/// empty it is closed (9.5); a channel nothing ever closes counts `usize::MAX`.
+pub(crate) struct Chan {
+    pub cap: usize,
+    pub q: VecDeque<Value>,
+    pub senders: usize,
+}
+
+impl Chan {
+    pub fn new(cap: usize, senders: usize) -> Self {
+        Chan {
+            cap,
+            q: VecDeque::new(),
+            senders,
+        }
+    }
+}
+
+/// A `Sender` goes out of scope: the last one closes its channel.
+pub(crate) fn drop_sender(it: &mut Interp, v: &Value) {
+    if let Value::Data { name, .. } = v
+        && &**name == "Sender"
+    {
+        let s = &mut it.chans[chan(v)].senders;
+        *s = s.saturating_sub(1);
+        it.progress += 1;
+    }
+}
 
 pub(crate) fn end(name: &str, chan: usize) -> Value {
     Value::Data {
@@ -55,6 +84,98 @@ fn idle_ran(vm: &mut Vm) -> R<bool> {
         return Ok(false);
     }
     run_idle(vm)
+}
+
+/// Whether a send on channel `c` completes now. A rendezvous channel hands over only to a
+/// receiver already waiting.
+fn send_room(it: &Interp, c: usize) -> bool {
+    let ch = &it.chans[c];
+    if ch.cap == 0 {
+        ch.q.len() < it.waiting_recv.iter().filter(|w| **w == c).count()
+    } else {
+        ch.q.len() < ch.cap
+    }
+}
+
+/// The arm kinds in the low two bits of a `select_wait` key, the channel above: a receive that
+/// is ready on a message or on close, a send, a receive that wants a message (`is Some(..)`), and
+/// one that wants close (`is None`).
+const SEL_RECV: i128 = 0;
+const SEL_SEND: i128 = 1;
+const SEL_VALUE: i128 = 2;
+
+/// `select_wait` (15.3): the first arm in source order that is ready. A receive is ready with a
+/// message queued or every sender gone, a send with room, a timer at its reading. Nothing is
+/// consumed: the arm's own operation then runs and cannot block.
+fn select_wait(vm: &mut Vm, a: &[Value]) -> R<Result<Value, Value>> {
+    let (Value::List(keys), Value::List(at)) = (&a[0], &a[1]) else {
+        return bad_args(STD_PRELUDE_SELECT_WAIT);
+    };
+    let keys: Vec<i128> = keys
+        .iter()
+        .map(|k| match k {
+            Value::Int(n) => *n,
+            _ => unreachable!("an arm key"),
+        })
+        .collect();
+    let at: Vec<i128> = at
+        .iter()
+        .map(|t| match t {
+            Value::Mono(n) => *n,
+            _ => unreachable!("a monotonic reading"),
+        })
+        .collect();
+    loop {
+        if let Some(e) = cancelled(&vm.it) {
+            return Ok(Err(e));
+        }
+        crate::simfault::sweep(&mut vm.it);
+        let now = mono_now(&vm.it);
+        let mut timers = at.iter();
+        let mut wake: Option<i128> = None;
+        for (i, k) in keys.iter().enumerate() {
+            let ready = if *k < 0 {
+                let t = *timers.next().expect("a reading per timer arm");
+                wake = Some(wake.map_or(t, |w| w.min(t)));
+                t <= now
+            } else {
+                let ch = &vm.it.chans[(*k / 4) as usize];
+                match *k % 4 {
+                    SEL_RECV => ch.senders == 0 || !ch.q.is_empty(),
+                    SEL_SEND => send_room(&vm.it, (*k / 4) as usize),
+                    SEL_VALUE => !ch.q.is_empty(),
+                    _ => ch.senders == 0 && ch.q.is_empty(),
+                }
+            };
+            if ready {
+                return Ok(Ok(Value::Int(i as i128)));
+            }
+        }
+        if idle_ran(vm)? {
+            continue;
+        }
+        let it = &mut vm.it;
+        let first_recv = keys.iter().find(|k| **k >= 0 && **k % 4 != SEL_SEND);
+        if it.park_ok && !it.force {
+            it.park = Some(match first_recv {
+                Some(k) => (true, (*k / 4) as usize),
+                None => (false, usize::MAX),
+            });
+            it.park_timer = wake;
+            return Ok(Ok(Value::Unit));
+        }
+        match (wake, it.deadline) {
+            (Some(w), Some(d)) if d < w => return Ok(Err(wait_until(it, d))),
+            (Some(w), _) => advance_to(it, w),
+            (None, _) => {
+                return blocked(
+                    it,
+                    "select",
+                    first_recv.map_or(usize::MAX, |k| (*k / 4) as usize),
+                );
+            }
+        }
+    }
 }
 
 /// In a cancelled task a blocking operation fails `Cancelled` (9.4).
@@ -524,7 +645,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_CHAN_CHANNEL,
         Bind::Cap(|it, a| match a {
             [Value::Int(cap)] => {
-                it.chans.push((*cap as usize, VecDeque::new()));
+                it.chans.push(Chan::new(*cap as usize, 1));
                 let c = it.chans.len() - 1;
                 Ok(Value::Tuple(vec![end("Sender", c), end("Receiver", c)]))
             }
@@ -540,15 +661,49 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                     return Ok(Err(e));
                 }
                 crate::simfault::sweep(&mut vm.it);
-                if let Some(v) = vm.it.chans[c].1.pop_front() {
+                if let Some(v) = vm.it.chans[c].q.pop_front() {
                     vm.it.progress += 1;
-                    return Ok(Ok(v));
+                    return Ok(Ok(crate::native::opt(Some(v))));
+                }
+                if vm.it.chans[c].senders == 0 {
+                    return Ok(Ok(crate::native::opt(None)));
                 }
                 if !idle_ran(vm)? {
                     return blocked(&mut vm.it, "recv", c);
                 }
             }
         }),
+    ),
+    (
+        STD_CHAN_RECEIVER_TRY_RECV,
+        Bind::VmFallible(|vm, a| {
+            let c = chan(&a[0]);
+            if let Some(e) = cancelled(&vm.it) {
+                return Ok(Err(e));
+            }
+            crate::simfault::sweep(&mut vm.it);
+            if let Some(v) = vm.it.chans[c].q.pop_front() {
+                vm.it.progress += 1;
+                return Ok(Ok(v));
+            }
+            Ok(Err(failure(if vm.it.chans[c].senders == 0 {
+                "Closed"
+            } else {
+                "Empty"
+            })))
+        }),
+    ),
+    (
+        STD_CHAN_RECEIVER_SELECT_KEY,
+        Bind::Plain(|a| Ok(Value::Int(4 * chan(&a[0]) as i128 + SEL_RECV))),
+    ),
+    (
+        STD_CHAN_SENDER_SELECT_KEY,
+        Bind::Plain(|a| Ok(Value::Int(4 * chan(&a[0]) as i128 + SEL_SEND))),
+    ),
+    (
+        STD_PRELUDE_SELECT_WAIT,
+        Bind::VmFallible(|vm, a| select_wait(vm, a)),
     ),
     (
         STD_CHAN_RECEIVER_SHARE,
@@ -563,16 +718,8 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                 if let Some(e) = cancelled(it) {
                     return Ok(Err(e));
                 }
-                let (cap, q) = &mut it.chans[c];
-                // A rendezvous channel hands over only to a receiver already waiting.
-                let room = if *cap == 0 {
-                    let waiting = it.waiting_recv.iter().filter(|w| **w == c).count();
-                    q.len() < waiting
-                } else {
-                    q.len() < *cap
-                };
-                if room {
-                    q.push_back(std::mem::take(&mut a[1]));
+                if send_room(it, c) {
+                    it.chans[c].q.push_back(std::mem::take(&mut a[1]));
                     it.progress += 1;
                     return Ok(Ok(Value::Unit));
                 }
@@ -580,6 +727,22 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                     return blocked(&mut vm.it, "send", c);
                 }
             }
+        }),
+    ),
+    (
+        STD_CHAN_SENDER_TRY_SEND,
+        Bind::VmFallible(|vm, a| {
+            let c = chan(&a[0]);
+            let it = &mut vm.it;
+            if let Some(e) = cancelled(it) {
+                return Ok(Err(e));
+            }
+            if !send_room(it, c) {
+                return Ok(Err(failure("Full")));
+            }
+            it.chans[c].q.push_back(std::mem::take(&mut a[1]));
+            it.progress += 1;
+            Ok(Ok(Value::Unit))
         }),
     ),
     (

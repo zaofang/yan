@@ -7,5 +7,5 @@ def f() -> int fail Cancelled:
     tx, rx = Channel[int](1)
     par:
         tx.send(1)?
-        v = rx.recv()?
+        v = rx.recv()? else 0
     return v

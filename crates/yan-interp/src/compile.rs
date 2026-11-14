@@ -105,6 +105,8 @@ pub(crate) enum Op {
         src: Reg,
     },
     Clear(Reg),
+    /// `Clear`, first closing the channel when the register holds its last `Sender`.
+    DropSender(Reg),
     Jmp(u32),
     /// A loop's jump back to its start: one step (R487), unlike a jump to a join point.
     Loop(u32),
@@ -524,6 +526,10 @@ fn free_vars(e: &Expr) -> Vec<Name> {
     out
 }
 
+fn is_sender(t: &Type) -> bool {
+    matches!(t, Type::Named(n) if n.path.last().is_some_and(|s| s == "Sender"))
+}
+
 fn param_name(p: &Param) -> &Name {
     let (Param::Value { name, .. } | Param::Cap { name, .. }) = p;
     name
@@ -661,6 +667,8 @@ struct FnC<'g, 'm> {
     item: Option<[u8; 32]>,
     /// The names each enclosing `par concurrent` task binds, innermost last.
     task_binds: Vec<Vec<Name>>,
+    /// Names bound at type `Sender[_]`: dropping one may close its channel.
+    senders: Vec<Name>,
 }
 
 impl<'g, 'm> FnC<'g, 'm> {
@@ -676,8 +684,14 @@ impl<'g, 'm> FnC<'g, 'm> {
             ensures: Vec::new(),
             item: None,
             task_binds: Vec::new(),
+            senders: Vec::new(),
         };
         for p in params {
+            if let Param::Value { name, ty, .. } = p
+                && is_sender(ty)
+            {
+                c.senders.push(name.clone());
+            }
             let r = c.temp();
             // A repeated parameter name keeps its first slot.
             c.regs.entry(param_name(p).clone()).or_insert(r);
@@ -996,8 +1010,11 @@ impl<'g, 'm> FnC<'g, 'm> {
 
     fn stmt_ops(&mut self, s: &Stmt) {
         match &s.kind {
-            StmtKind::Let { pat, rhs, .. } => match pat {
+            StmtKind::Let { pat, rhs, ty, .. } => match pat {
                 Pat::Bind(n) if !self.g.nullary.contains(n) => {
+                    if is_sender(ty) {
+                        self.senders.push(n.clone());
+                    }
                     match comparison(rhs) {
                         Some(sides) => self.cmps.insert(n.clone(), sides),
                         None => self.cmps.remove(n),
@@ -1164,7 +1181,12 @@ impl<'g, 'm> FnC<'g, 'm> {
                 });
                 if let Some(r) = self.regs.get(n) {
                     let r = *r;
-                    self.emit(Op::Clear(r));
+                    let sender = self.senders.contains(n);
+                    self.emit(if sender {
+                        Op::DropSender(r)
+                    } else {
+                        Op::Clear(r)
+                    });
                 }
             }
             StmtKind::Yield(_) => self.unsupported("generators"),

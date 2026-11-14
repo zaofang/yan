@@ -5007,6 +5007,37 @@
    "exit": 0
   },
   {
+   "path": "yag/run/collections/sorted_dict_iterates_ascending.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.2",
+    "17.3"
+   ],
+   "rows": [
+    "R911"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 2 3\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/chan_try_ops.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.5"
+   ],
+   "rows": [
+    "R342"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Empty()\nsent\nFull()\n1\nEmpty()\n0\nClosed()\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/lowest_index_failure.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5476,6 +5507,37 @@
    "flags": [],
    "expect": [],
    "stdout": "24 24\n2 3 4\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n50_n51_slice_and_int.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1",
+    "14.4"
+   ],
+   "rows": [
+    "R935"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "bc xyz cba ab\n42 -3\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/lenient/r933_empty_literal_argument.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R933"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 0 0 0\n",
    "exit": 0
   },
   {
@@ -6480,6 +6542,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/itertools_order.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R936"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "123 132 213 231 312 321\n12 13 23\n11 12 21 22\n1-2 2-3\n1 3 6\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/list_bisect.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7020,6 +7097,36 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/regex_group_past_last.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R910"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "12\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/std/regex_named_missing.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R910"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n",
+   "exit": 101
+  },
+  {
    "path": "yag/run/std/regex_runtime_error.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7048,6 +7155,21 @@
    "flags": [],
    "expect": [],
    "stdout": "2024-10 2024 10 2024\n3 10\nNone\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/regex_split_nonparticipating_group.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R910"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "['a', '', 'b']\n['a', 'x', 'b']\n",
    "exit": 0
   },
   {
@@ -7143,6 +7265,51 @@
    "flags": [],
    "expect": [],
    "stdout": "['h', '\u00e9', 'l', 'l', 'o'] 5\n['a', 'b', 'c']\nh\n\u00e9\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/str_parse_float_forms.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R909"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1.5 1000.0 -0.25\nTrue True True True\nNone None None\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/str_parse_int_forms.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R909"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "12 -7 5 None None None None None None\n0 None\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/str_splitlines_boundaries.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R909"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 a b c\n3 a  b\n0\n2\n2 x y\n",
    "exit": 0
   },
   {
@@ -7718,6 +7885,70 @@
    "flags": [],
    "expect": [],
    "stdout": "line 1, col 9: $.name: expected str, found int\nline 1, col 1: $: missing field \"name\"\nline 1, col 17: $: unknown field \"x\"\nline 1, col 19: $.age: expected int, found float\nline 1, col 13: $.items[1]: expected int, found str\nunknown tag rejected\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_value_accessors.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R569",
+    "R574"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "get_none=True null=True bool=None int=None float=None str=None list=False dict=False at0=False atneg=False\nget_none=True null=False bool=True int=None float=None str=None list=False dict=False at0=False atneg=False\nget_none=True null=False bool=None int=3 float=3.0 str=None list=False dict=False at0=False atneg=False\nget_none=True null=False bool=None int=None float=2.5 str=None list=False dict=False at0=False atneg=False\nget_none=True null=False bool=None int=None float=None str=x list=False dict=False at0=False atneg=False\nget_none=True null=False bool=None int=None float=None str=None list=True dict=False at0=True atneg=False\nget_none=False null=False bool=None int=None float=None str=None list=False dict=True at0=False atneg=False\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_value_numbers.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R570",
+    "R575"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[1,0,1.0,100.0,0.1,9223372036854775807]\nline 1, col 2: number out of range\nline 1, col 2: number out of range\n100.0\n7.0\n1:1\n1:3\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_value_output.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R569",
+    "R572"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "{\"b\":1,\"a\":[true,null],\"c\":{},\"d\":[]}\n{\n  \"b\": 1,\n  \"a\": [\n    true,\n    null\n  ],\n  \"c\": {},\n  \"d\": []\n}\n[\"\u00e9\\n\\t\\u0001\\\"\\\\/\"]\n[1.0,100.0,0.5]\n[]\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_value_strict_input.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R571",
+    "R573"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 syntax\n1 syntax\n1 syntax\n1 syntax\n1 syntax\n1 syntax\n1 syntax\n1 syntax\n1 syntax\nok\n1 syntax\n3 syntax\n1 syntax\n1 syntax\nok\n1 duplicate a\n1 depth\nok\n1 range\n",
    "exit": 0
   },
   {

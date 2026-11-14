@@ -1,0 +1,32 @@
+# spec: 17.3
+# rows: R570, R575
+# note: an integer literal is Int when it fits int, else Range; a fraction or exponent makes a Float; floats dump with a "." or an exponent; parse_float takes exactly one number
+# stdout:
+# [1,0,1.0,100.0,0.1,9223372036854775807]
+# line 1, col 2: number out of range
+# line 1, col 2: number out of range
+# 100.0
+# 7.0
+# 1:1
+# 1:3
+
+def rt(s: str) -> str fail JsonError:
+    return json.dump_value(json.parse_value(s)?)
+
+def show(s: str) -> str:
+    return rt(s) else err -> f"{err}"
+
+def pf(s: str) -> str fail JsonError:
+    return f"{json.parse_float(s)?}"
+
+def pfs(s: str) -> str:
+    return pf(s) else err -> f"{err.line}:{err.col}"
+
+pub def main() uses io:
+    io.print(show("[1, -0, 1.0, 1e2, 0.1, 9223372036854775807]"))
+    io.print(show("[9223372036854775808]"))
+    io.print(show("[-9223372036854775809]"))
+    io.print(pfs(" 1e2 "))
+    io.print(pfs("7"))
+    io.print(pfs("[1]"))
+    io.print(pfs("1 2"))
