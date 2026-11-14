@@ -1013,6 +1013,16 @@ fn par_concurrent_under_handler_without_concurrent_is_e708() {
     );
 }
 
+#[test]
+fn par_concurrent_under_handler_with_concurrent_is_clean() {
+    let src = "class H:\n    n: int\n\nimpl Sched for H:\n    def width(self: Self) -> int:\n        \
+               return 1\n\nimpl Concurrent for H: ...\n\npub def main() uses io:\n    \
+               with sched = H(n=1):\n        par concurrent:\n            io.print(\"a\")\n            \
+               io.print(\"b\")\n";
+    let (_, d) = lower(src);
+    assert!(d.is_empty(), "{d:?}");
+}
+
 fn edition_codes(value: &str) -> Vec<String> {
     let src = format!(
         "package: Package = Package(name=\"@a/b\", version=\"1.0.0\", yan=\">=1\", edition=\"{value}\")\n"
