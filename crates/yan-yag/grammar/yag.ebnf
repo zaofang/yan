@@ -32,12 +32,12 @@ field     = BOL NAME ":" type ["=" expr] NEWLINE ;
 typedef   = "type" TYPENAME [tparams] "=" (variant {"|" variant} | base {"|" base} | "uses" capref {"," capref} | "newtype" "[" type "]") ["where" expr] NEWLINE ;
 variant   = TYPENAME "(" [ifield {"," ifield}] ")" ;
 ifield    = NAME ":" type ["=" expr] ;
-traitdef  = "trait" TYPENAME [tparams] ":" NEWLINE INDENT [docstring] {assoc} {decorator} sigdef
-            {{decorator} sigdef} DEDENT ;
+traitdef  = "trait" TYPENAME [tparams] ":" NEWLINE INDENT [docstring] {assoc} {{decorator} sigdef} DEDENT ;
 assoc     = BOL "type" TYPENAME NEWLINE ;
 sigdef    = BOL "def" NAME [tparams] "(" [params] ")" ["->" rettype] [uses] ":" ("..." NEWLINE | fbody) ;
-impldef   = "impl" path ["[" type {"," type} "]"] "for" type ":" NEWLINE INDENT
-            {BOL "type" TYPENAME "=" type NEWLINE} BOL funcdef {BOL funcdef} DEDENT ;
+impldef   = "impl" path ["[" type {"," type} "]"] "for" type ":"
+            ("..." NEWLINE | NEWLINE INDENT
+            {BOL "type" TYPENAME "=" type NEWLINE} BOL funcdef {BOL funcdef} DEDENT) ;
 constdef  = NAME ":" type "=" expr NEWLINE ;
 
 stmt      = BOL simple NEWLINE | BOL compound ;
