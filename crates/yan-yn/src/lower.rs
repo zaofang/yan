@@ -1095,9 +1095,96 @@ impl Lower<'_> {
     fn stmts(&mut self, stmts: &[Stmt]) -> R<Vec<h::Stmt>> {
         let mut out = Vec::new();
         for s in stmts {
-            out.push(self.stmt(s)?);
+            match self.is_binding(s) {
+                Some(r) => out.extend(r.map_err(|u| u.at(s.span))?),
+                None => out.push(self.stmt(s)?),
+            }
         }
         Ok(out)
+    }
+
+    /// `let ok = e is P` is `var ok = false` and a match that sets it; the pattern's bindings
+    /// stay inside the arm, so none escape.
+    fn is_binding(&mut self, s: &Stmt) -> Option<R<Vec<h::Stmt>>> {
+        let StmtKind::Let {
+            ghost: false,
+            pattern:
+                Pattern {
+                    kind: PatKind::Bind(name),
+                    span: name_span,
+                },
+            ty: None,
+            value:
+                Expr {
+                    kind:
+                        ExprKind::Is {
+                            value,
+                            negated,
+                            pattern,
+                        },
+                    ..
+                },
+            ..
+        } = &s.kind
+        else {
+            return None;
+        };
+        if is_none(pattern) {
+            return None;
+        }
+        Some((|| {
+            let flag = |v: bool, span| {
+                let lit = mk(h::ExprKind::Lit(h::Lit::Bool(v)), span);
+                let target = mk(h::ExprKind::Name(name.clone()), span);
+                stmt(
+                    h::StmtKind::Assign {
+                        target,
+                        ty: None,
+                        value: lit,
+                    },
+                    span,
+                )
+            };
+            let hit = Arm {
+                pattern: pattern.clone(),
+                guard: None,
+                body: ArmBody::Block(Vec::new()),
+                span: s.span,
+            };
+            let mut cases = self.arm(&hit)?;
+            for c in &mut cases {
+                c.body.stmts.push(flag(!negated, s.span));
+            }
+            cases.push(h::Case {
+                pat: h::Pat::Wild,
+                span: s.span,
+                guard: None,
+                body: h::Block {
+                    inline: false,
+                    stmts: vec![flag(*negated, s.span)],
+                },
+            });
+            let init = mk(h::ExprKind::Lit(h::Lit::Bool(false)), s.span);
+            Ok(vec![
+                stmt(
+                    h::StmtKind::Bind {
+                        mutable: true,
+                        target: name.clone(),
+                        target_span: *name_span,
+                        ty: None,
+                        value: init,
+                    },
+                    s.span,
+                ),
+                stmt(
+                    h::StmtKind::Match {
+                        scrutinee: self.expr(value)?,
+                        cases,
+                    },
+                    s.span,
+                ),
+            ])
+        })())
     }
 
     fn stmt(&mut self, s: &Stmt) -> R<h::Stmt> {
