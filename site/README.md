@@ -22,4 +22,6 @@ run, spec debt and bench figures, each stamped with commit and date. Pass it wit
 `build --status status.json`; without it the page says it carries no CI data. `site.yml` deploys
 after each green `ci` run on main and passes that run's artifact.
 
-A `CNAME` file here, once the domain exists (#389), is copied to the site root.
+`site.yml` uploads the build to the Cloudflare Pages project `yan`, served at yanlang.dev, with
+wrangler (secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`). `functions/_middleware.js`
+sends `index.txt`, the home page for terminals, to curl, wget, HTTPie and xh at `/`.
