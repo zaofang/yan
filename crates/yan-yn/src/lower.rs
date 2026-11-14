@@ -1688,7 +1688,19 @@ impl Lower<'_> {
             ExprKind::Lambda { params, body } => K::Lambda(params.clone(), b(self.expr(body)?)),
             ExprKind::Subject(_) => return self.subject(e),
             ExprKind::Cast(x, t) => K::Cast(b(self.expr(x)?), self.ty(t)?),
-            ExprKind::UnitNum { .. } => return unsupported("unit literals"),
+            ExprKind::UnitNum { num, unit } => {
+                let n = num.replace('_', "");
+                let lit = if n.contains(['.', 'e', 'E']) {
+                    h::Lit::Float(n)
+                } else {
+                    h::Lit::Int(n)
+                };
+                K::Binary(
+                    "*",
+                    b(mk(h::ExprKind::Lit(lit), e.span)),
+                    b(mk(h::ExprKind::Name(unit.clone()), e.span)),
+                )
+            }
             ExprKind::Temporal { .. } => return unsupported("date and time literals"),
             // A grid is its rows as nested lists; the expected `Array` type checks the shape (R463).
             ExprKind::Grid(rows) => K::List(

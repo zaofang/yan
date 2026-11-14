@@ -5007,6 +5007,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/chan_try_ops.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.5"
+   ],
+   "rows": [
+    "R342"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Empty()\nsent\nFull()\n1\nEmpty()\n0\nClosed()\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/lowest_index_failure.yag",
    "kind": "run",
    "milestone": "M1",

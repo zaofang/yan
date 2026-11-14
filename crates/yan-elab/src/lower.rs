@@ -2219,6 +2219,8 @@ const UNITS: &[(&str, &str, f64, DurationCtor)] = &[
 const NONDET_OPS: &[&str] = &[
     "std.sync.arc.strong_count",
     "std.chan.sender.share",
+    "std.chan.sender.try_send",
+    "std.chan.receiver.try_recv",
     "std.chan.receiver.share",
     "std.actor.share",
 ];
