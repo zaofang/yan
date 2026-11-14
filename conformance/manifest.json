@@ -7721,6 +7721,70 @@
    "exit": 0
   },
   {
+   "path": "yag/run/wire/json_value_accessors.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R569",
+    "R574"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "get_none=True null=True bool=None int=None float=None str=None list=False dict=False at0=False atneg=False\nget_none=True null=False bool=True int=None float=None str=None list=False dict=False at0=False atneg=False\nget_none=True null=False bool=None int=3 float=3.0 str=None list=False dict=False at0=False atneg=False\nget_none=True null=False bool=None int=None float=2.5 str=None list=False dict=False at0=False atneg=False\nget_none=True null=False bool=None int=None float=None str=x list=False dict=False at0=False atneg=False\nget_none=True null=False bool=None int=None float=None str=None list=True dict=False at0=True atneg=False\nget_none=False null=False bool=None int=None float=None str=None list=False dict=True at0=False atneg=False\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_value_numbers.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R570",
+    "R575"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[1,0,1.0,100.0,0.1,9223372036854775807]\nline 1, col 2: number out of range\nline 1, col 2: number out of range\n100.0\n7.0\n1:1\n1:3\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_value_output.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R569",
+    "R572"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "{\"b\":1,\"a\":[true,null],\"c\":{},\"d\":[]}\n{\n  \"b\": 1,\n  \"a\": [\n    true,\n    null\n  ],\n  \"c\": {},\n  \"d\": []\n}\n[\"\u00e9\\n\\t\\u0001\\\"\\\\/\"]\n[1.0,100.0,0.5]\n[]\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/json_value_strict_input.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R571",
+    "R573"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 syntax\n1 syntax\n1 syntax\n1 syntax\n1 syntax\n1 syntax\n1 syntax\n1 syntax\n1 syntax\nok\n1 syntax\n3 syntax\n1 syntax\n1 syntax\nok\n1 duplicate a\n1 depth\nok\n1 range\n",
+   "exit": 0
+  },
+  {
    "path": "yn/pass/caps/renamed_user_capability.yn",
    "kind": "pass",
    "milestone": "M3",
