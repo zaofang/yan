@@ -1,6 +1,6 @@
 # Uncased spec row audit, 2026-11-14
 
-Issue #1025 (spec freeze gate), tracker #1136 (P3). Evidence at `2d72926`, 2026-11-14, from `tools.status` spec_debt logic: 634 of 879 R rows have no conformance case. The gate needs 527 or fewer (60 percent of 879). Antonio chose "audit rows first, then sweep". This study changes no spec row and no threshold; it proposes treatments for a lead card.
+Issue #1025 (spec freeze gate), tracker #1136 (P3). Evidence at `2ee7c61`, 2026-11-14, from `tools.status` spec_debt logic: 634 of 879 R rows have no conformance case. The gate needs 527 or fewer (60 percent of 879). Antonio chose "audit rows first, then sweep". This study changes no spec row and no threshold; it proposes treatments for a lead card.
 
 Regenerate the figures and the per-row CSV (`2026-11-14-uncased-row-audit.csv`) with `uv run python -m tools.uncased_audit`; do not edit them by hand.
 

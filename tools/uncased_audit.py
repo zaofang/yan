@@ -7,8 +7,8 @@ import subprocess
 from tools import conform, rows, status
 
 
-def rng(*parts):
-    out = set()
+def rng(*parts: int | tuple[int, int]) -> set[str]:
+    out: set[str] = set()
     for p in parts:
         if isinstance(p, tuple):
             out |= {f"R{i}" for i in range(p[0], p[1] + 1)}
@@ -80,7 +80,7 @@ G = [  # bucket, group, rows, reason, treatment
     ),
     ("defer", "Yan Meta, M4", rng((516, 521)), "Third surface built at M4 (R516).", "Defer to M4."),
 ]
-cb = {}
+cb: dict[str, set[str]] = {}
 rowsout = []
 for b, g, s, reason, tr in G:
     s &= unc
@@ -92,7 +92,7 @@ D = len(alloc)
 T = 0.6
 
 
-def line(x, both):
+def line(x: int, both: bool) -> tuple[int, int, float]:
     n = N - x
     d = D - x if both else D
     return n, d, n / d
@@ -109,7 +109,7 @@ de = len(cb["defer"])
 need = D * T
 
 
-def pr(label, x, both):
+def pr(label: str, x: int, both: bool) -> str:
     n, d, p = line(x, both)
     return f"| {label} | {n} of {d} | {p * 100:.1f}% | {'yes' if n <= int(d * T) else 'no'} |"
 
