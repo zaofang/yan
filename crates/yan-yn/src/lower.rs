@@ -53,6 +53,7 @@ pub fn lower(file: &str, src: &str, m: &Module) -> R<(h::Module, Vec<Diagnostic>
         self_ty: named(&["Self"], Vec::new()),
         fresh: 0,
         aliases: HashMap::new(),
+        ctors: ctor_fields(m),
     };
     let mut items = Vec::new();
     for it in &m.items {
@@ -102,6 +103,30 @@ struct Lower<'a> {
     fresh: usize,
     /// `use std.m as a`: `a` to the std module `m` (15.2, aliases only).
     aliases: HashMap<String, String>,
+    /// Constructor name to its declared field names, for `..` in patterns.
+    ctors: HashMap<String, Vec<String>>,
+}
+
+fn ctor_fields(m: &Module) -> HashMap<String, Vec<String>> {
+    let names = |fs: &[Field]| fs.iter().map(|f| f.name.clone()).collect();
+    let mut out = HashMap::new();
+    for it in &m.items {
+        let ItemKind::Type(t) = &it.kind else {
+            continue;
+        };
+        match &t.rhs {
+            TypeRhs::Record { fields, .. } => {
+                out.insert(t.name.clone(), names(fields));
+            }
+            TypeRhs::Sum(vs) => {
+                for v in vs {
+                    out.insert(v.name.clone(), names(&v.fields));
+                }
+            }
+            _ => {}
+        }
+    }
+    out
 }
 
 fn mk(kind: h::ExprKind, span: Span) -> h::Expr {
@@ -1501,6 +1526,26 @@ impl Lower<'_> {
                     Some(args) => {
                         let mut out = Vec::new();
                         for a in args {
+                            if matches!(a, PPat::Rest) {
+                                let Some(fields) = self.ctors.get(name) else {
+                                    return unsupported("`..` on a constructor declared elsewhere");
+                                };
+                                let positional =
+                                    args.iter().filter(|a| matches!(a, PPat::Pos(_))).count();
+                                let named: Vec<&Name> = args
+                                    .iter()
+                                    .filter_map(|a| match a {
+                                        PPat::Named(n, _) => Some(n),
+                                        _ => None,
+                                    })
+                                    .collect();
+                                for f in fields.iter().skip(positional) {
+                                    if !named.contains(&f) {
+                                        out.push((Some(f.clone()), h::Pat::Wild));
+                                    }
+                                }
+                                continue;
+                            }
                             out.push(match a {
                                 PPat::Pos(p) => (None, self.pattern(p)?),
                                 PPat::Named(n, Some(p)) => (Some(n.clone()), self.pattern(p)?),
@@ -1511,7 +1556,7 @@ impl Lower<'_> {
                                         args: None,
                                     },
                                 ),
-                                PPat::Rest => return unsupported("`..` in a constructor pattern"),
+                                PPat::Rest => unreachable!("handled above"),
                             });
                         }
                         Some(out)
