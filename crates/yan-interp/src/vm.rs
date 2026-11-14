@@ -73,6 +73,8 @@ struct Task {
     pc: usize,
     done: bool,
     park: Option<(bool, usize)>,
+    /// The reading a parked `select` wakes at on a timer arm.
+    timer: Option<i128>,
     seen: Option<u64>,
     /// The PCT priority (R999); unused without a `pct` handler.
     prio: i64,
@@ -525,6 +527,7 @@ impl<'o> Vm<'o> {
                             pc: *e as usize,
                             done: false,
                             park: None,
+                            timer: None,
                             seen: None,
                             prio,
                             chain: Vec::new(),
@@ -574,7 +577,16 @@ impl<'o> Vm<'o> {
                         yielded = true;
                         break Ok(None);
                     }
-                    Some(i) => (i, true),
+                    // A timer is the only thing that can end the wait: the earliest one fires.
+                    Some(first) => (
+                        tasks
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, t)| !t.done && t.timer.is_some())
+                            .min_by_key(|(_, t)| t.timer)
+                            .map_or(first, |(i, _)| i),
+                        true,
+                    ),
                     None => {
                         // R394: the lowest-index failure that is not `Cancelled` or `SessionClosed` wins.
                         let lowest = failed.iter().flatten().find(|v| !is_cancelled(v));
@@ -610,6 +622,7 @@ impl<'o> Vm<'o> {
                 Ok(r) => r,
                 Err(e) => break Err(e),
             };
+            t.timer = self.it.park_timer.take();
             if let Some(now) = self.it.park.take() {
                 if !self.unwinding.is_empty() {
                     // Parked in a called function: keep its frames and stack for the next run.
