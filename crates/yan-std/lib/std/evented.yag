@@ -2,6 +2,7 @@
 Previews until M4 (20.6)."""
 
 @intrinsic
+@concurrent
 @preview("evented")
 @since("1.0")
 pub def sched() -> std.sched.Sched: ...

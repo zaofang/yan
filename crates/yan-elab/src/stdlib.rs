@@ -18,6 +18,8 @@ pub(crate) struct Decl {
     pub def: j::FuncDef,
     /// `@preview("name")`: using it needs `preview = ["name"]` (20.6, E001).
     pub preview: Option<String>,
+    /// `@concurrent` on a `sched` handler constructor: its result implements `Concurrent` (R1003).
+    pub concurrent: bool,
 }
 
 pub(crate) struct Class {
@@ -89,6 +91,7 @@ pub(crate) static STD: LazyLock<Std> = LazyLock::new(|| {
                 intrinsic,
                 cap,
                 preview: preview.clone(),
+                concurrent: has("concurrent"),
                 def,
             };
             let wire = crate::decorators::derives(&it, "Wire");
