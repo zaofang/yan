@@ -16,6 +16,29 @@ pub const DEPTH: usize = 64;
 /// The generic item's identity hash and its arguments' canonical text.
 type Key = (ItemHash, Vec<String>);
 
+/// A let-bound closure's declared type, body and captured locals.
+type Bound = (Type, Closure, Vec<(Name, Type)>);
+
+/// A let-bound closure passed as a `comptime` argument. Its captured locals become extra value
+/// parameters of the instance and the closure is re-bound inside it, so the instance is keyed by
+/// the closure's identity rather than by a caller variable.
+#[derive(Clone)]
+struct Spec {
+    /// The `comptime` parameter the closure is bound to.
+    name: Name,
+    ty: Type,
+    closure: Closure,
+    /// The captured locals and their types, in capture order.
+    caps: Vec<(Name, Type)>,
+}
+
+struct Found {
+    def: usize,
+    args: Vec<TArg>,
+    at: Span,
+    specs: Vec<Spec>,
+}
+
 pub fn monomorphize(file: &str, m: &Module) -> Result<Module, Error> {
     let hashes = hash::hash_module(m);
     let generic: HashMap<String, usize> = m
@@ -49,7 +72,7 @@ pub fn monomorphize(file: &str, m: &Module) -> Result<Module, Error> {
             continue;
         }
         let mut it = it.clone();
-        let mut w = Walk::new(&none, &generic, &comptime_at);
+        let mut w = Walk::new(m, &none, &generic, &comptime_at);
         w.item(&mut it.kind);
         w.finish()?;
         mono.add(w.found, 1, &hashes)?;
@@ -58,7 +81,7 @@ pub fn monomorphize(file: &str, m: &Module) -> Result<Module, Error> {
     // Instances are built in the order they are first reached; building one can add more.
     let mut done = 0;
     while done < mono.insts.len() {
-        let (def, args, depth) = mono.insts[done].clone();
+        let (def, args, depth, specs) = mono.insts[done].clone();
         let it = &m.items[def];
         let ItemKind::Fn(f) = &it.kind else {
             unreachable!("only generic fns are instantiated")
@@ -73,9 +96,9 @@ pub fn monomorphize(file: &str, m: &Module) -> Result<Module, Error> {
             tparams: Vec::new(),
             ..f.clone()
         };
-        bind_comptime_values(&mut def, &args[f.tparams.len()..], it.span);
+        bind_comptime_values(&mut def, &args[f.tparams.len()..], specs, it.span);
         let mut kind = ItemKind::Inst(Inst { args, def });
-        let mut w = Walk::new(&env, &generic, &comptime_at);
+        let mut w = Walk::new(m, &env, &generic, &comptime_at);
         w.item(&mut kind);
         w.finish()?;
         mono.add(w.found, depth + 1, &hashes)?;
@@ -109,9 +132,11 @@ fn comptime_params(f: &FnDef) -> Vec<usize> {
 
 /// Drops the `comptime` value parameters of an instance and binds each to its argument at the
 /// top of the body; the instance is then keyed by the value, so the binding is a constant.
-fn bind_comptime_values(def: &mut FnDef, values: &[TArg], span: Span) {
+fn bind_comptime_values(def: &mut FnDef, values: &[TArg], specs: Vec<Spec>, span: Span) {
     let mut binds = Vec::new();
     let mut vals = values.iter();
+    let mut specs = specs.into_iter();
+    let mut cap_params = Vec::new();
     def.params.retain(|p| match p {
         Param::Value {
             comptime: true,
@@ -122,6 +147,19 @@ fn bind_comptime_values(def: &mut FnDef, values: &[TArg], span: Span) {
             let Some(TArg::Nat(n)) = vals.next() else {
                 unreachable!("checked at the call")
             };
+            if matches!(ty, Type::Fn(_)) {
+                let spec = specs
+                    .next()
+                    .expect("one spec per function-valued parameter");
+                cap_params.extend(spec.caps.iter().map(|(n, t)| Param::Value {
+                    comptime: false,
+                    conv: Conv::Let,
+                    name: n.clone(),
+                    ty: t.clone(),
+                }));
+                binds.push(closure_bind(&spec, span));
+                return false;
+            }
             binds.push(Stmt {
                 kind: StmtKind::Let {
                     mutable: false,
@@ -137,9 +175,61 @@ fn bind_comptime_values(def: &mut FnDef, values: &[TArg], span: Span) {
         }
         _ => true,
     });
+    def.params.extend(cap_params);
     if let Some(b) = &mut def.body {
         b.stmts.splice(0..0, binds);
     }
+}
+
+fn closure_bind(spec: &Spec, span: Span) -> Stmt {
+    Stmt {
+        kind: StmtKind::Let {
+            mutable: false,
+            pat: Pat::Bind(spec.name.clone()),
+            pat_span: span,
+            ty: spec.ty.clone(),
+            rhs: Rhs::Closure(Box::new(spec.closure.clone())),
+            rhs_span: span,
+        },
+        span,
+    }
+}
+
+/// The closure's identity: the content hash of a function that only binds it over its captures,
+/// as a decimal so that it reads as an instance argument.
+fn spec_id(m: &Module, callee: &FnDef, spec: &Spec, span: Span) -> String {
+    let mut def = FnDef {
+        tparams: Vec::new(),
+        params: spec
+            .caps
+            .iter()
+            .map(|(n, t)| Param::Value {
+                comptime: false,
+                conv: Conv::Let,
+                name: n.clone(),
+                ty: t.clone(),
+            })
+            .collect(),
+        ..callee.clone()
+    };
+    def.path = vec!["spec".into()];
+    def.body = Some(Block {
+        stmts: vec![closure_bind(spec, span)],
+    });
+    let item = Item {
+        attrs: Vec::new(),
+        kind: ItemKind::Fn(def),
+        span,
+    };
+    let probe = Module {
+        header: m.header.clone(),
+        path: m.path.clone(),
+        items: vec![item],
+    };
+    let hex = hash::hash_module(&probe)[0].identity.group.to_hex();
+    u64::from_str_radix(&hex[..16], 16)
+        .expect("hex digits")
+        .to_string()
 }
 
 struct Mono<'a> {
@@ -147,17 +237,23 @@ struct Mono<'a> {
     m: &'a Module,
     keys: HashMap<Key, usize>,
     /// Each instance: its generic item, its arguments and its nesting depth.
-    insts: Vec<(usize, Vec<TArg>, usize)>,
+    insts: Vec<(usize, Vec<TArg>, usize, Vec<Spec>)>,
 }
 
 impl Mono<'_> {
     fn add(
         &mut self,
-        found: Vec<(usize, Vec<TArg>, Span)>,
+        found: Vec<Found>,
         depth: usize,
         hashes: &[hash::Hashed],
     ) -> Result<(), Error> {
-        for (def, args, at) in found {
+        for Found {
+            def,
+            args,
+            at,
+            specs,
+        } in found
+        {
             let ItemKind::Fn(f) = &self.m.items[def].kind else {
                 unreachable!("`generic` holds fns")
             };
@@ -193,7 +289,7 @@ impl Mono<'_> {
                 return Err(Error::Diag(Box::new(d)));
             }
             self.keys.insert(key, self.insts.len());
-            self.insts.push((def, args, depth));
+            self.insts.push((def, args, depth, specs));
         }
         Ok(())
     }
@@ -201,26 +297,35 @@ impl Mono<'_> {
 
 /// Replaces type parameters by `env` and collects the calls that name generic fns.
 struct Walk<'a> {
+    m: &'a Module,
     env: &'a HashMap<String, TArg>,
     generic: &'a HashMap<String, usize>,
     /// The `comptime` value parameter indexes of each generic item.
     comptime_at: &'a HashMap<usize, Vec<usize>>,
-    found: Vec<(usize, Vec<TArg>, Span)>,
+    found: Vec<Found>,
     err: Option<Error>,
+    /// Declared types of the locals seen so far.
+    locals: HashMap<Name, Type>,
+    /// Let-bound closures in scope, with their declared type and capture types.
+    closures: HashMap<Name, Bound>,
 }
 
 impl<'a> Walk<'a> {
     fn new(
+        m: &'a Module,
         env: &'a HashMap<String, TArg>,
         generic: &'a HashMap<String, usize>,
         comptime_at: &'a HashMap<usize, Vec<usize>>,
     ) -> Self {
         Walk {
+            m,
             env,
             generic,
             comptime_at,
             found: Vec::new(),
             err: None,
+            locals: HashMap::new(),
+            closures: HashMap::new(),
         }
     }
 
@@ -260,7 +365,10 @@ impl<'a> Walk<'a> {
 
     fn param(&mut self, p: &mut Param) {
         match p {
-            Param::Value { ty, .. } => self.ty(ty),
+            Param::Value { name, ty, .. } => {
+                self.ty(ty);
+                self.locals.insert(name.clone(), ty.clone());
+            }
             Param::Cap { ty, .. } => self.targs(&mut ty.args),
         }
     }
@@ -311,12 +419,60 @@ impl<'a> Walk<'a> {
         let Some(&def) = self.generic.get(&c.path.join(".")) else {
             return;
         };
-        // A `comptime` argument moves from the call's arguments to its type arguments.
+        let ItemKind::Fn(callee) = &self.m.items[def].kind else {
+            unreachable!("`generic` holds fns")
+        };
         let at = &self.comptime_at[&def];
+        // Already rewritten: a closure copied into an instance carries its calls along.
+        if !at.is_empty() && c.targs.len() == callee.tparams.len() + at.len() {
+            self.found.push(Found {
+                def,
+                args: c.targs.clone(),
+                at: c.span,
+                specs: Vec::new(),
+            });
+            return;
+        }
+        // A `comptime` argument moves from the call's arguments to its type arguments; a
+        // closure's captures follow the remaining arguments.
         let mut values = Vec::new();
+        let mut specs = Vec::new();
+        let mut cap_args = Vec::new();
         for &i in at {
-            match c.args.get(i) {
-                Some(Arg::Value(_, Atom::Lit(Literal::Int(n), _), _)) => {
+            let Param::Value { name, ty, .. } = &callee.params[i] else {
+                unreachable!("`comptime` parameters are values")
+            };
+            match (ty, c.args.get(i)) {
+                (Type::Fn(_), Some(Arg::Value(_, Atom::Name(n, span), _))) => {
+                    let Some((cty, closure, caps)) = self.closures.get(n) else {
+                        self.err.get_or_insert(Error::Unsupported(format!(
+                            "a `comptime` function argument of `{}` that is not a let-bound closure",
+                            c.path.join(".")
+                        )));
+                        return;
+                    };
+                    if let Some((conv, cap, _)) =
+                        closure.captures.iter().find(|(v, ..)| *v != Conv::Let)
+                    {
+                        self.err.get_or_insert(Error::Unsupported(format!(
+                            "a `comptime` closure argument of `{}` capturing `{cap}` by {conv:?}",
+                            c.path.join(".")
+                        )));
+                        return;
+                    }
+                    let spec = Spec {
+                        name: name.clone(),
+                        ty: cty.clone(),
+                        closure: closure.clone(),
+                        caps: caps.clone(),
+                    };
+                    values.push(TArg::Nat(spec_id(self.m, callee, &spec, c.span)));
+                    cap_args.extend(spec.caps.iter().map(|(cap, _)| {
+                        Arg::Value(Conv::Let, Atom::Name(cap.clone(), *span), *span)
+                    }));
+                    specs.push(spec);
+                }
+                (_, Some(Arg::Value(_, Atom::Lit(Literal::Int(n), _), _))) => {
                     values.push(TArg::Nat(n.clone()))
                 }
                 _ => {
@@ -331,8 +487,33 @@ impl<'a> Walk<'a> {
         for &i in at.iter().rev() {
             c.args.remove(i);
         }
+        c.args.extend(cap_args);
         c.targs.extend(values);
-        self.found.push((def, c.targs.clone(), c.span));
+        self.found.push(Found {
+            def,
+            args: c.targs.clone(),
+            at: c.span,
+            specs,
+        });
+    }
+
+    fn remember_closure(&mut self, name: &Name, ty: &Type, c: &Closure) {
+        let caps: Option<Vec<_>> = c
+            .captures
+            .iter()
+            .map(|(_, n, _)| self.locals.get(n).map(|t| (n.clone(), t.clone())))
+            .collect();
+        match caps {
+            Some(caps) => {
+                self.closures
+                    .insert(name.clone(), (ty.clone(), c.clone(), caps));
+            }
+            None => {
+                self.err.get_or_insert(Error::Unsupported(
+                    "a closure capturing a local of unknown type".into(),
+                ));
+            }
+        }
     }
 
     fn expr(&mut self, e: &mut Expr) {
@@ -347,9 +528,16 @@ impl<'a> Walk<'a> {
 
     fn stmt(&mut self, s: &mut StmtKind) {
         match s {
-            StmtKind::Let { ty, rhs, .. } => {
+            StmtKind::Let { pat, ty, rhs, .. } => {
                 self.ty(ty);
                 self.rhs(rhs);
+                if let Pat::Bind(n) = pat {
+                    self.locals.insert(n.clone(), ty.clone());
+                    self.closures.remove(n);
+                    if let Rhs::Closure(c) = rhs {
+                        self.remember_closure(n, ty, c);
+                    }
+                }
             }
             StmtKind::Assign { rhs, .. } | StmtKind::Rhs(rhs) => self.rhs(rhs),
             StmtKind::If { then, els, .. } | StmtKind::ComptimeIf { then, els, .. } => {
@@ -497,5 +685,43 @@ mod tests {
             fn scale(comptime let k: i64, let x: i64) -> i64 {\n ret x\n}\n\
             fn main() -> Unit {\n let n: i64 = 3\n let a: i64 = scale(let n, let 1)\n ret ()\n}\n";
         assert!(matches!(opt(src), Err(Error::Unsupported(m)) if m.contains("comptime")));
+    }
+
+    const APPLY: &str = "module t\n\
+        fn apply(comptime let f: Fn(let i64) -> i64, let x: i64) -> i64 {\n\
+         let r: i64 = f(let x)\n ret r\n}\n";
+
+    #[test]
+    fn closures_specialize_with_captures_lifted() {
+        let src = format!(
+            "{APPLY}fn main() -> Unit {{\n let base: i64 = 10\n\
+             let add: Fn(let i64) -> i64 = fn [let base] (let x: i64) -> i64 {{\n ret x\n}}\n\
+             let dbl: Fn(let i64) -> i64 = fn [] (let x: i64) -> i64 {{\n ret x\n}}\n\
+             let a: i64 = apply(let add, let 1)\n let b: i64 = apply(let add, let 2)\n\
+             let c: i64 = apply(let dbl, let 3)\n ret ()\n}}\n"
+        );
+        let text = yan_core::print(&opt(&src).expect("specializes"));
+        let insts: Vec<&str> = text.lines().filter(|l| l.starts_with("inst fn")).collect();
+        assert_eq!(insts.len(), 2, "{text}");
+        assert!(
+            insts
+                .iter()
+                .any(|l| l.ends_with("(let x: i64, let base: i64) -> i64 {")),
+            "{text}"
+        );
+        assert!(text.contains("(let 1, let base)"), "{text}");
+        assert!(
+            text.contains("let f: Fn(let i64) -> i64 = fn [let base]"),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn comptime_function_must_be_a_let_bound_closure() {
+        let src = format!(
+            "{APPLY}fn pass(let g: Fn(let i64) -> i64) -> i64 {{\n\
+             let r: i64 = apply(let g, let 1)\n ret r\n}}\n"
+        );
+        assert!(matches!(opt(&src), Err(Error::Unsupported(m)) if m.contains("let-bound closure")));
     }
 }
