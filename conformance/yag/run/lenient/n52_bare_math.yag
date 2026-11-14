@@ -1,0 +1,8 @@
+# spec: 14.4
+# rows: R1007
+# note: N52 reads a bare sqrt, sin, cos, tan, exp or log whose name is not bound as math.f(x)
+# stdout:
+# 3.0 0.0 1.0 0.0 1.0 0.0
+
+def main() uses io:
+    io.print(f"{sqrt(9.0)} {sin(0.0)} {cos(0.0)} {tan(0.0)} {exp(0.0)} {log(1.0)}")
