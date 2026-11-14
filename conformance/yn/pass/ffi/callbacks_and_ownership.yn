@@ -8,5 +8,5 @@ unsafe extern "C" lib sort link "sort"
 
 cmp(a: c_int, b: c_int) -> c_int = a - b
 
-sorted(var xs: List[c_int]) =
+sorted(var xs: List[c_int]) uses sort =
   qsort_view(&xs, cmp)

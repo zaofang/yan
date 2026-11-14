@@ -1,0 +1,7 @@
+-- spec: 12.2
+-- note: an item declared `uses none` is callable without the library capability
+
+unsafe extern "C" lib m link "m"
+  safe fabs(x: f64) -> f64 uses none
+
+f(x: f64) -> f64 = fabs(x)
