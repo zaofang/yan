@@ -7994,19 +7994,9 @@
    "kind": "pass",
    "milestone": "M3",
    "spec": [
+    "12.2",
     "12.3",
     "12.5"
-   ],
-   "rows": [],
-   "flags": [],
-   "expect": []
-  },
-  {
-   "path": "yn/pass/ffi/uses_none_needs_no_capability.yn",
-   "kind": "pass",
-   "milestone": "M3",
-   "spec": [
-    "12.2"
    ],
    "rows": [],
    "flags": [],
