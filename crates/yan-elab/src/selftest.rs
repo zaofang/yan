@@ -976,9 +976,10 @@ fn item_level_wire_errors() {
 fn sibling_channel_waits_are_e713_only_in_plain_par() {
     let codes = |kw: &str| {
         let src = format!(
-            "pub def main() uses io:\n    tx, rx = Channel[int](0)\n    {kw}:\n        \
-             tx.send(1) else e -> io.print(\"x\")\n        \
-             v = rx.recv() else e -> -1\n        io.print(f\"{{v}}\")\n"
+            "pub def main() uses io:\n    with sched = sequential():\n        \
+             tx, rx = Channel[int](0)\n        {kw}:\n            \
+             tx.send(1) else e -> io.print(\"x\")\n            \
+             v = rx.recv() else e -> -1\n            io.print(f\"{{v}}\")\n"
         );
         let (_, d) = lower(&src);
         d.iter().map(|d| d.code.clone()).collect::<Vec<_>>()
@@ -999,6 +1000,18 @@ fn par_concurrent_under_bound_pool_is_e708() {
     };
     assert_eq!(codes("pool()"), ["E708"]);
     assert!(codes("pct()").is_empty());
+}
+
+#[test]
+fn par_concurrent_in_main_without_a_bound_sched_is_e708() {
+    let body = "par concurrent:\n        io.print(\"a\")\n        io.print(\"b\")\n";
+    let codes = |name: &str| {
+        let (_, d) = lower(&format!("def {name}() uses io:\n    {body}"));
+        d.iter().map(|d| d.code.clone()).collect::<Vec<_>>()
+    };
+    assert_eq!(codes("main"), ["E708"]);
+    // Any other function takes the handler from its caller.
+    assert!(codes("f").is_empty());
 }
 
 #[test]

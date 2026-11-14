@@ -248,7 +248,7 @@ impl Lower<'_, '_, '_> {
                     self.err(
                         "E708",
                         at,
-                        "needs concurrent forward progress, which the bound `sched` handler does not give; it must implement `Concurrent`".into(),
+                        "needs concurrent forward progress, which the `sched` handler in effect does not give (the hosted default `pool` when none is bound); bind one that implements `Concurrent`, such as `sequential()`".into(),
                     );
                 }
                 let mut blocks = Vec::new();
