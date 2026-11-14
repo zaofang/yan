@@ -35,3 +35,6 @@ rand_pcg = "0.9"
 
 [lib]
 crate-type = ["rlib", "staticlib"]
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
