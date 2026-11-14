@@ -61,6 +61,7 @@ fn settle(
     params: &[Param],
     body: &Block,
 ) -> Result<Block, Error> {
+    let body = &crate::joins::split(body);
     let facts = Facts::new(params, body, copy);
     let mut flags: HashMap<Name, Name> = HashMap::new();
     for _ in 0..8 {
@@ -191,6 +192,8 @@ struct Jp {
     /// The statement of the declaring block that its jumps come from, once one has.
     cont: Option<usize>,
     hoisted: bool,
+    /// Join points of the same block its body jumps to.
+    calls: Vec<Name>,
 }
 
 /// The statement being walked in a scope of the stack.
@@ -376,6 +379,7 @@ impl Elab<'_> {
                             falls: false,
                             cont: None,
                             hoisted: true,
+                            calls: Vec::new(),
                         },
                     );
                     let mut nb = Vec::new();
@@ -862,6 +866,7 @@ impl Elab<'_> {
                         falls: false,
                         cont: None,
                         hoisted: false,
+                        calls: Vec::new(),
                     },
                 );
                 let nb = self.block(body, owned_params(params));
@@ -952,35 +957,64 @@ impl Elab<'_> {
         }
     }
 
-    /// A jump to a join point whose body falls through: the statement of the declaring block
-    /// that holds the jump is where control resumes. Only one such statement is modelled, and
-    /// locals the block declared after the join point are dead there.
+    /// A jump to a join point, directly or from the body of a sibling, whose body falls through:
+    /// the statement of the declaring block that holds the jump is where control resumes. The
+    /// jump of a sibling body is accounted for where its own join point is jumped to. Only one
+    /// such statement is modelled per join point (`joins` copies the others), and locals the
+    /// block declared after the join point are dead there.
     fn resume_point(&mut self, name: &Name) {
-        let Some(jp) = self.cx.jps.get(name).filter(|j| j.falls && !j.hoisted) else {
+        let Some(jp) = self.cx.jps.get(name).filter(|j| !j.hoisted) else {
             return;
         };
         let (si, seen) = jp.pos;
         let top = self.cx.tops[si];
-        let late = self.cx.scopes[si].len() > seen;
-        let unsupported = if top.is_jp {
-            Some("a join point body jumping to a falling-through join point")
-        } else if jp.cont.is_some_and(|c| c != top.stmt) {
-            Some("a falling-through join point jumped to from two statements")
-        } else if late && !top.last {
-            Some("owned locals declared between a falling-through join point and its jump")
-        } else {
-            None
-        };
-        if unsupported.is_some() {
-            self.unsupported = unsupported;
+        if top.is_jp {
+            let from = self
+                .cx
+                .jps
+                .iter_mut()
+                .find(|(_, j)| j.key == top.stmt && !j.hoisted);
+            if let Some((_, from)) = from
+                && !from.calls.contains(name)
+            {
+                from.calls.push(name.clone());
+            }
             return;
         }
-        let names = self.resumed.entry(top.stmt).or_default();
-        if !names.contains(name) {
-            names.push(name.clone());
+        let mut reached = vec![name.clone()];
+        let mut i = 0;
+        while i < reached.len() {
+            let calls = self.cx.jps.get(&reached[i]).map(|j| j.calls.clone());
+            for c in calls.into_iter().flatten() {
+                if !reached.contains(&c) {
+                    reached.push(c);
+                }
+            }
+            i += 1;
         }
-        if let Some(jp) = self.cx.jps.get_mut(name) {
-            jp.cont = Some(top.stmt);
+        let late = self.cx.scopes[si].len() > seen;
+        for n in reached {
+            let Some(jp) = self.cx.jps.get(&n).filter(|j| j.falls && !j.hoisted) else {
+                continue;
+            };
+            let unsupported = if jp.cont.is_some_and(|c| c != top.stmt) {
+                Some("a falling-through join point jumped to from two statements")
+            } else if late && !top.last {
+                Some("owned locals declared between a falling-through join point and its jump")
+            } else {
+                None
+            };
+            if unsupported.is_some() {
+                self.unsupported = unsupported;
+                return;
+            }
+            let names = self.resumed.entry(top.stmt).or_default();
+            if !names.contains(&n) {
+                names.push(n.clone());
+            }
+            if let Some(jp) = self.cx.jps.get_mut(&n) {
+                jp.cont = Some(top.stmt);
+            }
         }
     }
 
@@ -1192,15 +1226,47 @@ mod tests {
     }
 
     #[test]
-    fn owned_locals_between_a_falling_through_join_point_and_code_after_it_are_refused() {
-        let src = "module t\nfn f(let c: bool) -> Unit {\n jp k() {\n  let w: Str = \"c\"\n }\n\
-                   let y: Str = \"b\"\n if c { jump k() } else { jump k() }\n let x: Str = \"d\"\n ret ()\n}\n";
+    fn owned_locals_between_a_falling_through_join_point_and_code_after_it_live_on() {
+        let t = elab(
+            "module t\nfn f(let c: bool) -> Unit {\n jp k() {\n  let w: Str = \"c\"\n }\n\
+             let y: Str = \"b\"\n if c { jump k() } else { jump k() }\n let x: Str = \"d\"\n ret ()\n}\n",
+        );
+        has(&t, &["let x: Str = \"d\"", "drop x", "drop y", "ret ()"]);
+        assert_eq!(t.matches("drop y").count(), 1, "{t}");
+        assert_eq!(t.matches("drop w").count(), 1, "{t}");
+    }
+
+    #[test]
+    fn a_join_point_jumped_to_from_two_statements_is_copied_per_statement() {
+        let t = elab(
+            "module t\nfn f(let c: bool) -> Unit {\n let s: Str = \"a\"\n jp k() {\n  let w: Str = \"c\"\n }\n\
+             if c { jump k() } else { jump k() }\n let y: Str = \"b\"\n if c { jump k() } else { jump k() }\n let x: Str = \"d\"\n ret ()\n}\n",
+        );
+        assert_eq!(t.matches("drop w").count(), 2, "{t}");
+        assert_eq!(t.matches("drop s").count(), 1, "{t}");
+        assert_eq!(t.matches("drop y").count(), 1, "{t}");
+        assert_eq!(t.matches("drop x").count(), 1, "{t}");
+    }
+
+    #[test]
+    fn a_falling_through_join_point_jumped_to_from_a_sibling_resumes_after_the_sibling_jump() {
+        let t = elab(
+            "module t\nfn f(let c: bool) -> Unit {\n let s: Str = \"a\"\n jp k() {\n  let w: Str = \"c\"\n }\n\
+             jp m() {\n  jump k()\n }\n if c { jump m() } else { jump k() }\n let x: Str = \"d\"\n ret ()\n}\n",
+        );
+        has(&t, &["let w: Str = \"c\"", "drop w", "}"]);
+        assert_eq!(t.matches("drop s").count(), 1, "{t}");
+        assert_eq!(t.matches("drop x").count(), 1, "{t}");
+    }
+
+    #[test]
+    fn the_check_verifies_code_after_a_jump_to_a_falling_through_join_point() {
+        let src = "module t\nfn f(let c: bool) -> Unit {\n let s: Str = \"a\"\n jp k() {\n  let w: Str = \"c\"\n  drop w\n }\n\
+                   if c { jump k() } else { jump k() }\n let x: Str = \"d\"\n drop s\n ret ()\n}\n";
         let (m, d) = yan_core::parse("t.yir", src);
         assert!(d.is_empty(), "{d:?}");
-        assert!(matches!(
-            elaborate(&m.expect("parses")),
-            Err(Error::Unsupported(_))
-        ));
+        let diags = yan_check::check_optimized("t.yir", &m.expect("parses"));
+        assert_eq!(diags.len(), 1, "{diags:?}");
     }
 
     #[test]

@@ -1,0 +1,22 @@
+-- spec: 3.5
+-- rows: R764
+-- stdout:
+-- body
+-- mid
+-- body
+-- kept
+
+module conf.jp_falls_through_two_statements
+fn main(cap io: Io) -> Unit {
+    let s: Str = "kept"
+    jp k() {
+        std.io.print(cap io, let "body")
+    }
+    let c: bool = lt_i64(let 1, let 2)
+    if c { jump k() } else { unreachable }
+    std.io.print(cap io, let "mid")
+    let d: bool = lt_i64(let 1, let 3)
+    if d { jump k() } else { unreachable }
+    std.io.print(cap io, let s)
+    ret ()
+}
