@@ -188,6 +188,25 @@ fn weave(stmts: Vec<j::Stmt>, k: &mut dyn FnMut(j::Expr) -> Vec<j::Stmt>) -> Vec
     out
 }
 
+fn root(e: &j::Expr) -> Option<&str> {
+    match &e.kind {
+        E::Name(n) => Some(n),
+        E::Attr(b, ..) | E::Index(b, _) => root(b),
+        _ => None,
+    }
+}
+
+fn yielded(stmts: &[j::Stmt], out: &mut Vec<j::Expr>) {
+    for s in stmts {
+        if let K::Yield(e) = &s.kind {
+            out.push(e.clone());
+        }
+        for b in blocks_mut(&mut s.clone()) {
+            yielded(b, out);
+        }
+    }
+}
+
 fn is_place(e: &j::Expr) -> bool {
     match &e.kind {
         E::Name(_) => true,
@@ -357,6 +376,24 @@ impl Lower<'_, '_, '_> {
                     paren: false,
                 },
             );
+        }
+        if write {
+            let mut ys = Vec::new();
+            yielded(&body.stmts, &mut ys);
+            let mut failed = false;
+            for y in ys.iter().filter(|y| is_place(y) && root(y) != Some(selfp)) {
+                failed = true;
+                self.cx.err(
+                    "E423",
+                    y.span,
+                    &self.item.clone(),
+                    "the yielded place is not reachable from `self`, so the inout mode cannot write it"
+                        .into(),
+                );
+            }
+            if failed {
+                return Ok(out);
+            }
         }
         let mut stmts = body.stmts.clone();
         rename(&mut stmts, &map);

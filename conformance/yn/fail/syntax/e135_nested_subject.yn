@@ -1,5 +1,6 @@
 -- spec: 15.3
--- expect: E135 at 7:57
+-- rows: R67
+-- expect: E135 at 8:57
 
 type Row = { tags: List[Tag] }
 type Tag = { active: bool }

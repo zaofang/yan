@@ -1,5 +1,5 @@
 -- spec: 15.2
--- rows: R266, R370, R374, R433, R437, R444
+-- rows: R266, R370, R374, R433, R437, R444, R62, R64, R71, R73, R75, R76, R77, R82
 
 --- Touches the Yan productions of 15.2 that L0 to L3 programs use.
 

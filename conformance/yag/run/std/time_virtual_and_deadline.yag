@@ -1,0 +1,17 @@
+# spec: 7.3, 7.5, 17.5
+# rows: R53, R54
+# note: virtual time advances only by sleep; sleep_until(MonoInstant) waits for an absolute point
+# stdout:
+# 2000-01-01T00:00:00Z
+# 2000-01-01T00:00:10Z PT10S
+# 2000-01-01T00:00:10Z PT10S
+
+pub def main() -> None fail Cancelled uses io, time:
+    start = Instant.parse("2000-01-01T00:00:00Z") else Instant.from_unix_seconds(0)
+    with time = virtual(start):
+        m = time.monotonic()
+        io.print(f"{time.now()}")
+        time.sleep(Duration.seconds(10))?
+        io.print(f"{time.now()} {time.monotonic() - m}")
+        time.sleep_until(m + Duration.seconds(5))?
+        io.print(f"{time.now()} {time.monotonic() - m}")
