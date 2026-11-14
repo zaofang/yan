@@ -60,12 +60,11 @@ field     = NAME ":" type ["=" expr] NEWLINE
 typedef   = "type" TYPENAME [tparams] "=" (variant {"|" variant} | base {"|" base} | "uses" capref {"," capref} | "newtype" "[" type "]") ["where" expr] NEWLINE   # sum iff every alternative is a variant (R423)
 variant   = TYPENAME "(" [ifield {"," ifield}] ")"          # inline variant; Name() when field-less (R214, R423)
 ifield    = NAME ":" type ["=" expr]
-traitdef  = "trait" TYPENAME [tparams] ":" NEWLINE INDENT [docstring] {assoc} {decorator} sigdef
-            {{decorator} sigdef} DEDENT
+traitdef  = "trait" TYPENAME [tparams] ":" NEWLINE INDENT [docstring] {assoc} {{decorator} sigdef} DEDENT   # no sigdef: a marker trait (R1003)
 assoc     = "type" TYPENAME NEWLINE
 sigdef    = "def" NAME [tparams] "(" [params] ")" ["->" rettype] [uses] ":" ("..." NEWLINE | fbody)
-impldef   = "impl" path ["[" type {"," type} "]"] "for" type ":" NEWLINE INDENT
-            {"type" TYPENAME "=" type NEWLINE} funcdef {funcdef} DEDENT
+impldef   = "impl" path ["[" type {"," type} "]"] "for" type ":"
+            ("..." NEWLINE | NEWLINE INDENT {"type" TYPENAME "=" type NEWLINE} funcdef {funcdef} DEDENT)   # `...`: a marker impl, for a trait with no members (R1003)
 constdef  = NAME ":" type "=" expr NEWLINE                  # package: Package = Package(...) is literal-only (19.1)
 
 stmt      = simple NEWLINE | compound

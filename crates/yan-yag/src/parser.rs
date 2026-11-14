@@ -1353,6 +1353,17 @@ impl Parser {
         self.expect_kw("for")?;
         let for_ty = self.ty()?;
         self.expect_op(":")?;
+        if self.eat_op("...") {
+            self.expect_newline()?;
+            return Ok(Impl {
+                trait_,
+                args,
+                for_ty,
+                assoc: Vec::new(),
+                fns: Vec::new(),
+                subs: Vec::new(),
+            });
+        }
         self.expect_newline_then_indent()?;
         let mut assoc = Vec::new();
         while self.is_kw("type") && matches!(self.tok_at(1), Tok::Name(_)) && self.is_op_at(2, "=")

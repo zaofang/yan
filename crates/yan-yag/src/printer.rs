@@ -628,9 +628,14 @@ impl Printer {
                 self.line(
                     0,
                     &format!(
-                        "{pubs}impl {}{targs} for {}:",
+                        "{pubs}impl {}{targs} for {}:{}",
                         path(&i.trait_),
-                        ty(&i.for_ty)
+                        ty(&i.for_ty),
+                        if i.assoc.is_empty() && i.fns.is_empty() {
+                            " ..."
+                        } else {
+                            ""
+                        }
                     ),
                 );
                 for (n, t) in &i.assoc {
