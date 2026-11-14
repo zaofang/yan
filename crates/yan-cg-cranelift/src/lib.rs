@@ -22,8 +22,8 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 mod debug;
 use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::{
-    abi, actor, bigint, bytes, chan, chars, civil, cluster, dq, envhandler, fshandler, loghandler,
-    map, pathabi, pq, regexabi, sched, select, slice, timeabi,
+    abi, actor, bigint, bytes, chan, chars, civil, cluster, dq, envhandler, ffi, fshandler,
+    loghandler, map, pathabi, pq, regexabi, sched, select, slice, timeabi,
 };
 
 type R<T> = Result<T, String>;
@@ -899,6 +899,8 @@ const RT: &[RtFn] = &[
     RtFn::ClusterAdmit,
     RtFn::ClusterArrive,
     RtFn::SupEndTo,
+    RtFn::FfiCall,
+    RtFn::FfiCallF64,
 ];
 
 /// Symbol, address, parameter types and result type.
@@ -2369,6 +2371,22 @@ fn rt_fn(
             cluster::yan_rt_cluster_arrive as *const u8,
             &[I64],
             Some(I64),
+        ),
+        RtFn::FfiCall => (
+            "yan_rt_ffi_call",
+            ffi::yan_rt_ffi_call as *const u8,
+            &[
+                I64, I64, I64, I64, I64, I64, I64, I64, I64, F64, F64, F64, F64, F64, F64, F64, F64,
+            ],
+            Some(I64),
+        ),
+        RtFn::FfiCallF64 => (
+            "yan_rt_ffi_call_f64",
+            ffi::yan_rt_ffi_call_f64 as *const u8,
+            &[
+                I64, I64, I64, I64, I64, I64, I64, I64, I64, F64, F64, F64, F64, F64, F64, F64, F64,
+            ],
+            Some(F64),
         ),
         RtFn::SupEndTo => (
             "yan_rt_sup_end_to",

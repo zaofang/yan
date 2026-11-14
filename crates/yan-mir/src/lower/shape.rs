@@ -126,6 +126,7 @@ impl Shape {
 pub(super) struct Types<'m> {
     pub(super) recs: HashMap<&'m str, &'m y::Record>,
     pub(super) sums: HashMap<&'m str, &'m y::Sum>,
+    pub(super) externs: HashMap<String, R<crate::ffi::ExternFn>>,
 }
 
 impl Types<'_> {

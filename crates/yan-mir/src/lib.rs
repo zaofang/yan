@@ -8,6 +8,7 @@
 //! freed yet. Anything else is reported as unsupported.
 
 mod co;
+pub mod ffi;
 mod layout;
 mod lower;
 mod tasks;
@@ -591,6 +592,10 @@ pub enum RtFn {
     SupEnd,
     /// `(depth)`: end the scopes past `depth`.
     SupEndTo,
+    /// `(lib Str, symbol Str, result kind, 6 ints, 8 f64s) -> i64`: a foreign function.
+    FfiCall,
+    /// As `FfiCall`, `-> f64`.
+    FfiCallF64,
     /// `(nodes, seed, Ptr plan) -> sim`: a `sim` cluster (RFC 0063 D3).
     SimNew,
     /// `(low, sim) -> low`: `with cluster = sim`, a supervisor scope with each node's root.

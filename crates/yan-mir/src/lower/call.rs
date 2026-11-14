@@ -46,6 +46,9 @@ impl<'a, 'm> Fn<'a, 'm> {
             });
             return Ok(());
         }
+        if self.extern_call(c, dst.clone())? {
+            return Ok(());
+        }
         if let Some((op, ty)) = scalar(&name) {
             let args = Self::value_args(c)?;
             let dst1 = dst.as_ref().and_then(|v| v.locals.first().copied());

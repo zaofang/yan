@@ -28,6 +28,8 @@ pub mod csvslots;
 pub mod dq;
 #[allow(unsafe_code)]
 pub mod envhandler;
+#[allow(unsafe_code)]
+pub mod ffi;
 pub mod fmt;
 #[allow(unsafe_code)]
 pub mod fshandler;

@@ -2560,6 +2560,7 @@ version = "0.0.0"
 dependencies = [
  "yan-check",
  "yan-core",
+ "yan-rt",
  "yan-std",
 ]
 
@@ -2597,6 +2598,7 @@ dependencies = [
  "core-math",
  "getrandom 0.4.3",
  "jiff",
+ "libc",
  "libm",
  "num-bigint 0.4.8",
  "num-traits",
