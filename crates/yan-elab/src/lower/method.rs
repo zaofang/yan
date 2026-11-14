@@ -151,10 +151,14 @@ impl Lower<'_, '_, '_> {
         if let Some(r) = self.handler_call(b, m, args, at)? {
             return Ok(r);
         }
-        if self.g.fns.contains_key(m) {
-            if let Some(module) = self.ty_of_local(b).as_ref().and_then(Ty::module)
-                && crate::stdlib::decl(&format!("std.{module}.{m}")).is_some()
-            {
+        let recv_decl = self
+            .ty_of_local(b)
+            .as_ref()
+            .and_then(Ty::module)
+            .filter(|module| crate::stdlib::decl(&format!("std.{module}.{m}")).is_some());
+        // A prelude function (`set`) does not hide the receiver's own method.
+        if self.g.fns.contains_key(m) && !(self.g.std_fns.contains(m) && recv_decl.is_some()) {
+            if let Some(module) = recv_decl {
                 self.cx.warn(
                     "W819",
                     at,
