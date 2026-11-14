@@ -481,7 +481,7 @@ fn raw_words(m: &j::Module) -> HashSet<String> {
     m.doc = None;
     for it in &mut m.items {
         match &mut it.kind {
-            j::ItemKind::Func(f) | j::ItemKind::Lemma(f) => undoc(f),
+            j::ItemKind::Func(f) | j::ItemKind::Lemma(f) | j::ItemKind::Sub(f) => undoc(f),
             j::ItemKind::Verbatim(_) => {}
             j::ItemKind::Record(c) => c.doc = None,
             j::ItemKind::Trait(t) => {

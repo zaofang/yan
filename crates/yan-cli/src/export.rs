@@ -476,6 +476,7 @@ impl Emitter {
             ItemKind::Trait(_) => no("trait"),
             ItemKind::Impl(_) => no("impl block"),
             ItemKind::Extern(_) => no("extern block"),
+            ItemKind::Sub(_) => no("subscript"),
         }
     }
 

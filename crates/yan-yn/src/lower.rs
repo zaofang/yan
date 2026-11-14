@@ -271,7 +271,7 @@ impl Lower<'_> {
                     FnKind::Plain => (h::ItemKind::Func(def), span),
                     FnKind::Lemma => (h::ItemKind::Lemma(def), span),
                     FnKind::Gen => return unsupported("generators"),
-                    FnKind::Sub => return unsupported("subscript definitions"),
+                    FnKind::Sub => (h::ItemKind::Sub(def), span),
                 }
             }
             ItemKind::Type(t) => (self.type_def(t)?, t.name_span),

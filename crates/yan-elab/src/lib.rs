@@ -226,6 +226,8 @@ fn cap_binding(t: &str) -> String {
 pub(crate) struct Globals {
     /// `impl Index[K] for T` subscripts by `T`'s type text: `at`, inlined at each use (4.4, R457).
     pub subs: HashMap<String, j::FuncDef>,
+    /// Free `sub` items by name, used as `x.name(args)` and inlined at each use (4.4, R1006).
+    pub free_subs: HashMap<String, j::FuncDef>,
     /// Subscript inlinings so far, to stop a recursive one.
     pub sub_n: std::cell::Cell<u32>,
     pub records: HashMap<String, Vec<Field>>,
@@ -1178,7 +1180,9 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     let mut first = HashMap::new();
     for it in &m.items {
         match &it.kind {
-            j::ItemKind::Func(f) if g.fns.contains_key(&f.name) => {
+            j::ItemKind::Func(f)
+                if g.fns.contains_key(&f.name) || g.free_subs.contains_key(&f.name) =>
+            {
                 cx.err(
                     "E250",
                     f.name_span,
@@ -1187,6 +1191,23 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 );
                 if let Some(&at) = first.get(&f.name) {
                     cx.label(at, "first defined");
+                }
+            }
+            j::ItemKind::Sub(f) => {
+                if g.fns.contains_key(&f.name) || g.free_subs.contains_key(&f.name) {
+                    cx.err(
+                        "E250",
+                        f.name_span,
+                        &f.name,
+                        format!("`{}` is defined twice", f.name),
+                    );
+                    if let Some(&at) = first.get(&f.name) {
+                        cx.label(at, "first defined");
+                    }
+                } else {
+                    lower::subscript::check_yields(f, cx);
+                    first.insert(f.name.clone(), f.name_span);
+                    g.free_subs.insert(f.name.clone(), f.clone());
                 }
             }
             j::ItemKind::Func(f)
@@ -1633,7 +1654,7 @@ fn core_tparams(g: &Globals, name: &str) -> Vec<y::TParam> {
 
 fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
     Ok(Some(match &it.kind {
-        j::ItemKind::Verbatim(_) => return Ok(None),
+        j::ItemKind::Verbatim(_) | j::ItemKind::Sub(_) => return Ok(None),
         j::ItemKind::Record(c) => y::ItemKind::Record(y::Record {
             is_pub: it.is_pub,
             path: vec![c.name.clone()],
@@ -1797,7 +1818,10 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                     mark: Mark::View,
                 });
             }
-            let sig = &g.fns[&f.name];
+            // A function that clashed with a free `sub` (E250) has no signature.
+            let Some(sig) = g.fns.get(&f.name) else {
+                return Ok(None);
+            };
             let def = lower::function(g, f, sig, it.is_pub, cx)?;
             if g.reentrant.contains(&f.name) && !sig.params.is_empty() {
                 g.generated.borrow_mut().push(y::Item {

@@ -311,7 +311,7 @@ fn item_names(m: &j::Module) -> HashSet<String> {
     let mut out = HashSet::new();
     for it in &m.items {
         match &it.kind {
-            j::ItemKind::Func(f) | j::ItemKind::Lemma(f) => {
+            j::ItemKind::Func(f) | j::ItemKind::Lemma(f) | j::ItemKind::Sub(f) => {
                 out.insert(f.name.clone());
             }
             j::ItemKind::Record(r) => {
