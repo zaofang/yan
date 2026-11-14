@@ -133,6 +133,11 @@ impl<'m> Fn<'_, 'm> {
                 self.free(RtFn::EnvFree, out);
                 self.copy_to(&d.locals, v);
             }
+            (id::STD_SCHED_SEQUENTIAL, []) => {
+                if let Some(d) = dst {
+                    self.copy_to(&d.locals, vec![Operand::Int(0)]);
+                }
+            }
             (id::STD_SIM_PCT, [(_, depth), (_, seed), (_, steps)]) => {
                 let (depth, seed, steps) = (
                     self.scalar1(depth)?,
