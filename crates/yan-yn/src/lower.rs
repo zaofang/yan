@@ -103,7 +103,7 @@ fn mk(kind: h::ExprKind, span: Span) -> h::Expr {
 fn invalid_temporal(text: &str) -> Option<(&'static str, String)> {
     use jiff::tz::AmbiguousOffset;
     let num = |r: std::ops::Range<usize>| text.get(r)?.parse::<i16>().ok();
-    let date = jiff::civil::Date::new(num(0..4)? as i16, num(5..7)? as i8, num(8..10)? as i8);
+    let date = jiff::civil::Date::new(num(0..4)?, num(5..7)? as i8, num(8..10)? as i8);
     let Ok(date) = date else {
         return Some(("E540", format!("`{text}` is not a valid date")));
     };
