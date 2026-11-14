@@ -1,0 +1,7 @@
+# spec: 5.2
+# expect: E908 at 7:8
+
+@layout(bits(u8))
+class Flags:
+    a: uint8
+    b: str
