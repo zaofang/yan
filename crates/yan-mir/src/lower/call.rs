@@ -544,9 +544,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(e.width() as i128)]);
                 let in_task = Operand::Int(i128::from(!self.task_starts.is_empty()));
                 let st = self.rt(RtFn::ChanTryRecv, I64, vec![rx, out.clone(), in_task]);
-                self.try_result(&dst, st, "Empty", |me| {
-                    me.read(&At::Mem(out.clone(), 0), &e)
-                })?;
+                self.try_recv_result(&dst, st, |me| me.read(&At::Mem(out.clone(), 0), &e))?;
                 self.free(RtFn::EnvFree, out);
             }
             (id::STD_JSON_PARSE, [(_, a), (_, schema)]) => {

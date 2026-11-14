@@ -399,8 +399,6 @@ pub(super) const STD_FAILURES: &[&str] = &[
     "Draining",
     "Deadlock",
     "Full",
-    "Empty",
-    "Closed",
     "Unreachable",
     "Rejected",
     "SchemaMismatch",

@@ -694,9 +694,12 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             crate::simfault::sweep(&mut vm.it);
             if let Some(v) = vm.it.chans[c].q.pop_front() {
                 vm.it.progress += 1;
-                return Ok(Ok(v));
+                return Ok(Ok(Value::Data {
+                    name: "Got".into(),
+                    fields: vec![("value".into(), v)],
+                }));
             }
-            Ok(Err(failure(if vm.it.chans[c].senders == 0 {
+            Ok(Ok(failure(if vm.it.chans[c].senders == 0 {
                 "Closed"
             } else {
                 "Empty"
