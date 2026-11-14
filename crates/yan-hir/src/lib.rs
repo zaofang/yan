@@ -38,6 +38,8 @@ pub struct Item {
 pub enum ItemKind {
     Func(FuncDef),
     Lemma(FuncDef),
+    /// A free subscript, used as `x.name(args)` in place position (4.4, R1006).
+    Sub(FuncDef),
     /// Source lines raise prints as they are: an erased lemma (R870).
     Verbatim(String),
     Record(Record),
@@ -104,7 +106,7 @@ pub struct XParam {
 impl ItemKind {
     pub fn name(&self) -> &str {
         match self {
-            ItemKind::Func(f) | ItemKind::Lemma(f) => &f.name,
+            ItemKind::Func(f) | ItemKind::Lemma(f) | ItemKind::Sub(f) => &f.name,
             ItemKind::Record(r) => &r.name,
             ItemKind::Type(t) => &t.name,
             ItemKind::Trait(t) => &t.name,

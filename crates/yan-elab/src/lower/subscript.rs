@@ -68,6 +68,13 @@ fn yields_of(s: &j::Stmt) -> u8 {
 fn children_mut(e: &mut j::Expr, f: &mut dyn FnMut(&mut j::Expr)) {
     match &mut e.kind {
         E::Tuple(xs) | E::List(xs) | E::Set(xs) => xs.iter_mut().for_each(f),
+        E::FStr { pieces, .. } => {
+            for p in pieces {
+                if let j::FPiece::Expr(x, _) = p {
+                    f(x);
+                }
+            }
+        }
         E::Dict(kvs) => kvs.iter_mut().for_each(|(k, v)| {
             f(k);
             f(v);
@@ -252,28 +259,61 @@ fn select(stmts: &[j::Stmt]) -> Option<j::Expr> {
     }
 }
 
+/// A subscript use: the definition, its `self` operand and its remaining arguments.
+struct Use {
+    def: j::FuncDef,
+    base: j::Expr,
+    args: Vec<j::Arg>,
+}
+
 impl Lower<'_, '_, '_> {
-    fn sub_at(&self, e: &j::Expr) -> Option<&j::FuncDef> {
-        let E::Index(b, _) = &e.kind else { return None };
-        let t = self.ty_of_local(b)?;
-        self.g.subs.get(&t.to_string())
+    /// `x[k]` on a type with `impl Index[K]` (R457), or `x.name(args)` naming a free `sub` (R1006).
+    fn sub_use(&self, e: &j::Expr) -> Option<Use> {
+        match &e.kind {
+            E::Index(b, k) => {
+                let t = self.ty_of_local(b)?;
+                let def = self.g.subs.get(&t.to_string())?.clone();
+                Some(Use {
+                    def,
+                    base: (**b).clone(),
+                    args: vec![j::Arg {
+                        name: None,
+                        kind: j::ArgKind::Expr((**k).clone()),
+                        span: k.span,
+                    }],
+                })
+            }
+            E::Call(f, args) => {
+                let E::Attr(b, name, _) = &f.kind else {
+                    return None;
+                };
+                let def = self.g.free_subs.get(name)?.clone();
+                Some(Use {
+                    def,
+                    base: (**b).clone(),
+                    args: args.clone(),
+                })
+            }
+            _ => None,
+        }
     }
 
     /// The first subscript use on the spine of an assignment target.
     fn spine_use(&self, e: &j::Expr) -> Option<j::Expr> {
         match &e.kind {
             E::Index(b, _) => self
-                .sub_at(e)
+                .sub_use(e)
                 .map(|_| e.clone())
                 .or_else(|| self.spine_use(b)),
             E::Attr(b, ..) => self.spine_use(b),
+            E::Call(..) => self.sub_use(e).map(|_| e.clone()),
             _ => None,
         }
     }
 
     /// `s` with its first subscript use inlined, or `None` when it has none.
     pub(super) fn inline_sub(&mut self, s: &j::Stmt) -> Option<R<Vec<j::Stmt>>> {
-        if self.g.subs.is_empty() {
+        if self.g.subs.is_empty() && self.g.free_subs.is_empty() {
             return None;
         }
         let mut s2 = s.clone();
@@ -303,7 +343,7 @@ impl Lower<'_, '_, '_> {
         if site.is_none() {
             for e in stmt_exprs(s) {
                 walk(e, &mut |x| {
-                    if site.is_none() && self.sub_at(x).is_some() {
+                    if site.is_none() && self.sub_use(x).is_some() {
                         site = Some((false, x.clone()));
                     }
                 });
@@ -314,10 +354,11 @@ impl Lower<'_, '_, '_> {
     }
 
     fn inline(&mut self, s: &mut j::Stmt, write: bool, used: &j::Expr) -> R<Vec<j::Stmt>> {
-        let at = self.sub_at(used).expect("a subscript use").clone();
-        let E::Index(base, key) = &used.kind else {
-            unreachable!("a subscript use")
-        };
+        let Use {
+            def: at,
+            base,
+            args,
+        } = self.sub_use(used).expect("a subscript use");
         let n = self.g.sub_n.get() + 1;
         if n > 4096 {
             return unsupported("a recursive subscript");
@@ -334,36 +375,50 @@ impl Lower<'_, '_, '_> {
                 _ => None,
             })
             .collect();
-        let [selfp, keyp] = params.as_slice() else {
-            return unsupported("a subscript with other than `self` and one key");
+        let Some((selfp, keyps)) = params.split_first() else {
+            return unsupported("a subscript without `self`");
         };
+        let mut keys = Vec::new();
+        for a in &args {
+            match &a.kind {
+                j::ArgKind::Expr(x) if a.name.is_none() => keys.push(x),
+                _ => return unsupported("keyword or reference arguments to a subscript"),
+            }
+        }
+        if keys.len() != keyps.len() {
+            self.err(
+                "E202",
+                used.span,
+                format!("expected {} arguments", keyps.len()),
+            );
+            return Ok(Vec::new());
+        }
 
         let mut out = Vec::new();
-        let simple = matches!(key.kind, E::Name(_) | E::Lit(_));
-        let key = if simple {
-            (**key).clone()
-        } else {
-            let name = format!("__sub{n}_key");
-            out.push(j::Stmt {
-                kind: K::Bind {
-                    mutable: false,
-                    target: name.clone(),
-                    target_span: key.span,
-                    ty: None,
-                    value: (**key).clone(),
-                },
-                span: s.span,
-            });
-            j::Expr {
-                kind: E::Name(name),
-                span: key.span,
-                paren: false,
-            }
-        };
-        let mut map = HashMap::from([
-            (selfp.to_string(), (**base).clone()),
-            (keyp.to_string(), key),
-        ]);
+        let mut map = HashMap::from([(selfp.to_string(), base)]);
+        for (keyp, key) in keyps.iter().zip(keys) {
+            let key = if matches!(key.kind, E::Name(_) | E::Lit(_)) {
+                key.clone()
+            } else {
+                let name = format!("__sub{n}_{keyp}");
+                out.push(j::Stmt {
+                    kind: K::Bind {
+                        mutable: false,
+                        target: name.clone(),
+                        target_span: key.span,
+                        ty: None,
+                        value: key.clone(),
+                    },
+                    span: s.span,
+                });
+                j::Expr {
+                    kind: E::Name(name),
+                    span: key.span,
+                    paren: false,
+                }
+            };
+            map.insert(keyp.to_string(), key);
+        }
         let mut locals = Vec::new();
         binds(&body.stmts, &mut locals);
         for l in locals {

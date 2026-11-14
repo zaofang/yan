@@ -565,6 +565,7 @@ impl Printer {
             ItemKind::Lemma(f) => self.func(f, pubs, "lemma", 0),
             ItemKind::Verbatim(t) => t.lines().for_each(|l| self.raw(0, l)),
             ItemKind::Extern(_) => unreachable!("Yan Agent has no extern blocks"),
+            ItemKind::Sub(_) => unreachable!("Yan Agent defines no subscripts"),
             ItemKind::Record(c) => {
                 self.line(
                     0,
