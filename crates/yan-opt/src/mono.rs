@@ -377,44 +377,13 @@ impl<'a> Walk<'a> {
     }
 
     fn ty(&mut self, t: &mut Type) {
-        match t {
-            Type::Named(n) => {
-                if let ([p], []) = (n.path.as_slice(), n.args.as_slice())
-                    && let Some(TArg::Type(c)) = self.env.get(p)
-                {
-                    *t = c.clone();
-                    return;
-                }
-                self.targs(&mut n.args);
-            }
-            Type::Dyn(n) => self.targs(&mut n.args),
-            Type::Tuple(ts) | Type::Union(ts) => ts.iter_mut().for_each(|t| self.ty(t)),
-            Type::Fn(f) => {
-                f.params.iter_mut().for_each(|(_, t)| self.ty(t));
-                self.ty(&mut f.ret);
-                if let Some(t) = &mut f.fail {
-                    self.ty(t);
-                }
-            }
-            Type::Refined { ty, pred, .. } => {
-                self.ty(ty);
-                self.expr(pred);
-            }
-        }
+        let env = self.env;
+        yan_core::subst::ty(t, env, &mut |e| self.expr(e));
     }
 
     fn targs(&mut self, args: &mut [TArg]) {
-        for a in args {
-            let TArg::Type(t) = a else { continue };
-            if let Type::Named(n) = t
-                && let ([p], []) = (n.path.as_slice(), n.args.as_slice())
-                && let Some(c @ TArg::Nat(_)) = self.env.get(p)
-            {
-                *a = c.clone();
-            } else {
-                self.ty(t);
-            }
-        }
+        let env = self.env;
+        yan_core::subst::targs(args, env, &mut |e| self.expr(e));
     }
 
     fn call(&mut self, c: &mut Call) {
