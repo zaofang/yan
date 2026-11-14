@@ -502,6 +502,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                 );
                 result(option, cancelled())
             }),
+            Some(id::STD_PRELUDE_SELECT_WAIT) => Some(result(
+                Shape::Scalar(I64),
+                failure_union(&["Cancelled", "Timeout"]),
+            )),
             Some(id::STD_CHAN_RECEIVER_TRY_RECV) => self
                 .targ(c)?
                 .map(|e| result(e, failure_union(&["Empty", "Closed", "Cancelled"]))),
