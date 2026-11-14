@@ -304,6 +304,12 @@ pub(crate) fn wait_out(it: &mut Interp) -> Option<Value> {
 
 /// Wait until `d`, then fail `Timeout`.
 pub(crate) fn wait_until(it: &mut Interp, d: i128) -> Value {
+    advance_to(it, d);
+    timeout()
+}
+
+/// Moves the clock the std timers use to `d`: a real wait, or the virtual clocks jumping.
+pub(crate) fn advance_to(it: &mut Interp, d: i128) {
     if it.clocks.is_empty() {
         let now = START.elapsed().as_nanos() as i128;
         if d > now {
@@ -312,7 +318,6 @@ pub(crate) fn wait_until(it: &mut Interp, d: i128) -> Value {
     } else {
         it.clocks.iter_mut().for_each(|c| *c = (*c).max(d));
     }
-    timeout()
 }
 
 /// The host time left before the enclosing deadline, for host I/O that can be cut short. Under
