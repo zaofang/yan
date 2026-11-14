@@ -70,6 +70,51 @@ const TABLE: &[Habit] = &[
         text: "`fail E` in an `ex` line is an operand: write `ex f(x) == fail E` to state a failure",
     },
     Habit {
+        ext: "yag",
+        lang: "python",
+        codes: &["E504"],
+        on: |l| l.contains('[') && !l.contains(':'),
+        text: "Python `s[i]` on a `str`: write `s.char_at(i)` (it walks the string, so it costs \
+               O(n)), or bind `cs = s.chars().collect()` once and index `cs[i]`",
+    },
+    Habit {
+        ext: "yag",
+        lang: "python",
+        codes: &["E504"],
+        on: |l| l.contains('[') && l.contains(':'),
+        text: "Python slice `s[a:b]` on a `str`: bind `cs = s.chars().collect()` and slice the \
+               list `cs[a:b]`",
+    },
+    Habit {
+        ext: "yag",
+        lang: "python",
+        codes: &["E403"],
+        on: |l| {
+            let l = l.trim_start();
+            l.contains(" = ") || l.contains(" += ") || l.contains(" -= ") || l.contains(" *= ")
+        },
+        text: "Python assigns to a parameter or a `let` name: here it is read-only. Copy it to a \
+               new local (`n = x`) and change that, or declare the parameter `var x: T` if the \
+               caller should see the change",
+    },
+    Habit {
+        ext: "yag",
+        lang: "python",
+        codes: &["E315"],
+        on: |_| true,
+        text: "Python raises a callee's error implicitly; Yan Agent does not. Write `f(x)?` to \
+               pass the failure on (this function must declare the same `fail E`), or `f(x) else \
+               v` or `f(x) else err -> v` to handle it",
+    },
+    Habit {
+        ext: "yag",
+        lang: "python",
+        codes: &["W823"],
+        on: |_| true,
+        text: "Python annotates locals; Yan Agent infers them. Keep an annotation only where the \
+               value alone does not give the type, as in `xs: list[int] = []`",
+    },
+    Habit {
         ext: "yn",
         lang: "typescript",
         codes: &["E100"],
@@ -146,6 +191,25 @@ mod selftest {
         assert!(ds[0].children[0].text.contains("ex f(x) == fail E"));
         assert!(ds[1].children[0].text.contains("ex f(x) == fail E"));
         assert!(ds[2].children.is_empty());
+    }
+
+    #[test]
+    fn remaining_yag_hints() {
+        let src = "    c = s[0]\n    c = s[1:2]\n    x = x + 1\n    n = f(a)\n    y: int = 1\n";
+        let mut ds = vec![
+            diag("E504", "a.yag", 1),
+            diag("E504", "a.yag", 2),
+            diag("E403", "a.yag", 3),
+            diag("E315", "a.yag", 4),
+            diag("W823", "a.yag", 5),
+        ];
+        annotate(src, &mut ds);
+        let t = |i: usize| ds[i].children[0].text.as_str();
+        assert!(t(0).contains("char_at"));
+        assert!(t(1).contains("cs[a:b]"));
+        assert!(t(2).contains("var x: T"));
+        assert!(t(3).contains("f(x)?"));
+        assert!(t(4).contains("xs: list[int]"));
     }
 
     #[test]

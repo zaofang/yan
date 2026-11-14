@@ -364,20 +364,26 @@ impl Lexer<'_> {
                             line_start: false,
                         });
                     } else {
+                        let mut inner = top;
                         while width < *self.indents.last().expect("never empty") {
-                            self.indents.pop();
+                            inner = self.indents.pop().expect("checked above");
                             self.toks.push(Token {
                                 tok: Tok::Dedent,
                                 span: at,
                                 line_start: false,
                             });
                         }
-                        if width != *self.indents.last().expect("never empty") {
+                        let outer = *self.indents.last().expect("never empty");
+                        if width != outer {
                             self.issue(
                                 "E100",
                                 Severity::Error,
                                 at,
-                                "unindent does not match any outer indentation level",
+                                &format!(
+                                    "unindent to {width} spaces matches no enclosing block; \
+                                     indent this line {outer} spaces to close the inner block or \
+                                     {inner} to stay in it"
+                                ),
                             );
                             self.indents.push(width);
                         }
