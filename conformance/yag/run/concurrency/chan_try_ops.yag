@@ -1,0 +1,26 @@
+# spec: 9.5
+# rows: R342
+# note: try_recv fails Empty on an open empty channel and returns None once closed; try_send fails Full (#1153)
+# stdout:
+# -1
+# 1
+# full
+# 2
+# -2
+# None
+
+def closed() -> Receiver[int]:
+    tx, rx = Channel[int](1)
+    return rx
+
+def main() uses io, nondet:
+    tx, rx = Channel[int](1)
+    print(rx.try_recv() else e -> -1)
+    tx.try_send(1) else e -> None
+    print(rx.try_recv() else e -> -2)
+    tx.try_send(2) else e -> None
+    tx.try_send(3) else e -> print("full")
+    print(rx.try_recv() else e -> -2)
+    print(rx.try_recv() else e -> -2)
+    r = closed()
+    print(r.try_recv() else e -> -3)
