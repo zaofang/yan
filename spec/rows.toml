@@ -1699,3 +1699,43 @@ sections = "26.6"
 rows = "R1001"
 topic = "Design bases for three niche surface RFCs: EverParse 3D constructs plus a Kaitai Struct importer for Yan Binary Format, the Catala default calculus for Yan Law, Temporal-style event-history replay with hash-pinned versions for Yan Workflow; R550 unchanged (RFC 0065 D8 to D10)"
 sections = "16.7"
+
+[[entry]]
+rows = "R1002"
+topic = "`Ref[T]` is read and written only by `r.get()` (a view `from` the arena) and `r.set(v)`; no auto-dereference, so E414 stays checkable by one escape analysis (#1243)"
+sections = "4.7"
+
+[[entry]]
+rows = "R1003"
+topic = "`Concurrent` marker trait on `sched` handlers; E708 generalised from `pool` to any bound handler without it, including an unbound hosted default (#1204)"
+sections = "9.1"
+
+[[entry]]
+rows = "R1004"
+topic = "`dyn Trait` is an owned pair, data boxed through `alloc` and a vtable of drop, size, align and methods per (type, trait) (#1244)"
+sections = "10.2"
+
+[[entry]]
+rows = "R1005"
+topic = "Object safety for `dyn Trait`, Rust-like; E333 (#1244)"
+sections = "10.2, 25"
+
+[[entry]]
+rows = "R1006"
+topic = "Free `sub` items at module level, used as `x.name(args)` in place position (#1139)"
+sections = "4.4"
+
+[[entry]]
+rows = "R1007"
+topic = "N52 maps bare `sqrt`, `sin`, `cos`, `tan`, `exp`, `log` to `math.f(x)` when the name is not bound (#1221)"
+sections = "14.4"
+
+[[entry]]
+rows = "R1008"
+topic = "N53 maps `s.len()` on a `str` and a free call `char_count(s)`, `parse_int(s)`, `to_string(x)`, `to_int(s)`, `slice(xs, a, b)`, `byte_at(s, i)` to the method or operator spellings (#1221)"
+sections = "14.4"
+
+[[entry]]
+rows = "R1009"
+topic = "N54: `import math`, `io`, `regex`, `collections`, `std` resolve to the std modules; a Python-only module or name is E200 with a `choice` fix, never bare (#1221)"
+sections = "14.4"

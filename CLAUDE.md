@@ -16,6 +16,7 @@ Laws and gates: [docs/development-laws.md](docs/development-laws.md).
 SPEC FREEZE (lead decision 2026-11-12, #1025): no new spec rows or RFCs, except to fix a contradiction or
 unblock M1, until rows without a case are at or below 60 percent (`tools.status` spec_debt; 74 percent,
 650 of 879, on 2026-11-12). RFCs 0068-0075 (#1004) are paused. The lead lifts the freeze by card.
+One-batch exception (lead, 2026-11-14): R1002 to R1009 were written in one PR (#1273 tracks the code); the batch is used and the freeze is back on.
 
 The spec is `spec/` (one file per top-level section). It changes only for rows the lead accepted, in a
 PR the lead merges.

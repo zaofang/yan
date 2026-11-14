@@ -152,6 +152,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E330 | a `Wire` field type a codec cannot represent: a nested optional (`T \| None \| None`), a variant field named like its sum's json tag, or a csv row field or cell that is not a scalar, a field-less sum or a newtype over them (R879, RFC 0041) *new* | 17.4 |
 | E331 | a malformed item-level `@wire`: a `names` key that names no field or variant, a name renamed twice, a key that is both a variant and a field, two fields or variants with one wire name, or an unknown `@wire` key or value (R886, R887) *new* | 17.4 |
 | E332 | a manifest `edition` that is neither `"next"` nor a four-digit year of 2026 or later (R888) *new* | 19.1, 20.4 |
+| E333 | `dyn Trait` of a trait that is not object-safe (R1005) *new* | 10.2 |
 
 ### 25.6 Ownership, views, memory and thread safety
 
