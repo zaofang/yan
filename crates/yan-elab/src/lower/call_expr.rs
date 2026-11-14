@@ -260,6 +260,12 @@ impl Lower<'_, '_, '_> {
                     let r = self.ctor(n, &ps, args, at)?;
                     return Ok((r, Ty::Data(n.clone()), None));
                 }
+                if let Some(s) = self.g.variant_of.get(n).cloned()
+                    && self.g.sum_params.contains_key(&s)
+                {
+                    let (r, t) = self.generic_ctor(n, &s, args, at, want)?;
+                    return Ok((r, t, None));
+                }
                 if let Some(s) = self.g.variant_of.get(n).cloned() {
                     let fs = &self.g.sums[&s]
                         .iter()
