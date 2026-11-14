@@ -20,7 +20,7 @@ def take_away(var self: A, k: int) -> int fail Neg:
 @reentrant
 def wait_for(var self: A, var rx: Receiver[int]) -> int fail ActorError:
     self.n += 1
-    v = rx.recv()?
+    v = rx.recv()? else 0
     self.n += v
     return self.n
 

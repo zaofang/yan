@@ -492,7 +492,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let rx = self.scalar1(rx)?;
                 let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(e.width() as i128)]);
                 let st = self.blocking(RtFn::ChanRecv, vec![rx, out.clone()]);
-                self.chan_result(&dst, st, |me| me.read(&At::Mem(out.clone(), 0), &e))?;
+                self.chan_result_with(&dst, st, true, |me| me.read(&At::Mem(out.clone(), 0), &e))?;
                 self.free(RtFn::EnvFree, out);
             }
             (id::STD_JSON_PARSE, [(_, a), (_, schema)]) => {

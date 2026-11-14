@@ -67,9 +67,13 @@ fn settle(obs: &Observable, params: &[Param], body: &Block) -> Result<Block, Err
             blocks: Vec::new(),
             falls: HashMap::new(),
             ends: HashSet::new(),
+            unsupported: None,
             cx: Cx::default(),
         };
         let b = e.block(body, owned_params(params));
+        if let Some(what) = e.unsupported {
+            return Err(Error::Unsupported(what.into()));
+        }
         if e.need.is_empty() {
             return Ok(b);
         }
@@ -214,6 +218,8 @@ struct Elab<'a> {
     falls: HashMap<usize, usize>,
     /// Blocks whose end is reached.
     ends: HashSet<usize>,
+    /// Set when the pass would silently drop code (R764 flow it does not model).
+    unsupported: Option<&'static str>,
     cx: Cx,
 }
 
@@ -276,6 +282,11 @@ impl Elab<'_> {
         let mut flow = Flow::Normal;
         for s in &b.stmts {
             if flow == Flow::Diverged {
+                // R764: a falling-through join point continues after the jumping statement,
+                // which this pass would drop with the rest of the block.
+                if self.falls.contains_key(&addr(b)) {
+                    self.unsupported = Some("code after a jump to a falling-through join point");
+                }
                 break;
             }
             flow = self.stmt(s, &mut out);
@@ -1083,6 +1094,18 @@ mod tests {
             &t,
             &["let u: Unit = take(sink g)", "_d0 = false", "jump k()"],
         );
+    }
+
+    #[test]
+    fn code_after_a_jump_to_a_falling_through_join_point_is_refused_not_dropped() {
+        let src = "module t\nfn f(let c: bool) -> Unit {\n jp k() {\n  let w: Str = \"c\"\n }\n\
+                   if c { jump k() } else { jump k() }\n let x: Str = \"d\"\n ret ()\n}\n";
+        let (m, d) = yan_core::parse("t.yir", src);
+        assert!(d.is_empty(), "{d:?}");
+        assert!(matches!(
+            elaborate(&m.expect("parses")),
+            Err(Error::Unsupported(_))
+        ));
     }
 
     #[test]

@@ -31,7 +31,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(Ty::Unit) => self.lit("None"),
             Shape::Scalar(Ty::Ptr) => unreachable!("not a Yan Core type"),
             Shape::Fn(..) => self.lit("<function>"),
-            Shape::Chan(_) => return unsupported("`show` of a channel end"),
+            Shape::Chan(..) => return unsupported("`show` of a channel end"),
             Shape::Ptr => return unsupported("`show` of a `Ptr`"),
             Shape::Actor(_) => return unsupported("`show` of an actor handle"),
             Shape::Set(k) => self.show_set(v[0].clone(), k)?,
@@ -435,10 +435,14 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Self::ops(&out)
             }
             Shape::Fn(..) => return unsupported("a copy of a closure"),
-            Shape::Chan(_) => {
+            Shape::Chan(_, sender) => {
                 self.emit(Inst::Rt {
                     dst: None,
-                    f: RtFn::ChanClone,
+                    f: if *sender {
+                        RtFn::ChanCloneSender
+                    } else {
+                        RtFn::ChanClone
+                    },
                     args: v.clone(),
                 });
                 v

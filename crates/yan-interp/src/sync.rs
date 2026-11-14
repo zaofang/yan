@@ -13,6 +13,35 @@ use super::time::{mono_now, wait_out, wait_until};
 use super::vm::{Clo, Vm};
 use super::{Interp, R, Value, data, panic, unsupported};
 
+/// A channel: its capacity, queued values and live `Sender`s. With none left and the queue
+/// empty it is closed (9.5); a channel nothing ever closes counts `usize::MAX`.
+pub(crate) struct Chan {
+    pub cap: usize,
+    pub q: VecDeque<Value>,
+    pub senders: usize,
+}
+
+impl Chan {
+    pub fn new(cap: usize, senders: usize) -> Self {
+        Chan {
+            cap,
+            q: VecDeque::new(),
+            senders,
+        }
+    }
+}
+
+/// A `Sender` goes out of scope: the last one closes its channel.
+pub(crate) fn drop_sender(it: &mut Interp, v: &Value) {
+    if let Value::Data { name, .. } = v
+        && &**name == "Sender"
+    {
+        let s = &mut it.chans[chan(v)].senders;
+        *s = s.saturating_sub(1);
+        it.progress += 1;
+    }
+}
+
 pub(crate) fn end(name: &str, chan: usize) -> Value {
     Value::Data {
         name: name.into(),
@@ -524,7 +553,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_CHAN_CHANNEL,
         Bind::Cap(|it, a| match a {
             [Value::Int(cap)] => {
-                it.chans.push((*cap as usize, VecDeque::new()));
+                it.chans.push(Chan::new(*cap as usize, 1));
                 let c = it.chans.len() - 1;
                 Ok(Value::Tuple(vec![end("Sender", c), end("Receiver", c)]))
             }
@@ -540,9 +569,12 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                     return Ok(Err(e));
                 }
                 crate::simfault::sweep(&mut vm.it);
-                if let Some(v) = vm.it.chans[c].1.pop_front() {
+                if let Some(v) = vm.it.chans[c].q.pop_front() {
                     vm.it.progress += 1;
-                    return Ok(Ok(v));
+                    return Ok(Ok(crate::native::opt(Some(v))));
+                }
+                if vm.it.chans[c].senders == 0 {
+                    return Ok(Ok(crate::native::opt(None)));
                 }
                 if !idle_ran(vm)? {
                     return blocked(&mut vm.it, "recv", c);
@@ -563,16 +595,16 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                 if let Some(e) = cancelled(it) {
                     return Ok(Err(e));
                 }
-                let (cap, q) = &mut it.chans[c];
+                let ch = &mut it.chans[c];
                 // A rendezvous channel hands over only to a receiver already waiting.
-                let room = if *cap == 0 {
+                let room = if ch.cap == 0 {
                     let waiting = it.waiting_recv.iter().filter(|w| **w == c).count();
-                    q.len() < waiting
+                    ch.q.len() < waiting
                 } else {
-                    q.len() < *cap
+                    ch.q.len() < ch.cap
                 };
                 if room {
-                    q.push_back(std::mem::take(&mut a[1]));
+                    ch.q.push_back(std::mem::take(&mut a[1]));
                     it.progress += 1;
                     return Ok(Ok(Value::Unit));
                 }

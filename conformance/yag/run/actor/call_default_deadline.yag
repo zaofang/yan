@@ -12,7 +12,7 @@ def get(var self: A) -> int:
     return self.n
 
 def hold(var self: A, var rx: Receiver[int]) -> int fail Cancelled:
-    return rx.recv()?
+    return rx.recv()? else 0
 
 def show(r: Result[int, ActorError]) -> str:
     match r:
