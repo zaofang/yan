@@ -15,6 +15,19 @@ pub struct List {
     data: u64,
 }
 
+/// A `Map` block: its entries are `kw + vw` slots each in a data allocation that is replaced
+/// when the map grows or shrinks. The key layout and order index are yan-rt's, as native uses.
+pub struct Map {
+    layout: yan_rt::map::Layout,
+    kw: usize,
+    vw: usize,
+    index: yan_rt::map::KeyIndex,
+    data: u64,
+}
+
+/// Resolves `Str` and `bytes` slots against the machine's memory.
+struct MemBlocks<'a>(&'a Machine<'a>);
+
 fn time(hi: Val, lo: Val) -> i128 {
     yan_rt::timeabi::join(hi.int() as i64, lo.int() as i64)
 }
@@ -44,6 +57,62 @@ impl Machine<'_> {
             data,
         };
         Ok(())
+    }
+
+    fn map(&mut self, v: Val) -> Result<&mut Map, Stop> {
+        self.maps
+            .get_mut(&v.addr())
+            .ok_or_else(|| Stop::Fault(format!("{:#x} is not a Map block", v.addr())))
+    }
+
+    /// `n` slots at `addr`; uninitialised bytes read as zero.
+    fn words(&self, addr: u64, n: usize) -> Result<Vec<u64>, Stop> {
+        let bytes = self
+            .mem
+            .read(addr, 8 * n)
+            .ok_or_else(|| Stop::Fault(format!("slots at {addr:#x} are not allocated")))?;
+        Ok(bytes
+            .chunks(8)
+            .map(|c| {
+                let mut w = [0u8; 8];
+                for (d, b) in w.iter_mut().zip(c) {
+                    if let Byte::Init(x) = b {
+                        *d = *x;
+                    }
+                }
+                u64::from_le_bytes(w)
+            })
+            .collect())
+    }
+
+    fn encode_key(&mut self, m: Val, key: Val) -> Result<Vec<u8>, Stop> {
+        let kw = self.map(m)?.kw;
+        let w = self.words(key.addr(), kw)?;
+        let layout = self.map(m)?.layout.clone();
+        layout.encode(&w, &MemBlocks(self))
+    }
+
+    /// Replaces a map's data block with `slots`.
+    fn set_entries(&mut self, m: Val, slots: Vec<Byte>) -> Result<u64, Stop> {
+        let old = self.map(m)?.data;
+        let data = self.mem.alloc(slots.len());
+        self.mem.write(data, &slots);
+        self.mem.free(old);
+        self.map(m)?.data = data;
+        Ok(data)
+    }
+
+    fn entries(&mut self, m: Val) -> Result<Vec<Byte>, Stop> {
+        let Map {
+            kw,
+            vw,
+            index,
+            data,
+            ..
+        } = self.map(m)?;
+        let n = 8 * (*kw + *vw) * index.len();
+        let data = *data;
+        Ok(self.mem.read(data, n).unwrap_or_default())
     }
 
     fn new_list(&mut self, words: usize, slots: Vec<Byte>) -> Val {
@@ -250,6 +319,98 @@ impl Machine<'_> {
                 let w = 8 * words as i128;
                 self.new_list(words, slots[(i * w) as usize..(j * w) as usize].to_vec())
             }
+            RtFn::MapNew => {
+                let schema = self.str_of(a[2].addr())?;
+                let h = self.mem.alloc(8);
+                let data = self.mem.alloc(0);
+                let layout = yan_rt::map::Layout::parse(&schema);
+                self.maps.insert(
+                    h,
+                    Map {
+                        layout,
+                        kw: a[0].int() as usize,
+                        vw: a[1].int() as usize,
+                        index: yan_rt::map::KeyIndex::default(),
+                        data,
+                    },
+                );
+                Val::I(i128::from(h))
+            }
+            RtFn::MapFind | RtFn::MapIndex => {
+                let enc = self.encode_key(a[0], a[1])?;
+                let m = self.map(a[0])?;
+                match m.index.find(&enc) {
+                    Some(i) => {
+                        Val::I(i128::from(m.data) + (8 * (m.kw + m.vw) * i + 8 * m.kw) as i128)
+                    }
+                    None if f == RtFn::MapIndex => return Err(Stop::Panic("bounds")),
+                    None => Val::I(0),
+                }
+            }
+            RtFn::MapPush => {
+                let enc = self.encode_key(a[0], a[1])?;
+                let (kw, vw) = {
+                    let m = self.map(a[0])?;
+                    (m.kw, m.vw)
+                };
+                let key = self.mem.read(a[1].addr(), 8 * kw).unwrap_or_default();
+                let mut slots = self.entries(a[0])?;
+                slots.extend(key);
+                slots.extend(vec![Byte::Init(0); 8 * vw]);
+                let i = self.map(a[0])?.index.push(enc);
+                let data = self.set_entries(a[0], slots)?;
+                Val::I(i128::from(data) + (8 * (kw + vw) * i + 8 * kw) as i128)
+            }
+            RtFn::MapRemove => {
+                let enc = self.encode_key(a[0], a[1])?;
+                let Some(i) = self.map(a[0])?.index.remove(&enc) else {
+                    return Ok(Val::I(0));
+                };
+                let m = self.map(a[0])?;
+                let stride = 8 * (m.kw + m.vw);
+                // The index has already shrunk by one.
+                let (data, n) = (m.data, m.index.len() + 1);
+                let mut slots = self.mem.read(data, stride * n).unwrap_or_default();
+                let gone: Vec<Byte> = slots.drain(i * stride..(i + 1) * stride).collect();
+                self.mem.write(a[2].addr(), &gone);
+                self.set_entries(a[0], slots)?;
+                Val::I(1)
+            }
+            RtFn::MapLen => Val::I(self.map(a[0])?.index.len() as i128),
+            RtFn::MapAt => {
+                let m = self.map(a[0])?;
+                if !(0..m.index.len() as i128).contains(&a[1].int()) {
+                    return Err(Stop::Fault("map entry out of range".into()));
+                }
+                Val::I(i128::from(m.data) + 8 * (m.kw + m.vw) as i128 * a[1].int())
+            }
+            RtFn::MapCopy => {
+                let slots = self.entries(a[0])?;
+                let m = self.map(a[0])?;
+                let (layout, kw, vw, index) = (m.layout.clone(), m.kw, m.vw, m.index.clone());
+                let h = self.mem.alloc(8);
+                let data = self.mem.alloc(slots.len());
+                self.mem.write(data, &slots);
+                self.maps.insert(
+                    h,
+                    Map {
+                        layout,
+                        kw,
+                        vw,
+                        index,
+                        data,
+                    },
+                );
+                Val::I(i128::from(h))
+            }
+            RtFn::MapFree => {
+                let h = a[0].addr();
+                if let Some(m) = self.maps.remove(&h) {
+                    self.mem.free(m.data);
+                }
+                self.free_block(h)?;
+                Val::U
+            }
             RtFn::TimeOp => {
                 let r =
                     yan_rt::timeabi::time_op(a[0].int() as i64, time(a[1], a[2]), time(a[3], a[4]))
@@ -289,5 +450,17 @@ impl Machine<'_> {
             RtFn::CivilOutF => Val::F(f64::from_bits(self.civil_out[a[0].int() as usize] as u64)),
             other => return unsupported(format!("runtime function {other:?} in the machine")),
         })
+    }
+}
+
+impl yan_rt::map::Blocks for MemBlocks<'_> {
+    type Err = Stop;
+
+    fn text(&self, block: u64) -> Result<String, Stop> {
+        self.0.str_of(block)
+    }
+
+    fn bytes(&self, _: u64) -> Result<Vec<u8>, Stop> {
+        unsupported("`bytes` map keys in the machine")
     }
 }
