@@ -160,6 +160,17 @@ pub enum Inst {
         dst: Local,
         local: Local,
     },
+    /// A boundary of a sequential `par`'s arms, for the machine's race detector; no code.
+    Arm(ArmEvent),
+}
+
+/// Where a `par` forks and joins its arms (`Inst::Arm`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ArmEvent {
+    Fork,
+    Enter(u32),
+    Exit,
+    Join,
 }
 
 /// The yan-rt entry points native code calls.

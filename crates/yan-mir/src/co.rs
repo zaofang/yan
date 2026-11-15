@@ -464,6 +464,7 @@ fn shift_inst(i: &mut Inst) {
             *local += 1;
             Vec::new()
         }
+        Inst::Arm(_) => Vec::new(),
     };
     ops.into_iter().for_each(shift_op);
 }
@@ -509,6 +510,7 @@ fn uses_defs(i: &Inst) -> (Vec<Local>, Vec<Local>) {
             ([ptr, src].into_iter().filter_map(l).collect(), Vec::new())
         }
         Inst::AddrOf { dst, local } => (vec![*local], vec![*dst]),
+        Inst::Arm(_) => (Vec::new(), Vec::new()),
     }
 }
 
