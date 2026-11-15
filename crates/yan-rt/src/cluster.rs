@@ -35,7 +35,7 @@ struct Cut {
 /// The faults of the last `sim` built (RFC 0063 D3, D5), drawn per ordered node pair from its
 /// seed, and the calls and sends through `Remote` they fault, by task path.
 #[derive(Default)]
-pub(crate) struct Faults {
+pub struct Faults {
     /// Whether the last reply arrived; set by every `arrive`.
     replied: bool,
     seed: i128,
@@ -223,49 +223,77 @@ fn ns(hi: u64, lo: u64) -> i64 {
     n.clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64
 }
 
+/// A built `sim` cluster: its nodes' ids and its faults.
+pub struct Sim {
+    pub ids: Vec<String>,
+    pub faults: Faults,
+}
+
+/// `sim(nodes, seed, faults)`, shared by native code and the machine. `plan` holds a
+/// `FaultPlan`'s `drop`, `delay`, `partition` and `heal` slots (two words each but `drop`, which
+/// is one) as laid out in memory, `cuts` each `Cut`'s `at` and `heal` words and its side's
+/// node indices. `None` when `nodes < 1`.
+pub fn sim_new(
+    nodes: i64,
+    seed: i64,
+    plan: &[u64; 7],
+    cuts: &[([u64; 4], Vec<u64>)],
+    epoch: i128,
+) -> Option<Sim> {
+    (nodes >= 1).then(|| Sim {
+        ids: (0..nodes).map(|i| node_id(seed, i)).collect(),
+        faults: Faults {
+            seed: seed.into(),
+            nodes: nodes as usize,
+            epoch,
+            drop: f64::from_bits(plan[0]),
+            delay: ns(plan[1], plan[2]),
+            partition: ns(plan[3], plan[4]),
+            heal: ns(plan[5], plan[6]),
+            cuts: cuts
+                .iter()
+                .map(|(t, side)| Cut {
+                    at: ns(t[0], t[1]),
+                    heal: ns(t[2], t[3]),
+                    side: side.iter().map(|n| *n as usize).collect(),
+                })
+                .collect(),
+            ..Faults::default()
+        },
+    })
+}
+
 /// `sim(nodes, seed, faults)`: the cluster's index. `plan` holds a `FaultPlan`'s slots: `drop`,
 /// `delay`, `partition`, `heal` (two words each), `cuts`.
 /// # Safety
 /// `plan` holds those eight slots, `cuts` a `List` block.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_sim_new(nodes: i64, seed: i64, plan: *const u64) -> u64 {
-    if nodes < 1 {
-        panic_with(
-            "precondition `nodes >= 1` of `sim` failed",
-            crate::abi::panic_message(""),
-        );
-    }
     // SAFETY: the caller's contract.
     let p = unsafe { std::slice::from_raw_parts(plan, 8) };
     // SAFETY: as above.
     let cuts = unsafe { &*(p[7] as *const List) };
-    let cuts = cuts
+    let cuts: Vec<_> = cuts
         .data
         .chunks(5)
-        .map(|c| Cut {
-            at: ns(c[0], c[1]),
-            heal: ns(c[2], c[3]),
+        .map(|c| {
             // SAFETY: a `Cut`'s `side` is a `set[int]` block.
-            side: unsafe { &*(c[4] as *const crate::map::Map) }
+            let side = unsafe { &*(c[4] as *const crate::map::Map) }
                 .slots()
-                .iter()
-                .map(|n| *n as usize)
-                .collect(),
+                .to_vec();
+            ([c[0], c[1], c[2], c[3]], side)
         })
         .collect();
+    let plan: [u64; 7] = p[..7].try_into().expect("7 slots");
+    let Some(sim) = sim_new(nodes, seed, &plan, &cuts, crate::civil::mono_now()) else {
+        panic_with(
+            "precondition `nodes >= 1` of `sim` failed",
+            crate::abi::panic_message(""),
+        );
+    };
     with(|st| {
-        st.faults = Faults {
-            seed: seed.into(),
-            nodes: nodes as usize,
-            epoch: crate::civil::mono_now(),
-            drop: f64::from_bits(p[0]),
-            delay: ns(p[1], p[2]),
-            partition: ns(p[3], p[4]),
-            heal: ns(p[5], p[6]),
-            cuts,
-            ..Faults::default()
-        };
-        st.sims.push((0..nodes).map(|i| node_id(seed, i)).collect());
+        st.faults = sim.faults;
+        st.sims.push(sim.ids);
         (st.sims.len() - 1) as u64
     })
 }

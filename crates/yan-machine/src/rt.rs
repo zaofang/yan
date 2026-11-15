@@ -448,6 +448,33 @@ impl Machine<'_> {
             }
             RtFn::CivilOut => Val::I(i128::from(self.civil_out[a[0].int() as usize])),
             RtFn::CivilOutF => Val::F(f64::from_bits(self.civil_out[a[0].int() as usize] as u64)),
+            RtFn::SimNew => {
+                let plan = self.words(a[2].addr(), 8)?;
+                let (data, len) = {
+                    let cuts = self.list(Val::I(i128::from(plan[7])))?;
+                    (cuts.data, cuts.len)
+                };
+                let cuts = self.words(data, 5 * len)?;
+                let cuts = cuts
+                    .chunks(5)
+                    .map(|c| {
+                        let m = self.map(Val::I(i128::from(c[4])))?;
+                        let (data, n) = (m.data, m.index.len());
+                        Ok(([c[0], c[1], c[2], c[3]], self.words(data, n)?))
+                    })
+                    .collect::<Result<Vec<_>, Stop>>()?;
+                let plan: [u64; 7] = plan[..7].try_into().expect("7 slots");
+                let sim = yan_rt::cluster::sim_new(
+                    a[0].int() as i64,
+                    a[1].int() as i64,
+                    &plan,
+                    &cuts,
+                    yan_rt::civil::mono_now(),
+                )
+                .ok_or(Stop::Panic("contract"))?;
+                self.sims.push(sim);
+                Val::I(self.sims.len() as i128 - 1)
+            }
             other => return unsupported(format!("runtime function {other:?} in the machine")),
         })
     }
