@@ -62,6 +62,10 @@ impl Memory {
         }
     }
 
+    pub fn is_live(&self, id: AllocId) -> bool {
+        self.allocs[id].live
+    }
+
     pub fn len(&self, addr: u64) -> Option<usize> {
         self.find(addr).map(|i| self.allocs[i].size)
     }

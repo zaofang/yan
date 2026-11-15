@@ -316,6 +316,9 @@ enum Command {
         /// With `--locked`, fail with E020 when a pinned archive is in neither `.yan/store` nor `vendor` (R896).
         #[arg(long, requires = "locked")]
         offline: bool,
+        /// Run with the 6.7 undefined-behavior checks (not supported yet).
+        #[arg(long)]
+        ub: bool,
     },
     /// Run one task through the spec gate as a client of `yan mcp` (the reference agent
     /// loop), and print its run record.
@@ -391,6 +394,9 @@ enum Command {
         /// Interpret optimized Yan Core (R771).
         #[arg(long)]
         opt: bool,
+        /// Execute on the abstract-byte machine with the 6.7 undefined-behavior checks.
+        #[arg(long)]
+        ub: bool,
         file: PathBuf,
         /// The program's arguments, after `--`.
         #[arg(last = true)]
@@ -508,6 +514,7 @@ fn main() -> ExitCode {
             level,
             report_live,
             opt,
+            ub,
             args,
         } => run(
             &file,
@@ -517,6 +524,7 @@ fn main() -> ExitCode {
             args,
             report_live,
             opt,
+            ub,
         ),
         Command::Build {
             file,
@@ -537,7 +545,15 @@ fn main() -> ExitCode {
             no_cache,
             locked,
             offline,
-        } => run_tests(format, gate, only.as_deref(), no_cache, (locked, offline)),
+            ub,
+        } => {
+            if ub {
+                return tool_failure(
+                    "not supported yet: `yan test --ub` (tests run on the interpreter)",
+                );
+            }
+            run_tests(format, gate, only.as_deref(), no_cache, (locked, offline))
+        }
         Command::Review { range, format } => review(&range, format),
         Command::Audit { format } => audit(format),
         Command::View {
@@ -946,8 +962,9 @@ fn run(
     args: Vec<String>,
     report_live: bool,
     opt: bool,
+    ub: bool,
 ) -> ExitCode {
-    let code = run_program(file, db, backend, jit, args, opt);
+    let code = run_program(file, db, backend, jit, args, opt, ub);
     if report_live {
         eprintln!("live: {}", yan_rt::heap::live_blocks());
     }
@@ -990,6 +1007,7 @@ fn run_program(
     jit: Jit,
     args: Vec<String>,
     opt: bool,
+    ub: bool,
 ) -> ExitCode {
     let module = match checked(&mut db, file) {
         Ok(m) => m,
@@ -999,9 +1017,9 @@ fn run_program(
         return native(&file.display().to_string(), module, jit);
     }
     let name = file.display().to_string();
-    if backend == Backend::Machine {
+    if backend == Backend::Machine || ub {
         return match lower_native(&name, module) {
-            Ok(p) => machine(&p),
+            Ok(p) => machine(&p, ub),
             Err(code) => code,
         };
     }
@@ -1010,7 +1028,7 @@ fn run_program(
         && let Ok(p) = yan_mir::lower(&m)
         && touches_raw_memory(&p)
     {
-        return machine(&p);
+        return machine(&p, false);
     }
     let optimized;
     let module = if opt {
@@ -1252,11 +1270,11 @@ fn touches_raw_memory(p: &yan_mir::Program) -> bool {
 }
 
 /// Run `p` on the abstract-byte machine, on a thread with room for deep recursion.
-fn machine(p: &yan_mir::Program) -> ExitCode {
+fn machine(p: &yan_mir::Program, ub: bool) -> ExitCode {
     let result = std::thread::scope(|s| {
         std::thread::Builder::new()
             .stack_size(256 << 20)
-            .spawn_scoped(s, || yan_machine::run(p))
+            .spawn_scoped(s, || yan_machine::run(p, ub))
             .expect("a thread starts")
             .join()
             .expect("the machine does not panic")
@@ -1274,6 +1292,10 @@ fn machine(p: &yan_mir::Program) -> ExitCode {
         }
         Err(yan_machine::Stop::Unsupported(what)) => {
             tool_failure(&format!("not supported yet: {what}"))
+        }
+        Err(yan_machine::Stop::Ub(item, what)) => {
+            eprintln!("ub({item}): {what}");
+            ExitCode::from(EXIT_PANIC as u8)
         }
         Err(yan_machine::Stop::Fault(what)) => tool_failure(&format!("machine fault: {what}")),
     }

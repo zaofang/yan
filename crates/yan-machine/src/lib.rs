@@ -1,7 +1,11 @@
 //! The checked machine of 6.1 (D1 of the `run --ub` design): executes `yan-mir` over abstract
 //! bytes. Locals are scalars; memory is allocations of `Uninit | Init` bytes; a pointer is its
-//! address. Layouts and drops come from MIR, as for native code. Checks (`--ub`) are not here yet:
-//! an access outside any allocation is a fault, everything else behaves as native code does.
+//! address. Layouts and drops come from MIR, as for native code. With `ub` set, an access to a
+//! dead allocation is `ub(2)`, one outside every allocation is `ub(3)` and a `bool` read from a
+//! word other than 0 or 1 is `ub(6)` (6.7 items; D3 of the design). Without it an access outside
+//! any allocation is a fault, everything else behaves as native code does. Bounds are judged by
+//! the accessed address, not by a poison bit on the pointer value (D4), so a pointer that left
+//! its allocation and came back is not caught.
 //! Whatever MIR construct or runtime function it does not model is reported, never approximated.
 
 mod mem;
@@ -20,6 +24,8 @@ pub enum Stop {
     Fail(String, i64),
     Unsupported(String),
     Fault(String),
+    /// A 6.7 item violated under `--ub`.
+    Ub(u8, String),
 }
 
 pub fn unsupported<T>(what: impl Into<String>) -> Result<T, Stop> {
@@ -67,15 +73,17 @@ struct Frame {
 
 pub struct Machine<'p> {
     prog: &'p Program,
+    ub: bool,
     mem: Memory,
     strs: Vec<Option<u64>>,
     pub(crate) lists: HashMap<u64, rt::List>,
     exposed: HashMap<u64, i128>,
 }
 
-pub fn run(prog: &Program) -> Result<(), Stop> {
+pub fn run(prog: &Program, ub: bool) -> Result<(), Stop> {
     let mut m = Machine {
         prog,
+        ub,
         mem: Memory::new(),
         strs: vec![None; prog.strings.len()],
         lists: HashMap::new(),
@@ -105,11 +113,35 @@ fn decode(t: Ty, w: u64) -> Val {
 }
 
 impl Machine<'_> {
+    /// The failure of an 8-byte access at `addr` that no allocation serves.
+    fn bad_access(&self, what: &str, addr: u64) -> Stop {
+        if !self.ub {
+            return Stop::Fault(format!(
+                "{what} of 8 bytes at {addr:#x} outside any allocation"
+            ));
+        }
+        match self.mem.find(addr) {
+            Some(i) if !self.mem.is_live(i) => Stop::Ub(
+                2,
+                format!("{what} of 8 bytes at {addr:#x} through a freed allocation"),
+            ),
+            _ => Stop::Ub(
+                3,
+                format!("{what} of 8 bytes at {addr:#x} outside its allocation"),
+            ),
+        }
+    }
+
+    fn typed(&self, t: Ty, w: u64) -> Result<Val, Stop> {
+        if self.ub && t == Ty::Bool && w > 1 {
+            return Err(Stop::Ub(6, format!("{w} is not a valid bool")));
+        }
+        Ok(decode(t, w))
+    }
+
     pub(crate) fn read_word(&self, addr: u64) -> Result<u64, Stop> {
         let Some(bytes) = self.mem.read(addr, 8) else {
-            return Err(Stop::Fault(format!(
-                "read of 8 bytes at {addr:#x} outside any allocation"
-            )));
+            return Err(self.bad_access("read", addr));
         };
         let mut w = [0u8; 8];
         for (d, b) in w.iter_mut().zip(bytes) {
@@ -123,11 +155,9 @@ impl Machine<'_> {
 
     pub(crate) fn write_word(&mut self, addr: u64, w: u64) -> Result<(), Stop> {
         let bytes: Vec<Byte> = w.to_le_bytes().into_iter().map(Byte::Init).collect();
-        self.mem.write(addr, &bytes).ok_or_else(|| {
-            Stop::Fault(format!(
-                "write of 8 bytes at {addr:#x} outside any allocation"
-            ))
-        })
+        self.mem
+            .write(addr, &bytes)
+            .ok_or_else(|| self.bad_access("write", addr))
     }
 
     fn str_lit(&mut self, i: u32) -> u64 {
@@ -158,10 +188,9 @@ impl Machine<'_> {
 
     fn get(&self, fr: &Frame, f: &Func, l: Local) -> Result<Val, Stop> {
         match fr.pinned.get(&l) {
-            Some((base, word)) => Ok(decode(
-                f.locals[l as usize],
-                self.read_word(base + 8 * word)?,
-            )),
+            Some((base, word)) => {
+                self.typed(f.locals[l as usize], self.read_word(base + 8 * word)?)
+            }
             None => Ok(fr.locals[l as usize]),
         }
     }
@@ -299,7 +328,7 @@ impl Machine<'_> {
             Inst::Load { dst, ptr, word } => {
                 let p = self.eval(fr, ptr, f)?.addr();
                 let w = self.read_word(p + 8 * u64::from(*word))?;
-                let v = decode(f.locals[*dst as usize], w);
+                let v = self.typed(f.locals[*dst as usize], w)?;
                 self.set(fr, f, *dst, v)
             }
             Inst::Store { ptr, word, src } => {
