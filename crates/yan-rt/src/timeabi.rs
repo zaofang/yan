@@ -30,64 +30,44 @@ thread_local! {
     static OUT: Cell<[i64; 3]> = const { Cell::new([0; 3]) };
 }
 
-fn join(hi: i64, lo: i64) -> i128 {
+pub fn join(hi: i64, lo: i64) -> i128 {
     (i128::from(hi) << 64) | i128::from(lo as u64)
-}
-
-/// A result `v` as the words `hi`, `lo` and whether it was in range.
-fn put(v: Option<i128>) -> *const i64 {
-    let n = v.unwrap_or(0);
-    OUT.with(|c| {
-        c.set([(n >> 64) as i64, n as i64, i64::from(v.is_some())]);
-        c.as_ptr().cast::<i64>().cast_const()
-    })
 }
 
 fn int(n: i128) -> Option<i128> {
     i64::try_from(n).ok().map(i128::from)
 }
 
-fn zero_check(d: i128) {
+fn zero_check(d: i128) -> Result<(), &'static str> {
     if d == 0 {
-        panic("div_zero");
+        return Err("div_zero");
     }
+    Ok(())
 }
 
-/// `a op b` on the time values `(ahi, alo)` and `(bhi, blo)`; `b` is a plain `int` for the
-/// operations that take one. Returns `[hi, lo, ok]`, valid until the next call; `ok` is 0 when
-/// the result is out of range.
-///
-/// # Safety
-/// None beyond the C ABI.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_time(
-    op: i64,
-    ahi: i64,
-    alo: i64,
-    bhi: i64,
-    blo: i64,
-) -> *const i64 {
-    let (a, b) = (join(ahi, alo), join(bhi, blo));
-    put(match op {
+/// `a op b` on the time values `a` and `b`; `b` is a plain `int` for the operations that take one.
+/// `None` when the result is out of range; `Err` names the panic kind.
+pub fn time_op(op: i64, a: i128, b: i128) -> Result<Option<i128>, &'static str> {
+    Ok(match op {
         DADD => a.checked_add(b).and_then(in_duration),
         DSUB => a.checked_sub(b).and_then(in_duration),
         DMUL => a.checked_mul(b).and_then(in_duration),
         DABS => Some(a.abs()),
         DNEG => Some(-a),
         DFLOORDIV => {
-            zero_check(b);
+            zero_check(b)?;
             Some(floor_div(a, b))
         }
         DREM => {
-            zero_check(b);
+            zero_check(b)?;
             Some(a - b * floor_div(a, b))
         }
         DDIV => {
-            zero_check(b);
+            zero_check(b)?;
             Some(div_half_even(a, b))
         }
         DQUOT => {
-            zero_check(b);
+            zero_check(b)?;
             int(floor_div(a, b))
         }
         IADD => in_instant(a + b),
@@ -103,18 +83,47 @@ pub unsafe extern "C" fn yan_rt_time(
     })
 }
 
+/// The words `[hi, lo, ok]` of a [`time_op`] result.
+pub fn time_words(v: Option<i128>) -> [i64; 3] {
+    let n = v.unwrap_or(0);
+    [(n >> 64) as i64, n as i64, i64::from(v.is_some())]
+}
+
+/// Returns `[hi, lo, ok]`, valid until the next call.
+///
+/// # Safety
+/// None beyond the C ABI.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_time(
+    op: i64,
+    ahi: i64,
+    alo: i64,
+    bhi: i64,
+    blo: i64,
+) -> *const i64 {
+    let r = time_op(op, join(ahi, alo), join(bhi, blo)).unwrap_or_else(|k| panic(k));
+    OUT.with(|c| {
+        c.set(time_words(r));
+        c.as_ptr().cast::<i64>().cast_const()
+    })
+}
+
+/// `as_seconds_float` (0) and `ratio` (1).
+pub fn time_f64(op: i64, a: i128, b: i128) -> Result<f64, &'static str> {
+    if op == 0 {
+        return Ok(a as f64 / 1e9);
+    }
+    zero_check(b)?;
+    Ok(a as f64 / b as f64)
+}
+
 /// `as_seconds_float` (0) and `ratio` (1).
 ///
 /// # Safety
 /// None beyond the C ABI.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_time_f64(op: i64, ahi: i64, alo: i64, bhi: i64, blo: i64) -> f64 {
-    let (a, b) = (join(ahi, alo), join(bhi, blo));
-    if op == 0 {
-        return a as f64 / 1e9;
-    }
-    zero_check(b);
-    a as f64 / b as f64
+    time_f64(op, join(ahi, alo), join(bhi, blo)).unwrap_or_else(|k| panic(k))
 }
 
 /// The text of a `Duration` (`kind` 0), an `Instant` (1) or an `i128` (2).
@@ -123,13 +132,17 @@ pub unsafe extern "C" fn yan_rt_time_f64(op: i64, ahi: i64, alo: i64, bhi: i64, 
 /// None beyond the C ABI.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_time_show(kind: i64, hi: i64, lo: i64) -> *mut String {
+    str_block(&time_show(kind, hi, lo))
+}
+
+pub fn time_show(kind: i64, hi: i64, lo: i64) -> String {
     if kind == 3 {
-        return str_block(&crate::envhandler::zone_id(hi));
+        return crate::envhandler::zone_id(hi);
     }
     let n = join(hi, lo);
-    str_block(&match kind {
+    match kind {
         0 => show_duration(n),
         1 => show_instant(n),
         _ => n.to_string(),
-    })
+    }
 }
