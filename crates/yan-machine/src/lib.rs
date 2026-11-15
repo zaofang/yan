@@ -7,6 +7,8 @@
 //! the accessed address, not by a poison bit on the pointer value (D4), so a pointer that left
 //! its allocation and came back is not caught.
 //! Whatever MIR construct or runtime function it does not model is reported, never approximated.
+//! Tasks, supervisors and clusters are yan-rt's own thread-local state, so the machine makes the
+//! scheduling decisions native code makes; a run owns its thread.
 
 mod mem;
 mod ops;
@@ -83,7 +85,6 @@ pub struct Machine<'p> {
     strs: Vec<Option<u64>>,
     pub(crate) lists: HashMap<u64, rt::List>,
     pub(crate) maps: HashMap<u64, rt::Map>,
-    sims: Vec<yan_rt::cluster::Sim>,
     exposed: HashMap<u64, i128>,
     scratch: Option<u64>,
     civil_out: Vec<i64>,
@@ -100,13 +101,13 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
         strs: vec![None; prog.strings.len()],
         lists: HashMap::new(),
         maps: HashMap::new(),
-        sims: Vec::new(),
         exposed: HashMap::new(),
         scratch: None,
         civil_out: Vec::new(),
         race: RefCell::new(Race::new()),
     };
     m.call(prog.main, vec![])?;
+    yan_rt::actor::end_root();
     Ok(m.mem
         .live(|a| m.strs.contains(&Some(a)) || m.scratch == Some(a)))
 }

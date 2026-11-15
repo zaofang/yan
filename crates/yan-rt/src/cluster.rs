@@ -291,6 +291,12 @@ pub unsafe extern "C" fn yan_rt_sim_new(nodes: i64, seed: i64, plan: *const u64)
             crate::abi::panic_message(""),
         );
     };
+    register(sim)
+}
+
+/// Makes `sim` the running program's cluster: its index for `yan_rt_sim_begin`. The machine
+/// shares this state with native code's entry points, one run per thread.
+pub fn register(sim: Sim) -> u64 {
     with(|st| {
         st.faults = sim.faults;
         st.sims.push(sim.ids);

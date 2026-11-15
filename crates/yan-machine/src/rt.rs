@@ -6,6 +6,7 @@ use crate::mem::Byte;
 use crate::{Machine, Stop, Val, unsupported};
 use std::io::Write;
 use yan_mir::RtFn;
+use yan_rt::sched;
 
 #[derive(Clone, Copy)]
 pub struct List {
@@ -472,8 +473,50 @@ impl Machine<'_> {
                     yan_rt::civil::mono_now(),
                 )
                 .ok_or(Stop::Panic("contract"))?;
-                self.sims.push(sim);
-                Val::I(self.sims.len() as i128 - 1)
+                Val::I(i128::from(yan_rt::cluster::register(sim)))
+            }
+            RtFn::SimBegin => Val::I(i128::from(yan_rt::cluster::yan_rt_sim_begin(
+                a[0].addr(),
+                a[1].addr(),
+            ))),
+            RtFn::SupBegin => Val::I(i128::from(yan_rt::actor::yan_rt_sup_begin(
+                a[0].addr(),
+                a[1].addr(),
+                a[2].int() as i64,
+                a[3].int() as i64,
+            ))),
+            RtFn::SupEnd => {
+                yan_rt::actor::yan_rt_sup_end();
+                Val::U
+            }
+            RtFn::SupEndTo => {
+                yan_rt::actor::yan_rt_sup_end_to(a[0].addr());
+                Val::U
+            }
+            RtFn::ParBegin if self.ub => {
+                return unsupported("race checks across `par concurrent` tasks in the machine");
+            }
+            RtFn::ParBegin => Val::I(i128::from(sched::yan_rt_par_begin(
+                a[0].addr(),
+                a[1].addr(),
+            ))),
+            RtFn::ParNext => Val::I(i128::from(sched::yan_rt_par_next(a[0].addr()))),
+            RtFn::ParTaskEnd => {
+                sched::yan_rt_par_task_end(a[0].addr());
+                Val::U
+            }
+            RtFn::ParExitKind => {
+                sched::yan_rt_par_exit_kind(a[0].addr());
+                Val::U
+            }
+            RtFn::ParCancel => Val::I(i128::from(sched::yan_rt_par_cancel(a[0].addr()))),
+            RtFn::ParEnd => {
+                sched::yan_rt_par_end(a[0].addr());
+                Val::U
+            }
+            RtFn::SimPct => {
+                sched::yan_rt_sim_pct(a[0].int() as i64, a[1].int() as i64, a[2].int() as i64);
+                Val::U
             }
             other => return unsupported(format!("runtime function {other:?} in the machine")),
         })
