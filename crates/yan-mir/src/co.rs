@@ -251,6 +251,11 @@ impl Cx {
             locals: std::iter::once(Ty::Ptr)
                 .chain(g.locals.iter().copied())
                 .collect(),
+            pinned: g
+                .pinned
+                .iter()
+                .map(|p| p.iter().map(|l| l + 1).collect())
+                .collect(),
             blocks: g.blocks.clone(),
         };
         for b in &mut f.blocks {
@@ -454,6 +459,11 @@ fn shift_inst(i: &mut Inst) {
             vec![ptr]
         }
         Inst::Store { ptr, src, .. } => vec![ptr, src],
+        Inst::AddrOf { dst, local } => {
+            *dst += 1;
+            *local += 1;
+            Vec::new()
+        }
     };
     ops.into_iter().for_each(shift_op);
 }
@@ -498,6 +508,7 @@ fn uses_defs(i: &Inst) -> (Vec<Local>, Vec<Local>) {
         Inst::Store { ptr, src, .. } => {
             ([ptr, src].into_iter().filter_map(l).collect(), Vec::new())
         }
+        Inst::AddrOf { dst, local } => (vec![*local], vec![*dst]),
     }
 }
 

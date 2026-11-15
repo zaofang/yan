@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use cranelift_codegen::ir::condcodes::{FloatCC, IntCC};
 use cranelift_codegen::ir::{
     AbiParam, Block as CBlock, FuncRef, GlobalValue, Inst as CInst, InstBuilder, MemFlagsData,
-    Signature, SourceLoc, StackSlotData, StackSlotKind, TrapCode, Value, types,
+    Signature, SourceLoc, StackSlot, StackSlotData, StackSlotKind, TrapCode, Value, types,
 };
 use cranelift_codegen::isa::CallConv;
 use cranelift_codegen::settings::{self, Configurable};
@@ -185,6 +185,7 @@ impl<M: Module> State<M> {
             program,
             ret_area: None,
             vars: Vec::new(),
+            pins: Vec::new(),
             blocks: Vec::new(),
             calls,
             rt,
@@ -802,6 +803,7 @@ const RT: &[RtFn] = &[
     RtFn::ListNew,
     RtFn::ListPush,
     RtFn::ListLen,
+    RtFn::ListData,
     RtFn::ListAt,
     RtFn::ListCopy,
     RtFn::HeapUp,
@@ -1818,6 +1820,12 @@ fn rt_fn(
             &[I64],
             Some(I64),
         ),
+        RtFn::ListData => (
+            "yan_rt_list_data",
+            abi::yan_rt_list_data as *const u8,
+            &[I64],
+            Some(I64),
+        ),
         RtFn::ListAt => (
             "yan_rt_list_at",
             abi::yan_rt_list_at as *const u8,
@@ -2457,6 +2465,8 @@ struct Gen<'a, 'b> {
     /// The return area pointer, when this function's results do not fit in registers.
     ret_area: Option<Value>,
     vars: Vec<Option<Variable>>,
+    /// The stack slot and byte offset of each local in a [`Func::pinned`] group.
+    pins: Vec<Option<(StackSlot, i32)>>,
     blocks: Vec<CBlock>,
     calls: Calls,
     rt: Rt,
@@ -2481,6 +2491,17 @@ impl Gen<'_, '_> {
             .iter()
             .map(|t| clif(*t).map(|t| self.b.declare_var(t)))
             .collect();
+        self.pins = vec![None; self.f.locals.len()];
+        for group in &self.f.pinned {
+            let slot = self.b.create_sized_stack_slot(StackSlotData::new(
+                StackSlotKind::ExplicitSlot,
+                (group.len() * 8) as u32,
+                3,
+            ));
+            for (i, l) in group.iter().enumerate() {
+                self.pins[*l as usize] = Some((slot, i as i32 * 8));
+            }
+        }
         self.b.switch_to_block(entry);
         let params = self.b.block_params(entry).to_vec();
         let mut it = params.into_iter();
@@ -2488,9 +2509,9 @@ impl Gen<'_, '_> {
             self.ret_area = it.next();
         }
         for l in 0..self.f.params as usize {
-            if let Some(v) = self.vars[l] {
+            if self.vars[l].is_some() {
                 let p = it.next().expect("one block param per non-Unit parameter");
-                self.b.def_var(v, p);
+                self.set(Some(l as u32), Some(p));
             }
         }
         for (i, blk) in self.f.blocks.iter().enumerate() {
@@ -2605,7 +2626,12 @@ impl Gen<'_, '_> {
         Some(match o {
             Operand::Local(l) => {
                 let v = self.vars[*l as usize]?;
-                self.b.use_var(v)
+                if let Some((slot, at)) = self.pins[*l as usize] {
+                    let t = clif(self.f.locals[*l as usize]).expect("a variable has a type");
+                    self.b.ins().stack_load(types::I64, t, slot, at)
+                } else {
+                    self.b.use_var(v)
+                }
             }
             Operand::Int(i) => self.b.ins().iconst(types::I64, *i as i64),
             Operand::F64(x) => self.b.ins().f64const(*x),
@@ -2647,7 +2673,11 @@ impl Gen<'_, '_> {
         if let (Some(d), Some(v)) = (dst, v)
             && let Some(var) = self.vars[d as usize]
         {
-            self.b.def_var(var, v);
+            if let Some((slot, at)) = self.pins[d as usize] {
+                self.b.ins().stack_store(types::I64, v, slot, at);
+            } else {
+                self.b.def_var(var, v);
+            }
         }
     }
 
@@ -2729,6 +2759,11 @@ impl Gen<'_, '_> {
                         .ins()
                         .store(MemFlagsData::trusted(), v, p, *word as i32 * 8);
                 }
+            }
+            Inst::AddrOf { dst, local } => {
+                let (slot, at) = self.pins[*local as usize].expect("an address-taken local");
+                let a = self.b.ins().stack_addr(types::I64, slot, at);
+                self.set(Some(*dst), Some(a));
             }
             Inst::Scalar {
                 dst, op, ty, args, ..

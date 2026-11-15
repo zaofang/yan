@@ -617,6 +617,7 @@ struct Fn<'a, 'm> {
     costing: bool,
     /// The tokens of this function's `cost` counters, ended on every exit.
     cost_tokens: Vec<Operand>,
+    pinned: Vec<Vec<Local>>,
     /// The supervisor scope depth this function's `with supervisor` scopes end at (`actor.rs`).
     sup_depth: Option<Local>,
     /// `main`'s `Rand` capabilities, bound to the OS generator.
@@ -656,6 +657,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             flags: HashMap::new(),
             costing: mono.borrow().costing,
             cost_tokens: Vec::new(),
+            pinned: Vec::new(),
             sup_depth: None,
             os_rand: Vec::new(),
             rands: Vec::new(),
@@ -818,6 +820,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             params: n_params,
             ret,
             locals: self.locals,
+            pinned: self.pinned,
             blocks: self.blocks,
         })
     }

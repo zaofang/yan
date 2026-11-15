@@ -50,6 +50,7 @@ impl Fn<'_, '_> {
             params: 0,
             ret: vec![Ty::Unit],
             locals: self.locals,
+            pinned: self.pinned,
             blocks: self.blocks,
         })
     }
