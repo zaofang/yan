@@ -561,6 +561,17 @@ impl Lower<'_, '_, '_> {
         if !self.returns_view {
             return;
         }
+        if let j::ExprKind::Name(x) = &e.kind
+            && self.borrows.contains_key(x)
+            && let Some(root) = self.local_root(x)
+        {
+            self.err(
+                "E414",
+                e.span,
+                format!("this value borrows from the local `{root}`, which ends with the function"),
+            );
+            return;
+        }
         let j::ExprKind::Call(f, args) = &e.kind else {
             return;
         };
@@ -603,9 +614,9 @@ impl Lower<'_, '_, '_> {
         let j::ExprKind::Name(x) = &recv.kind else {
             return;
         };
-        if self.sig.params.iter().any(|q| q.name == *x) {
+        let Some(root) = self.local_root(x) else {
             return;
-        }
+        };
         let Some(module) = self.ty_of_local(recv).as_ref().and_then(Ty::module) else {
             return;
         };
@@ -620,7 +631,7 @@ impl Lower<'_, '_, '_> {
             self.err(
                 "E414",
                 e.span,
-                format!("this value borrows from the local `{x}`, which ends with the function"),
+                format!("this value borrows from the local `{root}`, which ends with the function"),
             );
         }
     }

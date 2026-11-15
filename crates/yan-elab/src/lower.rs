@@ -23,6 +23,7 @@ mod args;
 mod arith;
 mod array;
 mod assign;
+mod borrows;
 mod builtin;
 mod call_expr;
 mod calls;
@@ -130,6 +131,9 @@ struct Lower<'a, 'c, 's> {
     /// The parameters written as `View[T]`, and whether the function returns a view.
     views: Vec<String>,
     returns_view: bool,
+    /// Each local bound from a view or `Ref` (`let v = r.get()`, `let r = arena.alloc(x)`), with
+    /// every local and parameter it borrows from, transitively (4.5, R1002).
+    borrows: HashMap<String, Vec<String>>,
     /// Types learned for empty `[]` and `{}` bindings, by the span of the literal (R808).
     hints: Rc<RefCell<HashMap<Span, Ty>>>,
     /// Names read after the block that bound them, with their types: the next lowering
@@ -857,11 +861,10 @@ fn function_body_with(
                 _ => None,
             })
             .collect(),
-        returns_view: f
-            .ret
-            .as_ref()
-            .and_then(|r| r.ty.as_ref())
-            .is_some_and(|t| is_view(t) || is_ref(t)),
+        returns_view: f.ret.as_ref().is_some_and(|r| {
+            !r.from.is_empty() || r.ty.as_ref().is_some_and(|t| is_view(t) || is_ref(t))
+        }),
+        borrows: HashMap::new(),
         hints: Rc::clone(hints),
         hoists: Rc::clone(hoists),
         open: HashMap::new(),

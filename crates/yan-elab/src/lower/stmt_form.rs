@@ -84,7 +84,13 @@ impl Lower<'_, '_, '_> {
                     self.emit(StmtKind::Rhs(rhs), at);
                 }
             }
-            K::Assign { target, ty, value } => self.assign(target, ty.as_ref(), value, at)?,
+            K::Assign { target, ty, value } => {
+                let borrowed = self.borrowed_by(value);
+                self.assign(target, ty.as_ref(), value, at)?;
+                if let j::ExprKind::Name(n) = &target.kind {
+                    self.note_borrow(n, borrowed);
+                }
+            }
             K::Bind {
                 target,
                 target_span,
@@ -105,7 +111,9 @@ impl Lower<'_, '_, '_> {
                     span: *target_span,
                     paren: false,
                 };
+                let borrowed = self.borrowed_by(value);
                 self.assign(&t, ty.as_ref(), value, at)?;
+                self.note_borrow(target, borrowed);
             }
             K::AugAssign { target, op, value } => {
                 let op: &'static str = op.trim_end_matches('=');
