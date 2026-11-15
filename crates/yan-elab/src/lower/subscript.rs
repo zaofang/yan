@@ -367,25 +367,42 @@ impl Lower<'_, '_, '_> {
         let Some(body) = &at.body else {
             return unsupported("a subscript without a body");
         };
-        let params: Vec<&str> = at
+        let params: Vec<(&str, bool)> = at
             .params
             .iter()
             .filter_map(|p| match p {
-                j::Param::Value { name, .. } => Some(name.as_str()),
+                j::Param::Value { name, conv, .. } => {
+                    Some((name.as_str(), matches!(conv, Some(j::Conv::Var))))
+                }
                 _ => None,
             })
             .collect();
-        let Some((selfp, keyps)) = params.split_first() else {
+        let Some((&(selfp, _), keyps)) = params.split_first() else {
             return unsupported("a subscript without `self`");
         };
-        let mut keys = Vec::new();
+        // Positional arguments fill the parameters after `self` in order; keywords name one.
+        let mut slots: Vec<Option<(&j::Expr, bool)>> = vec![None; keyps.len()];
+        let mut next = 0;
+        let mut bad = false;
         for a in &args {
-            match &a.kind {
-                j::ArgKind::Expr(x) if a.name.is_none() => keys.push(x),
-                _ => return unsupported("keyword or reference arguments to a subscript"),
+            let (x, by_ref) = match &a.kind {
+                j::ArgKind::Expr(x) => (x, false),
+                j::ArgKind::Ref(x) => (x, true),
+                _ => return unsupported("a `become` argument to a subscript"),
+            };
+            let i = match &a.name {
+                Some(n) => keyps.iter().position(|(k, _)| k == n),
+                None => {
+                    next += 1;
+                    (next <= keyps.len()).then(|| next - 1)
+                }
+            };
+            match i {
+                Some(i) if slots[i].is_none() => slots[i] = Some((x, by_ref)),
+                _ => bad = true,
             }
         }
-        if keys.len() != keyps.len() {
+        if bad || slots.iter().any(Option::is_none) {
             self.err(
                 "E202",
                 used.span,
@@ -393,11 +410,38 @@ impl Lower<'_, '_, '_> {
             );
             return Ok(Vec::new());
         }
+        let mut keys = Vec::new();
+        for ((name, inout), slot) in keyps.iter().zip(slots) {
+            let (x, by_ref) = slot.expect("checked above");
+            match (inout, by_ref) {
+                (true, false) => self.err(
+                    "E404",
+                    x.span,
+                    format!("`{name}` is a `var` parameter; pass `&place`"),
+                ),
+                (false, true) => self.err(
+                    "E405",
+                    x.span,
+                    format!("`{name}` is not a `var` parameter; remove `&`"),
+                ),
+                _ if by_ref && !is_place(x) => self.err("E405", x.span, "`&` needs a place".into()),
+                _ => {}
+            }
+            keys.push((x, by_ref));
+        }
+        if self
+            .cx
+            .diags
+            .iter()
+            .any(|d| d.code == "E404" || d.code == "E405")
+        {
+            return Ok(Vec::new());
+        }
 
         let mut out = Vec::new();
         let mut map = HashMap::from([(selfp.to_string(), base)]);
-        for (keyp, key) in keyps.iter().zip(keys) {
-            let key = if matches!(key.kind, E::Name(_) | E::Lit(_)) {
+        for ((keyp, _), (key, by_ref)) in keyps.iter().zip(keys) {
+            let key = if by_ref || matches!(key.kind, E::Name(_) | E::Lit(_)) {
                 key.clone()
             } else {
                 let name = format!("__sub{n}_{keyp}");
