@@ -265,6 +265,28 @@ impl Machine<'_> {
                 a[1].int() as i64,
                 a[2].int() as i64,
             )))),
+            RtFn::Civil => {
+                let op = self.str_of(a[0].addr())?;
+                if op == "cli.parse" {
+                    return unsupported("civil operation `cli.parse` in the machine");
+                }
+                let words: Vec<i64> = a[1..].iter().map(|v| v.int() as i64).collect();
+                let fault = std::cell::RefCell::new(None);
+                let done = yan_rt::civil::run(&op, &words, &|w| {
+                    self.str_of(w as u64).unwrap_or_else(|e| {
+                        fault.borrow_mut().get_or_insert(e);
+                        String::new()
+                    })
+                });
+                if let Some(e) = fault.into_inner() {
+                    return Err(e);
+                }
+                let (status, out) = yan_rt::civil::outcome(done, |s| self.new_str(s) as i64);
+                self.civil_out = out;
+                Val::I(i128::from(status))
+            }
+            RtFn::CivilOut => Val::I(i128::from(self.civil_out[a[0].int() as usize])),
+            RtFn::CivilOutF => Val::F(f64::from_bits(self.civil_out[a[0].int() as usize] as u64)),
             other => return unsupported(format!("runtime function {other:?} in the machine")),
         })
     }

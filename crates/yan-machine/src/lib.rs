@@ -84,6 +84,7 @@ pub struct Machine<'p> {
     pub(crate) lists: HashMap<u64, rt::List>,
     exposed: HashMap<u64, i128>,
     scratch: Option<u64>,
+    civil_out: Vec<i64>,
     race: RefCell<Race>,
 }
 
@@ -98,6 +99,7 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
         lists: HashMap::new(),
         exposed: HashMap::new(),
         scratch: None,
+        civil_out: Vec::new(),
         race: RefCell::new(Race::new()),
     };
     m.call(prog.main, vec![])?;
