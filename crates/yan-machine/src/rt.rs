@@ -16,6 +16,14 @@ pub struct List {
 }
 
 impl Machine<'_> {
+    /// Freeing a block twice is `ub(8)` under `--ub`.
+    fn free_block(&mut self, addr: u64) -> Result<(), Stop> {
+        if !self.mem.free(addr) && self.ub {
+            return Err(Stop::Ub(8, format!("block {addr:#x} is dropped twice")));
+        }
+        Ok(())
+    }
+
     pub(crate) fn new_str(&mut self, s: &str) -> u64 {
         let a = self.mem.alloc(s.len());
         let bytes: Vec<Byte> = s.bytes().map(Byte::Init).collect();
@@ -79,13 +87,13 @@ impl Machine<'_> {
             RtFn::StrFree => {
                 // literals are static (R561)
                 if !self.strs.contains(&Some(a[0].addr())) {
-                    self.mem.free(a[0].addr());
+                    self.free_block(a[0].addr())?;
                 }
                 Val::U
             }
             RtFn::Alloc => Val::I(i128::from(self.mem.alloc(8 * (a[0].int() as usize + 1)))),
             RtFn::EnvFree => {
-                self.mem.free(a[0].addr());
+                self.free_block(a[0].addr())?;
                 Val::U
             }
             RtFn::ListNew => {
@@ -138,7 +146,7 @@ impl Machine<'_> {
                 if let Some(l) = self.lists.remove(&h) {
                     self.mem.free(l.data);
                 }
-                self.mem.free(h);
+                self.free_block(h)?;
                 Val::U
             }
             RtFn::PtrExpose => {

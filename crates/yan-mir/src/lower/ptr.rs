@@ -32,9 +32,15 @@ impl<'m> Fn<'_, 'm> {
         };
         let elem = |me: &Self| -> R<Shape> {
             match me.targ(c)? {
-                Some(e) if !Self::has_heap(&e) => Ok(e),
-                Some(e) => unsupported(format!("a `Ptr` to a value with heap blocks ({e:?})")),
+                Some(e) => Ok(e),
                 None => unsupported("a `Ptr` without its type"),
+            }
+        };
+        // `write` of a heap value would leak the slot's old blocks, which `Ptr` cannot know.
+        let heap_free = |me: &Self| -> R<Shape> {
+            match elem(me)? {
+                e if !Self::has_heap(&e) => Ok(e),
+                e => unsupported(format!("a `Ptr` write of a value with heap blocks ({e:?})")),
             }
         };
         match (id, args.as_slice()) {
@@ -77,7 +83,7 @@ impl<'m> Fn<'_, 'm> {
                 set(self, v);
             }
             (id::STD_PTR_WRITE, [(_, p), (_, v)]) => {
-                let e = elem(self)?;
+                let e = heap_free(self)?;
                 let p = self.atom_any(p)?.0;
                 let v = self.atom(v, &e)?;
                 self.write(&At::Mem(p[0].clone(), 0), v);
