@@ -17,6 +17,8 @@ use jiff::{Span, Timestamp, Unit, Zoned};
 pub enum Done {
     /// The result words.
     Ok(Vec<i64>),
+    /// A single `Str` result, allocated by the caller's host.
+    Text(String),
     /// The `None` of an optional result.
     None,
     /// A parser's rejection: the char offset and the `TimeReason` tag.
@@ -459,18 +461,19 @@ fn strptime<T>(
 
 fn strftime(fmt: &str, b: impl Into<strtime::BrokenDownTime>) -> Done {
     match strtime::format(fmt.as_bytes(), b) {
-        Ok(s) => Done::Ok(vec![crate::abi::str_block(&s) as i64]),
+        Ok(s) => Done::Text(s),
         Err(_) => Done::Value,
     }
 }
 
-fn text(w: i64) -> &'static str {
+/// The text of a native `Str` argument.
+fn native_text(w: i64) -> String {
     // SAFETY: a `Str` argument is a live `String` block for the call.
-    unsafe { &*(w as *const String) }
+    unsafe { &*(w as *const String) }.clone()
 }
 
 fn str_out(s: &str) -> Done {
-    Done::Ok(vec![crate::abi::str_block(s) as i64])
+    Done::Text(s.to_owned())
 }
 
 fn lift<T>(r: Result<T, Fail>, f: impl FnOnce(T) -> Vec<i64>) -> Done {
@@ -707,8 +710,8 @@ fn clock_sleep(h: i64, ns: i128) {
     }
 }
 
-/// Runs operation `op` on the argument words `a`.
-pub fn run(op: &str, a: &[i64]) -> Done {
+/// Runs operation `op` on the argument words `a`; `text` reads a `Str` argument word.
+pub fn run(op: &str, a: &[i64], text: &dyn Fn(i64) -> String) -> Done {
     match op {
         "date.new" => match new_date(a[0].into(), a[1].into(), a[2].into()) {
             Some(d) => int(days_of(d)),
@@ -732,7 +735,7 @@ pub fn run(op: &str, a: &[i64]) -> Done {
             }
             Done::Ok(a.to_vec())
         }
-        _ => run_more(op, a),
+        _ => run_more(op, a, text),
     }
 }
 
@@ -743,16 +746,15 @@ fn whole<T>(s: &str, f: impl FnOnce(&mut Reader) -> Result<T, Fail>) -> Result<T
     Ok(x)
 }
 
-fn run_more(op: &str, a: &[i64]) -> Done {
+fn run_more(op: &str, a: &[i64], text: &dyn Fn(i64) -> String) -> Done {
     match op {
-        "date.parse" => lift(whole(text(a[0]), Reader::date), |d| vec![days_of(d)]),
-        "time.parse" => lift(
-            whole(text(a[0]), Reader::clock),
-            |t| vec![time_ns(t) as i64],
-        ),
-        "datetime.parse" => lift(whole(text(a[0]), Reader::datetime), dt_words),
-        "period.parse" => lift(parse_period(text(a[0])), |p| p),
-        "zoned.parse" => lift(parse_zoned(text(a[0])), |w| w),
+        "date.parse" => lift(whole(&text(a[0]), Reader::date), |d| vec![days_of(d)]),
+        "time.parse" => lift(whole(&text(a[0]), Reader::clock), |t| {
+            vec![time_ns(t) as i64]
+        }),
+        "datetime.parse" => lift(whole(&text(a[0]), Reader::datetime), dt_words),
+        "period.parse" => lift(parse_period(&text(a[0])), |p| p),
+        "zoned.parse" => lift(parse_zoned(&text(a[0])), |w| w),
         "cli.parse" => {
             // SAFETY: `a` holds a `list[str]` block, a `Str` schema and a `Str` descriptor.
             let args: Vec<String> = unsafe { &*(a[0] as *const crate::abi::List) }
@@ -760,10 +762,10 @@ fn run_more(op: &str, a: &[i64]) -> Done {
                 .iter()
                 .map(|&w| text(w as i64).to_owned())
                 .collect();
-            match crate::cli::parse_args(&args, text(a[1])) {
+            match crate::cli::parse_args(&args, &text(a[1])) {
                 Ok(v) => {
                     let mut out = Vec::new();
-                    encode(&v, text(a[2]), &mut 0, &mut out);
+                    encode(&v, &text(a[2]), &mut 0, &mut out);
                     Done::Ok(out)
                 }
                 Err(e) => Done::Fail(vec![
@@ -804,21 +806,25 @@ fn run_more(op: &str, a: &[i64]) -> Done {
         "mono.add" => Done::Ok(words(join(a[0], a[1]) + join(a[2], a[3])).to_vec()),
         "mono.sub" | "mono.since" => Done::Ok(words(join(a[0], a[1]) - join(a[2], a[3])).to_vec()),
         "show.mono" => str_out(&format!("MonoInstant({})", join(a[0], a[1]))),
-        "instant.parse" => lift(parse_instant(text(a[0])), |w| w),
-        "zone.parse" => match intern(text(a[0])) {
+        "instant.parse" => lift(parse_instant(&text(a[0])), |w| w),
+        "zone.parse" => match intern(&text(a[0])) {
             Some(z) => int(z),
             None => Done::Err(0, ZONE),
         },
         "date.strptime" => lift(
-            strptime(text(a[0]), text(a[1]), strtime::BrokenDownTime::to_date),
+            strptime(&text(a[0]), &text(a[1]), strtime::BrokenDownTime::to_date),
             |d| vec![days_of(d)],
         ),
         "time.strptime" => lift(
-            strptime(text(a[0]), text(a[1]), strtime::BrokenDownTime::to_time),
+            strptime(&text(a[0]), &text(a[1]), strtime::BrokenDownTime::to_time),
             |t| vec![time_ns(t) as i64],
         ),
         "datetime.strptime" => lift(
-            strptime(text(a[0]), text(a[1]), strtime::BrokenDownTime::to_datetime),
+            strptime(
+                &text(a[0]),
+                &text(a[1]),
+                strtime::BrokenDownTime::to_datetime,
+            ),
             dt_words,
         ),
         "date.year" => int(date_of(a[0]).year()),
@@ -879,12 +885,12 @@ fn run_more(op: &str, a: &[i64]) -> Done {
             w.extend(words(ns));
             Done::Ok(w)
         }
-        "date.strftime" => strftime(text(a[1]), date_of(a[0])),
-        "time.strftime" => strftime(text(a[1]), time_of(a[0])),
-        "datetime.strftime" => strftime(text(a[2]), dt_of(a)),
-        "zoned.strftime" => strftime(text(a[5]), &jiff_zoned(a)),
+        "date.strftime" => strftime(&text(a[1]), date_of(a[0])),
+        "time.strftime" => strftime(&text(a[1]), time_of(a[0])),
+        "datetime.strftime" => strftime(&text(a[2]), dt_of(a)),
+        "zoned.strftime" => strftime(&text(a[5]), &jiff_zoned(a)),
         "instant.strftime" => match Timestamp::from_nanosecond(join(a[0], a[1])) {
-            Ok(ts) => strftime(text(a[2]), &ts.to_zoned(TimeZone::UTC)),
+            Ok(ts) => strftime(&text(a[2]), &ts.to_zoned(TimeZone::UTC)),
             Err(_) => Done::Overflow,
         },
         "datetime.in_zone" => in_zone(dt_of(a), a[2], a[3]),
@@ -927,6 +933,19 @@ fn run_more(op: &str, a: &[i64]) -> Done {
     }
 }
 
+/// The status and result words of `done`; `string` allocates a `Str` result in the host.
+pub fn outcome(done: Done, string: impl FnOnce(&str) -> i64) -> (i64, Vec<i64>) {
+    match done {
+        Done::Ok(w) => (0, w),
+        Done::Text(s) => (0, vec![string(&s)]),
+        Done::None => (1, Vec::new()),
+        Done::Err(at, kind) => (2, vec![at, kind]),
+        Done::Fail(w) => (2, w),
+        Done::Overflow => (3, Vec::new()),
+        Done::Value => (4, Vec::new()),
+    }
+}
+
 thread_local! {
     static OUT: std::cell::RefCell<Vec<i64>> = const { std::cell::RefCell::new(Vec::new()) };
 }
@@ -954,14 +973,8 @@ pub unsafe extern "C" fn yan_rt_civil(
 ) -> i64 {
     // SAFETY: the caller's contract.
     let op = unsafe { &*op };
-    let (status, out) = match run(op, &[a0, a1, a2, a3, a4, a5, a6, a7, a8, a9]) {
-        Done::Ok(w) => (0, w),
-        Done::None => (1, Vec::new()),
-        Done::Err(at, kind) => (2, vec![at, kind]),
-        Done::Fail(w) => (2, w),
-        Done::Overflow => (3, Vec::new()),
-        Done::Value => (4, Vec::new()),
-    };
+    let done = run(op, &[a0, a1, a2, a3, a4, a5, a6, a7, a8, a9], &native_text);
+    let (status, out) = outcome(done, |s| crate::abi::str_block(s) as i64);
     OUT.with(|o| *o.borrow_mut() = out);
     status
 }
