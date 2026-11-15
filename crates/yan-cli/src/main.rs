@@ -516,16 +516,14 @@ fn main() -> ExitCode {
             opt,
             ub,
             args,
-        } => run(
-            &file,
-            Database::new(strict, level.as_deref() == Some("release")),
-            cli.backend,
-            cli.jit,
-            args,
-            report_live,
-            opt,
-            ub,
-        ),
+        } => {
+            let db = Database::new(strict, level.as_deref() == Some("release"));
+            let code = run_program(&file, db, cli.backend, cli.jit, args, opt, ub);
+            if report_live {
+                eprintln!("live: {}", yan_rt::heap::live_blocks());
+            }
+            code
+        }
         Command::Build {
             file,
             strict,
@@ -952,23 +950,6 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
         }
     }
     ExitCode::SUCCESS
-}
-
-fn run(
-    file: &Path,
-    db: Database,
-    backend: Backend,
-    jit: Jit,
-    args: Vec<String>,
-    report_live: bool,
-    opt: bool,
-    ub: bool,
-) -> ExitCode {
-    let code = run_program(file, db, backend, jit, args, opt, ub);
-    if report_live {
-        eprintln!("live: {}", yan_rt::heap::live_blocks());
-    }
-    code
 }
 
 /// The module of `file` once it loads and checks clean; otherwise the failure is reported and
