@@ -176,10 +176,13 @@ impl Key {
     }
 
     /// Encode the slots `w[*at..]`, advancing `at` past them.
-    ///
-    /// # Safety
-    /// A `Str` slot holds a live `Str` block.
-    unsafe fn enc(&self, w: &[u64], at: &mut usize, out: &mut Enc) {
+    fn enc<B: Blocks>(
+        &self,
+        w: &[u64],
+        at: &mut usize,
+        out: &mut Enc,
+        b: &B,
+    ) -> Result<(), B::Err> {
         let x = w[*at];
         match self {
             Key::Int(bits, signed) => {
@@ -194,27 +197,22 @@ impl Key {
             Key::Float => out.float(f64::from_bits(x)),
             Key::Bool => out.bool(x as u8 != 0),
             Key::Unit => out.unit(),
-            // SAFETY: the caller's contract.
-            Key::Str | Key::Path => out.text(unsafe { &*(x as *const String) }),
-            // SAFETY: the caller's contract.
-            Key::WinPath => out.win_path(&unsafe { &*(x as *const String) }.to_lowercase()),
-            // SAFETY: the caller's contract.
-            Key::Bytes => out.bytes(unsafe { &*(x as *const Vec<u8>) }),
+            Key::Str | Key::Path => out.text(&b.text(x)?),
+            Key::WinPath => out.win_path(&b.text(x)?.to_lowercase()),
+            Key::Bytes => out.bytes(&b.bytes(x)?),
             Key::Tuple(ks) => {
                 out.seq(ks.len());
                 for k in ks {
-                    // SAFETY: forwarded.
-                    unsafe { k.enc(w, at, out) };
+                    k.enc(w, at, out, b)?;
                 }
-                return;
+                return Ok(());
             }
             Key::Rec(name, ks) => {
                 out.data(name);
                 for k in ks {
-                    // SAFETY: forwarded.
-                    unsafe { k.enc(w, at, out) };
+                    k.enc(w, at, out, b)?;
                 }
-                return;
+                return Ok(());
             }
             Key::Sum(vs) => {
                 *at += 1;
@@ -222,17 +220,17 @@ impl Key {
                     if i as u64 == x {
                         out.data(name);
                         for k in ks {
-                            // SAFETY: forwarded.
-                            unsafe { k.enc(w, at, out) };
+                            k.enc(w, at, out, b)?;
                         }
                     } else {
                         *at += ks.iter().map(Key::width).sum::<usize>();
                     }
                 }
-                return;
+                return Ok(());
             }
         }
         *at += 1;
+        Ok(())
     }
 }
 
@@ -324,13 +322,95 @@ pub(crate) fn parse(s: &mut &str) -> Key {
     }
 }
 
+/// Reads the blocks a key's slots point to, so native code (raw pointers) and the machine
+/// (abstract memory) encode keys with one routine.
+pub trait Blocks {
+    type Err;
+    fn text(&self, block: u64) -> Result<String, Self::Err>;
+    fn bytes(&self, block: u64) -> Result<Vec<u8>, Self::Err>;
+}
+
+/// Blocks as native code holds them: slots are live pointers.
+struct Raw;
+
+impl Blocks for Raw {
+    type Err = std::convert::Infallible;
+
+    fn text(&self, block: u64) -> Result<String, Self::Err> {
+        // SAFETY: `Map::encode`'s contract: a `Str` slot holds a live `Str` block.
+        Ok(unsafe { &*(block as *const String) }.clone())
+    }
+
+    fn bytes(&self, block: u64) -> Result<Vec<u8>, Self::Err> {
+        // SAFETY: as above, for `bytes` blocks.
+        Ok(unsafe { &*(block as *const Vec<u8>) }.clone())
+    }
+}
+
+/// A map's key layout: the schema parsed once.
+#[derive(Debug, Clone)]
+pub struct Layout(Key);
+
+impl Layout {
+    pub fn parse(schema: &str) -> Layout {
+        Layout(parse(&mut &*schema))
+    }
+
+    pub fn width(&self) -> usize {
+        self.0.width()
+    }
+
+    /// The canonical encoding of the key in slots `w`; equal keys encode equal.
+    pub fn encode<B: Blocks>(&self, w: &[u64], blocks: &B) -> Result<Vec<u8>, B::Err> {
+        let mut e = Enc::new();
+        self.0.enc(w, &mut 0, &mut e, blocks)?;
+        Ok(e.into_bytes())
+    }
+}
+
+/// Entry positions by encoded key, in insertion order: removal closes the gap.
+#[derive(Debug, Clone, Default)]
+pub struct KeyIndex(HashMap<Vec<u8>, usize>);
+
+impl KeyIndex {
+    pub fn find(&self, enc: &[u8]) -> Option<usize> {
+        self.0.get(enc).copied()
+    }
+
+    /// Adds `enc` as the last entry and returns its position.
+    pub fn push(&mut self, enc: Vec<u8>) -> usize {
+        let i = self.0.len();
+        self.0.insert(enc, i);
+        i
+    }
+
+    /// Removes `enc`, returning its former position.
+    pub fn remove(&mut self, enc: &[u8]) -> Option<usize> {
+        let i = self.0.remove(enc)?;
+        for j in self.0.values_mut() {
+            if *j > i {
+                *j -= 1;
+            }
+        }
+        Some(i)
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
 pub struct Map {
     key: Key,
     kw: usize,
     vw: usize,
     /// Entries of `kw + vw` slots, in insertion order.
     data: Vec<u64>,
-    index: HashMap<Vec<u8>, usize>,
+    index: KeyIndex,
 }
 
 impl Map {
@@ -350,7 +430,7 @@ impl Map {
             kw,
             vw,
             data: Vec::new(),
-            index: HashMap::new(),
+            index: KeyIndex::default(),
         }))
     }
 
@@ -372,10 +452,10 @@ impl Map {
     unsafe fn encode(&self, key: *const u64) -> Vec<u8> {
         // SAFETY: the caller's contract.
         let w = unsafe { std::slice::from_raw_parts(key, self.kw) };
-        let mut e = Enc::new();
-        // SAFETY: as above.
-        unsafe { self.key.enc(w, &mut 0, &mut e) };
-        e.into_bytes()
+        match self.key_enc(w) {
+            Ok(e) => e,
+            Err(never) => match never {},
+        }
     }
 
     fn entry(&mut self, i: usize) -> *mut u64 {
@@ -387,7 +467,13 @@ impl Map {
     /// As [`Map::encode`].
     unsafe fn find(&self, key: *const u64) -> Option<usize> {
         // SAFETY: forwarded.
-        self.index.get(&unsafe { self.encode(key) }).copied()
+        self.index.find(&unsafe { self.encode(key) })
+    }
+
+    fn key_enc(&self, w: &[u64]) -> Result<Vec<u8>, std::convert::Infallible> {
+        let mut e = Enc::new();
+        self.key.enc(w, &mut 0, &mut e, &Raw)?;
+        Ok(e.into_bytes())
     }
 }
 
@@ -456,8 +542,7 @@ pub unsafe extern "C" fn yan_rt_map_push(m: *mut Map, key: *const u64) -> *mut u
     let m = unsafe { &mut *m };
     // SAFETY: as above.
     let enc = unsafe { m.encode(key) };
-    let i = m.len();
-    m.index.insert(enc, i);
+    let i = m.index.push(enc);
     // SAFETY: as above.
     m.data
         .extend_from_slice(unsafe { std::slice::from_raw_parts(key, m.kw) });
@@ -484,11 +569,6 @@ pub unsafe extern "C" fn yan_rt_map_remove(m: *mut Map, key: *const u64, out: *m
     let out = unsafe { std::slice::from_raw_parts_mut(out, s) };
     out.copy_from_slice(&m.data[i * s..(i + 1) * s]);
     m.data.drain(i * s..(i + 1) * s);
-    for j in m.index.values_mut() {
-        if *j > i {
-            *j -= 1;
-        }
-    }
     1
 }
 
