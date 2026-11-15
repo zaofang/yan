@@ -145,6 +145,14 @@ impl Machine<'_> {
         Val::I(i128::from(at))
     }
 
+    /// A list's slots, flattened.
+    fn list_words(&mut self, l: Val) -> Result<Vec<u64>, Stop> {
+        let List {
+            words, len, data, ..
+        } = *self.list(l)?;
+        self.words(data, words * len)
+    }
+
     /// An actor's state slots at `state`.
     fn state_words(&self, actor: u64, state: u64) -> Result<Vec<u64>, Stop> {
         self.words(state, yan_rt::actor::words(actor))
@@ -633,6 +641,50 @@ impl Machine<'_> {
             }
             RtFn::SimPct => {
                 sched::yan_rt_sim_pct(a[0].int() as i64, a[1].int() as i64, a[2].int() as i64);
+                Val::U
+            }
+            RtFn::ChanNew => Val::I(i128::from(yan_rt::chan::yan_rt_chan_new(
+                a[0].int() as u64,
+                a[1].int() as u64,
+            ) as u64)),
+            RtFn::ChanSend | RtFn::ChanTrySend => {
+                let ch = a[0].addr();
+                let v = self.words(a[1].addr(), yan_rt::chan::words(ch as usize))?;
+                let in_task = a[2].int() != 0;
+                Val::I(i128::from(if f == RtFn::ChanSend {
+                    yan_rt::chan::send(ch as usize, &v, in_task)
+                } else {
+                    yan_rt::chan::try_send(ch as usize, &v, in_task)
+                }))
+            }
+            RtFn::ChanRecv | RtFn::ChanTryRecv => {
+                let ch = a[0].addr() as usize;
+                let in_task = a[2].int() != 0;
+                let (status, v) = if f == RtFn::ChanRecv {
+                    yan_rt::chan::recv(ch, in_task)
+                } else {
+                    yan_rt::chan::try_recv(ch, in_task)
+                };
+                self.write_words(a[1].addr(), &v)?;
+                Val::I(i128::from(status))
+            }
+            RtFn::SelectWait => {
+                let (keys, at) = (self.list_words(a[0])?, self.list_words(a[1])?);
+                let (status, arm) = yan_rt::chan::select_wait(&keys, &at, a[3].int() != 0);
+                if status == 0 {
+                    self.write_words(a[2].addr(), &[arm])?;
+                }
+                Val::I(i128::from(status))
+            }
+            RtFn::ChanDrop | RtFn::ChanDropSender | RtFn::ChanClone | RtFn::ChanCloneSender => {
+                use yan_rt::chan::End;
+                let op = match f {
+                    RtFn::ChanDrop => End::Drop,
+                    RtFn::ChanDropSender => End::DropSender,
+                    RtFn::ChanClone => End::Clone,
+                    _ => End::CloneSender,
+                };
+                yan_rt::chan::end(a[0].addr() as usize, op);
                 Val::U
             }
             other => return unsupported(format!("runtime function {other:?} in the machine")),
