@@ -1262,7 +1262,16 @@ fn machine(p: &yan_mir::Program, ub: bool) -> ExitCode {
     });
     let _ = std::io::Write::flush(&mut std::io::stdout());
     match result {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(live) => {
+            if ub && !live.is_empty() {
+                let bytes: usize = live.iter().map(|(_, n)| n).sum();
+                eprintln!(
+                    "leak: {} allocations, {bytes} bytes, live when main returned",
+                    live.len()
+                );
+            }
+            ExitCode::SUCCESS
+        }
         Err(yan_machine::Stop::Panic(kind)) => {
             eprintln!("panic({kind}): {}", yan_rt::abi::panic_message(kind));
             ExitCode::from(EXIT_PANIC as u8)
