@@ -66,6 +66,15 @@ impl Memory {
         was_live
     }
 
+    /// Live allocations as `(base, size)`, excluding `except`.
+    pub fn live(&self, except: impl Fn(u64) -> bool) -> Vec<(u64, usize)> {
+        self.allocs
+            .iter()
+            .filter(|a| a.live && !except(a.base))
+            .map(|a| (a.base, a.size))
+            .collect()
+    }
+
     pub fn is_live(&self, id: AllocId) -> bool {
         self.allocs[id].live
     }
@@ -89,5 +98,19 @@ impl Memory {
             .get_mut(at..at + bytes.len())?
             .copy_from_slice(bytes);
         Some(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn live_lists_unfreed() {
+        let mut m = Memory::new();
+        let (a, b) = (m.alloc(8), m.alloc(3));
+        m.free(a);
+        assert_eq!(m.live(|_| false), vec![(b, 3)]);
+        assert!(m.live(|x| x == b).is_empty());
     }
 }

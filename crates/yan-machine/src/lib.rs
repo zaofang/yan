@@ -86,7 +86,9 @@ pub struct Machine<'p> {
     race: RefCell<Race>,
 }
 
-pub fn run(prog: &Program, ub: bool) -> Result<(), Stop> {
+/// Runs `main`; on return, the allocations still live as `(base, size)`, string literals aside
+/// (the leak report of 6.9; leaks are not UB).
+pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
     let mut m = Machine {
         prog,
         ub,
@@ -96,7 +98,8 @@ pub fn run(prog: &Program, ub: bool) -> Result<(), Stop> {
         exposed: HashMap::new(),
         race: RefCell::new(Race::new()),
     };
-    m.call(prog.main, vec![]).map(drop)
+    m.call(prog.main, vec![])?;
+    Ok(m.mem.live(|a| m.strs.contains(&Some(a))))
 }
 
 fn encode(v: Val) -> u64 {
