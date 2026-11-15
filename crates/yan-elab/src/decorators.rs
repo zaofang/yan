@@ -637,7 +637,7 @@ fn fields(g: &Globals, it: &j::Item, item: &str, tr: &str, cx: &mut Cx) {
             }
             // A parameter of a generic sum is checked where the sum is instantiated.
             let probe;
-            let f = match g.sum_params.get(item) {
+            let f = match g.type_params.get(item) {
                 Some(ps) => {
                     let map: Vec<_> = ps.iter().map(|p| (p.clone(), Ty::Int)).collect();
                     probe = crate::Field {
@@ -669,7 +669,7 @@ fn fields(g: &Globals, it: &j::Item, item: &str, tr: &str, cx: &mut Cx) {
 /// E282 for a type argument of generic sum `sum` that a derived trait of the sum cannot hold:
 /// a capability, a callable, a type without the derive (design D6).
 pub(crate) fn instance(g: &Globals, sum: &str, args: &[Ty], span: Span, cx: &mut Cx) {
-    let Some(ps) = g.sum_params.get(sum) else {
+    let Some(ps) = g.type_params.get(sum) else {
         return;
     };
     for tr in FIELD_TRAITS {

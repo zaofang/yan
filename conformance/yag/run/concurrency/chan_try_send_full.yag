@@ -1,0 +1,31 @@
+# spec: 9.5
+# rows: R342
+# note: try_send on a full channel fails Full[T] and hands the unsent value back, for a Copy payload and a heap one; the value is dropped exactly once (#1264)
+# stdout:
+# sent
+# Full(value=2)
+# Got(value=1)
+# sent
+# Full(value='bb')
+# Full(value='cc')
+
+def push(var tx: Sender[int], v: int) -> str fail Full[int] | Cancelled uses nondet:
+    tx.try_send(v)?
+    return "sent"
+
+def poll(var rx: Receiver[int]) -> str fail Cancelled uses nondet:
+    return f"{rx.try_recv()?}"
+
+def words() uses io, nondet:
+    tx, _ = Channel[str](1)
+    tx.try_send("a") else e -> None
+    tx.try_send("b" + "b") else e -> print(f"{e}")
+    tx.try_send("c" + "c") else e -> print(f"{e}")
+
+def main() uses io, nondet:
+    tx, rx = Channel[int](1)
+    print(push(&tx, 1) else e -> f"{e}")
+    print(push(&tx, 2) else e -> f"{e}")
+    print(poll(&rx) else e -> f"{e}")
+    print(push(&tx, 2) else e -> f"{e}")
+    words()

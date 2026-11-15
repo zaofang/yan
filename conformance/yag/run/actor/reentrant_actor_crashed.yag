@@ -37,8 +37,9 @@ def show(r: Result[int, ActorError]) -> str:
             return f"{e}"
 
 def main() uses io:
-    a = actor.spawn(A(n=0))
-    tx, rx = Channel[int](1)
-    par concurrent:
-        print(show(a.wait_for(&rx)))
-        print(poke(a, &tx))
+    with sched = sequential():
+        a = actor.spawn(A(n=0))
+        tx, rx = Channel[int](1)
+        par concurrent:
+            print(show(a.wait_for(&rx)))
+            print(poke(a, &tx))

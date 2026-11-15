@@ -1518,6 +1518,47 @@
    ]
   },
   {
+   "path": "yag/fail/generics/derive_argument.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "10.1",
+    "17.4"
+   ],
+   "rows": [
+    "R423",
+    "R872"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E282",
+     "line": 8,
+     "col": 7
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/generics/unfixed_constructor.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "10.1",
+    "14.1"
+   ],
+   "rows": [
+    "R423"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E241",
+     "line": 8,
+     "col": 9
+    }
+   ]
+  },
+  {
    "path": "yag/fail/holes/e702_hole_in_release.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -2775,6 +2816,26 @@
      "code": "E502",
      "line": 10,
      "col": 14
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/match/e503_generic_instance.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "10.1",
+    "14.1"
+   ],
+   "rows": [
+    "R423"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E503",
+     "line": 8,
+     "col": 5
     }
    ]
   },
@@ -5573,6 +5634,38 @@
    "exit": 1
   },
   {
+   "path": "yag/run/generics/generic_sums.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "10.1",
+    "13"
+   ],
+   "rows": [
+    "R423"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "42\n-1\n1\nx\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/generics/generic_sums_payloads.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "10.1",
+    "13"
+   ],
+   "rows": [
+    "R423"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "hi!\nnone\nTrue\nJust(value=['x', 'y'])\nJust(value=Just(value=3))\nP(a='k', b=Just(value='v'))\nkv\n7:seven\n0:none\nseven!\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/lenient/n36_char_as_str.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7166,6 +7259,38 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/python_names_find_capitalize_bit_length.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.3"
+   ],
+   "rows": [
+    "R807"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n-1\n2\n0\nHello world\n\n8\n0\n3\n1\n64\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/python_names_rfind_strip_pad_count.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.3"
+   ],
+   "rows": [
+    "R807"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "4\n-1\n2\n[hi]\n[hi]\nx\nx\nx\nab   |\n***ab\nab\n-00042\n+007\n00042\n3\n0\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/rand_below_zero.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7909,6 +8034,21 @@
    "flags": [],
    "expect": [],
    "stdout": "True True\nTrue\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/types/optional_return_arith.yag",
+   "kind": "run",
+   "milestone": "M1b",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [
+    "R906"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 None\n",
    "exit": 0
   },
   {
@@ -10982,6 +11122,20 @@
    "exit": 0
   },
   {
+   "path": "yn/run/stage0/ffi/extern_scalar_calls.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "12.1",
+    "12.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "2.0\n1.0\n1024.0\n24.0\n9000000000\n2147483647\n",
+   "exit": 0
+  },
+  {
    "path": "yn/run/stage0/folded_constant.yn",
    "kind": "run",
    "milestone": "M3",
@@ -11627,6 +11781,21 @@
    "exit": 0
   },
   {
+   "path": "yir/run/comptime_fn_specialization.yir",
+   "kind": "run",
+   "milestone": "M0",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [
+    "R130"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "34\n",
+   "exit": 0
+  },
+  {
    "path": "yir/run/div_zero.yir",
    "kind": "run",
    "milestone": "M0",
@@ -11844,6 +12013,23 @@
    "expect": [],
    "stdout": "",
    "exit": 101
+  },
+  {
+   "path": "yir/opt/e263_comptime_fn_param.yir",
+   "kind": "opt",
+   "milestone": "M0",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E263",
+     "line": 12,
+     "col": 28
+    }
+   ]
   },
   {
    "path": "golden/g1_hello.yag",

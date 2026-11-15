@@ -155,6 +155,22 @@ pub enum Inst {
         word: u32,
         src: Operand,
     },
+    /// `dst` = the address of `local`, which is in a [`Func::pinned`] group.
+    AddrOf {
+        dst: Local,
+        local: Local,
+    },
+    /// A boundary of a sequential `par`'s arms, for the machine's race detector; no code.
+    Arm(ArmEvent),
+}
+
+/// Where a `par` forks and joins its arms (`Inst::Arm`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ArmEvent {
+    Fork,
+    Enter(u32),
+    Exit,
+    Join,
 }
 
 /// The yan-rt entry points native code calls.
@@ -439,6 +455,8 @@ pub enum RtFn {
     ListPush,
     /// `(List) -> i64`
     ListLen,
+    /// `(List) -> ptr`: the first element slot.
+    ListData,
     /// `(List, i64) -> Ptr` to an element's slots; panics `bounds`.
     ListAt,
     /// `(List) -> List`, a copy of the slots.
@@ -790,6 +808,9 @@ pub struct Func {
     /// The result slots, then the final value of each `inout` parameter's slots.
     pub ret: Vec<Ty>,
     pub locals: Vec<Ty>,
+    /// Groups of locals that live in memory, one word each in order, because their address is
+    /// taken (`Inst::AddrOf`).
+    pub pinned: Vec<Vec<Local>>,
     /// Block 0 is the entry.
     pub blocks: Vec<Block>,
 }

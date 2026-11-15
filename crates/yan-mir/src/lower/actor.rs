@@ -594,6 +594,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             params: 3,
             ret: vec![Ty::Unit],
             locals: self.locals,
+            pinned: self.pinned,
             blocks: self.blocks,
         }
     }

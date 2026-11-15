@@ -18,6 +18,8 @@ pub(crate) struct Decl {
     pub def: j::FuncDef,
     /// `@preview("name")`: using it needs `preview = ["name"]` (20.6, E001).
     pub preview: Option<String>,
+    /// `@concurrent` on a `sched` handler constructor: its result implements `Concurrent` (R1003).
+    pub concurrent: bool,
 }
 
 pub(crate) struct Class {
@@ -89,6 +91,7 @@ pub(crate) static STD: LazyLock<Std> = LazyLock::new(|| {
                 intrinsic,
                 cap,
                 preview: preview.clone(),
+                concurrent: has("concurrent"),
                 def,
             };
             let wire = crate::decorators::derives(&it, "Wire");
@@ -478,7 +481,7 @@ fn raw_words(m: &j::Module) -> HashSet<String> {
     m.doc = None;
     for it in &mut m.items {
         match &mut it.kind {
-            j::ItemKind::Func(f) | j::ItemKind::Lemma(f) => undoc(f),
+            j::ItemKind::Func(f) | j::ItemKind::Lemma(f) | j::ItemKind::Sub(f) => undoc(f),
             j::ItemKind::Verbatim(_) => {}
             j::ItemKind::Record(c) => c.doc = None,
             j::ItemKind::Trait(t) => {
@@ -500,6 +503,10 @@ fn raw_words(m: &j::Module) -> HashSet<String> {
         .collect();
     // `x ** n` on floats is `std.math.pown`, whose rounding default is a `std.math` sum (R657).
     if text.contains("\"**\"") || w.contains("pow") {
+        w.insert("math".into());
+    }
+    // N52 reads a bare `sqrt` as `math.sqrt`.
+    if crate::lower::MATH_FREE.iter().any(|f| w.contains(*f)) {
         w.insert("math".into());
     }
     // `chr` fails with a `std.encoding` error (R801).
@@ -530,6 +537,10 @@ pub(crate) fn classes(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
     let out = declare_classes(g, m);
     for (name, c) in &out {
         let mut cx = std_cx(c.module);
+        let outer = g.scope.borrow().len();
+        g.scope
+            .borrow_mut()
+            .extend(g.type_params.get(*name).into_iter().flatten().cloned());
         let mut fs = Vec::new();
         for f in &c.class.fields {
             fs.push(crate::Field {
@@ -541,6 +552,7 @@ pub(crate) fn classes(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
                 wire: None,
             });
         }
+        g.scope.borrow_mut().truncate(outer);
         g.records.insert((*name).clone(), fs);
         if c.wire {
             g.wires.insert((*name).clone());
@@ -556,17 +568,38 @@ fn declare_classes(g: &mut Globals, m: &j::Module) -> Vec<(&'static String, &'st
     let words = words(m);
     let mut out = Vec::new();
     for (name, c) in &STD.classes {
-        if (words.contains(name.as_str()) || words.contains(c.module))
+        let returned = CLASS_RETURNED_BY
+            .iter()
+            .any(|(k, f)| k == name && words.contains(*f));
+        if (words.contains(name.as_str()) || words.contains(c.module) || returned)
             && !own.contains(name.as_str())
         {
             g.records.entry(name.clone()).or_default();
             g.std_records.insert(name.clone());
+            let ps: Vec<String> = c
+                .class
+                .tparams
+                .iter()
+                .filter_map(|p| match p {
+                    j::TParam::Type { name, .. } => Some(name.clone()),
+                    _ => None,
+                })
+                .collect();
+            if !ps.is_empty() {
+                g.type_params.insert(name.clone(), ps);
+            }
             out.push((name, c));
         }
     }
     out.sort_by_key(|(n, _)| *n);
     out
 }
+
+/// Std classes named only by the signature of the method whose failure they are.
+const CLASS_RETURNED_BY: &[(&str, &str)] = &[("Full", "try_send")];
+
+/// Std sums named only by the signature of the method that returns them.
+const RETURNED_BY: &[(&str, &str)] = &[("TryRecv", "try_recv")];
 
 /// The std sum types `m` may meet, registered in `g` as [`classes`] registers classes.
 pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
@@ -581,7 +614,11 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
         let class_named = STD.classes.iter().any(|(c, k)| {
             k.module == *module && words.contains(c.as_str()) && !own.contains(c.as_str())
         });
-        if (words.contains(name.as_str()) || words.contains(*module) || class_named)
+        // A sum a method returns is named by the method, not by the caller.
+        let returned = RETURNED_BY
+            .iter()
+            .any(|(s, f)| s == name && words.contains(*f));
+        if (words.contains(name.as_str()) || words.contains(*module) || class_named || returned)
             && !own.contains(name.as_str())
         {
             for v in vs {
@@ -589,6 +626,14 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
             }
             // Registered empty first: a variant's field may name its own sum.
             g.sums.insert(name.clone(), Vec::new());
+            let ps = t.tparams.iter().filter_map(|p| match p {
+                j::TParam::Type { name, .. } => Some(name.clone()),
+                _ => None,
+            });
+            let ps: Vec<String> = ps.collect();
+            if !ps.is_empty() {
+                g.type_params.insert(name.clone(), ps);
+            }
             g.std_sums.insert(name.clone());
             out.push(name.clone());
         }
@@ -612,6 +657,10 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
             unreachable!("a std sum")
         };
         let mut cx = std_cx(module);
+        let outer = g.scope.borrow().len();
+        g.scope
+            .borrow_mut()
+            .extend(g.type_params.get(name).into_iter().flatten().cloned());
         let mut variants = Vec::new();
         for v in vs {
             let mut fs = Vec::new();
@@ -627,6 +676,7 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
             }
             variants.push((v.name.clone(), fs));
         }
+        g.scope.borrow_mut().truncate(outer);
         g.sums.insert(name.clone(), variants);
     }
     Ok(out)
@@ -731,6 +781,15 @@ fn subst(pat: &j::Type, b: &HashMap<String, Ty>) -> Option<Ty> {
                     Ty::Data(n.to_owned())
                 }
                 (n, []) if b.contains_key(n) => b[n].clone(),
+                (n, a) if STD.sums.contains_key(n) => Ty::Inst(n.to_owned(), a.to_vec()),
+                (n, a)
+                    if STD
+                        .classes
+                        .get(n)
+                        .is_some_and(|c| !c.class.tparams.is_empty()) =>
+                {
+                    Ty::Inst(n.to_owned(), a.to_vec())
+                }
                 ("Type", []) => Ty::Type,
                 ("Ptr", [t]) => Ty::Foreign("Ptr", vec![t.clone()]),
                 (n, a) => crate::ty::builtin(n, a)?,
@@ -872,18 +931,10 @@ fn std_cx(module: &str) -> Cx<'static> {
 }
 
 /// A declared fail type: `None` inside when it cannot fail, a union for several members.
-fn fail_ty(paths: &[Vec<String>], b: &HashMap<String, Ty>) -> Option<Option<Ty>> {
-    let mut ms = paths
+fn fail_ty(types: &[j::Type], b: &HashMap<String, Ty>) -> Option<Option<Ty>> {
+    let mut ms = types
         .iter()
-        .map(|p| {
-            subst(
-                &j::Type::Named {
-                    path: p.clone(),
-                    args: Vec::new(),
-                },
-                b,
-            )
-        })
+        .map(|t| subst(t, b))
         .collect::<Option<Vec<_>>>()?;
     Some(match ms.len() {
         0 => None,

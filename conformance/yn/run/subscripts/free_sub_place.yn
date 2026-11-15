@@ -1,0 +1,32 @@
+-- spec: 4.4
+-- rows: R1006, R457
+-- note: a free sub is a place used as x.name(args): a read, an assignment, an augmented assignment and an & argument
+-- stdout:
+-- 1
+-- 17
+-- 26
+
+type Grid = { a: int, b: int, c: int }
+
+sub cell(self: Grid, i: int) -> int =
+  let j = i + 1
+  if j > 2
+    yield self.c
+  else
+    yield self.a
+
+sub first(self: Grid) -> int =
+  yield self.a
+
+bump(var n: int) =
+  n += 10
+
+main() =
+  var g = Grid(a: 1, b: 2, c: 3)
+  io.print("\(g.first())")
+  g.first() = 5
+  g.cell(0) += 2
+  g.cell(5) = 9
+  bump(&g.first())
+  io.print("\(g.first())")
+  io.print("\(g.cell(0) + g.cell(2))")

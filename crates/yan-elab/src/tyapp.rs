@@ -92,7 +92,7 @@ fn ty(t: &mut j::Type, v: V) {
 
 fn item_types(k: &mut j::ItemKind, v: V) {
     match k {
-        j::ItemKind::Func(f) | j::ItemKind::Lemma(f) => func(f, v),
+        j::ItemKind::Func(f) | j::ItemKind::Lemma(f) | j::ItemKind::Sub(f) => func(f, v),
         j::ItemKind::Record(r) => {
             tparams(&mut r.tparams, v);
             fields(&mut r.fields, v);

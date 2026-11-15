@@ -70,6 +70,7 @@ enum GrammarSurface {
 enum Backend {
     Interp,
     Cranelift,
+    Machine,
 }
 
 #[derive(Clone, Copy, PartialEq, ValueEnum)]
@@ -315,6 +316,9 @@ enum Command {
         /// With `--locked`, fail with E020 when a pinned archive is in neither `.yan/store` nor `vendor` (R896).
         #[arg(long, requires = "locked")]
         offline: bool,
+        /// Run with the 6.7 undefined-behavior checks (not supported yet).
+        #[arg(long)]
+        ub: bool,
     },
     /// Run one task through the spec gate as a client of `yan mcp` (the reference agent
     /// loop), and print its run record.
@@ -390,6 +394,9 @@ enum Command {
         /// Interpret optimized Yan Core (R771).
         #[arg(long)]
         opt: bool,
+        /// Execute on the abstract-byte machine with the 6.7 undefined-behavior checks.
+        #[arg(long)]
+        ub: bool,
         file: PathBuf,
         /// The program's arguments, after `--`.
         #[arg(last = true)]
@@ -507,16 +514,16 @@ fn main() -> ExitCode {
             level,
             report_live,
             opt,
+            ub,
             args,
-        } => run(
-            &file,
-            Database::new(strict, level.as_deref() == Some("release")),
-            cli.backend,
-            cli.jit,
-            args,
-            report_live,
-            opt,
-        ),
+        } => {
+            let db = Database::new(strict, level.as_deref() == Some("release"));
+            let code = run_program(&file, db, cli.backend, cli.jit, args, opt, ub);
+            if report_live {
+                eprintln!("live: {}", yan_rt::heap::live_blocks());
+            }
+            code
+        }
         Command::Build {
             file,
             strict,
@@ -536,7 +543,15 @@ fn main() -> ExitCode {
             no_cache,
             locked,
             offline,
-        } => run_tests(format, gate, only.as_deref(), no_cache, (locked, offline)),
+            ub,
+        } => {
+            if ub {
+                return tool_failure(
+                    "not supported yet: `yan test --ub` (tests run on the interpreter)",
+                );
+            }
+            run_tests(format, gate, only.as_deref(), no_cache, (locked, offline))
+        }
         Command::Review { range, format } => review(&range, format),
         Command::Audit { format } => audit(format),
         Command::View {
@@ -937,22 +952,6 @@ fn hash(file: &Path, reverse: bool, format: Format) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn run(
-    file: &Path,
-    db: Database,
-    backend: Backend,
-    jit: Jit,
-    args: Vec<String>,
-    report_live: bool,
-    opt: bool,
-) -> ExitCode {
-    let code = run_program(file, db, backend, jit, args, opt);
-    if report_live {
-        eprintln!("live: {}", yan_rt::heap::live_blocks());
-    }
-    code
-}
-
 /// The module of `file` once it loads and checks clean; otherwise the failure is reported and
 /// its exit code returned.
 fn checked<'a>(db: &'a mut Database, file: &Path) -> Result<&'a yan_core::ast::Module, ExitCode> {
@@ -989,6 +988,7 @@ fn run_program(
     jit: Jit,
     args: Vec<String>,
     opt: bool,
+    ub: bool,
 ) -> ExitCode {
     let module = match checked(&mut db, file) {
         Ok(m) => m,
@@ -996,6 +996,20 @@ fn run_program(
     };
     if backend == Backend::Cranelift {
         return native(&file.display().to_string(), module, jit);
+    }
+    let name = file.display().to_string();
+    if backend == Backend::Machine || ub {
+        return match lower_native(&name, module) {
+            Ok(p) => machine(&p, ub),
+            Err(code) => code,
+        };
+    }
+    // The choice is made from the MIR, not from names (6.1).
+    if let Ok(m) = yan_opt::optimize(&name, module)
+        && let Ok(p) = yan_mir::lower(&m)
+        && touches_raw_memory(&p)
+    {
+        return machine(&p, false);
     }
     let optimized;
     let module = if opt {
@@ -1216,6 +1230,56 @@ fn lower_native(file: &str, m: &yan_core::ast::Module) -> Result<yan_mir::Progra
         }
     };
     yan_mir::lower(&m).map_err(|what| tool_failure(&format!("not supported yet: {what}")))
+}
+
+fn touches_raw_memory(p: &yan_mir::Program) -> bool {
+    use yan_mir::{Inst, RtFn};
+    p.funcs
+        .iter()
+        .flat_map(|f| &f.blocks)
+        .flat_map(|b| &b.insts)
+        .any(|i| {
+            matches!(
+                i,
+                Inst::AddrOf { .. }
+                    | Inst::Rt {
+                        f: RtFn::ListData | RtFn::PtrExpose | RtFn::PtrExposed,
+                        ..
+                    }
+            )
+        })
+}
+
+/// Run `p` on the abstract-byte machine, on a thread with room for deep recursion.
+fn machine(p: &yan_mir::Program, ub: bool) -> ExitCode {
+    let result = std::thread::scope(|s| {
+        std::thread::Builder::new()
+            .stack_size(256 << 20)
+            .spawn_scoped(s, || yan_machine::run(p, ub))
+            .expect("a thread starts")
+            .join()
+            .expect("the machine does not panic")
+    });
+    let _ = std::io::Write::flush(&mut std::io::stdout());
+    match result {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(yan_machine::Stop::Panic(kind)) => {
+            eprintln!("panic({kind}): {}", yan_rt::abi::panic_message(kind));
+            ExitCode::from(EXIT_PANIC as u8)
+        }
+        Err(yan_machine::Stop::Fail(msg, code)) => {
+            eprintln!("{msg}");
+            ExitCode::from(code as u8)
+        }
+        Err(yan_machine::Stop::Unsupported(what)) => {
+            tool_failure(&format!("not supported yet: {what}"))
+        }
+        Err(yan_machine::Stop::Ub(item, what)) => {
+            eprintln!("ub({item}): {what}");
+            ExitCode::from(EXIT_PANIC as u8)
+        }
+        Err(yan_machine::Stop::Fault(what)) => tool_failure(&format!("machine fault: {what}")),
+    }
 }
 
 fn native(file: &str, m: &yan_core::ast::Module, jit: Jit) -> ExitCode {

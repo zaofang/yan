@@ -26,9 +26,10 @@ def poke(a: Actor[A], var tx: Sender[int]) -> int:
     return b
 
 def main() uses io:
-    a = actor.spawn(A(n=0))
-    tx, rx = Channel[int](1)
-    par concurrent:
-        print(a.wait_for(&rx) else e -> -1)
-        print(poke(a, &tx))
-    print(a.bump(0) else -1)
+    with sched = sequential():
+        a = actor.spawn(A(n=0))
+        tx, rx = Channel[int](1)
+        par concurrent:
+            print(a.wait_for(&rx) else e -> -1)
+            print(poke(a, &tx))
+        print(a.bump(0) else -1)
