@@ -1,0 +1,9 @@
+# spec: 10.1, 14.1
+# rows: R423
+# expect: E241 at 8:9
+
+type Maybe[T] = Just(value: T) | Nothing()
+
+def f() -> int:
+    n = Nothing()
+    return 0 if n is None else 1

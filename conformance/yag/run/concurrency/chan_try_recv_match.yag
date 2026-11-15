@@ -1,0 +1,31 @@
+# spec: 9.5
+# rows: R342
+# note: try_recv's TryRecv[T] is matched with Got, Empty and Closed; a poll loop needs no failure handler (#1257)
+# stdout:
+# 5
+# -5
+
+def drain(var rx: Receiver[int]) -> int fail Cancelled uses nondet:
+    n = 0
+    while True:
+        match rx.try_recv()?:
+            case Got(value=v):
+                n += v
+            case Empty():
+                return n
+            case Closed():
+                return 0 - n
+
+def gone() -> Receiver[int] uses nondet:
+    tx, rx = Channel[int](4)
+    tx.try_send(2) else e -> None
+    tx.try_send(3) else e -> None
+    return rx
+
+def main() uses io, nondet:
+    tx, rx = Channel[int](4)
+    tx.try_send(2) else e -> None
+    tx.try_send(3) else e -> None
+    print(drain(&rx) else e -> 0)
+    r = gone()
+    print(drain(&r) else e -> 0)

@@ -1,8 +1,9 @@
 name: site
 
 # Builds the website (tools/site.py) with the playground's wasm on every PR that touches it, and
-# deploys it to GitHub Pages after each green ci run on main (push or nightly), with that run's
-# status artifact rendered on the status page (#871). No server code: Pages serves the files as built.
+# deploys it to Cloudflare Pages (yanlang.dev) after each green ci run on main (push or nightly), with
+# that run's status artifact rendered on the status page (#871). site/functions/ is the only server
+# code: it sends index.txt to terminal clients at /.
 on:
   pull_request:
     paths: [site/**, playground/**, tools/site.py, crates/**, Cargo.lock, .github/workflows/site.yml]
@@ -54,9 +55,6 @@ jobs:
       - run: ./playground/build.sh
       - run: cargo build --release -p yan-cli
       - run: uv run python -m tools.site check --yan target/release/yan
-      - id: pages
-        if: github.event_name != 'pull_request'
-        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -64,23 +62,12 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
       - run: >-
-          uv run python -m tools.site build _site --url "${{ steps.pages.outputs.base_url }}/"
+          uv run python -m tools.site build _site --url "${{ github.event_name != 'pull_request' && 'https://yanlang.dev/' || '' }}"
           ${{ github.event_name == 'workflow_run' && '--status status.json' || '' }}
+      # Direct upload to the Cloudflare Pages project `yan`, run from site/ so wrangler picks up functions/.
       - if: github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
-        with:
-          path: _site
-
-  deploy:
-    if: github.event_name != 'pull_request'
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - id: deploy
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+        working-directory: site
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.20.0 pages deploy ../_site --project-name yan --branch main

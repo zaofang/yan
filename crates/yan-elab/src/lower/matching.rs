@@ -228,6 +228,31 @@ impl Lower<'_, '_, '_> {
                     (Ty::Option(t), "Some") => Some(vec![("value".into(), (**t).clone())]),
                     (Ty::Result(t, _), "Ok") => Some(vec![("value".into(), (**t).clone())]),
                     (Ty::Result(_, e), "Err") => Some(vec![("error".into(), (**e).clone())]),
+                    (Ty::Inst(r, targs), _) if r == n && self.g.records.contains_key(r) => {
+                        let map: Vec<_> = self.g.type_params[r]
+                            .iter()
+                            .cloned()
+                            .zip(targs.iter().cloned())
+                            .collect();
+                        Some(
+                            self.g.records[r]
+                                .iter()
+                                .map(|f| (f.name.clone(), f.ty.subst(&map)))
+                                .collect(),
+                        )
+                    }
+                    (Ty::Inst(s, targs), _) if self.g.variant_of.get(n) == Some(s) => {
+                        let map: Vec<_> = self.g.type_params[s]
+                            .iter()
+                            .cloned()
+                            .zip(targs.iter().cloned())
+                            .collect();
+                        self.g.sums[s].iter().find(|(v, _)| v == n).map(|(_, fs)| {
+                            fs.iter()
+                                .map(|f| (f.name.clone(), f.ty.subst(&map)))
+                                .collect()
+                        })
+                    }
                     (Ty::Data(s), _) if self.g.variant_of.get(n) == Some(s) => self.g.sums[s]
                         .iter()
                         .find(|(v, _)| v == n)

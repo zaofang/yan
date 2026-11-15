@@ -1,0 +1,13 @@
+-- spec: 4.4
+-- rows: R1006
+-- note: a free sub use passes the arguments after self
+-- expect: E202 at 13:3
+
+type Box = { v: int }
+
+sub at(self: Box, k: int) -> int =
+  yield self.v
+
+main() =
+  var b = Box(v: 1)
+  b.at() = 2

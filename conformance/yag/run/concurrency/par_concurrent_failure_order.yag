@@ -25,4 +25,5 @@ def only_one_fails() -> str fail Cancelled | Bad:
     return "ok"
 
 pub def main() uses io:
-    io.print(only_one_fails() else err -> f"{err}")
+    with sched = sequential():
+        io.print(only_one_fails() else err -> f"{err}")

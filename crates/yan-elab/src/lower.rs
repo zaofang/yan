@@ -29,7 +29,10 @@ mod calls;
 mod cluster;
 mod consume;
 mod fallback;
+mod generic_sum;
 mod last_use;
+mod lenient_names;
+pub(crate) use lenient_names::MATH_FREE;
 mod loops;
 mod matching;
 mod method;
@@ -101,8 +104,8 @@ struct Lower<'a, 'c, 's> {
     want_ret: Option<(Ty, Span)>,
     /// Capabilities bound by an enclosing `with name = handler`.
     handlers: Vec<String>,
-    /// The innermost enclosing `with sched = ...` binds `pool`, which gives no concurrent progress (E708).
-    pool_sched: bool,
+    /// The innermost enclosing `with sched = ...` binds a handler that does not implement `Concurrent` (E708).
+    sched_not_concurrent: bool,
     /// Each call of a non-`par` callable local, for E716.
     fn_calls: Vec<(String, Span)>,
     /// `k = lambda ...` with no expected type: the target and lambda, lowered at the first call.
@@ -836,7 +839,8 @@ fn function_body_with(
         arg_tys: Vec::new(),
         want_ret: None,
         handlers: Vec::new(),
-        pool_sched: false,
+        // The hosted default handler is `pool`, which is not `Concurrent` (R1003).
+        sched_not_concurrent: f.name == "main",
         fn_calls: Vec::new(),
         pending: HashMap::new(),
         target: None,

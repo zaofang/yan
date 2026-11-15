@@ -976,9 +976,10 @@ fn item_level_wire_errors() {
 fn sibling_channel_waits_are_e713_only_in_plain_par() {
     let codes = |kw: &str| {
         let src = format!(
-            "pub def main() uses io:\n    tx, rx = Channel[int](0)\n    {kw}:\n        \
-             tx.send(1) else e -> io.print(\"x\")\n        \
-             v = rx.recv() else e -> -1\n        io.print(f\"{{v}}\")\n"
+            "pub def main() uses io:\n    with sched = sequential():\n        \
+             tx, rx = Channel[int](0)\n        {kw}:\n            \
+             tx.send(1) else e -> io.print(\"x\")\n            \
+             v = rx.recv() else e -> -1\n            io.print(f\"{{v}}\")\n"
         );
         let (_, d) = lower(&src);
         d.iter().map(|d| d.code.clone()).collect::<Vec<_>>()
@@ -999,6 +1000,40 @@ fn par_concurrent_under_bound_pool_is_e708() {
     };
     assert_eq!(codes("pool()"), ["E708"]);
     assert!(codes("pct()").is_empty());
+}
+
+#[test]
+fn par_concurrent_in_main_without_a_bound_sched_is_e708() {
+    let body = "par concurrent:\n        io.print(\"a\")\n        io.print(\"b\")\n";
+    let codes = |name: &str| {
+        let (_, d) = lower(&format!("def {name}() uses io:\n    {body}"));
+        d.iter().map(|d| d.code.clone()).collect::<Vec<_>>()
+    };
+    assert_eq!(codes("main"), ["E708"]);
+    // Any other function takes the handler from its caller.
+    assert!(codes("f").is_empty());
+}
+
+#[test]
+fn par_concurrent_under_handler_without_concurrent_is_e708() {
+    let src = "class H:\n    n: int\n\nimpl Sched for H:\n    def width(self: Self) -> int:\n        \
+               return 1\n\npub def main() uses io:\n    with sched = H(n=1):\n        \
+               par concurrent:\n            io.print(\"a\")\n            io.print(\"b\")\n";
+    let (_, d) = lower(src);
+    assert_eq!(
+        d.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
+        ["E708"]
+    );
+}
+
+#[test]
+fn par_concurrent_under_handler_with_concurrent_is_clean() {
+    let src = "class H:\n    n: int\n\nimpl Sched for H:\n    def width(self: Self) -> int:\n        \
+               return 1\n\nimpl Concurrent for H: ...\n\npub def main() uses io:\n    \
+               with sched = H(n=1):\n        par concurrent:\n            io.print(\"a\")\n            \
+               io.print(\"b\")\n";
+    let (_, d) = lower(src);
+    assert!(d.is_empty(), "{d:?}");
 }
 
 fn edition_codes(value: &str) -> Vec<String> {
@@ -1617,4 +1652,44 @@ fn yn_use_alias_renames_the_std_module_root() {
     let (ast, _) = yan_yn::parse("t.yn", "use foo.bar as t\n");
     let (_, d) = yan_yn::lower("t.yn", "use foo.bar as t\n", &ast).expect("lowers");
     assert_eq!(d[0].code, "E017");
+}
+
+#[test]
+fn generic_sum_constructors_take_arguments_from_the_expected_type_or_fields() {
+    let decl = "type Maybe[T] = Just(value: T) | Nothing()\n\n";
+    let ok = format!(
+        "{decl}def f(m: Maybe[int]) -> int:\n    match m:\n        case Just(value=v):\n            return v\n        case Nothing():\n            return 0\n\n\
+def g() -> int:\n    a: Maybe[int] = Nothing()\n    return f(a) + f(Just(value=1))\n"
+    );
+    let (items, d) = lower(&ok);
+    assert!(
+        d.iter().all(|d| d.severity != yan_diag::Severity::Error),
+        "{d:?}"
+    );
+    let text = format!("{items:?}");
+    assert!(
+        text.contains("targs: [Type(Named(Named { path: [\"i64\"]"),
+        "{text}"
+    );
+    let (_, d) = lower(&format!("{decl}def g() -> None:\n    n = Nothing()\n"));
+    assert!(d.iter().any(|d| d.code == "E241"), "{d:?}");
+}
+
+#[test]
+fn derive_wire_on_a_generic_sum_checks_arguments_at_the_instance() {
+    let ok = "\
+@derive(Wire)
+type Box[T] = Full(value: T) | Empty()
+
+def f(_: Box[int]) -> int:
+    return 1
+
+pub def main() uses io:
+    io.print(\"hi\")
+";
+    assert_eq!(codes(ok), Vec::<String>::new());
+    let bad = ok.replace("Box[int]", "Box[Fs]");
+    assert_eq!(codes(&bad), ["E282"]);
+    let plain = bad.replace("@derive(Wire)\n", "");
+    assert_eq!(codes(&plain), Vec::<String>::new());
 }

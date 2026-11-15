@@ -163,16 +163,8 @@ fn targ(a: &TArg) -> String {
     }
 }
 
-fn errtype(ps: &[Path]) -> String {
-    ps.iter()
-        .map(|p| {
-            ty(&Type::Named {
-                path: p.clone(),
-                args: Vec::new(),
-            })
-        })
-        .collect::<Vec<_>>()
-        .join(" | ")
+fn errtype(ts: &[Type]) -> String {
+    ts.iter().map(ty).collect::<Vec<_>>().join(" | ")
 }
 
 fn tparams(ps: &[TParam]) -> String {
@@ -573,6 +565,7 @@ impl Printer {
             ItemKind::Lemma(f) => self.func(f, pubs, "lemma", 0),
             ItemKind::Verbatim(t) => t.lines().for_each(|l| self.raw(0, l)),
             ItemKind::Extern(_) => unreachable!("Yan Agent has no extern blocks"),
+            ItemKind::Sub(_) => unreachable!("Yan Agent defines no subscripts"),
             ItemKind::Record(c) => {
                 self.line(
                     0,
@@ -636,9 +629,14 @@ impl Printer {
                 self.line(
                     0,
                     &format!(
-                        "{pubs}impl {}{targs} for {}:",
+                        "{pubs}impl {}{targs} for {}:{}",
                         path(&i.trait_),
-                        ty(&i.for_ty)
+                        ty(&i.for_ty),
+                        if i.assoc.is_empty() && i.fns.is_empty() {
+                            " ..."
+                        } else {
+                            ""
+                        }
                     ),
                 );
                 for (n, t) in &i.assoc {

@@ -1,0 +1,12 @@
+-- spec: 4.4, 17.2
+-- rows: R1006, R469
+-- note: a free sub and a function of one name in one module are a tie, reported at the second definition
+-- expect: E250 at 11:1
+
+type Box = { v: int }
+
+sub val(self: Box) -> int =
+  yield self.v
+
+val(b: Box) -> int =
+  b.v

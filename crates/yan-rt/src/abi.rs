@@ -878,6 +878,14 @@ pub unsafe extern "C" fn yan_rt_list_len(l: *const List) -> i64 {
 /// # Safety
 /// `l` is a `List` block.
 #[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_list_data(l: *mut List) -> *mut u64 {
+    // SAFETY: the caller's contract.
+    unsafe { &mut *l }.data.as_mut_ptr()
+}
+
+/// # Safety
+/// `l` is a `List` block.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_list_at(l: *mut List, i: i64) -> *mut u64 {
     // SAFETY: the caller's contract.
     let n = unsafe { yan_rt_list_len(l) };

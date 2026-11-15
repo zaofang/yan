@@ -254,11 +254,21 @@ impl Lower<'_, '_, '_> {
                 if self.g.fns.contains_key(n) {
                     return self.user_call(n, None, args, at);
                 }
+                if self.g.records.contains_key(n) && self.g.type_params.contains_key(n) {
+                    let (r, t) = self.generic_ctor(n, n, args, at, want)?;
+                    return Ok((r, t, None));
+                }
                 if let Some(fs) = self.g.records.get(n) {
                     let pos = self.g.record_positional.get(n).copied().unwrap_or(0);
                     let ps = field_params(fs, pos, at);
                     let r = self.ctor(n, &ps, args, at)?;
                     return Ok((r, Ty::Data(n.clone()), None));
+                }
+                if let Some(s) = self.g.variant_of.get(n).cloned()
+                    && self.g.type_params.contains_key(&s)
+                {
+                    let (r, t) = self.generic_ctor(n, &s, args, at, want)?;
+                    return Ok((r, t, None));
                 }
                 if let Some(s) = self.g.variant_of.get(n).cloned() {
                     let fs = &self.g.sums[&s]
@@ -288,6 +298,12 @@ impl Lower<'_, '_, '_> {
                     && (self.sig.caps.contains(c) || self.handlers.contains(c) || c == "io")
                 {
                     return self.cap_call(c, m, args, at);
+                }
+                if let j::ExprKind::Name(module) = &b.kind
+                    && let Some((r, t)) =
+                        self.lenient_module_call(module, m, args, at, *name_at, want)?
+                {
+                    return Ok((r, t, None));
                 }
                 if let j::ExprKind::Name(module) = &b.kind
                     && !self.locals.contains_key(module)

@@ -1,0 +1,58 @@
+# spec: 10.1, 13
+# rows: R423
+# stdout:
+# hi!
+# none
+# True
+# Just(value=['x', 'y'])
+# Just(value=Just(value=3))
+# P(a='k', b=Just(value='v'))
+# kv
+# 7:seven
+# 0:none
+# seven!
+
+type Maybe[T] = Just(value: T) | Nothing()
+type Pair[A, B] = P(a: A, b: B)
+
+def show_m(m: Maybe[str]) -> str:
+    match m:
+        case Just(value=v):
+            return v + "!"
+        case Nothing():
+            return "none"
+
+def describe(m: Maybe[Pair[int, str]]) -> str:
+    match m:
+        case Just(value=P(a=n, b=s)):
+            return f"{n}:{s}"
+        case Nothing():
+            return "0:none"
+
+def take_name(take m: Maybe[Pair[int, str]]) -> str:
+    match m:
+        case Just(value=P(a=n, b=s)):
+            return s + "!"
+        case Nothing():
+            return "none"
+
+pub def main() uses io:
+    a: Maybe[str] = Just(value="hi")
+    b: Maybe[list[str]] = Just(value=["x", "y"])
+    c: Maybe[Maybe[int]] = Just(value=Just(value=3))
+    p: Pair[str, Maybe[str]] = P(a="k", b=Just(value="v"))
+    io.print(show_m(a))
+    io.print(show_m(Nothing()))
+    io.print(a == Just(value="hi"))
+    io.print(b)
+    io.print(c)
+    io.print(p)
+    match p:
+        case P(a=x, b=Just(value=y)):
+            io.print(x + y)
+        case _:
+            io.print("no")
+    q: Maybe[Pair[int, str]] = Just(value=P(a=7, b="seven"))
+    io.print(describe(q))
+    io.print(describe(Nothing()))
+    io.print(take_name(q))

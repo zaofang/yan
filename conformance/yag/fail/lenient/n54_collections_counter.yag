@@ -1,0 +1,10 @@
+# spec: 14.4
+# rows: R1009
+# expect: N01 at 6:1
+# expect: E200 at 9:21
+
+import collections
+
+def f(xs: list[int]) -> int:
+    c = collections.Counter(xs)
+    return 1

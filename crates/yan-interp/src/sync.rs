@@ -694,9 +694,12 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             crate::simfault::sweep(&mut vm.it);
             if let Some(v) = vm.it.chans[c].q.pop_front() {
                 vm.it.progress += 1;
-                return Ok(Ok(v));
+                return Ok(Ok(Value::Data {
+                    name: "Got".into(),
+                    fields: vec![("value".into(), v)],
+                }));
             }
-            Ok(Err(failure(if vm.it.chans[c].senders == 0 {
+            Ok(Ok(failure(if vm.it.chans[c].senders == 0 {
                 "Closed"
             } else {
                 "Empty"
@@ -748,7 +751,10 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                 return Ok(Err(e));
             }
             if !send_room(it, c) {
-                return Ok(Err(failure("Full")));
+                return Ok(Err(Value::Data {
+                    name: "Full".into(),
+                    fields: vec![("value".into(), std::mem::take(&mut a[1]))],
+                }));
             }
             it.chans[c].q.push_back(std::mem::take(&mut a[1]));
             it.progress += 1;
@@ -850,5 +856,14 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_SCHED_POOL,
         Bind::Plain(|_| unsupported("`std.sched.pool` in the interpreter")),
+    ),
+    (
+        STD_SCHED_SEQUENTIAL,
+        Bind::Plain(|_| {
+            Ok(Value::Data {
+                name: "Sequential".into(),
+                fields: Vec::new(),
+            })
+        }),
     ),
 ];

@@ -226,12 +226,16 @@ fn cap_binding(t: &str) -> String {
 pub(crate) struct Globals {
     /// `impl Index[K] for T` subscripts by `T`'s type text: `at`, inlined at each use (4.4, R457).
     pub subs: HashMap<String, j::FuncDef>,
+    /// Free `sub` items by name, used as `x.name(args)` and inlined at each use (4.4, R1006).
+    pub free_subs: HashMap<String, j::FuncDef>,
     /// Subscript inlinings so far, to stop a recursive one.
     pub sub_n: std::cell::Cell<u32>,
     pub records: HashMap<String, Vec<Field>>,
     /// Leading positional-only fields per record (R437).
     pub record_positional: HashMap<String, usize>,
     pub sums: HashMap<String, Vec<(String, Vec<Field>)>>,
+    /// The type parameters of each generic sum or record; its field types mention them as `Ty::Param`.
+    pub type_params: HashMap<String, Vec<String>>,
     pub variant_of: HashMap<String, String>,
     /// Variants with `@wire(name: ...)`, by variant name: the tag value in json and csv.
     pub variant_wire: HashMap<String, String>,
@@ -551,6 +555,17 @@ impl Globals {
                     return Ok(t);
                 }
                 match (name.as_str(), a.as_slice()) {
+                    (n, a) if self.type_params.contains_key(n) => {
+                        if a.len() != self.type_params[n].len() {
+                            return unsupported(format!(
+                                "`{n}` with {} type arguments; it takes {}",
+                                a.len(),
+                                self.type_params[n].len()
+                            ));
+                        }
+                        decorators::instance(self, n, a, span, cx);
+                        Ty::Inst(n.to_owned(), a.to_vec())
+                    }
                     (n, []) if self.records.contains_key(n) || self.sums.contains_key(n) => {
                         Ty::Data(n.to_owned())
                     }
@@ -684,7 +699,18 @@ pub fn elaborate_in(
             kind: y::ItemKind::Record(y::Record {
                 is_pub: true,
                 path: vec![name.clone()],
-                tparams: Vec::new(),
+                tparams: g
+                    .type_params
+                    .get(&name)
+                    .into_iter()
+                    .flatten()
+                    .map(|n| y::TParam {
+                        comptime: false,
+                        name: n.clone(),
+                        kind: y::Kind::Type,
+                        bounds: Vec::new(),
+                    })
+                    .collect(),
                 fields: core_fields(&g.records[&name])?,
             }),
             span: Span {
@@ -709,12 +735,24 @@ pub fn elaborate_in(
                 })
             })
             .collect::<R<_>>()?;
+        let tparams = g
+            .type_params
+            .get(&name)
+            .into_iter()
+            .flatten()
+            .map(|n| y::TParam {
+                comptime: false,
+                name: n.clone(),
+                kind: y::Kind::Type,
+                bounds: Vec::new(),
+            })
+            .collect();
         items.push(y::Item {
             attrs: Vec::new(),
             kind: y::ItemKind::Sum(y::Sum {
                 is_pub: true,
                 path: vec![name],
-                tparams: Vec::new(),
+                tparams,
                 variants,
             }),
             span: Span {
@@ -931,7 +969,9 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             }
         }
         match &it.kind {
-            j::ItemKind::Type(t) if !t.tparams.is_empty() => {
+            j::ItemKind::Type(t)
+                if !t.tparams.is_empty() && !matches!(t.rhs, j::TypeRhs::Sum(_)) =>
+            {
                 return unsupported("generic types").map_err(|u| u.at(it.span));
             }
             j::ItemKind::Type(t) => match &t.rhs {
@@ -940,6 +980,16 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                         g.variant_of.insert(v.name.clone(), t.name.clone());
                     }
                     g.sums.insert(t.name.clone(), Vec::new());
+                    if !t.tparams.is_empty() {
+                        let ps = t.tparams.iter().map(|p| match p {
+                            j::TParam::Type { name, bounds } if bounds.is_empty() => {
+                                Ok(name.clone())
+                            }
+                            _ => unsupported("bounds and value parameters on a generic sum"),
+                        });
+                        let ps = ps.collect::<Result<_, _>>().map_err(|u| u.at(it.span))?;
+                        g.type_params.insert(t.name.clone(), ps);
+                    }
                 }
                 j::TypeRhs::Alias(ts) => {
                     g.aliases.insert(t.name.clone(), ts.clone());
@@ -948,11 +998,16 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                     return unsupported("newtypes and capability sets").map_err(|u| u.at(it.span));
                 }
             },
-            j::ItemKind::Record(c) if !c.tparams.is_empty() => {
-                return unsupported("generic classes").map_err(|u| u.at(it.span));
-            }
             j::ItemKind::Record(c) => {
                 g.records.insert(c.name.clone(), Vec::new());
+                if !c.tparams.is_empty() {
+                    let ps = c.tparams.iter().map(|p| match p {
+                        j::TParam::Type { name, bounds } if bounds.is_empty() => Ok(name.clone()),
+                        _ => unsupported("bounds and value parameters on a generic class"),
+                    });
+                    let ps = ps.collect::<Result<_, _>>().map_err(|u| u.at(it.span))?;
+                    g.type_params.insert(c.name.clone(), ps);
+                }
                 let c_layout = |d: &j::Decorator| {
                     d.path == ["layout"]
                         && d.args.as_ref().is_some_and(|a| {
@@ -1023,7 +1078,13 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     for it in &m.items {
         match &it.kind {
             j::ItemKind::Record(c) => {
-                let mut fs = fields(g, &c.fields, cx, it.span)?;
+                let outer = g.scope.borrow().len();
+                g.scope
+                    .borrow_mut()
+                    .extend(g.type_params.get(&c.name).into_iter().flatten().cloned());
+                let fs = fields(g, &c.fields, cx, it.span);
+                g.scope.borrow_mut().truncate(outer);
+                let mut fs = fs?;
                 let w = decorators::item_wire(it, &c.name, cx);
                 for (key, wire, at) in &w.names {
                     match fs.iter_mut().find(|f| f.name == *key) {
@@ -1050,14 +1111,23 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 ..
             }) => {
                 let mut out = Vec::new();
+                let outer = g.scope.borrow().len();
+                g.scope
+                    .borrow_mut()
+                    .extend(g.type_params.get(name).into_iter().flatten().cloned());
                 for v in vs {
-                    out.push((v.name.clone(), fields(g, &v.fields, cx, it.span)?));
+                    let fs = fields(g, &v.fields, cx, it.span);
+                    out.push((
+                        v.name.clone(),
+                        fs.inspect_err(|_| g.scope.borrow_mut().truncate(outer))?,
+                    ));
                     if let Some(w) =
                         decorators::wire_name(&v.decorators).map_err(|u| u.at(it.span))?
                     {
                         g.variant_wire.insert(v.name.clone(), w);
                     }
                 }
+                g.scope.borrow_mut().truncate(outer);
                 let w = decorators::item_wire(it, name, cx);
                 for (key, wire, at) in &w.names {
                     let variant = out.iter().any(|(v, _)| v == key);
@@ -1110,7 +1180,9 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     let mut first = HashMap::new();
     for it in &m.items {
         match &it.kind {
-            j::ItemKind::Func(f) if g.fns.contains_key(&f.name) => {
+            j::ItemKind::Func(f)
+                if g.fns.contains_key(&f.name) || g.free_subs.contains_key(&f.name) =>
+            {
                 cx.err(
                     "E250",
                     f.name_span,
@@ -1119,6 +1191,23 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 );
                 if let Some(&at) = first.get(&f.name) {
                     cx.label(at, "first defined");
+                }
+            }
+            j::ItemKind::Sub(f) => {
+                if g.fns.contains_key(&f.name) || g.free_subs.contains_key(&f.name) {
+                    cx.err(
+                        "E250",
+                        f.name_span,
+                        &f.name,
+                        format!("`{}` is defined twice", f.name),
+                    );
+                    if let Some(&at) = first.get(&f.name) {
+                        cx.label(at, "first defined");
+                    }
+                } else {
+                    lower::subscript::check_yields(f, cx);
+                    first.insert(f.name.clone(), f.name_span);
+                    g.free_subs.insert(f.name.clone(), f.clone());
                 }
             }
             j::ItemKind::Func(f)
@@ -1345,17 +1434,10 @@ fn sig_body(
             };
             let mut members = Vec::new();
             for p in &r.fail {
-                if p.len() != 1 {
+                if matches!(p, j::Type::Named { path, .. } if path.len() != 1) {
                     return unsupported("a qualified error type");
                 }
-                let t = g.ty(
-                    &j::Type::Named {
-                        path: p.clone(),
-                        args: Vec::new(),
-                    },
-                    cx,
-                    f.name_span,
-                )?;
+                let t = g.ty(p, cx, f.name_span)?;
                 union_add(&mut members, t);
             }
             if members.len() > 8 {
@@ -1556,13 +1638,27 @@ fn core_fields(fs: &[Field]) -> R<Vec<y::Field>> {
         .collect()
 }
 
+fn core_tparams(g: &Globals, name: &str) -> Vec<y::TParam> {
+    g.type_params
+        .get(name)
+        .into_iter()
+        .flatten()
+        .map(|n| y::TParam {
+            comptime: false,
+            name: n.clone(),
+            kind: y::Kind::Type,
+            bounds: Vec::new(),
+        })
+        .collect()
+}
+
 fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
     Ok(Some(match &it.kind {
-        j::ItemKind::Verbatim(_) => return Ok(None),
+        j::ItemKind::Verbatim(_) | j::ItemKind::Sub(_) => return Ok(None),
         j::ItemKind::Record(c) => y::ItemKind::Record(y::Record {
             is_pub: it.is_pub,
             path: vec![c.name.clone()],
-            tparams: Vec::new(),
+            tparams: core_tparams(g, &c.name),
             fields: core_fields(&g.records[&c.name])?,
         }),
         j::ItemKind::Type(t) => match &t.rhs {
@@ -1581,7 +1677,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                 y::ItemKind::Sum(y::Sum {
                     is_pub: it.is_pub,
                     path: vec![t.name.clone()],
-                    tparams: Vec::new(),
+                    tparams: core_tparams(g, &t.name),
                     variants,
                 })
             }
@@ -1722,7 +1818,10 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                     mark: Mark::View,
                 });
             }
-            let sig = &g.fns[&f.name];
+            // A function that clashed with a free `sub` (E250) has no signature.
+            let Some(sig) = g.fns.get(&f.name) else {
+                return Ok(None);
+            };
             let def = lower::function(g, f, sig, it.is_pub, cx)?;
             if g.reentrant.contains(&f.name) && !sig.params.is_empty() {
                 g.generated.borrow_mut().push(y::Item {
