@@ -1,0 +1,26 @@
+-- spec: 4.4
+-- rows: R1006, R457
+-- note: a free sub use takes keyword arguments and & for a var parameter, as a function call does
+-- stdout:
+-- 7 5 9 1
+
+type Grid = { a: int, b: int, c: int }
+
+sub cell(self: Grid, i: int, off: int) -> int =
+  let j = i + off
+  if j > 2
+    yield self.c
+  else
+    yield self.a
+
+sub pick(self: Grid, var k: int) -> int =
+  k += 1
+  yield self.b
+
+main() =
+  var g = Grid(a: 1, b: 2, c: 3)
+  var n = 0
+  g.cell(off: 1, i: 0) = 7
+  g.cell(0, off: 5) += 2
+  g.pick(&n) = 9
+  io.print("\(g.a) \(g.c) \(g.b) \(n)")
