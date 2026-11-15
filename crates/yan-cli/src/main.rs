@@ -70,6 +70,7 @@ enum GrammarSurface {
 enum Backend {
     Interp,
     Cranelift,
+    Machine,
 }
 
 #[derive(Clone, Copy, PartialEq, ValueEnum)]
@@ -997,6 +998,20 @@ fn run_program(
     if backend == Backend::Cranelift {
         return native(&file.display().to_string(), module, jit);
     }
+    let name = file.display().to_string();
+    if backend == Backend::Machine {
+        return match lower_native(&name, module) {
+            Ok(p) => machine(&p),
+            Err(code) => code,
+        };
+    }
+    // The choice is made from the MIR, not from names (6.1).
+    if let Ok(m) = yan_opt::optimize(&name, module)
+        && let Ok(p) = yan_mir::lower(&m)
+        && touches_raw_memory(&p)
+    {
+        return machine(&p);
+    }
     let optimized;
     let module = if opt {
         match yan_opt::optimize(&file.display().to_string(), module) {
@@ -1216,6 +1231,52 @@ fn lower_native(file: &str, m: &yan_core::ast::Module) -> Result<yan_mir::Progra
         }
     };
     yan_mir::lower(&m).map_err(|what| tool_failure(&format!("not supported yet: {what}")))
+}
+
+fn touches_raw_memory(p: &yan_mir::Program) -> bool {
+    use yan_mir::{Inst, RtFn};
+    p.funcs
+        .iter()
+        .flat_map(|f| &f.blocks)
+        .flat_map(|b| &b.insts)
+        .any(|i| {
+            matches!(
+                i,
+                Inst::AddrOf { .. }
+                    | Inst::Rt {
+                        f: RtFn::ListData | RtFn::PtrExpose | RtFn::PtrExposed,
+                        ..
+                    }
+            )
+        })
+}
+
+/// Run `p` on the abstract-byte machine, on a thread with room for deep recursion.
+fn machine(p: &yan_mir::Program) -> ExitCode {
+    let result = std::thread::scope(|s| {
+        std::thread::Builder::new()
+            .stack_size(256 << 20)
+            .spawn_scoped(s, || yan_machine::run(p))
+            .expect("a thread starts")
+            .join()
+            .expect("the machine does not panic")
+    });
+    let _ = std::io::Write::flush(&mut std::io::stdout());
+    match result {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(yan_machine::Stop::Panic(kind)) => {
+            eprintln!("panic({kind}): {}", yan_rt::abi::panic_message(kind));
+            ExitCode::from(EXIT_PANIC as u8)
+        }
+        Err(yan_machine::Stop::Fail(msg, code)) => {
+            eprintln!("{msg}");
+            ExitCode::from(code as u8)
+        }
+        Err(yan_machine::Stop::Unsupported(what)) => {
+            tool_failure(&format!("not supported yet: {what}"))
+        }
+        Err(yan_machine::Stop::Fault(what)) => tool_failure(&format!("machine fault: {what}")),
+    }
 }
 
 fn native(file: &str, m: &yan_core::ast::Module, jit: Jit) -> ExitCode {
