@@ -145,6 +145,55 @@ impl Machine<'_> {
         Val::I(i128::from(at))
     }
 
+    /// An actor's state slots at `state`.
+    fn state_words(&self, actor: u64, state: u64) -> Result<Vec<u64>, Stop> {
+        self.words(state, yan_rt::actor::words(actor))
+    }
+
+    fn write_words(&mut self, addr: u64, words: &[u64]) -> Result<(), Stop> {
+        if words.is_empty() {
+            return Ok(());
+        }
+        let bytes: Vec<Byte> = words
+            .iter()
+            .flat_map(|w| w.to_le_bytes().map(Byte::Init))
+            .collect();
+        self.mem
+            .write(addr, &bytes)
+            .ok_or_else(|| self.bad_access("write", addr))
+    }
+
+    /// Runs what actors dropped: a message's thunk drops its arguments, then its two blocks and
+    /// start closures' captures are freed.
+    pub(crate) fn dispose(&mut self) -> Result<(), Stop> {
+        use yan_rt::actor::Disposal;
+        loop {
+            let queued = yan_rt::actor::take_disposals();
+            if queued.is_empty() {
+                return Ok(());
+            }
+            for d in queued {
+                let blocks = match d {
+                    Disposal::Env(env) => vec![env],
+                    Disposal::Message([thunk, _, env, args]) => {
+                        let id = yan_mir::FuncId::try_from(i128::from(thunk) - crate::FUNC_TAG)
+                            .map_err(|_| {
+                                Stop::Fault(format!("thunk {thunk:#x} is not a function"))
+                            })?;
+                        self.call(
+                            id,
+                            vec![Val::I(0), Val::I(i128::from(env)), Val::I(i128::from(args))],
+                        )?;
+                        vec![env, args]
+                    }
+                };
+                for b in blocks.into_iter().filter(|b| *b != 0) {
+                    self.free_block(b)?;
+                }
+            }
+        }
+    }
+
     /// Freeing a block twice is `ub(8)` under `--ub`.
     fn free_block(&mut self, addr: u64) -> Result<(), Stop> {
         if !self.mem.free(addr) && self.ub {
@@ -479,6 +528,74 @@ impl Machine<'_> {
                 a[0].addr(),
                 a[1].addr(),
             ))),
+            RtFn::ActorSpawn => {
+                let state = self.words(a[0].addr(), a[1].int() as usize)?;
+                let start = [a[5].addr(), a[6].addr(), a[7].addr()];
+                let id = yan_rt::actor::spawn(
+                    &state,
+                    a[2].int() as i64,
+                    a[3].addr(),
+                    a[4].addr(),
+                    start,
+                )
+                .map_err(Stop::Panic)?;
+                Val::I(i128::from(id))
+            }
+            RtFn::ActorTake => {
+                let (status, state) = yan_rt::actor::take(a[0].addr(), a[2].truth());
+                self.write_words(a[1].addr(), &state)?;
+                Val::I(i128::from(status))
+            }
+            RtFn::ActorRetake => {
+                let (status, state) = yan_rt::actor::retake(a[0].addr(), a[1].addr(), a[3].truth());
+                self.write_words(a[2].addr(), &state)?;
+                Val::I(i128::from(status))
+            }
+            RtFn::ActorPut => {
+                let state = self.state_words(a[0].addr(), a[1].addr())?;
+                yan_rt::actor::put(a[0].addr(), &state);
+                Val::U
+            }
+            RtFn::ActorLend => {
+                let state = self.state_words(a[0].addr(), a[1].addr())?;
+                Val::I(i128::from(yan_rt::actor::lend(a[0].addr(), &state)))
+            }
+            RtFn::ActorGive => {
+                let state = self.state_words(a[0].addr(), a[1].addr())?;
+                Val::I(i128::from(yan_rt::actor::give(a[0].addr(), &state)))
+            }
+            RtFn::ActorRestarted => {
+                let state = self.state_words(a[0].addr(), a[1].addr())?;
+                yan_rt::actor::restarted(a[0].addr(), &state);
+                Val::U
+            }
+            RtFn::ActorSend => Val::I(i128::from(yan_rt::actor::yan_rt_actor_send(
+                a[0].addr(),
+                a[1].addr(),
+                a[2].addr(),
+                a[3].addr(),
+                a[4].addr(),
+                a[5].addr(),
+            ))),
+            RtFn::ActorArg => Val::I(i128::from(yan_rt::actor::yan_rt_actor_arg(a[0].addr()))),
+            RtFn::ActorRan => {
+                yan_rt::actor::yan_rt_actor_ran();
+                Val::U
+            }
+            RtFn::ActorIdle => Val::B(yan_rt::actor::yan_rt_actor_idle() != 0),
+            RtFn::ActorRestartNext => Val::B(yan_rt::actor::yan_rt_actor_restart_next() != 0),
+            RtFn::ActorCrash => {
+                let error = self.str_of(a[1].addr())?;
+                yan_rt::actor::crashed(a[0].addr(), error)
+                    .map_err(|_| Stop::Panic("supervisor"))?;
+                Val::U
+            }
+            RtFn::ActorReason => {
+                Val::I(i128::from(yan_rt::actor::yan_rt_actor_reason(a[0].addr())))
+            }
+            RtFn::ActorReasonText => Val::I(i128::from(
+                self.new_str(&yan_rt::actor::reason_text(a[0].addr())),
+            )),
             RtFn::SupBegin => Val::I(i128::from(yan_rt::actor::yan_rt_sup_begin(
                 a[0].addr(),
                 a[1].addr(),

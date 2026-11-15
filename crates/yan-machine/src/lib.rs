@@ -68,7 +68,7 @@ impl Val {
 }
 
 /// Function code addresses are tagged so they never alias a data address.
-const FUNC_TAG: i128 = 1 << 62;
+pub(crate) const FUNC_TAG: i128 = 1 << 62;
 
 struct Frame {
     locals: Vec<Val>,
@@ -106,8 +106,10 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
         civil_out: Vec::new(),
         race: RefCell::new(Race::new()),
     };
+    yan_rt::actor::defer_disposal();
     m.call(prog.main, vec![])?;
     yan_rt::actor::end_root();
+    m.dispose()?;
     Ok(m.mem
         .live(|a| m.strs.contains(&Some(a)) || m.scratch == Some(a)))
 }
@@ -369,6 +371,7 @@ impl Machine<'_> {
             Inst::Rt { dst, f: rt, args } => {
                 let a = self.evals(fr, args, f)?;
                 let v = self.rt(*rt, &a)?;
+                self.dispose()?;
                 match dst {
                     Some(d) => self.set(fr, f, *d, v),
                     None => Ok(()),
