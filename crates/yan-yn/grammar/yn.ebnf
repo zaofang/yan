@@ -52,7 +52,7 @@ simple    = fallback [assignop expr] | bind | "ghost" bind
           | "break" [NAME] | "continue" [NAME] | "assert" expr | "unreachable" | "become" postfix ;
 bind      = ("let" | "var") pattern [":" type] "=" (lambda | cond ["else" (NAME "->" expr | diverge | cond)]) ;
 assignop  = "=" | "+=" | "-=" | "*=" | "/=" | "//=" | "%=" | "**=" | "&=" | "|=" | "^=" | "<<=" | ">>=" ;
-place     = NAME {"." NAME | "[" expr "]"} ;
+place     = NAME {"." NAME | "[" expr "]" | "(" [args] ")"} ;
 compound  = ifstmt | matchstmt | forstmt | whilestmt | loopstmt | parstmt | selectstmt
           | withstmt | unsafestmt | stagestmt | blockbind ;
 blockbind = ("let" | "var") pattern [":" type] "=" (NEWLINE INDENT stmt {stmt} DEDENT | parfor)
