@@ -1,7 +1,7 @@
 //! The checked machine of 6.1 (D1 of the `run --ub` design): executes `yan-mir` over abstract
 //! bytes. Locals are scalars; memory is allocations of `Uninit | Init` bytes; a pointer is its
 //! address. Layouts and drops come from MIR, as for native code. With `ub` set, an access to a
-//! dead allocation is `ub(2)`, one outside every allocation is `ub(3)` and a `bool` read from a
+//! dead allocation is `ub(2)`, one outside every allocation is `ub(3)`, a word access at an address that is not a multiple of 8 is `ub(4)` and a `bool` read from a
 //! word other than 0 or 1 is `ub(6)` (6.7 items; D3 of the design). Without it an access outside
 //! any allocation is a fault, everything else behaves as native code does. Bounds are judged by
 //! the accessed address, not by a poison bit on the pointer value (D4), so a pointer that left
@@ -139,6 +139,17 @@ impl Machine<'_> {
         }
     }
 
+    /// A word access at an address that is not a multiple of 8 is `ub(4)`.
+    fn aligned(&self, what: &str, addr: u64) -> Result<(), Stop> {
+        if self.ub && !addr.is_multiple_of(8) {
+            return Err(Stop::Ub(
+                4,
+                format!("{what} of 8 bytes at misaligned address {addr:#x}"),
+            ));
+        }
+        Ok(())
+    }
+
     fn typed(&self, t: Ty, w: u64) -> Result<Val, Stop> {
         if self.ub && t == Ty::Bool && w > 1 {
             return Err(Stop::Ub(6, format!("{w} is not a valid bool")));
@@ -157,6 +168,7 @@ impl Machine<'_> {
     }
 
     pub(crate) fn read_word(&self, addr: u64) -> Result<u64, Stop> {
+        self.aligned("read", addr)?;
         let Some(bytes) = self.mem.read(addr, 8) else {
             return Err(self.bad_access("read", addr));
         };
@@ -172,6 +184,7 @@ impl Machine<'_> {
     }
 
     pub(crate) fn write_word(&mut self, addr: u64, w: u64) -> Result<(), Stop> {
+        self.aligned("write", addr)?;
         if self.mem.find(addr).is_some() {
             self.raced(addr, true)?;
         }
