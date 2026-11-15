@@ -10,11 +10,14 @@
 
 mod mem;
 mod ops;
+mod race;
 mod rt;
 
 use mem::{Byte, Memory};
+use race::Race;
+use std::cell::RefCell;
 use std::collections::HashMap;
-use yan_mir::{BlockId, Func, FuncId, Inst, Local, Operand, Program, Term, Ty};
+use yan_mir::{ArmEvent, BlockId, Func, FuncId, Inst, Local, Operand, Program, Term, Ty};
 
 /// Why a run stopped before `main` returned.
 #[derive(Debug)]
@@ -69,6 +72,8 @@ struct Frame {
     locals: Vec<Val>,
     /// Address-taken locals live in memory: their allocation base and word.
     pinned: HashMap<Local, (u64, u64)>,
+    /// `par` regions open when the frame began; any still open when it leaves are joined.
+    regions: usize,
 }
 
 pub struct Machine<'p> {
@@ -78,6 +83,7 @@ pub struct Machine<'p> {
     strs: Vec<Option<u64>>,
     pub(crate) lists: HashMap<u64, rt::List>,
     exposed: HashMap<u64, i128>,
+    race: RefCell<Race>,
 }
 
 pub fn run(prog: &Program, ub: bool) -> Result<(), Stop> {
@@ -88,6 +94,7 @@ pub fn run(prog: &Program, ub: bool) -> Result<(), Stop> {
         strs: vec![None; prog.strings.len()],
         lists: HashMap::new(),
         exposed: HashMap::new(),
+        race: RefCell::new(Race::new()),
     };
     m.call(prog.main, vec![]).map(drop)
 }
@@ -139,10 +146,21 @@ impl Machine<'_> {
         Ok(decode(t, w))
     }
 
+    fn raced(&self, addr: u64, write: bool) -> Result<(), Stop> {
+        if !self.ub {
+            return Ok(());
+        }
+        match self.race.borrow_mut().access(addr, write) {
+            Some(msg) => Err(Stop::Ub(1, msg)),
+            None => Ok(()),
+        }
+    }
+
     pub(crate) fn read_word(&self, addr: u64) -> Result<u64, Stop> {
         let Some(bytes) = self.mem.read(addr, 8) else {
             return Err(self.bad_access("read", addr));
         };
+        self.raced(addr, false)?;
         let mut w = [0u8; 8];
         for (d, b) in w.iter_mut().zip(bytes) {
             *d = match b {
@@ -154,6 +172,9 @@ impl Machine<'_> {
     }
 
     pub(crate) fn write_word(&mut self, addr: u64, w: u64) -> Result<(), Stop> {
+        if self.mem.find(addr).is_some() {
+            self.raced(addr, true)?;
+        }
         let bytes: Vec<Byte> = w.to_le_bytes().into_iter().map(Byte::Init).collect();
         self.mem
             .write(addr, &bytes)
@@ -214,6 +235,7 @@ impl Machine<'_> {
         let mut fr = Frame {
             locals: f.locals.iter().map(|t| decode(*t, 0)).collect(),
             pinned: HashMap::new(),
+            regions: self.race.borrow().depth(),
         };
         for group in &f.pinned {
             let base = self.mem.alloc(8 * group.len());
@@ -228,6 +250,7 @@ impl Machine<'_> {
     }
 
     fn release(&mut self, fr: &Frame) {
+        self.race.borrow_mut().unwind(fr.regions);
         for (base, _) in fr.pinned.values() {
             self.mem.free(*base);
         }
@@ -335,6 +358,16 @@ impl Machine<'_> {
                 let p = self.eval(fr, ptr, f)?.addr();
                 let v = self.eval(fr, src, f)?;
                 self.write_word(p + 8 * u64::from(*word), encode(v))
+            }
+            Inst::Arm(e) => {
+                let mut r = self.race.borrow_mut();
+                match e {
+                    ArmEvent::Fork => r.fork(),
+                    ArmEvent::Enter(k) => r.enter(*k),
+                    ArmEvent::Exit => r.exit(),
+                    ArmEvent::Join => r.join(),
+                }
+                Ok(())
             }
             Inst::AddrOf { dst, local } => {
                 let Some((base, word)) = fr.pinned.get(local) else {
