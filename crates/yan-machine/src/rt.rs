@@ -15,7 +15,66 @@ pub struct List {
     data: u64,
 }
 
+fn time(hi: Val, lo: Val) -> i128 {
+    yan_rt::timeabi::join(hi.int() as i64, lo.int() as i64)
+}
+
 impl Machine<'_> {
+    /// A list's slot width and its elements' bytes.
+    fn slots(&mut self, l: Val) -> Result<(usize, Vec<Byte>), Stop> {
+        let List {
+            words, len, data, ..
+        } = *self.list(l)?;
+        let bytes = self.mem.read(data, 8 * words * len).unwrap_or_default();
+        Ok((words, bytes))
+    }
+
+    /// Replaces a list's elements with `slots`, in a fresh data block.
+    fn set_slots(&mut self, l: Val, slots: Vec<Byte>) -> Result<(), Stop> {
+        let words = self.list(l)?.words;
+        let old = self.list(l)?.data;
+        let len = slots.len().checked_div(8 * words).unwrap_or(0);
+        let data = self.mem.alloc(slots.len());
+        self.mem.write(data, &slots);
+        self.mem.free(old);
+        *self.list(l)? = List {
+            words,
+            len,
+            cap: len,
+            data,
+        };
+        Ok(())
+    }
+
+    fn new_list(&mut self, words: usize, slots: Vec<Byte>) -> Val {
+        let h = self.mem.alloc(8);
+        let data = self.mem.alloc(slots.len());
+        self.mem.write(data, &slots);
+        let len = slots.len().checked_div(8 * words).unwrap_or(0);
+        self.lists.insert(
+            h,
+            List {
+                words,
+                len,
+                cap: len,
+                data,
+            },
+        );
+        Val::I(i128::from(h))
+    }
+
+    /// Words handed back by pointer, as native does with a thread-local. The block is reused and
+    /// is not a leak.
+    fn scratch_words(&mut self, words: &[i64]) -> Val {
+        let at = *self.scratch.get_or_insert_with(|| self.mem.alloc(8 * 3));
+        let bytes: Vec<Byte> = words
+            .iter()
+            .flat_map(|w| w.to_le_bytes().map(Byte::Init))
+            .collect();
+        self.mem.write(at, &bytes).expect("scratch block is live");
+        Val::I(i128::from(at))
+    }
+
     /// Freeing a block twice is `ub(8)` under `--ub`.
     fn free_block(&mut self, addr: u64) -> Result<(), Stop> {
         if !self.mem.free(addr) && self.ub {
@@ -154,6 +213,58 @@ impl Machine<'_> {
                 Val::U
             }
             RtFn::PtrExposed => Val::I(self.exposed.get(&a[0].addr()).copied().unwrap_or(0)),
+            RtFn::ListCopy => {
+                let (words, slots) = self.slots(a[0])?;
+                self.new_list(words, slots)
+            }
+            RtFn::ListReverse => {
+                let (words, mut slots) = self.slots(a[0])?;
+                let mut elems: Vec<&[Byte]> = slots.chunks(8 * words.max(1)).collect();
+                elems.reverse();
+                slots = elems.concat();
+                self.set_slots(a[0], slots)?;
+                Val::U
+            }
+            RtFn::ListInsert => {
+                let (words, mut slots) = self.slots(a[0])?;
+                let n = slots.len().checked_div(8 * words).unwrap_or(0);
+                let at = yan_rt::list::insert_at(a[1].int(), n) * 8 * words;
+                slots.splice(at..at, vec![Byte::Init(0); 8 * words]);
+                self.set_slots(a[0], slots)?;
+                Val::I(i128::from(self.list(a[0])?.data) + at as i128)
+            }
+            RtFn::ListRemove => {
+                let (words, mut slots) = self.slots(a[0])?;
+                let at = a[1].int() as usize * 8 * words;
+                slots.drain(at..at + 8 * words);
+                self.set_slots(a[0], slots)?;
+                Val::U
+            }
+            RtFn::ListSliceExact => {
+                let (words, slots) = self.slots(a[0])?;
+                let n = slots.len().checked_div(8 * words).unwrap_or(0) as i128;
+                let (i, j) = (a[1].int(), a[2].int());
+                if i < 0 || i > j || j > n {
+                    return Err(Stop::Panic("bounds"));
+                }
+                let w = 8 * words as i128;
+                self.new_list(words, slots[(i * w) as usize..(j * w) as usize].to_vec())
+            }
+            RtFn::TimeOp => {
+                let r =
+                    yan_rt::timeabi::time_op(a[0].int() as i64, time(a[1], a[2]), time(a[3], a[4]))
+                        .map_err(Stop::Panic)?;
+                self.scratch_words(&yan_rt::timeabi::time_words(r))
+            }
+            RtFn::TimeF64 => Val::F(
+                yan_rt::timeabi::time_f64(a[0].int() as i64, time(a[1], a[2]), time(a[3], a[4]))
+                    .map_err(Stop::Panic)?,
+            ),
+            RtFn::TimeShow => Val::I(i128::from(self.new_str(&yan_rt::timeabi::time_show(
+                a[0].int() as i64,
+                a[1].int() as i64,
+                a[2].int() as i64,
+            )))),
             other => return unsupported(format!("runtime function {other:?} in the machine")),
         })
     }
