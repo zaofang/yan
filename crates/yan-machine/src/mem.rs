@@ -54,12 +54,16 @@ impl Memory {
         (addr - a.base <= a.size as u64).then_some(i)
     }
 
-    pub fn free(&mut self, addr: u64) {
-        if let Some(i) = self.find(addr) {
-            let a = &mut self.allocs[i];
-            a.live = false;
-            a.bytes = Vec::new();
-        }
+    /// `false` when `addr` is in an allocation that is already freed.
+    pub fn free(&mut self, addr: u64) -> bool {
+        let Some(i) = self.find(addr) else {
+            return true;
+        };
+        let a = &mut self.allocs[i];
+        let was_live = a.live;
+        a.live = false;
+        a.bytes = Vec::new();
+        was_live
     }
 
     pub fn is_live(&self, id: AllocId) -> bool {
