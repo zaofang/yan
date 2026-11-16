@@ -74,7 +74,7 @@ pub(crate) struct Facts {
 }
 
 impl Facts {
-    pub(crate) fn new(params: &[Param], body: &Block, copy: &own::CopyFields) -> Self {
+    pub(crate) fn new(params: &[Param], body: &Block, copy: &own::Ctors) -> Self {
         let mut facts = Facts::default();
         let mut bodies = vec![(owned_params(params), body)];
         while let Some((owned, b)) = bodies.pop() {
@@ -115,7 +115,7 @@ impl Facts {
 type Shadowed<'a> = (&'a Name, Option<Node>, Option<(usize, usize)>);
 
 struct Lower<'a> {
-    copy: &'a own::CopyFields,
+    copy: &'a own::Ctors,
     cfg: Cfg,
     cur: Node,
     exit: Node,
@@ -138,7 +138,7 @@ struct Lower<'a> {
 }
 
 impl<'a> Lower<'a> {
-    fn new(next: u32, copy: &'a own::CopyFields) -> Self {
+    fn new(next: u32, copy: &'a own::Ctors) -> Self {
         let mut cfg = Cfg::new();
         let cur = cfg.node();
         let exit = cfg.node();

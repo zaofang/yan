@@ -86,13 +86,26 @@ pub fn pat_binders(p: &Pat, out: &mut Vec<Name>) {
     }
 }
 
-/// Constructor and field name pairs whose type is copy in every declaration of that constructor.
-pub type CopyFields = HashSet<(Name, Name)>;
+/// What the module's constructors say about patterns and moves.
+#[derive(Clone, Default)]
+pub struct Ctors {
+    /// Constructor and field name pairs whose type is copy in every declaration of that constructor.
+    copy: HashSet<(Name, Name)>,
+    /// Variants without fields: a pattern `Leaf` is written as a name, but binds nothing.
+    units: HashSet<Name>,
+}
 
-pub fn copy_fields(m: &Module) -> CopyFields {
+impl Ctors {
+    pub fn is_copy_field(&self, ctor: &str, field: &str) -> bool {
+        self.copy.contains(&(ctor.to_owned(), field.to_owned()))
+    }
+}
+
+pub fn ctors(items: &[Item]) -> Ctors {
     let last = |p: &Path| p.last().cloned().unwrap_or_default();
-    let mut copy = CopyFields::new();
-    let mut other = CopyFields::new();
+    let mut copy = HashSet::new();
+    let mut other = HashSet::new();
+    let mut units: HashSet<Name> = HashSet::from(["None".to_owned()]);
     let mut add = |ctor: Name, fs: &[Field]| {
         for f in fs {
             let key = (ctor.clone(), f.name.clone());
@@ -103,37 +116,42 @@ pub fn copy_fields(m: &Module) -> CopyFields {
             }
         }
     };
-    for it in &m.items {
+    for it in items {
         match &it.kind {
             ItemKind::Record(r) => add(last(&r.path), &r.fields),
-            ItemKind::Sum(s) => s
-                .variants
-                .iter()
-                .for_each(|v| add(v.name.clone(), v.fields.as_deref().unwrap_or(&[]))),
+            ItemKind::Sum(s) => {
+                for v in &s.variants {
+                    if v.fields.as_deref().is_none_or(<[Field]>::is_empty) {
+                        units.insert(v.name.clone());
+                    }
+                    add(v.name.clone(), v.fields.as_deref().unwrap_or(&[]));
+                }
+            }
             _ => {}
         }
     }
     copy.retain(|k| !other.contains(k));
-    copy
+    Ctors { copy, units }
 }
 
 /// `pat_binders` without the names bound to a copy field: those are values, not views of the
 /// scrutinee, so passing one on does not move it.
-pub fn view_binders(p: &Pat, copy: &CopyFields, out: &mut Vec<Name>) {
+pub fn view_binders(p: &Pat, ctors: &Ctors, out: &mut Vec<Name>) {
     match p {
+        Pat::Bind(n) if ctors.units.contains(n) => {}
         Pat::Ctor {
             path,
             fields: Some((fs, _)),
         } => {
             let ctor = path.last().cloned().unwrap_or_default();
             for (f, sub) in fs {
-                if matches!(sub, Pat::Bind(_)) && copy.contains(&(ctor.clone(), f.clone())) {
+                if matches!(sub, Pat::Bind(_)) && ctors.is_copy_field(&ctor, f) {
                     continue;
                 }
-                view_binders(sub, copy, out);
+                view_binders(sub, ctors, out);
             }
         }
-        Pat::Tuple(ps) | Pat::Or(ps) => ps.iter().for_each(|p| view_binders(p, copy, out)),
+        Pat::Tuple(ps) | Pat::Or(ps) => ps.iter().for_each(|p| view_binders(p, ctors, out)),
         _ => pat_binders(p, out),
     }
 }
