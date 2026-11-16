@@ -10,12 +10,12 @@ impl Lower<'_, '_, '_> {
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         self.want_ret = want.map(|w| (w.clone(), at));
-        let session = |e: &j::Expr| matches!(&e.kind, j::ExprKind::Name(s) if s == "session" && !self.locals.contains_key(s));
+        let session = |e: &j::Expr| matches!(&e.kind, j::ExprKind::Name(s) if s == "session" && !self.value_bound(s));
         match &f.kind {
             j::ExprKind::Index(b, k)
                 if let j::ExprKind::Name(c) = &b.kind
                     && matches!(c.as_str(), "wrap_as" | "sat_as" | "trunc_as")
-                    && !self.locals.contains_key(c)
+                    && !self.value_bound(c)
                     && !self.g.fns.contains_key(c) =>
             {
                 self.conv_call(c, k, args, at)
@@ -34,41 +34,41 @@ impl Lower<'_, '_, '_> {
             }
             j::ExprKind::Index(b, k)
                 if let j::ExprKind::Attr(m, op, _) = &b.kind
-                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "cli" && !self.locals.contains_key(c))
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "cli" && !self.value_bound(c))
                     && matches!(op.as_str(), "parse" | "parse_args") =>
             {
                 self.cli_call(op, k, args, at, None)
             }
             j::ExprKind::Index(b, k)
                 if let j::ExprKind::Attr(m, op, _) = &b.kind
-                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "json" && !self.locals.contains_key(c))
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "json" && !self.value_bound(c))
                     && matches!(op.as_str(), "parse" | "dump") =>
             {
                 self.json_call(op, Some(k), args, at)
             }
             j::ExprKind::Attr(m, op, _)
                 if op == "dump"
-                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "json" && !self.locals.contains_key(c)) =>
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "json" && !self.value_bound(c)) =>
             {
                 self.json_call(op, None, args, at)
             }
             j::ExprKind::Index(b, k)
                 if let j::ExprKind::Attr(m, op, _) = &b.kind
-                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "csv" && !self.locals.contains_key(c))
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "csv" && !self.value_bound(c))
                     && matches!(op.as_str(), "parse" | "dump") =>
             {
                 self.csv_call(op, Some(k), args, at)
             }
             j::ExprKind::Attr(m, op, _)
                 if op == "dump"
-                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "csv" && !self.locals.contains_key(c)) =>
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "csv" && !self.value_bound(c)) =>
             {
                 self.csv_call(op, None, args, at)
             }
             // The schema written out: `cli.parse_args(xs, "{..}")`, what raise prints with no marks.
             j::ExprKind::Attr(m, op, _)
                 if op == "parse_args"
-                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "cli" && !self.locals.contains_key(c))
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "cli" && !self.value_bound(c))
                     && let [xs, schema] = args
                     && let j::ArgKind::Expr(j::Expr {
                         kind: j::ExprKind::Lit(j::Lit::Str { value, .. }),
@@ -87,14 +87,14 @@ impl Lower<'_, '_, '_> {
             }
             j::ExprKind::Attr(m, op, _)
                 if op == "launch"
-                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "gpu" && !self.locals.contains_key(c)) =>
+                    && matches!(&m.kind, j::ExprKind::Name(c) if c == "gpu" && !self.value_bound(c)) =>
             {
                 self.launch(args, at)
             }
             j::ExprKind::Name(n)
                 if !self.in_launch
                     && (n == "TileOrigin" || self.g.kernels.contains_key(n))
-                    && !self.locals.contains_key(n) =>
+                    && !self.value_bound(n) =>
             {
                 crate::refuse(
                     crate::kernel::MISUSE,
@@ -107,7 +107,7 @@ impl Lower<'_, '_, '_> {
             }
             j::ExprKind::Attr(m, op, _)
                 if op == "spawn"
-                    && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.locals.contains_key(a)) =>
+                    && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.value_bound(a)) =>
             {
                 self.spawn_call(args, at, want)
             }
@@ -127,7 +127,7 @@ impl Lower<'_, '_, '_> {
             }
             j::ExprKind::Attr(m, op, _)
                 if op == "send_only"
-                    && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.locals.contains_key(a)) =>
+                    && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.value_bound(a)) =>
             {
                 self.send_only_call(args, at)
             }
@@ -140,13 +140,13 @@ impl Lower<'_, '_, '_> {
             }
             j::ExprKind::Attr(m, op, _)
                 if op == "start"
-                    && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.locals.contains_key(a)) =>
+                    && matches!(&m.kind, j::ExprKind::Name(a) if a == "actor" && !self.value_bound(a)) =>
             {
                 self.start_call(args, at, want)
             }
             j::ExprKind::Attr(m, op, _)
                 if op == "of"
-                    && matches!(&m.kind, j::ExprKind::Name(p) if p == "Ptr" && !self.locals.contains_key(p)) =>
+                    && matches!(&m.kind, j::ExprKind::Name(p) if p == "Ptr" && !self.value_bound(p)) =>
             {
                 self.ptr_of(args, at)
             }
@@ -158,18 +158,18 @@ impl Lower<'_, '_, '_> {
             }
             j::ExprKind::Attr(m, op, _)
                 if (self.cx.ffi || ptr::exposes(op))
-                    && matches!(&m.kind, j::ExprKind::Name(p) if p == "ptr" && !self.locals.contains_key(p)) =>
+                    && matches!(&m.kind, j::ExprKind::Name(p) if p == "ptr" && !self.value_bound(p)) =>
             {
                 self.ptr_call(op, None, args, at, want)
             }
             j::ExprKind::Index(b, k)
                 if let j::ExprKind::Attr(m, op, _) = &b.kind
                     && (self.cx.ffi || ptr::exposes(op))
-                    && matches!(&m.kind, j::ExprKind::Name(p) if p == "ptr" && !self.locals.contains_key(p)) =>
+                    && matches!(&m.kind, j::ExprKind::Name(p) if p == "ptr" && !self.value_bound(p)) =>
             {
                 self.ptr_call(op, Some(k), args, at, want)
             }
-            j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Channel" && !self.locals.contains_key(n)) =>
+            j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Channel" && !self.value_bound(n)) =>
             {
                 let j::ExprKind::Name(tn) = &k.kind else {
                     return unsupported("`Channel` of a type that is not a name");
@@ -193,7 +193,7 @@ impl Lower<'_, '_, '_> {
                 let c = call("std.chan.Channel", vec![t.targ()], vec![let_arg(cap)], at);
                 Ok((Rhs::Call(c), ret, None))
             }
-            j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Atomic" && !self.locals.contains_key(n)) =>
+            j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Atomic" && !self.value_bound(n)) =>
             {
                 let j::ExprKind::Name(tn) = &k.kind else {
                     return unsupported("`Atomic` of a type that is not a name");
@@ -229,9 +229,7 @@ impl Lower<'_, '_, '_> {
                 let (name, sig) = self.instance(n, v, at)?;
                 self.call_sig(&name, &sig, None, args, at)
             }
-            j::ExprKind::Name(n)
-                if !self.locals.contains_key(n) && self.pending.contains_key(n) =>
-            {
+            j::ExprKind::Name(n) if !self.value_bound(n) && self.pending.contains_key(n) => {
                 let mut vals = Vec::new();
                 let mut tys = Vec::new();
                 for a in args {
@@ -259,7 +257,7 @@ impl Lower<'_, '_, '_> {
                 let t = self.locals[n].ty.clone();
                 self.call_local(n, t, f.span, args, at)
             }
-            j::ExprKind::Name(n) if !self.locals.contains_key(n) => {
+            j::ExprKind::Name(n) if !self.value_bound(n) => {
                 let prelude = !self.g.fns.contains_key(n) || self.g.std_fns.contains(n);
                 if prelude
                     && matches!(n.as_str(), "min" | "max")
@@ -319,13 +317,13 @@ impl Lower<'_, '_, '_> {
             }
             j::ExprKind::Attr(b, m, name_at) => {
                 if let j::ExprKind::Name(c) = &b.kind
-                    && !self.locals.contains_key(c)
+                    && !self.value_bound(c)
                     && (self.sig.caps.contains(c) || self.handlers.contains(c) || c == "io")
                 {
                     return self.cap_call(c, m, args, at);
                 }
                 if let j::ExprKind::Name(t) = &b.kind
-                    && !self.locals.contains_key(t)
+                    && !self.value_bound(t)
                     && let Some(s) = self.g.qualified_variant(t, m).map(str::to_owned)
                 {
                     return self.variant_call(m, &s, args, at, want);
@@ -337,7 +335,7 @@ impl Lower<'_, '_, '_> {
                     return Ok((r, t, None));
                 }
                 if let j::ExprKind::Name(module) = &b.kind
-                    && !self.locals.contains_key(module)
+                    && !self.value_bound(module)
                     && self.std_variant(module, m)
                 {
                     let f = j::Expr {
@@ -349,7 +347,7 @@ impl Lower<'_, '_, '_> {
                 }
                 if let j::ExprKind::Name(module) = &b.kind
                     && module == "math"
-                    && !self.locals.contains_key(module)
+                    && !self.value_bound(module)
                     && !self.cx.strict
                     && matches!(m.as_str(), "floor" | "ceil" | "trunc")
                     && want == Some(&Ty::Int)
@@ -372,7 +370,7 @@ impl Lower<'_, '_, '_> {
                 }
                 if let j::ExprKind::Name(module) = &b.kind
                     && module == "math"
-                    && !self.locals.contains_key(module)
+                    && !self.value_bound(module)
                     && !self.cx.strict
                     && let Some((e, to)) = math_alias(m, b, *name_at, args, at)
                 {
@@ -390,7 +388,7 @@ impl Lower<'_, '_, '_> {
                 let mut flag_mark = None;
                 let args = if let j::ExprKind::Name(module) = &b.kind
                     && module == "re"
-                    && !self.locals.contains_key(module)
+                    && !self.value_bound(module)
                     && !self.cx.strict
                     && let Some((a, keyword)) = self.re_flags(m, args)
                 {
@@ -407,7 +405,7 @@ impl Lower<'_, '_, '_> {
                 // Python's `re.search(pattern, s)`: compile the pattern, then call the method.
                 if let j::ExprKind::Name(module) = &b.kind
                     && module == "re"
-                    && !self.locals.contains_key(module)
+                    && !self.value_bound(module)
                     && !self.cx.strict
                     && let Some(meth) = match m.as_str() {
                         "match" | "search" | "fullmatch" | "split" | "sub" => Some(m.as_str()),
@@ -466,7 +464,7 @@ impl Lower<'_, '_, '_> {
                 }
                 // `bytes.from_list` and `bytearray.from_bytes` name their type's declaring module.
                 if let j::ExprKind::Name(module) = &b.kind
-                    && !self.locals.contains_key(module)
+                    && !self.value_bound(module)
                     && let module = match module.as_str() {
                         "re" => "regex",
                         m => yan_hir::raise::TYPE_STATICS

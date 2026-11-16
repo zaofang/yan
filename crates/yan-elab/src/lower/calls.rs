@@ -304,6 +304,13 @@ impl Lower<'_, '_, '_> {
         args: &[j::Arg],
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
+        if self.g.unsafe_fns.contains(path) && !self.in_unsafe {
+            self.err(
+                "E903",
+                at,
+                format!("`{path}` is an `unsafe fn`; call it inside `unsafe`"),
+            );
+        }
         let mut out: Vec<Arg> = sig
             .caps
             .iter()

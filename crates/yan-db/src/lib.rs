@@ -288,7 +288,35 @@ fn package_manifest(path: &Path) -> Option<yan_elab::Manifest> {
         .find(|f| f.is_file())?;
     let src = std::fs::read_to_string(&file).ok()?;
     let (m, _) = yan_yag::parse(&file.display().to_string(), &src, false);
-    yan_elab::manifest(&m?)
+    let mut manifest = yan_elab::manifest(&m?)?;
+    manifest.ffi_unconsented = !consented(&file, &manifest);
+    Some(manifest)
+}
+
+/// R1018: the package of `own` is named in the `allow_ffi` of the outermost `package.yag` above
+/// it, the root; the root names itself. A package without a name has nothing to name.
+fn consented(own: &Path, manifest: &yan_elab::Manifest) -> bool {
+    let Some(name) = &manifest.name else {
+        return true;
+    };
+    let Some(root) = own.parent().and_then(|d| {
+        d.ancestors()
+            .map(|d| d.join("package.yag"))
+            .filter(|f| f.is_file())
+            .last()
+    }) else {
+        return true;
+    };
+    if root == own {
+        return manifest.allow_ffi.contains(name);
+    }
+    let Some(top) = std::fs::read_to_string(&root).ok().and_then(|src| {
+        let (m, _) = yan_yag::parse(&root.display().to_string(), &src, false);
+        yan_elab::manifest(&m?)
+    }) else {
+        return true;
+    };
+    top.allow_ffi.contains(name)
 }
 
 /// 12: a module under the package's `ffi/` directory. The package root is the nearest

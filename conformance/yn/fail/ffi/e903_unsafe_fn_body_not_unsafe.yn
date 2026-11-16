@@ -1,0 +1,6 @@
+-- spec: 3, 15.2
+-- rows: R1013
+-- note: RFC 0076 D4; the body of an unsafe fn is not an unsafe block (assumptions A9, A11)
+-- expect: E903 at 6:36
+
+unsafe first(p: Ptr[int]) -> int = p.read()

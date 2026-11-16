@@ -482,6 +482,7 @@ pub(crate) fn prepare(m: &mut j::Module) {
             decorators: Vec::new(),
             is_pub: false,
             kind: j::ItemKind::Func(j::FuncDef {
+                unsafe_at: None,
                 name: launcher(&f.name),
                 name_span: at,
                 tparams: Vec::new(),
