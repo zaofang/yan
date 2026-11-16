@@ -173,39 +173,6 @@ impl Parsed {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn t(s: &str) -> String {
-        Parsed::posix(s).text()
-    }
-
-    fn w(s: &str) -> String {
-        Parsed::windows(s).text()
-    }
-
-    #[test]
-    fn construction_normalizes() {
-        assert_eq!(t(""), ".");
-        assert_eq!(t("a//./b/"), "a/b");
-        assert_eq!(t("/"), "/");
-        assert_eq!(t("//x/../y"), "/x/../y");
-        assert_eq!(Parsed::posix("/a/../../b").normalize().text(), "/b");
-        assert_eq!(Parsed::posix("../a/..").normalize().text(), "..");
-    }
-
-    #[test]
-    fn windows_anchors() {
-        assert_eq!(w("C:/a/./b"), r"C:\a\b");
-        assert_eq!(w(r"\\srv\share\x"), r"\\srv\share\x");
-        assert_eq!(w(r"\\?\C:\a\.\b"), r"\\?\C:\a\.\b");
-        assert_eq!(w("C:a"), "C:a");
-        let p = Parsed::windows(r"\\srv\share\x");
-        assert_eq!((p.drive.as_str(), p.root), (r"\\srv\share", "\\"));
-    }
-}
-
 /// `parent` (0), `name` (1), `suffix` (2), `stem` (3), anything else `normalize`.
 pub fn op(win: bool, k: i64, s: &str) -> String {
     let p = Parsed::new(win, s);
@@ -288,4 +255,37 @@ pub fn to_posix(p: &str) -> Option<String> {
 
 pub fn win_eq(a: &str, b: &str) -> bool {
     Parsed::windows(a).folded_parts() == Parsed::windows(b).folded_parts()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn t(s: &str) -> String {
+        Parsed::posix(s).text()
+    }
+
+    fn w(s: &str) -> String {
+        Parsed::windows(s).text()
+    }
+
+    #[test]
+    fn construction_normalizes() {
+        assert_eq!(t(""), ".");
+        assert_eq!(t("a//./b/"), "a/b");
+        assert_eq!(t("/"), "/");
+        assert_eq!(t("//x/../y"), "/x/../y");
+        assert_eq!(Parsed::posix("/a/../../b").normalize().text(), "/b");
+        assert_eq!(Parsed::posix("../a/..").normalize().text(), "..");
+    }
+
+    #[test]
+    fn windows_anchors() {
+        assert_eq!(w("C:/a/./b"), r"C:\a\b");
+        assert_eq!(w(r"\\srv\share\x"), r"\\srv\share\x");
+        assert_eq!(w(r"\\?\C:\a\.\b"), r"\\?\C:\a\.\b");
+        assert_eq!(w("C:a"), "C:a");
+        let p = Parsed::windows(r"\\srv\share\x");
+        assert_eq!((p.drive.as_str(), p.root), (r"\\srv\share", "\\"));
+    }
 }
