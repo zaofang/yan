@@ -1122,7 +1122,10 @@ pub unsafe extern "C" fn yan_rt_csv_dump(
     schema: *const String,
 ) -> *mut String {
     // SAFETY: the caller's contract.
-    match unsafe { crate::csvslots::dump(&*rows, &*delim, &*schema) } {
+    let rows = unsafe { &*rows };
+    // SAFETY: the rows' `Str` slots are live blocks.
+    let text = |w: u64| unsafe { &*(w as *const String) }.clone();
+    match crate::csvslots::dump(&rows.data, unsafe { &*delim }, unsafe { &*schema }, &text) {
         Some(s) => str_block(&s),
         None => panic("value"),
     }
