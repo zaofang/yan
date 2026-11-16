@@ -1779,3 +1779,8 @@ sections = "3, 25.11"
 rows = "R1017"
 topic = "`allow_ffi` consents to `ffi` modules; `yan audit` lists `unsafe fn` items and call sites (RFC 0076 D8)"
 sections = "12, 12.10"
+
+[[entry]]
+rows = "R1018"
+topic = "`Sender.close()` ends the handle at once; a second `close` and the later drop do nothing; `send`, `try_send` or a `select` send arm on a closed `Sender` panics `contract`"
+sections = "9.5"
