@@ -101,3 +101,4 @@ are paused.
 | [0073](0073-agent-session-journal.md) | Agent session journal: `--journal` on `yan mcp` and `yan agent`, a recorded session as an R305 trace | draft | |
 | [0074](0074-growth-contracts.md) | Growth contracts: check a cost class by fitting deterministic step counts | draft | |
 | [0075](0075-ecosystem-impact-testing.md) | Ecosystem impact testing: rerun only the dependents' tests a release changes | draft | |
+| [0076](0076-unsafe-fn.md) | `unsafe fn` in Yan: grammar, calls, `pre` across build modes and `--ub`, not a value | draft | |
