@@ -355,6 +355,16 @@ impl Machine<'_> {
         Ok(Val::I(i128::from(status)))
     }
 
+    fn str_list<'a>(&mut self, parts: impl Iterator<Item = &'a str>) -> Result<Val, Stop> {
+        let l = self.list_new(1);
+        for p in parts {
+            let at = self.list_push(Val::I(i128::from(l)))?;
+            let h = self.new_str(p);
+            self.write_words(at, &[h])?;
+        }
+        Ok(Val::I(i128::from(l)))
+    }
+
     fn list_new(&mut self, words: usize) -> u64 {
         let h = self.mem.alloc(8);
         let data = self.mem.alloc(0);
@@ -670,6 +680,61 @@ impl Machine<'_> {
                 }
                 None => Val::B(false),
             },
+            RtFn::IntOf => {
+                let s = self.str_of(a[0].addr())?;
+                let i = yan_rt::text::parse_int(s.trim()).ok_or(Stop::Panic("conversion"))?;
+                Val::I(i128::from(i as i64))
+            }
+            RtFn::Pow => Val::F(yan_rt::math::pow(a[0].float(), a[1].float())),
+            RtFn::DotExact => {
+                let floats = |m: &mut Self, l: Val| -> Result<Vec<f64>, Stop> {
+                    let (words, len, data) = {
+                        let l = m.list(l)?;
+                        (l.words, l.len, l.data)
+                    };
+                    Ok(m.words(data, words * len)?
+                        .into_iter()
+                        .map(f64::from_bits)
+                        .collect())
+                };
+                let xs = floats(self, a[0])?;
+                let ys = if a[1].addr() == 0 {
+                    None
+                } else {
+                    Some(floats(self, a[1])?)
+                };
+                let r = yan_rt::math::dot_exact(&xs, ys.as_deref(), a[2].int() as i64)
+                    .ok_or(Stop::Panic("value"))?;
+                Val::F(r)
+            }
+            RtFn::StrSplitLines => {
+                let s = self.str_of(a[0].addr())?;
+                self.str_list(yan_rt::text::splitlines(&s))?
+            }
+            RtFn::StrSplit => {
+                let s = self.str_of(a[0].addr())?;
+                if a[1].int() == 0 {
+                    let sep = self.str_of(a[2].addr())?;
+                    self.str_list(s.split(sep.as_str()))?
+                } else {
+                    self.str_list(yan_rt::text::split_whitespace(&s))?
+                }
+            }
+            RtFn::StrStrip => Val::I(i128::from(self.new_str(self.str_of(a[0].addr())?.trim()))),
+            RtFn::StrPartition => {
+                let (s, sep) = (self.str_of(a[0].addr())?, self.str_of(a[1].addr())?);
+                let (x, m, y) = yan_rt::text::partition(&s, &sep);
+                Val::I(i128::from(self.new_str([x, m, y][a[2].int() as usize])))
+            }
+            RtFn::Pown => Val::F(yan_rt::math::pown(a[0].float(), a[1].int())),
+            RtFn::IntToF64 => Val::F(a[0].int() as i64 as f64),
+            RtFn::AbsF64 => Val::F(a[0].float().abs()),
+            RtFn::TruncF64 => Val::I(i128::from(
+                yan_rt::num::trunc_i64(a[0].float()).ok_or(Stop::Panic("conversion"))?,
+            )),
+            RtFn::RoundF64 => Val::I(i128::from(
+                yan_rt::num::round_i64(a[0].float()).ok_or(Stop::Panic("conversion"))?,
+            )),
             RtFn::HexCheck => Val::I(
                 yan_rt::bytes::hex_decode(&self.str_of(a[0].addr())?)
                     .map_or_else(|at| at as i128, |_| -1),
