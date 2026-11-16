@@ -11,6 +11,15 @@ pub struct Parsed {
 }
 
 impl Parsed {
+    /// `win` selects `WindowsPath` over `Path` rules.
+    pub fn new(win: bool, s: &str) -> Parsed {
+        if win {
+            Parsed::windows(s)
+        } else {
+            Parsed::posix(s)
+        }
+    }
+
     pub fn posix(s: &str) -> Parsed {
         Parsed {
             drive: String::new(),
@@ -162,6 +171,90 @@ impl Parsed {
         (self.fold(&self.anchor()) == self.fold(&base.anchor()) && f(self).starts_with(&f(base)))
             .then(|| self.segs[base.segs.len()..].to_vec())
     }
+}
+
+/// `parent` (0), `name` (1), `suffix` (2), `stem` (3), anything else `normalize`.
+pub fn op(win: bool, k: i64, s: &str) -> String {
+    let p = Parsed::new(win, s);
+    match k {
+        0 => p.parent().text(),
+        1 => p.name().to_owned(),
+        2 => p.suffix().to_owned(),
+        3 => p.name()[..p.name().len() - p.suffix().len()].to_owned(),
+        _ => p.normalize().text(),
+    }
+}
+
+/// `with_name` (`suffix` false) or `with_suffix`; `None` on a bad name or suffix (panic `value`).
+pub fn with(win: bool, suffix: bool, p: &str, n: &str) -> Option<String> {
+    let p = Parsed::new(win, p);
+    let name = if suffix {
+        if !n.is_empty() && (!n.starts_with('.') || n == "." || n.contains(['/', '\\'])) {
+            return None;
+        }
+        format!("{}{n}", &p.name()[..p.name().len() - p.suffix().len()])
+    } else {
+        n.to_owned()
+    };
+    if p.name().is_empty() || name.is_empty() || name == "." || name.contains(['/', '\\']) {
+        return None;
+    }
+    let mut segs = p.segs.clone();
+    *segs.last_mut().expect("named") = name;
+    Some(p.with_segs(segs).text())
+}
+
+pub fn join(win: bool, p: &str, q: &str) -> String {
+    Parsed::new(win, p).join(&Parsed::new(win, q)).text()
+}
+
+pub fn is_absolute(win: bool, p: &str) -> bool {
+    let p = Parsed::new(win, p);
+    !p.root.is_empty() && (!p.win || !p.drive.is_empty())
+}
+
+pub fn starts_with(win: bool, p: &str, b: &str) -> bool {
+    Parsed::new(win, p).strip(&Parsed::new(win, b)).is_some()
+}
+
+/// The relative path, or `None` when `b` is not a prefix.
+pub fn relative_to(win: bool, p: &str, b: &str) -> Option<String> {
+    let p = Parsed::new(win, p);
+    let segs = p.strip(&Parsed::new(win, b))?;
+    let rel = Parsed {
+        drive: String::new(),
+        root: "",
+        segs,
+        win: p.win,
+    };
+    Some(rel.text())
+}
+
+pub fn parts(win: bool, p: &str) -> Vec<String> {
+    Parsed::new(win, p).parts()
+}
+
+/// `drive` (0), `root` (1) or `anchor` of a `WindowsPath`.
+pub fn win_part(k: i64, p: &str) -> String {
+    let p = Parsed::windows(p);
+    match k {
+        0 => p.drive,
+        1 => p.root.to_owned(),
+        _ => p.anchor(),
+    }
+}
+
+/// The same segments as a `Path`, or `None` when there is a drive or a root.
+pub fn to_posix(p: &str) -> Option<String> {
+    let p = Parsed::windows(p);
+    if !p.drive.is_empty() || !p.root.is_empty() {
+        return None;
+    }
+    Some(Parsed { win: false, ..p }.text())
+}
+
+pub fn win_eq(a: &str, b: &str) -> bool {
+    Parsed::windows(a).folded_parts() == Parsed::windows(b).folded_parts()
 }
 
 #[cfg(test)]
