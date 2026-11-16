@@ -1693,3 +1693,10 @@ pub def main() uses io:
     let plain = bad.replace("@derive(Wire)\n", "");
     assert_eq!(codes(&plain), Vec::<String>::new());
 }
+
+#[test]
+fn binding_a_list_element_view_to_another_name_is_e413() {
+    let src = "def f(xs: list[str]) -> str:\n    t = xs[0]\n    u = t\n    return u\n";
+    let (_, d) = lower(src);
+    assert_eq!(d.iter().filter(|d| d.code == "E413").count(), 1, "{d:?}");
+}
