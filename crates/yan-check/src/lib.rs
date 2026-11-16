@@ -368,6 +368,8 @@ struct Binding {
     try_at: Option<Span>,
     /// Captures that make the bound closure non-escaping: E406, or E306 for a capability (R467).
     bad_captures: Vec<(&'static str, Span)>,
+    /// The capabilities the bound closure captures: name and type (R1022).
+    cap_captures: Vec<(Name, Type)>,
 }
 
 type Shadowed = (Name, Option<Binding>, Option<Vec<How>>);
@@ -507,6 +509,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             local,
             try_at: None,
             bad_captures: Vec::new(),
+            cap_captures: Vec::new(),
         };
         self.env.insert(name.clone(), b);
         self.env.get_mut(name).expect("just inserted")
@@ -865,6 +868,17 @@ impl<'g, 'm> Cx<'g, 'm> {
                         .collect(),
                     _ => self.carried_captures(rhs),
                 };
+                let cap_captures: Vec<(Name, Type)> = match rhs {
+                    Rhs::Closure(c) => c
+                        .captures
+                        .iter()
+                        .filter_map(|(_, n, _)| {
+                            let b = self.env.get(n).filter(|b| b.kind == Kind::Cap)?;
+                            Some((n.clone(), b.ty.clone()?))
+                        })
+                        .collect(),
+                    _ => Vec::new(),
+                };
                 let got = self.rhs(rhs, *rhs_span);
                 self.compatible(ty, got, *rhs_span);
                 let kind = if *mutable { Kind::Var } else { Kind::Let };
@@ -872,6 +886,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                     let b = self.bind(n, Some(ty.clone()), kind, *pat_span, true);
                     b.try_at = matches!(rhs, Rhs::Try(_)).then_some(*rhs_span);
                     b.bad_captures = bad_captures;
+                    b.cap_captures = cap_captures;
                 } else {
                     self.bind_pat(pat, *pat_span);
                 }
@@ -1331,6 +1346,36 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
     }
 
+    /// E301: a closure argument that captures a capability the callee does not declare. The
+    /// callee is checked per closure it is given (4.6), so a `uses none` function cannot run
+    /// the effects of its argument (R1022).
+    fn closure_caps(&mut self, c: &Call, f: &FnDef) {
+        for a in &c.args {
+            let Arg::Value(_, Atom::Name(n, sp), _) = a else {
+                continue;
+            };
+            let Some(caps) = self.env.get(n).map(|b| b.cap_captures.clone()) else {
+                continue;
+            };
+            for (cap, ty) in caps {
+                let declared = f
+                    .params
+                    .iter()
+                    .any(|p| matches!(p, Param::Cap { ty: t, .. } if Type::Named(t.clone()) == ty));
+                if !declared {
+                    self.err(
+                        "E301",
+                        *sp,
+                        format!(
+                            "the closure captures capability `{cap}`, which `{}` does not declare in `uses`",
+                            f.path.join(".")
+                        ),
+                    );
+                }
+            }
+        }
+    }
+
     /// Check a call and its arguments. Returns the result type, when known, and the callee
     /// when it is a function of this module.
     fn call(&mut self, c: &Call) -> (Option<String>, Option<&'m FnDef>) {
@@ -1387,6 +1432,7 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
         if let Some((key, f)) = self.g.function(&name) {
             self.callees.insert(key.to_owned());
+            self.closure_caps(c, f);
             self.arity(c, f.params.len());
             let generic = !f.tparams.is_empty() || self.g.gens.contains(key);
             return ((!generic).then(|| type_text(&f.ret)), Some(f));

@@ -102,3 +102,4 @@ conformance case in the same PR set.
 | [0075](0075-ecosystem-impact-testing.md) | Ecosystem impact testing: rerun only the dependents' tests a release changes | draft | |
 | [0076](0076-unsafe-fn.md) | `unsafe fn` in Yan: grammar, calls, `pre` across build modes and `--ub`, not a value | accepted | R1010 to R1017 |
 | [0077](0077-ffi-consent.md) | FFI consent enforced at the root: `allow_ffi`, ceiling, resolution | accepted | R1018 to R1020 |
+| [0078](0078-closure-capabilities.md) | A closure argument's capabilities must be covered by the callee's `uses` | accepted | R1022 |
