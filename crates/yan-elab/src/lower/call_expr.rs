@@ -193,6 +193,31 @@ impl Lower<'_, '_, '_> {
                 let c = call("std.chan.Channel", vec![t.targ()], vec![let_arg(cap)], at);
                 Ok((Rhs::Call(c), ret, None))
             }
+            j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Atomic" && !self.locals.contains_key(n)) =>
+            {
+                let j::ExprKind::Name(tn) = &k.kind else {
+                    return unsupported("`Atomic` of a type that is not a name");
+                };
+                let tn = yan_names::type_name(tn, yan_names::Surface::Yag, yan_names::Surface::Yir)
+                    .unwrap_or(tn);
+                let named = j::Type::Named {
+                    path: vec![tn.to_owned()],
+                    args: Vec::new(),
+                };
+                let t = self.g.ty(&named, self.cx, k.span)?;
+                let Some(xs) = self.positional(args, 1, "Atomic", at)? else {
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+                };
+                let (v, vt) = self.atom(xs[0], Some(&t))?;
+                self.expect(&vt, &t, xs[0].span);
+                let c = call(
+                    "std.sync.atomic.Atomic",
+                    vec![t.targ()],
+                    vec![sink_arg(v)],
+                    at,
+                );
+                Ok((Rhs::Call(c), Ty::Coll("Atomic", vec![t]), None))
+            }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if self.g.templates.contains_key(n)) =>
             {
                 let j::ExprKind::Name(n) = &b.kind else {

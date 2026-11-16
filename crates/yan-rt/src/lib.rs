@@ -8,6 +8,7 @@ pub mod abi;
 pub mod actor;
 #[allow(unsafe_code)]
 pub mod arena;
+pub mod beneath;
 #[allow(unsafe_code)]
 pub mod bigint;
 #[allow(unsafe_code)]

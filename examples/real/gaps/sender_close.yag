@@ -1,0 +1,9 @@
+# Gap #1405: Sender has no close(), so a producer that borrows its sender cannot end the stream.
+def producer(var tx: Sender[int]):
+    tx.send(1) else e -> None
+    tx.close()
+
+def main() uses io:
+    tx, rx = Channel[int](1)
+    producer(&tx)
+    io.print(f"{(rx.recv() else None) else -1}")

@@ -5359,6 +5359,33 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/atomic_ops.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "5\n7\n9\n12\n10\n100\n4\n4\n5\nErr(error=6)\nOk(value=6)\n60\nFalse\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_par_counter.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2",
+    "6.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "200\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/chan_try_ops.yag",
    "kind": "run",
    "milestone": "M1",

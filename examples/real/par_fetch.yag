@@ -1,0 +1,22 @@
+# Parallel map with par: sum of per-chunk checksums, deterministic order.
+
+def checksum(xs: list[int]) -> int:
+    h = 17
+    for x in xs:
+        h = (h * 31 + x) % 1000003
+    return h
+
+def chunk(xs: list[int], size: int) -> list[list[int]]:
+    out: list[list[int]] = []
+    i = 0
+    while i < xs.len():
+        out.append(xs[i:i + size])
+        i += size
+    return out
+
+def main() uses io:
+    data = [i * 7 % 101 for i in range(100)]
+    parts = chunk(data, 25)
+    sums = par [checksum(p) for p in parts]
+    io.print(f"{sums}")
+    io.print(f"{checksum(data)}")

@@ -64,7 +64,7 @@ struct V {
     /// Names bound to one field of a local (`let x = t._0`), to the key `t._0` that tracks the
     /// field in the state, so moving each field of a destructured tuple once is not a repeat.
     fields: HashMap<Name, Name>,
-    copy: own::CopyFields,
+    copy: own::Ctors,
     diags: Vec<Diagnostic>,
     file: String,
     item: String,
@@ -74,7 +74,7 @@ struct V {
 pub fn check_optimized(file: &str, m: &Module) -> Vec<Diagnostic> {
     let mut v = V {
         file: file.to_owned(),
-        copy: own::copy_fields(m),
+        copy: own::ctors(&m.items),
         ..V::default()
     };
     for it in &m.items {
@@ -440,7 +440,7 @@ impl V {
             let ctor = path.last().cloned().unwrap_or_default();
             for (f, sub) in fs {
                 let Pat::Bind(n) = sub else { continue };
-                if self.copy.contains(&(ctor.clone(), f.clone())) {
+                if self.copy.is_copy_field(&ctor, f) {
                     continue;
                 }
                 let key = format!("{root}.{f}");

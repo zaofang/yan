@@ -1,0 +1,41 @@
+# Build and walk a nested value tree; count leaves and depth.
+
+type Val = Null() | Num(n: int) | Str(s: str) | Arr(items: list[Val]) | Obj(keys: list[str], vals: list[Val])
+
+def depth(v: Val) -> int:
+    match v:
+        case Arr(items=xs):
+            best = 0
+            for x in xs:
+                best = max(best, depth(x))
+            return 1 + best
+        case Obj(vals=vs):
+            best = 0
+            for x in vs:
+                best = max(best, depth(x))
+            return 1 + best
+        case Null():
+            return 0
+        case Num():
+            return 0
+        case Str():
+            return 0
+
+def render(v: Val) -> str:
+    match v:
+        case Null():
+            return "null"
+        case Num(n=n):
+            return f"{n}"
+        case Str(s=s):
+            return f"\"{s}\""
+        case Arr(items=xs):
+            return "[" + ", ".join([render(x) for x in xs]) + "]"
+        case Obj(keys=ks, vals=vs):
+            parts = [f"\"{k}\": {render(x)}" for k, x in zip(ks, vs)]
+            return "{" + ", ".join(parts) + "}"
+
+def main() uses io:
+    v = Obj(["a", "b"], [Arr([Num(1), Num(2), Null()]), Str("hi")])
+    io.print(render(v))
+    io.print(f"depth={depth(v)}")

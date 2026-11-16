@@ -91,6 +91,10 @@ All cases are proposed via `conform/*`; agents do not edit `conformance/` on `cl
 
 Tasks in the `ub/` cases use `par concurrent` under `sequential()`, as `ub/unbuffered_unordered_race` does, so the order is source order and each case has one outcome. Unit tests in `race.rs` cover each D5 rule directly.
 
+## Status (2026-11-16)
+
+S1 is split: #1374 qualified variants (merged, #1381), #1375 S1a atomics surface and interpreter, #1376 S1b guard and scope-exit infrastructure, #1377 Mutex surface and interpreter. Orderings are written qualified (`LoadOrdering.Acquire()`, R799). S1a omits `get_mut`, `fetch_update` and `Atomic` Send/Sync checks; the interpreter wraps integers as `i64` whatever the element type.
+
 ## Slices
 
 Each is one PR and its own issue under #1369, in order; S1 to S4 close #1319.

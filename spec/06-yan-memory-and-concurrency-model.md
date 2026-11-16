@@ -101,11 +101,11 @@ Not UB: leaks; deadlock (a global deadlock panics and a partial one may hang unt
 
 It may not assume: that drops run (leaks are safe); that owned values keep their address across moves (there is no `Pin`); that safe `Ord`, `Eq` and `Hash` impls are lawful; any schedule, or that plain `par` runs concurrently; any layout without `@layout`; any ordering from `Relaxed`.
 
-`unsafe fn` preconditions are `pre` contracts, evaluated by the checked interpreter and listed by `yan audit`.
+`unsafe fn` preconditions are `pre` contracts, listed by `yan audit`. They are checked at `check` level (a `contract` panic) and trusted at `release`, with no checked `pub` entry (8.5). Under `--ub` each call evaluates them before the body, and a false one is reported as item 16, naming the function and the clause as R882 does (R1014).
 
 **Volatile and fences.** `read_volatile` and `write_volatile` are never elided, merged or reordered against each other; they are not atomic and do not synchronize; aligned scalars up to the machine word do not tear. `fence` and `compiler_fence` are as in C++. A non-terminating loop is not UB; there is no `mustprogress`.
 
 ### 6.9 Checkers
 
-- **UB checker.** `yan test --ub` runs tests in the checked interpreter: abstract bytes, allocations, Tree Borrows with tag GC, vector-clock race detection, store-buffer weak memory, `pre` contracts, capability forgery and a leak report. Reports name the 6.7 item and print a `yan replay` trace. Every unsafe block in std needs tests passing under `--ub`. The Rust implementation adds `--sanitize=address,thread` in M2; a native Tree Borrows sanitizer is an M4 candidate.
+- **UB checker.** `yan test --ub` runs tests in the checked interpreter: abstract bytes, allocations, Tree Borrows with tag GC, vector-clock race detection, store-buffer weak memory, `pre` contracts of every `unsafe fn` call (R1014), capability forgery and a leak report. Reports name the 6.7 item and print a `yan replay` trace. Every unsafe block in std needs tests passing under `--ub`. The Rust implementation adds `--sanitize=address,thread` in M2; a native Tree Borrows sanitizer is an M4 candidate.
 - **Concurrency checker.** The `explore(bound)` sched handler does exhaustive stateless model checking with optimal DPOR (TruSt) over RC11 in the reference interpreter, intercepting atomics, `Mutex`, channels, `Arc` and `Once`, with loops bounded by `bound`. `yan test --explore[=N]` runs `@explore` tests; `--estimate` reports the execution count; failures print a shrunk schedule as a `yan replay` trace. `seeded(seed)` stays the randomized tester.

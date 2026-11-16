@@ -1,0 +1,32 @@
+# Sieve then count primes per range in parallel.
+
+def sieve(n: int) -> list[bool]:
+    flags = [True for _ in range(n + 1)]
+    flags[0] = False
+    flags[1] = False
+    i = 2
+    while i * i <= n:
+        if flags[i]:
+            j = i * i
+            while j <= n:
+                flags[j] = False
+                j += i
+        i += 1
+    return flags
+
+def count(flags: list[bool], lo: int, hi: int) -> int:
+    c = 0
+    for i in range(lo, hi):
+        if flags[i]:
+            c += 1
+    return c
+
+def main() uses io:
+    flags = sieve(10000)
+    ranges = [(0, 2500), (2500, 5000), (5000, 7500), (7500, 10001)]
+    counts = par [count(flags, lo, hi) for lo, hi in ranges]
+    io.print(f"{counts}")
+    total = 0
+    for c in counts:
+        total += c
+    io.print(f"{total}")
