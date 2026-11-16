@@ -80,7 +80,7 @@ pub trait Heap {
 }
 
 /// Blocks as native code holds them: slots are live pointers.
-struct Raw;
+pub(crate) struct Raw;
 
 impl Heap for Raw {
     type Err = std::convert::Infallible;
