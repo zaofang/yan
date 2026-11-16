@@ -226,6 +226,7 @@ E908 = { section = "5.2", status = "active", meaning = "@layout(bits(uN)) field 
 E909 = { section = "12.8", status = "active", meaning = "duplicate export name at link time" }
 E910 = { section = "12.9", status = "active", meaning = "asm operand type not supported" }
 E911 = { section = "12.9", status = "active", meaning = "asm register or register class invalid for the target" }
+E912 = { section = "3", status = "active", meaning = "unsafe fn named other than as the callee of a call" }
 P001 = { section = "18.3", status = "active", meaning = "base hash mismatch (current text returned)" }
 P002 = { section = "18.3", status = "active", meaning = "edit search text matched zero or many times" }
 P003 = { section = "18.3", status = "active", meaning = "patch introduces errors (under --check)" }
