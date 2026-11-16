@@ -29,11 +29,28 @@ def main() uses io, nondet:
 
 const OUT: &str = "False\nTrue\nOk(value=False)\n18446744073709551615\n18446744073709551615\n250\n4\n-128\n127\n200\n";
 
+const FENCES: &str = "def main() uses io, nondet:
+    a = Atomic[int](0)
+    b = Atomic[bool](False)
+    par:
+        a.store(5, StoreOrdering.Relaxed())
+        b.store(True, StoreOrdering.Release())
+    fence(Ordering.SeqCst())
+    fence(Ordering.Acquire())
+    compiler_fence(Ordering.Release())
+    print(a.load(LoadOrdering.Acquire()))
+    print(b.load(LoadOrdering.SeqCst()))
+";
+
 fn run(backend: &str) -> String {
-    let dir = std::env::temp_dir().join(format!("yan-atomic-{backend}"));
+    run_program(backend, PROGRAM)
+}
+
+fn run_program(backend: &str, program: &str) -> String {
+    let dir = std::env::temp_dir().join(format!("yan-atomic-{backend}-{}", program.len()));
     std::fs::create_dir_all(&dir).unwrap();
     let file = dir.join("atomic.yag");
-    std::fs::write(&file, PROGRAM).unwrap();
+    std::fs::write(&file, program).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_yan"))
         .args(["run", "--backend", backend, "--report-live"])
         .arg(&file)
@@ -51,5 +68,12 @@ fn run(backend: &str) -> String {
 fn atomics_agree_on_every_backend() {
     for b in ["interp", "machine", "cranelift"] {
         assert_eq!(run(b), OUT, "{b}");
+    }
+}
+
+#[test]
+fn fences_agree_on_every_backend() {
+    for b in ["interp", "machine", "cranelift"] {
+        assert_eq!(run_program(b, FENCES), "5\nTrue\n", "{b}");
     }
 }
