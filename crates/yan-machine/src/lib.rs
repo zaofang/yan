@@ -107,8 +107,10 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
         race: RefCell::new(Race::new()),
     };
     yan_rt::actor::defer_disposal();
+    yan_rt::actor::defer_stopped_text();
     m.call(prog.main, vec![])?;
     yan_rt::actor::end_root();
+    m.deliver_stopped();
     m.dispose()?;
     Ok(m.mem
         .live(|a| m.strs.contains(&Some(a)) || m.scratch == Some(a)))
