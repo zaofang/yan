@@ -2755,6 +2755,25 @@
    ]
   },
   {
+   "path": "yag/fail/lints/w819_field_receiver.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [
+    "R348"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W819",
+     "line": 12,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lints/w819_hides_later_step.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -5383,6 +5402,39 @@
    "flags": [],
    "expect": [],
    "stdout": "200\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/chan_send_after_close.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.5",
+    "8.6"
+   ],
+   "rows": [
+    "R1021"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "closed\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/concurrency/chan_sender_close.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.6",
+    "9.5"
+   ],
+   "rows": [
+    "R391",
+    "R1021"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "10\nTrue\n",
    "exit": 0
   },
   {
