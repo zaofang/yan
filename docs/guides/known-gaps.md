@@ -38,24 +38,6 @@ def main() uses io:
     io.print(f"{first}")
 ```
 
-### [#1403](https://github.com/zaofang/yan/issues/1403): store into a dict held in a record field
-
-`c.vals[k] = v` is E017. Workaround: pass the dict as a separate `var` parameter.
-
-```yag gap=examples/real/gaps/field_index_place.yag
-# Gap #1403: store into a dict held in a record field.
-class Cache:
-    vals: dict[str, int]
-
-def put(var c: Cache, k: str, v: int):
-    c.vals[k.copy()] = v
-
-def main() uses io:
-    c = Cache(vals={})
-    put(&c, "a", 1)
-    io.print(f"{c.vals.len()}")
-```
-
 ### [#1404](https://github.com/zaofang/yan/issues/1404): a user function named like a builtin method
 
 A module function `get` hides `dict.get` for every receiver in the module (17.2: the current module is searched first),
@@ -79,7 +61,7 @@ def main() uses io:
 ```
 
 Fixed since the sweep: #1398 (I001 on a constructor call in a match branch), #1399 (native `list.pop`,
-`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`).
+`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`), #1403 (`c.field[k] = v` on a dict field).
 
 ## Backend and checker coverage
 
