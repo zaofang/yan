@@ -457,6 +457,23 @@ impl Machine<'_> {
     }
 
     pub(crate) fn rt(&mut self, f: RtFn, a: &[Val]) -> Result<Val, Stop> {
+        if self.ub
+            && self.race.borrow().in_block()
+            && matches!(
+                f,
+                RtFn::ChanSend
+                    | RtFn::ChanTrySend
+                    | RtFn::ChanRecv
+                    | RtFn::ChanTryRecv
+                    | RtFn::SelectWait
+                    | RtFn::ActorSend
+            )
+        {
+            // Until these order tasks, a race verdict across them would be a guess.
+            return unsupported(
+                "channel and actor ordering between `par concurrent` tasks under --ub",
+            );
+        }
         let r = self.rt_call(f, a);
         self.deliver_stopped();
         r
@@ -1705,14 +1722,17 @@ impl Machine<'_> {
                 yan_rt::actor::yan_rt_sup_end_to(a[0].addr());
                 Val::U
             }
-            RtFn::ParBegin if self.ub => {
-                return unsupported("race checks across `par concurrent` tasks in the machine");
+            RtFn::ParBegin => {
+                let n = a[0].addr();
+                let h = sched::yan_rt_par_begin(n, a[1].addr());
+                self.race.borrow_mut().block_begin(h, n as usize);
+                Val::I(i128::from(h))
             }
-            RtFn::ParBegin => Val::I(i128::from(sched::yan_rt_par_begin(
-                a[0].addr(),
-                a[1].addr(),
-            ))),
-            RtFn::ParNext => Val::I(i128::from(sched::yan_rt_par_next(a[0].addr()))),
+            RtFn::ParNext => {
+                let i = sched::yan_rt_par_next(a[0].addr());
+                self.race.borrow_mut().block_switch(a[0].addr(), i as usize);
+                Val::I(i128::from(i))
+            }
             RtFn::ParTaskEnd => {
                 sched::yan_rt_par_task_end(a[0].addr());
                 Val::U
@@ -1724,6 +1744,7 @@ impl Machine<'_> {
             RtFn::ParCancel => Val::I(i128::from(sched::yan_rt_par_cancel(a[0].addr()))),
             RtFn::ParEnd => {
                 sched::yan_rt_par_end(a[0].addr());
+                self.race.borrow_mut().block_end(a[0].addr());
                 Val::U
             }
             RtFn::SimPct => {
