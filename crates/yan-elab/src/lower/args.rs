@@ -248,6 +248,7 @@ impl Lower<'_, '_, '_> {
                     let (r, t) = self.widen(Rhs::Atom(a), t, Some(&p.ty), sp)?;
                     let a = self.tmp(&t, r, sp);
                     self.expect(&t, &p.ty, sp);
+                    self.guard_escape(&t, sp);
                     self.arg_tys.push((p.ty.clone(), t.clone(), sp));
                     if conv == Conv::Sink && self.sink_of_element(&a, sp) {
                     } else if let (Conv::Sink, Atom::Name(n, _)) = (conv, &a)
@@ -269,6 +270,19 @@ impl Lower<'_, '_, '_> {
             }
         }
         Ok(Some(done.into_iter().flatten().collect()))
+    }
+
+    /// E414: a `MutexGuard` is second-class (6.3, 4.5): it is used through its own methods, and
+    /// never passed on, returned or stored.
+    pub(super) fn guard_escape(&mut self, t: &Ty, at: Span) {
+        if matches!(t, Ty::Coll("MutexGuard", _)) {
+            self.err(
+                "E414",
+                at,
+                "a `MutexGuard` cannot be passed, returned or stored; use its methods in the scope that locked"
+                    .into(),
+            );
+        }
     }
 
     /// E413 when `a`, passed by `sink`, names an element of a list: the list still owns it.

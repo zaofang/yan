@@ -1,0 +1,6 @@
+spec = "12"
+rows = "R1018"
+note = "a package with an ffi module that its own root does not name in allow_ffi is E023"
+command = ["check"]
+code = "E023"
+at = "ffi/ext.yn:1:1"

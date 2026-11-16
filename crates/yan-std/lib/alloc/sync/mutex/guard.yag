@@ -1,0 +1,14 @@
+"""MutexGuard: the holder of a lock (6.3). Reads and writes are explicit: `get` copies the value
+out, `set` replaces it and `replace` swaps it for another and returns the old one."""
+
+@intrinsic
+@since("1.0")
+pub def get[T](self: MutexGuard[T]) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def set[T](self: MutexGuard[T], take v: T) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def replace[T](self: MutexGuard[T], take v: T) -> T: ...

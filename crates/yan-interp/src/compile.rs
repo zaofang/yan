@@ -107,6 +107,8 @@ pub(crate) enum Op {
     Clear(Reg),
     /// `Clear`, first closing the channel when the register holds its last `Sender`.
     DropSender(Reg),
+    /// `Clear`, first unlocking the mutex whose guard the register holds.
+    DropGuard(Reg),
     Jmp(u32),
     /// A loop's jump back to its start: one step (R487), unlike a jump to a join point.
     Loop(u32),
@@ -537,6 +539,10 @@ fn is_sender(t: &Type) -> bool {
     matches!(t, Type::Named(n) if n.path.last().is_some_and(|s| s == "Sender"))
 }
 
+fn is_guard(t: &Type) -> bool {
+    matches!(t, Type::Named(n) if n.path.last().is_some_and(|s| s == "MutexGuard"))
+}
+
 fn param_name(p: &Param) -> &Name {
     let (Param::Value { name, .. } | Param::Cap { name, .. }) = p;
     name
@@ -676,6 +682,7 @@ struct FnC<'g, 'm> {
     task_binds: Vec<Vec<Name>>,
     /// Names bound at type `Sender[_]`: dropping one may close its channel.
     senders: Vec<Name>,
+    guards: Vec<Name>,
 }
 
 impl<'g, 'm> FnC<'g, 'm> {
@@ -692,6 +699,7 @@ impl<'g, 'm> FnC<'g, 'm> {
             item: None,
             task_binds: Vec::new(),
             senders: Vec::new(),
+            guards: Vec::new(),
         };
         for p in params {
             if let Param::Value { name, ty, .. } = p
@@ -1022,6 +1030,9 @@ impl<'g, 'm> FnC<'g, 'm> {
                     if is_sender(ty) {
                         self.senders.push(n.clone());
                     }
+                    if is_guard(ty) {
+                        self.guards.push(n.clone());
+                    }
                     match comparison(rhs) {
                         Some(sides) => self.cmps.insert(n.clone(), sides),
                         None => self.cmps.remove(n),
@@ -1191,6 +1202,8 @@ impl<'g, 'm> FnC<'g, 'm> {
                     let sender = self.senders.contains(n);
                     self.emit(if sender {
                         Op::DropSender(r)
+                    } else if self.guards.contains(n) {
+                        Op::DropGuard(r)
                     } else {
                         Op::Clear(r)
                     });

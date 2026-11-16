@@ -84,7 +84,14 @@ impl Lower<'_, '_, '_> {
                     self.emit(StmtKind::Rhs(rhs), at);
                 }
             }
-            K::Assign { target, ty, value } => self.assign(target, ty.as_ref(), value, at)?,
+            K::Assign { target, ty, value } => {
+                if matches!(value.kind, j::ExprKind::Name(_))
+                    && let Some(vt) = self.ty_of_local(value)
+                {
+                    self.guard_escape(&vt, value.span);
+                }
+                self.assign(target, ty.as_ref(), value, at)?
+            }
             K::Bind {
                 target,
                 target_span,
@@ -105,6 +112,11 @@ impl Lower<'_, '_, '_> {
                     span: *target_span,
                     paren: false,
                 };
+                if matches!(value.kind, j::ExprKind::Name(_))
+                    && let Some(vt) = self.ty_of_local(value)
+                {
+                    self.guard_escape(&vt, value.span);
+                }
                 self.assign(&t, ty.as_ref(), value, at)?;
             }
             K::AugAssign { target, op, value } => {
@@ -137,6 +149,7 @@ impl Lower<'_, '_, '_> {
                         let e = &self.become_in_ctor(e, true);
                         let (a, t) = self.atom(e, Some(&want))?;
                         self.expect(&t, &want, e.span);
+                        self.guard_escape(&t, e.span);
                         a
                     }
                 };
