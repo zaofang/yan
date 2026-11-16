@@ -692,6 +692,26 @@ pub fn elaborate_in(
     if let Some(caps) = manifest.as_ref().and_then(|p| p.capabilities.as_ref()) {
         desugar::ceiling(&m, caps, &mut cx);
     }
+    if manifest.as_ref().is_some_and(|p| p.ffi_unconsented)
+        && (cx.ffi
+            || m.items
+                .iter()
+                .any(|it| matches!(it.kind, j::ItemKind::Extern(_))))
+    {
+        let at = Span {
+            line: 1,
+            col: 1,
+            end_line: 1,
+            end_col: 1,
+        };
+        cx.err(
+            "E023",
+            at,
+            "",
+            "this module holds foreign code and the root's `allow_ffi` does not name its package"
+                .into(),
+        );
+    }
     cx.previews = manifest.map(|p| p.previews).unwrap_or_default();
     kernel::prepare(&mut m);
     let m = &m;

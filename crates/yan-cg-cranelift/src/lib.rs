@@ -2793,6 +2793,9 @@ impl Gen<'_, '_> {
                 let a = self.b.ins().stack_addr(types::I64, slot, at);
                 self.set(Some(*dst), Some(a));
             }
+            Inst::Fence { .. } => {
+                self.b.ins().fence();
+            }
             Inst::Arm(_) => {}
             Inst::Scalar {
                 dst, op, ty, args, ..

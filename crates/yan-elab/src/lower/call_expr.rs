@@ -337,6 +337,12 @@ impl Lower<'_, '_, '_> {
                 {
                     return self.std_call(&path, p, Vec::new(), args, n, at);
                 }
+                if matches!(n.as_str(), "fence" | "compiler_fence") {
+                    let path = format!("std.sync.atomic.{n}");
+                    if let Some(p) = crate::stdlib::decl(&path).and_then(|d| d.plain()) {
+                        return self.std_call(&path, p, Vec::new(), args, n, at);
+                    }
+                }
                 let (r, t) = self.builtin(n, args, at, want)?;
                 Ok((r, t, None))
             }
