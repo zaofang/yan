@@ -31,6 +31,7 @@ mod cluster;
 mod consume;
 mod conv;
 mod fallback;
+mod fmtspec;
 mod generic_sum;
 mod last_use;
 mod lenient_names;
@@ -1333,34 +1334,6 @@ fn int_op(op: &str) -> Option<(&'static str, Ty)> {
     })
 }
 
-/// `[[fill]align][width]` of a format spec as (fill, align, width); align is 0 left, 1 right,
-/// 2 center, defaulting to right for numbers and left otherwise (SQ20).
-fn pad_spec(spec: &str, t: &Ty) -> R<(char, u8, usize)> {
-    let cs: Vec<char> = spec.chars().collect();
-    let align_of = |c: char| match c {
-        '<' => Some(0),
-        '>' => Some(1),
-        '^' => Some(2),
-        _ => None,
-    };
-    let numeric = matches!(t, Ty::Int | Ty::Float | Ty::BigInt | Ty::Fixed(_));
-    let (fill, align, rest) = match cs.as_slice() {
-        [f, a, rest @ ..] if align_of(*a).is_some() => (*f, align_of(*a), rest),
-        [a, rest @ ..] if align_of(*a).is_some() => (' ', align_of(*a), rest),
-        rest => (' ', None, rest),
-    };
-    let digits: String = rest.iter().collect();
-    let width = if digits.is_empty() {
-        0
-    } else {
-        match digits.parse::<usize>() {
-            Ok(w) if !digits.starts_with('0') => w,
-            _ => return unsupported(format!("format specification `{spec}`")),
-        }
-    };
-    Ok((fill, align.unwrap_or(u8::from(numeric)), width))
-}
-
 /// `p as name` at the top of a case: the pattern and the name bound to the whole scrutinee.
 fn split_as(p: &j::Pat) -> (&j::Pat, Option<&str>) {
     match p {
@@ -2101,6 +2074,8 @@ fn expr_callees(e: &j::Expr, out: &mut HashSet<String>) {
                 .any(|p| matches!(p, j::FPiece::Expr(_, Some(_))))
         {
             out.insert("fmt_pad".into());
+            out.insert("fmt_sign".into());
+            out.insert("fmt_group".into());
         }
         if let j::ExprKind::Call(f, _) = &e.kind {
             match &f.kind {

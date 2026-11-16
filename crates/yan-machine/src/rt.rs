@@ -584,6 +584,10 @@ impl Machine<'_> {
                 self.new_bytes(s)
             }
             RtFn::CharCount => Val::I(self.str_of(a[0].addr())?.chars().count() as i128),
+            RtFn::ShowFixed => Val::I(i128::from(self.new_str(&yan_rt::fmt::float_fixed(
+                a[0].float(),
+                a[1].int().max(0) as usize,
+            )))),
             RtFn::StrRepeat => {
                 let r = self.str_of(a[0].addr())?.repeat(a[1].int().max(0) as usize);
                 Val::I(i128::from(self.new_str(&r)))

@@ -19,4 +19,4 @@ Figures: main at the build used for this sweep, 2026-11-16.
 | wordfreq | ok | ok | ok |
 
 `gaps/` holds minimal repros, each failing today; the first comment line gives the issue.
-Issues: #1398 to #1404 (#1405 fixed).
+Issues: #1398 to #1404 (#1401 and #1405 fixed).

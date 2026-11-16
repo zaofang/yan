@@ -11,16 +11,6 @@ a week (DL14).
 Found by the real-programs sweep ([examples/real/README.md](../../examples/real/README.md)). Each fails on every
 backend, at `yan check`.
 
-### [#1401](https://github.com/zaofang/yan/issues/1401): float and zero-pad format specs
-
-`{x:.2f}` and `{7:04}` are E017. Alignment specs such as `{w:<6}` work. No workaround for fixed-precision floats.
-
-```yag gap=examples/real/gaps/fstring_float_spec.yag
-# Gap #1401: float and zero-pad format specs are E017.
-def main() uses io:
-    io.print(f"{3.14159:.2f} {7:04}")
-```
-
 ### [#1402](https://github.com/zaofang/yan/issues/1402): list and dict methods Python programs use
 
 `list.clear`, `list.remove`, `list.pop(i)` and `dict.pop` are E203 or E202. Workaround: build a new list or dict
@@ -77,7 +67,7 @@ def main() uses io:
 ```
 
 Fixed since the sweep: #1398 (I001 on a constructor call in a match branch), #1399 (native `list.pop`,
-`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`).
+`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`), #1401 (`.2f`, `04` and the other common f-string specs).
 
 ## Backend and checker coverage
 
