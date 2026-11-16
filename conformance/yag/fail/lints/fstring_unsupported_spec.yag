@@ -1,0 +1,6 @@
+# spec: 17.3
+# rows: R1022
+# expect: E017 at 6:14
+
+def main() uses io:
+    io.print(f"{3.5:e}")
