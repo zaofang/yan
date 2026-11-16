@@ -15,6 +15,8 @@ pub struct Info {
     pub digest: String,
     pub publisher: String,
     pub capability_digest: Option<String>,
+    /// The `ffi` modules and extern libraries of the version (`.info`, 19.2).
+    pub ffi: Vec<String>,
     pub requirements: Vec<String>,
     pub yanked: bool,
     /// The publisher's reason for the yank, as written (R949); display it through `reason_line`.
@@ -270,6 +272,7 @@ fn parse_info(text: &[u8], version: &str) -> Option<Info> {
         digest: s("digest")?,
         publisher: s("publisher")?,
         capability_digest: s("capability_digest"),
+        ffi: strings("ffi"),
         requirements: strings("requirements"),
         fixes: strings("fixes"),
         affects: strings("affects"),
