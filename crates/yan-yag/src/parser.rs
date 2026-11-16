@@ -1076,6 +1076,13 @@ impl Parser {
                         }
                     }
                 }
+                if matches!(self.tok(), Tok::Name(n) if n == "fail" || n == "raises")
+                    || matches!(self.tok(), Tok::Op(o) if *o == "->")
+                {
+                    return self.unexpected(
+                        "end of line; an `ex` states a failure as `ex f(x) == fail e`",
+                    );
+                }
                 Contract::Ex { expr: e, with }
             }
         };
