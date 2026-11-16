@@ -328,6 +328,7 @@ impl Cx {
     /// `g$co`, as function `at`, from `g` before its task transform.
     fn make_co(&mut self, g: &Func, w: &Walk, at: usize) -> Func {
         let mut f = Func {
+            unsafe_fn: g.unsafe_fn,
             name: format!("{}$co", g.name),
             params: 1,
             ret: vec![I64],

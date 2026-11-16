@@ -852,6 +852,8 @@ pub struct Block {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Func {
     pub name: String,
+    /// An `unsafe fn`: a failed `requires` is a `ub(16)` report under `--ub` (RFC 0076 D5).
+    pub unsafe_fn: bool,
     /// The first `params` locals are the parameters, in order.
     pub params: u32,
     /// The result slots, then the final value of each `inout` parameter's slots.

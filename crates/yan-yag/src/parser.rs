@@ -733,6 +733,7 @@ impl Parser {
             Some(b)
         };
         Ok(FuncDef {
+            unsafe_at: None,
             name,
             name_span,
             tparams,
