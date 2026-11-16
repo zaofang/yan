@@ -288,6 +288,24 @@ impl Machine<'_> {
             .ok_or_else(|| Stop::Fault(format!("{:#x} is not a List block", v.addr())))
     }
 
+    fn new_bytes(&mut self, b: Vec<u8>) -> Val {
+        let h = self.mem.alloc(8);
+        self.bytes.insert(h, b);
+        Val::I(i128::from(h))
+    }
+
+    fn bytes_ref(&self, v: Val) -> Result<&Vec<u8>, Stop> {
+        self.bytes
+            .get(&v.addr())
+            .ok_or_else(|| Stop::Fault(format!("{:#x} is not a bytes block", v.addr())))
+    }
+
+    fn bytes_mut(&mut self, v: Val) -> Result<&mut Vec<u8>, Stop> {
+        self.bytes
+            .get_mut(&v.addr())
+            .ok_or_else(|| Stop::Fault(format!("{:#x} is not a bytes block", v.addr())))
+    }
+
     fn element(&mut self, l: Val, i: i128) -> Result<Val, Stop> {
         let list = self.list(l)?;
         if !(0..list.len as i128).contains(&i) {
@@ -339,6 +357,94 @@ impl Machine<'_> {
                 let s = yan_rt::fmt::repr(&self.str_of(a[0].addr())?);
                 Val::I(i128::from(self.new_str(&s)))
             }
+            RtFn::BytesOfStr => {
+                let b = self.str_of(a[0].addr())?.into_bytes();
+                self.new_bytes(b)
+            }
+            RtFn::BytesFromList => {
+                let b = self.list_words(a[0])?.iter().map(|&w| w as u8).collect();
+                self.new_bytes(b)
+            }
+            RtFn::BytesFree => {
+                let h = a[0].addr();
+                self.bytes.remove(&h);
+                self.free_block(h)?;
+                Val::U
+            }
+            RtFn::BytesCopy => {
+                let b = self.bytes_ref(a[0])?.clone();
+                self.new_bytes(b)
+            }
+            RtFn::BytesSet => {
+                let b = self.bytes_mut(a[0])?;
+                let at = yan_rt::bytes::index_of(a[1].int() as i64, b.len())
+                    .ok_or(Stop::Panic("bounds"))?;
+                b[at] = a[2].int() as u8;
+                Val::U
+            }
+            RtFn::BytesPush => {
+                self.bytes_mut(a[0])?.push(a[1].int() as u8);
+                Val::U
+            }
+            RtFn::BytesExtend => {
+                let x = self.bytes_ref(a[1])?.clone();
+                self.bytes_mut(a[0])?.extend_from_slice(&x);
+                Val::U
+            }
+            RtFn::BytesPop => Val::I(self.bytes_mut(a[0])?.pop().map_or(-1, i128::from)),
+            RtFn::BytesClear => {
+                self.bytes_mut(a[0])?.clear();
+                Val::U
+            }
+            RtFn::BytesLen => Val::I(self.bytes_ref(a[0])?.len() as i128),
+            RtFn::BytesConcat => {
+                let b = [self.bytes_ref(a[0])?.as_slice(), self.bytes_ref(a[1])?].concat();
+                self.new_bytes(b)
+            }
+            RtFn::BytesToList => {
+                let ws: Vec<u64> = self.bytes_ref(a[0])?.iter().map(|&c| c.into()).collect();
+                self.new_list(1, word_bytes(&ws))
+            }
+            RtFn::BytesStarts => Val::B(self.bytes_ref(a[0])?.starts_with(self.bytes_ref(a[1])?)),
+            RtFn::BytesEnds => Val::B(self.bytes_ref(a[0])?.ends_with(self.bytes_ref(a[1])?)),
+            RtFn::BytesHex => {
+                let s = yan_rt::bytes::hex(self.bytes_ref(a[0])?);
+                Val::I(i128::from(self.new_str(&s)))
+            }
+            RtFn::BytesLossy => {
+                let s = String::from_utf8_lossy(self.bytes_ref(a[0])?).into_owned();
+                Val::I(i128::from(self.new_str(&s)))
+            }
+            RtFn::BytesRepr => {
+                let s = yan_rt::bytes::repr(self.bytes_ref(a[0])?);
+                Val::I(i128::from(self.new_str(&s)))
+            }
+            RtFn::BytesIndex => {
+                let b = self.bytes_ref(a[0])?;
+                let at = yan_rt::bytes::index_of(a[1].int() as i64, b.len())
+                    .ok_or(Stop::Panic("bounds"))?;
+                let c = i64::from(b[at]);
+                self.scratch_words(&[c])
+            }
+            RtFn::BytesAt => Val::I(i128::from(yan_rt::bytes::at(
+                self.bytes_ref(a[0])?,
+                a[1].int() as i64,
+            ))),
+            RtFn::BytesFind => Val::I(i128::from(yan_rt::bytes::find(
+                self.bytes_ref(a[0])?,
+                self.bytes_ref(a[1])?,
+            ))),
+            RtFn::BytesSlice => {
+                let b = self.bytes_ref(a[0])?;
+                let s = yan_rt::bytes::slice(b, a[1].int() as i64, a[2].int() as i64)
+                    .ok_or(Stop::Panic("bounds"))?
+                    .to_vec();
+                self.new_bytes(s)
+            }
+            RtFn::CharStr => {
+                let c = char::from_u32(a[0].int() as u32).unwrap_or('\u{fffd}');
+                Val::I(i128::from(self.new_str(&c.to_string())))
+            }
             RtFn::StrChars => {
                 let cs: Vec<u64> = yan_rt::chars::code_points(&self.str_of(a[0].addr())?).collect();
                 self.new_list(1, word_bytes(&cs))
@@ -349,6 +455,16 @@ impl Machine<'_> {
                 let (x, y) = (self.words(a[1].addr(), w)?, self.words(a[2].addr(), w)?);
                 Val::I(layout.cmp(&x, &y, &MemBlocks(self))? as i128)
             }
+            RtFn::KeyEq => {
+                let layout = yan_rt::map::Layout::parse(&self.str_of(a[0].addr())?);
+                let w = layout.width();
+                let (x, y) = (self.words(a[1].addr(), w)?, self.words(a[2].addr(), w)?);
+                Val::B(layout.eq(&x, &y, &MemBlocks(self))?)
+            }
+            RtFn::Utf8Check => Val::I(
+                std::str::from_utf8(self.bytes_ref(a[0])?)
+                    .map_or_else(|e| e.valid_up_to() as i128, |_| -1),
+            ),
             RtFn::PathNew => {
                 let p = yan_rt::path::Parsed::new(a[0].int() != 0, &self.str_of(a[1].addr())?);
                 Val::I(i128::from(self.new_str(&p.text())))
@@ -1057,7 +1173,9 @@ impl yan_rt::map::Blocks for MemBlocks<'_> {
         self.0.str_of(block).map(Into::into)
     }
 
-    fn bytes(&self, _: u64) -> Result<std::borrow::Cow<'_, [u8]>, Stop> {
-        unsupported("`bytes` map keys in the machine")
+    fn bytes(&self, block: u64) -> Result<std::borrow::Cow<'_, [u8]>, Stop> {
+        self.0
+            .bytes_ref(Val::I(i128::from(block)))
+            .map(|b| b.as_slice().into())
     }
 }

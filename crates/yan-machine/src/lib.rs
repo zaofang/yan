@@ -85,6 +85,8 @@ pub struct Machine<'p> {
     strs: Vec<Option<u64>>,
     pub(crate) lists: HashMap<u64, rt::List>,
     pub(crate) maps: HashMap<u64, rt::Map>,
+    /// `bytes` and `bytearray` contents by handle block; handles stay valid as they grow.
+    bytes: HashMap<u64, Vec<u8>>,
     exposed: HashMap<u64, i128>,
     scratch: Option<u64>,
     civil_out: Vec<i64>,
@@ -101,6 +103,7 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
         strs: vec![None; prog.strings.len()],
         lists: HashMap::new(),
         maps: HashMap::new(),
+        bytes: HashMap::new(),
         exposed: HashMap::new(),
         scratch: None,
         civil_out: Vec::new(),
