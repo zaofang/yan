@@ -8,5 +8,5 @@ text: str = "a b\nc"
 re: str = "a-b"
 
 pub def main() uses io:
-    let n = re.split("-").len()
+    n = re.split("-").len()
     io.print(f"{text.splitlines().len()} {json.upper()} {n}")
