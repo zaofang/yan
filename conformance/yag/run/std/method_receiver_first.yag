@@ -1,5 +1,5 @@
 # spec: 17.2
-# rows: R1024
+# rows: R1028
 # note: a module function named like a method of the receiver's type does not capture the method call; the free call still reaches the function
 # stdout:
 # 1
