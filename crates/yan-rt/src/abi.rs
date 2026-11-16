@@ -712,17 +712,8 @@ pub unsafe extern "C" fn yan_rt_dot_exact(xs: *const List, ys: *const List, mode
             .map(|w| f64::from_bits(*w))
             .collect()
     };
-    let xs = floats(xs);
-    let terms: Vec<(f64, f64)> = if ys.is_null() {
-        xs.into_iter().map(|x| (x, 1.0)).collect()
-    } else {
-        let ys = floats(ys);
-        if xs.len() != ys.len() {
-            panic("value");
-        }
-        xs.into_iter().zip(ys).collect()
-    };
-    crate::math::dot(terms.into_iter(), crate::math::mode_of(mode))
+    let ys = (!ys.is_null()).then(|| floats(ys));
+    crate::math::dot_exact(&floats(xs), ys.as_deref(), mode).unwrap_or_else(|| panic("value"))
 }
 
 #[unsafe(no_mangle)]
