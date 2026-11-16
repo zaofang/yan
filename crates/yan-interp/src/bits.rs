@@ -87,6 +87,14 @@ pub(crate) fn int(op: &str, ty: &str, args: &[Value]) -> Option<R<Value>> {
     })
 }
 
+/// `v` wrapped to the fixed-width integer type `ty`; unchanged for any other name.
+pub(crate) fn wrap_to(ty: &str, v: i128) -> i128 {
+    match width(ty) {
+        Some(w) if w < 128 => from_pattern(pattern(v, w), w, ty.starts_with('i')),
+        _ => v,
+    }
+}
+
 /// `wrap_as`, `sat_as` and `checked_as` between fixed-width integer types.
 pub(crate) fn conversion(name: &str, args: &[Value]) -> Option<R<Value>> {
     let (kind, _, to) = yan_std::intrinsics::conversion(name)?;

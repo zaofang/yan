@@ -280,6 +280,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             chans: Vec::new(),
             arenas: Vec::new(),
             atoms: Vec::new(),
+            atom_tys: Vec::new(),
             actors: Vec::new(),
             sups: Default::default(),
             actor_waits: Vec::new(),
@@ -429,6 +430,8 @@ pub(crate) struct Interp<'o> {
     /// The value of each `Atomic`, by atomic; every interleaving the interpreter runs is
     /// sequentially consistent, so an ordering has no effect here.
     atoms: Vec<Value>,
+    /// The integer type of each `Atomic`, by atomic, empty for any other element.
+    atom_tys: Vec<Rc<str>>,
     /// Each actor, by actor (9.6).
     actors: Vec<sync::Actor>,
     /// Every supervisor and the open `with supervisor` scopes (9.6).
@@ -856,6 +859,7 @@ fn entry(
         chans: Vec::new(),
         arenas: Vec::new(),
         atoms: Vec::new(),
+        atom_tys: Vec::new(),
         actors: Vec::new(),
         sups: Default::default(),
         actor_waits: Vec::new(),
