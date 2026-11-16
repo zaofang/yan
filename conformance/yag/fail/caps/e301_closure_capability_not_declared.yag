@@ -1,5 +1,5 @@
 # spec: 4, 7.2
-# rows: R1022
+# rows: R1025
 # expect: E301 at 8:20
 def apply(f: Callable[[], str]) -> str uses none:
     return f()

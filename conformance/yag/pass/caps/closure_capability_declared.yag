@@ -1,5 +1,5 @@
 # spec: 4, 7.2
-# rows: R1022
+# rows: R1025
 def apply(f: Callable[[], str]) -> str uses fs:
     return f()
 
