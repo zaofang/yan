@@ -151,6 +151,25 @@ fn decode(t: Ty, w: u64) -> Val {
 }
 
 impl Machine<'_> {
+    /// A failed `requires` of an `unsafe fn` under `--ub`: 6.7 item 16, naming the function and
+    /// the clause by its position among its `requires` and `ensures` (R882).
+    fn precondition_ub(&self, f: &Func, fields: &[(Operand, Operand)]) -> Stop {
+        let clause = fields.iter().find_map(|(k, v)| match (k, v) {
+            (Operand::Str(k), Operand::Int(c)) if self.prog.strings[*k as usize] == "clause" => {
+                Some(*c)
+            }
+            _ => None,
+        });
+        let at = clause.map_or(String::new(), |c| format!(", clause {c}"));
+        Stop::Ub(
+            16,
+            format!(
+                "a call to `unsafe fn {}` breaks its precondition{at}",
+                f.name
+            ),
+        )
+    }
+
     /// The failure of an 8-byte access at `addr` that no allocation serves.
     fn bad_access(&self, what: &str, addr: u64) -> Stop {
         if !self.ub {
@@ -360,7 +379,12 @@ impl Machine<'_> {
                         continue 'call;
                     }
                     Term::Panic(kind) => return Err(Stop::Panic(kind)),
-                    Term::PanicFields { kind, .. } => return Err(Stop::Panic(kind)),
+                    Term::PanicFields { kind, fields } => {
+                        return Err(match self.ub && f.unsafe_fn && *kind == "contract" {
+                            true => self.precondition_ub(f, fields),
+                            false => Stop::Panic(kind),
+                        });
+                    }
                     Term::Par { .. }
                     | Term::Suspend { .. }
                     | Term::TaskEnd

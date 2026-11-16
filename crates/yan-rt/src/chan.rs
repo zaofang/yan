@@ -317,12 +317,17 @@ pub unsafe extern "C" fn yan_rt_chan_drop(ch: *mut Chan) {
     }
 }
 
-/// Drop a `Sender`: the receivers see the channel closed once its last is gone.
+/// Drop a `Sender`: the receivers see the channel closed once its last is gone. `close` drops
+/// one early and leaves the null channel in its place, whose drop and share do nothing.
 ///
 /// # Safety
 /// As [`yan_rt_chan_drop`].
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_chan_drop_sender(ch: *mut Chan) {
+    // A `Sender` that `close` ended.
+    if ch.is_null() {
+        return;
+    }
     // SAFETY: the caller's contract.
     unsafe { (*ch).senders -= 1 };
     sched::progressed();
@@ -336,6 +341,9 @@ pub unsafe extern "C" fn yan_rt_chan_drop_sender(ch: *mut Chan) {
 /// `ch` is a live channel.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_chan_clone_sender(ch: *mut Chan) {
+    if ch.is_null() {
+        return;
+    }
     // SAFETY: the caller's contract.
     unsafe { (*ch).senders += 1 };
     // SAFETY: as above.
