@@ -273,6 +273,8 @@ pub(crate) struct Globals {
     pub generated: RefCell<Vec<y::Item>>,
     /// Extern functions: whether each is `safe` and variadic (12.1).
     pub externs: HashMap<String, (bool, bool)>,
+    /// Functions written `unsafe fn`: calls need `unsafe` (E903), no value use (E912) (RFC 0076).
+    pub unsafe_fns: HashSet<String>,
     /// Records marked `@layout(c)` (12.3).
     pub layout_c: HashSet<String>,
     /// Records marked `@layout(bits(uN))` (5.2).
@@ -1246,8 +1248,28 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                     .insert(f.name.clone(), (f.clone(), names[0].clone()));
             }
             j::ItemKind::Func(f) => {
-                let s = sig(g, f, cx)?;
+                // The E901 below is the one diagnostic for a misplaced `unsafe fn`: the rest of
+                // it is checked as if it were allowed, so its `Ptr` types do not cascade.
+                let outer = cx.ffi;
+                cx.ffi |= f.unsafe_at.is_some();
+                if let Some(at) = f.unsafe_at
+                    && !outer
+                {
+                    cx.err(
+                        "E901",
+                        at,
+                        &f.name,
+                        "`unsafe fn` belongs in an ffi module, under the package's `ffi/` directory"
+                            .into(),
+                    );
+                }
+                let s = sig(g, f, cx);
+                cx.ffi = outer;
+                let s = s?;
                 g.fns.insert(f.name.clone(), s);
+                if f.unsafe_at.is_some() {
+                    g.unsafe_fns.insert(f.name.clone());
+                }
                 first.insert(f.name.clone(), f.name_span);
                 if it.decorators.iter().any(|d| d.path == ["deprecated"]) {
                     g.deprecated.insert(f.name.clone());
@@ -1841,7 +1863,11 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             let Some(sig) = g.fns.get(&f.name) else {
                 return Ok(None);
             };
-            let def = lower::function(g, f, sig, it.is_pub, cx)?;
+            let outer = cx.ffi;
+            cx.ffi |= f.unsafe_at.is_some();
+            let def = lower::function(g, f, sig, it.is_pub, cx);
+            cx.ffi = outer;
+            let def = def?;
             if g.reentrant.contains(&f.name) && !sig.params.is_empty() {
                 g.generated.borrow_mut().push(y::Item {
                     attrs: Vec::new(),
@@ -1867,6 +1893,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
         j::ItemKind::Impl(i) if let Some((_, f)) = from_impl(i) => {
             let name = from_fn_name(i);
             let f = j::FuncDef {
+                unsafe_at: None,
                 name: name.clone(),
                 ..f.clone()
             };

@@ -897,6 +897,7 @@ fn func(
     at: Span,
 ) -> j::FuncDef {
     j::FuncDef {
+        unsafe_at: None,
         name,
         name_span: at,
         tparams: Vec::new(),

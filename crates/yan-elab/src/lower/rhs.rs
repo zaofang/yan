@@ -87,6 +87,13 @@ impl Lower<'_, '_, '_> {
                     (Rhs::Atom(Atom::Name(n.clone(), at)), l.ty.clone())
                 } else if let Some(t) = self.g.consts.get(n) {
                     (Rhs::Atom(Atom::Name(n.clone(), at)), t.clone())
+                } else if self.g.unsafe_fns.contains(n) {
+                    self.err(
+                        "E912",
+                        at,
+                        format!("`{n}` is an `unsafe fn`; only call it, inside `unsafe`"),
+                    );
+                    (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err)
                 } else if let Some(s) = self.g.variant_of.get(n).cloned() {
                     if self.g.shared_variants.contains(n) {
                         self.err(

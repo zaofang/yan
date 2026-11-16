@@ -744,7 +744,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                 .collect();
         }
         self.flags = yan_check::drop_flags(&f.params, body);
-        self.body(&f.path.join("."), &names, &f.contracts, body, Vec::new())
+        let mut out = self.body(&f.path.join("."), &names, &f.contracts, body, Vec::new())?;
+        out.unsafe_fn = f.is_unsafe;
+        Ok(out)
     }
 
     fn closure(mut self, c: &'m y::Closure, caps: Vec<(String, Shape)>) -> R<Func> {
@@ -837,6 +839,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.block(body)?;
         self.finish(Term::Panic("unreachable"));
         Ok(Func {
+            unsafe_fn: false,
             name: name.to_owned(),
             params: n_params,
             ret,
