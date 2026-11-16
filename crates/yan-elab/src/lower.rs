@@ -23,6 +23,7 @@ mod args;
 mod arith;
 mod array;
 mod assign;
+pub(crate) mod bits;
 mod builtin;
 mod call_expr;
 mod calls;
