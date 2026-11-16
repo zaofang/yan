@@ -1,0 +1,21 @@
+# spec: 5.2
+# stdout:
+# 1 2 1 9
+# 255 0 7 0
+
+@layout(bits(u16))
+class R:
+    lo: uint8
+    hi: uint8
+
+pub def main() uses io:
+    r = R(lo=1, hi=2)
+    h: uint8 = 9
+    s = evolve(r, hi=h)
+    io.print(f"{r.lo} {r.hi} {s.lo} {s.hi}")
+    a: uint8 = 255
+    z: uint8 = 0
+    b: uint8 = 7
+    t = evolve(r, lo=a, hi=z)
+    u = evolve(t, lo=b)
+    io.print(f"{t.lo} {t.hi} {u.lo} {u.hi}")
