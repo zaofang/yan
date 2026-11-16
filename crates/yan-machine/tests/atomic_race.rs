@@ -85,6 +85,7 @@ fn program(publish: MemOrder, observe: MemOrder, fences: Option<(MemOrder, MemOr
             ret: vec![Ty::Unit],
             locals: vec![Ty::Ptr, Ty::Ptr, INT, INT],
             pinned: Vec::new(),
+            unsafe_fn: false,
             blocks: vec![Block {
                 insts,
                 lines: vec![0; n],
