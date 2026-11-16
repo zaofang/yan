@@ -19,13 +19,13 @@ wait_then_bump(var rx: Receiver[int]) -> int fail Cancelled uses nondet =
     p.write(x + got)
   x
 
-main() uses io, nondet =
+main() fail Cancelled uses io, nondet =
   let (tx, rx) = Channel[int](0)
   var r = rx
   var t = tx
   var out = 0
   with sched = sequential()
     par concurrent
-      out = wait_then_bump(&r) else 0
-      t.send(5 + churn(50)) else ()
+      out = wait_then_bump(&r)?
+      t.send(5 + churn(50))?
   io.print("\(out)")
