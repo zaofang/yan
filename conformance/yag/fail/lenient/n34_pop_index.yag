@@ -1,0 +1,11 @@
+# spec: 14.4, 17.3
+# rows: R1023
+# expect: N34 at 8:13
+# expect: N34 at 10:9
+
+def main() uses io:
+    xs = [1, 2, 3]
+    first = xs.pop(0)
+    d = {"a": 1}
+    _ = d.pop("a")
+    io.print(f"{first}")
