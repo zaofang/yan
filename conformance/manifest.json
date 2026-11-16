@@ -15,6 +15,20 @@
    "expect": []
   },
   {
+   "path": "yag/pass/caps/closure_capability_declared.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "4",
+    "7.2"
+   ],
+   "rows": [
+    "R1025"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yag/pass/caps/renamed_user_capability.yag",
    "kind": "pass",
    "milestone": "M1",
@@ -726,6 +740,26 @@
      "code": "E301",
      "line": 8,
      "col": 5
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/caps/e301_closure_capability_not_declared.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4",
+    "7.2"
+   ],
+   "rows": [
+    "R1025"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 8,
+     "col": 20
     }
    ]
   },
