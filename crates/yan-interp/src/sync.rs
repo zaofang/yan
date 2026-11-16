@@ -2,6 +2,7 @@
 //! The interpreter runs channels and local actors on one thread and stops with "not supported"
 //! at the rest.
 
+use std::cell::Cell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
@@ -11,7 +12,7 @@ use super::bind::{Bind, bad_args};
 use super::supervise::{self, Child, Restart};
 use super::time::{advance_to, mono_now, wait_out, wait_until};
 use super::vm::{Clo, Vm};
-use super::{Interp, R, Value, data, panic, unsupported};
+use super::{ArenaSlots, ArenaToken, Interp, R, Value, data, panic, panic_with, unsupported};
 
 /// A channel: its capacity, queued values and live `Sender`s. With none left and the queue
 /// empty it is closed (9.5); a channel nothing ever closes counts `usize::MAX`.
@@ -47,6 +48,14 @@ pub(crate) fn end(name: &str, chan: usize) -> Value {
         name: name.into(),
         fields: vec![("chan".into(), Value::Int(chan as i128))],
     }
+}
+
+/// The dynamic net behind E414: a `Ref` used after its arena's value was dropped.
+fn live(it: &Interp, arena: usize) -> R<()> {
+    if it.arenas[arena].dead.get() {
+        return panic_with("ref", "a `Ref` was used after its arena was dropped");
+    }
+    Ok(())
 }
 
 fn slot_of(v: &Value) -> (usize, usize) {
@@ -800,13 +809,14 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_ARENA_ALLOC,
         Bind::Cap(|it, a| {
-            let Value::Int(arena) = a[0] else {
+            let Value::Arena(t) = &a[0] else {
                 unreachable!("an arena")
             };
-            let slots = &mut it.arenas[arena as usize];
-            slots.push(std::mem::take(&mut a[1]));
+            let (arena, a1) = (t.id, std::mem::take(&mut a[1]));
+            let slots = &mut it.arenas[arena].slots;
+            slots.push(a1);
             Ok(Value::Tuple(vec![
-                Value::Int(arena),
+                Value::Int(arena as i128),
                 Value::Int(slots.len() as i128 - 1),
             ]))
         }),
@@ -814,22 +824,35 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_ARENA_ARENA,
         Bind::Cap(|it, _| {
-            it.arenas.push(Vec::new());
-            Ok(Value::Int(it.arenas.len() as i128 - 1))
+            // A dead arena's slots are freed when the next one is made.
+            for d in it.arenas.iter_mut().filter(|d| d.dead.get()) {
+                d.slots = Vec::new();
+            }
+            let dead = Rc::new(Cell::new(false));
+            it.arenas.push(ArenaSlots {
+                slots: Vec::new(),
+                dead: dead.clone(),
+            });
+            Ok(Value::Arena(Rc::new(ArenaToken {
+                id: it.arenas.len() - 1,
+                dead,
+            })))
         }),
     ),
     (
         STD_ARENA_REF_GET,
         Bind::Cap(|it, a| {
             let (arena, slot) = slot_of(&a[0]);
-            Ok(it.arenas[arena][slot].clone())
+            live(it, arena)?;
+            Ok(it.arenas[arena].slots[slot].clone())
         }),
     ),
     (
         STD_ARENA_REF_SET,
         Bind::Cap(|it, a| {
             let (arena, slot) = slot_of(&a[0]);
-            it.arenas[arena][slot] = std::mem::take(&mut a[1]);
+            live(it, arena)?;
+            it.arenas[arena].slots[slot] = std::mem::take(&mut a[1]);
             Ok(Value::Unit)
         }),
     ),
