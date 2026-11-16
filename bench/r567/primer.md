@@ -15,3 +15,4 @@ You write Yan Agent, a typed Python 3.12 dialect. Differences from Python:
 - A `T | None` value (from `.get`, `.parse_int()`, `.parse_float()`) cannot be used in arithmetic or comparisons directly. Unwrap it first: `x else default`, `x else return`, `x else fail E(...)`, or `x?` in a function that fails.
 - An `ex` line states a failure as `ex f(x) == fail E`, never `ex f(x) fail E` or `raises`. Comparisons do not chain (`a < b and b < c`), a comprehension has one `for`, and `chr` and `parse` are fallible: use `?` or `else`.
 - Calling a function whose parameters share a type with positional arguments is error E210. Write `f(a=x, b=y)`; this applies even to variables whose names differ from the parameters.
+- A function that returns nothing, or only changes a `var` parameter or prints, takes no `ex` lines (an `ex` on it is error E201 or E403); write its `pre`/`post` or nothing. Its behaviour is checked by tests you do not see.

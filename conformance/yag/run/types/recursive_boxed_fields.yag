@@ -1,0 +1,43 @@
+# spec: 5.1
+# note: a sum, a generic sum and two records that hold their own type in their own fields, built, matched, shown, copied, compared and changed in place
+# stdout:
+# 6 Node(left=Node(left=Leaf(value=1), right=Leaf(value=2)), right=Leaf(value=3))
+# True False True
+# 2 Push(top='a', rest=Push(top='b', rest=Empty()))
+# B(s='x', a=A(n=7, b=None)) 7
+
+type Tree = Leaf(value: int) | Node(left: Tree, right: Tree)
+type Stack[T] = Empty() | Push(top: T, rest: Stack[T])
+
+class A:
+    n: int
+    b: B | None
+
+class B:
+    s: str
+    a: A
+
+def total(t: Tree) -> int:
+    match t:
+        case Leaf(value=v):
+            return v
+        case Node(left=l, right=r):
+            return total(l) + total(r)
+
+def size(s: Stack[str]) -> int:
+    match s:
+        case Empty():
+            return 0
+        case Push(top=_, rest=r):
+            return 1 + size(r)
+
+pub def main() uses io:
+    t = Node(Node(Leaf(1), Leaf(2)), Leaf(3))
+    u = t.copy()
+    io.print(f"{total(t)} {t}")
+    io.print(f"{t == u} {t == Node(Leaf(1), Leaf(3))} {u != Leaf(6)}")
+    s = Push("a", Push("b", Empty()))
+    io.print(f"{size(s)} {s}")
+    b = B("x", A(2, None))
+    b.a.n = 7
+    io.print(f"{b} {b.a.n}")

@@ -218,6 +218,10 @@ impl Lower<'_, '_, '_> {
                 .fix(Applicability::Auto, "copy", at, &format!("{x}.copy()"));
             self.cx.label(later, "used again");
         }
+        if let Rhs::Atom(a @ Atom::Name(..)) = &r
+            && !t.is_copy()
+            && self.sink_of_element(a, at)
+        {}
         let r = match &target.kind {
             j::ExprKind::Name(n) if n != "_" => self.consume(r, &t, at),
             _ => r,
@@ -330,7 +334,17 @@ impl Lower<'_, '_, '_> {
                     return Ok(());
                 }
                 self.dict_places.clear();
-                let (p, pt) = self.place(target)?;
+                let (p, pt) = match &target.kind {
+                    j::ExprKind::Attr(b, f, fsp) => {
+                        let bp = self.place(b).map_err(|u| u.at(target.span))?;
+                        if let Some(rec) = self.bits_record(&bp.1) {
+                            return self.bits_write((bp.0, &rec), (f, *fsp), (r, &t), at);
+                        }
+                        self.attr_place(bp, f, *fsp)
+                            .map_err(|u| u.at(target.span))?
+                    }
+                    _ => self.place(target)?,
+                };
                 let stores = mem::take(&mut self.dict_places);
                 self.expect(&t, &pt, at);
                 self.emit(
@@ -451,34 +465,8 @@ impl Lower<'_, '_, '_> {
                 self.locals[n].ty.clone(),
             )),
             j::ExprKind::Attr(b, f, fsp) => {
-                let (mut p, t) = self.place(b)?;
-                let ft = match &t {
-                    Ty::Err => Ty::Err,
-                    Ty::Data(r) if self.g.records.contains_key(r) => {
-                        match self.g.records[r].iter().find(|fd| fd.name == *f) {
-                            Some(fd) => fd.ty.clone(),
-                            None => {
-                                let names = self.g.records[r].iter().map(|fd| fd.name.as_str());
-                                let msg = format!("`{r}` has no field `{f}`");
-                                self.err_near("E203", *fsp, msg, f, names);
-                                Ty::Err
-                            }
-                        }
-                    }
-                    // A failed send's reason and arguments (R976).
-                    Ty::Coll("Undelivered", ts) if f == "reason" => ts[1].clone(),
-                    Ty::Coll("Undelivered", ts) if f == "args" => ts[0].clone(),
-                    t => {
-                        self.err(
-                            "E203",
-                            *fsp,
-                            format!("`{t}` has no field `{f}`", t = self.ty_text(t)),
-                        );
-                        Ty::Err
-                    }
-                };
-                p.projs.push(Proj::Field(f.clone(), *fsp));
-                Ok((p, ft))
+                let bp = self.place(b)?;
+                self.attr_place(bp, f, *fsp)
             }
             j::ExprKind::Index(b, i) => {
                 let pt = self.place(b)?;
@@ -508,6 +496,63 @@ impl Lower<'_, '_, '_> {
                 }
             }
         }
+    }
+
+    /// `p.f` as a place, once the base is lowered to `p` of type `t`.
+    pub(super) fn attr_place(
+        &mut self,
+        (mut p, t): (Place, Ty),
+        f: &str,
+        fsp: Span,
+    ) -> R<(Place, Ty)> {
+        if let Ty::Data(r) = &t
+            && self.g.layout_bits.contains_key(r)
+        {
+            return unsupported("a place inside a packed `@layout(bits)` record");
+        }
+        let ft = match &t {
+            Ty::Err => Ty::Err,
+            Ty::Inst(r, targs) if self.g.records.contains_key(r) => {
+                let map: Vec<_> = self.g.type_params[r]
+                    .iter()
+                    .cloned()
+                    .zip(targs.iter().cloned())
+                    .collect();
+                match self.g.records[r].iter().find(|fd| fd.name == *f) {
+                    Some(fd) => fd.ty.subst(&map),
+                    None => {
+                        let names = self.g.records[r].iter().map(|fd| fd.name.as_str());
+                        let msg = format!("`{r}` has no field `{f}`");
+                        self.err_near("E203", fsp, msg, f, names);
+                        Ty::Err
+                    }
+                }
+            }
+            Ty::Data(r) if self.g.records.contains_key(r) => {
+                match self.g.records[r].iter().find(|fd| fd.name == *f) {
+                    Some(fd) => fd.ty.clone(),
+                    None => {
+                        let names = self.g.records[r].iter().map(|fd| fd.name.as_str());
+                        let msg = format!("`{r}` has no field `{f}`");
+                        self.err_near("E203", fsp, msg, f, names);
+                        Ty::Err
+                    }
+                }
+            }
+            // A failed send's reason and arguments (R976).
+            Ty::Coll("Undelivered", ts) if f == "reason" => ts[1].clone(),
+            Ty::Coll("Undelivered", ts) if f == "args" => ts[0].clone(),
+            t => {
+                self.err(
+                    "E203",
+                    fsp,
+                    format!("`{t}` has no field `{f}`", t = self.ty_text(t)),
+                );
+                Ty::Err
+            }
+        };
+        p.projs.push(Proj::Field(f.to_owned(), fsp));
+        Ok((p, ft))
     }
 
     /// `b[i]` as a place, once `b` is lowered to `p` of type `t`.

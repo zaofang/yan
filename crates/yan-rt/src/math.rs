@@ -84,6 +84,17 @@ fn round(neg: bool, m: &BigUint, e: i64, sticky: bool, mode: Mode) -> f64 {
     sign * kept.to_f64().unwrap() * pow2(q)
 }
 
+/// Exact dot product of `xs` and `ys` (a plain sum of `xs` when `ys` is `None`); `None` when the
+/// lengths differ.
+pub fn dot_exact(xs: &[f64], ys: Option<&[f64]>, mode: i64) -> Option<f64> {
+    let terms: Vec<(f64, f64)> = match ys {
+        None => xs.iter().map(|&x| (x, 1.0)).collect(),
+        Some(ys) if ys.len() == xs.len() => xs.iter().copied().zip(ys.iter().copied()).collect(),
+        Some(_) => return None,
+    };
+    Some(dot(terms.into_iter(), mode_of(mode)))
+}
+
 /// `sum(x * y for x, y in terms)` exactly, rounded once, with the zero signs and special values
 /// of IEEE 754 addition.
 pub fn dot(terms: impl Iterator<Item = (f64, f64)>, mode: Mode) -> f64 {

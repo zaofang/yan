@@ -1,0 +1,42 @@
+# Reverse Polish calculator with explicit failure types.
+
+type CalcErr = Underflow(op: str) | BadToken(tok: str) | DivZero() | Leftover(n: int)
+
+def apply(op: str, a: int, b: int) -> int fail CalcErr:
+    if op == "+":
+        return a + b
+    if op == "-":
+        return a - b
+    if op == "*":
+        return a * b
+    if op == "/":
+        if b == 0:
+            fail DivZero()
+        return a // b
+    fail BadToken(op.copy())
+
+def eval_rpn(src: str) -> int fail CalcErr:
+    ex eval_rpn("3 4 +") == Ok(7)
+    ex eval_rpn("1 0 /") == Err(DivZero())
+    stack: list[int] = []
+    for tok in src.split():
+        n = tok.parse_int()
+        if n is not None:
+            stack.append(n)
+            continue
+        if stack.len() < 2:
+            fail Underflow(tok.copy())
+        b = stack.pop()
+        a = stack.pop()
+        stack.append(apply(tok, a=a, b=b)?)
+    if stack.len() != 1:
+        fail Leftover(stack.len())
+    return stack[0]
+
+def show(src: str) -> str:
+    r = eval_rpn(src) else e -> -999999
+    return f"{src} => {r}"
+
+def main() uses io:
+    for s in ["3 4 +", "5 1 2 + 4 * + 3 -", "2 3", "1 +", "4 0 /"]:
+        io.print(show(s))

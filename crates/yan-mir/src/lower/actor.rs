@@ -586,6 +586,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
         self.finish(Term::Return(vec![Operand::Unit]));
         Func {
+            unsafe_fn: false,
             name: match k {
                 Thunk::Restart => "actor.restart",
                 Thunk::Message => "actor.message",
@@ -594,6 +595,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             params: 3,
             ret: vec![Ty::Unit],
             locals: self.locals,
+            pinned: self.pinned,
             blocks: self.blocks,
         }
     }

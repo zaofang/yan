@@ -292,17 +292,18 @@ fn package_manifest(path: &Path) -> Option<yan_elab::Manifest> {
 }
 
 /// 12: a module under the package's `ffi/` directory. The package root is the nearest
-/// directory above the module with a `yan.toml`; without one, the module's own directory
-/// must be named `ffi` or `ub` (conformance assumption A9). Directories above the root never count.
+/// directory above the module with a `package.yag`; without one, the module's own directory
+/// must be named `ffi` or `ub` (conformance assumption A9). Only `<root>/ffi/` counts, so a
+/// nested or vendored directory of that name does not make a module an `ffi` module.
 fn is_ffi(path: &Path) -> bool {
     let Some(dir) = path.parent() else {
         return false;
     };
-    match dir.ancestors().find(|d| d.join("yan.toml").is_file()) {
+    match dir.ancestors().find(|d| d.join("package.yag").is_file()) {
         Some(root) => dir.strip_prefix(root).is_ok_and(|rel| {
             rel.components()
                 .next()
-                .is_some_and(|c| c.as_os_str() == "ffi")
+                .is_some_and(|c| c.as_os_str() == "ffi" || c.as_os_str() == "ub")
         }),
         None => dir.file_name().is_some_and(|n| n == "ffi" || n == "ub"),
     }
@@ -448,8 +449,10 @@ mod tests {
         let pkg = dir.join("ffi").join("pkg");
         std::fs::create_dir_all(pkg.join("src")).unwrap();
         std::fs::create_dir_all(pkg.join("ffi")).unwrap();
-        std::fs::write(pkg.join("yan.toml"), "").unwrap();
+        std::fs::write(pkg.join("package.yag"), "").unwrap();
+        std::fs::create_dir_all(pkg.join("src").join("ffi")).unwrap();
         assert!(!is_ffi(&pkg.join("src").join("a.yn")));
+        assert!(!is_ffi(&pkg.join("src").join("ffi").join("a.yn")));
         assert!(is_ffi(&pkg.join("ffi").join("a.yn")));
         assert!(is_ffi(Path::new("conformance/yn/pass/ffi/a.yn")));
         assert!(is_ffi(Path::new("conformance/ub/a.yn")));

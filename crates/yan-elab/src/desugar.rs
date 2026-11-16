@@ -385,6 +385,22 @@ pub(crate) fn without_manifest(m: &mut j::Module) {
 /// E314: a function uses a capability the package's ceiling leaves out (19.1).
 pub(crate) fn ceiling(m: &j::Module, caps: &[String], cx: &mut Cx) {
     for it in &m.items {
+        // A foreign library is a capability whatever its items say; `uses none` never exempts it
+        // (12.2, R673).
+        if let j::ItemKind::Extern(x) = &it.kind {
+            if !caps.contains(&x.lib) {
+                cx.err(
+                    "E314",
+                    it.span,
+                    &x.lib,
+                    format!(
+                        "library `{}` is outside the package's capability ceiling",
+                        x.lib
+                    ),
+                );
+            }
+            continue;
+        }
         let j::ItemKind::Func(f) = &it.kind else {
             continue;
         };

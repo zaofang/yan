@@ -38,12 +38,13 @@ fn a_counter_actor_answers_main_and_two_tasks() {
     let src = format!(
         "{COUNTER}
 def main() uses io:
-    c = actor.spawn(Counter(n=0))
-    print(c.inc(1) else -1)
-    par concurrent:
-        print(c.inc(10) else -1)
-        print(c.inc(100) else -1)
-    print(c.inc(0) else -1)
+    with sched = sequential():
+        c = actor.spawn(Counter(n=0))
+        print(c.inc(1) else -1)
+        par concurrent:
+            print(c.inc(10) else -1)
+            print(c.inc(100) else -1)
+        print(c.inc(0) else -1)
 "
     );
     assert_eq!(run(&src).expect("runs"), "1\n11\n111\n111\n");
@@ -251,12 +252,13 @@ def poke(a: Actor[A], var tx: Sender[int]) -> int:
     return b
 
 def main() uses io:
-    a = actor.spawn(A(n=0))
-    tx, rx = Channel[int](1)
-    par concurrent:
-        print(show(a.wait_for(&rx)))
-        print(poke(a, &tx))
-    print(a.bump(0) else -1)
+    with sched = sequential():
+        a = actor.spawn(A(n=0))
+        tx, rx = Channel[int](1)
+        par concurrent:
+            print(show(a.wait_for(&rx)))
+            print(poke(a, &tx))
+        print(a.bump(0) else -1)
 "
     );
     assert_eq!(run(&src).expect("runs"), "11\n111\n111\n");
@@ -274,11 +276,12 @@ fn a_reentrant_handler_whose_actor_crashed_while_it_waited_fails_stopped() {
     let src = format!(
         "{REENTRANT}{POKE_FAILING}
 def main() uses io:
-    a = actor.spawn(A(n=0))
-    tx, rx = Channel[int](1)
-    par concurrent:
-        print(show(a.wait_for(&rx)))
-        print(poke(a, &tx))
+    with sched = sequential():
+        a = actor.spawn(A(n=0))
+        tx, rx = Channel[int](1)
+        par concurrent:
+            print(show(a.wait_for(&rx)))
+            print(poke(a, &tx))
 "
     );
     assert_eq!(
@@ -295,14 +298,15 @@ def fresh(n: int) -> A:
     return A(n=n)
 
 def main() uses io:
-    tx, rx = Channel[int](2)
-    with supervisor(actor.one_for_one(intensity=3)):
-        a = actor.start(ChildSpec(fresh, (0,), restart=permanent))
-        par concurrent:
+    with sched = sequential():
+        tx, rx = Channel[int](2)
+        with supervisor(actor.one_for_one(intensity=3)):
+            a = actor.start(ChildSpec(fresh, (0,), restart=permanent))
+            par concurrent:
+                print(show(a.wait_for(&rx)))
+                print(poke(a, &tx))
+            tx.send(1) else e -> None
             print(show(a.wait_for(&rx)))
-            print(poke(a, &tx))
-        tx.send(1) else e -> None
-        print(show(a.wait_for(&rx)))
 "
     );
     assert_eq!(
@@ -336,12 +340,13 @@ def show(r: Result[int, ActorError]) -> str:
             return f\"{e}\"
 
 def main() uses io:
-    a = actor.spawn(A(n=10))
-    b = actor.spawn(A(n=20))
-    tx, rx = Channel[int](1)
-    par concurrent:
-        print(show(a.wait_then(b, &rx)))
-        print(show(b.signal_then(a, &tx)))
+    with sched = sequential():
+        a = actor.spawn(A(n=10))
+        b = actor.spawn(A(n=20))
+        tx, rx = Channel[int](1)
+        par concurrent:
+            print(show(a.wait_then(b, &rx)))
+            print(show(b.signal_then(a, &tx)))
 ";
     // The failed `signal_then` stops `b`, which `a` then finds stopped (RFC 0060 D3).
     assert_eq!(
@@ -376,15 +381,16 @@ def show(r: Result[int, ActorError]) -> str:
             return f\"{e}\"
 
 def main() uses io, time:
-    a = actor.spawn(A(n=0))
-    tx, rx = Channel[int](1)
-    go_tx, go_rx = Channel[int](1)
-    par concurrent:
-        for _ in range(1):
-            print(show(ask(a, &go_rx)))
-            tx.send(7) else e -> None
-        print(a.hold(&rx) else e -> -1)
-        go_tx.send(1) else e -> None
+    with sched = sequential():
+        a = actor.spawn(A(n=0))
+        tx, rx = Channel[int](1)
+        go_tx, go_rx = Channel[int](1)
+        par concurrent:
+            for _ in range(1):
+                print(show(ask(a, &go_rx)))
+                tx.send(7) else e -> None
+            print(a.hold(&rx) else e -> -1)
+            go_tx.send(1) else e -> None
 ";
     assert_eq!(run(src).expect("runs"), "Timeout()\n7\n");
 }
@@ -400,12 +406,13 @@ def ping(var self: Relay, take out: Sender[int], v: int):
     tx.send(v * 2) else e -> None
 
 def main() uses io:
-    tx, rx = Channel[int](1)
-    a = actor.spawn(Relay(n=0))
-    actor.send(a).ping(tx, 5) else e -> None
-    par concurrent:
-        print(rx.recv() else e -> -1)
-        print(1)
+    with sched = sequential():
+        tx, rx = Channel[int](1)
+        a = actor.spawn(Relay(n=0))
+        actor.send(a).ping(tx, 5) else e -> None
+        par concurrent:
+            print(rx.recv() else e -> -1)
+            print(1)
 ";
     assert_eq!(run(src).expect("runs"), "1\n10\n");
 }
@@ -546,15 +553,16 @@ def ask(a: Actor[A], var go: Receiver[int]) -> str uses time:
 
 def main() uses io, time:
     with time = virtual(time.now()):
-        a = actor.spawn(A(n=0))
-        tx, rx = Channel[int](1)
-        go_tx, go_rx = Channel[int](1)
-        par concurrent:
-            for _ in range(1):
-                print(ask(a, &go_rx))
-                tx.send(7) else e -> None
-            print(a.hold(&rx) else e -> -1)
-            go_tx.send(1) else e -> None
+        with sched = sequential():
+            a = actor.spawn(A(n=0))
+            tx, rx = Channel[int](1)
+            go_tx, go_rx = Channel[int](1)
+            par concurrent:
+                for _ in range(1):
+                    print(ask(a, &go_rx))
+                    tx.send(7) else e -> None
+                print(a.hold(&rx) else e -> -1)
+                go_tx.send(1) else e -> None
 ";
     assert_eq!(run(src).expect("runs"), "Timeout() after PT5S\n7\n");
 }

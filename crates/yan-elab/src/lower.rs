@@ -23,14 +23,18 @@ mod args;
 mod arith;
 mod array;
 mod assign;
+pub(crate) mod bits;
 mod builtin;
 mod call_expr;
 mod calls;
 mod cluster;
 mod consume;
+mod conv;
 mod fallback;
 mod generic_sum;
 mod last_use;
+mod lenient_names;
+pub(crate) use lenient_names::MATH_FREE;
 mod loops;
 mod matching;
 mod method;
@@ -102,8 +106,8 @@ struct Lower<'a, 'c, 's> {
     want_ret: Option<(Ty, Span)>,
     /// Capabilities bound by an enclosing `with name = handler`.
     handlers: Vec<String>,
-    /// The innermost enclosing `with sched = ...` binds `pool`, which gives no concurrent progress (E708).
-    pool_sched: bool,
+    /// The innermost enclosing `with sched = ...` binds a handler that does not implement `Concurrent` (E708).
+    sched_not_concurrent: bool,
     /// Each call of a non-`par` callable local, for E716.
     fn_calls: Vec<(String, Span)>,
     /// `k = lambda ...` with no expected type: the target and lambda, lowered at the first call.
@@ -837,7 +841,8 @@ fn function_body_with(
         arg_tys: Vec::new(),
         want_ret: None,
         handlers: Vec::new(),
-        pool_sched: false,
+        // The hosted default handler is `pool`, which is not `Concurrent` (R1003).
+        sched_not_concurrent: f.name == "main",
         fn_calls: Vec::new(),
         pending: HashMap::new(),
         target: None,
@@ -956,6 +961,13 @@ fn function_body_with(
         match c {
             // A contract on ghost values is a proof obligation only (8.7).
             j::Contract::Pre(e) | j::Contract::Post(e) if ghostly(e) => {}
+            j::Contract::Pre(e) if f.unsafe_at.is_some() => {
+                let k = contracts
+                    .iter()
+                    .filter(|c| matches!(c, y::Contract::Requires(_)))
+                    .count();
+                contracts.push(y::Contract::Requires(l.unsafe_pre(f, k, e)?));
+            }
             j::Contract::Pre(e) => match l.pure(e)? {
                 Some(x) => contracts.push(y::Contract::Requires(x)),
                 None => pre.push(e),
@@ -1094,7 +1106,7 @@ fn function_body_with(
     }
     Ok(y::FnDef {
         is_pub,
-        is_unsafe: false,
+        is_unsafe: f.unsafe_at.is_some(),
         path: vec![f.name.clone()],
         name_span: f.name_span,
         tparams: tparams(sig),

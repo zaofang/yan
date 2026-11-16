@@ -242,20 +242,109 @@ impl Cx {
         }
     }
 
+    /// Keeps the pinned locals in their frame words, which outlive a suspension, instead of
+    /// in a stack slot that does not: `AddrOf` becomes the word's address and every other
+    /// access goes through memory.
+    fn frame_pins(&self, f: &mut Func, pinned: &HashSet<Local>, nret: u32) {
+        for g in &f.pinned {
+            assert!(
+                g.windows(2).all(|w| w[1] == w[0] + 1),
+                "a pinned group is contiguous"
+            );
+        }
+        let slot = |l: Local| nret + l;
+        let mut blocks = std::mem::take(&mut f.blocks);
+        for b in &mut blocks {
+            let old = std::mem::take(&mut b.insts);
+            let mut insts = Vec::new();
+            let mut lines = Vec::new();
+            for (mut i, line) in old.into_iter().zip(std::mem::take(&mut b.lines)) {
+                if let Inst::AddrOf { dst, local } = i {
+                    insts.push(Inst::Scalar {
+                        dst: Some(dst),
+                        op: ScalarOp::AddChecked,
+                        ty: I64,
+                        args: vec![Operand::Local(0), Operand::Int(8 * slot(local) as i128)],
+                    });
+                    lines.push(line);
+                    continue;
+                }
+                let (uses, defs) = uses_defs(&i);
+                let mut tmps: Vec<(Local, Local)> = Vec::new();
+                for l in uses.iter().chain(&defs) {
+                    if pinned.contains(l) && !tmps.iter().any(|(p, _)| p == l) {
+                        tmps.push((*l, new_local(f, f.locals[*l as usize])));
+                    }
+                }
+                let rename = |l: Local| tmps.iter().find(|(p, _)| *p == l).map_or(l, |(_, t)| *t);
+                for (p, t) in tmps.iter().filter(|(p, _)| uses.contains(p)) {
+                    insts.push(Inst::Load {
+                        dst: *t,
+                        ptr: Operand::Local(0),
+                        word: slot(*p),
+                    });
+                    lines.push(line);
+                }
+                map_inst(&mut i, &mut |l| rename(l));
+                insts.push(i);
+                lines.push(line);
+                for (p, t) in tmps.iter().filter(|(p, _)| defs.contains(p)) {
+                    insts.push(Inst::Store {
+                        ptr: Operand::Local(0),
+                        word: slot(*p),
+                        src: Operand::Local(*t),
+                    });
+                    lines.push(line);
+                }
+            }
+            let uses: Vec<Local> = term_uses(&b.term)
+                .into_iter()
+                .filter(|l| pinned.contains(l))
+                .collect();
+            let tmps: Vec<(Local, Local)> = uses
+                .into_iter()
+                .collect::<HashSet<_>>()
+                .into_iter()
+                .map(|p| (p, new_local(f, f.locals[p as usize])))
+                .collect();
+            for (p, t) in &tmps {
+                insts.push(Inst::Load {
+                    dst: *t,
+                    ptr: Operand::Local(0),
+                    word: slot(*p),
+                });
+                lines.push(0);
+            }
+            map_term(&mut b.term, &mut |l| {
+                tmps.iter().find(|(p, _)| *p == l).map_or(l, |(_, t)| *t)
+            });
+            b.insts = insts;
+            b.lines = lines;
+        }
+        f.blocks = blocks;
+        f.pinned.clear();
+    }
+
     /// `g$co`, as function `at`, from `g` before its task transform.
     fn make_co(&mut self, g: &Func, w: &Walk, at: usize) -> Func {
         let mut f = Func {
+            unsafe_fn: g.unsafe_fn,
             name: format!("{}$co", g.name),
             params: 1,
             ret: vec![I64],
             locals: std::iter::once(Ty::Ptr)
                 .chain(g.locals.iter().copied())
                 .collect(),
+            pinned: g
+                .pinned
+                .iter()
+                .map(|p| p.iter().map(|l| l + 1).collect())
+                .collect(),
             blocks: g.blocks.clone(),
         };
         for b in &mut f.blocks {
-            b.insts.iter_mut().for_each(shift_inst);
-            shift_term(&mut b.term);
+            b.insts.iter_mut().for_each(|i| map_inst(i, &mut |l| l + 1));
+            map_term(&mut b.term, &mut |l| l + 1);
         }
         let reach: Vec<usize> = (0..f.blocks.len()).filter(|b| w.seen[*b]).collect();
         for b in &reach {
@@ -309,7 +398,13 @@ impl Cx {
             }
         }
 
-        let live = live_in(&f);
+        let pinned: HashSet<Local> = f.pinned.iter().flatten().copied().collect();
+        if !pinned.is_empty() {
+            self.frame_pins(&mut f, &pinned, nret as u32);
+        }
+        let mut live = live_in(&f);
+        live.iter_mut()
+            .for_each(|l| l.retain(|x| !pinned.contains(x)));
         let state = new_local(&mut f, I64);
         let entry = new_block(&mut f, Vec::new(), Term::Panic("unreachable"));
         let mut reloads = vec![(0 as BlockId, entry)];
@@ -421,51 +516,66 @@ fn swap_targets(t: &mut Term, a: BlockId, b: BlockId) {
     }
 }
 
-fn shift_op(o: &mut Operand) {
+fn map_op(o: &mut Operand, m: &mut impl FnMut(Local) -> Local) {
     if let Operand::Local(l) = o {
-        *l += 1;
+        *l = m(*l);
     }
 }
 
-fn shift_inst(i: &mut Inst) {
+/// Renames every local of `i`, including the one whose address `AddrOf` takes.
+fn map_inst(i: &mut Inst, m: &mut impl FnMut(Local) -> Local) {
     let ops: Vec<&mut Operand> = match i {
         Inst::Copy { dst, src } => {
-            *dst += 1;
+            *dst = m(*dst);
             vec![src]
         }
         Inst::Scalar { dst, args, .. } | Inst::Rt { dst, args, .. } => {
             if let Some(d) = dst {
-                *d += 1;
+                *d = m(*d);
             }
             args.iter_mut().collect()
         }
         Inst::Call { dst, args, .. } => {
-            dst.iter_mut().for_each(|d| *d += 1);
+            dst.iter_mut().for_each(|d| *d = m(*d));
             args.iter_mut().collect()
         }
         Inst::CallIndirect {
             dst, code, args, ..
         } => {
-            dst.iter_mut().for_each(|d| *d += 1);
+            dst.iter_mut().for_each(|d| *d = m(*d));
             std::iter::once(code).chain(args.iter_mut()).collect()
         }
         Inst::Load { dst, ptr, .. } => {
-            *dst += 1;
+            *dst = m(*dst);
             vec![ptr]
         }
         Inst::Store { ptr, src, .. } => vec![ptr, src],
+        Inst::Atomic { dst, ptr, args, .. } => {
+            if let Some(d) = dst {
+                *d = m(*d);
+            }
+            std::iter::once(ptr).chain(args.iter_mut()).collect()
+        }
+        Inst::AddrOf { dst, local } => {
+            *dst = m(*dst);
+            *local = m(*local);
+            Vec::new()
+        }
+        Inst::Arm(_) => Vec::new(),
     };
-    ops.into_iter().for_each(shift_op);
+    ops.into_iter().for_each(|o| map_op(o, m));
 }
 
-fn shift_term(t: &mut Term) {
+fn map_term(t: &mut Term, m: &mut impl FnMut(Local) -> Local) {
     match t {
-        Term::Branch { cond, .. } => shift_op(cond),
-        Term::Switch { on, .. } => *on += 1,
-        Term::Return(os) | Term::TailCall { args: os, .. } => os.iter_mut().for_each(shift_op),
+        Term::Branch { cond, .. } => map_op(cond, m),
+        Term::Switch { on, .. } => *on = m(*on),
+        Term::Return(os) | Term::TailCall { args: os, .. } => {
+            os.iter_mut().for_each(|o| map_op(o, m))
+        }
         Term::PanicFields { fields, .. } => fields.iter_mut().for_each(|(a, b)| {
-            shift_op(a);
-            shift_op(b);
+            map_op(a, m);
+            map_op(b, m);
         }),
         Term::Jump(_)
         | Term::Par { .. }
@@ -498,6 +608,12 @@ fn uses_defs(i: &Inst) -> (Vec<Local>, Vec<Local>) {
         Inst::Store { ptr, src, .. } => {
             ([ptr, src].into_iter().filter_map(l).collect(), Vec::new())
         }
+        Inst::Atomic { dst, ptr, args, .. } => (
+            std::iter::once(ptr).chain(args).filter_map(l).collect(),
+            dst.iter().copied().collect(),
+        ),
+        Inst::AddrOf { dst, local } => (vec![*local], vec![*dst]),
+        Inst::Arm(_) => (Vec::new(), Vec::new()),
     }
 }
 

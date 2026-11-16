@@ -1,0 +1,4083 @@
+{
+ "amazon/nova-lite-v1": {
+  "attempts": 18,
+  "pass": 2,
+  "pass_rate": 0.111,
+  "pass_ci": [
+   0.031,
+   0.328
+  ],
+  "pass1_rate": 0.111,
+  "pass1_ci": [
+   0.031,
+   0.328
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   2,
+   18
+  ],
+  "spec_failed": 16,
+  "mean_rounds": 3,
+  "first_reply_n_notes": 0.17,
+  "first_reply_e_rate": 1.0,
+  "tokens_in": 108311,
+  "tokens_out": 8522,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0085,
+  "cost_per_pass": 0.0043,
+  "latency_median_s": 1.08,
+  "cats": {
+   "hard:bits": [
+    0,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    0,
+    3
+   ],
+   "hard:contracts": [
+    0,
+    1
+   ],
+   "hard:failure": [
+    1,
+    3
+   ],
+   "hard:numbers": [
+    0,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    0,
+    2
+   ]
+  },
+  "e_codes": {
+   "E100": 74,
+   "E201": 20,
+   "W820": 15,
+   "E017": 5,
+   "E250": 5,
+   "W823": 3,
+   "E106": 3,
+   "W806": 2,
+   "W812": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "anthropic/claude-haiku-5.5": {
+  "attempts": 254,
+  "pass": 198,
+  "pass_rate": 0.78,
+  "pass_ci": [
+   0.725,
+   0.826
+  ],
+  "pass1_rate": 0.654,
+  "pass1_ci": [
+   0.593,
+   0.709
+  ],
+  "hard": [
+   64,
+   100
+  ],
+  "easy": [
+   134,
+   154
+  ],
+  "spec_failed": 1,
+  "mean_rounds": 2.44,
+  "first_reply_n_notes": 0.12,
+  "first_reply_e_rate": 0.098,
+  "tokens_in": 1459019,
+  "tokens_out": 547294,
+  "tokens_reasoning": 411658,
+  "cost_total": 0.4921,
+  "cost_per_pass": 0.0025,
+  "latency_median_s": 4.0,
+  "cats": {
+   "hard:bits": [
+    6,
+    6
+   ],
+   "hard:capabilities": [
+    3,
+    3
+   ],
+   "hard:concurrency": [
+    9,
+    9
+   ],
+   "hard:contracts": [
+    3,
+    3
+   ],
+   "hard:failure": [
+    9,
+    9
+   ],
+   "hard:numbers": [
+    6,
+    6
+   ],
+   "hard:ownership": [
+    11,
+    12
+   ],
+   "hard:sums": [
+    6,
+    6
+   ],
+   "has:bool": [
+    21,
+    28
+   ],
+   "has:dict": [
+    2,
+    2
+   ],
+   "has:float": [
+    4,
+    10
+   ],
+   "has:str": [
+    72,
+    96
+   ],
+   "has:tuple": [
+    12,
+    18
+   ],
+   "humaneval": [
+    16,
+    16
+   ],
+   "mbpp": [
+    129,
+    184
+   ],
+   "params>=3": [
+    18,
+    26
+   ],
+   "ret:bool": [
+    21,
+    28
+   ],
+   "ret:dict": [
+    2,
+    2
+   ],
+   "ret:float": [
+    2,
+    8
+   ],
+   "ret:int": [
+    53,
+    72
+   ],
+   "ret:list": [
+    26,
+    36
+   ],
+   "ret:str": [
+    39,
+    50
+   ],
+   "ret:tuple": [
+    2,
+    4
+   ]
+  },
+  "e_codes": {
+   "E201": 57,
+   "W806": 20,
+   "E200": 15,
+   "E301": 13,
+   "E110": 8,
+   "E017": 6,
+   "E221": 4,
+   "W820": 4,
+   "E413": 4,
+   "E202": 3,
+   "E203": 3,
+   "E403": 2
+  },
+  "impossible": [
+   0,
+   10
+  ]
+ },
+ "anthropic/claude-opus-5.5": {
+  "attempts": 18,
+  "pass": 18,
+  "pass_rate": 1.0,
+  "pass_ci": [
+   0.824,
+   1.0
+  ],
+  "pass1_rate": 0.833,
+  "pass1_ci": [
+   0.608,
+   0.942
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   18,
+   18
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.78,
+  "first_reply_n_notes": 0.11,
+  "first_reply_e_rate": 0.333,
+  "tokens_in": 138011,
+  "tokens_out": 17803,
+  "tokens_reasoning": 6245,
+  "cost_total": 0.9081,
+  "cost_per_pass": 0.0505,
+  "latency_median_s": 3.82,
+  "cats": {
+   "hard:bits": [
+    2,
+    2
+   ],
+   "hard:capabilities": [
+    1,
+    1
+   ],
+   "hard:concurrency": [
+    3,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    3,
+    3
+   ],
+   "hard:numbers": [
+    2,
+    2
+   ],
+   "hard:ownership": [
+    4,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 10,
+   "E403": 6,
+   "E200": 6,
+   "E301": 4,
+   "E017": 2,
+   "E241": 2,
+   "W806": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "anthropic/claude-sonnet-5.5": {
+  "attempts": 94,
+  "pass": 90,
+  "pass_rate": 0.957,
+  "pass_ci": [
+   0.896,
+   0.983
+  ],
+  "pass1_rate": 0.883,
+  "pass1_ci": [
+   0.802,
+   0.933
+  ],
+  "hard": [
+   28,
+   30
+  ],
+  "easy": [
+   62,
+   64
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.43,
+  "first_reply_n_notes": 0.02,
+  "first_reply_e_rate": 0.17,
+  "tokens_in": 562658,
+  "tokens_out": 122149,
+  "tokens_reasoning": 70357,
+  "cost_total": 3.6608,
+  "cost_per_pass": 0.0407,
+  "latency_median_s": 4.86,
+  "cats": {
+   "hard:bits": [
+    6,
+    6
+   ],
+   "hard:capabilities": [
+    3,
+    3
+   ],
+   "hard:concurrency": [
+    7,
+    9
+   ],
+   "hard:contracts": [
+    3,
+    3
+   ],
+   "hard:failure": [
+    9,
+    9
+   ],
+   "hard:numbers": [
+    6,
+    6
+   ],
+   "hard:ownership": [
+    12,
+    12
+   ],
+   "hard:sums": [
+    6,
+    6
+   ],
+   "has:bool": [
+    4,
+    4
+   ],
+   "has:float": [
+    3,
+    3
+   ],
+   "has:str": [
+    25,
+    26
+   ],
+   "has:tuple": [
+    3,
+    3
+   ],
+   "humaneval": [
+    6,
+    6
+   ],
+   "mbpp": [
+    32,
+    34
+   ],
+   "params>=3": [
+    5,
+    5
+   ],
+   "ret:bool": [
+    4,
+    4
+   ],
+   "ret:float": [
+    3,
+    3
+   ],
+   "ret:int": [
+    10,
+    11
+   ],
+   "ret:list": [
+    6,
+    7
+   ],
+   "ret:str": [
+    14,
+    14
+   ],
+   "ret:tuple": [
+    1,
+    1
+   ]
+  },
+  "e_codes": {
+   "E201": 30,
+   "E301": 15,
+   "E200": 13,
+   "E403": 12,
+   "W806": 6,
+   "E241": 5,
+   "E017": 5,
+   "E100": 3,
+   "E106": 1
+  },
+  "impossible": [
+   1,
+   10
+  ]
+ },
+ "deepseek/deepseek-v4-flash": {
+  "attempts": 253,
+  "pass": 155,
+  "pass_rate": 0.613,
+  "pass_ci": [
+   0.551,
+   0.671
+  ],
+  "pass1_rate": 0.486,
+  "pass1_ci": [
+   0.425,
+   0.547
+  ],
+  "hard": [
+   46,
+   100
+  ],
+  "easy": [
+   109,
+   153
+  ],
+  "spec_failed": 9,
+  "mean_rounds": 2.87,
+  "first_reply_n_notes": 0.35,
+  "first_reply_e_rate": 0.241,
+  "tokens_in": 1297818,
+  "tokens_out": 1114849,
+  "tokens_reasoning": 1018773,
+  "cost_total": 0.3175,
+  "cost_per_pass": 0.002,
+  "latency_median_s": 5.7,
+  "cats": {
+   "hard:bits": [
+    4,
+    6
+   ],
+   "hard:capabilities": [
+    2,
+    3
+   ],
+   "hard:concurrency": [
+    8,
+    8
+   ],
+   "hard:contracts": [
+    3,
+    3
+   ],
+   "hard:failure": [
+    7,
+    9
+   ],
+   "hard:numbers": [
+    6,
+    6
+   ],
+   "hard:ownership": [
+    7,
+    12
+   ],
+   "hard:sums": [
+    6,
+    6
+   ],
+   "has:bool": [
+    21,
+    28
+   ],
+   "has:dict": [
+    2,
+    2
+   ],
+   "has:float": [
+    4,
+    10
+   ],
+   "has:str": [
+    53,
+    96
+   ],
+   "has:tuple": [
+    12,
+    18
+   ],
+   "humaneval": [
+    15,
+    16
+   ],
+   "mbpp": [
+    97,
+    184
+   ],
+   "params>=3": [
+    13,
+    26
+   ],
+   "ret:bool": [
+    21,
+    28
+   ],
+   "ret:dict": [
+    2,
+    2
+   ],
+   "ret:float": [
+    2,
+    8
+   ],
+   "ret:int": [
+    39,
+    72
+   ],
+   "ret:list": [
+    21,
+    36
+   ],
+   "ret:str": [
+    25,
+    50
+   ],
+   "ret:tuple": [
+    2,
+    4
+   ]
+  },
+  "e_codes": {
+   "E201": 132,
+   "W820": 59,
+   "E017": 48,
+   "E203": 44,
+   "E301": 28,
+   "W806": 20,
+   "E403": 14,
+   "E110": 12,
+   "W823": 12,
+   "E100": 10,
+   "E103": 10,
+   "E202": 7
+  },
+  "impossible": [
+   0,
+   10
+  ]
+ },
+ "deepseek/deepseek-v4-pro": {
+  "attempts": 18,
+  "pass": 12,
+  "pass_rate": 0.667,
+  "pass_ci": [
+   0.437,
+   0.837
+  ],
+  "pass1_rate": 0.611,
+  "pass1_ci": [
+   0.386,
+   0.797
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   12,
+   18
+  ],
+  "spec_failed": 3,
+  "mean_rounds": 3.28,
+  "first_reply_n_notes": 0.22,
+  "first_reply_e_rate": 0.389,
+  "tokens_in": 111778,
+  "tokens_out": 90124,
+  "tokens_reasoning": 82114,
+  "cost_total": 0.0899,
+  "cost_per_pass": 0.0075,
+  "latency_median_s": 10.78,
+  "cats": {
+   "hard:bits": [
+    1,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    3,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    2,
+    3
+   ],
+   "hard:numbers": [
+    1,
+    2
+   ],
+   "hard:ownership": [
+    2,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 11,
+   "E100": 9,
+   "E200": 7,
+   "E301": 4,
+   "W806": 4,
+   "E017": 2,
+   "E103": 2,
+   "E403": 1,
+   "E203": 1,
+   "E405": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "deepseek/deepseek-v4.1-flash": {
+  "attempts": 18,
+  "pass": 14,
+  "pass_rate": 0.778,
+  "pass_ci": [
+   0.548,
+   0.91
+  ],
+  "pass1_rate": 0.722,
+  "pass1_ci": [
+   0.491,
+   0.875
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   14,
+   18
+  ],
+  "spec_failed": 1,
+  "mean_rounds": 2.94,
+  "first_reply_n_notes": 0.11,
+  "first_reply_e_rate": 0.278,
+  "tokens_in": 98544,
+  "tokens_out": 259675,
+  "tokens_reasoning": 253958,
+  "cost_total": 0.1731,
+  "cost_per_pass": 0.0124,
+  "latency_median_s": 4.52,
+  "cats": {
+   "hard:bits": [
+    2,
+    2
+   ],
+   "hard:capabilities": [
+    1,
+    1
+   ],
+   "hard:concurrency": [
+    2,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    2,
+    3
+   ],
+   "hard:numbers": [
+    1,
+    2
+   ],
+   "hard:ownership": [
+    3,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 9,
+   "E301": 3,
+   "E200": 2,
+   "W806": 2,
+   "E100": 1,
+   "E110": 1,
+   "E017": 1,
+   "E315": 1,
+   "E403": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "google/gemini-3.5-flash-lite": {
+  "attempts": 254,
+  "pass": 152,
+  "pass_rate": 0.598,
+  "pass_ci": [
+   0.537,
+   0.657
+  ],
+  "pass1_rate": 0.488,
+  "pass1_ci": [
+   0.427,
+   0.549
+  ],
+  "hard": [
+   45,
+   100
+  ],
+  "easy": [
+   107,
+   154
+  ],
+  "spec_failed": 9,
+  "mean_rounds": 2.98,
+  "first_reply_n_notes": 0.02,
+  "first_reply_e_rate": 0.106,
+  "tokens_in": 1468611,
+  "tokens_out": 116234,
+  "tokens_reasoning": 0,
+  "cost_total": 0.8376,
+  "cost_per_pass": 0.0055,
+  "latency_median_s": 1.03,
+  "cats": {
+   "hard:bits": [
+    5,
+    6
+   ],
+   "hard:capabilities": [
+    1,
+    3
+   ],
+   "hard:concurrency": [
+    6,
+    9
+   ],
+   "hard:contracts": [
+    3,
+    3
+   ],
+   "hard:failure": [
+    5,
+    9
+   ],
+   "hard:numbers": [
+    5,
+    6
+   ],
+   "hard:ownership": [
+    6,
+    12
+   ],
+   "hard:sums": [
+    6,
+    6
+   ],
+   "has:bool": [
+    15,
+    28
+   ],
+   "has:dict": [
+    1,
+    2
+   ],
+   "has:float": [
+    4,
+    10
+   ],
+   "has:str": [
+    55,
+    96
+   ],
+   "has:tuple": [
+    13,
+    18
+   ],
+   "humaneval": [
+    16,
+    16
+   ],
+   "mbpp": [
+    99,
+    184
+   ],
+   "params>=3": [
+    14,
+    26
+   ],
+   "ret:bool": [
+    15,
+    28
+   ],
+   "ret:dict": [
+    1,
+    2
+   ],
+   "ret:float": [
+    2,
+    8
+   ],
+   "ret:int": [
+    43,
+    72
+   ],
+   "ret:list": [
+    21,
+    36
+   ],
+   "ret:str": [
+    29,
+    50
+   ],
+   "ret:tuple": [
+    4,
+    4
+   ]
+  },
+  "e_codes": {
+   "E200": 63,
+   "E201": 54,
+   "E203": 34,
+   "E017": 21,
+   "E100": 18,
+   "W806": 9,
+   "E301": 8,
+   "E315": 7,
+   "E202": 7,
+   "E110": 6,
+   "E404": 5,
+   "E403": 3
+  },
+  "impossible": [
+   1,
+   10
+  ]
+ },
+ "google/gemini-3.8-flash": {
+  "attempts": 93,
+  "pass": 77,
+  "pass_rate": 0.828,
+  "pass_ci": [
+   0.739,
+   0.891
+  ],
+  "pass1_rate": 0.731,
+  "pass1_ci": [
+   0.633,
+   0.811
+  ],
+  "hard": [
+   21,
+   30
+  ],
+  "easy": [
+   56,
+   63
+  ],
+  "spec_failed": 1,
+  "mean_rounds": 2.58,
+  "first_reply_n_notes": 0.08,
+  "first_reply_e_rate": 0.151,
+  "tokens_in": 455918,
+  "tokens_out": 798228,
+  "tokens_reasoning": 768610,
+  "cost_total": 3.8345,
+  "cost_per_pass": 0.0498,
+  "latency_median_s": 9.05,
+  "cats": {
+   "hard:bits": [
+    6,
+    6
+   ],
+   "hard:capabilities": [
+    3,
+    3
+   ],
+   "hard:concurrency": [
+    8,
+    9
+   ],
+   "hard:contracts": [
+    3,
+    3
+   ],
+   "hard:failure": [
+    9,
+    9
+   ],
+   "hard:numbers": [
+    3,
+    6
+   ],
+   "hard:ownership": [
+    9,
+    11
+   ],
+   "hard:sums": [
+    6,
+    6
+   ],
+   "has:bool": [
+    3,
+    4
+   ],
+   "has:float": [
+    2,
+    3
+   ],
+   "has:str": [
+    20,
+    26
+   ],
+   "has:tuple": [
+    3,
+    3
+   ],
+   "humaneval": [
+    6,
+    6
+   ],
+   "mbpp": [
+    24,
+    34
+   ],
+   "params>=3": [
+    4,
+    5
+   ],
+   "ret:bool": [
+    3,
+    4
+   ],
+   "ret:float": [
+    2,
+    3
+   ],
+   "ret:int": [
+    7,
+    11
+   ],
+   "ret:list": [
+    6,
+    7
+   ],
+   "ret:str": [
+    11,
+    14
+   ],
+   "ret:tuple": [
+    1,
+    1
+   ]
+  },
+  "e_codes": {
+   "E201": 28,
+   "E200": 24,
+   "E403": 9,
+   "E301": 8,
+   "W806": 8,
+   "E241": 4,
+   "E017": 4,
+   "E103": 4,
+   "E100": 3,
+   "E202": 2,
+   "E203": 2,
+   "W812": 1
+  },
+  "impossible": [
+   0,
+   10
+  ]
+ },
+ "google/gemini-4-hydrogen": {
+  "attempts": 18,
+  "pass": 17,
+  "pass_rate": 0.944,
+  "pass_ci": [
+   0.742,
+   0.99
+  ],
+  "pass1_rate": 0.833,
+  "pass1_ci": [
+   0.608,
+   0.942
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   17,
+   18
+  ],
+  "spec_failed": 0,
+  "mean_rounds": 2.83,
+  "first_reply_n_notes": 0,
+  "first_reply_e_rate": 0.278,
+  "tokens_in": 102113,
+  "tokens_out": 67726,
+  "tokens_reasoning": 60632,
+  "cost_total": 0.66,
+  "cost_per_pass": 0.0388,
+  "latency_median_s": 7.73,
+  "cats": {
+   "hard:bits": [
+    2,
+    2
+   ],
+   "hard:capabilities": [
+    1,
+    1
+   ],
+   "hard:concurrency": [
+    2,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    3,
+    3
+   ],
+   "hard:numbers": [
+    2,
+    2
+   ],
+   "hard:ownership": [
+    4,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 6,
+   "E403": 4,
+   "E200": 4,
+   "E301": 4,
+   "E110": 3,
+   "E241": 2,
+   "W806": 2
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "google/gemma-3-27b-it": {
+  "attempts": 17,
+  "pass": 7,
+  "pass_rate": 0.412,
+  "pass_ci": [
+   0.216,
+   0.64
+  ],
+  "pass1_rate": 0.412,
+  "pass1_ci": [
+   0.216,
+   0.64
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   7,
+   17
+  ],
+  "spec_failed": 7,
+  "mean_rounds": 3.47,
+  "first_reply_n_notes": 0.41,
+  "first_reply_e_rate": 0.882,
+  "tokens_in": 120573,
+  "tokens_out": 7004,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0091,
+  "cost_per_pass": 0.0013,
+  "latency_median_s": 2.77,
+  "cats": {
+   "hard:bits": [
+    1,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    2,
+    3
+   ],
+   "hard:failure": [
+    3,
+    3
+   ],
+   "hard:numbers": [
+    0,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    0,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 30,
+   "E221": 6,
+   "E100": 4,
+   "E301": 4,
+   "E017": 3,
+   "W806": 2,
+   "E106": 2,
+   "W823": 2,
+   "E120": 1,
+   "E200": 1,
+   "W820": 1,
+   "E403": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "google/gemma-4-31b-it": {
+  "attempts": 254,
+  "pass": 138,
+  "pass_rate": 0.543,
+  "pass_ci": [
+   0.482,
+   0.603
+  ],
+  "pass1_rate": 0.461,
+  "pass1_ci": [
+   0.4,
+   0.522
+  ],
+  "hard": [
+   45,
+   100
+  ],
+  "easy": [
+   93,
+   154
+  ],
+  "spec_failed": 9,
+  "mean_rounds": 3.01,
+  "first_reply_n_notes": 0.06,
+  "first_reply_e_rate": 0.134,
+  "tokens_in": 1523499,
+  "tokens_out": 154297,
+  "tokens_reasoning": 0,
+  "cost_total": 0.2358,
+  "cost_per_pass": 0.0017,
+  "latency_median_s": 1.46,
+  "cats": {
+   "hard:bits": [
+    6,
+    6
+   ],
+   "hard:capabilities": [
+    2,
+    3
+   ],
+   "hard:concurrency": [
+    4,
+    9
+   ],
+   "hard:contracts": [
+    3,
+    3
+   ],
+   "hard:failure": [
+    8,
+    9
+   ],
+   "hard:numbers": [
+    2,
+    6
+   ],
+   "hard:ownership": [
+    6,
+    12
+   ],
+   "hard:sums": [
+    6,
+    6
+   ],
+   "has:bool": [
+    17,
+    28
+   ],
+   "has:dict": [
+    2,
+    2
+   ],
+   "has:float": [
+    4,
+    10
+   ],
+   "has:str": [
+    51,
+    96
+   ],
+   "has:tuple": [
+    13,
+    18
+   ],
+   "humaneval": [
+    15,
+    16
+   ],
+   "mbpp": [
+    86,
+    184
+   ],
+   "params>=3": [
+    13,
+    26
+   ],
+   "ret:bool": [
+    17,
+    28
+   ],
+   "ret:dict": [
+    2,
+    2
+   ],
+   "ret:float": [
+    2,
+    8
+   ],
+   "ret:int": [
+    35,
+    72
+   ],
+   "ret:list": [
+    17,
+    36
+   ],
+   "ret:str": [
+    24,
+    50
+   ],
+   "ret:tuple": [
+    4,
+    4
+   ]
+  },
+  "e_codes": {
+   "E201": 97,
+   "E203": 57,
+   "W806": 38,
+   "E404": 18,
+   "E200": 18,
+   "E100": 16,
+   "E017": 11,
+   "E315": 8,
+   "E202": 8,
+   "E403": 6,
+   "E301": 6,
+   "E241": 5
+  },
+  "impossible": [
+   0,
+   10
+  ]
+ },
+ "ibm-granite/granite-4.2-8b": {
+  "attempts": 18,
+  "pass": 11,
+  "pass_rate": 0.611,
+  "pass_ci": [
+   0.386,
+   0.797
+  ],
+  "pass1_rate": 0.389,
+  "pass1_ci": [
+   0.203,
+   0.614
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   11,
+   18
+  ],
+  "spec_failed": 5,
+  "mean_rounds": 2.89,
+  "first_reply_n_notes": 0.28,
+  "first_reply_e_rate": 0.444,
+  "tokens_in": 103078,
+  "tokens_out": 277737,
+  "tokens_reasoning": 271263,
+  "cost_total": 0.0439,
+  "cost_per_pass": 0.004,
+  "latency_median_s": 40.6,
+  "cats": {
+   "hard:bits": [
+    1,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    2,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    3,
+    3
+   ],
+   "hard:numbers": [
+    1,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 16,
+   "E100": 7,
+   "E301": 6,
+   "W820": 6,
+   "W823": 1,
+   "E017": 1,
+   "E312": 1,
+   "E315": 1,
+   "E413": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "meta-llama/llama-3.1-8b-instruct": {
+  "attempts": 18,
+  "pass": 0,
+  "pass_rate": 0.0,
+  "pass_ci": [
+   0.0,
+   0.176
+  ],
+  "pass1_rate": 0.0,
+  "pass1_ci": [
+   0.0,
+   0.176
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   0,
+   18
+  ],
+  "spec_failed": 17,
+  "mean_rounds": 3.17,
+  "first_reply_n_notes": 0.11,
+  "first_reply_e_rate": 1.0,
+  "tokens_in": 99260,
+  "tokens_out": 5915,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0022,
+  "cost_per_pass": null,
+  "latency_median_s": 4.49,
+  "cats": {
+   "hard:bits": [
+    0,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    0,
+    3
+   ],
+   "hard:contracts": [
+    0,
+    1
+   ],
+   "hard:failure": [
+    0,
+    3
+   ],
+   "hard:numbers": [
+    0,
+    2
+   ],
+   "hard:ownership": [
+    0,
+    4
+   ],
+   "hard:sums": [
+    0,
+    2
+   ]
+  },
+  "e_codes": {
+   "E100": 44,
+   "E017": 7,
+   "E201": 6,
+   "W806": 4,
+   "W820": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "meta-llama/llama-3.3-70b-instruct": {
+  "attempts": 254,
+  "pass": 91,
+  "pass_rate": 0.358,
+  "pass_ci": [
+   0.302,
+   0.419
+  ],
+  "pass1_rate": 0.276,
+  "pass1_ci": [
+   0.224,
+   0.334
+  ],
+  "hard": [
+   31,
+   100
+  ],
+  "easy": [
+   60,
+   154
+  ],
+  "spec_failed": 38,
+  "mean_rounds": 3.64,
+  "first_reply_n_notes": 0.46,
+  "first_reply_e_rate": 0.457,
+  "tokens_in": 1688269,
+  "tokens_out": 117599,
+  "tokens_reasoning": 0,
+  "cost_total": 0.6517,
+  "cost_per_pass": 0.0072,
+  "latency_median_s": 2.19,
+  "cats": {
+   "hard:bits": [
+    2,
+    6
+   ],
+   "hard:capabilities": [
+    0,
+    3
+   ],
+   "hard:concurrency": [
+    4,
+    9
+   ],
+   "hard:contracts": [
+    3,
+    3
+   ],
+   "hard:failure": [
+    4,
+    9
+   ],
+   "hard:numbers": [
+    0,
+    6
+   ],
+   "hard:ownership": [
+    3,
+    12
+   ],
+   "hard:sums": [
+    6,
+    6
+   ],
+   "has:bool": [
+    5,
+    28
+   ],
+   "has:dict": [
+    0,
+    2
+   ],
+   "has:float": [
+    4,
+    10
+   ],
+   "has:str": [
+    33,
+    96
+   ],
+   "has:tuple": [
+    8,
+    18
+   ],
+   "humaneval": [
+    9,
+    16
+   ],
+   "mbpp": [
+    60,
+    184
+   ],
+   "params>=3": [
+    6,
+    26
+   ],
+   "ret:bool": [
+    5,
+    28
+   ],
+   "ret:dict": [
+    0,
+    2
+   ],
+   "ret:float": [
+    2,
+    8
+   ],
+   "ret:int": [
+    26,
+    72
+   ],
+   "ret:list": [
+    14,
+    36
+   ],
+   "ret:str": [
+    20,
+    50
+   ],
+   "ret:tuple": [
+    2,
+    4
+   ]
+  },
+  "e_codes": {
+   "E201": 333,
+   "E200": 78,
+   "E017": 63,
+   "E203": 52,
+   "E100": 40,
+   "E315": 14,
+   "E403": 14,
+   "E619": 10,
+   "E110": 10,
+   "W806": 8,
+   "E202": 8,
+   "E301": 7
+  },
+  "impossible": [
+   0,
+   10
+  ]
+ },
+ "meta-llama/llama-4-maverick": {
+  "attempts": 17,
+  "pass": 7,
+  "pass_rate": 0.412,
+  "pass_ci": [
+   0.216,
+   0.64
+  ],
+  "pass1_rate": 0.294,
+  "pass1_ci": [
+   0.133,
+   0.531
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   7,
+   17
+  ],
+  "spec_failed": 7,
+  "mean_rounds": 3.35,
+  "first_reply_n_notes": 0.18,
+  "first_reply_e_rate": 0.706,
+  "tokens_in": 103367,
+  "tokens_out": 6737,
+  "tokens_reasoning": 0,
+  "cost_total": 0.027,
+  "cost_per_pass": 0.0039,
+  "latency_median_s": 1.98,
+  "cats": {
+   "hard:bits": [
+    2,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    0,
+    2
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    2,
+    3
+   ],
+   "hard:numbers": [
+    0,
+    2
+   ],
+   "hard:ownership": [
+    0,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E100": 12,
+   "E200": 10,
+   "E201": 10,
+   "E017": 8,
+   "E103": 3,
+   "E106": 2,
+   "E301": 2,
+   "E404": 1,
+   "W806": 1,
+   "E315": 1,
+   "W819": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "microsoft/phi-4": {
+  "attempts": 251,
+  "pass": 76,
+  "pass_rate": 0.303,
+  "pass_ci": [
+   0.249,
+   0.362
+  ],
+  "pass1_rate": 0.279,
+  "pass1_ci": [
+   0.227,
+   0.337
+  ],
+  "hard": [
+   18,
+   98
+  ],
+  "easy": [
+   58,
+   153
+  ],
+  "spec_failed": 82,
+  "mean_rounds": 3.23,
+  "first_reply_n_notes": 0.66,
+  "first_reply_e_rate": 0.673,
+  "tokens_in": 1510015,
+  "tokens_out": 150082,
+  "tokens_reasoning": 0,
+  "cost_total": 0.1364,
+  "cost_per_pass": 0.0018,
+  "latency_median_s": 2.02,
+  "cats": {
+   "hard:bits": [
+    1,
+    6
+   ],
+   "hard:capabilities": [
+    3,
+    3
+   ],
+   "hard:concurrency": [
+    3,
+    9
+   ],
+   "hard:contracts": [
+    3,
+    3
+   ],
+   "hard:failure": [
+    2,
+    9
+   ],
+   "hard:numbers": [
+    3,
+    6
+   ],
+   "hard:ownership": [
+    3,
+    12
+   ],
+   "hard:sums": [
+    0,
+    6
+   ],
+   "has:bool": [
+    6,
+    27
+   ],
+   "has:dict": [
+    0,
+    2
+   ],
+   "has:float": [
+    3,
+    10
+   ],
+   "has:str": [
+    26,
+    94
+   ],
+   "has:tuple": [
+    6,
+    18
+   ],
+   "humaneval": [
+    10,
+    16
+   ],
+   "mbpp": [
+    48,
+    181
+   ],
+   "params>=3": [
+    6,
+    26
+   ],
+   "ret:bool": [
+    6,
+    27
+   ],
+   "ret:dict": [
+    0,
+    2
+   ],
+   "ret:float": [
+    2,
+    8
+   ],
+   "ret:int": [
+    23,
+    71
+   ],
+   "ret:list": [
+    15,
+    36
+   ],
+   "ret:str": [
+    11,
+    49
+   ],
+   "ret:tuple": [
+    1,
+    4
+   ]
+  },
+  "e_codes": {
+   "E201": 363,
+   "W820": 258,
+   "E017": 100,
+   "W823": 80,
+   "E203": 63,
+   "E100": 50,
+   "E200": 49,
+   "E403": 31,
+   "W812": 24,
+   "E315": 22,
+   "E602": 20,
+   "E106": 18
+  },
+  "impossible": [
+   0,
+   10
+  ]
+ },
+ "minimax/minimax-m3": {
+  "attempts": 18,
+  "pass": 14,
+  "pass_rate": 0.778,
+  "pass_ci": [
+   0.548,
+   0.91
+  ],
+  "pass1_rate": 0.444,
+  "pass1_ci": [
+   0.246,
+   0.663
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   14,
+   18
+  ],
+  "spec_failed": 2,
+  "mean_rounds": 3.89,
+  "first_reply_n_notes": 0.44,
+  "first_reply_e_rate": 0.5,
+  "tokens_in": 153972,
+  "tokens_out": 185338,
+  "tokens_reasoning": 176555,
+  "cost_total": 0.2101,
+  "cost_per_pass": 0.015,
+  "latency_median_s": 4.46,
+  "cats": {
+   "hard:bits": [
+    1,
+    2
+   ],
+   "hard:capabilities": [
+    1,
+    1
+   ],
+   "hard:concurrency": [
+    3,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    3,
+    3
+   ],
+   "hard:numbers": [
+    2,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 13,
+   "E301": 7,
+   "E100": 6,
+   "E403": 5,
+   "E017": 4,
+   "E200": 4,
+   "E404": 3,
+   "E106": 2,
+   "E103": 2,
+   "E110": 1,
+   "E315": 1,
+   "E503": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "minimax/minimax-m3.1-flash": {
+  "attempts": 253,
+  "pass": 154,
+  "pass_rate": 0.609,
+  "pass_ci": [
+   0.547,
+   0.667
+  ],
+  "pass1_rate": 0.518,
+  "pass1_ci": [
+   0.456,
+   0.579
+  ],
+  "hard": [
+   55,
+   100
+  ],
+  "easy": [
+   99,
+   153
+  ],
+  "spec_failed": 9,
+  "mean_rounds": 2.94,
+  "first_reply_n_notes": 0.17,
+  "first_reply_e_rate": 0.19,
+  "tokens_in": 1527252,
+  "tokens_out": 2375063,
+  "tokens_reasoning": 1983646,
+  "cost_total": 1.6457,
+  "cost_per_pass": 0.0107,
+  "latency_median_s": 6.72,
+  "cats": {
+   "hard:bits": [
+    3,
+    6
+   ],
+   "hard:capabilities": [
+    1,
+    3
+   ],
+   "hard:concurrency": [
+    5,
+    9
+   ],
+   "hard:contracts": [
+    2,
+    2
+   ],
+   "hard:failure": [
+    6,
+    9
+   ],
+   "hard:numbers": [
+    4,
+    6
+   ],
+   "hard:ownership": [
+    4,
+    12
+   ],
+   "hard:sums": [
+    6,
+    6
+   ],
+   "has:bool": [
+    19,
+    28
+   ],
+   "has:dict": [
+    2,
+    2
+   ],
+   "has:float": [
+    5,
+    10
+   ],
+   "has:str": [
+    58,
+    96
+   ],
+   "has:tuple": [
+    13,
+    18
+   ],
+   "humaneval": [
+    16,
+    16
+   ],
+   "mbpp": [
+    107,
+    184
+   ],
+   "params>=3": [
+    17,
+    26
+   ],
+   "ret:bool": [
+    19,
+    28
+   ],
+   "ret:dict": [
+    2,
+    2
+   ],
+   "ret:float": [
+    3,
+    8
+   ],
+   "ret:int": [
+    49,
+    72
+   ],
+   "ret:list": [
+    19,
+    36
+   ],
+   "ret:str": [
+    28,
+    50
+   ],
+   "ret:tuple": [
+    3,
+    4
+   ]
+  },
+  "e_codes": {
+   "E201": 110,
+   "E301": 36,
+   "E200": 28,
+   "W806": 21,
+   "E203": 19,
+   "E110": 19,
+   "E017": 11,
+   "E100": 10,
+   "E315": 9,
+   "W820": 7,
+   "E107": 5,
+   "E413": 3
+  },
+  "impossible": [
+   1,
+   10
+  ]
+ },
+ "mistralai/codestral-2508": {
+  "attempts": 18,
+  "pass": 11,
+  "pass_rate": 0.611,
+  "pass_ci": [
+   0.386,
+   0.797
+  ],
+  "pass1_rate": 0.5,
+  "pass1_ci": [
+   0.29,
+   0.71
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   11,
+   18
+  ],
+  "spec_failed": 6,
+  "mean_rounds": 2.78,
+  "first_reply_n_notes": 0.11,
+  "first_reply_e_rate": 0.333,
+  "tokens_in": 86395,
+  "tokens_out": 4325,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0129,
+  "cost_per_pass": 0.0012,
+  "latency_median_s": 1.02,
+  "cats": {
+   "hard:bits": [
+    2,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    2,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    2,
+    3
+   ],
+   "hard:numbers": [
+    1,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 16,
+   "E017": 3,
+   "E100": 3,
+   "E200": 2,
+   "E301": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "mistralai/devstral-2512": {
+  "attempts": 18,
+  "pass": 10,
+  "pass_rate": 0.556,
+  "pass_ci": [
+   0.337,
+   0.754
+  ],
+  "pass1_rate": 0.444,
+  "pass1_ci": [
+   0.246,
+   0.663
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   10,
+   18
+  ],
+  "spec_failed": 5,
+  "mean_rounds": 2.78,
+  "first_reply_n_notes": 0.22,
+  "first_reply_e_rate": 0.278,
+  "tokens_in": 87843,
+  "tokens_out": 4541,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0356,
+  "cost_per_pass": 0.0036,
+  "latency_median_s": 1.25,
+  "cats": {
+   "hard:bits": [
+    2,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    2,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    2,
+    3
+   ],
+   "hard:numbers": [
+    1,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 12,
+   "E200": 4,
+   "E301": 2,
+   "E017": 2,
+   "E103": 1,
+   "E202": 1,
+   "E100": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "mistralai/ministral-8b-2512": {
+  "attempts": 18,
+  "pass": 5,
+  "pass_rate": 0.278,
+  "pass_ci": [
+   0.125,
+   0.509
+  ],
+  "pass1_rate": 0.278,
+  "pass1_ci": [
+   0.125,
+   0.509
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   5,
+   18
+  ],
+  "spec_failed": 6,
+  "mean_rounds": 3.67,
+  "first_reply_n_notes": 0.33,
+  "first_reply_e_rate": 0.556,
+  "tokens_in": 128881,
+  "tokens_out": 11190,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0091,
+  "cost_per_pass": 0.0018,
+  "latency_median_s": 1.4,
+  "cats": {
+   "hard:bits": [
+    1,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    1,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    1,
+    3
+   ],
+   "hard:numbers": [
+    0,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    0,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 18,
+   "E100": 11,
+   "E017": 8,
+   "E200": 6,
+   "W806": 4,
+   "E301": 1,
+   "E619": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "mistralai/mistral-large-2512": {
+  "attempts": 18,
+  "pass": 9,
+  "pass_rate": 0.5,
+  "pass_ci": [
+   0.29,
+   0.71
+  ],
+  "pass1_rate": 0.389,
+  "pass1_ci": [
+   0.203,
+   0.614
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   9,
+   18
+  ],
+  "spec_failed": 6,
+  "mean_rounds": 3.39,
+  "first_reply_n_notes": 0.17,
+  "first_reply_e_rate": 0.667,
+  "tokens_in": 113904,
+  "tokens_out": 8065,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0328,
+  "cost_per_pass": 0.0036,
+  "latency_median_s": 1.82,
+  "cats": {
+   "hard:bits": [
+    2,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    1,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    2,
+    3
+   ],
+   "hard:numbers": [
+    1,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E100": 14,
+   "E201": 13,
+   "E200": 6,
+   "E017": 2,
+   "E403": 2,
+   "W806": 2,
+   "E301": 2,
+   "W812": 1,
+   "E404": 1,
+   "E619": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "mistralai/mistral-small-3.2-24b-instruct": {
+  "attempts": 252,
+  "pass": 100,
+  "pass_rate": 0.397,
+  "pass_ci": [
+   0.338,
+   0.458
+  ],
+  "pass1_rate": 0.29,
+  "pass1_ci": [
+   0.237,
+   0.349
+  ],
+  "hard": [
+   34,
+   99
+  ],
+  "easy": [
+   66,
+   153
+  ],
+  "spec_failed": 26,
+  "mean_rounds": 3.73,
+  "first_reply_n_notes": 0.15,
+  "first_reply_e_rate": 0.421,
+  "tokens_in": 1826144,
+  "tokens_out": 160625,
+  "tokens_reasoning": 0,
+  "cost_total": 0.1318,
+  "cost_per_pass": 0.0013,
+  "latency_median_s": 1.4,
+  "cats": {
+   "hard:bits": [
+    2,
+    6
+   ],
+   "hard:capabilities": [
+    1,
+    3
+   ],
+   "hard:concurrency": [
+    3,
+    8
+   ],
+   "hard:contracts": [
+    3,
+    3
+   ],
+   "hard:failure": [
+    3,
+    9
+   ],
+   "hard:numbers": [
+    3,
+    6
+   ],
+   "hard:ownership": [
+    3,
+    12
+   ],
+   "hard:sums": [
+    0,
+    6
+   ],
+   "has:bool": [
+    12,
+    28
+   ],
+   "has:dict": [
+    1,
+    2
+   ],
+   "has:float": [
+    4,
+    10
+   ],
+   "has:str": [
+    35,
+    96
+   ],
+   "has:tuple": [
+    10,
+    18
+   ],
+   "humaneval": [
+    14,
+    16
+   ],
+   "mbpp": [
+    68,
+    183
+   ],
+   "params>=3": [
+    7,
+    26
+   ],
+   "ret:bool": [
+    12,
+    28
+   ],
+   "ret:dict": [
+    1,
+    2
+   ],
+   "ret:float": [
+    2,
+    8
+   ],
+   "ret:int": [
+    27,
+    71
+   ],
+   "ret:list": [
+    17,
+    36
+   ],
+   "ret:str": [
+    21,
+    50
+   ],
+   "ret:tuple": [
+    2,
+    4
+   ]
+  },
+  "e_codes": {
+   "E201": 234,
+   "E017": 91,
+   "E403": 46,
+   "E100": 42,
+   "W806": 42,
+   "E203": 31,
+   "E200": 30,
+   "E315": 18,
+   "W812": 12,
+   "E504": 11,
+   "E102": 9,
+   "E202": 6
+  },
+  "impossible": [
+   0,
+   10
+  ]
+ },
+ "moonshotai/kimi-k2.7-code": {
+  "attempts": 18,
+  "pass": 12,
+  "pass_rate": 0.667,
+  "pass_ci": [
+   0.437,
+   0.837
+  ],
+  "pass1_rate": 0.611,
+  "pass1_ci": [
+   0.386,
+   0.797
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   12,
+   18
+  ],
+  "spec_failed": 5,
+  "mean_rounds": 2.67,
+  "first_reply_n_notes": 0.11,
+  "first_reply_e_rate": 0.389,
+  "tokens_in": 87951,
+  "tokens_out": 165389,
+  "tokens_reasoning": 159160,
+  "cost_total": 0.6016,
+  "cost_per_pass": 0.0501,
+  "latency_median_s": 23.93,
+  "cats": {
+   "hard:bits": [
+    2,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    2,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    3,
+    3
+   ],
+   "hard:numbers": [
+    1,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E100": 11,
+   "E201": 11,
+   "E103": 4,
+   "E301": 3,
+   "E403": 2,
+   "E017": 1,
+   "E404": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "moonshotai/kimi-k3.1-pro": {
+  "attempts": 18,
+  "pass": 17,
+  "pass_rate": 0.944,
+  "pass_ci": [
+   0.742,
+   0.99
+  ],
+  "pass1_rate": 0.778,
+  "pass1_ci": [
+   0.548,
+   0.91
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   17,
+   18
+  ],
+  "spec_failed": 1,
+  "mean_rounds": 2.5,
+  "first_reply_n_notes": 0,
+  "first_reply_e_rate": 0.278,
+  "tokens_in": 82124,
+  "tokens_out": 104913,
+  "tokens_reasoning": 99451,
+  "cost_total": 0.8827,
+  "cost_per_pass": 0.0519,
+  "latency_median_s": 7.03,
+  "cats": {
+   "hard:bits": [
+    2,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    3,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    3,
+    3
+   ],
+   "hard:numbers": [
+    2,
+    2
+   ],
+   "hard:ownership": [
+    4,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 7,
+   "E403": 4,
+   "E301": 4,
+   "E017": 2,
+   "E200": 1,
+   "E315": 1,
+   "W806": 1,
+   "E241": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "nvidia/nemotron-3-super-120b-a12b": {
+  "attempts": 253,
+  "pass": 143,
+  "pass_rate": 0.565,
+  "pass_ci": [
+   0.504,
+   0.625
+  ],
+  "pass1_rate": 0.395,
+  "pass1_ci": [
+   0.337,
+   0.457
+  ],
+  "hard": [
+   44,
+   99
+  ],
+  "easy": [
+   99,
+   154
+  ],
+  "spec_failed": 16,
+  "mean_rounds": 3.05,
+  "first_reply_n_notes": 0.51,
+  "first_reply_e_rate": 0.265,
+  "tokens_in": 1383191,
+  "tokens_out": 895520,
+  "tokens_reasoning": 789273,
+  "cost_total": 0.4887,
+  "cost_per_pass": 0.0034,
+  "latency_median_s": 5.34,
+  "cats": {
+   "hard:bits": [
+    3,
+    6
+   ],
+   "hard:capabilities": [
+    3,
+    3
+   ],
+   "hard:concurrency": [
+    5,
+    9
+   ],
+   "hard:contracts": [
+    3,
+    3
+   ],
+   "hard:failure": [
+    8,
+    9
+   ],
+   "hard:numbers": [
+    1,
+    6
+   ],
+   "hard:ownership": [
+    3,
+    12
+   ],
+   "hard:sums": [
+    6,
+    6
+   ],
+   "has:bool": [
+    17,
+    28
+   ],
+   "has:dict": [
+    1,
+    1
+   ],
+   "has:float": [
+    4,
+    10
+   ],
+   "has:str": [
+    53,
+    96
+   ],
+   "has:tuple": [
+    11,
+    17
+   ],
+   "humaneval": [
+    15,
+    16
+   ],
+   "mbpp": [
+    96,
+    183
+   ],
+   "params>=3": [
+    13,
+    26
+   ],
+   "ret:bool": [
+    17,
+    28
+   ],
+   "ret:dict": [
+    1,
+    1
+   ],
+   "ret:float": [
+    2,
+    8
+   ],
+   "ret:int": [
+    41,
+    72
+   ],
+   "ret:list": [
+    22,
+    36
+   ],
+   "ret:str": [
+    26,
+    50
+   ],
+   "ret:tuple": [
+    2,
+    4
+   ]
+  },
+  "e_codes": {
+   "E201": 137,
+   "E200": 54,
+   "E203": 37,
+   "E100": 21,
+   "E403": 14,
+   "E315": 12,
+   "E017": 11,
+   "E301": 8,
+   "W806": 8,
+   "E110": 6,
+   "E241": 5,
+   "E202": 5
+  },
+  "impossible": [
+   0,
+   10
+  ]
+ },
+ "openai/gpt-4.1": {
+  "attempts": 18,
+  "pass": 12,
+  "pass_rate": 0.667,
+  "pass_ci": [
+   0.437,
+   0.837
+  ],
+  "pass1_rate": 0.556,
+  "pass1_ci": [
+   0.337,
+   0.754
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   12,
+   18
+  ],
+  "spec_failed": 6,
+  "mean_rounds": 2.61,
+  "first_reply_n_notes": 0.22,
+  "first_reply_e_rate": 0.444,
+  "tokens_in": 81977,
+  "tokens_out": 5631,
+  "tokens_reasoning": 0,
+  "cost_total": 0.1781,
+  "cost_per_pass": 0.0148,
+  "latency_median_s": 1.47,
+  "cats": {
+   "hard:bits": [
+    2,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    2,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    3,
+    3
+   ],
+   "hard:numbers": [
+    1,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E103": 18,
+   "E100": 11,
+   "E201": 10,
+   "E017": 3,
+   "E221": 3,
+   "E200": 2,
+   "E106": 2
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "openai/gpt-4.1-mini": {
+  "attempts": 18,
+  "pass": 10,
+  "pass_rate": 0.556,
+  "pass_ci": [
+   0.337,
+   0.754
+  ],
+  "pass1_rate": 0.5,
+  "pass1_ci": [
+   0.29,
+   0.71
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   10,
+   18
+  ],
+  "spec_failed": 6,
+  "mean_rounds": 3.06,
+  "first_reply_n_notes": 0.11,
+  "first_reply_e_rate": 0.556,
+  "tokens_in": 100488,
+  "tokens_out": 6949,
+  "tokens_reasoning": 0,
+  "cost_total": 0.033,
+  "cost_per_pass": 0.0033,
+  "latency_median_s": 1.63,
+  "cats": {
+   "hard:bits": [
+    2,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    2,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    2,
+    3
+   ],
+   "hard:numbers": [
+    0,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E100": 15,
+   "E201": 9,
+   "E103": 6,
+   "E106": 5,
+   "E301": 4,
+   "E017": 4,
+   "E203": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "openai/gpt-4.1-nano": {
+  "attempts": 18,
+  "pass": 1,
+  "pass_rate": 0.056,
+  "pass_ci": [
+   0.01,
+   0.258
+  ],
+  "pass1_rate": 0.056,
+  "pass1_ci": [
+   0.01,
+   0.258
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   1,
+   18
+  ],
+  "spec_failed": 17,
+  "mean_rounds": 3,
+  "first_reply_n_notes": 0,
+  "first_reply_e_rate": 1.0,
+  "tokens_in": 92225,
+  "tokens_out": 5439,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0066,
+  "cost_per_pass": 0.0066,
+  "latency_median_s": 1.64,
+  "cats": {
+   "hard:bits": [
+    0,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    0,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    0,
+    3
+   ],
+   "hard:numbers": [
+    0,
+    2
+   ],
+   "hard:ownership": [
+    0,
+    4
+   ],
+   "hard:sums": [
+    0,
+    2
+   ]
+  },
+  "e_codes": {
+   "E100": 51,
+   "E201": 6,
+   "E200": 4,
+   "E017": 3
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "openai/gpt-5.1-codex-mini": {
+  "attempts": 18,
+  "pass": 12,
+  "pass_rate": 0.667,
+  "pass_ci": [
+   0.437,
+   0.837
+  ],
+  "pass1_rate": 0.5,
+  "pass1_ci": [
+   0.29,
+   0.71
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   12,
+   18
+  ],
+  "spec_failed": 4,
+  "mean_rounds": 3.06,
+  "first_reply_n_notes": 0.11,
+  "first_reply_e_rate": 0.389,
+  "tokens_in": 99928,
+  "tokens_out": 130363,
+  "tokens_reasoning": 121088,
+  "cost_total": 0.2738,
+  "cost_per_pass": 0.0228,
+  "latency_median_s": 6.37,
+  "cats": {
+   "hard:bits": [
+    1,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    2,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    3,
+    3
+   ],
+   "hard:numbers": [
+    2,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 23,
+   "E203": 10,
+   "E100": 7,
+   "E017": 2,
+   "E200": 2,
+   "E315": 1,
+   "E503": 1,
+   "W806": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "openai/gpt-5.4-mini": {
+  "attempts": 235,
+  "pass": 134,
+  "pass_rate": 0.57,
+  "pass_ci": [
+   0.506,
+   0.632
+  ],
+  "pass1_rate": 0.434,
+  "pass1_ci": [
+   0.372,
+   0.498
+  ],
+  "hard": [
+   42,
+   93
+  ],
+  "easy": [
+   92,
+   142
+  ],
+  "spec_failed": 8,
+  "mean_rounds": 2.94,
+  "first_reply_n_notes": 0.09,
+  "first_reply_e_rate": 0.085,
+  "tokens_in": 1175243,
+  "tokens_out": 78065,
+  "tokens_reasoning": 0,
+  "cost_total": 0.7798,
+  "cost_per_pass": 0.0058,
+  "latency_median_s": 1.29,
+  "cats": {
+   "hard:bits": [
+    2,
+    6
+   ],
+   "hard:capabilities": [
+    1,
+    3
+   ],
+   "hard:concurrency": [
+    4,
+    7
+   ],
+   "hard:contracts": [
+    3,
+    3
+   ],
+   "hard:failure": [
+    9,
+    9
+   ],
+   "hard:numbers": [
+    3,
+    5
+   ],
+   "hard:ownership": [
+    4,
+    11
+   ],
+   "hard:sums": [
+    6,
+    6
+   ],
+   "has:bool": [
+    15,
+    26
+   ],
+   "has:dict": [
+    2,
+    2
+   ],
+   "has:float": [
+    4,
+    10
+   ],
+   "has:str": [
+    49,
+    92
+   ],
+   "has:tuple": [
+    12,
+    17
+   ],
+   "humaneval": [
+    14,
+    16
+   ],
+   "mbpp": [
+    88,
+    169
+   ],
+   "params>=3": [
+    12,
+    24
+   ],
+   "ret:bool": [
+    15,
+    26
+   ],
+   "ret:dict": [
+    2,
+    2
+   ],
+   "ret:float": [
+    2,
+    8
+   ],
+   "ret:int": [
+    36,
+    65
+   ],
+   "ret:list": [
+    20,
+    33
+   ],
+   "ret:str": [
+    25,
+    48
+   ],
+   "ret:tuple": [
+    2,
+    3
+   ]
+  },
+  "e_codes": {
+   "E201": 97,
+   "E203": 33,
+   "E403": 23,
+   "W806": 19,
+   "E017": 18,
+   "E200": 11,
+   "E301": 10,
+   "E315": 10,
+   "E110": 7,
+   "E100": 6,
+   "E504": 6,
+   "W820": 3
+  },
+  "impossible": [
+   0,
+   8
+  ]
+ },
+ "openai/gpt-5.4-nano": {
+  "attempts": 18,
+  "pass": 7,
+  "pass_rate": 0.389,
+  "pass_ci": [
+   0.203,
+   0.614
+  ],
+  "pass1_rate": 0.222,
+  "pass1_ci": [
+   0.09,
+   0.452
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   7,
+   18
+  ],
+  "spec_failed": 4,
+  "mean_rounds": 4.06,
+  "first_reply_n_notes": 0.17,
+  "first_reply_e_rate": 0.389,
+  "tokens_in": 150539,
+  "tokens_out": 10571,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0348,
+  "cost_per_pass": 0.005,
+  "latency_median_s": 1.65,
+  "cats": {
+   "hard:bits": [
+    1,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    2,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    2,
+    3
+   ],
+   "hard:numbers": [
+    0,
+    2
+   ],
+   "hard:ownership": [
+    0,
+    4
+   ],
+   "hard:sums": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 16,
+   "E017": 13,
+   "E100": 7,
+   "E301": 5,
+   "W806": 3,
+   "E103": 3,
+   "E200": 2,
+   "E403": 1,
+   "E315": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "openai/gpt-5.6-luna": {
+  "attempts": 254,
+  "pass": 164,
+  "pass_rate": 0.646,
+  "pass_ci": [
+   0.585,
+   0.702
+  ],
+  "pass1_rate": 0.516,
+  "pass1_ci": [
+   0.455,
+   0.577
+  ],
+  "hard": [
+   51,
+   100
+  ],
+  "easy": [
+   113,
+   154
+  ],
+  "spec_failed": 9,
+  "mean_rounds": 2.52,
+  "first_reply_n_notes": 0.1,
+  "first_reply_e_rate": 0.087,
+  "tokens_in": 1042481,
+  "tokens_out": 295529,
+  "tokens_reasoning": 221154,
+  "cost_total": 0.4866,
+  "cost_per_pass": 0.003,
+  "latency_median_s": 6.17,
+  "cats": {
+   "hard:bits": [
+    4,
+    6
+   ],
+   "hard:capabilities": [
+    1,
+    3
+   ],
+   "hard:concurrency": [
+    8,
+    9
+   ],
+   "hard:contracts": [
+    3,
+    3
+   ],
+   "hard:failure": [
+    9,
+    9
+   ],
+   "hard:numbers": [
+    5,
+    6
+   ],
+   "hard:ownership": [
+    7,
+    12
+   ],
+   "hard:sums": [
+    6,
+    6
+   ],
+   "has:bool": [
+    20,
+    28
+   ],
+   "has:dict": [
+    2,
+    2
+   ],
+   "has:float": [
+    4,
+    10
+   ],
+   "has:str": [
+    54,
+    96
+   ],
+   "has:tuple": [
+    13,
+    18
+   ],
+   "humaneval": [
+    16,
+    16
+   ],
+   "mbpp": [
+    105,
+    184
+   ],
+   "params>=3": [
+    15,
+    26
+   ],
+   "ret:bool": [
+    20,
+    28
+   ],
+   "ret:dict": [
+    2,
+    2
+   ],
+   "ret:float": [
+    2,
+    8
+   ],
+   "ret:int": [
+    45,
+    72
+   ],
+   "ret:list": [
+    22,
+    36
+   ],
+   "ret:str": [
+    27,
+    50
+   ],
+   "ret:tuple": [
+    3,
+    4
+   ]
+  },
+  "e_codes": {
+   "E201": 72,
+   "E203": 25,
+   "E200": 23,
+   "E017": 15,
+   "E100": 12,
+   "E202": 8,
+   "W806": 7,
+   "E103": 6,
+   "E301": 5,
+   "E403": 5,
+   "E110": 4,
+   "E221": 3
+  },
+  "impossible": [
+   2,
+   10
+  ]
+ },
+ "openai/gpt-5.6-terra": {
+  "attempts": 18,
+  "pass": 16,
+  "pass_rate": 0.889,
+  "pass_ci": [
+   0.672,
+   0.969
+  ],
+  "pass1_rate": 0.611,
+  "pass1_ci": [
+   0.386,
+   0.797
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   16,
+   18
+  ],
+  "spec_failed": 1,
+  "mean_rounds": 4,
+  "first_reply_n_notes": 0.11,
+  "first_reply_e_rate": 0.5,
+  "tokens_in": 150538,
+  "tokens_out": 22401,
+  "tokens_reasoning": 13472,
+  "cost_total": 0.3345,
+  "cost_per_pass": 0.0209,
+  "latency_median_s": 3.7,
+  "cats": {
+   "hard:bits": [
+    2,
+    2
+   ],
+   "hard:capabilities": [
+    1,
+    1
+   ],
+   "hard:concurrency": [
+    3,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    3,
+    3
+   ],
+   "hard:numbers": [
+    2,
+    2
+   ],
+   "hard:ownership": [
+    2,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 24,
+   "E100": 6,
+   "E200": 4,
+   "E403": 3,
+   "E017": 2,
+   "E404": 1,
+   "E203": 1,
+   "E301": 1,
+   "E315": 1,
+   "E619": 1,
+   "W806": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "qwen/qwen3-coder": {
+  "attempts": 18,
+  "pass": 7,
+  "pass_rate": 0.389,
+  "pass_ci": [
+   0.203,
+   0.614
+  ],
+  "pass1_rate": 0.333,
+  "pass1_ci": [
+   0.163,
+   0.563
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   7,
+   18
+  ],
+  "spec_failed": 5,
+  "mean_rounds": 3.5,
+  "first_reply_n_notes": 0.17,
+  "first_reply_e_rate": 0.5,
+  "tokens_in": 119152,
+  "tokens_out": 7813,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0228,
+  "cost_per_pass": 0.0033,
+  "latency_median_s": 1.52,
+  "cats": {
+   "hard:bits": [
+    1,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    1,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    1,
+    3
+   ],
+   "hard:numbers": [
+    1,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E200": 28,
+   "E201": 19,
+   "E017": 7,
+   "E100": 4,
+   "E103": 1,
+   "E110": 1,
+   "W806": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "qwen/qwen3-coder-30b-a3b-instruct": {
+  "attempts": 18,
+  "pass": 9,
+  "pass_rate": 0.5,
+  "pass_ci": [
+   0.29,
+   0.71
+  ],
+  "pass1_rate": 0.5,
+  "pass1_ci": [
+   0.29,
+   0.71
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   9,
+   18
+  ],
+  "spec_failed": 6,
+  "mean_rounds": 3.06,
+  "first_reply_n_notes": 0.22,
+  "first_reply_e_rate": 0.556,
+  "tokens_in": 98501,
+  "tokens_out": 5905,
+  "tokens_reasoning": 0,
+  "cost_total": 0.0159,
+  "cost_per_pass": 0.0018,
+  "latency_median_s": 0.79,
+  "cats": {
+   "hard:bits": [
+    0,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    2,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    2,
+    3
+   ],
+   "hard:numbers": [
+    1,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 45,
+   "W820": 11,
+   "E017": 5,
+   "W806": 2,
+   "W823": 1,
+   "E403": 1,
+   "E619": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "qwen/qwen3.7-flash": {
+  "attempts": 18,
+  "pass": 11,
+  "pass_rate": 0.611,
+  "pass_ci": [
+   0.386,
+   0.797
+  ],
+  "pass1_rate": 0.444,
+  "pass1_ci": [
+   0.246,
+   0.663
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   11,
+   18
+  ],
+  "spec_failed": 2,
+  "mean_rounds": 3.5,
+  "first_reply_n_notes": 0.28,
+  "first_reply_e_rate": 0.389,
+  "tokens_in": 125250,
+  "tokens_out": 383791,
+  "tokens_reasoning": 376539,
+  "cost_total": 0.0517,
+  "cost_per_pass": 0.0047,
+  "latency_median_s": 34.65,
+  "cats": {
+   "hard:bits": [
+    1,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    2,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    3,
+    3
+   ],
+   "hard:numbers": [
+    1,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    2,
+    2
+   ]
+  },
+  "e_codes": {
+   "E201": 24,
+   "E404": 5,
+   "E017": 3,
+   "E200": 3,
+   "E106": 2,
+   "E221": 2,
+   "E103": 2,
+   "W806": 2,
+   "W812": 2,
+   "E241": 1,
+   "E403": 1,
+   "E203": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ },
+ "qwen/qwen3.7-plus": {
+  "attempts": 227,
+  "pass": 150,
+  "pass_rate": 0.661,
+  "pass_ci": [
+   0.597,
+   0.719
+  ],
+  "pass1_rate": 0.559,
+  "pass1_ci": [
+   0.494,
+   0.623
+  ],
+  "hard": [
+   49,
+   99
+  ],
+  "easy": [
+   101,
+   128
+  ],
+  "spec_failed": 1,
+  "mean_rounds": 2.41,
+  "first_reply_n_notes": 0.14,
+  "first_reply_e_rate": 0.084,
+  "tokens_in": 939643,
+  "tokens_out": 1323568,
+  "tokens_reasoning": 1250336,
+  "cost_total": 1.9531,
+  "cost_per_pass": 0.013,
+  "latency_median_s": 27.22,
+  "cats": {
+   "hard:bits": [
+    5,
+    6
+   ],
+   "hard:capabilities": [
+    2,
+    3
+   ],
+   "hard:concurrency": [
+    9,
+    9
+   ],
+   "hard:contracts": [
+    3,
+    3
+   ],
+   "hard:failure": [
+    9,
+    9
+   ],
+   "hard:numbers": [
+    4,
+    6
+   ],
+   "hard:ownership": [
+    12,
+    12
+   ],
+   "hard:sums": [
+    6,
+    6
+   ],
+   "has:bool": [
+    16,
+    22
+   ],
+   "has:dict": [
+    2,
+    2
+   ],
+   "has:float": [
+    3,
+    8
+   ],
+   "has:str": [
+    48,
+    86
+   ],
+   "has:tuple": [
+    13,
+    16
+   ],
+   "humaneval": [
+    14,
+    14
+   ],
+   "mbpp": [
+    86,
+    159
+   ],
+   "params>=3": [
+    10,
+    22
+   ],
+   "ret:bool": [
+    16,
+    22
+   ],
+   "ret:dict": [
+    2,
+    2
+   ],
+   "ret:float": [
+    1,
+    6
+   ],
+   "ret:int": [
+    37,
+    62
+   ],
+   "ret:list": [
+    20,
+    34
+   ],
+   "ret:str": [
+    20,
+    43
+   ],
+   "ret:tuple": [
+    4,
+    4
+   ]
+  },
+  "e_codes": {
+   "E201": 26,
+   "W806": 16,
+   "E301": 13,
+   "E110": 9,
+   "E203": 9,
+   "E403": 8,
+   "E017": 7,
+   "W820": 7,
+   "E200": 6,
+   "E103": 6,
+   "E100": 5,
+   "E241": 3
+  },
+  "impossible": [
+   0,
+   10
+  ]
+ },
+ "stepfun/step-3.7-flash": {
+  "attempts": 18,
+  "pass": 7,
+  "pass_rate": 0.389,
+  "pass_ci": [
+   0.203,
+   0.614
+  ],
+  "pass1_rate": 0.389,
+  "pass1_ci": [
+   0.203,
+   0.614
+  ],
+  "hard": [
+   0,
+   0
+  ],
+  "easy": [
+   7,
+   18
+  ],
+  "spec_failed": 5,
+  "mean_rounds": 4.17,
+  "first_reply_n_notes": 0.11,
+  "first_reply_e_rate": 0.778,
+  "tokens_in": 155878,
+  "tokens_out": 494810,
+  "tokens_reasoning": 0,
+  "cost_total": 0.5853,
+  "cost_per_pass": 0.0836,
+  "latency_median_s": 33.49,
+  "cats": {
+   "hard:bits": [
+    1,
+    2
+   ],
+   "hard:capabilities": [
+    0,
+    1
+   ],
+   "hard:concurrency": [
+    1,
+    3
+   ],
+   "hard:contracts": [
+    1,
+    1
+   ],
+   "hard:failure": [
+    2,
+    3
+   ],
+   "hard:numbers": [
+    0,
+    2
+   ],
+   "hard:ownership": [
+    1,
+    4
+   ],
+   "hard:sums": [
+    1,
+    2
+   ]
+  },
+  "e_codes": {
+   "E100": 20,
+   "E201": 20,
+   "E103": 9,
+   "E017": 8,
+   "E301": 7,
+   "E404": 1,
+   "E403": 1,
+   "E200": 1,
+   "W806": 1
+  },
+  "impossible": [
+   0,
+   0
+  ]
+ }
+}

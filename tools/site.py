@@ -410,6 +410,33 @@ def status_page(build: Build) -> Page:
     return Page("status/index.html", "Status", "\n".join(body))
 
 
+def text_home(build: Build) -> str:
+    """The home page for terminals (`curl yanlang.dev`): intro, the tour's first program, links."""
+    md = (SITE / "index.md").read_text().split("\n\n")
+    intro = " ".join(md[1].split())
+    hello = render((SITE / "tour/01-hello.md").read_text(), "tour/01-hello.html", "../").programs[0]
+    col = max(len(name) for _, name in NAV) + 3
+    links = [f"{name.lower().ljust(col)}{build.url}{href}" for href, name in NAV]
+    return "\n".join(
+        [
+            "言 yan",
+            "",
+            intro,
+            "",
+            "$ cat hello.yag",
+            hello.source.rstrip("\n"),
+            "",
+            "$ yan run hello.yag",
+            (hello.stdout or "").rstrip("\n"),
+            "",
+            *links,
+            "",
+            f"Built from {build.commit[:7]} on {build.day}.",
+            "",
+        ]
+    )
+
+
 def pages(build: Build) -> tuple[list[Page], str]:
     home = render((SITE / "index.md").read_text(), "index.html", "")
     blog, feed = blog_pages(build)
@@ -438,9 +465,7 @@ def build(out: Path, url: str, wasm: bool, status: Path | None) -> None:
         current = next((h for h, _ in NAV if p.path.startswith(h)), "")
         target.write_text(layout(p, info, current))
     (out / "blog/feed.xml").write_text(feed)
-    (out / ".nojekyll").write_text("")
-    if (SITE / "CNAME").exists():
-        shutil.copy(SITE / "CNAME", out / "CNAME")
+    (out / "index.txt").write_text(text_home(info))
 
 
 def check_program(yan: str, p: Program) -> str | None:

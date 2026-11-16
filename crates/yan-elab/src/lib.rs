@@ -138,6 +138,20 @@ fn check_wire_names(owner: &str, fs: &[Field], at: Span, cx: &mut Cx) {
 }
 
 impl Globals {
+    /// Register variant `v` of `sum`; a bare name of another sum becomes shared.
+    pub(crate) fn declare_variant(&mut self, v: &str, sum: &str) {
+        if self.variant_of.get(v).is_some_and(|o| o != sum) {
+            self.shared_variants.insert(v.to_owned());
+        }
+        self.variant_of.insert(v.to_owned(), sum.to_owned());
+    }
+
+    /// The sum `t` when `t.v` names its variant `v` (R799).
+    pub(crate) fn qualified_variant(&self, t: &str, v: &str) -> Option<&str> {
+        let (name, vs) = self.sums.get_key_value(t)?;
+        vs.iter().any(|(n, _)| n == v).then_some(name.as_str())
+    }
+
     /// The json tag key of sum `name`.
     pub(crate) fn tag_of(&self, name: &str) -> &str {
         self.wire_opts
@@ -226,15 +240,20 @@ fn cap_binding(t: &str) -> String {
 pub(crate) struct Globals {
     /// `impl Index[K] for T` subscripts by `T`'s type text: `at`, inlined at each use (4.4, R457).
     pub subs: HashMap<String, j::FuncDef>,
+    /// Free `sub` items by name, used as `x.name(args)` and inlined at each use (4.4, R1006).
+    pub free_subs: HashMap<String, j::FuncDef>,
     /// Subscript inlinings so far, to stop a recursive one.
     pub sub_n: std::cell::Cell<u32>,
     pub records: HashMap<String, Vec<Field>>,
     /// Leading positional-only fields per record (R437).
     pub record_positional: HashMap<String, usize>,
     pub sums: HashMap<String, Vec<(String, Vec<Field>)>>,
-    /// The type parameters of each generic sum; its field types mention them as `Ty::Param`.
-    pub sum_params: HashMap<String, Vec<String>>,
+    /// The type parameters of each generic sum or record; its field types mention them as `Ty::Param`.
+    pub type_params: HashMap<String, Vec<String>>,
     pub variant_of: HashMap<String, String>,
+    /// Variant names declared by two or more sums: written bare they are ambiguous (E200), and
+    /// Core names them by `[sum, variant]` paths (R799).
+    pub shared_variants: HashSet<String>,
     /// Variants with `@wire(name: ...)`, by variant name: the tag value in json and csv.
     pub variant_wire: HashMap<String, String>,
     /// Types with an item-level `@wire`: the json tag key of a sum and whether unknown members
@@ -254,10 +273,12 @@ pub(crate) struct Globals {
     pub generated: RefCell<Vec<y::Item>>,
     /// Extern functions: whether each is `safe` and variadic (12.1).
     pub externs: HashMap<String, (bool, bool)>,
+    /// Functions written `unsafe fn`: calls need `unsafe` (E903), no value use (E912) (RFC 0076).
+    pub unsafe_fns: HashSet<String>,
     /// Records marked `@layout(c)` (12.3).
     pub layout_c: HashSet<String>,
     /// Records marked `@layout(bits(uN))` (5.2).
-    pub layout_bits: HashSet<String>,
+    pub layout_bits: HashMap<String, u32>,
     /// Records marked `@derive(Cli)`, with their `@help` texts (RFC 0019 D14).
     pub clis: HashMap<String, HashMap<String, String>>,
     /// Records and sums marked `@derive(Wire)` (17.4).
@@ -553,12 +574,12 @@ impl Globals {
                     return Ok(t);
                 }
                 match (name.as_str(), a.as_slice()) {
-                    (n, a) if self.sum_params.contains_key(n) => {
-                        if a.len() != self.sum_params[n].len() {
+                    (n, a) if self.type_params.contains_key(n) => {
+                        if a.len() != self.type_params[n].len() {
                             return unsupported(format!(
                                 "`{n}` with {} type arguments; it takes {}",
                                 a.len(),
-                                self.sum_params[n].len()
+                                self.type_params[n].len()
                             ));
                         }
                         decorators::instance(self, n, a, span, cx);
@@ -697,7 +718,18 @@ pub fn elaborate_in(
             kind: y::ItemKind::Record(y::Record {
                 is_pub: true,
                 path: vec![name.clone()],
-                tparams: Vec::new(),
+                tparams: g
+                    .type_params
+                    .get(&name)
+                    .into_iter()
+                    .flatten()
+                    .map(|n| y::TParam {
+                        comptime: false,
+                        name: n.clone(),
+                        kind: y::Kind::Type,
+                        bounds: Vec::new(),
+                    })
+                    .collect(),
                 fields: core_fields(&g.records[&name])?,
             }),
             span: Span {
@@ -722,12 +754,24 @@ pub fn elaborate_in(
                 })
             })
             .collect::<R<_>>()?;
+        let tparams = g
+            .type_params
+            .get(&name)
+            .into_iter()
+            .flatten()
+            .map(|n| y::TParam {
+                comptime: false,
+                name: n.clone(),
+                kind: y::Kind::Type,
+                bounds: Vec::new(),
+            })
+            .collect();
         items.push(y::Item {
             attrs: Vec::new(),
             kind: y::ItemKind::Sum(y::Sum {
                 is_pub: true,
                 path: vec![name],
-                tparams: Vec::new(),
+                tparams,
                 variants,
             }),
             span: Span {
@@ -952,7 +996,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             j::ItemKind::Type(t) => match &t.rhs {
                 j::TypeRhs::Sum(vs) => {
                     for v in vs {
-                        g.variant_of.insert(v.name.clone(), t.name.clone());
+                        g.declare_variant(&v.name, &t.name);
                     }
                     g.sums.insert(t.name.clone(), Vec::new());
                     if !t.tparams.is_empty() {
@@ -963,7 +1007,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                             _ => unsupported("bounds and value parameters on a generic sum"),
                         });
                         let ps = ps.collect::<Result<_, _>>().map_err(|u| u.at(it.span))?;
-                        g.sum_params.insert(t.name.clone(), ps);
+                        g.type_params.insert(t.name.clone(), ps);
                     }
                 }
                 j::TypeRhs::Alias(ts) => {
@@ -973,11 +1017,16 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                     return unsupported("newtypes and capability sets").map_err(|u| u.at(it.span));
                 }
             },
-            j::ItemKind::Record(c) if !c.tparams.is_empty() => {
-                return unsupported("generic classes").map_err(|u| u.at(it.span));
-            }
             j::ItemKind::Record(c) => {
                 g.records.insert(c.name.clone(), Vec::new());
+                if !c.tparams.is_empty() {
+                    let ps = c.tparams.iter().map(|p| match p {
+                        j::TParam::Type { name, bounds } if bounds.is_empty() => Ok(name.clone()),
+                        _ => unsupported("bounds and value parameters on a generic class"),
+                    });
+                    let ps = ps.collect::<Result<_, _>>().map_err(|u| u.at(it.span))?;
+                    g.type_params.insert(c.name.clone(), ps);
+                }
                 let c_layout = |d: &j::Decorator| {
                     d.path == ["layout"]
                         && d.args.as_ref().is_some_and(|a| {
@@ -987,14 +1036,13 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 if it.decorators.iter().any(c_layout) {
                     g.layout_c.insert(c.name.clone());
                 }
-                let bits_layout = |d: &j::Decorator| {
-                    d.path == ["layout"]
-                        && d.args
-                            .as_deref()
-                            .is_some_and(|a| decorators::bits_container(a).is_some())
-                };
-                if it.decorators.iter().any(bits_layout) {
-                    g.layout_bits.insert(c.name.clone());
+                let bits_width = it
+                    .decorators
+                    .iter()
+                    .filter(|d| d.path == ["layout"])
+                    .find_map(|d| decorators::bits_container(d.args.as_deref()?));
+                if let Some(n) = bits_width {
+                    g.layout_bits.insert(c.name.clone(), n);
                 }
                 let cli = |d: &j::Decorator| {
                     d.path == ["derive"]
@@ -1048,7 +1096,13 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     for it in &m.items {
         match &it.kind {
             j::ItemKind::Record(c) => {
-                let mut fs = fields(g, &c.fields, cx, it.span)?;
+                let outer = g.scope.borrow().len();
+                g.scope
+                    .borrow_mut()
+                    .extend(g.type_params.get(&c.name).into_iter().flatten().cloned());
+                let fs = fields(g, &c.fields, cx, it.span);
+                g.scope.borrow_mut().truncate(outer);
+                let mut fs = fs?;
                 let w = decorators::item_wire(it, &c.name, cx);
                 for (key, wire, at) in &w.names {
                     match fs.iter_mut().find(|f| f.name == *key) {
@@ -1078,7 +1132,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 let outer = g.scope.borrow().len();
                 g.scope
                     .borrow_mut()
-                    .extend(g.sum_params.get(name).into_iter().flatten().cloned());
+                    .extend(g.type_params.get(name).into_iter().flatten().cloned());
                 for v in vs {
                     let fs = fields(g, &v.fields, cx, it.span);
                     out.push((
@@ -1144,7 +1198,9 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
     let mut first = HashMap::new();
     for it in &m.items {
         match &it.kind {
-            j::ItemKind::Func(f) if g.fns.contains_key(&f.name) => {
+            j::ItemKind::Func(f)
+                if g.fns.contains_key(&f.name) || g.free_subs.contains_key(&f.name) =>
+            {
                 cx.err(
                     "E250",
                     f.name_span,
@@ -1153,6 +1209,23 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 );
                 if let Some(&at) = first.get(&f.name) {
                     cx.label(at, "first defined");
+                }
+            }
+            j::ItemKind::Sub(f) => {
+                if g.fns.contains_key(&f.name) || g.free_subs.contains_key(&f.name) {
+                    cx.err(
+                        "E250",
+                        f.name_span,
+                        &f.name,
+                        format!("`{}` is defined twice", f.name),
+                    );
+                    if let Some(&at) = first.get(&f.name) {
+                        cx.label(at, "first defined");
+                    }
+                } else {
+                    lower::subscript::check_yields(f, cx);
+                    first.insert(f.name.clone(), f.name_span);
+                    g.free_subs.insert(f.name.clone(), f.clone());
                 }
             }
             j::ItemKind::Func(f)
@@ -1175,8 +1248,28 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                     .insert(f.name.clone(), (f.clone(), names[0].clone()));
             }
             j::ItemKind::Func(f) => {
-                let s = sig(g, f, cx)?;
+                // The E901 below is the one diagnostic for a misplaced `unsafe fn`: the rest of
+                // it is checked as if it were allowed, so its `Ptr` types do not cascade.
+                let outer = cx.ffi;
+                cx.ffi |= f.unsafe_at.is_some();
+                if let Some(at) = f.unsafe_at
+                    && !outer
+                {
+                    cx.err(
+                        "E901",
+                        at,
+                        &f.name,
+                        "`unsafe fn` belongs in an ffi module, under the package's `ffi/` directory"
+                            .into(),
+                    );
+                }
+                let s = sig(g, f, cx);
+                cx.ffi = outer;
+                let s = s?;
                 g.fns.insert(f.name.clone(), s);
+                if f.unsafe_at.is_some() {
+                    g.unsafe_fns.insert(f.name.clone());
+                }
                 first.insert(f.name.clone(), f.name_span);
                 if it.decorators.iter().any(|d| d.path == ["deprecated"]) {
                     g.deprecated.insert(f.name.clone());
@@ -1379,17 +1472,10 @@ fn sig_body(
             };
             let mut members = Vec::new();
             for p in &r.fail {
-                if p.len() != 1 {
+                if matches!(p, j::Type::Named { path, .. } if path.len() != 1) {
                     return unsupported("a qualified error type");
                 }
-                let t = g.ty(
-                    &j::Type::Named {
-                        path: p.clone(),
-                        args: Vec::new(),
-                    },
-                    cx,
-                    f.name_span,
-                )?;
+                let t = g.ty(p, cx, f.name_span)?;
                 union_add(&mut members, t);
             }
             if members.len() > 8 {
@@ -1590,14 +1676,31 @@ fn core_fields(fs: &[Field]) -> R<Vec<y::Field>> {
         .collect()
 }
 
+fn core_tparams(g: &Globals, name: &str) -> Vec<y::TParam> {
+    g.type_params
+        .get(name)
+        .into_iter()
+        .flatten()
+        .map(|n| y::TParam {
+            comptime: false,
+            name: n.clone(),
+            kind: y::Kind::Type,
+            bounds: Vec::new(),
+        })
+        .collect()
+}
+
 fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
     Ok(Some(match &it.kind {
-        j::ItemKind::Verbatim(_) => return Ok(None),
+        j::ItemKind::Verbatim(_) | j::ItemKind::Sub(_) => return Ok(None),
         j::ItemKind::Record(c) => y::ItemKind::Record(y::Record {
             is_pub: it.is_pub,
             path: vec![c.name.clone()],
-            tparams: Vec::new(),
-            fields: core_fields(&g.records[&c.name])?,
+            tparams: core_tparams(g, &c.name),
+            fields: match g.layout_bits.get(&c.name) {
+                Some(&n) => vec![lower::bits::core_field(n)],
+                None => core_fields(&g.records[&c.name])?,
+            },
         }),
         j::ItemKind::Type(t) => match &t.rhs {
             j::TypeRhs::Sum(_) => {
@@ -1612,22 +1715,10 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                         },
                     });
                 }
-                let tparams = g
-                    .sum_params
-                    .get(&t.name)
-                    .into_iter()
-                    .flatten()
-                    .map(|n| y::TParam {
-                        comptime: false,
-                        name: n.clone(),
-                        kind: y::Kind::Type,
-                        bounds: Vec::new(),
-                    })
-                    .collect();
                 y::ItemKind::Sum(y::Sum {
                     is_pub: it.is_pub,
                     path: vec![t.name.clone()],
-                    tparams,
+                    tparams: core_tparams(g, &t.name),
                     variants,
                 })
             }
@@ -1768,8 +1859,15 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                     mark: Mark::View,
                 });
             }
-            let sig = &g.fns[&f.name];
-            let def = lower::function(g, f, sig, it.is_pub, cx)?;
+            // A function that clashed with a free `sub` (E250) has no signature.
+            let Some(sig) = g.fns.get(&f.name) else {
+                return Ok(None);
+            };
+            let outer = cx.ffi;
+            cx.ffi |= f.unsafe_at.is_some();
+            let def = lower::function(g, f, sig, it.is_pub, cx);
+            cx.ffi = outer;
+            let def = def?;
             if g.reentrant.contains(&f.name) && !sig.params.is_empty() {
                 g.generated.borrow_mut().push(y::Item {
                     attrs: Vec::new(),
@@ -1795,6 +1893,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
         j::ItemKind::Impl(i) if let Some((_, f)) = from_impl(i) => {
             let name = from_fn_name(i);
             let f = j::FuncDef {
+                unsafe_at: None,
                 name: name.clone(),
                 ..f.clone()
             };

@@ -19,7 +19,7 @@ This is the complete Yan grammar. Notation as in 13.2; NEWLINE, INDENT and DEDEN
 ```
 module    = {modattr} {item}
 modattr   = "@@" NAME ["(" [args] ")"] NEWLINE                 -- module attribute, as @@prove (R466)
-item      = {attr} ["pub"] (fundef | gendef | subdef | lemmadef | typedef | traitdef | impldef | constdef | externdef)
+item      = {attr} ["pub"] (["unsafe"] fundef | gendef | subdef | lemmadef | typedef | traitdef | impldef | constdef | externdef)   -- unsafe fn (R1010); never in impldef
           | usedecl
 attr      = "@" NAME ["(" [args] ")"] NEWLINE
 usedecl   = "use" ["."] NAME {"." NAME} ["as" NAME] NEWLINE          -- aliases only
@@ -196,7 +196,7 @@ sync_prices(src: Url, dst: Path, since: PlainDate) -> Report
 
 **Numbers and operators.** As Yan Agent: `int` is a checked i64, `/` on integers gives a float, `//` and `%` floor, `**` is power, and `& | ^ ~ << >>` are bitwise. `as`, `wrap_as`, `sat_as` and `trunc_as` convert. The percent unit is `pct`.
 
-**Layers.** L4: `Arena`, `Ref`, `@layout` and the proof attributes. L5: `#expr`, `#for`, `#if`, user attributes, `derived` bodies, the reflection API and generators. L6: `unsafe`, `Ptr`, `RawCell`, extern blocks, `Vec` and `asm`. Extern blocks appear only in `ffi` modules (E902). None of L4 to L6 may appear in Yan Agent.
+**Layers.** L4: `Arena`, `Ref`, `@layout` and the proof attributes. L5: `#expr`, `#for`, `#if`, user attributes, `derived` bodies, the reflection API and generators. L6: `unsafe`, `Ptr`, `RawCell`, extern blocks, `Vec` and `asm`. Extern blocks appear only in `ffi` modules (E902). An `unsafe fn` appears only in std and `ffi` modules (E901, R1011), and `Ptr` may appear in the signature of any function there, as 3 allows (R1015). None of L4 to L6 may appear in Yan Agent.
 
 **Clause form (R266, R370).** A function whose body is match arms (`pattern -> ...`, one per line after any contracts) elaborates to the same Yan Core as a body that is one `match` on its parameters: on `p` when there is one parameter, and on the tuple `(p1, ..., pn)` when there are several, each arm's pattern then being a tuple pattern. The formatter prints a function in clause form exactly when its whole body, contracts aside, is that one `match` with no other statement. The item hash and the printing are therefore the same whichever way the author wrote it. Yan Agent has no clause form (R426). `become f(x)` maps to Yan Core `become` (3.5).
 

@@ -1,0 +1,21 @@
+# spec: 9.1, 13
+# rows: R1003
+# note: a user sched handler that implements the `Concurrent` marker (`impl ... for H: ...`) is accepted under par concurrent
+# stdout:
+# a
+# b
+
+class Cooperative:
+    n: int
+
+impl Sched for Cooperative:
+    def width(self: Self) -> int:
+        return 1
+
+impl Concurrent for Cooperative: ...
+
+def main() uses io:
+    with sched = Cooperative(n=1):
+        par concurrent:
+            io.print("a")
+            io.print("b")

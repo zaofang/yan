@@ -1,6 +1,6 @@
 ## 12. Yan: FFI and ABI
 
-Foreign code is reached through C. A module is an `ffi` module when its file lives under the package's `ffi/` directory; only `ffi` modules (and std) may contain `unsafe` (E901) or extern blocks (E902). The root package's `allow_ffi` list is its consent that a dependency contains extern blocks.
+Foreign code is reached through C. A module is an `ffi` module when its file lives under the package's `ffi/` directory; only `ffi` modules (and std) may contain `unsafe` (E901) or extern blocks (E902). The root package's `allow_ffi` list is its consent that a dependency contains `ffi` modules, with or without extern blocks (R1017).
 
 ### 12.1 Extern blocks
 
@@ -75,4 +75,4 @@ Inside `unsafe`, `asm(template, operands..., options...)` with operands `in(reg)
 
 ### 12.10 Audit and scope
 
-`yan audit` lists every extern block, `safe` item, `uses none` claim, `unsafe impl` and hand edit to an imported module, and model-authored changes to any of them. Out of scope for 1.0: direct C++ interop (use C shims), dylib plugins that pass Yan Core types, and Component Model exports (an M4 candidate). An `@yan/sandbox` package (C compiled through wasm2c, RLBox style) may follow 1.0.
+`yan audit` lists every extern block, `safe` item, `uses none` claim, `unsafe impl`, `unsafe fn` with its `pre` lines and each call site's `unsafe` block (R1017), and hand edit to an imported module, and model-authored changes to any of them. Out of scope for 1.0: direct C++ interop (use C shims), dylib plugins that pass Yan Core types, and Component Model exports (an M4 candidate). An `@yan/sandbox` package (C compiled through wasm2c, RLBox style) may follow 1.0.

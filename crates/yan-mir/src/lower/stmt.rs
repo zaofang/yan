@@ -366,12 +366,18 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.cur = join;
                 Ok(())
             }
-            K::Par { blocks, .. } => blocks.iter().enumerate().try_for_each(|(k, b)| {
-                let saved = self.split_rands(k);
-                self.block_in(b)?;
-                self.restore_rands(saved);
+            K::Par { blocks, .. } => {
+                self.emit(Inst::Arm(ArmEvent::Fork));
+                for (k, b) in blocks.iter().enumerate() {
+                    self.emit(Inst::Arm(ArmEvent::Enter(k as u32)));
+                    let saved = self.split_rands(k);
+                    self.block_in(b)?;
+                    self.restore_rands(saved);
+                    self.emit(Inst::Arm(ArmEvent::Exit));
+                }
+                self.emit(Inst::Arm(ArmEvent::Join));
                 Ok(())
-            }),
+            }
             K::Assert(e) => {
                 let sides = match e {
                     y::Expr::Atom(y::Atom::Name(n, _)) => self.cmps.get(n).cloned(),
