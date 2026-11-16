@@ -367,6 +367,9 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1019 | `allow_ffi` consent enforced at root compile and at dependency resolution, E023; an update gaining the first `ffi` module is refused (RFC 0077 D2) | 12, 19.2, 25 |
 | R1020 | every extern library is a ceiling entry, `uses none` or not, enforced transitively; consent does not replace it (RFC 0077 D3) | 7.4, 12.2, 19.2 |
 | R1021 | `Sender.close()` ends the handle at once; a second `close` and the later drop do nothing; `send`, `try_send` or a `select` send arm on a closed `Sender` panics `contract` | 9.5 |
+| R1022 | `Mutex[T](v)` and `lock() -> MutexGuard[T]`: the guard unlocks at the end of its block on every path out; `get`, `set` and `replace` are its only access; locking a held mutex is a `deadlock` panic (Q2, #1376) | 6.3 |
+| R1023 | a `MutexGuard` is second-class: passing it on, returning it, rebinding it or storing it is E414 | 4.5, 6.3 |
+| R1024 | a guard is live from its binding to the end of its block; a call that may wait on another task, or a `par`, in that range is E323 (R395) | 6.3, 17.1 |
 
 <!-- /rows -->
 
