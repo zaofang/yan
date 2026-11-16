@@ -10,7 +10,12 @@ impl Lower<'_, '_, '_> {
         };
         matches!(callee, j::ExprKind::Attr(b, m, _)
             if matches!(&b.kind, j::ExprKind::Name(module)
-                if !self.locals.contains_key(module) && self.std_variant(module, m)))
+                if !self.value_bound(module) && self.std_variant(module, m)))
+    }
+
+    /// Whether `n` names a local or a module-level const, either of which hides a std module.
+    pub(super) fn value_bound(&self, n: &str) -> bool {
+        self.locals.contains_key(n) || self.g.consts.contains_key(n)
     }
 
     /// Construct variant `n` of sum `s`, written bare or as `S.n` (R799).
