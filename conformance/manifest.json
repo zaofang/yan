@@ -5297,6 +5297,19 @@
    "exit": 0
   },
   {
+   "path": "yag/run/bindings/const_hides_std_module.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 X 2\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/bindings/r832_if_else.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5440,6 +5453,39 @@
    "flags": [],
    "expect": [],
    "stdout": "200\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/chan_send_after_close.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.5",
+    "8.6"
+   ],
+   "rows": [
+    "R1021"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "closed\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/concurrency/chan_sender_close.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.6",
+    "9.5"
+   ],
+   "rows": [
+    "R391",
+    "R1021"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "10\nTrue\n",
    "exit": 0
   },
   {

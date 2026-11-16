@@ -47,6 +47,12 @@ pub(crate) fn drop_sender(it: &mut Interp, v: &Value) {
     }
 }
 
+/// A `MutexGuard` goes out of scope: the mutex unlocks.
+pub(crate) fn drop_guard(it: &mut Interp, v: &Value) {
+    it.mutexes[atom(v)].1 = false;
+    it.progress += 1;
+}
+
 /// The channel of a `Sender` that is still open; a closed one breaks the operation's precondition.
 fn open_sender(v: &Value) -> R<usize> {
     match v {
@@ -849,6 +855,42 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_SYNC_ARC_STRONG_COUNT,
         Bind::Plain(|_| unsupported("`std.sync.arc.strong_count` in the interpreter")),
+    ),
+    (
+        STD_SYNC_MUTEX_MUTEX,
+        Bind::Cap(|it, a| {
+            it.mutexes.push((std::mem::take(&mut a[0]), false));
+            Ok(Value::Int(it.mutexes.len() as i128 - 1))
+        }),
+    ),
+    (
+        STD_SYNC_MUTEX_LOCK,
+        Bind::Cap(|it, a| {
+            let m = &mut it.mutexes[atom(&a[0])];
+            if m.1 {
+                return panic_with("deadlock", "a task locked a `Mutex` it already holds");
+            }
+            m.1 = true;
+            Ok(a[0].clone())
+        }),
+    ),
+    (
+        STD_SYNC_MUTEX_GUARD_GET,
+        Bind::Cap(|it, a| Ok(it.mutexes[atom(&a[0])].0.clone())),
+    ),
+    (
+        STD_SYNC_MUTEX_GUARD_SET,
+        Bind::Cap(|it, a| {
+            it.mutexes[atom(&a[0])].0 = std::mem::take(&mut a[1]);
+            Ok(Value::Unit)
+        }),
+    ),
+    (
+        STD_SYNC_MUTEX_GUARD_REPLACE,
+        Bind::Cap(|it, a| {
+            let v = std::mem::take(&mut a[1]);
+            Ok(std::mem::replace(&mut it.mutexes[atom(&a[0])].0, v))
+        }),
     ),
     (
         STD_SYNC_ATOMIC_ATOMIC,

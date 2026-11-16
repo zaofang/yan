@@ -218,6 +218,31 @@ impl Lower<'_, '_, '_> {
                 );
                 Ok((Rhs::Call(c), Ty::Coll("Atomic", vec![t]), None))
             }
+            j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Mutex" && !self.value_bound(n)) =>
+            {
+                let j::ExprKind::Name(tn) = &k.kind else {
+                    return unsupported("`Mutex` of a type that is not a name");
+                };
+                let tn = yan_names::type_name(tn, yan_names::Surface::Yag, yan_names::Surface::Yir)
+                    .unwrap_or(tn);
+                let named = j::Type::Named {
+                    path: vec![tn.to_owned()],
+                    args: Vec::new(),
+                };
+                let t = self.g.ty(&named, self.cx, k.span)?;
+                let Some(xs) = self.positional(args, 1, "Mutex", at)? else {
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+                };
+                let (v, vt) = self.atom(xs[0], Some(&t))?;
+                self.expect(&vt, &t, xs[0].span);
+                let c = call(
+                    "std.sync.mutex.Mutex",
+                    vec![t.targ()],
+                    vec![sink_arg(v)],
+                    at,
+                );
+                Ok((Rhs::Call(c), Ty::Coll("Mutex", vec![t]), None))
+            }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if self.g.templates.contains_key(n)) =>
             {
                 let j::ExprKind::Name(n) = &b.kind else {
@@ -311,6 +336,12 @@ impl Lower<'_, '_, '_> {
                     && p.fail.is_some()
                 {
                     return self.std_call(&path, p, Vec::new(), args, n, at);
+                }
+                if matches!(n.as_str(), "fence" | "compiler_fence") {
+                    let path = format!("std.sync.atomic.{n}");
+                    if let Some(p) = crate::stdlib::decl(&path).and_then(|d| d.plain()) {
+                        return self.std_call(&path, p, Vec::new(), args, n, at);
+                    }
                 }
                 let (r, t) = self.builtin(n, args, at, want)?;
                 Ok((r, t, None))
