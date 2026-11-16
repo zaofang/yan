@@ -1,0 +1,9 @@
+# spec: 4.2
+# rows: R1
+# expect: E413 at 8:9
+
+def f() -> int:
+    xs = ["a" + "b"]
+    t = xs[0]
+    u = t
+    return len(u) + len(xs)
