@@ -87,14 +87,17 @@ fn cas(it: &mut Interp, a: &mut [Value]) -> Value {
     }
 }
 
-/// A fetch operation: returns the previous value. Integers are `i64`, which wraps (6.2); a
+/// A fetch operation: returns the previous value. An integer wraps to its type (6.2); a
 /// `bool` takes only the bitwise operations.
-fn rmw(it: &mut Interp, a: &mut [Value], f: fn(i64, i64) -> i64) -> Value {
-    let slot = &mut it.atoms[atom(&a[0])];
+fn rmw(it: &mut Interp, a: &mut [Value], f: fn(i128, i128) -> i128) -> Value {
+    let i = atom(&a[0]);
+    let slot = &mut it.atoms[i];
     let old = slot.clone();
     *slot = match (&old, &a[1]) {
-        (Value::Int(x), Value::Int(y)) => Value::Int(f(*x as i64, *y as i64) as i128),
-        (Value::Bool(x), Value::Bool(y)) => Value::Bool(f(*x as i64, *y as i64) != 0),
+        (Value::Int(x), Value::Int(y)) => {
+            Value::Int(crate::bits::wrap_to(&it.atom_tys[i], f(*x, *y)))
+        }
+        (Value::Bool(x), Value::Bool(y)) => Value::Bool(f(*x as i128, *y as i128) != 0),
         _ => unreachable!("an Atomic of integers or bool"),
     };
     old
@@ -826,6 +829,10 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_SYNC_ATOMIC_ATOMIC,
         Bind::Cap(|it, a| {
             it.atoms.push(std::mem::take(&mut a[0]));
+            it.atom_tys.push(match &a[1] {
+                Value::Str(t) => t.clone(),
+                _ => "".into(),
+            });
             Ok(Value::Int(it.atoms.len() as i128 - 1))
         }),
     ),
@@ -857,11 +864,11 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_SYNC_ATOMIC_FETCH_ADD,
-        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x.wrapping_add(y)))),
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x + y))),
     ),
     (
         STD_SYNC_ATOMIC_FETCH_SUB,
-        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x.wrapping_sub(y)))),
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x - y))),
     ),
     (
         STD_SYNC_ATOMIC_FETCH_AND,
@@ -877,11 +884,11 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_SYNC_ATOMIC_FETCH_MAX,
-        Bind::Cap(|it, a| Ok(rmw(it, a, i64::max))),
+        Bind::Cap(|it, a| Ok(rmw(it, a, i128::max))),
     ),
     (
         STD_SYNC_ATOMIC_FETCH_MIN,
-        Bind::Cap(|it, a| Ok(rmw(it, a, i64::min))),
+        Bind::Cap(|it, a| Ok(rmw(it, a, i128::min))),
     ),
     (
         STD_SYNC_ATOMIC_INTO_INNER,
