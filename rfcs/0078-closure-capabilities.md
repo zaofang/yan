@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Research: [capability security review, 2026-11-16](../docs/research/2026-11-16-capability-security-review.md) (finding F3, #1390)
-- Rows: R1022
+- Rows: R1025
 
 ## Summary
 
@@ -30,7 +30,7 @@ recommendation, accepted, is (b): escaping closures already cannot hold capabili
 and complete for every closure that can capture one.
 
 - Decision: accepted as recommended, per instantiation, E301 (lead, card, 2026-11-16)
-- Row: R1022
+- Row: R1025
 
 ## Spec changes
 

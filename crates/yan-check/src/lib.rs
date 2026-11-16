@@ -368,7 +368,7 @@ struct Binding {
     try_at: Option<Span>,
     /// Captures that make the bound closure non-escaping: E406, or E306 for a capability (R467).
     bad_captures: Vec<(&'static str, Span)>,
-    /// The capabilities the bound closure captures: name and type (R1022).
+    /// The capabilities the bound closure captures: name and type (R1025).
     cap_captures: Vec<(Name, Type)>,
 }
 
@@ -1348,7 +1348,7 @@ impl<'g, 'm> Cx<'g, 'm> {
 
     /// E301: a closure argument that captures a capability the callee does not declare. The
     /// callee is checked per closure it is given (4.6), so a `uses none` function cannot run
-    /// the effects of its argument (R1022).
+    /// the effects of its argument (R1025).
     fn closure_caps(&mut self, c: &Call, f: &FnDef) {
         for a in &c.args {
             let Arg::Value(_, Atom::Name(n, sp), _) = a else {

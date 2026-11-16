@@ -1,4 +1,4 @@
-//! A closure argument that captures a capability must be covered by the callee's `uses` (R1022).
+//! A closure argument that captures a capability must be covered by the callee's `uses` (R1025).
 
 use std::process::Command;
 
