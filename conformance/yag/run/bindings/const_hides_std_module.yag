@@ -1,0 +1,12 @@
+# spec: 14.1
+# note: a module-level const named like a std module hides the module in call position, as a local does (#1400)
+# stdout:
+# 2 X 2
+
+json: str = "x"
+text: str = "a b\nc"
+re: str = "a-b"
+
+pub def main() uses io:
+    n = re.split("-").len()
+    io.print(f"{text.splitlines().len()} {json.upper()} {n}")
