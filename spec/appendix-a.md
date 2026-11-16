@@ -363,7 +363,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1015 | `Ptr` in signatures wherever `unsafe` is permitted (RFC 0076 D6) | 3, 15.3 |
 | R1016 | an `unsafe fn` is not a value (E912); no unsafe function type (RFC 0076 D7) | 3, 25.11 |
 | R1017 | `allow_ffi` consents to `ffi` modules; `yan audit` lists `unsafe fn` items and call sites (RFC 0076 D8) | 12, 12.10 |
-| R1018 | `Sender.close()` ends the handle at once; a second `close` and the later drop do nothing; `send`, `try_send` or a `select` send arm on a closed `Sender` panics `contract` | 9.5 |
+| R1021 | `Sender.close()` ends the handle at once; a second `close` and the later drop do nothing; `send`, `try_send` or a `select` send arm on a closed `Sender` panics `contract` | 9.5 |
 
 <!-- /rows -->
 
