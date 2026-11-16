@@ -97,6 +97,8 @@ S1 is split: #1374 qualified variants (merged, #1381), #1375 S1a atomics surface
 
 S2 and S3 land together for integers and `bool` (#1369). Shape: `Atomic[T]` is one heap word holding `T` at its start, since MIR slots are words; `Inst::Atomic` carries `op`, `ty`, `order`, `failure`; Cranelift runs every ordering SeqCst, a narrow `Add` or `Sub` through a compare-exchange loop that wraps; the machine executes it as one step on the word. Open, in order: `Inst::Fence` and a callable `std.sync.atomic.fence` (the elaborator reports E200 on it); `Ptr` and record elements and the 16-byte case (refused: `an Atomic of a type that is not an integer or bool`); `Atomic[bool]` `fetch_max`/`fetch_min` (refused); atomic accesses are not shadowed by the machine's race detector until S4, so `--ub` misses a plain access racing an atomic one; `get_mut`, `fetch_update`, Send/Sync checks.
 
+S1b (#1376) landed in the interpreter: the guard is not a new mechanism. `lock()` returns an owned `MutexGuard[T]` local, and drop elaboration (R770) already drops owned locals at the end of their block and before every early exit, so `Op::DropGuard` unlocks there. E323 is a Core pass (`yan-elab/src/guard.rs`): a guard is live from its binding to its block's end, and a std wait, a call to a function that may reach one, or a `par` in that range is reported. A guard is second-class (E414 on passing, returning or rebinding it). Access is `get`, `set` and `replace`; `MutView[T]` access is not built (open: 4.5 defines views over contiguous parts, not over a whole value). Early unlock needs a smaller scope, a function, until a `with` form exists. Native refuses `Mutex` until S2.
+
 ## Slices
 
 Each is one PR and its own issue under #1369, in order; S1 to S4 close #1319.

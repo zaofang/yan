@@ -1799,3 +1799,18 @@ sections = "7.4, 12.2, 19.2"
 rows = "R1021"
 topic = "`Sender.close()` ends the handle at once; a second `close` and the later drop do nothing; `send`, `try_send` or a `select` send arm on a closed `Sender` panics `contract`"
 sections = "9.5"
+
+[[entry]]
+rows = "R1022"
+topic = "`Mutex[T](v)` and `lock() -> MutexGuard[T]`: the guard unlocks at the end of its block on every path out; `get`, `set` and `replace` are its only access; locking a held mutex is a `deadlock` panic (Q2, #1376)"
+sections = "6.3"
+
+[[entry]]
+rows = "R1023"
+topic = "a `MutexGuard` is second-class: passing it on, returning it, rebinding it or storing it is E414"
+sections = "4.5, 6.3"
+
+[[entry]]
+rows = "R1024"
+topic = "a guard is live from its binding to the end of its block; a call that may wait on another task, or a `par`, in that range is E323 (R395)"
+sections = "6.3, 17.1"
