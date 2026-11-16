@@ -7407,6 +7407,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/method_receiver_first.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [
+    "R1024"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n7\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/min_max_key.yag",
    "kind": "run",
    "milestone": "M1",

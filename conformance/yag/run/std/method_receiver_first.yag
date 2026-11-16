@@ -1,0 +1,17 @@
+# spec: 17.2
+# rows: R1024
+# note: a module function named like a method of the receiver's type does not capture the method call; the free call still reaches the function
+# stdout:
+# 1
+# 7
+
+class Cache:
+    vals: dict[str, int]
+
+def get(c: Cache, key: str) -> int:
+    return 7
+
+def main() uses io:
+    c = Cache(vals={"a": 1})
+    io.print(f"{c.vals.get('a')}")
+    io.print(f"{get(c, 'a')}")
