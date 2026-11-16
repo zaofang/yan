@@ -355,6 +355,14 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1007 | N52 maps bare `sqrt`, `sin`, `cos`, `tan`, `exp`, `log` to `math.f(x)` when the name is not bound (#1221) | 14.4 |
 | R1008 | N53 maps `s.len()` on a `str` and a free call `char_count(s)`, `parse_int(s)`, `to_string(x)`, `to_int(s)`, `slice(xs, a, b)`, `byte_at(s, i)` to the method or operator spellings (#1221) | 14.4 |
 | R1009 | N54: `import math`, `io`, `regex`, `collections`, `std` resolve to the std modules; a Python-only module or name is E200 with a `choice` fix, never bare (#1221) | 14.4 |
+| R1010 | `unsafe fn` in the Yan grammar: `unsafe` on the item, never in an impl, trait signature or generator (RFC 0076 D1) | 15.2, 3 |
+| R1011 | `unsafe fn` only in std and `ffi` modules (E901) (RFC 0076 D2) | 15.3, 12 |
+| R1012 | a call to an `unsafe fn` needs an `unsafe` block (E903) (RFC 0076 D3) | 3 |
+| R1013 | the body of an `unsafe fn` is not an `unsafe` block (RFC 0076 D4) | 3 |
+| R1014 | `unsafe fn` `pre`: checked at `check`, trusted at `release` with no checked `pub` entry, `ub(16)` under `--ub` (RFC 0076 D5) | 6.8, 6.9, 8.5 |
+| R1015 | `Ptr` in signatures wherever `unsafe` is permitted (RFC 0076 D6) | 3, 15.3 |
+| R1016 | an `unsafe fn` is not a value (E912); no unsafe function type (RFC 0076 D7) | 3, 25.11 |
+| R1017 | `allow_ffi` consents to `ffi` modules; `yan audit` lists `unsafe fn` items and call sites (RFC 0076 D8) | 12, 12.10 |
 
 <!-- /rows -->
 

@@ -1739,3 +1739,43 @@ sections = "14.4"
 rows = "R1009"
 topic = "N54: `import math`, `io`, `regex`, `collections`, `std` resolve to the std modules; a Python-only module or name is E200 with a `choice` fix, never bare (#1221)"
 sections = "14.4"
+
+[[entry]]
+rows = "R1010"
+topic = "`unsafe fn` in the Yan grammar: `unsafe` on the item, never in an impl, trait signature or generator (RFC 0076 D1)"
+sections = "15.2, 3"
+
+[[entry]]
+rows = "R1011"
+topic = "`unsafe fn` only in std and `ffi` modules (E901) (RFC 0076 D2)"
+sections = "15.3, 12"
+
+[[entry]]
+rows = "R1012"
+topic = "a call to an `unsafe fn` needs an `unsafe` block (E903) (RFC 0076 D3)"
+sections = "3"
+
+[[entry]]
+rows = "R1013"
+topic = "the body of an `unsafe fn` is not an `unsafe` block (RFC 0076 D4)"
+sections = "3"
+
+[[entry]]
+rows = "R1014"
+topic = "`unsafe fn` `pre`: checked at `check`, trusted at `release` with no checked `pub` entry, `ub(16)` under `--ub` (RFC 0076 D5)"
+sections = "6.8, 6.9, 8.5"
+
+[[entry]]
+rows = "R1015"
+topic = "`Ptr` in signatures wherever `unsafe` is permitted (RFC 0076 D6)"
+sections = "3, 15.3"
+
+[[entry]]
+rows = "R1016"
+topic = "an `unsafe fn` is not a value (E912); no unsafe function type (RFC 0076 D7)"
+sections = "3, 25.11"
+
+[[entry]]
+rows = "R1017"
+topic = "`allow_ffi` consents to `ffi` modules; `yan audit` lists `unsafe fn` items and call sites (RFC 0076 D8)"
+sections = "12, 12.10"

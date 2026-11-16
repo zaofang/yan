@@ -1,0 +1,15 @@
+# spec: 6.2, 6.5
+# note: two par branches fetch_add on one Atomic with Relaxed; the total is exact under every scheduler (#1369)
+# stdout:
+# 200
+
+def work(a: Atomic[int]) -> None uses nondet:
+    for _ in range(100):
+        _ = a.fetch_add(1, Ordering.Relaxed())
+
+def main() uses io, nondet:
+    a = Atomic[int](0)
+    par:
+        work(a)
+        work(a)
+    print(a.load(LoadOrdering.SeqCst()))
