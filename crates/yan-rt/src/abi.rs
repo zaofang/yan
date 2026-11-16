@@ -1046,6 +1046,49 @@ pub unsafe extern "C" fn yan_rt_json_dump(v: *const u64, schema: *const String) 
     }
 }
 
+/// `std.json.parse_value` (`float` 0) or `std.json.parse_float`: the slots of the `Result`.
+///
+/// # Safety
+/// `out` has room for the `Result`'s slots; `src` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_json_parse_value(
+    out: *mut u64,
+    src: *const String,
+    max_depth: i64,
+    float: i64,
+) {
+    let depth = usize::try_from(max_depth).unwrap_or(0);
+    // SAFETY: the caller's contract.
+    let src = unsafe { &*src };
+    let slots = if float == 0 {
+        crate::jsonslots::parse_value(src, depth)
+    } else {
+        crate::jsonslots::parse_float(src, depth)
+    };
+    // SAFETY: as above.
+    unsafe { store_slots(out, slots) }
+}
+
+/// `std.json.dump_value`: `indent` counts when `has_indent` is 0, the tag of `Some`.
+///
+/// # Safety
+/// `v` holds a `Value`'s slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_json_dump_value(
+    v: *const u64,
+    has_indent: i64,
+    indent: i64,
+) -> *mut String {
+    let indent = (has_indent == 0).then(|| usize::try_from(indent).unwrap_or(0));
+    // SAFETY: the caller's contract.
+    let w = unsafe { std::slice::from_raw_parts(v, crate::jsonslots::VALUE_WIDTH) };
+    // SAFETY: as above.
+    match unsafe { crate::jsonslots::dump_value(w, indent) } {
+        Some(s) => str_block(&s),
+        None => panic("value"),
+    }
+}
+
 /// The text of a `JsonError`.
 ///
 /// # Safety

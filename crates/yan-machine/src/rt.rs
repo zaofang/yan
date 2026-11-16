@@ -568,6 +568,7 @@ impl Machine<'_> {
                     yan_rt::rand::below(a[1].int() as u64, || yan_rt::rand::next(h)) as i64,
                 ))
             }
+            RtFn::IntToF64 => Val::F(a[0].int() as i64 as f64),
             RtFn::Math1 => Val::F(yan_rt::math::MATH1[a[0].int() as usize](a[1].float())),
             RtFn::HeapSort => {
                 let layout = yan_rt::map::Layout::parse(&self.str_of(a[1].addr())?);
@@ -1064,6 +1065,27 @@ impl Machine<'_> {
                 let schema = self.str_of(a[1].addr())?;
                 let w = self.words(a[0].addr(), yan_rt::jsonslots::root_width(&schema))?;
                 let Some(text) = yan_rt::jsonslots::dump_in(&MemBlocks(self), &w, &schema)? else {
+                    return Err(Stop::Panic("value"));
+                };
+                Val::I(i128::from(self.new_str(&text)))
+            }
+            RtFn::JsonParseValue => {
+                let src = self.str_of(a[1].addr())?;
+                let depth = usize::try_from(a[2].int()).unwrap_or(0);
+                let slots = if a[3].int() == 0 {
+                    yan_rt::jsonslots::parse_value(&src, depth)
+                } else {
+                    yan_rt::jsonslots::parse_float(&src, depth)
+                };
+                let out = self.materialize(slots)?;
+                self.write_words(a[0].addr(), &out)?;
+                Val::U
+            }
+            RtFn::JsonDumpValue => {
+                let w = self.words(a[0].addr(), yan_rt::jsonslots::VALUE_WIDTH)?;
+                let indent = (a[1].int() == 0).then(|| usize::try_from(a[2].int()).unwrap_or(0));
+                let Some(text) = yan_rt::jsonslots::dump_value_in(&MemBlocks(self), &w, indent)?
+                else {
                     return Err(Stop::Panic("value"));
                 };
                 Val::I(i128::from(self.new_str(&text)))

@@ -1,7 +1,8 @@
 //! Optimized Yan Core (`yan-opt`'s output, R771) to MIR.
 
-use std::cell::RefCell;
+use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
+use std::rc::Rc;
 
 mod actor;
 mod arena;
@@ -19,6 +20,8 @@ mod env;
 mod error;
 mod extern_call;
 mod iter;
+mod jsonvalue;
+mod knot;
 mod log;
 mod math;
 mod ordering;
@@ -223,6 +226,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
         sigs: Vec::new(),
         todo: Vec::new(),
         thunks: HashMap::new(),
+        walks: HashMap::new(),
         costing,
         consts,
     });
@@ -251,6 +255,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
                 Fn::new(&mono, &types, &mut prog.strings, me).closure(c, caps)?
             }
             Todo::Thunk(k, s) => Fn::new(&mono, &types, &mut prog.strings, me).thunk(k, &s),
+            Todo::Walk(w, s) => Fn::new(&mono, &types, &mut prog.strings, me).walk(w, &s)?,
             Todo::Entry(main) => Fn::new(&mono, &types, &mut prog.strings, me).entry(main)?,
         };
         prog.funcs.push(func);
@@ -288,6 +293,8 @@ struct Mono<'m> {
     todo: Vec<Todo<'m>>,
     /// The actor thunks made, by kind and shape (`actor.rs`).
     thunks: HashMap<(actor::Thunk, Shape), FuncId>,
+    /// The walks over recursive types made, by walk and type name (`knot.rs`).
+    walks: HashMap<(knot::Walk, String), FuncId>,
     /// Some function has a `cost` bound, so every function counts steps and allocations.
     costing: bool,
     consts: Vec<&'m y::Const>,
@@ -301,6 +308,8 @@ enum Todo<'m> {
     Closure(&'m y::Closure, Vec<(String, Shape)>),
     /// An actor thunk (`actor.rs`).
     Thunk(actor::Thunk, Shape),
+    /// A walk over a recursive type (`knot.rs`).
+    Walk(knot::Walk, Shape),
     /// The entry that reports a failing `main`.
     Entry(FuncId),
 }
