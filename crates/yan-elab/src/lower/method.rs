@@ -208,7 +208,7 @@ impl Lower<'_, '_, '_> {
             .as_ref()
             .and_then(Ty::module)
             .filter(|module| crate::stdlib::decl(&format!("std.{module}.{m}")).is_some());
-        // The module that declares the receiver's type is searched before this module (17.2, R1024).
+        // The module that declares the receiver's type is searched before this module (17.2, R1028).
         if self.g.fns.contains_key(m) && recv_decl.is_none() {
             return self.user_call(m, Some(b), args, at);
         }

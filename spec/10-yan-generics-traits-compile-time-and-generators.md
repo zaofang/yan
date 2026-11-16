@@ -16,7 +16,7 @@ Functions and types take type, `Nat`, axis and dimension parameters, user-define
 - Trait resolution happens entirely at compile time, except for `dyn`.
 - **`dyn Trait` representation (R1004).** A `dyn Trait` value is an owned pair: the data, boxed through the bound `alloc`, and a vtable pointer. The vtable holds drop, size, align and the trait's methods in declaration order, and is generated per (type, trait) at monomorphization. A coercion from a concrete `T: Trait` to `dyn Trait` is explicit, a method call is one indirect call, and dropping the value runs the vtable's drop and frees the box. `let` and `inout` parameters of type `dyn Trait` pass the pair without copying.
 - **Object safety (R1005).** `dyn Trait` is legal only when the trait has no generic method, no associated type without a fixed value in the `dyn` type, and no `Self` in a parameter or result position other than the receiver, except in a method marked `where Self: Sized`, which is not callable through `dyn`. Otherwise E333.
-- **Method resolution.** `x.f(...)` always resolves a function, by the order of section 17.2: the type's module, then the current module, then the prelude, first match wins (R1024). A function-typed field is called as `(x.f)(...)` (SQ8). Two functions of one name at one step are E250.
+- **Method resolution.** `x.f(...)` always resolves a function, by the order of section 17.2: the type's module, then the current module, then the prelude, first match wins (R1028). A function-typed field is called as `(x.f)(...)` (SQ8). Two functions of one name at one step are E250.
 
 ### 10.3 Operators
 
