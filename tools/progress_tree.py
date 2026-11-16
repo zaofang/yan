@@ -34,7 +34,7 @@ def get(path: str) -> Any:
         return json.load(resp)
 
 
-def fetch_issues(label: str | None = None) -> list[dict]:
+def fetch_issues(label: str | None = None) -> list[dict[str, Any]]:
     out, page = [], 1
     while True:
         q = f"/issues?state=all&per_page=100&page={page}" + (f"&labels={label}" if label else "")
@@ -45,7 +45,7 @@ def fetch_issues(label: str | None = None) -> list[dict]:
         page += 1
 
 
-def labels(issue: dict) -> set[str]:
+def labels(issue: dict[str, Any]) -> set[str]:
     return {lab["name"] for lab in issue["labels"]}
 
 
@@ -60,7 +60,7 @@ def subgroups(body: str) -> dict[str, list[int]]:
     return groups
 
 
-def tally(nums: list[int], issues: dict[int, dict]) -> dict:
+def tally(nums: list[int], issues: dict[int, dict[str, Any]]) -> dict[str, Any]:
     items = [issues[n] for n in nums if n in issues]
     return {
         "done": sum(i["state"] == "closed" for i in items),
@@ -71,7 +71,7 @@ def tally(nums: list[int], issues: dict[int, dict]) -> dict:
     }
 
 
-def build() -> dict:
+def build() -> dict[str, Any]:
     all_issues = fetch_issues()
     by_num = {i["number"]: i for i in all_issues}
     trackers = {
@@ -154,7 +154,7 @@ a{color:inherit}
 """
 
 
-def render(data: dict) -> str:
+def render(data: dict[str, Any]) -> str:
     rows_html = []
     for g in data["groups"]:
         subs = "".join(
