@@ -987,6 +987,9 @@ pub(crate) fn intrinsic(name: &str, args: &[Value]) -> Option<R<Value>> {
             _ => Ok(Value::Unit),
         });
     }
+    if let Some(r) = bits::conversion(name, args) {
+        return Some(r);
+    }
     let (op, ty) = name.rsplit_once('_')?;
     if let Some(r) = if ty == "bigint" {
         bits::bigint(op, args)

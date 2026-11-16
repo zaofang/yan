@@ -87,6 +87,28 @@ pub(crate) fn int(op: &str, ty: &str, args: &[Value]) -> Option<R<Value>> {
     })
 }
 
+/// `wrap_as`, `sat_as` and `checked_as` between fixed-width integer types.
+pub(crate) fn conversion(name: &str, args: &[Value]) -> Option<R<Value>> {
+    let (kind, _, to) = yan_std::intrinsics::conversion(name)?;
+    let [Value::Int(a)] = args else {
+        return None;
+    };
+    let (lo, hi) = int_range(to)?;
+    Some(match kind {
+        "wrap_as" => {
+            let w = width(to)?;
+            Ok(Value::Int(from_pattern(
+                pattern(*a, w),
+                w,
+                to.starts_with('i'),
+            )))
+        }
+        "sat_as" => Ok(Value::Int((*a).clamp(lo, hi))),
+        _ if (lo..=hi).contains(a) => Ok(Value::Int(*a)),
+        _ => panic("overflow"),
+    })
+}
+
 /// `op` on `bigint`, as Python's infinite two's complement.
 pub(crate) fn bigint(op: &str, args: &[Value]) -> Option<R<Value>> {
     let shift = |n: &i128| match usize::try_from(*n) {

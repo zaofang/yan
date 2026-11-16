@@ -66,9 +66,23 @@ fn sig(arity: usize, ret: &str) -> Option<Sig> {
     })
 }
 
+/// `wrap_as_<from>_<to>`, `sat_as_<from>_<to>` and `checked_as_<from>_<to>` between integer
+/// types of at most 64 bits, as `(kind, from, to)`.
+pub fn conversion(name: &str) -> Option<(&str, &str, &str)> {
+    let (kind, rest) = ["wrap_as", "sat_as", "checked_as"]
+        .iter()
+        .find_map(|k| Some((*k, name.strip_prefix(k)?.strip_prefix('_')?)))?;
+    let (from, to) = rest.split_once('_')?;
+    let ok = |t: &str| is_int(t) && t != "i128";
+    (ok(from) && ok(to)).then_some((kind, from, to))
+}
+
 pub fn lookup(name: &str) -> Option<Sig> {
     if name == "exclusive_check" {
         return sig(2, "Unit");
+    }
+    if let Some((_, _, to)) = conversion(name) {
+        return sig(1, to);
     }
     let (op, ty) = name.rsplit_once('_')?;
     let cmp = matches!(op, "eq" | "ne" | "lt" | "le" | "gt" | "ge");
