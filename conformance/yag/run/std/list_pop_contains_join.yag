@@ -1,0 +1,35 @@
+# spec: 17.3
+# rows: R218
+# note: list.pop moves the last element out, `in` on a list compares by Eq, str.join of a list; an empty pop panics with bounds
+# stdout:
+# 2 bb
+# 1 a
+# True False 1 False c a-b []
+# exit: 101
+
+type P = Pt(x: int, name: str)
+
+def main() uses io:
+    ps = [Pt(1, "a"), Pt(2, "bb")]
+    q = ps.pop()
+    r = ps.pop()
+    ps.append(Pt(3, "c"))
+    has = Pt(3, "c") in ps
+    no = Pt(4, "c") in ps
+    ll = [[1, 2], [3]]
+    inner = ll.pop()
+    hl = [3] in ll
+    parts = ["a", "b", "c"]
+    last = parts.pop()
+    j = "-".join(parts)
+    e: list[str] = []
+    je = ",".join(e)
+    match q:
+        case Pt(x=x, name=name):
+            io.print(f"{x} {name}")
+    match r:
+        case Pt(x=x, name=name):
+            io.print(f"{x} {name}")
+    io.print(f"{has} {no} {inner.len()} {hl} {last} {j} [{je}]")
+    z = e.pop()
+    io.print(z)
