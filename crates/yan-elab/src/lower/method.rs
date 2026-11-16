@@ -162,6 +162,18 @@ impl Lower<'_, '_, '_> {
             let (p, t) = self.place(b)?;
             return Ok((Rhs::Copy(p), t, None));
         }
+        if m == "get"
+            && args.is_empty()
+            && let Some(Ty::Coll("MutexGuard", ts)) = self.ty_of_local(b)
+            && !ts[0].is_copy()
+        {
+            self.err(
+                "E425",
+                at,
+                "`get` copies the value out and needs a `Copy` type; use `replace` to take it or `set`"
+                    .into(),
+            );
+        }
         // A prelude function that shares its name with an iter method (`zip`, `max`): the
         // receiver's type picks. Both take the receiver by `let`, so a temporary is enough.
         if self.g.fns.contains_key(m)

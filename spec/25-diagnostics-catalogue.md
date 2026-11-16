@@ -180,6 +180,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E422 | subscript body does not yield exactly once on every path (R457) new | 4.4 |
 | E423 | subscript body fails under the let or inout mode it is used in (R457) new | 4.4 |
 | E424 | branch, index, division or early exit depends on a secret-derived value in a `@constant_time` function (R611) new | 17.4 |
+| E425 | `MutexGuard.get` of a non-`Copy` type (R1026) new | 6.3 |
 
 ### 25.7 Exhaustiveness, bounds, shapes, units and literals
 
