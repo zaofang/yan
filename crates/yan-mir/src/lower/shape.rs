@@ -46,6 +46,9 @@ pub enum Shape {
     Set(Box<Shape>),
     /// A recursive type where it recurs: always behind a block, so its slots are its type's.
     Named(Knot),
+    /// A field whose type holds its record or sum again in its own slots, boxed (5.1): the
+    /// address of an `Alloc` block of the slots of the knot's type.
+    Boxed(Knot),
 }
 
 /// A back-reference to a recursive record or sum, tied once its type is built. Equal, hashed
@@ -98,7 +101,8 @@ impl Shape {
             | Shape::Actor(_)
             | Shape::Arena
             | Shape::Ref(_)
-            | Shape::Set(_) => out.push(Ty::Ptr),
+            | Shape::Set(_)
+            | Shape::Boxed(_) => out.push(Ty::Ptr),
             Shape::Fn(..) => out.extend([Ty::Ptr, Ty::Ptr]),
             Shape::Ptr => out.extend([I64, I64]),
             Shape::Rec(_, fs) => fs.iter().for_each(|(_, s)| s.slots(out)),
@@ -192,8 +196,8 @@ fn knot(stack: &Stack, name: &str) -> Option<Shape> {
     Some(Shape::Named(Knot(n.clone(), cell.clone())))
 }
 
-/// Ties the knot of the type `built` on top of `stack`. A type that recurs in its own slots
-/// would need its recurrence boxed (5.1), which native code does not do yet.
+/// Ties the knot of the type `built` on top of `stack`. Its fields that recur in its own slots
+/// were boxed, so a recurrence left there is one boxing missed.
 fn tie(stack: &mut Stack, built: R<Shape>) -> R<Shape> {
     let (name, cell) = stack.pop().expect("a type being built");
     let s = built?;
@@ -211,6 +215,45 @@ fn tie(stack: &mut Stack, built: R<Shape>) -> R<Shape> {
 impl Types<'_> {
     pub(super) fn shape(&self, t: &y::Type) -> R<Shape> {
         self.shape_in(t, &mut Vec::new())
+    }
+
+    /// The shape of the field type `t` (`decl` as written) of the record or sum `owner`: boxed
+    /// when `decl` holds `owner` again in its own slots, so that every type has one shape.
+    fn field_shape(&self, owner: &str, decl: &y::Type, t: &y::Type, stack: &mut Stack) -> R<Shape> {
+        let s = self.shape_in(t, stack)?;
+        if !self.reaches(decl, owner) {
+            return Ok(s);
+        }
+        Ok(Shape::Boxed(match s {
+            Shape::Named(k) => k,
+            s => Knot(yan_core::type_text(t), Rc::new(OnceCell::from(s))),
+        }))
+    }
+
+    /// Whether a value of type `t` holds the record or sum `owner` in its own slots, directly or
+    /// through the fields of other records and sums. A type argument counts as held, since an
+    /// instance may hold it.
+    fn reaches(&self, t: &y::Type, owner: &str) -> bool {
+        let mut seen = std::collections::HashSet::new();
+        let mut todo = Vec::new();
+        inline_heads(t, &mut todo);
+        while let Some(n) = todo.pop() {
+            if n == owner {
+                return true;
+            }
+            if !seen.insert(n) {
+                continue;
+            }
+            if let Some(r) = self.recs.get(n) {
+                r.fields.iter().for_each(|f| inline_heads(&f.ty, &mut todo));
+            } else if let Some(s) = self.sums.get(n) {
+                s.variants
+                    .iter()
+                    .flat_map(|v| v.fields.iter().flatten())
+                    .for_each(|f| inline_heads(&f.ty, &mut todo));
+            }
+        }
+        false
     }
 
     /// The shape of a nominal record or sum at type arguments: its fields with the arguments
@@ -242,7 +285,7 @@ impl Types<'_> {
                     .iter()
                     .map(|f| {
                         let t = yan_core::subst::apply(&f.ty, tparams, &n.args);
-                        Ok((f.name.clone(), self.shape_in(&t, stack)?))
+                        Ok((f.name.clone(), self.field_shape(name, &f.ty, &t, stack)?))
                     })
                     .collect::<R<Vec<_>>>()?;
                 out.push(((*vname).to_owned(), fs));
@@ -393,7 +436,7 @@ impl Types<'_> {
                 stack.push((name.to_owned(), Rc::default()));
                 let fields = |fs: &[y::Field], stack: &mut Stack| {
                     fs.iter()
-                        .map(|f| Ok((f.name.clone(), self.shape_in(&f.ty, stack)?)))
+                        .map(|f| Ok((f.name.clone(), self.field_shape(name, &f.ty, &f.ty, stack)?)))
                         .collect::<R<Vec<_>>>()
                 };
                 let built = (|| {
@@ -462,6 +505,44 @@ impl Types<'_> {
             )),
             _ => unsupported("a compound type"),
         }
+    }
+}
+
+/// The names of the types `t` holds in its own slots: not those behind a block.
+fn inline_heads<'t>(t: &'t y::Type, out: &mut Vec<&'t str>) {
+    match t {
+        y::Type::Named(n) => {
+            let head = n.path.last().expect("named").as_str();
+            if matches!(
+                head,
+                "List"
+                    | "Iter"
+                    | "Map"
+                    | "Heap"
+                    | "Deque"
+                    | "Set"
+                    | "SortedMap"
+                    | "SortedSet"
+                    | "Sender"
+                    | "Receiver"
+                    | "Actor"
+                    | "SendOnly"
+                    | "Group"
+                    | "Ref"
+                    | "Ptr"
+            ) {
+                return;
+            }
+            out.push(head);
+            for a in &n.args {
+                if let y::TArg::Type(t) = a {
+                    inline_heads(t, out);
+                }
+            }
+        }
+        y::Type::Tuple(ts) | y::Type::Union(ts) => ts.iter().for_each(|t| inline_heads(t, out)),
+        y::Type::Refined { ty, .. } => inline_heads(ty, out),
+        y::Type::Dyn(_) | y::Type::Fn(_) => {}
     }
 }
 
