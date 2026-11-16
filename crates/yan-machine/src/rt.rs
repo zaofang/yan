@@ -39,6 +39,21 @@ fn word_bytes(words: &[u64]) -> Vec<Byte> {
         .collect()
 }
 
+fn words_of(bytes: &[Byte]) -> Vec<u64> {
+    bytes
+        .chunks(8)
+        .map(|c| {
+            let mut w = [0u8; 8];
+            for (d, b) in w.iter_mut().zip(c) {
+                if let Byte::Init(x) = b {
+                    *d = *x;
+                }
+            }
+            u64::from_le_bytes(w)
+        })
+        .collect()
+}
+
 fn time(hi: Val, lo: Val) -> i128 {
     yan_rt::timeabi::join(hi.int() as i64, lo.int() as i64)
 }
@@ -83,18 +98,20 @@ impl Machine<'_> {
             .mem
             .read(addr, 8 * n)
             .ok_or_else(|| Stop::Fault(format!("slots at {addr:#x} are not allocated")))?;
-        Ok(bytes
-            .chunks(8)
-            .map(|c| {
-                let mut w = [0u8; 8];
-                for (d, b) in w.iter_mut().zip(c) {
-                    if let Byte::Init(x) = b {
-                        *d = *x;
-                    }
-                }
-                u64::from_le_bytes(w)
-            })
-            .collect())
+        Ok(words_of(&bytes))
+    }
+
+    /// The words of a map's entries, keys and values in order.
+    fn map_words(&mut self, m: Val) -> Result<Vec<u64>, Stop> {
+        Ok(words_of(&self.entries(m)?))
+    }
+
+    /// The texts of a list of `Str` blocks.
+    fn strs(&mut self, l: Val) -> Result<Vec<String>, Stop> {
+        self.list_words(l)?
+            .into_iter()
+            .map(|w| self.str_of(w))
+            .collect()
     }
 
     fn encode_key(&mut self, m: Val, key: Val) -> Result<Vec<u8>, Stop> {
@@ -984,6 +1001,68 @@ impl Machine<'_> {
                 self.write_words(a[0].addr(), &out)?;
                 Val::I(i128::from(why.is_some()))
             }
+            RtFn::JsonParse => {
+                let (src, schema) = (self.str_of(a[1].addr())?, self.str_of(a[2].addr())?);
+                let out = self.materialize(yan_rt::jsonslots::parse(&src, &schema))?;
+                self.write_words(a[0].addr(), &out)?;
+                Val::U
+            }
+            RtFn::ZoneLookup => {
+                let id = self.str_of(a[0].addr())?;
+                Val::I(i128::from(yan_rt::envhandler::intern(&id).unwrap_or(0)))
+            }
+            RtFn::ZoneId => {
+                let id = yan_rt::envhandler::zone_id(a[0].int() as i64);
+                Val::I(i128::from(self.new_str(&id)))
+            }
+            RtFn::EnvFake => {
+                let args = self.strs(a[0])?;
+                let vars = self
+                    .map_words(a[1])?
+                    .chunks(2)
+                    .map(|e| Ok((self.str_of(e[0])?, self.str_of(e[1])?)))
+                    .collect::<Result<_, Stop>>()?;
+                Val::I(i128::from(yan_rt::envhandler::fake(
+                    args,
+                    vars,
+                    a[2].int() as i64,
+                )))
+            }
+            RtFn::EnvOnly => {
+                let vars = self.strs(a[1])?;
+                Val::I(i128::from(yan_rt::envhandler::only(
+                    a[0].int() as u64,
+                    vars,
+                )))
+            }
+            RtFn::EnvArgs => {
+                let ws: Vec<u64> = yan_rt::envhandler::args(a[0].int() as u64)
+                    .iter()
+                    .map(|s| self.new_str(s))
+                    .collect();
+                self.new_list(1, word_bytes(&ws))
+            }
+            RtFn::EnvVar => {
+                let name = self.str_of(a[1].addr())?;
+                Val::I(match yan_rt::envhandler::var(a[0].int() as u64, &name) {
+                    Some(v) => i128::from(self.new_str(&v)),
+                    None => 0,
+                })
+            }
+            RtFn::EnvVars => {
+                let entries = yan_rt::envhandler::vars(a[0].int() as u64)
+                    .into_iter()
+                    .map(|(k, v)| (vec![Slot::Str(k)], vec![Slot::Str(v)]))
+                    .collect();
+                let m = Slot::Map {
+                    schema: "s".into(),
+                    kw: 1,
+                    vw: 1,
+                    entries,
+                };
+                Val::I(i128::from(self.materialize(vec![m])?[0]))
+            }
+            RtFn::EnvZone => Val::I(i128::from(yan_rt::envhandler::zone(a[0].int() as u64))),
             RtFn::ActorSpawn => {
                 let state = self.words(a[0].addr(), a[1].int() as usize)?;
                 let start = [a[5].addr(), a[6].addr(), a[7].addr()];
