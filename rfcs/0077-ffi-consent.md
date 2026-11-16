@@ -1,8 +1,8 @@
 # 0077: FFI consent, enforced at the root
 
-- Status: draft
+- Status: accepted
 - Research: [capability security review, 2026-11-16](../docs/research/2026-11-16-capability-security-review.md) (finding F2, #1389 item c)
-- Rows: filled in when accepted
+- Rows: R1018 to R1020
 
 ## Summary
 
@@ -25,8 +25,8 @@ Options weighed: (a) dependencies only, the root's own `ffi/` implicit; (b) ever
 root. The recommendation is (b): one rule, nothing implicit, and the root's own foreign code is listed
 beside its ceiling entry for the library.
 
-- Decision: (lead, card, 2026-11-16: root-gated)
-- Row:
+- Decision: accepted as recommended, root included (lead, card, 2026-11-16)
+- Row: R1018
 
 ### D2: where it is enforced
 
@@ -45,8 +45,8 @@ The diagnostic is an error; it names the package and the first `ffi` module or l
 
 Recommendation: both places, with the one new code in the E3 family.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended, both places (lead, 2026-11-16)
+- Row: R1019 (E023)
 
 ### D3: libraries stay ceiling entries
 
@@ -54,8 +54,8 @@ Consent does not replace the ceiling. Every extern library, `uses none` or not, 
 the package ceiling (E314, 7.4, 12.2), and a ceiling reaches dependencies transitively (19.1). Code for
 the per-package part landed in #1411; the transitive part is part of this RFC's implementation.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, 2026-11-16)
+- Row: R1020
 
 ## Spec changes
 
