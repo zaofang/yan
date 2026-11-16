@@ -457,22 +457,17 @@ impl Machine<'_> {
     }
 
     pub(crate) fn rt(&mut self, f: RtFn, a: &[Val]) -> Result<Val, Stop> {
-        if self.ub
-            && self.race.borrow().in_block()
-            && matches!(
+        if self.ub && self.race.borrow().in_block() {
+            let rendezvous = matches!(
                 f,
-                RtFn::ChanSend
-                    | RtFn::ChanTrySend
-                    | RtFn::ChanRecv
-                    | RtFn::ChanTryRecv
-                    | RtFn::SelectWait
-                    | RtFn::ActorSend
-            )
-        {
-            // Until these order tasks, a race verdict across them would be a guess.
-            return unsupported(
-                "channel and actor ordering between `par concurrent` tasks under --ub",
-            );
+                RtFn::ChanSend | RtFn::ChanTrySend | RtFn::ChanRecv | RtFn::ChanTryRecv
+            ) && self.race.borrow().rendezvous(a[0].addr());
+            if rendezvous || matches!(f, RtFn::SelectWait | RtFn::ActorSend) {
+                // Until these order tasks, a race verdict across them would be a guess.
+                return unsupported(
+                    "select, actor and unbuffered channel ordering between `par concurrent` tasks under --ub",
+                );
+            }
         }
         let r = self.rt_call(f, a);
         self.deliver_stopped();
@@ -1751,19 +1746,24 @@ impl Machine<'_> {
                 sched::yan_rt_sim_pct(a[0].int() as i64, a[1].int() as i64, a[2].int() as i64);
                 Val::U
             }
-            RtFn::ChanNew => Val::I(i128::from(yan_rt::chan::yan_rt_chan_new(
-                a[0].int() as u64,
-                a[1].int() as u64,
-            ) as u64)),
+            RtFn::ChanNew => {
+                let ch = yan_rt::chan::yan_rt_chan_new(a[0].int() as u64, a[1].int() as u64) as u64;
+                self.race.borrow_mut().chan_new(ch, a[0].int() as u64);
+                Val::I(i128::from(ch))
+            }
             RtFn::ChanSend | RtFn::ChanTrySend => {
                 let ch = a[0].addr();
                 let v = self.words(a[1].addr(), yan_rt::chan::words(ch as usize))?;
                 let in_task = a[2].int() != 0;
-                Val::I(i128::from(if f == RtFn::ChanSend {
+                let status = if f == RtFn::ChanSend {
                     yan_rt::chan::send(ch as usize, &v, in_task)
                 } else {
                     yan_rt::chan::try_send(ch as usize, &v, in_task)
-                }))
+                };
+                if status == 0 {
+                    self.race.borrow_mut().chan_send(ch);
+                }
+                Val::I(i128::from(status))
             }
             RtFn::ChanRecv | RtFn::ChanTryRecv => {
                 let ch = a[0].addr() as usize;
@@ -1774,6 +1774,10 @@ impl Machine<'_> {
                     yan_rt::chan::try_recv(ch, in_task)
                 };
                 self.write_words(a[1].addr(), &v)?;
+                if status == 0 || status == yan_rt::chan::CLOSED {
+                    let closed = status != 0;
+                    self.race.borrow_mut().chan_recv(ch as u64, closed);
+                }
                 Val::I(i128::from(status))
             }
             RtFn::SelectWait => {
@@ -1793,6 +1797,9 @@ impl Machine<'_> {
                     _ => End::CloneSender,
                 };
                 yan_rt::chan::end(a[0].addr() as usize, op);
+                if f == RtFn::ChanDropSender {
+                    self.race.borrow_mut().chan_sender_dropped(a[0].addr());
+                }
                 Val::U
             }
             other => return unsupported(format!("runtime function {other:?} in the machine")),
