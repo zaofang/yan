@@ -44,6 +44,39 @@ pub enum Shape {
     Ref(Box<Shape>),
     /// A `set`: a `yan_rt::map` block whose entries are keys with no value slots.
     Set(Box<Shape>),
+    /// A recursive type where it recurs: always behind a block, so its slots are its type's.
+    Named(Knot),
+}
+
+/// A back-reference to a recursive record or sum, tied once its type is built. Equal, hashed
+/// and printed by name, so a cycle never recurses.
+#[derive(Clone)]
+pub struct Knot(pub String, Rc<OnceCell<Shape>>);
+
+impl Knot {
+    pub fn get(&self) -> &Shape {
+        self.1.get().expect("a knot is tied before use")
+    }
+}
+
+impl PartialEq for Knot {
+    fn eq(&self, o: &Self) -> bool {
+        self.0 == o.0
+    }
+}
+
+impl Eq for Knot {}
+
+impl std::hash::Hash for Knot {
+    fn hash<H: std::hash::Hasher>(&self, h: &mut H) {
+        self.0.hash(h)
+    }
+}
+
+impl std::fmt::Debug for Knot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Named({})", self.0)
+    }
 }
 
 impl Shape {
@@ -76,6 +109,21 @@ impl Shape {
                     .flat_map(|(_, fs)| fs)
                     .for_each(|(_, s)| s.slots(out));
             }
+            Shape::Named(k) => k.get().slots(out),
+        }
+    }
+
+    /// Whether `name` recurs in these slots rather than behind a block.
+    fn recurs_inline(&self, name: &str) -> bool {
+        match self {
+            Shape::Named(k) => k.0 == name,
+            Shape::Rec(_, fs) => fs.iter().any(|(_, s)| s.recurs_inline(name)),
+            Shape::Tuple(ss) => ss.iter().any(|s| s.recurs_inline(name)),
+            Shape::Sum(_, vs) => vs
+                .iter()
+                .flat_map(|(_, fs)| fs)
+                .any(|(_, s)| s.recurs_inline(name)),
+            _ => false,
         }
     }
 
@@ -135,6 +183,31 @@ pub(super) struct Types<'m> {
     pub(super) externs: HashMap<String, R<crate::ffi::ExternFn>>,
 }
 
+/// The records and sums being built, outermost first, each with the knot its recurrences share.
+pub(super) type Stack = Vec<(String, Rc<OnceCell<Shape>>)>;
+
+/// The back-reference to `name` if it is being built.
+fn knot(stack: &Stack, name: &str) -> Option<Shape> {
+    let (n, cell) = stack.iter().find(|(n, _)| n == name)?;
+    Some(Shape::Named(Knot(n.clone(), cell.clone())))
+}
+
+/// Ties the knot of the type `built` on top of `stack`. A type that recurs in its own slots
+/// would need its recurrence boxed (5.1), which native code does not do yet.
+fn tie(stack: &mut Stack, built: R<Shape>) -> R<Shape> {
+    let (name, cell) = stack.pop().expect("a type being built");
+    let s = built?;
+    if Rc::strong_count(&cell) > 1 {
+        if s.recurs_inline(&name) {
+            return unsupported(format!(
+                "recursive type `{name}` with an unboxed recurrence"
+            ));
+        }
+        cell.set(s.clone()).expect("tied once");
+    }
+    Ok(s)
+}
+
 impl Types<'_> {
     pub(super) fn shape(&self, t: &y::Type) -> R<Shape> {
         self.shape_in(t, &mut Vec::new())
@@ -142,7 +215,7 @@ impl Types<'_> {
 
     /// The shape of a nominal record or sum at type arguments: its fields with the arguments
     /// substituted, named by the canonical instance text (D3, D7).
-    fn generic_shape(&self, n: &y::Named, stack: &mut Vec<String>) -> Option<R<Shape>> {
+    fn generic_shape(&self, n: &y::Named, stack: &mut Stack) -> Option<R<Shape>> {
         let name = n.path[0].as_str();
         let (tparams, fields): (&[y::TParam], Vec<(&str, &[y::Field])>) =
             if let Some(r) = self.recs.get(name).filter(|r| !r.tparams.is_empty()) {
@@ -158,10 +231,10 @@ impl Types<'_> {
             };
         let is_sum = self.sums.contains_key(name) && !self.recs.contains_key(name);
         let inst = yan_core::subst::instance(&n.path, &n.args);
-        if stack.contains(&inst) {
-            return Some(unsupported(format!("recursive type `{inst}`")));
+        if let Some(k) = knot(stack, &inst) {
+            return Some(Ok(k));
         }
-        stack.push(inst.clone());
+        stack.push((inst.clone(), Rc::default()));
         let built = (|| {
             let mut out = Vec::new();
             for (vname, fs) in &fields {
@@ -180,11 +253,10 @@ impl Types<'_> {
                 Shape::Rec(inst, out.pop().map(|(_, f)| f).unwrap_or_default())
             })
         })();
-        stack.pop();
-        Some(built)
+        Some(tie(stack, built))
     }
 
-    pub(super) fn shape_in(&self, t: &y::Type, stack: &mut Vec<String>) -> R<Shape> {
+    pub(super) fn shape_in(&self, t: &y::Type, stack: &mut Stack) -> R<Shape> {
         match t {
             y::Type::Tuple(ts) => Ok(Shape::Tuple(
                 ts.iter()
@@ -315,48 +387,52 @@ impl Types<'_> {
                 if let Some(t) = scalar_ty(name) {
                     return Ok(Shape::Scalar(t));
                 }
-                if stack.iter().any(|s| s == name) {
-                    return unsupported(format!("recursive type `{name}`"));
+                if let Some(k) = knot(stack, name) {
+                    return Ok(k);
                 }
-                stack.push(name.to_owned());
-                let fields = |fs: &[y::Field], stack: &mut Vec<String>| {
+                stack.push((name.to_owned(), Rc::default()));
+                let fields = |fs: &[y::Field], stack: &mut Stack| {
                     fs.iter()
                         .map(|f| Ok((f.name.clone(), self.shape_in(&f.ty, stack)?)))
                         .collect::<R<Vec<_>>>()
                 };
-                let s = if let Some(r) = self.recs.get(name).filter(|r| r.tparams.is_empty()) {
-                    Shape::Rec(name.to_owned(), fields(&r.fields, stack)?)
-                } else if let Some(s) = self.sums.get(name).filter(|s| s.tparams.is_empty()) {
-                    let vs = s
-                        .variants
-                        .iter()
-                        .map(|v| {
-                            let fs = v.fields.as_deref().unwrap_or(&[]);
-                            Ok((v.name.clone(), fields(fs, stack)?))
-                        })
-                        .collect::<R<_>>()?;
-                    Shape::Sum(name.to_owned(), vs)
-                } else if STD_FAILURES.contains(&name) {
-                    Shape::Rec(name.to_owned(), Vec::new())
-                } else if name == "Duration" {
-                    actor::duration()
-                } else if name == "i128" {
-                    time::wide("i128")
-                } else if let Some(s) = proc::std_type(name) {
-                    s
-                } else if let Some(s) = civil::std_type(name) {
-                    s
-                } else if name == "Instant" {
-                    time::shape(true)
-                } else if name == "Stopped" {
-                    actor::stopped()
-                } else if let Some(s) = cluster::std_type(name) {
-                    s
-                } else {
-                    return unsupported(format!("type `{name}`"));
-                };
-                stack.pop();
-                Ok(s)
+                let built = (|| {
+                    Ok(
+                        if let Some(r) = self.recs.get(name).filter(|r| r.tparams.is_empty()) {
+                            Shape::Rec(name.to_owned(), fields(&r.fields, stack)?)
+                        } else if let Some(s) = self.sums.get(name).filter(|s| s.tparams.is_empty())
+                        {
+                            let vs = s
+                                .variants
+                                .iter()
+                                .map(|v| {
+                                    let fs = v.fields.as_deref().unwrap_or(&[]);
+                                    Ok((v.name.clone(), fields(fs, stack)?))
+                                })
+                                .collect::<R<_>>()?;
+                            Shape::Sum(name.to_owned(), vs)
+                        } else if STD_FAILURES.contains(&name) {
+                            Shape::Rec(name.to_owned(), Vec::new())
+                        } else if name == "Duration" {
+                            actor::duration()
+                        } else if name == "i128" {
+                            time::wide("i128")
+                        } else if let Some(s) = proc::std_type(name) {
+                            s
+                        } else if let Some(s) = civil::std_type(name) {
+                            s
+                        } else if name == "Instant" {
+                            time::shape(true)
+                        } else if name == "Stopped" {
+                            actor::stopped()
+                        } else if let Some(s) = cluster::std_type(name) {
+                            s
+                        } else {
+                            return unsupported(format!("type `{name}`"));
+                        },
+                    )
+                })();
+                tie(stack, built)
             }
             y::Type::Fn(ft) => {
                 if ft.params.iter().any(|(c, _)| *c == y::Conv::Inout) {

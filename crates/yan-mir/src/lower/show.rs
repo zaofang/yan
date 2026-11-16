@@ -31,6 +31,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(Ty::Unit) => self.lit("None"),
             Shape::Scalar(Ty::Ptr) => unreachable!("not a Yan Core type"),
             Shape::Fn(..) => self.lit("<function>"),
+            Shape::Named(k) => self.walk_call(knot::Walk::Show(nested), k, v)[0].clone(),
             Shape::Chan(..) => return unsupported("`show` of a channel end"),
             Shape::Ptr => return unsupported("`show` of a `Ptr`"),
             Shape::Actor(_) => return unsupported("`show` of an actor handle"),
@@ -436,6 +437,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Self::ops(&out)
             }
             Shape::Fn(..) => return unsupported("a copy of a closure"),
+            Shape::Named(k) => self.walk_call(knot::Walk::Copy, k, &v),
             Shape::Chan(_, sender) => {
                 self.emit(Inst::Rt {
                     dst: None,

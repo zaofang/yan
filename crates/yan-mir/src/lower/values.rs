@@ -91,6 +91,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             | Shape::Chan(..)
             | Shape::Arena
             | Shape::Set(_) => true,
+            // A type recurs only behind a block.
+            Shape::Named(_) => true,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_heap(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_heap),
             Shape::Sum(_, vs) => vs
@@ -109,6 +111,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         match s {
             Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr | Shape::Ref(_) => {}
             Shape::Arena => self.free(RtFn::ArenaFree, v[0].clone()),
+            Shape::Named(k) => {
+                self.walk_call(knot::Walk::Drop, k, v);
+            }
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str | Shape::Path | Shape::WinPath => self.free(RtFn::StrFree, v[0].clone()),
             Shape::Bytes | Shape::ByteArray | Shape::BigInt => {
@@ -487,7 +492,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 None => return unsupported(format!("`?` on `{}`", c.path.join("."))),
             },
         };
-        let (Some((_, ok_at, _)), Some((_, err_at, efs)), Some((_, _, mine_e))) = (
+        let (Some((_, ok_at, okfs)), Some((_, err_at, efs)), Some((_, _, mine_e))) = (
             theirs.variant("Ok"),
             theirs.variant("Err"),
             mine.variant("Err"),
@@ -495,6 +500,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             return unsupported("`?` outside a failing function");
         };
         let (e, mine_e) = (efs[0].1.clone(), mine_e[0].1.clone());
+        let got = okfs[0].1.clone();
         let r = self.var(theirs);
         let v = Self::ops(&r);
         self.call(c, Some(r))?;
@@ -506,6 +512,10 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.unwind(drops, Some((&mine_e, &ev)));
         self.ret(Self::variant_value(&mine, "Err", ev));
         self.cur = ok;
+        // A statement `c?` asks for `Unit` and drops the value it discards.
+        if *want == Shape::Scalar(Ty::Unit) && got != *want {
+            self.glue(&got, &v[ok_at..ok_at + got.width()]);
+        }
         Ok(v[ok_at..ok_at + want.width()].to_vec())
     }
 
@@ -549,6 +559,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                     .map(|(o, e)| result(o, e))
             }
             Some(id::STD_ERROR_CONTEXT) => self.context_shape(c)?,
+            Some(i @ (id::STD_JSON_PARSE_VALUE | id::STD_JSON_PARSE_FLOAT)) => {
+                Some(self.json_parse_result(i == id::STD_JSON_PARSE_FLOAT)?)
+            }
             Some(id::STD_PRELUDE_CHR) => Some(self.encoding_shape(Shape::Char)?),
             Some(id::STD_ENCODING_BASE64_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
             Some(id::STD_ENCODING_HEX_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),

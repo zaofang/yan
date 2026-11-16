@@ -129,7 +129,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     /// `Some(x)` when `ok`, else `None`, into `dst`; `x` is built in the `Some` branch.
-    fn some_if(
+    pub(super) fn some_if(
         &mut self,
         ok: Operand,
         dst: &Option<Var>,

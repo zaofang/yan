@@ -522,6 +522,11 @@ pub enum RtFn {
     JsonDump,
     /// `(Ptr slots) -> Str`: the text of a `JsonError`.
     JsonErrorShow,
+    /// `(Ptr out, Str, i64 max_depth, i64 float)`: the slots of `Result[Value, JsonError]`, or
+    /// of `Result[float, JsonError]` when `float` is 1.
+    JsonParseValue,
+    /// `(Ptr value, i64 tag, i64 indent) -> Str`: `indent` counts when `tag` is 0.
+    JsonDumpValue,
     /// `(Ptr out, Str, Str, Str)`: the slots of `Result[list[T], CsvError]` into `out`.
     CsvParse,
     /// `(List rows, Str delimiter, Str schema) -> Str`
@@ -741,6 +746,7 @@ impl RtFn {
                 | RtFn::MapCopy
                 | RtFn::JsonDump
                 | RtFn::JsonErrorShow
+                | RtFn::JsonDumpValue
                 | RtFn::CsvDump
                 | RtFn::CsvErrorShow
         )
