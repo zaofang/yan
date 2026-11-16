@@ -17,10 +17,12 @@ mod race;
 mod rt;
 
 use mem::{Byte, Memory};
-use race::Race;
+use race::{Kind, Race};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use yan_mir::{ArmEvent, BlockId, Func, FuncId, Inst, Local, Operand, Program, Term, Ty};
+use yan_mir::{
+    ArmEvent, AtomicOp, BlockId, Func, FuncId, Inst, Local, MemOrder, Operand, Program, Term, Ty,
+};
 
 /// Why a run stopped before `main` returned.
 #[derive(Debug)]
@@ -191,6 +193,16 @@ impl Machine<'_> {
             return Ok(());
         }
         match self.race.borrow_mut().access(addr, write) {
+            Some(msg) => Err(Stop::Ub(1, msg)),
+            None => Ok(()),
+        }
+    }
+
+    fn atomic_raced(&self, addr: u64, kind: Kind, order: MemOrder) -> Result<(), Stop> {
+        if !self.ub {
+            return Ok(());
+        }
+        match self.race.borrow_mut().atomic(addr, kind, order) {
             Some(msg) => Err(Stop::Ub(1, msg)),
             None => Ok(()),
         }
@@ -418,10 +430,10 @@ impl Machine<'_> {
                 ty,
                 args,
                 ptr,
-                ..
+                order,
+                failure,
             } => {
-                // One step, so no task interleaves. The word is not race-shadowed: atomic
-                // edges and the atomic-versus-plain check are slice S4 (#1369).
+                // One step, so no task interleaves. The word is shadowed as one atomic access.
                 let p = self.eval(fr, ptr, f)?.addr();
                 let a = args
                     .iter()
@@ -432,6 +444,13 @@ impl Machine<'_> {
                 if let Some(w) = new {
                     self.write_word_with(p, w, false)?;
                 }
+                let (kind, order) = match (op, new) {
+                    (AtomicOp::Load, _) => (Kind::Read, order),
+                    (AtomicOp::Store, _) => (Kind::Write, order),
+                    (AtomicOp::Cas, None) => (Kind::Read, failure),
+                    _ => (Kind::Rmw, order),
+                };
+                self.atomic_raced(p, kind, *order)?;
                 match dst {
                     Some(d) => {
                         let v = self.typed(f.locals[*d as usize], old)?;
@@ -439,6 +458,12 @@ impl Machine<'_> {
                     }
                     None => Ok(()),
                 }
+            }
+            Inst::Fence { order } => {
+                if self.ub {
+                    self.race.borrow_mut().fence(*order);
+                }
+                Ok(())
             }
             Inst::Arm(e) => {
                 let mut r = self.race.borrow_mut();

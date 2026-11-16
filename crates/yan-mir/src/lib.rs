@@ -178,6 +178,11 @@ pub enum Inst {
         ptr: Operand,
         args: Vec<Operand>,
     },
+    /// `std.sync.atomic.fence`; backends run it sequentially consistent, the machine's race
+    /// detector reads `order`.
+    Fence {
+        order: MemOrder,
+    },
     /// A boundary of a sequential `par`'s arms, for the machine's race detector; no code.
     Arm(ArmEvent),
 }

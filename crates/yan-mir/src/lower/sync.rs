@@ -64,6 +64,17 @@ impl<'m> Fn<'_, 'm> {
 
     pub(super) fn atomic_call(&mut self, id: registry::Id, c: &y::Call, dst: Option<Var>) -> R<()> {
         let args = Self::value_args(c)?;
+        match (id, args.as_slice()) {
+            (id::STD_SYNC_ATOMIC_FENCE, [(_, o)]) => {
+                let order = self.mem_order(o)?;
+                self.emit(Inst::Fence { order });
+                return Ok(());
+            }
+            // The cooperative scheduler and the backends order everything; compiler fences
+            // constrain only the optimizer, which has no atomics to move.
+            (id::STD_SYNC_ATOMIC_COMPILER_FENCE, [_]) => return Ok(()),
+            _ => {}
+        }
         let Some(Shape::Scalar(ty @ (Ty::Int(_) | Ty::Bool))) = self.targ(c)? else {
             return unsupported("an `Atomic` of a type that is not an integer or `bool`");
         };
@@ -184,9 +195,6 @@ impl<'m> Fn<'_, 'm> {
                 self.atomic(Some(d), rmw(id).expect("checked"), ty, order, p, v);
                 set(self, vec![Operand::Local(d)]);
             }
-            // The cooperative scheduler and the backends order everything; compiler fences
-            // constrain only the optimizer, which has no atomics to move.
-            (id::STD_SYNC_ATOMIC_COMPILER_FENCE, [_]) => {}
             _ => {
                 return unsupported(format!(
                     "call of `{}` with these arguments",

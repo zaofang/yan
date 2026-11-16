@@ -560,7 +560,7 @@ fn map_inst(i: &mut Inst, m: &mut impl FnMut(Local) -> Local) {
             *local = m(*local);
             Vec::new()
         }
-        Inst::Arm(_) => Vec::new(),
+        Inst::Arm(_) | Inst::Fence { .. } => Vec::new(),
     };
     ops.into_iter().for_each(|o| map_op(o, m));
 }
@@ -612,7 +612,7 @@ fn uses_defs(i: &Inst) -> (Vec<Local>, Vec<Local>) {
             dst.iter().copied().collect(),
         ),
         Inst::AddrOf { dst, local } => (vec![*local], vec![*dst]),
-        Inst::Arm(_) => (Vec::new(), Vec::new()),
+        Inst::Arm(_) | Inst::Fence { .. } => (Vec::new(), Vec::new()),
     }
 }
 
