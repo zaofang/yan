@@ -1,0 +1,27 @@
+-- spec: 6.7, 9.5
+-- note: a send on an unbuffered channel follows the receiver that waited, so the receiver's earlier write is ordered (#1319)
+-- ub: none
+
+writer(p: Ptr[int], var s: Sender[int]) fail Cancelled uses nondet =
+  s.send(5)?
+  unsafe
+    p.write(2)
+
+reader(p: Ptr[int], var a: Receiver[int]) -> int fail Cancelled uses nondet =
+  unsafe
+    p.write(1)
+  let got = a.recv()? else 0
+  got
+
+main() fail Cancelled uses nondet =
+  let (ta, ra) = Channel[int](0)
+  var x = 0
+  let p = Ptr.of(&x)
+  var a = ra
+  var sa = ta
+  var out = 0
+  with sched = sequential()
+    par concurrent
+      writer(p, &sa)?
+      out = reader(p, &a)?
+  assert out == 5
