@@ -169,6 +169,10 @@ pub struct Manifest {
     pub overrides: Vec<(String, String)>,
     /// The Python requirements of `python` (R638).
     pub python: Vec<String>,
+    /// The packages the root consents to hold `ffi` modules or extern blocks (R1018).
+    pub allow_ffi: Vec<String>,
+    /// Set by the caller: the root of this package does not name it in its `allow_ffi` (E023).
+    pub ffi_unconsented: bool,
 }
 
 /// The fields of the manifest table (19.1).
@@ -352,6 +356,8 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
         has_overrides: !reqs("overrides").is_empty(),
         overrides: pairs("overrides"),
         python: strs("python").unwrap_or_default(),
+        allow_ffi: strs("allow_ffi").unwrap_or_default(),
+        ffi_unconsented: false,
         requirements: ["dependencies", "dev_dependencies", "tools"]
             .into_iter()
             .flat_map(reqs)
