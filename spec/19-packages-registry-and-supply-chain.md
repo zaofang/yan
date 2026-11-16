@@ -19,7 +19,7 @@ The design behind this section is the Yan supply-chain security design.
 | `exclude` | versions version selection must skip |
 | `capabilities` | the capability ceiling, with `net.only` patterns and foreign-library capabilities (7.4) |
 | `platform` | a capability bundle with default handlers (`cli`, `service`, `job`, `wasm`, `freestanding`); sets the ceiling, never replaces `uses` |
-| `allow_ffi` | packages allowed to contain extern blocks |
+| `allow_ffi` | the packages, by name and including the root, that may contain `ffi` modules or extern blocks (12, R1018); read in the root only |
 | `native` | static or dynamic linking per target; C sources (12.8) |
 | `preview` | opted-in preview names (20.6); forbidden in published packages at 1.0 or later |
 | `members` | workspace members, sharing one lock and cache (root only) |
@@ -58,7 +58,7 @@ Optional features and conditional dependencies are a non-goal for 1.0; platform 
 
 ### 19.2 Capability ceilings
 
-`capabilities` is a ceiling enforced transitively: using a capability the package did not declare is E314, including through dependencies. At publish the registry computes each version's effective capability set per `pub` item, with attenuations, plus extern libraries, `uses none` claims, `ffi` modules and unsafe items. It goes into the version's `.info`, the log leaf and the provenance, together with each `pub` item's contracts proven by certificates the registry re-checked (R608). The declared ceiling MUST contain it, or publish fails (E006). A ceiling that lists an unconfined capability (7.1) is shown as granting every capability (R673). Approvals and ceilings compare against this computed set.
+`capabilities` is a ceiling enforced transitively: using a capability the package did not declare is E314, including through dependencies. At publish the registry computes each version's effective capability set per `pub` item, with attenuations, plus extern libraries, `uses none` claims, `ffi` modules and unsafe items. It goes into the version's `.info`, the log leaf and the provenance, together with each `pub` item's contracts proven by certificates the registry re-checked (R608). The declared ceiling MUST contain it, or publish fails (E006). A ceiling that lists an unconfined capability (7.1) is shown as granting every capability (R673). Every extern library of a package, `uses none` or not, is a capability that its ceiling MUST list, and the ceilings of its dependencies are enforced transitively (R1020). Consent to foreign code is separate: resolving the root's dependencies (`yan lock`, `add`, `update`, a locked build) refuses a chosen package whose computed set holds an `ffi` module or extern library when the root's `allow_ffi` does not name it, E023, and an update that gives a package its first `ffi` module is refused the same way (R1019). Approvals and ceilings compare against this computed set.
 
 ### 19.3 Registry, index and log
 
