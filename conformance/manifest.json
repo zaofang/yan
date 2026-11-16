@@ -5315,6 +5315,19 @@
    "exit": 0
   },
   {
+   "path": "yag/run/collections/list_compare_nested.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "5.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "True False\nTrue True True\nTrue False True\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/collections/list_show.yag",
    "kind": "run",
    "milestone": "M1",
@@ -8303,6 +8316,32 @@
    "exit": 0
   },
   {
+   "path": "yag/run/types/recursive_boxed_fields.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "5.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "6 Node(left=Node(left=Leaf(value=1), right=Leaf(value=2)), right=Leaf(value=3))\nTrue False True\n2 Push(top='a', rest=Push(top='b', rest=Empty()))\nB(s='x', a=A(n=7, b=None)) 7\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/types/recursive_through_list.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "5.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "8\nSum(terms=[Num(n=2), Neg(e=Num(n=5)), Sum(terms=[Num(n=10), Num(n=1)])])\nTrue False True\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/wire/csv_item_enum_cells.yag",
    "kind": "run",
    "milestone": "M1",
@@ -9466,12 +9505,14 @@
     "3",
     "15.2"
    ],
-   "rows": [],
+   "rows": [
+    "R1013"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "E903",
-     "line": 5,
+     "line": 6,
      "col": 36
     }
    ]
@@ -9485,12 +9526,14 @@
     "12.1",
     "15.2"
    ],
-   "rows": [],
+   "rows": [
+    "R1012"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "E903",
-     "line": 9,
+     "line": 10,
      "col": 27
     }
    ]
@@ -9598,6 +9641,25 @@
    ]
   },
   {
+   "path": "yn/fail/ffi/e912_unsafe_fn_as_value.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "3"
+   ],
+   "rows": [
+    "R1016"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E912",
+     "line": 11,
+     "col": 11
+    }
+   ]
+  },
+  {
    "path": "yn/fail/ffi/extern_halo_accepted.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -9631,7 +9693,11 @@
     "12.1",
     "15.2"
    ],
-   "rows": [],
+   "rows": [
+    "R1010",
+    "R1012",
+    "R1015"
+   ],
    "flags": [],
    "expect": []
   },
@@ -11192,12 +11258,14 @@
     "12",
     "15.2"
    ],
-   "rows": [],
+   "rows": [
+    "R1011"
+   ],
    "flags": [],
    "expect": [
     {
      "code": "E901",
-     "line": 5,
+     "line": 6,
      "col": 1
     }
    ]
@@ -13061,7 +13129,9 @@
     "6.8",
     "6.9"
    ],
-   "rows": [],
+   "rows": [
+    "R1014"
+   ],
    "flags": [],
    "expect": [],
    "ub": "none"
@@ -13075,7 +13145,9 @@
     "6.8",
     "6.9"
    ],
-   "rows": [],
+   "rows": [
+    "R1014"
+   ],
    "flags": [],
    "expect": [],
    "ub": "16"

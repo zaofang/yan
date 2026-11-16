@@ -1,0 +1,27 @@
+# spec: 5.1
+# note: a sum that holds itself through a list: evaluated, shown, copied and compared
+# stdout:
+# 8
+# Sum(terms=[Num(n=2), Neg(e=Num(n=5)), Sum(terms=[Num(n=10), Num(n=1)])])
+# True False True
+
+type Expr = Num(n: int) | Sum(terms: list[Expr]) | Neg(e: Expr)
+
+def ev(e: Expr) -> int:
+    match e:
+        case Num(n=n):
+            return n
+        case Neg(e=x):
+            return 0 - ev(x)
+        case Sum(terms=ts):
+            s = 0
+            for x in ts:
+                s = s + ev(x)
+            return s
+
+pub def main() uses io:
+    e = Sum([Num(2), Neg(Num(5)), Sum([Num(10), Num(1)])])
+    f = e.copy()
+    io.print(f"{ev(e)}")
+    io.print(f"{f}")
+    io.print(f"{e == f} {e == Sum([Num(2)])} {Sum([]) == Sum([])}")

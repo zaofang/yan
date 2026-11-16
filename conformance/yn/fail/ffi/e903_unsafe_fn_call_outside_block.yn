@@ -1,6 +1,7 @@
 -- spec: 3, 12.1, 15.2
--- note: proposed by RFC 0076 D3; a case under a directory named ffi is checked as an ffi module (assumption A9)
--- expect: E903 at 9:27
+-- rows: R1012
+-- note: RFC 0076 D3; a case under a directory named ffi is checked as an ffi module (assumption A9)
+-- expect: E903 at 10:27
 
 unsafe first(p: Ptr[int]) -> int =
   unsafe

@@ -1,0 +1,12 @@
+-- spec: 3
+-- rows: R1016
+-- note: RFC 0076 D7; an unsafe fn named outside a call (assumptions A9, A11)
+-- expect: E912 at 11:11
+
+unsafe first(p: Ptr[int]) -> int =
+  unsafe
+    p.read()
+
+f() -> int =
+  let g = first
+  0

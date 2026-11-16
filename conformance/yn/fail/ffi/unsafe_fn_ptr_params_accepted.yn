@@ -1,5 +1,6 @@
 -- spec: 3, 12.1, 15.2
--- note: proposed by RFC 0076 D1, D3, D6; Ptr parameters and a call inside unsafe (assumptions A9, A11)
+-- rows: R1010, R1012, R1015
+-- note: RFC 0076 D1, D3, D6; Ptr parameters and a call inside unsafe (assumptions A9, A11)
 
 unsafe get(p: Ptr[int], i: int, n: int) -> int =
   pre 0 <= i and i < n

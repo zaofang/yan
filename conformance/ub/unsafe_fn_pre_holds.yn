@@ -1,5 +1,6 @@
 -- spec: 6.7, 6.8, 6.9
--- note: proposed by RFC 0076 D5; every call meets the pre (assumption A11)
+-- rows: R1014
+-- note: RFC 0076 D5; every call meets the pre (assumption A11)
 -- ub: none
 
 unsafe get(p: Ptr[int], i: int, n: int) -> int =

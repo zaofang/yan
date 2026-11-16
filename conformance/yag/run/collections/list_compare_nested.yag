@@ -1,0 +1,11 @@
+# spec: 5.1
+# note: equality and order of lists of lists, and of tuples holding lists, element by element
+# stdout:
+# True False
+# True True True
+# True False True
+
+pub def main() uses io:
+    io.print(f"{[[1], [2, 3]] == [[1], [2, 3]]} {[[1], [2, 3]] == [[1], [2]]}")
+    io.print(f"{[[1], [2, 3]] < [[1], [2, 4]]} {[[1]] < [[1], []]} {[[2]] > [[1, 9]]}")
+    io.print(f"{([1], 'a') < ([1], 'b')} {([2], 'a') <= ([1], 'b')} {(['x'], 1) == (['x'], 1)}")
