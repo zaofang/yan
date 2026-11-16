@@ -70,7 +70,7 @@ pub(super) static BINDS: &[(yan_std::registry::Id, Bind)] = &[
     (
         STD_FS_READ,
         Bind::CapFallible(|it, a| match a {
-            [h, Str(path)] => Ok(fs_read(h, path, it.test)),
+            [h, Str(path)] => Ok(fs_read(h, path, it.test, None)),
             _ => bad_args(STD_FS_READ),
         }),
     ),
@@ -231,7 +231,10 @@ fn lexical(path: &str) -> Option<Vec<&str>> {
 
 /// `fs.only` and `fs.sub` resolve paths beneath their grants, never above them (R674). A
 /// `fake_fs` handler is its file map.
-fn fs_read(h: &Value, path: &str, test: bool) -> Result<Value, Value> {
+///
+/// `trusted` is how many leading components of `path` are the outermost grant root. A host read
+/// under a grant opens everything after it without following symlinks.
+fn fs_read(h: &Value, path: &str, test: bool, trusted: Option<usize>) -> Result<Value, Value> {
     let denied = || fs_error(path, "not granted");
     match h {
         Dict(files) => files
@@ -244,8 +247,11 @@ fn fs_read(h: &Value, path: &str, test: bool) -> Result<Value, Value> {
             };
             let rel = lexical(path).filter(|_| !path.starts_with('/'));
             let Some(rel) = rel else { return Err(denied()) };
-            let joined = format!("{}/{}", dir.trim_end_matches('/'), rel.join("/"));
-            fs_read(&fields[0].1, &joined, test)
+            let root = lexical(dir)
+                .unwrap_or_else(|| dir.split('/').filter(|c| !matches!(*c, "" | ".")).collect());
+            let lead = if dir.starts_with('/') { "/" } else { "" };
+            let joined = format!("{lead}{}", [&root[..], &rel[..]].concat().join("/"));
+            fs_read(&fields[0].1, &joined, test, Some(root.len()))
         }
         Data { name, fields } if name == "OnlyFs" => {
             let List(grants) = &fields[1].1 else {
@@ -255,28 +261,29 @@ fn fs_read(h: &Value, path: &str, test: bool) -> Result<Value, Value> {
             let Some(p) = lexical(path) else {
                 return Err(denied());
             };
-            let beneath = grants.iter().any(|g| match g {
-                Str(g) => {
-                    g.starts_with('/') == abs && lexical(g).is_some_and(|g| p.starts_with(&g))
-                }
-                _ => false,
+            let root = grants.iter().find_map(|g| match g {
+                Str(g) if g.starts_with('/') == abs => lexical(g).filter(|g| p.starts_with(g)),
+                _ => None,
             });
-            if !beneath {
+            let Some(root) = root else {
                 return Err(denied());
-            }
+            };
             let resolved = format!("{}{}", if abs { "/" } else { "" }, p.join("/"));
-            fs_read(&fields[0].1, &resolved, test)
+            fs_read(&fields[0].1, &resolved, test, Some(root.len()))
         }
-        Cap(_) if !test => std::fs::read_to_string(path)
-            .map(|s| Str(s.into()))
-            .map_err(|e| {
-                let reason = match e.kind() {
-                    std::io::ErrorKind::NotFound => "not found".to_owned(),
-                    std::io::ErrorKind::PermissionDenied => "permission denied".to_owned(),
-                    _ => e.to_string(),
-                };
-                fs_error(path, &reason)
-            }),
+        Cap(_) if !test => match trusted {
+            Some(trusted) => {
+                let comps: Vec<&str> = path
+                    .split('/')
+                    .filter(|c| !matches!(*c, "" | "."))
+                    .collect();
+                let base = if path.starts_with('/') { "/" } else { "." };
+                yan_rt::beneath::read_confined(base, &comps, trusted)
+            }
+            None => yan_rt::abi::fs_read(path),
+        }
+        .map(|s| Str(s.into()))
+        .map_err(|reason| fs_error(path, &reason)),
         _ => Err(fs_error(path, "no host fs handler")),
     }
 }
