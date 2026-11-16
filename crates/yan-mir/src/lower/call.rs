@@ -1101,7 +1101,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 } else if text(&sx) {
                     self.rt(RtFn::StrEq, Ty::Bool, vec![x[0].clone(), y[0].clone()])
                 } else {
-                    self.key_eq(&sx, x, y, &name)?
+                    self.eq_value(&sx, &x, &y)?
                 };
                 if id == id::STD_CMP_NE {
                     r = self.scalar_op(ScalarOp::Not, Ty::Bool, vec![r]);
@@ -1116,15 +1116,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 if sx != sy {
                     return unsupported(format!("call of `{name}` on this type"));
                 }
-                let mut schema = String::new();
-                if Self::key_schema(&sx, &mut schema).is_err() {
-                    return unsupported(format!("call of `{name}` on this type"));
-                }
-                let schema = self.lit(&schema);
-                let (x, y) = (self.key_buf(x), self.key_buf(y));
-                let o = self.rt(RtFn::KeyCmp, I64, vec![schema, x.clone(), y.clone()]);
-                self.free(RtFn::EnvFree, x);
-                self.free(RtFn::EnvFree, y);
+                let o = self.cmp_value(&sx, &x, &y)?;
                 let r = match id {
                     id::STD_CMP_LT => self.scalar_op(ScalarOp::Le, I64, vec![o, Operand::Int(-1)]),
                     id::STD_CMP_LE => self.scalar_op(ScalarOp::Le, I64, vec![o, Operand::Int(0)]),

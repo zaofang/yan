@@ -383,11 +383,15 @@ pub unsafe extern "C" fn yan_rt_base64_decode(s: *const String, url: u8) -> *mut
 /// `invalid <kind> at <at>` for an `EncodingError` whose reason is variant `reason` (R583).
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_encoding_error_show(at: i64, reason: i64) -> *mut String {
+    str_block(&encoding_error_show(at, reason))
+}
+
+pub fn encoding_error_show(at: i64, reason: i64) -> String {
     let kind = match reason {
         0 => "UTF-8",
         1 => "hex",
         3 => "scalar value",
         _ => "base64",
     };
-    str_block(&format!("invalid {kind} at {at}"))
+    format!("invalid {kind} at {at}")
 }

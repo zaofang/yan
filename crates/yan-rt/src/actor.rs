@@ -216,6 +216,8 @@ pub(crate) struct State {
     restarts: VecDeque<usize>,
     /// The closure the last [`WORK`] asks for.
     work: [u64; 5],
+    /// The work slots hold a message, not a restart.
+    work_message: bool,
     start: Instant,
     /// `(actor, channel, node of the watcher)` of each monitor not yet delivered.
     pub(crate) monitors: Vec<(usize, usize, usize)>,
@@ -242,6 +244,7 @@ impl Default for State {
             doomed: Vec::new(),
             restarts: VecDeque::new(),
             work: [0; 5],
+            work_message: false,
             monitors: Vec::new(),
             defer_text: false,
             stopped: Vec::new(),
@@ -289,6 +292,7 @@ fn queued(st: &mut State, id: usize) -> bool {
     };
     a.running = true;
     st.work = [thunk, code, env, args, id as u64];
+    st.work_message = true;
     true
 }
 
@@ -313,6 +317,17 @@ pub extern "C" fn yan_rt_actor_idle() -> u64 {
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_actor_arg(i: u64) -> u64 {
     with(|st| st.work[i as usize])
+}
+
+/// The actor of the work slots and, for a message, its arguments block.
+pub fn work_target() -> (u64, Option<u64>) {
+    with(|st| {
+        if st.work_message {
+            (st.work[4], Some(st.work[3]))
+        } else {
+            (st.work[3], None)
+        }
+    })
 }
 
 /// The message in the work slots ran.
@@ -805,6 +820,7 @@ pub extern "C" fn yan_rt_actor_restart_next() -> u64 {
         Some(c) => {
             let [thunk, code, env] = st.actors[c].start;
             st.work = [thunk, code, env, c as u64, 0];
+            st.work_message = false;
             1
         }
         None => 0,

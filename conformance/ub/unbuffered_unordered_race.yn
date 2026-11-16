@@ -1,0 +1,27 @@
+-- spec: 6.7, 9.5
+-- note: writes on both sides of an unbuffered rendezvous that precede it are unordered (#1319)
+-- ub: 1
+
+writer(p: Ptr[int], var s: Sender[int]) fail Cancelled uses nondet =
+  unsafe
+    p.write(2)
+  s.send(5)?
+
+reader(p: Ptr[int], var a: Receiver[int]) -> int fail Cancelled uses nondet =
+  unsafe
+    p.write(1)
+  let got = a.recv()? else 0
+  got
+
+main() fail Cancelled uses nondet =
+  let (ta, ra) = Channel[int](0)
+  var x = 0
+  let p = Ptr.of(&x)
+  var a = ra
+  var sa = ta
+  var out = 0
+  with sched = sequential()
+    par concurrent
+      writer(p, &sa)?
+      out = reader(p, &a)?
+  assert out == 5

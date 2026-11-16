@@ -326,6 +326,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Zone(z) => z.id().to_owned(),
         ByteArray(b) => format!("bytearray({})", super::encoding::repr(b)),
         Ptr(p) => format!("Ptr({:#x})", p.addr),
+        Arena(_) => "Arena".into(),
     }
 }
 

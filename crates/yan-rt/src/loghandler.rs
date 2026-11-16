@@ -87,13 +87,7 @@ pub extern "C" fn yan_rt_log_new(sink: i64, min: i64) -> u64 {
 }
 
 /// A child of `h` named `name` with more `fields`.
-///
-/// # Safety
-/// `name` is a `Str` block and `fields` a `list[tuple[str, str]]` block.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_log_span(h: u64, name: *const String, fields: *const List) -> u64 {
-    // SAFETY: the caller's contract.
-    let (name, fields) = unsafe { ((*name).clone(), pairs(fields)) };
+pub fn span(h: u64, name: String, fields: Vec<(String, String)>) -> u64 {
     HANDLERS.with(|hs| {
         let mut hs = hs.borrow_mut();
         let mut child = hs[h as usize].clone();
@@ -108,23 +102,21 @@ pub unsafe extern "C" fn yan_rt_log_span(h: u64, name: *const String, fields: *c
     })
 }
 
-/// An event of level `rank` (debug 0 to error 3).
-///
 /// # Safety
-/// `msg` is a `Str` block and `fields` a `list[tuple[str, str]]` block.
+/// `name` is a `Str` block and `fields` a `list[tuple[str, str]]` block.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_log_event(
-    h: u64,
-    rank: i64,
-    msg: *const String,
-    fields: *const List,
-) {
+pub unsafe extern "C" fn yan_rt_log_span(h: u64, name: *const String, fields: *const List) -> u64 {
+    // SAFETY: the caller's contract.
+    let (name, fields) = unsafe { ((*name).clone(), pairs(fields)) };
+    span(h, name, fields)
+}
+
+/// An event of level `rank` (debug 0 to error 3).
+pub fn event(h: u64, rank: i64, msg: &str, fields: &[(String, String)]) {
     let handler = HANDLERS.with(|hs| hs.borrow()[h as usize].clone());
     if handler.sink == DISCARD || rank < handler.min {
         return;
     }
-    // SAFETY: the caller's contract.
-    let (msg, fields) = unsafe { ((*msg).clone(), pairs(fields)) };
     let mut line = String::new();
     if handler.sink == STDERR {
         let now = std::time::SystemTime::now()
@@ -136,17 +128,31 @@ pub unsafe extern "C" fn yan_rt_log_event(
     line += &format!(
         "level={} msg={}",
         ["debug", "info", "warn", "error"][rank.clamp(0, 3) as usize],
-        quoted(&msg)
+        quoted(msg)
     );
     if !handler.span.is_empty() {
         line += &format!(" span={}", quoted(&handler.span));
     }
     push_pairs(&handler.fields, &mut line);
-    push_pairs(&fields, &mut line);
+    push_pairs(fields, &mut line);
     if handler.sink == STDOUT {
         // SAFETY: a line of UTF-8.
         unsafe { yan_rt_print(line.as_ptr(), line.len()) };
     } else {
         let _ = writeln!(std::io::stderr(), "{line}");
     }
+}
+
+/// # Safety
+/// `msg` is a `Str` block and `fields` a `list[tuple[str, str]]` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_log_event(
+    h: u64,
+    rank: i64,
+    msg: *const String,
+    fields: *const List,
+) {
+    // SAFETY: the caller's contract.
+    let (msg, fields) = unsafe { (&*msg, pairs(fields)) };
+    event(h, rank, msg, &fields);
 }

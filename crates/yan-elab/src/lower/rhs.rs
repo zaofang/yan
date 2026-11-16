@@ -406,9 +406,15 @@ impl Lower<'_, '_, '_> {
                 };
                 self.rhs(&c, want)?
             }
-            K::Attr(..) => {
-                let (p, t) = self.place(e)?;
-                (Rhs::Proj(p), t)
+            K::Attr(b, f, fsp) => {
+                let bp = self.place(b).map_err(|u| u.at(e.span))?;
+                match self.bits_record(&bp.1) {
+                    Some(r) => self.bits_read(bp.0, &r, f, *fsp, at)?,
+                    None => {
+                        let (p, t) = self.attr_place(bp, f, *fsp).map_err(|u| u.at(e.span))?;
+                        (Rhs::Proj(p), t)
+                    }
+                }
             }
             K::Index(b, k) => {
                 let (p, t) = self.place(b)?;
@@ -763,7 +769,8 @@ impl Lower<'_, '_, '_> {
             K::Lambda(ps, body) => self.lambda(ps, body, want)?,
             K::Cast(x, j::Type::Named { path, args })
                 if args.is_empty()
-                    && matches!(path.as_slice(), [n] if n == "i64" || n == "f64") =>
+                    && matches!(path.as_slice(), [n] if n == "i64" || n == "f64")
+                    && !self.fixed_local(x) =>
             {
                 let conv = if path[0] == "i64" { "int" } else { "float" };
                 let arg = j::Arg {
@@ -772,6 +779,11 @@ impl Lower<'_, '_, '_> {
                     span: x.span,
                 };
                 return self.builtin(conv, &[arg], at, want);
+            }
+            K::Cast(x, j::Type::Named { path, args }) if args.is_empty() && path.len() == 1 => {
+                return self
+                    .int_conv("checked_as", &path[0], x, at)
+                    .map(|(r, t, _)| (r, t));
             }
             K::Cast(..) => return unsupported("`as` to a fixed-width type"),
             // Yan's `try f(x)`: the call's failure as a `Result` value, as Yan Agent reifies a failing

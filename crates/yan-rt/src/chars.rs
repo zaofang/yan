@@ -52,35 +52,41 @@ pub unsafe extern "C" fn yan_rt_char_at(s: *const String, i: i64) -> i64 {
 }
 
 /// `is_digit` (0), `is_alpha` (1), `is_alnum` (2), `is_upper` (3), `is_lower` (4), `is_space` (5).
-#[unsafe(no_mangle)]
-pub extern "C" fn yan_rt_char_pred(op: i64, c: i64) -> u8 {
+pub fn char_pred(op: i64, c: i64) -> bool {
     let c = char_of(c);
-    u8::from(match op {
+    match op {
         0 => c.is_ascii_digit(),
         1 => c.is_alphabetic(),
         2 => c.is_alphanumeric(),
         3 => c.is_uppercase(),
         4 => c.is_lowercase(),
         _ => c.is_whitespace(),
-    })
+    }
 }
 
-/// `isdigit` (0), `isalpha` (1), `isalnum` (2), `isupper` (3), `islower` (4), `isspace` (5) of a `Str`.
-///
-/// # Safety
-/// `s` is a `Str` block.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_str_pred(op: i64, s: *const String) -> u8 {
-    // SAFETY: the caller's contract.
-    let s = unsafe { &*s };
-    u8::from(match op {
+pub extern "C" fn yan_rt_char_pred(op: i64, c: i64) -> u8 {
+    u8::from(char_pred(op, c))
+}
+
+/// `isdigit` (0), `isalpha` (1), `isalnum` (2), `isupper` (3), `islower` (4), `isspace` (5) of a `str`.
+pub fn str_pred(op: i64, s: &str) -> bool {
+    match op {
         0 => !s.is_empty() && s.chars().all(|c| c.is_ascii_digit()),
         1 => !s.is_empty() && s.chars().all(char::is_alphabetic),
         2 => !s.is_empty() && s.chars().all(char::is_alphanumeric),
         3 => s.chars().any(char::is_uppercase) && !s.chars().any(char::is_lowercase),
         4 => s.chars().any(char::is_lowercase) && !s.chars().any(char::is_uppercase),
         _ => !s.is_empty() && s.chars().all(char::is_whitespace),
-    })
+    }
+}
+
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_str_pred(op: i64, s: *const String) -> u8 {
+    // SAFETY: the caller's contract.
+    u8::from(str_pred(op, unsafe { &*s }))
 }
 
 /// Non-overlapping occurrences of `p` in `s`.

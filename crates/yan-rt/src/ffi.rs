@@ -76,7 +76,7 @@ fn symbol(link: &str, sym: &str) -> Result<usize, String> {
 }
 
 /// Narrow the raw register `v` to the result type `kind`.
-fn narrow(v: i64, kind: u8) -> i64 {
+pub fn narrow(v: i64, kind: u8) -> i64 {
     let bits = u32::from(kind & 0x7f);
     if bits == 0 || bits >= 64 {
         return v;

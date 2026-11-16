@@ -259,7 +259,7 @@ pub(crate) struct Globals {
     /// Records marked `@layout(c)` (12.3).
     pub layout_c: HashSet<String>,
     /// Records marked `@layout(bits(uN))` (5.2).
-    pub layout_bits: HashSet<String>,
+    pub layout_bits: HashMap<String, u32>,
     /// Records marked `@derive(Cli)`, with their `@help` texts (RFC 0019 D14).
     pub clis: HashMap<String, HashMap<String, String>>,
     /// Records and sums marked `@derive(Wire)` (17.4).
@@ -1017,14 +1017,13 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 if it.decorators.iter().any(c_layout) {
                     g.layout_c.insert(c.name.clone());
                 }
-                let bits_layout = |d: &j::Decorator| {
-                    d.path == ["layout"]
-                        && d.args
-                            .as_deref()
-                            .is_some_and(|a| decorators::bits_container(a).is_some())
-                };
-                if it.decorators.iter().any(bits_layout) {
-                    g.layout_bits.insert(c.name.clone());
+                let bits_width = it
+                    .decorators
+                    .iter()
+                    .filter(|d| d.path == ["layout"])
+                    .find_map(|d| decorators::bits_container(d.args.as_deref()?));
+                if let Some(n) = bits_width {
+                    g.layout_bits.insert(c.name.clone(), n);
                 }
                 let cli = |d: &j::Decorator| {
                     d.path == ["derive"]
@@ -1659,7 +1658,10 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             is_pub: it.is_pub,
             path: vec![c.name.clone()],
             tparams: core_tparams(g, &c.name),
-            fields: core_fields(&g.records[&c.name])?,
+            fields: match g.layout_bits.get(&c.name) {
+                Some(&n) => vec![lower::bits::core_field(n)],
+                None => core_fields(&g.records[&c.name])?,
+            },
         }),
         j::ItemKind::Type(t) => match &t.rhs {
             j::TypeRhs::Sum(_) => {

@@ -365,6 +365,49 @@ impl Machine<'_> {
         Ok(Val::I(i128::from(l)))
     }
 
+    /// Runs `f` on the heap in list `l`, ordered by `schema`, and stores the result back.
+    fn heap<R>(
+        &mut self,
+        l: Val,
+        schema: Val,
+        f: impl FnOnce(&mut yan_rt::pq::Heap<'_, &dyn Fn(&[u64], &[u64]) -> std::cmp::Ordering>) -> R,
+    ) -> Result<R, Stop> {
+        let layout = yan_rt::map::Layout::parse(&self.str_of(schema.addr())?);
+        let words = self.list(l)?.words;
+        let mut data = self.list_words(l)?;
+        let err = std::cell::Cell::new(None);
+        let r = {
+            let blocks = MemBlocks(self);
+            let cmp = |x: &[u64], y: &[u64]| {
+                layout.cmp(x, y, &blocks).unwrap_or_else(|e| {
+                    err.set(Some(e));
+                    std::cmp::Ordering::Equal
+                })
+            };
+            f(&mut yan_rt::pq::Heap {
+                data: &mut data,
+                words,
+                cmp: &cmp,
+            })
+        };
+        if let Some(e) = err.into_inner() {
+            return Err(e);
+        }
+        let list = self.list(l)?;
+        list.len = data.len().checked_div(words).unwrap_or(0);
+        let at = list.data;
+        self.write_words(at, &data)?;
+        Ok(r)
+    }
+
+    /// The pairs of a `list[tuple[str, str]]` block.
+    fn log_fields(&mut self, l: Val) -> Result<Vec<(String, String)>, Stop> {
+        self.list_words(l)?
+            .chunks(2)
+            .map(|e| Ok((self.str_of(e[0])?, self.str_of(e[1])?)))
+            .collect()
+    }
+
     fn list_new(&mut self, words: usize) -> u64 {
         let h = self.mem.alloc(8);
         let data = self.mem.alloc(0);
@@ -636,6 +679,19 @@ impl Machine<'_> {
                 self.str_of(a[0].addr())?
                     .starts_with(&self.str_of(a[1].addr())?),
             ),
+            RtFn::StrEnds => Val::B(
+                self.str_of(a[0].addr())?
+                    .ends_with(&self.str_of(a[1].addr())?),
+            ),
+            RtFn::NextUp => Val::F(a[0].float().next_up()),
+            RtFn::NextDown => Val::F(a[0].float().next_down()),
+            RtFn::Ldexp => Val::F(yan_rt::math::ldexp(
+                a[0].float(),
+                i128::from(a[1].int() as i64),
+            )),
+            RtFn::FrexpM => Val::F(yan_rt::math::frexp(a[0].float()).0),
+            RtFn::FrexpE => Val::I(i128::from(yan_rt::math::frexp(a[0].float()).1)),
+            RtFn::Fmod => Val::F(a[0].float() % a[1].float()),
             RtFn::RandSeeded => Val::I(i128::from(yan_rt::rand::seeded(
                 a[0].int() as u64,
                 a[1].int() == 1,
@@ -728,7 +784,6 @@ impl Machine<'_> {
                 Val::I(i128::from(self.new_str([x, m, y][a[2].int() as usize])))
             }
             RtFn::Pown => Val::F(yan_rt::math::pown(a[0].float(), a[1].int())),
-            RtFn::IntToF64 => Val::F(a[0].int() as i64 as f64),
             RtFn::AbsF64 => Val::F(a[0].float().abs()),
             RtFn::TruncF64 => Val::I(i128::from(
                 yan_rt::num::trunc_i64(a[0].float()).ok_or(Stop::Panic("conversion"))?,
@@ -736,6 +791,105 @@ impl Machine<'_> {
             RtFn::RoundF64 => Val::I(i128::from(
                 yan_rt::num::round_i64(a[0].float()).ok_or(Stop::Panic("conversion"))?,
             )),
+            RtFn::Base64 => {
+                let s =
+                    yan_rt::bytes::base64(self.bytes_ref(a[0])?, a[1].int() != 0, a[2].int() != 0);
+                Val::I(i128::from(self.new_str(&s)))
+            }
+            RtFn::BigFromInt => self.new_bytes(yan_rt::bigint::from_int(a[0].int() as i64)),
+            RtFn::BigBin => {
+                let r = yan_rt::bigint::bin(
+                    a[0].int() as i64,
+                    self.bytes_ref(a[1])?,
+                    self.bytes_ref(a[2])?,
+                )
+                .map_err(Stop::Panic)?;
+                self.new_bytes(r)
+            }
+            RtFn::BigCmp => Val::B(yan_rt::bigint::cmp(
+                a[0].int() as i64,
+                self.bytes_ref(a[1])?,
+                self.bytes_ref(a[2])?,
+            )),
+            RtFn::BigShift => {
+                let r = yan_rt::bigint::shift(
+                    a[0].int() as i64,
+                    self.bytes_ref(a[1])?,
+                    a[2].int() as i64,
+                )
+                .map_err(Stop::Panic)?;
+                self.new_bytes(r)
+            }
+            RtFn::BigPow => {
+                let r = yan_rt::bigint::pow(self.bytes_ref(a[0])?, a[1].int() as i64)
+                    .map_err(Stop::Panic)?;
+                self.new_bytes(r)
+            }
+            RtFn::BigNot => {
+                let r = yan_rt::bigint::not(self.bytes_ref(a[0])?);
+                self.new_bytes(r)
+            }
+            RtFn::BigBits => Val::I(i128::from(yan_rt::bigint::bits(
+                a[0].int() as i64,
+                self.bytes_ref(a[1])?,
+            ))),
+            RtFn::BigStr => {
+                let s = yan_rt::bigint::show(self.bytes_ref(a[0])?);
+                Val::I(i128::from(self.new_str(&s)))
+            }
+            RtFn::Base64Check => Val::I(
+                yan_rt::bytes::base64_decode(&self.str_of(a[0].addr())?, a[1].int() != 0)
+                    .map_or_else(|at| at as i128, |_| -1),
+            ),
+            RtFn::Base64Decode => {
+                let b = yan_rt::bytes::base64_decode(&self.str_of(a[0].addr())?, a[1].int() != 0)
+                    .unwrap_or_default();
+                self.new_bytes(b)
+            }
+            RtFn::EncodingErrorShow => {
+                let s = yan_rt::bytes::encoding_error_show(a[0].int() as i64, a[1].int() as i64);
+                Val::I(i128::from(self.new_str(&s)))
+            }
+            RtFn::FsFake => {
+                let w = self.map_words(a[0])?;
+                let files = w
+                    .chunks(2)
+                    .map(|e| Ok((self.str_of(e[0])?, self.str_of(e[1])?)))
+                    .collect::<Result<_, Stop>>()?;
+                self.fs_fakes.push(files);
+                Val::I(self.fs_fakes.len() as i128)
+            }
+            RtFn::FsRead => {
+                let path = self.str_of(a[1].addr())?;
+                let read = match a[0].int() {
+                    0 => yan_rt::abi::fs_read(&path),
+                    h => yan_rt::fshandler::fake_read(&self.fs_fakes[h as usize - 1], &path),
+                };
+                match read {
+                    Ok(text) => Val::I(i128::from(self.new_str(&text))),
+                    Err(reason) => {
+                        self.fs_reason = reason;
+                        Val::I(0)
+                    }
+                }
+            }
+            RtFn::FsReason => {
+                let reason = self.fs_reason.clone();
+                Val::I(i128::from(self.new_str(&reason)))
+            }
+            RtFn::ListSlice => {
+                let (words, slots) = self.slots(a[0])?;
+                let n = slots.len().checked_div(8 * words).unwrap_or(0);
+                let b = |k: usize| (a[k].int() as i64, a[k + 1].int() as i64);
+                let picks =
+                    yan_rt::slice::slice_picks(n, b(1), b(3), b(5)).ok_or(Stop::Panic("value"))?;
+                let w = 8 * words;
+                let out = picks
+                    .into_iter()
+                    .flat_map(|k| slots[k * w..(k + 1) * w].iter().copied())
+                    .collect();
+                self.new_list(words, out)
+            }
             RtFn::HexCheck => Val::I(
                 yan_rt::bytes::hex_decode(&self.str_of(a[0].addr())?)
                     .map_or_else(|at| at as i128, |_| -1),
@@ -770,26 +924,142 @@ impl Machine<'_> {
                 let out = out.ok_or(Stop::Panic("value"))?;
                 Val::I(i128::from(self.new_str(&out)))
             }
-            RtFn::HeapSort => {
-                let layout = yan_rt::map::Layout::parse(&self.str_of(a[1].addr())?);
-                let (w, data) = {
-                    let l = self.list(a[0])?;
-                    (l.words, l.data)
-                };
-                let flat = self.list_words(a[0])?;
-                let mut order: Vec<&[u64]> = flat.chunks(w.max(1)).collect();
-                let mut err = None;
-                order.sort_by(|x, y| {
-                    layout.cmp(x, y, &MemBlocks(self)).unwrap_or_else(|e| {
-                        err = Some(e);
-                        std::cmp::Ordering::Equal
-                    })
-                });
-                if let Some(e) = err {
-                    return Err(e);
+            RtFn::IsNan => Val::B(a[0].float().is_nan()),
+            RtFn::IsInf => Val::B(a[0].float().is_infinite()),
+            RtFn::IsFinite => Val::B(a[0].float().is_finite()),
+            RtFn::Floor => Val::F(a[0].float().floor()),
+            RtFn::Ceil => Val::F(a[0].float().ceil()),
+            RtFn::Copysign => Val::F(a[0].float().copysign(a[1].float())),
+            RtFn::Rounded => Val::F(yan_rt::math::rounded(
+                a[0].int() as i64,
+                a[1].int() as i64,
+                a[2].float(),
+                a[3].float(),
+                a[4].float(),
+            )),
+            RtFn::ByteLen => Val::I(self.str_of(a[0].addr())?.len() as i128),
+            RtFn::StrUpper => Val::I(i128::from(
+                self.new_str(&self.str_of(a[0].addr())?.to_uppercase()),
+            )),
+            RtFn::StrLower => Val::I(i128::from(
+                self.new_str(&self.str_of(a[0].addr())?.to_lowercase()),
+            )),
+            RtFn::CharAt => {
+                let s = self.str_of(a[0].addr())?;
+                let c = usize::try_from(a[1].int())
+                    .ok()
+                    .and_then(|i| s.chars().nth(i));
+                Val::I(i128::from(u32::from(c.ok_or(Stop::Panic("bounds"))?)))
+            }
+            RtFn::StrCount => Val::I(
+                self.str_of(a[0].addr())?
+                    .matches(self.str_of(a[1].addr())?.as_str())
+                    .count() as i128,
+            ),
+            RtFn::ChrCheck => Val::I(i128::from(yan_rt::chars::yan_rt_chr_check(
+                a[0].int() as i64
+            ))),
+            RtFn::LogNew => Val::I(i128::from(yan_rt::loghandler::yan_rt_log_new(
+                a[0].int() as i64,
+                a[1].int() as i64,
+            ))),
+            RtFn::RandSplit => match yan_rt::rand::branch(a[0].int() as i64, a[1].int() as u64) {
+                Some(b) => Val::I(i128::from(b)),
+                None => {
+                    return Err(Stop::Fail(
+                        "yan: `seeded(seed, Pcg64Dxsm())` in a `par` cannot split (E402)".into(),
+                        101,
+                    ));
                 }
-                let sorted: Vec<u64> = order.concat();
-                self.write_words(data, &sorted)?;
+            },
+            RtFn::Select => {
+                let slots = yan_rt::select::selections(
+                    a[0].int() as i64,
+                    a[1].int() as i64,
+                    a[2].int() as i64,
+                );
+                let l = self.list_new(1);
+                for w in &slots {
+                    let at = self.list_push(Val::I(i128::from(l)))?;
+                    self.write_words(at, &[*w])?;
+                }
+                Val::I(i128::from(l))
+            }
+            RtFn::HeapUp => {
+                self.heap(a[0], a[1], |h| h.up_last())?;
+                Val::U
+            }
+            RtFn::HeapFix => {
+                self.heap(a[0], a[1], |h| h.fix())?;
+                Val::U
+            }
+            RtFn::HeapSort => {
+                self.heap(a[0], a[1], |h| h.sort())?;
+                Val::U
+            }
+            RtFn::HeapPop => match self.heap(a[0], a[1], |h| h.pop())? {
+                Some(x) => {
+                    self.write_words(a[2].addr(), &x)?;
+                    Val::I(1)
+                }
+                None => Val::I(0),
+            },
+            RtFn::HeapPushPop => {
+                let w = self.list(a[0])?.words;
+                let x = self.words(a[2].addr(), w)?;
+                let out = self.heap(a[0], a[1], |h| h.pushpop(&x))?;
+                self.write_words(a[3].addr(), &out)?;
+                Val::U
+            }
+            RtFn::ArenaNew => {
+                let h = self.mem.alloc(8);
+                self.arenas.insert(h, Vec::new());
+                Val::I(i128::from(h))
+            }
+            RtFn::ArenaAlloc => {
+                let slot = self.mem.alloc(8 * (a[1].int() as usize + 1));
+                self.arenas
+                    .get_mut(&a[0].addr())
+                    .ok_or_else(|| Stop::Fault("not an arena block".into()))?
+                    .push(slot);
+                Val::I(i128::from(slot))
+            }
+            RtFn::ArenaFree => {
+                let slots = self
+                    .arenas
+                    .remove(&a[0].addr())
+                    .ok_or_else(|| Stop::Fault("not an arena block".into()))?;
+                for s in slots {
+                    self.free_block(s)?;
+                }
+                self.free_block(a[0].addr())?;
+                Val::U
+            }
+            RtFn::TruncF => Val::F(a[0].float().trunc()),
+            RtFn::CharPred => Val::B(yan_rt::chars::char_pred(
+                a[0].int() as i64,
+                a[1].int() as i64,
+            )),
+            RtFn::StrPred => Val::B(yan_rt::chars::str_pred(
+                a[0].int() as i64,
+                &self.str_of(a[1].addr())?,
+            )),
+            RtFn::GraphemeCount => {
+                Val::I(yan_rt::text::grapheme_count(&self.str_of(a[0].addr())?) as i128)
+            }
+            RtFn::LogSpan => {
+                let name = self.str_of(a[1].addr())?;
+                let fields = self.log_fields(a[2])?;
+                Val::I(i128::from(yan_rt::loghandler::span(
+                    a[0].int() as u64,
+                    name,
+                    fields,
+                )))
+            }
+            RtFn::LogEvent => {
+                let msg = self.str_of(a[2].addr())?;
+                let fields = self.log_fields(a[3])?;
+                yan_rt::loghandler::event(a[0].int() as u64, a[1].int() as i64, &msg, &fields);
                 Val::U
             }
             RtFn::StrEq => Val::B(self.str_of(a[0].addr())? == self.str_of(a[1].addr())?),
@@ -1364,6 +1634,7 @@ impl Machine<'_> {
                     start,
                 )
                 .map_err(Stop::Panic)?;
+                self.race.borrow_mut().actor_spawn(id as u64);
                 Val::I(i128::from(id))
             }
             RtFn::ActorTake => {
@@ -1394,16 +1665,32 @@ impl Machine<'_> {
                 yan_rt::actor::restarted(a[0].addr(), &state);
                 Val::U
             }
-            RtFn::ActorSend => Val::I(i128::from(yan_rt::actor::yan_rt_actor_send(
-                a[0].addr(),
-                a[1].addr(),
-                a[2].addr(),
-                a[3].addr(),
-                a[4].addr(),
-                a[5].addr(),
-            ))),
-            RtFn::ActorArg => Val::I(i128::from(yan_rt::actor::yan_rt_actor_arg(a[0].addr()))),
+            RtFn::ActorSend => {
+                let status = yan_rt::actor::yan_rt_actor_send(
+                    a[0].addr(),
+                    a[1].addr(),
+                    a[2].addr(),
+                    a[3].addr(),
+                    a[4].addr(),
+                    a[5].addr(),
+                );
+                if status == 0 {
+                    self.race.borrow_mut().actor_send(a[0].addr(), a[4].addr());
+                }
+                Val::I(i128::from(status))
+            }
+            RtFn::ActorArg => {
+                // Slot 0 opens a message: its actor's thread runs it until `ActorRan`. A restart has
+                // no `ActorRan` and keeps the current thread.
+                if a[0].addr() == 0
+                    && let (actor, Some(key)) = yan_rt::actor::work_target()
+                {
+                    self.race.borrow_mut().actor_begin(actor, Some(key));
+                }
+                Val::I(i128::from(yan_rt::actor::yan_rt_actor_arg(a[0].addr())))
+            }
             RtFn::ActorRan => {
+                self.race.borrow_mut().actor_end();
                 yan_rt::actor::yan_rt_actor_ran();
                 Val::U
             }
@@ -1435,14 +1722,17 @@ impl Machine<'_> {
                 yan_rt::actor::yan_rt_sup_end_to(a[0].addr());
                 Val::U
             }
-            RtFn::ParBegin if self.ub => {
-                return unsupported("race checks across `par concurrent` tasks in the machine");
+            RtFn::ParBegin => {
+                let n = a[0].addr();
+                let h = sched::yan_rt_par_begin(n, a[1].addr());
+                self.race.borrow_mut().block_begin(h, n as usize);
+                Val::I(i128::from(h))
             }
-            RtFn::ParBegin => Val::I(i128::from(sched::yan_rt_par_begin(
-                a[0].addr(),
-                a[1].addr(),
-            ))),
-            RtFn::ParNext => Val::I(i128::from(sched::yan_rt_par_next(a[0].addr()))),
+            RtFn::ParNext => {
+                let i = sched::yan_rt_par_next(a[0].addr());
+                self.race.borrow_mut().block_switch(a[0].addr(), i as usize);
+                Val::I(i128::from(i))
+            }
             RtFn::ParTaskEnd => {
                 sched::yan_rt_par_task_end(a[0].addr());
                 Val::U
@@ -1454,25 +1744,31 @@ impl Machine<'_> {
             RtFn::ParCancel => Val::I(i128::from(sched::yan_rt_par_cancel(a[0].addr()))),
             RtFn::ParEnd => {
                 sched::yan_rt_par_end(a[0].addr());
+                self.race.borrow_mut().block_end(a[0].addr());
                 Val::U
             }
             RtFn::SimPct => {
                 sched::yan_rt_sim_pct(a[0].int() as i64, a[1].int() as i64, a[2].int() as i64);
                 Val::U
             }
-            RtFn::ChanNew => Val::I(i128::from(yan_rt::chan::yan_rt_chan_new(
-                a[0].int() as u64,
-                a[1].int() as u64,
-            ) as u64)),
+            RtFn::ChanNew => {
+                let ch = yan_rt::chan::yan_rt_chan_new(a[0].int() as u64, a[1].int() as u64) as u64;
+                self.race.borrow_mut().chan_new(ch, a[0].int() as u64);
+                Val::I(i128::from(ch))
+            }
             RtFn::ChanSend | RtFn::ChanTrySend => {
                 let ch = a[0].addr();
                 let v = self.words(a[1].addr(), yan_rt::chan::words(ch as usize))?;
                 let in_task = a[2].int() != 0;
-                Val::I(i128::from(if f == RtFn::ChanSend {
+                let status = if f == RtFn::ChanSend {
                     yan_rt::chan::send(ch as usize, &v, in_task)
                 } else {
                     yan_rt::chan::try_send(ch as usize, &v, in_task)
-                }))
+                };
+                if status == 0 {
+                    self.race.borrow_mut().chan_send(ch);
+                }
+                Val::I(i128::from(status))
             }
             RtFn::ChanRecv | RtFn::ChanTryRecv => {
                 let ch = a[0].addr() as usize;
@@ -1483,13 +1779,38 @@ impl Machine<'_> {
                     yan_rt::chan::try_recv(ch, in_task)
                 };
                 self.write_words(a[1].addr(), &v)?;
+                if status == 0 || status == yan_rt::chan::CLOSED {
+                    let closed = status != 0;
+                    self.race.borrow_mut().chan_recv(ch as u64, closed);
+                } else if status == yan_rt::chan::BLOCKED {
+                    self.race.borrow_mut().chan_recv_park(ch as u64);
+                }
                 Val::I(i128::from(status))
             }
             RtFn::SelectWait => {
                 let (keys, at) = (self.list_words(a[0])?, self.list_words(a[1])?);
                 let (status, arm) = yan_rt::chan::select_wait(&keys, &at, a[3].int() != 0);
+                // It waits on the first arm that receives, as the runtime parks it.
+                let waits = keys
+                    .iter()
+                    .map(|&k| k as i64)
+                    .find(|&k| k >= 0 && k & 3 != 1)
+                    .map(|k| (k & !3) as u64);
+                if let Some(ch) = waits {
+                    let mut race = self.race.borrow_mut();
+                    if status == yan_rt::chan::BLOCKED {
+                        race.chan_recv_park(ch);
+                    } else {
+                        race.chan_unpark(ch);
+                    }
+                }
                 if status == 0 {
                     self.write_words(a[2].addr(), &[arm])?;
+                    // A close arm observes the close without a receive, so it acquires here.
+                    let key = keys[arm as usize] as i64;
+                    if key >= 0 && key & 3 == 3 {
+                        self.race.borrow_mut().chan_recv((key & !3) as u64, true);
+                    }
                 }
                 Val::I(i128::from(status))
             }
@@ -1502,7 +1823,32 @@ impl Machine<'_> {
                     _ => End::CloneSender,
                 };
                 yan_rt::chan::end(a[0].addr() as usize, op);
+                if f == RtFn::ChanDropSender {
+                    self.race.borrow_mut().chan_sender_dropped(a[0].addr());
+                }
                 Val::U
+            }
+            RtFn::FfiCall | RtFn::FfiCallF64 => {
+                let link = self.str_of(a[0].addr())?;
+                let sym = self.str_of(a[1].addr())?;
+                let mut ints = [0i64; yan_rt::ffi::INTS];
+                for (d, v) in ints.iter_mut().zip(&a[3..]) {
+                    *d = v.int() as i64;
+                }
+                let mut floats = [0f64; yan_rt::ffi::FLOATS];
+                for (d, v) in floats.iter_mut().zip(&a[3 + yan_rt::ffi::INTS..]) {
+                    *d = v.float();
+                }
+                let r = if f == RtFn::FfiCall {
+                    crate::ffi::call(&link, &sym, a[2].int() as u8, &ints, &floats)
+                        .map(|v| Val::I(i128::from(v)))
+                } else {
+                    crate::ffi::call_f64(&link, &sym, &ints, &floats).map(Val::F)
+                };
+                match r {
+                    Ok(v) => v,
+                    Err(m) => return unsupported(m),
+                }
             }
             other => return unsupported(format!("runtime function {other:?} in the machine")),
         })
