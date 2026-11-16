@@ -11,6 +11,8 @@
 
 use std::collections::{HashMap, VecDeque};
 
+use yan_mir::MemOrder;
+
 type Tid = usize;
 type Epoch = (Tid, u32);
 
@@ -18,6 +20,26 @@ type Epoch = (Tid, u32);
 struct Cell {
     write: Option<Epoch>,
     reads: Vec<Epoch>,
+    /// The same for atomic accesses. Atomics never race one another, only plain accesses.
+    awrite: Option<Epoch>,
+    areads: Vec<Epoch>,
+}
+
+/// What an atomic access does to its word.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum Kind {
+    Read,
+    Write,
+    /// A read-modify-write, which continues the release sequence it reads.
+    Rmw,
+}
+
+/// Per-thread fence state (D5 item 3): the clocks relaxed loads have seen and a later acquire
+/// fence takes, and the clock the last release fence saved for later relaxed writes to publish.
+#[derive(Default)]
+struct Fences {
+    acquire: Vec<u32>,
+    release: Vec<u32>,
 }
 
 struct Region {
@@ -66,10 +88,36 @@ pub struct Race {
     /// The thread each running handler interrupted.
     resume: Vec<Tid>,
     shadow: HashMap<u64, Cell>,
+    /// The release clock of each atomic word.
+    sync: HashMap<u64, Vec<u32>>,
+    fences: HashMap<Tid, Fences>,
+    /// The one clock every sequentially consistent operation and fence joins and publishes.
+    sc: Vec<u32>,
 }
 
 fn ordered(clock: &[u32], (t, c): Epoch) -> bool {
     clock.get(t).copied().unwrap_or(0) >= c
+}
+
+/// The earlier access `me` is not ordered after that conflicts with a read or write: a plain
+/// one, and for a plain access also an atomic one. Atomic accesses do not conflict.
+fn conflict(cell: &Cell, me: &[u32], write: bool, atomic: bool) -> Option<(&'static str, Tid)> {
+    let unordered = |e: &&Epoch| !ordered(me, **e);
+    let find = |w: &Option<Epoch>, rs: &[Epoch], names: [&'static str; 2]| {
+        w.iter()
+            .find(unordered)
+            .map(|e| (names[0], e.0))
+            .or_else(|| {
+                rs.iter()
+                    .find(|r| write && unordered(r))
+                    .map(|r| (names[1], r.0))
+            })
+    };
+    find(&cell.write, &cell.reads, ["write", "read"]).or_else(|| {
+        (!atomic)
+            .then(|| find(&cell.awrite, &cell.areads, ["atomic write", "atomic read"]))
+            .flatten()
+    })
 }
 
 fn join(into: &mut Vec<u32>, from: &[u32]) {
@@ -93,6 +141,9 @@ impl Race {
             actors: HashMap::new(),
             resume: Vec::new(),
             shadow: HashMap::new(),
+            sync: HashMap::new(),
+            fences: HashMap::new(),
+            sc: Vec::new(),
         }
     }
 
@@ -153,6 +204,9 @@ impl Race {
         self.tick(parent);
         if self.idle() {
             self.shadow.clear();
+            self.sync.clear();
+            self.fences.clear();
+            self.sc.clear();
         }
     }
 
@@ -358,17 +412,7 @@ impl Race {
         let now = (self.cur, me[self.cur]);
         for a in addr..addr + 8 {
             let cell = self.shadow.entry(a).or_default();
-            let prior = cell
-                .write
-                .filter(|w| !ordered(me, *w))
-                .map(|w| ("write", w))
-                .or_else(|| {
-                    cell.reads
-                        .iter()
-                        .find(|r| write && !ordered(me, **r))
-                        .map(|r| ("read", *r))
-                });
-            if let Some((kind, (t, _))) = prior {
+            if let Some((kind, t)) = conflict(cell, me, write, false) {
                 return Some(format!(
                     "{} of 8 bytes at {addr:#x} by {} races with an earlier {kind} by {}",
                     if write { "write" } else { "read" },
@@ -379,12 +423,116 @@ impl Race {
             if write {
                 cell.write = Some(now);
                 cell.reads.clear();
+                cell.awrite = None;
+                cell.areads.clear();
             } else {
                 cell.reads.retain(|r| r.0 != self.cur);
                 cell.reads.push(now);
             }
         }
         None
+    }
+}
+
+impl Race {
+    fn clock_of(&mut self, t: Tid) -> &mut Vec<u32> {
+        &mut self.clocks[t]
+    }
+
+    /// An atomic access of the 8-byte word at `addr` (D5): the message of the race it makes
+    /// with an unordered plain access, if any, and otherwise its release/acquire edges. A
+    /// failed compare-exchange is a `Read` under its failure ordering.
+    pub fn atomic(&mut self, addr: u64, kind: Kind, order: MemOrder) -> Option<String> {
+        if self.idle() {
+            return None;
+        }
+        let cur = self.cur;
+        let write = kind != Kind::Read;
+        let me = &self.clocks[cur];
+        for a in addr..addr + 8 {
+            if let Some(cell) = self.shadow.get(&a)
+                && let Some((prior, t)) = conflict(cell, me, write, true)
+            {
+                return Some(format!(
+                    "atomic {} of 8 bytes at {addr:#x} by {} races with an earlier plain {prior} by {}",
+                    if write { "write" } else { "read" },
+                    self.who(cur),
+                    self.who(t),
+                ));
+            }
+        }
+        let acquire = !matches!(order, MemOrder::Relaxed | MemOrder::Release);
+        let release = !matches!(order, MemOrder::Relaxed | MemOrder::Acquire);
+        let seq = order == MemOrder::SeqCst;
+        if seq {
+            let sc = self.sc.clone();
+            join(self.clock_of(cur), &sc);
+        }
+        let seen = self.sync.get(&addr).cloned().unwrap_or_default();
+        if kind != Kind::Write {
+            if acquire {
+                join(self.clock_of(cur), &seen);
+            } else {
+                join(&mut self.fences.entry(cur).or_default().acquire, &seen);
+            }
+        }
+        let now = (cur, self.clocks[cur][cur]);
+        for a in addr..addr + 8 {
+            let cell = self.shadow.entry(a).or_default();
+            if write {
+                cell.awrite = Some(now);
+                cell.areads.clear();
+            } else {
+                cell.areads.retain(|r| r.0 != cur);
+                cell.areads.push(now);
+            }
+        }
+        if write {
+            let mut out = if release {
+                self.clocks[cur].clone()
+            } else {
+                self.fences.entry(cur).or_default().release.clone()
+            };
+            // A store starts a new release sequence; a read-modify-write continues the one it read.
+            if kind == Kind::Rmw {
+                join(&mut out, &seen);
+            }
+            self.sync.insert(addr, out);
+        }
+        if seq {
+            let c = self.clocks[cur].clone();
+            join(&mut self.sc, &c);
+        }
+        if write && release {
+            self.tick(cur);
+        }
+        None
+    }
+
+    /// `fence(order)`: an acquire fence takes the clocks the thread's relaxed loads saw, a
+    /// release fence saves the thread's clock for its later relaxed writes, and a sequentially
+    /// consistent one also passes through the global clock.
+    pub fn fence(&mut self, order: MemOrder) {
+        if self.idle() {
+            return;
+        }
+        let cur = self.cur;
+        let acquire = !matches!(order, MemOrder::Relaxed | MemOrder::Release);
+        let release = !matches!(order, MemOrder::Relaxed | MemOrder::Acquire);
+        if acquire {
+            let seen = self.fences.entry(cur).or_default().acquire.clone();
+            join(self.clock_of(cur), &seen);
+        }
+        if order == MemOrder::SeqCst {
+            let sc = self.sc.clone();
+            join(self.clock_of(cur), &sc);
+            let c = self.clocks[cur].clone();
+            join(&mut self.sc, &c);
+        }
+        if release {
+            self.fences.entry(cur).or_default().release = self.clocks[cur].clone();
+            self.tick(cur);
+        }
     }
 }
 
@@ -544,5 +692,123 @@ mod tests {
         r.join();
         r.exit();
         assert!(arm(&mut r, 1, |r| r.access(0x10, true)).is_some());
+    }
+
+    use MemOrder::*;
+
+    /// Task 0 writes plain data then `publish`es the flag; task 1 does `observe` on the flag and
+    /// reads the data. The message of the race on the data read, if any.
+    fn handoff(publish: impl FnOnce(&mut Race), observe: impl FnOnce(&mut Race)) -> Option<String> {
+        let mut r = Race::new();
+        r.fork();
+        assert!(
+            arm(&mut r, 0, |r| {
+                assert!(r.access(0x10, true).is_none());
+                publish(r);
+                None
+            })
+            .is_none()
+        );
+        arm(&mut r, 1, |r| {
+            observe(r);
+            r.access(0x10, false)
+        })
+    }
+
+    #[test]
+    fn release_acquire_orders_plain_accesses() {
+        let out = handoff(
+            |r| assert!(r.atomic(0x20, Kind::Write, Release).is_none()),
+            |r| assert!(r.atomic(0x20, Kind::Read, Acquire).is_none()),
+        );
+        assert!(out.is_none());
+    }
+
+    #[test]
+    fn relaxed_on_either_side_leaves_the_plain_access_unordered() {
+        assert!(
+            handoff(
+                |r| assert!(r.atomic(0x20, Kind::Write, Relaxed).is_none()),
+                |r| assert!(r.atomic(0x20, Kind::Read, Acquire).is_none()),
+            )
+            .is_some()
+        );
+        assert!(
+            handoff(
+                |r| assert!(r.atomic(0x20, Kind::Write, Release).is_none()),
+                |r| assert!(r.atomic(0x20, Kind::Read, Relaxed).is_none()),
+            )
+            .is_some()
+        );
+    }
+
+    #[test]
+    fn a_relaxed_read_modify_write_continues_the_release_sequence_but_a_store_ends_it() {
+        let rmw_between = |kind| {
+            let mut r = Race::new();
+            r.fork();
+            arm(&mut r, 0, |r| {
+                r.access(0x10, true);
+                r.atomic(0x20, Kind::Write, Release);
+                None
+            });
+            arm(&mut r, 1, |r| r.atomic(0x20, kind, Relaxed));
+            arm(&mut r, 2, |r| {
+                assert!(r.atomic(0x20, Kind::Read, Acquire).is_none());
+                r.access(0x10, false)
+            })
+        };
+        assert!(rmw_between(Kind::Rmw).is_none());
+        assert!(rmw_between(Kind::Write).is_some());
+    }
+
+    #[test]
+    fn fences_make_relaxed_accesses_synchronize() {
+        let out = handoff(
+            |r| {
+                r.fence(Release);
+                assert!(r.atomic(0x20, Kind::Write, Relaxed).is_none());
+            },
+            |r| {
+                assert!(r.atomic(0x20, Kind::Read, Relaxed).is_none());
+                r.fence(Acquire);
+            },
+        );
+        assert!(out.is_none());
+        let missing = handoff(
+            |r| {
+                r.fence(Release);
+                assert!(r.atomic(0x20, Kind::Write, Relaxed).is_none());
+            },
+            |r| assert!(r.atomic(0x20, Kind::Read, Relaxed).is_none()),
+        );
+        assert!(missing.is_some());
+    }
+
+    #[test]
+    fn sequentially_consistent_operations_order_through_one_clock() {
+        let out = handoff(
+            |r| assert!(r.atomic(0x20, Kind::Write, SeqCst).is_none()),
+            |r| assert!(r.atomic(0x30, Kind::Write, SeqCst).is_none()),
+        );
+        assert!(out.is_none());
+    }
+
+    #[test]
+    fn atomics_race_with_unordered_plain_accesses_not_with_each_other() {
+        let mut r = Race::new();
+        r.fork();
+        assert!(arm(&mut r, 0, |r| r.atomic(0x20, Kind::Write, Relaxed)).is_none());
+        assert!(arm(&mut r, 1, |r| r.atomic(0x20, Kind::Rmw, Relaxed)).is_none());
+        assert!(arm(&mut r, 2, |r| r.atomic(0x20, Kind::Read, Relaxed)).is_none());
+        let plain_read = arm(&mut r, 3, |r| r.access(0x20, false)).expect("a race");
+        assert!(plain_read.contains("atomic write"), "{plain_read}");
+        let plain_write = arm(&mut r, 4, |r| r.access(0x20, true));
+        assert!(plain_write.is_some());
+        let mut r = Race::new();
+        r.fork();
+        assert!(arm(&mut r, 0, |r| r.access(0x20, true)).is_none());
+        let out = arm(&mut r, 1, |r| r.atomic(0x20, Kind::Read, Relaxed)).expect("a race");
+        assert!(out.contains("plain write"), "{out}");
     }
 }
