@@ -5614,6 +5614,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/mutex_par_heap.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1022"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "200\n2\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/mutex_relock_deadlock.yag",
    "kind": "run",
    "milestone": "M1",
