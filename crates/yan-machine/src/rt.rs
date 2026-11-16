@@ -331,6 +331,78 @@ impl Machine<'_> {
         Ok(Val::I(i128::from(list.data) + i * 8 * list.words as i128))
     }
 
+    fn cli_parse(&mut self, args: Val, schema: Val, desc: Val) -> Result<Val, Stop> {
+        let (words, len, data) = {
+            let l = self.list(args)?;
+            (l.words, l.len, l.data)
+        };
+        let args = self
+            .words(data, words * len)?
+            .into_iter()
+            .map(|w| self.str_of(w))
+            .collect::<Result<Vec<_>, _>>()?;
+        let (schema, desc) = (self.str_of(schema.addr())?, self.str_of(desc.addr())?);
+        let mut heap = MachineBlocks {
+            m: self,
+            fault: None,
+        };
+        let done = yan_rt::civil::cli_parse(&args, &schema, &desc, &mut heap);
+        if let Some(e) = heap.fault {
+            return Err(e);
+        }
+        let (status, out) = yan_rt::civil::outcome(done, |_| unreachable!("cli.parse has no Text"));
+        self.civil_out = out;
+        Ok(Val::I(i128::from(status)))
+    }
+
+    fn list_new(&mut self, words: usize) -> u64 {
+        let h = self.mem.alloc(8);
+        let data = self.mem.alloc(0);
+        self.lists.insert(
+            h,
+            List {
+                words,
+                len: 0,
+                cap: 0,
+                data,
+                limit: -1,
+            },
+        );
+        h
+    }
+
+    /// Appends a zeroed element to the list `l` and returns its address.
+    fn list_push(&mut self, l: Val) -> Result<u64, Stop> {
+        let h = l.addr();
+        let List {
+            words,
+            len,
+            cap,
+            data,
+            limit,
+        } = *self.list(l)?;
+        let (mut data, mut cap) = (data, cap);
+        if len == cap {
+            cap = (cap * 2).max(4);
+            let grown = self.mem.alloc(8 * words * cap);
+            if let Some(bytes) = self.mem.read(data, 8 * words * len) {
+                self.mem.write(grown, &bytes);
+            }
+            self.mem.free(data);
+            data = grown;
+        }
+        let at = data + (8 * words * len) as u64;
+        self.mem.write(at, &vec![Byte::Init(0); 8 * words]);
+        *self.lists.get_mut(&h).expect("looked up above") = List {
+            words,
+            len: len + 1,
+            cap,
+            data,
+            limit,
+        };
+        Ok(at)
+    }
+
     pub(crate) fn rt(&mut self, f: RtFn, a: &[Val]) -> Result<Val, Stop> {
         let r = self.rt_call(f, a);
         self.deliver_stopped();
@@ -569,6 +641,31 @@ impl Machine<'_> {
                 ))
             }
             RtFn::Math1 => Val::F(yan_rt::math::MATH1[a[0].int() as usize](a[1].float())),
+            RtFn::Math2 => Val::F(yan_rt::math::MATH2[a[0].int() as usize](
+                a[1].float(),
+                a[2].float(),
+            )),
+            RtFn::CsvDump => {
+                let (words, len, data) = {
+                    let l = self.list(a[0])?;
+                    (l.words, l.len, l.data)
+                };
+                let rows = self.words(data, words * len)?;
+                let (delim, schema) = (self.str_of(a[1].addr())?, self.str_of(a[2].addr())?);
+                let fault = std::cell::RefCell::new(None);
+                let text = |w: u64| {
+                    self.str_of(w).unwrap_or_else(|e| {
+                        fault.borrow_mut().get_or_insert(e);
+                        String::new()
+                    })
+                };
+                let out = yan_rt::csvslots::dump(&rows, &delim, &schema, &text);
+                if let Some(e) = fault.into_inner() {
+                    return Err(e);
+                }
+                let out = out.ok_or(Stop::Panic("value"))?;
+                Val::I(i128::from(self.new_str(&out)))
+            }
             RtFn::HeapSort => {
                 let layout = yan_rt::map::Layout::parse(&self.str_of(a[1].addr())?);
                 let (w, data) = {
@@ -604,51 +701,8 @@ impl Machine<'_> {
                 self.free_block(a[0].addr())?;
                 Val::U
             }
-            RtFn::ListNew => {
-                let h = self.mem.alloc(8);
-                let data = self.mem.alloc(0);
-                self.lists.insert(
-                    h,
-                    List {
-                        words: a[0].int() as usize,
-                        len: 0,
-                        cap: 0,
-                        data,
-                        limit: -1,
-                    },
-                );
-                Val::I(i128::from(h))
-            }
-            RtFn::ListPush => {
-                let h = a[0].addr();
-                let List {
-                    words,
-                    len,
-                    cap,
-                    data,
-                    limit,
-                } = *self.list(a[0])?;
-                let (mut data, mut cap) = (data, cap);
-                if len == cap {
-                    cap = (cap * 2).max(4);
-                    let grown = self.mem.alloc(8 * words * cap);
-                    if let Some(bytes) = self.mem.read(data, 8 * words * len) {
-                        self.mem.write(grown, &bytes);
-                    }
-                    self.mem.free(data);
-                    data = grown;
-                }
-                let at = data + (8 * words * len) as u64;
-                self.mem.write(at, &vec![Byte::Init(0); 8 * words]);
-                *self.lists.get_mut(&h).expect("looked up above") = List {
-                    words,
-                    len: len + 1,
-                    cap,
-                    data,
-                    limit,
-                };
-                Val::I(i128::from(at))
-            }
+            RtFn::ListNew => Val::I(i128::from(self.list_new(a[0].int() as usize))),
+            RtFn::ListPush => Val::I(i128::from(self.list_push(a[0])?)),
             RtFn::ListLen => Val::I(self.list(a[0])?.len as i128),
             RtFn::ListData => Val::I(i128::from(self.list(a[0])?.data)),
             RtFn::ListAt => self.element(a[0], a[1].int())?,
@@ -887,7 +941,7 @@ impl Machine<'_> {
             RtFn::Civil => {
                 let op = self.str_of(a[0].addr())?;
                 if op == "cli.parse" {
-                    return unsupported("civil operation `cli.parse` in the machine");
+                    return self.cli_parse(a[1], a[2], a[3]);
                 }
                 let words: Vec<i64> = a[1..].iter().map(|v| v.int() as i64).collect();
                 let fault = std::cell::RefCell::new(None);
@@ -1367,5 +1421,31 @@ impl yan_rt::map::Blocks for MemBlocks<'_> {
         self.0
             .bytes_ref(Val::I(i128::from(block)))
             .map(|b| b.as_slice().into())
+    }
+}
+
+/// `cli.parse`'s result blocks on the machine heap.
+struct MachineBlocks<'a, 'b> {
+    m: &'a mut Machine<'b>,
+    fault: Option<Stop>,
+}
+
+impl yan_rt::civil::Blocks for MachineBlocks<'_, '_> {
+    fn str(&mut self, s: &str) -> i64 {
+        self.m.new_str(s) as i64
+    }
+    fn path(&mut self, s: &str) -> i64 {
+        self.m.new_str(&yan_rt::path::Parsed::new(false, s).text()) as i64
+    }
+    fn list(&mut self, words: usize, elems: &[Vec<i64>]) -> i64 {
+        let h = self.m.list_new(words);
+        for slots in elems {
+            let at = self.m.list_push(Val::I(i128::from(h))).expect("fresh list");
+            let w: Vec<u64> = slots.iter().map(|&x| x as u64).collect();
+            if let Err(e) = self.m.write_words(at, &w) {
+                self.fault.get_or_insert(e);
+            }
+        }
+        h as i64
     }
 }

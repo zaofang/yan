@@ -534,21 +534,63 @@ fn width(d: &[u8], pos: &mut usize) -> usize {
     }
 }
 
-fn encode(v: &crate::cli::V, d: &str, pos: &mut usize, out: &mut Vec<i64>) {
+/// Where `cli.parse` builds its result blocks: the native heap or the machine's.
+pub trait Blocks {
+    fn str(&mut self, s: &str) -> i64;
+    fn path(&mut self, s: &str) -> i64;
+    /// A list of `words`-word elements.
+    fn list(&mut self, words: usize, elems: &[Vec<i64>]) -> i64;
+}
+
+struct Native;
+
+impl Blocks for Native {
+    fn str(&mut self, s: &str) -> i64 {
+        crate::abi::str_block(s) as i64
+    }
+    fn path(&mut self, s: &str) -> i64 {
+        let tmp = crate::abi::str_block(s);
+        // SAFETY: `tmp` is a fresh `Str` block.
+        let p = unsafe { crate::pathabi::yan_rt_path_new(0, tmp) };
+        // SAFETY: as above; the original block is not used again.
+        unsafe { crate::abi::yan_rt_str_free(tmp) };
+        p as i64
+    }
+    fn list(&mut self, words: usize, elems: &[Vec<i64>]) -> i64 {
+        let l = crate::abi::yan_rt_list_new(words as u64);
+        for slots in elems {
+            // SAFETY: `l` is a fresh list of `words`-word elements that nothing else borrows.
+            let e = unsafe { crate::abi::yan_rt_list_push(l) };
+            for (i, s) in slots.iter().enumerate() {
+                // SAFETY: the element has `words` slots.
+                unsafe { *e.add(i) = *s as u64 };
+            }
+        }
+        l as i64
+    }
+}
+
+/// `cli.parse` of `args` against the schema `sc` and result description `desc`: the result words,
+/// or status 2 with the message block and the `help` flag.
+pub fn cli_parse(args: &[String], sc: &str, desc: &str, heap: &mut dyn Blocks) -> Done {
+    match crate::cli::parse_args(args, sc) {
+        Ok(v) => {
+            let mut out = Vec::new();
+            encode(&v, desc, &mut 0, &mut out, heap);
+            Done::Ok(out)
+        }
+        Err(e) => Done::Fail(vec![heap.str(&e.message), i64::from(e.help)]),
+    }
+}
+
+fn encode(v: &crate::cli::V, d: &str, pos: &mut usize, out: &mut Vec<i64>, heap: &mut dyn Blocks) {
     use crate::cli::V;
     let d = d.as_bytes();
     let c = d[*pos];
     *pos += 1;
     match (c, v) {
-        (b's', V::Str(s)) => out.push(crate::abi::str_block(s) as i64),
-        (b'p', V::Path(s)) => {
-            let tmp = crate::abi::str_block(s);
-            // SAFETY: `tmp` is a fresh `Str` block.
-            let p = unsafe { crate::pathabi::yan_rt_path_new(0, tmp) };
-            // SAFETY: as above; the original block is not used again.
-            unsafe { crate::abi::yan_rt_str_free(tmp) };
-            out.push(p as i64);
-        }
+        (b's', V::Str(s)) => out.push(heap.str(s)),
+        (b'p', V::Path(s)) => out.push(heap.path(s)),
         (b'i', V::Int(n)) => out.push(*n),
         (b'f', V::Float(x)) => out.push(x.to_bits() as i64),
         (b'b', V::Bool(b)) => out.push(i64::from(*b)),
@@ -556,25 +598,26 @@ fn encode(v: &crate::cli::V, d: &str, pos: &mut usize, out: &mut Vec<i64>) {
         (b'L', V::List(xs)) => {
             let start = *pos;
             let w = width(d, &mut { start });
-            let l = crate::abi::yan_rt_list_new(w as u64);
+            let mut elems = Vec::new();
             for x in xs {
                 let mut slots = Vec::new();
                 *pos = start;
-                encode(x, std::str::from_utf8(d).expect("ascii"), pos, &mut slots);
-                // SAFETY: `l` is a fresh list of `w`-word elements that nothing else borrows.
-                let e = unsafe { crate::abi::yan_rt_list_push(l) };
-                for (i, s) in slots.iter().enumerate() {
-                    // SAFETY: the element has `w` slots.
-                    unsafe { *e.add(i) = *s as u64 };
-                }
+                encode(
+                    x,
+                    std::str::from_utf8(d).expect("ascii"),
+                    pos,
+                    &mut slots,
+                    heap,
+                );
+                elems.push(slots);
             }
             *pos = start;
             width(d, pos);
-            out.push(l as i64);
+            out.push(heap.list(w, &elems));
         }
         (b'{', V::Rec(_, fields)) => {
             for (_, f) in fields {
-                encode(f, std::str::from_utf8(d).expect("ascii"), pos, out);
+                encode(f, std::str::from_utf8(d).expect("ascii"), pos, out, heap);
             }
             assert_eq!(d[*pos], b'}');
             *pos += 1;
@@ -605,7 +648,7 @@ fn encode(v: &crate::cli::V, d: &str, pos: &mut usize, out: &mut Vec<i64>) {
                     while d[*pos] != b';' {
                         match v {
                             V::Opt(Some(x)) => {
-                                encode(x, std::str::from_utf8(d).expect("ascii"), pos, out)
+                                encode(x, std::str::from_utf8(d).expect("ascii"), pos, out, heap)
                             }
                             _ => {
                                 encode(
@@ -613,6 +656,7 @@ fn encode(v: &crate::cli::V, d: &str, pos: &mut usize, out: &mut Vec<i64>) {
                                     std::str::from_utf8(d).expect("ascii"),
                                     pos,
                                     out,
+                                    heap,
                                 );
                                 k += 1;
                             }
@@ -762,17 +806,7 @@ fn run_more(op: &str, a: &[i64], text: &dyn Fn(i64) -> String) -> Done {
                 .iter()
                 .map(|&w| text(w as i64).to_owned())
                 .collect();
-            match crate::cli::parse_args(&args, &text(a[1])) {
-                Ok(v) => {
-                    let mut out = Vec::new();
-                    encode(&v, &text(a[2]), &mut 0, &mut out);
-                    Done::Ok(out)
-                }
-                Err(e) => Done::Fail(vec![
-                    crate::abi::str_block(&e.message) as i64,
-                    i64::from(e.help),
-                ]),
-            }
+            cli_parse(&args, &text(a[1]), &text(a[2]), &mut Native)
         }
         "clock.fixed" | "clock.virtual" => {
             let mut c = CLOCKS.lock().expect("clock table");
