@@ -101,3 +101,4 @@ conformance case in the same PR set.
 | [0074](0074-growth-contracts.md) | Growth contracts: check a cost class by fitting deterministic step counts | draft | |
 | [0075](0075-ecosystem-impact-testing.md) | Ecosystem impact testing: rerun only the dependents' tests a release changes | draft | |
 | [0076](0076-unsafe-fn.md) | `unsafe fn` in Yan: grammar, calls, `pre` across build modes and `--ub`, not a value | accepted | R1010 to R1017 |
+| [0077](0077-ffi-consent.md) | FFI consent enforced at the root: `allow_ffi`, ceiling, resolution | draft | none yet |
