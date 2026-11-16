@@ -68,6 +68,38 @@ fn slot_of(v: &Value) -> (usize, usize) {
     }
 }
 
+fn atom(v: &Value) -> usize {
+    match v {
+        Value::Int(i) => *i as usize,
+        _ => unreachable!("an Atomic"),
+    }
+}
+
+/// `compare_exchange(current, new, ..)`: `Ok(previous)` on a match, `Err(actual)` otherwise.
+fn cas(it: &mut Interp, a: &mut [Value]) -> Value {
+    let slot = &mut it.atoms[atom(&a[0])];
+    let old = slot.clone();
+    if old == a[1] {
+        *slot = std::mem::take(&mut a[2]);
+        data("Ok", "value", old)
+    } else {
+        data("Err", "error", old)
+    }
+}
+
+/// A fetch operation: returns the previous value. Integers are `i64`, which wraps (6.2); a
+/// `bool` takes only the bitwise operations.
+fn rmw(it: &mut Interp, a: &mut [Value], f: fn(i64, i64) -> i64) -> Value {
+    let slot = &mut it.atoms[atom(&a[0])];
+    let old = slot.clone();
+    *slot = match (&old, &a[1]) {
+        (Value::Int(x), Value::Int(y)) => Value::Int(f(*x as i64, *y as i64) as i128),
+        (Value::Bool(x), Value::Bool(y)) => Value::Bool(f(*x as i64, *y as i64) != 0),
+        _ => unreachable!("an Atomic of integers or bool"),
+    };
+    old
+}
+
 pub(crate) fn chan(v: &Value) -> usize {
     match v {
         Value::Data { fields, .. } => match fields[0].1 {
@@ -791,12 +823,74 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         Bind::Plain(|_| unsupported("`std.sync.arc.strong_count` in the interpreter")),
     ),
     (
+        STD_SYNC_ATOMIC_ATOMIC,
+        Bind::Cap(|it, a| {
+            it.atoms.push(std::mem::take(&mut a[0]));
+            Ok(Value::Int(it.atoms.len() as i128 - 1))
+        }),
+    ),
+    (
         STD_SYNC_ATOMIC_LOAD,
-        Bind::Plain(|_| unsupported("`std.sync.atomic.load` in the interpreter")),
+        Bind::Cap(|it, a| Ok(it.atoms[atom(&a[0])].clone())),
     ),
     (
         STD_SYNC_ATOMIC_STORE,
-        Bind::Plain(|_| unsupported("`std.sync.atomic.store` in the interpreter")),
+        Bind::Cap(|it, a| {
+            it.atoms[atom(&a[0])] = std::mem::take(&mut a[1]);
+            Ok(Value::Unit)
+        }),
+    ),
+    (
+        STD_SYNC_ATOMIC_SWAP,
+        Bind::Cap(|it, a| {
+            let v = std::mem::take(&mut a[1]);
+            Ok(std::mem::replace(&mut it.atoms[atom(&a[0])], v))
+        }),
+    ),
+    (
+        STD_SYNC_ATOMIC_COMPARE_EXCHANGE,
+        Bind::Cap(|it, a| Ok(cas(it, a))),
+    ),
+    (
+        STD_SYNC_ATOMIC_COMPARE_EXCHANGE_WEAK,
+        Bind::Cap(|it, a| Ok(cas(it, a))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_ADD,
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x.wrapping_add(y)))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_SUB,
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x.wrapping_sub(y)))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_AND,
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x & y))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_OR,
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x | y))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_XOR,
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x ^ y))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_MAX,
+        Bind::Cap(|it, a| Ok(rmw(it, a, i64::max))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_MIN,
+        Bind::Cap(|it, a| Ok(rmw(it, a, i64::min))),
+    ),
+    (
+        STD_SYNC_ATOMIC_INTO_INNER,
+        Bind::Cap(|it, a| Ok(it.atoms[atom(&a[0])].clone())),
+    ),
+    (STD_SYNC_ATOMIC_FENCE, Bind::Plain(|_| Ok(Value::Unit))),
+    (
+        STD_SYNC_ATOMIC_COMPILER_FENCE,
+        Bind::Plain(|_| Ok(Value::Unit)),
     ),
     (
         STD_SYNC_CELL_GET,
