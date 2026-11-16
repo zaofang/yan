@@ -138,6 +138,20 @@ fn check_wire_names(owner: &str, fs: &[Field], at: Span, cx: &mut Cx) {
 }
 
 impl Globals {
+    /// Register variant `v` of `sum`; a bare name of another sum becomes shared.
+    pub(crate) fn declare_variant(&mut self, v: &str, sum: &str) {
+        if self.variant_of.get(v).is_some_and(|o| o != sum) {
+            self.shared_variants.insert(v.to_owned());
+        }
+        self.variant_of.insert(v.to_owned(), sum.to_owned());
+    }
+
+    /// The sum `t` when `t.v` names its variant `v` (R799).
+    pub(crate) fn qualified_variant(&self, t: &str, v: &str) -> Option<&str> {
+        let (name, vs) = self.sums.get_key_value(t)?;
+        vs.iter().any(|(n, _)| n == v).then_some(name.as_str())
+    }
+
     /// The json tag key of sum `name`.
     pub(crate) fn tag_of(&self, name: &str) -> &str {
         self.wire_opts
@@ -237,6 +251,9 @@ pub(crate) struct Globals {
     /// The type parameters of each generic sum or record; its field types mention them as `Ty::Param`.
     pub type_params: HashMap<String, Vec<String>>,
     pub variant_of: HashMap<String, String>,
+    /// Variant names declared by two or more sums: written bare they are ambiguous (E200), and
+    /// Core names them by `[sum, variant]` paths (R799).
+    pub shared_variants: HashSet<String>,
     /// Variants with `@wire(name: ...)`, by variant name: the tag value in json and csv.
     pub variant_wire: HashMap<String, String>,
     /// Types with an item-level `@wire`: the json tag key of a sum and whether unknown members
@@ -977,7 +994,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
             j::ItemKind::Type(t) => match &t.rhs {
                 j::TypeRhs::Sum(vs) => {
                     for v in vs {
-                        g.variant_of.insert(v.name.clone(), t.name.clone());
+                        g.declare_variant(&v.name, &t.name);
                     }
                     g.sums.insert(t.name.clone(), Vec::new());
                     if !t.tparams.is_empty() {

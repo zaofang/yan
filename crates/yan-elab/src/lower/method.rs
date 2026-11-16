@@ -13,6 +13,36 @@ impl Lower<'_, '_, '_> {
                 if !self.locals.contains_key(module) && self.std_variant(module, m)))
     }
 
+    /// Construct variant `n` of sum `s`, written bare or as `S.n` (R799).
+    pub(super) fn variant_call(
+        &mut self,
+        n: &str,
+        s: &str,
+        args: &[j::Arg],
+        at: Span,
+        want: Option<&Ty>,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        if self.g.type_params.contains_key(s) {
+            let (r, t) = self.generic_ctor(n, s, args, at, want)?;
+            return Ok((r, t, None));
+        }
+        let fs = &self.g.sums[s]
+            .iter()
+            .find(|(v, _)| v == n)
+            .expect("declared")
+            .1;
+        let ps = field_params(fs, 0, at);
+        if ps.is_empty() && args.is_empty() && !self.g.shared_variants.contains(n) {
+            return Ok((
+                Rhs::Atom(Atom::Name(n.to_owned(), at)),
+                Ty::Data(s.to_owned()),
+                None,
+            ));
+        }
+        let r = self.ctor(Some(s), n, &ps, args, at)?;
+        Ok((r, Ty::Data(s.to_owned()), None))
+    }
+
     pub(super) fn std_variant(&self, module: &str, v: &str) -> bool {
         self.g
             .variant_of

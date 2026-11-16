@@ -484,6 +484,7 @@ impl Lower<'_, '_, '_> {
 
     pub(super) fn ctor(
         &mut self,
+        sum: Option<&str>,
         name: &str,
         ps: &[crate::P],
         args: &[j::Arg],
@@ -531,8 +532,12 @@ impl Lower<'_, '_, '_> {
         if self.g.layout_bits.contains_key(name) {
             return self.bits_ctor(name, fields.into_iter().map(|(_, a)| a).collect(), at);
         }
+        let path = match sum {
+            Some(s) if self.g.shared_variants.contains(name) => vec![s.to_owned(), name.to_owned()],
+            _ => vec![name.to_owned()],
+        };
         Ok(Rhs::Ctor(y::Ctor::Named {
-            path: vec![name.to_owned()],
+            path,
             targs: Vec::new(),
             fields,
         }))
