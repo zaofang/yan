@@ -367,6 +367,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1019 | `allow_ffi` consent enforced at root compile and at dependency resolution, E023; an update gaining the first `ffi` module is refused (RFC 0077 D2) | 12, 19.2, 25 |
 | R1020 | every extern library is a ceiling entry, `uses none` or not, enforced transitively; consent does not replace it (RFC 0077 D3) | 7.4, 12.2, 19.2 |
 | R1021 | `Sender.close()` ends the handle at once; a second `close` and the later drop do nothing; `send`, `try_send` or a `select` send arm on a closed `Sender` panics `contract` | 9.5 |
+| R1024 | method resolution searches the receiver type's declaring module before the current module, so a module function never captures a method call on a std type (replaces the current-module-first order of R348; #1404) | 17.2 |
 
 <!-- /rows -->
 
