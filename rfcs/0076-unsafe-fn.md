@@ -39,7 +39,7 @@ would let safe callers reach it through the trait. Generators, `sub` items and l
 
 Recommendation: as above. Unsafe trait methods and unsafe generators are non-goals for this RFC.
 
-- Decision: lead, 2026-11-16 (#1242), direction; production pending
+- Decision: accepted as recommended (lead, card, 2026-11-16)
 - Row:
 
 ### D2: where an `unsafe fn` may appear
