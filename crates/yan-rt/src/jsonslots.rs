@@ -645,6 +645,116 @@ pub fn parse(src: &str, schema: &str) -> Vec<Slot> {
     }
 }
 
+/// The slots of a `std.json.Value` (R569): its tag, then the fields of `Bool`, `Int`, `Float`,
+/// `Str`, `Array` and `Object` in order.
+pub const VALUE_WIDTH: usize = 7;
+
+fn value_slots(j: Json) -> Vec<Slot> {
+    let (tag, field) = match j {
+        Json::Null => (0, None),
+        Json::Bool(b) => (1, Some(Slot::Word(u64::from(b)))),
+        Json::Int(i) => (2, Some(Slot::Word(i as u64))),
+        Json::Float(f) => (3, Some(Slot::Word(f.to_bits()))),
+        Json::Str(s) => (4, Some(Slot::Str(s))),
+        Json::Array(xs) => (
+            5,
+            Some(Slot::List(
+                VALUE_WIDTH,
+                xs.into_iter().flat_map(value_slots).collect(),
+            )),
+        ),
+        Json::Object(fs) => (
+            6,
+            Some(Slot::Map {
+                schema: "s".into(),
+                kw: 1,
+                vw: VALUE_WIDTH,
+                entries: fs
+                    .into_iter()
+                    .map(|(k, v)| (vec![Slot::Str(k)], value_slots(v)))
+                    .collect(),
+            }),
+        ),
+    };
+    let mut out: Vec<Slot> = (0..VALUE_WIDTH).map(|_| Slot::Word(0)).collect();
+    out[0] = word(tag);
+    if let Some(f) = field {
+        out[tag] = f;
+    }
+    out
+}
+
+/// The slots of `Result[T, JsonError]` for `ok`, the slots of a `T` that takes `ok_width`.
+fn result(ok_width: usize, ok: Result<Vec<Slot>, json::JsonError>) -> Vec<Slot> {
+    let mut out = Vec::new();
+    match ok {
+        Ok(v) => {
+            out.push(Slot::Word(0));
+            out.extend(v);
+            out.extend((0..14).map(|_| Slot::Word(0)));
+        }
+        Err(e) => {
+            out.push(Slot::Word(1));
+            out.extend((0..ok_width).map(|_| Slot::Word(0)));
+            out.extend(syntax_error(&e));
+        }
+    }
+    out
+}
+
+/// The slots of `Result[Value, JsonError]` for `json.parse_value(src, max_depth)` (R571).
+pub fn parse_value(src: &str, max_depth: usize) -> Vec<Slot> {
+    result(VALUE_WIDTH, json::parse(src, max_depth).map(value_slots))
+}
+
+/// The slots of `Result[float, JsonError]` for `json.parse_float(src, max_depth)` (R575).
+pub fn parse_float(src: &str, max_depth: usize) -> Vec<Slot> {
+    let ok = json::parse_float(src, max_depth).map(|f| vec![Slot::Word(f.to_bits())]);
+    result(1, ok)
+}
+
+fn value_json<H: Heap>(h: &H, w: &[u64]) -> Result<Json, H::Err> {
+    Ok(match w[0] {
+        0 => Json::Null,
+        1 => Json::Bool(w[1] & 0xff != 0),
+        2 => Json::Int(w[2] as i64),
+        3 => Json::Float(f64::from_bits(w[3])),
+        4 => Json::Str(h.text(w[4])?),
+        5 => Json::Array(
+            h.list(w[5])?
+                .chunks(VALUE_WIDTH)
+                .map(|x| value_json(h, x))
+                .collect::<Result<_, _>>()?,
+        ),
+        _ => Json::Object(
+            h.map(w[6])?
+                .chunks(1 + VALUE_WIDTH)
+                .map(|e| Ok((h.text(e[0])?, value_json(h, &e[1..])?)))
+                .collect::<Result<_, _>>()?,
+        ),
+    })
+}
+
+/// `json.dump_value(v, indent)` of the `Value` in `w`, or `None` for a non-finite float (R572).
+pub fn dump_value_in<H: Heap>(
+    h: &H,
+    w: &[u64],
+    indent: Option<usize>,
+) -> Result<Option<String>, H::Err> {
+    Ok(json::dump(&value_json(h, w)?, indent).ok())
+}
+
+/// [`dump_value_in`] over native blocks.
+///
+/// # Safety
+/// `w` holds a `Value`'s slots; the chosen variant's blocks are live.
+pub unsafe fn dump_value(w: &[u64], indent: Option<usize>) -> Option<String> {
+    match dump_value_in(&Raw, w, indent) {
+        Ok(s) => s,
+        Err(never) => match never {},
+    }
+}
+
 fn syntax_error(e: &json::JsonError) -> Vec<Slot> {
     let mut slots = error("", 0, e.reason.clone());
     slots[0] = word(e.line);

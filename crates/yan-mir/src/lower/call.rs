@@ -306,6 +306,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         if super::arena::ARENA_IDS.contains(&id) {
             return self.arena_call(id, c, dst);
         }
+        if super::jsonvalue::JSON_VALUE_IDS.contains(&id) {
+            return self.json_value_call(id, c, dst);
+        }
         if super::ptr::PTR_IDS.contains(&id) {
             return self.ptr_call(id, c, dst);
         }

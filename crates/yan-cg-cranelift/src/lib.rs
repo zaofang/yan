@@ -837,6 +837,8 @@ const RT: &[RtFn] = &[
     RtFn::JsonParse,
     RtFn::JsonDump,
     RtFn::JsonErrorShow,
+    RtFn::JsonParseValue,
+    RtFn::JsonDumpValue,
     RtFn::CsvParse,
     RtFn::CsvDump,
     RtFn::CsvErrorShow,
@@ -2004,6 +2006,18 @@ fn rt_fn(
             "yan_rt_json_dump",
             abi::yan_rt_json_dump as *const u8,
             &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::JsonParseValue => (
+            "yan_rt_json_parse_value",
+            abi::yan_rt_json_parse_value as *const u8,
+            &[I64, I64, I64, I64],
+            None,
+        ),
+        RtFn::JsonDumpValue => (
+            "yan_rt_json_dump_value",
+            abi::yan_rt_json_dump_value as *const u8,
+            &[I64, I64, I64],
             Some(I64),
         ),
         RtFn::CsvParse => (
