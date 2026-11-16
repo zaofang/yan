@@ -462,10 +462,10 @@ impl Machine<'_> {
                 f,
                 RtFn::ChanSend | RtFn::ChanTrySend | RtFn::ChanRecv | RtFn::ChanTryRecv
             ) && self.race.borrow().rendezvous(a[0].addr());
-            if rendezvous || matches!(f, RtFn::ActorSend) {
+            if rendezvous {
                 // Until these order tasks, a race verdict across them would be a guess.
                 return unsupported(
-                    "actor and unbuffered channel ordering between `par concurrent` tasks under --ub",
+                    "unbuffered channel ordering between `par concurrent` tasks under --ub",
                 );
             }
         }
@@ -1646,6 +1646,7 @@ impl Machine<'_> {
                     start,
                 )
                 .map_err(Stop::Panic)?;
+                self.race.borrow_mut().actor_spawn(id as u64);
                 Val::I(i128::from(id))
             }
             RtFn::ActorTake => {
@@ -1676,16 +1677,32 @@ impl Machine<'_> {
                 yan_rt::actor::restarted(a[0].addr(), &state);
                 Val::U
             }
-            RtFn::ActorSend => Val::I(i128::from(yan_rt::actor::yan_rt_actor_send(
-                a[0].addr(),
-                a[1].addr(),
-                a[2].addr(),
-                a[3].addr(),
-                a[4].addr(),
-                a[5].addr(),
-            ))),
-            RtFn::ActorArg => Val::I(i128::from(yan_rt::actor::yan_rt_actor_arg(a[0].addr()))),
+            RtFn::ActorSend => {
+                let status = yan_rt::actor::yan_rt_actor_send(
+                    a[0].addr(),
+                    a[1].addr(),
+                    a[2].addr(),
+                    a[3].addr(),
+                    a[4].addr(),
+                    a[5].addr(),
+                );
+                if status == 0 {
+                    self.race.borrow_mut().actor_send(a[0].addr(), a[4].addr());
+                }
+                Val::I(i128::from(status))
+            }
+            RtFn::ActorArg => {
+                // Slot 0 opens a message: its actor's thread runs it until `ActorRan`. A restart has
+                // no `ActorRan` and keeps the current thread.
+                if a[0].addr() == 0
+                    && let (actor, Some(key)) = yan_rt::actor::work_target()
+                {
+                    self.race.borrow_mut().actor_begin(actor, Some(key));
+                }
+                Val::I(i128::from(yan_rt::actor::yan_rt_actor_arg(a[0].addr())))
+            }
             RtFn::ActorRan => {
+                self.race.borrow_mut().actor_end();
                 yan_rt::actor::yan_rt_actor_ran();
                 Val::U
             }

@@ -44,6 +44,13 @@ struct Block {
     tasks: Vec<Tid>,
 }
 
+/// An actor is a logical thread of its own: it starts under its spawner's clock, and each message
+/// it runs first acquires the clock its sender left.
+struct Actor {
+    tid: Tid,
+    mail: VecDeque<(u64, Vec<u32>)>,
+}
+
 pub struct Race {
     /// Clock of each thread; thread 0 is the program's own.
     clocks: Vec<Vec<u32>>,
@@ -53,6 +60,9 @@ pub struct Race {
     regions: Vec<Region>,
     blocks: HashMap<u64, Block>,
     links: HashMap<u64, Link>,
+    actors: HashMap<u64, Actor>,
+    /// The thread each running handler interrupted.
+    resume: Vec<Tid>,
     shadow: HashMap<u64, Cell>,
 }
 
@@ -78,6 +88,8 @@ impl Race {
             regions: Vec::new(),
             blocks: HashMap::new(),
             links: HashMap::new(),
+            actors: HashMap::new(),
+            resume: Vec::new(),
             shadow: HashMap::new(),
         }
     }
@@ -204,6 +216,59 @@ impl Race {
         }
     }
 
+    pub fn actor_spawn(&mut self, id: u64) {
+        let t = self.clocks.len();
+        let mut c = self.clocks[self.cur].clone();
+        c.resize(t + 1, 0);
+        c[t] = 1;
+        self.clocks.push(c);
+        self.arm.push(usize::MAX);
+        self.actors.insert(
+            id,
+            Actor {
+                tid: t,
+                mail: VecDeque::new(),
+            },
+        );
+        self.tick(self.cur);
+    }
+
+    /// A message with arguments `key` was queued for actor `id`: it releases this thread's clock.
+    pub fn actor_send(&mut self, id: u64, key: u64) {
+        let c = self.clocks[self.cur].clone();
+        if let Some(a) = self.actors.get_mut(&id) {
+            a.mail.push_back((key, c));
+            self.tick(self.cur);
+        }
+    }
+
+    /// Actor `id` starts the message with arguments `key`; what it runs belongs to the actor's
+    /// thread until `actor_end`.
+    pub fn actor_begin(&mut self, id: u64, key: Option<u64>) {
+        let Some(a) = self.actors.get_mut(&id) else {
+            return;
+        };
+        let sent = key.and_then(|k| {
+            let at = a.mail.iter().position(|(m, _)| *m == k)?;
+            // Messages before it were dropped by the mailbox's overflow policy.
+            a.mail.drain(..at);
+            a.mail.pop_front().map(|(_, c)| c)
+        });
+        let t = a.tid;
+        if let Some(c) = sent {
+            join(&mut self.clocks[t], &c);
+        }
+        self.resume.push(self.cur);
+        self.cur = t;
+    }
+
+    pub fn actor_end(&mut self) {
+        if let Some(t) = self.resume.pop() {
+            self.tick(self.cur);
+            self.cur = t;
+        }
+    }
+
     pub fn in_block(&self) -> bool {
         !self.blocks.is_empty()
     }
@@ -260,6 +325,8 @@ impl Race {
     fn who(&self, t: Tid) -> String {
         if t == 0 {
             "the program".into()
+        } else if self.arm[t] == usize::MAX {
+            "an actor".into()
         } else {
             format!("`par` arm {}", self.arm[t])
         }
@@ -390,6 +457,26 @@ mod tests {
         assert!(r.access(0x10, true).is_none());
         r.block_switch(0, 1);
         assert!(r.access(0x10, false).is_some());
+    }
+
+    #[test]
+    fn a_message_orders_the_sender_before_the_handler_and_actors_run_serially() {
+        let mut r = Race::new();
+        r.actor_spawn(7);
+        r.block_begin(0, 2);
+        r.block_switch(0, 0);
+        assert!(r.access(0x10, true).is_none());
+        r.actor_send(7, 100);
+        r.block_switch(0, 1);
+        r.actor_begin(7, Some(100));
+        assert!(r.access(0x10, true).is_none());
+        r.actor_end();
+        r.actor_send(7, 0);
+        r.actor_begin(7, Some(0));
+        assert!(r.access(0x10, false).is_none());
+        r.actor_end();
+        // An access by another task that never received from the actor races with it.
+        assert!(r.access(0x10, true).is_some());
     }
 
     #[test]
