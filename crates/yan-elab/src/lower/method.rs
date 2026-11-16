@@ -151,6 +151,23 @@ impl Lower<'_, '_, '_> {
         if let Some(r) = self.handler_call(b, m, args, at)? {
             return Ok(r);
         }
+        // A call receiver has no type until lowered; bind it so a prelude function (`set`)
+        // does not hide the receiver's own method.
+        let bound;
+        let b = if self.g.std_fns.contains(m)
+            && self.g.fns.contains_key(m)
+            && matches!(b.kind, j::ExprKind::Call(..))
+            && let (Atom::Name(n, _), _) = self.atom(b, None)?
+        {
+            bound = j::Expr {
+                kind: j::ExprKind::Name(n),
+                span: b.span,
+                paren: false,
+            };
+            &bound
+        } else {
+            b
+        };
         let recv_decl = self
             .ty_of_local(b)
             .as_ref()
