@@ -1799,3 +1799,13 @@ sections = "7.4, 12.2, 19.2"
 rows = "R1021"
 topic = "`Sender.close()` ends the handle at once; a second `close` and the later drop do nothing; `send`, `try_send` or a `select` send arm on a closed `Sender` panics `contract`"
 sections = "9.5"
+
+[[entry]]
+rows = "R1022"
+topic = "`list.clear()`, `list.remove_at(i)` (negative counts from the end, `pre` in range) and `list.remove(x)` (`pre` contains) panic with `contract` where Python raises"
+sections = "17.3"
+
+[[entry]]
+rows = "R1023"
+topic = "N34 reads `xs.pop(i)` as `remove_at(i)` and `d.pop(k)` as `dict.remove(k)`"
+sections = "14.4, 17.3"
