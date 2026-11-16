@@ -458,6 +458,18 @@ impl Machine<'_> {
                     .to_vec();
                 self.new_bytes(s)
             }
+            RtFn::CharCount => Val::I(self.str_of(a[0].addr())?.chars().count() as i128),
+            RtFn::StrRepeat => {
+                let r = self.str_of(a[0].addr())?.repeat(a[1].int().max(0) as usize);
+                Val::I(i128::from(self.new_str(&r)))
+            }
+            RtFn::ParseInt => match yan_rt::text::parse_int(&self.str_of(a[0].addr())?) {
+                Some(v) => {
+                    self.write_words(a[1].addr(), &[v as u64])?;
+                    Val::B(true)
+                }
+                None => Val::B(false),
+            },
             RtFn::CharStr => {
                 let c = char::from_u32(a[0].int() as u32).unwrap_or('\u{fffd}');
                 Val::I(i128::from(self.new_str(&c.to_string())))
