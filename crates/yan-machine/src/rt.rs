@@ -1007,6 +1007,19 @@ impl Machine<'_> {
                 self.write_words(a[0].addr(), &out)?;
                 Val::U
             }
+            RtFn::JsonDump => {
+                let schema = self.str_of(a[1].addr())?;
+                let w = self.words(a[0].addr(), yan_rt::jsonslots::root_width(&schema))?;
+                let Some(text) = yan_rt::jsonslots::dump_in(&MemBlocks(self), &w, &schema)? else {
+                    return Err(Stop::Panic("value"));
+                };
+                Val::I(i128::from(self.new_str(&text)))
+            }
+            RtFn::JsonErrorShow => {
+                let w = self.words(a[0].addr(), 14)?;
+                let text = yan_rt::jsonslots::show_error_in(&MemBlocks(self), &w)?;
+                Val::I(i128::from(self.new_str(&text)))
+            }
             RtFn::RegexCheck => {
                 let p = self.str_of(a[0].addr())?;
                 Val::I(match yan_rt::regex::build(&p) {

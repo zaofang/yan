@@ -4,6 +4,7 @@
 //! `Option` is a sum of `Some` (tag 0) and `None`, a tuple is its parts.
 
 use crate::json::{self, Json, Pos, Reason};
+use crate::wireslots::{Heap, Raw};
 
 /// The tag key of a sum's object, `@wire(tag: ...)` or `tag` (R886).
 fn tag(def: &Json) -> &str {
@@ -465,64 +466,53 @@ impl Cx<'_> {
     }
 
     /// Reads a value of type `t` from `w`, which is exactly its slots.
-    ///
-    /// # Safety
-    /// The `Str` and `List` slots in `w` point to live blocks.
-    unsafe fn encode(&self, t: &Json, w: &[u64]) -> Result<Json, ()> {
+    fn encode<H: Heap>(&self, h: &H, t: &Json, w: &[u64]) -> Result<Json, Enc<H::Err>> {
         Ok(match t {
             Json::Str(n) => match n.as_str() {
                 "bool" => Json::Bool(w[0] & 0xff != 0),
                 "int" => Json::Int(w[0] as i64),
                 "float" if f64::from_bits(w[0]).is_finite() => Json::Float(f64::from_bits(w[0])),
-                // SAFETY: the caller's contract.
-                "str" => Json::Str(unsafe { &*(w[0] as *const String) }.clone()),
-                "char" => Json::Str(char::from_u32(w[0] as u32).ok_or(())?.to_string()),
-                _ => return Err(()),
+                "str" => Json::Str(h.text(w[0]).map_err(Enc::Heap)?),
+                "char" => Json::Str(char::from_u32(w[0] as u32).ok_or(Enc::No)?.to_string()),
+                _ => return Err(Enc::No),
             },
             Json::Object(o) => {
-                let (k, t) = o.first().ok_or(())?;
+                let (k, t) = o.first().ok_or(Enc::No)?;
                 match k.as_str() {
                     "opt" if w[0] == 1 => Json::Null,
-                    // SAFETY: forwarded.
-                    "opt" => unsafe { self.encode(t, &w[1..])? },
+                    "opt" => self.encode(h, t, &w[1..])?,
                     "list" => {
-                        // SAFETY: the caller's contract.
-                        let l = unsafe { &*(w[0] as *const crate::abi::List) };
+                        let data = h.list(w[0]).map_err(Enc::Heap)?;
                         let n = self.width(t);
                         let xs = if n == 0 {
                             vec![]
                         } else {
-                            l.data.chunks(n).collect()
+                            data.chunks(n).collect()
                         };
                         Json::Array(
                             xs.into_iter()
-                                // SAFETY: elements are values of `t`.
-                                .map(|x| unsafe { self.encode(t, x) })
+                                .map(|x| self.encode(h, t, x))
                                 .collect::<Result<_, _>>()?,
                         )
                     }
                     "dict" => {
                         let [kt, vt] = items(t) else {
-                            return Err(());
+                            return Err(Enc::No);
                         };
-                        // SAFETY: the caller's contract.
-                        let m = unsafe { &*(w[0] as *const crate::map::Map) };
                         let (kw, vw) = (self.width(kt), self.width(vt));
-                        let entries = m.entries().map(|e| {
-                            // SAFETY: entries are a key of `kt` then a value of `vt`.
-                            unsafe {
-                                Ok((
-                                    self.encode(kt, &e[..kw])?,
-                                    self.encode(vt, &e[kw..kw + vw])?,
-                                ))
-                            }
+                        let data = h.map(w[0]).map_err(Enc::Heap)?;
+                        let entries = data.chunks((kw + vw).max(1)).map(|e| {
+                            Ok((
+                                self.encode(h, kt, &e[..kw])?,
+                                self.encode(h, vt, &e[kw..kw + vw])?,
+                            ))
                         });
                         if *kt == Json::Str("str".into()) {
                             Json::Object(
                                 entries
                                     .map(|e| match e? {
                                         (Json::Str(k), v) => Ok((k, v)),
-                                        _ => Err(()),
+                                        _ => Err(Enc::No),
                                     })
                                     .collect::<Result<_, _>>()?,
                             )
@@ -539,8 +529,7 @@ impl Cx<'_> {
                         let mut out = Vec::new();
                         for t in items(t) {
                             let n = self.width(t);
-                            // SAFETY: forwarded.
-                            out.push(unsafe { self.encode(t, &w[at..at + n])? });
+                            out.push(self.encode(h, t, &w[at..at + n])?);
                             at += n;
                         }
                         Json::Array(out)
@@ -557,27 +546,30 @@ impl Cx<'_> {
                             for v in &vs[..chosen] {
                                 at += self.fields_width(get(v, "fs").unwrap_or(&Json::Null));
                             }
-                            let v = vs.get(chosen).ok_or(())?;
+                            let v = vs.get(chosen).ok_or(Enc::No)?;
                             out.push((tag(def).to_owned(), Json::Str(wire(v).into())));
                             (get(v, "fs").unwrap_or(&Json::Null), at)
                         };
                         for f in items(decl) {
                             let t = get(f, "t").unwrap_or(&Json::Null);
                             let n = self.width(t);
-                            // SAFETY: forwarded.
-                            out.push((wire(f).to_owned(), unsafe {
-                                self.encode(t, &w[at..at + n])?
-                            }));
+                            out.push((wire(f).to_owned(), self.encode(h, t, &w[at..at + n])?));
                             at += n;
                         }
                         Json::Object(out)
                     }
-                    _ => return Err(()),
+                    _ => return Err(Enc::No),
                 }
             }
-            _ => return Err(()),
+            _ => return Err(Enc::No),
         })
     }
+}
+
+/// Why a value has no json form: the type cannot be encoded, or the heap could not be read.
+enum Enc<E> {
+    No,
+    Heap(E),
 }
 
 pub(crate) fn word(x: usize) -> Slot {
@@ -661,18 +653,32 @@ fn syntax_error(e: &json::JsonError) -> Vec<Slot> {
 }
 
 /// The json text of the value in `w` against `schema`, or `None` when it has no json form
-/// (a non-finite float).
-///
-/// # Safety
-/// `w` holds the slots of the schema's root type; its `Str` and `List` slots point to live blocks.
-pub unsafe fn dump(w: &[u64], schema: &str) -> Option<String> {
+/// (a non-finite float), reading blocks through `h`.
+pub fn dump_in<H: Heap>(h: &H, w: &[u64], schema: &str) -> Result<Option<String>, H::Err> {
     let sc = json::parse(schema, 128).expect("the elaborator's schema");
     let cx = Cx {
         defs: get(&sc, "defs").unwrap_or(&Json::Null),
     };
-    // SAFETY: the caller's contract.
-    let j = unsafe { cx.encode(get(&sc, "root")?, w) }.ok()?;
-    json::dump(&j, None).ok()
+    let Some(root) = get(&sc, "root") else {
+        return Ok(None);
+    };
+    match cx.encode(h, root, w) {
+        Ok(j) => Ok(json::dump(&j, None).ok()),
+        Err(Enc::No) => Ok(None),
+        Err(Enc::Heap(e)) => Err(e),
+    }
+}
+
+/// [`dump_in`] over native blocks.
+///
+/// # Safety
+/// `w` holds the slots of the schema's root type; its `Str`, `List` and `Map` slots point to
+/// live blocks.
+pub unsafe fn dump(w: &[u64], schema: &str) -> Option<String> {
+    match dump_in(&Raw, w, schema) {
+        Ok(s) => s,
+        Err(never) => match never {},
+    }
 }
 
 /// The slot count of the schema's root type.
@@ -684,24 +690,34 @@ pub fn root_width(schema: &str) -> usize {
     cx.width(get(&sc, "root").unwrap_or(&Json::Null))
 }
 
-/// `line L, col C: reason` (R573) for the 14 slots of a `JsonError`.
+/// `line L, col C: reason` (R573) for the 14 slots of a `JsonError`, reading blocks through `h`.
+pub fn show_error_in<H: Heap>(h: &H, w: &[u64]) -> Result<String, H::Err> {
+    let st = |i: usize| h.text(w[i]);
+    let reason = match w[2] {
+        0 => st(3)?,
+        1 => "nesting exceeds max_depth".into(),
+        2 => format!("duplicate key {:?}", st(4)?),
+        4 => format!("{}: expected {}, found {}", st(5)?, st(6)?, st(7)?),
+        5 => format!("{}: missing field {:?}", st(8)?, st(9)?),
+        6 => format!("{}: unknown field {:?}", st(10)?, st(11)?),
+        7 => format!("{}: {}", st(12)?, st(13)?),
+        _ => "number out of range".into(),
+    };
+    Ok(format!(
+        "line {}, col {}: {reason}",
+        w[0] as i64, w[1] as i64
+    ))
+}
+
+/// [`show_error_in`] over native blocks.
 ///
 /// # Safety
 /// The `Str` slots of the chosen variant point to live blocks.
 pub unsafe fn show_error(w: &[u64]) -> String {
-    // SAFETY: the caller's contract.
-    let st = |i: usize| unsafe { &*(w[i] as *const String) };
-    let reason = match w[2] {
-        0 => st(3).clone(),
-        1 => "nesting exceeds max_depth".into(),
-        2 => format!("duplicate key {:?}", st(4)),
-        4 => format!("{}: expected {}, found {}", st(5), st(6), st(7)),
-        5 => format!("{}: missing field {:?}", st(8), st(9)),
-        6 => format!("{}: unknown field {:?}", st(10), st(11)),
-        7 => format!("{}: {}", st(12), st(13)),
-        _ => "number out of range".into(),
-    };
-    format!("line {}, col {}: {reason}", w[0] as i64, w[1] as i64)
+    match show_error_in(&Raw, w) {
+        Ok(s) => s,
+        Err(never) => match never {},
+    }
 }
 
 #[cfg(test)]

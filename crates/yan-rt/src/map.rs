@@ -470,11 +470,6 @@ impl Map {
         }))
     }
 
-    /// Each entry's key then value slots, in order.
-    pub(crate) fn entries(&self) -> impl Iterator<Item = &[u64]> {
-        self.data.chunks(self.stride())
-    }
-
     fn stride(&self) -> usize {
         self.kw + self.vw
     }
