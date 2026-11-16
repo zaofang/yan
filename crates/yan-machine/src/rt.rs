@@ -550,6 +550,47 @@ impl Machine<'_> {
                 let (x, y) = (self.str_of(a[0].addr())?, self.str_of(a[1].addr())?);
                 Val::B(yan_rt::path::win_eq(&x, &y))
             }
+            RtFn::StrStarts => Val::B(
+                self.str_of(a[0].addr())?
+                    .starts_with(&self.str_of(a[1].addr())?),
+            ),
+            RtFn::RandSeeded => Val::I(i128::from(yan_rt::rand::seeded(
+                a[0].int() as u64,
+                a[1].int() == 1,
+            ))),
+            RtFn::RandNext => Val::I(i128::from(yan_rt::rand::next(a[0].int() as i64) as i64)),
+            RtFn::RandF64 => Val::F(yan_rt::rand::f64_from(
+                yan_rt::rand::next(a[0].int() as i64),
+            )),
+            RtFn::RandBelow => {
+                let h = a[0].int() as i64;
+                Val::I(i128::from(
+                    yan_rt::rand::below(a[1].int() as u64, || yan_rt::rand::next(h)) as i64,
+                ))
+            }
+            RtFn::Math1 => Val::F(yan_rt::math::MATH1[a[0].int() as usize](a[1].float())),
+            RtFn::HeapSort => {
+                let layout = yan_rt::map::Layout::parse(&self.str_of(a[1].addr())?);
+                let (w, data) = {
+                    let l = self.list(a[0])?;
+                    (l.words, l.data)
+                };
+                let flat = self.list_words(a[0])?;
+                let mut order: Vec<&[u64]> = flat.chunks(w.max(1)).collect();
+                let mut err = None;
+                order.sort_by(|x, y| {
+                    layout.cmp(x, y, &MemBlocks(self)).unwrap_or_else(|e| {
+                        err = Some(e);
+                        std::cmp::Ordering::Equal
+                    })
+                });
+                if let Some(e) = err {
+                    return Err(e);
+                }
+                let sorted: Vec<u64> = order.concat();
+                self.write_words(data, &sorted)?;
+                Val::U
+            }
             RtFn::StrEq => Val::B(self.str_of(a[0].addr())? == self.str_of(a[1].addr())?),
             RtFn::StrFree => {
                 // literals are static (R561)
