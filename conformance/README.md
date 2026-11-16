@@ -69,12 +69,11 @@ The primary span starts at the construct the code's meaning names: the offending
 E402, E404 and E405, the use for E401, E413 and E705, the item name for item-level rules (E421,
 E602, E601, W830), and the start of the whole expression for operator rules (E101, E104, E530).
 
-`manifest.json` lists every case with its headers. The coverage report maps diagnostic codes and spec
-sections to cases; it is generated from the headers and `catalogue.toml`, never committed (CI publishes it
-as the `conformance-coverage` artifact):
+`manifest.json` lists every case with its headers, and `COVERAGE.md` maps diagnostic codes and spec
+sections to cases. Both are generated from the headers and `catalogue.toml`:
 
 ```sh
-uv run python tools/conform.py --manifest conformance/manifest.json --coverage /tmp/coverage.md
+uv run python tools/conform.py --manifest conformance/manifest.json --coverage conformance/COVERAGE.md
 ```
 
 ## Assumptions
