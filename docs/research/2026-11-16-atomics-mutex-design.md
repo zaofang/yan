@@ -99,6 +99,8 @@ S2 and S3 land together for integers and `bool` (#1369). Shape: `Atomic[T]` is o
 
 S4 (2026-11-16): `race.rs` shadows atomics per D5 items 1 to 4 (atomic and plain records per byte, per-word release clock, release sequences through read-modify-writes, fences, one SeqCst clock); `Inst::Fence` and a callable `fence` exist. Mixed-size races do not arise yet because every `Atomic` is one word. The `ub/atomic_*` cases of D9 wait on yn: it cannot spell `StoreOrdering.Release` (E017, type fields) and yag has no `Ptr`, so the machine tests in `crates/yan-machine/tests/atomic_race.rs` build MIR by hand.
 
+S1b (#1376) landed in the interpreter: the guard is not a new mechanism. `lock()` returns an owned `MutexGuard[T]` local, and drop elaboration (R770) already drops owned locals at the end of their block and before every early exit, so `Op::DropGuard` unlocks there. E323 is a Core pass (`yan-elab/src/guard.rs`): a guard is live from its binding to its block's end, and a std wait, a call to a function that may reach one, or a `par` in that range is reported. A guard is second-class (E414 on passing, returning or rebinding it). Access is `get`, `set` and `replace`; `MutView[T]` access is not built (open: 4.5 defines views over contiguous parts, not over a whole value). Early unlock needs a smaller scope, a function, until a `with` form exists. Native refuses `Mutex` until S2.
+
 ## Slices
 
 Each is one PR and its own issue under #1369, in order; S1 to S4 close #1319.
