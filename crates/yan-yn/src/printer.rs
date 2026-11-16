@@ -261,7 +261,8 @@ impl Printer {
             FnKind::Sub => "sub ",
             FnKind::Lemma => "lemma ",
         };
-        let prefix = format!("{pub_}{kw}");
+        let unsafe_ = if f.unsafe_.is_some() { "unsafe " } else { "" };
+        let prefix = format!("{pub_}{unsafe_}{kw}");
         let one = format!("{prefix}{}", sig(&f.sig));
         if self.indent + one.len() + 2 <= WIDTH {
             return self.with_body(&one, &f.body);

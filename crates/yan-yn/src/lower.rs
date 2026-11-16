@@ -265,7 +265,8 @@ impl Lower<'_> {
         self.doc = self.doc_above(it.span.line);
         let (kind, name_span) = match &it.kind {
             ItemKind::Fn(f) => {
-                let def = self.fn_def(&f.sig, Some(&f.body), !it.public)?;
+                let mut def = self.fn_def(&f.sig, Some(&f.body), !it.public)?;
+                def.unsafe_at = f.unsafe_;
                 let span = f.sig.name_span;
                 match f.kind {
                     FnKind::Plain => (h::ItemKind::Func(def), span),
@@ -758,6 +759,7 @@ impl Lower<'_> {
         };
         let body = body.map(|b| self.body(s, b)).transpose()?;
         Ok(h::FuncDef {
+            unsafe_at: None,
             name: s.name.clone(),
             name_span: s.name_span,
             tparams: self.tparams(&s.tparams)?,
