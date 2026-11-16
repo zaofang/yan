@@ -15,6 +15,8 @@ pub struct List {
     len: usize,
     cap: usize,
     data: u64,
+    /// A deque's `maxlen`, or -1.
+    limit: i64,
 }
 
 /// A `Map` block: its entries are `kw + vw` slots each in a data allocation that is replaced
@@ -54,7 +56,7 @@ impl Machine<'_> {
     /// Replaces a list's elements with `slots`, in a fresh data block.
     fn set_slots(&mut self, l: Val, slots: Vec<Byte>) -> Result<(), Stop> {
         let words = self.list(l)?.words;
-        let old = self.list(l)?.data;
+        let (old, limit) = (self.list(l)?.data, self.list(l)?.limit);
         let len = slots.len().checked_div(8 * words).unwrap_or(0);
         let data = self.mem.alloc(slots.len());
         self.mem.write(data, &slots);
@@ -64,6 +66,7 @@ impl Machine<'_> {
             len,
             cap: len,
             data,
+            limit,
         };
         Ok(())
     }
@@ -136,6 +139,7 @@ impl Machine<'_> {
                 len,
                 cap: len,
                 data,
+                limit: -1,
             },
         );
         Val::I(i128::from(h))
@@ -340,6 +344,7 @@ impl Machine<'_> {
                         len: 0,
                         cap: 0,
                         data,
+                        limit: -1,
                     },
                 );
                 Val::I(i128::from(h))
@@ -351,6 +356,7 @@ impl Machine<'_> {
                     len,
                     cap,
                     data,
+                    limit,
                 } = *self.list(a[0])?;
                 let (mut data, mut cap) = (data, cap);
                 if len == cap {
@@ -369,6 +375,7 @@ impl Machine<'_> {
                     len: len + 1,
                     cap,
                     data,
+                    limit,
                 };
                 Val::I(i128::from(at))
             }
@@ -424,6 +431,81 @@ impl Machine<'_> {
                 }
                 let w = 8 * words as i128;
                 self.new_list(words, slots[(i * w) as usize..(j * w) as usize].to_vec())
+            }
+            RtFn::DqLimit => {
+                self.list(a[0])?.limit = a[1].int() as i64;
+                Val::U
+            }
+            RtFn::DqMaxlen => Val::I(i128::from(self.list(a[0])?.limit)),
+            RtFn::DqPush => {
+                let (w, limit) = (self.list(a[0])?.words, self.list(a[0])?.limit);
+                let mut data = self.list_words(a[0])?;
+                let x = self.words(a[2].addr(), w)?;
+                let evicted = yan_rt::dq::push(&mut data, w, limit, a[1].int() != 0, &x);
+                self.set_slots(a[0], word_bytes(&data))?;
+                match evicted {
+                    Some(e) => {
+                        self.write_words(a[3].addr(), &e)?;
+                        Val::I(1)
+                    }
+                    None => Val::I(0),
+                }
+            }
+            RtFn::DqPop => {
+                let w = self.list(a[0])?.words;
+                let mut data = self.list_words(a[0])?;
+                match yan_rt::dq::pop(&mut data, w, a[1].int() != 0) {
+                    Some(e) => {
+                        self.set_slots(a[0], word_bytes(&data))?;
+                        self.write_words(a[2].addr(), &e)?;
+                        Val::I(1)
+                    }
+                    None => Val::I(0),
+                }
+            }
+            RtFn::DqExtend => {
+                let (w, limit) = (self.list(a[0])?.words, self.list(a[0])?.limit);
+                let mut data = self.list_words(a[0])?;
+                let src = self.list_words(a[1])?;
+                let out = yan_rt::dq::extend(&mut data, w, limit, &src);
+                self.set_slots(a[0], word_bytes(&data))?;
+                let h = a[1].addr();
+                if let Some(l) = self.lists.remove(&h) {
+                    self.mem.free(l.data);
+                }
+                self.free_block(h)?;
+                self.new_list(w, word_bytes(&out))
+            }
+            RtFn::DqRotate => {
+                let w = self.list(a[0])?.words;
+                let mut data = self.list_words(a[0])?;
+                yan_rt::dq::rotate(&mut data, w, a[1].int() as i64);
+                self.set_slots(a[0], word_bytes(&data))?;
+                Val::U
+            }
+            RtFn::DqTake => {
+                let (w, data) = (self.list(a[0])?.words, self.list_words(a[0])?);
+                self.set_slots(a[0], Vec::new())?;
+                self.new_list(w, word_bytes(&data))
+            }
+            RtFn::DqContains => {
+                let w = self.list(a[0])?.words;
+                let data = self.list_words(a[0])?;
+                let x = self.words(a[2].addr(), w)?;
+                let schema = self.str_of(a[1].addr())?;
+                let layout = yan_rt::map::Layout::parse(&schema);
+                let want = layout.encode(&x, &MemBlocks(self))?;
+                let mut found = false;
+                if w > 0 {
+                    for e in data.chunks(w) {
+                        found |= layout.encode(e, &MemBlocks(self))? == want;
+                    }
+                }
+                Val::I(i128::from(found))
+            }
+            RtFn::DqSuffix => {
+                let limit = self.list(a[0])?.limit;
+                Val::I(i128::from(self.new_str(&yan_rt::dq::suffix(limit))))
             }
             RtFn::MapNew => {
                 let schema = self.str_of(a[2].addr())?;
