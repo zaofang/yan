@@ -88,6 +88,8 @@ pub struct Machine<'p> {
     /// `bytes` and `bytearray` contents by handle block; handles stay valid as they grow.
     bytes: HashMap<u64, Vec<u8>>,
     exposed: HashMap<u64, i128>,
+    /// `arena` handle blocks to the slot blocks they own.
+    arenas: HashMap<u64, Vec<u64>>,
     scratch: Option<u64>,
     civil_out: Vec<i64>,
     /// `fake_fs` file systems by handler minus one; handler 0 is the real one.
@@ -108,6 +110,7 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
         maps: HashMap::new(),
         bytes: HashMap::new(),
         exposed: HashMap::new(),
+        arenas: HashMap::new(),
         scratch: None,
         civil_out: Vec::new(),
         fs_fakes: Vec::new(),
