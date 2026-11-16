@@ -10,6 +10,7 @@
 //! Tasks, supervisors and clusters are yan-rt's own thread-local state, so the machine makes the
 //! scheduling decisions native code makes; a run owns its thread.
 
+mod ffi;
 mod mem;
 mod ops;
 mod race;

@@ -1802,6 +1802,28 @@ impl Machine<'_> {
                 }
                 Val::U
             }
+            RtFn::FfiCall | RtFn::FfiCallF64 => {
+                let link = self.str_of(a[0].addr())?;
+                let sym = self.str_of(a[1].addr())?;
+                let mut ints = [0i64; yan_rt::ffi::INTS];
+                for (d, v) in ints.iter_mut().zip(&a[3..]) {
+                    *d = v.int() as i64;
+                }
+                let mut floats = [0f64; yan_rt::ffi::FLOATS];
+                for (d, v) in floats.iter_mut().zip(&a[3 + yan_rt::ffi::INTS..]) {
+                    *d = v.float();
+                }
+                let r = if f == RtFn::FfiCall {
+                    crate::ffi::call(&link, &sym, a[2].int() as u8, &ints, &floats)
+                        .map(|v| Val::I(i128::from(v)))
+                } else {
+                    crate::ffi::call_f64(&link, &sym, &ints, &floats).map(Val::F)
+                };
+                match r {
+                    Ok(v) => v,
+                    Err(m) => return unsupported(m),
+                }
+            }
             other => return unsupported(format!("runtime function {other:?} in the machine")),
         })
     }
