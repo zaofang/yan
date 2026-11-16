@@ -1,0 +1,53 @@
+# Parse a small CSV of sales, aggregate per region, print a report.
+
+type RowErr = Short(line: int) | BadNum(line: int, field: str)
+
+class Sale:
+    region: str
+    item: str
+    qty: int
+    price: float
+
+data: str = """region,item,qty,price
+north,widget,3,2.50
+south,gadget,1,10.00
+north,gadget,2,10.00
+east,widget,10,2.25
+south,widget,4,2.50"""
+
+def parse_row(n: int, line: str) -> Sale fail RowErr:
+    parts = line.split(",")
+    if parts.len() != 4:
+        fail Short(n)
+    qty = parts[2].parse_int() else fail BadNum(n, "qty")
+    price = parts[3].parse_float() else fail BadNum(n, "price")
+    return Sale(region=parts[0].copy(), item=parts[1].copy(), qty=qty, price=price)
+
+def parse_all(src: str) -> list[Sale] fail RowErr:
+    out: list[Sale] = []
+    n = 0
+    for line in src.splitlines():
+        n += 1
+        if n == 1:
+            continue
+        out.append(parse_row(n, line)?)
+    return out
+
+def totals(rows: list[Sale]) -> dict[str, float]:
+    t: dict[str, float] = {}
+    for r in rows:
+        t[r.region.copy()] = (t.get(r.region) else 0.0) + r.qty * r.price
+    return t
+
+def report(src: str) uses io:
+    rows = parse_all(src) else e -> []
+    if rows.len() == 0:
+        io.print("no rows")
+        return
+    t = totals(rows)
+    for k in sorted(t.keys()):
+        io.print(f"{k}: {t[k]}")
+
+def main() uses io:
+    report(data)
+    report("h\na,b,c")
