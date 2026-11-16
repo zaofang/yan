@@ -8,7 +8,7 @@ const HANDLE: &str = "lent__h";
 const POLICY: &str = "lent__P";
 
 /// The std operations that can wait on another task. A call to a user function may reach one.
-const SUSPENDS: [&str; 8] = [
+pub(crate) const SUSPENDS: [&str; 8] = [
     "std.actor.send",
     "std.chan.receiver.recv",
     "std.chan.sender.send",
