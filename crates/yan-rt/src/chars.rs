@@ -15,6 +15,11 @@ pub extern "C" fn yan_rt_char_str(c: i64) -> *mut String {
     str_block(&char_of(c).to_string())
 }
 
+/// The code points of `s`, one word each, as a list holds them.
+pub fn code_points(s: &str) -> impl Iterator<Item = u64> + '_ {
+    s.chars().map(|c| u64::from(u32::from(c)))
+}
+
 /// The code points of `s`, one word each.
 ///
 /// # Safety
@@ -23,9 +28,9 @@ pub extern "C" fn yan_rt_char_str(c: i64) -> *mut String {
 pub unsafe extern "C" fn yan_rt_str_chars(s: *const String) -> *mut List {
     let l = yan_rt_list_new(1);
     // SAFETY: the caller's contract.
-    for c in unsafe { &*s }.chars() {
+    for c in code_points(unsafe { &*s }) {
         // SAFETY: `l` is a fresh list of one-word elements that nothing else borrows.
-        unsafe { *yan_rt_list_push(l) = u64::from(u32::from(c)) };
+        unsafe { *yan_rt_list_push(l) = c };
     }
     l
 }

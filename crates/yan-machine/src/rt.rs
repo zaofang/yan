@@ -339,6 +339,16 @@ impl Machine<'_> {
                 let s = yan_rt::fmt::repr(&self.str_of(a[0].addr())?);
                 Val::I(i128::from(self.new_str(&s)))
             }
+            RtFn::StrChars => {
+                let cs: Vec<u64> = yan_rt::chars::code_points(&self.str_of(a[0].addr())?).collect();
+                self.new_list(1, word_bytes(&cs))
+            }
+            RtFn::KeyCmp => {
+                let layout = yan_rt::map::Layout::parse(&self.str_of(a[0].addr())?);
+                let w = layout.width();
+                let (x, y) = (self.words(a[1].addr(), w)?, self.words(a[2].addr(), w)?);
+                Val::I(layout.cmp(&x, &y, &MemBlocks(self))? as i128)
+            }
             RtFn::StrEq => Val::B(self.str_of(a[0].addr())? == self.str_of(a[1].addr())?),
             RtFn::StrFree => {
                 // literals are static (R561)
@@ -987,11 +997,11 @@ impl yan_rt::wireslots::Heap for MemBlocks<'_> {
 impl yan_rt::map::Blocks for MemBlocks<'_> {
     type Err = Stop;
 
-    fn text(&self, block: u64) -> Result<String, Stop> {
-        self.0.str_of(block)
+    fn text(&self, block: u64) -> Result<std::borrow::Cow<'_, str>, Stop> {
+        self.0.str_of(block).map(Into::into)
     }
 
-    fn bytes(&self, _: u64) -> Result<Vec<u8>, Stop> {
+    fn bytes(&self, _: u64) -> Result<std::borrow::Cow<'_, [u8]>, Stop> {
         unsupported("`bytes` map keys in the machine")
     }
 }

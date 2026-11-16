@@ -4,6 +4,7 @@
 
 use crate::keyhash::Enc;
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 /// How a key's slots encode, from the schema text the lowering builds:
@@ -106,6 +107,20 @@ impl Key {
     /// # Safety
     /// Every `Str` slot holds a live `Str` block.
     pub(crate) unsafe fn cmp(&self, a: &[u64], b: &[u64], at: &mut usize) -> std::cmp::Ordering {
+        match self.cmp_in(a, b, at, &Raw) {
+            Ok(o) => o,
+            Err(e) => match e {},
+        }
+    }
+
+    /// [`Key::cmp`] with the blocks read through `blk`.
+    pub fn cmp_in<B: Blocks>(
+        &self,
+        a: &[u64],
+        b: &[u64],
+        at: &mut usize,
+        blk: &B,
+    ) -> Result<std::cmp::Ordering, B::Err> {
         use std::cmp::Ordering::Equal;
         let (x, y) = (a[*at], b[*at]);
         let ord = match self {
@@ -125,54 +140,49 @@ impl Key {
                 .unwrap_or(Equal),
             Key::Bool => (x as u8 != 0).cmp(&(y as u8 != 0)),
             Key::Unit => Equal,
-            // SAFETY: the caller's contract.
-            Key::Str => unsafe { (*(x as *const String)).cmp(&*(y as *const String)) },
-            // SAFETY: the caller's contract.
-            Key::Path => unsafe {
-                let parts = |p: u64| crate::path::Parsed::posix(&*(p as *const String)).parts();
-                parts(x).cmp(&parts(y))
-            },
-            // SAFETY: the caller's contract.
-            Key::WinPath => unsafe {
-                let parts =
-                    |p: u64| crate::path::Parsed::windows(&*(p as *const String)).folded_parts();
-                parts(x).cmp(&parts(y))
-            },
-            // SAFETY: the caller's contract.
-            Key::Bytes => unsafe { (*(x as *const Vec<u8>)).cmp(&*(y as *const Vec<u8>)) },
+            Key::Str => blk.text(x)?.cmp(&blk.text(y)?),
+            Key::Path => {
+                let (x, y) = (blk.text(x)?, blk.text(y)?);
+                let parts = |p: &str| crate::path::Parsed::posix(p).parts();
+                parts(&x).cmp(&parts(&y))
+            }
+            Key::WinPath => {
+                let (x, y) = (blk.text(x)?, blk.text(y)?);
+                let parts = |p: &str| crate::path::Parsed::windows(p).folded_parts();
+                parts(&x).cmp(&parts(&y))
+            }
+            Key::Bytes => blk.bytes(x)?.cmp(&blk.bytes(y)?),
             Key::Tuple(ks) | Key::Rec(_, ks) => {
                 for k in ks {
-                    // SAFETY: forwarded.
-                    let o = unsafe { k.cmp(a, b, at) };
+                    let o = k.cmp_in(a, b, at, blk)?;
                     if o != Equal {
-                        return o;
+                        return Ok(o);
                     }
                 }
-                return Equal;
+                return Ok(Equal);
             }
             Key::Sum(vs) => {
                 if x != y {
-                    return x.cmp(&y);
+                    return Ok(x.cmp(&y));
                 }
                 *at += 1;
                 for (i, (_, ks)) in vs.iter().enumerate() {
                     if i as u64 == x {
                         for k in ks {
-                            // SAFETY: forwarded.
-                            let o = unsafe { k.cmp(a, b, at) };
+                            let o = k.cmp_in(a, b, at, blk)?;
                             if o != Equal {
-                                return o;
+                                return Ok(o);
                             }
                         }
                     } else {
                         *at += ks.iter().map(Key::width).sum::<usize>();
                     }
                 }
-                return Equal;
+                return Ok(Equal);
             }
         };
         *at += 1;
-        ord
+        Ok(ord)
     }
 
     /// Encode the slots `w[*at..]`, advancing `at` past them.
@@ -326,8 +336,8 @@ pub(crate) fn parse(s: &mut &str) -> Key {
 /// (abstract memory) encode keys with one routine.
 pub trait Blocks {
     type Err;
-    fn text(&self, block: u64) -> Result<String, Self::Err>;
-    fn bytes(&self, block: u64) -> Result<Vec<u8>, Self::Err>;
+    fn text(&self, block: u64) -> Result<Cow<'_, str>, Self::Err>;
+    fn bytes(&self, block: u64) -> Result<Cow<'_, [u8]>, Self::Err>;
 }
 
 /// Blocks as native code holds them: slots are live pointers.
@@ -336,14 +346,14 @@ struct Raw;
 impl Blocks for Raw {
     type Err = std::convert::Infallible;
 
-    fn text(&self, block: u64) -> Result<String, Self::Err> {
-        // SAFETY: `Map::encode`'s contract: a `Str` slot holds a live `Str` block.
-        Ok(unsafe { &*(block as *const String) }.clone())
+    fn text(&self, block: u64) -> Result<Cow<'_, str>, Self::Err> {
+        // SAFETY: a `Str` slot holds a live `Str` block.
+        Ok(Cow::Borrowed(unsafe { &*(block as *const String) }))
     }
 
-    fn bytes(&self, block: u64) -> Result<Vec<u8>, Self::Err> {
+    fn bytes(&self, block: u64) -> Result<Cow<'_, [u8]>, Self::Err> {
         // SAFETY: as above, for `bytes` blocks.
-        Ok(unsafe { &*(block as *const Vec<u8>) }.clone())
+        Ok(Cow::Borrowed(unsafe { &*(block as *const Vec<u8>) }))
     }
 }
 
@@ -358,6 +368,16 @@ impl Layout {
 
     pub fn width(&self) -> usize {
         self.0.width()
+    }
+
+    /// Order the elements in slots `a` and `b`, as `Ord` does on the keys they hold.
+    pub fn cmp<B: Blocks>(
+        &self,
+        a: &[u64],
+        b: &[u64],
+        blocks: &B,
+    ) -> Result<std::cmp::Ordering, B::Err> {
+        self.0.cmp_in(a, b, &mut 0, blocks)
     }
 
     /// The canonical encoding of the key in slots `w`; equal keys encode equal.
