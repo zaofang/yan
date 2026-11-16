@@ -1,5 +1,5 @@
 # spec: 14.4, 17.3
-# rows: R1023
+# rows: R1027
 # expect: N34 at 8:13
 # expect: N34 at 10:9
 

@@ -1,5 +1,5 @@
 # spec: 17.3
-# rows: R1022
+# rows: R1026
 # note: remove_at takes a negative index from the end; remove drops the first equal element; clear empties
 # stdout:
 # 2 [1, 3, 4]
