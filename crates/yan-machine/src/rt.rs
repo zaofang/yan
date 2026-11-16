@@ -349,6 +349,62 @@ impl Machine<'_> {
                 let (x, y) = (self.words(a[1].addr(), w)?, self.words(a[2].addr(), w)?);
                 Val::I(layout.cmp(&x, &y, &MemBlocks(self))? as i128)
             }
+            RtFn::PathNew => {
+                let p = yan_rt::path::Parsed::new(a[0].int() != 0, &self.str_of(a[1].addr())?);
+                Val::I(i128::from(self.new_str(&p.text())))
+            }
+            RtFn::PathOp => {
+                let s = yan_rt::path::op(
+                    a[0].int() != 0,
+                    a[1].int() as i64,
+                    &self.str_of(a[2].addr())?,
+                );
+                Val::I(i128::from(self.new_str(&s)))
+            }
+            RtFn::PathWith => {
+                let (p, n) = (self.str_of(a[2].addr())?, self.str_of(a[3].addr())?);
+                match yan_rt::path::with(a[0].int() != 0, a[1].int() != 0, &p, &n) {
+                    Some(s) => Val::I(i128::from(self.new_str(&s))),
+                    None => return Err(Stop::Panic("value")),
+                }
+            }
+            RtFn::PathJoin => {
+                let (p, q) = (self.str_of(a[1].addr())?, self.str_of(a[2].addr())?);
+                let s = yan_rt::path::join(a[0].int() != 0, &p, &q);
+                Val::I(i128::from(self.new_str(&s)))
+            }
+            RtFn::PathIsAbsolute => Val::B(yan_rt::path::is_absolute(
+                a[0].int() != 0,
+                &self.str_of(a[1].addr())?,
+            )),
+            RtFn::PathStartsWith => {
+                let (p, b) = (self.str_of(a[1].addr())?, self.str_of(a[2].addr())?);
+                Val::B(yan_rt::path::starts_with(a[0].int() != 0, &p, &b))
+            }
+            RtFn::PathRelativeTo => {
+                let (p, b) = (self.str_of(a[1].addr())?, self.str_of(a[2].addr())?);
+                match yan_rt::path::relative_to(a[0].int() != 0, &p, &b) {
+                    Some(s) => Val::I(i128::from(self.new_str(&s))),
+                    None => Val::I(0),
+                }
+            }
+            RtFn::PathParts => {
+                let parts = yan_rt::path::parts(a[0].int() != 0, &self.str_of(a[1].addr())?);
+                let ws: Vec<u64> = parts.iter().map(|p| self.new_str(p)).collect();
+                self.new_list(1, word_bytes(&ws))
+            }
+            RtFn::PathWinPart => {
+                let s = yan_rt::path::win_part(a[0].int() as i64, &self.str_of(a[1].addr())?);
+                Val::I(i128::from(self.new_str(&s)))
+            }
+            RtFn::PathToPosix => match yan_rt::path::to_posix(&self.str_of(a[0].addr())?) {
+                Some(s) => Val::I(i128::from(self.new_str(&s))),
+                None => Val::I(0),
+            },
+            RtFn::WinPathEq => {
+                let (x, y) = (self.str_of(a[0].addr())?, self.str_of(a[1].addr())?);
+                Val::B(yan_rt::path::win_eq(&x, &y))
+            }
             RtFn::StrEq => Val::B(self.str_of(a[0].addr())? == self.str_of(a[1].addr())?),
             RtFn::StrFree => {
                 // literals are static (R561)
