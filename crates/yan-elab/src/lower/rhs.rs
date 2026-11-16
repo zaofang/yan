@@ -406,9 +406,15 @@ impl Lower<'_, '_, '_> {
                 };
                 self.rhs(&c, want)?
             }
-            K::Attr(..) => {
-                let (p, t) = self.place(e)?;
-                (Rhs::Proj(p), t)
+            K::Attr(b, f, fsp) => {
+                let bp = self.place(b).map_err(|u| u.at(e.span))?;
+                match self.bits_record(&bp.1) {
+                    Some(r) => self.bits_read(bp.0, &r, f, *fsp, at)?,
+                    None => {
+                        let (p, t) = self.attr_place(bp, f, *fsp).map_err(|u| u.at(e.span))?;
+                        (Rhs::Proj(p), t)
+                    }
+                }
             }
             K::Index(b, k) => {
                 let (p, t) = self.place(b)?;
