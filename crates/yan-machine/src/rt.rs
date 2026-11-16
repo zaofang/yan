@@ -297,6 +297,20 @@ impl Machine<'_> {
     }
 
     pub(crate) fn rt(&mut self, f: RtFn, a: &[Val]) -> Result<Val, Stop> {
+        let r = self.rt_call(f, a);
+        self.deliver_stopped();
+        r
+    }
+
+    /// Completes the `Stopped(Crashed)` messages yan-rt queued: their error text is a machine `Str`.
+    pub(crate) fn deliver_stopped(&mut self) {
+        for (ch, text) in yan_rt::actor::take_stopped() {
+            let s = self.new_str(&text);
+            yan_rt::actor::deliver_stopped(ch, s);
+        }
+    }
+
+    fn rt_call(&mut self, f: RtFn, a: &[Val]) -> Result<Val, Stop> {
         Ok(match f {
             RtFn::Print => {
                 let s = self.str_of(a[0].addr())?;
@@ -319,6 +333,10 @@ impl Machine<'_> {
             }))),
             RtFn::Concat => {
                 let s = self.str_of(a[0].addr())? + &self.str_of(a[1].addr())?;
+                Val::I(i128::from(self.new_str(&s)))
+            }
+            RtFn::Repr => {
+                let s = yan_rt::fmt::repr(&self.str_of(a[0].addr())?);
                 Val::I(i128::from(self.new_str(&s)))
             }
             RtFn::StrEq => Val::B(self.str_of(a[0].addr())? == self.str_of(a[1].addr())?),

@@ -219,6 +219,10 @@ pub(crate) struct State {
     start: Instant,
     /// `(actor, channel, node of the watcher)` of each monitor not yet delivered.
     pub(crate) monitors: Vec<(usize, usize, usize)>,
+    /// Set by a host whose `Str` blocks are not native strings: [`settle`] then queues a
+    /// `Crashed` delivery in `stopped` for the host to build the text and [`deliver_stopped`].
+    defer_text: bool,
+    stopped: Vec<(usize, String)>,
     /// The members of each named group, in join order (R414).
     pub(crate) groups: Vec<(String, Vec<u64>)>,
 }
@@ -239,6 +243,8 @@ impl Default for State {
             restarts: VecDeque::new(),
             work: [0; 5],
             monitors: Vec::new(),
+            defer_text: false,
+            stopped: Vec::new(),
             groups: Vec::new(),
             start: Instant::now(),
         }
@@ -840,6 +846,10 @@ pub(crate) fn settle(st: &mut State) {
         let a = &st.actors[id];
         let word = match &a.stopped {
             Some(Reason::Shutdown) => Some([1, 0]),
+            Some(Reason::Crashed(e)) if st.defer_text => {
+                st.stopped.push((ch, e.clone()));
+                continue;
+            }
             Some(Reason::Crashed(e)) => Some([2, crate::abi::str_block(e) as u64]),
             None if owner != a.home && st.faults.cut(owner, a.home, t) => Some([3, 0]),
             None => None,
@@ -921,6 +931,27 @@ pub extern "C" fn yan_rt_sup_end_to(depth: u64) {
         }
         settle(st);
     });
+}
+
+/// From now on a `Crashed` delivery waits for [`take_stopped`] and [`deliver_stopped`], so the
+/// host builds the error `Str`.
+pub fn defer_stopped_text() {
+    with(|st| st.defer_text = true);
+}
+
+/// The `(channel, error)` of each deferred `Crashed` delivery, in order.
+pub fn take_stopped() -> Vec<(usize, String)> {
+    with(|st| std::mem::take(&mut st.stopped))
+}
+
+/// Completes a delivery from [`take_stopped`]: `text` is the host's `Str` of the error.
+pub fn deliver_stopped(ch: usize, text: u64) {
+    // SAFETY: `ch` is the live channel of a `Stopped`'s two slots, whose sender end is ours.
+    unsafe {
+        crate::chan::push(ch, &[2, text]);
+        crate::chan::yan_rt_chan_drop(ch as *mut crate::chan::Chan);
+    }
+    sched::progressed();
 }
 
 /// The program ends: the root supervisor's children stop, the last started first (R957).
