@@ -1781,6 +1781,21 @@ topic = "`allow_ffi` consents to `ffi` modules; `yan audit` lists `unsafe fn` it
 sections = "12, 12.10"
 
 [[entry]]
+rows = "R1018"
+topic = "every package with an `ffi` module or extern block, the root included, is named in the root's `allow_ffi` by package name (RFC 0077 D1)"
+sections = "12, 19.1"
+
+[[entry]]
+rows = "R1019"
+topic = "`allow_ffi` consent enforced at root compile and at dependency resolution, E023; an update gaining the first `ffi` module is refused (RFC 0077 D2)"
+sections = "12, 19.2, 25"
+
+[[entry]]
+rows = "R1020"
+topic = "every extern library is a ceiling entry, `uses none` or not, enforced transitively; consent does not replace it (RFC 0077 D3)"
+sections = "7.4, 12.2, 19.2"
+
+[[entry]]
 rows = "R1021"
 topic = "`Sender.close()` ends the handle at once; a second `close` and the later drop do nothing; `send`, `try_send` or a `select` send arm on a closed `Sender` panics `contract`"
 sections = "9.5"

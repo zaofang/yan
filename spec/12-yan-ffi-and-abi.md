@@ -1,6 +1,6 @@
 ## 12. Yan: FFI and ABI
 
-Foreign code is reached through C. A module is an `ffi` module when its file lives under the package's `ffi/` directory; only `ffi` modules (and std) may contain `unsafe` (E901) or extern blocks (E902). The root package's `allow_ffi` list is its consent that a dependency contains `ffi` modules, with or without extern blocks (R1017).
+Foreign code is reached through C. A module is an `ffi` module when its file lives under the package's `ffi/` directory; only `ffi` modules (and std) may contain `unsafe` (E901) or extern blocks (E902). The root package's `allow_ffi` list is its consent that a package contains `ffi` modules, with or without extern blocks (R1017). Every package that contains an `ffi` module or an extern block, the root included, MUST be named in it by package name, never by version; a package that is not named is E023 when the root is compiled and when dependencies are resolved or updated (R1018, R1019).
 
 ### 12.1 Extern blocks
 
