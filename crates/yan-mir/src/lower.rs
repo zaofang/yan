@@ -409,6 +409,17 @@ fn scalar(path: &str) -> Option<(ScalarOp, Option<Ty>)> {
     if path == "exclusive_check" {
         return Some((Exclusive, None));
     }
+    if let Some((kind, from, to)) = yan_std::intrinsics::conversion(path) {
+        let (Ty::Int(from), Ty::Int(to)) = (scalar_ty(from)?, scalar_ty(to)?) else {
+            return None;
+        };
+        let op = match kind {
+            "wrap_as" => WrapAs(to),
+            "sat_as" => SatAs(to),
+            _ => CheckedAs(to),
+        };
+        return Some((op, Some(Ty::Int(from))));
+    }
     let (op, ty) = path.rsplit_once('_')?;
     let op = match op {
         "add_checked" => AddChecked,

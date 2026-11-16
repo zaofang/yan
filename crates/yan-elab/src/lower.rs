@@ -28,6 +28,7 @@ mod call_expr;
 mod calls;
 mod cluster;
 mod consume;
+mod conv;
 mod fallback;
 mod generic_sum;
 mod last_use;

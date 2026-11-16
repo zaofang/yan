@@ -13,6 +13,14 @@ impl Lower<'_, '_, '_> {
         let session = |e: &j::Expr| matches!(&e.kind, j::ExprKind::Name(s) if s == "session" && !self.locals.contains_key(s));
         match &f.kind {
             j::ExprKind::Index(b, k)
+                if let j::ExprKind::Name(c) = &b.kind
+                    && matches!(c.as_str(), "wrap_as" | "sat_as" | "trunc_as")
+                    && !self.locals.contains_key(c)
+                    && !self.g.fns.contains_key(c) =>
+            {
+                self.conv_call(c, k, args, at)
+            }
+            j::ExprKind::Index(b, k)
                 if let j::ExprKind::Attr(m, op, _) = &b.kind
                     && op == "connect"
                     && session(m) =>
