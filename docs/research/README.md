@@ -135,3 +135,4 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-14 | OpenRouter sweep follow-up: hard Yan tasks, primer v1/v2/v3, Python arm | Data in `bench/r567/results/openrouter-followup-2026-11-14/`; no rows |
 | 2026-11-14 | Design: `run --ub`, `Ptr`, `dyn`, `Arena`/`Ref`, `every_production` lowerings | #1182; D1 to D9, tasks T1 to T14; no rows (dyn rows wait on the freeze) |
 | 2026-11-14 | Design: generic sum types, `TryRecv[T]` and native `select` | #1163; D1 to D10, tasks #1252 to #1260; no rows (implements 3.5, 10.1, R347, R423, R772) |
+| 2026-11-16 | Design: `std.sync.atomic` and `Mutex` lowering, `--ub` ordering edges | #1369 (under #1319); D1 to D9, slices S1 to S7; cards Q1 to Q3; no rows |
