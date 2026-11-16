@@ -323,13 +323,18 @@ pub unsafe extern "C" fn yan_rt_fail_main(s: *const String, code: i64) -> ! {
 /// `std.io.read_line`: the next stdin line without its terminator, or null at end of input.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_read_line() -> *mut String {
+    read_line().map_or(std::ptr::null_mut(), |l| str_block(&l))
+}
+
+/// The next stdin line without its terminator, or `None` at end of input.
+pub fn read_line() -> Option<String> {
     use std::io::BufRead;
     let mut line = String::new();
     match std::io::stdin().lock().read_line(&mut line) {
-        Ok(0) | Err(_) => std::ptr::null_mut(),
+        Ok(0) | Err(_) => None,
         Ok(_) => {
             let line = line.strip_suffix('\n').unwrap_or(&line);
-            str_block(line.strip_suffix('\r').unwrap_or(line))
+            Some(line.strip_suffix('\r').unwrap_or(line).to_string())
         }
     }
 }
