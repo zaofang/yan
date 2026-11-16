@@ -4,6 +4,7 @@
 //! `requires` and, at every `ret`, `ensures` with `out`; `decreases` and `example` are not evaluated yet.
 
 use std::borrow::Cow;
+use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::io::{BufRead, Read, Write};
@@ -106,6 +107,27 @@ pub(crate) enum Value {
     Type(Rc<meta::Handle>),
     /// A `Ptr[T]` (6.6); equality compares addresses.
     Ptr(ptr::PtrVal),
+    /// An `Arena` (4.7); the last drop of the value ends the arena's slots.
+    Arena(Rc<ArenaToken>),
+}
+
+/// Held by the arena value alone: dropping it marks the arena dead for every `Ref` into it.
+#[derive(Debug, PartialEq)]
+pub(crate) struct ArenaToken {
+    id: usize,
+    dead: Rc<Cell<bool>>,
+}
+
+impl Drop for ArenaToken {
+    fn drop(&mut self) {
+        self.dead.set(true);
+    }
+}
+
+/// The slots of one arena and whether its value has been dropped.
+pub(crate) struct ArenaSlots {
+    slots: Vec<Value>,
+    dead: Rc<Cell<bool>>,
 }
 
 /// FNV-1a: frames hash short names on every access, where SipHash dominated the profile.
@@ -402,7 +424,7 @@ pub(crate) struct Interp<'o> {
     /// Each channel, by channel.
     chans: Vec<sync::Chan>,
     /// The slots of each arena, by arena; a `Ref` is (arena, slot).
-    arenas: Vec<Vec<Value>>,
+    arenas: Vec<ArenaSlots>,
     /// Each actor, by actor (9.6).
     actors: Vec<sync::Actor>,
     /// Every supervisor and the open `with supervisor` scopes (9.6).
@@ -1164,6 +1186,21 @@ mod selftest {
              Err { error: e } => {\n   let s: Str = std.fmt.show[Bad](let e)\n   std.io.print(cap io, let s)\n  }\n }\n ret ()\n}\n",
         );
         assert_eq!((s, out.as_str()), (0, "Bad(n=1)\n"));
+    }
+
+    #[test]
+    fn a_ref_after_its_arena_drop_panics() {
+        let (m, d) = yan_core::parse(
+            "t.yir",
+            "module t\nfn main() -> Unit {\n let a: Arena = std.arena.Arena()\n\
+             let r: Ref[i64] = std.arena.alloc[i64](let a, let 1)\n let x: i64 = std.arena.ref.get[i64](let r)\n\
+             assert eq_i64(let x, let 1)\n drop a\n let y: i64 = std.arena.ref.get[i64](let r)\n ret ()\n}\n",
+        );
+        assert!(d.is_empty(), "{d:?}");
+        let Err(Stop::Panic(p)) = run(&m.unwrap(), &mut Vec::new()) else {
+            panic!("expected a panic")
+        };
+        assert_eq!(p.message, "a `Ref` was used after its arena was dropped");
     }
 
     #[test]
