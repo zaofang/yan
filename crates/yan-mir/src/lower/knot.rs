@@ -9,6 +9,10 @@ pub(super) enum Walk {
     Show(bool),
     Copy,
     Drop,
+    /// `==` of two values.
+    Eq,
+    /// The order of two values: -1, 0 or 1.
+    Cmp,
 }
 
 impl Walk {
@@ -17,6 +21,16 @@ impl Walk {
             Walk::Show(_) => Shape::Str,
             Walk::Copy => s.clone(),
             Walk::Drop => Shape::Scalar(Ty::Unit),
+            Walk::Eq => Shape::Scalar(Ty::Bool),
+            Walk::Cmp => Shape::Scalar(I64),
+        }
+    }
+
+    /// How many values of the type it takes.
+    fn arity(self) -> usize {
+        match self {
+            Walk::Eq | Walk::Cmp => 2,
+            _ => 1,
         }
     }
 }
@@ -31,7 +45,7 @@ impl<'m> Fn<'_, 'm> {
         let s = k.get();
         let id = m.sigs.len() as FuncId;
         m.sigs.push(Sig {
-            params: vec![(y::Conv::Let, s.clone())],
+            params: vec![(y::Conv::Let, s.clone()); w.arity()],
             ok: w.ret(s),
             ret: w.ret(s),
             fails: false,
@@ -53,12 +67,29 @@ impl<'m> Fn<'_, 'm> {
         Self::ops(&dst)
     }
 
+    /// The slots of the value of the type `k` names in the box at `p`, which keeps them.
+    pub(super) fn unbox(&mut self, k: &Knot, p: &Operand) -> Vec<Operand> {
+        self.read(&At::Mem(p.clone(), 0), k.get())
+    }
+
+    /// A box holding the value `v`, which it takes.
+    pub(super) fn boxed(&mut self, v: Vec<Operand>) -> Operand {
+        let p = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(v.len() as i128)]);
+        self.write(&At::Mem(p.clone(), 0), v);
+        p
+    }
+
     /// The body of walk `w` over a value of shape `s`, its only parameter.
     pub(super) fn walk(mut self, w: Walk, s: &Shape) -> R<Func> {
-        let v = Self::ops(&self.var(s.clone()));
+        let v: Vec<Operand> = (0..w.arity())
+            .flat_map(|_| Self::ops(&self.var(s.clone())))
+            .collect();
         let params = v.len() as u32;
         self.cur = self.block_new();
+        let (a, b) = v.split_at(s.width());
         let out = match w {
+            Walk::Eq => vec![self.eq_value(s, a, b)?],
+            Walk::Cmp => vec![self.cmp_value(s, a, b)?],
             Walk::Show(nested) => vec![self.show(&v, s, nested)?],
             Walk::Copy => self.clone_value(v, s)?,
             Walk::Drop => {
@@ -72,6 +103,8 @@ impl<'m> Fn<'_, 'm> {
                 Walk::Show(_) => "knot.show",
                 Walk::Copy => "knot.copy",
                 Walk::Drop => "knot.drop",
+                Walk::Eq => "knot.eq",
+                Walk::Cmp => "knot.cmp",
             }
             .into(),
             params,

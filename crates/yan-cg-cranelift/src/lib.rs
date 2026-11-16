@@ -2939,6 +2939,48 @@ impl Gen<'_, '_> {
                 let n = self.b.ins().bnot(a[0]);
                 self.wrap(t, n)
             }
+            (WrapAs(to), Ty::Int(_)) => self.wrap(to, a[0]),
+            (SatAs(to), Ty::Int(from)) => {
+                let (lo, hi) = conv_bounds(from, to);
+                let mut v = a[0];
+                if let Some(lo) = lo {
+                    let c = self.b.ins().iconst(types::I64, lo);
+                    let below = self.b.ins().icmp(IntCC::SignedLessThan, v, c);
+                    v = self.b.ins().select(below, c, v);
+                }
+                if let Some(hi) = hi {
+                    let c = self.b.ins().iconst(types::I64, hi);
+                    let cc = if from.signed {
+                        IntCC::SignedGreaterThan
+                    } else {
+                        IntCC::UnsignedGreaterThan
+                    };
+                    let above = self.b.ins().icmp(cc, v, c);
+                    v = self.b.ins().select(above, c, v);
+                }
+                v
+            }
+            (CheckedAs(to), Ty::Int(from)) => {
+                let (lo, hi) = conv_bounds(from, to);
+                let mut ok = self.b.ins().iconst(types::I8, 1);
+                if let Some(lo) = lo {
+                    let c = self.b.ins().iconst(types::I64, lo);
+                    let at = self.b.ins().icmp(IntCC::SignedGreaterThanOrEqual, a[0], c);
+                    ok = self.b.ins().band(ok, at);
+                }
+                if let Some(hi) = hi {
+                    let c = self.b.ins().iconst(types::I64, hi);
+                    let cc = if from.signed {
+                        IntCC::SignedLessThanOrEqual
+                    } else {
+                        IntCC::UnsignedLessThanOrEqual
+                    };
+                    let at = self.b.ins().icmp(cc, a[0], c);
+                    ok = self.b.ins().band(ok, at);
+                }
+                self.guard(ok, "overflow");
+                a[0]
+            }
             (And, _) => self.b.ins().band(a[0], a[1]),
             (Or, _) => self.b.ins().bor(a[0], a[1]),
             (Xor, _) => self.b.ins().bxor(a[0], a[1]),
@@ -3261,6 +3303,15 @@ impl Gen<'_, '_> {
         }
         q
     }
+}
+
+/// The bounds of `to` that a value of type `from` can cross, as 64-bit patterns.
+fn conv_bounds(from: IntTy, to: IntTy) -> (Option<i64>, Option<i64>) {
+    let ((flo, fhi), (tlo, thi)) = (from.range(), to.range());
+    (
+        (tlo > flo).then_some(tlo as i64),
+        (thi < fhi).then_some(thi as i64),
+    )
 }
 
 #[cfg(test)]

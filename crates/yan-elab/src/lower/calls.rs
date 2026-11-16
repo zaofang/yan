@@ -521,7 +521,7 @@ impl Lower<'_, '_, '_> {
                 });
             }
         }
-        let fields = ps
+        let fields: Vec<(String, Atom)> = ps
             .iter()
             .zip(vals)
             .map(|(p, a)| match a {
@@ -529,6 +529,9 @@ impl Lower<'_, '_, '_> {
                 Arg::Cap(..) => unreachable!("constructors take no capabilities"),
             })
             .collect();
+        if self.g.layout_bits.contains_key(name) {
+            return self.bits_ctor(name, fields.into_iter().map(|(_, a)| a).collect(), at);
+        }
         let path = match sum {
             Some(s) if self.g.shared_variants.contains(name) => vec![s.to_owned(), name.to_owned()],
             _ => vec![name.to_owned()],

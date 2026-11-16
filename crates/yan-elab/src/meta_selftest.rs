@@ -432,3 +432,17 @@ fn info_reports_layout_of_records_and_sums() {
     );
     assert_eq!(run(&src), "16 8\n24 8\n");
 }
+
+#[test]
+fn info_reports_packed_layout_of_bits_records() {
+    let src = "@layout(bits(u16))\n\
+               type Reg = { lo: u8, hi: u8 }\n\n\
+               lay(t: Type) -> str =\n\
+               \x20 match meta.info(t)\n\
+               \x20   Record(info:) -> \"\\(info.layout.size) \\(info.layout.align)\"\n\
+               \x20   _ -> \"other\"\n\n\
+               let a: str = #lay(Reg)\n\n\
+               main() uses io =\n\
+               \x20 io.print(a)\n";
+    assert_eq!(run(src), "2 2\n");
+}

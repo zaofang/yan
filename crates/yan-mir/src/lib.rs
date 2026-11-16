@@ -109,6 +109,10 @@ pub enum ScalarOp {
     SwapBytes,
     ReverseBits,
     IsPowerOfTwo,
+    /// Conversion from the operand type to this one: modular, saturating, or panicking `overflow`.
+    WrapAs(IntTy),
+    SatAs(IntTy),
+    CheckedAs(IntTy),
 }
 
 #[derive(Clone, Debug, PartialEq)]

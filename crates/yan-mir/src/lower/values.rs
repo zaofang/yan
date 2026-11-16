@@ -41,6 +41,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                         At::Reg(ls) => At::Reg(ls[start..start + w].to_vec()),
                         At::Mem(p, word) => At::Mem(p, word + start as u32),
                     };
+                    // A boxed field is the value in its box, changed there in place.
+                    if let Shape::Boxed(k) = &s {
+                        let p = self.read(&at, &s).remove(0);
+                        at = At::Mem(p, 0);
+                        shape = k.get().clone();
+                        continue;
+                    }
                     shape = s;
                 }
                 y::Proj::Index(i) => {
@@ -92,7 +99,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             | Shape::Arena
             | Shape::Set(_) => true,
             // A type recurs only behind a block.
-            Shape::Named(_) => true,
+            Shape::Named(_) | Shape::Boxed(_) => true,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_heap(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_heap),
             Shape::Sum(_, vs) => vs
@@ -113,6 +120,11 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Arena => self.free(RtFn::ArenaFree, v[0].clone()),
             Shape::Named(k) => {
                 self.walk_call(knot::Walk::Drop, k, v);
+            }
+            Shape::Boxed(k) => {
+                let x = self.unbox(k, &v[0]);
+                self.walk_call(knot::Walk::Drop, k, &x);
+                self.free(RtFn::EnvFree, v[0].clone());
             }
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str | Shape::Path | Shape::WinPath => self.free(RtFn::StrFree, v[0].clone()),
@@ -744,7 +756,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                     let Some((_, x)) = fields.iter().find(|(f, _)| f == n) else {
                         return unsupported(format!("constructor `{name}` without field `{n}`"));
                     };
-                    let xv = self.atom(x, s)?;
+                    let xv = match s {
+                        Shape::Boxed(k) => {
+                            let v = self.atom(x, k.get())?;
+                            vec![self.boxed(v)]
+                        }
+                        s => self.atom(x, s)?,
+                    };
                     let w = xv.len();
                     v.splice(at..at + w, xv);
                     at += w;

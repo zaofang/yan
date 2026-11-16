@@ -57,6 +57,12 @@ pub fn scalar(op: ScalarOp, ty: Ty, a: &[Val]) -> Result<Val, Stop> {
         (And, Ty::Bool) => Val::B(x.truth() & y.truth()),
         (Or, Ty::Bool) => Val::B(x.truth() | y.truth()),
         (Xor, Ty::Bool) => Val::B(x.truth() ^ y.truth()),
+        (WrapAs(to), Ty::Int(_)) => Val::I(wrap(to, xi)),
+        (SatAs(to), Ty::Int(_)) => {
+            let (lo, hi) = to.range();
+            Val::I(xi.clamp(lo, hi))
+        }
+        (CheckedAs(to), Ty::Int(_)) => Val::I(in_range(to, xi)?),
         (And, _) => Val::I(xi & yi),
         (Or, _) => Val::I(xi | yi),
         (Xor, _) => Val::I(xi ^ yi),
