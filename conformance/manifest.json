@@ -2637,7 +2637,7 @@
     "17.3"
    ],
    "rows": [
-    "R1022"
+    "R1029"
    ],
    "flags": [],
    "expect": [
@@ -5259,6 +5259,19 @@
    "exit": 0
   },
   {
+   "path": "yag/run/bindings/const_hides_std_module.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 X 2\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/bindings/r832_if_else.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7008,7 +7021,7 @@
     "17.3"
    ],
    "rows": [
-    "R1022"
+    "R1029"
    ],
    "flags": [],
    "expect": [],
@@ -14088,6 +14101,33 @@
    }
   },
   {
+   "path": "pkg/e023_ffi_unlisted",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "12"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "1",
+    "8"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "12",
+    "rows": "R1018",
+    "note": "a package with an ffi module that its own root does not name in allow_ffi is E023",
+    "command": [
+     "check"
+    ],
+    "code": "E023",
+    "at": "ffi/ext.yn:1:1"
+   }
+  },
+  {
    "path": "pkg/e144_manifest_call",
    "kind": "pkg",
    "milestone": "M2b",
@@ -14397,6 +14437,31 @@
     "spec": "20.4",
     "rows": "R888",
     "note": "edition is next or a four-digit year of 2026 or later",
+    "command": [
+     "check"
+    ]
+   }
+  },
+  {
+   "path": "pkg/ffi_listed",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "12"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "1",
+    "8"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "12",
+    "rows": "R1018",
+    "note": "the same package named in allow_ffi, with its library in the ceiling, checks clean",
     "command": [
      "check"
     ]

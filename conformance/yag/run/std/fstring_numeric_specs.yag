@@ -1,5 +1,5 @@
 # spec: 17.3
-# rows: R1022
+# rows: R1029
 # note: sign, zero pad, width, grouping and .Nf follow CPython; 2.675 rounds on its exact binary value
 # stdout:
 # 3.14|0007|2.67|-0|1,234,567.89|+7|   3.142|-00003.1|1,234,567|    7|3.1      |

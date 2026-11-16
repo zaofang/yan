@@ -26,6 +26,8 @@ The C++20 model: RC11 with the P0668 SC repair. `Relaxed`, `Acquire`, `Release`,
 
 **Initializers and locks (R393, R395).** A `Once` or `Lazy` initializer reachable from more than one task MUST use no capability except `alloc` (E714). Otherwise it needs `uses nondet`, and its value is a capability result that replay records. An initializer never runs under the handler bindings of the task that touched it. A `Mutex` or `RwLock` guard live across a blocking operation is E323 on every platform. Every lock wait is therefore bounded by a critical section with no suspension in it, so `lock()` stays infallible and is not a cancellation point.
 
+**Mutex guard (R1022, R1023, R1024).** `Mutex[T](v)` holds `v`. `m.lock()` returns a `MutexGuard[T]` that holds the lock until the end of the block that bound it, on every path out of that block (return, `fail`, `break`, `continue`); drop elaboration (5.3) unlocks it there. The guard reads and writes the protected value only through `get()`, which copies it out, `set(v)` and `replace(v)`, which returns the old value. A guard is second-class (4.5): passing it on, returning it, rebinding it or storing it is E414. A task switches only at a suspension point and a guard is never live across one (R395), so a `lock()` that finds the mutex held is a task locking a mutex it already holds. That is a deadlock, and it panics with kind `deadlock` (R396). A guard is live from its binding to the end of its block; in that range a call to a std operation that can wait on another task, a call to a function that may reach one, or a `par` is E323.
+
 ### 6.4 Thread-safety traits
 
 The compiler derives three auto traits:
