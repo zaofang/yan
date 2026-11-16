@@ -1007,6 +1007,51 @@ impl Machine<'_> {
                 self.write_words(a[0].addr(), &out)?;
                 Val::U
             }
+            RtFn::RegexCheck => {
+                let p = self.str_of(a[0].addr())?;
+                Val::I(match yan_rt::regex::build(&p) {
+                    Ok(_) => 0,
+                    Err(reason) => i128::from(self.new_str(&reason)),
+                })
+            }
+            RtFn::RegexEscape => {
+                let s = self.str_of(a[0].addr())?;
+                Val::I(i128::from(self.new_str(&yan_rt::regex::escape(&s))))
+            }
+            RtFn::RegexSub => {
+                let (p, repl, s) = (
+                    self.str_of(a[0].addr())?,
+                    self.str_of(a[1].addr())?,
+                    self.str_of(a[2].addr())?,
+                );
+                let r = yan_rt::regex::sub(
+                    &yan_rt::regex::compiled(&p, yan_rt::regex::Anchor::None),
+                    &repl,
+                    &s,
+                );
+                Val::I(i128::from(self.new_str(&r)))
+            }
+            RtFn::RegexSplit => {
+                let (p, s) = (self.str_of(a[0].addr())?, self.str_of(a[1].addr())?);
+                let l = yan_rt::regexabi::split_slots(&p, &s);
+                Val::I(i128::from(self.materialize(vec![l])?[0]))
+            }
+            RtFn::RegexFindAll => {
+                let (p, s) = (self.str_of(a[0].addr())?, self.str_of(a[1].addr())?);
+                let l = yan_rt::regexabi::find_all_slots(&p, &s);
+                Val::I(i128::from(self.materialize(vec![l])?[0]))
+            }
+            RtFn::RegexFind => {
+                let (p, s) = (self.str_of(a[0].addr())?, self.str_of(a[1].addr())?);
+                match yan_rt::regexabi::find_slots(&p, &s, a[2].int() as i64) {
+                    Some(slots) => {
+                        let out = self.materialize(slots)?;
+                        self.write_words(a[3].addr(), &out)?;
+                        Val::I(1)
+                    }
+                    None => Val::I(0),
+                }
+            }
             RtFn::ZoneLookup => {
                 let id = self.str_of(a[0].addr())?;
                 Val::I(i128::from(yan_rt::envhandler::intern(&id).unwrap_or(0)))

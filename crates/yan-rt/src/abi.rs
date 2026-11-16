@@ -976,7 +976,7 @@ pub unsafe extern "C" fn yan_rt_free_env(p: *mut u64) {
 ///
 /// # Safety
 /// `out` has room for the slots.
-unsafe fn store_slots(out: *mut u64, slots: Vec<crate::jsonslots::Slot>) {
+pub(crate) unsafe fn store_slots(out: *mut u64, slots: Vec<crate::jsonslots::Slot>) {
     use crate::jsonslots::Slot;
     fn flat(slots: Vec<Slot>) -> Vec<u64> {
         slots
