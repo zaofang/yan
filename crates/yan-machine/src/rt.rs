@@ -462,10 +462,10 @@ impl Machine<'_> {
                 f,
                 RtFn::ChanSend | RtFn::ChanTrySend | RtFn::ChanRecv | RtFn::ChanTryRecv
             ) && self.race.borrow().rendezvous(a[0].addr());
-            if rendezvous || matches!(f, RtFn::SelectWait | RtFn::ActorSend) {
+            if rendezvous || matches!(f, RtFn::ActorSend) {
                 // Until these order tasks, a race verdict across them would be a guess.
                 return unsupported(
-                    "select, actor and unbuffered channel ordering between `par concurrent` tasks under --ub",
+                    "actor and unbuffered channel ordering between `par concurrent` tasks under --ub",
                 );
             }
         }
@@ -1785,6 +1785,11 @@ impl Machine<'_> {
                 let (status, arm) = yan_rt::chan::select_wait(&keys, &at, a[3].int() != 0);
                 if status == 0 {
                     self.write_words(a[2].addr(), &[arm])?;
+                    // A close arm observes the close without a receive, so it acquires here.
+                    let key = keys[arm as usize] as i64;
+                    if key >= 0 && key & 3 == 3 {
+                        self.race.borrow_mut().chan_recv((key & !3) as u64, true);
+                    }
                 }
                 Val::I(i128::from(status))
             }
