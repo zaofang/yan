@@ -218,6 +218,10 @@ impl Lower<'_, '_, '_> {
                 .fix(Applicability::Auto, "copy", at, &format!("{x}.copy()"));
             self.cx.label(later, "used again");
         }
+        if let Rhs::Atom(a @ Atom::Name(..)) = &r
+            && !t.is_copy()
+            && self.sink_of_element(a, at)
+        {}
         let r = match &target.kind {
             j::ExprKind::Name(n) if n != "_" => self.consume(r, &t, at),
             _ => r,
