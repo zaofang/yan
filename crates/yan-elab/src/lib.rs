@@ -20,6 +20,7 @@ mod csvwire;
 mod decorators;
 mod desugar;
 mod ffi;
+mod guard;
 mod jsonwire;
 mod kernel;
 mod lower;
@@ -963,6 +964,7 @@ pub fn elaborate_in(
         }
     }
     copy_out::items(&mut items);
+    guard::check(&items, &mut cx);
     cost::check(&g, m, &items, &mut cx);
     if opts.tools {
         tools::attach(&g, m, &mut items, &mut cx);
