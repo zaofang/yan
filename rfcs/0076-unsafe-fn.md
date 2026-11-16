@@ -1,10 +1,10 @@
 # 0076: `unsafe fn` in Yan
 
-- Status: draft
+- Status: accepted
 - Research: [Design: `run --ub`, `Ptr`, `dyn`, `Arena`/`Ref`](../docs/research/2026-11-14-ub-ptr-dyn-design.md),
   [Capability security review](../docs/research/2026-11-16-capability-security-review.md)
 - Issue: #1242 item 16
-- Rows: filled in when accepted
+- Rows: R1010 to R1017
 
 ## Summary
 
@@ -40,7 +40,7 @@ would let safe callers reach it through the trait. Generators, `sub` items and l
 Recommendation: as above. Unsafe trait methods and unsafe generators are non-goals for this RFC.
 
 - Decision: accepted as recommended (lead, card, 2026-11-16)
-- Row:
+- Row: R1010
 
 ### D2: where an `unsafe fn` may appear
 
@@ -49,8 +49,8 @@ Agent (L6, 14.1). No new code: E901 covers it, reported at the `unsafe` keyword.
 
 Recommendation: as above.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, card, 2026-11-16)
+- Row: R1011
 
 ### D3: calling an `unsafe fn`
 
@@ -59,8 +59,8 @@ for an `unsafe` extern item (12.1). The caller's block is its assertion that eve
 
 Recommendation: as above.
 
-- Decision: lead, 2026-11-16 (#1242), implied by "`pre` is its precondition"
-- Row:
+- Decision: accepted as recommended (lead, card, 2026-11-16)
+- Row: R1012
 
 ### D4: the body is not an `unsafe` block
 
@@ -75,8 +75,8 @@ for callers, on a block it discharges one. Each unsafe operation stays visible a
 `yan audit` and `yan review` (R667) count real unsafe sites rather than whole bodies, and adding an
 operation to an `unsafe fn` body is a visible change. The cost is one more indent in short wrappers.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, card, 2026-11-16)
+- Row: R1013
 
 ### D5: `pre` across build modes
 
@@ -107,8 +107,8 @@ observably. Obligations that no pure predicate can state (provenance, liveness, 
 6.7 items 2 to 5, which `--ub` checks directly; a checker-only predicate such as "valid for reads of
 `n` elements" is left to a later RFC if a use appears.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, card, 2026-11-16)
+- Row: R1014
 
 ### D6: `Ptr` in the signature
 
@@ -121,8 +121,8 @@ obligation.
 
 Recommendation: no spec change beyond a sentence in 15 pointing at 3.
 
-- Decision: lead, 2026-11-16 (#1242), "`Ptr` params are allowed in an `unsafe fn`"
-- Row:
+- Decision: accepted as recommended (lead, card, 2026-11-16)
+- Row: R1015
 
 ### D7: an `unsafe fn` is not a value
 
@@ -139,8 +139,8 @@ always safe Yan functions. 2 can be added later without breaking any program tha
 either, an `unsafe fn` passed as a safe `fn` value would let safe code call it, so the rule is
 required, not optional.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, card, 2026-11-16)
+- Row: R1016 (E912)
 
 ### D8: audit, review and the FFI consent
 
@@ -160,8 +160,8 @@ Recommendation: the audit and review rules above, and widen the 12 sentence to "
 `allow_ffi` list is its consent that a dependency contains `ffi` modules". The enforcement itself
 stays with #1389.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, card, 2026-11-16)
+- Row: R1017
 
 ## Spec changes
 
@@ -175,12 +175,11 @@ stays with #1389.
   checked `pub` entry).
 - 12: the `allow_ffi` sentence (D8). 12.10: `yan audit` lists `unsafe fn` items and their call sites
   (D8).
-- 25.11: one new code for D7.
+- 25.11: E912 for D7.
 
 ## Conformance cases
 
-Proposed on branch `conform/unsafe-fn` (the guard keeps `conformance/` out of this PR). They use only
-existing codes and land with the rows; the D7 case waits for its code.
+Proposed on branch `conform/unsafe-fn` (the guard keeps `conformance/` out of this PR). They land with the rows.
 
 | Case | Item | Expects |
 | --- | --- | --- |
@@ -190,7 +189,7 @@ existing codes and land with the rows; the D7 case waits for its code.
 | `conformance/yn/fail/ffi/unsafe_fn_ptr_params_accepted.yn` | D1, D3, D6 | no diagnostics |
 | `conformance/ub/unsafe_fn_pre_holds.yn` | D5 | `ub: none` |
 | `conformance/ub/unsafe_fn_pre_violated.yn` | D5 | `ub: 16`, on a call whose access is in bounds |
-| (after numbering) `conformance/yn/fail/ffi/eNNN_unsafe_fn_as_value.yn` | D7 | the new code |
+| `conformance/yn/fail/ffi/e912_unsafe_fn_as_value.yn` | D7 | E912 |
 
 ## Implementation (after acceptance, separate PRs under #1242)
 

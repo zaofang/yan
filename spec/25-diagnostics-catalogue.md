@@ -316,6 +316,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | E909 | duplicate export name at link time *new* | 12.8 |
 | E910 | `asm` operand type not supported *new* | 12.9 |
 | E911 | `asm` register or register class invalid for the target *new* | 12.9 |
+| E912 | `unsafe fn` named other than as the callee of a call (R1016) *new* | 3 |
 
 ### 25.12 Patches, notes, internal errors and panics
 
