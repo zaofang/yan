@@ -63,7 +63,21 @@ impl Key {
     /// # Safety
     /// Every `Str` slot holds a live `Str` block.
     pub(crate) unsafe fn eq(&self, a: &[u64], b: &[u64], at: &mut usize) -> bool {
-        match self {
+        match self.eq_in(a, b, at, &Raw) {
+            Ok(eq) => eq,
+            Err(e) => match e {},
+        }
+    }
+
+    /// [`Key::eq`] with the blocks read through `blk`.
+    pub fn eq_in<B: Blocks>(
+        &self,
+        a: &[u64],
+        b: &[u64],
+        at: &mut usize,
+        blk: &B,
+    ) -> Result<bool, B::Err> {
+        Ok(match self {
             Key::Float => {
                 let eq = f64::from_bits(a[*at]) == f64::from_bits(b[*at]);
                 *at += 1;
@@ -73,14 +87,13 @@ impl Key {
                 let mut eq = true;
                 for k in ks {
                     // Every field is read, so `at` ends past the element.
-                    // SAFETY: forwarded.
-                    eq &= unsafe { k.eq(a, b, at) };
+                    eq &= k.eq_in(a, b, at, blk)?;
                 }
                 eq
             }
             Key::Sum(vs) => {
                 if a[*at] != b[*at] {
-                    return false;
+                    return Ok(false);
                 }
                 let tag = a[*at];
                 *at += 1;
@@ -88,8 +101,7 @@ impl Key {
                 for (i, (_, ks)) in vs.iter().enumerate() {
                     if i as u64 == tag {
                         for k in ks {
-                            // SAFETY: forwarded.
-                            eq &= unsafe { k.eq(a, b, at) };
+                            eq &= k.eq_in(a, b, at, blk)?;
                         }
                     } else {
                         *at += ks.iter().map(Key::width).sum::<usize>();
@@ -97,9 +109,8 @@ impl Key {
                 }
                 eq
             }
-            // SAFETY: forwarded.
-            _ => unsafe { self.cmp(a, b, at) }.is_eq(),
-        }
+            _ => self.cmp_in(a, b, at, blk)?.is_eq(),
+        })
     }
 
     /// Order the elements `a` and `b` of equal layout from slot `*at`, as `Ord` does.
@@ -378,6 +389,11 @@ impl Layout {
         blocks: &B,
     ) -> Result<std::cmp::Ordering, B::Err> {
         self.0.cmp_in(a, b, &mut 0, blocks)
+    }
+
+    /// Whether the elements in slots `a` and `b` are equal, as `==` reads them.
+    pub fn eq<B: Blocks>(&self, a: &[u64], b: &[u64], blocks: &B) -> Result<bool, B::Err> {
+        self.0.eq_in(a, b, &mut 0, blocks)
     }
 
     /// The canonical encoding of the key in slots `w`; equal keys encode equal.
