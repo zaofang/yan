@@ -23,6 +23,24 @@ fn indices(
     slice_indices(len, bound(a, av), bound(b, bv), step)
 }
 
+/// The chars of `s` picked by the slice; `None` for step 0.
+pub fn str_slice(
+    s: &str,
+    (at, av): (i64, i64),
+    (bt, bv): (i64, i64),
+    (ct, cv): (i64, i64),
+) -> Option<String> {
+    if bound(ct, cv) == Some(0) {
+        return None;
+    }
+    let cs: Vec<char> = s.chars().collect();
+    Some(
+        indices(cs.len(), (at, av), (bt, bv), (ct, cv))
+            .map(|k| cs[k])
+            .collect(),
+    )
+}
+
 /// The chars of `s` picked by the slice, as a new `Str` block.
 ///
 /// # Safety
@@ -39,11 +57,11 @@ pub unsafe extern "C" fn yan_rt_str_slice(
     cv: i64,
 ) -> *mut String {
     // SAFETY: the caller's contract.
-    let cs: Vec<char> = unsafe { &*s }.chars().collect();
-    let out: String = indices(cs.len(), (at, av), (bt, bv), (ct, cv))
-        .map(|k| cs[k])
-        .collect();
-    crate::abi::str_block(&out)
+    let s = unsafe { &*s };
+    match str_slice(s, (at, av), (bt, bv), (ct, cv)) {
+        Some(out) => crate::abi::str_block(&out),
+        None => crate::abi::panic("value"),
+    }
 }
 
 /// The elements picked by the slice, shallow-copied into a new `List` block.

@@ -645,6 +645,44 @@ impl Machine<'_> {
                 a[1].float(),
                 a[2].float(),
             )),
+            RtFn::CsvParse => {
+                let (src, delim) = (self.str_of(a[1].addr())?, self.str_of(a[2].addr())?);
+                let schema = self.str_of(a[3].addr())?;
+                let out = self.materialize(yan_rt::csvslots::parse(&src, &delim, &schema))?;
+                self.write_words(a[0].addr(), &out)?;
+                Val::U
+            }
+            RtFn::StrSlice => {
+                let b = |k: usize| (a[k].int() as i64, a[k + 1].int() as i64);
+                let s = self.str_of(a[0].addr())?;
+                let out =
+                    yan_rt::slice::str_slice(&s, b(1), b(3), b(5)).ok_or(Stop::Panic("value"))?;
+                Val::I(i128::from(self.new_str(&out)))
+            }
+            RtFn::ReadLine => match yan_rt::abi::read_line() {
+                Some(l) => Val::I(i128::from(self.new_str(&l))),
+                None => Val::I(0),
+            },
+            RtFn::ParseFloat => match yan_rt::text::parse_float(&self.str_of(a[0].addr())?) {
+                Some(v) => {
+                    self.write_words(a[1].addr(), &[v.to_bits()])?;
+                    Val::B(true)
+                }
+                None => Val::B(false),
+            },
+            RtFn::HexCheck => Val::I(
+                yan_rt::bytes::hex_decode(&self.str_of(a[0].addr())?)
+                    .map_or_else(|at| at as i128, |_| -1),
+            ),
+            RtFn::HexDecode => {
+                let b = yan_rt::bytes::hex_decode(&self.str_of(a[0].addr())?).unwrap_or_default();
+                self.new_bytes(b)
+            }
+            RtFn::AbsI64 => Val::I(i128::from(
+                (a[0].int() as i64)
+                    .checked_abs()
+                    .ok_or(Stop::Panic("overflow"))?,
+            )),
             RtFn::CsvDump => {
                 let (words, len, data) = {
                     let l = self.list(a[0])?;
