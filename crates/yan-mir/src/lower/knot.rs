@@ -99,6 +99,7 @@ impl<'m> Fn<'_, 'm> {
         };
         self.finish(Term::Return(out));
         Ok(Func {
+            unsafe_fn: false,
             name: match w {
                 Walk::Show(_) => "knot.show",
                 Walk::Copy => "knot.copy",

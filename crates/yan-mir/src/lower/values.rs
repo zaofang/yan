@@ -84,6 +84,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     pub(super) fn has_heap(s: &Shape) -> bool {
         match s {
             Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr | Shape::Ref(_) => false,
+            Shape::Atomic(_) => true,
             Shape::Str
             | Shape::Bytes
             | Shape::ByteArray
@@ -118,6 +119,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         match s {
             Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr | Shape::Ref(_) => {}
             Shape::Arena => self.free(RtFn::ArenaFree, v[0].clone()),
+            Shape::Atomic(_) => self.free(RtFn::EnvFree, v[0].clone()),
             Shape::Named(k) => {
                 self.walk_call(knot::Walk::Drop, k, v);
             }
@@ -302,6 +304,17 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.copy_to(&dst.locals, v);
         self.goto(join);
         Ok(())
+    }
+
+    /// The channel of the `Sender` atom `tx`; one `close` ended is a `contract` panic (9.5).
+    pub(super) fn open_sender(&mut self, tx: &y::Atom) -> R<Operand> {
+        let ch = self.scalar1(tx)?;
+        let closed = self.scalar_op(ScalarOp::Eq, I64, vec![ch.clone(), Operand::Int(0)]);
+        let (bad, good) = self.branch(closed);
+        self.cur = bad;
+        self.finish(Term::Panic("contract"));
+        self.cur = good;
+        Ok(ch)
     }
 
     /// `dst` of a `try_send` with status `st`: `Ok`, or the failure its status means: 2

@@ -126,6 +126,34 @@ impl<'a, 'm> Fn<'a, 'm> {
                 );
                 self.goto(join);
             }
+            (id::STD_LIST_CONTAINS, [(_, a), (_, x)]) => {
+                let Some(d) = &dst else {
+                    return Ok(());
+                };
+                let locals = d.locals.clone();
+                let (l, s) = self.atom_any(a)?;
+                let Shape::List(e) = &s else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let x = self.atom(x, e)?;
+                let list = l[0].clone();
+                let n = self.rt(RtFn::ListLen, I64, vec![list.clone()]);
+                self.copy_to(&locals, vec![Operand::Bool(false)]);
+                self.each(n, |me, i| {
+                    let open = me.scalar_op(
+                        ScalarOp::Eq,
+                        Ty::Bool,
+                        vec![Operand::Local(locals[0]), Operand::Bool(false)],
+                    );
+                    me.when(open, |me| {
+                        let at = At::Mem(me.rt(RtFn::ListAt, Ty::Ptr, vec![list.clone(), i]), 0);
+                        let ev = me.read(&at, e);
+                        let hit = me.eq_value(e, &ev, &x)?;
+                        me.copy_to(&locals, vec![hit]);
+                        Ok(())
+                    })
+                })?;
+            }
             (id::STD_LIST_BISECT_LEFT | id::STD_LIST_BISECT_RIGHT, [(_, a), (_, x), (_, key)])
                 if !keyed(key) =>
             {

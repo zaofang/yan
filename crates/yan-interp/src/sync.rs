@@ -32,14 +32,28 @@ impl Chan {
     }
 }
 
+/// The `chan` of a `Sender` that `close` ended (9.5).
+const CLOSED_SENDER: i128 = -1;
+
 /// A `Sender` goes out of scope: the last one closes its channel.
 pub(crate) fn drop_sender(it: &mut Interp, v: &Value) {
-    if let Value::Data { name, .. } = v
+    if let Value::Data { name, fields } = v
         && &**name == "Sender"
+        && !matches!(fields[0].1, Value::Int(CLOSED_SENDER))
     {
         let s = &mut it.chans[chan(v)].senders;
         *s = s.saturating_sub(1);
         it.progress += 1;
+    }
+}
+
+/// The channel of a `Sender` that is still open; a closed one breaks the operation's precondition.
+fn open_sender(v: &Value) -> R<usize> {
+    match v {
+        Value::Data { fields, .. } if matches!(fields[0].1, Value::Int(CLOSED_SENDER)) => {
+            panic_with("contract", "a `Sender` was used after `close`")
+        }
+        _ => Ok(chan(v)),
     }
 }
 
@@ -87,14 +101,17 @@ fn cas(it: &mut Interp, a: &mut [Value]) -> Value {
     }
 }
 
-/// A fetch operation: returns the previous value. Integers are `i64`, which wraps (6.2); a
+/// A fetch operation: returns the previous value. An integer wraps to its type (6.2); a
 /// `bool` takes only the bitwise operations.
-fn rmw(it: &mut Interp, a: &mut [Value], f: fn(i64, i64) -> i64) -> Value {
-    let slot = &mut it.atoms[atom(&a[0])];
+fn rmw(it: &mut Interp, a: &mut [Value], f: fn(i128, i128) -> i128) -> Value {
+    let i = atom(&a[0]);
+    let slot = &mut it.atoms[i];
     let old = slot.clone();
     *slot = match (&old, &a[1]) {
-        (Value::Int(x), Value::Int(y)) => Value::Int(f(*x as i64, *y as i64) as i128),
-        (Value::Bool(x), Value::Bool(y)) => Value::Bool(f(*x as i64, *y as i64) != 0),
+        (Value::Int(x), Value::Int(y)) => {
+            Value::Int(crate::bits::wrap_to(&it.atom_tys[i], f(*x, *y)))
+        }
+        (Value::Bool(x), Value::Bool(y)) => Value::Bool(f(*x as i128, *y as i128) != 0),
         _ => unreachable!("an Atomic of integers or bool"),
     };
     old
@@ -753,7 +770,18 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_CHAN_SENDER_SELECT_KEY,
-        Bind::Plain(|a| Ok(Value::Int(4 * chan(&a[0]) as i128 + SEL_SEND))),
+        Bind::Plain(|a| Ok(Value::Int(4 * open_sender(&a[0])? as i128 + SEL_SEND))),
+    ),
+    (
+        STD_CHAN_SENDER_CLOSE,
+        Bind::Cap(|it, a| {
+            drop_sender(it, &a[0]);
+            a[0] = Value::Data {
+                name: "Sender".into(),
+                fields: vec![("chan".into(), Value::Int(CLOSED_SENDER))],
+            };
+            Ok(Value::Unit)
+        }),
     ),
     (
         STD_PRELUDE_SELECT_WAIT,
@@ -766,7 +794,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_CHAN_SENDER_SEND,
         Bind::VmFallible(|vm, a| {
-            let c = chan(&a[0]);
+            let c = open_sender(&a[0])?;
             loop {
                 let it = &mut vm.it;
                 if let Some(e) = cancelled(it) {
@@ -786,7 +814,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_CHAN_SENDER_TRY_SEND,
         Bind::VmFallible(|vm, a| {
-            let c = chan(&a[0]);
+            let c = open_sender(&a[0])?;
             let it = &mut vm.it;
             if let Some(e) = cancelled(it) {
                 return Ok(Err(e));
@@ -826,6 +854,10 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_SYNC_ATOMIC_ATOMIC,
         Bind::Cap(|it, a| {
             it.atoms.push(std::mem::take(&mut a[0]));
+            it.atom_tys.push(match &a[1] {
+                Value::Str(t) => t.clone(),
+                _ => "".into(),
+            });
             Ok(Value::Int(it.atoms.len() as i128 - 1))
         }),
     ),
@@ -857,11 +889,11 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_SYNC_ATOMIC_FETCH_ADD,
-        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x.wrapping_add(y)))),
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x + y))),
     ),
     (
         STD_SYNC_ATOMIC_FETCH_SUB,
-        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x.wrapping_sub(y)))),
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x - y))),
     ),
     (
         STD_SYNC_ATOMIC_FETCH_AND,
@@ -877,11 +909,11 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_SYNC_ATOMIC_FETCH_MAX,
-        Bind::Cap(|it, a| Ok(rmw(it, a, i64::max))),
+        Bind::Cap(|it, a| Ok(rmw(it, a, i128::max))),
     ),
     (
         STD_SYNC_ATOMIC_FETCH_MIN,
-        Bind::Cap(|it, a| Ok(rmw(it, a, i64::min))),
+        Bind::Cap(|it, a| Ok(rmw(it, a, i128::min))),
     ),
     (
         STD_SYNC_ATOMIC_INTO_INNER,

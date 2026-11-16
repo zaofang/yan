@@ -588,6 +588,15 @@ impl Machine<'_> {
                 let r = self.str_of(a[0].addr())?.repeat(a[1].int().max(0) as usize);
                 Val::I(i128::from(self.new_str(&r)))
             }
+            RtFn::StrJoin => {
+                let sep = self.str_of(a[0].addr())?;
+                let parts = self
+                    .list_words(a[1])?
+                    .into_iter()
+                    .map(|w| self.str_of(w))
+                    .collect::<Result<Vec<_>, _>>()?;
+                Val::I(i128::from(self.new_str(&parts.join(&sep))))
+            }
             RtFn::ParseInt => match yan_rt::text::parse_int(&self.str_of(a[0].addr())?) {
                 Some(v) => {
                     self.write_words(a[1].addr(), &[v as u64])?;

@@ -328,6 +328,7 @@ impl Cx {
     /// `g$co`, as function `at`, from `g` before its task transform.
     fn make_co(&mut self, g: &Func, w: &Walk, at: usize) -> Func {
         let mut f = Func {
+            unsafe_fn: g.unsafe_fn,
             name: format!("{}$co", g.name),
             params: 1,
             ret: vec![I64],
@@ -549,6 +550,12 @@ fn map_inst(i: &mut Inst, m: &mut impl FnMut(Local) -> Local) {
             vec![ptr]
         }
         Inst::Store { ptr, src, .. } => vec![ptr, src],
+        Inst::Atomic { dst, ptr, args, .. } => {
+            if let Some(d) = dst {
+                *d = m(*d);
+            }
+            std::iter::once(ptr).chain(args.iter_mut()).collect()
+        }
         Inst::AddrOf { dst, local } => {
             *dst = m(*dst);
             *local = m(*local);
@@ -601,6 +608,10 @@ fn uses_defs(i: &Inst) -> (Vec<Local>, Vec<Local>) {
         Inst::Store { ptr, src, .. } => {
             ([ptr, src].into_iter().filter_map(l).collect(), Vec::new())
         }
+        Inst::Atomic { dst, ptr, args, .. } => (
+            std::iter::once(ptr).chain(args).filter_map(l).collect(),
+            dst.iter().copied().collect(),
+        ),
         Inst::AddrOf { dst, local } => (vec![*local], vec![*dst]),
         Inst::Arm(_) => (Vec::new(), Vec::new()),
     }

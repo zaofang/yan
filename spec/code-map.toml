@@ -193,7 +193,7 @@ E908 = "crates/yan-elab/src/decorators.rs"
 E909 = { unimplemented = "#825" }
 E910 = "crates/yan-elab/src/lower/calls.rs"
 E911 = "crates/yan-elab/src/lower/calls.rs"
-E912 = { unimplemented = "#1242" }
+E912 = "crates/yan-elab/src/lower/rhs.rs"
 H701 = "crates/yan-cli/src/mcp.rs"
 P001 = "crates/yan-cli/src/patch.rs"
 P002 = "crates/yan-cli/src/patch.rs"

@@ -1795,3 +1795,7 @@ rows = "R1020"
 topic = "every extern library is a ceiling entry, `uses none` or not, enforced transitively; consent does not replace it (RFC 0077 D3)"
 sections = "7.4, 12.2, 19.2"
 
+[[entry]]
+rows = "R1021"
+topic = "`Sender.close()` ends the handle at once; a second `close` and the later drop do nothing; `send`, `try_send` or a `select` send arm on a closed `Sender` panics `contract`"
+sections = "9.5"

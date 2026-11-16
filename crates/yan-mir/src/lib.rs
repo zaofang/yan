@@ -164,8 +164,47 @@ pub enum Inst {
         dst: Local,
         local: Local,
     },
+    /// An atomic access of the word at `ptr`, `ty` wide (an integer or `bool`). `dst` gets a
+    /// load's value, a swap's or read-modify-write's old value, a compare-exchange's old value;
+    /// `args` are the value, or the expected and the new value. Backends may run every ordering
+    /// as sequentially consistent (stronger), the machine's race detector reads them.
+    Atomic {
+        dst: Option<Local>,
+        op: AtomicOp,
+        ty: Ty,
+        order: MemOrder,
+        /// A compare-exchange's failure ordering.
+        failure: MemOrder,
+        ptr: Operand,
+        args: Vec<Operand>,
+    },
     /// A boundary of a sequential `par`'s arms, for the machine's race detector; no code.
     Arm(ArmEvent),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AtomicOp {
+    Load,
+    Store,
+    Swap,
+    Cas,
+    /// Integer read-modify-write; the new value wraps to the width of `ty`.
+    Add,
+    Sub,
+    And,
+    Or,
+    Xor,
+    Max,
+    Min,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MemOrder {
+    Relaxed,
+    Acquire,
+    Release,
+    AcqRel,
+    SeqCst,
 }
 
 /// Where a `par` forks and joins its arms (`Inst::Arm`).
@@ -813,6 +852,8 @@ pub struct Block {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Func {
     pub name: String,
+    /// An `unsafe fn`: a failed `requires` is a `ub(16)` report under `--ub` (RFC 0076 D5).
+    pub unsafe_fn: bool,
     /// The first `params` locals are the parameters, in order.
     pub params: u32,
     /// The result slots, then the final value of each `inout` parameter's slots.
