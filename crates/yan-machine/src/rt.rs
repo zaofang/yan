@@ -735,6 +735,105 @@ impl Machine<'_> {
             RtFn::RoundF64 => Val::I(i128::from(
                 yan_rt::num::round_i64(a[0].float()).ok_or(Stop::Panic("conversion"))?,
             )),
+            RtFn::Base64 => {
+                let s =
+                    yan_rt::bytes::base64(self.bytes_ref(a[0])?, a[1].int() != 0, a[2].int() != 0);
+                Val::I(i128::from(self.new_str(&s)))
+            }
+            RtFn::BigFromInt => self.new_bytes(yan_rt::bigint::from_int(a[0].int() as i64)),
+            RtFn::BigBin => {
+                let r = yan_rt::bigint::bin(
+                    a[0].int() as i64,
+                    self.bytes_ref(a[1])?,
+                    self.bytes_ref(a[2])?,
+                )
+                .map_err(Stop::Panic)?;
+                self.new_bytes(r)
+            }
+            RtFn::BigCmp => Val::B(yan_rt::bigint::cmp(
+                a[0].int() as i64,
+                self.bytes_ref(a[1])?,
+                self.bytes_ref(a[2])?,
+            )),
+            RtFn::BigShift => {
+                let r = yan_rt::bigint::shift(
+                    a[0].int() as i64,
+                    self.bytes_ref(a[1])?,
+                    a[2].int() as i64,
+                )
+                .map_err(Stop::Panic)?;
+                self.new_bytes(r)
+            }
+            RtFn::BigPow => {
+                let r = yan_rt::bigint::pow(self.bytes_ref(a[0])?, a[1].int() as i64)
+                    .map_err(Stop::Panic)?;
+                self.new_bytes(r)
+            }
+            RtFn::BigNot => {
+                let r = yan_rt::bigint::not(self.bytes_ref(a[0])?);
+                self.new_bytes(r)
+            }
+            RtFn::BigBits => Val::I(i128::from(yan_rt::bigint::bits(
+                a[0].int() as i64,
+                self.bytes_ref(a[1])?,
+            ))),
+            RtFn::BigStr => {
+                let s = yan_rt::bigint::show(self.bytes_ref(a[0])?);
+                Val::I(i128::from(self.new_str(&s)))
+            }
+            RtFn::Base64Check => Val::I(
+                yan_rt::bytes::base64_decode(&self.str_of(a[0].addr())?, a[1].int() != 0)
+                    .map_or_else(|at| at as i128, |_| -1),
+            ),
+            RtFn::Base64Decode => {
+                let b = yan_rt::bytes::base64_decode(&self.str_of(a[0].addr())?, a[1].int() != 0)
+                    .unwrap_or_default();
+                self.new_bytes(b)
+            }
+            RtFn::EncodingErrorShow => {
+                let s = yan_rt::bytes::encoding_error_show(a[0].int() as i64, a[1].int() as i64);
+                Val::I(i128::from(self.new_str(&s)))
+            }
+            RtFn::FsFake => {
+                let w = self.map_words(a[0])?;
+                let files = w
+                    .chunks(2)
+                    .map(|e| Ok((self.str_of(e[0])?, self.str_of(e[1])?)))
+                    .collect::<Result<_, Stop>>()?;
+                self.fs_fakes.push(files);
+                Val::I(self.fs_fakes.len() as i128)
+            }
+            RtFn::FsRead => {
+                let path = self.str_of(a[1].addr())?;
+                let read = match a[0].int() {
+                    0 => yan_rt::abi::fs_read(&path),
+                    h => yan_rt::fshandler::fake_read(&self.fs_fakes[h as usize - 1], &path),
+                };
+                match read {
+                    Ok(text) => Val::I(i128::from(self.new_str(&text))),
+                    Err(reason) => {
+                        self.fs_reason = reason;
+                        Val::I(0)
+                    }
+                }
+            }
+            RtFn::FsReason => {
+                let reason = self.fs_reason.clone();
+                Val::I(i128::from(self.new_str(&reason)))
+            }
+            RtFn::ListSlice => {
+                let (words, slots) = self.slots(a[0])?;
+                let n = slots.len().checked_div(8 * words).unwrap_or(0);
+                let b = |k: usize| (a[k].int() as i64, a[k + 1].int() as i64);
+                let picks =
+                    yan_rt::slice::slice_picks(n, b(1), b(3), b(5)).ok_or(Stop::Panic("value"))?;
+                let w = 8 * words;
+                let out = picks
+                    .into_iter()
+                    .flat_map(|k| slots[k * w..(k + 1) * w].iter().copied())
+                    .collect();
+                self.new_list(words, out)
+            }
             RtFn::HexCheck => Val::I(
                 yan_rt::bytes::hex_decode(&self.str_of(a[0].addr())?)
                     .map_or_else(|at| at as i128, |_| -1),

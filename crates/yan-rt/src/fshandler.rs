@@ -47,11 +47,19 @@ pub unsafe extern "C" fn yan_rt_fs_read_with(h: u64, path: *const String) -> *mu
     }
     // SAFETY: the caller's contract.
     let path = unsafe { &*path };
-    FAKES.with(|f| match f.borrow()[h as usize - 1].get(path) {
-        Some(text) => str_block(text),
-        None => {
-            set_fs_reason("not found".to_owned());
+    match FAKES.with(|f| fake_read(&f.borrow()[h as usize - 1], path)) {
+        Ok(text) => str_block(&text),
+        Err(reason) => {
+            set_fs_reason(reason);
             std::ptr::null_mut()
         }
-    })
+    }
+}
+
+/// `fs.read` on a fake file system.
+pub fn fake_read(files: &HashMap<String, String>, path: &str) -> Result<String, String> {
+    files
+        .get(path)
+        .cloned()
+        .ok_or_else(|| "not found".to_owned())
 }
