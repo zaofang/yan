@@ -229,9 +229,7 @@ impl Lower<'_, '_, '_> {
                 let (name, sig) = self.instance(n, v, at)?;
                 self.call_sig(&name, &sig, None, args, at)
             }
-            j::ExprKind::Name(n)
-                if !self.value_bound(n) && self.pending.contains_key(n) =>
-            {
+            j::ExprKind::Name(n) if !self.value_bound(n) && self.pending.contains_key(n) => {
                 let mut vals = Vec::new();
                 let mut tys = Vec::new();
                 for a in args {
