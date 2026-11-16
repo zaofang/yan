@@ -9,7 +9,7 @@
 //! scheduler handle, not on the region stack, because a task that yields leaves its inner block
 //! live.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 type Tid = usize;
 type Epoch = (Tid, u32);
@@ -25,6 +25,20 @@ struct Region {
     arms: Vec<Tid>,
 }
 
+/// The release/acquire state of one channel (D5): the clock each queued message was sent under,
+/// the clock each receive left under (a send into a full buffer acquires the receive that made
+/// room), and the clock of the dropped senders (a receive that finds the channel closed acquires
+/// it).
+#[derive(Default)]
+struct Link {
+    cap: u64,
+    sent: u64,
+    msgs: VecDeque<Vec<u32>>,
+    freed: VecDeque<Vec<u32>>,
+    freed_base: u64,
+    closed: Vec<u32>,
+}
+
 struct Block {
     parent: Tid,
     tasks: Vec<Tid>,
@@ -38,6 +52,7 @@ pub struct Race {
     cur: Tid,
     regions: Vec<Region>,
     blocks: HashMap<u64, Block>,
+    links: HashMap<u64, Link>,
     shadow: HashMap<u64, Cell>,
 }
 
@@ -62,6 +77,7 @@ impl Race {
             cur: 0,
             regions: Vec::new(),
             blocks: HashMap::new(),
+            links: HashMap::new(),
             shadow: HashMap::new(),
         }
     }
@@ -123,6 +139,68 @@ impl Race {
         self.tick(parent);
         if self.idle() {
             self.shadow.clear();
+        }
+    }
+
+    pub fn chan_new(&mut self, ch: u64, cap: u64) {
+        self.links.insert(
+            ch,
+            Link {
+                cap,
+                ..Link::default()
+            },
+        );
+    }
+
+    /// An unbuffered channel orders a send after its receive too, which a task that has already
+    /// moved on cannot take back; it is not modelled.
+    pub fn rendezvous(&self, ch: u64) -> bool {
+        self.links.get(&ch).is_some_and(|l| l.cap == 0)
+    }
+
+    /// A send went through: it releases this thread's clock, and first acquires the receive that
+    /// made room for it when the buffer had been full.
+    pub fn chan_send(&mut self, ch: u64) {
+        let Some(l) = self.links.get_mut(&ch) else {
+            return;
+        };
+        let n = l.sent;
+        l.sent += 1;
+        let room = (n >= l.cap).then(|| {
+            let i = n - l.cap;
+            while l.freed_base < i {
+                l.freed.pop_front();
+                l.freed_base += 1;
+            }
+            l.freed.front().cloned()
+        });
+        if let Some(Some(c)) = room {
+            join(&mut self.clocks[self.cur], &c);
+        }
+        l.msgs.push_back(self.clocks[self.cur].clone());
+        self.tick(self.cur);
+    }
+
+    /// A receive took a message, or found the channel closed.
+    pub fn chan_recv(&mut self, ch: u64, closed: bool) {
+        let Some(l) = self.links.get_mut(&ch) else {
+            return;
+        };
+        if closed {
+            join(&mut self.clocks[self.cur], &l.closed);
+            return;
+        }
+        if let Some(c) = l.msgs.pop_front() {
+            join(&mut self.clocks[self.cur], &c);
+        }
+        l.freed.push_back(self.clocks[self.cur].clone());
+        self.tick(self.cur);
+    }
+
+    pub fn chan_sender_dropped(&mut self, ch: u64) {
+        if let Some(l) = self.links.get_mut(&ch) {
+            join(&mut l.closed, &self.clocks[self.cur]);
+            self.tick(self.cur);
         }
     }
 
@@ -289,6 +367,44 @@ mod tests {
         assert!(r.access(0x20, true).is_none());
         r.block_switch(0, 1);
         assert!(r.access(0x10, false).is_none());
+    }
+
+    #[test]
+    fn a_channel_orders_send_before_receive_and_close_before_closed() {
+        let mut r = Race::new();
+        r.chan_new(1, 1);
+        r.block_begin(0, 2);
+        r.block_switch(0, 0);
+        assert!(r.access(0x10, true).is_none());
+        r.chan_send(1);
+        r.chan_sender_dropped(1);
+        r.block_switch(0, 1);
+        r.chan_recv(1, false);
+        assert!(r.access(0x10, false).is_none());
+        r.chan_recv(1, true);
+        assert!(r.access(0x10, true).is_none());
+        let mut r = Race::new();
+        r.chan_new(1, 1);
+        r.block_begin(0, 2);
+        r.block_switch(0, 0);
+        assert!(r.access(0x10, true).is_none());
+        r.block_switch(0, 1);
+        assert!(r.access(0x10, false).is_some());
+    }
+
+    #[test]
+    fn a_send_into_a_full_buffer_follows_the_receive_that_made_room() {
+        let mut r = Race::new();
+        r.chan_new(1, 1);
+        r.block_begin(0, 2);
+        r.block_switch(0, 0);
+        r.chan_send(1);
+        r.block_switch(0, 1);
+        assert!(r.access(0x10, true).is_none());
+        r.chan_recv(1, false);
+        r.block_switch(0, 0);
+        r.chan_send(1);
+        assert!(r.access(0x10, true).is_none());
     }
 
     #[test]
