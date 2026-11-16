@@ -1,5 +1,5 @@
 # spec: 6.6, 9.5
-# rows: R391, R1018
+# rows: R391, R1021
 # note: a producer closes the Sender it borrows; close is idempotent and the handle's later drop does nothing; the consumer drains and then sees None (#1405)
 # stdout:
 # 10

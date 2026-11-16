@@ -1,5 +1,5 @@
 # spec: 9.5, 8.6
-# rows: R1018
+# rows: R1021
 # note: send on a Sender that close ended is a contract panic (#1405)
 # stdout:
 # closed
