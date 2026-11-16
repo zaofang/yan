@@ -261,27 +261,19 @@ impl Lower<'_, '_, '_> {
                 if let Some(fs) = self.g.records.get(n) {
                     let pos = self.g.record_positional.get(n).copied().unwrap_or(0);
                     let ps = field_params(fs, pos, at);
-                    let r = self.ctor(n, &ps, args, at)?;
+                    let r = self.ctor(None, n, &ps, args, at)?;
                     return Ok((r, Ty::Data(n.clone()), None));
                 }
-                if let Some(s) = self.g.variant_of.get(n).cloned()
-                    && self.g.type_params.contains_key(&s)
-                {
-                    let (r, t) = self.generic_ctor(n, &s, args, at, want)?;
-                    return Ok((r, t, None));
-                }
                 if let Some(s) = self.g.variant_of.get(n).cloned() {
-                    let fs = &self.g.sums[&s]
-                        .iter()
-                        .find(|(v, _)| v == n)
-                        .expect("declared")
-                        .1;
-                    let ps = field_params(fs, 0, at);
-                    if ps.is_empty() && args.is_empty() {
-                        return Ok((Rhs::Atom(Atom::Name(n.clone(), at)), Ty::Data(s), None));
+                    if self.g.shared_variants.contains(n) {
+                        self.err(
+                            "E200",
+                            f.span,
+                            format!("is a variant of several sums; write `Sum.{n}`"),
+                        );
+                        return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
                     }
-                    let r = self.ctor(n, &ps, args, at)?;
-                    return Ok((r, Ty::Data(s), None));
+                    return self.variant_call(n, &s, args, at, want);
                 }
                 let path = format!("std.prelude.{n}");
                 if let Some(p) = crate::stdlib::decl(&path).and_then(|d| d.plain())
@@ -298,6 +290,12 @@ impl Lower<'_, '_, '_> {
                     && (self.sig.caps.contains(c) || self.handlers.contains(c) || c == "io")
                 {
                     return self.cap_call(c, m, args, at);
+                }
+                if let j::ExprKind::Name(t) = &b.kind
+                    && !self.locals.contains_key(t)
+                    && let Some(s) = self.g.qualified_variant(t, m).map(str::to_owned)
+                {
+                    return self.variant_call(m, &s, args, at, want);
                 }
                 if let j::ExprKind::Name(module) = &b.kind
                     && let Some((r, t)) =

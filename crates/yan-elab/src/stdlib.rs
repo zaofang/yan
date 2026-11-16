@@ -622,7 +622,7 @@ pub(crate) fn sums(g: &mut Globals, m: &j::Module) -> R<Vec<String>> {
             && !own.contains(name.as_str())
         {
             for v in vs {
-                g.variant_of.insert(v.name.clone(), name.clone());
+                g.declare_variant(&v.name, name);
             }
             // Registered empty first: a variant's field may name its own sum.
             g.sums.insert(name.clone(), Vec::new());
