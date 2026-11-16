@@ -6,4 +6,4 @@ def f() -> int:
     xs = ["a" + "b"]
     t = xs[0]
     u = t
-    return len(u) + len(xs)
+    return u.char_count() + len(xs)
