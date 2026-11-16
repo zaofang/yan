@@ -530,6 +530,44 @@ impl Lower<'_, '_, '_> {
     /// A `cost` bound (R610) as one Yan Core expression: itself when it is one operation, else a
     /// call of a generated `__cost_<f>_<which>` over `f`'s value parameters that returns it.
     pub(super) fn cost_bound(&mut self, f: &j::FuncDef, which: &str, e: &j::Expr) -> R<y::Expr> {
+        let name = format!("__cost_{}_{which}", f.name);
+        self.operation(f, e, name, "i64", false)
+    }
+
+    /// A `pre` of an `unsafe fn` as one Yan Core `requires`, so every backend sees the clause and
+    /// `--ub` can report it as item 16 (RFC 0076 D5): itself when it is one operation, else a
+    /// call of a generated `__pre_<f>_<k>` over `f`'s value parameters that returns it.
+    pub(super) fn unsafe_pre(&mut self, f: &j::FuncDef, k: usize, e: &j::Expr) -> R<y::Expr> {
+        let name = format!("__pre_{}_{k}", f.name);
+        let mut read = Vec::new();
+        super::walk(e, &mut |x| {
+            if let j::ExprKind::Name(n) = &x.kind {
+                read.push(n.clone());
+            }
+        });
+        // The clause reads these, though the body may not.
+        for n in &read {
+            self.last_use.mark_read(n);
+        }
+        self.operation(f, e, name, "bool", true)
+    }
+
+    fn operation(
+        &mut self,
+        f: &j::FuncDef,
+        e: &j::Expr,
+        name: String,
+        ret: &str,
+        only_read: bool,
+    ) -> R<y::Expr> {
+        let mut read = HashSet::new();
+        if only_read {
+            super::walk(e, &mut |x| {
+                if let j::ExprKind::Name(n) = &x.kind {
+                    read.insert(n.clone());
+                }
+            });
+        }
         if let Some(x) = self.pure(e)? {
             return Ok(x);
         }
@@ -537,13 +575,15 @@ impl Lower<'_, '_, '_> {
             .params
             .iter()
             .filter_map(|p| match p {
-                j::Param::Value { name, span, ty, .. } => Some(j::Param::Value {
-                    conv: None,
-                    name: name.clone(),
-                    span: *span,
-                    ty: ty.clone(),
-                    default: None,
-                }),
+                j::Param::Value { name, span, ty, .. } if !only_read || read.contains(name) => {
+                    Some(j::Param::Value {
+                        conv: None,
+                        name: name.clone(),
+                        span: *span,
+                        ty: ty.clone(),
+                        default: None,
+                    })
+                }
                 _ => None,
             })
             .collect();
@@ -556,15 +596,15 @@ impl Lower<'_, '_, '_> {
                 _ => None,
             })
             .collect();
-        let name = format!("__cost_{}_{which}", f.name);
         let h = j::FuncDef {
+            unsafe_at: None,
             name: name.clone(),
             name_span: e.span,
             tparams: f.tparams.clone(),
             params,
             ret: Some(j::RetType {
                 ty: Some(j::Type::Named {
-                    path: vec!["i64".into()],
+                    path: vec![ret.into()],
                     args: Vec::new(),
                 }),
                 fail: Vec::new(),

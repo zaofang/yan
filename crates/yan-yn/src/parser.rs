@@ -430,7 +430,12 @@ impl<'a> Parser<'a> {
                 ItemKind::Extern(self.extern_def()?)
             }
             Tok::Kw("let") => ItemKind::Const(self.const_def()?),
-            Tok::Name(_) => ItemKind::Fn(self.fn_def()?),
+            Tok::Kw("unsafe") if matches!(self.peek_n(1), Tok::Name(_)) => {
+                let at = self.span();
+                self.bump();
+                ItemKind::Fn(self.fn_def(Some(at))?)
+            }
+            Tok::Name(_) => ItemKind::Fn(self.fn_def(None)?),
             _ => return self.fail("an item"),
         };
         Ok(Item {
@@ -455,9 +460,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn fn_def(&mut self) -> P<FnDef> {
+    fn fn_def(&mut self, unsafe_: Option<Span>) -> P<FnDef> {
         let kind = self.fn_kind_word();
         if kind != FnKind::Plain {
+            if unsafe_.is_some() {
+                return self.fail("a plain function after `unsafe`");
+            }
             self.bump();
         }
         let sig = self.sig()?;
@@ -466,6 +474,7 @@ impl<'a> Parser<'a> {
         let body = self.body(true);
         self.fn_kind = outer;
         Ok(FnDef {
+            unsafe_,
             kind,
             sig,
             body: body?,
@@ -892,7 +901,7 @@ impl<'a> Parser<'a> {
             } else {
                 let start = self.span();
                 let attrs = self.attrs()?;
-                let f = self.fn_def()?;
+                let f = self.fn_def(None)?;
                 def.items.push(Item {
                     attrs,
                     public: false,
