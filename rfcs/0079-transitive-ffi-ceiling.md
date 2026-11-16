@@ -176,7 +176,7 @@ naming that package), same bare library name in two packages (the qualified entr
 
 ## Implementation (after acceptance)
 
-Slices S1 to S6, filed under #1427. S1 the foreign-set function; S2 `.info` and lock fields and
+Slices S1 to S6, filed under #1427 as #1446 to #1451. S1 the foreign-set function; S2 `.info` and lock fields and
 `yan publish` writing them; S3 the `PackageGraph` input; S4 the closure check at resolution and update
 hold-back; S5 the compile-side graph diagnostics and `yan audit` paths; S6 the conformance cases. D6 is
-tracked as a gap on the module-system work.
+tracked as gap #1452.
