@@ -197,11 +197,17 @@ impl Machine<'_> {
     }
 
     pub(crate) fn read_word(&self, addr: u64) -> Result<u64, Stop> {
+        self.read_word_with(addr, true)
+    }
+
+    fn read_word_with(&self, addr: u64, race: bool) -> Result<u64, Stop> {
         self.aligned("read", addr)?;
         let Some(bytes) = self.mem.read(addr, 8) else {
             return Err(self.bad_access("read", addr));
         };
-        self.raced(addr, false)?;
+        if race {
+            self.raced(addr, false)?;
+        }
         let mut w = [0u8; 8];
         for (d, b) in w.iter_mut().zip(bytes) {
             *d = match b {
@@ -213,8 +219,12 @@ impl Machine<'_> {
     }
 
     pub(crate) fn write_word(&mut self, addr: u64, w: u64) -> Result<(), Stop> {
+        self.write_word_with(addr, w, true)
+    }
+
+    fn write_word_with(&mut self, addr: u64, w: u64, race: bool) -> Result<(), Stop> {
         self.aligned("write", addr)?;
-        if self.mem.find(addr).is_some() {
+        if race && self.mem.find(addr).is_some() {
             self.raced(addr, true)?;
         }
         let bytes: Vec<Byte> = w.to_le_bytes().into_iter().map(Byte::Init).collect();
@@ -401,6 +411,34 @@ impl Machine<'_> {
                 let p = self.eval(fr, ptr, f)?.addr();
                 let v = self.eval(fr, src, f)?;
                 self.write_word(p + 8 * u64::from(*word), encode(v))
+            }
+            Inst::Atomic {
+                dst,
+                op,
+                ty,
+                args,
+                ptr,
+                ..
+            } => {
+                // One step, so no task interleaves. The word is not race-shadowed: atomic
+                // edges and the atomic-versus-plain check are slice S4 (#1369).
+                let p = self.eval(fr, ptr, f)?.addr();
+                let a = args
+                    .iter()
+                    .map(|o| self.eval(fr, o, f).map(encode))
+                    .collect::<Result<Vec<u64>, Stop>>()?;
+                let old = self.read_word_with(p, false)?;
+                let new = ops::atomic_new(*op, *ty, old, &a);
+                if let Some(w) = new {
+                    self.write_word_with(p, w, false)?;
+                }
+                match dst {
+                    Some(d) => {
+                        let v = self.typed(f.locals[*d as usize], old)?;
+                        self.set(fr, f, *d, v)
+                    }
+                    None => Ok(()),
+                }
             }
             Inst::Arm(e) => {
                 let mut r = self.race.borrow_mut();

@@ -108,6 +108,7 @@ pub fn layout(s: &Shape) -> Layout {
         | Shape::Actor(_)
         | Shape::Arena
         | Shape::Ref(_)
+        | Shape::Atomic(_)
         | Shape::Set(_)
         | Shape::Boxed(_) => plain(8, 8),
         Shape::Fn(..) | Shape::Ptr => plain(16, 8),

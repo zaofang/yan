@@ -37,6 +37,7 @@ mod shape;
 mod show;
 mod sorted;
 mod stmt;
+mod sync;
 mod time;
 mod unwind;
 mod values;
@@ -1166,6 +1167,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 | Shape::Chan(..)
                 | Shape::Arena
                 | Shape::Ref(_)
+                | Shape::Atomic(_)
                 | Shape::Actor(_),
                 1,
             ) => Ok(v.remove(0)),
