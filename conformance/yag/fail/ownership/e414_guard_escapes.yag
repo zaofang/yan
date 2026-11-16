@@ -1,0 +1,14 @@
+# spec: 4.5, 6.3
+# rows: R1023
+# note: a guard is second-class: it cannot be returned or rebound
+# expect: E414 at 9:12
+# expect: E414 at 13:9
+
+def leak(m: Mutex[int]) -> MutexGuard[int] from m:
+    g = m.lock()
+    return g
+
+def rebind(m: Mutex[int]) -> None:
+    g = m.lock()
+    h = g
+    h.set(1)
