@@ -304,6 +304,17 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(())
     }
 
+    /// The channel of the `Sender` atom `tx`; one `close` ended is a `contract` panic (9.5).
+    pub(super) fn open_sender(&mut self, tx: &y::Atom) -> R<Operand> {
+        let ch = self.scalar1(tx)?;
+        let closed = self.scalar_op(ScalarOp::Eq, I64, vec![ch.clone(), Operand::Int(0)]);
+        let (bad, good) = self.branch(closed);
+        self.cur = bad;
+        self.finish(Term::Panic("contract"));
+        self.cur = good;
+        Ok(ch)
+    }
+
     /// `dst` of a `try_send` with status `st`: `Ok`, or the failure its status means: 2
     /// `Cancelled`, 4 `Full[T]` carrying back the unsent `payload`, which the channel did not take.
     pub(super) fn try_send_result(
