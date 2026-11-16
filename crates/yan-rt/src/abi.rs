@@ -359,18 +359,22 @@ thread_local! {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_fs_read(path: *const String) -> *mut String {
     // SAFETY: the caller's contract.
-    match std::fs::read_to_string(unsafe { &*path }) {
+    match fs_read(unsafe { &*path }) {
         Ok(s) => str_block(&s),
-        Err(e) => {
-            let reason = match e.kind() {
-                std::io::ErrorKind::NotFound => "not found".to_owned(),
-                std::io::ErrorKind::PermissionDenied => "permission denied".to_owned(),
-                _ => e.to_string(),
-            };
-            FS_REASON.with(|r| *r.borrow_mut() = reason);
+        Err(reason) => {
+            set_fs_reason(reason);
             std::ptr::null_mut()
         }
     }
+}
+
+/// The text of the real file at `path`, or the reason it could not be read.
+pub fn fs_read(path: &str) -> Result<String, String> {
+    std::fs::read_to_string(path).map_err(|e| match e.kind() {
+        std::io::ErrorKind::NotFound => "not found".to_owned(),
+        std::io::ErrorKind::PermissionDenied => "permission denied".to_owned(),
+        _ => e.to_string(),
+    })
 }
 
 pub(crate) fn set_fs_reason(reason: String) {

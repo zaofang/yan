@@ -90,6 +90,9 @@ pub struct Machine<'p> {
     exposed: HashMap<u64, i128>,
     scratch: Option<u64>,
     civil_out: Vec<i64>,
+    /// `fake_fs` file systems by handler minus one; handler 0 is the real one.
+    fs_fakes: Vec<HashMap<String, String>>,
+    fs_reason: String,
     race: RefCell<Race>,
 }
 
@@ -107,6 +110,8 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
         exposed: HashMap::new(),
         scratch: None,
         civil_out: Vec::new(),
+        fs_fakes: Vec::new(),
+        fs_reason: String::new(),
         race: RefCell::new(Race::new()),
     };
     yan_rt::actor::defer_disposal();

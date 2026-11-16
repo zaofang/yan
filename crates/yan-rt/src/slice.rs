@@ -1,26 +1,26 @@
 //! `xs[a:b:c]` for native code (N50): Python's clamped slice. Each bound arrives as an
 //! `Option[int]`'s tag (0 is `Some`) and value.
 
-use crate::abi::{List, leak, yan_rt_panic};
+use crate::abi::{List, leak};
 use crate::list::slice_indices;
 
 fn bound(tag: i64, v: i64) -> Option<i128> {
     (tag == 0).then_some(i128::from(v))
 }
 
-fn indices(
+/// The indices a slice picks from `len` elements; `None` for step 0.
+pub fn slice_picks(
     len: usize,
     (a, av): (i64, i64),
     (b, bv): (i64, i64),
     (c, cv): (i64, i64),
-) -> impl Iterator<Item = usize> {
+) -> Option<Vec<usize>> {
     let step = bound(c, cv).unwrap_or(1);
-    if step == 0 {
-        let kind = "value";
-        // SAFETY: a str is valid UTF-8.
-        unsafe { yan_rt_panic(kind.as_ptr(), kind.len()) }
-    }
-    slice_indices(len, bound(a, av), bound(b, bv), step)
+    (step != 0).then(|| slice_indices(len, bound(a, av), bound(b, bv), step).collect())
+}
+
+fn indices(len: usize, a: (i64, i64), b: (i64, i64), c: (i64, i64)) -> Vec<usize> {
+    slice_picks(len, a, b, c).unwrap_or_else(|| crate::abi::panic("value"))
 }
 
 /// The chars of `s` picked by the slice; `None` for step 0.
@@ -30,15 +30,9 @@ pub fn str_slice(
     (bt, bv): (i64, i64),
     (ct, cv): (i64, i64),
 ) -> Option<String> {
-    if bound(ct, cv) == Some(0) {
-        return None;
-    }
     let cs: Vec<char> = s.chars().collect();
-    Some(
-        indices(cs.len(), (at, av), (bt, bv), (ct, cv))
-            .map(|k| cs[k])
-            .collect(),
-    )
+    let picks = slice_picks(cs.len(), (at, av), (bt, bv), (ct, cv))?;
+    Some(picks.into_iter().map(|k| cs[k]).collect())
 }
 
 /// The chars of `s` picked by the slice, as a new `Str` block.
@@ -84,6 +78,7 @@ pub unsafe extern "C" fn yan_rt_list_slice(
     let w = l.words;
     let n = l.data.len().checked_div(w).unwrap_or(0);
     let data = indices(n, (at, av), (bt, bv), (ct, cv))
+        .into_iter()
         .flat_map(|k| l.data[k * w..(k + 1) * w].iter().copied())
         .collect();
     leak(List {
