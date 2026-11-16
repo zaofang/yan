@@ -728,7 +728,6 @@ impl Machine<'_> {
                 Val::I(i128::from(self.new_str([x, m, y][a[2].int() as usize])))
             }
             RtFn::Pown => Val::F(yan_rt::math::pown(a[0].float(), a[1].int())),
-            RtFn::IntToF64 => Val::F(a[0].int() as i64 as f64),
             RtFn::AbsF64 => Val::F(a[0].float().abs()),
             RtFn::TruncF64 => Val::I(i128::from(
                 yan_rt::num::trunc_i64(a[0].float()).ok_or(Stop::Panic("conversion"))?,
