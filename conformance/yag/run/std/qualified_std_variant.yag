@@ -1,5 +1,5 @@
 # spec: 17.5
-# rows: R600, R601
+# rows: R600, R601, R799
 # stdout:
 # America/New_York +05:30 UTC
 # 2024-03-10T03:30:00-04:00[America/New_York] -14400
