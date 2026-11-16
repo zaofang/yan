@@ -32,14 +32,28 @@ impl Chan {
     }
 }
 
+/// The `chan` of a `Sender` that `close` ended (9.5).
+const CLOSED_SENDER: i128 = -1;
+
 /// A `Sender` goes out of scope: the last one closes its channel.
 pub(crate) fn drop_sender(it: &mut Interp, v: &Value) {
-    if let Value::Data { name, .. } = v
+    if let Value::Data { name, fields } = v
         && &**name == "Sender"
+        && !matches!(fields[0].1, Value::Int(CLOSED_SENDER))
     {
         let s = &mut it.chans[chan(v)].senders;
         *s = s.saturating_sub(1);
         it.progress += 1;
+    }
+}
+
+/// The channel of a `Sender` that is still open; a closed one breaks the operation's precondition.
+fn open_sender(v: &Value) -> R<usize> {
+    match v {
+        Value::Data { fields, .. } if matches!(fields[0].1, Value::Int(CLOSED_SENDER)) => {
+            panic_with("contract", "a `Sender` was used after `close`")
+        }
+        _ => Ok(chan(v)),
     }
 }
 
@@ -756,7 +770,18 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_CHAN_SENDER_SELECT_KEY,
-        Bind::Plain(|a| Ok(Value::Int(4 * chan(&a[0]) as i128 + SEL_SEND))),
+        Bind::Plain(|a| Ok(Value::Int(4 * open_sender(&a[0])? as i128 + SEL_SEND))),
+    ),
+    (
+        STD_CHAN_SENDER_CLOSE,
+        Bind::Cap(|it, a| {
+            drop_sender(it, &a[0]);
+            a[0] = Value::Data {
+                name: "Sender".into(),
+                fields: vec![("chan".into(), Value::Int(CLOSED_SENDER))],
+            };
+            Ok(Value::Unit)
+        }),
     ),
     (
         STD_PRELUDE_SELECT_WAIT,
@@ -769,7 +794,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_CHAN_SENDER_SEND,
         Bind::VmFallible(|vm, a| {
-            let c = chan(&a[0]);
+            let c = open_sender(&a[0])?;
             loop {
                 let it = &mut vm.it;
                 if let Some(e) = cancelled(it) {
@@ -789,7 +814,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_CHAN_SENDER_TRY_SEND,
         Bind::VmFallible(|vm, a| {
-            let c = chan(&a[0]);
+            let c = open_sender(&a[0])?;
             let it = &mut vm.it;
             if let Some(e) = cancelled(it) {
                 return Ok(Err(e));
