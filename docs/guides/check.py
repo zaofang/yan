@@ -17,11 +17,12 @@ import re
 import subprocess
 import sys
 import tempfile
+from collections.abc import Iterator
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 FENCE = re.compile(r"^```(\S*)[ \t]*(.*)$")
-RUNS = (
+RUNS: tuple[tuple[str, list[str]], ...] = (
     ("interp", []),
     ("machine", ["--backend", "machine"]),
     ("cranelift", ["--backend", "cranelift"]),
@@ -29,7 +30,7 @@ RUNS = (
 )
 
 
-def fences(text: str):
+def fences(text: str) -> Iterator[tuple[int, str, str, str]]:
     lines, i = text.splitlines(), 0
     while i < len(lines):
         m = FENCE.match(lines[i])
@@ -45,7 +46,7 @@ def fences(text: str):
         i += 1
 
 
-def run(yan: str, args: list[str], src: str) -> subprocess.CompletedProcess:
+def run(yan: str, args: list[str], src: str) -> subprocess.CompletedProcess[str]:
     with tempfile.TemporaryDirectory() as d:
         p = Path(d) / "snippet.yag"
         p.write_text(src)
