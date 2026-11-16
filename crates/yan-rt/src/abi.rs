@@ -1072,8 +1072,7 @@ pub unsafe extern "C" fn yan_rt_wire_roundtrip(
     start: i64,
 ) -> i64 {
     // SAFETY: the caller's contract.
-    let sc: crate::wire::Schemas =
-        serde_json::from_str(unsafe { &*schema }).expect("the elaborator's schema");
+    let sc = crate::wireslots::schemas(unsafe { &*schema });
     // SAFETY: as above.
     let w = unsafe { std::slice::from_raw_parts(v, crate::wireslots::root_width(&sc)) };
     // SAFETY: as above.

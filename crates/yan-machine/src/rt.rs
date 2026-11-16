@@ -6,6 +6,7 @@ use crate::mem::Byte;
 use crate::{Machine, Stop, Val, unsupported};
 use std::io::Write;
 use yan_mir::RtFn;
+use yan_rt::jsonslots::Slot;
 use yan_rt::sched;
 
 #[derive(Clone, Copy)]
@@ -28,6 +29,13 @@ pub struct Map {
 
 /// Resolves `Str` and `bytes` slots against the machine's memory.
 struct MemBlocks<'a>(&'a Machine<'a>);
+
+fn word_bytes(words: &[u64]) -> Vec<Byte> {
+    words
+        .iter()
+        .flat_map(|w| w.to_le_bytes().map(Byte::Init))
+        .collect()
+}
 
 fn time(hi: Val, lo: Val) -> i128 {
     yan_rt::timeabi::join(hi.int() as i64, lo.int() as i64)
@@ -137,11 +145,10 @@ impl Machine<'_> {
     /// is not a leak.
     fn scratch_words(&mut self, words: &[i64]) -> Val {
         let at = *self.scratch.get_or_insert_with(|| self.mem.alloc(8 * 3));
-        let bytes: Vec<Byte> = words
-            .iter()
-            .flat_map(|w| w.to_le_bytes().map(Byte::Init))
-            .collect();
-        self.mem.write(at, &bytes).expect("scratch block is live");
+        let words: Vec<u64> = words.iter().map(|w| *w as u64).collect();
+        self.mem
+            .write(at, &word_bytes(&words))
+            .expect("scratch block is live");
         Val::I(i128::from(at))
     }
 
@@ -162,13 +169,54 @@ impl Machine<'_> {
         if words.is_empty() {
             return Ok(());
         }
-        let bytes: Vec<Byte> = words
-            .iter()
-            .flat_map(|w| w.to_le_bytes().map(Byte::Init))
-            .collect();
         self.mem
-            .write(addr, &bytes)
+            .write(addr, &word_bytes(words))
             .ok_or_else(|| self.bad_access("write", addr))
+    }
+
+    /// The blocks of `slots`, a decoded value that owns none yet, and the words that hold them.
+    fn materialize(&mut self, slots: Vec<Slot>) -> Result<Vec<u64>, Stop> {
+        slots
+            .into_iter()
+            .map(|s| match s {
+                Slot::Word(w) => Ok(w),
+                Slot::Str(s) => Ok(self.new_str(&s)),
+                Slot::List(words, xs) => {
+                    let data = self.materialize(xs)?;
+                    Ok(self.new_list(words, word_bytes(&data)).addr())
+                }
+                Slot::Map {
+                    schema,
+                    kw,
+                    vw,
+                    entries,
+                } => {
+                    let layout = yan_rt::map::Layout::parse(&schema);
+                    let mut index = yan_rt::map::KeyIndex::default();
+                    let mut data = Vec::new();
+                    for (k, v) in entries {
+                        let (k, v) = (self.materialize(k)?, self.materialize(v)?);
+                        index.push(layout.encode(&k, &MemBlocks(self))?);
+                        data.extend(k);
+                        data.extend(v);
+                    }
+                    let at = self.mem.alloc(8 * data.len());
+                    self.write_words(at, &data)?;
+                    let h = self.mem.alloc(8);
+                    self.maps.insert(
+                        h,
+                        Map {
+                            layout,
+                            kw,
+                            vw,
+                            index,
+                            data: at,
+                        },
+                    );
+                    Ok(h)
+                }
+            })
+            .collect()
     }
 
     /// Runs what actors dropped: a message's thunk drops its arguments, then its two blocks and
@@ -536,6 +584,124 @@ impl Machine<'_> {
                 a[0].addr(),
                 a[1].addr(),
             ))),
+            RtFn::ClusterNodes => {
+                let ids: Vec<u64> = yan_rt::cluster::node_names()
+                    .iter()
+                    .map(|n| self.new_str(n))
+                    .collect();
+                self.new_list(1, word_bytes(&ids))
+            }
+            RtFn::ClusterSelfNode => {
+                let n = yan_rt::cluster::self_node_name().ok_or_else(|| {
+                    Stop::Unsupported("`cluster.self_node()` outside `with cluster`".into())
+                })?;
+                Val::I(i128::from(self.new_str(&n)))
+            }
+            RtFn::ClusterPlace => {
+                let node = self.str_of(a[0].addr())?;
+                if !yan_rt::cluster::place(&node) {
+                    return Err(Stop::Panic("`On(node)` names a node outside this cluster"));
+                }
+                Val::U
+            }
+            RtFn::ClusterLeave => {
+                yan_rt::cluster::yan_rt_cluster_leave();
+                Val::U
+            }
+            RtFn::ClusterReach => {
+                yan_rt::cluster::yan_rt_cluster_reach(a[0].addr());
+                Val::U
+            }
+            RtFn::ClusterFaultSend => {
+                yan_rt::cluster::yan_rt_cluster_fault_send(a[0].addr());
+                Val::U
+            }
+            RtFn::ClusterSendMismatch => {
+                yan_rt::cluster::yan_rt_cluster_send_mismatch(a[0].int() as u64);
+                Val::U
+            }
+            RtFn::ClusterAdmit => {
+                yan_rt::cluster::yan_rt_cluster_admit(a[0].int() as u64);
+                Val::U
+            }
+            RtFn::ClusterArrive => Val::I(i128::from(yan_rt::cluster::yan_rt_cluster_arrive(
+                a[0].int() as u64,
+            ))),
+            RtFn::ClusterReplied => Val::B(yan_rt::cluster::yan_rt_cluster_replied() != 0),
+            RtFn::ClusterMonitor => {
+                yan_rt::cluster::yan_rt_cluster_monitor(a[0].addr(), a[1].addr());
+                Val::U
+            }
+            RtFn::ClusterGroup => {
+                let name = self.str_of(a[0].addr())?;
+                Val::I(i128::from(yan_rt::cluster::group(&name)))
+            }
+            RtFn::GroupJoin => {
+                yan_rt::cluster::yan_rt_group_join(a[0].addr(), a[1].addr());
+                Val::U
+            }
+            RtFn::GroupLeave => {
+                yan_rt::cluster::yan_rt_group_leave(a[0].addr(), a[1].addr());
+                Val::U
+            }
+            RtFn::GroupMembers => {
+                let ms = yan_rt::cluster::group_members(a[0].addr());
+                self.new_list(1, word_bytes(&ms))
+            }
+            RtFn::SimCheck => {
+                let (trace, machines) = (self.list_words(a[1])?, self.list_words(a[2])?);
+                let mut texts = Vec::new();
+                let mut text = |m: &Self, w: u64| -> Result<usize, Stop> {
+                    texts.push(m.str_of(w)?);
+                    Ok(texts.len() - 1)
+                };
+                let steps = trace
+                    .chunks(2)
+                    .map(|s| Ok([text(self, s[0])?, text(self, s[1])?]))
+                    .collect::<Result<Vec<_>, Stop>>()?;
+                let mut ms = Vec::new();
+                for m in machines.chunks(3) {
+                    let edges = self.list_words(Val::I(i128::from(m[2])))?;
+                    let es = edges
+                        .chunks(3)
+                        .map(|e| Ok([text(self, e[0])?, text(self, e[1])?, text(self, e[2])?]))
+                        .collect::<Result<Vec<_>, Stop>>()?;
+                    ms.push((text(self, m[0])?, text(self, m[1])?, es));
+                }
+                let t = |k: usize| texts[k].as_str();
+                let trace: Vec<[&str; 2]> = steps.iter().map(|s| [t(s[0]), t(s[1])]).collect();
+                let machines: Vec<yan_rt::cluster::TraceMachine> = ms
+                    .iter()
+                    .map(|(a, s, es)| {
+                        (
+                            t(*a),
+                            t(*s),
+                            es.iter().map(|e| [t(e[0]), t(e[1]), t(e[2])]).collect(),
+                        )
+                    })
+                    .collect();
+                let (tag, at, parts) = yan_rt::cluster::check_trace(&trace, &machines);
+                let parts = parts.map(str::to_owned);
+                let verdict = if tag == 0 {
+                    [0; 5]
+                } else {
+                    let [actor, event, state] = parts.map(|p| self.new_str(&p));
+                    [1, at, actor, event, state]
+                };
+                self.write_words(a[0].addr(), &verdict)?;
+                Val::U
+            }
+            RtFn::WireRoundtrip => {
+                let sc = yan_rt::wireslots::schemas(&self.str_of(a[2].addr())?);
+                let w = self.words(a[1].addr(), yan_rt::wireslots::root_width(&sc))?;
+                let (slots, why) = yan_rt::wireslots::roundtrip_in(&MemBlocks(self), &sc, &w)?;
+                if why.is_some() && a[3].int() != 0 {
+                    return Err(Stop::Panic("wire"));
+                }
+                let out = self.materialize(slots)?;
+                self.write_words(a[0].addr(), &out)?;
+                Val::I(i128::from(why.is_some()))
+            }
             RtFn::ActorSpawn => {
                 let state = self.words(a[0].addr(), a[1].int() as usize)?;
                 let start = [a[5].addr(), a[6].addr(), a[7].addr()];
@@ -689,6 +855,32 @@ impl Machine<'_> {
             }
             other => return unsupported(format!("runtime function {other:?} in the machine")),
         })
+    }
+}
+
+impl yan_rt::wireslots::Heap for MemBlocks<'_> {
+    type Err = Stop;
+
+    fn text(&self, block: u64) -> Result<String, Stop> {
+        self.0.str_of(block)
+    }
+
+    fn list(&self, block: u64) -> Result<Vec<u64>, Stop> {
+        let l = self
+            .0
+            .lists
+            .get(&block)
+            .ok_or_else(|| Stop::Fault(format!("{block:#x} is not a List block")))?;
+        self.0.words(l.data, l.words * l.len)
+    }
+
+    fn map(&self, block: u64) -> Result<Vec<u64>, Stop> {
+        let m = self
+            .0
+            .maps
+            .get(&block)
+            .ok_or_else(|| Stop::Fault(format!("{block:#x} is not a Map block")))?;
+        self.0.words(m.data, (m.kw + m.vw) * m.index.len())
     }
 }
 
