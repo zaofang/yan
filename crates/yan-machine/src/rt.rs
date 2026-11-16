@@ -457,18 +457,6 @@ impl Machine<'_> {
     }
 
     pub(crate) fn rt(&mut self, f: RtFn, a: &[Val]) -> Result<Val, Stop> {
-        if self.ub && self.race.borrow().in_block() {
-            let rendezvous = matches!(
-                f,
-                RtFn::ChanSend | RtFn::ChanTrySend | RtFn::ChanRecv | RtFn::ChanTryRecv
-            ) && self.race.borrow().rendezvous(a[0].addr());
-            if rendezvous {
-                // Until these order tasks, a race verdict across them would be a guess.
-                return unsupported(
-                    "unbuffered channel ordering between `par concurrent` tasks under --ub",
-                );
-            }
-        }
         let r = self.rt_call(f, a);
         self.deliver_stopped();
         r
@@ -1794,12 +1782,28 @@ impl Machine<'_> {
                 if status == 0 || status == yan_rt::chan::CLOSED {
                     let closed = status != 0;
                     self.race.borrow_mut().chan_recv(ch as u64, closed);
+                } else if status == yan_rt::chan::BLOCKED {
+                    self.race.borrow_mut().chan_recv_park(ch as u64);
                 }
                 Val::I(i128::from(status))
             }
             RtFn::SelectWait => {
                 let (keys, at) = (self.list_words(a[0])?, self.list_words(a[1])?);
                 let (status, arm) = yan_rt::chan::select_wait(&keys, &at, a[3].int() != 0);
+                // It waits on the first arm that receives, as the runtime parks it.
+                let waits = keys
+                    .iter()
+                    .map(|&k| k as i64)
+                    .find(|&k| k >= 0 && k & 3 != 1)
+                    .map(|k| (k & !3) as u64);
+                if let Some(ch) = waits {
+                    let mut race = self.race.borrow_mut();
+                    if status == yan_rt::chan::BLOCKED {
+                        race.chan_recv_park(ch);
+                    } else {
+                        race.chan_unpark(ch);
+                    }
+                }
                 if status == 0 {
                     self.write_words(a[2].addr(), &[arm])?;
                     // A close arm observes the close without a receive, so it acquires here.

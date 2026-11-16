@@ -37,6 +37,8 @@ struct Link {
     freed: VecDeque<Vec<u32>>,
     freed_base: u64,
     closed: Vec<u32>,
+    /// Receivers parked on an unbuffered channel, oldest first, with the clock each arrived under.
+    parked: VecDeque<(Tid, Vec<u32>)>,
 }
 
 struct Block {
@@ -164,10 +166,23 @@ impl Race {
         );
     }
 
-    /// An unbuffered channel orders a send after its receive too, which a task that has already
-    /// moved on cannot take back; it is not modelled.
-    pub fn rendezvous(&self, ch: u64) -> bool {
-        self.links.get(&ch).is_some_and(|l| l.cap == 0)
+    /// This thread's receive found nothing and waits. A send on an unbuffered channel only goes
+    /// through once a receiver waits, so it follows the receiver's arrival; a receive that
+    /// begins before its send is therefore ordered before what the sender does next.
+    pub fn chan_recv_park(&mut self, ch: u64) {
+        let Some(l) = self.links.get_mut(&ch) else {
+            return;
+        };
+        l.parked.retain(|(t, _)| *t != self.cur);
+        l.parked
+            .push_back((self.cur, self.clocks[self.cur].clone()));
+    }
+
+    /// This thread no longer waits on `ch`.
+    pub fn chan_unpark(&mut self, ch: u64) {
+        if let Some(l) = self.links.get_mut(&ch) {
+            l.parked.retain(|(t, _)| *t != self.cur);
+        }
     }
 
     /// A send went through: it releases this thread's clock, and first acquires the receive that
@@ -176,6 +191,11 @@ impl Race {
         let Some(l) = self.links.get_mut(&ch) else {
             return;
         };
+        if l.cap == 0
+            && let Some((_, c)) = l.parked.pop_front()
+        {
+            join(&mut self.clocks[self.cur], &c);
+        }
         let n = l.sent;
         l.sent += 1;
         let room = (n >= l.cap).then(|| {
@@ -198,6 +218,7 @@ impl Race {
         let Some(l) = self.links.get_mut(&ch) else {
             return;
         };
+        l.parked.retain(|(t, _)| *t != self.cur);
         if closed {
             join(&mut self.clocks[self.cur], &l.closed);
             return;
@@ -267,10 +288,6 @@ impl Race {
             self.tick(self.cur);
             self.cur = t;
         }
-    }
-
-    pub fn in_block(&self) -> bool {
-        !self.blocks.is_empty()
     }
 
     fn idle(&self) -> bool {
@@ -476,6 +493,28 @@ mod tests {
         assert!(r.access(0x10, false).is_none());
         r.actor_end();
         // An access by another task that never received from the actor races with it.
+        assert!(r.access(0x10, true).is_some());
+    }
+
+    #[test]
+    fn an_unbuffered_send_follows_the_receiver_that_was_waiting() {
+        let mut r = Race::new();
+        r.chan_new(1, 0);
+        r.block_begin(0, 2);
+        r.block_switch(0, 0);
+        assert!(r.access(0x10, true).is_none());
+        r.chan_recv_park(1);
+        r.block_switch(0, 1);
+        r.chan_send(1);
+        assert!(r.access(0x10, true).is_none());
+        // Without the wait the sender is unordered with the receiver's earlier write.
+        let mut r = Race::new();
+        r.chan_new(1, 0);
+        r.block_begin(0, 2);
+        r.block_switch(0, 0);
+        assert!(r.access(0x10, true).is_none());
+        r.block_switch(0, 1);
+        r.chan_send(1);
         assert!(r.access(0x10, true).is_some());
     }
 
