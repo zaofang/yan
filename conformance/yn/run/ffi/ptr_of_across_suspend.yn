@@ -1,0 +1,31 @@
+-- spec: 6.7, 12.1
+-- note: a pinned local keeps its address and value across a task suspend (#1314); the other branch churns the stack meanwhile
+-- stdout:
+-- 65
+
+churn(n: int) -> int =
+  if n == 0
+    0
+  else
+    let a = n * 3
+    let b = a + 1
+    churn(n - 1) + b - a
+
+wait_then_bump(var rx: Receiver[int]) -> int fail Cancelled uses nondet =
+  var x = 10
+  let p = Ptr.of(&x)
+  let got = rx.recv()? else 0
+  unsafe
+    p.write(x + got)
+  x
+
+main() uses io, nondet =
+  let (tx, rx) = Channel[int](0)
+  var r = rx
+  var t = tx
+  var out = 0
+  with sched = sequential()
+    par concurrent
+      out = wait_then_bump(&r) else 0
+      t.send(5 + churn(50)) else ()
+  io.print("\(out)")
