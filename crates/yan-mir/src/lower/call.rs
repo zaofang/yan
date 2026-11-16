@@ -288,6 +288,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             id::STD_LIST_BISECT_RIGHT,
             id::STD_LIST_INSORT,
             id::STD_LIST_INDEX,
+            id::STD_LIST_CONTAINS,
         ]
         .contains(&id)
         {
@@ -302,6 +303,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         .contains(&id)
         {
             return self.encoding_call(id, c, dst);
+        }
+        if super::sync::ATOMIC_IDS.contains(&id) {
+            return self.atomic_call(id, c, dst);
         }
         if super::arena::ARENA_IDS.contains(&id) {
             return self.arena_call(id, c, dst);
@@ -1012,6 +1016,25 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let v = self.atom(x, e)?;
                 let at = self.rt(RtFn::ListPush, Ty::Ptr, Self::ops(&list));
                 self.write(&At::Mem(at, 0), v);
+            }
+            (id::STD_LIST_POP, [(_, y::Atom::Name(l, _))]) => {
+                let list = self.name(l)?.clone();
+                let Shape::List(e) = &list.shape else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let lp = Self::ops(&list)[0].clone();
+                let n = self.rt(RtFn::ListLen, I64, vec![lp.clone()]);
+                let empty = self.scalar_op(ScalarOp::Eq, I64, vec![n.clone(), Operand::Int(0)]);
+                let (bad, good) = self.branch(empty);
+                self.cur = bad;
+                self.finish(Term::Panic("bounds"));
+                self.cur = good;
+                let last = self.scalar_op(ScalarOp::SubChecked, I64, vec![n, Operand::Int(1)]);
+                let v = self.take_at(&lp, &last, e);
+                match &dst {
+                    Some(d) => self.copy_to(&d.locals.clone(), v),
+                    None => self.glue(e, &v),
+                }
             }
             (id::STD_LIST_INSERT, [(_, y::Atom::Name(l, _)), (_, i), (_, x)]) => {
                 let list = self.name(l)?.clone();

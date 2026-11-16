@@ -1,10 +1,12 @@
 -- spec: 3, 12.1, 15.2
 -- rows: R1012
 -- note: RFC 0076 D3; a case under a directory named ffi is checked as an ffi module (assumption A9)
--- expect: E903 at 10:27
+-- expect: E903 at 12:27
 
 unsafe first(p: Ptr[int]) -> int =
+  var r = 0
   unsafe
-    p.read()
+    r = p.read()
+  r
 
-f(xs: list[int]) -> int = first(xs.as_ptr())
+f(xs: List[int]) -> int = first(xs.as_ptr())

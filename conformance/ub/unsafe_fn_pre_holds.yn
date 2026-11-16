@@ -5,10 +5,12 @@
 
 unsafe get(p: Ptr[int], i: int, n: int) -> int =
   pre 0 <= i and i < n
+  var r = 0
   unsafe
-    p.offset(i).read()
+    r = p.offset(i).read()
+  r
 
 main() =
   let xs = [1, 2]
   unsafe
-    assert get(xs.as_ptr(), 1, 2) == 2
+    assert get(xs.as_ptr(), i: 1, n: 2) == 2

@@ -6412,6 +6412,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/ownership/unit_variant_match_ctor.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "5.3"
+   ],
+   "rows": [
+    "R769"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "ok\na\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/ownership/value_semantics.yag",
    "kind": "run",
    "milestone": "M1",
@@ -9560,7 +9575,7 @@
    "expect": [
     {
      "code": "E903",
-     "line": 10,
+     "line": 12,
      "col": 27
     }
    ]
@@ -9681,7 +9696,7 @@
    "expect": [
     {
      "code": "E912",
-     "line": 11,
+     "line": 13,
      "col": 11
     }
    ]

@@ -1624,6 +1624,14 @@ impl<'g, 'm> FnC<'g, 'm> {
             }
         }
         let name = c.path.join(".");
+        // An `Atomic` wraps its read-modify-writes to its integer type, which only the call knows.
+        if name == "std.sync.atomic.Atomic"
+            && let [TArg::Type(Type::Named(n))] = c.targs.as_slice()
+            && let Some(t) = n.path.last()
+        {
+            let k = self.konst(Value::Str(t.as_str().into()));
+            args.push(ArgC::Val(k));
+        }
         let callee = if let Some(f) = self
             .g
             .fns

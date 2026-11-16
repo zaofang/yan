@@ -93,7 +93,9 @@ Tasks in the `ub/` cases use `par concurrent` under `sequential()`, as `ub/unbuf
 
 ## Status (2026-11-16)
 
-S1 is split: #1374 qualified variants (merged, #1381), #1375 S1a atomics surface and interpreter, #1376 S1b guard and scope-exit infrastructure, #1377 Mutex surface and interpreter. Orderings are written qualified (`LoadOrdering.Acquire()`, R799). S1a omits `get_mut`, `fetch_update` and `Atomic` Send/Sync checks; the interpreter wraps integers as `i64` whatever the element type.
+S1 is split: #1374 qualified variants (merged, #1381), #1375 S1a atomics surface and interpreter, #1376 S1b guard and scope-exit infrastructure, #1377 Mutex surface and interpreter. Orderings are written qualified (`LoadOrdering.Acquire()`, R799). S1a omits `get_mut`, `fetch_update` and `Atomic` Send/Sync checks; the interpreter wraps integers as `i64` whatever the element type (fixed with S2).
+
+S2 and S3 land together for integers and `bool` (#1369). Shape: `Atomic[T]` is one heap word holding `T` at its start, since MIR slots are words; `Inst::Atomic` carries `op`, `ty`, `order`, `failure`; Cranelift runs every ordering SeqCst, a narrow `Add` or `Sub` through a compare-exchange loop that wraps; the machine executes it as one step on the word. Open, in order: `Inst::Fence` and a callable `std.sync.atomic.fence` (the elaborator reports E200 on it); `Ptr` and record elements and the 16-byte case (refused: `an Atomic of a type that is not an integer or bool`); `Atomic[bool]` `fetch_max`/`fetch_min` (refused); atomic accesses are not shadowed by the machine's race detector until S4, so `--ub` misses a plain access racing an atomic one; `get_mut`, `fetch_update`, Send/Sync checks.
 
 ## Slices
 

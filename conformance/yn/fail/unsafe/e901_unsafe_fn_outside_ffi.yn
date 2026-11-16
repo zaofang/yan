@@ -4,5 +4,7 @@
 -- expect: E901 at 6:1
 
 unsafe first(p: Ptr[int]) -> int =
+  var r = 0
   unsafe
-    p.read()
+    r = p.read()
+  r

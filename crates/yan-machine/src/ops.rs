@@ -161,3 +161,43 @@ pub fn scalar(op: ScalarOp, ty: Ty, a: &[Val]) -> Result<Val, Stop> {
         _ => return unsupported(format!("scalar {op:?} on {ty:?}")),
     })
 }
+
+/// The word an atomic `op` leaves at its address, given the `old` word and its operand words;
+/// `None` when it leaves the word alone. Integer read-modify-writes wrap to the width of `ty`.
+pub fn atomic_new(op: yan_mir::AtomicOp, ty: Ty, old: u64, a: &[u64]) -> Option<u64> {
+    use yan_mir::AtomicOp::*;
+    let Ty::Int(it) = ty else {
+        return match op {
+            Load => None,
+            Store | Swap => Some(a[0]),
+            Cas => (old == a[0]).then_some(a[1]),
+            And => Some(old & a[0]),
+            Or => Some(old | a[0]),
+            Xor => Some(old ^ a[0]),
+            Add | Sub | Max | Min => unreachable!("not lowered for a bool"),
+        };
+    };
+    let as_int = |w: u64| decode_int(it, w);
+    let (x, y) = (as_int(old), a.first().map_or(0, |w| as_int(*w)));
+    let r = match op {
+        Load => return None,
+        Store | Swap => y,
+        Cas => return (old == a[0]).then_some(a[1]),
+        Add => wrap(it, x + y),
+        Sub => wrap(it, x - y),
+        And => x & y,
+        Or => x | y,
+        Xor => x ^ y,
+        Max => x.max(y),
+        Min => x.min(y),
+    };
+    Some(r as u64)
+}
+
+fn decode_int(t: IntTy, w: u64) -> i128 {
+    if t.signed {
+        i128::from(w as i64)
+    } else {
+        i128::from(w)
+    }
+}

@@ -4,9 +4,13 @@
 
 unsafe get(p: Ptr[int], i: int, n: int) -> int =
   pre 0 <= i and i < n
+  var r = 0
   unsafe
-    p.offset(i).read()
+    r = p.offset(i).read()
+  r
 
-f(xs: list[int]) -> int =
+f(xs: List[int]) -> int =
+  var r = 0
   unsafe
-    get(xs.as_ptr(), 0, len(xs))
+    r = get(xs.as_ptr(), i: 0, n: xs.len())
+  r
