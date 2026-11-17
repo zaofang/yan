@@ -1,0 +1,1 @@
+package: Package = Package(name="@r/lib", version="1.0.0")

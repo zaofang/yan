@@ -1,0 +1,6 @@
+spec = "19.2"
+rows = "R1019"
+note = "consent is read from the foreign set recomputed from source, so a lock record whose ffi and libs were emptied by hand grants a workspace member nothing: E023"
+command = ["check", "src/main.yag"]
+code = "E023"
+at = "a/package.yag:1:1"

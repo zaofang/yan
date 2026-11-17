@@ -1,0 +1,1 @@
+{"digest":"sha256:2c58930495a78054296abde7bd4a0f3e6e3f4581a23e201b9ebcf3fec9fb221a","publisher":"p","yanked":false,"time":"2020-01-01T00:00:00Z","ffi":["ffi/z.yn"],"libs":[{"name":"zlib","link":"z"}]}

@@ -810,6 +810,26 @@
    ]
   },
   {
+   "path": "yag/fail/caps/e301_closure_nondet_to_uses_none.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4",
+    "7.2"
+   ],
+   "rows": [
+    "R1025"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 11,
+     "col": 18
+    }
+   ]
+  },
+  {
    "path": "yag/fail/caps/e301_missing_capability.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -15760,6 +15780,31 @@
    }
   },
   {
+   "path": "pkg/e020_locked_archive_names_another_package",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1034"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1034",
+    "note": "under --locked, an archive whose own manifest names another package than its lock record is E020",
+    "command": [
+     "check",
+     "--locked",
+     "src/main.yag"
+    ],
+    "code": "E020",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
    "path": "pkg/e020_locked_ffi_removed",
    "kind": "pkg",
    "milestone": "M1",
@@ -15879,6 +15924,54 @@
    }
   },
   {
+   "path": "pkg/e020_locked_store_tree_differs_from_archive",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1034"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1034",
+    "note": "under --locked, an unpacked store tree that differs from its archive is E020, never trusted in its place",
+    "command": [
+     "check",
+     "--locked",
+     "src/main.yag"
+    ],
+    "code": "E020",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
+   "path": "pkg/e020_resolve_libs_without_ffi_module",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R1034"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1034",
+    "note": "the lock refuses a .info whose libs and ffi modules differ from what its archive holds, before consent is read",
+    "command": [
+     "lock"
+    ],
+    "code": "E020",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
    "path": "pkg/e023_ffi_unlisted",
    "kind": "pkg",
    "milestone": "M1",
@@ -15899,6 +15992,30 @@
     ],
     "code": "E023",
     "at": "ffi/ext.yn:1:1"
+   }
+  },
+  {
+   "path": "pkg/e023_lock_ffi_emptied_member",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R1019"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1019",
+    "note": "consent is read from the foreign set recomputed from source, so a lock record whose ffi and libs were emptied by hand grants a workspace member nothing: E023",
+    "command": [
+     "check",
+     "src/main.yag"
+    ],
+    "code": "E023",
+    "at": "a/package.yag:1:1"
    }
   },
   {
@@ -15925,6 +16042,29 @@
     ],
     "code": "E023",
     "at": "yan.lock:0:0"
+   }
+  },
+  {
+   "path": "pkg/e023_nameless_root_ffi",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "12"
+   ],
+   "rows": [
+    "R1018"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "12",
+    "rows": "R1018",
+    "note": "a root package without a name is never consented to, so its own ffi module is E023 (it also reports E018)",
+    "command": [
+     "check"
+    ],
+    "code": "E023",
+    "at": "package.yag:1:1"
    }
   },
   {
