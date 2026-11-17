@@ -1,0 +1,52 @@
+# spec: 14.1
+# rows: R799
+# note: Type.Variant builds a variant of a user sum, a generic sum and a std sum; two sums may share a variant name, and a pattern on one resolves by the scrutinee type
+# stdout:
+# ls
+# ss
+# rel3
+# lr
+# sr
+# SeqCst()
+# SeqCst()
+# True
+# Just(v=5)
+
+@derive(Show, Eq)
+type LoadOrdering = Relaxed() | Acquire() | SeqCst()
+@derive(Show, Eq)
+type StoreOrdering = Relaxed() | Release(n: int) | SeqCst()
+type Opt[T] = Nothing() | Just(v: T)
+
+def name_l(o: LoadOrdering) -> str:
+    match o:
+        case Relaxed():
+            return "lr"
+        case Acquire():
+            return "la"
+        case SeqCst():
+            return "ls"
+
+def name_s(o: StoreOrdering) -> str:
+    match o:
+        case Relaxed():
+            return "sr"
+        case Release(n):
+            return "rel" + str(n)
+        case SeqCst():
+            return "ss"
+
+pub def main() uses io:
+    a = LoadOrdering.SeqCst()
+    b = StoreOrdering.SeqCst()
+    c = StoreOrdering.Release(n=3)
+    io.print(name_l(a))
+    io.print(name_s(b))
+    io.print(name_s(c))
+    io.print(name_l(LoadOrdering.Relaxed()))
+    io.print(name_s(StoreOrdering.Relaxed()))
+    io.print(str(a))
+    io.print(str(b))
+    io.print(str(a == LoadOrdering.SeqCst()))
+    x = Opt.Just(v=5)
+    io.print(str(x))
