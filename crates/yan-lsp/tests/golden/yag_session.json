@@ -22,6 +22,11 @@
           "jsonrpc": "2.0",
           "result": {
             "capabilities": {
+              "codeActionProvider": {
+                "codeActionKinds": [
+                  "quickfix"
+                ]
+              },
               "documentFormattingProvider": true,
               "documentSymbolProvider": true,
               "hoverProvider": true,
