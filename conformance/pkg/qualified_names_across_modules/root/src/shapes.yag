@@ -1,19 +1,19 @@
-class Rect:
+pub class Rect:
     w: int
     h: int
 
-type Shape = Square(side: int) | Wide(rect: Rect)
+pub type Shape = Square(side: int) | Wide(rect: Rect)
 
-limit: int = 100
+pub limit: int = 100
 
-def area(s: Shape) -> int:
+pub def area(s: Shape) -> int:
     match s:
         case Square(side=n):
             return n * n
         case Wide(rect=r):
             return r.w * r.h
 
-def clamp(n: int) -> int:
+pub def clamp(n: int) -> int:
     if n > limit:
         return limit
     return n
