@@ -1,5 +1,5 @@
 # spec: 14.4
-# rows: R1055
+# rows: R1060
 # note: bool, tuple, dict(), sum with a start, str.center and str.index are real functions
 # stdout:
 # False True False True 16 1.75 1 0 [**ab**] [--ab-] 2 None
