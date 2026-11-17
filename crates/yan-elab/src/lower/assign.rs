@@ -205,28 +205,14 @@ impl Lower<'_, '_, '_> {
         t: Ty,
         at: Span,
     ) -> R<()> {
-        if let Rhs::Atom(Atom::Name(x, _)) = &r
-            && !t.is_copy()
-            && self.locals.contains_key(x)
-            && !x.starts_with('_')
-            && let Some(later) = self.next_use(x, at)
-        {
-            self.err(
-                "E413",
-                at,
-                format!("`{x}` is used again later; bind `{x}.copy()`"),
-            );
-            self.cx
-                .fix(Applicability::Auto, "copy", at, &format!("{x}.copy()"));
-            self.cx.label(later, "used again");
-        }
-        if let Rhs::Atom(a @ Atom::Name(..)) = &r
-            && !t.is_copy()
-            && self.sink_of_element(a, at)
-        {}
         let r = match &target.kind {
             j::ExprKind::Name(n) if n != "_" => self.consume(r, &t, at),
-            _ => r,
+            _ => {
+                if let Rhs::Atom(a) = &r {
+                    self.implicit_copy(a, &t, at);
+                }
+                r
+            }
         };
         match &target.kind {
             j::ExprKind::Name(n) if n == "_" => {
