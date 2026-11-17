@@ -148,7 +148,7 @@ pub fn check(
 }
 
 /// The `[[package]]` records of the existing `yan.lock`, if it reads.
-fn records(root: &Path) -> Vec<toml::Value> {
+pub(crate) fn records(root: &Path) -> Vec<toml::Value> {
     std::fs::read_to_string(root.join("yan.lock"))
         .ok()
         .and_then(|t| t.parse::<toml::Table>().ok())
@@ -184,7 +184,7 @@ pub fn locked_publisher(root: &Path, name: &str, version: &str) -> Option<String
     })
 }
 
-fn manifest_at(dir: &Path) -> Option<yan_elab::Manifest> {
+pub(crate) fn manifest_at(dir: &Path) -> Option<yan_elab::Manifest> {
     let src = std::fs::read_to_string(dir.join("package.yag")).ok()?;
     let (m, _) = yan_yag::parse("package.yag", &src, false);
     yan_elab::manifest(&m?)

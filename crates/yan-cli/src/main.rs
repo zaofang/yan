@@ -11,6 +11,7 @@ mod deps;
 mod examples;
 mod export;
 mod fix;
+mod graph;
 mod lock;
 mod mcp;
 mod new;
@@ -423,6 +424,7 @@ enum ReviewFormat {
 }
 
 fn main() -> ExitCode {
+    graph::install();
     let cli = Cli::parse();
     match cli.command {
         Command::Check {
