@@ -406,6 +406,9 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1060 | Python names as real functions: bool(x), tuple(t), dict(), set(), sum(xs, start), str.center, str.index (#1543, #1527 decision 5) | 14.4 |
 | R1064 | a file is a module; its path under a source root is its name; fixed package layout; layout errors E024 (RFC 0084 D1, D2, D4) | 19.1, 25 |
 | R1065 | `yan tree` lists the modules of a package, one per line, and reports layout errors (RFC 0084 D11) | 18.1 |
+| R1061 | N55 reads `str.format` and `%` on a string literal as an f-string; what an f-string cannot say stays E203 or E201 (#1543 group 6) | 14.4 |
+| R1062 | N56 reads `input()` as `io.read_line() else ""`, empty at end of input (#1543 group 8) | 14.4 |
+| R1063 | `type`, `isinstance`, `open` and `sys.getsizeof` are E200 with a message naming the Yan replacement (#1543 groups 7 and 8) | 14.4 |
 
 <!-- /rows -->
 

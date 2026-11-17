@@ -1,0 +1,15 @@
+# spec: 14.4
+# rows: R1061
+# note: N55 reads str.format and % on a string literal as an f-string
+# stdout:
+# 3 and 1.50|    1.50|3 items, name|{} 7-x
+
+def main() uses io:
+    n = 3
+    x = 1.5
+    s = "name"
+    a = "{} and {:.2f}".format(n, x)
+    b = "%8.2f" % x
+    c = "%d items, %s" % (n, s)
+    d = "{{}} {0}-{k}".format(7, k="x")
+    io.print(f"{a}|{b}|{c}|{d}")

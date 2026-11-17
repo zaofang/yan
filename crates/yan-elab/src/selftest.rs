@@ -1391,6 +1391,38 @@ fn str_slices_and_int_of_str_are_n50_n51() {
 }
 
 #[test]
+fn str_format_percent_and_input_are_n55_n56() {
+    let src = "pub def main() uses io:\n    n = 3\n    x = 1.5\n    io.print(\"{} and {:.2f}\".format(n, x))\n    io.print(\"%d items, %5.2f|\" % (n, x))\n    io.print(\"{0}-{k}\".format(7, k=\"x\"))\n    io.print(f\"[{input()}]\")\n";
+    let (m, d) = lower(src);
+    let codes: Vec<_> = d.iter().map(|d| d.code.as_str()).collect();
+    assert_eq!(codes, ["N55", "N55", "N55", "N56"], "{d:?}");
+    let mut out = Vec::new();
+    yan_interp::run(&m, &mut out).expect("runs");
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        "3 and 1.50\n3 items,  1.50|\n7-x\n[]\n"
+    );
+}
+
+#[test]
+fn python_names_without_an_expression_are_e200_with_the_replacement() {
+    for (src, hint) in [
+        ("type(x)", "match"),
+        ("isinstance(x, int)", "case Variant()"),
+        ("open(\"a\")", "fs.read"),
+        ("sys.getsizeof(x)", "size_of"),
+    ] {
+        let src = format!("pub def f(x: int):\n    y = {src}\n");
+        let (_, d) = lower(&src);
+        assert!(
+            d.iter()
+                .any(|d| d.code == "E200" && d.message.contains(hint)),
+            "{src}: {d:?}"
+        );
+    }
+}
+
+#[test]
 fn itertools_enumerates_in_python_order() {
     let src = "pub def main() uses io:\n    xs = [1, 2, 3]\n    io.print(f\"{list(itertools.permutations(xs, 2))}\")\n    io.print(f\"{list(itertools.combinations(xs, 2))}\")\n    io.print(f\"{list(itertools.combinations_with_replacement([1, 2], 2))}\")\n    io.print(f\"{list(itertools.product([1, 2], [3, 4]))}\")\n    io.print(f\"{list(itertools.pairwise(xs))}\")\n    io.print(f\"{list(itertools.accumulate(xs))}\")\n    io.print(f\"{list(itertools.accumulate(xs, lambda a, b: a * b, initial=2))}\")\n";
     let (m, d) = lower(src);

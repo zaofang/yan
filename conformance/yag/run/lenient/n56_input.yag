@@ -1,0 +1,9 @@
+# spec: 14.4
+# rows: R1062
+# note: N56 reads input() as io.read_line() else "", empty at end of input
+# stdout:
+# [] 0
+
+def main() uses io:
+    line = input()
+    io.print(f"[{line}] {line.char_count()}")

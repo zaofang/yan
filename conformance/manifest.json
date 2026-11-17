@@ -2042,6 +2042,82 @@
    ]
   },
   {
+   "path": "yag/fail/lenient/e200_getsizeof_hint.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1063"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 6,
+     "col": 16
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/e200_isinstance_hint.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1063"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/e200_open_hint.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1063"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/e200_type_hint.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1063"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 6,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lenient/n01_import.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -6995,6 +7071,36 @@
    "flags": [],
    "expect": [],
    "stdout": "3 2\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n55_format_percent.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1061"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 and 1.50|    1.50|3 items, name|{} 7-x\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n56_input.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1062"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[] 0\n",
    "exit": 0
   },
   {

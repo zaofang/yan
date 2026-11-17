@@ -713,6 +713,9 @@ impl Lower<'_, '_, '_> {
                 })?;
                 (Rhs::Atom(v), t)
             }
+            K::Binary("%", a, b) if let Some(f) = self.lenient_percent(a, b, at) => {
+                self.rhs(&f, want)?
+            }
             K::Binary(op, a, b) => {
                 let r = self.arith(op, a, b, at, want)?;
                 if matches!(*op, "**" | "+") && matches!(r.0, Rhs::Call(_)) {

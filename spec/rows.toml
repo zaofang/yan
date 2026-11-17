@@ -1995,3 +1995,18 @@ sections = "19.1, 25"
 rows = "R1065"
 topic = "`yan tree` lists the modules of a package, one per line, and reports layout errors (RFC 0084 D11)"
 sections = "18.1"
+
+[[entry]]
+rows = "R1061"
+topic = "N55 reads `str.format` and `%` on a string literal as an f-string; what an f-string cannot say stays E203 or E201 (#1543 group 6)"
+sections = "14.4"
+
+[[entry]]
+rows = "R1062"
+topic = "N56 reads `input()` as `io.read_line() else \"\"`, empty at end of input (#1543 group 8)"
+sections = "14.4"
+
+[[entry]]
+rows = "R1063"
+topic = "`type`, `isinstance`, `open` and `sys.getsizeof` are E200 with a message naming the Yan replacement (#1543 groups 7 and 8)"
+sections = "14.4"

@@ -36,7 +36,9 @@ mod fmtspec;
 mod generic_sum;
 mod last_use;
 mod lenient_names;
+mod lenient_py;
 pub(crate) use lenient_names::MATH_FREE;
+use lenient_py::is_formatted_template;
 mod loops;
 mod matching;
 mod method;
@@ -2078,10 +2080,9 @@ fn expr_callees(e: &j::Expr, out: &mut HashSet<String>) {
             out.insert("int_pow".into());
             out.insert("bigint_pow".into());
         }
-        if let j::ExprKind::FStr { pieces, .. } = &e.kind
-            && pieces
-                .iter()
-                .any(|p| matches!(p, j::FPiece::Expr(_, Some(_))))
+        if is_formatted_template(e)
+            || matches!(&e.kind, j::ExprKind::FStr { pieces, .. }
+                if pieces.iter().any(|p| matches!(p, j::FPiece::Expr(_, Some(_)))))
         {
             out.insert("fmt_pad".into());
             out.insert("fmt_sign".into());
