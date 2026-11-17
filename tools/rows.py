@@ -5,6 +5,8 @@ rows.py check            fail on a row allocated twice, a cited row that is not 
                          listed twice in section 25, a code cited in spec/ but missing from
                          section 25, two RFCs with one number, or a study cited in spec/ or
                          rfcs/ that docs/research/README.md does not list
+                         a row above R1009 with no conformance case and no entry in
+                         tools/case_with_row_allow.toml (an entry whose row has a case is stale)
                          and the code map (spec/code-map.toml) disagreeing with section 25, the
                          conformance catalogue, rows.toml or the crate files it names
 rows.py next [N]         print the next N free row numbers (default 1)
@@ -26,6 +28,8 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+from tools import conform
+
 ROOT = Path(__file__).resolve().parent.parent
 SPEC = ROOT / "spec"
 REGISTRY = SPEC / "rows.toml"
@@ -34,10 +38,13 @@ APPENDIX = SPEC / "appendix-a.md"
 CATALOGUE = SPEC / "25-diagnostics-catalogue.md"
 CODE_MAP = SPEC / "code-map.toml"
 CONFORM_CATALOGUE = ROOT / "conformance" / "catalogue.toml"
+CASE_ALLOW = ROOT / "tools" / "case_with_row_allow.toml"
 RFCS = ROOT / "rfcs"
 RESEARCH = ROOT / "docs" / "research" / "README.md"
 BEGIN = "<!-- rows: generated from spec/rows.toml by tools/rows.py render; do not edit -->"
 END = "<!-- /rows -->"
+# Last row allocated when the spec freeze ended (CASE WITH ROW, #1025); rows above it need a case.
+FREEZE_EXIT_TOP = 1009
 ID = re.compile(r"\b((?:R|SQ)\d+)(?:\s+to\s+((?:R|SQ)\d+))?\b")
 CITED_ROW = re.compile(r"\bR(\d+)\b")
 ROWS_HEADER = re.compile(r"^(?:#|--) rows:(.*)$", re.M)
@@ -230,10 +237,36 @@ def code_map_errors() -> list[str]:
     return errors
 
 
+def case_with_row_errors(owner: dict[str, int]) -> list[str]:
+    cased = {
+        r for c in conform.discover(ROOT / "conformance") for label in c.rows for r in expand(label)
+    }
+    allowed: dict[str, str] = {}
+    for e in tomllib.loads(CASE_ALLOW.read_text()).get("row", []):
+        for rid in expand(e["rows"]):
+            allowed[rid] = e["issue"]
+    errors = [
+        f"{rid} has no conformance case (CASE WITH ROW): add one or list it in "
+        "tools/case_with_row_allow.toml with an issue"
+        for rid in sorted((r for r in owner if r.startswith("R")), key=lambda r: int(r[1:]))
+        if int(rid[1:]) > FREEZE_EXIT_TOP
+        and rid not in cased
+        and rid not in allowed
+        and rid not in exempt_rows()
+    ]
+    errors += [
+        f"case_with_row_allow.toml: {rid} ({issue}) now has a case or is not allocated: remove it"
+        for rid, issue in sorted(allowed.items())
+        if rid in cased or rid not in owner
+    ]
+    return errors
+
+
 def check() -> list[str]:
     entries = load()
     owner, errors = allocations(entries)
     errors += exemption_errors(owner)
+    errors += case_with_row_errors(owner)
     if block(APPENDIX.read_text()) != render(entries):
         errors.append("Appendix A.1 is stale: run tools/rows.py render")
     for rid, paths in sorted(cited_rows().items()):
