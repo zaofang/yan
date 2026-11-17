@@ -83,7 +83,13 @@ fn locked(top: &Path) -> Vec<Package> {
                     .ok()
                     .flatten()?,
             };
-            package(dir, top, Role::Locked)
+            // The lock names what was resolved; an archive that calls itself something else must
+            // not drop out of the closure its dependents are checked against.
+            let mut p = package(dir, top, Role::Locked)?;
+            let field = |k: &str| r.get(k).and_then(toml::Value::as_str).map(str::to_owned);
+            p.name = field("name").or(p.name);
+            p.manifest.version = field("version").or(p.manifest.version);
+            Some(p)
         })
         .collect()
 }

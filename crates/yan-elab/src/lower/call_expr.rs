@@ -524,7 +524,10 @@ impl Lower<'_, '_, '_> {
                     self.wire_handlers(&ts[0], at);
                 }
                 if let (Rhs::Call(c), _, _) = &r
-                    && c.path.join(".") == "std.chan.sender.send"
+                    && matches!(
+                        c.path.join(".").as_str(),
+                        "std.chan.sender.send" | "std.chan.sender.try_send"
+                    )
                     && c.targs
                         .iter()
                         .any(|t| matches!(t, y::TArg::Type(t) if !auto_traits(t).send))

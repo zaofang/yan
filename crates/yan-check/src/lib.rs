@@ -866,15 +866,21 @@ impl<'g, 'm> Cx<'g, 'm> {
                         .collect(),
                     _ => self.carried_captures(rhs),
                 };
+                // A copy of a closure, and a closure that captures one, hold what it captures.
                 let cap_captures: Vec<(Name, Type)> = match rhs {
                     Rhs::Closure(c) => c
                         .captures
                         .iter()
-                        .filter_map(|(_, n, _)| {
-                            let b = self.env.get(n).filter(|b| b.kind == Kind::Cap)?;
-                            Some((n.clone(), b.ty.clone()?))
+                        .flat_map(|(_, n, _)| match self.env.get(n) {
+                            Some(b) if b.kind == Kind::Cap => {
+                                b.ty.clone().map(|t| (n.clone(), t)).into_iter().collect()
+                            }
+                            Some(b) => b.cap_captures.clone(),
+                            None => Vec::new(),
                         })
                         .collect(),
+                    Rhs::Atom(Atom::Name(n, _)) => self.caps_of(n),
+                    Rhs::Copy(p) | Rhs::Move(p) if p.projs.is_empty() => self.caps_of(&p.root),
                     _ => Vec::new(),
                 };
                 let got = self.rhs(rhs, *rhs_span);
@@ -1213,6 +1219,13 @@ impl<'g, 'm> Cx<'g, 'm> {
     }
 
     /// The bad captures of the closure binding `rhs` names, if it names one.
+    fn caps_of(&self, n: &Name) -> Vec<(Name, Type)> {
+        self.env
+            .get(n)
+            .map(|b| b.cap_captures.clone())
+            .unwrap_or_default()
+    }
+
     fn carried_captures(&self, rhs: &Rhs) -> Vec<(&'static str, Span)> {
         match rhs {
             Rhs::Atom(Atom::Name(n, _)) => self
@@ -1431,6 +1444,19 @@ impl<'g, 'm> Cx<'g, 'm> {
         if let Some((key, f)) = self.g.function(&name) {
             self.callees.insert(key.to_owned());
             self.closure_caps(c, f);
+            // 7.2: a capability reaches a callee only through `uses`; as an ordinary argument it
+            // becomes data the callee can return, store or rebind.
+            for a in &c.args {
+                if let Arg::Value(_, Atom::Name(n, sp), _) = a
+                    && self.env.get(n).is_some_and(|b| b.kind == Kind::Cap)
+                {
+                    self.err(
+                        "E306",
+                        *sp,
+                        format!("capability `{n}` cannot be passed as a value; the callee declares it in `uses`"),
+                    );
+                }
+            }
             self.arity(c, f.params.len());
             let generic = !f.tparams.is_empty() || self.g.gens.contains(key);
             return ((!generic).then(|| type_text(&f.ret)), Some(f));
