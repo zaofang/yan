@@ -25,6 +25,7 @@ yan-core.workspace = true
 yan-db.workspace = true
 yan-diag.workspace = true
 yan-ide.workspace = true
+yan-lsp.workspace = true
 yan-interp.workspace = true
 yan-rt.workspace = true
 yan-mir.workspace = true
