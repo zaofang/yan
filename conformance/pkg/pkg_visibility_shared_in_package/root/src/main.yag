@@ -1,0 +1,3 @@
+pub def main() -> None uses io:
+    io.print(str(tax.tax(shapes.Square(side=4))))
+    io.print(str(shapes.area(shapes.Wide(rect=shapes.Rect(w=2, h=3)))))

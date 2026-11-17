@@ -49,7 +49,7 @@ pub(crate) fn hoist(m: &mut j::Module) {
 fn alias(name: &str, call: j::Type, from: &j::Item) -> j::Item {
     j::Item {
         decorators: Vec::new(),
-        is_pub: false,
+        vis: j::Vis::Private,
         kind: j::ItemKind::Type(j::TypeDef {
             name: name.to_owned(),
             tparams: Vec::new(),

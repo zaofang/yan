@@ -15,7 +15,9 @@ pub fn violations(m: &Module) -> Vec<(Span, String)> {
     }
     for it in &m.items {
         match &it.kind {
-            ItemKind::Const { value, .. } if it.decorators.is_empty() && !it.is_pub => {
+            ItemKind::Const { value, .. }
+                if it.decorators.is_empty() && it.vis == yan_hir::Vis::Private =>
+            {
                 value_in(value, &mut out)
             }
             ItemKind::Const { .. } => {

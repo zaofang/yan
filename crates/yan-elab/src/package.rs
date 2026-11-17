@@ -23,6 +23,8 @@ pub struct PackageEnv<'a> {
 
 pub(crate) struct LinkError {
     pub what: String,
+    pub code: Option<&'static str>,
+    pub at: Option<Span>,
 }
 
 /// The sibling modules `m` names in a path, which the driver checks before elaborating `m`.
@@ -64,8 +66,8 @@ pub(crate) fn link(m: &mut j::Module, env: &PackageEnv) -> Result<(), LinkError>
             pulled.push(it);
         }
     }
-    if let Some(what) = l.error {
-        return Err(LinkError { what });
+    if let Some(e) = l.error {
+        return Err(e);
     }
     pulled.append(&mut m.items);
     m.items = pulled;
@@ -90,7 +92,9 @@ struct Linker<'a> {
     /// Variant name to the module that declares it ("" for the module being elaborated).
     variants: BTreeMap<String, String>,
     shift: bool,
-    error: Option<String>,
+    error: Option<LinkError>,
+    /// The statement or item being walked, where a type or pattern has no span of its own.
+    site: Span,
 }
 
 impl<'a> Linker<'a> {
@@ -115,6 +119,7 @@ impl<'a> Linker<'a> {
             variants: BTreeMap::new(),
             shift: false,
             error: None,
+            site: Span::default(),
         }
     }
 
@@ -127,7 +132,44 @@ impl<'a> Linker<'a> {
     }
 
     fn fail(&mut self, what: String) {
-        self.error.get_or_insert(what);
+        self.error.get_or_insert(LinkError {
+            what,
+            code: None,
+            at: None,
+        });
+    }
+
+    /// E287 when the module being elaborated names a private item of another module (RFC 0084 D3).
+    /// A copied item's own module reports its own references.
+    fn check_visible(&mut self, module: &str, item: &str, at: Span) {
+        if self.at.is_some() || module == self.env.this {
+            return;
+        }
+        let vis = self.module(module).and_then(|m| {
+            m.items.iter().find_map(|it| match &it.kind {
+                j::ItemKind::Type(t) => match &t.rhs {
+                    j::TypeRhs::Sum(vs) if t.name == item || vs.iter().any(|v| v.name == item) => {
+                        Some(it.vis)
+                    }
+                    _ => (t.name == item).then_some(it.vis),
+                },
+                j::ItemKind::Func(_) | j::ItemKind::Record(_) | j::ItemKind::Const { .. }
+                    if it.kind.name() == item =>
+                {
+                    Some(it.vis)
+                }
+                _ => None,
+            })
+        });
+        if vis == Some(j::Vis::Private) {
+            self.error.get_or_insert(LinkError {
+                what: format!(
+                    "`{module}.{item}` is private to module `{module}`; declare it `pkg` to share it within the package or `pub` to export it"
+                ),
+                code: Some("E287"),
+                at: Some(at),
+            });
+        }
     }
 
     /// The module and item a path of 2 or more names stands for, when its head is not a local.
@@ -145,10 +187,11 @@ impl<'a> Linker<'a> {
     }
 
     /// The expression for `item` of `module`: a bare variant, or the qualified name.
-    fn resolve(&mut self, module: &str, item: &str) -> String {
+    fn resolve(&mut self, module: &str, item: &str, at: Span) -> String {
         if module == self.env.this {
             return item.to_owned();
         }
+        self.check_visible(module, item, at);
         self.used.insert(module.to_owned());
         let sum = self.module(module).and_then(|m| {
             m.items.iter().find_map(|it| match &it.kind {
@@ -260,7 +303,7 @@ impl<'a> Linker<'a> {
             j::ItemKind::Const { name, .. } => *name = q,
             _ => {}
         }
-        it.is_pub = false;
+        it.vis = j::Vis::Private;
         Ok(Some(it))
     }
 
@@ -277,6 +320,7 @@ impl<'a> Linker<'a> {
         for it in items {
             self.sp(&mut it.span);
             self.sp(&mut it.name_span);
+            self.site = it.name_span;
             self.locals.clear();
             self.tparams.clear();
             match &mut it.kind {
@@ -421,6 +465,7 @@ impl<'a> Linker<'a> {
     fn stmt(&mut self, s: &mut j::Stmt) {
         use j::StmtKind as K;
         self.sp(&mut s.span);
+        self.site = s.span;
         match &mut s.kind {
             K::Expr(e) | K::Yield(e) | K::Become(e) | K::Fail(e) | K::Assert(e) => self.expr(e),
             K::Assign { target, ty, value } => {
@@ -513,6 +558,7 @@ impl<'a> Linker<'a> {
                 self.expr(scrutinee);
                 for c in cases {
                     self.sp(&mut c.span);
+                    self.site = c.span;
                     self.pat(&mut c.pat);
                     if let Some(g) = &mut c.guard {
                         self.expr(g);
@@ -610,7 +656,7 @@ impl<'a> Linker<'a> {
                 if let Some((module, item)) = self.split(path)
                     && let [item] = item
                 {
-                    let r = self.resolve(&module, item);
+                    let r = self.resolve(&module, item, self.site);
                     *path = vec![r];
                 } else if path.len() == 1 && args.is_none() {
                     // A bare name is a binding unless it is a variant or constant.
@@ -655,6 +701,7 @@ impl<'a> Linker<'a> {
                     *path = if module == self.env.this {
                         vec![item.clone()]
                     } else {
+                        self.check_visible(&module, item, self.site);
                         self.used.insert(module.clone());
                         self.need(&module, item);
                         vec![format!("{module}.{item}")]
@@ -717,7 +764,7 @@ impl<'a> Linker<'a> {
             && let Some((module, item)) = self.split(&path)
             && let [item] = item
         {
-            let r = self.resolve(&module, item);
+            let r = self.resolve(&module, item, e.span);
             e.kind = K::Name(r);
             return;
         }

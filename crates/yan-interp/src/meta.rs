@@ -284,7 +284,7 @@ fn declared(
                         vec![
                             ("name", s(&f.name)),
                             ("ty", handle(subst(&f.ty, ps, args), types)),
-                            ("public", Value::Bool(f.is_pub)),
+                            ("public", Value::Bool(f.vis.is_pub())),
                             ("annotations", annotations(&f.attrs)),
                         ],
                     )
@@ -507,7 +507,7 @@ fn fields_of(
         merge(into, &h.types);
         out.push(yan_core::ast::Field {
             attrs: attrs_of(field(f, "annotations")),
-            is_pub: *public,
+            vis: if *public { Vis::Pub } else { Vis::Private },
             name,
             ty: h.ty.clone(),
             default: None,
@@ -542,7 +542,7 @@ fn reify(args: &[Value], how: Reifier) -> R<Value> {
                 return unsupported("a `RecordInfo` without `fields`");
             };
             ItemKind::Record(Record {
-                is_pub: true,
+                vis: Vis::Pub,
                 path: vec![name.clone()],
                 tparams,
                 fields: fields_of(fs, &mut types, &name, "record")?,
@@ -571,7 +571,7 @@ fn reify(args: &[Value], how: Reifier) -> R<Value> {
                 });
             }
             ItemKind::Sum(Sum {
-                is_pub: true,
+                vis: Vis::Pub,
                 path: vec![name.clone()],
                 tparams,
                 variants,
@@ -583,7 +583,7 @@ fn reify(args: &[Value], how: Reifier) -> R<Value> {
             };
             merge(&mut types, &inner.types);
             ItemKind::Newtype(Newtype {
-                is_pub: true,
+                vis: Vis::Pub,
                 path: vec![name.clone()],
                 tparams,
                 ty: inner.ty.clone(),

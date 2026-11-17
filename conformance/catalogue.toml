@@ -93,6 +93,7 @@ E283 = { section = "10.4", status = "active", meaning = "a Yan Agent function re
 E284 = { section = "11.2", status = "active", meaning = "malformed @access claim: an operand missing, repeated, unknown or a non-array parameter, an axis not below the operand's rank, or a non-positive tile size (RFC 0052 D1, R952)" }
 E285 = { section = "11.2", status = "active", meaning = "malformed @kernel declaration: a decorator other than @kernel(tile: M, N) with positive constants, not exactly one TileOrigin parameter, or no @access claim (RFC 0061 D2, R983)" }
 E286 = { section = "11.2", status = "active", meaning = "a @kernel function called or a TileOrigin built outside gpu.launch, or gpu.launch of anything but a @kernel function by name (RFC 0061 D2, R983)" }
+E287 = { section = "3.5", status = "active", meaning = "a path names a private item of another module of its package; pkg shares it within the package and pub exports it (R1068)" }
 E301 = { section = "7.2", status = "active", meaning = "missing capability (fix inserts uses)" }
 E306 = { section = "7.2", status = "active", meaning = "capability stored, returned or captured by an escaping closure" }
 E307 = { section = "7.3", status = "active", meaning = "dynamic handler for a capability that must be static" }
