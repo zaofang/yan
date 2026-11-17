@@ -398,6 +398,14 @@ pub enum Rhs {
         drops: Vec<Name>,
     },
     Try(Call),
+    /// `rest r except a.b, c`: the remainder of `r` after the fields at the `moved` paths were
+    /// moved out. It takes `r`'s place as the owner of what is left; dropping it drops every
+    /// field but those. A path through a sum starts with the variant. Only optimized Yan Core
+    /// has any.
+    Rest {
+        root: Name,
+        moved: Vec<Vec<Name>>,
+    },
     Ctor(Ctor),
     Proj(Place),
     Copy(Place),

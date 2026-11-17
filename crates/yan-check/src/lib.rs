@@ -150,7 +150,7 @@ pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
                 for f in &imp.fns {
                     let item = format!("{module}.{}", f.path.join("."));
                     if is_drop {
-                        check_drop(&g, file, src, &item, f, imp, &mut diags);
+                        check_drop(&g, file, src, &item, f, imp, it.span, &mut diags);
                     }
                     body(f, false, item, &mut diags);
                 }
@@ -250,6 +250,7 @@ fn reaches(callees: &HashMap<String, HashSet<String>>, f: &str) -> bool {
 }
 
 /// 5.4: a `drop` body uses no capability except `alloc`, and a `@linear` type has no `Drop`.
+#[allow(clippy::too_many_arguments)]
 fn check_drop(
     g: &Globals,
     file: &str,
@@ -257,6 +258,7 @@ fn check_drop(
     item: &str,
     f: &FnDef,
     imp: &Impl,
+    impl_span: Span,
     diags: &mut Vec<Diagnostic>,
 ) {
     if let Some(Param::Cap { name, .. }) = f
@@ -279,7 +281,7 @@ fn check_drop(
             src,
             item,
             "E421",
-            f.name_span,
+            impl_span,
             "a `@linear` type cannot implement `Drop`".into(),
         ));
     }
@@ -1488,6 +1490,14 @@ impl<'g, 'm> Cx<'g, 'm> {
                     self.err("E416", at, format!("`copy` of a `{b}`; use `share`"));
                 }
                 Some(type_text(&t))
+            }
+            Rhs::Rest { .. } => {
+                self.err(
+                    "I001",
+                    at,
+                    "`rest` appears only in optimized Yan Core (R770)".into(),
+                );
+                None
             }
             Rhs::Move(p) => {
                 let t = self.place(p, How::Move);

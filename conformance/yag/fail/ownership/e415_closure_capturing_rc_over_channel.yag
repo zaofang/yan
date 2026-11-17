@@ -1,0 +1,11 @@
+# spec: 4.6, 6.4
+# note: a closure has the auto traits of what it captures
+# expect: E415 at 11:13
+
+def size(rs: list[Rc[int]]) -> int:
+    return len(rs)
+
+def send_f(var tx: Sender[Callable[[], int]], r: Rc[int]) -> None fail Cancelled:
+    rs = [r.share()]
+    f: Callable[[], int] = lambda: size(rs)
+    tx.send(f)?

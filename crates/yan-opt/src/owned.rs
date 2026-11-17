@@ -28,6 +28,11 @@ pub(crate) enum Key {
     Fall(usize),
 }
 
+/// The name under which the remainder of `root` is in scope; no source name has a `#`.
+fn rest_name(root: &str) -> Name {
+    format!("{root}#rest")
+}
+
 pub(crate) fn addr<T>(x: &T) -> usize {
     x as *const T as usize
 }
@@ -71,6 +76,8 @@ pub(crate) fn rhs_of(k: &StmtKind) -> Option<&Rhs> {
 pub(crate) struct Facts {
     at: HashMap<Key, Owned>,
     decls: HashMap<(usize, Name), Binding>,
+    /// The remainder a statement's partial moves leave of a root, by statement and root.
+    rests: HashMap<(usize, Name), Binding>,
 }
 
 impl Facts {
@@ -89,6 +96,7 @@ impl Facts {
                 }
             }
             facts.decls.extend(l.decls);
+            facts.rests.extend(l.rests);
             bodies.extend(
                 l.closures
                     .into_iter()
@@ -100,6 +108,11 @@ impl Facts {
 
     pub(crate) fn binding(&self, site: usize, name: &Name) -> Binding {
         self.decls[&(site, name.clone())]
+    }
+
+    /// The binding of the remainder of `root` that the partial moves of statement `site` leave.
+    pub(crate) fn rest(&self, site: usize, root: &Name) -> Binding {
+        self.rests[&(site, root.clone())]
     }
 
     pub(crate) fn must(&self, k: Key, b: Binding) -> bool {
@@ -122,8 +135,8 @@ struct Lower<'a> {
     failed: Node,
     next: u32,
     scopes: Vec<Vec<(Name, Binding)>>,
-    /// Names bound by a non-copy projection or a `match` pattern, to the local they view.
-    views: HashMap<Name, Name>,
+    /// Names bound by a non-copy projection or a `match` pattern, to what they view.
+    views: own::Views,
     /// Label, head and exit of each enclosing loop.
     loops: Vec<(Name, Node, Node)>,
     jps: HashMap<Name, Node>,
@@ -134,6 +147,7 @@ struct Lower<'a> {
     sites: u32,
     points: Vec<(Key, Point)>,
     decls: HashMap<(usize, Name), Binding>,
+    rests: HashMap<(usize, Name), Binding>,
     closures: Vec<&'a Closure>,
 }
 
@@ -152,6 +166,7 @@ impl<'a> Lower<'a> {
             next,
             scopes: Vec::new(),
             views: HashMap::new(),
+            rests: HashMap::new(),
             loops: Vec::new(),
             jps: HashMap::new(),
             jp_pos: HashMap::new(),
@@ -161,6 +176,25 @@ impl<'a> Lower<'a> {
             decls: HashMap::new(),
             closures: Vec::new(),
         }
+    }
+
+    /// Where the ownership of `root` lives: the remainder that partial moves left of it, else
+    /// the local itself.
+    fn owner(&self, root: &str) -> Option<Binding> {
+        self.local(&rest_name(root)).or_else(|| self.local(root))
+    }
+
+    fn fresh(&mut self) -> Binding {
+        let b = Binding(self.next);
+        self.next += 1;
+        self.cfg.push(
+            self.cur,
+            Event::Def {
+                binding: b,
+                owned: true,
+            },
+        );
+        b
     }
 
     fn mark(&mut self, k: Key) {
@@ -207,14 +241,37 @@ impl<'a> Lower<'a> {
         );
     }
 
-    fn consume(&mut self, k: &StmtKind) {
-        for n in own::consumed(k) {
-            let root = self.views.get(n).unwrap_or(n);
-            if let Some(b) = self.local(root) {
-                let site = Site(self.sites);
-                self.sites += 1;
-                self.cfg.push(self.cur, Event::Move { binding: b, site });
+    fn moved(&mut self, binding: Binding) {
+        let site = Site(self.sites);
+        self.sites += 1;
+        self.cfg.push(self.cur, Event::Move { binding, site });
+    }
+
+    /// A field moved out of a root moves the root's ownership to a remainder, a new binding
+    /// that owns what is left; the moved field is no longer part of it.
+    fn consume(&mut self, key: usize, k: &StmtKind) {
+        let c = own::consumption(k, &self.views);
+        for root in &c.whole {
+            if let Some(b) = self.owner(root) {
+                self.moved(b);
             }
+        }
+        let mut seen: Vec<&Name> = Vec::new();
+        for (root, _) in &c.partial {
+            if seen.contains(&root) {
+                continue;
+            }
+            seen.push(root);
+            let Some(from) = self.owner(root) else {
+                continue;
+            };
+            self.moved(from);
+            let b = self.fresh();
+            self.rests.insert((key, root.clone()), b);
+            self.scopes
+                .last_mut()
+                .expect("in a scope")
+                .push((rest_name(root), b));
         }
     }
 
@@ -320,12 +377,26 @@ impl<'a> Lower<'a> {
         }
     }
 
-    fn arms(&mut self, s: &Stmt, blocks: &[&'a Block], fall: bool) {
+    /// `views` are what each block's own pattern binds.
+    fn arms(
+        &mut self,
+        s: &Stmt,
+        blocks: &[&'a Block],
+        views: &[Vec<(Name, own::View)>],
+        fall: bool,
+    ) {
         let from = self.cur;
         let join = self.cfg.node();
-        for b in blocks {
+        for (i, b) in blocks.iter().enumerate() {
             self.cur = self.branch(from);
+            let bound = views.get(i).map_or(&[][..], Vec::as_slice);
+            for (n, v) in bound {
+                self.views.insert(n.clone(), v.clone());
+            }
             self.block(b, &[]);
+            for (n, _) in bound {
+                self.views.remove(n);
+            }
             self.cfg.edge(self.cur, join);
         }
         if fall {
@@ -338,7 +409,7 @@ impl<'a> Lower<'a> {
 
     fn stmt(&mut self, s: &'a Stmt) {
         let key = addr(s);
-        self.consume(&s.kind);
+        self.consume(key, &s.kind);
         self.mark(Key::Mid(key));
         if let Some(r) = rhs_of(&s.kind) {
             match r {
@@ -355,8 +426,8 @@ impl<'a> Lower<'a> {
                 if let (Rhs::Proj(p), Pat::Bind(x)) = (rhs, pat)
                     && !own::is_copy(ty)
                 {
-                    let root = self.views.get(&p.root).unwrap_or(&p.root).clone();
-                    self.views.insert(x.clone(), root);
+                    let v = own::proj_view(&self.views, p);
+                    self.views.insert(x.clone(), v);
                 } else if let Pat::Bind(x) = pat {
                     self.views.remove(x);
                 }
@@ -372,6 +443,11 @@ impl<'a> Lower<'a> {
                 if place.projs.is_empty()
                     && let Some(b) = self.local(&place.root)
                 {
+                    // The whole value is replaced; the old remainder stays an owner of its own.
+                    let dead = rest_name(&place.root);
+                    for e in self.scopes.iter_mut().flatten().filter(|e| e.0 == dead) {
+                        e.0.clear();
+                    }
                     self.cfg.push(
                         self.cur,
                         Event::Def {
@@ -383,26 +459,20 @@ impl<'a> Lower<'a> {
             }
             StmtKind::If { then, els, .. } | StmtKind::ComptimeIf { then, els, .. } => {
                 let blocks: Vec<&Block> = std::iter::once(then).chain(els).collect();
-                self.arms(s, &blocks, els.is_none());
+                self.arms(s, &blocks, &[], els.is_none());
             }
             StmtKind::Match { scrutinee, arms } => {
-                let mut bound = Vec::new();
+                let mut bound: Vec<Vec<(Name, own::View)>> = vec![Vec::new(); arms.len()];
                 if let Atom::Name(x, _) = scrutinee {
-                    let root = self.views.get(x).unwrap_or(x).clone();
-                    if self.local(&root).is_some() {
-                        for (p, _) in arms {
-                            own::view_binders(p, self.copy, &mut bound);
-                        }
-                        for n in &bound {
-                            self.views.insert(n.clone(), root.clone());
+                    let base = own::scrutinee_view(&self.views, x);
+                    if self.owner(&base.root).is_some() {
+                        for ((p, _), b) in arms.iter().zip(&mut bound) {
+                            *b = own::pat_views(p, self.copy, &base);
                         }
                     }
                 }
                 let blocks: Vec<&Block> = arms.iter().map(|(_, b)| b).collect();
-                self.arms(s, &blocks, false);
-                for n in &bound {
-                    self.views.remove(n);
-                }
+                self.arms(s, &blocks, &bound, false);
             }
             StmtKind::Loop { label, body, .. } => {
                 let head = self.branch(self.cur);

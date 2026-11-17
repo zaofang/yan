@@ -1972,6 +1972,16 @@ topic = "pointer constructors without a Ptr argument take the pointee type from 
 sections = "6.6, 25"
 
 [[entry]]
+rows = "R1056"
+topic = "section 25 lists N01 to N54; N02 and N11 are silent lexical normalizations, every other N-code reports its note (#1527 decision 6)"
+sections = "14.4, 25"
+
+[[entry]]
+rows = "R1057"
+topic = "N51 also reads `float(s)` on a `str` as `std.text.float_of(s)`: `s.strip().parse_float()`, panicking with kind `conversion` when it is `None` (#1543); `--strict` keeps E201"
+sections = "14.4"
+
+[[entry]]
 rows = "R1058"
 topic = "a file is a module; its path under a source root is its name; fixed package layout; layout errors E024 (RFC 0084 D1, D2, D4)"
 sections = "19.1, 25"
@@ -1980,4 +1990,3 @@ sections = "19.1, 25"
 rows = "R1059"
 topic = "`yan tree` lists the modules of a package, one per line, and reports layout errors (RFC 0084 D11)"
 sections = "18.1"
-

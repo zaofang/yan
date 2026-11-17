@@ -71,6 +71,12 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             None => return panic_with("conversion", format!("invalid literal for int(): {x:?}")),
         }
     }),
+    f!(STD_TEXT_FLOAT_OF, |a| {
+        [Str(x)] => match text::parse_float(x.trim()) {
+            Some(f) => Float(f),
+            None => return panic_with("conversion", format!("could not convert string to float: {x:?}")),
+        }
+    }),
     f!(STD_TEXT_GRAPHEME_COUNT, |a| { [Str(x)] => Int(text::grapheme_count(x) as i128) }),
     f!(STD_TEXT_UPPER, |a| { [Str(x)] => s(x.to_uppercase()) }),
     f!(STD_TEXT_LOWER, |a| { [Str(x)] => s(x.to_lowercase()) }),

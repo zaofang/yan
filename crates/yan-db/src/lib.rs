@@ -351,6 +351,13 @@ pub fn diagnostics(db: &dyn Db, file: SourceFile) -> Result<Vec<Diagnostic>, Str
         Loaded::Ready(m, _, mut d) => {
             let path = file.path(db).display().to_string();
             d.extend(yan_check::check(&path, file.text(db), &m));
+            // One cause, one diagnostic: an unconsumed `@linear` binding is E412, not also W812.
+            let unconsumed: Vec<_> = d
+                .iter()
+                .filter(|x| x.code == "E412")
+                .map(|x| (x.span.line, x.span.col))
+                .collect();
+            d.retain(|x| !(x.code == "W812" && unconsumed.contains(&(x.span.line, x.span.col))));
             d
         }
         Loaded::Stopped(d) => d,

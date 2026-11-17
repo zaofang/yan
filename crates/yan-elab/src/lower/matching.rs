@@ -108,6 +108,17 @@ impl Lower<'_, '_, '_> {
                     c.span.line,
                 );
             }
+            if !self.cx.yn
+                && let j::Pat::Path { path, args: None } = &c.pat
+                && path.len() == 1
+                && self.g.variant_of.contains_key(&path[0])
+            {
+                self.lenient(
+                    "N25",
+                    c.span,
+                    &format!("`case {n}:` normalized to `case {n}():`", n = path[0]),
+                );
+            }
             if c.guard.is_none() {
                 closed |= catch_all(&c.pat);
                 if let j::Pat::Path { path, args: None } = &c.pat
