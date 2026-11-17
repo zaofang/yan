@@ -1,0 +1,2 @@
+# Programs that leak runtime blocks on native today (#1500). Each entry needs the issue that owns
+# the fix; an entry that no longer leaks fails tools/nativelive.py as stale, so the list only shrinks.

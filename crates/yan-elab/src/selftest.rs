@@ -48,7 +48,7 @@ fn tuple_assignment_reads_before_writing() {
 
 #[test]
 fn generic_calls_dispatch_to_impls() {
-    let src = "trait Size:\n    def size(self: Self) -> int: ...\n\nclass Bag:\n    items: list[int]\n\nimpl Size for Bag:\n    def size(self: Bag) -> int:\n        return len(self.items)\n\ndef total[T: Size](xs: list[T]) -> int:\n    n = 0\n    for x in xs:\n        n += x.size()\n    return n\n\ndef first[T](xs: list[T], d: T) -> T:\n    if len(xs) < 1:\n        return d\n    return xs[0]\n\npub def main() uses io:\n    bs = [Bag(items=[1, 2]), Bag(items=[3])]\n    io.print(f\"{total(bs)} {bs[0].size()} {first([5, 6], 0)}\")\n";
+    let src = "trait Size:\n    def size(self: Self) -> int: ...\n\nclass Bag:\n    items: list[int]\n\nimpl Size for Bag:\n    def size(self: Bag) -> int:\n        return len(self.items)\n\ndef total[T: Size](xs: list[T]) -> int:\n    n = 0\n    for x in xs:\n        n += x.size()\n    return n\n\ndef first[T](xs: list[T], d: T) -> T:\n    if len(xs) < 1:\n        return d\n    return xs[0].copy()\n\npub def main() uses io:\n    bs = [Bag(items=[1, 2]), Bag(items=[3])]\n    io.print(f\"{total(bs)} {bs[0].size()} {first([5, 6], 0)}\")\n";
     assert_eq!(run(src), "3 2 5\n");
 }
 
@@ -1388,6 +1388,38 @@ fn str_slices_and_int_of_str_are_n50_n51() {
         String::from_utf8(out).unwrap(),
         "hello\nworld\ndlrow olleh\nlo world\n13\n"
     );
+}
+
+#[test]
+fn str_format_percent_and_input_are_n55_n56() {
+    let src = "pub def main() uses io:\n    n = 3\n    x = 1.5\n    io.print(\"{} and {:.2f}\".format(n, x))\n    io.print(\"%d items, %5.2f|\" % (n, x))\n    io.print(\"{0}-{k}\".format(7, k=\"x\"))\n    io.print(f\"[{input()}]\")\n";
+    let (m, d) = lower(src);
+    let codes: Vec<_> = d.iter().map(|d| d.code.as_str()).collect();
+    assert_eq!(codes, ["N55", "N55", "N55", "N56"], "{d:?}");
+    let mut out = Vec::new();
+    yan_interp::run(&m, &mut out).expect("runs");
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        "3 and 1.50\n3 items,  1.50|\n7-x\n[]\n"
+    );
+}
+
+#[test]
+fn python_names_without_an_expression_are_e200_with_the_replacement() {
+    for (src, hint) in [
+        ("type(x)", "match"),
+        ("isinstance(x, int)", "case Variant()"),
+        ("open(\"a\")", "fs.read"),
+        ("sys.getsizeof(x)", "size_of"),
+    ] {
+        let src = format!("pub def f(x: int):\n    y = {src}\n");
+        let (_, d) = lower(&src);
+        assert!(
+            d.iter()
+                .any(|d| d.code == "E200" && d.message.contains(hint)),
+            "{src}: {d:?}"
+        );
+    }
 }
 
 #[test]

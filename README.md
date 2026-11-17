@@ -16,7 +16,7 @@ Design laws, pipeline and measured state: [docs/architecture.md](docs/architectu
 Accepted decisions and studies: [docs/decisions-2026-11-04.md](docs/decisions-2026-11-04.md), [docs/studies/](docs/studies), [docs/research/README.md](docs/research/README.md).
 
 The developer owns the spec, tests and gates; agents write the code and never edit tests.
-Authoritative documents: the Yan 1.0 spec (draft) in [`spec/`](spec/README.md) and the 1.0 Development Roadmap.
+Authoritative documents: the Yan 0.1.0 spec (draft) in [`spec/`](spec/README.md) and the 0.1.0 Development Roadmap.
 
 ## Layout
 

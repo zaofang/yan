@@ -1,0 +1,34 @@
+# spec: 4.1, 4.2
+# rows: R1
+# note: moving one child out of a recursive sum frees the box shell and the other child (#1500 item 3)
+# stdout:
+# 3 Leaf(v=3)
+# 2 Node(l=Leaf(v=1), r=Leaf(v=2))
+type Tree = Leaf(v: int) | Node(l: Tree, r: Tree)
+
+def total(t: Tree) -> int:
+    match t:
+        case Leaf(v=v):
+            return v
+        case Node(l=l, r=r):
+            return total(l) + total(r)
+
+def keep(take t: Tree) -> Tree:
+    match t:
+        case Node(l=_, r=r):
+            return r
+        case Leaf(v=_):
+            return t
+
+def left(take t: Tree) -> Tree:
+    match t:
+        case Node(l=l, r=_):
+            return l
+        case Leaf(v=_):
+            return t
+
+def main() uses io:
+    k = keep(Node(Node(Leaf(1), Leaf(2)), Leaf(3)))
+    io.print(f"{total(k)} {k}")
+    l = left(Node(Node(Leaf(1), Leaf(2)), Leaf(3)))
+    io.print(f"{total(l) - 1} {l}")

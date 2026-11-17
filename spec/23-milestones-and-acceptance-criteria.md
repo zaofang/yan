@@ -1,6 +1,6 @@
 ## 23. Milestones and acceptance criteria
 
-A milestone is complete only when every criterion below passes in CI. Performance figures are targets. The M1 gate is the project's central bet, and its result decides whether the later milestones proceed unchanged. Dates and staffing are in the 1.0 Roadmap.
+A milestone is complete only when every criterion below passes in CI. Performance figures are targets. The M1 gate is the project's central bet, and its result decides whether the later milestones proceed unchanged. Dates and staffing are in the 0.1.0 Roadmap.
 
 ### P0 · Setup
 
@@ -68,18 +68,18 @@ M2b (library, registry and tools):
 
 ### RC · Release candidate
 
-- The 1.0 edition is named; the freeze list (20.2) takes effect; the release train (20.7) starts.
+- The 0.1.0 edition is named; the freeze list (20.2) takes effect; the release train (20.7) starts.
 - Self-hosting stages S4 and S5 of 22.7 pass; `yan` ships from stage 2 and stage 0 is frozen (R966, R967).
 
-**Docs gate (R319).** Every fence in the tour, book, guides and std passes, and std `pub` doc coverage is 100%. The doc model and links land in M0; `yan doc`, the fence runner and doc lints in M1; the wasm interpreter in M1b; the surface toggle, tour and playground in M3, the book in 1.x (R990).
+**Docs gate (R319).** Every fence in the tour, book, guides and std passes, and std `pub` doc coverage is 100%. The doc model and links land in M0; `yan doc`, the fence runner and doc lints in M1; the wasm interpreter in M1b; the surface toggle, tour and playground in M3, the book in 0.1.x (R990).
 
-### 1.x · After 1.0
+### 0.1.x · After 0.1.0
 
-Ships under the release train of 20.7, not before the 1.0 edition (R991).
+Ships under the release train of 20.7, not before the 0.1.0 edition (R991).
 
 - Reactive notebooks (`yan nb`) and live values computed on examples; depth-lens inlay hints; the item-level merge driver (`yan merge-driver`).
 - The full book, beyond the tour, by-example pages and std reference of R319.
-- Randomized comparison (at least 30 participants) on contested Yan syntax: implicit-subject lambdas and the typed implicit subject in frame expressions, grid literals, unit suffixes, `\(x)` interpolation, and the `&x` mark. It reports after 1.0 (R969).
+- Randomized comparison (at least 30 participants) on contested Yan syntax: implicit-subject lambdas and the typed implicit subject in frame expressions, grid literals, unit suffixes, `\(x)` interpolation, and the `&x` mark. It reports after 0.1.0 (R969).
 
 ### M4 · Depth
 
@@ -91,4 +91,4 @@ Ships under the release train of 20.7, not before the 1.0 edition (R991).
 - Stretch: GPU code generation for `par for` bodies with `uses none`, through MLIR and LLVM to Apple Metal first, then NVIDIA, AMD and Vulkan (R327 to R329), with `@fast_math` allowed under `nondet`.
 - WASM components (`wasm32-wasip2`, capabilities as WASI interfaces, platforms as WIT worlds), with `yan bind --lang js` writing an npm package through jco, published with npm trusted publishing (R641).
 - Yan Meta (16.6, R516): reader, printer with spelling notes and lenient reader (the print-only view is M3, R563); the grammar moves from RFC 0001 into section 16.6 first, and every Yan conformance program round-trips through Yan Meta by item hash.
-- Niche surfaces (16.7, R536 to R550) are post-1.0 and follow the order of R550; none is part of any milestone above. Durable timers (R552) ship with `@yan/durable`.
+- Niche surfaces (16.7, R536 to R550) are post-0.1.0 and follow the order of R550; none is part of any milestone above. Durable timers (R552) ship with `@yan/durable`.

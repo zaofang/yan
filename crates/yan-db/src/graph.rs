@@ -33,6 +33,10 @@ pub struct Package {
     pub workspace: PathBuf,
     pub manifest: yan_elab::Manifest,
     pub foreign: ForeignSet,
+    /// Layout errors of the source roots (RFC 0084 D1, D4), found by the driver with the foreign set.
+    pub layout: Vec<crate::layout::Issue>,
+    /// The modules of the source roots, in path order (RFC 0084 D1).
+    pub modules: Vec<crate::layout::Module>,
     /// Requirements as written in `dependencies`, `dev_dependencies` and `tools`.
     pub deps: Vec<String>,
     pub dev_deps: Vec<String>,
@@ -109,6 +113,9 @@ pub fn graph_diagnostics(db: &dyn Db, graph: PackageGraph) -> Vec<Diagnostic> {
                 ),
             ));
         }
+    }
+    for p in packages.iter().filter(|p| local(p)) {
+        out.extend(crate::layout::diagnostics(&p.layout));
     }
     let nodes: Vec<Node> = packages.iter().map(closure::from_package).collect();
     for (i, message) in closure::violations(&nodes) {
