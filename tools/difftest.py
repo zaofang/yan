@@ -70,6 +70,7 @@ def run_one(yan: Path, backend: str, program: str, flags: list[str]) -> Outcome:
     try:
         out = subprocess.run(
             [str(yan), "run", "--backend", backend, *flags, str(ROOT / program)],
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             timeout=TIMEOUT,

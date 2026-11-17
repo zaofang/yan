@@ -143,14 +143,22 @@ class CommandExecutor:
         return records
 
     def run(self, path: Path, flags: list[str]) -> tuple[str, int]:
-        out = subprocess.run([*self.argv, "run", *flags, str(path)], capture_output=True, text=True)
+        out = subprocess.run(
+            [*self.argv, "run", *flags, str(path)],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+        )
         if out.returncode == TOOL_FAILURE and out.stderr.startswith("yan:"):
             raise ToolFailure(out.stderr.strip())
         return out.stdout, out.returncode
 
     def run_ub(self, path: Path, flags: list[str]) -> tuple[str, int]:
         out = subprocess.run(
-            [*self.argv, "run", "--ub", *flags, str(path)], capture_output=True, text=True
+            [*self.argv, "run", "--ub", *flags, str(path)],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
         )
         if out.returncode == TOOL_FAILURE and out.stderr.startswith("yan:"):
             raise ToolFailure(out.stderr.strip())
@@ -159,7 +167,10 @@ class CommandExecutor:
     def run_opt(self, path: Path, flags: list[str]) -> tuple[str, int]:
         # Optimizer diagnostics are not in `check`; `run --opt` prints them to stderr.
         out = subprocess.run(
-            [*self.argv, "run", "--opt", *flags, str(path)], capture_output=True, text=True
+            [*self.argv, "run", "--opt", *flags, str(path)],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
         )
         if out.returncode == TOOL_FAILURE and out.stderr.startswith("yan:"):
             raise ToolFailure(out.stderr.strip())
