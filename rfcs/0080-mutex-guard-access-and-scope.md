@@ -70,7 +70,7 @@ Alternatives, not recommended now:
   is conditional. It composes with this RFC and can be added later by its own RFC if a program needs
   it; nothing here prevents it.
 
-- Decision: (lead's answer, date)
+- Decision: accepted as recommended, a `with` scope over the existing `with` statement; last-use drop rejected (lead, card, 2026-11-17)
 - Row: (R number once accepted)
 
 ### D3: a guard is second-class by the view rule, so escapes need no new check
@@ -92,7 +92,7 @@ value is the existing gap of item 6, not widened here.
 Alternative: a separate guard-escape pass with its own diagnostics. Two representations of "does not
 outlive its source" (practice 12), rejected.
 
-- Decision: (lead's answer, date)
+- Decision: accepted as recommended, a guard follows the view rule; no new pass (lead, card, 2026-11-17)
 - Row: (R number once accepted)
 
 ## Spec changes
