@@ -1,0 +1,10 @@
+# spec: 14.4
+# rows: R1056
+# note: N51 reads float(s) on a str as std.text.float_of; a bad literal panics with kind conversion
+# stdout:
+# 203.5 -1.0
+
+pub def main() uses io:
+    a = float("3.5")
+    b = float(" 2e2 ")
+    io.print(f"{a + b} {float('-1')}")
