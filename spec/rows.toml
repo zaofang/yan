@@ -1888,7 +1888,7 @@ sections = "6.3"
 
 [[entry]]
 rows = "R1039"
-topic = "`Mutex.get_mut()` (`inout`) is the protected value as a place and `into_inner()` (`take`) moves it out; neither locks nor needs a capability (RFC 0081 D2, D3; #1429 item 5)"
+topic = "`Mutex.get_mut` (attribute, `inout`) is the protected value as a place and `into_inner()` (`take`) moves it out; neither locks nor needs a capability (RFC 0081 D2, D3; #1429 item 5)"
 sections = "6.2, 6.3"
 
 [[entry]]

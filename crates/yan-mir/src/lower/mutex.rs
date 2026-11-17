@@ -9,6 +9,7 @@ use super::*;
 pub(super) const MUTEX_IDS: &[registry::Id] = &[
     id::STD_SYNC_MUTEX_MUTEX,
     id::STD_SYNC_MUTEX_LOCK,
+    id::STD_SYNC_MUTEX_INTO_INNER,
     id::STD_SYNC_MUTEX_TRY_LOCK,
     id::STD_SYNC_MUTEX_GUARD_GET,
     id::STD_SYNC_MUTEX_GUARD_SET,
@@ -64,6 +65,12 @@ impl<'m> Fn<'_, 'm> {
                 self.finish(Term::Panic("deadlock"));
                 self.cur = ok;
                 set(self, vec![p]);
+            }
+            (id::STD_SYNC_MUTEX_INTO_INNER, [(_, m)]) => {
+                let p = self.scalar1(m)?;
+                let v = self.read(&At::Mem(p.clone(), VALUE), &e);
+                self.free(RtFn::EnvFree, p);
+                set(self, v);
             }
             // `Option[MutexGuard[T]]`: tag 0 is `Some` with the block, tag 1 is `None`. A lock
             // found held is `None` whether another task or this one holds it, and the failed

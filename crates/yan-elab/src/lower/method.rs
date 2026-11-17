@@ -421,6 +421,7 @@ impl Lower<'_, '_, '_> {
         }
         let Some(crate::stdlib::Method {
             inout,
+            take,
             params,
             ret,
             targs,
@@ -444,6 +445,11 @@ impl Lower<'_, '_, '_> {
                 writeback = Some((p, v.clone()));
                 Arg::Value(Conv::Inout, Atom::Name(v, b.span), b.span)
             }
+        } else if take {
+            if !p.projs.is_empty() {
+                return unsupported(format!("`{m}` consuming a place inside a value"));
+            }
+            Arg::Value(Conv::Sink, Atom::Name(p.root, p.root_span), b.span)
         } else {
             let a = if p.projs.is_empty() {
                 Atom::Name(p.root, p.root_span)

@@ -880,6 +880,10 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         }),
     ),
     (
+        STD_SYNC_MUTEX_INTO_INNER,
+        Bind::Cap(|it, a| Ok(std::mem::take(&mut it.mutexes[atom(&a[0])].0))),
+    ),
+    (
         STD_SYNC_MUTEX_TRY_LOCK,
         Bind::Cap(|it, a| {
             let m = &mut it.mutexes[atom(&a[0])];

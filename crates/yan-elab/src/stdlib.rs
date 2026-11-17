@@ -264,6 +264,8 @@ pub(crate) fn class_module(name: &str) -> Option<&'static str> {
 pub(crate) struct Method {
     /// The receiver is `var`.
     pub inout: bool,
+    /// The receiver is `take`: the call consumes it.
+    pub take: bool,
     /// The other parameters: `take` and the type.
     pub params: Vec<(bool, Ty)>,
     pub ret: Ty,
@@ -318,6 +320,7 @@ impl Decl {
         )?;
         Some(Method {
             inout: conv == Some(j::Conv::Var),
+            take: conv == Some(j::Conv::Take),
             params,
             ret,
             targs,

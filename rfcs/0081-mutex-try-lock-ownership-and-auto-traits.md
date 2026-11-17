@@ -43,9 +43,9 @@ Alternatives, not recommended now:
 
 ### D2: `get_mut` is exclusive access, no lock and no nondet
 
-`m.get_mut()` takes the `Mutex` by `inout` and yields the protected value as a place, the same std
+`m.get_mut`, an attribute like `g.value`, takes the `Mutex` by `inout` and yields the protected value as a place, the same std
 subscript form as `g.value` (RFC 0080 D1): valid for one statement, bound `let` when read and `inout`
-when assigned or passed `&m.get_mut()`, under exclusivity (4.3). No lock is taken and no guard exists:
+when assigned or passed `&m.get_mut`, under exclusivity (4.3). No lock is taken and no guard exists:
 `inout` of the `Mutex` proves no other task can reach it, which is what 6.2 already says ("`inout`
 access is plain exclusive access (`get_mut`)"). It needs no capability. A `Mutex` reached through an
 `Arc` is not `inout`, so `Arc.get_mut` (which needs `uses nondet`, 6.4) and then `get_mut` is the
