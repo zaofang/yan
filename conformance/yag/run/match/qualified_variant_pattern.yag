@@ -1,0 +1,15 @@
+# spec: 13, 14.1
+# rows: R799
+# stdout:
+# red
+# green
+
+type Color = Red() | Green()
+
+pub def main() uses io:
+    for c in [Color.Red(), Color.Green()]:
+        match c:
+            case Color.Red():
+                io.print("red")
+            case Color.Green():
+                io.print("green")

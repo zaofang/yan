@@ -789,12 +789,13 @@ pub fn pattern(p: &Pattern) -> String {
             )
         }
         PatKind::Bind(n) => n.clone(),
-        PatKind::Ctor { name, args: None } => name.clone(),
+        PatKind::Ctor { path, args: None } => path.join("."),
         PatKind::Ctor {
-            name,
+            path,
             args: Some(args),
         } => format!(
-            "{name}({})",
+            "{}({})",
+            path.join("."),
             comma(args, |a| match a {
                 PPat::Pos(p) => pattern(p),
                 PPat::Named(n, None) => format!("{n}:"),

@@ -1,0 +1,17 @@
+# spec: 14.4
+# rows: R423
+# note: N25 reads case Name: on a variant as case Name():
+# stdout:
+# 1
+
+type S = A() | B()
+
+def f(s: S) -> int:
+    match s:
+        case A:
+            return 1
+        case B():
+            return 2
+
+pub def main() uses io:
+    io.print(f"{f(A())}")
