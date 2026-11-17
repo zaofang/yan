@@ -2721,6 +2721,25 @@
    ]
   },
   {
+   "path": "yag/fail/lints/fstring_unsupported_spec.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R1029"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E017",
+     "line": 6,
+     "col": 14
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lints/w803_secret_into_log.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -7206,6 +7225,21 @@
    "flags": [],
    "expect": [],
    "stdout": "Secret(***) hunter2 True None\n[Secret(***)]\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/fstring_numeric_specs.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R1029"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3.14|0007|2.67|-0|1,234,567.89|+7|   3.142|-00003.1|1,234,567|    7|3.1      |\n",
    "exit": 0
   },
   {

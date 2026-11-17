@@ -11,26 +11,8 @@ a week (DL14).
 Found by the real-programs sweep ([examples/real/README.md](../../examples/real/README.md)). Each fails on every
 backend, at `yan check`.
 
-### [#1403](https://github.com/zaofang/yan/issues/1403): store into a dict held in a record field
-
-`c.vals[k] = v` is E017. Workaround: pass the dict as a separate `var` parameter.
-
-```yag gap=examples/real/gaps/field_index_place.yag
-# Gap #1403: store into a dict held in a record field.
-class Cache:
-    vals: dict[str, int]
-
-def put(var c: Cache, k: str, v: int):
-    c.vals[k.copy()] = v
-
-def main() uses io:
-    c = Cache(vals={})
-    put(&c, "a", 1)
-    io.print(f"{c.vals.len()}")
-```
-
 Fixed since the sweep: #1398 (I001 on a constructor call in a match branch), #1399 (native `list.pop`,
-`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`), #1402 (`list.clear`, `list.remove`, `list.pop(i)`, `dict.pop`), #1404 (a module function no longer captures a method of the receiver's type; 17.2), #1401 (`.2f`, `04` and the other common f-string specs).
+`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`), #1402 (`list.clear`, `list.remove`, `list.pop(i)`, `dict.pop`), #1404 (a module function no longer captures a method of the receiver's type; 17.2), #1403 (store into a dict held in a record field), #1401 (`.2f`, `04` and the other common f-string specs).
 
 ## Backend and checker coverage
 
