@@ -1,0 +1,18 @@
+# spec: 6.3
+# rows: R1038
+# note: try_lock on a mutex the caller already holds returns None and never panics (unlike lock, R396)
+# stdout:
+# held
+# 1
+# exit: 0
+
+def main() uses io, nondet:
+    m = Mutex[int](0)
+    g = m.lock()
+    match m.try_lock():
+        case Some(h):
+            print("bad")
+        case None:
+            print("held")
+    g.set(1)
+    print(g.get())

@@ -1,0 +1,22 @@
+# spec: 6.3
+# rows: R1038
+# note: try_lock on a free mutex yields Some(guard); the guard writes the protected value and the mutex is free again after the match
+# stdout:
+# 7
+# 8
+# exit: 0
+
+def probe(m: Mutex[int]) -> int uses nondet:
+    match m.try_lock():
+        case Some(g):
+            g.set(g.get() + 7)
+            return g.get()
+        case None:
+            return 0 - 1
+
+def main() uses io, nondet:
+    m = Mutex[int](0)
+    print(probe(m))
+    g = m.lock()
+    g.set(g.get() + 1)
+    print(g.get())
