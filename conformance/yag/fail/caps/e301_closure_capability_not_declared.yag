@@ -1,0 +1,8 @@
+# spec: 4, 7.2
+# rows: R1025
+# expect: E301 at 8:20
+def apply(f: Callable[[], str]) -> str uses none:
+    return f()
+
+pub def main() -> None uses io, fs:
+    io.print(apply(lambda: fs.read("x") else "x"))
