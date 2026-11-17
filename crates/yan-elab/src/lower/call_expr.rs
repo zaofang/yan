@@ -1,6 +1,8 @@
 use super::*;
 use yan_core::auto_traits::auto_traits;
 
+pub(crate) const NOT_SEND: &str = "this value is not Send (it holds an `Rc` or a `MutexGuard`), so it cannot cross to another task";
+
 impl Lower<'_, '_, '_> {
     /// Lower a call. Returns the right-hand side, its success type and its failure type.
     pub(super) fn call_expr(
@@ -528,15 +530,15 @@ impl Lower<'_, '_, '_> {
                         c.path.join(".").as_str(),
                         "std.chan.sender.send" | "std.chan.sender.try_send"
                     )
-                    && c.targs
-                        .iter()
-                        .any(|t| matches!(t, y::TArg::Type(t) if !auto_traits(t).send))
+                    && c.targs.iter().any(|t| {
+                        matches!(t, y::TArg::Type(t) if !auto_traits(&|n| self.g.components(n), t).send)
+                    })
                     && let Some(a) = args.first()
                 {
                     self.err(
                         "E415",
                         a.span,
-                        "this value is not Send (it holds an `Rc` or a `MutexGuard`), so it cannot cross to another task".into(),
+                        NOT_SEND.into(),
                     );
                 }
                 Ok(r)

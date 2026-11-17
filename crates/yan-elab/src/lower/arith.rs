@@ -71,10 +71,9 @@ impl Lower<'_, '_, '_> {
                     .any(|(j, o)| j != k && o.iter().any(|(m, _)| m == n));
                 if shared
                     && !seen.contains(n)
-                    && matches!(
-                        self.locals.get(n).map(|l| &l.ty),
-                        Some(Ty::Coll("Mutex", _))
-                    )
+                    && self.locals.get(n).is_some_and(|l| {
+                        yan_core::auto_traits::holds_mutex(&|n| self.g.components(n), &l.ty.core())
+                    })
                 {
                     seen.push(n.clone());
                     self.err(

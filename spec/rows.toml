@@ -1965,3 +1965,8 @@ sections = "19.6"
 rows = "R1054"
 topic = "compiler performance gate at S4 and RC in callgrind instruction counts (RFC 0082 D13)"
 sections = "22.7"
+
+[[entry]]
+rows = "R1055"
+topic = "pointer constructors without a Ptr argument take the pointee type from [T] or the expected type, else E205 (#1527)"
+sections = "6.6, 25"

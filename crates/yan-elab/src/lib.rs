@@ -139,6 +139,20 @@ fn check_wire_names(owner: &str, fs: &[Field], at: Span, cx: &mut Cx) {
 }
 
 impl Globals {
+    /// A record's field types or a sum's variant payload types, for the auto traits (6.4).
+    pub(crate) fn components(&self, name: &str) -> Option<Vec<yan_core::ast::Type>> {
+        if let Some(fs) = self.records.get(name) {
+            return Some(fs.iter().map(|f| f.ty.core()).collect());
+        }
+        let vs = self.sums.get(name)?;
+        Some(
+            vs.iter()
+                .flat_map(|(_, fs)| fs)
+                .map(|f| f.ty.core())
+                .collect(),
+        )
+    }
+
     /// Register variant `v` of `sum`; a bare name of another sum becomes shared.
     pub(crate) fn declare_variant(&mut self, v: &str, sum: &str) {
         if self.variant_of.get(v).is_some_and(|o| o != sum) {
@@ -856,7 +870,7 @@ pub fn elaborate_in(
             }
         } else {
             item(&g, it, &mut cx)
-                .and_then(|k| decorators::check(&g, it, start, &mut cx).map(|()| k))
+                .and_then(|k| decorators::check(&g, it, &m.attrs, start, &mut cx).map(|()| k))
         };
         let k = match checked {
             Ok(k) => k,
