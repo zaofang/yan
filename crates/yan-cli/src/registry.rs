@@ -15,6 +15,12 @@ pub struct Info {
     pub digest: String,
     pub publisher: String,
     pub capability_digest: Option<String>,
+    /// The version's declared ceiling (`.info` `capabilities`); `None` when it names none.
+    pub ceiling: Option<Vec<String>>,
+    /// The `ffi` modules and extern libraries of the version (`.info`, 19.2).
+    pub ffi: Vec<String>,
+    /// The extern libraries of the version (`.info`, R1034).
+    pub libs: Vec<yan_db::ForeignLib>,
     pub requirements: Vec<String>,
     pub yanked: bool,
     /// The publisher's reason for the yank, as written (R949); display it through `reason_line`.
@@ -270,6 +276,25 @@ fn parse_info(text: &[u8], version: &str) -> Option<Info> {
         digest: s("digest")?,
         publisher: s("publisher")?,
         capability_digest: s("capability_digest"),
+        ceiling: v
+            .get("capabilities")
+            .is_some()
+            .then(|| strings("capabilities")),
+        ffi: strings("ffi"),
+        libs: v
+            .get("libs")
+            .and_then(|r| r.as_array())
+            .map(|r| {
+                r.iter()
+                    .filter_map(|x| {
+                        Some(yan_db::ForeignLib {
+                            name: x.get("name")?.as_str()?.to_owned(),
+                            link: x.get("link")?.as_str()?.to_owned(),
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
         requirements: strings("requirements"),
         fixes: strings("fixes"),
         affects: strings("affects"),
@@ -348,17 +373,17 @@ impl Index {
     }
 }
 
-/// The newest version satisfying `want` that is not yanked and, unless `exact`, is older than
-/// the cool-off (19.4) or fixes one of the `affected` advisories (R949).
-pub fn newest(
+/// Every version satisfying `want` that is not yanked and, unless `exact`, is older than the
+/// cool-off (19.4) or fixes one of the `affected` advisories (R949), newest first.
+pub fn candidates(
     index: &Index,
     name: &str,
     want: &str,
     exact: bool,
     affected: &[String],
     now: i64,
-) -> Result<Option<Info>, Box<Diagnostic>> {
-    let mut best: Option<Info> = None;
+) -> Result<Vec<Info>, Box<Diagnostic>> {
+    let mut out = Vec::new();
     for v in index.versions(name)?.iter().flatten() {
         if !satisfies(v, want) || v.contains('-') {
             continue;
@@ -366,18 +391,15 @@ pub fn newest(
         let Some(i) = index.info(name, v)? else {
             continue;
         };
-        let newer = best
-            .as_ref()
-            .is_none_or(|b| parts(&i.version) > parts(&b.version));
         if !i.yanked
             && i.malicious.is_none()
             && (exact || !index.cooling(&i, now) || i.fixes.iter().any(|f| affected.contains(f)))
-            && newer
         {
-            best = Some(i);
+            out.push(i);
         }
     }
-    Ok(best)
+    out.sort_by_key(|i| std::cmp::Reverse(parts(&i.version)));
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -471,5 +493,19 @@ mod tests {
         assert!(http_base("http://[::1]:8080").is_ok());
         assert!(http_base("http://example.org").is_err());
         assert!(http_base("ftp://example.org").is_err());
+    }
+
+    #[test]
+    fn info_carries_ffi_and_libs() {
+        let body = br#"{"digest":"sha256:ab","publisher":"p","time":"2020-01-01T00:00:00Z","ffi":["ffi/z.yn"],"libs":[{"name":"zlib","link":"z"}]}"#;
+        let i = parse_info(body, "1.0.0").unwrap();
+        assert_eq!(i.ffi, ["ffi/z.yn"]);
+        assert_eq!(
+            i.libs,
+            [yan_db::ForeignLib {
+                name: "zlib".into(),
+                link: "z".into()
+            }]
+        );
     }
 }

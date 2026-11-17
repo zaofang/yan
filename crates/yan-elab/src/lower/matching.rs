@@ -1,7 +1,40 @@
 use super::*;
 
+/// The local that holds a `try_lock` option for the length of its `match`.
+pub(super) const TRY_LOCK_TMP: &str = "try_lock";
+
 impl Lower<'_, '_, '_> {
     pub(super) fn match_(&mut self, scrutinee: &j::Expr, cases: &[j::Case], at: Span) -> R<()> {
+        // A `try_lock` option is matched in place (R1038): it is bound in a block of its own that
+        // ends with the match, so drop elaboration unlocks there on every path out, as for `with`.
+        if j::is_try_lock_call(scrutinee) {
+            let tmp_name = self.fresh(TRY_LOCK_TMP);
+            let tmp = j::Expr {
+                kind: j::ExprKind::Name(tmp_name.clone()),
+                span: scrutinee.span,
+                paren: false,
+            };
+            let bind = j::Stmt {
+                kind: j::StmtKind::Bind {
+                    mutable: false,
+                    target: tmp_name,
+                    target_span: scrutinee.span,
+                    ty: None,
+                    value: scrutinee.clone(),
+                },
+                span: at,
+            };
+            let m = j::Stmt {
+                kind: j::StmtKind::Match {
+                    scrutinee: tmp,
+                    cases: cases.to_vec(),
+                },
+                span: at,
+            };
+            let b = self.block(&[bind, m])?;
+            self.emit(StmtKind::Unsafe(b), at);
+            return Ok(());
+        }
         let (a, t) = self.atom(scrutinee, None)?;
         let catch_all = |p: &j::Pat| match p {
             j::Pat::Wild => true,
@@ -73,6 +106,17 @@ impl Lower<'_, '_, '_> {
                     yan_diag::Applicability::Auto,
                     "remove the arm",
                     c.span.line,
+                );
+            }
+            if !self.cx.yn
+                && let j::Pat::Path { path, args: None } = &c.pat
+                && path.len() == 1
+                && self.g.variant_of.contains_key(&path[0])
+            {
+                self.lenient(
+                    "N25",
+                    c.span,
+                    &format!("`case {n}:` normalized to `case {n}():`", n = path[0]),
                 );
             }
             if c.guard.is_none() {
@@ -209,7 +253,13 @@ impl Lower<'_, '_, '_> {
                 self.expect(&lt, ty, e.span);
                 (y::Pat::Lit(l), Vec::new())
             }
-            j::Pat::Path { path, args } if path.len() == 1 => {
+            j::Pat::Path { path, args }
+                if path.len() == 1
+                    || (path.len() == 2
+                        && self.g.qualified_variant(&path[0], &path[1]).is_some()) =>
+            {
+                let qualified = (path.len() == 2).then(|| path[0].clone());
+                let path = &path[path.len() - 1..];
                 // A choice's result sum names its variants by label (R634).
                 let labelled = match ty {
                     Ty::Data(s) if args.is_some() => {
@@ -228,8 +278,21 @@ impl Lower<'_, '_, '_> {
                     (Ty::Option(t), "Some") => Some(vec![("value".into(), (**t).clone())]),
                     (Ty::Result(t, _), "Ok") => Some(vec![("value".into(), (**t).clone())]),
                     (Ty::Result(_, e), "Err") => Some(vec![("error".into(), (**e).clone())]),
-                    (Ty::Inst(s, targs), _) if self.g.variant_of.get(n) == Some(s) => {
-                        let map: Vec<_> = self.g.sum_params[s]
+                    (Ty::Inst(r, targs), _) if r == n && self.g.records.contains_key(r) => {
+                        let map: Vec<_> = self.g.type_params[r]
+                            .iter()
+                            .cloned()
+                            .zip(targs.iter().cloned())
+                            .collect();
+                        Some(
+                            self.g.records[r]
+                                .iter()
+                                .map(|f| (f.name.clone(), f.ty.subst(&map)))
+                                .collect(),
+                        )
+                    }
+                    (Ty::Inst(s, targs), _) if self.g.qualified_variant(s, n).is_some() => {
+                        let map: Vec<_> = self.g.type_params[s]
                             .iter()
                             .cloned()
                             .zip(targs.iter().cloned())
@@ -240,11 +303,11 @@ impl Lower<'_, '_, '_> {
                                 .collect()
                         })
                     }
-                    (Ty::Data(s), _) if self.g.variant_of.get(n) == Some(s) => self.g.sums[s]
+                    (Ty::Data(s), _) if self.g.qualified_variant(s, n).is_some() => self.g.sums[s]
                         .iter()
                         .find(|(v, _)| v == n)
                         .map(|(_, fs)| fs.iter().map(|f| (f.name.clone(), f.ty.clone())).collect()),
-                    (Ty::Data(r), _) if r == n && self.g.layout_bits.contains(r) => {
+                    (Ty::Data(r), _) if r == n && self.g.layout_bits.contains_key(r) => {
                         return unsupported(format!(
                             "a pattern on `@layout(bits)` record `{r}`; read its fields instead"
                         ));
@@ -257,7 +320,31 @@ impl Lower<'_, '_, '_> {
                     ),
                     _ => None,
                 };
+                let fields = match (&qualified, ty) {
+                    (Some(q), Ty::Data(s) | Ty::Inst(s, _)) if q != s => None,
+                    (Some(_), _) if fields.is_none() => None,
+                    _ => fields,
+                };
+                // Core names a shared variant by its sum, since a bare name is ambiguous.
+                let shared = self.g.shared_variants.contains(n.as_str());
+                let (sum_path, n_path) = match ty {
+                    Ty::Data(s) | Ty::Inst(s, _) if shared => (vec![s.clone(), n.clone()], true),
+                    _ => (vec![n.clone()], false),
+                };
                 match (args, fields) {
+                    (_, Some(fs))
+                        if fs.is_empty()
+                            && n_path
+                            && args.as_ref().is_none_or(|a| a.is_empty()) =>
+                    {
+                        (
+                            y::Pat::Ctor {
+                                path: sum_path,
+                                fields: Some((Vec::new(), false)),
+                            },
+                            Vec::new(),
+                        )
+                    }
                     (None, Some(fs)) if fs.is_empty() => (y::Pat::Bind(n.clone()), Vec::new()),
                     (None, _) => (y::Pat::Bind(n.clone()), vec![(n.clone(), ty.clone())]),
                     (Some(_), None) if matches!(ty, Ty::Err) => (y::Pat::Wild, Vec::new()),
@@ -295,7 +382,7 @@ impl Lower<'_, '_, '_> {
                         let rest = pairs.len() < fs.len();
                         (
                             y::Pat::Ctor {
-                                path: vec![n.clone()],
+                                path: sum_path,
                                 fields: Some((pairs, rest)),
                             },
                             binds,

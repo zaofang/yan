@@ -11,7 +11,7 @@ workspace (spec 22.2).
 | Yan Meta | `.ymt` | Research and canary surface, built after M1. |
 | Yan Shell, Yan Binary Format, and the other named job surfaces | `.ynsh`, `.ybf`, ... | Named niche surfaces, none built. See [docs/surfaces.md](docs/surfaces.md). |
 
-Status: generated per commit on the status page (`tools/status.py`, artifact `status`) and in `conformance/COVERAGE.md`.
+Status: generated per commit on the status page (`tools/status.py`, artifact `status`) and in the `conformance-coverage` CI artifact.
 Design laws, pipeline and measured state: [docs/architecture.md](docs/architecture.md).
 Accepted decisions and studies: [docs/decisions-2026-11-04.md](docs/decisions-2026-11-04.md), [docs/studies/](docs/studies), [docs/research/README.md](docs/research/README.md).
 
@@ -102,4 +102,4 @@ Enable private vulnerability reporting under Settings → Code security.
 
 ---
 
-<img src="site/brand/zaofang-avatar.svg" width="20" height="20" alt=""> a zaofang project · 造坊出品
+<img src="brand/zaofang-avatar.svg" width="20" height="20" alt=""> a zaofang project · 造坊出品

@@ -1,0 +1,30 @@
+# Concurrent pipeline: producer -> workers -> collector over channels.
+
+def square_sum(n: int) -> int:
+    total = 0
+    for i in range(1, n + 1):
+        total += i * i
+    return total
+
+def producer(var tx: Sender[int], n: int):
+    for i in range(1, n + 1):
+        tx.send(i) else e -> None
+    tx.send(-1) else e -> None
+
+def worker(var rx: Receiver[int], var out: Sender[int]):
+    while True:
+        v = (rx.recv() else None) else -1
+        if v < 0:
+            return
+        out.send(square_sum(v)) else e -> None
+
+def main() uses io:
+    with sched = sequential():
+        tx, rx = Channel[int](2)
+        otx, orx = Channel[int](2)
+        par concurrent:
+            producer(&tx, 5)
+            worker(&rx, &otx)
+            for _ in range(5):
+                v = (orx.recv() else None) else -1
+                io.print(f"{v}")

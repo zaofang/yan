@@ -1,0 +1,10 @@
+-- spec: 6.7, 6.9
+-- note: with_addr keeps provenance; a word access at an address not a multiple of 8 (assumption A11)
+-- ub: 4
+
+main() =
+  let xs = [1, 2]
+  let p = xs.as_ptr()
+  let q = p.with_addr(p.addr() + 1)
+  unsafe
+    assert q.read() == 0

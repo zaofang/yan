@@ -434,7 +434,7 @@ pub(crate) fn prepare(m: &mut j::Module) {
         let Some(ty) = r.ty.take() else {
             continue;
         };
-        r.fail = vec![vec![FAULT.into()]];
+        r.fail = vec![j::Type::bare(FAULT)];
         let at = f.name_span;
         let gpu = || j::CapRef {
             path: vec!["gpu".into()],
@@ -482,13 +482,14 @@ pub(crate) fn prepare(m: &mut j::Module) {
             decorators: Vec::new(),
             is_pub: false,
             kind: j::ItemKind::Func(j::FuncDef {
+                unsafe_at: None,
                 name: launcher(&f.name),
                 name_span: at,
                 tparams: Vec::new(),
                 params: args,
                 ret: Some(j::RetType {
                     ty: Some(ty),
-                    fail: vec![vec![FAULT.into()]],
+                    fail: vec![j::Type::bare(FAULT)],
                     from: Vec::new(),
                 }),
                 uses: Some(j::Uses::Caps(vec![gpu()])),

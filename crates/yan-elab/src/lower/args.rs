@@ -145,7 +145,11 @@ impl Lower<'_, '_, '_> {
                     Some(d) => {
                         let (a, t) = self.atom(&d.clone(), Some(&p.ty))?;
                         self.expect(&t, &p.ty, at);
-                        self.arg_tys.push((p.ty.clone(), t.clone(), at));
+                        // A default typed at its parameter's own type (`key=None`) says nothing
+                        // about the parameters it mentions.
+                        if t != p.ty {
+                            self.arg_tys.push((p.ty.clone(), t.clone(), at));
+                        }
                         *out = Some(Arg::Value(p.conv, a, at));
                         continue;
                     }
@@ -248,6 +252,7 @@ impl Lower<'_, '_, '_> {
                     let (r, t) = self.widen(Rhs::Atom(a), t, Some(&p.ty), sp)?;
                     let a = self.tmp(&t, r, sp);
                     self.expect(&t, &p.ty, sp);
+                    self.guard_escape(&t, sp);
                     self.arg_tys.push((p.ty.clone(), t.clone(), sp));
                     if conv == Conv::Sink && self.sink_of_element(&a, sp) {
                     } else if let (Conv::Sink, Atom::Name(n, _)) = (conv, &a)
@@ -271,7 +276,50 @@ impl Lower<'_, '_, '_> {
         Ok(Some(done.into_iter().flatten().collect()))
     }
 
-    /// E413 when `a`, passed by `sink`, names an element of a list: the list still owns it.
+    /// `guard_escape` for a bound value: a guard name, or one held directly by a list, set,
+    /// tuple or dict literal (R1037).
+    pub(super) fn guard_escape_expr(&mut self, e: &j::Expr) {
+        match &e.kind {
+            j::ExprKind::Name(_) => {
+                if let Some(t) = self.ty_of_local(e) {
+                    self.guard_escape(&t, e.span);
+                }
+            }
+            j::ExprKind::List(xs) | j::ExprKind::Set(xs) | j::ExprKind::Tuple(xs) => {
+                xs.iter().for_each(|x| self.guard_escape_expr(x));
+            }
+            j::ExprKind::Dict(kvs) => kvs.iter().for_each(|(_, v)| self.guard_escape_expr(v)),
+            _ => {}
+        }
+    }
+
+    /// E414: a `MutexGuard` is second-class (6.3, 4.5): it is used through its own methods, and
+    /// never passed on, returned or stored.
+    pub(super) fn guard_escape(&mut self, t: &Ty, at: Span) {
+        let held = |t: &Ty| matches!(t, Ty::Coll("MutexGuard", _));
+        if held(t) || matches!(t, Ty::Option(i) if held(i)) {
+            self.err(
+                "E414",
+                at,
+                "a `MutexGuard` cannot be passed, returned or stored; use its methods in the scope that locked"
+                    .into(),
+            );
+        }
+    }
+
+    /// E414: the option `try_lock` returns is only a `match` scrutinee (R1038).
+    pub(super) fn try_lock_named(&mut self, value: &j::Expr) {
+        if j::is_try_lock_call(value) {
+            self.err(
+                "E414",
+                value.span,
+                "the option `try_lock` returns is second-class; match it where it is called".into(),
+            );
+        }
+    }
+
+    /// E413 when `a`, passed by `sink` or returned, names an element of a list: the list still
+    /// owns it, so moving it out would need an implicit copy.
     pub(super) fn sink_of_element(&mut self, a: &Atom, sp: Span) -> bool {
         let Atom::Name(n, _) = a else {
             return false;
@@ -282,7 +330,8 @@ impl Lower<'_, '_, '_> {
         self.err(
             "E413",
             sp,
-            "an element of a list cannot be moved out; pass `.copy()`".into(),
+            "an element of a list cannot be moved out; use `.copy()`, or take it out with `pop`"
+                .into(),
         );
         let copied = format!("{}.copy()", self.cx.text(sp));
         self.cx.fix(Applicability::Auto, "copy", sp, &copied);

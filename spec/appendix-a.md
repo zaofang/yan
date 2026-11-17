@@ -355,6 +355,53 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1007 | N52 maps bare `sqrt`, `sin`, `cos`, `tan`, `exp`, `log` to `math.f(x)` when the name is not bound (#1221) | 14.4 |
 | R1008 | N53 maps `s.len()` on a `str` and a free call `char_count(s)`, `parse_int(s)`, `to_string(x)`, `to_int(s)`, `slice(xs, a, b)`, `byte_at(s, i)` to the method or operator spellings (#1221) | 14.4 |
 | R1009 | N54: `import math`, `io`, `regex`, `collections`, `std` resolve to the std modules; a Python-only module or name is E200 with a `choice` fix, never bare (#1221) | 14.4 |
+| R1010 | `unsafe fn` in the Yan grammar: `unsafe` on the item, never in an impl, trait signature or generator (RFC 0076 D1) | 15.2, 3 |
+| R1011 | `unsafe fn` only in std and `ffi` modules (E901) (RFC 0076 D2) | 15.3, 12 |
+| R1012 | a call to an `unsafe fn` needs an `unsafe` block (E903) (RFC 0076 D3) | 3 |
+| R1013 | the body of an `unsafe fn` is not an `unsafe` block (RFC 0076 D4) | 3 |
+| R1014 | `unsafe fn` `pre`: checked at `check`, trusted at `release` with no checked `pub` entry, `ub(16)` under `--ub` (RFC 0076 D5) | 6.8, 6.9, 8.5 |
+| R1015 | `Ptr` in signatures wherever `unsafe` is permitted (RFC 0076 D6) | 3, 15.3 |
+| R1016 | an `unsafe fn` is not a value (E912); no unsafe function type (RFC 0076 D7) | 3, 25.11 |
+| R1017 | `allow_ffi` consents to `ffi` modules; `yan audit` lists `unsafe fn` items and call sites (RFC 0076 D8) | 12, 12.10 |
+| R1018 | every package with an `ffi` module or extern block, the root included, is named in the root's `allow_ffi` by package name (RFC 0077 D1) | 12, 19.1 |
+| R1019 | `allow_ffi` consent enforced at root compile and at dependency resolution, E023; an update gaining the first `ffi` module is refused (RFC 0077 D2) | 12, 19.2, 25 |
+| R1020 | every extern library is a ceiling entry, `uses none` or not, enforced transitively; consent does not replace it (RFC 0077 D3) | 7.4, 12.2, 19.2 |
+| R1021 | `Sender.close()` ends the handle at once; a second `close` and the later drop do nothing; `send`, `try_send` or a `select` send arm on a closed `Sender` panics `contract` | 9.5 |
+| R1022 | `Mutex[T](v)` and `lock() -> MutexGuard[T]`: the guard unlocks at the end of its block on every path out; `get`, `set` and `replace` are its only access; locking a held mutex is a `deadlock` panic (Q2, #1376) | 6.3 |
+| R1023 | a `MutexGuard` is second-class: passing it on, returning it, rebinding it or storing it is E414 | 4.5, 6.3 |
+| R1024 | a guard is live from its binding to the end of its block; a call that may wait on another task, or a `par`, in that range is E323 (R395) | 6.3, 17.1 |
+| R1025 | a closure argument's captured capabilities must be declared in the callee's `uses`, else E301 at the closure (RFC 0078 D1) | 4, 7.2 |
+| R1026 | `list.clear()`, `list.remove_at(i)` (negative counts from the end, `pre` in range) and `list.remove(x)` (`pre` contains) panic with `contract` where Python raises | 17.3 |
+| R1027 | N34 reads `xs.pop(i)` as `remove_at(i)` and `d.pop(k)` as `dict.remove(k)` | 14.4, 17.3 |
+| R1028 | method resolution searches the receiver type's declaring module before the current module, so a module function never captures a method call on a std type (replaces the current-module-first order of R348; #1404) | 17.2 |
+| R1029 | f-string format specs: fill, align, sign, zero pad, width, `,`, and `.Nf` on a float rounded on its exact value (#1401); other types are E017 | 17.3 |
+| R1031 | a foreign library is a ceiling entry of every package whose normal-dependency closure declares it, called or not; confined capabilities stay transitive by `uses` (RFC 0079 D1) | 7.4, 12, 19.2 |
+| R1032 | another package's library is spelled `"@org/name:lib"` in a ceiling, own libraries bare; two packages' `lib zlib` are two capabilities (RFC 0079 D2) | 12, 19.1 |
+| R1033 | every package's closure ceiling checked at resolution (E314 with path), publish (E006) and compile; `yan update` holds back, `yan add` fails (RFC 0079 D3) | 19.2, 19.4, 25 |
+| R1034 | one foreign set computed from source; `.info` and `yan.lock` record `ffi` and `libs`; a locked build recomputes it, E020 on mismatch (RFC 0079 D4) | 19.1, 19.2, 25 |
+| R1030 | `MutexGuard.get` needs a `Copy` `T`; a non-`Copy` `T` is E425, since a copy of an owner would alias it (#1429 item 3) | 6.3, 25 |
+| R1035 | `MutexGuard[T].value` is the protected value as a std subscript place: `inout` and slices work for any `T`; no whole-value `MutView[T]` (RFC 0080 D1; #1429 item 2) | 6.3 |
+| R1036 | a guard bound by `with` (Yan `with g = m.lock()`, Yan Agent `with m.lock() as g`) lives to the end of the `with` block; unlock is never earlier (RFC 0080 D2; #1429 item 1) | 5.3, 6.3, 13, 15 |
+| R1037 | a `MutexGuard` is a view for escape analysis: E414 in a record or container, E406 in an escaping closure, E415 on a channel, E417 across `par` (RFC 0080 D3; #1429 item 4) | 4.5, 4.6, 6.3 |
+| R1038 | `try_lock() -> Option[MutexGuard[T]]` needs `uses nondet` (E709), returns `None` when held (also by the caller), never panics; the option is matched in place only, naming it is E414 (RFC 0081 D1; #1429 item 5) | 6.3 |
+| R1039 | `Mutex.get_mut` (attribute, `inout`) is the protected value as a place and `into_inner()` (`take`) moves it out; neither locks nor needs a capability (RFC 0081 D2, D3; #1429 item 5) | 6.2, 6.3 |
+| R1040 | Send and Sync are one structural computation consulted by every E415 and E417 site; `Mutex[T]` is both iff `T: Send`, a `MutexGuard` neither (RFC 0081 D4; #1429 item 5) | 6.4 |
+| R1041 | sharing a `Mutex` between tasks (par borrow, task move, `Arc` share) is the E709 site; `lock`, `get_mut` and `into_inner` need no capability; no commutativity exemption (RFC 0081 D5; #1429 item 5) | 6.5 |
+| R1042 | the effect signature carries a computed may-wait bit, in function types and trait signatures; E323 uses it through function values and trait methods; a waiting callee passed as no-wait is E201 (RFC 0081 D6; #1429 item 6) | 6.3, 7.2 |
+| R1043 | S1 starts only when S0 passes and difftest reports no native refusal (RFC 0082 D1; #1026) | 22.7 |
+| R1044 | widened S0 readiness list, the bootstrap subset in `selfhost/SUBSET.md` with its lint, std ported to `.yn` before S1 (RFC 0082 D2, D3) | 22.7 |
+| R1045 | a stage's comparison job blocks after 20 green main commits; its stage-0 crates then take only fixes mirrored in the Yan port (RFC 0082 D4) | 22.7 |
+| R1046 | shared tables are data files read by both compilers; passes are `uses none`, the driver alone holds capabilities; sorted diagnostics; sequential until S4 (RFC 0082 D5) | 22.7 |
+| R1047 | S2 opens with the query engine and the compile-time evaluator, before any `yan-elab` port (RFC 0082 D6) | 22.7 |
+| R1048 | `yan-mir` is the last compiler-owned IR; code generators only translate printed MIR; LLVM through one `lib llvm` package; lld as a driver subprocess (RFC 0082 D7) | 22.4 |
+| R1049 | one LLVM code generator, written in Yan over printed MIR, startable after S0 and stage 0's release backend until S3 (RFC 0082 D8) | 22.2, 22.7 |
+| R1050 | std engines are Yan or pinned C libraries; `yan-rt-engines` is the dated exception until each is replaced (RFC 0082 D9) | 22.7 |
+| R1051 | per-stage byte comparisons with stage 0, diagnostics compared in full, determinism checks on the stage-2 build (RFC 0082 D10) | 22.7 |
+| R1052 | ownership prerequisites for S1 and S3 and the live-allocation job at every gate (RFC 0082 D11; #1500) | 22.7 |
+| R1053 | release checks from S4: fixpoint, diverse double compiling, verified Yan Core snapshot, toolchain capability table (RFC 0082 D12) | 19.6 |
+| R1054 | compiler performance gate at S4 and RC in callgrind instruction counts (RFC 0082 D13) | 22.7 |
+| R1055 | pointer constructors without a Ptr argument take the pointee type from [T] or the expected type, else E205 (#1527) | 6.6, 25 |
+| R1056 | section 25 lists N01 to N54; N02 and N11 are silent lexical normalizations, every other N-code reports its note (#1527 decision 6) | 14.4, 25 |
 
 <!-- /rows -->
 

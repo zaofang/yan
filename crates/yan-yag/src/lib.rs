@@ -171,6 +171,12 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
 "#;
 
     #[test]
+    fn marker_impl_body_round_trips() {
+        let src = "trait Marker:\n    \"\"\"Doc.\"\"\"\n\nclass H:\n    n: int\n\nimpl Marker for H: ...\n";
+        assert!(roundtrip(src).contains("impl Marker for H: ...\n"));
+    }
+
+    #[test]
     fn every_production_round_trips() {
         let printed = roundtrip(SAMPLE);
         assert!(printed.starts_with("# header\n\n\"\"\"Module doc.\"\"\"\n"));
@@ -317,6 +323,39 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
             "{out}"
         );
         assert!(!codes(src, true).iter().all(|c| c.0.starts_with('N')));
+    }
+
+    #[test]
+    fn sums_generators_and_constructors_normalize() {
+        let src = "type S = A | B\n\nclass P:\n    x: int\n\nclass Q:\n    y: str\n\ntype U = P | Q\n\nclass C:\n    def __init__(self, n: int):\n        self.n = n\n        self.k = 3\n\ndef g(xs: list[int]) -> int:\n    return sum(x for x in xs)\n";
+        let got: Vec<_> = codes(src, false).into_iter().map(|c| c.0).collect();
+        assert_eq!(got, ["N30", "N18", "N13", "N24"]);
+        let out = print(&parse("t.yag", src, false).0.unwrap());
+        assert!(out.contains("type S = A() | B()"), "{out}");
+        assert!(out.contains("type U = P(x: int) | Q(y: str)"), "{out}");
+        assert!(
+            out.contains("n: int") && out.contains("k: int = 3"),
+            "{out}"
+        );
+        assert!(!out.contains("__init__"), "{out}");
+    }
+
+    #[test]
+    fn a_clause_form_body_becomes_a_match() {
+        let src =
+            "def f(n: int) -> int:\n    case 0:\n        return 1\n    case k:\n        return k\n";
+        let got: Vec<_> = codes(src, false).into_iter().map(|c| c.0).collect();
+        assert_eq!(got, ["N29"]);
+        let out = print(&parse("t.yag", src, false).0.unwrap());
+        assert!(out.contains("match n:"), "{out}");
+        assert!(codes(src, true).iter().any(|c| !c.0.starts_with('N')));
+    }
+
+    #[test]
+    fn a_string_after_a_field_is_its_doc() {
+        let src = "class P:\n    x: int\n    \"the x\"\n";
+        let got: Vec<_> = codes(src, false).into_iter().map(|c| c.0).collect();
+        assert_eq!(got, ["N41"]);
     }
 
     #[test]

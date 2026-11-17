@@ -40,5 +40,5 @@ clicks.
   yet. A run that takes longer than 10 s is stopped.
 - wasm has only round-to-nearest, so core-math's results match native builds.
 - Share copies a link that carries the program in its fragment: `#<surface>/<base64url of raw
-  deflate>`. The site's tour links use the same format (`tools/site.py`).
+  deflate>`. The site's tour links (zaofang/yanlang.dev, `build.py`) use the same format.
 - `examples.js` holds programs from `conformance/` with their header comments dropped.

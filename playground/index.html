@@ -496,7 +496,7 @@ function save() {
   try { localStorage.setItem(KEY, JSON.stringify({ surface, text: src.value })); } catch {}
 }
 
-// A share link carries the program itself: #<surface>/<base64url of raw deflate>. tools/site.py
+// A share link carries the program itself: #<surface>/<base64url of raw deflate>. zaofang/yanlang.dev build.py
 // writes the same format for the tour.
 const b64url = (bytes) => btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join("")).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 const pipe = async (bytes, stream) => new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());

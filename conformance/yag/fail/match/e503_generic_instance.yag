@@ -1,0 +1,10 @@
+# spec: 10.1, 14.1
+# rows: R423
+# expect: E503 at 8:5
+
+type Maybe[T] = Just(value: T) | Nothing()
+
+def get(m: Maybe[str]) -> str:
+    match m:
+        case Just(value=v):
+            return v

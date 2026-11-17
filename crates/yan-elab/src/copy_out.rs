@@ -14,10 +14,11 @@ use yan_core::ast::*;
 use yan_diag::Span;
 
 pub(crate) fn items(items: &mut [Item]) {
+    let ctors = own::ctors(items);
     for it in items {
         match &mut it.kind {
-            ItemKind::Fn(f) | ItemKind::Inst(Inst { def: f, .. }) => body(f),
-            ItemKind::Impl(i) => i.fns.iter_mut().for_each(body),
+            ItemKind::Fn(f) | ItemKind::Inst(Inst { def: f, .. }) => body(f, &ctors),
+            ItemKind::Impl(i) => i.fns.iter_mut().for_each(|f| body(f, &ctors)),
             _ => {}
         }
     }
@@ -44,6 +45,7 @@ struct Plan {
 }
 
 struct Scan<'a> {
+    ctors: &'a own::Ctors,
     /// Function that returns a view (4.5): its `ret` hands out the parameter's storage.
     returns_view: bool,
     params: &'a HashMap<Name, Type>,
@@ -53,17 +55,17 @@ struct Scan<'a> {
     n: usize,
 }
 
-fn body(f: &mut FnDef) {
+fn body(f: &mut FnDef, ctors: &own::Ctors) {
     let returns_view = !f.from.is_empty();
     let params = f.params.clone();
     if let Some(b) = &mut f.body {
-        owned_exits(&params, returns_view, 0, b);
-        closures(b, 0);
+        owned_exits(&params, returns_view, 0, b, ctors);
+        closures(b, 0, ctors);
     }
 }
 
 /// Closure bodies get the same treatment: their parameters are borrowed too.
-fn closures(b: &mut Block, depth: usize) {
+fn closures(b: &mut Block, depth: usize, ctors: &own::Ctors) {
     for s in &mut b.stmts {
         if let StmtKind::Let {
             rhs: Rhs::Closure(c),
@@ -72,16 +74,16 @@ fn closures(b: &mut Block, depth: usize) {
         | StmtKind::Rhs(Rhs::Closure(c)) = &mut s.kind
         {
             // Fresh names start apart from the enclosing body's, whose copies a closure may capture.
-            owned_exits(&c.params, false, 1000 * (depth + 1), &mut c.body);
-            closures(&mut c.body, depth + 1);
+            owned_exits(&c.params, false, 1000 * (depth + 1), &mut c.body, ctors);
+            closures(&mut c.body, depth + 1, ctors);
         }
         for b in blocks_mut(&mut s.kind) {
-            closures(b, depth);
+            closures(b, depth, ctors);
         }
     }
 }
 
-fn owned_exits(ps: &[Param], returns_view: bool, fresh: usize, b: &mut Block) {
+fn owned_exits(ps: &[Param], returns_view: bool, fresh: usize, b: &mut Block, ctors: &own::Ctors) {
     let params: HashMap<Name, Type> = ps
         .iter()
         .filter_map(|p| match p {
@@ -95,6 +97,7 @@ fn owned_exits(ps: &[Param], returns_view: bool, fresh: usize, b: &mut Block) {
         return;
     }
     let mut s = Scan {
+        ctors,
         returns_view,
         params: &params,
         borrowed: params.keys().map(|n| (n.clone(), Def::Param)).collect(),
@@ -194,7 +197,7 @@ impl Scan<'_> {
             } if self.borrowed.contains_key(s) => {
                 for (p, _) in arms {
                     let mut bound = Vec::new();
-                    own::pat_binders(p, &mut bound);
+                    own::view_binders(p, self.ctors, &mut bound);
                     for n in bound {
                         self.borrowed.insert(n, Def::Binder(at, s.clone()));
                     }
@@ -405,6 +408,14 @@ mod tests {
     #[test]
     fn a_projection_only_read_stays_a_view() {
         let text = yir("def n(t: tuple[int, str]) -> int:\n    return t[1].char_count()\n");
+        assert!(!text.contains("copy"), "{text}");
+    }
+
+    #[test]
+    fn a_unit_variant_pattern_binds_nothing() {
+        let text = yir("type Tree = Leaf() | Node(left: Tree, right: Tree)\n\n\
+             def grow(t: Tree) -> Tree:\n    match t:\n        case Leaf():\n            \
+             return Node(Leaf(), Leaf())\n        case Node():\n            return Leaf()\n");
         assert!(!text.contains("copy"), "{text}");
     }
 }

@@ -1,0 +1,26 @@
+# spec: 6.6, 9.5
+# rows: R391, R1021
+# note: a producer closes the Sender it borrows; close is idempotent and the handle's later drop does nothing; the consumer drains and then sees None (#1405)
+# stdout:
+# 10
+# True
+
+def producer(var tx: Sender[int], n: int):
+    for i in range(n):
+        tx.send(i) else e -> None
+    tx.close()
+    tx.close()
+
+pub def main() uses io:
+    with sched = sequential():
+        tx, rx = Channel[int](2)
+        total = 0
+        par concurrent:
+            producer(&tx, 5)
+            while True:
+                v = (rx.recv() else None) else -1
+                if v < 0:
+                    break
+                total += v
+        io.print(f"{total}")
+        io.print(f"{(rx.recv() else None) is None}")

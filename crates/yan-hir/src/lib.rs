@@ -38,6 +38,8 @@ pub struct Item {
 pub enum ItemKind {
     Func(FuncDef),
     Lemma(FuncDef),
+    /// A free subscript, used as `x.name(args)` in place position (4.4, R1006).
+    Sub(FuncDef),
     /// Source lines raise prints as they are: an erased lemma (R870).
     Verbatim(String),
     Record(Record),
@@ -104,7 +106,7 @@ pub struct XParam {
 impl ItemKind {
     pub fn name(&self) -> &str {
         match self {
-            ItemKind::Func(f) | ItemKind::Lemma(f) => &f.name,
+            ItemKind::Func(f) | ItemKind::Lemma(f) | ItemKind::Sub(f) => &f.name,
             ItemKind::Record(r) => &r.name,
             ItemKind::Type(t) => &t.name,
             ItemKind::Trait(t) => &t.name,
@@ -118,6 +120,8 @@ impl ItemKind {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct FuncDef {
+    /// The `unsafe` keyword of an `unsafe fn`: callers discharge its `pre` contracts (RFC 0076).
+    pub unsafe_at: Option<Span>,
     pub name: Name,
     pub name_span: Span,
     pub tparams: Vec<TParam>,
@@ -131,7 +135,7 @@ pub struct FuncDef {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RetType {
     pub ty: Option<Type>,
-    pub fail: Vec<Path>,
+    pub fail: Vec<Type>,
     pub from: Vec<Name>,
 }
 
@@ -280,7 +284,7 @@ pub enum Type {
         par: bool,
         params: Vec<Type>,
         ret: Box<Type>,
-        fail: Vec<Path>,
+        fail: Vec<Type>,
         uses: Vec<Name>,
     },
     /// A type function applied in type position, `session.protocol("...")` (10.4): its
@@ -295,6 +299,16 @@ pub enum Type {
         args: Vec<TArg>,
     },
     None,
+}
+
+impl Type {
+    /// A bare, unqualified type name with no arguments.
+    pub fn bare(name: &str) -> Type {
+        Type::Named {
+            path: vec![name.to_owned()],
+            args: Vec::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -458,6 +472,17 @@ pub struct Case {
     pub span: Span,
     pub guard: Option<Expr>,
     pub body: Block,
+}
+
+/// `m.lock()`: a `with` over it binds a guard for the block (R1036), not a handler.
+pub fn is_lock_call(e: &Expr) -> bool {
+    matches!(&e.kind, ExprKind::Call(f, args)
+        if args.is_empty() && matches!(&f.kind, ExprKind::Attr(_, op, _) if op == "lock"))
+}
+
+pub fn is_try_lock_call(e: &Expr) -> bool {
+    matches!(&e.kind, ExprKind::Call(f, args)
+        if args.is_empty() && matches!(&f.kind, ExprKind::Attr(_, op, _) if op == "try_lock"))
 }
 
 #[derive(Clone, Debug, PartialEq)]

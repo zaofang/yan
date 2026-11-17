@@ -1,5 +1,5 @@
 //! Prose output styling (Workshop Standard L5, L10). Colours are the standard ANSI indices, so
-//! the user's terminal theme applies; `site/brand/tokens.json` gives Yan's own 16-colour palette.
+//! the user's terminal theme applies; `brand/tokens.json` gives Yan's own 16-colour palette.
 
 use std::io::IsTerminal;
 

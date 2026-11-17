@@ -36,6 +36,56 @@ impl Lower<'_, '_, '_> {
         Some(Ok((Rhs::Call(c), tx.clone())))
     }
 
+    /// E709 (R1041): a non-Freeze local (a `Mutex`) named in two branches of a `par` block is shared
+    /// between tasks that may run at once, which needs `uses nondet`.
+    pub(super) fn par_shares(&mut self, branches: &[j::Stmt], at: Span) {
+        fn names(s: &j::Stmt, out: &mut Vec<(String, Span)>) {
+            for e in stmt_exprs(s) {
+                walk(e, &mut |e| {
+                    if let j::ExprKind::Name(n) = &e.kind {
+                        out.push((n.clone(), e.span));
+                    }
+                });
+            }
+            for b in sub_blocks(s) {
+                b.iter().for_each(|s| names(s, out));
+            }
+        }
+        if self.sig.caps.iter().any(|c| c == "nondet") {
+            return;
+        }
+        let used: Vec<Vec<(String, Span)>> = branches
+            .iter()
+            .map(|s| {
+                let mut v = Vec::new();
+                names(s, &mut v);
+                v
+            })
+            .collect();
+        let mut seen: Vec<String> = Vec::new();
+        for (k, ns) in used.iter().enumerate() {
+            for (n, _) in ns {
+                let shared = used
+                    .iter()
+                    .enumerate()
+                    .any(|(j, o)| j != k && o.iter().any(|(m, _)| m == n));
+                if shared
+                    && !seen.contains(n)
+                    && self.locals.get(n).is_some_and(|l| {
+                        yan_core::auto_traits::holds_mutex(&|n| self.g.components(n), &l.ty.core())
+                    })
+                {
+                    seen.push(n.clone());
+                    self.err(
+                        "E709",
+                        at,
+                        format!("`{n}` is not Freeze and is shared between `par` branches; declare `uses nondet`"),
+                    );
+                }
+            }
+        }
+    }
+
     /// The waits a `par` block may not hold: in a plain one a branch receiving what a sibling sends
     /// (E713, R390), and a `Lub` read in a block that writes it (E717, R454).
     pub(super) fn par_waits(&mut self, branches: &[j::Stmt], concurrent: bool) {

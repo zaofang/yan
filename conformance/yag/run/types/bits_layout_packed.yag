@@ -1,0 +1,47 @@
+# spec: 5.2
+# stdout:
+# 255 65535 1
+# 0 3 200
+# 78
+# 4294967295 2147483647 1
+# 1 9
+
+@layout(bits(u32))
+class R:
+    lo: uint8
+    mid: uint16
+    hi: uint8
+
+@layout(bits(u8))
+class One:
+    a: uint8
+
+@layout(bits(u64))
+class Big:
+    a: uint32
+    b: uint31
+    c: uint1
+
+pub def main() uses io:
+    r = R(lo=255, mid=65535, hi=1)
+    io.print(f"{r.lo} {r.mid} {r.hi}")
+    m: uint16 = 3
+    h: uint8 = 200
+    z: uint8 = 0
+    r.mid = m
+    r.hi = h
+    r.lo = z
+    io.print(f"{r.lo} {r.mid} {r.hi}")
+    o = One(a=77)
+    a: uint8 = 78
+    o.a = a
+    io.print(f"{o.a}")
+    b = Big(a=4294967295, b=5, c=1)
+    bb: uint31 = 2147483647
+    b.b = bb
+    io.print(f"{b.a} {b.b} {b.c}")
+    s = R(lo=1, mid=2, hi=3)
+    t = s.copy()
+    n: uint8 = 9
+    t.lo = n
+    io.print(f"{s.lo} {t.lo}")

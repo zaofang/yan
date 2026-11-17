@@ -1,0 +1,14 @@
+# spec: 6.5
+# rows: R1041
+# note: sharing a Mutex between par branches is the E709 site; lock itself needs no capability
+# expect: E709 at 12:5
+
+def bump(m: Mutex[int]) -> None:
+    g = m.lock()
+    g.set(g.get() + 1)
+
+def main() uses io:
+    m = Mutex[int](0)
+    par:
+        bump(m)
+        bump(m)

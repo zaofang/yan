@@ -1,0 +1,13 @@
+# A module `get` no longer captures `dict.get` (gap #1404, fixed).
+class Cache:
+    vals: dict[str, int]
+    hits: int
+
+def get(var c: Cache, key: str) -> int | None:
+    v = c.vals.get(key)
+    c.hits += 1
+    return v
+
+def main() uses io:
+    c = Cache(vals={"a": 1}, hits=0)
+    io.print(f"{get(&c, 'a')}")

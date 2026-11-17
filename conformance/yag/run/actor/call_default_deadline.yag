@@ -29,12 +29,13 @@ def ask(a: Actor[A], var go: Receiver[int]) -> str uses time:
 
 def main() uses io, time:
     with time = virtual(time.now()):
-        a = actor.spawn(A(n=0))
-        tx, rx = Channel[int](1)
-        go_tx, go_rx = Channel[int](1)
-        par concurrent:
-            for _ in range(1):
-                print(ask(a, &go_rx))
-                tx.send(7) else e -> None
-            print(a.hold(&rx) else e -> -1)
-            go_tx.send(1) else e -> None
+        with sched = sequential():
+            a = actor.spawn(A(n=0))
+            tx, rx = Channel[int](1)
+            go_tx, go_rx = Channel[int](1)
+            par concurrent:
+                for _ in range(1):
+                    print(ask(a, &go_rx))
+                    tx.send(7) else e -> None
+                print(a.hold(&rx) else e -> -1)
+                go_tx.send(1) else e -> None

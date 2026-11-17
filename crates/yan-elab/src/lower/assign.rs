@@ -9,6 +9,8 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<()> {
         let ann = ann.map(|t| self.g.ty(t, self.cx, at)).transpose()?;
+        let aliased = self.get_mut_alias(target);
+        let target = aliased.as_ref().unwrap_or(target);
         if value.paren && matches!(&value.kind, j::ExprKind::Tuple(vs) if vs.len() > 1) {
             self.cx.marks.push(crate::marks::Pending {
                 span: value.span,
@@ -218,6 +220,10 @@ impl Lower<'_, '_, '_> {
                 .fix(Applicability::Auto, "copy", at, &format!("{x}.copy()"));
             self.cx.label(later, "used again");
         }
+        if let Rhs::Atom(a @ Atom::Name(..)) = &r
+            && !t.is_copy()
+            && self.sink_of_element(a, at)
+        {}
         let r = match &target.kind {
             j::ExprKind::Name(n) if n != "_" => self.consume(r, &t, at),
             _ => r,
@@ -299,24 +305,55 @@ impl Lower<'_, '_, '_> {
             j::ExprKind::Index(d, k) if self.ty_of_local(d).as_ref().and_then(map_kv).is_some() => {
                 let dt = self.ty_of_local(d).expect("matched");
                 let (kt, vt) = map_kv(&dt).expect("matched");
-                let j::ExprKind::Name(dn) = &d.kind else {
-                    unreachable!("a local")
+                // A map held in a field or element is updated on a copy that is stored back,
+                // as `method` does for an `inout` receiver that is not a plain local.
+                let held = match &d.kind {
+                    j::ExprKind::Name(_) => None,
+                    _ => {
+                        self.dict_places.clear();
+                        Some(self.place(d)?.0)
+                    }
                 };
+                let stores = mem::take(&mut self.dict_places);
                 let (ka, kty) = self.atom(k, Some(&kt))?;
                 self.expect(&kty, &kt, k.span);
                 self.expect(&t, &vt, at);
                 let v = self.tmp(&t, r, at);
+                let recv = match &held {
+                    None => {
+                        let j::ExprKind::Name(dn) = &d.kind else {
+                            unreachable!("a local")
+                        };
+                        dn.clone()
+                    }
+                    Some(p) => {
+                        let m = self.fresh("t");
+                        self.bind(&m, true, &dt, Rhs::Copy(p.clone()), d.span, d.span);
+                        m
+                    }
+                };
                 let c = call(
                     &format!("std.{}.insert", dt.module().expect("a map")),
                     vec![kt.targ(), vt.targ()],
                     vec![
-                        Arg::Value(Conv::Inout, Atom::Name(dn.clone(), d.span), d.span),
+                        Arg::Value(Conv::Inout, Atom::Name(recv.clone(), d.span), d.span),
                         Arg::Value(Conv::Let, ka, k.span),
                         Arg::Value(Conv::Sink, v, at),
                     ],
                     target.span,
                 );
                 self.emit(StmtKind::Rhs(Rhs::Call(c)), target.span);
+                if let Some(place) = held {
+                    self.emit(
+                        StmtKind::Assign {
+                            place,
+                            rhs: Rhs::Atom(Atom::Name(recv, at)),
+                            rhs_span: at,
+                        },
+                        at,
+                    );
+                    self.store_dict_places(stores, at);
+                }
             }
             j::ExprKind::Attr(..) | j::ExprKind::Index(..) => {
                 if let j::ExprKind::Index(b, _) = &target.kind
@@ -330,7 +367,17 @@ impl Lower<'_, '_, '_> {
                     return Ok(());
                 }
                 self.dict_places.clear();
-                let (p, pt) = self.place(target)?;
+                let (p, pt) = match &target.kind {
+                    j::ExprKind::Attr(b, f, fsp) => {
+                        let bp = self.place(b).map_err(|u| u.at(target.span))?;
+                        if let Some(rec) = self.bits_record(&bp.1) {
+                            return self.bits_write((bp.0, &rec), (f, *fsp), (r, &t), at);
+                        }
+                        self.attr_place(bp, (b, f, *fsp), target.span)
+                            .map_err(|u| u.at(target.span))?
+                    }
+                    _ => self.place(target)?,
+                };
                 let stores = mem::take(&mut self.dict_places);
                 self.expect(&t, &pt, at);
                 self.emit(
@@ -362,6 +409,10 @@ impl Lower<'_, '_, '_> {
                     });
                     let w = self.fresh("w");
                     self.bind(&w, false, &t, mv, sp, sp);
+                } else if !t.is_copy() && !matches!(r, Rhs::Atom(_) | Rhs::Proj(_)) {
+                    // A fresh owned value needs a name so drop elaboration frees it.
+                    let w = self.fresh("w");
+                    self.bind(&w, false, &t, r, sp, sp);
                 } else {
                     self.emit(StmtKind::Rhs(r), sp);
                 }
@@ -420,8 +471,56 @@ impl Lower<'_, '_, '_> {
                 let n = self.narrowed(n).unwrap_or(n);
                 self.locals.get(n).map(|l| l.ty.clone())
             }
+            j::ExprKind::Attr(b, f, _) => match self.ty_of_local(b)? {
+                Ty::Coll("Mutex", ts) if f == "$value" || f == "get_mut" => Some(ts[0].clone()),
+                Ty::Data(r) => self
+                    .g
+                    .records
+                    .get(&r)?
+                    .iter()
+                    .find(|fd| fd.name == *f)
+                    .map(|fd| fd.ty.clone()),
+                Ty::Inst(r, targs) => {
+                    let map: Vec<_> = self
+                        .g
+                        .type_params
+                        .get(&r)?
+                        .iter()
+                        .cloned()
+                        .zip(targs)
+                        .collect();
+                    self.g
+                        .records
+                        .get(&r)?
+                        .iter()
+                        .find(|fd| fd.name == *f)
+                        .map(|fd| fd.ty.subst(&map))
+                }
+                _ => None,
+            },
+            j::ExprKind::Index(b, _) => match self.ty_of_local(b)? {
+                Ty::List(t) => Some(*t),
+                Ty::Dict(_, v) => Some(*v),
+                _ => None,
+            },
             _ => None,
         }
+    }
+
+    /// `m.get_mut` on a `Mutex` is the protected value as a place, like `g.value` (R1039). It is
+    /// spelled as a field no program can write, which `attr_place` resolves.
+    pub(super) fn get_mut_alias(&self, e: &j::Expr) -> Option<j::Expr> {
+        let j::ExprKind::Attr(b, m, sp) = &e.kind else {
+            return None;
+        };
+        if m != "get_mut" {
+            return None;
+        }
+        matches!(self.ty_of_local(b)?, Ty::Coll("Mutex", _)).then(|| j::Expr {
+            kind: j::ExprKind::Attr(b.clone(), "$value".into(), *sp),
+            span: e.span,
+            paren: e.paren,
+        })
     }
 
     pub(super) fn place(&mut self, e: &j::Expr) -> R<(Place, Ty)> {
@@ -429,6 +528,9 @@ impl Lower<'_, '_, '_> {
     }
 
     pub(super) fn place_inner(&mut self, e: &j::Expr) -> R<(Place, Ty)> {
+        if let Some(a) = self.get_mut_alias(e) {
+            return self.place_inner(&a);
+        }
         match &e.kind {
             j::ExprKind::Name(n) if self.narrowed(n).is_some() => {
                 let m = self.narrowed(n).expect("checked").to_owned();
@@ -451,34 +553,8 @@ impl Lower<'_, '_, '_> {
                 self.locals[n].ty.clone(),
             )),
             j::ExprKind::Attr(b, f, fsp) => {
-                let (mut p, t) = self.place(b)?;
-                let ft = match &t {
-                    Ty::Err => Ty::Err,
-                    Ty::Data(r) if self.g.records.contains_key(r) => {
-                        match self.g.records[r].iter().find(|fd| fd.name == *f) {
-                            Some(fd) => fd.ty.clone(),
-                            None => {
-                                let names = self.g.records[r].iter().map(|fd| fd.name.as_str());
-                                let msg = format!("`{r}` has no field `{f}`");
-                                self.err_near("E203", *fsp, msg, f, names);
-                                Ty::Err
-                            }
-                        }
-                    }
-                    // A failed send's reason and arguments (R976).
-                    Ty::Coll("Undelivered", ts) if f == "reason" => ts[1].clone(),
-                    Ty::Coll("Undelivered", ts) if f == "args" => ts[0].clone(),
-                    t => {
-                        self.err(
-                            "E203",
-                            *fsp,
-                            format!("`{t}` has no field `{f}`", t = self.ty_text(t)),
-                        );
-                        Ty::Err
-                    }
-                };
-                p.projs.push(Proj::Field(f.clone(), *fsp));
-                Ok((p, ft))
+                let bp = self.place(b)?;
+                self.attr_place(bp, (b, f, *fsp), e.span)
             }
             j::ExprKind::Index(b, i) => {
                 let pt = self.place(b)?;
@@ -508,6 +584,74 @@ impl Lower<'_, '_, '_> {
                 }
             }
         }
+    }
+
+    /// `p.f` as a place, once the base is lowered to `p` of type `t`.
+    pub(super) fn attr_place(
+        &mut self,
+        (mut p, t): (Place, Ty),
+        (b, f, fsp): (&j::Expr, &str, Span),
+        at: Span,
+    ) -> R<(Place, Ty)> {
+        if let Ty::Data(r) = &t
+            && self.g.layout_bits.contains_key(r)
+        {
+            return unsupported("a place inside a packed `@layout(bits)` record");
+        }
+        let ft = match &t {
+            Ty::Err => Ty::Err,
+            Ty::Inst(r, targs) if self.g.records.contains_key(r) => {
+                let map: Vec<_> = self.g.type_params[r]
+                    .iter()
+                    .cloned()
+                    .zip(targs.iter().cloned())
+                    .collect();
+                match self.g.records[r].iter().find(|fd| fd.name == *f) {
+                    Some(fd) => fd.ty.subst(&map),
+                    None => {
+                        let names = self.g.records[r].iter().map(|fd| fd.name.as_str());
+                        let msg = format!("`{r}` has no field `{f}`");
+                        self.err_near("E203", fsp, msg, f, names);
+                        Ty::Err
+                    }
+                }
+            }
+            Ty::Data(r) if self.g.records.contains_key(r) => {
+                match self.g.records[r].iter().find(|fd| fd.name == *f) {
+                    Some(fd) => fd.ty.clone(),
+                    None => {
+                        let names = self.g.records[r].iter().map(|fd| fd.name.as_str());
+                        let msg = format!("`{r}` has no field `{f}`");
+                        self.err_near("E203", fsp, msg, f, names);
+                        Ty::Err
+                    }
+                }
+            }
+            // A failed send's reason and arguments (R976).
+            Ty::Coll("Undelivered", ts) if f == "reason" => ts[1].clone(),
+            Ty::Coll("Undelivered", ts) if f == "args" => ts[0].clone(),
+            // The protected value of a guard, as a place (R1035).
+            Ty::Coll("MutexGuard", ts) if f == "value" => ts[0].clone(),
+            // `Mutex.get_mut` (R1039): the same word, reached through `inout` of the mutex.
+            Ty::Coll("Mutex", ts) if f == "$value" => {
+                p.projs.push(Proj::Field("value".into(), fsp));
+                return Ok((p, ts[0].clone()));
+            }
+            Ty::Coll("Ref", _) => {
+                self.ref_deref(b, at);
+                Ty::Err
+            }
+            t => {
+                self.err(
+                    "E203",
+                    fsp,
+                    format!("`{t}` has no field `{f}`", t = self.ty_text(t)),
+                );
+                Ty::Err
+            }
+        };
+        p.projs.push(Proj::Field(f.to_owned(), fsp));
+        Ok((p, ft))
     }
 
     /// `b[i]` as a place, once `b` is lowered to `p` of type `t`.
@@ -646,6 +790,10 @@ impl Lower<'_, '_, '_> {
                 };
                 Ok((place, vt))
             }
+            Ty::Coll("Ref", _) => {
+                self.ref_deref(b, e.span);
+                Ok((p, Ty::Err))
+            }
             Ty::Coll("iter", _) => {
                 self.err(
                     "E201",
@@ -658,6 +806,17 @@ impl Lower<'_, '_, '_> {
             }
             t => unsupported(format!("indexing a `{t}` as a place", t = self.ty_text(t))),
         }
+    }
+
+    /// E201: a `Ref` is never dereferenced implicitly; `r.f` and `r[i]` read through `r.get()`
+    /// (R1002).
+    pub(super) fn ref_deref(&mut self, r: &j::Expr, at: Span) {
+        let r = self.cx.text(r.span);
+        self.err(
+            "E201",
+            at,
+            format!("a `Ref` is not dereferenced implicitly; read it with `{r}.get()`"),
+        );
     }
 
     /// Stores the dict elements `place` copied out back into their dicts.

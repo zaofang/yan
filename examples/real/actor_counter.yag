@@ -1,0 +1,18 @@
+# Actor holding a counter; several callers via par.
+
+class Counter:
+    n: int
+
+def add(var self: Counter, k: int) -> int:
+    self.n += k
+    return self.n
+
+def get(var self: Counter) -> int:
+    return self.n
+
+def main() uses io:
+    a = actor.spawn(Counter(n=0))
+    r1 = a.add(5) else -1
+    r2 = a.add(7) else -1
+    io.print(f"{r1} {r2}")
+    io.print(f"{a.get() else -1}")

@@ -39,6 +39,13 @@ class Task:
     ret: str
     cases: list[Case] = field(repr=False)
     impossible: bool = False
+    hidden: str | None = None  # Yan test source of a hand-written task; cases is empty then
+    raw_prompt: str | None = None
+    category: str = ""
+
+    @property
+    def n_tests(self) -> int:
+        return self.hidden.count("def test_hidden_") if self.hidden else len(self.cases)
 
     @property
     def signature(self) -> str:
@@ -47,6 +54,8 @@ class Task:
 
     @property
     def prompt(self) -> str:
+        if self.raw_prompt:
+            return self.raw_prompt
         text = f"{self.description}\n\nFunction: {self.signature}"
         if self.impossible:
             args, kwargs, expected = self.cases[0]
@@ -314,8 +323,18 @@ def wrong(v: object) -> object:
     return {**v, "extra": 0} if isinstance(next(iter(v), ""), str) else {}
 
 
+def load_hard() -> list[Task]:
+    import hard
+
+    return [
+        Task(h.id, "hard", h.id.split("/")[1], "", [], [], "", [], hidden=h.tests,
+             raw_prompt=h.prompt, category=h.category)
+        for h in hard.TASKS
+    ]  # fmt: skip
+
+
 def select(suites: list[str], limit: int | None, seed: int) -> list[Task]:
-    tasks = [t for s in suites for t in load(s)]
+    tasks = [t for s in suites for t in (load_hard() if s == "hard" else load(s))]
     random.Random(seed).shuffle(tasks)
     return tasks[:limit] if limit else tasks
 
@@ -329,6 +348,8 @@ def python_tests(task: Task, prefix: str = "test_hidden") -> str:
 
 
 def yan_tests(task: Task, prefix: str = "test_hidden") -> str:
+    if task.hidden:
+        return "\n\n" + task.hidden
     out = []
     for i, (args, kwargs, expected) in enumerate(task.cases):
         call = call_text(task.name, args, kwargs, task.param_types, task.params)

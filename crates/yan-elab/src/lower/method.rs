@@ -10,7 +10,42 @@ impl Lower<'_, '_, '_> {
         };
         matches!(callee, j::ExprKind::Attr(b, m, _)
             if matches!(&b.kind, j::ExprKind::Name(module)
-                if !self.locals.contains_key(module) && self.std_variant(module, m)))
+                if !self.value_bound(module) && self.std_variant(module, m)))
+    }
+
+    /// Whether `n` names a local or a module-level const, either of which hides a std module.
+    pub(super) fn value_bound(&self, n: &str) -> bool {
+        self.locals.contains_key(n) || self.g.consts.contains_key(n)
+    }
+
+    /// Construct variant `n` of sum `s`, written bare or as `S.n` (R799).
+    pub(super) fn variant_call(
+        &mut self,
+        n: &str,
+        s: &str,
+        args: &[j::Arg],
+        at: Span,
+        want: Option<&Ty>,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
+        if self.g.type_params.contains_key(s) {
+            let (r, t) = self.generic_ctor(n, s, args, at, want)?;
+            return Ok((r, t, None));
+        }
+        let fs = &self.g.sums[s]
+            .iter()
+            .find(|(v, _)| v == n)
+            .expect("declared")
+            .1;
+        let ps = field_params(fs, 0, at);
+        if ps.is_empty() && args.is_empty() && !self.g.shared_variants.contains(n) {
+            return Ok((
+                Rhs::Atom(Atom::Name(n.to_owned(), at)),
+                Ty::Data(s.to_owned()),
+                None,
+            ));
+        }
+        let r = self.ctor(Some(s), n, &ps, args, at)?;
+        Ok((r, Ty::Data(s.to_owned()), None))
     }
 
     pub(super) fn std_variant(&self, module: &str, v: &str) -> bool {
@@ -127,6 +162,18 @@ impl Lower<'_, '_, '_> {
             let (p, t) = self.place(b)?;
             return Ok((Rhs::Copy(p), t, None));
         }
+        if m == "get"
+            && args.is_empty()
+            && let Some(Ty::Coll("MutexGuard", ts)) = self.ty_of_local(b)
+            && !ts[0].is_copy()
+        {
+            self.err(
+                "E425",
+                at,
+                "`get` copies the value out and needs a `Copy` type; use `replace` to take it or `set`"
+                    .into(),
+            );
+        }
         // A prelude function that shares its name with an iter method (`zip`, `max`): the
         // receiver's type picks. Both take the receiver by `let`, so a temporary is enough.
         if self.g.fns.contains_key(m)
@@ -151,22 +198,42 @@ impl Lower<'_, '_, '_> {
         if let Some(r) = self.handler_call(b, m, args, at)? {
             return Ok(r);
         }
+        // A call receiver has no type until lowered; bind it so a prelude function (`set`)
+        // does not hide the receiver's own method.
+        let bound;
+        let b = if self.g.std_fns.contains(m)
+            && self.g.fns.contains_key(m)
+            && matches!(b.kind, j::ExprKind::Call(..))
+            && let (Atom::Name(n, _), _) = self.atom(b, None)?
+        {
+            bound = j::Expr {
+                kind: j::ExprKind::Name(n),
+                span: b.span,
+                paren: false,
+            };
+            &bound
+        } else {
+            b
+        };
         let recv_decl = self
             .ty_of_local(b)
             .as_ref()
             .and_then(Ty::module)
             .filter(|module| crate::stdlib::decl(&format!("std.{module}.{m}")).is_some());
-        // A prelude function (`set`) does not hide the receiver's own method.
-        if self.g.fns.contains_key(m) && !(self.g.std_fns.contains(m) && recv_decl.is_some()) {
-            if let Some(module) = recv_decl {
-                self.cx.warn(
-                    "W819",
-                    at,
-                    &self.item.clone(),
-                    format!("this module's `{m}` hides `std.{module}.{m}`"),
-                );
-            }
+        // The module that declares the receiver's type is searched before this module (17.2, R1028).
+        if self.g.fns.contains_key(m) && recv_decl.is_none() {
             return self.user_call(m, Some(b), args, at);
+        }
+        if let Some(module) = recv_decl
+            && self.g.fns.contains_key(m)
+            && !self.g.std_fns.contains(m)
+        {
+            self.cx.warn(
+                "W819",
+                at,
+                &self.item.clone(),
+                format!("`std.{module}.{m}` hides this module's `{m}`"),
+            );
         }
         self.dict_places.clear();
         let (p, t) = self.place(b)?;
@@ -192,6 +259,8 @@ impl Lower<'_, '_, '_> {
             (Ty::Str, "is_lower") => "islower",
             (Ty::Str, "is_space") => "isspace",
             (Ty::Data(n), "findall" | "finditer") if n == "Regex" => "find_all",
+            (Ty::List(_), "pop") if args.len() == 1 => "remove_at",
+            (Ty::Dict(..), "pop") if args.len() == 1 => "remove",
             _ => m,
         };
         if canon != m && !self.cx.strict {
@@ -207,6 +276,12 @@ impl Lower<'_, '_, '_> {
             );
         }
         let m = if self.cx.strict { m } else { canon };
+        let m = if !self.cx.strict && t == Ty::Str && m == "len" {
+            self.lenient("N53", at, "`s.len()` normalized to `s.char_count()`");
+            "char_count"
+        } else {
+            m
+        };
         let zero = [j::Arg {
             name: None,
             kind: j::ArgKind::Expr(j::Expr {
@@ -279,6 +354,9 @@ impl Lower<'_, '_, '_> {
                 format!("`{m}` dereferences a `Ptr`; call it inside `unsafe`"),
             );
         }
+        if path == "std.arena.ref.set" {
+            self.ref_set_exclusive(b, at);
+        }
         let Some(d) = crate::stdlib::decl(&path) else {
             let names = crate::stdlib::members(module);
             if matches!(t, Ty::Coll("iter", _)) && m == "len" {
@@ -343,6 +421,7 @@ impl Lower<'_, '_, '_> {
         }
         let Some(crate::stdlib::Method {
             inout,
+            take,
             params,
             ret,
             targs,
@@ -366,6 +445,11 @@ impl Lower<'_, '_, '_> {
                 writeback = Some((p, v.clone()));
                 Arg::Value(Conv::Inout, Atom::Name(v, b.span), b.span)
             }
+        } else if take {
+            if !p.projs.is_empty() {
+                return unsupported(format!("`{m}` consuming a place inside a value"));
+            }
+            Arg::Value(Conv::Sink, Atom::Name(p.root, p.root_span), b.span)
         } else {
             let a = if p.projs.is_empty() {
                 Atom::Name(p.root, p.root_span)
@@ -477,6 +561,44 @@ impl Lower<'_, '_, '_> {
     /// A `cost` bound (R610) as one Yan Core expression: itself when it is one operation, else a
     /// call of a generated `__cost_<f>_<which>` over `f`'s value parameters that returns it.
     pub(super) fn cost_bound(&mut self, f: &j::FuncDef, which: &str, e: &j::Expr) -> R<y::Expr> {
+        let name = format!("__cost_{}_{which}", f.name);
+        self.operation(f, e, name, "i64", false)
+    }
+
+    /// A `pre` of an `unsafe fn` as one Yan Core `requires`, so every backend sees the clause and
+    /// `--ub` can report it as item 16 (RFC 0076 D5): itself when it is one operation, else a
+    /// call of a generated `__pre_<f>_<k>` over `f`'s value parameters that returns it.
+    pub(super) fn unsafe_pre(&mut self, f: &j::FuncDef, k: usize, e: &j::Expr) -> R<y::Expr> {
+        let name = format!("__pre_{}_{k}", f.name);
+        let mut read = Vec::new();
+        super::walk(e, &mut |x| {
+            if let j::ExprKind::Name(n) = &x.kind {
+                read.push(n.clone());
+            }
+        });
+        // The clause reads these, though the body may not.
+        for n in &read {
+            self.last_use.mark_read(n);
+        }
+        self.operation(f, e, name, "bool", true)
+    }
+
+    fn operation(
+        &mut self,
+        f: &j::FuncDef,
+        e: &j::Expr,
+        name: String,
+        ret: &str,
+        only_read: bool,
+    ) -> R<y::Expr> {
+        let mut read = HashSet::new();
+        if only_read {
+            super::walk(e, &mut |x| {
+                if let j::ExprKind::Name(n) = &x.kind {
+                    read.insert(n.clone());
+                }
+            });
+        }
         if let Some(x) = self.pure(e)? {
             return Ok(x);
         }
@@ -484,13 +606,15 @@ impl Lower<'_, '_, '_> {
             .params
             .iter()
             .filter_map(|p| match p {
-                j::Param::Value { name, span, ty, .. } => Some(j::Param::Value {
-                    conv: None,
-                    name: name.clone(),
-                    span: *span,
-                    ty: ty.clone(),
-                    default: None,
-                }),
+                j::Param::Value { name, span, ty, .. } if !only_read || read.contains(name) => {
+                    Some(j::Param::Value {
+                        conv: None,
+                        name: name.clone(),
+                        span: *span,
+                        ty: ty.clone(),
+                        default: None,
+                    })
+                }
                 _ => None,
             })
             .collect();
@@ -503,15 +627,15 @@ impl Lower<'_, '_, '_> {
                 _ => None,
             })
             .collect();
-        let name = format!("__cost_{}_{which}", f.name);
         let h = j::FuncDef {
+            unsafe_at: None,
             name: name.clone(),
             name_span: e.span,
             tparams: f.tparams.clone(),
             params,
             ret: Some(j::RetType {
                 ty: Some(j::Type::Named {
-                    path: vec!["i64".into()],
+                    path: vec![ret.into()],
                     args: Vec::new(),
                 }),
                 fail: Vec::new(),

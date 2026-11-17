@@ -1,0 +1,14 @@
+# spec: 7.2
+# note: a capability reaches a callee only through `uses`; as an ordinary argument a generic function could return it as data
+# expect: E306 at 13:15
+
+def ident[T](x: T) -> T:
+    return x
+
+def later(f: Fs) -> str uses none:
+    with fs = f:
+        return fs.read("x") else "x"
+
+pub def main() -> None uses io, fs:
+    c = ident(fs)
+    io.print(later(c))

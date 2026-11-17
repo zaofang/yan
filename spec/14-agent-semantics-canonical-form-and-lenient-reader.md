@@ -71,12 +71,12 @@ The printer MUST produce exactly one text for a given Yan Agent tree:
 
 ### 14.4 Lenient reader
 
-The lenient reader accepts these deviations and normalizes them, reporting a note (N-code) instead of an error. `yan check --strict` disables it. Every Yan Agent form an edition retires stays accepted by the lenient reader forever and normalizes to the current form (section 20.4); its acceptance set only grows.
+The lenient reader accepts these deviations and normalizes them, reporting a note (N-code) instead of an error; a row marked `silent` is purely lexical, normalized by the formatter without a note. `yan check --strict` disables it. Every Yan Agent form an edition retires stays accepted by the lenient reader forever and normalizes to the current form (section 20.4); its acceptance set only grows.
 
 | Code | Accepted input | Normalized to |
 | --- | --- | --- |
 | N01 | `import m`, `from m import a` | removed; uses of `a` become `m.a` |
-| N02 | any consistent indentation, including tabs | 4 spaces |
+| N02 | any consistent indentation, including tabs | 4 spaces; silent (R1056) |
 | N03 | single-quoted strings | double-quoted |
 | N04 | `Optional[T]`, `List[T]`, `Dict[K, V]`, `Set[T]`, `Tuple[...]`, `Union[A, B]` (error position) | `T \| None`, `list`, `dict`, `set`, `tuple`, `A \| B` |
 | N05 | missing `decreases` on structural recursion over a sum or list | inferred measure |
@@ -85,7 +85,7 @@ The lenient reader accepts these deviations and normalizes them, reporting a not
 | N08 | `@dataclass` on a class | removed |
 | N09 | methods with `self` inside a class body | lifted to top-level functions with first parameter `self: C` |
 | N10 | `x == None`, `x != None` | `x is None`, `x is not None` |
-| N11 | CRLF, trailing whitespace, missing final newline | canonical |
+| N11 | CRLF, trailing whitespace, missing final newline | canonical; silent (R1056) |
 | N12 | `s[i]` on a `str` | `s.char_at(i)`, with a note that it costs O(n) |
 | N13 | type S = A \| B whose alternatives are undeclared PascalCase names | inline field-less variants A() \| B() (R347, R423, R371) |
 | N14 | `var x = e` or `let x = e` on a local | `x = e`; mutability is inferred (R214) |
@@ -108,7 +108,7 @@ The lenient reader accepts these deviations and normalizes them, reporting a not
 | N31 | a `def` nested in a function body that reads no local of the enclosing function | a module-level function, keeping its name when that name is free at module level and named `outer_inner` otherwise; uses are renamed. A nested `def` that captures a local stays an error with a habit note (R661, R662) |
 | N32 | an `ex` line at the left margin, right after a function whose body it follows | the function's `ex` lines, appended after its other contracts (R766) |
 | N33 | `map(f, xs)`, `filter(f, xs)` with `f` first | `xs.map(f)`, `xs.filter(f)`, eager lists as in 17.3 (R804) |
-| N34 | on a `char`, Python's `isdigit`, `isalpha`, `isalnum`, `isupper`, `islower`, `isspace`; on a `str`, the `is_` spellings of the same; on a `Regex`, `findall` and `finditer`; on a `Match`, `group()` with no argument | `is_digit`, `is_alpha`, `is_alnum`, `is_upper`, `is_lower`, `is_space` on `char`; `isdigit` and the rest on `str`; `find_all`; `group(0)` (R805, R928) |
+| N34 | on a `char`, Python's `isdigit`, `isalpha`, `isalnum`, `isupper`, `islower`, `isspace`; on a `str`, the `is_` spellings of the same; on a `Regex`, `findall` and `finditer`; on a `Match`, `group()` with no argument; on a `list`, `pop(i)`; on a `dict`, `pop(k)` | `is_digit`, `is_alpha`, `is_alnum`, `is_upper`, `is_lower`, `is_space` on `char`; `isdigit` and the rest on `str`; `find_all`; `group(0)`; `remove_at(i)`; `remove(k)`, which returns `V | None` and is an E312 when its result is discarded (R805, R928, R1027) |
 | N35 | `re.match`, `re.search`, `re.fullmatch`, `re.split`, `re.sub`, `re.findall`, `re.finditer` with the pattern first | `regex.compile(pattern).match(...)` and so on, `findall` and `finditer` as `find_all`; `re.compile` and `re.escape` name `regex.compile` and `regex.escape` (R806, R928) |
 | N36 | a `char` where `str` is expected: an argument, an assignment or annotated binding, a `return`, a list or set element; a `list[char]` where `list[str]` is expected; a `char` compared with a `str` that is not a literal; `+` with a `char` and a `str`, or two `char`s | the one-character `str` of the `char`, as `c.to_str()`, element by element for a list; `+` concatenates. A multi-character literal compared with a `char` stays E201 (R802) (R830) |
 | N37 | an `iter` where a `list` is expected, such as the arguments of the prelude `zip` and the argument of `list(...)` (R936); an `iter` call result indexed directly, as `s.chars()[0]`; a name bound without annotation to an `iter` call result and indexed, sliced or measured with `len` in the body | `.collect()` at that place or binding; a name bound to another name, or a parameter, stays E201 or E203 as in 17.2 (R831) |

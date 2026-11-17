@@ -1,0 +1,51 @@
+# Binary search tree: insert, contains, in-order traversal, height.
+
+type Tree = Leaf() | Node(left: Tree, key: int, right: Tree)
+
+def insert(t: Tree, k: int) -> Tree:
+    match t:
+        case Leaf():
+            return Node(Leaf(), k, Leaf())
+        case Node(left=l, key=x, right=r):
+            if k < x:
+                return Node(insert(l, k), x, r)
+            if k > x:
+                return Node(l, x, insert(r, k))
+            return Node(l, x, r)
+
+def contains(t: Tree, k: int) -> bool:
+    match t:
+        case Leaf():
+            return False
+        case Node(left=l, key=x, right=r):
+            if k == x:
+                return True
+            if k < x:
+                return contains(l, k)
+            return contains(r, k)
+
+def walk(t: Tree, var out: list[int]):
+    match t:
+        case Leaf():
+            return
+        case Node(left=l, key=x, right=r):
+            walk(l, &out)
+            out.append(x)
+            walk(r, &out)
+
+def height(t: Tree) -> int:
+    match t:
+        case Leaf():
+            return 0
+        case Node(left=l, right=r):
+            return 1 + max(height(l), height(r))
+
+def main() uses io:
+    t: Tree = Leaf()
+    for k in [50, 30, 70, 20, 40, 60, 80, 30]:
+        t = insert(t, k)
+    out: list[int] = []
+    walk(t, &out)
+    io.print(f"{out}")
+    io.print(f"height={height(t)}")
+    io.print(f"{contains(t, 60)} {contains(t, 65)}")

@@ -47,7 +47,7 @@ def attempt(rec: dict, sample: str, model: str, hard: set[str], cats: dict[str, 
     tok = rec["tokens"]
     return {
         "model": model, "sample": sample, "task": rec["task"], "hard": rec["task"] in hard,
-        "cats": cats.get(rec["task"], []), "impossible": rec["impossible"], "status": rec["status"],
+        "cats": cats.get(rec["task"], []) + ([f"hard:{rec['category']}"] if rec.get("category") else []), "impossible": rec["impossible"], "status": rec["status"],
         "pass1": bool(rec["hidden_first"] and rec["hidden_first"]["ok"]),
         "pass": bool(rec["hidden_final"] and rec["hidden_final"]["ok"]),
         "rounds": len(rec["rounds"]),

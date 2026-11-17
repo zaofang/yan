@@ -27,10 +27,9 @@ fn go(kind: i64, n: usize, r: usize, from: usize, cur: &mut Vec<usize>, out: &mu
     }
 }
 
-/// A one-word-element list: the number of selections, then each selection's `r` indices.
-/// A negative `r`, or one past `n` for the kinds without replacement, selects nothing.
-#[unsafe(no_mangle)]
-pub extern "C" fn yan_rt_select(kind: i64, n: i64, r: i64) -> *mut List {
+/// The slots of a one-word-element list: the number of selections, then each selection's `r`
+/// indices. A negative `r`, or one past `n` for the kinds without replacement, selects nothing.
+pub fn selections(kind: i64, n: i64, r: i64) -> Vec<u64> {
     let mut idx = Vec::new();
     if r >= 0 && (kind == WITH_REPLACEMENT || r <= n) {
         go(kind, n as usize, r as usize, 0, &mut Vec::new(), &mut idx);
@@ -43,9 +42,14 @@ pub extern "C" fn yan_rt_select(kind: i64, n: i64, r: i64) -> *mut List {
     let mut data = Vec::with_capacity(idx.len() + 1);
     data.push(count as u64);
     data.extend(idx);
+    data
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_select(kind: i64, n: i64, r: i64) -> *mut List {
     leak(List {
         words: 1,
-        data,
+        data: selections(kind, n, r),
         limit: -1,
     })
 }

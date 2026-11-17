@@ -1,0 +1,18 @@
+-- An `unsafe fn` with a `pre` (RFC 0076): the caller asserts the precondition inside `unsafe`.
+
+unsafe get(p: Ptr[int], i: int, n: int) -> int =
+  pre 0 <= i and i < n
+  var r = 0
+  unsafe
+    r = p.offset(i).read()
+  r
+
+main() uses io =
+  let xs = [10, 20, 30]
+  var r = 0
+  unsafe
+    r = get(xs.as_ptr(), 2, 3)
+  print(r)
+  unsafe
+    r = get(xs.as_ptr(), 3, 3)
+  print(r)

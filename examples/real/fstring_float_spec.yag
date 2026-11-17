@@ -1,0 +1,3 @@
+# Float and zero-pad format specs (gap #1401, fixed).
+def main() uses io:
+    io.print(f"{3.14159:.2f} {7:04}")

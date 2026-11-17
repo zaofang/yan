@@ -32,12 +32,12 @@ field     = BOL NAME ":" type ["=" expr] NEWLINE ;
 typedef   = "type" TYPENAME [tparams] "=" (variant {"|" variant} | base {"|" base} | "uses" capref {"," capref} | "newtype" "[" type "]") ["where" expr] NEWLINE ;
 variant   = TYPENAME "(" [ifield {"," ifield}] ")" ;
 ifield    = NAME ":" type ["=" expr] ;
-traitdef  = "trait" TYPENAME [tparams] ":" NEWLINE INDENT [docstring] {assoc} {decorator} sigdef
-            {{decorator} sigdef} DEDENT ;
+traitdef  = "trait" TYPENAME [tparams] ":" NEWLINE INDENT [docstring] {assoc} {{decorator} sigdef} DEDENT ;
 assoc     = BOL "type" TYPENAME NEWLINE ;
 sigdef    = BOL "def" NAME [tparams] "(" [params] ")" ["->" rettype] [uses] ":" ("..." NEWLINE | fbody) ;
-impldef   = "impl" path ["[" type {"," type} "]"] "for" type ":" NEWLINE INDENT
-            {BOL "type" TYPENAME "=" type NEWLINE} BOL funcdef {BOL funcdef} DEDENT ;
+impldef   = "impl" path ["[" type {"," type} "]"] "for" type ":"
+            ("..." NEWLINE | NEWLINE INDENT
+            {BOL "type" TYPENAME "=" type NEWLINE} BOL funcdef {BOL funcdef} DEDENT) ;
 constdef  = NAME ":" type "=" expr NEWLINE ;
 
 stmt      = BOL simple NEWLINE | BOL compound ;
@@ -56,7 +56,7 @@ forstmt   = "for" target "in" expr ":" lbody ;
 lbody     = NEWLINE INDENT {BOL ("invariant" | "decreases") expr NEWLINE} stmt {stmt} DEDENT ;
 matchstmt = "match" expr ":" NEWLINE INDENT case {case} DEDENT ;
 case      = BOL "case" pattern ["if" expr] ":" block ;
-withstmt  = "with" (NAME "=" expr | "deadline" "(" expr ")" | "timeout" "(" expr ")" | "supervisor" "(" expr ")") ":" block ;
+withstmt  = "with" (expr "as" NAME | NAME "=" expr | "deadline" "(" expr ")" | "timeout" "(" expr ")" | "supervisor" "(" expr ")") ":" block ;
 parstmt   = "par" ["concurrent"] ["(" "limit" "=" expr ")"] (":" NEWLINE INDENT stmt {stmt} DEDENT | "for" target "in" expr ":" lbody) ;
 block     = simple NEWLINE | NEWLINE INDENT stmt {stmt} DEDENT ;
 
@@ -110,7 +110,7 @@ scalar    = "int" | "float" | "bool"
           | "int8" | "int16" | "int32" | "int128"
           | "uint8" | "uint16" | "uint32" | "uint64" | "uint128"
           | "float16" | "bfloat16" | "float32" | "float128" ;
-errtype   = path {"|" path} ;
+errtype   = base {"|" base} ;
 callsfx   = "," ("fail" "(" errtype ")" ["," "uses" "(" NAME {"," NAME} ")"] | "uses" "(" NAME {"," NAME} ")") ;
 atarg     = INT | type ;
 path      = NAME [ptail] | TYPENAME ;

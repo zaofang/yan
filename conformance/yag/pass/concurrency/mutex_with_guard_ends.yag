@@ -1,0 +1,8 @@
+# spec: 6.3
+# rows: R1036
+# note: the critical section ends at the with block, so a wait after it is not E323
+
+def work(m: Mutex[int]) -> None fail Cancelled uses time:
+    with m.lock() as g:
+        g.set(1)
+    time.sleep(1 * ms)?

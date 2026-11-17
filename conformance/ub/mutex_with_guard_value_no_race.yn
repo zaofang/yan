@@ -1,0 +1,17 @@
+-- spec: 6.3, 6.7
+-- rows: R1035, R1036
+-- note: two par arms update the protected value through g.value in with scopes; the unlock/lock edges order the accesses, so there is no race
+-- ub: none
+
+bump(m: Mutex[int], n: int) uses nondet =
+  for _ in range(0, n)
+    with g = m.lock()
+      g.value += 1
+
+main() uses io, nondet =
+  let m = Mutex[int](0)
+  par
+    bump(m, 50)
+    bump(m, 50)
+  with g = m.lock()
+    io.print("\(g.value)")

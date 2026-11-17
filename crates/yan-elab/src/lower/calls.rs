@@ -304,6 +304,13 @@ impl Lower<'_, '_, '_> {
         args: &[j::Arg],
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
+        if self.g.unsafe_fns.contains(path) && !self.in_unsafe {
+            self.err(
+                "E903",
+                at,
+                format!("`{path}` is an `unsafe fn`; call it inside `unsafe`"),
+            );
+        }
         let mut out: Vec<Arg> = sig
             .caps
             .iter()
@@ -335,13 +342,8 @@ impl Lower<'_, '_, '_> {
         };
         out.extend(vals);
         let mut map = Vec::new();
-        // A default typed at its parameter's own type (`key=None`) says nothing about the
-        // parameters it mentions.
-        let given = |w: &Ty, t: &Ty| w != t || !sig.tparams.iter().any(|(n, _)| w.mentions(n));
         for (w, t, _) in &got {
-            if given(w, t) {
-                w.unify(t, &mut map);
-            }
+            w.unify(t, &mut map);
         }
         if let Some((w, _)) = &want {
             sig.ret.unify(w, &mut map);
@@ -353,7 +355,7 @@ impl Lower<'_, '_, '_> {
             let ([Ty::Param(t)], Ty::Param(k)) = (ps.as_slice(), &**r) else {
                 continue;
             };
-            if got.iter().any(|(w, t, _)| w == &p.ty && given(w, t)) {
+            if got.iter().any(|(w, _, _)| w == &p.ty) {
                 continue;
             }
             let Some(tv) = map.iter().find(|(n, _)| n == t).map(|(_, v)| v.clone()) else {
@@ -484,6 +486,7 @@ impl Lower<'_, '_, '_> {
 
     pub(super) fn ctor(
         &mut self,
+        sum: Option<&str>,
         name: &str,
         ps: &[crate::P],
         args: &[j::Arg],
@@ -520,7 +523,7 @@ impl Lower<'_, '_, '_> {
                 });
             }
         }
-        let fields = ps
+        let fields: Vec<(String, Atom)> = ps
             .iter()
             .zip(vals)
             .map(|(p, a)| match a {
@@ -528,8 +531,15 @@ impl Lower<'_, '_, '_> {
                 Arg::Cap(..) => unreachable!("constructors take no capabilities"),
             })
             .collect();
+        if self.g.layout_bits.contains_key(name) {
+            return self.bits_ctor(name, fields.into_iter().map(|(_, a)| a).collect(), at);
+        }
+        let path = match sum {
+            Some(s) if self.g.shared_variants.contains(name) => vec![s.to_owned(), name.to_owned()],
+            _ => vec![name.to_owned()],
+        };
         Ok(Rhs::Ctor(y::Ctor::Named {
-            path: vec![name.to_owned()],
+            path,
             targs: Vec::new(),
             fields,
         }))
@@ -543,7 +553,9 @@ impl Lower<'_, '_, '_> {
             walk(body, &mut |x| {
                 if let j::ExprKind::Name(n) = &x.kind
                     && hit.is_none()
-                    && self.views.contains(n)
+                    && (self.views.contains(n)
+                        || self.mutable.contains(n) && self.locals.contains_key(n)
+                        || matches!(self.ty_of_local(x), Some(Ty::Coll("MutexGuard", _))))
                     && !ps.contains(n)
                 {
                     hit = Some((n.clone(), x.span));
@@ -553,12 +565,23 @@ impl Lower<'_, '_, '_> {
                 self.err(
                     "E406",
                     sp,
-                    format!("this closure escapes but captures the view `{n}`"),
+                    format!("this closure escapes but captures the view, guard or `var` `{n}`"),
                 );
             }
             return;
         }
         if !self.returns_view {
+            return;
+        }
+        if let j::ExprKind::Name(x) = &e.kind
+            && self.borrows.contains_key(x)
+            && let Some(root) = self.local_root(x)
+        {
+            self.err(
+                "E414",
+                e.span,
+                format!("this value borrows from the local `{root}`, which ends with the function"),
+            );
             return;
         }
         let j::ExprKind::Call(f, args) = &e.kind else {
@@ -603,9 +626,9 @@ impl Lower<'_, '_, '_> {
         let j::ExprKind::Name(x) = &recv.kind else {
             return;
         };
-        if self.sig.params.iter().any(|q| q.name == *x) {
+        let Some(root) = self.local_root(x) else {
             return;
-        }
+        };
         let Some(module) = self.ty_of_local(recv).as_ref().and_then(Ty::module) else {
             return;
         };
@@ -620,7 +643,7 @@ impl Lower<'_, '_, '_> {
             self.err(
                 "E414",
                 e.span,
-                format!("this value borrows from the local `{x}`, which ends with the function"),
+                format!("this value borrows from the local `{root}`, which ends with the function"),
             );
         }
     }

@@ -205,13 +205,14 @@ def server(take ep: Fetch_server_0) -> None fail SessionClosed:
         session.close(gone)
 
 pub def main() uses io:
-    eps = session.connect[Fetch]()
-    c = eps.client
-    s = eps.server
-    par concurrent:
-        r = client(c, \"a\") else \"closed\"
-        server(s) else None
-    io.print(r)
+    with sched = sequential():
+        eps = session.connect[Fetch]()
+        c = eps.client
+        s = eps.server
+        par concurrent:
+            r = client(c, \"a\") else \"closed\"
+            server(s) else None
+        io.print(r)
 ";
 
 const FETCH_INT: &str = "client -> server: Get(str); choice server { server -> client: Found(int) | server -> client: Missing() }; end";
@@ -264,15 +265,16 @@ def reader(take ep: Count_c_0, ticks: int, fuel: int) -> int fail SessionClosed:
             return t * 100 + ticks
 
 pub def main() uses io:
-    eps = session.connect[Count]()
-    a = eps.a
-    b = eps.b
-    c = eps.c
-    par concurrent:
-        adder(a, i=0, n=5) else None
-        summer(b, total=0, fuel=100) else None
-        t = reader(c, ticks=0, fuel=100) else -1
-    io.print(f\"{t}\")
+    with sched = sequential():
+        eps = session.connect[Count]()
+        a = eps.a
+        b = eps.b
+        c = eps.c
+        par concurrent:
+            adder(a, i=0, n=5) else None
+            summer(b, total=0, fuel=100) else None
+            t = reader(c, ticks=0, fuel=100) else -1
+        io.print(f\"{t}\")
 ";
     let (m, d) = checked(src);
     assert!(errors(&d).is_empty(), "{d:?}");

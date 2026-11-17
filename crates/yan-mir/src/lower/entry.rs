@@ -35,7 +35,8 @@ impl Fn<'_, '_> {
         self.cur = err;
         let ev = v[err_at..err_at + e.width()].to_vec();
         let shown = self.show(&ev, &e, false)?;
-        let code = self.exit_code(&e, ev)?;
+        let code = self.exit_code(&e, ev.clone())?;
+        self.glue(&e, &ev);
         self.emit(Inst::Rt {
             dst: None,
             f: RtFn::FailMain,
@@ -46,10 +47,12 @@ impl Fn<'_, '_> {
         self.ret(vec![Operand::Unit]);
         self.finish(Term::Panic("unreachable"));
         Ok(Func {
+            unsafe_fn: false,
             name: "yan.main".to_owned(),
             params: 0,
             ret: vec![Ty::Unit],
             locals: self.locals,
+            pinned: self.pinned,
             blocks: self.blocks,
         })
     }

@@ -1,0 +1,35 @@
+-- spec: 6.7, 15.3
+-- note: a receive through a select orders the sender before the receiving task under `par concurrent` (#1319)
+-- ub: none
+
+pick(var a: Receiver[int], var b: Receiver[int]) -> int fail Cancelled | Timeout uses nondet, time =
+  select
+    a.recv() is Some(v) -> v
+    b.recv() is None -> 0 - 1
+
+writer(p: Ptr[int], var s: Sender[int]) fail Cancelled uses nondet =
+  unsafe
+    p.write(1)
+  s.send(5)?
+
+reader(p: Ptr[int], var a: Receiver[int], var b: Receiver[int]) -> int fail Cancelled | Timeout uses nondet, time =
+  let got = pick(&a, &b)?
+  unsafe
+    p.write(2)
+  got
+
+main() fail Cancelled | Timeout uses nondet, time =
+  let (ta, ra) = Channel[int](1)
+  let (tb, rb) = Channel[int](1)
+  var x = 0
+  let p = Ptr.of(&x)
+  var a = ra
+  var b = rb
+  var sa = ta
+  var sb = tb
+  var out = 0
+  with sched = sequential()
+    par concurrent
+      writer(p, &sa)?
+      out = reader(p, &a, &b)?
+  assert out == 5

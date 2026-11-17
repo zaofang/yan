@@ -5,11 +5,10 @@ An RFC is one batch of spec decisions: what needs one, and the pipeline, are in
 [docs/research](../docs/research/README.md). Decisions made before 2026-11-01 have no RFC file; the
 research index links their studies and rows.
 
-## Spec freeze
+## Case with row
 
-Lead decision 2026-11-12 (#1025): no new RFC or rows, except to fix a contradiction or unblock M1, until
-rows without a case are at or below 60 percent (`tools.status` spec_debt). RFCs 0068 to 0075 (#1004)
-are paused.
+Lead decision 2026-11-16 (#1025): the 2026-11-12 spec freeze is lifted. Every new row lands with its
+conformance case in the same PR set.
 
 ## Writing one
 
@@ -101,3 +100,11 @@ are paused.
 | [0073](0073-agent-session-journal.md) | Agent session journal: `--journal` on `yan mcp` and `yan agent`, a recorded session as an R305 trace | draft | |
 | [0074](0074-growth-contracts.md) | Growth contracts: check a cost class by fitting deterministic step counts | draft | |
 | [0075](0075-ecosystem-impact-testing.md) | Ecosystem impact testing: rerun only the dependents' tests a release changes | draft | |
+| [0076](0076-unsafe-fn.md) | `unsafe fn` in Yan: grammar, calls, `pre` across build modes and `--ub`, not a value | accepted | R1010 to R1017 |
+| [0077](0077-ffi-consent.md) | FFI consent enforced at the root: `allow_ffi`, ceiling, resolution | accepted | R1018 to R1020 |
+| [0078](0078-closure-capabilities.md) | A closure argument's capabilities must be covered by the callee's `uses` | accepted | R1025 |
+| [0079](0079-transitive-ffi-ceiling.md) | Foreign libraries in dependency ceilings by closure, one recomputed foreign set, a package graph for the compiler | accepted | R1031 to R1034 |
+| [0080](0080-mutex-guard-access-and-scope.md) | Mutex guard access, early unlock and escapes | draft | |
+| [0081](0081-mutex-try-lock-ownership-and-auto-traits.md) | Mutex try_lock, owned access, auto traits and the wait check | accepted | R1038-R1042 |
+| [0083](0083-size-of-and-layout.md) | `size_of`, `align_of`, layout classes, niches and the C boundary | accepted | pending (#1519) |
+| [0084](0084-module-and-package-structure.md) | Files, modules, directories and packages | accepted | pending |

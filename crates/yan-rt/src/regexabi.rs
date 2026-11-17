@@ -2,8 +2,8 @@
 //! `whole`, `begin`, `finish`, `groups` (a two-word-element list of `str | None`: tag 0 and the
 //! text, or tag 1) and `names` (a dict of group name to index).
 
-use crate::abi::{List, str_block, yan_rt_list_new, yan_rt_list_push};
-use crate::map::{Map, yan_rt_map_push};
+use crate::abi::{List, store_slots, str_block};
+use crate::jsonslots::Slot;
 use crate::regex::{self as rx, Anchor, Captures, Regex};
 
 fn text<'a>(s: *const String) -> &'a str {
@@ -11,15 +11,19 @@ fn text<'a>(s: *const String) -> &'a str {
     unsafe { &*s }
 }
 
-fn anchored(pattern: *const String, a: i64) -> Regex {
+fn anchored_text(pattern: &str, a: i64) -> Regex {
     rx::compiled(
-        text(pattern),
+        pattern,
         match a {
             0 => Anchor::None,
             1 => Anchor::Start,
             _ => Anchor::Both,
         },
     )
+}
+
+fn anchored(pattern: *const String, a: i64) -> Regex {
+    anchored_text(text(pattern), a)
 }
 
 /// The rejection reason of `pattern`, or null when it compiles.
@@ -49,12 +53,10 @@ pub unsafe extern "C" fn yan_rt_regex_escape(s: *const String) -> *mut String {
 /// `p` and `s` are `Str` blocks.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_regex_split(p: *const String, s: *const String) -> *mut List {
-    let l = yan_rt_list_new(1);
-    for part in rx::split(&anchored(p, 0), text(s)) {
-        // SAFETY: `l` is a fresh list of one-word elements that nothing else borrows.
-        unsafe { *yan_rt_list_push(l) = str_block(part) as u64 };
-    }
-    l
+    let mut w = [0u64];
+    // SAFETY: `w` has room for the one word of a list.
+    unsafe { store_slots(w.as_mut_ptr(), vec![split_slots(text(p), text(s))]) };
+    w[0] as *mut List
 }
 
 /// `r.sub(repl, s)`.
@@ -70,35 +72,59 @@ pub unsafe extern "C" fn yan_rt_regex_sub(
     str_block(&rx::sub(&anchored(p, 0), text(repl), text(s)))
 }
 
-/// The five words of `Match` for `c` at `out`.
-fn fill(re: &Regex, s: &str, c: &Captures, out: *mut u64) {
+/// The five slots of `Match` for `c`.
+fn match_slots(re: &Regex, s: &str, c: &Captures) -> Vec<Slot> {
     let whole = c.get(0).expect("group 0");
-    let groups = yan_rt_list_new(2);
-    for g in c.iter() {
-        // SAFETY: `groups` is a fresh list of two-word elements that nothing else borrows.
-        let slot = unsafe { std::slice::from_raw_parts_mut(yan_rt_list_push(groups), 2) };
-        match g {
-            Some(g) => slot[1] = str_block(g.as_str()) as u64,
-            None => slot[0] = 1,
-        }
-    }
-    let schema = "s";
-    let names = Map::new(schema, 1, 1);
-    for (i, n) in re.capture_names().enumerate() {
-        if let Some(n) = n {
-            let key = str_block(n) as u64;
-            // SAFETY: `names` is a fresh dict with one key slot and one value slot, and `n` is a
-            // distinct group name.
-            unsafe { *yan_rt_map_push(names, &key) = i as u64 };
-        }
-    }
-    // SAFETY: the caller passes room for five words.
-    let out = unsafe { std::slice::from_raw_parts_mut(out, 5) };
-    out[0] = str_block(whole.as_str()) as u64;
-    out[1] = rx::chars(s, whole.start()) as u64;
-    out[2] = rx::chars(s, whole.end()) as u64;
-    out[3] = groups as u64;
-    out[4] = names as u64;
+    let groups = c
+        .iter()
+        .flat_map(|g| match g {
+            Some(g) => [Slot::Word(0), Slot::Str(g.as_str().to_owned())],
+            None => [Slot::Word(1), Slot::Word(0)],
+        })
+        .collect();
+    let entries = re
+        .capture_names()
+        .enumerate()
+        .filter_map(|(i, n)| Some((vec![Slot::Str(n?.to_owned())], vec![Slot::Word(i as u64)])))
+        .collect();
+    vec![
+        Slot::Str(whole.as_str().to_owned()),
+        Slot::Word(rx::chars(s, whole.start()) as u64),
+        Slot::Word(rx::chars(s, whole.end()) as u64),
+        Slot::List(2, groups),
+        Slot::Map {
+            schema: "s".into(),
+            kw: 1,
+            vw: 1,
+            entries,
+        },
+    ]
+}
+
+/// `search`, `match` or `fullmatch` (`anchor` 0, 1, 2): the slots of the `Match`, if any.
+pub fn find_slots(pattern: &str, s: &str, anchor: i64) -> Option<Vec<Slot>> {
+    let re = anchored_text(pattern, anchor);
+    re.captures(s).map(|c| match_slots(&re, s, &c))
+}
+
+/// `find_all`: a list of five-slot `Match` elements.
+pub fn find_all_slots(pattern: &str, s: &str) -> Slot {
+    let re = anchored_text(pattern, 0);
+    Slot::List(
+        5,
+        re.captures_iter(s)
+            .flat_map(|c| match_slots(&re, s, &c))
+            .collect(),
+    )
+}
+
+/// `r.split(s)`.
+pub fn split_slots(pattern: &str, s: &str) -> Slot {
+    let parts = rx::split(&anchored_text(pattern, 0), s);
+    Slot::List(
+        1,
+        parts.into_iter().map(|p| Slot::Str(p.to_owned())).collect(),
+    )
 }
 
 /// `search` (anchor 0), `match` (1) or `fullmatch` (2): 1 and the `Match` words at `out`, or 0.
@@ -112,10 +138,10 @@ pub unsafe extern "C" fn yan_rt_regex_find(
     anchor: i64,
     out: *mut u64,
 ) -> u8 {
-    let re = anchored(p, anchor);
-    match re.captures(text(s)) {
-        Some(c) => {
-            fill(&re, text(s), &c, out);
+    match find_slots(text(p), text(s), anchor) {
+        Some(slots) => {
+            // SAFETY: the caller passes room for five words.
+            unsafe { store_slots(out, slots) };
             1
         }
         None => 0,
@@ -128,11 +154,8 @@ pub unsafe extern "C" fn yan_rt_regex_find(
 /// `p` and `s` are `Str` blocks.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_regex_find_all(p: *const String, s: *const String) -> *mut List {
-    let re = anchored(p, 0);
-    let l = yan_rt_list_new(5);
-    for c in re.captures_iter(text(s)) {
-        // SAFETY: `l` is a fresh list of five-word elements that nothing else borrows.
-        fill(&re, text(s), &c, unsafe { yan_rt_list_push(l) });
-    }
-    l
+    let mut w = [0u64];
+    // SAFETY: `w` has room for the one word of a list.
+    unsafe { store_slots(w.as_mut_ptr(), vec![find_all_slots(text(p), text(s))]) };
+    w[0] as *mut List
 }

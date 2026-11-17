@@ -36,6 +36,7 @@ fn s(x: String) -> Value {
 
 pub(super) static BINDS: &[(Id, Bind)] = &[
     f!(STD_FMT_SHOW, |a| { [v] => s(show(v, false)) }),
+    f!(STD_FMT_SHOW_FIXED, |a| { [Float(x), Int(p)] => s(yan_rt::fmt::float_fixed(*x, count(*p)?)) }),
     f!(STD_TEXT_CONCAT, |a| { [Str(x), Str(y)] => s(format!("{x}{y}")) }),
     // A count of 0 or less repeats nothing (R660).
     f!(STD_TEXT_REPEAT, |a| { [Str(x), Int(n)] => s(x.repeat(count(*n)?)) }),
@@ -326,6 +327,7 @@ pub(super) fn show(v: &Value, nested: bool) -> String {
         Zone(z) => z.id().to_owned(),
         ByteArray(b) => format!("bytearray({})", super::encoding::repr(b)),
         Ptr(p) => format!("Ptr({:#x})", p.addr),
+        Arena(_) => "Arena".into(),
     }
 }
 

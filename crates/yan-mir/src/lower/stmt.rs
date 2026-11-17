@@ -175,6 +175,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                             Some(sides) => self.cmps.insert(n.clone(), sides),
                             None => self.cmps.remove(n),
                         };
+                        match rhs {
+                            y::Rhs::Proj(p) if !p.projs.is_empty() => {
+                                self.projected.insert(n.clone(), p.clone())
+                            }
+                            _ => self.projected.remove(n),
+                        };
                         let var = self.var(shape);
                         self.copy_to(&var.locals.clone(), v);
                         self.names.insert(n.clone(), var);
@@ -218,6 +224,14 @@ impl<'a, 'm> Fn<'a, 'm> {
                 }
                 let (at, shape) = self.place(place)?;
                 let v = self.value(rhs, &shape)?;
+                // A field or element holds a value until it is overwritten (a move out of one
+                // consumes its root), so the old value is dropped after the new one is built.
+                let writes_back = matches!(rhs, y::Rhs::Proj(p)
+                    if p.projs.is_empty() && self.projected.get(&p.root) == Some(place));
+                if !place.projs.is_empty() && !writes_back {
+                    let old = self.read(&at, &shape);
+                    self.glue(&shape, &old);
+                }
                 self.write(&at, v);
                 Ok(())
             }
@@ -366,12 +380,18 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.cur = join;
                 Ok(())
             }
-            K::Par { blocks, .. } => blocks.iter().enumerate().try_for_each(|(k, b)| {
-                let saved = self.split_rands(k);
-                self.block_in(b)?;
-                self.restore_rands(saved);
+            K::Par { blocks, .. } => {
+                self.emit(Inst::Arm(ArmEvent::Fork));
+                for (k, b) in blocks.iter().enumerate() {
+                    self.emit(Inst::Arm(ArmEvent::Enter(k as u32)));
+                    let saved = self.split_rands(k);
+                    self.block_in(b)?;
+                    self.restore_rands(saved);
+                    self.emit(Inst::Arm(ArmEvent::Exit));
+                }
+                self.emit(Inst::Arm(ArmEvent::Join));
                 Ok(())
-            }),
+            }
             K::Assert(e) => {
                 let sides = match e {
                     y::Expr::Atom(y::Atom::Name(n, _)) => self.cmps.get(n).cloned(),

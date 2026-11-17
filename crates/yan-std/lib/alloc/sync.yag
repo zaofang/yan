@@ -1,1 +1,5 @@
 """Shared state across tasks (6.2, 6.3): Arc, Cell and Atomic."""
+
+@since("1.0")
+pub trait Concurrent:
+    """Marker (R1003): `impl Concurrent for H` promises that `sched` handler `H` gives every branch of a `par concurrent` concurrent forward progress; E708 otherwise."""

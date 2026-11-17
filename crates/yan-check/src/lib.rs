@@ -15,6 +15,7 @@ use std::collections::{HashMap, HashSet};
 use std::mem;
 
 use yan_core::ast::*;
+use yan_core::auto_traits::auto_traits;
 use yan_core::{intrinsics, subst, type_text};
 use yan_diag::{Diagnostic, Span};
 
@@ -24,12 +25,91 @@ const COPY_SCALARS: [&str; 6] = ["bool", "char", "Unit", "f32", "f64", "dec128"]
 /// Types an integer or float literal can never have.
 const NON_NUMERIC: [&str; 6] = ["Str", "Bytes", "bool", "char", "Unit", "Never"];
 
+struct GenericCall {
+    caller: String,
+    item: String,
+    callee: String,
+    targs: Vec<TArg>,
+    span: Span,
+}
+
+/// The type parameter of `def` that `t` names, if it is one.
+fn own_tparam(def: &FnDef, t: &TArg) -> Option<Name> {
+    let TArg::Type(Type::Named(n)) = t else {
+        return None;
+    };
+    let [name] = &n.path[..] else {
+        return None;
+    };
+    (n.args.is_empty() && def.tparams.iter().any(|p| p.name == *name)).then(|| name.clone())
+}
+
+/// E415 for a generic function instantiated with a type that is not Send where the function, or
+/// a generic function it forwards to, sends a value of that type parameter to another task (6.4).
+fn generic_sends(
+    g: &Globals,
+    file: &str,
+    src: &str,
+    mut sent: HashMap<String, HashSet<Name>>,
+    calls: &[GenericCall],
+    diags: &mut Vec<Diagnostic>,
+) {
+    let sends = |sent: &HashMap<String, HashSet<Name>>, c: &GenericCall| -> Vec<usize> {
+        let Some((_, f)) = g.function(&c.callee) else {
+            return Vec::new();
+        };
+        (0..f.tparams.len())
+            .filter(|&i| {
+                sent.get(&c.callee)
+                    .is_some_and(|s| s.contains(&f.tparams[i].name))
+            })
+            .collect()
+    };
+    loop {
+        let mut grew = false;
+        for c in calls {
+            let Some((_, caller)) = g.function(&c.caller) else {
+                continue;
+            };
+            for i in sends(&sent, c) {
+                if let Some(p) = own_tparam(caller, &c.targs[i]) {
+                    grew |= sent.entry(c.caller.clone()).or_default().insert(p);
+                }
+            }
+        }
+        if !grew {
+            break;
+        }
+    }
+    for c in calls {
+        for i in sends(&sent, c) {
+            if let TArg::Type(t) = &c.targs[i]
+                && !auto_traits(&|n| g.components(n), t).send
+            {
+                diags.push(error(
+                    file,
+                    src,
+                    &c.item,
+                    "E415",
+                    c.span,
+                    format!(
+                        "`{}` sends a value of its type parameter to another task, and this type is not Send",
+                        c.callee
+                    ),
+                ));
+            }
+        }
+    }
+}
+
 pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
     let g = Globals::new(m);
     let mut diags = Vec::new();
     let mut callees: HashMap<String, HashSet<String>> = HashMap::new();
     let module = m.path.join(".");
     let has_invariant = std::cell::Cell::new(false);
+    let sent: std::cell::RefCell<HashMap<String, HashSet<Name>>> = Default::default();
+    let generic_calls: std::cell::RefCell<Vec<GenericCall>> = Default::default();
     let body = |def: &FnDef, is_gen: bool, item: String, diags: &mut Vec<Diagnostic>| {
         let mut cx = Cx::new(&g, file, src, item, def, is_gen);
         if let Some(b) = &def.body {
@@ -39,6 +119,18 @@ pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
         cx.flow_findings();
         has_invariant.set(has_invariant.get() || cx.has_invariant);
         diags.append(&mut cx.diags);
+        let key = def.path.join(".");
+        sent.borrow_mut()
+            .insert(key.clone(), mem::take(&mut cx.sent_tparams));
+        for (callee, targs, span) in mem::take(&mut cx.generic_calls) {
+            generic_calls.borrow_mut().push(GenericCall {
+                caller: key.clone(),
+                item: cx.item.clone(),
+                callee,
+                targs,
+                span,
+            });
+        }
         cx.callees
     };
     for it in &m.items {
@@ -58,7 +150,7 @@ pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
                 for f in &imp.fns {
                     let item = format!("{module}.{}", f.path.join("."));
                     if is_drop {
-                        check_drop(&g, file, src, &item, f, imp, &mut diags);
+                        check_drop(&g, file, src, &item, f, imp, it.span, &mut diags);
                     }
                     body(f, false, item, &mut diags);
                 }
@@ -101,6 +193,14 @@ pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
         }
     }
     // 8.4: recursion needs `decreases` only in a module that uses contracts.
+    generic_sends(
+        &g,
+        file,
+        src,
+        sent.take(),
+        &generic_calls.take(),
+        &mut diags,
+    );
     let contracts = has_invariant.get()
         || g.fns.values().any(|f| {
             f.contracts.iter().any(|c| {
@@ -150,6 +250,7 @@ fn reaches(callees: &HashMap<String, HashSet<String>>, f: &str) -> bool {
 }
 
 /// 5.4: a `drop` body uses no capability except `alloc`, and a `@linear` type has no `Drop`.
+#[allow(clippy::too_many_arguments)]
 fn check_drop(
     g: &Globals,
     file: &str,
@@ -157,6 +258,7 @@ fn check_drop(
     item: &str,
     f: &FnDef,
     imp: &Impl,
+    impl_span: Span,
     diags: &mut Vec<Diagnostic>,
 ) {
     if let Some(Param::Cap { name, .. }) = f
@@ -179,7 +281,7 @@ fn check_drop(
             src,
             item,
             "E421",
-            f.name_span,
+            impl_span,
             "a `@linear` type cannot implement `Drop`".into(),
         ));
     }
@@ -256,6 +358,21 @@ struct Globals<'m> {
 }
 
 impl<'m> Globals<'m> {
+    /// A record's field types or a sum's variant payload types, for the auto traits (6.4).
+    fn components(&self, name: &str) -> Option<Vec<Type>> {
+        if let Some(r) = self.records.get(name) {
+            return Some(r.fields.iter().map(|f| f.ty.clone()).collect());
+        }
+        let s = self.sum_defs.get(name)?;
+        Some(
+            s.variants
+                .iter()
+                .flat_map(|v| v.fields.iter().flatten())
+                .map(|f| f.ty.clone())
+                .collect(),
+        )
+    }
+
     fn new(m: &'m Module) -> Self {
         let mut g = Globals {
             module: m.path.join("."),
@@ -368,6 +485,12 @@ struct Binding {
     try_at: Option<Span>,
     /// Captures that make the bound closure non-escaping: E406, or E306 for a capability (R467).
     bad_captures: Vec<(&'static str, Span)>,
+    /// The capabilities the bound closure captures: name and type (R1025).
+    cap_captures: Vec<(Name, Type)>,
+    /// The bound closure captures a value that is not Send, or not Sync (6.4): a closure has
+    /// the auto traits of what it captures.
+    unsend_closure: bool,
+    unsync_closure: bool,
 }
 
 type Shadowed = (Name, Option<Binding>, Option<Vec<How>>);
@@ -397,6 +520,10 @@ struct Cx<'g, 'm> {
     par_uses: Vec<(Name, usize, usize, bool)>,
     with_depth: usize,
     callees: HashSet<String>,
+    /// This function's type parameters whose values it sends to another task.
+    sent_tparams: HashSet<Name>,
+    /// Calls to generic functions of the module: callee, type arguments and the call's span.
+    generic_calls: Vec<(String, Vec<TArg>, Span)>,
     has_invariant: bool,
     /// Each join point's parameter names, so a jump's arguments carry their captures in.
     jps: HashMap<Name, Vec<Name>>,
@@ -448,6 +575,8 @@ impl<'g, 'm> Cx<'g, 'm> {
             par_uses: Vec::new(),
             with_depth: 0,
             callees: HashSet::new(),
+            sent_tparams: HashSet::new(),
+            generic_calls: Vec::new(),
             has_invariant: false,
             jps: HashMap::new(),
             diags: Vec::new(),
@@ -507,6 +636,9 @@ impl<'g, 'm> Cx<'g, 'm> {
             local,
             try_at: None,
             bad_captures: Vec::new(),
+            cap_captures: Vec::new(),
+            unsend_closure: false,
+            unsync_closure: false,
         };
         self.env.insert(name.clone(), b);
         self.env.get_mut(name).expect("just inserted")
@@ -625,10 +757,21 @@ impl<'g, 'm> Cx<'g, 'm> {
             .collect()
     }
 
+    /// `n` is an owned, non-copy local: storing it or passing it to a jump moves it, as
+    /// `own::consumed` has it. A borrowed parameter or a view already left by `copy` (R769).
+    fn owns(&self, n: &Name) -> bool {
+        self.env.get(n).is_some_and(|b| {
+            !is_copy(b.ty.as_ref())
+                && matches!(b.kind, Kind::Let | Kind::Var | Kind::Param(Conv::Sink))
+        })
+    }
+
     fn use_name(&mut self, n: &Name, span: Span, how: How) {
         if let Some(id) = self.env.get(n).map(|b| b.id) {
             self.flow.read(id, span);
-            if matches!(how, How::Ret | How::Store | How::Drop) {
+            if how == How::Store && self.owns(n) {
+                self.flow.moved(id, span);
+            } else if matches!(how, How::Ret | How::Store | How::Drop) {
                 self.flow.release(id);
             }
         }
@@ -657,10 +800,11 @@ impl<'g, 'm> Cx<'g, 'm> {
         };
         let inner = b.tag;
         let write = how == How::Inout;
-        let unsync =
-            b.ty.as_ref()
-                .and_then(base)
-                .is_some_and(|t| matches!(t, "Cell" | "Rc" | "Weak"));
+        let g = self.g;
+        let unsync = b.unsync_closure
+            || b.ty
+                .as_ref()
+                .is_some_and(|t| !auto_traits(&|n| g.components(n), t).sync);
         for &(pid, branch) in &self.par.clone() {
             if inner.is_some_and(|(p, _)| p == pid) {
                 continue;
@@ -865,6 +1009,24 @@ impl<'g, 'm> Cx<'g, 'm> {
                         .collect(),
                     _ => self.carried_captures(rhs),
                 };
+                // A copy of a closure, and a closure that captures one, hold what it captures.
+                let cap_captures: Vec<(Name, Type)> = match rhs {
+                    Rhs::Closure(c) => c
+                        .captures
+                        .iter()
+                        .flat_map(|(_, n, _)| match self.env.get(n) {
+                            Some(b) if b.kind == Kind::Cap => {
+                                b.ty.clone().map(|t| (n.clone(), t)).into_iter().collect()
+                            }
+                            Some(b) => b.cap_captures.clone(),
+                            None => Vec::new(),
+                        })
+                        .collect(),
+                    Rhs::Atom(Atom::Name(n, _)) => self.caps_of(n),
+                    Rhs::Copy(p) | Rhs::Move(p) if p.projs.is_empty() => self.caps_of(&p.root),
+                    _ => Vec::new(),
+                };
+                let closure_traits = self.closure_traits(rhs);
                 let got = self.rhs(rhs, *rhs_span);
                 self.compatible(ty, got, *rhs_span);
                 let kind = if *mutable { Kind::Var } else { Kind::Let };
@@ -872,6 +1034,8 @@ impl<'g, 'm> Cx<'g, 'm> {
                     let b = self.bind(n, Some(ty.clone()), kind, *pat_span, true);
                     b.try_at = matches!(rhs, Rhs::Try(_)).then_some(*rhs_span);
                     b.bad_captures = bad_captures;
+                    b.cap_captures = cap_captures;
+                    (b.unsend_closure, b.unsync_closure) = closure_traits;
                 } else {
                     self.bind_pat(pat, *pat_span);
                 }
@@ -966,10 +1130,14 @@ impl<'g, 'm> Cx<'g, 'm> {
                 }
                 for a in args {
                     self.atom(a, How::Read);
-                    if let Atom::Name(n, _) = a
-                        && let Some(b) = self.env.get(n)
+                    if let Atom::Name(n, sp) = a
+                        && let Some(id) = self.env.get(n).map(|b| b.id)
                     {
-                        self.flow.release(b.id);
+                        if self.owns(n) {
+                            self.flow.moved(id, *sp);
+                        } else {
+                            self.flow.release(id);
+                        }
                     }
                 }
                 let to = self.flow.jp(name);
@@ -1200,6 +1368,39 @@ impl<'g, 'm> Cx<'g, 'm> {
     }
 
     /// The bad captures of the closure binding `rhs` names, if it names one.
+    /// Whether the closure `rhs` binds, or copies, captures a value that is not Send, and one
+    /// that is not Sync.
+    fn closure_traits(&self, rhs: &Rhs) -> (bool, bool) {
+        let of = |n: &Name| {
+            self.env
+                .get(n)
+                .map(|b| (b.unsend_closure, b.unsync_closure))
+        };
+        match rhs {
+            Rhs::Closure(c) => c.captures.iter().fold((false, false), |acc, (_, n, _)| {
+                let Some(b) = self.env.get(n) else {
+                    return acc;
+                };
+                let g = self.g;
+                let t = b.ty.as_ref().map(|t| auto_traits(&|n| g.components(n), t));
+                (
+                    acc.0 || b.unsend_closure || t.is_some_and(|t| !t.send),
+                    acc.1 || b.unsync_closure || t.is_some_and(|t| !t.sync),
+                )
+            }),
+            Rhs::Atom(Atom::Name(n, _)) => of(n).unwrap_or_default(),
+            Rhs::Copy(p) | Rhs::Move(p) if p.projs.is_empty() => of(&p.root).unwrap_or_default(),
+            _ => (false, false),
+        }
+    }
+
+    fn caps_of(&self, n: &Name) -> Vec<(Name, Type)> {
+        self.env
+            .get(n)
+            .map(|b| b.cap_captures.clone())
+            .unwrap_or_default()
+    }
+
     fn carried_captures(&self, rhs: &Rhs) -> Vec<(&'static str, Span)> {
         match rhs {
             Rhs::Atom(Atom::Name(n, _)) => self
@@ -1331,6 +1532,36 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
     }
 
+    /// E301: a closure argument that captures a capability the callee does not declare. The
+    /// callee is checked per closure it is given (4.6), so a `uses none` function cannot run
+    /// the effects of its argument (R1025).
+    fn closure_caps(&mut self, c: &Call, f: &FnDef) {
+        for a in &c.args {
+            let Arg::Value(_, Atom::Name(n, sp), _) = a else {
+                continue;
+            };
+            let Some(caps) = self.env.get(n).map(|b| b.cap_captures.clone()) else {
+                continue;
+            };
+            for (cap, ty) in caps {
+                let declared = f
+                    .params
+                    .iter()
+                    .any(|p| matches!(p, Param::Cap { ty: t, .. } if Type::Named(t.clone()) == ty));
+                if !declared {
+                    self.err(
+                        "E301",
+                        *sp,
+                        format!(
+                            "the closure captures capability `{cap}`, which `{}` does not declare in `uses`",
+                            f.path.join(".")
+                        ),
+                    );
+                }
+            }
+        }
+    }
+
     /// Check a call and its arguments. Returns the result type, when known, and the callee
     /// when it is a function of this module.
     fn call(&mut self, c: &Call) -> (Option<String>, Option<&'m FnDef>) {
@@ -1375,6 +1606,27 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
 
         let name = c.path.join(".");
+        if matches!(
+            name.as_str(),
+            "std.chan.sender.send" | "std.chan.sender.try_send"
+        ) {
+            for t in &c.targs {
+                if let Some(p) = own_tparam(self.def, t) {
+                    self.sent_tparams.insert(p);
+                }
+            }
+            for a in &c.args {
+                if let Arg::Value(_, Atom::Name(n, sp), _) = a
+                    && self.env.get(n).is_some_and(|b| b.unsend_closure)
+                {
+                    self.err(
+                        "E415",
+                        *sp,
+                        "this closure captures a value that is not Send, so it cannot cross to another task".into(),
+                    );
+                }
+            }
+        }
         if c.path.len() == 1 && self.env.contains_key(&name) {
             self.use_name(&name, c.span, How::Read);
             return match self.env.get(&name).and_then(|b| b.ty.clone()) {
@@ -1387,6 +1639,24 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
         if let Some((key, f)) = self.g.function(&name) {
             self.callees.insert(key.to_owned());
+            self.closure_caps(c, f);
+            if !f.tparams.is_empty() && c.targs.len() == f.tparams.len() {
+                self.generic_calls
+                    .push((key.to_owned(), c.targs.clone(), c.span));
+            }
+            // 7.2: a capability reaches a callee only through `uses`; as an ordinary argument it
+            // becomes data the callee can return, store or rebind.
+            for a in &c.args {
+                if let Arg::Value(_, Atom::Name(n, sp), _) = a
+                    && self.env.get(n).is_some_and(|b| b.kind == Kind::Cap)
+                {
+                    self.err(
+                        "E306",
+                        *sp,
+                        format!("capability `{n}` cannot be passed as a value; the callee declares it in `uses`"),
+                    );
+                }
+            }
             self.arity(c, f.params.len());
             let generic = !f.tparams.is_empty() || self.g.gens.contains(key);
             return ((!generic).then(|| type_text(&f.ret)), Some(f));
@@ -1701,5 +1971,30 @@ mod selftest {
     fn literal_kinds() {
         let src = "fn f() -> Unit {\n    let a: f64 = 1\n    let b: i64 = 1.5\n    let c: bool = 0\n    ret ()\n}\n";
         assert_eq!(codes(src), [("E201".into(), 4, 18), ("E201".into(), 5, 19)]);
+    }
+
+    #[test]
+    fn storing_an_owned_local_in_a_tuple_moves_it() {
+        let src = "fn f(sink d: Str) -> Str {\n    let p: Tuple(Str, i64) = (d, 1)\n    ret d\n}\n";
+        assert_eq!(
+            codes(src).iter().map(|c| c.0.as_str()).collect::<Vec<_>>(),
+            ["E401"]
+        );
+    }
+
+    #[test]
+    fn a_jump_argument_that_is_an_owned_local_moves_it() {
+        let src = "fn f(let c: bool, sink d: Str) -> Str {\n    jp k(sink v: Str) {\n        ret d\n    }\n\
+                   \x20   if c {\n        jump k(\"a\")\n    }\n    jump k(d)\n}\n";
+        assert_eq!(
+            codes(src).iter().map(|c| c.0.as_str()).collect::<Vec<_>>(),
+            ["E401"]
+        );
+    }
+
+    #[test]
+    fn storing_a_borrowed_parameter_or_a_copy_value_moves_nothing() {
+        let src = "fn f(let d: Str, let n: i64) -> i64 {\n    let p: Tuple(Str, i64) = (d, n)\n    let q: Tuple(Str, i64) = (d, n)\n    ret n\n}\n";
+        assert_eq!(codes(src), []);
     }
 }

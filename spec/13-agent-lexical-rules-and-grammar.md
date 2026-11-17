@@ -60,12 +60,11 @@ field     = NAME ":" type ["=" expr] NEWLINE
 typedef   = "type" TYPENAME [tparams] "=" (variant {"|" variant} | base {"|" base} | "uses" capref {"," capref} | "newtype" "[" type "]") ["where" expr] NEWLINE   # sum iff every alternative is a variant (R423)
 variant   = TYPENAME "(" [ifield {"," ifield}] ")"          # inline variant; Name() when field-less (R214, R423)
 ifield    = NAME ":" type ["=" expr]
-traitdef  = "trait" TYPENAME [tparams] ":" NEWLINE INDENT [docstring] {assoc} {decorator} sigdef
-            {{decorator} sigdef} DEDENT
+traitdef  = "trait" TYPENAME [tparams] ":" NEWLINE INDENT [docstring] {assoc} {{decorator} sigdef} DEDENT   # no sigdef: a marker trait (R1003)
 assoc     = "type" TYPENAME NEWLINE
 sigdef    = "def" NAME [tparams] "(" [params] ")" ["->" rettype] [uses] ":" ("..." NEWLINE | fbody)
-impldef   = "impl" path ["[" type {"," type} "]"] "for" type ":" NEWLINE INDENT
-            {"type" TYPENAME "=" type NEWLINE} funcdef {funcdef} DEDENT
+impldef   = "impl" path ["[" type {"," type} "]"] "for" type ":"
+            ("..." NEWLINE | NEWLINE INDENT {"type" TYPENAME "=" type NEWLINE} funcdef {funcdef} DEDENT)   # `...`: a marker impl, for a trait with no members (R1003)
 constdef  = NAME ":" type "=" expr NEWLINE                  # package: Package = Package(...) is literal-only (19.1)
 
 stmt      = simple NEWLINE | compound
@@ -85,7 +84,7 @@ forstmt   = "for" target "in" expr ":" lbody
 lbody     = NEWLINE INDENT {("invariant" | "decreases") expr NEWLINE} stmt {stmt} DEDENT
 matchstmt = "match" expr ":" NEWLINE INDENT case {case} DEDENT
 case      = "case" pattern ["if" expr] ":" block
-withstmt  = "with" (NAME "=" expr | "deadline" "(" expr ")" | "timeout" "(" expr ")" | "supervisor" "(" expr ")") ":" block   # supervisor: R978
+withstmt  = "with" (expr "as" NAME | NAME "=" expr | "deadline" "(" expr ")" | "timeout" "(" expr ")" | "supervisor" "(" expr ")") ":" block   # supervisor: R978; `expr as NAME` binds a lock guard, a scope ending at the block (R1036)
 parstmt   = "par" ["concurrent"] ["(" "limit" "=" expr ")"] (":" NEWLINE INDENT stmt {stmt} DEDENT | "for" target "in" expr ":" lbody)   # par for statement (R427)
 block     = simple NEWLINE | NEWLINE INDENT stmt {stmt} DEDENT
 
@@ -137,7 +136,7 @@ scalar    = "int" | "float" | "bool"
           | "int8" | "int16" | "int32" | "int128"                # int is 64-bit; int64, float64 lenient (N27)
           | "uint8" | "uint16" | "uint32" | "uint64" | "uint128"
           | "float16" | "bfloat16" | "float32" | "float128"
-errtype   = path {"|" path}
+errtype   = base {"|" base}
 callsfx   = "," ("fail" "(" errtype ")" ["," "uses" "(" NAME {"," NAME} ")"] | "uses" "(" NAME {"," NAME} ")")
 atarg     = INT | type                                        # an axis is a literal size, a size variable or a label type
 path      = NAME [ptail] | TYPENAME                           # a.b.C or a.b.c

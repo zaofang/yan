@@ -107,6 +107,8 @@ pub(crate) enum Op {
     Clear(Reg),
     /// `Clear`, first closing the channel when the register holds its last `Sender`.
     DropSender(Reg),
+    /// `Clear`, first unlocking the mutex whose guard the register holds.
+    DropGuard(Reg),
     Jmp(u32),
     /// A loop's jump back to its start: one step (R487), unlike a jump to a join point.
     Loop(u32),
@@ -537,6 +539,18 @@ fn is_sender(t: &Type) -> bool {
     matches!(t, Type::Named(n) if n.path.last().is_some_and(|s| s == "Sender"))
 }
 
+/// A `MutexGuard`, or the `try_lock` option of one, which holds the lock while it is `Some`.
+fn is_guard(t: &Type) -> bool {
+    match t {
+        Type::Named(n) => match n.path.last().map(String::as_str) {
+            Some("MutexGuard") => true,
+            Some("Option") => matches!(n.args.as_slice(), [TArg::Type(t)] if is_guard(t)),
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
 fn param_name(p: &Param) -> &Name {
     let (Param::Value { name, .. } | Param::Cap { name, .. }) = p;
     name
@@ -676,6 +690,7 @@ struct FnC<'g, 'm> {
     task_binds: Vec<Vec<Name>>,
     /// Names bound at type `Sender[_]`: dropping one may close its channel.
     senders: Vec<Name>,
+    guards: Vec<Name>,
 }
 
 impl<'g, 'm> FnC<'g, 'm> {
@@ -692,6 +707,7 @@ impl<'g, 'm> FnC<'g, 'm> {
             item: None,
             task_binds: Vec::new(),
             senders: Vec::new(),
+            guards: Vec::new(),
         };
         for p in params {
             if let Param::Value { name, ty, .. } = p
@@ -1022,6 +1038,9 @@ impl<'g, 'm> FnC<'g, 'm> {
                     if is_sender(ty) {
                         self.senders.push(n.clone());
                     }
+                    if is_guard(ty) {
+                        self.guards.push(n.clone());
+                    }
                     match comparison(rhs) {
                         Some(sides) => self.cmps.insert(n.clone(), sides),
                         None => self.cmps.remove(n),
@@ -1191,6 +1210,8 @@ impl<'g, 'm> FnC<'g, 'm> {
                     let sender = self.senders.contains(n);
                     self.emit(if sender {
                         Op::DropSender(r)
+                    } else if self.guards.contains(n) {
+                        Op::DropGuard(r)
                     } else {
                         Op::Clear(r)
                     });
@@ -1624,6 +1645,14 @@ impl<'g, 'm> FnC<'g, 'm> {
             }
         }
         let name = c.path.join(".");
+        // An `Atomic` wraps its read-modify-writes to its integer type, which only the call knows.
+        if name == "std.sync.atomic.Atomic"
+            && let [TArg::Type(Type::Named(n))] = c.targs.as_slice()
+            && let Some(t) = n.path.last()
+        {
+            let k = self.konst(Value::Str(t.as_str().into()));
+            args.push(ArgC::Val(k));
+        }
         let callee = if let Some(f) = self
             .g
             .fns

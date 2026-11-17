@@ -311,25 +311,32 @@ pub unsafe extern "C" fn yan_rt_print_str(s: *const String) {
 /// `main` failed: its error, shown, on stderr, then exit status 1.
 ///
 /// # Safety
-/// `s` is a `Str` block.
+/// `s` is a `Str` block that nothing uses afterwards.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_fail_main(s: *const String, code: i64) -> ! {
+pub unsafe extern "C" fn yan_rt_fail_main(s: *mut String, code: i64) -> ! {
     let _ = std::io::stdout().flush();
     // SAFETY: the caller's contract.
     eprintln!("{}", unsafe { &*s });
+    // SAFETY: the caller's contract.
+    unsafe { yan_rt_str_free(s) };
     yan_rt_exit(code)
 }
 
 /// `std.io.read_line`: the next stdin line without its terminator, or null at end of input.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_read_line() -> *mut String {
+    read_line().map_or(std::ptr::null_mut(), |l| str_block(&l))
+}
+
+/// The next stdin line without its terminator, or `None` at end of input.
+pub fn read_line() -> Option<String> {
     use std::io::BufRead;
     let mut line = String::new();
     match std::io::stdin().lock().read_line(&mut line) {
-        Ok(0) | Err(_) => std::ptr::null_mut(),
+        Ok(0) | Err(_) => None,
         Ok(_) => {
             let line = line.strip_suffix('\n').unwrap_or(&line);
-            str_block(line.strip_suffix('\r').unwrap_or(line))
+            Some(line.strip_suffix('\r').unwrap_or(line).to_string())
         }
     }
 }
@@ -354,18 +361,22 @@ thread_local! {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_fs_read(path: *const String) -> *mut String {
     // SAFETY: the caller's contract.
-    match std::fs::read_to_string(unsafe { &*path }) {
+    match fs_read(unsafe { &*path }) {
         Ok(s) => str_block(&s),
-        Err(e) => {
-            let reason = match e.kind() {
-                std::io::ErrorKind::NotFound => "not found".to_owned(),
-                std::io::ErrorKind::PermissionDenied => "permission denied".to_owned(),
-                _ => e.to_string(),
-            };
-            FS_REASON.with(|r| *r.borrow_mut() = reason);
+        Err(reason) => {
+            set_fs_reason(reason);
             std::ptr::null_mut()
         }
     }
+}
+
+/// The text of the real file at `path`, or the reason it could not be read.
+pub fn fs_read(path: &str) -> Result<String, String> {
+    std::fs::read_to_string(path).map_err(|e| match e.kind() {
+        std::io::ErrorKind::NotFound => "not found".to_owned(),
+        std::io::ErrorKind::PermissionDenied => "permission denied".to_owned(),
+        _ => e.to_string(),
+    })
 }
 
 pub(crate) fn set_fs_reason(reason: String) {
@@ -400,6 +411,11 @@ pub extern "C" fn yan_rt_show_u64(x: u64) -> *mut String {
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_show_f64(x: f64) -> *mut String {
     leak(crate::fmt::float_repr(x))
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_show_fixed(x: f64, prec: i64) -> *mut String {
+    leak(crate::fmt::float_fixed(x, prec.max(0) as usize))
 }
 
 #[unsafe(no_mangle)]
@@ -707,17 +723,8 @@ pub unsafe extern "C" fn yan_rt_dot_exact(xs: *const List, ys: *const List, mode
             .map(|w| f64::from_bits(*w))
             .collect()
     };
-    let xs = floats(xs);
-    let terms: Vec<(f64, f64)> = if ys.is_null() {
-        xs.into_iter().map(|x| (x, 1.0)).collect()
-    } else {
-        let ys = floats(ys);
-        if xs.len() != ys.len() {
-            panic("value");
-        }
-        xs.into_iter().zip(ys).collect()
-    };
-    crate::math::dot(terms.into_iter(), crate::math::mode_of(mode))
+    let ys = (!ys.is_null()).then(|| floats(ys));
+    crate::math::dot_exact(&floats(xs), ys.as_deref(), mode).unwrap_or_else(|| panic("value"))
 }
 
 #[unsafe(no_mangle)]
@@ -878,6 +885,14 @@ pub unsafe extern "C" fn yan_rt_list_len(l: *const List) -> i64 {
 /// # Safety
 /// `l` is a `List` block.
 #[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_list_data(l: *mut List) -> *mut u64 {
+    // SAFETY: the caller's contract.
+    unsafe { &mut *l }.data.as_mut_ptr()
+}
+
+/// # Safety
+/// `l` is a `List` block.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_list_at(l: *mut List, i: i64) -> *mut u64 {
     // SAFETY: the caller's contract.
     let n = unsafe { yan_rt_list_len(l) };
@@ -968,7 +983,7 @@ pub unsafe extern "C" fn yan_rt_free_env(p: *mut u64) {
 ///
 /// # Safety
 /// `out` has room for the slots.
-unsafe fn store_slots(out: *mut u64, slots: Vec<crate::jsonslots::Slot>) {
+pub(crate) unsafe fn store_slots(out: *mut u64, slots: Vec<crate::jsonslots::Slot>) {
     use crate::jsonslots::Slot;
     fn flat(slots: Vec<Slot>) -> Vec<u64> {
         slots
@@ -1038,6 +1053,49 @@ pub unsafe extern "C" fn yan_rt_json_dump(v: *const u64, schema: *const String) 
     }
 }
 
+/// `std.json.parse_value` (`float` 0) or `std.json.parse_float`: the slots of the `Result`.
+///
+/// # Safety
+/// `out` has room for the `Result`'s slots; `src` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_json_parse_value(
+    out: *mut u64,
+    src: *const String,
+    max_depth: i64,
+    float: i64,
+) {
+    let depth = usize::try_from(max_depth).unwrap_or(0);
+    // SAFETY: the caller's contract.
+    let src = unsafe { &*src };
+    let slots = if float == 0 {
+        crate::jsonslots::parse_value(src, depth)
+    } else {
+        crate::jsonslots::parse_float(src, depth)
+    };
+    // SAFETY: as above.
+    unsafe { store_slots(out, slots) }
+}
+
+/// `std.json.dump_value`: `indent` counts when `has_indent` is 0, the tag of `Some`.
+///
+/// # Safety
+/// `v` holds a `Value`'s slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_json_dump_value(
+    v: *const u64,
+    has_indent: i64,
+    indent: i64,
+) -> *mut String {
+    let indent = (has_indent == 0).then(|| usize::try_from(indent).unwrap_or(0));
+    // SAFETY: the caller's contract.
+    let w = unsafe { std::slice::from_raw_parts(v, crate::jsonslots::VALUE_WIDTH) };
+    // SAFETY: as above.
+    match unsafe { crate::jsonslots::dump_value(w, indent) } {
+        Some(s) => str_block(&s),
+        None => panic("value"),
+    }
+}
+
 /// The text of a `JsonError`.
 ///
 /// # Safety
@@ -1064,8 +1122,7 @@ pub unsafe extern "C" fn yan_rt_wire_roundtrip(
     start: i64,
 ) -> i64 {
     // SAFETY: the caller's contract.
-    let sc: crate::wire::Schemas =
-        serde_json::from_str(unsafe { &*schema }).expect("the elaborator's schema");
+    let sc = crate::wireslots::schemas(unsafe { &*schema });
     // SAFETY: as above.
     let w = unsafe { std::slice::from_raw_parts(v, crate::wireslots::root_width(&sc)) };
     // SAFETY: as above.
@@ -1115,7 +1172,10 @@ pub unsafe extern "C" fn yan_rt_csv_dump(
     schema: *const String,
 ) -> *mut String {
     // SAFETY: the caller's contract.
-    match unsafe { crate::csvslots::dump(&*rows, &*delim, &*schema) } {
+    let rows = unsafe { &*rows };
+    // SAFETY: the rows' `Str` slots are live blocks.
+    let text = |w: u64| unsafe { &*(w as *const String) }.clone();
+    match crate::csvslots::dump(&rows.data, unsafe { &*delim }, unsafe { &*schema }, &text) {
         Some(s) => str_block(&s),
         None => panic("value"),
     }

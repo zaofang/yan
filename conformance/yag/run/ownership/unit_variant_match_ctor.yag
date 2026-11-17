@@ -1,0 +1,25 @@
+# spec: 5.3
+# rows: R769
+# note: a unit variant pattern binds nothing, so constructing the same variant in its arm is not a move of the scrutinee (#1398)
+# stdout:
+# ok
+# a
+type Tree = Leaf() | Node(left: Tree, right: Tree)
+
+def grow(t: Tree) -> Tree:
+    match t:
+        case Leaf():
+            return Node(Leaf(), Leaf())
+        case Node():
+            return Leaf()
+
+def main() uses io:
+    t = grow(Leaf())
+    io.print("ok")
+    u = Leaf()
+    match u:
+        case Leaf():
+            v = Node(Leaf(), Leaf())
+            io.print("a")
+        case Node():
+            io.print("b")

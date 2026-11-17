@@ -61,6 +61,8 @@ pub enum FnKind {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct FnDef {
+    /// The `unsafe` keyword.
+    pub unsafe_: Option<Span>,
     pub kind: FnKind,
     pub sig: Sig,
     pub body: Body,

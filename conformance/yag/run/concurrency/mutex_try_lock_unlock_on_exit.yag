@@ -1,0 +1,25 @@
+# spec: 6.3
+# rows: R1038
+# note: the try_lock guard unlocks at the end of its match arm, on both the fall-through and the early return, so the next try_lock succeeds
+# stdout:
+# 7
+# 3
+# 5
+# exit: 0
+
+def probe(m: Mutex[int]) -> int uses nondet:
+    match m.try_lock():
+        case Some(g):
+            if g.get() == 0:
+                g.set(1)
+                return 7
+            g.set(g.get() + 2)
+            return g.get()
+        case None:
+            return 0 - 1
+
+def main() uses io, nondet:
+    m = Mutex[int](0)
+    print(probe(m))
+    print(probe(m))
+    print(probe(m))

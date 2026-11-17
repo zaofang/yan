@@ -23,14 +23,20 @@ mod args;
 mod arith;
 mod array;
 mod assign;
+pub(crate) mod bits;
+mod borrows;
 mod builtin;
 mod call_expr;
 mod calls;
 mod cluster;
 mod consume;
+mod conv;
 mod fallback;
+mod fmtspec;
 mod generic_sum;
 mod last_use;
+mod lenient_names;
+pub(crate) use lenient_names::MATH_FREE;
 mod loops;
 mod matching;
 mod method;
@@ -102,8 +108,8 @@ struct Lower<'a, 'c, 's> {
     want_ret: Option<(Ty, Span)>,
     /// Capabilities bound by an enclosing `with name = handler`.
     handlers: Vec<String>,
-    /// The innermost enclosing `with sched = ...` binds `pool`, which gives no concurrent progress (E708).
-    pool_sched: bool,
+    /// The innermost enclosing `with sched = ...` binds a handler that does not implement `Concurrent` (E708).
+    sched_not_concurrent: bool,
     /// Each call of a non-`par` callable local, for E716.
     fn_calls: Vec<(String, Span)>,
     /// `k = lambda ...` with no expected type: the target and lambda, lowered at the first call.
@@ -128,6 +134,9 @@ struct Lower<'a, 'c, 's> {
     /// The parameters written as `View[T]`, and whether the function returns a view.
     views: Vec<String>,
     returns_view: bool,
+    /// Each local bound from a view or `Ref` (`let v = r.get()`, `let r = arena.alloc(x)`), with
+    /// every local and parameter it borrows from, transitively (4.5, R1002).
+    borrows: HashMap<String, Vec<String>>,
     /// Types learned for empty `[]` and `{}` bindings, by the span of the literal (R808).
     hints: Rc<RefCell<HashMap<Span, Ty>>>,
     /// Names read after the block that bound them, with their types: the next lowering
@@ -837,7 +846,8 @@ fn function_body_with(
         arg_tys: Vec::new(),
         want_ret: None,
         handlers: Vec::new(),
-        pool_sched: false,
+        // The hosted default handler is `pool`, which is not `Concurrent` (R1003).
+        sched_not_concurrent: f.name == "main",
         fn_calls: Vec::new(),
         pending: HashMap::new(),
         target: None,
@@ -854,11 +864,10 @@ fn function_body_with(
                 _ => None,
             })
             .collect(),
-        returns_view: f
-            .ret
-            .as_ref()
-            .and_then(|r| r.ty.as_ref())
-            .is_some_and(|t| is_view(t) || is_ref(t)),
+        returns_view: f.ret.as_ref().is_some_and(|r| {
+            !r.from.is_empty() || r.ty.as_ref().is_some_and(|t| is_view(t) || is_ref(t))
+        }),
+        borrows: HashMap::new(),
         hints: Rc::clone(hints),
         hoists: Rc::clone(hoists),
         open: HashMap::new(),
@@ -956,6 +965,13 @@ fn function_body_with(
         match c {
             // A contract on ghost values is a proof obligation only (8.7).
             j::Contract::Pre(e) | j::Contract::Post(e) if ghostly(e) => {}
+            j::Contract::Pre(e) if f.unsafe_at.is_some() => {
+                let k = contracts
+                    .iter()
+                    .filter(|c| matches!(c, y::Contract::Requires(_)))
+                    .count();
+                contracts.push(y::Contract::Requires(l.unsafe_pre(f, k, e)?));
+            }
             j::Contract::Pre(e) => match l.pure(e)? {
                 Some(x) => contracts.push(y::Contract::Requires(x)),
                 None => pre.push(e),
@@ -1094,7 +1110,7 @@ fn function_body_with(
     }
     Ok(y::FnDef {
         is_pub,
-        is_unsafe: false,
+        is_unsafe: f.unsafe_at.is_some(),
         path: vec![f.name.clone()],
         name_span: f.name_span,
         tparams: tparams(sig),
@@ -1319,34 +1335,6 @@ fn int_op(op: &str) -> Option<(&'static str, Ty)> {
         "^" => ("xor_i64", Ty::Int),
         _ => return None,
     })
-}
-
-/// `[[fill]align][width]` of a format spec as (fill, align, width); align is 0 left, 1 right,
-/// 2 center, defaulting to right for numbers and left otherwise (SQ20).
-fn pad_spec(spec: &str, t: &Ty) -> R<(char, u8, usize)> {
-    let cs: Vec<char> = spec.chars().collect();
-    let align_of = |c: char| match c {
-        '<' => Some(0),
-        '>' => Some(1),
-        '^' => Some(2),
-        _ => None,
-    };
-    let numeric = matches!(t, Ty::Int | Ty::Float | Ty::BigInt | Ty::Fixed(_));
-    let (fill, align, rest) = match cs.as_slice() {
-        [f, a, rest @ ..] if align_of(*a).is_some() => (*f, align_of(*a), rest),
-        [a, rest @ ..] if align_of(*a).is_some() => (' ', align_of(*a), rest),
-        rest => (' ', None, rest),
-    };
-    let digits: String = rest.iter().collect();
-    let width = if digits.is_empty() {
-        0
-    } else {
-        match digits.parse::<usize>() {
-            Ok(w) if !digits.starts_with('0') => w,
-            _ => return unsupported(format!("format specification `{spec}`")),
-        }
-    };
-    Ok((fill, align.unwrap_or(u8::from(numeric)), width))
 }
 
 /// `p as name` at the top of a case: the pattern and the name bound to the whole scrutinee.
@@ -1694,7 +1682,13 @@ impl Lower<'_, '_, '_> {
                     self.emit(
                         StmtKind::Assign {
                             place,
-                            rhs: Rhs::Atom(Atom::Name(t, at)),
+                            // The temp aliases the place: a projection moves nothing, so the
+                            // place keeps its owner and nothing is dropped or double-owned.
+                            rhs: Rhs::Proj(Place {
+                                root: t,
+                                root_span: at,
+                                projs: Vec::new(),
+                            }),
                             rhs_span: at,
                         },
                         at,
@@ -2089,10 +2083,17 @@ fn expr_callees(e: &j::Expr, out: &mut HashSet<String>) {
                 .any(|p| matches!(p, j::FPiece::Expr(_, Some(_))))
         {
             out.insert("fmt_pad".into());
+            out.insert("fmt_sign".into());
+            out.insert("fmt_group".into());
         }
-        if let j::ExprKind::Call(f, _) = &e.kind {
+        if let j::ExprKind::Call(f, args) = &e.kind {
             match &f.kind {
                 j::ExprKind::Name(n) | j::ExprKind::Attr(_, n, _) => {
+                    // N34 reads `xs.pop(i)` as `remove_at` and `d.pop(k)` as `remove`.
+                    if n == "pop" && args.len() == 1 {
+                        out.insert("remove_at".into());
+                        out.insert("remove".into());
+                    }
                     // `max(xs)` lowers to the iterator's `max_nonempty` (R658).
                     if n == "min" || n == "max" {
                         out.insert(format!("{n}_nonempty"));
@@ -2224,26 +2225,13 @@ const UNITS: &[(&str, &str, f64, DurationCtor)] = &[
 /// Operations whose result depends on other tasks, so they need `uses nondet` (6.5, E709).
 const NONDET_OPS: &[&str] = &[
     "std.sync.arc.strong_count",
+    "std.sync.mutex.try_lock",
     "std.chan.sender.share",
     "std.chan.sender.try_send",
     "std.chan.receiver.try_recv",
     "std.chan.receiver.share",
     "std.actor.share",
 ];
-
-/// A type holding an `Rc` or `Weak`, whose counts are not atomic (6.4).
-fn not_send(t: &y::Type) -> bool {
-    match t {
-        y::Type::Named(n) => {
-            matches!(n.path.last().map(String::as_str), Some("Rc" | "Weak"))
-                || n.args
-                    .iter()
-                    .any(|a| matches!(a, y::TArg::Type(t) if not_send(t)))
-        }
-        y::Type::Tuple(ts) | y::Type::Union(ts) => ts.iter().any(not_send),
-        _ => false,
-    }
-}
 
 /// The size in bytes of a plain value of `t`, when it has a fixed one (5.1).
 fn byte_size(g: &Globals, t: &Ty) -> Option<usize> {

@@ -252,6 +252,7 @@ fn probe(
         j::StmtKind::Return(Some(call))
     };
     let p = j::FuncDef {
+        unsafe_at: None,
         name: PROBE.into(),
         name_span: at,
         tparams: Vec::new(),

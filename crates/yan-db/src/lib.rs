@@ -3,9 +3,19 @@
 //! its elaborated Yan Core, its diagnostics and its items. Std's Yan Agent sources are parsed here too,
 //! since the elaborator depends on no surface crate (R560).
 
+pub mod closure;
 mod docs;
+mod foreign;
+mod graph;
+#[cfg(test)]
+use foreign::is_ffi_module;
+pub use foreign::{ForeignLib, ForeignSet, foreign_set};
+pub use graph::{
+    GraphBuilder, Package, PackageGraph, Role, consented, graph_diagnostics, install_graph_builder,
+    owner,
+};
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Once;
 
@@ -71,6 +81,8 @@ pub use salsa::Database as Db;
 pub struct Database {
     storage: salsa::Storage<Self>,
     files: HashMap<PathBuf, SourceFile>,
+    /// Directories the graph builder has already been asked about.
+    probed: HashSet<PathBuf>,
 }
 
 #[salsa::db]
@@ -82,6 +94,7 @@ impl Database {
         STD.call_once(|| yan_elab::install_std(std_modules));
         let db = Self::default();
         Settings::new(&db, strict, release, false, false);
+        PackageGraph::new(&db, Vec::new());
         db
     }
 
@@ -99,9 +112,15 @@ impl Database {
         self
     }
 
+    /// E023 and E314 of every workspace package seen so far, on their `package.yag` (RFC 0079 D3).
+    pub fn graph_diagnostics(&self) -> Vec<Diagnostic> {
+        graph::graph_diagnostics(self, PackageGraph::get(self)).clone()
+    }
+
     /// The file at `path` with text `text`: the existing input, updated if the text changed.
     pub fn file(&mut self, path: &Path, text: &str) -> SourceFile {
         use salsa::Setter;
+        self.cover(path);
         if let Some(&f) = self.files.get(path) {
             if f.text(self) != text {
                 f.set_text(self).to(text.to_owned());
@@ -111,6 +130,27 @@ impl Database {
         let f = SourceFile::new(self, path.to_owned(), text.to_owned());
         self.files.insert(path.to_owned(), f);
         f
+    }
+
+    /// Add the packages around `path` to the graph, once per directory.
+    fn cover(&mut self, path: &Path) {
+        use salsa::Setter;
+        let dir = path.parent().unwrap_or(Path::new("")).to_owned();
+        if !self.probed.insert(dir) {
+            return;
+        }
+        let found = graph::build(path);
+        let graph = PackageGraph::get(self);
+        let mut packages = graph.packages(self).clone();
+        let before = packages.len();
+        for p in found {
+            if !packages.iter().any(|q| q.root == p.root) {
+                packages.push(p);
+            }
+        }
+        if packages.len() != before {
+            graph.set_packages(self).to(packages);
+        }
     }
 
     /// The file at `path`, read from disk.
@@ -234,23 +274,40 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
     let path = file.path(db);
     let settings = Settings::get(db);
     let yn = surface(path) == Some(yan_names::Surface::Yn);
+    let packages = PackageGraph::get(db).packages(db);
+    let pkg = owner(packages, path);
     let opts = yan_elab::Options {
         // Yan has no lenient reader (14.4).
         strict: yn || settings.strict(db),
         release: settings.release(db),
         yn,
-        ffi: is_ffi(path),
+        ffi: pkg.map_or_else(
+            || foreign::lone_ffi(path),
+            |p| foreign::in_ffi_dir(&p.root, path),
+        ),
         untrusted: settings.untrusted(db),
         tools: settings.tools(db),
     };
     let name = path.display().to_string();
-    match yan_elab::elaborate_in(&name, file.text(db), m, opts, package_manifest(path)) {
+    match yan_elab::elaborate_in(
+        &name,
+        file.text(db),
+        m,
+        opts,
+        package_manifest(packages, path),
+    ) {
         Err(u) => Loaded::Stopped(unsupported(&name, file.text(db), &u.what, u.at, diags)),
         Ok((y, table, mut errs)) => {
             let stop = has_error(&errs);
             errs.extend(diags);
             if let Some(sf) = surface(path) {
-                errs.extend(docs::lint(&name, file.text(db), m, sf, sub_item_lint(path)));
+                errs.extend(docs::lint(
+                    &name,
+                    file.text(db),
+                    m,
+                    sf,
+                    pkg.map_or_else(|| lone_sub_item_lint(path), |p| p.sub_item_lint),
+                ));
             }
             if stop {
                 Loaded::Stopped(errs)
@@ -261,8 +318,9 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
     }
 }
 
-/// W861 is on when the nearest `yan.toml` sets `[lint] missing-sub-item-docs = true` (R848).
-fn sub_item_lint(path: &Path) -> bool {
+/// W861 for a script outside any package: the nearest `yan.toml` above it (R848). Kept as a
+/// directory walk because the `yan.toml` of a lone script belongs to no package in the graph.
+fn lone_sub_item_lint(path: &Path) -> bool {
     let Some(dir) = path.parent() else {
         return false;
     };
@@ -275,37 +333,15 @@ fn sub_item_lint(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// The manifest in the `package.yag` of the nearest directory above `path` that has one (19.1).
-/// A `package.yag` itself, and a script outside any package, carry their own.
-fn package_manifest(path: &Path) -> Option<yan_elab::Manifest> {
+/// The manifest of the package that owns `path` (19.1). A `package.yag` itself carries its own.
+fn package_manifest(packages: &[Package], path: &Path) -> Option<yan_elab::Manifest> {
     if path.file_name().is_some_and(|n| n == "package.yag") {
         return None;
     }
-    let dir = path.parent()?;
-    let file = dir
-        .ancestors()
-        .map(|d| d.join("package.yag"))
-        .find(|f| f.is_file())?;
-    let src = std::fs::read_to_string(&file).ok()?;
-    let (m, _) = yan_yag::parse(&file.display().to_string(), &src, false);
-    yan_elab::manifest(&m?)
-}
-
-/// 12: a module under the package's `ffi/` directory. The package root is the nearest
-/// directory above the module with a `yan.toml`; without one, the module's own directory
-/// must be named `ffi` or `ub` (conformance assumption A9). Directories above the root never count.
-fn is_ffi(path: &Path) -> bool {
-    let Some(dir) = path.parent() else {
-        return false;
-    };
-    match dir.ancestors().find(|d| d.join("yan.toml").is_file()) {
-        Some(root) => dir.strip_prefix(root).is_ok_and(|rel| {
-            rel.components()
-                .next()
-                .is_some_and(|c| c.as_os_str() == "ffi")
-        }),
-        None => dir.file_name().is_some_and(|n| n == "ffi" || n == "ub"),
-    }
+    let pkg = owner(packages, path)?;
+    let mut manifest = pkg.manifest.clone();
+    manifest.ffi_unconsented = !consented(packages, pkg);
+    Some(manifest)
 }
 
 /// Every diagnostic of the module: the front end's, the elaborator's and the Yan Core checker's.
@@ -315,6 +351,13 @@ pub fn diagnostics(db: &dyn Db, file: SourceFile) -> Result<Vec<Diagnostic>, Str
         Loaded::Ready(m, _, mut d) => {
             let path = file.path(db).display().to_string();
             d.extend(yan_check::check(&path, file.text(db), &m));
+            // One cause, one diagnostic: an unconsumed `@linear` binding is E412, not also W812.
+            let unconsumed: Vec<_> = d
+                .iter()
+                .filter(|x| x.code == "E412")
+                .map(|x| (x.span.line, x.span.col))
+                .collect();
+            d.retain(|x| !(x.code == "W812" && unconsumed.contains(&(x.span.line, x.span.col))));
             d
         }
         Loaded::Stopped(d) => d,
@@ -448,12 +491,14 @@ mod tests {
         let pkg = dir.join("ffi").join("pkg");
         std::fs::create_dir_all(pkg.join("src")).unwrap();
         std::fs::create_dir_all(pkg.join("ffi")).unwrap();
-        std::fs::write(pkg.join("yan.toml"), "").unwrap();
-        assert!(!is_ffi(&pkg.join("src").join("a.yn")));
-        assert!(is_ffi(&pkg.join("ffi").join("a.yn")));
-        assert!(is_ffi(Path::new("conformance/yn/pass/ffi/a.yn")));
-        assert!(is_ffi(Path::new("conformance/ub/a.yn")));
-        assert!(!is_ffi(Path::new("conformance/yn/fail/unsafe/a.yn")));
+        std::fs::write(pkg.join("package.yag"), "").unwrap();
+        std::fs::create_dir_all(pkg.join("src").join("ffi")).unwrap();
+        assert!(!is_ffi_module(&pkg.join("src").join("a.yn")));
+        assert!(!is_ffi_module(&pkg.join("src").join("ffi").join("a.yn")));
+        assert!(is_ffi_module(&pkg.join("ffi").join("a.yn")));
+        assert!(is_ffi_module(Path::new("conformance/yn/pass/ffi/a.yn")));
+        assert!(is_ffi_module(Path::new("conformance/ub/a.yn")));
+        assert!(!is_ffi_module(Path::new("conformance/yn/fail/unsafe/a.yn")));
     }
 
     #[cfg(unix)]

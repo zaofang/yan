@@ -144,9 +144,15 @@ pub(crate) fn item_wire(it: &j::Item, item: &str, cx: &mut Cx) -> ItemWire {
 }
 
 /// Checks `it`'s decorators after the item was lowered; its diagnostics start at `start`.
-pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<()> {
+pub(crate) fn check(
+    g: &Globals,
+    it: &j::Item,
+    module: &[j::Decorator],
+    start: usize,
+    cx: &mut Cx,
+) -> R<()> {
     let item = it.kind.name().to_owned();
-    deny(it, &item, start, cx);
+    deny(it, module, &item, start, cx);
     for (k, d) in it.decorators.iter().enumerate() {
         let args = d.args.as_deref().unwrap_or_default();
         match d.path.join(".").as_str() {
@@ -191,7 +197,9 @@ pub(crate) fn check(g: &Globals, it: &j::Item, start: usize, cx: &mut Cx) -> R<(
                     k0 += 1;
                     k0 <= start || d.code != *code
                 });
-                if cx.diags.len() == before {
+                let at = decorator_span(it, k);
+                let denied = cx.diags.iter().any(|d| d.code == "E277" && d.span == at);
+                if cx.diags.len() == before && !denied {
                     cx.warn(
                         "W810",
                         decorator_span(it, k),
@@ -367,11 +375,16 @@ fn is_lint(code: &str) -> bool {
 
 /// `@deny(code)` (18.2, R797): the lint is an error in the item; E277 for an `@expect` of the
 /// same code, E278 for a code that is not a W8xx lint.
-fn deny(it: &j::Item, item: &str, start: usize, cx: &mut Cx) {
-    for (k, d) in it.decorators.iter().enumerate() {
-        if d.path != ["deny"] {
-            continue;
-        }
+fn deny(it: &j::Item, module: &[j::Decorator], item: &str, start: usize, cx: &mut Cx) {
+    // A module's `@@deny` encloses every item (Yan Agent has no attribute on a nested item).
+    let denials = it
+        .decorators
+        .iter()
+        .enumerate()
+        .map(|(k, d)| (Some(k), d))
+        .chain(module.iter().map(|d| (None, d)))
+        .filter(|(_, d)| d.path == ["deny"]);
+    for (k, d) in denials {
         for code in d
             .args
             .as_deref()
@@ -380,13 +393,15 @@ fn deny(it: &j::Item, item: &str, start: usize, cx: &mut Cx) {
             .filter_map(code_of)
         {
             if !is_lint(code) {
-                let at = decorator_span(it, k);
-                cx.err(
-                    "E278",
-                    at,
-                    item,
-                    format!("`@deny({code})` names a code that is not a W8xx lint"),
-                );
+                if let Some(k) = k {
+                    let at = decorator_span(it, k);
+                    cx.err(
+                        "E278",
+                        at,
+                        item,
+                        format!("`@deny({code})` names a code that is not a W8xx lint"),
+                    );
+                }
                 continue;
             }
             for (j, e) in it.decorators.iter().enumerate() {
@@ -637,7 +652,7 @@ fn fields(g: &Globals, it: &j::Item, item: &str, tr: &str, cx: &mut Cx) {
             }
             // A parameter of a generic sum is checked where the sum is instantiated.
             let probe;
-            let f = match g.sum_params.get(item) {
+            let f = match g.type_params.get(item) {
                 Some(ps) => {
                     let map: Vec<_> = ps.iter().map(|p| (p.clone(), Ty::Int)).collect();
                     probe = crate::Field {
@@ -669,7 +684,7 @@ fn fields(g: &Globals, it: &j::Item, item: &str, tr: &str, cx: &mut Cx) {
 /// E282 for a type argument of generic sum `sum` that a derived trait of the sum cannot hold:
 /// a capability, a callable, a type without the derive (design D6).
 pub(crate) fn instance(g: &Globals, sum: &str, args: &[Ty], span: Span, cx: &mut Cx) {
-    let Some(ps) = g.sum_params.get(sum) else {
+    let Some(ps) = g.type_params.get(sum) else {
         return;
     };
     for tr in FIELD_TRAITS {
