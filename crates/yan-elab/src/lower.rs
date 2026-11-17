@@ -1682,7 +1682,13 @@ impl Lower<'_, '_, '_> {
                     self.emit(
                         StmtKind::Assign {
                             place,
-                            rhs: Rhs::Atom(Atom::Name(t, at)),
+                            // The temp aliases the place: a projection moves nothing, so the
+                            // place keeps its owner and nothing is dropped or double-owned.
+                            rhs: Rhs::Proj(Place {
+                                root: t,
+                                root_span: at,
+                                projs: Vec::new(),
+                            }),
                             rhs_span: at,
                         },
                         at,

@@ -614,6 +614,9 @@ struct Fn<'a, 'm> {
     names: HashMap<String, Var>,
     /// The sides of each comparison result bound by `let`, for `assert` panics (R796).
     cmps: HashMap<String, [y::Atom; 2]>,
+    /// Temps bound by a projection (`&place` arguments): they alias the place, so storing one
+    /// back must not drop the place's old value.
+    projected: HashMap<String, y::Place>,
     /// The hex identity hash of the function's item, for `contract` panics.
     item: Option<String>,
     /// `ensures` predicates with their clause position, checked at every normal return (R882).
@@ -666,6 +669,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             locals: Vec::new(),
             names: HashMap::new(),
             cmps: HashMap::new(),
+            projected: HashMap::new(),
             item: None,
             ensures: Vec::new(),
             inout: Vec::new(),
