@@ -1,0 +1,2 @@
+pub def get(n: int) -> int:
+    return client.open(n) + 1

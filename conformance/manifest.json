@@ -15801,6 +15801,27 @@
    }
   },
   {
+   "path": "pkg/dependency_qualified_names",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1075"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1075",
+    "note": "a workspace member bound by requirement is reached through its local name: web.get is the member's lib, web.client.open its client module; names inside the member resolve against the member",
+    "command": [
+     "check"
+    ]
+   }
+  },
+  {
    "path": "pkg/e001_preview_without_opt_in",
    "kind": "pkg",
    "milestone": "M1",
@@ -16521,6 +16542,29 @@
     ],
     "code": "E200",
     "at": "src/report.yn:1:1"
+   }
+  },
+  {
+   "path": "pkg/e287_pkg_item_from_dependency",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1075"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1075",
+    "note": "a pkg item of a dependency is not reachable from a dependent: only pub crosses a package",
+    "command": [
+     "check"
+    ],
+    "code": "E287",
+    "at": "src/main.yag:2:18"
    }
   },
   {

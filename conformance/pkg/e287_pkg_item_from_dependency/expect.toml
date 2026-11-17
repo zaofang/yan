@@ -1,0 +1,6 @@
+spec = "19.1"
+rows = "R1075"
+note = "a pkg item of a dependency is not reachable from a dependent: only pub crosses a package"
+command = ["check"]
+code = "E287"
+at = "src/main.yag:2:18"

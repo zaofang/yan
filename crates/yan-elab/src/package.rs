@@ -17,8 +17,30 @@ pub const PULLED: u32 = 10_000_000;
 pub struct PackageEnv<'a> {
     /// The module being elaborated, so an item that names it resolves to the module's own names.
     pub this: String,
+    /// The package's own modules and, for each dependency, its modules under the local name:
+    /// `http` for the dependency's `lib`, `http.client` for its `client` (RFC 0084 D4).
     pub modules: Vec<String>,
+    /// The dependencies, so a name written inside one of their modules resolves against its own.
+    pub deps: Vec<DepScope>,
     pub load: &'a dyn Fn(&str) -> Option<j::Module>,
+}
+
+/// A dependency as the package sees it: its local root name and its module paths relative to its
+/// own source root (`lib` is its root facade).
+pub struct DepScope {
+    pub local: String,
+    pub modules: Vec<String>,
+}
+
+impl DepScope {
+    /// The name under which the package reaches the dependency module `rel`.
+    fn global(&self, rel: &str) -> String {
+        if rel == "lib" {
+            self.local.clone()
+        } else {
+            format!("{}.{rel}", self.local)
+        }
+    }
 }
 
 pub(crate) struct LinkError {
@@ -33,6 +55,7 @@ pub fn referenced(m: &j::Module, modules: &[String]) -> Vec<String> {
     let env = PackageEnv {
         this: String::new(),
         modules: modules.to_vec(),
+        deps: Vec::new(),
         load: &|_| None,
     };
     let mut l = Linker::new(&env);
@@ -76,8 +99,9 @@ pub(crate) fn link(m: &mut j::Module, env: &PackageEnv) -> Result<(), LinkError>
 
 struct Linker<'a> {
     env: &'a PackageEnv<'a>,
-    names: HashSet<&'a str>,
-    heads: HashSet<&'a str>,
+    /// The module paths a name may start with, as written, to the module they stand for.
+    names: HashMap<String, String>,
+    heads: HashSet<String>,
     mods: HashMap<String, Option<j::Module>>,
     /// Modules named by a path.
     used: std::collections::BTreeSet<String>,
@@ -101,11 +125,11 @@ impl<'a> Linker<'a> {
     fn new(env: &'a PackageEnv<'a>) -> Self {
         Linker {
             env,
-            names: env.modules.iter().map(String::as_str).collect(),
+            names: env.modules.iter().map(|m| (m.clone(), m.clone())).collect(),
             heads: env
                 .modules
                 .iter()
-                .filter_map(|m| m.split('.').next())
+                .filter_map(|m| m.split('.').next().map(str::to_owned))
                 .collect(),
             mods: HashMap::new(),
             used: Default::default(),
@@ -161,7 +185,16 @@ impl<'a> Linker<'a> {
                 _ => None,
             })
         });
-        if vis == Some(j::Vis::Private) {
+        let foreign = self.dep_of(module).is_some();
+        if foreign && vis.is_some_and(|v| v != j::Vis::Pub) {
+            self.error.get_or_insert(LinkError {
+                what: format!(
+                    "`{module}.{item}` is not `pub` in its package; only `pub` items are reachable from a dependent"
+                ),
+                code: Some("E287"),
+                at: Some(at),
+            });
+        } else if vis == Some(j::Vis::Private) {
             self.error.get_or_insert(LinkError {
                 what: format!(
                     "`{module}.{item}` is private to module `{module}`; declare it `pkg` to share it within the package or `pub` to export it"
@@ -174,16 +207,13 @@ impl<'a> Linker<'a> {
 
     /// The module and item a path of 2 or more names stands for, when its head is not a local.
     fn split<'p>(&self, path: &'p [String]) -> Option<(String, &'p [String])> {
-        if path.len() < 2
-            || !self.heads.contains(path[0].as_str())
-            || self.locals.contains(&path[0])
-        {
+        if path.len() < 2 || !self.heads.contains(&path[0]) || self.locals.contains(&path[0]) {
             return None;
         }
         (1..path.len())
             .rev()
             .map(|k| (path[..k].join("."), &path[k..]))
-            .find(|(m, _)| self.names.contains(m.as_str()))
+            .find_map(|(m, rest)| Some((self.names.get(&m)?.clone(), rest)))
     }
 
     /// The expression for `item` of `module`: a bare variant, or the qualified name.
@@ -234,6 +264,37 @@ impl<'a> Linker<'a> {
         }
     }
 
+    /// The dependency that holds `module`, by its local name.
+    fn dep_of(&self, module: &str) -> Option<&'a DepScope> {
+        let env: &'a PackageEnv<'a> = self.env;
+        env.deps.iter().find(|d| {
+            module == d.local
+                || module
+                    .strip_prefix(d.local.as_str())
+                    .is_some_and(|r| r.starts_with('.'))
+        })
+    }
+
+    /// Inside a dependency's module a path starts at the dependency's own modules. Returns the
+    /// scope to restore.
+    fn enter(&mut self, module: &str) -> Option<(HashMap<String, String>, HashSet<String>)> {
+        let dep = self.dep_of(module)?;
+        let names = dep
+            .modules
+            .iter()
+            .map(|m| (m.clone(), dep.global(m)))
+            .collect();
+        let heads = dep
+            .modules
+            .iter()
+            .filter_map(|m| m.split('.').next().map(str::to_owned))
+            .collect();
+        Some((
+            std::mem::replace(&mut self.names, names),
+            std::mem::replace(&mut self.heads, heads),
+        ))
+    }
+
     /// The copy of `item` of `module`, rewritten to qualified names.
     fn pull(&mut self, module: &str, item: &str) -> Result<Option<j::Item>, LinkError> {
         let Some(m) = self.module(module) else {
@@ -280,7 +341,12 @@ impl<'a> Linker<'a> {
         self.own = own;
         self.own_types = own_types;
         self.shift = true;
+        let outer = self.enter(module);
         self.items(std::slice::from_mut(&mut it));
+        if let Some((names, heads)) = outer {
+            self.names = names;
+            self.heads = heads;
+        }
         self.shift = false;
         self.at = None;
         let q = format!("{module}.{item}");
