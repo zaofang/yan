@@ -1,0 +1,9 @@
+pub def main() -> None uses io:
+    io.print(report.describe(shapes.Square(side=4)))
+    io.print(report.describe(shapes.Wide(rect=shapes.Rect(w=20, h=30))))
+    io.print(str(report.twice(shapes.Rect(w=2, h=3))))
+    match shapes.Square(side=3):
+        case shapes.Square(side=n):
+            io.print(str(n))
+        case shapes.Wide(rect=r):
+            io.print("wide")
