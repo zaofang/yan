@@ -790,6 +790,26 @@
    ]
   },
   {
+   "path": "yag/fail/caps/e301_closure_copy_capability_not_declared.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4",
+    "7.2"
+   ],
+   "rows": [
+    "R1025"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 12,
+     "col": 20
+    }
+   ]
+  },
+  {
    "path": "yag/fail/caps/e301_missing_capability.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -803,6 +823,26 @@
      "code": "E301",
      "line": 5,
      "col": 5
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/caps/e301_nested_closure_capability_not_declared.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4",
+    "7.2"
+   ],
+   "rows": [
+    "R1025"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 12,
+     "col": 20
     }
    ]
   },
@@ -838,6 +878,23 @@
      "code": "E306",
      "line": 6,
      "col": 23
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/caps/e306_capability_passed_as_value.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "7.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E306",
+     "line": 13,
+     "col": 15
     }
    ]
   },
@@ -3487,6 +3544,25 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e413_return_element.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e413_sink_list_element.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3680,6 +3756,24 @@
      "code": "E415",
      "line": 6,
      "col": 13
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e415_rc_try_send.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4",
+    "9.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 6,
+     "col": 17
     }
    ]
   },
