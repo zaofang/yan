@@ -1861,6 +1861,7 @@ rows = "R1034"
 topic = "one foreign set computed from source; `.info` and `yan.lock` record `ffi` and `libs`; a locked build recomputes it, E020 on mismatch (RFC 0079 D4)"
 sections = "19.1, 19.2, 25"
 
+[[entry]]
 rows = "R1030"
 topic = "`MutexGuard.get` needs a `Copy` `T`; a non-`Copy` `T` is E425, since a copy of an owner would alias it (#1429 item 3)"
 sections = "6.3, 25"
