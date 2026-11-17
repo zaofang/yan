@@ -375,6 +375,10 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1027 | N34 reads `xs.pop(i)` as `remove_at(i)` and `d.pop(k)` as `dict.remove(k)` | 14.4, 17.3 |
 | R1028 | method resolution searches the receiver type's declaring module before the current module, so a module function never captures a method call on a std type (replaces the current-module-first order of R348; #1404) | 17.2 |
 | R1029 | f-string format specs: fill, align, sign, zero pad, width, `,`, and `.Nf` on a float rounded on its exact value (#1401); other types are E017 | 17.3 |
+| R1031 | a foreign library is a ceiling entry of every package whose normal-dependency closure declares it, called or not; confined capabilities stay transitive by `uses` (RFC 0079 D1) | 7.4, 12, 19.2 |
+| R1032 | another package's library is spelled `"@org/name:lib"` in a ceiling, own libraries bare; two packages' `lib zlib` are two capabilities (RFC 0079 D2) | 12, 19.1 |
+| R1033 | every package's closure ceiling checked at resolution (E314 with path), publish (E006) and compile; `yan update` holds back, `yan add` fails (RFC 0079 D3) | 19.2, 19.4, 25 |
+| R1034 | one foreign set computed from source; `.info` and `yan.lock` record `ffi` and `libs`; a locked build recomputes it, E020 on mismatch (RFC 0079 D4) | 19.1, 19.2, 25 |
 | R1030 | `MutexGuard.get` needs a `Copy` `T`; a non-`Copy` `T` is E425, since a copy of an owner would alias it (#1429 item 3) | 6.3, 25 |
 
 <!-- /rows -->

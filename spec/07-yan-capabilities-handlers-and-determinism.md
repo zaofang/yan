@@ -68,7 +68,7 @@ In Yan Agent every function lists its capabilities. In Yan only `pub` functions 
 
 ### 7.4 Platforms and ceilings
 
-`platform` in `package.yag` names a capability bundle with default handlers (`cli`, `service`, `job`, `wasm`, `freestanding`). A package's `capabilities` list is a ceiling enforced transitively (section 19.2): using a capability the package did not declare is E314, including through dependencies. Ceilings may carry `net.only` patterns and must list every foreign-library capability.
+`platform` in `package.yag` names a capability bundle with default handlers (`cli`, `service`, `job`, `wasm`, `freestanding`). A package's `capabilities` list is a ceiling enforced transitively (section 19.2): using a capability the package did not declare is E314, including through dependencies. Ceilings may carry `net.only` patterns and must list every foreign-library capability, including every library declared anywhere in the package's normal-dependency closure, whether or not its code calls into it (R1031); confined capabilities stay transitive by use, through `uses` in signatures.
 
 **Child processes (RFC 0065 D5, R998).** `proc.run` and `proc.spawn` confine each child to the caller's `fs` and `net` grants before exec: a Landlock ruleset on Linux 5.13 and later, Capsicum on FreeBSD. On Linux a child is held as a pidfd. Where the OS cannot enforce a ceiling narrower than the process's own, the call fails with `ProcReason.Unconfined()` unless the `Command` carries `.unconfined()`; `yan audit` lists every `.unconfined()` site, and the capability manifest records it as `proc.unconfined`.
 
