@@ -1,0 +1,6 @@
+spec = "19.1"
+rows = "R1058"
+note = "two files with one module path; reported on the second"
+command = ["check"]
+code = "E024"
+at = "src/fees.yn:1:1"
