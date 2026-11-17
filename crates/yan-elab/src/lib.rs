@@ -25,6 +25,7 @@ mod jsonwire;
 mod kernel;
 mod lower;
 pub mod marks;
+mod package;
 mod reify;
 mod s0caps;
 mod session;
@@ -46,6 +47,7 @@ use yan_surface::{Attach, Mark, Trivia, TriviaTable};
 
 pub use config::{Config, config};
 pub use desugar::{Manifest, manifest};
+pub use package::{PULLED, PackageEnv, referenced};
 pub use stdlib::{StdInfo, StdModule, install_std};
 pub use ty::Ty;
 
@@ -678,6 +680,33 @@ pub fn elaborate_in(
     opts: Options,
     manifest: Option<Manifest>,
 ) -> Result<(y::Module, TriviaTable, Vec<Diagnostic>), Unsupported> {
+    elaborate_pkg(file, src, m, opts, manifest, None)
+}
+
+/// [`elaborate_in`] for a module of a package whose other modules it may name (RFC 0084 D4): the
+/// items it references are copied in under their qualified names.
+pub fn elaborate_pkg(
+    file: &str,
+    src: &str,
+    m: &j::Module,
+    opts: Options,
+    manifest: Option<Manifest>,
+    env: Option<&PackageEnv>,
+) -> Result<(y::Module, TriviaTable, Vec<Diagnostic>), Unsupported> {
+    let linked;
+    let m = match env {
+        Some(env) => {
+            let mut c = m.clone();
+            package::link(&mut c, env).map_err(|e| Unsupported {
+                what: e.what,
+                at: None,
+                code: None,
+            })?;
+            linked = c;
+            &linked
+        }
+        None => m,
+    };
     let mut cx = Cx {
         file,
         src,
@@ -1010,6 +1039,8 @@ pub fn elaborate_in(
             marks::place(&key, it, &cx.marks, &cx.lits, &cx.origins, &mut table);
         }
     }
+    // A diagnostic about a copied item was reported by its own module's check.
+    cx.diags.retain(|d| d.span.line < package::PULLED);
     Ok((module, table, cx.diags))
 }
 
@@ -1977,6 +2008,8 @@ mod selftest;
 #[cfg(test)]
 mod session_selftest;
 
+#[cfg(test)]
+mod package_selftest;
 #[cfg(test)]
 mod stdlib_selftest;
 
