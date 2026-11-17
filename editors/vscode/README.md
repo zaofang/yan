@@ -32,4 +32,4 @@ TextMate scans lines, so the grammar approximates the layout-sensitive parts of 
 - `pre`, `post`, `ex`, `invariant`, `decreases` and `cost` are scoped as keywords at the start of a line unless an assignment operator, `.`, `,`, `:` or a closing bracket follows (13.1, R462). A later line that uses one as a name is still coloured as a keyword.
 - Contract lines end at the line end; a contract expression continued inside brackets over several lines loses its contract scopes on the continuation lines.
 - `try`, `except`, `finally`, `raise`, `global`, `nonlocal`, `del`, `yield`, `async` and `await` carry `invalid.illegal` (E120, E121).
-- `.yd` is not registered: its extension spelling is open in RFC 0084 (plan D7).
+- `.yd` (Yan Data, RFC 0084, plan D7) is registered with `yd.tmLanguage.json`, which includes the `.yag` grammar; there is no `.yd` file icon yet.
