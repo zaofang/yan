@@ -1539,10 +1539,18 @@ impl Lower<'_> {
             if !matches!(fb.as_ref(), Fallback::Diverge(_) | Fallback::Block(None, _)) {
                 return unsupported("this let-else");
             }
+            let mut value = self.expr(value)?;
+            // `let Ok(x) = try f() else d` matches the reified result `else` already handles.
+            if let h::ExprKind::Fallback(lhs, _) = &mut value.kind
+                && let h::ExprKind::Reify(inner) = &mut lhs.kind
+            {
+                let inner = std::mem::replace(&mut **inner, mk(h::ExprKind::Hole, at));
+                **lhs = inner;
+            }
             return Ok(h::StmtKind::Assign {
                 target: mk(h::ExprKind::Name(x.clone()), at),
                 ty,
-                value: self.expr(value)?,
+                value,
             });
         }
         Ok(match &p.kind {
