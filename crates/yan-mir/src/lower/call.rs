@@ -455,6 +455,11 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(RtFn::StrRepeat, Ty::Ptr, vec![a, n]);
                 set(self, r);
             }
+            (id::STD_FMT_SHOW_FIXED, [(_, x), (_, p)]) => {
+                let (x, p) = (self.scalar1(x)?, self.scalar1(p)?);
+                let r = self.rt(RtFn::ShowFixed, Ty::Ptr, vec![x, p]);
+                set(self, r);
+            }
             (id::STD_TEXT_CONCAT, [(_, a), (_, b)]) => {
                 let (a, b) = (self.scalar1(a)?, self.scalar1(b)?);
                 let r = self.rt(RtFn::Concat, Ty::Ptr, vec![a, b]);
