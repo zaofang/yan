@@ -1842,6 +1842,26 @@ topic = "f-string format specs: fill, align, sign, zero pad, width, `,`, and `.N
 sections = "17.3"
 
 [[entry]]
+rows = "R1031"
+topic = "a foreign library is a ceiling entry of every package whose normal-dependency closure declares it, called or not; confined capabilities stay transitive by `uses` (RFC 0079 D1)"
+sections = "7.4, 12, 19.2"
+
+[[entry]]
+rows = "R1032"
+topic = "another package's library is spelled `\"@org/name:lib\"` in a ceiling, own libraries bare; two packages' `lib zlib` are two capabilities (RFC 0079 D2)"
+sections = "12, 19.1"
+
+[[entry]]
+rows = "R1033"
+topic = "every package's closure ceiling checked at resolution (E314 with path), publish (E006) and compile; `yan update` holds back, `yan add` fails (RFC 0079 D3)"
+sections = "19.2, 19.4, 25"
+
+[[entry]]
+rows = "R1034"
+topic = "one foreign set computed from source; `.info` and `yan.lock` record `ffi` and `libs`; a locked build recomputes it, E020 on mismatch (RFC 0079 D4)"
+sections = "19.1, 19.2, 25"
+
+[[entry]]
 rows = "R1030"
 topic = "`MutexGuard.get` needs a `Copy` `T`; a non-`Copy` `T` is E425, since a copy of an owner would alias it (#1429 item 3)"
 sections = "6.3, 25"
