@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-17 | [Python's popular packages: which domains Yan replicates, and in what shape](2026-11-17-python-package-equivalents.md) | Study only; PyPI 30-day downloads at 2026-11-01 grouped into 26 domain sets; 14 need no new package (std, language, toolchain or already a first-party package); recommends a Yan-native canonical API with Python shape only in the lenient reader and `yan import --python`, a model-eval gate per package, and a shortlist of eight (std.http client, frame aliases, stats and plot, `@yan/web`, `@yan/llm`, `@yan/term`, `@yan/template`, `@yan/xlsx`); D1 to D6 open; no rows |
 | 2026-11-17 | [Design: `size_of`, layout classes and the C boundary](../../rfcs/0083-size-of-and-layout.md) | #449; RFC 0083: D1 to D10 accepted as recommended by the lead 2026-11-17; code survey at `7c57127` finds three disagreeing layouts (reflection, native slots, map keys); rows in the writing PRs (#1519) |
 | 2026-11-17 | [Design: self-hosted compiler, subset, boundaries, trust and gates](../../rfcs/0082-self-hosted-compiler-design.md) | #851; RFC 0082: D1 to D14 refine RFC 0057, all decided as recommended 2026-11-17; R1043 to R1054 |
 | 2026-11-14 | [Uncased spec row audit](2026-11-14-uncased-row-audit.md) | Audit only; at `2d72926` 634 of 879 rows uncased; 47 exempt (unobservable), 30 merge, 54 deferred (post-1.0) candidates; exempt + merge alone do not reach the 60 percent gate (#1025, #1136); awaiting lead card; no rows |
