@@ -279,6 +279,9 @@ impl Lower<'_, '_, '_> {
             }
             j::ExprKind::Name(n) if !self.value_bound(n) => {
                 let prelude = !self.g.fns.contains_key(n) || self.g.std_fns.contains(n);
+                if prelude && let Some((r, t)) = self.py_ctor(n, args, at, want)? {
+                    return Ok((r, t, None));
+                }
                 if prelude
                     && matches!(n.as_str(), "min" | "max")
                     && args.iter().filter(|a| a.name.is_none()).count() == 1
