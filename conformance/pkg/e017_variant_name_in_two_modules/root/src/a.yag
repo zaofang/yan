@@ -1,0 +1,4 @@
+type K = Red() | Blue()
+
+def mk() -> K:
+    return Red()

@@ -414,7 +414,7 @@ each package's manifest fields and its module tree for editors and dependency bo
 to parse `package.yd`.
 
 Where D2 and D7 say `package.yag`, `package.yd` is meant.
-Pre-1.0 there is no alias: a directory with `package.yag` and no `package.yd` is an error that names the new
+Pre-0.1.0 there is no alias: a directory with `package.yag` and no `package.yd` is an error that names the new
 file, and a `yan fix` step renames it; the old spelling is never read (fail loud).
 
 Options:
@@ -434,7 +434,7 @@ Recommendation: (a). It meets the criterion that the manifest is visibly not cod
 the lossless editor, and removes a class of "does this run?" questions. It does amend RFC 0033 D1 and the
 extension list, which is why it is a card.
 
-- Decision: (a), `.yd` data files and `package.yd` (lead, card, 2026-11-17). The spelling `.yd` is still to be checked against registered extensions before it is frozen.
+- Decision: (a), `.yd` data files and `package.yd` (lead, card, 2026-11-17). Spelling `.yd` confirmed (lead, 2026-11-17); no collision in github-linguist `languages.yml` on that date.
 - Row: pending, numbered with the spec PR
 
 ## Rejected as a whole
@@ -443,7 +443,7 @@ extension list, which is why it is a card.
   depend on one tool. Item hashes are used for identity and cache, not as the source of truth.
 - Build files in the tree (dune, Bazel, build.zig, build.rs): code in the build is the supply-chain
   surface 19.5 removes.
-- Optional features and conditional dependencies: already a non-goal for 1.0 (19.1).
+- Optional features and conditional dependencies: already a non-goal for 0.1.0 (19.1).
 - URL imports and VCS-path identities: 19.3 has a registry with a transparency log and `overrides` for
   the one case that needs a git commit.
 - Separate interface files: `pub`, `pkg` and `yan api` give the same view without a second file to keep

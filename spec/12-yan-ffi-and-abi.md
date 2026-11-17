@@ -8,7 +8,7 @@ Foreign code is reached through C. A module is an `ffi` module when its file liv
 
 ### 12.2 Libraries are capabilities
 
-`lib zlib` declares trait `Zlib`, capability `zlib` and a native handler that calls the linked symbols. Callers need `uses zlib`, the package ceiling must list it (E314), and tests may bind a fake. An item marked `uses none` is pure: it needs no capability, is deterministic and is cacheable (18.4); this is a trusted claim, listed by `yan audit`. Its library still appears in the package ceiling and needs the root's `allow_ffi` consent, so a `uses none` claim never moves code outside the ceiling (R673). The library is also a ceiling entry of every package that has its package in its normal-dependency closure (R1031), spelled with the declaring package's name, `"@a/b:zlib"`, while a package's own libraries stay bare; two packages that both declare `lib zlib` declare two capabilities (R1032). Calls through a library capability are nondeterministic like I/O and blocking unless the item is declared `nonblocking`. Extern libraries that std binds inside its own handlers (aws-lc, io\_uring syscalls) never appear in user signatures.
+`lib zlib` declares trait `Zlib`, capability `zlib` and a native handler that calls the linked symbols. Callers need `uses zlib`, the package ceiling must list it (E314), and tests may bind a fake. An item marked `uses none` is pure: it needs no capability, is deterministic and is cacheable (18.4); this is a trusted claim, listed by `yan audit`. Its library still appears in the package ceiling and needs the root's `allow_ffi` consent, so a `uses none` claim never moves code outside the ceiling (R673). A library MUST NOT be named like a built-in capability (7.1): that is E913 (R1059). The library is also a ceiling entry of every package that has its package in its normal-dependency closure (R1031), spelled with the declaring package's name, `"@a/b:zlib"`, while a package's own libraries stay bare; two packages that both declare `lib zlib` declare two capabilities (R1032). Calls through a library capability are nondeterministic like I/O and blocking unless the item is declared `nonblocking`. Extern libraries that std binds inside its own handlers (aws-lc, io\_uring syscalls) never appear in user signatures.
 
 ### 12.3 Layout and C types
 
@@ -45,7 +45,7 @@ Out parameters become return values.
 
 ### 12.7 The C profile and exports
 
-Yan has no stable Yan Core-to-Yan ABI. The stable binary boundary is the C ABI under the Yan C profile `yan_abi_v1`, frozen at 1.0:
+Yan has no stable Yan Core-to-Yan ABI. The stable binary boundary is the C ABI under the Yan C profile `yan_abi_v1`, frozen at 0.1.0:
 
 | Yan | C profile |
 | --- | --- |
@@ -75,4 +75,4 @@ Inside `unsafe`, `asm(template, operands..., options...)` with operands `in(reg)
 
 ### 12.10 Audit and scope
 
-`yan audit` lists every extern block, `safe` item, `uses none` claim, `unsafe impl`, `unsafe fn` with its `pre` lines and each call site's `unsafe` block (R1017), and hand edit to an imported module, and model-authored changes to any of them. Out of scope for 1.0: direct C++ interop (use C shims), dylib plugins that pass Yan Core types, and Component Model exports (an M4 candidate). An `@yan/sandbox` package (C compiled through wasm2c, RLBox style) may follow 1.0.
+`yan audit` lists every extern block, `safe` item, `uses none` claim, `unsafe impl`, `unsafe fn` with its `pre` lines and each call site's `unsafe` block (R1017), and hand edit to an imported module, and model-authored changes to any of them. Out of scope for 0.1.0: direct C++ interop (use C shims), dylib plugins that pass Yan Core types, and Component Model exports (an M4 candidate). An `@yan/sandbox` package (C compiled through wasm2c, RLBox style) may follow 0.1.0.

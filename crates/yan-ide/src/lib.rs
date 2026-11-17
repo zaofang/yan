@@ -12,11 +12,11 @@ pub use hole::{DEFAULT_MAX_TOKENS, HoleContext};
 
 use serde::Serialize;
 use yan_core::ast as y;
-use yan_db::{Db, Front, Loaded, SourceFile};
+use yan_db::{Db, Front, Loaded};
 use yan_diag::{Diagnostic, Span};
 use yan_names::Surface;
 
-pub use yan_db::Database;
+pub use yan_db::{Database, SourceFile};
 
 /// The context of the typed hole at 1-based `line` and `col` of a Yan Agent file (21.2, R997).
 pub fn hole_context(
@@ -752,4 +752,93 @@ mod tests {
         );
         assert!(hover(&db, file, 4, 1).is_none());
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SymbolKind {
+    Function,
+    Record,
+    Type,
+    Trait,
+    Impl,
+    Const,
+    Extern,
+}
+
+/// A top-level item: its name, the item's whole span and the name's span.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct Symbol {
+    pub name: String,
+    pub kind: SymbolKind,
+    pub span: Span,
+    pub name_span: Span,
+}
+
+/// The module's items in source order. Empty while the front end stops. An item's span runs from
+/// its first token to its last non-blank line, since the front ends record only the start.
+pub fn symbols(db: &dyn Db, file: SourceFile) -> Vec<Symbol> {
+    use yan_hir::ItemKind as K;
+    let src = file.text(db);
+    let Ok(front) = yan_db::front(db, file).as_ref() else {
+        return Vec::new();
+    };
+    let name_at = |s: Span| {
+        let line = source_line(src, s.line);
+        let (a, b) = (s.col as usize - 1, (s.end_col as usize - 1).min(line.len()));
+        line.get(a..b).unwrap_or("").to_owned()
+    };
+    let mut out: Vec<Symbol> = match front {
+        Front::Hir(m, _) => m
+            .items
+            .iter()
+            .filter_map(|it| {
+                let kind = match &it.kind {
+                    K::Func(_) | K::Lemma(_) | K::Sub(_) => SymbolKind::Function,
+                    K::Record(_) => SymbolKind::Record,
+                    K::Type(_) => SymbolKind::Type,
+                    K::Trait(_) => SymbolKind::Trait,
+                    K::Impl(_) => SymbolKind::Impl,
+                    K::Const { .. } => SymbolKind::Const,
+                    K::Extern(_) => SymbolKind::Extern,
+                    K::Verbatim(_) => return None,
+                };
+                Some(Symbol {
+                    name: name_at(it.name_span),
+                    kind,
+                    span: it.span,
+                    name_span: it.name_span,
+                })
+            })
+            .collect(),
+        Front::Yir(m) => m
+            .items
+            .iter()
+            .filter_map(|it| match &it.kind {
+                y::ItemKind::Fn(f) | y::ItemKind::Gen(f) => Some(Symbol {
+                    name: name_at(f.name_span),
+                    kind: SymbolKind::Function,
+                    span: it.span,
+                    name_span: f.name_span,
+                }),
+                _ => None,
+            })
+            .collect(),
+        Front::Stopped(_) => Vec::new(),
+    };
+    out.sort_by_key(|s| s.span.line);
+    let lines: Vec<&str> = src.lines().collect();
+    for i in 0..out.len() {
+        let next = out
+            .get(i + 1)
+            .map_or(lines.len() as u32 + 1, |n| n.span.line);
+        let start = out[i].span;
+        let last = (start.line..next)
+            .rev()
+            .find(|l| !source_line(src, *l).trim().is_empty())
+            .unwrap_or(start.line);
+        out[i].span.end_line = last;
+        out[i].span.end_col = source_line(src, last).len() as u32 + 1;
+    }
+    out
 }

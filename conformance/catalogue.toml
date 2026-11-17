@@ -26,6 +26,7 @@ E020 = { section = "19.1", status = "active", meaning = "under --locked, yan.loc
 E021 = { section = "19.3", status = "active", meaning = "a namespace has no index mapping in registries" }
 E022 = { section = "19.3", status = "active", meaning = "an archive holds a symbolic link, an absolute path, a .. component or a duplicate path" }
 E023 = { section = "12", status = "active", meaning = "package with an ffi module or extern block not named in the root's allow_ffi, at compile or at dependency resolution (R1018, R1019)" }
+E024 = { section = "19.1", status = "active", meaning = "layout error in a package: two files with one module path, a file or directory name that is not a value name or is a Windows device name, or a reserved top-level module name (R1064)" }
 E100 = { section = "13.2, 15.2", status = "active", meaning = "unexpected token; the expected set is listed" }
 E101 = { section = "13.2, 15.2", status = "active", meaning = "operator mix that requires parentheses" }
 E102 = { section = "13.1, 15.1", status = "active", meaning = "unclosed bracket, string or block" }
@@ -239,6 +240,7 @@ E909 = { section = "12.8", status = "active", meaning = "duplicate export name a
 E910 = { section = "12.9", status = "active", meaning = "asm operand type not supported" }
 E911 = { section = "12.9", status = "active", meaning = "asm register or register class invalid for the target" }
 E912 = { section = "3", status = "active", meaning = "unsafe fn named other than as the callee of a call" }
+E913 = { section = "12.2", status = "active", meaning = "library named like a built-in capability" }
 P001 = { section = "18.3", status = "active", meaning = "base hash mismatch (current text returned)" }
 P002 = { section = "18.3", status = "active", meaning = "edit search text matched zero or many times" }
 P003 = { section = "18.3", status = "active", meaning = "patch introduces errors (under --check)" }

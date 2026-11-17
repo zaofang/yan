@@ -494,6 +494,20 @@ pub unsafe extern "C" fn yan_rt_int_of(s: *const String) -> i64 {
     }
 }
 
+/// `float(s)`: panics `conversion` unless `s.strip()` is a float.
+///
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_float_of(s: *const String) -> f64 {
+    // SAFETY: the caller's contract.
+    let s = unsafe { &*s };
+    match crate::text::parse_float(s.trim()) {
+        Some(f) => f,
+        None => panic("conversion"),
+    }
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_trunc_f64(x: f64) -> i64 {
     crate::num::trunc_i64(x).unwrap_or_else(|| panic("conversion"))

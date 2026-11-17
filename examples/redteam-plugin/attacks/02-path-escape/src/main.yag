@@ -1,0 +1,5 @@
+pub def main() uses io, fs:
+    with fs = fs.sub("data"):
+        io.print(fs.read("../package.yag") else e -> e.reason)
+        io.print(fs.read("/etc/hostname") else e -> e.reason)
+        io.print(fs.read("ok.txt/../../package.yag") else e -> e.reason)

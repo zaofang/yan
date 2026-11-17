@@ -71,8 +71,8 @@ CLASSES = """
 64,65,127,172,173,335|4|effects|capabilities, determinism and relaxed-math blocks
 82|4|effects|model calls, durable resume, untrusted values
 112,113,133,293,295,296|5|verification|exact solver, invariant inference, affine index proofs
-99,102,107,141,337,338|5|research|research track, not normative for 1.0
-98,100,116,118,168|4||post-1.0 surface, engine or agent-loop work
+99,102,107,141,337,338|5|research|research track, not normative for 0.1.0
+98,100,116,118,168|4||post-0.1.0 surface, engine or agent-loop work
 120|5|concurrency|session types
 128|5|formal|Lean model of the core
 129|4|formal|gaps found by the formal model

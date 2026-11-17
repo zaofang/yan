@@ -1,0 +1,362 @@
+{
+  "steps": [
+    {
+      "in": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "method": "initialize",
+        "params": {
+          "capabilities": {
+            "general": {
+              "positionEncodings": [
+                "utf-8",
+                "utf-16"
+              ]
+            }
+          }
+        }
+      },
+      "out": [
+        {
+          "id": 1,
+          "jsonrpc": "2.0",
+          "result": {
+            "capabilities": {
+              "documentFormattingProvider": true,
+              "documentSymbolProvider": true,
+              "hoverProvider": true,
+              "positionEncoding": "utf-8",
+              "textDocumentSync": {
+                "change": 1,
+                "openClose": true
+              }
+            },
+            "serverInfo": {
+              "name": "yan",
+              "version": "0.0.0"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "in": {
+        "jsonrpc": "2.0",
+        "method": "textDocument/didOpen",
+        "params": {
+          "textDocument": {
+            "languageId": "yan",
+            "text": "def add(a: int, b: int) -> int:\n    return a + c\n",
+            "uri": "file:///w/a.yag",
+            "version": 1
+          }
+        }
+      },
+      "out": [
+        {
+          "method": "textDocument/publishDiagnostics",
+          "params": {
+            "diagnostics": [
+              {
+                "code": "E200",
+                "message": "cannot find `c`",
+                "range": {
+                  "end": {
+                    "character": 16,
+                    "line": 1
+                  },
+                  "start": {
+                    "character": 15,
+                    "line": 1
+                  }
+                },
+                "relatedInformation": [],
+                "severity": 1,
+                "source": "yan"
+              }
+            ],
+            "uri": "file:///w/a.yag"
+          }
+        }
+      ]
+    },
+    {
+      "in": {
+        "jsonrpc": "2.0",
+        "method": "textDocument/didChange",
+        "params": {
+          "contentChanges": [
+            {
+              "text": "def add(a: int, b: int) -> int:\n    return a + b\n\ndef main() uses io:\n    io.print(f\"{add(1, 2)}\")\n"
+            }
+          ],
+          "textDocument": {
+            "uri": "file:///w/a.yag",
+            "version": 2
+          }
+        }
+      },
+      "out": [
+        {
+          "method": "textDocument/publishDiagnostics",
+          "params": {
+            "diagnostics": [],
+            "uri": "file:///w/a.yag"
+          }
+        }
+      ]
+    },
+    {
+      "in": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "method": "textDocument/hover",
+        "params": {
+          "position": {
+            "character": 5,
+            "line": 0
+          },
+          "textDocument": {
+            "uri": "file:///w/a.yag"
+          }
+        }
+      },
+      "out": [
+        {
+          "id": 2,
+          "result": {
+            "contents": {
+              "kind": "plaintext",
+              "value": "def add(a: int, b: int) -> int:"
+            },
+            "range": {
+              "end": {
+                "character": 7,
+                "line": 0
+              },
+              "start": {
+                "character": 4,
+                "line": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "in": {
+        "id": 3,
+        "jsonrpc": "2.0",
+        "method": "textDocument/documentSymbol",
+        "params": {
+          "textDocument": {
+            "uri": "file:///w/a.yag"
+          }
+        }
+      },
+      "out": [
+        {
+          "id": 3,
+          "result": [
+            {
+              "kind": 12,
+              "name": "add",
+              "range": {
+                "end": {
+                  "character": 16,
+                  "line": 1
+                },
+                "start": {
+                  "character": 0,
+                  "line": 0
+                }
+              },
+              "selectionRange": {
+                "end": {
+                  "character": 7,
+                  "line": 0
+                },
+                "start": {
+                  "character": 4,
+                  "line": 0
+                }
+              }
+            },
+            {
+              "kind": 12,
+              "name": "main",
+              "range": {
+                "end": {
+                  "character": 28,
+                  "line": 4
+                },
+                "start": {
+                  "character": 0,
+                  "line": 3
+                }
+              },
+              "selectionRange": {
+                "end": {
+                  "character": 8,
+                  "line": 3
+                },
+                "start": {
+                  "character": 4,
+                  "line": 3
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "in": {
+        "id": 4,
+        "jsonrpc": "2.0",
+        "method": "textDocument/formatting",
+        "params": {
+          "options": {
+            "insertSpaces": true,
+            "tabSize": 4
+          },
+          "textDocument": {
+            "uri": "file:///w/a.yag"
+          }
+        }
+      },
+      "out": [
+        {
+          "id": 4,
+          "result": []
+        }
+      ]
+    },
+    {
+      "in": {
+        "jsonrpc": "2.0",
+        "method": "textDocument/didChange",
+        "params": {
+          "contentChanges": [
+            {
+              "text": "def  add(a: int, b: int) -> int:\n    return a + b\n\ndef main() uses io:\n    io.print(f\"{add(1, 2)}\")\n"
+            }
+          ],
+          "textDocument": {
+            "uri": "file:///w/a.yag",
+            "version": 3
+          }
+        }
+      },
+      "out": [
+        {
+          "method": "textDocument/publishDiagnostics",
+          "params": {
+            "diagnostics": [],
+            "uri": "file:///w/a.yag"
+          }
+        }
+      ]
+    },
+    {
+      "in": {
+        "id": 5,
+        "jsonrpc": "2.0",
+        "method": "textDocument/formatting",
+        "params": {
+          "options": {
+            "insertSpaces": true,
+            "tabSize": 4
+          },
+          "textDocument": {
+            "uri": "file:///w/a.yag"
+          }
+        }
+      },
+      "out": [
+        {
+          "id": 5,
+          "result": [
+            {
+              "newText": "def add(a: int, b: int) -> int:\n    return a + b\n\ndef main() uses io:\n    io.print(f\"{add(1, 2)}\")\n",
+              "range": {
+                "end": {
+                  "character": 0,
+                  "line": 5
+                },
+                "start": {
+                  "character": 0,
+                  "line": 0
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "in": {
+        "id": 6,
+        "jsonrpc": "2.0",
+        "method": "textDocument/hover",
+        "params": {
+          "position": {
+            "character": 0,
+            "line": 0
+          },
+          "textDocument": {
+            "uri": "file:///w/none.yag"
+          }
+        }
+      },
+      "out": [
+        {
+          "error": {
+            "code": -32803,
+            "message": "not open: file:///w/none.yag"
+          },
+          "id": 6
+        }
+      ]
+    },
+    {
+      "in": {
+        "id": 7,
+        "jsonrpc": "2.0",
+        "method": "workspace/symbol",
+        "params": {
+          "query": "x"
+        }
+      },
+      "out": [
+        {
+          "error": {
+            "code": -32601,
+            "message": "unsupported: workspace/symbol"
+          },
+          "id": 7
+        }
+      ]
+    },
+    {
+      "in": {
+        "jsonrpc": "2.0",
+        "method": "textDocument/didClose",
+        "params": {
+          "textDocument": {
+            "uri": "file:///w/a.yag"
+          }
+        }
+      },
+      "out": [
+        {
+          "method": "textDocument/publishDiagnostics",
+          "params": {
+            "diagnostics": [],
+            "uri": "file:///w/a.yag"
+          }
+        }
+      ]
+    }
+  ]
+}

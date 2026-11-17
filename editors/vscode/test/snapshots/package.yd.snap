@@ -1,0 +1,46 @@
+"# Package manifest: data only, never run."
+  "# Package manifest: data only, never run." comment.line.number-sign.yag
+"Package("
+  "Package" entity.name.type.yag
+  "(" -
+"    name=\"tally\","
+  "    name" -
+  "=" keyword.operator.assignment.yag
+  "\"tally" -
+  "\"" string.quoted.double.yag
+  "," string.quoted.double.yag
+"    version=\"0.1.0\","
+  "    version" -
+  "=" keyword.operator.assignment.yag
+  "\"" -
+  "0.1" constant.numeric.float.yag
+  "." punctuation.accessor.yag
+  "0" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  "," string.quoted.double.yag
+"    edition=\"0.1\","
+  "    edition" -
+  "=" keyword.operator.assignment.yag
+  "\"" -
+  "0.1" constant.numeric.float.yag
+  "\"" string.quoted.double.yag
+  "," string.quoted.double.yag
+"    deps=[Dep(name=\"std.json\", version=\"0.1\")],"
+  "    deps" -
+  "=" keyword.operator.assignment.yag
+  "[" -
+  "Dep" entity.name.type.yag
+  "(name" -
+  "=" keyword.operator.assignment.yag
+  "\"std" -
+  "." punctuation.accessor.yag
+  "json" -
+  "\"" string.quoted.double.yag
+  ", version=" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  "0.1" constant.numeric.float.yag
+  "\"" string.quoted.double.yag
+  ")]," string.quoted.double.yag
+")"
+  ")" -
+""

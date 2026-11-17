@@ -1,0 +1,10 @@
+# spec: 4.2
+# rows: R1
+# expect: E413 at 9:12
+# note: a value bound by a tuple assignment while it is still used is E413, not a silent copy (#1500 item 6)
+
+def f() -> str:
+    x = "a".upper()
+    y = "b".upper()
+    a, b = x, y
+    return x + a + b

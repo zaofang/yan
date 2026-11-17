@@ -1,0 +1,20 @@
+# spec: 4.1, 4.2
+# rows: R1
+# note: moving a field of a field leaves the siblings at both levels owned and freed (#1500 item 3)
+# stdout:
+# B 1 O
+class I:
+    a: str
+    b: str
+
+class O:
+    i: I
+    t: str
+
+def eat(take s: str) -> str:
+    return s
+
+def main() uses io:
+    o = O(i=I(a="a".upper(), b="b".upper()), t="o".upper())
+    b = eat(o.i.b)
+    io.print(f"{b} {o.i.a.len()} {o.t}")
