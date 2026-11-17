@@ -151,6 +151,7 @@ fn reaches(callees: &HashMap<String, HashSet<String>>, f: &str) -> bool {
 }
 
 /// 5.4: a `drop` body uses no capability except `alloc`, and a `@linear` type has no `Drop`.
+#[allow(clippy::too_many_arguments)]
 fn check_drop(
     g: &Globals,
     file: &str,
