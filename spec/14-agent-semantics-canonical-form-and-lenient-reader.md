@@ -71,12 +71,12 @@ The printer MUST produce exactly one text for a given Yan Agent tree:
 
 ### 14.4 Lenient reader
 
-The lenient reader accepts these deviations and normalizes them, reporting a note (N-code) instead of an error. `yan check --strict` disables it. Every Yan Agent form an edition retires stays accepted by the lenient reader forever and normalizes to the current form (section 20.4); its acceptance set only grows.
+The lenient reader accepts these deviations and normalizes them, reporting a note (N-code) instead of an error; a row marked `silent` is purely lexical, normalized by the formatter without a note. `yan check --strict` disables it. Every Yan Agent form an edition retires stays accepted by the lenient reader forever and normalizes to the current form (section 20.4); its acceptance set only grows.
 
 | Code | Accepted input | Normalized to |
 | --- | --- | --- |
 | N01 | `import m`, `from m import a` | removed; uses of `a` become `m.a` |
-| N02 | any consistent indentation, including tabs | 4 spaces |
+| N02 | any consistent indentation, including tabs | 4 spaces; silent (R1056) |
 | N03 | single-quoted strings | double-quoted |
 | N04 | `Optional[T]`, `List[T]`, `Dict[K, V]`, `Set[T]`, `Tuple[...]`, `Union[A, B]` (error position) | `T \| None`, `list`, `dict`, `set`, `tuple`, `A \| B` |
 | N05 | missing `decreases` on structural recursion over a sum or list | inferred measure |
@@ -85,7 +85,7 @@ The lenient reader accepts these deviations and normalizes them, reporting a not
 | N08 | `@dataclass` on a class | removed |
 | N09 | methods with `self` inside a class body | lifted to top-level functions with first parameter `self: C` |
 | N10 | `x == None`, `x != None` | `x is None`, `x is not None` |
-| N11 | CRLF, trailing whitespace, missing final newline | canonical |
+| N11 | CRLF, trailing whitespace, missing final newline | canonical; silent (R1056) |
 | N12 | `s[i]` on a `str` | `s.char_at(i)`, with a note that it costs O(n) |
 | N13 | type S = A \| B whose alternatives are undeclared PascalCase names | inline field-less variants A() \| B() (R347, R423, R371) |
 | N14 | `var x = e` or `let x = e` on a local | `x = e`; mutability is inferred (R214) |
