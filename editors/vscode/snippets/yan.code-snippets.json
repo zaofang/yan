@@ -1,0 +1,43 @@
+{
+  "function": {
+    "prefix": "fn",
+    "body": ["${1:name}(${2}) -> ${3:int} =", "  ${0:0}"],
+    "description": "Function"
+  },
+  "function with contract": {
+    "prefix": "fnc",
+    "body": [
+      "${1:name}(${2:x: int}) -> ${3:int} uses none =",
+      "  pre ${4:x >= 0}",
+      "  post ${5:out >= 0}",
+      "  ex ${1}(${6:1}) == ${7:1}",
+      "  ${0:x}"
+    ],
+    "description": "Function with pre, post and ex lines"
+  },
+  "record type": {
+    "prefix": "type",
+    "body": "type ${1:Name} = { ${2:field}: ${3:int} }",
+    "description": "Record type"
+  },
+  "sum type": {
+    "prefix": "sum",
+    "body": "type ${1:Name} = ${2:A}(${3:x: int}) | ${4:B}()",
+    "description": "Sum type"
+  },
+  "match": {
+    "prefix": "match",
+    "body": ["match ${1:value}", "  ${2:Pattern}() -> ${3:0}", "  _ -> ${0:1}"],
+    "description": "Match expression"
+  },
+  "for": {
+    "prefix": "for",
+    "body": ["for ${1:x} in ${2:xs}", "  ${0:x}"],
+    "description": "For loop"
+  },
+  "par for": {
+    "prefix": "parfor",
+    "body": ["par for ${1:x} in ${2:xs}", "  ${0:x}"],
+    "description": "Parallel for"
+  }
+}

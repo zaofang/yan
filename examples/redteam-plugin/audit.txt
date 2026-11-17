@@ -1,0 +1,5 @@
+$ cd attacks/03-ffi-in-plugin && yan audit
+foreign_lib c: link c, via @agent/plugin
+
+$ cd attacks/08-link-name && yan audit
+foreign_lib evil: link ../evil, via @agent/plugin
