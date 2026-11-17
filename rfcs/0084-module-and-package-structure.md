@@ -1,6 +1,6 @@
 # 0084: Files, modules, directories and packages
 
-- Status: accepted
+- Status: accepted for D1 to D12; D13 open
 - Research: [module, file and package structure, 2026-11-17](../docs/research/2026-11-17-module-package-structure.md)
 - Rows: pending (numbered with the spec PR and its conformance cases)
 
@@ -383,6 +383,45 @@ tally package under `examples/tally/package` becomes the golden acceptance case 
 - Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
 - Row: pending, numbered with the spec PR
 
+### D13: manifest and lock formats
+
+Today the manifest is `package.yag` (a literal-only Yan constant, RFC 0044 D1) and the lock is `yan.lock`,
+TOML, `format` integer first, written canonically (RFC 0044 D3, where the lead chose TOML over the
+recommended Yan data file). The question is whether the manifest should also be TOML.
+
+For a TOML manifest: ubiquitous; editors, schema tools and outside scanners (dependency bots, graph
+views) read it unaided; the toolchain would have one data language instead of two.
+
+Against it: (1) `Package` is a Yan type, and `Lints(...)`, `Python(...)`, `I18n(...)`, `Embedded(...)` and
+attenuated capabilities such as `net.only(...)` are constructors. In TOML they become untyped tables
+that a second schema checker must keep in step with the type, where the data profile already checks the
+constant with the language's own checker and unknown-field rule; (2) a single-file script carries its
+manifest as the same constant in the script, so TOML would give the manifest two spellings, which RFC 0044
+D1 rejected for a second extension on the same grounds; (3) `yan add`, `remove` and `update` edit the
+manifest and must keep comments and layout: the Yan front end has a lossless tree and one canonical
+printer, while TOML needs a second lossless editor, and the self-hosted compiler (RFC 0082) would have to
+carry it in Yan; (4) RFC 0033 already makes literal Yan files the language's typed data format
+(`parse[T]`, canonical print, hash), so a TOML manifest would make Yan's own packages the one project that
+does not use it. TOML's ambiguities (dates, inline versus dotted tables) matter less and are not the
+reason.
+
+The outside-tooling benefit is real and does not need a TOML manifest: it comes from the resolved graph,
+which is in `yan.lock` (TOML, for any scanner) and `yan sbom` (CycloneDX), and from the registry's OSV
+ecosystem. What outsiders lack is a way to read the manifest's declared requirements.
+
+Recommendation: keep `package.yag` for the manifest and TOML for the lock. The split is by role: the
+manifest is typed, human- and tool-edited data owned by the language; the lock is machine-written
+exchange data owned by outsiders as much as by `yan`. Add one command, `yan metadata --json`, that prints
+the resolved package graph, each package's manifest fields and its module tree as JSON, so editors and
+bots never parse `package.yag`. No TOML manifest, no second spelling. `std.toml` stays for interop.
+
+Options: (a) as recommended; (b) `yan.toml` manifest plus `yan.lock` (Cargo, uv, Julia); (c) both,
+equivalent. (c) doubles discovery, validation and every tool that edits the manifest; (b) gives up (1) to
+(4) for ecosystem familiarity that `yan metadata` provides without them.
+
+- Decision:
+- Row:
+
 ## Rejected as a whole
 
 - A content-addressed codebase with no source files (Unison): review, grep and agent editing would
@@ -399,7 +438,7 @@ tally package under `examples/tally/package` becomes the golden acceptance case 
 
 3.5 and 3.6 (`pkg` modifier, module path not in the hash); 13.1 and 15.2 (`pkg`, `use` forms, `pub use`);
 17 (name-resolution order and roots, source roots for std); 18.1 (commands `yan tree`, `yan api`,
-`yan mv`, `--example`, `--member`; the `-o` rule); 19.1 (layout subsection: the tree of D2, workspace
+`yan mv`, `--example`, `--member`; the `-o` rule); 19.1 (layout subsection, `yan metadata`: the tree of D2, workspace
 member binding, dev-dependency cycle rule); 19.3 (archive contents by directory); 25 (new diagnostics for
 the layout errors of D1, the root collision of D4, a private or `pkg` name in a `pub` signature, the
 dev-dependency cycle and a file outside every source root; codes taken at numbering time); 12 (`ffi.`
