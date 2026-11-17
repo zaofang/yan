@@ -59,6 +59,15 @@ pub fn check(root: &Path) -> Result<Vec<Diagnostic>, String> {
     Ok(refusals(&manifest))
 }
 
+/// The foreign fields of the version's `.info` (R1034), computed from source.
+pub fn info_fields(root: &Path) -> serde_json::Value {
+    let set = yan_db::foreign_set(root);
+    serde_json::json!({
+        "ffi": set.modules,
+        "libs": set.libs.iter().map(|l| serde_json::json!({"name": l.name, "link": l.link})).collect::<Vec<_>>(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -94,5 +103,24 @@ mod tests {
             "package: Package = Package(name=\"a\", version=\"1.0.0\", dependencies={\"x\": \"@o/x 1.2\"}, dev_dependencies={\"t\": \"@o/t 2.0.0-b.1\"})\n",
         );
         assert!(refusals(&m).is_empty());
+    }
+
+    #[test]
+    fn info_fields_list_modules_and_libs() {
+        let d = std::env::temp_dir().join(format!("yan-publish-info-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("ffi")).unwrap();
+        std::fs::write(d.join("package.yag"), "").unwrap();
+        std::fs::write(
+            d.join("ffi/z.yn"),
+            "unsafe extern \"C\" lib zlib link \"z\"\n  safe f() -> c_int\n",
+        )
+        .unwrap();
+        let v = info_fields(&d);
+        assert_eq!(v["ffi"], serde_json::json!(["ffi/z.yn"]));
+        assert_eq!(
+            v["libs"],
+            serde_json::json!([{"name": "zlib", "link": "z"}])
+        );
     }
 }
