@@ -1,4 +1,5 @@
 use super::*;
+use yan_core::auto_traits::auto_traits;
 
 impl Lower<'_, '_, '_> {
     /// Lower a call. Returns the right-hand side, its success type and its failure type.
@@ -526,7 +527,7 @@ impl Lower<'_, '_, '_> {
                     && c.path.join(".") == "std.chan.sender.send"
                     && c.targs
                         .iter()
-                        .any(|t| matches!(t, y::TArg::Type(t) if not_send(t)))
+                        .any(|t| matches!(t, y::TArg::Type(t) if !auto_traits(t).send))
                     && let Some(a) = args.first()
                 {
                     self.err(
