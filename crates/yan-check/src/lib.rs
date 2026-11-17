@@ -59,7 +59,7 @@ pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
                 for f in &imp.fns {
                     let item = format!("{module}.{}", f.path.join("."));
                     if is_drop {
-                        check_drop(&g, file, src, &item, f, imp, &mut diags);
+                        check_drop(&g, file, src, &item, f, imp, it.span, &mut diags);
                     }
                     body(f, false, item, &mut diags);
                 }
@@ -158,6 +158,7 @@ fn check_drop(
     item: &str,
     f: &FnDef,
     imp: &Impl,
+    impl_span: Span,
     diags: &mut Vec<Diagnostic>,
 ) {
     if let Some(Param::Cap { name, .. }) = f
@@ -180,7 +181,7 @@ fn check_drop(
             src,
             item,
             "E421",
-            f.name_span,
+            impl_span,
             "a `@linear` type cannot implement `Drop`".into(),
         ));
     }
