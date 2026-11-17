@@ -3621,6 +3621,63 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e413_condexpr_t.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1069"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 19,
+     "col": 31
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e413_elseval_t.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1069"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 19,
+     "col": 26
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e413_fstr_else.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1069"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 14,
+     "col": 40
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e413_generic_bind_element.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3688,6 +3745,30 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e413_list_of_tuple.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1069"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 9,
+     "col": 12
+    },
+    {
+     "code": "E413",
+     "line": 9,
+     "col": 20
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e413_method_sink_used_later.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3703,6 +3784,44 @@
      "code": "E413",
      "line": 9,
      "col": 15
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e413_o1.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1069"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 15,
+     "col": 33
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e413_okerr_scope.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1069"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 9,
+     "col": 34
     }
    ]
   },
@@ -3798,6 +3917,25 @@
      "code": "E413",
      "line": 10,
      "col": 19
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e413_tuple_scope.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1069"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 9,
+     "col": 14
     }
    ]
   },

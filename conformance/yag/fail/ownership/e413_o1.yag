@@ -1,0 +1,16 @@
+# spec: 4.2
+# rows: R1069
+# expect: E413 at 15:33
+# note: a non-copy local used again after leaving into a `else` fallback bound to a name is E413 with the `.copy()` fix (#1500 finding 1, #1573 item 4)
+
+def find(xs: list[str], k: str) -> str | None:
+    for x in xs:
+        if x == k:
+            return x
+    return None
+
+def main() uses io:
+    xs = ["a".upper(), "b".upper()]
+    d = "none".upper()
+    io.print(find(xs, "A") else d)
+    io.print(d)

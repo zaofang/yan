@@ -1,0 +1,11 @@
+# spec: 4.2
+# rows: R1069
+# expect: E413 at 9:14
+# note: a non-copy local used again after leaving into a tuple element in an inner scope is E413 with the `.copy()` fix (#1500 finding 1, #1573 item 4)
+
+def main() uses io:
+    d = "none".upper()
+    if d.char_count() > 1:
+        p = (d, 1)
+        io.print(f"{p}")
+    io.print(d)

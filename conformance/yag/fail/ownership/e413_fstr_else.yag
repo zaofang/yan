@@ -1,0 +1,14 @@
+# spec: 4.2
+# rows: R1069
+# expect: E413 at 14:40
+# note: a non-copy local used again after leaving into a `else` fallback inside an f-string is E413 with the `.copy()` fix (#1500 finding 1, #1573 item 4)
+
+def opt(c: bool, s: str) -> str | None:
+    if c:
+        return s
+    return None
+
+def main() uses io:
+    d = "none".upper()
+    for i in range(3):
+        io.print(opt(i == 1, "q") else d)

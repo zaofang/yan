@@ -1643,6 +1643,7 @@ impl Lower<'_, '_, '_> {
             if let Some(w) = want {
                 l.expect(&t, w, e.span);
             }
+            l.moved_into(&a, &t, e.span);
             ty = t;
             l.jump(k, a, e.span);
             Ok(())

@@ -288,6 +288,7 @@ impl Lower<'_, '_, '_> {
                 let mut tys = Vec::new();
                 for (x, w) in xs.iter().zip(wants) {
                     let (a, t) = self.atom(x, w.as_ref())?;
+                    self.moved_into(&a, &t, x.span);
                     atoms.push(a);
                     tys.push(t);
                 }
@@ -306,8 +307,9 @@ impl Lower<'_, '_, '_> {
                     let (a, t) = self.atom(x, et.as_ref())?;
                     match &et {
                         Some(w) => self.expect(&t, w, x.span),
-                        None => et = Some(t),
+                        None => et = Some(t.clone()),
                     }
+                    self.moved_into(&a, &t, x.span);
                     atoms.push(a);
                 }
                 let Some(et) = et else {
