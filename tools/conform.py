@@ -336,12 +336,13 @@ def _dir_case(kind: str, path: Path) -> Case:
     meta = tomllib.loads(expect.read_text(encoding="utf-8")) if expect.is_file() else {}
     spec = meta.get("spec", "")
     flags = meta.get("flags", [])
+    rows = meta.get("rows", [])
     assert isinstance(spec, str) and isinstance(flags, list)
     return Case(
         kind,
         path,
         spec=_items(spec),
-        rows=[str(r) for r in meta.get("rows", [])],
+        rows=_items(rows) if isinstance(rows, str) else [str(r) for r in rows],
         flags=[str(f) for f in flags],
         milestone=str(meta.get("milestone", "M2a" if kind == "semver" else "M1")),
         meta=meta,
