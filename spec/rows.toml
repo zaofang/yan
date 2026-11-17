@@ -1739,3 +1739,94 @@ sections = "14.4"
 rows = "R1009"
 topic = "N54: `import math`, `io`, `regex`, `collections`, `std` resolve to the std modules; a Python-only module or name is E200 with a `choice` fix, never bare (#1221)"
 sections = "14.4"
+
+[[entry]]
+rows = "R1010"
+topic = "`unsafe fn` in the Yan grammar: `unsafe` on the item, never in an impl, trait signature or generator (RFC 0076 D1)"
+sections = "15.2, 3"
+
+[[entry]]
+rows = "R1011"
+topic = "`unsafe fn` only in std and `ffi` modules (E901) (RFC 0076 D2)"
+sections = "15.3, 12"
+
+[[entry]]
+rows = "R1012"
+topic = "a call to an `unsafe fn` needs an `unsafe` block (E903) (RFC 0076 D3)"
+sections = "3"
+
+[[entry]]
+rows = "R1013"
+topic = "the body of an `unsafe fn` is not an `unsafe` block (RFC 0076 D4)"
+sections = "3"
+
+[[entry]]
+rows = "R1014"
+topic = "`unsafe fn` `pre`: checked at `check`, trusted at `release` with no checked `pub` entry, `ub(16)` under `--ub` (RFC 0076 D5)"
+sections = "6.8, 6.9, 8.5"
+
+[[entry]]
+rows = "R1015"
+topic = "`Ptr` in signatures wherever `unsafe` is permitted (RFC 0076 D6)"
+sections = "3, 15.3"
+
+[[entry]]
+rows = "R1016"
+topic = "an `unsafe fn` is not a value (E912); no unsafe function type (RFC 0076 D7)"
+sections = "3, 25.11"
+
+[[entry]]
+rows = "R1017"
+topic = "`allow_ffi` consents to `ffi` modules; `yan audit` lists `unsafe fn` items and call sites (RFC 0076 D8)"
+sections = "12, 12.10"
+
+[[entry]]
+rows = "R1018"
+topic = "every package with an `ffi` module or extern block, the root included, is named in the root's `allow_ffi` by package name (RFC 0077 D1)"
+sections = "12, 19.1"
+
+[[entry]]
+rows = "R1019"
+topic = "`allow_ffi` consent enforced at root compile and at dependency resolution, E023; an update gaining the first `ffi` module is refused (RFC 0077 D2)"
+sections = "12, 19.2, 25"
+
+[[entry]]
+rows = "R1020"
+topic = "every extern library is a ceiling entry, `uses none` or not, enforced transitively; consent does not replace it (RFC 0077 D3)"
+sections = "7.4, 12.2, 19.2"
+
+[[entry]]
+rows = "R1021"
+topic = "`Sender.close()` ends the handle at once; a second `close` and the later drop do nothing; `send`, `try_send` or a `select` send arm on a closed `Sender` panics `contract`"
+sections = "9.5"
+
+[[entry]]
+rows = "R1022"
+topic = "`Mutex[T](v)` and `lock() -> MutexGuard[T]`: the guard unlocks at the end of its block on every path out; `get`, `set` and `replace` are its only access; locking a held mutex is a `deadlock` panic (Q2, #1376)"
+sections = "6.3"
+
+[[entry]]
+rows = "R1023"
+topic = "a `MutexGuard` is second-class: passing it on, returning it, rebinding it or storing it is E414"
+sections = "4.5, 6.3"
+
+[[entry]]
+rows = "R1024"
+topic = "a guard is live from its binding to the end of its block; a call that may wait on another task, or a `par`, in that range is E323 (R395)"
+sections = "6.3, 17.1"
+
+[[entry]]
+rows = "R1025"
+topic = "a closure argument's captured capabilities must be declared in the callee's `uses`, else E301 at the closure (RFC 0078 D1)"
+sections = "4, 7.2"
+
+
+[[entry]]
+rows = "R1026"
+topic = "`list.clear()`, `list.remove_at(i)` (negative counts from the end, `pre` in range) and `list.remove(x)` (`pre` contains) panic with `contract` where Python raises"
+sections = "17.3"
+
+[[entry]]
+rows = "R1027"
+topic = "N34 reads `xs.pop(i)` as `remove_at(i)` and `d.pop(k)` as `dict.remove(k)`"
+sections = "14.4, 17.3"

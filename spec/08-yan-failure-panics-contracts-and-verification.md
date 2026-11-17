@@ -52,7 +52,7 @@ Contracts are expressions in Yan's pure fragment: calls only to functions with n
 | Level | Build mode | `requires` | `ensures`, `invariant`, `decreases` | Default for |
 | --- | --- | --- | --- | --- |
 | `check` | `checked-all` | runtime | runtime, including proven bounds and exclusivity checks | debug builds and tests |
-| `release` | `unchecked-proven` | runtime at each call site unless proven, then trusted in the callee; `pub` functions keep a checked entry for callers outside the build (R381) | not checked unless `@prove` | release builds |
+| `release` | `unchecked-proven` | runtime at each call site unless proven, then trusted in the callee; `pub` functions keep a checked entry for callers outside the build (R381); an `unsafe fn`'s `requires` is trusted, unchecked, with no checked entry (R1014) | not checked unless `@prove` | release builds |
 | `prove` | either | static, falling back to runtime with W420 | static, falling back to runtime with W420 | modules marked `@prove` (fallback is E603 there) |
 
 Anything proven is erased at every level except `checked-all`, which guards against prover bugs. Rules (normative):

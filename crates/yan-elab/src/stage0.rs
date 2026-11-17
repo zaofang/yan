@@ -30,6 +30,7 @@ pub(crate) fn constant(
     };
     let fname = format!("__stage0_{name}");
     let f = j::FuncDef {
+        unsafe_at: None,
         name: fname.clone(),
         name_span: at,
         tparams: Vec::new(),

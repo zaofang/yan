@@ -169,6 +169,10 @@ pub struct Manifest {
     pub overrides: Vec<(String, String)>,
     /// The Python requirements of `python` (R638).
     pub python: Vec<String>,
+    /// The packages the root consents to hold `ffi` modules or extern blocks (R1018).
+    pub allow_ffi: Vec<String>,
+    /// Set by the caller: the root of this package does not name it in its `allow_ffi` (E023).
+    pub ffi_unconsented: bool,
 }
 
 /// The fields of the manifest table (19.1).
@@ -352,6 +356,8 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
         has_overrides: !reqs("overrides").is_empty(),
         overrides: pairs("overrides"),
         python: strs("python").unwrap_or_default(),
+        allow_ffi: strs("allow_ffi").unwrap_or_default(),
+        ffi_unconsented: false,
         requirements: ["dependencies", "dev_dependencies", "tools"]
             .into_iter()
             .flat_map(reqs)
@@ -385,6 +391,22 @@ pub(crate) fn without_manifest(m: &mut j::Module) {
 /// E314: a function uses a capability the package's ceiling leaves out (19.1).
 pub(crate) fn ceiling(m: &j::Module, caps: &[String], cx: &mut Cx) {
     for it in &m.items {
+        // A foreign library is a capability whatever its items say; `uses none` never exempts it
+        // (12.2, R673).
+        if let j::ItemKind::Extern(x) = &it.kind {
+            if !caps.contains(&x.lib) {
+                cx.err(
+                    "E314",
+                    it.span,
+                    &x.lib,
+                    format!(
+                        "library `{}` is outside the package's capability ceiling",
+                        x.lib
+                    ),
+                );
+            }
+            continue;
+        }
         let j::ItemKind::Func(f) = &it.kind else {
             continue;
         };

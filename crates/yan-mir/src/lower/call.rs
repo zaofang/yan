@@ -304,6 +304,12 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.encoding_call(id, c, dst);
         }
+        if super::mutex::MUTEX_IDS.contains(&id) {
+            return self.mutex_call(id, c, dst);
+        }
+        if super::sync::ATOMIC_IDS.contains(&id) {
+            return self.atomic_call(id, c, dst);
+        }
         if super::arena::ARENA_IDS.contains(&id) {
             return self.arena_call(id, c, dst);
         }
@@ -487,7 +493,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let (Some(e), Some(dst)) = (self.targ(c)?, dst) else {
                     return unsupported("`send` without its type or result");
                 };
-                let tx = self.scalar1(tx)?;
+                let tx = self.open_sender(tx)?;
                 let v = self.atom(a, &e)?;
                 let buf = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(v.len() as i128)]);
                 self.write(&At::Mem(buf.clone(), 0), v);
@@ -507,11 +513,11 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             (id::STD_CHAN_RECEIVER_SELECT_KEY | id::STD_CHAN_SENDER_SELECT_KEY, [(_, ch)]) => {
                 // The channel block is 8-aligned, so its address carries the arm kind (`yan_rt::chan`).
-                let ch = self.scalar1(ch)?;
                 let key = if id == id::STD_CHAN_SENDER_SELECT_KEY {
+                    let ch = self.open_sender(ch)?;
                     self.scalar_op(ScalarOp::AddChecked, I64, vec![ch, Operand::Int(1)])
                 } else {
-                    ch
+                    self.scalar1(ch)?
                 };
                 set(self, key);
             }
@@ -527,11 +533,17 @@ impl<'a, 'm> Fn<'a, 'm> {
                 })?;
                 self.free(RtFn::EnvFree, out);
             }
+            (id::STD_CHAN_SENDER_CLOSE, [(_, y::Atom::Name(tx, _))]) => {
+                // A closed `Sender` is the null channel: its drop does nothing (`yan_rt::chan`).
+                let tx = self.name(tx)?.clone();
+                self.free(RtFn::ChanDropSender, Self::ops(&tx)[0].clone());
+                self.copy_to(&tx.locals, vec![Operand::Int(0)]);
+            }
             (id::STD_CHAN_SENDER_TRY_SEND, [(_, tx), (_, a)]) => {
                 let (Some(e), Some(dst)) = (self.targ(c)?, dst) else {
                     return unsupported("`try_send` without its type or result");
                 };
-                let tx = self.scalar1(tx)?;
+                let tx = self.open_sender(tx)?;
                 let v_ops = self.atom(a, &e)?;
                 let buf = self.rt(
                     RtFn::Alloc,

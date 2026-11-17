@@ -1,0 +1,34 @@
+# spec: 6.2
+# note: Atomic[T](v), every operation of 6.2 with explicit qualified orderings; compare_exchange returns Err with the current value on mismatch and Ok with the old one on match (#1369)
+# stdout:
+# 5
+# 7
+# 9
+# 12
+# 10
+# 100
+# 4
+# 4
+# 5
+# Err(error=6)
+# Ok(value=6)
+# 60
+# False
+
+def main() uses io:
+    a = Atomic[int](5)
+    print(a.load(LoadOrdering.Acquire()))
+    a.store(7, StoreOrdering.Release())
+    print(a.swap(9, Ordering.AcqRel()))
+    print(a.fetch_add(3, Ordering.Relaxed()))
+    print(a.fetch_sub(2, Ordering.SeqCst()))
+    print(a.fetch_max(100, Ordering.SeqCst()))
+    print(a.fetch_min(4, Ordering.SeqCst()))
+    print(a.fetch_and(6, Ordering.SeqCst()))
+    print(a.fetch_or(1, Ordering.SeqCst()))
+    print(a.fetch_xor(3, Ordering.SeqCst()))
+    print(f"{a.compare_exchange(2, 50, Ordering.SeqCst(), LoadOrdering.SeqCst())}")
+    print(f"{a.compare_exchange(6, 60, Ordering.SeqCst(), LoadOrdering.SeqCst())}")
+    print(a.into_inner())
+    b = Atomic[bool](False)
+    print(b.swap(True, Ordering.SeqCst()))
