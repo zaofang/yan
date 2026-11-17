@@ -773,6 +773,25 @@ def check_n7(ex: LawExecutor, s: Surface, seed: int, samples: int) -> Result:
     return Result(name, ex.name, "pass")
 
 
+def load_expected_failures(path: Path) -> dict[tuple[str, str], str]:
+    entries = tomllib.loads(path.read_text(encoding="utf-8")).get("fail", [])
+    for e in entries:
+        if not re.fullmatch(r"#\d+", e.get("issue", "")):
+            sys.exit(f'conform: expected failure {e.get("case")} needs issue = "#N"')
+    return {(e["case"], e["executor"]): e["issue"] for e in entries}
+
+
+def apply_ratchet(
+    results: list[Result], expected: dict[tuple[str, str], str]
+) -> tuple[list[Result], list[tuple[str, str]]]:
+    """Failures not listed in `expected`, and listed entries that no longer fail (stale)."""
+    failed = {(r.case, r.executor) for r in results if r.status == "fail"}
+    unexplained = [
+        r for r in results if r.status == "fail" and (r.case, r.executor) not in expected
+    ]
+    return unexplained, sorted(set(expected) - failed)
+
+
 def selected(cases: list[Case], milestone: str | None) -> list[Case]:
     if milestone is None:
         return cases
@@ -878,6 +897,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--root", type=Path, default=Path("conformance"))
     ap.add_argument("--executor", action="append", default=[], metavar="NAME=CMD")
     ap.add_argument("--milestone", choices=MILESTONES, help="run only cases due by this milestone")
+    ap.add_argument(
+        "--expected-failures",
+        type=Path,
+        metavar="TOML",
+        help="ratchet: only failures listed here are tolerated; a listed case that passes is stale",
+    )
     ap.add_argument("--json", type=Path, help="write a JSON summary here")
     ap.add_argument("--manifest", type=Path, help="write the case manifest (JSON) here")
     ap.add_argument("--coverage", type=Path, help="write the coverage report (Markdown) here")
@@ -906,9 +931,12 @@ def main(argv: list[str] | None = None) -> int:
         return report_laws(cases, executors, args.json, args.seed, args.samples)
     results = [judge(c, ex) for c in cases for ex in executors]
     counts = Counter(r.status for r in results)
-    for r in results:
-        if r.status == "fail":
-            print(f"FAIL {r.executor} {r.case}: {r.detail}")
+    expected = load_expected_failures(args.expected_failures) if args.expected_failures else {}
+    unexplained, stale = apply_ratchet(results, expected)
+    for r in unexplained:
+        print(f"FAIL {r.executor} {r.case}: {r.detail}")
+    for case, executor in stale:
+        print(f"STALE expected failure {case} [{executor}] ({expected[(case, executor)]})")
     print(f"{len(cases)} cases, {len(executors)} executors: {dict(counts)}")
     if args.json:
         args.json.write_text(
@@ -922,7 +950,7 @@ def main(argv: list[str] | None = None) -> int:
                 indent=2,
             )
         )
-    return 1 if counts["fail"] and not args.report_only else 0
+    return 1 if (unexplained or stale) and not args.report_only else 0
 
 
 def report_laws(

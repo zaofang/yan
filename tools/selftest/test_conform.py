@@ -371,3 +371,17 @@ def test_mcp_list_and_refusal(tmp_path: Path) -> None:
         judge(refused, Fake(mcp_result=("", "yan: E201 src/main.yag:6:9 ...", 2))).status == "pass"
     )
     assert judge(refused, Fake(mcp_result=("", "", 0))).status == "fail"
+
+
+def test_ratchet_tolerates_listed_failures_and_flags_stale_entries() -> None:
+    from tools.conform import Result, apply_ratchet
+
+    results = [
+        Result("a", "interp", "fail"),
+        Result("b", "interp", "fail"),
+        Result("c", "interp", "pass"),
+    ]
+    expected = {("a", "interp"): "#1", ("c", "interp"): "#2"}
+    unexplained, stale = apply_ratchet(results, expected)
+    assert [r.case for r in unexplained] == ["b"]
+    assert stale == [("c", "interp")]
