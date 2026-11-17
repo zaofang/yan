@@ -17,10 +17,13 @@ rows.py renumber --base REF [--check]
                          top, rewriting rows.toml, spec/ and SPEC_QUESTIONS.md, then render;
                          --check only reports (exit 1 on a collision). Run it before merging
                          main into the branch: after the merge old and new citations of one
-                         number cannot be told apart.
+                         number cannot be told apart. New conformance cases of this branch (a
+                         paired PR, see tools/guard.py) are rewritten too and the manifest is
+                         regenerated.
 """
 
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -306,6 +309,13 @@ def row_numbers(entries: list[Entry]) -> list[int]:
     return [int(r[1:]) for e in entries for r in expand(e["rows"]) if r.startswith("R")]
 
 
+def added_rows(ref: str) -> set[str]:
+    """Rows this branch allocates that REF does not."""
+    base_owner, _ = allocations(base_entries(ref))
+    owner, _ = allocations(load())
+    return {r for r in owner if r.startswith("R") and r not in base_owner}
+
+
 def renumbering(base: list[Entry], head: list[Entry]) -> dict[str, str]:
     """Old to new ids for every row of a new head entry that shares a number with base."""
     base_owner, _ = allocations(base)
@@ -323,19 +333,40 @@ def renumbering(base: list[Entry], head: list[Entry]) -> dict[str, str]:
     return mapping
 
 
-def apply_renumbering(mapping: dict[str, str]) -> None:
+def new_case_files(base: str) -> list[Path]:
+    """Conformance files this branch adds: a paired PR owns their row citations."""
+    out = subprocess.run(
+        ["git", "diff", "--diff-filter=A", "--name-only", "--no-renames", f"{base}...HEAD"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.split()
+    return [
+        ROOT / p for p in out if p.startswith("conformance/") and p != "conformance/manifest.json"
+    ]
+
+
+def apply_renumbering(mapping: dict[str, str], base: str) -> None:
     def sub(m: re.Match[str]) -> str:
         return mapping.get(m.group(0), m.group(0))
 
     pattern = re.compile(r"\bR\d+\b")
-    for path in [REGISTRY, ROOT / "SPEC_QUESTIONS.md", *SPEC.glob("*.md")]:
+    cases = new_case_files(base)
+    touched = False
+    for path in [REGISTRY, ROOT / "SPEC_QUESTIONS.md", *SPEC.glob("*.md"), *cases]:
         text = path.read_text()
         new = pattern.sub(sub, text)
         if new != text:
             path.write_text(new)
+            touched = touched or path in cases
+    if touched:
+        root = ROOT / "conformance"
+        out = json.dumps(conform.manifest(conform.discover(root), root), indent=1) + "\n"
+        (root / "manifest.json").write_text(out)
     stale = {p for rid, paths in cited_rows().items() if rid in mapping for p in paths}
     for p in sorted(p for p in stale if p.startswith("conformance/")):
-        print(f"conformance is lead-owned: update the old row ids in {p}", file=sys.stderr)
+        print(f"conformance case not in this branch cites a moved row: {p}", file=sys.stderr)
 
 
 def next_free(count: int) -> list[str]:
@@ -383,7 +414,7 @@ def main(argv: list[str] | None = None) -> int:
             if mapping and args.check:
                 return 1
             if mapping:
-                apply_renumbering(mapping)
+                apply_renumbering(mapping, args.base)
                 APPENDIX.write_text(
                     APPENDIX.read_text().replace(block(APPENDIX.read_text()), render(load()))
                 )

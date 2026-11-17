@@ -254,20 +254,8 @@ impl Lower<'_, '_, '_> {
                     self.expect(&t, &p.ty, sp);
                     self.guard_escape(&t, sp);
                     self.arg_tys.push((p.ty.clone(), t.clone(), sp));
-                    if conv == Conv::Sink && self.sink_of_element(&a, sp) {
-                    } else if let (Conv::Sink, Atom::Name(n, _)) = (conv, &a)
-                        && !t.is_copy()
-                        && self.locals.contains_key(n)
-                        && let Some(later) = self.next_use(n, e.span)
-                    {
-                        self.err(
-                            "E413",
-                            sp,
-                            format!("`{n}` is used again later; pass `{n}.copy()`"),
-                        );
-                        let copied = format!("{}.copy()", self.cx.text(sp));
-                        self.cx.fix(Applicability::Auto, "copy", sp, &copied);
-                        self.cx.label(later, "used again");
+                    if conv == Conv::Sink {
+                        self.implicit_copy(&a, &t, sp);
                     }
                     *out = Some(Arg::Value(conv, a, sp));
                 }
@@ -316,26 +304,6 @@ impl Lower<'_, '_, '_> {
                 "the option `try_lock` returns is second-class; match it where it is called".into(),
             );
         }
-    }
-
-    /// E413 when `a`, passed by `sink` or returned, names an element of a list: the list still
-    /// owns it, so moving it out would need an implicit copy.
-    pub(super) fn sink_of_element(&mut self, a: &Atom, sp: Span) -> bool {
-        let Atom::Name(n, _) = a else {
-            return false;
-        };
-        if !self.index_views.contains(n) {
-            return false;
-        }
-        self.err(
-            "E413",
-            sp,
-            "an element of a list cannot be moved out; use `.copy()`, or take it out with `pop`"
-                .into(),
-        );
-        let copied = format!("{}.copy()", self.cx.text(sp));
-        self.cx.fix(Applicability::Auto, "copy", sp, &copied);
-        true
     }
 
     /// Whether `t` mentions a type parameter of the callee that is not yet bound; the caller's

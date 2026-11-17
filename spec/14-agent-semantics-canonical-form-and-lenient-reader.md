@@ -71,12 +71,12 @@ The printer MUST produce exactly one text for a given Yan Agent tree:
 
 ### 14.4 Lenient reader
 
-The lenient reader accepts these deviations and normalizes them, reporting a note (N-code) instead of an error. `yan check --strict` disables it. Every Yan Agent form an edition retires stays accepted by the lenient reader forever and normalizes to the current form (section 20.4); its acceptance set only grows.
+The lenient reader accepts these deviations and normalizes them, reporting a note (N-code) instead of an error; a row marked `silent` is purely lexical, normalized by the formatter without a note. `yan check --strict` disables it. Every Yan Agent form an edition retires stays accepted by the lenient reader forever and normalizes to the current form (section 20.4); its acceptance set only grows.
 
 | Code | Accepted input | Normalized to |
 | --- | --- | --- |
 | N01 | `import m`, `from m import a` | removed; uses of `a` become `m.a` |
-| N02 | any consistent indentation, including tabs | 4 spaces |
+| N02 | any consistent indentation, including tabs | 4 spaces; silent (R1056) |
 | N03 | single-quoted strings | double-quoted |
 | N04 | `Optional[T]`, `List[T]`, `Dict[K, V]`, `Set[T]`, `Tuple[...]`, `Union[A, B]` (error position) | `T \| None`, `list`, `dict`, `set`, `tuple`, `A \| B` |
 | N05 | missing `decreases` on structural recursion over a sum or list | inferred measure |
@@ -85,7 +85,7 @@ The lenient reader accepts these deviations and normalizes them, reporting a not
 | N08 | `@dataclass` on a class | removed |
 | N09 | methods with `self` inside a class body | lifted to top-level functions with first parameter `self: C` |
 | N10 | `x == None`, `x != None` | `x is None`, `x is not None` |
-| N11 | CRLF, trailing whitespace, missing final newline | canonical |
+| N11 | CRLF, trailing whitespace, missing final newline | canonical; silent (R1056) |
 | N12 | `s[i]` on a `str` | `s.char_at(i)`, with a note that it costs O(n) |
 | N13 | type S = A \| B whose alternatives are undeclared PascalCase names | inline field-less variants A() \| B() (R347, R423, R371) |
 | N14 | `var x = e` or `let x = e` on a local | `x = e`; mutability is inferred (R214) |
@@ -125,12 +125,12 @@ The lenient reader accepts these deviations and normalizes them, reporting a not
 | N48 | `x: T` with no value | removed; the annotation moves to the first assignment of `x` in the same block (R930) |
 | N49 | positional arguments for parameters that share a type, where E210 is the only fault of the call (function or record constructor) | the first such argument and every later one by keyword, `area(w, h=a, d=1)`; `--strict` keeps E210 (R932) |
 | N50 | `s[a:b]`, `s[a:b:c]` on a `str` | `std.text.slice_clamped(s, a, b, c)`: Python's slice over chars, clamped, step 0 panics with `value`; costs O(n) (R935) |
-| N51 | `int(s)` on a `str` | `std.text.int_of(s)`: `s.strip().parse_int()`, panicking with kind `conversion` and `invalid literal for int()` when it is `None` (R935) |
+| N51 | `int(s)` or `float(s)` on a `str` | `std.text.int_of(s)`: `s.strip().parse_int()`, panicking with kind `conversion` and `invalid literal for int()` when it is `None` (R935); `std.text.float_of(s)`: `s.strip().parse_float()`, panicking with kind `conversion` when it is `None` (R1057) |
 | N52 | a bare `sqrt(x)`, `sin`, `cos`, `tan`, `exp` or `log` call whose name is not bound in the module | `math.sqrt(x)` and so on (R1007) |
 | N53 | `s.len()` on a `str`; a free call `char_count(s)`, `parse_int(s)`, `to_string(x)`, `to_int(s)`, `slice(xs, a, b)`, `byte_at(s, i)` | `s.char_count()`; `s.char_count()`, `s.parse_int()`, `str(x)`, N51's `int(s)`, `xs[a:b]` (N50 on a `str`), `s.bytes()[i]` (N37) (R1008) |
 | N54 | `import math`, `import io`, `import regex`, `import collections`, `import std` and their `from` forms | as N01, resolving to `std.math`, `std.io`, `std.regex`, `std.collections` and `std`; a Python-only module or name, such as `collections.Counter`, is E200 with a `choice` fix naming the nearest std name (R1009) |
 
-**Python names (R807).** A Python builtin or method that models reach for and Yan Agent lacks is either a real std function, when it fits determinism and the capability rules, or an N-code normalization with a note. It is never a bare E200 or E203. A name left out needs a recorded reason in the decision log.
+**Python names (R807).** A Python builtin or method that models reach for and Yan Agent lacks is either a real std function, when it fits determinism and the capability rules, or an N-code normalization with a note. It is never a bare E200 or E203. A name left out needs a recorded reason in the decision log. Real functions (R1060): `bool(x)` on a `bool`, `int`, `float`, `str`, `list`, `set` or `dict` (truthiness is `!= 0`, `!= ""` or a non-zero length; any other type is E201), `tuple(t)` on a tuple (a `list` is E201: a tuple has fixed arity), `dict()` and `set()` with an annotated target (E241 otherwise), `sum(xs, start)` as `sum([start] + xs)`, and `s.center(width, fill)` and `s.index(part)`, which is `s.find(part)` as `int | None`, as `list.index` is.
 
 The reader never inserts `_ =` before an unused result, because that would hide the bug E312 exists to catch; it emits a note with a machine-applicable fix instead. `raise`, `try` and `except` are not normalized: they are errors (E120) with a suggested rewrite, because their semantics differ from `Result`.
 

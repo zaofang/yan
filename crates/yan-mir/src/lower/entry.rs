@@ -35,7 +35,8 @@ impl Fn<'_, '_> {
         self.cur = err;
         let ev = v[err_at..err_at + e.width()].to_vec();
         let shown = self.show(&ev, &e, false)?;
-        let code = self.exit_code(&e, ev)?;
+        let code = self.exit_code(&e, ev.clone())?;
+        self.glue(&e, &ev);
         self.emit(Inst::Rt {
             dst: None,
             f: RtFn::FailMain,

@@ -1,0 +1,8 @@
+# spec: 4.2
+# rows: R1
+# expect: E413 at 8:12
+# expect: W820 at 8:12
+# note: a type parameter is not trivially copyable, so returning an element of a list of it is E413 like any other element (#1500 item 6)
+
+def first[T](xs: list[T]) -> T:
+    return xs[0]
