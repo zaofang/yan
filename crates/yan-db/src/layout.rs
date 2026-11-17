@@ -152,6 +152,48 @@ pub fn scan(root: &Path) -> (Vec<Module>, Vec<Issue>) {
     (out, issues)
 }
 
+/// E024 on `package.yag` for a dependency local name that cannot be a root (D4, R635): a reserved
+/// root, an own top-level module, or the name of another dependency. Each names both sides.
+pub fn dependency_issues(
+    root: &Path,
+    manifest: &yan_elab::Manifest,
+    modules: &[Module],
+) -> Vec<Issue> {
+    let file = root.join("package.yag");
+    let mut issues = Vec::new();
+    let mut seen: Vec<&str> = Vec::new();
+    for d in manifest
+        .dep_names
+        .iter()
+        .filter(|d| d.kind != yan_elab::DepKind::Tool)
+    {
+        let name = d.local.as_str();
+        let why = if RESERVED.contains(&name) {
+            Some(format!("`{name}` is a reserved root name"))
+        } else if modules
+            .iter()
+            .any(|m| m.root == Root::Src && m.path.first().is_some_and(|s| s == name))
+        {
+            Some(format!("the package has a top-level module `{name}`"))
+        } else if seen.contains(&name) {
+            Some(format!("another dependency is already named `{name}`"))
+        } else {
+            None
+        };
+        seen.push(name);
+        if let Some(why) = why {
+            issues.push(Issue {
+                file: file.clone(),
+                message: format!(
+                    "dependency `{}` is a root named `{name}`, and {why}; rename one side (RFC 0084 D4)",
+                    d.requirement
+                ),
+            });
+        }
+    }
+    issues
+}
+
 fn collect(dir: &Path, out: &mut Vec<PathBuf>) {
     let Ok(rd) = std::fs::read_dir(dir) else {
         return;

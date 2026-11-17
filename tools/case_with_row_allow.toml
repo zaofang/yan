@@ -17,3 +17,8 @@ reason = "Transitive library ceiling, item 1 of #1427."
 rows = "R1042"
 issue = "#1429"
 reason = "May-wait bit in effect signatures, item 6 of #1429."
+
+[[row]]
+rows = "R1071"
+issue = "#1608"
+reason = "`yan metadata --json` prints one object; the pkg runner reads record arrays. Rust test in crates/yan-cli/tests/metadata.rs."

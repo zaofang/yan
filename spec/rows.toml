@@ -2040,3 +2040,13 @@ sections = "4.2"
 rows = "R1069"
 topic = "`pkg` visibility: an item is private, `pkg` or `pub`; a private item is named in its own module only, and a path to a private item of another module is E287 (RFC 0084 D3, slice 2c)"
 sections = "3.5, 13.1, 15.2, 25"
+
+[[entry]]
+rows = "R1070"
+topic = "a dependency local name that is reserved, equals an own top-level module or repeats another dependency's is E024 on `package.yag` (RFC 0084 D4, slice 3)"
+sections = "19.1, 25"
+
+[[entry]]
+rows = "R1071"
+topic = "`yan metadata --json` prints the resolved package graph: packages, dependency local names with what they resolve to, modules (RFC 0084 D13)"
+sections = "18.1"

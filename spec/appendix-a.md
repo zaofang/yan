@@ -415,6 +415,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1067 | Yan `use` binds a module alias for a module of the package and `use .m` a sibling; qualified names reach other modules in expressions, types and patterns; an unknown module is E200 (RFC 0084 D4, slice 2b) | 15.2, 15.3 |
 | R1068 | a binder of a pattern on a list element, a slice pattern's element binder or any view of an indexed projection is a view: moving it out is E413 with the `.copy()` fix, as for the `let` of a projection (#1573 item 1) | 4.2 |
 | R1069 | `pkg` visibility: an item is private, `pkg` or `pub`; a private item is named in its own module only, and a path to a private item of another module is E287 (RFC 0084 D3, slice 2c) | 3.5, 13.1, 15.2, 25 |
+| R1070 | a dependency local name that is reserved, equals an own top-level module or repeats another dependency's is E024 on `package.yag` (RFC 0084 D4, slice 3) | 19.1, 25 |
+| R1071 | `yan metadata --json` prints the resolved package graph: packages, dependency local names with what they resolve to, modules (RFC 0084 D13) | 18.1 |
 
 <!-- /rows -->
 
