@@ -1,0 +1,15 @@
+# spec: 6.4, 9.2
+# rows: R1040
+# note: Mutex[T] is Sync iff T is Send, so a Mutex[Rc[int]] borrowed by two par branches is not Sync
+# expect: E417 at 14:18
+
+def peek(m: Mutex[Rc[int]]) -> int uses nondet:
+    with m.lock() as _:
+        pass
+    return 1
+
+def f(m: Mutex[Rc[int]]) -> int uses nondet:
+    par:
+        a = peek(m)
+        b = peek(m)
+    return a + b
