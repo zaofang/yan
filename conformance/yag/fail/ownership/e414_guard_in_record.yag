@@ -1,0 +1,16 @@
+# spec: 4.5, 6.3
+# rows: R1037
+# note: a guard is a view for escape analysis: it cannot be stored in a record or a container
+# expect: E414 at 12:18
+# expect: E414 at 16:11
+
+class Holder:
+    g: MutexGuard[int]
+
+def store(m: Mutex[int]) -> None:
+    g = m.lock()
+    h = Holder(g=g)
+
+def collect(m: Mutex[int]) -> None:
+    g = m.lock()
+    gs = [g]

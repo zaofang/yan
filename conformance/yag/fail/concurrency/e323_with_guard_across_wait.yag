@@ -1,0 +1,10 @@
+# spec: 6.3
+# rows: R1036
+# note: a with-bound guard is live to the end of its block only: the wait inside is E323, the wait after the block is not
+# expect: E323 at 9:9
+
+def work(m: Mutex[int]) -> None fail Cancelled uses time:
+    with m.lock() as g:
+        g.set(1)
+        time.sleep(1 * ms)?
+    time.sleep(1 * ms)?

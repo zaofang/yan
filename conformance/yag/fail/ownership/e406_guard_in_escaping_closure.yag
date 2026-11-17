@@ -1,0 +1,8 @@
+# spec: 4.6, 6.3
+# rows: R1037
+# note: a guard captured by a closure that escapes is E406; the guard is second-class like a view
+# expect: E406 at 8:20
+
+def make(m: Mutex[int]) -> Callable[[], int]:
+    g = m.lock()
+    return lambda: g.get()

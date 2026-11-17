@@ -1,0 +1,28 @@
+# spec: 6.3
+# rows: R1036
+# note: a guard bound by with unlocks at the end of the with block, so the same mutex locks again in the enclosing block (no deadlock panic), and a return inside the block unlocks too
+# stdout:
+# 1
+# 2
+# 3
+
+def early(m: Mutex[int]) -> int:
+    with m.lock() as g:
+        if g.get() == 2:
+            return g.get()
+        g.set(2)
+    h = m.lock()
+    return h.get() + 1
+
+pub def main() uses io:
+    m = Mutex[int](0)
+    with m.lock() as g:
+        g.set(1)
+    h = m.lock()
+    io.print(f"{h.get()}")
+    h.set(0)
+    io.print(f"{early(Mutex[int](0)) - 1}")
+    n = Mutex[int](2)
+    io.print(f"{early(n) + 1}")
+    k = n.lock()
+    k.set(5)
