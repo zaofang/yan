@@ -774,6 +774,11 @@ impl Machine<'_> {
                 let i = yan_rt::text::parse_int(s.trim()).ok_or(Stop::Panic("conversion"))?;
                 Val::I(i128::from(i as i64))
             }
+            RtFn::FloatOf => {
+                let s = self.str_of(a[0].addr())?;
+                let f = yan_rt::text::parse_float(s.trim()).ok_or(Stop::Panic("conversion"))?;
+                Val::F(f)
+            }
             RtFn::Pow => Val::F(yan_rt::math::pow(a[0].float(), a[1].float())),
             RtFn::DotExact => {
                 let floats = |m: &mut Self, l: Val| -> Result<Vec<f64>, Stop> {

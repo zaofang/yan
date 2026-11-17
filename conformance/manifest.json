@@ -6852,6 +6852,21 @@
    "exit": 101
   },
   {
+   "path": "yag/run/lenient/n51_float_of_str.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1057"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "203.5 -1.0\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/lenient/n52_bare_math.yag",
    "kind": "run",
    "milestone": "M1",

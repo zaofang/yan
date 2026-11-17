@@ -1011,6 +1011,11 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let r = self.rt(RtFn::IntOf, I64, vec![s]);
                 set(self, r);
             }
+            (id::STD_TEXT_FLOAT_OF, [(_, a)]) => {
+                let s = self.scalar1(a)?;
+                let r = self.rt(RtFn::FloatOf, Ty::F64, vec![s]);
+                set(self, r);
+            }
             (id::STD_LIST_NEW, []) => {
                 let Some(e) = self.targ(c)? else {
                     return unsupported("`std.list.new` without its element type");
