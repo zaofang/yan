@@ -1,0 +1,18 @@
+# spec: 6.4, 9.2
+# rows: R1040
+# note: Sync is structural: a record holding a `Mutex[Rc[int]]` is not Sync
+# expect: E417 at 17:18
+
+class S:
+    m: Mutex[Rc[int]]
+
+def peek(s: S) -> int:
+    with s.m.lock() as _:
+        pass
+    return 1
+
+def f(s: S) -> int uses nondet:
+    par:
+        a = peek(s)
+        b = peek(s)
+    return a + b

@@ -409,6 +409,10 @@ impl Lower<'_, '_, '_> {
                     });
                     let w = self.fresh("w");
                     self.bind(&w, false, &t, mv, sp, sp);
+                } else if !t.is_copy() && !matches!(r, Rhs::Atom(_) | Rhs::Proj(_)) {
+                    // A fresh owned value needs a name so drop elaboration frees it.
+                    let w = self.fresh("w");
+                    self.bind(&w, false, &t, r, sp, sp);
                 } else {
                     self.emit(StmtKind::Rhs(r), sp);
                 }
