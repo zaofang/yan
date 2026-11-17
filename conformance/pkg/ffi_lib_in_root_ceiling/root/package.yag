@@ -1,0 +1,10 @@
+package: Package = Package(
+    name="@conf/ffi_lib_in_root_ceiling",
+    version="0.1.0",
+    edition="next",
+    yan="1.x",
+    platform="cli",
+    capabilities=["io", "@r/lib:zlib"],
+    allow_ffi=["@r/lib"],
+    dependencies=["@r/lib 1.0.0"],
+)

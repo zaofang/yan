@@ -255,6 +255,7 @@ impl Lower<'_, '_, '_> {
                 body: j::ParBody::Block(b),
             } => {
                 self.par_waits(b, *concurrent);
+                self.par_shares(b, at);
                 if *concurrent && self.sched_not_concurrent {
                     self.err(
                         "E708",

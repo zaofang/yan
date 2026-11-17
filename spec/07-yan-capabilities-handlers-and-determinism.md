@@ -52,6 +52,8 @@ A `@capability` trait is exclusive unless marked `@splittable` or `@shared`. `no
 
 `uses a, b` on a function becomes parameters `cap a: A, cap b: B` in Yan. Each call passes the capabilities its callee needs from the caller's scope. A capability MUST NOT be stored in data, returned, or captured by an escaping closure (E306). Calling a function whose capabilities are not in scope is E301, and its fix inserts the missing `uses` entry. A closure argument that captures a capability its callee does not declare is E301 too, so `uses none` holds for every call (R1025).
 
+**May-wait bit (R1042).** The effect signature of a function also records whether a call may wait on another task (a channel, actor or join operation, or a call to a callee that may). It is computed for functions and closures over the call graph, carried in a function type, so a function-typed parameter or field is no-wait unless its type is marked `waits`, and carried in a trait method signature, where an impl may not exceed the trait. A callee that waits passed where a no-wait function type is expected is E201. E323 (6.3) uses the bit for every call under a guard, including calls through function values and trait methods; `yan audit` and reflection show it.
+
 In Yan Agent every function lists its capabilities. In Yan only `pub` functions must; others are inferred within their strongly connected component and shown as inlay hints. main is exempt in Yan (R430): it need not be pub, its uses is inferred, and the inferred set must fit the package ceiling (7.4, E314). `alloc` is never written in `uses`. `uses none` forbids every capability, including `alloc`; on an extern item it is a trusted purity claim (12.2).
 
 ### 7.3 Handlers

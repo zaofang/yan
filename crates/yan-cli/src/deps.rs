@@ -186,49 +186,65 @@ pub fn add(root: &Path, spec: &str, now: i64, caller: Caller) -> Result<String, 
     } else {
         text.to_owned()
     };
-    let info = if exact {
-        index.info(name, &want)?.filter(|i| !i.yanked)
+    let cands = if exact {
+        index
+            .info(name, &want)?
+            .filter(|i| !i.yanked)
+            .into_iter()
+            .collect()
     } else {
-        registry::newest(&index, name, &want, false, &[], now)?
-    }
-    .ok_or_else(|| {
-        Failure::Msg(format!(
-            "no version of `{name}` satisfies `{want}` outside the 7-day cool-off"
-        ))
-    })?;
-    if let Some(advisory) = &info.malicious {
-        return Err(lock::malicious(&index, name, &info, advisory).into());
-    }
-    // No search snapshot exists yet, so nothing is established (R947).
-    if caller == Caller::Agent
-        && !lock::is_locked(root, name)
-        && crate::vendor::approvals_of(root, name, &info.version).is_empty()
-    {
-        return Err(fail(
-            "E004",
-            format!(
-                "`{name}` is neither locked nor established; run `yan approve {name}@{}` to allow the add",
-                info.version
-            ),
-        )
-        .into());
-    }
-    let req = format!("{name} {}", info.version);
-    if m.requirements.iter().any(|r| {
-        r.split_once(' ')
-            .is_some_and(|(n, v)| identity(n, v) == identity(name, &info.version))
-    }) {
+        registry::candidates(&index, name, &want, false, &[], now)?
+    };
+    if cands.is_empty() {
         return Err(Failure::Msg(format!(
-            "`{name}` is already required; use `yan update`"
+            "no version of `{name}` satisfies `{want}` outside the 7-day cool-off"
         )));
     }
-    std::fs::write(
-        root.join("package.yag"),
-        with_dependency(&src, local_name(name), &req)?,
-    )
-    .map_err(|e| Failure::Msg(format!("cannot write package.yag: {e}")))?;
-    lock::write(root)?;
-    Ok(format!("added {req}"))
+    // Newest first; a version whose closure breaks a ceiling is skipped for the next older one (R1033).
+    let mut refused: Option<Box<Diagnostic>> = None;
+    for info in cands {
+        if let Some(advisory) = &info.malicious {
+            return Err(lock::malicious(&index, name, &info, advisory).into());
+        }
+        // No search snapshot exists yet, so nothing is established (R947).
+        if caller == Caller::Agent
+            && !lock::is_locked(root, name)
+            && crate::vendor::approvals_of(root, name, &info.version).is_empty()
+        {
+            return Err(fail(
+                "E004",
+                format!(
+                    "`{name}` is neither locked nor established; run `yan approve {name}@{}` to allow the add",
+                    info.version
+                ),
+            )
+            .into());
+        }
+        let req = format!("{name} {}", info.version);
+        if m.requirements.iter().any(|r| {
+            r.split_once(' ')
+                .is_some_and(|(n, v)| identity(n, v) == identity(name, &info.version))
+        }) {
+            return Err(Failure::Msg(format!(
+                "`{name}` is already required; use `yan update`"
+            )));
+        }
+        std::fs::write(
+            root.join("package.yag"),
+            with_dependency(&src, local_name(name), &req)?,
+        )
+        .map_err(|e| Failure::Msg(format!("cannot write package.yag: {e}")))?;
+        match lock::write(root) {
+            Ok(_) => return Ok(format!("added {req}")),
+            Err(e) if e.code == "E314" => {
+                std::fs::write(root.join("package.yag"), &src)
+                    .map_err(|e| Failure::Msg(format!("cannot write package.yag: {e}")))?;
+                refused.get_or_insert(e);
+            }
+            Err(e) => return Err(e.into()),
+        }
+    }
+    Err(refused.map_or_else(|| Failure::Msg("no version fits".into()), Failure::from))
 }
 
 /// `yan remove @org/name`: drop the requirement from `dependencies` and rewrite the lock.
@@ -263,44 +279,66 @@ pub fn update(root: &Path, only: Option<&str>, now: i64) -> Result<Vec<String>, 
         let locked = lock::locked_version(root, name, current)
             .and_then(|v| index.info(name, &v).ok().flatten());
         let affected = locked.as_ref().map_or(&[][..], |l| &l.affects[..]);
-        let Some(info) = registry::newest(&index, name, current, false, affected, now)? else {
-            continue;
-        };
-        if lock::parts(&info.version) <= lock::parts(current) {
-            continue;
-        }
-        if lock::locked_publisher(root, name, current).is_some_and(|p| p != info.publisher) {
-            return Err(fail(
-                "E005",
-                format!(
-                    "`{name}` {} changes publisher identity; needs an approval",
+        let newer: Vec<_> = registry::candidates(&index, name, current, false, affected, now)?
+            .into_iter()
+            .filter(|i| lock::parts(&i.version) > lock::parts(current))
+            .collect();
+        let base = src.clone();
+        let mut held = Vec::new();
+        for info in newer {
+            if lock::locked_publisher(root, name, current).is_some_and(|p| p != info.publisher) {
+                return Err(fail(
+                    "E005",
+                    format!(
+                        "`{name}` {} changes publisher identity; needs an approval",
+                        info.version
+                    ),
+                )
+                .into());
+            }
+            let new = format!("{name} {}", info.version);
+            let trial = base.replace(&format!("\"{r}\""), &format!("\"{new}\""));
+            std::fs::write(root.join("package.yag"), &trial)
+                .map_err(|e| Failure::Msg(format!("cannot write package.yag: {e}")))?;
+            match lock::resolves(root) {
+                Ok(()) => {}
+                Err(e) if e.code == "E314" => {
+                    held.push(format!("held back: {name} {}: {}", info.version, e.message));
+                    continue;
+                }
+                Err(e) => {
+                    let _ = std::fs::write(root.join("package.yag"), &base);
+                    return Err(e.into());
+                }
+            }
+            src = trial;
+            moved.push(format!("{name} {current} -> {}", info.version));
+            if let Some(l) = locked.as_ref().filter(|l| l.yanked) {
+                moved.push(format!(
+                    "yanked: {name} {}: {} -> {}",
+                    l.version,
+                    registry::reason_line(l.yank_reason.as_deref().unwrap_or("no reason given")),
                     info.version
-                ),
-            )
-            .into());
+                ));
+            }
+            if index.cooling(&info, now) {
+                let ids: Vec<_> = info.fixes.iter().filter(|f| affected.contains(f)).collect();
+                moved.push(format!(
+                    "cool-off bypassed: {name} {} fixes {}",
+                    info.version,
+                    ids.iter()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ));
+            }
+            break;
         }
-        let new = format!("{name} {}", info.version);
-        src = src.replace(&format!("\"{r}\""), &format!("\"{new}\""));
-        moved.push(format!("{name} {current} -> {}", info.version));
-        if let Some(l) = locked.as_ref().filter(|l| l.yanked) {
-            moved.push(format!(
-                "yanked: {name} {}: {} -> {}",
-                l.version,
-                registry::reason_line(l.yank_reason.as_deref().unwrap_or("no reason given")),
-                info.version
-            ));
+        if src == base {
+            std::fs::write(root.join("package.yag"), &base)
+                .map_err(|e| Failure::Msg(format!("cannot write package.yag: {e}")))?;
         }
-        if index.cooling(&info, now) {
-            let ids: Vec<_> = info.fixes.iter().filter(|f| affected.contains(f)).collect();
-            moved.push(format!(
-                "cool-off bypassed: {name} {} fixes {}",
-                info.version,
-                ids.iter()
-                    .map(|s| s.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ));
-        }
+        moved.extend(held);
     }
     if let Some(o) = only
         && !seen
@@ -558,6 +596,94 @@ mod tests {
             format!("yanked: @a/b 1.0.0: bad{}... -> 1.3.0", "x".repeat(197))
         );
         assert_eq!(moved[2], "cool-off bypassed: @a/b 1.3.0 fixes A1");
+    }
+
+    /// `world` with `@a/b` 1.2.0 declaring the extern library `z` (and ceiling `["z"]`), 1.0.0 none,
+    /// and an app whose ceiling is `["net"]` and whose `allow_ffi` names `@a/b`.
+    fn ceiling_world(tag: &str, requirement: &str) -> std::path::PathBuf {
+        let dir = world(tag);
+        let p = dir.join("index/@a/b/@v/1.2.0.info");
+        let body = std::fs::read_to_string(&p).unwrap();
+        std::fs::write(
+            &p,
+            body.replace(
+                "{\"digest",
+                "{\"ffi\":[\"ffi/z.yn\"],\"libs\":[{\"name\":\"z\",\"link\":\"z\"}],\"capabilities\":[\"z\"],\"digest",
+            ),
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("package.yag"),
+            format!(
+                "package: Package = Package(name=\"@a/app\", version=\"0.1.0\", capabilities=[\"net\"], allow_ffi=[\"@a/b\"]{requirement})\n"
+            ),
+        )
+        .unwrap();
+        dir
+    }
+
+    #[test]
+    fn update_holds_back_a_version_that_breaks_the_ceiling() {
+        let dir = ceiling_world("hold", ", dependencies={\"b\": \"@a/b 1.0.0\"}");
+        lock::write(&dir).ok().unwrap();
+        let before = std::fs::read_to_string(dir.join("package.yag")).unwrap();
+        let moved = update(&dir, None, registry::now()).ok().unwrap();
+        assert_eq!(moved.len(), 1, "{moved:?}");
+        assert!(
+            moved[0].starts_with("held back: @a/b 1.2.0: library `@a/b:z`"),
+            "{moved:?}"
+        );
+        assert_eq!(
+            std::fs::read_to_string(dir.join("package.yag")).unwrap(),
+            before
+        );
+    }
+
+    #[test]
+    fn update_moves_when_the_ceiling_lists_the_library() {
+        let dir = ceiling_world("hold-ok", ", dependencies={\"b\": \"@a/b 1.0.0\"}");
+        let src = std::fs::read_to_string(dir.join("package.yag")).unwrap();
+        std::fs::write(
+            dir.join("package.yag"),
+            src.replace("[\"net\"]", "[\"net\", \"@a/b:z\"]"),
+        )
+        .unwrap();
+        let moved = update(&dir, None, registry::now()).ok().unwrap();
+        assert_eq!(moved, ["@a/b 1.0.0 -> 1.2.0"]);
+    }
+
+    #[test]
+    fn add_takes_the_newest_version_that_fits_and_fails_when_none_does() {
+        let dir = ceiling_world("add-fit", "");
+        assert_eq!(
+            add(&dir, "@a/b", registry::now(), Caller::Human)
+                .ok()
+                .unwrap(),
+            "added @a/b 1.0.0"
+        );
+        let dir = ceiling_world("add-none", "");
+        let info = dir.join("index/@a/b/@v/1.0.0.info");
+        let body = std::fs::read_to_string(&info).unwrap();
+        std::fs::write(
+            &info,
+            body.replace(
+                "{\"digest",
+                "{\"ffi\":[\"ffi/z.yn\"],\"libs\":[{\"name\":\"z\",\"link\":\"z\"}],\"capabilities\":[\"z\"],\"digest",
+            ),
+        )
+        .unwrap();
+        let before = std::fs::read_to_string(dir.join("package.yag")).unwrap();
+        let err = add(&dir, "@a/b", registry::now(), Caller::Human)
+            .err()
+            .unwrap();
+        assert!(
+            matches!(&err, Failure::Diag(d) if d.code == "E314"),
+            "{err:?}"
+        );
+        assert_eq!(
+            std::fs::read_to_string(dir.join("package.yag")).unwrap(),
+            before
+        );
     }
 
     #[test]

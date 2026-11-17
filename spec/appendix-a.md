@@ -383,6 +383,11 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1035 | `MutexGuard[T].value` is the protected value as a std subscript place: `inout` and slices work for any `T`; no whole-value `MutView[T]` (RFC 0080 D1; #1429 item 2) | 6.3 |
 | R1036 | a guard bound by `with` (Yan `with g = m.lock()`, Yan Agent `with m.lock() as g`) lives to the end of the `with` block; unlock is never earlier (RFC 0080 D2; #1429 item 1) | 5.3, 6.3, 13, 15 |
 | R1037 | a `MutexGuard` is a view for escape analysis: E414 in a record or container, E406 in an escaping closure, E415 on a channel, E417 across `par` (RFC 0080 D3; #1429 item 4) | 4.5, 4.6, 6.3 |
+| R1038 | `try_lock() -> Option[MutexGuard[T]]` needs `uses nondet` (E709), returns `None` when held (also by the caller), never panics; the option is matched in place only, naming it is E414 (RFC 0081 D1; #1429 item 5) | 6.3 |
+| R1039 | `Mutex.get_mut()` (`inout`) is the protected value as a place and `into_inner()` (`take`) moves it out; neither locks nor needs a capability (RFC 0081 D2, D3; #1429 item 5) | 6.2, 6.3 |
+| R1040 | Send and Sync are one structural computation consulted by every E415 and E417 site; `Mutex[T]` is both iff `T: Send`, a `MutexGuard` neither (RFC 0081 D4; #1429 item 5) | 6.4 |
+| R1041 | sharing a `Mutex` between tasks (par borrow, task move, `Arc` share) is the E709 site; `lock`, `get_mut` and `into_inner` need no capability; no commutativity exemption (RFC 0081 D5; #1429 item 5) | 6.5 |
+| R1042 | the effect signature carries a computed may-wait bit, in function types and trait signatures; E323 uses it through function values and trait methods; a waiting callee passed as no-wait is E201 (RFC 0081 D6; #1429 item 6) | 6.3, 7.2 |
 
 <!-- /rows -->
 

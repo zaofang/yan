@@ -1,0 +1,10 @@
+package: Package = Package(
+    name="@conf/locked_ffi_set_matches_archive",
+    version="0.1.0",
+    edition="next",
+    yan="1.x",
+    platform="cli",
+    capabilities=["io", "@r/lib:zlib"],
+    allow_ffi=["@r/lib"],
+    dependencies=["@r/lib 1.0.0"],
+)

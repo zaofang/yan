@@ -1,0 +1,10 @@
+package: Package = Package(
+    name="@conf/e314_dep_lib_missing_from_intermediate_ceiling",
+    version="0.1.0",
+    edition="next",
+    yan="1.x",
+    platform="cli",
+    capabilities=["io", "@r/lib:zlib"],
+    allow_ffi=["@r/lib"],
+    dependencies=["@r/mid 1.0.0"],
+)
