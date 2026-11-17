@@ -1,10 +1,10 @@
 # 0082: Self-hosted compiler design: subset, boundaries, trust and gates
 
-- Status: draft
+- Status: accepted (lead, 2026-11-17: recommendation taken on every item)
 - Research: this document (design, read against main `bbedc4c`, 2026-11-17); RFC 0057 (accepted,
   stages S0 to S5); [Bootstrapping roadmap](../docs/studies/bootstrapping.md) (2026-11-04); plan of
   2026-11-09 (#851); audits #1500 (native ownership) and #1502 (capability soundness). Tracker #851.
-- Rows: filled in when accepted
+- Rows: R1043 to R1054
 
 ## Summary
 
@@ -34,8 +34,8 @@ S1 starts only when S0 passes and `tools.difftest` reports zero native refusals 
 programs on `61e6a66`, 2026-11-12). Decided by the lead on 2026-11-12 (#1026); the RFC was deferred by
 the spec freeze, which CASE WITH ROW has since replaced. This item only writes the decision into 22.7.
 
-- Decision: accepted 2026-11-12 (#1026); to be written
-- Row:
+- Decision: S1 entry gate as decided 2026-11-12 (#1026), written (lead, 2026-11-17)
+- Row: R1043
 
 ### D2: S0 is widened to cover what a compiler does
 
@@ -63,8 +63,8 @@ corpus (55 files): it is compiler-shaped, has an exact oracle in stage 0, and is
 
 Long term: this list is the S0 gate. Interim: `lex.yag` stays as the smoke test.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17)
+- Row: R1044
 
 ### D3: the bootstrap subset
 
@@ -88,8 +88,8 @@ lint entry together, and never because a port needed a feature that is not yet p
 Until the std port to `.yn` (#1027, decided 2026-11-12) is done, the compiler may import `.yag` std
 modules; the std port is ordered before S1 so the compiler and std share one surface from the start.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17)
+- Row: R1044
 
 ### D4: port order and the dual-maintenance window
 
@@ -110,8 +110,8 @@ Port order inside a stage is bottom-up along the 22.2 layering, one crate per PR
 own equality check so a red gate names one crate. The `yan-elab` port follows the module split that
 practice 5 already requires (`lower.rs` is not ported as one file).
 
-- Decision:
-- Row:
+- Decision: option (b), progressive freeze (lead, 2026-11-17)
+- Row: R1045
 
 ### D5: shape of the compiler in Yan
 
@@ -137,8 +137,8 @@ One fact, one representation (practice 12) decides most of this.
   over items and instances (middle and back end), with results joined in input order, so output is
   independent of thread count (19.5). No actors or channels in the compiler.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17)
+- Row: R1046
 
 ### D6: query engine and compile-time evaluator move to S2
 
@@ -159,8 +159,8 @@ query engine. S1 stays batch: its passes are per-file pure functions and need no
 
 Interim: none; a batch S2 would be thrown away.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17)
+- Row: R1047
 
 ### D7: the boundary between the Yan pipeline and LLVM
 
@@ -187,8 +187,8 @@ says); (b) print textual LLVM IR and run the pinned `clang`, which needs no FFI 
 to an unstable text format and adds a parse per module; (c) write bitcode directly, which is a large
 format to own. Option (b) is not taken even as an interim step, since it would be a second emitter.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17)
+- Row: R1048
 
 ### D8: one LLVM code generator, written in Yan, startable after S0
 
@@ -214,8 +214,8 @@ after S3 or served by a throwaway Rust backend; (b) Yan generator over MIR text 
 Interim under (b): S0 item 7 (D2) is the spike that proves the binding approach before the package
 starts.
 
-- Decision:
-- Row:
+- Decision: option (b), Yan generator over MIR text after S0 (lead, 2026-11-17)
+- Row: R1049
 
 ### D9: runtime and third-party engines
 
@@ -239,8 +239,8 @@ Options weighed: (a) port every engine before 1.0 (months of work off the critic
 regex or TLS engine is a security risk of its own); (b) the engines library as a dated exception
 (recommended interim); (c) C libraries for all of them.
 
-- Decision:
-- Row:
+- Decision: long-term rule with option (b) as the 1.0 interim (lead, 2026-11-17)
+- Row: R1050
 
 ### D10: equality, determinism and conformance
 
@@ -283,8 +283,8 @@ and native code, and the Lean model for Yan-K. Every bug found by an equality ga
 filed as a proposed `conform/*` case (practice 2), so the suite ends the port stronger than the Rust
 tree's selftests.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17)
+- Row: R1051
 
 ### D11: ownership and soundness prerequisites
 
@@ -309,8 +309,8 @@ captured in a closure and run in a `uses none` callee (item 11), E709 for a `Mut
 (item 18). The Send and Sync items (4, 5, 7, 9) do not gate the port, because the subset bans `Rc`,
 `Arc`, channels and actors (D3); they gate the post-fixpoint `par` work of D5.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17)
+- Row: R1052
 
 ### D12: trust and security of the bootstrap
 
@@ -338,8 +338,8 @@ lead and reviewed independently of both compilers, which bounds what a compromis
 hide. Release binaries keep the independent-rebuild requirement of 19.6; the fixpoint, DDC and ceiling
 checks join it.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17)
+- Row: R1053
 
 ### D13: performance targets
 
@@ -360,8 +360,8 @@ is reported separately, since stage 0 has no LLVM path to compare with. Followin
 no stage before S4 is held back for speed. The S0 baseline is 1,431,300,899 instructions for lexing
 the conformance corpus (#852, 2026-11-13).
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17)
+- Row: R1054
 
 ### D14: wording, the two meanings of "stage 0"
 
@@ -370,8 +370,8 @@ compiler; 22.2 uses both in one table. Recommended: sections 18, 22 and 23 say "
 (and stage 1, 2, 3) wherever the Rust compiler or a built compiler is meant; 10.4 keeps its term. No
 name changes, only the qualifier.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17)
+- Row: none (wording in 22.1 and 22.2)
 
 ## Stage breakdown
 
@@ -416,6 +416,8 @@ the longest dependency on the path to S4.
   (D13).
 - 23: M2a takes the MIR text and the start of the code generator; RC takes the release checks.
 
-Rows that state a process or a gate have no program-observable behaviour; under CASE WITH ROW they
-need either a case on `conformance/` (MIR text, `--emit mir`, the ceiling check and `--verify` can
-have one) or a lead-approved entry in `spec/row-exemptions.toml`.
+R1043 to R1054 state gates, structure and release checks with no program-observable behaviour and are
+listed in `spec/row-exemptions.toml`, beside R966 to R970. The MIR text format, `yan view --as mir`
+and `yan build --emit mir` (18.1) are not written here: they get their rows with their cases in the
+PR set that implements them (#1513). The 22.2 crate table's missing crates and the remaining
+"stage 0" wording in 18 and 23 are left to a follow-up.

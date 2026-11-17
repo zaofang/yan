@@ -45,3 +45,9 @@ rows = "R215"
 kind = "exempt"
 group = "Superseded implementation language"
 reason = "Replaced by R966 (spec says so)."
+
+[[row]]
+rows = "R1043 to R1054"
+kind = "exempt"
+group = "Implementation language and self-hosting"
+reason = "Self-hosting gates, compiler structure, bootstrap trust checks and compiler-speed limits (RFC 0082). Checked by the stage comparison jobs and release checks under #851, never by a Yan program. The MIR text format and its commands get their own rows and cases when they land (#1513)."
