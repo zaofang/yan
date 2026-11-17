@@ -1,5 +1,6 @@
 from tools.rows import (
     allocations,
+    case_with_row_errors,
     check,
     code_map_errors,
     expand,
@@ -51,3 +52,13 @@ def test_renumbering_moves_only_colliding_new_entries() -> None:
 
 def test_code_map_agrees_with_spec_and_catalogue() -> None:
     assert code_map_errors() == []
+
+
+def test_case_with_row_flags_uncased_row_above_freeze_exit() -> None:
+    errors = case_with_row_errors({"R1009": 0, "R999999": 1, "R1017": 2, "R1020": 3, "R1042": 4})
+    assert [e.split()[0] for e in errors] == ["R999999"]
+
+
+def test_case_with_row_flags_stale_allowance() -> None:
+    errors = case_with_row_errors({})
+    assert all("remove it" in e for e in errors) and len(errors) == 3

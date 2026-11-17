@@ -554,6 +554,7 @@ impl Lower<'_, '_, '_> {
                 if let j::ExprKind::Name(n) = &x.kind
                     && hit.is_none()
                     && (self.views.contains(n)
+                        || self.mutable.contains(n) && self.locals.contains_key(n)
                         || matches!(self.ty_of_local(x), Some(Ty::Coll("MutexGuard", _))))
                     && !ps.contains(n)
                 {
@@ -564,7 +565,7 @@ impl Lower<'_, '_, '_> {
                 self.err(
                     "E406",
                     sp,
-                    format!("this closure escapes but captures the view or guard `{n}`"),
+                    format!("this closure escapes but captures the view, guard or `var` `{n}`"),
                 );
             }
             return;
