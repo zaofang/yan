@@ -7393,6 +7393,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/list_pop_contains_join.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R218"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 bb\n1 a\nTrue False 1 False c a-b []\n",
+   "exit": 101
+  },
+  {
    "path": "yag/run/std/list_removal.yag",
    "kind": "run",
    "milestone": "M1",
@@ -14304,6 +14319,33 @@
    }
   },
   {
+   "path": "pkg/e023_resolve_ffi_unlisted",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "1",
+    "9"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1019",
+    "note": "resolving a dependency whose .info lists an ffi module when the root's allow_ffi omits it is E023",
+    "command": [
+     "lock"
+    ],
+    "code": "E023",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
    "path": "pkg/e144_manifest_call",
    "kind": "pkg",
    "milestone": "M2b",
@@ -14640,6 +14682,31 @@
     "note": "the same package named in allow_ffi, with its library in the ceiling, checks clean",
     "command": [
      "check"
+    ]
+   }
+  },
+  {
+   "path": "pkg/ffi_resolve_listed",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "1",
+    "9"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1019",
+    "note": "the same dependency resolves when the root's allow_ffi names it",
+    "command": [
+     "lock"
     ]
    }
   },
