@@ -431,7 +431,9 @@ impl Lower<'_, '_, '_> {
                 match self.bits_record(&bp.1) {
                     Some(r) => self.bits_read(bp.0, &r, f, *fsp, at)?,
                     None => {
-                        let (p, t) = self.attr_place(bp, f, *fsp).map_err(|u| u.at(e.span))?;
+                        let (p, t) = self
+                            .attr_place(bp, (b, f, *fsp), e.span)
+                            .map_err(|u| u.at(e.span))?;
                         (Rhs::Proj(p), t)
                     }
                 }

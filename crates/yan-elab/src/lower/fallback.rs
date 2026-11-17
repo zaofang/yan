@@ -100,16 +100,8 @@ impl Lower<'_, '_, '_> {
                 j::FPiece::Lit(s) => Atom::Lit(Literal::Str(s.clone()), at),
                 j::FPiece::Expr(e, Some(spec)) => {
                     let (a, t) = self.atom(e, None)?;
-                    let (fill, align, width) = pad_spec(spec, &t)?;
-                    let shown = self.show(a, &t, e.span);
-                    let args = vec![
-                        let_arg(shown),
-                        let_arg(Atom::Lit(Literal::Int(width.to_string()), e.span)),
-                        let_arg(Atom::Lit(Literal::Int(align.to_string()), e.span)),
-                        let_arg(Atom::Lit(Literal::Str(fill.to_string()), e.span)),
-                    ];
-                    let c = call("fmt_pad", vec![], args, e.span);
-                    self.tmp(&Ty::Str, Rhs::Call(c), e.span)
+                    let spec = fmtspec::Spec::parse(spec, &t)?;
+                    self.spec_text(a, &t, &spec, e.span)
                 }
                 j::FPiece::Expr(e, None) => {
                     let (a, t) = self.atom(e, None)?;
