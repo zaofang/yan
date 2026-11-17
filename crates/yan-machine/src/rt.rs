@@ -1784,6 +1784,9 @@ impl Machine<'_> {
                 self.race.borrow_mut().block_end(a[0].addr());
                 Val::U
             }
+            // The machine keeps arms inline, in source order.
+            RtFn::PoolBegin => Val::I(0),
+            RtFn::PoolRun => unreachable!("`PoolBegin` is 0 in the machine"),
             RtFn::SimPct => {
                 sched::yan_rt_sim_pct(a[0].int() as i64, a[1].int() as i64, a[2].int() as i64);
                 Val::U

@@ -264,6 +264,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
         prog.funcs.push(func);
     }
     crate::co::run(&mut prog);
+    crate::pool::run(&mut prog);
     Ok(prog)
 }
 

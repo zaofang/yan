@@ -1,0 +1,36 @@
+# spec: 6.7, 9.1
+# rows: R1069
+# note: plain par arms that call only pure functions are pool-safe; the pool (YAN_THREADS) or inline runs give the same results at every thread count
+# stdout:
+# 832040 4950000 75025
+# 6 48 1 [0, 1, 4, 9]
+
+def fib(n: int) -> int:
+    if n < 2:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+def residues(n: int) -> int:
+    total = 0
+    for i in range(n):
+        total = total + i % 100
+    return total
+
+def squares(n: int) -> list[int]:
+    xs: list[int] = []
+    for i in range(n):
+        xs.append(i * i)
+    return xs
+
+pub def main() uses io:
+    par:
+        a = fib(30)
+        b = residues(100000)
+        c = fib(25)
+    io.print(f"{a} {b} {c}")
+    par:
+        x = fib(4) * 2
+        y = residues(10) + 3
+        z = fib(2)
+        w = squares(4)
+    io.print(f"{x} {y} {z} {w}")
