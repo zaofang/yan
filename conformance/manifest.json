@@ -1148,6 +1148,25 @@
    ]
   },
   {
+   "path": "yag/fail/concurrency/e709_record_of_mutex_shared_par.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.5"
+   ],
+   "rows": [
+    "R1041"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 15,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/concurrency/e709_share_sender.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3724,6 +3743,58 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e415_arc_of_cell_over_channel.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 6,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e415_closure_capturing_rc_over_channel.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.6",
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 11,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e415_generic_forwarder_of_rc.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 9,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e415_mutex_of_rc.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3760,6 +3831,24 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e415_rc_to_actor.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4",
+    "9.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 14,
+     "col": 18
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e415_rc_try_send.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3774,6 +3863,23 @@
      "code": "E415",
      "line": 6,
      "col": 17
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e415_record_of_rc_over_channel.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 9,
+     "col": 13
     }
    ]
   },
@@ -3828,6 +3934,26 @@
     {
      "code": "E417",
      "line": 14,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e417_record_of_mutex_of_rc_in_two_branches.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4",
+    "9.2"
+   ],
+   "rows": [
+    "R1040"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E417",
+     "line": 17,
      "col": 18
     }
    ]
@@ -10566,6 +10692,25 @@
    ]
   },
   {
+   "path": "yn/fail/ffi/e913_lib_named_like_builtin_capability.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12.2"
+   ],
+   "rows": [
+    "R1057"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E913",
+     "line": 5,
+     "col": 1
+    }
+   ]
+  },
+  {
    "path": "yn/fail/ffi/extern_halo_accepted.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -14986,6 +15131,29 @@
    }
   },
   {
+   "path": "pkg/e020_locked_record_unpinned",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1058"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1058",
+    "note": "under --locked, a lock record with neither digest, path nor a member source pins nothing: E020",
+    "command": [
+     "check",
+     "--locked"
+    ],
+    "code": "E020"
+   }
+  },
+  {
    "path": "pkg/e023_ffi_unlisted",
    "kind": "pkg",
    "milestone": "M1",
@@ -15774,11 +15942,7 @@
     "14.4"
    ],
    "rows": [
-    "R",
-    "1",
-    "0",
-    "5",
-    "6"
+    "R1056"
    ],
    "flags": [],
    "expect": [],
@@ -15795,11 +15959,7 @@
     "14.4"
    ],
    "rows": [
-    "R",
-    "1",
-    "0",
-    "5",
-    "6"
+    "R1056"
    ],
    "flags": [],
    "expect": [],

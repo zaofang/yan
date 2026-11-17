@@ -1975,3 +1975,13 @@ sections = "6.6, 25"
 rows = "R1056"
 topic = "section 25 lists N01 to N54; N02 and N11 are silent lexical normalizations, every other N-code reports its note (#1527 decision 6)"
 sections = "14.4, 25"
+
+[[entry]]
+rows = "R1057"
+topic = "a `lib` named like a built-in capability is E913, so a foreign library never shadows a built-in capability (#1502 item 14)"
+sections = "12.2, 25"
+
+[[entry]]
+rows = "R1058"
+topic = "under `--locked` a `[[package]]` record needs a `digest`, a `path` or a `source` that is a workspace member directory, else E020 (#1502 item 13)"
+sections = "19.1"
