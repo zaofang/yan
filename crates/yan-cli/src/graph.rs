@@ -88,6 +88,20 @@ fn locked(top: &Path) -> Vec<Package> {
         .collect()
 }
 
+/// The root of the workspace at `top`, its members and what its lock pins: the graph a locked build
+/// checks (RFC 0079 D3), without the nested packages that only a module's position adds.
+pub(crate) fn packages(top: &Path) -> Vec<Package> {
+    let Some(root) = package(top.to_owned(), top, Role::Root) else {
+        return Vec::new();
+    };
+    let mut out = vec![root.clone()];
+    for m in &root.manifest.members {
+        out.extend(package(top.join(m), top, Role::Member));
+    }
+    out.extend(locked(top));
+    out
+}
+
 /// W861 is on when the nearest `yan.toml` sets `[lint] missing-sub-item-docs = true` (R848).
 fn missing_sub_item_docs(root: &Path) -> bool {
     root.ancestors()

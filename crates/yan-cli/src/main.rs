@@ -7,6 +7,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 mod agent;
 mod audit;
 mod build;
+mod closure;
 mod deps;
 mod examples;
 mod export;
