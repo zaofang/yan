@@ -1,0 +1,7 @@
+# spec: 4.2
+# rows: R1060
+# expect: E413 at 7:12
+
+def f() -> str:
+    b = ["a".upper(), "z".upper()]
+    return b[0]

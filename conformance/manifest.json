@@ -1148,6 +1148,25 @@
    ]
   },
   {
+   "path": "yag/fail/concurrency/e709_record_of_mutex_shared_par.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.5"
+   ],
+   "rows": [
+    "R1041"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 15,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/concurrency/e709_share_sender.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3620,6 +3639,25 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e413_trial_paired.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1060"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e414_guard_escapes.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3724,6 +3762,58 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e415_arc_of_cell_over_channel.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 6,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e415_closure_capturing_rc_over_channel.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.6",
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 11,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e415_generic_forwarder_of_rc.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 9,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e415_mutex_of_rc.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3760,6 +3850,24 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e415_rc_to_actor.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4",
+    "9.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 14,
+     "col": 18
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e415_rc_try_send.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3774,6 +3882,23 @@
      "code": "E415",
      "line": 6,
      "col": 17
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e415_record_of_rc_over_channel.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 9,
+     "col": 13
     }
    ]
   },
@@ -3828,6 +3953,26 @@
     {
      "code": "E417",
      "line": 14,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e417_record_of_mutex_of_rc_in_two_branches.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4",
+    "9.2"
+   ],
+   "rows": [
+    "R1040"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E417",
+     "line": 17,
      "col": 18
     }
    ]
@@ -15774,11 +15919,7 @@
     "14.4"
    ],
    "rows": [
-    "R",
-    "1",
-    "0",
-    "5",
-    "6"
+    "R1056"
    ],
    "flags": [],
    "expect": [],
@@ -15795,11 +15936,7 @@
     "14.4"
    ],
    "rows": [
-    "R",
-    "1",
-    "0",
-    "5",
-    "6"
+    "R1056"
    ],
    "flags": [],
    "expect": [],

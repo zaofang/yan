@@ -402,6 +402,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1054 | compiler performance gate at S4 and RC in callgrind instruction counts (RFC 0082 D13) | 22.7 |
 | R1055 | pointer constructors without a Ptr argument take the pointee type from [T] or the expected type, else E205 (#1527) | 6.6, 25 |
 | R1056 | section 25 lists N01 to N54; N02 and N11 are silent lexical normalizations, every other N-code reports its note (#1527 decision 6) | 14.4, 25 |
+| R1060 | trial row for the paired guard; do not merge | 4.2 |
 
 <!-- /rows -->
 

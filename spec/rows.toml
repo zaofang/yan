@@ -1975,3 +1975,8 @@ sections = "6.6, 25"
 rows = "R1056"
 topic = "section 25 lists N01 to N54; N02 and N11 are silent lexical normalizations, every other N-code reports its note (#1527 decision 6)"
 sections = "14.4, 25"
+
+[[entry]]
+rows = "R1060"
+topic = "trial row for the paired guard; do not merge"
+sections = "4.2"
