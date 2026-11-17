@@ -83,14 +83,30 @@ pub fn graph_diagnostics(db: &dyn Db, graph: PackageGraph) -> Vec<Diagnostic> {
         end_col: 1,
     };
     let mut out = Vec::new();
-    for p in packages.iter().filter(|p| local(p)) {
-        if !p.foreign.is_empty() && !consented(packages, p) {
+    // Consent is read from the recomputed set, so a lock whose `ffi` array was emptied by hand
+    // does not grant it. A locked package is reported on the manifest of its workspace root.
+    for p in packages {
+        if p.foreign.is_empty() || consented(packages, p) {
+            continue;
+        }
+        if local(p) {
             out.push(Diagnostic::error(
                 "E023",
                 &at(p),
                 top,
                 "",
                 "this package holds foreign code and the root's `allow_ffi` does not name it",
+            ));
+        } else {
+            out.push(Diagnostic::error(
+                "E023",
+                &p.workspace.join("package.yag").display().to_string(),
+                top,
+                "",
+                format!(
+                    "`{}` holds foreign code and the root's `allow_ffi` does not name it",
+                    p.name.as_deref().unwrap_or(".")
+                ),
             ));
         }
     }

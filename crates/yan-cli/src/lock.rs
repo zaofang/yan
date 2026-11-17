@@ -122,7 +122,10 @@ pub fn check(
             continue;
         };
         match crate::store::source(&roots, digest)? {
-            Some(dir) => verify_set(p, &dir)?,
+            Some(dir) => {
+                verify_set(p, &dir)?;
+                verify_identity(p, &dir)?;
+            }
             None if offline => {
                 return Err(fail(
                     "E020",
@@ -180,6 +183,30 @@ fn verify_set(record: &toml::Value, dir: &Path) -> Result<(), Box<Diagnostic>> {
         "E020",
         format!("`yan.lock` records a foreign set for `{name}` that its archive does not have"),
     ))
+}
+
+/// E020 when the archive's own manifest names another package or version than the record: the
+/// closure check keys on the record, so the two must be one fact.
+fn verify_identity(record: &toml::Value, dir: &Path) -> Result<(), Box<Diagnostic>> {
+    let Some(m) = manifest_at(dir) else {
+        return Ok(());
+    };
+    let field = |k: &str| record.get(k).and_then(toml::Value::as_str);
+    let differs = |have: Option<&str>, want: Option<&str>| have.is_some() && have != want;
+    if differs(m.name.as_deref(), field("name")) || differs(m.version.as_deref(), field("version"))
+    {
+        return Err(fail(
+            "E020",
+            format!(
+                "`yan.lock` pins `{} {}`, but its archive is `{} {}`",
+                field("name").unwrap_or(""),
+                field("version").unwrap_or(""),
+                m.name.as_deref().unwrap_or(""),
+                m.version.as_deref().unwrap_or("")
+            ),
+        ));
+    }
+    Ok(())
 }
 
 /// The `[[package]]` records of the existing `yan.lock`, if it reads.
