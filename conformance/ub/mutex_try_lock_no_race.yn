@@ -1,0 +1,20 @@
+-- spec: 6.3, 6.7
+-- rows: R1038
+-- note: a try_lock that returns Some takes the lock, so its guard access is ordered against a locking arm; None touches nothing
+-- ub: none
+
+bump(m: Mutex[int]) uses nondet =
+  with g = m.lock()
+    g.value += 1
+
+poke(m: Mutex[int]) uses nondet =
+  match m.try_lock()
+    Some(g) -> g.set(g.get() + 1)
+    None -> ()
+
+main() uses nondet =
+  let m = Mutex[int](0)
+  par
+    bump(m)
+    poke(m)
+    poke(m)

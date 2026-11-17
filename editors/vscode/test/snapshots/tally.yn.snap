@@ -1,0 +1,913 @@
+"--- Tally slice: authorize card payments, charge fees, settle per merchant."
+  "--- Tally slice: authorize card payments, charge fees, settle per merchant." comment.block.documentation.yan
+""
+"type Mcc = Grocery() | Travel() | Other(code: int)"
+  "type" storage.type.yan
+  "Mcc" entity.name.type.yan
+  "=" keyword.operator.assignment.yan
+  "Grocery" entity.name.type.yan
+  "() | " -
+  "Travel" entity.name.type.yan
+  "() | " -
+  "Other" entity.name.type.yan
+  "(code: int)" -
+""
+"type Decision = Approved(code: str) | Declined(reason: str)"
+  "type" storage.type.yan
+  "Decision" entity.name.type.yan
+  "=" keyword.operator.assignment.yan
+  "Approved" entity.name.type.yan
+  "(code: str) | " -
+  "Declined" entity.name.type.yan
+  "(reason: str)" -
+""
+"type Auth = { id: int, merchant: str, pan: str, minor: int, mcc: Mcc }"
+  "type" storage.type.yan
+  "Auth" entity.name.type.yan
+  "=" keyword.operator.assignment.yan
+  " { id: int, merchant: str, pan: str, minor: int, mcc: " -
+  "Mcc" entity.name.type.yan
+  " }" -
+""
+"type Settled = { merchant: str, gross: int, fees: int, net: int }"
+  "type" storage.type.yan
+  "Settled" entity.name.type.yan
+  "=" keyword.operator.assignment.yan
+  " { merchant: str, gross: int, fees: int, net: int }" -
+""
+"trait Acquirer"
+  "trait" storage.type.yan
+  "Acquirer" entity.name.type.interface.yan
+"  send(self, pan: str, minor: int) -> Decision"
+  "send" entity.name.function.yan
+  "(" -
+  "self" variable.language.self.yan
+  ", pan: str, minor: int) " -
+  "->" keyword.operator.arrow.yan
+  "Decision" entity.name.type.yan
+""
+"type FakeAcquirer = { limit: int }"
+  "type" storage.type.yan
+  "FakeAcquirer" entity.name.type.yan
+  "=" keyword.operator.assignment.yan
+  " { limit: int }" -
+""
+"impl Acquirer for FakeAcquirer"
+  "impl" storage.type.yan
+  "Acquirer" entity.name.type.interface.yan
+  "for" keyword.control.yan
+  "FakeAcquirer" entity.name.type.yan
+"  send(self, pan: str, minor: int) -> Decision ="
+  "send" entity.name.function.yan
+  "(" -
+  "self" variable.language.self.yan
+  ", pan: str, minor: int) " -
+  "->" keyword.operator.arrow.yan
+  "Decision" entity.name.type.yan
+  "=" keyword.operator.assignment.yan
+"    if minor > self.limit"
+  "if" keyword.control.yan
+  " minor " -
+  ">" keyword.operator.comparison.yan
+  "self" variable.language.self.yan
+  "." punctuation.accessor.yan
+  "limit" -
+"      return Declined(reason: \"limit\")"
+  "return" keyword.control.yan
+  "Declined" entity.name.type.yan
+  "(reason: " -
+  "\"" string.quoted.double.yan
+  "limit" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ")" -
+"    if pan.startswith(\"4000\")"
+  "if" keyword.control.yan
+  " pan" -
+  "." punctuation.accessor.yan
+  "startswith" entity.name.function.call.yan
+  "(" -
+  "\"" string.quoted.double.yan
+  "4000" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ")" -
+"      return Declined(reason: \"issuer\")"
+  "return" keyword.control.yan
+  "Declined" entity.name.type.yan
+  "(reason: " -
+  "\"" string.quoted.double.yan
+  "issuer" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ")" -
+"    Approved(code: \"A\" + str(minor % 97))"
+  "Approved" entity.name.type.yan
+  "(code: " -
+  "\"" string.quoted.double.yan
+  "A" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  "+" keyword.operator.arithmetic.yan
+  "str" entity.name.function.call.yan
+  "(minor " -
+  "%" keyword.operator.arithmetic.yan
+  "97" constant.numeric.integer.yan
+  "))" -
+""
+"bps(mcc: Mcc) -> int uses none ="
+  "bps" entity.name.function.yan
+  "(mcc: " -
+  "Mcc" entity.name.type.yan
+  ") " -
+  "->" keyword.operator.arrow.yan
+  " int " -
+  "uses" keyword.other.contract.yan
+  " none " -
+  "=" keyword.operator.assignment.yan
+"  Grocery() -> 150"
+  "Grocery" entity.name.type.yan
+  "() " -
+  "->" keyword.operator.arrow.yan
+  "150" constant.numeric.integer.yan
+"  Travel() -> 250"
+  "Travel" entity.name.type.yan
+  "() " -
+  "->" keyword.operator.arrow.yan
+  "250" constant.numeric.integer.yan
+"  Other(_) -> 290"
+  "Other" entity.name.type.yan
+  "(_) " -
+  "->" keyword.operator.arrow.yan
+  "290" constant.numeric.integer.yan
+""
+"--- Interchange fee in minor units, rounded down."
+  "--- Interchange fee in minor units, rounded down." comment.block.documentation.yan
+"pub fee(minor: int, mcc: Mcc) -> int uses none ="
+  "pub" storage.modifier.yan
+  "fee" entity.name.function.yan
+  "(minor: int, mcc: " -
+  "Mcc" entity.name.type.yan
+  ") " -
+  "->" keyword.operator.arrow.yan
+  " int " -
+  "uses" keyword.other.contract.yan
+  " none " -
+  "=" keyword.operator.assignment.yan
+"  pre minor >= 0"
+  "pre" keyword.other.contract.yan
+  " minor " -
+  ">=" keyword.operator.comparison.yan
+  "0" constant.numeric.integer.yan
+"  post out >= 0"
+  "post" keyword.other.contract.yan
+  " out " -
+  ">=" keyword.operator.comparison.yan
+  "0" constant.numeric.integer.yan
+"  post out <= minor"
+  "post" keyword.other.contract.yan
+  " out " -
+  "<=" keyword.operator.comparison.yan
+  " minor" -
+"  ex fee(10000, Grocery()) == 150"
+  "ex" keyword.other.contract.yan
+  "fee" entity.name.function.call.yan
+  "(" -
+  "10000" constant.numeric.integer.yan
+  ", " -
+  "Grocery" entity.name.type.yan
+  "()) " -
+  "==" keyword.operator.comparison.yan
+  "150" constant.numeric.integer.yan
+"  ex fee(10000, Other(code: 5999)) == 290"
+  "ex" keyword.other.contract.yan
+  "fee" entity.name.function.call.yan
+  "(" -
+  "10000" constant.numeric.integer.yan
+  ", " -
+  "Other" entity.name.type.yan
+  "(code: " -
+  "5999" constant.numeric.integer.yan
+  ")) " -
+  "==" keyword.operator.comparison.yan
+  "290" constant.numeric.integer.yan
+"  minor * bps(mcc) // 10000"
+  "  minor " -
+  "*" keyword.operator.arithmetic.yan
+  "bps" entity.name.function.call.yan
+  "(mcc) " -
+  "//" keyword.operator.arithmetic.yan
+  "10000" constant.numeric.integer.yan
+""
+"--- Checks the Luhn digit of a card number."
+  "--- Checks the Luhn digit of a card number." comment.block.documentation.yan
+"pub luhn(pan: str) -> bool uses none ="
+  "pub" storage.modifier.yan
+  "luhn" entity.name.function.yan
+  "(pan: str) " -
+  "->" keyword.operator.arrow.yan
+  " bool " -
+  "uses" keyword.other.contract.yan
+  " none " -
+  "=" keyword.operator.assignment.yan
+"  ex luhn(\"4242424242424242\") == True"
+  "ex" keyword.other.contract.yan
+  "luhn" entity.name.function.call.yan
+  "(" -
+  "\"" string.quoted.double.yan
+  "4242424242424242" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ") " -
+  "==" keyword.operator.comparison.yan
+  "True" constant.language.yan
+"  ex luhn(\"4242424242424241\") == False"
+  "ex" keyword.other.contract.yan
+  "luhn" entity.name.function.call.yan
+  "(" -
+  "\"" string.quoted.double.yan
+  "4242424242424241" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ") " -
+  "==" keyword.operator.comparison.yan
+  "False" constant.language.yan
+"  let digits: List[int] = pan.chars().map(c -> str(c).parse_int() else -1).collect()"
+  "let" storage.modifier.yan
+  " digits: " -
+  "List" entity.name.type.yan
+  "[int] " -
+  "=" keyword.operator.assignment.yan
+  " pan" -
+  "." punctuation.accessor.yan
+  "chars" entity.name.function.call.yan
+  "()" -
+  "." punctuation.accessor.yan
+  "map" entity.name.function.call.yan
+  "(c " -
+  "->" keyword.operator.arrow.yan
+  "str" entity.name.function.call.yan
+  "(c)" -
+  "." punctuation.accessor.yan
+  "parse_int" entity.name.function.call.yan
+  "() " -
+  "else" keyword.control.yan
+  "-" keyword.operator.arithmetic.yan
+  "1" constant.numeric.integer.yan
+  ")" -
+  "." punctuation.accessor.yan
+  "collect" entity.name.function.call.yan
+  "()" -
+"  var total = 0"
+  "var" storage.modifier.yan
+  " total " -
+  "=" keyword.operator.assignment.yan
+  "0" constant.numeric.integer.yan
+"  var double = False"
+  "var" storage.modifier.yan
+  " double " -
+  "=" keyword.operator.assignment.yan
+  "False" constant.language.yan
+"  for d in reversed(digits)"
+  "for" keyword.control.yan
+  " d " -
+  "in" keyword.control.yan
+  "reversed" entity.name.function.call.yan
+  "(digits)" -
+"    if d < 0"
+  "if" keyword.control.yan
+  " d " -
+  "<" keyword.operator.comparison.yan
+  "0" constant.numeric.integer.yan
+"      return False"
+  "return" keyword.control.yan
+  "False" constant.language.yan
+"    var v = d"
+  "var" storage.modifier.yan
+  " v " -
+  "=" keyword.operator.assignment.yan
+  " d" -
+"    if double"
+  "if" keyword.control.yan
+  " double" -
+"      v = v * 2"
+  "      v " -
+  "=" keyword.operator.assignment.yan
+  " v " -
+  "*" keyword.operator.arithmetic.yan
+  "2" constant.numeric.integer.yan
+"      if v > 9"
+  "if" keyword.control.yan
+  " v " -
+  ">" keyword.operator.comparison.yan
+  "9" constant.numeric.integer.yan
+"        v = v - 9"
+  "        v " -
+  "=" keyword.operator.assignment.yan
+  " v " -
+  "-" keyword.operator.arithmetic.yan
+  "9" constant.numeric.integer.yan
+"    total += v"
+  "    total " -
+  "+=" keyword.operator.assignment.yan
+  " v" -
+"    double = not double"
+  "    double " -
+  "=" keyword.operator.assignment.yan
+  "not" keyword.operator.word.yan
+  " double" -
+"  total % 10 == 0"
+  "  total " -
+  "%" keyword.operator.arithmetic.yan
+  "10" constant.numeric.integer.yan
+  "==" keyword.operator.comparison.yan
+  "0" constant.numeric.integer.yan
+""
+"--- Rejects bad card numbers and amounts locally, then asks the acquirer."
+  "--- Rejects bad card numbers and amounts locally, then asks the acquirer." comment.block.documentation.yan
+"pub authorize[A: Acquirer](acq: A, a: Auth) -> Decision uses none ="
+  "pub" storage.modifier.yan
+  "authorize" entity.name.function.yan
+  "[" -
+  "A" entity.name.type.yan
+  ": " -
+  "Acquirer" entity.name.type.yan
+  "](acq: " -
+  "A" entity.name.type.yan
+  ", a: " -
+  "Auth" entity.name.type.yan
+  ") " -
+  "->" keyword.operator.arrow.yan
+  "Decision" entity.name.type.yan
+  "uses" keyword.other.contract.yan
+  " none " -
+  "=" keyword.operator.assignment.yan
+"  ex authorize(FakeAcquirer(limit: 10), Auth(id: 1, merchant: \"m\", pan: \"4242424242424241\", minor: 5, mcc: Grocery())) == Declined(reason: \"luhn\")"
+  "ex" keyword.other.contract.yan
+  "authorize" entity.name.function.call.yan
+  "(" -
+  "FakeAcquirer" entity.name.type.yan
+  "(limit: " -
+  "10" constant.numeric.integer.yan
+  "), " -
+  "Auth" entity.name.type.yan
+  "(id: " -
+  "1" constant.numeric.integer.yan
+  ", merchant: " -
+  "\"" string.quoted.double.yan
+  "m" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", pan: " -
+  "\"" string.quoted.double.yan
+  "4242424242424241" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", minor: " -
+  "5" constant.numeric.integer.yan
+  ", mcc: " -
+  "Grocery" entity.name.type.yan
+  "())) " -
+  "==" keyword.operator.comparison.yan
+  "Declined" entity.name.type.yan
+  "(reason: " -
+  "\"" string.quoted.double.yan
+  "luhn" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ")" -
+"  if a.minor <= 0"
+  "if" keyword.control.yan
+  " a" -
+  "." punctuation.accessor.yan
+  "minor " -
+  "<=" keyword.operator.comparison.yan
+  "0" constant.numeric.integer.yan
+"    return Declined(reason: \"amount\")"
+  "return" keyword.control.yan
+  "Declined" entity.name.type.yan
+  "(reason: " -
+  "\"" string.quoted.double.yan
+  "amount" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ")" -
+"  if not luhn(a.pan)"
+  "if" keyword.control.yan
+  "not" keyword.operator.word.yan
+  "luhn" entity.name.function.call.yan
+  "(a" -
+  "." punctuation.accessor.yan
+  "pan)" -
+"    return Declined(reason: \"luhn\")"
+  "return" keyword.control.yan
+  "Declined" entity.name.type.yan
+  "(reason: " -
+  "\"" string.quoted.double.yan
+  "luhn" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ")" -
+"  acq.send(a.pan, a.minor)"
+  "  acq" -
+  "." punctuation.accessor.yan
+  "send" entity.name.function.call.yan
+  "(a" -
+  "." punctuation.accessor.yan
+  "pan, a" -
+  "." punctuation.accessor.yan
+  "minor)" -
+""
+"approved(d: Decision) -> bool uses none ="
+  "approved" entity.name.function.yan
+  "(d: " -
+  "Decision" entity.name.type.yan
+  ") " -
+  "->" keyword.operator.arrow.yan
+  " bool " -
+  "uses" keyword.other.contract.yan
+  " none " -
+  "=" keyword.operator.assignment.yan
+"  Approved(_) -> True"
+  "Approved" entity.name.type.yan
+  "(_) " -
+  "->" keyword.operator.arrow.yan
+  "True" constant.language.yan
+"  Declined(_) -> False"
+  "Declined" entity.name.type.yan
+  "(_) " -
+  "->" keyword.operator.arrow.yan
+  "False" constant.language.yan
+""
+"--- Nets approved authorizations per merchant, in first-seen order."
+  "--- Nets approved authorizations per merchant, in first-seen order." comment.block.documentation.yan
+"pub settle(auths: List[Auth], ds: List[Decision]) -> List[Settled] uses none ="
+  "pub" storage.modifier.yan
+  "settle" entity.name.function.yan
+  "(auths: " -
+  "List" entity.name.type.yan
+  "[" -
+  "Auth" entity.name.type.yan
+  "], ds: " -
+  "List" entity.name.type.yan
+  "[" -
+  "Decision" entity.name.type.yan
+  "]) " -
+  "->" keyword.operator.arrow.yan
+  "List" entity.name.type.yan
+  "[" -
+  "Settled" entity.name.type.yan
+  "] " -
+  "uses" keyword.other.contract.yan
+  " none " -
+  "=" keyword.operator.assignment.yan
+"  pre auths.len() == ds.len()"
+  "pre" keyword.other.contract.yan
+  " auths" -
+  "." punctuation.accessor.yan
+  "len" entity.name.function.call.yan
+  "() " -
+  "==" keyword.operator.comparison.yan
+  " ds" -
+  "." punctuation.accessor.yan
+  "len" entity.name.function.call.yan
+  "()" -
+"  ex settle([], []) == []"
+  "ex" keyword.other.contract.yan
+  "settle" entity.name.function.call.yan
+  "([], []) " -
+  "==" keyword.operator.comparison.yan
+  " []" -
+"  var acc: Map[str, Settled] = {}"
+  "var" storage.modifier.yan
+  " acc: " -
+  "Map" entity.name.type.yan
+  "[str, " -
+  "Settled" entity.name.type.yan
+  "] " -
+  "=" keyword.operator.assignment.yan
+  " {}" -
+"  for (a, d) in zip(auths, ds)"
+  "for" entity.name.function.yan
+  " (a, d) " -
+  "in" keyword.control.yan
+  "zip" entity.name.function.call.yan
+  "(auths, ds)" -
+"    if approved(d)"
+  "if" keyword.control.yan
+  "approved" entity.name.function.call.yan
+  "(d)" -
+"      let s = acc.get(a.merchant) else Settled(merchant: copy a.merchant, gross: 0, fees: 0, net: 0)"
+  "let" storage.modifier.yan
+  " s " -
+  "=" keyword.operator.assignment.yan
+  " acc" -
+  "." punctuation.accessor.yan
+  "get" entity.name.function.call.yan
+  "(a" -
+  "." punctuation.accessor.yan
+  "merchant) " -
+  "else" keyword.control.yan
+  "Settled" entity.name.type.yan
+  "(merchant: " -
+  "copy" storage.modifier.yan
+  " a" -
+  "." punctuation.accessor.yan
+  "merchant, gross: " -
+  "0" constant.numeric.integer.yan
+  ", fees: " -
+  "0" constant.numeric.integer.yan
+  ", net: " -
+  "0" constant.numeric.integer.yan
+  ")" -
+"      let f = fee(a.minor, a.mcc)"
+  "let" storage.modifier.yan
+  " f " -
+  "=" keyword.operator.assignment.yan
+  "fee" entity.name.function.call.yan
+  "(a" -
+  "." punctuation.accessor.yan
+  "minor, a" -
+  "." punctuation.accessor.yan
+  "mcc)" -
+"      acc[copy a.merchant] = Settled(merchant: copy a.merchant, gross: s.gross + a.minor, fees: s.fees + f, net: s.net + a.minor - f)"
+  "      acc[" -
+  "copy" storage.modifier.yan
+  " a" -
+  "." punctuation.accessor.yan
+  "merchant] " -
+  "=" keyword.operator.assignment.yan
+  "Settled" entity.name.type.yan
+  "(merchant: " -
+  "copy" storage.modifier.yan
+  " a" -
+  "." punctuation.accessor.yan
+  "merchant, gross: s" -
+  "." punctuation.accessor.yan
+  "gross " -
+  "+" keyword.operator.arithmetic.yan
+  " a" -
+  "." punctuation.accessor.yan
+  "minor, fees: s" -
+  "." punctuation.accessor.yan
+  "fees " -
+  "+" keyword.operator.arithmetic.yan
+  " f, net: s" -
+  "." punctuation.accessor.yan
+  "net " -
+  "+" keyword.operator.arithmetic.yan
+  " a" -
+  "." punctuation.accessor.yan
+  "minor " -
+  "-" keyword.operator.arithmetic.yan
+  " f)" -
+"  acc.values()"
+  "  acc" -
+  "." punctuation.accessor.yan
+  "values" entity.name.function.call.yan
+  "()" -
+""
+"pub main() uses io ="
+  "pub" storage.modifier.yan
+  "main" entity.name.function.yan
+  "() " -
+  "uses" keyword.other.contract.yan
+  " io " -
+  "=" keyword.operator.assignment.yan
+"  let auths = ["
+  "let" storage.modifier.yan
+  " auths " -
+  "=" keyword.operator.assignment.yan
+  " [" -
+"    Auth(id: 1, merchant: \"corner-shop\", pan: \"4242424242424242\", minor: 1250, mcc: Grocery()),"
+  "Auth" entity.name.type.yan
+  "(id: " -
+  "1" constant.numeric.integer.yan
+  ", merchant: " -
+  "\"" string.quoted.double.yan
+  "corner-shop" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", pan: " -
+  "\"" string.quoted.double.yan
+  "4242424242424242" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", minor: " -
+  "1250" constant.numeric.integer.yan
+  ", mcc: " -
+  "Grocery" entity.name.type.yan
+  "())," -
+"    Auth(id: 2, merchant: \"air-lines\", pan: \"378282246310005\", minor: 48000, mcc: Travel()),"
+  "Auth" entity.name.type.yan
+  "(id: " -
+  "2" constant.numeric.integer.yan
+  ", merchant: " -
+  "\"" string.quoted.double.yan
+  "air-lines" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", pan: " -
+  "\"" string.quoted.double.yan
+  "378282246310005" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", minor: " -
+  "48000" constant.numeric.integer.yan
+  ", mcc: " -
+  "Travel" entity.name.type.yan
+  "())," -
+"    Auth(id: 3, merchant: \"corner-shop\", pan: \"4242424242424241\", minor: 900, mcc: Grocery()),"
+  "Auth" entity.name.type.yan
+  "(id: " -
+  "3" constant.numeric.integer.yan
+  ", merchant: " -
+  "\"" string.quoted.double.yan
+  "corner-shop" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", pan: " -
+  "\"" string.quoted.double.yan
+  "4242424242424241" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", minor: " -
+  "900" constant.numeric.integer.yan
+  ", mcc: " -
+  "Grocery" entity.name.type.yan
+  "())," -
+"    Auth(id: 4, merchant: \"air-lines\", pan: \"5555555555554444\", minor: 150000, mcc: Travel()),"
+  "Auth" entity.name.type.yan
+  "(id: " -
+  "4" constant.numeric.integer.yan
+  ", merchant: " -
+  "\"" string.quoted.double.yan
+  "air-lines" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", pan: " -
+  "\"" string.quoted.double.yan
+  "5555555555554444" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", minor: " -
+  "150000" constant.numeric.integer.yan
+  ", mcc: " -
+  "Travel" entity.name.type.yan
+  "())," -
+"    Auth(id: 5, merchant: \"corner-shop\", pan: \"5555555555554444\", minor: 3999, mcc: Grocery()),"
+  "Auth" entity.name.type.yan
+  "(id: " -
+  "5" constant.numeric.integer.yan
+  ", merchant: " -
+  "\"" string.quoted.double.yan
+  "corner-shop" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", pan: " -
+  "\"" string.quoted.double.yan
+  "5555555555554444" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", minor: " -
+  "3999" constant.numeric.integer.yan
+  ", mcc: " -
+  "Grocery" entity.name.type.yan
+  "())," -
+"    Auth(id: 6, merchant: \"bookstore\", pan: \"4242424242424242\", minor: 0, mcc: Other(code: 5942)),"
+  "Auth" entity.name.type.yan
+  "(id: " -
+  "6" constant.numeric.integer.yan
+  ", merchant: " -
+  "\"" string.quoted.double.yan
+  "bookstore" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", pan: " -
+  "\"" string.quoted.double.yan
+  "4242424242424242" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", minor: " -
+  "0" constant.numeric.integer.yan
+  ", mcc: " -
+  "Other" entity.name.type.yan
+  "(code: " -
+  "5942" constant.numeric.integer.yan
+  "))," -
+"    Auth(id: 7, merchant: \"bookstore\", pan: \"4000056655665556\", minor: 2500, mcc: Other(code: 5942)),"
+  "Auth" entity.name.type.yan
+  "(id: " -
+  "7" constant.numeric.integer.yan
+  ", merchant: " -
+  "\"" string.quoted.double.yan
+  "bookstore" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", pan: " -
+  "\"" string.quoted.double.yan
+  "4000056655665556" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", minor: " -
+  "2500" constant.numeric.integer.yan
+  ", mcc: " -
+  "Other" entity.name.type.yan
+  "(code: " -
+  "5942" constant.numeric.integer.yan
+  "))," -
+"    Auth(id: 8, merchant: \"bookstore\", pan: \"4242424242424242\", minor: 2500, mcc: Other(code: 5942)),"
+  "Auth" entity.name.type.yan
+  "(id: " -
+  "8" constant.numeric.integer.yan
+  ", merchant: " -
+  "\"" string.quoted.double.yan
+  "bookstore" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", pan: " -
+  "\"" string.quoted.double.yan
+  "4242424242424242" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", minor: " -
+  "2500" constant.numeric.integer.yan
+  ", mcc: " -
+  "Other" entity.name.type.yan
+  "(code: " -
+  "5942" constant.numeric.integer.yan
+  "))," -
+"  ]"
+  "  ]" -
+"  let acq = FakeAcquirer(limit: 100000)"
+  "let" storage.modifier.yan
+  " acq " -
+  "=" keyword.operator.assignment.yan
+  "FakeAcquirer" entity.name.type.yan
+  "(limit: " -
+  "100000" constant.numeric.integer.yan
+  ")" -
+"  let ds = auths.map(a -> authorize(acq, a))"
+  "let" storage.modifier.yan
+  " ds " -
+  "=" keyword.operator.assignment.yan
+  " auths" -
+  "." punctuation.accessor.yan
+  "map" entity.name.function.call.yan
+  "(a " -
+  "->" keyword.operator.arrow.yan
+  "authorize" entity.name.function.call.yan
+  "(acq, a))" -
+"  for (a, d) in zip(auths, ds)"
+  "for" entity.name.function.yan
+  " (a, d) " -
+  "in" keyword.control.yan
+  "zip" entity.name.function.call.yan
+  "(auths, ds)" -
+"    match d"
+  "match" keyword.control.yan
+  " d" -
+"      Approved(code) -> io.print(\"\\(a.id) approved \\(code)\")"
+  "Approved" entity.name.type.yan
+  "(code) " -
+  "->" keyword.operator.arrow.yan
+  " io" -
+  "." punctuation.accessor.yan
+  "print" entity.name.function.call.yan
+  "(" -
+  "\"" string.quoted.double.yan
+  "\\(" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.begin.yan
+  "a" string.quoted.double.yan meta.interpolation.yan
+  "." string.quoted.double.yan meta.interpolation.yan punctuation.accessor.yan
+  "id" string.quoted.double.yan meta.interpolation.yan
+  ")" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.end.yan
+  " approved " string.quoted.double.yan
+  "\\(" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.begin.yan
+  "code" string.quoted.double.yan meta.interpolation.yan
+  ")" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.end.yan
+  "\"" string.quoted.double.yan
+  ")" -
+"      Declined(reason) -> io.print(\"\\(a.id) declined \\(reason)\")"
+  "Declined" entity.name.type.yan
+  "(reason) " -
+  "->" keyword.operator.arrow.yan
+  " io" -
+  "." punctuation.accessor.yan
+  "print" entity.name.function.call.yan
+  "(" -
+  "\"" string.quoted.double.yan
+  "\\(" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.begin.yan
+  "a" string.quoted.double.yan meta.interpolation.yan
+  "." string.quoted.double.yan meta.interpolation.yan punctuation.accessor.yan
+  "id" string.quoted.double.yan meta.interpolation.yan
+  ")" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.end.yan
+  " declined " string.quoted.double.yan
+  "\\(" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.begin.yan
+  "reason" string.quoted.double.yan meta.interpolation.yan
+  ")" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.end.yan
+  "\"" string.quoted.double.yan
+  ")" -
+"  for s in settle(auths, ds)"
+  "for" keyword.control.yan
+  " s " -
+  "in" keyword.control.yan
+  "settle" entity.name.function.call.yan
+  "(auths, ds)" -
+"    io.print(\"\\(s.merchant) gross=\\(s.gross) fees=\\(s.fees) net=\\(s.net)\")"
+  "    io" -
+  "." punctuation.accessor.yan
+  "print" entity.name.function.call.yan
+  "(" -
+  "\"" string.quoted.double.yan
+  "\\(" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.begin.yan
+  "s" string.quoted.double.yan meta.interpolation.yan
+  "." string.quoted.double.yan meta.interpolation.yan punctuation.accessor.yan
+  "merchant" string.quoted.double.yan meta.interpolation.yan
+  ")" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.end.yan
+  " gross=" string.quoted.double.yan
+  "\\(" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.begin.yan
+  "s" string.quoted.double.yan meta.interpolation.yan
+  "." string.quoted.double.yan meta.interpolation.yan punctuation.accessor.yan
+  "gross" string.quoted.double.yan meta.interpolation.yan
+  ")" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.end.yan
+  " fees=" string.quoted.double.yan
+  "\\(" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.begin.yan
+  "s" string.quoted.double.yan meta.interpolation.yan
+  "." string.quoted.double.yan meta.interpolation.yan punctuation.accessor.yan
+  "fees" string.quoted.double.yan meta.interpolation.yan
+  ")" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.end.yan
+  " net=" string.quoted.double.yan
+  "\\(" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.begin.yan
+  "s" string.quoted.double.yan meta.interpolation.yan
+  "." string.quoted.double.yan meta.interpolation.yan punctuation.accessor.yan
+  "net" string.quoted.double.yan meta.interpolation.yan
+  ")" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.end.yan
+  "\"" string.quoted.double.yan
+  ")" -
+""
+"test_declined_never_settles() ="
+  "test_declined_never_settles" entity.name.function.yan
+  "() " -
+  "=" keyword.operator.assignment.yan
+"  let auths = [Auth(id: 1, merchant: \"m\", pan: \"4242424242424242\", minor: 100, mcc: Grocery())]"
+  "let" storage.modifier.yan
+  " auths " -
+  "=" keyword.operator.assignment.yan
+  " [" -
+  "Auth" entity.name.type.yan
+  "(id: " -
+  "1" constant.numeric.integer.yan
+  ", merchant: " -
+  "\"" string.quoted.double.yan
+  "m" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", pan: " -
+  "\"" string.quoted.double.yan
+  "4242424242424242" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", minor: " -
+  "100" constant.numeric.integer.yan
+  ", mcc: " -
+  "Grocery" entity.name.type.yan
+  "())]" -
+"  assert settle(auths, [Declined(reason: \"limit\")]) == []"
+  "assert" keyword.other.contract.yan
+  "settle" entity.name.function.call.yan
+  "(auths, [" -
+  "Declined" entity.name.type.yan
+  "(reason: " -
+  "\"" string.quoted.double.yan
+  "limit" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ")]) " -
+  "==" keyword.operator.comparison.yan
+  " []" -
+""
+"test_net_is_gross_minus_fees() ="
+  "test_net_is_gross_minus_fees" entity.name.function.yan
+  "() " -
+  "=" keyword.operator.assignment.yan
+"  let auths = [Auth(id: 1, merchant: \"m\", pan: \"4242424242424242\", minor: 10000, mcc: Travel())]"
+  "let" storage.modifier.yan
+  " auths " -
+  "=" keyword.operator.assignment.yan
+  " [" -
+  "Auth" entity.name.type.yan
+  "(id: " -
+  "1" constant.numeric.integer.yan
+  ", merchant: " -
+  "\"" string.quoted.double.yan
+  "m" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", pan: " -
+  "\"" string.quoted.double.yan
+  "4242424242424242" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", minor: " -
+  "10000" constant.numeric.integer.yan
+  ", mcc: " -
+  "Travel" entity.name.type.yan
+  "())]" -
+"  let s = settle(auths, [Approved(code: \"A\")])"
+  "let" storage.modifier.yan
+  " s " -
+  "=" keyword.operator.assignment.yan
+  "settle" entity.name.function.call.yan
+  "(auths, [" -
+  "Approved" entity.name.type.yan
+  "(code: " -
+  "\"" string.quoted.double.yan
+  "A" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ")])" -
+"  assert s == [Settled(merchant: \"m\", gross: 10000, fees: 250, net: 9750)]"
+  "assert" keyword.other.contract.yan
+  " s " -
+  "==" keyword.operator.comparison.yan
+  " [" -
+  "Settled" entity.name.type.yan
+  "(merchant: " -
+  "\"" string.quoted.double.yan
+  "m" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ", gross: " -
+  "10000" constant.numeric.integer.yan
+  ", fees: " -
+  "250" constant.numeric.integer.yan
+  ", net: " -
+  "9750" constant.numeric.integer.yan
+  ")]" -
+""

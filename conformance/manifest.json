@@ -10460,6 +10460,27 @@
    ]
   },
   {
+   "path": "yn/fail/concurrency/e709_try_lock_without_nondet.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "6.3",
+    "6.5",
+    "15"
+   ],
+   "rows": [
+    "R1038"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 7,
+     "col": 9
+    }
+   ]
+  },
+  {
    "path": "yn/fail/concurrency/e711_bad_select_arm.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -12028,11 +12049,38 @@
    ]
   },
   {
+   "path": "yn/fail/ownership/e414_try_lock_option_named.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.5",
+    "6.3",
+    "15"
+   ],
+   "rows": [
+    "R1038"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E414",
+     "line": 8,
+     "col": 11
+    },
+    {
+     "code": "W812",
+     "line": 8,
+     "col": 7
+    }
+   ]
+  },
+  {
    "path": "yn/fail/ownership/e415_mutex_of_rc.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
-    "6.4"
+    "6.4",
+    "15"
    ],
    "rows": [
     "R1040"
@@ -12903,6 +12951,39 @@
    "flags": [],
    "expect": [],
    "stdout": "2\n6\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/concurrency/mutex_get_mut_into_inner.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "6.2",
+    "6.3",
+    "15"
+   ],
+   "rows": [
+    "R1039"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n[1, 2]\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/concurrency/mutex_try_lock.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "6.3",
+    "15"
+   ],
+   "rows": [
+    "R1038"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7\nheld\n",
    "exit": 0
   },
   {
@@ -14622,6 +14703,21 @@
    "ub": "4"
   },
   {
+   "path": "ub/mutex_try_lock_no_race.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.3",
+    "6.7"
+   ],
+   "rows": [
+    "R1038"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none"
+  },
+  {
    "path": "ub/mutex_with_guard_value_no_race.yn",
    "kind": "ub",
    "milestone": "M3",
@@ -15449,6 +15545,26 @@
    }
   },
   {
+   "path": "pkg/e017_variant_name_in_two_modules",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "3.5",
+    "note": "variant names are wire tags and stay bare, so two modules of one package may not declare one; refused until variants are module-qualified",
+    "command": [
+     "check"
+    ],
+    "code": "E017",
+    "at": "src/main.yag:1:1"
+   }
+  },
+  {
    "path": "pkg/e018_unknown_field",
    "kind": "pkg",
    "milestone": "M1",
@@ -15803,6 +15919,26 @@
      "check"
     ],
     "code": "E144"
+   }
+  },
+  {
+   "path": "pkg/e200_missing_module_item",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "3.5",
+    "note": "a module that has no such item leaves the name unresolved",
+    "command": [
+     "check"
+    ],
+    "code": "E200",
+    "at": "src/main.yag:2:18"
    }
   },
   {
@@ -16319,56 +16455,20 @@
    }
   },
   {
-   "path": "pkg/yan_new_agent_tool",
+   "path": "pkg/qualified_names_across_modules",
    "kind": "pkg",
    "milestone": "M1",
    "spec": [
-    "18.1"
+    "3.5"
    ],
    "rows": [],
    "flags": [],
    "expect": [],
    "expect_toml": {
-    "spec": "18.1",
-    "note": "`yan new --template agent-tool @conf/new_agent_tool` output checks and passes its tests (#899)",
+    "spec": "3.5",
+    "note": "a path whose first names are a sibling module resolves to that module's item: functions, records, sum variants, constants and patterns, through a third module",
     "command": [
-     "test"
-    ]
-   }
-  },
-  {
-   "path": "pkg/yan_new_cli",
-   "kind": "pkg",
-   "milestone": "M1",
-   "spec": [
-    "18.1"
-   ],
-   "rows": [],
-   "flags": [],
-   "expect": [],
-   "expect_toml": {
-    "spec": "18.1",
-    "note": "`yan new --template cli @conf/new_cli` output checks and passes its tests (#899)",
-    "command": [
-     "test"
-    ]
-   }
-  },
-  {
-   "path": "pkg/yan_new_library",
-   "kind": "pkg",
-   "milestone": "M1",
-   "spec": [
-    "18.1"
-   ],
-   "rows": [],
-   "flags": [],
-   "expect": [],
-   "expect_toml": {
-    "spec": "18.1",
-    "note": "`yan new --template library @conf/new_library` output checks and passes its tests (#899)",
-    "command": [
-     "test"
+     "check"
     ]
    }
   },
@@ -16702,6 +16802,60 @@
      "--list"
     ],
     "code": "E201"
+   }
+  },
+  {
+   "path": "pkg/yan_new_agent_tool",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template agent-tool @conf/new_agent_tool` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
+   "path": "pkg/yan_new_cli",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template cli @conf/new_cli` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
+   "path": "pkg/yan_new_library",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template library @conf/new_library` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
    }
   }
  ]
