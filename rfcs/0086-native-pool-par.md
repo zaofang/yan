@@ -1,6 +1,6 @@
 # 0086: Native pool for plain `par`
 
-- Status: draft
+- Status: accepted
 - Research: assessment 2026-11-17 (`reports/2026-11-17-yan-core-innovation-assessment.md`), issue #1584
 - Rows: filled in when accepted
 
@@ -24,7 +24,7 @@ function that takes a captured-frame block, reusing the thunk shapes of `yan-rt/
 Recommendation: outline in a new module (practice 5), selected per call site by the bound `sched`
 type, with the inline form kept as the fallback for every other handler.
 
-- Decision: (lead's answer, date)
+- Decision: accepted as recommended (Antonio, 2026-11-17)
 
 ### D2: fork-join with ordered commit, no stealing in v1
 
@@ -35,7 +35,7 @@ depends on which worker ran what. The heartbeat promotion of R481 is a later opt
 it changes cost, not results. Recommendation: ship the simple form first and keep R481 for the
 "fast" stage.
 
-- Decision: (lead's answer, date)
+- Decision: accepted as recommended (Antonio, 2026-11-17)
 
 ### D3: failure and cancellation follow source order
 
@@ -45,7 +45,7 @@ If several branches fail, the failure of the lowest branch index is the result, 
 before the join returns. Panics abort as they do today. Recommendation: lowest index wins, so the
 matrix can compare exit status byte for byte.
 
-- Decision: (lead's answer, date)
+- Decision: accepted as recommended (Antonio, 2026-11-17)
 
 ### D4: runtime state must be per worker or atomic
 
@@ -57,7 +57,7 @@ counters become atomic. Recommendation: audit each site before the pool lands an
 cannot be per worker as a numbered gap; a branch that reaches one of them is E-coded, not silently
 serial (practice 13).
 
-- Decision: (lead's answer, date)
+- Decision: accepted as recommended (Antonio, 2026-11-17)
 
 ### D5: only checked-safe branches go to the pool
 
@@ -68,7 +68,7 @@ on INNOV-2 (#1583): native-live and `--ub` sweeps must be clean before shared st
 threads.
 Recommendation: land the pool behind that gate and keep it off for programs that fail it.
 
-- Decision: (lead's answer, date)
+- Decision: accepted as recommended (Antonio, 2026-11-17)
 
 ### D6: the matrix is the acceptance test
 
@@ -77,7 +77,7 @@ exit status byte for byte, with repeat runs and no allowlist (folds in #776). A 
 in the pool, never an allowlist entry. Recommendation: build the matrix runner before the pool so it
 first proves that thread count 1 equals today's sequential output.
 
-- Decision: (lead's answer, date)
+- Decision: accepted as recommended (Antonio, 2026-11-17)
 
 ### D7: the interpreter is out of scope
 
@@ -86,7 +86,7 @@ value path. That is a separate RFC; until then `std.sched.pool` stays unsupporte
 and the matrix covers native only. Recommendation: do not weaken the interpreter's role as the
 reference by running it on threads before its values are sound for it.
 
-- Decision: (lead's answer, date)
+- Decision: accepted as recommended (Antonio, 2026-11-17)
 
 ## Spec changes
 
