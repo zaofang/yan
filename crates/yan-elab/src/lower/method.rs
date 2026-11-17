@@ -244,6 +244,8 @@ impl Lower<'_, '_, '_> {
             (Ty::Str, "is_lower") => "islower",
             (Ty::Str, "is_space") => "isspace",
             (Ty::Data(n), "findall" | "finditer") if n == "Regex" => "find_all",
+            (Ty::List(_), "pop") if args.len() == 1 => "remove_at",
+            (Ty::Dict(..), "pop") if args.len() == 1 => "remove",
             _ => m,
         };
         if canon != m && !self.cx.strict {

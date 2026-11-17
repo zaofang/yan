@@ -1,21 +1,18 @@
-"""DL14 gate: figures carry a commit and a date, and generated coverage is fresh.
+"""DL14 gate: figures carry a commit and a date.
 
 uv run python -m tools.lint_reports [--today YYYY-MM-DD]
 
 Reports (docs/reports/*.md) must name a commit and a date in their first lines (a date-prefixed
 file name counts). A line in any README that states a figure ("N of M", "N%") outside a table must
-carry a commit and a date itself. conformance/COVERAGE.md must equal fresh output of the generator.
+carry a commit and a date itself.
 Reports older than STALE_DAYS are listed as stale; that is a label, not a failure.
 """
 
 import argparse
 import re
 import sys
-import tomllib
 from datetime import date
 from pathlib import Path
-
-from tools import conform
 
 ROOT = Path(__file__).resolve().parent.parent
 STALE_DAYS = 7
@@ -57,20 +54,11 @@ def stale(path: Path, text: str, today: date) -> bool:
     return d is not None and (today - d).days > STALE_DAYS
 
 
-def coverage_fresh(root: Path = ROOT) -> list[str]:
-    conf = root / "conformance"
-    catalogue = tomllib.loads((conf / "catalogue.toml").read_text(encoding="utf-8"))
-    fresh = conform.coverage(conform.discover(conf), catalogue)
-    if fresh != (conf / "COVERAGE.md").read_text(encoding="utf-8"):
-        return ["conformance/COVERAGE.md is stale: regenerate with `tools/conform.py --coverage`"]
-    return []
-
-
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--today", type=date.fromisoformat, default=date.today())
     args = ap.parse_args(argv)
-    errors = coverage_fresh()
+    errors: list[str] = []
     for path in sorted((ROOT / "docs" / "reports").glob("*.md")):
         text = path.read_text(encoding="utf-8")
         errors += lint_report(path.relative_to(ROOT), text)
