@@ -371,6 +371,10 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1023 | a `MutexGuard` is second-class: passing it on, returning it, rebinding it or storing it is E414 | 4.5, 6.3 |
 | R1024 | a guard is live from its binding to the end of its block; a call that may wait on another task, or a `par`, in that range is E323 (R395) | 6.3, 17.1 |
 | R1025 | a closure argument's captured capabilities must be declared in the callee's `uses`, else E301 at the closure (RFC 0078 D1) | 4, 7.2 |
+| R1026 | a foreign library is a ceiling entry of every package whose normal-dependency closure declares it, called or not; confined capabilities stay transitive by `uses` (RFC 0079 D1) | 7.4, 12, 19.2 |
+| R1027 | another package's library is spelled `"@org/name:lib"` in a ceiling, own libraries bare; two packages' `lib zlib` are two capabilities (RFC 0079 D2) | 12, 19.1 |
+| R1028 | every package's closure ceiling checked at resolution (E314 with path), publish (E006) and compile; `yan update` holds back, `yan add` fails (RFC 0079 D3) | 19.2, 19.4, 25 |
+| R1029 | one foreign set computed from source; `.info` and `yan.lock` record `ffi` and `libs`; a locked build recomputes it, E020 on mismatch (RFC 0079 D4) | 19.1, 19.2, 25 |
 
 <!-- /rows -->
 

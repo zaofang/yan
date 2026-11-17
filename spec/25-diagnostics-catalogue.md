@@ -44,7 +44,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E023 | package with an `ffi` module or extern block not named in the root's `allow_ffi`, at compile or at dependency resolution (R1018, R1019) *new* | 12, 19.1, 19.2 |
 | E018 | `package.yag` or `.yan/config.yag` has a field not in its table, or lacks `name`, `version`, `edition` or `yan` where required *new* | 19.1 |
 | E019 | `yan.lock` has a `format` newer than this toolchain reads *new* | 19.1 |
-| E020 | under `--locked`, `yan.lock` is missing or does not match the manifest, or an offline archive is absent *new* | 19.1 |
+| E020 | under `--locked`, `yan.lock` is missing or does not match the manifest, an offline archive is absent, or a recorded foreign set differs from the archive (R1029) *new* | 19.1, 19.2 |
 | E021 | a namespace has no index mapping in `registries` *new* | 19.3 |
 | E022 | an archive holds a symbolic link, an absolute path, a `..` component or a duplicate path *new* | 19.3 |
 | E017 | construct this toolchain does not support yet, reported at the construct; checking continues (R649) new | 18.2 |
@@ -137,7 +137,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E313 | both injection and `From` apply | 8.1 |
 | E315 | fallible call without `?` or `else` where no `Result` is expected; fix inserts `?` (R424) new | 14.1 |
 | E316 | replay(trace, live=\[...\]) names a capability whose operations return values the program reads (R305, R379) new | 7.6 |
-| E314 | capability outside the package ceiling, directly or through a dependency *new* | 7.4, 19.2 |
+| E314 | capability outside the package ceiling, directly or through a dependency, including a library in the package's dependency closure (R1026, R1028) *new* | 7.4, 19.2 |
 | E317 | release build binds a `fault` handler other than `never` *new* | 7.3 |
 | E318 | release build binds the `toolchain` capability *new* | 21.4 |
 | E319 | differentiating an impure function *new* | 11.5 |
