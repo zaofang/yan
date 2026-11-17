@@ -82,7 +82,11 @@ impl Lower<'_, '_, '_> {
                 }
                 if !matches!(rhs, Rhs::Atom(_)) {
                     // A discarded copy is reported at the `copy` expression (E416).
-                    let sp = if matches!(rhs, Rhs::Copy(_)) { e.span } else { at };
+                    let sp = if matches!(rhs, Rhs::Copy(_)) {
+                        e.span
+                    } else {
+                        at
+                    };
                     self.emit(StmtKind::Rhs(rhs), sp);
                 }
             }
