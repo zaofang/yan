@@ -2102,9 +2102,14 @@ fn expr_callees(e: &j::Expr, out: &mut HashSet<String>) {
         {
             out.insert("fmt_pad".into());
         }
-        if let j::ExprKind::Call(f, _) = &e.kind {
+        if let j::ExprKind::Call(f, args) = &e.kind {
             match &f.kind {
                 j::ExprKind::Name(n) | j::ExprKind::Attr(_, n, _) => {
+                    // N34 reads `xs.pop(i)` as `remove_at` and `d.pop(k)` as `remove`.
+                    if n == "pop" && args.len() == 1 {
+                        out.insert("remove_at".into());
+                        out.insert("remove".into());
+                    }
                     // `max(xs)` lowers to the iterator's `max_nonempty` (R658).
                     if n == "min" || n == "max" {
                         out.insert(format!("{n}_nonempty"));

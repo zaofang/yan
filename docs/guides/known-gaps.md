@@ -21,23 +21,6 @@ def main() uses io:
     io.print(f"{3.14159:.2f} {7:04}")
 ```
 
-### [#1402](https://github.com/zaofang/yan/issues/1402): list and dict methods Python programs use
-
-`list.clear`, `list.remove`, `list.pop(i)` and `dict.pop` are E203 or E202. Workaround: build a new list or dict
-without the element, as `examples/real/lru_cache.yag` does.
-
-```yag gap=examples/real/gaps/container_methods.yag
-# Gap #1402: list.clear, list.remove, list.pop(i), dict.pop.
-def main() uses io:
-    xs = [1, 2, 3]
-    d = {"a": 1}
-    xs.remove(2)
-    first = xs.pop(0)
-    d.pop("a")
-    xs.clear()
-    io.print(f"{first}")
-```
-
 ### [#1404](https://github.com/zaofang/yan/issues/1404): a user function named like a builtin method
 
 A module function `get` hides `dict.get` for every receiver in the module (17.2: the current module is searched first),
@@ -61,7 +44,7 @@ def main() uses io:
 ```
 
 Fixed since the sweep: #1398 (I001 on a constructor call in a match branch), #1399 (native `list.pop`,
-`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`), #1403 (`c.field[k] = v` on a dict field).
+`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`), #1402 (`list.clear`, `list.remove`, `list.pop(i)`, `dict.pop`), #1403 (`c.field[k] = v` on a dict field).
 
 ## Backend and checker coverage
 
