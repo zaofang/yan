@@ -5457,6 +5457,21 @@
    "exit": 101
   },
   {
+   "path": "yag/run/collections/dict_field_store.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R808"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 3\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/collections/dict_insertion_order.yag",
    "kind": "run",
    "milestone": "M1",
