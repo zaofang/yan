@@ -46,7 +46,7 @@ use yan_hir as j;
 use yan_surface::{Attach, Mark, Trivia, TriviaTable};
 
 pub use config::{Config, config};
-pub use desugar::{Manifest, manifest};
+pub use desugar::{DepKind, DepName, Manifest, manifest};
 pub use package::{PULLED, PackageEnv, referenced};
 pub use stdlib::{StdInfo, StdModule, install_std};
 pub use ty::Ty;

@@ -15,6 +15,7 @@ mod fix;
 mod graph;
 mod lock;
 mod mcp;
+mod metadata;
 mod new;
 mod patch;
 mod publish;
@@ -116,6 +117,12 @@ enum SchemaCommand {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Print the resolved package graph, each package's manifest fields and its module tree as JSON
+    /// (RFC 0084 D13).
+    Metadata {
+        #[arg(long, required = true)]
+        json: bool,
+    },
     /// Print the modules of the package in the current directory, one per line (RFC 0084 D11).
     Tree {
         /// `prose` when output is a terminal, `line` otherwise (18.2); `json` prints the layout errors as records.
@@ -484,6 +491,7 @@ fn main() -> ExitCode {
         Command::Approve { spec } => {
             dep_result(vendor::approve(Path::new("."), &spec).map(|m| vec![m]))
         }
+        Command::Metadata { json } => metadata::run(Path::new("."), json),
         Command::Tree { format } => tree(Path::new("."), format),
         Command::Vendor => dep_result(vendor::vendor(Path::new("."))),
         Command::Remove { name } => {

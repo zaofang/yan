@@ -12,11 +12,11 @@ mod layout;
 use foreign::is_ffi_module;
 pub use foreign::{ForeignLib, ForeignSet, foreign_set};
 pub use graph::{
-    GraphBuilder, Package, PackageGraph, Role, consented, graph_diagnostics, install_graph_builder,
-    owner,
+    GraphBuilder, Package, PackageGraph, Role, consented, dependency_roots, graph_diagnostics,
+    install_graph_builder, owner,
 };
 pub use layout::{
-    Issue as LayoutIssue, Located, Module as PackageModule, Root,
+    Issue as LayoutIssue, Located, Module as PackageModule, Root, dependency_issues,
     diagnostics as layout_diagnostics, locate, scan as scan_layout,
 };
 

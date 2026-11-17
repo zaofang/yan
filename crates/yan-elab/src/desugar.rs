@@ -142,6 +142,32 @@ fn flatten(
     }
 }
 
+/// One dependency as the manifest declares it: the kind of table, the local root name and the
+/// requirement (R635).
+#[derive(Clone, Debug, PartialEq)]
+pub struct DepName {
+    pub kind: DepKind,
+    pub local: String,
+    pub requirement: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DepKind {
+    Normal,
+    Dev,
+    Tool,
+}
+
+impl DepKind {
+    pub fn field(self) -> &'static str {
+        match self {
+            DepKind::Normal => "dependencies",
+            DepKind::Dev => "dev_dependencies",
+            DepKind::Tool => "tools",
+        }
+    }
+}
+
 /// What a package manifest (`package: Package = Package(...)`, 19.1) grants its modules.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Manifest {
@@ -167,6 +193,9 @@ pub struct Manifest {
     pub has_overrides: bool,
     /// The `overrides` entries as written: key (`@org/name major`) and value (a path, R950).
     pub overrides: Vec<(String, String)>,
+    /// The local root name and requirement of every entry of `dependencies`, `dev_dependencies` and
+    /// `tools`, in that order (R635). A list entry is named by the last segment of its package name.
+    pub dep_names: Vec<DepName>,
     /// The Python requirements of `python` (R638).
     pub python: Vec<String>,
     /// The packages the root consents to hold `ffi` modules or extern blocks (R1018).
@@ -317,6 +346,35 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
             _ => Vec::new(),
         }
     };
+    let dep_names = |name: &str, kind: DepKind| -> Vec<DepName> {
+        let value = args.iter().find_map(|a| match (&a.name, &a.kind) {
+            (Some(n), j::ArgKind::Expr(e)) if n == name => Some(&e.kind),
+            _ => None,
+        });
+        let lit = |e: &j::Expr| match &e.kind {
+            j::ExprKind::Lit(j::Lit::Str { value, .. }) => Some(value.clone()),
+            _ => None,
+        };
+        let entry = |local: Option<String>, requirement: String| {
+            let package = requirement.split_whitespace().next().unwrap_or("");
+            DepName {
+                kind,
+                local: local
+                    .unwrap_or_else(|| package.rsplit('/').next().unwrap_or(package).to_owned()),
+                requirement,
+            }
+        };
+        match value {
+            Some(j::ExprKind::List(xs)) => {
+                xs.iter().filter_map(lit).map(|r| entry(None, r)).collect()
+            }
+            Some(j::ExprKind::Dict(kvs)) => kvs
+                .iter()
+                .filter_map(|(k, v)| Some(entry(Some(lit(k)?), lit(v)?)))
+                .collect(),
+            _ => Vec::new(),
+        }
+    };
     let pairs = |name: &str| -> Vec<(String, String)> {
         let value = args.iter().find_map(|a| match (&a.name, &a.kind) {
             (Some(n), j::ArgKind::Expr(e)) if n == name => Some(&e.kind),
@@ -355,6 +413,14 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
         tools: reqs("tools"),
         has_overrides: !reqs("overrides").is_empty(),
         overrides: pairs("overrides"),
+        dep_names: [
+            ("dependencies", DepKind::Normal),
+            ("dev_dependencies", DepKind::Dev),
+            ("tools", DepKind::Tool),
+        ]
+        .into_iter()
+        .flat_map(|(f, k)| dep_names(f, k))
+        .collect(),
         python: strs("python").unwrap_or_default(),
         allow_ffi: strs("allow_ffi").unwrap_or_default(),
         ffi_unconsented: false,

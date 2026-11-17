@@ -1,0 +1,4 @@
+--- Fetch.
+pub get() -> int uses none =
+  ex get() == 1
+  1

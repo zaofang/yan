@@ -13,7 +13,8 @@ pub fn install() {
 
 fn package(root: PathBuf, workspace: &Path, role: Role) -> Option<Package> {
     let manifest = manifest_at(&root)?;
-    let (modules, layout) = yan_db::scan_layout(&root);
+    let (modules, mut layout) = yan_db::scan_layout(&root);
+    layout.extend(yan_db::dependency_issues(&root, &manifest, &modules));
     Some(Package {
         name: manifest.name.clone(),
         role,
@@ -66,6 +67,11 @@ fn around(path: &Path) -> Vec<Package> {
     }
     out.extend(locked(top));
     out
+}
+
+/// The packages around `dir`, as the compiler sees them from a file there.
+pub(crate) fn around_dir(dir: &Path) -> Vec<Package> {
+    around(&dir.join("."))
 }
 
 /// The packages `yan.lock` pins whose source is on disk: an override's directory, or the unpacked

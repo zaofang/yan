@@ -72,6 +72,33 @@ pub fn consented(packages: &[Package], pkg: &Package) -> bool {
         .is_none_or(|root| root.manifest.allow_ffi.contains(name))
 }
 
+/// The packages `pkg` names as dependencies, each with the package of the graph it resolves to
+/// (RFC 0084 D4, R635): the locked or member package whose name and compatibility major the
+/// requirement names. `None` where the lock does not pin it or its source is not on disk.
+pub fn dependency_roots<'a>(
+    packages: &'a [Package],
+    pkg: &'a Package,
+) -> Vec<(&'a yan_elab::DepName, Option<&'a Package>)> {
+    pkg.manifest
+        .dep_names
+        .iter()
+        .map(|d| {
+            let key = closure::requirement(&d.requirement);
+            let found = key.as_ref().and_then(|k| {
+                packages.iter().find(|p| {
+                    p.role != Role::Root
+                        && p.name.as_deref() == Some(k.0.as_str())
+                        && p.manifest
+                            .version
+                            .as_deref()
+                            .is_some_and(|v| closure::identity(&k.0, v) == *k)
+                })
+            });
+            (d, found)
+        })
+        .collect()
+}
+
 /// E023 and E314 (RFC 0079 D3, D5) for each package of the workspace, on its `package.yag`, once per
 /// package rather than per module. The closure runs over every package in the graph, so a member added
 /// without `yan lock` or a hand-edited lock is still checked.

@@ -1,0 +1,9 @@
+package: Package = Package(
+    name="@conf/e024_dependency_root_collides_with_module",
+    version="0.1.0",
+    yan="1.x",
+    platform="cli",
+    capabilities=["io"],
+    edition="next",
+    dependencies={"http": "@acme/http 1.4"},
+)

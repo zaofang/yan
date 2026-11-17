@@ -16337,6 +16337,29 @@
    }
   },
   {
+   "path": "pkg/e024_dependency_root_collides_with_module",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1074"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1074",
+    "note": "a dependency local name equal to an own top-level module is E024 on package.yag, naming both sides",
+    "command": [
+     "check"
+    ],
+    "code": "E024",
+    "at": "package.yag:1:1"
+   }
+  },
+  {
    "path": "pkg/e024_duplicate_module_path",
    "kind": "pkg",
    "milestone": "M1",
