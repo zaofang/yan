@@ -685,6 +685,7 @@ const RT: &[RtFn] = &[
     RtFn::Repr,
     RtFn::StrEq,
     RtFn::StrRepeat,
+    RtFn::ShowFixed,
     RtFn::GraphemeCount,
     RtFn::RandSeeded,
     RtFn::RandSplit,
@@ -1095,6 +1096,12 @@ fn rt_fn(
             "yan_rt_repr",
             abi::yan_rt_repr as *const u8,
             &[I64],
+            Some(I64),
+        ),
+        RtFn::ShowFixed => (
+            "yan_rt_show_fixed",
+            abi::yan_rt_show_fixed as *const u8,
+            &[F64, I64],
             Some(I64),
         ),
         RtFn::StrRepeat => (

@@ -1835,3 +1835,8 @@ sections = "14.4, 17.3"
 rows = "R1028"
 topic = "method resolution searches the receiver type's declaring module before the current module, so a module function never captures a method call on a std type (replaces the current-module-first order of R348; #1404)"
 sections = "17.2"
+
+[[entry]]
+rows = "R1029"
+topic = "f-string format specs: fill, align, sign, zero pad, width, `,`, and `.Nf` on a float rounded on its exact value (#1401); other types are E017"
+sections = "17.3"

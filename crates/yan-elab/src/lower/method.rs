@@ -342,6 +342,9 @@ impl Lower<'_, '_, '_> {
                 format!("`{m}` dereferences a `Ptr`; call it inside `unsafe`"),
             );
         }
+        if path == "std.arena.ref.set" {
+            self.ref_set_exclusive(b, at);
+        }
         let Some(d) = crate::stdlib::decl(&path) else {
             let names = crate::stdlib::members(module);
             if matches!(t, Ty::Coll("iter", _)) && m == "len" {

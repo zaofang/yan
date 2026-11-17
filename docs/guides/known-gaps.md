@@ -11,16 +11,6 @@ a week (DL14).
 Found by the real-programs sweep ([examples/real/README.md](../../examples/real/README.md)). Each fails on every
 backend, at `yan check`.
 
-### [#1401](https://github.com/zaofang/yan/issues/1401): float and zero-pad format specs
-
-`{x:.2f}` and `{7:04}` are E017. Alignment specs such as `{w:<6}` work. No workaround for fixed-precision floats.
-
-```yag gap=examples/real/gaps/fstring_float_spec.yag
-# Gap #1401: float and zero-pad format specs are E017.
-def main() uses io:
-    io.print(f"{3.14159:.2f} {7:04}")
-```
-
 ### [#1403](https://github.com/zaofang/yan/issues/1403): store into a dict held in a record field
 
 `c.vals[k] = v` is E017. Workaround: pass the dict as a separate `var` parameter.
@@ -40,7 +30,7 @@ def main() uses io:
 ```
 
 Fixed since the sweep: #1398 (I001 on a constructor call in a match branch), #1399 (native `list.pop`,
-`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`), #1402 (`list.clear`, `list.remove`, `list.pop(i)`, `dict.pop`), #1404 (a module function no longer captures a method of the receiver's type; 17.2).
+`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`), #1402 (`list.clear`, `list.remove`, `list.pop(i)`, `dict.pop`), #1404 (a module function no longer captures a method of the receiver's type; 17.2), #1401 (`.2f`, `04` and the other common f-string specs).
 
 ## Backend and checker coverage
 
