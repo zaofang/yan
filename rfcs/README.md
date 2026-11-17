@@ -104,3 +104,4 @@ conformance case in the same PR set.
 | [0077](0077-ffi-consent.md) | FFI consent enforced at the root: `allow_ffi`, ceiling, resolution | accepted | R1018 to R1020 |
 | [0078](0078-closure-capabilities.md) | A closure argument's capabilities must be covered by the callee's `uses` | accepted | R1025 |
 | [0079](0079-transitive-ffi-ceiling.md) | Foreign libraries in dependency ceilings by closure, one recomputed foreign set, a package graph for the compiler | accepted | R1031 to R1034 |
+| [0080](0080-mutex-guard-access-and-scope.md) | Mutex guard access, early unlock and escapes | draft | |

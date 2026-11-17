@@ -2721,6 +2721,25 @@
    ]
   },
   {
+   "path": "yag/fail/lints/fstring_unsupported_spec.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R1029"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E017",
+     "line": 6,
+     "col": 14
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lints/w803_secret_into_log.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -4405,6 +4424,25 @@
      "code": "W817",
      "line": 5,
      "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/types/e200_shared_variant_bare.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R799"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 9,
+     "col": 9
     }
    ]
   },
@@ -7175,6 +7213,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/fstring_numeric_specs.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R1029"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3.14|0007|2.67|-0|1,234,567.89|+7|   3.142|-00003.1|1,234,567|    7|3.1      |\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/heap_empty_pop.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7839,6 +7892,23 @@
    "flags": [],
    "expect": [],
    "stdout": "4\n-1\n2\n[hi]\n[hi]\nx\nx\nx\nab   |\n***ab\nab\n-00042\n+007\n00042\n3\n0\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/qualified_std_variant.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R600",
+    "R601",
+    "R799"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "America/New_York +05:30 UTC\n2024-03-10T03:30:00-04:00[America/New_York] -14400\n2024-03-10T04:30:00-04:00[America/New_York]\n2024-03-11T03:30:00-04:00[America/New_York]\nNone\n2024-11-03T01:30:00-04:00[America/New_York] 2024-11-03T01:30:00-05:00[America/New_York]\n1969-12-31T19:00:00-05:00[America/New_York]\n",
    "exit": 0
   },
   {
@@ -8626,6 +8696,21 @@
    "flags": [],
    "expect": [],
    "stdout": "3 None\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/types/qualified_variants.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R799"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "ls\nss\nrel3\nlr\nsr\nSeqCst()\nSeqCst()\nTrue\nJust(v=5)\n",
    "exit": 0
   },
   {
