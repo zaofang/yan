@@ -532,7 +532,7 @@ impl Lower<'_, '_, '_> {
                     self.err(
                         "E415",
                         a.span,
-                        "this value is not Send (it holds an `Rc`), so it cannot cross to another task".into(),
+                        "this value is not Send (it holds an `Rc` or a `MutexGuard`), so it cannot cross to another task".into(),
                     );
                 }
                 Ok(r)

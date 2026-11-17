@@ -86,11 +86,7 @@ impl Lower<'_, '_, '_> {
             }
             K::Assign { target, ty, value } => {
                 let borrowed = self.borrowed_by(value);
-                if matches!(value.kind, j::ExprKind::Name(_))
-                    && let Some(vt) = self.ty_of_local(value)
-                {
-                    self.guard_escape(&vt, value.span);
-                }
+                self.guard_escape_expr(value);
                 self.assign(target, ty.as_ref(), value, at)?;
                 if let j::ExprKind::Name(n) = &target.kind {
                     self.note_borrow(n, borrowed);
@@ -117,11 +113,7 @@ impl Lower<'_, '_, '_> {
                     paren: false,
                 };
                 let borrowed = self.borrowed_by(value);
-                if matches!(value.kind, j::ExprKind::Name(_))
-                    && let Some(vt) = self.ty_of_local(value)
-                {
-                    self.guard_escape(&vt, value.span);
-                }
+                self.guard_escape_expr(value);
                 self.assign(&t, ty.as_ref(), value, at)?;
                 self.note_borrow(target, borrowed);
             }
@@ -358,6 +350,28 @@ impl Lower<'_, '_, '_> {
                         self.stmt(&s)?;
                     }
                 }
+            }
+            // `with g = m.lock()` binds a guard for the block and no longer (R1036): the block
+            // starts at the binding, so drop elaboration unlocks at its end.
+            K::With {
+                kind: j::WithKind::Bind(name, h),
+                body,
+            } if j::is_lock_call(h) => {
+                let bind = j::Stmt {
+                    kind: K::Bind {
+                        mutable: false,
+                        target: name.clone(),
+                        target_span: h.span,
+                        ty: None,
+                        value: h.clone(),
+                    },
+                    span: at,
+                };
+                let stmts: Vec<_> = std::iter::once(bind)
+                    .chain(body.stmts.iter().cloned())
+                    .collect();
+                let b = self.block(&stmts)?;
+                self.emit(StmtKind::Unsafe(b), at);
             }
             K::With {
                 kind: j::WithKind::Bind(name, h),
