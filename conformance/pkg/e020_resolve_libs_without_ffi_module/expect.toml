@@ -1,0 +1,6 @@
+spec = "19.2"
+rows = "R1034"
+note = "the lock refuses a .info whose libs and ffi modules differ from what its archive holds, before consent is read"
+command = ["lock"]
+code = "E020"
+at = "yan.lock:0:0"

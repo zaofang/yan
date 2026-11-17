@@ -1,0 +1,6 @@
+spec = "19.1"
+rows = "R1034"
+note = "under --locked, an unpacked store tree that differs from its archive is E020, never trusted in its place"
+command = ["check", "--locked", "src/main.yag"]
+code = "E020"
+at = "yan.lock:0:0"
