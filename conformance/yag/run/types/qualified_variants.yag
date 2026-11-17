@@ -1,6 +1,6 @@
 # spec: 14.1
 # rows: R799
-# note: Type.Variant builds and matches a variant of a user sum, a generic sum and a std sum; two sums may share a variant name
+# note: Type.Variant builds a variant of a user sum, a generic sum and a std sum; two sums may share a variant name, and a pattern on one resolves by the scrutinee type
 # stdout:
 # ls
 # ss
@@ -20,20 +20,20 @@ type Opt[T] = Nothing() | Just(v: T)
 
 def name_l(o: LoadOrdering) -> str:
     match o:
-        case LoadOrdering.Relaxed():
+        case Relaxed():
             return "lr"
-        case LoadOrdering.Acquire():
+        case Acquire():
             return "la"
-        case LoadOrdering.SeqCst():
+        case SeqCst():
             return "ls"
 
 def name_s(o: StoreOrdering) -> str:
     match o:
-        case StoreOrdering.Relaxed():
+        case Relaxed():
             return "sr"
-        case StoreOrdering.Release(n):
+        case Release(n):
             return "rel" + str(n)
-        case StoreOrdering.SeqCst():
+        case SeqCst():
             return "ss"
 
 pub def main() uses io:
