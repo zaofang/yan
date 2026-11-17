@@ -1,0 +1,25 @@
+# spec: 14.4
+# rows: R849
+# note: N41 to N43 read Python-convention field, parameter and member docs
+# stdout:
+# 1
+
+class P:
+    """A point.
+
+    Attributes:
+        x: the x
+    """
+    x: int
+    "the x again"
+
+def f(a: int) -> int:
+    """Does f.
+
+    :param a: the a
+    :type a: int
+    """
+    return a
+
+pub def main() uses io:
+    io.print(f"{f(P(1).x)}")

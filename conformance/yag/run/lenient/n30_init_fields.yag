@@ -1,0 +1,14 @@
+# spec: 14.4
+# rows: R217
+# note: N30 reads an __init__ that only assigns fields as the record's fields
+# stdout:
+# 1 3
+
+class C:
+    def __init__(self, n: int):
+        self.n = n
+        self.k = 3
+
+pub def main() uses io:
+    c = C(1)
+    io.print(f"{c.n} {c.k}")
