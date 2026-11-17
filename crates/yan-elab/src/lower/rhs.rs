@@ -31,6 +31,9 @@ impl Lower<'_, '_, '_> {
     pub(super) fn rhs_inner(&mut self, e: &j::Expr, want: Option<&Ty>) -> R<(Rhs, Ty)> {
         use j::ExprKind as K;
         let at = e.span;
+        if let Some(a) = self.get_mut_alias(e) {
+            return self.rhs_inner(&a, want);
+        }
         Ok(match &e.kind {
             K::Name(n) if self.stage.iter().any(|(m, _)| m == n) => {
                 let v = self

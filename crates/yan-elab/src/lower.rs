@@ -340,6 +340,11 @@ fn root(e: &j::Expr) -> Option<&str> {
     match &e.kind {
         j::ExprKind::Name(n) => Some(n),
         j::ExprKind::Attr(b, ..) | j::ExprKind::Index(b, _) => root(b),
+        // `m.get_mut()` is a place in `m` (R1039).
+        j::ExprKind::Call(f, args) if args.is_empty() => match &f.kind {
+            j::ExprKind::Attr(b, m, _) if m == "get_mut" => root(b),
+            _ => None,
+        },
         _ => None,
     }
 }

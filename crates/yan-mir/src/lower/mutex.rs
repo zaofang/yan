@@ -9,6 +9,7 @@ use super::*;
 pub(super) const MUTEX_IDS: &[registry::Id] = &[
     id::STD_SYNC_MUTEX_MUTEX,
     id::STD_SYNC_MUTEX_LOCK,
+    id::STD_SYNC_MUTEX_INTO_INNER,
     id::STD_SYNC_MUTEX_GUARD_GET,
     id::STD_SYNC_MUTEX_GUARD_SET,
     id::STD_SYNC_MUTEX_GUARD_REPLACE,
@@ -63,6 +64,12 @@ impl<'m> Fn<'_, 'm> {
                 self.finish(Term::Panic("deadlock"));
                 self.cur = ok;
                 set(self, vec![p]);
+            }
+            (id::STD_SYNC_MUTEX_INTO_INNER, [(_, m)]) => {
+                let p = self.scalar1(m)?;
+                let v = self.read(&At::Mem(p.clone(), VALUE), &e);
+                self.free(RtFn::EnvFree, p);
+                set(self, v);
             }
             (id::STD_SYNC_MUTEX_GUARD_GET, [(_, g)]) => {
                 if Self::has_heap(&e) {

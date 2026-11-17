@@ -9,6 +9,8 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<()> {
         let ann = ann.map(|t| self.g.ty(t, self.cx, at)).transpose()?;
+        let aliased = self.get_mut_alias(target);
+        let target = aliased.as_ref().unwrap_or(target);
         if value.paren && matches!(&value.kind, j::ExprKind::Tuple(vs) if vs.len() > 1) {
             self.cx.marks.push(crate::marks::Pending {
                 span: value.span,
@@ -466,6 +468,7 @@ impl Lower<'_, '_, '_> {
                 self.locals.get(n).map(|l| l.ty.clone())
             }
             j::ExprKind::Attr(b, f, _) => match self.ty_of_local(b)? {
+                Ty::Coll("Mutex", ts) if f == "$value" => Some(ts[0].clone()),
                 Ty::Data(r) => self
                     .g
                     .records
@@ -500,11 +503,33 @@ impl Lower<'_, '_, '_> {
         }
     }
 
+    /// `m.get_mut()` on a `Mutex` is the protected value as a place, spelled as a field no
+    /// program can write (R1039).
+    pub(super) fn get_mut_alias(&self, e: &j::Expr) -> Option<j::Expr> {
+        let j::ExprKind::Call(f, args) = &e.kind else {
+            return None;
+        };
+        let j::ExprKind::Attr(b, m, sp) = &f.kind else {
+            return None;
+        };
+        if m != "get_mut" || !args.is_empty() {
+            return None;
+        }
+        matches!(self.ty_of_local(b)?, Ty::Coll("Mutex", _)).then(|| j::Expr {
+            kind: j::ExprKind::Attr(b.clone(), "$value".into(), *sp),
+            span: e.span,
+            paren: e.paren,
+        })
+    }
+
     pub(super) fn place(&mut self, e: &j::Expr) -> R<(Place, Ty)> {
         self.place_inner(e).map_err(|u| u.at(e.span))
     }
 
     pub(super) fn place_inner(&mut self, e: &j::Expr) -> R<(Place, Ty)> {
+        if let Some(a) = self.get_mut_alias(e) {
+            return self.place_inner(&a);
+        }
         match &e.kind {
             j::ExprKind::Name(n) if self.narrowed(n).is_some() => {
                 let m = self.narrowed(n).expect("checked").to_owned();
@@ -606,6 +631,11 @@ impl Lower<'_, '_, '_> {
             Ty::Coll("Undelivered", ts) if f == "args" => ts[0].clone(),
             // The protected value of a guard, as a place (R1035).
             Ty::Coll("MutexGuard", ts) if f == "value" => ts[0].clone(),
+            // `Mutex.get_mut` (R1039): the same word, reached through `inout` of the mutex.
+            Ty::Coll("Mutex", ts) if f == "$value" => {
+                p.projs.push(Proj::Field("value".into(), fsp));
+                return Ok((p, ts[0].clone()));
+            }
             Ty::Coll("Ref", _) => {
                 self.ref_deref(b, at);
                 Ty::Err

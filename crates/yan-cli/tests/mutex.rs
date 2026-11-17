@@ -160,3 +160,29 @@ fn every_backend_panics_on_a_relock() {
         assert!(text(&out.stderr).contains("deadlock"), "{b}");
     }
 }
+
+const OWNED: &str = "def main() uses io:
+    m = Mutex[int](1)
+    m.get_mut() += 2
+    print(m.get_mut())
+    n = Mutex[list[int]]([1])
+    n.get_mut().append(2)
+    print(n.into_inner())
+    s = Mutex[str](\"a\")
+    s.get_mut() = \"b\"
+    print(s.into_inner())
+";
+
+#[test]
+fn get_mut_and_into_inner_agree_on_every_backend_and_free_the_block() {
+    for b in ["interp", "machine", "cranelift"] {
+        let out = run("owned", b, OWNED, &["--report-live"]);
+        assert!(out.status.success(), "{b}: {}", text(&out.stderr));
+        assert_eq!(text(&out.stdout), "3\n[1, 2]\nb\n", "{b}");
+        if b == "cranelift" {
+            assert!(text(&out.stderr).contains("live: 0"));
+        }
+    }
+    let out = run("owned-ub", "machine", OWNED, &["--ub"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+}
