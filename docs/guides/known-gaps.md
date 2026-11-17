@@ -41,7 +41,9 @@ def main() uses io:
 
 ### [#1404](https://github.com/zaofang/yan/issues/1404): a user function named like a builtin method
 
-A module function `get` captures `d.get(k)` calls on dicts. Workaround: rename the function.
+A module function `get` hides `dict.get` for every receiver in the module (17.2: the current module is searched first),
+so `c.vals.get(k)` calls the module's `get` and fails with E201. W819 now names the hidden method for field receivers
+too. Workaround: rename the function. Whether the receiver's type should pick first is a spec question for the lead.
 
 ```yag gap=examples/real/gaps/user_fn_shadows_method.yag
 # Gap #1404: a user `get` captures `dict.get`.
