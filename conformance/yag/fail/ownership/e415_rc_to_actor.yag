@@ -1,0 +1,14 @@
+# spec: 6.4, 9.6
+# note: a message crosses to the actor's task, so each argument is Send
+# expect: E415 at 14:18
+
+class A:
+    n: int
+
+def put(var self: A, rs: list[Rc[int]]) -> int:
+    self.n += len(rs)
+    return self.n
+
+def f(a: Actor[A], r: Rc[int]) -> int:
+    rs = [r.share()]
+    return a.put(rs) else e -> -1
