@@ -1970,3 +1970,8 @@ sections = "22.7"
 rows = "R1055"
 topic = "pointer constructors without a Ptr argument take the pointee type from [T] or the expected type, else E205 (#1527)"
 sections = "6.6, 25"
+
+[[entry]]
+rows = "R1056"
+topic = "N51 also reads `float(s)` on a `str` as `std.text.float_of(s)`: `s.strip().parse_float()`, panicking with kind `conversion` when it is `None` (#1543); `--strict` keeps E201"
+sections = "14.4"

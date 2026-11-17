@@ -401,6 +401,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1053 | release checks from S4: fixpoint, diverse double compiling, verified Yan Core snapshot, toolchain capability table (RFC 0082 D12) | 19.6 |
 | R1054 | compiler performance gate at S4 and RC in callgrind instruction counts (RFC 0082 D13) | 22.7 |
 | R1055 | pointer constructors without a Ptr argument take the pointee type from [T] or the expected type, else E205 (#1527) | 6.6, 25 |
+| R1056 | N51 also reads `float(s)` on a `str` as `std.text.float_of(s)`: `s.strip().parse_float()`, panicking with kind `conversion` when it is `None` (#1543); `--strict` keeps E201 | 14.4 |
 
 <!-- /rows -->
 
