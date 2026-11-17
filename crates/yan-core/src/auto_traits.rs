@@ -35,6 +35,8 @@ pub fn auto_traits(t: &Type) -> AutoTraits {
             });
             match n.path.last().map(String::as_str) {
                 Some("Rc" | "Weak" | "MutexGuard") => NEITHER,
+                // A handle sends messages; the actor owns its state, so `T` is never shared.
+                Some("Actor") => BOTH,
                 Some("Cell") => AutoTraits {
                     sync: false,
                     ..args
@@ -98,5 +100,24 @@ mod selftest {
                 sync: false
             }
         );
+    }
+}
+
+#[cfg(test)]
+mod actor_selftest {
+    use super::*;
+    use crate::ast::Named;
+
+    #[test]
+    fn an_actor_handle_is_send_and_sync_whatever_it_holds() {
+        let cell = Type::Named(Named {
+            path: vec!["Cell".into()],
+            args: vec![],
+        });
+        let a = Type::Named(Named {
+            path: vec!["Actor".into()],
+            args: vec![TArg::Type(cell)],
+        });
+        assert_eq!(auto_traits(&a), BOTH);
     }
 }
