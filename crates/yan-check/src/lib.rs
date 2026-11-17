@@ -629,10 +629,21 @@ impl<'g, 'm> Cx<'g, 'm> {
             .collect()
     }
 
+    /// `n` is an owned, non-copy local: storing it or passing it to a jump moves it, as
+    /// `own::consumed` has it. A borrowed parameter or a view already left by `copy` (R769).
+    fn owns(&self, n: &Name) -> bool {
+        self.env.get(n).is_some_and(|b| {
+            !is_copy(b.ty.as_ref())
+                && matches!(b.kind, Kind::Let | Kind::Var | Kind::Param(Conv::Sink))
+        })
+    }
+
     fn use_name(&mut self, n: &Name, span: Span, how: How) {
         if let Some(id) = self.env.get(n).map(|b| b.id) {
             self.flow.read(id, span);
-            if matches!(how, How::Ret | How::Store | How::Drop) {
+            if how == How::Store && self.owns(n) {
+                self.flow.moved(id, span);
+            } else if matches!(how, How::Ret | How::Store | How::Drop) {
                 self.flow.release(id);
             }
         }
@@ -985,10 +996,14 @@ impl<'g, 'm> Cx<'g, 'm> {
                 }
                 for a in args {
                     self.atom(a, How::Read);
-                    if let Atom::Name(n, _) = a
-                        && let Some(b) = self.env.get(n)
+                    if let Atom::Name(n, sp) = a
+                        && let Some(id) = self.env.get(n).map(|b| b.id)
                     {
-                        self.flow.release(b.id);
+                        if self.owns(n) {
+                            self.flow.moved(id, *sp);
+                        } else {
+                            self.flow.release(id);
+                        }
                     }
                 }
                 let to = self.flow.jp(name);
@@ -1771,5 +1786,30 @@ mod selftest {
     fn literal_kinds() {
         let src = "fn f() -> Unit {\n    let a: f64 = 1\n    let b: i64 = 1.5\n    let c: bool = 0\n    ret ()\n}\n";
         assert_eq!(codes(src), [("E201".into(), 4, 18), ("E201".into(), 5, 19)]);
+    }
+
+    #[test]
+    fn storing_an_owned_local_in_a_tuple_moves_it() {
+        let src = "fn f(sink d: Str) -> Str {\n    let p: Tuple(Str, i64) = (d, 1)\n    ret d\n}\n";
+        assert_eq!(
+            codes(src).iter().map(|c| c.0.as_str()).collect::<Vec<_>>(),
+            ["E401"]
+        );
+    }
+
+    #[test]
+    fn a_jump_argument_that_is_an_owned_local_moves_it() {
+        let src = "fn f(let c: bool, sink d: Str) -> Str {\n    jp k(sink v: Str) {\n        ret d\n    }\n\
+                   \x20   if c {\n        jump k(\"a\")\n    }\n    jump k(d)\n}\n";
+        assert_eq!(
+            codes(src).iter().map(|c| c.0.as_str()).collect::<Vec<_>>(),
+            ["E401"]
+        );
+    }
+
+    #[test]
+    fn storing_a_borrowed_parameter_or_a_copy_value_moves_nothing() {
+        let src = "fn f(let d: Str, let n: i64) -> i64 {\n    let p: Tuple(Str, i64) = (d, n)\n    let q: Tuple(Str, i64) = (d, n)\n    ret n\n}\n";
+        assert_eq!(codes(src), []);
     }
 }
