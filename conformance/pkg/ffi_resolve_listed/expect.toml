@@ -1,0 +1,4 @@
+spec = "19.2"
+rows = "R1019"
+note = "the same dependency resolves when the root's allow_ffi names it"
+command = ["lock"]
