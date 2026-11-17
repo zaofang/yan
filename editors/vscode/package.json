@@ -31,7 +31,8 @@
         "id": "yan-data",
         "aliases": ["Yan Data", "yd"],
         "extensions": [".yd"],
-        "configuration": "./languages/yag.language-configuration.json"
+        "configuration": "./languages/yag.language-configuration.json",
+        "icon": { "light": "./icons/file-icon-yag.svg", "dark": "./icons/file-icon-yag.svg" }
       }
     ],
     "grammars": [
