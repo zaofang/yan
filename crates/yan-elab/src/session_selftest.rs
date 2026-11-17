@@ -20,6 +20,7 @@ fn diags(src: &str) -> (Globals, Vec<Diagnostic>) {
         marks: Vec::new(),
         lits: Vec::new(),
         origins: Vec::new(),
+        nondet_ops: 0,
     };
     let e = typefn::expand(&mut m, &mut cx).expect("supported");
     let mut g = Globals {

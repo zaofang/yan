@@ -511,6 +511,11 @@ impl Lower<'_, '_, '_> {
                 let r = self.method(b, m, *name_at, args, at)?;
                 if let (Rhs::Call(c), _, _) = &r
                     && NONDET_OPS.contains(&c.path.join(".").as_str())
+                {
+                    self.cx.nondet_ops += 1;
+                }
+                if let (Rhs::Call(c), _, _) = &r
+                    && NONDET_OPS.contains(&c.path.join(".").as_str())
                     && !self.sig.caps.iter().any(|c| c == "nondet")
                 {
                     self.err(

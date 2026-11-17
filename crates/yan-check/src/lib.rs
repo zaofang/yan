@@ -493,6 +493,22 @@ struct Binding {
     unsync_closure: bool,
 }
 
+/// The marker a closure carries when its body runs a task-dependent operation (R1025).
+fn nondet_marker(c: &Closure) -> Option<(Name, Type)> {
+    let Some(CapSet::Names(ns)) = &c.uses else {
+        return None;
+    };
+    ns.iter().any(|n| n == "nondet").then(|| {
+        (
+            "nondet".to_owned(),
+            Type::Named(Named {
+                path: vec!["Nondet".to_owned()],
+                args: Vec::new(),
+            }),
+        )
+    })
+}
+
 type Shadowed = (Name, Option<Binding>, Option<Vec<How>>);
 
 /// What a `match` arm's binders shadowed, to restore when the arm ends.
@@ -1021,6 +1037,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                             Some(b) => b.cap_captures.clone(),
                             None => Vec::new(),
                         })
+                        .chain(nondet_marker(c))
                         .collect(),
                     Rhs::Atom(Atom::Name(n, _)) => self.caps_of(n),
                     Rhs::Copy(p) | Rhs::Move(p) if p.projs.is_empty() => self.caps_of(&p.root),

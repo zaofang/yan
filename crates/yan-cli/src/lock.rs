@@ -124,6 +124,7 @@ pub fn check(
     let roots = crate::store::roots(root, store.as_deref());
     for p in &records {
         let Some(digest) = p.get("digest").and_then(toml::Value::as_str) else {
+            unpinned_record_is_local(p, manifest_at(root).as_ref())?;
             continue;
         };
         match crate::store::source(&roots, digest)? {
@@ -147,6 +148,27 @@ pub fn check(
         .map(closure::from_package)
         .collect();
     closure::check(&nodes)
+}
+
+/// E020 when a record without `digest` is not local: it needs a `path` override or a `source`
+/// that is a member directory, else nothing pins its contents.
+fn unpinned_record_is_local(
+    record: &toml::Value,
+    top: Option<&yan_elab::Manifest>,
+) -> Result<(), Box<Diagnostic>> {
+    let text = |k: &str| record.get(k).and_then(toml::Value::as_str);
+    let member =
+        text("source").is_some_and(|s| top.is_some_and(|m| m.members.iter().any(|d| d == s)));
+    if text("path").is_some() || member {
+        return Ok(());
+    }
+    Err(fail(
+        "E020",
+        format!(
+            "`yan.lock` record for `{}` has neither `digest`, `path` nor a member `source`",
+            text("name").unwrap_or("")
+        ),
+    ))
 }
 
 /// The foreign set a `[[package]]` record states (R1034).
@@ -942,7 +964,8 @@ mod tests {
         assert_eq!(root(", allow_ffi=[\"@a/b\"]"), None);
     }
 
-    const LOCK: &str = "format = 1\n\n[[package]]\nname = \"@a/b\"\nversion = \"1.4.2\"\n";
+    const LOCK: &str =
+        "format = 1\n\n[[package]]\nname = \"@a/b\"\nversion = \"1.4.2\"\ndigest = \"sha256:00\"\n";
 
     #[test]
     fn newer_format_is_e019_even_unlocked() {
@@ -971,6 +994,17 @@ mod tests {
             run(Some(LOCK), &["@a/c 1.0"], true).as_deref(),
             Some("E020")
         );
+    }
+
+    #[test]
+    fn locked_record_without_digest_path_or_member_source_is_e020() {
+        let bare = "format = 1\n\n[[package]]\nname = \"@a/b\"\nversion = \"1.4.2\"\n";
+        assert_eq!(
+            run(Some(bare), &["@a/b 1.0"], true).as_deref(),
+            Some("E020")
+        );
+        let path = format!("{bare}path = \"../b\"\n");
+        assert_eq!(run(Some(&path), &["@a/b 1.0"], true), None);
     }
 
     fn workspace(tag: &str, root_reqs: &str, member_pkg: &str) -> std::path::PathBuf {
