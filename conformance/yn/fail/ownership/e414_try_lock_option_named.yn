@@ -1,8 +1,8 @@
 -- spec: 4.5, 6.3, 15
 -- rows: R1038
 -- note: the try_lock option is matched in place; binding it to a name is E414
--- expect: E414 at 6:11
--- expect: W812 at 6:7
+-- expect: E414 at 8:11
+-- expect: W812 at 8:7
 
 probe(m: Mutex[int]) -> int uses nondet =
   let r = m.try_lock()
