@@ -27,22 +27,35 @@ impl ForeignSet {
 /// nested or vendored directory of that name does not count.
 const FFI_DIRS: [&str; 2] = ["ffi", "ub"];
 
-/// 12: a module is an `ffi` module when it sits under `<root>/ffi/` or `<root>/ub/` of its package.
-/// The root is the nearest directory above the module with a `package.yag`; without one, the module's
-/// own directory must be named `ffi` or `ub` (conformance assumption A9).
-pub fn is_ffi_module(path: &Path) -> bool {
+/// 12: a module of the package rooted at `root` is an `ffi` module when it sits under `<root>/ffi/` or
+/// `<root>/ub/`.
+pub(crate) fn in_ffi_dir(root: &Path, path: &Path) -> bool {
+    path.parent()
+        .and_then(|dir| dir.strip_prefix(root).ok())
+        .is_some_and(|rel| {
+            rel.components()
+                .next()
+                .is_some_and(|c| FFI_DIRS.iter().any(|d| c.as_os_str() == *d))
+        })
+}
+
+/// A module outside any package is an `ffi` module when its own directory is named `ffi` or `ub`
+/// (conformance assumption A9).
+pub(crate) fn lone_ffi(path: &Path) -> bool {
+    path.parent()
+        .and_then(Path::file_name)
+        .is_some_and(|n| FFI_DIRS.iter().any(|d| n == *d))
+}
+
+/// [`in_ffi_dir`] with the root found by the nearest `package.yag`, for the unit test of the rule.
+#[cfg(test)]
+pub(crate) fn is_ffi_module(path: &Path) -> bool {
     let Some(dir) = path.parent() else {
         return false;
     };
     match dir.ancestors().find(|d| d.join("package.yag").is_file()) {
-        Some(root) => dir.strip_prefix(root).is_ok_and(|rel| {
-            rel.components()
-                .next()
-                .is_some_and(|c| FFI_DIRS.iter().any(|d| c.as_os_str() == *d))
-        }),
-        None => dir
-            .file_name()
-            .is_some_and(|n| FFI_DIRS.iter().any(|d| n == *d)),
+        Some(root) => in_ffi_dir(root, path),
+        None => lone_ffi(path),
     }
 }
 
