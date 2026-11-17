@@ -1,0 +1,4 @@
+spec = "19.1"
+rows = "R1034"
+note = "under --locked, a lock whose ffi and libs match the set recomputed from the verified archive passes"
+command = ["check", "--locked", "src/main.yag"]

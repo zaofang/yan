@@ -87,6 +87,7 @@ impl Lower<'_, '_, '_> {
             K::Assign { target, ty, value } => {
                 let borrowed = self.borrowed_by(value);
                 self.guard_escape_expr(value);
+                self.try_lock_named(value);
                 self.assign(target, ty.as_ref(), value, at)?;
                 if let j::ExprKind::Name(n) = &target.kind {
                     self.note_borrow(n, borrowed);
@@ -114,6 +115,12 @@ impl Lower<'_, '_, '_> {
                 };
                 let borrowed = self.borrowed_by(value);
                 self.guard_escape_expr(value);
+                if !target
+                    .strip_prefix('_')
+                    .is_some_and(|t| t.starts_with(super::matching::TRY_LOCK_TMP))
+                {
+                    self.try_lock_named(value);
+                }
                 self.assign(&t, ty.as_ref(), value, at)?;
                 self.note_borrow(target, borrowed);
             }
@@ -255,6 +262,7 @@ impl Lower<'_, '_, '_> {
                 body: j::ParBody::Block(b),
             } => {
                 self.par_waits(b, *concurrent);
+                self.par_shares(b, at);
                 if *concurrent && self.sched_not_concurrent {
                     self.err(
                         "E708",

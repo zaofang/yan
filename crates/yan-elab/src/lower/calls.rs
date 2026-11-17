@@ -342,13 +342,8 @@ impl Lower<'_, '_, '_> {
         };
         out.extend(vals);
         let mut map = Vec::new();
-        // A default typed at its parameter's own type (`key=None`) says nothing about the
-        // parameters it mentions.
-        let given = |w: &Ty, t: &Ty| w != t || !sig.tparams.iter().any(|(n, _)| w.mentions(n));
         for (w, t, _) in &got {
-            if given(w, t) {
-                w.unify(t, &mut map);
-            }
+            w.unify(t, &mut map);
         }
         if let Some((w, _)) = &want {
             sig.ret.unify(w, &mut map);
@@ -360,7 +355,7 @@ impl Lower<'_, '_, '_> {
             let ([Ty::Param(t)], Ty::Param(k)) = (ps.as_slice(), &**r) else {
                 continue;
             };
-            if got.iter().any(|(w, t, _)| w == &p.ty && given(w, t)) {
+            if got.iter().any(|(w, _, _)| w == &p.ty) {
                 continue;
             }
             let Some(tv) = map.iter().find(|(n, _)| n == t).map(|(_, v)| v.clone()) else {

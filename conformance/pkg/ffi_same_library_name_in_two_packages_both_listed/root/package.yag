@@ -1,0 +1,10 @@
+package: Package = Package(
+    name="@conf/ffi_same_library_name_in_two_packages_both_listed",
+    version="0.1.0",
+    edition="next",
+    yan="1.x",
+    platform="cli",
+    capabilities=["io", "@r/a:zlib", "@r/b:zlib"],
+    allow_ffi=["@r/a", "@r/b"],
+    dependencies=["@r/a 1.0.0", "@r/b 1.0.0"],
+)

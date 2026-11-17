@@ -1,12 +1,9 @@
 # spec: 4.5, 6.3
 # rows: R1038
-# note: the option from try_lock is second-class; it is matched in place, never named
-# expect: E414 at 7:9
+# note: the try_lock option is matched in place; binding it to a name is E414
+# expect: E414 at 8:9
+# expect: W812 at 8:5
 
-def probe(m: Mutex[int]) -> None uses nondet:
+def probe(m: Mutex[int]) -> int uses nondet:
     r = m.try_lock()
-    match r:
-        case None:
-            pass
-        case g:
-            pass
+    return 1

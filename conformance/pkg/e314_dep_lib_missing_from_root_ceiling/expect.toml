@@ -1,0 +1,6 @@
+spec = "19.2"
+rows = "R1031, R1033"
+note = "a dependency library missing from the root ceiling is E314 naming the library and the path"
+command = ["lock"]
+code = "E314"
+at = "yan.lock:0:0"

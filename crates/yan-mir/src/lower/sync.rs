@@ -126,7 +126,15 @@ impl<'m> Fn<'_, 'm> {
             (id::STD_SYNC_ATOMIC_INTO_INNER, [(_, a)]) => {
                 let p = self.scalar1(a)?;
                 let d = self.local(ty);
-                self.atomic(Some(d), AtomicOp::Load, ty, MemOrder::SeqCst, p, vec![]);
+                self.atomic(
+                    Some(d),
+                    AtomicOp::Load,
+                    ty,
+                    MemOrder::SeqCst,
+                    p.clone(),
+                    vec![],
+                );
+                self.free(RtFn::EnvFree, p);
                 set(self, vec![Operand::Local(d)]);
             }
             (id::STD_SYNC_ATOMIC_STORE, [(_, a), (_, v), (_, o)]) => {

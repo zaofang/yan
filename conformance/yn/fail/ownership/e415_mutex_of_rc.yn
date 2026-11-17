@@ -1,0 +1,7 @@
+-- spec: 6.4
+-- rows: R1040
+-- note: Mutex[T] is Send iff T is Send, so Mutex[Rc[int]] is not (the payload expression is the span)
+-- expect: E415 at 7:11
+
+f(var tx: Sender[Mutex[Rc[int]]], m: Mutex[Rc[int]]) fail Cancelled =
+  tx.send(m)?

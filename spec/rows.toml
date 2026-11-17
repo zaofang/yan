@@ -1880,3 +1880,28 @@ sections = "5.3, 6.3, 13, 15"
 rows = "R1037"
 topic = "a `MutexGuard` is a view for escape analysis: E414 in a record or container, E406 in an escaping closure, E415 on a channel, E417 across `par` (RFC 0080 D3; #1429 item 4)"
 sections = "4.5, 4.6, 6.3"
+
+[[entry]]
+rows = "R1038"
+topic = "`try_lock() -> Option[MutexGuard[T]]` needs `uses nondet` (E709), returns `None` when held (also by the caller), never panics; the option is matched in place only, naming it is E414 (RFC 0081 D1; #1429 item 5)"
+sections = "6.3"
+
+[[entry]]
+rows = "R1039"
+topic = "`Mutex.get_mut` (attribute, `inout`) is the protected value as a place and `into_inner()` (`take`) moves it out; neither locks nor needs a capability (RFC 0081 D2, D3; #1429 item 5)"
+sections = "6.2, 6.3"
+
+[[entry]]
+rows = "R1040"
+topic = "Send and Sync are one structural computation consulted by every E415 and E417 site; `Mutex[T]` is both iff `T: Send`, a `MutexGuard` neither (RFC 0081 D4; #1429 item 5)"
+sections = "6.4"
+
+[[entry]]
+rows = "R1041"
+topic = "sharing a `Mutex` between tasks (par borrow, task move, `Arc` share) is the E709 site; `lock`, `get_mut` and `into_inner` need no capability; no commutativity exemption (RFC 0081 D5; #1429 item 5)"
+sections = "6.5"
+
+[[entry]]
+rows = "R1042"
+topic = "the effect signature carries a computed may-wait bit, in function types and trait signatures; E323 uses it through function values and trait methods; a waiting callee passed as no-wait is E201 (RFC 0081 D6; #1429 item 6)"
+sections = "6.3, 7.2"

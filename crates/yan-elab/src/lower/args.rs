@@ -145,7 +145,11 @@ impl Lower<'_, '_, '_> {
                     Some(d) => {
                         let (a, t) = self.atom(&d.clone(), Some(&p.ty))?;
                         self.expect(&t, &p.ty, at);
-                        self.arg_tys.push((p.ty.clone(), t.clone(), at));
+                        // A default typed at its parameter's own type (`key=None`) says nothing
+                        // about the parameters it mentions.
+                        if t != p.ty {
+                            self.arg_tys.push((p.ty.clone(), t.clone(), at));
+                        }
                         *out = Some(Arg::Value(p.conv, a, at));
                         continue;
                     }
@@ -292,12 +296,24 @@ impl Lower<'_, '_, '_> {
     /// E414: a `MutexGuard` is second-class (6.3, 4.5): it is used through its own methods, and
     /// never passed on, returned or stored.
     pub(super) fn guard_escape(&mut self, t: &Ty, at: Span) {
-        if matches!(t, Ty::Coll("MutexGuard", _)) {
+        let held = |t: &Ty| matches!(t, Ty::Coll("MutexGuard", _));
+        if held(t) || matches!(t, Ty::Option(i) if held(i)) {
             self.err(
                 "E414",
                 at,
                 "a `MutexGuard` cannot be passed, returned or stored; use its methods in the scope that locked"
                     .into(),
+            );
+        }
+    }
+
+    /// E414: the option `try_lock` returns is only a `match` scrutinee (R1038).
+    pub(super) fn try_lock_named(&mut self, value: &j::Expr) {
+        if j::is_try_lock_call(value) {
+            self.err(
+                "E414",
+                value.span,
+                "the option `try_lock` returns is second-class; match it where it is called".into(),
             );
         }
     }

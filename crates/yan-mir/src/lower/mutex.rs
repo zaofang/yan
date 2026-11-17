@@ -9,6 +9,8 @@ use super::*;
 pub(super) const MUTEX_IDS: &[registry::Id] = &[
     id::STD_SYNC_MUTEX_MUTEX,
     id::STD_SYNC_MUTEX_LOCK,
+    id::STD_SYNC_MUTEX_INTO_INNER,
+    id::STD_SYNC_MUTEX_TRY_LOCK,
     id::STD_SYNC_MUTEX_GUARD_GET,
     id::STD_SYNC_MUTEX_GUARD_SET,
     id::STD_SYNC_MUTEX_GUARD_REPLACE,
@@ -63,6 +65,42 @@ impl<'m> Fn<'_, 'm> {
                 self.finish(Term::Panic("deadlock"));
                 self.cur = ok;
                 set(self, vec![p]);
+            }
+            (id::STD_SYNC_MUTEX_INTO_INNER, [(_, m)]) => {
+                let p = self.scalar1(m)?;
+                let v = self.read(&At::Mem(p.clone(), VALUE), &e);
+                self.free(RtFn::EnvFree, p);
+                set(self, v);
+            }
+            // `Option[MutexGuard[T]]`: tag 0 is `Some` with the block, tag 1 is `None`. A lock
+            // found held is `None` whether another task or this one holds it, and the failed
+            // swap leaves the flag as it was.
+            (id::STD_SYNC_MUTEX_TRY_LOCK, [(_, m)]) => {
+                let p = self.scalar1(m)?;
+                let old = self.local(I64);
+                self.emit(Inst::Atomic {
+                    dst: Some(old),
+                    op: AtomicOp::Swap,
+                    ty: I64,
+                    order: MemOrder::Acquire,
+                    failure: MemOrder::SeqCst,
+                    ptr: p.clone(),
+                    args: vec![Operand::Int(1)],
+                });
+                let free = self.scalar_op(
+                    ScalarOp::Eq,
+                    I64,
+                    vec![Operand::Local(old), Operand::Int(0)],
+                );
+                let (some, none) = self.branch(free);
+                let join = self.block_new();
+                self.cur = some;
+                set(self, vec![Operand::Int(0), p]);
+                self.goto(join);
+                self.cur = none;
+                set(self, vec![Operand::Int(1), Operand::Int(0)]);
+                self.goto(join);
+                self.cur = join;
             }
             (id::STD_SYNC_MUTEX_GUARD_GET, [(_, g)]) => {
                 if Self::has_heap(&e) {
