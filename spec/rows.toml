@@ -1822,6 +1822,16 @@ sections = "4, 7.2"
 
 
 [[entry]]
+rows = "R1026"
+topic = "`list.clear()`, `list.remove_at(i)` (negative counts from the end, `pre` in range) and `list.remove(x)` (`pre` contains) panic with `contract` where Python raises"
+sections = "17.3"
+
+[[entry]]
+rows = "R1027"
+topic = "N34 reads `xs.pop(i)` as `remove_at(i)` and `d.pop(k)` as `dict.remove(k)`"
+sections = "14.4, 17.3"
+
+[[entry]]
 rows = "R1029"
 topic = "f-string format specs: fill, align, sign, zero pad, width, `,`, and `.Nf` on a float rounded on its exact value (#1401); other types are E017"
 sections = "17.3"
