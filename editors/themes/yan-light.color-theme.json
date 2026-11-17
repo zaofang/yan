@@ -46,7 +46,7 @@
       }
     },
     {
-      "scope": "keyword, storage",
+      "scope": "keyword, storage, entity.other.attribute-name",
       "settings": {
         "foreground": "#3D4FA8"
       }

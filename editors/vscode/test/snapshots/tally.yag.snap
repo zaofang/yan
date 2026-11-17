@@ -1,0 +1,970 @@
+"\"\"\"Tally slice: authorize card payments, charge fees, settle per merchant.\"\"\""
+  "\"\"\"" string.quoted.docstring.yag
+  "Tally slice: authorize card payments, charge fees, settle per merchant." string.quoted.docstring.yag
+  "\"\"\"" string.quoted.docstring.yag
+""
+"type Mcc = Grocery() | Travel() | Other(code: int)"
+  "type" storage.type.yag
+  "Mcc" entity.name.type.yag
+  "=" keyword.operator.assignment.yag
+  "Grocery" entity.name.type.yag
+  "() " -
+  "|" keyword.operator.arithmetic.yag
+  "Travel" entity.name.type.yag
+  "() " -
+  "|" keyword.operator.arithmetic.yag
+  "Other" entity.name.type.yag
+  "(code: " -
+  "int" support.type.builtin.yag
+  ")" -
+""
+"type Decision = Approved(code: str) | Declined(reason: str)"
+  "type" storage.type.yag
+  "Decision" entity.name.type.yag
+  "=" keyword.operator.assignment.yag
+  "Approved" entity.name.type.yag
+  "(code: " -
+  "str" support.type.builtin.yag
+  ") " -
+  "|" keyword.operator.arithmetic.yag
+  "Declined" entity.name.type.yag
+  "(reason: " -
+  "str" support.type.builtin.yag
+  ")" -
+""
+"class Auth:"
+  "class" storage.type.yag
+  "Auth" entity.name.type.yag
+  ":" -
+"    id: int"
+  "    id: " -
+  "int" support.type.builtin.yag
+"    merchant: str"
+  "    merchant: " -
+  "str" support.type.builtin.yag
+"    pan: str"
+  "    pan: " -
+  "str" support.type.builtin.yag
+"    minor: int"
+  "    minor: " -
+  "int" support.type.builtin.yag
+"    mcc: Mcc"
+  "    mcc: " -
+  "Mcc" entity.name.type.yag
+""
+"class Settled:"
+  "class" storage.type.yag
+  "Settled" entity.name.type.yag
+  ":" -
+"    merchant: str"
+  "    merchant: " -
+  "str" support.type.builtin.yag
+"    gross: int"
+  "    gross: " -
+  "int" support.type.builtin.yag
+"    fees: int"
+  "    fees: " -
+  "int" support.type.builtin.yag
+"    net: int"
+  "    net: " -
+  "int" support.type.builtin.yag
+""
+"trait Acquirer:"
+  "trait" storage.type.yag
+  "Acquirer" entity.name.type.yag
+  ":" -
+"    def send(self: Self, pan: str, minor: int) -> Decision: ..."
+  "def" storage.type.function.yag
+  "send" entity.name.function.yag
+  "(" -
+  "self" variable.language.self.yag
+  ": " -
+  "Self" entity.name.type.yag
+  ", pan: " -
+  "str" support.type.builtin.yag
+  ", minor: " -
+  "int" support.type.builtin.yag
+  ") " -
+  "->" keyword.operator.arrow.yag
+  "Decision" entity.name.type.yag
+  ": " -
+  "..." constant.language.ellipsis.yag
+""
+"class FakeAcquirer:"
+  "class" storage.type.yag
+  "FakeAcquirer" entity.name.type.yag
+  ":" -
+"    limit: int"
+  "    limit: " -
+  "int" support.type.builtin.yag
+""
+"impl Acquirer for FakeAcquirer:"
+  "impl" storage.type.yag
+  "Acquirer" entity.name.type.interface.yag
+  "for" keyword.control.yag
+  "FakeAcquirer" entity.name.type.yag
+  ":" -
+"    def send(self: Self, pan: str, minor: int) -> Decision:"
+  "def" storage.type.function.yag
+  "send" entity.name.function.yag
+  "(" -
+  "self" variable.language.self.yag
+  ": " -
+  "Self" entity.name.type.yag
+  ", pan: " -
+  "str" support.type.builtin.yag
+  ", minor: " -
+  "int" support.type.builtin.yag
+  ") " -
+  "->" keyword.operator.arrow.yag
+  "Decision" entity.name.type.yag
+  ":" -
+"        if minor > self.limit:"
+  "if" keyword.control.yag
+  " minor " -
+  ">" keyword.operator.comparison.yag
+  "self" variable.language.self.yag
+  "." punctuation.accessor.yag
+  "limit:" -
+"            return Declined(reason=\"limit\")"
+  "return" keyword.control.yag
+  "Declined" entity.name.type.yag
+  "(reason" -
+  "=" keyword.operator.assignment.yag
+  "\"limit" -
+  "\"" string.quoted.double.yag
+  ")" string.quoted.double.yag
+"        if pan.startswith(\"4000\"):"
+  "if" keyword.control.yag
+  " pan" -
+  "." punctuation.accessor.yag
+  "startswith" entity.name.function.call.yag
+  "(\"" -
+  "4000" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  "):" string.quoted.double.yag
+"            return Declined(reason=\"issuer\")"
+  "return" keyword.control.yag
+  "Declined" entity.name.type.yag
+  "(reason" -
+  "=" keyword.operator.assignment.yag
+  "\"issuer" -
+  "\"" string.quoted.double.yag
+  ")" string.quoted.double.yag
+"        return Approved(code=\"A\" + str(minor % 97))"
+  "return" keyword.control.yag
+  "Approved" entity.name.type.yag
+  "(code" -
+  "=" keyword.operator.assignment.yag
+  "\"" -
+  "A" entity.name.type.yag
+  "\"" string.quoted.double.yag
+  " + str(minor % 97))" string.quoted.double.yag
+""
+"def bps(mcc: Mcc) -> int uses none:"
+  "def" storage.type.function.yag
+  "bps" entity.name.function.yag
+  "(mcc: " -
+  "Mcc" entity.name.type.yag
+  ") " -
+  "->" keyword.operator.arrow.yag
+  "int" support.type.builtin.yag
+  "uses" keyword.other.contract.yag
+  "none" constant.language.none.yag
+  ":" -
+"    match mcc:"
+  "match" keyword.control.yag
+  " mcc:" -
+"        case Grocery():"
+  "case" keyword.control.yag
+  "Grocery" entity.name.type.yag
+  "():" -
+"            return 150"
+  "return" keyword.control.yag
+  "150" constant.numeric.integer.yag
+"        case Travel():"
+  "case" keyword.control.yag
+  "Travel" entity.name.type.yag
+  "():" -
+"            return 250"
+  "return" keyword.control.yag
+  "250" constant.numeric.integer.yag
+"        case Other(_):"
+  "case" keyword.control.yag
+  "Other" entity.name.type.yag
+  "(_):" -
+"            return 290"
+  "return" keyword.control.yag
+  "290" constant.numeric.integer.yag
+""
+"pub def fee(minor: int, mcc: Mcc) -> int uses none:"
+  "pub" storage.modifier.yag
+  "def" storage.type.function.yag
+  "fee" entity.name.function.yag
+  "(minor: " -
+  "int" support.type.builtin.yag
+  ", mcc: " -
+  "Mcc" entity.name.type.yag
+  ") " -
+  "->" keyword.operator.arrow.yag
+  "int" support.type.builtin.yag
+  "uses" keyword.other.contract.yag
+  "none" constant.language.none.yag
+  ":" -
+"    \"\"\"Interchange fee in minor units, rounded down.\"\"\""
+  "\"\"\"" string.quoted.docstring.yag
+  "Interchange fee in minor units, rounded down." string.quoted.docstring.yag
+  "\"\"\"" string.quoted.docstring.yag
+"    pre minor >= 0"
+  "pre" keyword.other.contract.yag
+  " minor " -
+  ">=" keyword.operator.comparison.yag
+  "0" constant.numeric.integer.yag
+"    post out >= 0"
+  "post" keyword.other.contract.yag
+  "out" variable.language.out.yag
+  ">=" keyword.operator.comparison.yag
+  "0" constant.numeric.integer.yag
+"    post out <= minor"
+  "post" keyword.other.contract.yag
+  "out" variable.language.out.yag
+  "<=" keyword.operator.comparison.yag
+  " minor" -
+"    ex fee(10000, Grocery()) == 150"
+  "ex" keyword.other.contract.yag
+  "fee" entity.name.function.call.yag
+  "(" -
+  "10000" constant.numeric.integer.yag
+  ", " -
+  "Grocery" entity.name.type.yag
+  "()) " -
+  "==" keyword.operator.comparison.yag
+  "150" constant.numeric.integer.yag
+"    ex fee(10000, Other(code=5999)) == 290"
+  "ex" keyword.other.contract.yag
+  "fee" entity.name.function.call.yag
+  "(" -
+  "10000" constant.numeric.integer.yag
+  ", " -
+  "Other" entity.name.type.yag
+  "(code" -
+  "=" keyword.operator.assignment.yag
+  "5999" constant.numeric.integer.yag
+  ")) " -
+  "==" keyword.operator.comparison.yag
+  "290" constant.numeric.integer.yag
+"    return minor * bps(mcc) // 10000"
+  "return" keyword.control.yag
+  " minor " -
+  "*" keyword.operator.arithmetic.yag
+  "bps" entity.name.function.call.yag
+  "(mcc) " -
+  "//" keyword.operator.arithmetic.yag
+  "10000" constant.numeric.integer.yag
+""
+"pub def luhn(pan: str) -> bool uses none:"
+  "pub" storage.modifier.yag
+  "def" storage.type.function.yag
+  "luhn" entity.name.function.yag
+  "(pan: " -
+  "str" support.type.builtin.yag
+  ") " -
+  "->" keyword.operator.arrow.yag
+  "bool" support.type.builtin.yag
+  "uses" keyword.other.contract.yag
+  "none" constant.language.none.yag
+  ":" -
+"    \"\"\"Checks the Luhn digit of a card number.\"\"\""
+  "\"\"\"" string.quoted.docstring.yag
+  "Checks the Luhn digit of a card number." string.quoted.docstring.yag
+  "\"\"\"" string.quoted.docstring.yag
+"    ex luhn(\"4242424242424242\") == True"
+  "ex" keyword.other.contract.yag
+  "luhn" entity.name.function.call.yag
+  "(\"" -
+  "4242424242424242" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  ") == True" string.quoted.double.yag
+"    ex luhn(\"4242424242424241\") == False"
+  "ex" keyword.other.contract.yag
+  "luhn" entity.name.function.call.yag
+  "(\"" -
+  "4242424242424241" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  ") == False" string.quoted.double.yag
+"    digits: list[int] = pan.chars().map(lambda c: str(c).parse_int() else -1).collect()"
+  "    digits: " -
+  "list" support.type.builtin.yag
+  "[" -
+  "int" support.type.builtin.yag
+  "] " -
+  "=" keyword.operator.assignment.yag
+  " pan" -
+  "." punctuation.accessor.yag
+  "chars" entity.name.function.call.yag
+  "()" -
+  "." punctuation.accessor.yag
+  "map" entity.name.function.call.yag
+  "(" -
+  "lambda" keyword.control.yag
+  " c: " -
+  "str" entity.name.function.call.yag
+  "(c)" -
+  "." punctuation.accessor.yag
+  "parse_int" entity.name.function.call.yag
+  "() " -
+  "else" keyword.control.yag
+  "-" keyword.operator.arithmetic.yag
+  "1" constant.numeric.integer.yag
+  ")" -
+  "." punctuation.accessor.yag
+  "collect" entity.name.function.call.yag
+  "()" -
+"    total = 0"
+  "    total " -
+  "=" keyword.operator.assignment.yag
+  "0" constant.numeric.integer.yag
+"    double = False"
+  "    double " -
+  "=" keyword.operator.assignment.yag
+  "False" constant.language.yag
+"    for d in reversed(digits):"
+  "for" keyword.control.yag
+  " d " -
+  "in" keyword.control.yag
+  "reversed" entity.name.function.call.yag
+  "(digits):" -
+"        if d < 0:"
+  "if" keyword.control.yag
+  " d " -
+  "<" keyword.operator.comparison.yag
+  "0" constant.numeric.integer.yag
+  ":" -
+"            return False"
+  "return" keyword.control.yag
+  "False" constant.language.yag
+"        v = d"
+  "        v " -
+  "=" keyword.operator.assignment.yag
+  " d" -
+"        if double:"
+  "if" keyword.control.yag
+  " double:" -
+"            v = v * 2"
+  "            v " -
+  "=" keyword.operator.assignment.yag
+  " v " -
+  "*" keyword.operator.arithmetic.yag
+  "2" constant.numeric.integer.yag
+"            if v > 9:"
+  "if" keyword.control.yag
+  " v " -
+  ">" keyword.operator.comparison.yag
+  "9" constant.numeric.integer.yag
+  ":" -
+"                v = v - 9"
+  "                v " -
+  "=" keyword.operator.assignment.yag
+  " v " -
+  "-" keyword.operator.arithmetic.yag
+  "9" constant.numeric.integer.yag
+"        total += v"
+  "        total " -
+  "+=" keyword.operator.assignment.yag
+  " v" -
+"        double = not double"
+  "        double " -
+  "=" keyword.operator.assignment.yag
+  "not" keyword.operator.word.yag
+  " double" -
+"    return total % 10 == 0"
+  "return" keyword.control.yag
+  " total " -
+  "%" keyword.operator.arithmetic.yag
+  "10" constant.numeric.integer.yag
+  "==" keyword.operator.comparison.yag
+  "0" constant.numeric.integer.yag
+""
+"pub def authorize[A: Acquirer](acq: A, a: Auth) -> Decision uses none:"
+  "pub" storage.modifier.yag
+  "def" storage.type.function.yag
+  "authorize" entity.name.function.yag
+  "[" -
+  "A" entity.name.type.yag
+  ": " -
+  "Acquirer" entity.name.type.yag
+  "](acq: " -
+  "A" entity.name.type.yag
+  ", a: " -
+  "Auth" entity.name.type.yag
+  ") " -
+  "->" keyword.operator.arrow.yag
+  "Decision" entity.name.type.yag
+  "uses" keyword.other.contract.yag
+  "none" constant.language.none.yag
+  ":" -
+"    \"\"\"Rejects bad card numbers and amounts locally, then asks the acquirer.\"\"\""
+  "\"\"\"" string.quoted.docstring.yag
+  "Rejects bad card numbers and amounts locally, then asks the acquirer." string.quoted.docstring.yag
+  "\"\"\"" string.quoted.docstring.yag
+"    ex authorize(FakeAcquirer(limit=10), Auth(id=1, merchant=\"m\", pan=\"4242424242424241\", minor=5, mcc=Grocery())) == Declined(reason=\"luhn\")"
+  "ex" keyword.other.contract.yag
+  "authorize" entity.name.function.call.yag
+  "(" -
+  "FakeAcquirer" entity.name.type.yag
+  "(limit" -
+  "=" keyword.operator.assignment.yag
+  "10" constant.numeric.integer.yag
+  "), " -
+  "Auth" entity.name.type.yag
+  "(id" -
+  "=" keyword.operator.assignment.yag
+  "1" constant.numeric.integer.yag
+  ", merchant" -
+  "=" keyword.operator.assignment.yag
+  "\"m" -
+  "\"" string.quoted.double.yag
+  ", pan=" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  "4242424242424241" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  ", minor=5, mcc=Grocery())) == Declined(reason=" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  "luhn" -
+  "\"" string.quoted.double.yag
+  ")" string.quoted.double.yag
+"    if a.minor <= 0:"
+  "if" keyword.control.yag
+  " a" -
+  "." punctuation.accessor.yag
+  "minor " -
+  "<=" keyword.operator.comparison.yag
+  "0" constant.numeric.integer.yag
+  ":" -
+"        return Declined(reason=\"amount\")"
+  "return" keyword.control.yag
+  "Declined" entity.name.type.yag
+  "(reason" -
+  "=" keyword.operator.assignment.yag
+  "\"amount" -
+  "\"" string.quoted.double.yag
+  ")" string.quoted.double.yag
+"    if not luhn(a.pan):"
+  "if" keyword.control.yag
+  "not" keyword.operator.word.yag
+  "luhn" entity.name.function.call.yag
+  "(a" -
+  "." punctuation.accessor.yag
+  "pan):" -
+"        return Declined(reason=\"luhn\")"
+  "return" keyword.control.yag
+  "Declined" entity.name.type.yag
+  "(reason" -
+  "=" keyword.operator.assignment.yag
+  "\"luhn" -
+  "\"" string.quoted.double.yag
+  ")" string.quoted.double.yag
+"    return acq.send(a.pan, a.minor)"
+  "return" keyword.control.yag
+  " acq" -
+  "." punctuation.accessor.yag
+  "send" entity.name.function.call.yag
+  "(a" -
+  "." punctuation.accessor.yag
+  "pan, a" -
+  "." punctuation.accessor.yag
+  "minor)" -
+""
+"def approved(d: Decision) -> bool uses none:"
+  "def" storage.type.function.yag
+  "approved" entity.name.function.yag
+  "(d: " -
+  "Decision" entity.name.type.yag
+  ") " -
+  "->" keyword.operator.arrow.yag
+  "bool" support.type.builtin.yag
+  "uses" keyword.other.contract.yag
+  "none" constant.language.none.yag
+  ":" -
+"    match d:"
+  "match" keyword.control.yag
+  " d:" -
+"        case Approved(_):"
+  "case" keyword.control.yag
+  "Approved" entity.name.type.yag
+  "(_):" -
+"            return True"
+  "return" keyword.control.yag
+  "True" constant.language.yag
+"        case Declined(_):"
+  "case" keyword.control.yag
+  "Declined" entity.name.type.yag
+  "(_):" -
+"            return False"
+  "return" keyword.control.yag
+  "False" constant.language.yag
+""
+"pub def settle(auths: list[Auth], ds: list[Decision]) -> list[Settled] uses none:"
+  "pub" storage.modifier.yag
+  "def" storage.type.function.yag
+  "settle" entity.name.function.yag
+  "(auths: " -
+  "list" support.type.builtin.yag
+  "[" -
+  "Auth" entity.name.type.yag
+  "], ds: " -
+  "list" support.type.builtin.yag
+  "[" -
+  "Decision" entity.name.type.yag
+  "]) " -
+  "->" keyword.operator.arrow.yag
+  "list" support.type.builtin.yag
+  "[" -
+  "Settled" entity.name.type.yag
+  "] " -
+  "uses" keyword.other.contract.yag
+  "none" constant.language.none.yag
+  ":" -
+"    \"\"\"Nets approved authorizations per merchant, in first-seen order.\"\"\""
+  "\"\"\"" string.quoted.docstring.yag
+  "Nets approved authorizations per merchant, in first-seen order." string.quoted.docstring.yag
+  "\"\"\"" string.quoted.docstring.yag
+"    pre len(auths) == len(ds)"
+  "pre" keyword.other.contract.yag
+  "len" entity.name.function.call.yag
+  "(auths) " -
+  "==" keyword.operator.comparison.yag
+  "len" entity.name.function.call.yag
+  "(ds)" -
+"    ex settle([], []) == []"
+  "ex" keyword.other.contract.yag
+  "settle" entity.name.function.call.yag
+  "([], []) " -
+  "==" keyword.operator.comparison.yag
+  " []" -
+"    acc: dict[str, Settled] = {}"
+  "    acc: " -
+  "dict" support.type.builtin.yag
+  "[" -
+  "str" support.type.builtin.yag
+  ", " -
+  "Settled" entity.name.type.yag
+  "] " -
+  "=" keyword.operator.assignment.yag
+  " {}" -
+"    for a, d in zip(auths, ds):"
+  "for" keyword.control.yag
+  " a, d " -
+  "in" keyword.control.yag
+  "zip" entity.name.function.call.yag
+  "(auths, ds):" -
+"        if approved(d):"
+  "if" keyword.control.yag
+  "approved" entity.name.function.call.yag
+  "(d):" -
+"            s = acc.get(a.merchant) else Settled(merchant=a.merchant.copy(), gross=0, fees=0, net=0)"
+  "            s " -
+  "=" keyword.operator.assignment.yag
+  " acc" -
+  "." punctuation.accessor.yag
+  "get" entity.name.function.call.yag
+  "(a" -
+  "." punctuation.accessor.yag
+  "merchant) " -
+  "else" keyword.control.yag
+  "Settled" entity.name.type.yag
+  "(merchant" -
+  "=" keyword.operator.assignment.yag
+  "a" -
+  "." punctuation.accessor.yag
+  "merchant" -
+  "." punctuation.accessor.yag
+  "copy" entity.name.function.call.yag
+  "(), gross" -
+  "=" keyword.operator.assignment.yag
+  "0" constant.numeric.integer.yag
+  ", fees" -
+  "=" keyword.operator.assignment.yag
+  "0" constant.numeric.integer.yag
+  ", net" -
+  "=" keyword.operator.assignment.yag
+  "0" constant.numeric.integer.yag
+  ")" -
+"            f = fee(a.minor, a.mcc)"
+  "            f " -
+  "=" keyword.operator.assignment.yag
+  "fee" entity.name.function.call.yag
+  "(a" -
+  "." punctuation.accessor.yag
+  "minor, a" -
+  "." punctuation.accessor.yag
+  "mcc)" -
+"            acc[a.merchant.copy()] = Settled(merchant=a.merchant.copy(), gross=s.gross + a.minor, fees=s.fees + f, net=s.net + a.minor - f)"
+  "            acc[a" -
+  "." punctuation.accessor.yag
+  "merchant" -
+  "." punctuation.accessor.yag
+  "copy" entity.name.function.call.yag
+  "()] " -
+  "=" keyword.operator.assignment.yag
+  "Settled" entity.name.type.yag
+  "(merchant" -
+  "=" keyword.operator.assignment.yag
+  "a" -
+  "." punctuation.accessor.yag
+  "merchant" -
+  "." punctuation.accessor.yag
+  "copy" entity.name.function.call.yag
+  "(), gross" -
+  "=" keyword.operator.assignment.yag
+  "s" -
+  "." punctuation.accessor.yag
+  "gross " -
+  "+" keyword.operator.arithmetic.yag
+  " a" -
+  "." punctuation.accessor.yag
+  "minor, fees" -
+  "=" keyword.operator.assignment.yag
+  "s" -
+  "." punctuation.accessor.yag
+  "fees " -
+  "+" keyword.operator.arithmetic.yag
+  " f, net" -
+  "=" keyword.operator.assignment.yag
+  "s" -
+  "." punctuation.accessor.yag
+  "net " -
+  "+" keyword.operator.arithmetic.yag
+  " a" -
+  "." punctuation.accessor.yag
+  "minor " -
+  "-" keyword.operator.arithmetic.yag
+  " f)" -
+"    return acc.values()"
+  "return" keyword.control.yag
+  " acc" -
+  "." punctuation.accessor.yag
+  "values" entity.name.function.call.yag
+  "()" -
+""
+"pub def main() uses io:"
+  "pub" storage.modifier.yag
+  "def" storage.type.function.yag
+  "main" entity.name.function.yag
+  "() " -
+  "uses" keyword.other.contract.yag
+  "io" variable.other.capability.yag
+  ":" -
+"    auths = ["
+  "    auths " -
+  "=" keyword.operator.assignment.yag
+  " [" -
+"        Auth(id=1, merchant=\"corner-shop\", pan=\"4242424242424242\", minor=1250, mcc=Grocery()),"
+  "Auth" entity.name.type.yag
+  "(id" -
+  "=" keyword.operator.assignment.yag
+  "1" constant.numeric.integer.yag
+  ", merchant" -
+  "=" keyword.operator.assignment.yag
+  "\"corner" -
+  "-" keyword.operator.arithmetic.yag
+  "shop" -
+  "\"" string.quoted.double.yag
+  ", pan=" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  "4242424242424242" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  ", minor=1250, mcc=Grocery())," string.quoted.double.yag
+"        Auth(id=2, merchant=\"air-lines\", pan=\"378282246310005\", minor=48000, mcc=Travel()),"
+  "Auth" entity.name.type.yag
+  "(id" -
+  "=" keyword.operator.assignment.yag
+  "2" constant.numeric.integer.yag
+  ", merchant" -
+  "=" keyword.operator.assignment.yag
+  "\"air" -
+  "-" keyword.operator.arithmetic.yag
+  "lines" -
+  "\"" string.quoted.double.yag
+  ", pan=" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  "378282246310005" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  ", minor=48000, mcc=Travel())," string.quoted.double.yag
+"        Auth(id=3, merchant=\"corner-shop\", pan=\"4242424242424241\", minor=900, mcc=Grocery()),"
+  "Auth" entity.name.type.yag
+  "(id" -
+  "=" keyword.operator.assignment.yag
+  "3" constant.numeric.integer.yag
+  ", merchant" -
+  "=" keyword.operator.assignment.yag
+  "\"corner" -
+  "-" keyword.operator.arithmetic.yag
+  "shop" -
+  "\"" string.quoted.double.yag
+  ", pan=" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  "4242424242424241" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  ", minor=900, mcc=Grocery())," string.quoted.double.yag
+"        Auth(id=4, merchant=\"air-lines\", pan=\"5555555555554444\", minor=150000, mcc=Travel()),"
+  "Auth" entity.name.type.yag
+  "(id" -
+  "=" keyword.operator.assignment.yag
+  "4" constant.numeric.integer.yag
+  ", merchant" -
+  "=" keyword.operator.assignment.yag
+  "\"air" -
+  "-" keyword.operator.arithmetic.yag
+  "lines" -
+  "\"" string.quoted.double.yag
+  ", pan=" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  "5555555555554444" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  ", minor=150000, mcc=Travel())," string.quoted.double.yag
+"        Auth(id=5, merchant=\"corner-shop\", pan=\"5555555555554444\", minor=3999, mcc=Grocery()),"
+  "Auth" entity.name.type.yag
+  "(id" -
+  "=" keyword.operator.assignment.yag
+  "5" constant.numeric.integer.yag
+  ", merchant" -
+  "=" keyword.operator.assignment.yag
+  "\"corner" -
+  "-" keyword.operator.arithmetic.yag
+  "shop" -
+  "\"" string.quoted.double.yag
+  ", pan=" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  "5555555555554444" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  ", minor=3999, mcc=Grocery())," string.quoted.double.yag
+"        Auth(id=6, merchant=\"bookstore\", pan=\"4242424242424242\", minor=0, mcc=Other(code=5942)),"
+  "Auth" entity.name.type.yag
+  "(id" -
+  "=" keyword.operator.assignment.yag
+  "6" constant.numeric.integer.yag
+  ", merchant" -
+  "=" keyword.operator.assignment.yag
+  "\"bookstore" -
+  "\"" string.quoted.double.yag
+  ", pan=" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  "4242424242424242" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  ", minor=0, mcc=Other(code=5942))," string.quoted.double.yag
+"        Auth(id=7, merchant=\"bookstore\", pan=\"4000056655665556\", minor=2500, mcc=Other(code=5942)),"
+  "Auth" entity.name.type.yag
+  "(id" -
+  "=" keyword.operator.assignment.yag
+  "7" constant.numeric.integer.yag
+  ", merchant" -
+  "=" keyword.operator.assignment.yag
+  "\"bookstore" -
+  "\"" string.quoted.double.yag
+  ", pan=" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  "4000056655665556" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  ", minor=2500, mcc=Other(code=5942))," string.quoted.double.yag
+"        Auth(id=8, merchant=\"bookstore\", pan=\"4242424242424242\", minor=2500, mcc=Other(code=5942)),"
+  "Auth" entity.name.type.yag
+  "(id" -
+  "=" keyword.operator.assignment.yag
+  "8" constant.numeric.integer.yag
+  ", merchant" -
+  "=" keyword.operator.assignment.yag
+  "\"bookstore" -
+  "\"" string.quoted.double.yag
+  ", pan=" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  "4242424242424242" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  ", minor=2500, mcc=Other(code=5942))," string.quoted.double.yag
+"    ]"
+  "    ]" -
+"    acq = FakeAcquirer(limit=100000)"
+  "    acq " -
+  "=" keyword.operator.assignment.yag
+  "FakeAcquirer" entity.name.type.yag
+  "(limit" -
+  "=" keyword.operator.assignment.yag
+  "100000" constant.numeric.integer.yag
+  ")" -
+"    ds = auths.map(lambda a: authorize(acq, a))"
+  "    ds " -
+  "=" keyword.operator.assignment.yag
+  " auths" -
+  "." punctuation.accessor.yag
+  "map" entity.name.function.call.yag
+  "(" -
+  "lambda" keyword.control.yag
+  " a: " -
+  "authorize" entity.name.function.call.yag
+  "(acq, a))" -
+"    for a, d in zip(auths, ds):"
+  "for" keyword.control.yag
+  " a, d " -
+  "in" keyword.control.yag
+  "zip" entity.name.function.call.yag
+  "(auths, ds):" -
+"        match d:"
+  "match" keyword.control.yag
+  " d:" -
+"            case Approved(code):"
+  "case" keyword.control.yag
+  "Approved" entity.name.type.yag
+  "(code):" -
+"                io.print(f\"{a.id} approved {code}\")"
+  "                io" -
+  "." punctuation.accessor.yag
+  "print" entity.name.function.call.yag
+  "(" -
+  "f\"" string.quoted.double.format.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "a" string.quoted.double.format.yag meta.interpolation.yag
+  "." string.quoted.double.format.yag meta.interpolation.yag punctuation.accessor.yag
+  "id" string.quoted.double.format.yag meta.interpolation.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  " approved " string.quoted.double.format.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "code" string.quoted.double.format.yag meta.interpolation.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  "\"" string.quoted.double.format.yag
+  ")" -
+"            case Declined(reason):"
+  "case" keyword.control.yag
+  "Declined" entity.name.type.yag
+  "(reason):" -
+"                io.print(f\"{a.id} declined {reason}\")"
+  "                io" -
+  "." punctuation.accessor.yag
+  "print" entity.name.function.call.yag
+  "(" -
+  "f\"" string.quoted.double.format.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "a" string.quoted.double.format.yag meta.interpolation.yag
+  "." string.quoted.double.format.yag meta.interpolation.yag punctuation.accessor.yag
+  "id" string.quoted.double.format.yag meta.interpolation.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  " declined " string.quoted.double.format.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "reason" string.quoted.double.format.yag meta.interpolation.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  "\"" string.quoted.double.format.yag
+  ")" -
+"    for s in settle(auths, ds):"
+  "for" keyword.control.yag
+  " s " -
+  "in" keyword.control.yag
+  "settle" entity.name.function.call.yag
+  "(auths, ds):" -
+"        io.print(f\"{s.merchant} gross={s.gross} fees={s.fees} net={s.net}\")"
+  "        io" -
+  "." punctuation.accessor.yag
+  "print" entity.name.function.call.yag
+  "(" -
+  "f\"" string.quoted.double.format.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "s" string.quoted.double.format.yag meta.interpolation.yag
+  "." string.quoted.double.format.yag meta.interpolation.yag punctuation.accessor.yag
+  "merchant" string.quoted.double.format.yag meta.interpolation.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  " gross=" string.quoted.double.format.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "s" string.quoted.double.format.yag meta.interpolation.yag
+  "." string.quoted.double.format.yag meta.interpolation.yag punctuation.accessor.yag
+  "gross" string.quoted.double.format.yag meta.interpolation.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  " fees=" string.quoted.double.format.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "s" string.quoted.double.format.yag meta.interpolation.yag
+  "." string.quoted.double.format.yag meta.interpolation.yag punctuation.accessor.yag
+  "fees" string.quoted.double.format.yag meta.interpolation.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  " net=" string.quoted.double.format.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "s" string.quoted.double.format.yag meta.interpolation.yag
+  "." string.quoted.double.format.yag meta.interpolation.yag punctuation.accessor.yag
+  "net" string.quoted.double.format.yag meta.interpolation.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  "\"" string.quoted.double.format.yag
+  ")" -
+""
+"def test_declined_never_settles():"
+  "def" storage.type.function.yag
+  "test_declined_never_settles" entity.name.function.yag
+  "():" -
+"    auths = [Auth(id=1, merchant=\"m\", pan=\"4242424242424242\", minor=100, mcc=Grocery())]"
+  "    auths " -
+  "=" keyword.operator.assignment.yag
+  " [" -
+  "Auth" entity.name.type.yag
+  "(id" -
+  "=" keyword.operator.assignment.yag
+  "1" constant.numeric.integer.yag
+  ", merchant" -
+  "=" keyword.operator.assignment.yag
+  "\"m" -
+  "\"" string.quoted.double.yag
+  ", pan=" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  "4242424242424242" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  ", minor=100, mcc=Grocery())]" string.quoted.double.yag
+"    assert settle(auths, [Declined(reason=\"limit\")]) == []"
+  "assert" keyword.control.yag
+  "settle" entity.name.function.call.yag
+  "(auths, [" -
+  "Declined" entity.name.type.yag
+  "(reason" -
+  "=" keyword.operator.assignment.yag
+  "\"limit" -
+  "\"" string.quoted.double.yag
+  ")]) == []" string.quoted.double.yag
+""
+"def test_net_is_gross_minus_fees():"
+  "def" storage.type.function.yag
+  "test_net_is_gross_minus_fees" entity.name.function.yag
+  "():" -
+"    auths = [Auth(id=1, merchant=\"m\", pan=\"4242424242424242\", minor=10000, mcc=Travel())]"
+  "    auths " -
+  "=" keyword.operator.assignment.yag
+  " [" -
+  "Auth" entity.name.type.yag
+  "(id" -
+  "=" keyword.operator.assignment.yag
+  "1" constant.numeric.integer.yag
+  ", merchant" -
+  "=" keyword.operator.assignment.yag
+  "\"m" -
+  "\"" string.quoted.double.yag
+  ", pan=" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  "4242424242424242" constant.numeric.integer.yag
+  "\"" string.quoted.double.yag
+  ", minor=10000, mcc=Travel())]" string.quoted.double.yag
+"    s = settle(auths, [Approved(code=\"A\")])"
+  "    s " -
+  "=" keyword.operator.assignment.yag
+  "settle" entity.name.function.call.yag
+  "(auths, [" -
+  "Approved" entity.name.type.yag
+  "(code" -
+  "=" keyword.operator.assignment.yag
+  "\"" -
+  "A" entity.name.type.yag
+  "\"" string.quoted.double.yag
+  ")])" string.quoted.double.yag
+"    assert s == [Settled(merchant=\"m\", gross=10000, fees=250, net=9750)]"
+  "assert" keyword.control.yag
+  " s " -
+  "==" keyword.operator.comparison.yag
+  " [" -
+  "Settled" entity.name.type.yag
+  "(merchant" -
+  "=" keyword.operator.assignment.yag
+  "\"m" -
+  "\"" string.quoted.double.yag
+  ", gross=10000, fees=250, net=9750)]" string.quoted.double.yag
+""

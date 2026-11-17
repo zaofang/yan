@@ -1,0 +1,54 @@
+{
+  "name": "yan",
+  "displayName": "Yan",
+  "description": "Syntax highlighting, file icons, snippets and themes for Yan (.yn) and Yan Agent (.yag).",
+  "version": "0.0.1",
+  "publisher": "yan-lang",
+  "license": "Apache-2.0 WITH LLVM-exception",
+  "private": true,
+  "repository": { "type": "git", "url": "https://github.com/zaofang/yan.git", "directory": "editors/vscode" },
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Programming Languages", "Themes", "Snippets"],
+  "keywords": ["yan", "yag", "language"],
+  "icon": "icons/icon-512.png",
+  "contributes": {
+    "languages": [
+      {
+        "id": "yan",
+        "aliases": ["Yan", "yan"],
+        "extensions": [".yn"],
+        "configuration": "./languages/yan.language-configuration.json",
+        "icon": { "light": "./icons/file-icon-yn.svg", "dark": "./icons/file-icon-yn.svg" }
+      },
+      {
+        "id": "yan-agent",
+        "aliases": ["Yan Agent", "yag"],
+        "extensions": [".yag"],
+        "configuration": "./languages/yag.language-configuration.json",
+        "icon": { "light": "./icons/file-icon-yag.svg", "dark": "./icons/file-icon-yag.svg" }
+      }
+    ],
+    "grammars": [
+      { "language": "yan", "scopeName": "source.yan", "path": "./syntaxes/yan.tmLanguage.json" },
+      { "language": "yan-agent", "scopeName": "source.yag", "path": "./syntaxes/yag.tmLanguage.json" }
+    ],
+    "snippets": [
+      { "language": "yan", "path": "./snippets/yan.code-snippets.json" },
+      { "language": "yan-agent", "path": "./snippets/yag.code-snippets.json" }
+    ],
+    "themes": [
+      { "label": "Yan Dark", "uiTheme": "vs-dark", "path": "./themes/yan-dark.color-theme.json" },
+      { "label": "Yan Light", "uiTheme": "vs", "path": "./themes/yan-light.color-theme.json" }
+    ]
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "snapshots": "UPDATE_SNAPSHOTS=1 node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "4.1.1",
+    "ovsx": "0.10.1",
+    "vscode-oniguruma": "2.0.1",
+    "vscode-textmate": "9.2.0"
+  }
+}
