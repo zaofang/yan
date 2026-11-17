@@ -856,7 +856,7 @@ pub fn elaborate_in(
             }
         } else {
             item(&g, it, &mut cx)
-                .and_then(|k| decorators::check(&g, it, start, &mut cx).map(|()| k))
+                .and_then(|k| decorators::check(&g, it, &m.attrs, start, &mut cx).map(|()| k))
         };
         let k = match checked {
             Ok(k) => k,
