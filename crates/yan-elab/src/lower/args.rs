@@ -145,7 +145,11 @@ impl Lower<'_, '_, '_> {
                     Some(d) => {
                         let (a, t) = self.atom(&d.clone(), Some(&p.ty))?;
                         self.expect(&t, &p.ty, at);
-                        self.arg_tys.push((p.ty.clone(), t.clone(), at));
+                        // A default typed at its parameter's own type (`key=None`) says nothing
+                        // about the parameters it mentions.
+                        if t != p.ty {
+                            self.arg_tys.push((p.ty.clone(), t.clone(), at));
+                        }
                         *out = Some(Arg::Value(p.conv, a, at));
                         continue;
                     }
