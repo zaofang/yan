@@ -1,5 +1,5 @@
 package: Package = Package(
-    name="@conf/e023_resolve_libs_unlisted",
+    name="@conf/e020_resolve_libs_without_ffi_module",
     version="0.1.0",
     edition="next",
     yan="1.x",

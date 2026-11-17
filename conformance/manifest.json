@@ -15949,6 +15949,29 @@
    }
   },
   {
+   "path": "pkg/e020_resolve_libs_without_ffi_module",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R1034"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1034",
+    "note": "the lock refuses a .info whose libs and ffi modules differ from what its archive holds, before consent is read",
+    "command": [
+     "lock"
+    ],
+    "code": "E020",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
    "path": "pkg/e023_ffi_unlisted",
    "kind": "pkg",
    "milestone": "M1",
@@ -16060,29 +16083,6 @@
     "spec": "19.2",
     "rows": "R1019",
     "note": "resolving a dependency whose .info lists an ffi module when the root's allow_ffi omits it is E023",
-    "command": [
-     "lock"
-    ],
-    "code": "E023",
-    "at": "yan.lock:0:0"
-   }
-  },
-  {
-   "path": "pkg/e023_resolve_libs_unlisted",
-   "kind": "pkg",
-   "milestone": "M1",
-   "spec": [
-    "19.2"
-   ],
-   "rows": [
-    "R1019"
-   ],
-   "flags": [],
-   "expect": [],
-   "expect_toml": {
-    "spec": "19.2",
-    "rows": "R1019",
-    "note": "resolving a dependency whose .info lists an extern library and no ffi module when the root's allow_ffi omits it is E023",
     "command": [
      "lock"
     ],
