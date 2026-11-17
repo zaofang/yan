@@ -2032,6 +2032,6 @@ topic = "Yan `use` binds a module alias for a module of the package and `use .m`
 sections = "15.2, 15.3"
 
 [[entry]]
-rows = "R1068"
+rows = "R1069"
 topic = "`pkg` visibility: an item is private, `pkg` or `pub`; a private item is named in its own module only, and a path to a private item of another module is E287 (RFC 0084 D3, slice 2c)"
 sections = "3.5, 13.1, 15.2, 25"

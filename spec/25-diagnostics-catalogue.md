@@ -124,7 +124,7 @@ This is the complete registry of diagnostic codes for 0.1.0. Codes keep their me
 | E284 | malformed `@access` claim: an operand missing, repeated, unknown or a non-array parameter, an axis not below the operand's rank, or a non-positive tile size (RFC 0052 D1, R952) *new* | 11.2 |
 | E285 | malformed `@kernel` declaration: a decorator other than `@kernel(tile: M, N)` with positive constants, not exactly one `TileOrigin` parameter, or no `@access` claim (RFC 0061 D2, R983) *new* | 11.2 |
 | E286 | a `@kernel` function called or a `TileOrigin` built outside `gpu.launch`, or `gpu.launch` of anything but a `@kernel` function by name (RFC 0061 D2, R983) *new* | 11.2 |
-| E287 | a path names a private item of another module of its package; `pkg` shares it within the package and `pub` exports it (RFC 0084 D3, R1068) | 3.5 |
+| E287 | a path names a private item of another module of its package; `pkg` shares it within the package and `pub` exports it (RFC 0084 D3, R1069) | 3.5 |
 | E233 | str or f-string where a Template is expected (R452) new | 13.1 |
 
 ### 25.5 Capabilities, handlers and failure

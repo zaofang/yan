@@ -35,7 +35,7 @@ module    = {modattr} [docstring] {item}
 modattr   = "@@" path ["(" [args] ")"] NEWLINE       # module attribute, as @@prove (R466)
 item      = {decorator} [vis] (funcdef | classdef | typedef | traitdef | impldef | constdef | lemmadef)
 decorator = "@" path ["(" [args] ")"] NEWLINE
-vis       = "pub" | "pkg"                                     # pkg is soft: the modifier only before a name (R1068)
+vis       = "pub" | "pkg"                                     # pkg is soft: the modifier only before a name (R1069)
 docstring = STRING NEWLINE
 
 funcdef   = "def" NAME [tparams] "(" [params] ")" ["->" rettype] [uses] ":" fbody

@@ -16285,13 +16285,13 @@
     "3.5"
    ],
    "rows": [
-    "R1068"
+    "R1069"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "3.5",
-    "rows": "R1068",
+    "rows": "R1069",
     "note": "an item with no visibility modifier belongs to its module alone: a sibling that names it gets E287, which proposes pkg or pub",
     "command": [
      "check"
@@ -16308,13 +16308,13 @@
     "15.2"
    ],
    "rows": [
-    "R1068"
+    "R1069"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "15.2",
-    "rows": "R1068",
+    "rows": "R1069",
     "note": "the rule is the same in Yan: a private type of a sibling module is E287 in a signature, and a pkg item of the same module is not",
     "command": [
      "check"
@@ -16781,13 +16781,13 @@
     "3.5"
    ],
    "rows": [
-    "R1068"
+    "R1069"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "3.5",
-    "rows": "R1068",
+    "rows": "R1069",
     "note": "a pkg item is named by every module of its package in either surface; a private item stays in its own module and is never named from outside",
     "command": [
      "check"

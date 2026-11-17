@@ -1,4 +1,4 @@
 spec = "3.5"
-rows = "R1068"
+rows = "R1069"
 note = "a pkg item is named by every module of its package in either surface; a private item stays in its own module and is never named from outside"
 command = ["check"]

@@ -22,7 +22,7 @@ modattr   = "@@" NAME ["(" [args] ")"] NEWLINE                 -- module attribu
 item      = {attr} [vis] (["unsafe"] fundef | gendef | subdef | lemmadef | typedef | traitdef | impldef | constdef | externdef)   -- unsafe fn (R1010); never in impldef
           | usedecl
 attr      = "@" NAME ["(" [args] ")"] NEWLINE
-vis       = "pub" | "pkg"                                      -- pkg is soft: the modifier only before a name or keyword (R1068)
+vis       = "pub" | "pkg"                                      -- pkg is soft: the modifier only before a name or keyword (R1069)
 usedecl   = "use" ["."] NAME {"." NAME} ["as" NAME] NEWLINE          -- aliases only
 
 fundef    = sig "=" body

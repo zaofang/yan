@@ -59,7 +59,7 @@ Module   ::= "module" Path {Item}
 Item     ::= {Attr} (Fn | Gen | Record | Sum | Newtype | Trait | Impl | Const | Test | Extern | Inst)
 Inst     ::= "inst" (Fn | Gen)                            -- only after optimization (R772)
 Attr     ::= "@" Name ["(" AttrArg {"," AttrArg} ")"]
-Vis      ::= "pub" | "pkg"                                -- R1068
+Vis      ::= "pub" | "pkg"                                -- R1069
 AttrArg  ::= [Name "="] ConstVal
 
 Fn       ::= [Vis] ["unsafe"] "fn" Path [TParams] "(" [Param {"," Param}] ")"
@@ -180,7 +180,7 @@ Rules on the grammar:
 
 **Become modulo constructor (R456).** `become` is also legal as the last-evaluated argument of a constructor in return position, as in `return Node(l, x, become insert(r, k))`, and constructors may nest. Every backend and the reference interpreter MUST lower it to destination passing: the constructor's block is allocated first, the call receives the open field as a `set` destination, and the recursion runs in constant stack. The R260 rules apply to the call (E273, E271, E420). A `become` in any other position inside a constructor is E143. Yan Agent and Yan spell it the same way.
 
-**Visibility (R1068).** An item is private, `pkg` or `pub`. A private item is named in its own module only, a `pkg` item in every module of its package, a `pub` item also by dependents; a module is a file (19.1), so a child module does not see its parent's private items, nor a parent its child's. A path that names a private item of another module is E287, whose message proposes `pkg` and `pub`; a sum variant takes the visibility of its type. `pkg` is soft: it is the modifier only where a name or an item keyword follows it, and `pkg = 1` binds a variable. The modifier is part of an item's canonical Yan Core text and so of its hash, as `pub` is, while the exported API (20.6), contracts and certificates are computed over `pub` items alone.
+**Visibility (R1069).** An item is private, `pkg` or `pub`. A private item is named in its own module only, a `pkg` item in every module of its package, a `pub` item also by dependents; a module is a file (19.1), so a child module does not see its parent's private items, nor a parent its child's. A path that names a private item of another module is E287, whose message proposes `pkg` and `pub`; a sum variant takes the visibility of its type. `pkg` is soft: it is the modifier only where a name or an item keyword follows it, and `pkg = 1` binds a variable. The modifier is part of an item's canonical Yan Core text and so of its hash, as `pub` is, while the exported API (20.6), contracts and certificates are computed over `pub` items alone.
 
 ### 3.6 Item identity
 
