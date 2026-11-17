@@ -303,7 +303,7 @@ Lowering: none for prose. Each fence lowers as a test in the page's scope under 
 
 ---
 
-The niche surfaces (6 to 18) are the "Yan + job word" family of spec 16.7. None is built before 1.0
+The niche surfaces (6 to 18) are the "Yan + job word" family of spec 16.7. None is built before 0.1.0
 (R550); each ships first as a print-only view, `yan view --as EXT`. Each section quotes the RFC 0002
 example, then gives a **MOCK** grammar for the surface's own forms (everything else is plain Yan, per
 the shared rules above) and a second **MOCK** example.
