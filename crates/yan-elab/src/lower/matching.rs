@@ -1,7 +1,40 @@
 use super::*;
 
+/// The local that holds a `try_lock` option for the length of its `match`.
+pub(super) const TRY_LOCK_TMP: &str = "try_lock";
+
 impl Lower<'_, '_, '_> {
     pub(super) fn match_(&mut self, scrutinee: &j::Expr, cases: &[j::Case], at: Span) -> R<()> {
+        // A `try_lock` option is matched in place (R1038): it is bound in a block of its own that
+        // ends with the match, so drop elaboration unlocks there on every path out, as for `with`.
+        if j::is_try_lock_call(scrutinee) {
+            let tmp_name = self.fresh(TRY_LOCK_TMP);
+            let tmp = j::Expr {
+                kind: j::ExprKind::Name(tmp_name.clone()),
+                span: scrutinee.span,
+                paren: false,
+            };
+            let bind = j::Stmt {
+                kind: j::StmtKind::Bind {
+                    mutable: false,
+                    target: tmp_name,
+                    target_span: scrutinee.span,
+                    ty: None,
+                    value: scrutinee.clone(),
+                },
+                span: at,
+            };
+            let m = j::Stmt {
+                kind: j::StmtKind::Match {
+                    scrutinee: tmp,
+                    cases: cases.to_vec(),
+                },
+                span: at,
+            };
+            let b = self.block(&[bind, m])?;
+            self.emit(StmtKind::Unsafe(b), at);
+            return Ok(());
+        }
         let (a, t) = self.atom(scrutinee, None)?;
         let catch_all = |p: &j::Pat| match p {
             j::Pat::Wild => true,

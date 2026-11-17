@@ -49,7 +49,12 @@ pub(crate) fn drop_sender(it: &mut Interp, v: &Value) {
 
 /// A `MutexGuard` goes out of scope: the mutex unlocks.
 pub(crate) fn drop_guard(it: &mut Interp, v: &Value) {
-    it.mutexes[atom(v)].1 = false;
+    let g = match v {
+        Value::Data { name, fields } if name == "Some" => &fields[0].1,
+        Value::Data { .. } => return,
+        _ => v,
+    };
+    it.mutexes[atom(g)].1 = false;
     it.progress += 1;
 }
 
@@ -877,6 +882,20 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_SYNC_MUTEX_INTO_INNER,
         Bind::Cap(|it, a| Ok(std::mem::take(&mut it.mutexes[atom(&a[0])].0))),
+    ),
+    (
+        STD_SYNC_MUTEX_TRY_LOCK,
+        Bind::Cap(|it, a| {
+            let m = &mut it.mutexes[atom(&a[0])];
+            if m.1 {
+                return Ok(Value::Data {
+                    name: "None".into(),
+                    fields: Vec::new(),
+                });
+            }
+            m.1 = true;
+            Ok(data("Some", "value", a[0].clone()))
+        }),
     ),
     (
         STD_SYNC_MUTEX_GUARD_GET,

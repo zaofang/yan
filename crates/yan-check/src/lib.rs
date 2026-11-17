@@ -15,6 +15,7 @@ use std::collections::{HashMap, HashSet};
 use std::mem;
 
 use yan_core::ast::*;
+use yan_core::auto_traits::auto_traits;
 use yan_core::{intrinsics, subst, type_text};
 use yan_diag::{Diagnostic, Span};
 
@@ -660,10 +661,7 @@ impl<'g, 'm> Cx<'g, 'm> {
         };
         let inner = b.tag;
         let write = how == How::Inout;
-        let unsync =
-            b.ty.as_ref()
-                .and_then(base)
-                .is_some_and(|t| matches!(t, "Cell" | "Rc" | "Weak"));
+        let unsync = b.ty.as_ref().is_some_and(|t| !auto_traits(t).sync);
         for &(pid, branch) in &self.par.clone() {
             if inner.is_some_and(|(p, _)| p == pid) {
                 continue;

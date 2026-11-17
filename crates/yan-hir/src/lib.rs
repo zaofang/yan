@@ -480,6 +480,11 @@ pub fn is_lock_call(e: &Expr) -> bool {
         if args.is_empty() && matches!(&f.kind, ExprKind::Attr(_, op, _) if op == "lock"))
 }
 
+pub fn is_try_lock_call(e: &Expr) -> bool {
+    matches!(&e.kind, ExprKind::Call(f, args)
+        if args.is_empty() && matches!(&f.kind, ExprKind::Attr(_, op, _) if op == "try_lock"))
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum WithKind {
     Bind(Name, Expr),

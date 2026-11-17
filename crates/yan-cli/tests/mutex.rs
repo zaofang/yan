@@ -161,6 +161,62 @@ fn every_backend_panics_on_a_relock() {
     }
 }
 
+const TRY_LOCK: &str = "def probe(m: Mutex[int]) -> int uses nondet:
+    match m.try_lock():
+        case Some(g):
+            if g.get() == 0:
+                g.set(1)
+                return 7
+            g.set(3)
+            return g.get()
+        case None:
+            return 0 - 1
+
+def main() uses io, nondet:
+    m = Mutex[int](0)
+    print(probe(m))
+    print(probe(m))
+    g = m.lock()
+    match m.try_lock():
+        case Some(h):
+            print(\"bad\")
+        case None:
+            print(\"held\")
+    g.set(1)
+";
+
+const TRY_LOCK_OUT: &str = "7\n3\nheld\n";
+
+#[test]
+fn try_lock_agrees_on_every_backend_and_unlocks_on_every_exit() {
+    for b in ["interp", "machine", "cranelift"] {
+        let out = run("try", b, TRY_LOCK, &["--report-live"]);
+        assert!(out.status.success(), "{b}: {}", text(&out.stderr));
+        assert_eq!(text(&out.stdout), TRY_LOCK_OUT, "{b}");
+        if b == "cranelift" {
+            assert!(text(&out.stderr).contains("live: 0"));
+        }
+    }
+}
+
+#[test]
+fn try_lock_needs_nondet() {
+    let src = TRY_LOCK.replace("uses io, nondet", "uses io");
+    let out = run("try-nondet", "interp", &src, &[]);
+    assert!(text(&out.stdout).contains("E709") || text(&out.stderr).contains("E709"));
+}
+
+#[test]
+fn the_try_lock_option_cannot_be_named() {
+    let src = "def main() uses io, nondet:
+    m = Mutex[int](0)
+    r = m.try_lock()
+    print(1)
+";
+    let out = run("try-named", "interp", src, &[]);
+    assert!(text(&out.stdout).contains("E414") || text(&out.stderr).contains("E414"));
+}
+
 const OWNED: &str = "def main() uses io:
     m = Mutex[int](1)
     m.get_mut += 2

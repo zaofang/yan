@@ -2225,29 +2225,13 @@ const UNITS: &[(&str, &str, f64, DurationCtor)] = &[
 /// Operations whose result depends on other tasks, so they need `uses nondet` (6.5, E709).
 const NONDET_OPS: &[&str] = &[
     "std.sync.arc.strong_count",
+    "std.sync.mutex.try_lock",
     "std.chan.sender.share",
     "std.chan.sender.try_send",
     "std.chan.receiver.try_recv",
     "std.chan.receiver.share",
     "std.actor.share",
 ];
-
-/// A type holding an `Rc` or `Weak`, whose counts are not atomic (6.4).
-fn not_send(t: &y::Type) -> bool {
-    match t {
-        y::Type::Named(n) => {
-            matches!(
-                n.path.last().map(String::as_str),
-                Some("Rc" | "Weak" | "MutexGuard")
-            ) || n
-                .args
-                .iter()
-                .any(|a| matches!(a, y::TArg::Type(t) if not_send(t)))
-        }
-        y::Type::Tuple(ts) | y::Type::Union(ts) => ts.iter().any(not_send),
-        _ => false,
-    }
-}
 
 /// The size in bytes of a plain value of `t`, when it has a fixed one (5.1).
 fn byte_size(g: &Globals, t: &Ty) -> Option<usize> {

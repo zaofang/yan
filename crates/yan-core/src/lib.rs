@@ -1,6 +1,7 @@
 //! Yan IR: data types, the `.yir` text parser and the canonical printer.
 
 pub mod ast;
+pub mod auto_traits;
 pub mod hash;
 pub mod path;
 pub mod subst;
