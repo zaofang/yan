@@ -1,0 +1,21 @@
+# spec: 4.2
+# rows: R1070
+# expect: E413 at 19:31
+# note: a non-copy local used again after leaving into a conditional-expression arm is E413 with the `.copy()` fix (#1500 finding 1, #1573 item 4)
+
+class H:
+    s: str
+
+type T = A(s: str) | B()
+
+def opt(c: bool, s: str) -> str | None:
+    if c:
+        return s
+    return None
+
+def main() uses io:
+    d = "none".upper()
+    c = d.char_count() > 1
+    x = "a".upper() if c else d
+    io.print(x)
+    io.print(d)

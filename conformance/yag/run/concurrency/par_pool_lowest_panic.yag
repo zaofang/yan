@@ -1,0 +1,23 @@
+# spec: 6.7, 8.3
+# rows: R1073
+# note: when several arms of a plain par panic, the program ends with the lowest-index arm's panic after the arms before it ran, at every thread count
+# stdout:
+# before
+# exit: 101
+
+def spin(n: int) -> int:
+    total = 0
+    for i in range(n):
+        total = total + i % 3
+    return total
+
+def at(xs: list[int], i: int) -> int:
+    return xs[i]
+
+pub def main() uses io:
+    io.print("before")
+    par:
+        a = spin(200000)
+        b = at([1, 2, 3], 5)
+        c = at([1], 1) + spin(10)
+    io.print(f"{a} {b} {c}")

@@ -10,7 +10,7 @@ def top_words(text: str, k: int) -> list[tuple[str, int]]:
     counts: dict[str, int] = {}
     for w in text.lower().split():
         counts[w] = (counts.get(w) else 0) + 1
-    pairs = [(w, n) for w, n in counts.items()]
+    pairs = [(w.copy(), n) for w, n in counts.items()]
     pairs.sort(key=lambda p: (-p[1], p[0]))
     return pairs[:k]
 

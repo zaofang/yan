@@ -54,6 +54,8 @@ pub mod path;
 pub mod pathabi;
 pub mod pct;
 #[allow(unsafe_code)]
+pub mod pool;
+#[allow(unsafe_code)]
 pub mod pq;
 pub mod rand;
 pub mod regex;

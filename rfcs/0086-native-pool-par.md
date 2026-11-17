@@ -15,19 +15,22 @@ values are `Rc`) and is a separate RFC.
 
 ## Decisions
 
-### D1: plain `par` lowers to an RFC 0043 task region; the handler decides at run time
+### D1: plain `par` arms are outlined over a heap frame; the runtime decides
 
-`sched` is a runtime handler value, so MIR cannot choose a form per call site. A plain `par` lowers
-to the task region `par concurrent` already uses (`yan-mir/src/tasks.rs`, `co.rs`): a dispatcher
-over branch blocks of one function, with live locals in a heap frame. The `yan-rt` scheduler of the
-bound handler decides how the tasks run: `sequential`, `seeded` and `explore` run them in source
-order to completion, as today; `pool` runs them on workers over the shared frame. Sharing classes
-(6.5) make branch writes disjoint and shared reads immutable, so no live-in or live-out split pass is
-needed. Branches of a plain `par` do not suspend, so the region needs no coroutine variants.
-The first version keeps the current inline lowering when the region is not eligible (D5).
-Recommendation: reuse the task region and put new lowering in a new module (practice 5).
+`sched` is a runtime value, so MIR cannot choose a form per call site. A pool-safe arm of a plain
+`par` is outlined as `g$armK(frame) -> i64` (`yan-mir/src/pool.rs`, a new module, practice 5). The
+frame is a heap block with the arms' code addresses, then one word per local of `g`, as in the
+coroutine frames of RFC 0043 (`co.rs`). At the fork, `PoolBegin` answers at run time: 0 keeps the
+inline arms and their `Arm` events (`sequential`, `seeded`, `explore`, the machine, the
+interpreter, and any `par` inside a worker); 1 stores the locals live into the arms, `PoolRun`
+runs arm `k` as `resume(frame, k)` on a worker of the `yan-rt` pool and waits for all of them, and
+the locals the arms define that the join reads are loaded back. Sharing classes (6.5) make branch
+writes disjoint and shared reads immutable, so no merge step is needed; two arms defining one local
+the join reads keep the inline path. Branches of a plain `par` do not suspend, so no coroutine
+variant of `g` is built.
+Recommendation: outline the arms over a frame and keep the inline path as the reference.
 
-- Decision: amended from "outline into functions"; D1' accepted as recommended (Antonio, 2026-11-17)
+- Decision: amended from "outline into functions" to D1' (task region), accepted as recommended (Antonio, 2026-11-17); D1 text amended again in the S1 PR (#1584) to this mechanism, because the `par concurrent` dispatcher is a state machine in one native frame and its locals are not shared memory (lead-owned RFC text, no change of intent)
 
 ### D2: fork-join with ordered commit, no stealing in v1
 
@@ -66,7 +69,10 @@ serial (practice 13).
 
 A branch is eligible when the Send/Sync/Freeze checks already pass for its captures
 (`yan-core/src/auto_traits.rs`) and it holds no `@linear` or custom-`Drop` root across the fork.
-Everything else runs inline and reports a lint, so the speedup never trades soundness. This depends
+Everything else runs inline and reports a lint, so the speedup never trades soundness. S1 checks
+the MIR instead: an arm with a nested `par`, an exit other than reaching its end or a panic, an
+`Rt` call not on `RtFn::pool_safe`, an indirect call, an atomic or an address-taken local, or a
+callee that fails the same test, stays inline. The Send/Sync lint and the `?`-exit arms follow. This depends
 on INNOV-2 (#1583): native-live and `--ub` sweeps must be clean before shared state is released to
 threads.
 Recommendation: land the pool behind that gate and keep it off for programs that fail it.
