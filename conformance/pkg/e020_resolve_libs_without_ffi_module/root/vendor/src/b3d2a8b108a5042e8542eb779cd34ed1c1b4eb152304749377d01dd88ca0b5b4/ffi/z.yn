@@ -1,0 +1,2 @@
+unsafe extern "C" lib zlib link "z"
+  safe zlib_version() -> c_int uses none

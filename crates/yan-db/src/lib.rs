@@ -239,7 +239,16 @@ pub fn front(db: &dyn Db, file: SourceFile) -> Result<Front, String> {
             if has_error(&diags) {
                 return Ok(Front::Stopped(diags));
             }
-            match yan_yn::lower(&name, src, &m) {
+            let packages = PackageGraph::get(db).packages(db);
+            let placed = layout::locate(packages, path).filter(|l| l.root == Root::Src);
+            let modules: Vec<String> = owner(packages, path)
+                .map(|p| source_modules(p).into_iter().map(|(n, _)| n).collect())
+                .unwrap_or_default();
+            let ctx = placed.map(|l| (l.module[..l.module.len() - 1].to_vec(), modules));
+            let pkg = ctx
+                .as_ref()
+                .map(|(dir, modules)| yan_yn::PackageCtx { dir, modules });
+            match yan_yn::lower_in(&name, src, &m, pkg.as_ref()) {
                 Err(u) => Front::Stopped(unsupported(&name, src, &u.what, u.at, diags)),
                 Ok((_, mut errs)) if has_error(&errs) => {
                     errs.extend(diags);

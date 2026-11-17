@@ -42,7 +42,23 @@ const CAPS: [&str; 9] = [
     "io", "net", "fs", "time", "rand", "log", "nondet", "env", "proc",
 ];
 
+/// Where a file sits in its package, for `use` (15.2): its directory's module path, for `use .m`,
+/// and every module path of the package, which `use` may name.
+pub struct PackageCtx<'a> {
+    pub dir: &'a [String],
+    pub modules: &'a [String],
+}
+
 pub fn lower(file: &str, src: &str, m: &Module) -> R<(h::Module, Vec<Diagnostic>)> {
+    lower_in(file, src, m, None)
+}
+
+pub fn lower_in(
+    file: &str,
+    src: &str,
+    m: &Module,
+    pkg: Option<&PackageCtx>,
+) -> R<(h::Module, Vec<Diagnostic>)> {
     let inferred = infer_caps(m);
     let inferred_fail = infer_fails(m);
     let mut l = Lower {
@@ -56,12 +72,13 @@ pub fn lower(file: &str, src: &str, m: &Module) -> R<(h::Module, Vec<Diagnostic>
         self_ty: named(&["Self"], Vec::new()),
         fresh: 0,
         aliases: HashMap::new(),
+        modules: HashMap::new(),
         ctors: ctor_fields(m),
     };
     let mut items = Vec::new();
     for it in &m.items {
         if let ItemKind::Use(u) = &it.kind {
-            match l.use_alias(u) {
+            match l.use_alias(u, pkg, it.span) {
                 Ok(()) => {}
                 Err(e) => l.err(
                     "E017",
@@ -106,6 +123,8 @@ struct Lower<'a> {
     fresh: usize,
     /// `use std.m as a`: `a` to the std module `m` (15.2, aliases only).
     aliases: HashMap<String, String>,
+    /// `use billing.invoice as inv`: `inv` to the package module's path.
+    modules: HashMap<String, Vec<String>>,
     /// Constructor name to its declared field names, for `..` in patterns.
     ctors: HashMap<String, Vec<String>>,
 }
@@ -206,19 +225,55 @@ fn returns_value(sig: &Sig) -> bool {
 }
 
 impl Lower<'_> {
-    /// Only `use std.m` and `use std.m as a` exist: std modules are reachable by their last
-    /// segment, so an alias is a rename of that root.
-    fn use_alias(&mut self, u: &UseDecl) -> R<()> {
-        let [root, module] = u.path.as_slice() else {
+    /// `use` binds a module alias and nothing else (15.2). A std module is reached by its last
+    /// segment, so its alias is a rename of that root; a package module keeps its whole path.
+    fn use_alias(&mut self, u: &UseDecl, pkg: Option<&PackageCtx>, at: Span) -> R<()> {
+        if !u.relative && u.path.first().is_some_and(|r| r == "std") {
+            let [_, module] = u.path.as_slice() else {
+                return unsupported("`use` of a path that is not `std.<module>`");
+            };
+            if let Some(alias) = &u.alias {
+                self.aliases.insert(alias.clone(), module.clone());
+            }
+            return Ok(());
+        }
+        let Some(pkg) = pkg else {
             return unsupported("`use` of a path that is not `std.<module>`");
         };
-        if u.relative || root != "std" {
-            return unsupported("`use` of a path that is not `std.<module>`");
+        let mut path: Vec<String> = if u.relative {
+            pkg.dir.to_vec()
+        } else {
+            Vec::new()
+        };
+        path.extend(u.path.iter().cloned());
+        let own_root = pkg
+            .modules
+            .iter()
+            .any(|m| m.split('.').next() == Some(&path[0]));
+        if !own_root {
+            return unsupported(
+                "`use` of a path that is not `std.<module>` or a module of this package",
+            );
         }
-        if let Some(alias) = &u.alias {
-            self.aliases.insert(alias.clone(), module.clone());
+        if !pkg.modules.contains(&path.join(".")) {
+            let msg = format!("`use {}`: the package has no such module", path.join("."));
+            self.err("E200", at, &msg);
+            return Ok(());
         }
+        let alias = u
+            .alias
+            .clone()
+            .unwrap_or_else(|| path[path.len() - 1].clone());
+        self.modules.insert(alias, path);
         Ok(())
+    }
+
+    /// A path whose first name is a `use` alias, with the alias replaced by the module path.
+    fn expand(&self, path: &[String]) -> Vec<String> {
+        match self.modules.get(&path[0]) {
+            Some(m) => m.iter().chain(&path[1..]).cloned().collect(),
+            None => path.to_vec(),
+        }
     }
 
     fn err(&mut self, code: &str, span: Span, msg: &str) {
@@ -618,7 +673,7 @@ impl Lower<'_> {
                         named(&[yan_type(n, k).expect("checked")], a)
                     }
                     _ => h::Type::Named {
-                        path: path.clone(),
+                        path: self.expand(path),
                         args: a,
                     },
                 }
@@ -1520,17 +1575,19 @@ impl Lower<'_> {
             // `let Some(x) = e else ...` and `let Ok(x) = ...` are the fallback `x = e else ...`.
             let unwrapped = match &p.kind {
                 PatKind::Ctor {
-                    name,
+                    path,
                     args: Some(args),
-                } if (name == "Some" || name == "Ok") => match args.as_slice() {
-                    [
-                        PPat::Pos(Pattern {
-                            kind: PatKind::Bind(x),
-                            span,
-                        }),
-                    ] => Some((x, *span)),
-                    _ => None,
-                },
+                } if matches!(path.as_slice(), [n] if n == "Some" || n == "Ok") => {
+                    match args.as_slice() {
+                        [
+                            PPat::Pos(Pattern {
+                                kind: PatKind::Bind(x),
+                                span,
+                            }),
+                        ] => Some((x, *span)),
+                        _ => None,
+                    }
+                }
                 _ => None,
             };
             let Some((x, at)) = unwrapped else {
@@ -1631,15 +1688,15 @@ impl Lower<'_> {
                 path: vec![n.clone()],
                 args: None,
             },
-            PatKind::Ctor { name, args } => h::Pat::Path {
-                path: vec![name.clone()],
+            PatKind::Ctor { path, args } => h::Pat::Path {
+                path: self.expand(path),
                 args: match args {
                     None => None,
                     Some(args) => {
                         let mut out = Vec::new();
                         for a in args {
                             if matches!(a, PPat::Rest) {
-                                let Some(fields) = self.ctors.get(name) else {
+                                let Some(fields) = self.ctors.get(&path[path.len() - 1]) else {
                                     return unsupported("`..` on a constructor declared elsewhere");
                                 };
                                 let positional =
@@ -1797,17 +1854,21 @@ impl Lower<'_> {
                     col: span.end_col.saturating_sub(n.len() as u32),
                     ..span
                 };
-                let root = match &x.kind {
-                    ExprKind::Name(a) => self.aliases.get(a),
-                    _ => None,
-                };
-                match root {
-                    Some(module) => K::Attr(
-                        b(mk(h::ExprKind::Name(module.clone()), x.span)),
+                match &x.kind {
+                    ExprKind::Name(a) if self.modules.contains_key(a) => {
+                        let mut segs = self.modules[a].iter();
+                        let first = segs.next().expect("non-empty").clone();
+                        let base = segs.fold(mk(h::ExprKind::Name(first), x.span), |e, seg| {
+                            mk(K::Attr(b(e), seg.clone(), at), x.span)
+                        });
+                        K::Attr(b(base), n.clone(), at)
+                    }
+                    ExprKind::Name(a) if self.aliases.contains_key(a) => K::Attr(
+                        b(mk(h::ExprKind::Name(self.aliases[a].clone()), x.span)),
                         n.clone(),
                         at,
                     ),
-                    None => K::Attr(b(self.expr(x)?), n.clone(), at),
+                    _ => K::Attr(b(self.expr(x)?), n.clone(), at),
                 }
             }
             // `x.len()` is the builtin `len(x)`, so E504 and the bounds solver see it (15.3).

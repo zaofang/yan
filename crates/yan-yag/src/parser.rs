@@ -243,6 +243,25 @@ impl Parser {
         matches!(self.tok_at(n), Tok::Op(o) if *o == op)
     }
 
+    /// The `(` at offset `n` closes right before a `:`, so `match (a, b):` is a statement, not a call.
+    fn paren_then_colon(&self, n: usize) -> bool {
+        let mut depth = 0usize;
+        for i in n.. {
+            match self.tok_at(i) {
+                Tok::Op("(") => depth += 1,
+                Tok::Op(")") => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return self.is_op_at(i + 1, ":");
+                    }
+                }
+                Tok::Eof => return false,
+                _ => {}
+            }
+        }
+        false
+    }
+
     fn eat_op(&mut self, op: &str) -> bool {
         let yes = self.is_op(op);
         if yes {
@@ -1924,7 +1943,11 @@ impl Parser {
                     body,
                 }
             }
-            "match" if self.soft("match") && !self.is_op_at(1, "(") && !self.is_op_at(1, ".") => {
+            "match"
+                if self.soft("match")
+                    && (!self.is_op_at(1, "(") || self.paren_then_colon(1))
+                    && !self.is_op_at(1, ".") =>
+            {
                 self.bump();
                 let scrutinee = self.expr()?;
                 self.expect_op(":")?;
@@ -2673,7 +2696,9 @@ impl Parser {
                 let e = self.expr()?;
                 if self.is_kw("for") && out.is_empty() {
                     let c = self.comp_rest(e, None, CompKind::List, None, span)?;
-                    if !self.strict {
+                    if self.strict {
+                        self.error("E101", span, "a generator argument needs brackets");
+                    } else {
                         self.note(
                             "N18",
                             span,

@@ -75,6 +75,7 @@ impl Server {
                 "hoverProvider": true,
                 "documentFormattingProvider": true,
                 "documentSymbolProvider": true,
+                "codeActionProvider": { "codeActionKinds": ["quickfix"] },
             },
             "serverInfo": { "name": "yan", "version": env!("CARGO_PKG_VERSION") },
         })
@@ -141,6 +142,7 @@ impl Server {
             "textDocument/hover" => self.hover(&params),
             "textDocument/formatting" => self.formatting(&params),
             "textDocument/documentSymbol" => self.symbols(&params),
+            "textDocument/codeAction" => self.code_actions(&params),
             _ => {
                 return Response::new_err(
                     id,
@@ -198,6 +200,49 @@ impl Server {
         }
     }
 
+    /// One quick fix per verified `auto` or `choice` fix of each diagnostic that touches the
+    /// requested range. `auto` fixes are preferred.
+    fn code_actions(&self, params: &Value) -> Result<Value, String> {
+        let (_, file) = self.doc(params)?;
+        let text = file.text(&self.db);
+        let (uri, _) = self.doc(params)?;
+        let (l0, c0) = pos::from_lsp(text, &params["range"]["start"], self.encoding);
+        let (l1, c1) = pos::from_lsp(text, &params["range"]["end"], self.encoding);
+        let diags = yan_ide::diagnostics(&self.db, file)?;
+        let mut out = Vec::new();
+        for d in &diags {
+            let s = d.span;
+            let touches = (s.line, s.col) <= (l1, c1) && (l0, c0) <= (s.end_line, s.end_col);
+            if !touches {
+                continue;
+            }
+            for fix in &d.fixes {
+                let preferred = fix["applicability"] == "auto";
+                if fix["verified"] != true || !(preferred || fix["applicability"] == "choice") {
+                    continue;
+                }
+                let Some(title) = fix["title"].as_str() else {
+                    continue;
+                };
+                let Some(edits) = fix["edits"].as_array().and_then(|es| {
+                    es.iter()
+                        .map(|e| text_edit(e, text, self.encoding))
+                        .collect::<Option<Vec<_>>>()
+                }) else {
+                    continue;
+                };
+                out.push(json!({
+                    "title": title,
+                    "kind": "quickfix",
+                    "isPreferred": preferred,
+                    "diagnostics": [diagnostic(d, &uri, text, self.encoding)],
+                    "edit": { "changes": { uri.clone(): edits } },
+                }));
+            }
+        }
+        Ok(Value::Array(out))
+    }
+
     fn symbols(&self, params: &Value) -> Result<Value, String> {
         let (_, file) = self.doc(params)?;
         let text = file.text(&self.db);
@@ -214,6 +259,29 @@ impl Server {
             .collect();
         Ok(Value::Array(out))
     }
+}
+
+/// A fix edit as an LSP text edit. The end of the replaced text follows from `search`, whose
+/// length is in bytes like the span columns.
+fn text_edit(e: &Value, text: &str, enc: Encoding) -> Option<Value> {
+    let span: Span = serde_json::from_value(e["span"].clone()).ok()?;
+    let search = e["search"].as_str()?;
+    let mut lines = search.split('\n');
+    let first = lines.next()?;
+    let (end_line, end_col) = match lines.next_back() {
+        None => (span.line, span.col + first.len() as u32),
+        Some(last) => (
+            span.line + search.matches('\n').count() as u32,
+            last.len() as u32 + 1,
+        ),
+    };
+    Some(json!({
+        "range": {
+            "start": pos::to_lsp(text, span.line, span.col, enc),
+            "end": pos::to_lsp(text, end_line, end_col, enc),
+        },
+        "newText": e["text"].as_str()?,
+    }))
 }
 
 fn symbol_kind(k: SymbolKind) -> u32 {

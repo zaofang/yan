@@ -1,0 +1,6 @@
+spec = "12"
+rows = "R1018"
+note = "a root package without a name is never consented to, so its own ffi module is E023 (it also reports E018)"
+command = ["check"]
+code = "E023"
+at = "package.yag:1:1"

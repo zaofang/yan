@@ -1,0 +1,11 @@
+# spec: 14.4
+# rows: R930
+# note: N18 reads a generator as the only argument as a list comprehension
+# stdout:
+# 6
+
+def total(xs: list[int]) -> int:
+    return sum(x * 2 for x in xs)
+
+pub def main() uses io:
+    io.print(f"{total([1, 2])}")

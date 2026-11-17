@@ -1,0 +1,11 @@
+format = 1
+
+[[package]]
+name = "@r/lib"
+version = "1.0.0"
+source = "index"
+digest = "sha256:2c58930495a78054296abde7bd4a0f3e6e3f4581a23e201b9ebcf3fec9fb221a"
+publisher = "p"
+ffi = ["ffi/z.yn"]
+libs = [{ name = "zlib", link = "z" }]
+kinds = ["dep"]

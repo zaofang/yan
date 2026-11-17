@@ -11,6 +11,8 @@
   "categories": ["Programming Languages", "Themes", "Snippets"],
   "keywords": ["yan", "yag", "yd", "language"],
   "icon": "icons/icon-512.png",
+  "main": "./extension.js",
+  "activationEvents": [],
   "contributes": {
     "languages": [
       {
@@ -44,6 +46,16 @@
       { "language": "yan", "path": "./snippets/yan.code-snippets.json" },
       { "language": "yan-agent", "path": "./snippets/yag.code-snippets.json" }
     ],
+    "configuration": {
+      "title": "Yan",
+      "properties": {
+        "yan.server.path": {
+          "type": "string",
+          "default": "yan",
+          "markdownDescription": "The `yan` executable that runs `yan lsp`."
+        }
+      }
+    },
     "themes": [
       { "label": "Yan Dark", "uiTheme": "vs-dark", "path": "./themes/yan-dark.color-theme.json" },
       { "label": "Yan Light", "uiTheme": "vs", "path": "./themes/yan-light.color-theme.json" }
@@ -51,9 +63,14 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
+    "bundle": "esbuild src/extension.js --bundle --platform=node --format=cjs --minify --external:vscode --outfile=build/extension.js",
     "snapshots": "UPDATE_SNAPSHOTS=1 node --test test/*.test.mjs"
   },
+  "dependencies": {
+    "vscode-languageclient": "9.0.1"
+  },
   "devDependencies": {
+    "esbuild": "0.25.12",
     "@vscode/vsce": "4.1.1",
     "ovsx": "0.10.1",
     "vscode-oniguruma": "2.0.1",

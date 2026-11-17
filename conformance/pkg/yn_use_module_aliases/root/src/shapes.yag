@@ -1,0 +1,19 @@
+pub class Rect:
+    w: int
+    h: int
+
+pub type Shape = Square(side: int) | Wide(rect: Rect)
+
+limit: int = 100
+
+pub def area(s: Shape) -> int:
+    match s:
+        case Square(side=n):
+            return n * n
+        case Wide(rect=r):
+            return r.w * r.h
+
+def clamp(n: int) -> int:
+    if n > limit:
+        return limit
+    return n

@@ -810,6 +810,26 @@
    ]
   },
   {
+   "path": "yag/fail/caps/e301_closure_nondet_to_uses_none.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4",
+    "7.2"
+   ],
+   "rows": [
+    "R1025"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 11,
+     "col": 18
+    }
+   ]
+  },
+  {
    "path": "yag/fail/caps/e301_missing_capability.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -6910,6 +6930,82 @@
    "exit": 0
   },
   {
+   "path": "yag/run/lenient/n13_n24_sums_from_names.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R347",
+    "R423"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 2 5\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n18_generator_argument.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R930"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n25_bare_variant_case.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R423"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n29_clause_form.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R426"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "120 3 5\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n30_init_fields.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R217"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 3\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/lenient/n36_char_as_str.yag",
    "kind": "run",
    "milestone": "M1",
@@ -6987,6 +7083,21 @@
    "flags": [],
    "expect": [],
    "stdout": "True True True\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n41_n42_n43_python_docs.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R849"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n",
    "exit": 0
   },
   {
@@ -7155,6 +7266,22 @@
    "flags": [],
    "expect": [],
    "stdout": "0 0 0 0\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/match/qualified_variant_pattern.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "13",
+    "14.1"
+   ],
+   "rows": [
+    "R799"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "red\ngreen\n",
    "exit": 0
   },
   {
@@ -12072,6 +12199,44 @@
    ]
   },
   {
+   "path": "yn/fail/ownership/e413_match_element_binder.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1068"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 8,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ownership/e413_slice_pattern_binder.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1068"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 8,
+     "col": 16
+    }
+   ]
+  },
+  {
    "path": "yn/fail/ownership/e414_ref_escapes_arena.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -13289,6 +13454,21 @@
    "flags": [],
    "expect": [],
    "stdout": "3 -4 1 2 3.5\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/ownership/match_element_read.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1068"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n",
    "exit": 0
   },
   {
@@ -15653,6 +15833,31 @@
    }
   },
   {
+   "path": "pkg/e020_locked_archive_names_another_package",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1034"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1034",
+    "note": "under --locked, an archive whose own manifest names another package than its lock record is E020",
+    "command": [
+     "check",
+     "--locked",
+     "src/main.yag"
+    ],
+    "code": "E020",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
    "path": "pkg/e020_locked_ffi_removed",
    "kind": "pkg",
    "milestone": "M1",
@@ -15772,6 +15977,54 @@
    }
   },
   {
+   "path": "pkg/e020_locked_store_tree_differs_from_archive",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1034"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1034",
+    "note": "under --locked, an unpacked store tree that differs from its archive is E020, never trusted in its place",
+    "command": [
+     "check",
+     "--locked",
+     "src/main.yag"
+    ],
+    "code": "E020",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
+   "path": "pkg/e020_resolve_libs_without_ffi_module",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R1034"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1034",
+    "note": "the lock refuses a .info whose libs and ffi modules differ from what its archive holds, before consent is read",
+    "command": [
+     "lock"
+    ],
+    "code": "E020",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
    "path": "pkg/e023_ffi_unlisted",
    "kind": "pkg",
    "milestone": "M1",
@@ -15792,6 +16045,30 @@
     ],
     "code": "E023",
     "at": "ffi/ext.yn:1:1"
+   }
+  },
+  {
+   "path": "pkg/e023_lock_ffi_emptied_member",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R1019"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1019",
+    "note": "consent is read from the foreign set recomputed from source, so a lock record whose ffi and libs were emptied by hand grants a workspace member nothing: E023",
+    "command": [
+     "check",
+     "src/main.yag"
+    ],
+    "code": "E023",
+    "at": "a/package.yag:1:1"
    }
   },
   {
@@ -15818,6 +16095,29 @@
     ],
     "code": "E023",
     "at": "yan.lock:0:0"
+   }
+  },
+  {
+   "path": "pkg/e023_nameless_root_ffi",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "12"
+   ],
+   "rows": [
+    "R1018"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "12",
+    "rows": "R1018",
+    "note": "a root package without a name is never consented to, so its own ffi module is E023 (it also reports E018)",
+    "command": [
+     "check"
+    ],
+    "code": "E023",
+    "at": "package.yag:1:1"
    }
   },
   {
@@ -16005,6 +16305,29 @@
     ],
     "code": "E200",
     "at": "src/main.yag:2:18"
+   }
+  },
+  {
+   "path": "pkg/e200_use_unknown_module",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "15.2"
+   ],
+   "rows": [
+    "R1067"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "15.2",
+    "rows": "R1067",
+    "note": "a use of a module the package does not have leaves the module unresolved",
+    "command": [
+     "check"
+    ],
+    "code": "E200",
+    "at": "src/report.yn:1:1"
    }
   },
   {
@@ -16589,6 +16912,27 @@
     "note": "`yan new --template library @conf/new_library` output checks and passes its tests (#899)",
     "command": [
      "test"
+    ]
+   }
+  },
+  {
+   "path": "pkg/yn_use_module_aliases",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "15.2"
+   ],
+   "rows": [
+    "R1067"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "15.2",
+    "rows": "R1067",
+    "note": "a Yan module binds module aliases with use, absolute, renamed and sibling; qualified expressions, types and patterns reach another module in either surface",
+    "command": [
+     "check"
     ]
    }
   },

@@ -1,0 +1,1 @@
+config: Config = Config(registries={"@r": "index"})
