@@ -810,6 +810,26 @@
    ]
   },
   {
+   "path": "yag/fail/caps/e301_closure_nondet_to_uses_none.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4",
+    "7.2"
+   ],
+   "rows": [
+    "R1025"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 11,
+     "col": 18
+    }
+   ]
+  },
+  {
    "path": "yag/fail/caps/e301_missing_capability.yag",
    "kind": "fail",
    "milestone": "M1",

@@ -1,0 +1,14 @@
+# spec: 4, 7.2
+# rows: R1025
+# note: a closure that runs a task-dependent operation carries nondet, which a uses none callee does not declare
+# expect: E301 at 11:18
+
+def apply(f: Callable[[], int]) -> int uses none:
+    return f()
+
+def count(a: Arc[int]) -> int uses nondet:
+    g: Callable[[], int] = lambda: a.strong_count()
+    return apply(g)
+
+pub def main() -> None uses io:
+    io.print("x")
