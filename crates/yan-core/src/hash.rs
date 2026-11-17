@@ -599,6 +599,7 @@ impl Cx<'_> {
             }
             Rhs::Ctor(c) => self.ctor(c),
             Rhs::Proj(p) | Rhs::Copy(p) | Rhs::Move(p) => self.place(p),
+            Rhs::Rest { root, .. } => self.name(root),
             Rhs::Closure(c) => {
                 for (_, n, _) in &mut c.captures {
                     self.name(n);

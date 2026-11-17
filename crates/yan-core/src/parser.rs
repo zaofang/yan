@@ -1220,6 +1220,16 @@ impl Parser<'_> {
         if self.eat_kw("move") {
             return Ok(Rhs::Move(self.place()?));
         }
+        if self.is_kw("rest") && matches!(self.peek_at(2), Tok::Name(n) if n == "except") {
+            self.bump();
+            let root = self.name()?;
+            self.expect_kw("except")?;
+            let mut moved = vec![self.moved_path()?];
+            while self.eat_punct(",") {
+                moved.push(self.moved_path()?);
+            }
+            return Ok(Rhs::Rest { root, moved });
+        }
         if self.is_kw("fn") && matches!(self.peek_at(1), Tok::Punct("[")) {
             self.bump();
             return Ok(Rhs::Closure(Box::new(self.closure_rest()?)));
@@ -1379,6 +1389,16 @@ impl Parser<'_> {
                 });
             }
         }
+    }
+
+    /// A field path of `rest .. except`: names joined by `.`.
+    fn moved_path(&mut self) -> PResult<Vec<Name>> {
+        let mut path = vec![self.name()?];
+        while self.is_punct(".") && matches!(self.peek_at(1), Tok::Name(_)) {
+            self.bump();
+            path.push(self.name()?);
+        }
+        Ok(path)
     }
 
     /// After `fn`.

@@ -26,6 +26,11 @@ enum S {
 type St = HashMap<Name, S>;
 type Pos = (usize, usize);
 
+/// The state key that says `root` has a remainder, so fields may be moved out of it.
+fn rest_key(root: &str) -> Name {
+    format!("{root}.#rest")
+}
+
 fn join(a: S, b: S) -> S {
     if a == b { a } else { S::Both }
 }
@@ -59,11 +64,10 @@ struct V {
     loops: Vec<Loop>,
     jps: HashMap<Name, Jp>,
     last_decl: Option<Name>,
-    /// Names bound by `match` patterns, to the scrutinee local they view.
-    views: HashMap<Name, Name>,
-    /// Names bound to one field of a local (`let x = t._0`), to the key `t._0` that tracks the
-    /// field in the state, so moving each field of a destructured tuple once is not a repeat.
-    fields: HashMap<Name, Name>,
+    /// Names bound by projections and `match` patterns, to what they view.
+    views: own::Views,
+    /// The remainders `rest` made, to the local whose fields they own what is left of.
+    origin: HashMap<Name, Name>,
     copy: own::Ctors,
     diags: Vec<Diagnostic>,
     file: String,
@@ -132,17 +136,26 @@ impl V {
         *self = V { diags, ..saved };
     }
 
+    /// What `k` consumes. A field moved out of a local consumes nothing: the local's remainder,
+    /// made by `rest` before the move, owns the other fields.
     fn consumed(&self, k: &StmtKind) -> Vec<Name> {
-        own::consumed(k)
-            .into_iter()
-            .map(|n| {
-                self.fields
-                    .get(n)
-                    .or_else(|| self.views.get(n))
-                    .unwrap_or(n)
-                    .clone()
-            })
-            .collect()
+        own::consumption(k, &self.views).whole
+    }
+
+    /// A field moved out of a local needs the `rest` that took over the local's other fields.
+    fn check_partial(&mut self, k: &StmtKind, at: Span) {
+        for (root, path) in own::consumption(k, &self.views).partial {
+            let Some(st) = self.st.as_ref().filter(|st| st.contains_key(&root)) else {
+                continue;
+            };
+            if st.get(&rest_key(&root)) != Some(&S::Live) {
+                let path = path.join(".");
+                self.err(
+                    at,
+                    format!("`{root}.{path}` is moved out without a `rest` of `{root}` before it"),
+                );
+            }
+        }
     }
 
     fn flag_of(&self, x: &str) -> Option<Name> {
@@ -371,6 +384,7 @@ impl V {
     }
 
     fn consume(&mut self, k: &StmtKind, next: Option<&Stmt>, at: Span, exits: bool) {
+        self.check_partial(k, at);
         for n in &self.consumed(k) {
             let Some(s) = self.st.as_ref().and_then(|st| st.get(n)).copied() else {
                 continue;
@@ -389,66 +403,6 @@ impl V {
             }
             if let Some(st) = &mut self.st {
                 st.insert(n.clone(), S::Gone);
-            }
-            if let Some((root, _)) = n.split_once('.')
-                && s == S::Live
-            {
-                self.move_field_root(root, n, at);
-            }
-        }
-    }
-
-    /// Moving a field moves its root, whose other fields leak (as in drop elaboration); moving
-    /// another field of a root already moved through a field is not a repeat.
-    fn move_field_root(&mut self, root: &str, key: &str, at: Span) {
-        let Some(st) = &mut self.st else { return };
-        let Some(s) = st.get(root).copied() else {
-            return;
-        };
-        let prefix = format!("{root}.");
-        let by_field = st
-            .iter()
-            .any(|(k, v)| k != key && k.starts_with(&prefix) && *v != S::Live);
-        if s != S::Live && !by_field {
-            let how = if s == S::Gone { "was" } else { "may have been" };
-            self.err(at, format!("`{root}` {how} already consumed or dropped"));
-        }
-        if let Some(st) = &mut self.st {
-            st.insert(root.to_owned(), S::Gone);
-        }
-    }
-
-    /// A field bound whole by a record pattern is tracked like `let x = root.f`, so a pattern
-    /// that binds two owned fields can move each once.
-    fn track_pattern_fields<'a>(
-        &mut self,
-        root: &str,
-        pats: impl Iterator<Item = &'a Pat>,
-        bound: &mut Vec<Name>,
-    ) {
-        if self.flag_of(root).is_some() {
-            return;
-        }
-        for p in pats {
-            let Pat::Ctor {
-                path,
-                fields: Some((fs, _)),
-            } = p
-            else {
-                continue;
-            };
-            let ctor = path.last().cloned().unwrap_or_default();
-            for (f, sub) in fs {
-                let Pat::Bind(n) = sub else { continue };
-                if self.copy.is_copy_field(&ctor, f) {
-                    continue;
-                }
-                let key = format!("{root}.{f}");
-                if let Some(st) = &mut self.st {
-                    st.entry(key.clone()).or_insert(S::Live);
-                }
-                self.fields.insert(n.clone(), key);
-                bound.push(n.clone());
             }
         }
     }
@@ -516,28 +470,23 @@ impl V {
                 }
                 self.closure(rhs);
                 self.consume(&s.kind, next, at, false);
-                if let Pat::Bind(x) = pat {
-                    self.fields.remove(x);
-                }
                 if let (Rhs::Proj(p), Pat::Bind(x)) = (rhs, pat)
                     && !own::is_copy(ty)
                 {
-                    let root = self.views.get(&p.root).unwrap_or(&p.root).clone();
-                    if let [Proj::Field(f, _)] = p.projs.as_slice()
-                        && root == p.root
-                        && let Some(st) = &mut self.st
-                        && st.contains_key(&root)
-                    {
-                        let key = format!("{root}.{f}");
-                        st.entry(key.clone()).or_insert(S::Live);
-                        self.fields.insert(x.clone(), key);
-                    }
-                    self.views.insert(x.clone(), root);
+                    let v = own::proj_view(&self.views, p);
+                    self.views.insert(x.clone(), v);
                 } else if let Pat::Bind(x) = pat {
                     self.views.remove(x);
                 }
                 if !matches!(rhs, Rhs::Proj(_)) {
                     self.declare_pat(pat, ty);
+                }
+                if let (Rhs::Rest { root, .. }, Pat::Bind(x)) = (rhs, pat) {
+                    let origin = self.origin.get(root).unwrap_or(root).clone();
+                    if let Some(st) = &mut self.st {
+                        st.insert(rest_key(&origin), S::Live);
+                    }
+                    self.origin.insert(x.clone(), origin);
                 }
             }
             StmtKind::Assign { place, rhs, .. } => {
@@ -590,37 +539,33 @@ impl V {
                 self.branches([Some(then), els.as_ref()]);
             }
             StmtKind::Match { scrutinee, arms } => {
-                let mut bound = Vec::new();
-                let mut tracked = None;
+                let mut base = None;
                 if let Atom::Name(x, _) = scrutinee {
-                    let root = self.views.get(x).unwrap_or(x).clone();
-                    if self.st.as_ref().is_some_and(|st| st.contains_key(&root)) {
-                        for (p, _) in arms {
-                            own::view_binders(p, &self.copy, &mut bound);
-                        }
-                        for n in &bound {
-                            self.views.insert(n.clone(), root.clone());
-                        }
-                        tracked = (root == *x).then_some(root);
+                    let v = own::scrutinee_view(&self.views, x);
+                    if self.st.as_ref().is_some_and(|st| st.contains_key(&v.root)) {
+                        base = Some(v);
                     }
                 }
                 let pre = self.st.clone().expect("reachable");
                 let mut ends = Vec::new();
                 for (p, b) in arms {
                     self.st = Some(pre.clone());
-                    if let Some(root) = &tracked {
-                        self.track_pattern_fields(root, std::iter::once(p), &mut bound);
+                    let bound = base
+                        .as_ref()
+                        .map(|v| own::pat_views(p, &self.copy, v))
+                        .unwrap_or_default();
+                    for (n, v) in &bound {
+                        self.views.insert(n.clone(), v.clone());
                     }
                     self.block(b, &[]);
+                    for (n, _) in &bound {
+                        self.views.remove(n);
+                    }
                     if let Some(st) = self.st.take() {
                         ends.push(st);
                     }
                 }
                 self.st = merge(&pre, ends);
-                for n in &bound {
-                    self.views.remove(n);
-                    self.fields.remove(n);
-                }
             }
             StmtKind::Loop { label, body, .. } => {
                 let entry = self.st.clone().expect("reachable");
