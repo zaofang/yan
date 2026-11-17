@@ -434,7 +434,7 @@ Recommendation: (a). It meets the criterion that the manifest is visibly not cod
 the lossless editor, and removes a class of "does this run?" questions. It does amend RFC 0033 D1 and the
 extension list, which is why it is a card.
 
-- Decision: (a), `.yd` data files and `package.yd` (lead, card, 2026-11-17). The spelling `.yd` is still to be checked against registered extensions before it is frozen.
+- Decision: (a), `.yd` data files and `package.yd` (lead, card, 2026-11-17). Spelling `.yd` confirmed (lead, 2026-11-17); no collision in github-linguist `languages.yml` on that date.
 - Row: pending, numbered with the spec PR
 
 ## Rejected as a whole

@@ -1,0 +1,169 @@
+{
+  "steps": [
+    {
+      "in": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "method": "initialize",
+        "params": {
+          "capabilities": {
+            "general": {
+              "positionEncodings": [
+                "utf-8"
+              ]
+            }
+          }
+        }
+      },
+      "out": [
+        {
+          "id": 1,
+          "jsonrpc": "2.0",
+          "result": {
+            "capabilities": {
+              "documentFormattingProvider": true,
+              "documentSymbolProvider": true,
+              "hoverProvider": true,
+              "positionEncoding": "utf-8",
+              "textDocumentSync": {
+                "change": 1,
+                "openClose": true
+              }
+            },
+            "serverInfo": {
+              "name": "yan",
+              "version": "0.0.0"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "in": {
+        "jsonrpc": "2.0",
+        "method": "textDocument/didOpen",
+        "params": {
+          "textDocument": {
+            "languageId": "yan",
+            "text": "-- café\n\nadd(a: int, b: int) -> int = a + b\n\nmain() uses io =\n  io.print(\"{add(1, 2)}\")\n",
+            "uri": "file:///w/c.yn",
+            "version": 1
+          }
+        }
+      },
+      "out": [
+        {
+          "method": "textDocument/publishDiagnostics",
+          "params": {
+            "diagnostics": [],
+            "uri": "file:///w/c.yn"
+          }
+        }
+      ]
+    },
+    {
+      "in": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "method": "textDocument/documentSymbol",
+        "params": {
+          "textDocument": {
+            "uri": "file:///w/c.yn"
+          }
+        }
+      },
+      "out": [
+        {
+          "id": 2,
+          "result": [
+            {
+              "kind": 12,
+              "name": "add",
+              "range": {
+                "end": {
+                  "character": 34,
+                  "line": 2
+                },
+                "start": {
+                  "character": 0,
+                  "line": 2
+                }
+              },
+              "selectionRange": {
+                "end": {
+                  "character": 3,
+                  "line": 2
+                },
+                "start": {
+                  "character": 0,
+                  "line": 2
+                }
+              }
+            },
+            {
+              "kind": 12,
+              "name": "main",
+              "range": {
+                "end": {
+                  "character": 25,
+                  "line": 5
+                },
+                "start": {
+                  "character": 0,
+                  "line": 4
+                }
+              },
+              "selectionRange": {
+                "end": {
+                  "character": 4,
+                  "line": 4
+                },
+                "start": {
+                  "character": 0,
+                  "line": 4
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "in": {
+        "id": 3,
+        "jsonrpc": "2.0",
+        "method": "textDocument/hover",
+        "params": {
+          "position": {
+            "character": 1,
+            "line": 2
+          },
+          "textDocument": {
+            "uri": "file:///w/c.yn"
+          }
+        }
+      },
+      "out": [
+        {
+          "id": 3,
+          "result": {
+            "contents": {
+              "kind": "plaintext",
+              "value": "add(a: int, b: int) -> int = a + b"
+            },
+            "range": {
+              "end": {
+                "character": 3,
+                "line": 2
+              },
+              "start": {
+                "character": 0,
+                "line": 2
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
