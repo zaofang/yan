@@ -4101,6 +4101,30 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e417_rc_in_one_branch_each.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [
+    "R1066"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E417",
+     "line": 12,
+     "col": 18
+    },
+    {
+     "code": "E417",
+     "line": 13,
+     "col": 18
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e417_record_of_mutex_of_rc_in_two_branches.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -11191,6 +11215,25 @@
    ]
   },
   {
+   "path": "yn/fail/ffi/e913_lib_named_like_builtin_capability.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12.2"
+   ],
+   "rows": [
+    "R1059"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E913",
+     "line": 5,
+     "col": 1
+    }
+   ]
+  },
+  {
    "path": "yn/fail/ffi/extern_halo_accepted.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -15706,6 +15749,29 @@
    }
   },
   {
+   "path": "pkg/e020_locked_record_unpinned",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1058"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1058",
+    "note": "under --locked, a lock record with neither digest, path nor a member source pins nothing: E020",
+    "command": [
+     "check",
+     "--locked"
+    ],
+    "code": "E020"
+   }
+  },
+  {
    "path": "pkg/e023_ffi_unlisted",
    "kind": "pkg",
    "milestone": "M1",
@@ -16473,6 +16539,60 @@
    }
   },
   {
+   "path": "pkg/yan_new_agent_tool",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template agent-tool @conf/new_agent_tool` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
+   "path": "pkg/yan_new_cli",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template cli @conf/new_cli` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
+   "path": "pkg/yan_new_library",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template library @conf/new_library` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
    "path": "fmt/blank_lines",
    "kind": "fmt",
    "milestone": "M1",
@@ -16802,60 +16922,6 @@
      "--list"
     ],
     "code": "E201"
-   }
-  },
-  {
-   "path": "pkg/yan_new_agent_tool",
-   "kind": "pkg",
-   "milestone": "M1",
-   "spec": [
-    "18.1"
-   ],
-   "rows": [],
-   "flags": [],
-   "expect": [],
-   "expect_toml": {
-    "spec": "18.1",
-    "note": "`yan new --template agent-tool @conf/new_agent_tool` output checks and passes its tests (#899)",
-    "command": [
-     "test"
-    ]
-   }
-  },
-  {
-   "path": "pkg/yan_new_cli",
-   "kind": "pkg",
-   "milestone": "M1",
-   "spec": [
-    "18.1"
-   ],
-   "rows": [],
-   "flags": [],
-   "expect": [],
-   "expect_toml": {
-    "spec": "18.1",
-    "note": "`yan new --template cli @conf/new_cli` output checks and passes its tests (#899)",
-    "command": [
-     "test"
-    ]
-   }
-  },
-  {
-   "path": "pkg/yan_new_library",
-   "kind": "pkg",
-   "milestone": "M1",
-   "spec": [
-    "18.1"
-   ],
-   "rows": [],
-   "flags": [],
-   "expect": [],
-   "expect_toml": {
-    "spec": "18.1",
-    "note": "`yan new --template library @conf/new_library` output checks and passes its tests (#899)",
-    "command": [
-     "test"
-    ]
    }
   }
  ]

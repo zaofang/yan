@@ -45,3 +45,21 @@ fn pure_closure_is_fine_for_uses_none() {
     );
     assert!(!out.contains("E301"), "{out}");
 }
+
+const NONDET_CLOSURE: &str = "def count(a: Arc[int]) -> int uses nondet:\n    g: Callable[[], int] = lambda: a.strong_count()\n    return apply(g)\n\npub def main() uses io:\n    io.print(\"x\")\n";
+
+#[test]
+fn uses_none_callee_cannot_run_a_nondet_closure() {
+    let out = check(&format!(
+        "def apply(f: Callable[[], int]) -> int uses none:\n    return f()\n\n{NONDET_CLOSURE}"
+    ));
+    assert!(out.contains("E301") && out.contains("nondet"), "{out}");
+}
+
+#[test]
+fn callee_that_declares_nondet_is_fine() {
+    let out = check(&format!(
+        "def apply(f: Callable[[], int]) -> int uses nondet:\n    return f()\n\n{NONDET_CLOSURE}"
+    ));
+    assert!(!out.contains("E301"), "{out}");
+}

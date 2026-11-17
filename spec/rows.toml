@@ -2010,3 +2010,18 @@ sections = "14.4"
 rows = "R1063"
 topic = "`type`, `isinstance`, `open` and `sys.getsizeof` are E200 with a message naming the Yan replacement (#1543 groups 7 and 8)"
 sections = "14.4"
+
+[[entry]]
+rows = "R1059"
+topic = "a `lib` named like a built-in capability is E913, so a foreign library never shadows a built-in capability (#1502 item 14)"
+sections = "12.2, 25"
+
+[[entry]]
+rows = "R1058"
+topic = "under `--locked` a `[[package]]` record needs a `digest`, a `path` or a `source` that is a workspace member directory, else E020 (#1502 item 13)"
+sections = "19.1"
+
+[[entry]]
+rows = "R1066"
+topic = "a binding declared outside a `par` must be Sync in every branch that borrows it with `let` and Send in every branch that moves or `inout`-borrows it, by type and even in a single branch, E417 or E415 (#1502 item 20, owner decision 2026-11-17)"
+sections = "6.4"

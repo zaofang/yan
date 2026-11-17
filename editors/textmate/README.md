@@ -2,6 +2,7 @@
 
 - `yan.tmLanguage.json`: Yan (`.yn`, spec 15.1), scope `source.yan`.
 - `yag.tmLanguage.json`: Yan Agent (`.yag`, spec 13), scope `source.yag`. Covers `#`, `#:` and `#>` comments, docstrings, f, t, r, b and c strings with `{expr:spec}` interpolation, `def`, `class`, `type`, `trait`, `impl`, contract lines, `uses` lists, decorators, the built-in type words, and the keywords the lenient reader rejects (`invalid.illegal`).
+- `yd.tmLanguage.json`: Yan Data (`.yd`, RFC 0084), scope `source.yd`; includes `source.yag`.
 
 Licensed Apache-2.0 with the repo.
 

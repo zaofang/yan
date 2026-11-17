@@ -1,0 +1,137 @@
+{
+  "steps": [
+    {
+      "in": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "method": "initialize",
+        "params": {
+          "capabilities": {}
+        }
+      },
+      "out": [
+        {
+          "id": 1,
+          "jsonrpc": "2.0",
+          "result": {
+            "capabilities": {
+              "documentFormattingProvider": true,
+              "documentSymbolProvider": true,
+              "hoverProvider": true,
+              "positionEncoding": "utf-16",
+              "textDocumentSync": {
+                "change": 1,
+                "openClose": true
+              }
+            },
+            "serverInfo": {
+              "name": "yan",
+              "version": "0.0.0"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "in": {
+        "jsonrpc": "2.0",
+        "method": "textDocument/didOpen",
+        "params": {
+          "textDocument": {
+            "languageId": "yan",
+            "text": "def f(a: int) -> int:\n    return len(\"éé\") + c\n",
+            "uri": "file:///w/b.yag",
+            "version": 1
+          }
+        }
+      },
+      "out": [
+        {
+          "method": "textDocument/publishDiagnostics",
+          "params": {
+            "diagnostics": [
+              {
+                "code": "N21",
+                "message": "`len(s)` normalized to `s.char_count()`",
+                "range": {
+                  "end": {
+                    "character": 14,
+                    "line": 1
+                  },
+                  "start": {
+                    "character": 11,
+                    "line": 1
+                  }
+                },
+                "relatedInformation": [],
+                "severity": 3,
+                "source": "yan"
+              },
+              {
+                "code": "E200",
+                "message": "cannot find `c`",
+                "range": {
+                  "end": {
+                    "character": 24,
+                    "line": 1
+                  },
+                  "start": {
+                    "character": 23,
+                    "line": 1
+                  }
+                },
+                "relatedInformation": [],
+                "severity": 1,
+                "source": "yan"
+              }
+            ],
+            "uri": "file:///w/b.yag"
+          }
+        }
+      ]
+    },
+    {
+      "in": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "method": "textDocument/documentSymbol",
+        "params": {
+          "textDocument": {
+            "uri": "file:///w/b.yag"
+          }
+        }
+      },
+      "out": [
+        {
+          "id": 2,
+          "result": [
+            {
+              "kind": 12,
+              "name": "f",
+              "range": {
+                "end": {
+                  "character": 24,
+                  "line": 1
+                },
+                "start": {
+                  "character": 0,
+                  "line": 0
+                }
+              },
+              "selectionRange": {
+                "end": {
+                  "character": 5,
+                  "line": 0
+                },
+                "start": {
+                  "character": 4,
+                  "line": 0
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

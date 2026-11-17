@@ -354,6 +354,9 @@ pub(crate) struct Cx<'s> {
     pub lits: Vec<(Span, String)>,
     /// Calls elaboration inserted, by span (R565, R854).
     pub origins: Vec<(Span, yan_surface::Inserted)>,
+    /// Operations that depend on other tasks seen so far (E709), so a closure can tell whether its
+    /// body used one (R1025).
+    pub nondet_ops: usize,
 }
 
 impl<'s> Cx<'s> {
@@ -720,6 +723,7 @@ pub fn elaborate_pkg(
         marks: Vec::new(),
         lits: Vec::new(),
         origins: Vec::new(),
+        nondet_ops: 0,
     };
     let manifest = manifest.or_else(|| desugar::manifest(m));
     desugar::edition(m, &mut cx);

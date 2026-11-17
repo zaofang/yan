@@ -792,7 +792,7 @@ impl<'a> Lexer<'a> {
             line,
             col,
             end_line: line,
-            end_col: col + old.chars().count() as u32,
+            end_col: col + old.len() as u32,
         };
         let mut d = Diagnostic::error(
             "W854",

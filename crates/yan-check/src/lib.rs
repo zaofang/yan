@@ -493,6 +493,22 @@ struct Binding {
     unsync_closure: bool,
 }
 
+/// The marker a closure carries when its body runs a task-dependent operation (R1025).
+fn nondet_marker(c: &Closure) -> Option<(Name, Type)> {
+    let Some(CapSet::Names(ns)) = &c.uses else {
+        return None;
+    };
+    ns.iter().any(|n| n == "nondet").then(|| {
+        (
+            "nondet".to_owned(),
+            Type::Named(Named {
+                path: vec!["Nondet".to_owned()],
+                args: Vec::new(),
+            }),
+        )
+    })
+}
+
 type Shadowed = (Name, Option<Binding>, Option<Vec<How>>);
 
 /// What a `match` arm's binders shadowed, to restore when the arm ends.
@@ -518,6 +534,9 @@ struct Cx<'g, 'm> {
     next_par: usize,
     /// Accesses inside `par` branches to places bound outside them: name, par, branch, written.
     par_uses: Vec<(Name, usize, usize, bool)>,
+    /// Uses of a non-Send or non-Sync outer binding in a `par` branch, reported at the end when
+    /// no other branch used it (that case is E417 at the second use).
+    par_by_type: Vec<(Name, usize, Span, &'static str, String)>,
     with_depth: usize,
     callees: HashSet<String>,
     /// This function's type parameters whose values it sends to another task.
@@ -573,6 +592,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             par: Vec::new(),
             next_par: 0,
             par_uses: Vec::new(),
+            par_by_type: Vec::new(),
             with_depth: 0,
             callees: HashSet::new(),
             sent_tparams: HashSet::new(),
@@ -650,6 +670,17 @@ impl<'g, 'm> Cx<'g, 'm> {
     }
 
     fn finish(&mut self) {
+        for (n, pid, span, code, message) in mem::take(&mut self.par_by_type) {
+            let branches: HashSet<usize> = self
+                .par_uses
+                .iter()
+                .filter(|(m, p, _, _)| *m == n && *p == pid)
+                .map(|&(_, _, x, _)| x)
+                .collect();
+            if branches.len() <= 1 && self.reported.insert(format!("par:{n}")) {
+                self.err(code, span, message);
+            }
+        }
         let order = mem::take(&mut self.order);
         let mut seen = HashSet::new();
         for n in order.iter().filter(|n| seen.insert(n.as_str())) {
@@ -805,9 +836,29 @@ impl<'g, 'm> Cx<'g, 'm> {
             || b.ty
                 .as_ref()
                 .is_some_and(|t| !auto_traits(&|n| g.components(n), t).sync);
+        let send = !b.unsend_closure
+            && b.ty
+                .as_ref()
+                .is_none_or(|t| auto_traits(&|n| g.components(n), t).send);
         for &(pid, branch) in &self.par.clone() {
             if inner.is_some_and(|(p, _)| p == pid) {
                 continue;
+            }
+            // A handle declared outside the `par` may share its allocation with another name (a
+            // clone), so a branch needs the trait by type, not by the names it sees (6.4).
+            let by_type = match how {
+                How::Read if unsync => Some(("E417", "Sync", "borrows")),
+                How::Inout | How::Sink if !send => Some(("E415", "Send", "takes")),
+                _ => None,
+            };
+            if let Some((code, tr, verb)) = by_type {
+                self.par_by_type.push((
+                    n.clone(),
+                    pid,
+                    span,
+                    code,
+                    format!("`{n}` is not {tr}, and a branch of this `par` {verb} it"),
+                ));
             }
             let clash = self
                 .par_uses
@@ -1021,6 +1072,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                             Some(b) => b.cap_captures.clone(),
                             None => Vec::new(),
                         })
+                        .chain(nondet_marker(c))
                         .collect(),
                     Rhs::Atom(Atom::Name(n, _)) => self.caps_of(n),
                     Rhs::Copy(p) | Rhs::Move(p) if p.projs.is_empty() => self.caps_of(&p.root),

@@ -1,7 +1,7 @@
 {
   "name": "yan",
   "displayName": "Yan",
-  "description": "Syntax highlighting, file icons, snippets and themes for Yan (.yn) and Yan Agent (.yag).",
+  "description": "Syntax highlighting, file icons, snippets and themes for Yan (.yn) and Yan Agent (.yag) and Yan Data (.yd).",
   "version": "0.0.1",
   "publisher": "yan-lang",
   "license": "Apache-2.0 WITH LLVM-exception",
@@ -9,7 +9,7 @@
   "repository": { "type": "git", "url": "https://github.com/zaofang/yan.git", "directory": "editors/vscode" },
   "engines": { "vscode": "^1.90.0" },
   "categories": ["Programming Languages", "Themes", "Snippets"],
-  "keywords": ["yan", "yag", "language"],
+  "keywords": ["yan", "yag", "yd", "language"],
   "icon": "icons/icon-512.png",
   "contributes": {
     "languages": [
@@ -26,11 +26,19 @@
         "extensions": [".yag"],
         "configuration": "./languages/yag.language-configuration.json",
         "icon": { "light": "./icons/file-icon-yag.svg", "dark": "./icons/file-icon-yag.svg" }
+      },
+      {
+        "id": "yan-data",
+        "aliases": ["Yan Data", "yd"],
+        "extensions": [".yd"],
+        "configuration": "./languages/yag.language-configuration.json",
+        "icon": { "light": "./icons/file-icon-yag.svg", "dark": "./icons/file-icon-yag.svg" }
       }
     ],
     "grammars": [
       { "language": "yan", "scopeName": "source.yan", "path": "./syntaxes/yan.tmLanguage.json" },
-      { "language": "yan-agent", "scopeName": "source.yag", "path": "./syntaxes/yag.tmLanguage.json" }
+      { "language": "yan-agent", "scopeName": "source.yag", "path": "./syntaxes/yag.tmLanguage.json" },
+      { "language": "yan-data", "scopeName": "source.yd", "path": "./syntaxes/yd.tmLanguage.json" }
     ],
     "snippets": [
       { "language": "yan", "path": "./snippets/yan.code-snippets.json" },
