@@ -69,7 +69,7 @@ def main(argv: list[str] | None = None) -> int:
     allow = nativelive.load_allowlist(args.allowlist)
 
     with tempfile.TemporaryDirectory() as d, ThreadPoolExecutor(args.jobs) as pool:
-        found = list(pool.map(lambda pf: clean(args.yan, *pf, Path(d)), progs))
+        found = list(pool.map(lambda pf: clean(args.yan, pf[0], pf[1], Path(d)), progs))
     hits = {p: what for (p, _), what in zip(progs, found, strict=True) if what}
 
     unexplained = {p: w for p, w in hits.items() if p not in allow}
