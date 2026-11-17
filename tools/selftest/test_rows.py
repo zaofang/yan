@@ -55,13 +55,13 @@ def test_code_map_agrees_with_spec_and_catalogue() -> None:
 
 
 def test_case_with_row_flags_uncased_row_above_freeze_exit() -> None:
-    errors = case_with_row_errors({"R1009": 0, "R999999": 1, "R1017": 2, "R1020": 3, "R1042": 4})
+    errors = case_with_row_errors({"R1009": 0, "R999999": 1, "R1017": 2, "R1020": 3, "R1042": 4, "R1071": 5})
     assert [e.split()[0] for e in errors] == ["R999999"]
 
 
 def test_case_with_row_flags_stale_allowance() -> None:
     errors = case_with_row_errors({})
-    assert all("remove it" in e for e in errors) and len(errors) == 3
+    assert all("remove it" in e for e in errors) and len(errors) == 4
 
 
 def test_added_rows_are_head_rows_missing_from_base(monkeypatch) -> None:  # type: ignore[no-untyped-def]
