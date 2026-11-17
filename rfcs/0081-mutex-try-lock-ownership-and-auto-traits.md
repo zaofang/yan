@@ -1,8 +1,8 @@
 # 0081: Mutex try_lock, owned access, auto traits and the wait check
 
-- Status: draft
+- Status: accepted
 - Research: [atomics and Mutex design, 2026-11-16](../docs/research/2026-11-16-atomics-mutex-design.md)
-- Rows: filled in when accepted
+- Rows: R1038 (D1), R1039 (D2, D3), R1040 (D4), R1041 (D5), R1042 (D6)
 
 ## Summary
 
@@ -38,8 +38,8 @@ Alternatives, not recommended now:
 - (d) No `try_lock` at 1.0. Without `Condvar` there is no retry loop that needs it, but 6.3 and #1429
   list it, and `std.sync.atomic` spin patterns need a non-blocking probe.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended, a `try_lock` that returns an `Option` matched in place (lead, card, 2026-11-17)
+- Row: R1038
 
 ### D2: `get_mut` is exclusive access, no lock and no nondet
 
@@ -56,8 +56,8 @@ unchecked one.
 Alternatives: (b) a guard-returning `get_mut` (takes the lock needlessly and pays for it); (c) omit it
 and require `lock()` everywhere (the 6.2 sentence would become false).
 
-- Decision:
-- Row:
+- Decision: accepted as recommended, `get_mut` as an `inout` place and `into_inner` as `take`, no lock (lead, card, 2026-11-17)
+- Row: R1039
 
 ### D3: `into_inner` consumes the mutex and takes no lock
 
@@ -69,8 +69,8 @@ lock, no guard, no `nondet`; ownership alone proves no other task holds it. It i
 Alternative: none worth keeping; a locking `into_inner` would panic on a task that still holds a guard
 and would not be a move.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended, `get_mut` as an `inout` place and `into_inner` as `take`, no lock (lead, card, 2026-11-17)
+- Row: R1039
 
 ### D4: Send and Sync are computed once, structurally
 
@@ -91,8 +91,8 @@ Alternatives: (b) extend the name list to `Mutex` and add a `not_sync` list (a s
 that drifts, and no field-wise rule); (c) opt-in marker traits written in each std type now, before S7
 (the language has no way to say a negative `impl`, so it needs a new construct).
 
-- Decision:
-- Row:
+- Decision: accepted as recommended, one structural auto-trait function (lead, card, 2026-11-17)
+- Row: R1040
 
 ### D5: sharing a `Mutex` between tasks is the E709 site, `lock` is not
 
@@ -110,8 +110,8 @@ Alternatives: (b) require `nondet` on every `lock` (every protected access becom
 single-task use, and `get_mut`'s absence of a capability would be inconsistent); (c) exempt `Mutex`
 the way `Lub` is exempt (no argument that lock order commutes).
 
-- Decision:
-- Row:
+- Decision: accepted as recommended, E709 at the sharing site (lead, card, 2026-11-17)
+- Row: R1041
 
 ### D6: E323 follows the effect signature, not names
 
@@ -130,8 +130,8 @@ interim, rejects the non-escaping helper closure RFC 0080 D3 allows, and is what
 deferred); (c) leave the gap (E323's name rule can be bypassed, so the R395 guarantee stays unproven
 for indirect calls).
 
-- Decision:
-- Row:
+- Decision: accepted as recommended, a computed wait bit in the effect signature (lead, card, 2026-11-17)
+- Row: R1042
 
 ## Spec changes
 
