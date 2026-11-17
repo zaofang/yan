@@ -1,9 +1,11 @@
 # Yan for VS Code
 
 Syntax highlighting, language configuration, file icons, snippets and the Yan colour themes for Yan (`.yn`) and Yan Agent (`.yag`).
-Stage E1 of the editor plan (`docs/research/2026-11-17-editor-and-lsp-plan.md`): no language server yet.
+Stages E1 and E2 of the editor plan (`docs/research/2026-11-17-editor-and-lsp-plan.md`).
 
-The extension has no code. `tools/vscode_ext.py` assembles it from single sources:
+The client (`src/extension.js`) starts `yan lsp` over stdio for `.yn` and `.yag` files: diagnostics, formatting, hover, document symbols and quick fixes. `yan` must be on `PATH`, or set `yan.server.path`. `.yd` has highlighting only.
+
+`tools/vscode_ext.py` assembles it from single sources and bundles the client into one `extension.js`:
 
 | In the extension | Source |
 | --- | --- |

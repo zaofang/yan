@@ -48,6 +48,8 @@ def stage() -> None:
         dst = BUILD / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, dst)
+    # The client and its library become one file, so the .vsix needs no node_modules.
+    subprocess.run(["npm", "run", "--silent", "bundle"], cwd=EXT, check=True)
 
 
 def package() -> None:

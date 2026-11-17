@@ -1,0 +1,208 @@
+{
+  "steps": [
+    {
+      "in": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "method": "initialize",
+        "params": {
+          "capabilities": {
+            "general": {
+              "positionEncodings": [
+                "utf-8",
+                "utf-16"
+              ]
+            }
+          }
+        }
+      },
+      "out": [
+        {
+          "id": 1,
+          "jsonrpc": "2.0",
+          "result": {
+            "capabilities": {
+              "codeActionProvider": {
+                "codeActionKinds": [
+                  "quickfix"
+                ]
+              },
+              "documentFormattingProvider": true,
+              "documentSymbolProvider": true,
+              "hoverProvider": true,
+              "positionEncoding": "utf-8",
+              "textDocumentSync": {
+                "change": 1,
+                "openClose": true
+              }
+            },
+            "serverInfo": {
+              "name": "yan",
+              "version": "0.0.0"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "in": {
+        "jsonrpc": "2.0",
+        "method": "textDocument/didOpen",
+        "params": {
+          "textDocument": {
+            "languageId": "yan",
+            "text": "def addOne(x: int) -> int:\n    return x + 1\n\ndef main() -> int:\n    return addOne(2)\n",
+            "uri": "file:///w/a.yag",
+            "version": 1
+          }
+        }
+      },
+      "out": [
+        {
+          "method": "textDocument/publishDiagnostics",
+          "params": {
+            "diagnostics": [
+              {
+                "code": "E110",
+                "message": "`addOne` is not a lowercase snake_case name",
+                "range": {
+                  "end": {
+                    "character": 10,
+                    "line": 0
+                  },
+                  "start": {
+                    "character": 4,
+                    "line": 0
+                  }
+                },
+                "relatedInformation": [],
+                "severity": 1,
+                "source": "yan"
+              }
+            ],
+            "uri": "file:///w/a.yag"
+          }
+        }
+      ]
+    },
+    {
+      "in": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "method": "textDocument/codeAction",
+        "params": {
+          "context": {
+            "diagnostics": []
+          },
+          "range": {
+            "end": {
+              "character": 5,
+              "line": 0
+            },
+            "start": {
+              "character": 5,
+              "line": 0
+            }
+          },
+          "textDocument": {
+            "uri": "file:///w/a.yag"
+          }
+        }
+      },
+      "out": [
+        {
+          "id": 2,
+          "result": [
+            {
+              "diagnostics": [
+                {
+                  "code": "E110",
+                  "message": "`addOne` is not a lowercase snake_case name",
+                  "range": {
+                    "end": {
+                      "character": 10,
+                      "line": 0
+                    },
+                    "start": {
+                      "character": 4,
+                      "line": 0
+                    }
+                  },
+                  "relatedInformation": [],
+                  "severity": 1,
+                  "source": "yan"
+                }
+              ],
+              "edit": {
+                "changes": {
+                  "file:///w/a.yag": [
+                    {
+                      "newText": "add_one",
+                      "range": {
+                        "end": {
+                          "character": 10,
+                          "line": 0
+                        },
+                        "start": {
+                          "character": 4,
+                          "line": 0
+                        }
+                      }
+                    },
+                    {
+                      "newText": "add_one",
+                      "range": {
+                        "end": {
+                          "character": 17,
+                          "line": 4
+                        },
+                        "start": {
+                          "character": 11,
+                          "line": 4
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "isPreferred": true,
+              "kind": "quickfix",
+              "title": "rename `addOne` to `add_one`"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "in": {
+        "id": 3,
+        "jsonrpc": "2.0",
+        "method": "textDocument/codeAction",
+        "params": {
+          "context": {
+            "diagnostics": []
+          },
+          "range": {
+            "end": {
+              "character": 0,
+              "line": 3
+            },
+            "start": {
+              "character": 0,
+              "line": 3
+            }
+          },
+          "textDocument": {
+            "uri": "file:///w/a.yag"
+          }
+        }
+      },
+      "out": [
+        {
+          "id": 3,
+          "result": []
+        }
+      ]
+    }
+  ]
+}

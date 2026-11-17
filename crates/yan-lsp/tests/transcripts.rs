@@ -49,3 +49,8 @@ fn yag_utf16() {
 fn yn_session() {
     replay("yn_session");
 }
+
+#[test]
+fn yag_codeaction() {
+    replay("yag_codeaction");
+}
