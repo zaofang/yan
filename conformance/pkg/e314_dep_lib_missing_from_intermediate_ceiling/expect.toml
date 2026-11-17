@@ -1,0 +1,6 @@
+spec = "19.2"
+rows = "R1031, R1033"
+note = "a library in the closure of an intermediate package that its ceiling omits is E314 naming that package"
+command = ["lock"]
+code = "E314"
+at = "yan.lock:0:0"

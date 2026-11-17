@@ -936,12 +936,12 @@
    "expect": [
     {
      "code": "E323",
-     "line": 8,
+     "line": 9,
      "col": 5
     },
     {
      "code": "E415",
-     "line": 8,
+     "line": 9,
      "col": 13
     }
    ]
@@ -3531,13 +3531,23 @@
    "expect": [
     {
      "code": "E414",
-     "line": 12,
+     "line": 14,
      "col": 18
     },
     {
      "code": "E414",
-     "line": 16,
+     "line": 18,
      "col": 11
+    },
+    {
+     "code": "W812",
+     "line": 14,
+     "col": 5
+    },
+    {
+     "code": "W812",
+     "line": 18,
+     "col": 5
     }
    ]
   },
@@ -5844,7 +5854,7 @@
    ],
    "flags": [],
    "expect": [],
-   "stdout": "4\n[1, 2, 3]\n[2, 3]\n7\n",
+   "stdout": "4\n[1, 2, 3]\n[2, 3]\n8\n",
    "exit": 0
   },
   {
@@ -14525,6 +14535,64 @@
    }
   },
   {
+   "path": "pkg/e020_locked_ffi_removed",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "3",
+    "4"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1034",
+    "note": "under --locked, a lock that drops the ffi modules its archive holds is E020",
+    "command": [
+     "check",
+     "--locked",
+     "src/main.yag"
+    ],
+    "code": "E020",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
+   "path": "pkg/e020_locked_libs_edited",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "3",
+    "4"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1034",
+    "note": "under --locked, a lock whose libs differ from the set recomputed from the verified archive is E020",
+    "command": [
+     "check",
+     "--locked",
+     "src/main.yag"
+    ],
+    "code": "E020",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
    "path": "pkg/e020_locked_lock_mismatch",
    "kind": "pkg",
    "milestone": "M1",
@@ -14601,6 +14669,42 @@
     ],
     "code": "E023",
     "at": "ffi/ext.yn:1:1"
+   }
+  },
+  {
+   "path": "pkg/e023_locked_build_ffi_unlisted",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "1",
+    "9",
+    ",",
+    " ",
+    "R",
+    "1",
+    "0",
+    "3",
+    "3"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1019, R1033",
+    "note": "a locked build over a dependency whose recorded ffi module the root's allow_ffi omits is E023",
+    "command": [
+     "check",
+     "--locked",
+     "src/main.yag"
+    ],
+    "code": "E023",
+    "at": "yan.lock:0:0"
    }
   },
   {
@@ -14727,6 +14831,108 @@
      "check"
     ],
     "code": "E144"
+   }
+  },
+  {
+   "path": "pkg/e314_dep_lib_missing_from_intermediate_ceiling",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "3",
+    "1",
+    ",",
+    " ",
+    "R",
+    "1",
+    "0",
+    "3",
+    "3"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1031, R1033",
+    "note": "a library in the closure of an intermediate package that its ceiling omits is E314 naming that package",
+    "command": [
+     "lock"
+    ],
+    "code": "E314",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
+   "path": "pkg/e314_dep_lib_missing_from_root_ceiling",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "3",
+    "1",
+    ",",
+    " ",
+    "R",
+    "1",
+    "0",
+    "3",
+    "3"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1031, R1033",
+    "note": "a dependency library missing from the root ceiling is E314 naming the library and the path",
+    "command": [
+     "lock"
+    ],
+    "code": "E314",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
+   "path": "pkg/e314_same_library_name_in_two_packages",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "12"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "3",
+    "2",
+    ",",
+    " ",
+    "R",
+    "1",
+    "0",
+    "3",
+    "3"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "12",
+    "rows": "R1032, R1033",
+    "note": "two packages declaring `lib zlib` are two capabilities, so naming one qualified entry leaves the other outside the ceiling",
+    "command": [
+     "lock"
+    ],
+    "code": "E314",
+    "at": "yan.lock:0:0"
    }
   },
   {
@@ -14946,6 +15152,45 @@
    }
   },
   {
+   "path": "pkg/ffi_lib_in_root_ceiling",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "3",
+    "1",
+    ",",
+    " ",
+    "R",
+    "1",
+    "0",
+    "3",
+    "2",
+    ",",
+    " ",
+    "R",
+    "1",
+    "0",
+    "3",
+    "3"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1031, R1032, R1033",
+    "note": "a dependency library named in the root ceiling by its qualified spelling resolves",
+    "command": [
+     "lock"
+    ]
+   }
+  },
+  {
    "path": "pkg/ffi_listed",
    "kind": "pkg",
    "milestone": "M1",
@@ -14992,6 +15237,58 @@
     "note": "the same dependency resolves when the root's allow_ffi names it",
     "command": [
      "lock"
+    ]
+   }
+  },
+  {
+   "path": "pkg/ffi_same_library_name_in_two_packages_both_listed",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "12"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "3",
+    "2"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "12",
+    "rows": "R1032",
+    "note": "each of two same-named libraries resolves when its qualified spelling is in the ceiling",
+    "command": [
+     "lock"
+    ]
+   }
+  },
+  {
+   "path": "pkg/locked_ffi_set_matches_archive",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "3",
+    "4"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1034",
+    "note": "under --locked, a lock whose ffi and libs match the set recomputed from the verified archive passes",
+    "command": [
+     "check",
+     "--locked",
+     "src/main.yag"
     ]
    }
   },
