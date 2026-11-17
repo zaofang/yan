@@ -160,7 +160,11 @@ enum Command {
         new: Option<PathBuf>,
     },
     /// Write `yan.lock` from the manifest and the workspace members (19.1, R896).
-    Lock,
+    Lock {
+        /// `prose` when output is a terminal, `line` otherwise (18.2).
+        #[arg(long, value_enum)]
+        format: Option<Format>,
+    },
     /// Add a registry dependency: the newest version outside the cool-off window (19.4, R894).
     Add {
         /// `@org/name`, `@org/name@1.4` or `@org/name@=1.4.2` (exact, skips the cool-off).
@@ -440,7 +444,8 @@ fn main() -> ExitCode {
             Ok(_) => ExitCode::SUCCESS,
             Err(msg) => tool_failure(&msg),
         },
-        Command::Lock => match lock::write(Path::new(".")) {
+        Command::Lock { format } => match lock::write(Path::new(".")) {
+            Ok(_) if matches!(format, Some(Format::Json)) => emit_records(&[], format),
             Ok(changed) => {
                 println!(
                     "{}",
@@ -452,10 +457,7 @@ fn main() -> ExitCode {
                 );
                 ExitCode::SUCCESS
             }
-            Err(d) => {
-                print_diags(&[*d]);
-                ExitCode::FAILURE
-            }
+            Err(d) => emit_records(&[*d], format),
         },
         Command::Add { spec, agent } => {
             let caller = if agent {

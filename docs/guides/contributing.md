@@ -94,8 +94,8 @@ uv run python tools/conform.py --root /tmp/one --executor interp=target/release/
 uv run python tools/conform.py --executor interp=target/release/yan --executor machine="target/release/yan --backend machine"
 ```
 
-A case PR regenerates `conformance/COVERAGE.md` (`uv run python tools/conform.py --coverage conformance/COVERAGE.md`);
-a conflict in that file stops CI, so merge main and regenerate rather than resolving by hand.
+The coverage report is not committed. CI generates it on every run (`conformance-coverage` artifact and job summary);
+locally: `uv run python tools/conform.py --coverage /tmp/coverage.md`.
 
 ## 7. Spec rows and diagnostic codes
 
