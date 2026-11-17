@@ -9837,6 +9837,27 @@
    ]
   },
   {
+   "path": "yn/fail/concurrency/e709_try_lock_without_nondet.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "6.3",
+    "6.5",
+    "15"
+   ],
+   "rows": [
+    "R1038"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 6,
+     "col": 9
+    }
+   ]
+  },
+  {
    "path": "yn/fail/concurrency/e711_bad_select_arm.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -11405,11 +11426,38 @@
    ]
   },
   {
+   "path": "yn/fail/ownership/e414_try_lock_option_named.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.5",
+    "6.3",
+    "15"
+   ],
+   "rows": [
+    "R1038"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E414",
+     "line": 6,
+     "col": 11
+    },
+    {
+     "code": "W812",
+     "line": 6,
+     "col": 7
+    }
+   ]
+  },
+  {
    "path": "yn/fail/ownership/e415_mutex_of_rc.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
-    "6.4"
+    "6.4",
+    "15"
    ],
    "rows": [
     "R1040"
@@ -11418,7 +11466,7 @@
    "expect": [
     {
      "code": "E415",
-     "line": 7,
+     "line": 6,
      "col": 11
     }
    ]
@@ -12280,6 +12328,39 @@
    "flags": [],
    "expect": [],
    "stdout": "2\n6\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/concurrency/mutex_get_mut_into_inner.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "6.2",
+    "6.3",
+    "15"
+   ],
+   "rows": [
+    "R1039"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n[1, 2]\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/concurrency/mutex_try_lock.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "6.3",
+    "15"
+   ],
+   "rows": [
+    "R1038"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7\nheld\n",
    "exit": 0
   },
   {
@@ -15755,11 +15836,7 @@
     "14.4"
    ],
    "rows": [
-    "R",
-    "1",
-    "0",
-    "5",
-    "6"
+    "R1056"
    ],
    "flags": [],
    "expect": [],
@@ -15776,11 +15853,7 @@
     "14.4"
    ],
    "rows": [
-    "R",
-    "1",
-    "0",
-    "5",
-    "6"
+    "R1056"
    ],
    "flags": [],
    "expect": [],

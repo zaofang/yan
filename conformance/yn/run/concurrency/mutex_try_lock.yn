@@ -1,0 +1,22 @@
+-- spec: 6.3, 15
+-- rows: R1038
+-- note: try_lock is matched in place, Some binds a guard for the arm, and None when the caller already holds the lock
+-- stdout:
+-- 7
+-- held
+
+probe(m: Mutex[int]) -> int uses nondet =
+  match m.try_lock()
+    Some(g) ->
+      g.set(g.get() + 7)
+      g.get()
+    None -> 0 - 1
+
+main() uses io, nondet =
+  let m = Mutex[int](0)
+  io.print("\(probe(m))")
+  with held = m.lock()
+    held.set(2)
+    match m.try_lock()
+      Some(h) -> io.print("bad")
+      None -> io.print("held")
