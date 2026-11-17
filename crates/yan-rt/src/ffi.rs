@@ -29,6 +29,15 @@ type FloatFn =
 #[cfg(unix)]
 static SYMBOLS: Mutex<Option<HashMap<(String, String), usize>>> = Mutex::new(None);
 
+/// A link name is a bare library name: a `/` would make `dlopen` load a path relative to the cwd.
+fn valid_link(link: &str) -> bool {
+    !link.is_empty()
+        && link
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-' | b'.' | b'+'))
+        && !link.starts_with('.')
+}
+
 #[cfg(unix)]
 fn open(link: &str) -> *mut c_void {
     // Dev symlinks (`libm.so`) are absent on many hosts; the versioned names are tried next.
@@ -60,6 +69,9 @@ fn symbol(link: &str, sym: &str) -> Result<usize, String> {
     let key = (link.to_owned(), sym.to_owned());
     if let Some(&a) = cache.get(&key) {
         return Ok(a);
+    }
+    if !valid_link(link) {
+        return Err(format!("invalid library name `{link}`"));
     }
     let h = open(link);
     if h.is_null() {
@@ -178,3 +190,26 @@ entry!(
     f64,
     |link, sym, _kind, ints, floats| call_f64(link, sym, ints, floats)
 );
+
+#[cfg(all(test, unix))]
+mod link_tests {
+    use super::{symbol, valid_link};
+
+    #[test]
+    fn link_names_are_bare() {
+        for ok in ["c", "m", "z", "stdc++", "foo-2.1", "a_b"] {
+            assert!(valid_link(ok), "{ok}");
+        }
+        for bad in ["", "../evil", "/tmp/x", "./x", ".hidden", "a/b", "a b"] {
+            assert!(!valid_link(bad), "{bad}");
+        }
+    }
+
+    #[test]
+    fn a_path_is_never_handed_to_dlopen() {
+        assert_eq!(
+            symbol("../evil", "f"),
+            Err("invalid library name `../evil`".to_owned())
+        );
+    }
+}
