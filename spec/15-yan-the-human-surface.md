@@ -10,7 +10,7 @@ Yan is the surface people write and read. It covers layers L0 to L6, files use t
 - **Layout.** Blocks are indentation only, 2 spaces; tabs are E133. Newlines inside brackets are joined. A line whose first token is `.` or a binary operator continues the previous line. There is no `;` outside grid literals. A line whose first token is `fail` or `uses` also continues a function signature that has not yet reached its `=`, which gives the signature layout of 15.3 (R460).
 - **Literals.** Integers, floats, `True`, `False` and `None` as in Yan Agent. Strings `"..."`, raw `r"..."`, bytes `b"..."`, C strings `c"..."` (E140 on interior NUL) and triple-quoted strings; non-raw strings interpolate `\(expr)` and `\(expr:spec)`, and braces are literal. A non-raw string that contains `${` followed by a name or expression and `}` is lint W854, whose fix rewrites it to `\(...)` (R663). A char is `c'a'`.
 - **Units, dates and grids.** Unit-suffixed numbers such as `150ms`, `64MB`, `2.5bp` and `5pct`, where the suffix must be a declared unit. A date is `2026-10-30` (PlainDate), a time `09:00:00`, an instant `2026-10-30T09:00:00Z`, and a zoned time `2026-10-30T09:00[America/Chicago]`, with an offset when it falls in a fold; there is no implicit local zone. These are checked at compile time (14.2). Grid literals separate elements by spaces and rows by `;`: `[1 2; 3 4]`; newlines inside the brackets are joined as elsewhere (R463). An element is a literal, a name or a parenthesized expression, with an optional attached sign. Inside a grid, a `-` or `+` after a space and before a non-space is a sign (SIGN in 15.2), so `[1 -2]` is two elements, and `a -b` is E134; a `(` after a space starts a new element (SPLPAREN in 15.2), so `[a (b)]` is two elements and `[a(b)]` one call. A grid has two elements or a `;`, so `[e]` is a list (R374). Display widths count graphemes.
-- **Keywords.** Reserved: `let var take pub type trait impl dyn use as try if then else match is for in while loop break continue return par with unsafe extern and or not copy share self assert unreachable become fail` (`fail` as in Yan Agent, R462). Soft (keywords only where the grammar expects them, ordinary names elsewhere): `safe lib link asm gen sub yield select concurrent from uses pre post ex invariant decreases ghost lemma reveal`, and `deadline` and `timeout` after `with` (R444, R374). A soft word follows Yan Agent's next-token rule (13.1, R462).
+- **Keywords.** Reserved: `let var take pub type trait impl dyn use as try if then else match is for in while loop break continue return par with unsafe extern and or not copy share self assert unreachable become fail` (`fail` as in Yan Agent, R462). Soft (keywords only where the grammar expects them, ordinary names elsewhere): `pkg safe lib link asm gen sub yield select concurrent from uses pre post ex invariant decreases ghost lemma reveal`, and `deadline` and `timeout` after `with` (R444, R374). A soft word follows Yan Agent's next-token rule (13.1, R462).
 
 ### 15.2 Grammar
 
@@ -19,9 +19,10 @@ This is the complete Yan grammar. Notation as in 13.2; NEWLINE, INDENT and DEDEN
 ```
 module    = {modattr} {item}
 modattr   = "@@" NAME ["(" [args] ")"] NEWLINE                 -- module attribute, as @@prove (R466)
-item      = {attr} ["pub"] (["unsafe"] fundef | gendef | subdef | lemmadef | typedef | traitdef | impldef | constdef | externdef)   -- unsafe fn (R1010); never in impldef
+item      = {attr} [vis] (["unsafe"] fundef | gendef | subdef | lemmadef | typedef | traitdef | impldef | constdef | externdef)   -- unsafe fn (R1010); never in impldef
           | usedecl
 attr      = "@" NAME ["(" [args] ")"] NEWLINE
+vis       = "pub" | "pkg"                                      -- pkg is soft: the modifier only before a name or keyword (R1069)
 usedecl   = "use" ["."] NAME {"." NAME} ["as" NAME] NEWLINE          -- aliases only
 
 fundef    = sig "=" body

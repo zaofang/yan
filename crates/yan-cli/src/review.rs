@@ -237,12 +237,12 @@ fn fn_facts(fd: &FnDef) -> FnFacts {
 
 fn is_pub(k: &ItemKind) -> bool {
     match k {
-        ItemKind::Fn(f) | ItemKind::Gen(f) => f.is_pub,
-        ItemKind::Record(r) => r.is_pub,
-        ItemKind::Sum(s) => s.is_pub,
-        ItemKind::Newtype(n) => n.is_pub,
-        ItemKind::Trait(t) => t.is_pub,
-        ItemKind::Const(c) => c.is_pub,
+        ItemKind::Fn(f) | ItemKind::Gen(f) => f.vis.is_pub(),
+        ItemKind::Record(r) => r.vis.is_pub(),
+        ItemKind::Sum(s) => s.vis.is_pub(),
+        ItemKind::Newtype(n) => n.vis.is_pub(),
+        ItemKind::Trait(t) => t.vis.is_pub(),
+        ItemKind::Const(c) => c.vis.is_pub(),
         ItemKind::Impl(_) | ItemKind::Test(_) | ItemKind::Extern(_) | ItemKind::Inst(_) => false,
     }
 }

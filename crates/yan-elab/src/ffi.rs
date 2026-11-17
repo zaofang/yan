@@ -270,7 +270,7 @@ pub(crate) fn export(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<()> {
     let j::ItemKind::Func(f) = &it.kind else {
         return unsupported("`@export` on an item that is not a function");
     };
-    if !it.is_pub {
+    if !it.vis.is_pub() {
         cx.err(
             "E907",
             f.name_span,

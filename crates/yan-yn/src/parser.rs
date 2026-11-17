@@ -412,12 +412,19 @@ impl<'a> Parser<'a> {
             let kind = self.use_decl()?;
             return Ok(Item {
                 attrs,
-                public: false,
+                vis: Vis::Private,
                 kind,
                 span: self.since(start),
             });
         }
-        let public = self.eat_kw("pub");
+        let vis = if self.eat_kw("pub") {
+            Vis::Pub
+        } else if self.is_word("pkg") && matches!(self.peek_n(1), Tok::Name(_) | Tok::Kw(_)) {
+            self.bump();
+            Vis::Pkg
+        } else {
+            Vis::Private
+        };
         let kind = match self.peek() {
             Tok::Kw("type") => ItemKind::Type(self.type_def()?),
             Tok::Kw("trait") => ItemKind::Trait(self.trait_def()?),
@@ -440,7 +447,7 @@ impl<'a> Parser<'a> {
         };
         Ok(Item {
             attrs,
-            public,
+            vis,
             kind,
             span: self.since(start),
         })
@@ -904,7 +911,7 @@ impl<'a> Parser<'a> {
                 let f = self.fn_def(None)?;
                 def.items.push(Item {
                     attrs,
-                    public: false,
+                    vis: Vis::Private,
                     kind: ItemKind::Fn(f),
                     span: self.since(start),
                 });
