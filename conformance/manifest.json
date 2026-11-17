@@ -15255,6 +15255,29 @@
    }
   },
   {
+   "path": "pkg/e023_nameless_root_ffi",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "12"
+   ],
+   "rows": [
+    "R1018"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "12",
+    "rows": "R1018",
+    "note": "a root package without a name is never consented to, so its own ffi module is E023 (it also reports E018)",
+    "command": [
+     "check"
+    ],
+    "code": "E023",
+    "at": "package.yag:1:1"
+   }
+  },
+  {
    "path": "pkg/e023_resolve_ffi_unlisted",
    "kind": "pkg",
    "milestone": "M1",
