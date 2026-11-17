@@ -1,0 +1,2 @@
+--- Tax on a shape, reached through a pkg item of a sibling module.
+pkg tax(s: shapes.Shape) -> int uses none = shapes.area(s)

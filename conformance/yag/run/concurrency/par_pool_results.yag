@@ -1,5 +1,5 @@
 # spec: 6.7, 9.1
-# rows: R1071
+# rows: R1070
 # note: plain par arms that call only pure functions are pool-safe; the pool (YAN_THREADS) or inline runs give the same results at every thread count
 # stdout:
 # 832040 4950000 75025

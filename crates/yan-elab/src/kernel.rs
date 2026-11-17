@@ -480,7 +480,7 @@ pub(crate) fn prepare(m: &mut j::Module) {
         ));
         launchers.push(j::Item {
             decorators: Vec::new(),
-            is_pub: false,
+            vis: j::Vis::Private,
             kind: j::ItemKind::Func(j::FuncDef {
                 unsafe_at: None,
                 name: launcher(&f.name),

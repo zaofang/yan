@@ -249,7 +249,7 @@ pub fn front(db: &dyn Db, file: SourceFile) -> Result<Front, String> {
                 .as_ref()
                 .map(|(dir, modules)| yan_yn::PackageCtx { dir, modules });
             match yan_yn::lower_in(&name, src, &m, pkg.as_ref()) {
-                Err(u) => Front::Stopped(unsupported(&name, src, &u.what, u.at, diags)),
+                Err(u) => Front::Stopped(unsupported(&name, src, &u.what, u.at, None, diags)),
                 Ok((_, mut errs)) if has_error(&errs) => {
                     errs.extend(diags);
                     Front::Stopped(errs)
@@ -362,7 +362,14 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
         package_manifest(packages, path),
         env.as_ref(),
     ) {
-        Err(u) => Loaded::Stopped(unsupported(&name, file.text(db), &u.what, u.at, diags)),
+        Err(u) => Loaded::Stopped(unsupported(
+            &name,
+            file.text(db),
+            &u.what,
+            u.at,
+            u.code,
+            diags,
+        )),
         Ok((y, table, mut errs)) => {
             let stop = has_error(&errs);
             errs.extend(diags);
@@ -465,6 +472,7 @@ fn unsupported(
     src: &str,
     what: &str,
     at: Option<Span>,
+    code: Option<&'static str>,
     mut diags: Vec<Diagnostic>,
 ) -> Vec<Diagnostic> {
     let at = at.unwrap_or(Span {
@@ -485,13 +493,11 @@ fn unsupported(
             l.get(at.col.saturating_sub(1) as usize..to.saturating_sub(1))
         })
         .unwrap_or("");
-    diags.push(Diagnostic::error(
-        "E017",
-        file,
-        at,
-        quote,
-        yan_elab::unsupported_message(what),
-    ));
+    let (code, message) = match code {
+        Some(code) => (code, what.to_owned()),
+        None => ("E017", yan_elab::unsupported_message(what)),
+    };
+    diags.push(Diagnostic::error(code, file, at, quote, message));
     diags
 }
 

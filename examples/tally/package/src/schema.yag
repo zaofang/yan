@@ -1,11 +1,11 @@
 """Tally wire schema: the types the service, the fee rules and settlement share."""
 
-type Mcc = Grocery() | Travel() | Other(code: int)
+pub type Mcc = Grocery() | Travel() | Other(code: int)
 
-type Decision = Approved(code: str) | Declined(reason: str)
+pub type Decision = Approved(code: str) | Declined(reason: str)
 
 @derive(Wire)
-class Auth:
+pub class Auth:
     id: int
     merchant: str
     pan: Secret[str]
@@ -13,7 +13,7 @@ class Auth:
     mcc: Mcc
 
 @derive(Wire)
-class Settled:
+pub class Settled:
     merchant: str
     gross: Money
     fees: Money

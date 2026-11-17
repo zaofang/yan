@@ -241,14 +241,7 @@ fn tparams(ps: &[TParam]) -> String {
 
 fn field(f: &Field) -> String {
     let mut s: String = f.attrs.iter().map(|a| format!("{} ", attr(a))).collect();
-    write!(
-        s,
-        "{}{}: {}",
-        if f.is_pub { "pub " } else { "" },
-        f.name,
-        ty(&f.ty)
-    )
-    .unwrap();
+    write!(s, "{}{}: {}", f.vis.prefix(), f.name, ty(&f.ty)).unwrap();
     if let Some(d) = &f.default {
         write!(s, " = {}", const_val(d)).unwrap();
     }
@@ -362,14 +355,14 @@ impl Printer {
         for a in &item.attrs {
             self.line(&attr(a));
         }
-        let vis = |is_pub: bool| if is_pub { "pub " } else { "" };
+        let vis = Vis::prefix;
         match &item.kind {
             ItemKind::Fn(f) => self.function(f, "fn", &tparams(&f.tparams)),
             ItemKind::Gen(f) => self.function(f, "gen", &tparams(&f.tparams)),
             ItemKind::Inst(i) => self.function(&i.def, "inst fn", &targs(&i.args)),
             ItemKind::Record(r) => self.line(&format!(
                 "{}record {}{} {}",
-                vis(r.is_pub),
+                vis(r.vis),
                 path(&r.path),
                 tparams(&r.tparams),
                 fields(&r.fields)
@@ -381,7 +374,7 @@ impl Printer {
                 });
                 self.line(&format!(
                     "{}sum {}{} {{ {vs} }}",
-                    vis(s.is_pub),
+                    vis(s.vis),
                     path(&s.path),
                     tparams(&s.tparams)
                 ))
@@ -389,7 +382,7 @@ impl Printer {
             ItemKind::Newtype(n) => {
                 let mut s = format!(
                     "{}newtype {}{} = {}",
-                    vis(n.is_pub),
+                    vis(n.vis),
                     path(&n.path),
                     tparams(&n.tparams),
                     ty(&n.ty)
@@ -402,7 +395,7 @@ impl Printer {
             ItemKind::Trait(t) => {
                 self.line(&format!(
                     "{}trait {}{} {{",
-                    vis(t.is_pub),
+                    vis(t.vis),
                     path(&t.path),
                     tparams(&t.tparams)
                 ));
@@ -438,7 +431,7 @@ impl Printer {
             }
             ItemKind::Const(c) => self.line(&format!(
                 "{}const {}: {} = {}",
-                vis(c.is_pub),
+                vis(c.vis),
                 path(&c.path),
                 ty(&c.ty),
                 const_val(&c.value)
@@ -521,9 +514,7 @@ impl Printer {
     /// `brackets` is the type parameters, or an instance's arguments.
     fn function(&mut self, f: &FnDef, keyword: &str, brackets: &str) {
         let mut head = String::new();
-        if f.is_pub {
-            head.push_str("pub ");
-        }
+        head.push_str(f.vis.prefix());
         if f.is_unsafe {
             head.push_str("unsafe ");
         }

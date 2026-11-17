@@ -762,7 +762,14 @@ impl Parser {
             decorators.push(d);
         }
         let span = self.span();
-        let is_pub = self.eat_kw("pub");
+        let vis = if self.eat_kw("pub") {
+            Vis::Pub
+        } else if self.is_kw("pkg") && matches!(self.tok_at(1), Tok::Name(_)) {
+            self.bump();
+            Vis::Pkg
+        } else {
+            Vis::Private
+        };
         let name_at = |p: &Self| p.toks[(p.pos + 1).min(p.toks.len() - 1)].span;
         let (kind, name_span) = if self.is_kw("def") {
             self.bump();
@@ -772,7 +779,7 @@ impl Parser {
         } else if self.is_kw("class") {
             let ns = name_at(self);
             self.bump();
-            (ItemKind::Record(self.class_rest(is_pub)?), ns)
+            (ItemKind::Record(self.class_rest(vis)?), ns)
         } else if self.soft("type") && matches!(self.tok_at(1), Tok::Name(n) if is_type_name(n)) {
             let ns = name_at(self);
             self.bump();
@@ -811,7 +818,7 @@ impl Parser {
         };
         Ok(Item {
             decorators,
-            is_pub,
+            vis,
             kind,
             span,
             name_span,
@@ -1327,7 +1334,7 @@ impl Parser {
         Ok(out)
     }
 
-    fn class_rest(&mut self, is_pub: bool) -> P<Record> {
+    fn class_rest(&mut self, vis: Vis) -> P<Record> {
         let name = self.name()?;
         let tparams = self.tparams()?;
         if !self.strict && self.is_op("(") && self.is_kw_at(1, "Exception") && self.is_op_at(2, ")")
@@ -1347,7 +1354,7 @@ impl Parser {
         } else {
             while !matches!(self.tok(), Tok::Dedent | Tok::Eof) {
                 if !self.strict && self.is_kw("def") {
-                    self.method(&name, &tparams, is_pub, &mut fields)?;
+                    self.method(&name, &tparams, vis, &mut fields)?;
                     continue;
                 }
                 if !self.strict
@@ -1382,7 +1389,7 @@ impl Parser {
         &mut self,
         class: &str,
         tparams: &[TParam],
-        is_pub: bool,
+        vis: Vis,
         fields: &mut Vec<Field>,
     ) -> P<()> {
         let span = self.span();
@@ -1426,7 +1433,7 @@ impl Parser {
         f.tparams.splice(0..0, tparams.iter().cloned());
         self.lifted.push(Item {
             decorators: Vec::new(),
-            is_pub,
+            vis,
             span,
             name_span: f.name_span,
             kind: ItemKind::Func(f),

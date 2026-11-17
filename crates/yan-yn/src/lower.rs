@@ -320,7 +320,7 @@ impl Lower<'_> {
         self.doc = self.doc_above(it.span.line);
         let (kind, name_span) = match &it.kind {
             ItemKind::Fn(f) => {
-                let mut def = self.fn_def(&f.sig, Some(&f.body), !it.public)?;
+                let mut def = self.fn_def(&f.sig, Some(&f.body), !it.vis.is_pub())?;
                 def.unsafe_at = f.unsafe_;
                 let span = f.sig.name_span;
                 match f.kind {
@@ -346,7 +346,7 @@ impl Lower<'_> {
         };
         Ok(Some(h::Item {
             decorators,
-            is_pub: it.public,
+            vis: it.vis,
             kind,
             span: it.span,
             name_span,
@@ -2291,7 +2291,7 @@ fn infer_fails(m: &Module) -> HashMap<String, Vec<String>> {
         .items
         .iter()
         .filter_map(|i| match &i.kind {
-            ItemKind::Fn(f) => Some((f.sig.name.as_str(), (f, i.public))),
+            ItemKind::Fn(f) => Some((f.sig.name.as_str(), (f, i.vis.is_pub()))),
             _ => None,
         })
         .collect();

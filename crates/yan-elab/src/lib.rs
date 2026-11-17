@@ -702,8 +702,8 @@ pub fn elaborate_pkg(
             let mut c = m.clone();
             package::link(&mut c, env).map_err(|e| Unsupported {
                 what: e.what,
-                at: None,
-                code: None,
+                at: e.at,
+                code: e.code,
             })?;
             linked = c;
             &linked
@@ -784,7 +784,7 @@ pub fn elaborate_pkg(
         items.push(y::Item {
             attrs: Vec::new(),
             kind: y::ItemKind::Record(y::Record {
-                is_pub: true,
+                vis: j::Vis::Pub,
                 path: vec![name.clone()],
                 tparams: g
                     .type_params
@@ -837,7 +837,7 @@ pub fn elaborate_pkg(
         items.push(y::Item {
             attrs: Vec::new(),
             kind: y::ItemKind::Sum(y::Sum {
-                is_pub: true,
+                vis: j::Vis::Pub,
                 path: vec![name],
                 tparams,
                 variants,
@@ -860,7 +860,7 @@ pub fn elaborate_pkg(
         items.push(y::Item {
             attrs: Vec::new(),
             kind: y::ItemKind::Record(y::Record {
-                is_pub: false,
+                vis: j::Vis::Private,
                 path: vec!["TileOrigin".into()],
                 tparams: Vec::new(),
                 fields: core_fields(fs)?,
@@ -1001,7 +1001,7 @@ pub fn elaborate_pkg(
             items.push(y::Item {
                 attrs: Vec::new(),
                 kind: y::ItemKind::Const(y::Const {
-                    is_pub: it.is_pub,
+                    vis: it.vis,
                     path: vec![name.clone()],
                     ty: g.consts[name].core(),
                     value,
@@ -1707,7 +1707,7 @@ fn derive_froms(g: &mut Globals, m: &j::Module) -> Vec<y::Item> {
             items.push(y::Item {
                 attrs: Vec::new(),
                 kind: y::ItemKind::Fn(y::FnDef {
-                    is_pub: false,
+                    vis: j::Vis::Private,
                     is_unsafe: false,
                     path: vec![name.clone()],
                     name_span: at,
@@ -1738,7 +1738,7 @@ fn core_fields(fs: &[Field]) -> R<Vec<y::Field>> {
         .map(|f| {
             Ok(y::Field {
                 attrs: f.attrs.clone(),
-                is_pub: true,
+                vis: j::Vis::Pub,
                 name: f.name.clone(),
                 ty: f.ty.core(),
                 default: f.default.as_ref().map(const_val).transpose()?,
@@ -1765,7 +1765,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
     Ok(Some(match &it.kind {
         j::ItemKind::Verbatim(_) | j::ItemKind::Sub(_) => return Ok(None),
         j::ItemKind::Record(c) => y::ItemKind::Record(y::Record {
-            is_pub: it.is_pub,
+            vis: it.vis,
             path: vec![c.name.clone()],
             tparams: core_tparams(g, &c.name),
             fields: match g.layout_bits.get(&c.name) {
@@ -1787,7 +1787,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
                     });
                 }
                 y::ItemKind::Sum(y::Sum {
-                    is_pub: it.is_pub,
+                    vis: it.vis,
                     path: vec![t.name.clone()],
                     tparams: core_tparams(g, &t.name),
                     variants,
@@ -1804,7 +1804,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             ..
         } => return Ok(None),
         j::ItemKind::Const { name, value, .. } => y::ItemKind::Const(y::Const {
-            is_pub: it.is_pub,
+            vis: it.vis,
             path: vec![name.clone()],
             ty: g.consts[name].core(),
             value: const_val(value)?,
@@ -1845,7 +1845,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
         }
         j::ItemKind::Func(f) if g.templates.contains_key(&f.name) => return Ok(None),
         j::ItemKind::Func(f) => {
-            if it.is_pub && f.name != "main" {
+            if it.vis.is_pub() && f.name != "main" {
                 let body = f.body.as_ref();
                 if body.is_none_or(|b| b.doc.is_none()) {
                     cx.warn(
@@ -1936,7 +1936,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
             };
             let outer = cx.ffi;
             cx.ffi |= f.unsafe_at.is_some();
-            let def = lower::function(g, f, sig, it.is_pub, cx);
+            let def = lower::function(g, f, sig, it.vis.is_pub(), cx);
             cx.ffi = outer;
             let def = def?;
             if g.reentrant.contains(&f.name) && !sig.params.is_empty() {
@@ -1950,7 +1950,7 @@ fn item(g: &Globals, it: &j::Item, cx: &mut Cx) -> R<Option<y::ItemKind>> {
         }
         j::ItemKind::Extern(x) => y::ItemKind::Extern(ffi::lower(g, x, cx)?),
         j::ItemKind::Trait(t) => y::ItemKind::Trait(y::Trait {
-            is_pub: it.is_pub,
+            vis: it.vis,
             path: vec![t.name.clone()],
             tparams: Vec::new(),
             assoc: t.assoc.clone(),

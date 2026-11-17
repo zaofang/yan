@@ -121,7 +121,7 @@ pub(crate) fn expand(m: &mut j::Module, cx: &mut Cx) -> R<Expanded> {
                             Ty::Err
                         }
                         Some(p) => {
-                            let items = session::items(&p, it.is_pub, at);
+                            let items = session::items(&p, it.vis.is_pub(), at);
                             let clash = items
                                 .iter()
                                 .flat_map(|i| {

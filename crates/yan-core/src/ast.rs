@@ -8,6 +8,31 @@ use yan_diag::Span;
 pub type Name = String;
 pub type Path = Vec<Name>;
 
+/// Who may name an item: its module, its package, or dependents too (RFC 0084 D3).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum Vis {
+    #[default]
+    Private,
+    Pkg,
+    Pub,
+}
+
+impl Vis {
+    /// Part of the exported API.
+    pub fn is_pub(self) -> bool {
+        self == Vis::Pub
+    }
+
+    /// The source prefix, with its trailing space.
+    pub fn prefix(self) -> &'static str {
+        match self {
+            Vis::Private => "",
+            Vis::Pkg => "pkg ",
+            Vis::Pub => "pub ",
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Module {
     pub header: Vec<String>,
@@ -53,7 +78,7 @@ pub enum ItemKind {
 /// A function, generator or trait signature. Signatures have a one-name path and may lack a body.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FnDef {
-    pub is_pub: bool,
+    pub vis: Vis,
     pub is_unsafe: bool,
     pub path: Path,
     /// The first token of `path`.
@@ -111,7 +136,7 @@ pub enum Contract {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Record {
-    pub is_pub: bool,
+    pub vis: Vis,
     pub path: Path,
     pub tparams: Vec<TParam>,
     pub fields: Vec<Field>,
@@ -120,7 +145,7 @@ pub struct Record {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Field {
     pub attrs: Vec<Attr>,
-    pub is_pub: bool,
+    pub vis: Vis,
     pub name: Name,
     pub ty: Type,
     pub default: Option<ConstVal>,
@@ -128,7 +153,7 @@ pub struct Field {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Sum {
-    pub is_pub: bool,
+    pub vis: Vis,
     pub path: Path,
     pub tparams: Vec<TParam>,
     pub variants: Vec<Variant>,
@@ -142,7 +167,7 @@ pub struct Variant {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Newtype {
-    pub is_pub: bool,
+    pub vis: Vis,
     pub path: Path,
     pub tparams: Vec<TParam>,
     pub ty: Type,
@@ -151,7 +176,7 @@ pub struct Newtype {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Trait {
-    pub is_pub: bool,
+    pub vis: Vis,
     pub path: Path,
     pub tparams: Vec<TParam>,
     pub assoc: Vec<Name>,
@@ -170,7 +195,7 @@ pub struct Impl {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Const {
-    pub is_pub: bool,
+    pub vis: Vis,
     pub path: Path,
     pub ty: Type,
     pub value: ConstVal,

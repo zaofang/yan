@@ -1,0 +1,15 @@
+pkg class Rect:
+    w: int
+    h: int
+
+pkg type Shape = Square(side: int) | Wide(rect: Rect)
+
+pkg def area(s: Shape) -> int:
+    match s:
+        case Square(side=n):
+            return n * n
+        case Wide(rect=r):
+            return r.w * r.h
+
+def helper() -> int:
+    return area(Square(side=1))

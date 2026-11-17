@@ -6560,7 +6560,7 @@
     "8.3"
    ],
    "rows": [
-    "R1072"
+    "R1071"
    ],
    "flags": [],
    "expect": [],
@@ -6576,7 +6576,7 @@
     "9.1"
    ],
    "rows": [
-    "R1071"
+    "R1070"
    ],
    "flags": [],
    "expect": [],
@@ -16363,6 +16363,52 @@
    }
   },
   {
+   "path": "pkg/e287_private_item_from_sibling",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R1069"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "3.5",
+    "rows": "R1069",
+    "note": "an item with no visibility modifier belongs to its module alone: a sibling that names it gets E287, which proposes pkg or pub",
+    "command": [
+     "check"
+    ],
+    "code": "E287",
+    "at": "src/main.yag:2:18"
+   }
+  },
+  {
+   "path": "pkg/e287_private_type_from_yn_sibling",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "15.2"
+   ],
+   "rows": [
+    "R1069"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "15.2",
+    "rows": "R1069",
+    "note": "the rule is the same in Yan: a private type of a sibling module is E287 in a signature, and a pkg item of the same module is not",
+    "command": [
+     "check"
+    ],
+    "code": "E287",
+    "at": "src/tax.yn:2:5"
+   }
+  },
+  {
    "path": "pkg/e314_dep_lib_missing_from_intermediate_ceiling",
    "kind": "pkg",
    "milestone": "M1",
@@ -16809,6 +16855,27 @@
      "--dry-run",
      "--base",
      "../base"
+    ]
+   }
+  },
+  {
+   "path": "pkg/pkg_visibility_shared_in_package",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R1069"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "3.5",
+    "rows": "R1069",
+    "note": "a pkg item is named by every module of its package in either surface; a private item stays in its own module and is never named from outside",
+    "command": [
+     "check"
     ]
    }
   },

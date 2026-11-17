@@ -1,0 +1,2 @@
+pub def main() -> None uses io:
+    io.print("ok")

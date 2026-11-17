@@ -1,0 +1,6 @@
+spec = "15.2"
+rows = "R1069"
+note = "the rule is the same in Yan: a private type of a sibling module is E287 in a signature, and a pkg item of the same module is not"
+command = ["check"]
+code = "E287"
+at = "src/tax.yn:2:5"

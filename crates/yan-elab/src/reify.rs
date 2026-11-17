@@ -212,7 +212,7 @@ fn hir_item(d: &y::Item, from: &j::Item) -> R<j::Item> {
     }
     Ok(j::Item {
         decorators,
-        is_pub: from.is_pub,
+        vis: from.vis,
         kind,
         span: at,
         name_span: from.name_span,
@@ -305,7 +305,7 @@ fn run(
     }
     pre.items.push(j::Item {
         decorators: Vec::new(),
-        is_pub: false,
+        vis: j::Vis::Private,
         kind: j::ItemKind::Func(driver),
         span: it.span,
         name_span: it.span,

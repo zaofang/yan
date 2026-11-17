@@ -13,7 +13,7 @@ pub(crate) fn attach(g: &Globals, m: &j::Module, items: &mut [y::Item], cx: &mut
             continue;
         };
         let name = f.name.as_str();
-        if !it.is_pub || name == "main" || name.starts_with("test_") {
+        if !it.vis.is_pub() || name == "main" || name.starts_with("test_") {
             continue;
         }
         let Some(sig) = g.fns.get(name) else {

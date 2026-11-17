@@ -100,7 +100,7 @@ impl Printer {
         for a in &item.attrs {
             self.line(&attr(a));
         }
-        let pub_ = if item.public { "pub " } else { "" };
+        let pub_ = item.vis.prefix();
         match &item.kind {
             ItemKind::Fn(f) => self.fn_def(pub_, f),
             ItemKind::Type(t) => {
