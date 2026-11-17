@@ -1,0 +1,6 @@
+spec = "19.2"
+rows = "R1019"
+note = "resolving a dependency whose .info lists an ffi module when the root's allow_ffi omits it is E023"
+command = ["lock"]
+code = "E023"
+at = "yan.lock:0:0"
