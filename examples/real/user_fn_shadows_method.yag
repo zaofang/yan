@@ -1,4 +1,4 @@
-# Gap #1404: a user `get` captures `dict.get`.
+# A module `get` no longer captures `dict.get` (gap #1404, fixed).
 class Cache:
     vals: dict[str, int]
     hits: int

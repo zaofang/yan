@@ -39,30 +39,8 @@ def main() uses io:
     io.print(f"{c.vals.len()}")
 ```
 
-### [#1404](https://github.com/zaofang/yan/issues/1404): a user function named like a builtin method
-
-A module function `get` hides `dict.get` for every receiver in the module (17.2: the current module is searched first),
-so `c.vals.get(k)` calls the module's `get` and fails with E201. W819 now names the hidden method for field receivers
-too. Workaround: rename the function. Whether the receiver's type should pick first is a spec question for the lead.
-
-```yag gap=examples/real/gaps/user_fn_shadows_method.yag
-# Gap #1404: a user `get` captures `dict.get`.
-class Cache:
-    vals: dict[str, int]
-    hits: int
-
-def get(var c: Cache, key: str) -> int | None:
-    v = c.vals.get(key)
-    c.hits += 1
-    return v
-
-def main() uses io:
-    c = Cache(vals={"a": 1}, hits=0)
-    io.print(f"{get(&c, 'a')}")
-```
-
 Fixed since the sweep: #1398 (I001 on a constructor call in a match branch), #1399 (native `list.pop`,
-`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`), #1402 (`list.clear`, `list.remove`, `list.pop(i)`, `dict.pop`).
+`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`), #1402 (`list.clear`, `list.remove`, `list.pop(i)`, `dict.pop`), #1404 (a module function no longer captures a method of the receiver's type; 17.2).
 
 ## Backend and checker coverage
 
