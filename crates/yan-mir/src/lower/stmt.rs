@@ -218,6 +218,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 }
                 let (at, shape) = self.place(place)?;
                 let v = self.value(rhs, &shape)?;
+                // A field or element holds a value until it is overwritten (a move out of one
+                // consumes its root), so the old value is dropped after the new one is built.
+                if !place.projs.is_empty() {
+                    let old = self.read(&at, &shape);
+                    self.glue(&shape, &old);
+                }
                 self.write(&at, v);
                 Ok(())
             }
