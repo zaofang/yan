@@ -17,6 +17,9 @@ pub(crate) fn lint(
     let names = item_names(m);
     let lines: Vec<&str> = src.lines().collect();
     let mut out = Vec::new();
+    if surface == Surface::Yag {
+        out.extend(foreign_docs(file, &lines, m));
+    }
     for it in &m.items {
         let j::ItemKind::Func(f) = &it.kind else {
             continue;
@@ -104,6 +107,78 @@ pub(crate) fn lint(
                         );
                     }
                 }
+            }
+        }
+    }
+    out
+}
+
+/// N41 to N43: parameter, attribute and member docs written in the Python conventions.
+fn foreign_docs(file: &str, lines: &[&str], m: &j::Module) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    let mut note = |code: &str, k: usize, item: &str, msg: &str| {
+        let col = lines[k].len() - lines[k].trim_start().len();
+        let len = lines[k].trim().len().max(1);
+        let span = Span {
+            line: k as u32 + 1,
+            col: col as u32 + 1,
+            end_line: k as u32 + 1,
+            end_col: (col + len) as u32 + 1,
+        };
+        let mut d =
+            Diagnostic::error(code, file, span, lines[k].trim(), msg.to_owned()).with_item(item);
+        d.severity = Severity::Note;
+        out.push(d);
+    };
+    for it in &m.items {
+        let (name, is_class, doc) = match &it.kind {
+            j::ItemKind::Func(f) => (
+                f.name.as_str(),
+                false,
+                f.body.as_ref().is_some_and(|b| b.doc.is_some()),
+            ),
+            j::ItemKind::Record(r) => (r.name.as_str(), true, r.doc.is_some()),
+            _ => continue,
+        };
+        let def = it.name_span.line as usize;
+        if !doc || def == 0 || def >= lines.len() {
+            continue;
+        }
+        let Some((first, last)) = doc_lines(lines, def) else {
+            continue;
+        };
+        for k in first..=last.min(lines.len() - 1) {
+            let t = lines[k].trim();
+            let numpy = lines.get(k + 1).is_some_and(|n| {
+                let n = n.trim();
+                !n.is_empty() && n.chars().all(|c| c == '-')
+            });
+            if !is_class
+                && (t.starts_with(":param ")
+                    || t.starts_with(":type ")
+                    || t == "Arguments:"
+                    || (t == "Parameters" && numpy))
+            {
+                note(
+                    "N42",
+                    k,
+                    name,
+                    "parameter docs normalized to an `Args:` section",
+                );
+            } else if is_class && (t == "Attributes:" || (t == "Attributes" && numpy)) {
+                note(
+                    "N41",
+                    k,
+                    name,
+                    "`Attributes:` entries move to the fields as `#:` docs",
+                );
+            } else if is_class && (t == "Members:" || (t == "Members" && numpy)) {
+                note(
+                    "N43",
+                    k,
+                    name,
+                    "`Members:` entries move to a `Variants:` section",
+                );
             }
         }
     }

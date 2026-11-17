@@ -64,7 +64,13 @@ impl Machine<'_> {
         let List {
             words, len, data, ..
         } = *self.list(l)?;
-        let bytes = self.mem.read(data, 8 * words * len).unwrap_or_default();
+        if len == 0 {
+            return Ok((words, Vec::new()));
+        }
+        let bytes = self
+            .mem
+            .read(data, 8 * words * len)
+            .ok_or_else(|| self.freed_block("list read", data))?;
         Ok((words, bytes))
     }
 
@@ -97,7 +103,7 @@ impl Machine<'_> {
         let bytes = self
             .mem
             .read(addr, 8 * n)
-            .ok_or_else(|| Stop::Fault(format!("slots at {addr:#x} are not allocated")))?;
+            .ok_or_else(|| self.freed_block("slot read", addr))?;
         Ok(words_of(&bytes))
     }
 
@@ -279,6 +285,16 @@ impl Machine<'_> {
         Ok(())
     }
 
+    /// A read the allocation cannot serve: through a freed block it is `ub(2)` under `--ub`.
+    fn freed_block(&self, what: &str, addr: u64) -> Stop {
+        match self.mem.find(addr) {
+            Some(i) if self.ub && !self.mem.is_live(i) => {
+                Stop::Ub(2, format!("{what} at {addr:#x} through a freed allocation"))
+            }
+            _ => Stop::Fault(format!("{what} at {addr:#x} is not inside an allocation")),
+        }
+    }
+
     pub(crate) fn new_str(&mut self, s: &str) -> u64 {
         let a = self.mem.alloc(s.len());
         let bytes: Vec<Byte> = s.bytes().map(Byte::Init).collect();
@@ -291,7 +307,10 @@ impl Machine<'_> {
             .mem
             .len(addr)
             .ok_or_else(|| Stop::Fault(format!("Str block {addr:#x} is not allocated")))?;
-        let bytes = self.mem.read(addr, n).expect("inside its allocation");
+        let bytes = self
+            .mem
+            .read(addr, n)
+            .ok_or_else(|| self.freed_block("Str read", addr))?;
         let raw: Vec<u8> = bytes
             .into_iter()
             .map(|b| if let Byte::Init(x) = b { x } else { 0 })
