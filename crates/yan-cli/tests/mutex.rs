@@ -163,13 +163,13 @@ fn every_backend_panics_on_a_relock() {
 
 const OWNED: &str = "def main() uses io:
     m = Mutex[int](1)
-    m.get_mut() += 2
-    print(m.get_mut())
+    m.get_mut += 2
+    print(m.get_mut)
     n = Mutex[list[int]]([1])
-    n.get_mut().append(2)
+    n.get_mut.append(2)
     print(n.into_inner())
     s = Mutex[str](\"a\")
-    s.get_mut() = \"b\"
+    s.get_mut = \"b\"
     print(s.into_inner())
 ";
 

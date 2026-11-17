@@ -468,7 +468,7 @@ impl Lower<'_, '_, '_> {
                 self.locals.get(n).map(|l| l.ty.clone())
             }
             j::ExprKind::Attr(b, f, _) => match self.ty_of_local(b)? {
-                Ty::Coll("Mutex", ts) if f == "$value" => Some(ts[0].clone()),
+                Ty::Coll("Mutex", ts) if f == "$value" || f == "get_mut" => Some(ts[0].clone()),
                 Ty::Data(r) => self
                     .g
                     .records
@@ -503,16 +503,13 @@ impl Lower<'_, '_, '_> {
         }
     }
 
-    /// `m.get_mut()` on a `Mutex` is the protected value as a place, spelled as a field no
-    /// program can write (R1039).
+    /// `m.get_mut` on a `Mutex` is the protected value as a place, like `g.value` (R1039). It is
+    /// spelled as a field no program can write, which `attr_place` resolves.
     pub(super) fn get_mut_alias(&self, e: &j::Expr) -> Option<j::Expr> {
-        let j::ExprKind::Call(f, args) = &e.kind else {
+        let j::ExprKind::Attr(b, m, sp) = &e.kind else {
             return None;
         };
-        let j::ExprKind::Attr(b, m, sp) = &f.kind else {
-            return None;
-        };
-        if m != "get_mut" || !args.is_empty() {
+        if m != "get_mut" {
             return None;
         }
         matches!(self.ty_of_local(b)?, Ty::Coll("Mutex", _)).then(|| j::Expr {
