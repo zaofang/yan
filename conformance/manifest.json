@@ -16008,6 +16008,29 @@
    }
   },
   {
+   "path": "pkg/e200_use_unknown_module",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "15.2"
+   ],
+   "rows": [
+    "R1067"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "15.2",
+    "rows": "R1067",
+    "note": "a use of a module the package does not have leaves the module unresolved",
+    "command": [
+     "check"
+    ],
+    "code": "E200",
+    "at": "src/report.yn:1:1"
+   }
+  },
+  {
    "path": "pkg/e314_dep_lib_missing_from_intermediate_ceiling",
    "kind": "pkg",
    "milestone": "M1",
@@ -16589,6 +16612,27 @@
     "note": "`yan new --template library @conf/new_library` output checks and passes its tests (#899)",
     "command": [
      "test"
+    ]
+   }
+  },
+  {
+   "path": "pkg/yn_use_module_aliases",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "15.2"
+   ],
+   "rows": [
+    "R1067"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "15.2",
+    "rows": "R1067",
+    "note": "a Yan module binds module aliases with use, absolute, renamed and sibling; qualified expressions, types and patterns reach another module in either surface",
+    "command": [
+     "check"
     ]
    }
   },

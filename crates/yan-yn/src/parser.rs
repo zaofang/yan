@@ -2539,27 +2539,29 @@ impl<'a> Parser<'a> {
                 self.bump();
                 PatKind::Wild
             }
+            Tok::Name(_) if self.qualified_ctor_ahead() => {
+                let mut path = Vec::new();
+                while !matches!(self.peek(), Tok::TypeName(_)) {
+                    path.push(self.name()?.0);
+                    self.expect_p(".")?;
+                }
+                let Tok::TypeName(n) = self.peek() else {
+                    unreachable!("checked")
+                };
+                path.push(n.clone());
+                self.bump();
+                let args = self.ctor_args()?;
+                PatKind::Ctor { path, args }
+            }
             Tok::Name(n) => {
                 self.bump();
                 PatKind::Bind(n.clone())
             }
             Tok::TypeName(n) => {
                 self.bump();
-                let name = n.clone();
-                let args = if self.eat_p("(") {
-                    let mut ps = Vec::new();
-                    while !self.is_p(")") {
-                        ps.push(self.ppat()?);
-                        if !self.eat_p(",") {
-                            break;
-                        }
-                    }
-                    self.expect_p(")")?;
-                    Some(ps)
-                } else {
-                    None
-                };
-                PatKind::Ctor { name, args }
+                let path = vec![n.clone()];
+                let args = self.ctor_args()?;
+                PatKind::Ctor { path, args }
             }
             Tok::Punct("(") | Tok::SplParen => {
                 self.bump();
@@ -2608,6 +2610,30 @@ impl<'a> Parser<'a> {
             kind,
             span: self.since(start),
         })
+    }
+
+    /// `a.b.C`: names and dots up to a type name.
+    fn qualified_ctor_ahead(&self) -> bool {
+        let mut i = 0;
+        while matches!(self.peek_n(i), Tok::Name(_)) && *self.peek_n(i + 1) == Tok::Punct(".") {
+            i += 2;
+        }
+        i > 0 && matches!(self.peek_n(i), Tok::TypeName(_))
+    }
+
+    fn ctor_args(&mut self) -> P<Option<Vec<PPat>>> {
+        if !self.eat_p("(") {
+            return Ok(None);
+        }
+        let mut ps = Vec::new();
+        while !self.is_p(")") {
+            ps.push(self.ppat()?);
+            if !self.eat_p(",") {
+                break;
+            }
+        }
+        self.expect_p(")")?;
+        Ok(Some(ps))
     }
 
     fn ppat(&mut self) -> P<PPat> {

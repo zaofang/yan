@@ -1,0 +1,8 @@
+use .invoice
+
+use shapes as sh
+
+--- Tax on a shape: matches variants qualified by an alias and a module name.
+pub tax(s: sh.Shape) -> int uses none =
+  sh.Square(side: n) -> n
+  sh.Wide(rect: r) -> invoice.area(s)

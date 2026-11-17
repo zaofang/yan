@@ -8,7 +8,7 @@ mod parser;
 mod printer;
 
 pub use grammar::grammar;
-pub use lower::{Unsupported, lower};
+pub use lower::{PackageCtx, Unsupported, lower, lower_in};
 pub use printer::print;
 
 use lexer::Tok;

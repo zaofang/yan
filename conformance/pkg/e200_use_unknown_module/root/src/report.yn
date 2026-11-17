@@ -1,0 +1,4 @@
+use shapes.nope
+
+--- One.
+pub one() -> int uses none = 1

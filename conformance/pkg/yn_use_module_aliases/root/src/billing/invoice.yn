@@ -1,0 +1,4 @@
+use shapes
+
+--- Area of a shape, reached through a sibling alias.
+pub area(s: shapes.Shape) -> int uses none = shapes.area(s)
