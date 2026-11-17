@@ -1,12 +1,11 @@
-name: site
+name: site-inputs
 
-# Builds the website (tools/site.py) with the playground's wasm on every PR that touches it, and
-# deploys it to Cloudflare Pages (yanlang.dev) after each green ci run on main (push or nightly), with
-# that run's status artifact rendered on the status page (#871). site/functions/ is the only server
-# code: it sends index.txt to terminal clients at /.
+# Publishes what zaofang/yanlang.dev builds the website from, as the rolling `site-inputs` release,
+# after each green ci run on main (push or nightly): the playground with a fresh yan.wasm, brand
+# files, a yan binary to check the tour with, and the status figures (tools/site_inputs.py). The site
+# repository fetches the release at build; it rebuilds on a schedule, and when SITE_DISPATCH_TOKEN
+# is set this job also triggers it at once.
 on:
-  pull_request:
-    paths: [site/**, playground/**, tools/site.py, crates/**, Cargo.lock, .github/workflows/site.yml]
   workflow_run:
     workflows: [ci]
     types: [completed]
@@ -17,29 +16,30 @@ permissions:
   contents: read
 
 concurrency:
-  group: site-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
-  # On main, a ci run that finishes later (often a red one whose build is skipped) must not cancel
-  # a deploy in progress.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # A ci run that finishes later (often a red one whose build is skipped) must not cancel a publish.
+  group: site-inputs
+  cancel-in-progress: false
 
 env:
   WASI_SYSROOT_VERSION: "25"
 
 jobs:
-  build:
+  publish:
     # A fork PR can name its branch main, so the event is checked as well as the branch.
     if: >-
       github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success'
       && contains(fromJSON('["push", "schedule"]'), github.event.workflow_run.event))
-    # Self-hosted like ci.yml: hosted runners fail at job start on this account.
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       actions: read
+    env:
+      SITE_DISPATCH_TOKEN: ${{ secrets.SITE_DISPATCH_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - name: wasi-libc headers
         run: |
@@ -53,21 +53,29 @@ jobs:
           clang --print-targets | grep -q wasm32 || { echo "clang has no wasm32 backend"; exit 1; }
       - run: rustup target add wasm32-wasip1
       - run: ./playground/build.sh
-      - run: cargo build --release -p yan-cli
-      - run: uv run python -m tools.site check --yan target/release/yan
+      - run: cargo build --release -p yan-cli -p yan-rt
       - if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: status
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
+      - run: uv sync --locked
       - run: >-
-          uv run python -m tools.site build _site --url "${{ github.event_name != 'pull_request' && 'https://yanlang.dev/' || '' }}"
+          uv run python -m tools.site_inputs site-inputs.tar.gz --bin-dir target/release
           ${{ github.event_name == 'workflow_run' && '--status status.json' || '' }}
-      # Direct upload to the Cloudflare Pages project `yan`, run from site/ so wrangler picks up functions/.
-      - if: github.event_name != 'pull_request'
-        working-directory: site
+      - name: Publish the rolling release
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx --yes wrangler@4.20.0 pages deploy ../_site --project-name yan --branch main
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view site-inputs >/dev/null 2>&1 || gh release create site-inputs \
+            --prerelease --latest=false --target "$GITHUB_SHA" --title "Website inputs" \
+            --notes "Rolling inputs for zaofang/yanlang.dev (tools/site_inputs.py). Not a Yan release."
+          gh release upload site-inputs site-inputs.tar.gz --clobber
+      - name: Trigger the site build
+        if: env.SITE_DISPATCH_TOKEN != ''
+        run: >-
+          curl -fsS -X POST -H "Authorization: Bearer $SITE_DISPATCH_TOKEN"
+          -H "Accept: application/vnd.github+json"
+          https://api.github.com/repos/zaofang/yanlang.dev/dispatches
+          -d '{"event_type":"yan-site-inputs"}'

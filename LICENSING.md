@@ -8,9 +8,9 @@ Texts live in [`LICENSES/`](LICENSES/). The first matching row wins; a file's ow
 | `crates/` (except `crates/yan-cli/templates/`), `tools/`, `bench/`, `formal/`, `editors/`, `playground/`, `dist/`, `conformance/`, `tests/`, `.github/` | Apache-2.0 WITH LLVM-exception | [`LICENSE`](LICENSE) |
 | `spec/` text | CC-BY-4.0 | [`LICENSES/CC-BY-4.0.txt`](LICENSES/CC-BY-4.0.txt) |
 | `spec/` grammars, normative tables, code samples | CC-BY-4.0, or Apache-2.0 WITH LLVM-exception at your choice | both |
-| `docs/`, `rfcs/`, `site/` pages (`tour/`, `blog/`, `index.md`), top-level `*.md` prose | CC-BY-4.0 | [`LICENSES/CC-BY-4.0.txt`](LICENSES/CC-BY-4.0.txt) |
+| `docs/`, `rfcs/`, top-level `*.md` prose | CC-BY-4.0 | [`LICENSES/CC-BY-4.0.txt`](LICENSES/CC-BY-4.0.txt) |
 | `examples/`, `crates/yan-cli/templates/` (`yan new`), published eval task statements, code samples in docs | 0BSD | [`LICENSES/0BSD.txt`](LICENSES/0BSD.txt) |
-| `site/brand/`, brand source files, the held-out eval repository | All rights reserved | [`site/brand/README.md`](site/brand/README.md) |
+| `brand/`, brand source files, the held-out eval repository | All rights reserved | [`brand/README.md`](brand/README.md) |
 
 Programs compiled with Yan belong to their authors. Std and runtime code embedded in compiled output falls
 under the LLVM exception, so binaries need no Yan notice (R353).
