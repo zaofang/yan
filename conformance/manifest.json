@@ -15748,6 +15748,48 @@
    }
   },
   {
+   "path": "fmt/n02_tab_indent",
+   "kind": "fmt",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "5",
+    "6"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "14.4",
+    "rows": "R1056"
+   }
+  },
+  {
+   "path": "fmt/n11_crlf_trailing",
+   "kind": "fmt",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "5",
+    "6"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "14.4",
+    "rows": "R1056"
+   }
+  },
+  {
    "path": "fmt/trivia_width_indent",
    "kind": "fmt",
    "milestone": "M1",
