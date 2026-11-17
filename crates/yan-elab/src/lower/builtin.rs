@@ -221,6 +221,7 @@ impl Lower<'_, '_, '_> {
                 };
                 let (a, t) = self.atom(xs[0], Some(&inner))?;
                 self.expect(&t, &inner, xs[0].span);
+                self.moved_into(&a, &t, xs[0].span);
                 Ok((
                     Rhs::Ctor(y::Ctor::Named {
                         path: vec![n.to_owned()],

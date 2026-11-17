@@ -105,6 +105,21 @@ impl Lower<'_, '_, '_> {
         true
     }
 
+    /// `implicit_copy` for a value that leaves into a tuple, a list, a join or a fallback: a
+    /// borrowed parameter is copied by `copy_out`, so only owned locals are checked.
+    pub(super) fn moved_into(&mut self, a: &Atom, t: &Ty, sp: Span) {
+        if let Atom::Name(n, _) = a
+            && self
+                .sig
+                .params
+                .iter()
+                .any(|p| &p.name == n && p.conv != Conv::Sink)
+        {
+            return;
+        }
+        self.implicit_copy(a, t, sp);
+    }
+
     /// R769: a non-copy local bound or assigned to a name leaves by `move` at its last use and
     /// by `copy` otherwise, or when it is a borrowed parameter. A copy that the source did not
     /// write is E413 (`implicit_copy`), except out of a borrowed parameter, which always copies.

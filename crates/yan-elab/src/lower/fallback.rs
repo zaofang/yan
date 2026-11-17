@@ -252,6 +252,7 @@ impl Lower<'_, '_, '_> {
                     j::Fallback::Value(h) | j::Fallback::Bind(_, h) => {
                         let (a, t) = l.atom(h, Some(&want))?;
                         l.expect(&t, &want, h.span);
+                        l.moved_into(&a, &t, h.span);
                         l.jump(k, a, h.span);
                     }
                     j::Fallback::Return(e) => l.stmt(&j::Stmt {
