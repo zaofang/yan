@@ -15,16 +15,19 @@ values are `Rc`) and is a separate RFC.
 
 ## Decisions
 
-### D1: outline branches only under `pool`
+### D1: plain `par` lowers to an RFC 0043 task region; the handler decides at run time
 
-Under `sequential`, `seeded` and `explore`, branches stay inline: they are what the machine and the
-differential run compare against. Under `pool`, MIR outlines each branch of a plain `par` into a task
-function that takes a captured-frame block, reusing the thunk shapes of `yan-rt/src/actor.rs`
-(rt never calls closures; generated code runs the thunk and the rt returns a work status).
-Recommendation: outline in a new module (practice 5), selected per call site by the bound `sched`
-type, with the inline form kept as the fallback for every other handler.
+`sched` is a runtime handler value, so MIR cannot choose a form per call site. A plain `par` lowers
+to the task region `par concurrent` already uses (`yan-mir/src/tasks.rs`, `co.rs`): a dispatcher
+over branch blocks of one function, with live locals in a heap frame. The `yan-rt` scheduler of the
+bound handler decides how the tasks run: `sequential`, `seeded` and `explore` run them in source
+order to completion, as today; `pool` runs them on workers over the shared frame. Sharing classes
+(6.5) make branch writes disjoint and shared reads immutable, so no live-in or live-out split pass is
+needed. Branches of a plain `par` do not suspend, so the region needs no coroutine variants.
+The first version keeps the current inline lowering when the region is not eligible (D5).
+Recommendation: reuse the task region and put new lowering in a new module (practice 5).
 
-- Decision: accepted as recommended (Antonio, 2026-11-17)
+- Decision: amended from "outline into functions"; D1' accepted as recommended (Antonio, 2026-11-17)
 
 ### D2: fork-join with ordered commit, no stealing in v1
 
