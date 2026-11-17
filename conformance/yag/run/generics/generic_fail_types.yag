@@ -1,0 +1,44 @@
+# spec: 3, 10.1
+# rows: R423
+# note: a failure type may carry type arguments, `fail Bad[int]`, alone or in a union; the payload reaches the handler (#1293)
+# stdout:
+# -3
+# -8
+# 5
+# s
+# 100
+# 200
+# 2
+
+class Bad[T]:
+    v: T
+
+class Other:
+    code: int
+
+def push(x: int) -> int fail Bad[int]:
+    if x < 0:
+        fail Bad(v=x)
+    return x
+
+def wrap(x: int) -> int fail Bad[int]:
+    return push(x)? + 1
+
+def gen[T](take v: T) -> T fail Bad[T]:
+    fail Bad(v=v)
+
+def either(x: int) -> int fail Bad[int] | Other:
+    if x < 0:
+        fail Bad(v=x)
+    if x == 0:
+        fail Other(code=7)
+    return x
+
+def main() uses io:
+    print(push(-3) else e -> e.v)
+    print(wrap(-4) else e -> e.v * 2)
+    print(wrap(4) else e -> 0)
+    print(gen("s") else e -> e.v)
+    print(either(-3) else e -> 100)
+    print(either(0) else e -> 200)
+    print(either(2) else e -> 0)

@@ -68,74 +68,97 @@ fn key_schema(sc: &Schemas, t: &Schema, out: &mut String) {
     }
 }
 
+/// Reads the blocks a value's slots point to, so native code (raw pointers) and the machine
+/// (abstract memory) share one round trip.
+pub trait Heap {
+    type Err;
+    fn text(&self, block: u64) -> Result<String, Self::Err>;
+    /// A list block's element slots, flattened.
+    fn list(&self, block: u64) -> Result<Vec<u64>, Self::Err>;
+    /// A map block's entry slots, flattened, in insertion order.
+    fn map(&self, block: u64) -> Result<Vec<u64>, Self::Err>;
+}
+
+/// Blocks as native code holds them: slots are live pointers.
+pub(crate) struct Raw;
+
+impl Heap for Raw {
+    type Err = std::convert::Infallible;
+
+    fn text(&self, block: u64) -> Result<String, Self::Err> {
+        // SAFETY: `roundtrip`'s contract: a `Str` slot holds a live `Str` block.
+        Ok(unsafe { &*(block as *const String) }.clone())
+    }
+
+    fn list(&self, block: u64) -> Result<Vec<u64>, Self::Err> {
+        // SAFETY: as above, for `List` blocks.
+        Ok(unsafe { &*(block as *const crate::abi::List) }.data.clone())
+    }
+
+    fn map(&self, block: u64) -> Result<Vec<u64>, Self::Err> {
+        // SAFETY: as above, for `Map` blocks.
+        Ok(unsafe { &*(block as *const crate::map::Map) }
+            .slots()
+            .to_vec())
+    }
+}
+
 /// The codec's value of type `t` held in `w`, exactly its slots.
-///
-/// # Safety
-/// The `Str`, `List` and `Map` slots in `w` point to live blocks.
-unsafe fn read(sc: &Schemas, t: &Schema, w: &[u64]) -> Val {
-    // SAFETY: each part is a value of its type, under the caller's contract.
+fn read<H: Heap>(h: &H, sc: &Schemas, t: &Schema, w: &[u64]) -> Result<Val, H::Err> {
     let parts = |ts: &mut dyn Iterator<Item = &Schema>, w: &[u64]| {
         let mut at = 0;
         ts.map(|t| {
             let n = width(sc, t);
-            let v = unsafe { read(sc, t, &w[at..at + n]) };
+            let v = read(h, sc, t, &w[at..at + n]);
             at += n;
             v
         })
-        .collect::<Vec<_>>()
+        .collect::<Result<Vec<_>, _>>()
     };
-    match t {
+    Ok(match t {
         Schema::Unit => Val::Unit,
         Schema::Bool => Val::Bool(w[0] & 0xff != 0),
         Schema::Int => Val::Int(w[0] as i64),
         Schema::Float => Val::Float(f64::from_bits(w[0])),
-        // SAFETY: the caller's contract.
-        Schema::Str => Val::Str(unsafe { &*(w[0] as *const String) }.clone()),
+        Schema::Str => Val::Str(h.text(w[0])?),
         Schema::List(e) => {
-            // SAFETY: the caller's contract.
-            let l = unsafe { &*(w[0] as *const crate::abi::List) };
+            let data = h.list(w[0])?;
             let n = width(sc, e);
             if n == 0 {
-                return Val::List(Vec::new());
+                return Ok(Val::List(Vec::new()));
             }
             Val::List(
-                l.data
-                    .chunks(n)
-                    .map(|x| unsafe { read(sc, e, x) })
-                    .collect(),
+                data.chunks(n)
+                    .map(|x| read(h, sc, e, x))
+                    .collect::<Result<_, _>>()?,
             )
         }
         Schema::Dict(k, e) => {
-            // SAFETY: the caller's contract.
-            let m = unsafe { &*(w[0] as *const crate::map::Map) };
+            let data = h.map(w[0])?;
             let kw = width(sc, k);
             let vw = width(sc, e);
             Val::Dict(
-                m.entries()
-                    // SAFETY: an entry is a key of `k` then a value of `e`.
-                    .map(|x| unsafe { (read(sc, k, &x[..kw]), read(sc, e, &x[kw..kw + vw])) })
-                    .collect(),
+                data.chunks(kw + vw)
+                    .map(|x| Ok((read(h, sc, k, &x[..kw])?, read(h, sc, e, &x[kw..kw + vw])?)))
+                    .collect::<Result<_, _>>()?,
             )
         }
         // A `set` is a map block of keys with no value slots.
         Schema::Set(k) => {
-            // SAFETY: the caller's contract.
-            let m = unsafe { &*(w[0] as *const crate::map::Map) };
+            let data = h.map(w[0])?;
             let kw = width(sc, k);
-            // SAFETY: an entry is a key of `k`.
             Val::List(
-                m.entries()
-                    .map(|x| unsafe { read(sc, k, &x[..kw]) })
-                    .collect(),
+                data.chunks(kw)
+                    .map(|x| read(h, sc, k, x))
+                    .collect::<Result<_, _>>()?,
             )
         }
         // `Some` is tag 0 and `None` tag 1, as the native `Option` sum.
         Schema::Option(_) if w[0] == 1 => Val::Option(None),
-        // SAFETY: forwarded.
-        Schema::Option(e) => Val::Option(Some(Box::new(unsafe { read(sc, e, &w[1..]) }))),
-        Schema::Tuple(ts) => Val::Tuple(parts(&mut ts.iter(), w)),
+        Schema::Option(e) => Val::Option(Some(Box::new(read(h, sc, e, &w[1..])?))),
+        Schema::Tuple(ts) => Val::Tuple(parts(&mut ts.iter(), w)?),
         Schema::Named(n) => match fields(sc, n) {
-            Def::Record(r) => Val::Record(parts(&mut r.iter().map(|f| &f.1), w)),
+            Def::Record(r) => Val::Record(parts(&mut r.iter().map(|f| &f.1), w)?),
             Def::Sum(vs) => {
                 let k = w[0] as usize;
                 let at = 1 + vs[..k]
@@ -143,11 +166,11 @@ unsafe fn read(sc: &Schemas, t: &Schema, w: &[u64]) -> Val {
                     .flat_map(|(_, f)| f)
                     .map(|(_, t)| width(sc, t))
                     .sum::<usize>();
-                Val::Variant(k, parts(&mut vs[k].1.iter().map(|f| &f.1), &w[at..]))
+                Val::Variant(k, parts(&mut vs[k].1.iter().map(|f| &f.1), &w[at..])?)
             }
         },
         Schema::Char | Schema::Bytes => unreachable!("no native slots for {t:?}"),
-    }
+    })
 }
 
 /// The slots of `v`, a value of type `t`.
@@ -251,16 +274,30 @@ fn write(sc: &Schemas, t: &Schema, v: Val, out: &mut Vec<Slot>) {
 /// `w` holds a value of the schema's root type; its `Str`, `List` and `Map` slots point to live
 /// blocks.
 pub unsafe fn roundtrip(sc: &Schemas, w: &[u64]) -> (Vec<Slot>, Option<WireError>) {
+    let Ok(r) = roundtrip_in(&Raw, sc, w);
+    r
+}
+
+/// [`roundtrip`] over any [`Heap`].
+pub fn roundtrip_in<H: Heap>(
+    h: &H,
+    sc: &Schemas,
+    w: &[u64],
+) -> Result<(Vec<Slot>, Option<WireError>), H::Err> {
     let root = Schema::Named(sc.root.clone());
-    // SAFETY: the caller's contract.
-    let v = unsafe { read(sc, &root, w) };
+    let v = read(h, sc, &root, w)?;
     let (v, why) = match encode(sc, &v).and_then(|b| decode(sc, &b, Limits::default())) {
         Ok(back) => (back, None),
         Err(e) => (v, Some(e)),
     };
     let mut out = Vec::new();
     write(sc, &root, v, &mut out);
-    (out, why)
+    Ok((out, why))
+}
+
+/// The schemas the elaborator emitted as JSON.
+pub fn schemas(json: &str) -> Schemas {
+    serde_json::from_str(json).expect("the elaborator's schema")
 }
 
 /// The slot count of the schema's root type.
@@ -337,7 +374,7 @@ mod tests {
         assert_ne!(out[0], w[0]);
         let root = Schema::Named(sc.root.clone());
         // SAFETY: both hold live dicts of the root type.
-        let (a, b) = unsafe { (read(&sc, &root, &w), read(&sc, &root, &out)) };
+        let (Ok(a), Ok(b)) = (read(&Raw, &sc, &root, &w), read(&Raw, &sc, &root, &out));
         assert_eq!(a, b);
     }
 }

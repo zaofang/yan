@@ -8,10 +8,11 @@
 # 2
 
 pub def main() uses io:
-    tx, rx = Channel[int](0)
-    par concurrent:
-        for i in range(3):
-            tx.send(i) else e -> io.print("send cancelled")
-        for j in range(3):
-            v = rx.recv() else e -> -1
-            io.print(f"{v}")
+    with sched = sequential():
+        tx, rx = Channel[int](0)
+        par concurrent:
+            for i in range(3):
+                tx.send(i) else e -> io.print("send cancelled")
+            for j in range(3):
+                v = rx.recv() else e -> -1
+                io.print(f"{v}")

@@ -5,7 +5,7 @@
 
 module    = {modattr} {item} ;
 modattr   = BOL "@@" NAME ["(" [args] ")"] NEWLINE ;
-item      = {attr} BOL ["pub"] (fundef | gendef | subdef | lemmadef | typedef | traitdef | impldef | constdef | externdef)
+item      = {attr} BOL ["pub"] (["unsafe"] fundef | gendef | subdef | lemmadef | typedef | traitdef | impldef | constdef | externdef)
           | BOL usedecl ;
 attr      = BOL "@" NAME ["(" [args] ")"] NEWLINE ;
 usedecl   = "use" ["."] NAME {"." NAME} ["as" NAME] NEWLINE ;
@@ -52,7 +52,7 @@ simple    = fallback [assignop expr] | bind | "ghost" bind
           | "break" [NAME] | "continue" [NAME] | "assert" expr | "unreachable" | "become" postfix ;
 bind      = ("let" | "var") pattern [":" type] "=" (lambda | cond ["else" (NAME "->" expr | diverge | cond)]) ;
 assignop  = "=" | "+=" | "-=" | "*=" | "/=" | "//=" | "%=" | "**=" | "&=" | "|=" | "^=" | "<<=" | ">>=" ;
-place     = NAME {"." NAME | "[" expr "]"} ;
+place     = NAME {"." NAME | "[" expr "]" | "(" [args] ")"} ;
 compound  = ifstmt | matchstmt | forstmt | whilestmt | loopstmt | parstmt | selectstmt
           | withstmt | unsafestmt | stagestmt | blockbind ;
 blockbind = ("let" | "var") pattern [":" type] "=" (NEWLINE INDENT stmt {stmt} DEDENT | parfor)

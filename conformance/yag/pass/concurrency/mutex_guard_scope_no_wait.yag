@@ -1,0 +1,10 @@
+# spec: 6.3
+# rows: R1024
+# note: a function that waits is fine when the guard's block does not call it
+
+def wait() -> None uses time:
+    time.sleep(1 * ms) else return
+
+def work(m: Mutex[int]) -> None:
+    g = m.lock()
+    g.set(1)

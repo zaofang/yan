@@ -10,3 +10,10 @@ pub trait Sched:
 pub def pool() -> Sched:
     """Fork-join over OS threads, one per core (9.1): parallel but not concurrent forward progress."""
     ...
+
+@intrinsic
+@concurrent
+@since("1.0")
+pub def sequential() -> Sched:
+    """Cooperative on the current thread, switching at blocking operations to the lowest-index runnable task (9.1): deterministic and concurrent."""
+    ...

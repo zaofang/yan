@@ -109,6 +109,10 @@ pub enum ScalarOp {
     SwapBytes,
     ReverseBits,
     IsPowerOfTwo,
+    /// Conversion from the operand type to this one: modular, saturating, or panicking `overflow`.
+    WrapAs(IntTy),
+    SatAs(IntTy),
+    CheckedAs(IntTy),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -155,6 +159,66 @@ pub enum Inst {
         word: u32,
         src: Operand,
     },
+    /// `dst` = the address of `local`, which is in a [`Func::pinned`] group.
+    AddrOf {
+        dst: Local,
+        local: Local,
+    },
+    /// An atomic access of the word at `ptr`, `ty` wide (an integer or `bool`). `dst` gets a
+    /// load's value, a swap's or read-modify-write's old value, a compare-exchange's old value;
+    /// `args` are the value, or the expected and the new value. Backends may run every ordering
+    /// as sequentially consistent (stronger), the machine's race detector reads them.
+    Atomic {
+        dst: Option<Local>,
+        op: AtomicOp,
+        ty: Ty,
+        order: MemOrder,
+        /// A compare-exchange's failure ordering.
+        failure: MemOrder,
+        ptr: Operand,
+        args: Vec<Operand>,
+    },
+    /// `std.sync.atomic.fence`; backends run it sequentially consistent, the machine's race
+    /// detector reads `order`.
+    Fence {
+        order: MemOrder,
+    },
+    /// A boundary of a sequential `par`'s arms, for the machine's race detector; no code.
+    Arm(ArmEvent),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AtomicOp {
+    Load,
+    Store,
+    Swap,
+    Cas,
+    /// Integer read-modify-write; the new value wraps to the width of `ty`.
+    Add,
+    Sub,
+    And,
+    Or,
+    Xor,
+    Max,
+    Min,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MemOrder {
+    Relaxed,
+    Acquire,
+    Release,
+    AcqRel,
+    SeqCst,
+}
+
+/// Where a `par` forks and joins its arms (`Inst::Arm`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ArmEvent {
+    Fork,
+    Enter(u32),
+    Exit,
+    Join,
 }
 
 /// The yan-rt entry points native code calls.
@@ -439,6 +503,8 @@ pub enum RtFn {
     ListPush,
     /// `(List) -> i64`
     ListLen,
+    /// `(List) -> ptr`: the first element slot.
+    ListData,
     /// `(List, i64) -> Ptr` to an element's slots; panics `bounds`.
     ListAt,
     /// `(List) -> List`, a copy of the slots.
@@ -504,6 +570,11 @@ pub enum RtFn {
     JsonDump,
     /// `(Ptr slots) -> Str`: the text of a `JsonError`.
     JsonErrorShow,
+    /// `(Ptr out, Str, i64 max_depth, i64 float)`: the slots of `Result[Value, JsonError]`, or
+    /// of `Result[float, JsonError]` when `float` is 1.
+    JsonParseValue,
+    /// `(Ptr value, i64 tag, i64 indent) -> Str`: `indent` counts when `tag` is 0.
+    JsonDumpValue,
     /// `(Ptr out, Str, Str, Str)`: the slots of `Result[list[T], CsvError]` into `out`.
     CsvParse,
     /// `(List rows, Str delimiter, Str schema) -> Str`
@@ -723,6 +794,7 @@ impl RtFn {
                 | RtFn::MapCopy
                 | RtFn::JsonDump
                 | RtFn::JsonErrorShow
+                | RtFn::JsonDumpValue
                 | RtFn::CsvDump
                 | RtFn::CsvErrorShow
         )
@@ -785,11 +857,16 @@ pub struct Block {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Func {
     pub name: String,
+    /// An `unsafe fn`: a failed `requires` is a `ub(16)` report under `--ub` (RFC 0076 D5).
+    pub unsafe_fn: bool,
     /// The first `params` locals are the parameters, in order.
     pub params: u32,
     /// The result slots, then the final value of each `inout` parameter's slots.
     pub ret: Vec<Ty>,
     pub locals: Vec<Ty>,
+    /// Groups of locals that live in memory, one word each in order, because their address is
+    /// taken (`Inst::AddrOf`).
+    pub pinned: Vec<Vec<Local>>,
     /// Block 0 is the entry.
     pub blocks: Vec<Block>,
 }

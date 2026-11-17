@@ -4,6 +4,7 @@
 
 use crate::keyhash::Enc;
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 /// How a key's slots encode, from the schema text the lowering builds:
@@ -62,7 +63,21 @@ impl Key {
     /// # Safety
     /// Every `Str` slot holds a live `Str` block.
     pub(crate) unsafe fn eq(&self, a: &[u64], b: &[u64], at: &mut usize) -> bool {
-        match self {
+        match self.eq_in(a, b, at, &Raw) {
+            Ok(eq) => eq,
+            Err(e) => match e {},
+        }
+    }
+
+    /// [`Key::eq`] with the blocks read through `blk`.
+    pub fn eq_in<B: Blocks>(
+        &self,
+        a: &[u64],
+        b: &[u64],
+        at: &mut usize,
+        blk: &B,
+    ) -> Result<bool, B::Err> {
+        Ok(match self {
             Key::Float => {
                 let eq = f64::from_bits(a[*at]) == f64::from_bits(b[*at]);
                 *at += 1;
@@ -72,14 +87,13 @@ impl Key {
                 let mut eq = true;
                 for k in ks {
                     // Every field is read, so `at` ends past the element.
-                    // SAFETY: forwarded.
-                    eq &= unsafe { k.eq(a, b, at) };
+                    eq &= k.eq_in(a, b, at, blk)?;
                 }
                 eq
             }
             Key::Sum(vs) => {
                 if a[*at] != b[*at] {
-                    return false;
+                    return Ok(false);
                 }
                 let tag = a[*at];
                 *at += 1;
@@ -87,8 +101,7 @@ impl Key {
                 for (i, (_, ks)) in vs.iter().enumerate() {
                     if i as u64 == tag {
                         for k in ks {
-                            // SAFETY: forwarded.
-                            eq &= unsafe { k.eq(a, b, at) };
+                            eq &= k.eq_in(a, b, at, blk)?;
                         }
                     } else {
                         *at += ks.iter().map(Key::width).sum::<usize>();
@@ -96,9 +109,8 @@ impl Key {
                 }
                 eq
             }
-            // SAFETY: forwarded.
-            _ => unsafe { self.cmp(a, b, at) }.is_eq(),
-        }
+            _ => self.cmp_in(a, b, at, blk)?.is_eq(),
+        })
     }
 
     /// Order the elements `a` and `b` of equal layout from slot `*at`, as `Ord` does.
@@ -106,6 +118,20 @@ impl Key {
     /// # Safety
     /// Every `Str` slot holds a live `Str` block.
     pub(crate) unsafe fn cmp(&self, a: &[u64], b: &[u64], at: &mut usize) -> std::cmp::Ordering {
+        match self.cmp_in(a, b, at, &Raw) {
+            Ok(o) => o,
+            Err(e) => match e {},
+        }
+    }
+
+    /// [`Key::cmp`] with the blocks read through `blk`.
+    pub fn cmp_in<B: Blocks>(
+        &self,
+        a: &[u64],
+        b: &[u64],
+        at: &mut usize,
+        blk: &B,
+    ) -> Result<std::cmp::Ordering, B::Err> {
         use std::cmp::Ordering::Equal;
         let (x, y) = (a[*at], b[*at]);
         let ord = match self {
@@ -125,61 +151,59 @@ impl Key {
                 .unwrap_or(Equal),
             Key::Bool => (x as u8 != 0).cmp(&(y as u8 != 0)),
             Key::Unit => Equal,
-            // SAFETY: the caller's contract.
-            Key::Str => unsafe { (*(x as *const String)).cmp(&*(y as *const String)) },
-            // SAFETY: the caller's contract.
-            Key::Path => unsafe {
-                let parts = |p: u64| crate::path::Parsed::posix(&*(p as *const String)).parts();
-                parts(x).cmp(&parts(y))
-            },
-            // SAFETY: the caller's contract.
-            Key::WinPath => unsafe {
-                let parts =
-                    |p: u64| crate::path::Parsed::windows(&*(p as *const String)).folded_parts();
-                parts(x).cmp(&parts(y))
-            },
-            // SAFETY: the caller's contract.
-            Key::Bytes => unsafe { (*(x as *const Vec<u8>)).cmp(&*(y as *const Vec<u8>)) },
+            Key::Str => blk.text(x)?.cmp(&blk.text(y)?),
+            Key::Path => {
+                let (x, y) = (blk.text(x)?, blk.text(y)?);
+                let parts = |p: &str| crate::path::Parsed::posix(p).parts();
+                parts(&x).cmp(&parts(&y))
+            }
+            Key::WinPath => {
+                let (x, y) = (blk.text(x)?, blk.text(y)?);
+                let parts = |p: &str| crate::path::Parsed::windows(p).folded_parts();
+                parts(&x).cmp(&parts(&y))
+            }
+            Key::Bytes => blk.bytes(x)?.cmp(&blk.bytes(y)?),
             Key::Tuple(ks) | Key::Rec(_, ks) => {
                 for k in ks {
-                    // SAFETY: forwarded.
-                    let o = unsafe { k.cmp(a, b, at) };
+                    let o = k.cmp_in(a, b, at, blk)?;
                     if o != Equal {
-                        return o;
+                        return Ok(o);
                     }
                 }
-                return Equal;
+                return Ok(Equal);
             }
             Key::Sum(vs) => {
                 if x != y {
-                    return x.cmp(&y);
+                    return Ok(x.cmp(&y));
                 }
                 *at += 1;
                 for (i, (_, ks)) in vs.iter().enumerate() {
                     if i as u64 == x {
                         for k in ks {
-                            // SAFETY: forwarded.
-                            let o = unsafe { k.cmp(a, b, at) };
+                            let o = k.cmp_in(a, b, at, blk)?;
                             if o != Equal {
-                                return o;
+                                return Ok(o);
                             }
                         }
                     } else {
                         *at += ks.iter().map(Key::width).sum::<usize>();
                     }
                 }
-                return Equal;
+                return Ok(Equal);
             }
         };
         *at += 1;
-        ord
+        Ok(ord)
     }
 
     /// Encode the slots `w[*at..]`, advancing `at` past them.
-    ///
-    /// # Safety
-    /// A `Str` slot holds a live `Str` block.
-    unsafe fn enc(&self, w: &[u64], at: &mut usize, out: &mut Enc) {
+    fn enc<B: Blocks>(
+        &self,
+        w: &[u64],
+        at: &mut usize,
+        out: &mut Enc,
+        b: &B,
+    ) -> Result<(), B::Err> {
         let x = w[*at];
         match self {
             Key::Int(bits, signed) => {
@@ -194,27 +218,22 @@ impl Key {
             Key::Float => out.float(f64::from_bits(x)),
             Key::Bool => out.bool(x as u8 != 0),
             Key::Unit => out.unit(),
-            // SAFETY: the caller's contract.
-            Key::Str | Key::Path => out.text(unsafe { &*(x as *const String) }),
-            // SAFETY: the caller's contract.
-            Key::WinPath => out.win_path(&unsafe { &*(x as *const String) }.to_lowercase()),
-            // SAFETY: the caller's contract.
-            Key::Bytes => out.bytes(unsafe { &*(x as *const Vec<u8>) }),
+            Key::Str | Key::Path => out.text(&b.text(x)?),
+            Key::WinPath => out.win_path(&b.text(x)?.to_lowercase()),
+            Key::Bytes => out.bytes(&b.bytes(x)?),
             Key::Tuple(ks) => {
                 out.seq(ks.len());
                 for k in ks {
-                    // SAFETY: forwarded.
-                    unsafe { k.enc(w, at, out) };
+                    k.enc(w, at, out, b)?;
                 }
-                return;
+                return Ok(());
             }
             Key::Rec(name, ks) => {
                 out.data(name);
                 for k in ks {
-                    // SAFETY: forwarded.
-                    unsafe { k.enc(w, at, out) };
+                    k.enc(w, at, out, b)?;
                 }
-                return;
+                return Ok(());
             }
             Key::Sum(vs) => {
                 *at += 1;
@@ -222,17 +241,17 @@ impl Key {
                     if i as u64 == x {
                         out.data(name);
                         for k in ks {
-                            // SAFETY: forwarded.
-                            unsafe { k.enc(w, at, out) };
+                            k.enc(w, at, out, b)?;
                         }
                     } else {
                         *at += ks.iter().map(Key::width).sum::<usize>();
                     }
                 }
-                return;
+                return Ok(());
             }
         }
         *at += 1;
+        Ok(())
     }
 }
 
@@ -324,13 +343,110 @@ pub(crate) fn parse(s: &mut &str) -> Key {
     }
 }
 
+/// Reads the blocks a key's slots point to, so native code (raw pointers) and the machine
+/// (abstract memory) encode keys with one routine.
+pub trait Blocks {
+    type Err;
+    fn text(&self, block: u64) -> Result<Cow<'_, str>, Self::Err>;
+    fn bytes(&self, block: u64) -> Result<Cow<'_, [u8]>, Self::Err>;
+}
+
+/// Blocks as native code holds them: slots are live pointers.
+struct Raw;
+
+impl Blocks for Raw {
+    type Err = std::convert::Infallible;
+
+    fn text(&self, block: u64) -> Result<Cow<'_, str>, Self::Err> {
+        // SAFETY: a `Str` slot holds a live `Str` block.
+        Ok(Cow::Borrowed(unsafe { &*(block as *const String) }))
+    }
+
+    fn bytes(&self, block: u64) -> Result<Cow<'_, [u8]>, Self::Err> {
+        // SAFETY: as above, for `bytes` blocks.
+        Ok(Cow::Borrowed(unsafe { &*(block as *const Vec<u8>) }))
+    }
+}
+
+/// A map's key layout: the schema parsed once.
+#[derive(Debug, Clone)]
+pub struct Layout(Key);
+
+impl Layout {
+    pub fn parse(schema: &str) -> Layout {
+        Layout(parse(&mut &*schema))
+    }
+
+    pub fn width(&self) -> usize {
+        self.0.width()
+    }
+
+    /// Order the elements in slots `a` and `b`, as `Ord` does on the keys they hold.
+    pub fn cmp<B: Blocks>(
+        &self,
+        a: &[u64],
+        b: &[u64],
+        blocks: &B,
+    ) -> Result<std::cmp::Ordering, B::Err> {
+        self.0.cmp_in(a, b, &mut 0, blocks)
+    }
+
+    /// Whether the elements in slots `a` and `b` are equal, as `==` reads them.
+    pub fn eq<B: Blocks>(&self, a: &[u64], b: &[u64], blocks: &B) -> Result<bool, B::Err> {
+        self.0.eq_in(a, b, &mut 0, blocks)
+    }
+
+    /// The canonical encoding of the key in slots `w`; equal keys encode equal.
+    pub fn encode<B: Blocks>(&self, w: &[u64], blocks: &B) -> Result<Vec<u8>, B::Err> {
+        let mut e = Enc::new();
+        self.0.enc(w, &mut 0, &mut e, blocks)?;
+        Ok(e.into_bytes())
+    }
+}
+
+/// Entry positions by encoded key, in insertion order: removal closes the gap.
+#[derive(Debug, Clone, Default)]
+pub struct KeyIndex(HashMap<Vec<u8>, usize>);
+
+impl KeyIndex {
+    pub fn find(&self, enc: &[u8]) -> Option<usize> {
+        self.0.get(enc).copied()
+    }
+
+    /// Adds `enc` as the last entry and returns its position.
+    pub fn push(&mut self, enc: Vec<u8>) -> usize {
+        let i = self.0.len();
+        self.0.insert(enc, i);
+        i
+    }
+
+    /// Removes `enc`, returning its former position.
+    pub fn remove(&mut self, enc: &[u8]) -> Option<usize> {
+        let i = self.0.remove(enc)?;
+        for j in self.0.values_mut() {
+            if *j > i {
+                *j -= 1;
+            }
+        }
+        Some(i)
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
 pub struct Map {
     key: Key,
     kw: usize,
     vw: usize,
     /// Entries of `kw + vw` slots, in insertion order.
     data: Vec<u64>,
-    index: HashMap<Vec<u8>, usize>,
+    index: KeyIndex,
 }
 
 impl Map {
@@ -350,13 +466,8 @@ impl Map {
             kw,
             vw,
             data: Vec::new(),
-            index: HashMap::new(),
+            index: KeyIndex::default(),
         }))
-    }
-
-    /// Each entry's key then value slots, in order.
-    pub(crate) fn entries(&self) -> impl Iterator<Item = &[u64]> {
-        self.data.chunks(self.stride())
     }
 
     fn stride(&self) -> usize {
@@ -372,10 +483,10 @@ impl Map {
     unsafe fn encode(&self, key: *const u64) -> Vec<u8> {
         // SAFETY: the caller's contract.
         let w = unsafe { std::slice::from_raw_parts(key, self.kw) };
-        let mut e = Enc::new();
-        // SAFETY: as above.
-        unsafe { self.key.enc(w, &mut 0, &mut e) };
-        e.into_bytes()
+        match self.key_enc(w) {
+            Ok(e) => e,
+            Err(never) => match never {},
+        }
     }
 
     fn entry(&mut self, i: usize) -> *mut u64 {
@@ -387,7 +498,13 @@ impl Map {
     /// As [`Map::encode`].
     unsafe fn find(&self, key: *const u64) -> Option<usize> {
         // SAFETY: forwarded.
-        self.index.get(&unsafe { self.encode(key) }).copied()
+        self.index.find(&unsafe { self.encode(key) })
+    }
+
+    fn key_enc(&self, w: &[u64]) -> Result<Vec<u8>, std::convert::Infallible> {
+        let mut e = Enc::new();
+        self.key.enc(w, &mut 0, &mut e, &Raw)?;
+        Ok(e.into_bytes())
     }
 }
 
@@ -456,8 +573,7 @@ pub unsafe extern "C" fn yan_rt_map_push(m: *mut Map, key: *const u64) -> *mut u
     let m = unsafe { &mut *m };
     // SAFETY: as above.
     let enc = unsafe { m.encode(key) };
-    let i = m.len();
-    m.index.insert(enc, i);
+    let i = m.index.push(enc);
     // SAFETY: as above.
     m.data
         .extend_from_slice(unsafe { std::slice::from_raw_parts(key, m.kw) });
@@ -484,11 +600,6 @@ pub unsafe extern "C" fn yan_rt_map_remove(m: *mut Map, key: *const u64, out: *m
     let out = unsafe { std::slice::from_raw_parts_mut(out, s) };
     out.copy_from_slice(&m.data[i * s..(i + 1) * s]);
     m.data.drain(i * s..(i + 1) * s);
-    for j in m.index.values_mut() {
-        if *j > i {
-            *j -= 1;
-        }
-    }
     1
 }
 

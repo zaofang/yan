@@ -180,6 +180,15 @@ impl Lower<'_, '_, '_> {
                         continue;
                     };
                     let (x, xt) = self.atom(e, Some(ft))?;
+                    if self.bits_record(&t).is_some() {
+                        let place = Place {
+                            root: v.clone(),
+                            root_span: at,
+                            projs: Vec::new(),
+                        };
+                        self.bits_write((place, r), (name, a.span), (Rhs::Atom(x), &xt), e.span)?;
+                        continue;
+                    }
                     self.expect(&xt, ft, e.span);
                     self.emit(
                         StmtKind::Assign {
@@ -291,6 +300,7 @@ impl Lower<'_, '_, '_> {
                 let (r, t, _) = self.std_call(&path, p, Vec::new(), args, n, at)?;
                 Ok((r, t))
             }
+            _ if let Some(r) = self.lenient_free(n, args, at, want)? => Ok(r),
             _ => {
                 let mut names: Vec<&str> = self.g.fns.keys().map(String::as_str).collect();
                 names.extend(BUILTINS);

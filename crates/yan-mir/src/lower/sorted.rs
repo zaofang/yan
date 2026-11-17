@@ -95,7 +95,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     /// Entry `i` of `l`, removed; the value is the caller's to drop.
-    fn take_at(&mut self, l: &Operand, i: &Operand, e: &Shape) -> Vec<Operand> {
+    pub(super) fn take_at(&mut self, l: &Operand, i: &Operand, e: &Shape) -> Vec<Operand> {
         let at = At::Mem(
             self.rt(RtFn::ListAt, Ty::Ptr, vec![l.clone(), i.clone()]),
             0,
@@ -129,7 +129,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     /// `Some(x)` when `ok`, else `None`, into `dst`; `x` is built in the `Some` branch.
-    fn some_if(
+    pub(super) fn some_if(
         &mut self,
         ok: Operand,
         dst: &Option<Var>,

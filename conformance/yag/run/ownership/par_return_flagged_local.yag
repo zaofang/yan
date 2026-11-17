@@ -11,4 +11,5 @@ def r() -> int uses io:
     return path.char_count()
 
 pub def main() uses io:
-    io.print(f"{r()}")
+    with sched = sequential():
+        io.print(f"{r()}")

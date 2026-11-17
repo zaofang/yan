@@ -259,7 +259,8 @@ mod tests {
         let (mut rejected, mut disagree) = (0, Vec::new());
         for (n, (_, src)) in corpus().iter().enumerate() {
             for m in mutants(src, n * 7 + 3) {
-                if parses(&m) || only_mixes(&m) {
+                // Interpolations are parsed by the parser, not by this grammar (see `notes`).
+                if parses(&m) || only_mixes(&m) || m.contains("\\(") {
                     continue;
                 }
                 if g.accepts(&m) {

@@ -3,7 +3,6 @@
 //! `jsonslots`). A cell is its slots: a scalar is one, `Option` a tag (`Some` 0, `None` 1) then
 //! the payload, and a fieldless sum one tag.
 
-use crate::abi::List;
 use crate::csv::{self, Cell, Reason as Kernel};
 use crate::json::{self, Json};
 use crate::jsonslots::{Slot, get, items, wire, word};
@@ -354,9 +353,8 @@ impl Cx<'_> {
 
     /// The text of a cell and whether it must be quoted even if plain (an empty `str`).
     ///
-    /// # Safety
-    /// The `Str` slot in `w` points to a live block.
-    unsafe fn encode_cell(&self, t: &Json, w: &[u64]) -> Result<(String, bool), ()> {
+    /// `text` reads the `Str` slot words.
+    fn encode_cell(&self, t: &Json, w: &[u64], text: Text) -> Result<(String, bool), ()> {
         Ok(match t {
             Json::Str(n) => match n.as_str() {
                 "bool" => ((w[0] & 0xff != 0).to_string(), false),
@@ -366,9 +364,9 @@ impl Cx<'_> {
                     false,
                 ),
                 "str" => {
-                    // SAFETY: the caller's contract.
-                    let s = unsafe { &*(w[0] as *const String) };
-                    (s.clone(), s.is_empty())
+                    let s = text(w[0]);
+                    let empty = s.is_empty();
+                    (s, empty)
                 }
                 _ => return Err(()),
             },
@@ -378,8 +376,7 @@ impl Cx<'_> {
                     if w[0] == 1 {
                         (String::new(), false)
                     } else {
-                        // SAFETY: forwarded.
-                        unsafe { self.encode_cell(t, &w[1..])? }
+                        self.encode_cell(t, &w[1..], text)?
                     }
                 } else {
                     (
@@ -392,9 +389,12 @@ impl Cx<'_> {
         })
     }
 
-    /// # Safety
-    /// `w` holds one row; its `Str` slots point to live blocks.
-    unsafe fn encode_row(&self, w: &[u64], columns: &[String]) -> Result<Vec<(String, bool)>, ()> {
+    fn encode_row(
+        &self,
+        w: &[u64],
+        columns: &[String],
+        text: Text,
+    ) -> Result<Vec<(String, bool)>, ()> {
         let (tag, decl, mut at) = match self.sum() {
             Some(vs) => {
                 let chosen = w[0] as usize;
@@ -421,8 +421,7 @@ impl Cx<'_> {
                 match items(decl).iter().position(|f| wire(f) == c) {
                     Some(i) => {
                         let t = get(&items(decl)[i], "t").unwrap_or(&Json::Null);
-                        // SAFETY: forwarded.
-                        unsafe { self.encode_cell(t, &w[starts[i]..])? }
+                        self.encode_cell(t, &w[starts[i]..], text)?
                     }
                     None => (String::new(), false),
                 }
@@ -432,6 +431,9 @@ impl Cx<'_> {
         Ok(cells)
     }
 }
+
+/// Reads the `Str` block a slot word names.
+pub type Text<'a> = &'a dyn Fn(u64) -> String;
 
 fn error(src: &str, f: Fail) -> Vec<Slot> {
     let (line, col) = csv::line_col(src, f.at);
@@ -532,10 +534,8 @@ pub fn parse(src: &str, delim: &str, sc: &str) -> Vec<Slot> {
 
 /// The csv text of the rows in `rows` against `sc`, or `None` when the delimiter is invalid or
 /// a float is not finite.
-///
-/// # Safety
-/// `rows` holds values of the schema's row type; their `Str` slots point to live blocks.
-pub unsafe fn dump(rows: &List, delim: &str, sc: &str) -> Option<String> {
+/// `rows` holds the words of values of the schema's row type; `text` reads their `Str` slots.
+pub fn dump(rows: &[u64], delim: &str, sc: &str, text: Text) -> Option<String> {
     let sc = schema(sc);
     let cx = Cx {
         def: get(&sc, "def").unwrap_or(&Json::Null),
@@ -554,9 +554,8 @@ pub unsafe fn dump(rows: &List, delim: &str, sc: &str) -> Option<String> {
     };
     let header: Vec<_> = columns.iter().map(|n| (n.clone(), n.is_empty())).collect();
     line(&header, &mut out);
-    for r in rows.data.chunks(cx.width()) {
-        // SAFETY: the caller's contract.
-        line(&unsafe { cx.encode_row(r, &columns) }.ok()?, &mut out);
+    for r in rows.chunks(cx.width()) {
+        line(&cx.encode_row(r, &columns, text).ok()?, &mut out);
     }
     Some(out)
 }
@@ -624,13 +623,9 @@ mod tests {
     #[test]
     fn dump_reads_the_slots() {
         let name = Box::into_raw(Box::new("hi".to_owned()));
-        let rows = List {
-            words: 3,
-            data: vec![5, 0, name as u64, 6, 1, 0],
-            limit: -1,
-        };
-        // SAFETY: the rows hold `P`s and `name` is live.
-        let out = unsafe { dump(&rows, ",", SCHEMA) };
+        // SAFETY: `name` is live until reclaimed below.
+        let text = |w: u64| unsafe { &*(w as *const String) }.clone();
+        let out = dump(&[5, 0, name as u64, 6, 1, 0], ",", SCHEMA, &text);
         // SAFETY: reclaimed once.
         drop(unsafe { Box::from_raw(name) });
         assert_eq!(out.as_deref(), Some("a,b\n5,hi\n6,\n"));

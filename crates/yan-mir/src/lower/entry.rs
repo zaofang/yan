@@ -46,10 +46,12 @@ impl Fn<'_, '_> {
         self.ret(vec![Operand::Unit]);
         self.finish(Term::Panic("unreachable"));
         Ok(Func {
+            unsafe_fn: false,
             name: "yan.main".to_owned(),
             params: 0,
             ret: vec![Ty::Unit],
             locals: self.locals,
+            pinned: self.pinned,
             blocks: self.blocks,
         })
     }

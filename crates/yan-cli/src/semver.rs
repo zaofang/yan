@@ -185,7 +185,7 @@ fn ret(f: &FuncDef) -> (String, Vec<String>, Vec<String>) {
     };
     (
         r.ty.as_ref().map(print_type).unwrap_or_default(),
-        r.fail.iter().map(|p| p.join(".")).collect(),
+        r.fail.iter().map(print_type).collect(),
         r.from.clone(),
     )
 }

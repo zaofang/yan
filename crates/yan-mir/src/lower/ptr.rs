@@ -1,5 +1,8 @@
 //! `core.ptr` (6.6) in native code: a `Ptr` is two words, its address and the allocation it
 //! derives from (0 for none). Exposed provenance is kept in `yan_rt::ptr`, as the interpreter does.
+//! Native code does not check provenance; `read`, `write` and `offset` act on the slot layout
+//! (one 8-byte word per slot, as `Arena` does). A local whose place `Ptr.of` takes lives in a
+//! stack slot for the whole function (`Func::pinned`).
 
 use super::*;
 
@@ -11,6 +14,12 @@ pub(super) const PTR_IDS: &[registry::Id] = &[
     id::STD_PTR_DANGLING,
     id::STD_PTR_EXPOSE_PROVENANCE,
     id::STD_PTR_WITH_EXPOSED_PROVENANCE,
+    id::STD_PTR_OF,
+    id::STD_PTR_AS_PTR,
+    id::STD_PTR_OFFSET,
+    id::STD_PTR_CAST,
+    id::STD_PTR_READ,
+    id::STD_PTR_WRITE,
 ];
 
 impl<'m> Fn<'_, 'm> {
@@ -21,7 +30,64 @@ impl<'m> Fn<'_, 'm> {
                 me.copy_to(&d.locals.clone(), v);
             }
         };
+        let elem = |me: &Self| -> R<Shape> {
+            match me.targ(c)? {
+                Some(e) => Ok(e),
+                None => unsupported("a `Ptr` without its type"),
+            }
+        };
+        // `write` of a heap value would leak the slot's old blocks, which `Ptr` cannot know.
+        let heap_free = |me: &Self| -> R<Shape> {
+            match elem(me)? {
+                e if !Self::has_heap(&e) => Ok(e),
+                e => unsupported(format!("a `Ptr` write of a value with heap blocks ({e:?})")),
+            }
+        };
         match (id, args.as_slice()) {
+            (id::STD_PTR_OF, [(_, y::Atom::Name(n, _))]) => {
+                let locals = self.name(n)?.locals.clone();
+                let Some(first) = locals.first().copied() else {
+                    return unsupported("`Ptr.of` of a value with no slots");
+                };
+                if !self.pinned.iter().flatten().any(|l| *l == first) {
+                    self.pinned.push(locals);
+                }
+                let a = self.local(I64);
+                self.emit(Inst::AddrOf {
+                    dst: a,
+                    local: first,
+                });
+                set(self, vec![Operand::Local(a), Operand::Int(0)]);
+            }
+            (id::STD_PTR_AS_PTR, [(_, l)]) => {
+                let l = self.scalar1(l)?;
+                let a = self.rt(RtFn::ListData, I64, vec![l]);
+                set(self, vec![a, Operand::Int(0)]);
+            }
+            (id::STD_PTR_OFFSET, [(_, p), (_, n)]) => {
+                let stride = elem(self)?.tys().len() as i128 * 8;
+                let p = self.atom_any(p)?.0;
+                let n = self.scalar1(n)?;
+                let by = self.scalar_op(ScalarOp::MulChecked, I64, vec![n, Operand::Int(stride)]);
+                let a = self.scalar_op(ScalarOp::AddChecked, I64, vec![p[0].clone(), by]);
+                set(self, vec![a, p[1].clone()]);
+            }
+            (id::STD_PTR_CAST, [(_, p)]) => {
+                let p = self.atom_any(p)?.0;
+                set(self, p);
+            }
+            (id::STD_PTR_READ, [(_, p)]) => {
+                let e = elem(self)?;
+                let p = self.atom_any(p)?.0;
+                let v = self.read(&At::Mem(p[0].clone(), 0), &e);
+                set(self, v);
+            }
+            (id::STD_PTR_WRITE, [(_, p), (_, v)]) => {
+                let e = heap_free(self)?;
+                let p = self.atom_any(p)?.0;
+                let v = self.atom(v, &e)?;
+                self.write(&At::Mem(p[0].clone(), 0), v);
+            }
             (id::STD_PTR_ADDR, [(_, p)]) => {
                 let p = self.atom_any(p)?.0;
                 set(self, vec![p[0].clone()]);

@@ -41,6 +41,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E014 | approved test changed since tests.lock was signed new | 18.4 |
 | E015 | approved test in tests.lock is missing new | 18.4 |
 | E016 | `yan publish` refuses the manifest: `overrides`, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later *new* | 19.4 |
+| E023 | package with an `ffi` module or extern block not named in the root's `allow_ffi`, at compile or at dependency resolution (R1018, R1019) *new* | 12, 19.1, 19.2 |
 | E018 | `package.yag` or `.yan/config.yag` has a field not in its table, or lacks `name`, `version`, `edition` or `yan` where required *new* | 19.1 |
 | E019 | `yan.lock` has a `format` newer than this toolchain reads *new* | 19.1 |
 | E020 | under `--locked`, `yan.lock` is missing or does not match the manifest, or an offline archive is absent *new* | 19.1 |
@@ -316,6 +317,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | E909 | duplicate export name at link time *new* | 12.8 |
 | E910 | `asm` operand type not supported *new* | 12.9 |
 | E911 | `asm` register or register class invalid for the target *new* | 12.9 |
+| E912 | `unsafe fn` named other than as the callee of a call (R1016) *new* | 3 |
 
 ### 25.12 Patches, notes, internal errors and panics
 

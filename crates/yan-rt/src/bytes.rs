@@ -20,6 +20,38 @@ pub fn repr(b: &[u8]) -> String {
     s
 }
 
+/// `i` counting from the end when negative; `None` out of range.
+pub fn index_of(i: i64, n: usize) -> Option<usize> {
+    let at = if i < 0 { i + n as i64 } else { i };
+    usize::try_from(at).ok().filter(|&at| at < n)
+}
+
+/// The byte at `i`, or -1 past either end.
+pub fn at(b: &[u8], i: i64) -> i64 {
+    usize::try_from(i)
+        .ok()
+        .and_then(|i| b.get(i))
+        .map_or(-1, |&c| c.into())
+}
+
+/// The first index of `sub` in `b`, or -1; an empty `sub` is found at 0.
+pub fn find(b: &[u8], sub: &[u8]) -> i64 {
+    if sub.is_empty() {
+        return 0;
+    }
+    b.windows(sub.len())
+        .position(|w| w == sub)
+        .map_or(-1, |i| i as i64)
+}
+
+/// `b[i..j]`; `None` unless `i <= j <= len`.
+pub fn slice(b: &[u8], i: i64, j: i64) -> Option<&[u8]> {
+    match (usize::try_from(i), usize::try_from(j)) {
+        (Ok(x), Ok(y)) if x <= y && y <= b.len() => Some(&b[x..y]),
+        _ => None,
+    }
+}
+
 pub fn hex(b: &[u8]) -> String {
     b.iter().map(|c| format!("{c:02x}")).collect()
 }
@@ -131,9 +163,8 @@ pub unsafe extern "C" fn yan_rt_bytes_copy(b: *const Vec<u8>) -> *mut Vec<u8> {
 pub unsafe extern "C" fn yan_rt_bytes_set(b: *mut Vec<u8>, i: i64, x: i64) {
     // SAFETY: the caller's contract.
     let b = unsafe { &mut *b };
-    let at = if i < 0 { i + b.len() as i64 } else { i };
-    match usize::try_from(at).ok().and_then(|at| b.get_mut(at)) {
-        Some(c) => *c = x as u8,
+    match index_of(i, b.len()) {
+        Some(at) => b[at] = x as u8,
         None => out_of_range(i, b.len()),
     }
 }
@@ -256,10 +287,10 @@ pub unsafe extern "C" fn yan_rt_bytes_index(b: *const Vec<u8>, i: i64) -> *mut u
     thread_local!(static WORD: std::cell::UnsafeCell<u64> = const { std::cell::UnsafeCell::new(0) });
     // SAFETY: the caller's contract.
     let b = unsafe { &*b };
-    let at = if i < 0 { i + b.len() as i64 } else { i };
-    let Some(&c) = usize::try_from(at).ok().and_then(|at| b.get(at)) else {
+    let Some(at) = index_of(i, b.len()) else {
         out_of_range(i, b.len())
     };
+    let c = b[at];
     WORD.with(|w| {
         // SAFETY: the word is thread-local and only read right after this call.
         unsafe { *w.get() = c.into() };
@@ -272,10 +303,7 @@ pub unsafe extern "C" fn yan_rt_bytes_index(b: *const Vec<u8>, i: i64) -> *mut u
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_bytes_at(b: *const Vec<u8>, i: i64) -> i64 {
     // SAFETY: the caller's contract.
-    usize::try_from(i)
-        .ok()
-        .and_then(|i| unsafe { &*b }.get(i))
-        .map_or(-1, |&c| c.into())
+    at(unsafe { &*b }, i)
 }
 
 /// # Safety
@@ -283,13 +311,7 @@ pub unsafe extern "C" fn yan_rt_bytes_at(b: *const Vec<u8>, i: i64) -> i64 {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_bytes_find(b: *const Vec<u8>, sub: *const Vec<u8>) -> i64 {
     // SAFETY: the caller's contract.
-    let (b, sub) = unsafe { (&*b, &*sub) };
-    if sub.is_empty() {
-        return 0;
-    }
-    b.windows(sub.len())
-        .position(|w| w == sub.as_slice())
-        .map_or(-1, |i| i as i64)
+    find(unsafe { &*b }, unsafe { &*sub })
 }
 
 /// # Safety
@@ -298,9 +320,9 @@ pub unsafe extern "C" fn yan_rt_bytes_find(b: *const Vec<u8>, sub: *const Vec<u8
 pub unsafe extern "C" fn yan_rt_bytes_slice(b: *const Vec<u8>, i: i64, j: i64) -> *mut Vec<u8> {
     // SAFETY: the caller's contract.
     let b = unsafe { &*b };
-    match (usize::try_from(i), usize::try_from(j)) {
-        (Ok(x), Ok(y)) if x <= y && y <= b.len() => leak(b[x..y].to_vec()),
-        _ => out_of_range(j, b.len()),
+    match slice(b, i, j) {
+        Some(s) => leak(s.to_vec()),
+        None => out_of_range(j, b.len()),
     }
 }
 
@@ -361,11 +383,15 @@ pub unsafe extern "C" fn yan_rt_base64_decode(s: *const String, url: u8) -> *mut
 /// `invalid <kind> at <at>` for an `EncodingError` whose reason is variant `reason` (R583).
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_encoding_error_show(at: i64, reason: i64) -> *mut String {
+    str_block(&encoding_error_show(at, reason))
+}
+
+pub fn encoding_error_show(at: i64, reason: i64) -> String {
     let kind = match reason {
         0 => "UTF-8",
         1 => "hex",
         3 => "scalar value",
         _ => "base64",
     };
-    str_block(&format!("invalid {kind} at {at}"))
+    format!("invalid {kind} at {at}")
 }

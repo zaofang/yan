@@ -1,0 +1,17 @@
+# spec: 9.1
+# rows: R1003
+# note: a user sched handler that does not implement `Concurrent` gives no concurrent forward progress
+# expect: E708 at 15:9
+
+class Inline:
+    n: int
+
+impl Sched for Inline:
+    def width(self: Self) -> int:
+        return 1
+
+def main() uses io:
+    with sched = Inline(n=1):
+        par concurrent:
+            io.print("a")
+            io.print("b")

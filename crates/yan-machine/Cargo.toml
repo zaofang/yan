@@ -1,0 +1,15 @@
+[package]
+name = "yan-machine"
+description = "Abstract-byte executor of yan-mir: the checked machine of 6.1"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+yan-mir.workspace = true
+yan-rt.workspace = true
+
+[lints]
+workspace = true

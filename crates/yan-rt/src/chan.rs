@@ -75,24 +75,36 @@ fn idle_or_deadlock() -> u64 {
 /// `ch` is a live channel and `buf` holds its element's slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_chan_send(ch: *mut Chan, buf: *const u64, in_task: u64) -> u64 {
-    if in_task != 0 && sched::cancelled() {
+    // SAFETY: the caller's contract.
+    let v = unsafe { std::slice::from_raw_parts(buf, (*ch).words) };
+    send(ch as usize, v, in_task != 0)
+}
+
+/// The slots of `ch`'s elements.
+pub fn words(ch: usize) -> usize {
+    // SAFETY: a live channel, the contract of every operation on it.
+    unsafe { (*(ch as *const Chan)).words }
+}
+
+/// `send` over the element's slots `v`.
+pub fn send(ch: usize, v: &[u64], in_task: bool) -> u64 {
+    if in_task && sched::cancelled() {
         return CANCELLED;
     }
-    // SAFETY: the caller's contract.
-    let c = unsafe { &mut *ch };
+    // SAFETY: a live channel, the contract of every operation on it.
+    let c = unsafe { &mut *(ch as *mut Chan) };
+    let ch = ch as *mut Chan;
     let room = if c.cap == 0 {
         sched::waiting(ch as usize)
     } else {
         c.cap
     };
     if c.len() >= room {
-        if sched::park((false, ch as usize), in_task != 0) {
+        if sched::park((false, ch as usize), in_task) {
             return BLOCKED;
         }
         return idle_or_deadlock();
     }
-    // SAFETY: the caller's contract.
-    let v = unsafe { std::slice::from_raw_parts(buf, c.words) };
     c.q.extend(v);
     if c.words == 0 {
         c.q.push_back(0);
@@ -107,26 +119,33 @@ pub unsafe extern "C" fn yan_rt_chan_send(ch: *mut Chan, buf: *const u64, in_tas
 /// `ch` is a live channel and `out` has room for its element's slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_chan_recv(ch: *mut Chan, out: *mut u64, in_task: u64) -> u64 {
-    if in_task != 0 && sched::cancelled() {
-        return CANCELLED;
-    }
-    // SAFETY: the caller's contract.
-    let c = unsafe { &mut *ch };
-    if c.len() == 0 {
-        if c.senders == 0 {
-            return CLOSED;
-        }
-        if sched::park((true, ch as usize), in_task != 0) {
-            return BLOCKED;
-        }
-        return idle_or_deadlock();
-    }
-    for (i, w) in c.q.drain(..c.stride()).enumerate().take(c.words) {
+    let (status, v) = recv(ch as usize, in_task != 0);
+    for (i, w) in v.into_iter().enumerate() {
         // SAFETY: the caller's contract.
         unsafe { *out.add(i) = w };
     }
+    status
+}
+
+/// `recv`: the status and, when 0, the oldest element's slots.
+pub fn recv(ch: usize, in_task: bool) -> (u64, Vec<u64>) {
+    if in_task && sched::cancelled() {
+        return (CANCELLED, Vec::new());
+    }
+    // SAFETY: a live channel, the contract of every operation on it.
+    let c = unsafe { &mut *(ch as *mut Chan) };
+    if c.len() == 0 {
+        if c.senders == 0 {
+            return (CLOSED, Vec::new());
+        }
+        if sched::park((true, ch), in_task) {
+            return (BLOCKED, Vec::new());
+        }
+        return (idle_or_deadlock(), Vec::new());
+    }
+    let v = c.q.drain(..c.stride()).take(c.words).collect();
     sched::progressed();
-    0
+    (0, v)
 }
 
 /// `try_send`: as `send`, but a channel with no room is [`NOT_READY`] instead of a wait.
@@ -135,21 +154,27 @@ pub unsafe extern "C" fn yan_rt_chan_recv(ch: *mut Chan, out: *mut u64, in_task:
 /// `ch` is a live channel and `buf` holds its element's slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_chan_try_send(ch: *mut Chan, buf: *const u64, in_task: u64) -> u64 {
-    if in_task != 0 && sched::cancelled() {
+    // SAFETY: the caller's contract.
+    let v = unsafe { std::slice::from_raw_parts(buf, (*ch).words) };
+    try_send(ch as usize, v, in_task != 0)
+}
+
+/// `try_send` over the element's slots `v`.
+pub fn try_send(ch: usize, v: &[u64], in_task: bool) -> u64 {
+    if in_task && sched::cancelled() {
         return CANCELLED;
     }
-    // SAFETY: the caller's contract.
-    let c = unsafe { &mut *ch };
+    // SAFETY: a live channel, the contract of every operation on it.
+    let c = unsafe { &mut *(ch as *mut Chan) };
     let room = if c.cap == 0 {
-        sched::waiting(ch as usize)
+        sched::waiting(ch)
     } else {
         c.cap
     };
     if c.len() >= room {
         return NOT_READY;
     }
-    // SAFETY: the caller's contract.
-    unsafe { yan_rt_chan_send(ch, buf, 0) }
+    send(ch, v, false)
 }
 
 /// `try_recv`: as `recv`, but an open channel with nothing queued is [`NOT_READY`] instead of a
@@ -159,13 +184,22 @@ pub unsafe extern "C" fn yan_rt_chan_try_send(ch: *mut Chan, buf: *const u64, in
 /// `ch` is a live channel and `out` has room for its element's slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_chan_try_recv(ch: *mut Chan, out: *mut u64, in_task: u64) -> u64 {
-    // SAFETY: the caller's contract.
-    let c = unsafe { &*ch };
-    if c.len() == 0 && c.senders != 0 && !(in_task != 0 && sched::cancelled()) {
-        return NOT_READY;
+    let (status, v) = try_recv(ch as usize, in_task != 0);
+    for (i, w) in v.into_iter().enumerate() {
+        // SAFETY: the caller's contract.
+        unsafe { *out.add(i) = w };
     }
-    // SAFETY: the caller's contract.
-    unsafe { yan_rt_chan_recv(ch, out, in_task) }
+    status
+}
+
+/// `try_recv`: the status and, when 0, the oldest element's slots.
+pub fn try_recv(ch: usize, in_task: bool) -> (u64, Vec<u64>) {
+    // SAFETY: a live channel, the contract of every operation on it.
+    let c = unsafe { &*(ch as *const Chan) };
+    if c.len() == 0 && c.senders != 0 && !(in_task && sched::cancelled()) {
+        return (NOT_READY, Vec::new());
+    }
+    recv(ch, in_task)
 }
 
 /// The arm kinds in the low two bits of a `select_wait` key, the channel above: a receive that
@@ -191,13 +225,23 @@ pub unsafe extern "C" fn yan_rt_select_wait(
 ) -> u64 {
     // SAFETY: the caller's contract.
     let (keys, at) = unsafe { (&(*keys).data, &(*at).data) };
+    let (status, arm) = select_wait(keys, at, in_task != 0);
+    if status == 0 {
+        // SAFETY: the caller's contract.
+        unsafe { *out = arm };
+    }
+    status
+}
+
+/// `select_wait` over the arm keys and timer readings: the status and, when 0, the ready arm.
+pub fn select_wait(keys: &[u64], at: &[u64], in_task: bool) -> (u64, u64) {
     let at: Vec<i128> = at
         .chunks(2)
         .map(|w| (i128::from(w[0] as i64) << 64) | i128::from(w[1]))
         .collect();
     loop {
-        if in_task != 0 && sched::cancelled() {
-            return CANCELLED;
+        if in_task && sched::cancelled() {
+            return (CANCELLED, 0);
         }
         let now = crate::civil::mono_now();
         let mut timers = at.iter();
@@ -226,9 +270,7 @@ pub unsafe extern "C" fn yan_rt_select_wait(
                 }
             };
             if ready {
-                // SAFETY: the caller's contract.
-                unsafe { *out = i as u64 };
-                return 0;
+                return (0, i as u64);
             }
         }
         let first_recv = keys
@@ -236,11 +278,11 @@ pub unsafe extern "C" fn yan_rt_select_wait(
             .map(|&k| k as i64)
             .find(|&k| k >= 0 && k & 3 != SEL_SEND);
         let on = first_recv.map_or((false, usize::MAX), |k| (true, (k & !3) as usize));
-        if sched::park_until(on, wake, in_task != 0) {
-            return BLOCKED;
+        if sched::park_until(on, wake, in_task) {
+            return (BLOCKED, 0);
         }
         if crate::actor::yan_rt_actor_idle() != 0 {
-            return crate::actor::WORK;
+            return (crate::actor::WORK, 0);
         }
         match wake {
             Some(w) => crate::civil::wait_until(w),
@@ -275,12 +317,17 @@ pub unsafe extern "C" fn yan_rt_chan_drop(ch: *mut Chan) {
     }
 }
 
-/// Drop a `Sender`: the receivers see the channel closed once its last is gone.
+/// Drop a `Sender`: the receivers see the channel closed once its last is gone. `close` drops
+/// one early and leaves the null channel in its place, whose drop and share do nothing.
 ///
 /// # Safety
 /// As [`yan_rt_chan_drop`].
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_chan_drop_sender(ch: *mut Chan) {
+    // A `Sender` that `close` ended.
+    if ch.is_null() {
+        return;
+    }
     // SAFETY: the caller's contract.
     unsafe { (*ch).senders -= 1 };
     sched::progressed();
@@ -294,6 +341,9 @@ pub unsafe extern "C" fn yan_rt_chan_drop_sender(ch: *mut Chan) {
 /// `ch` is a live channel.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_chan_clone_sender(ch: *mut Chan) {
+    if ch.is_null() {
+        return;
+    }
     // SAFETY: the caller's contract.
     unsafe { (*ch).senders += 1 };
     // SAFETY: as above.
@@ -308,6 +358,28 @@ pub unsafe extern "C" fn yan_rt_chan_clone_sender(ch: *mut Chan) {
 pub unsafe extern "C" fn yan_rt_chan_clone(ch: *mut Chan) {
     // SAFETY: the caller's contract.
     unsafe { (*ch).ends += 1 };
+}
+
+/// The end operations over a channel word, for callers that hold no raw pointers.
+pub fn end(ch: usize, op: End) {
+    let ch = ch as *mut Chan;
+    // SAFETY: a live channel with this end held, the contract of every operation on it.
+    unsafe {
+        match op {
+            End::Drop => yan_rt_chan_drop(ch),
+            End::DropSender => yan_rt_chan_drop_sender(ch),
+            End::Clone => yan_rt_chan_clone(ch),
+            End::CloneSender => yan_rt_chan_clone_sender(ch),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum End {
+    Drop,
+    DropSender,
+    Clone,
+    CloneSender,
 }
 
 #[cfg(test)]

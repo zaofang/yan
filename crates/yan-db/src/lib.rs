@@ -288,21 +288,50 @@ fn package_manifest(path: &Path) -> Option<yan_elab::Manifest> {
         .find(|f| f.is_file())?;
     let src = std::fs::read_to_string(&file).ok()?;
     let (m, _) = yan_yag::parse(&file.display().to_string(), &src, false);
-    yan_elab::manifest(&m?)
+    let mut manifest = yan_elab::manifest(&m?)?;
+    manifest.ffi_unconsented = !consented(&file, &manifest);
+    Some(manifest)
+}
+
+/// R1018: the package of `own` is named in the `allow_ffi` of the outermost `package.yag` above
+/// it, the root; the root names itself. A package without a name has nothing to name.
+fn consented(own: &Path, manifest: &yan_elab::Manifest) -> bool {
+    let Some(name) = &manifest.name else {
+        return true;
+    };
+    let Some(root) = own.parent().and_then(|d| {
+        d.ancestors()
+            .map(|d| d.join("package.yag"))
+            .filter(|f| f.is_file())
+            .last()
+    }) else {
+        return true;
+    };
+    if root == own {
+        return manifest.allow_ffi.contains(name);
+    }
+    let Some(top) = std::fs::read_to_string(&root).ok().and_then(|src| {
+        let (m, _) = yan_yag::parse(&root.display().to_string(), &src, false);
+        yan_elab::manifest(&m?)
+    }) else {
+        return true;
+    };
+    top.allow_ffi.contains(name)
 }
 
 /// 12: a module under the package's `ffi/` directory. The package root is the nearest
-/// directory above the module with a `yan.toml`; without one, the module's own directory
-/// must be named `ffi` or `ub` (conformance assumption A9). Directories above the root never count.
+/// directory above the module with a `package.yag`; without one, the module's own directory
+/// must be named `ffi` or `ub` (conformance assumption A9). Only `<root>/ffi/` counts, so a
+/// nested or vendored directory of that name does not make a module an `ffi` module.
 fn is_ffi(path: &Path) -> bool {
     let Some(dir) = path.parent() else {
         return false;
     };
-    match dir.ancestors().find(|d| d.join("yan.toml").is_file()) {
+    match dir.ancestors().find(|d| d.join("package.yag").is_file()) {
         Some(root) => dir.strip_prefix(root).is_ok_and(|rel| {
             rel.components()
                 .next()
-                .is_some_and(|c| c.as_os_str() == "ffi")
+                .is_some_and(|c| c.as_os_str() == "ffi" || c.as_os_str() == "ub")
         }),
         None => dir.file_name().is_some_and(|n| n == "ffi" || n == "ub"),
     }
@@ -448,8 +477,10 @@ mod tests {
         let pkg = dir.join("ffi").join("pkg");
         std::fs::create_dir_all(pkg.join("src")).unwrap();
         std::fs::create_dir_all(pkg.join("ffi")).unwrap();
-        std::fs::write(pkg.join("yan.toml"), "").unwrap();
+        std::fs::write(pkg.join("package.yag"), "").unwrap();
+        std::fs::create_dir_all(pkg.join("src").join("ffi")).unwrap();
         assert!(!is_ffi(&pkg.join("src").join("a.yn")));
+        assert!(!is_ffi(&pkg.join("src").join("ffi").join("a.yn")));
         assert!(is_ffi(&pkg.join("ffi").join("a.yn")));
         assert!(is_ffi(Path::new("conformance/yn/pass/ffi/a.yn")));
         assert!(is_ffi(Path::new("conformance/ub/a.yn")));

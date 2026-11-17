@@ -1,12 +1,24 @@
--- spec: 15.3
--- rows: R438
+-- spec: 15.3, 4.7
+-- rows: R438, R441, R1002
+-- note: also Arena.alloc, Ref.get and Ref.set on both backends (#1243); folded here, see #1183
 -- stdout:
 -- a=2
 -- b=1
+-- 11 10 4 False
 
-main() =
+type Point = { x: int, y: int }
+
+main() uses io =
   var m: Map[str, int] = {}
   for w in ["a", "b", "a"]
     m[w] += 1
   for (k, v) in m.items()
     io.print("\(k)=\(v)")
+  let arena = Arena()
+  let a = arena.alloc(1)
+  let b = arena.alloc(Point(x: 2, y: 3))
+  let c = arena.alloc(True)
+  a.set(a.get() + 10)
+  b.set(Point(x: b.get().x * 5, y: b.get().y + 1))
+  c.set(not c.get())
+  io.print("\(a.get()) \(b.get().x) \(b.get().y) \(c.get())")

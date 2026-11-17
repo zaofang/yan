@@ -2423,6 +2423,7 @@ dependencies = [
  "yan-hir",
  "yan-ide",
  "yan-interp",
+ "yan-machine",
  "yan-mir",
  "yan-names",
  "yan-opt",
@@ -2552,6 +2553,14 @@ dependencies = [
  "yan-sandbox",
  "yan-std",
  "yan-yag",
+]
+
+[[package]]
+name = "yan-machine"
+version = "0.0.0"
+dependencies = [
+ "yan-mir",
+ "yan-rt",
 ]
 
 [[package]]
