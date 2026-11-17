@@ -1,0 +1,31 @@
+# Word frequency over an embedded text: top words, longest word, line stats.
+
+def corpus() -> str:
+    return """the quick brown fox jumps over the lazy dog
+the dog barks and the fox runs away
+a quick end to a quick story"""
+
+def top_words(text: str, k: int) -> list[tuple[str, int]]:
+    ex top_words("b a b", 1) == [("b", 2)]
+    counts: dict[str, int] = {}
+    for w in text.lower().split():
+        counts[w] = (counts.get(w) else 0) + 1
+    pairs = [(w, n) for w, n in counts.items()]
+    pairs.sort(key=lambda p: (-p[1], p[0]))
+    return pairs[:k]
+
+def longest(text: str) -> str:
+    best = ""
+    for w in text.split():
+        if w.char_count() > best.char_count():
+            best = w.copy()
+    return best
+
+def main() uses io:
+    for w, n in top_words(corpus(), 4):
+        io.print(f"{w:<6} {n}")
+    io.print(f"longest: {longest(corpus())}")
+    lines = corpus().splitlines()
+    io.print(f"lines: {lines.len()}")
+    for i, l in enumerate(lines):
+        io.print(f"{i + 1}: {l.split().len()} words")

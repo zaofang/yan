@@ -80,6 +80,27 @@ pub fn check(
             ));
         }
     }
+    if let Some(top) = manifest_at(root) {
+        for p in table
+            .get("package")
+            .and_then(toml::Value::as_array)
+            .into_iter()
+            .flatten()
+        {
+            let ffi: Vec<String> = p
+                .get("ffi")
+                .and_then(toml::Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(|x| x.as_str().map(str::to_owned))
+                .collect();
+            consent(
+                &top,
+                p.get("name").and_then(toml::Value::as_str).unwrap_or(""),
+                &ffi,
+            )?;
+        }
+    }
     if !locked {
         return Ok(());
     }
@@ -181,6 +202,8 @@ struct Locked {
     key: (String, String),
     digest: Option<String>,
     capability_digest: Option<String>,
+    /// The `ffi` modules and extern libraries the package holds (R1018).
+    ffi: Vec<String>,
     publisher: Option<String>,
     approvals: Vec<String>,
     rebuilds: Vec<String>,
@@ -338,6 +361,7 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
                 key,
                 digest: None,
                 capability_digest: None,
+                ffi: Vec::new(),
                 publisher: None,
                 approvals: Vec::new(),
                 rebuilds: Vec::new(),
@@ -361,12 +385,12 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
         }
         let mut next: BTreeMap<Key, (String, Info)> = BTreeMap::new();
         for (key, m) in &mins {
-            if let Some((path, manifest, digest)) = overrides.get(key) {
+            if let Some((path, manifest, digest, ffi)) = overrides.get(key) {
                 next.insert(
                     key.clone(),
                     (
                         "override".to_owned(),
-                        overridden(m, path, manifest, digest.clone())?,
+                        overridden(m, path, manifest, digest.clone(), ffi.clone())?,
                     ),
                 );
                 continue;
@@ -390,6 +414,9 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
             "E021",
             "the requirements do not settle on one set of versions".into(),
         ));
+    }
+    for (key, (_, info)) in &chosen {
+        consent(&top, &key.0, &info.ffi)?;
     }
     let kinds = subgraph_kinds(&top, &members, &chosen);
     for (key, (source, info)) in chosen {
@@ -421,6 +448,7 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
             },
             rebuilds: kept("rebuilds"),
             capability_digest: info.capability_digest,
+            ffi: info.ffi,
             name: key.0.clone(),
             version: info.version,
             source,
@@ -475,7 +503,7 @@ fn subgraph_kinds(
 
 /// An override's package: where it is recorded, its manifest and, for a git commit, the digest of
 /// its archive.
-type Overridden = (String, yan_elab::Manifest, Option<String>);
+type Overridden = (String, yan_elab::Manifest, Option<String>, Vec<String>);
 
 /// The root's `overrides` (R950): `"@org/name major": "path/to/dir"` or
 /// `"git+https://host/repo@<commit> sha256:<hex>"`, each replacing that (name, major).
@@ -520,7 +548,15 @@ fn load_overrides(
                 format!("override `{key}`: `{recorded}` is not `{name}`"),
             ));
         }
-        out.insert(identity(name, major.trim()), (recorded, manifest, digest));
+        let ffi = if dir.join("ffi").is_dir() {
+            vec!["ffi/".to_owned()]
+        } else {
+            Vec::new()
+        };
+        out.insert(
+            identity(name, major.trim()),
+            (recorded, manifest, digest, ffi),
+        );
     }
     Ok(out)
 }
@@ -608,6 +644,7 @@ fn overridden(
     path: &str,
     manifest: &yan_elab::Manifest,
     digest: Option<String>,
+    ffi: Vec<String>,
 ) -> Result<Info, Box<Diagnostic>> {
     let version = manifest.version.clone().unwrap_or_default();
     if parts(&version) < parts(&m.want) {
@@ -627,6 +664,7 @@ fn overridden(
         digest: digest.unwrap_or_default(),
         publisher: String::new(),
         capability_digest: None,
+        ffi,
         requirements: manifest.requirements.clone(),
         yanked: false,
         yank_reason: None,
@@ -635,6 +673,21 @@ fn overridden(
         malicious: None,
         published: 0,
     })
+}
+
+/// E023: a package holding `ffi` modules or extern libraries that the root's `allow_ffi` does not
+/// name (R1018, R1019). The consent is by name, so an update that gives a package its first
+/// `ffi` module is refused too.
+fn consent(top: &yan_elab::Manifest, name: &str, ffi: &[String]) -> Result<(), Box<Diagnostic>> {
+    match ffi.first() {
+        Some(first) if !top.allow_ffi.iter().any(|a| a == name) => Err(fail(
+            "E023",
+            format!(
+                "`{name}` holds foreign code (`{first}`) and the root's `allow_ffi` does not name it"
+            ),
+        )),
+        _ => Ok(()),
+    }
 }
 
 fn quoted(s: &str) -> String {
@@ -669,6 +722,10 @@ fn render(packages: &[Locked], pylock: Option<&str>) -> String {
                 let items: Vec<_> = values.iter().map(|v| quoted(v)).collect();
                 text += &format!("{field} = [{}]\n", items.join(", "));
             }
+        }
+        if !p.ffi.is_empty() {
+            let items: Vec<_> = p.ffi.iter().map(|k| quoted(k)).collect();
+            text += &format!("ffi = [{}]\n", items.join(", "));
         }
         if !p.kinds.is_empty() {
             let items: Vec<_> = p.kinds.iter().map(|k| quoted(k)).collect();
@@ -730,6 +787,29 @@ mod tests {
         }
         let reqs: Vec<String> = reqs.iter().map(|s| (*s).to_owned()).collect();
         check(&dir, &reqs, locked, false).err().map(|d| d.code)
+    }
+
+    #[test]
+    fn locked_package_with_ffi_needs_the_roots_consent() {
+        let lock =
+            "format = 1\n\n[[package]]\nname = \"@a/b\"\nversion = \"1.4.2\"\nffi = [\"ffi/\"]\n";
+        let root = |allow: &str| {
+            let dir = std::env::temp_dir().join(format!(
+                "yan-lock-ffi-{}-{}",
+                std::process::id(),
+                allow.len()
+            ));
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("yan.lock"), lock).unwrap();
+            std::fs::write(
+                dir.join("package.yag"),
+                format!("package: Package = Package(name=\"@r/root\", version=\"0.1.0\", yan=\"1.x\"{allow})\n"),
+            )
+            .unwrap();
+            check(&dir, &[], false, false).err().map(|d| d.code)
+        };
+        assert_eq!(root("").as_deref(), Some("E023"));
+        assert_eq!(root(", allow_ffi=[\"@a/b\"]"), None);
     }
 
     const LOCK: &str = "format = 1\n\n[[package]]\nname = \"@a/b\"\nversion = \"1.4.2\"\n";

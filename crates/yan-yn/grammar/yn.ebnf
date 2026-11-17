@@ -5,7 +5,7 @@
 
 module    = {modattr} {item} ;
 modattr   = BOL "@@" NAME ["(" [args] ")"] NEWLINE ;
-item      = {attr} BOL ["pub"] (fundef | gendef | subdef | lemmadef | typedef | traitdef | impldef | constdef | externdef)
+item      = {attr} BOL ["pub"] (["unsafe"] fundef | gendef | subdef | lemmadef | typedef | traitdef | impldef | constdef | externdef)
           | BOL usedecl ;
 attr      = BOL "@" NAME ["(" [args] ")"] NEWLINE ;
 usedecl   = "use" ["."] NAME {"." NAME} ["as" NAME] NEWLINE ;

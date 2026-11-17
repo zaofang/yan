@@ -42,6 +42,12 @@ pub enum Shape {
     Arena,
     /// A `Ref[T]`: the address of its slot in an arena; the arena owns it.
     Ref(Box<Shape>),
+    /// An `Atomic[T]` of an integer or `bool`: a block of one word, `T` wide at its start.
+    Atomic(Ty),
+    /// A `Mutex[T]`: a block whose word 0 is the lock flag and whose words from 1 hold `T`.
+    Mutex(Box<Shape>),
+    /// A `MutexGuard[T]`: the address of its mutex's block; dropping it clears the flag.
+    Guard(Box<Shape>),
     /// A `set`: a `yan_rt::map` block whose entries are keys with no value slots.
     Set(Box<Shape>),
     /// A recursive type where it recurs: always behind a block, so its slots are its type's.
@@ -101,6 +107,9 @@ impl Shape {
             | Shape::Actor(_)
             | Shape::Arena
             | Shape::Ref(_)
+            | Shape::Atomic(_)
+            | Shape::Mutex(_)
+            | Shape::Guard(_)
             | Shape::Set(_)
             | Shape::Boxed(_) => out.push(Ty::Ptr),
             Shape::Fn(..) => out.extend([Ty::Ptr, Ty::Ptr]),
@@ -347,6 +356,20 @@ impl Types<'_> {
                     ("Arena", []) if !self.recs.contains_key(name) => return Ok(Shape::Arena),
                     ("Ref", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
                         return Ok(Shape::Ref(Box::new(self.shape_in(e, stack)?)));
+                    }
+                    ("Atomic", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
+                        return match self.shape_in(e, stack)? {
+                            Shape::Scalar(t @ (Ty::Int(_) | Ty::Bool)) => Ok(Shape::Atomic(t)),
+                            _ => unsupported(
+                                "an `Atomic` of a type that is not an integer or `bool`",
+                            ),
+                        };
+                    }
+                    ("Mutex", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
+                        return Ok(Shape::Mutex(Box::new(self.shape_in(e, stack)?)));
+                    }
+                    ("MutexGuard", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
+                        return Ok(Shape::Guard(Box::new(self.shape_in(e, stack)?)));
                     }
                     ("char", []) => return Ok(Shape::Char),
                     ("Secret", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {

@@ -355,6 +355,24 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1007 | N52 maps bare `sqrt`, `sin`, `cos`, `tan`, `exp`, `log` to `math.f(x)` when the name is not bound (#1221) | 14.4 |
 | R1008 | N53 maps `s.len()` on a `str` and a free call `char_count(s)`, `parse_int(s)`, `to_string(x)`, `to_int(s)`, `slice(xs, a, b)`, `byte_at(s, i)` to the method or operator spellings (#1221) | 14.4 |
 | R1009 | N54: `import math`, `io`, `regex`, `collections`, `std` resolve to the std modules; a Python-only module or name is E200 with a `choice` fix, never bare (#1221) | 14.4 |
+| R1010 | `unsafe fn` in the Yan grammar: `unsafe` on the item, never in an impl, trait signature or generator (RFC 0076 D1) | 15.2, 3 |
+| R1011 | `unsafe fn` only in std and `ffi` modules (E901) (RFC 0076 D2) | 15.3, 12 |
+| R1012 | a call to an `unsafe fn` needs an `unsafe` block (E903) (RFC 0076 D3) | 3 |
+| R1013 | the body of an `unsafe fn` is not an `unsafe` block (RFC 0076 D4) | 3 |
+| R1014 | `unsafe fn` `pre`: checked at `check`, trusted at `release` with no checked `pub` entry, `ub(16)` under `--ub` (RFC 0076 D5) | 6.8, 6.9, 8.5 |
+| R1015 | `Ptr` in signatures wherever `unsafe` is permitted (RFC 0076 D6) | 3, 15.3 |
+| R1016 | an `unsafe fn` is not a value (E912); no unsafe function type (RFC 0076 D7) | 3, 25.11 |
+| R1017 | `allow_ffi` consents to `ffi` modules; `yan audit` lists `unsafe fn` items and call sites (RFC 0076 D8) | 12, 12.10 |
+| R1018 | every package with an `ffi` module or extern block, the root included, is named in the root's `allow_ffi` by package name (RFC 0077 D1) | 12, 19.1 |
+| R1019 | `allow_ffi` consent enforced at root compile and at dependency resolution, E023; an update gaining the first `ffi` module is refused (RFC 0077 D2) | 12, 19.2, 25 |
+| R1020 | every extern library is a ceiling entry, `uses none` or not, enforced transitively; consent does not replace it (RFC 0077 D3) | 7.4, 12.2, 19.2 |
+| R1021 | `Sender.close()` ends the handle at once; a second `close` and the later drop do nothing; `send`, `try_send` or a `select` send arm on a closed `Sender` panics `contract` | 9.5 |
+| R1022 | `Mutex[T](v)` and `lock() -> MutexGuard[T]`: the guard unlocks at the end of its block on every path out; `get`, `set` and `replace` are its only access; locking a held mutex is a `deadlock` panic (Q2, #1376) | 6.3 |
+| R1023 | a `MutexGuard` is second-class: passing it on, returning it, rebinding it or storing it is E414 | 4.5, 6.3 |
+| R1024 | a guard is live from its binding to the end of its block; a call that may wait on another task, or a `par`, in that range is E323 (R395) | 6.3, 17.1 |
+| R1025 | a closure argument's captured capabilities must be declared in the callee's `uses`, else E301 at the closure (RFC 0078 D1) | 4, 7.2 |
+| R1026 | `list.clear()`, `list.remove_at(i)` (negative counts from the end, `pre` in range) and `list.remove(x)` (`pre` contains) panic with `contract` where Python raises | 17.3 |
+| R1027 | N34 reads `xs.pop(i)` as `remove_at(i)` and `d.pop(k)` as `dict.remove(k)` | 14.4, 17.3 |
 
 <!-- /rows -->
 

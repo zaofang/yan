@@ -1,0 +1,5 @@
+# Gap #1400: method call on a module-level const fails E202.
+text: str = "a b\nc"
+
+def main() uses io:
+    io.print(f"{text.splitlines().len()}")

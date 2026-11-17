@@ -176,7 +176,7 @@ impl Fn<'_, '_> {
     }
 
     /// Run `f` when `cond` holds, then continue after it.
-    fn when(&mut self, cond: Operand, f: impl FnOnce(&mut Self) -> R<()>) -> R<()> {
+    pub(super) fn when(&mut self, cond: Operand, f: impl FnOnce(&mut Self) -> R<()>) -> R<()> {
         let (then, join) = self.branch(cond);
         self.cur = then;
         f(self)?;

@@ -265,6 +265,7 @@ fn run(
     };
     let fname = "__stage0_type_application".to_owned();
     let driver = j::FuncDef {
+        unsafe_at: None,
         name: fname.clone(),
         name_span: it.span,
         tparams: Vec::new(),

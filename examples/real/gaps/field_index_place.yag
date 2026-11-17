@@ -1,0 +1,11 @@
+# Gap #1403: store into a dict held in a record field.
+class Cache:
+    vals: dict[str, int]
+
+def put(var c: Cache, k: str, v: int):
+    c.vals[k.copy()] = v
+
+def main() uses io:
+    c = Cache(vals={})
+    put(&c, "a", 1)
+    io.print(f"{c.vals.len()}")

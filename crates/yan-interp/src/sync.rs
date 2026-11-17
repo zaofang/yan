@@ -32,14 +32,34 @@ impl Chan {
     }
 }
 
+/// The `chan` of a `Sender` that `close` ended (9.5).
+const CLOSED_SENDER: i128 = -1;
+
 /// A `Sender` goes out of scope: the last one closes its channel.
 pub(crate) fn drop_sender(it: &mut Interp, v: &Value) {
-    if let Value::Data { name, .. } = v
+    if let Value::Data { name, fields } = v
         && &**name == "Sender"
+        && !matches!(fields[0].1, Value::Int(CLOSED_SENDER))
     {
         let s = &mut it.chans[chan(v)].senders;
         *s = s.saturating_sub(1);
         it.progress += 1;
+    }
+}
+
+/// A `MutexGuard` goes out of scope: the mutex unlocks.
+pub(crate) fn drop_guard(it: &mut Interp, v: &Value) {
+    it.mutexes[atom(v)].1 = false;
+    it.progress += 1;
+}
+
+/// The channel of a `Sender` that is still open; a closed one breaks the operation's precondition.
+fn open_sender(v: &Value) -> R<usize> {
+    match v {
+        Value::Data { fields, .. } if matches!(fields[0].1, Value::Int(CLOSED_SENDER)) => {
+            panic_with("contract", "a `Sender` was used after `close`")
+        }
+        _ => Ok(chan(v)),
     }
 }
 
@@ -66,6 +86,41 @@ fn slot_of(v: &Value) -> (usize, usize) {
         },
         _ => unreachable!("a Ref"),
     }
+}
+
+fn atom(v: &Value) -> usize {
+    match v {
+        Value::Int(i) => *i as usize,
+        _ => unreachable!("an Atomic"),
+    }
+}
+
+/// `compare_exchange(current, new, ..)`: `Ok(previous)` on a match, `Err(actual)` otherwise.
+fn cas(it: &mut Interp, a: &mut [Value]) -> Value {
+    let slot = &mut it.atoms[atom(&a[0])];
+    let old = slot.clone();
+    if old == a[1] {
+        *slot = std::mem::take(&mut a[2]);
+        data("Ok", "value", old)
+    } else {
+        data("Err", "error", old)
+    }
+}
+
+/// A fetch operation: returns the previous value. An integer wraps to its type (6.2); a
+/// `bool` takes only the bitwise operations.
+fn rmw(it: &mut Interp, a: &mut [Value], f: fn(i128, i128) -> i128) -> Value {
+    let i = atom(&a[0]);
+    let slot = &mut it.atoms[i];
+    let old = slot.clone();
+    *slot = match (&old, &a[1]) {
+        (Value::Int(x), Value::Int(y)) => {
+            Value::Int(crate::bits::wrap_to(&it.atom_tys[i], f(*x, *y)))
+        }
+        (Value::Bool(x), Value::Bool(y)) => Value::Bool(f(*x as i128, *y as i128) != 0),
+        _ => unreachable!("an Atomic of integers or bool"),
+    };
+    old
 }
 
 pub(crate) fn chan(v: &Value) -> usize {
@@ -721,7 +776,18 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     ),
     (
         STD_CHAN_SENDER_SELECT_KEY,
-        Bind::Plain(|a| Ok(Value::Int(4 * chan(&a[0]) as i128 + SEL_SEND))),
+        Bind::Plain(|a| Ok(Value::Int(4 * open_sender(&a[0])? as i128 + SEL_SEND))),
+    ),
+    (
+        STD_CHAN_SENDER_CLOSE,
+        Bind::Cap(|it, a| {
+            drop_sender(it, &a[0]);
+            a[0] = Value::Data {
+                name: "Sender".into(),
+                fields: vec![("chan".into(), Value::Int(CLOSED_SENDER))],
+            };
+            Ok(Value::Unit)
+        }),
     ),
     (
         STD_PRELUDE_SELECT_WAIT,
@@ -734,7 +800,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_CHAN_SENDER_SEND,
         Bind::VmFallible(|vm, a| {
-            let c = chan(&a[0]);
+            let c = open_sender(&a[0])?;
             loop {
                 let it = &mut vm.it;
                 if let Some(e) = cancelled(it) {
@@ -754,7 +820,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_CHAN_SENDER_TRY_SEND,
         Bind::VmFallible(|vm, a| {
-            let c = chan(&a[0]);
+            let c = open_sender(&a[0])?;
             let it = &mut vm.it;
             if let Some(e) = cancelled(it) {
                 return Ok(Err(e));
@@ -791,12 +857,114 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         Bind::Plain(|_| unsupported("`std.sync.arc.strong_count` in the interpreter")),
     ),
     (
+        STD_SYNC_MUTEX_MUTEX,
+        Bind::Cap(|it, a| {
+            it.mutexes.push((std::mem::take(&mut a[0]), false));
+            Ok(Value::Int(it.mutexes.len() as i128 - 1))
+        }),
+    ),
+    (
+        STD_SYNC_MUTEX_LOCK,
+        Bind::Cap(|it, a| {
+            let m = &mut it.mutexes[atom(&a[0])];
+            if m.1 {
+                return panic_with("deadlock", "a task locked a `Mutex` it already holds");
+            }
+            m.1 = true;
+            Ok(a[0].clone())
+        }),
+    ),
+    (
+        STD_SYNC_MUTEX_GUARD_GET,
+        Bind::Cap(|it, a| Ok(it.mutexes[atom(&a[0])].0.clone())),
+    ),
+    (
+        STD_SYNC_MUTEX_GUARD_SET,
+        Bind::Cap(|it, a| {
+            it.mutexes[atom(&a[0])].0 = std::mem::take(&mut a[1]);
+            Ok(Value::Unit)
+        }),
+    ),
+    (
+        STD_SYNC_MUTEX_GUARD_REPLACE,
+        Bind::Cap(|it, a| {
+            let v = std::mem::take(&mut a[1]);
+            Ok(std::mem::replace(&mut it.mutexes[atom(&a[0])].0, v))
+        }),
+    ),
+    (
+        STD_SYNC_ATOMIC_ATOMIC,
+        Bind::Cap(|it, a| {
+            it.atoms.push(std::mem::take(&mut a[0]));
+            it.atom_tys.push(match &a[1] {
+                Value::Str(t) => t.clone(),
+                _ => "".into(),
+            });
+            Ok(Value::Int(it.atoms.len() as i128 - 1))
+        }),
+    ),
+    (
         STD_SYNC_ATOMIC_LOAD,
-        Bind::Plain(|_| unsupported("`std.sync.atomic.load` in the interpreter")),
+        Bind::Cap(|it, a| Ok(it.atoms[atom(&a[0])].clone())),
     ),
     (
         STD_SYNC_ATOMIC_STORE,
-        Bind::Plain(|_| unsupported("`std.sync.atomic.store` in the interpreter")),
+        Bind::Cap(|it, a| {
+            it.atoms[atom(&a[0])] = std::mem::take(&mut a[1]);
+            Ok(Value::Unit)
+        }),
+    ),
+    (
+        STD_SYNC_ATOMIC_SWAP,
+        Bind::Cap(|it, a| {
+            let v = std::mem::take(&mut a[1]);
+            Ok(std::mem::replace(&mut it.atoms[atom(&a[0])], v))
+        }),
+    ),
+    (
+        STD_SYNC_ATOMIC_COMPARE_EXCHANGE,
+        Bind::Cap(|it, a| Ok(cas(it, a))),
+    ),
+    (
+        STD_SYNC_ATOMIC_COMPARE_EXCHANGE_WEAK,
+        Bind::Cap(|it, a| Ok(cas(it, a))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_ADD,
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x + y))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_SUB,
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x - y))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_AND,
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x & y))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_OR,
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x | y))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_XOR,
+        Bind::Cap(|it, a| Ok(rmw(it, a, |x, y| x ^ y))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_MAX,
+        Bind::Cap(|it, a| Ok(rmw(it, a, i128::max))),
+    ),
+    (
+        STD_SYNC_ATOMIC_FETCH_MIN,
+        Bind::Cap(|it, a| Ok(rmw(it, a, i128::min))),
+    ),
+    (
+        STD_SYNC_ATOMIC_INTO_INNER,
+        Bind::Cap(|it, a| Ok(it.atoms[atom(&a[0])].clone())),
+    ),
+    (STD_SYNC_ATOMIC_FENCE, Bind::Plain(|_| Ok(Value::Unit))),
+    (
+        STD_SYNC_ATOMIC_COMPILER_FENCE,
+        Bind::Plain(|_| Ok(Value::Unit)),
     ),
     (
         STD_SYNC_CELL_GET,

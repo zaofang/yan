@@ -95,6 +95,11 @@ jobs:
       - run: uv run pytest -q tools/selftest
       - run: uv run python tools/rows.py check
       - run: uv run python -m tools.lint_reports
+      - run: uv run python tools/conform.py --coverage conformance/COVERAGE.md && cat conformance/COVERAGE.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: conformance-coverage
+          path: conformance/COVERAGE.md
       - run: uv run python -m tools.names_lint
       - run: uv run python -m tools.line_ratchet
 

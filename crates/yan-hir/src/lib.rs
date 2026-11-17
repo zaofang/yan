@@ -120,6 +120,8 @@ impl ItemKind {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct FuncDef {
+    /// The `unsafe` keyword of an `unsafe fn`: callers discharge its `pre` contracts (RFC 0076).
+    pub unsafe_at: Option<Span>,
     pub name: Name,
     pub name_span: Span,
     pub tparams: Vec<TParam>,

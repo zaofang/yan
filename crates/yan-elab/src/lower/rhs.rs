@@ -87,13 +87,25 @@ impl Lower<'_, '_, '_> {
                     (Rhs::Atom(Atom::Name(n.clone(), at)), l.ty.clone())
                 } else if let Some(t) = self.g.consts.get(n) {
                     (Rhs::Atom(Atom::Name(n.clone(), at)), t.clone())
-                } else if let Some(s) = self.g.variant_of.get(n)
-                    && self.g.type_params.contains_key(s)
-                {
-                    let s = s.clone();
-                    self.generic_ctor(n, &s, &[], at, want)?
-                } else if let Some(s) = self.g.variant_of.get(n) {
-                    (Rhs::Atom(Atom::Name(n.clone(), at)), Ty::Data(s.clone()))
+                } else if self.g.unsafe_fns.contains(n) {
+                    self.err(
+                        "E912",
+                        at,
+                        format!("`{n}` is an `unsafe fn`; only call it, inside `unsafe`"),
+                    );
+                    (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err)
+                } else if let Some(s) = self.g.variant_of.get(n).cloned() {
+                    if self.g.shared_variants.contains(n) {
+                        self.err(
+                            "E200",
+                            at,
+                            format!("is a variant of several sums; write `Sum.{n}`"),
+                        );
+                        (Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err)
+                    } else {
+                        let (r, t, _) = self.variant_call(n, &s, &[], at, want)?;
+                        (r, t)
+                    }
                 } else if self.pending.contains_key(n) {
                     return unsupported("a lambda with no expected type used before a call");
                 } else if let Some(sig) = self.g.fns.get(n)
@@ -394,6 +406,14 @@ impl Lower<'_, '_, '_> {
                     Rhs::Atom(Atom::Name(m.clone(), at)),
                     Ty::Data(self.g.variant_of[m].clone()),
                 )
+            }
+            K::Attr(b, m, _)
+                if let K::Name(t) = &b.kind
+                    && !self.locals.contains_key(t)
+                    && let Some(s) = self.g.qualified_variant(t, m).map(str::to_owned) =>
+            {
+                let (r, t, _) = self.variant_call(m, &s, &[], at, want)?;
+                (r, t)
             }
             // A lattice value's `.value` is its read (A8).
             K::Attr(b, f, _)

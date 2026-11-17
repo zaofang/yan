@@ -7,8 +7,9 @@ use std::collections::HashMap;
 
 use cranelift_codegen::ir::condcodes::{FloatCC, IntCC};
 use cranelift_codegen::ir::{
-    AbiParam, Block as CBlock, FuncRef, GlobalValue, Inst as CInst, InstBuilder, MemFlagsData,
-    Signature, SourceLoc, StackSlot, StackSlotData, StackSlotKind, TrapCode, Value, types,
+    AbiParam, AtomicRmwOp, Block as CBlock, FuncRef, GlobalValue, Inst as CInst, InstBuilder,
+    MemFlagsData, Signature, SourceLoc, StackSlot, StackSlotData, StackSlotKind, TrapCode, Value,
+    types,
 };
 use cranelift_codegen::isa::CallConv;
 use cranelift_codegen::settings::{self, Configurable};
@@ -20,7 +21,7 @@ use cranelift_module::{
 use cranelift_object::{ObjectBuilder, ObjectModule};
 
 mod debug;
-use yan_mir::{Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
+use yan_mir::{AtomicOp, Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::{
     abi, actor, bigint, bytes, chan, chars, civil, cluster, dq, envhandler, ffi, fshandler,
     loghandler, map, pathabi, pq, regexabi, sched, select, slice, timeabi,
@@ -2774,10 +2775,26 @@ impl Gen<'_, '_> {
                         .store(MemFlagsData::trusted(), v, p, *word as i32 * 8);
                 }
             }
+            Inst::Atomic {
+                dst,
+                op,
+                ty,
+                args,
+                ptr,
+                ..
+            } => {
+                let p = self.val(ptr).expect("a pointer");
+                let args = self.vals(args);
+                let r = self.atomic(*op, *ty, p, &args);
+                self.set(*dst, r);
+            }
             Inst::AddrOf { dst, local } => {
                 let (slot, at) = self.pins[*local as usize].expect("an address-taken local");
                 let a = self.b.ins().stack_addr(types::I64, slot, at);
                 self.set(Some(*dst), Some(a));
+            }
+            Inst::Fence { .. } => {
+                self.b.ins().fence();
             }
             Inst::Arm(_) => {}
             Inst::Scalar {
@@ -3062,6 +3079,65 @@ impl Gen<'_, '_> {
     }
 
     /// A value held as its sign- or zero-extended 64-bit form: wrap `v` to `t`.
+    /// An atomic access of the word at `p`. Every ordering runs sequentially consistent, which
+    /// is stronger than each of them. A `bool` is the word's first byte; an integer is the whole
+    /// word, kept in its canonical 64-bit form, so only a narrow `Add` or `Sub` can leave it
+    /// and goes through a compare-exchange loop that wraps first.
+    fn atomic(&mut self, op: AtomicOp, ty: Ty, p: Value, a: &[Value]) -> Option<Value> {
+        let flags = MemFlagsData::trusted();
+        let (t, signed) = match ty {
+            Ty::Bool => (types::I8, false),
+            Ty::Int(i) => (types::I64, i.signed),
+            _ => unreachable!("an atomic is an integer or a bool"),
+        };
+        let rmw = |me: &mut Self, o: AtomicRmwOp| me.b.ins().atomic_rmw(t, flags, o, p, a[0]);
+        Some(match op {
+            AtomicOp::Load => self.b.ins().atomic_load(t, flags, p),
+            AtomicOp::Store => {
+                self.b.ins().atomic_store(flags, a[0], p);
+                return None;
+            }
+            AtomicOp::Swap => rmw(self, AtomicRmwOp::Xchg),
+            AtomicOp::Cas => self.b.ins().atomic_cas(flags, p, a[0], a[1]),
+            AtomicOp::And => rmw(self, AtomicRmwOp::And),
+            AtomicOp::Or => rmw(self, AtomicRmwOp::Or),
+            AtomicOp::Xor => rmw(self, AtomicRmwOp::Xor),
+            AtomicOp::Max if signed => rmw(self, AtomicRmwOp::Smax),
+            AtomicOp::Max => rmw(self, AtomicRmwOp::Umax),
+            AtomicOp::Min if signed => rmw(self, AtomicRmwOp::Smin),
+            AtomicOp::Min => rmw(self, AtomicRmwOp::Umin),
+            AtomicOp::Add | AtomicOp::Sub => match ty {
+                Ty::Int(i) if i.bits < 64 => {
+                    let (head, done) = (self.b.create_block(), self.b.create_block());
+                    let (want, prev) = (
+                        self.b.append_block_param(head, types::I64),
+                        self.b.append_block_param(done, types::I64),
+                    );
+                    let first = self.b.ins().atomic_load(types::I64, flags, p);
+                    self.b.ins().jump(head, &[first.into()]);
+                    self.b.switch_to_block(head);
+                    let sum = if op == AtomicOp::Add {
+                        self.b.ins().iadd(want, a[0])
+                    } else {
+                        self.b.ins().isub(want, a[0])
+                    };
+                    let new = self.wrap(i, sum);
+                    let old = self.b.ins().atomic_cas(flags, p, want, new);
+                    let hit = self.b.ins().icmp(IntCC::Equal, old, want);
+                    self.b
+                        .ins()
+                        .brif(hit, done, &[want.into()], head, &[old.into()]);
+                    self.b.seal_block(head);
+                    self.b.switch_to_block(done);
+                    self.b.seal_block(done);
+                    prev
+                }
+                _ if op == AtomicOp::Add => rmw(self, AtomicRmwOp::Add),
+                _ => rmw(self, AtomicRmwOp::Sub),
+            },
+        })
+    }
+
     /// `c - v`.
     fn rsub(&mut self, v: Value, c: i64) -> Value {
         let c = self.b.ins().iconst(types::I64, c);

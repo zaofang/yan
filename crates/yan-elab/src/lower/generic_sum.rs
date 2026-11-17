@@ -36,7 +36,7 @@ impl Lower<'_, '_, '_> {
         {
             self.arg_tys.push((generic, w.clone(), at));
         }
-        let r = self.ctor(n, &ps, args, at);
+        let r = self.ctor(Some(s), n, &ps, args, at);
         let got = mem::replace(&mut self.arg_tys, outer);
         let r = r?;
         let mut map = Vec::new();
