@@ -28,9 +28,11 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-from tools import conform
-
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))  # CI runs this file as a script, where `tools` is not importable
+
+from tools import conform  # noqa: E402
+
 SPEC = ROOT / "spec"
 REGISTRY = SPEC / "rows.toml"
 EXEMPTIONS = SPEC / "row-exemptions.toml"
