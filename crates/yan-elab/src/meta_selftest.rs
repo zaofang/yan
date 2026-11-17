@@ -367,7 +367,7 @@ fn info_describes_array_axes() {
                \x20   Array(info:) ->\n\
                \x20     match info.axes[i]\n\
                \x20       Positional(size:) -> \"\\(size)\"\n\
-               \x20       Variable(name:) -> name\n\
+               \x20       Variable(name:) -> name.copy()\n\
                \x20       Labelled(label:) -> \"label \\(label == str)\"\n\
                \x20   _ -> \"other\"\n\n\
                shape(t: Type) -> str =\n\

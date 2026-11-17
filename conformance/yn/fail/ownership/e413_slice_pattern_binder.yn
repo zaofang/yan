@@ -1,0 +1,9 @@
+-- spec: 4.2
+-- rows: R1068
+-- expect: E413 at 8:16
+-- note: a slice pattern binds list elements as views, so returning one is E413 (#1573 item 1)
+
+head(take xs: List[str]) -> str =
+  match xs
+    [a, ..] -> a
+    _ -> "none"
