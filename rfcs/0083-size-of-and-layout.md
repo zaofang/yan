@@ -1,6 +1,6 @@
 # 0083: `size_of`, `align_of` and the layout and ABI rules
 
-- Status: draft
+- Status: accepted (lead, 2026-11-17, D1 to D10 as recommended; rows and cases land in the writing PRs, #1519)
 - Research: this document (design and code survey, read against main `7c57127`, 2026-11-17); audits
   #1500 (native ownership) and #1502 (capability soundness); RFC 0082 (draft, self-hosted compiler).
   Tracker #449.
@@ -74,7 +74,7 @@ declarations (auto traits, trivially copyable, needs drop, layout class, niche),
 disagree. A generic function that needs a fixed layout states it as a bound; an instantiation is never
 the first place the rule is checked (the failure of #1502 item 7).
 
-- Decision:
+- Decision: accepted as recommended (lead, 2026-11-17)
 - Row:
 
 ### D2: default layout stays unspecified to programs and becomes deterministic for implementations
@@ -98,7 +98,7 @@ an ABI and forbids niche and reordering improvements; (b) unspecified and determ
 (c) unspecified and randomized under a flag to catch reliance, useful later as a `--ub` mode, not a
 substitute for (b).
 
-- Decision:
+- Decision: accepted as recommended (lead, 2026-11-17)
 - Row:
 
 ### D3: `size_of`, `align_of`, `offset_of`
@@ -126,7 +126,7 @@ over `Type` (recommended; `info(T)` already works this way).
 
 The names are new and need rows in the names and projection tables (section 16) for each surface.
 
-- Decision:
+- Decision: accepted as recommended (lead, 2026-11-17)
 - Row:
 
 ### D4: scalars and the target description
@@ -145,7 +145,7 @@ backend-specific layout.
 Yan 1.0 targets are little-endian. A big-endian target is a diagnostic at target selection until an
 RFC says what byte views of multi-byte scalars mean there.
 
-- Decision:
+- Decision: accepted as recommended (lead, 2026-11-17)
 - Row:
 
 ### D5: the `@layout` attributes
@@ -168,7 +168,7 @@ diagnostic (practice 13), as today.
 - A capability, a closure, a view or a default-layout type as a field of an `ordered`, `c`, `packed`
   or `bits` type is a diagnostic: a fixed layout cannot contain an unspecified one.
 
-- Decision:
+- Decision: accepted as recommended (lead, 2026-11-17)
 - Row:
 
 ### D6: sums and niches
@@ -194,7 +194,7 @@ Two rules tie this to #1500:
 Interim: the slot layout of R922 stays until the byte layout lands (D10 stage L2), with sums laid
 side by side. It is correct, only large.
 
-- Decision:
+- Decision: accepted as recommended (lead, 2026-11-17)
 - Row:
 
 ### D7: std types, closures, actors, generics
@@ -225,7 +225,7 @@ Generics: layout is per monomorphic instance, computed after monomorphization. T
 layout-polymorphic functions and no runtime size witnesses except the `dyn` vtable. A type whose size
 is unbounded without boxing (5.1) or exceeds the target's address space is a diagnostic.
 
-- Decision:
+- Decision: accepted as recommended (lead, 2026-11-17)
 - Row:
 
 ### D8: the C boundary
@@ -263,7 +263,7 @@ Capability rules (#1502, RFC 0079):
   (its `@export` items and their types) is listed by `yan audit`, and a change to a fixed layout of an
   exported type is a breaking change for `yan publish`.
 
-- Decision:
+- Decision: accepted as recommended (lead, 2026-11-17)
 - Row:
 
 ### D9: determinism guarantees, stated once
@@ -275,7 +275,7 @@ Capability rules (#1502, RFC 0079):
 5. Interpreter, machine and every native backend agree on every `size_of`, `align_of` and
    `offset_of`; the differential law covers them.
 
-- Decision:
+- Decision: accepted as recommended (lead, 2026-11-17)
 - Row:
 
 ### D10: one layout query, and the order of work
@@ -295,7 +295,7 @@ frozen as an equality gate, since that text prints layouts.
 | L5 | aggregates by value for the supported native targets; `wasm32` entry and `--target` for machine and interpreter | right | L4 |
 | L6 | inline `Str`, `List`, `Mutex`, `Atomic`, lambda-set closures as std records | fast | RFC 0082 S3 |
 
-- Decision:
+- Decision: accepted as recommended (lead, 2026-11-17)
 - Row:
 
 ## Spec changes
