@@ -19,6 +19,7 @@ BUILD = EXT / "build"
 COPIES = [
     (ROOT / "editors/textmate/yan.tmLanguage.json", "syntaxes/yan.tmLanguage.json"),
     (ROOT / "editors/textmate/yag.tmLanguage.json", "syntaxes/yag.tmLanguage.json"),
+    (ROOT / "editors/textmate/yd.tmLanguage.json", "syntaxes/yd.tmLanguage.json"),
     (ROOT / "editors/themes/yan-dark.color-theme.json", "themes/yan-dark.color-theme.json"),
     (ROOT / "editors/themes/yan-light.color-theme.json", "themes/yan-light.color-theme.json"),
     (ROOT / "brand/file-icon-yn.svg", "icons/file-icon-yn.svg"),

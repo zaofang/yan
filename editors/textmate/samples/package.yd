@@ -1,0 +1,7 @@
+# Package manifest: data only, never run.
+Package(
+    name="tally",
+    version="0.1.0",
+    edition="0.1",
+    deps=[Dep(name="std.json", version="0.1")],
+)

@@ -19,6 +19,7 @@ const update = process.env.UPDATE_SNAPSHOTS === "1";
 const grammars = {
   "source.yan": { file: "yan.tmLanguage.json", ext: ".yn" },
   "source.yag": { file: "yag.tmLanguage.json", ext: ".yag" },
+  "source.yd": { file: "yd.tmLanguage.json", ext: ".yd" },
 };
 
 const wasm = readFileSync(require.resolve("vscode-oniguruma/release/onig.wasm")).buffer;
