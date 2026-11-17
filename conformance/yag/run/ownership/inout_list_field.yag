@@ -1,0 +1,26 @@
+# spec: 4.3
+# rows: R765
+# stdout:
+# [1, 2, 3, 4]
+# [9]
+# [[1], [2, 5]]
+
+class H:
+    xs: list[int]
+
+def push(var xs: list[int], v: int) -> None:
+    xs.append(v)
+
+def reset(var xs: list[int]) -> None:
+    xs = [9]
+
+def main() uses io:
+    h = H(xs=[1, 2])
+    push(&h.xs, 3)
+    push(&h.xs, 4)
+    io.print(f"{h.xs}")
+    reset(&h.xs)
+    io.print(f"{h.xs}")
+    g = [[1], [2]]
+    push(&g[1], 5)
+    io.print(f"{g}")
