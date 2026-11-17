@@ -283,6 +283,15 @@ def test_semver_bump(tmp_path: Path) -> None:
     assert judge(case, Fake(bump="minor")).status == "fail"
 
 
+def test_directory_case_rows_as_string_or_list(tmp_path: Path) -> None:
+    for name, rows in (("s1", '"R888, R174"'), ("s2", '["R888", "R174"]')):
+        (tmp_path / "semver" / name).mkdir(parents=True)
+        (tmp_path / "semver" / name / "expect.toml").write_text(
+            f'spec = "20.6"\nrows = {rows}\nbump = "major"\n'
+        )
+    assert [c.rows for c in discover(tmp_path)] == [["R888", "R174"]] * 2
+
+
 def _pkg(tmp_path: Path, expect: str) -> Path:
     case = tmp_path / "pkg" / "p1"
     (case / "root").mkdir(parents=True)
