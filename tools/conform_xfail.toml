@@ -1,0 +1,9 @@
+# Conformance cases that fail today (#1527 decision 2). tools/conform.py --expected-failures gates
+# every case: a failure not listed here fails CI, and a listed case that passes is stale and fails
+# CI too, so the list only shrinks. Each entry needs the issue that owns the fix.
+
+[[fail]]
+case = "conformance/golden/g3_portfolio.yag"
+executor = "interp"
+issue = "#1527"
+reason = "M2b std (`http`, `json.parse_float`, `sim_net`) is not implemented; fails loud (E017)."

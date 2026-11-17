@@ -106,7 +106,7 @@ planned prob surface owns, and multi-shot continuations (RFC 0001 section 11).
 ### D4: Features that need a core change join the research track (26.6)
 
 These amend Yan Core, so every surface gets them once adopted (R768). Each is a research-track row:
-not normative for 1.0, adoption by its own RFC. Yan Meta spells each one first, as an experimental
+not normative for 0.1.0, adoption by its own RFC. Yan Meta spells each one first, as an experimental
 form that K1 rejects with RFC 0001's needs-extension slug until the extension lands. A research
 extension is never switched on early for Yan Meta alone: that would give one surface semantics the
 core lacks (law 1).

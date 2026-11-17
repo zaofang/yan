@@ -7,8 +7,8 @@
 ## Summary
 
 The surface study ranked ten technologies by capability gained per unit of cost across the sixteen
-surfaces. Six live in shared infrastructure, `yan mcp` or std, so they can start before 1.0 without
-breaking R550. Four are design bases for niche surfaces that R550 keeps after 1.0; accepting them now
+surfaces. Six live in shared infrastructure, `yan mcp` or std, so they can start before 0.1.0 without
+breaking R550. Four are design bases for niche surfaces that R550 keeps after 0.1.0; accepting them now
 fixes the starting point of each surface's own RFC without opening the surface.
 
 Every link below was opened or resolved on 2026-11-10 (arXiv abstract, crates.io record, DOI
@@ -121,7 +121,7 @@ track; no work before its gate. Recommended: accept as the R783 engine choice.
 
 ### D8 to D10: design bases for three niche surfaces (#955, #956, #957)
 
-These record the starting point of each surface's RFC. None opens a surface before 1.0 (R550).
+These record the starting point of each surface's RFC. None opens a surface before 0.1.0 (R550).
 
 - D8, Yan Binary Format: [EverParse/3D](https://project-everest.github.io/everparse/) constructs
   (dependent records, validators that never read out of bounds, double-fetch freedom) as the core

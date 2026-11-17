@@ -6,7 +6,7 @@
 
 ## Summary
 
-Section 17 gives `json` its 1.0 API: `parse[T: Wire](s) -> T fail JsonError`, `dump[T: Wire](x) -> str`
+Section 17 gives `json` its 0.1.0 API: `parse[T: Wire](s) -> T fail JsonError`, `dump[T: Wire](x) -> str`
 and `parse_float`. The typed calls need `derive(Wire)`, which needs stage-0 reflection, and the
 compiler does not have that yet. This RFC ships the untyped core now: a `json.Value` sum type, a
 strict parser and a deterministic printer. It also fixes the rules that the typed API will reuse:
@@ -27,7 +27,7 @@ pub def dump_value(v: Value, indent: int | None = None) -> str
 Options weighed:
 - Wait for `derive(Wire)`. Nothing ships until stage 0 exists, which is months away.
 - Ship only `Value`. This loses the "decoding produces only a statically known type" property of 17.
-- Ship `Value` now and add the typed calls later. The 1.0 API is unchanged, and `Value` stays useful
+- Ship `Value` now and add the typed calls later. The 0.1.0 API is unchanged, and `Value` stays useful
   afterwards for documents whose shape is unknown, the way `serde_json::Value` is.
 
 Recommended: ship `Value` now and add the typed calls later. `parse_value` and `dump_value` are

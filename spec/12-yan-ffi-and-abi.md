@@ -45,7 +45,7 @@ Out parameters become return values.
 
 ### 12.7 The C profile and exports
 
-Yan has no stable Yan Core-to-Yan ABI. The stable binary boundary is the C ABI under the Yan C profile `yan_abi_v1`, frozen at 1.0:
+Yan has no stable Yan Core-to-Yan ABI. The stable binary boundary is the C ABI under the Yan C profile `yan_abi_v1`, frozen at 0.1.0:
 
 | Yan | C profile |
 | --- | --- |
@@ -75,4 +75,4 @@ Inside `unsafe`, `asm(template, operands..., options...)` with operands `in(reg)
 
 ### 12.10 Audit and scope
 
-`yan audit` lists every extern block, `safe` item, `uses none` claim, `unsafe impl`, `unsafe fn` with its `pre` lines and each call site's `unsafe` block (R1017), and hand edit to an imported module, and model-authored changes to any of them. Out of scope for 1.0: direct C++ interop (use C shims), dylib plugins that pass Yan Core types, and Component Model exports (an M4 candidate). An `@yan/sandbox` package (C compiled through wasm2c, RLBox style) may follow 1.0.
+`yan audit` lists every extern block, `safe` item, `uses none` claim, `unsafe impl`, `unsafe fn` with its `pre` lines and each call site's `unsafe` block (R1017), and hand edit to an imported module, and model-authored changes to any of them. Out of scope for 0.1.0: direct C++ interop (use C shims), dylib plugins that pass Yan Core types, and Component Model exports (an M4 candidate). An `@yan/sandbox` package (C compiled through wasm2c, RLBox style) may follow 0.1.0.

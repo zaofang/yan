@@ -184,6 +184,14 @@ impl<'a, 'm> Fn<'a, 'm> {
                         let var = self.var(shape);
                         self.copy_to(&var.locals.clone(), v);
                         self.names.insert(n.clone(), var);
+                        match rhs {
+                            y::Rhs::Rest { root, moved } => {
+                                let mut all = self.rests.get(root).cloned().unwrap_or_default();
+                                all.extend(moved.iter().cloned());
+                                self.rests.insert(n.clone(), all);
+                            }
+                            _ => drop(self.rests.remove(n)),
+                        }
                     }
                     y::Pat::Wild => {}
                     p => {
