@@ -81,7 +81,9 @@ impl Lower<'_, '_, '_> {
                     );
                 }
                 if !matches!(rhs, Rhs::Atom(_)) {
-                    self.emit(StmtKind::Rhs(rhs), at);
+                    // A discarded copy is reported at the `copy` expression (E416).
+                    let sp = if matches!(rhs, Rhs::Copy(_)) { e.span } else { at };
+                    self.emit(StmtKind::Rhs(rhs), sp);
                 }
             }
             K::Assign { target, ty, value } => {
