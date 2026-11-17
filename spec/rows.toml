@@ -1970,3 +1970,14 @@ sections = "22.7"
 rows = "R1055"
 topic = "pointer constructors without a Ptr argument take the pointee type from [T] or the expected type, else E205 (#1527)"
 sections = "6.6, 25"
+
+[[entry]]
+rows = "R1058"
+topic = "a file is a module; its path under a source root is its name; fixed package layout; layout errors E024 (RFC 0084 D1, D2, D4)"
+sections = "19.1, 25"
+
+[[entry]]
+rows = "R1059"
+topic = "`yan tree` lists the modules of a package, one per line, and reports layout errors (RFC 0084 D11)"
+sections = "18.1"
+
