@@ -8,7 +8,7 @@ A package that builds and passes its tests on toolchain 1.a MUST build, pass and
 
 ### 20.2 What is frozen
 
-**Frozen at 1.0, additive after:** core semantics (never changed by an edition); the Yan Agent and Yan grammars, elaboration and canonical printing per edition; the lenient reader's acceptance set (it only grows); the std and prelude API except `@preview` items; E and W codes, the JSON diagnostic schema, the patch protocol, MCP tool schemas, `sig` structure, the `package.yag` and `yan.lock` formats; `yan_abi_v1`.
+**Frozen at 0.1.0, additive after:** core semantics (never changed by an edition); the Yan Agent and Yan grammars, elaboration and canonical printing per edition; the lenient reader's acceptance set (it only grows); the std and prelude API except `@preview` items; E and W codes, the JSON diagnostic schema, the patch protocol, MCP tool schemas, `sig` structure, the `package.yag` and `yan.lock` formats; `yan_abi_v1`.
 
 **Not frozen:** Yan IR text and item hashes (salted by toolchain version); performance; message wording; the set of warnings; cache and replay-trace formats (a trace replays on the minor that wrote it); the security defaults of tls, http and crypto.
 
@@ -20,18 +20,18 @@ A package that builds and passes its tests on toolchain 1.a MUST build, pass and
 
 ### 20.3 Toolchain and std API version
 
-`package.yag` requires `yan = "1.x"`. The build needs the maximum over the package and its dependencies and fetches it through `yan toolchain` if the installed one is older. std and prelude items carry `@since`, and items newer than the package's version are invisible to it (E200). std CI rejects a `pub` item without a current `@since` (E012).
+`package.yag` requires `yan = "0.1.x"`. The build needs the maximum over the package and its dependencies and fetches it through `yan toolchain` if the installed one is older. std and prelude items carry `@since`, and items newer than the package's version are invisible to it (E200). std CI rejects a `pub` item without a current `@since` (E012).
 
 ### 20.4 Editions
 
 - **Surface-only.** An edition may change surface grammar, keywords, elaboration, canonical printing, lint-to-error promotions, prelude visibility and Unicode tables, never core semantics. Every edition elaborates into one core, so editions link with no glue and item hashes ignore editions. Every edition stays supported.
 - **One edition, both surfaces.** `edition` covers every `.yag` and `.yn` file of a package and fixes, as one unit, both grammars, elaboration rules, both printers, the projection table and the Unicode version. The round-trip laws hold within each edition.
-- **Naming and process.** Editions are named by the year of the stabilizing toolchain; the 1.0 edition is named at RC. There is at most one edition per three years, and only with a change that passed law 11. Each edition-gated change ships with a machine-applicable `yan fix` rule, old and new conformance tests and its projection entry. `yan fix --edition` applies, rebuilds, tests and stops at the first failure. `edition` is `"next"` or a name of four digits, the year (2026 or later), and any other value is E332. Before RC a named edition such as `"2027"` is accepted, and `next` means the edition in progress. The one-per-three-years limit binds the editions the toolchain defines, not a manifest that names one (R888).
+- **Naming and process.** Editions are named by the year of the stabilizing toolchain; the 0.1.0 edition is named at RC. There is at most one edition per three years, and only with a change that passed law 11. Each edition-gated change ships with a machine-applicable `yan fix` rule, old and new conformance tests and its projection entry. `yan fix --edition` applies, rebuilds, tests and stops at the first failure. `edition` is `"next"` or a name of four digits, the year (2026 or later), and any other value is E332. Before RC a named edition such as `"2027"` is accepted, and `next` means the edition in progress. The one-per-three-years limit binds the editions the toolchain defines, not a manifest that names one (R888).
 - **Stale-model tolerance.** Every Yan Agent form an edition retires stays accepted by the lenient reader forever and normalizes to the current form. The law-11 gate for a Yan Agent change measures total tokens per solved task with models that have not seen the new form.
 
 ### 20.5 Deprecation
 
-`@deprecated(since, note)` warns at uses (W815). A deprecated function whose body is one expression, or a forwarding type or const alias, is inlined at call sites by `yan fix` and the language server. std removes nothing in 1.x; an edition may hide deprecated std items from code in that edition. Incompatible std redesigns ship as `.v2` modules. Packages remove items only at a major.
+`@deprecated(since, note)` warns at uses (W815). A deprecated function whose body is one expression, or a forwarding type or const alias, is inlined at call sites by `yan fix` and the language server. std removes nothing in 0.1.x; an edition may hide deprecated std items from code in that edition. Incompatible std redesigns ship as `.v2` modules. Packages remove items only at a major.
 
 ### 20.6 API evolution and enforced versions
 
@@ -78,4 +78,4 @@ A package that builds and passes its tests on toolchain 1.a MUST build, pass and
 
 ### 20.7 Release train
 
-A toolchain minor ships every 12 weeks. Patches go to the latest minor, and security fixes also to the previous minor for 12 weeks; there is no LTS. Each release is gated by conformance on the interpreter and every code generator; an ecosystem run (every registry package's latest version per major plus the golden programs, old toolchain against new); `yan semver` on std against every earlier 1.x; and byte-identical golden outputs.
+A toolchain minor ships every 12 weeks. Patches go to the latest minor, and security fixes also to the previous minor for 12 weeks; there is no LTS. Each release is gated by conformance on the interpreter and every code generator; an ecosystem run (every registry package's latest version per major plus the golden programs, old toolchain against new); `yan semver` on std against every earlier 0.1.x; and byte-identical golden outputs.

@@ -1,6 +1,6 @@
 ## 25. Diagnostics catalogue
 
-This is the complete registry of diagnostic codes for 1.0. Codes keep their meaning forever and are never reused; retired codes stay listed. E is an error, W a warning or lint, H a hole, V a verification result, P a patch rejection, N a lenient-reader note and I an internal error. Codes marked *new* were numbered at consolidation from rows that asked for a code without giving one.
+This is the complete registry of diagnostic codes for 0.1.0. Codes keep their meaning forever and are never reused; retired codes stay listed. E is an error, W a warning or lint, H a hole, V a verification result, P a patch rejection, N a lenient-reader note and I an internal error. Codes marked *new* were numbered at consolidation from rows that asked for a code without giving one.
 
 ### 25.1 Families
 
@@ -251,7 +251,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E728 | session protocol cannot be projected onto a role (R633) new | 9.5 |
 | E729 | `actor.send(h).f(args)` names a handler with a non-unit result or a fail type (R813) new | 9.6 |
 | E717 | Lub get() inside a par block that writes the cell (R454) new | 9.3 (R454) |
-| E718 | reserved (R455, deferred past 1.0) | 9.3 |
+| E718 | reserved (R455, deferred past 0.1.0) | 9.3 |
 
 ### 25.10 Lints
 
