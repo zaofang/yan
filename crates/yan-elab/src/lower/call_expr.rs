@@ -220,14 +220,8 @@ impl Lower<'_, '_, '_> {
             }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Mutex" && !self.value_bound(n)) =>
             {
-                let j::ExprKind::Name(tn) = &k.kind else {
-                    return unsupported("`Mutex` of a type that is not a name");
-                };
-                let tn = yan_names::type_name(tn, yan_names::Surface::Yag, yan_names::Surface::Yir)
-                    .unwrap_or(tn);
-                let named = j::Type::Named {
-                    path: vec![tn.to_owned()],
-                    args: Vec::new(),
+                let Some(named) = self.type_expr(k) else {
+                    return unsupported("`Mutex` of a type that is not a type expression");
                 };
                 let t = self.g.ty(&named, self.cx, k.span)?;
                 let Some(xs) = self.positional(args, 1, "Mutex", at)? else {
