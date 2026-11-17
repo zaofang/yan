@@ -1,0 +1,11 @@
+# spec: 6.3, 6.5
+# rows: R1038
+# note: whether try_lock succeeds depends on other tasks, so the caller needs nondet
+# expect: E709 at 7:11
+
+def probe(m: Mutex[int]) -> int:
+    match m.try_lock():
+        case None:
+            return 0
+        case g:
+            return g.get()

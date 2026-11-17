@@ -1,0 +1,14 @@
+# spec: 6.2, 6.3
+# rows: R1039
+# note: get_mut on an owned mutex is a place with no lock and no capability; into_inner moves the value out and frees the lock block
+# stdout:
+# 3
+# [1, 2]
+
+def main() uses io:
+    var m = Mutex[int](1)
+    m.get_mut() += 2
+    print(m.get_mut())
+    var n = Mutex[list[int]]([1])
+    n.get_mut().append(2)
+    print(n.into_inner())
