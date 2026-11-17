@@ -196,9 +196,8 @@ impl Scan<'_> {
                 arms,
             } if self.borrowed.contains_key(s) => {
                 for (p, _) in arms {
-                    let mut bound = Vec::new();
-                    own::view_binders(p, self.ctors, &mut bound);
-                    for n in bound {
+                    let base = own::scrutinee_view(&Default::default(), s);
+                    for (n, _) in own::pat_views(p, self.ctors, &base) {
                         self.borrowed.insert(n, Def::Binder(at, s.clone()));
                     }
                 }

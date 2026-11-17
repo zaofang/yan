@@ -91,13 +91,17 @@ fn collect(dir: &Path, out: &mut Vec<PathBuf>) {
         let p = e.path();
         if p.is_dir() {
             collect(&p, out);
-        } else if p.extension().is_some_and(|x| x == "yn") {
+        } else if p.extension().is_some_and(|x| x == "yn" || x == "yag") {
             out.push(p);
         }
     }
 }
 
+/// Extern blocks are written in Yan only; a Yan Agent module under `ffi/` counts as a module.
 fn libs_of(file: &Path) -> Vec<ForeignLib> {
+    if file.extension().is_none_or(|x| x != "yn") {
+        return Vec::new();
+    }
     let Ok(src) = std::fs::read_to_string(file) else {
         return Vec::new();
     };
