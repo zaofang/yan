@@ -12,7 +12,7 @@ E005 = "crates/yan-cli/src/deps.rs"
 E006 = { unimplemented = "#825" }
 E007 = "crates/yan-cli/src/deps.rs"
 E008 = "crates/yan-cli/src/semver.rs"
-E009 = "crates/yan-cli/src/main.rs"
+E009 = { unimplemented = "#825" }
 E010 = "crates/yan-cli/src/build.rs"
 E011 = { unimplemented = "#825" }
 E012 = { unimplemented = "#825" }
@@ -48,6 +48,7 @@ E141 = "crates/yan-check/src/lib.rs"
 E143 = "crates/yan-elab/src/lower/calls.rs"
 E144 = "crates/yan-elab/src/desugar.rs"
 E200 = "crates/yan-check/src/lib.rs"
+E205 = "crates/yan-elab/src/lower/ptr.rs"
 E201 = "crates/yan-check/src/lib.rs"
 E202 = "crates/yan-check/src/lib.rs"
 E203 = "crates/yan-check/src/lib.rs"

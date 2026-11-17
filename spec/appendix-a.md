@@ -400,6 +400,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1052 | ownership prerequisites for S1 and S3 and the live-allocation job at every gate (RFC 0082 D11; #1500) | 22.7 |
 | R1053 | release checks from S4: fixpoint, diverse double compiling, verified Yan Core snapshot, toolchain capability table (RFC 0082 D12) | 19.6 |
 | R1054 | compiler performance gate at S4 and RC in callgrind instruction counts (RFC 0082 D13) | 22.7 |
+| R1055 | pointer constructors without a Ptr argument take the pointee type from [T] or the expected type, else E205 (#1527) | 6.6, 25 |
 
 <!-- /rows -->
 
