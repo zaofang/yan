@@ -139,3 +139,4 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-14 | Design: generic sum types, `TryRecv[T]` and native `select` | #1163; D1 to D10, tasks #1252 to #1260; no rows (implements 3.5, 10.1, R347, R423, R772) |
 | 2026-11-16 | Design: `std.sync.atomic` and `Mutex` lowering, `--ub` ordering edges | #1369 (under #1319); D1 to D9, slices S1 to S7; cards Q1 to Q3; no rows |
 | 2026-11-16 | Capability security review: escapes from `uses` and the ceiling | F1 to F4: #1388 (High), #1389 (High), #1390 (Medium), #1391 (Low); no rows |
+| 2026-11-17 | Module, file and package structure: keep and avoid across 16 ecosystems | RFC 0084; D1 to D12; no rows |
