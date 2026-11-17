@@ -1079,6 +1079,26 @@
    ]
   },
   {
+   "path": "yag/fail/concurrency/e709_try_lock_without_nondet.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.3",
+    "6.5"
+   ],
+   "rows": [
+    "R1038"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 7,
+     "col": 11
+    }
+   ]
+  },
+  {
    "path": "yag/fail/concurrency/e712_streaming_par_for_fails.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3552,6 +3572,31 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e414_try_lock_option_named.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.5",
+    "6.3"
+   ],
+   "rows": [
+    "R1038"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E414",
+     "line": 8,
+     "col": 9
+    },
+    {
+     "code": "W812",
+     "line": 8,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e414_view_escapes.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -5888,6 +5933,51 @@
    "exit": 101
   },
   {
+   "path": "yag/run/concurrency/mutex_try_lock_free.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1038"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7\n8\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/mutex_try_lock_held.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1038"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "held\n1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/mutex_try_lock_unlock_on_exit.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1038"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7\n3\n5\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/mutex_with_early_unlock.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7402,6 +7492,19 @@
    "flags": [],
    "expect": [],
    "stdout": "3.14|0007|2.67|-0|1,234,567.89|+7|   3.142|-00003.1|1,234,567|    7|3.1      |\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/generic_same_name_param.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "True\nFalse\n[1, 3]\n",
    "exit": 0
   },
   {
