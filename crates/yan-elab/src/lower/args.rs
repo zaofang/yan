@@ -272,6 +272,23 @@ impl Lower<'_, '_, '_> {
         Ok(Some(done.into_iter().flatten().collect()))
     }
 
+    /// `guard_escape` for a bound value: a guard name, or one held directly by a list, set,
+    /// tuple or dict literal (R1037).
+    pub(super) fn guard_escape_expr(&mut self, e: &j::Expr) {
+        match &e.kind {
+            j::ExprKind::Name(_) => {
+                if let Some(t) = self.ty_of_local(e) {
+                    self.guard_escape(&t, e.span);
+                }
+            }
+            j::ExprKind::List(xs) | j::ExprKind::Set(xs) | j::ExprKind::Tuple(xs) => {
+                xs.iter().for_each(|x| self.guard_escape_expr(x));
+            }
+            j::ExprKind::Dict(kvs) => kvs.iter().for_each(|(_, v)| self.guard_escape_expr(v)),
+            _ => {}
+        }
+    }
+
     /// E414: a `MutexGuard` is second-class (6.3, 4.5): it is used through its own methods, and
     /// never passed on, returned or stored.
     pub(super) fn guard_escape(&mut self, t: &Ty, at: Span) {

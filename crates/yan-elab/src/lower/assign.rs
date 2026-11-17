@@ -604,6 +604,8 @@ impl Lower<'_, '_, '_> {
             // A failed send's reason and arguments (R976).
             Ty::Coll("Undelivered", ts) if f == "reason" => ts[1].clone(),
             Ty::Coll("Undelivered", ts) if f == "args" => ts[0].clone(),
+            // The protected value of a guard, as a place (R1035).
+            Ty::Coll("MutexGuard", ts) if f == "value" => ts[0].clone(),
             Ty::Coll("Ref", _) => {
                 self.ref_deref(b, at);
                 Ty::Err

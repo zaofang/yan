@@ -789,6 +789,9 @@ impl Printer {
             }
             StmtKind::With { kind, body } => {
                 let head = match kind {
+                    WithKind::Bind(n, e) if yan_hir::is_lock_call(e) => {
+                        format!("with {} as {n}:", expr(e, 0))
+                    }
                     WithKind::Bind(n, e) => format!("with {n} = {}:", expr(e, 0)),
                     WithKind::Deadline(e) => format!("with deadline({}):", expr(e, 0)),
                     WithKind::Timeout(e) => format!("with timeout({}):", expr(e, 0)),
