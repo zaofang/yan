@@ -601,7 +601,7 @@ impl Parser {
                         unreachable!("record_at found a record")
                     };
                     let rest = format!("{:?}", (&m.items[..at], &m.items[at + 1..]));
-                    let used = rest.matches(&format!("path: [{n:?}]")).count();
+                    let used = rest.matches(&format!("Named {{ path: [{n:?}]")).count();
                     let in_alts = names.iter().filter(|x| *x == n).count();
                     if !r.tparams.is_empty() || used != in_alts || in_alts != 1 {
                         ok = false;

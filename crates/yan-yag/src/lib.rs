@@ -342,7 +342,8 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
 
     #[test]
     fn a_clause_form_body_becomes_a_match() {
-        let src = "def f(n: int) -> int:\n    case 0:\n        return 1\n    case k:\n        return k\n";
+        let src =
+            "def f(n: int) -> int:\n    case 0:\n        return 1\n    case k:\n        return k\n";
         let got: Vec<_> = codes(src, false).into_iter().map(|c| c.0).collect();
         assert_eq!(got, ["N29"]);
         let out = print(&parse("t.yag", src, false).0.unwrap());
