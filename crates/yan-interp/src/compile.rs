@@ -539,8 +539,16 @@ fn is_sender(t: &Type) -> bool {
     matches!(t, Type::Named(n) if n.path.last().is_some_and(|s| s == "Sender"))
 }
 
+/// A `MutexGuard`, or the `try_lock` option of one, which holds the lock while it is `Some`.
 fn is_guard(t: &Type) -> bool {
-    matches!(t, Type::Named(n) if n.path.last().is_some_and(|s| s == "MutexGuard"))
+    match t {
+        Type::Named(n) => match n.path.last().map(String::as_str) {
+            Some("MutexGuard") => true,
+            Some("Option") => matches!(n.args.as_slice(), [TArg::Type(t)] if is_guard(t)),
+            _ => false,
+        },
+        _ => false,
+    }
 }
 
 fn param_name(p: &Param) -> &Name {
