@@ -15949,13 +15949,13 @@
     "15.2"
    ],
    "rows": [
-    "R1066"
+    "R1067"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "15.2",
-    "rows": "R1066",
+    "rows": "R1067",
     "note": "a use of a module the package does not have leaves the module unresolved",
     "command": [
      "check"
@@ -16557,13 +16557,13 @@
     "15.2"
    ],
    "rows": [
-    "R1066"
+    "R1067"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "15.2",
-    "rows": "R1066",
+    "rows": "R1067",
     "note": "a Yan module binds module aliases with use, absolute, renamed and sibling; qualified expressions, types and patterns reach another module in either surface",
     "command": [
      "check"

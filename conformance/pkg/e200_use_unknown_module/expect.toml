@@ -1,5 +1,5 @@
 spec = "15.2"
-rows = "R1066"
+rows = "R1067"
 note = "a use of a module the package does not have leaves the module unresolved"
 command = ["check"]
 code = "E200"

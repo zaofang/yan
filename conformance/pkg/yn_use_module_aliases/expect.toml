@@ -1,4 +1,4 @@
 spec = "15.2"
-rows = "R1066"
+rows = "R1067"
 note = "a Yan module binds module aliases with use, absolute, renamed and sibling; qualified expressions, types and patterns reach another module in either surface"
 command = ["check"]
