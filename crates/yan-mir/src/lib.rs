@@ -312,6 +312,8 @@ pub enum RtFn {
     ByteLen,
     /// `(Str) -> i64`, panics `conversion`
     IntOf,
+    /// `(Str) -> f64`, panics `conversion`
+    FloatOf,
     /// `(f64) -> i64`, panics `conversion` (`int(x)`)
     TruncF64,
     /// `(f64) -> i64`, panics `conversion` (`round(x)`)

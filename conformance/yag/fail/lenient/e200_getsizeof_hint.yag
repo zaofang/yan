@@ -1,0 +1,6 @@
+# spec: 14.4
+# rows: R1063
+# expect: E200 at 6:16
+
+def f(x: int) -> int:
+    return sys.getsizeof(x)

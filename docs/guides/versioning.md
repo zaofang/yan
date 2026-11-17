@@ -13,7 +13,7 @@ deterministic code on every later 1.b, given the same edition, `yan` API version
 
 ## What a minor may and may not change
 
-- Frozen at 1.0, additive after: core semantics, grammars per edition, the std and prelude API
+- Frozen at 0.1.0, additive after: core semantics, grammars per edition, the std and prelude API
   except `@preview` items, E and W codes, the JSON diagnostic schema, the patch protocol, MCP tool
   schemas, `sig` structure, `package.yag` and `yan.lock` formats, `yan_abi_v1` (20.2).
 - Not frozen: IR text and item hashes, performance, message wording, the set of warnings, cache and
@@ -24,7 +24,7 @@ deterministic code on every later 1.b, given the same edition, `yan` API version
 
 ## Package requirements
 
-`package.yag` requires `yan = "1.x"`. The build uses the maximum over the package and its dependencies
+`package.yag` requires `yan = "0.1.x"`. The build uses the maximum over the package and its dependencies
 and fetches it with `yan toolchain` if the installed one is older. std items newer than the package's
 version are invisible to it (20.3).
 

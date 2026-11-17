@@ -635,6 +635,8 @@ struct Fn<'a, 'm> {
     task_starts: Vec<Local>,
     /// Lazy `iter` pipelines by the name they are bound to (`pipe.rs`).
     pipes: HashMap<String, pipe::Lazy>,
+    /// A remainder made by `rest`, to every path of its type that was moved out of it.
+    rests: HashMap<String, Vec<Vec<String>>>,
     /// Names of an enclosing frame whose `drop` in a branch waits for the exit that follows.
     deferred: Vec<String>,
     /// Each flagged local to its drop flag (5.3).
@@ -680,6 +682,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             line: 0,
             task_starts: Vec::new(),
             pipes: HashMap::new(),
+            rests: HashMap::new(),
             deferred: Vec::new(),
             flags: HashMap::new(),
             costing: mono.borrow().costing,

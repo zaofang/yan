@@ -1,0 +1,12 @@
+# spec: 14.4
+# rows: R1060
+# note: bool, tuple, dict(), sum with a start, str.center and str.index are real functions
+# stdout:
+# False True False True 16 1.75 1 0 [**ab**] [--ab-] 2 None
+
+def main() uses io:
+    d: dict[str, int] = dict()
+    t = (1, "a")
+    i = "hello".index("l")
+    j = "hello".index("z")
+    io.print(f"{bool(0)} {bool(3)} {bool('')} {bool([1])} {sum([1, 2, 3], 10)} {sum([0.5, 0.25], 1.0)} {tuple(t)[0]} {len(d)} [{'ab'.center(6, '*')}] [{'ab'.center(5, '-')}] {i} {j}")

@@ -8,7 +8,7 @@
 
 ## Summary
 
-RFC 0057 decided that 1.0 ships a toolchain written in Yan, with the Rust workspace as the frozen
+RFC 0057 decided that 0.1.0 ships a toolchain written in Yan, with the Rust workspace as the frozen
 stage 0, six gated stages and LLVM through its C API. It does not say what the compiler may be written
 with, where the Yan-owned pipeline ends and LLVM begins, how the two implementations are kept equal
 while both change, what the bootstrap trusts, or how fast the result must be. This RFC fills those in.
@@ -20,7 +20,7 @@ Yan, over a canonical MIR text, startable after S0 (D7, D8). Everything else ref
 Each decision gives the long-term recommendation first and interim steps separately.
 
 Sizes, from `crates/` at `bbedc4c` (Rust lines, tests included): S1 crates about 23 thousand
-(`yan-yn` 9.3, `yan-yag` 6.1, `yan-core` 4.9, `yan-diag` 1.1, `yan-ebnf` 1.0, `yan-cst`, `yan-names`,
+(`yan-yn` 9.3, `yan-yag` 6.1, `yan-core` 4.9, `yan-diag` 1.1, `yan-ebnf` 0.1.0, `yan-cst`, `yan-names`,
 `yan-surface`); S2 about 46 thousand (`yan-elab` 32.8, `yan-hir` 4.8, `yan-check` 3.1, `yan-opt` 2.9,
 `yan-db` 1.5, `yan-flow` 0.6); S3 about 34 thousand (`yan-mir` 15.7, `yan-rt` 14.4, `yan-cg-cranelift`
 4.2 as the size guide for the LLVM generator); S5 about 34 thousand (`yan-interp` 15.0, `yan-cli`
@@ -229,17 +229,17 @@ through `lib`, decided per engine: Yan for those that define observable semantic
 integers, regex matching, text segmentation, JSON, the libm subset), a pinned C library where an
 audited implementation matters more than the language (TLS, the allocator, BLAKE3).
 
-Interim for 1.0: the engines not yet replaced stay in one Rust-built static library with a C ABI,
+Interim for 0.1.0: the engines not yet replaced stay in one Rust-built static library with a C ABI,
 `yan-rt-engines`, outside the frozen stage 0, linked like any `lib`. R966 names it as a dated
 exception with one issue per engine. The runtime core (allocation handlers, the `pool` scheduler,
 blocking I/O, panic and abort, record and replay) is ported to Yan in S3 as planned; it is the only
 compiler-adjacent code outside the LLVM binding that may use `unsafe`.
 
-Options weighed: (a) port every engine before 1.0 (months of work off the critical path, and a new
+Options weighed: (a) port every engine before 0.1.0 (months of work off the critical path, and a new
 regex or TLS engine is a security risk of its own); (b) the engines library as a dated exception
 (recommended interim); (c) C libraries for all of them.
 
-- Decision: long-term rule with option (b) as the 1.0 interim (lead, 2026-11-17)
+- Decision: long-term rule with option (b) as the 0.1.0 interim (lead, 2026-11-17)
 - Row: R1050
 
 ### D10: equality, determinism and conformance

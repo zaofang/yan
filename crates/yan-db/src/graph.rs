@@ -33,6 +33,10 @@ pub struct Package {
     pub workspace: PathBuf,
     pub manifest: yan_elab::Manifest,
     pub foreign: ForeignSet,
+    /// Layout errors of the source roots (RFC 0084 D1, D4), found by the driver with the foreign set.
+    pub layout: Vec<crate::layout::Issue>,
+    /// The modules of the source roots, in path order (RFC 0084 D1).
+    pub modules: Vec<crate::layout::Module>,
     /// Requirements as written in `dependencies`, `dev_dependencies` and `tools`.
     pub deps: Vec<String>,
     pub dev_deps: Vec<String>,
@@ -56,11 +60,11 @@ pub fn owner<'a>(packages: &'a [Package], path: &Path) -> Option<&'a Package> {
         .max_by_key(|p| p.root.components().count())
 }
 
-/// R1018: a package is consented to when the root of its workspace names it in `allow_ffi`; a package
-/// without a name has nothing to name.
+/// R1018: a package is consented to when the root of its workspace names it in `allow_ffi`. A
+/// package without a name cannot be named there, so it is never consented to.
 pub fn consented(packages: &[Package], pkg: &Package) -> bool {
     let Some(name) = &pkg.name else {
-        return true;
+        return false;
     };
     packages
         .iter()
@@ -109,6 +113,9 @@ pub fn graph_diagnostics(db: &dyn Db, graph: PackageGraph) -> Vec<Diagnostic> {
                 ),
             ));
         }
+    }
+    for p in packages.iter().filter(|p| local(p)) {
+        out.extend(crate::layout::diagnostics(&p.layout));
     }
     let nodes: Vec<Node> = packages.iter().map(closure::from_package).collect();
     for (i, message) in closure::violations(&nodes) {

@@ -62,3 +62,13 @@ def test_case_with_row_flags_uncased_row_above_freeze_exit() -> None:
 def test_case_with_row_flags_stale_allowance() -> None:
     errors = case_with_row_errors({})
     assert all("remove it" in e for e in errors) and len(errors) == 3
+
+
+def test_added_rows_are_head_rows_missing_from_base(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    from tools import rows
+
+    monkeypatch.setattr(rows, "base_entries", lambda ref: [{"rows": "R1", "topic": "a"}])
+    monkeypatch.setattr(
+        rows, "load", lambda: [{"rows": "R1", "topic": "a"}, {"rows": "R2 to R3", "topic": "b"}]
+    )
+    assert rows.added_rows("main") == {"R2", "R3"}

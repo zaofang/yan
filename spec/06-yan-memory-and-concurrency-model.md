@@ -22,7 +22,7 @@ The C++20 model: RC11 with the P0668 SC repair. `Relaxed`, `Acquire`, `Release`,
 
 ### 6.3 Interior mutability
 
-`RawCell[T]` (L6) is the only way to write through a `let` borrow, an `Rc` or an `Arc`. std builds `Cell[T]` (one task), `Atomic[T]`, `Mutex[T]`, `RwLock[T]`, `Once[T]` and `Lazy[T]` on it, all usable from Yan Agent. A type holding a `RawCell` inline is not trivially copyable and always passes by address under `let`. `inout` access is plain exclusive access (`get_mut`). `Mutex` has no poisoning, and `lock()` cannot fail because panics abort. There is no `Condvar` at 1.0.
+`RawCell[T]` (L6) is the only way to write through a `let` borrow, an `Rc` or an `Arc`. std builds `Cell[T]` (one task), `Atomic[T]`, `Mutex[T]`, `RwLock[T]`, `Once[T]` and `Lazy[T]` on it, all usable from Yan Agent. A type holding a `RawCell` inline is not trivially copyable and always passes by address under `let`. `inout` access is plain exclusive access (`get_mut`). `Mutex` has no poisoning, and `lock()` cannot fail because panics abort. There is no `Condvar` at 0.1.0.
 
 **Initializers and locks (R393, R395).** A `Once` or `Lazy` initializer reachable from more than one task MUST use no capability except `alloc` (E714). Otherwise it needs `uses nondet`, and its value is a capability result that replay records. An initializer never runs under the handler bindings of the task that touched it. A `Mutex` or `RwLock` guard live across a blocking operation is E323 on every platform. Every lock wait is therefore bounded by a critical section with no suspension in it, so `lock()` stays infallible and is not a cancellation point.
 
