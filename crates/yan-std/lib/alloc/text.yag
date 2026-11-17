@@ -30,6 +30,11 @@ pub def slice_clamped(self: str, start: int | None, stop: int | None, step: int 
 @since("1.0")
 pub def int_of(self: str) -> int: ...
 
+# What `float(s)` lowers to: `s.strip().parse_float()`, panicking with `conversion` on None.
+@intrinsic
+@since("1.0")
+pub def float_of(self: str) -> float: ...
+
 @intrinsic
 @since("1.0")
 pub def grapheme_count(self: str) -> int: ...
