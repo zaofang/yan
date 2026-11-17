@@ -2030,3 +2030,8 @@ sections = "6.4"
 rows = "R1067"
 topic = "Yan `use` binds a module alias for a module of the package and `use .m` a sibling; qualified names reach other modules in expressions, types and patterns; an unknown module is E200 (RFC 0084 D4, slice 2b)"
 sections = "15.2, 15.3"
+
+[[entry]]
+rows = "R1068"
+topic = "a binder of a pattern on a list element, a slice pattern's element binder or any view of an indexed projection is a view: moving it out is E413 with the `.copy()` fix, as for the `let` of a projection (#1573 item 1)"
+sections = "4.2"

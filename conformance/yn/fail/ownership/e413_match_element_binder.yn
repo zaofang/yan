@@ -1,0 +1,8 @@
+-- spec: 4.2
+-- rows: R1068
+-- expect: E413 at 8:10
+-- note: a binder of a pattern matched on a list element is a view of the element; moving it out is E413 (#1573 item 1)
+
+first(take xs: List[str]) -> str =
+  match xs[0]
+    a -> a
