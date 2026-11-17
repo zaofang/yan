@@ -212,6 +212,64 @@ fn verify_set(record: &toml::Value, dir: &Path) -> Result<(), Box<Diagnostic>> {
     ))
 }
 
+/// E020 when the foreign set an index `.info` states differs from the one recomputed from its
+/// archive. The archive comes from the workspace store or the index, is hashed against the
+/// `.info` digest, and is kept in the workspace store so the build that follows needs no fetch.
+fn verify_info(
+    top: &Path,
+    registries: &Registries,
+    name: &str,
+    info: &Info,
+) -> Result<(), Box<Diagnostic>> {
+    let configured = crate::registry::configured_store(top);
+    let roots = crate::store::roots(top, configured.as_deref());
+    let digest = info.digest.trim_start_matches("sha256:");
+    let dir = match crate::store::source(&roots, digest)? {
+        Some(dir) => dir,
+        None => {
+            let bytes = registries
+                .index(name)?
+                .archive(name, &info.version)?
+                .ok_or_else(|| {
+                    fail(
+                        "E020",
+                        format!("no archive for `{name}` {} in its index", info.version),
+                    )
+                })?;
+            if crate::store::sha256(&bytes) != digest {
+                return Err(fail(
+                    "E020",
+                    format!(
+                        "the archive of `{name}` {} does not hash to `sha256:{digest}`",
+                        info.version
+                    ),
+                ));
+            }
+            let store = &roots[0];
+            let io = |e: std::io::Error| fail("E020", format!("store `{}`: {e}", store.display()));
+            std::fs::create_dir_all(store.join("archives")).map_err(io)?;
+            std::fs::write(store.join("archives").join(format!("{digest}.zip")), &bytes)
+                .map_err(io)?;
+            crate::store::unpack(store, digest, &bytes)?
+        }
+    };
+    let have = yan_db::foreign_set(&dir);
+    let mut modules = info.ffi.clone();
+    let mut libs = info.libs.clone();
+    modules.sort();
+    libs.sort();
+    if have == (yan_db::ForeignSet { modules, libs }) {
+        return Ok(());
+    }
+    Err(fail(
+        "E020",
+        format!(
+            "the index states a foreign set for `{name}` {} that its archive does not have",
+            info.version
+        ),
+    ))
+}
+
 /// E020 when the archive's own manifest names another package or version than the record: the
 /// closure check keys on the record, so the two must be one fact.
 fn verify_identity(record: &toml::Value, dir: &Path) -> Result<(), Box<Diagnostic>> {
@@ -503,6 +561,13 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
             "E021",
             "the requirements do not settle on one set of versions".into(),
         ));
+    }
+    // The index is untrusted for consent (RFC 0079, #1485): a registry version's `.info` foreign
+    // set must equal the one recomputed from its archive before consent reads it.
+    for (key, (source, info)) in &chosen {
+        if source != "override" && !info.digest.is_empty() {
+            verify_info(root, &registries, &key.0, info)?;
+        }
     }
     for (key, (_, info)) in &chosen {
         let lib = info.libs.first().map(|l| format!("lib {}", l.name));
