@@ -1,0 +1,2 @@
+--- Tax on a shape: Open is shared by the package, Hidden is not.
+pub tax(o: shapes.Open, h: shapes.Hidden) -> int uses none = 1

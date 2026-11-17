@@ -167,7 +167,7 @@ pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
             }
             ItemKind::Test(t) => {
                 let def = FnDef {
-                    is_pub: false,
+                    vis: Vis::Private,
                     is_unsafe: false,
                     path: t.path.clone(),
                     name_span: it.span,

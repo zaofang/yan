@@ -105,7 +105,7 @@ pub fn raise(m: &y::Module, trivia: &TriviaTable, std: &dyn Std) -> R<Raised> {
             for text in lemmas {
                 items.push(Item {
                     decorators: Vec::new(),
-                    is_pub: false,
+                    vis: Vis::Private,
                     kind: ItemKind::Verbatim(text),
                     span: AT,
                     name_span: AT,
@@ -677,13 +677,13 @@ fn set_doc(i: &mut Item, doc: Option<String>) {
 }
 
 fn item(it: &y::Item, std: &dyn Std, marks: &Marks) -> R<Option<Item>> {
-    let (is_pub, kind) = match &it.kind {
+    let (vis, kind) = match &it.kind {
         y::ItemKind::Fn(f) if std.inserted(&f.path.join(".")) => return Ok(None),
-        y::ItemKind::Fn(f) => (f.is_pub, ItemKind::Func(func(f, std, marks)?)),
+        y::ItemKind::Fn(f) => (f.vis, ItemKind::Func(func(f, std, marks)?)),
         y::ItemKind::Record(r) if std.inserted(&last(&r.path)) => return Ok(None),
         y::ItemKind::Sum(s) if std.inserted(&last(&s.path)) => return Ok(None),
         y::ItemKind::Record(r) => (
-            r.is_pub,
+            r.vis,
             ItemKind::Record(Record {
                 name: last(&r.path),
                 tparams: tparams(&r.tparams),
@@ -693,7 +693,7 @@ fn item(it: &y::Item, std: &dyn Std, marks: &Marks) -> R<Option<Item>> {
             }),
         ),
         y::ItemKind::Sum(s) => (
-            s.is_pub,
+            s.vis,
             ItemKind::Type(TypeDef {
                 name: last(&s.path),
                 tparams: tparams(&s.tparams),
@@ -718,7 +718,7 @@ fn item(it: &y::Item, std: &dyn Std, marks: &Marks) -> R<Option<Item>> {
         y::ItemKind::Impl(_) => return no("impls"),
         y::ItemKind::Const(_) => return no("constants"),
         y::ItemKind::Test(_) => return no("tests"),
-        y::ItemKind::Extern(x) => (false, ItemKind::Extern(extern_block(x)?)),
+        y::ItemKind::Extern(x) => (Vis::Private, ItemKind::Extern(extern_block(x)?)),
         y::ItemKind::Inst(_) => return no("instances, which only optimized Yan Core has"),
     };
     let traits = marks.root(|m| match m {
@@ -756,7 +756,7 @@ fn item(it: &y::Item, std: &dyn Std, marks: &Marks) -> R<Option<Item>> {
         .collect::<R<_>>()?;
     Ok(Some(Item {
         decorators,
-        is_pub,
+        vis,
         kind,
         span: it.span,
         name_span: it.span,

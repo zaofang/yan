@@ -13,7 +13,7 @@ fn container(n: u32) -> Option<Ty> {
 pub(crate) fn core_field(n: u32) -> y::Field {
     y::Field {
         attrs: Vec::new(),
-        is_pub: true,
+        vis: j::Vis::Pub,
         name: FIELD.into(),
         ty: container(n).expect("a container of at most 64 bits").core(),
         default: None,

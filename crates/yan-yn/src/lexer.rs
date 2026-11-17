@@ -941,7 +941,7 @@ fn open_signature(line: &[Token]) -> bool {
         match &t.tok {
             Tok::Kw("pub") | Tok::Kw("unsafe") => i += 1,
             Tok::Name(w)
-                if matches!(w.as_str(), "gen" | "sub" | "lemma" | "safe")
+                if matches!(w.as_str(), "gen" | "sub" | "lemma" | "safe" | "pkg")
                     && matches!(line.get(i + 1).map(|t| &t.tok), Some(Tok::Name(_))) =>
             {
                 i += 1

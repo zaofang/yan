@@ -1,12 +1,12 @@
 use super::*;
 
-const SHAPES: &str = "class Rect:\n    w: int\n    h: int\n\n\
-type Shape = Square(side: int) | Wide(rect: Rect)\n\n\
-limit: int = 100\n\n\
-def area(s: Shape) -> int:\n    match s:\n        case Square(side=n):\n            return n * n\n        case Wide(rect=r):\n            return r.w * r.h\n\n\
-def clamp(n: int) -> int:\n    if n > limit:\n        return limit\n    return n\n";
+const SHAPES: &str = "pub class Rect:\n    w: int\n    h: int\n\n\
+pub type Shape = Square(side: int) | Wide(rect: Rect)\n\n\
+pub limit: int = 100\n\n\
+pub def area(s: Shape) -> int:\n    match s:\n        case Square(side=n):\n            return n * n\n        case Wide(rect=r):\n            return r.w * r.h\n\n\
+pub def clamp(n: int) -> int:\n    if n > limit:\n        return limit\n    return n\n";
 
-const REPORT: &str = "def twice(r: shapes.Rect) -> int:\n    return shapes.clamp(shapes.area(shapes.Wide(rect=r))) * 2\n";
+const REPORT: &str = "pub def twice(r: shapes.Rect) -> int:\n    return shapes.clamp(shapes.area(shapes.Wide(rect=r))) * 2\n";
 
 fn parse(src: &str) -> j::Module {
     let (m, d) = yan_yag::parse("t.yag", src, false);

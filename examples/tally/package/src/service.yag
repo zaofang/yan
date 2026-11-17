@@ -1,10 +1,10 @@
 """Authorization service: checks a request locally, then asks the acquirer."""
 
 @capability
-trait Acquirer:
+pub trait Acquirer:
     def send(self: Self, pan: Secret[str], amount: Money) -> schema.Decision fail AcquirerDown: ...
 
-class AcquirerDown:
+pub class AcquirerDown:
     attempt: int
 
 pub def luhn(pan: Secret[str]) -> bool uses none:

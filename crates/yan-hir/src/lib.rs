@@ -5,6 +5,7 @@
 mod claim;
 pub mod raise;
 
+pub use yan_core::ast::Vis;
 use yan_diag::Span;
 
 pub type Name = String;
@@ -28,7 +29,7 @@ pub struct Decorator {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Item {
     pub decorators: Vec<Decorator>,
-    pub is_pub: bool,
+    pub vis: Vis,
     pub kind: ItemKind,
     pub span: Span,
     pub name_span: Span,

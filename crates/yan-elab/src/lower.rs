@@ -719,7 +719,7 @@ fn is_hole(s: &j::Stmt) -> bool {
 /// A bodiless Yan Core signature, as a trait declares it.
 pub(crate) fn signature(name: &str, sig: &Sig, is_pub: bool, at: Span) -> y::FnDef {
     y::FnDef {
-        is_pub,
+        vis: if is_pub { j::Vis::Pub } else { j::Vis::Private },
         is_unsafe: false,
         path: vec![name.to_owned()],
         name_span: at,
@@ -1112,7 +1112,7 @@ fn function_body_with(
         l.cx.fix(Applicability::Choice, "name it `_`", sp, "_");
     }
     Ok(y::FnDef {
-        is_pub,
+        vis: if is_pub { j::Vis::Pub } else { j::Vis::Private },
         is_unsafe: f.unsafe_at.is_some(),
         path: vec![f.name.clone()],
         name_span: f.name_span,

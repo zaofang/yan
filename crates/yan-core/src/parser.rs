@@ -182,6 +182,18 @@ impl Parser<'_> {
         hit
     }
 
+    /// `pub`, or `pkg` where a name follows (RFC 0084 D3: soft outside this position).
+    fn vis(&mut self) -> Vis {
+        if self.eat_kw("pub") {
+            Vis::Pub
+        } else if self.is_kw("pkg") && matches!(self.peek_at(1), Tok::Name(_)) {
+            self.bump();
+            Vis::Pkg
+        } else {
+            Vis::Private
+        }
+    }
+
     fn eat_kw(&mut self, k: &str) -> bool {
         let hit = self.is_kw(k);
         if hit {
@@ -294,26 +306,26 @@ impl Parser<'_> {
     fn item(&mut self) -> PResult<Item> {
         let start = self.span();
         let attrs = self.attrs()?;
-        let is_pub = self.eat_kw("pub");
+        let vis = self.vis();
         let is_unsafe = self.eat_kw("unsafe");
         let kind = match self.peek() {
             Tok::Name(k) => k.clone(),
             _ => return self.unexpected("an item"),
         };
-        let kind = match (kind.as_str(), is_pub, is_unsafe) {
+        let kind = match (kind.as_str(), vis != Vis::Private, is_unsafe) {
             ("fn", _, _) => {
                 self.bump();
-                ItemKind::Fn(self.fn_rest(is_pub, is_unsafe, true, false, None)?)
+                ItemKind::Fn(self.fn_rest(vis, is_unsafe, true, false, None)?)
             }
             ("gen", _, false) => {
                 self.bump();
-                ItemKind::Gen(self.fn_rest(is_pub, false, true, true, None)?)
+                ItemKind::Gen(self.fn_rest(vis, false, true, true, None)?)
             }
             ("inst", _, _) if matches!(self.peek_at(1), Tok::Name(n) if n == "fn") => {
                 self.bump();
                 self.bump();
                 let mut args = Vec::new();
-                let def = self.fn_rest(is_pub, is_unsafe, true, false, Some(&mut args))?;
+                let def = self.fn_rest(vis, is_unsafe, true, false, Some(&mut args))?;
                 ItemKind::Inst(Inst { args, def })
             }
             ("record", _, false) => {
@@ -322,7 +334,7 @@ impl Parser<'_> {
                 let tparams = self.tparams()?;
                 let fields = self.list("{", "}", Self::field)?;
                 ItemKind::Record(Record {
-                    is_pub,
+                    vis,
                     path,
                     tparams,
                     fields,
@@ -345,7 +357,7 @@ impl Parser<'_> {
                     return self.unexpected("a variant");
                 }
                 ItemKind::Sum(Sum {
-                    is_pub,
+                    vis,
                     path,
                     tparams,
                     variants,
@@ -363,7 +375,7 @@ impl Parser<'_> {
                     None
                 };
                 ItemKind::Newtype(Newtype {
-                    is_pub,
+                    vis,
                     path,
                     tparams,
                     ty,
@@ -372,7 +384,7 @@ impl Parser<'_> {
             }
             ("trait", _, false) => {
                 self.bump();
-                ItemKind::Trait(self.trait_rest(is_pub)?)
+                ItemKind::Trait(self.trait_rest(vis)?)
             }
             ("impl", false, _) => {
                 self.bump();
@@ -386,7 +398,7 @@ impl Parser<'_> {
                 self.expect_punct("=")?;
                 let value = self.const_val()?;
                 ItemKind::Const(Const {
-                    is_pub,
+                    vis,
                     path,
                     ty,
                     value,
@@ -443,7 +455,7 @@ impl Parser<'_> {
     /// After `fn` or `gen`. `item` false parses a trait signature: one-name path, optional body.
     fn fn_rest(
         &mut self,
-        is_pub: bool,
+        vis: Vis,
         is_unsafe: bool,
         item: bool,
         is_gen: bool,
@@ -508,7 +520,7 @@ impl Parser<'_> {
             None
         };
         Ok(FnDef {
-            is_pub,
+            vis,
             is_unsafe,
             path,
             name_span,
@@ -567,7 +579,7 @@ impl Parser<'_> {
 
     fn field(&mut self) -> PResult<Field> {
         let attrs = self.attrs()?;
-        let is_pub = self.eat_kw("pub");
+        let vis = self.vis();
         let name = self.name()?;
         self.expect_punct(":")?;
         let ty = self.ty()?;
@@ -578,7 +590,7 @@ impl Parser<'_> {
         };
         Ok(Field {
             attrs,
-            is_pub,
+            vis,
             name,
             ty,
             default,
@@ -622,7 +634,7 @@ impl Parser<'_> {
         Ok(ps)
     }
 
-    fn trait_rest(&mut self, is_pub: bool) -> PResult<Trait> {
+    fn trait_rest(&mut self, vis: Vis) -> PResult<Trait> {
         let path = self.path()?;
         let tparams = self.tparams()?;
         let open = self.pos;
@@ -633,7 +645,7 @@ impl Parser<'_> {
         }
         let mut sigs = Vec::new();
         while self.eat_kw("fn") {
-            sigs.push(self.fn_rest(false, false, false, false, None)?);
+            sigs.push(self.fn_rest(Vis::Private, false, false, false, None)?);
         }
         let derived = if self.eat_kw("derived") {
             Some(self.block()?)
@@ -642,7 +654,7 @@ impl Parser<'_> {
         };
         self.close("}", open)?;
         Ok(Trait {
-            is_pub,
+            vis,
             path,
             tparams,
             assoc,
@@ -665,15 +677,15 @@ impl Parser<'_> {
         }
         let mut fns = Vec::new();
         loop {
-            let is_pub = self.eat_kw("pub");
+            let vis = self.vis();
             let is_unsafe = self.eat_kw("unsafe");
             if !self.eat_kw("fn") {
-                if is_pub || is_unsafe {
+                if vis != Vis::Private || is_unsafe {
                     return self.unexpected("`fn`");
                 }
                 break;
             }
-            fns.push(self.fn_rest(is_pub, is_unsafe, true, false, None)?);
+            fns.push(self.fn_rest(vis, is_unsafe, true, false, None)?);
         }
         self.close("}", open)?;
         Ok(Impl {
