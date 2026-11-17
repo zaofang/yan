@@ -3668,6 +3668,26 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e425_guard_get_non_copy.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.3",
+    "25"
+   ],
+   "rows": [
+    "R1030"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E425",
+     "line": 9,
+     "col": 9
+    }
+   ]
+  },
+  {
    "path": "yag/fail/proof/e604_ghost_read.yag",
    "kind": "fail",
    "milestone": "M1",
