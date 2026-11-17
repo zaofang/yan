@@ -303,24 +303,55 @@ impl Lower<'_, '_, '_> {
             j::ExprKind::Index(d, k) if self.ty_of_local(d).as_ref().and_then(map_kv).is_some() => {
                 let dt = self.ty_of_local(d).expect("matched");
                 let (kt, vt) = map_kv(&dt).expect("matched");
-                let j::ExprKind::Name(dn) = &d.kind else {
-                    unreachable!("a local")
+                // A map held in a field or element is updated on a copy that is stored back,
+                // as `method` does for an `inout` receiver that is not a plain local.
+                let held = match &d.kind {
+                    j::ExprKind::Name(_) => None,
+                    _ => {
+                        self.dict_places.clear();
+                        Some(self.place(d)?.0)
+                    }
                 };
+                let stores = mem::take(&mut self.dict_places);
                 let (ka, kty) = self.atom(k, Some(&kt))?;
                 self.expect(&kty, &kt, k.span);
                 self.expect(&t, &vt, at);
                 let v = self.tmp(&t, r, at);
+                let recv = match &held {
+                    None => {
+                        let j::ExprKind::Name(dn) = &d.kind else {
+                            unreachable!("a local")
+                        };
+                        dn.clone()
+                    }
+                    Some(p) => {
+                        let m = self.fresh("t");
+                        self.bind(&m, true, &dt, Rhs::Copy(p.clone()), d.span, d.span);
+                        m
+                    }
+                };
                 let c = call(
                     &format!("std.{}.insert", dt.module().expect("a map")),
                     vec![kt.targ(), vt.targ()],
                     vec![
-                        Arg::Value(Conv::Inout, Atom::Name(dn.clone(), d.span), d.span),
+                        Arg::Value(Conv::Inout, Atom::Name(recv.clone(), d.span), d.span),
                         Arg::Value(Conv::Let, ka, k.span),
                         Arg::Value(Conv::Sink, v, at),
                     ],
                     target.span,
                 );
                 self.emit(StmtKind::Rhs(Rhs::Call(c)), target.span);
+                if let Some(place) = held {
+                    self.emit(
+                        StmtKind::Assign {
+                            place,
+                            rhs: Rhs::Atom(Atom::Name(recv, at)),
+                            rhs_span: at,
+                        },
+                        at,
+                    );
+                    self.store_dict_places(stores, at);
+                }
             }
             j::ExprKind::Attr(..) | j::ExprKind::Index(..) => {
                 if let j::ExprKind::Index(b, _) = &target.kind
