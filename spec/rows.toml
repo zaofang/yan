@@ -1820,3 +1820,23 @@ rows = "R1025"
 topic = "a closure argument's captured capabilities must be declared in the callee's `uses`, else E301 at the closure (RFC 0078 D1)"
 sections = "4, 7.2"
 
+
+[[entry]]
+rows = "R1026"
+topic = "a foreign library is a ceiling entry of every package whose normal-dependency closure declares it, called or not; confined capabilities stay transitive by `uses` (RFC 0079 D1)"
+sections = "7.4, 12, 19.2"
+
+[[entry]]
+rows = "R1027"
+topic = "another package's library is spelled `\"@org/name:lib\"` in a ceiling, own libraries bare; two packages' `lib zlib` are two capabilities (RFC 0079 D2)"
+sections = "12, 19.1"
+
+[[entry]]
+rows = "R1028"
+topic = "every package's closure ceiling checked at resolution (E314 with path), publish (E006) and compile; `yan update` holds back, `yan add` fails (RFC 0079 D3)"
+sections = "19.2, 19.4, 25"
+
+[[entry]]
+rows = "R1029"
+topic = "one foreign set computed from source; `.info` and `yan.lock` record `ffi` and `libs`; a locked build recomputes it, E020 on mismatch (RFC 0079 D4)"
+sections = "19.1, 19.2, 25"

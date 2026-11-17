@@ -1,8 +1,8 @@
 # 0079: Foreign code in dependency ceilings, and the package graph that checks it
 
-- Status: draft
+- Status: accepted
 - Research: [capability security review, 2026-11-16](../docs/research/2026-11-16-capability-security-review.md) (finding F2); RFC 0077 D3; #1427 items 1 to 3
-- Rows: filled in when accepted
+- Rows: R1026 to R1029
 
 ## Summary
 
@@ -60,8 +60,8 @@ Only extern items carry a trusted `uses` claim, so only foreign libraries need t
 `dev_dependencies` stay outside the ceiling (R636) but still need consent (R1019, unchanged). A `tools`
 package is checked against its own ceiling, as its own root of the presence rule.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, card, 2026-11-17)
+- Row: R1026
 
 ### D2: how a transitive library is named in a ceiling
 
@@ -78,8 +78,8 @@ ceiling entry names one fact. `:` is free in ceiling entries (`.` is the attenua
 `net.only`, and `/` is inside package names). Package name, not version, as in `allow_ffi` (R1018).
 `yan add` and `yan update` print the entries a new library needs; they never write the ceiling.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, card, 2026-11-17)
+- Row: R1027
 
 ### D3: every package in the graph is checked, and where
 
@@ -100,8 +100,8 @@ Options weighed: root only (D1 a); resolution only, trusting the lock at build t
 all three, one function, so a lock edited by hand, a member added without `yan lock`, or an override
 cannot skip the check.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, card, 2026-11-17)
+- Row: R1028
 
 ### D4: one computed foreign set, recomputed from source
 
@@ -127,8 +127,8 @@ Options weighed: trust `.info` (registry-computed, signed in the log) and the lo
 recompute, because the lock is editable and the pre-registry static index (R636) is unsigned; the cost
 is parsing the `ffi/` modules of packages that have them.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, card, 2026-11-17)
+- Row: R1029
 
 ### D5: the package graph the compiler reads
 
@@ -144,8 +144,8 @@ Options weighed: keep per-file ancestor walks and add a second walk for dependen
 closure only in `yan-cli`. Recommendation: the graph input, because the same structure is what
 cross-package name resolution needs (D6) and both the resolver and the compiler then read one fact.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, card, 2026-11-17)
+- Row: none (implementation)
 
 ### D6: dependency modules, when they are compiled
 
@@ -155,8 +155,8 @@ ceiling, E901 and E902 against its own `ffi/`. The importing package sees each `
 its signature, which makes confined capabilities transitive by use (D1). That work belongs to the
 module system and is out of scope here; this RFC fixes only that it reads the graph of D5.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended (lead, card, 2026-11-17)
+- Row: none (module system, gap #1452)
 
 ## Spec changes
 
