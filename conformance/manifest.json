@@ -4409,6 +4409,25 @@
    ]
   },
   {
+   "path": "yag/fail/types/e200_shared_variant_bare.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R799"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 9,
+     "col": 9
+    }
+   ]
+  },
+  {
    "path": "yag/fail/types/e200_unresolved.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -7857,6 +7876,23 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/qualified_std_variant.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R600",
+    "R601",
+    "R799"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "America/New_York +05:30 UTC\n2024-03-10T03:30:00-04:00[America/New_York] -14400\n2024-03-10T04:30:00-04:00[America/New_York]\n2024-03-11T03:30:00-04:00[America/New_York]\nNone\n2024-11-03T01:30:00-04:00[America/New_York] 2024-11-03T01:30:00-05:00[America/New_York]\n1969-12-31T19:00:00-05:00[America/New_York]\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/rand_below_zero.yag",
    "kind": "run",
    "milestone": "M1",
@@ -8641,6 +8677,21 @@
    "flags": [],
    "expect": [],
    "stdout": "3 None\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/types/qualified_variants.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R799"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "ls\nss\nrel3\nlr\nsr\nSeqCst()\nSeqCst()\nTrue\nJust(v=5)\n",
    "exit": 0
   },
   {
