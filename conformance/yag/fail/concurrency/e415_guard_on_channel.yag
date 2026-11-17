@@ -1,8 +1,8 @@
 # spec: 6.3, 6.4
 # rows: R1037
 # note: a guard is not Send, so it cannot go on a channel (the payload expression is the span); the send is also a wait, so E323 is reported too
-# expect: E323 at 8:5
-# expect: E415 at 8:13
+# expect: E323 at 9:5
+# expect: E415 at 9:13
 
 def send_guard(m: Mutex[int], var tx: Sender[MutexGuard[int]]) -> None fail Cancelled:
     g = m.lock()
