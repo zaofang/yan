@@ -1,8 +1,8 @@
 # 0084: Files, modules, directories and packages
 
-- Status: draft
+- Status: accepted
 - Research: [module, file and package structure, 2026-11-17](../docs/research/2026-11-17-module-package-structure.md)
-- Rows: filled in when accepted
+- Rows: pending (numbered with the spec PR and its conformance cases)
 
 ## Summary
 
@@ -86,8 +86,8 @@ source of truth for the module tree that tools must keep in step.
 Recommendation: (c) with the directory-and-file sibling form. The module path is not part of an item hash
 (3.6), so moving a file never changes a hash; the toolchain must keep that true when this lands.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
+- Row: pending, numbered with the spec PR
 
 ### D2: the layout of a package is fixed
 
@@ -124,8 +124,8 @@ it. Packages that need an unusual tree are two packages in a workspace.
 
 Existing templates (`src/lib.yag`, `src/main.yag`, `package.yag`) already conform.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
+- Row: pending, numbered with the spec PR
 
 ### D3: visibility
 
@@ -157,8 +157,8 @@ second list in each file (principle 1).
 Recommendation: (a). Language rows: 15.2 grammar, 3.5 Yan Core `pkg` modifier (a Core item carries
 private, `pkg` or `pub`; the hash includes it, as it includes `pub` today).
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
+- Row: pending, numbered with the spec PR
 
 ### D4: names, `use` and what is in scope
 
@@ -202,8 +202,8 @@ one token.
 Recommendation: (a). The spec edit is 15.2's `use` paragraph, the name-resolution order in 3.5 and 17, and
 the layout-time collision error.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
+- Row: pending, numbered with the spec PR
 
 ### D5: re-exports
 
@@ -220,8 +220,8 @@ Options: (a) explicit aliases of one name each (recommended); (b) no re-export (
 on file layout, so every refactor is a breaking change); (c) glob re-export and preludes (Rust,
 Haskell), whose API is a set computation a reader cannot do by eye.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
+- Row: pending, numbered with the spec PR
 
 ### D6: cycles
 
@@ -243,8 +243,8 @@ before two functions can call each other, and `.hs-boot`-style escapes when it b
 default with an opt-out. Because the stated harm of cycles does not exist in Yan, forbidding them would
 be a rule with a cost and no defect to prevent.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
+- Row: pending, numbered with the spec PR
 
 ### D7: manifest, workspaces and sibling packages
 
@@ -272,8 +272,8 @@ inheritance; (c) one package with per-directory ceilings. (b) is the double book
 in Cargo and Go (`replace`), and 19.1 already refuses path and git dependencies outside `overrides`. (c)
 adds a second ceiling mechanism and a second consent unit beside the package.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
+- Row: pending, numbered with the spec PR
 
 ### D8: tests, examples and benches
 
@@ -298,8 +298,8 @@ Options: tests only inline (Zig, today); tests in a mirrored tree (Python, Java)
 They cannot show how a dependent sees the package, which is what `tests/` is for. A mirrored tree and a
 `_test` suffix add a convention with no property that the two forms above lack.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
+- Row: pending, numbered with the spec PR
 
 ### D9: FFI, capabilities and the layout
 
@@ -315,8 +315,8 @@ package (D7), so there is one ceiling mechanism, which RFC 0079's closure check,
 already read. Cross-package visibility of a foreign library is as RFC 0079 D1 to D3 (library capabilities
 named `"@org/name:lib"` in a ceiling); this RFC adds nothing there.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
+- Row: pending, numbered with the spec PR
 
 ### D10: build outputs and generated state
 
@@ -334,8 +334,8 @@ Options: (a) one self-ignoring directory (recommended); (b) `target/` (Cargo) or
 `.zig-cache`, each needing an ignore line and each large; (c) global only (Go), where outputs have no
 home to inspect.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
+- Row: pending, numbered with the spec PR
 
 ### D11: tooling
 
@@ -355,8 +355,8 @@ Every structural operation is a subcommand of the one `yan` binary, derived from
 - `yan check` reports layout errors (D1 to D4), cycle summaries and files outside source roots.
 - `yan.lock` and `yan add` are as RFC 0044 and 0053.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
+- Row: pending, numbered with the spec PR
 
 ### D12: migration from today's layout
 
@@ -380,8 +380,8 @@ Each slice lands with its conformance cases in `conformance/pkg` (multi-file pac
 spec's case-with-row rule requires with the rows. Rows are numbered in the PR that writes the spec. The
 tally package under `examples/tally/package` becomes the golden acceptance case for slices 1 to 3.
 
-- Decision:
-- Row:
+- Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
+- Row: pending, numbered with the spec PR
 
 ## Rejected as a whole
 
