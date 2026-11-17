@@ -145,6 +145,38 @@ pub fn graph_diagnostics(db: &dyn Db, graph: PackageGraph) -> Vec<Diagnostic> {
         out.extend(crate::layout::diagnostics(&p.layout));
     }
     let nodes: Vec<Node> = packages.iter().map(closure::from_package).collect();
+    for (i, message) in closure::dev_cycles(&nodes) {
+        if local(&packages[i]) {
+            out.push(Diagnostic::error(
+                "E334",
+                &at(&packages[i]),
+                top,
+                "",
+                message,
+            ));
+        }
+    }
+    for p in packages.iter().filter(|p| local(p)) {
+        for (d, found) in dependency_roots(packages, p) {
+            let Some(member) = found.filter(|m| m.role == Role::Member) else {
+                continue;
+            };
+            let have = member.manifest.version.as_deref().unwrap_or("");
+            let need = d.requirement.split_whitespace().nth(1).unwrap_or("");
+            if closure::below(have, need) {
+                out.push(Diagnostic::error(
+                    "E335",
+                    &at(p),
+                    top,
+                    "",
+                    format!(
+                        "`{}` requires `{}` but the workspace member has version {have}; raise the member's version or lower the requirement",
+                        d.local, d.requirement
+                    ),
+                ));
+            }
+        }
+    }
     for (i, message) in closure::violations(&nodes) {
         if local(&packages[i]) {
             out.push(Diagnostic::error(

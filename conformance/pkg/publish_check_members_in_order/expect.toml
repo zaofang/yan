@@ -1,0 +1,6 @@
+spec = "19.4"
+rows = "R1078"
+note = "yan publish --check at a workspace root checks every member, each after the members it requires, and reports a member's refusal on that member's package.yag"
+command = ["publish", "--check"]
+code = "E016"
+at = "a/package.yag:0:0"

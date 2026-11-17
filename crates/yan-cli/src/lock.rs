@@ -641,6 +641,7 @@ fn closure_nodes(
             .map(|l| l.name)
             .collect(),
         deps: closure::deps_of(&m.dependencies),
+        dev_deps: closure::deps_of(&m.dev_dependencies),
     };
     let mut nodes = vec![own(root, top)];
     nodes.extend(members.iter().map(|(dir, m)| own(&root.join(dir), m)));
@@ -650,6 +651,7 @@ fn closure_nodes(
         ceiling: info.ceiling.clone(),
         libs: info.libs.iter().map(|l| l.name.clone()).collect(),
         deps: closure::deps_of(&info.requirements),
+        dev_deps: Vec::new(),
     }));
     nodes
 }

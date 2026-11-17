@@ -157,6 +157,8 @@ This is the complete registry of diagnostic codes for 0.1.0. Codes keep their me
 | E331 | a malformed item-level `@wire`: a `names` key that names no field or variant, a name renamed twice, a key that is both a variant and a field, two fields or variants with one wire name, or an unknown `@wire` key or value (R886, R887) *new* | 17.4 |
 | E332 | a manifest `edition` that is neither `"next"` nor a four-digit year of 2026 or later (R888) *new* | 19.1, 20.4 |
 | E333 | `dyn Trait` of a trait that is not object-safe (R1005) *new* | 10.2 |
+| E334 | `dev_dependencies` of a package reach the package itself, directly or through a dev dependency's normal requirements (RFC 0084 D6, R1076) *new* | 19.1 |
+| E335 | a requirement names a package and major a workspace member has, but the member's version is below its minimum (RFC 0084 D7, R1077) *new* | 19.1 |
 
 ### 25.6 Ownership, views, memory and thread safety
 
