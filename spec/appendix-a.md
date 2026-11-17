@@ -405,6 +405,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1057 | N51 also reads `float(s)` on a `str` as `std.text.float_of(s)`: `s.strip().parse_float()`, panicking with kind `conversion` when it is `None` (#1543); `--strict` keeps E201 | 14.4 |
 | R1059 | a `lib` named like a built-in capability is E913, so a foreign library never shadows a built-in capability (#1502 item 14) | 12.2, 25 |
 | R1058 | under `--locked` a `[[package]]` record needs a `digest`, a `path` or a `source` that is a workspace member directory, else E020 (#1502 item 13) | 19.1 |
+| R1060 | a binding declared outside a `par` must be Sync in every branch that borrows it with `let` and Send in every branch that moves or `inout`-borrows it, by type and even in a single branch, E417 or E415 (#1502 item 20, owner decision 2026-11-17) | 6.4 |
 
 <!-- /rows -->
 

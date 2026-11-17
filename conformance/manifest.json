@@ -3939,6 +3939,30 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e417_rc_in_one_branch_each.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [
+    "R1060"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E417",
+     "line": 12,
+     "col": 18
+    },
+    {
+     "code": "E417",
+     "line": 13,
+     "col": 18
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e417_record_of_mutex_of_rc_in_two_branches.yag",
    "kind": "fail",
    "milestone": "M1",
