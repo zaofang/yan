@@ -1,0 +1,5 @@
+unsafe extern "C" lib evil link "../evil"
+  safe getpid() -> c_int uses none
+
+main() uses io =
+  io.print(getpid())
