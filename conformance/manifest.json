@@ -3525,6 +3525,54 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e413_generic_bind_element.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W820",
+     "line": 8,
+     "col": 9
+    },
+    {
+     "code": "E413",
+     "line": 9,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e413_generic_return_element.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 8,
+     "col": 12
+    },
+    {
+     "code": "W820",
+     "line": 8,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e413_implicit_copy_to_sink.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3540,6 +3588,25 @@
      "code": "E413",
      "line": 10,
      "col": 14
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e413_method_sink_used_later.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 9,
+     "col": 15
     }
    ]
   },
@@ -3635,6 +3702,25 @@
      "code": "E413",
      "line": 10,
      "col": 19
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e413_tuple_unpack_used_later.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 9,
+     "col": 12
     }
    ]
   },
@@ -7132,6 +7218,118 @@
    "exit": 0
   },
   {
+   "path": "yag/run/ownership/drop_grid_dict.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/drop_grid_list.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/drop_grid_option.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/drop_grid_record.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/drop_grid_str.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/drop_grid_sum.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/drop_grid_tuple.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/ownership/else_results_in_inner_block.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7157,6 +7355,22 @@
    "expect": [],
    "stdout": "[2, 1]\n",
    "exit": 101
+  },
+  {
+   "path": "yag/run/ownership/field_move_out.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n",
+   "exit": 0
   },
   {
    "path": "yag/run/ownership/inout.yag",
@@ -7251,6 +7465,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/ownership/match_move.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "X\nb\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/ownership/par_return_flagged_local.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7262,6 +7492,118 @@
    "flags": [],
    "expect": [],
    "stdout": "1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/partial_move_branch.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "moved X\nkept 1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/partial_move_loop.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0A1\n1B1\n2C1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/partial_move_nested.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "B 1 O\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/partial_move_recursive_sum.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 Leaf(v=3)\n2 Node(l=Leaf(v=1), r=Leaf(v=2))\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/partial_move_some.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "X\nnone\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/partial_move_tuple.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "X\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/partial_move_two_fields.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "AB 2 C\n",
    "exit": 0
   },
   {
