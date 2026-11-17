@@ -1,0 +1,6 @@
+# spec: 6.4, 9.5
+# note: try_send crosses to another task as send does; the payload expression is the span
+# expect: E415 at 6:17
+
+def send_rc(var tx: Sender[Rc[int]], v: Rc[int]) -> None uses nondet:
+    tx.try_send(v.share()) else e -> None
