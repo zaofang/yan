@@ -6,28 +6,15 @@ use std::path::{Path, PathBuf};
 
 use yan_diag::{Diagnostic, Span};
 
-use crate::closure::{self, Node};
+use crate::closure;
 use crate::registry::{Index, Info, Registries};
+use yan_db::closure::{Key, Node};
+pub(crate) use yan_db::closure::{identity, requirement};
 
 /// The newest lock `format` this toolchain reads.
 const FORMAT: i64 = 1;
 
 /// The identity a requirement `"@org/name x.y[.z]"` pins: the name and its major (the minor in 0.y.z).
-pub(crate) fn identity(name: &str, version: &str) -> (String, String) {
-    let mut parts = version.split('.');
-    let major = parts.next().unwrap_or("");
-    let key = match major {
-        "0" => format!("0.{}", parts.next().unwrap_or("0")),
-        m => m.to_owned(),
-    };
-    (name.to_owned(), key)
-}
-
-pub(crate) fn requirement(req: &str) -> Option<(String, String)> {
-    let (name, version) = req.split_once(' ')?;
-    Some(identity(name, version.trim()))
-}
-
 pub(crate) fn fail(code: &str, message: String) -> Box<Diagnostic> {
     Box::new(Diagnostic::error(
         code,
@@ -261,8 +248,6 @@ struct Locked {
     /// The subgraphs that use the package: `dep`, `dev`, `tool` (R951).
     kinds: Vec<&'static str>,
 }
-
-pub(crate) type Key = (String, String);
 
 const MAX_ROUNDS: usize = 64;
 

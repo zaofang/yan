@@ -976,7 +976,8 @@ fn checked<'a>(db: &'a mut Database, file: &Path) -> Result<&'a yan_core::ast::M
     };
     let module = match yan_db::load(db, f) {
         Ok(Loaded::Ready(m, _, _)) => {
-            let diags = yan_ide::diagnostics(db, f).expect("a ready module checks");
+            let mut diags = yan_ide::diagnostics(db, f).expect("a ready module checks");
+            diags.extend(db.graph_diagnostics());
             let diags = finish(diags, DEFAULT_MAX_ERRORS);
             if diags.iter().any(|d| d.severity == Severity::Error) {
                 print_diags(&diags);
@@ -1137,6 +1138,7 @@ fn check(
             Err(msg) => return tool_failure(&msg),
         }
     }
+    diags.extend(db.graph_diagnostics());
     let diags = finish(diags, max_errors);
     let format = format.unwrap_or(if std::io::stdout().is_terminal() {
         Format::Prose

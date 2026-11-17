@@ -388,6 +388,11 @@ pub fn run(
         let src = std::fs::read_to_string(&file).map_err(|e| format!("{shown}: {e}"))?;
         let (text, exs) = examples::augment(&shown, &src, false);
         let f = db.file(&file, &text);
+        for d in db.graph_diagnostics() {
+            if !diags.contains(&d) {
+                diags.push(d);
+            }
+        }
         let m = match yan_db::load(&db, f) {
             Ok(Loaded::Ready(m, _, _)) => {
                 let d = examples::remap(yan_ide::diagnostics(&db, f)?, &exs);
