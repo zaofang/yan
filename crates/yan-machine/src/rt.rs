@@ -288,10 +288,9 @@ impl Machine<'_> {
     /// A read the allocation cannot serve: through a freed block it is `ub(2)` under `--ub`.
     fn freed_block(&self, what: &str, addr: u64) -> Stop {
         match self.mem.find(addr) {
-            Some(i) if self.ub && !self.mem.is_live(i) => Stop::Ub(
-                2,
-                format!("{what} at {addr:#x} through a freed allocation"),
-            ),
+            Some(i) if self.ub && !self.mem.is_live(i) => {
+                Stop::Ub(2, format!("{what} at {addr:#x} through a freed allocation"))
+            }
             _ => Stop::Fault(format!("{what} at {addr:#x} is not inside an allocation")),
         }
     }
