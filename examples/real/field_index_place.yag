@@ -1,4 +1,4 @@
-# Gap #1403: store into a dict held in a record field.
+# Store into a dict held in a record field (gap #1403, fixed).
 class Cache:
     vals: dict[str, int]
 
