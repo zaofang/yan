@@ -1,0 +1,16 @@
+-- spec: 4.2
+-- rows: R1068
+-- note: reading a binder of a pattern matched on a list element is not a move and leaks nothing
+-- stdout:
+-- 2
+
+type T = A(s: str) | B()
+
+width(xs: List[T]) -> int =
+  match xs[0]
+    A(s: s) -> s.char_count()
+    B() -> 0
+
+main() uses io =
+  n = width([A("ab".upper()), B()])
+  io.print(str(n))

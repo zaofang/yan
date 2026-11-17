@@ -12199,6 +12199,44 @@
    ]
   },
   {
+   "path": "yn/fail/ownership/e413_match_element_binder.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1068"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 8,
+     "col": 10
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ownership/e413_slice_pattern_binder.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1068"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 8,
+     "col": 16
+    }
+   ]
+  },
+  {
    "path": "yn/fail/ownership/e414_ref_escapes_arena.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -13416,6 +13454,21 @@
    "flags": [],
    "expect": [],
    "stdout": "3 -4 1 2 3.5\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/ownership/match_element_read.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1068"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n",
    "exit": 0
   },
   {
