@@ -1,0 +1,17 @@
+# spec: 6.5
+# rows: R1041
+# note: a record that holds a `Mutex` is not Freeze, so sharing it between par branches needs `uses nondet`
+# expect: E709 at 15:5
+
+class S:
+    m: Mutex[int]
+
+def bump(s: S) -> None:
+    g = s.m.lock()
+    g.set(g.get() + 1)
+
+def main() uses io:
+    s = S(m=Mutex[int](0))
+    par:
+        bump(s)
+        bump(s)

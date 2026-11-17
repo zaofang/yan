@@ -1,0 +1,7 @@
+-- spec: 6.6
+-- rows: R1055
+-- expect: E205 at 6:7
+
+main() uses io =
+  p = ptr.dangling()
+  print(ptr.addr(p))
