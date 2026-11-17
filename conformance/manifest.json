@@ -14270,6 +14270,33 @@
    }
   },
   {
+   "path": "pkg/e023_resolve_ffi_unlisted",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "1",
+    "9"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1019",
+    "note": "resolving a dependency whose .info lists an ffi module when the root's allow_ffi omits it is E023",
+    "command": [
+     "lock"
+    ],
+    "code": "E023",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
    "path": "pkg/e144_manifest_call",
    "kind": "pkg",
    "milestone": "M2b",
@@ -14606,6 +14633,31 @@
     "note": "the same package named in allow_ffi, with its library in the ceiling, checks clean",
     "command": [
      "check"
+    ]
+   }
+  },
+  {
+   "path": "pkg/ffi_resolve_listed",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "1",
+    "9"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1019",
+    "note": "the same dependency resolves when the root's allow_ffi names it",
+    "command": [
+     "lock"
     ]
    }
   },
