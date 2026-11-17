@@ -1,0 +1,6 @@
+spec = "19.1"
+rows = "R1064"
+note = "a top-level module named std"
+command = ["check"]
+code = "E024"
+at = "src/std.yag:1:1"

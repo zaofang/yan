@@ -1985,3 +1985,13 @@ sections = "14.4"
 rows = "R1060"
 topic = "Python names as real functions: bool(x), tuple(t), dict(), set(), sum(xs, start), str.center, str.index (#1543, #1527 decision 5)"
 sections = "14.4"
+
+[[entry]]
+rows = "R1064"
+topic = "a file is a module; its path under a source root is its name; fixed package layout; layout errors E024 (RFC 0084 D1, D2, D4)"
+sections = "19.1, 25"
+
+[[entry]]
+rows = "R1065"
+topic = "`yan tree` lists the modules of a package, one per line, and reports layout errors (RFC 0084 D11)"
+sections = "18.1"
