@@ -165,10 +165,40 @@ fn foreign_libraries(root: &Path) -> Vec<Finding> {
     out
 }
 
+/// One `unconfined` finding per package of the closure that declares no `capabilities`: with no
+/// ceiling it may use every capability, which R673 reports as granting every capability.
+fn unconfined_packages(root: &Path) -> Vec<Finding> {
+    let packages = crate::graph::packages(root);
+    let nodes: Vec<Node> = packages.iter().map(closure::from_package).collect();
+    let Some(start) = packages.iter().position(|p| p.role == yan_db::Role::Root) else {
+        return Vec::new();
+    };
+    closure::reach(&nodes, start)
+        .iter()
+        .filter_map(|path| {
+            let at = *path.last().unwrap_or(&start);
+            let p = &packages[at];
+            let route: Vec<&str> = path.iter().map(|&i| nodes[i].name.as_str()).collect();
+            p.manifest.capabilities.is_none().then(|| Finding {
+                kind: "unconfined",
+                item: p
+                    .name
+                    .clone()
+                    .unwrap_or_else(|| p.root.display().to_string()),
+                detail: format!(
+                    "no `capabilities`, so no ceiling, via {}",
+                    route.join(" -> ")
+                ),
+            })
+        })
+        .collect()
+}
+
 /// Findings for every module of the package at `root`, in module order. Modules that do not
 /// elaborate are reported as `unchecked`.
 pub fn audit(root: &Path) -> Result<Vec<Finding>, String> {
-    let mut out = foreign_libraries(root);
+    let mut out = unconfined_packages(root);
+    out.extend(foreign_libraries(root));
     for (name, file) in test::modules(root)? {
         let mut db = Database::new(false, false);
         let f = db.open(&file)?;

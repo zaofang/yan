@@ -1,0 +1,5 @@
+spec = "19.1"
+rows = "R1058"
+note = "under --locked, a lock record with neither digest, path nor a member source pins nothing: E020"
+command = ["check", "--locked"]
+code = "E020"

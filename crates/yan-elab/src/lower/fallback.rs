@@ -43,6 +43,7 @@ impl Lower<'_, '_, '_> {
             }
         });
         let mut rt = Ty::Err;
+        let nondet_before = self.cx.nondet_ops;
         let block = self.block_with(|l| {
             for (n, t) in names.iter().zip(&ps) {
                 l.declare(n, t.clone());
@@ -84,7 +85,10 @@ impl Lower<'_, '_, '_> {
             captures,
             params,
             ret: rt.core(),
-            uses: None,
+            // A closure that runs a task-dependent operation carries `nondet`, so the callee it is
+            // given to must declare it (R1025).
+            uses: (self.cx.nondet_ops > nondet_before)
+                .then(|| y::CapSet::Names(vec!["nondet".to_owned()])),
             fail: None,
             body: block,
         };

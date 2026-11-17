@@ -69,8 +69,41 @@ fn is_profile(g: &Globals, t: &Ty, owned: bool) -> bool {
     }
 }
 
+/// The built-in capability names (7.1), which a library's capability must not shadow.
+const BUILTIN_CAPABILITIES: [&str; 21] = [
+    "alloc",
+    "sched",
+    "rand",
+    "fault",
+    "io",
+    "log",
+    "metrics",
+    "net",
+    "fs",
+    "tmp",
+    "time",
+    "env",
+    "proc",
+    "signals",
+    "crypto_rand",
+    "py",
+    "toolchain",
+    "nondet",
+    "gpu",
+    "critical_section",
+    "cluster",
+];
+
 /// Registers an extern block's functions as callable and checks its declarations.
 pub(crate) fn collect(g: &mut Globals, x: &j::Extern, at: Span, cx: &mut Cx) -> R<()> {
+    if BUILTIN_CAPABILITIES.contains(&x.lib.as_str()) {
+        cx.err(
+            "E913",
+            at,
+            &x.lib,
+            format!("library `{}` is named like a built-in capability", x.lib),
+        );
+    }
     if !cx.ffi {
         cx.err(
             "E902",
