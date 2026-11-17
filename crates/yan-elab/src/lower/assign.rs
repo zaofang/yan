@@ -491,6 +491,11 @@ impl Lower<'_, '_, '_> {
                 }
                 _ => None,
             },
+            j::ExprKind::Index(b, _) => match self.ty_of_local(b)? {
+                Ty::List(t) => Some(*t),
+                Ty::Dict(_, v) => Some(*v),
+                _ => None,
+            },
             _ => None,
         }
     }

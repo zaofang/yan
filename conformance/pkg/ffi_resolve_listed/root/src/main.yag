@@ -1,0 +1,1 @@
+pub def main() -> None uses none: pass
