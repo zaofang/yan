@@ -43,7 +43,7 @@ Alternatives, not recommended:
 - (d) Closure-only `m.with(f)` (Q2's alternative). Rejected by Q2, and it changes the guard wording of
   6.3 and 7.
 
-- Decision: (lead's answer, date)
+- Decision: accepted as recommended, a place (`g.value`), no whole-value `MutView` (lead, card, 2026-11-17)
 - Row: (R number once accepted)
 
 ### D2: early unlock is a `with` scope, not last-use drop
