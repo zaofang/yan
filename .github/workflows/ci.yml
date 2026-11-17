@@ -171,10 +171,10 @@ jobs:
       - run: uv sync --locked
       - run: uv run python tools/third_party.py --check
       - run: cargo build --locked --release -p yan-cli
-      # Gate on the cases due by the milestone the implementation has reached (spec 23); raise it when a milestone starts.
+      # Gate every case. Known failures are listed in tools/conform_xfail.toml with an issue; a listed case that passes fails the gate.
       - run: >-
           uv run python tools/conform.py --json conformance-summary.json
-          --milestone M1 --executor interp=${{ github.workspace }}/target/release/yan
+          --expected-failures tools/conform_xfail.toml --executor interp=${{ github.workspace }}/target/release/yan
       # Round-trip laws 3 and 4 (16.5): reported, not gated, until M3 (R564).
       - run: >-
           uv run python tools/conform.py --laws --json laws-summary.json
@@ -208,7 +208,7 @@ jobs:
       - run: uv sync --locked
       - run: cargo build --locked --release -p yan-cli
       - run: uv run python bench/run.py --runs 1 --json bench-summary.json
-      # Every case, every milestone, for the status page; the M1 gate stays in the rust job.
+      # Every case for the status page, report-only; the gate is in the rust job.
       - run: >-
           uv run python tools/conform.py --report-only --json conformance-all.json
           --executor interp=${{ github.workspace }}/target/release/yan
