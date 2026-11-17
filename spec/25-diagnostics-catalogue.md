@@ -320,7 +320,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | E910 | `asm` operand type not supported *new* | 12.9 |
 | E911 | `asm` register or register class invalid for the target *new* | 12.9 |
 | E912 | `unsafe fn` named other than as the callee of a call (R1016) *new* | 3 |
-| E913 | library named like a built-in capability (R1057) *new* | 12.2 |
+| E913 | library named like a built-in capability (R1059) *new* | 12.2 |
 
 ### 25.12 Patches, notes, internal errors and panics
 

@@ -1977,7 +1977,7 @@ topic = "section 25 lists N01 to N54; N02 and N11 are silent lexical normalizati
 sections = "14.4, 25"
 
 [[entry]]
-rows = "R1057"
+rows = "R1059"
 topic = "a `lib` named like a built-in capability is E913, so a foreign library never shadows a built-in capability (#1502 item 14)"
 sections = "12.2, 25"
 

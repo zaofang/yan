@@ -1,5 +1,5 @@
 -- spec: 12.2
--- rows: R1057
+-- rows: R1059
 -- expect: E913 at 5:1
 
 unsafe extern "C" lib proc link "c"
