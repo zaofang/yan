@@ -85,12 +85,16 @@ impl Lower<'_, '_, '_> {
                 }
             }
             K::Assign { target, ty, value } => {
+                let borrowed = self.borrowed_by(value);
                 if matches!(value.kind, j::ExprKind::Name(_))
                     && let Some(vt) = self.ty_of_local(value)
                 {
                     self.guard_escape(&vt, value.span);
                 }
-                self.assign(target, ty.as_ref(), value, at)?
+                self.assign(target, ty.as_ref(), value, at)?;
+                if let j::ExprKind::Name(n) = &target.kind {
+                    self.note_borrow(n, borrowed);
+                }
             }
             K::Bind {
                 target,
@@ -112,12 +116,14 @@ impl Lower<'_, '_, '_> {
                     span: *target_span,
                     paren: false,
                 };
+                let borrowed = self.borrowed_by(value);
                 if matches!(value.kind, j::ExprKind::Name(_))
                     && let Some(vt) = self.ty_of_local(value)
                 {
                     self.guard_escape(&vt, value.span);
                 }
                 self.assign(&t, ty.as_ref(), value, at)?;
+                self.note_borrow(target, borrowed);
             }
             K::AugAssign { target, op, value } => {
                 let op: &'static str = op.trim_end_matches('=');
