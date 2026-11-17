@@ -174,6 +174,26 @@ impl Shape {
         )
     }
 
+    /// Whether `path` names a field of this shape: through a sum, a variant and its field.
+    pub(super) fn resolves(&self, path: &[String]) -> bool {
+        let Some((first, rest)) = path.split_first() else {
+            return true;
+        };
+        match self {
+            Shape::Rec(..) | Shape::Tuple(_) => self
+                .fields()
+                .is_some_and(|fs| fs.iter().any(|(f, _, s)| f == first && s.resolves(rest))),
+            Shape::Sum(_, vs) => vs.iter().any(|(v, fs)| {
+                v == first
+                    && rest
+                        .split_first()
+                        .is_some_and(|(f, rest)| fs.iter().any(|(n, s)| n == f && s.resolves(rest)))
+            }),
+            Shape::Boxed(k) | Shape::Named(k) => k.get().resolves(path),
+            _ => false,
+        }
+    }
+
     /// A sum's variant `name`: its tag, first slot and fields.
     pub(super) fn variant(&self, name: &str) -> Option<(i128, usize, &Fields)> {
         let Shape::Sum(_, vs) = self else {

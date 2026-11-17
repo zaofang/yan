@@ -475,6 +475,18 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let (at, s) = self.place(p)?;
                 Ok(self.read(&at, &s))
             }
+            y::Rhs::Rest { root, moved } => {
+                let Some(v) = self.names.get(root) else {
+                    return unsupported(format!("`rest` of `{root}`, which is not a local"));
+                };
+                if let Some(path) = moved.iter().find(|p| !v.shape.resolves(p)) {
+                    return unsupported(format!(
+                        "a move out of `{root}.{}`, which is not a field",
+                        path.join(".")
+                    ));
+                }
+                Ok(v.locals.iter().map(|l| Operand::Local(*l)).collect())
+            }
             y::Rhs::Copy(p) => {
                 let (at, s) = self.place(p)?;
                 let v = self.read(&at, &s);
@@ -504,8 +516,78 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
         if let Some(v) = self.names.get(n).cloned() {
             let ops: Vec<Operand> = v.locals.iter().map(|l| Operand::Local(*l)).collect();
-            self.glue(&v.shape, &ops);
+            match self.rests.get(n).cloned() {
+                Some(moved) => self.glue_except(&v.shape, &ops, &moved),
+                None => self.glue(&v.shape, &ops),
+            }
         }
+    }
+
+    /// `glue` of what is left of `s` once the fields at the paths `moved` were moved out: every
+    /// other field is dropped, and the block of a boxed value is freed.
+    pub(super) fn glue_except(&mut self, s: &Shape, v: &[Operand], moved: &[Vec<String>]) {
+        if moved.is_empty() || !Self::has_heap(s) {
+            return self.glue(s, v);
+        }
+        match s {
+            Shape::Rec(..) | Shape::Tuple(_) => {
+                for (f, at, fs) in s.fields().expect("an aggregate") {
+                    self.glue_field(fs, &v[at..at + fs.width()], moved, &f);
+                }
+            }
+            Shape::Sum(_, vs) => {
+                let Operand::Local(tag) = v[0] else {
+                    unreachable!("a sum's tag is a local")
+                };
+                let join = self.block_new();
+                let arms: Vec<BlockId> = vs.iter().map(|_| self.block_new()).collect();
+                self.finish(Term::Switch {
+                    on: tag,
+                    targets: arms.clone(),
+                });
+                let mut at = 1;
+                for (arm, (name, fs)) in arms.into_iter().zip(vs) {
+                    self.cur = arm;
+                    let inside = Self::under(moved, name);
+                    for (f, fs) in fs {
+                        let w = fs.width();
+                        self.glue_field(fs, &v[at..at + w], &inside, f);
+                        at += w;
+                    }
+                    self.finish(Term::Jump(join));
+                }
+                self.cur = join;
+            }
+            Shape::Boxed(k) => {
+                let x = self.unbox(k, &v[0]);
+                self.glue_except(k.get(), &x, moved);
+                self.free(RtFn::EnvFree, v[0].clone());
+            }
+            Shape::Named(k) => self.glue_except(k.get(), v, moved),
+            _ => self.glue(s, v),
+        }
+    }
+
+    /// The paths of `moved` that start with `name`, without it.
+    fn under(moved: &[Vec<String>], name: &str) -> Vec<Vec<String>> {
+        moved
+            .iter()
+            .filter(|p| p.first().is_some_and(|f| f == name))
+            .map(|p| p[1..].to_vec())
+            .collect()
+    }
+
+    fn glue_field(&mut self, fs: &Shape, v: &[Operand], moved: &[Vec<String>], name: &str) {
+        let inside = Self::under(moved, name);
+        // A path that ends at the field moved it whole. The value left its block, which a boxed
+        // field still owns.
+        if inside.iter().any(Vec::is_empty) {
+            if matches!(fs, Shape::Boxed(_)) {
+                self.free(RtFn::EnvFree, v[0].clone());
+            }
+            return;
+        }
+        self.glue_except(fs, v, &inside);
     }
 
     pub(super) fn propagate(
