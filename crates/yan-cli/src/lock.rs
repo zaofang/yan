@@ -548,11 +548,7 @@ fn load_overrides(
                 format!("override `{key}`: `{recorded}` is not `{name}`"),
             ));
         }
-        let ffi = if dir.join("ffi").is_dir() {
-            vec!["ffi/".to_owned()]
-        } else {
-            Vec::new()
-        };
+        let ffi = yan_db::foreign_set(&dir).modules;
         out.insert(
             identity(name, major.trim()),
             (recorded, manifest, digest, ffi),

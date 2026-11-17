@@ -4,6 +4,8 @@
 //! since the elaborator depends on no surface crate (R560).
 
 mod docs;
+mod foreign;
+pub use foreign::{ForeignLib, ForeignSet, foreign_set, is_ffi_module};
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -239,7 +241,7 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
         strict: yn || settings.strict(db),
         release: settings.release(db),
         yn,
-        ffi: is_ffi(path),
+        ffi: is_ffi_module(path),
         untrusted: settings.untrusted(db),
         tools: settings.tools(db),
     };
@@ -317,24 +319,6 @@ fn consented(own: &Path, manifest: &yan_elab::Manifest) -> bool {
         return true;
     };
     top.allow_ffi.contains(name)
-}
-
-/// 12: a module under the package's `ffi/` directory. The package root is the nearest
-/// directory above the module with a `package.yag`; without one, the module's own directory
-/// must be named `ffi` or `ub` (conformance assumption A9). Only `<root>/ffi/` counts, so a
-/// nested or vendored directory of that name does not make a module an `ffi` module.
-fn is_ffi(path: &Path) -> bool {
-    let Some(dir) = path.parent() else {
-        return false;
-    };
-    match dir.ancestors().find(|d| d.join("package.yag").is_file()) {
-        Some(root) => dir.strip_prefix(root).is_ok_and(|rel| {
-            rel.components()
-                .next()
-                .is_some_and(|c| c.as_os_str() == "ffi" || c.as_os_str() == "ub")
-        }),
-        None => dir.file_name().is_some_and(|n| n == "ffi" || n == "ub"),
-    }
 }
 
 /// Every diagnostic of the module: the front end's, the elaborator's and the Yan Core checker's.
@@ -479,12 +463,12 @@ mod tests {
         std::fs::create_dir_all(pkg.join("ffi")).unwrap();
         std::fs::write(pkg.join("package.yag"), "").unwrap();
         std::fs::create_dir_all(pkg.join("src").join("ffi")).unwrap();
-        assert!(!is_ffi(&pkg.join("src").join("a.yn")));
-        assert!(!is_ffi(&pkg.join("src").join("ffi").join("a.yn")));
-        assert!(is_ffi(&pkg.join("ffi").join("a.yn")));
-        assert!(is_ffi(Path::new("conformance/yn/pass/ffi/a.yn")));
-        assert!(is_ffi(Path::new("conformance/ub/a.yn")));
-        assert!(!is_ffi(Path::new("conformance/yn/fail/unsafe/a.yn")));
+        assert!(!is_ffi_module(&pkg.join("src").join("a.yn")));
+        assert!(!is_ffi_module(&pkg.join("src").join("ffi").join("a.yn")));
+        assert!(is_ffi_module(&pkg.join("ffi").join("a.yn")));
+        assert!(is_ffi_module(Path::new("conformance/yn/pass/ffi/a.yn")));
+        assert!(is_ffi_module(Path::new("conformance/ub/a.yn")));
+        assert!(!is_ffi_module(Path::new("conformance/yn/fail/unsafe/a.yn")));
     }
 
     #[cfg(unix)]
