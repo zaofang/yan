@@ -386,9 +386,22 @@ mod tests {
         assert!(deps_span(src).is_none());
     }
 
-    fn info(version: &str, time: &str, publisher: &str, reqs: &str) -> String {
+    /// The one archive every fixture version carries: the lock check recomputes each foreign set
+    /// from it (#1485).
+    fn archive() -> Vec<u8> {
+        crate::store::tests::zip_of(&[("package.yag", b"")])
+    }
+
+    /// Write `<v>.info` and the archive its digest names.
+    fn put_info(dir: &std::path::Path, v: &str, body: String) {
+        std::fs::write(dir.join(format!("{v}.info")), body).unwrap();
+        std::fs::write(dir.join(format!("{v}.zip")), archive()).unwrap();
+    }
+
+    fn info(_version: &str, time: &str, publisher: &str, reqs: &str) -> String {
+        let digest = crate::store::sha256(&archive());
         format!(
-            "{{\"digest\":\"sha256:{version}\",\"publisher\":\"{publisher}\",\"requirements\":[{reqs}],\"yanked\":false,\"time\":\"{time}\"}}"
+            "{{\"digest\":\"sha256:{digest}\",\"publisher\":\"{publisher}\",\"requirements\":[{reqs}],\"yanked\":false,\"time\":\"{time}\"}}"
         )
     }
 
@@ -400,7 +413,7 @@ mod tests {
         let at = |n: &str, v: &str, body: String| {
             let d = dir.join("index/@a").join(n).join("@v");
             std::fs::create_dir_all(&d).unwrap();
-            std::fs::write(d.join(format!("{v}.info")), body).unwrap();
+            put_info(&d, v, body);
         };
         let list = |n: &str, vs: &str| {
             std::fs::write(dir.join("index/@a").join(n).join("@v/list"), vs).unwrap();
@@ -485,9 +498,10 @@ mod tests {
         let now = registry::now();
         add(&dir, "@a/b", now, Caller::Human).ok().unwrap();
         let lock = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
-        assert!(lock.contains(
-            "digest = \"sha256:1.2.0\"\ncapability_digest = \"sha256:cap\"\npublisher = \"pub\"\n"
-        ));
+        let d = crate::store::sha256(&archive());
+        assert!(lock.contains(&format!(
+            "digest = \"sha256:{d}\"\ncapability_digest = \"sha256:cap\"\npublisher = \"pub\"\n"
+        )));
         let approved = lock.replace(
             "publisher = \"pub\"\n",
             "publisher = \"pub\"\napprovals = [\"sha256:ap\"]\nrebuilds = [\"sha256:rb\"]\n",
@@ -509,7 +523,7 @@ mod tests {
             "added @a/b 1.2.0"
         );
         let lock = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
-        assert!(lock.contains("name = \"@a/b\"\nversion = \"1.2.0\"\nsource = \"index\"\ndigest = \"sha256:1.2.0\"\npublisher = \"pub\""));
+        assert!(lock.contains(&format!("name = \"@a/b\"\nversion = \"1.2.0\"\nsource = \"index\"\ndigest = \"sha256:{}\"\npublisher = \"pub\"", crate::store::sha256(&archive()))));
         assert!(
             std::fs::read_to_string(dir.join("package.yag"))
                 .unwrap()
@@ -556,11 +570,11 @@ mod tests {
         );
         assert!(update(&dir, None, now).ok().unwrap().is_empty());
         let v = dir.join("index/@a/b/@v");
-        std::fs::write(
-            v.join("1.4.0.info"),
+        put_info(
+            &v,
+            "1.4.0",
             info("1.4.0", "2020-03-01T00:00:00Z", "other", ""),
-        )
-        .unwrap();
+        );
         std::fs::write(v.join("list"), "1.0.0\n1.2.0\n1.3.0\n1.4.0\n").unwrap();
         let Err(Failure::Diag(d)) = update(&dir, None, now) else {
             panic!("expected a diagnostic");
@@ -576,7 +590,7 @@ mod tests {
         let v = dir.join("index/@a/b/@v");
         let with = |ver: &str, time: &str, extra: &str| {
             let body = info(ver, time, "pub", "").replace("\"yanked\":false", extra);
-            std::fs::write(v.join(format!("{ver}.info")), body).unwrap();
+            put_info(&v, ver, body);
         };
         let long = "x".repeat(250);
         with(
@@ -598,12 +612,21 @@ mod tests {
         assert_eq!(moved[2], "cool-off bypassed: @a/b 1.3.0 fixes A1");
     }
 
-    /// `world` with `@a/b` 1.2.0 declaring the extern library `z` (and ceiling `["z"]`), 1.0.0 none,
-    /// and an app whose ceiling is `["net"]` and whose `allow_ffi` names `@a/b`.
-    fn ceiling_world(tag: &str, requirement: &str) -> std::path::PathBuf {
-        let dir = world(tag);
-        let p = dir.join("index/@a/b/@v/1.2.0.info");
-        let body = std::fs::read_to_string(&p).unwrap();
+    /// Make `@a/b` `v` declare the extern library `z`, in its `.info` and in the archive it names.
+    fn declare_z(dir: &std::path::Path, v: &str) {
+        let p = dir.join(format!("index/@a/b/@v/{v}.info"));
+        let foreign = crate::store::tests::zip_of(&[
+            ("package.yag", b""),
+            (
+                "ffi/z.yn",
+                b"unsafe extern \"C\" lib z link \"z\"\n  safe f() -> c_int\n",
+            ),
+        ]);
+        std::fs::write(p.with_extension("zip"), &foreign).unwrap();
+        let body = std::fs::read_to_string(&p).unwrap().replace(
+            &crate::store::sha256(&archive()),
+            &crate::store::sha256(&foreign),
+        );
         std::fs::write(
             &p,
             body.replace(
@@ -612,6 +635,39 @@ mod tests {
             ),
         )
         .unwrap();
+    }
+
+    #[test]
+    fn an_info_that_hides_the_archives_foreign_set_is_e020() {
+        let dir = world("hidden-ffi");
+        let p = dir.join("index/@a/b/@v/1.2.0.info");
+        let foreign = crate::store::tests::zip_of(&[
+            ("package.yag", b""),
+            (
+                "ffi/z.yn",
+                b"unsafe extern \"C\" lib z link \"z\"\n  safe f() -> c_int\n",
+            ),
+        ]);
+        std::fs::write(p.with_extension("zip"), &foreign).unwrap();
+        let body = std::fs::read_to_string(&p).unwrap().replace(
+            &crate::store::sha256(&archive()),
+            &crate::store::sha256(&foreign),
+        );
+        std::fs::write(&p, body).unwrap();
+        let err = add(&dir, "@a/b", registry::now(), Caller::Human)
+            .err()
+            .unwrap();
+        assert!(
+            matches!(&err, Failure::Diag(d) if d.code == "E020"),
+            "{err:?}"
+        );
+    }
+
+    /// `world` with `@a/b` 1.2.0 declaring the extern library `z` (and ceiling `["z"]`), 1.0.0 none,
+    /// and an app whose ceiling is `["net"]` and whose `allow_ffi` names `@a/b`.
+    fn ceiling_world(tag: &str, requirement: &str) -> std::path::PathBuf {
+        let dir = world(tag);
+        declare_z(&dir, "1.2.0");
         std::fs::write(
             dir.join("package.yag"),
             format!(
@@ -662,16 +718,7 @@ mod tests {
             "added @a/b 1.0.0"
         );
         let dir = ceiling_world("add-none", "");
-        let info = dir.join("index/@a/b/@v/1.0.0.info");
-        let body = std::fs::read_to_string(&info).unwrap();
-        std::fs::write(
-            &info,
-            body.replace(
-                "{\"digest",
-                "{\"ffi\":[\"ffi/z.yn\"],\"libs\":[{\"name\":\"z\",\"link\":\"z\"}],\"capabilities\":[\"z\"],\"digest",
-            ),
-        )
-        .unwrap();
+        declare_z(&dir, "1.0.0");
         let before = std::fs::read_to_string(dir.join("package.yag")).unwrap();
         let err = add(&dir, "@a/b", registry::now(), Caller::Human)
             .err()
@@ -717,6 +764,8 @@ mod tests {
         add(&dir, "@a/b", registry::now(), Caller::Human)
             .ok()
             .unwrap();
+        // `add` kept the archive it verified; drop it to test an empty store.
+        std::fs::remove_dir_all(dir.join(".yan/store")).unwrap();
         let reqs = ["@a/b 1.2.0".to_owned()];
         assert_eq!(
             lock::check(&dir, &reqs, true, true).unwrap_err().code,
@@ -724,12 +773,6 @@ mod tests {
         );
         let bytes = crate::store::tests::zip_of(&[("package.yag", b"")]);
         let digest = crate::store::sha256(&bytes);
-        let lock = std::fs::read_to_string(dir.join("yan.lock")).unwrap();
-        std::fs::write(
-            dir.join("yan.lock"),
-            lock.replace("sha256:1.2.0", &format!("sha256:{digest}")),
-        )
-        .unwrap();
         std::fs::create_dir_all(dir.join("vendor/archives")).unwrap();
         std::fs::write(
             dir.join("vendor/archives").join(format!("{digest}.zip")),
@@ -745,11 +788,7 @@ mod tests {
         let put = |n: &str, v: &str, reqs: &str| {
             let d = dir.join("index/@a").join(n).join("@v");
             std::fs::create_dir_all(&d).unwrap();
-            std::fs::write(
-                d.join(format!("{v}.info")),
-                info(v, "2020-01-01T00:00:00Z", "pub", reqs),
-            )
-            .unwrap();
+            put_info(&d, v, info(v, "2020-01-01T00:00:00Z", "pub", reqs));
         };
         put("x", "1.0.0", "");
         put("x", "1.5.0", "");
