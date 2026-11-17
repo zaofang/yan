@@ -1,5 +1,5 @@
 # spec: 4.2
-# rows: R1069
+# rows: R1070
 # expect: E413 at 9:12
 # expect: E413 at 9:20
 # note: a non-copy local used again after leaving into the tuple elements of a list literal is E413 with the `.copy()` fix (#1500 finding 1, #1573 item 4)
