@@ -1491,6 +1491,14 @@ impl<'g, 'm> Cx<'g, 'm> {
                 }
                 Some(type_text(&t))
             }
+            Rhs::Rest { .. } => {
+                self.err(
+                    "I001",
+                    at,
+                    "`rest` appears only in optimized Yan Core (R770)".into(),
+                );
+                None
+            }
             Rhs::Move(p) => {
                 let t = self.place(p, How::Move);
                 if p.projs.is_empty()
