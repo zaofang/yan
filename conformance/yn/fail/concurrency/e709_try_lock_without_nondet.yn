@@ -1,0 +1,9 @@
+-- spec: 6.3, 6.5, 15
+-- rows: R1038
+-- note: try_lock needs uses nondet because its result depends on scheduling
+-- expect: E709 at 7:9
+
+probe(m: Mutex[int]) -> int =
+  match m.try_lock()
+    Some(g) -> g.get()
+    None -> 0
