@@ -286,6 +286,8 @@ pub enum RtFn {
     StrEq,
     /// `(Str, i64) -> Str`: `n` copies, none for `n <= 0`.
     StrRepeat,
+    /// `(f64, i64) -> Str`: fixed-point text with `n` digits after the point.
+    ShowFixed,
     /// `(str) -> int`, extended grapheme clusters.
     GraphemeCount,
     /// `(seed, algorithm tag) -> handler`: a `seeded` generator, as an index in `yan_rt::rand`.
@@ -746,6 +748,7 @@ impl RtFn {
                 | RtFn::ShowI64
                 | RtFn::ShowU64
                 | RtFn::ShowF64
+                | RtFn::ShowFixed
                 | RtFn::ShowBool
                 | RtFn::Repr
                 | RtFn::ListSliceExact

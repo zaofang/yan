@@ -3,3 +3,9 @@
 @intrinsic
 @since("1.0")
 pub def show[T: Show](x: T) -> str: ...
+
+@intrinsic
+@since("1.0")
+pub def show_fixed(x: float, prec: int) -> str:
+    """`x` with `prec` digits after the point, rounded on its exact binary value (the `.Nf` spec)."""
+    ...

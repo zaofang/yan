@@ -340,7 +340,7 @@ impl Lower<'_, '_, '_> {
                         if let Some(rec) = self.bits_record(&bp.1) {
                             return self.bits_write((bp.0, &rec), (f, *fsp), (r, &t), at);
                         }
-                        self.attr_place(bp, f, *fsp)
+                        self.attr_place(bp, (b, f, *fsp), target.span)
                             .map_err(|u| u.at(target.span))?
                     }
                     _ => self.place(target)?,
@@ -434,6 +434,37 @@ impl Lower<'_, '_, '_> {
                 let n = self.narrowed(n).unwrap_or(n);
                 self.locals.get(n).map(|l| l.ty.clone())
             }
+            j::ExprKind::Attr(b, f, _) => match self.ty_of_local(b)? {
+                Ty::Data(r) => self
+                    .g
+                    .records
+                    .get(&r)?
+                    .iter()
+                    .find(|fd| fd.name == *f)
+                    .map(|fd| fd.ty.clone()),
+                Ty::Inst(r, targs) => {
+                    let map: Vec<_> = self
+                        .g
+                        .type_params
+                        .get(&r)?
+                        .iter()
+                        .cloned()
+                        .zip(targs)
+                        .collect();
+                    self.g
+                        .records
+                        .get(&r)?
+                        .iter()
+                        .find(|fd| fd.name == *f)
+                        .map(|fd| fd.ty.subst(&map))
+                }
+                _ => None,
+            },
+            j::ExprKind::Index(b, _) => match self.ty_of_local(b)? {
+                Ty::List(t) => Some(*t),
+                Ty::Dict(_, v) => Some(*v),
+                _ => None,
+            },
             _ => None,
         }
     }
@@ -466,7 +497,7 @@ impl Lower<'_, '_, '_> {
             )),
             j::ExprKind::Attr(b, f, fsp) => {
                 let bp = self.place(b)?;
-                self.attr_place(bp, f, *fsp)
+                self.attr_place(bp, (b, f, *fsp), e.span)
             }
             j::ExprKind::Index(b, i) => {
                 let pt = self.place(b)?;
@@ -502,8 +533,8 @@ impl Lower<'_, '_, '_> {
     pub(super) fn attr_place(
         &mut self,
         (mut p, t): (Place, Ty),
-        f: &str,
-        fsp: Span,
+        (b, f, fsp): (&j::Expr, &str, Span),
+        at: Span,
     ) -> R<(Place, Ty)> {
         if let Ty::Data(r) = &t
             && self.g.layout_bits.contains_key(r)
@@ -542,6 +573,10 @@ impl Lower<'_, '_, '_> {
             // A failed send's reason and arguments (R976).
             Ty::Coll("Undelivered", ts) if f == "reason" => ts[1].clone(),
             Ty::Coll("Undelivered", ts) if f == "args" => ts[0].clone(),
+            Ty::Coll("Ref", _) => {
+                self.ref_deref(b, at);
+                Ty::Err
+            }
             t => {
                 self.err(
                     "E203",
@@ -691,6 +726,10 @@ impl Lower<'_, '_, '_> {
                 };
                 Ok((place, vt))
             }
+            Ty::Coll("Ref", _) => {
+                self.ref_deref(b, e.span);
+                Ok((p, Ty::Err))
+            }
             Ty::Coll("iter", _) => {
                 self.err(
                     "E201",
@@ -703,6 +742,17 @@ impl Lower<'_, '_, '_> {
             }
             t => unsupported(format!("indexing a `{t}` as a place", t = self.ty_text(t))),
         }
+    }
+
+    /// E201: a `Ref` is never dereferenced implicitly; `r.f` and `r[i]` read through `r.get()`
+    /// (R1002).
+    pub(super) fn ref_deref(&mut self, r: &j::Expr, at: Span) {
+        let r = self.cx.text(r.span);
+        self.err(
+            "E201",
+            at,
+            format!("a `Ref` is not dereferenced implicitly; read it with `{r}.get()`"),
+        );
     }
 
     /// Stores the dict elements `place` copied out back into their dicts.
