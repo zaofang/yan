@@ -15039,6 +15039,75 @@
    }
   },
   {
+   "path": "pkg/e024_bad_module_name",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1058"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1058",
+    "note": "a file name that is not a value name",
+    "command": [
+     "check"
+    ],
+    "code": "E024",
+    "at": "src/Bad.yag:1:1"
+   }
+  },
+  {
+   "path": "pkg/e024_duplicate_module_path",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1058"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1058",
+    "note": "two files with one module path; reported on the second",
+    "command": [
+     "check"
+    ],
+    "code": "E024",
+    "at": "src/fees.yn:1:1"
+   }
+  },
+  {
+   "path": "pkg/e024_reserved_root_name",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1058"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1058",
+    "note": "a top-level module named std",
+    "command": [
+     "check"
+    ],
+    "code": "E024",
+    "at": "src/std.yag:1:1"
+   }
+  },
+  {
    "path": "pkg/e144_manifest_call",
    "kind": "pkg",
    "milestone": "M2b",
@@ -15450,6 +15519,28 @@
     "note": "each of two same-named libraries resolves when its qualified spelling is in the ceiling",
     "command": [
      "lock"
+    ]
+   }
+  },
+  {
+   "path": "pkg/layout_sibling_file_and_directory",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1058",
+    "R1059"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1058, R1059",
+    "note": "billing.yag and billing/invoice.yn are a module and its child; tree lists both (R1059)",
+    "command": [
+     "tree"
     ]
    }
   },
