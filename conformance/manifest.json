@@ -6922,6 +6922,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/ownership/inout_list_field.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.3"
+   ],
+   "rows": [
+    "R765"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "[1, 2, 3, 4]\n[9]\n[[1], [2, 5]]\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/ownership/lambda_ctor_projection.yag",
    "kind": "run",
    "milestone": "M1",
