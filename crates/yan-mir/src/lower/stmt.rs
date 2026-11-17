@@ -218,6 +218,11 @@ impl<'a, 'm> Fn<'a, 'm> {
                 }
                 let (at, shape) = self.place(place)?;
                 let v = self.value(rhs, &shape)?;
+                // A field or element holds a value of its own that the store replaces.
+                if !place.projs.is_empty() {
+                    let old = self.read(&at, &shape);
+                    self.glue(&shape, &old);
+                }
                 self.write(&at, v);
                 Ok(())
             }
