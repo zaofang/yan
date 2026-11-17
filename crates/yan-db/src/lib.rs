@@ -242,7 +242,12 @@ pub fn front(db: &dyn Db, file: SourceFile) -> Result<Front, String> {
             let packages = PackageGraph::get(db).packages(db);
             let placed = layout::locate(packages, path).filter(|l| l.root == Root::Src);
             let modules: Vec<String> = owner(packages, path)
-                .map(|p| source_modules(p).into_iter().map(|(n, _)| n).collect())
+                .map(|p| {
+                    visible_modules(packages, p, path)
+                        .into_iter()
+                        .map(|(n, _)| n)
+                        .collect()
+                })
                 .unwrap_or_default();
             let ctx = placed.map(|l| (l.module[..l.module.len() - 1].to_vec(), modules));
             let pkg = ctx
@@ -323,7 +328,12 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
         tools: settings.tools(db),
     };
     let name = path.display().to_string();
-    let modules = pkg.map(source_modules).unwrap_or_default();
+    let modules = pkg
+        .map(|p| visible_modules(packages, p, path))
+        .unwrap_or_default();
+    let deps = pkg
+        .map(|p| dependency_scopes(packages, p, path))
+        .unwrap_or_default();
     let index = FileIndex::get(db).by_path(db);
     let sibling = |dotted: &str| {
         let (_, f) = modules.iter().find(|(n, _)| n == dotted)?;
@@ -339,6 +349,13 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
     let env = own.map(|this| yan_elab::PackageEnv {
         this,
         modules: modules.iter().map(|(n, _)| n.clone()).collect(),
+        deps: deps
+            .iter()
+            .map(|(local, mods)| yan_elab::DepScope {
+                local: local.clone(),
+                modules: mods.iter().map(|(rel, _)| rel.clone()).collect(),
+            })
+            .collect(),
         load: &sibling,
     });
     if let Some(env) = &env {
@@ -398,6 +415,48 @@ fn source_modules(p: &Package) -> Vec<(String, PathBuf)> {
         .filter(|m| m.root == Root::Src)
         .map(|m| (m.path.join("."), m.file.clone()))
         .collect()
+}
+
+/// The dependencies `pkg` reaches by local name from the file at `path`, each with its modules
+/// as (path relative to its own root, file). Dev dependencies are visible outside `src/` only
+/// (R636). A dependency the lock does not resolve to a package on disk is absent.
+fn dependency_scopes(
+    packages: &[Package],
+    pkg: &Package,
+    path: &Path,
+) -> Vec<(String, Vec<(String, PathBuf)>)> {
+    let in_src = layout::locate(packages, path).is_none_or(|l| l.root == Root::Src);
+    let mut out: Vec<(String, Vec<(String, PathBuf)>)> = Vec::new();
+    for (d, found) in dependency_roots(packages, pkg) {
+        let wanted = match d.kind {
+            yan_elab::DepKind::Normal => true,
+            yan_elab::DepKind::Dev => !in_src,
+            yan_elab::DepKind::Tool => false,
+        };
+        if let Some(dep) = found.filter(|_| wanted)
+            && !out.iter().any(|(l, _)| *l == d.local)
+        {
+            out.push((d.local.clone(), source_modules(dep)));
+        }
+    }
+    out
+}
+
+/// Every module the file at `path` can name: its package's own, and each dependency's under the
+/// dependency's local name (`http` for its `lib`, `http.client` for its `client`).
+fn visible_modules(packages: &[Package], pkg: &Package, path: &Path) -> Vec<(String, PathBuf)> {
+    let mut all = source_modules(pkg);
+    for (local, mods) in dependency_scopes(packages, pkg, path) {
+        all.extend(mods.into_iter().map(|(rel, f)| {
+            let global = if rel == "lib" {
+                local.clone()
+            } else {
+                format!("{local}.{rel}")
+            };
+            (global, f)
+        }));
+    }
+    all
 }
 
 /// W861 for a script outside any package: the nearest `yan.toml` above it (R848). Kept as a

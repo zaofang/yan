@@ -419,6 +419,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1074 | a dependency local name that is reserved, equals an own top-level module or repeats another dependency's is E024 on `package.yag` (RFC 0084 D4, slice 3) | 19.1, 25 |
 | R1071 | `yan metadata --json` prints the resolved package graph: packages, dependency local names with what they resolve to, modules (RFC 0084 D13) | 18.1 |
 | R1070 | a non-copy owned local that is used again later and leaves into a tuple or list element, an `Ok`, `Err` or `Some` argument, a conditional-expression arm or an `else` fallback value is E413 with the `.copy()` fix, as at a bind or a `sink` argument (#1573 item 4) | 4.2 |
+| R1075 | a dependency's modules are reached through its local name and elaborated with its own manifest; only `pub` items cross a package, else E287 (RFC 0084 D4, D12 step 3, slice 3b) | 19.1, 25 |
 
 <!-- /rows -->
 
