@@ -1,4 +1,4 @@
 type J = Red() | Green()
 
-def mk() -> J:
+pub def mk() -> J:
     return Green()

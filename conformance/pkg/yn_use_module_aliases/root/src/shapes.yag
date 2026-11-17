@@ -1,12 +1,12 @@
-class Rect:
+pub class Rect:
     w: int
     h: int
 
-type Shape = Square(side: int) | Wide(rect: Rect)
+pub type Shape = Square(side: int) | Wide(rect: Rect)
 
 limit: int = 100
 
-def area(s: Shape) -> int:
+pub def area(s: Shape) -> int:
     match s:
         case Square(side=n):
             return n * n

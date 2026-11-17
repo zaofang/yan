@@ -1,5 +1,5 @@
-def describe(s: shapes.Shape) -> str:
+pub def describe(s: shapes.Shape) -> str:
     return "area=" + str(shapes.clamp(shapes.area(s)))
 
-def twice(r: shapes.Rect) -> int:
+pub def twice(r: shapes.Rect) -> int:
     return shapes.area(shapes.Wide(rect=r)) * 2

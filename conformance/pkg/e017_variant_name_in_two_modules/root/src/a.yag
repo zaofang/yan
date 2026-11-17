@@ -1,4 +1,4 @@
 type K = Red() | Blue()
 
-def mk() -> K:
+pub def mk() -> K:
     return Red()
