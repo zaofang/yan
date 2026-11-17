@@ -1,6 +1,6 @@
 //! Ownership facts shared by drop elaboration (`yan-opt`) and the post-optimization check (D2, D3).
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use yan_core::ast::*;
 use yan_core::intrinsics;
@@ -43,6 +43,7 @@ fn rhs(r: &Rhs) -> Vec<&Name> {
         }
         Rhs::Ctor(Ctor::Tuple(xs)) => xs.iter().filter_map(name).collect(),
         Rhs::Move(p) => vec![&p.root],
+        Rhs::Rest { root, .. } => vec![root],
         Rhs::Closure(c) => c
             .captures
             .iter()
@@ -69,6 +70,60 @@ pub fn consumed(k: &StmtKind) -> Vec<&Name> {
     }
 }
 
+/// What a name bound by a projection or a pattern stands for: a field, at `path`, of the owned
+/// local `root`. An empty `path` is the whole of `root`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct View {
+    pub root: Name,
+    pub path: Vec<Name>,
+}
+
+pub type Views = HashMap<Name, View>;
+
+/// The view `let x = p` binds. An element of a list is not a field: the whole root stands for
+/// it, and moving it is E413.
+pub fn proj_view(views: &Views, p: &Place) -> View {
+    let mut v = views.get(&p.root).cloned().unwrap_or_else(|| View {
+        root: p.root.clone(),
+        path: Vec::new(),
+    });
+    for pr in &p.projs {
+        match pr {
+            Proj::Field(f, _) => v.path.push(f.clone()),
+            Proj::Index(_) => {
+                v.path.clear();
+                break;
+            }
+        }
+    }
+    v
+}
+
+/// The names `k` consumes, split by what they stand for: owned locals consumed whole, and
+/// fields moved out of owned locals, which leave the rest of their root to its owner.
+#[derive(Default)]
+pub struct Consumption {
+    pub whole: Vec<Name>,
+    pub partial: Vec<(Name, Vec<Name>)>,
+}
+
+pub fn consumption(k: &StmtKind, views: &Views) -> Consumption {
+    let mut c = Consumption::default();
+    for n in consumed(k) {
+        match views.get(n) {
+            Some(v) if !v.path.is_empty() => {
+                let moved = (v.root.clone(), v.path.clone());
+                if !c.partial.contains(&moved) {
+                    c.partial.push(moved);
+                }
+            }
+            Some(v) => c.whole.push(v.root.clone()),
+            None => c.whole.push(n.clone()),
+        }
+    }
+    c
+}
+
 /// Names a pattern binds. They view the scrutinee: moving one moves the scrutinee.
 pub fn pat_binders(p: &Pat, out: &mut Vec<Name>) {
     match p {
@@ -93,6 +148,8 @@ pub struct Ctors {
     copy: HashSet<(Name, Name)>,
     /// Variants without fields: a pattern `Leaf` is written as a name, but binds nothing.
     units: HashSet<Name>,
+    /// Constructors of sums, `Ok`, `Err` and `Some` among them.
+    variants: HashSet<Name>,
 }
 
 impl Ctors {
@@ -106,6 +163,7 @@ pub fn ctors(items: &[Item]) -> Ctors {
     let mut copy = HashSet::new();
     let mut other = HashSet::new();
     let mut units: HashSet<Name> = HashSet::from(["None".to_owned()]);
+    let mut variants: HashSet<Name> = ["Ok", "Err", "Some", "None"].map(Name::from).into();
     let mut add = |ctor: Name, fs: &[Field]| {
         for f in fs {
             let key = (ctor.clone(), f.name.clone());
@@ -124,6 +182,7 @@ pub fn ctors(items: &[Item]) -> Ctors {
                     if v.fields.as_deref().is_none_or(<[Field]>::is_empty) {
                         units.insert(v.name.clone());
                     }
+                    variants.insert(v.name.clone());
                     add(v.name.clone(), v.fields.as_deref().unwrap_or(&[]));
                 }
             }
@@ -131,14 +190,21 @@ pub fn ctors(items: &[Item]) -> Ctors {
         }
     }
     copy.retain(|k| !other.contains(k));
-    Ctors { copy, units }
+    Ctors {
+        copy,
+        units,
+        variants,
+    }
 }
 
-/// `pat_binders` without the names bound to a copy field: those are values, not views of the
-/// scrutinee, so passing one on does not move it.
-pub fn view_binders(p: &Pat, ctors: &Ctors, out: &mut Vec<Name>) {
+/// The names a pattern binds that view the scrutinee, each with the path of the field it binds:
+/// not the names bound to a copy field, which are values, so passing one on does not move the
+/// scrutinee. A path through a sum starts with the variant. Names bound under an alternative or
+/// a slice stand for the whole scrutinee.
+pub fn view_paths(p: &Pat, ctors: &Ctors, at: &mut Vec<Name>, out: &mut Vec<(Name, Vec<Name>)>) {
     match p {
         Pat::Bind(n) if ctors.units.contains(n) => {}
+        Pat::Bind(n) => out.push((n.clone(), at.clone())),
         Pat::Ctor {
             path,
             fields: Some((fs, _)),
@@ -148,10 +214,47 @@ pub fn view_binders(p: &Pat, ctors: &Ctors, out: &mut Vec<Name>) {
                 if matches!(sub, Pat::Bind(_)) && ctors.is_copy_field(&ctor, f) {
                     continue;
                 }
-                view_binders(sub, ctors, out);
+                let depth = at.len();
+                if ctors.variants.contains(&ctor) {
+                    at.push(ctor.clone());
+                }
+                at.push(f.clone());
+                view_paths(sub, ctors, at, out);
+                at.truncate(depth);
             }
         }
-        Pat::Tuple(ps) | Pat::Or(ps) => ps.iter().for_each(|p| view_binders(p, ctors, out)),
-        _ => pat_binders(p, out),
+        Pat::Tuple(ps) => {
+            for (i, sub) in ps.iter().enumerate() {
+                at.push(format!("_{i}"));
+                view_paths(sub, ctors, at, out);
+                at.pop();
+            }
+        }
+        _ => {
+            let mut names = Vec::new();
+            pat_binders(p, &mut names);
+            out.extend(names.into_iter().map(|n| (n, Vec::new())));
+        }
     }
+}
+
+/// The views an arm's pattern binds when the scrutinee is `base`.
+pub fn pat_views(p: &Pat, ctors: &Ctors, base: &View) -> Vec<(Name, View)> {
+    let mut out = Vec::new();
+    view_paths(p, ctors, &mut Vec::new(), &mut out);
+    out.into_iter()
+        .map(|(n, path)| {
+            let mut v = base.clone();
+            v.path.extend(path);
+            (n, v)
+        })
+        .collect()
+}
+
+/// What the scrutinee `x` of a `match` stands for.
+pub fn scrutinee_view(views: &Views, x: &Name) -> View {
+    views.get(x).cloned().unwrap_or_else(|| View {
+        root: x.clone(),
+        path: Vec::new(),
+    })
 }

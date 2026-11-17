@@ -35,3 +35,14 @@ def test_lead_is_matched_by_id_after_a_login_rename() -> None:
 
 def test_squatted_old_login_is_not_the_lead_when_the_id_is_given() -> None:
     assert violations(["tests/a.yag"], "feature/x", "User", "amteb", "1") == ["tests/a.yag"]
+
+
+def test_paired_conformance_path_is_allowed() -> None:
+    paths = ["conformance/yag/run/std/a.yag", "conformance/yag/run/std/b.yag"]
+    assert violations(paths, "claude/x", "User", paired={paths[0]}) == paths[1:]
+
+
+def test_paired_never_opens_tests() -> None:
+    assert violations(["tests/a.yag"], "claude/x", "User", paired={"tests/a.yag"}) == [
+        "tests/a.yag"
+    ]

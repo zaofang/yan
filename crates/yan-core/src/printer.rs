@@ -599,6 +599,10 @@ impl Printer {
             Rhs::Proj(p) => place(p),
             Rhs::Copy(p) => format!("copy {}", place(p)),
             Rhs::Move(p) => format!("move {}", place(p)),
+            Rhs::Rest { root, moved } => {
+                let paths: Vec<String> = moved.iter().map(|p| p.join(".")).collect();
+                format!("rest {root} except {}", paths.join(", "))
+            }
             Rhs::Closure(_) => return None,
         })
     }
