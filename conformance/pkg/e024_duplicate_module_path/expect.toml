@@ -1,5 +1,5 @@
 spec = "19.1"
-rows = "R1058"
+rows = "R1064"
 note = "two files with one module path; reported on the second"
 command = ["check"]
 code = "E024"

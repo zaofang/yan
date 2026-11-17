@@ -1,5 +1,5 @@
 spec = "19.1"
-rows = "R1058"
+rows = "R1064"
 note = "a file name that is not a value name"
 command = ["check"]
 code = "E024"

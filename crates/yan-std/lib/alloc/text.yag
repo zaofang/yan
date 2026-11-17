@@ -142,6 +142,23 @@ pub def rfind(self: str, part: str) -> int:
     return -1
 
 @since("1.0")
+pub def center(self: str, width: int, fill: str = " ") -> str:
+    """`self` centered in `width` chars, the odd pad char on the left when `width` is odd (Python's `str.center`)."""
+    pad = width - self.char_count()
+    if pad <= 0:
+        return self
+    left = pad // 2 + (pad & width & 1)
+    return fill.repeat(left).concat(self).concat(fill.repeat(pad - left))
+
+@since("1.0")
+pub def index(self: str, part: str) -> int | None:
+    """The char index of the first `part` in `self`, or None when absent (Python's `str.index`, which raises)."""
+    i = self.find(part)
+    if i < 0:
+        return None
+    return i
+
+@since("1.0")
 pub def lstrip(self: str) -> str:
     """`self` without leading whitespace (Python's `str.lstrip()`)."""
     n = self.char_count()

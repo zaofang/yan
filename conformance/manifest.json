@@ -1148,6 +1148,25 @@
    ]
   },
   {
+   "path": "yag/fail/concurrency/e709_record_of_mutex_shared_par.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.5"
+   ],
+   "rows": [
+    "R1041"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 15,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/concurrency/e709_share_sender.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3724,6 +3743,58 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e415_arc_of_cell_over_channel.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 6,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e415_closure_capturing_rc_over_channel.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.6",
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 11,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e415_generic_forwarder_of_rc.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 9,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e415_mutex_of_rc.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3760,6 +3831,24 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e415_rc_to_actor.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4",
+    "9.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 14,
+     "col": 18
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e415_rc_try_send.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3774,6 +3863,23 @@
      "code": "E415",
      "line": 6,
      "col": 17
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e415_record_of_rc_over_channel.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 9,
+     "col": 13
     }
    ]
   },
@@ -3828,6 +3934,26 @@
     {
      "code": "E417",
      "line": 14,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e417_record_of_mutex_of_rc_in_two_branches.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4",
+    "9.2"
+   ],
+   "rows": [
+    "R1040"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E417",
+     "line": 17,
      "col": 18
     }
    ]
@@ -6726,6 +6852,21 @@
    "exit": 101
   },
   {
+   "path": "yag/run/lenient/n51_float_of_str.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1057"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "203.5 -1.0\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/lenient/n52_bare_math.yag",
    "kind": "run",
    "milestone": "M1",
@@ -6768,6 +6909,21 @@
    "flags": [],
    "expect": [],
    "stdout": "3 2\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/py_real_functions.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1060"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "False True False True 16 1.75 1 0 [**ab**] [--ab-] 2 None\n",
    "exit": 0
   },
   {
@@ -15065,13 +15221,13 @@
     "19.1"
    ],
    "rows": [
-    "R1058"
+    "R1064"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "19.1",
-    "rows": "R1058",
+    "rows": "R1064",
     "note": "a file name that is not a value name",
     "command": [
      "check"
@@ -15088,13 +15244,13 @@
     "19.1"
    ],
    "rows": [
-    "R1058"
+    "R1064"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "19.1",
-    "rows": "R1058",
+    "rows": "R1064",
     "note": "two files with one module path; reported on the second",
     "command": [
      "check"
@@ -15111,13 +15267,13 @@
     "19.1"
    ],
    "rows": [
-    "R1058"
+    "R1064"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "19.1",
-    "rows": "R1058",
+    "rows": "R1064",
     "note": "a top-level module named std",
     "command": [
      "check"
@@ -15549,15 +15705,15 @@
     "19.1"
    ],
    "rows": [
-    "R1058",
-    "R1059"
+    "R1064",
+    "R1065"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "19.1",
-    "rows": "R1058, R1059",
-    "note": "billing.yag and billing/invoice.yn are a module and its child; tree lists both (R1059)",
+    "rows": "R1064, R1065",
+    "note": "billing.yag and billing/invoice.yn are a module and its child; tree lists both (R1065)",
     "command": [
      "tree"
     ]
@@ -15865,11 +16021,7 @@
     "14.4"
    ],
    "rows": [
-    "R",
-    "1",
-    "0",
-    "5",
-    "6"
+    "R1056"
    ],
    "flags": [],
    "expect": [],
@@ -15886,11 +16038,7 @@
     "14.4"
    ],
    "rows": [
-    "R",
-    "1",
-    "0",
-    "5",
-    "6"
+    "R1056"
    ],
    "flags": [],
    "expect": [],
