@@ -14080,6 +14080,21 @@
    "ub": "4"
   },
   {
+   "path": "ub/mutex_try_lock_no_race.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.3",
+    "6.7"
+   ],
+   "rows": [
+    "R1038"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none"
+  },
+  {
    "path": "ub/mutex_with_guard_value_no_race.yn",
    "kind": "ub",
    "milestone": "M3",
