@@ -198,16 +198,51 @@ pub def bigint_pow(x: bigint, n: int) -> bigint:
 
 @since("1.0")
 pub def fmt_pad(s: str, width: int, align: int, fill: str) -> str:
-    """Pads `s` to `width` characters; `align` is 0 left, 1 right, 2 center (SQ20)."""
+    """Pads `s` to `width` characters; `align` is 0 left, 1 right, 2 center, 3 after the sign (SQ20)."""
     gap = width - s.char_count()
     if gap <= 0:
         return s
+    if align == 3:
+        head = ""
+        body = s.copy()
+        if s.startswith("-") or s.startswith("+") or s.startswith(" "):
+            head = s.slice_clamped(0, 1, None)
+            body = s.slice_clamped(1, None, None)
+        return head + fill * gap + body
     left = 0
     if align == 1:
         left = gap
     elif align == 2:
         left = gap // 2
     return fill * left + s + fill * (gap - left)
+
+@since("1.0")
+pub def fmt_sign(s: str, mode: int) -> str:
+    """The `+` (mode 1) or space (mode 2) sign option: a sign before a number that has none."""
+    if s.startswith("-"):
+        return s
+    if mode == 1:
+        return "+" + s
+    return " " + s
+
+@since("1.0")
+pub def fmt_group(s: str) -> str:
+    """The `,` option: commas between groups of three digits of the integer part."""
+    head = ""
+    body = s.copy()
+    if s.startswith("-"):
+        head = "-"
+        body = s.slice_clamped(1, None, None)
+    whole, sep, frac = body.partition(".")
+    n = whole.char_count()
+    out = ""
+    i = 0
+    while i < n:
+        if i > 0 and (n - i) % 3 == 0:
+            out = out + ","
+        out = out + whole.slice_clamped(i, i + 1, None)
+        i += 1
+    return head + out + sep + frac
 
 # select (15.3): the index of the first ready arm in source order. A channel arm is its end's
 # `select_key`; a timer arm is -1 and takes the next reading of `at`.
