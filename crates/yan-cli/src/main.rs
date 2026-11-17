@@ -7,10 +7,12 @@ use clap::{Parser, Subcommand, ValueEnum};
 mod agent;
 mod audit;
 mod build;
+mod closure;
 mod deps;
 mod examples;
 mod export;
 mod fix;
+mod graph;
 mod lock;
 mod mcp;
 mod new;
@@ -145,6 +147,9 @@ enum Command {
         /// The last published version's package directory.
         #[arg(long)]
         base: Option<PathBuf>,
+        /// Print the `ffi` and `libs` fields the version's `.info` will carry (19.2).
+        #[arg(long)]
+        info: bool,
         #[arg(long, value_enum)]
         format: Option<Format>,
     },
@@ -423,6 +428,7 @@ enum ReviewFormat {
 }
 
 fn main() -> ExitCode {
+    graph::install();
     let cli = Cli::parse();
     match cli.command {
         Command::Check {
@@ -484,7 +490,9 @@ fn main() -> ExitCode {
                 }
             }))
         }
-        Command::Publish { base, format, .. } => {
+        Command::Publish {
+            base, format, info, ..
+        } => {
             let found = publish::check(Path::new(".")).and_then(|mut d| {
                 if let Some(base) = &base {
                     d.extend(semver::findings(Path::new("."), base, "E008")?);
@@ -492,7 +500,12 @@ fn main() -> ExitCode {
                 Ok(d)
             });
             match found {
-                Ok(d) => emit_records(&d, format),
+                Ok(d) => {
+                    if info {
+                        println!("{}", publish::info_fields(Path::new(".")));
+                    }
+                    emit_records(&d, format)
+                }
                 Err(msg) => tool_failure(&msg),
             }
         }
@@ -963,7 +976,8 @@ fn checked<'a>(db: &'a mut Database, file: &Path) -> Result<&'a yan_core::ast::M
     };
     let module = match yan_db::load(db, f) {
         Ok(Loaded::Ready(m, _, _)) => {
-            let diags = yan_ide::diagnostics(db, f).expect("a ready module checks");
+            let mut diags = yan_ide::diagnostics(db, f).expect("a ready module checks");
+            diags.extend(db.graph_diagnostics());
             let diags = finish(diags, DEFAULT_MAX_ERRORS);
             if diags.iter().any(|d| d.severity == Severity::Error) {
                 print_diags(&diags);
@@ -1124,6 +1138,7 @@ fn check(
             Err(msg) => return tool_failure(&msg),
         }
     }
+    diags.extend(db.graph_diagnostics());
     let diags = finish(diags, max_errors);
     let format = format.unwrap_or(if std::io::stdout().is_terminal() {
         Format::Prose

@@ -31,8 +31,8 @@ The Apache-2.0 and CC-BY-4.0 licenses cover code and text. They grant no rights 
 
 ## Brand files
 
-Files under `site/brand/` and the brand sources are all rights reserved (R357); see
-[`site/brand/README.md`](site/brand/README.md).
+Files under `brand/` and the brand sources are all rights reserved (R357); see
+[`brand/README.md`](brand/README.md).
 
 ## Questions
 

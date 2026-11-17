@@ -1,0 +1,16 @@
+# spec: 6.4
+# rows: R1040
+# note: Mutex[int] is Send and Sync, so it crosses a channel and is borrowed by two par branches
+
+def send_mutex(var tx: Sender[Mutex[int]], m: Mutex[int]) -> None fail Cancelled:
+    tx.send(m)?
+
+def peek(m: Mutex[int]) -> int uses nondet:
+    g = m.lock()
+    return g.get()
+
+def f(m: Mutex[int]) -> int uses nondet:
+    par:
+        a = peek(m)
+        b = peek(m)
+    return a + b

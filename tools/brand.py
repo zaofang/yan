@@ -1,6 +1,6 @@
 """The tile and the social card, from lockup.svg and tokens.json (Workshop Standard L2, L9, L13).
 
-uv run python -m tools.brand    write site/brand/favicon.svg and site/brand/social-card.svg
+uv run python -m tools.brand    write brand/favicon.svg and brand/social-card.svg
 
 The PNGs (favicon-32.png, icon-512.png, social-card-1200x630.png) are these SVGs rendered in
 Chromium at 1x. Change this script or the tokens, not the outputs.
@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BRAND = ROOT / "site/brand"
+BRAND = ROOT / "brand"
 # The tile's seal: heavier strokes than the lockup's, drawn for small sizes.
 TILE_SEAL = (
     "M 0.00 0.00 L 100.00 0.00 L 100.00 100.00 L 0.00 100.00 Z  "

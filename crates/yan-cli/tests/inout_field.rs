@@ -49,3 +49,36 @@ fn inout_of_a_list_field_agrees_on_every_backend() {
         assert_eq!(String::from_utf8_lossy(&out.stdout), OUT, "{backend}");
     }
 }
+
+#[test]
+fn overwriting_an_inout_list_param_frees_the_old_value() {
+    let dir = std::env::temp_dir().join("yan-inout-overwrite");
+    std::fs::create_dir_all(&dir).unwrap();
+    let (src, exe) = (dir.join("p.yag"), dir.join("p"));
+    std::fs::write(
+        &src,
+        "def reset(var xs: list[int]) -> None:
+    xs = [9]
+
+pub def main() uses io:
+    h = [1, 2]
+    reset(&h)
+    io.print(f\"{h}\")
+",
+    )
+    .unwrap();
+    let built = Command::new(env!("CARGO_BIN_EXE_yan"))
+        .arg("build")
+        .arg(&src)
+        .arg("-o")
+        .arg(&exe)
+        .status()
+        .unwrap();
+    assert!(built.success());
+    let out = Command::new(&exe)
+        .env("YAN_REPORT_LIVE", "1")
+        .output()
+        .unwrap();
+    assert_eq!(String::from_utf8_lossy(&out.stdout), "[9]\n");
+    assert!(String::from_utf8_lossy(&out.stderr).contains("live: 0\n"));
+}
