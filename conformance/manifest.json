@@ -6767,6 +6767,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/match/qualified_variant_pattern.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "13",
+    "14.1"
+   ],
+   "rows": [
+    "R799"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "red\ngreen\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/match/records_show.yag",
    "kind": "run",
    "milestone": "M1",
@@ -15755,11 +15771,7 @@
     "14.4"
    ],
    "rows": [
-    "R",
-    "1",
-    "0",
-    "5",
-    "6"
+    "R1056"
    ],
    "flags": [],
    "expect": [],
@@ -15776,11 +15788,7 @@
     "14.4"
    ],
    "rows": [
-    "R",
-    "1",
-    "0",
-    "5",
-    "6"
+    "R1056"
    ],
    "flags": [],
    "expect": [],
