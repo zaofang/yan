@@ -1,0 +1,32 @@
+# spec: 14.4
+# rows: R347, R423
+# note: N13 reads undeclared alternatives as inline variants; N24 reads classes used only as alternatives of one sum as inline variants
+# stdout:
+# 1 2 5
+
+type S = A | B
+
+class P:
+    x: int
+
+class Q:
+    y: str
+
+type U = P | Q
+
+def f(s: S) -> int:
+    match s:
+        case A():
+            return 1
+        case B():
+            return 2
+
+def g(u: U) -> int:
+    match u:
+        case P(v):
+            return v
+        case Q(s):
+            return len(s)
+
+pub def main() uses io:
+    io.print(f"{f(A())} {f(B())} {g(P(5))}")

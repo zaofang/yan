@@ -1,0 +1,20 @@
+# spec: 14.4
+# rows: R426
+# note: N29 reads a body of case arms as a match on the parameters
+# stdout:
+# 120 3 5
+
+def fact(n: int) -> int:
+    case 0:
+        return 1
+    case k:
+        return k * fact(k - 1)
+
+def add(a: int, b: int) -> int:
+    case (0, y):
+        return y
+    case (x, y):
+        return x + y
+
+pub def main() uses io:
+    io.print(f"{fact(5)} {add(0, 3)} {add(2, 3)}")
