@@ -1968,5 +1968,15 @@ sections = "22.7"
 
 [[entry]]
 rows = "R1055"
+topic = "pointer constructors without a Ptr argument take the pointee type from [T] or the expected type, else E205 (#1527)"
+sections = "6.6, 25"
+
+[[entry]]
+rows = "R1056"
+topic = "section 25 lists N01 to N54; N02 and N11 are silent lexical normalizations, every other N-code reports its note (#1527 decision 6)"
+sections = "14.4, 25"
+
+[[entry]]
+rows = "R1060"
 topic = "Python names as real functions: bool(x), tuple(t), dict(), set(), sum(xs, start), str.center, str.index (#1543, #1527 decision 5)"
 sections = "14.4"

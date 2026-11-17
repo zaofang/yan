@@ -106,3 +106,5 @@ conformance case in the same PR set.
 | [0079](0079-transitive-ffi-ceiling.md) | Foreign libraries in dependency ceilings by closure, one recomputed foreign set, a package graph for the compiler | accepted | R1031 to R1034 |
 | [0080](0080-mutex-guard-access-and-scope.md) | Mutex guard access, early unlock and escapes | draft | |
 | [0081](0081-mutex-try-lock-ownership-and-auto-traits.md) | Mutex try_lock, owned access, auto traits and the wait check | accepted | R1038-R1042 |
+| [0083](0083-size-of-and-layout.md) | `size_of`, `align_of`, layout classes, niches and the C boundary | accepted | pending (#1519) |
+| [0084](0084-module-and-package-structure.md) | Files, modules, directories and packages | accepted | pending |
