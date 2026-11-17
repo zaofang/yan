@@ -1,10 +1,10 @@
-# Yan Core · Yan Agent · Yan — Language Specification 1.0 (draft)
+# Yan Core · Yan Agent · Yan — Language Specification 0.1.0 (draft)
 
 Oct 31, 2026 · consolidated from v0.3 rev 338
 
 This is the implementation specification for one programming system with two surface languages, **Yan Agent** (言信, written by language models) and **Yan** (言文, written and read by people), over one shared core, **Yan Core** (言核). The project, its toolchain and its binary `yan` are **Yan** (言). It is written for an engineering agent that will build the compiler, standard library and tools from this document alone.
 
-**Status.** 1.0 draft, consolidated on 2026-10-31 from spec v0.3 (rev 338) and moved from the spec Claude Doc (rev 517) into this directory on 2026-11-01. Every accepted change row listed in `rows.toml` (Appendix A.1), and every resolved SPEC\_QUESTION SQ2 to SQ33, is folded into the body below, and wording that those rows superseded is gone. The v0.3 text, with its change tables, stays in `archive/v0.3.md`. Appendix A maps every row to the section that now carries it. Where this text and the archive differ, this text wins. The owner confirmed R1 to R14 as normative on 2026-10-31. The owner also chose, the same day, that stage-0-constant query plans compile automatically in release builds (section 11.9).
+**Status.** 0.1.0 draft, consolidated on 2026-10-31 from spec v0.3 (rev 338) and moved from the spec Claude Doc (rev 517) into this directory on 2026-11-01. Every accepted change row listed in `rows.toml` (Appendix A.1), and every resolved SPEC\_QUESTION SQ2 to SQ33, is folded into the body below, and wording that those rows superseded is gone. The v0.3 text, with its change tables, stays in `archive/v0.3.md`. Appendix A maps every row to the section that now carries it. Where this text and the archive differ, this text wins. The owner confirmed R1 to R14 as normative on 2026-10-31. The owner also chose, the same day, that stage-0-constant query plans compile automatically in release builds (section 11.9).
 
 **How to read it.**
 

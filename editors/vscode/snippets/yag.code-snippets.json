@@ -1,0 +1,48 @@
+{
+  "function": {
+    "prefix": "def",
+    "body": ["def ${1:name}(${2}) -> ${3:int}:", "    ${0:return 0}"],
+    "description": "Function"
+  },
+  "function with contract": {
+    "prefix": "defc",
+    "body": [
+      "def ${1:name}(${2:x: int}) -> ${3:int} uses none:",
+      "    pre ${4:x >= 0}",
+      "    post ${5:out >= 0}",
+      "    ex ${1}(${6:1}) == ${7:1}",
+      "    ${0:return x}"
+    ],
+    "description": "Function with pre, post and ex lines"
+  },
+  "class": {
+    "prefix": "class",
+    "body": ["class ${1:Name}:", "    ${2:field}: ${3:int}"],
+    "description": "Record type"
+  },
+  "sum type": {
+    "prefix": "type",
+    "body": "type ${1:Name} = ${2:A}(${3:x: int}) | ${4:B}()",
+    "description": "Sum type"
+  },
+  "match": {
+    "prefix": "match",
+    "body": ["match ${1:value}:", "    case ${2:Pattern}():", "        ${0:pass}"],
+    "description": "Match statement"
+  },
+  "for": {
+    "prefix": "for",
+    "body": ["for ${1:x} in ${2:xs}:", "    ${0:pass}"],
+    "description": "For loop"
+  },
+  "par for": {
+    "prefix": "parfor",
+    "body": ["par for ${1:x} in ${2:xs}:", "    ${0:pass}"],
+    "description": "Parallel for loop"
+  },
+  "with handler": {
+    "prefix": "with",
+    "body": ["with ${1:net} = ${2:fake_net()}:", "    ${0:pass}"],
+    "description": "Bind a capability handler"
+  }
+}

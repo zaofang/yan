@@ -1,0 +1,5 @@
+spec = "3.5"
+note = "a module that has no such item leaves the name unresolved"
+command = ["check"]
+code = "E200"
+at = "src/main.yag:2:18"

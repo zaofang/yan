@@ -1,0 +1,214 @@
+"--- Lexical tour of Yan (spec 15.1)."
+  "--- Lexical tour of Yan (spec 15.1)." comment.block.documentation.yan
+""
+"-- line comment"
+  "-- line comment" comment.line.double-dash.yan
+"type Money = newtype[int]"
+  "type" storage.type.yan
+  "Money" entity.name.type.yan
+  "=" keyword.operator.assignment.yan
+  " newtype[int]" -
+"type Shape = Circle(r: float) | Square(side: float)"
+  "type" storage.type.yan
+  "Shape" entity.name.type.yan
+  "=" keyword.operator.assignment.yan
+  "Circle" entity.name.type.yan
+  "(r: float) | " -
+  "Square" entity.name.type.yan
+  "(side: float)" -
+""
+"@wire(name: \"slug\")"
+  "@" meta.attribute.yan punctuation.definition.attribute.yan
+  "wire" meta.attribute.yan entity.other.attribute-name.yan
+  "(name: " -
+  "\"" string.quoted.double.yan
+  "slug" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ")" -
+"type Row = { id: int, label: str }"
+  "type" storage.type.yan
+  "Row" entity.name.type.yan
+  "=" keyword.operator.assignment.yan
+  " { id: int, label: str }" -
+""
+"pub demo(xs: List[int], who: str) -> str fail Err uses io ="
+  "pub" storage.modifier.yan
+  "demo" entity.name.function.yan
+  "(xs: " -
+  "List" entity.name.type.yan
+  "[int], who: str) " -
+  "->" keyword.operator.arrow.yan
+  " str " -
+  "fail" keyword.control.yan
+  "Err" entity.name.type.yan
+  "uses" keyword.other.contract.yan
+  " io " -
+  "=" keyword.operator.assignment.yan
+"  pre xs.len() > 0"
+  "pre" keyword.other.contract.yan
+  " xs" -
+  "." punctuation.accessor.yan
+  "len" entity.name.function.call.yan
+  "() " -
+  ">" keyword.operator.comparison.yan
+  "0" constant.numeric.integer.yan
+"  ex demo([1], \"a\") == \"x\""
+  "ex" keyword.other.contract.yan
+  "demo" entity.name.function.call.yan
+  "([" -
+  "1" constant.numeric.integer.yan
+  "], " -
+  "\"" string.quoted.double.yan
+  "a" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  ") " -
+  "==" keyword.operator.comparison.yan
+  "\"" string.quoted.double.yan
+  "x" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+"  let n = 0xFF_FF + 0o17 + 0b1010 + 1_000"
+  "let" storage.modifier.yan
+  " n " -
+  "=" keyword.operator.assignment.yan
+  "0xFF_FF" constant.numeric.hex.yan
+  "+" keyword.operator.arithmetic.yan
+  "0o17" constant.numeric.octal.yan
+  "+" keyword.operator.arithmetic.yan
+  "0b1010" constant.numeric.binary.yan
+  "+" keyword.operator.arithmetic.yan
+  "1_000" constant.numeric.integer.yan
+"  let f = 2.5e-3 * 150ms"
+  "let" storage.modifier.yan
+  " f " -
+  "=" keyword.operator.assignment.yan
+  "2.5e-3" constant.numeric.float.yan
+  "*" keyword.operator.arithmetic.yan
+  "150ms" constant.numeric.integer.yan
+"  let when = 2026-10-30T09:00:00Z"
+  "let" storage.modifier.yan
+  " when " -
+  "=" keyword.operator.assignment.yan
+  "2026-10-30T09:00:00Z" constant.numeric.datetime.yan
+"  let at = 09:00:00"
+  "let" storage.modifier.yan
+  " at " -
+  "=" keyword.operator.assignment.yan
+  "09:00:00" constant.numeric.datetime.yan
+"  let day = 2026-10-30"
+  "let" storage.modifier.yan
+  " day " -
+  "=" keyword.operator.assignment.yan
+  "2026-10-30" constant.numeric.datetime.yan
+"  let raw = r\"C:\\no\\escape\""
+  "let" storage.modifier.yan
+  " raw " -
+  "=" keyword.operator.assignment.yan
+  "r\"" string.quoted.raw.yan
+  "C:\\no\\escape" string.quoted.raw.yan
+  "\"" string.quoted.raw.yan
+"  let bytes = b\"\\x00\\x01\""
+  "let" storage.modifier.yan
+  " bytes " -
+  "=" keyword.operator.assignment.yan
+  "b\"" string.quoted.double.yan
+  "\\x00" string.quoted.double.yan constant.character.escape.yan
+  "\\x01" string.quoted.double.yan constant.character.escape.yan
+  "\"" string.quoted.double.yan
+"  let ch = c'a'"
+  "let" storage.modifier.yan
+  " ch " -
+  "=" keyword.operator.assignment.yan
+  "c'a'" string.quoted.single.char.yan
+"  let msg = \"hi \\(who) total \\(xs.len():>5) tab\\t\""
+  "let" storage.modifier.yan
+  " msg " -
+  "=" keyword.operator.assignment.yan
+  "\"" string.quoted.double.yan
+  "hi " string.quoted.double.yan
+  "\\(" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.begin.yan
+  "who" string.quoted.double.yan meta.interpolation.yan
+  ")" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.end.yan
+  " total " string.quoted.double.yan
+  "\\(" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.begin.yan
+  "xs" string.quoted.double.yan meta.interpolation.yan
+  "." string.quoted.double.yan meta.interpolation.yan punctuation.accessor.yan
+  "len" string.quoted.double.yan meta.interpolation.yan entity.name.function.call.yan
+  "(" string.quoted.double.yan meta.interpolation.yan
+  ")" string.quoted.double.yan meta.interpolation.yan
+  ":>5" string.quoted.double.yan meta.interpolation.yan constant.other.format-spec.yan
+  ")" string.quoted.double.yan meta.interpolation.yan punctuation.section.interpolation.end.yan
+  " tab" string.quoted.double.yan
+  "\\t" string.quoted.double.yan constant.character.escape.yan
+  "\"" string.quoted.double.yan
+"  let grid = [1 -2; 3 4]"
+  "let" storage.modifier.yan
+  " grid " -
+  "=" keyword.operator.assignment.yan
+  " [" -
+  "1" constant.numeric.integer.yan
+  "-" keyword.operator.arithmetic.yan
+  "2" constant.numeric.integer.yan
+  "; " -
+  "3" constant.numeric.integer.yan
+  "4" constant.numeric.integer.yan
+  "]" -
+"  var total = 0"
+  "var" storage.modifier.yan
+  " total " -
+  "=" keyword.operator.assignment.yan
+  "0" constant.numeric.integer.yan
+"  for x in xs"
+  "for" keyword.control.yan
+  " x " -
+  "in" keyword.control.yan
+  " xs" -
+"    total += x ** 2 // 3"
+  "    total " -
+  "+=" keyword.operator.assignment.yan
+  " x " -
+  "**" keyword.operator.arithmetic.yan
+  "2" constant.numeric.integer.yan
+  "//" keyword.operator.arithmetic.yan
+  "3" constant.numeric.integer.yan
+"    --> total"
+  "--> total" comment.line.double-dash.yan
+"  match who"
+  "match" keyword.control.yan
+  " who" -
+"    \"a\" -> True"
+  "\"" string.quoted.double.yan
+  "a" string.quoted.double.yan
+  "\"" string.quoted.double.yan
+  "->" keyword.operator.arrow.yan
+  "True" constant.language.yan
+"    _ -> False"
+  "    _ " -
+  "->" keyword.operator.arrow.yan
+  "False" constant.language.yan
+"  if total >= 1 and not False then None else total"
+  "if" keyword.control.yan
+  " total " -
+  ">=" keyword.operator.comparison.yan
+  "1" constant.numeric.integer.yan
+  "and" keyword.operator.word.yan
+  "not" keyword.operator.word.yan
+  "False" constant.language.yan
+  "then" keyword.control.yan
+  "None" constant.language.yan
+  "else" keyword.control.yan
+  " total" -
+"  io.print(\"\"\""
+  "  io" -
+  "." punctuation.accessor.yan
+  "print" entity.name.function.call.yan
+  "(" -
+  "\"\"\"" string.quoted.triple.yan
+"    multi \\(who)"
+  "    multi " string.quoted.triple.yan
+  "\\(" string.quoted.triple.yan meta.interpolation.yan punctuation.section.interpolation.begin.yan
+  "who" string.quoted.triple.yan meta.interpolation.yan
+  ")" string.quoted.triple.yan meta.interpolation.yan punctuation.section.interpolation.end.yan
+"    \"\"\")"
+  "\"\"\"" string.quoted.triple.yan
+  ")" -
+""

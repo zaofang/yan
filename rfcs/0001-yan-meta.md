@@ -99,9 +99,9 @@ other packages already hashed), and multi-shot continuations (duplicate linear v
 - Decision: accepted, 2026-11-01
 - Row: R521
 
-### D7: Research track, eight extensions (post-1.0)
+### D7: Research track, eight extensions (post-0.1.0)
 
-Accepted for research, not normative for 1.0. Each names the 1.0 text it would amend if adopted.
+Accepted for research, not normative for 0.1.0. Each names the 0.1.0 text it would amend if adopted.
 
 1. Lexical effect handlers with one-shot resume (Effekt). Amends 10.5 for one-shot segments.
 2. Information-flow labels `T@L` with `declassify` behind a `Declassify[L]` capability (Jif,
@@ -119,7 +119,7 @@ Accepted for research, not normative for 1.0. Each names the 1.0 text it would a
 - Decision: accepted for research, 2026-11-01
 - Row: R522 to R529
 
-### D8: Yan Core additions behind readmitted Yan Meta forms (post-1.0 research)
+### D8: Yan Core additions behind readmitted Yan Meta forms (post-0.1.0 research)
 
 1. Positional type parameters, for anonymous generics (`some Trait`).
 2. `std.sym.Sym`, an interned text type hashed by content (Yan Meta symbols).

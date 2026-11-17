@@ -1514,6 +1514,14 @@ impl<'g, 'm> FnC<'g, 'm> {
                     Err(m) => self.unsupported(m),
                 }
             }
+            // Values are shared, so the remainder is the root; the fields moved out are not dropped
+            // separately here, as `drop` of a root does not drop them either.
+            Rhs::Rest { root, .. } => match self.lookup(root) {
+                Ok(src) => {
+                    self.emit(Op::Move { dst, src });
+                }
+                Err(m) => self.unsupported(m),
+            },
             Rhs::Call(c) => self.call(c, Mode::Plain, dst),
             Rhs::Try(c) => self.call(c, Mode::Try, dst),
             Rhs::Propagate { call, via, .. } => {

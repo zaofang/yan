@@ -35,7 +35,7 @@ Alternatives, not recommended now:
   forbids today.
 - (c) A typed failure `WouldBlock` instead of `Option`. Failure types are for faults; contention is an
   ordinary outcome.
-- (d) No `try_lock` at 1.0. Without `Condvar` there is no retry loop that needs it, but 6.3 and #1429
+- (d) No `try_lock` at 0.1.0. Without `Condvar` there is no retry loop that needs it, but 6.3 and #1429
   list it, and `std.sync.atomic` spin patterns need a non-blocking probe.
 
 - Decision: accepted as recommended, a `try_lock` that returns an `Option` matched in place (lead, card, 2026-11-17)

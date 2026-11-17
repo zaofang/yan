@@ -41,7 +41,7 @@ Masks apply only to the code being generated, never to the model's reasoning. Ya
 
 ### 21.4 Agent server (`yan mcp`)
 
-A Model Context Protocol server (protocol 2026-07-28, stateless) over stdio. Every tool returns JSON in structuredContent with a declared outputSchema; diagnostics use the schema in 18.2, and a result that carries diagnostics also puts their line rendering in content, which is what the model reads (R295). Tool schemas are frozen at 1.0 and grow only by optional fields.
+A Model Context Protocol server (protocol 2026-07-28, stateless) over stdio. Every tool returns JSON in structuredContent with a declared outputSchema; diagnostics use the schema in 18.2, and a result that carries diagnostics also puts their line rendering in content, which is what the model reads (R295). Tool schemas are frozen at 0.1.0 and grow only by optional fields.
 
 | Tool | Input | Output |
 | --- | --- | --- |

@@ -113,6 +113,6 @@ scalar    = "int" | "float" | "bool"
 errtype   = base {"|" base} ;
 callsfx   = "," ("fail" "(" errtype ")" ["," "uses" "(" NAME {"," NAME} ")"] | "uses" "(" NAME {"," NAME} ")") ;
 atarg     = INT | type ;
-path      = NAME [ptail] | TYPENAME ;
+path      = (NAME | TYPENAME) [ptail] ;
 ptail     = "." (NAME [ptail] | TYPENAME) ;
 dim       = NAME {("*" | "/") NAME} ["**" INT] ;

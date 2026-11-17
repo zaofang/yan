@@ -139,7 +139,7 @@ scalar    = "int" | "float" | "bool"
 errtype   = base {"|" base}
 callsfx   = "," ("fail" "(" errtype ")" ["," "uses" "(" NAME {"," NAME} ")"] | "uses" "(" NAME {"," NAME} ")")
 atarg     = INT | type                                        # an axis is a literal size, a size variable or a label type
-path      = NAME [ptail] | TYPENAME                           # a.b.C or a.b.c
+path      = (NAME | TYPENAME) [ptail]                         # a.b.C or a.b.c
 ptail     = "." (NAME [ptail] | TYPENAME)
 dim       = NAME {("*" | "/") NAME} ["**" INT]
 ```

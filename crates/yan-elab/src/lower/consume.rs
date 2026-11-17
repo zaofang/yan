@@ -66,28 +66,69 @@ impl Lower<'_, '_, '_> {
         }
     }
 
+    /// The one E413 (4.2 rule 3): an owned value is produced from `a` where it would need an
+    /// implicit copy, because `a` names a list element or is read again later. Returns whether
+    /// it fired; the fix inserts `.copy()`.
+    pub(super) fn implicit_copy(&mut self, a: &Atom, t: &Ty, sp: Span) -> bool {
+        let Atom::Name(n, _) = a else {
+            return false;
+        };
+        if t.is_copy() {
+            return false;
+        }
+        let later = if self.index_views.contains(n) {
+            self.err(
+                "E413",
+                sp,
+                "an element of a list cannot be moved out; use `.copy()`, or take it out with `pop`"
+                    .into(),
+            );
+            None
+        } else if self.locals.contains_key(n)
+            && !n.starts_with('_')
+            && let Some(later) = self.next_use(n, sp)
+        {
+            self.err(
+                "E413",
+                sp,
+                format!("`{n}` is used again later; use `{n}.copy()`"),
+            );
+            Some(later)
+        } else {
+            return false;
+        };
+        let copied = format!("{}.copy()", self.cx.text(sp));
+        self.cx.fix(Applicability::Auto, "copy", sp, &copied);
+        if let Some(later) = later {
+            self.cx.label(later, "used again");
+        }
+        true
+    }
+
     /// R769: a non-copy local bound or assigned to a name leaves by `move` at its last use and
-    /// by `copy` otherwise, or when it is a borrowed parameter.
-    pub(super) fn consume(&self, r: Rhs, t: &Ty, at: Span) -> Rhs {
+    /// by `copy` otherwise, or when it is a borrowed parameter. A copy that the source did not
+    /// write is E413 (`implicit_copy`), except out of a borrowed parameter, which always copies.
+    pub(super) fn consume(&mut self, r: Rhs, t: &Ty, at: Span) -> Rhs {
         let (x, sp) = match &r {
-            Rhs::Atom(Atom::Name(x, sp)) => (x, sp),
-            Rhs::Proj(p) if p.projs.is_empty() => (&p.root, &p.root_span),
+            Rhs::Atom(Atom::Name(x, sp)) => (x.clone(), *sp),
+            Rhs::Proj(p) if p.projs.is_empty() => (p.root.clone(), p.root_span),
             _ => return r,
         };
-        if t.is_copy() || !self.locals.contains_key(x) {
+        if t.is_copy() || !self.locals.contains_key(&x) {
             return r;
         }
         let place = Place {
             root: x.clone(),
-            root_span: *sp,
+            root_span: sp,
             projs: Vec::new(),
         };
         let borrowed = self
             .sig
             .params
             .iter()
-            .any(|p| p.name == *x && p.conv != Conv::Sink);
-        if borrowed || self.next_use(x, at).is_some() {
+            .any(|p| p.name == x && p.conv != Conv::Sink);
+        let copied = self.implicit_copy(&Atom::Name(x.clone(), sp), t, at);
+        if borrowed || copied || self.next_use(&x, at).is_some() {
             Rhs::Copy(place)
         } else {
             Rhs::Move(place)

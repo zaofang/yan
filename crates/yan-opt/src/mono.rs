@@ -575,7 +575,7 @@ impl<'a> Walk<'a> {
                 }
                 self.block(&mut c.body);
             }
-            Rhs::Atom(_) | Rhs::Proj(_) | Rhs::Copy(_) | Rhs::Move(_) => {}
+            Rhs::Atom(_) | Rhs::Proj(_) | Rhs::Copy(_) | Rhs::Move(_) | Rhs::Rest { .. } => {}
         }
     }
 

@@ -28,7 +28,7 @@ exit status is 0 when the task ends green, 1 when it does not, and 2 when the to
 goes into the 18.1 table at M1.
 
 The loop calls the MCP tools in process, as JSON-RPC messages to the same handler that `yan mcp`
-serves. Every step therefore goes through the tool schemas that 1.0 freezes. An external agent that
+serves. Every step therefore goes through the tool schemas that 0.1.0 freezes. An external agent that
 does the same steps over stdio gets the same results.
 
 Options weighed:

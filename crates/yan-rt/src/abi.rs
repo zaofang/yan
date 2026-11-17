@@ -311,12 +311,14 @@ pub unsafe extern "C" fn yan_rt_print_str(s: *const String) {
 /// `main` failed: its error, shown, on stderr, then exit status 1.
 ///
 /// # Safety
-/// `s` is a `Str` block.
+/// `s` is a `Str` block that nothing uses afterwards.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_fail_main(s: *const String, code: i64) -> ! {
+pub unsafe extern "C" fn yan_rt_fail_main(s: *mut String, code: i64) -> ! {
     let _ = std::io::stdout().flush();
     // SAFETY: the caller's contract.
     eprintln!("{}", unsafe { &*s });
+    // SAFETY: the caller's contract.
+    unsafe { yan_rt_str_free(s) };
     yan_rt_exit(code)
 }
 
@@ -488,6 +490,20 @@ pub unsafe extern "C" fn yan_rt_int_of(s: *const String) -> i64 {
     let s = unsafe { &*s };
     match crate::text::parse_int(s.trim()) {
         Some(i) => i as i64,
+        None => panic("conversion"),
+    }
+}
+
+/// `float(s)`: panics `conversion` unless `s.strip()` is a float.
+///
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_float_of(s: *const String) -> f64 {
+    // SAFETY: the caller's contract.
+    let s = unsafe { &*s };
+    match crate::text::parse_float(s.trim()) {
+        Some(f) => f,
         None => panic("conversion"),
     }
 }
