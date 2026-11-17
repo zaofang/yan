@@ -1977,6 +1977,26 @@ topic = "section 25 lists N01 to N54; N02 and N11 are silent lexical normalizati
 sections = "14.4, 25"
 
 [[entry]]
+rows = "R1057"
+topic = "N51 also reads `float(s)` on a `str` as `std.text.float_of(s)`: `s.strip().parse_float()`, panicking with kind `conversion` when it is `None` (#1543); `--strict` keeps E201"
+sections = "14.4"
+
+[[entry]]
+rows = "R1060"
+topic = "Python names as real functions: bool(x), tuple(t), dict(), set(), sum(xs, start), str.center, str.index (#1543, #1527 decision 5)"
+sections = "14.4"
+
+[[entry]]
+rows = "R1064"
+topic = "a file is a module; its path under a source root is its name; fixed package layout; layout errors E024 (RFC 0084 D1, D2, D4)"
+sections = "19.1, 25"
+
+[[entry]]
+rows = "R1065"
+topic = "`yan tree` lists the modules of a package, one per line, and reports layout errors (RFC 0084 D11)"
+sections = "18.1"
+
+[[entry]]
 rows = "R1061"
 topic = "N55 reads `str.format` and `%` on a string literal as an f-string; what an f-string cannot say stays E203 or E201 (#1543 group 6)"
 sections = "14.4"

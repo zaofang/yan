@@ -8,4 +8,4 @@ repository goes public (#462).
 - Disclosure is coordinated, with a 90-day deadline from the report, sooner once a fix ships.
 - Advisories are published to GitHub and OSV with the affected item paths, so `yan` can check reachability.
 
-Supported versions: before 1.0, only the latest commit on `main`.
+Supported versions: before 0.1.0, only the latest commit on `main`.

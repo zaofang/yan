@@ -11,10 +11,15 @@
 //! still owned; if its type has a custom `Drop` or is `@linear`, an edge drop could run earlier
 //! than 5.4 allows, so the pass writes a drop flag `var _dN: bool` instead (D2.3).
 //!
-//! A name bound by a `match` pattern or a non-copy projection views its source: moving it moves
-//! the source (the rest of the source leaks).
+//! A name bound by a `match` pattern or a non-copy projection views a field of its source. Moving
+//! the view moves that field only: the statement that moves it is preceded by
+//! `let _pN = rest r except path`, which makes `_pN` the owner of what is left of `r`. `_pN` is
+//! an ordinary owned local, so scope exits, drop lists, joins and flags
+//! treat it like any other; native lowering drops every field of it but the moved ones and frees
+//! the block of a boxed value. A second move out of `r` makes a remainder of the remainder.
 //!
-//! Not covered yet: overwriting a field, and moving a field out of a local.
+//! Not covered yet: overwriting a field, and a field moved out of a name bound under an `or`
+//! pattern or a slice (it still moves the whole source).
 
 use std::collections::{HashMap, HashSet};
 use std::mem;
@@ -109,7 +114,7 @@ fn inout_params(params: &[Param]) -> HashMap<Name, Type> {
 }
 
 /// Types whose drop can be seen: custom `Drop`, `@linear`, extern handles, and anything holding one.
-struct Observable(HashSet<String>);
+struct Observable(HashSet<String>, HashSet<String>);
 
 impl Observable {
     fn new(m: &Module) -> Self {
@@ -139,6 +144,8 @@ impl Observable {
                 _ => {}
             }
         }
+        // Fields may not be moved out of these themselves (4.2), though they may out of a holder.
+        let own_drop = set.clone();
         loop {
             let before = set.len();
             for it in &m.items {
@@ -161,13 +168,18 @@ impl Observable {
                 }
             }
             if set.len() == before {
-                return Observable(set);
+                return Observable(set, own_drop);
             }
         }
     }
 
     fn of(&self, t: &Type) -> bool {
         mentions(t, &self.0)
+    }
+
+    /// A type with a custom `Drop` or `@linear`, or an extern handle.
+    fn has_drop(&self, t: &Type) -> bool {
+        mentions(t, &self.1)
     }
 }
 
@@ -190,6 +202,8 @@ struct Local {
     name: Name,
     ty: Type,
     id: Binding,
+    /// For the remainder `rest` made of a local: that local, whose fields moved out of it.
+    of: Option<Name>,
 }
 
 struct Loop {
@@ -227,8 +241,8 @@ struct Cx {
     jps: HashMap<Name, Jp>,
     /// Per scope, the statement of its block being walked.
     tops: Vec<Top>,
-    /// Names bound by `match` patterns, to the scrutinee local they view.
-    views: HashMap<Name, Name>,
+    /// Names bound by projections and `match` patterns, to what they view.
+    views: own::Views,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -302,6 +316,18 @@ impl Elab<'_> {
             .rev()
             .flat_map(|s| s.iter().rev())
             .find(|l| l.name == x)
+    }
+
+    /// The local that owns what is left of `root`: the remainder of its partial moves, else it.
+    fn owner(&self, root: &str) -> Option<Name> {
+        self.cx
+            .scopes
+            .iter()
+            .rev()
+            .flat_map(|s| s.iter().rev())
+            .find(|l| l.of.as_deref() == Some(root))
+            .map(|l| l.name.clone())
+            .or_else(|| self.local(root).map(|l| l.name.clone()))
     }
 
     fn owned(&self, k: Key, x: &str) -> bool {
@@ -457,10 +483,23 @@ impl Elab<'_> {
         if own::is_copy(ty) {
             return;
         }
+        self.declare_as(n, ty, self.facts.binding(site, n), None, at, out);
+    }
+
+    fn declare_as(
+        &mut self,
+        n: &Name,
+        ty: &Type,
+        id: Binding,
+        of: Option<Name>,
+        at: Span,
+        out: &mut Vec<Stmt>,
+    ) {
         self.cx.scopes.last_mut().expect("in a scope").push(Local {
             name: n.clone(),
             ty: ty.clone(),
-            id: self.facts.binding(site, n),
+            id,
+            of,
         });
         if let Some(f) = self.flags.get(n) {
             out.push(stmt(
@@ -576,10 +615,52 @@ impl Elab<'_> {
     /// What `s` consumes, with a name bound by a `match` pattern standing for the scrutinee it
     /// views: moving the payload out moves the scrutinee.
     fn consumed(&self, s: &StmtKind) -> Vec<Name> {
-        own::consumed(s)
+        own::consumption(s, &self.cx.views)
+            .whole
             .into_iter()
-            .map(|n| self.cx.views.get(n).unwrap_or(n).clone())
+            .map(|r| self.owner(&r).unwrap_or(r))
             .collect()
+    }
+
+    /// Fields `s` moves out of an owned local: its other fields stay owned by a remainder,
+    /// made here before the move, which dropping the remainder skips the moved fields of.
+    fn rests(&mut self, s: &StmtKind, key: usize, at: Span, out: &mut Vec<Stmt>) {
+        let c = own::consumption(s, &self.cx.views);
+        let mut done: Vec<&Name> = Vec::new();
+        for (root, _) in &c.partial {
+            if done.contains(&root) {
+                continue;
+            }
+            done.push(root);
+            let Some(owner) = self.owner(root) else {
+                continue;
+            };
+            let ty = self.local(&owner).expect("an owner is a local").ty.clone();
+            if self.obs.has_drop(&ty) {
+                self.unsupported = Some("a field moved out of a type with a custom `Drop`");
+            }
+            let moved = c
+                .partial
+                .iter()
+                .filter(|(r, _)| r == root)
+                .map(|(_, p)| p.clone())
+                .collect();
+            self.tmp += 1;
+            let n = format!("_p{}", self.tmp);
+            let kind = StmtKind::Let {
+                mutable: false,
+                pat: Pat::Bind(n.clone()),
+                pat_span: at,
+                ty: ty.clone(),
+                rhs: Rhs::Rest { root: owner, moved },
+                rhs_span: at,
+            };
+            let flagged = self.consume(&kind);
+            out.push(stmt(kind, at));
+            self.clear_flags(flagged, at, out);
+            let id = self.facts.rest(key, root);
+            self.declare_as(&n, &ty, id, Some(root.clone()), at, out);
+        }
     }
 
     /// The flagged locals `s` consumes.
@@ -617,12 +698,26 @@ impl Elab<'_> {
         }
     }
 
-    fn run_branches(&mut self, blocks: Vec<Option<&Block>>, fall: Key) -> Vec<Branch> {
+    /// `views` are what each block's own pattern binds.
+    fn run_branches(
+        &mut self,
+        blocks: Vec<Option<&Block>>,
+        views: &[Vec<(Name, own::View)>],
+        fall: Key,
+    ) -> Vec<Branch> {
         blocks
             .into_iter()
-            .map(|b| match b {
+            .enumerate()
+            .map(|(i, b)| match b {
                 Some(b) => {
+                    let bound = views.get(i).map_or(&[][..], Vec::as_slice);
+                    for (n, v) in bound {
+                        self.cx.views.insert(n.clone(), v.clone());
+                    }
                     let nb = self.block(b, Vec::new());
+                    for (n, _) in bound {
+                        self.cx.views.remove(n);
+                    }
                     Branch {
                         flow: self.flow_of(&nb),
                         stmts: nb.stmts,
@@ -654,6 +749,7 @@ impl Elab<'_> {
         let key = addr(s);
         let mid = Key::Mid(key);
         let mut new = s.clone();
+        self.rests(&s.kind, key, at, out);
         let skip = self.consumed(&s.kind);
         if let (Some(rhs), Some(orig)) = (rhs_mut(&mut new.kind), crate::owned::rhs_of(&s.kind)) {
             self.closure(rhs, orig);
@@ -674,8 +770,8 @@ impl Elab<'_> {
                 if let (Rhs::Proj(p), Pat::Bind(x)) = (rhs, pat)
                     && !own::is_copy(ty)
                 {
-                    let root = self.cx.views.get(&p.root).unwrap_or(&p.root).clone();
-                    self.cx.views.insert(x.clone(), root);
+                    let v = own::proj_view(&self.cx.views, p);
+                    self.cx.views.insert(x.clone(), v);
                 } else if let Pat::Bind(x) = pat {
                     self.cx.views.remove(x);
                 }
@@ -698,6 +794,12 @@ impl Elab<'_> {
                     .or_else(|| inout.then(|| self.inouts.get(x).cloned()).flatten())
                 {
                     Some(ty) if p.projs.is_empty() => {
+                        // What is left of the old value stays with its remainder.
+                        for l in self.cx.scopes.iter_mut().flatten() {
+                            if l.of.as_deref() == Some(x.as_str()) {
+                                l.of = None;
+                            }
+                        }
                         // The old value goes after the right-hand side is evaluated.
                         if matches!(rhs, Rhs::Atom(Atom::Lit(..))) {
                             self.drop_old(x, at, mid, out);
@@ -748,7 +850,7 @@ impl Elab<'_> {
                 Flow::Normal
             }
             StmtKind::If { cond, then, els } | StmtKind::ComptimeIf { cond, then, els } => {
-                let mut bs = self.run_branches(vec![Some(then), els.as_ref()], Key::Fall(key));
+                let mut bs = self.run_branches(vec![Some(then), els.as_ref()], &[], Key::Fall(key));
                 let flow = self.join(&mut bs, Key::Join(key), at);
                 let (e, t) = (bs.pop().expect("two"), bs.pop().expect("two"));
                 let els =
@@ -767,23 +869,20 @@ impl Elab<'_> {
                 flow
             }
             StmtKind::Match { scrutinee, arms } => {
-                let mut bound = Vec::new();
+                let mut bound: Vec<Vec<(Name, own::View)>> = vec![Vec::new(); arms.len()];
                 if let Atom::Name(x, _) = scrutinee {
-                    let root = self.cx.views.get(x).unwrap_or(x).clone();
-                    if self.local(&root).is_some() {
-                        for (p, _) in arms {
-                            own::view_binders(p, self.copy, &mut bound);
-                        }
-                        for n in &bound {
-                            self.cx.views.insert(n.clone(), root.clone());
+                    let base = own::scrutinee_view(&self.cx.views, x);
+                    if self.owner(&base.root).is_some() {
+                        for ((p, _), b) in arms.iter().zip(&mut bound) {
+                            *b = own::pat_views(p, self.copy, &base);
                         }
                     }
                 }
-                let mut bs =
-                    self.run_branches(arms.iter().map(|(_, b)| Some(b)).collect(), Key::Fall(key));
-                for n in &bound {
-                    self.cx.views.remove(n);
-                }
+                let mut bs = self.run_branches(
+                    arms.iter().map(|(_, b)| Some(b)).collect(),
+                    &bound,
+                    Key::Fall(key),
+                );
                 let flow = self.join(&mut bs, Key::Join(key), at);
                 let arms = arms
                     .iter()
@@ -1379,47 +1478,52 @@ mod tests {
         );
     }
 
-    #[test]
-    fn the_check_takes_each_field_of_a_destructured_tuple_once() {
-        let bad = |body: &str| {
-            let src = format!(
-                "module t\nfn f(sink p: Tuple(Str, Str)) -> Unit {{\n let a: Str = p._0\n let b: Str = p._1\n{body} ret ()\n}}\n"
-            );
-            let (m, d) = yan_core::parse("t.yir", &src);
-            assert!(d.is_empty(), "{d:?}");
-            yan_check::check_optimized("t.yir", &m.expect("parses"))
-        };
-        assert!(bad(" var x: Str = move a\n var y: Str = move b\n drop y\n drop x\n").is_empty());
-        let twice = bad(" var x: Str = move a\n var y: Str = move a\n drop y\n drop x\n");
-        assert_eq!(twice.len(), 1, "{twice:?}");
-        let whole = bad(" var x: Str = move a\n drop p\n drop x\n");
-        assert_eq!(whole.len(), 1, "{whole:?}");
-    }
-
-    #[test]
-    fn the_check_takes_each_field_a_record_pattern_binds_once() {
-        let bad = |body: &str| {
-            let src = format!(
-                "module t\nrecord P {{ pub a: Str, pub b: Str }}\nfn f(sink p: P) -> Unit {{\n match p {{\n  P {{ a: x, b: y }} => {{\n{body}  }}\n }}\n ret ()\n}}\n"
-            );
-            let (m, d) = yan_core::parse("t.yir", &src);
-            assert!(d.is_empty(), "{d:?}");
-            yan_check::check_optimized("t.yir", &m.expect("parses"))
-        };
-        assert!(
-            bad("   var u: Str = move x\n   var v: Str = move y\n   drop v\n   drop u\n")
-                .is_empty()
-        );
-        let twice = bad("   var u: Str = move x\n   var v: Str = move x\n   drop v\n   drop u\n");
-        assert_eq!(twice.len(), 1, "{twice:?}");
-    }
-
-    #[test]
-    fn the_check_takes_a_field_of_each_arm_once() {
-        let src = "module t\nsum S { A { pub a: Str, pub n: Str }, B { pub b: Str } }\nfn f(sink p: S) -> Str {\n match p {\n  A { a: x, n: y } => {\n   var u: Str = move x\n   drop y\n   ret u\n  }\n  B { b: z } => {\n   ret z\n  }\n }\n}\n";
+    fn check(src: &str) -> Vec<yan_diag::Diagnostic> {
         let (m, d) = yan_core::parse("t.yir", src);
         assert!(d.is_empty(), "{d:?}");
-        let diags = yan_check::check_optimized("t.yir", &m.expect("parses"));
+        yan_check::check_optimized("t.yir", &m.expect("parses"))
+    }
+
+    #[test]
+    fn the_check_needs_a_remainder_before_a_field_moves_out() {
+        let bad = |body: &str| {
+            check(&format!(
+                "module t\nfn f(sink p: Tuple(Str, Str)) -> Unit {{\n let a: Str = p._0\n let b: Str = p._1\n{body} ret ()\n}}\n"
+            ))
+        };
+        let both = " let _p: Tuple(Str, Str) = rest p except _0, _1\n var x: Str = move a\n var y: Str = move b\n drop y\n drop x\n drop _p\n";
+        assert!(bad(both).is_empty());
+        let chained = " let _p: Tuple(Str, Str) = rest p except _0\n var x: Str = move a\n let _q: Tuple(Str, Str) = rest _p except _1\n var y: Str = move b\n drop y\n drop x\n drop _q\n";
+        assert!(bad(chained).is_empty());
+        let none = bad(" var x: Str = move a\n drop x\n drop p\n");
+        assert_eq!(none.len(), 1, "{none:?}");
+        let whole = bad(
+            " let _p: Tuple(Str, Str) = rest p except _0\n var x: Str = move a\n drop p\n drop x\n drop _p\n",
+        );
+        assert_eq!(whole.len(), 1, "{whole:?}");
+        let leak =
+            bad(" let _p: Tuple(Str, Str) = rest p except _0\n var x: Str = move a\n drop x\n");
+        assert_eq!(leak.len(), 1, "{leak:?}");
+    }
+
+    #[test]
+    fn the_check_takes_each_field_a_record_pattern_binds_after_a_remainder() {
+        let bad = |body: &str| {
+            check(&format!(
+                "module t\nrecord P {{ pub a: Str, pub b: Str }}\nfn f(sink p: P) -> Unit {{\n match p {{\n  P {{ a: x, b: y }} => {{\n{body}  }}\n }}\n ret ()\n}}\n"
+            ))
+        };
+        assert!(
+            bad("   let _q: P = rest p except a, b\n   var u: Str = move x\n   var v: Str = move y\n   drop v\n   drop u\n   drop _q\n")
+                .is_empty()
+        );
+        assert!(!bad("   var u: Str = move x\n   drop u\n   drop p\n").is_empty());
+    }
+
+    #[test]
+    fn the_check_takes_a_field_of_each_arm_after_a_remainder() {
+        let src = "module t\nsum S { A { pub a: Str, pub n: Str }, B { pub b: Str } }\nfn f(sink p: S) -> Str {\n match p {\n  A { a: x, n: y } => {\n   let _q: S = rest p except A.a\n   var u: Str = move x\n   drop _q\n   ret u\n  }\n  B { b: z } => {\n   let _r: S = rest p except B.b\n   drop _r\n   ret z\n  }\n }\n}\n";
+        let diags = check(src);
         assert!(diags.is_empty(), "{diags:?}");
     }
 }

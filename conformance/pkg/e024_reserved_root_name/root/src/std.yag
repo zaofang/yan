@@ -1,0 +1,6 @@
+"""A module."""
+
+pub def one() -> int uses none:
+    """The number one."""
+    ex one() == 1
+    return 1

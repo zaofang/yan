@@ -1,0 +1,12 @@
+# spec: 4.1, 4.2
+# rows: R1
+# note: a tuple pattern binder moves one element and frees the others (#1500 item 3)
+# stdout:
+# X
+def f(take t: tuple[str, list[int], str]) -> str:
+    match t:
+        case (a, _, _):
+            return a
+
+def main() uses io:
+    io.print(f(("x".upper(), [1, 2], "y".upper())))

@@ -44,6 +44,7 @@ mod matching;
 mod method;
 mod narrow;
 mod ptr;
+mod pyfid;
 pub(crate) mod reentrant;
 mod rhs;
 mod scalar;

@@ -1,0 +1,10 @@
+# spec: 4.2
+# rows: R1
+# expect: E413 at 9:15
+# note: a value passed to a `take` parameter of a method while it is still used is E413, not E401 (#1500 item 6)
+
+def f() -> str:
+    s = "a".upper()
+    xs: list[str] = []
+    xs.append(s)
+    return s

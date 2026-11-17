@@ -62,7 +62,7 @@ jobs:
           AUTHOR_ID: ${{ github.event.pull_request.user.id }}
         run: |
           git diff --name-only --no-renames "$BASE...$HEAD" \
-            | python3 tools/guard.py --branch "$BRANCH" --author-type "$AUTHOR_TYPE" --author "$AUTHOR" --author-id "$AUTHOR_ID"
+            | python3 tools/guard.py --branch "$BRANCH" --author-type "$AUTHOR_TYPE" --author "$AUTHOR" --author-id "$AUTHOR_ID" --base "$BASE" --head "$HEAD"
 
   canary:
     runs-on: ubuntu-latest
@@ -78,6 +78,10 @@ jobs:
           fi
           if printf 'tests/canary.yag\n' | python3 tools/guard.py --branch feature/x --author some-agent; then
             echo "guard accepted a non-lead author on a non-agent branch" >&2
+            exit 1
+          fi
+          if printf 'conformance/yag/run/std/canary.yag\n' | python3 tools/guard.py --branch agent/canary; then
+            echo "guard accepted an unpaired agent patch to conformance/" >&2
             exit 1
           fi
 
@@ -182,6 +186,10 @@ jobs:
       # DL5 differential run: blocking. Divergences go in tools/difftest_allow.toml with an issue.
       - run: >-
           uv run python -m tools.difftest --json difftest-summary.json
+          --yan ${{ github.workspace }}/target/release/yan
+      # Native leak gate (#1500): `live: 0` at exit. Leaks are listed in tools/nativelive_allow.toml with an issue.
+      - run: >-
+          uv run python -m tools.nativelive
           --yan ${{ github.workspace }}/target/release/yan
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
