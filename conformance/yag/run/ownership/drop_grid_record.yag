@@ -1,0 +1,94 @@
+# spec: 4.1, 4.2
+# rows: R1
+# note: record values created and dropped on every exit shape (return, branch, reassignment, discard, loop, take, container, failure) leave no live block (#1500 item 7)
+# stdout:
+# 0 1 2 3 4
+# 2 1 1 2 -1 6
+class R:
+    s: str
+    xs: list[str]
+
+class Boom:
+    why: str
+
+def probe(x: R) -> int:
+    return x.s.len() + x.xs.len()
+
+def eat(take x: R) -> int:
+    return probe(x) * 0 + 1
+
+def fall() -> int:
+    x: R = R(s="r".upper(), xs=["x".upper()])
+    if probe(x) < 0:
+        return -9
+    return 0
+
+def early(flag: bool) -> int:
+    x: R = R(s="r".upper(), xs=["x".upper()])
+    if flag:
+        return 1
+    if probe(x) < 0:
+        return -9
+    return 2
+
+def reassign() -> int:
+    x: R = R(s="r".upper(), xs=["x".upper()])
+    x = R(s="r".upper(), xs=["x".upper()])
+    if probe(x) < 0:
+        return -9
+    return 3
+
+def discard() -> int:
+    _ = R(s="r".upper(), xs=["x".upper()])
+    return 4
+
+def looped() -> int:
+    n = 0
+    for i in range(4):
+        x: R = R(s="r".upper(), xs=["x".upper()])
+        if probe(x) < 0:
+            return -9
+        if i == 1:
+            continue
+        if i == 3:
+            break
+        n += 1
+    return n
+
+def taken() -> int:
+    return eat(R(s="r".upper(), xs=["x".upper()]))
+
+def taken_local() -> int:
+    x: R = R(s="r".upper(), xs=["x".upper()])
+    if probe(x) < 0:
+        return -9
+    return eat(x)
+
+def contained() -> int:
+    xs: list[R] = [R(s="r".upper(), xs=["x".upper()]), R(s="r".upper(), xs=["x".upper()])]
+    return xs.len()
+
+def failing(flag: bool) -> int fail Boom:
+    x: R = R(s="r".upper(), xs=["x".upper()])
+    if probe(x) < 0:
+        return -9
+    if flag:
+        fail Boom(why="no".upper())
+    return 6
+
+def tried(flag: bool) -> int fail Boom:
+    x: R = R(s="r".upper(), xs=["x".upper()])
+    if probe(x) < 0:
+        return -9
+    n = failing(flag)?
+    return n
+
+def caught(flag: bool) -> int:
+    x: R = R(s="r".upper(), xs=["x".upper()])
+    if probe(x) < 0:
+        return -9
+    return tried(flag) else e -> -1
+
+def main() uses io:
+    io.print(f"{fall()} {early(True)} {early(False)} {reassign()} {discard()}")
+    io.print(f"{looped()} {taken()} {taken_local()} {contained()} {caught(True)} {caught(False)}")

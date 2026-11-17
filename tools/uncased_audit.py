@@ -73,10 +73,10 @@ G = [  # bucket, group, rows, reason, treatment
     ),
     (
         "defer",
-        "Research track and niche surfaces, post-1.0",
+        "Research track and niche surfaces, post-0.1.0",
         rng((522, 535), (536, 550), (554, 557), 568, 576, (776, 786), 680, 455),
-        "Spec marks them not normative for 1.0 or post-1.0.",
-        "Defer: count after 1.0, or exclude from the 1.0 gate by lead card.",
+        "Spec marks them not normative for 0.1.0 or post-0.1.0.",
+        "Defer: count after 0.1.0, or exclude from the 0.1.0 gate by lead card.",
     ),
     ("defer", "Yan Meta, M4", rng((516, 521)), "Third surface built at M4 (R516).", "Defer to M4."),
 ]
@@ -139,7 +139,7 @@ Regenerate the figures and the per-row CSV (`2026-11-14-uncased-row-audit.csv`) 
 
 ## Method
 
-Each uncased row was judged by one question: can a Yan program, run through `yan`, ever produce an output that a conformance case could assert? Rows were grouped by the topic text in `spec/rows.toml` and, for the groups below, by the row's body text in `spec/`. Only groups where the answer is clearly no (exempt), clearly a duplicate or part of another row (merge), or not normative for 1.0 (defer) are listed. Everything else stays uncased and needs a real case (about {N - ex - me - de} rows); that includes bundle rows R898 to R907, which are observable but each need several cases, and mixed entries such as R467 to R473 and R474 to R476.
+Each uncased row was judged by one question: can a Yan program, run through `yan`, ever produce an output that a conformance case could assert? Rows were grouped by the topic text in `spec/rows.toml` and, for the groups below, by the row's body text in `spec/`. Only groups where the answer is clearly no (exempt), clearly a duplicate or part of another row (merge), or not normative for 0.1.0 (defer) are listed. Everything else stays uncased and needs a real case (about {N - ex - me - de} rows); that includes bundle rows R898 to R907, which are observable but each need several cases, and mixed entries such as R467 to R473 and R474 to R476.
 
 ## Candidates
 
@@ -159,7 +159,7 @@ Two readings of "exempt" give different ratios. Removing a row from the denomina
     + "\n".join(tab)
     + f"""
 
-Reading: exemption and merge alone ({ex + me} rows) do not reach the gate under either reading. Reaching 527 needs {N - 527} fewer uncased rows if exempt rows count as cased. The remainder must come from cases (the sweep) or from deferring the post-1.0 rows by lead card.
+Reading: exemption and merge alone ({ex + me} rows) do not reach the gate under either reading. Reaching 527 needs {N - 527} fewer uncased rows if exempt rows count as cased. The remainder must come from cases (the sweep) or from deferring the post-0.1.0 rows by lead card.
 
 ## Caveats
 

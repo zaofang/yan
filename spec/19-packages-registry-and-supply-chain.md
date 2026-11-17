@@ -10,7 +10,7 @@ The design behind this section is the Yan supply-chain security design.
 | --- | --- |
 | `name`, `version` | `@org/name` and a semver version; in 0.y.z, y is the major |
 | `edition` | the language edition for every `.yag` and `.yn` file of the package (20.4) |
-| `yan` | the required toolchain and std API version, `"1.x"` (20.3) |
+| `yan` | the required toolchain and std API version, `"0.1.x"` (20.3) |
 | `dependencies` | local root name to requirement `"@org/name x.y[.z]"` (R635, R642); each major is a distinct package |
 | `dev_dependencies` | as `dependencies`, for tests, fixtures and benches only (R636) |
 | `tools` | packages `yan x` runs, each under its own ceiling (R636) |
@@ -40,7 +40,7 @@ The design behind this section is the Yan supply-chain security design.
 
 **Python dependencies (R638).** Libraries declare the Python packages their `py` calls need in `python`; a package with a `python` field must list `py` in its ceiling. The root resolves one Python environment for the whole graph with uv into `pylock.toml` (PEP 751), and `yan.lock` pins that file's digest. Conflicting requirements between packages are a resolve error naming both. Only wheels are installed; no source distribution is built.
 
-Optional features and conditional dependencies are a non-goal for 1.0; platform variation goes through platform bundles and capability handlers.
+Optional features and conditional dependencies are a non-goal for 0.1.0; platform variation goes through platform bundles and capability handlers.
 
 **Version selection** is minimal version selection over minimum requirements (SQ30). A plain build never selects new versions. Package identity is (name, major), so majors coexist. A dependency is public when its types appear in a `pub` signature (inferred).
 
@@ -55,6 +55,8 @@ Optional features and conditional dependencies are a non-goal for 1.0; platform 
 **Resolving (R894).** The resolver reads each candidate version's `.info` (19.3), which lists its requirements, and fetches no archive until the graph is chosen. It applies `overrides` first, then selects `dependencies`, `dev_dependencies` and `tools` as three subgraphs of one lock, then resolves the Python environment (R638). An override replaces only its (name, major) (R950): its key is `"@org/name major"` and its value a directory relative to the root or `"git+https://host/repo@<40-hex commit> sha256:<hex>"`, whose `git archive --format=zip` output must hash to the digest (E020) and is kept in the store. A package in several subgraphs resolves to the maximum of its minimums, one version per (name, major), and its `kinds` entry records the subgraphs `dep`, `dev` and `tool` (R951). The Python environment is `uv`'s: a root or member with `python` requirements needs a `pylock.toml` at the root (E021 without), and the lock records only its digest as `pylock = "sha256:<hex>"`, the line after `format`; a mismatch is E020 (R950). `yan add` writes, as the requirement's minimum, the newest version outside the cool-off window (19.4) that satisfies the user's text; selection then stays minimal version selection over those minimums, so a rebuild never moves and the cool-off applies only to what `add` and `update` write. A conflict names both requirers.
 
 **When the lock is written (R896).** Only `yan add`, `remove`, `update`, `approve`, `vendor` and `yan lock` write `yan.lock`. `build`, `check` and `test` read it and never write; under `--locked` a lock that does not match the manifest, or is missing for a package with dependencies, is E020. Without `--locked` they resolve from the lock and, for a name it lacks, from the manifest's minimums, without writing. `--offline --locked` additionally fails when a pinned archive is in neither `.yan/` nor the vendor directory.
+
+**Source layout (R1064).** A file is a module, and its path is its directory path under its source root, joined by `.`, with the extension removed: `src/billing/invoice.yn` is `billing.invoice`. A directory is a namespace, never a module: there is no declaration of a module, no `mod` file and no `__init__`. A file and a directory of one stem may sit side by side (`billing.yn` and `billing/`). The source roots of a package are `src/`, `bin/`, `ffi/`, `ub/`, `tests/`, `examples/` and `benches/`, fixed and not configurable; `src/lib` is the root module and `src/main` the default binary. Under `bin/`, `ffi/`, `ub/`, `tests/`, `examples/` and `benches/` the root's name leads the module path (`ffi.libc`), and a source root is not a namespace under `src/`. A module is `.yag` or `.yn` by its extension, per file. A module path is not part of an item's hash (3.6). Hidden directories are not read, and a `.yn` or `.yag` file outside every source root is not a module. These are E024, reported on the file: two files with one module path; a file or directory name that is not a value name (13.1) or is a Windows device name; a top-level module under `src/` named `std`, `core`, `alloc`, `ffi` or `ub`.
 
 ### 19.2 Capability ceilings
 

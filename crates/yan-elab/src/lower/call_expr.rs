@@ -281,6 +281,9 @@ impl Lower<'_, '_, '_> {
             }
             j::ExprKind::Name(n) if !self.value_bound(n) => {
                 let prelude = !self.g.fns.contains_key(n) || self.g.std_fns.contains(n);
+                if prelude && let Some((r, t)) = self.py_ctor(n, args, at, want)? {
+                    return Ok((r, t, None));
+                }
                 if prelude
                     && matches!(n.as_str(), "min" | "max")
                     && args.iter().filter(|a| a.name.is_none()).count() == 1
@@ -344,6 +347,16 @@ impl Lower<'_, '_, '_> {
                 Ok((r, t, None))
             }
             j::ExprKind::Attr(b, m, name_at) => {
+                if let Some(f) = self.lenient_format(b, m, args, at) {
+                    let (r, t) = self.rhs(&f, want)?;
+                    return Ok((r, t, None));
+                }
+                if let j::ExprKind::Name(module) = &b.kind
+                    && self.lenient_sys_call(module, m, *name_at)
+                {
+                    let unit = Rhs::Atom(Atom::Lit(Literal::Unit, at));
+                    return Ok((unit, Ty::Err, None));
+                }
                 if let j::ExprKind::Name(c) = &b.kind
                     && !self.value_bound(c)
                     && (self.sig.caps.contains(c) || self.handlers.contains(c) || c == "io")

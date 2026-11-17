@@ -13,10 +13,13 @@ pub fn install() {
 
 fn package(root: PathBuf, workspace: &Path, role: Role) -> Option<Package> {
     let manifest = manifest_at(&root)?;
+    let (modules, layout) = yan_db::scan_layout(&root);
     Some(Package {
         name: manifest.name.clone(),
         role,
         foreign: foreign_set(&root),
+        layout,
+        modules,
         deps: manifest.dependencies.clone(),
         dev_deps: manifest.dev_dependencies.clone(),
         tools: manifest.tools.clone(),

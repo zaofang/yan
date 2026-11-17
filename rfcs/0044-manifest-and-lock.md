@@ -35,7 +35,7 @@ The field table is settled. Open are the rules around it. Options for unknown fi
 `version`, `edition` and `yan` required for a published package, all optional for a script-style `.yag`
 and a workspace root with `members` only; (b) all four always.
 
-Recommendation: unknown fields are an error (a), because the manifest is frozen at 1.0 and additive
+Recommendation: unknown fields are an error (a), because the manifest is frozen at 0.1.0 and additive
 after, and a silently ignored `capabilities` typo is a security hole; the `yan` field already gates which
 toolchain may read it. Required fields (a), with `name` and `version` waived only for a root that sets
 `members` and publishes nothing.

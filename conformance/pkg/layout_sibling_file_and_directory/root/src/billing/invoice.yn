@@ -1,0 +1,4 @@
+--- The number one.
+pub one() -> int uses none =
+  ex one() == 1
+  1

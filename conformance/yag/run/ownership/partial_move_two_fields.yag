@@ -1,0 +1,17 @@
+# spec: 4.1, 4.2
+# rows: R1
+# note: moving two fields out of one record in turn leaves only the third owned and freed (#1500 item 3)
+# stdout:
+# AB 2 C
+class R:
+    a: str
+    b: str
+    c: str
+
+def join(take x: str, take y: str) -> str:
+    return x + y
+
+def main() uses io:
+    r = R(a="a".upper(), b="b".upper(), c="c".upper())
+    j = join(r.a, r.b)
+    io.print(f"{j} {j.len()} {r.c}")

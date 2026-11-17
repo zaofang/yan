@@ -280,8 +280,8 @@ impl Lower<'_, '_, '_> {
                 let c = call("std.prelude.Secret", vec![t.targ()], vec![sink_arg(a)], at);
                 Ok((Rhs::Call(c), Ty::Coll("Secret", vec![t])))
             }
-            "dict" | "set" | "enumerate" | "zip" | "reversed" | "isinstance" | "hash" | "repr"
-            | "atan2" | "hypot" => unsupported(format!("`{n}`")),
+            "dict" | "set" | "enumerate" | "zip" | "reversed" | "hash" | "repr" | "atan2"
+            | "hypot" => unsupported(format!("`{n}`")),
             // std.test is in scope without an import (assumption A7).
             // A handler constructor is chosen by the capability it is bound to, so `sim` in
             // `with cluster = sim(n, seed)` is `std.sim.sim`, not the fault handler (R417).
@@ -305,6 +305,7 @@ impl Lower<'_, '_, '_> {
                 Ok((r, t))
             }
             _ if let Some(r) = self.lenient_free(n, args, at, want)? => Ok(r),
+            _ if let Some(r) = self.lenient_py(n, args, at, want)? => Ok(r),
             _ => {
                 let mut names: Vec<&str> = self.g.fns.keys().map(String::as_str).collect();
                 names.extend(BUILTINS);

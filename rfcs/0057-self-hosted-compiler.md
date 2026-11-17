@@ -7,16 +7,16 @@
 ## Summary
 
 R215 says Yan has one implementation, written in Rust, and 22.2 says the compiler and tools MUST be
-Rust. The lead decided on 2026-11-09 that 1.0 ships a toolchain written in Yan. This RFC replaces R215:
+Rust. The lead decided on 2026-11-09 that 0.1.0 ships a toolchain written in Yan. This RFC replaces R215:
 the Rust workspace becomes stage 0, the bootstrap compiler and the oracle, and is frozen once the Yan
 compiler reaches a fixpoint. The port runs in six gated stages (S0 to S5), each of which must reproduce
 stage 0's output byte for byte before the next starts. It also records the lead's four answers on the
-plan: LLVM through its C API is the 1.0 code generator, with a Yan-written backend replacing Cranelift
-after 1.0; the compiler is written in Yan (`.yn`), which pulls the Yan front end forward from M3;
+plan: LLVM through its C API is the 0.1.0 code generator, with a Yan-written backend replacing Cranelift
+after 0.1.0; the compiler is written in Yan (`.yn`), which pulls the Yan front end forward from M3;
 formal phases keep waiting for the M1 gate and S2 waits for phases 1 and 2; the optimizer (#760) and
 package manager (#764) continue in Rust and are ported in S2 and S5.
 
-The 2026-11-04 study recommended keeping R215 for 1.0 (its D1). That recommendation is superseded; its
+The 2026-11-04 study recommended keeping R215 for 0.1.0 (its D1). That recommendation is superseded; its
 D9 (retire the Rust tree except a Cranelift shim) is superseded by D1 and D3 below. Its D7 (two seeds:
 the Rust tree and a committed `.yir` snapshot) stands.
 
@@ -24,18 +24,18 @@ the Rust tree and a committed `.yir` snapshot) stands.
 
 ### D1: implementation language
 
-The 1.0 toolchain (compiler, interpreter, runtime and tools) is written in Yan. The Rust workspace of
+The 0.1.0 toolchain (compiler, interpreter, runtime and tools) is written in Yan. The Rust workspace of
 22.2 is stage 0: it bootstraps stage 1, serves as the oracle every stage is compared against, and is
 frozen at the commit where S4 passes. After the freeze it takes no features and only those fixes needed
 to keep building the seed. Non-Yan code allowed in the shipped toolchain: LLVM, called through its C
 API; a thin C shim over libc where Yan's FFI cannot express a call; the pinned clang and lld of 22.4.
 The Lean model under `formal/` (R680) stays outside the toolchain and outside this rule.
 
-Options weighed: keep R215 for 1.0 and self-host after RC (the study's D1); self-host for 1.0
+Options weighed: keep R215 for 0.1.0 and self-host after RC (the study's D1); self-host for 0.1.0
 (decided). The interim relaxation of 2026-11-01 (non-Rust parts where they buy speed) is absorbed: it
 applied to stage 0 and still does until the freeze.
 
-- Decision: self-host for 1.0, Rust as frozen stage 0 (lead, 2026-11-09)
+- Decision: self-host for 0.1.0, Rust as frozen stage 0 (lead, 2026-11-09)
 - Row: R966
 
 ### D2: stages and gates
@@ -53,7 +53,7 @@ middle-end gate is a text diff.
 | S4 fixpoint | none | stage 0 builds stage 1, stage 1 builds stage 2, stage 2 builds stage 3; stage 2 and stage 3 binaries are bit-identical and stage 2 passes the full conformance suite; `yan` ships from stage 2 and stage 0 freezes |
 | S5 tools | `yan-cli`, `yan-ide`, `yan-mcp`, `yan-lsp`, `yan-pkg`, `yan-interp`, `yan-db` | each tool's conformance and selftest results equal stage 0's; the interpreter keeps its role as the abstract machine of 6.1 |
 
-S5 may overlap S4; 1.0 needs both. Diverse double compiling uses the frozen Rust tree as the second
+S5 may overlap S4; 0.1.0 needs both. Diverse double compiling uses the frozen Rust tree as the second
 compiler (study D7).
 
 - Decision: as the plan states (lead, 2026-11-09)
@@ -61,13 +61,13 @@ compiler (study D7).
 
 ### D3: code generation route
 
-Cranelift has no C API, so the Yan compiler cannot call it. For 1.0 the Yan compiler generates code
+Cranelift has no C API, so the Yan compiler cannot call it. For 0.1.0 the Yan compiler generates code
 through LLVM's C API, for debug builds (`-O0`) and release builds alike. Cranelift stays in stage 0
-only. After 1.0 a debug backend written in Yan replaces it for fast debug builds and the JIT. Options
-weighed: a C-ABI shim over Cranelift (the study's D6 and D9); a Yan backend before 1.0; LLVM alone for
-1.0 (decided).
+only. After 0.1.0 a debug backend written in Yan replaces it for fast debug builds and the JIT. Options
+weighed: a C-ABI shim over Cranelift (the study's D6 and D9); a Yan backend before 0.1.0; LLVM alone for
+0.1.0 (decided).
 
-- Decision: LLVM C API for 1.0, Yan-written backend after 1.0 (lead, 2026-11-09, #855)
+- Decision: LLVM C API for 0.1.0, Yan-written backend after 0.1.0 (lead, 2026-11-09, #855)
 - Row: R968
 
 ### D4: implementation surface
@@ -93,7 +93,7 @@ S4 freeze; every stage-0 crate is ported.
 
 ## Spec changes
 
-- 1: the pipeline diagram names the 1.0 code generators.
+- 1: the pipeline diagram names the 0.1.0 code generators.
 - 18.1: `yan run` and `yan build` name LLVM as the shipped backend; Cranelift is stage 0's.
 - 22.1: rewritten for R966.
 - 22.2: the Rust requirement applies to stage 0.

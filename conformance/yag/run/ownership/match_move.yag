@@ -1,0 +1,18 @@
+# spec: 4.1, 4.2
+# rows: R1
+# note: a binder moved out of a matched payload leaves the other payload fields owned and freed (#1500 item 3)
+# stdout:
+# X
+# b
+type T = A(s: str, xs: list[int]) | B()
+
+def f(take t: T) -> str:
+    match t:
+        case A(s=s, xs=xs):
+            return s
+        case B():
+            return "b"
+
+def main() uses io:
+    io.print(f(A("x".upper(), [1, 2])))
+    io.print(f(B()))

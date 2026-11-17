@@ -116,6 +116,12 @@ enum SchemaCommand {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Print the modules of the package in the current directory, one per line (RFC 0084 D11).
+    Tree {
+        /// `prose` when output is a terminal, `line` otherwise (18.2); `json` prints the layout errors as records.
+        #[arg(long, value_enum)]
+        format: Option<Format>,
+    },
     /// Create a package directory from a template: `package.yag` and `src/` (18.1).
     New {
         /// `@org/name`, or `name` for `@local/name`; the directory is `name`.
@@ -476,6 +482,7 @@ fn main() -> ExitCode {
         Command::Approve { spec } => {
             dep_result(vendor::approve(Path::new("."), &spec).map(|m| vec![m]))
         }
+        Command::Tree { format } => tree(Path::new("."), format),
         Command::Vendor => dep_result(vendor::vendor(Path::new("."))),
         Command::Remove { name } => {
             dep_result(deps::remove(Path::new("."), &name).map(|m| vec![m]))
@@ -1324,6 +1331,24 @@ fn native(file: &str, m: &yan_core::ast::Module, jit: Jit) -> ExitCode {
             ExitCode::SUCCESS
         }
         Err(what) => tool_failure(&format!("not supported yet: {what}")),
+    }
+}
+
+fn tree(dir: &Path, format: Option<Format>) -> ExitCode {
+    let (modules, issues) = yan_db::scan_layout(dir);
+    let diags = yan_db::layout_diagnostics(&issues);
+    if matches!(format, Some(Format::Json)) {
+        emit_records(&diags, format);
+    } else {
+        for m in &modules {
+            println!("{}\t{}", m.path.join("."), m.file.display());
+        }
+        print_diags(&diags);
+    }
+    if diags.is_empty() {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
     }
 }
 

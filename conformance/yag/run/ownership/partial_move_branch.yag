@@ -1,0 +1,22 @@
+# spec: 4.1, 4.2
+# rows: R1
+# note: a field moved in one branch only is freed with the rest where the branch moved it and with the whole record where it did not (#1500 item 3)
+# stdout:
+# moved X
+# kept 1
+class H:
+    s: str
+    xs: list[int]
+
+def eat(take s: str) -> str:
+    return s
+
+def run(flag: bool) -> str:
+    h = H(s="x".upper(), xs=[1])
+    if flag:
+        return "moved " + eat(h.s)
+    return "kept " + f"{h.xs.len()}"
+
+def main() uses io:
+    io.print(run(True))
+    io.print(run(False))

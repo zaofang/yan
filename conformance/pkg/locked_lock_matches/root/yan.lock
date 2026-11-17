@@ -3,3 +3,4 @@ format = 1
 [[package]]
 name = "@acme/http"
 version = "1.4.2"
+digest = "sha256:d580968c563211aa667fb15685578b4eed29fbd9e9a28c968f3266bcdfb05d49"

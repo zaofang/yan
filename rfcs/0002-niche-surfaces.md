@@ -15,11 +15,11 @@ each serving one market that today uses its own language (protobuf, BAML, PRQL, 
 bash, Kaitai, Lustre, Catala and others). A niche surface adds syntax only. It lowers into
 `yan-hir` like Yan, prints back exactly, keeps the item hash, and shows the five facts. Thirteen
 surfaces are accepted: eight practical (Yan Prompt, Yan Schema, Yan Infra, Yan Query Language, Yan Workflow, Yan Shell, Yan Binary Format, Yan Dataflow) and five research
-(Yan Delegate, Yan Probabilistic, Yan Protocol, Yan Spec, Yan Law). None is built before 1.0. Each starts as a print-only view and gets its
+(Yan Delegate, Yan Probabilistic, Yan Protocol, Yan Spec, Yan Law). None is built before 0.1.0. Each starts as a print-only view and gets its
 reader, grammar, diagnostic codes and conformance column in its own later RFC, the way Yan Meta's grammar
 moves from RFC 0001 into section 16.6.
 
-The spec gets the admission rules and a table of planned surfaces (new section 16.7) and a post-1.0
+The spec gets the admission rules and a table of planned surfaces (new section 16.7) and a post-0.1.0
 note in section 23. This file stays the reference for each surface until its own RFC. The Yan
 changes these surfaces need are in RFC 0003.
 
@@ -112,7 +112,7 @@ service Book
 - **First slice.** Records, sums, refinements, `since`, `was`, services, `yan schema check`. Later:
   OpenAPI and JSON Schema import and export.
 
-- Decision: accepted, 2026-11-01. First after 1.0 (D15).
+- Decision: accepted, 2026-11-01. First after 0.1.0 (D15).
 - Row: R537
 
 ### D3: Yan Prompt 言询, typed model programs
@@ -160,7 +160,7 @@ pub route(t: Ticket) -> Team fail ModelError uses model, pager =
 - **First slice.** System and user roles, `check`, `ex` with `fake_model`. Later: tool calls
   (`tool_call`, R450), streaming, few-shot blocks.
 
-- Decision: accepted, 2026-11-01. Second after 1.0 (D15).
+- Decision: accepted, 2026-11-01. Second after 0.1.0 (D15).
 - Row: R538
 
 ### D4: Yan Query Language 言查, queries
@@ -528,8 +528,8 @@ scope IncomeTax
 
 ### D15: Order and gating
 
-1. No niche surface is built before 1.0.
-2. After 1.0: Yan Schema first (types only; it proves the shared machinery), then Yan Prompt.
+1. No niche surface is built before 0.1.0.
+2. After 0.1.0: Yan Schema first (types only; it proves the shared machinery), then Yan Prompt.
 3. Yan Query Language and Yan Shell next. Yan Workflow waits for `@yan/durable` (M4) and durable timers; Yan Infra waits for the
    dry-run handler class (RFC 0003).
 4. Every surface starts as a print-only view (`yan view --as <name>`, as Yan Meta is until M4, 16.6) before it gets a reader.
@@ -560,4 +560,4 @@ Recorded so the question is not reopened without new evidence. No rows.
 
 - 16.7 (new): admission rules N1 to N9 (R536), the table of planned surfaces (R537 to R549), order and
   gating (R550).
-- 23: a post-1.0 note pointing at 16.7 (R550).
+- 23: a post-0.1.0 note pointing at 16.7 (R550).
