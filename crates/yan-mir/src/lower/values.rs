@@ -84,7 +84,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     pub(super) fn has_heap(s: &Shape) -> bool {
         match s {
             Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr | Shape::Ref(_) => false,
-            Shape::Atomic(_) => true,
+            Shape::Atomic(_) | Shape::Mutex(_) | Shape::Guard(_) => true,
             Shape::Str
             | Shape::Bytes
             | Shape::ByteArray
@@ -120,6 +120,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr | Shape::Ref(_) => {}
             Shape::Arena => self.free(RtFn::ArenaFree, v[0].clone()),
             Shape::Atomic(_) => self.free(RtFn::EnvFree, v[0].clone()),
+            Shape::Mutex(inner) => self.mutex_glue(inner, v[0].clone()),
+            Shape::Guard(_) => self.unlock(v[0].clone()),
             Shape::Named(k) => {
                 self.walk_call(knot::Walk::Drop, k, v);
             }
