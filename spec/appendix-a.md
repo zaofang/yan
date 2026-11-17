@@ -388,6 +388,18 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1040 | Send and Sync are one structural computation consulted by every E415 and E417 site; `Mutex[T]` is both iff `T: Send`, a `MutexGuard` neither (RFC 0081 D4; #1429 item 5) | 6.4 |
 | R1041 | sharing a `Mutex` between tasks (par borrow, task move, `Arc` share) is the E709 site; `lock`, `get_mut` and `into_inner` need no capability; no commutativity exemption (RFC 0081 D5; #1429 item 5) | 6.5 |
 | R1042 | the effect signature carries a computed may-wait bit, in function types and trait signatures; E323 uses it through function values and trait methods; a waiting callee passed as no-wait is E201 (RFC 0081 D6; #1429 item 6) | 6.3, 7.2 |
+| R1043 | S1 starts only when S0 passes and difftest reports no native refusal (RFC 0082 D1; #1026) | 22.7 |
+| R1044 | widened S0 readiness list, the bootstrap subset in `selfhost/SUBSET.md` with its lint, std ported to `.yn` before S1 (RFC 0082 D2, D3) | 22.7 |
+| R1045 | a stage's comparison job blocks after 20 green main commits; its stage-0 crates then take only fixes mirrored in the Yan port (RFC 0082 D4) | 22.7 |
+| R1046 | shared tables are data files read by both compilers; passes are `uses none`, the driver alone holds capabilities; sorted diagnostics; sequential until S4 (RFC 0082 D5) | 22.7 |
+| R1047 | S2 opens with the query engine and the compile-time evaluator, before any `yan-elab` port (RFC 0082 D6) | 22.7 |
+| R1048 | `yan-mir` is the last compiler-owned IR; code generators only translate printed MIR; LLVM through one `lib llvm` package; lld as a driver subprocess (RFC 0082 D7) | 22.4 |
+| R1049 | one LLVM code generator, written in Yan over printed MIR, startable after S0 and stage 0's release backend until S3 (RFC 0082 D8) | 22.2, 22.7 |
+| R1050 | std engines are Yan or pinned C libraries; `yan-rt-engines` is the dated exception until each is replaced (RFC 0082 D9) | 22.7 |
+| R1051 | per-stage byte comparisons with stage 0, diagnostics compared in full, determinism checks on the stage-2 build (RFC 0082 D10) | 22.7 |
+| R1052 | ownership prerequisites for S1 and S3 and the live-allocation job at every gate (RFC 0082 D11; #1500) | 22.7 |
+| R1053 | release checks from S4: fixpoint, diverse double compiling, verified Yan Core snapshot, toolchain capability table (RFC 0082 D12) | 19.6 |
+| R1054 | compiler performance gate at S4 and RC in callgrind instruction counts (RFC 0082 D13) | 22.7 |
 
 <!-- /rows -->
 
