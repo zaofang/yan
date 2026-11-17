@@ -559,7 +559,7 @@ impl Printer {
         for d in &it.decorators {
             self.line(0, &format!("@{}", decorator(d)));
         }
-        let pubs = if it.is_pub { "pub " } else { "" };
+        let pubs = it.vis.prefix();
         match &it.kind {
             ItemKind::Func(f) => self.func(f, pubs, "def", 0),
             ItemKind::Lemma(f) => self.func(f, pubs, "lemma", 0),

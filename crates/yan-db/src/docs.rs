@@ -31,7 +31,7 @@ pub(crate) fn lint(
             None
         };
         if surface == Surface::Yag {
-            out.extend(param_docs(file, &lines, it.is_pub, sub_items, f, doc));
+            out.extend(param_docs(file, &lines, it.vis.is_pub(), sub_items, f, doc));
         }
         let Some((first, last)) = doc else {
             continue;

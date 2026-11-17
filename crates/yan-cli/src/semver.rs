@@ -84,7 +84,8 @@ fn api(root: &Path) -> Result<Api, String> {
             .display()
             .to_string();
         for item in m.items {
-            if item.is_pub && !matches!(item.kind, ItemKind::Impl(_) | ItemKind::Verbatim(_)) {
+            if item.vis.is_pub() && !matches!(item.kind, ItemKind::Impl(_) | ItemKind::Verbatim(_))
+            {
                 out.insert(format!("{module}::{}", item.kind.name()), item);
             }
         }

@@ -1,0 +1,6 @@
+spec = "3.5"
+rows = "R1068"
+note = "an item with no visibility modifier belongs to its module alone: a sibling that names it gets E287, which proposes pkg or pub"
+command = ["check"]
+code = "E287"
+at = "src/main.yag:2:18"

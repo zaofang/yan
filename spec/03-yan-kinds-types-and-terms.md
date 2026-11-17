@@ -59,11 +59,12 @@ Module   ::= "module" Path {Item}
 Item     ::= {Attr} (Fn | Gen | Record | Sum | Newtype | Trait | Impl | Const | Test | Extern | Inst)
 Inst     ::= "inst" (Fn | Gen)                            -- only after optimization (R772)
 Attr     ::= "@" Name ["(" AttrArg {"," AttrArg} ")"]
+Vis      ::= "pub" | "pkg"                                -- R1068
 AttrArg  ::= [Name "="] ConstVal
 
-Fn       ::= ["pub"] ["unsafe"] "fn" Path [TParams] "(" [Param {"," Param}] ")"
+Fn       ::= [Vis] ["unsafe"] "fn" Path [TParams] "(" [Param {"," Param}] ")"
              "->" Type [From] ["fail" Type] {Contract} Block
-Gen      ::= ["pub"] "gen" Path [TParams] "(" [Param {"," Param}] ")"
+Gen      ::= [Vis] "gen" Path [TParams] "(" [Param {"," Param}] ")"
              "->" Type [From] {Contract} Block                -- yields Type
 Param    ::= ["comptime"] Conv Name ":" Type | "cap" Name ":" CapType
 Conv     ::= "let" | "inout" | "sink"                -- R446
@@ -73,17 +74,17 @@ Contract ::= "requires" Pred | "ensures" Pred | "decreases" Expr {"," Expr} | "e
            | "cost" CostBound {"," CostBound}             -- R610
 CostBound ::= ("steps" | "alloc") "<=" Expr
 
-Record   ::= ["pub"] "record" Path [TParams] "{" [Field {"," Field}] "}"
-Field    ::= ["pub"] Name ":" Type ["=" ConstVal]
-Sum      ::= ["pub"] "sum" Path [TParams] "{" Variant {"," Variant} "}"
+Record   ::= [Vis] "record" Path [TParams] "{" [Field {"," Field}] "}"
+Field    ::= [Vis] Name ":" Type ["=" ConstVal]
+Sum      ::= [Vis] "sum" Path [TParams] "{" Variant {"," Variant} "}"
 Variant  ::= Name ["{" Field {"," Field} "}"]
-Newtype  ::= ["pub"] "newtype" Path [TParams] "=" Type ["where" Pred]
-Trait    ::= ["pub"] "trait" Path [TParams] "{" {"type" Name} {Sig} ["derived" Block] "}"
+Newtype  ::= [Vis] "newtype" Path [TParams] "=" Type ["where" Pred]
+Trait    ::= [Vis] "trait" Path [TParams] "{" {"type" Name} {Sig} ["derived" Block] "}"
 Sig      ::= "fn" Name [TParams] "(" [Param {"," Param}] ")" "->" Type [From] ["fail" Type]
              {Contract} [Block]
 Impl     ::= ["unsafe"] "impl" Path ["[" TArg {"," TArg} "]"] "for" Type
              "{" {"type" Name "=" Type} {Fn} "}"
-Const    ::= ["pub"] "const" Path ":" Type "=" ConstVal
+Const    ::= [Vis] "const" Path ":" Type "=" ConstVal
 Test     ::= "test" Path Block
 Extern   ::= "unsafe" "extern" String "lib" Name ["link" String] "{" {XItem} "}"
 XItem    ::= ("safe" | "unsafe") "fn" Name "(" [XParam {"," XParam}] ["," "..."] ")" "->" Type
@@ -178,6 +179,8 @@ Rules on the grammar:
 **Guaranteed tail calls (R260).** `become f(args)` ends the current function by calling `f`, and it MUST NOT grow the stack on any backend, in any build mode, including the reference interpreter. It is legal only where `ret` is, and never inside `par`, `with` or a `Gen` body. Its call MUST be a direct call or a call through an `Fn`-typed parameter, never a `dyn` method or a closure (E273 for both). The callee's parameter conventions and types, return type, failure type and capability set MUST equal the caller's after monomorphisation (E271). The caller's locals are dropped in reverse declaration order before the transfer. An argument that borrows a caller local, as a `let` or `inout` argument or a view `from` that local, is E420, whose fix moves or copies it. Cranelift lowers `become` to `return_call` with the `tail` convention, LLVM to a `musttail` call, and WebAssembly to `return_call`. Yan Agent and Yan spell it `become f(args)`.
 
 **Become modulo constructor (R456).** `become` is also legal as the last-evaluated argument of a constructor in return position, as in `return Node(l, x, become insert(r, k))`, and constructors may nest. Every backend and the reference interpreter MUST lower it to destination passing: the constructor's block is allocated first, the call receives the open field as a `set` destination, and the recursion runs in constant stack. The R260 rules apply to the call (E273, E271, E420). A `become` in any other position inside a constructor is E143. Yan Agent and Yan spell it the same way.
+
+**Visibility (R1068).** An item is private, `pkg` or `pub`. A private item is named in its own module only, a `pkg` item in every module of its package, a `pub` item also by dependents; a module is a file (19.1), so a child module does not see its parent's private items, nor a parent its child's. A path that names a private item of another module is E287, whose message proposes `pkg` and `pub`; a sum variant takes the visibility of its type. `pkg` is soft: it is the modifier only where a name or an item keyword follows it, and `pkg = 1` binds a variable. The modifier is part of an item's canonical Yan Core text and so of its hash, as `pub` is, while the exported API (20.6), contracts and certificates are computed over `pub` items alone.
 
 ### 3.6 Item identity
 

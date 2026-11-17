@@ -943,7 +943,7 @@ pub(crate) fn items(p: &Protocol, is_pub: bool, at: Span) -> Vec<j::Item> {
         } else {
             Vec::new()
         },
-        is_pub,
+        vis: if is_pub { j::Vis::Pub } else { j::Vis::Private },
         kind,
         span: at,
         name_span: at,

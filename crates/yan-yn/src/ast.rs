@@ -3,6 +3,7 @@
 
 pub use crate::lexer::{StrKind, TemporalKind};
 pub use yan_diag::Span;
+pub use yan_hir::Vis;
 
 pub type Name = String;
 
@@ -35,7 +36,7 @@ pub struct Attr {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Item {
     pub attrs: Vec<Attr>,
-    pub public: bool,
+    pub vis: Vis,
     pub kind: ItemKind,
     pub span: Span,
 }

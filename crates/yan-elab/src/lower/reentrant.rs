@@ -52,7 +52,7 @@ pub(crate) fn lent(g: &Globals, f: &y::FnDef, sig: &Sig) -> y::FnDef {
         bounds: Vec::new(),
     });
     y::FnDef {
-        is_pub: false,
+        vis: j::Vis::Private,
         path: vec![lent_name(&f.path.join("."))],
         tparams,
         params,
