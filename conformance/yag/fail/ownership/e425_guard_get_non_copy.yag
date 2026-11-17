@@ -1,5 +1,5 @@
 # spec: 6.3, 25
-# rows: R1026
+# rows: R1030
 # note: get copies the value out, so it needs a Copy type; a copy of an owner would alias it
 # expect: E425 at 9:9
 
