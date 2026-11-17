@@ -1,0 +1,131 @@
+# One entry per attack. `status`: refused (the attack is stopped), gap (not stopped today; the
+# entry pins today's behaviour and names the gap issue, so a fix fails the test and forces an update).
+# `args` run in `dir` (a copy). `exit` and `contains` (stdout and stderr together) are asserted;
+# `stdout` is asserted exactly when present. Consumers: crates/yan-cli/tests/redteam_plugin.rs, report.py.
+
+[[attack]]
+id = "01"
+name = "symlink out of `fs.sub`"
+dir = "attacks/01-symlink-escape"
+args = ["run", "src/main.yag"]
+status = "refused"
+stage = "run"
+exit = 0
+stdout = "not granted\n"
+
+[[attack]]
+id = "02"
+name = "`..`, absolute and `x/../..` paths through the grant"
+dir = "attacks/02-path-escape"
+args = ["run", "src/main.yag"]
+status = "refused"
+stage = "run"
+exit = 0
+stdout = "not granted\nnot granted\nnot granted\n"
+
+[[attack]]
+id = "03"
+name = "`uses none` externs (`getpid`, `kill`) in the plugin's own `ffi/`"
+dir = "attacks/03-ffi-in-plugin"
+args = ["check"]
+status = "refused"
+stage = "check"
+exit = 1
+contains = ["E023 ffi/sys.yn:1:1", "E314 ffi/sys.yn:1:1"]
+
+[[attack]]
+id = "04"
+name = "the same externs hidden in a transitive dependency"
+dir = "attacks/04-transitive-ffi"
+args = ["lock"]
+status = "refused"
+stage = "resolve"
+exit = 1
+contains = ["E023 yan.lock:0:0 `@agent/helper` holds foreign code"]
+note = "decided from the registry `.info`; the dependency's source is not elaborated (#1452)"
+
+[[attack]]
+id = "05"
+name = "plugin declares `net`, beyond the root's ceiling"
+dir = "attacks/05-ceiling-beyond-root"
+args = ["lock"]
+status = "gap"
+stage = "resolve"
+exit = 0
+contains = ["wrote yan.lock"]
+issue = 1590
+note = "wanted: E314 at resolution"
+
+[[attack]]
+id = "06"
+name = "closures that capture `fs` and `time` passed to `uses none` functions"
+dir = "attacks/06-closure-laundering"
+args = ["check"]
+status = "refused"
+stage = "check"
+exit = 1
+contains = [
+  "E301 src/main.yag:11:20",
+  "E301 src/main.yag:12:15",
+  "E301 src/main.yag:14:10",
+]
+
+[[attack]]
+id = "07"
+name = "lock record that disagrees with its vendored archive"
+dir = "attacks/07-lock-tamper"
+args = ["check", "--locked", "src/main.yag"]
+status = "refused"
+stage = "locked build"
+exit = 1
+contains = ["E020 yan.lock:0:0"]
+
+[[attack]]
+id = "08"
+name = "extern `link \"../evil\"`: refused when the program runs"
+dir = "attacks/08-link-name"
+args = ["run", "ffi/sys.yn"]
+status = "refused"
+stage = "run"
+exit = 2
+contains = ["cannot load library `../evil`"]
+
+[[attack]]
+id = "08b"
+name = "extern `link \"../evil\"`: no diagnostic at check"
+dir = "attacks/08-link-name"
+args = ["check"]
+status = "gap"
+stage = "check"
+exit = 0
+issue = 1391
+note = "wanted: a diagnostic at the extern block"
+
+[[attack]]
+id = "09"
+name = "private item or capability handle smuggled across packages"
+dir = ""
+status = "gap"
+stage = "check"
+issue = 1563
+note = "no fixture: needs cross-package names (RFC 0084 slices 2a to 2c)"
+
+[[attack]]
+id = "10a"
+name = "attack 01 on the Cranelift backend"
+dir = "attacks/01-symlink-escape"
+args = ["--backend", "cranelift", "run", "src/main.yag"]
+status = "refused"
+stage = "run"
+exit = 2
+contains = ["not supported yet: call of `std.fs.sub` in native code"]
+
+[[attack]]
+id = "10b"
+name = "attack 01 on the machine backend"
+dir = "attacks/01-symlink-escape"
+args = ["--backend", "machine", "run", "src/main.yag"]
+status = "refused"
+stage = "run"
+exit = 2
+contains = ["not supported yet: call of `std.fs.sub` in native code"]

@@ -1,0 +1,3 @@
+pub def main() uses io, fs:
+    with fs = fs.sub("data"):
+        io.print(fs.read("link") else e -> e.reason)
