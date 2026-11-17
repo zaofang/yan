@@ -1,0 +1,12 @@
+# spec: 17.2
+# rows: R348
+# expect: W819 at 12:12
+
+def get(m: dict[str, int], k: str) -> int | None:
+    return m[k] if k in m else None
+
+class Cache:
+    vals: dict[str, int]
+
+def f(c: Cache) -> int | None:
+    return c.vals.get("a")

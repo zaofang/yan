@@ -412,6 +412,11 @@ pub extern "C" fn yan_rt_show_f64(x: f64) -> *mut String {
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_show_fixed(x: f64, prec: i64) -> *mut String {
+    leak(crate::fmt::float_fixed(x, prec.max(0) as usize))
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_div_i64(a: i64, b: i64) -> f64 {
     crate::num::div_i128(a.into(), b.into())
 }
