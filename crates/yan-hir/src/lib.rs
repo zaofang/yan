@@ -474,6 +474,12 @@ pub struct Case {
     pub body: Block,
 }
 
+/// `m.lock()`: a `with` over it binds a guard for the block (R1036), not a handler.
+pub fn is_lock_call(e: &Expr) -> bool {
+    matches!(&e.kind, ExprKind::Call(f, args)
+        if args.is_empty() && matches!(&f.kind, ExprKind::Attr(_, op, _) if op == "lock"))
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum WithKind {
     Bind(Name, Expr),

@@ -28,6 +28,14 @@ impl<'a, 'm> Fn<'a, 'm> {
         let mut shape = root.shape;
         for proj in &p.projs {
             match proj {
+                y::Proj::Field(f, _) if f == "value" && matches!(shape, Shape::Guard(_)) => {
+                    let Shape::Guard(inner) = shape else {
+                        unreachable!("matched")
+                    };
+                    let p = self.read(&at, &Shape::Guard(inner.clone())).remove(0);
+                    at = At::Mem(p, super::mutex::VALUE);
+                    shape = *inner;
+                }
                 y::Proj::Field(f, _) => {
                     let Some((_, start, s)) = shape
                         .fields()

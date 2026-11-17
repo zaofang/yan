@@ -1865,3 +1865,18 @@ sections = "19.1, 19.2, 25"
 rows = "R1030"
 topic = "`MutexGuard.get` needs a `Copy` `T`; a non-`Copy` `T` is E425, since a copy of an owner would alias it (#1429 item 3)"
 sections = "6.3, 25"
+
+[[entry]]
+rows = "R1035"
+topic = "`MutexGuard[T].value` is the protected value as a std subscript place: `inout` and slices work for any `T`; no whole-value `MutView[T]` (RFC 0080 D1; #1429 item 2)"
+sections = "6.3"
+
+[[entry]]
+rows = "R1036"
+topic = "a guard bound by `with` (Yan `with g = m.lock()`, Yan Agent `with m.lock() as g`) lives to the end of the `with` block; unlock is never earlier (RFC 0080 D2; #1429 item 1)"
+sections = "5.3, 6.3, 13, 15"
+
+[[entry]]
+rows = "R1037"
+topic = "a `MutexGuard` is a view for escape analysis: E414 in a record or container, E406 in an escaping closure, E415 on a channel, E417 across `par` (RFC 0080 D3; #1429 item 4)"
+sections = "4.5, 4.6, 6.3"

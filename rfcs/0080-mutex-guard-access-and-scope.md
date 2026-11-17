@@ -1,8 +1,8 @@
 # 0080: Mutex guard access, early unlock and escapes
 
-- Status: draft
+- Status: accepted
 - Research: [atomics and Mutex design, 2026-11-16](../docs/research/2026-11-16-atomics-mutex-design.md) (Q2)
-- Rows: filled in when accepted
+- Rows: R1035 (D1), R1036 (D2), R1037 (D3)
 
 ## Summary
 
@@ -44,7 +44,7 @@ Alternatives, not recommended:
   6.3 and 7.
 
 - Decision: accepted as recommended, a place (`g.value`), no whole-value `MutView` (lead, card, 2026-11-17)
-- Row: (R number once accepted)
+- Row: R1035
 
 ### D2: early unlock is a `with` scope, not last-use drop
 
@@ -71,7 +71,7 @@ Alternatives, not recommended now:
   it; nothing here prevents it.
 
 - Decision: accepted as recommended, a `with` scope over the existing `with` statement; last-use drop rejected (lead, card, 2026-11-17)
-- Row: (R number once accepted)
+- Row: R1036
 
 ### D3: a guard is second-class by the view rule, so escapes need no new check
 
@@ -93,7 +93,7 @@ Alternative: a separate guard-escape pass with its own diagnostics. Two represen
 outlive its source" (practice 12), rejected.
 
 - Decision: accepted as recommended, a guard follows the view rule; no new pass (lead, card, 2026-11-17)
-- Row: (R number once accepted)
+- Row: R1037
 
 ## Spec changes
 

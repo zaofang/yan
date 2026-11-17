@@ -558,7 +558,8 @@ impl Lower<'_, '_, '_> {
             walk(body, &mut |x| {
                 if let j::ExprKind::Name(n) = &x.kind
                     && hit.is_none()
-                    && self.views.contains(n)
+                    && (self.views.contains(n)
+                        || matches!(self.ty_of_local(x), Some(Ty::Coll("MutexGuard", _))))
                     && !ps.contains(n)
                 {
                     hit = Some((n.clone(), x.span));
@@ -568,7 +569,7 @@ impl Lower<'_, '_, '_> {
                 self.err(
                     "E406",
                     sp,
-                    format!("this closure escapes but captures the view `{n}`"),
+                    format!("this closure escapes but captures the view or guard `{n}`"),
                 );
             }
             return;

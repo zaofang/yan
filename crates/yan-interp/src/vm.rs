@@ -1343,6 +1343,10 @@ impl<'o> Vm<'o> {
                     Some(v) => v,
                     None => return unsupported(format!("tuple field `{f}`")),
                 },
+                // A guard is its mutex's index; `value` is the protected value (6.3).
+                (Proj_::Field(f), Value::Int(m)) if &**f == "value" => {
+                    &self.it.mutexes[*m as usize].0
+                }
                 (
                     Proj_::Index(i),
                     xs @ (Value::List(_) | Value::Deque(..) | Value::SortedSet(_)),
@@ -1383,14 +1387,25 @@ impl<'o> Vm<'o> {
                 return unsupported("non-integer index");
             }
         }
-        // The root moves out while the projections walk it, so index registers stay readable.
-        let mut root = mem::take(&mut self.stack[base + p.root as usize]);
+        // Through a guard the walk starts at the protected value, which moves out of its mutex.
+        let guard = match (p.projs.first(), &self.stack[base + p.root as usize]) {
+            (Some(Proj_::Field(f)), Value::Int(m)) if &**f == "value" => Some(*m as usize),
+            _ => None,
+        };
+        let (projs, mut root) = match guard {
+            Some(m) => (&p.projs[1..], mem::take(&mut self.it.mutexes[m].0)),
+            // The root moves out while the projections walk it, so index registers stay readable.
+            None => (
+                &p.projs[..],
+                mem::take(&mut self.stack[base + p.root as usize]),
+            ),
+        };
         let at = |o: &Opnd| match o.konst() {
             Some(k) => &code.consts[k],
             None => &self.stack[base + o.idx()],
         };
         // A byte of a `bytearray` is no `Value` slot: the last projection stores into it.
-        let r = match p.projs.split_last() {
+        let r = match projs.split_last() {
             Some((Proj_::Index(i), init)) => walk_mut(&mut root, init, at).and_then(|s| match s {
                 Value::ByteArray(b) => {
                     let (Value::Int(i), Value::Int(x)) = (at(i), &v) else {
@@ -1405,11 +1420,14 @@ impl<'o> Vm<'o> {
                         None => out_of_range(*i, len),
                     }
                 }
-                s => walk_mut(s, &p.projs[init.len()..], at).map(|slot| *slot = v.clone()),
+                s => walk_mut(s, &projs[init.len()..], at).map(|slot| *slot = v.clone()),
             }),
-            _ => walk_mut(&mut root, &p.projs, at).map(|slot| *slot = v),
+            _ => walk_mut(&mut root, projs, at).map(|slot| *slot = v),
         };
-        self.stack[base + p.root as usize] = root;
+        match guard {
+            Some(m) => self.it.mutexes[m].0 = root,
+            None => self.stack[base + p.root as usize] = root,
+        }
         r
     }
 }

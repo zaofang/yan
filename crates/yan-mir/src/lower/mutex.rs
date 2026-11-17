@@ -15,7 +15,7 @@ pub(super) const MUTEX_IDS: &[registry::Id] = &[
 ];
 
 /// The words of the block the value starts at.
-const VALUE: u32 = 1;
+pub(super) const VALUE: u32 = 1;
 
 impl<'m> Fn<'_, 'm> {
     pub(super) fn mutex_call(&mut self, id: registry::Id, c: &y::Call, dst: Option<Var>) -> R<()> {

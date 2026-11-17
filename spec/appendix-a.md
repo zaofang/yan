@@ -380,6 +380,9 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1033 | every package's closure ceiling checked at resolution (E314 with path), publish (E006) and compile; `yan update` holds back, `yan add` fails (RFC 0079 D3) | 19.2, 19.4, 25 |
 | R1034 | one foreign set computed from source; `.info` and `yan.lock` record `ffi` and `libs`; a locked build recomputes it, E020 on mismatch (RFC 0079 D4) | 19.1, 19.2, 25 |
 | R1030 | `MutexGuard.get` needs a `Copy` `T`; a non-`Copy` `T` is E425, since a copy of an owner would alias it (#1429 item 3) | 6.3, 25 |
+| R1035 | `MutexGuard[T].value` is the protected value as a std subscript place: `inout` and slices work for any `T`; no whole-value `MutView[T]` (RFC 0080 D1; #1429 item 2) | 6.3 |
+| R1036 | a guard bound by `with` (Yan `with g = m.lock()`, Yan Agent `with m.lock() as g`) lives to the end of the `with` block; unlock is never earlier (RFC 0080 D2; #1429 item 1) | 5.3, 6.3, 13, 15 |
+| R1037 | a `MutexGuard` is a view for escape analysis: E414 in a record or container, E406 in an escaping closure, E415 on a channel, E417 across `par` (RFC 0080 D3; #1429 item 4) | 4.5, 4.6, 6.3 |
 
 <!-- /rows -->
 

@@ -2230,10 +2230,13 @@ const NONDET_OPS: &[&str] = &[
 fn not_send(t: &y::Type) -> bool {
     match t {
         y::Type::Named(n) => {
-            matches!(n.path.last().map(String::as_str), Some("Rc" | "Weak"))
-                || n.args
-                    .iter()
-                    .any(|a| matches!(a, y::TArg::Type(t) if not_send(t)))
+            matches!(
+                n.path.last().map(String::as_str),
+                Some("Rc" | "Weak" | "MutexGuard")
+            ) || n
+                .args
+                .iter()
+                .any(|a| matches!(a, y::TArg::Type(t) if not_send(t)))
         }
         y::Type::Tuple(ts) | y::Type::Union(ts) => ts.iter().any(not_send),
         _ => false,

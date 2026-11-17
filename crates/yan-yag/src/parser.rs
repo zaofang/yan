@@ -1777,10 +1777,15 @@ impl Parser {
                         let e = self.expr()?;
                         self.expect_op(")")?;
                         WithKind::Supervisor(e)
-                    } else {
+                    } else if matches!(self.tok(), Tok::Name(_)) && self.is_op_at(1, "=") {
                         let n = self.name()?;
                         self.expect_op("=")?;
                         WithKind::Bind(n, self.expr()?)
+                    } else {
+                        // `with m.lock() as g:` binds a guard for the block (R1036).
+                        let e = self.expr()?;
+                        self.expect_kw("as")?;
+                        WithKind::Bind(self.name()?, e)
                     };
                 StmtKind::With {
                     kind,
