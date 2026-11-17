@@ -62,7 +62,7 @@ jobs:
           AUTHOR_ID: ${{ github.event.pull_request.user.id }}
         run: |
           git diff --name-only --no-renames "$BASE...$HEAD" \
-            | python3 tools/guard.py --branch "$BRANCH" --author-type "$AUTHOR_TYPE" --author "$AUTHOR" --author-id "$AUTHOR_ID"
+            | python3 tools/guard.py --branch "$BRANCH" --author-type "$AUTHOR_TYPE" --author "$AUTHOR" --author-id "$AUTHOR_ID" --base "$BASE" --head "$HEAD"
 
   canary:
     runs-on: ubuntu-latest
@@ -78,6 +78,10 @@ jobs:
           fi
           if printf 'tests/canary.yag\n' | python3 tools/guard.py --branch feature/x --author some-agent; then
             echo "guard accepted a non-lead author on a non-agent branch" >&2
+            exit 1
+          fi
+          if printf 'conformance/yag/run/std/canary.yag\n' | python3 tools/guard.py --branch agent/canary; then
+            echo "guard accepted an unpaired agent patch to conformance/" >&2
             exit 1
           fi
 

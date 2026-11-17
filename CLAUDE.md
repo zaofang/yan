@@ -15,8 +15,7 @@ Laws and gates: [docs/development-laws.md](docs/development-laws.md).
 
 CASE WITH ROW (lead decision 2026-11-16, #1025; replaces the 2026-11-12 spec freeze, exit met at 59.1
 percent of rows without a case, 524 of 887, main 5f7a7e3): every new spec row lands with its conformance
-case in the same PR set (the spec PR and its `conform/*` PR), so spec debt cannot grow. A row with no
-case is not merged.
+case in the same PR, so spec debt cannot grow. A row with no case is not merged.
 
 The spec is `spec/` (one file per top-level section). It changes only for rows the lead accepted, in a
 PR the lead merges.
@@ -33,8 +32,17 @@ Never hand-edit the block between the `rows:` markers in `spec/appendix-a.md`.
 
 ## Paths
 
-Agents never edit `tests/` or `conformance/`; propose changes in a separate PR. CI's path guard
-(`tools/guard.py`) enforces this for every PR whose author is not the lead, whatever the branch name.
+Agents never edit `tests/`. Agents edit `conformance/` only in a paired PR: one that adds spec rows
+and, in the same PR, the new cases that cite them (`# rows:` header or `expect.toml`), with
+`conformance/manifest.json` regenerated (`uv run python tools/conform.py --manifest
+conformance/manifest.json --report-only`) and, for new codes, additions to `conformance/catalogue.toml`.
+Editing or deleting an existing case, or adding one that cites no new row, goes in a separate PR the
+lead owns. CI's path guard (`tools/guard.py`) enforces this for every PR whose author is not the lead,
+whatever the branch name; CODEOWNERS still sends every `conformance/` change to the lead.
+
+Row collisions: run `uv run python tools/rows.py renumber --base origin/main` before merging main into
+the branch. It moves the branch's rows above main's top and rewrites spec, rows.toml and the branch's
+own new cases, and regenerates the manifest.
 
 ## Practices
 
