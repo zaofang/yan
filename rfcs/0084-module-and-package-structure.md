@@ -383,41 +383,56 @@ tally package under `examples/tally/package` becomes the golden acceptance case 
 - Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
 - Row: pending, numbered with the spec PR
 
-### D13: manifest and lock formats
+### D13: manifest and configuration are data files with their own extension
 
-Today the manifest is `package.yag` (a literal-only Yan constant, RFC 0044 D1) and the lock is `yan.lock`,
-TOML, `format` integer first, written canonically (RFC 0044 D3, where the lead chose TOML over the
-recommended Yan data file). The question is whether the manifest should also be TOML.
+The manifest needs no computation and has none: `package.yag` is one typed constant built from literals,
+read without running code, and anything else in it is an error (data profile, RFC 0033; spec 19.1 and
+17.3). Nothing about it is Turing complete or dynamic. The problem is the name. A manifest spelled
+`.yag` looks like code, so a reviewer, a scanner or an editor cannot tell from the path that opening or
+building a dependency's manifest executes nothing, and `yan run package.yag` is a meaningful command
+today. RFC 0033 D1 chose "a profile of Yan Agent with no extension of its own" to avoid a new surface; that
+reasoning is about surfaces (a new surface adds meaning), not about whether data and code should be
+distinguishable by name, and it did not weigh the cost above.
 
-For a TOML manifest: ubiquitous; editors, schema tools and outside scanners (dependency bots, graph
-views) read it unaided; the toolchain would have one data language instead of two.
+Proposal: a data file is a file with the extension `.yd` (the lead may choose the spelling; it must be
+checked against existing registered extensions before it is frozen). It is parsed by the Yan Agent
+parser and checked by the data-profile checker, so every benefit of the typed constant stays: constructors
+checked against the `Package`, `Lints`, `Config` types, the unknown-field rule, a lossless tree for
+`yan add` and `update`, one canonical printer, `parse[T]` and `dump` (RFC 0033). What changes is that the
+profile is selected by the extension, not discovered by analysing a `.yag` file: a `.yd` file that
+contains a function, an import, a call or a name that is not a constructor is an error on that line, a
+`.yd` file is never run, compiled into a program or reachable from a module's name resolution, and
+`yan run` refuses it by name. Tools, editors, linguists and reviewers know "data, executes nothing" from
+the path alone.
 
-Against it: (1) `Package` is a Yan type, and `Lints(...)`, `Python(...)`, `I18n(...)`, `Embedded(...)` and
-attenuated capabilities such as `net.only(...)` are constructors. In TOML they become untyped tables
-that a second schema checker must keep in step with the type, where the data profile already checks the
-constant with the language's own checker and unknown-field rule; (2) a single-file script carries its
-manifest as the same constant in the script, so TOML would give the manifest two spellings, which RFC 0044
-D1 rejected for a second extension on the same grounds; (3) `yan add`, `remove` and `update` edit the
-manifest and must keep comments and layout: the Yan front end has a lossless tree and one canonical
-printer, while TOML needs a second lossless editor, and the self-hosted compiler (RFC 0082) would have to
-carry it in Yan; (4) RFC 0033 already makes literal Yan files the language's typed data format
-(`parse[T]`, canonical print, hash), so a TOML manifest would make Yan's own packages the one project that
-does not use it. TOML's ambiguities (dates, inline versus dotted tables) matter less and are not the
-reason.
+Names that follow: `package.yd` (the manifest, the only name read), `.yan/config.yd` (19.1 configuration),
+and any user file read by `std.data`. `yan.lock` stays TOML, machine-written and read by outside scanners
+(RFC 0044 D3); `std.toml` stays for interop. A single-file script still carries its `Package` constant
+in the script, because a script is code by nature; the script's constant is the same data-profile subset,
+and the toolchain reads it without running the script. `yan metadata --json` prints the resolved graph,
+each package's manifest fields and its module tree for editors and dependency bots, so outsiders never need
+to parse `package.yd`.
 
-The outside-tooling benefit is real and does not need a TOML manifest: it comes from the resolved graph,
-which is in `yan.lock` (TOML, for any scanner) and `yan sbom` (CycloneDX), and from the registry's OSV
-ecosystem. What outsiders lack is a way to read the manifest's declared requirements.
+Where this document says `package.yag` (D2, D7), `package.yd` is meant if this decision is accepted.
+Pre-1.0 there is no alias: a directory with `package.yag` and no `package.yd` is an error that names the new
+file, and a `yan fix` step renames it; the old spelling is never read (fail loud).
 
-Recommendation: keep `package.yag` for the manifest and TOML for the lock. The split is by role: the
-manifest is typed, human- and tool-edited data owned by the language; the lock is machine-written
-exchange data owned by outsiders as much as by `yan`. Add one command, `yan metadata --json`, that prints
-the resolved package graph, each package's manifest fields and its module tree as JSON, so editors and
-bots never parse `package.yag`. No TOML manifest, no second spelling. `std.toml` stays for interop.
+Options:
+(a) `package.yd` and `.yd` data files (recommended). Visibly data, one checker, no new parser or surface, typed
+constructors and lossless editing kept. Cost: one more extension in the frozen-name list (the lead's call) and
+a rename of the manifest and the configuration file.
+(b) keep `package.yag` (RFC 0044 D1, RFC 0033 D1). Cheapest; leaves the executes-code impression and the
+`yan run package.yag` question, which a lint can only paper over.
+(c) a TOML manifest (`yan.toml`). Visibly data and familiar, but `Package`, `Lints`, `Python`, `I18n` and
+`net.only(...)` become untyped tables that a second schema checker must follow; a script's manifest keeps a
+second spelling; `yan add` needs a second lossless editor, which the self-hosted compiler would carry in Yan;
+and Yan's own packages would not use the data format RFC 0033 gives the language.
+(d) a neutral fixed filename with the `.yag` extension (for example `yan.package.yag`). The name still reads
+as code.
 
-Options: (a) as recommended; (b) `yan.toml` manifest plus `yan.lock` (Cargo, uv, Julia); (c) both,
-equivalent. (c) doubles discovery, validation and every tool that edits the manifest; (b) gives up (1) to
-(4) for ecosystem familiarity that `yan metadata` provides without them.
+Recommendation: (a). It meets the criterion that the manifest is visibly not code, keeps the one checker and
+the lossless editor, and removes a class of "does this run?" questions. It does amend RFC 0033 D1 and the
+extension list, which is why it is a card.
 
 - Decision:
 - Row:
@@ -438,7 +453,7 @@ equivalent. (c) doubles discovery, validation and every tool that edits the mani
 
 3.5 and 3.6 (`pkg` modifier, module path not in the hash); 13.1 and 15.2 (`pkg`, `use` forms, `pub use`);
 17 (name-resolution order and roots, source roots for std); 18.1 (commands `yan tree`, `yan api`,
-`yan mv`, `--example`, `--member`; the `-o` rule); 19.1 (layout subsection, `yan metadata`: the tree of D2, workspace
+`yan mv`, `--example`, `--member`; the `-o` rule); 19.1 (layout subsection, `yan metadata`, extension `.yd`: the tree of D2, workspace
 member binding, dev-dependency cycle rule); 19.3 (archive contents by directory); 25 (new diagnostics for
 the layout errors of D1, the root collision of D4, a private or `pkg` name in a `pub` signature, the
 dev-dependency cycle and a file outside every source root; codes taken at numbering time); 12 (`ffi.`
