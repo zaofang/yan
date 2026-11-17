@@ -402,6 +402,9 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1054 | compiler performance gate at S4 and RC in callgrind instruction counts (RFC 0082 D13) | 22.7 |
 | R1055 | pointer constructors without a Ptr argument take the pointee type from [T] or the expected type, else E205 (#1527) | 6.6, 25 |
 | R1056 | section 25 lists N01 to N54; N02 and N11 are silent lexical normalizations, every other N-code reports its note (#1527 decision 6) | 14.4, 25 |
+| R1061 | N55 reads `str.format` and `%` on a string literal as an f-string; what an f-string cannot say stays E203 or E201 (#1543 group 6) | 14.4 |
+| R1062 | N56 reads `input()` as `io.read_line() else ""`, empty at end of input (#1543 group 8) | 14.4 |
+| R1063 | `type`, `isinstance`, `open` and `sys.getsizeof` are E200 with a message naming the Yan replacement (#1543 groups 7 and 8) | 14.4 |
 
 <!-- /rows -->
 
