@@ -81,7 +81,13 @@ impl Lower<'_, '_, '_> {
                     );
                 }
                 if !matches!(rhs, Rhs::Atom(_)) {
-                    self.emit(StmtKind::Rhs(rhs), at);
+                    // A discarded copy is reported at the `copy` expression (E416).
+                    let sp = if matches!(rhs, Rhs::Copy(_)) {
+                        e.span
+                    } else {
+                        at
+                    };
+                    self.emit(StmtKind::Rhs(rhs), sp);
                 }
             }
             K::Assign { target, ty, value } => {
@@ -155,6 +161,9 @@ impl Lower<'_, '_, '_> {
                         let (a, t) = self.atom(e, Some(&want))?;
                         self.expect(&t, &want, e.span);
                         self.guard_escape(&t, e.span);
+                        if !t.is_copy() && !matches!(t, Ty::Param(_)) {
+                            self.sink_of_element(&a, e.span);
+                        }
                         a
                     }
                 };

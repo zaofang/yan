@@ -53,6 +53,7 @@ E200 = { section = "20.3", status = "active", meaning = "unresolved name, includ
 E201 = { section = "10.1, 14.1", status = "active", meaning = "type mismatch, with the differing parts of the two types marked" }
 E202 = { section = "14.1, 15.3", status = "active", meaning = "wrong number of arguments, or unknown keyword or label argument" }
 E203 = { section = "10.2, 17.2", status = "active", meaning = "no such field or method; nearest names suggested" }
+E205 = { section = "6.6", status = "active", meaning = "pointer constructor without a pointee type" }
 E210 = { section = "14.1, 15.3", status = "active", meaning = "keyword or label arguments required (parameters share a type)" }
 E220 = { section = "10.2", status = "active", meaning = "overlapping impls" }
 E221 = { section = "10.2", status = "active", meaning = "type does not implement a required trait; the trait's @diagnostic hint is shown when present" }

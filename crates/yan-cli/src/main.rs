@@ -179,7 +179,7 @@ enum Command {
         agent: bool,
     },
     /// Record a local approval of `@org/name@x.y.z` (19.4, R948): `signer = "local"`, which clears
-    /// local gates and fails CI's `approvers` check (E009).
+    /// local gates and fails CI's `approvers` check.
     Approve {
         /// `@org/name@x.y.z`.
         spec: String,
