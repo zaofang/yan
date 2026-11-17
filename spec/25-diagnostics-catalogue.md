@@ -42,7 +42,7 @@ This is the complete registry of diagnostic codes for 0.1.0. Codes keep their me
 | E015 | approved test in tests.lock is missing new | 18.4 |
 | E016 | `yan publish` refuses the manifest: `overrides`, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later *new* | 19.4 |
 | E023 | package with an `ffi` module or extern block not named in the root's `allow_ffi`, at compile or at dependency resolution (R1018, R1019) *new* | 12, 19.1, 19.2 |
-| E024 | layout error in a package: two files with one module path, a file or directory name that is not a value name or is a Windows device name, a reserved top-level module name, or a dependency local name that is reserved, equals an own top-level module or repeats another dependency's (R1064, R1070) *new* | 19.1 |
+| E024 | layout error in a package: two files with one module path, a file or directory name that is not a value name or is a Windows device name, a reserved top-level module name, or a dependency local name that is reserved, equals an own top-level module or repeats another dependency's (R1064, R1074) *new* | 19.1 |
 | E018 | `package.yag` or `.yan/config.yag` has a field not in its table, or lacks `name`, `version`, `edition` or `yan` where required *new* | 19.1 |
 | E019 | `yan.lock` has a `format` newer than this toolchain reads *new* | 19.1 |
 | E020 | under `--locked`, `yan.lock` is missing or does not match the manifest, an offline archive is absent, or a recorded foreign set differs from the archive (R1034) *new* | 19.1, 19.2 |

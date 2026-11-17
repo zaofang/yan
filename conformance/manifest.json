@@ -16174,13 +16174,13 @@
     "19.1"
    ],
    "rows": [
-    "R1070"
+    "R1074"
    ],
    "flags": [],
    "expect": [],
    "expect_toml": {
     "spec": "19.1",
-    "rows": "R1070",
+    "rows": "R1074",
     "note": "a dependency local name equal to an own top-level module is E024 on package.yag, naming both sides",
     "command": [
      "check"

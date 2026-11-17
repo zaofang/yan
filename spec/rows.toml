@@ -2042,7 +2042,7 @@ topic = "`pkg` visibility: an item is private, `pkg` or `pub`; a private item is
 sections = "3.5, 13.1, 15.2, 25"
 
 [[entry]]
-rows = "R1070"
+rows = "R1074"
 topic = "a dependency local name that is reserved, equals an own top-level module or repeats another dependency's is E024 on `package.yag` (RFC 0084 D4, slice 3)"
 sections = "19.1, 25"
 
