@@ -935,6 +935,11 @@
    "flags": [],
    "expect": [
     {
+     "code": "E323",
+     "line": 8,
+     "col": 5
+    },
+    {
      "code": "E415",
      "line": 8,
      "col": 13
@@ -11882,6 +11887,23 @@
    "exit": 0
   },
   {
+   "path": "yn/run/concurrency/mutex_with_guard_value.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "6.3",
+    "15"
+   ],
+   "rows": [
+    "R1035",
+    "R1036"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3\n4\n",
+   "exit": 0
+  },
+  {
    "path": "yn/run/concurrency/par_source_order.yn",
    "kind": "run",
    "milestone": "M3",
@@ -13579,6 +13601,22 @@
    "flags": [],
    "expect": [],
    "ub": "4"
+  },
+  {
+   "path": "ub/mutex_with_guard_value_no_race.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.3",
+    "6.7"
+   ],
+   "rows": [
+    "R1035",
+    "R1036"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none"
   },
   {
    "path": "ub/offset_outside_allocation.yn",
