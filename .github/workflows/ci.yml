@@ -205,6 +205,11 @@ jobs:
       - run: >-
           uv run python -m tools.nativelive
           --yan ${{ github.workspace }}/target/release/yan
+      # Undefined-behavior sweep (#1583): the same corpus on `--ub`; any UB or leak report, panic or fault fails.
+      # Programs it reports are listed in tools/ubsweep_allow.toml with an issue. About 10 s on 4 cores.
+      - run: >-
+          uv run python -m tools.ubsweep
+          --yan ${{ github.workspace }}/target/release/yan
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
