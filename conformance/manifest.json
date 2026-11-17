@@ -16825,6 +16825,52 @@
    }
   },
   {
+   "path": "pkg/e334_dev_dependency_cycle",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1076"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1076",
+    "note": "dev_dependencies that reach the package itself through a dependency's normal requirements are E334 naming the path",
+    "command": [
+     "check"
+    ],
+    "code": "E334",
+    "at": "package.yag:1:1"
+   }
+  },
+  {
+   "path": "pkg/e335_member_below_requirement",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1077"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1077",
+    "note": "a requirement whose package and major a workspace member has, but whose minimum the member's version does not reach, is E335 and never falls back to the registry",
+    "command": [
+     "check"
+    ],
+    "code": "E335",
+    "at": "package.yag:1:1"
+   }
+  },
+  {
    "path": "pkg/edition_named_year",
    "kind": "pkg",
    "milestone": "M1",
@@ -17145,6 +17191,30 @@
      "test",
      "--gate"
     ]
+   }
+  },
+  {
+   "path": "pkg/publish_check_members_in_order",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.4"
+   ],
+   "rows": [
+    "R1078"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.4",
+    "rows": "R1078",
+    "note": "yan publish --check at a workspace root checks every member, each after the members it requires, and reports a member's refusal on that member's package.yag",
+    "command": [
+     "publish",
+     "--check"
+    ],
+    "code": "E016",
+    "at": "a/package.yag:0:0"
    }
   },
   {

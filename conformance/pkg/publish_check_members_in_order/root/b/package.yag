@@ -1,0 +1,1 @@
+package: Package = Package(name="@conf/b", version="1.0.0", yan="1.x", platform="cli", edition="next", capabilities=[], dependencies={"a": "@conf/a 1.0"})

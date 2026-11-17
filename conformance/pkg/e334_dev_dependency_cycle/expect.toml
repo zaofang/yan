@@ -1,0 +1,6 @@
+spec = "19.1"
+rows = "R1076"
+note = "dev_dependencies that reach the package itself through a dependency's normal requirements are E334 naming the path"
+command = ["check"]
+code = "E334"
+at = "package.yag:1:1"

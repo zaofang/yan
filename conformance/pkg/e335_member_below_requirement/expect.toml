@@ -1,0 +1,6 @@
+spec = "19.1"
+rows = "R1077"
+note = "a requirement whose package and major a workspace member has, but whose minimum the member's version does not reach, is E335 and never falls back to the registry"
+command = ["check"]
+code = "E335"
+at = "package.yag:1:1"
